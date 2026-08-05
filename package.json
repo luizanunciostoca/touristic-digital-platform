@@ -13,7 +13,9 @@
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",
     "architecture:check": "node tooling/architecture/check-dependencies.mjs",
-    "check": "pnpm format:check && pnpm architecture:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build",
+    "features:check": "node -e \"const r=require('./docs/features/registry.json'); const ids=r.features.map(f=>f.id); if(new Set(ids).size!==ids.length) process.exit(1); if(r.features.some(f=>!/^FEATURE-\\d{4}$/.test(f.id))) process.exit(1); console.log('Feature Registry válido:', ids.length, 'features')\"",
+    "design-system:inventory": "node tooling/design-system/inventory-v1-css.mjs",
+    "check": "pnpm format:check && pnpm architecture:check && pnpm features:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
