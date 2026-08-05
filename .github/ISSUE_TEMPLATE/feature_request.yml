@@ -1,0 +1,55 @@
+name: Proposta de funcionalidade
+description: Propor capacidade nova ou evolução controlada da plataforma
+title: "feat: "
+labels: ["enhancement", "triage"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problema e resultado de negócio
+    validations:
+      required: true
+  - type: textarea
+    id: users
+    attributes:
+      label: Usuários e jornadas afetadas
+    validations:
+      required: true
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Escopo multi-destino
+      options:
+        - Núcleo compartilhado
+        - Morro de São Paulo
+        - Configuração reutilizável por destino
+        - Ainda não definido
+    validations:
+      required: true
+  - type: textarea
+    id: v1
+    attributes:
+      label: Relação com a V1
+      description: Indique o que deve ser preservado, adaptado ou criado.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Critérios de aceite
+    validations:
+      required: true
+  - type: textarea
+    id: architecture
+    attributes:
+      label: Impactos arquiteturais e riscos
+      description: APIs, eventos, banco, Mapbox, pagamentos, segurança, LGPD e rollback.
+  - type: checkboxes
+    id: governance
+    attributes:
+      label: Governança
+      options:
+        - label: A proposta evita duplicação por destino.
+          required: true
+        - label: Mudança estrutural terá ADR antes da implementação.
+          required: true
