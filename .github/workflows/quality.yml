@@ -20,7 +20,15 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-      - run: pnpm install --frozen-lockfile=false
+      - name: Install dependencies and generate lockfile
+        run: pnpm install --frozen-lockfile=false
+      - name: Upload generated lockfile
+        uses: actions/upload-artifact@v4
+        with:
+          name: pnpm-lockfile
+          path: pnpm-lock.yaml
+          if-no-files-found: error
+          retention-days: 7
       - run: pnpm format:check
       - run: pnpm lint
       - run: pnpm typecheck
