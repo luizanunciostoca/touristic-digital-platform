@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "platform": "touristic-digital-platform",
+  "features": [
+    {"id":"FEATURE-0001","name":"Mapa Interativo","domain":"geospatial","wave":4,"status":"baseline-pending","legacySources":["v1:mapbox","v1:leaflet"],"targetPackages":["@touristic/geospatial"],"equivalence":{"behavior":false,"visual":false,"api":false}},
+    {"id":"FEATURE-0002","name":"Busca e Descoberta","domain":"marketplace","wave":5,"status":"baseline-pending","legacySources":["v1:search","v1:assistant"],"targetPackages":["@touristic/search","@touristic/marketplace"],"equivalence":{"behavior":false,"visual":false,"api":false}},
+    {"id":"FEATURE-0003","name":"Navegação e Rotas","domain":"geospatial","wave":4,"status":"baseline-pending","legacySources":["v1:navigation","v1:routing"],"targetPackages":["@touristic/geospatial","@touristic/navigation"],"equivalence":{"behavior":false,"visual":false,"api":false}},
+    {"id":"FEATURE-0004","name":"Assistente Digital","domain":"assistant","wave":11,"status":"baseline-pending","legacySources":["v1:assistant","v1:tts"],"targetPackages":["@touristic/assistant","@touristic/voice"],"equivalence":{"behavior":false,"visual":false,"api":false}},
+    {"id":"FEATURE-0005","name":"Business Portal","domain":"business","wave":6,"status":"baseline-pending","legacySources":["v1:dashboard","v1:onboarding"],"targetPackages":["@touristic/business"],"equivalence":{"behavior":false,"visual":false,"api":false}},
+    {"id":"FEATURE-0006","name":"CRM Administrativo","domain":"admin","wave":7,"status":"planned","legacySources":["crm:v1"],"targetPackages":["apps/admin-crm"],"equivalence":{"behavior":false,"visual":false,"api":false}},
+    {"id":"FEATURE-0007","name":"Design System","domain":"experience","wave":2,"status":"inventory-in-progress","legacySources":["v1:css","v1:assets"],"targetPackages":["@touristic/design-system"],"equivalence":{"behavior":false,"visual":false,"api":true}},
+    {"id":"FEATURE-0008","name":"Autenticação e Sessão","domain":"identity","wave":6,"status":"baseline-pending","legacySources":["v1:auth"],"targetPackages":["@touristic/auth"],"equivalence":{"behavior":false,"visual":false,"api":false}},
+    {"id":"FEATURE-0009","name":"Pagamentos e Assinaturas","domain":"payments","wave":8,"status":"planned","legacySources":["v1:checkout"],"targetPackages":["@touristic/payments"],"equivalence":{"behavior":false,"visual":false,"api":false}},
+    {"id":"FEATURE-0010","name":"Programa de Afiliados","domain":"affiliates","wave":9,"status":"planned","legacySources":[],"targetPackages":["@touristic/affiliates"],"equivalence":{"behavior":true,"visual":false,"api":false}}
+  ]
+}
