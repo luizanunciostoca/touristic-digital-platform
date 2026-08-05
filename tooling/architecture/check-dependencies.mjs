@@ -1,19 +1,19 @@
 #!/usr/bin/env node
 
-import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
-import path from 'node:path';
-import process from 'node:process';
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import path from "node:path";
+import process from "node:process";
 
 const root = process.cwd();
-const workspaceRoots = ['apps', 'packages', 'services', 'tooling'];
+const workspaceRoots = ["apps", "packages", "services", "tooling"];
 const violations = [];
 
 function readJson(file) {
-  return JSON.parse(readFileSync(file, 'utf8'));
+  return JSON.parse(readFileSync(file, "utf8"));
 }
 
 function packageKind(relativeDir) {
-  return relativeDir.split('/')[0];
+  return relativeDir.split("/")[0];
 }
 
 function listWorkspacePackages() {
@@ -23,9 +23,9 @@ function listWorkspacePackages() {
     if (!existsSync(basePath)) continue;
     for (const name of readdirSync(basePath)) {
       const dir = path.join(basePath, name);
-      const manifest = path.join(dir, 'package.json');
+      const manifest = path.join(dir, "package.json");
       if (statSync(dir).isDirectory() && existsSync(manifest)) {
-        const relativeDir = path.relative(root, dir).replaceAll('\\', '/');
+        const relativeDir = path.relative(root, dir).replaceAll("\\", "/");
         result.push({ dir, relativeDir, manifest: readJson(manifest) });
       }
     }
@@ -50,16 +50,25 @@ for (const workspace of workspaces) {
     if (!target) continue;
     const targetKind = packageKind(target.relativeDir);
 
-    if (kind === 'packages' && targetKind === 'apps') {
-      violations.push(`${workspace.relativeDir} não pode depender de ${target.relativeDir}`);
+    if (kind === "packages" && targetKind === "apps") {
+      violations.push(
+        `${workspace.relativeDir} não pode depender de ${target.relativeDir}`,
+      );
     }
 
-    if (workspace.relativeDir === 'packages/core') {
-      violations.push(`packages/core não pode possuir dependência interna: ${dependencyName}`);
+    if (workspace.relativeDir === "packages/core") {
+      violations.push(
+        `packages/core não pode possuir dependência interna: ${dependencyName}`,
+      );
     }
 
-    if (workspace.relativeDir === 'packages/shared' && targetKind === 'packages') {
-      violations.push(`packages/shared deve permanecer agnóstico e não pode depender de ${dependencyName}`);
+    if (
+      workspace.relativeDir === "packages/shared" &&
+      targetKind === "packages"
+    ) {
+      violations.push(
+        `packages/shared deve permanecer agnóstico e não pode depender de ${dependencyName}`,
+      );
     }
   }
 }
@@ -71,7 +80,8 @@ function walk(dir) {
     const full = path.join(dir, entry);
     const stat = statSync(full);
     if (stat.isDirectory()) {
-      if (!['node_modules', 'dist', 'coverage', '.turbo'].includes(entry)) files.push(...walk(full));
+      if (!["node_modules", "dist", "coverage", ".turbo"].includes(entry))
+        files.push(...walk(full));
     } else if (/\.(?:ts|tsx|js|jsx|mjs|cjs)$/.test(entry)) {
       files.push(full);
     }
@@ -81,21 +91,27 @@ function walk(dir) {
 
 for (const base of workspaceRoots) {
   for (const file of walk(path.join(root, base))) {
-    const relative = path.relative(root, file).replaceAll('\\', '/');
-    const source = readFileSync(file, 'utf8');
+    const relative = path.relative(root, file).replaceAll("\\", "/");
+    const source = readFileSync(file, "utf8");
 
-    if (/from\s+['"][^'"]*(?:^|\/)apps\//m.test(source) || /import\s*\(['"][^'"]*(?:^|\/)apps\//m.test(source)) {
+    if (
+      /from\s+['"][^'"]*(?:^|\/)apps\//m.test(source) ||
+      /import\s*\(['"][^'"]*(?:^|\/)apps\//m.test(source)
+    ) {
       violations.push(`${relative} importa diretamente código de apps/*`);
     }
 
-    if (relative.startsWith('packages/') && /from\s+['"][.]{1,2}\/[^'"]*(?:apps|services)\//m.test(source)) {
+    if (
+      relative.startsWith("packages/") &&
+      /from\s+['"][.]{1,2}\/[^'"]*(?:apps|services)\//m.test(source)
+    ) {
       violations.push(`${relative} atravessa fronteira por import relativo`);
     }
   }
 }
 
 if (violations.length > 0) {
-  console.error('Violações arquiteturais encontradas:\n');
+  console.error("Violações arquiteturais encontradas:\n");
   for (const violation of violations) console.error(`- ${violation}`);
   process.exit(1);
 }
