@@ -20,12 +20,24 @@ jobs:
       - name: Checkout platform
         uses: actions/checkout@v4
 
+      - name: Validate V1 repository token
+        shell: bash
+        env:
+          V1_REPOSITORY_TOKEN: ${{ secrets.V1_REPOSITORY_TOKEN }}
+        run: |
+          if [ -z "$V1_REPOSITORY_TOKEN" ]; then
+            echo "::error::Configure o secret V1_REPOSITORY_TOKEN com acesso somente leitura ao repositório privado luizidebook/morro-de-sao-paulo-digital."
+            exit 1
+          fi
+
       - name: Checkout V1 baseline
         uses: actions/checkout@v4
         with:
           repository: luizidebook/morro-de-sao-paulo-digital
           ref: main
           path: .audit/v1
+          token: ${{ secrets.V1_REPOSITORY_TOKEN }}
+          persist-credentials: false
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
