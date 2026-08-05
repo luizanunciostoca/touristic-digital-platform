@@ -1,4 +1,4 @@
 export {
   morroDeSaoPauloDestination,
   morroDeSaoPauloGeospatialPolicy,
-} from './config/destination.js';
+} from "./config/destination.js";

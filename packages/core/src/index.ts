@@ -1,4 +1,4 @@
-export type DestinationId = string & { readonly __brand: 'DestinationId' };
+export type DestinationId = string & { readonly __brand: "DestinationId" };
 
 export interface Coordinates {
   readonly latitude: number;
@@ -16,7 +16,10 @@ export interface DestinationConfig {
   readonly modules: Readonly<Record<string, boolean>>;
 }
 
-export function defineDestination(config: DestinationConfig): DestinationConfig {
-  if (config.radiusMeters <= 0) throw new Error('Destination radius must be positive');
+export function defineDestination(
+  config: DestinationConfig,
+): DestinationConfig {
+  if (config.radiusMeters <= 0)
+    throw new Error("Destination radius must be positive");
   return Object.freeze(config);
 }

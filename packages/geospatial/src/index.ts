@@ -1,5 +1,5 @@
-export type MapProvider = 'mapbox' | 'leaflet';
-export type RoutingProvider = 'mapbox-directions' | 'openrouteservice';
+export type MapProvider = "mapbox" | "leaflet";
+export type RoutingProvider = "mapbox-directions" | "openrouteservice";
 
 export interface GeospatialPolicy {
   readonly mapProvider: MapProvider;
@@ -9,8 +9,8 @@ export interface GeospatialPolicy {
 }
 
 export const defaultGeospatialPolicy: GeospatialPolicy = {
-  mapProvider: 'mapbox',
-  routingPrimary: 'mapbox-directions',
-  routingFallback: 'openrouteservice',
+  mapProvider: "mapbox",
+  routingPrimary: "mapbox-directions",
+  routingFallback: "openrouteservice",
   legacyFallbackEnabled: true,
 };
