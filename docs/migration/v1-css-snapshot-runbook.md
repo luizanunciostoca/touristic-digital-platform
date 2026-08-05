@@ -4,7 +4,7 @@
 
 Preservar, sem transformação, todo o grafo de folhas de estilo carregado por `css/main.css` da V1 antes da extração de tokens e componentes do novo Design System.
 
-## Pré-requisito
+## Pré-requisitos locais
 
 O checkout da V1 deve estar disponível em:
 
@@ -17,6 +17,22 @@ O arquivo de entrada esperado é:
 ```text
 .audit/v1/css/main.css
 ```
+
+## Pré-requisito no GitHub Actions
+
+O repositório da V1 é privado. O workflow `V1 CSS Legacy Snapshot` precisa do secret:
+
+```text
+V1_REPOSITORY_TOKEN
+```
+
+Esse token deve possuir acesso somente leitura ao repositório:
+
+```text
+luizidebook/morro-de-sao-paulo-digital
+```
+
+O token padrão `GITHUB_TOKEN` do repositório da plataforma não possui acesso automático a outro repositório privado. Sem esse secret, o workflow interrompe antes do checkout e apresenta uma mensagem explícita.
 
 ## Execução
 
@@ -60,7 +76,8 @@ Também registra um hash SHA-256 agregado, calculado a partir dos caminhos e has
 - qualquer import local ausente interrompe a execução;
 - imports que escapem da raiz informada interrompem a execução;
 - o diretório de destino é recriado integralmente a cada execução;
-- os arquivos são copiados byte a byte, sem minificação ou refatoração.
+- os arquivos são copiados byte a byte, sem minificação ou refatoração;
+- o checkout da V1 usa credencial dedicada e não persiste credenciais no workspace.
 
 ## Critérios de aprovação
 
