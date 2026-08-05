@@ -1,9 +1,6 @@
 import type { AppShellContract } from "./contracts.js";
 import { createHeader, type HeaderViewModel } from "./header.js";
-import {
-  createNavigation,
-  type NavigationViewModel,
-} from "./navigation.js";
+import { createNavigation, type NavigationViewModel } from "./navigation.js";
 
 export interface AppShellViewModel {
   readonly type: "app-shell";
