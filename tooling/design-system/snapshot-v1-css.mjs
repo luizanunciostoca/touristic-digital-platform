@@ -72,7 +72,9 @@ for (const { filePath, css } of orderedFiles) {
 
   files.push({
     sourcePath: toPosix(relativePath),
-    snapshotPath: toPosix(path.relative(path.dirname(manifestPath), targetPath)),
+    snapshotPath: toPosix(
+      path.relative(path.dirname(manifestPath), targetPath),
+    ),
     bytes: Buffer.byteLength(css),
     sha256: sha256(css),
   });
