@@ -1,0 +1,77 @@
+name: V1 CSS Legacy Snapshot
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "tooling/design-system/snapshot-v1-css.mjs"
+      - "docs/migration/v1-css-snapshot-runbook.md"
+      - ".github/workflows/v1-css-legacy-snapshot.yml"
+      - "package.json"
+
+permissions:
+  contents: read
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout platform
+        uses: actions/checkout@v4
+
+      - name: Checkout V1 baseline
+        uses: actions/checkout@v4
+        with:
+          repository: luizidebook/morro-de-sao-paulo-digital
+          ref: main
+          path: .audit/v1
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate deterministic snapshot
+        run: pnpm design-system:snapshot
+
+      - name: Verify manifest and copied files
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const manifestPath = 'packages/design-system/src/legacy/manifest.json';
+          const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+          if (!Number.isInteger(manifest.fileCount) || manifest.fileCount < 2) {
+            throw new Error(`Snapshot inválido: fileCount=${manifest.fileCount}`);
+          }
+          if (!/^[a-f0-9]{64}$/.test(manifest.aggregateSha256)) {
+            throw new Error('Hash agregado inválido.');
+          }
+          for (const file of manifest.files) {
+            const absolute = path.resolve(path.dirname(manifestPath), file.snapshotPath);
+            if (!fs.existsSync(absolute)) throw new Error(`Arquivo ausente: ${absolute}`);
+            if (!/^[a-f0-9]{64}$/.test(file.sha256)) throw new Error(`Hash inválido: ${file.sourcePath}`);
+          }
+          console.log(`Snapshot validado: ${manifest.fileCount} arquivos; SHA-256 ${manifest.aggregateSha256}`);
+          NODE
+
+      - name: Upload legacy snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: v1-css-legacy-snapshot
+          path: |
+            packages/design-system/src/legacy/styles
+            packages/design-system/src/legacy/manifest.json
+          if-no-files-found: error
+          retention-days: 30
