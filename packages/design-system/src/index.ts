@@ -9,3 +9,16 @@ export const tokens = Object.freeze({
 });
 
 export type DesignTokens = typeof tokens;
+
+export type {
+  ActionContract,
+  AppShellContract,
+  BaseUiContract,
+  CoreUiSize,
+  CoreUiStatus,
+  FeedbackContract,
+  HeaderContract,
+  ModalContract,
+  NavigationContract,
+  NavigationItemContract,
+} from "./core-ui/contracts.js";
