@@ -1,0 +1,24 @@
+# Ownership padrão da plataforma
+* @luizidebook
+
+# Governança e automação
+/.github/ @luizidebook
+/docs/ @luizidebook
+/tooling/ @luizidebook
+/infrastructure/ @luizidebook
+
+# Aplicações e capacidades compartilhadas
+/apps/ @luizidebook
+/packages/core/ @luizidebook
+/packages/shared/ @luizidebook
+/packages/design-system/ @luizidebook
+/packages/geospatial/ @luizidebook
+/services/ @luizidebook
+
+# Arquivos críticos da fundação
+/package.json @luizidebook
+/pnpm-lock.yaml @luizidebook
+/pnpm-workspace.yaml @luizidebook
+/turbo.json @luizidebook
+/tsconfig.base.json @luizidebook
+/eslint.config.mjs @luizidebook

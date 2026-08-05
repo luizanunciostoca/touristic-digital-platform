@@ -1,0 +1,16 @@
+export type MapProvider = "mapbox" | "leaflet";
+export type RoutingProvider = "mapbox-directions" | "openrouteservice";
+
+export interface GeospatialPolicy {
+  readonly mapProvider: MapProvider;
+  readonly routingPrimary: RoutingProvider;
+  readonly routingFallback: RoutingProvider;
+  readonly legacyFallbackEnabled: boolean;
+}
+
+export const defaultGeospatialPolicy: GeospatialPolicy = {
+  mapProvider: "mapbox",
+  routingPrimary: "mapbox-directions",
+  routingFallback: "openrouteservice",
+  legacyFallbackEnabled: true,
+};
