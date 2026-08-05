@@ -27,7 +27,9 @@ export function createFeedback(
     type: "feedback",
     status: contract.status,
     title,
-    ...(contract.message?.trim() ? { message: contract.message.trim() } : {}),
+    ...(contract.message?.trim()
+      ? { message: contract.message.trim() }
+      : {}),
     ...(contract.action ? { action: createAction(contract.action) } : {}),
     ariaLabel: contract.ariaLabel?.trim() || title,
     hidden: contract.hidden ?? false,
