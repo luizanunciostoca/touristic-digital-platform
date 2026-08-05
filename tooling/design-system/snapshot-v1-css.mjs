@@ -11,7 +11,8 @@ const manifestPath = path.resolve(
   process.argv[5] ?? "packages/design-system/src/legacy/manifest.json",
 );
 
-const importPattern = /@import\s+(?:url\()?\s*["']([^"']+)["']\s*\)?\s*;/gi;
+const importPattern =
+  /@import\s+(?:url\()?\s*["']([^"']+)["']\s*\)?\s*;/gi;
 const visited = new Set();
 const orderedFiles = [];
 
@@ -78,7 +79,9 @@ for (const { filePath, css } of orderedFiles) {
 }
 
 const aggregateHash = sha256(
-  files.map(({ sourcePath, sha256: hash }) => `${sourcePath}:${hash}`).join("\n"),
+  files
+    .map(({ sourcePath, sha256: hash }) => `${sourcePath}:${hash}`)
+    .join("\n"),
 );
 
 const manifest = {
