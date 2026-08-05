@@ -1,0 +1,128 @@
+{
+  "schemaVersion": "1.0.0",
+  "source": {
+    "repository": "luizidebook/morro-de-sao-paulo-digital",
+    "ref": "main",
+    "entryHtml": {
+      "path": "index.html",
+      "sha": "cf28a34acfe798fa3af9e74076cc9747907a1a32"
+    },
+    "entryStylesheet": {
+      "path": "css/main.css",
+      "sha": "ae1e6a8f6d17e4e7a3b0f467ec162bcb7a2cea2d"
+    },
+    "variablesStylesheet": {
+      "path": "css/base/variables.css",
+      "sha": "8686e390ef14db5de3dd84f6394f0c896160ff42"
+    }
+  },
+  "summary": {
+    "localStylesheetEntryPoints": 1,
+    "localImportedStylesheets": 34,
+    "externalStylesheetProviders": 7,
+    "inlineStyleBlocksInIndex": 3,
+    "preservationPolicy": "PRESERVE_BEFORE_REFACTOR"
+  },
+  "externalStylesheets": [
+    "Leaflet 1.9.4",
+    "Mapbox GL JS 3.12.0",
+    "Awesomplete 1.1.5",
+    "Font Awesome 5.15.4",
+    "Google Fonts — Poppins 300/400/600",
+    "Swiper Bundle",
+    "Weather Icons 2.0.10"
+  ],
+  "localStylesheets": [
+    "css/base/variables.css",
+    "css/base/reset.css",
+    "css/base/typography.css",
+    "css/base/animations.css",
+    "css/layout/app-shell.css",
+    "css/layout/map.css",
+    "css/layout/controls.css",
+    "css/components/buttons/buttons.css",
+    "css/components/buttons/end-navigation-btn.css",
+    "css/components/map/map-controls.css",
+    "css/components/map/map-indicators.css",
+    "css/components/map/map-rotation.css",
+    "css/components/map/map3d.css",
+    "css/components/map/map3d-loading.css",
+    "css/components/map/map-3d-fixes.css",
+    "css/components/map/mapbox-osm-3d.css",
+    "css/components/markers.css",
+    "css/components/location-indicator.css",
+    "css/components/navigation/navigation-banner.css",
+    "css/components/assistant/assistantModalUI.css",
+    "css/components/assistant/assistant-mood.css",
+    "css/components/assistant/carouselModal.css",
+    "css/components/assistant/assistant-voice-selector.css",
+    "css/components/tour/tour.css",
+    "css/components/popups.css",
+    "css/components/inputs/inputs.css",
+    "css/components/weather.css",
+    "css/components/accessibility.css",
+    "css/components/onboarding.css",
+    "css/components/interactive-tour.css",
+    "css/navigation/user-marker.css",
+    "css/vendor/leaflet-custom.css",
+    "css/vendor-fixes.css",
+    "css/base/responsive.css",
+    "css/z-index-standards.css"
+  ],
+  "tokensObserved": {
+    "colors": {
+      "primary": "#3b82f6",
+      "primaryDark": "#2563eb",
+      "accent": "#10b981",
+      "accentDark": "#059669",
+      "light": "#f9fafb",
+      "gray100": "#f3f4f6",
+      "gray200": "#e5e7eb",
+      "gray300": "#d1d5db",
+      "gray800": "#1f2937"
+    },
+    "fontFamily": "Poppins, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif",
+    "fontWeightsLoaded": [300, 400, 600],
+    "radii": {
+      "sm": "0.25rem",
+      "md": "0.5rem",
+      "lg": "0.75rem"
+    },
+    "breakpoints": {
+      "mobile": "375px",
+      "tablet": "768px",
+      "desktop": "1024px",
+      "ultrawide": "1280px"
+    },
+    "zIndex": {
+      "base": 1,
+      "controls": 10,
+      "popup": 100,
+      "modal": 1000,
+      "overlay": 2000,
+      "highest": 9999
+    },
+    "transition": "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+    "headerHeight": "3.75rem"
+  },
+  "inlineStylesObserved": {
+    "loadingOverlay": true,
+    "forcedColorsAccessibility": true,
+    "mapboxYouAreHerePopup": true,
+    "importantDeclarationsConfirmed": true,
+    "highestInlineZIndex": 10000,
+    "keyframes": ["spin"]
+  },
+  "migrationGates": [
+    "Preserve all local stylesheets before token replacement",
+    "Record source path and SHA for each copied file",
+    "Capture desktop, tablet and mobile baselines before refactoring",
+    "Validate Mapbox, Leaflet, assistant, navigation and accessibility states",
+    "Do not remove vendor overrides without visual and behavioral equivalence"
+  ],
+  "limitations": [
+    "This first grounded inventory follows the active index.html and css/main.css import graph.",
+    "Per-file selector counts, declarations, duplicate rules and full token frequency require execution of the inventory script against a local checkout or CI workspace containing the V1 repository.",
+    "Inline style attributes and styles dynamically injected by JavaScript remain pending runtime capture."
+  ]
+}
