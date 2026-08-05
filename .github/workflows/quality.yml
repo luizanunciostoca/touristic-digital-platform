@@ -35,8 +35,15 @@ jobs:
             git commit -m "chore: generate lockfile and normalize formatting"
             git push origin HEAD:${{ github.head_ref }}
           fi
-      - run: pnpm format:check
-      - run: pnpm lint
-      - run: pnpm typecheck
-      - run: pnpm test
-      - run: pnpm build
+      - name: Check formatting
+        run: pnpm format:check
+      - name: Check architecture boundaries
+        run: pnpm architecture:check
+      - name: Lint
+        run: pnpm lint
+      - name: Typecheck
+        run: pnpm typecheck
+      - name: Test
+        run: pnpm test
+      - name: Build
+        run: pnpm build
