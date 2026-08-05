@@ -1,2 +1,5 @@
 docs/product-architecture/*.md
 docs/migration/MASTER-MIGRATION-TRACKER.md
+docs/architecture/ADR-INDEX.md
+packages/design-system/src/core-ui/app-shell.ts
+packages/design-system/src/core-ui/feedback.ts
