@@ -6,39 +6,28 @@ on:
     branches: [main]
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   quality:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref || github.ref_name }}
       - uses: pnpm/action-setup@v4
         with:
           version: 10.15.0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Install dependencies and generate lockfile
-        run: pnpm install --frozen-lockfile=false
-      - name: Normalize formatting
-        run: pnpm format
-      - name: Commit generated foundation files
-        if: github.event_name == 'pull_request'
-        run: |
-          if [[ -n "$(git status --porcelain)" ]]; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add pnpm-lock.yaml .
-            git commit -m "chore: generate lockfile and normalize formatting"
-            git push origin HEAD:${{ github.head_ref }}
-          fi
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
       - name: Check formatting
         run: pnpm format:check
       - name: Check architecture boundaries
         run: pnpm architecture:check
+      - name: Validate Feature Registry
+        run: pnpm features:check
       - name: Lint
         run: pnpm lint
       - name: Typecheck
