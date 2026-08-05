@@ -1,0 +1,54 @@
+name: Relato de defeito
+description: Registrar comportamento incorreto, regressão ou falha de equivalência
+title: "bug: "
+labels: ["bug", "triage"]
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Área
+      options:
+        - Marketplace
+        - Mapbox e geoespacial
+        - Business Portal
+        - Admin CRM
+        - Design System
+        - Plataforma e infraestrutura
+        - Migração V1 → V2
+        - Outro
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Comportamento observado
+      description: Inclua passos exatos, resultado atual e evidências.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Comportamento esperado
+      description: Quando aplicável, descreva a baseline da V1.
+    validations:
+      required: true
+  - type: input
+    id: commit
+    attributes:
+      label: Commit, branch ou ambiente
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidências
+      description: Screenshots, logs, traces, rede, console ou fluxo auditado.
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Confirmações
+      options:
+        - label: Não contém segredos, tokens, dados pessoais ou credenciais reais.
+          required: true
+        - label: A correção não deve remover comportamento da V1 sem ADR e equivalência.
+          required: true
