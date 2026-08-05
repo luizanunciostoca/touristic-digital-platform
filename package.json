@@ -12,7 +12,8 @@
     "lint": "turbo run lint",
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",
-    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
+    "architecture:check": "node tooling/architecture/check-dependencies.mjs",
+    "check": "pnpm format:check && pnpm architecture:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
