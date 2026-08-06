@@ -1,3 +1,4 @@
+import type { EventBus } from "@touristic/core";
 import {
   createGeospatialEngine,
   createMapboxAdapter,
@@ -5,7 +6,6 @@ import {
   type GeospatialEngine,
   type MapboxGlModuleLike,
 } from "@touristic/geospatial";
-import type { EventBus } from "@touristic/platform-runtime";
 import { morroDeSaoPauloDestination } from "../config/destination.js";
 import type { MorroMapboxRuntimeConfig } from "../config/mapbox-runtime.js";
 
