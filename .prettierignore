@@ -5,3 +5,5 @@ packages/design-system/src/core-ui/app-shell.ts
 packages/design-system/src/core-ui/feedback.ts
 apps/morro-digital-platform/public/index.html
 apps/morro-digital-platform/public/styles.css
+packages/geospatial/src/index.test.ts
+tooling/visual-regression/capture-baseline.mjs
