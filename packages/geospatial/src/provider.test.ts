@@ -1,16 +1,20 @@
 import { describe, expect, it, vi } from "vitest";
 import { createGeospatialEngine, type MapProviderAdapter } from "./provider.js";
 
-type InitializeInput = Parameters<MapProviderAdapter["initialize"]>[0];
-type CenterInput = Parameters<MapProviderAdapter["setCenter"]>[0];
-type MarkerInput = Parameters<MapProviderAdapter["addMarkers"]>[0];
-
 function createProvider() {
-  const initialize = vi.fn((_input: InitializeInput) => Promise.resolve());
-  const setCenter = vi.fn((_center: CenterInput) => Promise.resolve());
-  const addMarkers = vi.fn((_markers: MarkerInput) => Promise.resolve());
-  const replaceMarkers = vi.fn((_markers: MarkerInput) => Promise.resolve());
-  const destroy = vi.fn(() => Promise.resolve());
+  const initialize = vi.fn<MapProviderAdapter["initialize"]>(() =>
+    Promise.resolve(),
+  );
+  const setCenter = vi.fn<MapProviderAdapter["setCenter"]>(() =>
+    Promise.resolve(),
+  );
+  const addMarkers = vi.fn<MapProviderAdapter["addMarkers"]>(() =>
+    Promise.resolve(),
+  );
+  const replaceMarkers = vi.fn<MapProviderAdapter["replaceMarkers"]>(() =>
+    Promise.resolve(),
+  );
+  const destroy = vi.fn<MapProviderAdapter["destroy"]>(() => Promise.resolve());
   const provider: MapProviderAdapter = {
     id: "mapbox",
     initialize,
