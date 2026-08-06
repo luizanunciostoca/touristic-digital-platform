@@ -63,14 +63,14 @@ export function createMapboxAdapter(
 
     try {
       for (const marker of input) {
-        const handle = options.driver
-          .createMarker({
-            id: marker.id,
-            ...(marker.label ? { label: marker.label } : {}),
-          })
+        const handle = options.driver.createMarker({
+          id: marker.id,
+          ...(marker.label ? { label: marker.label } : {}),
+        });
+        created.set(marker.id, handle);
+        handle
           .setLngLat([marker.position.longitude, marker.position.latitude])
           .addTo(activeMap);
-        created.set(marker.id, handle);
       }
       return created;
     } catch (error) {
