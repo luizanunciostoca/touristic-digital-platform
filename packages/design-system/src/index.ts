@@ -19,6 +19,14 @@ export {
   createNavigation,
   type NavigationViewModel,
 } from "./core-ui/navigation.js";
+export {
+  renderAction,
+  renderAppShell,
+  renderFeedback,
+  renderHeader,
+  renderModal,
+  renderNavigation,
+} from "./core-ui/render.js";
 
 export type {
   ActionContract,
