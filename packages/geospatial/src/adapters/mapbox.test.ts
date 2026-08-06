@@ -147,6 +147,7 @@ describe("createMapboxAdapter", () => {
 
     expect(markers.get("current-marker")?.remove).not.toHaveBeenCalled();
     expect(markers.get("replacement-1")?.remove).toHaveBeenCalledOnce();
+    expect(markers.get("replacement-2")?.remove).toHaveBeenCalledOnce();
   });
 
   it("blocks operations before initialization and duplicate initialization", async () => {
