@@ -1,3 +1,4 @@
+export { renderHome } from "./app/home.js";
 export {
   morroDeSaoPauloDestination,
   morroDeSaoPauloGeospatialPolicy,
