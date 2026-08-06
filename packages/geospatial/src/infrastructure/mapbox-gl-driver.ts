@@ -47,6 +47,7 @@ export function createMapboxGlDriver(
   options: MapboxGlDriverOptions,
 ): MapboxDriver {
   options.sdk.accessToken = requireAccessToken(options.accessToken);
+  const nativeMaps = new WeakMap<MapboxMapHandle, MapboxGlMapLike>();
 
   return Object.freeze({
     createMap(input): MapboxMapHandle {
@@ -57,14 +58,18 @@ export function createMapboxGlDriver(
         zoom: input.zoom,
       });
 
-      return Object.freeze({
+      let handle: MapboxMapHandle;
+      handle = Object.freeze({
         setCenter(center): void {
           map.setCenter(center);
         },
         remove(): void {
+          nativeMaps.delete(handle);
           map.remove();
         },
       });
+      nativeMaps.set(handle, map);
+      return handle;
     },
 
     createMarker(input): MapboxMarkerHandle {
@@ -74,19 +79,23 @@ export function createMapboxGlDriver(
       });
       const marker = new options.sdk.Marker(element ? { element } : undefined);
 
-      return Object.freeze({
+      let handle: MapboxMarkerHandle;
+      handle = Object.freeze({
         setLngLat(position): MapboxMarkerHandle {
           marker.setLngLat(position);
-          return this;
+          return handle;
         },
-        addTo(map): MapboxMarkerHandle {
-          marker.addTo(map as unknown as MapboxGlMapLike);
-          return this;
+        addTo(mapHandle): MapboxMarkerHandle {
+          const nativeMap = nativeMaps.get(mapHandle);
+          if (!nativeMap) throw new Error("Unknown Mapbox map handle.");
+          marker.addTo(nativeMap);
+          return handle;
         },
         remove(): void {
           marker.remove();
         },
       });
+      return handle;
     },
   });
 }
