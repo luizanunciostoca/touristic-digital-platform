@@ -7,6 +7,9 @@ on:
       - apps/morro-digital-platform/package.json
       - packages/platform-runtime/package.json
       - .github/workflows/sync-platform-runtime-lockfile.yml
+  pull_request:
+    branches: [main]
+    types: [reopened]
 
 permissions:
   contents: write
