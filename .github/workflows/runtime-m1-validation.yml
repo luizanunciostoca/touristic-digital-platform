@@ -1,5 +1,6 @@
 name: Runtime M1 Validation
 
+# Temporary branch-only validation. Remove this workflow before merging PR #8.
 on:
   push:
     branches:
