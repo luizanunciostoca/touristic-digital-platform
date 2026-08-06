@@ -44,7 +44,9 @@ export class EventBus {
     });
 
     const handlers = [...(this.#handlers.get(type) ?? [])];
-    await Promise.all(handlers.map((handler) => handler(event)));
+    await Promise.all(
+      handlers.map((handler) => Promise.resolve(handler(event))),
+    );
   }
 }
 
