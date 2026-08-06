@@ -25,6 +25,7 @@ function createEngine(options: { readonly failMarkers?: boolean } = {}) {
     initialize: vi.fn(async () => undefined),
     setCenter: vi.fn(async () => undefined),
     addMarkers,
+    replaceMarkers: vi.fn(async () => undefined),
     destroy,
   };
 
