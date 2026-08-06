@@ -20,6 +20,7 @@ export {
   morroDeSaoPauloDestination,
   morroDeSaoPauloGeospatialPolicy,
 } from "./config/destination.js";
+export { morroInitialMapMarkers } from "./config/map-markers.js";
 export {
   loadMorroMapboxRuntimeConfig,
   type MorroMapboxRuntimeConfig,
