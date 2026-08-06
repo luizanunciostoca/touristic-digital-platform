@@ -9,8 +9,7 @@ import {
 import { morroDeSaoPauloDestination } from "../config/destination.js";
 import type { MorroMapboxRuntimeConfig } from "../config/mapbox-runtime.js";
 
-export interface MorroMapboxBootstrapOptions
-  extends MorroMapboxRuntimeConfig {
+export interface MorroMapboxBootstrapOptions extends MorroMapboxRuntimeConfig {
   readonly sdk: MapboxGlModuleLike;
   readonly createMarkerElement?: (input: {
     readonly id: string;

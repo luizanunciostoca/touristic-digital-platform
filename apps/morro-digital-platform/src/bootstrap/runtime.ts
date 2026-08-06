@@ -39,10 +39,14 @@ export interface BootstrapResult {
 }
 
 function describeMarkerError(error: unknown): string {
-  return error instanceof Error ? error.message : "Unknown marker loading error.";
+  return error instanceof Error
+    ? error.message
+    : "Unknown marker loading error.";
 }
 
-async function cleanupGeospatialEngine(engine: GeospatialEngine): Promise<void> {
+async function cleanupGeospatialEngine(
+  engine: GeospatialEngine,
+): Promise<void> {
   try {
     await engine.destroy();
   } catch {

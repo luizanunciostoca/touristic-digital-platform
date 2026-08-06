@@ -45,10 +45,7 @@ export function createDevelopmentMapboxSdk(
         "data-development-center",
         formatCoordinates(options.center),
       );
-      this.#element.setAttribute(
-        "data-development-zoom",
-        String(options.zoom),
-      );
+      this.#element.setAttribute("data-development-zoom", String(options.zoom));
       this.#renderMarkerState();
     }
 
@@ -58,8 +55,7 @@ export function createDevelopmentMapboxSdk(
         String(this.#markerCount),
       );
       const pointLabel = this.#markerCount === 1 ? "ponto" : "pontos";
-      this.#element.textContent =
-        `Mapa de desenvolvimento ativo — Morro de São Paulo — ${this.#markerCount} ${pointLabel}`;
+      this.#element.textContent = `Mapa de desenvolvimento ativo — Morro de São Paulo — ${this.#markerCount} ${pointLabel}`;
     }
 
     registerMarker(): () => void {

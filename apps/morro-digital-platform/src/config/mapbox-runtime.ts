@@ -19,7 +19,8 @@ function requireEnvironmentValue(
   key: string,
 ): string {
   const value = environment[key]?.trim();
-  if (!value) throw new Error(`Required environment variable is missing: ${key}.`);
+  if (!value)
+    throw new Error(`Required environment variable is missing: ${key}.`);
   return value;
 }
 

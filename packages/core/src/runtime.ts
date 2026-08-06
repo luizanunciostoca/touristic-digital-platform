@@ -25,7 +25,10 @@ export interface DestinationRuntimeConfig {
 export class EventBus {
   readonly #handlers = new Map<string, Set<EventHandler>>();
 
-  subscribe<TPayload>(type: string, handler: EventHandler<TPayload>): () => void {
+  subscribe<TPayload>(
+    type: string,
+    handler: EventHandler<TPayload>,
+  ): () => void {
     const handlers = this.#handlers.get(type) ?? new Set<EventHandler>();
     handlers.add(handler as EventHandler);
     this.#handlers.set(type, handlers);
@@ -98,7 +101,8 @@ export function createPlatformRuntime(input: {
   readonly registry: ModuleRegistry;
   readonly events?: EventBus;
 }): PlatformRuntime {
-  if (!input.destination.id.trim()) throw new Error("Destination id is required.");
+  if (!input.destination.id.trim())
+    throw new Error("Destination id is required.");
 
   const destination = Object.freeze({
     ...input.destination,

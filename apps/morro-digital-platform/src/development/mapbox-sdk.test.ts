@@ -73,9 +73,9 @@ describe("createDevelopmentMapboxSdk", () => {
     const sdk = createDevelopmentMapboxSdk({ getElementById: () => null });
     const marker = new sdk.Marker();
 
-    expect(() =>
-      marker.addTo({ setCenter: vi.fn(), remove: vi.fn() }),
-    ).toThrow("Development marker requires a development map.");
+    expect(() => marker.addTo({ setCenter: vi.fn(), remove: vi.fn() })).toThrow(
+      "Development marker requires a development map.",
+    );
   });
 
   it("rejects a missing container", () => {

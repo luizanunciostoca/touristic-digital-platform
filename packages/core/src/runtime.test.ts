@@ -1,10 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import {
-  createPlatformRuntime,
-  EventBus,
-  ModuleRegistry,
-} from "./runtime.js";
+import { createPlatformRuntime, EventBus, ModuleRegistry } from "./runtime.js";
 
 describe("platform runtime", () => {
   it("publishes immutable event envelopes", async () => {

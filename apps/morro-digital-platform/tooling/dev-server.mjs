@@ -54,7 +54,8 @@ const server = createServer(async (request, response) => {
     const filePath = resolveRequestPath(requestUrl.pathname);
     const fileStat = await stat(filePath);
 
-    if (!fileStat.isFile()) throw new Error("Requested resource is not a file.");
+    if (!fileStat.isFile())
+      throw new Error("Requested resource is not a file.");
 
     response.statusCode = 200;
     response.setHeader(
