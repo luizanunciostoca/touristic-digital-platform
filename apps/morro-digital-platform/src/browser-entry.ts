@@ -50,10 +50,7 @@ void startMorroDigitalBrowser({
       events: result.runtime.events,
       initialTourId,
     });
-    mapContainer?.setAttribute(
-      "data-active-tour",
-      controller.activeTourId,
-    );
+    mapContainer?.setAttribute("data-active-tour", controller.activeTourId);
     mapContainer?.setAttribute("data-tour-state", "ready");
     tourSelect.disabled = false;
 
