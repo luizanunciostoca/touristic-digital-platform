@@ -4,9 +4,9 @@ import { isValidGeoPoint } from "./index.js";
 
 describe("isValidGeoPoint", () => {
   it("accepts valid coordinates", () => {
-    expect(isValidGeoPoint({ latitude: -13.3793, longitude: -38.9135 })).toBe(
-      true,
-    );
+    expect(
+      isValidGeoPoint({ latitude: -13.3793, longitude: -38.9135 }),
+    ).toBe(true);
   });
 
   it("rejects coordinates outside the world bounds", () => {
