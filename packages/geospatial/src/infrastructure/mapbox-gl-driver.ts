@@ -37,6 +37,9 @@ export interface MapboxGlDriverOptions {
   }) => HTMLElement | undefined;
 }
 
+type MapboxCreateMapInput = Parameters<MapboxDriver["createMap"]>[0];
+type MapboxCreateMarkerInput = Parameters<MapboxDriver["createMarker"]>[0];
+
 function requireAccessToken(token: string): string {
   const normalized = token.trim();
   if (!normalized) throw new Error("Mapbox access token is required.");
@@ -50,7 +53,7 @@ export function createMapboxGlDriver(
   const nativeMaps = new WeakMap<MapboxMapHandle, MapboxGlMapLike>();
 
   return Object.freeze({
-    createMap(input): MapboxMapHandle {
+    createMap(input: MapboxCreateMapInput): MapboxMapHandle {
       const map = new options.sdk.Map({
         container: input.container,
         ...(input.style ? { style: input.style } : {}),
@@ -60,7 +63,7 @@ export function createMapboxGlDriver(
 
       let handle: MapboxMapHandle;
       handle = Object.freeze({
-        setCenter(center): void {
+        setCenter(center: [number, number]): void {
           map.setCenter(center);
         },
         remove(): void {
@@ -72,7 +75,7 @@ export function createMapboxGlDriver(
       return handle;
     },
 
-    createMarker(input): MapboxMarkerHandle {
+    createMarker(input: MapboxCreateMarkerInput): MapboxMarkerHandle {
       const element = options.createMarkerElement?.({
         id: input.id,
         ...(input.label ? { label: input.label } : {}),
@@ -81,11 +84,11 @@ export function createMapboxGlDriver(
 
       let handle: MapboxMarkerHandle;
       handle = Object.freeze({
-        setLngLat(position): MapboxMarkerHandle {
+        setLngLat(position: [number, number]): MapboxMarkerHandle {
           marker.setLngLat(position);
           return handle;
         },
-        addTo(mapHandle): MapboxMarkerHandle {
+        addTo(mapHandle: MapboxMapHandle): MapboxMarkerHandle {
           const nativeMap = nativeMaps.get(mapHandle);
           if (!nativeMap) throw new Error("Unknown Mapbox map handle.");
           marker.addTo(nativeMap);
