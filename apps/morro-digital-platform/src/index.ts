@@ -14,3 +14,8 @@ export {
   morroDeSaoPauloDestination,
   morroDeSaoPauloGeospatialPolicy,
 } from "./config/destination.js";
+export {
+  loadMorroMapboxRuntimeConfig,
+  type MorroMapboxRuntimeConfig,
+  type RuntimeEnvironment,
+} from "./config/mapbox-runtime.js";
