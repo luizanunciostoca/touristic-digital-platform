@@ -8,9 +8,7 @@ function freezeMarker(marker: MapMarker): MapMarker {
   });
 }
 
-export function createMorroTourMarkers(
-  tourId: string,
-): readonly MapMarker[] {
+export function createMorroTourMarkers(tourId: string): readonly MapMarker[] {
   const tour = getMorroTourById(tourId);
   if (!tour) throw new Error(`Unknown Morro tour: ${tourId}.`);
 

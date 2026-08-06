@@ -1,9 +1,6 @@
 import { EventBus } from "@touristic/core";
 import type { GeospatialEngine, MapMarker } from "@touristic/geospatial";
-import {
-  getMorroTourById,
-  type TourRouteContract,
-} from "./tour-catalog.js";
+import { getMorroTourById, type TourRouteContract } from "./tour-catalog.js";
 import { createMorroTourMarkers } from "./tour-markers.js";
 import { findMorroTourByKeyword } from "./tour-search.js";
 
@@ -25,14 +22,12 @@ export interface MorroTourSelectionControllerOptions {
 }
 
 type TourSelectionFailurePhase =
-  | "lookup"
-  | "start"
-  | "replace"
-  | "center"
-  | "publish";
+  "lookup" | "start" | "replace" | "center" | "publish";
 
 function describeSelectionError(error: unknown): string {
-  return error instanceof Error ? error.message : "Unknown tour selection error.";
+  return error instanceof Error
+    ? error.message
+    : "Unknown tour selection error.";
 }
 
 function createSelectionResult(
@@ -187,7 +182,9 @@ export function createMorroTourSelectionController(
     return createSelectionResult(activeTour.id, nextMarkers.length);
   }
 
-  async function rejectUnknownTour(query: string): Promise<TourSelectionResult> {
+  async function rejectUnknownTour(
+    query: string,
+  ): Promise<TourSelectionResult> {
     await publishSelectionFailure(
       options.events,
       Object.freeze({

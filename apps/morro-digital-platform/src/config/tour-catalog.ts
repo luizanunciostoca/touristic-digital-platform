@@ -64,9 +64,7 @@ function freezeStop(stop: TourStopContract): TourStopContract {
   });
 }
 
-export function defineTourRoute(
-  route: TourRouteContract,
-): TourRouteContract {
+export function defineTourRoute(route: TourRouteContract): TourRouteContract {
   if (!route.id.trim()) throw new Error("Tour route id is required.");
   if (!route.title.trim()) throw new Error("Tour route title is required.");
   if (route.stops.length === 0) {
@@ -123,8 +121,7 @@ const voltaAIlha = defineTourRoute({
       title: "Piscinas Naturais de Garapuá",
       position: { latitude: -13.4769538, longitude: -38.9165457 },
       photoPath: "./images/tours/volta_ilha_stop2_garapua.jpg",
-      photoAlt:
-        "Piscinas naturais de Garapuá com águas cristalinas e barcos",
+      photoAlt: "Piscinas naturais de Garapuá com águas cristalinas e barcos",
     },
     {
       id: "stop-3",
@@ -133,8 +130,7 @@ const voltaAIlha = defineTourRoute({
       title: "Piscinas Naturais de Moreré",
       position: { latitude: -13.5815787, longitude: -38.9859057 },
       photoPath: "./images/tours/volta_ilha_stop3_morere.jpg",
-      photoAlt:
-        "Piscinas naturais de Moreré em Boipeba com corais coloridos",
+      photoAlt: "Piscinas naturais de Moreré em Boipeba com corais coloridos",
     },
     {
       id: "stop-4",
@@ -243,8 +239,7 @@ const trilhaGamboa = defineTourRoute({
       title: "Praia da Gamboa do Morro",
       position: { latitude: -13.3933118, longitude: -38.9367387 },
       photoPath: "./images/tours/trilha_gamboa_stop5_gamboa.jpg",
-      photoAlt:
-        "Praia da Gamboa com barracas de pescadores e águas calmas",
+      photoAlt: "Praia da Gamboa com barracas de pescadores e águas calmas",
     },
   ],
 });
@@ -278,8 +273,7 @@ const passeioQuadriciclo = defineTourRoute({
       titleKey: "tour_quadriciclo_s2_title",
       title: "Quarta Praia e Quinta Praia (Encanto)",
       position: { latitude: -13.401234, longitude: -38.901234 },
-      photoPath:
-        "./images/tours/quadriciclo_stop2_quarta_quinta_praia.jpg",
+      photoPath: "./images/tours/quadriciclo_stop2_quarta_quinta_praia.jpg",
       photoAlt:
         "Quarta Praia de Morro de São Paulo com coqueirais e areia branca",
     },
@@ -290,8 +284,7 @@ const passeioQuadriciclo = defineTourRoute({
       title: "Trilhas da Mata Atlântica",
       position: { latitude: -13.425678, longitude: -38.910123 },
       photoPath: "./images/tours/quadriciclo_stop3_mata_atlantica.jpg",
-      photoAlt:
-        "Quadriciclos percorrendo trilhas de terra na Mata Atlântica",
+      photoAlt: "Quadriciclos percorrendo trilhas de terra na Mata Atlântica",
     },
     {
       id: "stop-4",
@@ -300,8 +293,7 @@ const passeioQuadriciclo = defineTourRoute({
       title: "Mirante do Zimbo",
       position: { latitude: -13.418765, longitude: -38.915432 },
       photoPath: "./images/tours/quadriciclo_stop4_mirante_zimbo.jpg",
-      photoAlt:
-        "Vista panorâmica do Mirante do Zimbo com oceano e floresta",
+      photoAlt: "Vista panorâmica do Mirante do Zimbo com oceano e floresta",
     },
     {
       id: "stop-5",
@@ -310,8 +302,7 @@ const passeioQuadriciclo = defineTourRoute({
       title: "Praia de Garapuá",
       position: { latitude: -13.4769538, longitude: -38.9165457 },
       photoPath: "./images/tours/quadriciclo_stop5_garapua.jpg",
-      photoAlt:
-        "Praia de Garapuá em formato de ferradura com águas calmas",
+      photoAlt: "Praia de Garapuá em formato de ferradura com águas calmas",
     },
   ],
 });

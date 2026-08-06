@@ -66,7 +66,10 @@ void startMorroDigitalBrowser({
             "data-map-marker-count",
             String(selection.markerCount),
           );
-          mapContainer?.setAttribute("data-active-tour", selection.activeTourId);
+          mapContainer?.setAttribute(
+            "data-active-tour",
+            selection.activeTourId,
+          );
           mapContainer?.setAttribute("data-tour-state", "ready");
           updateStatus(
             `Runtime ativo — ${formatTourStatus(selection.activeTourId, selection.markerCount)}`,

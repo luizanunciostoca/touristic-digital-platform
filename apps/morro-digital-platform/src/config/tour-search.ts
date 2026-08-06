@@ -1,7 +1,4 @@
-import {
-  getMorroTourById,
-  type TourRouteContract,
-} from "./tour-catalog.js";
+import { getMorroTourById, type TourRouteContract } from "./tour-catalog.js";
 
 function normalizeTourKeyword(keyword: string): string {
   return keyword
@@ -32,10 +29,7 @@ export function findMorroTourByKeyword(
     return getMorroTourById("trilha-gamboa");
   }
 
-  if (
-    normalized.includes("quadriciclo") ||
-    normalized.includes("atv")
-  ) {
+  if (normalized.includes("quadriciclo") || normalized.includes("atv")) {
     return getMorroTourById("passeio-quadriciclo");
   }
 
