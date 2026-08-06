@@ -26,3 +26,11 @@ export {
   type MorroMapboxRuntimeConfig,
   type RuntimeEnvironment,
 } from "./config/mapbox-runtime.js";
+export {
+  defineTourRoute,
+  getMorroTourById,
+  morroTourCatalog,
+  type TourPosition,
+  type TourRouteContract,
+  type TourStopContract,
+} from "./config/tour-catalog.js";
