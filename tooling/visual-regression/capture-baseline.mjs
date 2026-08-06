@@ -18,7 +18,15 @@ const playwrightVersion = process.env.PLAYWRIGHT_VERSION ?? "1.55.0";
 function startServer(directory, port) {
   const server = spawn(
     "python3",
-    ["-m", "http.server", String(port), "--bind", "127.0.0.1", "--directory", directory],
+    [
+      "-m",
+      "http.server",
+      String(port),
+      "--bind",
+      "127.0.0.1",
+      "--directory",
+      directory,
+    ],
     { stdio: "inherit" },
   );
   server.on("exit", (code) => {
@@ -56,7 +64,6 @@ function capture(url, viewport, target) {
     "chromium",
     "--viewport-size",
     `${viewport.width},${viewport.height}`,
-    "--full-page",
     "--wait-for-timeout",
     "1500",
     url,
@@ -65,13 +72,11 @@ function capture(url, viewport, target) {
 }
 
 function compareImages(baseline, current, diff) {
-  const result = spawnSync("compare", [
-    "-metric",
-    "AE",
-    baseline,
-    current,
-    diff,
-  ], { encoding: "utf8" });
+  const result = spawnSync(
+    "compare",
+    ["-metric", "AE", baseline, current, diff],
+    { encoding: "utf8" },
+  );
 
   if (![0, 1].includes(result.status ?? 2)) {
     throw new Error(result.stderr || "ImageMagick compare failed");
@@ -97,6 +102,7 @@ try {
     generatedAt: new Date().toISOString(),
     manifestVersion: manifest.version,
     destinationId: manifest.destinationId,
+    captureMode: "viewport",
     results: [],
   };
 
@@ -127,6 +133,7 @@ try {
         viewportId: viewport.id,
         width: viewport.width,
         height: viewport.height,
+        totalPixels,
         differentPixels,
         pixelRatio,
         passed,
