@@ -1,11 +1,9 @@
-import type {
-  ActionViewModel,
-  AppShellViewModel,
-  FeedbackViewModel,
-  HeaderViewModel,
-  ModalViewModel,
-  NavigationViewModel,
-} from "../index.js";
+import type { ActionViewModel } from "./action.js";
+import type { AppShellViewModel } from "./app-shell.js";
+import type { FeedbackViewModel } from "./feedback.js";
+import type { HeaderViewModel } from "./header.js";
+import type { ModalViewModel } from "./modal.js";
+import type { NavigationViewModel } from "./navigation.js";
 
 function escapeHtml(value: string): string {
   return value
@@ -48,6 +46,9 @@ export function renderModal(model: ModalViewModel): string {
   return `<section class="tdp-modal" role="dialog" aria-modal="true" aria-label="${escapeHtml(model.ariaLabel)}"${model.hidden ? " hidden" : ""}><div class="tdp-modal__panel"><header class="tdp-modal__header"><h2>${escapeHtml(model.title)}</h2><button type="button" class="tdp-modal__close" aria-label="${escapeHtml(model.closeLabel)}">×</button></header>${model.description ? `<p class="tdp-modal__description">${escapeHtml(model.description)}</p>` : ""}</div></section>`;
 }
 
-export function renderAppShell(model: AppShellViewModel, content: string): string {
+export function renderAppShell(
+  model: AppShellViewModel,
+  content: string,
+): string {
   return `<div class="tdp-app-shell" data-destination-id="${escapeHtml(model.destinationId)}" aria-label="${escapeHtml(model.ariaLabel)}"${model.hidden ? " hidden" : ""}>${model.header ? renderHeader(model.header) : ""}<div class="tdp-app-shell__body">${model.navigation ? renderNavigation(model.navigation) : ""}<main class="tdp-app-shell__main" id="main-content">${content}</main></div>${model.overlayOpen ? '<div class="tdp-overlay" aria-hidden="true"></div>' : ""}</div>`;
 }
