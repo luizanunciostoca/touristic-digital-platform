@@ -1,43 +1,81 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
   createMapboxAdapter,
   type MapboxDriver,
+  type MapboxMapHandle,
   type MapboxMarkerHandle,
 } from "./mapbox.js";
 
+type CreateMapInput = Parameters<MapboxDriver["createMap"]>[0];
+type CreateMarkerInput = Parameters<MapboxDriver["createMarker"]>[0];
+
 function createDriver(options: { readonly failMarkerId?: string } = {}) {
   const events: string[] = [];
-  const map = { setCenter: vi.fn(), remove: vi.fn() };
-  const markers = new Map<string, MapboxMarkerHandle>();
+  const createdMaps: CreateMapInput[] = [];
+  const createdMarkers: CreateMarkerInput[] = [];
+  const centers: [number, number][] = [];
+  const markerPositions = new Map<string, [number, number]>();
+  const attachedMaps = new Map<string, MapboxMapHandle>();
+  const removedMarkers: string[] = [];
+  const state = { mapRemoveCount: 0 };
+
+  const map: MapboxMapHandle = {
+    setCenter(center): void {
+      centers.push(center);
+    },
+    remove(): void {
+      state.mapRemoveCount += 1;
+    },
+  };
+
   const driver: MapboxDriver = {
-    createMap: vi.fn(() => map),
-    createMarker: vi.fn((input) => {
-      let handle: MapboxMarkerHandle;
-      handle = {
-        setLngLat: vi.fn(() => handle),
-        addTo: vi.fn(() => {
+    createMap(input): MapboxMapHandle {
+      createdMaps.push(input);
+      return map;
+    },
+    createMarker(input): MapboxMarkerHandle {
+      createdMarkers.push(input);
+      const handle: MapboxMarkerHandle = {
+        setLngLat(position): MapboxMarkerHandle {
+          markerPositions.set(input.id, position);
+          return handle;
+        },
+        addTo(activeMap): MapboxMarkerHandle {
           events.push(`add:${input.id}`);
           if (input.id === options.failMarkerId) {
             throw new Error(`Failed to add marker: ${input.id}`);
           }
+          attachedMaps.set(input.id, activeMap);
           return handle;
-        }),
-        remove: vi.fn(() => {
+        },
+        remove(): void {
           events.push(`remove:${input.id}`);
-        }),
+          removedMarkers.push(input.id);
+        },
       };
-      markers.set(input.id, handle);
       return handle;
-    }),
+    },
   };
-  return { driver, events, map, markers };
+
+  return {
+    driver,
+    events,
+    map,
+    state,
+    createdMaps,
+    createdMarkers,
+    centers,
+    markerPositions,
+    attachedMaps,
+    removedMarkers,
+  };
 }
 
 describe("createMapboxAdapter", () => {
   it("translates platform coordinates to Mapbox longitude-latitude order", async () => {
-    const { driver, map } = createDriver();
+    const fixture = createDriver();
     const adapter = createMapboxAdapter({
-      driver,
+      driver: fixture.driver,
       style: "mapbox://styles/example",
     });
 
@@ -48,18 +86,20 @@ describe("createMapboxAdapter", () => {
     });
     await adapter.setCenter({ latitude: -13.38, longitude: -38.91 });
 
-    expect(driver.createMap).toHaveBeenCalledWith({
-      container: "map",
-      center: [-38.9167, -13.3833],
-      zoom: 14,
-      style: "mapbox://styles/example",
-    });
-    expect(map.setCenter).toHaveBeenCalledWith([-38.91, -13.38]);
+    expect(fixture.createdMaps).toEqual([
+      {
+        container: "map",
+        center: [-38.9167, -13.3833],
+        zoom: 14,
+        style: "mapbox://styles/example",
+      },
+    ]);
+    expect(fixture.centers).toEqual([[-38.91, -13.38]]);
   });
 
   it("creates and removes markers without exposing Mapbox handles", async () => {
-    const { driver, map, markers } = createDriver();
-    const adapter = createMapboxAdapter({ driver });
+    const fixture = createDriver();
+    const adapter = createMapboxAdapter({ driver: fixture.driver });
     await adapter.initialize({
       containerId: "map",
       center: { latitude: 0, longitude: 0 },
@@ -75,20 +115,16 @@ describe("createMapboxAdapter", () => {
     ]);
     await adapter.destroy();
 
-    const marker = markers.get("poi-1");
-    expect(driver.createMarker).toHaveBeenCalledWith({
-      id: "poi-1",
-      label: "Farol",
-    });
-    expect(marker?.setLngLat).toHaveBeenCalledWith([-38.91, -13.38]);
-    expect(marker?.addTo).toHaveBeenCalledWith(map);
-    expect(marker?.remove).toHaveBeenCalledOnce();
-    expect(map.remove).toHaveBeenCalledOnce();
+    expect(fixture.createdMarkers).toEqual([{ id: "poi-1", label: "Farol" }]);
+    expect(fixture.markerPositions.get("poi-1")).toEqual([-38.91, -13.38]);
+    expect(fixture.attachedMaps.get("poi-1")).toBe(fixture.map);
+    expect(fixture.removedMarkers).toEqual(["poi-1"]);
+    expect(fixture.state.mapRemoveCount).toBe(1);
   });
 
   it("replaces markers only after the complete replacement is attached", async () => {
-    const { driver, events, markers } = createDriver();
-    const adapter = createMapboxAdapter({ driver });
+    const fixture = createDriver();
+    const adapter = createMapboxAdapter({ driver: fixture.driver });
     await adapter.initialize({
       containerId: "map",
       center: { latitude: 0, longitude: 0 },
@@ -108,18 +144,16 @@ describe("createMapboxAdapter", () => {
       },
     ]);
 
-    expect(events.indexOf("add:new-marker")).toBeLessThan(
-      events.indexOf("remove:old-marker"),
+    expect(fixture.events.indexOf("add:new-marker")).toBeLessThan(
+      fixture.events.indexOf("remove:old-marker"),
     );
-    expect(markers.get("old-marker")?.remove).toHaveBeenCalledOnce();
-    expect(markers.get("new-marker")?.remove).not.toHaveBeenCalled();
+    expect(fixture.removedMarkers).toContain("old-marker");
+    expect(fixture.removedMarkers).not.toContain("new-marker");
   });
 
   it("preserves current markers when a replacement cannot be attached", async () => {
-    const { driver, markers } = createDriver({
-      failMarkerId: "replacement-2",
-    });
-    const adapter = createMapboxAdapter({ driver });
+    const fixture = createDriver({ failMarkerId: "replacement-2" });
+    const adapter = createMapboxAdapter({ driver: fixture.driver });
     await adapter.initialize({
       containerId: "map",
       center: { latitude: 0, longitude: 0 },
@@ -145,14 +179,14 @@ describe("createMapboxAdapter", () => {
       ]),
     ).rejects.toThrow("Failed to add marker: replacement-2");
 
-    expect(markers.get("current-marker")?.remove).not.toHaveBeenCalled();
-    expect(markers.get("replacement-1")?.remove).toHaveBeenCalledOnce();
-    expect(markers.get("replacement-2")?.remove).toHaveBeenCalledOnce();
+    expect(fixture.removedMarkers).not.toContain("current-marker");
+    expect(fixture.removedMarkers).toContain("replacement-1");
+    expect(fixture.removedMarkers).toContain("replacement-2");
   });
 
   it("blocks operations before initialization and duplicate initialization", async () => {
-    const { driver } = createDriver();
-    const adapter = createMapboxAdapter({ driver });
+    const fixture = createDriver();
+    const adapter = createMapboxAdapter({ driver: fixture.driver });
 
     await expect(
       adapter.setCenter({ latitude: 0, longitude: 0 }),
