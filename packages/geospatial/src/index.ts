@@ -24,6 +24,14 @@ export {
 } from "./adapters/mapbox.js";
 
 export {
+  createMapboxGlDriver,
+  type MapboxGlDriverOptions,
+  type MapboxGlMapLike,
+  type MapboxGlMarkerLike,
+  type MapboxGlModuleLike,
+} from "./infrastructure/mapbox-gl-driver.js";
+
+export {
   createGeospatialEngine,
   type Coordinates,
   type GeospatialEngine,
