@@ -105,6 +105,12 @@ data-map-marker-count="8"
 
 O atributo `aria-busy` é aplicado durante a inicialização e removido ao concluir ou falhar.
 
+## Estado da formatação
+
+Os arquivos apontados pela primeira execução oficial do Quality Gate foram formatados pela mesma versão do Prettier instalada pelo lockfile. O workflow temporário usado exclusivamente para aplicar essa saída foi removido, e o repositório voltou a utilizar somente o `Quality Gate` padrão com permissões de leitura.
+
+Essa correção não substitui a validação oficial: arquitetura, Feature Registry, lint, TypeScript, testes e build continuam dependendo de uma execução completa do GitHub Actions associada ao head atual.
+
 ## Validação mínima antes de merge
 
 ```bash
