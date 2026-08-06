@@ -54,8 +54,18 @@ describe("bootstrapMorroDigital", () => {
   it("loads initial markers and publishes their immutable identifiers", async () => {
     const fixture = createEngine();
     const events = new EventBus();
-    const loaded = vi.fn();
-    events.subscribe("MapMarkersLoaded", loaded);
+    const loadedPayloads: Array<{
+      readonly destinationId: string;
+      readonly count: number;
+      readonly markerIds: readonly string[];
+    }> = [];
+    events.subscribe<{
+      readonly destinationId: string;
+      readonly count: number;
+      readonly markerIds: readonly string[];
+    }>("MapMarkersLoaded", (event) => {
+      loadedPayloads.push(event.payload);
+    });
 
     const result = await bootstrapMorroDigital({
       events,
@@ -66,22 +76,31 @@ describe("bootstrapMorroDigital", () => {
     expect(fixture.addMarkers).toHaveBeenCalledWith([marker]);
     expect(result.loadedMarkerCount).toBe(1);
     expect(result.geospatialEngine).toBe(fixture.engine);
-    expect(loaded).toHaveBeenCalledOnce();
-    expect(loaded.mock.calls[0]?.[0].payload).toMatchObject({
-      destinationId: "morro-de-sao-paulo",
-      count: 1,
-      markerIds: ["fonte-grande"],
-    });
-    expect(
-      Object.isFrozen(loaded.mock.calls[0]?.[0].payload.markerIds),
-    ).toBe(true);
+    expect(loadedPayloads).toEqual([
+      {
+        destinationId: "morro-de-sao-paulo",
+        count: 1,
+        markerIds: ["fonte-grande"],
+      },
+    ]);
+    expect(Object.isFrozen(loadedPayloads[0]?.markerIds)).toBe(true);
   });
 
   it("destroys the engine and publishes failure when marker loading fails", async () => {
     const fixture = createEngine({ failMarkers: true });
     const events = new EventBus();
-    const failed = vi.fn();
-    events.subscribe("MapMarkersLoadFailed", failed);
+    const failedPayloads: Array<{
+      readonly destinationId: string;
+      readonly markerIds: readonly string[];
+      readonly reason: string;
+    }> = [];
+    events.subscribe<{
+      readonly destinationId: string;
+      readonly markerIds: readonly string[];
+      readonly reason: string;
+    }>("MapMarkersLoadFailed", (event) => {
+      failedPayloads.push(event.payload);
+    });
 
     await expect(
       bootstrapMorroDigital({
@@ -92,12 +111,13 @@ describe("bootstrapMorroDigital", () => {
     ).rejects.toThrow("Marker provider failed.");
 
     expect(fixture.destroy).toHaveBeenCalledOnce();
-    expect(failed).toHaveBeenCalledOnce();
-    expect(failed.mock.calls[0]?.[0].payload).toMatchObject({
-      destinationId: "morro-de-sao-paulo",
-      markerIds: ["fonte-grande"],
-      reason: "Marker provider failed.",
-    });
+    expect(failedPayloads).toEqual([
+      {
+        destinationId: "morro-de-sao-paulo",
+        markerIds: ["fonte-grande"],
+        reason: "Marker provider failed.",
+      },
+    ]);
   });
 
   it("rejects markers when no geospatial initializer is configured", async () => {
