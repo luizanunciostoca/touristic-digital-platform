@@ -1,11 +1,11 @@
-import type { GeospatialEngine } from "@touristic/geospatial";
 import {
   createPlatformRuntime,
   EventBus,
   ModuleRegistry,
   type PlatformModule,
   type PlatformRuntime,
-} from "@touristic/platform-runtime";
+} from "@touristic/core";
+import type { GeospatialEngine } from "@touristic/geospatial";
 import { morroDeSaoPauloDestination } from "../config/destination.js";
 
 const geospatialModule: PlatformModule = Object.freeze({
