@@ -5,12 +5,12 @@ import type {
 } from "../adapters/mapbox.js";
 
 export interface MapboxGlMapLike {
-  setCenter(center: readonly [number, number]): void;
+  setCenter(center: [number, number]): void;
   remove(): void;
 }
 
 export interface MapboxGlMarkerLike {
-  setLngLat(coordinates: readonly [number, number]): MapboxGlMarkerLike;
+  setLngLat(coordinates: [number, number]): MapboxGlMarkerLike;
   addTo(map: MapboxGlMapLike): MapboxGlMarkerLike;
   remove(): void;
 }
@@ -19,8 +19,8 @@ export interface MapboxGlModuleLike {
   accessToken: string;
   Map: new (options: {
     readonly container: string;
-    readonly style: string;
-    readonly center: readonly [number, number];
+    readonly style?: string;
+    readonly center: [number, number];
     readonly zoom: number;
   }) => MapboxGlMapLike;
   Marker: new (options?: {
@@ -46,14 +46,13 @@ function requireAccessToken(token: string): string {
 export function createMapboxGlDriver(
   options: MapboxGlDriverOptions,
 ): MapboxDriver {
-  const accessToken = requireAccessToken(options.accessToken);
-  options.sdk.accessToken = accessToken;
+  options.sdk.accessToken = requireAccessToken(options.accessToken);
 
   return Object.freeze({
     createMap(input): MapboxMapHandle {
       const map = new options.sdk.Map({
         container: input.container,
-        style: input.style,
+        ...(input.style ? { style: input.style } : {}),
         center: input.center,
         zoom: input.zoom,
       });
@@ -76,8 +75,13 @@ export function createMapboxGlDriver(
       const marker = new options.sdk.Marker(element ? { element } : undefined);
 
       return Object.freeze({
-        addTo(map): void {
-          marker.setLngLat(input.coordinates).addTo(map as MapboxGlMapLike);
+        setLngLat(position): MapboxMarkerHandle {
+          marker.setLngLat(position);
+          return this;
+        },
+        addTo(map): MapboxMarkerHandle {
+          marker.addTo(map as unknown as MapboxGlMapLike);
+          return this;
         },
         remove(): void {
           marker.remove();
