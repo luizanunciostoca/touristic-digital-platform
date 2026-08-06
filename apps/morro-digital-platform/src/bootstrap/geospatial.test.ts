@@ -1,5 +1,5 @@
+import { EventBus } from "@touristic/core";
 import type { MapboxGlModuleLike } from "@touristic/geospatial";
-import { EventBus } from "@touristic/platform-runtime";
 import { describe, expect, it, vi } from "vitest";
 import { createMorroGeospatialInitializer } from "./geospatial.js";
 
