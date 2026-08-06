@@ -5,7 +5,8 @@ Este aplicativo é o primeiro marco executável da Touristic Digital Platform pa
 ## Escopo atual
 
 - inicialização do destino `morro-de-sao-paulo`;
-- Platform Runtime com módulos `geospatial` e `marketplace`;
+- Platform Runtime integrado ao pacote `@touristic/core`;
+- módulos `geospatial` e `marketplace` com dependências validadas;
 - Geospatial Engine independente do SDK do provider;
 - Mapbox Adapter e driver estrutural para Mapbox GL JS;
 - eventos `DestinationLoaded`, `MapInitialized`, `MapReady` e `MapInitializationFailed`;
@@ -14,8 +15,6 @@ Este aplicativo é o primeiro marco executável da Touristic Digital Platform pa
 - servidor HTTP local sem dependências adicionais.
 
 ## Executar localmente
-
-Após sincronizar o lockfile do workspace:
 
 ```bash
 pnpm install
@@ -33,6 +32,12 @@ A porta pode ser alterada por variável de ambiente:
 ```bash
 PORT=4300 pnpm --filter @touristic/morro-digital-platform dev
 ```
+
+## Limite arquitetural do Runtime
+
+Os contratos `EventBus`, `ModuleRegistry`, `PlatformModule` e `PlatformRuntime` pertencem ao núcleo da plataforma e são exportados por `@touristic/core`.
+
+Essa decisão elimina um workspace intermediário sem dependências próprias, preserva a separação lógica em `packages/core/src/runtime.ts` e mantém o lockfile existente compatível com o aplicativo.
 
 ## Provider de desenvolvimento
 
@@ -75,6 +80,7 @@ O atributo `aria-busy` é aplicado durante a inicialização e removido ao concl
 ## Validação mínima antes de merge
 
 ```bash
+pnpm install --frozen-lockfile
 pnpm format:check
 pnpm architecture:check
 pnpm features:check
