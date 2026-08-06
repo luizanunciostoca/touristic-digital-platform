@@ -128,11 +128,7 @@ export async function bootstrapMorroDigital(
   }
 
   const loadedMarkerCount = geospatialEngine
-    ? await loadInitialMarkers(
-        geospatialEngine,
-        runtime.events,
-        initialMarkers,
-      )
+    ? await loadInitialMarkers(geospatialEngine, runtime.events, initialMarkers)
     : 0;
 
   return Object.freeze({
