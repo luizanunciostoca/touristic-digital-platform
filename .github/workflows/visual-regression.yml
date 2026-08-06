@@ -2,7 +2,9 @@ name: Visual Regression
 
 on:
   workflow_dispatch:
-  pull_request:
+  push:
+    branches:
+      - feat/visual-baseline-v1-v2
     paths:
       - "apps/morro-digital-platform/public/**"
       - "tests/visual-regression/**"
@@ -14,7 +16,6 @@ permissions:
 
 jobs:
   capture:
-    if: ${{ github.event_name == 'workflow_dispatch' || secrets.V1_REPOSITORY_TOKEN != '' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
 
