@@ -5,6 +5,7 @@
   "type": "module",
   "dependencies": {
     "@touristic/core": "workspace:*",
+    "@touristic/design-system": "workspace:*",
     "@touristic/geospatial": "workspace:*"
   },
   "scripts": {
