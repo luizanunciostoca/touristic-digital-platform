@@ -5,8 +5,7 @@
   "type": "module",
   "dependencies": {
     "@touristic/core": "workspace:*",
-    "@touristic/geospatial": "workspace:*",
-    "@touristic/platform-runtime": "workspace:*"
+    "@touristic/geospatial": "workspace:*"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
