@@ -82,49 +82,54 @@ export function createMapboxAdapter(
   return Object.freeze({
     id: "mapbox",
     initialize(input: MapInitializationOptions): Promise<void> {
-      if (map) throw new Error("Mapbox adapter is already initialized.");
-      map = options.driver.createMap({
-        container: input.containerId,
-        center: [input.center.longitude, input.center.latitude],
-        zoom: input.zoom,
-        ...(options.style ? { style: options.style } : {}),
+      return Promise.resolve().then(() => {
+        if (map) throw new Error("Mapbox adapter is already initialized.");
+        map = options.driver.createMap({
+          container: input.containerId,
+          center: [input.center.longitude, input.center.latitude],
+          zoom: input.zoom,
+          ...(options.style ? { style: options.style } : {}),
+        });
       });
-      return Promise.resolve();
     },
     setCenter(center: Coordinates): Promise<void> {
-      requireMap().setCenter([center.longitude, center.latitude]);
-      return Promise.resolve();
+      return Promise.resolve().then(() => {
+        requireMap().setCenter([center.longitude, center.latitude]);
+      });
     },
     addMarkers(input: readonly MapMarker[]): Promise<void> {
-      const activeMap = requireMap();
-      assertUniqueMarkerIds(input);
+      return Promise.resolve().then(() => {
+        const activeMap = requireMap();
+        assertUniqueMarkerIds(input);
 
-      for (const marker of input) {
-        if (markers.has(marker.id)) {
-          throw new Error(`Mapbox marker already exists: ${marker.id}`);
+        for (const marker of input) {
+          if (markers.has(marker.id)) {
+            throw new Error(`Mapbox marker already exists: ${marker.id}`);
+          }
         }
-      }
 
-      const created = createMarkerHandles(input, activeMap);
-      for (const [id, handle] of created) markers.set(id, handle);
-      return Promise.resolve();
+        const created = createMarkerHandles(input, activeMap);
+        for (const [id, handle] of created) markers.set(id, handle);
+      });
     },
     replaceMarkers(input: readonly MapMarker[]): Promise<void> {
-      const activeMap = requireMap();
-      assertUniqueMarkerIds(input);
-      const replacement = createMarkerHandles(input, activeMap);
+      return Promise.resolve().then(() => {
+        const activeMap = requireMap();
+        assertUniqueMarkerIds(input);
+        const replacement = createMarkerHandles(input, activeMap);
 
-      for (const handle of markers.values()) handle.remove();
-      markers.clear();
-      for (const [id, handle] of replacement) markers.set(id, handle);
-      return Promise.resolve();
+        for (const handle of markers.values()) handle.remove();
+        markers.clear();
+        for (const [id, handle] of replacement) markers.set(id, handle);
+      });
     },
     destroy(): Promise<void> {
-      for (const marker of markers.values()) marker.remove();
-      markers.clear();
-      map?.remove();
-      map = undefined;
-      return Promise.resolve();
+      return Promise.resolve().then(() => {
+        for (const marker of markers.values()) marker.remove();
+        markers.clear();
+        map?.remove();
+        map = undefined;
+      });
     },
   });
 }
