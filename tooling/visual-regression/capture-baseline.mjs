@@ -82,7 +82,9 @@ function parseAbsoluteError(metricOutput) {
   const value = match ? Number.parseFloat(match[0]) : Number.NaN;
 
   if (!Number.isFinite(value) || value < 0) {
-    throw new Error(`Invalid ImageMagick AE metric: ${normalized || "<empty>"}`);
+    throw new Error(
+      `Invalid ImageMagick AE metric: ${normalized || "<empty>"}`,
+    );
   }
 
   return Math.round(value);
@@ -164,7 +166,6 @@ try {
   }
 
   report.passed = report.results.every((result) => result.passed);
-
   await writeFile(
     path.join(outputRoot, "report.json"),
     `${JSON.stringify(report, null, 2)}\n`,
