@@ -2,9 +2,21 @@
   "version": 1,
   "destinationId": "morro-de-sao-paulo",
   "viewports": [
-    { "id": "mobile", "width": 390, "height": 844 },
-    { "id": "tablet", "width": 768, "height": 1024 },
-    { "id": "desktop", "width": 1440, "height": 900 }
+    {
+      "id": "mobile",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "id": "tablet",
+      "width": 768,
+      "height": 1024
+    },
+    {
+      "id": "desktop",
+      "width": 1440,
+      "height": 900
+    }
   ],
   "journeys": [
     {
@@ -12,9 +24,18 @@
       "route": "/",
       "featureId": "FEATURE-0007",
       "status": "baseline-pending",
-      "v1": { "source": "morro-de-sao-paulo-digital", "artifact": null },
-      "v2": { "source": "apps/morro-digital-platform/public/index.html", "artifact": null },
-      "threshold": { "pixelRatio": 0.01, "maxDifferentPixels": 0 }
+      "v1": {
+        "source": "morro-de-sao-paulo-digital",
+        "artifact": null
+      },
+      "v2": {
+        "source": "apps/morro-digital-platform/public/index.html",
+        "artifact": null
+      },
+      "threshold": {
+        "pixelRatio": 0.01,
+        "maxDifferentPixels": 0
+      }
     }
   ]
 }
