@@ -81,7 +81,7 @@ export function createMapboxAdapter(
 
   return Object.freeze({
     id: "mapbox",
-    async initialize(input: MapInitializationOptions): Promise<void> {
+    initialize(input: MapInitializationOptions): Promise<void> {
       if (map) throw new Error("Mapbox adapter is already initialized.");
       map = options.driver.createMap({
         container: input.containerId,
@@ -89,11 +89,13 @@ export function createMapboxAdapter(
         zoom: input.zoom,
         ...(options.style ? { style: options.style } : {}),
       });
+      return Promise.resolve();
     },
-    async setCenter(center: Coordinates): Promise<void> {
+    setCenter(center: Coordinates): Promise<void> {
       requireMap().setCenter([center.longitude, center.latitude]);
+      return Promise.resolve();
     },
-    async addMarkers(input: readonly MapMarker[]): Promise<void> {
+    addMarkers(input: readonly MapMarker[]): Promise<void> {
       const activeMap = requireMap();
       assertUniqueMarkerIds(input);
 
@@ -105,8 +107,9 @@ export function createMapboxAdapter(
 
       const created = createMarkerHandles(input, activeMap);
       for (const [id, handle] of created) markers.set(id, handle);
+      return Promise.resolve();
     },
-    async replaceMarkers(input: readonly MapMarker[]): Promise<void> {
+    replaceMarkers(input: readonly MapMarker[]): Promise<void> {
       const activeMap = requireMap();
       assertUniqueMarkerIds(input);
       const replacement = createMarkerHandles(input, activeMap);
@@ -114,12 +117,14 @@ export function createMapboxAdapter(
       for (const handle of markers.values()) handle.remove();
       markers.clear();
       for (const [id, handle] of replacement) markers.set(id, handle);
+      return Promise.resolve();
     },
-    async destroy(): Promise<void> {
+    destroy(): Promise<void> {
       for (const marker of markers.values()) marker.remove();
       markers.clear();
       map?.remove();
       map = undefined;
+      return Promise.resolve();
     },
   });
 }
