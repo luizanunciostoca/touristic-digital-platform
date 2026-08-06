@@ -50,6 +50,8 @@ void startMorroDigitalBrowser({
       events: result.runtime.events,
       initialTourId,
     });
+    mapContainer?.setAttribute("data-active-tour", controller.activeTourId);
+    mapContainer?.setAttribute("data-tour-state", "ready");
     tourSelect.disabled = false;
 
     tourSelect.addEventListener("change", () => {
@@ -77,6 +79,7 @@ void startMorroDigitalBrowser({
         })
         .catch((error: unknown) => {
           tourSelect.value = controller.activeTourId;
+          mapContainer?.setAttribute("data-active-tour", controller.activeTourId);
           mapContainer?.setAttribute("data-tour-state", "error");
           const message =
             error instanceof Error
