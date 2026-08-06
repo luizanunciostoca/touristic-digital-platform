@@ -4,13 +4,19 @@ on:
   push:
     branches:
       - feat/platform-runtime-m1
+  workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: validate-runtime-m1-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   validation:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
