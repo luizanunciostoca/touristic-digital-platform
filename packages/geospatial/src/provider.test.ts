@@ -1,21 +1,39 @@
 import { describe, expect, it, vi } from "vitest";
 import { createGeospatialEngine, type MapProviderAdapter } from "./provider.js";
 
-function createProvider(): MapProviderAdapter {
-  return {
+type InitializeInput = Parameters<MapProviderAdapter["initialize"]>[0];
+type CenterInput = Parameters<MapProviderAdapter["setCenter"]>[0];
+type MarkerInput = Parameters<MapProviderAdapter["addMarkers"]>[0];
+
+function createProvider() {
+  const initialize = vi.fn((_input: InitializeInput) => Promise.resolve());
+  const setCenter = vi.fn((_center: CenterInput) => Promise.resolve());
+  const addMarkers = vi.fn((_markers: MarkerInput) => Promise.resolve());
+  const replaceMarkers = vi.fn((_markers: MarkerInput) => Promise.resolve());
+  const destroy = vi.fn(() => Promise.resolve());
+  const provider: MapProviderAdapter = {
     id: "mapbox",
-    initialize: vi.fn(async () => undefined),
-    setCenter: vi.fn(async () => undefined),
-    addMarkers: vi.fn(async () => undefined),
-    replaceMarkers: vi.fn(async () => undefined),
-    destroy: vi.fn(async () => undefined),
+    initialize,
+    setCenter,
+    addMarkers,
+    replaceMarkers,
+    destroy,
+  };
+
+  return {
+    provider,
+    initialize,
+    setCenter,
+    addMarkers,
+    replaceMarkers,
+    destroy,
   };
 }
 
 describe("GeospatialEngine", () => {
   it("initializes the selected provider", async () => {
-    const provider = createProvider();
-    const engine = createGeospatialEngine(provider);
+    const fixture = createProvider();
+    const engine = createGeospatialEngine(fixture.provider);
 
     await engine.initialize({
       containerId: "map",
@@ -25,11 +43,11 @@ describe("GeospatialEngine", () => {
 
     expect(engine.providerId).toBe("mapbox");
     expect(engine.initialized).toBe(true);
-    expect(provider.initialize).toHaveBeenCalledOnce();
+    expect(fixture.initialize).toHaveBeenCalledOnce();
   });
 
   it("blocks operations before initialization", async () => {
-    const engine = createGeospatialEngine(createProvider());
+    const engine = createGeospatialEngine(createProvider().provider);
 
     await expect(
       engine.setCenter({ latitude: -13.3833, longitude: -38.9167 }),
@@ -40,7 +58,7 @@ describe("GeospatialEngine", () => {
   });
 
   it("rejects duplicate marker ids", async () => {
-    const engine = createGeospatialEngine(createProvider());
+    const engine = createGeospatialEngine(createProvider().provider);
     await engine.initialize({
       containerId: "map",
       center: { latitude: -13.3833, longitude: -38.9167 },
@@ -56,8 +74,8 @@ describe("GeospatialEngine", () => {
   });
 
   it("normalizes marker replacements before forwarding them", async () => {
-    const provider = createProvider();
-    const engine = createGeospatialEngine(provider);
+    const fixture = createProvider();
+    const engine = createGeospatialEngine(fixture.provider);
     await engine.initialize({
       containerId: "map",
       center: { latitude: -13.3833, longitude: -38.9167 },
@@ -72,7 +90,7 @@ describe("GeospatialEngine", () => {
       },
     ]);
 
-    const forwarded = vi.mocked(provider.replaceMarkers).mock.calls[0]?.[0];
+    const forwarded = fixture.replaceMarkers.mock.calls[0]?.[0];
     expect(forwarded).toHaveLength(1);
     expect(Object.isFrozen(forwarded)).toBe(true);
     expect(Object.isFrozen(forwarded?.[0])).toBe(true);
@@ -80,8 +98,8 @@ describe("GeospatialEngine", () => {
   });
 
   it("resets state when destroyed", async () => {
-    const provider = createProvider();
-    const engine = createGeospatialEngine(provider);
+    const fixture = createProvider();
+    const engine = createGeospatialEngine(fixture.provider);
     await engine.initialize({
       containerId: "map",
       center: { latitude: -13.3833, longitude: -38.9167 },
@@ -91,6 +109,6 @@ describe("GeospatialEngine", () => {
     await engine.destroy();
 
     expect(engine.initialized).toBe(false);
-    expect(provider.destroy).toHaveBeenCalledOnce();
+    expect(fixture.destroy).toHaveBeenCalledOnce();
   });
 });
