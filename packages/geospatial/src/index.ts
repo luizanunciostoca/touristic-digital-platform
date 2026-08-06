@@ -14,3 +14,12 @@ export const defaultGeospatialPolicy: GeospatialPolicy = {
   routingFallback: "openrouteservice",
   legacyFallbackEnabled: true,
 };
+
+export {
+  createGeospatialEngine,
+  type Coordinates,
+  type GeospatialEngine,
+  type MapInitializationOptions,
+  type MapMarker,
+  type MapProviderAdapter,
+} from "./provider.js";
