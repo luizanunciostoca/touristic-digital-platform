@@ -1,0 +1,51 @@
+name: Visual Regression
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "apps/morro-digital-platform/public/**"
+      - "tests/visual-regression/**"
+      - "tooling/visual-regression/**"
+      - ".github/workflows/visual-regression.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  capture:
+    if: ${{ github.event_name == 'workflow_dispatch' || secrets.V1_REPOSITORY_TOKEN != '' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout platform
+        uses: actions/checkout@v4
+
+      - name: Checkout V1 baseline
+        uses: actions/checkout@v4
+        with:
+          repository: luizidebook/morro-de-sao-paulo-digital
+          token: ${{ secrets.V1_REPOSITORY_TOKEN }}
+          path: .audit/v1
+          persist-credentials: false
+
+      - name: Install ImageMagick
+        run: sudo apt-get update && sudo apt-get install --yes imagemagick
+
+      - name: Capture and compare
+        env:
+          PLAYWRIGHT_VERSION: 1.55.0
+          V1_ROOT: .audit/v1
+          V2_ROOT: apps/morro-digital-platform/public
+          VISUAL_OUTPUT_DIR: artifacts/visual-regression
+        run: node tooling/visual-regression/capture-baseline.mjs
+
+      - name: Upload visual artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-regression-v1-v2
+          path: artifacts/visual-regression
+          if-no-files-found: error
+          retention-days: 30
