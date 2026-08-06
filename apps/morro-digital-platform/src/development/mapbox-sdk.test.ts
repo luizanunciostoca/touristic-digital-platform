@@ -46,9 +46,7 @@ describe("createDevelopmentMapboxSdk", () => {
     map.remove();
     expect(element.textContent).toBeNull();
     expect(element.attributes.has("data-development-map")).toBe(false);
-    expect(element.attributes.has("data-development-marker-count")).toBe(
-      false,
-    );
+    expect(element.attributes.has("data-development-marker-count")).toBe(false);
   });
 
   it("increments and decrements the visible marker count", () => {
