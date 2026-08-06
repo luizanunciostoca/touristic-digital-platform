@@ -71,6 +71,18 @@ function capture(url, viewport, target) {
   ]);
 }
 
+function parseAbsoluteError(metricOutput) {
+  const normalized = metricOutput.trim();
+  const match = normalized.match(/[-+]?\d*\.?\d+(?:e[-+]?\d+)?/i);
+  const value = match ? Number.parseFloat(match[0]) : Number.NaN;
+
+  if (!Number.isFinite(value) || value < 0) {
+    throw new Error(`Invalid ImageMagick AE metric: ${normalized || "<empty>"}`);
+  }
+
+  return Math.round(value);
+}
+
 function compareImages(baseline, current, diff) {
   const result = spawnSync(
     "compare",
@@ -82,8 +94,7 @@ function compareImages(baseline, current, diff) {
     throw new Error(result.stderr || "ImageMagick compare failed");
   }
 
-  const differentPixels = Number.parseInt((result.stderr || "0").trim(), 10);
-  return Number.isFinite(differentPixels) ? differentPixels : 0;
+  return parseAbsoluteError(result.stderr || "0");
 }
 
 await mkdir(outputRoot, { recursive: true });
@@ -103,6 +114,7 @@ try {
     manifestVersion: manifest.version,
     destinationId: manifest.destinationId,
     captureMode: "viewport",
+    metric: "ImageMagick AE",
     results: [],
   };
 
