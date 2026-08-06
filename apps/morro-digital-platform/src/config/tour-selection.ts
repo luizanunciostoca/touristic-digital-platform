@@ -1,4 +1,4 @@
-import { EventBus } from "@touristic/core";
+import type { EventBus } from "@touristic/core";
 import type { GeospatialEngine, MapMarker } from "@touristic/geospatial";
 import { getMorroTourById, type TourRouteContract } from "./tour-catalog.js";
 import { createMorroTourMarkers } from "./tour-markers.js";
