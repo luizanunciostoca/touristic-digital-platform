@@ -4,7 +4,9 @@ import { createServer } from "node:http";
 import { extname, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const repositoryRoot = fileURLToPath(new URL("../../../", import.meta.url));
+const repositoryRoot = resolve(
+  fileURLToPath(new URL("../../../", import.meta.url)),
+);
 const defaultDocument = resolve(
   repositoryRoot,
   "apps/morro-digital-platform/public/index.html",
