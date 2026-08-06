@@ -10,6 +10,7 @@ Este aplicativo é o primeiro marco executável da Touristic Digital Platform pa
 - Geospatial Engine independente do SDK do provider;
 - Mapbox Adapter e driver estrutural para Mapbox GL JS;
 - eventos `DestinationLoaded`, `MapInitialized`, `MapReady` e `MapInitializationFailed`;
+- eventos `MapMarkersLoaded` e `MapMarkersLoadFailed`;
 - shell acessível de desenvolvimento;
 - provider visual de desenvolvimento sem credenciais reais;
 - servidor HTTP local sem dependências adicionais.
@@ -17,7 +18,7 @@ Este aplicativo é o primeiro marco executável da Touristic Digital Platform pa
 ## Executar localmente
 
 ```bash
-pnpm install
+pnpm install --frozen-lockfile
 pnpm --filter @touristic/morro-digital-platform dev
 ```
 
@@ -39,11 +40,23 @@ Os contratos `EventBus`, `ModuleRegistry`, `PlatformModule` e `PlatformRuntime` 
 
 Essa decisão elimina um workspace intermediário sem dependências próprias, preserva a separação lógica em `packages/core/src/runtime.ts` e mantém o lockfile existente compatível com o aplicativo.
 
+## Baseline inicial de pontos da V1
+
+O arquivo `src/config/map-markers.ts` contém o primeiro conjunto imutável de pontos migrados da estrutura `js/tours/tour-data.js` da V1:
+
+- Partida: Terceira Praia;
+- Início: Fonte Grande;
+- Retorno no Pôr do Sol.
+
+Durante o bootstrap, esses pontos são enviados ao `GeospatialEngine`. O resultado registra a quantidade carregada e publica os identificadores pelo evento `MapMarkersLoaded`.
+
+Quando o provider rejeita os marcadores, o engine é destruído, o evento `MapMarkersLoadFailed` é publicado e o erro original continua sendo propagado.
+
 ## Provider de desenvolvimento
 
 O arquivo `src/development/mapbox-sdk.ts` implementa apenas o contrato estrutural necessário para validar o fluxo do runtime no navegador. Ele não realiza chamadas externas, não carrega mapas reais e não deve ser utilizado em produção.
 
-O entrypoint `src/browser-entry.ts` utiliza valores explícitos de desenvolvimento e não acessa tokens reais.
+O provider exibe a quantidade de pontos carregados por meio do atributo `data-development-marker-count`. O entrypoint `src/browser-entry.ts` utiliza valores explícitos de desenvolvimento e não acessa tokens reais.
 
 ## Configuração do Mapbox real
 
@@ -73,6 +86,7 @@ data-map-state="initializing"
 data-map-state="ready"
 data-map-state="error"
 data-map-provider="mapbox"
+data-map-marker-count="3"
 ```
 
 O atributo `aria-busy` é aplicado durante a inicialização e removido ao concluir ou falhar.
