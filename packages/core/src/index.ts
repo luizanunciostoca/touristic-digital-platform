@@ -23,3 +23,14 @@ export function defineDestination(
     throw new Error("Destination radius must be positive");
   return Object.freeze(config);
 }
+
+export {
+  createPlatformRuntime,
+  EventBus,
+  ModuleRegistry,
+  type DestinationRuntimeConfig,
+  type EventHandler,
+  type PlatformEvent,
+  type PlatformModule,
+  type PlatformRuntime,
+} from "./runtime.js";
