@@ -34,3 +34,4 @@ export {
   type TourRouteContract,
   type TourStopContract,
 } from "./config/tour-catalog.js";
+export { createMorroTourMarkers } from "./config/tour-markers.js";
