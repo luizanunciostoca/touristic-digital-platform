@@ -5,11 +5,13 @@
   "type": "module",
   "dependencies": {
     "@touristic/core": "workspace:*",
+    "@touristic/design-system": "workspace:*",
     "@touristic/geospatial": "workspace:*"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "lint": "eslint src",
+    "preview:html": "pnpm build && node dist/bootstrap/write-preview.js",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   }
