@@ -2,59 +2,62 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta
-      name="description"
-      content="Primeiro marco executável da Touristic Digital Platform para Morro de São Paulo."
-    />
-    <title>Morro Digital — V2</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="theme-color" content="#3b82f6" />
+    <meta name="description" content="Guia digital interativo de Morro de São Paulo" />
+    <title>Morro de São Paulo Digital</title>
+    <link rel="preconnect" href="https://unpkg.com" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <a class="skip-link" href="#main-content">Ir para o conteúdo principal</a>
-    <div class="tdp-app-shell" data-destination-id="morro-de-sao-paulo">
-      <header class="tdp-header" aria-label="Cabeçalho principal">
+    <a class="skip-link" href="#map">Ir para o mapa</a>
+    <main class="app-shell" data-destination-id="morro-de-sao-paulo">
+      <header class="top-header" aria-label="Cabeçalho principal">
         <div>
-          <p class="tdp-brand-kicker">Touristic Digital Platform</p>
           <h1>Morro Digital</h1>
-          <p>Morro de São Paulo na palma da sua mão</p>
+          <p>Descubra o paraíso</p>
         </div>
-        <span class="tdp-status">V2 em construção</span>
       </header>
 
-      <nav class="tdp-navigation" aria-label="Navegação principal">
-        <a class="is-active" href="./index.html" aria-current="page">Início</a>
-        <a href="#mapa">Mapa</a>
-        <a href="#buscar">Buscar</a>
-        <a href="#perfil">Perfil</a>
+      <section class="map-section" aria-label="Mapa interativo de Morro de São Paulo">
+        <div id="map"></div>
+      </section>
+
+      <nav class="map-toolbar" aria-label="Controles do mapa">
+        <button id="locateButton" type="button" aria-label="Mostrar minha localização">◎</button>
+        <button id="zoomInButton" type="button" aria-label="Aproximar mapa">+</button>
+        <button id="zoomOutButton" type="button" aria-label="Afastar mapa">−</button>
+        <button id="layersButton" type="button" aria-label="Alternar visualização do mapa">◇</button>
       </nav>
 
-      <main id="main-content">
-        <section class="morro-hero" aria-labelledby="hero-title">
-          <p class="morro-hero__eyebrow">Seu guia digital da ilha</p>
-          <h2 id="hero-title">Descubra Morro de São Paulo</h2>
-          <p>
-            Encontre experiências, empresas, praias, eventos e rotas em uma
-            única plataforma.
-          </p>
-          <a class="tdp-action" href="#mapa">Explorar Morro de São Paulo</a>
-        </section>
+      <aside class="assistant-card" aria-label="Assistente virtual">
+        <button id="assistantClose" class="assistant-close" type="button" aria-label="Minimizar assistente">×</button>
+        <div class="assistant-avatar" aria-hidden="true">☀️</div>
+        <div class="assistant-copy">
+          <strong>Olá! Eu sou o seu guia digital.</strong>
+          <span>Posso ajudar você a descobrir praias, restaurantes, passeios e rotas.</span>
+        </div>
+      </aside>
 
-        <section class="quick-access" aria-label="Acessos rápidos">
-          <article id="mapa">
-            <h3>Mapa inteligente</h3>
-            <p>Navegação, pontos de interesse e rotas serão migrados na Wave 4.</p>
-          </article>
-          <article id="buscar">
-            <h3>Busca e descoberta</h3>
-            <p>Empresas, experiências e eventos serão conectados ao Marketplace.</p>
-          </article>
-          <article id="perfil">
-            <h3>Experiência personalizada</h3>
-            <p>Favoritos, preferências e histórico serão ativados por módulos.</p>
-          </article>
-        </section>
-      </main>
-    </div>
+      <button id="assistantOpen" class="assistant-fab" type="button" aria-label="Abrir assistente">☀️</button>
+
+      <form id="assistantForm" class="assistant-input" aria-label="Pergunte ao assistente">
+        <input id="assistantInput" type="text" placeholder="Pergunte algo sobre Morro de São Paulo..." aria-label="Campo de entrada do assistente" />
+        <button type="submit" aria-label="Enviar mensagem">➤</button>
+        <button type="button" aria-label="Enviar mensagem de voz">🎙</button>
+        <button type="button" aria-label="Configurações do assistente">⚙</button>
+      </form>
+
+      <nav class="bottom-navigation" aria-label="Navegação principal">
+        <button class="is-active" type="button"><span>⌂</span>Início</button>
+        <button type="button"><span>⌕</span>Explorar</button>
+        <button type="button"><span>♡</span>Favoritos</button>
+        <button type="button"><span>☰</span>Menu</button>
+      </nav>
+    </main>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="./app.js"></script>
   </body>
 </html>
