@@ -33,15 +33,25 @@ export interface GeospatialEngine {
 }
 
 function assertCoordinates(coordinates: Coordinates): void {
-  if (!Number.isFinite(coordinates.latitude) || coordinates.latitude < -90 || coordinates.latitude > 90) {
+  if (
+    !Number.isFinite(coordinates.latitude) ||
+    coordinates.latitude < -90 ||
+    coordinates.latitude > 90
+  ) {
     throw new Error("Latitude must be between -90 and 90.");
   }
-  if (!Number.isFinite(coordinates.longitude) || coordinates.longitude < -180 || coordinates.longitude > 180) {
+  if (
+    !Number.isFinite(coordinates.longitude) ||
+    coordinates.longitude < -180 ||
+    coordinates.longitude > 180
+  ) {
     throw new Error("Longitude must be between -180 and 180.");
   }
 }
 
-export function createGeospatialEngine(provider: MapProviderAdapter): GeospatialEngine {
+export function createGeospatialEngine(
+  provider: MapProviderAdapter,
+): GeospatialEngine {
   let initialized = false;
 
   return {
@@ -50,28 +60,48 @@ export function createGeospatialEngine(provider: MapProviderAdapter): Geospatial
       return initialized;
     },
     async initialize(options) {
-      if (!options.containerId.trim()) throw new Error("Map container id is required.");
-      if (!Number.isFinite(options.zoom) || options.zoom < 0 || options.zoom > 24) {
+      if (!options.containerId.trim()) {
+        throw new Error("Map container id is required.");
+      }
+      if (
+        !Number.isFinite(options.zoom) ||
+        options.zoom < 0 ||
+        options.zoom > 24
+      ) {
         throw new Error("Map zoom must be between 0 and 24.");
       }
       assertCoordinates(options.center);
-      await provider.initialize(Object.freeze({ ...options, center: Object.freeze({ ...options.center }) }));
+      await provider.initialize(
+        Object.freeze({
+          ...options,
+          center: Object.freeze({ ...options.center }),
+        }),
+      );
       initialized = true;
     },
     async setCenter(center) {
-      if (!initialized) throw new Error("Geospatial engine is not initialized.");
+      if (!initialized) {
+        throw new Error("Geospatial engine is not initialized.");
+      }
       assertCoordinates(center);
       await provider.setCenter(Object.freeze({ ...center }));
     },
     async addMarkers(markers) {
-      if (!initialized) throw new Error("Geospatial engine is not initialized.");
+      if (!initialized) {
+        throw new Error("Geospatial engine is not initialized.");
+      }
       const ids = new Set<string>();
       const normalized = markers.map((marker) => {
         if (!marker.id.trim()) throw new Error("Marker id is required.");
-        if (ids.has(marker.id)) throw new Error(`Duplicate marker id: ${marker.id}`);
+        if (ids.has(marker.id)) {
+          throw new Error(`Duplicate marker id: ${marker.id}`);
+        }
         ids.add(marker.id);
         assertCoordinates(marker.position);
-        return Object.freeze({ ...marker, position: Object.freeze({ ...marker.position }) });
+        return Object.freeze({
+          ...marker,
+          position: Object.freeze({ ...marker.position }),
+        });
       });
       await provider.addMarkers(Object.freeze(normalized));
     },
