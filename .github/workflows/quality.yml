@@ -6,13 +6,68 @@ on:
     branches: [main]
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
+  format-runtime-m1:
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.head_ref == 'feat/platform-runtime-m1' &&
+      github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Runtime M1 branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Format Runtime M1 sources
+        run: >-
+          pnpm exec prettier --write
+          apps/morro-digital-platform/src/bootstrap/geospatial.ts
+          apps/morro-digital-platform/src/bootstrap/runtime.ts
+          apps/morro-digital-platform/src/config/mapbox-runtime.ts
+          apps/morro-digital-platform/src/development/mapbox-sdk.test.ts
+          apps/morro-digital-platform/src/development/mapbox-sdk.ts
+          apps/morro-digital-platform/tooling/dev-server.mjs
+          packages/core/src/runtime.test.ts
+          packages/core/src/runtime.ts
+      - name: Commit formatting changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            apps/morro-digital-platform/src/bootstrap/geospatial.ts \
+            apps/morro-digital-platform/src/bootstrap/runtime.ts \
+            apps/morro-digital-platform/src/config/mapbox-runtime.ts \
+            apps/morro-digital-platform/src/development/mapbox-sdk.test.ts \
+            apps/morro-digital-platform/src/development/mapbox-sdk.ts \
+            apps/morro-digital-platform/tooling/dev-server.mjs \
+            packages/core/src/runtime.test.ts \
+            packages/core/src/runtime.ts
+          if git diff --cached --quiet; then
+            echo "No formatting changes required."
+          else
+            git commit -m "style: format Runtime M1 sources"
+            git push origin HEAD:${{ github.head_ref }}
+          fi
+
   quality:
+    needs: format-runtime-m1
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
       - uses: pnpm/action-setup@v4
         with:
           version: 10.15.0
