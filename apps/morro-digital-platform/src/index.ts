@@ -11,6 +11,12 @@ export {
   type GeospatialInitializer,
 } from "./bootstrap/runtime.js";
 export {
+  startMorroDigitalBrowser,
+  type BrowserDocument,
+  type BrowserMapContainer,
+  type StartMorroDigitalBrowserOptions,
+} from "./browser.js";
+export {
   morroDeSaoPauloDestination,
   morroDeSaoPauloGeospatialPolicy,
 } from "./config/destination.js";
