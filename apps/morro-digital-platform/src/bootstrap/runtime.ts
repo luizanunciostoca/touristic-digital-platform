@@ -1,3 +1,4 @@
+import type { GeospatialEngine } from "@touristic/geospatial";
 import {
   createPlatformRuntime,
   EventBus,
@@ -20,17 +21,29 @@ const marketplaceModule: PlatformModule = Object.freeze({
   enabled: true,
 });
 
+export type GeospatialInitializer = (
+  events: EventBus,
+) => Promise<GeospatialEngine>;
+
+export interface BootstrapMorroDigitalOptions {
+  readonly events?: EventBus;
+  readonly initializeGeospatial?: GeospatialInitializer;
+}
+
 export interface BootstrapResult {
   readonly runtime: PlatformRuntime;
   readonly startedModules: readonly string[];
+  readonly geospatialEngine?: GeospatialEngine;
 }
 
-export async function bootstrapMorroDigital(): Promise<BootstrapResult> {
+export async function bootstrapMorroDigital(
+  options: BootstrapMorroDigitalOptions = {},
+): Promise<BootstrapResult> {
   const registry = new ModuleRegistry();
   registry.register(geospatialModule);
   registry.register(marketplaceModule);
 
-  const events = new EventBus();
+  const events = options.events ?? new EventBus();
   const runtime = createPlatformRuntime({
     destination: {
       id: morroDeSaoPauloDestination.id,
@@ -47,8 +60,13 @@ export async function bootstrapMorroDigital(): Promise<BootstrapResult> {
     modules: runtime.modules.map((module) => module.id),
   });
 
+  const geospatialEngine = options.initializeGeospatial
+    ? await options.initializeGeospatial(runtime.events)
+    : undefined;
+
   return Object.freeze({
     runtime,
     startedModules: Object.freeze(runtime.modules.map((module) => module.id)),
+    ...(geospatialEngine ? { geospatialEngine } : {}),
   });
 }
