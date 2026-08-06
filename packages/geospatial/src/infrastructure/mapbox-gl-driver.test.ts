@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { createMapboxGlDriver, type MapboxGlModuleLike } from "./mapbox-gl-driver.js";
+import {
+  createMapboxGlDriver,
+  type MapboxGlModuleLike,
+} from "./mapbox-gl-driver.js";
 
 function createSdk() {
   const setCenter = vi.fn();
@@ -8,9 +11,12 @@ function createSdk() {
   const setLngLat = vi.fn();
   const addTo = vi.fn();
   const removeMarker = vi.fn();
+  const mapInstances: unknown[] = [];
 
   class Map {
-    constructor(readonly options: unknown) {}
+    constructor(readonly options: unknown) {
+      mapInstances.push(this);
+    }
     setCenter = setCenter;
     remove = removeMap;
   }
@@ -29,7 +35,15 @@ function createSdk() {
   }
 
   const sdk = { accessToken: "", Map, Marker } as unknown as MapboxGlModuleLike;
-  return { sdk, setCenter, removeMap, setLngLat, addTo, removeMarker };
+  return {
+    sdk,
+    setCenter,
+    removeMap,
+    setLngLat,
+    addTo,
+    removeMarker,
+    mapInstances,
+  };
 }
 
 describe("createMapboxGlDriver", () => {
@@ -54,7 +68,7 @@ describe("createMapboxGlDriver", () => {
     expect(fixture.removeMap).toHaveBeenCalledOnce();
   });
 
-  it("forwards marker lifecycle through the SDK boundary", () => {
+  it("forwards marker lifecycle to the native SDK map", () => {
     const fixture = createSdk();
     const driver = createMapboxGlDriver({
       sdk: fixture.sdk,
@@ -73,8 +87,26 @@ describe("createMapboxGlDriver", () => {
       .remove();
 
     expect(fixture.setLngLat).toHaveBeenCalledWith([-38.914, -13.377]);
-    expect(fixture.addTo).toHaveBeenCalledOnce();
+    expect(fixture.addTo).toHaveBeenCalledWith(fixture.mapInstances[0]);
     expect(fixture.removeMarker).toHaveBeenCalledOnce();
+  });
+
+  it("rejects unknown or already removed map handles", () => {
+    const fixture = createSdk();
+    const driver = createMapboxGlDriver({
+      sdk: fixture.sdk,
+      accessToken: "token-123",
+    });
+    const map = driver.createMap({
+      container: "map",
+      center: [0, 0],
+      zoom: 10,
+    });
+    const marker = driver.createMarker({ id: "poi-1" });
+
+    map.remove();
+
+    expect(() => marker.addTo(map)).toThrow("Unknown Mapbox map handle.");
   });
 
   it("rejects empty access tokens", () => {
