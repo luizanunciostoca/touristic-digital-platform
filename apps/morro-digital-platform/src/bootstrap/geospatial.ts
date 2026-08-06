@@ -7,13 +7,11 @@ import {
 } from "@touristic/geospatial";
 import type { EventBus } from "@touristic/platform-runtime";
 import { morroDeSaoPauloDestination } from "../config/destination.js";
+import type { MorroMapboxRuntimeConfig } from "../config/mapbox-runtime.js";
 
-export interface MorroMapboxBootstrapOptions {
+export interface MorroMapboxBootstrapOptions
+  extends MorroMapboxRuntimeConfig {
   readonly sdk: MapboxGlModuleLike;
-  readonly accessToken: string;
-  readonly containerId: string;
-  readonly style: string;
-  readonly zoom: number;
   readonly createMarkerElement?: (input: {
     readonly id: string;
     readonly label?: string;
