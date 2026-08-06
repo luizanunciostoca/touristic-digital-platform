@@ -1,7 +1,4 @@
-import type {
-  MapboxGlModuleLike,
-  MapMarker,
-} from "@touristic/geospatial";
+import type { MapboxGlModuleLike, MapMarker } from "@touristic/geospatial";
 import { describe, expect, it, vi } from "vitest";
 import {
   startMorroDigitalBrowser,
