@@ -1,4 +1,5 @@
 import { startMorroDigitalBrowser } from "./browser.js";
+import { morroInitialMapMarkers } from "./config/map-markers.js";
 import { createDevelopmentMapboxSdk } from "./development/mapbox-sdk.js";
 
 const developmentEnvironment = Object.freeze({
@@ -18,10 +19,12 @@ void startMorroDigitalBrowser({
   sdk: createDevelopmentMapboxSdk(document),
   environment: developmentEnvironment,
   document,
+  initialMarkers: morroInitialMapMarkers,
 })
   .then((result) => {
+    const pointLabel = result.loadedMarkerCount === 1 ? "ponto" : "pontos";
     updateStatus(
-      `Runtime ativo: ${result.startedModules.join(", ")} — provider ${result.geospatialEngine?.providerId ?? "indisponível"}.`,
+      `Runtime ativo: ${result.startedModules.join(", ")} — provider ${result.geospatialEngine?.providerId ?? "indisponível"} — ${result.loadedMarkerCount} ${pointLabel} da V1 carregados.`,
     );
   })
   .catch((error: unknown) => {
