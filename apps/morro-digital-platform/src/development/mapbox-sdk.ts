@@ -23,6 +23,8 @@ export function createDevelopmentMapboxSdk(
 ): MapboxGlModuleLike {
   class DevelopmentMap implements MapboxGlMapLike {
     readonly #element: DevelopmentMapElement;
+    #markerCount = 0;
+    #active = true;
 
     constructor(options: {
       readonly container: string;
@@ -47,8 +49,34 @@ export function createDevelopmentMapboxSdk(
         "data-development-zoom",
         String(options.zoom),
       );
+      this.#renderMarkerState();
+    }
+
+    #renderMarkerState(): void {
+      this.#element.setAttribute(
+        "data-development-marker-count",
+        String(this.#markerCount),
+      );
+      const pointLabel = this.#markerCount === 1 ? "ponto" : "pontos";
       this.#element.textContent =
-        "Mapa de desenvolvimento ativo — Morro de São Paulo";
+        `Mapa de desenvolvimento ativo — Morro de São Paulo — ${this.#markerCount} ${pointLabel}`;
+    }
+
+    registerMarker(): () => void {
+      if (!this.#active) {
+        throw new Error("Development map is no longer active.");
+      }
+
+      this.#markerCount += 1;
+      this.#renderMarkerState();
+      let removed = false;
+
+      return () => {
+        if (removed) return;
+        removed = true;
+        this.#markerCount = Math.max(0, this.#markerCount - 1);
+        if (this.#active) this.#renderMarkerState();
+      };
     }
 
     setCenter(center: [number, number]): void {
@@ -59,23 +87,37 @@ export function createDevelopmentMapboxSdk(
     }
 
     remove(): void {
+      this.#active = false;
+      this.#markerCount = 0;
       this.#element.removeAttribute("data-development-map");
       this.#element.removeAttribute("data-development-center");
       this.#element.removeAttribute("data-development-zoom");
+      this.#element.removeAttribute("data-development-marker-count");
       this.#element.textContent = null;
     }
   }
 
   class DevelopmentMarker implements MapboxGlMarkerLike {
+    #removeFromMap: (() => void) | undefined;
+
     setLngLat(): MapboxGlMarkerLike {
       return this;
     }
 
-    addTo(): MapboxGlMarkerLike {
+    addTo(map: MapboxGlMapLike): MapboxGlMarkerLike {
+      if (!(map instanceof DevelopmentMap)) {
+        throw new Error("Development marker requires a development map.");
+      }
+
+      this.#removeFromMap?.();
+      this.#removeFromMap = map.registerMarker();
       return this;
     }
 
-    remove(): void {}
+    remove(): void {
+      this.#removeFromMap?.();
+      this.#removeFromMap = undefined;
+    }
   }
 
   return {
