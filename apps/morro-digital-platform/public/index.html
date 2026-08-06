@@ -7,8 +7,17 @@
       name="description"
       content="Primeiro marco executável da Touristic Digital Platform para Morro de São Paulo."
     />
-    <title>Morro Digital — V2</title>
+    <title>Morro Digital — Runtime M1</title>
     <link rel="stylesheet" href="./styles.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "@touristic/core": "/packages/core/dist/index.js",
+          "@touristic/geospatial": "/packages/geospatial/dist/index.js",
+          "@touristic/platform-runtime": "/packages/platform-runtime/dist/index.js"
+        }
+      }
+    </script>
   </head>
   <body>
     <a class="skip-link" href="#main-content">Ir para o conteúdo principal</a>
@@ -19,7 +28,7 @@
           <h1>Morro Digital</h1>
           <p>Morro de São Paulo na palma da sua mão</p>
         </div>
-        <span class="tdp-status">V2 em construção</span>
+        <span class="tdp-status">Runtime M1</span>
       </header>
 
       <nav class="tdp-navigation" aria-label="Navegação principal">
@@ -34,27 +43,61 @@
           <p class="morro-hero__eyebrow">Seu guia digital da ilha</p>
           <h2 id="hero-title">Descubra Morro de São Paulo</h2>
           <p>
-            Encontre experiências, empresas, praias, eventos e rotas em uma
-            única plataforma.
+            O primeiro núcleo executável da nova plataforma conecta o destino,
+            o Platform Runtime e o Geospatial Engine em uma arquitetura segura
+            e modular.
           </p>
-          <a class="tdp-action" href="#mapa">Explorar Morro de São Paulo</a>
+          <a class="tdp-action" href="#mapa">Abrir mapa de desenvolvimento</a>
         </section>
 
         <section class="quick-access" aria-label="Acessos rápidos">
-          <article id="mapa">
-            <h3>Mapa inteligente</h3>
-            <p>Navegação, pontos de interesse e rotas serão migrados na Wave 4.</p>
+          <article>
+            <h3>Runtime modular</h3>
+            <p>
+              O destino ativa os módulos Geospatial e Marketplace com
+              dependências verificadas antes da inicialização.
+            </p>
           </article>
           <article id="buscar">
             <h3>Busca e descoberta</h3>
-            <p>Empresas, experiências e eventos serão conectados ao Marketplace.</p>
+            <p>
+              Empresas, experiências e eventos serão conectados ao Marketplace
+              nas próximas ondas de migração.
+            </p>
           </article>
           <article id="perfil">
             <h3>Experiência personalizada</h3>
-            <p>Favoritos, preferências e histórico serão ativados por módulos.</p>
+            <p>
+              Favoritos, preferências e histórico serão ativados por módulos,
+              sem acoplamento ao núcleo geoespacial.
+            </p>
           </article>
+        </section>
+
+        <section id="mapa" class="map-runtime" aria-labelledby="map-title">
+          <div class="map-runtime__heading">
+            <div>
+              <p class="tdp-brand-kicker">Wave 4</p>
+              <h2 id="map-title">Geospatial Engine</h2>
+            </div>
+            <p id="runtime-status" role="status" aria-live="polite">
+              Inicializando o runtime…
+            </p>
+          </div>
+          <div
+            id="map"
+            class="map-canvas"
+            role="region"
+            aria-label="Mapa de desenvolvimento de Morro de São Paulo"
+          ></div>
+          <p class="map-runtime__note">
+            Provider de desenvolvimento sem credenciais reais. O Mapbox GL JS
+            será conectado somente após a validação de equivalência visual.
+          </p>
         </section>
       </main>
     </div>
+
+    <script type="module" src="../dist/browser-entry.js"></script>
   </body>
 </html>
