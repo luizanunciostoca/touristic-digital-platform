@@ -20,6 +20,7 @@ export interface MapProviderAdapter {
   initialize(options: MapInitializationOptions): Promise<void>;
   setCenter(center: Coordinates): Promise<void>;
   addMarkers(markers: readonly MapMarker[]): Promise<void>;
+  replaceMarkers(markers: readonly MapMarker[]): Promise<void>;
   destroy(): Promise<void>;
 }
 
@@ -29,6 +30,7 @@ export interface GeospatialEngine {
   initialize(options: MapInitializationOptions): Promise<void>;
   setCenter(center: Coordinates): Promise<void>;
   addMarkers(markers: readonly MapMarker[]): Promise<void>;
+  replaceMarkers(markers: readonly MapMarker[]): Promise<void>;
   destroy(): Promise<void>;
 }
 
@@ -47,6 +49,24 @@ function assertCoordinates(coordinates: Coordinates): void {
   ) {
     throw new Error("Longitude must be between -180 and 180.");
   }
+}
+
+function normalizeMarkers(markers: readonly MapMarker[]): readonly MapMarker[] {
+  const ids = new Set<string>();
+  const normalized = markers.map((marker) => {
+    if (!marker.id.trim()) throw new Error("Marker id is required.");
+    if (ids.has(marker.id)) {
+      throw new Error(`Duplicate marker id: ${marker.id}`);
+    }
+    ids.add(marker.id);
+    assertCoordinates(marker.position);
+    return Object.freeze({
+      ...marker,
+      position: Object.freeze({ ...marker.position }),
+    });
+  });
+
+  return Object.freeze(normalized);
 }
 
 export function createGeospatialEngine(
@@ -90,20 +110,13 @@ export function createGeospatialEngine(
       if (!initialized) {
         throw new Error("Geospatial engine is not initialized.");
       }
-      const ids = new Set<string>();
-      const normalized = markers.map((marker) => {
-        if (!marker.id.trim()) throw new Error("Marker id is required.");
-        if (ids.has(marker.id)) {
-          throw new Error(`Duplicate marker id: ${marker.id}`);
-        }
-        ids.add(marker.id);
-        assertCoordinates(marker.position);
-        return Object.freeze({
-          ...marker,
-          position: Object.freeze({ ...marker.position }),
-        });
-      });
-      await provider.addMarkers(Object.freeze(normalized));
+      await provider.addMarkers(normalizeMarkers(markers));
+    },
+    async replaceMarkers(markers) {
+      if (!initialized) {
+        throw new Error("Geospatial engine is not initialized.");
+      }
+      await provider.replaceMarkers(normalizeMarkers(markers));
     },
     async destroy() {
       await provider.destroy();
