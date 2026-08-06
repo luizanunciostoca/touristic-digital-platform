@@ -34,6 +34,16 @@ export interface MapboxAdapterOptions {
   readonly style?: string;
 }
 
+function assertUniqueMarkerIds(markers: readonly MapMarker[]): void {
+  const ids = new Set<string>();
+  for (const marker of markers) {
+    if (ids.has(marker.id)) {
+      throw new Error(`Duplicate Mapbox marker id: ${marker.id}`);
+    }
+    ids.add(marker.id);
+  }
+}
+
 export function createMapboxAdapter(
   options: MapboxAdapterOptions,
 ): MapProviderAdapter {
@@ -43,6 +53,30 @@ export function createMapboxAdapter(
   function requireMap(): MapboxMapHandle {
     if (!map) throw new Error("Mapbox adapter is not initialized.");
     return map;
+  }
+
+  function createMarkerHandles(
+    input: readonly MapMarker[],
+    activeMap: MapboxMapHandle,
+  ): Map<string, MapboxMarkerHandle> {
+    const created = new Map<string, MapboxMarkerHandle>();
+
+    try {
+      for (const marker of input) {
+        const handle = options.driver
+          .createMarker({
+            id: marker.id,
+            ...(marker.label ? { label: marker.label } : {}),
+          })
+          .setLngLat([marker.position.longitude, marker.position.latitude])
+          .addTo(activeMap);
+        created.set(marker.id, handle);
+      }
+      return created;
+    } catch (error) {
+      for (const handle of created.values()) handle.remove();
+      throw error;
+    }
   }
 
   return Object.freeze({
@@ -61,6 +95,7 @@ export function createMapboxAdapter(
     },
     async addMarkers(input: readonly MapMarker[]): Promise<void> {
       const activeMap = requireMap();
+      assertUniqueMarkerIds(input);
 
       for (const marker of input) {
         if (markers.has(marker.id)) {
@@ -68,16 +103,17 @@ export function createMapboxAdapter(
         }
       }
 
-      for (const marker of input) {
-        const handle = options.driver
-          .createMarker({
-            id: marker.id,
-            ...(marker.label ? { label: marker.label } : {}),
-          })
-          .setLngLat([marker.position.longitude, marker.position.latitude])
-          .addTo(activeMap);
-        markers.set(marker.id, handle);
-      }
+      const created = createMarkerHandles(input, activeMap);
+      for (const [id, handle] of created) markers.set(id, handle);
+    },
+    async replaceMarkers(input: readonly MapMarker[]): Promise<void> {
+      const activeMap = requireMap();
+      assertUniqueMarkerIds(input);
+      const replacement = createMarkerHandles(input, activeMap);
+
+      for (const handle of markers.values()) handle.remove();
+      markers.clear();
+      for (const [id, handle] of replacement) markers.set(id, handle);
     },
     async destroy(): Promise<void> {
       for (const marker of markers.values()) marker.remove();
