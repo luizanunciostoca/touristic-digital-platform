@@ -1,5 +1,5 @@
 import { startMorroDigitalBrowser } from "./browser.js";
-import { morroInitialMapMarkers } from "./config/map-markers.js";
+import { createMorroTourMarkers } from "./config/tour-markers.js";
 import { createDevelopmentMapboxSdk } from "./development/mapbox-sdk.js";
 
 const developmentEnvironment = Object.freeze({
@@ -10,6 +10,7 @@ const developmentEnvironment = Object.freeze({
 });
 
 const status = document.getElementById("runtime-status");
+const initialTourMarkers = createMorroTourMarkers("volta-a-ilha");
 
 function updateStatus(message: string): void {
   if (status) status.textContent = message;
@@ -19,12 +20,12 @@ void startMorroDigitalBrowser({
   sdk: createDevelopmentMapboxSdk(document),
   environment: developmentEnvironment,
   document,
-  initialMarkers: morroInitialMapMarkers,
+  initialMarkers: initialTourMarkers,
 })
   .then((result) => {
-    const pointLabel = result.loadedMarkerCount === 1 ? "ponto" : "pontos";
+    const pointLabel = result.loadedMarkerCount === 1 ? "parada" : "paradas";
     updateStatus(
-      `Runtime ativo: ${result.startedModules.join(", ")} — provider ${result.geospatialEngine?.providerId ?? "indisponível"} — ${result.loadedMarkerCount} ${pointLabel} da V1 carregados.`,
+      `Runtime ativo: ${result.startedModules.join(", ")} — provider ${result.geospatialEngine?.providerId ?? "indisponível"} — ${result.loadedMarkerCount} ${pointLabel} do Passeio Volta à Ilha carregadas.`,
     );
   })
   .catch((error: unknown) => {
