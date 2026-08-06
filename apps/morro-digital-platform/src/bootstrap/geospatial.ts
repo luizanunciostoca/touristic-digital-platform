@@ -65,3 +65,12 @@ export async function initializeMorroGeospatial(
     providerId: engine.providerId,
   });
 }
+
+export function createMorroGeospatialInitializer(
+  options: MorroMapboxBootstrapOptions,
+): (events: EventBus) => Promise<GeospatialEngine> {
+  return async (events) => {
+    const result = await initializeMorroGeospatial(options, events);
+    return result.engine;
+  };
+}
