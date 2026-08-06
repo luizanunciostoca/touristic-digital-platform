@@ -36,3 +36,9 @@ export {
 } from "./config/tour-catalog.js";
 export { createMorroTourMarkers } from "./config/tour-markers.js";
 export { findMorroTourByKeyword } from "./config/tour-search.js";
+export {
+  createMorroTourSelectionController,
+  type MorroTourSelectionController,
+  type MorroTourSelectionControllerOptions,
+  type TourSelectionResult,
+} from "./config/tour-selection.js";
