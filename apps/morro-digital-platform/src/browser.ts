@@ -1,4 +1,7 @@
-import type { MapboxGlModuleLike } from "@touristic/geospatial";
+import type {
+  MapboxGlModuleLike,
+  MapMarker,
+} from "@touristic/geospatial";
 import { createMorroGeospatialInitializer } from "./bootstrap/geospatial.js";
 import {
   bootstrapMorroDigital,
@@ -22,6 +25,7 @@ export interface StartMorroDigitalBrowserOptions {
   readonly sdk: MapboxGlModuleLike;
   readonly environment: RuntimeEnvironment;
   readonly document: BrowserDocument;
+  readonly initialMarkers?: readonly MapMarker[];
   readonly createMarkerElement?: (input: {
     readonly id: string;
     readonly label?: string;
@@ -50,11 +54,18 @@ export async function startMorroDigitalBrowser(
           ? { createMarkerElement: options.createMarkerElement }
           : {}),
       }),
+      ...(options.initialMarkers
+        ? { initialMarkers: options.initialMarkers }
+        : {}),
     });
 
     container.setAttribute(
       "data-map-provider",
       result.geospatialEngine?.providerId ?? "unknown",
+    );
+    container.setAttribute(
+      "data-map-marker-count",
+      String(result.loadedMarkerCount),
     );
     container.setAttribute("data-map-state", "ready");
     return result;
