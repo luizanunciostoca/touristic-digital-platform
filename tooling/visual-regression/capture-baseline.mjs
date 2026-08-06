@@ -29,14 +29,17 @@ function startServer(directory, port) {
     ],
     { stdio: "inherit" },
   );
+
   server.on("exit", (code) => {
     if (code && code !== 0) process.exitCode = code;
   });
+
   return server;
 }
 
 function run(command, args) {
   const result = spawnSync(command, args, { stdio: "inherit" });
+
   if (result.status !== 0) {
     throw new Error(`${command} ${args.join(" ")} failed with ${result.status}`);
   }
@@ -50,8 +53,10 @@ async function waitFor(url) {
     } catch {
       // Server is still starting.
     }
+
     await new Promise((resolve) => setTimeout(resolve, 500));
   }
+
   throw new Error(`Timed out waiting for ${url}`);
 }
 
@@ -159,6 +164,7 @@ try {
   }
 
   report.passed = report.results.every((result) => result.passed);
+
   await writeFile(
     path.join(outputRoot, "report.json"),
     `${JSON.stringify(report, null, 2)}\n`,
