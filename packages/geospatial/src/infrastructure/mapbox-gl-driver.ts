@@ -61,8 +61,7 @@ export function createMapboxGlDriver(
         zoom: input.zoom,
       });
 
-      let handle: MapboxMapHandle;
-      handle = Object.freeze({
+      const handle: MapboxMapHandle = Object.freeze({
         setCenter(center: [number, number]): void {
           map.setCenter(center);
         },
@@ -82,8 +81,7 @@ export function createMapboxGlDriver(
       });
       const marker = new options.sdk.Marker(element ? { element } : undefined);
 
-      let handle: MapboxMarkerHandle;
-      handle = Object.freeze({
+      const handle: MapboxMarkerHandle = Object.freeze({
         setLngLat(position: [number, number]): MapboxMarkerHandle {
           marker.setLngLat(position);
           return handle;
