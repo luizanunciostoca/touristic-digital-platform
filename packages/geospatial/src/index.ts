@@ -16,6 +16,14 @@ export const defaultGeospatialPolicy: GeospatialPolicy = {
 };
 
 export {
+  createMapboxAdapter,
+  type MapboxAdapterOptions,
+  type MapboxDriver,
+  type MapboxMapHandle,
+  type MapboxMarkerHandle,
+} from "./adapters/mapbox.js";
+
+export {
   createGeospatialEngine,
   type Coordinates,
   type GeospatialEngine,
