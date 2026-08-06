@@ -1,7 +1,4 @@
-import type {
-  MapboxGlModuleLike,
-  MapMarker,
-} from "@touristic/geospatial";
+import type { MapboxGlModuleLike, MapMarker } from "@touristic/geospatial";
 import { createMorroGeospatialInitializer } from "./bootstrap/geospatial.js";
 import {
   bootstrapMorroDigital,
