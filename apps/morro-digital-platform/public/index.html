@@ -2,12 +2,21 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <meta name="theme-color" content="#3b82f6" />
-    <meta name="description" content="Guia digital interativo de Morro de São Paulo" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <meta name="theme-color" content="#0057d9" />
+    <meta
+      name="description"
+      content="Guia digital interativo de Morro de São Paulo"
+    />
     <title>Morro de São Paulo Digital</title>
     <link rel="preconnect" href="https://unpkg.com" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
@@ -20,41 +29,119 @@
         </div>
       </header>
 
-      <section class="map-section" aria-label="Mapa interativo de Morro de São Paulo">
+      <section
+        class="map-section"
+        aria-label="Mapa interativo de Morro de São Paulo"
+      >
         <div id="map"></div>
       </section>
 
       <nav class="map-toolbar" aria-label="Controles do mapa">
-        <button id="locateButton" type="button" aria-label="Mostrar minha localização">◎</button>
-        <button id="zoomInButton" type="button" aria-label="Aproximar mapa">+</button>
-        <button id="zoomOutButton" type="button" aria-label="Afastar mapa">−</button>
-        <button id="layersButton" type="button" aria-label="Alternar visualização do mapa">◇</button>
+        <button
+          id="locateButton"
+          type="button"
+          aria-label="Mostrar minha localização"
+        >
+          ◎
+        </button>
+        <button id="zoomInButton" type="button" aria-label="Aproximar mapa">
+          +
+        </button>
+        <button id="zoomOutButton" type="button" aria-label="Afastar mapa">
+          −
+        </button>
+        <button
+          id="layersButton"
+          type="button"
+          aria-label="Alternar visualização do mapa"
+        >
+          ◇
+        </button>
       </nav>
 
       <aside class="assistant-card" aria-label="Assistente virtual">
-        <button id="assistantClose" class="assistant-close" type="button" aria-label="Minimizar assistente">×</button>
-        <div class="assistant-avatar" aria-hidden="true">☀️</div>
+        <button
+          id="assistantClose"
+          class="assistant-close"
+          type="button"
+          aria-label="Minimizar assistente"
+        >
+          ×
+        </button>
+        <div class="assistant-avatar" aria-hidden="true">🌞</div>
         <div class="assistant-copy">
-          <strong>Olá! Eu sou o seu guia digital.</strong>
-          <span>Posso ajudar você a descobrir praias, restaurantes, passeios e rotas.</span>
+          <strong>🎉 Bem-vindo ao Morro Digital!</strong>
+          <span>
+            Eu sou seu guia virtual oficial de Morro de São Paulo, pronto para
+            ajudar você a explorar praias, restaurantes, festas, passeios e
+            tudo que precisa.
+          </span>
+          <div class="assistant-suggestions" aria-label="Sugestões rápidas">
+            <button type="button">Praias</button>
+            <button type="button">Restaurantes</button>
+            <button type="button">Hotéis</button>
+            <button type="button">Passeios</button>
+          </div>
         </div>
       </aside>
 
-      <button id="assistantOpen" class="assistant-fab" type="button" aria-label="Abrir assistente">☀️</button>
+      <button
+        id="assistantOpen"
+        class="assistant-fab"
+        type="button"
+        aria-label="Abrir assistente"
+      >
+        🌞
+      </button>
 
-      <form id="assistantForm" class="assistant-input" aria-label="Pergunte ao assistente">
-        <input id="assistantInput" type="text" placeholder="Pergunte algo sobre Morro de São Paulo..." aria-label="Campo de entrada do assistente" />
+      <form
+        id="assistantForm"
+        class="assistant-input"
+        aria-label="Pergunte ao assistente"
+      >
+        <input
+          id="assistantInput"
+          type="text"
+          placeholder="Digite sua pergunta..."
+          aria-label="Campo de entrada do assistente"
+        />
         <button type="submit" aria-label="Enviar mensagem">➤</button>
         <button type="button" aria-label="Enviar mensagem de voz">🎙</button>
         <button type="button" aria-label="Configurações do assistente">⚙</button>
       </form>
 
-      <nav class="bottom-navigation" aria-label="Navegação principal">
-        <button class="is-active" type="button"><span>⌂</span>Início</button>
-        <button type="button"><span>⌕</span>Explorar</button>
-        <button type="button"><span>♡</span>Favoritos</button>
-        <button type="button"><span>☰</span>Menu</button>
-      </nav>
+      <button class="language-fab" type="button" aria-label="Selecionar idioma">
+        ◉
+      </button>
+
+      <section
+        id="onboarding"
+        class="onboarding-layer"
+        aria-labelledby="onboarding-title"
+        aria-modal="true"
+        role="dialog"
+      >
+        <div class="onboarding-card">
+          <div class="onboarding-meta">
+            <span>ETAPA 1 DE 18</span>
+            <button id="skipTutorial" type="button">Pular tutorial</button>
+          </div>
+          <div class="onboarding-progress" aria-hidden="true">
+            <span></span>
+          </div>
+          <h2 id="onboarding-title">👋 Bem-vindo ao Morro Digital!</h2>
+          <p>
+            Seu guia inteligente para explorar
+            <strong>Morro de São Paulo e Cairu</strong>. O turista ou morador
+            fluminense agora se desloca com mais facilidade: você aprende o
+            essencial no aplicativo real e conclui concedendo as permissões
+            necessárias para o uso completo.
+          </p>
+          <button id="nextTutorial" class="onboarding-next" type="button">
+            Próximo →
+          </button>
+        </div>
+      </section>
     </main>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
