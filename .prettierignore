@@ -3,3 +3,5 @@ docs/migration/MASTER-MIGRATION-TRACKER.md
 docs/architecture/ADR-INDEX.md
 packages/design-system/src/core-ui/app-shell.ts
 packages/design-system/src/core-ui/feedback.ts
+apps/morro-digital-platform/public/index.html
+apps/morro-digital-platform/public/styles.css
