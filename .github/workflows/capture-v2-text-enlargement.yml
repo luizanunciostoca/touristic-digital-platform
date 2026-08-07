@@ -58,6 +58,32 @@ jobs:
             throw new Error('V2 assistant did not reach the stable 10-option state before timeout.');
           }
 
+          async function waitForStableGeometry(page, timeoutMs = 5000) {
+            const deadline = Date.now() + timeoutMs;
+            let previous = '';
+            let stableSamples = 0;
+            while (Date.now() < deadline) {
+              const geometry = await page.evaluate(() => {
+                const modal = document.querySelector('.assistant-modal');
+                const messagesArea = modal?.querySelector('.messages-area');
+                if (!(modal instanceof HTMLElement) || !(messagesArea instanceof HTMLElement)) return null;
+                const rect = modal.getBoundingClientRect();
+                return {
+                  modalHeight: Number(rect.height.toFixed(4)),
+                  clientHeight: messagesArea.clientHeight,
+                  scrollHeight: messagesArea.scrollHeight,
+                  scrollTop: messagesArea.scrollTop,
+                };
+              });
+              const current = JSON.stringify(geometry);
+              stableSamples = current === previous ? stableSamples + 1 : 0;
+              previous = current;
+              if (geometry && stableSamples >= 4) return geometry;
+              await page.waitForTimeout(100);
+            }
+            throw new Error('V2 assistant geometry did not settle before timeout.');
+          }
+
           async function isolateBackground(page) {
             await page.evaluate(() => {
               document.getElementById('visual-evidence-underlay')?.remove();
@@ -98,6 +124,9 @@ jobs:
                   paddingRight: computed.paddingRight,
                   paddingBottom: computed.paddingBottom,
                   paddingLeft: computed.paddingLeft,
+                  maxHeight: computed.maxHeight,
+                  gap: computed.gap,
+                  bottom: computed.bottom,
                   borderTopWidth: computed.borderTopWidth,
                   borderBottomWidth: computed.borderBottomWidth,
                 };
@@ -107,6 +136,7 @@ jobs:
                 modalVisible: modal instanceof HTMLElement && getComputedStyle(modal).display !== 'none',
                 modalClassName: modal instanceof HTMLElement ? modal.className : '',
                 modalRect: rect(modal),
+                modalStyle: style(modal),
                 optionCount: options.length,
                 bodyOverflowX: body.scrollWidth > document.documentElement.clientWidth,
                 viewportWidth: document.documentElement.clientWidth,
@@ -139,7 +169,8 @@ jobs:
               await page.reload({ waitUntil: 'domcontentloaded' });
               await waitForStableAssistant(page);
               await page.evaluate(() => document.fonts.ready);
-              await page.waitForTimeout(250);
+              const settled = await waitForStableGeometry(page);
+              console.log(`${name} settled`, JSON.stringify(settled));
               await isolateBackground(page);
               const metrics = await collectMetrics(page);
               console.log(`${name} text-200`, JSON.stringify(metrics));
