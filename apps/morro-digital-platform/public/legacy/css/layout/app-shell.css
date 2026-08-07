@@ -1,0 +1,400 @@
+/* Refatorado para usar CSS Grid conforme checklist */
+.app-shell {
+  display: grid;
+  grid-template-rows: 0fr 1fr auto; /* Alterado: primeira linha com altura 0 para o header oculto */
+  height: 100vh; /* Ocupa toda a altura da viewport */
+  width: 100%;
+  overflow: hidden;
+  position: relative; /* Mantido para elementos posicionados absolutamente dentro */
+}
+
+/* Loading Overlay */
+#loading-overlay {
+  position: fixed;
+  inset: 0; /* Equivalente a top: 0; left: 0; width: 100%; height: 100%; */
+  background-color: var(--primary);
+  z-index: var(--z-overlay); /* Usando variável z-index */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.5s ease-out, visibility 0.5s ease-out;
+}
+
+#loading-overlay.fade-out {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.loading-content {
+  text-align: center;
+  color: white;
+  padding: 0 var(--spacing-lg); /* Usando variável de espaçamento */
+}
+
+.spinner {
+  width: 3.125rem; /* 50px / 16px */
+  height: 3.125rem; /* 50px / 16px */
+  margin: 0 auto var(--spacing-md); /* Usando variável de espaçamento */
+  border: 0.25rem solid rgba(255, 255, 255, 0.3); /* 4px / 16px */
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 1s ease-in-out infinite;
+}
+
+/* Header com design moderno - Posicionado pelo Grid */
+header {
+  /* position: absolute; top: 0; left: 0; width: 100%; */ /* Removido, gerenciado pelo Grid */
+  /* height: 15%; */ /* Removido, altura definida pelo conteúdo ou grid */
+  grid-row: 1 / 2; /* Coloca o header na primeira linha do grid */
+  grid-column: 1 / -1; /* Ocupa todas as colunas */
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.7) 0%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  padding: var(--spacing-lg) var(--spacing-xl); /* Usando variáveis de espaçamento */
+  z-index: var(--z-controls); /* Acima do mapa, abaixo de popups */
+  display: none; /* Alterado de 'flex' para 'none' para ocultar o header */
+  align-items: center;
+}
+
+.header-content {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+header h1 {
+  font-size: var(--font-size-xl); /* Usando variável de fonte */
+  font-weight: 600;
+  color: white;
+  margin: 0;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.tagline {
+  font-size: var(--font-size-sm); /* Usando variável de fonte */
+  color: rgba(255, 255, 255, 0.9);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* Quick Action Buttons */
+.quick-actions {
+  position: fixed;
+  left: var(--spacing-sm); /* 10px -> ~0.625rem, usando var(--spacing-sm) */
+  bottom: 45rem; /* 85px / 16px */
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  z-index: var(--z-modal); /* Acima da maioria dos elementos */
+  width: auto;
+  max-width: 6.25rem; /* 100px / 16px */
+  margin: 0;
+  gap: var(--spacing-xs); /* 8px -> ~0.5rem, usando var(--spacing-xs) */
+}
+
+/* Submenu flutuante com design moderno */
+#submenu {
+  position: absolute;
+  top: 50%; /* Ajustado para centralizar melhor com transform */
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90%;
+  max-width: 25rem; /* 400px / 16px */
+  max-height: 60vh;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow); /* Usando variável de sombra */
+  z-index: var(--z-popup); /* Usando variável z-index */
+  overflow: hidden;
+}
+
+.submenu-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-md); /* Usando variável */
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.submenu-title {
+  font-size: var(--font-size-base); /* Usando variável */
+  font-weight: 600;
+  margin: 0;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  font-size: 1.5rem; /* Mantido em rem */
+  cursor: pointer;
+  color: var(--gray-800);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem; /* 32px / 16px */
+  height: 2rem; /* 32px / 16px */
+  border-radius: 50%;
+}
+
+.close-button:hover {
+  background-color: var(--gray-100);
+}
+
+#submenuContainer {
+  padding: var(--spacing-sm) var(--spacing-md) var(--spacing-md); /* Usando variáveis */
+  overflow-y: auto;
+  /* Ajuste max-height com base no padding e header */
+  max-height: calc(60vh - 3.5rem); /* Aproximadamente 56px (header) em rem */
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.4) transparent;
+}
+
+#submenuContainer::-webkit-scrollbar {
+  width: 0.5rem; /* 8px / 16px */
+}
+
+#submenuContainer::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#submenuContainer::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.4);
+  border-radius: 0.25rem; /* 4px / 16px */
+}
+
+#submenuContainer ul {
+  list-style: none;
+  padding: 0;
+}
+
+.submenu-item {
+  padding: var(--spacing-md); /* Usando variável */
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  margin-bottom: var(--spacing-md); /* Usando variável */
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  box-shadow: var(--shadow-sm);
+}
+
+.submenu-item:hover {
+  background-color: rgba(255, 255, 255, 0.4);
+  transform: translateY(-0.125rem); /* -2px / 16px */
+  box-shadow: var(--shadow-lg);
+}
+
+.submenu-item-icon {
+  margin-right: var(--spacing-md); /* Usando variável */
+  width: 2rem; /* 32px / 16px */
+  height: 2rem; /* 32px / 16px */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(59, 130, 246, 0.1);
+  color: var(--primary);
+  border-radius: 50%;
+}
+
+.submenu-item-content {
+  flex: 1;
+}
+
+.submenu-item-title {
+  font-weight: 500;
+  margin-bottom: var(--spacing-xs); /* Usando variável */
+}
+
+.submenu-item-description {
+  font-size: var(--font-size-xs); /* Usando variável, era 0.8125rem */
+  color: #64748b;
+}
+
+/* Botões dinâmicos flutuantes - Posicionados pelo Grid? Ou ainda absolutos? */
+/* Considerando que estes controlam o mapa, podem ficar na área principal ou rodapé */
+#controls {
+  /* position: absolute; */ /* Removido - talvez colocar no grid? */
+  /* top: calc(var(--header-height) + 8px); */ /* Removido */
+  /* left: 0; */ /* Removido */
+  grid-row: 3 / 4; /* Coloca os controles na terceira linha (rodapé) */
+  width: 100%;
+  padding: 0 var(--spacing-md); /* Usando variável */
+  z-index: var(--z-controls);
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.5) 0%,
+    rgba(0, 0, 0, 0) 100%
+  ); /* Fundo para melhor visibilidade */
+}
+
+#buttonGroup {
+  display: flex;
+  justify-content: flex-start;
+  gap: var(--spacing-sm); /* Usando variável */
+  overflow-x: auto;
+  padding: var(--spacing-sm) 0; /* Usando variável */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+#buttonGroup::-webkit-scrollbar {
+  display: none;
+}
+
+/* Responsividade - REVISAR com abordagem Mobile-First */
+/* Estas regras podem precisar ser movidas para responsive.css e usar min-width */
+
+/* Estilos base (Mobile First) - Fora de media queries */
+header {
+  padding: var(--spacing-md) var(--spacing-lg); /* Ajuste para mobile */
+  /* height: auto; */ /* Altura definida pelo conteúdo */
+}
+
+header h1 {
+  font-size: var(--font-size-lg); /* Ajuste para mobile */
+}
+
+.tagline {
+  font-size: var(--font-size-xs); /* Ajuste para mobile */
+}
+
+.quick-actions {
+  left: var(--spacing-xs); /* 5px -> ~0.3125rem, usando var(--spacing-xs) */
+  bottom: 4.6875rem; /* 75px / 16px */
+  max-width: 2.8125rem; /* 45px / 16px */
+}
+
+#submenu {
+  width: 95%;
+  max-height: 70vh;
+}
+
+#submenuContainer {
+  max-height: calc(70vh - 3.5rem); /* Aproximadamente 56px (header) em rem */
+}
+
+.submenu-item {
+  padding: var(--spacing-sm); /* Usando variável */
+}
+
+.submenu-item-icon {
+  width: 1.75rem; /* 28px / 16px */
+  height: 1.75rem; /* 28px / 16px */
+}
+
+/* Ajustes para telas muito pequenas (Ex: 320px) */
+@media (max-width: 374px) {
+  /* Abaixo do --bp-mobile */
+  .quick-actions {
+    left: var(--spacing-xs);
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 4.375rem); /* 70px / 16px */
+    max-width: 2.5rem; /* 40px / 16px */
+  }
+}
+
+/* Tablet (min-width) */
+@media (min-width: 768px) {
+  /* --bp-tablet */
+  header {
+    padding: var(--spacing-lg) var(--spacing-xl); /* Retorna ao padding maior */
+  }
+
+  header h1 {
+    font-size: var(--font-size-xl);
+  }
+
+  .tagline {
+    font-size: var(--font-size-sm);
+  }
+
+  .quick-actions {
+    left: var(--spacing-sm);
+    bottom: 5.3125rem; /* 85px / 16px */
+    max-width: 3.4375rem; /* 55px / 16px */
+  }
+
+  #submenu {
+    max-width: 28.125rem; /* 450px / 16px */
+  }
+}
+
+/* Desktop (min-width) */
+@media (min-width: 1024px) {
+  /* --bp-desktop */
+  /* Ajustes específicos para desktop, se necessário */
+}
+
+/* Ajustes para modo paisagem */
+/* Combinar com min-height ou max-height se necessário */
+@media (orientation: landscape) and (max-height: 37.5rem) {
+  /* 600px / 16px */
+  header {
+    padding: var(--spacing-sm) var(--spacing-lg);
+    /* A altura do header em grid é 'auto', não precisa mexer */
+  }
+
+  .quick-actions {
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 3.75rem); /* 60px / 16px */
+    left: var(--spacing-sm);
+  }
+
+  #submenu {
+    /* top: 65%; */ /* Manter centralizado com transform */
+    max-height: 80vh;
+  }
+}
+
+/* Suportes específicos para iPhone X e dispositivos com notch */
+@supports (padding-top: env(safe-area-inset-top)) {
+  header {
+    padding-top: calc(env(safe-area-inset-top) + var(--spacing-md));
+    padding-left: calc(env(safe-area-inset-left) + var(--spacing-xl));
+    padding-right: calc(env(safe-area-inset-right) + var(--spacing-xl));
+  }
+  /* Adicionar padding-bottom aos controles se necessário */
+  #controls {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .quick-actions {
+    /* Ajustar 'bottom' para considerar safe-area-inset-bottom */
+    /* O cálculo já está sendo feito em algumas media queries */
+  }
+}
+
+/* Quando o teclado está visível, manter a posição relativa */
+/* Esta regra pode ser complexa e depender de JS para adicionar a classe */
+.keyboard-visible .quick-actions {
+  /* position: absolute; */ /* Manter fixed? Testar comportamento */
+  bottom: 6.25rem; /* 100px / 16px - Valor fixo pode não ser ideal */
+  transition: bottom 0.2s ease;
+}
+
+/* Assistant dock overrides */
+.quick-actions {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  max-width: none;
+  gap: 0;
+  z-index: 2200;
+}
+
+@media (max-width: 480px) {
+  .quick-actions {
+    left: var(--assistant-dock-inline-gap);
+  }
+}

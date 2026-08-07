@@ -1,0 +1,103 @@
+/* Responsividade Global - Abordagem Mobile-First */
+
+/* Estilos Base (Mobile) */
+/* A maioria dos estilos base já está em reset.css, typography.css, e nos componentes. */
+/* Este arquivo focará em overrides e ajustes específicos de layout para breakpoints maiores. */
+
+html {
+  /* Ajustes básicos de texto e toque */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  touch-action: manipulation; /* Evita zoom duplo toque em elementos clicáveis */
+  overscroll-behavior: none; /* Previne "pull-to-refresh" ou scroll da página inteira */
+}
+
+body {
+  min-height: 100vh;
+  overflow-x: hidden; /* Previne scroll horizontal acidental */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+img,
+picture,
+video,
+canvas,
+svg {
+  display: block;
+  max-width: 100%; /* Imagens responsivas por padrão */
+  height: auto;
+}
+
+/* Container com largura máxima responsiva */
+.container {
+  width: 100%;
+  max-width: calc(var(--bp-ultrawide) - 2 * var(--spacing-lg)); /* Exemplo: Limita largura em telas grandes */
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--spacing-md);
+  padding-right: var(--spacing-md);
+}
+
+/* --- Media Queries (min-width) --- */
+
+/* Tablet (>= 768px) */
+@media (min-width: 768px) {
+  /* Ajustes de layout ou componentes específicos para tablet */
+  /* Exemplo: Aumentar padding, mudar display de elementos */
+
+  .container {
+    padding-left: var(--spacing-lg);
+    padding-right: var(--spacing-lg);
+  }
+}
+
+/* Desktop (>= 1024px) */
+@media (min-width: 1024px) {
+  /* Ajustes de layout ou componentes específicos para desktop */
+  /* Exemplo: Layouts de múltiplas colunas */
+}
+
+/* Ultrawide (>= 1280px) */
+@media (min-width: 1280px) {
+  /* Ajustes para telas muito largas */
+  /* Exemplo: Aumentar tamanho de fonte base ou espaçamentos se necessário */
+  /* html { font-size: 112.5%; } */ /* Exemplo: Aumenta base para 18px */
+}
+
+/* --- Outras Media Queries --- */
+
+/* Orientação Paisagem (Exemplo: Altura baixa) */
+@media (orientation: landscape) and (max-height: 37.5rem) { /* 600px */
+  /* Ajustes específicos para paisagem com pouca altura */
+}
+
+/* Telas de alta resolução (Retina) */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  /* Otimizações para imagens ou fontes em telas retina, se necessário */
+}
+
+/* Preferências de redução de movimento */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Suportes para notches e áreas seguras (env()) */
+/* As regras de padding com env() já foram aplicadas em app-shell.css */
+/* @supports (padding-top: env(safe-area-inset-top)) { ... } */
+
+/* Remover classes utilitárias .hide-on-* / .show-on-* antigas */
+/* A lógica de exibição deve ser controlada pelos estilos base e media queries */
+
+/* Nota: Os arquivos *-responsive-*.css específicos de componentes */
+/* devem ser auditados. Seus estilos devem ser movidos para os arquivos */
+/* base dos componentes e/ou para as media queries apropriadas aqui */
+/* ou removidos se redundantes após a refatoração mobile-first. */
+

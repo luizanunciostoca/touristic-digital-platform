@@ -1,0 +1,91 @@
+/* Seção do mapa - ocupa a linha principal do grid do app-shell */
+#map-section {
+  grid-row: 2 / 3;     /* Linha principal (expansível) do grid */
+  grid-column: 1 / -1; /* Ocupa todas as colunas */
+  width: 100%;
+  height: 100%;
+  min-height: 0;       /* Permite que o flex/grid encolha corretamente */
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Container do mapa - filho do #map-section (flex) */
+#map-container {
+  flex: 1 1 0;         /* Expande para preencher todo o #map-section */
+  width: 100%;
+  height: 100%;
+  min-height: 0;       /* Permite que flex encolha corretamente */
+  overflow: hidden;
+  border: none;
+  z-index: var(--z-base);
+  position: relative;
+}
+
+/* Elemento interno do mapa */
+#map {
+  width: 100%;
+  height: 100%;
+  border: none;
+  overflow: hidden;
+  background-color: var(--gray-200); /* Cor de fundo enquanto o mapa carrega */
+}
+
+/* Estilo para o marcador de localização do usuário */
+.custom-user-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Tamanho mínimo de toque - 44x44px */
+  width: 2.75rem; /* 44px / 16px */
+  height: 2.75rem; /* 44px / 16px */
+  background-color: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+/* Círculo de precisão do GPS */
+.gps-accuracy-circle {
+  fill-opacity: 0.15;
+  stroke-width: 1px; /* Manter 1px para linhas finas ou converter para rem muito pequeno? 0.0625rem */
+  stroke: var(--primary);
+  fill: var(--primary);
+}
+
+/* Ajustes nos controles do Leaflet (exemplo, pode estar em vendor/leaflet-custom.css) */
+.leaflet-control-zoom a {
+  width: 2.125rem !important; /* 34px / 16px */
+  height: 2.125rem !important; /* 34px / 16px */
+  line-height: 2.125rem !important;
+  font-size: 1.375rem !important; /* 22px / 16px */
+}
+
+.leaflet-control-locate a {
+  font-size: 1.25rem !important; /* 20px / 16px */
+  line-height: 2.125rem !important; /* 34px / 16px */
+}
+
+.leaflet-bar a,
+.leaflet-bar a:hover {
+  width: 2.125rem; /* 34px / 16px */
+  height: 2.125rem; /* 34px / 16px */
+  line-height: 2.125rem;
+}
+
+/* Garantir que os controles não sobreponham demais em telas pequenas */
+.leaflet-top.leaflet-left,
+.leaflet-bottom.leaflet-left {
+  margin-left: var(--spacing-sm);
+}
+.leaflet-top.leaflet-right,
+.leaflet-bottom.leaflet-right {
+  margin-right: var(--spacing-sm);
+}
+.leaflet-top {
+  top: var(--spacing-sm);
+}
+.leaflet-bottom {
+  bottom: var(--spacing-sm);
+}
+

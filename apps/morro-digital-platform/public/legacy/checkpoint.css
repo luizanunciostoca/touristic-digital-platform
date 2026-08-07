@@ -1,0 +1,8 @@
+/* V1 legacy checkpoint — only byte-identical source files are imported here. */
+@import "./css/base/variables.css";
+@import "./css/base/reset.css";
+@import "./css/base/typography.css";
+@import "./css/base/animations.css";
+@import "./css/layout/app-shell.css";
+@import "./css/layout/map.css";
+@import "./css/base/responsive.css";
