@@ -83,7 +83,8 @@ export function createLeafletCompatibilitySdk(
       readonly center: [number, number];
       readonly zoom: number;
     }) {
-      const initialCenter = compatibilityOptions.initialCenter ?? options.center;
+      const initialCenter =
+        compatibilityOptions.initialCenter ?? options.center;
       const initialZoom = compatibilityOptions.initialZoom ?? options.zoom;
 
       this.zoom = initialZoom;
