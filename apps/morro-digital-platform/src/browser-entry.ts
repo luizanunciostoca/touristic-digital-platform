@@ -16,9 +16,8 @@ function setupV1ShellInteractions(): void {
   const assistantButton = document.querySelector<HTMLButtonElement>(
     ".quick-actions .action-button.primary",
   );
-  const minimizeButton = assistant?.querySelector<HTMLButtonElement>(
-    ".minimize-button",
-  );
+  const minimizeButton =
+    assistant?.querySelector<HTMLButtonElement>(".minimize-button");
   const globeButton = document.getElementById("toggle-globe-view");
 
   assistantButton?.addEventListener("click", () => {
