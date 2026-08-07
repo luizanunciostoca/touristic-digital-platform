@@ -1,4 +1,4 @@
-name: Capture V2 map ready with overlays
+name: Capture V2 loading and map-ready states
 
 on:
   push:
@@ -37,7 +37,7 @@ jobs:
           curl -fsS http://127.0.0.1:4173/apps/morro-digital-platform/dist/browser-entry.js >/dev/null
           curl -fsS http://127.0.0.1:4173/apps/morro-digital-platform/public/styles.css >/dev/null
           curl -fsS http://127.0.0.1:4173/apps/morro-digital-platform/public/legacy/checkpoint.css >/dev/null
-      - name: Capture map ready
+      - name: Capture loading and map ready
         run: |
           mkdir -p visual/v2
           node <<'NODE'
@@ -58,11 +58,27 @@ jobs:
               });
               page.on('pageerror', (error) => errors.push(`pageerror: ${error.message}`));
               page.on('requestfailed', (request) => errors.push(`requestfailed: ${request.url()} ${request.failure()?.errorText || ''}`));
+
               await page.goto('http://127.0.0.1:4173', { waitUntil: 'domcontentloaded' });
+              const loading = await page.evaluate(() => {
+                const overlay = document.getElementById('loading-overlay');
+                return {
+                  exists: Boolean(overlay),
+                  faded: overlay?.classList.contains('fade-out') ?? false,
+                  text: overlay?.textContent?.trim() ?? '',
+                  background: overlay ? getComputedStyle(overlay).backgroundColor : '',
+                };
+              });
+              console.log(`${name} loading`, JSON.stringify(loading));
+              if (!loading.exists || loading.faded || !loading.text.includes('Carregando Morro Digital')) {
+                throw new Error(`V2 loading state incomplete for ${name}: ${JSON.stringify(loading)}`);
+              }
+              await page.screenshot({ path: `visual/v2/loading-${name}.png`, fullPage: false });
+
               await page.evaluate(() => localStorage.setItem('morro-digital-onboarded', '1'));
               await page.reload({ waitUntil: 'domcontentloaded' });
               await page.waitForTimeout(5000);
-              const state = await page.evaluate(() => ({
+              const ready = await page.evaluate(() => ({
                 appChildren: document.getElementById('app')?.children.length ?? 0,
                 mapExists: Boolean(document.getElementById('map')),
                 leafletContainer: document.getElementById('map')?.classList.contains('leaflet-container') ?? false,
@@ -71,10 +87,10 @@ jobs:
                 weatherVisible: Boolean(document.getElementById('weather-widget')),
                 globeVisible: Boolean(document.getElementById('toggle-globe-view')),
               }));
-              console.log(name, JSON.stringify(state));
+              console.log(`${name} map-ready`, JSON.stringify(ready));
               if (errors.length) console.log(name, errors.join('\n'));
-              if (!state.mapExists || !state.leafletContainer || !state.assistantVisible || state.optionCount !== 10 || !state.weatherVisible || !state.globeVisible) {
-                throw new Error(`V2 V1 overlay state incomplete for ${name}: ${JSON.stringify(state)}`);
+              if (!ready.mapExists || !ready.leafletContainer || !ready.assistantVisible || ready.optionCount !== 10 || !ready.weatherVisible || !ready.globeVisible) {
+                throw new Error(`V2 V1 overlay state incomplete for ${name}: ${JSON.stringify(ready)}`);
               }
               await page.screenshot({ path: `visual/v2/map-ready-${name}.png`, fullPage: false });
               await context.close();
@@ -84,6 +100,6 @@ jobs:
           NODE
       - uses: actions/upload-artifact@v4
         with:
-          name: v2-map-ready-screenshots
+          name: v2-loading-map-ready-screenshots
           path: visual/v2
           retention-days: 1
