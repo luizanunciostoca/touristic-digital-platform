@@ -1,0 +1,103 @@
+name: Diagnose V1 CSS baseline
+
+on:
+  push:
+    branches: [feat/v1-app-shell-checkpoint]
+    paths:
+      - .github/workflows/diagnose-v1-css-baseline.yml
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: |
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+      - name: Start V2
+        run: |
+          pnpm --filter @touristic/morro-digital-platform dev >/tmp/v2-baseline.log 2>&1 &
+          for i in $(seq 1 90); do
+            if curl -fsS http://127.0.0.1:4173 >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/v2-baseline.log
+          exit 1
+      - name: Compare normal and legacy-only CSS
+        run: |
+          node <<'NODE'
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+          const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            const context = await browser.newContext({ viewport: { width: 195, height: 422 }, deviceScaleFactor: 2 });
+            const page = await context.newPage();
+            await page.goto('http://127.0.0.1:4173', { waitUntil: 'domcontentloaded' });
+            await page.evaluate(() => localStorage.setItem('morro-digital-onboarded', '1'));
+            await page.reload({ waitUntil: 'domcontentloaded' });
+            const deadline = Date.now() + 20000;
+            while (Date.now() < deadline) {
+              const ready = await page.evaluate(() => {
+                const modal = document.querySelector('.assistant-modal');
+                const overlay = document.getElementById('loading-overlay');
+                return modal?.classList.contains('has-overflow') && document.querySelectorAll('.assistant-option-btn').length === 10 && (!(overlay instanceof HTMLElement) || getComputedStyle(overlay).visibility === 'hidden' || Number(getComputedStyle(overlay).opacity) === 0);
+              });
+              if (ready) break;
+              await sleep(100);
+            }
+            await page.evaluate(() => document.fonts.ready);
+            await sleep(600);
+
+            const measure = () => page.evaluate(() => {
+              const modal = document.querySelector('.assistant-modal');
+              const area = modal?.querySelector('.messages-area');
+              if (!(modal instanceof HTMLElement) || !(area instanceof HTMLElement)) throw new Error('missing assistant');
+              const root = getComputedStyle(document.documentElement);
+              const ms = getComputedStyle(modal);
+              const as = getComputedStyle(area);
+              return {
+                innerWidth, innerHeight,
+                documentClientHeight: document.documentElement.clientHeight,
+                visualViewportHeight: visualViewport?.height ?? null,
+                barHeightToken: root.getPropertyValue('--assistant-bar-height').trim(),
+                clusterGapToken: root.getPropertyValue('--assistant-cluster-gap').trim(),
+                sideButtonToken: root.getPropertyValue('--assistant-side-button-size').trim(),
+                modalBottom: ms.bottom,
+                modalHeight: modal.getBoundingClientRect().height,
+                modalMaxHeight: ms.maxHeight,
+                areaMaxHeight: as.maxHeight,
+                areaClientHeight: area.clientHeight,
+                areaScrollHeight: area.scrollHeight,
+                areaScrollTop: area.scrollTop,
+              };
+            });
+
+            console.log('NORMAL', JSON.stringify(await measure()));
+            await page.evaluate(() => {
+              const link = [...document.querySelectorAll('link[rel="stylesheet"]')].find((node) => node.href.includes('/public/styles.css'));
+              if (!(link instanceof HTMLLinkElement)) throw new Error('styles.css link not found');
+              link.disabled = true;
+            });
+            await sleep(1000);
+            await page.evaluate(() => {
+              const modal = document.querySelector('.assistant-modal');
+              const area = modal?.querySelector('.messages-area');
+              if (modal instanceof HTMLElement && area instanceof HTMLElement) {
+                modal.classList.toggle('has-overflow', area.scrollHeight > area.clientHeight);
+                area.scrollTop = area.scrollHeight;
+              }
+            });
+            await sleep(500);
+            console.log('LEGACY_ONLY', JSON.stringify(await measure()));
+            await browser.close();
+          })().catch((error) => { console.error(error); process.exit(1); });
+          NODE
