@@ -1,0 +1,47 @@
+/* Estilos para mapa rotacionado */
+.map-rotated .leaflet-tile-pane {
+  transform: rotate(180deg) scale(-1, -1) !important;
+  transform-origin: center center !important;
+  transition: transform 0.5s ease-out !important;
+}
+
+.map-rotated .leaflet-map-pane {
+  transform-origin: center center !important;
+}
+
+.map-rotated .leaflet-control-container {
+  transform: rotate(-180deg) !important;
+  transform-origin: center center !important;
+}
+
+/* Corrigir orientação de ícones e marcadores */
+.map-rotated .leaflet-marker-icon:not(.user-location-marker) {
+  transform: rotate(-180deg) !important;
+}
+
+/* Corrigir orientação de popups */
+.map-rotated .leaflet-popup-content {
+  transform: rotate(-180deg) !important;
+}
+
+/* Corrigir orientação dos controles de zoom */
+.map-rotated .leaflet-control-zoom a,
+.map-rotated .leaflet-control-attribution {
+  transform: rotate(-180deg) !important;
+}
+
+/* Manter o marcador do usuário com orientação normal mas invertido */
+.map-rotated .user-location-marker {
+  transform: scale(-1, -1) !important;
+}
+
+/* Corrigir a camada de overlays */
+.map-rotated .leaflet-overlay-pane {
+  transform: rotate(180deg) scale(-1, -1) !important;
+  transform-origin: center center !important;
+}
+
+/* Corrigir caminhos e rotas */
+.map-rotated .leaflet-overlay-pane svg path {
+  transform-origin: center center !important;
+}

@@ -16,6 +16,8 @@ const V1_STYLE_BLOBS = Object.freeze({
   "css/layout/map.css": "78a463817403e52c065b15d1d5aaa955f1f288eb",
   "css/layout/controls.css": "e1a7ee53a59b34533e58ca445565f04e57b1da99",
   "css/components/buttons/end-navigation-btn.css": "df0a8b39578ae26ed54c416d02dbb02b42b9fde7",
+  "css/components/map/map-indicators.css": "b028ea18228b0d2c862cfcf9aa0a82815cdedef2",
+  "css/components/map/map-rotation.css": "9748a061f6562a6622e1fec9a4d607eb2ed90116",
   "css/components/assistant/assistant-mood.css": "3858c89e4eb50cf0b770b52b5f34da0582248091",
   "css/components/inputs/inputs.css": "01e4db77b833a17539003e33f8852de2908ed68b",
   "css/components/markers.css": "5174e01aaf07191ac8bc24ff27408c05937f65c2",
