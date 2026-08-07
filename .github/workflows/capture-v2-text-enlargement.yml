@@ -37,6 +37,76 @@ jobs:
           mkdir -p visual/v2
           node <<'NODE'
           const { chromium } = require('/tmp/pw/node_modules/playwright');
+
+          async function waitForInitialOptions(page, timeoutMs = 20000) {
+            const deadline = Date.now() + timeoutMs;
+            while (Date.now() < deadline) {
+              const state = await page.evaluate(() => {
+                const modal = document.querySelector('.assistant-modal');
+                return {
+                  visible: modal instanceof HTMLElement && getComputedStyle(modal).display !== 'none',
+                  optionCount: document.querySelectorAll('.assistant-option-btn').length,
+                };
+              });
+              if (state.visible && state.optionCount === 10) return;
+              await page.waitForTimeout(100);
+            }
+            throw new Error('V2 assistant did not reach the 10-option initial state before timeout.');
+          }
+
+          async function isolateBackground(page) {
+            await page.evaluate(() => {
+              const existing = document.getElementById('visual-evidence-underlay');
+              if (existing) existing.remove();
+              const underlay = document.createElement('div');
+              underlay.id = 'visual-evidence-underlay';
+              Object.assign(underlay.style, {
+                position: 'fixed',
+                inset: '0',
+                background: 'rgb(239, 243, 248)',
+                zIndex: '2000',
+                pointerEvents: 'none',
+              });
+              document.body.appendChild(underlay);
+            });
+          }
+
+          async function collectMetrics(page) {
+            return page.evaluate(() => {
+              const modal = document.querySelector('.assistant-modal');
+              const messagesArea = modal?.querySelector('.messages-area');
+              const message = messagesArea?.querySelector('.message.assistant');
+              const options = [...document.querySelectorAll('.assistant-option-btn')];
+              const firstOption = options[0];
+              const lastOption = options.at(-1);
+              const rect = (element) => {
+                if (!(element instanceof HTMLElement)) return null;
+                const box = element.getBoundingClientRect();
+                return {
+                  top: box.top,
+                  bottom: box.bottom,
+                  height: box.height,
+                };
+              };
+              const body = document.body;
+              return {
+                modalVisible: modal instanceof HTMLElement && getComputedStyle(modal).display !== 'none',
+                modalClassName: modal instanceof HTMLElement ? modal.className : '',
+                modalRect: rect(modal),
+                optionCount: options.length,
+                bodyOverflowX: body.scrollWidth > document.documentElement.clientWidth,
+                viewportWidth: document.documentElement.clientWidth,
+                scrollWidth: body.scrollWidth,
+                messagesClientHeight: messagesArea instanceof HTMLElement ? messagesArea.clientHeight : 0,
+                messagesScrollHeight: messagesArea instanceof HTMLElement ? messagesArea.scrollHeight : 0,
+                messagesScrollTop: messagesArea instanceof HTMLElement ? messagesArea.scrollTop : 0,
+                messageRect: rect(message),
+                firstOptionRect: rect(firstOption),
+                lastOptionRect: rect(lastOption),
+              };
+            });
+          }
+
           (async () => {
             const browser = await chromium.launch({ headless: true });
             const cases = [
@@ -50,23 +120,15 @@ jobs:
               await page.goto('http://127.0.0.1:4173', { waitUntil: 'domcontentloaded' });
               await page.evaluate(() => localStorage.setItem('morro-digital-onboarded', '1'));
               await page.reload({ waitUntil: 'domcontentloaded' });
-              await page.waitForTimeout(5000);
+              await waitForInitialOptions(page);
               await page.evaluate(() => document.fonts.ready);
-              const metrics = await page.evaluate(() => {
-                const modal = document.querySelector('.assistant-modal');
-                const options = [...document.querySelectorAll('.assistant-option-btn')];
-                const body = document.body;
-                return {
-                  modalVisible: modal instanceof HTMLElement && getComputedStyle(modal).display !== 'none',
-                  optionCount: options.length,
-                  bodyOverflowX: body.scrollWidth > document.documentElement.clientWidth,
-                  viewportWidth: document.documentElement.clientWidth,
-                  scrollWidth: body.scrollWidth,
-                  firstOptionHeight: options[0] instanceof HTMLElement ? options[0].getBoundingClientRect().height : 0,
-                };
-              });
+              await page.waitForTimeout(250);
+              await isolateBackground(page);
+              const metrics = await collectMetrics(page);
               console.log(`${name} text-200`, JSON.stringify(metrics));
-              if (!metrics.modalVisible || metrics.optionCount !== 10) throw new Error(`V2 enlarged text state incomplete for ${name}`);
+              if (!metrics.modalVisible || metrics.optionCount !== 10) {
+                throw new Error(`V2 enlarged text state incomplete for ${name}`);
+              }
               const modal = page.locator('.assistant-modal');
               await modal.screenshot({ path: `visual/v2/text-enlargement-${name}.png` });
               await context.close();
