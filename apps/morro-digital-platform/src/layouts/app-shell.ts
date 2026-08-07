@@ -15,6 +15,15 @@ function createAppShellMarkup(): string {
       <section id="map-section" aria-label="Mapa interativo" data-i18n-aria="site_interactive_map_label">
         <div id="map-container">
           <div id="map" role="region" aria-label="Mapa interativo de Morro de São Paulo"></div>
+          <div id="weather-widget" class="weather-widget compact" data-compatibility-state="v1-snapshot">
+            <div class="weather-compact-main">
+              <div class="weather-emoji">☀️</div>
+              <span class="weather-temp">21°C</span>
+              <div class="weather-compact-footer">
+                <span class="click-here-text">Click here</span>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -27,15 +36,30 @@ function createAppShellMarkup(): string {
       </section>
 
       <div class="quick-actions">
-        <button class="action-button primary mood-button" data-mood="happy" aria-label="Abrir assistente">
-          <img class="mood-icon" src="/apps/morro-digital-platform/public/assets/emojis/sun_emojis/sun_emoji_1.png" alt="Humor do assistente" />
+        <button class="action-button primary mood-button" data-mood="happy" aria-label="Open assistant">
+          <img class="mood-icon" src="/apps/morro-digital-platform/public/assets/emojis/sun_emojis/sun_emoji_1.png" alt="Assistant mood" />
         </button>
       </div>
 
-      <div id="assistant-messages" class="assistant-modal hidden">
-        <button class="minimize-button" aria-label="Minimizar assistente" data-i18n-aria="assistant_minimize">x</button>
-        <div class="messages-area"></div>
-        <div class="message assistant" data-message-type="standard"></div>
+      <div id="assistant-messages" class="assistant-modal auto-size grow-upward">
+        <button class="minimize-button" aria-label="Minimize assistant" data-i18n-aria="assistant_minimize">×</button>
+        <div class="messages-area">
+          <div class="message assistant" data-message-type="standard">
+            🎉 Welcome to Morro Digital! I am your official virtual guide to Morro de São Paulo, ready to help you easily explore tourist spots, beaches, restaurants, parties, tours, and everything you need at your fingertips. How can I help you? 😄
+          </div>
+          <div class="assistant-options" aria-label="Explore Morro Digital">
+            <button type="button" class="assistant-option-btn" data-value="beaches">Beaches</button>
+            <button type="button" class="assistant-option-btn" data-value="restaurants">Restaurants</button>
+            <button type="button" class="assistant-option-btn" data-value="hotels">Hotels</button>
+            <button type="button" class="assistant-option-btn" data-value="shops">Shops</button>
+            <button type="button" class="assistant-option-btn" data-value="transport">Transport</button>
+            <button type="button" class="assistant-option-btn" data-value="attractions">Attractions</button>
+            <button type="button" class="assistant-option-btn" data-value="tours">Tours</button>
+            <button type="button" class="assistant-option-btn" data-value="nightlife">Nightlife</button>
+            <button type="button" class="assistant-option-btn" data-value="emergencies">Emergencies</button>
+            <button type="button" class="assistant-option-btn" data-value="help">Help</button>
+          </div>
+        </div>
         <div class="navigation-instruction-area"></div>
       </div>
 
@@ -56,14 +80,30 @@ function createAppShellMarkup(): string {
         <input
           type="text"
           id="assistantInput"
-          placeholder="Pergunte algo sobre Morro de São Paulo..."
-          aria-label="Campo de entrada do assistente"
+          placeholder="Type your question..."
+          aria-label="Assistant input"
           data-i18n-placeholder="assistant_input_placeholder"
           data-i18n-aria="assistant_input_label"
         />
-        <button id="sendButton" aria-label="Enviar mensagem" data-i18n-aria="assistant_send_label"><i class="fas fa-paper-plane"></i></button>
-        <button id="voiceButton" aria-label="Enviar mensagem de voz" data-i18n-aria="assistant_voice_label"><i class="fas fa-microphone"></i></button>
-        <button id="configButton" aria-label="Configurações do assistente" data-i18n-aria="assistant_settings_label"><i class="fas fa-cog"></i></button>
+        <button id="sendButton" aria-label="Send message" data-i18n-aria="assistant_send_label"><i class="fas fa-paper-plane"></i></button>
+        <button id="voiceButton" aria-label="Send voice message" data-i18n-aria="assistant_voice_label"><i class="fas fa-microphone"></i></button>
+        <button id="configButton" aria-label="Assistant settings" data-i18n-aria="assistant_settings_label"><i class="fas fa-cog"></i></button>
+      </div>
+
+      <div id="globe-map-control" class="globe-map-control">
+        <button
+          type="button"
+          id="toggle-globe-view"
+          class="map-control-button"
+          title="Toggle global map view"
+          aria-label="Toggle global map view"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8">
+            <circle cx="12" cy="12" r="9"></circle>
+            <path d="M3 12h18M12 3c2.4 2.5 3.6 5.5 3.6 9S14.4 18.5 12 21M12 3c-2.4 2.5-3.6 5.5-3.6 9S9.6 18.5 12 21"></path>
+          </svg>
+          <span class="control-tooltip">Global view</span>
+        </button>
       </div>
 
       <div id="instruction-banner" class="instruction-banner hidden">
