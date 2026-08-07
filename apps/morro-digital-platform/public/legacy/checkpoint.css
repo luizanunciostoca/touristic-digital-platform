@@ -7,6 +7,8 @@
 @import "./css/layout/map.css";
 @import "./css/layout/controls.css";
 @import "./css/components/buttons/end-navigation-btn.css";
+@import "./css/components/map/map-indicators.css";
+@import "./css/components/map/map-rotation.css";
 @import "./css/components/assistant/assistant-mood.css";
 @import "./css/components/inputs/inputs.css";
 @import "./css/components/markers.css";
