@@ -8,8 +8,10 @@ import {
 } from "./development/leaflet-compatibility-sdk.js";
 import { createDevelopmentMapboxSdk } from "./development/mapbox-sdk.js";
 import { bootstrapMorroDigitalApplication } from "./main.js";
+import { initializeWeatherWidget } from "./weather/weather-widget.js";
 
 bootstrapMorroDigitalApplication(document);
+initializeWeatherWidget({ document });
 
 function setupV1ShellInteractions(): void {
   const assistant = document.getElementById("assistant-messages");
