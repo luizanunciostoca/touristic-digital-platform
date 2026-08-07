@@ -4,15 +4,16 @@ import { fetchMorroWeather } from "./weather-widget.js";
 
 describe("fetchMorroWeather", () => {
   it("maps current runtime data into the Morro weather contract", async () => {
-    const fetchImplementation = vi.fn(async () =>
-      new Response(
-        JSON.stringify({
-          temperatureCelsius: 28.6,
-          weatherCode: 1,
-          isDay: true,
-        }),
-        { status: 200, headers: { "Content-Type": "application/json" } },
-      ),
+    const fetchImplementation = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            temperatureCelsius: 28.6,
+            weatherCode: 1,
+            isDay: true,
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
     );
 
     await expect(fetchMorroWeather(fetchImplementation)).resolves.toEqual({
@@ -28,8 +29,8 @@ describe("fetchMorroWeather", () => {
   });
 
   it("rejects runtime HTTP failures", async () => {
-    const fetchImplementation = vi.fn(async () =>
-      new Response("", { status: 503 }),
+    const fetchImplementation = vi.fn(
+      async () => new Response("", { status: 503 }),
     );
 
     await expect(fetchMorroWeather(fetchImplementation)).rejects.toThrow(
@@ -38,11 +39,12 @@ describe("fetchMorroWeather", () => {
   });
 
   it("rejects incomplete runtime data", async () => {
-    const fetchImplementation = vi.fn(async () =>
-      new Response(JSON.stringify({ temperatureCelsius: 28 }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }),
+    const fetchImplementation = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ temperatureCelsius: 28 }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
     );
 
     await expect(fetchMorroWeather(fetchImplementation)).rejects.toThrow(
