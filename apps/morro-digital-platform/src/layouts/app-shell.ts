@@ -144,16 +144,21 @@ function createAppShellMarkup(): string {
 
 function synchronizeAssistantLayout(document: Document): void {
   const assistantMessages = document.getElementById("assistant-messages");
-  const messagesArea = assistantMessages?.querySelector<HTMLElement>(".messages-area");
+  const messagesArea =
+    assistantMessages?.querySelector<HTMLElement>(".messages-area");
   if (!(assistantMessages instanceof HTMLElement) || !messagesArea) {
     return;
   }
 
   const update = (): void => {
     const textMessages = Array.from(
-      messagesArea.querySelectorAll<HTMLElement>(".message:not(.carousel-container)"),
+      messagesArea.querySelectorAll<HTMLElement>(
+        ".message:not(.carousel-container)",
+      ),
     );
-    const carouselContainers = messagesArea.querySelectorAll(".carousel-container");
+    const carouselContainers = messagesArea.querySelectorAll(
+      ".carousel-container",
+    );
     const totalTextLength = textMessages.reduce(
       (total, message) => total + (message.textContent?.length ?? 0),
       0,
