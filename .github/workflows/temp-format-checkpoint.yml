@@ -1,0 +1,49 @@
+name: Temporary format checkpoint
+
+on:
+  push:
+    branches:
+      - feat/v1-app-shell-checkpoint
+    paths:
+      - .github/workflows/temp-format-checkpoint.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/v1-app-shell-checkpoint
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Format checkpoint files
+        run: |
+          pnpm exec prettier --write \
+            apps/morro-digital-platform/src/development/leaflet-compatibility-sdk.ts \
+            apps/morro-digital-platform/src/browser-entry.ts \
+            apps/morro-digital-platform/tooling/dev-server.mjs
+      - name: Verify changed paths
+        run: |
+          git status --short
+          test "$(git status --short | wc -l)" -ge 1
+          unexpected="$(git status --short | awk '{print $2}' | grep -Ev '^(apps/morro-digital-platform/src/development/leaflet-compatibility-sdk.ts|apps/morro-digital-platform/src/browser-entry.ts|apps/morro-digital-platform/tooling/dev-server.mjs)$' || true)"
+          test -z "$unexpected"
+      - name: Commit formatted checkpoint files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            apps/morro-digital-platform/src/development/leaflet-compatibility-sdk.ts \
+            apps/morro-digital-platform/src/browser-entry.ts \
+            apps/morro-digital-platform/tooling/dev-server.mjs
+          git commit -m "style: format visual checkpoint changes"
+          git push origin HEAD:feat/v1-app-shell-checkpoint
