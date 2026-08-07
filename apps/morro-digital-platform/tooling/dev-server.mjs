@@ -161,7 +161,10 @@ async function serveWeather(response) {
     const weather = await getMorroWeather();
     response.statusCode = 200;
     response.setHeader("Content-Type", "application/json; charset=utf-8");
-    response.setHeader("Cache-Control", "public, max-age=300, stale-while-revalidate=300");
+    response.setHeader(
+      "Cache-Control",
+      "public, max-age=300, stale-while-revalidate=300",
+    );
     response.end(JSON.stringify(weather));
   } catch (error) {
     console.error(
@@ -188,8 +191,9 @@ const server = createServer(async (request, response) => {
     const filePath = resolveRequestPath(requestUrl.pathname);
     const fileStat = await stat(filePath);
 
-    if (!fileStat.isFile())
+    if (!fileStat.isFile()) {
       throw new Error("Requested resource is not a file.");
+    }
 
     response.statusCode = 200;
     response.setHeader(
