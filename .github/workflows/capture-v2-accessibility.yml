@@ -53,6 +53,47 @@ jobs:
             throw new Error('Weather widget did not reach ready/error before timeout.');
           }
 
+          async function prepareOnboardedPage(page) {
+            await page.goto('http://127.0.0.1:4173', { waitUntil: 'domcontentloaded' });
+            await page.evaluate(() => localStorage.setItem('morro-digital-onboarded', '1'));
+            await page.reload({ waitUntil: 'domcontentloaded' });
+          }
+
+          async function assertWeatherFailureState(page, name, mode) {
+            const state = await waitForWeather(page);
+            await page.evaluate(() => document.fonts.ready);
+            await page.waitForTimeout(600);
+            const snapshot = await page.evaluate(() => {
+              const widget = document.getElementById('weather-widget');
+              const assistant = document.querySelector('.assistant-modal');
+              const mood = document.querySelector('.mood-button');
+              const map = document.getElementById('map');
+              return {
+                weatherState: widget?.dataset.weatherState ?? '',
+                weatherError: widget?.querySelector('.weather-error')?.textContent?.trim() ?? '',
+                ariaBusy: widget?.getAttribute('aria-busy'),
+                assistantVisible: assistant instanceof HTMLElement && getComputedStyle(assistant).display !== 'none',
+                assistantOptions: document.querySelectorAll('.assistant-option-btn').length,
+                moodVisible: mood instanceof HTMLElement && getComputedStyle(mood).display !== 'none',
+                mapPresent: map instanceof HTMLElement,
+              };
+            });
+            console.log(`${name} ${mode} weather failure`, JSON.stringify(snapshot));
+            if (
+              state !== 'error' ||
+              snapshot.weatherState !== 'error' ||
+              snapshot.weatherError !== 'Não foi possível atualizar o clima.' ||
+              snapshot.ariaBusy !== null ||
+              !snapshot.assistantVisible ||
+              snapshot.assistantOptions !== 10 ||
+              !snapshot.moodVisible ||
+              !snapshot.mapPresent
+            ) {
+              throw new Error(`Invalid ${mode} failure state for ${name}: ${JSON.stringify(snapshot)}`);
+            }
+            await page.screenshot({ path: `visual/v2/weather-${mode}-${name}.png`, fullPage: false });
+          }
+
           (async () => {
             const browser = await chromium.launch({ headless: true });
             const cases = [
@@ -63,9 +104,7 @@ jobs:
             for (const [name, width, height] of cases) {
               const context = await browser.newContext({ viewport: { width, height } });
               const page = await context.newPage();
-              await page.goto('http://127.0.0.1:4173', { waitUntil: 'domcontentloaded' });
-              await page.evaluate(() => localStorage.setItem('morro-digital-onboarded', '1'));
-              await page.reload({ waitUntil: 'domcontentloaded' });
+              await prepareOnboardedPage(page);
               await waitForWeather(page);
               await page.waitForTimeout(5000);
               await page.evaluate(() => document.fonts.ready);
@@ -99,9 +138,7 @@ jobs:
 
               const hcContext = await browser.newContext({ viewport: { width, height }, forcedColors: 'active' });
               const hcPage = await hcContext.newPage();
-              await hcPage.goto('http://127.0.0.1:4173', { waitUntil: 'domcontentloaded' });
-              await hcPage.evaluate(() => localStorage.setItem('morro-digital-onboarded', '1'));
-              await hcPage.reload({ waitUntil: 'domcontentloaded' });
+              await prepareOnboardedPage(hcPage);
               await waitForWeather(hcPage);
               await hcPage.waitForTimeout(5000);
               await hcPage.evaluate(() => document.fonts.ready);
@@ -109,6 +146,28 @@ jobs:
               if (!forced) throw new Error(`forced-colors not active for ${name}`);
               await hcPage.screenshot({ path: `visual/v2/high-contrast-${name}.png`, fullPage: false });
               await hcContext.close();
+
+              const providerContext = await browser.newContext({ viewport: { width, height } });
+              const providerPage = await providerContext.newPage();
+              await providerPage.route('**/api/weather', async (route) => {
+                await route.fulfill({
+                  status: 503,
+                  contentType: 'application/json',
+                  body: JSON.stringify({ error: 'provider unavailable' }),
+                });
+              });
+              await prepareOnboardedPage(providerPage);
+              await assertWeatherFailureState(providerPage, name, 'provider-unavailable');
+              await providerContext.close();
+
+              const networkContext = await browser.newContext({ viewport: { width, height } });
+              const networkPage = await networkContext.newPage();
+              await networkPage.route('**/api/weather', async (route) => {
+                await route.abort('internetdisconnected');
+              });
+              await prepareOnboardedPage(networkPage);
+              await assertWeatherFailureState(networkPage, name, 'network-offline');
+              await networkContext.close();
             }
             await browser.close();
           })().catch((error) => { console.error(error); process.exit(1); });
