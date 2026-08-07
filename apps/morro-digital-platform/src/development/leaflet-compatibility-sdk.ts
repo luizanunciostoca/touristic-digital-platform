@@ -28,27 +28,42 @@ interface LeafletNamespaceLike {
   }): object;
 }
 
-export interface LeafletCompatibilityWindow {
-  readonly L?: LeafletNamespaceLike;
+function resolveLeafletNamespace(source: object): LeafletNamespaceLike | undefined {
+  const candidate: unknown = Reflect.get(source, "L");
+  if (!candidate || typeof candidate !== "object") return undefined;
+
+  const namespace = candidate as Partial<LeafletNamespaceLike>;
+  if (
+    typeof namespace.map !== "function" ||
+    typeof namespace.tileLayer !== "function" ||
+    typeof namespace.marker !== "function"
+  ) {
+    return undefined;
+  }
+
+  return namespace as LeafletNamespaceLike;
+}
+
+function requireLeafletNamespace(source: object): LeafletNamespaceLike {
+  const leaflet = resolveLeafletNamespace(source);
+  if (!leaflet) {
+    throw new Error("Leaflet compatibility runtime is not available.");
+  }
+  return leaflet;
 }
 
 function toLeafletCoordinates(position: [number, number]): [number, number] {
   return [position[1], position[0]];
 }
 
-export function hasLeafletCompatibilitySdk(
-  window: LeafletCompatibilityWindow,
-): boolean {
-  return Boolean(window.L);
+export function hasLeafletCompatibilitySdk(source: object): boolean {
+  return Boolean(resolveLeafletNamespace(source));
 }
 
 export function createLeafletCompatibilitySdk(
-  window: LeafletCompatibilityWindow,
+  source: object,
 ): MapboxGlModuleLike {
-  const leaflet = window.L;
-  if (!leaflet) {
-    throw new Error("Leaflet compatibility runtime is not available.");
-  }
+  const leaflet = requireLeafletNamespace(source);
 
   class LeafletCompatibilityMap implements MapboxGlMapLike {
     readonly nativeMap: LeafletMapLike;
