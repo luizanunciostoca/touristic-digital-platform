@@ -10,6 +10,7 @@ on:
       - apps/morro-digital-platform/src/browser-entry.ts
       - apps/morro-digital-platform/src/development/leaflet-compatibility-sdk.ts
       - apps/morro-digital-platform/src/weather/**
+      - apps/morro-digital-platform/tooling/dev-server.mjs
       - apps/morro-digital-platform/public/index.html
       - apps/morro-digital-platform/public/styles.css
       - apps/morro-digital-platform/public/legacy/**
@@ -41,6 +42,17 @@ jobs:
           mkdir -p visual/v2
           node <<'NODE'
           const { chromium } = require('/tmp/pw/node_modules/playwright');
+
+          async function waitForWeather(page, timeoutMs = 15000) {
+            const deadline = Date.now() + timeoutMs;
+            while (Date.now() < deadline) {
+              const state = await page.locator('#weather-widget').getAttribute('data-weather-state');
+              if (state === 'ready' || state === 'error') return state;
+              await page.waitForTimeout(100);
+            }
+            throw new Error('Weather widget did not reach ready/error before timeout.');
+          }
+
           (async () => {
             const browser = await chromium.launch({ headless: true });
             const cases = [
@@ -54,10 +66,7 @@ jobs:
               await page.goto('http://127.0.0.1:4173', { waitUntil: 'domcontentloaded' });
               await page.evaluate(() => localStorage.setItem('morro-digital-onboarded', '1'));
               await page.reload({ waitUntil: 'domcontentloaded' });
-              await page.waitForFunction(() => {
-                const widget = document.getElementById('weather-widget');
-                return widget?.dataset.weatherState === 'ready' || widget?.dataset.weatherState === 'error';
-              }, { timeout: 15000 });
+              await waitForWeather(page);
               await page.waitForTimeout(5000);
               await page.evaluate(() => document.fonts.ready);
               const weatherState = await page.evaluate(() => {
@@ -69,6 +78,10 @@ jobs:
                 };
               });
               console.log(`${name} weather`, JSON.stringify(weatherState));
+              if (weatherState.state !== 'ready' || !/^\d+°C$/.test(weatherState.temperature)) {
+                throw new Error(`Weather widget did not render live conditions for ${name}: ${JSON.stringify(weatherState)}`);
+              }
+
               await page.keyboard.press('Tab');
               const focusTrace = [];
               for (let i = 0; i < 12; i += 1) {
@@ -89,10 +102,7 @@ jobs:
               await hcPage.goto('http://127.0.0.1:4173', { waitUntil: 'domcontentloaded' });
               await hcPage.evaluate(() => localStorage.setItem('morro-digital-onboarded', '1'));
               await hcPage.reload({ waitUntil: 'domcontentloaded' });
-              await hcPage.waitForFunction(() => {
-                const widget = document.getElementById('weather-widget');
-                return widget?.dataset.weatherState === 'ready' || widget?.dataset.weatherState === 'error';
-              }, { timeout: 15000 });
+              await waitForWeather(hcPage);
               await hcPage.waitForTimeout(5000);
               await hcPage.evaluate(() => document.fonts.ready);
               const forced = await hcPage.evaluate(() => matchMedia('(forced-colors: active)').matches);
