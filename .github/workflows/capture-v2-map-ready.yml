@@ -9,7 +9,9 @@ on:
       - apps/morro-digital-platform/src/layouts/app-shell.ts
       - apps/morro-digital-platform/src/browser-entry.ts
       - apps/morro-digital-platform/src/development/leaflet-compatibility-sdk.ts
+      - apps/morro-digital-platform/public/index.html
       - apps/morro-digital-platform/public/styles.css
+      - apps/morro-digital-platform/public/legacy/index-inline.css
       - apps/morro-digital-platform/tooling/dev-server.mjs
 
 permissions:
@@ -37,6 +39,7 @@ jobs:
           curl -fsS http://127.0.0.1:4173/apps/morro-digital-platform/dist/browser-entry.js >/dev/null
           curl -fsS http://127.0.0.1:4173/apps/morro-digital-platform/public/styles.css >/dev/null
           curl -fsS http://127.0.0.1:4173/apps/morro-digital-platform/public/legacy/checkpoint.css >/dev/null
+          curl -fsS http://127.0.0.1:4173/apps/morro-digital-platform/public/legacy/index-inline.css >/dev/null
       - name: Capture loading and map ready
         run: |
           mkdir -p visual/v2
@@ -67,10 +70,11 @@ jobs:
                   faded: overlay?.classList.contains('fade-out') ?? false,
                   text: overlay?.textContent?.trim() ?? '',
                   background: overlay ? getComputedStyle(overlay).backgroundColor : '',
+                  zIndex: overlay ? getComputedStyle(overlay).zIndex : '',
                 };
               });
               console.log(`${name} loading`, JSON.stringify(loading));
-              if (!loading.exists || loading.faded || !loading.text.includes('Carregando Morro Digital')) {
+              if (!loading.exists || loading.faded || !loading.text.includes('Carregando Morro Digital') || loading.background !== 'rgb(0, 67, 179)' || loading.zIndex !== '10000') {
                 throw new Error(`V2 loading state incomplete for ${name}: ${JSON.stringify(loading)}`);
               }
               await page.screenshot({ path: `visual/v2/loading-${name}.png`, fullPage: false });
