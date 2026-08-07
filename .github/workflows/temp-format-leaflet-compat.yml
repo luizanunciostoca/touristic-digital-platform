@@ -1,0 +1,43 @@
+name: Temporary format Leaflet adapter
+
+on:
+  push:
+    branches:
+      - feat/v1-app-shell-checkpoint
+    paths:
+      - .github/workflows/temp-format-leaflet-compat.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/v1-app-shell-checkpoint
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Format adapter
+        run: pnpm exec prettier --write apps/morro-digital-platform/src/development/leaflet-compatibility-sdk.ts
+      - name: Verify only adapter changed
+        run: |
+          changed="$(git status --short)"
+          echo "$changed"
+          test -n "$changed"
+          test "$(git status --short | wc -l)" -eq 1
+          git status --short | grep -F "apps/morro-digital-platform/src/development/leaflet-compatibility-sdk.ts"
+      - name: Commit formatted adapter
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/morro-digital-platform/src/development/leaflet-compatibility-sdk.ts
+          git commit -m "style: apply Prettier to Leaflet adapter"
+          git push origin HEAD:feat/v1-app-shell-checkpoint
