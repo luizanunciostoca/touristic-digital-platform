@@ -89,7 +89,10 @@ export function createLeafletCompatibilitySdk(
 
       this.zoom = initialZoom;
       this.nativeMap = leaflet
-        .map(options.container, { zoomControl: false })
+        .map(options.container, {
+          zoomControl: false,
+          attributionControl: false,
+        })
         .setView(toLeafletCoordinates(initialCenter), initialZoom);
 
       leaflet
@@ -139,10 +142,10 @@ export function createLeafletCompatibilitySdk(
               className: "morro-leaflet-compatibility-marker",
             })
           : undefined;
-      this.#marker = leaflet.marker(
-        toLeafletCoordinates(this.#position),
-        icon ? { icon } : undefined,
-      );
+      this.#marker = leaflet.marker(toLeafletCoordinates(this.#position), {
+        ...(icon ? { icon } : {}),
+        keyboard: false,
+      });
       this.#marker.addTo(map.nativeMap);
       return this;
     }
