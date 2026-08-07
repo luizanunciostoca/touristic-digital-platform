@@ -17,6 +17,7 @@
 @import "./css/components/map/mapbox-osm-3d.css";
 @import "./css/components/navigation/navigation-banner.css";
 @import "./css/components/assistant/assistant-mood.css";
+@import "./css/components/assistant/assistantModalUI.css";
 @import "./css/components/assistant/carouselModal.css";
 @import "./css/components/assistant/assistant-voice-selector.css";
 @import "./css/components/tour/tour.css";
