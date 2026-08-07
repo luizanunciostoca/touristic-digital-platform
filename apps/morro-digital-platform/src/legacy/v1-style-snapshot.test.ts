@@ -33,6 +33,7 @@ const V1_STYLE_BLOBS = Object.freeze({
   "css/components/popups.css": "e1b2c2fb8c3eff36eae67ba8a591481cfbb4b3b5",
   "css/components/inputs/inputs.css": "01e4db77b833a17539003e33f8852de2908ed68b",
   "css/components/weather.css": "e97d5943745dd8fec90de1cd27310574c2faa9a5",
+  "css/components/onboarding.css": "543c19d609ce959259d4a1368371601606f7dd4e",
   "css/components/accessibility.css": "353bd093f10b130a9013eb728899ce82c3f62894",
   "css/components/interactive-tour.css": "f04a2447b027d8311da1a1c64a0e5cdfba2f7d1d",
   "css/components/markers.css": "5174e01aaf07191ac8bc24ff27408c05937f65c2",

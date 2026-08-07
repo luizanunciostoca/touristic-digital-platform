@@ -24,6 +24,7 @@
 @import "./css/components/popups.css";
 @import "./css/components/inputs/inputs.css";
 @import "./css/components/weather.css";
+@import "./css/components/onboarding.css";
 @import "./css/components/accessibility.css";
 @import "./css/components/interactive-tour.css";
 @import "./css/components/markers.css";
