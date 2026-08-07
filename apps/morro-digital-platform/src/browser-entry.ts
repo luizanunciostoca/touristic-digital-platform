@@ -159,20 +159,55 @@ async function resolveMapProvider(): Promise<ResolvedMapProvider> {
   }
 }
 
-async function start(): Promise<void> {
-  const provider = await resolveMapProvider();
+function prepareMapContainerForFallback(): void {
+  if (!mapContainer) return;
+  mapContainer.replaceChildren();
+  mapContainer.classList.remove("mapboxgl-map");
+  mapContainer.removeAttribute("style");
+  mapContainer.removeAttribute("aria-busy");
+  mapContainer.setAttribute("data-map-fallback", "leaflet");
+}
+
+async function startBrowserWithProvider(provider: ResolvedMapProvider) {
   mapContainer?.setAttribute("data-map-mode", provider.mode);
   mapContainer?.setAttribute(
     "data-map-provider",
     provider.mode === "real" ? "mapbox" : provider.mode,
   );
 
-  const result = await startMorroDigitalBrowser({
-    sdk: provider.sdk,
-    environment: provider.environment,
-    document,
-    initialMarkers: initialTourMarkers,
-  });
+  try {
+    return await startMorroDigitalBrowser({
+      sdk: provider.sdk,
+      environment: provider.environment,
+      document,
+      initialMarkers: initialTourMarkers,
+    });
+  } catch (error) {
+    if (provider.mode !== "real") throw error;
+
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Falha desconhecida ao inicializar o Mapbox.";
+    updateStatus(`Mapbox indisponível; restaurando fallback da V1: ${message}`);
+    prepareMapContainerForFallback();
+
+    const fallbackProvider = createFallbackMapProvider();
+    mapContainer?.setAttribute("data-map-mode", fallbackProvider.mode);
+    mapContainer?.setAttribute("data-map-provider", fallbackProvider.mode);
+
+    return await startMorroDigitalBrowser({
+      sdk: fallbackProvider.sdk,
+      environment: fallbackProvider.environment,
+      document,
+      initialMarkers: initialTourMarkers,
+    });
+  }
+}
+
+async function start(): Promise<void> {
+  const provider = await resolveMapProvider();
+  const result = await startBrowserWithProvider(provider);
 
   updateStatus(
     `Runtime ativo: ${result.startedModules.join(", ")} — provider ${result.geospatialEngine?.providerId ?? "indisponível"} — ${formatTourStatus(initialTourId, result.loadedMarkerCount)}`,
