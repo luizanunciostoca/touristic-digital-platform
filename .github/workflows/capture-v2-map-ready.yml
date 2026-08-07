@@ -1,0 +1,63 @@
+name: Capture V2 map ready
+
+on:
+  push:
+    branches:
+      - feat/v1-app-shell-checkpoint
+    paths:
+      - .github/workflows/capture-v2-map-ready.yml
+
+permissions:
+  contents: read
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install Playwright
+        run: |
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+      - name: Start V2
+        run: |
+          pnpm --filter @touristic/morro-digital-platform dev >/tmp/v2.log 2>&1 &
+          for i in $(seq 1 90); do curl -fsS http://127.0.0.1:4173 >/dev/null && exit 0; sleep 1; done
+          cat /tmp/v2.log
+          exit 1
+      - name: Capture map ready
+        run: |
+          mkdir -p visual/v2
+          node <<'NODE'
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            const cases = [
+              ['mobile', 390, 844],
+              ['tablet', 768, 1024],
+              ['desktop', 1440, 900],
+            ];
+            for (const [name, width, height] of cases) {
+              const context = await browser.newContext({ viewport: { width, height } });
+              const page = await context.newPage();
+              await page.goto('http://127.0.0.1:4173', { waitUntil: 'domcontentloaded' });
+              await page.evaluate(() => localStorage.setItem('morro-digital-onboarded', '1'));
+              await page.reload({ waitUntil: 'domcontentloaded' });
+              await page.waitForTimeout(5000);
+              await page.screenshot({ path: `visual/v2/map-ready-${name}.png`, fullPage: false });
+              await context.close();
+            }
+            await browser.close();
+          })().catch((error) => { console.error(error); process.exit(1); });
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v2-map-ready-screenshots
+          path: visual/v2
+          retention-days: 1
