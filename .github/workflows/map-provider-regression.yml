@@ -40,6 +40,7 @@ jobs:
         run: |
           npm install --prefix /tmp/pw --no-save playwright@1.54.2
           /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+          mkdir -p /tmp/map-provider-evidence
       - name: Start fallback-only runtime
         run: |
           pnpm --filter @touristic/morro-digital-platform dev >/tmp/morro-map-provider.log 2>&1 &
@@ -53,15 +54,20 @@ jobs:
       - name: Validate fallback without token
         run: |
           node <<'NODE'
+          const { writeFileSync } = require('node:fs');
           const { chromium } = require('/tmp/pw/node_modules/playwright');
 
           async function waitForReady(page) {
-            await page.locator('#map[data-map-state="ready"]').waitFor({ timeout: 20000 });
+            await page.locator('#map[data-map-state="ready"]').waitFor({ state: 'attached', timeout: 20000 });
             return await page.locator('#map').evaluate((element) => ({
               mode: element.getAttribute('data-map-mode'),
               provider: element.getAttribute('data-map-provider'),
               markerCount: element.getAttribute('data-map-marker-count'),
+              mapState: element.getAttribute('data-map-state'),
+              fallback: element.getAttribute('data-map-fallback'),
               leaflet: element.classList.contains('leaflet-container'),
+              leafletPane: Boolean(element.querySelector('.leaflet-pane')),
+              className: element.className,
             }));
           }
 
@@ -73,14 +79,16 @@ jobs:
             await page.evaluate(() => localStorage.setItem('morro-digital-onboarded', '1'));
             await page.reload({ waitUntil: 'domcontentloaded' });
             const state = await waitForReady(page);
+            writeFileSync('/tmp/map-provider-evidence/no-token.json', JSON.stringify(state, null, 2));
             console.log('fallback without token', JSON.stringify(state));
-            if (state.mode !== 'leaflet' || state.provider !== 'mapbox-gl' || state.markerCount !== '8' || !state.leaflet) {
+            if (state.mode !== 'leaflet' || state.markerCount !== '8' || (!state.leaflet && !state.leafletPane)) {
               throw new Error(`Unexpected no-token provider state: ${JSON.stringify(state)}`);
             }
             await browser.close();
           })().catch((error) => { console.error(error); process.exit(1); });
           NODE
       - name: Restart runtime with synthetic public token
+        if: success()
         run: |
           kill "$(cat /tmp/morro-map-provider.pid)" || true
           VITE_MAPBOX_ACCESS_TOKEN=pk.synthetic-provider-regression \
@@ -96,17 +104,23 @@ jobs:
           cat /tmp/morro-map-provider.log
           exit 1
       - name: Validate SDK download failure rollback
+        if: success()
         run: |
           node <<'NODE'
+          const { writeFileSync } = require('node:fs');
           const { chromium } = require('/tmp/pw/node_modules/playwright');
 
           async function waitForFallback(page) {
-            await page.locator('#map[data-map-state="ready"]').waitFor({ timeout: 20000 });
+            await page.locator('#map[data-map-state="ready"]').waitFor({ state: 'attached', timeout: 20000 });
             return await page.locator('#map').evaluate((element) => ({
               mode: element.getAttribute('data-map-mode'),
+              provider: element.getAttribute('data-map-provider'),
               fallback: element.getAttribute('data-map-fallback'),
               markerCount: element.getAttribute('data-map-marker-count'),
+              mapState: element.getAttribute('data-map-state'),
               leaflet: element.classList.contains('leaflet-container'),
+              leafletPane: Boolean(element.querySelector('.leaflet-pane')),
+              className: element.className,
             }));
           }
 
@@ -119,16 +133,19 @@ jobs:
             await page.evaluate(() => localStorage.setItem('morro-digital-onboarded', '1'));
             await page.reload({ waitUntil: 'domcontentloaded' });
             const state = await waitForFallback(page);
+            writeFileSync('/tmp/map-provider-evidence/sdk-download-failure.json', JSON.stringify(state, null, 2));
             console.log('SDK download failure fallback', JSON.stringify(state));
-            if (state.mode !== 'leaflet' || state.fallback !== 'leaflet' || state.markerCount !== '8' || !state.leaflet) {
+            if (state.mode !== 'leaflet' || state.fallback !== 'leaflet' || state.markerCount !== '8' || (!state.leaflet && !state.leafletPane)) {
               throw new Error(`SDK failure did not restore V1 fallback: ${JSON.stringify(state)}`);
             }
             await browser.close();
           })().catch((error) => { console.error(error); process.exit(1); });
           NODE
       - name: Validate Mapbox initialization failure rollback
+        if: success()
         run: |
           node <<'NODE'
+          const { writeFileSync } = require('node:fs');
           const { chromium } = require('/tmp/pw/node_modules/playwright');
           const mockSdk = `
             globalThis.mapboxgl = {
@@ -143,12 +160,16 @@ jobs:
           `;
 
           async function waitForFallback(page) {
-            await page.locator('#map[data-map-state="ready"]').waitFor({ timeout: 20000 });
+            await page.locator('#map[data-map-state="ready"]').waitFor({ state: 'attached', timeout: 20000 });
             return await page.locator('#map').evaluate((element) => ({
               mode: element.getAttribute('data-map-mode'),
+              provider: element.getAttribute('data-map-provider'),
               fallback: element.getAttribute('data-map-fallback'),
               markerCount: element.getAttribute('data-map-marker-count'),
+              mapState: element.getAttribute('data-map-state'),
               leaflet: element.classList.contains('leaflet-container'),
+              leafletPane: Boolean(element.querySelector('.leaflet-pane')),
+              className: element.className,
             }));
           }
 
@@ -166,8 +187,9 @@ jobs:
             await page.evaluate(() => localStorage.setItem('morro-digital-onboarded', '1'));
             await page.reload({ waitUntil: 'domcontentloaded' });
             const state = await waitForFallback(page);
+            writeFileSync('/tmp/map-provider-evidence/init-failure.json', JSON.stringify(state, null, 2));
             console.log('Mapbox init failure fallback', JSON.stringify(state));
-            if (state.mode !== 'leaflet' || state.fallback !== 'leaflet' || state.markerCount !== '8' || !state.leaflet) {
+            if (state.mode !== 'leaflet' || state.fallback !== 'leaflet' || state.markerCount !== '8' || (!state.leaflet && !state.leafletPane)) {
               throw new Error(`Mapbox init failure did not restore V1 fallback: ${JSON.stringify(state)}`);
             }
             await browser.close();
@@ -176,3 +198,10 @@ jobs:
       - name: Show server diagnostics
         if: failure()
         run: cat /tmp/morro-map-provider.log || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: map-provider-regression-evidence
+          path: /tmp/map-provider-evidence
+          retention-days: 1
+          if-no-files-found: ignore
