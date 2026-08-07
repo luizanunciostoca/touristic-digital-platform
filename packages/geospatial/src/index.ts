@@ -14,3 +14,28 @@ export const defaultGeospatialPolicy: GeospatialPolicy = {
   routingFallback: "openrouteservice",
   legacyFallbackEnabled: true,
 };
+
+export {
+  createMapboxAdapter,
+  type MapboxAdapterOptions,
+  type MapboxDriver,
+  type MapboxMapHandle,
+  type MapboxMarkerHandle,
+} from "./adapters/mapbox.js";
+
+export {
+  createMapboxGlDriver,
+  type MapboxGlDriverOptions,
+  type MapboxGlMapLike,
+  type MapboxGlMarkerLike,
+  type MapboxGlModuleLike,
+} from "./infrastructure/mapbox-gl-driver.js";
+
+export {
+  createGeospatialEngine,
+  type Coordinates,
+  type GeospatialEngine,
+  type MapInitializationOptions,
+  type MapMarker,
+  type MapProviderAdapter,
+} from "./provider.js";

@@ -167,6 +167,116 @@ body {
   line-height: 1.6;
 }
 
+.map-runtime {
+  margin-top: 1.25rem;
+  padding: 1.5rem;
+  background: #ffffff;
+  border: 1px solid #dbeafe;
+  border-radius: 1.5rem;
+  box-shadow: 0 16px 44px rgb(15 23 42 / 7%);
+}
+
+.map-runtime__heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.map-runtime__heading h2,
+.map-runtime__heading p {
+  margin: 0;
+}
+
+#runtime-status {
+  color: #475569;
+  font-size: 0.9rem;
+}
+
+.tour-selector {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.5fr) minmax(240px, 1fr);
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  background: #f0fdfa;
+  border: 1px solid #99f6e4;
+  border-radius: 1rem;
+}
+
+.tour-selector label {
+  color: #134e4a;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.tour-selector select {
+  min-height: 46px;
+  width: 100%;
+  padding: 0.65rem 2.5rem 0.65rem 0.85rem;
+  color: #0f172a;
+  background: #ffffff;
+  border: 1px solid #5eead4;
+  border-radius: 0.75rem;
+  font: inherit;
+}
+
+.tour-selector select:focus-visible {
+  outline: 3px solid rgb(13 148 136 / 25%);
+  outline-offset: 2px;
+}
+
+.tour-selector select:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.map-canvas {
+  min-height: 360px;
+  display: grid;
+  place-items: center;
+  padding: 2rem;
+  color: #134e4a;
+  background:
+    linear-gradient(rgb(255 255 255 / 74%), rgb(255 255 255 / 74%)),
+    repeating-linear-gradient(
+      45deg,
+      #ccfbf1,
+      #ccfbf1 20px,
+      #d1fae5 20px,
+      #d1fae5 40px
+    );
+  border: 1px solid #99f6e4;
+  border-radius: 1.25rem;
+  font-size: clamp(1rem, 3vw, 1.35rem);
+  font-weight: 800;
+  text-align: center;
+}
+
+.map-canvas[data-map-state="initializing"] {
+  opacity: 0.72;
+}
+
+.map-canvas[data-map-state="ready"] {
+  border-color: #14b8a6;
+  box-shadow: inset 0 0 0 1px rgb(20 184 166 / 20%);
+}
+
+.map-canvas[data-map-state="error"] {
+  color: #991b1b;
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+.map-runtime__note {
+  margin: 0.9rem 0 0;
+  color: #64748b;
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
 @media (max-width: 760px) {
   .tdp-app-shell {
     width: min(100% - 1rem, 1120px);
@@ -191,5 +301,22 @@ body {
 
   .quick-access {
     grid-template-columns: 1fr;
+  }
+
+  .map-runtime {
+    padding: 1rem;
+  }
+
+  .map-runtime__heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .tour-selector {
+    grid-template-columns: 1fr;
+  }
+
+  .map-canvas {
+    min-height: 300px;
   }
 }
