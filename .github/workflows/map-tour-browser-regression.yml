@@ -1,0 +1,148 @@
+name: Map Tour Browser Regression
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feat/mapbox-gl-runtime
+    paths:
+      - .github/workflows/map-tour-browser-regression.yml
+      - apps/morro-digital-platform/src/browser-entry.ts
+      - apps/morro-digital-platform/src/config/tour-catalog.ts
+      - apps/morro-digital-platform/src/config/tour-markers.ts
+      - apps/morro-digital-platform/src/config/tour-selection.ts
+      - apps/morro-digital-platform/src/development/leaflet-compatibility-sdk.ts
+  pull_request:
+    paths:
+      - .github/workflows/map-tour-browser-regression.yml
+      - apps/morro-digital-platform/src/browser-entry.ts
+      - apps/morro-digital-platform/src/config/tour-catalog.ts
+      - apps/morro-digital-platform/src/config/tour-markers.ts
+      - apps/morro-digital-platform/src/config/tour-selection.ts
+      - apps/morro-digital-platform/src/development/leaflet-compatibility-sdk.ts
+
+permissions:
+  contents: read
+
+jobs:
+  tour-browser-regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install Playwright
+        run: |
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+          mkdir -p /tmp/map-tour-evidence
+      - name: Build workspace
+        run: pnpm -w build
+      - name: Start fallback runtime
+        run: |
+          node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/morro-map-tour.log 2>&1 &
+          echo $! >/tmp/morro-map-tour.pid
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:4173/runtime-config.js >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/morro-map-tour.log
+          exit 1
+      - name: Validate 8 to 5 to 5 tour switching
+        run: |
+          node <<'NODE'
+          const { writeFileSync } = require('node:fs');
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+          const cases = [
+            ['mobile', 390, 844],
+            ['tablet', 768, 1024],
+            ['desktop', 1440, 900],
+          ];
+
+          async function snapshot(page) {
+            return page.locator('#map').evaluate((element) => ({
+              mode: element.getAttribute('data-map-mode'),
+              provider: element.getAttribute('data-map-provider'),
+              mapState: element.getAttribute('data-map-state'),
+              tourState: element.getAttribute('data-tour-state'),
+              activeTour: element.getAttribute('data-active-tour'),
+              markerCount: element.getAttribute('data-map-marker-count'),
+              leaflet: element.classList.contains('leaflet-container') || Boolean(element.querySelector('.leaflet-pane')),
+              visibleMarkers: element.querySelectorAll('.leaflet-marker-icon').length,
+            }));
+          }
+
+          async function waitForTour(page, tourId, count) {
+            await page.locator(`#map[data-map-state="ready"][data-tour-state="ready"][data-active-tour="${tourId}"][data-map-marker-count="${count}"]`).waitFor({
+              state: 'attached',
+              timeout: 20000,
+            });
+            await page.waitForTimeout(300);
+            return snapshot(page);
+          }
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            const evidence = {};
+
+            for (const [name, width, height] of cases) {
+              const context = await browser.newContext({ viewport: { width, height } });
+              await context.addInitScript(() => localStorage.setItem('morro-digital-onboarded', '1'));
+              const page = await context.newPage();
+              const pageErrors = [];
+              page.on('pageerror', error => pageErrors.push(error.message));
+
+              await page.goto('http://127.0.0.1:4173', { waitUntil: 'domcontentloaded' });
+              const initial = await waitForTour(page, 'volta-a-ilha', '8');
+              if (initial.mode !== 'leaflet' || !initial.leaflet || initial.visibleMarkers !== 8) {
+                throw new Error(`Initial fallback state failed for ${name}: ${JSON.stringify(initial)}`);
+              }
+
+              const select = page.locator('#tour-select');
+              if (await select.isDisabled()) throw new Error(`Tour select stayed disabled for ${name}.`);
+
+              await select.selectOption('trilha-gamboa');
+              const gamboa = await waitForTour(page, 'trilha-gamboa', '5');
+              if (gamboa.visibleMarkers !== 5) {
+                throw new Error(`Gamboa marker replacement failed for ${name}: ${JSON.stringify(gamboa)}`);
+              }
+
+              await select.selectOption('passeio-quadriciclo');
+              const quadriciclo = await waitForTour(page, 'passeio-quadriciclo', '5');
+              if (quadriciclo.visibleMarkers !== 5) {
+                throw new Error(`Quadriciclo marker replacement failed for ${name}: ${JSON.stringify(quadriciclo)}`);
+              }
+
+              await select.selectOption('volta-a-ilha');
+              const restored = await waitForTour(page, 'volta-a-ilha', '8');
+              if (restored.visibleMarkers !== 8) {
+                throw new Error(`Return to Volta a Ilha failed for ${name}: ${JSON.stringify(restored)}`);
+              }
+
+              if (pageErrors.length > 0) {
+                throw new Error(`Browser errors for ${name}: ${JSON.stringify(pageErrors)}`);
+              }
+
+              evidence[name] = { initial, gamboa, quadriciclo, restored, pageErrors };
+              await page.screenshot({ path: `/tmp/map-tour-evidence/fallback-tour-${name}.png`, fullPage: false });
+              await context.close();
+            }
+
+            writeFileSync('/tmp/map-tour-evidence/fallback-tour-switching.json', JSON.stringify({ status: 'validated', viewports: evidence }, null, 2));
+            await browser.close();
+          })().catch(error => { console.error(error); process.exit(1); });
+          NODE
+      - name: Show diagnostics
+        if: failure()
+        run: cat /tmp/morro-map-tour.log || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: map-tour-browser-evidence
+          path: /tmp/map-tour-evidence
+          retention-days: 1
+          if-no-files-found: ignore
