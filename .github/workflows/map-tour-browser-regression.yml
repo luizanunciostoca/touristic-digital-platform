@@ -85,9 +85,18 @@ jobs:
             return snapshot(page);
           }
 
+          async function dispatchTour(page, tourId) {
+            await page.locator('#tour-select').evaluate((element, value) => {
+              if (!(element instanceof HTMLSelectElement)) throw new Error('Tour selector is not a select element.');
+              element.value = value;
+              element.dispatchEvent(new Event('change', { bubbles: true }));
+            }, tourId);
+          }
+
           async function failureEvidence(page, name, phase, pageErrors) {
             let map = null;
             let select = null;
+            let status = null;
             try { map = await snapshot(page); } catch (error) { map = { snapshotError: String(error) }; }
             try {
               select = await page.locator('#tour-select').evaluate((element) => ({
@@ -96,7 +105,8 @@ jobs:
                 options: Array.from(element.options).map(option => option.value),
               }));
             } catch (error) { select = { snapshotError: String(error) }; }
-            const evidence = { status: 'failed', viewport: name, phase, map, select, pageErrors };
+            try { status = await page.locator('#runtime-status').textContent(); } catch (error) { status = String(error); }
+            const evidence = { status: 'failed', viewport: name, phase, map, select, runtimeStatus: status, pageErrors };
             writeFileSync(`/tmp/map-tour-evidence/failure-${name}.json`, JSON.stringify(evidence, null, 2));
             try { await page.screenshot({ path: `/tmp/map-tour-evidence/failure-${name}.png`, fullPage: false }); } catch {}
             return evidence;
@@ -126,21 +136,21 @@ jobs:
                 if (await select.isDisabled()) throw new Error(`Tour select stayed disabled for ${name}.`);
 
                 phase = 'trilha-gamboa';
-                await select.selectOption('trilha-gamboa');
+                await dispatchTour(page, 'trilha-gamboa');
                 const gamboa = await waitForTour(page, 'trilha-gamboa', '5');
                 if (gamboa.visibleMarkers !== 5) {
                   throw new Error(`Gamboa marker replacement failed for ${name}: ${JSON.stringify(gamboa)}`);
                 }
 
                 phase = 'passeio-quadriciclo';
-                await select.selectOption('passeio-quadriciclo');
+                await dispatchTour(page, 'passeio-quadriciclo');
                 const quadriciclo = await waitForTour(page, 'passeio-quadriciclo', '5');
                 if (quadriciclo.visibleMarkers !== 5) {
                   throw new Error(`Quadriciclo marker replacement failed for ${name}: ${JSON.stringify(quadriciclo)}`);
                 }
 
                 phase = 'restore-volta-a-ilha';
-                await select.selectOption('volta-a-ilha');
+                await dispatchTour(page, 'volta-a-ilha');
                 const restored = await waitForTour(page, 'volta-a-ilha', '8');
                 if (restored.visibleMarkers !== 8) {
                   throw new Error(`Return to Volta a Ilha failed for ${name}: ${JSON.stringify(restored)}`);
