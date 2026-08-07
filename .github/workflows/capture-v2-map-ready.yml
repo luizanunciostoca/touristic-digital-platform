@@ -6,6 +6,11 @@ on:
       - feat/v1-app-shell-checkpoint
     paths:
       - .github/workflows/capture-v2-map-ready.yml
+      - apps/morro-digital-platform/src/layouts/app-shell.ts
+      - apps/morro-digital-platform/src/browser-entry.ts
+      - apps/morro-digital-platform/src/development/leaflet-compatibility-sdk.ts
+      - apps/morro-digital-platform/public/styles.css
+      - apps/morro-digital-platform/tooling/dev-server.mjs
 
 permissions:
   contents: read
