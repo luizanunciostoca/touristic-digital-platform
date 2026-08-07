@@ -284,6 +284,19 @@ header h1 {
   padding: 0.5rem 2.8rem 0.42rem 0.6rem;
 }
 
+.globe-map-control {
+  position: fixed;
+  right: 0.75rem;
+  bottom: calc(var(--assistant-input-bottom) + var(--assistant-bar-height) + 0.6rem);
+  z-index: 2100;
+  display: flex;
+}
+
+.globe-map-control .map-control-button svg {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
 #loading-overlay {
   position: fixed;
   inset: 0;
