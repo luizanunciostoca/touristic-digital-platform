@@ -30,9 +30,9 @@ function parseWeatherPayload(payload: unknown): WeatherReading {
     throw new Error("Weather runtime returned an invalid payload.");
   }
 
-  const temperature = Reflect.get(payload, "temperatureCelsius");
-  const weatherCode = Reflect.get(payload, "weatherCode");
-  const isDay = Reflect.get(payload, "isDay");
+  const temperature: unknown = Reflect.get(payload, "temperatureCelsius");
+  const weatherCode: unknown = Reflect.get(payload, "weatherCode");
+  const isDay: unknown = Reflect.get(payload, "isDay");
 
   if (
     typeof temperature !== "number" ||
