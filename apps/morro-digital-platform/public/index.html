@@ -1,14 +1,28 @@
 <!doctype html>
-<html lang="pt-BR">
+<html lang="pt">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <meta name="theme-color" content="#3b82f6" />
     <meta
       name="description"
-      content="Primeiro marco executável da Touristic Digital Platform para Morro de São Paulo."
+      content="Guia digital interativo de Morro de São Paulo"
     />
-    <title>Morro Digital — Runtime M1</title>
+    <title>Morro de São Paulo Digital</title>
     <link rel="stylesheet" href="./styles.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap"
+      rel="stylesheet"
+    />
     <script type="importmap">
       {
         "imports": {
@@ -19,98 +33,7 @@
     </script>
   </head>
   <body>
-    <a class="skip-link" href="#main-content">Ir para o conteúdo principal</a>
-    <div class="tdp-app-shell" data-destination-id="morro-de-sao-paulo">
-      <header class="tdp-header" aria-label="Cabeçalho principal">
-        <div>
-          <p class="tdp-brand-kicker">Touristic Digital Platform</p>
-          <h1>Morro Digital</h1>
-          <p>Morro de São Paulo na palma da sua mão</p>
-        </div>
-        <span class="tdp-status">Runtime M1</span>
-      </header>
-
-      <nav class="tdp-navigation" aria-label="Navegação principal">
-        <a class="is-active" href="./index.html" aria-current="page">Início</a>
-        <a href="#mapa">Mapa</a>
-        <a href="#buscar">Buscar</a>
-        <a href="#perfil">Perfil</a>
-      </nav>
-
-      <main id="main-content">
-        <section class="morro-hero" aria-labelledby="hero-title">
-          <p class="morro-hero__eyebrow">Seu guia digital da ilha</p>
-          <h2 id="hero-title">Descubra Morro de São Paulo</h2>
-          <p>
-            O primeiro núcleo executável da nova plataforma conecta o destino,
-            o Platform Runtime e o Geospatial Engine em uma arquitetura segura
-            e modular.
-          </p>
-          <a class="tdp-action" href="#mapa">Abrir mapa de desenvolvimento</a>
-        </section>
-
-        <section class="quick-access" aria-label="Acessos rápidos">
-          <article>
-            <h3>Runtime modular</h3>
-            <p>
-              O destino ativa os módulos Geospatial e Marketplace com
-              dependências verificadas antes da inicialização.
-            </p>
-          </article>
-          <article id="buscar">
-            <h3>Busca e descoberta</h3>
-            <p>
-              Empresas, experiências e eventos serão conectados ao Marketplace
-              nas próximas ondas de migração.
-            </p>
-          </article>
-          <article id="perfil">
-            <h3>Experiência personalizada</h3>
-            <p>
-              Favoritos, preferências e histórico serão ativados por módulos,
-              sem acoplamento ao núcleo geoespacial.
-            </p>
-          </article>
-        </section>
-
-        <section id="mapa" class="map-runtime" aria-labelledby="map-title">
-          <div class="map-runtime__heading">
-            <div>
-              <p class="tdp-brand-kicker">Wave 4</p>
-              <h2 id="map-title">Geospatial Engine</h2>
-            </div>
-            <p id="runtime-status" role="status" aria-live="polite">
-              Inicializando o runtime…
-            </p>
-          </div>
-
-          <div class="tour-selector">
-            <label for="tour-select">Roteiro exibido no mapa</label>
-            <select id="tour-select" name="tour" disabled>
-              <option value="volta-a-ilha">Passeio Volta à Ilha</option>
-              <option value="trilha-gamboa">
-                Trilha Ecológica para a Gamboa
-              </option>
-              <option value="passeio-quadriciclo">
-                Expedição de Quadriciclo
-              </option>
-            </select>
-          </div>
-
-          <div
-            id="map"
-            class="map-canvas"
-            role="region"
-            aria-label="Mapa de desenvolvimento de Morro de São Paulo"
-          ></div>
-          <p class="map-runtime__note">
-            Provider de desenvolvimento sem credenciais reais. O Mapbox GL JS
-            será conectado somente após a validação de equivalência visual.
-          </p>
-        </section>
-      </main>
-    </div>
-
+    <div id="app"></div>
     <script type="module" src="../dist/browser-entry.js"></script>
   </body>
 </html>
