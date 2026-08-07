@@ -1,0 +1,150 @@
+name: Diagnose V2 text cascade
+
+on:
+  push:
+    branches:
+      - feat/v1-app-shell-checkpoint
+    paths:
+      - .github/workflows/diagnose-v2-text-cascade.yml
+      - apps/morro-digital-platform/public/styles.css
+      - apps/morro-digital-platform/public/legacy/**
+      - apps/morro-digital-platform/src/layouts/app-shell.ts
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install Playwright
+        run: |
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+      - name: Start V2
+        run: |
+          pnpm --filter @touristic/morro-digital-platform dev >/tmp/v2-cascade.log 2>&1 &
+          for i in $(seq 1 90); do
+            if curl -fsS http://127.0.0.1:4173 >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/v2-cascade.log
+          exit 1
+      - name: Diagnose mobile cascade
+        run: |
+          node <<'NODE'
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+
+          async function waitStable(page) {
+            const deadline = Date.now() + 20000;
+            while (Date.now() < deadline) {
+              const state = await page.evaluate(() => {
+                const modal = document.querySelector('.assistant-modal');
+                const area = modal?.querySelector('.messages-area');
+                const overlay = document.getElementById('loading-overlay');
+                const overlayHidden = !(overlay instanceof HTMLElement) || getComputedStyle(overlay).visibility === 'hidden' || Number(getComputedStyle(overlay).opacity) === 0;
+                return {
+                  visible: modal instanceof HTMLElement && getComputedStyle(modal).display !== 'none',
+                  options: document.querySelectorAll('.assistant-option-btn').length,
+                  overflow: modal?.classList.contains('has-overflow') ?? false,
+                  overlayHidden,
+                  h: area instanceof HTMLElement ? area.clientHeight : 0,
+                };
+              });
+              if (state.visible && state.options === 10 && state.overflow && state.overlayHidden && state.h > 0) {
+                await page.waitForTimeout(600);
+                return;
+              }
+              await page.waitForTimeout(100);
+            }
+            throw new Error('Assistant did not stabilize.');
+          }
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            const context = await browser.newContext({ viewport: { width: 195, height: 422 }, deviceScaleFactor: 2 });
+            const page = await context.newPage();
+            await page.goto('http://127.0.0.1:4173', { waitUntil: 'domcontentloaded' });
+            await page.evaluate(() => localStorage.setItem('morro-digital-onboarded', '1'));
+            await page.reload({ waitUntil: 'domcontentloaded' });
+            await waitStable(page);
+            await page.evaluate(() => document.fonts.ready);
+
+            const diagnosis = await page.evaluate(() => {
+              const modal = document.querySelector('.assistant-modal');
+              const area = modal?.querySelector('.messages-area');
+              if (!(modal instanceof HTMLElement) || !(area instanceof HTMLElement)) throw new Error('Missing assistant nodes');
+              const rootStyle = getComputedStyle(document.documentElement);
+              const modalStyle = getComputedStyle(modal);
+              const areaStyle = getComputedStyle(area);
+
+              const tokens = Object.fromEntries([
+                '--assistant-input-bottom',
+                '--assistant-dock-inline-gap',
+                '--assistant-input-width',
+                '--assistant-bar-height',
+                '--assistant-cluster-gap',
+                '--assistant-side-button-size',
+                '--assistant-icon-bottom',
+              ].map((name) => [name, rootStyle.getPropertyValue(name).trim()]));
+
+              const matches = [];
+              const walk = (rules, href, conditions = []) => {
+                for (const rule of rules) {
+                  if (rule instanceof CSSStyleRule) {
+                    let matched = false;
+                    try { matched = area.matches(rule.selectorText); } catch {}
+                    if (matched && (rule.style.maxHeight || rule.style.overflowY || rule.style.padding || rule.style.gap)) {
+                      matches.push({
+                        href,
+                        conditions,
+                        selector: rule.selectorText,
+                        maxHeight: rule.style.getPropertyValue('max-height'),
+                        maxHeightPriority: rule.style.getPropertyPriority('max-height'),
+                        overflowY: rule.style.getPropertyValue('overflow-y'),
+                        padding: rule.style.getPropertyValue('padding'),
+                        gap: rule.style.getPropertyValue('gap'),
+                      });
+                    }
+                  } else if (rule instanceof CSSMediaRule) {
+                    if (matchMedia(rule.conditionText).matches) walk(rule.cssRules, href, [...conditions, `@media ${rule.conditionText}`]);
+                  } else if (rule instanceof CSSSupportsRule) {
+                    walk(rule.cssRules, href, [...conditions, `@supports ${rule.conditionText}`]);
+                  } else if (rule.cssRules) {
+                    walk(rule.cssRules, href, conditions);
+                  }
+                }
+              };
+
+              for (const sheet of document.styleSheets) {
+                try { walk(sheet.cssRules, sheet.href || '<inline>'); }
+                catch (error) { matches.push({ href: sheet.href || '<inline>', error: String(error) }); }
+              }
+
+              return {
+                viewport: { width: innerWidth, height: innerHeight, dpr: devicePixelRatio },
+                modalClassName: modal.className,
+                tokens,
+                computed: {
+                  modalBottom: modalStyle.bottom,
+                  modalMaxHeight: modalStyle.maxHeight,
+                  areaMaxHeight: areaStyle.maxHeight,
+                  areaClientHeight: area.clientHeight,
+                  areaScrollHeight: area.scrollHeight,
+                  areaScrollTop: area.scrollTop,
+                },
+                matches,
+              };
+            });
+
+            console.log('CASCADE_DIAGNOSIS', JSON.stringify(diagnosis, null, 2));
+            await browser.close();
+          })().catch((error) => { console.error(error); process.exit(1); });
+          NODE
