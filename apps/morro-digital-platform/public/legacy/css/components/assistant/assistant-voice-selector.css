@@ -1,0 +1,168 @@
+#assistant-voice-selector {
+  position: fixed;
+  top: 80px; /* Position near the top */
+  right: 20px; /* Position in the right corner */
+  background-color: #ffffff;
+  border-radius: 12px;
+  padding: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  z-index: 1010; /* Ensure it's above the map (z-index: 1) */
+  width: 220px;
+  max-width: calc(100% - 40px); /* Ensure it stays within screen bounds */
+  transition: all 0.3s ease;
+  border: 1px solid #e0e0e0;
+  max-height: calc(100vh - 120px); /* Prevent overflow beyond viewport */
+  overflow-y: auto; /* Add scrolling if content is too tall */
+}
+
+#assistant-voice-selector h3 {
+  margin: 0 0 10px 0;
+  font-size: 14px;
+  color: #333;
+  text-align: center;
+}
+
+.voice-selector-toggle {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background-color: #3b82f6;
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  border: none;
+  outline: none;
+  font-size: 14px;
+}
+
+.voice-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.voice-option {
+  display: flex;
+  align-items: center;
+  padding: 5px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.voice-option:hover {
+  background-color: #f0f9ff;
+}
+
+.voice-option input[type="radio"] {
+  margin-right: 8px;
+}
+
+.voice-option label {
+  font-size: 13px;
+  color: #333;
+  cursor: pointer;
+  flex: 1;
+}
+
+.voice-speed {
+  margin-top: 10px;
+}
+
+.voice-speed label {
+  display: block;
+  font-size: 13px;
+  color: #555;
+  margin-bottom: 5px;
+}
+
+.voice-speed input[type="range"] {
+  width: 100%;
+  height: 5px;
+  border-radius: 5px;
+  background: #e0e0e0;
+  outline: none;
+}
+
+/* Estado minimizado */
+#assistant-voice-selector.minimized {
+  width: 40px;
+  height: 40px;
+  overflow: hidden;
+  padding: 0;
+  border-radius: 50%;
+}
+
+#assistant-voice-selector.minimized .voice-selector-content {
+  display: none;
+}
+
+#assistant-voice-selector.minimized .voice-selector-toggle {
+  position: relative;
+  top: 0;
+  right: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Responsividade para dispositivos móveis */
+@media (max-width: 768px) {
+  #assistant-voice-selector {
+    top: 70px;
+    right: 10px;
+    width: 200px;
+    max-width: calc(100% - 20px);
+    padding: 8px;
+  }
+
+  .voice-selector-toggle {
+    top: 2px;
+    right: 2px;
+    width: 24px;
+    height: 24px;
+    font-size: 14px;
+  }
+
+  .voice-option label {
+    font-size: 12px;
+  }
+}
+
+/* Small screens (phones in portrait) */
+@media (max-width: 480px) {
+  #assistant-voice-selector {
+    top: 60px;
+    right: 8px;
+    width: 180px;
+  }
+
+  #assistant-voice-selector h3 {
+    font-size: 13px;
+    margin-bottom: 8px;
+  }
+
+  .voice-options {
+    gap: 6px;
+  }
+}
+
+/* Landscape mode adjustments */
+@media (orientation: landscape) and (max-height: 500px) {
+  #assistant-voice-selector {
+    top: 50px;
+    max-height: 70vh;
+  }
+}
+
+/* Fix for iPhones with notch */
+@supports (padding-top: env(safe-area-inset-top)) {
+  #assistant-voice-selector {
+    right: calc(env(safe-area-inset-right) + 15px);
+  }
+}
