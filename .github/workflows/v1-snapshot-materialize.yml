@@ -1,0 +1,72 @@
+name: Materialize V1 snapshots
+
+on:
+  push:
+    branches:
+      - feat/v1-app-shell-checkpoint
+    paths:
+      - .github/workflows/v1-snapshot-materialize.yml
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/v1-app-shell-checkpoint
+          fetch-depth: 0
+
+      - name: Download exact V1 snapshot files
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          V1_COMMIT="60746fd7fed97b805758b37adfdbe3bad2582bfe"
+          V1_RAW="https://raw.githubusercontent.com/luizidebook/morro-de-sao-paulo-digital/${V1_COMMIT}"
+          ROOT="apps/morro-digital-platform/public/legacy"
+
+          materialize() {
+            src="$1"
+            dest="$2"
+            expected="$3"
+            mkdir -p "$(dirname "$dest")"
+            curl --fail --location --silent --show-error "${V1_RAW}/${src}" --output "$dest"
+            actual="$(git hash-object "$dest")"
+            if [ "$actual" != "$expected" ]; then
+              echo "SHA mismatch for $src: expected $expected, got $actual" >&2
+              exit 1
+            fi
+            echo "Verified $src -> $actual"
+          }
+
+          materialize \
+            "css/components/onboarding.css" \
+            "${ROOT}/css/components/onboarding.css" \
+            "543c19d609ce959259d4a1368371601606f7dd4e"
+
+          materialize \
+            "css/components/assistant/assistantModalUI.css" \
+            "${ROOT}/css/components/assistant/assistantModalUI.css" \
+            "eabc720846d8ba391b0ad2d462ec16b6ba78fd18"
+
+          materialize \
+            "assets/emojis/sun_emojis/sun_emoji_1.png" \
+            "apps/morro-digital-platform/public/assets/emojis/sun_emojis/sun_emoji_1.png" \
+            "c9458c1c98370fd74fd6cd1c64dd05a48241bc42"
+
+      - name: Commit verified snapshots
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- apps/morro-digital-platform/public/legacy apps/morro-digital-platform/public/assets; then
+            echo "No snapshot changes to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/morro-digital-platform/public/legacy apps/morro-digital-platform/public/assets
+          git commit -m "chore(app-shell): materialize verified V1 snapshots"
+          git push origin HEAD:feat/v1-app-shell-checkpoint
