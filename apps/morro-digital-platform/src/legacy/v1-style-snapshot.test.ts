@@ -14,9 +14,16 @@ const V1_STYLE_BLOBS = Object.freeze({
   "css/base/animations.css": "ade5ec27700719e43d7fc57885964a2b1f9dd8ec",
   "css/layout/app-shell.css": "3db603bc3926909c2cd97e809f098ab087aa1f44",
   "css/layout/map.css": "78a463817403e52c065b15d1d5aaa955f1f288eb",
+  "css/layout/controls.css": "e1a7ee53a59b34533e58ca445565f04e57b1da99",
+  "css/components/buttons/end-navigation-btn.css": "df0a8b39578ae26ed54c416d02dbb02b42b9fde7",
   "css/components/assistant/assistant-mood.css": "3858c89e4eb50cf0b770b52b5f34da0582248091",
   "css/components/inputs/inputs.css": "01e4db77b833a17539003e33f8852de2908ed68b",
+  "css/components/markers.css": "5174e01aaf07191ac8bc24ff27408c05937f65c2",
+  "css/components/location-indicator.css": "f96410d39fd3fd667a49050f2af845ed303ea9e6",
+  "css/components/accessibility.css": "353bd093f10b130a9013eb728899ce82c3f62894",
+  "css/vendor-fixes.css": "dc95a6e22ebf43bb30303f50bd129a700be1b784",
   "css/base/responsive.css": "1d20db0784a63c55d764045797617e25f8a04695",
+  "css/z-index-standards.css": "d092ad3f5ab49716eaa36eaae08ff4eb72d0d370",
 });
 
 const legacyRoot = fileURLToPath(

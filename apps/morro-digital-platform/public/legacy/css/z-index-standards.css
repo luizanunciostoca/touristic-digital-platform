@@ -1,0 +1,65 @@
+/* Garante que popups e marcadores de localização do usuário fiquem acima do canvas do MapboxGL */
+.leaflet-popup.user-location-popup,
+.leaflet-marker-icon.user-location-marker,
+.leaflet-marker-icon.user-location-marker.leaflet-zoom-animated.leaflet-interactive.fixed-direction.direction-transition {
+  z-index: 1203 !important;
+}
+/* Garante que os marcadores Leaflet fiquem acima do canvas do MapboxGL */
+.leaflet-pane,
+.leaflet-marker-pane,
+.leaflet-popup-pane {
+  z-index: 1201 !important;
+}
+
+.leaflet-marker-icon,
+.custom-marker-icon {
+  z-index: 1202 !important;
+}
+
+/* Garante que o canvas do MapboxGL fique abaixo dos marcadores */
+.mapboxgl-canvas,
+.mapboxgl-canvas-container,
+.mapboxgl-map {
+  z-index: 1000 !important;
+}
+/*
+ * z-index-standards.css
+ * Padrão de z-index para mapas, marcadores e overlays do Morro Digital
+ * Inclua este arquivo no <head> do seu HTML após os estilos principais
+ */
+
+/* Containers dos mapas */
+.leaflet-container,
+.mapboxgl-map {
+  z-index: 100 !important;
+}
+
+/* Marcadores, popups e overlays de mapas (2D e 3D) */
+.leaflet-marker-icon,
+.leaflet-popup,
+.marker-3d,
+.user-location-marker-3d {
+  z-index: 1100 !important;
+}
+
+/* Overlays globais e UI */
+.banner,
+.modal,
+.quick-actions,
+.assistant-messages,
+.instruction-banner {
+  z-index: 2000 !important;
+}
+
+/* Ajuste para tooltips e popups de prioridade máxima */
+.leaflet-tooltip,
+.mapboxgl-popup {
+  z-index: 1200 !important;
+}
+
+/* Documentação: 
+  100   - containers dos mapas
+  1100  - marcadores, popups, overlays de mapas
+  1200+ - tooltips, popups prioritários
+  2000+ - overlays de UI, banners, modais
+*/

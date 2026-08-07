@@ -1,0 +1,37 @@
+/**
+ * Overrides for third-party libraries with deprecated -ms-high-contrast media queries
+ */
+
+/* This technique avoids changing vendor files directly */
+@media (forced-colors: active) {
+  /* Leaflet specific overrides */
+  .leaflet-container,
+  .leaflet-control,
+  .leaflet-marker-icon,
+  .leaflet-popup-content-wrapper {
+    forced-color-adjust: none;
+  }
+
+  /* Leaflet controls */
+  .leaflet-control a {
+    background-color: ButtonFace;
+    color: ButtonText;
+    border: 1px solid ButtonText;
+  }
+
+  /* Mapbox GL overrides */
+  .mapboxgl-map,
+  .mapboxgl-popup-content,
+  .mapboxgl-ctrl-group > button {
+    forced-color-adjust: none;
+  }
+
+  /* General third-party fixes */
+  .swiper-button-next,
+  .swiper-button-prev,
+  .swiper-pagination-bullet {
+    forced-color-adjust: none;
+    background-color: ButtonFace;
+    color: ButtonText;
+  }
+}

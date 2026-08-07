@@ -1,0 +1,46 @@
+/* Botão Encerrar Navegação - flutuante, posicionado acima do input do assistente */
+.end-navigation-btn {
+  display: none;
+  position: fixed !important;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 80px) !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  z-index: 100001 !important;
+  pointer-events: auto !important;
+  isolation: isolate;
+  background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
+  color: #fff;
+  border: none;
+  border-radius: 28px;
+  padding: 14px 36px;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  box-shadow: 0 4px 24px rgba(229, 62, 62, 0.5), 0 0 0 3px rgba(255,255,255,0.3);
+  transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
+  outline: none;
+  white-space: nowrap;
+  letter-spacing: 0.03em;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* Mobile: posicionar acima da barra de input (~80px do bottom) */
+@media (max-width: 768px) {
+  .end-navigation-btn {
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 90px) !important;
+    padding: 12px 28px;
+    font-size: 0.95rem;
+  }
+}
+
+.end-navigation-btn:focus,
+.end-navigation-btn:hover {
+  background: linear-gradient(135deg, #c53030 0%, #9b2c2c 100%);
+  box-shadow: 0 6px 28px rgba(229, 62, 62, 0.6), 0 0 0 3px rgba(255,255,255,0.4);
+  transform: translateX(-50%) scale(1.04);
+}
+
+.end-navigation-btn:active {
+  transform: translateX(-50%) scale(0.97);
+}
