@@ -15,6 +15,7 @@
 @import "./css/components/assistant/assistant-mood.css";
 @import "./css/components/assistant/carouselModal.css";
 @import "./css/components/assistant/assistant-voice-selector.css";
+@import "./css/components/popups.css";
 @import "./css/components/inputs/inputs.css";
 @import "./css/components/markers.css";
 @import "./css/components/location-indicator.css";
