@@ -1,4 +1,4 @@
-name: Capture V2 map ready aligned
+name: Capture V2 map ready with overlays
 
 on:
   push:
@@ -60,15 +60,16 @@ jobs:
               const state = await page.evaluate(() => ({
                 appChildren: document.getElementById('app')?.children.length ?? 0,
                 mapExists: Boolean(document.getElementById('map')),
-                mapProvider: document.getElementById('map')?.getAttribute('data-map-provider'),
                 leafletContainer: document.getElementById('map')?.classList.contains('leaflet-container') ?? false,
-                loadingOverlay: Boolean(document.getElementById('loading-overlay')),
-                bodyText: document.body.innerText.slice(0, 500),
+                assistantVisible: !document.getElementById('assistant-messages')?.classList.contains('hidden'),
+                optionCount: document.querySelectorAll('.assistant-option-btn').length,
+                weatherVisible: Boolean(document.getElementById('weather-widget')),
+                globeVisible: Boolean(document.getElementById('toggle-globe-view')),
               }));
               console.log(name, JSON.stringify(state));
               if (errors.length) console.log(name, errors.join('\n'));
-              if (!state.mapExists || state.appChildren === 0 || !state.leafletContainer) {
-                throw new Error(`V2 Leaflet shell did not mount for ${name}: ${JSON.stringify(state)}`);
+              if (!state.mapExists || !state.leafletContainer || !state.assistantVisible || state.optionCount !== 10 || !state.weatherVisible || !state.globeVisible) {
+                throw new Error(`V2 V1 overlay state incomplete for ${name}: ${JSON.stringify(state)}`);
               }
               await page.screenshot({ path: `visual/v2/map-ready-${name}.png`, fullPage: false });
               await context.close();
