@@ -16,6 +16,11 @@ const port = Number(process.env.PORT || "4173");
 const morroLatitude = -13.3769;
 const morroLongitude = -38.9146;
 const weatherTimeoutMs = 8_000;
+const weatherFreshTtlMs = 5 * 60 * 1000;
+const weatherStaleTtlMs = 30 * 60 * 1000;
+
+let weatherCache = null;
+let weatherRequestInFlight = null;
 
 const contentTypes = Object.freeze({
   ".css": "text/css; charset=utf-8",
@@ -141,7 +146,7 @@ async function fetchOpenMeteoWeather() {
   };
 }
 
-async function getMorroWeather() {
+async function fetchWeatherFromProviders() {
   const visualCrossingKey = process.env.VISUAL_CROSSING_API_KEY?.trim();
   if (visualCrossingKey) {
     try {
@@ -156,11 +161,53 @@ async function getMorroWeather() {
   return fetchOpenMeteoWeather();
 }
 
+function cacheAgeMs(now = Date.now()) {
+  return weatherCache ? now - weatherCache.fetchedAt : Number.POSITIVE_INFINITY;
+}
+
+async function refreshWeatherCache() {
+  if (weatherRequestInFlight) return weatherRequestInFlight;
+
+  weatherRequestInFlight = fetchWeatherFromProviders()
+    .then((weather) => {
+      weatherCache = { weather, fetchedAt: Date.now() };
+      return weather;
+    })
+    .finally(() => {
+      weatherRequestInFlight = null;
+    });
+
+  return weatherRequestInFlight;
+}
+
+async function getMorroWeather() {
+  const age = cacheAgeMs();
+  if (weatherCache && age <= weatherFreshTtlMs) {
+    return { weather: weatherCache.weather, cacheState: "fresh" };
+  }
+
+  try {
+    const weather = await refreshWeatherCache();
+    return { weather, cacheState: "refreshed" };
+  } catch (error) {
+    const staleAge = cacheAgeMs();
+    if (weatherCache && staleAge <= weatherStaleTtlMs) {
+      console.warn(
+        "Weather providers unavailable; serving stale cached conditions.",
+        error instanceof Error ? error.message : error,
+      );
+      return { weather: weatherCache.weather, cacheState: "stale" };
+    }
+    throw error;
+  }
+}
+
 async function serveWeather(response) {
   try {
-    const weather = await getMorroWeather();
+    const { weather, cacheState } = await getMorroWeather();
     response.statusCode = 200;
     response.setHeader("Content-Type", "application/json; charset=utf-8");
+    response.setHeader("X-Weather-Cache", cacheState);
     response.setHeader(
       "Cache-Control",
       "public, max-age=300, stale-while-revalidate=300",
