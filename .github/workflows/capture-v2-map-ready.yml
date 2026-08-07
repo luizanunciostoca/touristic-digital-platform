@@ -1,4 +1,4 @@
-name: Capture V2 map ready
+name: Capture V2 map ready aligned
 
 on:
   push:
