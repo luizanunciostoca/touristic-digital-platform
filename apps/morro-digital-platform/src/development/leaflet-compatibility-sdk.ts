@@ -28,6 +28,11 @@ interface LeafletNamespaceLike {
   }): object;
 }
 
+export interface LeafletCompatibilityOptions {
+  readonly initialCenter?: [number, number];
+  readonly initialZoom?: number;
+}
+
 function resolveLeafletNamespace(
   source: object,
 ): LeafletNamespaceLike | undefined {
@@ -64,6 +69,7 @@ export function hasLeafletCompatibilitySdk(source: object): boolean {
 
 export function createLeafletCompatibilitySdk(
   source: object,
+  compatibilityOptions: LeafletCompatibilityOptions = {},
 ): MapboxGlModuleLike {
   const leaflet = requireLeafletNamespace(source);
 
@@ -77,10 +83,13 @@ export function createLeafletCompatibilitySdk(
       readonly center: [number, number];
       readonly zoom: number;
     }) {
-      this.zoom = options.zoom;
+      const initialCenter = compatibilityOptions.initialCenter ?? options.center;
+      const initialZoom = compatibilityOptions.initialZoom ?? options.zoom;
+
+      this.zoom = initialZoom;
       this.nativeMap = leaflet
         .map(options.container, { zoomControl: false })
-        .setView(toLeafletCoordinates(options.center), options.zoom);
+        .setView(toLeafletCoordinates(initialCenter), initialZoom);
 
       leaflet
         .tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
