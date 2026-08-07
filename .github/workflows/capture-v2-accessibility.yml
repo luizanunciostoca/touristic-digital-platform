@@ -113,8 +113,13 @@ jobs:
             await browser.close();
           })().catch((error) => { console.error(error); process.exit(1); });
           NODE
+      - name: Show V2 server diagnostics
+        if: failure()
+        run: cat /tmp/v2-a11y.log || true
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: v2-accessibility-states
           path: visual/v2
           retention-days: 1
+          if-no-files-found: ignore
