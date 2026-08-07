@@ -1,0 +1,117 @@
+name: Capture V2 enlarged text state
+
+on:
+  push:
+    branches:
+      - feat/v1-app-shell-checkpoint
+    paths:
+      - .github/workflows/capture-v2-enlarged-text.yml
+      - apps/morro-digital-platform/src/layouts/app-shell.ts
+      - apps/morro-digital-platform/src/browser-entry.ts
+      - apps/morro-digital-platform/src/development/leaflet-compatibility-sdk.ts
+      - apps/morro-digital-platform/src/weather/**
+      - apps/morro-digital-platform/tooling/dev-server.mjs
+      - apps/morro-digital-platform/public/index.html
+      - apps/morro-digital-platform/public/styles.css
+      - apps/morro-digital-platform/public/legacy/**
+
+permissions:
+  contents: read
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install Playwright
+        run: |
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+      - name: Start V2
+        run: |
+          pnpm --filter @touristic/morro-digital-platform dev >/tmp/v2-enlarged.log 2>&1 &
+          for i in $(seq 1 90); do curl -fsS http://127.0.0.1:4173 >/dev/null && break; sleep 1; done
+      - name: Capture enlarged text
+        run: |
+          mkdir -p visual/v2
+          node <<'NODE'
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+
+          async function waitForWeather(page, timeoutMs = 15000) {
+            const deadline = Date.now() + timeoutMs;
+            while (Date.now() < deadline) {
+              const state = await page.locator('#weather-widget').getAttribute('data-weather-state');
+              if (state === 'ready' || state === 'error') return state;
+              await page.waitForTimeout(100);
+            }
+            throw new Error('Weather widget did not settle before timeout.');
+          }
+
+          async function collectMetrics(page) {
+            return page.evaluate(() => {
+              const selectors = ['#assistant-messages', '#weather-widget', '.quick-actions', '.assistant-options', '#toggle-globe-view'];
+              return selectors.map((selector) => {
+                const element = document.querySelector(selector);
+                if (!(element instanceof HTMLElement)) return { selector, exists: false };
+                const rect = element.getBoundingClientRect();
+                return {
+                  selector,
+                  exists: true,
+                  clientWidth: element.clientWidth,
+                  scrollWidth: element.scrollWidth,
+                  clientHeight: element.clientHeight,
+                  scrollHeight: element.scrollHeight,
+                  left: Math.round(rect.left),
+                  top: Math.round(rect.top),
+                  right: Math.round(rect.right),
+                  bottom: Math.round(rect.bottom),
+                  overflowX: element.scrollWidth > element.clientWidth + 1,
+                  overflowY: element.scrollHeight > element.clientHeight + 1,
+                };
+              });
+            });
+          }
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            const cases = [
+              ['mobile', 390, 844],
+              ['tablet', 768, 1024],
+              ['desktop', 1440, 900],
+            ];
+            for (const [name, width, height] of cases) {
+              const context = await browser.newContext({ viewport: { width, height } });
+              const page = await context.newPage();
+              await page.goto('http://127.0.0.1:4173', { waitUntil: 'domcontentloaded' });
+              await page.evaluate(() => localStorage.setItem('morro-digital-onboarded', '1'));
+              await page.reload({ waitUntil: 'domcontentloaded' });
+              await waitForWeather(page);
+              await page.waitForTimeout(5000);
+              await page.evaluate(() => document.fonts.ready);
+              const cdp = await context.newCDPSession(page);
+              await cdp.send('Emulation.setPageScaleFactor', { pageScaleFactor: 2 });
+              await page.waitForTimeout(250);
+              const metrics = await collectMetrics(page);
+              console.log(`${name} enlarged`, JSON.stringify(metrics));
+              await page.screenshot({ path: `visual/v2/enlarged-text-${name}.png`, fullPage: false });
+              await context.close();
+            }
+            await browser.close();
+          })().catch((error) => { console.error(error); process.exit(1); });
+          NODE
+      - name: Show V2 server diagnostics
+        if: failure()
+        run: cat /tmp/v2-enlarged.log || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: v2-enlarged-text-state
+          path: visual/v2
+          retention-days: 1
+          if-no-files-found: ignore
