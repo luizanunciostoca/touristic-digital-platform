@@ -7,6 +7,12 @@ import { bootstrapMorroDigitalApplication } from "./main.js";
 
 bootstrapMorroDigitalApplication(document);
 
+window.addEventListener("load", () => {
+  window.setTimeout(() => {
+    document.getElementById("loading-overlay")?.classList.add("fade-out");
+  }, 800);
+});
+
 const developmentEnvironment = Object.freeze({
   VITE_MAPBOX_ACCESS_TOKEN: "development-only-token",
   VITE_MAPBOX_CONTAINER_ID: "map",
