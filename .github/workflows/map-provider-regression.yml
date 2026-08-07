@@ -41,9 +41,11 @@ jobs:
           npm install --prefix /tmp/pw --no-save playwright@1.54.2
           /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
           mkdir -p /tmp/map-provider-evidence
+      - name: Build workspace
+        run: pnpm -w build
       - name: Start fallback-only runtime
         run: |
-          pnpm --filter @touristic/morro-digital-platform dev >/tmp/morro-map-provider.log 2>&1 &
+          node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/morro-map-provider.log 2>&1 &
           echo $! >/tmp/morro-map-provider.pid
           for i in $(seq 1 90); do
             if curl -fsS http://127.0.0.1:4173/runtime-config.js >/dev/null; then exit 0; fi
@@ -91,11 +93,15 @@ jobs:
         if: success()
         run: |
           kill "$(cat /tmp/morro-map-provider.pid)" || true
+          for i in $(seq 1 20); do
+            if ! curl -fsS http://127.0.0.1:4173/runtime-config.js >/dev/null 2>&1; then break; fi
+            sleep 0.25
+          done
           VITE_MAPBOX_ACCESS_TOKEN=pk.synthetic-provider-regression \
           VITE_MAPBOX_STYLE=mapbox://styles/mapbox/streets-v12 \
           VITE_MAPBOX_CONTAINER_ID=map \
           VITE_MAPBOX_INITIAL_ZOOM=13.5 \
-          pnpm --filter @touristic/morro-digital-platform dev >>/tmp/morro-map-provider.log 2>&1 &
+          node apps/morro-digital-platform/tooling/dev-server.mjs >>/tmp/morro-map-provider.log 2>&1 &
           echo $! >/tmp/morro-map-provider.pid
           for i in $(seq 1 90); do
             if curl -fsS http://127.0.0.1:4173/runtime-config.js | grep -q 'pk.synthetic-provider-regression'; then exit 0; fi
