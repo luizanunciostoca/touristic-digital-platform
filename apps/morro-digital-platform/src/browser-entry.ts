@@ -11,6 +11,45 @@ import { bootstrapMorroDigitalApplication } from "./main.js";
 
 bootstrapMorroDigitalApplication(document);
 
+function setupV1ShellInteractions(): void {
+  const assistant = document.getElementById("assistant-messages");
+  const assistantButton = document.querySelector<HTMLButtonElement>(
+    ".quick-actions .action-button.primary",
+  );
+  const minimizeButton = assistant?.querySelector<HTMLButtonElement>(
+    ".minimize-button",
+  );
+  const globeButton = document.getElementById("toggle-globe-view");
+
+  assistantButton?.addEventListener("click", () => {
+    assistant?.classList.remove("hidden");
+  });
+
+  minimizeButton?.addEventListener("click", () => {
+    assistant?.classList.add("hidden");
+  });
+
+  globeButton?.addEventListener("click", () => {
+    const active = globeButton.classList.toggle("active");
+    globeButton.setAttribute("aria-pressed", String(active));
+  });
+
+  document
+    .querySelectorAll<HTMLButtonElement>(".assistant-option-btn")
+    .forEach((button) => {
+      button.addEventListener("click", () => {
+        const value = button.dataset.value || button.textContent?.trim() || "";
+        document.dispatchEvent(
+          new CustomEvent("morro:assistant-option-selected", {
+            detail: { value },
+          }),
+        );
+      });
+    });
+}
+
+setupV1ShellInteractions();
+
 window.addEventListener("load", () => {
   window.setTimeout(() => {
     document.getElementById("loading-overlay")?.classList.add("fade-out");
