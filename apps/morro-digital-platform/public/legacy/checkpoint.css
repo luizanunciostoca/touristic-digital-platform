@@ -23,9 +23,10 @@
 @import "./css/components/popups.css";
 @import "./css/components/inputs/inputs.css";
 @import "./css/components/weather.css";
+@import "./css/components/accessibility.css";
+@import "./css/components/interactive-tour.css";
 @import "./css/components/markers.css";
 @import "./css/components/location-indicator.css";
-@import "./css/components/accessibility.css";
 @import "./css/navigation/user-marker.css";
 @import "./css/vendor/leaflet-custom.css";
 @import "./css/vendor-fixes.css";
