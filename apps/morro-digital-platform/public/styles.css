@@ -335,6 +335,12 @@ header h1 {
   }
 }
 
+@media (max-width: 480px) {
+  #assistant-messages .message.assistant {
+    padding: 0.44rem 2.8rem 0.34rem 0.44rem;
+  }
+}
+
 @media (min-width: 768px) {
   header {
     padding: var(--spacing-lg) var(--spacing-xl);
