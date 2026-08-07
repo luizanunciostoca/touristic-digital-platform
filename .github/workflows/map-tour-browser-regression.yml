@@ -85,6 +85,23 @@ jobs:
             return snapshot(page);
           }
 
+          async function failureEvidence(page, name, phase, pageErrors) {
+            let map = null;
+            let select = null;
+            try { map = await snapshot(page); } catch (error) { map = { snapshotError: String(error) }; }
+            try {
+              select = await page.locator('#tour-select').evaluate((element) => ({
+                value: element.value,
+                disabled: element.disabled,
+                options: Array.from(element.options).map(option => option.value),
+              }));
+            } catch (error) { select = { snapshotError: String(error) }; }
+            const evidence = { status: 'failed', viewport: name, phase, map, select, pageErrors };
+            writeFileSync(`/tmp/map-tour-evidence/failure-${name}.json`, JSON.stringify(evidence, null, 2));
+            try { await page.screenshot({ path: `/tmp/map-tour-evidence/failure-${name}.png`, fullPage: false }); } catch {}
+            return evidence;
+          }
+
           (async () => {
             const browser = await chromium.launch({ headless: true });
             const evidence = {};
@@ -95,41 +112,50 @@ jobs:
               const page = await context.newPage();
               const pageErrors = [];
               page.on('pageerror', error => pageErrors.push(error.message));
+              let phase = 'navigation';
 
-              await page.goto('http://127.0.0.1:4173', { waitUntil: 'domcontentloaded' });
-              const initial = await waitForTour(page, 'volta-a-ilha', '8');
-              if (initial.mode !== 'leaflet' || !initial.leaflet || initial.visibleMarkers !== 8) {
-                throw new Error(`Initial fallback state failed for ${name}: ${JSON.stringify(initial)}`);
+              try {
+                await page.goto('http://127.0.0.1:4173', { waitUntil: 'domcontentloaded' });
+                phase = 'initial-volta-a-ilha';
+                const initial = await waitForTour(page, 'volta-a-ilha', '8');
+                if (initial.mode !== 'leaflet' || !initial.leaflet || initial.visibleMarkers !== 8) {
+                  throw new Error(`Initial fallback state failed for ${name}: ${JSON.stringify(initial)}`);
+                }
+
+                const select = page.locator('#tour-select');
+                if (await select.isDisabled()) throw new Error(`Tour select stayed disabled for ${name}.`);
+
+                phase = 'trilha-gamboa';
+                await select.selectOption('trilha-gamboa');
+                const gamboa = await waitForTour(page, 'trilha-gamboa', '5');
+                if (gamboa.visibleMarkers !== 5) {
+                  throw new Error(`Gamboa marker replacement failed for ${name}: ${JSON.stringify(gamboa)}`);
+                }
+
+                phase = 'passeio-quadriciclo';
+                await select.selectOption('passeio-quadriciclo');
+                const quadriciclo = await waitForTour(page, 'passeio-quadriciclo', '5');
+                if (quadriciclo.visibleMarkers !== 5) {
+                  throw new Error(`Quadriciclo marker replacement failed for ${name}: ${JSON.stringify(quadriciclo)}`);
+                }
+
+                phase = 'restore-volta-a-ilha';
+                await select.selectOption('volta-a-ilha');
+                const restored = await waitForTour(page, 'volta-a-ilha', '8');
+                if (restored.visibleMarkers !== 8) {
+                  throw new Error(`Return to Volta a Ilha failed for ${name}: ${JSON.stringify(restored)}`);
+                }
+
+                if (pageErrors.length > 0) throw new Error(`Browser errors for ${name}: ${JSON.stringify(pageErrors)}`);
+                evidence[name] = { initial, gamboa, quadriciclo, restored, pageErrors };
+                writeFileSync(`/tmp/map-tour-evidence/success-${name}.json`, JSON.stringify(evidence[name], null, 2));
+                await page.screenshot({ path: `/tmp/map-tour-evidence/fallback-tour-${name}.png`, fullPage: false });
+              } catch (error) {
+                const details = await failureEvidence(page, name, phase, pageErrors);
+                throw new Error(`${error instanceof Error ? error.message : String(error)} Evidence: ${JSON.stringify(details)}`);
+              } finally {
+                await context.close();
               }
-
-              const select = page.locator('#tour-select');
-              if (await select.isDisabled()) throw new Error(`Tour select stayed disabled for ${name}.`);
-
-              await select.selectOption('trilha-gamboa');
-              const gamboa = await waitForTour(page, 'trilha-gamboa', '5');
-              if (gamboa.visibleMarkers !== 5) {
-                throw new Error(`Gamboa marker replacement failed for ${name}: ${JSON.stringify(gamboa)}`);
-              }
-
-              await select.selectOption('passeio-quadriciclo');
-              const quadriciclo = await waitForTour(page, 'passeio-quadriciclo', '5');
-              if (quadriciclo.visibleMarkers !== 5) {
-                throw new Error(`Quadriciclo marker replacement failed for ${name}: ${JSON.stringify(quadriciclo)}`);
-              }
-
-              await select.selectOption('volta-a-ilha');
-              const restored = await waitForTour(page, 'volta-a-ilha', '8');
-              if (restored.visibleMarkers !== 8) {
-                throw new Error(`Return to Volta a Ilha failed for ${name}: ${JSON.stringify(restored)}`);
-              }
-
-              if (pageErrors.length > 0) {
-                throw new Error(`Browser errors for ${name}: ${JSON.stringify(pageErrors)}`);
-              }
-
-              evidence[name] = { initial, gamboa, quadriciclo, restored, pageErrors };
-              await page.screenshot({ path: `/tmp/map-tour-evidence/fallback-tour-${name}.png`, fullPage: false });
-              await context.close();
             }
 
             writeFileSync('/tmp/map-tour-evidence/fallback-tour-switching.json', JSON.stringify({ status: 'validated', viewports: evidence }, null, 2));
