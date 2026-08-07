@@ -96,12 +96,18 @@ jobs:
               ].map((name) => [name, rootStyle.getPropertyValue(name).trim()]));
 
               const matches = [];
+              const tokenDeclarations = [];
               const walk = (rules, href, conditions = []) => {
                 for (const rule of rules) {
-                  if (rule instanceof CSSStyleRule) {
-                    let matched = false;
-                    try { matched = area.matches(rule.selectorText); } catch {}
-                    if (matched && (rule.style.maxHeight || rule.style.overflowY || rule.style.padding || rule.style.gap)) {
+                  if (rule instanceof CSSImportRule) {
+                    try { walk(rule.styleSheet.cssRules, rule.href || href, conditions); }
+                    catch (error) { matches.push({ href: rule.href || href, error: String(error) }); }
+                  } else if (rule instanceof CSSStyleRule) {
+                    let areaMatched = false;
+                    let rootMatched = false;
+                    try { areaMatched = area.matches(rule.selectorText); } catch {}
+                    try { rootMatched = document.documentElement.matches(rule.selectorText); } catch {}
+                    if (areaMatched && (rule.style.maxHeight || rule.style.overflowY || rule.style.padding || rule.style.gap)) {
                       matches.push({
                         href,
                         conditions,
@@ -112,6 +118,12 @@ jobs:
                         padding: rule.style.getPropertyValue('padding'),
                         gap: rule.style.getPropertyValue('gap'),
                       });
+                    }
+                    if (rootMatched) {
+                      for (const name of ['--assistant-input-bottom','--assistant-bar-height','--assistant-cluster-gap','--assistant-side-button-size','--assistant-icon-bottom']) {
+                        const value = rule.style.getPropertyValue(name);
+                        if (value) tokenDeclarations.push({ href, conditions, selector: rule.selectorText, name, value, priority: rule.style.getPropertyPriority(name) });
+                      }
                     }
                   } else if (rule instanceof CSSMediaRule) {
                     if (matchMedia(rule.conditionText).matches) walk(rule.cssRules, href, [...conditions, `@media ${rule.conditionText}`]);
@@ -140,6 +152,7 @@ jobs:
                   areaScrollHeight: area.scrollHeight,
                   areaScrollTop: area.scrollTop,
                 },
+                tokenDeclarations,
                 matches,
               };
             });
