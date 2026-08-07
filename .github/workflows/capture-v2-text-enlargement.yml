@@ -8,6 +8,7 @@ on:
       - .github/workflows/capture-v2-text-enlargement.yml
       - apps/morro-digital-platform/src/layouts/app-shell.ts
       - apps/morro-digital-platform/src/browser-entry.ts
+      - apps/morro-digital-platform/public/styles.css
       - apps/morro-digital-platform/public/legacy/**
 
 permissions:
