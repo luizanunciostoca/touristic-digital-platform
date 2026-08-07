@@ -3,6 +3,9 @@ import { getMorroTourById } from "./config/tour-catalog.js";
 import { createMorroTourMarkers } from "./config/tour-markers.js";
 import { createMorroTourSelectionController } from "./config/tour-selection.js";
 import { createDevelopmentMapboxSdk } from "./development/mapbox-sdk.js";
+import { bootstrapMorroDigitalApplication } from "./main.js";
+
+bootstrapMorroDigitalApplication(document);
 
 const developmentEnvironment = Object.freeze({
   VITE_MAPBOX_ACCESS_TOKEN: "development-only-token",
