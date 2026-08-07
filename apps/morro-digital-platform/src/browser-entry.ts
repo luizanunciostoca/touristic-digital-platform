@@ -2,6 +2,10 @@ import { startMorroDigitalBrowser } from "./browser.js";
 import { getMorroTourById } from "./config/tour-catalog.js";
 import { createMorroTourMarkers } from "./config/tour-markers.js";
 import { createMorroTourSelectionController } from "./config/tour-selection.js";
+import {
+  createLeafletCompatibilitySdk,
+  hasLeafletCompatibilitySdk,
+} from "./development/leaflet-compatibility-sdk.js";
 import { createDevelopmentMapboxSdk } from "./development/mapbox-sdk.js";
 import { bootstrapMorroDigitalApplication } from "./main.js";
 
@@ -25,6 +29,9 @@ const status = document.getElementById("runtime-status");
 const mapContainer = document.getElementById("map");
 const tourSelect = document.getElementById("tour-select");
 const initialTourMarkers = createMorroTourMarkers(initialTourId);
+const browserMapSdk = hasLeafletCompatibilitySdk(window)
+  ? createLeafletCompatibilitySdk(window)
+  : createDevelopmentMapboxSdk(document);
 
 function updateStatus(message: string): void {
   if (status) status.textContent = message;
@@ -37,7 +44,7 @@ function formatTourStatus(tourId: string, markerCount: number): string {
 }
 
 void startMorroDigitalBrowser({
-  sdk: createDevelopmentMapboxSdk(document),
+  sdk: browserMapSdk,
   environment: developmentEnvironment,
   document,
   initialMarkers: initialTourMarkers,
