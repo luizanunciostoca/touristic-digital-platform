@@ -21,7 +21,7 @@ const developmentEnvironment = Object.freeze({
   VITE_MAPBOX_ACCESS_TOKEN: "development-only-token",
   VITE_MAPBOX_CONTAINER_ID: "map",
   VITE_MAPBOX_STYLE: "development://morro-digital",
-  VITE_MAPBOX_INITIAL_ZOOM: "14",
+  VITE_MAPBOX_INITIAL_ZOOM: "13.5",
 });
 
 const initialTourId = "volta-a-ilha";
@@ -30,7 +30,10 @@ const mapContainer = document.getElementById("map");
 const tourSelect = document.getElementById("tour-select");
 const initialTourMarkers = createMorroTourMarkers(initialTourId);
 const browserMapSdk = hasLeafletCompatibilitySdk(window)
-  ? createLeafletCompatibilitySdk(window)
+  ? createLeafletCompatibilitySdk(window, {
+      initialCenter: [-38.9159969, -13.4],
+      initialZoom: 13.5,
+    })
   : createDevelopmentMapboxSdk(document);
 
 function updateStatus(message: string): void {
