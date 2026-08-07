@@ -63,13 +63,19 @@ jobs:
               page.on('requestfailed', (request) => errors.push(`requestfailed: ${request.url()} ${request.failure()?.errorText || ''}`));
 
               await page.goto('http://127.0.0.1:4173', { waitUntil: 'domcontentloaded' });
+              await page.evaluate(() => document.fonts.ready);
               const loading = await page.evaluate(() => {
                 const overlay = document.getElementById('loading-overlay');
+                const spinner = document.querySelector('.spinner');
                 overlay?.classList.remove('fade-out');
                 if (overlay instanceof HTMLElement) {
                   overlay.style.transition = 'none';
                   overlay.style.opacity = '1';
                   overlay.style.visibility = 'visible';
+                }
+                if (spinner instanceof HTMLElement) {
+                  spinner.style.animation = 'none';
+                  spinner.style.transform = 'none';
                 }
                 return {
                   exists: Boolean(overlay),
