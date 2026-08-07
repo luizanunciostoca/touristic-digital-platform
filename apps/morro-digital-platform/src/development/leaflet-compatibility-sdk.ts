@@ -22,7 +22,10 @@ interface LeafletNamespaceLike {
   map(container: string, options?: object): LeafletMapLike;
   tileLayer(url: string, options?: object): LeafletLayerLike;
   marker(position: [number, number], options?: object): LeafletMarkerLike;
-  divIcon?(options: { readonly html: string; readonly className: string }): object;
+  divIcon?(options: {
+    readonly html: string;
+    readonly className: string;
+  }): object;
 }
 
 export interface LeafletCompatibilityWindow {
@@ -109,7 +112,8 @@ export function createLeafletCompatibilitySdk(
               className: "morro-leaflet-compatibility-marker",
             })
           : undefined;
-      this.#marker = leaflet.marker(toLeafletCoordinates(this.#position),
+      this.#marker = leaflet.marker(
+        toLeafletCoordinates(this.#position),
         icon ? { icon } : undefined,
       );
       this.#marker.addTo(map.nativeMap);
