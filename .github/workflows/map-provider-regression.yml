@@ -260,6 +260,16 @@ jobs:
             });
           }
 
+          async function switchTour(page, tourId) {
+            await page.locator('#tour-select').evaluate((element, nextTourId) => {
+              if (!(element instanceof HTMLSelectElement)) {
+                throw new Error('Expected #tour-select to be an HTMLSelectElement');
+              }
+              element.value = nextTourId;
+              element.dispatchEvent(new Event('change', { bubbles: true }));
+            }, tourId);
+          }
+
           (async () => {
             const browser = await chromium.launch({ headless: true });
             const evidence = {};
@@ -291,9 +301,9 @@ jobs:
                 throw new Error(`Authenticated Mapbox did not initialize for ${name}: ${JSON.stringify(initial)}`);
               }
 
-              await page.locator('#tour-select').selectOption('trilha-gamboa');
+              await switchTour(page, 'trilha-gamboa');
               await waitForTour(page, 'trilha-gamboa', '5');
-              await page.locator('#tour-select').selectOption('passeio-quadriciclo');
+              await switchTour(page, 'passeio-quadriciclo');
               await waitForTour(page, 'passeio-quadriciclo', '5');
 
               if (mapboxHttpErrors.length > 0) {
