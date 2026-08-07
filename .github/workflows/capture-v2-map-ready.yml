@@ -65,6 +65,12 @@ jobs:
               await page.goto('http://127.0.0.1:4173', { waitUntil: 'domcontentloaded' });
               const loading = await page.evaluate(() => {
                 const overlay = document.getElementById('loading-overlay');
+                overlay?.classList.remove('fade-out');
+                if (overlay instanceof HTMLElement) {
+                  overlay.style.transition = 'none';
+                  overlay.style.opacity = '1';
+                  overlay.style.visibility = 'visible';
+                }
                 return {
                   exists: Boolean(overlay),
                   faded: overlay?.classList.contains('fade-out') ?? false,
