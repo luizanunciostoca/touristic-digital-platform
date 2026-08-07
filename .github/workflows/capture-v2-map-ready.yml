@@ -28,9 +28,10 @@ jobs:
       - name: Start V2
         run: |
           pnpm --filter @touristic/morro-digital-platform dev >/tmp/v2.log 2>&1 &
-          for i in $(seq 1 90); do curl -fsS http://127.0.0.1:4173 >/dev/null && exit 0; sleep 1; done
-          cat /tmp/v2.log
-          exit 1
+          for i in $(seq 1 90); do curl -fsS http://127.0.0.1:4173 >/dev/null && break; sleep 1; done
+          curl -fsS http://127.0.0.1:4173/apps/morro-digital-platform/dist/browser-entry.js >/dev/null
+          curl -fsS http://127.0.0.1:4173/apps/morro-digital-platform/public/styles.css >/dev/null
+          curl -fsS http://127.0.0.1:4173/apps/morro-digital-platform/public/legacy/checkpoint.css >/dev/null
       - name: Capture map ready
         run: |
           mkdir -p visual/v2
@@ -46,10 +47,27 @@ jobs:
             for (const [name, width, height] of cases) {
               const context = await browser.newContext({ viewport: { width, height } });
               const page = await context.newPage();
+              const errors = [];
+              page.on('console', (message) => {
+                if (message.type() === 'error') errors.push(`console: ${message.text()}`);
+              });
+              page.on('pageerror', (error) => errors.push(`pageerror: ${error.message}`));
+              page.on('requestfailed', (request) => errors.push(`requestfailed: ${request.url()} ${request.failure()?.errorText || ''}`));
               await page.goto('http://127.0.0.1:4173', { waitUntil: 'domcontentloaded' });
               await page.evaluate(() => localStorage.setItem('morro-digital-onboarded', '1'));
               await page.reload({ waitUntil: 'domcontentloaded' });
               await page.waitForTimeout(5000);
+              const state = await page.evaluate(() => ({
+                appChildren: document.getElementById('app')?.children.length ?? 0,
+                mapExists: Boolean(document.getElementById('map')),
+                loadingOverlay: Boolean(document.getElementById('loading-overlay')),
+                bodyText: document.body.innerText.slice(0, 500),
+              }));
+              console.log(name, JSON.stringify(state));
+              if (errors.length) console.log(name, errors.join('\n'));
+              if (!state.mapExists || state.appChildren === 0) {
+                throw new Error(`V2 shell did not mount for ${name}: ${JSON.stringify(state)}`);
+              }
               await page.screenshot({ path: `visual/v2/map-ready-${name}.png`, fullPage: false });
               await context.close();
             }
