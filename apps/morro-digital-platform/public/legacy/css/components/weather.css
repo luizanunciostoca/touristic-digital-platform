@@ -1,0 +1,383 @@
+/* Widget de Clima Compacto */
+.weather-widget {
+  position: fixed;
+  top: var(--spacing-sm); /* 8px */
+  right: var(--spacing-sm); /* 8px */
+  background: #fff;
+  border-radius: var(--radius-lg); /* 12px */
+  box-shadow: var(--shadow);
+  padding: var(--spacing-xs); /* 8px */
+  z-index: var(--z-modal); /* Era 1002 */
+  width: 5rem; /* 80px */
+  height: 6.875rem; /* 110px */
+  font-size: var(--font-size-xs); /* Era 10px */
+  color: var(--gray-800);
+  transition: box-shadow 0.1s, transform 0.1s;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column; /* Alterado para coluna */
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  cursor: pointer; /* Adicionado para indicar clicabilidade */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.weather-widget:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-0.125rem); /* -2px */
+}
+
+/* Conteúdo do widget compacto */
+.weather-compact-main {
+  flex: 1; /* Ocupa espaço disponível */
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.weather-emoji {
+  font-size: 2.5em; /* Ajustado */
+  margin-bottom: var(--spacing-xs); /* 5px */
+  line-height: 1;
+}
+
+.weather-temp {
+  font-size: 1.2em; /* Ajustado */
+  font-weight: 600;
+}
+
+.weather-compact-footer {
+  width: 100%;
+  text-align: center;
+  margin-top: var(--spacing-xs); /* 1px */
+  font-size: 0.8em;
+  color: #666;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  padding: 0 var(--spacing-xs);
+}
+
+/* Remover estilos antigos não usados no modo compacto */
+/* .weather-widget .weather-current, .weather-widget .weather-icon, .weather-widget .weather-details, etc. */
+
+/* Modal de Previsão do Tempo */
+.weather-forecast-modal {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  background: #fff;
+  border-radius: var(--radius-lg); /* 14px */
+  box-shadow: 0 0.25rem 1.5rem rgba(0, 0, 0, 0.15); /* 4px 24px */
+  z-index: var(--z-highest); /* Era 10000 */
+  width: clamp(17.5rem, 100%, 43.75rem); /* 280px, 700px */
+  height: auto;
+  max-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* Cabeçalho Fixo do Modal */
+.forecast-header {
+  position: sticky;
+  top: 0;
+  background-color: #fff;
+  z-index: 10;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-sm) var(--spacing-md); /* 12px 14px */
+  width: 100%;
+  border-bottom: 0.0625rem solid #f1f3f4; /* 1px */
+  flex-shrink: 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  box-sizing: border-box;
+  transition: box-shadow 0.1s;
+}
+
+.weather-forecast-modal[data-scrolled="true"] .forecast-header {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.forecast-header h4 {
+  font-size: var(--font-size-lg); /* clamp(1rem, ...) */
+  font-weight: 500;
+  color: #202124;
+  margin: 0;
+}
+
+.forecast-close-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem; /* clamp(1.25rem, ...) */
+  cursor: pointer;
+  color: var(--primary);
+  font-weight: bold;
+  padding: 0;
+  width: 2.75rem; /* 44px */
+  height: 2.75rem; /* 44px */
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.1s;
+}
+
+.forecast-close-btn:hover {
+  background-color: var(--gray-100);
+}
+
+/* Contêiner de Rolagem Interno */
+.weather-forecast-modal-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: var(--spacing-md); /* Padding interno */
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+  box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary) #f1f3f4;
+}
+
+.weather-forecast-modal-content::-webkit-scrollbar {
+  width: 0.5rem; /* 8px */
+}
+
+.weather-forecast-modal-content::-webkit-scrollbar-track {
+  background: #f1f3f4;
+  border-radius: 0.25rem; /* 4px */
+}
+
+.weather-forecast-modal-content::-webkit-scrollbar-thumb {
+  background-color: var(--primary);
+  border-radius: 0.25rem; /* 4px */
+  border: 2px solid #f1f3f4;
+}
+
+.weather-forecast-modal-content::-webkit-scrollbar-thumb:hover {
+  background-color: var(--primary-dark);
+}
+
+/* Clima Atual Dentro do Modal */
+.current-weather {
+  display: flex;
+  flex-wrap: wrap;
+  margin-bottom: var(--spacing-md); /* 16px */
+  align-items: center;
+  gap: var(--spacing-sm) var(--spacing-lg); /* 10px 30px */
+  padding-top: var(--spacing-sm); /* 10px */
+}
+
+.current-weather-main {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm); /* 10px */
+}
+
+.current-emoji {
+  font-size: clamp(2.25rem, 8vw, 3.125rem); /* 36px, 50px */
+  line-height: 1;
+}
+
+.current-temp {
+  font-size: clamp(2rem, 7vw, 2.625rem); /* 32px, 42px */
+  font-weight: 400;
+  color: #202124;
+}
+
+.current-weather-details {
+  font-size: var(--font-size-sm); /* clamp(0.875rem, ...) */
+  color: #5f6368;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs); /* 4px */
+}
+
+.current-condition {
+  text-align: left;
+  font-size: var(--font-size-base); /* clamp(1rem, ...) */
+  color: #3c4043;
+  margin-bottom: var(--spacing-md); /* 15px */
+  font-style: italic;
+  width: 100%; /* Ocupa largura total abaixo */
+}
+
+.current-weather .day-full-date {
+  margin: var(--spacing-xs) 0; /* 8px */
+  text-align: left;
+  width: 100%;
+  color: #202124;
+  font-size: var(--font-size-lg); /* clamp(1.125rem, ...) */
+  text-transform: capitalize;
+}
+
+/* Seletor de Dias (Scroll Horizontal) */
+.day-selector {
+  display: flex;
+  overflow-x: auto;
+  padding: var(--spacing-xs) 0; /* 5px */
+  margin-bottom: var(--spacing-md); /* 16px */
+  scrollbar-width: thin;
+  scrollbar-color: var(--gray-300) transparent;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  max-width: 100%;
+  width: 100%;
+  gap: var(--spacing-xs); /* Espaçamento entre dias */
+}
+
+.day-selector::-webkit-scrollbar {
+  height: 0.25rem; /* 4px */
+}
+.day-selector::-webkit-scrollbar-thumb {
+  background-color: var(--gray-300);
+  border-radius: 0.125rem; /* 2px */
+}
+
+.day-option {
+  min-width: 3.75rem; /* 60px - Ajustado */
+  text-align: center;
+  cursor: pointer;
+  padding: var(--spacing-xs); /* 8px 2px -> 4px */
+  border-radius: var(--radius); /* 8px */
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  border: 1px solid transparent;
+}
+
+.day-option:hover {
+  background-color: #f1f3f4;
+}
+
+.day-option.active {
+  background-color: #e8f0fe;
+  border-color: var(--primary);
+  box-shadow: 0 1px 3px rgba(66, 133, 244, 0.2);
+}
+
+/* Indicador ativo pode ser simplificado ou removido */
+/* .day-option.active::after { ... } */
+
+.day-name {
+  font-size: var(--font-size-xs); /* clamp(0.75rem, ...) */
+  color: #5f6368;
+  text-transform: capitalize;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.day-emoji {
+  font-size: clamp(1.375rem, 4vw, 1.75rem); /* 22px, 28px */
+  margin: var(--spacing-xs) 0; /* 6px */
+  line-height: 1;
+  transition: transform 0.2s ease;
+}
+
+.day-option:hover .day-emoji {
+  transform: scale(1.1);
+}
+
+.day-option.active .day-emoji {
+  transform: scale(1.15);
+}
+
+.day-temp {
+  font-size: var(--font-size-xs); /* clamp(0.75rem, ...) */
+  color: #202124;
+  white-space: nowrap;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Detalhes da Previsão Diária (Grid Layout) */
+.forecast-details-grid {
+  display: grid;
+  /* Conforme checklist: repeat(auto-fit, minmax(100px, 1fr)) */
+  grid-template-columns: repeat(auto-fit, minmax(6.25rem, 1fr)); /* 100px */
+  gap: var(--spacing-md); /* 16px */
+  margin-bottom: var(--spacing-md);
+  padding: var(--spacing-md);
+  background-color: var(--gray-100);
+  border-radius: var(--radius);
+}
+
+.forecast-detail-item {
+  text-align: center;
+  font-size: var(--font-size-sm);
+}
+
+.forecast-detail-item .label {
+  display: block;
+  color: var(--gray-800);
+  margin-bottom: var(--spacing-xs);
+  font-weight: 500;
+}
+
+.forecast-detail-item .value {
+  display: block;
+  color: var(--primary);
+  font-weight: 600;
+}
+
+/* Gráfico de Temperatura */
+.temp-chart-container {
+  margin-bottom: var(--spacing-md);
+  border-bottom: 1px solid #dadce0;
+  padding-bottom: var(--spacing-md);
+  width: 100%;
+  height: clamp(7.5rem, 25vh, 12.5rem); /* 120px, 200px */
+  position: relative;
+}
+
+/* Detalhes das Marés */
+.tides-container {
+  margin-top: var(--spacing-sm); /* 5px */
+  border-top: 1px solid #eee;
+  padding-top: var(--spacing-sm); /* 10px */
+}
+
+.tides-container h5 {
+  font-size: var(--font-size-base);
+  margin-bottom: var(--spacing-sm);
+  color: var(--gray-800);
+}
+
+.tide-time {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-xs); /* 6px */
+  padding: var(--spacing-xs) 0; /* 4px */
+  font-size: var(--font-size-sm);
+}
+
+.tide-type {
+  font-weight: 500;
+}
+
+.high-tide .tide-type {
+  color: #4b89dc;
+}
+
+.low-tide .tide-type {
+  color: #8cc152;
+}
+
+/* Remover regras de forecast-days, forecast-day, forecast-carousel pois foram substituídas/simplificadas */
+/* Remover media queries antigas que foram integradas na abordagem mobile-first */
