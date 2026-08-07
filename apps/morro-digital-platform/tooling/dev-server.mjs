@@ -20,6 +20,10 @@ const contentTypes = Object.freeze({
   ".js": "text/javascript; charset=utf-8",
   ".json": "application/json; charset=utf-8",
   ".map": "application/json; charset=utf-8",
+  ".png": "image/png",
+  ".svg": "image/svg+xml",
+  ".woff": "font/woff",
+  ".woff2": "font/woff2",
 });
 
 function resolveRequestPath(pathname) {
@@ -42,7 +46,17 @@ function applySecurityHeaders(response) {
   response.setHeader("Cross-Origin-Opener-Policy", "same-origin");
   response.setHeader(
     "Content-Security-Policy",
-    "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self'; img-src 'self' data:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'",
+    [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline' https://unpkg.com",
+      "style-src 'self' 'unsafe-inline' https://unpkg.com https://cdnjs.cloudflare.com https://fonts.googleapis.com",
+      "img-src 'self' data: https://*.tile.openstreetmap.org",
+      "connect-src 'self'",
+      "font-src 'self' data: https://cdnjs.cloudflare.com https://fonts.gstatic.com",
+      "object-src 'none'",
+      "base-uri 'self'",
+      "frame-ancestors 'none'",
+    ].join("; "),
   );
 }
 
