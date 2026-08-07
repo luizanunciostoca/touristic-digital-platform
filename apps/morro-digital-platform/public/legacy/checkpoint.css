@@ -22,6 +22,8 @@
 @import "./css/components/markers.css";
 @import "./css/components/location-indicator.css";
 @import "./css/components/accessibility.css";
+@import "./css/navigation/user-marker.css";
+@import "./css/vendor/leaflet-custom.css";
 @import "./css/vendor-fixes.css";
 @import "./css/base/responsive.css";
 @import "./css/z-index-standards.css";

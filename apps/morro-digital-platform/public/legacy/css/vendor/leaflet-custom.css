@@ -1,0 +1,82 @@
+/* Customize Leaflet map */
+.leaflet-control-zoom {
+  margin: 10px !important;
+  border-radius: var(--radius) !important;
+  overflow: hidden !important;
+  box-shadow: var(--shadow) !important;
+}
+
+.leaflet-control-zoom a {
+  background-color: white !important;
+  color: var(--gray-800) !important;
+  transition: var(--transition) !important;
+}
+
+.leaflet-control-zoom a:hover {
+  background-color: var(--gray-100) !important;
+  color: var(--primary) !important;
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: var(--radius) !important;
+  box-shadow: var(--shadow) !important;
+}
+
+.leaflet-popup-tip {
+  box-shadow: var(--shadow) !important;
+}
+
+/* Override Leaflet default styles for better cross-browser compatibility */
+.leaflet-overlay-pane svg,
+.leaflet-overlay-pane canvas {
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  user-select: none !important;
+}
+
+/* Also apply to other Leaflet elements that might need it */
+.leaflet-container,
+.leaflet-control,
+.leaflet-marker-icon,
+.leaflet-marker-shadow {
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  user-select: none !important;
+}
+
+.leaflet-oldie .leaflet-popup-content-wrapper {
+  zoom: 1;
+  -ms-zoom: 1;
+}
+
+.leaflet-tile,
+.leaflet-marker-icon,
+.leaflet-marker-shadow {
+  -webkit-user-drag: none;
+  -moz-user-drag: none;
+  -ms-user-drag: none;
+}
+
+/* Adicionar ao seu arquivo CSS ou incluir no head */
+.map-rotated .leaflet-marker-icon:not(.user-location-marker) {
+  /* Rotacionar marcadores normais para ficarem legíveis */
+  transform: rotate(-180deg);
+}
+
+.map-rotated .leaflet-popup-content {
+  /* Corrigir orientação dos popups */
+  transform: rotate(-180deg);
+}
+
+.map-rotated .leaflet-control-zoom a,
+.map-rotated .leaflet-control-attribution {
+  /* Corrigir orientação dos controles de zoom */
+  transform: rotate(-180deg);
+}
+
+/* Manter o marcador do usuário com orientação normal */
+.map-rotated .user-location-marker {
+  transform: none !important;
+}

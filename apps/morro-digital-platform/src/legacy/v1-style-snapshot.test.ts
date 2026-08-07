@@ -31,6 +31,8 @@ const V1_STYLE_BLOBS = Object.freeze({
   "css/components/markers.css": "5174e01aaf07191ac8bc24ff27408c05937f65c2",
   "css/components/location-indicator.css": "f96410d39fd3fd667a49050f2af845ed303ea9e6",
   "css/components/accessibility.css": "353bd093f10b130a9013eb728899ce82c3f62894",
+  "css/navigation/user-marker.css": "afc71664532225c4b0261cf7c8b5e9823bebcc0a",
+  "css/vendor/leaflet-custom.css": "31a3aff72b6ae836fea8b45430e20d3fa578922c",
   "css/vendor-fixes.css": "dc95a6e22ebf43bb30303f50bd129a700be1b784",
   "css/base/responsive.css": "1d20db0784a63c55d764045797617e25f8a04695",
   "css/z-index-standards.css": "d092ad3f5ab49716eaa36eaae08ff4eb72d0d370",
