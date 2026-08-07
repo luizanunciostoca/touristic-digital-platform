@@ -12,6 +12,8 @@
 @import "./css/components/map/map-rotation.css";
 @import "./css/components/map/map-3d-fixes.css";
 @import "./css/components/map/map3d-loading.css";
+@import "./css/components/map/map-controls.css";
+@import "./css/components/map/mapbox-osm-3d.css";
 @import "./css/components/assistant/assistant-mood.css";
 @import "./css/components/assistant/carouselModal.css";
 @import "./css/components/assistant/assistant-voice-selector.css";
