@@ -32,14 +32,14 @@ jobs:
           done
           cat /tmp/v2-baseline.log
           exit 1
-      - name: Compare normal and legacy-only CSS
+      - name: Compare 422px and 414px effective viewports
         run: |
           node <<'NODE'
           const { chromium } = require('/tmp/pw/node_modules/playwright');
           const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-          (async () => {
-            const browser = await chromium.launch({ headless: true });
-            const context = await browser.newContext({ viewport: { width: 195, height: 422 }, deviceScaleFactor: 2 });
+
+          async function measureCase(browser, height) {
+            const context = await browser.newContext({ viewport: { width: 195, height }, deviceScaleFactor: 2 });
             const page = await context.newPage();
             await page.goto('http://127.0.0.1:4173', { waitUntil: 'domcontentloaded' });
             await page.evaluate(() => localStorage.setItem('morro-digital-onboarded', '1'));
@@ -56,38 +56,12 @@ jobs:
             }
             await page.evaluate(() => document.fonts.ready);
             await sleep(600);
-
-            const measure = () => page.evaluate(() => {
-              const modal = document.querySelector('.assistant-modal');
-              const area = modal?.querySelector('.messages-area');
-              if (!(modal instanceof HTMLElement) || !(area instanceof HTMLElement)) throw new Error('missing assistant');
-              const root = getComputedStyle(document.documentElement);
-              const ms = getComputedStyle(modal);
-              const as = getComputedStyle(area);
-              return {
-                innerWidth, innerHeight,
-                documentClientHeight: document.documentElement.clientHeight,
-                visualViewportHeight: visualViewport?.height ?? null,
-                barHeightToken: root.getPropertyValue('--assistant-bar-height').trim(),
-                clusterGapToken: root.getPropertyValue('--assistant-cluster-gap').trim(),
-                sideButtonToken: root.getPropertyValue('--assistant-side-button-size').trim(),
-                modalBottom: ms.bottom,
-                modalHeight: modal.getBoundingClientRect().height,
-                modalMaxHeight: ms.maxHeight,
-                areaMaxHeight: as.maxHeight,
-                areaClientHeight: area.clientHeight,
-                areaScrollHeight: area.scrollHeight,
-                areaScrollTop: area.scrollTop,
-              };
-            });
-
-            console.log('NORMAL', JSON.stringify(await measure()));
             await page.evaluate(() => {
               const link = [...document.querySelectorAll('link[rel="stylesheet"]')].find((node) => node.href.includes('/public/styles.css'));
               if (!(link instanceof HTMLLinkElement)) throw new Error('styles.css link not found');
               link.disabled = true;
             });
-            await sleep(1000);
+            await sleep(500);
             await page.evaluate(() => {
               const modal = document.querySelector('.assistant-modal');
               const area = modal?.querySelector('.messages-area');
@@ -97,7 +71,31 @@ jobs:
               }
             });
             await sleep(500);
-            console.log('LEGACY_ONLY', JSON.stringify(await measure()));
+            const result = await page.evaluate(() => {
+              const modal = document.querySelector('.assistant-modal');
+              const area = modal?.querySelector('.messages-area');
+              if (!(modal instanceof HTMLElement) || !(area instanceof HTMLElement)) throw new Error('missing assistant');
+              return {
+                innerWidth,
+                innerHeight,
+                visualViewportHeight: visualViewport?.height ?? null,
+                modalHeight: modal.getBoundingClientRect().height,
+                modalBottom: getComputedStyle(modal).bottom,
+                modalMaxHeight: getComputedStyle(modal).maxHeight,
+                areaMaxHeight: getComputedStyle(area).maxHeight,
+                areaClientHeight: area.clientHeight,
+                areaScrollHeight: area.scrollHeight,
+                areaScrollTop: area.scrollTop,
+              };
+            });
+            await context.close();
+            return result;
+          }
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            console.log('HEIGHT_422', JSON.stringify(await measureCase(browser, 422)));
+            console.log('HEIGHT_414', JSON.stringify(await measureCase(browser, 414)));
             await browser.close();
           })().catch((error) => { console.error(error); process.exit(1); });
           NODE
