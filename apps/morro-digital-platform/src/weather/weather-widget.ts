@@ -59,7 +59,9 @@ export async function fetchMorroWeather(
   });
 
   if (!response.ok) {
-    throw new Error(`Weather runtime request failed with HTTP ${response.status}.`);
+    throw new Error(
+      `Weather runtime request failed with HTTP ${response.status}.`,
+    );
   }
 
   return parseWeatherPayload(await response.json());
@@ -80,7 +82,8 @@ function renderReading(widget: HTMLElement, reading: WeatherReading): void {
 }
 
 function renderError(widget: HTMLElement): void {
-  widget.innerHTML = '<div class="weather-error">Não foi possível atualizar o clima.</div>';
+  widget.innerHTML =
+    '<div class="weather-error">Não foi possível atualizar o clima.</div>';
   widget.dataset.weatherState = "error";
   widget.removeAttribute("aria-busy");
 }
@@ -113,7 +116,10 @@ export function initializeWeatherWidget({
   };
 
   void refresh();
-  const intervalId = globalThis.setInterval(() => void refresh(), refreshIntervalMs);
+  const intervalId = globalThis.setInterval(
+    () => void refresh(),
+    refreshIntervalMs,
+  );
 
   return () => {
     disposed = true;
