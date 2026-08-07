@@ -28,9 +28,7 @@ interface LeafletNamespaceLike {
   }): object;
 }
 
-function resolveLeafletNamespace(
-  source: object,
-): LeafletNamespaceLike | undefined {
+function resolveLeafletNamespace(source: object): LeafletNamespaceLike | undefined {
   const candidate: unknown = Reflect.get(source, "L");
   if (!candidate || typeof candidate !== "object") return undefined;
 
