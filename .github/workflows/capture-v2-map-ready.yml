@@ -96,7 +96,16 @@ jobs:
 
               await page.evaluate(() => localStorage.setItem('morro-digital-onboarded', '1'));
               await page.reload({ waitUntil: 'domcontentloaded' });
-              await page.waitForFunction(() => document.getElementById('weather-widget')?.getAttribute('data-weather-state') === 'ready', null, { timeout: 10000 });
+              let weatherReady = false;
+              for (let attempt = 0; attempt < 40; attempt += 1) {
+                weatherReady = await page.evaluate(() => document.getElementById('weather-widget')?.getAttribute('data-weather-state') === 'ready');
+                if (weatherReady) break;
+                await page.waitForTimeout(250);
+              }
+              if (!weatherReady) {
+                const weatherState = await page.evaluate(() => document.getElementById('weather-widget')?.getAttribute('data-weather-state') ?? 'missing');
+                throw new Error(`Weather widget did not become ready for ${name}; final state=${weatherState}`);
+              }
               await page.waitForTimeout(5000);
               const ready = await page.evaluate(() => {
                 const weather = document.getElementById('weather-widget');
