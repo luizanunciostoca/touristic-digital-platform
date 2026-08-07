@@ -1,0 +1,124 @@
+.quick-actions {
+  position: fixed;
+  left: var(--assistant-dock-inline-gap);
+  bottom: var(--assistant-icon-bottom);
+  z-index: 2200;
+  width: var(--assistant-side-button-size);
+  height: var(--assistant-side-button-size);
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+
+.quick-actions .action-button.primary.mood-button {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-width: var(--assistant-side-button-size);
+  min-height: var(--assistant-side-button-size);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.18);
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  overflow: hidden;
+  z-index: 2200;
+  backdrop-filter: blur(10px);
+}
+
+.quick-actions .action-button.primary.mood-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.2);
+}
+
+.quick-actions .action-button.primary.mood-button i {
+  display: none;
+}
+
+.quick-actions .action-button.primary.mood-button img.mood-icon {
+  width: 88%;
+  height: 88%;
+  display: block;
+  object-fit: contain;
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+  margin: 0;
+}
+
+.mood-icon {
+  width: 88%;
+  height: 88%;
+  object-fit: contain;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.action-button[data-mood="happy"] {
+  background-color: #4dabf7;
+}
+
+.action-button[data-mood="excited"] {
+  background-color: #f76707;
+}
+
+.action-button[data-mood="surprised"] {
+  background-color: #ae3ec9;
+}
+
+.action-button[data-mood="thinking"] {
+  background-color: #7950f2;
+}
+
+.action-button[data-mood="sad"] {
+  background-color: #74c0fc;
+}
+
+.action-button[data-mood="sleepy"] {
+  background-color: #748ffc;
+}
+
+.action-button[data-mood="cool"] {
+  background-color: #20c997;
+}
+
+.action-button[data-mood="love"] {
+  background-color: #f783ac;
+}
+
+.action-button[data-mood="neutral"] {
+  background-color: #1971c2;
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+.floating-mood {
+  animation: float 3s ease-in-out infinite;
+}
+
+@media (min-width: 992px) {
+  .quick-actions {
+    width: clamp(4.6rem, 5vw, 5.6rem);
+    height: clamp(4.6rem, 5vw, 5.6rem);
+  }
+
+  .quick-actions .action-button.primary.mood-button {
+    min-width: 100%;
+    min-height: 100%;
+  }
+}

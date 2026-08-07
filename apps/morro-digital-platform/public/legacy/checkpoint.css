@@ -5,4 +5,6 @@
 @import "./css/base/animations.css";
 @import "./css/layout/app-shell.css";
 @import "./css/layout/map.css";
+@import "./css/components/assistant/assistant-mood.css";
+@import "./css/components/inputs/inputs.css";
 @import "./css/base/responsive.css";
