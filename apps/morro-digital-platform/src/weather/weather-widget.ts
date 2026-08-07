@@ -10,9 +10,8 @@ export interface WeatherWidgetOptions {
   readonly refreshIntervalMs?: number;
 }
 
-const MORRO_LATITUDE = -13.3769;
-const MORRO_LONGITUDE = -38.9146;
 const DEFAULT_REFRESH_INTERVAL_MS = 10 * 60 * 1000;
+const WEATHER_ENDPOINT = "/api/weather";
 
 function weatherEmoji(weatherCode: number, isDay: boolean): string {
   if (weatherCode === 0) return isDay ? "☀️" : "🌙";
@@ -28,51 +27,39 @@ function weatherEmoji(weatherCode: number, isDay: boolean): string {
 
 function parseWeatherPayload(payload: unknown): WeatherReading {
   if (!payload || typeof payload !== "object") {
-    throw new Error("Weather provider returned an invalid payload.");
+    throw new Error("Weather runtime returned an invalid payload.");
   }
 
-  const current = Reflect.get(payload, "current");
-  if (!current || typeof current !== "object") {
-    throw new Error("Weather provider did not return current conditions.");
-  }
-
-  const temperature = Reflect.get(current, "temperature_2m");
-  const weatherCode = Reflect.get(current, "weather_code");
-  const isDay = Reflect.get(current, "is_day");
+  const temperature = Reflect.get(payload, "temperatureCelsius");
+  const weatherCode = Reflect.get(payload, "weatherCode");
+  const isDay = Reflect.get(payload, "isDay");
 
   if (
     typeof temperature !== "number" ||
     !Number.isFinite(temperature) ||
     typeof weatherCode !== "number" ||
     !Number.isFinite(weatherCode) ||
-    (isDay !== 0 && isDay !== 1)
+    typeof isDay !== "boolean"
   ) {
-    throw new Error("Weather provider returned incomplete current conditions.");
+    throw new Error("Weather runtime returned incomplete current conditions.");
   }
 
   return {
     temperatureCelsius: Math.round(temperature),
     weatherCode,
-    isDay: isDay === 1,
+    isDay,
   };
 }
 
 export async function fetchMorroWeather(
   fetchImplementation: typeof globalThis.fetch,
 ): Promise<WeatherReading> {
-  const query = new URLSearchParams({
-    latitude: String(MORRO_LATITUDE),
-    longitude: String(MORRO_LONGITUDE),
-    current: "temperature_2m,weather_code,is_day",
-    timezone: "America/Bahia",
+  const response = await fetchImplementation(WEATHER_ENDPOINT, {
+    headers: { Accept: "application/json" },
   });
-  const response = await fetchImplementation(
-    `https://api.open-meteo.com/v1/forecast?${query.toString()}`,
-    { headers: { Accept: "application/json" } },
-  );
 
   if (!response.ok) {
-    throw new Error(`Weather provider request failed with HTTP ${response.status}.`);
+    throw new Error(`Weather runtime request failed with HTTP ${response.status}.`);
   }
 
   return parseWeatherPayload(await response.json());
