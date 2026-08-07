@@ -1,0 +1,349 @@
+/* Estilos para mapa rotacionado */
+.map-rotated .leaflet-tile-pane {
+  transform: rotate(180deg) scale(-1, -1) !important;
+  transform-origin: center center !important;
+  transition: transform 0.5s ease-out !important;
+}
+
+.map-rotated .leaflet-map-pane {
+  transform-origin: center center !important;
+}
+
+.map-rotated .leaflet-control-container {
+  transform: rotate(-180deg) !important;
+  transform-origin: center center !important;
+}
+
+/* Corrigir orientação de ícones e marcadores */
+.map-rotated .leaflet-marker-icon:not(.user-location-marker) {
+  transform: rotate(-180deg) !important;
+}
+
+/* Corrigir orientação de popups */
+.map-rotated .leaflet-popup-content {
+  transform: rotate(-180deg) !important;
+}
+
+/* Corrigir orientação dos controles de zoom */
+.map-rotated .leaflet-control-zoom a,
+.map-rotated .leaflet-control-attribution {
+  transform: rotate(-180deg) !important;
+}
+
+/* Corrigir a camada de overlays */
+.map-rotated .leaflet-overlay-pane {
+  transform: rotate(180deg) scale(-1, -1) !important;
+  transform-origin: center center !important;
+}
+
+/* Corrigir caminhos e rotas */
+.map-rotated .leaflet-overlay-pane svg path {
+  transform-origin: center center !important;
+}
+/* Estilo para o corpo em modo imersivo */
+body.immersive-mode .map-container {
+  perspective: 1000px;
+}
+
+/* Estilo para banner de navegação em modo 3D */
+#navigation-banner.immersive {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+/* Estilo para botão de 3D ativo */
+#toggle-3d-mode.active {
+  background-color: #4285f4;
+}
+
+#mapbox-3d-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  visibility: hidden; /* Inicialmente oculto */
+  opacity: 0;
+  transition: opacity 0.5s ease-in-out;
+}
+
+#mapbox-3d-container.active {
+  visibility: visible;
+  opacity: 0;
+}
+
+body.navigation-3d-active .leaflet-container {
+  opacity: 0; /* Ocultar mapa base quando o 3D estiver ativo */
+}
+
+/* Add or update these styles */
+
+.mapbox-3d-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 399; /* Above map but below controls */
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.5s ease-in-out;
+}
+
+.mapbox-3d-container.active {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* Ensure map container is ready for 3D */
+#map-container {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Add styles for 3D navigation mode */
+body.navigation-3d-active .leaflet-container {
+  opacity: 0.3;
+  transition: opacity 0.5s ease;
+}
+
+body.map-3d-mode .leaflet-control {
+  z-index: 500; /* Ensure controls stay above 3D map */
+}
+
+/* Ensure the banner stays on top */
+#navigation-banner {
+  z-index: 1000;
+}
+
+/* Special styles for 3D mode banner */
+#navigation-banner.mode-3d {
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  backdrop-filter: blur(5px);
+}
+
+/* Update the container styles */
+
+#mapbox-3d-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 399;
+  visibility: visible;
+  opacity: 1;
+  transition: opacity 0.3s ease-in-out;
+  background-color: transparent; /* Ensure background is transparent */
+}
+
+#mapbox-3d-container.active {
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: block !important;
+}
+
+/* Make sure canvas is visible */
+.mapboxgl-canvas {
+  background-color: transparent !important;
+  display: block !important;
+}
+
+/* Ensure proper container sizing */
+.mapboxgl-canvas-container.mapboxgl-interactive {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Make sure canvas is properly sized */
+.mapboxgl-canvas {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Ensure the map base is visible */
+.leaflet-container {
+  background-color: #f0f0f0;
+}
+
+/* Estilos para o mapa 3D integrado Mapbox-OSM */
+
+/* Contêiner do mapa 3D */
+.mapbox-gl-canvas-container {
+  width: 100%;
+  height: 100%;
+}
+
+/* Ajustes para edifícios 3D */
+.mapboxgl-canvas {
+  outline: none;
+}
+
+/* Tooltip para pontos de interesse */
+.mapboxgl-popup {
+  z-index: 500;
+  max-width: 250px;
+}
+
+.mapboxgl-popup-content {
+  padding: 12px;
+  border-radius: 4px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.mapboxgl-popup-content h4 {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  color: #333;
+}
+
+.mapboxgl-popup-content p {
+  margin: 0;
+  font-size: 14px;
+  color: #666;
+}
+
+/* Estilos para controles 3D melhorados */
+.mapbox-3d-controls {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 400;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.mapbox-3d-control-button {
+  background: white;
+  border: none;
+  border-radius: 4px;
+  padding: 6px;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.mapbox-3d-control-button:hover {
+  background: #f0f0f0;
+}
+
+.mapbox-3d-control-button.active {
+  background: #3b82f6;
+  color: white;
+}
+
+/* Estilos para o seletor de estilos de mapa */
+.mapbox-style-picker {
+  background: white;
+  border-radius: 4px;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1);
+  padding: 5px;
+  margin-top: 5px;
+  z-index: 401;
+}
+
+.mapbox-style-option {
+  display: flex;
+  align-items: center;
+  padding: 5px;
+  cursor: pointer;
+  border-radius: 2px;
+}
+
+.mapbox-style-option:hover {
+  background: #f0f0f0;
+}
+
+.mapbox-style-option.active {
+  background: #e0e0e0;
+}
+
+.mapbox-style-preview {
+  width: 20px;
+  height: 20px;
+  margin-right: 5px;
+  border-radius: 2px;
+  border: 1px solid #ccc;
+}
+
+/* Cores dos previews de estilo */
+.mapbox-style-preview.satellite {
+  background: linear-gradient(135deg, #264653, #2a9d8f);
+}
+
+.mapbox-style-preview.streets {
+  background: linear-gradient(135deg, #ddd, #aaa);
+}
+
+.mapbox-style-preview.light {
+  background: #f8f8f8;
+}
+
+.mapbox-style-preview.dark {
+  background: #242424;
+}
+
+/* Estilo para status de carregando */
+.mapbox-loading-indicator {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(255, 255, 255, 0.8);
+  padding: 10px 20px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 500;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.mapbox-loading-indicator::after {
+  content: "Carregando...";
+  margin-left: 10px;
+}
+
+/* Spinner de carregamento */
+.mapbox-loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Estilos para o botão de alternância do modo 3D */
+@media (forced-colors: active) {
+  /* Estilos para modo de alto contraste */
+  .mapbox-3d-container {
+    border: 2px solid currentColor;
+  }
+
+  .user-marker-3d {
+    forced-color-adjust: none;
+  }
+
+  .direction-indicator {
+    background-color: LinkText;
+  }
+}
