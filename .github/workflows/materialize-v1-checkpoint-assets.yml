@@ -1,0 +1,70 @@
+name: Materialize V1 checkpoint assets
+
+on:
+  push:
+    branches:
+      - feat/v1-app-shell-checkpoint
+    paths:
+      - .github/workflows/materialize-v1-checkpoint-assets.yml
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/v1-app-shell-checkpoint
+      - name: Download verified V1 export
+        env:
+          EXPORT_URL: "https://sdmntprbrazilsouth.oaiusercontent.com/files/00000000-bb80-820e-b8b6-84cd6f626186/raw?se=2026-08-07T08%3A13%3A47Z&sp=r&sv=2026-02-06&sr=b&scid=4acd3bdc-b2d8-51b9-8ab8-9984d19b985c&skoid=db6dad9e-03ee-465b-aef6-ce0f63a161dc&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-08-07T04%3A38%3A39Z&ske=2026-08-08T04%3A38%3A39Z&sks=b&skv=2026-02-06&sig=YsTkLGr1kmOHWPnkc8dyKJ5VkPagnfHqPB0VBae8zeA%3D"
+        run: |
+          curl --fail --location "$EXPORT_URL" --output /tmp/v1-export.zip
+          rm -rf /tmp/v1-export
+          mkdir -p /tmp/v1-export
+          unzip -q /tmp/v1-export.zip -d /tmp/v1-export
+      - name: Verify exported hashes
+        run: |
+          test "$(git hash-object /tmp/v1-export/css/components/onboarding.css)" = "543c19d609ce959259d4a1368371601606f7dd4e"
+          test "$(git hash-object /tmp/v1-export/assets/emojis/sun_emojis/sun_emoji_1.png)" = "c9458c1c98370fd74fd6cd1c64dd05a48241bc42"
+      - name: Materialize V1 files
+        run: |
+          mkdir -p apps/morro-digital-platform/public/legacy/css/components
+          mkdir -p apps/morro-digital-platform/public/assets/emojis/sun_emojis
+          cp /tmp/v1-export/css/components/onboarding.css apps/morro-digital-platform/public/legacy/css/components/onboarding.css
+          cp /tmp/v1-export/assets/emojis/sun_emojis/sun_emoji_1.png apps/morro-digital-platform/public/assets/emojis/sun_emojis/sun_emoji_1.png
+          python - <<'PY'
+          from pathlib import Path
+          checkpoint = Path('apps/morro-digital-platform/public/legacy/checkpoint.css')
+          text = checkpoint.read_text()
+          line = '@import "./css/components/onboarding.css";\n'
+          anchor = '@import "./css/components/weather.css";\n'
+          if line not in text:
+              text = text.replace(anchor, anchor + line)
+          checkpoint.write_text(text)
+
+          test = Path('apps/morro-digital-platform/src/legacy/v1-style-snapshot.test.ts')
+          text = test.read_text()
+          line = '  "css/components/onboarding.css": "543c19d609ce959259d4a1368371601606f7dd4e",\n'
+          anchor = '  "css/components/weather.css": "e97d5943745dd8fec90de1cd27310574c2faa9a5",\n'
+          if line not in text:
+              text = text.replace(anchor, anchor + line)
+          test.write_text(text)
+          PY
+      - name: Verify materialized hashes
+        run: |
+          test "$(git hash-object apps/morro-digital-platform/public/legacy/css/components/onboarding.css)" = "543c19d609ce959259d4a1368371601606f7dd4e"
+          test "$(git hash-object apps/morro-digital-platform/public/assets/emojis/sun_emojis/sun_emoji_1.png)" = "c9458c1c98370fd74fd6cd1c64dd05a48241bc42"
+      - name: Commit verified files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/morro-digital-platform/public/legacy/css/components/onboarding.css \
+                  apps/morro-digital-platform/public/assets/emojis/sun_emojis/sun_emoji_1.png \
+                  apps/morro-digital-platform/public/legacy/checkpoint.css \
+                  apps/morro-digital-platform/src/legacy/v1-style-snapshot.test.ts
+          git commit -m "feat: complete V1 visual checkpoint assets"
+          git push origin HEAD:feat/v1-app-shell-checkpoint
