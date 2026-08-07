@@ -1,0 +1,91 @@
+name: Capture V2 accessibility states
+
+on:
+  push:
+    branches:
+      - feat/v1-app-shell-checkpoint
+    paths:
+      - .github/workflows/capture-v2-accessibility.yml
+      - apps/morro-digital-platform/src/layouts/app-shell.ts
+      - apps/morro-digital-platform/src/browser-entry.ts
+      - apps/morro-digital-platform/public/index.html
+      - apps/morro-digital-platform/public/styles.css
+      - apps/morro-digital-platform/public/legacy/**
+
+permissions:
+  contents: read
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install Playwright
+        run: |
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+      - name: Start V2
+        run: |
+          pnpm --filter @touristic/morro-digital-platform dev >/tmp/v2-a11y.log 2>&1 &
+          for i in $(seq 1 90); do curl -fsS http://127.0.0.1:4173 >/dev/null && break; sleep 1; done
+      - name: Capture accessibility states
+        run: |
+          mkdir -p visual/v2
+          node <<'NODE'
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            const cases = [
+              ['mobile', 390, 844],
+              ['tablet', 768, 1024],
+              ['desktop', 1440, 900],
+            ];
+            for (const [name, width, height] of cases) {
+              const context = await browser.newContext({ viewport: { width, height } });
+              const page = await context.newPage();
+              await page.goto('http://127.0.0.1:4173', { waitUntil: 'domcontentloaded' });
+              await page.evaluate(() => localStorage.setItem('morro-digital-onboarded', '1'));
+              await page.reload({ waitUntil: 'domcontentloaded' });
+              await page.waitForTimeout(5000);
+              await page.evaluate(() => document.fonts.ready);
+              await page.keyboard.press('Tab');
+              const focusTrace = [];
+              for (let i = 0; i < 12; i += 1) {
+                focusTrace.push(await page.evaluate(() => {
+                  const el = document.activeElement;
+                  return el ? `${el.tagName.toLowerCase()}#${el.id || ''}.${el.className || ''}` : 'none';
+                }));
+                if (i < 11) await page.keyboard.press('Tab');
+              }
+              console.log(`${name} focus`, JSON.stringify(focusTrace));
+              const option = page.locator('.assistant-option-btn').first();
+              if (await option.count()) await option.focus();
+              await page.screenshot({ path: `visual/v2/keyboard-navigation-${name}.png`, fullPage: false });
+              await context.close();
+
+              const hcContext = await browser.newContext({ viewport: { width, height }, forcedColors: 'active' });
+              const hcPage = await hcContext.newPage();
+              await hcPage.goto('http://127.0.0.1:4173', { waitUntil: 'domcontentloaded' });
+              await hcPage.evaluate(() => localStorage.setItem('morro-digital-onboarded', '1'));
+              await hcPage.reload({ waitUntil: 'domcontentloaded' });
+              await hcPage.waitForTimeout(5000);
+              await hcPage.evaluate(() => document.fonts.ready);
+              const forced = await hcPage.evaluate(() => matchMedia('(forced-colors: active)').matches);
+              if (!forced) throw new Error(`forced-colors not active for ${name}`);
+              await hcPage.screenshot({ path: `visual/v2/high-contrast-${name}.png`, fullPage: false });
+              await hcContext.close();
+            }
+            await browser.close();
+          })().catch((error) => { console.error(error); process.exit(1); });
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v2-accessibility-states
+          path: visual/v2
+          retention-days: 1
