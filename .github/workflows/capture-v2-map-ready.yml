@@ -9,6 +9,7 @@ on:
       - apps/morro-digital-platform/src/layouts/app-shell.ts
       - apps/morro-digital-platform/src/browser-entry.ts
       - apps/morro-digital-platform/src/development/leaflet-compatibility-sdk.ts
+      - apps/morro-digital-platform/src/weather/weather-widget.ts
       - apps/morro-digital-platform/public/index.html
       - apps/morro-digital-platform/public/styles.css
       - apps/morro-digital-platform/public/legacy/index-inline.css
@@ -40,6 +41,8 @@ jobs:
           curl -fsS http://127.0.0.1:4173/apps/morro-digital-platform/public/styles.css >/dev/null
           curl -fsS http://127.0.0.1:4173/apps/morro-digital-platform/public/legacy/checkpoint.css >/dev/null
           curl -fsS http://127.0.0.1:4173/apps/morro-digital-platform/public/legacy/index-inline.css >/dev/null
+          curl -fsS http://127.0.0.1:4173/api/weather >/tmp/weather.json
+          node -e "const fs=require('fs'); const w=JSON.parse(fs.readFileSync('/tmp/weather.json','utf8')); if(!Number.isFinite(w.temperatureCelsius)||!Number.isFinite(w.weatherCode)||typeof w.isDay!=='boolean') process.exit(1); console.log('weather endpoint', w);"
       - name: Capture loading and map ready
         run: |
           mkdir -p visual/v2
@@ -93,19 +96,26 @@ jobs:
 
               await page.evaluate(() => localStorage.setItem('morro-digital-onboarded', '1'));
               await page.reload({ waitUntil: 'domcontentloaded' });
+              await page.waitForFunction(() => document.getElementById('weather-widget')?.getAttribute('data-weather-state') === 'ready', null, { timeout: 10000 });
               await page.waitForTimeout(5000);
-              const ready = await page.evaluate(() => ({
-                appChildren: document.getElementById('app')?.children.length ?? 0,
-                mapExists: Boolean(document.getElementById('map')),
-                leafletContainer: document.getElementById('map')?.classList.contains('leaflet-container') ?? false,
-                assistantVisible: !document.getElementById('assistant-messages')?.classList.contains('hidden'),
-                optionCount: document.querySelectorAll('.assistant-option-btn').length,
-                weatherVisible: Boolean(document.getElementById('weather-widget')),
-                globeVisible: Boolean(document.getElementById('toggle-globe-view')),
-              }));
+              const ready = await page.evaluate(() => {
+                const weather = document.getElementById('weather-widget');
+                const weatherTemp = weather?.querySelector('.weather-temp')?.textContent?.trim() ?? '';
+                return {
+                  appChildren: document.getElementById('app')?.children.length ?? 0,
+                  mapExists: Boolean(document.getElementById('map')),
+                  leafletContainer: document.getElementById('map')?.classList.contains('leaflet-container') ?? false,
+                  assistantVisible: !document.getElementById('assistant-messages')?.classList.contains('hidden'),
+                  optionCount: document.querySelectorAll('.assistant-option-btn').length,
+                  weatherVisible: Boolean(weather),
+                  weatherState: weather?.getAttribute('data-weather-state') ?? '',
+                  weatherTemp,
+                  globeVisible: Boolean(document.getElementById('toggle-globe-view')),
+                };
+              });
               console.log(`${name} map-ready`, JSON.stringify(ready));
               if (errors.length) console.log(name, errors.join('\n'));
-              if (!ready.mapExists || !ready.leafletContainer || !ready.assistantVisible || ready.optionCount !== 10 || !ready.weatherVisible || !ready.globeVisible) {
+              if (!ready.mapExists || !ready.leafletContainer || !ready.assistantVisible || ready.optionCount !== 10 || !ready.weatherVisible || ready.weatherState !== 'ready' || !/^\d+°C$/.test(ready.weatherTemp) || !ready.globeVisible) {
                 throw new Error(`V2 V1 overlay state incomplete for ${name}: ${JSON.stringify(ready)}`);
               }
               await page.screenshot({ path: `visual/v2/map-ready-${name}.png`, fullPage: false });
