@@ -11,6 +11,7 @@ import {
 } from "./navigation-dom-lifecycle.js";
 import {
   createNavigationSessionBootstrap,
+  type NavigationDestinationInput,
   type NavigationSessionBootstrap,
 } from "./navigation-session-bootstrap.js";
 
@@ -51,7 +52,7 @@ export function createBrowserNavigationRuntime(
 
   return Object.freeze({
     bootstrap,
-    start(destination) {
+    start(destination: NavigationDestinationInput) {
       return lifecycle.start(destination);
     },
     stop(): void {
