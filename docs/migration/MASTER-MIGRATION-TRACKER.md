@@ -18,7 +18,7 @@ Um item não pode avançar para `equivalent` sem evidência visual ou comportame
 | MIG-0002 | `css/main.css` | Design System | FEATURE-0007 | `packages/design-system/src/legacy` | 2 | equivalent | 35/35 imports CSS ativos preservados byte a byte no checkpoint V1 | n/a | hashes Git blob + regressões visuais do PR #19 | alto |
 | MIG-0003 | `css/base/variables.css` | Design System | FEATURE-0007 | `packages/design-system/src/tokens` | 2 | mapped | pendente | n/a | extração de tokens pendente | médio |
 | MIG-0004 | `js/map*` | Geospatial | FEATURE-0001 | `packages/geospatial` | 4 | equivalent | contrato visual Mapbox V1 validado em mobile/tablet/desktop e alto contraste | provider real, fallback e rollback comprovados | PR #17: Quality, Provider, Tour Browser e Visual Contract verdes | crítico |
-| MIG-0005 | `js/navigation*` | Navigation | FEATURE-0003 | `packages/geospatial/navigation` | 4 | discovered | pendente | pendente | pendente | crítico |
+| MIG-0005 | `js/navigation*` | Navigation | FEATURE-0003 | `packages/navigation` + adapters em `packages/geospatial` + composição no app | 4 | mapped | banner, botão Encerrar, first-person/câmera e estados dinâmicos inventariados; captura executável pendente | sessão, routing, geometry tracker, geolocation, eventos e lifecycle mapeados contra V1 `60746fd7` | baseline `NAVIGATION-V1-BASELINE.md`; fixtures/gates executáveis pendentes | crítico |
 | MIG-0006 | `js/assistant*` | Assistant | FEATURE-0004 | `packages/assistant` | 11 | discovered | pendente | pendente | pendente | alto |
 | MIG-0007 | Business Portal | Business | FEATURE-0005 | `apps/business-portal` | 6 | discovered | pendente | pendente | pendente | alto |
 | MIG-0008 | CRM V1 | CRM | FEATURE-0006 | `apps/admin-crm` | 7 | discovered | pendente | pendente | pendente | alto |
@@ -123,6 +123,28 @@ O PR #18 deve permanecer draft até:
 - executar Quality Gate completo no head final.
 
 MIG-0014 só poderá avançar para `equivalent` após essa evidência.
+
+## Baseline de Navigation — MIG-0005
+
+A V1 congelada foi inventariada diretamente no commit:
+
+```text
+60746fd7fed97b805758b37adfdbe3bad2582bfe
+```
+
+O documento `docs/migration/NAVIGATION-V1-BASELINE.md` registra:
+
+- sessão cancelável e proteção contra callbacks stale;
+- routing same-origin, timeout, abort, validação e fallback;
+- proibição de segredo/endpoint ORS no browser;
+- geometria, projeção na rota, progresso e bearing;
+- ownership único da câmera durante first-person navigation;
+- geolocation e cancelamento de watchers tardios;
+- eventos e health snapshots;
+- banner, progresso, distância, tempo e botão Encerrar;
+- fronteira arquitetural entre `@touristic/navigation`, `@touristic/geospatial` e o app.
+
+MIG-0005 está em `mapped`. Ainda são obrigatórios fixtures, captura executável/visual da V1 e matriz comportamental antes de `snapshotted` ou `equivalent`.
 
 ## Campos obrigatórios por novo item
 
