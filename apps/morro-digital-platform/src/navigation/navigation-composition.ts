@@ -75,27 +75,34 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
-function routeHasInstructions(routeData: unknown): boolean {
-  if (!isRecord(routeData)) return false;
+function routeInstructions(routeData: unknown): readonly NavigationInstructionInput[] {
+  if (!isRecord(routeData)) return [];
   const features: unknown = routeData["features"];
-  if (!Array.isArray(features)) return false;
+  if (!Array.isArray(features)) return [];
   const feature: unknown = features[0];
-  if (!isRecord(feature)) return false;
+  if (!isRecord(feature)) return [];
   const properties: unknown = feature["properties"];
-  if (!isRecord(properties)) return false;
+  if (!isRecord(properties)) return [];
   const segments: unknown = properties["segments"];
-  if (!Array.isArray(segments)) return false;
-  const firstSegment: unknown = segments[0];
-  if (!isRecord(firstSegment)) return false;
-  const steps: unknown = firstSegment["steps"];
-  return Array.isArray(steps) && steps.length > 0;
+  if (!Array.isArray(segments)) return [];
+
+  const normalized: NavigationInstructionInput[] = [];
+  for (const segment of segments) {
+    if (!isRecord(segment)) continue;
+    const steps: unknown = segment["steps"];
+    if (!Array.isArray(steps)) continue;
+    for (const step of steps) {
+      if (isRecord(step)) normalized.push(step);
+    }
+  }
+  return normalized;
 }
 
 export function createNavigationAppComposition(
   options: NavigationAppCompositionOptions,
 ): NavigationAppComposition {
   let routeData = options.routeData;
-  let instructions = options.instructions ?? [];
+  let instructions = options.instructions ?? routeInstructions(routeData);
   let stepIndex = normalizeStepIndex(options.stepIndex);
   let started = false;
   let unsubscribeLocation: (() => void) | null = null;
@@ -134,8 +141,7 @@ export function createNavigationAppComposition(
       offRouteDistance: snapshot.offRouteDistance,
       accuracy: latestLocation.accuracy,
       speed: latestLocation.speed,
-      hasInstructions:
-        instructions.length > 0 || routeHasInstructions(routeData),
+      hasInstructions: instructions.length > 0,
       inProgress: recalculation.isInProgress(),
     });
     if (!eligibility.eligible) return;
@@ -175,10 +181,10 @@ export function createNavigationAppComposition(
 
   function applyRoute(
     nextRouteData: unknown,
-    nextInstructions: readonly NavigationInstructionInput[] = [],
+    nextInstructions?: readonly NavigationInstructionInput[],
   ): void {
     routeData = nextRouteData;
-    instructions = nextInstructions;
+    instructions = nextInstructions ?? routeInstructions(nextRouteData);
     stepIndex = 0;
     runtime.reset();
     options.presenter.reset();
@@ -229,7 +235,7 @@ export function createNavigationAppComposition(
     },
     setRoute(
       nextRouteData: unknown,
-      nextInstructions: readonly NavigationInstructionInput[] = [],
+      nextInstructions?: readonly NavigationInstructionInput[],
     ): void {
       applyRoute(nextRouteData, nextInstructions);
     },
