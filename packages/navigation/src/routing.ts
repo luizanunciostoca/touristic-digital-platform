@@ -103,7 +103,9 @@ function normalizeTimeout(timeoutMs: number | undefined): number {
   return Math.max(1_000, Math.min(30_000, Number(timeoutMs)));
 }
 
-export function normalizeCoordinatePair(value: unknown): RouteCoordinate | null {
+export function normalizeCoordinatePair(
+  value: unknown,
+): RouteCoordinate | null {
   if (!Array.isArray(value) || value.length !== 2) return null;
 
   const longitude = Number(value[0]);
@@ -122,7 +124,10 @@ export function normalizeRouteRequest(
   const start = normalizeCoordinatePair(input.start);
   const end = normalizeCoordinatePair(input.end);
   if (!start || !end) {
-    throw new RoutingError("INVALID_COORDINATES", "Coordenadas de rota inválidas.");
+    throw new RoutingError(
+      "INVALID_COORDINATES",
+      "Coordenadas de rota inválidas.",
+    );
   }
 
   const profile = ALLOWED_PROFILES.has(input.profile as RoutingProfile)
@@ -163,7 +168,9 @@ function createLinkedAbortController(
   if (externalSignal?.aborted) {
     abortFromExternal();
   } else {
-    externalSignal?.addEventListener("abort", abortFromExternal, { once: true });
+    externalSignal?.addEventListener("abort", abortFromExternal, {
+      once: true,
+    });
   }
 
   const timeoutId = setTimeout(() => {
@@ -183,7 +190,11 @@ function createLinkedAbortController(
 
 function ensureSameOriginEndpoint(endpoint: string): string {
   const normalized = endpoint.trim();
-  if (!normalized.startsWith("/") || normalized.startsWith("//") || normalized.includes("://")) {
+  if (
+    !normalized.startsWith("/") ||
+    normalized.startsWith("//") ||
+    normalized.includes("://")
+  ) {
     throw new RoutingError(
       "INVALID_ROUTING_ENDPOINT",
       "O endpoint primário de rotas deve ser same-origin.",
@@ -192,17 +203,25 @@ function ensureSameOriginEndpoint(endpoint: string): string {
   return normalized;
 }
 
-export function createSameOriginRoutingProvider(options: {
-  readonly fetchImpl?: FetchLike;
-  readonly endpoint?: string;
-} = {}): RoutingProvider {
-  const fetchImpl = options.fetchImpl ?? (globalThis.fetch as unknown as FetchLike);
-  const endpoint = ensureSameOriginEndpoint(options.endpoint ?? ROUTING_ENDPOINT);
+export function createSameOriginRoutingProvider(
+  options: {
+    readonly fetchImpl?: FetchLike;
+    readonly endpoint?: string;
+  } = {},
+): RoutingProvider {
+  const fetchImpl =
+    options.fetchImpl ?? (globalThis.fetch as unknown as FetchLike);
+  const endpoint = ensureSameOriginEndpoint(
+    options.endpoint ?? ROUTING_ENDPOINT,
+  );
 
   return {
     async request(payload, context) {
       if (typeof fetchImpl !== "function") {
-        throw new RoutingError("FETCH_UNAVAILABLE", "Serviço de rede indisponível.");
+        throw new RoutingError(
+          "FETCH_UNAVAILABLE",
+          "Serviço de rede indisponível.",
+        );
       }
 
       let response: FetchResponseLike;
@@ -267,7 +286,8 @@ export async function requestRoute(
   input: RouteRequestInput,
 ): Promise<RouteFeatureCollection> {
   const payload = normalizeRouteRequest(input);
-  const primaryProvider = input.primaryProvider ?? createSameOriginRoutingProvider();
+  const primaryProvider =
+    input.primaryProvider ?? createSameOriginRoutingProvider();
   const linked = createLinkedAbortController(input.signal, input.timeoutMs);
 
   try {

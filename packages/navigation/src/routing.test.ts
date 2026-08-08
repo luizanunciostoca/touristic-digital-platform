@@ -141,13 +141,11 @@ describe("routing core", () => {
 
   it("uses a fallback provider only for V1-compatible proxy availability failures", async () => {
     const primaryProvider: RoutingProvider = {
-      request: vi
-        .fn()
-        .mockRejectedValue(
-          new RoutingError("ROUTING_HTTP_ERROR", "Proxy unavailable", {
-            status: 405,
-          }),
-        ),
+      request: vi.fn().mockRejectedValue(
+        new RoutingError("ROUTING_HTTP_ERROR", "Proxy unavailable", {
+          status: 405,
+        }),
+      ),
     };
     const fallbackProvider = providerReturning();
 
@@ -170,13 +168,11 @@ describe("routing core", () => {
 
   it("does not mask a real backend failure with fallback", async () => {
     const primaryProvider: RoutingProvider = {
-      request: vi
-        .fn()
-        .mockRejectedValue(
-          new RoutingError("ROUTING_NOT_CONFIGURED", "Unavailable", {
-            status: 503,
-          }),
-        ),
+      request: vi.fn().mockRejectedValue(
+        new RoutingError("ROUTING_NOT_CONFIGURED", "Unavailable", {
+          status: 503,
+        }),
+      ),
     };
     const fallbackProvider = providerReturning();
 
@@ -197,14 +193,15 @@ describe("routing core", () => {
   it("normalizes external cancellation", async () => {
     const controller = new AbortController();
     const primaryProvider: RoutingProvider = {
-      request: vi.fn((_payload, context) =>
-        new Promise((_resolve, reject) => {
-          context.signal.addEventListener(
-            "abort",
-            () => reject(context.signal.reason),
-            { once: true },
-          );
-        }),
+      request: vi.fn(
+        (_payload, context) =>
+          new Promise((_resolve, reject) => {
+            context.signal.addEventListener(
+              "abort",
+              () => reject(context.signal.reason),
+              { once: true },
+            );
+          }),
       ),
     };
 
@@ -222,14 +219,15 @@ describe("routing core", () => {
   it("normalizes timeout and clamps very small timeout values to one second", async () => {
     vi.useFakeTimers();
     const primaryProvider: RoutingProvider = {
-      request: vi.fn((_payload, context) =>
-        new Promise((_resolve, reject) => {
-          context.signal.addEventListener(
-            "abort",
-            () => reject(context.signal.reason),
-            { once: true },
-          );
-        }),
+      request: vi.fn(
+        (_payload, context) =>
+          new Promise((_resolve, reject) => {
+            context.signal.addEventListener(
+              "abort",
+              () => reject(context.signal.reason),
+              { once: true },
+            );
+          }),
       ),
     };
 
