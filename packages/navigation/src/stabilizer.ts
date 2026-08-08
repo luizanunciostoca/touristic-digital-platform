@@ -57,7 +57,10 @@ export interface NavigationVisualStabilizer {
   reset(): void;
 }
 
-function finiteNumber(value: unknown, fallback: number | null = null): number | null {
+function finiteNumber(
+  value: unknown,
+  fallback: number | null = null,
+): number | null {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
 }
@@ -84,13 +87,13 @@ function isValidCoordinate(
 ): latitude is number {
   return Boolean(
     latitude !== null &&
-      longitude !== null &&
-      Number.isFinite(latitude) &&
-      Number.isFinite(longitude) &&
-      latitude >= -90 &&
-      latitude <= 90 &&
-      longitude >= -180 &&
-      longitude <= 180,
+    longitude !== null &&
+    Number.isFinite(latitude) &&
+    Number.isFinite(longitude) &&
+    latitude >= -90 &&
+    latitude <= 90 &&
+    longitude >= -180 &&
+    longitude <= 180,
   );
 }
 
@@ -103,7 +106,8 @@ function normalizeLocation(
     location.longitude,
     finiteNumber(location.lon, finiteNumber(location.lng)),
   );
-  if (!isValidCoordinate(latitude, longitude) || longitude === null) return null;
+  if (!isValidCoordinate(latitude, longitude) || longitude === null)
+    return null;
 
   return {
     ...location,
@@ -151,11 +155,7 @@ function getProjectedLocation(
   useProjected: boolean,
 ): NormalizedVisualLocation {
   const projected = snapshot.projectedCoordinate;
-  if (
-    !useProjected ||
-    !Array.isArray(projected) ||
-    projected.length < 2
-  ) {
+  if (!useProjected || !Array.isArray(projected) || projected.length < 2) {
     return { ...location, usedRouteSnap: false };
   }
 
@@ -261,10 +261,8 @@ export function createNavigationVisualStabilizer(
         12,
         36,
       );
-      const offRouteDistance = finiteNumber(
-        snapshot.offRouteDistance,
-        Infinity,
-      ) ?? Infinity;
+      const offRouteDistance =
+        finiteNumber(snapshot.offRouteDistance, Infinity) ?? Infinity;
 
       if (!routeSnapActive && offRouteDistance <= snapEnterThresholdMeters) {
         routeSnapActive = true;
@@ -314,9 +312,9 @@ export function createNavigationVisualStabilizer(
         );
         const smallBackwardRegression = Boolean(
           routeSnapActive &&
-            lastVisualProgress !== null &&
-            progress !== null &&
-            progress < lastVisualProgress - 0.0005,
+          lastVisualProgress !== null &&
+          progress !== null &&
+          progress < lastVisualProgress - 0.0005,
         );
 
         if (smallBackwardRegression || movementMeters < deadZoneMeters) {
@@ -342,7 +340,8 @@ export function createNavigationVisualStabilizer(
       }
 
       const rawBearing = normalizeAngle(
-        finiteNumber(snapshot.bearing, finiteNumber(snapshot.rawBearing, 0)) ?? 0,
+        finiteNumber(snapshot.bearing, finiteNumber(snapshot.rawBearing, 0)) ??
+          0,
       );
       let visualBearing = rawBearing;
       if (lastVisualBearing !== null) {
