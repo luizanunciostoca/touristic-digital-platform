@@ -92,7 +92,9 @@ describe("V1 frozen routing parity", () => {
       ),
     };
     const fallbackProvider: RoutingProvider = {
-      request: vi.fn<RoutingProvider["request"]>().mockResolvedValue(VALID_ROUTE),
+      request: vi
+        .fn<RoutingProvider["request"]>()
+        .mockResolvedValue(VALID_ROUTE),
     };
 
     await expect(
@@ -117,7 +119,9 @@ describe("V1 frozen routing parity", () => {
       ),
     };
     const fallbackProvider: RoutingProvider = {
-      request: vi.fn<RoutingProvider["request"]>().mockResolvedValue(VALID_ROUTE),
+      request: vi
+        .fn<RoutingProvider["request"]>()
+        .mockResolvedValue(VALID_ROUTE),
     };
 
     await expect(
@@ -137,7 +141,9 @@ describe("V1 frozen routing parity", () => {
 
   it("rejects invalid V1 coordinates before any provider request", async () => {
     const primaryProvider: RoutingProvider = {
-      request: vi.fn<RoutingProvider["request"]>().mockResolvedValue(VALID_ROUTE),
+      request: vi
+        .fn<RoutingProvider["request"]>()
+        .mockResolvedValue(VALID_ROUTE),
     };
 
     await expect(
