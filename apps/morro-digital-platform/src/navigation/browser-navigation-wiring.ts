@@ -8,6 +8,8 @@ import {
 import type {
   NavigationInstructionInput,
   NavigationRuntimeSnapshot,
+  RouteFeatureCollection,
+  RouteRecalculationRequest,
 } from "@touristic/navigation";
 
 import {
@@ -46,6 +48,10 @@ export interface BrowserNavigationWiringOptions {
   readonly onSnapshot?: (snapshot: NavigationRuntimeSnapshot) => void;
   readonly onArrival?: () => void;
   readonly onAutoEnd?: () => void;
+  readonly onRecalculation?: (route: RouteFeatureCollection) => void;
+  readonly requestRecalculationRoute?: (
+    request: RouteRecalculationRequest,
+  ) => Promise<RouteFeatureCollection | null>;
 }
 
 export interface BrowserNavigationWiring {
@@ -131,6 +137,12 @@ export function createBrowserNavigationWiring(
     ...(options.onSnapshot ? { onSnapshot: options.onSnapshot } : {}),
     ...(options.onArrival ? { onArrival: options.onArrival } : {}),
     ...(options.onAutoEnd ? { onAutoEnd: options.onAutoEnd } : {}),
+    ...(options.onRecalculation
+      ? { onRecalculation: options.onRecalculation }
+      : {}),
+    ...(options.requestRecalculationRoute
+      ? { requestRecalculationRoute: options.requestRecalculationRoute }
+      : {}),
   });
 
   return Object.freeze({
