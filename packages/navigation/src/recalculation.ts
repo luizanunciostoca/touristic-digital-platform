@@ -65,11 +65,7 @@ export interface RouteRecalculationResult {
   readonly success: boolean;
   readonly attempts: number;
   readonly reason:
-    | "success"
-    | "inactive-session"
-    | "in-progress"
-    | "cooldown"
-    | "failed";
+    "success" | "inactive-session" | "in-progress" | "cooldown" | "failed";
   readonly route: RouteFeatureCollection | null;
 }
 
@@ -119,7 +115,10 @@ export function evaluateRouteRecalculation(
   if (!input.hasInstructions) {
     return { eligible: false, thresholdMeters, reason: "missing-instructions" };
   }
-  if (typeof input.speed === "number" && input.speed < MINIMUM_MOVING_SPEED_MPS) {
+  if (
+    typeof input.speed === "number" &&
+    input.speed < MINIMUM_MOVING_SPEED_MPS
+  ) {
     return { eligible: false, thresholdMeters, reason: "stationary" };
   }
   if (!(Number(input.offRouteDistance) > thresholdMeters)) {
