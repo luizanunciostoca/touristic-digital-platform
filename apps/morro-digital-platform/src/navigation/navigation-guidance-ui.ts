@@ -88,9 +88,7 @@ export function createNavigationGuidanceUi(
   const arrow = document.getElementById("instruction-arrow");
   const distance = document.getElementById("instruction-distance");
   const time = document.getElementById("instruction-time");
-  const progress = document.getElementById(
-    "route-progress",
-  ) as HTMLElement | null;
+  const progress = document.getElementById("route-progress");
   const progressText = document.getElementById("progress-text");
   let active = false;
   let destroyed = false;
