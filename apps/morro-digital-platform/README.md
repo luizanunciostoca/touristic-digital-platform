@@ -12,7 +12,7 @@ Este aplicativo é o primeiro marco executável da Touristic Digital Platform pa
 - eventos `DestinationLoaded`, `MapInitialized`, `MapReady` e `MapInitializationFailed`;
 - eventos `MapMarkersLoaded` e `MapMarkersLoadFailed`;
 - catálogo estrutural dos três roteiros da V1;
-- conteúdo dos três roteiros localizado em PT-BR, inglês e espanhol;
+- conteúdo editorial dos três roteiros preservado em PT-BR, inglês, espanhol e hebraico;
 - projeção das paradas de um roteiro em marcadores geoespaciais;
 - shell acessível de desenvolvimento;
 - provider visual de desenvolvimento sem credenciais reais;
@@ -51,42 +51,45 @@ O arquivo `src/config/tour-catalog.ts` preserva a estrutura dos três roteiros e
 - Trilha Ecológica para a Gamboa: 5 paradas;
 - Expedição de Quadriciclo: 5 paradas.
 
-O catálogo estrutural continua sendo a única fonte para identificadores, chaves de tradução, coordenadas, ordem das paradas e caminhos de imagem. Os contratos validam coordenadas, IDs duplicados e ordem sequencial; rotas, paradas, posições e coleções são congeladas para impedir mutações acidentais.
+O catálogo continua sendo a fonte de identificadores, títulos/fallbacks PT, chaves de tradução dos títulos, duração, transporte, coordenadas, caminhos de imagem e `photoAlt`. Os contratos validam coordenadas, IDs duplicados e ordem sequencial das paradas. Rotas, paradas, posições e coleções são congeladas para impedir mutações acidentais.
 
 ## Conteúdo multilíngue dos roteiros
 
-O arquivo `src/config/tour-localization.ts` adiciona uma camada de conteúdo independente do catálogo geográfico. Os locales suportados são:
+A equivalência editorial é baseada exclusivamente no snapshot V1 `60746fd7fed97b805758b37adfdbe3bad2582bfe`.
+
+`src/config/tour-editorial-source.ts` preserva, para as 18 paradas, as chaves e fallbacks PT-BR de:
+
+- descrição;
+- narração;
+- dicas.
+
+Os dicionários `tour-translations-en.ts`, `tour-translations-es.ts` e `tour-translations-he.ts` preservam as traduções existentes na V1. `tour-localization.ts` projeta esses textos sobre o catálogo estrutural sem duplicar geometria ou mídia.
+
+Locales suportados:
 
 ```text
 pt-BR
 en
 es
+he
 ```
 
-A camada fornece, para todos os três roteiros e suas 18 paradas:
+A normalização reconhece variantes de navegador (`pt-*`, `en-*`, `es-*`, `he-*`) e o código legado `iw` para hebraico. Sem locale explícito, o padrão permanece PT-BR. Para um locale não suportado, a resolução segue o comportamento de `getGeneralText` da V1: tenta inglês antes do fallback PT-BR.
 
-- título do roteiro;
-- descrição do roteiro;
-- duração;
-- meio de transporte;
-- título de cada parada;
-- texto alternativo de cada imagem.
+Cada parada localizada contém título, descrição, narração e dicas, mantendo também suas chaves V1. O `photoAlt` não é traduzido nessa camada porque `translateTour()` da V1 não o passa por `getGeneralText`; o valor estrutural em português é preservado para evitar inventar conteúdo que não existia na fonte.
 
-As funções públicas são:
+Os testes exigem:
 
-```ts
-normalizeTourLocale(locale);
-localizeMorroTour(tourId, locale);
-getLocalizedMorroTourCatalog(locale);
-```
+- os 3 roteiros e as 18 paradas em todos os quatro locales;
+- cobertura integral das chaves esperadas nos dicionários EN/ES/HE;
+- valores V1 fixados para traduções que divergiam na primeira versão do PR;
+- fallback PT-BR byte a byte;
+- fallback inglês para locale desconhecido;
+- `photoAlt` estrutural inalterado;
+- geometria, ordem e `photoPath` idênticos entre locales;
+- objetos e coleções imutáveis.
 
-`normalizeTourLocale` reconhece variantes como `en-US`, `en-GB` e `es-AR`; qualquer locale não suportado utiliza `pt-BR` como fallback determinístico.
-
-A localização não duplica geometria nem mídia. `localizeMorroTour` projeta o texto localizado sobre a rota estrutural existente, preservando IDs, ordem, coordenadas, chaves de tradução e `photoPath`. O resultado e a coleção de paradas são imutáveis.
-
-Os testes garantem cobertura completa de PT-BR/EN/ES, equivalência do conteúdo PT-BR com o catálogo atual, preservação de geometria e referências de mídia, fallback de locale e ausência de strings obrigatórias vazias.
-
-A internacionalização do shell completo, seletor visual de idioma, descrições narrativas extensas de cada parada, narrações em áudio e dicas editoriais continuam fora deste incremento e devem permanecer em PRs próprios.
+A internacionalização visual do shell/seletor de idioma continua separada deste incremento; este checkpoint entrega a fonte editorial tipada e equivalente para os roteiros.
 
 ## Marcadores do roteiro inicial
 
