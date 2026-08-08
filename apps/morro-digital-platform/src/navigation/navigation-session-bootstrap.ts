@@ -6,6 +6,7 @@ import {
   beginNavigationSession,
   cancelNavigationSession,
   requestRoute,
+  type NavigationRuntimeSnapshot,
   type NavigationSession,
   type RouteCoordinate,
   type RouteFeatureCollection,
@@ -13,7 +14,10 @@ import {
   type RoutingLanguage,
 } from "@touristic/navigation";
 
-import type { BrowserGeolocationDriver } from "./browser-geolocation.js";
+import type {
+  BrowserGeolocationDriver,
+  BrowserLocation,
+} from "./browser-geolocation.js";
 import {
   createBrowserNavigationWiring,
   type BrowserNavigationWiring,
@@ -22,6 +26,11 @@ import {
 export interface NavigationDestinationInput {
   readonly longitude: number;
   readonly latitude: number;
+}
+
+export interface NavigationSessionEventContext {
+  readonly sessionId: number;
+  readonly destination: NavigationDestinationInput;
 }
 
 export interface NavigationSessionBootstrapOptions {
@@ -35,6 +44,14 @@ export interface NavigationSessionBootstrapOptions {
   ) => Promise<RouteCoordinate>;
   readonly requestRouteImpl?: typeof requestRoute;
   readonly createWiring?: typeof createBrowserNavigationWiring;
+  readonly onSnapshot?: (
+    snapshot: NavigationRuntimeSnapshot,
+    context: NavigationSessionEventContext,
+  ) => void;
+  readonly onLocation?: (
+    location: BrowserLocation,
+    context: NavigationSessionEventContext,
+  ) => void;
   readonly onArrival?: () => void;
   readonly onAutoEnd?: () => void;
   readonly onRecalculation?: (route: RouteFeatureCollection) => void;
@@ -46,6 +63,7 @@ export interface NavigationSessionBootstrap {
   ): Promise<RouteFeatureCollection>;
   stop(): void;
   isActive(): boolean;
+  getActiveSessionId(): number | null;
 }
 
 function validateDestination(
@@ -152,6 +170,13 @@ export function createNavigationSessionBootstrap(
       const destinationCoordinate = validateDestination(destination);
       const session = beginNavigationSession({ source: "browser-bootstrap" });
       activeSession = session;
+      const eventContext: NavigationSessionEventContext = Object.freeze({
+        sessionId: session.id,
+        destination: Object.freeze({
+          longitude: destinationCoordinate[0],
+          latitude: destinationCoordinate[1],
+        }),
+      });
 
       try {
         const startCoordinate = await resolveStartCoordinate(session.signal);
@@ -189,13 +214,22 @@ export function createNavigationSessionBootstrap(
           map: options.map,
           sdk: options.sdk,
           routeData,
-          destination: {
-            longitude: destinationCoordinate[0],
-            latitude: destinationCoordinate[1],
-          },
+          destination: eventContext.destination,
           sessionId: session.id,
           geolocationDriver,
           requestRecalculationRoute,
+          ...(options.onSnapshot
+            ? {
+                onSnapshot: (snapshot) =>
+                  options.onSnapshot?.(snapshot, eventContext),
+              }
+            : {}),
+          ...(options.onLocation
+            ? {
+                onLocation: (location) =>
+                  options.onLocation?.(location, eventContext),
+              }
+            : {}),
           ...(options.onArrival ? { onArrival: options.onArrival } : {}),
           ...(options.onAutoEnd ? { onAutoEnd: options.onAutoEnd } : {}),
           ...(options.onRecalculation
@@ -224,6 +258,9 @@ export function createNavigationSessionBootstrap(
     stop,
     isActive(): boolean {
       return activeSession?.isActive() === true && activeWiring !== null;
+    },
+    getActiveSessionId(): number | null {
+      return activeSession?.isActive() === true ? activeSession.id : null;
     },
   });
 }
