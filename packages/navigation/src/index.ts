@@ -102,3 +102,15 @@ export {
   type RouteRecalculationRequest,
   type RouteRecalculationResult,
 } from "./recalculation.js";
+
+export {
+  createNavigationHealthSnapshot,
+  type NavigationEndedEventDetail,
+  type NavigationEventMap,
+  type NavigationHealthSnapshot,
+  type NavigationHealthSnapshotInput,
+  type NavigationPhase,
+  type NavigationRouteRuntimeUpdatedEventDetail,
+  type NavigationStartedEventDetail,
+  type UserLocationUpdatedEventDetail,
+} from "./events.js";
