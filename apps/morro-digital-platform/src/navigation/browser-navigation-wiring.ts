@@ -35,10 +35,17 @@ export interface BrowserNavigationWiringOptions {
   readonly map: MapboxGlMapLike;
   readonly sdk: MapboxGlModuleLike;
   readonly routeData: unknown;
+  readonly sessionId: number;
+  readonly destination: {
+    readonly longitude: number;
+    readonly latitude: number;
+  };
   readonly instructions?: readonly NavigationInstructionInput[];
   readonly stepIndex?: number;
   readonly geolocationDriver?: BrowserGeolocationDriver;
   readonly onSnapshot?: (snapshot: NavigationRuntimeSnapshot) => void;
+  readonly onArrival?: () => void;
+  readonly onAutoEnd?: () => void;
 }
 
 export interface BrowserNavigationWiring {
@@ -113,11 +120,15 @@ export function createBrowserNavigationWiring(
     geolocation,
     presenter,
     routeData: options.routeData,
+    sessionId: options.sessionId,
+    destination: options.destination,
     ...(options.instructions ? { instructions: options.instructions } : {}),
     ...(options.stepIndex !== undefined
       ? { stepIndex: options.stepIndex }
       : {}),
     ...(options.onSnapshot ? { onSnapshot: options.onSnapshot } : {}),
+    ...(options.onArrival ? { onArrival: options.onArrival } : {}),
+    ...(options.onAutoEnd ? { onAutoEnd: options.onAutoEnd } : {}),
   });
 
   return Object.freeze({
