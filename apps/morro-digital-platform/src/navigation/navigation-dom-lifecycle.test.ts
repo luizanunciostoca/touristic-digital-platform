@@ -134,7 +134,9 @@ describe("navigation DOM lifecycle", () => {
 
   it("prevents a stale bootstrap from activating UI after stop", async () => {
     const context = setup();
-    let resolveStart: ((route: RouteFeatureCollection) => void) | null = null;
+    let resolveStart: (route: RouteFeatureCollection) => void = () => {
+      throw new Error("Navigation start resolver was not initialized.");
+    };
     context.bootstrapStart.mockImplementationOnce(
       () =>
         new Promise<RouteFeatureCollection>((resolve) => {
@@ -147,7 +149,7 @@ describe("navigation DOM lifecycle", () => {
       latitude: -13.375,
     });
     context.lifecycle.stop();
-    resolveStart?.(routeData());
+    resolveStart(routeData());
 
     await expect(pending).rejects.toMatchObject({ name: "AbortError" });
     expect(context.classes.has("navigation-active")).toBe(false);
