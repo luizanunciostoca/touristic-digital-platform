@@ -4,6 +4,10 @@ import type {
   MapboxGlMapLike,
   MapboxGlModuleLike,
 } from "@touristic/geospatial";
+import {
+  createNavigationHealthSnapshot,
+  type NavigationRuntimeSnapshot,
+} from "@touristic/navigation";
 
 import type { NavigationDomEventBridge } from "./navigation-dom-events.js";
 import type { NavigationDomLifecycle } from "./navigation-dom-lifecycle.js";
@@ -17,27 +21,71 @@ import { installBrowserNavigationRuntime } from "./browser-navigation-runtime-in
 function eventBridge(): NavigationDomEventBridge {
   return {
     started: vi.fn(),
-    status: vi.fn((input) => ({
-      phase: input.phase ?? "idle",
-      hasRoute: input.hasRoute === true,
-      hasInstructions: input.hasInstructions === true,
-      hasUserLocation: input.hasUserLocation === true,
-      isActive: input.isActive === true,
-      isPaused: input.isPaused === true,
-      currentStepIndex: input.currentStepIndex ?? 0,
-      totalSteps: input.totalSteps ?? 0,
-      routeDistance: input.routeDistance ?? 0,
-      routeDuration: input.routeDuration ?? 0,
-      routeProgress: input.routeProgress ?? 0,
-      navigationSessionId: input.navigationSessionId ?? null,
-      recalculations: input.recalculations ?? 0,
-      destination: input.destination ?? "",
-      timestamp: input.timestamp ?? 0,
-    })),
+    status: vi.fn((input) => createNavigationHealthSnapshot(input)),
     location: vi.fn(),
     runtime: vi.fn(),
     ended: vi.fn(),
     getLastStatus: () => null,
+  };
+}
+
+function bootstrapStub(active = false): NavigationSessionBootstrap {
+  return {
+    start: vi.fn(),
+    stop: vi.fn(),
+    isActive: vi.fn(() => active),
+    getActiveSessionId: vi.fn(() => (active ? 9 : null)),
+  } as unknown as NavigationSessionBootstrap;
+}
+
+function lifecycleStub(
+  overrides: Partial<NavigationDomLifecycle> = {},
+): NavigationDomLifecycle {
+  return {
+    start: vi.fn(),
+    stop: vi.fn(),
+    destroy: vi.fn(),
+    isActive: vi.fn(() => false),
+    ...overrides,
+  } as NavigationDomLifecycle;
+}
+
+function requestPortStub(destroy: () => void = vi.fn()): NavigationRequestPort {
+  return { destroy };
+}
+
+function runtimeSnapshot(): NavigationRuntimeSnapshot {
+  return {
+    routeIdentity: "route-a",
+    projectedCoordinate: [-38.917, -13.376],
+    segmentIndex: 0,
+    offRouteDistance: 2,
+    totalDistance: 100,
+    totalDuration: 80,
+    completedDistance: 20,
+    remainingDistance: 80,
+    remainingDuration: 64,
+    progress: 0.2,
+    progressPercent: 20,
+    rawBearing: 90,
+    bearing: 90,
+    distanceToNextManeuver: 30,
+    visualLocation: { latitude: -13.376, longitude: -38.917 },
+    visualDeadZoneMeters: 2,
+    visualHeldByDeadZone: false,
+    visualHeldByBackwardGuard: false,
+    visualRouteSnapped: true,
+    visualIgnoredStaleUpdate: false,
+    guidance: {
+      instruction: "Continue",
+      original: "Continue",
+      formattedDistance: "30 m",
+      remainingDistance: "80 m",
+      estimatedTime: "1 min",
+      progress: 20,
+      stepIndex: 1,
+      totalSteps: 4,
+    },
   };
 }
 
@@ -53,24 +101,15 @@ describe("browser navigation runtime install", () => {
       Marker: vi.fn(),
     } as unknown as MapboxGlModuleLike;
     const document = {} as Document;
-    const bootstrap = {
-      start: vi.fn(),
-      stop: vi.fn(),
-      isActive: vi.fn(() => false),
-      getActiveSessionId: vi.fn(() => null),
-    } as unknown as NavigationSessionBootstrap;
+    const bootstrap = bootstrapStub();
     const lifecycleStop = vi.fn<(reason?: string) => void>();
     const lifecycleDestroy = vi.fn<() => void>();
-    const lifecycle = {
-      start: vi.fn(),
+    const lifecycle = lifecycleStub({
       stop: lifecycleStop,
       destroy: lifecycleDestroy,
-      isActive: vi.fn(() => false),
-    } as unknown as NavigationDomLifecycle;
+    });
     const requestPortDestroy = vi.fn<() => void>();
-    const requestPort = {
-      destroy: requestPortDestroy,
-    } as NavigationRequestPort;
+    const requestPort = requestPortStub(requestPortDestroy);
     const bridge = eventBridge();
     const createBootstrap = vi.fn<
       (options: NavigationSessionBootstrapOptions) => NavigationSessionBootstrap
@@ -111,15 +150,12 @@ describe("browser navigation runtime install", () => {
 
   it("publishes real location/runtime callbacks with one session context", () => {
     const bridge = eventBridge();
-    const bootstrap = {
-      start: vi.fn(),
-      stop: vi.fn(),
-      isActive: vi.fn(() => true),
-      getActiveSessionId: vi.fn(() => 9),
-    } as unknown as NavigationSessionBootstrap;
+    const bootstrap = bootstrapStub(true);
     const createBootstrap = vi.fn<
       (options: NavigationSessionBootstrapOptions) => NavigationSessionBootstrap
     >(() => bootstrap);
+    const lifecycle = lifecycleStub({ isActive: vi.fn(() => true) });
+    const requestPort = requestPortStub();
 
     installBrowserNavigationRuntime({
       map: { setCenter: vi.fn(), remove: vi.fn() },
@@ -130,18 +166,8 @@ describe("browser navigation runtime install", () => {
       },
       document: {} as Document,
       createBootstrap,
-      createLifecycle: vi.fn(
-        () =>
-          ({
-            start: vi.fn(),
-            stop: vi.fn(),
-            destroy: vi.fn(),
-            isActive: vi.fn(() => true),
-          }) as unknown as NavigationDomLifecycle,
-      ),
-      createRequestPort: vi.fn(
-        () => ({ destroy: vi.fn() }) as NavigationRequestPort,
-      ),
+      createLifecycle: vi.fn(() => lifecycle),
+      createRequestPort: vi.fn(() => requestPort),
       createEventBridge: vi.fn(() => bridge),
     });
 
@@ -161,41 +187,7 @@ describe("browser navigation runtime install", () => {
       },
       context,
     );
-    options?.onSnapshot?.(
-      {
-        routeIdentity: "route-a",
-        projectedCoordinate: [-38.917, -13.376],
-        segmentIndex: 0,
-        offRouteDistance: 2,
-        totalDistance: 100,
-        totalDuration: 80,
-        completedDistance: 20,
-        remainingDistance: 80,
-        remainingDuration: 64,
-        progress: 0.2,
-        progressPercent: 20,
-        rawBearing: 90,
-        bearing: 90,
-        distanceToNextManeuver: 30,
-        visualLocation: { latitude: -13.376, longitude: -38.917 },
-        visualDeadZoneMeters: 2,
-        visualHeldByDeadZone: false,
-        visualHeldByBackwardGuard: false,
-        visualRouteSnapped: true,
-        visualIgnoredStaleUpdate: false,
-        guidance: {
-          instruction: "Continue",
-          original: "Continue",
-          formattedDistance: "30 m",
-          remainingDistance: "80 m",
-          estimatedTime: "1 min",
-          progress: 20,
-          stepIndex: 1,
-          totalSteps: 4,
-        },
-      },
-      context,
-    );
+    options?.onSnapshot?.(runtimeSnapshot(), context);
 
     expect(bridge.location).toHaveBeenCalledWith(
       expect.objectContaining({ sessionId: 9, speed: 1.2 }),
@@ -218,21 +210,9 @@ describe("browser navigation runtime install", () => {
     const calls: string[] = [];
     const lifecycleDestroy = vi.fn(() => calls.push("lifecycle"));
     const requestPortDestroy = vi.fn(() => calls.push("request-port"));
-    const bootstrap = {
-      start: vi.fn(),
-      stop: vi.fn(),
-      isActive: vi.fn(() => false),
-      getActiveSessionId: vi.fn(() => null),
-    } as unknown as NavigationSessionBootstrap;
-    const lifecycle = {
-      start: vi.fn(),
-      stop: vi.fn(),
-      destroy: lifecycleDestroy,
-      isActive: vi.fn(() => false),
-    } as unknown as NavigationDomLifecycle;
-    const requestPort = {
-      destroy: requestPortDestroy,
-    } as NavigationRequestPort;
+    const bootstrap = bootstrapStub();
+    const lifecycle = lifecycleStub({ destroy: lifecycleDestroy });
+    const requestPort = requestPortStub(requestPortDestroy);
 
     const installed = installBrowserNavigationRuntime({
       map: { setCenter: vi.fn(), remove: vi.fn() },
