@@ -51,9 +51,17 @@ export function createBrowserNavigationRuntime(
 
   return Object.freeze({
     bootstrap,
-    start: lifecycle.start,
-    stop: lifecycle.stop,
-    destroy: lifecycle.destroy,
-    isActive: lifecycle.isActive,
+    start(destination) {
+      return lifecycle.start(destination);
+    },
+    stop(): void {
+      lifecycle.stop();
+    },
+    destroy(): void {
+      lifecycle.destroy();
+    },
+    isActive(): boolean {
+      return lifecycle.isActive();
+    },
   });
 }
