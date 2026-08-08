@@ -14,8 +14,8 @@ Este aplicativo é o primeiro marco executável da Touristic Digital Platform pa
 - catálogo estrutural dos três roteiros da V1;
 - conteúdo editorial dos três roteiros preservado em PT-BR, inglês, espanhol e hebraico;
 - projeção das paradas de um roteiro em marcadores geoespaciais;
-- shell acessível de desenvolvimento;
-- provider visual de desenvolvimento sem credenciais reais;
+- shell V1 reproduzido sobre o Runtime V2;
+- Mapbox GL JS real com Leaflet como fallback/rollback;
 - servidor HTTP local sem dependências adicionais.
 
 ## Executar localmente
@@ -103,21 +103,19 @@ Quando o provider rejeita os marcadores, o engine é destruído, o evento `MapMa
 
 O arquivo `src/config/map-markers.ts` continua preservado como baseline inicial de pontos compartilhados da V1 enquanto a deduplicação definitiva entre roteiros e pontos de interesse não é concluída.
 
-## Provider de desenvolvimento
+## Mapbox real e fallback
 
-O arquivo `src/development/mapbox-sdk.ts` implementa apenas o contrato estrutural necessário para validar o fluxo do runtime no navegador. Ele não realiza chamadas externas, não carrega mapas reais e não deve ser utilizado em produção.
+O browser runtime carrega Mapbox GL JS `3.12.0` quando existe token público configurado e preserva Leaflet como fallback quando o token não existe, o SDK não carrega ou a inicialização real falha.
 
-O provider exibe a quantidade de pontos carregados por meio do atributo `data-development-marker-count`. O entrypoint `src/browser-entry.ts` utiliza valores explícitos de desenvolvimento e não acessa tokens reais.
+A configuração pública é injetada por `/runtime-config.js`. Nenhuma credencial deve ser versionada.
 
-## Configuração do Mapbox real
-
-A integração real deve utilizar um arquivo `.env` local baseado em `.env.example`:
+Exemplo local baseado em `.env.example`:
 
 ```text
 VITE_MAPBOX_ACCESS_TOKEN=
-VITE_MAPBOX_STYLE=
+VITE_MAPBOX_STYLE=mapbox://styles/mapbox/streets-v12
 VITE_MAPBOX_CONTAINER_ID=map
-VITE_MAPBOX_INITIAL_ZOOM=14
+VITE_MAPBOX_INITIAL_ZOOM=13.5
 ```
 
 Regras obrigatórias:
@@ -125,8 +123,8 @@ Regras obrigatórias:
 - nunca versionar tokens;
 - usar token público restrito por URL;
 - aplicar privilégio mínimo;
-- preservar o estilo aprovado da V1 durante a equivalência visual;
-- manter rollback para a experiência anterior até aprovação formal.
+- preservar o contrato de style/câmera/rota da V1;
+- manter rollback Leaflet funcional.
 
 ## Estados visuais
 
@@ -142,12 +140,6 @@ data-map-marker-count="8"
 
 O atributo `aria-busy` é aplicado durante a inicialização e removido ao concluir ou falhar.
 
-## Estado da formatação
-
-Os arquivos apontados pela primeira execução oficial do Quality Gate foram formatados pela mesma versão do Prettier instalada pelo lockfile. O workflow temporário usado exclusivamente para aplicar essa saída foi removido, e o repositório voltou a utilizar somente o `Quality Gate` padrão com permissões de leitura.
-
-Essa correção não substitui a validação oficial: arquitetura, Feature Registry, lint, TypeScript, testes e build continuam dependendo de uma execução completa do GitHub Actions associada ao head atual.
-
 ## Validação mínima antes de merge
 
 ```bash
@@ -161,4 +153,4 @@ pnpm test
 pnpm build
 ```
 
-O PR deve permanecer como draft enquanto qualquer uma dessas verificações estiver pendente.
+Nenhum incremento deve ser consolidado sem Quality Gate verde no head final.
