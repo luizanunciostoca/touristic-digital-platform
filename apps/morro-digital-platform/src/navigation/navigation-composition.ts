@@ -17,8 +17,8 @@ export interface NavigationAppCompositionOptions {
   readonly geolocation: BrowserGeolocationService;
   readonly presenter: NavigationMapboxPresenter;
   readonly routeData: unknown;
-  readonly sessionId: number;
-  readonly destination: {
+  readonly sessionId?: number;
+  readonly destination?: {
     readonly longitude: number;
     readonly latitude: number;
   };
@@ -70,14 +70,21 @@ export function createNavigationAppComposition(
   let started = false;
   let unsubscribeLocation: (() => void) | null = null;
 
-  const arrival = createArrivalLifecycle({
-    sessionId: options.sessionId,
-    destination: options.destination,
-    ports: {
-      ...(options.onArrival ? { onArrived: () => options.onArrival?.() } : {}),
-      ...(options.onAutoEnd ? { onAutoEnd: () => options.onAutoEnd?.() } : {}),
-    },
-  });
+  const arrival =
+    options.sessionId !== undefined && options.destination
+      ? createArrivalLifecycle({
+          sessionId: options.sessionId,
+          destination: options.destination,
+          ports: {
+            ...(options.onArrival
+              ? { onArrived: () => options.onArrival?.() }
+              : {}),
+            ...(options.onAutoEnd
+              ? { onAutoEnd: () => options.onAutoEnd?.() }
+              : {}),
+          },
+        })
+      : null;
 
   const handleSnapshot = (snapshot: NavigationRuntimeSnapshot): void => {
     if (!started) return;
@@ -91,7 +98,7 @@ export function createNavigationAppComposition(
 
   function updateFromLocation(location: BrowserLocation): void {
     if (!started) return;
-    arrival.update({
+    arrival?.update({
       latitude: location.latitude,
       longitude: location.longitude,
     });
@@ -120,7 +127,7 @@ export function createNavigationAppComposition(
       options.geolocation.stop();
       options.presenter.destroy();
       runtime.reset();
-      arrival.reset();
+      arrival?.reset();
     },
     isStarted(): boolean {
       return started;
