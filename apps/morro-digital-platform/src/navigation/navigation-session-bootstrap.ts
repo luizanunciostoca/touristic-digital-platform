@@ -190,7 +190,10 @@ export function createNavigationSessionBootstrap(
           activeWiring = null;
         }
         if (session.signal.aborted && !(error instanceof DOMException)) {
-          throw new DOMException("Navigation bootstrap cancelled", "AbortError");
+          throw new DOMException(
+            "Navigation bootstrap cancelled",
+            "AbortError",
+          );
         }
         throw error;
       }

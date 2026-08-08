@@ -120,7 +120,9 @@ export function createBrowserNavigationWiring(
     geolocation,
     presenter,
     routeData: options.routeData,
-    ...(options.sessionId !== undefined ? { sessionId: options.sessionId } : {}),
+    ...(options.sessionId !== undefined
+      ? { sessionId: options.sessionId }
+      : {}),
     ...(options.destination ? { destination: options.destination } : {}),
     ...(options.instructions ? { instructions: options.instructions } : {}),
     ...(options.stepIndex !== undefined
