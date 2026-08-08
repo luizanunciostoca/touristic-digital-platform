@@ -47,7 +47,11 @@ export function createNavigationDomEventBridge(
       dispatchNavigationEvent(document, "userLocationUpdated", detail);
     },
     runtime(detail): void {
-      dispatchNavigationEvent(document, "navigationRouteRuntimeUpdated", detail);
+      dispatchNavigationEvent(
+        document,
+        "navigationRouteRuntimeUpdated",
+        detail,
+      );
     },
     ended(detail): void {
       dispatchNavigationEvent(document, "navigationEnded", detail);
