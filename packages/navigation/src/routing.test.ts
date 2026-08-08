@@ -7,6 +7,7 @@ import {
   requestRoute,
   RoutingError,
   shouldUseRoutingFallback,
+  type FetchLike,
   type RouteFeatureCollection,
   type RoutingProvider,
 } from "./routing.js";
@@ -29,8 +30,27 @@ const VALID_ROUTE: RouteFeatureCollection = {
 
 function providerReturning(route = VALID_ROUTE): RoutingProvider {
   return {
-    request: vi.fn().mockResolvedValue(route),
+    request: vi.fn<RoutingProvider["request"]>().mockResolvedValue(route),
   };
+}
+
+function abortAwareRequestSpy() {
+  return vi
+    .fn<RoutingProvider["request"]>()
+    .mockImplementation(
+      (_payload, context) =>
+        new Promise((_resolve, reject) => {
+          context.signal.addEventListener(
+            "abort",
+            () => {
+              const error = new Error("Routing request aborted");
+              error.name = "AbortError";
+              reject(error);
+            },
+            { once: true },
+          );
+        }),
+    );
 }
 
 afterEach(() => {
@@ -89,7 +109,7 @@ describe("routing core", () => {
   });
 
   it("uses a same-origin POST transport without route credentials in the body", async () => {
-    const fetchImpl = vi.fn().mockResolvedValue({
+    const fetchImpl = vi.fn<FetchLike>().mockResolvedValue({
       ok: true,
       status: 200,
       json: vi.fn().mockResolvedValue(VALID_ROUTE),
@@ -117,16 +137,19 @@ describe("routing core", () => {
   });
 
   it("rejects an external primary endpoint", () => {
-    expect(() =>
+    const fetchImpl = vi.fn<FetchLike>();
+
+    try {
       createSameOriginRoutingProvider({
         endpoint: "https://example.com/directions",
-        fetchImpl: vi.fn(),
-      }),
-    ).toThrowError(
-      expect.objectContaining<Partial<RoutingError>>({
-        code: "INVALID_ROUTING_ENDPOINT",
-      }),
-    );
+        fetchImpl,
+      });
+      throw new Error("Expected invalid endpoint rejection");
+    } catch (error) {
+      expect(error).toBeInstanceOf(RoutingError);
+      if (!(error instanceof RoutingError)) throw error;
+      expect(error.code).toBe("INVALID_ROUTING_ENDPOINT");
+    }
   });
 
   it("validates the internal route feature collection contract", () => {
@@ -141,11 +164,13 @@ describe("routing core", () => {
 
   it("uses a fallback provider only for V1-compatible proxy availability failures", async () => {
     const primaryProvider: RoutingProvider = {
-      request: vi.fn().mockRejectedValue(
-        new RoutingError("ROUTING_HTTP_ERROR", "Proxy unavailable", {
-          status: 405,
-        }),
-      ),
+      request: vi
+        .fn<RoutingProvider["request"]>()
+        .mockRejectedValue(
+          new RoutingError("ROUTING_HTTP_ERROR", "Proxy unavailable", {
+            status: 405,
+          }),
+        ),
     };
     const fallbackProvider = providerReturning();
 
@@ -168,11 +193,13 @@ describe("routing core", () => {
 
   it("does not mask a real backend failure with fallback", async () => {
     const primaryProvider: RoutingProvider = {
-      request: vi.fn().mockRejectedValue(
-        new RoutingError("ROUTING_NOT_CONFIGURED", "Unavailable", {
-          status: 503,
-        }),
-      ),
+      request: vi
+        .fn<RoutingProvider["request"]>()
+        .mockRejectedValue(
+          new RoutingError("ROUTING_NOT_CONFIGURED", "Unavailable", {
+            status: 503,
+          }),
+        ),
     };
     const fallbackProvider = providerReturning();
 
@@ -192,18 +219,8 @@ describe("routing core", () => {
 
   it("normalizes external cancellation", async () => {
     const controller = new AbortController();
-    const primaryProvider: RoutingProvider = {
-      request: vi.fn(
-        (_payload, context) =>
-          new Promise((_resolve, reject) => {
-            context.signal.addEventListener(
-              "abort",
-              () => reject(context.signal.reason),
-              { once: true },
-            );
-          }),
-      ),
-    };
+    const request = abortAwareRequestSpy();
+    const primaryProvider: RoutingProvider = { request };
 
     const result = requestRoute({
       start: [-38.91, -13.38],
@@ -218,18 +235,8 @@ describe("routing core", () => {
 
   it("normalizes timeout and clamps very small timeout values to one second", async () => {
     vi.useFakeTimers();
-    const primaryProvider: RoutingProvider = {
-      request: vi.fn(
-        (_payload, context) =>
-          new Promise((_resolve, reject) => {
-            context.signal.addEventListener(
-              "abort",
-              () => reject(context.signal.reason),
-              { once: true },
-            );
-          }),
-      ),
-    };
+    const request = abortAwareRequestSpy();
+    const primaryProvider: RoutingProvider = { request };
 
     const result = requestRoute({
       start: [-38.91, -13.38],
@@ -239,7 +246,7 @@ describe("routing core", () => {
     });
 
     await vi.advanceTimersByTimeAsync(999);
-    expect(primaryProvider.request).toHaveBeenCalledTimes(1);
+    expect(request).toHaveBeenCalledTimes(1);
     await vi.advanceTimersByTimeAsync(1);
 
     await expect(result).rejects.toMatchObject({ code: "ROUTING_TIMEOUT" });
