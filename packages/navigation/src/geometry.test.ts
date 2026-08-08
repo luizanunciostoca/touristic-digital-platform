@@ -24,9 +24,7 @@ function routeData(options: {
         type: "Feature",
         geometry: { type: "LineString", coordinates },
         properties: {
-          ...(distance || duration
-            ? { summary: { distance, duration } }
-            : {}),
+          ...(distance || duration ? { summary: { distance, duration } } : {}),
           segments: [{ distance, duration, steps }],
         },
       },
@@ -166,10 +164,7 @@ describe("route geometry", () => {
 
   it("keeps north bearing zero valid and preserves V1 metric formatting", () => {
     expect(
-      calculateRouteBearing(
-        [-38.919, -13.38],
-        [-38.919, -13.379],
-      ),
+      calculateRouteBearing([-38.919, -13.38], [-38.919, -13.379]),
     ).toBeCloseTo(0, 5);
     expect(formatRouteDistance(1250)).toBe("1.3 km");
     expect(formatRouteDuration(3660)).toBe("1h 1min");
@@ -182,9 +177,9 @@ describe("route geometry", () => {
     ] as const;
 
     expect(normalizeRouteCoordinates({ coordinates })).toEqual(coordinates);
-    expect(
-      normalizeRouteCoordinates({ geometry: { coordinates } }),
-    ).toEqual(coordinates);
+    expect(normalizeRouteCoordinates({ geometry: { coordinates } })).toEqual(
+      coordinates,
+    );
     expect(
       normalizeRouteCoordinates({ feature: { geometry: { coordinates } } }),
     ).toEqual(coordinates);
@@ -221,14 +216,16 @@ describe("route geometry", () => {
 
   it("uses Haversine distance and rejects invalid geometry", () => {
     expect(
-      calculateRoutePointDistance(
-        [-38.92, -13.38],
-        [-38.919, -13.38],
-      ),
+      calculateRoutePointDistance([-38.92, -13.38], [-38.919, -13.38]),
     ).toBeGreaterThan(100);
     expect(buildRouteGeometryModel({ coordinates: [[0, 0]] })).toBeNull();
     expect(
-      normalizeRouteCoordinates({ coordinates: [[999, 0], [0, 999]] }),
+      normalizeRouteCoordinates({
+        coordinates: [
+          [999, 0],
+          [0, 999],
+        ],
+      }),
     ).toEqual([]);
   });
 

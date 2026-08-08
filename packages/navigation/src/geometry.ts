@@ -68,7 +68,10 @@ export interface RouteGeometryTracker {
   readonly model: RouteGeometryModel;
   snapshot(
     position?: NavigationPosition | null,
-    options?: { readonly stepIndex?: number; readonly lookAheadMeters?: number },
+    options?: {
+      readonly stepIndex?: number;
+      readonly lookAheadMeters?: number;
+    },
   ): RouteGeometrySnapshot | null;
   getLastSnapshot(): RouteGeometrySnapshot | null;
   reset(): void;
@@ -78,7 +81,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
-function finiteNumber(value: unknown, fallback: number | null = null): number | null {
+function finiteNumber(
+  value: unknown,
+  fallback: number | null = null,
+): number | null {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
 }
@@ -187,7 +193,9 @@ export function calculateRouteBearing(
   return normalizeAngle((Math.atan2(y, x) * 180) / Math.PI);
 }
 
-export function normalizeRouteCoordinates(routeData: unknown): GeometryCoordinate[] {
+export function normalizeRouteCoordinates(
+  routeData: unknown,
+): GeometryCoordinate[] {
   const candidates = [
     getPath(routeData, ["features", 0, "geometry", "coordinates"]),
     getPath(routeData, ["feature", "geometry", "coordinates"]),
@@ -233,7 +241,10 @@ function getRouteSteps(routeData: unknown): RouteStepModel[] {
   return steps.filter(isRecord) as RouteStepModel[];
 }
 
-function sumPositive(items: readonly RouteStepModel[], field: "distance" | "duration"): number {
+function sumPositive(
+  items: readonly RouteStepModel[],
+  field: "distance" | "duration",
+): number {
   return items.reduce((sum, item) => {
     const value = finiteNumber(item[field]);
     return value !== null && value > 0 ? sum + value : sum;
@@ -396,9 +407,10 @@ export function projectLocationOntoRoute(
   const latitude = finiteNumber(position.latitude, finiteNumber(position.lat));
   if (longitude === null || latitude === null) return null;
 
-  let best:
-    | Omit<RouteProjection, "scaledAlongDistance" | "rawProgress">
-    | null = null;
+  let best: Omit<
+    RouteProjection,
+    "scaledAlongDistance" | "rawProgress"
+  > | null = null;
 
   for (let index = 0; index < model.coordinates.length - 1; index += 1) {
     const start = model.coordinates[index];
@@ -533,10 +545,7 @@ export function createRouteGeometryTracker(
       if (!projection) return null;
 
       const progress = clamp(
-        Math.max(
-          projection.rawProgress,
-          lastProgress - maxBackwardProgress,
-        ),
+        Math.max(projection.rawProgress, lastProgress - maxBackwardProgress),
         0,
         1,
       );
@@ -554,8 +563,7 @@ export function createRouteGeometryTracker(
         model.totalDistance > 0
           ? Math.max(
               0,
-              model.totalDuration *
-                (remainingDistance / model.totalDistance),
+              model.totalDuration * (remainingDistance / model.totalDistance),
             )
           : 0;
       const lookAheadMeters = clamp(
