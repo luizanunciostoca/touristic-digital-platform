@@ -35,8 +35,8 @@ export interface BrowserNavigationWiringOptions {
   readonly map: MapboxGlMapLike;
   readonly sdk: MapboxGlModuleLike;
   readonly routeData: unknown;
-  readonly sessionId: number;
-  readonly destination: {
+  readonly sessionId?: number;
+  readonly destination?: {
     readonly longitude: number;
     readonly latitude: number;
   };
@@ -120,8 +120,8 @@ export function createBrowserNavigationWiring(
     geolocation,
     presenter,
     routeData: options.routeData,
-    sessionId: options.sessionId,
-    destination: options.destination,
+    ...(options.sessionId !== undefined ? { sessionId: options.sessionId } : {}),
+    ...(options.destination ? { destination: options.destination } : {}),
     ...(options.instructions ? { instructions: options.instructions } : {}),
     ...(options.stepIndex !== undefined
       ? { stepIndex: options.stepIndex }
