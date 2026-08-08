@@ -283,7 +283,7 @@ export function createBrowserGeolocationService(
         ? currentLocation
         : null;
     },
-    subscribe(listener) {
+    subscribe(listener: (location: BrowserLocation) => void): () => void {
       subscribers.add(listener);
       return () => subscribers.delete(listener);
     },
