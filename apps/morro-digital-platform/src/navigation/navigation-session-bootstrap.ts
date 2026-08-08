@@ -3,7 +3,10 @@ import type {
   MapboxGlModuleLike,
 } from "@touristic/geospatial";
 import {
+  beginNavigationSession,
+  cancelNavigationSession,
   requestRoute,
+  type NavigationSession,
   type RouteCoordinate,
   type RouteFeatureCollection,
   type RoutingLanguage,
@@ -31,6 +34,8 @@ export interface NavigationSessionBootstrapOptions {
   ) => Promise<RouteCoordinate>;
   readonly requestRouteImpl?: typeof requestRoute;
   readonly createWiring?: typeof createBrowserNavigationWiring;
+  readonly onArrival?: () => void;
+  readonly onAutoEnd?: () => void;
 }
 
 export interface NavigationSessionBootstrap {
@@ -126,14 +131,13 @@ export function createNavigationSessionBootstrap(
     ((signal: AbortSignal) =>
       resolveBrowserStartCoordinate(geolocationDriver, signal));
 
-  let generation = 0;
-  let activeAbortController: AbortController | null = null;
+  let activeSession: NavigationSession | null = null;
   let activeWiring: BrowserNavigationWiring | null = null;
 
   function stop(): void {
-    generation += 1;
-    activeAbortController?.abort();
-    activeAbortController = null;
+    const sessionId = activeSession?.id ?? null;
+    if (sessionId !== null) cancelNavigationSession(sessionId, "stopped");
+    activeSession = null;
     activeWiring?.stop();
     activeWiring = null;
   }
@@ -144,23 +148,12 @@ export function createNavigationSessionBootstrap(
     ): Promise<RouteFeatureCollection> {
       stop();
       const destinationCoordinate = validateDestination(destination);
-      const sessionGeneration = generation;
-      const abortController = new AbortController();
-      activeAbortController = abortController;
+      const session = beginNavigationSession({ source: "browser-bootstrap" });
+      activeSession = session;
 
       try {
-        const startCoordinate = await resolveStartCoordinate(
-          abortController.signal,
-        );
-        if (
-          abortController.signal.aborted ||
-          sessionGeneration !== generation
-        ) {
-          throw new DOMException(
-            "Navigation bootstrap cancelled",
-            "AbortError",
-          );
-        }
+        const startCoordinate = await resolveStartCoordinate(session.signal);
+        session.assertActive();
 
         const routeData = await requestRouteImpl({
           start: startCoordinate,
@@ -169,42 +162,42 @@ export function createNavigationSessionBootstrap(
           ...(options.routeTimeoutMs !== undefined
             ? { timeoutMs: options.routeTimeoutMs }
             : {}),
-          signal: abortController.signal,
+          signal: session.signal,
         });
-        if (
-          abortController.signal.aborted ||
-          sessionGeneration !== generation
-        ) {
-          throw new DOMException(
-            "Navigation bootstrap cancelled",
-            "AbortError",
-          );
-        }
+        session.assertActive();
 
         const wiring = createWiring({
           map: options.map,
           sdk: options.sdk,
           routeData,
+          destination: {
+            longitude: destinationCoordinate[0],
+            latitude: destinationCoordinate[1],
+          },
+          sessionId: session.id,
           geolocationDriver,
+          ...(options.onArrival ? { onArrival: options.onArrival } : {}),
+          ...(options.onAutoEnd ? { onAutoEnd: options.onAutoEnd } : {}),
         });
         activeWiring = wiring;
         wiring.start();
-        activeAbortController = null;
         return routeData;
       } catch (error) {
-        if (activeAbortController === abortController) {
-          activeAbortController = null;
-        }
-        if (sessionGeneration === generation) {
+        if (activeSession?.id === session.id) {
+          cancelNavigationSession(session.id, "start_failed");
+          activeSession = null;
           activeWiring?.stop();
           activeWiring = null;
+        }
+        if (session.signal.aborted && !(error instanceof DOMException)) {
+          throw new DOMException("Navigation bootstrap cancelled", "AbortError");
         }
         throw error;
       }
     },
     stop,
     isActive(): boolean {
-      return activeWiring !== null;
+      return activeSession?.isActive() === true && activeWiring !== null;
     },
   });
 }
