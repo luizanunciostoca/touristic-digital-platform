@@ -229,14 +229,7 @@ header h1 {
 }
 
 #assistant-input-area button {
-  width: 2.85rem;
-  height: 2.85rem;
-  flex: 0 0 2.85rem;
-  border: 0;
-  border-radius: 50%;
-  background: var(--primary);
-  color: white;
-  cursor: pointer;
+  flex: 0 1 auto;
 }
 
 #assistant-messages {
