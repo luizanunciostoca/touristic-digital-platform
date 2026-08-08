@@ -40,6 +40,9 @@ importers:
       "@touristic/geospatial":
         specifier: workspace:*
         version: link:../../packages/geospatial
+      "@touristic/navigation":
+        specifier: workspace:*
+        version: link:../../packages/navigation
 
   packages/core: {}
 

@@ -13,10 +13,7 @@ import type {
 } from "./browser-geolocation.js";
 import { createNavigationAppComposition } from "./navigation-composition.js";
 
-function location(
-  latitude = -13.376,
-  longitude = -38.917,
-): BrowserLocation {
+function location(latitude = -13.376, longitude = -38.917): BrowserLocation {
   return {
     latitude,
     longitude,
@@ -75,7 +72,9 @@ function setup(current: BrowserLocation | null = null) {
     },
   };
 
-  const presenterUpdate = vi.fn<NavigationMapboxPresenter["update"]>(() => true);
+  const presenterUpdate = vi.fn<NavigationMapboxPresenter["update"]>(
+    () => true,
+  );
   const presenterReset = vi.fn<() => void>();
   const presenterDestroy = vi.fn<() => void>();
   const presenter: NavigationMapboxPresenter = {
@@ -84,12 +83,17 @@ function setup(current: BrowserLocation | null = null) {
     destroy: presenterDestroy,
   };
 
-  const runtimeUpdate = vi.fn<(input: NavigationRuntimeUpdateInput) => NavigationRuntimeSnapshot | null>();
+  const runtimeUpdate =
+    vi.fn<
+      (input: NavigationRuntimeUpdateInput) => NavigationRuntimeSnapshot | null
+    >();
   const runtimeReset = vi.fn<() => void>();
   let snapshot: NavigationRuntimeSnapshot | null = null;
   let emitSnapshot: ((value: NavigationRuntimeSnapshot) => void) | null = null;
   const createRuntime = vi.fn(
-    (onSnapshot: (value: NavigationRuntimeSnapshot) => void): NavigationRuntimeCoordinator => {
+    (
+      onSnapshot: (value: NavigationRuntimeSnapshot) => void,
+    ): NavigationRuntimeCoordinator => {
       emitSnapshot = (value) => {
         snapshot = value;
         onSnapshot(value);
@@ -126,7 +130,8 @@ function setup(current: BrowserLocation | null = null) {
     runtimeReset,
     onSnapshot,
     emitLocation(value: BrowserLocation) {
-      if (!locationSubscriber) throw new Error("location subscriber not registered");
+      if (!locationSubscriber)
+        throw new Error("location subscriber not registered");
       locationSubscriber(value);
     },
     emitRuntimeSnapshot(value = runtimeSnapshot()) {
@@ -185,10 +190,9 @@ describe("navigation app composition", () => {
     context.composition.start();
     context.runtimeUpdate.mockClear();
 
-    context.composition.setRoute(
-      { route: "B" },
-      [{ instruction: "Vire à direita" }],
-    );
+    context.composition.setRoute({ route: "B" }, [
+      { instruction: "Vire à direita" },
+    ]);
 
     expect(context.runtimeReset).toHaveBeenCalledTimes(1);
     expect(context.presenterReset).toHaveBeenCalledTimes(1);
