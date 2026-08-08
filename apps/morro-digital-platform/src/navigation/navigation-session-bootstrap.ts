@@ -166,7 +166,9 @@ export function createNavigationSessionBootstrap(
           start: startCoordinate,
           end: destinationCoordinate,
           language: options.language ?? "pt",
-          timeoutMs: options.routeTimeoutMs,
+          ...(options.routeTimeoutMs !== undefined
+            ? { timeoutMs: options.routeTimeoutMs }
+            : {}),
           signal: abortController.signal,
         });
         if (
