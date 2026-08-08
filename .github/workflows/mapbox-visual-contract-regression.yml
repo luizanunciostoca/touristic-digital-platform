@@ -76,31 +76,31 @@ jobs:
             ['desktop', 1440, 900],
           ];
 
-          function focusSignature(element) {
-            if (!element) return 'none';
-            if (element.classList?.contains('mapboxgl-canvas')) return 'mapbox-canvas';
-            if (element.classList?.contains('mapboxgl-ctrl-logo')) return 'mapbox-logo';
-            if (element.classList?.contains('mood-button')) return 'mood-button';
-            if (element.classList?.contains('minimize-button')) return 'minimize-button';
-            if (element.classList?.contains('assistant-option-btn')) return 'assistant-option';
-            return `${element.tagName?.toLowerCase?.() || 'unknown'}#${element.id || ''}.${element.className || ''}`;
-          }
-
           async function waitReady(page) {
             await page.locator('#map[data-map-state="ready"][data-map-mode="real"][data-map-provider="mapbox"][data-active-tour="volta-a-ilha"][data-map-marker-count="8"]').waitFor({ state: 'attached', timeout: 30000 });
             await page.locator('#map .mapboxgl-canvas').waitFor({ state: 'visible', timeout: 30000 });
-            await page.waitForFunction(() => {
-              const map = globalThis.mapboxPrimaryInstance;
-              return Boolean(
-                map &&
-                globalThis.mapboxgl?.version === '3.12.0' &&
-                map.isStyleLoaded?.() &&
-                map.getSource?.('tour-route-source') &&
-                map.getLayer?.('tour-route-outline') &&
-                map.getLayer?.('tour-route-layer') &&
-                document.querySelectorAll('#map .tour-stop-marker').length === 8
-              );
-            }, null, { timeout: 30000 });
+
+            const deadline = Date.now() + 30000;
+            let ready = false;
+            while (Date.now() < deadline) {
+              ready = await page.evaluate(() => {
+                const map = globalThis.mapboxPrimaryInstance;
+                return Boolean(
+                  map &&
+                  globalThis.mapboxgl?.version === '3.12.0' &&
+                  map.isStyleLoaded?.() &&
+                  map.getSource?.('tour-route-source') &&
+                  map.getLayer?.('tour-route-outline') &&
+                  map.getLayer?.('tour-route-layer') &&
+                  document.querySelectorAll('#map .tour-stop-marker').length === 8
+                );
+              });
+              if (ready) break;
+              await page.waitForTimeout(100);
+            }
+            if (!ready) {
+              throw new Error('Mapbox visual contract did not reach ready state before timeout.');
+            }
             await page.waitForTimeout(350);
           }
 
