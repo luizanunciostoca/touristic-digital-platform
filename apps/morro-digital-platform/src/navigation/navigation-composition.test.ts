@@ -24,19 +24,34 @@ function location(latitude = -13.376, longitude = -38.917): BrowserLocation {
   };
 }
 
+function runtimeLocation(value = location()): NonNullable<
+  NavigationRuntimeUpdateInput["location"]
+> {
+  return {
+    latitude: value.latitude,
+    longitude: value.longitude,
+    accuracy: value.accuracy,
+    speed: value.speed,
+    timestamp: value.timestamp,
+  };
+}
+
 function runtimeSnapshot(): NavigationRuntimeSnapshot {
   return {
-    progress: 0.2,
-    progressPercent: 20,
-    traveledDistance: 20,
+    routeIdentity: "route-a",
+    projectedCoordinate: [-38.917, -13.376],
+    segmentIndex: 0,
+    offRouteDistance: 2,
+    totalDistance: 100,
+    totalDuration: 80,
+    completedDistance: 20,
     remainingDistance: 80,
     remainingDuration: 64,
-    offRouteDistance: 2,
-    projectedCoordinate: [-38.917, -13.376],
-    closestSegmentIndex: 0,
-    distanceToNextManeuver: 30,
-    bearing: 90,
+    progress: 0.2,
+    progressPercent: 20,
     rawBearing: 90,
+    bearing: 90,
+    distanceToNextManeuver: 30,
     visualLocation: { latitude: -13.376, longitude: -38.917 },
     visualDeadZoneMeters: 2,
     visualHeldByDeadZone: false,
@@ -146,13 +161,14 @@ describe("navigation app composition", () => {
     const context = setup();
     context.composition.start();
     context.composition.start();
-    context.emitLocation(location());
+    const current = location();
+    context.emitLocation(current);
 
     expect(context.geolocationStart).toHaveBeenCalledTimes(1);
     expect(context.runtimeUpdate).toHaveBeenCalledTimes(1);
     expect(context.runtimeUpdate).toHaveBeenCalledWith({
       routeData: { route: "A" },
-      location: location(),
+      location: runtimeLocation(current),
       instructions: [{ instruction: "Siga em frente" }],
       stepIndex: 0,
     });
@@ -165,7 +181,7 @@ describe("navigation app composition", () => {
 
     expect(context.getCurrentLocation).toHaveBeenCalledTimes(1);
     expect(context.runtimeUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({ location: current }),
+      expect.objectContaining({ location: runtimeLocation(current) }),
     );
   });
 
@@ -198,7 +214,7 @@ describe("navigation app composition", () => {
     expect(context.presenterReset).toHaveBeenCalledTimes(1);
     expect(context.runtimeUpdate).toHaveBeenCalledWith({
       routeData: { route: "B" },
-      location: current,
+      location: runtimeLocation(current),
       instructions: [{ instruction: "Vire à direita" }],
       stepIndex: 0,
     });
