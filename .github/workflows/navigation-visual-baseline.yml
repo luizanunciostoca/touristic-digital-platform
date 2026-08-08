@@ -1,0 +1,334 @@
+name: Navigation Visual Baseline
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/navigation-visual-baseline.yml
+      - apps/morro-digital-platform/src/navigation/**
+      - apps/morro-digital-platform/src/browser-entry.ts
+      - apps/morro-digital-platform/src/layouts/app-shell.ts
+      - apps/morro-digital-platform/public/styles.css
+      - apps/morro-digital-platform/tooling/dev-server.mjs
+      - packages/geospatial/src/adapters/navigation-mapbox.ts
+      - packages/navigation/src/**
+
+permissions:
+  contents: read
+
+jobs:
+  navigation-visual:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install deterministic Chromium
+        run: |
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+          mkdir -p /tmp/navigation-visual-baseline
+      - name: Build workspace
+        run: pnpm -w build
+      - name: Start authenticated Mapbox runtime
+        env:
+          MAPBOX_PUBLIC_TOKEN_CI: ${{ secrets.MAPBOX_PUBLIC_TOKEN_CI }}
+        run: |
+          test -n "${MAPBOX_PUBLIC_TOKEN_CI:-}" || { echo 'MAPBOX_PUBLIC_TOKEN_CI missing'; exit 1; }
+          VITE_MAPBOX_ACCESS_TOKEN="$MAPBOX_PUBLIC_TOKEN_CI" \
+          VITE_MAPBOX_STYLE=mapbox://styles/mapbox/streets-v12 \
+          VITE_MAPBOX_CONTAINER_ID=map \
+          VITE_MAPBOX_INITIAL_ZOOM=13.5 \
+          node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/navigation-visual-baseline.log 2>&1 &
+          echo $! >/tmp/navigation-visual-baseline.pid
+          for i in $(seq 1 90); do
+            if curl -fsS http://127.0.0.1:4173/runtime-config.js >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/navigation-visual-baseline.log
+          exit 1
+      - name: Capture deterministic navigation journey
+        run: |
+          node <<'NODE'
+          const { mkdirSync, writeFileSync } = require('node:fs');
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+
+          const outputDir = '/tmp/navigation-visual-baseline';
+          mkdirSync(outputDir, { recursive: true });
+          const viewports = [
+            ['mobile', 390, 844],
+            ['tablet', 768, 1024],
+            ['desktop', 1440, 900],
+          ];
+          const start = { latitude: -13.3762, longitude: -38.9172 };
+          const destination = { latitude: -13.3740, longitude: -38.9148 };
+          const routeResponse = {
+            type: 'FeatureCollection',
+            features: [{
+              type: 'Feature',
+              properties: {
+                summary: { distance: 390, duration: 290 },
+                segments: [{
+                  distance: 390,
+                  duration: 290,
+                  steps: [
+                    {
+                      distance: 92,
+                      duration: 68,
+                      instruction: 'Continue em frente',
+                      name: 'Caminho principal',
+                      way_points: [0, 1],
+                      maneuver: { instruction: 'Continue em frente', type: 'continue' },
+                    },
+                    {
+                      distance: 126,
+                      duration: 94,
+                      instruction: 'Vire à direita',
+                      name: 'Rua da Fonte',
+                      way_points: [1, 2],
+                      maneuver: { instruction: 'Vire à direita', type: 'turn-right' },
+                    },
+                    {
+                      distance: 172,
+                      duration: 128,
+                      instruction: 'Continue até o destino',
+                      name: 'Destino',
+                      way_points: [2, 3],
+                      maneuver: { instruction: 'Continue até o destino', type: 'arrive' },
+                    },
+                  ],
+                }],
+              },
+              geometry: {
+                type: 'LineString',
+                coordinates: [
+                  [start.longitude, start.latitude],
+                  [-38.91655, -13.37565],
+                  [-38.91575, -13.37485],
+                  [destination.longitude, destination.latitude],
+                ],
+              },
+            }],
+          };
+
+          async function waitForMap(page) {
+            await page.locator('#map[data-map-state="ready"][data-map-mode="real"][data-map-provider="mapbox"]').waitFor({ state: 'attached', timeout: 30000 });
+            await page.locator('#map .mapboxgl-canvas').waitFor({ state: 'visible', timeout: 30000 });
+            await page.waitForFunction(() => Boolean(globalThis.mapboxPrimaryInstance?.isStyleLoaded?.()), null, { timeout: 30000 });
+          }
+
+          async function capture(browser, name, width, height) {
+            const context = await browser.newContext({
+              viewport: { width, height },
+              deviceScaleFactor: 1,
+              geolocation: start,
+              permissions: ['geolocation'],
+            });
+            await context.addInitScript(() => {
+              localStorage.setItem('morro-digital-onboarded', '1');
+              localStorage.setItem('voice-enabled', 'false');
+              globalThis.__navigationEvidence = { events: [], camera: [] };
+              for (const type of ['navigationStarted','userLocationUpdated','navigationRouteRuntimeUpdated','navigationStatusChanged','navigationEnded']) {
+                addEventListener(type, (event) => {
+                  globalThis.__navigationEvidence.events.push({ type, detail: event.detail ?? null });
+                });
+              }
+            });
+            const page = await context.newPage();
+            const pageErrors = [];
+            const httpErrors = [];
+            page.on('pageerror', (error) => pageErrors.push(error.message));
+            page.on('response', (response) => {
+              if (response.status() >= 400 && !response.url().includes('/api/routing/directions')) {
+                httpErrors.push({ status: response.status(), url: response.url().replace(/access_token=[^&]+/u, 'access_token=[redacted]') });
+              }
+            });
+            await page.route('**/api/routing/directions', async (route) => {
+              const request = route.request();
+              if (request.method() !== 'POST') {
+                await route.fulfill({ status: 405, contentType: 'application/json', body: JSON.stringify({ error: 'METHOD_NOT_ALLOWED' }) });
+                return;
+              }
+              await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(routeResponse) });
+            });
+
+            await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded', timeout: 30000 });
+            await waitForMap(page);
+            await page.evaluate(() => {
+              const map = globalThis.mapboxPrimaryInstance;
+              const original = map.easeTo.bind(map);
+              map.easeTo = (input) => {
+                const serializable = {
+                  center: Array.isArray(input.center) ? input.center : null,
+                  bearing: input.bearing ?? null,
+                  pitch: input.pitch ?? null,
+                  zoom: input.zoom ?? null,
+                  duration: input.duration ?? null,
+                  padding: input.padding ?? null,
+                  retainPadding: input.retainPadding ?? null,
+                  essential: input.essential ?? null,
+                  easingSamples: typeof input.easing === 'function' ? [0, 0.25, 0.5, 0.75, 1].map((t) => input.easing(t)) : null,
+                };
+                globalThis.__navigationEvidence.camera.push(serializable);
+                return original(input);
+              };
+            });
+
+            await page.evaluate((destination) => {
+              document.dispatchEvent(new CustomEvent('morro:navigation-requested', { detail: { destination } }));
+            }, destination);
+
+            await page.locator('#instruction-banner:not(.hidden)').waitFor({ state: 'visible', timeout: 15000 });
+            await page.locator('#end-navigation-btn').waitFor({ state: 'visible', timeout: 15000 });
+            await page.waitForFunction(() => {
+              const evidence = globalThis.__navigationEvidence;
+              const runtime = evidence?.events?.find((event) => event.type === 'navigationRouteRuntimeUpdated');
+              const started = evidence?.events?.find((event) => event.type === 'navigationStarted');
+              return Boolean(runtime && started && evidence.camera.length > 0);
+            }, null, { timeout: 15000 });
+            await page.waitForTimeout(700);
+
+            const activeState = await page.evaluate(() => {
+              const map = globalThis.mapboxPrimaryInstance;
+              const banner = document.getElementById('instruction-banner');
+              const end = document.getElementById('end-navigation-btn');
+              const events = globalThis.__navigationEvidence.events;
+              const started = events.find((event) => event.type === 'navigationStarted')?.detail ?? null;
+              const runtime = events.find((event) => event.type === 'navigationRouteRuntimeUpdated')?.detail ?? null;
+              const location = events.find((event) => event.type === 'userLocationUpdated')?.detail ?? null;
+              const statuses = events.filter((event) => event.type === 'navigationStatusChanged').map((event) => event.detail);
+              const markerCount = document.querySelectorAll('#map .mapboxgl-marker').length;
+              return {
+                bannerVisible: Boolean(banner && !banner.classList.contains('hidden')),
+                bannerMinimized: Boolean(banner?.classList.contains('minimized')),
+                instruction: document.getElementById('instruction-main')?.textContent?.trim() ?? '',
+                details: document.getElementById('instruction-details')?.textContent?.trim() ?? '',
+                distance: document.getElementById('instruction-distance')?.textContent?.trim() ?? '',
+                time: document.getElementById('instruction-time')?.textContent?.trim() ?? '',
+                progress: document.getElementById('progress-text')?.textContent?.trim() ?? '',
+                progressWidth: document.getElementById('route-progress')?.style.width ?? '',
+                endVisible: Boolean(end && getComputedStyle(end).display !== 'none'),
+                bodyNavigationActive: document.body.classList.contains('navigation-active'),
+                markerCount,
+                camera: globalThis.__navigationEvidence.camera,
+                mapCamera: {
+                  pitch: map.getPitch?.() ?? null,
+                  zoom: map.getZoom?.() ?? null,
+                  bearing: map.getBearing?.() ?? null,
+                  center: map.getCenter ? [map.getCenter().lng, map.getCenter().lat] : null,
+                },
+                started,
+                runtime,
+                location,
+                statuses,
+                events,
+              };
+            });
+
+            if (!activeState.bannerVisible || !activeState.endVisible || !activeState.bodyNavigationActive) {
+              throw new Error(`Navigation UI not active for ${name}: ${JSON.stringify(activeState)}`);
+            }
+            if (!activeState.instruction || activeState.distance === '0 m' || activeState.time === '0 min') {
+              throw new Error(`Navigation guidance did not receive runtime data for ${name}: ${JSON.stringify(activeState)}`);
+            }
+            if (!activeState.started || !activeState.runtime || !activeState.location) {
+              throw new Error(`Canonical navigation events missing for ${name}: ${JSON.stringify(activeState.events)}`);
+            }
+            if (activeState.started.sessionId !== activeState.runtime.sessionId || activeState.started.sessionId !== activeState.location.sessionId) {
+              throw new Error(`Navigation session IDs diverged for ${name}: ${JSON.stringify(activeState.events)}`);
+            }
+            const latestCamera = activeState.camera.at(-1);
+            if (!latestCamera || latestCamera.pitch !== 68 || ![19.1,19.35,19.55].includes(latestCamera.zoom)) {
+              throw new Error(`V1 camera baseline diverged for ${name}: ${JSON.stringify(activeState.camera)}`);
+            }
+            if (latestCamera.duration !== 650 || latestCamera.retainPadding !== false || latestCamera.essential !== true) {
+              throw new Error(`V1 camera motion options diverged for ${name}: ${JSON.stringify(latestCamera)}`);
+            }
+            if (JSON.stringify(latestCamera.easingSamples) !== JSON.stringify([0,0.4375,0.75,0.9375,1])) {
+              throw new Error(`V1 camera easing diverged for ${name}: ${JSON.stringify(latestCamera.easingSamples)}`);
+            }
+            if (activeState.markerCount < 9) {
+              throw new Error(`Navigation marker was not added for ${name}: markerCount=${activeState.markerCount}`);
+            }
+
+            await page.screenshot({ path: `${outputDir}/${name}-active.png`, fullPage: false, animations: 'disabled' });
+            await page.locator('#minimize-navigation-btn').click();
+            const minimized = await page.locator('#instruction-banner').evaluate((element) => ({
+              minimized: element.classList.contains('minimized'),
+              expanded: element.querySelector('#minimize-navigation-btn')?.getAttribute('aria-expanded'),
+              secondaryDisplay: getComputedStyle(element.querySelector('.instruction-secondary')).display,
+            }));
+            if (!minimized.minimized || minimized.expanded !== 'false' || minimized.secondaryDisplay !== 'none') {
+              throw new Error(`Navigation minimize state diverged for ${name}: ${JSON.stringify(minimized)}`);
+            }
+            await page.screenshot({ path: `${outputDir}/${name}-minimized.png`, fullPage: false, animations: 'disabled' });
+
+            await page.locator('#end-navigation-btn').click();
+            await page.waitForFunction(() => globalThis.__navigationEvidence.events.some((event) => event.type === 'navigationEnded' && event.detail?.reason === 'cancelled'), null, { timeout: 5000 });
+            const endedState = await page.evaluate(() => {
+              const banner = document.getElementById('instruction-banner');
+              const end = document.getElementById('end-navigation-btn');
+              const ended = globalThis.__navigationEvidence.events.filter((event) => event.type === 'navigationEnded').at(-1)?.detail ?? null;
+              return {
+                ended,
+                bannerHidden: Boolean(banner?.classList.contains('hidden')),
+                endHidden: Boolean(end && getComputedStyle(end).display === 'none'),
+                bodyNavigationActive: document.body.classList.contains('navigation-active'),
+                events: globalThis.__navigationEvidence.events,
+              };
+            });
+            if (endedState.ended?.reason !== 'cancelled' || !endedState.bannerHidden || !endedState.endHidden || endedState.bodyNavigationActive) {
+              throw new Error(`Navigation teardown diverged for ${name}: ${JSON.stringify(endedState)}`);
+            }
+            if (pageErrors.length || httpErrors.length) {
+              throw new Error(`Browser errors for ${name}: ${JSON.stringify({ pageErrors, httpErrors })}`);
+            }
+
+            const result = { activeState, minimized, endedState, pageErrors, httpErrors };
+            writeFileSync(`${outputDir}/${name}.json`, JSON.stringify(result, null, 2));
+            await context.close();
+            return result;
+          }
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            const evidence = {};
+            try {
+              for (const [name, width, height] of viewports) {
+                evidence[name] = await capture(browser, name, width, height);
+              }
+            } finally {
+              await browser.close();
+            }
+            writeFileSync(`${outputDir}/evidence.json`, JSON.stringify({
+              v1Commit: '60746fd7fed97b805758b37adfdbe3bad2582bfe',
+              navigationRequestEvent: 'morro:navigation-requested',
+              routingEndpoint: '/api/routing/directions',
+              mapboxGlJs: '3.12.0',
+              viewports: viewports.map(([name,width,height]) => ({ name,width,height })),
+              evidence,
+            }, null, 2));
+          })().catch((error) => {
+            writeFileSync(`${outputDir}/failure.txt`, String(error?.stack || error));
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+      - name: Show diagnostics
+        if: failure()
+        run: |
+          cat /tmp/navigation-visual-baseline.log || true
+          cat /tmp/navigation-visual-baseline/failure.txt || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: navigation-visual-baseline-evidence
+          path: /tmp/navigation-visual-baseline
+          retention-days: 14
+          if-no-files-found: error
