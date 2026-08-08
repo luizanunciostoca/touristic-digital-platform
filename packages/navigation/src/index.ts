@@ -89,3 +89,16 @@ export {
   type ArrivalLifecyclePorts,
   type ArrivalUpdateResult,
 } from "./arrival.js";
+
+export {
+  createRouteRecalculationController,
+  evaluateRouteRecalculation,
+  getRecalculationThresholdMeters,
+  type RecalculationEligibility,
+  type RecalculationEligibilityInput,
+  type RouteRecalculationController,
+  type RouteRecalculationControllerOptions,
+  type RouteRecalculationInput,
+  type RouteRecalculationRequest,
+  type RouteRecalculationResult,
+} from "./recalculation.js";
