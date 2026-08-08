@@ -17,6 +17,14 @@ export const V1_NAVIGATION_BASELINE_PROVENANCE = Object.freeze({
     path: "js/navigation/navigationState/__tests__/navigation-session-contract.test.js",
     blobSha: "4df4fd6fe7924198a0139e3ba44e62540fa8e167",
   }),
+  routingSource: Object.freeze({
+    path: "js/navigation/navigationServices/routing-client.js",
+    blobSha: "160dcf5478212f77267561d408a66156fa12ba8d",
+  }),
+  routingTest: Object.freeze({
+    path: "js/navigation/navigationServices/__tests__/routing-client.test.js",
+    blobSha: "81630629512ebf322e6ab96290bdf239d4fe3127",
+  }),
 });
 
 export const V1_GEOMETRY_FIXTURES = Object.freeze({
@@ -74,5 +82,33 @@ export const V1_GEOMETRY_FIXTURES = Object.freeze({
     durationSeconds: 3660,
     formattedDistance: "1.3 km",
     formattedDuration: "1h 1min",
+  }),
+});
+
+export const V1_ROUTING_FIXTURES = Object.freeze({
+  start: Object.freeze([-38.91, -13.38] as const),
+  end: Object.freeze([-38.92, -13.39] as const),
+  stringCoordinatePair: Object.freeze(["-38.91", "-13.38"] as const),
+  invalidLongitudePair: Object.freeze([181, -13.38] as const),
+  invalidRequestPair: Object.freeze([999, 0] as const),
+  unsupportedRequest: Object.freeze({
+    profile: "driving-car",
+    language: "fr",
+  }),
+  normalizedRequest: Object.freeze({
+    coordinates: Object.freeze([
+      Object.freeze([-38.91, -13.38] as const),
+      Object.freeze([-38.92, -13.39] as const),
+    ]),
+    profile: "foot-walking",
+    language: "pt",
+    instructions: true,
+  }),
+  sameOriginEndpoint: "/api/routing/directions",
+  staticHostFallbackStatus: 405,
+  backendUnavailable: Object.freeze({
+    status: 503,
+    code: "ROUTING_NOT_CONFIGURED",
+    message: "Serviço indisponível.",
   }),
 });
