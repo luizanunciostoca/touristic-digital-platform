@@ -14,6 +14,10 @@ import {
   type NavigationDomLifecycle,
 } from "./navigation-dom-lifecycle.js";
 import {
+  createNavigationGuidanceUi,
+  type NavigationGuidanceUi,
+} from "./navigation-guidance-ui.js";
+import {
   createNavigationRequestPort,
   type NavigationRequestPort,
 } from "./navigation-request-port.js";
@@ -31,6 +35,7 @@ export interface BrowserNavigationRuntimeInstallOptions {
   readonly createLifecycle?: typeof createNavigationDomLifecycle;
   readonly createRequestPort?: typeof createNavigationRequestPort;
   readonly createEventBridge?: typeof createNavigationDomEventBridge;
+  readonly createGuidanceUi?: typeof createNavigationGuidanceUi;
 }
 
 export interface BrowserNavigationRuntimeInstall {
@@ -38,6 +43,7 @@ export interface BrowserNavigationRuntimeInstall {
   readonly lifecycle: NavigationDomLifecycle;
   readonly requestPort: NavigationRequestPort;
   readonly eventBridge: NavigationDomEventBridge;
+  readonly guidanceUi: NavigationGuidanceUi;
   destroy(): void;
 }
 
@@ -56,7 +62,16 @@ export function installBrowserNavigationRuntime(
     options.createRequestPort ?? createNavigationRequestPort;
   const createEventBridge =
     options.createEventBridge ?? createNavigationDomEventBridge;
+  const createGuidanceUi =
+    options.createGuidanceUi ?? createNavigationGuidanceUi;
   const eventBridge = createEventBridge(options.document);
+  const guidanceUi = createGuidanceUi(options.document);
+  const eventTarget = options.document.defaultView;
+
+  const onNavigationStarted = (): void => guidanceUi.start();
+  const onNavigationEnded = (): void => guidanceUi.stop();
+  eventTarget?.addEventListener("navigationStarted", onNavigationStarted);
+  eventTarget?.addEventListener("navigationEnded", onNavigationEnded);
 
   let lifecycle: NavigationDomLifecycle | null = null;
   let latestLocation: BrowserLocation | null = null;
@@ -103,6 +118,7 @@ export function installBrowserNavigationRuntime(
     },
     onSnapshot: (snapshot, context) => {
       latestSnapshot = snapshot;
+      guidanceUi.update(snapshot);
       eventBridge.runtime({
         sessionId: context.sessionId,
         routeIdentity: snapshot.routeIdentity,
@@ -139,11 +155,15 @@ export function installBrowserNavigationRuntime(
     lifecycle: activeLifecycle,
     requestPort,
     eventBridge,
+    guidanceUi,
     destroy(): void {
       if (destroyed) return;
       destroyed = true;
+      eventTarget?.removeEventListener("navigationStarted", onNavigationStarted);
+      eventTarget?.removeEventListener("navigationEnded", onNavigationEnded);
       requestPort.destroy();
       activeLifecycle.destroy();
+      guidanceUi.destroy();
       lifecycle = null;
       latestLocation = null;
       latestSnapshot = null;
