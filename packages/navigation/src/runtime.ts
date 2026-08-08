@@ -80,7 +80,9 @@ function normalizeStepIndex(value: unknown, instructionCount: number): number {
   return Math.min(parsed, Math.max(0, instructionCount - 1));
 }
 
-function instructionText(instruction: NavigationInstructionInput | undefined): string {
+function instructionText(
+  instruction: NavigationInstructionInput | undefined,
+): string {
   if (!instruction) return "Continue pela rota";
   const maneuver = instruction.maneuver;
   const maneuverInstruction =
@@ -162,7 +164,10 @@ export function createNavigationRuntimeCoordinator(
       if (!activeTracker) return null;
 
       const instructions = input.instructions ?? [];
-      const stepIndex = normalizeStepIndex(input.stepIndex, instructions.length);
+      const stepIndex = normalizeStepIndex(
+        input.stepIndex,
+        instructions.length,
+      );
       const geometry = activeTracker.snapshot(input.location ?? null, {
         stepIndex,
         lookAheadMeters: RUNTIME_LOOK_AHEAD_METERS,
@@ -178,13 +183,16 @@ export function createNavigationRuntimeCoordinator(
             accuracy: 15,
           }
         : null;
-      const visual = stabilizer.stabilize(visualInput ?? fallbackVisualInput ?? {}, {
-        projectedCoordinate: geometry.projectedCoordinate,
-        offRouteDistance: geometry.offRouteDistance,
-        bearing: geometry.bearing,
-        rawBearing: geometry.rawBearing,
-        progress: geometry.progress,
-      });
+      const visual = stabilizer.stabilize(
+        visualInput ?? fallbackVisualInput ?? {},
+        {
+          projectedCoordinate: geometry.projectedCoordinate,
+          offRouteDistance: geometry.offRouteDistance,
+          bearing: geometry.bearing,
+          rawBearing: geometry.rawBearing,
+          progress: geometry.progress,
+        },
+      );
       if (!visual) return null;
 
       const guidance = buildGuidance(geometry, instructions, stepIndex);
