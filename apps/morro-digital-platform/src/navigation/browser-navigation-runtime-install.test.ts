@@ -21,7 +21,9 @@ import { installBrowserNavigationRuntime } from "./browser-navigation-runtime-in
 function eventBridge(): NavigationDomEventBridge {
   return {
     started: vi.fn(),
-    status: vi.fn((input) => createNavigationHealthSnapshot(input)),
+    status: vi.fn<NavigationDomEventBridge["status"]>((input) =>
+      createNavigationHealthSnapshot(input),
+    ),
     location: vi.fn(),
     runtime: vi.fn(),
     ended: vi.fn(),
@@ -35,7 +37,7 @@ function bootstrapStub(active = false): NavigationSessionBootstrap {
     stop: vi.fn(),
     isActive: vi.fn(() => active),
     getActiveSessionId: vi.fn(() => (active ? 9 : null)),
-  } as unknown as NavigationSessionBootstrap;
+  };
 }
 
 function lifecycleStub(
@@ -47,7 +49,7 @@ function lifecycleStub(
     destroy: vi.fn(),
     isActive: vi.fn(() => false),
     ...overrides,
-  } as NavigationDomLifecycle;
+  };
 }
 
 function requestPortStub(destroy: () => void = vi.fn()): NavigationRequestPort {
