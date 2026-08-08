@@ -20,6 +20,7 @@ export interface NavigationMapboxMapLike {
     readonly pitch: number;
     readonly zoom: number;
     readonly duration: number;
+    readonly easing: (time: number) => number;
     readonly padding: {
       readonly top: number;
       readonly bottom: number;
@@ -57,7 +58,6 @@ const CAMERA_MIN_MOVE_METERS = 1.5;
 const CAMERA_MIN_BEARING_DEGREES = 2.5;
 const CAMERA_PITCH = 68;
 const CAMERA_DEFAULT_ZOOM = 19.1;
-const EARTH_RADIUS_METERS = 6_371_000;
 
 function finiteNumber(value: unknown, fallback = 0): number {
   const parsed = Number(value);
@@ -73,21 +73,24 @@ function geographicDistanceMeters(
   b: { readonly latitude: number; readonly longitude: number },
 ): number {
   if (!a) return Infinity;
-  const toRadians = (degrees: number): number => (degrees * Math.PI) / 180;
-  const lat1 = toRadians(a.latitude);
-  const lat2 = toRadians(b.latitude);
-  const dLat = toRadians(b.latitude - a.latitude);
-  const dLon = toRadians(b.longitude - a.longitude);
-  const h =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
-  return EARTH_RADIUS_METERS * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+  const latitudeScale = 110_540;
+  const longitudeScale =
+    111_320 *
+    Math.cos((((a.latitude + b.latitude) / 2) * Math.PI) / 180);
+  return Math.hypot(
+    (a.longitude - b.longitude) * longitudeScale,
+    (a.latitude - b.latitude) * latitudeScale,
+  );
 }
 
 function bearingDifference(a: number, b: number): number {
   let difference = Math.abs(finiteNumber(a) - finiteNumber(b)) % 360;
   if (difference > 180) difference = 360 - difference;
   return difference;
+}
+
+function cameraEasing(time: number): number {
+  return time * (2 - time);
 }
 
 function getCameraPadding(
@@ -202,6 +205,7 @@ export function createNavigationMapboxPresenter(
         pitch: CAMERA_PITCH,
         zoom: targetZoom,
         duration: force ? 900 : 650,
+        easing: cameraEasing,
         padding: getCameraPadding(options.map, viewport),
         retainPadding: false,
         essential: true,
