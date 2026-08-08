@@ -57,3 +57,13 @@ export {
   type RouteStepEnd,
   type RouteStepModel,
 } from "./geometry.js";
+
+export {
+  createNavigationVisualStabilizer,
+  navigationVisualDistanceMeters,
+  type NavigationVisualStabilizer,
+  type NavigationVisualStabilizerResult,
+  type NormalizedVisualLocation,
+  type VisualLocationInput,
+  type VisualSnapshotInput,
+} from "./stabilizer.js";
