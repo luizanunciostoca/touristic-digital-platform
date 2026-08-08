@@ -1,0 +1,280 @@
+/* ======================================================
+   CAROUSEL MODAL UI
+   
+   Arquivo CSS para o modal independente do carrossel
+   ====================================================== */
+
+/* -----------------------------------------------------
+   1. DEFINIÇÕES PRINCIPAIS E CONTAINERS
+   ----------------------------------------------------- */
+
+/* Modal do Carrossel */
+.carousel-modal {
+  /* Posicionamento */
+  position: fixed;
+  top: 0% !important; /* Sempre fixo a 1% do topo da viewport */
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2100; /* Garantir acima do assistente e mapas */
+
+  /* Dimensões */
+  width: 100%;
+  max-width: 700px;
+  height: auto;
+  max-height: 80vh;
+
+  /* Aparência */
+  background: rgba(249, 250, 251, 0.95);
+  border-radius: 1.25rem;
+  box-shadow: 0 10px 25px rgba(0, 75, 199, 0.15), 0 5px 12px rgba(0, 0, 0, 0.15);
+  border: 0.15rem solid rgba(255, 255, 255, 0.8);
+  overflow: hidden;
+
+  /* Animação ao aparecer */
+  animation: slide-down 0.3s ease-out forwards;
+
+  /* Transições */
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+/* Carrossel oculto */
+.carousel-modal.hidden {
+  display: none;
+  opacity: 0;
+  transform: translateX(-50%) translateY(-20px);
+  pointer-events: none;
+}
+
+/* Animação de entrada */
+@keyframes slide-down {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-50px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* Responsividade para dispositivos móveis */
+@media (max-width: 768px) {
+  .carousel-modal {
+    width: 100%;
+    max-height: 75vh;
+  }
+}
+
+#carousel-modal::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* Borda com gradiente sutil */
+#carousel-modal::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 1.25rem;
+  padding: 0.19rem;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.4),
+    rgba(75, 156, 211, 0.2)
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Classe para ocultar o modal */
+#carousel-modal.hidden {
+  display: none;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+}
+
+/* -----------------------------------------------------
+   2. CONTAINER DO CARROSSEL
+   ----------------------------------------------------- */
+
+/* Container do carrossel */
+#carousel-modal .carousel-container {
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  max-width: 100%;
+  max-height: 65vh;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-lg, 0.8rem);
+  overflow: hidden;
+  background-color: transparent;
+}
+
+/* Estilos para o swiper */
+#carousel-modal .swiper-container {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  height: auto !important;
+  min-height: 10px !important;
+  max-height: 35vh !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+  border-radius: var(--radius-lg, 0.8rem) var(--radius-lg, 0.8rem) 0 0 !important;
+  padding: 0 !important;
+  position: relative !important;
+  z-index: 1 !important;
+  flex-grow: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  touch-action: pan-x;
+}
+
+#carousel-modal .swiper-wrapper {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: inherit !important;
+  box-sizing: border-box !important;
+  flex: 1 !important;
+  display: flex !important;
+}
+
+#carousel-modal .swiper-slide {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: var(--gray-100, #f3f4f6) !important;
+  border-radius: var(--radius-lg, 0.8rem) !important;
+  overflow: hidden !important;
+  height: 100% !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  position: relative !important;
+  z-index: 5 !important;
+}
+
+#carousel-modal .swiper-slide img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  border-radius: var(--radius-lg, 0.8rem) !important;
+  display: block !important;
+  max-width: 100% !important;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  min-height: 220px !important;
+  max-height: 95vh !important;
+  z-index: 5;
+}
+
+#carousel-modal .swiper-slide img.loaded {
+  opacity: 1;
+  max-height: 45vh;
+  height: 100%;
+  display: block;
+}
+
+/* Texto de informação do carrossel */
+#carousel-modal .carousel-info-text {
+  margin: 0;
+  font-size: 13px;
+  text-align: center;
+  font-weight: 500;
+  color: var(--gray-800, #1f2937);
+  background-color: var(--gray-50, #f9fafb);
+  border-radius: 0 0 var(--radius-lg, 0.8rem) var(--radius-lg, 0.8rem);
+  padding: 8px;
+  line-height: 1.4;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+#carousel-modal .carousel-info-text .feedback-text {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--gray-700, #374151);
+  font-weight: normal;
+}
+
+/* Texto de follow-up após carrossel */
+#carousel-modal .carousel-follow-up {
+  font-style: italic;
+  background: rgba(59, 130, 246, 0.1);
+  border-left: 3px solid #3b82f6;
+  margin-top: 0.5rem;
+  padding: var(--spacing-sm, 0.75rem);
+  font-size: 14px;
+  line-height: 1.5;
+  border-radius: var(--radius-md, 0.5rem);
+  color: var(--gray-800, #1f2937);
+}
+
+/* Estilo para paginação */
+#carousel-modal .swiper-container .swiper-pagination {
+  bottom: 10px !important;
+  left: 0 !important;
+  right: 0 !important;
+  position: absolute !important;
+  z-index: 10 !important;
+  display: flex !important;
+  justify-content: center !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* -----------------------------------------------------
+   3. CONTROLES DO MODAL (BOTÕES)
+   ----------------------------------------------------- */
+
+/* Botão de minimizar */
+#carousel-modal .minimize-button {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  border: none;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #004bc7;
+  cursor: pointer;
+  width: 2.75rem;
+  height: 2.75rem;
+  display: flex;
+  z-index: 10;
+  padding: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+#carousel-modal .minimize-button:hover {
+  background: rgba(255, 255, 255, 0.5);
+  transform: scale(1.05);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+#carousel-modal .minimize-button:active {
+  transform: scale(0.95);
+  background: rgba(255, 255, 255, 0.7);
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  #carousel-modal {
+    left: 50%;
+    width: 100%;
+    max-width: 100%;
+  }
+}

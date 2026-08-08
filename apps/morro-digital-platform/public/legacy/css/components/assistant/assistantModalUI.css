@@ -1,0 +1,1151 @@
+/* ======================================================
+   ASSISTANT MODAL UI
+   
+   Arquivo CSS completo para gerenciar a interface do modal
+   do assistente virtual, incluindo:
+   - Layout base e posicionamento
+   - Aparência visual (cores, sombras, bordas)
+   - Efeitos visuais (glassmorphism, transições)
+   - Animações de entrada/saída
+   - Estilos para mensagens (usuário/assistente)
+   - Responsividade
+   - Suporte para tema escuro
+   - Carrossel e componentes especiais
+   - Controles e botões
+   
+   Organizado por seções para fácil manutenção
+   ====================================================== */
+
+/* -----------------------------------------------------
+   1. DEFINIÇÕES PRINCIPAIS E CONTAINERS
+   ----------------------------------------------------- */
+
+:root {
+  --assistant-input-bottom: max(0rem, env(safe-area-inset-bottom, 0px));
+  --assistant-dock-inline-gap: 0px;
+  --assistant-input-width: 100vw;
+  --assistant-bar-height: clamp(4.35rem, 10vw, 5.35rem);
+  --assistant-cluster-gap: clamp(0.7rem, 2vw, 1.1rem);
+  --assistant-side-button-size: clamp(4.55rem, 13vw, 5.6rem);
+  --assistant-icon-bottom: calc(var(--assistant-input-bottom) + var(--assistant-bar-height) + var(--assistant-cluster-gap));
+  --assistant-modal-top-gap: 5vh;
+}
+
+/* Container principal do assistente */
+.assistant-container {
+  bottom: 90px;
+  z-index: 2002;
+  width: auto;
+  min-width: 80px;
+  position: fixed;
+}
+
+/* Modo de navegação ativa */
+body.navigation-active .assistant-container {
+  bottom: 180px; /* Mais alto quando a navegação está ativa */
+}
+
+/* Modal principal
+   ================================================================
+   FONTE DE VERDADE Única — NÃO ALTERAR EM OUTROS ARQUIVOS JS/CSS
+   Regras:
+     - Posição horizontal: left 50% (centralizado)
+     - Posição vertical: bottom fixo acima da barra de input (~80px)
+     - Cresce SEMPRE para cima (transform-origin: bottom center)
+     - Altura máxima: 50vh → nunca ultrapassa 10% do topo (bottom=40% + 50vh = 90vh)
+     - O JS NÃO deve sobrescrever top/bottom/max-height
+   ================================================================ */
+#assistant-messages {
+  position: fixed !important;
+  left: 0.5rem !important;
+  bottom: calc(var(--assistant-icon-bottom) + var(--assistant-side-button-size) + var(--assistant-cluster-gap)) !important;
+  top: auto !important;
+  transform: none !important;
+  transform-origin: bottom left !important;
+  z-index: 2001;
+
+  width: min(calc(100vw - 1rem), 48rem);
+  max-width: min(calc(100vw - 1rem), 48rem);
+  min-width: min(18rem, calc(100vw - 1rem));
+  height: auto !important;
+  max-height: calc(100dvh - (var(--assistant-input-bottom) + var(--assistant-bar-height) + 0.75rem)) !important;
+  min-height: 4.5rem;
+
+  border-radius: 1.25rem;
+  box-shadow: 0 10px 25px rgba(0, 75, 199, 0.15), 0 5px 12px rgba(0, 0, 0, 0.1),
+    0 0 0 1px rgba(255, 255, 255, 0.3);
+  border: 0.19rem solid rgba(253, 253, 253, 0.82);
+
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
+  margin-bottom: 0;
+
+  pointer-events: auto;
+  transition: width 0.3s ease, max-height 0.3s ease, bottom 0.3s ease, left 0.3s ease;
+}
+
+#assistant-messages::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* Botão de minimizar - com zona de segurança */
+#assistant-messages .minimize-button {
+  position: absolute;
+  top: 0.35rem;
+  right: 0.35rem;
+  border: none;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #004bc7;
+  cursor: pointer;
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  z-index: 30; /* Acima de todo o conteúdo */
+  padding: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(4px);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+#assistant-messages .minimize-button:hover {
+  background: rgba(255, 255, 255, 0.5);
+  transform: scale(1.05);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+/* Ajustes para modo 3D do mapa */
+body.map-3d-mode #assistant-messages {
+  z-index: 500;
+}
+
+/* -----------------------------------------------------
+   2. ÁREA DE MENSAGENS
+   ----------------------------------------------------- */
+
+#assistant-messages .messages-area {
+  flex: 1;
+  overflow-y: auto;
+  /*
+   * max-height: herda o limite do modal pai (50vh - 56px)
+   * Subtrai o espaço do botão minimizar (~40px) e padding (~16px)
+   */
+  max-height: calc(100dvh - (var(--assistant-input-bottom) + var(--assistant-bar-height) + 4.75rem));
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  position: relative;
+  scroll-behavior: smooth;
+  transform-origin: bottom center;
+  padding: 0.2rem 0.32rem 0.35rem;
+
+  /* Barra de rolagem fina e discreta (visível quando necessário) */
+  scrollbar-width: thin;                        /* Firefox: barra fina */
+  scrollbar-color: rgba(0, 75, 199, 0.3) transparent; /* Firefox: cor */
+  -ms-overflow-style: -ms-autohiding-scrollbar; /* IE/Edge */
+}
+
+/* Chrome/Safari/Opera: barra de rolagem fina e discreta */
+#assistant-messages .messages-area::-webkit-scrollbar {
+  width: 4px;
+  background: transparent;
+}
+#assistant-messages .messages-area::-webkit-scrollbar-track {
+  background: transparent;
+}
+#assistant-messages .messages-area::-webkit-scrollbar-thumb {
+  background: rgba(0, 75, 199, 0.3);
+  border-radius: 4px;
+}
+#assistant-messages .messages-area::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 75, 199, 0.55);
+}
+
+/* Classes para diferentes estados do modal */
+#assistant-messages.grow-upward {
+  transition: max-height 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              height 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: bottom center !important;
+  height: auto !important;
+  overflow: hidden;
+}
+
+/* Ajustes para o comportamento de crescimento para cima */
+#assistant-messages.grow-upward .messages-area {
+  max-height: calc(100dvh - (var(--assistant-input-bottom) + var(--assistant-bar-height) + 4.75rem));
+  overflow-y: auto;
+  padding-bottom: 0.5rem;
+}
+
+/* Estado de interação com mapa/carrossel/navegação: mantém posição da fonte de verdade */
+#assistant-messages.map-interaction {
+  max-height: calc(100dvh - (var(--assistant-input-bottom) + var(--assistant-bar-height) + 0.75rem)) !important;
+}
+
+/* Garantir que não haja sobreposição do conteúdo com o botão de minimizar */
+#assistant-messages .messages-area {
+  padding-top: 0.25rem; /* Evitar sobreposição com o botão de minimizar */
+}
+
+/* Garantir que o modal se ajuste ao conteúdo */
+#assistant-messages.auto-size {
+  height: auto !important;
+  min-height: 0 !important;
+  /* Respeita o limite de 50vh herdado da regra principal */
+}
+
+/* Nota: a barra de rolagem da .messages-area é estilizada acima (seção 2) */
+
+/* Garantir que elementos internos também não mostrem scrollbars */
+#assistant-messages .navigation-instruction-area {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  overflow-y: auto;
+}
+
+#assistant-messages .navigation-instruction-area::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* Garantir que o carrossel não mostre barras de rolagem */
+#assistant-messages .swiper-container::-webkit-scrollbar,
+.swiper-wrapper::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.swiper-container,
+.swiper-wrapper {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+/* -----------------------------------------------------
+   3. ESTILOS PARA MENSAGENS
+   ----------------------------------------------------- */
+
+#assistant-messages .message {
+  padding: 0.5rem 2.45rem 0.42rem 0.6rem;
+  max-width: 100%;
+  word-wrap: break-word;
+  line-height: 1.3;
+  position: relative;
+  font-size: clamp(0.82rem, 1.45vw, 0.92rem);
+  box-sizing: border-box;
+  border-radius: 0.92rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s ease;
+  margin-right: 2px;
+  margin-top: 2px;
+  animation: messageEntry 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+#assistant-messages.has-long-text .message {
+  font-size: clamp(0.82rem, 1.45vw, 0.91rem);
+  line-height: 1.36;
+}
+
+#assistant-messages.has-overflow .message {
+  font-size: clamp(0.78rem, 1.2vw, 0.88rem);
+  line-height: 1.3;
+}
+
+#assistant-messages.has-overflow .message.assistant small {
+  font-size: 0.78rem;
+}
+
+#assistant-messages.has-overflow .messages-area {
+  max-height: calc(95vh - (var(--assistant-input-bottom) + var(--assistant-bar-height) + 5rem)) !important;
+}
+
+/* Mensagens do usuário */
+#assistant-messages .message.user {
+  background: linear-gradient(135deg, #004bc7, #0062ff);
+  color: white;
+  align-self: flex-end;
+  border-bottom-right-radius: 0.2rem;
+  box-shadow: 0 3px 8px rgba(0, 75, 199, 0.25);
+}
+
+/* Mensagens do assistente */
+#assistant-messages .message.assistant {
+  align-self: flex-start;
+  height: auto;
+  width: 100%;
+  flex: 0 0 auto;
+  background: linear-gradient(135deg, #ffffff, #f5f7fa);
+  color: #2f2b2b;
+  border-bottom-left-radius: 0.2rem;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(229, 231, 235, 0.6);
+  padding-right: 2.8rem; /* Reservar espaço para o botão fechar (×) */
+}
+
+/* Efeito hover para mensagens */
+#assistant-messages .message:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Borda ao passar o mouse */
+#assistant-messages .message::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+  opacity: 0;
+  transition: box-shadow 0.3s, opacity 0.3s;
+  pointer-events: none;
+}
+
+#assistant-messages .message:hover::after {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+  opacity: 1;
+}
+
+/* Efeito de cursor digitando */
+@keyframes pulseCursor {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+.typing-cursor {
+  display: inline-block;
+  margin-left: 0.125rem;
+  color: #004bc7;
+  animation: pulseCursor 1.2s ease-in-out infinite;
+  font-weight: bold;
+}
+
+/* -----------------------------------------------------
+   4. CARROSSEL E COMPONENTES ESPECIAIS (DESATIVADO - MOVIDO PARA CAROUSEL MODAL)
+   ----------------------------------------------------- */
+
+/* Nota: As configurações do carrossel foram movidas para carouselModal.css */
+/* Mantendo apenas o necessário para compatibilidade */
+
+#assistant-messages .navigation-instruction-area {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  overflow-y: auto;
+}
+
+/* -----------------------------------------------------
+   5. CONTROLES DO MODAL (BOTÕES)
+   ----------------------------------------------------- */
+
+/* Botão de minimizar - com zona de segurança */
+#assistant-messages .minimize-button {
+  position: absolute;
+  top: 0.35rem;
+  right: 0.35rem;
+  border: none;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #004bc7;
+  cursor: pointer;
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  z-index: 30; /* Acima de todo o conteúdo */
+  padding: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(4px);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Botão de minimizar - com zona de segurança */
+
+#assistant-messages .minimize-button:active {
+  transform: scale(0.95);
+}
+
+/* Seletor de voz do assistente */
+.assistant-voice-selector {
+  /* Dimensões mínimas de toque 44px (2.75rem) */
+  height: 2.75rem;
+  width: auto;
+  min-width: 13.75rem;
+  padding: 0 var(--spacing-md, 1rem);
+
+  /* Aparência */
+  background-color: #f0f3f5;
+  border: 0.0625rem solid #ccd0d5;
+  border-radius: calc(2.75rem / 2);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+  /* Texto */
+  font-family: var(--font-sans, system-ui, -apple-system, sans-serif);
+  font-size: var(--font-size-sm, 0.875rem);
+  font-weight: 500;
+  color: #4a4a4a;
+  line-height: 2.75rem;
+  text-align: center;
+
+  /* Efeitos */
+  transition: all 0.2s ease-in-out;
+}
+
+.assistant-voice-selector:hover {
+  background-color: #e4e9ed;
+  box-shadow: 0 3px 5px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+}
+
+/* -----------------------------------------------------
+   6. ÁREA DE INPUT DO ASSISTENTE
+   ----------------------------------------------------- */
+
+.assistant-input-area {
+  position: fixed;
+  bottom: var(--assistant-input-bottom);
+  left: 0;
+  right: 0;
+  transform: none;
+  width: 100vw;
+  max-width: 100vw;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.96);
+  border-radius: 1.15rem 1.15rem 0 0;
+  padding: 0.75rem 0.95rem;
+  padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.16);
+  z-index: 2100;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(229, 231, 235, 0.9);
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+}
+
+.assistant-input-area input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 0.5rem 0.75rem;
+  font-size: 1rem;
+  color: #333;
+  outline: none;
+}
+
+.assistant-input-area button {
+  background: transparent;
+  border: none;
+  color: #004bc7;
+  font-size: 1.25rem;
+  cursor: pointer;
+  margin-left: 0.5rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.assistant-input-area button:hover {
+  background: rgba(0, 75, 199, 0.1);
+}
+
+.assistant-input-area button:active {
+  transform: scale(0.9);
+}
+
+/* Ajustes para modo 3D do mapa */
+body.map-3d-mode .assistant-input-area {
+  z-index: 500;
+}
+
+/* -----------------------------------------------------
+   7. ESTADOS E VISIBILIDADE
+   ----------------------------------------------------- */
+
+/* Estado oculto */
+#assistant-messages.hidden,
+.assistant-input-area.hidden {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  position: absolute !important;
+  left: -9999px !important;
+  top: -9999px !important;
+  height: 0 !important;
+  width: 0 !important;
+  overflow: hidden !important;
+  z-index: -999 !important;
+  transition: none !important;
+  animation: none !important;
+}
+
+/* Classe específica para ajuste automático vertical */
+#assistant-messages.grow-upward.showing-content {
+  min-height: auto !important;
+  height: auto !important;
+  overflow: visible !important;
+  transition: height 0.3s ease, bottom 0.3s ease;
+}
+
+/* Garantir que o container se ajuste ao conteúdo sem espaços em branco */
+#assistant-messages.auto-size {
+  height: auto !important;
+  min-height: 0 !important;
+  /* Limite: 10% do topo (bottom=40% + max-height=50vh → topo=10vh) */
+  max-height: calc(100dvh - (var(--assistant-input-bottom) + var(--assistant-bar-height) + 0.75rem)) !important;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Garantir que o botão de minimizar tenha uma zona clara */
+#assistant-messages:after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 4rem;
+  height: 3.5rem;
+  background: linear-gradient(
+    135deg,
+    transparent 30%,
+    rgba(245, 247, 250, 0.5) 100%
+  );
+  border-radius: 1.25rem 1.25rem 0 0;
+  pointer-events: none;
+  z-index: 5;
+}
+
+/* Quando a área de mensagens está oculta */
+#assistant-messages .messages-area[style*="display: none"] {
+  display: none !important;
+}
+
+/* Estado de transição ao ocultar */
+#assistant-messages.hiding {
+  opacity: 0;
+  transform: translateY(20px);
+  pointer-events: none;
+  animation: modalExit 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+#assistant-messages.repositioned {
+  height: auto !important;
+  min-height: 60px !important;
+  /* Mantém o limite correto de 50vh (10% do topo) */
+  max-height: calc(100dvh - (var(--assistant-input-bottom) + var(--assistant-bar-height) + 0.75rem)) !important;
+}
+
+#assistant-messages.repositioned .messages-area {
+  height: auto !important;
+  min-height: auto !important;
+  max-height: calc(100dvh - (var(--assistant-input-bottom) + var(--assistant-bar-height) + 4.75rem)) !important;
+  overflow-y: auto !important;
+}
+
+/* -----------------------------------------------------
+   8. ANIMAÇÕES E TRANSIÇÕES
+   ----------------------------------------------------- */
+
+/* Animação de entrada para o modal */
+@keyframes modalEntry {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+#assistant-messages:not(.hidden) {
+  animation: modalEntry 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Animação de saída para o modal */
+@keyframes modalExit {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+}
+
+/* Animação de entrada para mensagens */
+@keyframes messageEntry {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* -----------------------------------------------------
+   9. MODO ESCURO
+   ----------------------------------------------------- */
+
+@media (prefers-color-scheme: dark) {
+  #assistant-messages {
+    background: rgba(30, 41, 59, 0.85);
+    border-color: rgba(71, 85, 105, 0.6);
+  }
+
+  #assistant-messages .message.assistant {
+    background: linear-gradient(135deg, #334155, #1e293b);
+    color: #e2e8f0;
+    border-color: rgba(71, 85, 105, 0.6);
+  }
+
+  #assistant-messages .message.user {
+    background: linear-gradient(135deg, #0369a1, #0284c7);
+  }
+
+  #assistant-messages .minimize-button {
+    color: #60a5fa;
+  }
+
+  .assistant-input-area {
+    background: rgba(30, 41, 59, 0.9);
+    border-color: rgba(71, 85, 105, 0.6);
+  }
+
+  .assistant-input-area input {
+    color: #e2e8f0;
+  }
+
+  .assistant-input-area button {
+    color: #60a5fa;
+  }
+
+  .assistant-voice-selector {
+    background-color: #334155;
+    border-color: #475569;
+    color: #e2e8f0;
+  }
+
+  .assistant-voice-selector:hover {
+    background-color: #1e293b;
+  }
+}
+
+/* Suporte explícito para tema escuro via classes */
+body.dark-theme #assistant-messages,
+[data-theme="dark"] #assistant-messages {
+  background: rgba(30, 41, 59, 0.85);
+  border-color: rgba(71, 85, 105, 0.6);
+}
+
+body.dark-theme #assistant-messages .minimize-button,
+[data-theme="dark"] #assistant-messages .minimize-button {
+  color: #60a5fa;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+body.dark-theme #assistant-messages .minimize-button:hover,
+[data-theme="dark"] #assistant-messages .minimize-button:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+body.dark-theme #assistant-messages .message.assistant,
+[data-theme="dark"] #assistant-messages .message.assistant {
+  background: linear-gradient(135deg, #334155, #1e293b);
+  color: #e2e8f0;
+  border-color: rgba(71, 85, 105, 0.6);
+}
+
+body.dark-theme #assistant-messages .message.user,
+[data-theme="dark"] #assistant-messages .message.user {
+  background: linear-gradient(135deg, #0369a1, #0284c7);
+}
+
+/* -----------------------------------------------------
+   10. RESPONSIVIDADE
+   ----------------------------------------------------- */
+
+/* Telas pequenas (smartphones) */
+@media (max-width: 480px) {
+  /* Em smartphones: mantém a fonte de verdade do bloco principal */
+  #assistant-messages {
+    left: 0.5rem !important;
+    width: calc(100vw - 1rem);
+    max-width: calc(100vw - 1rem);
+    min-width: 260px;
+    bottom: calc(var(--assistant-icon-bottom) + var(--assistant-side-button-size) + 0.6rem) !important;
+  }
+
+  #assistant-messages.map-interaction {
+    max-height: calc(100dvh - (var(--assistant-input-bottom) + var(--assistant-bar-height) + 0.75rem)) !important;
+  }
+
+  #assistant-messages .minimize-button {
+    top: 0.2rem;
+    right: 0.2rem;
+    width: 2.35rem;
+    height: 2.35rem;
+    font-size: 1.3rem;
+  }
+
+  .assistant-input-area {
+    left: 0;
+    right: 0;
+    width: 100vw;
+    max-width: 100vw;
+    padding: 0.58rem 0.72rem;
+    padding-bottom: calc(0.58rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  #assistant-messages .message {
+    padding: 0.44rem 1.35rem 0.34rem 0.44rem;
+    font-size: 0.84rem;
+    line-height: 1.25;
+    max-width: 100%;
+  }
+
+  /* A messages-area usa scroll quando o conteúdo ultrapassa o limite */
+  #assistant-messages .messages-area {
+    max-height: calc(100dvh - (var(--assistant-input-bottom) + var(--assistant-bar-height) + 4.1rem)) !important;
+    overflow-y: auto;
+    gap: 0.22rem;
+    padding: 0.15rem 0.24rem 0.28rem;
+  }
+
+  .assistant-options {
+    gap: 0.22rem;
+    padding: 0.2rem 0.28rem 0.32rem;
+  }
+
+  .assistant-option-btn {
+    min-height: 2.0rem;
+    padding: 0.3rem 0.42rem;
+    border-radius: 0.78rem;
+    font-size: 0.69rem;
+    line-height: 1.14;
+    box-shadow: 0 5px 10px rgba(37, 99, 235, 0.08);
+  }
+
+  .assistant-container {
+    bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+  }
+
+  body.navigation-active .assistant-container {
+    bottom: 160px;
+  }
+}
+
+/* Telas muito pequenas */
+@media (max-width: 320px) {
+  #assistant-messages {
+    min-width: 95%;
+  }
+
+  .assistant-input-area {
+    padding: 0.5rem;
+  }
+
+  .assistant-input-area button {
+    width: 2rem;
+    height: 2rem;
+    font-size: 1rem;
+  }
+}
+
+/* Modo paisagem */
+@media (orientation: landscape) and (max-height: 600px) {
+  #assistant-messages {
+    /* Em paisagem com tela pequena, usar 80vh para dar margem extra */
+    max-height: 80vh !important;
+  }
+
+  .assistant-input-area {
+    bottom: 0.5rem;
+  }
+
+  .assistant-container {
+    left: 30%;
+    max-width: 35%;
+  }
+
+  body.navigation-active .assistant-container {
+    transform: translateX(-50%);
+  }
+}
+
+/* Telas grandes (tablets e desktops) */
+@media (min-width: 992px) {
+  #assistant-messages {
+    max-width: 70vh;
+  }
+
+  .assistant-input-area {
+    max-width: 100%;
+  }
+}
+
+/* Compatibilidade com notch e áreas seguras */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .assistant-input-area {
+    bottom: 0;
+    padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .assistant-container {
+    bottom: calc(90px + env(safe-area-inset-bottom, 0px) / 2);
+  }
+
+  body.navigation-active .assistant-container {
+    bottom: calc(180px + env(safe-area-inset-bottom, 0px) / 2);
+  }
+}
+
+/* -----------------------------------------------------
+   11. UTILIDADES E COMPONENTES AUXILIARES
+   ----------------------------------------------------- */
+
+/* Efeito de vidro para elementos adicionais */
+.glass-effect {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* ======================================================
+   BOTÕES DE OPÇÃO DO ASSISTENTE
+   Renderizados abaixo das mensagens para seleção rápida
+   ====================================================== */
+
+.assistant-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.2rem;
+  padding: 0.2rem 0.3rem 0.3rem;
+  max-width: 100%;
+  align-items: stretch;
+}
+
+.assistant-option-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 1.8rem;
+  padding: 0.25rem 0.4rem;
+  white-space: normal;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(59, 130, 246, 0.16);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(239, 246, 255, 0.98));
+  color: #0f3d91;
+  font-size: 0.7rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, filter 0.18s ease;
+  white-space: normal;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.1;
+  text-align: left;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.06);
+  backdrop-filter: blur(10px);
+}
+
+#assistant-messages .message p {
+  margin: 0 0 0.22rem;
+}
+
+#assistant-messages .message p:last-child {
+  margin-bottom: 0;
+}
+
+#assistant-messages .message br {
+  line-height: 1.15;
+}
+
+#assistant-messages .message.assistant b {
+  line-height: 1.2;
+}
+
+#assistant-messages .message.assistant .assistant-help-compact {
+  display: grid;
+  gap: 0.46rem;
+}
+
+#assistant-messages .message.assistant .assistant-help-intro,
+#assistant-messages .message.assistant .assistant-help-footer {
+  font-size: 0.85em;
+  line-height: 1.24;
+}
+
+#assistant-messages .message.assistant .assistant-help-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.34rem;
+}
+
+#assistant-messages .message.assistant .assistant-help-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.16rem;
+  font-size: 0.76em;
+  line-height: 1.14;
+  padding: 0.46rem 0.48rem;
+  margin: 0;
+  min-height: 4.25rem;
+  background: linear-gradient(145deg, rgba(240, 253, 254, 0.96), rgba(224, 242, 254, 0.98));
+  border: 1px solid rgba(125, 211, 252, 0.55);
+  border-radius: 0.9rem;
+  box-shadow: 0 6px 14px rgba(14, 116, 144, 0.08);
+}
+
+#assistant-messages .message.assistant .assistant-help-item b {
+  display: block;
+  white-space: normal;
+  color: #0c4a6e;
+  font-size: 1em;
+  line-height: 1.08;
+}
+
+#assistant-messages .message.assistant .assistant-help-example {
+  display: block;
+  color: #334155;
+  font-size: 0.92em;
+  line-height: 1.12;
+}
+
+@media (max-width: 480px) {
+  #assistant-messages .message.assistant .assistant-help-compact {
+    gap: 0.34rem;
+  }
+
+  #assistant-messages .message.assistant .assistant-help-intro,
+  #assistant-messages .message.assistant .assistant-help-footer {
+    font-size: 0.78em;
+    line-height: 1.18;
+  }
+
+  #assistant-messages .message.assistant .assistant-help-grid {
+    gap: 0.26rem;
+  }
+
+  #assistant-messages .message.assistant .assistant-help-item {
+    gap: 0.12rem;
+    font-size: 0.69em;
+    line-height: 1.08;
+    padding: 0.38rem 0.4rem;
+    min-height: 3.6rem;
+    border-radius: 0.82rem;
+  }
+
+  #assistant-messages .message.assistant .assistant-help-example {
+    font-size: 0.88em;
+    line-height: 1.06;
+  }
+}
+
+.assistant-option-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.12), transparent 58%);
+  pointer-events: none;
+}
+
+.assistant-option-btn:hover,
+.assistant-option-btn:focus-visible {
+  border-color: rgba(37, 99, 235, 0.38);
+  outline: none;
+  transform: translateY(-2px);
+  box-shadow: 0 14px 28px rgba(37, 99, 235, 0.14);
+  filter: brightness(1.01);
+}
+
+.assistant-option-btn:focus {
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(239, 246, 255, 0.98));
+  border-color: rgba(59, 130, 246, 0.16);
+  transform: none;
+  outline: none;
+}
+
+.assistant-option-btn:active {
+  transform: translateY(0) scale(0.98);
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.12);
+}
+
+.assistant-option-btn:nth-child(4n + 1) {
+  background: linear-gradient(145deg, rgba(240, 249, 255, 0.98), rgba(224, 242, 254, 0.98));
+}
+
+.assistant-option-btn:nth-child(4n + 2) {
+  background: linear-gradient(145deg, rgba(240, 253, 250, 0.98), rgba(220, 252, 231, 0.98));
+}
+
+.assistant-option-btn:nth-child(4n + 3) {
+  background: linear-gradient(145deg, rgba(255, 251, 235, 0.98), rgba(254, 240, 138, 0.22));
+}
+
+.assistant-option-btn:nth-child(4n + 4) {
+  background: linear-gradient(145deg, rgba(250, 245, 255, 0.98), rgba(233, 213, 255, 0.22));
+}
+
+/* Tema escuro */
+body.dark-theme .assistant-option-btn {
+  background: linear-gradient(145deg, rgba(30, 41, 59, 0.94), rgba(15, 23, 42, 0.98));
+  color: #dbeafe;
+  border-color: rgba(96, 165, 250, 0.2);
+  box-shadow: 0 12px 24px rgba(2, 6, 23, 0.35);
+}
+
+body.dark-theme .assistant-option-btn::before {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.18), transparent 62%);
+}
+
+body.dark-theme .assistant-option-btn:hover {
+  border-color: rgba(96, 165, 250, 0.45);
+  box-shadow: 0 14px 28px rgba(2, 6, 23, 0.42);
+}
+
+/* Dispositivos com notch/safe-area: apenas ajusta o container de input */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  /* O #assistant-messages mantém a fonte de verdade do bloco principal */
+}
+
+/* ──────────────────────────────────────────────────────────────────────────────
+   INDICAÇÕES CONTEXTUAIS DURANTE NAVEGAÇÃO (navigation-suggestions)
+   ────────────────────────────────────────────────────────────────────────────── */
+
+/* Mensagem de sugestão — destaque visual diferente das mensagens normais */
+#assistant-messages .message.assistant.navigation-suggestion {
+  background: linear-gradient(135deg, #fff8e1, #fffde7);
+  border: 1.5px solid rgba(255, 193, 7, 0.5);
+  box-shadow: 0 3px 10px rgba(255, 193, 7, 0.2);
+  animation: suggestionEntry 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Animação de entrada para sugestões */
+@keyframes suggestionEntry {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Selo de parceiro patrocinador */
+.suggestion-badge {
+  display: inline-block;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  margin-right: 0.4rem;
+  vertical-align: middle;
+  letter-spacing: 0.02em;
+  box-shadow: 0 1px 3px rgba(217, 119, 6, 0.4);
+}
+
+/* Texto de promoção */
+.suggestion-promo {
+  display: block;
+  margin-top: 0.4rem;
+  padding: 0.3rem 0.5rem;
+  background: rgba(255, 193, 7, 0.15);
+  border-radius: 0.4rem;
+  font-size: 0.8rem;
+  color: #92400e;
+  border-left: 3px solid #f59e0b;
+}
+
+/* -----------------------------------------------------
+   REFINOS MOBILE — Área segura e equilíbrio visual
+   ----------------------------------------------------- */
+@media (max-width: 600px) {
+  :root {
+    --assistant-cluster-gap: 0.55rem;
+    --assistant-side-button-size: clamp(3.9rem, 14vw, 4.45rem);
+    --assistant-bar-height: clamp(4.05rem, 15vw, 4.85rem);
+  }
+
+  .assistant-container {
+    bottom: calc(var(--assistant-input-bottom) + var(--assistant-bar-height) + 0.5rem);
+  }
+
+  #assistant-messages {
+    left: 0.5rem !important;
+    bottom: calc(var(--assistant-icon-bottom) + var(--assistant-side-button-size) + 0.55rem) !important;
+    width: calc(100vw - 1rem);
+    max-width: calc(100vw - 1rem);
+    min-width: min(17rem, calc(100vw - 1rem));
+    max-height: calc(100dvh - (var(--assistant-input-bottom) + var(--assistant-bar-height) + 1rem)) !important;
+    border-radius: 1.1rem;
+  }
+
+  #assistant-messages .messages-area,
+  #assistant-messages.grow-upward .messages-area {
+    max-height: calc(100dvh - (var(--assistant-input-bottom) + var(--assistant-bar-height) + 4.4rem));
+    padding: 0.2rem 0.3rem 0.35rem;
+  }
+
+  #assistant-messages .minimize-button {
+    top: 0.3rem;
+    right: 0.3rem;
+    width: 2.25rem;
+    height: 2.25rem;
+    font-size: 1.25rem;
+  }
+}
+
+@media (max-width: 420px) {
+  #assistant-messages {
+    left: 0.4rem !important;
+    width: calc(100vw - 0.8rem);
+    max-width: calc(100vw - 0.8rem);
+    border-radius: 1rem;
+  }
+
+  #assistant-messages .messages-area {
+    gap: 0.26rem;
+  }
+}

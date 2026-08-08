@@ -1,0 +1,175 @@
+/* Estilo para o conteúdo do popup personalizado (ex: Leaflet popup) */
+.custom-popup {
+  width: 100%;
+  max-width: 100%;
+  max-height: 60vh; /* Limitar altura máxima */
+  overflow-y: auto;
+  box-sizing: border-box;
+  font-size: 14px; /* Era 1rem */
+  overflow-wrap: break-word; /* Adicionado para evitar overflow de texto */
+  word-wrap: break-word; /* Adicionado */
+}
+
+.custom-popup h3 {
+  font-size: 14px; /* Era 1.25rem */
+  margin-bottom: 8px; /* Era 0.5rem */
+  color: var(--gray-800);
+}
+
+.custom-popup p {
+  font-size: var(--font-size-base); /* Era 1rem */
+  margin-bottom: var(--spacing-md); /* Era 1rem */
+  color: var(--gray-800);
+}
+
+.popup-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm); /* Era 0.5rem */
+  justify-content: space-between; /* Ou center, flex-start */
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.popup-button {
+  flex: 1 1 auto; /* Permitir que cresçam e encolham, base auto */
+  /* min-width: 5.625rem; */ /* 90px - Remover min-width fixo, deixar flex controlar */
+  padding: var(
+    --spacing-sm
+  ); /* Era 0.5rem - Ajustar para garantir altura mínima */
+  min-height: 2.75rem; /* Garantir altura mínima de toque (44px) */
+  font-size: var(--font-size-sm); /* Era 0.9rem */
+  border: none;
+  border-radius: var(--radius-sm);
+  background-color: var(--primary);
+  color: white;
+  cursor: pointer;
+  transition: var(--transition);
+  box-sizing: border-box;
+  white-space: nowrap; /* Evitar quebra de linha inicial */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center; /* Centralizar texto */
+  -webkit-tap-highlight-color: transparent;
+}
+
+.popup-button:hover {
+  background-color: var(--primary-dark);
+}
+
+/* Botão de fechar específico para modal de carrossel (se existir) */
+#carousel-modal-close {
+  margin-top: var(--spacing-sm); /* Era 0.5rem */
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius); /* Era 8px */
+  padding: var(--spacing-sm) var(--spacing-lg); /* Era 0.5rem 1.2rem */
+  min-height: 2.75rem; /* Garantir altura mínima de toque (44px) */
+  font-size: var(--font-size-base); /* Era 1rem */
+  cursor: pointer;
+  transition: background 0.2s;
+  display: inline-flex; /* Para alinhar com padding */
+  align-items: center;
+  justify-content: center;
+}
+
+#carousel-modal-close:hover {
+  background: var(--primary-dark);
+}
+
+/* --- Modal e Backdrop (Checklist Items) --- */
+/* As regras abaixo são para um modal genérico e seu backdrop. */
+/* Precisam ser aplicadas aos seletores corretos (ex: .modal-overlay, .modal-container) */
+/* que podem não existir neste projeto ou serem controlados por JS. */
+
+.modal-backdrop-example {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5); /* Backdrop fluido conforme checklist */
+  z-index: var(--z-modal); /* Abaixo do modal */
+  /* Adicionar transições de opacidade para fade in/out */
+}
+
+.modal-container-example {
+  position: fixed;
+  inset: 0; /* Centraliza na viewport */
+  margin: auto; /* Centraliza na viewport */
+  width: clamp(90%, 500px, 95vw); /* Largura responsiva com máximo */
+  height: fit-content; /* Altura baseada no conteúdo */
+  max-height: 80vh; /* Limitar altura máxima */
+  background-color: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  z-index: var(--z-overlay); /* Acima do backdrop */
+  overflow: auto; /* Permitir scroll interno se necessário */
+  display: flex; /* Para layout interno, se necessário */
+  flex-direction: column; /* Para layout interno, se necessário */
+}
+
+/* --- Refatoração Mobile-First das Media Queries Anteriores --- */
+
+/* Estilos base (Mobile) já definidos acima */
+
+/* Tablet (Ex: min-width: 768px) */
+@media (min-width: 768px) {
+  .custom-popup h3 {
+    /* font-size: 1.2rem; */ /* Usar variável --font-size-lg já faz isso */
+  }
+}
+
+/* Desktop (Ex: min-width: 1024px) */
+@media (min-width: 1024px) {
+  .custom-popup {
+    padding: var(--spacing-lg); /* Aumentar padding em telas maiores */
+  }
+
+  .custom-popup h3 {
+    /* font-size: 1.3rem; */ /* Usar variável --font-size-xl */
+  }
+
+  .popup-button {
+    padding: var(--spacing-md); /* Aumentar padding */
+    font-size: var(--font-size-base); /* Aumentar fonte */
+  }
+}
+
+/* Ajustes para dispositivos no modo paisagem com pouca altura */
+@media (orientation: landscape) and (max-height: 31.25rem) {
+  /* 500px */
+  .custom-popup {
+    padding: var(--spacing-sm); /* Reduzir padding */
+    max-height: 80vh; /* Ajustar max-height se necessário */
+  }
+
+  .popup-buttons {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: var(--spacing-sm);
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    justify-content: flex-start; /* Alinhar à esquerda para scroll */
+  }
+
+  .popup-buttons::-webkit-scrollbar {
+    display: none;
+  }
+
+  .popup-button {
+    flex-shrink: 0; /* Impedir que encolham demais no scroll */
+  }
+}
+
+.popup-name-only {
+  padding: 0.35rem 0.55rem;
+  min-width: 0;
+}
+
+.popup-name-only h3,
+.popup-name-only h5 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--gray-800);
+  line-height: 1.3;
+}

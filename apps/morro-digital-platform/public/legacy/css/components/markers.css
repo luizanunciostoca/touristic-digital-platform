@@ -1,0 +1,53 @@
+/* Estilos para marcadores no mapa */
+
+.user-marker-icon {
+  /* Estilos existentes */
+  background: none;
+  border: none;
+
+  /* Centralização conforme checklist - Aplicado ao ícone *interno* se houver */
+  /* A posição do marcador no mapa é controlada pelo Leaflet/JS */
+  /* Se este estilo for para o container do ícone: */
+  /* position: absolute; */ /* Necessário para transform funcionar como esperado no posicionamento */
+  /* left: 50%; */
+  /* top: 50%; */ /* Ou 'bottom: 0;' dependendo do ponto de ancoragem desejado */
+  /* transform: translate(-50%, -100%); */ /* Centraliza horizontalmente, ancora na base */
+
+  /* Nota: A implementação exata depende de como os marcadores são estruturados no HTML/JS. */
+  /* O .custom-user-marker em map.css já define tamanho e usa flex para centralizar conteúdo. */
+  /* Adicionar a regra de transform aqui pode ser redundante ou conflitar sem a estrutura HTML. */
+}
+
+/* Exemplo de como aplicar a marcadores genéricos (se aplicável) */
+.leaflet-marker-icon.custom-poi-marker {
+  /* Exemplo de seletor */
+  /* Usar SVG como background-image ou content é recomendado */
+  /* background-image: url('path/to/marker.svg'); */
+  /* background-size: contain; */
+  /* width: 2rem; */ /* Tamanho desejado */
+  /* height: 2rem; */ /* Tamanho desejado */
+
+  /* Centralização/Ancoragem */
+  position: absolute; /* Geralmente já aplicado pelo Leaflet */
+  left: 50%;
+  bottom: 0; /* Ancorar na base */
+  transform: translateX(-50%); /* Centraliza horizontalmente */
+  /* Ou para ancorar no centro vertical e horizontal: */
+  /* top: 50%; */
+  /* transform: translate(-50%, -50%); */
+  /* Ou para ancorar no topo central: */
+  /* top: 0; */
+  /* transform: translate(-50%, -100%); */ /* Conforme checklist */
+
+  /* Garantir que não haja bordas/backgrounds indesejados */
+  border: none;
+  background-color: transparent;
+}
+
+/* CORRIGIDO: Removida regra que sobrescrevia o posicionamento do Leaflet.
+   O Leaflet gerencia a posição do marcador via setLatLng() automaticamente.
+   Sobrescrever position/top/left/transform faz o marcador ficar fixo no centro
+   da tela em vez de seguir as coordenadas geográficas. */
+.navigation-active .user-location-marker {
+  z-index: 1000 !important;
+}

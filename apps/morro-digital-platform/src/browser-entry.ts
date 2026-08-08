@@ -2,13 +2,66 @@ import { startMorroDigitalBrowser } from "./browser.js";
 import { getMorroTourById } from "./config/tour-catalog.js";
 import { createMorroTourMarkers } from "./config/tour-markers.js";
 import { createMorroTourSelectionController } from "./config/tour-selection.js";
+import {
+  createLeafletCompatibilitySdk,
+  hasLeafletCompatibilitySdk,
+} from "./development/leaflet-compatibility-sdk.js";
 import { createDevelopmentMapboxSdk } from "./development/mapbox-sdk.js";
+import { bootstrapMorroDigitalApplication } from "./main.js";
+import { initializeWeatherWidget } from "./weather/weather-widget.js";
+
+bootstrapMorroDigitalApplication(document);
+initializeWeatherWidget({ document });
+
+function setupV1ShellInteractions(): void {
+  const assistant = document.getElementById("assistant-messages");
+  const assistantButton = document.querySelector<HTMLButtonElement>(
+    ".quick-actions .action-button.primary",
+  );
+  const minimizeButton =
+    assistant?.querySelector<HTMLButtonElement>(".minimize-button");
+  const globeButton = document.getElementById("toggle-globe-view");
+
+  assistantButton?.addEventListener("click", () => {
+    assistant?.classList.remove("hidden");
+  });
+
+  minimizeButton?.addEventListener("click", () => {
+    assistant?.classList.add("hidden");
+  });
+
+  globeButton?.addEventListener("click", () => {
+    const active = globeButton.classList.toggle("active");
+    globeButton.setAttribute("aria-pressed", String(active));
+  });
+
+  document
+    .querySelectorAll<HTMLButtonElement>(".assistant-option-btn")
+    .forEach((button) => {
+      button.addEventListener("click", () => {
+        const value = button.dataset.value || button.textContent?.trim() || "";
+        document.dispatchEvent(
+          new CustomEvent("morro:assistant-option-selected", {
+            detail: { value },
+          }),
+        );
+      });
+    });
+}
+
+setupV1ShellInteractions();
+
+window.addEventListener("load", () => {
+  window.setTimeout(() => {
+    document.getElementById("loading-overlay")?.classList.add("fade-out");
+  }, 800);
+});
 
 const developmentEnvironment = Object.freeze({
   VITE_MAPBOX_ACCESS_TOKEN: "development-only-token",
   VITE_MAPBOX_CONTAINER_ID: "map",
   VITE_MAPBOX_STYLE: "development://morro-digital",
-  VITE_MAPBOX_INITIAL_ZOOM: "14",
+  VITE_MAPBOX_INITIAL_ZOOM: "13.5",
 });
 
 const initialTourId = "volta-a-ilha";
@@ -16,6 +69,12 @@ const status = document.getElementById("runtime-status");
 const mapContainer = document.getElementById("map");
 const tourSelect = document.getElementById("tour-select");
 const initialTourMarkers = createMorroTourMarkers(initialTourId);
+const browserMapSdk = hasLeafletCompatibilitySdk(window)
+  ? createLeafletCompatibilitySdk(window, {
+      initialCenter: [-38.9159969, -13.4],
+      initialZoom: 13.5,
+    })
+  : createDevelopmentMapboxSdk(document);
 
 function updateStatus(message: string): void {
   if (status) status.textContent = message;
@@ -28,7 +87,7 @@ function formatTourStatus(tourId: string, markerCount: number): string {
 }
 
 void startMorroDigitalBrowser({
-  sdk: createDevelopmentMapboxSdk(document),
+  sdk: browserMapSdk,
   environment: developmentEnvironment,
   document,
   initialMarkers: initialTourMarkers,

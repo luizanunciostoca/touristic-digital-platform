@@ -1,0 +1,77 @@
+/* Controles de interface */
+.control-button {
+  padding: 0.5rem 1rem;
+  background-color: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  color: var(--gray-800);
+  border: none;
+  border-radius: var(--radius-lg);
+  font-weight: 500;
+  font-size: 0.875rem;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  white-space: nowrap;
+  transition: var(--transition);
+}
+
+.control-button:hover {
+  background-color: rgba(255, 255, 255, 0.4);
+  box-shadow: var(--shadow-lg);
+}
+
+.control-button.active {
+  background-color: var(--accent);
+  color: white;
+}
+
+/* Navigation instruction banner */
+.instruction-banner {
+  position: fixed;
+  left: 50%;
+  bottom: 15%;
+  transform: translateX(-50%);
+  width: 90%;
+  max-width: 450px;
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  z-index: 1500;
+}
+
+.instruction-primary {
+  display: flex;
+  align-items: center;
+  background-color: var(--primary);
+  color: white;
+  padding: 0.75rem 1rem;
+}
+
+.instruction-arrow {
+  font-size: 1.8rem;
+  margin-right: 0.75rem;
+}
+
+#instruction-main {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.instruction-secondary {
+  background-color: white;
+  padding: 0.75rem 1rem;
+}
+
+#instruction-details {
+  font-size: 1rem;
+  margin: 0 0 0.5rem;
+}
+
+.instruction-extra {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  color: var(--gray-800);
+}

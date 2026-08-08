@@ -1,0 +1,542 @@
+/* Botões dinâmicos e responsivos - Estilos Base */
+
+/* Botão de ação principal */
+.action-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(255, 255, 255, 0.8);
+  border: 0.0625rem solid #4b4d51; /* 1px */
+
+  border: none;
+  border-radius: 50%;
+  /* Garantir tamanho mínimo de toque 44x44px (2.75rem) */
+  width: clamp(2.75rem, 8vw, 3rem); /* Min 44px, Max 48px */
+  height: clamp(2.75rem, 8vw, 3rem); /* Min 44px, Max 48px */
+  min-width: 2.75rem; /* 44px */
+  min-height: 2.75rem; /* 44px */
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  transition: var(--transition);
+  padding: 0; /* Padding pode ser adicionado se necessário para conteúdo interno */
+  color: var(--gray-800);
+  position: relative;
+  -webkit-tap-highlight-color: transparent;
+  margin: var(--spacing-xs); /* Usando variável */
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.action-button i {
+  font-size: 1.7rem; /* Ajustar se necessário com base no novo tamanho */
+}
+
+.action-button span {
+  position: absolute;
+  bottom: -1.25rem; /* -20px / 16px */
+  font-size: var(--font-size-xs); /* Era 0.6rem */
+  font-weight: 500;
+  color: rgb(20, 20, 20);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.action-button:hover {
+  transform: translateY(-0.125rem); /* -2px / 16px */
+  box-shadow: var(--shadow-lg);
+}
+
+/* Keep the general button styling here */
+.action-button.primary {
+  background-color: var(--primary);
+  color: white;
+  width: clamp(2.75rem, 10vw, 3.5rem);
+  height: clamp(2.75rem, 10vw, 3.5rem);
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+}
+
+.action-button.primary:hover {
+  background-color: var(--primary-dark);
+}
+
+.action-button.primary i {
+  font-size: 2rem;
+}
+
+/* Botão de clima */
+.action-button.weather {
+  background-color: rgba(255, 255, 255, 0.9);
+  margin-right: var(--spacing-sm); /* Usando variável */
+}
+
+.action-button.weather .weather-emoji {
+  font-size: 1.8rem;
+  margin-bottom: 0.125rem; /* 2px / 16px */
+}
+
+.action-button.weather .weather-label {
+  position: absolute;
+  font-size: var(--font-size-xs); /* Era 0.6rem */
+  font-weight: 500;
+  color: rgb(20, 20, 20);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* Animação para o emoji de clima */
+@keyframes pulse-weather {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.weather-emoji {
+  animation: pulse-weather 2s infinite ease-in-out;
+  display: inline-block;
+}
+
+/* Botões de envio, voz e config com visual mais tecnológico */
+#sendButton,
+#voiceButton,
+#configButton {
+  width: 2.75rem;
+  height: 2.75rem;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  color: white;
+  border: 0.129rem solid rgba(255, 255, 255, 0.8);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 3px 8px rgba(37, 99, 235, 0.3);
+  -webkit-tap-highlight-color: transparent;
+  margin-left: var(--spacing-xs);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Efeito de brilho nos botões */
+#sendButton::before,
+#voiceButton::before,
+#configButton::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.3) 0%,
+    transparent 70%
+  );
+  transform: scale(0);
+  opacity: 0;
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.5s;
+}
+
+#sendButton:hover::before,
+#voiceButton:hover::before,
+#configButton:hover::before {
+  transform: scale(1);
+  opacity: 1;
+}
+
+#sendButton:hover,
+#voiceButton:hover,
+#configButton:hover {
+  background: linear-gradient(135deg, #1a4db2, #1e56c6);
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 5px 12px rgba(37, 99, 235, 0.4);
+}
+
+#sendButton:active,
+#voiceButton:active,
+#configButton:active {
+  transform: scale(0.95);
+  box-shadow: 0 2px 5px rgba(37, 99, 235, 0.3);
+}
+
+/* Animação para o botão de voz quando ativo */
+@keyframes pulseRecording {
+  0% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+}
+
+#voiceButton.active {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  animation: pulseRecording 1.5s infinite;
+}
+
+/* Estado de escuta ativa do botão de voz */
+@keyframes pulseListening {
+  0% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.8);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
+    transform: scale(1.08);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+    transform: scale(1);
+  }
+}
+
+#voiceButton.listening {
+  background: linear-gradient(135deg, #ef4444, #b91c1c);
+  animation: pulseListening 1.2s ease-in-out infinite;
+  border-color: rgba(255, 255, 255, 0.9);
+  color: white;
+}
+
+#voiceButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Notificação visual de escuta (toast) */
+.voice-notification {
+  position: fixed;
+  bottom: 5rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(1rem);
+  background: rgba(30, 30, 30, 0.92);
+  color: #fff;
+  padding: 0.5rem 1.25rem;
+  border-radius: 2rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  z-index: 9999;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+}
+
+.voice-notification.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* Botão principal para chamar o assistente */
+.action-button.primary {
+  background: linear-gradient(135deg, #004bc7, #1a4db2);
+  color: white;
+  width: clamp(2.75rem, 10vw, 3.5rem);
+  height: clamp(2.75rem, 10vw, 3.5rem);
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  box-shadow: 0 4px 12px rgba(0, 75, 199, 0.3),
+    0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+  position: relative;
+  z-index: 1;
+}
+
+.action-button.primary::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.3) 0%,
+    transparent 70%
+  );
+  transform: scale(0);
+  opacity: 0;
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.5s;
+  z-index: -1;
+}
+
+.action-button.primary:hover::before {
+  transform: scale(1);
+  opacity: 1;
+}
+
+.action-button.primary:hover {
+  transform: translateY(-0.25rem) scale(1.05);
+  box-shadow: 0 8px 15px rgba(0, 75, 199, 0.4),
+    0 0 0 1px rgba(255, 255, 255, 0.2) inset;
+}
+
+.action-button.primary:active {
+  transform: scale(0.95);
+}
+
+/* Tamanho de ícone consistente */
+#sendButton i,
+#voiceButton i,
+#configButton i {
+  font-size: 1.25rem;
+
+  /* Ajustado de 1.2rem ou 18px */
+}
+
+/* Comportamento hover idêntico */
+#sendButton:hover,
+#voiceButton:hover,
+#configButton:hover {
+  background-color: var(--primary-dark);
+  transform: scale(1.05);
+}
+
+/* Estado ativo consistente */
+#sendButton:active,
+#voiceButton:active,
+#configButton:active {
+  transform: scale(0.95);
+}
+
+/* Estado ativo apenas para o botão de voz durante a gravação */
+#voiceButton.active {
+  background-color: var(--accent);
+  animation: pulse 1.5s infinite;
+}
+
+/* Estado ativo do botão de configuração quando o painel está aberto */
+#configButton.active {
+  background-color: var(--primary-dark);
+}
+
+/* Control buttons */
+.control-button {
+  /* Dimensões mínimas de toque 44px (2.75rem) */
+  height: 2.75rem;
+  min-height: 2.75rem;
+  border: 0.0625rem solid #4b4d51; /* 1px */
+
+  /* Padding interno consistente */
+  padding: 0 var(--spacing-md); /* Usando variável */
+
+  /* Aparência */
+  background-color: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  color: var(--gray-800);
+  border: none;
+  border-radius: calc(2.75rem / 2); /* Raio para botão pill */
+
+  /* Tipografia consistente */
+  font-weight: 500;
+  font-size: var(--font-size-sm); /* Era 0.875rem ou 14px */
+  line-height: 2.75rem; /* Alinha texto verticalmente */
+
+  /* Layout */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  /* Comportamento de texto */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border: 0.0625rem solid #4b4d51; /* 1px */
+
+  /* Interatividade */
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  transition: background-color 0.2s, transform 0.2s, box-shadow 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.control-button:hover {
+  background-color: rgba(255, 255, 255, 0.4);
+  box-shadow: var(--shadow-lg);
+}
+
+.control-button.active {
+  background-color: var(--accent);
+  color: white;
+}
+
+/* Botão de minimizar */
+.minimize-button {
+  /* Dimensões mínimas de toque 44x44px (2.75rem) */
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+  background: none; /* Adicionado para clareza */
+  border: none; /* Adicionado para clareza */
+  cursor: pointer; /* Adicionado */
+  color: var(--gray-800); /* Adicionado */
+}
+
+.minimize-button:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.assistant-voice-selector {
+  /* Dimensões mínimas de toque 44px (2.75rem) */
+  height: 2.75rem;
+  width: auto; /* Permitir largura flexível */
+  min-width: 13.75rem; /* 220px / 16px */
+  padding: 0 var(--spacing-md);
+  border: 0.0625rem solid #4b4d51; /* 1px */
+
+  /* Colors and appearance */
+  background-color: #f0f3f5;
+  border: 0.0625rem solid #ccd0d5; /* 1px */
+  border-radius: calc(2.75rem / 2); /* Raio para botão pill */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+  /* Text styling */
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm); /* Era 14px */
+  font-weight: 500;
+  color: #4a4a4a;
+  line-height: 2.75rem; /* Alinha texto */
+  text-align: center;
+
+  /* Hover effects */
+  transition: all 0.2s ease-in-out;
+}
+
+.assistant-voice-selector:hover {
+  background-color: #e4e9ed;
+  box-shadow: 0 3px 5px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+}
+
+.assistant-voice-selector:focus {
+  outline: none;
+  border-color: #0078d4;
+}
+
+/* Icon styling if there's an icon in the button */
+.assistant-voice-selector i,
+.assistant-voice-selector svg {
+  margin-right: var(--spacing-sm); /* Usando variável */
+  vertical-align: middle;
+}
+
+/* Painel de configurações */
+.config-panel {
+  position: absolute;
+  bottom: 25%; /* Manter ou ajustar conforme necessário */
+  right: var(--spacing-md); /* Usando variável */
+  width: clamp(17.5rem, 90%, 25rem); /* 280px, 400px */
+  max-width: 95vw;
+  background: white;
+  border-radius: var(--radius-lg); /* Usando variável */
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  padding: var(--spacing-md); /* Usando variável */
+  z-index: var(--z-highest); /* Era 10000 */
+  display: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  overflow-y: auto;
+  max-height: 70vh;
+  box-sizing: border-box;
+}
+
+.config-panel.visible {
+  display: block;
+  opacity: 1;
+}
+
+/* Estilo para o cabeçalho do painel de configurações */
+.config-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-sm); /* Era 5px */
+  padding-bottom: var(--spacing-xs); /* Era 8px */
+  border-bottom: 0.0625rem solid #eee; /* 1px */
+}
+
+.config-panel h3 {
+  margin-top: 0;
+  margin-bottom: 0; /* Movido para header */
+  font-size: var(--font-size-lg); /* Ajustado */
+  color: #444;
+}
+
+.config-option {
+  margin-bottom: var(--spacing-md); /* Usando variável */
+}
+
+.config-option label {
+  display: block;
+  margin-bottom: var(--spacing-xs); /* Usando variável */
+  font-size: var(--font-size-sm); /* Usando variável */
+  color: #666;
+}
+
+.config-option select,
+.config-option input[type="range"] {
+  width: 100%;
+  padding: var(--spacing-sm); /* Usando variável */
+  border-radius: var(--radius-sm); /* Usando variável */
+  border: 0.0625rem solid #ddd; /* 1px */
+  font-size: var(--font-size-sm); /* Usando variável */
+  background-color: #f9f9f9;
+}
+
+/* Botão de fechar no painel de configurações */
+.close-config-button {
+  background: none;
+  border: none;
+  font-size: 1.5rem; /* Era 24px */
+  line-height: 1;
+  color: var(--primary);
+  font-weight: bold;
+  cursor: pointer;
+  padding: 0;
+  /* Dimensões mínimas de toque 44x44px (2.75rem) */
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.close-config-button:hover {
+  color: var(--primary-dark);
+  background-color: var(--gray-100); /* Feedback visual */
+}
+
+.close-config-button:active {
+  transform: scale(0.95);
+}
+
+/* Estado ativo para os botões de ação rápida */
+.quick-actions .action-button.active {
+  background-color: var(--primary);
+  color: white;
+  transform: scale(1.1);
+  box-shadow: 0 2px 10px rgba(59, 130, 246, 0.5);
+}
+
+.quick-actions .action-button:active {
+  transform: scale(0.95);
+}

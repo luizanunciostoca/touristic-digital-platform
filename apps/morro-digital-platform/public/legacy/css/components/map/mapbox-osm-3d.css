@@ -1,0 +1,174 @@
+/* Estilos para o mapa 3D integrado Mapbox-OSM */
+
+/* Contêiner do mapa 3D */
+.mapbox-gl-canvas-container {
+  width: 100%;
+  height: 100%;
+}
+
+/* Ajustes para edifícios 3D */
+.mapboxgl-canvas {
+  outline: none;
+}
+
+/* Tooltip para pontos de interesse */
+.mapboxgl-popup {
+  z-index: 500;
+  max-width: 250px;
+}
+
+.mapboxgl-popup-content {
+  padding: 10px;
+  border-radius: 8px;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+  font-family: "Poppins", sans-serif;
+}
+
+.mapboxgl-popup-content h4 {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  color: #333;
+}
+
+.mapboxgl-popup-content p {
+  margin: 0;
+  font-size: 14px;
+  color: #666;
+}
+
+.mapboxgl-popup-content h3 {
+  margin: 0;
+  padding: 0;
+  color: #111827;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.mapboxgl-popup-close-button {
+  font-size: 18px;
+  padding: 0px;
+}
+
+/* Estilos para controles 3D melhorados */
+.mapbox-3d-controls {
+  position: absolute;
+  top: 40px;
+  right: 10px;
+  z-index: 400;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.mapbox-3d-control-button {
+  background: white;
+  border: none;
+  border-radius: 4px;
+  padding: 6px;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.mapbox-3d-control-button:hover {
+  background: #f0f0f0;
+}
+
+.mapbox-3d-control-button.active {
+  background: #3b82f6;
+  color: white;
+}
+
+/* Estilos para o seletor de estilos de mapa */
+.mapbox-style-picker {
+  background: white;
+  border-radius: 4px;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1);
+  padding: 5px;
+  margin-top: 5px;
+  z-index: 401;
+}
+
+.mapbox-style-option {
+  display: flex;
+  align-items: center;
+  padding: 5px;
+  cursor: pointer;
+  border-radius: 2px;
+}
+
+.mapbox-style-option:hover {
+  background: #f0f0f0;
+}
+
+.mapbox-style-option.active {
+  background: #e0e0e0;
+}
+
+.mapbox-style-preview {
+  width: 20px;
+  height: 20px;
+  margin-right: 5px;
+  border-radius: 2px;
+  border: 1px solid #ccc;
+}
+
+/* Cores dos previews de estilo */
+.mapbox-style-preview.satellite {
+  background: linear-gradient(135deg, #264653, #2a9d8f);
+}
+
+.mapbox-style-preview.streets {
+  background: linear-gradient(135deg, #ddd, #aaa);
+}
+
+.mapbox-style-preview.light {
+  background: #f8f8f8;
+}
+
+.mapbox-style-preview.dark {
+  background: #242424;
+}
+
+/* Estilo para status de carregando */
+.mapbox-loading-indicator {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(255, 255, 255, 0.8);
+  padding: 10px 20px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 500;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.mapbox-loading-indicator::after {
+  content: "Carregando...";
+  margin-left: 10px;
+}
+
+/* Spinner de carregamento */
+.mapbox-loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}

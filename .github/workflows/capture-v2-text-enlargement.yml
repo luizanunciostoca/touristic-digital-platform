@@ -1,0 +1,188 @@
+name: Capture V2 text enlargement state
+
+on:
+  push:
+    branches:
+      - feat/v1-app-shell-checkpoint
+    paths:
+      - .github/workflows/capture-v2-text-enlargement.yml
+      - apps/morro-digital-platform/src/layouts/app-shell.ts
+      - apps/morro-digital-platform/src/browser-entry.ts
+      - apps/morro-digital-platform/public/styles.css
+      - apps/morro-digital-platform/public/legacy/**
+
+permissions:
+  contents: read
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install Playwright
+        run: |
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+      - name: Start V2
+        run: |
+          pnpm --filter @touristic/morro-digital-platform dev >/tmp/v2-text.log 2>&1 &
+          for i in $(seq 1 90); do curl -fsS http://127.0.0.1:4173 >/dev/null && break; sleep 1; done
+      - name: Capture 200 percent text state
+        run: |
+          mkdir -p visual/v2
+          node <<'NODE'
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+
+          async function waitForStableAssistant(page, timeoutMs = 20000) {
+            const deadline = Date.now() + timeoutMs;
+            while (Date.now() < deadline) {
+              const state = await page.evaluate(() => {
+                const modal = document.querySelector('.assistant-modal');
+                const overlay = document.getElementById('loading-overlay');
+                const overlayHidden = !(overlay instanceof HTMLElement) || getComputedStyle(overlay).display === 'none' || getComputedStyle(overlay).visibility === 'hidden' || Number(getComputedStyle(overlay).opacity) === 0;
+                return {
+                  visible: modal instanceof HTMLElement && getComputedStyle(modal).display !== 'none',
+                  optionCount: document.querySelectorAll('.assistant-option-btn').length,
+                  overlayHidden,
+                };
+              });
+              if (state.visible && state.optionCount === 10 && state.overlayHidden) return;
+              await page.waitForTimeout(100);
+            }
+            throw new Error('V2 assistant did not reach the stable 10-option state before timeout.');
+          }
+
+          async function waitForStableGeometry(page, timeoutMs = 5000) {
+            const deadline = Date.now() + timeoutMs;
+            let previous = '';
+            let stableSamples = 0;
+            while (Date.now() < deadline) {
+              const geometry = await page.evaluate(() => {
+                const modal = document.querySelector('.assistant-modal');
+                const messagesArea = modal?.querySelector('.messages-area');
+                if (!(modal instanceof HTMLElement) || !(messagesArea instanceof HTMLElement)) return null;
+                const rect = modal.getBoundingClientRect();
+                return {
+                  modalHeight: Number(rect.height.toFixed(4)),
+                  clientHeight: messagesArea.clientHeight,
+                  scrollHeight: messagesArea.scrollHeight,
+                  scrollTop: messagesArea.scrollTop,
+                };
+              });
+              const current = JSON.stringify(geometry);
+              stableSamples = current === previous ? stableSamples + 1 : 0;
+              previous = current;
+              if (geometry && stableSamples >= 4) return geometry;
+              await page.waitForTimeout(100);
+            }
+            throw new Error('V2 assistant geometry did not settle before timeout.');
+          }
+
+          async function isolateBackground(page) {
+            await page.evaluate(() => {
+              document.getElementById('visual-evidence-underlay')?.remove();
+              const underlay = document.createElement('div');
+              underlay.id = 'visual-evidence-underlay';
+              Object.assign(underlay.style, {
+                position: 'fixed',
+                inset: '0',
+                background: 'rgb(239, 243, 248)',
+                zIndex: '2000',
+                pointerEvents: 'none',
+              });
+              document.body.appendChild(underlay);
+            });
+          }
+
+          async function collectMetrics(page) {
+            return page.evaluate(() => {
+              const modal = document.querySelector('.assistant-modal');
+              const messagesArea = modal?.querySelector('.messages-area');
+              const message = messagesArea?.querySelector('.message.assistant');
+              const options = [...document.querySelectorAll('.assistant-option-btn')];
+              const rect = (element) => {
+                if (!(element instanceof HTMLElement)) return null;
+                const box = element.getBoundingClientRect();
+                return { left: box.left, right: box.right, width: box.width, top: box.top, bottom: box.bottom, height: box.height };
+              };
+              const style = (element) => {
+                if (!(element instanceof HTMLElement)) return null;
+                const computed = getComputedStyle(element);
+                return {
+                  fontFamily: computed.fontFamily,
+                  fontSize: computed.fontSize,
+                  fontWeight: computed.fontWeight,
+                  lineHeight: computed.lineHeight,
+                  letterSpacing: computed.letterSpacing,
+                  paddingTop: computed.paddingTop,
+                  paddingRight: computed.paddingRight,
+                  paddingBottom: computed.paddingBottom,
+                  paddingLeft: computed.paddingLeft,
+                  maxHeight: computed.maxHeight,
+                  gap: computed.gap,
+                  bottom: computed.bottom,
+                  borderTopWidth: computed.borderTopWidth,
+                  borderBottomWidth: computed.borderBottomWidth,
+                };
+              };
+              const body = document.body;
+              return {
+                modalVisible: modal instanceof HTMLElement && getComputedStyle(modal).display !== 'none',
+                modalClassName: modal instanceof HTMLElement ? modal.className : '',
+                modalRect: rect(modal),
+                modalStyle: style(modal),
+                optionCount: options.length,
+                bodyOverflowX: body.scrollWidth > document.documentElement.clientWidth,
+                viewportWidth: document.documentElement.clientWidth,
+                scrollWidth: body.scrollWidth,
+                messagesClientHeight: messagesArea instanceof HTMLElement ? messagesArea.clientHeight : 0,
+                messagesScrollHeight: messagesArea instanceof HTMLElement ? messagesArea.scrollHeight : 0,
+                messagesScrollTop: messagesArea instanceof HTMLElement ? messagesArea.scrollTop : 0,
+                messageText: message?.textContent?.replace(/\s+/g, ' ').trim() ?? '',
+                messageRect: rect(message),
+                messageStyle: style(message),
+                messagesStyle: style(messagesArea),
+                firstOptionRect: rect(options[0]),
+                lastOptionRect: rect(options.at(-1)),
+              };
+            });
+          }
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            const cases = [
+              ['mobile', 195, 422, 2],
+              ['tablet', 384, 512, 2],
+              ['desktop', 720, 450, 2],
+            ];
+            for (const [name, width, height, deviceScaleFactor] of cases) {
+              const context = await browser.newContext({ viewport: { width, height }, deviceScaleFactor });
+              const page = await context.newPage();
+              await page.goto('http://127.0.0.1:4173', { waitUntil: 'domcontentloaded' });
+              await page.evaluate(() => localStorage.setItem('morro-digital-onboarded', '1'));
+              await page.reload({ waitUntil: 'domcontentloaded' });
+              await waitForStableAssistant(page);
+              await page.evaluate(() => document.fonts.ready);
+              const settled = await waitForStableGeometry(page);
+              console.log(`${name} settled`, JSON.stringify(settled));
+              await isolateBackground(page);
+              const metrics = await collectMetrics(page);
+              console.log(`${name} text-200`, JSON.stringify(metrics));
+              if (!metrics.modalVisible || metrics.optionCount !== 10) throw new Error(`V2 enlarged text state incomplete for ${name}`);
+              await page.locator('.assistant-modal').screenshot({ path: `visual/v2/text-enlargement-${name}.png` });
+              await context.close();
+            }
+            await browser.close();
+          })().catch((error) => { console.error(error); process.exit(1); });
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v2-text-enlargement-state
+          path: visual/v2
+          retention-days: 1

@@ -1,0 +1,86 @@
+/**
+ * Accessibility styles for forced colors mode
+ * Replacing deprecated -ms-high-contrast with modern forced-colors
+ */
+
+@media (forced-colors: active) {
+  /* General high contrast fixes */
+  .leaflet-control,
+  .mapboxgl-ctrl-group,
+  .map-control-button,
+  .mapbox-3d-control-button {
+    forced-color-adjust: none;
+    border: 1px solid ButtonText;
+  }
+
+  /* Icons in forced colors mode */
+  .leaflet-control a,
+  .map-control-button,
+  .mapboxgl-ctrl button {
+    forced-color-adjust: none;
+    color: ButtonText;
+    background-color: ButtonFace;
+  }
+
+  /* Map markers in forced colors mode */
+  .leaflet-marker-icon,
+  .mapboxgl-marker {
+    forced-color-adjust: none;
+  }
+
+  /* Ensure buttons are visible */
+  .action-button,
+  button.mapboxgl-ctrl-zoom-in,
+  button.mapboxgl-ctrl-zoom-out,
+  .mapbox-3d-control-button,
+  #sendButton,
+  #voiceButton,
+  #configButton,
+  .minimize-button,
+  .close-button {
+    forced-color-adjust: none;
+    color: ButtonText;
+    background-color: ButtonFace;
+    border: 1px solid ButtonText;
+  }
+
+  /* Ensure active items stand out */
+  .mapbox-3d-control-button.active,
+  .action-button.active,
+  button:active,
+  button:focus {
+    forced-color-adjust: none;
+    border: 2px solid Highlight;
+  }
+
+  /* Ensure popups have proper contrast */
+  .mapboxgl-popup-content,
+  .leaflet-popup-content,
+  .assistant-modal,
+  .message,
+  .submenu {
+    forced-color-adjust: none;
+    background-color: ButtonFace;
+    color: ButtonText;
+    border: 1px solid ButtonText;
+  }
+
+  /* Input fields */
+  input[type="text"],
+  input[type="search"],
+  textarea {
+    forced-color-adjust: none;
+    background-color: Field;
+    color: FieldText;
+    border: 1px solid ButtonText;
+  }
+
+  /* Fix for any remaining -ms-high-contrast overrides */
+  /* This will override any third-party libraries still using the deprecated approach */
+  @media (-ms-high-contrast: active) {
+    * {
+      /* Redirect to use our forced-colors styles instead */
+      forced-color-adjust: none;
+    }
+  }
+}

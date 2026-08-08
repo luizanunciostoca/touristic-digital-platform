@@ -1,0 +1,29 @@
+/* Adiciona box-sizing a todos os elementos, incluindo pseudo-elementos */
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  /* Garante que o corpo ocupe pelo menos a altura total da viewport */
+  min-height: 100vh;
+  font-family: var(--font-sans);
+  background-color: var(--light);
+  color: var(--gray-800);
+  line-height: 1.6;
+  /* Permite rolagem se o conteúdo exceder a viewport */
+  overflow: auto;
+  /* Melhora a renderização de fontes */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Classe utilitária para ocultar elementos */
+.hidden {
+  display: none !important;
+}
+
