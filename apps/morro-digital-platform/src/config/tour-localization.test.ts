@@ -30,7 +30,8 @@ function collectExpectedTranslationKeys(): string[] {
 
     for (const stop of route.stops) {
       const editorial = v1TourEditorialSource[route.id]?.stops[stop.id];
-      if (!editorial) throw new Error(`Missing editorial fixture for ${route.id}/${stop.id}`);
+      if (!editorial)
+        throw new Error(`Missing editorial fixture for ${route.id}/${stop.id}`);
 
       keys.push(
         stop.titleKey,
@@ -79,7 +80,9 @@ describe("tour localization — frozen V1 editorial equivalence", () => {
       const catalog = getLocalizedMorroTourCatalog(locale);
       expect(catalog.map(({ id }) => id)).toEqual(expectedTourIds);
       expect(catalog.map(({ stops }) => stops.length)).toEqual([8, 5, 5]);
-      expect(catalog.reduce((sum, route) => sum + route.stops.length, 0)).toBe(18);
+      expect(catalog.reduce((sum, route) => sum + route.stops.length, 0)).toBe(
+        18,
+      );
 
       for (const route of catalog) {
         expect(route.title.trim()).not.toBe("");
@@ -108,7 +111,9 @@ describe("tour localization — frozen V1 editorial equivalence", () => {
       v1TourTranslationsHe,
     ]) {
       expect(Object.keys(dictionary).sort()).toEqual(expectedKeys);
-      expect(Object.values(dictionary).every((value) => value.trim().length > 0)).toBe(true);
+      expect(
+        Object.values(dictionary).every((value) => value.trim().length > 0),
+      ).toBe(true);
     }
   });
 
@@ -125,12 +130,12 @@ describe("tour localization — frozen V1 editorial equivalence", () => {
     expect(localizeMorroTour("passeio-quadriciclo", "en")?.transport).toBe(
       "ATV (Quad bike)",
     );
-    expect(localizeMorroTour("passeio-quadriciclo", "en")?.stops[0]?.title).toBe(
-      "Base and Instructions",
-    );
-    expect(localizeMorroTour("passeio-quadriciclo", "es")?.stops[0]?.title).toBe(
-      "Base e Instrucciones",
-    );
+    expect(
+      localizeMorroTour("passeio-quadriciclo", "en")?.stops[0]?.title,
+    ).toBe("Base and Instructions");
+    expect(
+      localizeMorroTour("passeio-quadriciclo", "es")?.stops[0]?.title,
+    ).toBe("Base e Instrucciones");
     expect(localizeMorroTour("volta-a-ilha", "he")?.title).toBe("סיבוב האי");
   });
 

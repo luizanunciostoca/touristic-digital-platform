@@ -123,11 +123,7 @@ function localizeRoute(
     ...route,
     locale,
     title: resolveText(locale, route.titleKey, route.title),
-    description: resolveText(
-      locale,
-      route.descriptionKey,
-      route.description,
-    ),
+    description: resolveText(locale, route.descriptionKey, route.description),
     duration: resolveText(locale, route.durationKey, route.duration),
     transport: resolveText(locale, route.transportKey, route.transport),
     stops: Object.freeze(stops),

@@ -11,11 +11,11 @@ export interface TourRouteEditorialSource {
   readonly stops: Readonly<Record<string, TourStopEditorialSource>>;
 }
 
-function freezeStop(
-  stop: TourStopEditorialSource,
-): TourStopEditorialSource {
+function freezeStop(stop: TourStopEditorialSource): TourStopEditorialSource {
   if (stop.tipKeys.length !== stop.tips.length) {
-    throw new Error("Tour stop tip keys and fallback tips must have the same length.");
+    throw new Error(
+      "Tour stop tip keys and fallback tips must have the same length.",
+    );
   }
 
   return Object.freeze({
@@ -144,10 +144,7 @@ export const v1TourEditorialSource: Readonly<
       narrationKey: "tour_trilha_gamboa_s1_narration",
       narration:
         "Vamos começar a Trilha Ecológica para a Gamboa! O ponto de partida é aqui na Fonte Grande, no coração da vila de Morro de São Paulo. Esta trilha é uma das mais bonitas da ilha, combinando praias, mata atlântica e cultura local. Lembre-se: só é possível fazer a trilha na maré baixa!",
-      tipKeys: [
-        "tour_trilha_gamboa_s1_tip1",
-        "tour_trilha_gamboa_s1_tip2",
-      ],
+      tipKeys: ["tour_trilha_gamboa_s1_tip1", "tour_trilha_gamboa_s1_tip2"],
       tips: [
         "Leve água, vá de chinelo ou descalço (boa parte é na areia).",
         "Importante: Verifique a tábua de marés! Só é possível fazer a trilha na maré baixa.",
@@ -180,10 +177,7 @@ export const v1TourEditorialSource: Readonly<
       narrationKey: "tour_trilha_gamboa_s4_narration",
       narration:
         "Chegamos ao Paredão de Argila, a grande atração da trilha! Esta encosta natural de argila rosa e amarela é simplesmente deslumbrante. A tradição local é passar a argila no corpo inteiro! Dizem que ela tem propriedades rejuvenescedoras para a pele. Experimente você também!",
-      tipKeys: [
-        "tour_trilha_gamboa_s4_tip1",
-        "tour_trilha_gamboa_s4_tip2",
-      ],
+      tipKeys: ["tour_trilha_gamboa_s4_tip1", "tour_trilha_gamboa_s4_tip2"],
       tips: [
         "Passe a argila, espere secar ao sol e depois mergulhe no mar para tirar.",
         "A pele fica super macia!",
@@ -196,10 +190,7 @@ export const v1TourEditorialSource: Readonly<
       narrationKey: "tour_trilha_gamboa_s5_narration",
       narration:
         "Parabéns, chegamos à Gamboa! Esta vila de pescadores tem um charme todo especial, com praias de águas muito calmas e barracas deliciosas à beira-mar. O ritmo aqui é mais tranquilo que Morro de São Paulo. Aproveite para almoçar uma moqueca e relaxar. Para voltar, você pode pegar um barco no píer direto para o cais de Morro!",
-      tipKeys: [
-        "tour_trilha_gamboa_s5_tip1",
-        "tour_trilha_gamboa_s5_tip2",
-      ],
+      tipKeys: ["tour_trilha_gamboa_s5_tip1", "tour_trilha_gamboa_s5_tip2"],
       tips: [
         "Aproveite para almoçar uma moqueca nas barracas da praia.",
         "Para voltar, você pode pegar um barco no píer da Gamboa direto para o cais de Morro.",
@@ -214,10 +205,7 @@ export const v1TourEditorialSource: Readonly<
       narrationKey: "tour_quadriciclo_s1_narration",
       narration:
         "Bem-vindo à Expedição de Quadriciclo! Aqui na base, você vai receber todas as instruções de segurança e aprender a pilotar o quadriciclo. Lembre-se: é necessário ter CNH categoria B e o uso de capacete é obrigatório. Prepare-se para uma aventura incrível pelas praias e trilhas mais selvagens da ilha!",
-      tipKeys: [
-        "tour_quadriciclo_s1_tip1",
-        "tour_quadriciclo_s1_tip2",
-      ],
+      tipKeys: ["tour_quadriciclo_s1_tip1", "tour_quadriciclo_s1_tip2"],
       tips: [
         "É necessário ter CNH categoria B para pilotar.",
         "Uso de capacete é obrigatório.",
