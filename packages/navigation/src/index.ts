@@ -77,3 +77,15 @@ export {
   type NavigationRuntimeSnapshot,
   type NavigationRuntimeUpdateInput,
 } from "./runtime.js";
+
+export {
+  calculateArrivalDistanceMeters,
+  createArrivalLifecycle,
+  type ArrivalApproachDetail,
+  type ArrivalCoordinate,
+  type ArrivalDetail,
+  type ArrivalLifecycle,
+  type ArrivalLifecycleOptions,
+  type ArrivalLifecyclePorts,
+  type ArrivalUpdateResult,
+} from "./arrival.js";
