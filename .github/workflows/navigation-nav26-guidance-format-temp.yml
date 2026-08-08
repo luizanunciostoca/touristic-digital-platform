@@ -1,0 +1,36 @@
+name: Format NAV-26 Guidance Temp
+
+on:
+  push:
+    branches:
+      - feat/navigation-camera-visual-baseline
+    paths:
+      - .github/workflows/navigation-nav26-guidance-format-temp.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/navigation-camera-visual-baseline
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec prettier --write apps/morro-digital-platform/src/navigation/navigation-guidance-ui.ts apps/morro-digital-platform/src/navigation/browser-navigation-runtime-install.ts apps/morro-digital-platform/src/navigation/browser-navigation-runtime-install.test.ts
+      - name: Commit formatter output
+        run: |
+          if git diff --quiet; then exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/morro-digital-platform/src/navigation/navigation-guidance-ui.ts apps/morro-digital-platform/src/navigation/browser-navigation-runtime-install.ts apps/morro-digital-platform/src/navigation/browser-navigation-runtime-install.test.ts
+          git commit -m "style: format NAV-26 guidance integration"
+          git push origin HEAD:feat/navigation-camera-visual-baseline
