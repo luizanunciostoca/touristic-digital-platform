@@ -27,7 +27,7 @@ Um item não pode avançar para `equivalent` sem evidência visual ou comportame
 | MIG-0011 | afiliados | Affiliates | FEATURE-0010 | `packages/affiliates` | 9 | discovered | pendente | pendente | pendente | crítico |
 | MIG-0012 | `js/map*` + bootstrap V1 | Geospatial | FEATURE-0001 | `packages/geospatial` + `apps/morro-digital-platform/src/bootstrap/geospatial.ts` | 4 | equivalent | Mapbox Visual Contract validado nos três viewports, normal e `forced-colors` | Runtime, adapter, Mapbox real, fallback, rollback e lifecycle comprovados | PR #17 head final `2d84629b`; runs `31237633579`, `31237633601`, `31237633577` verdes | crítico |
 | MIG-0013 | Home / seletor de roteiros V1 | Core UI / Tours | FEATURE-0007 | `apps/morro-digital-platform/src/browser-entry.ts` | 4 | equivalent | matriz Home v4: loading, map-ready, teclado, contraste e texto ampliado comprovados | troca 8→5→5→8, falhas e offline/provider indisponível comprovados | PRs #19/#17/#20 incorporados; Quality Gate final da matriz `31237787144` verde | alto |
-| MIG-0014 | `js/tours/tour-data.js` | Tours | FEATURE-0007 | `apps/morro-digital-platform/src/config/tour-catalog.ts` + `tour-localization.ts` | 4 | migrating | apresentação estrutural dos 3 roteiros preservada; conteúdo editorial multilíngue ainda não auditado integralmente | 3 roteiros / 18 paradas estruturais validados | PR #18 permanece draft até equivalência editorial com V1 congelada | alto |
+| MIG-0014 | `js/tours/tour-data.js` + `js/i18n/{pt,en,es,he}.js` | Tours | FEATURE-0007 | `apps/morro-digital-platform/src/config/tour-localization.ts` + fontes editoriais V1 | 4 | equivalent | conteúdo dos 3 roteiros/18 paradas preservado nos quatro idiomas da V1; `photoAlt` estrutural mantido conforme `translateTour()` | chaves, fallback PT/EN, descrições, narrações, dicas, aliases de locale e imutabilidade comprovados | PR #18 head `1d7e4bc9`; Quality Gate `31238742255` verde; testes exigem cobertura integral de chaves EN/ES/HE | alto |
 | MIG-0015 | marcadores e centro do mapa da V1 | Geospatial / Tours | FEATURE-0001 | `apps/morro-digital-platform/src/config/tour-markers.ts` + `tour-selection.ts` | 4 | equivalent | rota, source/layers, câmera e 8/5 paradas validados no Mapbox real | substituição atômica, recentralização, troca 8→5→5→8 e rollback comprovados | PR #17 runs Provider `31237633601` e Tour Browser `31237633588` verdes | crítico |
 | MIG-0016 | resolvedor `findTourByKeyword` da V1 | Tours | FEATURE-0007 | `apps/morro-digital-platform/src/config/tour-search.ts` | 4 | equivalent | n/a | aliases, acentos, termos barco/Gamboa, quadriciclo/ATV e retorno seguro preservados | testes automatizados do Runtime M1 + Quality Gates posteriores verdes | médio |
 
@@ -107,22 +107,36 @@ O manifest v4 mantém três modos de prova:
 
 A jornada `home` está em `equivalent`, não `released`.
 
-## Pendência ativa da Wave 4
+### Conteúdo multilíngue dos roteiros — PR #18
 
-A única pendência do conjunto MIG-0012…MIG-0016 é **MIG-0014 — conteúdo dos roteiros**.
+Fonte V1 congelada:
 
-O PR #18 deve permanecer draft até:
+```text
+60746fd7fed97b805758b37adfdbe3bad2582bfe
+```
 
-- confrontar diretamente a V1 congelada `60746fd7fed97b805758b37adfdbe3bad2582bfe`;
-- inventariar todos os campos editoriais dos 3 roteiros e 18 paradas;
-- preservar os idiomas realmente suportados pela V1;
-- migrar descrições completas, narrações, dicas e metadados de acessibilidade quando existirem na fonte;
-- validar fallback e chaves de tradução;
-- adicionar testes de equivalência por campo/chave;
-- registrar qualquer mudança intencional como `preservar`, `corrigir` ou `melhorar`;
-- executar Quality Gate completo no head final.
+A auditoria direta confirmou quatro idiomas de tour na V1 (`pt`, `en`, `es`, `he`) e o contrato editorial de cada parada: título, descrição, narração, dicas e `photoAlt` estrutural. A primeira implementação do PR #18 foi corrigida porque omitia hebraico, descrições/narrações/dicas e traduzia `photoAlt` sem correspondência na V1.
 
-MIG-0014 só poderá avançar para `equivalent` após essa evidência.
+Head comprovado antes da atualização documental do tracker:
+
+```text
+1d7e4bc9b2496f01d181f4965f58a7186c57fd8d
+```
+
+Quality Gate:
+
+```text
+Run: 31238742255
+Conclusão: success
+```
+
+Os testes exigem cobertura integral de todas as chaves editoriais esperadas nos dicionários EN/ES/HE, 3 roteiros/18 paradas em todos os locales, fallback V1, preservação PT, `photoAlt` estrutural, geometria/mídia e imutabilidade.
+
+## Gate da Wave 4 — Runtime + Geospatial + Tours
+
+MIG-0012, MIG-0013, MIG-0014, MIG-0015 e MIG-0016 estão em `equivalent` com evidência automatizada. Isso fecha a equivalência do checkpoint atual da Wave 4; nenhum desses itens deve ser promovido para `released` sem o gate de release/deploy correspondente.
+
+A próxima frente crítica da Wave 4 é **MIG-0005 — Navigation**, ainda em `discovered`. Ela deve iniciar por inventário da V1 e baseline comportamental antes de qualquer refatoração.
 
 ## Campos obrigatórios por novo item
 
