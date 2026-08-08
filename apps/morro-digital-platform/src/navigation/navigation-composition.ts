@@ -1,5 +1,6 @@
 import type { NavigationMapboxPresenter } from "@touristic/geospatial";
 import {
+  createArrivalLifecycle,
   createNavigationRuntimeCoordinator,
   type NavigationInstructionInput,
   type NavigationRuntimeCoordinator,
@@ -16,9 +17,16 @@ export interface NavigationAppCompositionOptions {
   readonly geolocation: BrowserGeolocationService;
   readonly presenter: NavigationMapboxPresenter;
   readonly routeData: unknown;
+  readonly sessionId: number;
+  readonly destination: {
+    readonly longitude: number;
+    readonly latitude: number;
+  };
   readonly instructions?: readonly NavigationInstructionInput[];
   readonly stepIndex?: number;
   readonly onSnapshot?: (snapshot: NavigationRuntimeSnapshot) => void;
+  readonly onArrival?: () => void;
+  readonly onAutoEnd?: () => void;
   readonly createRuntime?: (
     onSnapshot: (snapshot: NavigationRuntimeSnapshot) => void,
   ) => NavigationRuntimeCoordinator;
@@ -62,6 +70,15 @@ export function createNavigationAppComposition(
   let started = false;
   let unsubscribeLocation: (() => void) | null = null;
 
+  const arrival = createArrivalLifecycle({
+    sessionId: options.sessionId,
+    destination: options.destination,
+    ports: {
+      ...(options.onArrival ? { onArrived: () => options.onArrival?.() } : {}),
+      ...(options.onAutoEnd ? { onAutoEnd: () => options.onAutoEnd?.() } : {}),
+    },
+  });
+
   const handleSnapshot = (snapshot: NavigationRuntimeSnapshot): void => {
     if (!started) return;
     options.presenter.update(snapshot);
@@ -74,6 +91,10 @@ export function createNavigationAppComposition(
 
   function updateFromLocation(location: BrowserLocation): void {
     if (!started) return;
+    arrival.update({
+      latitude: location.latitude,
+      longitude: location.longitude,
+    });
     runtime.update({
       routeData,
       location: runtimeLocationFromBrowser(location),
@@ -99,6 +120,7 @@ export function createNavigationAppComposition(
       options.geolocation.stop();
       options.presenter.destroy();
       runtime.reset();
+      arrival.reset();
     },
     isStarted(): boolean {
       return started;
