@@ -17,6 +17,10 @@ import {
 } from "./development/leaflet-compatibility-sdk.js";
 import { createDevelopmentMapboxSdk } from "./development/mapbox-sdk.js";
 import { bootstrapMorroDigitalApplication } from "./main.js";
+import {
+  installBrowserNavigationRuntime,
+  type BrowserNavigationRuntimeInstall,
+} from "./navigation/browser-navigation-runtime-install.js";
 import { loadMapboxGlSdk } from "./runtime/mapbox-sdk-loader.js";
 import { initializeWeatherWidget } from "./weather/weather-widget.js";
 
@@ -110,6 +114,12 @@ const mapContainer = document.getElementById("map");
 const tourSelect = document.getElementById("tour-select");
 const initialTourMarkers = createMorroTourMarkers(initialTourId);
 let activeRealMap: MapboxGlMapLike | undefined;
+let activeNavigationRuntimeInstall: BrowserNavigationRuntimeInstall | undefined;
+
+function clearBrowserNavigationRuntime(): void {
+  activeNavigationRuntimeInstall?.destroy();
+  activeNavigationRuntimeInstall = undefined;
+}
 
 function updateStatus(message: string): void {
   if (status) status.textContent = message;
@@ -360,6 +370,7 @@ async function resolveMapProvider(): Promise<ResolvedMapProvider> {
 }
 
 function prepareMapContainerForFallback(): void {
+  clearBrowserNavigationRuntime();
   activeRealMap = undefined;
   setV1MapboxCompatibilityAliases(undefined);
   if (!mapContainer) return;
@@ -387,8 +398,14 @@ async function startBrowserWithProvider(provider: ResolvedMapProvider) {
       ...(provider.mode === "real"
         ? {
             onMapCreated: (map: MapboxGlMapLike) => {
+              clearBrowserNavigationRuntime();
               activeRealMap = map;
               setV1MapboxCompatibilityAliases(map);
+              activeNavigationRuntimeInstall = installBrowserNavigationRuntime({
+                map,
+                sdk: provider.sdk,
+                document,
+              });
             },
           }
         : {}),
