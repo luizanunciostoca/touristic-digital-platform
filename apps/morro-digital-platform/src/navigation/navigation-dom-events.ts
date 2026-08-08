@@ -34,26 +34,26 @@ export function createNavigationDomEventBridge(
   let lastStatus: NavigationHealthSnapshot | null = null;
 
   return Object.freeze({
-    started(detail): void {
+    started(detail: NavigationStartedEventDetail): void {
       dispatchNavigationEvent(document, "navigationStarted", detail);
     },
-    status(input): NavigationHealthSnapshot {
+    status(input: NavigationHealthSnapshotInput): NavigationHealthSnapshot {
       const snapshot = createNavigationHealthSnapshot(input);
       lastStatus = snapshot;
       dispatchNavigationEvent(document, "navigationStatusChanged", snapshot);
       return snapshot;
     },
-    location(detail): void {
+    location(detail: UserLocationUpdatedEventDetail): void {
       dispatchNavigationEvent(document, "userLocationUpdated", detail);
     },
-    runtime(detail): void {
+    runtime(detail: NavigationRouteRuntimeUpdatedEventDetail): void {
       dispatchNavigationEvent(
         document,
         "navigationRouteRuntimeUpdated",
         detail,
       );
     },
-    ended(detail): void {
+    ended(detail: NavigationEndedEventDetail): void {
       dispatchNavigationEvent(document, "navigationEnded", detail);
     },
     getLastStatus(): NavigationHealthSnapshot | null {
