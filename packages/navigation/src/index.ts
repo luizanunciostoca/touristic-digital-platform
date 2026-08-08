@@ -38,3 +38,22 @@ export {
   type RoutingProviderContext,
   type RoutingRequestPayload,
 } from "./routing.js";
+
+export {
+  buildRouteGeometryModel,
+  calculateRouteBearing,
+  calculateRoutePointDistance,
+  createRouteGeometryTracker,
+  formatRouteDistance,
+  formatRouteDuration,
+  normalizeRouteCoordinates,
+  projectLocationOntoRoute,
+  type GeometryCoordinate,
+  type NavigationPosition,
+  type RouteGeometryModel,
+  type RouteGeometrySnapshot,
+  type RouteGeometryTracker,
+  type RouteProjection,
+  type RouteStepEnd,
+  type RouteStepModel,
+} from "./geometry.js";
