@@ -16,3 +16,25 @@ export {
   type NavigationSession,
   type NavigationSessionMetadata,
 } from "./session.js";
+
+export {
+  RoutingError,
+  createSameOriginRoutingProvider,
+  isValidRouteFeatureCollection,
+  normalizeCoordinatePair,
+  normalizeRouteRequest,
+  requestRoute,
+  shouldUseRoutingFallback,
+  type FetchLike,
+  type FetchResponseLike,
+  type RouteCoordinate,
+  type RouteFeature,
+  type RouteFeatureCollection,
+  type RouteGeometry,
+  type RouteRequestInput,
+  type RoutingLanguage,
+  type RoutingProfile,
+  type RoutingProvider,
+  type RoutingProviderContext,
+  type RoutingRequestPayload,
+} from "./routing.js";
