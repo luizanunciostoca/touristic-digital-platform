@@ -1,4 +1,8 @@
-import type { MapboxGlModuleLike, MapMarker } from "@touristic/geospatial";
+import type {
+  MapboxGlMapLike,
+  MapboxGlModuleLike,
+  MapMarker,
+} from "@touristic/geospatial";
 import { createMorroGeospatialInitializer } from "./bootstrap/geospatial.js";
 import {
   bootstrapMorroDigital,
@@ -27,6 +31,7 @@ export interface StartMorroDigitalBrowserOptions {
     readonly id: string;
     readonly label?: string;
   }) => HTMLElement | undefined;
+  readonly onMapCreated?: (map: MapboxGlMapLike) => void;
 }
 
 export async function startMorroDigitalBrowser(
@@ -50,6 +55,7 @@ export async function startMorroDigitalBrowser(
         ...(options.createMarkerElement
           ? { createMarkerElement: options.createMarkerElement }
           : {}),
+        ...(options.onMapCreated ? { onMapCreated: options.onMapCreated } : {}),
       }),
       ...(options.initialMarkers
         ? { initialMarkers: options.initialMarkers }

@@ -35,7 +35,7 @@ function createSdk() {
 }
 
 describe("createMorroGeospatialInitializer", () => {
-  it("initializes Morro de São Paulo and publishes map lifecycle events", async () => {
+  it("initializes Morro de São Paulo with the V1 Mapbox visual contract", async () => {
     const fixture = createSdk();
     const events = new EventBus();
     const lifecycle: string[] = [];
@@ -51,8 +51,8 @@ describe("createMorroGeospatialInitializer", () => {
       sdk: fixture.sdk,
       accessToken: "runtime-token",
       containerId: "map",
-      style: "mapbox://styles/example/morro",
-      zoom: 14,
+      style: "mapbox://styles/mapbox/streets-v12",
+      zoom: 13.5,
     });
     const engine = await initialize(events);
 
@@ -62,9 +62,16 @@ describe("createMorroGeospatialInitializer", () => {
     expect(fixture.mapOptions).toEqual([
       {
         container: "map",
-        style: "mapbox://styles/example/morro",
-        center: [-38.9167, -13.3833],
-        zoom: 14,
+        style: "mapbox://styles/mapbox/streets-v12",
+        center: [-38.9159969, -13.4],
+        zoom: 13.5,
+        pitch: 0,
+        bearing: 0,
+        antialias: true,
+        attributionControl: false,
+        minZoom: 0,
+        maxZoom: 20,
+        projection: "globe",
       },
     ]);
     expect(lifecycle).toEqual(["MapInitialized", "MapReady"]);

@@ -4,6 +4,7 @@ import {
   createMapboxAdapter,
   createMapboxGlDriver,
   type GeospatialEngine,
+  type MapboxGlMapLike,
   type MapboxGlModuleLike,
 } from "@touristic/geospatial";
 import { morroDeSaoPauloDestination } from "../config/destination.js";
@@ -15,12 +16,28 @@ export interface MorroMapboxBootstrapOptions extends MorroMapboxRuntimeConfig {
     readonly id: string;
     readonly label?: string;
   }) => HTMLElement | undefined;
+  readonly onMapCreated?: (map: MapboxGlMapLike) => void;
 }
 
 export interface MorroGeospatialBootstrapResult {
   readonly engine: GeospatialEngine;
   readonly providerId: string;
 }
+
+const V1_MAPBOX_INITIAL_CENTER = Object.freeze({
+  latitude: -13.4,
+  longitude: -38.9159969,
+});
+
+const V1_MAPBOX_VISUAL_OPTIONS = Object.freeze({
+  pitch: 0,
+  bearing: 0,
+  antialias: true,
+  attributionControl: false,
+  minZoom: 0,
+  maxZoom: 20,
+  projection: "globe",
+});
 
 function describeInitializationError(error: unknown): string {
   return error instanceof Error
@@ -65,9 +82,11 @@ export async function initializeMorroGeospatial(
   const driver = createMapboxGlDriver({
     sdk: options.sdk,
     accessToken: options.accessToken,
+    mapOptions: V1_MAPBOX_VISUAL_OPTIONS,
     ...(options.createMarkerElement
       ? { createMarkerElement: options.createMarkerElement }
       : {}),
+    ...(options.onMapCreated ? { onMapCreated: options.onMapCreated } : {}),
   });
   const adapter = createMapboxAdapter({
     driver,
@@ -83,10 +102,7 @@ export async function initializeMorroGeospatial(
   try {
     await engine.initialize({
       containerId: options.containerId,
-      center: {
-        latitude: morroDeSaoPauloDestination.center.latitude,
-        longitude: morroDeSaoPauloDestination.center.longitude,
-      },
+      center: V1_MAPBOX_INITIAL_CENTER,
       zoom: options.zoom,
     });
 
