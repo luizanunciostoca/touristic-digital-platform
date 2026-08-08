@@ -7,6 +7,8 @@ import {
   type NavigationVisualSnapshot,
 } from "./navigation-mapbox.js";
 
+type CameraUpdate = Parameters<NavigationMapboxMapLike["easeTo"]>[0];
+
 function snapshot(
   overrides: Partial<NavigationVisualSnapshot> = {},
 ): NavigationVisualSnapshot {
@@ -19,15 +21,19 @@ function snapshot(
 }
 
 function setup() {
-  const easeTo = vi.fn();
+  const cameraUpdates: CameraUpdate[] = [];
+  const easeTo = vi.fn<(input: CameraUpdate) => void>();
   const map: NavigationMapboxMapLike = {
-    easeTo,
+    easeTo(input) {
+      cameraUpdates.push(input);
+      easeTo(input);
+    },
     getContainer: () => ({ clientWidth: 400, clientHeight: 800 }),
   };
-  const setLngLat = vi.fn();
-  const setRotation = vi.fn();
-  const addTo = vi.fn();
-  const remove = vi.fn();
+  const setLngLat = vi.fn<(position: [number, number]) => void>();
+  const setRotation = vi.fn<(bearing: number) => void>();
+  const addTo = vi.fn<(map: NavigationMapboxMapLike) => void>();
+  const remove = vi.fn<() => void>();
   const marker: NavigationMapboxMarkerLike = {
     setLngLat(position) {
       setLngLat(position);
@@ -53,6 +59,7 @@ function setup() {
   return {
     presenter,
     easeTo,
+    cameraUpdates,
     setLngLat,
     setRotation,
     addTo,
@@ -103,7 +110,7 @@ describe("Mapbox navigation presenter", () => {
     context.presenter.update(snapshot({ distanceToNextManeuver: 30 }), true);
     context.presenter.update(snapshot({ distanceToNextManeuver: 100 }), true);
 
-    expect(context.easeTo.mock.calls.map(([input]) => input.zoom)).toEqual([
+    expect(context.cameraUpdates.map((input) => input.zoom)).toEqual([
       19.1, 19.35, 19.55, 19.55, 19.1,
     ]);
   });
