@@ -78,30 +78,9 @@ jobs:
                   distance: 390,
                   duration: 290,
                   steps: [
-                    {
-                      distance: 92,
-                      duration: 68,
-                      instruction: 'Continue em frente',
-                      name: 'Caminho principal',
-                      way_points: [0, 1],
-                      maneuver: { instruction: 'Continue em frente', type: 'continue' },
-                    },
-                    {
-                      distance: 126,
-                      duration: 94,
-                      instruction: 'Vire à direita',
-                      name: 'Rua da Fonte',
-                      way_points: [1, 2],
-                      maneuver: { instruction: 'Vire à direita', type: 'turn-right' },
-                    },
-                    {
-                      distance: 172,
-                      duration: 128,
-                      instruction: 'Continue até o destino',
-                      name: 'Destino',
-                      way_points: [2, 3],
-                      maneuver: { instruction: 'Continue até o destino', type: 'arrive' },
-                    },
+                    { distance: 92, duration: 68, instruction: 'Continue em frente', name: 'Caminho principal', way_points: [0, 1], maneuver: { instruction: 'Continue em frente', type: 'continue' } },
+                    { distance: 126, duration: 94, instruction: 'Vire à direita', name: 'Rua da Fonte', way_points: [1, 2], maneuver: { instruction: 'Vire à direita', type: 'turn-right' } },
+                    { distance: 172, duration: 128, instruction: 'Continue até o destino', name: 'Destino', way_points: [2, 3], maneuver: { instruction: 'Continue até o destino', type: 'arrive' } },
                   ],
                 }],
               },
@@ -117,10 +96,19 @@ jobs:
             }],
           };
 
+          async function poll(page, predicate, timeout = 15000) {
+            const deadline = Date.now() + timeout;
+            while (Date.now() < deadline) {
+              if (await page.evaluate(predicate)) return;
+              await page.waitForTimeout(100);
+            }
+            throw new Error('Browser state did not become ready before timeout.');
+          }
+
           async function waitForMap(page) {
             await page.locator('#map[data-map-state="ready"][data-map-mode="real"][data-map-provider="mapbox"]').waitFor({ state: 'attached', timeout: 30000 });
             await page.locator('#map .mapboxgl-canvas').waitFor({ state: 'visible', timeout: 30000 });
-            await page.waitForFunction(() => Boolean(globalThis.mapboxPrimaryInstance?.isStyleLoaded?.()), null, { timeout: 30000 });
+            await poll(page, () => Boolean(globalThis.mapboxPrimaryInstance?.isStyleLoaded?.()), 30000);
           }
 
           async function capture(browser, name, width, height) {
@@ -134,7 +122,7 @@ jobs:
               localStorage.setItem('morro-digital-onboarded', '1');
               localStorage.setItem('voice-enabled', 'false');
               globalThis.__navigationEvidence = { events: [], camera: [] };
-              for (const type of ['navigationStarted','userLocationUpdated','navigationRouteRuntimeUpdated','navigationStatusChanged','navigationEnded']) {
+              for (const type of ['navigationStarted', 'userLocationUpdated', 'navigationRouteRuntimeUpdated', 'navigationStatusChanged', 'navigationEnded']) {
                 addEventListener(type, (event) => {
                   globalThis.__navigationEvidence.events.push({ type, detail: event.detail ?? null });
                 });
@@ -150,8 +138,7 @@ jobs:
               }
             });
             await page.route('**/api/routing/directions', async (route) => {
-              const request = route.request();
-              if (request.method() !== 'POST') {
+              if (route.request().method() !== 'POST') {
                 await route.fulfill({ status: 405, contentType: 'application/json', body: JSON.stringify({ error: 'METHOD_NOT_ALLOWED' }) });
                 return;
               }
@@ -164,7 +151,7 @@ jobs:
               const map = globalThis.mapboxPrimaryInstance;
               const original = map.easeTo.bind(map);
               map.easeTo = (input) => {
-                const serializable = {
+                globalThis.__navigationEvidence.camera.push({
                   center: Array.isArray(input.center) ? input.center : null,
                   bearing: input.bearing ?? null,
                   pitch: input.pitch ?? null,
@@ -174,24 +161,24 @@ jobs:
                   retainPadding: input.retainPadding ?? null,
                   essential: input.essential ?? null,
                   easingSamples: typeof input.easing === 'function' ? [0, 0.25, 0.5, 0.75, 1].map((t) => input.easing(t)) : null,
-                };
-                globalThis.__navigationEvidence.camera.push(serializable);
+                });
                 return original(input);
               };
             });
-
-            await page.evaluate((destination) => {
-              document.dispatchEvent(new CustomEvent('morro:navigation-requested', { detail: { destination } }));
+            await page.evaluate((nextDestination) => {
+              document.dispatchEvent(new CustomEvent('morro:navigation-requested', { detail: { destination: nextDestination } }));
             }, destination);
 
             await page.locator('#instruction-banner:not(.hidden)').waitFor({ state: 'visible', timeout: 15000 });
             await page.locator('#end-navigation-btn').waitFor({ state: 'visible', timeout: 15000 });
-            await page.waitForFunction(() => {
+            await poll(page, () => {
               const evidence = globalThis.__navigationEvidence;
-              const runtime = evidence?.events?.find((event) => event.type === 'navigationRouteRuntimeUpdated');
-              const started = evidence?.events?.find((event) => event.type === 'navigationStarted');
-              return Boolean(runtime && started && evidence.camera.length > 0);
-            }, null, { timeout: 15000 });
+              return Boolean(
+                evidence?.events?.some((event) => event.type === 'navigationRouteRuntimeUpdated') &&
+                evidence?.events?.some((event) => event.type === 'navigationStarted') &&
+                evidence.camera.length > 0
+              );
+            });
             await page.waitForTimeout(700);
 
             const activeState = await page.evaluate(() => {
@@ -202,11 +189,8 @@ jobs:
               const started = events.find((event) => event.type === 'navigationStarted')?.detail ?? null;
               const runtime = events.find((event) => event.type === 'navigationRouteRuntimeUpdated')?.detail ?? null;
               const location = events.find((event) => event.type === 'userLocationUpdated')?.detail ?? null;
-              const statuses = events.filter((event) => event.type === 'navigationStatusChanged').map((event) => event.detail);
-              const markerCount = document.querySelectorAll('#map .mapboxgl-marker').length;
               return {
                 bannerVisible: Boolean(banner && !banner.classList.contains('hidden')),
-                bannerMinimized: Boolean(banner?.classList.contains('minimized')),
                 instruction: document.getElementById('instruction-main')?.textContent?.trim() ?? '',
                 details: document.getElementById('instruction-details')?.textContent?.trim() ?? '',
                 distance: document.getElementById('instruction-distance')?.textContent?.trim() ?? '',
@@ -215,7 +199,7 @@ jobs:
                 progressWidth: document.getElementById('route-progress')?.style.width ?? '',
                 endVisible: Boolean(end && getComputedStyle(end).display !== 'none'),
                 bodyNavigationActive: document.body.classList.contains('navigation-active'),
-                markerCount,
+                markerCount: document.querySelectorAll('#map .mapboxgl-marker').length,
                 camera: globalThis.__navigationEvidence.camera,
                 mapCamera: {
                   pitch: map.getPitch?.() ?? null,
@@ -226,36 +210,20 @@ jobs:
                 started,
                 runtime,
                 location,
-                statuses,
+                statuses: events.filter((event) => event.type === 'navigationStatusChanged').map((event) => event.detail),
                 events,
               };
             });
 
-            if (!activeState.bannerVisible || !activeState.endVisible || !activeState.bodyNavigationActive) {
-              throw new Error(`Navigation UI not active for ${name}: ${JSON.stringify(activeState)}`);
-            }
-            if (!activeState.instruction || activeState.distance === '0 m' || activeState.time === '0 min') {
-              throw new Error(`Navigation guidance did not receive runtime data for ${name}: ${JSON.stringify(activeState)}`);
-            }
-            if (!activeState.started || !activeState.runtime || !activeState.location) {
-              throw new Error(`Canonical navigation events missing for ${name}: ${JSON.stringify(activeState.events)}`);
-            }
-            if (activeState.started.sessionId !== activeState.runtime.sessionId || activeState.started.sessionId !== activeState.location.sessionId) {
-              throw new Error(`Navigation session IDs diverged for ${name}: ${JSON.stringify(activeState.events)}`);
-            }
+            if (!activeState.bannerVisible || !activeState.endVisible || !activeState.bodyNavigationActive) throw new Error(`Navigation UI not active for ${name}: ${JSON.stringify(activeState)}`);
+            if (!activeState.instruction || activeState.distance === '0 m' || activeState.time === '0 min') throw new Error(`Navigation guidance did not receive runtime data for ${name}: ${JSON.stringify(activeState)}`);
+            if (!activeState.started || !activeState.runtime || !activeState.location) throw new Error(`Canonical navigation events missing for ${name}: ${JSON.stringify(activeState.events)}`);
+            if (activeState.started.sessionId !== activeState.runtime.sessionId || activeState.started.sessionId !== activeState.location.sessionId) throw new Error(`Navigation session IDs diverged for ${name}: ${JSON.stringify(activeState.events)}`);
             const latestCamera = activeState.camera.at(-1);
-            if (!latestCamera || latestCamera.pitch !== 68 || ![19.1,19.35,19.55].includes(latestCamera.zoom)) {
-              throw new Error(`V1 camera baseline diverged for ${name}: ${JSON.stringify(activeState.camera)}`);
-            }
-            if (latestCamera.duration !== 650 || latestCamera.retainPadding !== false || latestCamera.essential !== true) {
-              throw new Error(`V1 camera motion options diverged for ${name}: ${JSON.stringify(latestCamera)}`);
-            }
-            if (JSON.stringify(latestCamera.easingSamples) !== JSON.stringify([0,0.4375,0.75,0.9375,1])) {
-              throw new Error(`V1 camera easing diverged for ${name}: ${JSON.stringify(latestCamera.easingSamples)}`);
-            }
-            if (activeState.markerCount < 9) {
-              throw new Error(`Navigation marker was not added for ${name}: markerCount=${activeState.markerCount}`);
-            }
+            if (!latestCamera || latestCamera.pitch !== 68 || ![19.1, 19.35, 19.55].includes(latestCamera.zoom)) throw new Error(`V1 camera baseline diverged for ${name}: ${JSON.stringify(activeState.camera)}`);
+            if (latestCamera.duration !== 650 || latestCamera.retainPadding !== false || latestCamera.essential !== true) throw new Error(`V1 camera motion options diverged for ${name}: ${JSON.stringify(latestCamera)}`);
+            if (JSON.stringify(latestCamera.easingSamples) !== JSON.stringify([0, 0.4375, 0.75, 0.9375, 1])) throw new Error(`V1 camera easing diverged for ${name}: ${JSON.stringify(latestCamera.easingSamples)}`);
+            if (activeState.markerCount < 9) throw new Error(`Navigation marker was not added for ${name}: markerCount=${activeState.markerCount}`);
 
             await page.screenshot({ path: `${outputDir}/${name}-active.png`, fullPage: false, animations: 'disabled' });
             await page.locator('#minimize-navigation-btn').click();
@@ -264,31 +232,24 @@ jobs:
               expanded: element.querySelector('#minimize-navigation-btn')?.getAttribute('aria-expanded'),
               secondaryDisplay: getComputedStyle(element.querySelector('.instruction-secondary')).display,
             }));
-            if (!minimized.minimized || minimized.expanded !== 'false' || minimized.secondaryDisplay !== 'none') {
-              throw new Error(`Navigation minimize state diverged for ${name}: ${JSON.stringify(minimized)}`);
-            }
+            if (!minimized.minimized || minimized.expanded !== 'false' || minimized.secondaryDisplay !== 'none') throw new Error(`Navigation minimize state diverged for ${name}: ${JSON.stringify(minimized)}`);
             await page.screenshot({ path: `${outputDir}/${name}-minimized.png`, fullPage: false, animations: 'disabled' });
 
             await page.locator('#end-navigation-btn').click();
-            await page.waitForFunction(() => globalThis.__navigationEvidence.events.some((event) => event.type === 'navigationEnded' && event.detail?.reason === 'cancelled'), null, { timeout: 5000 });
+            await poll(page, () => globalThis.__navigationEvidence.events.some((event) => event.type === 'navigationEnded' && event.detail?.reason === 'cancelled'), 5000);
             const endedState = await page.evaluate(() => {
               const banner = document.getElementById('instruction-banner');
               const end = document.getElementById('end-navigation-btn');
-              const ended = globalThis.__navigationEvidence.events.filter((event) => event.type === 'navigationEnded').at(-1)?.detail ?? null;
               return {
-                ended,
+                ended: globalThis.__navigationEvidence.events.filter((event) => event.type === 'navigationEnded').at(-1)?.detail ?? null,
                 bannerHidden: Boolean(banner?.classList.contains('hidden')),
                 endHidden: Boolean(end && getComputedStyle(end).display === 'none'),
                 bodyNavigationActive: document.body.classList.contains('navigation-active'),
                 events: globalThis.__navigationEvidence.events,
               };
             });
-            if (endedState.ended?.reason !== 'cancelled' || !endedState.bannerHidden || !endedState.endHidden || endedState.bodyNavigationActive) {
-              throw new Error(`Navigation teardown diverged for ${name}: ${JSON.stringify(endedState)}`);
-            }
-            if (pageErrors.length || httpErrors.length) {
-              throw new Error(`Browser errors for ${name}: ${JSON.stringify({ pageErrors, httpErrors })}`);
-            }
+            if (endedState.ended?.reason !== 'cancelled' || !endedState.bannerHidden || !endedState.endHidden || endedState.bodyNavigationActive) throw new Error(`Navigation teardown diverged for ${name}: ${JSON.stringify(endedState)}`);
+            if (pageErrors.length || httpErrors.length) throw new Error(`Browser errors for ${name}: ${JSON.stringify({ pageErrors, httpErrors })}`);
 
             const result = { activeState, minimized, endedState, pageErrors, httpErrors };
             writeFileSync(`${outputDir}/${name}.json`, JSON.stringify(result, null, 2));
@@ -300,9 +261,7 @@ jobs:
             const browser = await chromium.launch({ headless: true });
             const evidence = {};
             try {
-              for (const [name, width, height] of viewports) {
-                evidence[name] = await capture(browser, name, width, height);
-              }
+              for (const [name, width, height] of viewports) evidence[name] = await capture(browser, name, width, height);
             } finally {
               await browser.close();
             }
@@ -311,7 +270,7 @@ jobs:
               navigationRequestEvent: 'morro:navigation-requested',
               routingEndpoint: '/api/routing/directions',
               mapboxGlJs: '3.12.0',
-              viewports: viewports.map(([name,width,height]) => ({ name,width,height })),
+              viewports: viewports.map(([name, width, height]) => ({ name, width, height })),
               evidence,
             }, null, 2));
           })().catch((error) => {
