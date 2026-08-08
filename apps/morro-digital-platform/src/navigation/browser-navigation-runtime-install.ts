@@ -14,6 +14,10 @@ import {
   type NavigationDomLifecycle,
 } from "./navigation-dom-lifecycle.js";
 import {
+  createNavigationGuidancePresenter,
+  type NavigationGuidancePresenter,
+} from "./navigation-guidance-presenter.js";
+import {
   createNavigationRequestPort,
   type NavigationRequestPort,
 } from "./navigation-request-port.js";
@@ -31,6 +35,7 @@ export interface BrowserNavigationRuntimeInstallOptions {
   readonly createLifecycle?: typeof createNavigationDomLifecycle;
   readonly createRequestPort?: typeof createNavigationRequestPort;
   readonly createEventBridge?: typeof createNavigationDomEventBridge;
+  readonly createGuidancePresenter?: typeof createNavigationGuidancePresenter;
 }
 
 export interface BrowserNavigationRuntimeInstall {
@@ -38,6 +43,7 @@ export interface BrowserNavigationRuntimeInstall {
   readonly lifecycle: NavigationDomLifecycle;
   readonly requestPort: NavigationRequestPort;
   readonly eventBridge: NavigationDomEventBridge;
+  readonly guidancePresenter: NavigationGuidancePresenter;
   destroy(): void;
 }
 
@@ -56,7 +62,12 @@ export function installBrowserNavigationRuntime(
     options.createRequestPort ?? createNavigationRequestPort;
   const createEventBridge =
     options.createEventBridge ?? createNavigationDomEventBridge;
+  const createGuidancePresenter =
+    options.createGuidancePresenter ?? createNavigationGuidancePresenter;
   const eventBridge = createEventBridge(options.document);
+  const guidancePresenter = createGuidancePresenter({
+    document: options.document,
+  });
 
   let lifecycle: NavigationDomLifecycle | null = null;
   let latestLocation: BrowserLocation | null = null;
@@ -103,6 +114,7 @@ export function installBrowserNavigationRuntime(
     },
     onSnapshot: (snapshot, context) => {
       latestSnapshot = snapshot;
+      guidancePresenter.update(snapshot);
       eventBridge.runtime({
         sessionId: context.sessionId,
         routeIdentity: snapshot.routeIdentity,
@@ -139,10 +151,12 @@ export function installBrowserNavigationRuntime(
     lifecycle: activeLifecycle,
     requestPort,
     eventBridge,
+    guidancePresenter,
     destroy(): void {
       if (destroyed) return;
       destroyed = true;
       requestPort.destroy();
+      guidancePresenter.destroy();
       activeLifecycle.destroy();
       lifecycle = null;
       latestLocation = null;
