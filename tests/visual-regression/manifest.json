@@ -1,0 +1,149 @@
+{
+  "version": 4,
+  "destinationId": "morro-de-sao-paulo",
+  "sourceOfTruth": {
+    "v1Repository": "luizidebook/morro-de-sao-paulo-digital",
+    "v1Commit": "60746fd7fed97b805758b37adfdbe3bad2582bfe",
+    "v2App": "apps/morro-digital-platform"
+  },
+  "viewports": [
+    { "id": "mobile", "width": 390, "height": 844 },
+    { "id": "tablet", "width": 768, "height": 1024 },
+    { "id": "desktop", "width": 1440, "height": 900 }
+  ],
+  "validationPolicy": {
+    "pixelExact": {
+      "pixelRatio": 0,
+      "maxDifferentPixels": 0,
+      "appliesWhen": "The rendered state is deterministic and does not depend on third-party raster tiles, labels, live data or browser/vendor antialiasing."
+    },
+    "visualContract": {
+      "appliesWhen": "A third-party renderer can vary pixels while product-controlled camera, source, layers, markers, focus, accessibility and layout remain deterministic.",
+      "requires": [
+        "authenticated browser execution",
+        "contract assertions sourced from the frozen V1",
+        "screenshots for every mandatory viewport/state",
+        "no provider HTTP errors",
+        "no page errors"
+      ]
+    },
+    "behavioralEquivalence": {
+      "appliesWhen": "The scenario represents failure, fallback or provider-unavailable behavior rather than a stable visual raster.",
+      "requires": [
+        "browser execution",
+        "state assertions",
+        "fallback or recovery assertions",
+        "no uncaught page errors"
+      ]
+    }
+  },
+  "scenarios": [
+    "loading",
+    "map-ready",
+    "map-failure",
+    "tour-switch",
+    "tour-5-stops",
+    "tour-8-stops",
+    "keyboard-navigation",
+    "high-contrast",
+    "enlarged-text",
+    "offline-provider-unavailable"
+  ],
+  "scenarioResults": {
+    "loading": {
+      "decision": "preserve",
+      "owner": "morro-digital-platform",
+      "trackerStatus": "equivalent",
+      "validationMode": "pixel-exact",
+      "evidence": "Frozen V1/V2 loading-state comparison reached zero pixel difference in mobile, tablet and desktop."
+    },
+    "map-ready": {
+      "decision": "preserve",
+      "owner": "morro-digital-platform",
+      "trackerStatus": "equivalent",
+      "validationMode": "visual-contract",
+      "evidence": "PR #17 Mapbox Visual Contract Regression run 31236824745 validates authenticated Mapbox GL JS 3.12.0 in mobile/tablet/desktop with the V1 camera/style contract, visible canvas, V1 route source/layers, 8 initial stops, required Mapbox logo, screenshots and zero Mapbox/page errors."
+    },
+    "map-failure": {
+      "decision": "preserve",
+      "owner": "morro-digital-platform",
+      "trackerStatus": "equivalent",
+      "validationMode": "behavioral-equivalence",
+      "evidence": "PR #17 Map Provider Regression run 31236824741 proves both SDK download failure and Mapbox initialization failure restore the Leaflet V1 fallback in ready state without losing the initial tour markers."
+    },
+    "tour-switch": {
+      "decision": "preserve",
+      "owner": "morro-digital-platform",
+      "trackerStatus": "equivalent",
+      "validationMode": "visual-contract",
+      "evidence": "PR #17 Map Tour Browser Regression run 31236824742 validates atomic 8→5→5→8 switching on the compatibility provider; Map Provider Regression run 31236824741 validates 8→5→5 on authenticated Mapbox. The V2 route renderer uses the same V1 source/layer IDs, line paints and fitBounds camera contract."
+    },
+    "tour-5-stops": {
+      "decision": "preserve",
+      "owner": "morro-digital-platform",
+      "trackerStatus": "equivalent",
+      "validationMode": "visual-contract",
+      "evidence": "Authenticated Mapbox and browser regressions validate both 5-stop tours with atomic marker replacement; route source/layers and marker presentation are constrained by the frozen V1 contract."
+    },
+    "tour-8-stops": {
+      "decision": "preserve",
+      "owner": "morro-digital-platform",
+      "trackerStatus": "equivalent",
+      "validationMode": "visual-contract",
+      "evidence": "Authenticated Mapbox starts Volta à Ilha with 8 stops and the browser regression restores 8 stops after switching tours; the V1 route source/layers and camera contract are asserted permanently."
+    },
+    "keyboard-navigation": {
+      "decision": "preserve",
+      "owner": "morro-digital-platform",
+      "trackerStatus": "equivalent",
+      "validationMode": "visual-contract",
+      "evidence": "PR #17 Mapbox Visual Contract Regression run 31236824745 validates the functional V1 focus order in all mandatory viewports while preserving the focusable Mapbox vendor-logo link required by the SDK."
+    },
+    "high-contrast": {
+      "decision": "preserve",
+      "owner": "morro-digital-platform",
+      "trackerStatus": "equivalent",
+      "validationMode": "visual-contract",
+      "evidence": "PR #17 Mapbox Visual Contract Regression run 31236824745 executes authenticated Mapbox under forced-colors: active in mobile/tablet/desktop, preserves the V1 route/UI contract and stores screenshots for every viewport."
+    },
+    "enlarged-text": {
+      "decision": "preserve",
+      "owner": "morro-digital-platform",
+      "trackerStatus": "equivalent",
+      "validationMode": "pixel-exact",
+      "evidence": "The V1 checkpoint established structural/visual equivalence for the normalized 200% text-enlargement protocol and preserved the responsive assistant cascade."
+    },
+    "offline-provider-unavailable": {
+      "decision": "preserve",
+      "owner": "morro-digital-platform",
+      "trackerStatus": "equivalent",
+      "validationMode": "behavioral-equivalence",
+      "evidence": "PR #17 Map Provider Regression run 31236824741 proves provider download/init unavailability rolls back to the V1 Leaflet provider; PR #19 accessibility evidence also preserves weather provider-unavailable and network-offline states without breaking map, assistant or controls."
+    }
+  },
+  "journeys": [
+    {
+      "id": "home",
+      "route": "/",
+      "featureId": "FEATURE-0007",
+      "migrationId": "MIG-0013",
+      "status": "equivalent",
+      "blockers": [],
+      "pixelExactThreshold": {
+        "pixelRatio": 0,
+        "maxDifferentPixels": 0,
+        "scope": "deterministic scenarios only"
+      },
+      "evidence": {
+        "allowedValidationModes": [
+          "pixel-exact",
+          "visual-contract",
+          "behavioral-equivalence"
+        ],
+        "requiredCommonFields": ["decision", "owner", "trackerStatus"],
+        "allowedDecisions": ["preserve", "fix", "improve"],
+        "allowedTrackerStatuses": ["migrating", "equivalent", "released"]
+      }
+    }
+  ]
+}
