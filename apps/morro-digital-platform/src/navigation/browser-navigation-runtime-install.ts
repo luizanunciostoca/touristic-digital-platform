@@ -41,29 +41,34 @@ export function installBrowserNavigationRuntime(
     options.createLifecycle ?? createNavigationDomLifecycle;
   const createRequestPort =
     options.createRequestPort ?? createNavigationRequestPort;
+
+  let lifecycle: NavigationDomLifecycle | null = null;
   const bootstrap = createBootstrap({
     map: options.map,
     sdk: options.sdk,
+    onAutoEnd: () => lifecycle?.stop(),
   });
-  const lifecycle = createLifecycle({
+  lifecycle = createLifecycle({
     document: options.document,
     bootstrap,
   });
+  const activeLifecycle = lifecycle;
   const requestPort = createRequestPort({
     document: options.document,
-    lifecycle,
+    lifecycle: activeLifecycle,
   });
   let destroyed = false;
 
   return Object.freeze({
     bootstrap,
-    lifecycle,
+    lifecycle: activeLifecycle,
     requestPort,
     destroy(): void {
       if (destroyed) return;
       destroyed = true;
       requestPort.destroy();
-      lifecycle.destroy();
+      activeLifecycle.destroy();
+      lifecycle = null;
     },
   });
 }
