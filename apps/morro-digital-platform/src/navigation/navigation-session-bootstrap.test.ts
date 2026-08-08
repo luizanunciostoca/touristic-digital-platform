@@ -120,8 +120,35 @@ describe("navigation session bootstrap", () => {
       latitude: -13.375,
     });
     expect(typeof wiringOptions?.sessionId).toBe("number");
+    expect(typeof wiringOptions?.requestRecalculationRoute).toBe("function");
     expect(context.wiringStart).toHaveBeenCalledTimes(1);
     expect(context.bootstrap.isActive()).toBe(true);
+  });
+
+  it("reuses the active routing provider for recalculation requests", async () => {
+    const context = setup();
+    await context.bootstrap.start({ longitude: -38.916, latitude: -13.375 });
+    const wiringOptions = context.createWiring.mock.calls[0]?.[0];
+    const signal = new AbortController().signal;
+
+    await expect(
+      wiringOptions?.requestRecalculationRoute?.({
+        start: [-38.918, -13.377],
+        end: [-38.916, -13.375],
+        signal,
+        attempt: 1,
+      }),
+    ).resolves.toEqual(routeData());
+
+    expect(context.requestRouteImpl).toHaveBeenCalledTimes(2);
+    expect(context.requestRouteImpl).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        start: [-38.918, -13.377],
+        end: [-38.916, -13.375],
+        language: "pt",
+        signal,
+      }),
+    );
   });
 
   it("stops the active wiring exactly once per active session", async () => {
