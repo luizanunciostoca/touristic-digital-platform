@@ -70,7 +70,7 @@ describe("browser navigation runtime install", () => {
         accessToken: "token",
         Map: vi.fn(),
         Marker: vi.fn(),
-      } as unknown as MapboxGlModuleLike,
+      },
       document: {} as Document,
       createBootstrap: vi.fn(() => bootstrap),
       createLifecycle: vi.fn(() => lifecycle),
