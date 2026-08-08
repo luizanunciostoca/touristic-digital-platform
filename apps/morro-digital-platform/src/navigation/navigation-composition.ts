@@ -9,6 +9,7 @@ import {
   type NavigationRuntimeSnapshot,
   type NavigationRuntimeUpdateInput,
   type RouteFeatureCollection,
+  type RouteRecalculationController,
   type RouteRecalculationRequest,
 } from "@touristic/navigation";
 
@@ -74,17 +75,19 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function routeHasInstructions(routeData: unknown): boolean {
-  if (!isRecord(routeData) || !Array.isArray(routeData.features)) return false;
-  const feature = routeData.features[0];
-  if (!isRecord(feature) || !isRecord(feature.properties)) return false;
-  const segments = feature.properties.segments;
+  if (!isRecord(routeData)) return false;
+  const features: unknown = routeData["features"];
+  if (!Array.isArray(features)) return false;
+  const feature: unknown = features[0];
+  if (!isRecord(feature)) return false;
+  const properties: unknown = feature["properties"];
+  if (!isRecord(properties)) return false;
+  const segments: unknown = properties["segments"];
   if (!Array.isArray(segments)) return false;
-  const firstSegment = segments[0];
-  return (
-    isRecord(firstSegment) &&
-    Array.isArray(firstSegment.steps) &&
-    firstSegment.steps.length > 0
-  );
+  const firstSegment: unknown = segments[0];
+  if (!isRecord(firstSegment)) return false;
+  const steps: unknown = firstSegment["steps"];
+  return Array.isArray(steps) && steps.length > 0;
 }
 
 export function createNavigationAppComposition(
@@ -96,6 +99,7 @@ export function createNavigationAppComposition(
   let started = false;
   let unsubscribeLocation: (() => void) | null = null;
   let latestLocation: BrowserLocation | null = null;
+  let recalculation: RouteRecalculationController | null = null;
 
   const arrival =
     options.sessionId !== undefined && options.destination
@@ -109,38 +113,6 @@ export function createNavigationAppComposition(
             ...(options.onAutoEnd
               ? { onAutoEnd: () => options.onAutoEnd?.() }
               : {}),
-          },
-        })
-      : null;
-
-  let runtime: NavigationRuntimeCoordinator;
-
-  function applyRoute(
-    nextRouteData: unknown,
-    nextInstructions: readonly NavigationInstructionInput[] = [],
-  ): void {
-    routeData = nextRouteData;
-    instructions = nextInstructions;
-    stepIndex = 0;
-    runtime.reset();
-    options.presenter.reset();
-    if (started) {
-      const current = options.geolocation.getCurrentLocation();
-      if (current) updateFromLocation(current);
-    }
-  }
-
-  const recalculation =
-    options.sessionId !== undefined &&
-    options.destination &&
-    options.requestRecalculationRoute
-      ? createRouteRecalculationController({
-          sessionId: options.sessionId,
-          requestRoute: options.requestRecalculationRoute,
-          onRouteAvailable(route) {
-            if (!started) return;
-            applyRoute(route);
-            options.onRecalculation?.(route);
           },
         })
       : null;
@@ -180,7 +152,7 @@ export function createNavigationAppComposition(
     maybeRecalculate(snapshot);
   };
 
-  runtime =
+  const runtime =
     options.createRuntime?.(handleSnapshot) ??
     createNavigationRuntimeCoordinator({ onSnapshot: handleSnapshot });
 
@@ -198,6 +170,36 @@ export function createNavigationAppComposition(
       stepIndex,
     });
   }
+
+  function applyRoute(
+    nextRouteData: unknown,
+    nextInstructions: readonly NavigationInstructionInput[] = [],
+  ): void {
+    routeData = nextRouteData;
+    instructions = nextInstructions;
+    stepIndex = 0;
+    runtime.reset();
+    options.presenter.reset();
+    if (started) {
+      const current = options.geolocation.getCurrentLocation();
+      if (current) updateFromLocation(current);
+    }
+  }
+
+  recalculation =
+    options.sessionId !== undefined &&
+    options.destination &&
+    options.requestRecalculationRoute
+      ? createRouteRecalculationController({
+          sessionId: options.sessionId,
+          requestRoute: options.requestRecalculationRoute,
+          onRouteAvailable(route) {
+            if (!started) return;
+            applyRoute(route);
+            options.onRecalculation?.(route);
+          },
+        })
+      : null;
 
   return Object.freeze({
     start(): void {
