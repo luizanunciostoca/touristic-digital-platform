@@ -11,6 +11,7 @@ import {
 
 import type { NavigationDomEventBridge } from "./navigation-dom-events.js";
 import type { NavigationDomLifecycle } from "./navigation-dom-lifecycle.js";
+import type { NavigationGuidancePresenter } from "./navigation-guidance-presenter.js";
 import type { NavigationRequestPort } from "./navigation-request-port.js";
 import type {
   NavigationSessionBootstrap,
@@ -28,6 +29,20 @@ function eventBridge(): NavigationDomEventBridge {
     runtime: vi.fn(),
     ended: vi.fn(),
     getLastStatus: () => null,
+  };
+}
+
+function guidancePresenter(
+  overrides: Partial<NavigationGuidancePresenter> = {},
+): NavigationGuidancePresenter {
+  return {
+    update: vi.fn(),
+    show: vi.fn(),
+    hide: vi.fn(),
+    isVisible: vi.fn(() => false),
+    isMinimized: vi.fn(() => false),
+    destroy: vi.fn(),
+    ...overrides,
   };
 }
 
@@ -92,7 +107,7 @@ function runtimeSnapshot(): NavigationRuntimeSnapshot {
 }
 
 describe("browser navigation runtime install", () => {
-  it("composes bootstrap, event bridge, DOM lifecycle and navigation request port", () => {
+  it("composes bootstrap, event bridge, guidance, lifecycle and request port", () => {
     const map = {
       setCenter: vi.fn(),
       remove: vi.fn(),
@@ -113,12 +128,14 @@ describe("browser navigation runtime install", () => {
     const requestPortDestroy = vi.fn<() => void>();
     const requestPort = requestPortStub(requestPortDestroy);
     const bridge = eventBridge();
+    const guidance = guidancePresenter();
     const createBootstrap = vi.fn<
       (options: NavigationSessionBootstrapOptions) => NavigationSessionBootstrap
     >(() => bootstrap);
     const createLifecycle = vi.fn(() => lifecycle);
     const createRequestPort = vi.fn(() => requestPort);
     const createEventBridge = vi.fn(() => bridge);
+    const createGuidancePresenter = vi.fn(() => guidance);
 
     const installed = installBrowserNavigationRuntime({
       map,
@@ -128,6 +145,7 @@ describe("browser navigation runtime install", () => {
       createLifecycle,
       createRequestPort,
       createEventBridge,
+      createGuidancePresenter,
     });
 
     expect(createBootstrap).toHaveBeenCalledTimes(1);
@@ -138,6 +156,7 @@ describe("browser navigation runtime install", () => {
     expect(typeof bootstrapOptions?.onAutoEnd).toBe("function");
     bootstrapOptions?.onAutoEnd?.();
     expect(lifecycleStop).toHaveBeenCalledWith("arrived");
+    expect(createGuidancePresenter).toHaveBeenCalledWith({ document });
     expect(createLifecycle).toHaveBeenCalledWith({
       document,
       bootstrap,
@@ -148,10 +167,13 @@ describe("browser navigation runtime install", () => {
     expect(installed.lifecycle).toBe(lifecycle);
     expect(installed.requestPort).toBe(requestPort);
     expect(installed.eventBridge).toBe(bridge);
+    expect(installed.guidancePresenter).toBe(guidance);
   });
 
-  it("publishes real location/runtime callbacks with one session context", () => {
+  it("publishes runtime events and updates guidance from one snapshot", () => {
     const bridge = eventBridge();
+    const guidanceUpdate = vi.fn<(snapshot: NavigationRuntimeSnapshot) => void>();
+    const guidance = guidancePresenter({ update: guidanceUpdate });
     const bootstrap = bootstrapStub(true);
     const createBootstrap = vi.fn<
       (options: NavigationSessionBootstrapOptions) => NavigationSessionBootstrap
@@ -171,6 +193,7 @@ describe("browser navigation runtime install", () => {
       createLifecycle: vi.fn(() => lifecycle),
       createRequestPort: vi.fn(() => requestPort),
       createEventBridge: vi.fn(() => bridge),
+      createGuidancePresenter: vi.fn(() => guidance),
     });
 
     const options = createBootstrap.mock.calls[0]?.[0];
@@ -189,8 +212,10 @@ describe("browser navigation runtime install", () => {
       },
       context,
     );
-    options?.onSnapshot?.(runtimeSnapshot(), context);
+    const snapshot = runtimeSnapshot();
+    options?.onSnapshot?.(snapshot, context);
 
+    expect(guidanceUpdate).toHaveBeenCalledWith(snapshot);
     expect(bridge.location).toHaveBeenCalledWith(
       expect.objectContaining({ sessionId: 9, speed: 1.2 }),
     );
@@ -208,13 +233,15 @@ describe("browser navigation runtime install", () => {
     );
   });
 
-  it("destroys the request port before the lifecycle exactly once", () => {
+  it("destroys request port, guidance and lifecycle exactly once", () => {
     const calls: string[] = [];
+    const guidanceDestroy = vi.fn(() => calls.push("guidance"));
     const lifecycleDestroy = vi.fn(() => calls.push("lifecycle"));
     const requestPortDestroy = vi.fn(() => calls.push("request-port"));
     const bootstrap = bootstrapStub();
     const lifecycle = lifecycleStub({ destroy: lifecycleDestroy });
     const requestPort = requestPortStub(requestPortDestroy);
+    const guidance = guidancePresenter({ destroy: guidanceDestroy });
 
     const installed = installBrowserNavigationRuntime({
       map: { setCenter: vi.fn(), remove: vi.fn() },
@@ -228,13 +255,15 @@ describe("browser navigation runtime install", () => {
       createLifecycle: vi.fn(() => lifecycle),
       createRequestPort: vi.fn(() => requestPort),
       createEventBridge: vi.fn(() => eventBridge()),
+      createGuidancePresenter: vi.fn(() => guidance),
     });
 
     installed.destroy();
     installed.destroy();
 
     expect(requestPortDestroy).toHaveBeenCalledTimes(1);
+    expect(guidanceDestroy).toHaveBeenCalledTimes(1);
     expect(lifecycleDestroy).toHaveBeenCalledTimes(1);
-    expect(calls).toEqual(["request-port", "lifecycle"]);
+    expect(calls).toEqual(["request-port", "guidance", "lifecycle"]);
   });
 });
