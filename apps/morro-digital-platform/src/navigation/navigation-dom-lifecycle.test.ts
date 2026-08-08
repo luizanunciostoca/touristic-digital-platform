@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { RouteFeatureCollection } from "@touristic/navigation";
 
+import type { NavigationDomEventBridge } from "./navigation-dom-events.js";
 import type { NavigationSessionBootstrap } from "./navigation-session-bootstrap.js";
 import { createNavigationDomLifecycle } from "./navigation-dom-lifecycle.js";
 
@@ -22,7 +23,7 @@ function routeData(): RouteFeatureCollection {
   };
 }
 
-function setup() {
+function setup(eventBridge?: NavigationDomEventBridge) {
   const classes = new Set<string>();
   const style: Record<string, string> = {};
   const listeners = new Map<string, (event: Event) => void>();
@@ -70,8 +71,13 @@ function setup() {
     start: bootstrapStart,
     stop: bootstrapStop,
     isActive: () => false,
+    getActiveSessionId: () => 7,
   };
-  const lifecycle = createNavigationDomLifecycle({ document, bootstrap });
+  const lifecycle = createNavigationDomLifecycle({
+    document,
+    bootstrap,
+    ...(eventBridge ? { eventBridge } : {}),
+  });
 
   return {
     lifecycle,
@@ -117,6 +123,55 @@ describe("navigation DOM lifecycle", () => {
     expect(context.style.pointerEvents).toBe("none");
     expect(context.dispatched).toContain("navigationEnded");
     expect(context.lifecycle.isActive()).toBe(false);
+  });
+
+  it("publishes canonical cancelled and arrived reasons through the bridge", async () => {
+    const started = vi.fn<NavigationDomEventBridge["started"]>();
+    const status = vi.fn<NavigationDomEventBridge["status"]>((input) => ({
+      phase: input.phase ?? "idle",
+      hasRoute: input.hasRoute === true,
+      hasInstructions: input.hasInstructions === true,
+      hasUserLocation: input.hasUserLocation === true,
+      isActive: input.isActive === true,
+      isPaused: input.isPaused === true,
+      currentStepIndex: input.currentStepIndex ?? 0,
+      totalSteps: input.totalSteps ?? 0,
+      routeDistance: input.routeDistance ?? 0,
+      routeDuration: input.routeDuration ?? 0,
+      routeProgress: input.routeProgress ?? 0,
+      navigationSessionId: input.navigationSessionId ?? null,
+      recalculations: input.recalculations ?? 0,
+      destination: input.destination ?? "",
+      timestamp: input.timestamp ?? 0,
+    }));
+    const ended = vi.fn<NavigationDomEventBridge["ended"]>();
+    const bridge: NavigationDomEventBridge = {
+      started,
+      status,
+      location: vi.fn(),
+      runtime: vi.fn(),
+      ended,
+      getLastStatus: () => null,
+    };
+    const context = setup(bridge);
+
+    await context.lifecycle.start({ longitude: -38.916, latitude: -13.375 });
+    context.clickEnd();
+    expect(started).toHaveBeenCalledWith(
+      expect.objectContaining({ sessionId: 7 }),
+    );
+    expect(ended).toHaveBeenLastCalledWith(
+      expect.objectContaining({ reason: "cancelled" }),
+    );
+
+    await context.lifecycle.start({ longitude: -38.916, latitude: -13.375 });
+    context.lifecycle.stop("arrived");
+    expect(ended).toHaveBeenLastCalledWith(
+      expect.objectContaining({ reason: "arrived" }),
+    );
+    expect(status).toHaveBeenLastCalledWith(
+      expect.objectContaining({ phase: "arrived", isActive: false }),
+    );
   });
 
   it("keeps V1 navigation UI hidden when bootstrap fails", async () => {
