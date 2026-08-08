@@ -21,7 +21,10 @@ import {
 
 interface NativeNavigationMapboxMap extends MapboxGlMapLike {
   easeTo(input: Parameters<NavigationMapboxMapLike["easeTo"]>[0]): void;
-  getContainer?(): { readonly clientHeight: number; readonly clientWidth: number };
+  getContainer?(): {
+    readonly clientHeight: number;
+    readonly clientWidth: number;
+  };
 }
 
 interface RotatableMapboxMarker {
@@ -52,14 +55,17 @@ function requireNavigationMap(map: MapboxGlMapLike): NativeNavigationMapboxMap {
   return candidate as NativeNavigationMapboxMap;
 }
 
-function createPresenterMap(map: NativeNavigationMapboxMap): NavigationMapboxMapLike {
+function createPresenterMap(
+  map: NativeNavigationMapboxMap,
+): NavigationMapboxMapLike {
   return {
     easeTo(input) {
       map.easeTo(input);
     },
     ...(map.getContainer
       ? {
-          getContainer: () => map.getContainer?.() ?? { clientWidth: 360, clientHeight: 640 },
+          getContainer: () =>
+            map.getContainer?.() ?? { clientWidth: 360, clientHeight: 640 },
         }
       : {}),
   };
@@ -108,7 +114,9 @@ export function createBrowserNavigationWiring(
     presenter,
     routeData: options.routeData,
     ...(options.instructions ? { instructions: options.instructions } : {}),
-    ...(options.stepIndex !== undefined ? { stepIndex: options.stepIndex } : {}),
+    ...(options.stepIndex !== undefined
+      ? { stepIndex: options.stepIndex }
+      : {}),
     ...(options.onSnapshot ? { onSnapshot: options.onSnapshot } : {}),
   });
 
