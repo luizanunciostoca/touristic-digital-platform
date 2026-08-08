@@ -222,9 +222,12 @@ describe("routing core", () => {
       primaryProvider,
       signal: controller.signal,
     });
-    controller.abort();
+    const rejection = expect(result).rejects.toMatchObject({
+      code: "ROUTING_CANCELLED",
+    });
 
-    await expect(result).rejects.toMatchObject({ code: "ROUTING_CANCELLED" });
+    controller.abort();
+    await rejection;
   });
 
   it("normalizes timeout and clamps very small timeout values to one second", async () => {
@@ -238,11 +241,13 @@ describe("routing core", () => {
       primaryProvider,
       timeoutMs: 1,
     });
+    const rejection = expect(result).rejects.toMatchObject({
+      code: "ROUTING_TIMEOUT",
+    });
 
     await vi.advanceTimersByTimeAsync(999);
     expect(request).toHaveBeenCalledTimes(1);
     await vi.advanceTimersByTimeAsync(1);
-
-    await expect(result).rejects.toMatchObject({ code: "ROUTING_TIMEOUT" });
+    await rejection;
   });
 });
