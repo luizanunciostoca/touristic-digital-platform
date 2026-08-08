@@ -38,7 +38,9 @@ export function createNavigationRequestPort(
   const onNavigationRequested = (event: Event): void => {
     if (destroyed || !(event instanceof CustomEvent)) return;
 
-    const detail = event.detail as { readonly destination?: unknown } | undefined;
+    const detail = event.detail as
+      | { readonly destination?: unknown }
+      | undefined;
     const destination = detail?.destination;
     if (!isNavigationDestinationInput(destination)) return;
 
@@ -53,7 +55,10 @@ export function createNavigationRequestPort(
     destroy(): void {
       if (destroyed) return;
       destroyed = true;
-      document.removeEventListener(NAVIGATION_REQUEST_EVENT, onNavigationRequested);
+      document.removeEventListener(
+        NAVIGATION_REQUEST_EVENT,
+        onNavigationRequested,
+      );
     },
   });
 }
