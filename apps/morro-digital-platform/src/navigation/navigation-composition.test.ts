@@ -24,9 +24,9 @@ function location(latitude = -13.376, longitude = -38.917): BrowserLocation {
   };
 }
 
-function runtimeLocation(value = location()): NonNullable<
-  NavigationRuntimeUpdateInput["location"]
-> {
+function runtimeLocation(
+  value = location(),
+): NonNullable<NavigationRuntimeUpdateInput["location"]> {
   return {
     latitude: value.latitude,
     longitude: value.longitude,
