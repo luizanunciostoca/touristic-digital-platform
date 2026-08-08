@@ -11,7 +11,10 @@ import {
 } from "@touristic/navigation";
 
 import type { BrowserGeolocationDriver } from "./browser-geolocation.js";
-import type { BrowserNavigationWiring } from "./browser-navigation-wiring.js";
+import type {
+  BrowserNavigationWiring,
+  BrowserNavigationWiringOptions,
+} from "./browser-navigation-wiring.js";
 import { createNavigationSessionBootstrap } from "./navigation-session-bootstrap.js";
 
 function routeData(): RouteFeatureCollection {
@@ -51,7 +54,9 @@ function setup() {
     start: wiringStart,
     stop: wiringStop,
   };
-  const createWiring = vi.fn(() => wiring);
+  const createWiring = vi.fn<
+    (options: BrowserNavigationWiringOptions) => BrowserNavigationWiring
+  >((_options) => wiring);
   const requestRouteImpl = vi.fn(async () => routeData());
   const resolveStartCoordinate = vi.fn<
     (signal: AbortSignal) => Promise<RouteCoordinate>
@@ -103,19 +108,18 @@ describe("navigation session bootstrap", () => {
         language: "pt",
       }),
     );
-    expect(context.createWiring).toHaveBeenCalledWith(
-      expect.objectContaining({
-        map: context.map,
-        sdk: context.sdk,
-        routeData: result,
-        geolocationDriver: context.geolocationDriver,
-        destination: {
-          longitude: -38.916,
-          latitude: -13.375,
-        },
-        sessionId: expect.any(Number),
-      }),
-    );
+    expect(context.createWiring).toHaveBeenCalledTimes(1);
+    const wiringOptions = context.createWiring.mock.calls[0]?.[0];
+    expect(wiringOptions).toBeDefined();
+    expect(wiringOptions?.map).toBe(context.map);
+    expect(wiringOptions?.sdk).toBe(context.sdk);
+    expect(wiringOptions?.routeData).toBe(result);
+    expect(wiringOptions?.geolocationDriver).toBe(context.geolocationDriver);
+    expect(wiringOptions?.destination).toEqual({
+      longitude: -38.916,
+      latitude: -13.375,
+    });
+    expect(typeof wiringOptions?.sessionId).toBe("number");
     expect(context.wiringStart).toHaveBeenCalledTimes(1);
     expect(context.bootstrap.isActive()).toBe(true);
   });
