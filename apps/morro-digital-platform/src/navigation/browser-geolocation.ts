@@ -248,7 +248,9 @@ export function createBrowserGeolocationService(
   return Object.freeze({
     start,
     stop,
-    getLocation(requestOptions = {}) {
+    getLocation(
+      requestOptions: BrowserLocationRequestOptions = {},
+    ): Promise<BrowserLocation> {
       const maxAge = normalizeNonNegative(
         requestOptions.maxAge,
         DEFAULT_LOCATION_MAX_AGE_MS,
@@ -274,7 +276,9 @@ export function createBrowserGeolocationService(
         pending.set(request.id, request);
       });
     },
-    getCurrentLocation(requestOptions = {}) {
+    getCurrentLocation(
+      requestOptions: Pick<BrowserLocationRequestOptions, "maxAge"> = {},
+    ): BrowserLocation | null {
       const maxAge = normalizeNonNegative(
         requestOptions.maxAge,
         DEFAULT_LOCATION_MAX_AGE_MS,
