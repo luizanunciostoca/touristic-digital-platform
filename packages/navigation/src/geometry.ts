@@ -238,7 +238,7 @@ function getRouteSegment(routeData: unknown): unknown {
 function getRouteSteps(routeData: unknown): RouteStepModel[] {
   const steps = getPath(getRouteSegment(routeData), ["steps"]);
   if (!Array.isArray(steps)) return [];
-  return steps.filter(isRecord) as RouteStepModel[];
+  return steps.filter(isRecord);
 }
 
 function sumPositive(
