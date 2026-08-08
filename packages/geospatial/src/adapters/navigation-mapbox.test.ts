@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { NAVIGATION_CAMERA_V1_FIXTURE } from "./navigation-camera-v1.fixture.js";
 import {
   createNavigationMapboxPresenter,
   type NavigationMapboxMapLike,
@@ -20,7 +21,7 @@ function snapshot(
   };
 }
 
-function setup() {
+function setup(container = { clientWidth: 400, clientHeight: 800 }) {
   const cameraUpdates: CameraUpdate[] = [];
   const easeTo = vi.fn<(input: CameraUpdate) => void>();
   const map: NavigationMapboxMapLike = {
@@ -28,7 +29,7 @@ function setup() {
       cameraUpdates.push(input);
       easeTo(input);
     },
-    getContainer: () => ({ clientWidth: 400, clientHeight: 800 }),
+    getContainer: () => container,
   };
   const setLngLat = vi.fn<(position: [number, number]) => void>();
   const setRotation = vi.fn<(bearing: number) => void>();
@@ -71,6 +72,15 @@ function setup() {
 }
 
 describe("Mapbox navigation presenter", () => {
+  it("pins the executable contract to the frozen V1 source", () => {
+    expect(NAVIGATION_CAMERA_V1_FIXTURE.sourceCommit).toBe(
+      "60746fd7fed97b805758b37adfdbe3bad2582bfe",
+    );
+    expect(NAVIGATION_CAMERA_V1_FIXTURE.sourcePath).toBe(
+      "js/navigation/navigationRuntime/navigation-route-runtime.js",
+    );
+  });
+
   it("creates and updates one user marker from the visual snapshot", () => {
     const context = setup();
     context.presenter.update(snapshot());
@@ -86,44 +96,104 @@ describe("Mapbox navigation presenter", () => {
     expect(context.setRotation).toHaveBeenLastCalledWith(110);
   });
 
-  it("preserves the V1 first-person camera defaults and proportional padding", () => {
+  it("preserves the complete V1 first-person camera defaults", () => {
     const context = setup();
     context.presenter.update(snapshot(), true);
 
-    expect(context.easeTo).toHaveBeenCalledWith({
+    const update = context.cameraUpdates[0];
+    expect(update).toBeDefined();
+    expect(update).toMatchObject({
       center: [-38.917, -13.376],
       bearing: 90,
-      pitch: 68,
-      zoom: 19.1,
-      duration: 900,
+      pitch: NAVIGATION_CAMERA_V1_FIXTURE.camera.pitch,
+      zoom: NAVIGATION_CAMERA_V1_FIXTURE.camera.defaultZoom,
+      duration: NAVIGATION_CAMERA_V1_FIXTURE.camera.forcedDurationMs,
       padding: { top: 312, bottom: 48, left: 24, right: 24 },
-      retainPadding: false,
-      essential: true,
+      retainPadding: NAVIGATION_CAMERA_V1_FIXTURE.invariants.retainPadding,
+      essential: NAVIGATION_CAMERA_V1_FIXTURE.invariants.essential,
+    });
+    for (const sample of NAVIGATION_CAMERA_V1_FIXTURE.camera.easingSamples) {
+      expect(update?.easing(sample.input)).toBeCloseTo(sample.output, 10);
+    }
+  });
+
+  it("preserves V1 proportional padding across mobile, tablet and desktop", () => {
+    const mobile = setup({ clientWidth: 360, clientHeight: 640 });
+    mobile.presenter.update(snapshot(), true);
+    expect(mobile.cameraUpdates[0]?.padding).toEqual({
+      top: 250,
+      bottom: 38,
+      left: 22,
+      right: 22,
+    });
+
+    const tablet = setup({ clientWidth: 768, clientHeight: 1024 });
+    tablet.presenter.update(snapshot(), true);
+    expect(tablet.cameraUpdates[0]?.padding).toEqual({
+      top: 399,
+      bottom: 61,
+      left: 28,
+      right: 28,
+    });
+
+    const desktop = setup({ clientWidth: 1440, clientHeight: 900 });
+    desktop.presenter.update(snapshot(), true);
+    expect(desktop.cameraUpdates[0]?.padding).toEqual({
+      top: 351,
+      bottom: 54,
+      left: 28,
+      right: 28,
     });
   });
 
-  it("uses V1 zoom hysteresis for far, near and close maneuver distances", () => {
+  it("executes the exact V1 zoom hysteresis boundaries", () => {
     const context = setup();
-    context.presenter.update(snapshot({ distanceToNextManeuver: 120 }), true);
-    context.presenter.update(snapshot({ distanceToNextManeuver: 60 }), true);
-    context.presenter.update(snapshot({ distanceToNextManeuver: 20 }), true);
-    context.presenter.update(snapshot({ distanceToNextManeuver: 30 }), true);
-    context.presenter.update(snapshot({ distanceToNextManeuver: 100 }), true);
-    context.presenter.update(snapshot({ distanceToNextManeuver: 100 }), true);
+    const distances = [
+      120,
+      65,
+      64.99,
+      22.01,
+      22,
+      38,
+      38.01,
+      90,
+      90.01,
+    ];
+    for (const distanceToNextManeuver of distances) {
+      context.presenter.update(snapshot({ distanceToNextManeuver }), true);
+    }
 
     expect(context.cameraUpdates.map((input) => input.zoom)).toEqual([
-      19.1, 19.35, 19.55, 19.55, 19.35, 19.1,
+      19.1,
+      19.1,
+      19.35,
+      19.35,
+      19.55,
+      19.55,
+      19.35,
+      19.35,
+      19.1,
     ]);
   });
 
-  it("does not restart camera animation for insignificant visual jitter", () => {
+  it("does not restart camera animation for polling without visual change", () => {
+    const context = setup();
+    context.presenter.update(snapshot(), true);
+    context.setTime(30_000);
+    context.presenter.update(snapshot());
+
+    expect(context.easeTo).toHaveBeenCalledTimes(1);
+    expect(context.setLngLat).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not restart camera animation for movement and bearing below V1 thresholds", () => {
     const context = setup();
     context.presenter.update(snapshot(), true);
     context.setTime(11_000);
     context.presenter.update(
       snapshot({
         visualLocation: { latitude: -13.375999, longitude: -38.916999 },
-        bearing: 91,
+        bearing: 92.49,
       }),
     );
 
@@ -151,6 +221,21 @@ describe("Mapbox navigation presenter", () => {
       }),
     );
     expect(context.easeTo).toHaveBeenCalledTimes(2);
+    expect(context.cameraUpdates[1]?.duration).toBe(
+      NAVIGATION_CAMERA_V1_FIXTURE.camera.normalDurationMs,
+    );
+  });
+
+  it("forces a camera update even when the visual snapshot is unchanged", () => {
+    const context = setup();
+    context.presenter.update(snapshot(), true);
+    context.setTime(10_100);
+    context.presenter.update(snapshot(), true);
+
+    expect(context.easeTo).toHaveBeenCalledTimes(2);
+    expect(context.cameraUpdates[1]?.duration).toBe(
+      NAVIGATION_CAMERA_V1_FIXTURE.camera.forcedDurationMs,
+    );
   });
 
   it("ignores stale visual updates and removes marker on destroy", () => {
