@@ -15,9 +15,13 @@ function createLifecycle(): NavigationDomLifecycle {
   };
 }
 
+function createTestDocument(): Document {
+  return new EventTarget() as unknown as Document;
+}
+
 describe("navigation request port", () => {
   it("forwards a valid navigation request to the lifecycle", async () => {
-    const document = globalThis.document;
+    const document = createTestDocument();
     const lifecycle = createLifecycle();
     const port = createNavigationRequestPort({ document, lifecycle });
 
@@ -38,7 +42,7 @@ describe("navigation request port", () => {
   });
 
   it("ignores malformed or out-of-range destinations", async () => {
-    const document = globalThis.document;
+    const document = createTestDocument();
     const lifecycle = createLifecycle();
     const port = createNavigationRequestPort({ document, lifecycle });
 
@@ -61,7 +65,7 @@ describe("navigation request port", () => {
   });
 
   it("reports lifecycle start errors without creating an unhandled rejection", async () => {
-    const document = globalThis.document;
+    const document = createTestDocument();
     const error = new Error("ROUTING_FAILED");
     const lifecycle = createLifecycle();
     vi.mocked(lifecycle.start).mockRejectedValue(error);
@@ -83,7 +87,7 @@ describe("navigation request port", () => {
   });
 
   it("removes the request listener exactly once on destroy", async () => {
-    const document = globalThis.document;
+    const document = createTestDocument();
     const lifecycle = createLifecycle();
     const port = createNavigationRequestPort({ document, lifecycle });
 
