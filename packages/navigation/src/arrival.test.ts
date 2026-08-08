@@ -103,7 +103,11 @@ describe("arrival lifecycle", () => {
     const approximately22m = { latitude: -13.3798, longitude: -38.91 };
     const approximately111m = { latitude: -13.379, longitude: -38.91 };
 
-    expect(calculateArrivalDistanceMeters(approximately22m, destination)).toBeLessThan(30);
-    expect(calculateArrivalDistanceMeters(approximately111m, destination)).toBeGreaterThan(100);
+    expect(
+      calculateArrivalDistanceMeters(approximately22m, destination),
+    ).toBeLessThan(30);
+    expect(
+      calculateArrivalDistanceMeters(approximately111m, destination),
+    ).toBeGreaterThan(100);
   });
 });

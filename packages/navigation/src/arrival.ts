@@ -91,7 +91,8 @@ export function calculateArrivalDistanceMeters(
     Math.cos(latitude1) *
       Math.cos(latitude2) *
       Math.sin(longitudeDelta / 2) ** 2;
-  const angularDistance = 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
+  const angularDistance =
+    2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
   return EARTH_RADIUS_METERS * angularDistance;
 }
 
@@ -131,7 +132,10 @@ export function createArrivalLifecycle(
       }
 
       const current = validateCoordinate(position);
-      const distanceMeters = calculateArrivalDistanceMeters(current, destination);
+      const distanceMeters = calculateArrivalDistanceMeters(
+        current,
+        destination,
+      );
       const approaching = distanceMeters <= approachThresholdMeters;
       const arrived = distanceMeters <= arrivalThresholdMeters;
       let notifiedApproach = false;
@@ -155,9 +159,13 @@ export function createArrivalLifecycle(
           reason: "arrived",
         };
         ports.onArrived?.(detail);
-        scheduleNavigationTimeout(options.sessionId, () => {
-          ports.onAutoEnd?.(detail);
-        }, autoEndDelayMs);
+        scheduleNavigationTimeout(
+          options.sessionId,
+          () => {
+            ports.onAutoEnd?.(detail);
+          },
+          autoEndDelayMs,
+        );
       }
 
       return Object.freeze({
