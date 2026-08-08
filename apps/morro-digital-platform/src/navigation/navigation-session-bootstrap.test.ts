@@ -1,12 +1,13 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type {
   MapboxGlMapLike,
   MapboxGlModuleLike,
 } from "@touristic/geospatial";
-import type {
-  RouteCoordinate,
-  RouteFeatureCollection,
+import {
+  resetNavigationSessionManagerForTests,
+  type RouteCoordinate,
+  type RouteFeatureCollection,
 } from "@touristic/navigation";
 
 import type { BrowserGeolocationDriver } from "./browser-geolocation.js";
@@ -81,6 +82,10 @@ function setup() {
   };
 }
 
+afterEach(() => {
+  resetNavigationSessionManagerForTests();
+});
+
 describe("navigation session bootstrap", () => {
   it("resolves one start location, requests route and starts concrete wiring", async () => {
     const context = setup();
@@ -98,12 +103,19 @@ describe("navigation session bootstrap", () => {
         language: "pt",
       }),
     );
-    expect(context.createWiring).toHaveBeenCalledWith({
-      map: context.map,
-      sdk: context.sdk,
-      routeData: result,
-      geolocationDriver: context.geolocationDriver,
-    });
+    expect(context.createWiring).toHaveBeenCalledWith(
+      expect.objectContaining({
+        map: context.map,
+        sdk: context.sdk,
+        routeData: result,
+        geolocationDriver: context.geolocationDriver,
+        destination: {
+          longitude: -38.916,
+          latitude: -13.375,
+        },
+        sessionId: expect.any(Number),
+      }),
+    );
     expect(context.wiringStart).toHaveBeenCalledTimes(1);
     expect(context.bootstrap.isActive()).toBe(true);
   });
