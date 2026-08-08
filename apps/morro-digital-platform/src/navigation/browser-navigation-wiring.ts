@@ -15,6 +15,7 @@ import type {
 import {
   createBrowserGeolocationService,
   type BrowserGeolocationDriver,
+  type BrowserLocation,
 } from "./browser-geolocation.js";
 import {
   createNavigationAppComposition,
@@ -46,6 +47,7 @@ export interface BrowserNavigationWiringOptions {
   readonly stepIndex?: number;
   readonly geolocationDriver?: BrowserGeolocationDriver;
   readonly onSnapshot?: (snapshot: NavigationRuntimeSnapshot) => void;
+  readonly onLocation?: (location: BrowserLocation) => void;
   readonly onArrival?: () => void;
   readonly onAutoEnd?: () => void;
   readonly onRecalculation?: (route: RouteFeatureCollection) => void;
@@ -135,6 +137,7 @@ export function createBrowserNavigationWiring(
       ? { stepIndex: options.stepIndex }
       : {}),
     ...(options.onSnapshot ? { onSnapshot: options.onSnapshot } : {}),
+    ...(options.onLocation ? { onLocation: options.onLocation } : {}),
     ...(options.onArrival ? { onArrival: options.onArrival } : {}),
     ...(options.onAutoEnd ? { onAutoEnd: options.onAutoEnd } : {}),
     ...(options.onRecalculation
