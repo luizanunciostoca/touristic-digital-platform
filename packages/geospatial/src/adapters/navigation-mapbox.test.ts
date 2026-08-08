@@ -109,9 +109,10 @@ describe("Mapbox navigation presenter", () => {
     context.presenter.update(snapshot({ distanceToNextManeuver: 20 }), true);
     context.presenter.update(snapshot({ distanceToNextManeuver: 30 }), true);
     context.presenter.update(snapshot({ distanceToNextManeuver: 100 }), true);
+    context.presenter.update(snapshot({ distanceToNextManeuver: 100 }), true);
 
     expect(context.cameraUpdates.map((input) => input.zoom)).toEqual([
-      19.1, 19.35, 19.55, 19.55, 19.1,
+      19.1, 19.35, 19.55, 19.55, 19.35, 19.1,
     ]);
   });
 
