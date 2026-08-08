@@ -25,7 +25,7 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-      - run: pnpm install
+      - run: pnpm install --no-frozen-lockfile
       - name: Apply canonical formatter output
         run: pnpm exec prettier --write apps/morro-digital-platform/package.json apps/morro-digital-platform/src/navigation/navigation-composition.ts apps/morro-digital-platform/src/navigation/navigation-composition.test.ts pnpm-lock.yaml
       - name: Commit prepared files
