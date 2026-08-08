@@ -113,13 +113,17 @@ export function createNavigationMapboxPresenter(
   const viewport = options.viewport ?? (() => ({ width: 360, height: 640 }));
   let marker: NavigationMapboxMarkerLike | null = null;
   let lastCameraUpdate = 0;
-  let lastCameraPosition: NavigationVisualSnapshot["visualLocation"] | null = null;
+  let lastCameraPosition: NavigationVisualSnapshot["visualLocation"] | null =
+    null;
   let lastBearing: number | null = null;
   let lastCameraZoom: number | null = null;
   let cameraZoomMode: "far" | "near" | "close" = "far";
 
   function cameraZoomFor(snapshot: NavigationVisualSnapshot): number {
-    const distance = Math.max(0, finiteNumber(snapshot.distanceToNextManeuver, 200));
+    const distance = Math.max(
+      0,
+      finiteNumber(snapshot.distanceToNextManeuver, 200),
+    );
     if (cameraZoomMode === "close") {
       if (distance > 38) cameraZoomMode = "near";
     } else if (cameraZoomMode === "near") {
@@ -157,13 +161,17 @@ export function createNavigationMapboxPresenter(
       updateMarker(snapshot);
 
       const targetZoom = cameraZoomFor(snapshot);
-      const moved = geographicDistanceMeters(lastCameraPosition, snapshot.visualLocation);
+      const moved = geographicDistanceMeters(
+        lastCameraPosition,
+        snapshot.visualLocation,
+      );
       const bearingChanged =
         lastBearing === null
           ? Infinity
           : bearingDifference(snapshot.bearing, lastBearing);
       const zoomChanged =
-        lastCameraZoom === null || Math.abs(targetZoom - lastCameraZoom) >= 0.05;
+        lastCameraZoom === null ||
+        Math.abs(targetZoom - lastCameraZoom) >= 0.05;
       const currentTime = now();
 
       if (
