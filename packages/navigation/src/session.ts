@@ -20,8 +20,14 @@ export interface NavigationSession {
   readonly metadata: NavigationSessionMetadata;
   isActive(): boolean;
   assertActive(): true;
-  scheduleTimeout(callback: () => void, delayMs?: number): ReturnType<typeof setTimeout> | null;
-  scheduleInterval(callback: () => void, delayMs: number): ReturnType<typeof setInterval> | null;
+  scheduleTimeout(
+    callback: () => void,
+    delayMs?: number,
+  ): ReturnType<typeof setTimeout> | null;
+  scheduleInterval(
+    callback: () => void,
+    delayMs: number,
+  ): ReturnType<typeof setInterval> | null;
   addCleanup(callback: NavigationCleanup): () => boolean;
   wait(delayMs: number): Promise<boolean>;
   cancel(reason?: string): boolean;
@@ -64,7 +70,9 @@ function cleanupRecord(record: SessionRecord | null, reason: string): boolean {
 
   if (!record.controller.signal.aborted) {
     try {
-      record.controller.abort(new NavigationSessionCancelledError(record.id, record.reason));
+      record.controller.abort(
+        new NavigationSessionCancelledError(record.id, record.reason),
+      );
     } catch {
       record.controller.abort();
     }
@@ -102,7 +110,8 @@ function createPublicSession(record: SessionRecord): NavigationSession {
     addCleanup: (callback: NavigationCleanup) =>
       registerNavigationCleanup(record.id, callback),
     wait: (delayMs: number) => waitForNavigationSession(record.id, delayMs),
-    cancel: (reason = "cancelled") => cancelNavigationSession(record.id, reason),
+    cancel: (reason = "cancelled") =>
+      cancelNavigationSession(record.id, reason),
   });
 }
 
@@ -138,9 +147,9 @@ export function getActiveNavigationSessionId(): number | null {
 export function isNavigationSessionActive(sessionId: number): boolean {
   return Boolean(
     activeSession &&
-      !activeSession.cleaned &&
-      !activeSession.controller.signal.aborted &&
-      activeSession.id === sessionId,
+    !activeSession.cleaned &&
+    !activeSession.controller.signal.aborted &&
+    activeSession.id === sessionId,
   );
 }
 
@@ -217,10 +226,13 @@ export function scheduleNavigationInterval(
   const record = activeSession;
   if (!record) return null;
 
-  const intervalId = setInterval(() => {
-    if (!isNavigationSessionActive(sessionId)) return;
-    callback();
-  }, Math.max(50, normalizeDelay(delayMs, 1000)));
+  const intervalId = setInterval(
+    () => {
+      if (!isNavigationSessionActive(sessionId)) return;
+      callback();
+    },
+    Math.max(50, normalizeDelay(delayMs, 1000)),
+  );
 
   record.intervals.add(intervalId);
   return intervalId;

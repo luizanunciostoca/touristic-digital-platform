@@ -54,6 +54,8 @@ importers:
         specifier: workspace:*
         version: link:../shared
 
+  packages/navigation: {}
+
   packages/shared: {}
 
 packages:
