@@ -9,6 +9,7 @@ import {
   type NavigationSession,
   type RouteCoordinate,
   type RouteFeatureCollection,
+  type RouteRecalculationRequest,
   type RoutingLanguage,
 } from "@touristic/navigation";
 
@@ -36,6 +37,7 @@ export interface NavigationSessionBootstrapOptions {
   readonly createWiring?: typeof createBrowserNavigationWiring;
   readonly onArrival?: () => void;
   readonly onAutoEnd?: () => void;
+  readonly onRecalculation?: (route: RouteFeatureCollection) => void;
 }
 
 export interface NavigationSessionBootstrap {
@@ -166,6 +168,23 @@ export function createNavigationSessionBootstrap(
         });
         session.assertActive();
 
+        const requestRecalculationRoute = async (
+          request: RouteRecalculationRequest,
+        ): Promise<RouteFeatureCollection | null> => {
+          session.assertActive();
+          const recalculated = await requestRouteImpl({
+            start: request.start,
+            end: request.end,
+            language: options.language ?? "pt",
+            ...(options.routeTimeoutMs !== undefined
+              ? { timeoutMs: options.routeTimeoutMs }
+              : {}),
+            signal: request.signal,
+          });
+          session.assertActive();
+          return recalculated;
+        };
+
         const wiring = createWiring({
           map: options.map,
           sdk: options.sdk,
@@ -176,8 +195,12 @@ export function createNavigationSessionBootstrap(
           },
           sessionId: session.id,
           geolocationDriver,
+          requestRecalculationRoute,
           ...(options.onArrival ? { onArrival: options.onArrival } : {}),
           ...(options.onAutoEnd ? { onAutoEnd: options.onAutoEnd } : {}),
+          ...(options.onRecalculation
+            ? { onRecalculation: options.onRecalculation }
+            : {}),
         });
         activeWiring = wiring;
         wiring.start();
