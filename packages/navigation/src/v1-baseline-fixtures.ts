@@ -13,6 +13,10 @@ export const V1_NAVIGATION_BASELINE_PROVENANCE = Object.freeze({
     path: "js/navigation/navigationState/navigationSessionManager.js",
     blobSha: "1d769afad37efb349f629fceac0a483ca92fae45",
   }),
+  sessionManagerTest: Object.freeze({
+    path: "js/navigation/navigationState/__tests__/navigationSessionManager.test.js",
+    blobSha: "2fc8fcca0475c4066804af11440e7e08ddfbd48d",
+  }),
   sessionContractTest: Object.freeze({
     path: "js/navigation/navigationState/__tests__/navigation-session-contract.test.js",
     blobSha: "4df4fd6fe7924198a0139e3ba44e62540fa8e167",
@@ -111,4 +115,16 @@ export const V1_ROUTING_FIXTURES = Object.freeze({
     code: "ROUTING_NOT_CONFIGURED",
     message: "Serviço indisponível.",
   }),
+});
+
+export const V1_SESSION_FIXTURES = Object.freeze({
+  firstDestination: "Praia 1",
+  secondDestination: "Praia 2",
+  staleTimeoutMs: 1000,
+  staleTimeoutAdvanceMs: 1500,
+  intervalMs: 100,
+  intervalWarmupMs: 250,
+  intervalAfterCancelMs: 500,
+  waitMs: 5000,
+  cancelReason: "user_cancelled",
 });
