@@ -36,8 +36,12 @@ export interface BrowserLocationRequestOptions {
 export interface BrowserGeolocationService {
   start(): void;
   stop(): void;
-  getLocation(options?: BrowserLocationRequestOptions): Promise<BrowserLocation>;
-  getCurrentLocation(options?: Pick<BrowserLocationRequestOptions, "maxAge">): BrowserLocation | null;
+  getLocation(
+    options?: BrowserLocationRequestOptions,
+  ): Promise<BrowserLocation>;
+  getCurrentLocation(
+    options?: Pick<BrowserLocationRequestOptions, "maxAge">,
+  ): BrowserLocation | null;
   subscribe(listener: (location: BrowserLocation) => void): () => void;
 }
 
@@ -66,10 +70,14 @@ function hasValidCoordinates(location: BrowserLocation): boolean {
   );
 }
 
-export function getBrowserLocationAge(location: BrowserLocation, now = Date.now()): number {
+export function getBrowserLocationAge(
+  location: BrowserLocation,
+  now = Date.now(),
+): number {
   const timestamp = Number(location.timestamp);
   const currentTime = Number(now);
-  if (!Number.isFinite(timestamp) || !Number.isFinite(currentTime)) return Infinity;
+  if (!Number.isFinite(timestamp) || !Number.isFinite(currentTime))
+    return Infinity;
   const age = currentTime - timestamp;
   if (age < -MAX_FUTURE_CLOCK_SKEW_MS) return Infinity;
   return Math.max(0, age);
@@ -80,7 +88,10 @@ export function isBrowserLocationFresh(
   options: { readonly maxAge?: number; readonly now?: number } = {},
 ): location is BrowserLocation {
   if (!location || !hasValidCoordinates(location)) return false;
-  const maxAge = normalizeNonNegative(options.maxAge, DEFAULT_LOCATION_MAX_AGE_MS);
+  const maxAge = normalizeNonNegative(
+    options.maxAge,
+    DEFAULT_LOCATION_MAX_AGE_MS,
+  );
   return getBrowserLocationAge(location, options.now ?? Date.now()) <= maxAge;
 }
 
@@ -101,11 +112,14 @@ export function normalizeBrowserPosition(
   return hasValidCoordinates(location) ? location : null;
 }
 
-export function createBrowserGeolocationService(options: {
-  readonly driver?: BrowserGeolocationDriver;
-  readonly now?: () => number;
-} = {}): BrowserGeolocationService {
-  const driver: BrowserGeolocationDriver = options.driver ?? navigator.geolocation;
+export function createBrowserGeolocationService(
+  options: {
+    readonly driver?: BrowserGeolocationDriver;
+    readonly now?: () => number;
+  } = {},
+): BrowserGeolocationService {
+  const driver: BrowserGeolocationDriver =
+    options.driver ?? navigator.geolocation;
   const now = options.now ?? (() => Date.now());
   const subscribers = new Set<(location: BrowserLocation) => void>();
   const pending = new Map<number, PendingRequest>();
@@ -131,8 +145,15 @@ export function createBrowserGeolocationService(options: {
     callback(value);
   }
 
-  function resolveRequest(request: PendingRequest, location: BrowserLocation): void {
-    settle(request, (value) => request.resolve(value as BrowserLocation), location);
+  function resolveRequest(
+    request: PendingRequest,
+    location: BrowserLocation,
+  ): void {
+    settle(
+      request,
+      (value) => request.resolve(value as BrowserLocation),
+      location,
+    );
   }
 
   function rejectRequest(request: PendingRequest, error: Error): void {
@@ -165,7 +186,10 @@ export function createBrowserGeolocationService(options: {
         if (generation !== watchGeneration || watchId === null) return;
         if (error.code !== 1) return;
         for (const request of [...pending.values()]) {
-          rejectRequest(request, new Error(error.message || "PERMISSION_DENIED"));
+          rejectRequest(
+            request,
+            new Error(error.message || "PERMISSION_DENIED"),
+          );
         }
       },
       {
@@ -192,7 +216,13 @@ export function createBrowserGeolocationService(options: {
       (position) => {
         if (request.phase !== "fallback") return;
         const location = normalizeBrowserPosition(position, now());
-        if (!location || !isBrowserLocationFresh(location, { maxAge: request.maxAge, now: now() })) {
+        if (
+          !location ||
+          !isBrowserLocationFresh(location, {
+            maxAge: request.maxAge,
+            now: now(),
+          })
+        ) {
           rejectRequest(request, new Error("STALE_LOCATION"));
           return;
         }
@@ -227,7 +257,10 @@ export function createBrowserGeolocationService(options: {
         return Promise.resolve(currentLocation);
       }
       start();
-      const timeout = normalizeNonNegative(requestOptions.timeout, REQUEST_TIMEOUT_MS);
+      const timeout = normalizeNonNegative(
+        requestOptions.timeout,
+        REQUEST_TIMEOUT_MS,
+      );
       return new Promise<BrowserLocation>((resolve, reject) => {
         const request: PendingRequest = {
           id: nextRequestId++,

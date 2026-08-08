@@ -41,12 +41,12 @@ function setup() {
       return 77;
     },
   );
-  const getCurrentPosition = vi.fn<BrowserGeolocationDriver["getCurrentPosition"]>(
-    (success, error) => {
-      fallbackSuccess = success;
-      fallbackError = error;
-    },
-  );
+  const getCurrentPosition = vi.fn<
+    BrowserGeolocationDriver["getCurrentPosition"]
+  >((success, error) => {
+    fallbackSuccess = success;
+    fallbackError = error;
+  });
   const clearWatch = vi.fn<BrowserGeolocationDriver["clearWatch"]>();
   const driver: BrowserGeolocationDriver = {
     watchPosition,
@@ -67,7 +67,13 @@ function setup() {
     },
     failWatch(code: number, message: string) {
       if (!watchError) throw new Error("watch not started");
-      watchError({ code, message, PERMISSION_DENIED: 1, POSITION_UNAVAILABLE: 2, TIMEOUT: 3 });
+      watchError({
+        code,
+        message,
+        PERMISSION_DENIED: 1,
+        POSITION_UNAVAILABLE: 2,
+        TIMEOUT: 3,
+      });
     },
     emitFallback(lat: number, lon: number, timestamp = now) {
       if (!fallbackSuccess) throw new Error("fallback not started");
@@ -75,7 +81,13 @@ function setup() {
     },
     failFallback(code: number, message: string) {
       if (!fallbackError) throw new Error("fallback not started");
-      fallbackError({ code, message, PERMISSION_DENIED: 1, POSITION_UNAVAILABLE: 2, TIMEOUT: 3 });
+      fallbackError({
+        code,
+        message,
+        PERMISSION_DENIED: 1,
+        POSITION_UNAVAILABLE: 2,
+        TIMEOUT: 3,
+      });
     },
     advance(milliseconds: number) {
       now += milliseconds;
@@ -106,7 +118,9 @@ describe("browser geolocation service", () => {
         { now },
       ),
     ).toBe(false);
-    expect(isBrowserLocationFresh({ ...recent, timestamp: now + 6_000 }, { now })).toBe(false);
+    expect(
+      isBrowserLocationFresh({ ...recent, timestamp: now + 6_000 }, { now }),
+    ).toBe(false);
   });
 
   it("starts one high-accuracy watch with the V1 options and reuses fresh location", async () => {
@@ -119,8 +133,13 @@ describe("browser geolocation service", () => {
     );
 
     context.emitWatch(-13.38, -38.91);
-    await expect(first).resolves.toMatchObject({ latitude: -13.38, longitude: -38.91 });
-    await expect(context.service.getLocation()).resolves.toMatchObject({ latitude: -13.38 });
+    await expect(first).resolves.toMatchObject({
+      latitude: -13.38,
+      longitude: -38.91,
+    });
+    await expect(context.service.getLocation()).resolves.toMatchObject({
+      latitude: -13.38,
+    });
     expect(context.watchPosition).toHaveBeenCalledTimes(1);
     expect(context.getCurrentPosition).not.toHaveBeenCalled();
   });
@@ -135,7 +154,10 @@ describe("browser geolocation service", () => {
     expect(context.service.getCurrentLocation()).toBeNull();
     const next = context.service.getLocation({ timeout: 1_000 });
     context.emitWatch(-13.39, -38.92);
-    await expect(next).resolves.toMatchObject({ latitude: -13.39, longitude: -38.92 });
+    await expect(next).resolves.toMatchObject({
+      latitude: -13.39,
+      longitude: -38.92,
+    });
   });
 
   it("isolates concurrent request timeouts", async () => {
@@ -164,20 +186,29 @@ describe("browser geolocation service", () => {
     expect(resolved).not.toHaveBeenCalled();
 
     context.emitFallback(-13.39, -38.92);
-    await expect(request).resolves.toMatchObject({ latitude: -13.39, longitude: -38.92 });
+    await expect(request).resolves.toMatchObject({
+      latitude: -13.39,
+      longitude: -38.92,
+    });
   });
 
   it("rejects stale fallback and maps fallback errors", async () => {
     const context = setup();
     const stale = context.service.getLocation({ timeout: 10, maxAge: 1_000 });
     context.advance(10);
-    context.emitFallback(-13.38, -38.91, Date.parse("2026-07-15T11:59:58.999Z"));
+    context.emitFallback(
+      -13.38,
+      -38.91,
+      Date.parse("2026-07-15T11:59:58.999Z"),
+    );
     await expect(stale).rejects.toThrow("STALE_LOCATION");
 
     const failed = context.service.getLocation({ timeout: 10 });
     context.advance(10);
     context.failFallback(2, "Position unavailable");
-    await expect(failed).rejects.toThrow("Timeout ao obter localização: Position unavailable");
+    await expect(failed).rejects.toThrow(
+      "Timeout ao obter localização: Position unavailable",
+    );
   });
 
   it("permission denial rejects pending requests and stop clears the watcher", async () => {
