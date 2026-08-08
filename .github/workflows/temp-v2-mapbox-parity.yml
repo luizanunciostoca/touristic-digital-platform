@@ -1,0 +1,154 @@
+name: Temporary V2 Mapbox Parity Capture
+
+on:
+  push:
+    branches:
+      - test/v2-mapbox-parity-capture
+    paths:
+      - .github/workflows/temp-v2-mapbox-parity.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    env:
+      MAPBOX_PUBLIC_TOKEN_CI: ${{ secrets.MAPBOX_PUBLIC_TOKEN_CI }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install Playwright
+        run: |
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+          mkdir -p /tmp/v2-mapbox-parity
+      - name: Build workspace
+        run: pnpm -w build
+      - name: Start authenticated V2
+        run: |
+          test -n "${MAPBOX_PUBLIC_TOKEN_CI:-}" || { echo 'MAPBOX_PUBLIC_TOKEN_CI missing'; exit 1; }
+          VITE_MAPBOX_ACCESS_TOKEN="$MAPBOX_PUBLIC_TOKEN_CI" \
+          VITE_MAPBOX_STYLE=mapbox://styles/mapbox/streets-v12 \
+          VITE_MAPBOX_CONTAINER_ID=map \
+          VITE_MAPBOX_INITIAL_ZOOM=13.5 \
+          node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/v2-parity-server.log 2>&1 &
+          echo $! >/tmp/v2-parity-server.pid
+          for i in $(seq 1 90); do
+            if curl -fsS http://127.0.0.1:4173/runtime-config.js >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/v2-parity-server.log
+          exit 1
+      - name: Capture V2 Mapbox states
+        run: |
+          node <<'NODE'
+          const { writeFileSync } = require('node:fs');
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+          const cases = [
+            ['mobile', 390, 844],
+            ['tablet', 768, 1024],
+            ['desktop', 1440, 900],
+          ];
+          const tours = [
+            ['volta-a-ilha', 8],
+            ['trilha-gamboa', 5],
+            ['passeio-quadriciclo', 5],
+          ];
+
+          async function stabilize(page) {
+            await page.addStyleTag({ content: `
+              *, *::before, *::after { animation: none !important; transition: none !important; caret-color: transparent !important; }
+              #weather-widget { visibility: hidden !important; }
+              #loading-overlay { display: none !important; }
+            ` });
+            await page.evaluate(async () => { if (document.fonts?.ready) await document.fonts.ready; });
+          }
+
+          async function waitForTour(page, tourId, markerCount) {
+            await page.locator(`#map[data-map-state="ready"][data-map-mode="real"][data-active-tour="${tourId}"][data-map-marker-count="${markerCount}"]`).waitFor({ state: 'attached', timeout: 30000 });
+            await page.locator('.mapboxgl-canvas').waitFor({ state: 'visible', timeout: 30000 });
+            await page.waitForTimeout(2500);
+          }
+
+          async function switchTour(page, tourId) {
+            await page.locator('#tour-select').evaluate((element, nextTourId) => {
+              if (!(element instanceof HTMLSelectElement)) throw new Error('Expected #tour-select to be a select');
+              element.value = nextTourId;
+              element.dispatchEvent(new Event('change', { bubbles: true }));
+            }, tourId);
+          }
+
+          async function state(page) {
+            return page.locator('#map').evaluate((element) => ({
+              mode: element.getAttribute('data-map-mode'),
+              provider: element.getAttribute('data-map-provider'),
+              markerCount: element.getAttribute('data-map-marker-count'),
+              activeTour: element.getAttribute('data-active-tour'),
+              mapState: element.getAttribute('data-map-state'),
+              canvas: Boolean(element.querySelector('.mapboxgl-canvas')),
+              assistantIntro: document.querySelectorAll('.tour-intro-card').length,
+            }));
+          }
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            const evidence = {};
+            for (const [name, width, height] of cases) {
+              const context = await browser.newContext({ viewport: { width, height }, locale: 'pt-BR' });
+              await context.addInitScript(() => {
+                localStorage.setItem('morro-digital-onboarded', '1');
+                localStorage.setItem('app-language', 'pt');
+              });
+              const page = await context.newPage();
+              const errors = [];
+              const mapboxHttpErrors = [];
+              page.on('pageerror', (error) => errors.push(String(error)));
+              page.on('response', (response) => {
+                if (response.url().includes('mapbox.com') && response.status() >= 400) {
+                  mapboxHttpErrors.push({ status: response.status(), url: response.url().replace(/access_token=[^&]+/u, 'access_token=[redacted]') });
+                }
+              });
+              await page.goto('http://127.0.0.1:4173', { waitUntil: 'domcontentloaded', timeout: 30000 });
+              await waitForTour(page, 'volta-a-ilha', '8');
+              await stabilize(page);
+              evidence[name] = { states: {}, pageErrors: errors, mapboxHttpErrors };
+              evidence[name].states['map-ready'] = await state(page);
+              await page.screenshot({ path: `/tmp/v2-mapbox-parity/${name}-map-ready.png`, fullPage: false });
+
+              for (const [tourId, count] of tours) {
+                if ((await page.locator('#map').getAttribute('data-active-tour')) !== tourId) {
+                  await switchTour(page, tourId);
+                }
+                await waitForTour(page, tourId, String(count));
+                await stabilize(page);
+                const current = await state(page);
+                evidence[name].states[tourId] = current;
+                if (current.mode !== 'real' || current.activeTour !== tourId || current.markerCount !== String(count) || !current.canvas) {
+                  throw new Error(`V2 tour state mismatch ${name}/${tourId}: ${JSON.stringify(current)}`);
+                }
+                await page.screenshot({ path: `/tmp/v2-mapbox-parity/${name}-${tourId}.png`, fullPage: false });
+              }
+              if (errors.length || mapboxHttpErrors.length) throw new Error(`Browser errors ${name}: ${JSON.stringify({ errors, mapboxHttpErrors })}`);
+              await context.close();
+            }
+            writeFileSync('/tmp/v2-mapbox-parity/evidence.json', JSON.stringify(evidence, null, 2));
+            await browser.close();
+          })().catch((error) => { console.error(error); process.exit(1); });
+          NODE
+      - name: Diagnostics
+        if: failure()
+        run: cat /tmp/v2-parity-server.log || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: v2-mapbox-parity-capture
+          path: /tmp/v2-mapbox-parity
+          retention-days: 1
+          if-no-files-found: error
