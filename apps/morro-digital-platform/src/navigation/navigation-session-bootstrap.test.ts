@@ -54,7 +54,10 @@ function setup() {
   const requestRouteImpl = vi.fn(async () => routeData());
   const resolveStartCoordinate = vi.fn<
     (signal: AbortSignal) => Promise<RouteCoordinate>
-  >(async (_signal) => [-38.917, -13.376]);
+  >(async (signal) => {
+    void signal;
+    return [-38.917, -13.376];
+  });
 
   const bootstrap = createNavigationSessionBootstrap({
     map,
