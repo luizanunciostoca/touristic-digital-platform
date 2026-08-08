@@ -4,6 +4,7 @@ import {
   type NavigationInstructionInput,
   type NavigationRuntimeCoordinator,
   type NavigationRuntimeSnapshot,
+  type NavigationRuntimeUpdateInput,
 } from "@touristic/navigation";
 
 import type {
@@ -40,6 +41,18 @@ function normalizeStepIndex(value: unknown): number {
   return Number.isFinite(parsed) ? Math.max(0, Math.trunc(parsed)) : 0;
 }
 
+function runtimeLocationFromBrowser(
+  location: BrowserLocation,
+): NonNullable<NavigationRuntimeUpdateInput["location"]> {
+  return {
+    latitude: location.latitude,
+    longitude: location.longitude,
+    accuracy: location.accuracy,
+    speed: location.speed,
+    timestamp: location.timestamp,
+  };
+}
+
 export function createNavigationAppComposition(
   options: NavigationAppCompositionOptions,
 ): NavigationAppComposition {
@@ -63,7 +76,7 @@ export function createNavigationAppComposition(
     if (!started) return;
     runtime.update({
       routeData,
-      location,
+      location: runtimeLocationFromBrowser(location),
       instructions,
       stepIndex,
     });
