@@ -12,6 +12,7 @@ Este aplicativo é o primeiro marco executável da Touristic Digital Platform pa
 - eventos `DestinationLoaded`, `MapInitialized`, `MapReady` e `MapInitializationFailed`;
 - eventos `MapMarkersLoaded` e `MapMarkersLoadFailed`;
 - catálogo estrutural dos três roteiros da V1;
+- conteúdo dos três roteiros localizado em PT-BR, inglês e espanhol;
 - projeção das paradas de um roteiro em marcadores geoespaciais;
 - shell acessível de desenvolvimento;
 - provider visual de desenvolvimento sem credenciais reais;
@@ -50,9 +51,42 @@ O arquivo `src/config/tour-catalog.ts` preserva a estrutura dos três roteiros e
 - Trilha Ecológica para a Gamboa: 5 paradas;
 - Expedição de Quadriciclo: 5 paradas.
 
-Esta etapa migra identificadores, títulos, chaves de tradução, duração, transporte, coordenadas, caminhos de imagens e textos alternativos. Descrições completas das paradas, narrações e dicas permanecem pendentes para a etapa de conteúdo multilíngue.
+O catálogo estrutural continua sendo a única fonte para identificadores, chaves de tradução, coordenadas, ordem das paradas e caminhos de imagem. Os contratos validam coordenadas, IDs duplicados e ordem sequencial; rotas, paradas, posições e coleções são congeladas para impedir mutações acidentais.
 
-Os contratos validam coordenadas, IDs duplicados e ordem sequencial das paradas. Rotas, paradas, posições e coleções são congeladas para impedir mutações acidentais.
+## Conteúdo multilíngue dos roteiros
+
+O arquivo `src/config/tour-localization.ts` adiciona uma camada de conteúdo independente do catálogo geográfico. Os locales suportados são:
+
+```text
+pt-BR
+en
+es
+```
+
+A camada fornece, para todos os três roteiros e suas 18 paradas:
+
+- título do roteiro;
+- descrição do roteiro;
+- duração;
+- meio de transporte;
+- título de cada parada;
+- texto alternativo de cada imagem.
+
+As funções públicas são:
+
+```ts
+normalizeTourLocale(locale);
+localizeMorroTour(tourId, locale);
+getLocalizedMorroTourCatalog(locale);
+```
+
+`normalizeTourLocale` reconhece variantes como `en-US`, `en-GB` e `es-AR`; qualquer locale não suportado utiliza `pt-BR` como fallback determinístico.
+
+A localização não duplica geometria nem mídia. `localizeMorroTour` projeta o texto localizado sobre a rota estrutural existente, preservando IDs, ordem, coordenadas, chaves de tradução e `photoPath`. O resultado e a coleção de paradas são imutáveis.
+
+Os testes garantem cobertura completa de PT-BR/EN/ES, equivalência do conteúdo PT-BR com o catálogo atual, preservação de geometria e referências de mídia, fallback de locale e ausência de strings obrigatórias vazias.
+
+A internacionalização do shell completo, seletor visual de idioma, descrições narrativas extensas de cada parada, narrações em áudio e dicas editoriais continuam fora deste incremento e devem permanecer em PRs próprios.
 
 ## Marcadores do roteiro inicial
 
