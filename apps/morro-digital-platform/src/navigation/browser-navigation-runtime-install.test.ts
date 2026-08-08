@@ -27,10 +27,11 @@ describe("browser navigation runtime install", () => {
       stop: vi.fn(),
       isActive: vi.fn(() => false),
     } as unknown as NavigationSessionBootstrap;
+    const lifecycleStop = vi.fn<() => void>();
     const lifecycleDestroy = vi.fn<() => void>();
     const lifecycle = {
       start: vi.fn(),
-      stop: vi.fn(),
+      stop: lifecycleStop,
       destroy: lifecycleDestroy,
       isActive: vi.fn(() => false),
     } as unknown as NavigationDomLifecycle;
@@ -51,7 +52,17 @@ describe("browser navigation runtime install", () => {
       createRequestPort,
     });
 
-    expect(createBootstrap).toHaveBeenCalledWith({ map, sdk });
+    expect(createBootstrap).toHaveBeenCalledWith(
+      expect.objectContaining({
+        map,
+        sdk,
+        onAutoEnd: expect.any(Function),
+      }),
+    );
+    const bootstrapOptions = createBootstrap.mock.calls[0]?.[0];
+    expect(bootstrapOptions).toBeDefined();
+    bootstrapOptions?.onAutoEnd?.();
+    expect(lifecycleStop).toHaveBeenCalledTimes(1);
     expect(createLifecycle).toHaveBeenCalledWith({ document, bootstrap });
     expect(createRequestPort).toHaveBeenCalledWith({ document, lifecycle });
     expect(installed.bootstrap).toBe(bootstrap);
