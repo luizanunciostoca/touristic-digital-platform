@@ -7,7 +7,10 @@ import type {
 
 import type { NavigationDomLifecycle } from "./navigation-dom-lifecycle.js";
 import type { NavigationRequestPort } from "./navigation-request-port.js";
-import type { NavigationSessionBootstrap } from "./navigation-session-bootstrap.js";
+import type {
+  NavigationSessionBootstrap,
+  NavigationSessionBootstrapOptions,
+} from "./navigation-session-bootstrap.js";
 import { installBrowserNavigationRuntime } from "./browser-navigation-runtime-install.js";
 
 describe("browser navigation runtime install", () => {
@@ -39,7 +42,9 @@ describe("browser navigation runtime install", () => {
     const requestPort = {
       destroy: requestPortDestroy,
     } as NavigationRequestPort;
-    const createBootstrap = vi.fn(() => bootstrap);
+    const createBootstrap = vi.fn<
+      (options: NavigationSessionBootstrapOptions) => NavigationSessionBootstrap
+    >((_options) => bootstrap);
     const createLifecycle = vi.fn(() => lifecycle);
     const createRequestPort = vi.fn(() => requestPort);
 
@@ -52,15 +57,12 @@ describe("browser navigation runtime install", () => {
       createRequestPort,
     });
 
-    expect(createBootstrap).toHaveBeenCalledWith(
-      expect.objectContaining({
-        map,
-        sdk,
-        onAutoEnd: expect.any(Function),
-      }),
-    );
+    expect(createBootstrap).toHaveBeenCalledTimes(1);
     const bootstrapOptions = createBootstrap.mock.calls[0]?.[0];
     expect(bootstrapOptions).toBeDefined();
+    expect(bootstrapOptions?.map).toBe(map);
+    expect(bootstrapOptions?.sdk).toBe(sdk);
+    expect(typeof bootstrapOptions?.onAutoEnd).toBe("function");
     bootstrapOptions?.onAutoEnd?.();
     expect(lifecycleStop).toHaveBeenCalledTimes(1);
     expect(createLifecycle).toHaveBeenCalledWith({ document, bootstrap });
