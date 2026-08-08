@@ -34,7 +34,9 @@ export interface NavigationSessionBootstrapOptions {
 }
 
 export interface NavigationSessionBootstrap {
-  start(destination: NavigationDestinationInput): Promise<RouteFeatureCollection>;
+  start(
+    destination: NavigationDestinationInput,
+  ): Promise<RouteFeatureCollection>;
   stop(): void;
   isActive(): boolean;
 }
@@ -76,7 +78,9 @@ function resolveBrowserStartCoordinate(
     };
     const onAbort = (): void => {
       finish(() =>
-        reject(new DOMException("Navigation bootstrap cancelled", "AbortError")),
+        reject(
+          new DOMException("Navigation bootstrap cancelled", "AbortError"),
+        ),
       );
     };
     signal.addEventListener("abort", onAbort, { once: true });
@@ -152,7 +156,10 @@ export function createNavigationSessionBootstrap(
           abortController.signal.aborted ||
           sessionGeneration !== generation
         ) {
-          throw new DOMException("Navigation bootstrap cancelled", "AbortError");
+          throw new DOMException(
+            "Navigation bootstrap cancelled",
+            "AbortError",
+          );
         }
 
         const routeData = await requestRouteImpl({
@@ -166,7 +173,10 @@ export function createNavigationSessionBootstrap(
           abortController.signal.aborted ||
           sessionGeneration !== generation
         ) {
-          throw new DOMException("Navigation bootstrap cancelled", "AbortError");
+          throw new DOMException(
+            "Navigation bootstrap cancelled",
+            "AbortError",
+          );
         }
 
         const wiring = createWiring({
