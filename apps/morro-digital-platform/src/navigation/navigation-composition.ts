@@ -75,7 +75,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
-function routeInstructions(routeData: unknown): readonly NavigationInstructionInput[] {
+function routeInstructions(
+  routeData: unknown,
+): readonly NavigationInstructionInput[] {
   if (!isRecord(routeData)) return [];
   const features: unknown = routeData["features"];
   if (!Array.isArray(features)) return [];

@@ -32,7 +32,9 @@ function setEndButtonVisible(document: Document, visible: boolean): void {
   endButton.style.pointerEvents = visible ? "auto" : "none";
 }
 
-function destinationLabel(destination: NavigationDestinationInput | null): string {
+function destinationLabel(
+  destination: NavigationDestinationInput | null,
+): string {
   if (!destination) return "";
   return `${destination.latitude.toFixed(6)},${destination.longitude.toFixed(6)}`;
 }
