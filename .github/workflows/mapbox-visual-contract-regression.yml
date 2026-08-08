@@ -1,0 +1,281 @@
+name: Mapbox Visual Contract Regression
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feat/mapbox-gl-runtime
+    paths:
+      - .github/workflows/mapbox-visual-contract-regression.yml
+      - apps/morro-digital-platform/src/bootstrap/geospatial.ts
+      - apps/morro-digital-platform/src/browser-entry.ts
+      - apps/morro-digital-platform/src/layouts/app-shell.ts
+      - apps/morro-digital-platform/public/styles.css
+      - apps/morro-digital-platform/tooling/dev-server.mjs
+      - packages/geospatial/src/infrastructure/mapbox-gl-driver.ts
+  pull_request:
+    paths:
+      - .github/workflows/mapbox-visual-contract-regression.yml
+      - apps/morro-digital-platform/src/bootstrap/geospatial.ts
+      - apps/morro-digital-platform/src/browser-entry.ts
+      - apps/morro-digital-platform/src/layouts/app-shell.ts
+      - apps/morro-digital-platform/public/styles.css
+      - apps/morro-digital-platform/tooling/dev-server.mjs
+      - packages/geospatial/src/infrastructure/mapbox-gl-driver.ts
+
+permissions:
+  contents: read
+
+jobs:
+  visual-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install deterministic Chromium
+        run: |
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+          mkdir -p /tmp/mapbox-visual-contract
+      - name: Build workspace
+        run: pnpm -w build
+      - name: Start authenticated Mapbox runtime
+        env:
+          MAPBOX_PUBLIC_TOKEN_CI: ${{ secrets.MAPBOX_PUBLIC_TOKEN_CI }}
+        run: |
+          test -n "${MAPBOX_PUBLIC_TOKEN_CI:-}" || { echo 'MAPBOX_PUBLIC_TOKEN_CI missing'; exit 1; }
+          VITE_MAPBOX_ACCESS_TOKEN="$MAPBOX_PUBLIC_TOKEN_CI" \
+          VITE_MAPBOX_STYLE=mapbox://styles/mapbox/streets-v12 \
+          VITE_MAPBOX_CONTAINER_ID=map \
+          VITE_MAPBOX_INITIAL_ZOOM=13.5 \
+          node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/mapbox-visual-contract.log 2>&1 &
+          echo $! >/tmp/mapbox-visual-contract.pid
+          for i in $(seq 1 90); do
+            if curl -fsS http://127.0.0.1:4173/runtime-config.js >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/mapbox-visual-contract.log
+          exit 1
+      - name: Validate V1 Mapbox visual contract
+        run: |
+          node <<'NODE'
+          const { mkdirSync, writeFileSync } = require('node:fs');
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+
+          const outputDir = '/tmp/mapbox-visual-contract';
+          mkdirSync(outputDir, { recursive: true });
+
+          const viewports = [
+            ['mobile', 390, 844],
+            ['tablet', 768, 1024],
+            ['desktop', 1440, 900],
+          ];
+
+          async function waitReady(page) {
+            await page.locator('#map[data-map-state="ready"][data-map-mode="real"][data-map-provider="mapbox"][data-active-tour="volta-a-ilha"][data-map-marker-count="8"]').waitFor({ state: 'attached', timeout: 30000 });
+            await page.locator('#map .mapboxgl-canvas').waitFor({ state: 'visible', timeout: 30000 });
+
+            const deadline = Date.now() + 30000;
+            let ready = false;
+            while (Date.now() < deadline) {
+              ready = await page.evaluate(() => {
+                const map = globalThis.mapboxPrimaryInstance;
+                return Boolean(
+                  map &&
+                  globalThis.mapboxgl?.version === '3.12.0' &&
+                  map.isStyleLoaded?.() &&
+                  map.getSource?.('tour-route-source') &&
+                  map.getLayer?.('tour-route-outline') &&
+                  map.getLayer?.('tour-route-layer') &&
+                  document.querySelectorAll('#map .tour-stop-marker').length === 8
+                );
+              });
+              if (ready) break;
+              await page.waitForTimeout(100);
+            }
+            if (!ready) {
+              throw new Error('Mapbox visual contract did not reach ready state before timeout.');
+            }
+            await page.waitForTimeout(350);
+          }
+
+          async function readContract(page) {
+            return await page.evaluate(() => {
+              const map = globalThis.mapboxPrimaryInstance;
+              const element = document.getElementById('map');
+              const rect = element.getBoundingClientRect();
+              const logo = element.querySelector('.mapboxgl-ctrl-logo');
+              return {
+                sdkVersion: globalThis.mapboxgl?.version ?? null,
+                provider: element.getAttribute('data-map-provider'),
+                mode: element.getAttribute('data-map-mode'),
+                mapState: element.getAttribute('data-map-state'),
+                activeTour: element.getAttribute('data-active-tour'),
+                markerCount: document.querySelectorAll('#map .tour-stop-marker').length,
+                canvasVisible: Boolean(element.querySelector('.mapboxgl-canvas')),
+                mapboxLogoPresent: logo instanceof HTMLAnchorElement,
+                mapboxLogoHref: logo instanceof HTMLAnchorElement ? logo.href : null,
+                width: Math.round(rect.width),
+                height: Math.round(rect.height),
+                styleLoaded: Boolean(map.isStyleLoaded?.()),
+                routeSource: Boolean(map.getSource?.('tour-route-source')),
+                outline: {
+                  color: map.getPaintProperty?.('tour-route-outline', 'line-color'),
+                  width: map.getPaintProperty?.('tour-route-outline', 'line-width'),
+                  opacity: map.getPaintProperty?.('tour-route-outline', 'line-opacity'),
+                  dash: map.getPaintProperty?.('tour-route-outline', 'line-dasharray'),
+                  join: map.getLayoutProperty?.('tour-route-outline', 'line-join'),
+                  cap: map.getLayoutProperty?.('tour-route-outline', 'line-cap'),
+                },
+                route: {
+                  color: map.getPaintProperty?.('tour-route-layer', 'line-color'),
+                  width: map.getPaintProperty?.('tour-route-layer', 'line-width'),
+                  opacity: map.getPaintProperty?.('tour-route-layer', 'line-opacity'),
+                  dash: map.getPaintProperty?.('tour-route-layer', 'line-dasharray'),
+                  join: map.getLayoutProperty?.('tour-route-layer', 'line-join'),
+                  cap: map.getLayoutProperty?.('tour-route-layer', 'line-cap'),
+                },
+                forcedColors: matchMedia('(forced-colors: active)').matches,
+                assistantVisible: Boolean(document.querySelector('#assistant-messages:not(.hidden)')),
+                assistantOptions: document.querySelectorAll('.assistant-option-btn').length,
+              };
+            });
+          }
+
+          function assertContract(state, viewportName, forcedColors) {
+            const expected = {
+              outline: { color: '#0f4c81', width: 9, opacity: 0.35, dash: [2, 2], join: 'round', cap: 'round' },
+              route: { color: '#06b6d4', width: 5, opacity: 0.9, dash: [2, 1.5], join: 'round', cap: 'round' },
+            };
+            if (state.sdkVersion !== '3.12.0' || state.provider !== 'mapbox' || state.mode !== 'real' || state.mapState !== 'ready') {
+              throw new Error(`Invalid Mapbox runtime for ${viewportName}: ${JSON.stringify(state)}`);
+            }
+            if (state.activeTour !== 'volta-a-ilha' || state.markerCount !== 8 || !state.canvasVisible || !state.styleLoaded || !state.routeSource) {
+              throw new Error(`Invalid route state for ${viewportName}: ${JSON.stringify(state)}`);
+            }
+            if (!state.mapboxLogoPresent || !state.mapboxLogoHref?.includes('mapbox.com')) {
+              throw new Error(`Required Mapbox vendor logo is missing for ${viewportName}: ${JSON.stringify(state)}`);
+            }
+            if (JSON.stringify(state.outline) !== JSON.stringify(expected.outline) || JSON.stringify(state.route) !== JSON.stringify(expected.route)) {
+              throw new Error(`V1 route visual contract diverged for ${viewportName}: ${JSON.stringify(state)}`);
+            }
+            if (state.forcedColors !== forcedColors || !state.assistantVisible || state.assistantOptions !== 10) {
+              throw new Error(`Accessibility state diverged for ${viewportName}: ${JSON.stringify(state)}`);
+            }
+          }
+
+          async function capture(browser, name, width, height, forcedColors) {
+            const context = await browser.newContext({
+              viewport: { width, height },
+              deviceScaleFactor: 1,
+              forcedColors: forcedColors ? 'active' : 'none',
+            });
+            await context.addInitScript(() => {
+              localStorage.setItem('morro-digital-onboarded', '1');
+              localStorage.setItem('voice-enabled', 'false');
+            });
+            const page = await context.newPage();
+            const pageErrors = [];
+            const mapboxHttpErrors = [];
+            page.on('pageerror', (error) => pageErrors.push(error.message));
+            page.on('response', (response) => {
+              if (response.url().includes('mapbox.com') && response.status() >= 400) {
+                mapboxHttpErrors.push({
+                  status: response.status(),
+                  url: response.url().replace(/access_token=[^&]+/u, 'access_token=[redacted]'),
+                });
+              }
+            });
+
+            await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded', timeout: 30000 });
+            await waitReady(page);
+            const state = await readContract(page);
+
+            let focusOrder = null;
+            let normalizedAppFocus = null;
+            if (!forcedColors) {
+              await page.evaluate(() => document.activeElement?.blur?.());
+              focusOrder = [];
+              for (let i = 0; i < 5; i += 1) {
+                await page.keyboard.press('Tab');
+                focusOrder.push(await page.evaluate(() => {
+                  const element = document.activeElement;
+                  if (!element) return 'none';
+                  if (element.classList?.contains('mapboxgl-canvas')) return 'mapbox-canvas';
+                  if (element.classList?.contains('mapboxgl-ctrl-logo')) return 'mapbox-logo';
+                  if (element.classList?.contains('mood-button')) return 'mood-button';
+                  if (element.classList?.contains('minimize-button')) return 'minimize-button';
+                  if (element.classList?.contains('assistant-option-btn')) return 'assistant-option';
+                  return `${element.tagName?.toLowerCase?.() || 'unknown'}#${element.id || ''}.${element.className || ''}`;
+                }));
+              }
+              normalizedAppFocus = focusOrder.filter((entry) => entry !== 'mapbox-logo');
+            }
+
+            const suffix = forcedColors ? 'forced-colors' : 'normal';
+            await page.screenshot({ path: `${outputDir}/${name}-${suffix}.png`, fullPage: false, animations: 'disabled' });
+            const result = { state, focusOrder, normalizedAppFocus, pageErrors, mapboxHttpErrors };
+            writeFileSync(`${outputDir}/${name}-${suffix}.json`, JSON.stringify(result, null, 2));
+
+            assertContract(state, name, forcedColors);
+
+            if (!forcedColors) {
+              const expectedRawFocus = ['mapbox-canvas', 'mapbox-logo', 'mood-button', 'minimize-button', 'assistant-option'];
+              const expectedAppFocus = ['mapbox-canvas', 'mood-button', 'minimize-button', 'assistant-option'];
+              if (JSON.stringify(focusOrder) !== JSON.stringify(expectedRawFocus)) {
+                throw new Error(`Mapbox keyboard trace diverged for ${name}: ${JSON.stringify(focusOrder)}`);
+              }
+              if (JSON.stringify(normalizedAppFocus) !== JSON.stringify(expectedAppFocus)) {
+                throw new Error(`V1 functional keyboard order diverged for ${name}: ${JSON.stringify(normalizedAppFocus)}`);
+              }
+            }
+
+            if (pageErrors.length || mapboxHttpErrors.length) {
+              throw new Error(`Browser errors for ${name}: ${JSON.stringify({ pageErrors, mapboxHttpErrors })}`);
+            }
+
+            await context.close();
+            return result;
+          }
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            const evidence = {};
+            try {
+              for (const [name, width, height] of viewports) {
+                evidence[name] = {
+                  normal: await capture(browser, name, width, height, false),
+                  forcedColors: await capture(browser, name, width, height, true),
+                };
+              }
+            } finally {
+              await browser.close();
+            }
+            writeFileSync(`${outputDir}/evidence.json`, JSON.stringify({
+              v1Commit: '60746fd7fed97b805758b37adfdbe3bad2582bfe',
+              mapboxGlJs: '3.12.0',
+              style: 'mapbox://styles/mapbox/streets-v12',
+              vendorFocusNormalization: 'Mapbox logo remains focusable; functional app order is evaluated with the vendor logo normalized out.',
+              evidence,
+            }, null, 2));
+          })().catch((error) => {
+            writeFileSync(`${outputDir}/failure.txt`, String(error?.stack || error));
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+      - name: Show diagnostics
+        if: failure()
+        run: cat /tmp/mapbox-visual-contract.log || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mapbox-visual-contract-evidence
+          path: /tmp/mapbox-visual-contract
+          retention-days: 7
+          if-no-files-found: error

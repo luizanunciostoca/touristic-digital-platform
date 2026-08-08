@@ -7,6 +7,31 @@ import type {
 export interface MapboxGlMapLike {
   setCenter(center: [number, number]): void;
   remove(): void;
+  isStyleLoaded?(): boolean;
+  once?(event: string, listener: () => void): void;
+  getLayer?(id: string): unknown;
+  removeLayer?(id: string): void;
+  getSource?(id: string): unknown;
+  removeSource?(id: string): void;
+  addSource?(id: string, source: unknown): void;
+  addLayer?(layer: unknown): void;
+  fitBounds?(
+    bounds: [[number, number], [number, number]],
+    options?: {
+      readonly padding?:
+        | number
+        | Readonly<{
+            top: number;
+            bottom: number;
+            left: number;
+            right: number;
+          }>;
+      readonly pitch?: number;
+      readonly bearing?: number;
+      readonly duration?: number;
+      readonly essential?: boolean;
+    },
+  ): void;
 }
 
 export interface MapboxGlMarkerLike {
@@ -15,26 +40,47 @@ export interface MapboxGlMarkerLike {
   remove(): void;
 }
 
+export interface MapboxGlNativeMapOptions {
+  readonly pitch?: number;
+  readonly bearing?: number;
+  readonly antialias?: boolean;
+  readonly attributionControl?: boolean;
+  readonly minZoom?: number;
+  readonly maxZoom?: number;
+  readonly projection?: string;
+}
+
 export interface MapboxGlModuleLike {
   accessToken: string;
+  readonly version?: string;
   Map: new (options: {
     readonly container: string;
     readonly style?: string;
     readonly center: [number, number];
     readonly zoom: number;
+    readonly pitch?: number;
+    readonly bearing?: number;
+    readonly antialias?: boolean;
+    readonly attributionControl?: boolean;
+    readonly minZoom?: number;
+    readonly maxZoom?: number;
+    readonly projection?: string;
   }) => MapboxGlMapLike;
   Marker: new (options?: {
     readonly element?: HTMLElement;
+    readonly anchor?: string;
   }) => MapboxGlMarkerLike;
 }
 
 export interface MapboxGlDriverOptions {
   readonly sdk: MapboxGlModuleLike;
   readonly accessToken: string;
+  readonly mapOptions?: MapboxGlNativeMapOptions;
   readonly createMarkerElement?: (input: {
     readonly id: string;
     readonly label?: string;
   }) => HTMLElement | undefined;
+  readonly onMapCreated?: (map: MapboxGlMapLike) => void;
 }
 
 type MapboxCreateMapInput = Parameters<MapboxDriver["createMap"]>[0];
@@ -59,7 +105,9 @@ export function createMapboxGlDriver(
         ...(input.style ? { style: input.style } : {}),
         center: input.center,
         zoom: input.zoom,
+        ...options.mapOptions,
       });
+      options.onMapCreated?.(map);
 
       const handle: MapboxMapHandle = Object.freeze({
         setCenter(center: [number, number]): void {
@@ -79,7 +127,9 @@ export function createMapboxGlDriver(
         id: input.id,
         ...(input.label ? { label: input.label } : {}),
       });
-      const marker = new options.sdk.Marker(element ? { element } : undefined);
+      const marker = new options.sdk.Marker(
+        element ? { element, anchor: "bottom" } : undefined,
+      );
 
       const handle: MapboxMarkerHandle = Object.freeze({
         setLngLat(position: [number, number]): MapboxMarkerHandle {

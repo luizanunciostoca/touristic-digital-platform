@@ -1,0 +1,343 @@
+name: Map Provider Regression
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feat/mapbox-gl-runtime
+    paths:
+      - .github/workflows/map-provider-regression.yml
+      - apps/morro-digital-platform/src/browser-entry.ts
+      - apps/morro-digital-platform/src/browser.ts
+      - apps/morro-digital-platform/src/runtime/mapbox-sdk-loader.ts
+      - apps/morro-digital-platform/src/development/leaflet-compatibility-sdk.ts
+      - apps/morro-digital-platform/tooling/dev-server.mjs
+      - apps/morro-digital-platform/public/index.html
+  pull_request:
+    paths:
+      - .github/workflows/map-provider-regression.yml
+      - apps/morro-digital-platform/src/browser-entry.ts
+      - apps/morro-digital-platform/src/browser.ts
+      - apps/morro-digital-platform/src/runtime/mapbox-sdk-loader.ts
+      - apps/morro-digital-platform/src/development/leaflet-compatibility-sdk.ts
+      - apps/morro-digital-platform/tooling/dev-server.mjs
+      - apps/morro-digital-platform/public/index.html
+
+permissions:
+  contents: read
+
+jobs:
+  provider-regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install Playwright
+        run: |
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+          mkdir -p /tmp/map-provider-evidence
+      - name: Build workspace
+        run: pnpm -w build
+      - name: Start fallback-only runtime
+        run: |
+          node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/morro-map-provider.log 2>&1 &
+          echo $! >/tmp/morro-map-provider.pid
+          for i in $(seq 1 90); do
+            if curl -fsS http://127.0.0.1:4173/runtime-config.js >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/morro-map-provider.log
+          exit 1
+      - name: Validate fallback without token
+        run: |
+          node <<'NODE'
+          const { writeFileSync } = require('node:fs');
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+
+          async function waitForReady(page) {
+            await page.locator('#map[data-map-state="ready"]').waitFor({ state: 'attached', timeout: 20000 });
+            return await page.locator('#map').evaluate((element) => ({
+              mode: element.getAttribute('data-map-mode'),
+              provider: element.getAttribute('data-map-provider'),
+              markerCount: element.getAttribute('data-map-marker-count'),
+              mapState: element.getAttribute('data-map-state'),
+              fallback: element.getAttribute('data-map-fallback'),
+              leaflet: element.classList.contains('leaflet-container'),
+              leafletPane: Boolean(element.querySelector('.leaflet-pane')),
+              className: element.className,
+            }));
+          }
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+            const page = await context.newPage();
+            await page.goto('http://127.0.0.1:4173', { waitUntil: 'domcontentloaded' });
+            await page.evaluate(() => localStorage.setItem('morro-digital-onboarded', '1'));
+            await page.reload({ waitUntil: 'domcontentloaded' });
+            const state = await waitForReady(page);
+            writeFileSync('/tmp/map-provider-evidence/no-token.json', JSON.stringify(state, null, 2));
+            console.log('fallback without token', JSON.stringify(state));
+            if (state.mode !== 'leaflet' || state.markerCount !== '8' || (!state.leaflet && !state.leafletPane)) {
+              throw new Error(`Unexpected no-token provider state: ${JSON.stringify(state)}`);
+            }
+            await browser.close();
+          })().catch((error) => { console.error(error); process.exit(1); });
+          NODE
+      - name: Restart runtime with synthetic public token
+        if: success()
+        run: |
+          kill "$(cat /tmp/morro-map-provider.pid)" || true
+          for i in $(seq 1 20); do
+            if ! curl -fsS http://127.0.0.1:4173/runtime-config.js >/dev/null 2>&1; then break; fi
+            sleep 0.25
+          done
+          VITE_MAPBOX_ACCESS_TOKEN=pk.synthetic-provider-regression \
+          VITE_MAPBOX_STYLE=mapbox://styles/mapbox/streets-v12 \
+          VITE_MAPBOX_CONTAINER_ID=map \
+          VITE_MAPBOX_INITIAL_ZOOM=13.5 \
+          node apps/morro-digital-platform/tooling/dev-server.mjs >>/tmp/morro-map-provider.log 2>&1 &
+          echo $! >/tmp/morro-map-provider.pid
+          for i in $(seq 1 90); do
+            if curl -fsS http://127.0.0.1:4173/runtime-config.js | grep -q 'pk.synthetic-provider-regression'; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/morro-map-provider.log
+          exit 1
+      - name: Validate SDK download failure rollback
+        if: success()
+        run: |
+          node <<'NODE'
+          const { writeFileSync } = require('node:fs');
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+
+          async function waitForFallback(page) {
+            await page.locator('#map[data-map-state="ready"]').waitFor({ state: 'attached', timeout: 20000 });
+            return await page.locator('#map').evaluate((element) => ({
+              mode: element.getAttribute('data-map-mode'),
+              provider: element.getAttribute('data-map-provider'),
+              fallback: element.getAttribute('data-map-fallback'),
+              markerCount: element.getAttribute('data-map-marker-count'),
+              mapState: element.getAttribute('data-map-state'),
+              leaflet: element.classList.contains('leaflet-container'),
+              leafletPane: Boolean(element.querySelector('.leaflet-pane')),
+              className: element.className,
+            }));
+          }
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+            const page = await context.newPage();
+            await page.route('https://api.mapbox.com/mapbox-gl-js/**', async (route) => route.abort('internetdisconnected'));
+            await page.goto('http://127.0.0.1:4173', { waitUntil: 'domcontentloaded' });
+            await page.evaluate(() => localStorage.setItem('morro-digital-onboarded', '1'));
+            await page.reload({ waitUntil: 'domcontentloaded' });
+            const state = await waitForFallback(page);
+            writeFileSync('/tmp/map-provider-evidence/sdk-download-failure.json', JSON.stringify(state, null, 2));
+            console.log('SDK download failure fallback', JSON.stringify(state));
+            if (state.mode !== 'leaflet' || state.fallback !== 'leaflet' || state.markerCount !== '8' || (!state.leaflet && !state.leafletPane)) {
+              throw new Error(`SDK failure did not restore V1 fallback: ${JSON.stringify(state)}`);
+            }
+            await browser.close();
+          })().catch((error) => { console.error(error); process.exit(1); });
+          NODE
+      - name: Validate Mapbox initialization failure rollback
+        if: success()
+        run: |
+          node <<'NODE'
+          const { writeFileSync } = require('node:fs');
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+          const mockSdk = `
+            globalThis.mapboxgl = {
+              accessToken: '',
+              Map: class { constructor() { throw new Error('forced Mapbox constructor failure'); } },
+              Marker: class {
+                setLngLat() { return this; }
+                addTo() { return this; }
+                remove() {}
+              }
+            };
+          `;
+
+          async function waitForFallback(page) {
+            await page.locator('#map[data-map-state="ready"]').waitFor({ state: 'attached', timeout: 20000 });
+            return await page.locator('#map').evaluate((element) => ({
+              mode: element.getAttribute('data-map-mode'),
+              provider: element.getAttribute('data-map-provider'),
+              fallback: element.getAttribute('data-map-fallback'),
+              markerCount: element.getAttribute('data-map-marker-count'),
+              mapState: element.getAttribute('data-map-state'),
+              leaflet: element.classList.contains('leaflet-container'),
+              leafletPane: Boolean(element.querySelector('.leaflet-pane')),
+              className: element.className,
+            }));
+          }
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+            const page = await context.newPage();
+            await page.route('https://api.mapbox.com/mapbox-gl-js/**/mapbox-gl.js', async (route) => {
+              await route.fulfill({ status: 200, contentType: 'text/javascript', body: mockSdk });
+            });
+            await page.route('https://api.mapbox.com/mapbox-gl-js/**/mapbox-gl.css', async (route) => {
+              await route.fulfill({ status: 200, contentType: 'text/css', body: '' });
+            });
+            await page.goto('http://127.0.0.1:4173', { waitUntil: 'domcontentloaded' });
+            await page.evaluate(() => localStorage.setItem('morro-digital-onboarded', '1'));
+            await page.reload({ waitUntil: 'domcontentloaded' });
+            const state = await waitForFallback(page);
+            writeFileSync('/tmp/map-provider-evidence/init-failure.json', JSON.stringify(state, null, 2));
+            console.log('Mapbox init failure fallback', JSON.stringify(state));
+            if (state.mode !== 'leaflet' || state.fallback !== 'leaflet' || state.markerCount !== '8' || (!state.leaflet && !state.leafletPane)) {
+              throw new Error(`Mapbox init failure did not restore V1 fallback: ${JSON.stringify(state)}`);
+            }
+            await browser.close();
+          })().catch((error) => { console.error(error); process.exit(1); });
+          NODE
+      - name: Prepare authenticated Mapbox runtime
+        id: real_mapbox
+        if: success()
+        env:
+          MAPBOX_PUBLIC_TOKEN_CI: ${{ secrets.MAPBOX_PUBLIC_TOKEN_CI }}
+        run: |
+          if [ -z "${MAPBOX_PUBLIC_TOKEN_CI:-}" ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            printf '{"status":"not-configured"}\n' > /tmp/map-provider-evidence/real-mapbox.json
+            echo "MAPBOX_PUBLIC_TOKEN_CI is not configured; authenticated Mapbox evidence remains pending."
+            exit 0
+          fi
+
+          kill "$(cat /tmp/morro-map-provider.pid)" || true
+          for i in $(seq 1 20); do
+            if ! curl -fsS http://127.0.0.1:4173/runtime-config.js >/dev/null 2>&1; then break; fi
+            sleep 0.25
+          done
+
+          VITE_MAPBOX_ACCESS_TOKEN="$MAPBOX_PUBLIC_TOKEN_CI" \
+          VITE_MAPBOX_STYLE=mapbox://styles/mapbox/streets-v12 \
+          VITE_MAPBOX_CONTAINER_ID=map \
+          VITE_MAPBOX_INITIAL_ZOOM=13.5 \
+          node apps/morro-digital-platform/tooling/dev-server.mjs >>/tmp/morro-map-provider.log 2>&1 &
+          echo $! >/tmp/morro-map-provider.pid
+
+          for i in $(seq 1 90); do
+            if curl -fsS http://127.0.0.1:4173/runtime-config.js >/tmp/mapbox-runtime-config.js; then
+              if grep -q 'VITE_MAPBOX_ACCESS_TOKEN' /tmp/mapbox-runtime-config.js && ! grep -q 'VITE_MAPBOX_ACCESS_TOKEN":""' /tmp/mapbox-runtime-config.js; then
+                rm -f /tmp/mapbox-runtime-config.js
+                echo "configured=true" >> "$GITHUB_OUTPUT"
+                exit 0
+              fi
+            fi
+            sleep 1
+          done
+          rm -f /tmp/mapbox-runtime-config.js
+          cat /tmp/morro-map-provider.log
+          exit 1
+      - name: Validate authenticated Mapbox and tour switching
+        if: steps.real_mapbox.outputs.configured == 'true'
+        run: |
+          node <<'NODE'
+          const { writeFileSync } = require('node:fs');
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+          const cases = [
+            ['mobile', 390, 844],
+            ['tablet', 768, 1024],
+            ['desktop', 1440, 900],
+          ];
+
+          async function waitForTour(page, tourId, markerCount) {
+            await page.locator(`#map[data-map-state="ready"][data-active-tour="${tourId}"][data-map-marker-count="${markerCount}"]`).waitFor({
+              state: 'attached',
+              timeout: 25000,
+            });
+            await page.locator('#tour-select:not([disabled])').waitFor({
+              state: 'attached',
+              timeout: 25000,
+            });
+          }
+
+          async function switchTour(page, tourId) {
+            await page.locator('#tour-select').evaluate((element, nextTourId) => {
+              if (!(element instanceof HTMLSelectElement)) {
+                throw new Error('Expected #tour-select to be an HTMLSelectElement');
+              }
+              element.value = nextTourId;
+              element.dispatchEvent(new Event('change', { bubbles: true }));
+            }, tourId);
+          }
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            const evidence = {};
+
+            for (const [name, width, height] of cases) {
+              const context = await browser.newContext({ viewport: { width, height } });
+              await context.addInitScript(() => localStorage.setItem('morro-digital-onboarded', '1'));
+              const page = await context.newPage();
+              const mapboxHttpErrors = [];
+              page.on('response', (response) => {
+                if (response.url().includes('mapbox.com') && response.status() >= 400) {
+                  mapboxHttpErrors.push({ status: response.status(), url: response.url().replace(/access_token=[^&]+/u, 'access_token=[redacted]') });
+                }
+              });
+
+              await page.goto('http://127.0.0.1:4173', { waitUntil: 'domcontentloaded' });
+              await waitForTour(page, 'volta-a-ilha', '8');
+              await page.locator('.mapboxgl-canvas').waitFor({ state: 'visible', timeout: 25000 });
+              await page.waitForTimeout(3000);
+
+              const initial = await page.locator('#map').evaluate((element) => ({
+                mode: element.getAttribute('data-map-mode'),
+                provider: element.getAttribute('data-map-provider'),
+                markerCount: element.getAttribute('data-map-marker-count'),
+                activeTour: element.getAttribute('data-active-tour'),
+                canvas: Boolean(element.querySelector('.mapboxgl-canvas')),
+              }));
+              if (initial.mode !== 'real' || initial.markerCount !== '8' || !initial.canvas) {
+                throw new Error(`Authenticated Mapbox did not initialize for ${name}: ${JSON.stringify(initial)}`);
+              }
+
+              await switchTour(page, 'trilha-gamboa');
+              await waitForTour(page, 'trilha-gamboa', '5');
+              await switchTour(page, 'passeio-quadriciclo');
+              await waitForTour(page, 'passeio-quadriciclo', '5');
+
+              if (mapboxHttpErrors.length > 0) {
+                throw new Error(`Mapbox returned HTTP errors for ${name}: ${JSON.stringify(mapboxHttpErrors)}`);
+              }
+
+              await page.screenshot({
+                path: `/tmp/map-provider-evidence/real-mapbox-${name}.png`,
+                fullPage: false,
+              });
+              evidence[name] = {
+                initial,
+                finalTour: 'passeio-quadriciclo',
+                finalMarkerCount: '5',
+                mapboxHttpErrors,
+              };
+              await context.close();
+            }
+
+            writeFileSync('/tmp/map-provider-evidence/real-mapbox.json', JSON.stringify({ status: 'validated', viewports: evidence }, null, 2));
+            await browser.close();
+          })().catch((error) => { console.error(error); process.exit(1); });
+          NODE
+      - name: Show server diagnostics
+        if: failure()
+        run: cat /tmp/morro-map-provider.log || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: map-provider-regression-evidence
+          path: /tmp/map-provider-evidence
+          retention-days: 1
+          if-no-files-found: ignore

@@ -1,5 +1,5 @@
 import { createReadStream } from "node:fs";
-import { stat } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import { createServer } from "node:http";
 import { extname, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -11,6 +11,7 @@ const defaultDocument = resolve(
   repositoryRoot,
   "apps/morro-digital-platform/public/index.html",
 );
+const envFile = resolve(repositoryRoot, ".env");
 const host = process.env.HOST?.trim() || "127.0.0.1";
 const port = Number(process.env.PORT || "4173");
 const morroLatitude = -13.3769;
@@ -18,6 +19,12 @@ const morroLongitude = -38.9146;
 const weatherTimeoutMs = 8_000;
 const weatherFreshTtlMs = 5 * 60 * 1000;
 const weatherStaleTtlMs = 30 * 60 * 1000;
+const runtimeEnvironmentKeys = Object.freeze([
+  "VITE_MAPBOX_ACCESS_TOKEN",
+  "VITE_MAPBOX_STYLE",
+  "VITE_MAPBOX_CONTAINER_ID",
+  "VITE_MAPBOX_INITIAL_ZOOM",
+]);
 
 let weatherCache = null;
 let weatherRequestInFlight = null;
@@ -33,6 +40,55 @@ const contentTypes = Object.freeze({
   ".woff": "font/woff",
   ".woff2": "font/woff2",
 });
+
+function parseDotEnv(content) {
+  const values = {};
+  for (const rawLine of content.split(/\r?\n/u)) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith("#")) continue;
+    const separator = line.indexOf("=");
+    if (separator < 1) continue;
+    const key = line.slice(0, separator).trim();
+    let value = line.slice(separator + 1).trim();
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+    values[key] = value;
+  }
+  return values;
+}
+
+async function loadLocalEnvironment() {
+  try {
+    return parseDotEnv(await readFile(envFile, "utf8"));
+  } catch (error) {
+    if (
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      error.code === "ENOENT"
+    ) {
+      return {};
+    }
+    throw error;
+  }
+}
+
+const localEnvironment = await loadLocalEnvironment();
+
+function createRuntimeEnvironment() {
+  return Object.freeze(
+    Object.fromEntries(
+      runtimeEnvironmentKeys.map((key) => [
+        key,
+        process.env[key] ?? localEnvironment[key] ?? "",
+      ]),
+    ),
+  );
+}
 
 function resolveRequestPath(pathname) {
   if (pathname === "/") return defaultDocument;
@@ -56,15 +112,29 @@ function applySecurityHeaders(response) {
     "Content-Security-Policy",
     [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' https://unpkg.com",
-      "style-src 'self' 'unsafe-inline' https://unpkg.com https://cdnjs.cloudflare.com https://fonts.googleapis.com",
-      "img-src 'self' data: https://*.tile.openstreetmap.org https://unpkg.com",
-      "connect-src 'self'",
-      "font-src 'self' data: https://cdnjs.cloudflare.com https://fonts.gstatic.com",
+      "script-src 'self' 'unsafe-inline' https://unpkg.com https://api.mapbox.com",
+      "style-src 'self' 'unsafe-inline' https://unpkg.com https://api.mapbox.com https://cdnjs.cloudflare.com https://fonts.googleapis.com",
+      "img-src 'self' data: blob: https://*.tile.openstreetmap.org https://unpkg.com https://api.mapbox.com https://*.tiles.mapbox.com",
+      "connect-src 'self' https://api.mapbox.com https://*.tiles.mapbox.com",
+      "worker-src blob:",
+      "font-src 'self' data: https://api.mapbox.com https://cdnjs.cloudflare.com https://fonts.gstatic.com",
       "object-src 'none'",
       "base-uri 'self'",
       "frame-ancestors 'none'",
     ].join("; "),
+  );
+}
+
+function serveRuntimeConfig(response) {
+  const serialized = JSON.stringify(createRuntimeEnvironment()).replaceAll(
+    "<",
+    "\\u003c",
+  );
+  response.statusCode = 200;
+  response.setHeader("Content-Type", "text/javascript; charset=utf-8");
+  response.setHeader("Cache-Control", "no-store");
+  response.end(
+    `globalThis.__MORRO_RUNTIME_ENV__ = Object.freeze(${serialized});\n`,
   );
 }
 
@@ -230,6 +300,10 @@ const server = createServer(async (request, response) => {
 
   try {
     const requestUrl = new URL(request.url || "/", `http://${host}:${port}`);
+    if (requestUrl.pathname === "/runtime-config.js") {
+      serveRuntimeConfig(response);
+      return;
+    }
     if (requestUrl.pathname === "/api/weather") {
       await serveWeather(response);
       return;

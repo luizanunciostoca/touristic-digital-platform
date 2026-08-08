@@ -68,6 +68,45 @@ describe("createMapboxGlDriver", () => {
     expect(fixture.removeMap).toHaveBeenCalledOnce();
   });
 
+  it("forwards native visual options to the Mapbox constructor", () => {
+    const fixture = createSdk();
+    const driver = createMapboxGlDriver({
+      sdk: fixture.sdk,
+      accessToken: "token-123",
+      mapOptions: {
+        pitch: 0,
+        bearing: 0,
+        antialias: true,
+        attributionControl: false,
+        minZoom: 0,
+        maxZoom: 20,
+        projection: "globe",
+      },
+    });
+
+    driver.createMap({
+      container: "map",
+      center: [-38.9159969, -13.4],
+      zoom: 13.5,
+      style: "mapbox://styles/mapbox/streets-v12",
+    });
+
+    const nativeMap = fixture.mapInstances[0] as { options: unknown };
+    expect(nativeMap.options).toEqual({
+      container: "map",
+      center: [-38.9159969, -13.4],
+      zoom: 13.5,
+      style: "mapbox://styles/mapbox/streets-v12",
+      pitch: 0,
+      bearing: 0,
+      antialias: true,
+      attributionControl: false,
+      minZoom: 0,
+      maxZoom: 20,
+      projection: "globe",
+    });
+  });
+
   it("forwards marker lifecycle to the native SDK map", () => {
     const fixture = createSdk();
     const driver = createMapboxGlDriver({
