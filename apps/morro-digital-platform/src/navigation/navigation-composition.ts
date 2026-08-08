@@ -2,10 +2,14 @@ import type { NavigationMapboxPresenter } from "@touristic/geospatial";
 import {
   createArrivalLifecycle,
   createNavigationRuntimeCoordinator,
+  createRouteRecalculationController,
+  evaluateRouteRecalculation,
   type NavigationInstructionInput,
   type NavigationRuntimeCoordinator,
   type NavigationRuntimeSnapshot,
   type NavigationRuntimeUpdateInput,
+  type RouteFeatureCollection,
+  type RouteRecalculationRequest,
 } from "@touristic/navigation";
 
 import type {
@@ -27,6 +31,10 @@ export interface NavigationAppCompositionOptions {
   readonly onSnapshot?: (snapshot: NavigationRuntimeSnapshot) => void;
   readonly onArrival?: () => void;
   readonly onAutoEnd?: () => void;
+  readonly onRecalculation?: (route: RouteFeatureCollection) => void;
+  readonly requestRecalculationRoute?: (
+    request: RouteRecalculationRequest,
+  ) => Promise<RouteFeatureCollection | null>;
   readonly createRuntime?: (
     onSnapshot: (snapshot: NavigationRuntimeSnapshot) => void,
   ) => NavigationRuntimeCoordinator;
@@ -61,6 +69,24 @@ function runtimeLocationFromBrowser(
   };
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function routeHasInstructions(routeData: unknown): boolean {
+  if (!isRecord(routeData) || !Array.isArray(routeData.features)) return false;
+  const feature = routeData.features[0];
+  if (!isRecord(feature) || !isRecord(feature.properties)) return false;
+  const segments = feature.properties.segments;
+  if (!Array.isArray(segments)) return false;
+  const firstSegment = segments[0];
+  return (
+    isRecord(firstSegment) &&
+    Array.isArray(firstSegment.steps) &&
+    firstSegment.steps.length > 0
+  );
+}
+
 export function createNavigationAppComposition(
   options: NavigationAppCompositionOptions,
 ): NavigationAppComposition {
@@ -69,6 +95,7 @@ export function createNavigationAppComposition(
   let stepIndex = normalizeStepIndex(options.stepIndex);
   let started = false;
   let unsubscribeLocation: (() => void) | null = null;
+  let latestLocation: BrowserLocation | null = null;
 
   const arrival =
     options.sessionId !== undefined && options.destination
@@ -86,18 +113,80 @@ export function createNavigationAppComposition(
         })
       : null;
 
+  let runtime: NavigationRuntimeCoordinator;
+
+  function applyRoute(
+    nextRouteData: unknown,
+    nextInstructions: readonly NavigationInstructionInput[] = [],
+  ): void {
+    routeData = nextRouteData;
+    instructions = nextInstructions;
+    stepIndex = 0;
+    runtime.reset();
+    options.presenter.reset();
+    if (started) {
+      const current = options.geolocation.getCurrentLocation();
+      if (current) updateFromLocation(current);
+    }
+  }
+
+  const recalculation =
+    options.sessionId !== undefined &&
+    options.destination &&
+    options.requestRecalculationRoute
+      ? createRouteRecalculationController({
+          sessionId: options.sessionId,
+          requestRoute: options.requestRecalculationRoute,
+          onRouteAvailable(route) {
+            if (!started) return;
+            applyRoute(route);
+            options.onRecalculation?.(route);
+          },
+        })
+      : null;
+
+  function maybeRecalculate(snapshot: NavigationRuntimeSnapshot): void {
+    if (
+      !started ||
+      !recalculation ||
+      !latestLocation ||
+      options.sessionId === undefined ||
+      !options.destination
+    ) {
+      return;
+    }
+
+    const eligibility = evaluateRouteRecalculation({
+      sessionId: options.sessionId,
+      offRouteDistance: snapshot.offRouteDistance,
+      accuracy: latestLocation.accuracy,
+      speed: latestLocation.speed,
+      hasInstructions:
+        instructions.length > 0 || routeHasInstructions(routeData),
+      inProgress: recalculation.isInProgress(),
+    });
+    if (!eligibility.eligible) return;
+
+    void recalculation.recalculate({
+      start: [latestLocation.longitude, latestLocation.latitude],
+      end: [options.destination.longitude, options.destination.latitude],
+    });
+  }
+
   const handleSnapshot = (snapshot: NavigationRuntimeSnapshot): void => {
     if (!started) return;
     options.presenter.update(snapshot);
     options.onSnapshot?.(snapshot);
+    maybeRecalculate(snapshot);
   };
 
-  const runtime =
+  runtime =
     options.createRuntime?.(handleSnapshot) ??
     createNavigationRuntimeCoordinator({ onSnapshot: handleSnapshot });
 
   function updateFromLocation(location: BrowserLocation): void {
     if (!started) return;
+    latestLocation = location;
     arrival?.update({
       latitude: location.latitude,
       longitude: location.longitude,
@@ -122,12 +211,14 @@ export function createNavigationAppComposition(
     stop(): void {
       if (!started) return;
       started = false;
+      latestLocation = null;
       unsubscribeLocation?.();
       unsubscribeLocation = null;
       options.geolocation.stop();
       options.presenter.destroy();
       runtime.reset();
       arrival?.reset();
+      recalculation?.resetCooldown();
     },
     isStarted(): boolean {
       return started;
@@ -136,15 +227,7 @@ export function createNavigationAppComposition(
       nextRouteData: unknown,
       nextInstructions: readonly NavigationInstructionInput[] = [],
     ): void {
-      routeData = nextRouteData;
-      instructions = nextInstructions;
-      stepIndex = 0;
-      runtime.reset();
-      options.presenter.reset();
-      if (started) {
-        const current = options.geolocation.getCurrentLocation();
-        if (current) updateFromLocation(current);
-      }
+      applyRoute(nextRouteData, nextInstructions);
     },
     setStepIndex(nextStepIndex: number): void {
       stepIndex = normalizeStepIndex(nextStepIndex);
