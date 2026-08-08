@@ -13,7 +13,7 @@ class FakeCustomEvent<T> {
 }
 
 function setup() {
-  const dispatchEvent = vi.fn(() => true);
+  const dispatchEvent = vi.fn<(event: unknown) => boolean>(() => true);
   const defaultView = {
     CustomEvent: FakeCustomEvent,
     dispatchEvent,
