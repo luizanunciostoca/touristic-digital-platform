@@ -28,7 +28,7 @@ export interface NormalizedVisualLocation extends VisualLocationInput {
   readonly lng: number;
   readonly accuracy: number;
   readonly speed: number | null;
-  readonly usedRouteSnap?: boolean;
+  readonly usedRouteSnap: boolean;
 }
 
 export interface NavigationVisualStabilizerResult {
@@ -118,6 +118,7 @@ function normalizeLocation(
     lng: longitude,
     accuracy: Math.max(0, finiteNumber(location.accuracy, 15) ?? 15),
     speed: finiteNumber(location.speed),
+    usedRouteSnap: Boolean(location.usedRouteSnap),
   };
 }
 
