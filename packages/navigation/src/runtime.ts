@@ -33,6 +33,7 @@ export interface NavigationGuidanceSnapshot {
   readonly estimatedTime: string;
   readonly progress: number;
   readonly stepIndex: number;
+  readonly totalSteps?: number;
 }
 
 export interface NavigationRuntimeSnapshot extends RouteGeometrySnapshot {
@@ -124,6 +125,7 @@ function buildGuidance(
     estimatedTime: formatRouteDuration(geometry.remainingDuration),
     progress: geometry.progressPercent,
     stepIndex,
+    totalSteps: instructions.length,
   };
 }
 
