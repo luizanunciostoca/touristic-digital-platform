@@ -70,7 +70,7 @@ export type FetchLike = (
 export class RoutingError extends Error {
   readonly code: string;
   readonly status: number;
-  readonly cause: unknown | null;
+  readonly cause: unknown;
 
   constructor(
     code: string,
@@ -90,6 +90,8 @@ const ALLOWED_PROFILES = new Set<RoutingProfile>(["foot-walking"]);
 const ALLOWED_LANGUAGES = new Set<RoutingLanguage>(["pt", "en", "es", "he"]);
 const FALLBACK_STATUSES = new Set([404, 405, 501]);
 
+const defaultFetch: FetchLike = async (input, init) => globalThis.fetch(input, init);
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
@@ -101,6 +103,12 @@ function errorName(error: unknown): string {
 function normalizeTimeout(timeoutMs: number | undefined): number {
   if (!Number.isFinite(timeoutMs)) return 12_000;
   return Math.max(1_000, Math.min(30_000, Number(timeoutMs)));
+}
+
+function createNamedError(name: "AbortError" | "TimeoutError", message: string): Error {
+  const error = new Error(message);
+  error.name = name;
+  return error;
 }
 
 export function normalizeCoordinatePair(
@@ -149,7 +157,8 @@ export function isValidRouteFeatureCollection(
   value: unknown,
 ): value is RouteFeatureCollection {
   if (!isRecord(value) || !Array.isArray(value.features)) return false;
-  const feature = value.features[0];
+  const features: unknown[] = value.features;
+  const feature: unknown = features[0];
   if (!isRecord(feature) || !isRecord(feature.geometry)) return false;
   if (feature.geometry.type !== "LineString") return false;
   return (
@@ -163,7 +172,9 @@ function createLinkedAbortController(
   timeoutMs: number | undefined,
 ) {
   const controller = new AbortController();
-  const abortFromExternal = () => controller.abort(externalSignal?.reason);
+  const abortFromExternal = () => {
+    controller.abort(createNamedError("AbortError", "Routing request cancelled"));
+  };
 
   if (externalSignal?.aborted) {
     abortFromExternal();
@@ -174,9 +185,7 @@ function createLinkedAbortController(
   }
 
   const timeoutId = setTimeout(() => {
-    const timeoutError = new Error("Routing request timed out");
-    timeoutError.name = "TimeoutError";
-    controller.abort(timeoutError);
+    controller.abort(createNamedError("TimeoutError", "Routing request timed out"));
   }, normalizeTimeout(timeoutMs));
 
   return {
@@ -209,21 +218,11 @@ export function createSameOriginRoutingProvider(
     readonly endpoint?: string;
   } = {},
 ): RoutingProvider {
-  const fetchImpl =
-    options.fetchImpl ?? (globalThis.fetch as unknown as FetchLike);
-  const endpoint = ensureSameOriginEndpoint(
-    options.endpoint ?? ROUTING_ENDPOINT,
-  );
+  const fetchImpl = options.fetchImpl ?? defaultFetch;
+  const endpoint = ensureSameOriginEndpoint(options.endpoint ?? ROUTING_ENDPOINT);
 
   return {
     async request(payload, context) {
-      if (typeof fetchImpl !== "function") {
-        throw new RoutingError(
-          "FETCH_UNAVAILABLE",
-          "Serviço de rede indisponível.",
-        );
-      }
-
       let response: FetchResponseLike;
       try {
         response = await fetchImpl(endpoint, {
@@ -247,7 +246,7 @@ export function createSameOriginRoutingProvider(
         );
       }
 
-      const body = await response.json().catch(() => null);
+      const body: unknown = await response.json().catch((): null => null);
       if (!response.ok) {
         const errorCode =
           isRecord(body) && typeof body.error === "string"
@@ -286,8 +285,7 @@ export async function requestRoute(
   input: RouteRequestInput,
 ): Promise<RouteFeatureCollection> {
   const payload = normalizeRouteRequest(input);
-  const primaryProvider =
-    input.primaryProvider ?? createSameOriginRoutingProvider();
+  const primaryProvider = input.primaryProvider ?? createSameOriginRoutingProvider();
   const linked = createLinkedAbortController(input.signal, input.timeoutMs);
 
   try {
