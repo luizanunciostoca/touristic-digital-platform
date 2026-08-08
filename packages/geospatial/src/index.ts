@@ -24,6 +24,16 @@ export {
 } from "./adapters/mapbox.js";
 
 export {
+  createNavigationMapboxPresenter,
+  type NavigationMapContainerLike,
+  type NavigationMapboxMapLike,
+  type NavigationMapboxMarkerLike,
+  type NavigationMapboxPresenter,
+  type NavigationMapboxPresenterOptions,
+  type NavigationVisualSnapshot,
+} from "./adapters/navigation-mapbox.js";
+
+export {
   createMapboxGlDriver,
   type MapboxGlDriverOptions,
   type MapboxGlMapLike,
