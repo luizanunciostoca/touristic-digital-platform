@@ -75,8 +75,7 @@ function geographicDistanceMeters(
   if (!a) return Infinity;
   const latitudeScale = 110_540;
   const longitudeScale =
-    111_320 *
-    Math.cos((((a.latitude + b.latitude) / 2) * Math.PI) / 180);
+    111_320 * Math.cos((((a.latitude + b.latitude) / 2) * Math.PI) / 180);
   return Math.hypot(
     (a.longitude - b.longitude) * longitudeScale,
     (a.latitude - b.latitude) * latitudeScale,

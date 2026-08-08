@@ -148,31 +148,13 @@ describe("Mapbox navigation presenter", () => {
 
   it("executes the exact V1 zoom hysteresis boundaries", () => {
     const context = setup();
-    const distances = [
-      120,
-      65,
-      64.99,
-      22.01,
-      22,
-      38,
-      38.01,
-      90,
-      90.01,
-    ];
+    const distances = [120, 65, 64.99, 22.01, 22, 38, 38.01, 90, 90.01];
     for (const distanceToNextManeuver of distances) {
       context.presenter.update(snapshot({ distanceToNextManeuver }), true);
     }
 
     expect(context.cameraUpdates.map((input) => input.zoom)).toEqual([
-      19.1,
-      19.1,
-      19.35,
-      19.35,
-      19.55,
-      19.55,
-      19.35,
-      19.35,
-      19.1,
+      19.1, 19.1, 19.35, 19.35, 19.55, 19.55, 19.35, 19.35, 19.1,
     ]);
   });
 
