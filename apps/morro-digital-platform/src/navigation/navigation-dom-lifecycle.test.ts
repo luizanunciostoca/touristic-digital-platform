@@ -29,7 +29,10 @@ function setup() {
   const dispatched: string[] = [];
   const endButton = {
     style,
-    addEventListener(type: string, listener: EventListenerOrEventListenerObject) {
+    addEventListener(
+      type: string,
+      listener: EventListenerOrEventListenerObject,
+    ) {
       if (typeof listener === "function") listeners.set(type, listener);
     },
     removeEventListener(type: string) {

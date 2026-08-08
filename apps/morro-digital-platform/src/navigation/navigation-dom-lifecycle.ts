@@ -14,7 +14,9 @@ export interface NavigationDomLifecycleOptions {
 }
 
 export interface NavigationDomLifecycle {
-  start(destination: NavigationDestinationInput): Promise<RouteFeatureCollection>;
+  start(
+    destination: NavigationDestinationInput,
+  ): Promise<RouteFeatureCollection>;
   stop(): void;
   destroy(): void;
   isActive(): boolean;
