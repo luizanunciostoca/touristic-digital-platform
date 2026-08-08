@@ -31,7 +31,8 @@ export function installBrowserNavigationRuntime(
 ): BrowserNavigationRuntimeInstall {
   const createBootstrap =
     options.createBootstrap ?? createNavigationSessionBootstrap;
-  const createLifecycle = options.createLifecycle ?? createNavigationDomLifecycle;
+  const createLifecycle =
+    options.createLifecycle ?? createNavigationDomLifecycle;
   const bootstrap = createBootstrap({
     map: options.map,
     sdk: options.sdk,
