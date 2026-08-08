@@ -90,7 +90,8 @@ const ALLOWED_PROFILES = new Set<RoutingProfile>(["foot-walking"]);
 const ALLOWED_LANGUAGES = new Set<RoutingLanguage>(["pt", "en", "es", "he"]);
 const FALLBACK_STATUSES = new Set([404, 405, 501]);
 
-const defaultFetch: FetchLike = async (input, init) => globalThis.fetch(input, init);
+const defaultFetch: FetchLike = async (input, init) =>
+  globalThis.fetch(input, init);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -105,7 +106,10 @@ function normalizeTimeout(timeoutMs: number | undefined): number {
   return Math.max(1_000, Math.min(30_000, Number(timeoutMs)));
 }
 
-function createNamedError(name: "AbortError" | "TimeoutError", message: string): Error {
+function createNamedError(
+  name: "AbortError" | "TimeoutError",
+  message: string,
+): Error {
   const error = new Error(message);
   error.name = name;
   return error;
@@ -173,7 +177,9 @@ function createLinkedAbortController(
 ) {
   const controller = new AbortController();
   const abortFromExternal = () => {
-    controller.abort(createNamedError("AbortError", "Routing request cancelled"));
+    controller.abort(
+      createNamedError("AbortError", "Routing request cancelled"),
+    );
   };
 
   if (externalSignal?.aborted) {
@@ -185,7 +191,9 @@ function createLinkedAbortController(
   }
 
   const timeoutId = setTimeout(() => {
-    controller.abort(createNamedError("TimeoutError", "Routing request timed out"));
+    controller.abort(
+      createNamedError("TimeoutError", "Routing request timed out"),
+    );
   }, normalizeTimeout(timeoutMs));
 
   return {
@@ -219,7 +227,9 @@ export function createSameOriginRoutingProvider(
   } = {},
 ): RoutingProvider {
   const fetchImpl = options.fetchImpl ?? defaultFetch;
-  const endpoint = ensureSameOriginEndpoint(options.endpoint ?? ROUTING_ENDPOINT);
+  const endpoint = ensureSameOriginEndpoint(
+    options.endpoint ?? ROUTING_ENDPOINT,
+  );
 
   return {
     async request(payload, context) {
@@ -285,7 +295,8 @@ export async function requestRoute(
   input: RouteRequestInput,
 ): Promise<RouteFeatureCollection> {
   const payload = normalizeRouteRequest(input);
-  const primaryProvider = input.primaryProvider ?? createSameOriginRoutingProvider();
+  const primaryProvider =
+    input.primaryProvider ?? createSameOriginRoutingProvider();
   const linked = createLinkedAbortController(input.signal, input.timeoutMs);
 
   try {

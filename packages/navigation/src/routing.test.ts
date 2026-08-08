@@ -35,22 +35,20 @@ function providerReturning(route = VALID_ROUTE): RoutingProvider {
 }
 
 function abortAwareRequestSpy() {
-  return vi
-    .fn<RoutingProvider["request"]>()
-    .mockImplementation(
-      (_payload, context) =>
-        new Promise((_resolve, reject) => {
-          context.signal.addEventListener(
-            "abort",
-            () => {
-              const error = new Error("Routing request aborted");
-              error.name = "AbortError";
-              reject(error);
-            },
-            { once: true },
-          );
-        }),
-    );
+  return vi.fn<RoutingProvider["request"]>().mockImplementation(
+    (_payload, context) =>
+      new Promise((_resolve, reject) => {
+        context.signal.addEventListener(
+          "abort",
+          () => {
+            const error = new Error("Routing request aborted");
+            error.name = "AbortError";
+            reject(error);
+          },
+          { once: true },
+        );
+      }),
+  );
 }
 
 afterEach(() => {
@@ -164,13 +162,11 @@ describe("routing core", () => {
 
   it("uses a fallback provider only for V1-compatible proxy availability failures", async () => {
     const primaryProvider: RoutingProvider = {
-      request: vi
-        .fn<RoutingProvider["request"]>()
-        .mockRejectedValue(
-          new RoutingError("ROUTING_HTTP_ERROR", "Proxy unavailable", {
-            status: 405,
-          }),
-        ),
+      request: vi.fn<RoutingProvider["request"]>().mockRejectedValue(
+        new RoutingError("ROUTING_HTTP_ERROR", "Proxy unavailable", {
+          status: 405,
+        }),
+      ),
     };
     const fallbackProvider = providerReturning();
 
@@ -193,13 +189,11 @@ describe("routing core", () => {
 
   it("does not mask a real backend failure with fallback", async () => {
     const primaryProvider: RoutingProvider = {
-      request: vi
-        .fn<RoutingProvider["request"]>()
-        .mockRejectedValue(
-          new RoutingError("ROUTING_NOT_CONFIGURED", "Unavailable", {
-            status: 503,
-          }),
-        ),
+      request: vi.fn<RoutingProvider["request"]>().mockRejectedValue(
+        new RoutingError("ROUTING_NOT_CONFIGURED", "Unavailable", {
+          status: 503,
+        }),
+      ),
     };
     const fallbackProvider = providerReturning();
 
