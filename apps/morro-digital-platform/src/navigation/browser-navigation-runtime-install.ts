@@ -159,7 +159,10 @@ export function installBrowserNavigationRuntime(
     destroy(): void {
       if (destroyed) return;
       destroyed = true;
-      eventTarget?.removeEventListener("navigationStarted", onNavigationStarted);
+      eventTarget?.removeEventListener(
+        "navigationStarted",
+        onNavigationStarted,
+      );
       eventTarget?.removeEventListener("navigationEnded", onNavigationEnded);
       requestPort.destroy();
       activeLifecycle.destroy();

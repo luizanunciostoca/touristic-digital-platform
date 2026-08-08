@@ -11,7 +11,8 @@ const STYLE_ID = "navigation-guidance-v2-styles";
 
 function formatDistance(meters: number): string {
   const value = Math.max(0, Number.isFinite(meters) ? meters : 0);
-  if (value >= 1000) return `${(value / 1000).toFixed(value >= 10_000 ? 0 : 1)} km`;
+  if (value >= 1000)
+    return `${(value / 1000).toFixed(value >= 10_000 ? 0 : 1)} km`;
   return `${Math.round(value)} m`;
 }
 
@@ -33,7 +34,11 @@ function directionFor(instruction: string): {
   if (text.includes("arriv") || text.includes("destination")) {
     return { arrow: "●", className: "arrive" };
   }
-  if (text.includes("u-turn") || text.includes("uturn") || text.includes("retorno")) {
+  if (
+    text.includes("u-turn") ||
+    text.includes("uturn") ||
+    text.includes("retorno")
+  ) {
     return { arrow: "↶", className: "turn-uturn" };
   }
   if (text.includes("left") || text.includes("esquerda")) {
@@ -72,7 +77,9 @@ body.navigation-active .quick-actions,body.navigation-active #assistant-messages
   document.head.appendChild(style);
 }
 
-export function createNavigationGuidanceUi(document: Document): NavigationGuidanceUi {
+export function createNavigationGuidanceUi(
+  document: Document,
+): NavigationGuidanceUi {
   const banner = document.getElementById("instruction-banner");
   const endButton = document.getElementById("end-navigation-btn");
   const minimizeButton = document.getElementById("minimize-navigation-btn");
@@ -81,7 +88,9 @@ export function createNavigationGuidanceUi(document: Document): NavigationGuidan
   const arrow = document.getElementById("instruction-arrow");
   const distance = document.getElementById("instruction-distance");
   const time = document.getElementById("instruction-time");
-  const progress = document.getElementById("route-progress") as HTMLElement | null;
+  const progress = document.getElementById(
+    "route-progress",
+  ) as HTMLElement | null;
   const progressText = document.getElementById("progress-text");
   let active = false;
   let destroyed = false;
@@ -119,16 +128,21 @@ export function createNavigationGuidanceUi(document: Document): NavigationGuidan
       if (destroyed) return;
       if (!active) show();
       const guidance = snapshot.guidance;
-      const instruction = guidance.instruction || guidance.original || "Continue pela rota";
+      const instruction =
+        guidance.instruction || guidance.original || "Continue pela rota";
       const direction = directionFor(instruction);
-      const percent = Math.max(0, Math.min(100, Math.round(snapshot.progressPercent)));
+      const percent = Math.max(
+        0,
+        Math.min(100, Math.round(snapshot.progressPercent)),
+      );
 
       if (main) main.textContent = instruction;
       if (details) {
         details.textContent = `${guidance.original || instruction} • próxima manobra em ${formatDistance(snapshot.distanceToNextManeuver)}`;
       }
       if (arrow) arrow.textContent = direction.arrow;
-      if (distance) distance.textContent = formatDistance(snapshot.remainingDistance);
+      if (distance)
+        distance.textContent = formatDistance(snapshot.remainingDistance);
       if (time) time.textContent = formatDuration(snapshot.remainingDuration);
       if (progress) progress.style.width = `${percent}%`;
       if (progressText) progressText.textContent = `${percent}%`;
