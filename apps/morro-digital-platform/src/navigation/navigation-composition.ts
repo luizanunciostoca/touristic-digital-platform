@@ -30,6 +30,7 @@ export interface NavigationAppCompositionOptions {
   readonly instructions?: readonly NavigationInstructionInput[];
   readonly stepIndex?: number;
   readonly onSnapshot?: (snapshot: NavigationRuntimeSnapshot) => void;
+  readonly onLocation?: (location: BrowserLocation) => void;
   readonly onArrival?: () => void;
   readonly onAutoEnd?: () => void;
   readonly onRecalculation?: (route: RouteFeatureCollection) => void;
@@ -159,6 +160,7 @@ export function createNavigationAppComposition(
   function updateFromLocation(location: BrowserLocation): void {
     if (!started) return;
     latestLocation = location;
+    options.onLocation?.(location);
     arrival?.update({
       latitude: location.latitude,
       longitude: location.longitude,
