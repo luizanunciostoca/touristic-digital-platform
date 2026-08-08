@@ -56,7 +56,7 @@ function setup() {
   };
   const createWiring = vi.fn<
     (options: BrowserNavigationWiringOptions) => BrowserNavigationWiring
-  >((_options) => wiring);
+  >(() => wiring);
   const requestRouteImpl = vi.fn(async () => routeData());
   const resolveStartCoordinate = vi.fn<
     (signal: AbortSignal) => Promise<RouteCoordinate>
