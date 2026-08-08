@@ -44,7 +44,7 @@ describe("browser navigation runtime install", () => {
     } as NavigationRequestPort;
     const createBootstrap = vi.fn<
       (options: NavigationSessionBootstrapOptions) => NavigationSessionBootstrap
-    >((_options) => bootstrap);
+    >(() => bootstrap);
     const createLifecycle = vi.fn(() => lifecycle);
     const createRequestPort = vi.fn(() => requestPort);
 
