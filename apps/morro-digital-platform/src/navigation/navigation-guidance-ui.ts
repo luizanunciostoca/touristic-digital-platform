@@ -88,6 +88,24 @@ export function createNavigationGuidanceUi(document: Document): NavigationGuidan
 
   ensureStyles(document);
 
+  const show = (): void => {
+    if (destroyed) return;
+    active = true;
+    document.body.classList.add("navigation-active");
+    banner?.classList.remove("hidden");
+    endButton?.setAttribute("style", "display:block;");
+  };
+
+  const hide = (): void => {
+    if (destroyed) return;
+    active = false;
+    document.body.classList.remove("navigation-active");
+    banner?.classList.add("hidden");
+    banner?.classList.remove("minimized");
+    minimizeButton?.setAttribute("aria-expanded", "true");
+    endButton?.setAttribute("style", "display:none;");
+  };
+
   const toggleMinimized = (): void => {
     if (!banner || destroyed) return;
     const minimized = banner.classList.toggle("minimized");
@@ -96,16 +114,10 @@ export function createNavigationGuidanceUi(document: Document): NavigationGuidan
   minimizeButton?.addEventListener("click", toggleMinimized);
 
   return Object.freeze({
-    start(): void {
-      if (destroyed) return;
-      active = true;
-      document.body.classList.add("navigation-active");
-      banner?.classList.remove("hidden");
-      endButton?.setAttribute("style", "display:block;");
-    },
+    start: show,
     update(snapshot: NavigationRuntimeSnapshot): void {
       if (destroyed) return;
-      if (!active) this.start();
+      if (!active) show();
       const guidance = snapshot.guidance;
       const instruction = guidance.instruction || guidance.original || "Continue pela rota";
       const direction = directionFor(instruction);
@@ -130,18 +142,10 @@ export function createNavigationGuidanceUi(document: Document): NavigationGuidan
       );
       banner?.classList.add(direction.className);
     },
-    stop(): void {
-      if (destroyed) return;
-      active = false;
-      document.body.classList.remove("navigation-active");
-      banner?.classList.add("hidden");
-      banner?.classList.remove("minimized");
-      minimizeButton?.setAttribute("aria-expanded", "true");
-      endButton?.setAttribute("style", "display:none;");
-    },
+    stop: hide,
     destroy(): void {
       if (destroyed) return;
-      this.stop();
+      hide();
       destroyed = true;
       minimizeButton?.removeEventListener("click", toggleMinimized);
       document.getElementById(STYLE_ID)?.remove();
