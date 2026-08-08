@@ -8,6 +8,10 @@ import {
   type NavigationDomLifecycle,
 } from "./navigation-dom-lifecycle.js";
 import {
+  createNavigationRequestPort,
+  type NavigationRequestPort,
+} from "./navigation-request-port.js";
+import {
   createNavigationSessionBootstrap,
   type NavigationSessionBootstrap,
 } from "./navigation-session-bootstrap.js";
@@ -18,11 +22,13 @@ export interface BrowserNavigationRuntimeInstallOptions {
   readonly document: Document;
   readonly createBootstrap?: typeof createNavigationSessionBootstrap;
   readonly createLifecycle?: typeof createNavigationDomLifecycle;
+  readonly createRequestPort?: typeof createNavigationRequestPort;
 }
 
 export interface BrowserNavigationRuntimeInstall {
   readonly bootstrap: NavigationSessionBootstrap;
   readonly lifecycle: NavigationDomLifecycle;
+  readonly requestPort: NavigationRequestPort;
   destroy(): void;
 }
 
@@ -33,6 +39,8 @@ export function installBrowserNavigationRuntime(
     options.createBootstrap ?? createNavigationSessionBootstrap;
   const createLifecycle =
     options.createLifecycle ?? createNavigationDomLifecycle;
+  const createRequestPort =
+    options.createRequestPort ?? createNavigationRequestPort;
   const bootstrap = createBootstrap({
     map: options.map,
     sdk: options.sdk,
@@ -41,14 +49,20 @@ export function installBrowserNavigationRuntime(
     document: options.document,
     bootstrap,
   });
+  const requestPort = createRequestPort({
+    document: options.document,
+    lifecycle,
+  });
   let destroyed = false;
 
   return Object.freeze({
     bootstrap,
     lifecycle,
+    requestPort,
     destroy(): void {
       if (destroyed) return;
       destroyed = true;
+      requestPort.destroy();
       lifecycle.destroy();
     },
   });
