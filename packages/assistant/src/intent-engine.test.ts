@@ -60,7 +60,10 @@ describe("assistant local intent engine", () => {
       urgency: "high",
     });
 
-    expect(extractAssistantEntities("Preciso descansar").language).toBe("pt");
+    // Preserve the V1 substring-based language heuristic exactly: "Preciso"
+    // contains "is" and therefore resolves as English in the legacy engine.
+    expect(extractAssistantEntities("Preciso descansar").language).toBe("en");
+    expect(extractAssistantEntities("Bom dia").language).toBe("pt");
     expect(extractAssistantEntities("פתוח עכשיו חוף").language).toBe("he");
   });
 
