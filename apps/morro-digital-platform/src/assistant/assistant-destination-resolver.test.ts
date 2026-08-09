@@ -26,6 +26,45 @@ describe("Morro assistant destination resolver", () => {
     });
   });
 
+  it("resolves the Tapirandu fortress with the frozen V1 coordinate", () => {
+    expect(resolveMorroAssistantDestination("forte de tapirandu")).toEqual({
+      name: "Fortaleza de Morro de São Paulo",
+      latitude: -13.3742327,
+      longitude: -38.9159466,
+      category: "attractions",
+    });
+  });
+
+  it("covers V1 tour destinations outside Morro proper", () => {
+    expect(resolveMorroAssistantDestination("piscinas de moreré")).toEqual({
+      name: "Piscinas Naturais de Moreré",
+      latitude: -13.5815787,
+      longitude: -38.9859057,
+      category: "attractions",
+    });
+    expect(resolveMorroAssistantDestination("cairu sede")).toEqual({
+      name: "Cairu",
+      latitude: -13.471562,
+      longitude: -39.043215,
+      category: "attractions",
+    });
+  });
+
+  it("covers the V1 Gamboa trail destinations", () => {
+    expect(resolveMorroAssistantDestination("banho de argila")).toEqual({
+      name: "Paredão de Argila",
+      latitude: -13.388765,
+      longitude: -38.934567,
+      category: "attractions",
+    });
+    expect(resolveMorroAssistantDestination("porto de cima")).toEqual({
+      name: "Praia do Porto de Cima",
+      latitude: -13.378912,
+      longitude: -38.924567,
+      category: "beaches",
+    });
+  });
+
   it("resolves Toca do Morcego with the frozen V1 coordinate", () => {
     expect(resolveMorroAssistantDestination("toca")).toEqual({
       name: "Toca do Morcego",
@@ -39,7 +78,7 @@ describe("Morro assistant destination resolver", () => {
     expect(resolveMorroAssistantDestination("destino inventado")).toBeNull();
   });
 
-  it("keeps the M14 navigation catalog intentionally finite and auditable", () => {
-    expect(morroAssistantDestinationCatalog).toHaveLength(10);
+  it("keeps the M15 navigation catalog finite and auditable", () => {
+    expect(morroAssistantDestinationCatalog).toHaveLength(22);
   });
 });
