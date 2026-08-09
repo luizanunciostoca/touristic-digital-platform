@@ -68,8 +68,15 @@ export function installBrowserNavigationRuntime(
   const guidanceUi = createGuidanceUi(options.document);
   const eventTarget = options.document.defaultView;
 
-  const onNavigationStarted = (): void => guidanceUi.start();
-  const onNavigationEnded = (): void => guidanceUi.stop();
+  let hasActiveRoute = false;
+  const onNavigationStarted = (): void => {
+    hasActiveRoute = true;
+    guidanceUi.start();
+  };
+  const onNavigationEnded = (): void => {
+    hasActiveRoute = false;
+    guidanceUi.stop();
+  };
   eventTarget?.addEventListener("navigationStarted", onNavigationStarted);
   eventTarget?.addEventListener("navigationEnded", onNavigationEnded);
 
@@ -82,7 +89,7 @@ export function installBrowserNavigationRuntime(
     const snapshot = latestSnapshot;
     eventBridge.status({
       phase: "active",
-      hasRoute: snapshot !== null,
+      hasRoute: hasActiveRoute || snapshot !== null,
       hasInstructions: (snapshot?.guidance.totalSteps ?? 0) > 0,
       hasUserLocation: latestLocation !== null,
       isActive: true,
@@ -103,6 +110,7 @@ export function installBrowserNavigationRuntime(
     map: options.map,
     sdk: options.sdk,
     onLocation: (location, context) => {
+      hasActiveRoute = true;
       latestLocation = location;
       eventBridge.location({
         latitude: location.latitude,
@@ -117,6 +125,7 @@ export function installBrowserNavigationRuntime(
       publishStatus(context);
     },
     onSnapshot: (snapshot, context) => {
+      hasActiveRoute = true;
       latestSnapshot = snapshot;
       guidanceUi.update(snapshot);
       eventBridge.runtime({
@@ -168,6 +177,7 @@ export function installBrowserNavigationRuntime(
       activeLifecycle.destroy();
       guidanceUi.destroy();
       lifecycle = null;
+      hasActiveRoute = false;
       latestLocation = null;
       latestSnapshot = null;
       recalculations = 0;
