@@ -26,12 +26,10 @@ function request(
 describe("assistant browser domain adapter", () => {
   it("returns a useful empty favorites state", async () => {
     const handlers = createAssistantBrowserDomainHandlers();
-    await expect(handlers.favorites?.(request("favorites"))).resolves.toEqual(
-      expect.objectContaining({
-        text: "Você ainda não adicionou lugares aos favoritos.",
-        metadata: { domain: "favorites", count: 0 },
-      }),
-    );
+    await expect(handlers.favorites?.(request("favorites"))).resolves.toEqual({
+      text: "Você ainda não adicionou lugares aos favoritos.",
+      metadata: { domain: "favorites", count: 0 },
+    });
   });
 
   it("reads persisted favorites from the V2 profile", async () => {
@@ -51,58 +49,60 @@ describe("assistant browser domain adapter", () => {
     };
     const handlers = createAssistantBrowserDomainHandlers({ storage });
     const response = await handlers.favorites?.(request("favorites"));
-    expect(response).toEqual(
-      expect.objectContaining({
-        text: "Seus favoritos: Toca do Morcego, Segunda Praia.",
-        metadata: { domain: "favorites", count: 2 },
-      }),
-    );
+    expect(response).toEqual({
+      text: "Seus favoritos: Toca do Morcego, Segunda Praia.",
+      options: [
+        { label: "Toca do Morcego", value: "Toca do Morcego" },
+        { label: "Segunda Praia", value: "Segunda Praia" },
+      ],
+      metadata: { domain: "favorites", count: 2 },
+    });
   });
 
   it("resolves browser geolocation without leaking browser APIs into domain", async () => {
+    const position: GeolocationPosition = {
+      coords: {
+        latitude: -13.376,
+        longitude: -38.917,
+        accuracy: 10,
+        altitude: null,
+        altitudeAccuracy: null,
+        heading: null,
+        speed: null,
+        toJSON: () => ({}),
+      },
+      timestamp: 1,
+      toJSON: () => ({}),
+    };
     const geolocation = {
       getCurrentPosition: vi.fn((success: PositionCallback) => {
-        success({
-          coords: {
-            latitude: -13.376,
-            longitude: -38.917,
-            accuracy: 10,
-            altitude: null,
-            altitudeAccuracy: null,
-            heading: null,
-            speed: null,
-            toJSON: () => ({}),
-          },
-          timestamp: 1,
-          toJSON: () => ({}),
-        } as GeolocationPosition);
+        success(position);
       }),
     };
     const handlers = createAssistantBrowserDomainHandlers({ geolocation });
     const response = await handlers.my_location?.(request("my_location"));
-    expect(response).toEqual(
-      expect.objectContaining({
-        text: "Localização atualizada com sucesso.",
-        metadata: expect.objectContaining({
-          domain: "my_location",
-          state: "resolved",
-          location: { lat: -13.376, lon: -38.917, accuracy: 10 },
-        }),
-      }),
-    );
+    expect(response).toEqual({
+      text: "Localização atualizada com sucesso.",
+      metadata: {
+        domain: "my_location",
+        state: "resolved",
+        location: { lat: -13.376, lon: -38.917, accuracy: 10 },
+      },
+    });
   });
 
   it("keeps help local and deterministic", async () => {
     const handlers = createAssistantBrowserDomainHandlers();
     const response = await handlers.help?.(request("help"));
-    expect(response).toEqual(
-      expect.objectContaining({
-        metadata: { domain: "help" },
-        options: expect.arrayContaining([
-          { label: "Praias", value: "praias" },
-          { label: "Restaurantes", value: "restaurantes" },
-        ]),
-      }),
-    );
+    expect(response).toEqual({
+      text: "Posso ajudar com praias, restaurantes, pousadas, atrações, passeios, vida noturna, localização, favoritos e rotas.",
+      options: [
+        { label: "Praias", value: "praias" },
+        { label: "Restaurantes", value: "restaurantes" },
+        { label: "Pousadas", value: "pousadas" },
+        { label: "Atrações", value: "atrações" },
+      ],
+      metadata: { domain: "help" },
+    });
   });
 });
