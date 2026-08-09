@@ -53,9 +53,7 @@ export function installBrowserAssistantRuntime(
   options: BrowserAssistantRuntimeOptions,
 ): BrowserAssistantRuntime {
   const storage = resolveStorage(options.document, options.storage);
-  const context = createAssistantContextManager(
-    storage ? { storage } : {},
-  );
+  const context = createAssistantContextManager(storage ? { storage } : {});
   const navigationHandlers = createAssistantNavigationAppHandlers({
     navigation: options.navigation,
     resolver: createMorroAssistantDestinationResolver(),
