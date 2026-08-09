@@ -10,6 +10,10 @@ import {
   type WeatherReading,
 } from "../weather/weather-widget.js";
 import { resolveAssistantNearby } from "./assistant-nearby-adapter.js";
+import {
+  fetchAssistantPlaceDetails,
+  type AssistantPlaceDetails,
+} from "./assistant-place-details-adapter.js";
 
 export interface AssistantGeolocationPort {
   getCurrentPosition(
@@ -23,6 +27,7 @@ export interface AssistantBrowserDomainAdapterOptions {
   readonly storage?: AssistantProfileStorage;
   readonly geolocation?: AssistantGeolocationPort;
   readonly fetch?: typeof globalThis.fetch;
+  readonly mapboxAccessToken?: string;
 }
 
 const WEATHER_OPTIONS = [
@@ -30,6 +35,13 @@ const WEATHER_OPTIONS = [
   { label: "Vai chover?", value: "vai chover" },
   { label: "Previsão do tempo", value: "previsao do tempo" },
   { label: "Como está a maré?", value: "mare" },
+  { label: "Voltar ao menu principal", value: "voltar ao menu" },
+];
+
+const PLACE_DETAILS_OPTIONS = [
+  { label: "Como chegar", value: "como chegar" },
+  { label: "Ver fotos", value: "ver fotos" },
+  { label: "Horário", value: "horário" },
   { label: "Voltar ao menu principal", value: "voltar ao menu" },
 ];
 
@@ -107,6 +119,76 @@ function getCurrentLocation(
   });
 }
 
+function formatPlaceDetails(details: AssistantPlaceDetails): string {
+  const parts = [details.name];
+  if (details.category) parts.push(details.category);
+  if (details.address) parts.push(details.address);
+  if (details.openNow !== null)
+    parts.push(details.openNow ? "Aberto agora" : "Fechado agora");
+  if (details.phone) parts.push(`Telefone: ${details.phone}`);
+  if (details.website) parts.push(`Site: ${details.website}`);
+  return parts.join(" · ");
+}
+
+async function getPlaceDetails(
+  place: string,
+  options: AssistantBrowserDomainAdapterOptions,
+): Promise<AssistantDialogResponse> {
+  const details = await fetchAssistantPlaceDetails(place, {
+    ...(options.mapboxAccessToken
+      ? { accessToken: options.mapboxAccessToken }
+      : {}),
+    ...(options.fetch ? { fetch: options.fetch } : {}),
+  });
+  if (!details) {
+    return {
+      text: `Não encontrei detalhes atualizados de ${place}.`,
+      options: [...PLACE_DETAILS_OPTIONS],
+      metadata: { domain: "more_info", state: "unavailable", place },
+    };
+  }
+
+  return {
+    text: formatPlaceDetails(details),
+    options: [...PLACE_DETAILS_OPTIONS],
+    metadata: {
+      domain: "more_info",
+      state: "resolved",
+      place: details.name,
+      details,
+    },
+  };
+}
+
+async function getPlaceHours(
+  place: string,
+  options: AssistantBrowserDomainAdapterOptions,
+): Promise<AssistantDialogResponse> {
+  const details = await fetchAssistantPlaceDetails(place, {
+    ...(options.mapboxAccessToken
+      ? { accessToken: options.mapboxAccessToken }
+      : {}),
+    ...(options.fetch ? { fetch: options.fetch } : {}),
+  });
+  if (!details || details.openNow === null) {
+    return {
+      text: `Não encontrei um horário de funcionamento atualizado para ${place}.`,
+      metadata: { domain: "hours", state: "unavailable", place },
+    };
+  }
+
+  return {
+    text: `${details.name} está ${details.openNow ? "aberto" : "fechado"} agora.`,
+    options: [...PLACE_DETAILS_OPTIONS],
+    metadata: {
+      domain: "hours",
+      state: "resolved",
+      place: details.name,
+      openNow: details.openNow,
+    },
+  };
+}
+
 export function createAssistantBrowserDomainHandlers(
   options: AssistantBrowserDomainAdapterOptions = {},
 ): Partial<Record<string, AssistantDialogIntentHandler>> {
@@ -127,14 +209,8 @@ export function createAssistantBrowserDomainHandlers(
         text: `Os preços de ${place} ainda estão sendo conectados à nova arquitetura.`,
         metadata: { domain: "price", state: "provider_pending", place },
       }),
-      hours: (place) => ({
-        text: `Os horários de ${place} ainda estão sendo conectados à nova arquitetura.`,
-        metadata: { domain: "hours", state: "provider_pending", place },
-      }),
-      moreInfo: (place) => ({
-        text: `Os detalhes de ${place} ainda estão sendo conectados à nova arquitetura.`,
-        metadata: { domain: "more_info", state: "provider_pending", place },
-      }),
+      hours: (place) => getPlaceHours(place, options),
+      moreInfo: (place) => getPlaceDetails(place, options),
       nearby: (request) => resolveAssistantNearby(request, options.geolocation),
       favorites: () => {
         const favorites = profile.getFavoritePlaces();
