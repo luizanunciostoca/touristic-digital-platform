@@ -6,12 +6,16 @@ describe("FEATURE-0004 V1 assistant baseline", () => {
     expect(V1_ASSISTANT_BASELINE.legacyCommit).toBe(
       "60746fd7fed97b805758b37adfdbe3bad2582bfe",
     );
-    expect(Object.keys(V1_ASSISTANT_BASELINE.sourceBlobs).length).toBeGreaterThanOrEqual(16);
+    expect(
+      Object.keys(V1_ASSISTANT_BASELINE.sourceBlobs).length,
+    ).toBeGreaterThanOrEqual(16);
   });
 
   it("preserves the ten canonical main-menu semantics in four languages", () => {
     expect(V1_ASSISTANT_BASELINE.canonicalMenu).toHaveLength(10);
-    expect(V1_ASSISTANT_BASELINE.canonicalMenu.map(({ value }) => value)).toEqual([
+    expect(
+      V1_ASSISTANT_BASELINE.canonicalMenu.map(({ value }) => value),
+    ).toEqual([
       "beaches",
       "restaurants",
       "hotels",
@@ -28,7 +32,9 @@ describe("FEATURE-0004 V1 assistant baseline", () => {
 
   it("keeps local NLP ahead of the LLM fallback", () => {
     expect(V1_ASSISTANT_BASELINE.intentEngine.localFirst).toBe(true);
-    expect(V1_ASSISTANT_BASELINE.intentEngine.llmFallbackConfidenceBelow).toBe(0.5);
+    expect(
+      V1_ASSISTANT_BASELINE.intentEngine.llmFallbackConfidenceBelow,
+    ).toBe(0.5);
     expect(V1_ASSISTANT_BASELINE.intentEngine.longInputThresholdChars).toBe(90);
     expect(V1_ASSISTANT_BASELINE.intentEngine.modifiersSupported).toBe(true);
   });
@@ -56,6 +62,8 @@ describe("FEATURE-0004 V1 assistant baseline", () => {
     expect(V1_ASSISTANT_BASELINE.integrations.targetProviderBoundary).toBe(
       "same-origin-server",
     );
-    expect(V1_ASSISTANT_BASELINE.integrations.clientProviderSecretsAllowed).toBe(false);
+    expect(
+      V1_ASSISTANT_BASELINE.integrations.clientProviderSecretsAllowed,
+    ).toBe(false);
   });
 });
