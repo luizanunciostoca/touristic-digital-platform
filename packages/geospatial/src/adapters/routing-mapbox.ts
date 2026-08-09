@@ -205,17 +205,23 @@ export function adaptMapboxDirectionsResponse(
     previousStartIndex = startIndex;
 
     const isLast = index === rawSteps.length - 1;
-    const instruction = String(
-      maneuver.instruction ??
-        stepRecord.name ??
-        (isLast ? "Você chegou ao destino." : "Continue em frente."),
+    const maneuverInstruction =
+      typeof maneuver.instruction === "string"
+        ? maneuver.instruction
+        : undefined;
+    const stepName =
+      typeof stepRecord.name === "string" ? stepRecord.name : undefined;
+    const instruction = (
+      maneuverInstruction ??
+      stepName ??
+      (isLast ? "Você chegou ao destino." : "Continue em frente.")
     ).trim();
 
     return {
       instruction,
       distance: Number(stepRecord.distance) || 0,
       duration: Number(stepRecord.duration) || 0,
-      name: typeof stepRecord.name === "string" ? stepRecord.name : "",
+      name: stepName ?? "",
       type: typeof maneuver.type === "string" ? maneuver.type : "continue",
       way_points: [startIndex, Math.max(startIndex, endIndex)],
     };
