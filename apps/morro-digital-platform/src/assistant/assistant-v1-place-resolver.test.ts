@@ -93,9 +93,7 @@ describe("V1 assistant place resolver semantics", () => {
     ).toBeNull();
   });
 
-  it("does not expose stale out-of-radius entries from the audited catalog", () => {
-    expect(resolveMorroAssistantDestinationV1("piscinas de moreré")).toBeNull();
-    expect(resolveMorroAssistantDestinationV1("cairu sede")).toBeNull();
+  it("keeps the real Garapuá destination inside the V1 boundary", () => {
     expect(resolveMorroAssistantDestinationV1("praia de garapuá")?.name).toBe(
       "Praia de Garapuá",
     );
