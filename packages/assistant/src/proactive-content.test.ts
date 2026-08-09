@@ -68,9 +68,11 @@ describe("assistant V1 proactive localized content", () => {
       profile: profile(),
     });
 
-    expect(result.buttons.some((button) => button.label === "🌅 Caminata al amanecer")).toBe(
-      true,
-    );
+    expect(
+      result.buttons.some(
+        (button) => button.label === "🌅 Caminata al amanecer",
+      ),
+    ).toBe(true);
   });
 
   it("preserves rainy weather precedence in contextual intros and buttons", () => {

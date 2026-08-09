@@ -74,24 +74,34 @@ export const ASSISTANT_PROACTIVE_CONTENT_COPY: Record<
     intro: {
       rain: "{timeGreeting}! Parece que pode chover hoje. Veja o que fazer em dias de chuva em Morro 🌧️",
       hot: "{timeGreeting}! Dia quente ({temp}°C)! Perfeito para as piscinas naturais 🌊",
-      sunset: "{timeGreeting}! Hora mágica do pôr do sol em Morro! Não perca 🌅",
-      returning: "{timeGreeting}! Bem-vindo de volta! Como posso ajudar hoje? 🌴",
-      default: "{timeGreeting}! Sou seu guia de Morro de São Paulo. Como posso ajudar? 🌴",
+      sunset:
+        "{timeGreeting}! Hora mágica do pôr do sol em Morro! Não perca 🌅",
+      returning:
+        "{timeGreeting}! Bem-vindo de volta! Como posso ajudar hoje? 🌴",
+      default:
+        "{timeGreeting}! Sou seu guia de Morro de São Paulo. Como posso ajudar? 🌴",
     },
     recommendations: {
-      sunrise: "🌅 **Nascer do sol no Farol do Morro** — vista panorâmica incrível de manhã cedo",
-      secondBeach: "🏖️ **Segunda Praia** — melhor horário para nadar antes do sol forte",
+      sunrise:
+        "🌅 **Nascer do sol no Farol do Morro** — vista panorâmica incrível de manhã cedo",
+      secondBeach:
+        "🏖️ **Segunda Praia** — melhor horário para nadar antes do sol forte",
       boatTour: "⛵ **Passeio de barco** — saídas pela manhã com mar calmo",
-      lunchVillage: "🍽️ **Almoço na vila** — restaurantes com frutos do mar frescos",
+      lunchVillage:
+        "🍽️ **Almoço na vila** — restaurantes com frutos do mar frescos",
       naturalPools: "🤿 **Piscinas naturais** — maré baixa à tarde é ideal",
-      fourthBeach: "🌊 **Quarta Praia** — menos movimento e água cristalina à tarde",
+      fourthBeach:
+        "🌊 **Quarta Praia** — menos movimento e água cristalina à tarde",
       zipline: "🎢 **Tirolesa** — adrenalina com vista para o mar",
       toca: "🌇 **Toca do Morcego** — melhor pôr do sol da ilha, não perca!",
-      seafrontDinner: "🍽️ **Jantar à beira-mar** — restaurantes com mesas na areia",
+      seafrontDinner:
+        "🍽️ **Jantar à beira-mar** — restaurantes com mesas na areia",
       nightSecondBeach: "🎶 **Segunda Praia à noite** — shows ao vivo e luau",
       villageBars: "🍹 **Bares da vila** — ambiente animado e drinks tropicais",
-      adventure: "🤿 **Mergulho nas piscinas naturais** — visibilidade incrível",
-      romantic: "💑 **Jantar romântico na Terceira Praia** — mesas na areia ao luar",
+      adventure:
+        "🤿 **Mergulho nas piscinas naturais** — visibilidade incrível",
+      romantic:
+        "💑 **Jantar romântico na Terceira Praia** — mesas na areia ao luar",
       family: "👨‍👩‍👧 **Primeira Praia** — calma e segura para crianças",
       rain: "🏛️ **Forte de Tapirandu** — visita histórica coberta para dias de chuva",
       hot: "🌊 **Piscinas naturais** — refrescante nos dias mais quentes",
@@ -128,24 +138,34 @@ export const ASSISTANT_PROACTIVE_CONTENT_COPY: Record<
     intro: {
       rain: "{timeGreeting}! It may rain today. Here are good things to do in Morro on a rainy day 🌧️",
       hot: "{timeGreeting}! Hot day ({temp}°C)! Perfect for the natural pools 🌊",
-      sunset: "{timeGreeting}! It is the magic hour for sunset in Morro. Don't miss it 🌅",
+      sunset:
+        "{timeGreeting}! It is the magic hour for sunset in Morro. Don't miss it 🌅",
       returning: "{timeGreeting}! Welcome back! How can I help today? 🌴",
-      default: "{timeGreeting}! I am your Morro de São Paulo guide. How can I help? 🌴",
+      default:
+        "{timeGreeting}! I am your Morro de São Paulo guide. How can I help? 🌴",
     },
     recommendations: {
-      sunrise: "🌅 **Sunrise at Farol do Morro** — amazing panoramic views early in the morning",
-      secondBeach: "🏖️ **Second Beach** — the best time to swim before the stronger sun",
+      sunrise:
+        "🌅 **Sunrise at Farol do Morro** — amazing panoramic views early in the morning",
+      secondBeach:
+        "🏖️ **Second Beach** — the best time to swim before the stronger sun",
       boatTour: "⛵ **Boat tour** — morning departures with calmer sea",
-      lunchVillage: "🍽️ **Lunch in the village** — restaurants with fresh seafood",
+      lunchVillage:
+        "🍽️ **Lunch in the village** — restaurants with fresh seafood",
       naturalPools: "🤿 **Natural pools** — low tide in the afternoon is ideal",
-      fourthBeach: "🌊 **Fourth Beach** — less crowded and crystal-clear water in the afternoon",
+      fourthBeach:
+        "🌊 **Fourth Beach** — less crowded and crystal-clear water in the afternoon",
       zipline: "🎢 **Zipline** — adrenaline with sea views",
       toca: "🌇 **Toca do Morcego** — the island's best sunset, don't miss it!",
-      seafrontDinner: "🍽️ **Seafront dinner** — restaurants with tables on the sand",
-      nightSecondBeach: "🎶 **Second Beach at night** — live shows and luau atmosphere",
-      villageBars: "🍹 **Village bars** — lively atmosphere and tropical drinks",
+      seafrontDinner:
+        "🍽️ **Seafront dinner** — restaurants with tables on the sand",
+      nightSecondBeach:
+        "🎶 **Second Beach at night** — live shows and luau atmosphere",
+      villageBars:
+        "🍹 **Village bars** — lively atmosphere and tropical drinks",
       adventure: "🤿 **Diving in the natural pools** — excellent visibility",
-      romantic: "💑 **Romantic dinner at Third Beach** — moonlit tables on the sand",
+      romantic:
+        "💑 **Romantic dinner at Third Beach** — moonlit tables on the sand",
       family: "👨‍👩‍👧 **First Beach** — calm and safe for children",
       rain: "🏛️ **Forte de Tapirandu** — a great historical stop for rainy days",
       hot: "🌊 **Natural pools** — refreshing on hotter days",
@@ -182,24 +202,38 @@ export const ASSISTANT_PROACTIVE_CONTENT_COPY: Record<
     intro: {
       rain: "{timeGreeting}. Parece que puede llover hoy. Aquí tienes buenas opciones para un día de lluvia en Morro 🌧️",
       hot: "{timeGreeting}. Día caluroso ({temp}°C). Perfecto para las piscinas naturales 🌊",
-      sunset: "{timeGreeting}. Es la hora mágica del atardecer en Morro. No te lo pierdas 🌅",
-      returning: "{timeGreeting}. ¡Bienvenido de vuelta! ¿Cómo puedo ayudarte hoy? 🌴",
-      default: "{timeGreeting}. Soy tu guía de Morro de São Paulo. ¿Cómo puedo ayudarte? 🌴",
+      sunset:
+        "{timeGreeting}. Es la hora mágica del atardecer en Morro. No te lo pierdas 🌅",
+      returning:
+        "{timeGreeting}. ¡Bienvenido de vuelta! ¿Cómo puedo ayudarte hoy? 🌴",
+      default:
+        "{timeGreeting}. Soy tu guía de Morro de São Paulo. ¿Cómo puedo ayudarte? 🌴",
     },
     recommendations: {
-      sunrise: "🌅 **Amanecer en el Farol do Morro** — una vista panorámica increíble temprano por la mañana",
-      secondBeach: "🏖️ **Segunda Playa** — el mejor horario para nadar antes del sol fuerte",
-      boatTour: "⛵ **Paseo en barco** — salidas por la mañana con mar más tranquilo",
-      lunchVillage: "🍽️ **Almuerzo en la villa** — restaurantes con mariscos frescos",
-      naturalPools: "🤿 **Piscinas naturales** — la marea baja por la tarde es ideal",
-      fourthBeach: "🌊 **Cuarta Playa** — menos movimiento y agua cristalina por la tarde",
+      sunrise:
+        "🌅 **Amanecer en el Farol do Morro** — una vista panorámica increíble temprano por la mañana",
+      secondBeach:
+        "🏖️ **Segunda Playa** — el mejor horario para nadar antes del sol fuerte",
+      boatTour:
+        "⛵ **Paseo en barco** — salidas por la mañana con mar más tranquilo",
+      lunchVillage:
+        "🍽️ **Almuerzo en la villa** — restaurantes con mariscos frescos",
+      naturalPools:
+        "🤿 **Piscinas naturales** — la marea baja por la tarde es ideal",
+      fourthBeach:
+        "🌊 **Cuarta Playa** — menos movimiento y agua cristalina por la tarde",
       zipline: "🎢 **Tirolesa** — adrenalina con vista al mar",
       toca: "🌇 **Toca do Morcego** — el mejor atardecer de la isla, no te lo pierdas",
-      seafrontDinner: "🍽️ **Cena frente al mar** — restaurantes con mesas sobre la arena",
-      nightSecondBeach: "🎶 **Segunda Playa de noche** — shows en vivo y ambiente de luau",
-      villageBars: "🍹 **Bares de la villa** — ambiente animado y tragos tropicales",
-      adventure: "🤿 **Buceo en las piscinas naturales** — visibilidad excelente",
-      romantic: "💑 **Cena romántica en Tercera Playa** — mesas sobre la arena bajo la luna",
+      seafrontDinner:
+        "🍽️ **Cena frente al mar** — restaurantes con mesas sobre la arena",
+      nightSecondBeach:
+        "🎶 **Segunda Playa de noche** — shows en vivo y ambiente de luau",
+      villageBars:
+        "🍹 **Bares de la villa** — ambiente animado y tragos tropicales",
+      adventure:
+        "🤿 **Buceo en las piscinas naturales** — visibilidad excelente",
+      romantic:
+        "💑 **Cena romántica en Tercera Playa** — mesas sobre la arena bajo la luna",
       family: "👨‍👩‍👧 **Primera Playa** — tranquila y segura para niños",
       rain: "🏛️ **Forte de Tapirandu** — una gran parada histórica para días de lluvia",
       hot: "🌊 **Piscinas naturales** — ideales para refrescarse en los días más calurosos",
@@ -238,7 +272,8 @@ export const ASSISTANT_PROACTIVE_CONTENT_COPY: Record<
       hot: "{timeGreeting}! יום חם ({temp}°C). מושלם לבריכות הטבעיות 🌊",
       sunset: "{timeGreeting}! זו השעה הקסומה של השקיעה במורו. אל תפספס 🌅",
       returning: "{timeGreeting}! ברוך שובך! איך אפשר לעזור היום? 🌴",
-      default: "{timeGreeting}! אני המדריך שלך למורו דה סאו פאולו. איך אפשר לעזור? 🌴",
+      default:
+        "{timeGreeting}! אני המדריך שלך למורו דה סאו פאולו. איך אפשר לעזור? 🌴",
     },
     recommendations: {
       sunrise: "🌅 **זריחה בפארול דו מורו** — נוף פנורמי מדהים מוקדם בבוקר",
