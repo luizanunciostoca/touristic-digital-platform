@@ -101,7 +101,9 @@ describe("Mapbox Directions routing adapter", () => {
     });
     const controller = new AbortController();
 
-    const result = await provider.request(payload, { signal: controller.signal });
+    const result = await provider.request(payload, {
+      signal: controller.signal,
+    });
 
     expect(fetchImpl).toHaveBeenCalledTimes(1);
     const [url, init] = fetchImpl.mock.calls[0] ?? [];

@@ -1,7 +1,13 @@
-export type MapboxRoutingCoordinate = readonly [longitude: number, latitude: number];
+export type MapboxRoutingCoordinate = readonly [
+  longitude: number,
+  latitude: number,
+];
 
 export interface MapboxRoutingPayload {
-  readonly coordinates: readonly [MapboxRoutingCoordinate, MapboxRoutingCoordinate];
+  readonly coordinates: readonly [
+    MapboxRoutingCoordinate,
+    MapboxRoutingCoordinate,
+  ];
   readonly language: "pt" | "en" | "es" | "he";
 }
 
@@ -75,10 +81,7 @@ function normalizeCoordinate(value: unknown): MapboxRoutingCoordinate | null {
   return [longitude, latitude];
 }
 
-function coordinateDistanceSquared(
-  a: unknown,
-  b: unknown,
-): number {
+function coordinateDistanceSquared(a: unknown, b: unknown): number {
   const left = normalizeCoordinate(a);
   const right = normalizeCoordinate(b);
   if (!left || !right) return Number.POSITIVE_INFINITY;
@@ -156,7 +159,10 @@ export function adaptMapboxDirectionsResponse(
   }
   const coordinates = rawCoordinates
     .map(normalizeCoordinate)
-    .filter((coordinate): coordinate is MapboxRoutingCoordinate => coordinate !== null);
+    .filter(
+      (coordinate): coordinate is MapboxRoutingCoordinate =>
+        coordinate !== null,
+    );
   if (coordinates.length < 2) {
     throw new MapboxDirectionsRoutingError(
       "INVALID_MAPBOX_ROUTE_RESPONSE",
@@ -244,7 +250,8 @@ export function createMapboxDirectionsRoutingProvider(options: {
   readonly now?: () => number;
 }): MapboxDirectionsRoutingProvider {
   const token = options.token.trim();
-  const fetchImpl = options.fetchImpl ?? ((input, init) => globalThis.fetch(input, init));
+  const fetchImpl =
+    options.fetchImpl ?? ((input, init) => globalThis.fetch(input, init));
   const now = options.now ?? Date.now;
 
   return Object.freeze({
