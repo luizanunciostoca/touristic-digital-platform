@@ -10,14 +10,16 @@ describe("Morro assistant destination catalog", () => {
     expect(morroAssistantDestinationCatalog).toHaveLength(131);
 
     const counts = Object.fromEntries(
-      [...new Set(morroAssistantDestinationCatalog.map((entry) => entry.category))].map(
-        (category) => [
-          category,
-          morroAssistantDestinationCatalog.filter(
-            (entry) => entry.category === category,
-          ).length,
-        ],
-      ),
+      [
+        ...new Set(
+          morroAssistantDestinationCatalog.map((entry) => entry.category),
+        ),
+      ].map((category) => [
+        category,
+        morroAssistantDestinationCatalog.filter(
+          (entry) => entry.category === category,
+        ).length,
+      ]),
     );
 
     expect(counts).toEqual({
@@ -34,12 +36,12 @@ describe("Morro assistant destination catalog", () => {
   });
 
   it("retains source order because V1 findPlace precedence depends on it", () => {
-    expect(morroAssistantDestinationCatalog.slice(0, 3).map((entry) => entry.name)).toEqual([
-      "Primeira Praia",
-      "Praia de Garapuá",
-      "Praia do Pôrto",
-    ]);
-    expect(morroAssistantDestinationCatalog.at(-1)?.name).toBe("Passeio de Caiaque");
+    expect(
+      morroAssistantDestinationCatalog.slice(0, 3).map((entry) => entry.name),
+    ).toEqual(["Primeira Praia", "Praia de Garapuá", "Praia do Pôrto"]);
+    expect(morroAssistantDestinationCatalog.at(-1)?.name).toBe(
+      "Passeio de Caiaque",
+    );
   });
 
   it("resolves canonical beach aliases from the frozen source", () => {
@@ -118,6 +120,8 @@ describe("Morro assistant destination catalog", () => {
   });
 
   it("does not guess an unknown destination", () => {
-    expect(resolveMorroAssistantDestination("destino inventado xyz")).toBeNull();
+    expect(
+      resolveMorroAssistantDestination("destino inventado xyz"),
+    ).toBeNull();
   });
 });

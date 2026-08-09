@@ -5,8 +5,7 @@ import {
 
 import { morroAssistantV1DestinationCatalog } from "./assistant-v1-destination-catalog.js";
 
-export interface AssistantDestinationCatalogEntry
-  extends AssistantNavigationDestination {
+export interface AssistantDestinationCatalogEntry extends AssistantNavigationDestination {
   readonly aliases?: readonly string[];
 }
 

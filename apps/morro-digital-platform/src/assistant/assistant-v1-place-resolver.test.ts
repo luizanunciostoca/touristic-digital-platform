@@ -124,9 +124,9 @@ describe("V1 assistant place resolver semantics", () => {
   });
 
   it("preserves source order for duplicate canonical destinations", () => {
-    expect(resolveMorroAssistantDestinationV1("Toca do Morcego")?.category).toBe(
-      "attractions",
-    );
+    expect(
+      resolveMorroAssistantDestinationV1("Toca do Morcego")?.category,
+    ).toBe("attractions");
     expect(
       resolveMorroAssistantDestinationV1("Farmácia Morro de São Paulo")
         ?.category,
