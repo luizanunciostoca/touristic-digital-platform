@@ -129,7 +129,9 @@ describe("assistant local intent engine", () => {
       }),
     ).toMatchObject({ intent: "show_map", contextual: true });
 
-    expect(analyzeAssistantIntent("2", { lastCategory: "beaches" })).toMatchObject({
+    expect(
+      analyzeAssistantIntent("2", { lastCategory: "beaches" }),
+    ).toMatchObject({
       intent: "select_option",
       optionIndex: 1,
       contextual: true,

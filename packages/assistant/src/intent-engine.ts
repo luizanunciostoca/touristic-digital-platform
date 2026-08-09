@@ -717,7 +717,11 @@ export function extractAssistantEntities(
   if (groupMatch?.[1]) entities.groupSize = Number.parseInt(groupMatch[1], 10);
 
   for (const [category, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
-    if (keywords.some((keyword) => normalized.includes(normalizeAssistantText(keyword)))) {
+    if (
+      keywords.some((keyword) =>
+        normalized.includes(normalizeAssistantText(keyword)),
+      )
+    ) {
       entities.category = category;
       break;
     }
@@ -739,15 +743,21 @@ export function extractAssistantEntities(
 
   if (/[\u0590-\u05FF]/.test(input)) {
     entities.language = "he";
-  } else if (/(the|is|are|what|where|how|can|i\b|you\b|me\b|my\b)/i.test(input)) {
+  } else if (
+    /(the|is|are|what|where|how|can|i\b|you\b|me\b|my\b)/i.test(input)
+  ) {
     entities.language = "en";
-  } else if (/(el|la|los|las|que|donde|como|es\b|son|hay|quiero)/i.test(input)) {
+  } else if (
+    /(el|la|los|las|que|donde|como|es\b|son|hay|quiero)/i.test(input)
+  ) {
     entities.language = "es";
   } else {
     entities.language = "pt";
   }
 
-  if (/(urgente|rapido|rápido|agora|imediato|emergency|urgent|quick)/i.test(input)) {
+  if (
+    /(urgente|rapido|rápido|agora|imediato|emergency|urgent|quick)/i.test(input)
+  ) {
     entities.urgency = "high";
   }
 
@@ -766,10 +776,19 @@ export function detectAssistantModifiers(normalized: string): string[] {
     ["luxury", /(caro|luxo|luxury|premium|exclusivo|vip|יוקרה)/i],
     ["romantic", /(romantico|casal|couple|romántico|para dois|רומנטי)/i],
     ["family", /(familia|crianca|criancas|kids|children|bebe|família|משפחה)/i],
-    ["open_now", /(aberto agora|open now|funcionando agora|abierto ahora|פתוח עכשיו)/i],
+    [
+      "open_now",
+      /(aberto agora|open now|funcionando agora|abierto ahora|פתוח עכשיו)/i,
+    ],
     ["beachside", /(na praia|beira mar|frente ao mar|beach side|playa|חוף)/i],
-    ["village_center", /(na vila|no centro|centro historico|village center|מרכז)/i],
-    ["vegetarian", /(vegetariano|vegano|vegan|vegetarian|sem carne|צמחוני|טבעוני)/i],
+    [
+      "village_center",
+      /(na vila|no centro|centro historico|village center|מרכז)/i,
+    ],
+    [
+      "vegetarian",
+      /(vegetariano|vegano|vegan|vegetarian|sem carne|צמחוני|טבעוני)/i,
+    ],
     ["scenic_view", /(vista|view|panoramica|por do sol|sunset|נוף)/i],
     ["now", /(agora|hoje|neste momento|right now|ahora|עכשיו)/i],
   ];
@@ -806,7 +825,11 @@ function matchByContext(
   const { lastIntent, lastPlace, lastCategory, awaiting } = context;
 
   if (awaiting?.type === "confirmar_navegacao") {
-    if (/(sim|yes|ok|bora|vamos|claro|pode|beleza|confirmar|si\b|sí\b|כן)/i.test(normalized)) {
+    if (
+      /(sim|yes|ok|bora|vamos|claro|pode|beleza|confirmar|si\b|sí\b|כן)/i.test(
+        normalized,
+      )
+    ) {
       return { intent: "confirm", confidence: 0.95 };
     }
     if (/(nao|não|no\b|cancel|cancelar|desistir|לא)/i.test(normalized)) {
@@ -815,36 +838,76 @@ function matchByContext(
   }
 
   if (awaiting?.type === "selecionar_subcategoria") {
-    if (/(proximo|próximo|perto|perto de mim|nearby|mais perto|cerca de mi|más cercano|ליד|קרוב)/i.test(normalized)) {
+    if (
+      /(proximo|próximo|perto|perto de mim|nearby|mais perto|cerca de mi|más cercano|ליד|קרוב)/i.test(
+        normalized,
+      )
+    ) {
       return { intent: "nearby", confidence: 0.9 };
     }
-    if (/(barato|economico|em conta|budget|cheap|económico|asequible|זול)/i.test(normalized)) {
+    if (
+      /(barato|economico|em conta|budget|cheap|económico|asequible|זול)/i.test(
+        normalized,
+      )
+    ) {
       return { intent: "category_filtered", confidence: 0.85, filter: "cheap" };
     }
-    if (/(praia|na praia|beira mar|beach|playa|beira-mar|חוף|ים)/i.test(normalized)) {
+    if (
+      /(praia|na praia|beira mar|beach|playa|beira-mar|חוף|ים)/i.test(
+        normalized,
+      )
+    ) {
       return { intent: "category_filtered", confidence: 0.85, filter: "praia" };
     }
     if (/(vila|na vila|centro|village|pueblo|כפר|מרכז)/i.test(normalized)) {
       return { intent: "category_filtered", confidence: 0.85, filter: "vila" };
     }
     if (/(familia|crianca|kids|children|niños|משפחה)/i.test(normalized)) {
-      return { intent: "category_filtered", confidence: 0.85, filter: "family" };
+      return {
+        intent: "category_filtered",
+        confidence: 0.85,
+        filter: "family",
+      };
     }
-    if (/(romantico|casal|romantic|couple|romántico|pareja|רומנטי)/i.test(normalized)) {
-      return { intent: "category_filtered", confidence: 0.85, filter: "romantic" };
+    if (
+      /(romantico|casal|romantic|couple|romántico|pareja|רומנטי)/i.test(
+        normalized,
+      )
+    ) {
+      return {
+        intent: "category_filtered",
+        confidence: 0.85,
+        filter: "romantic",
+      };
     }
     if (/(luxo|luxury|premium|exclusivo|יוקרה)/i.test(normalized)) {
-      return { intent: "category_filtered", confidence: 0.85, filter: "luxury" };
+      return {
+        intent: "category_filtered",
+        confidence: 0.85,
+        filter: "luxury",
+      };
     }
   }
 
   if (lastIntent === "detalhes" && lastPlace && normalized.length < 30) {
     const detailMatches: Array<[RegExp, AssistantIntent, number]> = [
       [/(foto|imagem|ver|mostrar|photo|תמונה)/i, "photos", 0.85],
-      [/(rota|ir|chegar|navegar|como chego|directions|route|ניווט)/i, "navigate", 0.85],
-      [/(preco|custa|valor|quanto|ingresso|entrada|price|cost|מחיר)/i, "price", 0.85],
+      [
+        /(rota|ir|chegar|navegar|como chego|directions|route|ניווט)/i,
+        "navigate",
+        0.85,
+      ],
+      [
+        /(preco|custa|valor|quanto|ingresso|entrada|price|cost|מחיר)/i,
+        "price",
+        0.85,
+      ],
       [/(horario|abre|fecha|funciona|hours|open|פתוח)/i, "hours", 0.85],
-      [/(historia|origem|sobre|fale|conte|history|origin|היסטוריה)/i, "cultural_history", 0.8],
+      [
+        /(historia|origem|sobre|fale|conte|history|origin|היסטוריה)/i,
+        "cultural_history",
+        0.8,
+      ],
       [/(dica|conselho|recomenda|tip|advice|טיפ)/i, "practical_tips", 0.8],
       [/(favorito|salvar|guardar|save|favorite|מועדף)/i, "favorites", 0.8],
     ];
@@ -871,7 +934,11 @@ function matchByContext(
     };
   }
 
-  if (normalized.length <= 5 && lastPlace && /^(ok|sim|vai|bora|vamos|כן)$/i.test(normalized)) {
+  if (
+    normalized.length <= 5 &&
+    lastPlace &&
+    /^(ok|sim|vai|bora|vamos|כן)$/i.test(normalized)
+  ) {
     return { intent: "confirm", confidence: 0.75 };
   }
 
@@ -882,16 +949,25 @@ function isLikelyPlaceName(
   normalized: string,
   original: string,
 ): { likely: boolean; confidence: number } {
-  const notPlaceWords = /^(como|quanto|qual|quando|onde|por que|porque|o que|quem|voce|me|meu|minha|tem|ha|existe|existem|quero|preciso|gostaria|pode|poderia|seria|e|a|o|os|as|de|do|da|dos|das|em|no|na|nos|nas|para|por|com|sem|mas|ou|se|que|nao|sim)/i;
-  const notPlaceAdjectives = /^(bom|boa|ruim|caro|barato|longe|perto|legal|bonito|feio|grande|pequeno|novo|velho|aberto|fechado|cheio|vazio|rapido|lento|facil|dificil|seguro|perigoso|tranquilo|agitado|limpo|sujo|quente|frio|ok|sim|nao|talvez|claro|certo|errado)$/i;
+  const notPlaceWords =
+    /^(como|quanto|qual|quando|onde|por que|porque|o que|quem|voce|me|meu|minha|tem|ha|existe|existem|quero|preciso|gostaria|pode|poderia|seria|e|a|o|os|as|de|do|da|dos|das|em|no|na|nos|nas|para|por|com|sem|mas|ou|se|que|nao|sim)/i;
+  const notPlaceAdjectives =
+    /^(bom|boa|ruim|caro|barato|longe|perto|legal|bonito|feio|grande|pequeno|novo|velho|aberto|fechado|cheio|vazio|rapido|lento|facil|dificil|seguro|perigoso|tranquilo|agitado|limpo|sujo|quente|frio|ok|sim|nao|talvez|claro|certo|errado)$/i;
   const firstWord = normalized.split(" ")[0] ?? "";
 
-  if (notPlaceWords.test(firstWord) || notPlaceAdjectives.test(firstWord) || normalized.length < 4) {
+  if (
+    notPlaceWords.test(firstWord) ||
+    notPlaceAdjectives.test(firstWord) ||
+    normalized.length < 4
+  ) {
     return { likely: false, confidence: 0 };
   }
 
   const startsWithCapital = /^[A-ZÁÀÃÂÉÈÊÍÌÎÓÒÕÔÚÙÛÇ]/.test(original.trim());
-  const hasPlaceWords = /(praia|restaurante|pousada|hotel|bar|cafe|café|loja|mercado|farmacia|posto|hospital|escola|igreja|museu|parque|trilha|mirante|farol|forte|vila|rua|avenida|travessa|beco)/i.test(normalized);
+  const hasPlaceWords =
+    /(praia|restaurante|pousada|hotel|bar|cafe|café|loja|mercado|farmacia|posto|hospital|escola|igreja|museu|parque|trilha|mirante|farol|forte|vila|rua|avenida|travessa|beco)/i.test(
+      normalized,
+    );
 
   return {
     likely: true,
@@ -908,7 +984,13 @@ export function analyzeAssistantIntent(
   const modifiers = detectAssistantModifiers(normalized);
 
   if (!input || typeof input !== "string") {
-    return { intent: "unknown", confidence: 0, entities: {}, normalized: "", modifiers: [] };
+    return {
+      intent: "unknown",
+      confidence: 0,
+      entities: {},
+      normalized: "",
+      modifiers: [],
+    };
   }
 
   if (context.awaiting?.type) {
