@@ -247,7 +247,9 @@ describe("assistant browser domain adapter", () => {
   });
 
   it("resolves the V1 photo catalog only when its static assets are reachable", async () => {
-    const fetchImplementation = vi.fn(async () => new Response(null, { status: 200 }));
+    const fetchImplementation = vi.fn(
+      async () => new Response(null, { status: 200 }),
+    );
     const handlers = createAssistantBrowserDomainHandlers({
       fetch: fetchImplementation as typeof globalThis.fetch,
     });
@@ -281,7 +283,9 @@ describe("assistant browser domain adapter", () => {
       fetch: fetchImplementation,
     });
 
-    const response = await handlers.photos?.(request("photos", "Segunda Praia"));
+    const response = await handlers.photos?.(
+      request("photos", "Segunda Praia"),
+    );
 
     expect(response).toEqual({
       text: "As fotos de Segunda Praia estão catalogadas, mas os arquivos ainda não estão disponíveis nesta versão.",
