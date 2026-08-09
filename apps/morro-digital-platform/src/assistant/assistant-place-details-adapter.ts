@@ -72,11 +72,15 @@ function selectNearestFeature(
   );
 }
 
-function categoryLabel(properties: UnknownRecord, fallback: string | null): string | null {
+function categoryLabel(
+  properties: UnknownRecord,
+  fallback: string | null,
+): string | null {
   const categories = properties.poi_category;
   if (Array.isArray(categories)) {
     const first = categories.find(
-      (category): category is string => typeof category === "string" && Boolean(category.trim()),
+      (category): category is string =>
+        typeof category === "string" && Boolean(category.trim()),
     );
     if (first) return first;
   }
@@ -92,7 +96,7 @@ function categoryLabel(properties: UnknownRecord, fallback: string | null): stri
     emergencies: "Emergência",
     tours: "Passeio",
   };
-  return fallback ? labels[fallback] ?? fallback : null;
+  return fallback ? (labels[fallback] ?? fallback) : null;
 }
 
 function normalizeDetails(
