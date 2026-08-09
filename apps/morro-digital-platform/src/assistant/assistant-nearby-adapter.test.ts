@@ -4,7 +4,10 @@ import {
   createDefaultAssistantContext,
   type AssistantDialogIntentHandlerContext,
 } from "@touristic/assistant";
-import { resolveAssistantNearby } from "./assistant-nearby-adapter.js";
+import {
+  resolveAssistantNearby,
+  type AssistantNearbyGeolocationPort,
+} from "./assistant-nearby-adapter.js";
 
 function request(category?: string): AssistantDialogIntentHandlerContext {
   return {
@@ -39,7 +42,8 @@ function position(latitude: number, longitude: number): GeolocationPosition {
 
 describe("assistant nearby browser adapter", () => {
   it("asks for a category before requesting geolocation", async () => {
-    const geolocation = { getCurrentPosition: vi.fn() };
+    const getCurrentPosition = vi.fn<AssistantNearbyGeolocationPort["getCurrentPosition"]>();
+    const geolocation: AssistantNearbyGeolocationPort = { getCurrentPosition };
     const response = await resolveAssistantNearby(request(), geolocation);
 
     expect(response).toEqual(
@@ -51,7 +55,7 @@ describe("assistant nearby browser adapter", () => {
         ]),
       }),
     );
-    expect(geolocation.getCurrentPosition).not.toHaveBeenCalled();
+    expect(getCurrentPosition).not.toHaveBeenCalled();
   });
 
   it("ranks the curated V1 catalog from the current browser position", async () => {
