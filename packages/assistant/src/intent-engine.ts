@@ -60,8 +60,9 @@ export function normalizeAssistantText(text: string): string {
 
   return text
     .toLowerCase()
-    .replace(/[áàãâäéèêëíìîïóòõôöúùûüçñ]/g, (character) =>
-      ACCENTS_MAP[character] ?? character,
+    .replace(
+      /[áàãâäéèêëíìîïóòõôöúùûüçñ]/g,
+      (character) => ACCENTS_MAP[character] ?? character,
     )
     .replace(/[^\w\s\u0590-\u05FF\u0600-\u06FF]/g, " ")
     .replace(/\s+/g, " ")
@@ -168,7 +169,9 @@ const INTENT_PATTERNS: ReadonlyArray<{
   {
     intent: "deny",
     confidence: 1,
-    patterns: [/^(nao|não|no|nope|nunca|jamais|negativo|cancel|cancelar|desistir|voltar)$/i],
+    patterns: [
+      /^(nao|não|no|nope|nunca|jamais|negativo|cancel|cancelar|desistir|voltar)$/i,
+    ],
   },
   {
     intent: "greeting",
@@ -190,8 +193,10 @@ function detectModifiers(normalized: string): string[] {
   const modifiers: string[] = [];
 
   if (/\b(agora|now|hoje|today)\b/.test(normalized)) modifiers.push("now");
-  if (/\b(barato|economico|budget|cheap)\b/.test(normalized)) modifiers.push("cheap");
-  if (/\b(perto|proximo|nearby|close)\b/.test(normalized)) modifiers.push("near");
+  if (/\b(barato|economico|budget|cheap)\b/.test(normalized))
+    modifiers.push("cheap");
+  if (/\b(perto|proximo|nearby|close)\b/.test(normalized))
+    modifiers.push("near");
 
   return modifiers;
 }
@@ -205,7 +210,11 @@ export function analyzeAssistantIntent(input: string): AssistantIntentResult {
   }
 
   for (const definition of INTENT_PATTERNS) {
-    if (definition.patterns.some((pattern) => pattern.test(input) || pattern.test(normalized))) {
+    if (
+      definition.patterns.some(
+        (pattern) => pattern.test(input) || pattern.test(normalized),
+      )
+    ) {
       return {
         intent: definition.intent,
         confidence: definition.confidence,

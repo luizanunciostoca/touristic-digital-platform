@@ -42,7 +42,9 @@ describe("assistant local intent engine", () => {
   });
 
   it("signals the LLM boundary for unknown input", () => {
-    expect(analyzeAssistantIntent("conte algo inesperado e complexo")).toMatchObject({
+    expect(
+      analyzeAssistantIntent("conte algo inesperado e complexo"),
+    ).toMatchObject({
       intent: "unknown",
       confidence: 0,
       requiresLLM: true,
