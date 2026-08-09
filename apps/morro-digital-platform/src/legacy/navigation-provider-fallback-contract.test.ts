@@ -28,7 +28,9 @@ describe("V1 navigation provider fallback contract", () => {
     expect(fallbackEnd).toBeGreaterThan(fallbackStart);
     expect(fallbackSource).toContain("clearBrowserNavigationRuntime();");
     expect(fallbackSource).toContain("activeRealMap = undefined;");
-    expect(fallbackSource).toContain("setV1MapboxCompatibilityAliases(undefined);");
+    expect(fallbackSource).toContain(
+      "setV1MapboxCompatibilityAliases(undefined);",
+    );
     expect(
       fallbackSource.indexOf("clearBrowserNavigationRuntime();"),
     ).toBeLessThan(fallbackSource.indexOf("activeRealMap = undefined;"));
