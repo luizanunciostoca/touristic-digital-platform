@@ -9,6 +9,7 @@ import {
   type NavigationRuntimeSnapshot,
 } from "@touristic/navigation";
 
+import type { BrowserAssistantRuntime } from "../assistant/browser-assistant-runtime.js";
 import type { NavigationDomEventBridge } from "./navigation-dom-events.js";
 import type { NavigationDomLifecycle } from "./navigation-dom-lifecycle.js";
 import type { NavigationGuidanceUi } from "./navigation-guidance-ui.js";
@@ -66,6 +67,13 @@ function guidanceUiStub(): NavigationGuidanceUi {
   };
 }
 
+function assistantStub(destroy: () => void = vi.fn()): BrowserAssistantRuntime {
+  return {
+    process: vi.fn(async () => ({ text: "ok" })),
+    destroy,
+  };
+}
+
 function runtimeSnapshot(): NavigationRuntimeSnapshot {
   return {
     routeIdentity: "route-a",
@@ -102,7 +110,7 @@ function runtimeSnapshot(): NavigationRuntimeSnapshot {
 }
 
 describe("browser navigation runtime install", () => {
-  it("composes bootstrap, event bridge, guidance UI, DOM lifecycle and request port", () => {
+  it("composes bootstrap, assistant, event bridge, guidance UI, DOM lifecycle and request port", () => {
     const map = {
       setCenter: vi.fn(),
       remove: vi.fn(),
@@ -124,6 +132,7 @@ describe("browser navigation runtime install", () => {
     const requestPort = requestPortStub(requestPortDestroy);
     const bridge = eventBridge();
     const guidanceUi = guidanceUiStub();
+    const assistant = assistantStub();
     const createBootstrap = vi.fn<
       (options: NavigationSessionBootstrapOptions) => NavigationSessionBootstrap
     >(() => bootstrap);
@@ -131,6 +140,7 @@ describe("browser navigation runtime install", () => {
     const createRequestPort = vi.fn(() => requestPort);
     const createEventBridge = vi.fn(() => bridge);
     const createGuidanceUi = vi.fn(() => guidanceUi);
+    const installAssistant = vi.fn(() => assistant);
 
     const installed = installBrowserNavigationRuntime({
       map,
@@ -141,6 +151,7 @@ describe("browser navigation runtime install", () => {
       createRequestPort,
       createEventBridge,
       createGuidanceUi,
+      installAssistant,
     });
 
     expect(createBootstrap).toHaveBeenCalledTimes(1);
@@ -158,11 +169,13 @@ describe("browser navigation runtime install", () => {
       eventBridge: bridge,
     });
     expect(createRequestPort).toHaveBeenCalledWith({ document, lifecycle });
+    expect(installAssistant).toHaveBeenCalledWith({ document, navigation: bootstrap });
     expect(installed.bootstrap).toBe(bootstrap);
     expect(installed.lifecycle).toBe(lifecycle);
     expect(installed.requestPort).toBe(requestPort);
     expect(installed.eventBridge).toBe(bridge);
     expect(installed.guidanceUi).toBe(guidanceUi);
+    expect(installed.assistant).toBe(assistant);
   });
 
   it("publishes runtime callbacks and updates guidance with the same snapshot", () => {
@@ -188,6 +201,7 @@ describe("browser navigation runtime install", () => {
       createRequestPort: vi.fn(() => requestPort),
       createEventBridge: vi.fn(() => bridge),
       createGuidanceUi: vi.fn(() => guidanceUi),
+      installAssistant: vi.fn(() => assistantStub()),
     });
 
     const options = createBootstrap.mock.calls[0]?.[0];
@@ -227,8 +241,9 @@ describe("browser navigation runtime install", () => {
     );
   });
 
-  it("destroys request port, lifecycle and guidance UI exactly once", () => {
+  it("destroys assistant, request port, lifecycle and guidance UI exactly once", () => {
     const calls: string[] = [];
+    const assistantDestroy = vi.fn(() => calls.push("assistant"));
     const lifecycleDestroy = vi.fn(() => calls.push("lifecycle"));
     const requestPortDestroy = vi.fn(() => calls.push("request-port"));
     const guidanceDestroy = vi.fn(() => calls.push("guidance-ui"));
@@ -251,14 +266,21 @@ describe("browser navigation runtime install", () => {
       createRequestPort: vi.fn(() => requestPort),
       createEventBridge: vi.fn(() => eventBridge()),
       createGuidanceUi: vi.fn(() => guidanceUi),
+      installAssistant: vi.fn(() => assistantStub(assistantDestroy)),
     });
 
     installed.destroy();
     installed.destroy();
 
+    expect(assistantDestroy).toHaveBeenCalledTimes(1);
     expect(requestPortDestroy).toHaveBeenCalledTimes(1);
     expect(lifecycleDestroy).toHaveBeenCalledTimes(1);
     expect(guidanceDestroy).toHaveBeenCalledTimes(1);
-    expect(calls).toEqual(["request-port", "lifecycle", "guidance-ui"]);
+    expect(calls).toEqual([
+      "assistant",
+      "request-port",
+      "lifecycle",
+      "guidance-ui",
+    ]);
   });
 });
