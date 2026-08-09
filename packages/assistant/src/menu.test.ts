@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ASSISTANT_MAIN_MENU, getAssistantMainMenu } from "./menu";
+import { ASSISTANT_MAIN_MENU, getAssistantMainMenu } from "./menu.js";
 
 describe("assistant canonical menu", () => {
   it("keeps the ten canonical V1 semantic values in order", () => {
