@@ -149,14 +149,21 @@ export function adaptMapboxDirectionsResponse(
   }
 
   const routeCandidate: unknown = data.routes[0];
-  if (!isRecord(routeCandidate) || !isRecord(routeCandidate.geometry)) {
+  if (!isRecord(routeCandidate)) {
+    throw new MapboxDirectionsRoutingError(
+      "INVALID_MAPBOX_ROUTE_RESPONSE",
+      "A Mapbox não retornou uma rota válida.",
+    );
+  }
+  const geometryCandidate: unknown = routeCandidate.geometry;
+  if (!isRecord(geometryCandidate)) {
     throw new MapboxDirectionsRoutingError(
       "INVALID_MAPBOX_ROUTE_RESPONSE",
       "A Mapbox não retornou uma rota válida.",
     );
   }
   const route = routeCandidate;
-  const rawCoordinates: unknown = route.geometry.coordinates;
+  const rawCoordinates: unknown = geometryCandidate.coordinates;
   if (!isUnknownArray(rawCoordinates)) {
     throw new MapboxDirectionsRoutingError(
       "INVALID_MAPBOX_ROUTE_RESPONSE",
