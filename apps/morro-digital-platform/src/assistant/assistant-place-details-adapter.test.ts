@@ -4,35 +4,36 @@ import { fetchAssistantPlaceDetails } from "./assistant-place-details-adapter.js
 
 describe("assistant Mapbox place details adapter", () => {
   it("uses the curated V1 destination as query and proximity", async () => {
-    const fetchImplementation = vi.fn<typeof globalThis.fetch>(async () =>
-      new Response(
-        JSON.stringify({
-          features: [
-            {
-              geometry: { coordinates: [-38.91, -13.38] },
-              properties: {
-                mapbox_id: "poi.far",
-                full_address: "Resultado distante",
-                poi_category: ["bar"],
-              },
-            },
-            {
-              geometry: { coordinates: [-38.9118443, -13.3800508] },
-              properties: {
-                mapbox_id: "poi.segunda-praia",
-                full_address: "Segunda Praia, Morro de São Paulo",
-                poi_category: ["beach"],
-                metadata: {
-                  open_hours: { open_now: true },
-                  phone: "+55 75 99999-0000",
-                  website: "https://example.com/segunda-praia",
+    const fetchImplementation = vi.fn<typeof globalThis.fetch>(
+      async () =>
+        new Response(
+          JSON.stringify({
+            features: [
+              {
+                geometry: { coordinates: [-38.91, -13.38] },
+                properties: {
+                  mapbox_id: "poi.far",
+                  full_address: "Resultado distante",
+                  poi_category: ["bar"],
                 },
               },
-            },
-          ],
-        }),
-        { status: 200, headers: { "Content-Type": "application/json" } },
-      ),
+              {
+                geometry: { coordinates: [-38.9118443, -13.3800508] },
+                properties: {
+                  mapbox_id: "poi.segunda-praia",
+                  full_address: "Segunda Praia, Morro de São Paulo",
+                  poi_category: ["beach"],
+                  metadata: {
+                    open_hours: { open_now: true },
+                    phone: "+55 75 99999-0000",
+                    website: "https://example.com/segunda-praia",
+                  },
+                },
+              },
+            ],
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
     );
 
     const details = await fetchAssistantPlaceDetails("praia 2", {
