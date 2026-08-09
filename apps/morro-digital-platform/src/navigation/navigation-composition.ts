@@ -18,6 +18,8 @@ import type {
   BrowserLocation,
 } from "./browser-geolocation.js";
 
+export const NAVIGATION_GUIDANCE_MAX_ACCURACY_METERS = 300;
+
 export interface NavigationAppCompositionOptions {
   readonly geolocation: BrowserGeolocationService;
   readonly presenter: NavigationMapboxPresenter;
@@ -69,6 +71,14 @@ function runtimeLocationFromBrowser(
     speed: location.speed,
     timestamp: location.timestamp,
   };
+}
+
+function isGuidanceAccuracyAcceptable(location: BrowserLocation): boolean {
+  const accuracy = Number(location.accuracy);
+  return (
+    !Number.isFinite(accuracy) ||
+    accuracy <= NAVIGATION_GUIDANCE_MAX_ACCURACY_METERS
+  );
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -169,6 +179,8 @@ export function createNavigationAppComposition(
     if (!started) return;
     latestLocation = location;
     options.onLocation?.(location);
+    if (!isGuidanceAccuracyAcceptable(location)) return;
+
     arrival?.update({
       latitude: location.latitude,
       longitude: location.longitude,
