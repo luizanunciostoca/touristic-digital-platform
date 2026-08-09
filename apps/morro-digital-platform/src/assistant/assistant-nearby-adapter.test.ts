@@ -61,7 +61,10 @@ describe("assistant nearby browser adapter", () => {
       }),
     };
 
-    const response = await resolveAssistantNearby(request("beaches"), geolocation);
+    const response = await resolveAssistantNearby(
+      request("beaches"),
+      geolocation,
+    );
 
     expect(response.metadata).toEqual(
       expect.objectContaining({
@@ -86,7 +89,10 @@ describe("assistant nearby browser adapter", () => {
       ),
     };
 
-    const response = await resolveAssistantNearby(request("restaurants"), geolocation);
+    const response = await resolveAssistantNearby(
+      request("restaurants"),
+      geolocation,
+    );
 
     expect(response).toEqual({
       text: "Não consegui obter sua localização. Verifique a permissão de localização e tente novamente.",
