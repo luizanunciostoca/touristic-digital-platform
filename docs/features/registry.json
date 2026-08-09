@@ -27,10 +27,10 @@
       "name": "Navegação e Rotas",
       "domain": "geospatial",
       "wave": 4,
-      "status": "baseline-pending",
+      "status": "equivalent",
       "legacySources": ["v1:navigation", "v1:routing"],
       "targetPackages": ["@touristic/geospatial", "@touristic/navigation"],
-      "equivalence": { "behavior": false, "visual": false, "api": false }
+      "equivalence": { "behavior": true, "visual": true, "api": true }
     },
     {
       "id": "FEATURE-0004",
