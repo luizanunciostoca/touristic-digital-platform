@@ -31,11 +31,11 @@ export interface AssistantContext {
   fallbackCount: number;
   history: AssistantHistoryEntry[];
   userLocation: AssistantGeoPoint | null;
-  pendingRoute: unknown | null;
-  selectedDestination: unknown | null;
+  pendingRoute: unknown;
+  selectedDestination: unknown;
   locationTracking: boolean;
   hasSharedLocation: boolean;
-  lastPlaceHours: unknown | null;
+  lastPlaceHours: unknown;
   preferences: Record<string, unknown>;
   sessionStart: number;
 }
@@ -183,7 +183,7 @@ export function createAssistantContextManager(
         ...createDefaultAssistantContext(now),
         ...saved,
         _version: ASSISTANT_CONTEXT_VERSION,
-      } as AssistantContext;
+      };
     } catch {
       context = createDefaultAssistantContext(now);
       try {
@@ -214,7 +214,7 @@ export function createAssistantContextManager(
 
     updateContext(updates: Partial<AssistantContext>): void {
       for (const key of Object.keys(updates) as Array<keyof AssistantContext>) {
-        const newValue = updates[key] as AssistantContext[typeof key];
+        const newValue = updates[key];
         notify(key, newValue, context[key]);
       }
       context = { ...context, ...updates };
