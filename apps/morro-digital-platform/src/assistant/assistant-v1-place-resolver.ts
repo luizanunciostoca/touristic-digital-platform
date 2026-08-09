@@ -7,6 +7,7 @@ import {
   morroAssistantDestinationCatalog,
   type AssistantDestinationCatalogEntry,
 } from "./assistant-destination-resolver.js";
+import { isAssistantV1PlaceWithinRadius } from "./assistant-v1-place-boundary.js";
 
 export type AssistantPlaceMatchType =
   "exact" | "alias" | "partial" | "alias_partial" | "fuzzy";
@@ -61,6 +62,12 @@ function normalizedAliases(
   return (entry.aliases ?? []).map(normalizeAssistantText);
 }
 
+function inRadiusCatalog(
+  catalog: readonly AssistantDestinationCatalogEntry[],
+): readonly AssistantDestinationCatalogEntry[] {
+  return catalog.filter(isAssistantV1PlaceWithinRadius);
+}
+
 export function matchMorroAssistantDestinationV1(
   query: string,
   catalog: readonly AssistantDestinationCatalogEntry[] = morroAssistantDestinationCatalog,
@@ -68,7 +75,9 @@ export function matchMorroAssistantDestinationV1(
   const normalizedQuery = normalizeAssistantText(query);
   if (!normalizedQuery) return null;
 
-  for (const entry of catalog) {
+  const activeCatalog = inRadiusCatalog(catalog);
+
+  for (const entry of activeCatalog) {
     if (normalizeAssistantText(entry.name) === normalizedQuery) {
       return Object.freeze({
         destination: toDestination(entry),
@@ -77,7 +86,7 @@ export function matchMorroAssistantDestinationV1(
     }
   }
 
-  for (const entry of catalog) {
+  for (const entry of activeCatalog) {
     if (normalizedAliases(entry).includes(normalizedQuery)) {
       return Object.freeze({
         destination: toDestination(entry),
@@ -86,7 +95,7 @@ export function matchMorroAssistantDestinationV1(
     }
   }
 
-  for (const entry of catalog) {
+  for (const entry of activeCatalog) {
     const name = normalizeAssistantText(entry.name);
     if (normalizedQuery.includes(name) || name.includes(normalizedQuery)) {
       return Object.freeze({
@@ -107,7 +116,7 @@ export function matchMorroAssistantDestinationV1(
 
   let bestEntry: AssistantDestinationCatalogEntry | null = null;
   let bestScore = 0;
-  for (const entry of catalog) {
+  for (const entry of activeCatalog) {
     const canonicalScore = diceSimilarity(normalizedQuery, entry.name);
     if (canonicalScore > bestScore) {
       bestScore = canonicalScore;
