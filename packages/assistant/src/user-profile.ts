@@ -268,17 +268,26 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function deepMerge<T extends object>(target: T, source: unknown): T {
-  if (!isRecord(source)) return target;
+function deepMergeRecord(
+  target: Record<string, unknown>,
+  source: Record<string, unknown>,
+): Record<string, unknown> {
   const result: Record<string, unknown> = { ...target };
   for (const [key, value] of Object.entries(source)) {
     const current = result[key];
     result[key] =
       isRecord(value) && isRecord(current)
-        ? deepMerge(current, value)
+        ? deepMergeRecord(current, value)
         : clone(value);
   }
-  return result as T;
+  return result;
+}
+
+function deepMerge<T extends object>(target: T, source: unknown): T {
+  if (!isRecord(source)) return target;
+  const targetRecord = Object.fromEntries(Object.entries(target));
+  const result = deepMergeRecord(targetRecord, source);
+  return result as unknown as T;
 }
 
 export function createDefaultAssistantUserProfile(
@@ -324,7 +333,7 @@ export function createDefaultAssistantUserProfile(
 function inferBehavior(profile: AssistantUserProfile, input: string): void {
   const norm = input.toLowerCase();
   if (
-    /(barato|econômico|economico|preço baixo|preco baixo|budget|cheap|acessível|acessivel)/i.test(
+    /(barat[oa]|econômico|economico|preço baixo|preco baixo|budget|cheap|acessível|acessivel)/i.test(
       norm,
     )
   )
