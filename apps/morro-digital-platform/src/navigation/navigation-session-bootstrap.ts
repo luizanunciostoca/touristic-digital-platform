@@ -23,6 +23,8 @@ import {
   type BrowserNavigationWiring,
 } from "./browser-navigation-wiring.js";
 
+export const NAVIGATION_BOOTSTRAP_MAX_ACCURACY_METERS = 1_500;
+
 export interface NavigationDestinationInput {
   readonly longitude: number;
   readonly latitude: number;
@@ -119,6 +121,16 @@ function resolveBrowserStartCoordinate(
             reject(new Error("INVALID_START_LOCATION"));
             return;
           }
+
+          const accuracy = Number(position.coords.accuracy);
+          if (
+            Number.isFinite(accuracy) &&
+            accuracy > NAVIGATION_BOOTSTRAP_MAX_ACCURACY_METERS
+          ) {
+            reject(new Error("INACCURATE_START_LOCATION"));
+            return;
+          }
+
           resolve([longitude, latitude]);
         });
       },
