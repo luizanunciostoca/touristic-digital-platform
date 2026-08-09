@@ -34,6 +34,18 @@ export {
 } from "./adapters/navigation-mapbox.js";
 
 export {
+  adaptMapboxDirectionsResponse,
+  createMapboxDirectionsRoutingProvider,
+  MapboxDirectionsRoutingError,
+  type MapboxDirectionsFetchLike,
+  type MapboxDirectionsRoutingProvider,
+  type MapboxRoutingContext,
+  type MapboxRoutingCoordinate,
+  type MapboxRoutingFeatureCollection,
+  type MapboxRoutingPayload,
+} from "./adapters/routing-mapbox.js";
+
+export {
   createMapboxGlDriver,
   type MapboxGlDriverOptions,
   type MapboxGlMapLike,
