@@ -10,7 +10,7 @@
     "build": "turbo run build",
     "dev": "turbo run dev --parallel",
     "lint": "turbo run lint",
-    "test": "turbo run test",
+    "test": "turbo run test && vitest run tests/assistant-v1-baseline.test.ts",
     "typecheck": "turbo run typecheck",
     "architecture:check": "node tooling/architecture/check-dependencies.mjs",
     "features:check": "node -e \"const r=require('./docs/features/registry.json'); const ids=r.features.map(f=>f.id); if(new Set(ids).size!==ids.length) process.exit(1); if(r.features.some(f=>!/^FEATURE-\\d{4}$/.test(f.id))) process.exit(1); console.log('Feature Registry válido:', ids.length, 'features')\"",
