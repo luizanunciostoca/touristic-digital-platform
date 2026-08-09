@@ -13,7 +13,10 @@ describe("assistant V1 complex intents", () => {
     ["É acessível para cadeirante?", "accessibility", 0.9],
     ["Crianças em praia calma", "accessibility", 0.9],
   ] as const)("maps %s to %s", (input, intent, confidence) => {
-    expect(classifyAssistantComplexIntent(input)).toEqual({ intent, confidence });
+    expect(classifyAssistantComplexIntent(input)).toEqual({
+      intent,
+      confidence,
+    });
   });
 
   it("preserves V1 ordering when practical tips and transport overlap", () => {

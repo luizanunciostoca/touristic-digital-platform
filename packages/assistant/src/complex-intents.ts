@@ -1,8 +1,5 @@
 export type AssistantComplexIntent =
-  | "cultural_history"
-  | "practical_tips"
-  | "transport"
-  | "accessibility";
+  "cultural_history" | "practical_tips" | "transport" | "accessibility";
 
 export interface AssistantComplexIntentMatch {
   intent: AssistantComplexIntent;

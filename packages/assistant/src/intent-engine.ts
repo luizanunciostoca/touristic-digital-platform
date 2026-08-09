@@ -1,3 +1,5 @@
+import { classifyAssistantComplexIntent } from "./complex-intents.js";
+
 export type AssistantIntent =
   | "navigate"
   | "cancel_navigation"
@@ -1020,6 +1022,16 @@ export function analyzeAssistantIntent(
         modifiers,
       };
     }
+  }
+
+  const complexIntentMatch = classifyAssistantComplexIntent(input);
+  if (complexIntentMatch) {
+    return {
+      ...complexIntentMatch,
+      entities,
+      normalized,
+      modifiers,
+    };
   }
 
   const synonymMatch = matchBySynonyms(normalized);
