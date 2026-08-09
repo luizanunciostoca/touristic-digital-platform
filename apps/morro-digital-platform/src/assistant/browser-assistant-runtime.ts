@@ -28,14 +28,23 @@ export interface BrowserAssistantRuntime {
   destroy(): void;
 }
 
+interface AssistantPhotoPresentation {
+  readonly place: string;
+  readonly images: readonly string[];
+}
+
+function getMessagesArea(document: Document): HTMLElement | null {
+  return document.querySelector<HTMLElement>(
+    "#assistant-messages .messages-area",
+  );
+}
+
 function appendMessage(
   document: Document,
   role: "user" | "assistant",
   text: string,
 ): void {
-  const messagesArea = document.querySelector<HTMLElement>(
-    "#assistant-messages .messages-area",
-  );
+  const messagesArea = getMessagesArea(document);
   if (!messagesArea) return;
 
   const message = document.createElement("div");
@@ -43,6 +52,62 @@ function appendMessage(
   message.dataset.messageType = "standard";
   message.textContent = text;
   messagesArea.appendChild(message);
+  messagesArea.scrollTop = messagesArea.scrollHeight;
+}
+
+function readPhotoPresentation(
+  response: AssistantDialogResponse,
+): AssistantPhotoPresentation | null {
+  const metadata = response.metadata;
+  if (!metadata || typeof metadata !== "object") return null;
+  if (metadata.domain !== "photos" || metadata.state !== "resolved")
+    return null;
+  if (
+    metadata.presentation !== "carousel" ||
+    typeof metadata.place !== "string"
+  ) {
+    return null;
+  }
+
+  const images = Array.isArray(metadata.images)
+    ? metadata.images.filter(
+        (image): image is string => typeof image === "string",
+      )
+    : [];
+  if (images.length === 0) return null;
+  return { place: metadata.place, images };
+}
+
+function appendPhotoCarousel(
+  document: Document,
+  presentation: AssistantPhotoPresentation,
+): void {
+  const messagesArea = getMessagesArea(document);
+  if (!messagesArea) return;
+
+  const container = document.createElement("section");
+  container.className = "assistant-photo-carousel";
+  container.dataset.messageType = "photo-carousel";
+  container.setAttribute("aria-label", `Fotos de ${presentation.place}`);
+
+  const track = document.createElement("div");
+  track.className = "assistant-photo-carousel-track";
+
+  for (const [index, source] of presentation.images.entries()) {
+    const figure = document.createElement("figure");
+    figure.className = "assistant-photo-carousel-slide";
+
+    const image = document.createElement("img");
+    image.src = source;
+    image.alt = `${presentation.place} — foto ${index + 1}`;
+    image.loading = index === 0 ? "eager" : "lazy";
+    image.decoding = "async";
+    figure.appendChild(image);
+    track.appendChild(figure);
+  }
+
+  container.appendChild(track);
+  messagesArea.appendChild(container);
   messagesArea.scrollTop = messagesArea.scrollHeight;
 }
 
@@ -105,6 +170,10 @@ export function installBrowserAssistantRuntime(
     appendMessage(options.document, "user", value);
     const response = await controller.processUserInput(value);
     appendMessage(options.document, "assistant", response.text);
+    const photoPresentation = readPhotoPresentation(response);
+    if (photoPresentation) {
+      appendPhotoCarousel(options.document, photoPresentation);
+    }
     return response;
   };
 

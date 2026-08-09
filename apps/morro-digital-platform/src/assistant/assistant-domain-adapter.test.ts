@@ -245,4 +245,60 @@ describe("assistant browser domain adapter", () => {
       }),
     );
   });
+
+  it("resolves the V1 photo catalog only when its static assets are reachable", async () => {
+    const fetchImplementation = vi.fn(
+      async () => new Response(null, { status: 200 }),
+    );
+    const handlers = createAssistantBrowserDomainHandlers({
+      fetch: fetchImplementation,
+    });
+
+    const response = await handlers.photos?.(request("photos", "segunda"));
+
+    expect(fetchImplementation).toHaveBeenCalledWith(
+      "/images/fotos/segunda_praia1.jpg",
+      { method: "HEAD" },
+    );
+    expect(response).toEqual({
+      text: "Encontrei 3 fotos de Segunda Praia.",
+      metadata: {
+        domain: "photos",
+        state: "resolved",
+        place: "Segunda Praia",
+        images: [
+          "/images/fotos/segunda_praia1.jpg",
+          "/images/fotos/segunda_praia2.jpg",
+          "/images/fotos/segunda_praia3.jpg",
+        ],
+        presentation: "carousel",
+      },
+    });
+  });
+
+  it("does not expose a broken carousel while V1 binary photo assets are absent", async () => {
+    const fetchImplementation: typeof globalThis.fetch = async () =>
+      new Response(null, { status: 404 });
+    const handlers = createAssistantBrowserDomainHandlers({
+      fetch: fetchImplementation,
+    });
+
+    const response = await handlers.photos?.(
+      request("photos", "Segunda Praia"),
+    );
+
+    expect(response).toEqual({
+      text: "As fotos de Segunda Praia estão catalogadas, mas os arquivos ainda não estão disponíveis nesta versão.",
+      metadata: {
+        domain: "photos",
+        state: "asset_source_pending",
+        place: "Segunda Praia",
+        images: [
+          "/images/fotos/segunda_praia1.jpg",
+          "/images/fotos/segunda_praia2.jpg",
+          "/images/fotos/segunda_praia3.jpg",
+        ],
+      },
+    });
+  });
 });
