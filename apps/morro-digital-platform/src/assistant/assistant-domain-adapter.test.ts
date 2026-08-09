@@ -24,9 +24,9 @@ function request(
 }
 
 describe("assistant browser domain adapter", () => {
-  it("returns a useful empty favorites state", async () => {
+  it("returns a useful empty favorites state", () => {
     const handlers = createAssistantBrowserDomainHandlers();
-    await expect(handlers.favorites?.(request("favorites"))).resolves.toEqual({
+    expect(handlers.favorites?.(request("favorites"))).toEqual({
       text: "Você ainda não adicionou lugares aos favoritos.",
       metadata: { domain: "favorites", count: 0 },
     });
