@@ -177,10 +177,10 @@ export function createNavigationAppComposition(
 
   function updateFromLocation(location: BrowserLocation): void {
     if (!started) return;
-    latestLocation = location;
     options.onLocation?.(location);
     if (!isGuidanceAccuracyAcceptable(location)) return;
 
+    latestLocation = location;
     arrival?.update({
       latitude: location.latitude,
       longitude: location.longitude,
