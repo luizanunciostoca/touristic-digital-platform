@@ -5,6 +5,7 @@ on:
     branches:
       - feat/navigation-camera-visual-baseline
     paths:
+      - tooling/patch-navigation-visual-gps.cjs
       - .github/workflows/navigation-visual-gps-patch-temp.yml
 
 permissions:
@@ -17,52 +18,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: feat/navigation-camera-visual-baseline
-      - name: Patch deterministic GPS progression
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          path = Path('.github/workflows/navigation-visual-baseline.yml')
-          text = path.read_text()
-          old = '''            await page.locator('#instruction-banner:not(.hidden)').waitFor({ state: 'visible', timeout: 15000 });
-            await page.locator('#end-navigation-btn').waitFor({ state: 'visible', timeout: 15000 });
-            await poll(page, () => {
-              const evidence = globalThis.__navigationEvidence;
-              return Boolean(
-                evidence?.events?.some((event) => event.type === 'navigationRouteRuntimeUpdated') &&
-                evidence?.events?.some((event) => event.type === 'navigationStarted') &&
-                evidence.camera.length > 0
-              );
-            });
-            await page.waitForTimeout(700);
-'''
-          new = '''            await page.locator('#instruction-banner:not(.hidden)').waitFor({ state: 'visible', timeout: 15000 });
-            await page.locator('#end-navigation-btn').waitFor({ state: 'visible', timeout: 15000 });
-            await poll(page, () =>
-              globalThis.__navigationEvidence?.events?.some((event) => event.type === 'navigationStarted'),
-            );
-
-            // getCurrentPosition() seeds routing; watchPosition() needs a deterministic
-            // movement to exercise the live runtime/presenter path in Chromium.
-            await context.setGeolocation({
-              latitude: -13.37615,
-              longitude: -38.91715,
-            });
-            await poll(page, () => {
-              const evidence = globalThis.__navigationEvidence;
-              return Boolean(
-                evidence?.events?.some((event) => event.type === 'navigationRouteRuntimeUpdated') &&
-                evidence?.events?.some((event) => event.type === 'userLocationUpdated') &&
-                evidence.camera.length > 0
-              );
-            });
-            await page.waitForTimeout(700);
-'''
-          if old not in text:
-              raise SystemExit('target block not found')
-          path.write_text(text.replace(old, new, 1))
-          PY
-      - name: Commit patch
-        run: |
+      - run: node tooling/patch-navigation-visual-gps.cjs
+      - run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add .github/workflows/navigation-visual-baseline.yml
