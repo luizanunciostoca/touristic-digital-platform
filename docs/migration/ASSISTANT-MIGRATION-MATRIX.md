@@ -6,7 +6,7 @@ Destino: `packages/assistant`
 
 Esta matriz controla a migração de FEATURE-0004. `PASS` só pode ser usado quando o comportamento observável estiver implementado e coberto por evidência executável. `PARTIAL` significa que existe implementação V2, porém o contrato ainda não está completo. `GAP` significa ausência de implementação equivalente.
 
-| Contrato V1                         | Evidência V1               | Destino V2               | Estado M5 | Critério de PASS                                                          |
+| Contrato V1                         | Evidência V1               | Destino V2               | Estado M6 | Critério de PASS                                                          |
 | ----------------------------------- | -------------------------- | ------------------------ | --------- | ------------------------------------------------------------------------- |
 | 10 opções canônicas                 | `assistant-messages.js`    | `src/menu.ts`            | PASS      | ordem, valores e labels PT/EN/ES/HE idênticos                             |
 | Normalização de texto               | `intent-engine.js`         | `src/intent-engine.ts`   | PASS      | acentos latinos normalizados e HE preservado                              |
@@ -28,8 +28,8 @@ Esta matriz controla a migração de FEATURE-0004. `PASS` só pode ser usado qua
 | Detecção de place name              | `intent-engine.js`         | `src/intent-engine.ts`   | PASS      | `place_search` e confiança V1 cobertos                                    |
 | Controller de diálogo               | `assistant-dialog.js`      | a implementar            | GAP       | fluxo de menus, handlers e respostas equivalentes                         |
 | Context manager                     | `context-manager.js`       | `src/context-manager.ts` | PASS      | schema v2, TTL 4h, debounce, histórico, preferências e pub/sub            |
-| Perfil do usuário                   | `user-profile.js`          | a implementar            | GAP       | preferências inferidas/persistidas e comportamento observável equivalente |
-| Contexto conversacional             | `assistant-context/**`     | `src/context-manager.ts` | PARTIAL   | context manager + user profile e refinamentos equivalentes                |
+| Perfil do usuário                   | `user-profile.js`          | `src/user-profile.ts`    | PASS      | persistência, inferências, interesses, favoritos e sugestões equivalentes |
+| Contexto conversacional             | `assistant-context/**`     | `src/context-manager.ts` + `src/user-profile.ts` | PASS | context manager e user profile portados com contratos testáveis          |
 | Mensagens e sanitização             | `assistant-messages/**`    | a implementar            | GAP       | render seguro, deduplicação e tipos de mensagem                           |
 | Sugestões proativas                 | `proactive-suggestions.js` | a implementar            | GAP       | gatilhos V1 equivalentes                                                  |
 | Fallback LLM — decisão              | `intent-engine.js`         | `src/llm-policy.ts`      | PASS      | decidir local vs LLM conforme política V1                                 |
@@ -39,11 +39,13 @@ Esta matriz controla a migração de FEATURE-0004. `PASS` só pode ser usado qua
 | Integração Navigation               | diálogo/mensagens V1       | `@touristic/navigation`  | GAP       | rota iniciada/cancelada via contrato público V2                           |
 | UI shell do assistente              | shell V1                   | app V2                   | PARTIAL   | abertura, fechamento, menu, mensagens e estados visuais equivalentes      |
 
-## Estado do milestone M5
+## Estado do milestone M6
 
-O M5 porta o núcleo do `context-manager.js` da V1 para um componente TypeScript independente de browser: schema versão 2, estado canônico, migração de contexto legado, expiração de sessão em 4 horas preservando preferências, persistência com debounce de 300 ms, cópias profundas, histórico sanitizado limitado a 50 entradas, `clearContext`, preferências e pub/sub por campo.
+O M6 porta o `assistant-context/user-profile.js` da V1 para TypeScript. O runtime preserva o perfil canônico, merge profundo de dados persistidos, contagem de sessões, idioma, scores de interesse, histórico recente de locais, favoritos, navegações bem-sucedidas, padrões de busca, inferências comportamentais e distinção turista/morador.
 
-A persistência é recebida por porta (`AssistantContextStorage`) em vez de acessar `localStorage` diretamente. Isso preserva o comportamento observável e melhora testabilidade sem acoplar o package ao browser. O `user-profile.js` continua fora deste milestone, portanto o domínio `assistant-context/**` permanece `PARTIAL`.
+Também foram preservadas as sugestões personalizadas por horário, perfil, interesse e tipo de usuário, além do resumo destinado ao contexto do LLM. Como no M5, persistência, relógio, idioma e labels de categoria entram por portas injetáveis, evitando dependência direta de `localStorage` e do i18n da aplicação dentro do package.
+
+Com M5 + M6, o domínio `assistant-context/**` está portado neste checkpoint. Os principais gaps restantes passam a ser controller de diálogo, mensagens/sanitização, sugestões proativas, execução LLM server-side, voz, Navigation e wiring da UI.
 
 A FEATURE-0004 / MIG-0006 **não** está equivalente neste checkpoint.
 
