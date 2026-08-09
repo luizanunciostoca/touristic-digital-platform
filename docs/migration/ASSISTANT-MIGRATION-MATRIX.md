@@ -6,7 +6,7 @@ Destino: `packages/assistant`
 
 Esta matriz controla a migração de FEATURE-0004. `PASS` só pode ser usado quando o comportamento observável estiver implementado e coberto por evidência executável. `PARTIAL` significa que existe implementação V2, porém o contrato ainda não está completo. `GAP` significa ausência de implementação equivalente.
 
-| Contrato V1                           | Evidência V1               | Destino V2                                                              | Estado M12 | Critério de PASS                                                              |
+| Contrato V1                           | Evidência V1               | Destino V2                                                              | Estado M13 | Critério de PASS                                                              |
 | ------------------------------------- | -------------------------- | ----------------------------------------------------------------------- | ---------- | ----------------------------------------------------------------------------- |
 | 10 opções canônicas                   | `assistant-messages.js`    | `src/menu.ts`                                                           | PASS       | ordem, valores e labels PT/EN/ES/HE idênticos                                 |
 | Normalização de texto                 | `intent-engine.js`         | `src/intent-engine.ts`                                                  | PASS       | acentos latinos normalizados e HE preservado                                  |
@@ -40,17 +40,17 @@ Esta matriz controla a migração de FEATURE-0004. `PASS` só pode ser usado qua
 | Fallback LLM — execução               | `llm-fallback.js`          | porta `llm` do controller                                               | PARTIAL    | orquestração pronta; provider same-origin real ainda pendente                 |
 | Boundary `/api/ai/*`                  | legado + registry          | API same-origin V2                                                      | GAP        | nenhum segredo no cliente; provider server-side                               |
 | Voz                                   | `voice/**`                 | a implementar                                                           | GAP        | síntese, preferência e idiomas PT/EN/ES/HE                                    |
-| Integração Navigation                 | diálogo/mensagens V1       | `src/navigation-handlers.ts` → adapter do app → `@touristic/navigation` | PARTIAL    | handler público pronto; adapter do app e resolver real de destinos pendentes  |
+| Integração Navigation                 | diálogo/mensagens V1       | `src/navigation-handlers.ts` → `assistant-navigation-adapter.ts` → `NavigationSessionBootstrap` → `@touristic/navigation` | PARTIAL | bridge start/stop pronto; resolver real de destinos e wiring no controller pendentes |
 | UI shell do assistente                | shell V1                   | app V2                                                                  | PARTIAL    | abertura, fechamento, menu, mensagens e estados visuais equivalentes          |
 
-## Estado do milestone M12
+## Estado do milestone M13
 
-O M12 extrai a resolução e o lifecycle de Navigation do monólito V1 para `src/navigation-handlers.ts`. O handler `navigate` usa primeiro `intent.entities.place`, cai para `context.lastPlace` quando a conversa já estabeleceu um destino e, na ausência de ambos, retorna estado observável de `awaiting_destination`. O destino é resolvido por uma porta explícita e somente uma resolução válida pode iniciar a rota.
+O M13 conecta a fronteira de Navigation do `packages/assistant` ao runtime real do app sem introduzir dependências de browser no package. O app agora depende explicitamente de `@touristic/assistant` e expõe `assistant-navigation-adapter.ts`, que traduz `startNavigation` para `NavigationSessionBootstrap.start({ longitude, latitude })` e `cancelNavigation` para `NavigationSessionBootstrap.stop()`.
 
-O mesmo contrato cobre destino inexistente sem efeito colateral e `cancel_navigation` por uma porta pública independente de DOM ou Mapbox. Testes verificam destino explícito, fallback contextual, destino ausente, falha de resolução, início e cancelamento. Com isso, o contrato lógico de `navigate` deixa de ser `PARTIAL` e passa a `PASS`, enquanto os handlers de domínio como conjunto avançam de `GAP` para `PARTIAL`.
+A ponte recebe o resolvedor de destinos como dependência, preservando a separação entre interpretação de intenção, catálogo de locais e runtime de rota. Testes cobrem início com coordenadas normalizadas, cancelamento e ausência de efeito quando o destino não é resolvido. O lockfile do workspace foi atualizado para refletir a nova dependência.
 
-A integração com o runtime real ainda permanece `PARTIAL`: o próximo passo é conectar essas portas ao resolver de locais do app e ao `NavigationSessionBootstrap`, que já consome `@touristic/navigation`. Essa separação evita importar browser/Mapbox para dentro de `packages/assistant`.
+A integração Navigation permanece `PARTIAL`, porque ainda falta conectar um resolvedor real de destinos do catálogo V2 e instalar esses handlers no `createAssistantDialogController` do app. O runtime de rota em si já atravessa a API pública `NavigationSessionBootstrap` e `@touristic/navigation`.
 
-A FEATURE-0004 / MIG-0006 **não** está equivalente neste checkpoint. Permanecem gaps em handlers de domínio, provider LLM same-origin, voz, wiring do Navigation no app e UI final.
+A FEATURE-0004 / MIG-0006 **não** está equivalente neste checkpoint. Permanecem gaps em handlers de domínio, provider LLM same-origin, voz, resolver/wiring final de Navigation e UI do assistente.
 
 Para promover MIG-0006 a `equivalent`, todos os itens acima precisam estar em PASS e o Quality Gate do head final deve estar integralmente verde.
