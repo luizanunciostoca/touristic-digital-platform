@@ -1,9 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type {
-  MapboxGlMapLike,
-  MapboxGlModuleLike,
-} from "@touristic/geospatial";
 import { createNavigationHealthSnapshot } from "@touristic/navigation";
 
 import type { NavigationDomEventBridge } from "./navigation-dom-events.js";
@@ -53,12 +49,12 @@ describe("browser navigation runtime route status", () => {
     >(() => bootstrap);
 
     installBrowserNavigationRuntime({
-      map: { setCenter: vi.fn(), remove: vi.fn() } as MapboxGlMapLike,
+      map: { setCenter: vi.fn(), remove: vi.fn() },
       sdk: {
         accessToken: "token",
         Map: vi.fn(),
         Marker: vi.fn(),
-      } as unknown as MapboxGlModuleLike,
+      },
       document: {} as Document,
       createBootstrap,
       createLifecycle: vi.fn(() => lifecycle),
