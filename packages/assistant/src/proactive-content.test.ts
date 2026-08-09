@@ -43,7 +43,9 @@ describe("assistant V1 proactive localized content", () => {
       value: "[place]Segunda Praia",
       priority: 10,
     });
-    expect(result.buttons.some((button) => button.category === "help")).toBe(true);
+    expect(result.buttons.some((button) => button.category === "help")).toBe(
+      true,
+    );
   });
 
   it("preserves rainy weather precedence in contextual intros and buttons", () => {
@@ -68,8 +70,12 @@ describe("assistant V1 proactive localized content", () => {
       profile: profile(),
     });
 
-    expect(result.buttons.some((button) => button.label === "חיי לילה")).toBe(true);
-    expect(result.buttons.some((button) => button.label === "❓ עזרה")).toBe(true);
+    expect(result.buttons.some((button) => button.label === "חיי לילה")).toBe(
+      true,
+    );
+    expect(result.buttons.some((button) => button.label === "❓ עזרה")).toBe(
+      true,
+    );
   });
 
   it("composes smart recommendations from time, profile and weather and limits them to four", () => {
