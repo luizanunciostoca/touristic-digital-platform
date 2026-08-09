@@ -116,7 +116,7 @@ describe("Mapbox Directions routing adapter", () => {
     if (!call) throw new Error("Expected one Mapbox request");
     const [url, init] = call;
     expect(url).toContain(
-      "https://api.mapbox.com/directions/v5/mapbox/walking/-38.916%2C-13.375%3B-38.917%2C-13.376",
+      "https://api.mapbox.com/directions/v5/mapbox/walking/-38.916,-13.375;-38.917,-13.376",
     );
     expect(url).toContain("geometries=geojson");
     expect(url).toContain("steps=true");
