@@ -8,6 +8,10 @@ import type {
   RoutingProvider,
 } from "@touristic/navigation";
 
+import {
+  installBrowserAssistantRuntime,
+  type BrowserAssistantRuntime,
+} from "../assistant/browser-assistant-runtime.js";
 import type { BrowserLocation } from "./browser-geolocation.js";
 import {
   createNavigationDomEventBridge,
@@ -47,6 +51,7 @@ export interface BrowserNavigationRuntimeInstallOptions {
   readonly createRequestPort?: typeof createNavigationRequestPort;
   readonly createEventBridge?: typeof createNavigationDomEventBridge;
   readonly createGuidanceUi?: typeof createNavigationGuidanceUi;
+  readonly installAssistant?: typeof installBrowserAssistantRuntime;
 }
 
 export interface BrowserNavigationRuntimeInstall {
@@ -55,6 +60,7 @@ export interface BrowserNavigationRuntimeInstall {
   readonly requestPort: NavigationRequestPort;
   readonly eventBridge: NavigationDomEventBridge;
   readonly guidanceUi: NavigationGuidanceUi;
+  readonly assistant: BrowserAssistantRuntime;
   destroy(): void;
 }
 
@@ -86,6 +92,7 @@ export function installBrowserNavigationRuntime(
     options.createEventBridge ?? createNavigationDomEventBridge;
   const createGuidanceUi =
     options.createGuidanceUi ?? createNavigationGuidanceUi;
+  const installAssistant = options.installAssistant ?? installBrowserAssistantRuntime;
   const eventBridge = createEventBridge(options.document);
   const guidanceUi = createGuidanceUi(options.document);
   const eventTarget = options.document.defaultView;
@@ -183,6 +190,10 @@ export function installBrowserNavigationRuntime(
     document: options.document,
     lifecycle: activeLifecycle,
   });
+  const assistant = installAssistant({
+    document: options.document,
+    navigation: bootstrap,
+  });
   let destroyed = false;
 
   return Object.freeze({
@@ -191,6 +202,7 @@ export function installBrowserNavigationRuntime(
     requestPort,
     eventBridge,
     guidanceUi,
+    assistant,
     destroy(): void {
       if (destroyed) return;
       destroyed = true;
@@ -199,6 +211,7 @@ export function installBrowserNavigationRuntime(
         onNavigationStarted,
       );
       eventTarget?.removeEventListener("navigationEnded", onNavigationEnded);
+      assistant.destroy();
       requestPort.destroy();
       activeLifecycle.destroy();
       guidanceUi.destroy();
