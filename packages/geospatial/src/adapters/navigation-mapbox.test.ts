@@ -23,6 +23,7 @@ function snapshot(
 
 function setup(container = { clientWidth: 400, clientHeight: 800 }) {
   const cameraUpdates: CameraUpdate[] = [];
+  const markerOperations: string[] = [];
   const easeTo = vi.fn<(input: CameraUpdate) => void>();
   const map: NavigationMapboxMapLike = {
     easeTo(input) {
@@ -37,14 +38,17 @@ function setup(container = { clientWidth: 400, clientHeight: 800 }) {
   const remove = vi.fn<() => void>();
   const marker: NavigationMapboxMarkerLike = {
     setLngLat(position) {
+      markerOperations.push("setLngLat");
       setLngLat(position);
       return marker;
     },
     setRotation(bearing) {
+      markerOperations.push("setRotation");
       setRotation(bearing);
       return marker;
     },
     addTo(input) {
+      markerOperations.push("addTo");
       addTo(input);
       return marker;
     },
@@ -61,6 +65,7 @@ function setup(container = { clientWidth: 400, clientHeight: 800 }) {
     presenter,
     easeTo,
     cameraUpdates,
+    markerOperations,
     setLngLat,
     setRotation,
     addTo,
@@ -79,6 +84,20 @@ describe("Mapbox navigation presenter", () => {
     expect(NAVIGATION_CAMERA_V1_FIXTURE.sourcePath).toBe(
       "js/navigation/navigationRuntime/navigation-route-runtime.js",
     );
+  });
+
+  it("positions and rotates the marker before attaching it to Mapbox", () => {
+    const context = setup();
+    context.presenter.update(snapshot());
+
+    expect(context.markerOperations.slice(0, 3)).toEqual([
+      "setLngLat",
+      "setRotation",
+      "addTo",
+    ]);
+    expect(context.setLngLat).toHaveBeenCalledWith([-38.917, -13.376]);
+    expect(context.setRotation).toHaveBeenCalledWith(90);
+    expect(context.addTo).toHaveBeenCalledTimes(1);
   });
 
   it("creates and updates one user marker from the visual snapshot", () => {
