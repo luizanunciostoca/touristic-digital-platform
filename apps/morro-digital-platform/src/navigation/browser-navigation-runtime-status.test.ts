@@ -61,6 +61,10 @@ describe("browser navigation runtime route status", () => {
       createRequestPort: vi.fn(() => requestPort),
       createEventBridge: vi.fn(() => bridge),
       createGuidanceUi: vi.fn(() => guidanceUi),
+      installAssistant: vi.fn(() => ({
+        process: vi.fn(async () => ({ text: "ok" })),
+        destroy: vi.fn(),
+      })),
     });
 
     const options = createBootstrap.mock.calls[0]?.[0];
