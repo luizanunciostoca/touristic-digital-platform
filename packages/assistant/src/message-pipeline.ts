@@ -138,7 +138,9 @@ export function createAssistantMessagePipeline(
       return before - messages[area].length;
     },
 
-    getMessages(area: AssistantMessageArea = "messages"): AssistantMessageRecord[] {
+    getMessages(
+      area: AssistantMessageArea = "messages",
+    ): AssistantMessageRecord[] {
       return structuredClone(messages[area]);
     },
   };

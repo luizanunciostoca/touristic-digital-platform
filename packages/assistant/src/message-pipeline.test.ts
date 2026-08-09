@@ -4,8 +4,13 @@ import { createAssistantMessagePipeline } from "./message-pipeline.js";
 
 describe("assistant V1 message pipeline", () => {
   it("sanitizes every message before it enters the message state", () => {
-    const sanitize = vi.fn((html: string) => html.replace(/<script.*?<\/script>/g, ""));
-    const pipeline = createAssistantMessagePipeline({ sanitize, now: () => 1000 });
+    const sanitize = vi.fn((html: string) =>
+      html.replace(/<script.*?<\/script>/g, ""),
+    );
+    const pipeline = createAssistantMessagePipeline({
+      sanitize,
+      now: () => 1000,
+    });
 
     const result = pipeline.append({
       sender: "assistant",
@@ -24,7 +29,9 @@ describe("assistant V1 message pipeline", () => {
       now: () => now,
     });
 
-    expect(pipeline.append({ sender: "assistant", html: "mesma" })).not.toBeNull();
+    expect(
+      pipeline.append({ sender: "assistant", html: "mesma" }),
+    ).not.toBeNull();
     now = 2500;
     expect(pipeline.append({ sender: "assistant", html: "mesma" })).toBeNull();
   });
@@ -58,7 +65,9 @@ describe("assistant V1 message pipeline", () => {
   });
 
   it("keeps navigation instructions out of the normal message area while navigation is active", () => {
-    const pipeline = createAssistantMessagePipeline({ sanitize: (html) => html });
+    const pipeline = createAssistantMessagePipeline({
+      sanitize: (html) => html,
+    });
 
     expect(
       pipeline.append({
@@ -79,7 +88,9 @@ describe("assistant V1 message pipeline", () => {
   });
 
   it("does not request speech for language-change messages", () => {
-    const pipeline = createAssistantMessagePipeline({ sanitize: (html) => html });
+    const pipeline = createAssistantMessagePipeline({
+      sanitize: (html) => html,
+    });
 
     const result = pipeline.append({
       sender: "assistant",
@@ -91,30 +102,36 @@ describe("assistant V1 message pipeline", () => {
   });
 
   it("replaces only the target area when append clear is requested", () => {
-    const pipeline = createAssistantMessagePipeline({ sanitize: (html) => html });
+    const pipeline = createAssistantMessagePipeline({
+      sanitize: (html) => html,
+    });
     pipeline.append({ sender: "assistant", html: "old" });
     pipeline.append({ sender: "assistant", html: "nav", area: "navigation" });
 
     pipeline.append({ sender: "assistant", html: "new", clear: true });
 
-    expect(pipeline.getMessages("messages").map((message) => message.html)).toEqual([
-      "new",
-    ]);
-    expect(pipeline.getMessages("navigation").map((message) => message.html)).toEqual([
-      "nav",
-    ]);
+    expect(
+      pipeline.getMessages("messages").map((message) => message.html),
+    ).toEqual(["new"]);
+    expect(
+      pipeline.getMessages("navigation").map((message) => message.html),
+    ).toEqual(["nav"]);
   });
 
   it("clears all or selected messages per area", () => {
-    const pipeline = createAssistantMessagePipeline({ sanitize: (html) => html });
+    const pipeline = createAssistantMessagePipeline({
+      sanitize: (html) => html,
+    });
     pipeline.append({ sender: "assistant", html: "a", id: "keep" });
     pipeline.append({ sender: "assistant", html: "b", id: "drop" });
     pipeline.append({ sender: "assistant", html: "nav", area: "navigation" });
 
-    expect(pipeline.clear("messages", (message) => message.id === "drop")).toBe(1);
-    expect(pipeline.getMessages("messages").map((message) => message.id)).toEqual([
-      "keep",
-    ]);
+    expect(pipeline.clear("messages", (message) => message.id === "drop")).toBe(
+      1,
+    );
+    expect(
+      pipeline.getMessages("messages").map((message) => message.id),
+    ).toEqual(["keep"]);
     expect(pipeline.clear("navigation")).toBe(1);
   });
 });

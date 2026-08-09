@@ -32,7 +32,7 @@ Esta matriz controla a migração de FEATURE-0004. `PASS` só pode ser usado qua
 | Perfil do usuário                     | `user-profile.js`          | `src/user-profile.ts`                            | PASS      | persistência, inferências, interesses, favoritos e sugestões equivalentes |
 | Contexto conversacional               | `assistant-context/**`     | `src/context-manager.ts` + `src/user-profile.ts` | PASS      | context manager e user profile portados com contratos testáveis           |
 | Mensagens — lifecycle                 | `assistant-messages.js`    | `src/message-pipeline.ts`                        | PASS      | áreas, prioridade, dedupe 2s, clear e supressão durante Navigation        |
-| Mensagens — sanitização               | `assistant-messages.js`    | porta `sanitize` do message pipeline             | PASS      | toda entrada passa obrigatoriamente por sanitização antes do estado        |
+| Mensagens — sanitização               | `assistant-messages.js`    | porta `sanitize` do message pipeline             | PASS      | toda entrada passa obrigatoriamente por sanitização antes do estado       |
 | Mensagens — DOM/UI                    | `assistant-messages.js`    | app V2                                           | PARTIAL   | render visual, containers, scroll e classes ainda dependem do wiring UI   |
 | Sugestões proativas                   | `proactive-suggestions.js` | a implementar                                    | GAP       | gatilhos V1 equivalentes                                                  |
 | Fallback LLM — decisão                | `intent-engine.js`         | `src/llm-policy.ts`                              | PASS      | decidir local vs LLM conforme política V1                                 |
