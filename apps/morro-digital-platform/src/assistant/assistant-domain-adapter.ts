@@ -9,6 +9,7 @@ import {
   fetchMorroWeather,
   type WeatherReading,
 } from "../weather/weather-widget.js";
+import { resolveAssistantNearby } from "./assistant-nearby-adapter.js";
 
 export interface AssistantGeolocationPort {
   getCurrentPosition(
@@ -134,10 +135,7 @@ export function createAssistantBrowserDomainHandlers(
         text: `Os detalhes de ${place} ainda estão sendo conectados à nova arquitetura.`,
         metadata: { domain: "more_info", state: "provider_pending", place },
       }),
-      nearby: () => ({
-        text: "Para buscar lugares próximos, preciso da sua localização atual.",
-        metadata: { domain: "nearby", state: "location_required" },
-      }),
+      nearby: (request) => resolveAssistantNearby(request, options.geolocation),
       favorites: () => {
         const favorites = profile.getFavoritePlaces();
         if (favorites.length === 0) {
