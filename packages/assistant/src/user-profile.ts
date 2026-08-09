@@ -323,27 +323,67 @@ export function createDefaultAssistantUserProfile(
 
 function inferBehavior(profile: AssistantUserProfile, input: string): void {
   const norm = input.toLowerCase();
-  if (/(barato|econômico|economico|preço baixo|preco baixo|budget|cheap|acessível|acessivel)/i.test(norm))
+  if (
+    /(barato|econômico|economico|preço baixo|preco baixo|budget|cheap|acessível|acessivel)/i.test(
+      norm,
+    )
+  )
     profile.behavior.prefersEconomic = true;
-  if (/(luxo|luxury|confortável|confortavel|premium|top|melhor|exclusivo|vip)/i.test(norm))
+  if (
+    /(luxo|luxury|confortável|confortavel|premium|top|melhor|exclusivo|vip)/i.test(
+      norm,
+    )
+  )
     profile.behavior.prefersLuxury = true;
-  if (/(trilha|mergulho|aventura|snorkel|caiaque|quadriciclo|hiking|adventure|surf)/i.test(norm))
+  if (
+    /(trilha|mergulho|aventura|snorkel|caiaque|quadriciclo|hiking|adventure|surf)/i.test(
+      norm,
+    )
+  )
     profile.behavior.isAdventurer = true;
-  if (/(família|familia|criança|criancas|filho|filhos|kids|family|children)/i.test(norm))
+  if (
+    /(família|familia|criança|criancas|filho|filhos|kids|family|children)/i.test(
+      norm,
+    )
+  )
     profile.behavior.isFamilyTrip = true;
-  if (/(casal|romântico|romantico|namorado|namorada|lua de mel|honeymoon|romantic|couple)/i.test(norm))
+  if (
+    /(casal|romântico|romantico|namorado|namorada|lua de mel|honeymoon|romantic|couple)/i.test(
+      norm,
+    )
+  )
     profile.behavior.isRomantic = true;
-  if (/(praia|natureza|paisagem|vista|mar|oceano|beach|nature|ocean|playa)/i.test(norm))
+  if (
+    /(praia|natureza|paisagem|vista|mar|oceano|beach|nature|ocean|playa)/i.test(
+      norm,
+    )
+  )
     profile.behavior.likesNature = true;
-  if (/(primeira vez|nunca fui|nunca estive|first time|never been|primera vez)/i.test(norm))
+  if (
+    /(primeira vez|nunca fui|nunca estive|first time|never been|primera vez)/i.test(
+      norm,
+    )
+  )
     profile.behavior.isFirstTimer = true;
-  else if (/(já fui|já estive|voltei|de novo|outra vez|been before|came back|ya fui|volví)/i.test(norm))
+  else if (
+    /(já fui|já estive|voltei|de novo|outra vez|been before|came back|ya fui|volví)/i.test(
+      norm,
+    )
+  )
     profile.behavior.isFirstTimer = false;
 
-  if (/(moro aqui|sou morador|sou local|resido|residente|moro em morro|moro na ilha|i live here|i'm a local|soy residente|soy local|vivo aquí)/i.test(norm)) {
+  if (
+    /(moro aqui|sou morador|sou local|resido|residente|moro em morro|moro na ilha|i live here|i'm a local|soy residente|soy local|vivo aquí)/i.test(
+      norm,
+    )
+  ) {
     profile.behavior.isResident = true;
     profile.userType = "resident";
-  } else if (/(sou turista|estou de férias|estou visitando|vim de|chegue hoje|cheguei hoje|i'm a tourist|i'm visiting|soy turista)/i.test(norm)) {
+  } else if (
+    /(sou turista|estou de férias|estou visitando|vim de|chegue hoje|cheguei hoje|i'm a tourist|i'm visiting|soy turista)/i.test(
+      norm,
+    )
+  ) {
     profile.behavior.isResident = false;
     profile.userType = "tourist";
   }
@@ -506,7 +546,10 @@ export function createAssistantUserProfileManager(
         suggestions.push(copy.suggestions.sunset, copy.suggestions.restaurants);
         context.timeContext = copy.times[2];
       } else {
-        suggestions.push(copy.suggestions.nightlife, copy.suggestions.restaurants);
+        suggestions.push(
+          copy.suggestions.nightlife,
+          copy.suggestions.restaurants,
+        );
         context.timeContext = copy.times[3];
       }
 
@@ -528,12 +571,15 @@ export function createAssistantUserProfileManager(
         suggestions.push(copy.suggestions.tours, copy.suggestions.diving);
         context.profileHint = copy.hints[2];
       }
-      if (profile.behavior.prefersEconomic) context.pricePreference = copy.prices[0];
-      if (profile.behavior.prefersLuxury) context.pricePreference = copy.prices[1];
+      if (profile.behavior.prefersEconomic)
+        context.pricePreference = copy.prices[0];
+      if (profile.behavior.prefersLuxury)
+        context.pricePreference = copy.prices[1];
 
       for (const interest of topInterests(3)) {
         const interestLabel = label(interest);
-        if (!suggestions.includes(interestLabel)) suggestions.push(interestLabel);
+        if (!suggestions.includes(interestLabel))
+          suggestions.push(interestLabel);
       }
 
       if (profile.behavior.isResident || profile.userType === "resident") {
@@ -594,7 +640,9 @@ export function createAssistantUserProfileManager(
       const lang = language();
       const copy = COPY[lang];
       const interests = topInterests(3).map(label);
-      const recent = profile.recentPlaces.slice(0, 3).map((place) => place.name);
+      const recent = profile.recentPlaces
+        .slice(0, 3)
+        .map((place) => place.name);
       const behaviors: string[] = [];
       if (profile.behavior.isRomantic) behaviors.push(copy.behaviors[0]);
       if (profile.behavior.isFamilyTrip) behaviors.push(copy.behaviors[1]);
