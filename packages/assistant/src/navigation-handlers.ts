@@ -26,7 +26,9 @@ export interface AssistantNavigationHandlerPorts {
 export interface AssistantNavigationHandlerCopy {
   askDestination(): AssistantDialogResponse;
   destinationNotFound(query: string): AssistantDialogResponse;
-  navigationStarted(destination: AssistantNavigationDestination): AssistantDialogResponse;
+  navigationStarted(
+    destination: AssistantNavigationDestination,
+  ): AssistantDialogResponse;
   navigationCancelled(): AssistantDialogResponse;
 }
 
@@ -73,7 +75,10 @@ export function createAssistantNavigationHandlers(
 > {
   const copy = createCopy(options.copy);
 
-  const navigate: AssistantDialogIntentHandler = async ({ intent, context }) => {
+  const navigate: AssistantDialogIntentHandler = async ({
+    intent,
+    context,
+  }) => {
     const query = intent.entities.place ?? context.lastPlace ?? null;
     if (!query) return copy.askDestination();
 
