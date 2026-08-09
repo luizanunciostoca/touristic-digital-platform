@@ -67,6 +67,7 @@ jobs:
             ['desktop', 1440, 900],
           ];
           const start = { latitude: -13.3762, longitude: -38.9172 };
+          const livePosition = { latitude: -13.37615, longitude: -38.91715 };
           const destination = { latitude: -13.3740, longitude: -38.9148 };
           const routeResponse = {
             type: 'FeatureCollection',
@@ -96,19 +97,27 @@ jobs:
             }],
           };
 
-          async function poll(page, predicate, timeout = 15000) {
+          async function poll(page, predicate, label, timeout = 15000) {
             const deadline = Date.now() + timeout;
             while (Date.now() < deadline) {
               if (await page.evaluate(predicate)) return;
               await page.waitForTimeout(100);
             }
-            throw new Error('Browser state did not become ready before timeout.');
+            const diagnostics = await page.evaluate(() => ({
+              events: globalThis.__navigationEvidence?.events ?? [],
+              camera: globalThis.__navigationEvidence?.camera ?? [],
+              bannerClass: document.getElementById('instruction-banner')?.className ?? null,
+              bannerText: document.getElementById('instruction-main')?.textContent ?? null,
+              endDisplay: document.getElementById('end-navigation-btn') ? getComputedStyle(document.getElementById('end-navigation-btn')).display : null,
+              markerCount: document.querySelectorAll('#map .mapboxgl-marker').length,
+            }));
+            throw new Error(`${label} did not become ready: ${JSON.stringify(diagnostics)}`);
           }
 
           async function waitForMap(page) {
             await page.locator('#map[data-map-state="ready"][data-map-mode="real"][data-map-provider="mapbox"]').waitFor({ state: 'attached', timeout: 30000 });
             await page.locator('#map .mapboxgl-canvas').waitFor({ state: 'visible', timeout: 30000 });
-            await poll(page, () => Boolean(globalThis.mapboxPrimaryInstance?.isStyleLoaded?.()), 30000);
+            await poll(page, () => Boolean(globalThis.mapboxPrimaryInstance?.isStyleLoaded?.()), 'mapbox-style', 30000);
           }
 
           async function capture(browser, name, width, height) {
@@ -121,13 +130,12 @@ jobs:
             await context.addInitScript(() => {
               localStorage.setItem('morro-digital-onboarded', '1');
               localStorage.setItem('voice-enabled', 'false');
-              globalThis.__navigationEvidence = { events: [], camera: [] };
+              globalThis.__navigationEvidence = { events: [], camera: [], routing: [] };
               for (const type of ['navigationStarted', 'userLocationUpdated', 'navigationRouteRuntimeUpdated', 'navigationStatusChanged', 'navigationEnded']) {
-                addEventListener(type, (event) => {
-                  globalThis.__navigationEvidence.events.push({ type, detail: event.detail ?? null });
-                });
+                addEventListener(type, (event) => globalThis.__navigationEvidence.events.push({ type, detail: event.detail ?? null }));
               }
             });
+
             const page = await context.newPage();
             const pageErrors = [];
             const httpErrors = [];
@@ -138,7 +146,10 @@ jobs:
               }
             });
             await page.route('**/api/routing/directions', async (route) => {
-              if (route.request().method() !== 'POST') {
+              const request = route.request();
+              const body = request.postDataJSON?.() ?? null;
+              await page.evaluate((entry) => globalThis.__navigationEvidence.routing.push(entry), { method: request.method(), body });
+              if (request.method() !== 'POST') {
                 await route.fulfill({ status: 405, contentType: 'application/json', body: JSON.stringify({ error: 'METHOD_NOT_ALLOWED' }) });
                 return;
               }
@@ -165,20 +176,34 @@ jobs:
                 return original(input);
               };
             });
+
             await page.evaluate((nextDestination) => {
               document.dispatchEvent(new CustomEvent('morro:navigation-requested', { detail: { destination: nextDestination } }));
             }, destination);
 
             await page.locator('#instruction-banner:not(.hidden)').waitFor({ state: 'visible', timeout: 15000 });
             await page.locator('#end-navigation-btn').waitFor({ state: 'visible', timeout: 15000 });
-            await poll(page, () => {
-              const evidence = globalThis.__navigationEvidence;
-              return Boolean(
-                evidence?.events?.some((event) => event.type === 'navigationRouteRuntimeUpdated') &&
-                evidence?.events?.some((event) => event.type === 'navigationStarted') &&
-                evidence.camera.length > 0
-              );
-            });
+            await poll(
+              page,
+              () => globalThis.__navigationEvidence?.events?.some((event) => event.type === 'navigationStarted'),
+              'navigation-started',
+            );
+
+            // Routing is seeded by getCurrentPosition(); this explicit movement drives
+            // watchPosition() so the live runtime/presenter path is exercised.
+            await context.setGeolocation(livePosition);
+            await poll(
+              page,
+              () => {
+                const evidence = globalThis.__navigationEvidence;
+                return Boolean(
+                  evidence?.events?.some((event) => event.type === 'navigationRouteRuntimeUpdated') &&
+                  evidence?.events?.some((event) => event.type === 'userLocationUpdated') &&
+                  evidence.camera.length > 0
+                );
+              },
+              'navigation-runtime',
+            );
             await page.waitForTimeout(700);
 
             const activeState = await page.evaluate(() => {
@@ -186,9 +211,6 @@ jobs:
               const banner = document.getElementById('instruction-banner');
               const end = document.getElementById('end-navigation-btn');
               const events = globalThis.__navigationEvidence.events;
-              const started = events.find((event) => event.type === 'navigationStarted')?.detail ?? null;
-              const runtime = events.find((event) => event.type === 'navigationRouteRuntimeUpdated')?.detail ?? null;
-              const location = events.find((event) => event.type === 'userLocationUpdated')?.detail ?? null;
               return {
                 bannerVisible: Boolean(banner && !banner.classList.contains('hidden')),
                 instruction: document.getElementById('instruction-main')?.textContent?.trim() ?? '',
@@ -201,15 +223,16 @@ jobs:
                 bodyNavigationActive: document.body.classList.contains('navigation-active'),
                 markerCount: document.querySelectorAll('#map .mapboxgl-marker').length,
                 camera: globalThis.__navigationEvidence.camera,
+                routing: globalThis.__navigationEvidence.routing,
                 mapCamera: {
                   pitch: map.getPitch?.() ?? null,
                   zoom: map.getZoom?.() ?? null,
                   bearing: map.getBearing?.() ?? null,
                   center: map.getCenter ? [map.getCenter().lng, map.getCenter().lat] : null,
                 },
-                started,
-                runtime,
-                location,
+                started: events.find((event) => event.type === 'navigationStarted')?.detail ?? null,
+                runtime: events.find((event) => event.type === 'navigationRouteRuntimeUpdated')?.detail ?? null,
+                location: events.find((event) => event.type === 'userLocationUpdated')?.detail ?? null,
                 statuses: events.filter((event) => event.type === 'navigationStatusChanged').map((event) => event.detail),
                 events,
               };
@@ -236,7 +259,12 @@ jobs:
             await page.screenshot({ path: `${outputDir}/${name}-minimized.png`, fullPage: false, animations: 'disabled' });
 
             await page.locator('#end-navigation-btn').click();
-            await poll(page, () => globalThis.__navigationEvidence.events.some((event) => event.type === 'navigationEnded' && event.detail?.reason === 'cancelled'), 5000);
+            await poll(
+              page,
+              () => globalThis.__navigationEvidence.events.some((event) => event.type === 'navigationEnded' && event.detail?.reason === 'cancelled'),
+              'navigation-ended-cancelled',
+              5000,
+            );
             const endedState = await page.evaluate(() => {
               const banner = document.getElementById('instruction-banner');
               const end = document.getElementById('end-navigation-btn');
