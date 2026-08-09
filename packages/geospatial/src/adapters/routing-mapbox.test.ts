@@ -1,9 +1,10 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import {
   adaptMapboxDirectionsResponse,
   createMapboxDirectionsRoutingProvider,
   MapboxDirectionsRoutingError,
+  type MapboxDirectionsFetchLike,
 } from "./routing-mapbox.js";
 
 const payload = {
@@ -89,11 +90,15 @@ describe("Mapbox Directions routing adapter", () => {
   });
 
   it("builds the V1 walking request without leaking token into the primary provider", async () => {
-    const fetchImpl = vi.fn(async () => ({
-      ok: true,
-      status: 200,
-      json: async () => mapboxResponse(),
-    }));
+    const calls: Array<Parameters<MapboxDirectionsFetchLike>> = [];
+    const fetchImpl: MapboxDirectionsFetchLike = async (url, init) => {
+      calls.push([url, init]);
+      return {
+        ok: true,
+        status: 200,
+        json: async () => mapboxResponse(),
+      };
+    };
     const provider = createMapboxDirectionsRoutingProvider({
       token: "pk.test-token",
       fetchImpl,
@@ -105,8 +110,11 @@ describe("Mapbox Directions routing adapter", () => {
       signal: controller.signal,
     });
 
-    expect(fetchImpl).toHaveBeenCalledTimes(1);
-    const [url, init] = fetchImpl.mock.calls[0] ?? [];
+    expect(calls).toHaveLength(1);
+    const call = calls[0];
+    expect(call).toBeDefined();
+    if (!call) throw new Error("Expected one Mapbox request");
+    const [url, init] = call;
     expect(url).toContain(
       "https://api.mapbox.com/directions/v5/mapbox/walking/-38.916%2C-13.375%3B-38.917%2C-13.376",
     );
