@@ -251,7 +251,7 @@ describe("assistant browser domain adapter", () => {
       async () => new Response(null, { status: 200 }),
     );
     const handlers = createAssistantBrowserDomainHandlers({
-      fetch: fetchImplementation as typeof globalThis.fetch,
+      fetch: fetchImplementation,
     });
 
     const response = await handlers.photos?.(request("photos", "segunda"));
