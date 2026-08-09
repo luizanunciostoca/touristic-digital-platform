@@ -6,7 +6,7 @@ Destino: `packages/assistant`
 
 Esta matriz controla a migração de FEATURE-0004. `PASS` só pode ser usado quando o comportamento observável estiver implementado e coberto por evidência executável. `PARTIAL` significa que existe implementação V2, porém o contrato ainda não está completo. `GAP` significa ausência de implementação equivalente.
 
-| Contrato V1                           | Evidência V1               | Destino V2                                           | Estado M11 | Critério de PASS                                                          |
+| Contrato V1                           | Evidência V1               | Destino V2                                           | Estado M12 | Critério de PASS                                                          |
 | ------------------------------------- | -------------------------- | ---------------------------------------------------- | ---------- | ------------------------------------------------------------------------- |
 | 10 opções canônicas                   | `assistant-messages.js`    | `src/menu.ts`                                        | PASS       | ordem, valores e labels PT/EN/ES/HE idênticos                             |
 | Normalização de texto                 | `intent-engine.js`         | `src/intent-engine.ts`                               | PASS       | acentos latinos normalizados e HE preservado                              |
@@ -16,8 +16,8 @@ Esta matriz controla a migração de FEATURE-0004. `PASS` só pode ser usado qua
 | Threshold de entrada longa 90         | `intent-engine.js`         | `src/llm-policy.ts`                                  | PASS       | fallback apenas acima de 90 caracteres, como na V1                        |
 | Política `requiresLLM`                | `intent-engine.js`         | `src/llm-policy.ts`                                  | PASS       | intents obrigatórias, confiança, flag, dimensões e padrões complexos      |
 | Modificadores compostos               | `intent-engine.js`         | `src/intent-engine.ts`                               | PASS       | vocabulário V1 de modifiers coberto e testado                             |
-| `navigate`                            | `intent-engine.js`         | `src/intent-engine.ts`                               | PARTIAL    | classificação pronta; resolução/handler de destino ainda pendente         |
-| `cancel_navigation`                   | `intent-engine.js`         | `src/intent-engine.ts`                               | PASS       | comandos V1 equivalentes                                                  |
+| `navigate`                            | `intent-engine.js`         | `src/intent-engine.ts` + `src/navigation-handlers.ts` | PASS      | classificação, resolução por porta, fallback contextual e início da rota  |
+| `cancel_navigation`                   | `intent-engine.js`         | `src/intent-engine.ts` + `src/navigation-handlers.ts` | PASS      | classificação e cancelamento via porta pública                            |
 | `open_now`                            | `intent-engine.js`         | `src/intent-engine.ts`                               | PASS       | PT/EN/ES/HE cobertos                                                      |
 | weather/location/photos/price/hours   | `intent-engine.js`         | `src/intent-engine.ts`                               | PARTIAL    | classificação pronta; handlers de domínio ainda pendentes                 |
 | nearby/favorites/help                 | `intent-engine.js`         | `src/intent-engine.ts`                               | PARTIAL    | classificação pronta; handlers de domínio ainda pendentes                 |
@@ -27,7 +27,7 @@ Esta matriz controla a migração de FEATURE-0004. `PASS` só pode ser usado qua
 | Match contextual / `awaiting`         | `intent-engine.js`         | `src/intent-engine.ts`                               | PASS       | prioridade contextual, filtros, detalhe e seleção numérica cobertos       |
 | Detecção de place name                | `intent-engine.js`         | `src/intent-engine.ts`                               | PASS       | `place_search` e confiança V1 cobertos                                    |
 | Controller de diálogo — orchestration | `assistant-dialog.js`      | `src/dialog-controller.ts`                           | PASS       | input → contexto → intent → handler local → LLM → contexto/histórico      |
-| Handlers de domínio do diálogo        | `assistant-dialog.js`      | portas do `src/dialog-controller.ts`                 | GAP        | menus, busca, clima, detalhes, favoritos, mapa e respostas observáveis    |
+| Handlers de domínio do diálogo        | `assistant-dialog.js`      | portas do `src/dialog-controller.ts`                 | PARTIAL    | Navigation coberta; menus, busca, clima, detalhes, favoritos e mapa pendentes |
 | Context manager                       | `context-manager.js`       | `src/context-manager.ts`                             | PASS       | schema v2, TTL 4h, debounce, histórico, preferências e pub/sub            |
 | Perfil do usuário                     | `user-profile.js`          | `src/user-profile.ts`                                | PASS       | persistência, inferências, interesses, favoritos e sugestões equivalentes |
 | Contexto conversacional               | `assistant-context/**`     | `src/context-manager.ts` + `src/user-profile.ts`     | PASS       | context manager e user profile portados com contratos testáveis           |
@@ -40,17 +40,17 @@ Esta matriz controla a migração de FEATURE-0004. `PASS` só pode ser usado qua
 | Fallback LLM — execução               | `llm-fallback.js`          | porta `llm` do controller                            | PARTIAL    | orquestração pronta; provider same-origin real ainda pendente             |
 | Boundary `/api/ai/*`                  | legado + registry          | API same-origin V2                                   | GAP        | nenhum segredo no cliente; provider server-side                           |
 | Voz                                   | `voice/**`                 | a implementar                                        | GAP        | síntese, preferência e idiomas PT/EN/ES/HE                                |
-| Integração Navigation                 | diálogo/mensagens V1       | `@touristic/navigation`                              | GAP        | rota iniciada/cancelada via contrato público V2                           |
+| Integração Navigation                 | diálogo/mensagens V1       | `src/navigation-handlers.ts` → adapter do app → `@touristic/navigation` | PARTIAL | handler público pronto; adapter do app e resolver real de destinos pendentes |
 | UI shell do assistente                | shell V1                   | app V2                                               | PARTIAL    | abertura, fechamento, menu, mensagens e estados visuais equivalentes      |
 
-## Estado do milestone M11
+## Estado do milestone M12
 
-O M11 conclui a auditoria textual iniciada no M10 contra `proactive-suggestions.js` da baseline V1 congelada. A copy observável foi extraída para `src/proactive-copy.ts` como contrato canônico por locale, removendo duplicação e impedindo que traduções aproximadas da V2 substituam silenciosamente as strings da V1.
+O M12 extrai a resolução e o lifecycle de Navigation do monólito V1 para `src/navigation-handlers.ts`. O handler `navigate` usa primeiro `intent.entities.place`, cai para `context.lastPlace` quando a conversa já estabeleceu um destino e, na ausência de ambos, retorna estado observável de `awaiting_destination`. O destino é resolvido por uma porta explícita e somente uma resolução válida pode iniciar a rota.
 
-A auditoria corrigiu diferenças concretas, incluindo o prefixo inglês `🔄 Back to `, nomes espanhóis como `Segunda Playa` e `Cuarta Playa`, a label `Caminata al amanecer`, além das intros, recomendações e opções Hebrew da baseline. `proactive-content.ts` agora consome exclusivamente esse contrato canônico para menus contextuais e smart recommendations.
+O mesmo contrato cobre destino inexistente sem efeito colateral e `cancel_navigation` por uma porta pública independente de DOM ou Mapbox. Testes verificam destino explícito, fallback contextual, destino ausente, falha de resolução, início e cancelamento. Com isso, o contrato lógico de `navigate` deixa de ser `PARTIAL` e passa a `PASS`, enquanto os handlers de domínio como conjunto avançam de `GAP` para `PARTIAL`.
 
-Foram adicionados testes de regressão que congelam strings críticas em PT/EN/ES/HE e testes de integração que comprovam que o menu e as recomendações usam a copy auditada. Com isso, `Sugestões proativas — conteúdo/menu` passa a `PASS`.
+A integração com o runtime real ainda permanece `PARTIAL`: o próximo passo é conectar essas portas ao resolver de locais do app e ao `NavigationSessionBootstrap`, que já consome `@touristic/navigation`. Essa separação evita importar browser/Mapbox para dentro de `packages/assistant`.
 
-A FEATURE-0004 / MIG-0006 **não** está equivalente neste checkpoint. Permanecem gaps em handlers de domínio, provider LLM same-origin, voz, integração Navigation e wiring final da UI.
+A FEATURE-0004 / MIG-0006 **não** está equivalente neste checkpoint. Permanecem gaps em handlers de domínio, provider LLM same-origin, voz, wiring do Navigation no app e UI final.
 
 Para promover MIG-0006 a `equivalent`, todos os itens acima precisam estar em PASS e o Quality Gate do head final deve estar integralmente verde.
