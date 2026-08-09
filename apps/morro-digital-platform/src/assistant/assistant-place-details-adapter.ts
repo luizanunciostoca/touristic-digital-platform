@@ -36,8 +36,8 @@ function coordinates(feature: UnknownRecord): readonly [number, number] | null {
   const geometry = asRecord(feature.geometry);
   const raw = geometry?.coordinates;
   if (!Array.isArray(raw) || raw.length < 2) return null;
-  const longitude = raw[0];
-  const latitude = raw[1];
+  const longitude: unknown = raw[0];
+  const latitude: unknown = raw[1];
   return typeof longitude === "number" && typeof latitude === "number"
     ? [longitude, latitude]
     : null;
