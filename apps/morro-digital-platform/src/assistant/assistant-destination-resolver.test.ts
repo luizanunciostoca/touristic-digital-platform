@@ -65,6 +65,51 @@ describe("Morro assistant destination resolver", () => {
     });
   });
 
+  it("covers audited V1 restaurants", () => {
+    expect(resolveMorroAssistantDestination("restaurante basilico")).toEqual({
+      name: "Basílico",
+      latitude: -13.3784237,
+      longitude: -38.9168768,
+      category: "restaurants",
+    });
+    expect(resolveMorroAssistantDestination("restaurante papoula")).toEqual({
+      name: "Papoula",
+      latitude: -13.3800138,
+      longitude: -38.9176327,
+      category: "restaurants",
+    });
+  });
+
+  it("covers audited V1 nightlife and hotels", () => {
+    expect(resolveMorroAssistantDestination("pulsar morro")).toEqual({
+      name: "Pulsar",
+      latitude: -13.3766136,
+      longitude: -38.9179001,
+      category: "nightlife",
+    });
+    expect(resolveMorroAssistantDestination("hotel portalo")).toEqual({
+      name: "Portaló",
+      latitude: -13.3775523,
+      longitude: -38.9175756,
+      category: "hotels",
+    });
+  });
+
+  it("covers audited V1 emergency destinations", () => {
+    expect(resolveMorroAssistantDestination("posto de saúde")).toEqual({
+      name: "Posto Medico 24hs",
+      latitude: -13.37733,
+      longitude: -38.9171671,
+      category: "emergency",
+    });
+    expect(resolveMorroAssistantDestination("pmba")).toEqual({
+      name: "Polícia Militar",
+      latitude: -13.3775926,
+      longitude: -38.9150414,
+      category: "emergency",
+    });
+  });
+
   it("resolves Toca do Morcego with the frozen V1 coordinate", () => {
     expect(resolveMorroAssistantDestination("toca")).toEqual({
       name: "Toca do Morcego",
@@ -78,7 +123,7 @@ describe("Morro assistant destination resolver", () => {
     expect(resolveMorroAssistantDestination("destino inventado")).toBeNull();
   });
 
-  it("keeps the M15 navigation catalog finite and auditable", () => {
-    expect(morroAssistantDestinationCatalog).toHaveLength(22);
+  it("keeps the M16 navigation catalog finite and auditable", () => {
+    expect(morroAssistantDestinationCatalog).toHaveLength(34);
   });
 });
