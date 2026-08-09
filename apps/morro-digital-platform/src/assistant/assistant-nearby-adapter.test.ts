@@ -42,7 +42,8 @@ function position(latitude: number, longitude: number): GeolocationPosition {
 
 describe("assistant nearby browser adapter", () => {
   it("asks for a category before requesting geolocation", async () => {
-    const getCurrentPosition = vi.fn<AssistantNearbyGeolocationPort["getCurrentPosition"]>();
+    const getCurrentPosition =
+      vi.fn<AssistantNearbyGeolocationPort["getCurrentPosition"]>();
     const geolocation: AssistantNearbyGeolocationPort = { getCurrentPosition };
     const response = await resolveAssistantNearby(request(), geolocation);
 
