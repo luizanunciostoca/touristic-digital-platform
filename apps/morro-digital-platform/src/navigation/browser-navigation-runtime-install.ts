@@ -2,7 +2,10 @@ import type {
   MapboxGlMapLike,
   MapboxGlModuleLike,
 } from "@touristic/geospatial";
-import type { NavigationRuntimeSnapshot } from "@touristic/navigation";
+import type {
+  NavigationRuntimeSnapshot,
+  RoutingProvider,
+} from "@touristic/navigation";
 
 import type { BrowserLocation } from "./browser-geolocation.js";
 import {
@@ -31,6 +34,7 @@ export interface BrowserNavigationRuntimeInstallOptions {
   readonly map: MapboxGlMapLike;
   readonly sdk: MapboxGlModuleLike;
   readonly document: Document;
+  readonly routingFallbackProvider?: RoutingProvider | null;
   readonly createBootstrap?: typeof createNavigationSessionBootstrap;
   readonly createLifecycle?: typeof createNavigationDomLifecycle;
   readonly createRequestPort?: typeof createNavigationRequestPort;
@@ -109,6 +113,7 @@ export function installBrowserNavigationRuntime(
   const bootstrap = createBootstrap({
     map: options.map,
     sdk: options.sdk,
+    routingFallbackProvider: options.routingFallbackProvider ?? null,
     onLocation: (location, context) => {
       hasActiveRoute = true;
       latestLocation = location;
