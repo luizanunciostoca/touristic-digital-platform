@@ -12,6 +12,7 @@ import {
   type RouteFeatureCollection,
   type RouteRecalculationRequest,
   type RoutingLanguage,
+  type RoutingProvider,
 } from "@touristic/navigation";
 
 import type {
@@ -41,6 +42,7 @@ export interface NavigationSessionBootstrapOptions {
   readonly geolocationDriver?: BrowserGeolocationDriver;
   readonly language?: RoutingLanguage;
   readonly routeTimeoutMs?: number;
+  readonly routingFallbackProvider?: RoutingProvider | null;
   readonly resolveStartCoordinate?: (
     signal: AbortSignal,
   ) => Promise<RouteCoordinate>;
@@ -201,6 +203,7 @@ export function createNavigationSessionBootstrap(
           ...(options.routeTimeoutMs !== undefined
             ? { timeoutMs: options.routeTimeoutMs }
             : {}),
+          fallbackProvider: options.routingFallbackProvider ?? null,
           signal: session.signal,
         });
         session.assertActive();
@@ -216,6 +219,7 @@ export function createNavigationSessionBootstrap(
             ...(options.routeTimeoutMs !== undefined
               ? { timeoutMs: options.routeTimeoutMs }
               : {}),
+            fallbackProvider: options.routingFallbackProvider ?? null,
             signal: request.signal,
           });
           session.assertActive();
