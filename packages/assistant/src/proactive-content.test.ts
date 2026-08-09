@@ -48,6 +48,33 @@ describe("assistant V1 proactive localized content", () => {
     );
   });
 
+  it("uses the exact English V1 resume prefix", () => {
+    const result = getAssistantContextualMenu({
+      locale: "en",
+      hour: 12,
+      profile: profile(),
+      recentPlaces: [
+        { name: "Second Beach", category: "beaches", timestamp: 1000 },
+      ],
+    });
+
+    expect(result.buttons[0]?.label).toBe("🔄 Back to Second Beach");
+  });
+
+  it("localizes the sunrise button with the frozen V1 copy", () => {
+    const result = getAssistantContextualMenu({
+      locale: "es",
+      hour: 7,
+      profile: profile(),
+    });
+
+    expect(
+      result.buttons.some(
+        (button) => button.label === "🌅 Caminata al amanecer",
+      ),
+    ).toBe(true);
+  });
+
   it("preserves rainy weather precedence in contextual intros and buttons", () => {
     const result = getAssistantContextualMenu({
       locale: "en",
@@ -56,7 +83,9 @@ describe("assistant V1 proactive localized content", () => {
       weather: { temp: 34, precipprob: 80 },
     });
 
-    expect(result.intro).toContain("rain");
+    expect(result.intro).toBe(
+      "Good afternoon! It may rain today. Here are good things to do in Morro on a rainy day 🌧️",
+    );
     expect(result.buttons[0]).toMatchObject({
       priority: 10,
       category: "attractions",
@@ -110,5 +139,15 @@ describe("assistant V1 proactive localized content", () => {
 
     expect(result.text).not.toContain("**Second Beach**");
     expect(result.text).toContain("**Boat tour**");
+  });
+
+  it("uses the exact Spanish V1 place names in smart recommendations", () => {
+    const result = getAssistantSmartRecommendation({
+      locale: "es",
+      hour: 9,
+      profile: profile(),
+    });
+
+    expect(result.text).toContain("**Segunda Playa**");
   });
 });
