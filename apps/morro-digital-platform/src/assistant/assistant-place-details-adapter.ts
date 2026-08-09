@@ -152,7 +152,11 @@ export async function fetchAssistantPlaceDetails(
       destination.latitude,
     );
     if (!feature) return null;
-    return normalizeDetails(feature, destination.name, destination.category);
+    return normalizeDetails(
+      feature,
+      destination.name,
+      destination.category ?? null,
+    );
   } catch {
     return null;
   }
