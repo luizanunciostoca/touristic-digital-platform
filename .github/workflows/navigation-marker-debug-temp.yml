@@ -1,0 +1,164 @@
+name: Navigation Marker Debug Temp
+
+on:
+  push:
+    branches:
+      - feat/navigation-camera-visual-baseline
+    paths:
+      - .github/workflows/navigation-marker-debug-temp.yml
+
+permissions:
+  contents: read
+
+jobs:
+  debug:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install Chromium
+        run: |
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+      - name: Build workspace
+        run: pnpm -w build
+      - name: Start authenticated runtime
+        env:
+          MAPBOX_PUBLIC_TOKEN_CI: ${{ secrets.MAPBOX_PUBLIC_TOKEN_CI }}
+        run: |
+          test -n "${MAPBOX_PUBLIC_TOKEN_CI:-}" || { echo 'MAPBOX_PUBLIC_TOKEN_CI missing'; exit 1; }
+          VITE_MAPBOX_ACCESS_TOKEN="$MAPBOX_PUBLIC_TOKEN_CI" \
+          VITE_MAPBOX_STYLE=mapbox://styles/mapbox/streets-v12 \
+          VITE_MAPBOX_CONTAINER_ID=map \
+          VITE_MAPBOX_INITIAL_ZOOM=13.5 \
+          node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/navigation-marker-debug.log 2>&1 &
+          for i in $(seq 1 90); do
+            if curl -fsS http://127.0.0.1:4173/runtime-config.js >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/navigation-marker-debug.log
+          exit 1
+      - name: Trace native Mapbox presenter
+        run: |
+          node <<'NODE'
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+          const start = { latitude: -13.3762, longitude: -38.9172 };
+          const moved = { latitude: -13.37615, longitude: -38.91715 };
+          const destination = { latitude: -13.3740, longitude: -38.9148 };
+          const routeResponse = {
+            type: 'FeatureCollection',
+            features: [{
+              type: 'Feature',
+              properties: {
+                summary: { distance: 390, duration: 290 },
+                segments: [{
+                  distance: 390,
+                  duration: 290,
+                  steps: [
+                    { distance: 92, duration: 68, instruction: 'Continue em frente', name: 'Caminho principal', way_points: [0, 1], maneuver: { instruction: 'Continue em frente', type: 'continue' } },
+                    { distance: 126, duration: 94, instruction: 'Vire à direita', name: 'Rua da Fonte', way_points: [1, 2], maneuver: { instruction: 'Vire à direita', type: 'turn-right' } },
+                    { distance: 172, duration: 128, instruction: 'Continue até o destino', name: 'Destino', way_points: [2, 3], maneuver: { instruction: 'Continue até o destino', type: 'arrive' } },
+                  ],
+                }],
+              },
+              geometry: {
+                type: 'LineString',
+                coordinates: [
+                  [start.longitude, start.latitude],
+                  [-38.91655, -13.37565],
+                  [-38.91575, -13.37485],
+                  [destination.longitude, destination.latitude],
+                ],
+              },
+            }],
+          };
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            const context = await browser.newContext({
+              viewport: { width: 390, height: 844 },
+              geolocation: start,
+              permissions: ['geolocation'],
+            });
+            await context.addInitScript(() => {
+              localStorage.setItem('morro-digital-onboarded', '1');
+              localStorage.setItem('voice-enabled', 'false');
+              globalThis.__nativeNavDebug = { events: [], markerOps: [], markerErrors: [], camera: [], windowErrors: [] };
+              for (const type of ['navigationStarted', 'userLocationUpdated', 'navigationRouteRuntimeUpdated', 'navigationStatusChanged', 'navigationEnded']) {
+                addEventListener(type, (event) => globalThis.__nativeNavDebug.events.push({ type, detail: event.detail ?? null }));
+              }
+              addEventListener('error', (event) => {
+                globalThis.__nativeNavDebug.windowErrors.push({ type: 'error', message: event.message || String(event.error || '') });
+              });
+              addEventListener('unhandledrejection', (event) => {
+                globalThis.__nativeNavDebug.windowErrors.push({ type: 'unhandledrejection', message: String(event.reason?.stack || event.reason || '') });
+              });
+            });
+            const page = await context.newPage();
+            page.on('pageerror', (error) => console.log('PAGEERROR', error.stack || error.message));
+            page.on('console', (message) => {
+              if (message.type() === 'error') console.log('CONSOLE_ERROR', message.text());
+            });
+            await page.route('**/api/routing/directions', (route) => route.fulfill({
+              status: 200,
+              contentType: 'application/json',
+              body: JSON.stringify(routeResponse),
+            }));
+            await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded', timeout: 30000 });
+            await page.locator('#map .mapboxgl-canvas').waitFor({ state: 'visible', timeout: 30000 });
+            await page.waitForFunction(() => globalThis.mapboxPrimaryInstance?.isStyleLoaded?.(), null, { timeout: 30000 }).catch(() => {});
+            await page.evaluate(() => {
+              const debug = globalThis.__nativeNavDebug;
+              const sdk = globalThis.mapboxgl;
+              const proto = sdk?.Marker?.prototype;
+              for (const method of ['addTo', 'setLngLat', 'setRotation']) {
+                const original = proto?.[method];
+                if (typeof original !== 'function') continue;
+                proto[method] = function (...args) {
+                  debug.markerOps.push({ method, args: method === 'addTo' ? ['map'] : args });
+                  try {
+                    return original.apply(this, args);
+                  } catch (error) {
+                    debug.markerErrors.push({ method, message: String(error?.stack || error) });
+                    throw error;
+                  }
+                };
+              }
+              const map = globalThis.mapboxPrimaryInstance;
+              const originalEaseTo = map.easeTo.bind(map);
+              map.easeTo = (input) => {
+                debug.camera.push({
+                  center: input.center,
+                  bearing: input.bearing,
+                  pitch: input.pitch,
+                  zoom: input.zoom,
+                  duration: input.duration,
+                });
+                return originalEaseTo(input);
+              };
+            });
+            await page.evaluate((nextDestination) => {
+              document.dispatchEvent(new CustomEvent('morro:navigation-requested', { detail: { destination: nextDestination } }));
+            }, destination);
+            await page.locator('#end-navigation-btn').waitFor({ state: 'visible', timeout: 15000 });
+            await context.setGeolocation(moved);
+            await page.waitForTimeout(2500);
+            const evidence = await page.evaluate(() => ({
+              ...globalThis.__nativeNavDebug,
+              markerCount: document.querySelectorAll('#map .mapboxgl-marker').length,
+              banner: document.getElementById('instruction-main')?.textContent ?? null,
+            }));
+            console.log('NAV_DEBUG_EVIDENCE=' + JSON.stringify(evidence));
+            await browser.close();
+          })().catch((error) => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
