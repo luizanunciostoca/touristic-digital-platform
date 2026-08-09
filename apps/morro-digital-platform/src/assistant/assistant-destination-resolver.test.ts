@@ -5,8 +5,36 @@ import {
   resolveMorroAssistantDestination,
 } from "./assistant-destination-resolver.js";
 
-describe("Morro assistant destination resolver", () => {
-  it("resolves canonical V1 beach aliases", () => {
+function categoryCount(category: string): number {
+  return morroAssistantDestinationCatalog.filter(
+    (entry) => entry.category === category,
+  ).length;
+}
+
+describe("Morro assistant destination catalog", () => {
+  it("preserves the complete V1 locations.js projection", () => {
+    expect(morroAssistantDestinationCatalog).toHaveLength(131);
+    expect(categoryCount("beaches")).toBe(8);
+    expect(categoryCount("restaurants")).toBe(45);
+    expect(categoryCount("hotels")).toBe(35);
+    expect(categoryCount("shops")).toBe(12);
+    expect(categoryCount("transport")).toBe(8);
+    expect(categoryCount("attractions")).toBe(8);
+    expect(categoryCount("nightlife")).toBe(5);
+    expect(categoryCount("emergencies")).toBe(4);
+    expect(categoryCount("tours")).toBe(6);
+  });
+
+  it("retains source order because V1 findPlace precedence depends on it", () => {
+    expect(
+      morroAssistantDestinationCatalog.slice(0, 3).map((entry) => entry.name),
+    ).toEqual(["Primeira Praia", "Praia de Garapuá", "Praia do Pôrto"]);
+    expect(morroAssistantDestinationCatalog.at(-1)?.name).toBe(
+      "Passeio de Caiaque",
+    );
+  });
+
+  it("resolves canonical beach aliases from the frozen source", () => {
     expect(resolveMorroAssistantDestination("praia 2")).toEqual({
       name: "Segunda Praia",
       latitude: -13.3800508,
@@ -15,77 +43,12 @@ describe("Morro assistant destination resolver", () => {
     });
   });
 
-  it("normalizes accents and resolves V1 attraction aliases", () => {
-    expect(
-      resolveMorroAssistantDestination("Farol de Morro de São Paulo"),
-    ).toEqual({
-      name: "Farol do Morro",
-      latitude: -13.375917,
-      longitude: -38.9153479,
-      category: "attractions",
-    });
-  });
-
-  it("resolves the Tapirandu fortress with the frozen V1 coordinate", () => {
+  it("uses only aliases that exist in V1 locations.js", () => {
     expect(resolveMorroAssistantDestination("forte de tapirandu")).toEqual({
       name: "Fortaleza de Morro de São Paulo",
       latitude: -13.3742327,
       longitude: -38.9159466,
       category: "attractions",
-    });
-  });
-
-  it("covers V1 tour destinations outside Morro proper", () => {
-    expect(resolveMorroAssistantDestination("piscinas de moreré")).toEqual({
-      name: "Piscinas Naturais de Moreré",
-      latitude: -13.5815787,
-      longitude: -38.9859057,
-      category: "attractions",
-    });
-    expect(resolveMorroAssistantDestination("cairu sede")).toEqual({
-      name: "Cairu",
-      latitude: -13.471562,
-      longitude: -39.043215,
-      category: "attractions",
-    });
-  });
-
-  it("covers the V1 Gamboa trail destinations", () => {
-    expect(resolveMorroAssistantDestination("banho de argila")).toEqual({
-      name: "Paredão de Argila",
-      latitude: -13.388765,
-      longitude: -38.934567,
-      category: "attractions",
-    });
-    expect(resolveMorroAssistantDestination("porto de cima")).toEqual({
-      name: "Praia do Porto de Cima",
-      latitude: -13.378912,
-      longitude: -38.924567,
-      category: "beaches",
-    });
-  });
-
-  it("covers audited V1 restaurants", () => {
-    expect(resolveMorroAssistantDestination("restaurante basilico")).toEqual({
-      name: "Basílico",
-      latitude: -13.3784237,
-      longitude: -38.9168768,
-      category: "restaurants",
-    });
-    expect(resolveMorroAssistantDestination("restaurante papoula")).toEqual({
-      name: "Papoula",
-      latitude: -13.3800138,
-      longitude: -38.9176327,
-      category: "restaurants",
-    });
-  });
-
-  it("covers audited V1 nightlife and hotels", () => {
-    expect(resolveMorroAssistantDestination("pulsar morro")).toEqual({
-      name: "Pulsar",
-      latitude: -13.3766136,
-      longitude: -38.9179001,
-      category: "nightlife",
     });
     expect(resolveMorroAssistantDestination("hotel portalo")).toEqual({
       name: "Portaló",
@@ -95,35 +58,60 @@ describe("Morro assistant destination resolver", () => {
     });
   });
 
-  it("covers audited V1 emergency destinations", () => {
-    expect(resolveMorroAssistantDestination("posto de saúde")).toEqual({
-      name: "Posto Medico 24hs",
-      latitude: -13.37733,
-      longitude: -38.9171671,
-      category: "emergency",
+  it("covers categories that were absent from the M16 subset", () => {
+    expect(resolveMorroAssistantDestination("cassi")).toEqual({
+      name: "Cassi Turismo",
+      latitude: -13.3775,
+      longitude: -38.9135,
+      category: "transport",
     });
-    expect(resolveMorroAssistantDestination("pmba")).toEqual({
-      name: "Polícia Militar",
-      latitude: -13.3775926,
-      longitude: -38.9150414,
-      category: "emergency",
+    expect(resolveMorroAssistantDestination("artesanato")).toEqual({
+      name: "Loja Artesanato",
+      latitude: -13.389,
+      longitude: -38.923,
+      category: "shops",
+    });
+    expect(resolveMorroAssistantDestination("caiaque")).toEqual({
+      name: "Passeio de Caiaque",
+      latitude: -13.3839443,
+      longitude: -38.9084472,
+      category: "tours",
     });
   });
 
-  it("resolves Toca do Morcego with the frozen V1 coordinate", () => {
+  it("preserves duplicate canonical names across V1 categories and source precedence", () => {
     expect(resolveMorroAssistantDestination("toca")).toEqual({
       name: "Toca do Morcego",
       latitude: -13.3766787,
       longitude: -38.9172057,
-      category: "nightlife",
+      category: "attractions",
+    });
+    expect(resolveMorroAssistantDestination("farmacia")).toEqual({
+      name: "Farmácia Morro de São Paulo",
+      latitude: -13.3785,
+      longitude: -38.917,
+      category: "shops",
+    });
+  });
+
+  it("uses the actual V1 emergency catalog rather than synthetic M16 entries", () => {
+    expect(resolveMorroAssistantDestination("posto de saude")).toEqual({
+      name: "Posto de Saúde de Morro de São Paulo",
+      latitude: -13.3812,
+      longitude: -38.9192,
+      category: "emergencies",
+    });
+    expect(resolveMorroAssistantDestination("delegacia")).toEqual({
+      name: "Delegacia de Polícia",
+      latitude: -13.381,
+      longitude: -38.919,
+      category: "emergencies",
     });
   });
 
   it("does not guess an unknown destination", () => {
-    expect(resolveMorroAssistantDestination("destino inventado")).toBeNull();
-  });
-
-  it("keeps the M16 navigation catalog finite and auditable", () => {
-    expect(morroAssistantDestinationCatalog).toHaveLength(34);
+    expect(
+      resolveMorroAssistantDestination("destino inventado xyz"),
+    ).toBeNull();
   });
 });

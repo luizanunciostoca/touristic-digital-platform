@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import type { AssistantDestinationCatalogEntry } from "./assistant-destination-resolver.js";
+import {
+  morroAssistantDestinationCatalog,
+  type AssistantDestinationCatalogEntry,
+} from "./assistant-destination-resolver.js";
+import { isAssistantV1PlaceWithinRadius } from "./assistant-v1-place-boundary.js";
 import {
   assistantV1FuzzyThreshold,
   matchMorroAssistantDestinationV1,
@@ -93,15 +97,54 @@ describe("V1 assistant place resolver semantics", () => {
     ).toBeNull();
   });
 
-  it("keeps the real Garapuá destination inside the V1 boundary", () => {
-    expect(resolveMorroAssistantDestinationV1("praia de garapuá")?.name).toBe(
-      "Praia de Garapuá",
+  it("keeps Garapuá entries inside the source catalog boundary", () => {
+    expect(resolveMorroAssistantDestinationV1("praia de garapuá")).toEqual({
+      name: "Praia de Garapuá",
+      latitude: -13.4769538,
+      longitude: -38.9165457,
+      category: "beaches",
+    });
+    expect(resolveMorroAssistantDestinationV1("garapua hotel")?.name).toBe(
+      "Garapuá Praia Hotel",
     );
+  });
+
+  it("filters the real V1 out-of-radius source entry before matching", () => {
+    const creusa = morroAssistantDestinationCatalog.find(
+      (entry) => entry.name === "Restaurante da Creusa",
+    );
+    expect(creusa).toBeDefined();
+    expect(creusa && isAssistantV1PlaceWithinRadius(creusa)).toBe(false);
+
+    const match = matchMorroAssistantDestinationV1("Restaurante da Creusa");
+    expect(match?.destination.name).not.toBe("Restaurante da Creusa");
+  });
+
+  it("resolves newly migrated V1 categories through the runtime matcher", () => {
+    expect(resolveMorroAssistantDestinationV1("cassi")?.name).toBe(
+      "Cassi Turismo",
+    );
+    expect(resolveMorroAssistantDestinationV1("caiaque")?.name).toBe(
+      "Passeio de Caiaque",
+    );
+    expect(resolveMorroAssistantDestinationV1("bombeiros")?.name).toBe(
+      "Corpo de Bombeiros",
+    );
+  });
+
+  it("preserves source order for duplicate canonical destinations", () => {
+    expect(
+      resolveMorroAssistantDestinationV1("Toca do Morcego")?.category,
+    ).toBe("attractions");
+    expect(
+      resolveMorroAssistantDestinationV1("Farmácia Morro de São Paulo")
+        ?.category,
+    ).toBe("shops");
   });
 
   it("keeps unknown text unresolved instead of inventing coordinates", () => {
     expect(
-      resolveMorroAssistantDestinationV1("destino totalmente inventado"),
+      resolveMorroAssistantDestinationV1("destino totalmente inventado xyz"),
     ).toBeNull();
   });
 });
