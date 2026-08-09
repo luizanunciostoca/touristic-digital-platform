@@ -3,8 +3,12 @@ import type {
   AssistantDialogResponse,
 } from "@touristic/assistant";
 
-import { morroAssistantV1DestinationCatalog } from "./assistant-v1-destination-catalog.js";
-import { isAssistantV1PlaceWithinRadius } from "./assistant-v1-place-boundary.js";
+import {
+  morroAssistantV1DestinationCatalog,
+} from "./assistant-v1-destination-catalog.js";
+import {
+  isAssistantV1PlaceWithinRadius,
+} from "./assistant-v1-place-boundary.js";
 
 export interface AssistantNearbyGeolocationPort {
   getCurrentPosition(
