@@ -157,7 +157,9 @@ export interface AssistantPhotoSet {
   readonly images: readonly string[];
 }
 
-export function resolveAssistantV1Photos(place: string): AssistantPhotoSet | null {
+export function resolveAssistantV1Photos(
+  place: string,
+): AssistantPhotoSet | null {
   const normalized = normalizePhotoPlaceName(place);
   if (!normalized) return null;
 

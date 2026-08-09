@@ -34,7 +34,9 @@ interface AssistantPhotoPresentation {
 }
 
 function getMessagesArea(document: Document): HTMLElement | null {
-  return document.querySelector<HTMLElement>("#assistant-messages .messages-area");
+  return document.querySelector<HTMLElement>(
+    "#assistant-messages .messages-area",
+  );
 }
 
 function appendMessage(
@@ -58,13 +60,19 @@ function readPhotoPresentation(
 ): AssistantPhotoPresentation | null {
   const metadata = response.metadata;
   if (!metadata || typeof metadata !== "object") return null;
-  if (metadata.domain !== "photos" || metadata.state !== "resolved") return null;
-  if (metadata.presentation !== "carousel" || typeof metadata.place !== "string") {
+  if (metadata.domain !== "photos" || metadata.state !== "resolved")
+    return null;
+  if (
+    metadata.presentation !== "carousel" ||
+    typeof metadata.place !== "string"
+  ) {
     return null;
   }
 
   const images = Array.isArray(metadata.images)
-    ? metadata.images.filter((image): image is string => typeof image === "string")
+    ? metadata.images.filter(
+        (image): image is string => typeof image === "string",
+      )
     : [];
   if (images.length === 0) return null;
   return { place: metadata.place, images };
