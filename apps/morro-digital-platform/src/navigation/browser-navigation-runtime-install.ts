@@ -92,7 +92,8 @@ export function installBrowserNavigationRuntime(
     options.createEventBridge ?? createNavigationDomEventBridge;
   const createGuidanceUi =
     options.createGuidanceUi ?? createNavigationGuidanceUi;
-  const installAssistant = options.installAssistant ?? installBrowserAssistantRuntime;
+  const installAssistant =
+    options.installAssistant ?? installBrowserAssistantRuntime;
   const eventBridge = createEventBridge(options.document);
   const guidanceUi = createGuidanceUi(options.document);
   const eventTarget = options.document.defaultView;

@@ -169,7 +169,10 @@ describe("browser navigation runtime install", () => {
       eventBridge: bridge,
     });
     expect(createRequestPort).toHaveBeenCalledWith({ document, lifecycle });
-    expect(installAssistant).toHaveBeenCalledWith({ document, navigation: bootstrap });
+    expect(installAssistant).toHaveBeenCalledWith({
+      document,
+      navigation: bootstrap,
+    });
     expect(installed.bootstrap).toBe(bootstrap);
     expect(installed.lifecycle).toBe(lifecycle);
     expect(installed.requestPort).toBe(requestPort);

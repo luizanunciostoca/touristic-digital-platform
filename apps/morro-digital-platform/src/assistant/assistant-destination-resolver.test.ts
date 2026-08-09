@@ -16,14 +16,14 @@ describe("Morro assistant destination resolver", () => {
   });
 
   it("normalizes accents and resolves V1 attraction aliases", () => {
-    expect(resolveMorroAssistantDestination("Farol de Morro de São Paulo")).toEqual(
-      {
-        name: "Farol do Morro",
-        latitude: -13.375917,
-        longitude: -38.9153479,
-        category: "attractions",
-      },
-    );
+    expect(
+      resolveMorroAssistantDestination("Farol de Morro de São Paulo"),
+    ).toEqual({
+      name: "Farol do Morro",
+      latitude: -13.375917,
+      longitude: -38.9153479,
+      category: "attractions",
+    });
   });
 
   it("resolves Toca do Morcego with the frozen V1 coordinate", () => {

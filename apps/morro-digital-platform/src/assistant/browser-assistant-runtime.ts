@@ -37,7 +37,10 @@ function appendMessage(
   messagesArea.scrollTop = messagesArea.scrollHeight;
 }
 
-function resolveStorage(document: Document, override?: Storage): Storage | undefined {
+function resolveStorage(
+  document: Document,
+  override?: Storage,
+): Storage | undefined {
   if (override) return override;
   try {
     return document.defaultView?.localStorage;
@@ -65,7 +68,9 @@ export function installBrowserAssistantRuntime(
   const sendButton = options.document.getElementById("sendButton");
   let destroyed = false;
 
-  const process = async (rawInput: string): Promise<AssistantDialogResponse> => {
+  const process = async (
+    rawInput: string,
+  ): Promise<AssistantDialogResponse> => {
     const value = rawInput.trim();
     if (!value) return { text: "Como posso ajudar?" };
     appendMessage(options.document, "user", value);

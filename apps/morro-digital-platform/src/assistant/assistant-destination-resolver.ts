@@ -3,8 +3,7 @@ import {
   type AssistantNavigationDestination,
 } from "@touristic/assistant";
 
-export interface AssistantDestinationCatalogEntry
-  extends AssistantNavigationDestination {
+export interface AssistantDestinationCatalogEntry extends AssistantNavigationDestination {
   readonly aliases?: readonly string[];
 }
 
@@ -107,8 +106,7 @@ export function resolveMorroAssistantDestination(
     exact ??
     V1_DESTINATIONS.find((entry) =>
       destinationKeys(entry).some(
-        (key) =>
-          normalizedQuery.includes(key) || key.includes(normalizedQuery),
+        (key) => normalizedQuery.includes(key) || key.includes(normalizedQuery),
       ),
     );
 
