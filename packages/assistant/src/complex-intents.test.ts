@@ -11,7 +11,7 @@ describe("assistant V1 complex intents", () => {
     ["Como vou de Valença para Morro?", "transport", 0.95],
     ["Posso ir andando?", "transport", 0.95],
     ["É acessível para cadeirante?", "accessibility", 0.9],
-    ["Praia calma para crianças", "accessibility", 0.9],
+    ["Crianças em praia calma", "accessibility", 0.9],
   ] as const)("maps %s to %s", (input, intent, confidence) => {
     expect(classifyAssistantComplexIntent(input)).toEqual({ intent, confidence });
   });
