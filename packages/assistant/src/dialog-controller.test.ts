@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   createAssistantDialogController,
   type AssistantDialogContextPort,
+  type AssistantDialogIntentHandlerContext,
 } from "./dialog-controller.js";
 import { createDefaultAssistantContext } from "./context-manager.js";
 
@@ -78,7 +79,11 @@ describe("assistant V1 dialog controller orchestration", () => {
   });
 
   it("preserves awaiting context when classifying confirmations", async () => {
-    const confirm = vi.fn(() => ({ text: "confirmed" }));
+    let captured: AssistantDialogIntentHandlerContext | undefined;
+    const confirm = vi.fn((request: AssistantDialogIntentHandlerContext) => {
+      captured = request;
+      return { text: "confirmed" };
+    });
     const context = createContextPort({
       awaiting: { type: "confirmar_navegacao" },
       lastPlace: "Farol do Morro",
@@ -91,8 +96,8 @@ describe("assistant V1 dialog controller orchestration", () => {
     await expect(controller.processUserInput("sim")).resolves.toEqual({
       text: "confirmed",
     });
-    expect(confirm.mock.calls[0]?.[0].intent.contextual).toBe(true);
-    expect(confirm.mock.calls[0]?.[0].context.lastPlace).toBe("Farol do Morro");
+    expect(captured?.intent.contextual).toBe(true);
+    expect(captured?.context.lastPlace).toBe("Farol do Morro");
   });
 
   it("updates category context and records the user profile after classification", async () => {
