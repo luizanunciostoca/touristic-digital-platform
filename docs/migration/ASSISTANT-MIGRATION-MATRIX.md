@@ -6,7 +6,7 @@ Destino: `packages/assistant`
 
 Esta matriz controla a migração de FEATURE-0004. `PASS` só pode ser usado quando o comportamento observável estiver implementado e coberto por evidência executável. `PARTIAL` significa que existe implementação V2, porém o contrato ainda não está completo. `GAP` significa ausência de implementação equivalente.
 
-| Contrato V1                           | Evidência V1               | Destino V2                                       | Estado M7 | Critério de PASS                                                          |
+| Contrato V1                           | Evidência V1               | Destino V2                                       | Estado M8 | Critério de PASS                                                          |
 | ------------------------------------- | -------------------------- | ------------------------------------------------ | --------- | ------------------------------------------------------------------------- |
 | 10 opções canônicas                   | `assistant-messages.js`    | `src/menu.ts`                                    | PASS      | ordem, valores e labels PT/EN/ES/HE idênticos                             |
 | Normalização de texto                 | `intent-engine.js`         | `src/intent-engine.ts`                           | PASS      | acentos latinos normalizados e HE preservado                              |
@@ -31,7 +31,9 @@ Esta matriz controla a migração de FEATURE-0004. `PASS` só pode ser usado qua
 | Context manager                       | `context-manager.js`       | `src/context-manager.ts`                         | PASS      | schema v2, TTL 4h, debounce, histórico, preferências e pub/sub            |
 | Perfil do usuário                     | `user-profile.js`          | `src/user-profile.ts`                            | PASS      | persistência, inferências, interesses, favoritos e sugestões equivalentes |
 | Contexto conversacional               | `assistant-context/**`     | `src/context-manager.ts` + `src/user-profile.ts` | PASS      | context manager e user profile portados com contratos testáveis           |
-| Mensagens e sanitização               | `assistant-messages/**`    | a implementar                                    | GAP       | render seguro, deduplicação e tipos de mensagem                           |
+| Mensagens — lifecycle                 | `assistant-messages.js`    | `src/message-pipeline.ts`                        | PASS      | áreas, prioridade, dedupe 2s, clear e supressão durante Navigation        |
+| Mensagens — sanitização               | `assistant-messages.js`    | porta `sanitize` do message pipeline             | PASS      | toda entrada passa obrigatoriamente por sanitização antes do estado       |
+| Mensagens — DOM/UI                    | `assistant-messages.js`    | app V2                                           | PARTIAL   | render visual, containers, scroll e classes ainda dependem do wiring UI   |
 | Sugestões proativas                   | `proactive-suggestions.js` | a implementar                                    | GAP       | gatilhos V1 equivalentes                                                  |
 | Fallback LLM — decisão                | `intent-engine.js`         | `src/llm-policy.ts`                              | PASS      | decidir local vs LLM conforme política V1                                 |
 | Fallback LLM — execução               | `llm-fallback.js`          | porta `llm` do controller                        | PARTIAL   | orquestração pronta; provider same-origin real ainda pendente             |
@@ -40,13 +42,13 @@ Esta matriz controla a migração de FEATURE-0004. `PASS` só pode ser usado qua
 | Integração Navigation                 | diálogo/mensagens V1       | `@touristic/navigation`                          | GAP       | rota iniciada/cancelada via contrato público V2                           |
 | UI shell do assistente                | shell V1                   | app V2                                           | PARTIAL   | abertura, fechamento, menu, mensagens e estados visuais equivalentes      |
 
-## Estado do milestone M7
+## Estado do milestone M8
 
-A V1 expõe `processUserInput` e `startNavigationSafely` pelo wrapper `dialog.js`; o arquivo principal `assistant-dialog.js` centraliza classificação, contexto, handlers locais, fallback LLM e efeitos de mapa/navegação. O M7 extrai a camada de **orquestração de diálogo** para `src/dialog-controller.ts`, sem carregar DOM, Mapbox, storage ou provider de IA para dentro do package.
+A V1 concentra em `assistant-messages.js` três responsabilidades diferentes: estado/lifecycle de mensagens, sanitização antes de `innerHTML` e efeitos de DOM/voz. O M8 extrai o núcleo observável para `src/message-pipeline.ts`, mantendo o package independente de browser e exigindo uma porta de sanitização em vez de permitir HTML cru no estado.
 
-O controller recebe portas explícitas para contexto, perfil, handlers por intent e LLM. A ordem observável local-first fica coberta por testes: contexto atual alimenta o analyzer, o perfil é registrado após classificação, handler local tem precedência, o LLM só é consultado quando a política V1 exige e o handler local não respondeu, e somente uma resposta bem-sucedida atualiza contexto/histórico. Também foi preservada a classificação contextual de `awaiting`, inclusive confirmação de navegação.
+Foram preservados e testados os contratos de deduplicação da V1 (janela de 2 segundos para prioridade normal), bypass de duplicata em prioridade alta, separação entre áreas `messages` e `navigation`, supressão de mensagens de status de navegação na área normal quando a navegação está ativa, flag de fala desabilitada para mensagens de troca de idioma e limpeza total ou filtrada por área. O conteúdo é sanitizado antes de ser armazenado e entregue ao adapter de UI.
 
-Este milestone deliberadamente **não** declara os handlers de domínio como equivalentes. Busca de locais, clima, fotos, preços, horários, favoritos, mapa, menus, Navigation, mensagens renderizadas e provider LLM real continuam em milestones separados. Essa separação evita copiar o monólito V1 de ~203 KB e cria uma fronteira testável para os próximos ports.
+O M8 não copia manipulação direta de DOM para `packages/assistant`. Criação dos containers, scroll, classes CSS, síntese de voz e integração visual ficam no adapter do app e continuam `PARTIAL` até o wiring final da UI. Essa separação mantém a segurança e evita reintroduzir o acoplamento do monólito V1.
 
 A FEATURE-0004 / MIG-0006 **não** está equivalente neste checkpoint.
 
