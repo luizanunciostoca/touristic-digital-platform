@@ -50,7 +50,9 @@ describe("assistant V1 dialog controller orchestration", () => {
       llm,
     });
 
-    await expect(controller.processUserInput("Como está o tempo?")).resolves.toEqual({
+    await expect(
+      controller.processUserInput("Como está o tempo?"),
+    ).resolves.toEqual({
       text: "local weather",
     });
     expect(local).toHaveBeenCalledOnce();
@@ -123,7 +125,9 @@ describe("assistant V1 dialog controller orchestration", () => {
       errorResponse: () => ({ text: "error" }),
     });
 
-    await expect(controller.processUserInput("ajuda")).resolves.toEqual({ text: "error" });
+    await expect(controller.processUserInput("ajuda")).resolves.toEqual({
+      text: "error",
+    });
     expect(context.getContext().history).toEqual([]);
   });
 });
