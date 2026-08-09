@@ -67,9 +67,9 @@ function geolocationPosition(accuracy: number): GeolocationPosition {
 }
 
 function bootstrapForAccuracy(accuracy: number) {
-  const getCurrentPosition = vi.fn<BrowserGeolocationDriver["getCurrentPosition"]>(
-    (success) => success(geolocationPosition(accuracy)),
-  );
+  const getCurrentPosition = vi.fn<
+    BrowserGeolocationDriver["getCurrentPosition"]
+  >((success) => success(geolocationPosition(accuracy)));
   const geolocationDriver: BrowserGeolocationDriver = {
     watchPosition: vi.fn(() => 7),
     getCurrentPosition,
