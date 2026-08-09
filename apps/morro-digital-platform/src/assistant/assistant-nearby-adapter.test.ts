@@ -6,9 +6,7 @@ import {
 } from "@touristic/assistant";
 import { resolveAssistantNearby } from "./assistant-nearby-adapter.js";
 
-function request(
-  category?: string,
-): AssistantDialogIntentHandlerContext {
+function request(category?: string): AssistantDialogIntentHandlerContext {
   return {
     input: category ? `${category} perto de mim` : "perto de mim",
     intent: {
