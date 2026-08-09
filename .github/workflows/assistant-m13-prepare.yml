@@ -1,0 +1,38 @@
+name: Assistant M13 prepare
+
+on:
+  push:
+    branches: [feat/assistant-runtime-m13]
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/assistant-runtime-m13
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --no-frozen-lockfile
+      - run: pnpm exec prettier --write apps/morro-digital-platform/package.json apps/morro-digital-platform/src/assistant/assistant-navigation-adapter.ts apps/morro-digital-platform/src/assistant/assistant-navigation-adapter.test.ts pnpm-lock.yaml
+      - name: Commit preparation
+        run: |
+          if git diff --quiet; then
+            echo "M13 files already prepared"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/morro-digital-platform/package.json apps/morro-digital-platform/src/assistant/assistant-navigation-adapter.ts apps/morro-digital-platform/src/assistant/assistant-navigation-adapter.test.ts pnpm-lock.yaml
+          git commit -m "chore(assistant): prepare M13 app navigation bridge"
+          git pull --rebase origin feat/assistant-runtime-m13
+          git push origin HEAD:feat/assistant-runtime-m13
