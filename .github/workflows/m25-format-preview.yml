@@ -1,0 +1,30 @@
+name: M25 Format Preview
+
+on:
+  push:
+    branches:
+      - feat/assistant-m25-photos
+
+permissions:
+  contents: read
+
+jobs:
+  preview:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: |
+          pnpm exec prettier --write \
+            apps/morro-digital-platform/src/assistant/assistant-v1-photo-catalog.ts \
+            apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts
+          git diff -- \
+            apps/morro-digital-platform/src/assistant/assistant-v1-photo-catalog.ts \
+            apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts
