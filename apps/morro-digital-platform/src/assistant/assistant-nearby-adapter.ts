@@ -3,12 +3,8 @@ import type {
   AssistantDialogResponse,
 } from "@touristic/assistant";
 
-import {
-  morroAssistantV1DestinationCatalog,
-} from "./assistant-v1-destination-catalog.js";
-import {
-  isAssistantV1PlaceWithinRadius,
-} from "./assistant-v1-place-boundary.js";
+import { morroAssistantV1DestinationCatalog } from "./assistant-v1-destination-catalog.js";
+import { isAssistantV1PlaceWithinRadius } from "./assistant-v1-place-boundary.js";
 
 export interface AssistantNearbyGeolocationPort {
   getCurrentPosition(
@@ -58,7 +54,9 @@ function distanceMeters(
 function resolveCategory(
   request: AssistantDialogIntentHandlerContext,
 ): string | null {
-  return request.intent.entities.category ?? request.context.lastCategory ?? null;
+  return (
+    request.intent.entities.category ?? request.context.lastCategory ?? null
+  );
 }
 
 function requestPosition(
@@ -100,8 +98,7 @@ export async function resolveAssistantNearby(
     const results = morroAssistantV1DestinationCatalog
       .filter(
         (entry) =>
-          entry.category === category &&
-          isAssistantV1PlaceWithinRadius(entry),
+          entry.category === category && isAssistantV1PlaceWithinRadius(entry),
       )
       .map((entry) => ({
         name: entry.name,
