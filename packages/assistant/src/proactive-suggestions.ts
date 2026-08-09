@@ -89,7 +89,8 @@ function weatherSuggestion(
 function profileSuggestion(
   profile: AssistantProactiveProfile,
 ): AssistantProactiveSuggestion | null {
-  if (profile.visitCount === 2) return { type: "returning_user", priority: 0.6 };
+  if (profile.visitCount === 2)
+    return { type: "returning_user", priority: 0.6 };
   if (profile.behavior.isFirstTimer && profile.totalInteractions <= 3) {
     return { type: "first_timer", priority: 0.8 };
   }

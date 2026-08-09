@@ -28,7 +28,9 @@ function profile(
 
 describe("assistant V1 proactive suggestion decision engine", () => {
   it("gives sunset the V1 critical priority", () => {
-    const engine = createAssistantProactiveSuggestionEngine({ now: () => 1_000_000 });
+    const engine = createAssistantProactiveSuggestionEngine({
+      now: () => 1_000_000,
+    });
     expect(engine.getSuggestion({ hour: 16, profile: profile() })).toEqual({
       type: "sunset",
       priority: 0.95,
@@ -36,7 +38,9 @@ describe("assistant V1 proactive suggestion decision engine", () => {
   });
 
   it("lets rainy-day context outrank profile suggestions", () => {
-    const engine = createAssistantProactiveSuggestionEngine({ now: () => 1_000_000 });
+    const engine = createAssistantProactiveSuggestionEngine({
+      now: () => 1_000_000,
+    });
     expect(
       engine.getSuggestion({
         hour: 12,
@@ -47,7 +51,9 @@ describe("assistant V1 proactive suggestion decision engine", () => {
   });
 
   it("preserves first-timer thresholds", () => {
-    const engine = createAssistantProactiveSuggestionEngine({ now: () => 1_000_000 });
+    const engine = createAssistantProactiveSuggestionEngine({
+      now: () => 1_000_000,
+    });
     expect(
       engine.getSuggestion({
         hour: 7,
@@ -78,16 +84,22 @@ describe("assistant V1 proactive suggestion decision engine", () => {
     let now = 1_000_000;
     const engine = createAssistantProactiveSuggestionEngine({ now: () => now });
 
-    expect(engine.getSuggestion({ hour: 16, profile: profile() })).not.toBeNull();
+    expect(
+      engine.getSuggestion({ hour: 16, profile: profile() }),
+    ).not.toBeNull();
     now += ASSISTANT_PROACTIVE_COOLDOWN_MS - 1;
     expect(engine.getSuggestion({ hour: 16, profile: profile() })).toBeNull();
 
     engine.resetCooldown();
-    expect(engine.getSuggestion({ hour: 16, profile: profile() })).not.toBeNull();
+    expect(
+      engine.getSuggestion({ hour: 16, profile: profile() }),
+    ).not.toBeNull();
   });
 
   it("uses the V1 profile ordering for visit-count returning users", () => {
-    const engine = createAssistantProactiveSuggestionEngine({ now: () => 1_000_000 });
+    const engine = createAssistantProactiveSuggestionEngine({
+      now: () => 1_000_000,
+    });
     expect(
       engine.getSuggestion({
         hour: 7,
