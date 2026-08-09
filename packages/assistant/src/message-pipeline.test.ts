@@ -29,6 +29,18 @@ describe("assistant V1 message pipeline", () => {
     expect(pipeline.append({ sender: "assistant", html: "mesma" })).toBeNull();
   });
 
+  it("preserves V1 last-message deduplication after the two-second window", () => {
+    let now = 1000;
+    const pipeline = createAssistantMessagePipeline({
+      sanitize: (html) => html,
+      now: () => now,
+    });
+
+    pipeline.append({ sender: "assistant", html: "mesma" });
+    now = 5000;
+    expect(pipeline.append({ sender: "assistant", html: "mesma" })).toBeNull();
+  });
+
   it("allows high-priority duplicates", () => {
     const pipeline = createAssistantMessagePipeline({
       sanitize: (html) => html,
@@ -76,6 +88,21 @@ describe("assistant V1 message pipeline", () => {
     });
 
     expect(result?.speak).toBe(false);
+  });
+
+  it("replaces only the target area when append clear is requested", () => {
+    const pipeline = createAssistantMessagePipeline({ sanitize: (html) => html });
+    pipeline.append({ sender: "assistant", html: "old" });
+    pipeline.append({ sender: "assistant", html: "nav", area: "navigation" });
+
+    pipeline.append({ sender: "assistant", html: "new", clear: true });
+
+    expect(pipeline.getMessages("messages").map((message) => message.html)).toEqual([
+      "new",
+    ]);
+    expect(pipeline.getMessages("navigation").map((message) => message.html)).toEqual([
+      "nav",
+    ]);
   });
 
   it("clears all or selected messages per area", () => {
