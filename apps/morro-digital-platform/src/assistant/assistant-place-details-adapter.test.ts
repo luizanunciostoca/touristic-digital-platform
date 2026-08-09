@@ -51,7 +51,9 @@ describe("assistant Mapbox place details adapter", () => {
       mapboxId: "poi.segunda-praia",
     });
     expect(fetchImplementation).toHaveBeenCalledTimes(1);
-    const requestUrl = String(fetchImplementation.mock.calls[0]?.[0]);
+    const requestInput = fetchImplementation.mock.calls[0]?.[0];
+    expect(typeof requestInput).toBe("string");
+    const requestUrl = typeof requestInput === "string" ? requestInput : "";
     expect(requestUrl).toContain("q=Segunda+Praia");
     expect(requestUrl).toContain("access_token=pk.test");
     expect(requestUrl).toContain("proximity=-38.9118443%2C-13.3800508");
