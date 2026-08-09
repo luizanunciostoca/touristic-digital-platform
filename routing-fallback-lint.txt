@@ -1,0 +1,15 @@
+
+> @touristic/geospatial@0.1.0 lint /home/runner/work/touristic-digital-platform/touristic-digital-platform/packages/geospatial
+> eslint src
+
+
+/home/runner/work/touristic-digital-platform/touristic-digital-platform/packages/geospatial/src/adapters/routing-mapbox.ts
+  209:7  error  'maneuver.instruction ??
+        stepRecord.name ??
+        (isLast ? "Você chegou ao destino." : "Continue em frente.")' will use Object's default stringification format ('[object Object]') when stringified  @typescript-eslint/no-base-to-string
+
+✖ 1 problem (1 error, 0 warnings)
+
+/home/runner/work/touristic-digital-platform/touristic-digital-platform/packages/geospatial:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @touristic/geospatial@0.1.0 lint: `eslint src`
+Exit status 1
