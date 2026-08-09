@@ -4,7 +4,7 @@ import {
   LLM_FALLBACK_CONFIDENCE,
   LONG_INPUT_THRESHOLD_CHARS,
   normalizeAssistantText,
-} from "./intent-engine";
+} from "./intent-engine.js";
 
 describe("assistant local intent engine", () => {
   it("keeps the V1 fallback thresholds", () => {
