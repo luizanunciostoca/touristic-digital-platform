@@ -121,32 +121,20 @@ export function createNavigationMapboxPresenter(
   let lastCameraZoom: number | null = null;
   let cameraZoomMode: "far" | "near" | "close" = "far";
 
-  function cameraZoomFor(snapshot: NavigationVisualSnapshot): number {
-    const distance = Math.max(
-      0,
-      finiteNumber(snapshot.distanceToNextManeuver, 200),
-    );
-    if (cameraZoomMode === "close") {
-      if (distance > 38) cameraZoomMode = "near";
-    } else if (cameraZoomMode === "near") {
-      if (distance <= 22) cameraZoomMode = "close";
-      else if (distance > 90) cameraZoomMode = "far";
-    } else if (distance < 65) {
-      cameraZoomMode = distance <= 22 ? "close" : "near";
-    }
-    if (cameraZoomMode === "close") return 19.55;
-    if (cameraZoomMode === "near") return 19.35;
-    return CAMERA_DEFAULT_ZOOM;
-  }
-
   function updateMarker(snapshot: NavigationVisualSnapshot): void {
-    marker ??= options.createMarker().addTo(options.map);
-    marker
-      .setLngLat([
-        snapshot.visualLocation.longitude,
-        snapshot.visualLocation.latitude,
-      ])
-      .setRotation?.(snapshot.bearing);
+    const position: [number, number] = [
+      snapshot.visualLocation.longitude,
+      snapshot.visualLocation.latitude,
+    ];
+
+    if (!marker) {
+      const nextMarker = options.createMarker().setLngLat(position);
+      nextMarker.setRotation?.(snapshot.bearing);
+      marker = nextMarker.addTo(options.map);
+      return;
+    }
+
+    marker.setLngLat(position).setRotation?.(snapshot.bearing);
   }
 
   function resetState(): void {
@@ -224,6 +212,24 @@ export function createNavigationMapboxPresenter(
       resetState();
     },
   };
+
+  function cameraZoomFor(snapshot: NavigationVisualSnapshot): number {
+    const distance = Math.max(
+      0,
+      finiteNumber(snapshot.distanceToNextManeuver, 200),
+    );
+    if (cameraZoomMode === "close") {
+      if (distance > 38) cameraZoomMode = "near";
+    } else if (cameraZoomMode === "near") {
+      if (distance <= 22) cameraZoomMode = "close";
+      else if (distance > 90) cameraZoomMode = "far";
+    } else if (distance < 65) {
+      cameraZoomMode = distance <= 22 ? "close" : "near";
+    }
+    if (cameraZoomMode === "close") return 19.55;
+    if (cameraZoomMode === "near") return 19.35;
+    return CAMERA_DEFAULT_ZOOM;
+  }
 
   return Object.freeze(presenter);
 }
