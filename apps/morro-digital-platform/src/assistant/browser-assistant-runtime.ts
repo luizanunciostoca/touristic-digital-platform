@@ -5,6 +5,7 @@ import {
 } from "@touristic/assistant";
 
 import type { NavigationSessionBootstrap } from "../navigation/navigation-session-bootstrap.js";
+import { createAssistantBrowserDomainHandlers } from "./assistant-domain-adapter.js";
 import { createAssistantNavigationAppHandlers } from "./assistant-navigation-adapter.js";
 import { createMorroAssistantV1DestinationResolver } from "./assistant-v1-place-resolver.js";
 
@@ -58,9 +59,18 @@ export function installBrowserAssistantRuntime(
     navigation: options.navigation,
     resolver: createMorroAssistantV1DestinationResolver(),
   });
+  const domainHandlers = createAssistantBrowserDomainHandlers({
+    ...(storage ? { storage } : {}),
+    ...(options.document.defaultView?.navigator.geolocation
+      ? { geolocation: options.document.defaultView.navigator.geolocation }
+      : {}),
+  });
   const controller = createAssistantDialogController({
     context,
-    handlers: navigationHandlers,
+    handlers: {
+      ...domainHandlers,
+      ...navigationHandlers,
+    },
   });
 
   const input = options.document.getElementById("assistantInput");
