@@ -17,6 +17,23 @@ const precedenceFixture: readonly AssistantDestinationCatalogEntry[] = [
   },
 ];
 
+const radiusFixture: readonly AssistantDestinationCatalogEntry[] = [
+  {
+    name: "Garapuá",
+    latitude: -13.4769538,
+    longitude: -38.9165457,
+    category: "beaches",
+    aliases: ["garapua limite"],
+  },
+  {
+    name: "Moreré",
+    latitude: -13.5815787,
+    longitude: -38.9859057,
+    category: "attractions",
+    aliases: ["morere fora"],
+  },
+];
+
 describe("V1 assistant place resolver semantics", () => {
   it("preserves the frozen V1 fuzzy threshold", () => {
     expect(assistantV1FuzzyThreshold).toBe(0.55);
@@ -61,6 +78,25 @@ describe("V1 assistant place resolver semantics", () => {
     expect(match?.matchType).toBe("fuzzy");
     expect(match?.destination.name).toBe("Basílico");
     expect(match?.score).toBeGreaterThanOrEqual(0.55);
+  });
+
+  it("applies the V1 12km boundary before every match strategy", () => {
+    expect(
+      matchMorroAssistantDestinationV1("garapua limite", radiusFixture)
+        ?.destination.name,
+    ).toBe("Garapuá");
+    expect(
+      matchMorroAssistantDestinationV1("morere fora", radiusFixture),
+    ).toBeNull();
+    expect(
+      matchMorroAssistantDestinationV1("Moreré", radiusFixture),
+    ).toBeNull();
+  });
+
+  it("keeps the real Garapuá destination inside the V1 boundary", () => {
+    expect(resolveMorroAssistantDestinationV1("praia de garapuá")?.name).toBe(
+      "Praia de Garapuá",
+    );
   });
 
   it("keeps unknown text unresolved instead of inventing coordinates", () => {
