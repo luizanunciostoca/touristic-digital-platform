@@ -50,19 +50,19 @@ describe("assistant domain handlers", () => {
     const ports = createPorts();
     const handlers = createAssistantDomainHandlers({ ports });
 
-    await expect(handlers.weather(request("weather"))).resolves.toEqual({
+    expect(await handlers.weather(request("weather"))).toEqual({
       text: "weather",
     });
-    await expect(handlers.my_location(request("my_location"))).resolves.toEqual(
-      { text: "location" },
-    );
-    await expect(handlers.nearby(request("nearby"))).resolves.toEqual({
+    expect(await handlers.my_location(request("my_location"))).toEqual({
+      text: "location",
+    });
+    expect(await handlers.nearby(request("nearby"))).toEqual({
       text: "nearby",
     });
-    await expect(handlers.favorites(request("favorites"))).resolves.toEqual({
+    expect(await handlers.favorites(request("favorites"))).toEqual({
       text: "favorites",
     });
-    await expect(handlers.help(request("help"))).resolves.toEqual({
+    expect(await handlers.help(request("help"))).toEqual({
       text: "help",
     });
   });
