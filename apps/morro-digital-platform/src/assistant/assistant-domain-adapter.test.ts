@@ -301,4 +301,26 @@ describe("assistant browser domain adapter", () => {
       },
     });
   });
+  it("preserves the audited V1 price guidance for a contextual place", async () => {
+    const handlers = createAssistantBrowserDomainHandlers();
+    const response = await handlers.price?.(request("price", "Segunda Praia"));
+
+    expect(response).toEqual({
+      text:
+        "💰 Sobre preços em <b>Segunda Praia</b>:<br><br>" +
+        "As informações de preço podem variar. Recomendo verificar diretamente com o estabelecimento.<br><br>" +
+        "Em geral, as praias de Morro de São Paulo são <b>gratuitas</b>. Passeios de barco custam em torno de <b>R$ 80-150</b> por pessoa. Restaurantes variam de <b>R$ 30-150</b> por pessoa.",
+      options: [
+        { label: "Como chegar", value: "como chegar" },
+        { label: "Ver fotos", value: "ver fotos" },
+        { label: "Horário", value: "horário" },
+        { label: "Voltar ao menu principal", value: "voltar ao menu" },
+      ],
+      metadata: {
+        domain: "price",
+        state: "v1_guidance",
+        place: "Segunda Praia",
+      },
+    });
+  });
 });
