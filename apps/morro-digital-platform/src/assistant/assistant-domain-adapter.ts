@@ -24,13 +24,13 @@ export interface AssistantBrowserDomainAdapterOptions {
   readonly fetch?: typeof globalThis.fetch;
 }
 
-const WEATHER_OPTIONS = Object.freeze([
+const WEATHER_OPTIONS = [
   { label: "Temperatura agora", value: "temperatura agora" },
   { label: "Vai chover?", value: "vai chover" },
   { label: "Previsão do tempo", value: "previsao do tempo" },
   { label: "Como está a maré?", value: "mare" },
   { label: "Voltar ao menu principal", value: "voltar ao menu" },
-]);
+];
 
 function weatherCondition(reading: WeatherReading): string {
   const code = reading.weatherCode;
@@ -51,7 +51,7 @@ async function getWeather(
     const reading = await fetchMorroWeather(fetchImplementation);
     return {
       text: `Agora em Morro de São Paulo: ${reading.temperatureCelsius}°C, ${weatherCondition(reading)}.`,
-      options: WEATHER_OPTIONS,
+      options: [...WEATHER_OPTIONS],
       metadata: {
         domain: "weather",
         state: "resolved",
@@ -63,7 +63,7 @@ async function getWeather(
   } catch {
     return {
       text: "Em Morro de São Paulo, a temperatura costuma ficar entre 25°C e 32°C. O período mais chuvoso vai de novembro a março e a época mais seca costuma ser de junho a setembro.",
-      options: WEATHER_OPTIONS,
+      options: [...WEATHER_OPTIONS],
       metadata: { domain: "weather", state: "generic_fallback" },
     };
   }
