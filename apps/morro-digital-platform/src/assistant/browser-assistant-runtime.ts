@@ -5,8 +5,8 @@ import {
 } from "@touristic/assistant";
 
 import type { NavigationSessionBootstrap } from "../navigation/navigation-session-bootstrap.js";
-import { createMorroAssistantDestinationResolver } from "./assistant-destination-resolver.js";
 import { createAssistantNavigationAppHandlers } from "./assistant-navigation-adapter.js";
+import { createMorroAssistantV1DestinationResolver } from "./assistant-v1-place-resolver.js";
 
 export interface BrowserAssistantRuntimeOptions {
   readonly document: Document;
@@ -56,7 +56,7 @@ export function installBrowserAssistantRuntime(
   const context = createAssistantContextManager(storage ? { storage } : {});
   const navigationHandlers = createAssistantNavigationAppHandlers({
     navigation: options.navigation,
-    resolver: createMorroAssistantDestinationResolver(),
+    resolver: createMorroAssistantV1DestinationResolver(),
   });
   const controller = createAssistantDialogController({
     context,
