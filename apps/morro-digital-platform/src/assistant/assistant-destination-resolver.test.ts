@@ -5,34 +5,24 @@ import {
   resolveMorroAssistantDestination,
 } from "./assistant-destination-resolver.js";
 
+function categoryCount(category: string): number {
+  return morroAssistantDestinationCatalog.filter(
+    (entry) => entry.category === category,
+  ).length;
+}
+
 describe("Morro assistant destination catalog", () => {
   it("preserves the complete V1 locations.js projection", () => {
     expect(morroAssistantDestinationCatalog).toHaveLength(131);
-
-    const counts = Object.fromEntries(
-      [
-        ...new Set(
-          morroAssistantDestinationCatalog.map((entry) => entry.category),
-        ),
-      ].map((category) => [
-        category,
-        morroAssistantDestinationCatalog.filter(
-          (entry) => entry.category === category,
-        ).length,
-      ]),
-    );
-
-    expect(counts).toEqual({
-      beaches: 8,
-      restaurants: 45,
-      hotels: 35,
-      shops: 12,
-      transport: 8,
-      attractions: 8,
-      nightlife: 5,
-      emergencies: 4,
-      tours: 6,
-    });
+    expect(categoryCount("beaches")).toBe(8);
+    expect(categoryCount("restaurants")).toBe(45);
+    expect(categoryCount("hotels")).toBe(35);
+    expect(categoryCount("shops")).toBe(12);
+    expect(categoryCount("transport")).toBe(8);
+    expect(categoryCount("attractions")).toBe(8);
+    expect(categoryCount("nightlife")).toBe(5);
+    expect(categoryCount("emergencies")).toBe(4);
+    expect(categoryCount("tours")).toBe(6);
   });
 
   it("retains source order because V1 findPlace precedence depends on it", () => {
