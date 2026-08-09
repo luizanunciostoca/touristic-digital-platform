@@ -13,6 +13,7 @@ export interface BrowserAssistantRuntimeOptions {
   readonly document: Document;
   readonly navigation: Pick<NavigationSessionBootstrap, "start" | "stop">;
   readonly storage?: Storage;
+  readonly fetch?: typeof globalThis.fetch;
 }
 
 export interface BrowserAssistantRuntime {
@@ -64,6 +65,7 @@ export function installBrowserAssistantRuntime(
     ...(options.document.defaultView?.navigator.geolocation
       ? { geolocation: options.document.defaultView.navigator.geolocation }
       : {}),
+    ...(options.fetch ? { fetch: options.fetch } : {}),
   });
   const controller = createAssistantDialogController({
     context,
