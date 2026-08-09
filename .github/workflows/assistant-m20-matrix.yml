@@ -1,0 +1,62 @@
+name: Assistant M20 matrix
+
+on:
+  push:
+    branches: [feat/assistant-m20-domain-handlers]
+
+permissions:
+  contents: write
+
+jobs:
+  matrix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/assistant-m20-domain-handlers
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Update M20 migration matrix
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('docs/migration/ASSISTANT-MIGRATION-MATRIX.md')
+          text = path.read_text()
+          text = text.replace('| Estado M19 |', '| Estado M20 |')
+          text = text.replace(
+              '| weather/location/photos/price/hours   | `intent-engine.js`         | `src/intent-engine.ts`                                                                                          | PARTIAL    | classificação pronta; handlers de domínio ainda pendentes                                             |',
+              '| weather/location/photos/price/hours   | `intent-engine.js`         | `src/intent-engine.ts` + `src/domain-handlers.ts`                                                               | PARTIAL    | contratos/dispatch prontos; adapters browser e providers de domínio ainda pendentes                   |',
+          )
+          text = text.replace(
+              '| nearby/favorites/help                 | `intent-engine.js`         | `src/intent-engine.ts`                                                                                          | PARTIAL    | classificação pronta; handlers de domínio ainda pendentes                                             |',
+              '| nearby/favorites/help                 | `intent-engine.js`         | `src/intent-engine.ts` + `src/domain-handlers.ts`                                                               | PARTIAL    | contratos/dispatch prontos; adapters browser e integrações observáveis ainda pendentes                |',
+          )
+          text = text.replace(
+              '| Handlers de domínio do diálogo        | `assistant-dialog.js`      | portas do `src/dialog-controller.ts`                                                                            | PARTIAL    | Navigation coberta; menus, busca, clima, detalhes, favoritos e mapa pendentes                         |',
+              '| Handlers de domínio do diálogo        | `assistant-dialog.js`      | `src/domain-handlers.ts` + portas do `src/dialog-controller.ts`                                                 | PARTIAL    | 9 intents com contratos testados; wiring browser/provider e equivalência observável ainda pendentes   |',
+          )
+          marker = 'Para promover MIG-0006 a `equivalent`, todos os itens acima precisam estar em PASS e o Quality Gate do head final deve estar integralmente verde.'
+          section = '''## Estado do milestone M20\n\nO M20 introduz em `@touristic/assistant` uma fronteira explícita para os handlers de domínio que já possuíam classificação de intent, mas ainda não tinham contrato executável no controller. `domain-handlers.ts` cobre `weather`, `my_location`, `photos`, `price`, `hours`, `more_info`, `nearby`, `favorites` e `help` por portas tipadas, sem acoplar o pacote de domínio ao DOM, geolocalização do browser ou providers externos.\n\nPara intents relacionadas a um local, a resolução contextual segue `intent.entities.place` antes de `context.lastPlace`. Quando nenhum local existe, o handler não inventa um destino nem chama um provider incompleto: retorna um estado explícito `awaiting_place` com pergunta adequada. As regressões cobrem delegação das nove intents, precedência do local explícito, fallback conversacional e ausência segura de contexto.\n\nEste checkpoint fecha a lacuna de **contrato/dispatch**, mas não a equivalência observável dos handlers. O `browser-assistant-runtime.ts` ainda precisa compor adapters reais para clima, geolocalização, fotos, preço, horário, detalhes, nearby, favoritos e help, preservando os efeitos e copy da V1. Por isso as linhas correspondentes continuam `PARTIAL` e a FEATURE-0004 / MIG-0006 permanece não equivalente.\n\n'''
+          if '## Estado do milestone M20' not in text:
+              text = text.replace(marker, section + marker)
+          path.write_text(text)
+          PY
+      - run: pnpm exec prettier --write docs/migration/ASSISTANT-MIGRATION-MATRIX.md
+      - name: Commit matrix
+        run: |
+          if git diff --quiet; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/migration/ASSISTANT-MIGRATION-MATRIX.md
+          git commit -m "docs(assistant): record M20 domain handler contracts"
+          git pull --rebase origin feat/assistant-m20-domain-handlers
+          git push origin HEAD:feat/assistant-m20-domain-handlers
