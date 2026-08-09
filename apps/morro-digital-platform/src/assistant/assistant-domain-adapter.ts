@@ -257,8 +257,12 @@ export function createAssistantBrowserDomainHandlers(
       myLocation: () => getCurrentLocation(options.geolocation),
       photos: (place) => getPhotos(place, fetchImplementation),
       price: (place) => ({
-        text: `Os preços de ${place} ainda estão sendo conectados à nova arquitetura.`,
-        metadata: { domain: "price", state: "provider_pending", place },
+        text:
+          `💰 Sobre preços em <b>${place}</b>:<br><br>` +
+          `As informações de preço podem variar. Recomendo verificar diretamente com o estabelecimento.<br><br>` +
+          `Em geral, as praias de Morro de São Paulo são <b>gratuitas</b>. Passeios de barco custam em torno de <b>R$ 80-150</b> por pessoa. Restaurantes variam de <b>R$ 30-150</b> por pessoa.`,
+        options: [...PLACE_DETAILS_OPTIONS],
+        metadata: { domain: "price", state: "v1_guidance", place },
       }),
       hours: (place) => getPlaceHours(place, options),
       moreInfo: (place) => getPlaceDetails(place, options),
