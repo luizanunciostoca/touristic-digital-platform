@@ -1,3 +1,4 @@
+// prettier-ignore
 export const V1_ASSISTANT_BASELINE = {
   featureId: "FEATURE-0004",
   migrationId: "MIG-0006",
