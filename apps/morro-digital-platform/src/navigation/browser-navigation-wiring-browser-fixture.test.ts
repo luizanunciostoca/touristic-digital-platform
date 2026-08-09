@@ -5,6 +5,7 @@ import type {
   MapboxGlMarkerLike,
   MapboxGlModuleLike,
 } from "@touristic/geospatial";
+import type { NavigationRuntimeSnapshot } from "@touristic/navigation";
 
 import type { BrowserGeolocationDriver } from "./browser-geolocation.js";
 import { createBrowserNavigationWiring } from "./browser-navigation-wiring.js";
@@ -130,7 +131,7 @@ describe("browser navigation wiring deterministic browser fixture", () => {
       } as unknown as MapboxGlModuleLike["Map"],
       Marker,
     };
-    const onSnapshot = vi.fn();
+    const onSnapshot = vi.fn<(snapshot: NavigationRuntimeSnapshot) => void>();
     const wiring = createBrowserNavigationWiring({
       map,
       sdk,
@@ -142,20 +143,16 @@ describe("browser navigation wiring deterministic browser fixture", () => {
     });
 
     wiring.start();
-    if (!watchSuccess) throw new Error("watchPosition was not started");
-    watchSuccess(browserPosition());
+    const emitLocation = watchSuccess;
+    if (!emitLocation) throw new Error("watchPosition was not started");
+    emitLocation(browserPosition());
 
     expect(onSnapshot).toHaveBeenCalledTimes(1);
-    expect(onSnapshot).toHaveBeenCalledWith(
-      expect.objectContaining({
-        totalDistance: 390,
-        totalDuration: 290,
-        guidance: expect.objectContaining({
-          instruction: "Continue em frente",
-          totalSteps: 3,
-        }),
-      }),
-    );
+    const snapshot = onSnapshot.mock.calls[0]?.[0];
+    expect(snapshot?.totalDistance).toBe(390);
+    expect(snapshot?.totalDuration).toBe(290);
+    expect(snapshot?.guidance.instruction).toBe("Continue em frente");
+    expect(snapshot?.guidance.totalSteps).toBe(3);
     expect(easeTo).toHaveBeenCalledWith(
       expect.objectContaining({
         pitch: 68,
