@@ -6,6 +6,7 @@ export * from "./llm-policy.js";
 export * from "./menu.js";
 export * from "./message-pipeline.js";
 export * from "./proactive-content.js";
+export * from "./proactive-copy.js";
 export * from "./proactive-suggestions.js";
 export * from "./user-profile.js";
 export * from "./v1-baseline.js";
