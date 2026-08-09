@@ -24,6 +24,28 @@ export {
 } from "./adapters/mapbox.js";
 
 export {
+  createNavigationMapboxPresenter,
+  type NavigationMapContainerLike,
+  type NavigationMapboxMapLike,
+  type NavigationMapboxMarkerLike,
+  type NavigationMapboxPresenter,
+  type NavigationMapboxPresenterOptions,
+  type NavigationVisualSnapshot,
+} from "./adapters/navigation-mapbox.js";
+
+export {
+  adaptMapboxDirectionsResponse,
+  createMapboxDirectionsRoutingProvider,
+  MapboxDirectionsRoutingError,
+  type MapboxDirectionsFetchLike,
+  type MapboxDirectionsRoutingProvider,
+  type MapboxRoutingContext,
+  type MapboxRoutingCoordinate,
+  type MapboxRoutingFeatureCollection,
+  type MapboxRoutingPayload,
+} from "./adapters/routing-mapbox.js";
+
+export {
   createMapboxGlDriver,
   type MapboxGlDriverOptions,
   type MapboxGlMapLike,
