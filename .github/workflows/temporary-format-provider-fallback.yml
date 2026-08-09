@@ -1,0 +1,35 @@
+name: Temporary Format Provider Fallback
+
+on:
+  push:
+    branches:
+      - test/navigation-provider-fallback-contract
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: test/navigation-provider-fallback-contract
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Format contract test
+        run: pnpm exec prettier --write apps/morro-digital-platform/src/legacy/navigation-provider-fallback-contract.test.ts
+      - name: Commit formatted file
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/morro-digital-platform/src/legacy/navigation-provider-fallback-contract.test.ts
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "style: apply prettier to provider fallback contract"
+          git push origin HEAD:test/navigation-provider-fallback-contract
