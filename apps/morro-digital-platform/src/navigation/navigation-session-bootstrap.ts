@@ -252,13 +252,14 @@ export function createNavigationSessionBootstrap(
         wiring.start();
         return routeData;
       } catch (error) {
+        const wasAbortedBeforeCleanup = session.signal.aborted;
         if (activeSession?.id === session.id) {
           cancelNavigationSession(session.id, "start_failed");
           activeSession = null;
           activeWiring?.stop();
           activeWiring = null;
         }
-        if (session.signal.aborted && !(error instanceof DOMException)) {
+        if (wasAbortedBeforeCleanup && !(error instanceof DOMException)) {
           throw new DOMException(
             "Navigation bootstrap cancelled",
             "AbortError",
