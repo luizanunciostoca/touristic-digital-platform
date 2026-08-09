@@ -1,6 +1,7 @@
-import type {
-  MapboxGlMapLike,
-  MapboxGlModuleLike,
+import {
+  createMapboxDirectionsRoutingProvider,
+  type MapboxGlMapLike,
+  type MapboxGlModuleLike,
 } from "@touristic/geospatial";
 import type {
   NavigationRuntimeSnapshot,
@@ -30,6 +31,12 @@ import {
   type NavigationSessionEventContext,
 } from "./navigation-session-bootstrap.js";
 
+interface NavigationRuntimeEnvironmentGlobal {
+  readonly __MORRO_RUNTIME_ENV__?: {
+    readonly VITE_MAPBOX_ACCESS_TOKEN?: string;
+  };
+}
+
 export interface BrowserNavigationRuntimeInstallOptions {
   readonly map: MapboxGlMapLike;
   readonly sdk: MapboxGlModuleLike;
@@ -55,6 +62,17 @@ function destinationLabel(context: NavigationSessionEventContext): string {
   return `${context.destination.latitude.toFixed(6)},${context.destination.longitude.toFixed(6)}`;
 }
 
+function resolveRoutingFallbackProvider(
+  override: RoutingProvider | null | undefined,
+): RoutingProvider | null {
+  if (override !== undefined) return override;
+  const token = (
+    globalThis as typeof globalThis & NavigationRuntimeEnvironmentGlobal
+  ).__MORRO_RUNTIME_ENV__?.VITE_MAPBOX_ACCESS_TOKEN?.trim();
+  if (!token) return null;
+  return createMapboxDirectionsRoutingProvider({ token });
+}
+
 export function installBrowserNavigationRuntime(
   options: BrowserNavigationRuntimeInstallOptions,
 ): BrowserNavigationRuntimeInstall {
@@ -71,6 +89,9 @@ export function installBrowserNavigationRuntime(
   const eventBridge = createEventBridge(options.document);
   const guidanceUi = createGuidanceUi(options.document);
   const eventTarget = options.document.defaultView;
+  const routingFallbackProvider = resolveRoutingFallbackProvider(
+    options.routingFallbackProvider,
+  );
 
   let hasActiveRoute = false;
   const onNavigationStarted = (): void => {
@@ -113,7 +134,7 @@ export function installBrowserNavigationRuntime(
   const bootstrap = createBootstrap({
     map: options.map,
     sdk: options.sdk,
-    routingFallbackProvider: options.routingFallbackProvider ?? null,
+    routingFallbackProvider,
     onLocation: (location, context) => {
       hasActiveRoute = true;
       latestLocation = location;
