@@ -18,7 +18,7 @@ Um item não pode avançar para `equivalent` sem evidência visual ou comportame
 | MIG-0002 | `css/main.css` | Design System | FEATURE-0007 | `packages/design-system/src/legacy` | 2 | equivalent | 35/35 imports CSS ativos preservados byte a byte no checkpoint V1 | n/a | hashes Git blob + regressões visuais do PR #19 | alto |
 | MIG-0003 | `css/base/variables.css` | Design System | FEATURE-0007 | `packages/design-system/src/tokens` | 2 | mapped | pendente | n/a | extração de tokens pendente | médio |
 | MIG-0004 | `js/map*` | Geospatial | FEATURE-0001 | `packages/geospatial` | 4 | equivalent | contrato visual Mapbox V1 validado em mobile/tablet/desktop e alto contraste | provider real, fallback e rollback comprovados | PR #17: Quality, Provider, Tour Browser e Visual Contract verdes | crítico |
-| MIG-0005 | `js/navigation*` | Navigation | FEATURE-0003 | `packages/geospatial/navigation` | 4 | discovered | pendente | pendente | pendente | crítico |
+| MIG-0005 | `js/navigation*` | Navigation | FEATURE-0003 | `packages/navigation` + adapters em `packages/geospatial` + composição no app | 4 | equivalent | banner, guidance, first-person/câmera, minimizar/maximizar, forced-colors, texto 200% e mobile/tablet/desktop comprovados | 24/24 cenários obrigatórios PASS: sessão, accuracy, routing, Mapbox Directions fallback, geometry, bearing, arrival, events, lifecycle e provider fallback/teardown | matriz `NAVIGATION-MIG-0005-EQUIVALENCE-MATRIX.md`; PRs #49/#52/#53/#54/#55; Quality Gates #542/#568/#569/#575 e browser gates verdes | crítico |
 | MIG-0006 | `js/assistant*` | Assistant | FEATURE-0004 | `packages/assistant` | 11 | discovered | pendente | pendente | pendente | alto |
 | MIG-0007 | Business Portal | Business | FEATURE-0005 | `apps/business-portal` | 6 | discovered | pendente | pendente | pendente | alto |
 | MIG-0008 | CRM V1 | CRM | FEATURE-0006 | `apps/admin-crm` | 7 | discovered | pendente | pendente | pendente | alto |
@@ -27,7 +27,7 @@ Um item não pode avançar para `equivalent` sem evidência visual ou comportame
 | MIG-0011 | afiliados | Affiliates | FEATURE-0010 | `packages/affiliates` | 9 | discovered | pendente | pendente | pendente | crítico |
 | MIG-0012 | `js/map*` + bootstrap V1 | Geospatial | FEATURE-0001 | `packages/geospatial` + `apps/morro-digital-platform/src/bootstrap/geospatial.ts` | 4 | equivalent | Mapbox Visual Contract validado nos três viewports, normal e `forced-colors` | Runtime, adapter, Mapbox real, fallback, rollback e lifecycle comprovados | PR #17 head final `2d84629b`; runs `31237633579`, `31237633601`, `31237633577` verdes | crítico |
 | MIG-0013 | Home / seletor de roteiros V1 | Core UI / Tours | FEATURE-0007 | `apps/morro-digital-platform/src/browser-entry.ts` | 4 | equivalent | matriz Home v4: loading, map-ready, teclado, contraste e texto ampliado comprovados | troca 8→5→5→8, falhas e offline/provider indisponível comprovados | PRs #19/#17/#20 incorporados; Quality Gate final da matriz `31237787144` verde | alto |
-| MIG-0014 | `js/tours/tour-data.js` + `js/i18n/{pt,en,es,he}.js` | Tours | FEATURE-0007 | `apps/morro-digital-platform/src/config/tour-localization.ts` + fontes editoriais V1 | 4 | equivalent | conteúdo dos 3 roteiros/18 paradas preservado nos quatro idiomas da V1; `photoAlt` estrutural mantido conforme `translateTour()` | chaves, fallback PT/EN, descrições, narrações, dicas, aliases de locale e imutabilidade comprovados | PR #18 head `1d7e4bc9`; Quality Gate `31238742255` verde; testes exigem cobertura integral de chaves EN/ES/HE | alto |
+| MIG-0014 | `js/tours/tour-data.js` | Tours | FEATURE-0007 | `apps/morro-digital-platform/src/config/tour-catalog.ts` + `tour-localization.ts` | 4 | equivalent | estrutura e conteúdo editorial multilíngue dos 3 roteiros preservados em PT-BR, EN, ES e HE | 3 roteiros / 18 paradas; descrições, narrações, dicas, fallbacks, chaves V1, geometria e mídia preservados | PR #18; Quality Gate #385 verde; revalidação integradora obrigatória após sync com `main` | alto |
 | MIG-0015 | marcadores e centro do mapa da V1 | Geospatial / Tours | FEATURE-0001 | `apps/morro-digital-platform/src/config/tour-markers.ts` + `tour-selection.ts` | 4 | equivalent | rota, source/layers, câmera e 8/5 paradas validados no Mapbox real | substituição atômica, recentralização, troca 8→5→5→8 e rollback comprovados | PR #17 runs Provider `31237633601` e Tour Browser `31237633588` verdes | crítico |
 | MIG-0016 | resolvedor `findTourByKeyword` da V1 | Tours | FEATURE-0007 | `apps/morro-digital-platform/src/config/tour-search.ts` | 4 | equivalent | n/a | aliases, acentos, termos barco/Gamboa, quadriciclo/ATV e retorno seguro preservados | testes automatizados do Runtime M1 + Quality Gates posteriores verdes | médio |
 
@@ -107,36 +107,69 @@ O manifest v4 mantém três modos de prova:
 
 A jornada `home` está em `equivalent`, não `released`.
 
-### Conteúdo multilíngue dos roteiros — PR #18
+## Pendência ativa da Wave 4
 
-Fonte V1 congelada:
+A pendência funcional ainda aberta fora de Navigation é **MIG-0014 — conteúdo dos roteiros**.
+
+O PR #18 deve permanecer draft até:
+
+- confrontar diretamente a V1 congelada `60746fd7fed97b805758b37adfdbe3bad2582bfe`;
+- inventariar todos os campos editoriais dos 3 roteiros e 18 paradas;
+- preservar os idiomas realmente suportados pela V1;
+- migrar descrições completas, narrações, dicas e metadados de acessibilidade quando existirem na fonte;
+- validar fallback e chaves de tradução;
+- adicionar testes de equivalência por campo/chave;
+- registrar qualquer mudança intencional como `preservar`, `corrigir` ou `melhorar`;
+- executar Quality Gate completo no head final.
+
+MIG-0014 só poderá avançar para `equivalent` após essa evidência.
+
+## Navigation equivalente — MIG-0005
+
+A fonte V1 de Navigation permanece congelada em:
 
 ```text
 60746fd7fed97b805758b37adfdbe3bad2582bfe
 ```
 
-A auditoria direta confirmou quatro idiomas de tour na V1 (`pt`, `en`, `es`, `he`) e o contrato editorial de cada parada: título, descrição, narração, dicas e `photoAlt` estrutural. A primeira implementação do PR #18 foi corrigida porque omitia hebraico, descrições/narrações/dicas e traduzia `photoAlt` sem correspondência na V1.
+O baseline `docs/migration/NAVIGATION-V1-BASELINE.md` e a matriz `docs/migration/NAVIGATION-MIG-0005-EQUIVALENCE-MATRIX.md` cobrem os contratos obrigatórios de sessão, routing, geometry, geolocation, UI, acessibilidade e provider fallback.
 
-Head comprovado antes da atualização documental do tracker:
-
-```text
-1d7e4bc9b2496f01d181f4965f58a7186c57fd8d
-```
-
-Quality Gate:
+Resultado final da matriz:
 
 ```text
-Run: 31238742255
-Conclusão: success
+PASS     24
+PARTIAL   0
+GAP       0
+TOTAL    24
 ```
 
-Os testes exigem cobertura integral de todas as chaves editoriais esperadas nos dicionários EN/ES/HE, 3 roteiros/18 paradas em todos os locales, fallback V1, preservação PT, `photoAlt` estrutural, geometria/mídia e imutabilidade.
+Checkpoints adicionais que fecharam as pendências finais:
 
-## Gate da Wave 4 — Runtime + Geospatial + Tours
+```text
+Accuracy V1 — PR #52
+head 211054cebd4e5e991958e2292e7eb4d3bbecb0f6
+1500 m bootstrap / 300 m guidance
 
-MIG-0012, MIG-0013, MIG-0014, MIG-0015 e MIG-0016 estão em `equivalent` com evidência automatizada. Isso fecha a equivalência do checkpoint atual da Wave 4; nenhum desses itens deve ser promovido para `released` sem o gate de release/deploy correspondente.
+Routing fallback — PR #53
+head 54ee3ca76e46b59fe8e4aa622bd3afae0ab8c835
+Quality Gate #568 — success
+Navigation Visual Baseline #41 — success
 
-A próxima frente crítica da Wave 4 é **MIG-0005 — Navigation**, ainda em `discovered`. Ela deve iniciar por inventário da V1 e baseline comportamental antes de qualquer refatoração.
+Acessibilidade ativa — PR #54
+head 68177abb57f648ac73b0e3d3d999a510badfd5a4
+Quality Gate #569 — success
+Navigation Accessibility Baseline #1 — success
+artifact 9031022524
+sha256 a23b789045ee557d4001cefed8f1a8603f704ef59c1ddc787d05f965ce89d161
+
+Provider fallback — PR #55
+head d2a169b29ec991c9fb42918af593cdbff10fbb05
+Quality Gate #575 — success
+```
+
+O contrato final mantém o core `@touristic/navigation` provider-agnostic, o adapter Mapbox no boundary geospatial/app, nenhum segredo no browser, teardown idempotente e ausência de navegação Leaflet inventada. Quando Mapbox cai para fallback cartográfico, o runtime guiado Mapbox é destruído antes da troca de provider.
+
+`MIG-0005` está em `equivalent`, não `released`. Rollout/publicação permanece separado.
 
 ## Campos obrigatórios por novo item
 

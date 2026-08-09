@@ -1,0 +1,224 @@
+name: Navigation Accessibility Baseline
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/navigation-accessibility-baseline.yml
+      - apps/morro-digital-platform/src/navigation/**
+      - apps/morro-digital-platform/src/browser-entry.ts
+      - apps/morro-digital-platform/src/layouts/app-shell.ts
+      - apps/morro-digital-platform/public/**
+      - packages/geospatial/src/**
+      - packages/navigation/src/**
+
+permissions:
+  contents: read
+
+jobs:
+  navigation-accessibility:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install deterministic Chromium
+        run: |
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+          mkdir -p /tmp/navigation-accessibility
+      - name: Build workspace
+        run: pnpm -w build
+      - name: Start authenticated Mapbox runtime
+        env:
+          MAPBOX_PUBLIC_TOKEN_CI: ${{ secrets.MAPBOX_PUBLIC_TOKEN_CI }}
+        run: |
+          test -n "${MAPBOX_PUBLIC_TOKEN_CI:-}" || { echo 'MAPBOX_PUBLIC_TOKEN_CI missing'; exit 1; }
+          VITE_MAPBOX_ACCESS_TOKEN="$MAPBOX_PUBLIC_TOKEN_CI" \
+          VITE_MAPBOX_STYLE=mapbox://styles/mapbox/streets-v12 \
+          VITE_MAPBOX_CONTAINER_ID=map \
+          VITE_MAPBOX_INITIAL_ZOOM=13.5 \
+          node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/navigation-accessibility.log 2>&1 &
+          echo $! >/tmp/navigation-accessibility.pid
+          for i in $(seq 1 90); do
+            if curl -fsS http://127.0.0.1:4173/runtime-config.js >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/navigation-accessibility.log
+          exit 1
+      - name: Validate forced colors and 200 percent text navigation
+        run: |
+          node <<'NODE'
+          const { writeFileSync } = require('node:fs');
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+
+          const outputDir = '/tmp/navigation-accessibility';
+          const start = { latitude: -13.3762, longitude: -38.9172 };
+          const livePosition = { latitude: -13.37615, longitude: -38.91715 };
+          const destination = { latitude: -13.3740, longitude: -38.9148 };
+          const routeResponse = {
+            type: 'FeatureCollection',
+            features: [{
+              type: 'Feature',
+              properties: {
+                summary: { distance: 390, duration: 290 },
+                segments: [{
+                  distance: 390,
+                  duration: 290,
+                  steps: [
+                    { distance: 92, duration: 68, instruction: 'Continue em frente', name: 'Caminho principal', way_points: [0, 1] },
+                    { distance: 126, duration: 94, instruction: 'Vire à direita', name: 'Rua da Fonte', way_points: [1, 2] },
+                    { distance: 172, duration: 128, instruction: 'Continue até o destino', name: 'Destino', way_points: [2, 3] },
+                  ],
+                }],
+              },
+              geometry: {
+                type: 'LineString',
+                coordinates: [
+                  [start.longitude, start.latitude],
+                  [-38.91655, -13.37565],
+                  [-38.91575, -13.37485],
+                  [destination.longitude, destination.latitude],
+                ],
+              },
+            }],
+          };
+
+          async function poll(page, predicate, label, timeout = 15000) {
+            const deadline = Date.now() + timeout;
+            while (Date.now() < deadline) {
+              if (await page.evaluate(predicate)) return;
+              await page.waitForTimeout(100);
+            }
+            throw new Error(`${label} did not become ready`);
+          }
+
+          async function waitForMap(page) {
+            await page.locator('#map[data-map-state="ready"][data-map-mode="real"][data-map-provider="mapbox"]').waitFor({ state: 'attached', timeout: 30000 });
+            await page.locator('#map .mapboxgl-canvas').waitFor({ state: 'visible', timeout: 30000 });
+            await poll(page, () => Boolean(globalThis.mapboxPrimaryInstance?.isStyleLoaded?.()), 'mapbox-style', 30000);
+          }
+
+          async function runCase(browser, testCase) {
+            const context = await browser.newContext({
+              viewport: { width: testCase.width, height: testCase.height },
+              deviceScaleFactor: testCase.deviceScaleFactor,
+              geolocation: start,
+              permissions: ['geolocation'],
+            });
+            await context.addInitScript(() => {
+              localStorage.setItem('morro-digital-onboarded', '1');
+              localStorage.setItem('voice-enabled', 'false');
+              globalThis.__navigationA11yEvidence = { events: [] };
+              for (const type of ['navigationStarted', 'userLocationUpdated', 'navigationRouteRuntimeUpdated', 'navigationEnded']) {
+                addEventListener(type, (event) => globalThis.__navigationA11yEvidence.events.push({ type, detail: event.detail ?? null }));
+              }
+            });
+            const page = await context.newPage();
+            if (testCase.forcedColors) await page.emulateMedia({ forcedColors: 'active' });
+            const pageErrors = [];
+            page.on('pageerror', (error) => pageErrors.push(error.message));
+            await page.route('**/api/routing/directions', async (route) => {
+              await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(routeResponse) });
+            });
+
+            await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded', timeout: 30000 });
+            await waitForMap(page);
+            await page.evaluate((nextDestination) => {
+              document.dispatchEvent(new CustomEvent('morro:navigation-requested', { detail: { destination: nextDestination } }));
+            }, destination);
+            await page.locator('#instruction-banner:not(.hidden)').waitFor({ state: 'visible', timeout: 15000 });
+            await page.locator('#end-navigation-btn').waitFor({ state: 'visible', timeout: 15000 });
+            await context.setGeolocation(livePosition);
+            await poll(page, () => globalThis.__navigationA11yEvidence.events.some((event) => event.type === 'navigationRouteRuntimeUpdated'), 'runtime');
+            await page.waitForTimeout(500);
+
+            const state = await page.evaluate(() => {
+              const banner = document.getElementById('instruction-banner');
+              const minimize = document.getElementById('minimize-navigation-btn');
+              const end = document.getElementById('end-navigation-btn');
+              const instruction = document.getElementById('instruction-main');
+              const bannerRect = banner?.getBoundingClientRect();
+              const endRect = end?.getBoundingClientRect();
+              const minimizeStyle = minimize ? getComputedStyle(minimize) : null;
+              return {
+                forcedColors: matchMedia('(forced-colors: active)').matches,
+                bannerVisible: Boolean(banner && !banner.classList.contains('hidden') && getComputedStyle(banner).display !== 'none'),
+                endVisible: Boolean(end && getComputedStyle(end).display !== 'none'),
+                bodyActive: document.body.classList.contains('navigation-active'),
+                instruction: instruction?.textContent?.trim() ?? '',
+                bannerRect: bannerRect ? { left: bannerRect.left, right: bannerRect.right, top: bannerRect.top, bottom: bannerRect.bottom, width: bannerRect.width, height: bannerRect.height } : null,
+                endRect: endRect ? { width: endRect.width, height: endRect.height } : null,
+                minimizeForcedColorAdjust: minimizeStyle?.forcedColorAdjust ?? null,
+                minimizeBorderWidth: minimizeStyle?.borderTopWidth ?? null,
+                viewport: { width: innerWidth, height: innerHeight, dpr: devicePixelRatio },
+                markerCount: document.querySelectorAll('#map .mapboxgl-marker').length,
+                events: globalThis.__navigationA11yEvidence.events,
+              };
+            });
+
+            if (!state.bannerVisible || !state.endVisible || !state.bodyActive || !state.instruction) {
+              throw new Error(`Active navigation UI missing for ${testCase.name}: ${JSON.stringify(state)}`);
+            }
+            if (!state.bannerRect || state.bannerRect.width <= 0 || state.bannerRect.height <= 0 || !state.endRect || state.endRect.width <= 0 || state.endRect.height <= 0) {
+              throw new Error(`Navigation controls have invalid geometry for ${testCase.name}: ${JSON.stringify(state)}`);
+            }
+            if (testCase.forcedColors && !state.forcedColors) {
+              throw new Error(`Forced colors was not active for ${testCase.name}`);
+            }
+            if (testCase.forcedColors && state.minimizeForcedColorAdjust !== 'none') {
+              throw new Error(`V1 forced-color contract missing for ${testCase.name}: ${JSON.stringify(state)}`);
+            }
+            if (testCase.text200 && state.viewport.dpr !== 2) {
+              throw new Error(`200 percent text emulation diverged for ${testCase.name}: ${JSON.stringify(state.viewport)}`);
+            }
+            if (state.markerCount < 9 || pageErrors.length) {
+              throw new Error(`Browser/navigation evidence failed for ${testCase.name}: ${JSON.stringify({ state, pageErrors })}`);
+            }
+
+            await page.screenshot({ path: `${outputDir}/${testCase.name}.png`, fullPage: false, animations: 'disabled' });
+            await page.locator('#end-navigation-btn').click();
+            await poll(page, () => globalThis.__navigationA11yEvidence.events.some((event) => event.type === 'navigationEnded'), 'navigation-ended', 5000);
+            await context.close();
+            return { state, pageErrors };
+          }
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            const cases = [
+              { name: 'forced-colors-mobile', width: 390, height: 844, deviceScaleFactor: 1, forcedColors: true },
+              { name: 'forced-colors-tablet', width: 768, height: 1024, deviceScaleFactor: 1, forcedColors: true },
+              { name: 'forced-colors-desktop', width: 1440, height: 900, deviceScaleFactor: 1, forcedColors: true },
+              { name: 'text-200-mobile', width: 195, height: 422, deviceScaleFactor: 2, text200: true },
+              { name: 'text-200-tablet', width: 384, height: 512, deviceScaleFactor: 2, text200: true },
+              { name: 'text-200-desktop', width: 720, height: 450, deviceScaleFactor: 2, text200: true },
+            ];
+            const evidence = {};
+            try {
+              for (const testCase of cases) evidence[testCase.name] = await runCase(browser, testCase);
+            } finally {
+              await browser.close();
+            }
+            writeFileSync(`${outputDir}/evidence.json`, JSON.stringify({
+              v1Commit: '60746fd7fed97b805758b37adfdbe3bad2582bfe',
+              scenarios: ['active-navigation-forced-colors', 'active-navigation-text-200'],
+              evidence,
+            }, null, 2));
+          })().catch((error) => { console.error(error); process.exit(1); });
+          NODE
+      - name: Show diagnostics
+        if: failure()
+        run: cat /tmp/navigation-accessibility.log || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: navigation-accessibility-baseline-evidence
+          path: /tmp/navigation-accessibility
+          if-no-files-found: error
+          retention-days: 14
