@@ -39,7 +39,7 @@ describe("V1 navigation provider fallback contract", () => {
   it("installs guided navigation only for the real Mapbox provider", async () => {
     const source = await readFile(browserEntryPath, "utf8");
     const start = source.indexOf("async function startBrowserWithProvider");
-    const end = source.indexOf("void (async () =>", start);
+    const end = source.indexOf("async function start(): Promise<void>", start);
     const providerSource = source.slice(start, end);
 
     expect(start).toBeGreaterThanOrEqual(0);
