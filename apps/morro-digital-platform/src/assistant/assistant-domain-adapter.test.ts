@@ -105,4 +105,67 @@ describe("assistant browser domain adapter", () => {
       metadata: { domain: "help" },
     });
   });
+
+  it("uses the same-origin weather provider for current conditions", async () => {
+    const fetchImplementation: typeof globalThis.fetch = async () =>
+      new Response(
+        JSON.stringify({
+          temperatureCelsius: 28,
+          weatherCode: 2,
+          isDay: true,
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    const handlers = createAssistantBrowserDomainHandlers({
+      fetch: fetchImplementation,
+    });
+
+    const response = await handlers.weather?.(request("weather"));
+
+    expect(response).toEqual({
+      text: "Agora em Morro de São Paulo: 28°C, parcialmente nublado.",
+      options: [
+        { label: "Temperatura agora", value: "temperatura agora" },
+        { label: "Vai chover?", value: "vai chover" },
+        { label: "Previsão do tempo", value: "previsao do tempo" },
+        { label: "Como está a maré?", value: "mare" },
+        { label: "Voltar ao menu principal", value: "voltar ao menu" },
+      ],
+      metadata: {
+        domain: "weather",
+        state: "resolved",
+        temperatureCelsius: 28,
+        weatherCode: 2,
+        isDay: true,
+      },
+    });
+  });
+
+  it("falls back to audited V1 climate guidance when weather is unavailable", async () => {
+    const fetchImplementation: typeof globalThis.fetch = async () =>
+      new Response(JSON.stringify({ error: "weather_unavailable" }), {
+        status: 503,
+        headers: { "Content-Type": "application/json" },
+      });
+    const handlers = createAssistantBrowserDomainHandlers({
+      fetch: fetchImplementation,
+    });
+
+    const response = await handlers.weather?.(request("weather"));
+
+    expect(response).toEqual({
+      text: "Em Morro de São Paulo, a temperatura costuma ficar entre 25°C e 32°C. O período mais chuvoso vai de novembro a março e a época mais seca costuma ser de junho a setembro.",
+      options: [
+        { label: "Temperatura agora", value: "temperatura agora" },
+        { label: "Vai chover?", value: "vai chover" },
+        { label: "Previsão do tempo", value: "previsao do tempo" },
+        { label: "Como está a maré?", value: "mare" },
+        { label: "Voltar ao menu principal", value: "voltar ao menu" },
+      ],
+      metadata: { domain: "weather", state: "generic_fallback" },
+    });
+  });
 });

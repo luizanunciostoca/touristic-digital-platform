@@ -5,6 +5,10 @@ import {
   type AssistantDialogResponse,
   type AssistantProfileStorage,
 } from "@touristic/assistant";
+import {
+  fetchMorroWeather,
+  type WeatherReading,
+} from "../weather/weather-widget.js";
 
 export interface AssistantGeolocationPort {
   getCurrentPosition(
@@ -17,6 +21,52 @@ export interface AssistantGeolocationPort {
 export interface AssistantBrowserDomainAdapterOptions {
   readonly storage?: AssistantProfileStorage;
   readonly geolocation?: AssistantGeolocationPort;
+  readonly fetch?: typeof globalThis.fetch;
+}
+
+const WEATHER_OPTIONS = [
+  { label: "Temperatura agora", value: "temperatura agora" },
+  { label: "Vai chover?", value: "vai chover" },
+  { label: "Previsão do tempo", value: "previsao do tempo" },
+  { label: "Como está a maré?", value: "mare" },
+  { label: "Voltar ao menu principal", value: "voltar ao menu" },
+];
+
+function weatherCondition(reading: WeatherReading): string {
+  const code = reading.weatherCode;
+  if ([95, 96, 99].includes(code)) return "trovoadas";
+  if ([71, 73, 75, 77, 85, 86].includes(code)) return "precipitação congelada";
+  if ([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(code))
+    return "chuva";
+  if ([45, 48].includes(code)) return "névoa";
+  if (code === 3) return "nublado";
+  if ([1, 2].includes(code)) return "parcialmente nublado";
+  return reading.isDay ? "céu limpo" : "céu limpo à noite";
+}
+
+async function getWeather(
+  fetchImplementation: typeof globalThis.fetch,
+): Promise<AssistantDialogResponse> {
+  try {
+    const reading = await fetchMorroWeather(fetchImplementation);
+    return {
+      text: `Agora em Morro de São Paulo: ${reading.temperatureCelsius}°C, ${weatherCondition(reading)}.`,
+      options: [...WEATHER_OPTIONS],
+      metadata: {
+        domain: "weather",
+        state: "resolved",
+        temperatureCelsius: reading.temperatureCelsius,
+        weatherCode: reading.weatherCode,
+        isDay: reading.isDay,
+      },
+    };
+  } catch {
+    return {
+      text: "Em Morro de São Paulo, a temperatura costuma ficar entre 25°C e 32°C. O período mais chuvoso vai de novembro a março e a época mais seca costuma ser de junho a setembro.",
+      options: [...WEATHER_OPTIONS],
+      metadata: { domain: "weather", state: "generic_fallback" },
+    };
+  }
 }
 
 function getCurrentLocation(
@@ -62,13 +112,11 @@ export function createAssistantBrowserDomainHandlers(
   const profile = createAssistantUserProfileManager(
     options.storage ? { storage: options.storage } : {},
   );
+  const fetchImplementation = options.fetch ?? globalThis.fetch;
 
   return createAssistantDomainHandlers({
     ports: {
-      weather: () => ({
-        text: "A previsão do tempo ainda está sendo conectada à nova arquitetura.",
-        metadata: { domain: "weather", state: "provider_pending" },
-      }),
+      weather: () => getWeather(fetchImplementation),
       myLocation: () => getCurrentLocation(options.geolocation),
       photos: (place) => ({
         text: `As fotos de ${place} ainda estão sendo conectadas à nova arquitetura.`,
