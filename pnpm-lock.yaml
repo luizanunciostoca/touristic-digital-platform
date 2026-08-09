@@ -44,6 +44,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/navigation
 
+  packages/assistant: {}
+
   packages/core: {}
 
   packages/design-system: {}
