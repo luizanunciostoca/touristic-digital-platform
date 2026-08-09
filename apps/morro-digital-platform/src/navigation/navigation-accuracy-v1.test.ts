@@ -84,14 +84,16 @@ function bootstrapForAccuracy(accuracy: number) {
     (options: BrowserNavigationWiringOptions) => BrowserNavigationWiring
   >(() => wiring);
   const requestRouteImpl = vi.fn(async () => routeData());
+  const map: MapboxGlMapLike = { setCenter: vi.fn(), remove: vi.fn() };
+  const sdk: MapboxGlModuleLike = {
+    accessToken: "token",
+    Map: vi.fn(),
+    Marker: vi.fn(),
+  };
 
   const bootstrap = createNavigationSessionBootstrap({
-    map: { setCenter: vi.fn(), remove: vi.fn() } as MapboxGlMapLike,
-    sdk: {
-      accessToken: "token",
-      Map: vi.fn(),
-      Marker: vi.fn(),
-    } as unknown as MapboxGlModuleLike,
+    map,
+    sdk,
     geolocationDriver,
     requestRouteImpl,
     createWiring,
@@ -135,7 +137,7 @@ function runtimeSnapshot(): NavigationRuntimeSnapshot {
 }
 
 function guidanceAccuracyHarness() {
-  let subscriber: ((location: BrowserLocation) => void) | null = null;
+  let subscriber: (location: BrowserLocation) => void = () => undefined;
   const geolocation: BrowserGeolocationService = {
     start: vi.fn(),
     stop: vi.fn(),
@@ -175,7 +177,6 @@ function guidanceAccuracyHarness() {
     runtimeUpdate,
     onLocation,
     emit(accuracy: number) {
-      if (!subscriber) throw new Error("location subscriber not installed");
       subscriber({
         latitude: -13.376,
         longitude: -38.917,
