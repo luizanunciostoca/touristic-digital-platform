@@ -53,9 +53,9 @@ describe("assistant domain handlers", () => {
     await expect(handlers.weather(request("weather"))).resolves.toEqual({
       text: "weather",
     });
-    await expect(
-      handlers.my_location(request("my_location")),
-    ).resolves.toEqual({ text: "location" });
+    await expect(handlers.my_location(request("my_location"))).resolves.toEqual(
+      { text: "location" },
+    );
     await expect(handlers.nearby(request("nearby"))).resolves.toEqual({
       text: "nearby",
     });

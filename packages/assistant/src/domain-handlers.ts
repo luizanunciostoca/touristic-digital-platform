@@ -51,7 +51,12 @@ export interface AssistantDomainHandlerPorts {
 }
 
 export interface AssistantDomainHandlerCopy {
-  askPlace(intent: Extract<AssistantDomainIntent, "photos" | "price" | "hours" | "more_info">): AssistantDialogResponse;
+  askPlace(
+    intent: Extract<
+      AssistantDomainIntent,
+      "photos" | "price" | "hours" | "more_info"
+    >,
+  ): AssistantDialogResponse;
 }
 
 export interface AssistantDomainHandlersOptions {
@@ -73,12 +78,17 @@ const DEFAULT_COPY: AssistantDomainHandlerCopy = {
   }),
 };
 
-function resolvePlace(request: AssistantDialogIntentHandlerContext): string | null {
+function resolvePlace(
+  request: AssistantDialogIntentHandlerContext,
+): string | null {
   return request.intent.entities.place ?? request.context.lastPlace ?? null;
 }
 
 function createPlaceHandler(
-  intent: Extract<AssistantDomainIntent, "photos" | "price" | "hours" | "more_info">,
+  intent: Extract<
+    AssistantDomainIntent,
+    "photos" | "price" | "hours" | "more_info"
+  >,
   copy: AssistantDomainHandlerCopy,
   port: (
     place: string,
@@ -94,7 +104,10 @@ function createPlaceHandler(
 
 export function createAssistantDomainHandlers(
   options: AssistantDomainHandlersOptions,
-): Pick<Record<AssistantIntent, AssistantDialogIntentHandler>, AssistantDomainIntent> {
+): Pick<
+  Record<AssistantIntent, AssistantDialogIntentHandler>,
+  AssistantDomainIntent
+> {
   const copy: AssistantDomainHandlerCopy = { ...DEFAULT_COPY, ...options.copy };
 
   return Object.freeze({
