@@ -18,7 +18,7 @@ Um item não pode avançar para `equivalent` sem evidência visual ou comportame
 | MIG-0002 | `css/main.css` | Design System | FEATURE-0007 | `packages/design-system/src/legacy` | 2 | equivalent | 35/35 imports CSS ativos preservados byte a byte no checkpoint V1 | n/a | hashes Git blob + regressões visuais do PR #19 | alto |
 | MIG-0003 | `css/base/variables.css` | Design System | FEATURE-0007 | `packages/design-system/src/tokens` | 2 | mapped | pendente | n/a | extração de tokens pendente | médio |
 | MIG-0004 | `js/map*` | Geospatial | FEATURE-0001 | `packages/geospatial` | 4 | equivalent | contrato visual Mapbox V1 validado em mobile/tablet/desktop e alto contraste | provider real, fallback e rollback comprovados | PR #17: Quality, Provider, Tour Browser e Visual Contract verdes | crítico |
-| MIG-0005 | `js/navigation*` | Navigation | FEATURE-0003 | `packages/navigation` + adapters em `packages/geospatial` + composição no app | 4 | mapped | banner, botão Encerrar, first-person/câmera e estados dinâmicos inventariados; captura executável pendente | sessão, routing, geometry tracker, geolocation, eventos e lifecycle mapeados contra V1 `60746fd7` | baseline `NAVIGATION-V1-BASELINE.md`; fixtures/gates executáveis pendentes | crítico |
+| MIG-0005 | `js/navigation*` | Navigation | FEATURE-0003 | `packages/navigation` + adapters em `packages/geospatial` + composição no app | 4 | equivalent | banner, guidance, first-person/câmera, minimizar/maximizar, forced-colors, texto 200% e mobile/tablet/desktop comprovados | 24/24 cenários obrigatórios PASS: sessão, accuracy, routing, Mapbox Directions fallback, geometry, bearing, arrival, events, lifecycle e provider fallback/teardown | matriz `NAVIGATION-MIG-0005-EQUIVALENCE-MATRIX.md`; PRs #49/#52/#53/#54/#55; Quality Gates #542/#568/#569/#575 e browser gates verdes | crítico |
 | MIG-0006 | `js/assistant*` | Assistant | FEATURE-0004 | `packages/assistant` | 11 | discovered | pendente | pendente | pendente | alto |
 | MIG-0007 | Business Portal | Business | FEATURE-0005 | `apps/business-portal` | 6 | discovered | pendente | pendente | pendente | alto |
 | MIG-0008 | CRM V1 | CRM | FEATURE-0006 | `apps/admin-crm` | 7 | discovered | pendente | pendente | pendente | alto |
@@ -109,7 +109,7 @@ A jornada `home` está em `equivalent`, não `released`.
 
 ## Pendência ativa da Wave 4
 
-A única pendência do conjunto MIG-0012…MIG-0016 é **MIG-0014 — conteúdo dos roteiros**.
+A pendência funcional ainda aberta fora de Navigation é **MIG-0014 — conteúdo dos roteiros**.
 
 O PR #18 deve permanecer draft até:
 
@@ -124,27 +124,52 @@ O PR #18 deve permanecer draft até:
 
 MIG-0014 só poderá avançar para `equivalent` após essa evidência.
 
-## Baseline de Navigation — MIG-0005
+## Navigation equivalente — MIG-0005
 
-A V1 congelada foi inventariada diretamente no commit:
+A fonte V1 de Navigation permanece congelada em:
 
 ```text
 60746fd7fed97b805758b37adfdbe3bad2582bfe
 ```
 
-O documento `docs/migration/NAVIGATION-V1-BASELINE.md` registra:
+O baseline `docs/migration/NAVIGATION-V1-BASELINE.md` e a matriz `docs/migration/NAVIGATION-MIG-0005-EQUIVALENCE-MATRIX.md` cobrem os contratos obrigatórios de sessão, routing, geometry, geolocation, UI, acessibilidade e provider fallback.
 
-- sessão cancelável e proteção contra callbacks stale;
-- routing same-origin, timeout, abort, validação e fallback;
-- proibição de segredo/endpoint ORS no browser;
-- geometria, projeção na rota, progresso e bearing;
-- ownership único da câmera durante first-person navigation;
-- geolocation e cancelamento de watchers tardios;
-- eventos e health snapshots;
-- banner, progresso, distância, tempo e botão Encerrar;
-- fronteira arquitetural entre `@touristic/navigation`, `@touristic/geospatial` e o app.
+Resultado final da matriz:
 
-MIG-0005 está em `mapped`. Ainda são obrigatórios fixtures, captura executável/visual da V1 e matriz comportamental antes de `snapshotted` ou `equivalent`.
+```text
+PASS     24
+PARTIAL   0
+GAP       0
+TOTAL    24
+```
+
+Checkpoints adicionais que fecharam as pendências finais:
+
+```text
+Accuracy V1 — PR #52
+head 211054cebd4e5e991958e2292e7eb4d3bbecb0f6
+1500 m bootstrap / 300 m guidance
+
+Routing fallback — PR #53
+head 54ee3ca76e46b59fe8e4aa622bd3afae0ab8c835
+Quality Gate #568 — success
+Navigation Visual Baseline #41 — success
+
+Acessibilidade ativa — PR #54
+head 68177abb57f648ac73b0e3d3d999a510badfd5a4
+Quality Gate #569 — success
+Navigation Accessibility Baseline #1 — success
+artifact 9031022524
+sha256 a23b789045ee557d4001cefed8f1a8603f704ef59c1ddc787d05f965ce89d161
+
+Provider fallback — PR #55
+head d2a169b29ec991c9fb42918af593cdbff10fbb05
+Quality Gate #575 — success
+```
+
+O contrato final mantém o core `@touristic/navigation` provider-agnostic, o adapter Mapbox no boundary geospatial/app, nenhum segredo no browser, teardown idempotente e ausência de navegação Leaflet inventada. Quando Mapbox cai para fallback cartográfico, o runtime guiado Mapbox é destruído antes da troca de provider.
+
+`MIG-0005` está em `equivalent`, não `released`. Rollout/publicação permanece separado.
 
 ## Campos obrigatórios por novo item
 
