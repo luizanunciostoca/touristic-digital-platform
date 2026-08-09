@@ -14,6 +14,7 @@ import {
   fetchAssistantPlaceDetails,
   type AssistantPlaceDetails,
 } from "./assistant-place-details-adapter.js";
+import { resolveAssistantV1Photos } from "./assistant-v1-photo-catalog.js";
 
 export interface AssistantGeolocationPort {
   getCurrentPosition(
@@ -119,6 +120,27 @@ function getCurrentLocation(
   });
 }
 
+function getPhotos(place: string): AssistantDialogResponse {
+  const photoSet = resolveAssistantV1Photos(place);
+  if (!photoSet) {
+    return {
+      text: `Não encontrei fotos disponíveis de ${place}.`,
+      metadata: { domain: "photos", state: "unavailable", place },
+    };
+  }
+
+  return {
+    text: `Encontrei ${photoSet.images.length} fotos de ${photoSet.place}.`,
+    metadata: {
+      domain: "photos",
+      state: "resolved",
+      place: photoSet.place,
+      images: [...photoSet.images],
+      presentation: "carousel",
+    },
+  };
+}
+
 function formatPlaceDetails(details: AssistantPlaceDetails): string {
   const parts = [details.name];
   if (details.category) parts.push(details.category);
@@ -201,10 +223,7 @@ export function createAssistantBrowserDomainHandlers(
     ports: {
       weather: () => getWeather(fetchImplementation),
       myLocation: () => getCurrentLocation(options.geolocation),
-      photos: (place) => ({
-        text: `As fotos de ${place} ainda estão sendo conectadas à nova arquitetura.`,
-        metadata: { domain: "photos", state: "provider_pending", place },
-      }),
+      photos: (place) => getPhotos(place),
       price: (place) => ({
         text: `Os preços de ${place} ainda estão sendo conectados à nova arquitetura.`,
         metadata: { domain: "price", state: "provider_pending", place },
