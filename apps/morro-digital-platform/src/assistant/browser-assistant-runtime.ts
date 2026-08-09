@@ -14,6 +14,7 @@ export interface BrowserAssistantRuntimeOptions {
   readonly navigation: Pick<NavigationSessionBootstrap, "start" | "stop">;
   readonly storage?: Storage;
   readonly fetch?: typeof globalThis.fetch;
+  readonly mapboxAccessToken?: string;
 }
 
 export interface BrowserAssistantRuntime {
@@ -66,6 +67,9 @@ export function installBrowserAssistantRuntime(
       ? { geolocation: options.document.defaultView.navigator.geolocation }
       : {}),
     ...(options.fetch ? { fetch: options.fetch } : {}),
+    ...(options.mapboxAccessToken
+      ? { mapboxAccessToken: options.mapboxAccessToken }
+      : {}),
   });
   const controller = createAssistantDialogController({
     context,
