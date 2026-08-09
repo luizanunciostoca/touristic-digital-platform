@@ -54,32 +54,32 @@ Quality Gate #575 — success
 
 ## Matriz obrigatória
 
-| # | Cenário V1 obrigatório | Estado | Evidência V2 | Pendência |
-| --: | --- | --- | --- | --- |
-| 1 | iniciar navegação com localização válida | PASS | NAV-10/NAV-11/NAV-25B + Navigation Visual Baseline | nenhuma |
-| 2 | permissão de localização negada | PASS | `browser-geolocation.test.ts`: denial, rejeição e cleanup do watcher | nenhuma |
-| 3 | localização imprecisa | PASS | PR #52: baseline V1 materializado com `1500 m` no bootstrap e `300 m` no guidance | nenhuma |
-| 4 | coordenadas inválidas | PASS | request port + routing parity rejeitam coordenadas inválidas antes de lifecycle/rede | nenhuma |
-| 5 | routing proxy success | PASS | routing parity + browser journey com `POST /api/routing/directions` | nenhuma |
-| 6 | routing proxy timeout | PASS | timeout tipado/abort; limites e default V1 preservados | nenhuma |
-| 7 | routing proxy unavailable | PASS | indisponibilidade same-origin e erro primário distinguidos | nenhuma |
-| 8 | fallback elegível | PASS | PR #53: provider Mapbox Directions concreto no boundary geospatial/app, troca primário → fallback e adaptação ao contrato consumido pela navegação | nenhuma |
-| 9 | cancelamento durante request | PASS | bootstrap cancelável + session `AbortSignal`; stop impede ativação tardia | nenhuma |
-| 10 | sessão A substituída por sessão B | PASS | supersession monotônica + geração/sessão oficial | nenhuma |
-| 11 | callback tardio da sessão A | PASS | stale work, stale route result e recalculation stale-session | nenhuma |
-| 12 | atualização de progresso ao longo da rota | PASS | geometry parity + runtime/status browser | nenhuma |
-| 13 | ruído GPS com pequeno movimento para trás | PASS | regressão geométrica + visual backward guard | nenhuma |
-| 14 | mudança de bearing | PASS | bearing/tangente + smoothing/dead-band + presenter/câmera | nenhuma |
-| 15 | aproximação de manobra e histerese de zoom | PASS | fixture V1 e fronteiras `65 / 22 / 38 / 90 m` | nenhuma |
-| 16 | polling sem movimento real | PASS | polling sem mudança visual não reinicia `easeTo` | nenhuma |
-| 17 | minimizar/maximizar banner | PASS | Navigation Visual Baseline em mobile/tablet/desktop, incluindo `aria-expanded` | nenhuma |
-| 18 | cancelamento manual | PASS | botão Encerrar → `navigationEnded.reason=cancelled` + teardown | nenhuma |
-| 19 | chegada ao destino | PASS | core `100 m / 30 m / auto-end 5 s` + browser integration + reason `arrived` | nenhuma |
-| 20 | cleanup após `navigationEnded` | PASS | lifecycle/installer teardown idempotente + browser proof | nenhuma |
-| 21 | fallback de mapa/provider quando aplicável | PASS | PR #55 + `NAVIGATION-PROVIDER-FALLBACK-V1-CONTRACT.md`: runtime Mapbox é destruído antes do fallback e navegação guiada não é duplicada em Leaflet/development | nenhuma |
-| 22 | alto contraste | PASS | PR #54 / Navigation Accessibility Baseline #1: navegação ativa em `forced-colors: active` nas três viewports | nenhuma |
-| 23 | texto ampliado | PASS | PR #54 / Navigation Accessibility Baseline #1: navegação ativa a 200%, sem clipping/overlap impeditivo e com controles utilizáveis | nenhuma |
-| 24 | mobile/tablet/desktop | PASS | Navigation Visual Baseline + Accessibility Baseline em mobile/tablet/desktop | nenhuma |
+|   # | Cenário V1 obrigatório                     | Estado | Evidência V2                                                                                                                                                   | Pendência |
+| --: | ------------------------------------------ | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
+|   1 | iniciar navegação com localização válida   | PASS   | NAV-10/NAV-11/NAV-25B + Navigation Visual Baseline                                                                                                             | nenhuma   |
+|   2 | permissão de localização negada            | PASS   | `browser-geolocation.test.ts`: denial, rejeição e cleanup do watcher                                                                                           | nenhuma   |
+|   3 | localização imprecisa                      | PASS   | PR #52: baseline V1 materializado com `1500 m` no bootstrap e `300 m` no guidance                                                                              | nenhuma   |
+|   4 | coordenadas inválidas                      | PASS   | request port + routing parity rejeitam coordenadas inválidas antes de lifecycle/rede                                                                           | nenhuma   |
+|   5 | routing proxy success                      | PASS   | routing parity + browser journey com `POST /api/routing/directions`                                                                                            | nenhuma   |
+|   6 | routing proxy timeout                      | PASS   | timeout tipado/abort; limites e default V1 preservados                                                                                                         | nenhuma   |
+|   7 | routing proxy unavailable                  | PASS   | indisponibilidade same-origin e erro primário distinguidos                                                                                                     | nenhuma   |
+|   8 | fallback elegível                          | PASS   | PR #53: provider Mapbox Directions concreto no boundary geospatial/app, troca primário → fallback e adaptação ao contrato consumido pela navegação             | nenhuma   |
+|   9 | cancelamento durante request               | PASS   | bootstrap cancelável + session `AbortSignal`; stop impede ativação tardia                                                                                      | nenhuma   |
+|  10 | sessão A substituída por sessão B          | PASS   | supersession monotônica + geração/sessão oficial                                                                                                               | nenhuma   |
+|  11 | callback tardio da sessão A                | PASS   | stale work, stale route result e recalculation stale-session                                                                                                   | nenhuma   |
+|  12 | atualização de progresso ao longo da rota  | PASS   | geometry parity + runtime/status browser                                                                                                                       | nenhuma   |
+|  13 | ruído GPS com pequeno movimento para trás  | PASS   | regressão geométrica + visual backward guard                                                                                                                   | nenhuma   |
+|  14 | mudança de bearing                         | PASS   | bearing/tangente + smoothing/dead-band + presenter/câmera                                                                                                      | nenhuma   |
+|  15 | aproximação de manobra e histerese de zoom | PASS   | fixture V1 e fronteiras `65 / 22 / 38 / 90 m`                                                                                                                  | nenhuma   |
+|  16 | polling sem movimento real                 | PASS   | polling sem mudança visual não reinicia `easeTo`                                                                                                               | nenhuma   |
+|  17 | minimizar/maximizar banner                 | PASS   | Navigation Visual Baseline em mobile/tablet/desktop, incluindo `aria-expanded`                                                                                 | nenhuma   |
+|  18 | cancelamento manual                        | PASS   | botão Encerrar → `navigationEnded.reason=cancelled` + teardown                                                                                                 | nenhuma   |
+|  19 | chegada ao destino                         | PASS   | core `100 m / 30 m / auto-end 5 s` + browser integration + reason `arrived`                                                                                    | nenhuma   |
+|  20 | cleanup após `navigationEnded`             | PASS   | lifecycle/installer teardown idempotente + browser proof                                                                                                       | nenhuma   |
+|  21 | fallback de mapa/provider quando aplicável | PASS   | PR #55 + `NAVIGATION-PROVIDER-FALLBACK-V1-CONTRACT.md`: runtime Mapbox é destruído antes do fallback e navegação guiada não é duplicada em Leaflet/development | nenhuma   |
+|  22 | alto contraste                             | PASS   | PR #54 / Navigation Accessibility Baseline #1: navegação ativa em `forced-colors: active` nas três viewports                                                   | nenhuma   |
+|  23 | texto ampliado                             | PASS   | PR #54 / Navigation Accessibility Baseline #1: navegação ativa a 200%, sem clipping/overlap impeditivo e com controles utilizáveis                             | nenhuma   |
+|  24 | mobile/tablet/desktop                      | PASS   | Navigation Visual Baseline + Accessibility Baseline em mobile/tablet/desktop                                                                                   | nenhuma   |
 
 ## Resultado consolidado
 
