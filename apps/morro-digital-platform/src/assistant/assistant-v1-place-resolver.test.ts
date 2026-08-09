@@ -1,10 +1,21 @@
 import { describe, expect, it } from "vitest";
 
+import type { AssistantDestinationCatalogEntry } from "./assistant-destination-resolver.js";
 import {
   assistantV1FuzzyThreshold,
   matchMorroAssistantDestinationV1,
   resolveMorroAssistantDestinationV1,
 } from "./assistant-v1-place-resolver.js";
+
+const precedenceFixture: readonly AssistantDestinationCatalogEntry[] = [
+  {
+    name: "Lugar Canônico",
+    latitude: -13.38,
+    longitude: -38.91,
+    category: "attractions",
+    aliases: ["apelido exclusivo"],
+  },
+];
 
 describe("V1 assistant place resolver semantics", () => {
   it("preserves the frozen V1 fuzzy threshold", () => {
@@ -17,19 +28,31 @@ describe("V1 assistant place resolver semantics", () => {
     );
   });
 
-  it("resolves exact aliases before partial matching", () => {
+  it("treats accent-only variants as exact canonical matches like V1", () => {
     const match = matchMorroAssistantDestinationV1("basilico");
-    expect(match?.matchType).toBe("alias");
+    expect(match?.matchType).toBe("exact");
     expect(match?.destination.name).toBe("Basílico");
   });
 
-  it("supports canonical and alias inclusion in either direction", () => {
+  it("resolves a true exact alias before partial matching", () => {
+    const match = matchMorroAssistantDestinationV1(
+      "apelido exclusivo",
+      precedenceFixture,
+    );
+    expect(match?.matchType).toBe("alias");
+    expect(match?.destination.name).toBe("Lugar Canônico");
+  });
+
+  it("supports canonical and alias inclusion in V1 precedence order", () => {
     expect(
       matchMorroAssistantDestinationV1("quero ir para toca do morcego")
         ?.matchType,
     ).toBe("partial");
     expect(
-      matchMorroAssistantDestinationV1("restaurante basilico agora")?.matchType,
+      matchMorroAssistantDestinationV1(
+        "quero o apelido exclusivo agora",
+        precedenceFixture,
+      )?.matchType,
     ).toBe("alias_partial");
   });
 
