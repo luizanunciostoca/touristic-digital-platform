@@ -132,8 +132,20 @@ async function getPhotos(
     };
   }
 
+  const firstImage = photoSet.images[0];
+  if (!firstImage) {
+    return {
+      text: `Não encontrei fotos disponíveis de ${photoSet.place}.`,
+      metadata: {
+        domain: "photos",
+        state: "unavailable",
+        place: photoSet.place,
+      },
+    };
+  }
+
   try {
-    const probe = await fetchImplementation(photoSet.images[0], {
+    const probe = await fetchImplementation(firstImage, {
       method: "HEAD",
     });
     if (!probe.ok) throw new Error("photo_asset_unavailable");
