@@ -91,10 +91,12 @@ function browserPosition(): GeolocationPosition {
 
 describe("browser navigation wiring deterministic browser fixture", () => {
   it("publishes a snapshot and drives the V1 camera contract", () => {
-    let watchSuccess: ((position: GeolocationPosition) => void) | null = null;
+    let emitLocation: (position: GeolocationPosition) => void = () => {
+      throw new Error("watchPosition was not started");
+    };
     const geolocationDriver: BrowserGeolocationDriver = {
       watchPosition(success) {
-        watchSuccess = success;
+        emitLocation = success;
         return 7;
       },
       getCurrentPosition: vi.fn(),
@@ -143,8 +145,6 @@ describe("browser navigation wiring deterministic browser fixture", () => {
     });
 
     wiring.start();
-    const emitLocation = watchSuccess;
-    if (!emitLocation) throw new Error("watchPosition was not started");
     emitLocation(browserPosition());
 
     expect(onSnapshot).toHaveBeenCalledTimes(1);
