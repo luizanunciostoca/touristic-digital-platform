@@ -56,10 +56,11 @@ describe("assistant local intent engine", () => {
       mealType: "dinner",
       groupSize: 4,
       timeQualifier: "now",
-      language: "pt",
+      language: "es",
       urgency: "high",
     });
 
+    expect(extractAssistantEntities("Preciso descansar").language).toBe("pt");
     expect(extractAssistantEntities("פתוח עכשיו חוף").language).toBe("he");
   });
 
