@@ -52,7 +52,9 @@ describe("assistant V1 context manager", () => {
     await vi.advanceTimersByTimeAsync(1);
 
     expect(storage.setItem).toHaveBeenCalledTimes(1);
-    expect(JSON.parse(storage.values.get(ASSISTANT_CONTEXT_STORAGE_KEY) ?? "{}")).toMatchObject({
+    expect(
+      JSON.parse(storage.values.get(ASSISTANT_CONTEXT_STORAGE_KEY) ?? "{}"),
+    ).toMatchObject({
       lastPlace: "Forte",
       lastCategory: "attractions",
     });
@@ -116,7 +118,9 @@ describe("assistant V1 context manager", () => {
       lastPlace: null,
       sessionStart: 123,
     });
-    expect(storage.removeItem).toHaveBeenCalledWith(ASSISTANT_CONTEXT_STORAGE_KEY);
+    expect(storage.removeItem).toHaveBeenCalledWith(
+      ASSISTANT_CONTEXT_STORAGE_KEY,
+    );
   });
 
   it("sanitizes history and caps it at the V1 maximum", () => {

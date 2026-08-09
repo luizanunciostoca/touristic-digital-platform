@@ -6,38 +6,38 @@ Destino: `packages/assistant`
 
 Esta matriz controla a migração de FEATURE-0004. `PASS` só pode ser usado quando o comportamento observável estiver implementado e coberto por evidência executável. `PARTIAL` significa que existe implementação V2, porém o contrato ainda não está completo. `GAP` significa ausência de implementação equivalente.
 
-| Contrato V1                         | Evidência V1               | Destino V2               | Estado M5 | Critério de PASS                                                        |
-| ----------------------------------- | -------------------------- | ------------------------ | --------- | ----------------------------------------------------------------------- |
-| 10 opções canônicas                 | `assistant-messages.js`    | `src/menu.ts`            | PASS      | ordem, valores e labels PT/EN/ES/HE idênticos                           |
-| Normalização de texto               | `intent-engine.js`         | `src/intent-engine.ts`   | PASS      | acentos latinos normalizados e HE preservado                            |
-| NLP local-first                     | `intent-engine.js`         | `src/intent-engine.ts`   | PASS      | padrões, complex intents, sinônimos, contexto, entidades e place search |
-| Intents complexas / always-LLM      | `intent-engine.js`         | `src/complex-intents.ts` | PASS      | cultural_history, practical_tips, transport e accessibility + ordem V1  |
-| Threshold LLM 0.5                   | `intent-engine.js`         | `src/llm-policy.ts`      | PASS      | constante e decisão por confiança preservadas                           |
-| Threshold de entrada longa 90       | `intent-engine.js`         | `src/llm-policy.ts`      | PASS      | fallback apenas acima de 90 caracteres, como na V1                      |
-| Política `requiresLLM`              | `intent-engine.js`         | `src/llm-policy.ts`      | PASS      | intents obrigatórias, confiança, flag, dimensões e padrões complexos    |
-| Modificadores compostos             | `intent-engine.js`         | `src/intent-engine.ts`   | PASS      | vocabulário V1 de modifiers coberto e testado                           |
-| `navigate`                          | `intent-engine.js`         | `src/intent-engine.ts`   | PARTIAL   | classificação pronta; resolução/handler de destino ainda pendente       |
-| `cancel_navigation`                 | `intent-engine.js`         | `src/intent-engine.ts`   | PASS      | comandos V1 equivalentes                                                |
-| `open_now`                          | `intent-engine.js`         | `src/intent-engine.ts`   | PASS      | PT/EN/ES/HE cobertos                                                    |
-| weather/location/photos/price/hours | `intent-engine.js`         | `src/intent-engine.ts`   | PARTIAL   | classificação pronta; handlers de domínio ainda pendentes               |
-| nearby/favorites/help               | `intent-engine.js`         | `src/intent-engine.ts`   | PARTIAL   | classificação pronta; handlers de domínio ainda pendentes               |
-| confirm/deny/greeting/thanks        | `intent-engine.js`         | `src/intent-engine.ts`   | PASS      | classificação local equivalente                                         |
-| Extração de entidades               | `intent-engine.js`         | `src/intent-engine.ts`   | PASS      | place, area, meal, price, distance, time, group size, category e lang   |
-| Match por sinônimos                 | `intent-engine.js`         | `src/intent-engine.ts`   | PASS      | categorias e intents expandidos PT/EN/ES/HE equivalentes                |
-| Match contextual / `awaiting`       | `intent-engine.js`         | `src/intent-engine.ts`   | PASS      | prioridade contextual, filtros, detalhe e seleção numérica cobertos     |
-| Detecção de place name              | `intent-engine.js`         | `src/intent-engine.ts`   | PASS      | `place_search` e confiança V1 cobertos                                  |
-| Controller de diálogo               | `assistant-dialog.js`      | a implementar            | GAP       | fluxo de menus, handlers e respostas equivalentes                       |
-| Context manager                     | `context-manager.js`       | `src/context-manager.ts` | PASS      | schema v2, TTL 4h, debounce, histórico, preferências e pub/sub          |
+| Contrato V1                         | Evidência V1               | Destino V2               | Estado M5 | Critério de PASS                                                          |
+| ----------------------------------- | -------------------------- | ------------------------ | --------- | ------------------------------------------------------------------------- |
+| 10 opções canônicas                 | `assistant-messages.js`    | `src/menu.ts`            | PASS      | ordem, valores e labels PT/EN/ES/HE idênticos                             |
+| Normalização de texto               | `intent-engine.js`         | `src/intent-engine.ts`   | PASS      | acentos latinos normalizados e HE preservado                              |
+| NLP local-first                     | `intent-engine.js`         | `src/intent-engine.ts`   | PASS      | padrões, complex intents, sinônimos, contexto, entidades e place search   |
+| Intents complexas / always-LLM      | `intent-engine.js`         | `src/complex-intents.ts` | PASS      | cultural_history, practical_tips, transport e accessibility + ordem V1    |
+| Threshold LLM 0.5                   | `intent-engine.js`         | `src/llm-policy.ts`      | PASS      | constante e decisão por confiança preservadas                             |
+| Threshold de entrada longa 90       | `intent-engine.js`         | `src/llm-policy.ts`      | PASS      | fallback apenas acima de 90 caracteres, como na V1                        |
+| Política `requiresLLM`              | `intent-engine.js`         | `src/llm-policy.ts`      | PASS      | intents obrigatórias, confiança, flag, dimensões e padrões complexos      |
+| Modificadores compostos             | `intent-engine.js`         | `src/intent-engine.ts`   | PASS      | vocabulário V1 de modifiers coberto e testado                             |
+| `navigate`                          | `intent-engine.js`         | `src/intent-engine.ts`   | PARTIAL   | classificação pronta; resolução/handler de destino ainda pendente         |
+| `cancel_navigation`                 | `intent-engine.js`         | `src/intent-engine.ts`   | PASS      | comandos V1 equivalentes                                                  |
+| `open_now`                          | `intent-engine.js`         | `src/intent-engine.ts`   | PASS      | PT/EN/ES/HE cobertos                                                      |
+| weather/location/photos/price/hours | `intent-engine.js`         | `src/intent-engine.ts`   | PARTIAL   | classificação pronta; handlers de domínio ainda pendentes                 |
+| nearby/favorites/help               | `intent-engine.js`         | `src/intent-engine.ts`   | PARTIAL   | classificação pronta; handlers de domínio ainda pendentes                 |
+| confirm/deny/greeting/thanks        | `intent-engine.js`         | `src/intent-engine.ts`   | PASS      | classificação local equivalente                                           |
+| Extração de entidades               | `intent-engine.js`         | `src/intent-engine.ts`   | PASS      | place, area, meal, price, distance, time, group size, category e lang     |
+| Match por sinônimos                 | `intent-engine.js`         | `src/intent-engine.ts`   | PASS      | categorias e intents expandidos PT/EN/ES/HE equivalentes                  |
+| Match contextual / `awaiting`       | `intent-engine.js`         | `src/intent-engine.ts`   | PASS      | prioridade contextual, filtros, detalhe e seleção numérica cobertos       |
+| Detecção de place name              | `intent-engine.js`         | `src/intent-engine.ts`   | PASS      | `place_search` e confiança V1 cobertos                                    |
+| Controller de diálogo               | `assistant-dialog.js`      | a implementar            | GAP       | fluxo de menus, handlers e respostas equivalentes                         |
+| Context manager                     | `context-manager.js`       | `src/context-manager.ts` | PASS      | schema v2, TTL 4h, debounce, histórico, preferências e pub/sub            |
 | Perfil do usuário                   | `user-profile.js`          | a implementar            | GAP       | preferências inferidas/persistidas e comportamento observável equivalente |
-| Contexto conversacional             | `assistant-context/**`     | `src/context-manager.ts` | PARTIAL   | context manager + user profile e refinamentos equivalentes              |
-| Mensagens e sanitização             | `assistant-messages/**`    | a implementar            | GAP       | render seguro, deduplicação e tipos de mensagem                         |
-| Sugestões proativas                 | `proactive-suggestions.js` | a implementar            | GAP       | gatilhos V1 equivalentes                                                |
-| Fallback LLM — decisão              | `intent-engine.js`         | `src/llm-policy.ts`      | PASS      | decidir local vs LLM conforme política V1                               |
-| Fallback LLM — execução             | `llm-fallback.js`          | a implementar            | GAP       | chamada real somente quando necessária, com resposta equivalente        |
-| Boundary `/api/ai/*`                | legado + registry          | API same-origin V2       | GAP       | nenhum segredo no cliente; provider server-side                         |
-| Voz                                 | `voice/**`                 | a implementar            | GAP       | síntese, preferência e idiomas PT/EN/ES/HE                              |
-| Integração Navigation               | diálogo/mensagens V1       | `@touristic/navigation`  | GAP       | rota iniciada/cancelada via contrato público V2                         |
-| UI shell do assistente              | shell V1                   | app V2                   | PARTIAL   | abertura, fechamento, menu, mensagens e estados visuais equivalentes    |
+| Contexto conversacional             | `assistant-context/**`     | `src/context-manager.ts` | PARTIAL   | context manager + user profile e refinamentos equivalentes                |
+| Mensagens e sanitização             | `assistant-messages/**`    | a implementar            | GAP       | render seguro, deduplicação e tipos de mensagem                           |
+| Sugestões proativas                 | `proactive-suggestions.js` | a implementar            | GAP       | gatilhos V1 equivalentes                                                  |
+| Fallback LLM — decisão              | `intent-engine.js`         | `src/llm-policy.ts`      | PASS      | decidir local vs LLM conforme política V1                                 |
+| Fallback LLM — execução             | `llm-fallback.js`          | a implementar            | GAP       | chamada real somente quando necessária, com resposta equivalente          |
+| Boundary `/api/ai/*`                | legado + registry          | API same-origin V2       | GAP       | nenhum segredo no cliente; provider server-side                           |
+| Voz                                 | `voice/**`                 | a implementar            | GAP       | síntese, preferência e idiomas PT/EN/ES/HE                                |
+| Integração Navigation               | diálogo/mensagens V1       | `@touristic/navigation`  | GAP       | rota iniciada/cancelada via contrato público V2                           |
+| UI shell do assistente              | shell V1                   | app V2                   | PARTIAL   | abertura, fechamento, menu, mensagens e estados visuais equivalentes      |
 
 ## Estado do milestone M5
 

@@ -118,7 +118,9 @@ function migrateAssistantContext(
   return {
     ...saved,
     _version: ASSISTANT_CONTEXT_VERSION,
-    lastModifiers: Array.isArray(saved.lastModifiers) ? saved.lastModifiers : [],
+    lastModifiers: Array.isArray(saved.lastModifiers)
+      ? saved.lastModifiers
+      : [],
     userLocation: saved.userLocation ?? null,
     pendingRoute: saved.pendingRoute ?? null,
     selectedDestination: saved.selectedDestination ?? null,
@@ -157,14 +159,17 @@ export function createAssistantContextManager(
       const raw = storage.getItem(ASSISTANT_CONTEXT_STORAGE_KEY);
       if (!raw) return;
       const parsed: unknown = JSON.parse(raw);
-      if (!isRecord(parsed)) throw new Error("Invalid assistant context payload");
+      if (!isRecord(parsed))
+        throw new Error("Invalid assistant context payload");
 
       const saved = migrateAssistantContext(parsed);
       const sessionStart =
         typeof saved.sessionStart === "number" ? saved.sessionStart : 0;
 
       if (now() - sessionStart > ASSISTANT_CONTEXT_SESSION_TTL_MS) {
-        const preferences = isRecord(saved.preferences) ? saved.preferences : {};
+        const preferences = isRecord(saved.preferences)
+          ? saved.preferences
+          : {};
         context = {
           ...createDefaultAssistantContext(now),
           preferences: cloneValue(preferences),
@@ -255,7 +260,10 @@ export function createAssistantContextManager(
       callback: ContextListener<K>,
     ): () => void {
       const callbacks = listeners.get(field) ?? new Set();
-      const wrapped = callback as (newValue: unknown, oldValue: unknown) => void;
+      const wrapped = callback as (
+        newValue: unknown,
+        oldValue: unknown,
+      ) => void;
       callbacks.add(wrapped);
       listeners.set(field, callbacks);
       return () => callbacks.delete(wrapped);
