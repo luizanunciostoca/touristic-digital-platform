@@ -1,6 +1,7 @@
 export * from "./complex-intents.js";
 export * from "./context-manager.js";
 export * from "./dialog-controller.js";
+export * from "./domain-handlers.js";
 export * from "./intent-engine.js";
 export * from "./llm-policy.js";
 export * from "./menu.js";
