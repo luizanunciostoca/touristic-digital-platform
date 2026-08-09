@@ -47,15 +47,18 @@ describe("assistant nearby browser adapter", () => {
     const geolocation: AssistantNearbyGeolocationPort = { getCurrentPosition };
     const response = await resolveAssistantNearby(request(), geolocation);
 
-    expect(response).toEqual(
-      expect.objectContaining({
-        metadata: { domain: "nearby", state: "awaiting_category" },
-        options: expect.arrayContaining([
-          { label: "Praias", value: "praias perto de mim" },
-          { label: "Restaurantes", value: "restaurantes perto de mim" },
-        ]),
-      }),
-    );
+    expect(response.metadata).toEqual({
+      domain: "nearby",
+      state: "awaiting_category",
+    });
+    expect(response.options).toContainEqual({
+      label: "Praias",
+      value: "praias perto de mim",
+    });
+    expect(response.options).toContainEqual({
+      label: "Restaurantes",
+      value: "restaurantes perto de mim",
+    });
     expect(getCurrentPosition).not.toHaveBeenCalled();
   });
 
