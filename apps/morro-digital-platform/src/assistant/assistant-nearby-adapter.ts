@@ -96,7 +96,8 @@ export async function resolveAssistantNearby(
     const results = morroAssistantV1DestinationCatalog
       .filter(
         (entry) =>
-          entry.category === category && isAssistantV1PlaceWithinRadius(entry),
+          entry.category === category &&
+          isAssistantV1PlaceWithinRadius(entry),
       )
       .map((entry) => ({
         name: entry.name,
