@@ -1,0 +1,152 @@
+name: M27 Finalize
+
+on:
+  push:
+    branches:
+      - feat/assistant-m27-llm-boundary
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: pnpm install --frozen-lockfile
+      - name: Wire runtime and server
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          runtime = Path('apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts')
+          text = runtime.read_text()
+          llm_import = 'import { createAssistantLlmHandler } from "./assistant-llm-adapter.js";\n'
+          if llm_import not in text:
+              marker = 'import { createAssistantNavigationAppHandlers } from "./assistant-navigation-adapter.js";\n'
+              if marker not in text:
+                  raise SystemExit('runtime import anchor not found')
+              text = text.replace(marker, marker + llm_import, 1)
+
+          if 'llm: createAssistantLlmHandler' not in text:
+              pattern = re.compile(
+                  r'(const controller = createAssistantDialogController\(\{\s*context,\s*handlers:\s*\{\s*\.\.\.domainHandlers,\s*\.\.\.navigationHandlers,\s*\},)(\s*\}\);)',
+                  re.S,
+              )
+              replacement = r'''\1
+    llm: createAssistantLlmHandler({
+      ...(options.fetch ? { fetch: options.fetch } : {}),
+    }),\2'''
+              text, count = pattern.subn(replacement, text, count=1)
+              if count != 1:
+                  raise SystemExit('runtime controller regex did not match')
+          runtime.write_text(text)
+
+          server = Path('apps/morro-digital-platform/tooling/dev-server.mjs')
+          text = server.read_text()
+          assistant_import = 'import { createAssistantApi } from "./assistant-api.mjs";\n'
+          if assistant_import not in text:
+              marker = 'import { fileURLToPath } from "node:url";\n'
+              if marker not in text:
+                  raise SystemExit('server import anchor not found')
+              text = text.replace(marker, marker + assistant_import, 1)
+
+          if 'const assistantApi = createAssistantApi' not in text:
+              marker = 'const localEnvironment = await loadLocalEnvironment();\n'
+              if marker not in text:
+                  raise SystemExit('server env anchor not found')
+              text = text.replace(
+                  marker,
+                  marker + '''\nconst assistantApi = createAssistantApi({
+  getEnvironmentValue: (key) =>
+    process.env[key] ?? localEnvironment[key] ?? "",
+});
+''',
+                  1,
+              )
+
+          if 'assistantApi.matches(requestUrl.pathname)' not in text:
+              pattern = re.compile(
+                  r'(\s*if \(requestUrl\.pathname === "/api/weather"\) \{\s*await serveWeather\(response\);\s*return;\s*\})',
+                  re.S,
+              )
+              replacement = r'''\1
+    if (assistantApi.matches(requestUrl.pathname)) {
+      await assistantApi.handle(request, response);
+      return;
+    }'''
+              text, count = pattern.subn(replacement, text, count=1)
+              if count != 1:
+                  raise SystemExit('server weather route regex did not match')
+          server.write_text(text)
+
+          matrix = Path('docs/migration/ASSISTANT-MIGRATION-MATRIX.md')
+          text = matrix.read_text()
+          text = text.replace('Estado M26', 'Estado M27', 1)
+          lines = text.splitlines()
+          found_llm = found_boundary = False
+          for i, line in enumerate(lines):
+              if line.startswith('| Fallback LLM — execução'):
+                  lines[i] = '| Fallback LLM — execução               | `llm-fallback.js`          | porta `llm` do controller + `assistant-llm-adapter.ts`                                                          | PASS       | client same-origin, timeout/fail-closed, resposta normalizada e provider server-side conectados                                           |'
+                  found_llm = True
+              elif line.startswith('| Boundary `/api/ai/*`'):
+                  lines[i] = '| Boundary `/api/ai/*`                  | legado + registry          | `/api/ai/assistant/respond` + alias legado `/api/assistant/respond`                                             | PASS       | nenhum segredo no cliente; provider server-side, validação, rate limit e timeout                                                         |'
+                  found_boundary = True
+          if not (found_llm and found_boundary):
+              raise SystemExit('MIG-0006 target rows not found')
+          text = '\n'.join(lines) + '\n'
+          if '## Estado do milestone M27' not in text:
+              text += '''\n## Estado do milestone M27\n\nO M27 fecha a execução do fallback LLM e o boundary server-side do Assistente. `assistant-llm-adapter.ts` conecta a porta `llm` do controller ao endpoint same-origin `/api/ai/assistant/respond`, preservando timeout de 12 segundos, histórico limitado, contexto sanitizado, normalização de action/options/confidence e falha fechada para que indisponibilidade do provider nunca quebre o diálogo local-first.\n\n`assistant-api.mjs` hospeda a fronteira server-side: valida método e payload, limita 30 chamadas por minuto por origem, mantém `OPENAI_API_KEY` e `OPENAI_MODEL` exclusivamente no processo do servidor, normaliza a resposta do provider e expõe também `/api/assistant/respond` como alias de compatibilidade com a baseline V1. Nenhum segredo é serializado em `runtime-config.js` ou entregue ao browser.\n\nCom isso, `Fallback LLM — execução` e `Boundary /api/ai/*` passam a `PASS`. A FEATURE-0004 / MIG-0006 **ainda não está equivalente**: permanecem delivery físico dos assets de `photos`, paridade completa de weather e copy/i18n dos handlers, voz e lifecycle/UI completa do assistente.\n'''
+          matrix.write_text(text)
+          PY
+
+          pnpm exec prettier --write \
+            apps/morro-digital-platform/src/assistant/assistant-llm-adapter.ts \
+            apps/morro-digital-platform/src/assistant/assistant-llm-adapter.test.ts \
+            apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts \
+            apps/morro-digital-platform/tooling/assistant-api.mjs \
+            apps/morro-digital-platform/tooling/dev-server.mjs \
+            docs/migration/ASSISTANT-MIGRATION-MATRIX.md
+
+          pnpm format:check
+          pnpm architecture:check
+          pnpm features:check
+          pnpm lint
+          pnpm typecheck
+          pnpm test
+          pnpm build
+
+          PORT=4180 node apps/morro-digital-platform/tooling/dev-server.mjs > /tmp/m27-server.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4180/runtime-config.js >/dev/null; then break; fi
+            sleep 0.25
+          done
+          STATUS=$(curl -sS -o /tmp/m27-ai.json -w '%{http_code}' -X POST \
+            -H 'Content-Type: application/json' \
+            --data '{"input":"explique a história de Morro"}' \
+            http://127.0.0.1:4180/api/ai/assistant/respond)
+          test "$STATUS" = "503"
+          grep -q 'assistant_not_configured' /tmp/m27-ai.json
+          LEGACY=$(curl -sS -o /tmp/m27-legacy.json -w '%{http_code}' \
+            http://127.0.0.1:4180/api/assistant/respond)
+          test "$LEGACY" = "405"
+          grep -q 'method_not_allowed' /tmp/m27-legacy.json
+          kill $SERVER_PID
+          trap - EXIT
+
+          rm .github/workflows/m27-finalize.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat(assistant): wire same-origin LLM boundary"
+          git push
