@@ -12,9 +12,10 @@ Este aplicativo é o primeiro marco executável da Touristic Digital Platform pa
 - eventos `DestinationLoaded`, `MapInitialized`, `MapReady` e `MapInitializationFailed`;
 - eventos `MapMarkersLoaded` e `MapMarkersLoadFailed`;
 - catálogo estrutural dos três roteiros da V1;
+- conteúdo editorial dos três roteiros preservado em PT-BR, inglês, espanhol e hebraico;
 - projeção das paradas de um roteiro em marcadores geoespaciais;
-- shell acessível de desenvolvimento;
-- provider visual de desenvolvimento sem credenciais reais;
+- shell V1 reproduzido sobre o Runtime V2;
+- Mapbox GL JS real com Leaflet como fallback/rollback;
 - servidor HTTP local sem dependências adicionais.
 
 ## Executar localmente
@@ -50,9 +51,45 @@ O arquivo `src/config/tour-catalog.ts` preserva a estrutura dos três roteiros e
 - Trilha Ecológica para a Gamboa: 5 paradas;
 - Expedição de Quadriciclo: 5 paradas.
 
-Esta etapa migra identificadores, títulos, chaves de tradução, duração, transporte, coordenadas, caminhos de imagens e textos alternativos. Descrições completas das paradas, narrações e dicas permanecem pendentes para a etapa de conteúdo multilíngue.
+O catálogo continua sendo a fonte de identificadores, títulos/fallbacks PT, chaves de tradução dos títulos, duração, transporte, coordenadas, caminhos de imagem e `photoAlt`. Os contratos validam coordenadas, IDs duplicados e ordem sequencial das paradas. Rotas, paradas, posições e coleções são congeladas para impedir mutações acidentais.
 
-Os contratos validam coordenadas, IDs duplicados e ordem sequencial das paradas. Rotas, paradas, posições e coleções são congeladas para impedir mutações acidentais.
+## Conteúdo multilíngue dos roteiros
+
+A equivalência editorial é baseada exclusivamente no snapshot V1 `60746fd7fed97b805758b37adfdbe3bad2582bfe`.
+
+`src/config/tour-editorial-source.ts` preserva, para as 18 paradas, as chaves e fallbacks PT-BR de:
+
+- descrição;
+- narração;
+- dicas.
+
+Os dicionários `tour-translations-en.ts`, `tour-translations-es.ts` e `tour-translations-he.ts` preservam as traduções existentes na V1. `tour-localization.ts` projeta esses textos sobre o catálogo estrutural sem duplicar geometria ou mídia.
+
+Locales suportados:
+
+```text
+pt-BR
+en
+es
+he
+```
+
+A normalização reconhece variantes de navegador (`pt-*`, `en-*`, `es-*`, `he-*`) e o código legado `iw` para hebraico. Sem locale explícito, o padrão permanece PT-BR. Para um locale não suportado, a resolução segue o comportamento de `getGeneralText` da V1: tenta inglês antes do fallback PT-BR.
+
+Cada parada localizada contém título, descrição, narração e dicas, mantendo também suas chaves V1. O `photoAlt` não é traduzido nessa camada porque `translateTour()` da V1 não o passa por `getGeneralText`; o valor estrutural em português é preservado para evitar inventar conteúdo que não existia na fonte.
+
+Os testes exigem:
+
+- os 3 roteiros e as 18 paradas em todos os quatro locales;
+- cobertura integral das chaves esperadas nos dicionários EN/ES/HE;
+- valores V1 fixados para traduções que divergiam na primeira versão do PR;
+- fallback PT-BR byte a byte;
+- fallback inglês para locale desconhecido;
+- `photoAlt` estrutural inalterado;
+- geometria, ordem e `photoPath` idênticos entre locales;
+- objetos e coleções imutáveis.
+
+A internacionalização visual do shell/seletor de idioma continua separada deste incremento; este checkpoint entrega a fonte editorial tipada e equivalente para os roteiros.
 
 ## Marcadores do roteiro inicial
 
@@ -66,21 +103,19 @@ Quando o provider rejeita os marcadores, o engine é destruído, o evento `MapMa
 
 O arquivo `src/config/map-markers.ts` continua preservado como baseline inicial de pontos compartilhados da V1 enquanto a deduplicação definitiva entre roteiros e pontos de interesse não é concluída.
 
-## Provider de desenvolvimento
+## Mapbox real e fallback
 
-O arquivo `src/development/mapbox-sdk.ts` implementa apenas o contrato estrutural necessário para validar o fluxo do runtime no navegador. Ele não realiza chamadas externas, não carrega mapas reais e não deve ser utilizado em produção.
+O browser runtime carrega Mapbox GL JS `3.12.0` quando existe token público configurado e preserva Leaflet como fallback quando o token não existe, o SDK não carrega ou a inicialização real falha.
 
-O provider exibe a quantidade de pontos carregados por meio do atributo `data-development-marker-count`. O entrypoint `src/browser-entry.ts` utiliza valores explícitos de desenvolvimento e não acessa tokens reais.
+A configuração pública é injetada por `/runtime-config.js`. Nenhuma credencial deve ser versionada.
 
-## Configuração do Mapbox real
-
-A integração real deve utilizar um arquivo `.env` local baseado em `.env.example`:
+Exemplo local baseado em `.env.example`:
 
 ```text
 VITE_MAPBOX_ACCESS_TOKEN=
-VITE_MAPBOX_STYLE=
+VITE_MAPBOX_STYLE=mapbox://styles/mapbox/streets-v12
 VITE_MAPBOX_CONTAINER_ID=map
-VITE_MAPBOX_INITIAL_ZOOM=14
+VITE_MAPBOX_INITIAL_ZOOM=13.5
 ```
 
 Regras obrigatórias:
@@ -88,8 +123,8 @@ Regras obrigatórias:
 - nunca versionar tokens;
 - usar token público restrito por URL;
 - aplicar privilégio mínimo;
-- preservar o estilo aprovado da V1 durante a equivalência visual;
-- manter rollback para a experiência anterior até aprovação formal.
+- preservar o contrato de style/câmera/rota da V1;
+- manter rollback Leaflet funcional.
 
 ## Estados visuais
 
@@ -105,12 +140,6 @@ data-map-marker-count="8"
 
 O atributo `aria-busy` é aplicado durante a inicialização e removido ao concluir ou falhar.
 
-## Estado da formatação
-
-Os arquivos apontados pela primeira execução oficial do Quality Gate foram formatados pela mesma versão do Prettier instalada pelo lockfile. O workflow temporário usado exclusivamente para aplicar essa saída foi removido, e o repositório voltou a utilizar somente o `Quality Gate` padrão com permissões de leitura.
-
-Essa correção não substitui a validação oficial: arquitetura, Feature Registry, lint, TypeScript, testes e build continuam dependendo de uma execução completa do GitHub Actions associada ao head atual.
-
 ## Validação mínima antes de merge
 
 ```bash
@@ -124,4 +153,4 @@ pnpm test
 pnpm build
 ```
 
-O PR deve permanecer como draft enquanto qualquer uma dessas verificações estiver pendente.
+Nenhum incremento deve ser consolidado sem Quality Gate verde no head final.
