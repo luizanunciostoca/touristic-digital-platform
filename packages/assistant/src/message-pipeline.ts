@@ -6,6 +6,7 @@ export interface AssistantMessageInput {
   sender: AssistantMessageSender;
   html: string;
   area?: AssistantMessageArea;
+  clear?: boolean;
   avoidDuplicate?: boolean;
   priority?: AssistantMessagePriority;
   messageType?: string;
@@ -116,7 +117,8 @@ export function createAssistantMessagePipeline(
         ...(input.customClass ? { customClass: input.customClass } : {}),
       };
 
-      areaMessages.push(record);
+      if (input.clear) messages[area] = [];
+      messages[area].push(record);
       if (avoidDuplicate) lastMessageSent = { html: input.html, timestamp };
       return structuredClone(record);
     },
