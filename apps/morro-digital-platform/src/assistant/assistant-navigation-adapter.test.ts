@@ -20,7 +20,10 @@ function request(
 
 describe("assistant navigation app adapter", () => {
   it("starts the real navigation boundary with normalized destination coordinates", async () => {
-    const start = vi.fn(async () => ({ type: "FeatureCollection", features: [] }));
+    const start = vi.fn(async () => ({
+      type: "FeatureCollection",
+      features: [],
+    }));
     const handlers = createAssistantNavigationAppHandlers({
       navigation: { start, stop: vi.fn() },
       resolver: {
