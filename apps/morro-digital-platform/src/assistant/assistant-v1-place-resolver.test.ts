@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import type { AssistantDestinationCatalogEntry } from "./assistant-destination-resolver.js";
+import {
+  morroAssistantDestinationCatalog,
+  type AssistantDestinationCatalogEntry,
+} from "./assistant-destination-resolver.js";
+import { isAssistantV1PlaceWithinRadius } from "./assistant-v1-place-boundary.js";
 import {
   assistantV1FuzzyThreshold,
   matchMorroAssistantDestinationV1,
@@ -106,9 +110,14 @@ describe("V1 assistant place resolver semantics", () => {
   });
 
   it("filters the real V1 out-of-radius source entry before matching", () => {
-    expect(
-      resolveMorroAssistantDestinationV1("Restaurante da Creusa"),
-    ).toBeNull();
+    const creusa = morroAssistantDestinationCatalog.find(
+      (entry) => entry.name === "Restaurante da Creusa",
+    );
+    expect(creusa).toBeDefined();
+    expect(creusa && isAssistantV1PlaceWithinRadius(creusa)).toBe(false);
+
+    const match = matchMorroAssistantDestinationV1("Restaurante da Creusa");
+    expect(match?.destination.name).not.toBe("Restaurante da Creusa");
   });
 
   it("resolves newly migrated V1 categories through the runtime matcher", () => {
