@@ -120,12 +120,32 @@ function getCurrentLocation(
   });
 }
 
-function getPhotos(place: string): AssistantDialogResponse {
+async function getPhotos(
+  place: string,
+  fetchImplementation: typeof globalThis.fetch,
+): Promise<AssistantDialogResponse> {
   const photoSet = resolveAssistantV1Photos(place);
   if (!photoSet) {
     return {
       text: `Não encontrei fotos disponíveis de ${place}.`,
       metadata: { domain: "photos", state: "unavailable", place },
+    };
+  }
+
+  try {
+    const probe = await fetchImplementation(photoSet.images[0], {
+      method: "HEAD",
+    });
+    if (!probe.ok) throw new Error("photo_asset_unavailable");
+  } catch {
+    return {
+      text: `As fotos de ${photoSet.place} estão catalogadas, mas os arquivos ainda não estão disponíveis nesta versão.`,
+      metadata: {
+        domain: "photos",
+        state: "asset_source_pending",
+        place: photoSet.place,
+        images: [...photoSet.images],
+      },
     };
   }
 
@@ -223,7 +243,7 @@ export function createAssistantBrowserDomainHandlers(
     ports: {
       weather: () => getWeather(fetchImplementation),
       myLocation: () => getCurrentLocation(options.geolocation),
-      photos: (place) => getPhotos(place),
+      photos: (place) => getPhotos(place, fetchImplementation),
       price: (place) => ({
         text: `Os preços de ${place} ainda estão sendo conectados à nova arquitetura.`,
         metadata: { domain: "price", state: "provider_pending", place },
