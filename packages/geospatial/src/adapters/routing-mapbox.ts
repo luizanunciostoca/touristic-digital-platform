@@ -73,8 +73,12 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
+function isUnknownArray(value: unknown): value is readonly unknown[] {
+  return Array.isArray(value);
+}
+
 function normalizeCoordinate(value: unknown): MapboxRoutingCoordinate | null {
-  if (!Array.isArray(value) || value.length !== 2) return null;
+  if (!isUnknownArray(value) || value.length !== 2) return null;
   const longitude = Number(value[0]);
   const latitude = Number(value[1]);
   if (!Number.isFinite(longitude) || !Number.isFinite(latitude)) return null;
@@ -137,32 +141,34 @@ export function adaptMapboxDirectionsResponse(
   data: unknown,
   generatedAt = Date.now(),
 ): MapboxRoutingFeatureCollection {
-  if (!isRecord(data) || !Array.isArray(data.routes)) {
+  if (!isRecord(data) || !isUnknownArray(data.routes)) {
     throw new MapboxDirectionsRoutingError(
       "INVALID_MAPBOX_ROUTE_RESPONSE",
       "A Mapbox não retornou uma rota válida.",
     );
   }
-  const route = data.routes[0];
-  if (!isRecord(route) || !isRecord(route.geometry)) {
+
+  const routeCandidate: unknown = data.routes[0];
+  if (!isRecord(routeCandidate) || !isRecord(routeCandidate.geometry)) {
     throw new MapboxDirectionsRoutingError(
       "INVALID_MAPBOX_ROUTE_RESPONSE",
       "A Mapbox não retornou uma rota válida.",
     );
   }
-  const rawCoordinates = route.geometry.coordinates;
-  if (!Array.isArray(rawCoordinates)) {
+  const route = routeCandidate;
+  const rawCoordinates: unknown = route.geometry.coordinates;
+  if (!isUnknownArray(rawCoordinates)) {
     throw new MapboxDirectionsRoutingError(
       "INVALID_MAPBOX_ROUTE_RESPONSE",
       "A Mapbox não retornou uma rota válida.",
     );
   }
-  const coordinates = rawCoordinates
-    .map(normalizeCoordinate)
-    .filter(
-      (coordinate): coordinate is MapboxRoutingCoordinate =>
-        coordinate !== null,
-    );
+
+  const coordinates: MapboxRoutingCoordinate[] = [];
+  for (const candidate of rawCoordinates) {
+    const coordinate = normalizeCoordinate(candidate);
+    if (coordinate) coordinates.push(coordinate);
+  }
   if (coordinates.length < 2) {
     throw new MapboxDirectionsRoutingError(
       "INVALID_MAPBOX_ROUTE_RESPONSE",
@@ -170,22 +176,25 @@ export function adaptMapboxDirectionsResponse(
     );
   }
 
-  const legs = Array.isArray(route.legs) ? route.legs : [];
-  const rawSteps = legs.flatMap((leg) => {
-    if (!isRecord(leg) || !Array.isArray(leg.steps)) return [];
-    return leg.steps;
-  });
+  const legs: readonly unknown[] = isUnknownArray(route.legs) ? route.legs : [];
+  const rawSteps: unknown[] = [];
+  for (const leg of legs) {
+    if (!isRecord(leg) || !isUnknownArray(leg.steps)) continue;
+    rawSteps.push(...leg.steps);
+  }
 
   let previousStartIndex = 0;
   const steps = rawSteps.map((step, index) => {
-    const stepRecord = isRecord(step) ? step : {};
-    const maneuver = isRecord(stepRecord.maneuver) ? stepRecord.maneuver : {};
+    const stepRecord: Record<string, unknown> = isRecord(step) ? step : {};
+    const maneuver: Record<string, unknown> = isRecord(stepRecord.maneuver)
+      ? stepRecord.maneuver
+      : {};
     const startIndex = nearestCoordinateIndex(
       coordinates,
       maneuver.location,
       previousStartIndex,
     );
-    const nextStep = rawSteps[index + 1];
+    const nextStep: unknown = rawSteps[index + 1];
     const nextManeuver =
       isRecord(nextStep) && isRecord(nextStep.maneuver)
         ? nextStep.maneuver
@@ -254,8 +263,11 @@ export function createMapboxDirectionsRoutingProvider(options: {
     options.fetchImpl ?? ((input, init) => globalThis.fetch(input, init));
   const now = options.now ?? Date.now;
 
-  return Object.freeze({
-    async request(payload, context) {
+  const provider: MapboxDirectionsRoutingProvider = {
+    async request(
+      payload: MapboxRoutingPayload,
+      context: MapboxRoutingContext,
+    ): Promise<MapboxRoutingFeatureCollection> {
       if (!token) {
         throw new MapboxDirectionsRoutingError(
           "MAPBOX_TOKEN_UNAVAILABLE",
@@ -285,5 +297,7 @@ export function createMapboxDirectionsRoutingProvider(options: {
 
       return adaptMapboxDirectionsResponse(body, now());
     },
-  });
+  };
+
+  return Object.freeze(provider);
 }
