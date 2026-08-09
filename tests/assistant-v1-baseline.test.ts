@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { V1_ASSISTANT_BASELINE } from "../packages/assistant/src/v1-baseline";
 
+// prettier-ignore
 describe("FEATURE-0004 V1 assistant baseline", () => {
   it("pins the canonical frozen V1 source", () => {
     expect(V1_ASSISTANT_BASELINE.legacyCommit).toBe(
