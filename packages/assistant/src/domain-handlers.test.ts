@@ -18,8 +18,8 @@ function request(
       intent,
       confidence: 1,
       entities: {
-        place: options.place,
-        category: options.category,
+        ...(options.place ? { place: options.place } : {}),
+        ...(options.category ? { category: options.category } : {}),
       },
       normalized: intent,
       modifiers: [],
