@@ -28,12 +28,16 @@ describe("assistant V1 complex intents", () => {
   });
 
   it("wires complex intents after direct patterns and before synonym fallback", () => {
-    expect(analyzeAssistantIntent("História do Forte de Tapirandu")).toMatchObject({
+    expect(
+      analyzeAssistantIntent("História do Forte de Tapirandu"),
+    ).toMatchObject({
       intent: "cultural_history",
       confidence: 0.95,
     });
 
-    expect(analyzeAssistantIntent("Como chegar em Morro de São Paulo")).toMatchObject({
+    expect(
+      analyzeAssistantIntent("Como chegar em Morro de São Paulo"),
+    ).toMatchObject({
       intent: "navigate",
       confidence: 1,
     });
