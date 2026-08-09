@@ -1,0 +1,36 @@
+name: Format Navigation Matrix Temp
+
+on:
+  push:
+    branches:
+      - docs/navigation-mig-0005-equivalence-matrix
+    paths:
+      - .github/workflows/format-nav-matrix-temp.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: docs/navigation-mig-0005-equivalence-matrix
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec prettier --write docs/migration/NAVIGATION-MIG-0005-EQUIVALENCE-MATRIX.md
+      - name: Commit formatted matrix
+        run: |
+          if git diff --quiet; then exit 0; fi
+          git config user.name "luizidebook"
+          git config user.email "47362223+luizidebook@users.noreply.github.com"
+          git add docs/migration/NAVIGATION-MIG-0005-EQUIVALENCE-MATRIX.md
+          git commit -m "style: format navigation equivalence matrix"
+          git push origin HEAD:docs/navigation-mig-0005-equivalence-matrix
