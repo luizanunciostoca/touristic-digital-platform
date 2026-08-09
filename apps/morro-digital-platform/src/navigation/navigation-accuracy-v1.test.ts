@@ -230,10 +230,7 @@ describe("V1 navigation accuracy contract", () => {
 
     expect(context.onLocation).toHaveBeenCalledTimes(2);
     expect(context.runtimeUpdate).toHaveBeenCalledTimes(1);
-    expect(context.runtimeUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        location: expect.objectContaining({ accuracy: 300 }),
-      }),
-    );
+    const update = context.runtimeUpdate.mock.calls[0]?.[0];
+    expect(update?.location?.accuracy).toBe(300);
   });
 });
