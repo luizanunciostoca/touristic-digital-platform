@@ -12,10 +12,7 @@ function toRadians(value: number): number {
 }
 
 export function assistantV1PlaceDistanceMeters(
-  destination: Pick<
-    AssistantNavigationDestination,
-    "latitude" | "longitude"
-  >,
+  destination: Pick<AssistantNavigationDestination, "latitude" | "longitude">,
 ): number {
   const earthRadiusMeters = 6_371_000;
   const centerLatitude = toRadians(assistantV1PlaceCenter.latitude);
@@ -41,10 +38,7 @@ export function assistantV1PlaceDistanceMeters(
 }
 
 export function isAssistantV1PlaceWithinRadius(
-  destination: Pick<
-    AssistantNavigationDestination,
-    "latitude" | "longitude"
-  >,
+  destination: Pick<AssistantNavigationDestination, "latitude" | "longitude">,
 ): boolean {
   return (
     Number.isFinite(destination.latitude) &&

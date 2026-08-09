@@ -88,7 +88,9 @@ describe("V1 assistant place resolver semantics", () => {
     expect(
       matchMorroAssistantDestinationV1("morere fora", radiusFixture),
     ).toBeNull();
-    expect(matchMorroAssistantDestinationV1("Moreré", radiusFixture)).toBeNull();
+    expect(
+      matchMorroAssistantDestinationV1("Moreré", radiusFixture),
+    ).toBeNull();
   });
 
   it("does not expose stale out-of-radius entries from the audited catalog", () => {
