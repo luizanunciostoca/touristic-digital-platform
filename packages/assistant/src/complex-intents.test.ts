@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { classifyAssistantComplexIntent } from "./complex-intents.js";
+import { analyzeAssistantIntent } from "./intent-engine.js";
 
 describe("assistant V1 complex intents", () => {
   it.each([
@@ -23,6 +24,18 @@ describe("assistant V1 complex intents", () => {
     expect(classifyAssistantComplexIntent("Tem ferry para Morro?")).toEqual({
       intent: "practical_tips",
       confidence: 0.9,
+    });
+  });
+
+  it("wires complex intents after direct patterns and before synonym fallback", () => {
+    expect(analyzeAssistantIntent("História do Forte de Tapirandu")).toMatchObject({
+      intent: "cultural_history",
+      confidence: 0.95,
+    });
+
+    expect(analyzeAssistantIntent("Como chegar em Morro de São Paulo")).toMatchObject({
+      intent: "navigate",
+      confidence: 1,
     });
   });
 
