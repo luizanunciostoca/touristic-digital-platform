@@ -1,0 +1,38 @@
+name: Assistant M10 format
+
+on:
+  push:
+    branches: [feat/assistant-runtime-m10]
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/assistant-runtime-m10
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec prettier --write docs/migration/ASSISTANT-MIGRATION-MATRIX.md packages/assistant/src/proactive-content.ts packages/assistant/src/proactive-content.test.ts packages/assistant/src/index.ts
+      - name: Commit formatting
+        run: |
+          if git diff --quiet; then
+            echo "Formatting already clean"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/migration/ASSISTANT-MIGRATION-MATRIX.md packages/assistant/src/proactive-content.ts packages/assistant/src/proactive-content.test.ts packages/assistant/src/index.ts
+          git commit -m "style(assistant): format M10 proactive content files"
+          git pull --rebase origin feat/assistant-runtime-m10
+          git push origin HEAD:feat/assistant-runtime-m10
