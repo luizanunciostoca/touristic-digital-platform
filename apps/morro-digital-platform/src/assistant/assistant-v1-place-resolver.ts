@@ -9,11 +9,7 @@ import {
 } from "./assistant-destination-resolver.js";
 
 export type AssistantPlaceMatchType =
-  | "exact"
-  | "alias"
-  | "partial"
-  | "alias_partial"
-  | "fuzzy";
+  "exact" | "alias" | "partial" | "alias_partial" | "fuzzy";
 
 export interface AssistantPlaceMatch {
   readonly destination: AssistantNavigationDestination;
@@ -67,8 +63,7 @@ function normalizedAliases(
 
 export function matchMorroAssistantDestinationV1(
   query: string,
-  catalog: readonly AssistantDestinationCatalogEntry[] =
-    morroAssistantDestinationCatalog,
+  catalog: readonly AssistantDestinationCatalogEntry[] = morroAssistantDestinationCatalog,
 ): AssistantPlaceMatch | null {
   const normalizedQuery = normalizeAssistantText(query);
   if (!normalizedQuery) return null;
@@ -101,10 +96,7 @@ export function matchMorroAssistantDestinationV1(
     }
 
     for (const alias of normalizedAliases(entry)) {
-      if (
-        normalizedQuery.includes(alias) ||
-        alias.includes(normalizedQuery)
-      ) {
+      if (normalizedQuery.includes(alias) || alias.includes(normalizedQuery)) {
         return Object.freeze({
           destination: toDestination(entry),
           matchType: "alias_partial" as const,

@@ -29,8 +29,7 @@ describe("V1 assistant place resolver semantics", () => {
         ?.matchType,
     ).toBe("partial");
     expect(
-      matchMorroAssistantDestinationV1("restaurante basilico agora")
-        ?.matchType,
+      matchMorroAssistantDestinationV1("restaurante basilico agora")?.matchType,
     ).toBe("alias_partial");
   });
 
@@ -42,7 +41,8 @@ describe("V1 assistant place resolver semantics", () => {
   });
 
   it("keeps unknown text unresolved instead of inventing coordinates", () => {
-    expect(resolveMorroAssistantDestinationV1("destino totalmente inventado"))
-      .toBeNull();
+    expect(
+      resolveMorroAssistantDestinationV1("destino totalmente inventado"),
+    ).toBeNull();
   });
 });
