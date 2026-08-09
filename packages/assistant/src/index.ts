@@ -5,5 +5,6 @@ export * from "./intent-engine.js";
 export * from "./llm-policy.js";
 export * from "./menu.js";
 export * from "./message-pipeline.js";
+export * from "./proactive-suggestions.js";
 export * from "./user-profile.js";
 export * from "./v1-baseline.js";
