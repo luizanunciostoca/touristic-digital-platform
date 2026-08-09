@@ -9,18 +9,44 @@ import { createAssistantBrowserDomainHandlers } from "./assistant-domain-adapter
 
 function request(
   intent: AssistantDialogIntentHandlerContext["intent"]["intent"],
+  place?: string,
 ): AssistantDialogIntentHandlerContext {
   return {
     input: intent,
     intent: {
       intent,
       confidence: 1,
-      entities: {},
+      entities: place ? { place } : {},
       normalized: intent,
       modifiers: [],
     },
     context: createDefaultAssistantContext(() => 1),
   };
+}
+
+function mapboxDetailsResponse(openNow: boolean | null = true): Response {
+  return new Response(
+    JSON.stringify({
+      features: [
+        {
+          geometry: { coordinates: [-38.9118443, -13.3800508] },
+          properties: {
+            mapbox_id: "poi.segunda-praia",
+            full_address: "Segunda Praia, Morro de São Paulo",
+            poi_category: ["beach"],
+            metadata: {
+              ...(openNow === null
+                ? {}
+                : { open_hours: { open_now: openNow } }),
+              phone: "+55 75 99999-0000",
+              website: "https://example.com/segunda-praia",
+            },
+          },
+        },
+      ],
+    }),
+    { status: 200, headers: { "Content-Type": "application/json" } },
+  );
 }
 
 describe("assistant browser domain adapter", () => {
@@ -167,5 +193,56 @@ describe("assistant browser domain adapter", () => {
       ],
       metadata: { domain: "weather", state: "generic_fallback" },
     });
+  });
+
+  it("resolves current opening state through the V1 Mapbox place-details behavior", async () => {
+    const fetchImplementation: typeof globalThis.fetch = async () =>
+      mapboxDetailsResponse(false);
+    const handlers = createAssistantBrowserDomainHandlers({
+      fetch: fetchImplementation,
+      mapboxAccessToken: "pk.test",
+    });
+
+    const response = await handlers.hours?.(request("hours", "praia 2"));
+
+    expect(response).toEqual({
+      text: "Segunda Praia está fechado agora.",
+      options: [
+        { label: "Como chegar", value: "como chegar" },
+        { label: "Ver fotos", value: "ver fotos" },
+        { label: "Horário", value: "horário" },
+        { label: "Voltar ao menu principal", value: "voltar ao menu" },
+      ],
+      metadata: {
+        domain: "hours",
+        state: "resolved",
+        place: "Segunda Praia",
+        openNow: false,
+      },
+    });
+  });
+
+  it("enriches more-info responses without inventing unavailable fields", async () => {
+    const fetchImplementation: typeof globalThis.fetch = async () =>
+      mapboxDetailsResponse(true);
+    const handlers = createAssistantBrowserDomainHandlers({
+      fetch: fetchImplementation,
+      mapboxAccessToken: "pk.test",
+    });
+
+    const response = await handlers.more_info?.(
+      request("more_info", "Segunda Praia"),
+    );
+
+    expect(response?.text).toBe(
+      "Segunda Praia · beach · Segunda Praia, Morro de São Paulo · Aberto agora · Telefone: +55 75 99999-0000 · Site: https://example.com/segunda-praia",
+    );
+    expect(response?.metadata).toEqual(
+      expect.objectContaining({
+        domain: "more_info",
+        state: "resolved",
+        place: "Segunda Praia",
+      }),
+    );
   });
 });

@@ -9,11 +9,18 @@ import { createAssistantBrowserDomainHandlers } from "./assistant-domain-adapter
 import { createAssistantNavigationAppHandlers } from "./assistant-navigation-adapter.js";
 import { createMorroAssistantV1DestinationResolver } from "./assistant-v1-place-resolver.js";
 
+interface AssistantRuntimeEnvironmentGlobal {
+  readonly __MORRO_RUNTIME_ENV__?: {
+    readonly VITE_MAPBOX_ACCESS_TOKEN?: string;
+  };
+}
+
 export interface BrowserAssistantRuntimeOptions {
   readonly document: Document;
   readonly navigation: Pick<NavigationSessionBootstrap, "start" | "stop">;
   readonly storage?: Storage;
   readonly fetch?: typeof globalThis.fetch;
+  readonly mapboxAccessToken?: string;
 }
 
 export interface BrowserAssistantRuntime {
@@ -51,10 +58,20 @@ function resolveStorage(
   }
 }
 
+function resolveMapboxAccessToken(override?: string): string | undefined {
+  const explicit = override?.trim();
+  if (explicit) return explicit;
+  const runtime = (
+    globalThis as typeof globalThis & AssistantRuntimeEnvironmentGlobal
+  ).__MORRO_RUNTIME_ENV__?.VITE_MAPBOX_ACCESS_TOKEN?.trim();
+  return runtime || undefined;
+}
+
 export function installBrowserAssistantRuntime(
   options: BrowserAssistantRuntimeOptions,
 ): BrowserAssistantRuntime {
   const storage = resolveStorage(options.document, options.storage);
+  const mapboxAccessToken = resolveMapboxAccessToken(options.mapboxAccessToken);
   const context = createAssistantContextManager(storage ? { storage } : {});
   const navigationHandlers = createAssistantNavigationAppHandlers({
     navigation: options.navigation,
@@ -66,6 +83,7 @@ export function installBrowserAssistantRuntime(
       ? { geolocation: options.document.defaultView.navigator.geolocation }
       : {}),
     ...(options.fetch ? { fetch: options.fetch } : {}),
+    ...(mapboxAccessToken ? { mapboxAccessToken } : {}),
   });
   const controller = createAssistantDialogController({
     context,
