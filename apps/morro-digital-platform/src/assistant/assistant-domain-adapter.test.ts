@@ -1,9 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { ASSISTANT_PROFILE_STORAGE_KEY } from "@touristic/assistant";
+import {
+  ASSISTANT_PROFILE_STORAGE_KEY,
+  createDefaultAssistantContext,
+  type AssistantDialogIntentHandlerContext,
+} from "@touristic/assistant";
 import { createAssistantBrowserDomainHandlers } from "./assistant-domain-adapter.js";
-import { createDefaultAssistantContext } from "@touristic/assistant";
-import type { AssistantDialogIntentHandlerContext } from "@touristic/assistant";
 
 function request(
   intent: AssistantDialogIntentHandlerContext["intent"]["intent"],
@@ -37,7 +39,10 @@ describe("assistant browser domain adapter", () => {
     store.set(
       ASSISTANT_PROFILE_STORAGE_KEY,
       JSON.stringify({
-        favoritePlaces: [{ name: "Toca do Morcego" }, { name: "Segunda Praia" }],
+        favoritePlaces: [
+          { name: "Toca do Morcego" },
+          { name: "Segunda Praia" },
+        ],
       }),
     );
     const storage = {
