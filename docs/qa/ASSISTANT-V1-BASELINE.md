@@ -14,6 +14,7 @@ Congelar, antes da implementação funcional da V2, os comportamentos observáve
 
 A V1 expõe dez opções canônicas, com valores semânticos estáveis e rótulos traduzidos:
 
+<!-- prettier-ignore -->
 | # | Valor | PT | EN | ES | HE |
 |---|---|---|---|---|---|
 | 1 | `beaches` | Praias | Beaches | Playas | חופים |
