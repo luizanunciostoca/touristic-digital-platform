@@ -7,6 +7,9 @@ import {
   type AuthSessionIdentity,
 } from "@touristic/auth";
 
+export * from "./credentials.js";
+export * from "./revocation.js";
+
 export const sessionCookieName = "md_dashboard_session";
 export const defaultSessionTtlSeconds = 8 * 60 * 60;
 
