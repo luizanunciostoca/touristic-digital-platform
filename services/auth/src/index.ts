@@ -74,9 +74,12 @@ function signPart(part: string, secret: string): string {
   return createHmac("sha256", secret).update(part).digest("base64url");
 }
 
-function timingSafeTextEqual(left: unknown, right: unknown): boolean {
-  const a = Buffer.from(String(left ?? ""));
-  const b = Buffer.from(String(right ?? ""));
+function timingSafeTextEqual(
+  left: string | null | undefined,
+  right: string | null | undefined,
+): boolean {
+  const a = Buffer.from(left ?? "");
+  const b = Buffer.from(right ?? "");
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
@@ -119,14 +122,14 @@ export function createSessionToken(
 }
 
 export function verifySessionToken(
-  token: unknown,
+  token: string | null | undefined,
   secretInput: unknown,
   nowEpochSeconds = Math.floor(Date.now() / 1000),
 ): AuthSessionIdentity | null {
   const secret = normalizedSecret(secretInput);
   if (!secret || !Number.isFinite(nowEpochSeconds)) return null;
 
-  const [part, signature, ...rest] = String(token ?? "").split(".");
+  const [part, signature, ...rest] = (token ?? "").split(".");
   if (!part || !signature || rest.length > 0) return null;
   if (!timingSafeTextEqual(signature, signPart(part, secret))) return null;
 
@@ -164,7 +167,7 @@ export function csrfTokenForSession(
 }
 
 export function verifyCsrfToken(
-  provided: unknown,
+  provided: string | null | undefined,
   session: AuthSessionIdentity,
   secretInput: unknown,
 ): boolean {
@@ -172,9 +175,11 @@ export function verifyCsrfToken(
   return Boolean(expected && timingSafeTextEqual(provided, expected));
 }
 
-export function parseCookies(header: unknown): Readonly<Record<string, string>> {
+export function parseCookies(
+  header: string | null | undefined,
+): Readonly<Record<string, string>> {
   const cookies: Record<string, string> = {};
-  for (const pair of String(header ?? "").split(";")) {
+  for (const pair of (header ?? "").split(";")) {
     const separator = pair.indexOf("=");
     if (separator <= 0) continue;
     const key = pair.slice(0, separator).trim();
