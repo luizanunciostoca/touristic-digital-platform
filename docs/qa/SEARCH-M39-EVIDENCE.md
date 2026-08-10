@@ -35,6 +35,8 @@ The frozen feature and POI category mappings are covered by unit tests rather th
 
 The M39 test suite covers request construction, defaults, optional parameters, global search, result normalization, cache hit/expiry and fail-closed behavior. Network access is injected through the provider config, so tests remain deterministic and do not require a live Mapbox request.
 
+Fetch assertions inspect the request URL through its explicit `string`, `URL` or `Request.url` representation rather than relying on implicit object stringification.
+
 ## Exit gate
 
 M39 may close only after the final authored head passes installation, formatting, architecture, Feature Registry, lint, typecheck, tests and build, and the PR diff contains no temporary workflow.
