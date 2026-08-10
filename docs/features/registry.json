@@ -37,10 +37,10 @@
       "name": "Assistente Digital",
       "domain": "assistant",
       "wave": 11,
-      "status": "baseline-pending",
+      "status": "equivalent",
       "legacySources": ["v1:assistant", "v1:tts"],
       "targetPackages": ["@touristic/assistant", "@touristic/voice"],
-      "equivalence": { "behavior": false, "visual": false, "api": false }
+      "equivalence": { "behavior": true, "visual": true, "api": true }
     },
     {
       "id": "FEATURE-0005",
