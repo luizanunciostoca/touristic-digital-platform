@@ -85,6 +85,10 @@ No Registry promotion occurs in M46:
 
 M47 should create the Auth-owned core first, with executable unit contracts for identity/session projections, roles, business scopes and authorization decisions. Cookie transport, login endpoints and CSRF browser integration should remain a subsequent integration milestone so core policy is framework-independent and testable.
 
+## Final authored checkpoint
+
+The M46 documentation has been normalized with the repository's canonical Prettier configuration. The final validation head must contain only the four permanent baseline/evidence documents and no formatting helper workflow.
+
 ## Exit gate
 
 M46 may merge only when:
