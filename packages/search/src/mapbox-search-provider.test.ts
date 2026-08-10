@@ -12,6 +12,15 @@ function response(payload: unknown, ok = true): Response {
   } as Response;
 }
 
+function requestedUrl(fetchMock: ReturnType<typeof vi.fn<typeof fetch>>, index: number): URL {
+  const input = fetchMock.mock.calls[index]?.[0];
+  if (!input) throw new Error(`Missing fetch call at index ${index}`);
+
+  if (typeof input === "string") return new URL(input);
+  if (input instanceof URL) return input;
+  return new URL(input.url);
+}
+
 describe("Mapbox Search provider", () => {
   it("fails closed for short queries and missing token", async () => {
     const fetchMock = vi.fn<typeof fetch>();
@@ -49,15 +58,15 @@ describe("Mapbox Search provider", () => {
       poiCategory: "restaurant",
     });
 
-    const requestedUrl = new URL(String(fetchMock.mock.calls[0]?.[0]));
-    expect(requestedUrl.searchParams.get("q")).toBe("Morro");
-    expect(requestedUrl.searchParams.get("language")).toBe("es");
-    expect(requestedUrl.searchParams.get("limit")).toBe("10");
-    expect(requestedUrl.searchParams.get("types")).toBe("poi");
-    expect(requestedUrl.searchParams.get("country")).toBe("BR");
-    expect(requestedUrl.searchParams.get("proximity")).toBe("-38.9,-13.3");
-    expect(requestedUrl.searchParams.get("bbox")).toBe("-39,-14,-38,-13");
-    expect(requestedUrl.searchParams.get("poi_category")).toBe("restaurant");
+    const url = requestedUrl(fetchMock, 0);
+    expect(url.searchParams.get("q")).toBe("Morro");
+    expect(url.searchParams.get("language")).toBe("es");
+    expect(url.searchParams.get("limit")).toBe("10");
+    expect(url.searchParams.get("types")).toBe("poi");
+    expect(url.searchParams.get("country")).toBe("BR");
+    expect(url.searchParams.get("proximity")).toBe("-38.9,-13.3");
+    expect(url.searchParams.get("bbox")).toBe("-39,-14,-38,-13");
+    expect(url.searchParams.get("poi_category")).toBe("restaurant");
   });
 
   it("uses Morro defaults and supports global search without proximity", async () => {
@@ -72,8 +81,8 @@ describe("Mapbox Search provider", () => {
     await provider.search("Praia");
     await provider.searchGlobal("Salvador");
 
-    const localUrl = new URL(String(fetchMock.mock.calls[0]?.[0]));
-    const globalUrl = new URL(String(fetchMock.mock.calls[1]?.[0]));
+    const localUrl = requestedUrl(fetchMock, 0);
+    const globalUrl = requestedUrl(fetchMock, 1);
     expect(localUrl.searchParams.get("language")).toBe("pt");
     expect(localUrl.searchParams.get("limit")).toBe("5");
     expect(localUrl.searchParams.get("proximity")).toBe("-38.9159,-13.3775");
