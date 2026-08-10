@@ -5,6 +5,7 @@ import { extname, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createAssistantApi } from "./assistant-api.mjs";
 import { createAuthApi } from "./auth-api.mjs";
+import { createBusinessApi } from "./business-api.mjs";
 
 const repositoryRoot = resolve(
   fileURLToPath(new URL("../../../", import.meta.url)),
@@ -83,13 +84,34 @@ async function loadLocalEnvironment() {
 
 const localEnvironment = await loadLocalEnvironment();
 
+function auditSecurityEvent(request, event) {
+  const pathname = (() => {
+    try {
+      return new URL(request.url || "/", `http://${host}:${port}`).pathname;
+    } catch {
+      return "/";
+    }
+  })();
+  const record = {
+    action: String(event?.action || "security.unknown"),
+    result: String(event?.result || "unknown"),
+    reason: event?.reason ? String(event.reason) : undefined,
+    method: String(request.method || "GET"),
+    pathname,
+  };
+  console.warn(`[security-audit] ${JSON.stringify(record)}`);
+}
+
 const assistantApi = createAssistantApi({
   getEnvironmentValue: (key) => process.env[key] ?? localEnvironment[key] ?? "",
 });
 
 const authApi = createAuthApi({
   getEnvironmentValue: (key) => process.env[key] ?? localEnvironment[key] ?? "",
+  audit: auditSecurityEvent,
 });
+
+const businessApi = createBusinessApi({ authApi });
 
 function createRuntimeEnvironment() {
   return Object.freeze(
@@ -356,6 +378,10 @@ const server = createServer(async (request, response) => {
     }
     if (authApi.matches(requestUrl.pathname)) {
       await authApi.handle(request, response, requestUrl.pathname);
+      return;
+    }
+    if (businessApi.matches(requestUrl.pathname)) {
+      await businessApi.handle(request, response, requestUrl.pathname);
       return;
     }
     if (assistantApi.matches(requestUrl.pathname)) {
