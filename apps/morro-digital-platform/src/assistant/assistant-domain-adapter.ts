@@ -6,6 +6,7 @@ import {
   type AssistantProfileStorage,
 } from "@touristic/assistant";
 import { fetchMorroWeather } from "../weather/weather-widget.js";
+import { createAssistantSearchHandler } from "./assistant-search-adapter.js";
 import { resolveAssistantNearby } from "./assistant-nearby-adapter.js";
 import {
   askPlaceCopy,
@@ -230,7 +231,7 @@ export function createAssistantBrowserDomainHandlers(
   );
   const fetchImplementation = options.fetch ?? globalThis.fetch;
 
-  return createAssistantDomainHandlers({
+  const domainHandlers = createAssistantDomainHandlers({
     copy: {
       askPlace: (intent, request) => ({
         text: askPlaceCopy(request.intent.entities.language ?? "pt", intent),
@@ -300,4 +301,14 @@ export function createAssistantBrowserDomainHandlers(
       },
     },
   });
+
+  return {
+    ...domainHandlers,
+    place_search: createAssistantSearchHandler({
+      ...(options.fetch ? { fetch: options.fetch } : {}),
+      ...(options.mapboxAccessToken
+        ? { mapboxAccessToken: options.mapboxAccessToken }
+        : {}),
+    }),
+  };
 }

@@ -7,7 +7,6 @@ import {
 
 import type { NavigationSessionBootstrap } from "../navigation/navigation-session-bootstrap.js";
 import { createAssistantLlmHandler } from "./assistant-llm-adapter.js";
-import { createAssistantSearchHandler } from "./assistant-search-adapter.js";
 import { createAssistantBrowserDomainHandlers } from "./assistant-domain-adapter.js";
 import { createAssistantMessageDom } from "./assistant-message-dom.js";
 import {
@@ -187,15 +186,10 @@ export function installBrowserAssistantRuntime(
     ...(options.fetch ? { fetch: options.fetch } : {}),
     ...(mapboxAccessToken ? { mapboxAccessToken } : {}),
   });
-  const searchHandler = createAssistantSearchHandler({
-    ...(options.fetch ? { fetch: options.fetch } : {}),
-    ...(mapboxAccessToken ? { mapboxAccessToken } : {}),
-  });
   const controller = createAssistantDialogController({
     context,
     handlers: {
       ...domainHandlers,
-      place_search: searchHandler,
       ...navigationHandlers,
     },
     llm: createAssistantLlmHandler({
