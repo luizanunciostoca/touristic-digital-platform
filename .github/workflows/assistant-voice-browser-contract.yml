@@ -1,0 +1,71 @@
+name: Assistant Voice Browser Contract
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/assistant-voice-browser-contract.yml
+      - apps/morro-digital-platform/src/assistant/assistant-voice-adapter.ts
+      - apps/morro-digital-platform/src/assistant/assistant-voice-input-adapter.ts
+      - apps/morro-digital-platform/src/assistant/assistant-voice-settings.ts
+      - apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts
+      - apps/morro-digital-platform/src/layouts/app-shell.ts
+      - apps/morro-digital-platform/public/legacy/css/components/assistant/assistant-voice-settings.css
+      - apps/morro-digital-platform/tooling/assistant-voice-browser-contract.mjs
+      - packages/assistant/src/voice-synthesis.ts
+      - docs/migration/ASSISTANT-MIGRATION-MATRIX.md
+
+permissions:
+  contents: read
+
+jobs:
+  voice-browser-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install deterministic Chromium
+        run: |
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+          mkdir -p /tmp/assistant-voice-browser-contract
+      - name: Build workspace
+        run: pnpm -w build
+      - name: Start browser runtime
+        env:
+          MAPBOX_PUBLIC_TOKEN_CI: ${{ secrets.MAPBOX_PUBLIC_TOKEN_CI }}
+        run: |
+          test -n "${MAPBOX_PUBLIC_TOKEN_CI:-}" || { echo 'MAPBOX_PUBLIC_TOKEN_CI missing'; exit 1; }
+          VITE_MAPBOX_ACCESS_TOKEN="$MAPBOX_PUBLIC_TOKEN_CI" \
+          VITE_MAPBOX_STYLE=mapbox://styles/mapbox/streets-v12 \
+          VITE_MAPBOX_CONTAINER_ID=map \
+          VITE_MAPBOX_INITIAL_ZOOM=13.5 \
+          node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/assistant-voice-browser-contract.log 2>&1 &
+          echo $! >/tmp/assistant-voice-browser-contract.pid
+          for i in $(seq 1 90); do
+            if curl -fsS http://127.0.0.1:4173/runtime-config.js >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/assistant-voice-browser-contract.log
+          exit 1
+      - name: Validate synthesis, microphone, preferences and fallback
+        run: node apps/morro-digital-platform/tooling/assistant-voice-browser-contract.mjs
+      - name: Show diagnostics
+        if: failure()
+        run: cat /tmp/assistant-voice-browser-contract.log || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: assistant-voice-browser-contract-evidence
+          path: /tmp/assistant-voice-browser-contract
+          if-no-files-found: error
+          retention-days: 14
+
+# Permanent CSP-safe MIG-0006 Voice PASS regression; architecture boundary validated.
