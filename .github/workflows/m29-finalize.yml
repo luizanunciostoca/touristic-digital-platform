@@ -1,0 +1,54 @@
+name: M29 Finalize
+
+on:
+  push:
+    branches:
+      - feat/assistant-m29-voice-input
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: pnpm install --frozen-lockfile
+      - name: Update M29 matrix
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = 'docs/migration/ASSISTANT-MIGRATION-MATRIX.md';
+          let text = fs.readFileSync(path, 'utf8');
+          text = text.replace('| Estado M28 |', '| Estado M29 |');
+          text = text.replace(
+            '| Voz                                   | `voice/**`                 | `src/voice-synthesis.ts` + `assistant-voice-adapter.ts`                                                         | PARTIAL    | síntese e preferências PT/EN/ES/HE conectadas; seletor visual e entrada por voz ainda pendentes                                          |',
+            '| Voz                                   | `voice/**`                 | `src/voice-synthesis.ts` + `assistant-voice-adapter.ts` + `assistant-voice-input-adapter.ts`                    | PARTIAL    | síntese, preferências e entrada por voz PT/EN/ES/HE conectadas; seletor/configuração visual ainda pendente                               |'
+          );
+          if (!text.includes('## Estado do milestone M29')) {
+            text += `\n\n## Estado do milestone M29\n\nO M29 conecta o botão de microfone do shell V2 ao reconhecimento de voz nativo do navegador, preservando a estratégia observável da V1: preferência por \`SpeechRecognition\` com fallback para \`webkitSpeechRecognition\`, captura de uma única fala por vez (\`continuous=false\`, \`interimResults=false\`) e idiomas PT/EN/ES/HE mapeados para \`pt-BR\`, \`en-US\`, \`es-ES\` e \`he-IL\`.\n\n\`assistant-voice-input-adapter.ts\` isola a API experimental atrás de um contrato testável, normaliza transcript/confiança, mantém lifecycle explícito de listening e falha de forma segura quando reconhecimento não está disponível ou quando o navegador retorna erro. O \`browser-assistant-runtime.ts\` envia o transcript reconhecido pelo mesmo pipeline \`process()\` usado por texto, portanto contexto, NLP local-first, handlers, fallback LLM, histórico e resposta por síntese continuam em uma única trilha funcional.\n\nO botão \`#voiceButton\` passa a refletir estado com \`aria-pressed\` e classe \`listening\`; mensagens de escuta, indisponibilidade e erro são apresentadas em PT/EN/ES/HE. O áudio capturado não é persistido pelo runtime. A linha Voz permanece \`PARTIAL\` apenas porque o seletor/configuração visual de voz da V1 ainda precisa ser reproduzido antes de \`PASS\`.\n\nA FEATURE-0004 / MIG-0006 **ainda não está equivalente**. Permanecem principalmente o seletor/configuração visual de voz, assets físicos de fotos, paridade completa de weather/copy/i18n e lifecycle/UI completa do Assistente.\n`;
+          }
+          fs.writeFileSync(path, text);
+          NODE
+      - run: pnpm exec prettier --write apps/morro-digital-platform/src/assistant/assistant-voice-input-adapter.ts apps/morro-digital-platform/src/assistant/assistant-voice-input-adapter.test.ts apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts docs/migration/ASSISTANT-MIGRATION-MATRIX.md
+      - run: pnpm format:check
+      - run: pnpm architecture:check
+      - run: pnpm features:check
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+      - name: Commit finalized files
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add apps/morro-digital-platform/src/assistant/assistant-voice-input-adapter.ts apps/morro-digital-platform/src/assistant/assistant-voice-input-adapter.test.ts apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts docs/migration/ASSISTANT-MIGRATION-MATRIX.md
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "feat(assistant): finalize M29 voice input"
+          git push
