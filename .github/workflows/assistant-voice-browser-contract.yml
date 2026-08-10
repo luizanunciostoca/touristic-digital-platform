@@ -68,4 +68,4 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-# Permanent CSP-safe MIG-0006 Voice regression; retained after parity closes.
+# Permanent CSP-safe MIG-0006 Voice regression, including native capability fallback.
