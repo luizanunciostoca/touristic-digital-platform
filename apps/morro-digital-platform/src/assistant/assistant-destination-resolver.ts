@@ -3,7 +3,7 @@ import {
   type AssistantNavigationDestination,
 } from "@touristic/assistant";
 
-import { morroAssistantV1DestinationCatalog } from "./assistant-v1-destination-catalog.js";
+import { morroV1SearchCatalog } from "@touristic/search";
 
 export interface AssistantDestinationCatalogEntry extends AssistantNavigationDestination {
   readonly aliases?: readonly string[];
@@ -26,12 +26,12 @@ export function resolveMorroAssistantDestination(
   const normalizedQuery = normalizeAssistantText(query);
   if (!normalizedQuery) return null;
 
-  const exact = morroAssistantV1DestinationCatalog.find((entry) =>
+  const exact = morroV1SearchCatalog.find((entry) =>
     destinationKeys(entry).includes(normalizedQuery),
   );
   const matched =
     exact ??
-    morroAssistantV1DestinationCatalog.find((entry) =>
+    morroV1SearchCatalog.find((entry) =>
       destinationKeys(entry).some(
         (key) => normalizedQuery.includes(key) || key.includes(normalizedQuery),
       ),
@@ -52,5 +52,4 @@ export function createMorroAssistantDestinationResolver() {
   });
 }
 
-export const morroAssistantDestinationCatalog =
-  morroAssistantV1DestinationCatalog;
+export const morroAssistantDestinationCatalog = morroV1SearchCatalog;
