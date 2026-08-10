@@ -73,13 +73,15 @@ jobs:
             sleep 0.25
           done
 
-          LOGIN_STATUS=$(curl --silent --output /tmp/login.json --write-out '%{http_code}' \
+          LOGIN_STATUS=$(curl --silent --output /tmp/login.json --dump-header /tmp/login.headers --write-out '%{http_code}' \
             --cookie-jar /tmp/auth.cookies \
             --header "Origin: $ORIGIN" \
             --header 'Content-Type: application/json' \
             --data "{\"email\":\"owner@example.com\",\"password\":\"$PASSWORD\"}" \
             "$ORIGIN/api/dashboard/auth/login")
           test "$LOGIN_STATUS" = "200"
+          grep -Eiq '^set-cookie: .*HttpOnly' /tmp/login.headers
+          grep -Eiq '^set-cookie: .*SameSite=Strict' /tmp/login.headers
 
           python - <<'PY'
           import json
@@ -91,7 +93,7 @@ jobs:
           assert isinstance(data['csrfToken'], str) and len(data['csrfToken']) > 20
           open('/tmp/csrf.txt','w').write(data['csrfToken'])
           PY
-          grep -q 'HttpOnly' /tmp/auth.cookies || true
+          cp /tmp/auth.cookies /tmp/auth-before-logout.cookies
 
           SESSION_STATUS=$(curl --silent --output /tmp/session.json --write-out '%{http_code}' \
             --cookie /tmp/auth.cookies \
@@ -125,7 +127,7 @@ jobs:
           grep -q '"success":true' /tmp/logout.json
 
           REVOKED_STATUS=$(curl --silent --output /tmp/revoked.json --write-out '%{http_code}' \
-            --cookie /tmp/auth.cookies \
+            --cookie /tmp/auth-before-logout.cookies \
             "$ORIGIN/api/dashboard/auth/session")
           test "$REVOKED_STATUS" = "401"
 
