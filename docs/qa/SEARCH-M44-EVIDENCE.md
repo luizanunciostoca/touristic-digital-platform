@@ -8,7 +8,8 @@ Frozen reference:
 
 - V1-equivalent implementation: `apps/morro-digital-platform/src/assistant/assistant-v1-place-resolver.ts`;
 - frozen threshold: `0.55`;
-- Search base after M43: `02623622c043af12d662898cce878a522f93f8e8`.
+- Search base after M43: `02623622c043af12d662898cce878a522f93f8e8`;
+- final implementation validation runs from an authored head after formatter helpers are absent from the diff.
 
 ## Search-owned contract
 
