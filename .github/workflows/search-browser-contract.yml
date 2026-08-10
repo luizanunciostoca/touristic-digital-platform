@@ -162,7 +162,7 @@ jobs:
               }
 
               const detailText = await page.locator('#assistant-messages .message.assistant').last().textContent();
-              if (!detailText?.includes('Toca do Morcego')) {
+              if (!detailText?.toLocaleLowerCase('pt-BR').includes('toca do morcego')) {
                 throw new Error(`Details integration lost selected place: ${detailText}`);
               }
 
