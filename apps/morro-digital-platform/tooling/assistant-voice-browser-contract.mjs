@@ -438,22 +438,31 @@ async function runUnsupportedContract(browser) {
   });
   await context.addInitScript(() => {
     localStorage.setItem("morro-digital-onboarded", "1");
-    Object.defineProperty(globalThis, "speechSynthesis", {
-      configurable: true,
-      value: undefined,
-    });
-    Object.defineProperty(globalThis, "SpeechSynthesisUtterance", {
-      configurable: true,
-      value: undefined,
-    });
-    Object.defineProperty(globalThis, "SpeechRecognition", {
-      configurable: true,
-      value: undefined,
-    });
-    Object.defineProperty(globalThis, "webkitSpeechRecognition", {
-      configurable: true,
-      value: undefined,
-    });
+
+    const hideCapability = (target, property) => {
+      try {
+        Object.defineProperty(target, property, {
+          configurable: true,
+          get: () => undefined,
+        });
+      } catch {
+        try {
+          target[property] = undefined;
+        } catch {
+          // Best-effort override for browser-native capability detection.
+        }
+      }
+    };
+
+    for (const property of [
+      "speechSynthesis",
+      "SpeechSynthesisUtterance",
+      "SpeechRecognition",
+      "webkitSpeechRecognition",
+    ]) {
+      hideCapability(globalThis, property);
+      hideCapability(Window.prototype, property);
+    }
   });
   const page = await context.newPage();
   await page.goto(BASE_URL, { waitUntil: "domcontentloaded", timeout: 30000 });
