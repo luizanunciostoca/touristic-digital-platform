@@ -22,17 +22,17 @@ An executable export over the frozen source produced:
 
 Category counts:
 
-| Category | Count |
-| --- | ---: |
-| beaches | 8 |
-| restaurants | 45 |
-| hotels | 35 |
-| shops | 12 |
-| transport | 8 |
-| attractions | 8 |
-| nightlife | 5 |
-| emergencies | 4 |
-| tours | 6 |
+| Category    | Count |
+| ----------- | ----: |
+| beaches     |     8 |
+| restaurants |    45 |
+| hotels      |    35 |
+| shops       |    12 |
+| transport   |     8 |
+| attractions |     8 |
+| nightlife   |     5 |
+| emergencies |     4 |
+| tours       |     6 |
 
 ## Ownership change
 
