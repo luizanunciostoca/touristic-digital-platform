@@ -69,7 +69,8 @@ describe("morroV1SearchCatalog", () => {
     expect(Object.isFrozen(morroV1SearchEnrichment)).toBe(true);
     expect(
       morroV1SearchCatalog.every(
-        (item) => Object.isFrozen(item) && (!item.tags || Object.isFrozen(item.tags)),
+        (item) =>
+          Object.isFrozen(item) && (!item.tags || Object.isFrozen(item.tags)),
       ),
     ).toBe(true);
   });
