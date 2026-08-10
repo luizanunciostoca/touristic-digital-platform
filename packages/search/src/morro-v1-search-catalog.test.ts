@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { morroV1SearchCatalog } from "./morro-v1-search-catalog.js";
+import { morroV1SearchEnrichment } from "./morro-v1-search-enrichment.js";
 
 const EXPECTED_CATEGORY_COUNTS = Object.freeze({
   beaches: 8,
@@ -13,6 +14,14 @@ const EXPECTED_CATEGORY_COUNTS = Object.freeze({
   emergencies: 4,
   tours: 6,
 });
+
+const EXPECTED_AREAS = Object.freeze([
+  "caminho",
+  "gamboa",
+  "garapua",
+  "praia",
+  "vila",
+]);
 
 describe("morroV1SearchCatalog", () => {
   it("preserves the frozen V1 catalog size and category inventory", () => {
@@ -28,6 +37,20 @@ describe("morroV1SearchCatalog", () => {
     expect(categoryCounts).toEqual(EXPECTED_CATEGORY_COUNTS);
   });
 
+  it("preserves the complete audited enrichment inventory", () => {
+    const tags = new Set<string>();
+    const areas = new Set<string>();
+
+    expect(morroV1SearchEnrichment).toHaveLength(131);
+    for (const item of morroV1SearchCatalog) {
+      for (const tag of item.tags ?? []) tags.add(tag);
+      if (item.area) areas.add(item.area);
+    }
+
+    expect(tags.size).toBe(90);
+    expect([...areas].sort()).toEqual(EXPECTED_AREAS);
+  });
+
   it("keeps every base discovery entry structurally usable", () => {
     for (const item of morroV1SearchCatalog) {
       expect(item.name.trim().length).toBeGreaterThan(0);
@@ -41,7 +64,13 @@ describe("morroV1SearchCatalog", () => {
     }
   });
 
-  it("is frozen at the catalog boundary", () => {
+  it("freezes the catalog and enrichment boundaries", () => {
     expect(Object.isFrozen(morroV1SearchCatalog)).toBe(true);
+    expect(Object.isFrozen(morroV1SearchEnrichment)).toBe(true);
+    expect(
+      morroV1SearchCatalog.every(
+        (item) => Object.isFrozen(item) && (!item.tags || Object.isFrozen(item.tags)),
+      ),
+    ).toBe(true);
   });
 });
