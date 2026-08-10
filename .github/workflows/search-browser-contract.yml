@@ -104,7 +104,8 @@ jobs:
 
               await page.locator('#assistantInput').fill('Toca do Morcego');
               await page.locator('#sendButton').click();
-              await page.locator('.assistant-options .assistant-option-btn').first().waitFor({ state: 'visible', timeout: 10000 });
+              const searchResult = page.locator('.assistant-options .assistant-option-btn', { hasText: 'Toca do Morcego' });
+              await searchResult.waitFor({ state: 'visible', timeout: 10000 });
 
               const searchText = await page.locator('#assistant-messages .message.assistant').last().textContent();
               if (!searchText?.includes('Encontrei estes resultados para "Toca do Morcego"')) {
@@ -114,7 +115,7 @@ jobs:
                 throw new Error(`Search result missing canonical POI: ${searchText}`);
               }
 
-              await page.locator('.assistant-options .assistant-option-btn').first().click();
+              await searchResult.click();
               const navigate = page.locator('.assistant-options .assistant-option-btn', { hasText: 'Como chegar' });
               await navigate.waitFor({ state: 'visible', timeout: 15000 });
 
