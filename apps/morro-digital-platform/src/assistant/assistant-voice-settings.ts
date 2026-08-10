@@ -53,14 +53,38 @@ function syncSelectedVoice(
 export function installAssistantVoiceSettings(
   options: AssistantVoiceSettingsOptions,
 ): AssistantVoiceSettingsController {
-  const panel = getElement<HTMLElement>(options.document, "assistantVoiceSettings");
-  const configButton = getElement<HTMLButtonElement>(options.document, "configButton");
-  const closeButton = getElement<HTMLButtonElement>(options.document, "assistantVoiceSettingsClose");
-  const enabled = getElement<HTMLInputElement>(options.document, "assistantVoiceEnabled");
-  const voiceSelect = getElement<HTMLSelectElement>(options.document, "assistantVoiceSelect");
-  const speed = getElement<HTMLInputElement>(options.document, "assistantVoiceSpeed");
-  const speedValue = getElement<HTMLOutputElement>(options.document, "assistantVoiceSpeedValue");
-  const language = getElement<HTMLSelectElement>(options.document, "assistantVoiceLanguage");
+  const panel = getElement<HTMLElement>(
+    options.document,
+    "assistantVoiceSettings",
+  );
+  const configButton = getElement<HTMLButtonElement>(
+    options.document,
+    "configButton",
+  );
+  const closeButton = getElement<HTMLButtonElement>(
+    options.document,
+    "assistantVoiceSettingsClose",
+  );
+  const enabled = getElement<HTMLInputElement>(
+    options.document,
+    "assistantVoiceEnabled",
+  );
+  const voiceSelect = getElement<HTMLSelectElement>(
+    options.document,
+    "assistantVoiceSelect",
+  );
+  const speed = getElement<HTMLInputElement>(
+    options.document,
+    "assistantVoiceSpeed",
+  );
+  const speedValue = getElement<HTMLOutputElement>(
+    options.document,
+    "assistantVoiceSpeedValue",
+  );
+  const language = getElement<HTMLSelectElement>(
+    options.document,
+    "assistantVoiceLanguage",
+  );
 
   if (
     !panel ||
@@ -80,9 +104,7 @@ export function installAssistantVoiceSettings(
   const readVoices = (): readonly AssistantVoiceDescriptor[] =>
     options.voices?.() ?? [];
 
-  const renderVoices = (
-    preferences: AssistantVoicePreferences,
-  ): void => {
+  const renderVoices = (preferences: AssistantVoicePreferences): void => {
     const voices = readVoices();
     voiceSelect.replaceChildren();
 
@@ -94,7 +116,9 @@ export function installAssistantVoiceSettings(
     for (const voice of voices) {
       const option = options.document.createElement("option");
       option.value = voice.name;
-      option.textContent = `${voice.name} (${voice.lang})${voice.default ? " • padrão" : ""}`;
+      option.textContent = `${voice.name} (${voice.lang})${
+        voice.default ? " • padrão" : ""
+      }`;
       voiceSelect.appendChild(option);
     }
     syncSelectedVoice(voiceSelect, preferences);
