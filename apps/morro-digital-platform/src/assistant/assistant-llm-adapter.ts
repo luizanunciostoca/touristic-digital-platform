@@ -29,9 +29,11 @@ interface AssistantLlmResponsePayload {
 
 function plainText(value: unknown, maxLength: number): string {
   if (typeof value !== "string") return "";
-  return value
+  const withoutControls = Array.from(value)
+    .filter((character) => character >= " " && character !== "\u007f")
+    .join("");
+  return withoutControls
     .replace(/<[^>]*>/gu, " ")
-    .replace(/[\u0000-\u001f\u007f]/gu, " ")
     .replace(/\s+/gu, " ")
     .trim()
     .slice(0, maxLength);
