@@ -83,19 +83,19 @@ function createAppShellMarkup(): string {
         </div>
         <label class="assistant-voice-settings-row">
           <span>Voz do assistente</span>
-          <input id="assistantVoiceEnabled" type="checkbox" />
+          <input id="assistantVoiceEnabled" type="checkbox" disabled />
         </label>
         <label class="assistant-voice-settings-field" for="assistantVoiceSelect">
           <span>Voz</span>
-          <select id="assistantVoiceSelect" class="assistant-voice-selector"></select>
+          <select id="assistantVoiceSelect" class="assistant-voice-selector" disabled></select>
         </label>
         <label class="assistant-voice-settings-field" for="assistantVoiceSpeed">
           <span>Velocidade <output id="assistantVoiceSpeedValue" for="assistantVoiceSpeed">1.00×</output></span>
-          <input id="assistantVoiceSpeed" type="range" min="0.5" max="2" step="0.05" value="1" />
+          <input id="assistantVoiceSpeed" type="range" min="0.5" max="2" step="0.05" value="1" disabled />
         </label>
         <label class="assistant-voice-settings-field" for="assistantVoiceLanguage">
           <span>Idioma</span>
-          <select id="assistantVoiceLanguage">
+          <select id="assistantVoiceLanguage" disabled>
             <option value="pt">Português</option>
             <option value="en">English</option>
             <option value="es">Español</option>
