@@ -78,9 +78,7 @@ describe("assistant domain i18n integration", () => {
   it("localizes Spanish location failure through the browser adapter", async () => {
     const handlers = createAssistantBrowserDomainHandlers();
 
-    const response = await handlers.my_location?.(
-      request("my_location", "es"),
-    );
+    const response = await handlers.my_location?.(request("my_location", "es"));
 
     expect(response?.text).toContain("ubicación");
     expect(response?.metadata).toEqual({
