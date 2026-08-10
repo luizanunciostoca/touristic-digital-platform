@@ -105,7 +105,7 @@ function createPayload(
 
   return {
     input: plainText(request.input, 1_000),
-    lang: normalizeLanguage(request.intent.entities.lang),
+    lang: normalizeLanguage(request.intent.entities.language),
     userType: "tourist",
     context: {
       lastPlace: plainText(request.context.lastPlace, 120) || null,
