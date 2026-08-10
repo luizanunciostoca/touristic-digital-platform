@@ -1,0 +1,36 @@
+name: M47 Format Docs Once
+
+on:
+  push:
+    branches:
+      - feat/auth-m47-core
+    paths:
+      - .github/workflows/m47-format-docs-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/auth-m47-core
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Format M47 documentation
+        run: pnpm exec prettier --write docs/migration/AUTH-MIGRATION-MATRIX.md docs/qa/AUTH-M47-EVIDENCE.md
+      - name: Commit formatted docs and remove helper
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/m47-format-docs-once.yml
+          git add docs/migration/AUTH-MIGRATION-MATRIX.md docs/qa/AUTH-M47-EVIDENCE.md
+          git commit -m "style(auth): format M47 evidence"
+          git push origin HEAD:feat/auth-m47-core
