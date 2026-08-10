@@ -68,4 +68,4 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-# Permanent CSP-safe MIG-0006 Voice PASS regression, aligned with the formatted migration matrix.
+# Permanent CSP-safe MIG-0006 Voice PASS regression; architecture boundary validated.
