@@ -8,6 +8,7 @@ Audited merge base:
 
 - M42 squash merge: `5e66720d7c3c68086e492961162eb612fd7b8858`
 - frozen V1 source: `luizidebook/morro-de-sao-paulo-digital@60746fd7fed97b805758b37adfdbe3bad2582bfe`
+- final M43 validation must run on a user-authored head after formatting is complete
 
 ## Evidence chain
 
