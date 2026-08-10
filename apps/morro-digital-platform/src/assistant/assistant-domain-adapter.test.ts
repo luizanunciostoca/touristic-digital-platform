@@ -10,18 +10,55 @@ import { createAssistantBrowserDomainHandlers } from "./assistant-domain-adapter
 function request(
   intent: AssistantDialogIntentHandlerContext["intent"]["intent"],
   place?: string,
+  input = intent,
 ): AssistantDialogIntentHandlerContext {
   return {
-    input: intent,
+    input,
     intent: {
       intent,
       confidence: 1,
       entities: place ? { place } : {},
-      normalized: intent,
+      normalized: input.toLowerCase(),
       modifiers: [],
     },
     context: createDefaultAssistantContext(() => 1),
   };
+}
+
+function weatherResponse(): Response {
+  return new Response(
+    JSON.stringify({
+      temperatureCelsius: 28,
+      weatherCode: 2,
+      isDay: true,
+      humidityPercent: 78,
+      windKph: 14,
+      precipitationProbability: 30,
+      forecast: [
+        {
+          date: "2026-08-10",
+          highCelsius: 30,
+          lowCelsius: 23,
+          weatherCode: 2,
+          humidityPercent: 80,
+          windKph: 19,
+          precipitationProbability: 45,
+          description: "Partly cloudy",
+          hourly: [
+            {
+              hour: 12,
+              temperatureCelsius: 29,
+              feelsLikeCelsius: 31,
+              humidityPercent: 77,
+              precipitationProbability: 25,
+              weatherCode: 2,
+            },
+          ],
+        },
+      ],
+    }),
+    { status: 200, headers: { "Content-Type": "application/json" } },
+  );
 }
 
 function mapboxDetailsResponse(openNow: boolean | null = true): Response {
@@ -132,42 +169,63 @@ describe("assistant browser domain adapter", () => {
     });
   });
 
-  it("uses the same-origin weather provider for current conditions", async () => {
+  it("uses the same-origin provider for rich current weather", async () => {
     const fetchImplementation: typeof globalThis.fetch = async () =>
-      new Response(
-        JSON.stringify({
-          temperatureCelsius: 28,
-          weatherCode: 2,
-          isDay: true,
-        }),
-        {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        },
-      );
+      weatherResponse();
     const handlers = createAssistantBrowserDomainHandlers({
       fetch: fetchImplementation,
     });
 
     const response = await handlers.weather?.(request("weather"));
 
-    expect(response).toEqual({
-      text: "Agora em Morro de São Paulo: 28°C, parcialmente nublado.",
-      options: [
-        { label: "Temperatura agora", value: "temperatura agora" },
-        { label: "Vai chover?", value: "vai chover" },
-        { label: "Previsão do tempo", value: "previsao do tempo" },
-        { label: "Como está a maré?", value: "mare" },
-        { label: "Voltar ao menu principal", value: "voltar ao menu" },
-      ],
-      metadata: {
+    expect(response?.text).toBe(
+      "Agora em Morro de São Paulo: 28°C, parcialmente nublado. Máxima de 30°C e mínima de 23°C, umidade 78%, vento 14 km/h e chance de chuva 30%.",
+    );
+    expect(response?.options).toEqual([
+      { label: "Temperatura agora", value: "temperatura agora" },
+      { label: "Vai chover?", value: "vai chover" },
+      { label: "Previsão do tempo", value: "previsao do tempo" },
+      { label: "Como está a maré?", value: "mare" },
+      { label: "Voltar ao menu principal", value: "voltar ao menu" },
+    ]);
+    expect(response?.metadata).toEqual(
+      expect.objectContaining({
         domain: "weather",
         state: "resolved",
         temperatureCelsius: 28,
         weatherCode: 2,
         isDay: true,
-      },
+        humidityPercent: 78,
+        windKph: 14,
+        precipitationProbability: 30,
+      }),
+    );
+  });
+
+  it("answers rain questions with precipitation probability", async () => {
+    const handlers = createAssistantBrowserDomainHandlers({
+      fetch: async () => weatherResponse(),
     });
+    const response = await handlers.weather?.(
+      request("weather", undefined, "vai chover hoje?"),
+    );
+    expect(response?.text).toBe(
+      "A chance de chuva agora é de 30%. Para hoje, a previsão indica até 45%.",
+    );
+  });
+
+  it("localizes forecast responses and options in English", async () => {
+    const handlers = createAssistantBrowserDomainHandlers({
+      fetch: async () => weatherResponse(),
+      language: () => "en-US",
+    });
+    const response = await handlers.weather?.(
+      request("weather", undefined, "weather forecast"),
+    );
+    expect(response?.text).toBe(
+      "Today: high 30°C, low 23°C, humidity 80%, and winds up to 19 km/h. The full 7-day forecast is available in the weather widget.",
+    );
+    expect(response?.options?.[0]?.label).toBe("Temperature now");
   });
 
   it("falls back to audited V1 climate guidance when weather is unavailable", async () => {
@@ -301,6 +359,7 @@ describe("assistant browser domain adapter", () => {
       },
     });
   });
+
   it("preserves the audited V1 price guidance for a contextual place", async () => {
     const handlers = createAssistantBrowserDomainHandlers();
     const response = await handlers.price?.(request("price", "Segunda Praia"));
