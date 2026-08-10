@@ -49,10 +49,16 @@ export interface BusinessAuthorizationOptions {
 const BUSINESS_ID_PATTERN = /^[a-z0-9][a-z0-9_-]{1,79}$/;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+function stripControlCharacters(value: string): string {
+  return Array.from(value, (character) => {
+    const codePoint = character.codePointAt(0) ?? 0;
+    return codePoint <= 31 || codePoint === 127 ? " " : character;
+  }).join("");
+}
+
 function safeString(value: unknown, maxLength: number): string {
   if (typeof value !== "string") return "";
-  return value
-    .replace(/[\u0000-\u001F\u007F]/g, " ")
+  return stripControlCharacters(value)
     .replace(/\s+/g, " ")
     .trim()
     .slice(0, maxLength);
