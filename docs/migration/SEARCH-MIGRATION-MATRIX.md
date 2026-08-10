@@ -1,100 +1,102 @@
-# Search & Discovery — Migration Matrix (M36)
+# Search & Discovery — Migration Matrix (M43 post-M42 audit)
 
 ## Purpose
 
-This matrix freezes the observable V1 Search & Discovery contracts before any `@touristic/search` or `@touristic/marketplace` implementation is introduced.
+This matrix freezes the observable V1 Search & Discovery contracts and tracks their V2 equivalence after M37–M42.
 
 Source of truth:
 
-- repository: `luizidebook/morro-de-sao-paulo-digital`
-- frozen commit: `60746fd7fed97b805758b37adfdbe3bad2582bfe`
+- V1 repository: `luizidebook/morro-de-sao-paulo-digital`
+- frozen V1 commit: `60746fd7fed97b805758b37adfdbe3bad2582bfe`
+- audited V2 merge: `5e66720d7c3c68086e492961162eb612fd7b8858` (M42)
 
 Status semantics:
 
-- `PASS` — the observable contract already exists in V2 with executable evidence and can be reused rather than migrated again;
-- `PARTIAL` — V2 contains part of the contract, but Search does not yet own or expose the complete behavior;
-- `GAP` — no V2 Search/Marketplace equivalent exists yet;
-- `N/A` — audited V1 surface belongs to another feature and is recorded only as a dependency boundary.
+- `PASS` — the observable contract exists in V2 with executable evidence;
+- `PARTIAL` — V2 contains part of the contract, but Search does not yet own/expose the complete behavior;
+- `GAP` — no V2 Search equivalent exists;
+- `N/A` — the audited V1 surface belongs to another feature or no independent V1 Search surface exists.
 
 ## Core Search & Discovery matrix
 
-| Contract                                    | V1 evidence                                                                                 | V2 evidence                                                                          | Status  | Migration decision                                                                                                       |
-| ------------------------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ | ------- | ------------------------------------------------------------------------------------------------------------------------ |
-| Canonical POI source of truth               | `js/map/locations/locations.js`; compatibility re-export in `js/locations/locations.js`     | `assistant-v1-destination-catalog.ts` contains a frozen projection used by Assistant | PARTIAL | Search must consume one shared canonical catalog; it must not create a divergent second POI database.                    |
-| Canonical-name resolution                   | local catalog names                                                                         | `assistant-destination-resolver.ts` + tests                                          | PASS    | Extract/reuse the proven normalized matcher rather than reimplementing canonical-name lookup.                            |
-| Alias resolution                            | `aliases` on V1 POIs                                                                        | `assistant-destination-resolver.ts`, `assistant-v1-place-resolver.ts`                | PASS    | Preserve aliases in the shared discovery model.                                                                          |
-| Case/accent normalization                   | normalization used by V1 discovery/assistant/onboarding flows                               | `normalizeAssistantText` already drives V1-equivalent Assistant matching             | PASS    | Reuse a domain-neutral normalization primitive or move it to a shared boundary without changing behavior.                |
-| Partial-name resolution                     | V1 assistant/discovery matching                                                             | `assistant-v1-place-resolver.ts`                                                     | PASS    | Preserve precedence after exact and alias matches.                                                                       |
-| Fuzzy fallback                              | V1-compatible Dice behavior                                                                 | `assistant-v1-place-resolver.ts`, threshold `0.55`                                   | PASS    | Reuse only where the Search contract requires fuzzy local POI matching; keep deterministic precedence.                   |
-| Complete category inventory                 | category-keyed V1 `locations` object                                                        | Assistant projection preserves category per destination but not all Search fields    | PARTIAL | Freeze exact categories and counts before implementing filters.                                                          |
-| Tag semantics                               | `tags` on V1 POIs                                                                           | not represented in the Assistant destination projection                              | GAP     | Port tags into the canonical discovery read model and add tag-filter tests.                                              |
-| `location`/area semantics                   | `location` on V1 POIs                                                                       | not part of the Assistant destination projection                                     | GAP     | Preserve as a filterable field only after exact V1 semantics are frozen.                                                 |
-| Category filtering                          | category-keyed catalog and category-driven discovery                                        | no Search package/UI contract                                                        | GAP     | Implement deterministic category filtering over the shared catalog.                                                      |
-| Tag/activity filtering                      | V1 tags encode activity, geography and venue traits                                         | no Search package/UI contract                                                        | GAP     | Implement only audited V1 tag semantics; do not invent ranking.                                                          |
-| Local free-text search                      | canonical names, aliases and local POI data                                                 | matching exists only inside Assistant destination resolution                         | PARTIAL | Create a Search-owned query port by reusing proven match primitives, without coupling Search to Assistant.               |
-| Mapbox forward search                       | `js/map/integrations/mapbox-search-service.js`                                              | no Search equivalent                                                                 | GAP     | Port behind an explicit provider adapter; query length `< 2` must return no results.                                     |
-| Mapbox search options                       | language, limit, types, country, proximity, bbox, `poi_category`                            | no Search equivalent                                                                 | GAP     | Preserve only options exercised by the V1 call graph; default proximity remains Morro unless user proximity is supplied. |
-| Mapbox result normalization                 | `normalizeFeature()` maps Search Box features to internal categories                        | no Search equivalent                                                                 | GAP     | Define a typed external-result model and deterministic category mapping.                                                 |
-| Mapbox Search cache                         | in-memory cache, 5 minute TTL, key = normalized query + serialized options                  | no Search equivalent                                                                 | GAP     | Preserve observable cache semantics unless evidence proves it is non-observable implementation detail.                   |
-| Mapbox empty/error fallback                 | empty query, missing token, HTTP error, empty features and thrown fetch all degrade to `[]` | no Search equivalent                                                                 | GAP     | Search must fail closed to an empty result set and must not break Map/Assistant.                                         |
-| Search result text formatting               | `formatSearchResult()`                                                                      | no Search equivalent                                                                 | GAP     | Preserve name + formatted place copy at the presentation adapter, not in provider core.                                  |
-| Search result list formatting               | `formatSearchResultsList()` with numbered rows, category emoji and strong name              | no Search equivalent                                                                 | GAP     | Port only after DOM/UI baseline is captured; sanitize output rather than trusting provider HTML.                         |
-| Search result category icons                | V1 category → emoji mapping                                                                 | no Search equivalent                                                                 | GAP     | Freeze icon/category map before UI implementation.                                                                       |
-| Multilingual external search                | Mapbox service accepts `language`; V1 Assistant/proactive surfaces provide PT/EN/ES/HE copy | Assistant is equivalent in PT/EN/ES/HE; standalone Search does not exist             | PARTIAL | Search API must accept locale explicitly; UI copy requires PT/EN/ES/HE evidence.                                         |
-| Keyboard/accessibility states for Search UI | no dedicated Search baseline frozen yet                                                     | no Search UI                                                                         | GAP     | Capture V1 consumer UI states before implementing an independent Search surface.                                         |
+| Contract | V1 evidence | V2 evidence after M42 | Status | Migration decision |
+| --- | --- | --- | --- | --- |
+| Canonical POI source of truth | `js/map/locations/locations.js`; compatibility re-export | M38 `morroV1SearchCatalog`, consumed by Search and Morro Assistant/nearby adapters | PASS | Shared immutable Search-owned read model is established; do not fork a second POI database. |
+| Canonical-name resolution | local catalog names | M37 `searchCatalog()` exact matching + existing Assistant resolver | PASS | Preserve deterministic exact precedence. |
+| Alias resolution | `aliases` on V1 POIs | M37 Search aliases + M38 shared aliases + Assistant resolver regressions | PASS | Shared aliases are preserved. |
+| Case/accent normalization | V1 discovery/assistant normalization | M37 `normalizeSearchText()` + executable tests | PASS | Search owns a domain-neutral normalization primitive. |
+| Partial-name resolution | V1 assistant/discovery matching | M37 prefix/contains matching + tests | PASS | Deterministic partial matching is Search-owned. |
+| Fuzzy fallback | V1-compatible Dice behavior | Assistant still proves Dice threshold `0.55`; Search-owned M37 core has no fuzzy fallback | PARTIAL | Port/reuse Dice only after deterministic Search matching fails; keep threshold `0.55` and precedence. |
+| Complete category inventory | category-keyed V1 `locations` | M38 freezes 131 POIs across 9 exact categories/counts | PASS | Inventory is executable and immutable. |
+| Tag semantics | `tags` on V1 POIs | M38 freezes 90 distinct tags on shared catalog | PASS | Use only audited tags; no invented ranking semantics. |
+| `location`/area semantics | `location` on V1 POIs | M38 preserves 5 explicit areas as `area` | PASS | Area remains a filterable audited field. |
+| Category filtering | category-keyed discovery | M37 `SearchFilters.categories` + tests | PASS | Deterministic category filtering is Search-owned. |
+| Tag/activity filtering | V1 tags | M37 `SearchFilters.tags` + M38 full tag model | PASS | Deterministic all-tag filtering is Search-owned. |
+| Local free-text search | names, aliases, local POI data | M37 Search query port over shared catalog; M40 application port | PASS | Search no longer depends on Assistant for local discovery. |
+| Mapbox forward search | `mapbox-search-service.js` | M39 Mapbox Search provider adapter | PASS | Provider is behind an explicit typed Search boundary. |
+| Mapbox search options | language, limit, types, country, proximity, bbox, `poi_category` | M39 tests defaults, caps, global mode and optional parameters | PASS | Frozen V1 request contract is preserved. |
+| Mapbox result normalization | `normalizeFeature()` | M39 typed result normalization and category mapping tests | PASS | Provider normalization stays outside presentation. |
+| Mapbox Search cache | 5-minute in-memory cache | M39 cache key/hit/expiry tests | PASS | V1 observable cache behavior is preserved. |
+| Mapbox empty/error fallback | fail closed to `[]` | M39 missing-token, HTTP, empty payload and thrown-fetch tests | PASS | Search failures do not break consumers. |
+| Search result text formatting | `formatSearchResult()` | M41 `formatSearchResultText()` | PASS | Plain structured text avoids provider HTML trust. |
+| Search result list formatting | numbered rows/category emoji/name | M41 structured presentation rows; M42 renders through Assistant browser path | PASS | Browser consumer receives safe structured rows. |
+| Search result category icons | V1 category → emoji map | M41 frozen icon map + tests | PASS | Exact audited icon mapping is preserved. |
+| Multilingual external search | provider language + PT/EN/ES/HE consumer copy | M39 locale option; M41 PT/EN/ES/HE copy; M42 localized selection commands | PASS | Locale is explicit across provider/presentation/integration boundaries. |
+| Keyboard/accessibility states for Search UI | no dedicated Search UI baseline; V1 discovery is consumed through Assistant | M42 uses existing production Assistant DOM/option event surface; Assistant accessibility belongs to `FEATURE-0004` | N/A | Do not invent a standalone Search UI as an equivalence requirement. |
 
 ## Adjacent V1 discovery surfaces — dependency boundaries
 
-These files participate in discovery, but they are not automatically owned by `FEATURE-0002`:
+| Surface | V1 evidence | Classification | Decision |
+| --- | --- | --- | --- |
+| Assistant proactive recommendations | `js/assistant/assistant-dialog/proactive-suggestions.js` | Assistant consumer | Keep in `FEATURE-0004`; Search supplies primitives only. |
+| Navigation contextual suggestions | `js/navigation/navigationSuggestions/navigation-suggestions.js` | Navigation consumer | Keep session/GPS/cooldown/message lifecycle in `FEATURE-0003`. |
+| Business onboarding discovery | `js/onboarding/runtime/business-discovery-adapter.js` | Business consumer | Preserve as `FEATURE-0005` integration contract. |
+| Google Places wrapper | `js/map/placesAPI.js` | Secondary provider candidate | Do not port without active-call/product evidence. |
+| Place details integration | `js/map/integrations/place-details-service.js` | Discovery/details boundary | Existing M42 Details integration is consumed rather than absorbed by Search. |
+| Localized place descriptions | `js/locations/locations_descriptions_i18n.js` | Content dependency | Keep content ownership separate from query/ranking logic. |
 
-| Surface                             | V1 evidence                                                     | Classification               | M36 decision                                                                                                                         |
-| ----------------------------------- | --------------------------------------------------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| Assistant proactive recommendations | `js/assistant/assistant-dialog/proactive-suggestions.js`        | Assistant consumer           | Keep in `FEATURE-0004`; Search may provide query primitives but must not absorb Assistant profile/time/weather orchestration.        |
-| Navigation contextual suggestions   | `js/navigation/navigationSuggestions/navigation-suggestions.js` | Navigation consumer          | Keep session/cooldown/GPS/message lifecycle in `FEATURE-0003`; Search may expose catalog filtering only.                             |
-| Business onboarding discovery       | `js/onboarding/runtime/business-discovery-adapter.js`           | Business consumer            | Preserve as a future `FEATURE-0005` integration contract; it currently routes discovery through Assistant menu/text/voice.           |
-| Google Places wrapper               | `js/map/placesAPI.js`                                           | Secondary provider candidate | Do not port automatically. First prove active V1 call sites and product requirement; avoid carrying unused provider surface into V2. |
-| Place details integration           | `js/map/integrations/place-details-service.js`                  | Discovery/details boundary   | Audit call graph separately before assigning to Search vs Marketplace.                                                               |
-| Localized place descriptions        | `js/locations/locations_descriptions_i18n.js`                   | Content dependency           | Keep content ownership separate from query/ranking logic; audit locales and fallback before migration.                               |
+## Frozen provider contract
 
-## V1 provider contract frozen in M36
+M39 preserves the concrete V1 Mapbox Search contract:
 
-`mapbox-search-service.js` establishes the following concrete contract:
-
-- minimum query length: 2 characters;
+- minimum provider query length: 2 characters;
 - default locale: `pt`;
 - default result limit: 5, hard-capped at 10;
 - default proximity: Morro de São Paulo (`lon -38.9159`, `lat -13.3775`);
 - optional `types`, `country`, `bbox`, `poi_category` and custom proximity;
-- specialized helpers for POI and place/address searches;
-- normalized internal categories including restaurants, hotels, shops, nightlife, emergencies, attractions, places and addresses;
+- specialized POI and place/address helpers;
+- normalized internal category mapping;
 - five-minute in-memory cache;
 - empty array on missing token, HTTP failure, empty provider response or thrown fetch;
 - provider results carry `source: "mapbox"`.
 
-The V1 also contains a broader Google Places wrapper (`js/map/placesAPI.js`) with nearby search, text search, details and photos. Its existence is evidence of a provider experiment/capability, not sufficient evidence that all of it is required for `FEATURE-0002` equivalence.
+M40 additionally freezes V1 local-first orchestration and regional filtering: local results return before Mapbox; remote fallback is gated by likely-place heuristics and constrained to Morro/Bahia/Brasil/Brazil or the audited 50 km radius rule.
 
-## Current M36 score
+## Post-M42 score
 
 Core matrix rows:
 
-- `PASS`: 5
-- `PARTIAL`: 4
-- `GAP`: 13
+- `PASS`: 20
+- `PARTIAL`: 1
+- `GAP`: 0
+- `N/A`: 1
 - total: 22
 
-This score is intentionally conservative. Existing Assistant matching reduces implementation work, but it does not make Search equivalent because there is no Search-owned query API, filter model, provider adapter or result UI contract yet.
+The single remaining partial contract is Search-owned Dice fuzzy fallback at threshold `0.55`. V2 already has the equivalent algorithm behind Assistant, but `@touristic/search` must own/reuse it before `FEATURE-0002` can be considered behavior/API equivalent.
 
-## Mandatory implementation order after M36
+The former standalone Search UI accessibility `GAP` is reclassified `N/A`: the consumer audit completed by M41/M42 proves the equivalent V1 Search path is presented through Assistant rather than through a dedicated Search-owned modal/input. Creating a separate UI would be new product scope.
 
-1. Freeze exact POI category/count/tag/location inventory from the V1 canonical catalog.
-2. Establish a shared, immutable V1 POI read model without changing the equivalent Map/Assistant/Navigation behavior.
-3. Create Search core primitives for normalization, local matching and deterministic filtering.
-4. Add the Mapbox Search provider adapter with the frozen V1 fallback/options/cache contract.
-5. Add a Search application port that combines local and external discovery without inventing ranking.
-6. Capture and port result presentation, empty/error/loading states and PT/EN/ES/HE copy.
-7. Add browser regressions for query → results → map/details/navigation integration.
-8. Only then consider `FEATURE-0002` for `equivalent`.
+## Remaining implementation order after M43
 
-## M36 exit decision
+1. Port/reuse the proven V1 Dice fuzzy fallback into the Search-owned local query boundary.
+2. Preserve deterministic precedence: exact/alias/partial matches must win before fuzzy.
+3. Freeze threshold `0.55`, typo-tolerant positive cases and below-threshold rejection in executable tests.
+4. Run repository Quality Gate plus relevant Search/Assistant browser regressions on one final head.
+5. Rerun all 22 matrix rows.
+6. Only when every applicable row is `PASS`, promote `FEATURE-0002` in `docs/features/registry.json`.
 
-M36 is a baseline milestone, not an equivalence milestone. It may close when this matrix, the source inventory and the Quality Gate are green. `FEATURE-0002` must remain `baseline-pending` and no row may be promoted merely because adjacent Assistant or Navigation behavior is already equivalent.
+## M43 exit decision
+
+M43 is an audit checkpoint, not an equivalence milestone. It may merge when this matrix and `docs/qa/SEARCH-M43-POST-M42-AUDIT.md` are the only intended changes and the official Quality Gate is green.
+
+`FEATURE-0002` remains unpromoted until the remaining fuzzy Search contract is implemented and validated.
