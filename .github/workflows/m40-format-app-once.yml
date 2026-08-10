@@ -1,0 +1,36 @@
+name: M40 Format Application Once
+
+on:
+  push:
+    branches:
+      - feat/search-m40-application-port
+    paths:
+      - .github/workflows/m40-format-app-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/search-m40-application-port
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm prettier --write packages/search/src/search-application.ts
+      - name: Commit formatting and remove helper
+        run: |
+          rm .github/workflows/m40-format-app-once.yml
+          git config user.name "luizidebook"
+          git config user.email "47362223+luizidebook@users.noreply.github.com"
+          git add packages/search/src/search-application.ts .github/workflows/m40-format-app-once.yml
+          git commit -m "style(search): format M40 application"
+          git push origin HEAD:feat/search-m40-application-port
