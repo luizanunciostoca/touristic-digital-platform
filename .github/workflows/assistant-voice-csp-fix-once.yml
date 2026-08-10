@@ -1,0 +1,65 @@
+name: Assistant Voice CSP Fix Once
+
+on:
+  push:
+    branches:
+      - test/assistant-voice-browser-pass
+    paths:
+      - .github/workflows/assistant-voice-csp-fix-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  fix-and-remove:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: test/assistant-voice-browser-pass
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: pnpm install --frozen-lockfile
+      - name: Replace unsafe-eval polling and format
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('apps/morro-digital-platform/tooling/assistant-voice-browser-contract.mjs')
+          text = path.read_text()
+          marker = 'async function runSupportedContract(browser) {'
+          helper = '''async function poll(page, probe, label, timeout = 15000) {\n  const deadline = Date.now() + timeout;\n  while (Date.now() < deadline) {\n    if (await probe()) return;\n    await page.waitForTimeout(100);\n  }\n  throw new Error(`${label} did not become ready`);\n}\n\n'''
+          if helper not in text:
+              text = text.replace(marker, helper + marker)
+
+          start = text.index('  await page.waitForFunction(\n    ({ userMessagesBefore, assistantMessagesBefore }) =>')
+          end = text.index('\n\n  const microphone', start)
+          replacement = '''  await poll(\n    page,\n    () =>\n      page.evaluate(\n        ({ userMessagesBefore, assistantMessagesBefore }) =>\n          document.querySelectorAll("#assistant-messages .message.user").length >\n            userMessagesBefore &&\n          document.querySelectorAll("#assistant-messages .message.assistant")\n            .length > assistantMessagesBefore &&\n          globalThis.__voiceContract.spoken.length > 0,\n        { userMessagesBefore, assistantMessagesBefore },\n      ),\n    "voice-process",\n  );'''
+          text = text[:start] + replacement + text[end:]
+
+          anchor = '  await page.locator("#sendButton").click();\n'
+          start = text.index('  await page.waitForFunction(', text.index(anchor) + len(anchor))
+          end = text.index('\n  await page.waitForTimeout(250);', start)
+          replacement = '''  await poll(\n    page,\n    () =>\n      page.evaluate(\n        (count) =>\n          document.querySelectorAll("#assistant-messages .message.user").length >\n          count,\n        userMessagesBefore + 1,\n      ),\n    "disabled-text-process",\n    10000,\n  );'''
+          text = text[:start] + replacement + text[end:]
+
+          anchor = '  await page.locator("#voiceButton").click();\n'
+          unsupported = text.index('async function runUnsupportedContract')
+          start = text.index('  await page.waitForFunction(', text.index(anchor, unsupported) + len(anchor))
+          end = text.index('\n  const fallback', start)
+          replacement = '''  await poll(\n    page,\n    () =>\n      page.evaluate(\n        (before) =>\n          document.querySelectorAll("#assistant-messages .message.assistant")\n            .length > before,\n        assistantMessagesBefore,\n      ),\n    "unsupported-fallback",\n    5000,\n  );'''
+          text = text[:start] + replacement + text[end:]
+          path.write_text(text)
+          PY
+          pnpm exec prettier --write apps/morro-digital-platform/tooling/assistant-voice-browser-contract.mjs
+      - name: Remove one-shot workflow and commit
+        run: |
+          rm .github/workflows/assistant-voice-csp-fix-once.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add apps/morro-digital-platform/tooling/assistant-voice-browser-contract.mjs .github/workflows/assistant-voice-csp-fix-once.yml
+          git commit -m "fix(assistant): respect CSP in voice browser polling"
+          git push origin HEAD:test/assistant-voice-browser-pass
