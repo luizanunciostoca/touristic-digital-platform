@@ -5,6 +5,8 @@ import {
   type AssistantMessageRecord,
 } from "@touristic/assistant";
 
+import { sanitizeAssistantRenderableHtml } from "./assistant-dom-view.js";
+
 export interface AssistantMessageDomOptions {
   readonly document: Document;
   readonly now?: () => number;
@@ -67,7 +69,7 @@ function renderRecord(
   if (record.customClass) message.classList.add(record.customClass);
   if (record.id) message.id = record.id;
   message.dataset.messageType = record.messageType;
-  message.textContent = record.html;
+  message.innerHTML = record.html;
   container.appendChild(message);
   container.scrollTop = container.scrollHeight;
   return message;
@@ -77,7 +79,7 @@ export function createAssistantMessageDom(
   options: AssistantMessageDomOptions,
 ): AssistantMessageDom {
   const pipeline = createAssistantMessagePipeline({
-    sanitize: (text) => text,
+    sanitize: sanitizeAssistantRenderableHtml,
     ...(options.now ? { now: options.now } : {}),
   });
 
