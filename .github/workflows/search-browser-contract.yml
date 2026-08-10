@@ -104,7 +104,7 @@ jobs:
 
               await page.locator('#assistantInput').fill('Toca do Morcego');
               await page.locator('#sendButton').click();
-              const searchResult = page.locator('.assistant-options .assistant-option-btn', { hasText: 'Toca do Morcego' });
+              const searchResult = page.locator('.assistant-options .assistant-option-btn', { hasText: 'Toca do Morcego' }).first();
               await searchResult.waitFor({ state: 'visible', timeout: 10000 });
 
               const searchText = await page.locator('#assistant-messages .message.assistant').last().textContent();
@@ -116,7 +116,7 @@ jobs:
               }
 
               await searchResult.click();
-              const navigate = page.locator('.assistant-options .assistant-option-btn', { hasText: 'Como chegar' });
+              const navigate = page.locator('.assistant-options .assistant-option-btn', { hasText: 'Como chegar' }).last();
               await navigate.waitFor({ state: 'visible', timeout: 15000 });
 
               const detailText = await page.locator('#assistant-messages .message.assistant').last().textContent();
