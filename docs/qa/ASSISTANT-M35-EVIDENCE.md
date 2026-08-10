@@ -52,3 +52,7 @@ With the physical assets, integrity regression, MIME delivery and observable bro
 All rows in the Assistant equivalence matrix are therefore `PASS`. `FEATURE-0004` and `MIG-0006` may be recorded as `equivalent`.
 
 `equivalent` is not `released`; production rollout remains a separate migration state and requires its own release evidence.
+
+## Final branch validation
+
+The promoted migration state must pass the repository Quality Gate again on the final user-authored branch head before PR #96 can be merged.
