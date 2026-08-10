@@ -128,7 +128,9 @@ export function isAuthSessionActive(
   session: AuthSessionIdentity,
   nowEpochSeconds = Math.floor(Date.now() / 1000),
 ): boolean {
-  return Number.isFinite(nowEpochSeconds) && session.expiresAt > nowEpochSeconds;
+  return (
+    Number.isFinite(nowEpochSeconds) && session.expiresAt > nowEpochSeconds
+  );
 }
 
 export function isReadOnlyAuthRole(role: AuthRole): boolean {

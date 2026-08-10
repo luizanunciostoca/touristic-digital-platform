@@ -34,16 +34,12 @@ describe("M47 auth core", () => {
   });
 
   it("normalizes email without accepting malformed addresses", () => {
-    expect(normalizeAuthEmail(" OWNER@Example.COM ")).toBe(
-      "owner@example.com",
-    );
+    expect(normalizeAuthEmail(" OWNER@Example.COM ")).toBe("owner@example.com");
     expect(normalizeAuthEmail("owner-at-example")).toBeNull();
   });
 
   it("preserves the V1 business id grammar", () => {
-    expect(normalizeBusinessId(" Toca_Do-Morcego ")).toBe(
-      "toca_do-morcego",
-    );
+    expect(normalizeBusinessId(" Toca_Do-Morcego ")).toBe("toca_do-morcego");
     expect(normalizeBusinessId("a")).toBeNull();
     expect(normalizeBusinessId("empresa com espaço")).toBeNull();
   });
@@ -124,9 +120,9 @@ describe("M47 auth core", () => {
   });
 
   it("treats expiry as an exclusive upper boundary", () => {
-    expect(isAuthSessionActive(activeSession, activeSession.expiresAt - 1)).toBe(
-      true,
-    );
+    expect(
+      isAuthSessionActive(activeSession, activeSession.expiresAt - 1),
+    ).toBe(true);
     expect(isAuthSessionActive(activeSession, activeSession.expiresAt)).toBe(
       false,
     );
