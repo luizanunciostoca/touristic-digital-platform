@@ -50,6 +50,17 @@ The package tests cover:
 - viewer read-only behavior;
 - admin tenant bypass.
 
+## Migration matrix checkpoint
+
+M49 records a conservative Business matrix of:
+
+- `PASS`: 0;
+- `PARTIAL`: 6;
+- `GAP`: 13;
+- `N/A`: 1.
+
+Only three formerly missing Business-owned contracts advance to `PARTIAL`: domain/browser ownership now has a framework-independent core, profile behavior has explicit models/ports/services, and tenant authorization is consumed from Auth. Protected HTTP resources, dashboard/browser parity and onboarding remain unclosed.
+
 ## Non-goals
 
 M49 does not claim Business dashboard or onboarding equivalence. It does not expose protected Business HTTP resources yet. M50 should bind this Business core to the Auth M48 HTTP boundary and prove real session/origin/CSRF/audit enforcement on Business-owned resources.
@@ -58,4 +69,4 @@ M49 does not claim Business dashboard or onboarding equivalence. It does not exp
 
 ## Exit gate
 
-M49 may merge only when the official Quality Gate is green on the final authored head, no temporary helper workflow remains, and the final diff contains only the Business package, lockfile importer and permanent evidence/matrix updates.
+M49 may merge only when the official Quality Gate and Auth Integration Contract are green on the final authored head, no temporary helper workflow remains, and the final diff contains only the Business package, lockfile importer and permanent evidence/matrix updates.
