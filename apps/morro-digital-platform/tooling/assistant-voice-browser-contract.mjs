@@ -163,13 +163,21 @@ async function installSpeechMocks(context) {
 }
 
 async function waitForAssistant(page) {
-  await page.locator("#assistantInput").waitFor({ state: "visible", timeout: 30000 });
-  await page.locator("#voiceButton").waitFor({ state: "visible", timeout: 30000 });
-  await page.locator("#configButton").waitFor({ state: "visible", timeout: 30000 });
+  await page
+    .locator("#assistantInput")
+    .waitFor({ state: "visible", timeout: 30000 });
+  await page
+    .locator("#voiceButton")
+    .waitFor({ state: "visible", timeout: 30000 });
+  await page
+    .locator("#configButton")
+    .waitFor({ state: "visible", timeout: 30000 });
 }
 
 async function runContract(browser) {
-  const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+  });
   await installSpeechMocks(context);
   const page = await context.newPage();
   const pageErrors = [];
@@ -179,10 +187,14 @@ async function runContract(browser) {
   await waitForAssistant(page);
 
   await page.locator("#configButton").click();
-  await page.locator("#assistantVoiceSettings:not(.hidden)").waitFor({ state: "visible" });
+  await page
+    .locator("#assistantVoiceSettings:not(.hidden)")
+    .waitFor({ state: "visible" });
 
   const initial = await page.evaluate(() => ({
-    expanded: document.getElementById("configButton")?.getAttribute("aria-expanded"),
+    expanded: document
+      .getElementById("configButton")
+      ?.getAttribute("aria-expanded"),
     enabled: document.getElementById("assistantVoiceEnabled")?.checked,
     rate: document.getElementById("assistantVoiceSpeed")?.value,
     languages: Array.from(
@@ -197,7 +209,8 @@ async function runContract(browser) {
   assert(initial.enabled === true, "Voice should default enabled", initial);
   assert(initial.rate === "1", "Voice should default to rate 1", initial);
   assert(
-    JSON.stringify(initial.languages) === JSON.stringify(["pt", "en", "es", "he"]),
+    JSON.stringify(initial.languages) ===
+      JSON.stringify(["pt", "en", "es", "he"]),
     "PT/EN/ES/HE options diverged",
     initial.languages,
   );
@@ -207,7 +220,11 @@ async function runContract(browser) {
     "Spanish Test",
     "Hebrew Test",
   ]) {
-    assert(initial.voices.includes(name), `Missing browser voice ${name}`, initial.voices);
+    assert(
+      initial.voices.includes(name),
+      `Missing browser voice ${name}`,
+      initial.voices,
+    );
   }
 
   for (const [language, locale] of [
@@ -222,9 +239,21 @@ async function runContract(browser) {
       stored: localStorage.getItem("voice-language"),
       aggregate: localStorage.getItem("voiceAssistant"),
     }));
-    assert(languageState.htmlLang === locale, `Document locale diverged for ${language}`, languageState);
-    assert(languageState.stored === locale, `voice-language diverged for ${language}`, languageState);
-    assert(Boolean(languageState.aggregate), "voiceAssistant aggregate key missing", languageState);
+    assert(
+      languageState.htmlLang === locale,
+      `Document locale diverged for ${language}`,
+      languageState,
+    );
+    assert(
+      languageState.stored === locale,
+      `voice-language diverged for ${language}`,
+      languageState,
+    );
+    assert(
+      Boolean(languageState.aggregate),
+      "voiceAssistant aggregate key missing",
+      languageState,
+    );
   }
 
   await page.locator("#assistantVoiceSpeed").evaluate((element) => {
@@ -240,19 +269,40 @@ async function runContract(browser) {
     language: localStorage.getItem("voice-language"),
     aggregate: JSON.parse(localStorage.getItem("voiceAssistant") || "null"),
   }));
-  assert(persisted.enabled === "true", "voice-enabled compatibility key diverged", persisted);
-  assert(persisted.speed === "1.25", "voice-speed compatibility key diverged", persisted);
-  assert(persisted.voice === "Hebrew Test", "assistant-voice compatibility key diverged", persisted);
-  assert(persisted.language === "he-IL", "voice-language compatibility key diverged", persisted);
   assert(
-    persisted.aggregate?.language === "he" && persisted.aggregate?.rate === 1.25,
+    persisted.enabled === "true",
+    "voice-enabled compatibility key diverged",
+    persisted,
+  );
+  assert(
+    persisted.speed === "1.25",
+    "voice-speed compatibility key diverged",
+    persisted,
+  );
+  assert(
+    persisted.voice === "Hebrew Test",
+    "assistant-voice compatibility key diverged",
+    persisted,
+  );
+  assert(
+    persisted.language === "he-IL",
+    "voice-language compatibility key diverged",
+    persisted,
+  );
+  assert(
+    persisted.aggregate?.language === "he" &&
+      persisted.aggregate?.rate === 1.25,
     "voiceAssistant aggregate state diverged",
     persisted,
   );
 
   await page.locator("#assistantVoiceSettingsClose").click();
-  const userBefore = await page.locator("#assistant-messages .message.user").count();
-  const assistantBefore = await page.locator("#assistant-messages .message.assistant").count();
+  const userBefore = await page
+    .locator("#assistant-messages .message.user")
+    .count();
+  const assistantBefore = await page
+    .locator("#assistant-messages .message.assistant")
+    .count();
   await page.locator("#voiceButton").click();
 
   await poll(
@@ -260,8 +310,10 @@ async function runContract(browser) {
     () =>
       page.evaluate(
         ({ userBefore, assistantBefore }) =>
-          document.querySelectorAll("#assistant-messages .message.user").length > userBefore &&
-          document.querySelectorAll("#assistant-messages .message.assistant").length > assistantBefore &&
+          document.querySelectorAll("#assistant-messages .message.user")
+            .length > userBefore &&
+          document.querySelectorAll("#assistant-messages .message.assistant")
+            .length > assistantBefore &&
           globalThis.__voiceContract.spoken.length > 0,
         { userBefore, assistantBefore },
       ),
@@ -284,32 +336,76 @@ async function runContract(browser) {
       users: Array.from(
         document.querySelectorAll("#assistant-messages .message.user"),
       ).map((node) => node.textContent?.trim()),
-      ariaPressed: document.getElementById("voiceButton")?.getAttribute("aria-pressed"),
+      ariaPressed: document
+        .getElementById("voiceButton")
+        ?.getAttribute("aria-pressed"),
     };
   });
 
-  assert(microphone.recognition?.lang === "he-IL", "Microphone locale diverged", microphone);
-  assert(microphone.recognition?.continuous === false, "Recognition must remain one-shot", microphone);
-  assert(microphone.recognition?.interimResults === false, "Interim recognition must remain disabled", microphone);
-  assert(microphone.recognition?.started === true, "Recognition did not start", microphone);
-  assert(microphone.users.includes("help"), "Transcript did not traverse shared process()", microphone);
-  assert(microphone.spoken?.lang === "he-IL", "Synthesis locale diverged", microphone);
-  assert(microphone.spoken?.voice === "Hebrew Test", "Selected voice was not applied", microphone);
-  assert(microphone.spoken?.rate === 1.25, "Selected rate was not applied", microphone);
-  assert(microphone.ariaPressed === "false", "Listening lifecycle did not settle", microphone);
+  assert(
+    microphone.recognition?.lang === "he-IL",
+    "Microphone locale diverged",
+    microphone,
+  );
+  assert(
+    microphone.recognition?.continuous === false,
+    "Recognition must remain one-shot",
+    microphone,
+  );
+  assert(
+    microphone.recognition?.interimResults === false,
+    "Interim recognition must remain disabled",
+    microphone,
+  );
+  assert(
+    microphone.recognition?.started === true,
+    "Recognition did not start",
+    microphone,
+  );
+  assert(
+    microphone.users.includes("help"),
+    "Transcript did not traverse shared process()",
+    microphone,
+  );
+  assert(
+    microphone.spoken?.lang === "he-IL",
+    "Synthesis locale diverged",
+    microphone,
+  );
+  assert(
+    microphone.spoken?.voice === "Hebrew Test",
+    "Selected voice was not applied",
+    microphone,
+  );
+  assert(
+    microphone.spoken?.rate === 1.25,
+    "Selected rate was not applied",
+    microphone,
+  );
+  assert(
+    microphone.ariaPressed === "false",
+    "Listening lifecycle did not settle",
+    microphone,
+  );
 
-  const spokenBeforeDisable = await page.evaluate(() => globalThis.__voiceContract.spoken.length);
+  const spokenBeforeDisable = await page.evaluate(
+    () => globalThis.__voiceContract.spoken.length,
+  );
   await page.locator("#configButton").click();
   await page.locator("#assistantVoiceEnabled").uncheck();
   await page.locator("#assistantVoiceSettingsClose").click();
-  const usersBeforeText = await page.locator("#assistant-messages .message.user").count();
+  const usersBeforeText = await page
+    .locator("#assistant-messages .message.user")
+    .count();
   await page.locator("#assistantInput").fill("help");
   await page.locator("#sendButton").click();
   await poll(
     page,
     () =>
       page.evaluate(
-        (count) => document.querySelectorAll("#assistant-messages .message.user").length > count,
+        (count) =>
+          document.querySelectorAll("#assistant-messages .message.user")
+            .length > count,
         usersBeforeText,
       ),
     "disabled voice text process",
@@ -320,23 +416,35 @@ async function runContract(browser) {
     enabled: localStorage.getItem("voice-enabled"),
     spoken: globalThis.__voiceContract.spoken.length,
   }));
-  assert(disabled.enabled === "false", "Disabling voice did not persist", disabled);
-  assert(disabled.spoken === spokenBeforeDisable, "Synthesis ran while disabled", disabled);
+  assert(
+    disabled.enabled === "false",
+    "Disabling voice did not persist",
+    disabled,
+  );
+  assert(
+    disabled.spoken === spokenBeforeDisable,
+    "Synthesis ran while disabled",
+    disabled,
+  );
 
   const unsupported = await page.evaluate(async () => {
-    const settingsModule = await import(
-      "/apps/morro-digital-platform/dist/assistant/assistant-voice-settings.js"
-    );
-    const inputModule = await import(
-      "/apps/morro-digital-platform/dist/assistant/assistant-voice-input-adapter.js"
-    );
-    const controller = settingsModule.installAssistantVoiceSettings({ document, voice: null });
+    const settingsModule =
+      await import("/apps/morro-digital-platform/dist/assistant/assistant-voice-settings.js");
+    const inputModule =
+      await import("/apps/morro-digital-platform/dist/assistant/assistant-voice-input-adapter.js");
+    const controller = settingsModule.installAssistantVoiceSettings({
+      document,
+      voice: null,
+    });
     const result = {
-      supported: document.getElementById("assistantVoiceSettings")?.dataset.voiceSupported,
-      enabledDisabled: document.getElementById("assistantVoiceEnabled")?.disabled,
+      supported: document.getElementById("assistantVoiceSettings")?.dataset
+        .voiceSupported,
+      enabledDisabled: document.getElementById("assistantVoiceEnabled")
+        ?.disabled,
       voiceDisabled: document.getElementById("assistantVoiceSelect")?.disabled,
       speedDisabled: document.getElementById("assistantVoiceSpeed")?.disabled,
-      languageDisabled: document.getElementById("assistantVoiceLanguage")?.disabled,
+      languageDisabled: document.getElementById("assistantVoiceLanguage")
+        ?.disabled,
       recognitionUnsupported:
         inputModule.resolveAssistantSpeechRecognitionConstructor({}) === null,
     };
@@ -344,7 +452,11 @@ async function runContract(browser) {
     return result;
   });
 
-  assert(unsupported.supported === "false", "Missing synthesis fallback state diverged", unsupported);
+  assert(
+    unsupported.supported === "false",
+    "Missing synthesis fallback state diverged",
+    unsupported,
+  );
   assert(
     unsupported.enabledDisabled &&
       unsupported.voiceDisabled &&
@@ -379,7 +491,10 @@ async function runContract(browser) {
     pageErrors,
   };
 
-  writeFileSync(`${OUTPUT_DIR}/evidence.json`, JSON.stringify(evidence, null, 2));
+  writeFileSync(
+    `${OUTPUT_DIR}/evidence.json`,
+    JSON.stringify(evidence, null, 2),
+  );
   await page.screenshot({
     path: `${OUTPUT_DIR}/voice-contract.png`,
     animations: "disabled",
