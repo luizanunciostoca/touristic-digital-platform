@@ -33,11 +33,18 @@ jobs:
           /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
       - name: Build workspace
         run: pnpm -w build
-      - name: Start browser runtime
+      - name: Start authenticated browser runtime
+        env:
+          MAPBOX_PUBLIC_TOKEN_CI: ${{ secrets.MAPBOX_PUBLIC_TOKEN_CI }}
         run: |
+          test -n "${MAPBOX_PUBLIC_TOKEN_CI:-}" || { echo 'MAPBOX_PUBLIC_TOKEN_CI missing'; exit 1; }
+          VITE_MAPBOX_ACCESS_TOKEN="$MAPBOX_PUBLIC_TOKEN_CI" \
+          VITE_MAPBOX_STYLE=mapbox://styles/mapbox/streets-v12 \
+          VITE_MAPBOX_CONTAINER_ID=map \
+          VITE_MAPBOX_INITIAL_ZOOM=13.5 \
           node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/photo-browser-contract.log 2>&1 &
           echo $! >/tmp/photo-browser-contract.pid
-          for i in $(seq 1 60); do
+          for i in $(seq 1 90); do
             if curl -fsS http://127.0.0.1:4173/runtime-config.js >/dev/null; then exit 0; fi
             sleep 1
           done
@@ -86,6 +93,7 @@ jobs:
               page.on('pageerror', (error) => pageErrors.push(error.message));
 
               await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded', timeout: 30000 });
+              await page.locator('#map[data-map-state="ready"][data-map-mode="real"][data-map-provider="mapbox"]').waitFor({ state: 'attached', timeout: 30000 });
               await page.locator('.quick-actions .action-button.primary').click();
               await page.locator('#assistant-messages:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
               await page.locator('#assistantInput').fill('Fotos de Toca do Morcego');
