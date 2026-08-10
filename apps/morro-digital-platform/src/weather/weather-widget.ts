@@ -1,5 +1,10 @@
 export interface WeatherReading {
   readonly temperatureCelsius: number;
+  readonly temperatureMaxCelsius: number;
+  readonly temperatureMinCelsius: number;
+  readonly humidityPercent: number;
+  readonly windSpeedKph: number;
+  readonly rainChancePercent: number;
   readonly weatherCode: number;
   readonly isDay: boolean;
 }
@@ -31,12 +36,27 @@ function parseWeatherPayload(payload: unknown): WeatherReading {
   }
 
   const temperature: unknown = Reflect.get(payload, "temperatureCelsius");
+  const temperatureMax: unknown = Reflect.get(payload, "temperatureMaxCelsius");
+  const temperatureMin: unknown = Reflect.get(payload, "temperatureMinCelsius");
+  const humidity: unknown = Reflect.get(payload, "humidityPercent");
+  const windSpeed: unknown = Reflect.get(payload, "windSpeedKph");
+  const rainChance: unknown = Reflect.get(payload, "rainChancePercent");
   const weatherCode: unknown = Reflect.get(payload, "weatherCode");
   const isDay: unknown = Reflect.get(payload, "isDay");
 
   if (
     typeof temperature !== "number" ||
     !Number.isFinite(temperature) ||
+    typeof temperatureMax !== "number" ||
+    !Number.isFinite(temperatureMax) ||
+    typeof temperatureMin !== "number" ||
+    !Number.isFinite(temperatureMin) ||
+    typeof humidity !== "number" ||
+    !Number.isFinite(humidity) ||
+    typeof windSpeed !== "number" ||
+    !Number.isFinite(windSpeed) ||
+    typeof rainChance !== "number" ||
+    !Number.isFinite(rainChance) ||
     typeof weatherCode !== "number" ||
     !Number.isFinite(weatherCode) ||
     typeof isDay !== "boolean"
@@ -46,6 +66,11 @@ function parseWeatherPayload(payload: unknown): WeatherReading {
 
   return {
     temperatureCelsius: Math.round(temperature),
+    temperatureMaxCelsius: Math.round(temperatureMax),
+    temperatureMinCelsius: Math.round(temperatureMin),
+    humidityPercent: Math.round(humidity),
+    windSpeedKph: Math.round(windSpeed),
+    rainChancePercent: Math.round(rainChance),
     weatherCode,
     isDay,
   };
