@@ -41,9 +41,9 @@ describe("Search V1 Dice fuzzy fallback", () => {
   });
 
   it("never runs fuzzy ahead of deterministic matching", () => {
-    expect(searchCatalog(precedenceFixture, "Lugar Canônico")[0]?.matchType).toBe(
-      "exact",
-    );
+    expect(
+      searchCatalog(precedenceFixture, "Lugar Canônico")[0]?.matchType,
+    ).toBe("exact");
     expect(
       searchCatalog(precedenceFixture, "apelido exclusivo")[0]?.matchType,
     ).toBe("alias");

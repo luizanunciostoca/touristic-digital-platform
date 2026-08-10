@@ -32,18 +32,17 @@ export interface SearchResult<T extends SearchCatalogItem = SearchCatalogItem> {
   readonly score: number;
 }
 
-const MATCH_SCORE: Readonly<
-  Record<Exclude<SearchMatchType, "fuzzy">, number>
-> = Object.freeze({
-  exact: 100,
-  alias: 95,
-  name_prefix: 85,
-  alias_prefix: 80,
-  name_contains: 70,
-  alias_contains: 65,
-  tag: 55,
-  area: 45,
-});
+const MATCH_SCORE: Readonly<Record<Exclude<SearchMatchType, "fuzzy">, number>> =
+  Object.freeze({
+    exact: 100,
+    alias: 95,
+    name_prefix: 85,
+    alias_prefix: 80,
+    name_contains: 70,
+    alias_contains: 65,
+    tag: 55,
+    area: 45,
+  });
 
 const V1_FUZZY_THRESHOLD = 0.55;
 
