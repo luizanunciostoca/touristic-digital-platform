@@ -57,7 +57,7 @@ export function createAssistantBrowserVoice(
     const descriptor = resolveAssistantVoice(
       language,
       voiceDescriptors(voices),
-      preferences.selectedVoice,
+      preferences.language === language ? preferences.selectedVoice : null,
     );
     if (!descriptor) return null;
     return voices.find((voice) => voice.name === descriptor.name) ?? null;
