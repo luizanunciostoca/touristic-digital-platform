@@ -57,4 +57,13 @@ describe("assistant weather copy", () => {
       expect(fallback.options).toHaveLength(5);
     },
   );
+
+  it("keeps fallback menu labels localized", () => {
+    expect(assistantWeatherFallback("pt").options[0]?.label).toBe(
+      "Temperatura agora",
+    );
+    expect(assistantWeatherFallback("es").options[0]?.label).toBe(
+      "Temperatura ahora",
+    );
+  });
 });
