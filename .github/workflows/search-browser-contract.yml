@@ -5,6 +5,7 @@ on:
   pull_request:
     paths:
       - .github/workflows/search-browser-contract.yml
+      - apps/morro-digital-platform/public/index.html
       - apps/morro-digital-platform/src/assistant/assistant-search-adapter.ts
       - apps/morro-digital-platform/src/assistant/assistant-domain-adapter.ts
       - apps/morro-digital-platform/src/layouts/app-shell.ts
@@ -65,11 +66,11 @@ jobs:
               const pageErrors = [];
               page.on('pageerror', error => pageErrors.push(error.message));
 
-              // Establish same-origin document without loading browser-entry.ts / map startup.
-              await page.goto('http://127.0.0.1:4173/runtime-config.js', { waitUntil: 'domcontentloaded', timeout: 30000 });
+              // Load the production HTML/import-map contract while preventing the map entrypoint from starting.
+              await page.route('**/apps/morro-digital-platform/dist/browser-entry.js', route => route.abort());
+              await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded', timeout: 30000 });
 
               await page.evaluate(async () => {
-                document.documentElement.innerHTML = '<head><meta charset="utf-8"></head><body><div id="app"></div></body>';
                 localStorage.setItem('morro-digital-onboarded', '1');
                 localStorage.setItem('voice-enabled', 'false');
 
