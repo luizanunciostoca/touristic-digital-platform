@@ -33,13 +33,19 @@ describe("assistant weather copy", () => {
     },
   );
 
-  it("preserves language-specific observable copy", () => {
+  it("preserves language-specific observable copy and options", () => {
     expect(formatAssistantWeather(reading, "pt").text).toContain("máxima");
     expect(formatAssistantWeather(reading, "en").text).toContain("humidity");
     expect(formatAssistantWeather(reading, "es").text).toContain(
       "probabilidad",
     );
     expect(formatAssistantWeather(reading, "he").text).toContain("לחות");
+    expect(formatAssistantWeather(reading, "en").options[0]?.label).toBe(
+      "Temperature now",
+    );
+    expect(formatAssistantWeather(reading, "he").options[0]?.label).toBe(
+      "הטמפרטורה עכשיו",
+    );
   });
 
   it.each<AssistantWeatherLanguage>(["pt", "en", "es", "he"])(
