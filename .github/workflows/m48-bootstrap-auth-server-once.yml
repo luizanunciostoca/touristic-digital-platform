@@ -1,5 +1,6 @@
 name: M48 Bootstrap Auth Server Once
 
+# rerun after typed HTTP boundary fix
 on:
   push:
     branches:
