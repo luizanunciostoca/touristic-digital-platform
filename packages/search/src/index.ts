@@ -227,3 +227,15 @@ export {
   type SearchApplicationResult,
   type SearchExternalProvider,
 } from "./search-application.js";
+
+export {
+  createSearchPresentationRows,
+  formatSearchResultText,
+  getSearchCategoryIcon,
+  getSearchPresentationCopy,
+  resolveSearchPresentationLocale,
+  type SearchPresentationCopy,
+  type SearchPresentationItem,
+  type SearchPresentationLocale,
+  type SearchPresentationRow,
+} from "./search-presentation.js";
