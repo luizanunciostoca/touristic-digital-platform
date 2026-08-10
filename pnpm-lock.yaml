@@ -63,7 +63,11 @@ importers:
         specifier: workspace:*
         version: link:../auth
 
-  packages/business: {}
+  packages/business:
+    dependencies:
+      "@touristic/auth":
+        specifier: workspace:*
+        version: link:../auth
 
   packages/core: {}
 
