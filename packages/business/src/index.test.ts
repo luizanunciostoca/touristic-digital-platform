@@ -4,6 +4,7 @@ import {
   createBusinessProfileService,
   normalizeBusinessId,
   normalizeBusinessProfile,
+  type BusinessProfile,
   type BusinessProfileRepository,
 } from "./index.js";
 
@@ -41,14 +42,23 @@ describe("normalizeBusinessProfile", () => {
     expect(Object.isFrozen(profile)).toBe(true);
     expect(Object.isFrozen(profile.promotion)).toBe(true);
   });
+
+  it("does not stringify untrusted objects into profile text", () => {
+    const profile = normalizeBusinessProfile({
+      name: { injected: true },
+    });
+    expect(profile.name).toBe("Negócio local");
+  });
 });
 
 describe("createBusinessProfileService", () => {
   it("scopes repository reads and writes to a normalized business ID", async () => {
-    const getProfile = vi.fn(async () =>
+    const getProfile = vi.fn<BusinessProfileRepository["getProfile"]>(async () =>
       normalizeBusinessProfile({ id: "toca", name: "Toca" }),
     );
-    const saveProfile = vi.fn(async (_businessId, profile) => profile);
+    const saveProfile = vi.fn<BusinessProfileRepository["saveProfile"]>(
+      async (_businessId: string, profile: BusinessProfile) => profile,
+    );
     const repository: BusinessProfileRepository = { getProfile, saveProfile };
     const service = createBusinessProfileService(repository);
 
@@ -68,8 +78,10 @@ describe("createBusinessProfileService", () => {
 
   it("fails closed when a write has no valid tenant ID", async () => {
     const repository: BusinessProfileRepository = {
-      getProfile: vi.fn(async () => null),
-      saveProfile: vi.fn(async (_businessId, profile) => profile),
+      getProfile: vi.fn<BusinessProfileRepository["getProfile"]>(async () => null),
+      saveProfile: vi.fn<BusinessProfileRepository["saveProfile"]>(
+        async (_businessId: string, profile: BusinessProfile) => profile,
+      ),
     };
     const service = createBusinessProfileService(repository);
 
