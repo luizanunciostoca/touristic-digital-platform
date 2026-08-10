@@ -5,10 +5,7 @@ import {
   type AssistantDialogResponse,
   type AssistantProfileStorage,
 } from "@touristic/assistant";
-import {
-  fetchMorroWeather,
-  type WeatherReading,
-} from "../weather/weather-widget.js";
+import { fetchMorroWeather } from "../weather/weather-widget.js";
 import { resolveAssistantNearby } from "./assistant-nearby-adapter.js";
 import {
   fetchAssistantPlaceDetails,
