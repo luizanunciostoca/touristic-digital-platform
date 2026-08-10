@@ -8,6 +8,12 @@ import {
 import type { NavigationSessionBootstrap } from "../navigation/navigation-session-bootstrap.js";
 import { createAssistantLlmHandler } from "./assistant-llm-adapter.js";
 import { createAssistantBrowserDomainHandlers } from "./assistant-domain-adapter.js";
+import { createAssistantMessageDom } from "./assistant-message-dom.js";
+import {
+  clearAssistantDomOptions,
+  readAssistantResponseOptions,
+  renderAssistantDomOptions,
+} from "./assistant-dom-view.js";
 import { createAssistantNavigationAppHandlers } from "./assistant-navigation-adapter.js";
 import { createMorroAssistantV1DestinationResolver } from "./assistant-v1-place-resolver.js";
 import { createAssistantBrowserVoice } from "./assistant-voice-adapter.js";
@@ -45,22 +51,6 @@ function getMessagesArea(document: Document): HTMLElement | null {
   return document.querySelector<HTMLElement>(
     "#assistant-messages .messages-area",
   );
-}
-
-function appendMessage(
-  document: Document,
-  role: "user" | "assistant",
-  text: string,
-): void {
-  const messagesArea = getMessagesArea(document);
-  if (!messagesArea) return;
-
-  const message = document.createElement("div");
-  message.className = `message ${role}`;
-  message.dataset.messageType = "standard";
-  message.textContent = text;
-  messagesArea.appendChild(message);
-  messagesArea.scrollTop = messagesArea.scrollHeight;
 }
 
 function readPhotoPresentation(
@@ -183,6 +173,7 @@ export function installBrowserAssistantRuntime(
   const storage = resolveStorage(options.document, options.storage);
   const mapboxAccessToken = resolveMapboxAccessToken(options.mapboxAccessToken);
   const context = createAssistantContextManager(storage ? { storage } : {});
+  const messages = createAssistantMessageDom({ document: options.document });
   const navigationHandlers = createAssistantNavigationAppHandlers({
     navigation: options.navigation,
     resolver: createMorroAssistantV1DestinationResolver(),
@@ -230,14 +221,26 @@ export function installBrowserAssistantRuntime(
   const voiceButton = options.document.getElementById("voiceButton");
   let destroyed = false;
 
+  const appendStandardMessage = (
+    sender: "user" | "assistant",
+    text: string,
+  ): void => {
+    messages.append({ sender, html: text, messageType: "standard" });
+  };
+
   const process = async (
     rawInput: string,
   ): Promise<AssistantDialogResponse> => {
     const value = rawInput.trim();
     if (!value) return { text: "Como posso ajudar?" };
-    appendMessage(options.document, "user", value);
+    clearAssistantDomOptions(options.document);
+    appendStandardMessage("user", value);
     const response = await controller.processUserInput(value);
-    appendMessage(options.document, "assistant", response.text);
+    appendStandardMessage("assistant", response.text);
+    const responseOptions = readAssistantResponseOptions(response);
+    if (responseOptions.length > 0) {
+      renderAssistantDomOptions(options.document, responseOptions);
+    }
     const voicePreferences = voice?.getPreferences();
     voice?.speak(
       response.text,
@@ -264,8 +267,7 @@ export function installBrowserAssistantRuntime(
           void process(transcript);
         },
         onError: () => {
-          appendMessage(
-            options.document,
+          appendStandardMessage(
             "assistant",
             voiceInputMessage(
               normalizeAssistantVoiceLanguage(
@@ -310,8 +312,7 @@ export function installBrowserAssistantRuntime(
       voice?.getPreferences().language ??
       normalizeAssistantVoiceLanguage(options.document.documentElement.lang);
     if (!voiceInput) {
-      appendMessage(
-        options.document,
+      appendStandardMessage(
         "assistant",
         voiceInputMessage(language, "unsupported"),
       );
@@ -323,8 +324,7 @@ export function installBrowserAssistantRuntime(
     }
     voiceInput.setLanguage(language);
     if (voiceInput.start()) {
-      appendMessage(
-        options.document,
+      appendStandardMessage(
         "assistant",
         voiceInputMessage(language, "listening"),
       );
