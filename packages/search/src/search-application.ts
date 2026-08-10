@@ -45,7 +45,7 @@ const MORRO_FILTER_CENTER = Object.freeze({
 });
 const MORRO_FILTER_RADIUS_METERS = 50_000;
 const GENERIC_QUESTION_PREFIX =
-  /^(como|quanto|qual|quando|onde|por que|porque|o que|quem|voce|me|meu|minha|tem|ha|existe|existem)$/i;
+  /(como|quanto|qual|quando|onde|por que|porque|o que|quem|voce|você|me|meu|minha|tem|há|ha|existe|existem)/i;
 
 function emptyResult<
   T extends SearchCatalogItem,
