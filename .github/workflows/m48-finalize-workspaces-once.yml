@@ -1,0 +1,45 @@
+name: M48 Finalize Workspaces Once
+
+on:
+  push:
+    branches:
+      - feat/auth-m48-server-browser-integration
+    paths:
+      - .github/workflows/m48-finalize-workspaces-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/auth-m48-server-browser-integration
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --lockfile-only
+      - run: pnpm install --frozen-lockfile
+      - name: Format and validate M48 workspaces
+        run: |
+          pnpm exec prettier --write packages/auth-browser services/auth apps/morro-digital-platform/package.json apps/morro-digital-platform/tooling/auth-api.mjs apps/morro-digital-platform/tooling/dev-server.mjs .github/workflows/auth-integration-contract.yml pnpm-lock.yaml
+          pnpm --filter @touristic/auth-server lint
+          pnpm --filter @touristic/auth-server typecheck
+          pnpm --filter @touristic/auth-server test
+          pnpm --filter @touristic/auth-browser lint
+          pnpm --filter @touristic/auth-browser typecheck
+          pnpm --filter @touristic/auth-browser test
+          pnpm -w build
+      - name: Commit finalized workspaces and remove helper
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/m48-finalize-workspaces-once.yml
+          git add packages/auth-browser services/auth apps/morro-digital-platform/package.json apps/morro-digital-platform/tooling/auth-api.mjs apps/morro-digital-platform/tooling/dev-server.mjs .github/workflows/auth-integration-contract.yml pnpm-lock.yaml
+          git commit -m "chore(auth): validate M48 server browser integration"
+          git push origin HEAD:feat/auth-m48-server-browser-integration
