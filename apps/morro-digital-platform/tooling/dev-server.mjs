@@ -160,7 +160,7 @@ async function fetchVisualCrossingWeather(apiKey) {
     `https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/${location}`,
   );
   url.searchParams.set("unitGroup", "metric");
-  url.searchParams.set("include", "current");
+  url.searchParams.set("include", "current,days,hours");
   url.searchParams.set("key", apiKey);
   url.searchParams.set("contentType", "json");
 
@@ -174,16 +174,39 @@ async function fetchVisualCrossingWeather(apiKey) {
 
   const payload = await response.json();
   const current = payload?.currentConditions;
-  const temperatureCelsius = current?.temp;
-  if (typeof temperatureCelsius !== "number") {
-    throw new Error("Visual Crossing returned incomplete current conditions.");
+  const days = Array.isArray(payload?.days) ? payload.days.slice(0, 7) : [];
+  if (typeof current?.temp !== "number" || days.length === 0) {
+    throw new Error("Visual Crossing returned incomplete weather conditions.");
   }
 
-  const icon = String(current?.icon || "");
+  const icon = String(current.icon || "");
   return {
-    temperatureCelsius,
-    weatherCode: conditionToWeatherCode(current?.conditions || icon),
+    temperatureCelsius: current.temp,
+    weatherCode: conditionToWeatherCode(current.conditions || icon),
     isDay: !icon.includes("night"),
+    humidityPercent: Number(current.humidity ?? days[0]?.humidity ?? 0),
+    windKph: Number(current.windspeed ?? days[0]?.windspeed ?? 0),
+    precipitationProbability: Number(
+      current.precipprob ?? days[0]?.precipprob ?? 0,
+    ),
+    forecast: days.map((day) => ({
+      date: String(day.datetime),
+      highCelsius: Number(day.tempmax),
+      lowCelsius: Number(day.tempmin),
+      weatherCode: conditionToWeatherCode(day.conditions || day.icon),
+      humidityPercent: Number(day.humidity ?? 0),
+      windKph: Number(day.windspeed ?? 0),
+      precipitationProbability: Number(day.precipprob ?? 0),
+      description: String(day.description || day.conditions || ""),
+      hourly: (Array.isArray(day.hours) ? day.hours : []).map((hour) => ({
+        hour: Number.parseInt(String(hour.datetime || "0").split(":")[0], 10),
+        temperatureCelsius: Number(hour.temp),
+        feelsLikeCelsius: Number(hour.feelslike ?? hour.temp),
+        humidityPercent: Number(hour.humidity ?? 0),
+        precipitationProbability: Number(hour.precipprob ?? 0),
+        weatherCode: conditionToWeatherCode(hour.conditions || hour.icon),
+      })),
+    })),
     provider: "visual-crossing",
   };
 }
@@ -192,7 +215,19 @@ async function fetchOpenMeteoWeather() {
   const url = new URL("https://api.open-meteo.com/v1/forecast");
   url.searchParams.set("latitude", String(morroLatitude));
   url.searchParams.set("longitude", String(morroLongitude));
-  url.searchParams.set("current", "temperature_2m,weather_code,is_day");
+  url.searchParams.set(
+    "current",
+    "temperature_2m,relative_humidity_2m,weather_code,is_day,wind_speed_10m,precipitation",
+  );
+  url.searchParams.set(
+    "daily",
+    "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max",
+  );
+  url.searchParams.set(
+    "hourly",
+    "temperature_2m,relative_humidity_2m,precipitation_probability,weather_code,apparent_temperature",
+  );
+  url.searchParams.set("forecast_days", "7");
   url.searchParams.set("timezone", "America/Bahia");
 
   const response = await fetch(url, {
@@ -205,18 +240,72 @@ async function fetchOpenMeteoWeather() {
 
   const payload = await response.json();
   const current = payload?.current;
+  const daily = payload?.daily;
+  const hourly = payload?.hourly;
   if (
     typeof current?.temperature_2m !== "number" ||
     typeof current?.weather_code !== "number" ||
-    (current?.is_day !== 0 && current?.is_day !== 1)
+    (current?.is_day !== 0 && current?.is_day !== 1) ||
+    !Array.isArray(daily?.time) ||
+    daily.time.length === 0
   ) {
-    throw new Error("Open-Meteo returned incomplete current conditions.");
+    throw new Error("Open-Meteo returned incomplete weather conditions.");
   }
+
+  const forecast = daily.time.slice(0, 7).map((date, dayIndex) => {
+    const dayHourly = [];
+    if (Array.isArray(hourly?.time)) {
+      for (let index = 0; index < hourly.time.length; index += 1) {
+        const timestamp = String(hourly.time[index]);
+        if (!timestamp.startsWith(`${date}T`)) continue;
+        dayHourly.push({
+          hour: Number.parseInt(timestamp.slice(11, 13), 10),
+          temperatureCelsius: Number(hourly.temperature_2m?.[index]),
+          feelsLikeCelsius: Number(hourly.apparent_temperature?.[index]),
+          humidityPercent: Number(hourly.relative_humidity_2m?.[index]),
+          precipitationProbability: Number(
+            hourly.precipitation_probability?.[index] ?? 0,
+          ),
+          weatherCode: Number(hourly.weather_code?.[index] ?? 0),
+        });
+      }
+    }
+
+    const humidities = dayHourly
+      .map((item) => item.humidityPercent)
+      .filter(Number.isFinite);
+    const averageHumidity = humidities.length
+      ? humidities.reduce((total, value) => total + value, 0) /
+        humidities.length
+      : Number(current.relative_humidity_2m ?? 0);
+
+    return {
+      date: String(date),
+      highCelsius: Number(daily.temperature_2m_max?.[dayIndex]),
+      lowCelsius: Number(daily.temperature_2m_min?.[dayIndex]),
+      weatherCode: Number(daily.weather_code?.[dayIndex] ?? 0),
+      humidityPercent: averageHumidity,
+      windKph: Number(daily.wind_speed_10m_max?.[dayIndex] ?? 0),
+      precipitationProbability: Number(
+        daily.precipitation_probability_max?.[dayIndex] ?? 0,
+      ),
+      description: "",
+      hourly: dayHourly,
+    };
+  });
 
   return {
     temperatureCelsius: current.temperature_2m,
     weatherCode: current.weather_code,
     isDay: current.is_day === 1,
+    humidityPercent: Number(current.relative_humidity_2m ?? 0),
+    windKph: Number(current.wind_speed_10m ?? 0),
+    precipitationProbability: Number(
+      hourly?.precipitation_probability?.[0] ??
+        forecast[0]?.precipitationProbability ??
+        0,
+    ),
+    forecast,
     provider: "open-meteo",
   };
 }
