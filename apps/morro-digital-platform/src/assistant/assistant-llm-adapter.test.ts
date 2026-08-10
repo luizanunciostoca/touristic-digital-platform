@@ -88,14 +88,15 @@ describe("createAssistantLlmHandler", () => {
 
   it("strips markup returned by the provider before rendering", async () => {
     const handler = createAssistantLlmHandler({
-      fetch: vi.fn(async () =>
-        new Response(
-          JSON.stringify({ text: "<b>Seguro</b><script>x</script>" }),
-          {
-            status: 200,
-            headers: { "Content-Type": "application/json" },
-          },
-        ),
+      fetch: vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({ text: "<b>Seguro</b><script>x</script>" }),
+            {
+              status: 200,
+              headers: { "Content-Type": "application/json" },
+            },
+          ),
       ),
     });
     const response = await handler(request());

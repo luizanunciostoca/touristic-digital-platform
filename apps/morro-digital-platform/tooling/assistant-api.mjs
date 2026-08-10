@@ -147,10 +147,7 @@ export function createAssistantApi({
 
     return {
       allowed: false,
-      retryAfter: Math.max(
-        1,
-        Math.ceil((bucket.resetAt - timestamp) / 1_000),
-      ),
+      retryAfter: Math.max(1, Math.ceil((bucket.resetAt - timestamp) / 1_000)),
     };
   }
 
@@ -245,7 +242,9 @@ export function createAssistantApi({
 
           const data = await upstream.json();
           const content = data?.choices?.[0]?.message?.content;
-          const normalized = normalizeProviderResponse(parseJsonObject(content));
+          const normalized = normalizeProviderResponse(
+            parseJsonObject(content),
+          );
           if (!normalized.text) throw new Error("assistant_invalid_response");
           sendJson(response, 200, normalized);
         } finally {
