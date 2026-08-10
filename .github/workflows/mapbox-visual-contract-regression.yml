@@ -194,6 +194,16 @@ jobs:
 
             await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded', timeout: 30000 });
             await waitReady(page);
+
+            const initialAssistantVisible = await page.evaluate(() =>
+              Boolean(document.querySelector('#assistant-messages:not(.hidden)')),
+            );
+            if (initialAssistantVisible) {
+              throw new Error(`Assistant must start hidden like audited V1 for ${name}.`);
+            }
+
+            await page.locator('.quick-actions .action-button.primary').click();
+            await page.locator('#assistant-messages:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
             const state = await readContract(page);
 
             let focusOrder = null;
