@@ -24,8 +24,8 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-      - name: Refresh workspace lockfile
-        run: pnpm install --lockfile-only
+      - name: Refresh workspace lockfile and install tooling
+        run: pnpm install --no-frozen-lockfile
       - name: Format M47 permanent files
         run: >-
           pnpm exec prettier --write
