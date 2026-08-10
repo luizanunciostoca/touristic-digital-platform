@@ -122,3 +122,18 @@ export function parseConfiguredUsers(
 
   return Object.freeze(users);
 }
+
+export function authenticateConfiguredUser(
+  users: readonly AuthConfiguredUser[],
+  emailInput: unknown,
+  passwordInput: unknown,
+): AuthConfiguredUser | null {
+  const email = normalizeAuthEmail(emailInput);
+  const user = email ? users.find((candidate) => candidate.email === email) : undefined;
+  const dummyHash = users[0]?.passwordHash;
+  const passwordValid = verifyPassword(
+    passwordInput,
+    user?.passwordHash ?? dummyHash,
+  );
+  return user && passwordValid ? user : null;
+}
