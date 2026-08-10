@@ -18,7 +18,7 @@ jobs:
           ref: feat/assistant-m35-photo-assets
       - name: Download audited V1 artifact
         env:
-          ASSET_URL: "https://sdmntprbrazilsouth.oaiusercontent.com/files/00000000-93b8-820e-bdb3-69af35504f83/raw?se=2026-08-10T13%3A41%3A31Z&sp=r&sv=2026-02-06&sr=b&scid=540a6747-3f55-542e-a6bd-1b21f084466f&skoid=db6dad9e-03ee-465b-aef6-ce0f63a161dc&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-08-10T13%3A24%3A54Z&ske=2026-08-11T13%3A24%3A54Z&sks=b&skv=2026-02-06&sig=Q7KJU%2BHZgRLQm0u/sCcTEAFPA6z4t9p%2BvcU%2Br2R6rjQ%3D"
+          ASSET_URL: "https://sdmntprbrazilsouth.oaiusercontent.com/files/00000000-ca18-820e-a245-d3cf09ab9a0f/raw?se=2026-08-10T13%3A47%3A12Z&sp=r&sv=2026-02-06&sr=b&scid=35850b73-8e09-5368-8b48-f60791f405c7&skoid=db6dad9e-03ee-465b-aef6-ce0f63a161dc&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-08-10T12%3A23%3A50Z&ske=2026-08-11T12%3A23%3A50Z&sks=b&skv=2026-02-06&sig=BZeUXPs3vzPExmzK3AWEdmYnwMZcp7d7Nbi0/RDn5po%3D"
         run: |
           curl --fail --location --silent --show-error "$ASSET_URL" --output /tmp/m35-v1-photo-assets.zip
           mkdir -p /tmp/m35-artifact
