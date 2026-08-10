@@ -54,6 +54,7 @@ describe("assistant domain i18n integration", () => {
     const response = await handlers.help?.(request("help", "en"));
 
     expect(response?.text).toContain("beaches");
+    expect(response?.options).toHaveLength(4);
     expect(response?.options).toEqual(
       expect.arrayContaining([
         { label: "Beaches", value: "beaches" },
