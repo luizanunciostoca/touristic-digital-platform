@@ -25,7 +25,7 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-      - run: pnpm install --lockfile-only
+      - run: pnpm install --no-frozen-lockfile
       - run: pnpm exec prettier --write packages/business/package.json packages/business/src/index.ts packages/business/src/index.test.ts pnpm-lock.yaml
       - name: Commit prepared core and remove helper
         run: |
