@@ -67,7 +67,7 @@ jobs:
           manifest['dependencies'] = dict(sorted(deps.items()))
           package.write_text(json.dumps(manifest, indent=2) + '\n')
           PY
-      - run: pnpm install
+      - run: pnpm install --no-frozen-lockfile
       - run: pnpm format
       - name: Commit move and remove helper
         run: |
