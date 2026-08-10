@@ -64,6 +64,8 @@ importers:
 
   packages/navigation: {}
 
+  packages/search: {}
+
   packages/shared: {}
 
 packages:

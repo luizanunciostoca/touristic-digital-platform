@@ -83,17 +83,25 @@ export function normalizeSearchText(value: string): string {
     .trim();
 }
 
-function normalizedValues(values: readonly string[] | undefined): readonly string[] {
+function normalizedValues(
+  values: readonly string[] | undefined,
+): readonly string[] {
   if (!values) return [];
   return values.map(normalizeSearchText).filter(Boolean);
 }
 
-function matchesAllFilters(item: SearchCatalogItem, filters: SearchFilters): boolean {
+function matchesAllFilters(
+  item: SearchCatalogItem,
+  filters: SearchFilters,
+): boolean {
   const categories = normalizedValues(filters.categories);
   const tags = normalizedValues(filters.tags);
   const areas = normalizedValues(filters.areas);
 
-  if (categories.length > 0 && !categories.includes(normalizeSearchText(item.category))) {
+  if (
+    categories.length > 0 &&
+    !categories.includes(normalizeSearchText(item.category))
+  ) {
     return false;
   }
 
@@ -102,7 +110,10 @@ function matchesAllFilters(item: SearchCatalogItem, filters: SearchFilters): boo
     return false;
   }
 
-  if (areas.length > 0 && !areas.includes(normalizeSearchText(item.area ?? ""))) {
+  if (
+    areas.length > 0 &&
+    !areas.includes(normalizeSearchText(item.area ?? ""))
+  ) {
     return false;
   }
 
@@ -113,10 +124,15 @@ export function filterSearchCatalog<T extends SearchCatalogItem>(
   catalog: readonly T[],
   filters: SearchFilters = {},
 ): readonly T[] {
-  return Object.freeze(catalog.filter((item) => matchesAllFilters(item, filters)));
+  return Object.freeze(
+    catalog.filter((item) => matchesAllFilters(item, filters)),
+  );
 }
 
-function classifyMatch(item: SearchCatalogItem, query: string): SearchMatchType | null {
+function classifyMatch(
+  item: SearchCatalogItem,
+  query: string,
+): SearchMatchType | null {
   const name = normalizeSearchText(item.name);
   const aliases = normalizedValues(item.aliases);
   const tags = normalizedValues(item.tags);
@@ -133,8 +149,14 @@ function classifyMatch(item: SearchCatalogItem, query: string): SearchMatchType 
   return null;
 }
 
-function stableNameCompare(left: SearchCatalogItem, right: SearchCatalogItem): number {
-  return normalizeSearchText(left.name).localeCompare(normalizeSearchText(right.name), "en");
+function stableNameCompare(
+  left: SearchCatalogItem,
+  right: SearchCatalogItem,
+): number {
+  return normalizeSearchText(left.name).localeCompare(
+    normalizeSearchText(right.name),
+    "en",
+  );
 }
 
 export function searchCatalog<T extends SearchCatalogItem>(
@@ -164,7 +186,9 @@ export function searchCatalog<T extends SearchCatalogItem>(
   return Object.freeze(results);
 }
 
-export function createSearchIndex<T extends SearchCatalogItem>(catalog: readonly T[]) {
+export function createSearchIndex<T extends SearchCatalogItem>(
+  catalog: readonly T[],
+) {
   const snapshot = Object.freeze([...catalog]);
 
   return Object.freeze({
@@ -172,7 +196,9 @@ export function createSearchIndex<T extends SearchCatalogItem>(catalog: readonly
     all: (): readonly T[] => snapshot,
     filter: (filters: SearchFilters = {}): readonly T[] =>
       filterSearchCatalog(snapshot, filters),
-    search: (query: string, filters: SearchFilters = {}): readonly SearchResult<T>[] =>
-      searchCatalog(snapshot, query, filters),
+    search: (
+      query: string,
+      filters: SearchFilters = {},
+    ): readonly SearchResult<T>[] => searchCatalog(snapshot, query, filters),
   });
 }

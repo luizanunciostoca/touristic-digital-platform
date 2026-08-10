@@ -46,7 +46,9 @@ const catalog = Object.freeze([
 
 describe("normalizeSearchText", () => {
   it("normalizes case, accents, punctuation and repeated whitespace", () => {
-    expect(normalizeSearchText("  CAFÉ — do   MORCEGO! ")).toBe("cafe do morcego");
+    expect(normalizeSearchText("  CAFÉ — do   MORCEGO! ")).toBe(
+      "cafe do morcego",
+    );
   });
 
   it("preserves Hebrew text", () => {
@@ -112,10 +114,9 @@ describe("searchCatalog", () => {
       matchType: "tag",
       item: { name: "Toca do Morcego" },
     });
-    expect(searchCatalog(catalog, "vila").map((result) => result.matchType)).toEqual([
-      "tag",
-      "tag",
-    ]);
+    expect(
+      searchCatalog(catalog, "vila").map((result) => result.matchType),
+    ).toEqual(["tag", "tag"]);
   });
 
   it("returns an empty immutable result for blank queries", () => {
