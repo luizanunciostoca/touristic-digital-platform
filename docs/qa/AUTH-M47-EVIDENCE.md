@@ -70,6 +70,10 @@ M47 is deliberately incapable of authenticating a browser by itself. Future adap
 - password verification and rate limiting server-side;
 - structured denial audit events without secrets.
 
+## Final validation checkpoint
+
+The final authored head must validate the package, matrix and this evidence together. No helper workflow is part of the intended PR diff.
+
 ## Exit gate
 
 M47 may close only when the final authored head passes installation, formatting, architecture, Feature Registry, lint, typecheck, tests and build, and the PR contains no temporary workflow helper.
