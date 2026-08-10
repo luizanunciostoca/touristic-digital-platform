@@ -1,7 +1,10 @@
-import type { AuthSessionIdentity } from "@touristic/auth";
+export interface RevocableAuthSession {
+  readonly sessionId: string;
+  readonly expiresAt: number;
+}
 
 export interface AuthRevocationStore {
-  readonly revoke: (session: AuthSessionIdentity) => void;
+  readonly revoke: (session: RevocableAuthSession) => void;
   readonly isRevoked: (sessionId: string, nowEpochSeconds?: number) => boolean;
   readonly cleanup: (nowEpochSeconds?: number) => number;
   readonly size: () => number;
@@ -23,11 +26,14 @@ export function createAuthRevocationStore(): AuthRevocationStore {
     return removed;
   };
 
-  return Object.freeze({
-    revoke(session) {
+  return Object.freeze<AuthRevocationStore>({
+    revoke(session: RevocableAuthSession) {
       revoked.set(session.sessionId, session.expiresAt);
     },
-    isRevoked(sessionId, nowEpochSeconds = Math.floor(Date.now() / 1000)) {
+    isRevoked(
+      sessionId: string,
+      nowEpochSeconds = Math.floor(Date.now() / 1000),
+    ) {
       const expiresAt = revoked.get(sessionId);
       if (expiresAt === undefined) return false;
       if (expiresAt <= nowEpochSeconds) {
