@@ -1,5 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
-import { chromium } from "/tmp/pw/node_modules/playwright/index.js";
+import playwright from "/tmp/pw/node_modules/playwright/index.js";
+
+const { chromium } = playwright;
 
 const BASE_URL = process.env.MORRO_BROWSER_URL || "http://127.0.0.1:4173/";
 const OUTPUT_DIR =
