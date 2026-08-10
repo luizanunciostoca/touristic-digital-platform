@@ -5,6 +5,7 @@ import {
 } from "@touristic/assistant";
 
 import type { NavigationSessionBootstrap } from "../navigation/navigation-session-bootstrap.js";
+import { createAssistantLlmHandler } from "./assistant-llm-adapter.js";
 import { createAssistantBrowserDomainHandlers } from "./assistant-domain-adapter.js";
 import { createAssistantNavigationAppHandlers } from "./assistant-navigation-adapter.js";
 import { createMorroAssistantV1DestinationResolver } from "./assistant-v1-place-resolver.js";
@@ -156,6 +157,9 @@ export function installBrowserAssistantRuntime(
       ...domainHandlers,
       ...navigationHandlers,
     },
+    llm: createAssistantLlmHandler({
+      ...(options.fetch ? { fetch: options.fetch } : {}),
+    }),
   });
 
   const input = options.document.getElementById("assistantInput");
