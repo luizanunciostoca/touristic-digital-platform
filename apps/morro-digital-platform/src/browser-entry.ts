@@ -17,6 +17,7 @@ import {
 } from "./development/leaflet-compatibility-sdk.js";
 import { createDevelopmentMapboxSdk } from "./development/mapbox-sdk.js";
 import { bootstrapMorroDigitalApplication } from "./main.js";
+import { installAssistantShellUi } from "./assistant/assistant-shell-ui.js";
 import {
   installBrowserNavigationRuntime,
   type BrowserNavigationRuntimeInstall,
@@ -49,22 +50,9 @@ bootstrapMorroDigitalApplication(document);
 initializeWeatherWidget({ document });
 
 function setupV1ShellInteractions(): void {
-  const assistant = document.getElementById("assistant-messages");
-  const assistantButton = document.querySelector<HTMLButtonElement>(
-    ".quick-actions .action-button.primary",
-  );
-  const minimizeButton =
-    assistant?.querySelector<HTMLButtonElement>(".minimize-button");
+  installAssistantShellUi({ document });
+
   const globeButton = document.getElementById("toggle-globe-view");
-
-  assistantButton?.addEventListener("click", () => {
-    assistant?.classList.remove("hidden");
-  });
-
-  minimizeButton?.addEventListener("click", () => {
-    assistant?.classList.add("hidden");
-  });
-
   globeButton?.addEventListener("click", () => {
     const active = globeButton.classList.toggle("active");
     globeButton.setAttribute("aria-pressed", String(active));
