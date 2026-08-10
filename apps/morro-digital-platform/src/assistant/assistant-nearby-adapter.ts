@@ -3,6 +3,11 @@ import type {
   AssistantDialogResponse,
 } from "@touristic/assistant";
 
+import {
+  nearbyCopy,
+  nearbyResolvedCopy,
+  type AssistantDomainLanguage,
+} from "./assistant-domain-copy.js";
 import { morroAssistantV1DestinationCatalog } from "./assistant-v1-destination-catalog.js";
 import { isAssistantV1PlaceWithinRadius } from "./assistant-v1-place-boundary.js";
 
@@ -13,15 +18,6 @@ export interface AssistantNearbyGeolocationPort {
     options?: PositionOptions,
   ): void;
 }
-
-const NEARBY_CATEGORY_OPTIONS = [
-  { label: "Praias", value: "praias perto de mim" },
-  { label: "Restaurantes", value: "restaurantes perto de mim" },
-  { label: "Pousadas", value: "pousadas perto de mim" },
-  { label: "Atrações", value: "atrações perto de mim" },
-  { label: "Passeios", value: "passeios perto de mim" },
-  { label: "Emergências", value: "emergências perto de mim" },
-];
 
 function toRadians(value: number): number {
   return (value * Math.PI) / 180;
@@ -59,6 +55,12 @@ function resolveCategory(
   );
 }
 
+function languageOf(
+  request: AssistantDialogIntentHandlerContext,
+): AssistantDomainLanguage {
+  return request.intent.entities.language ?? "pt";
+}
+
 function requestPosition(
   geolocation: AssistantNearbyGeolocationPort,
 ): Promise<GeolocationPosition> {
@@ -76,18 +78,25 @@ export async function resolveAssistantNearby(
   geolocation?: AssistantNearbyGeolocationPort,
 ): Promise<AssistantDialogResponse> {
   const category = resolveCategory(request);
+  const language = languageOf(request);
   if (!category) {
+    const copy = nearbyCopy(language, "awaiting_category");
     return {
-      text: "Posso buscar o que está mais perto de você, mas primeiro me diga a categoria: praias, restaurantes, pousadas, atrações, passeios ou emergências.",
-      options: [...NEARBY_CATEGORY_OPTIONS],
-      metadata: { domain: "nearby", state: "awaiting_category" },
+      text: copy.text,
+      ...(copy.options ? { options: [...copy.options] } : {}),
+      metadata: { domain: "nearby", state: "awaiting_category", language },
     };
   }
 
   if (!geolocation) {
     return {
-      text: "Para buscar lugares próximos, preciso da sua localização atual.",
-      metadata: { domain: "nearby", state: "location_required", category },
+      text: nearbyCopy(language, "location_required").text,
+      metadata: {
+        domain: "nearby",
+        state: "location_required",
+        category,
+        language,
+      },
     };
   }
 
@@ -110,17 +119,16 @@ export async function resolveAssistantNearby(
       .slice(0, 5);
 
     if (results.length === 0) {
+      const copy = nearbyCopy(language, "empty");
       return {
-        text: "Não encontrei locais dessa categoria no catálogo curado de Morro de São Paulo.",
-        options: [...NEARBY_CATEGORY_OPTIONS],
-        metadata: { domain: "nearby", state: "empty", category },
+        text: copy.text,
+        ...(copy.options ? { options: [...copy.options] } : {}),
+        metadata: { domain: "nearby", state: "empty", category, language },
       };
     }
 
     return {
-      text: `Mais perto de você: ${results
-        .map((result) => `${result.name} (${result.distanceMeters} m)`)
-        .join(", ")}.`,
+      text: nearbyResolvedCopy(language, results),
       options: results.map((result) => ({
         label: result.name,
         value: result.name,
@@ -129,14 +137,20 @@ export async function resolveAssistantNearby(
         domain: "nearby",
         state: "resolved",
         category,
+        language,
         count: results.length,
         results,
       },
     };
   } catch {
     return {
-      text: "Não consegui obter sua localização. Verifique a permissão de localização e tente novamente.",
-      metadata: { domain: "nearby", state: "denied_or_failed", category },
+      text: nearbyCopy(language, "denied_or_failed").text,
+      metadata: {
+        domain: "nearby",
+        state: "denied_or_failed",
+        category,
+        language,
+      },
     };
   }
 }
