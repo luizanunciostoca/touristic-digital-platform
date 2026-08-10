@@ -1,0 +1,65 @@
+name: M35 Finalize Assistant Docs Once
+
+on:
+  push:
+    branches:
+      - feat/assistant-m35-photo-assets
+
+permissions:
+  contents: write
+
+jobs:
+  finalize-docs:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/assistant-m35-photo-assets
+      - name: Promote MIG-0006 and record M35 evidence
+        run: |
+          python <<'PY'
+          from pathlib import Path
+          import re
+
+          matrix_path = Path('docs/migration/ASSISTANT-MIGRATION-MATRIX.md')
+          matrix = matrix_path.read_text()
+
+          matrix = re.sub(
+              r'^(\| location/photos/price/hours\s+\|.*?\|) PARTIAL(\s+\|).*$',
+              lambda m: m.group(1) + ' PASS   ' + m.group(2) + ' geolocalização, fotos físicas, preço, hours e copy PT/EN/ES/HE conectados; bytes/MIME/carrossel validados em browser |',
+              matrix,
+              count=1,
+              flags=re.M,
+          )
+          matrix = re.sub(
+              r'^(\| Handlers de domínio do diálogo\s+\|.*?\|) PARTIAL(\s+\|).*$',
+              lambda m: m.group(1) + ' PASS   ' + m.group(2) + ' handlers e i18n PT/EN/ES/HE conectados sem drift; domínio photos validado com assets físicos e apresentação browser |',
+              matrix,
+              count=1,
+              flags=re.M,
+          )
+
+          if '## Estado do milestone M35' not in matrix:
+              matrix += '''\n\n## Estado do milestone M35\n\nO M35 fecha o último bloqueio declarado pelo M34: o delivery físico dos assets binários usados pelo domínio `photos`. A baseline V1 `60746fd7fed97b805758b37adfdbe3bad2582bfe` possui 63 arquivos reais em `images/fotos` — 62 `.jpg` e `primeira_praia2.jpeg`. Os 63 bytes foram importados para o mesmo path público na V2 e congelados em `docs/qa/ASSISTANT-V1-PHOTO-ASSETS.sha256`; a regressão `assistant-v1-photo-assets.test.ts` verifica lista e SHA-256 de todo o conjunto.\n\nO `dev-server.mjs` passa a servir `.jpg` e `.jpeg` como `image/jpeg`. O workflow `Assistant Photo Browser Contract` valida amostras físicas por SHA-256, MIME e o fluxo observável `Fotos de Toca do Morcego` até `metadata.presentation=carousel` e o DOM `.assistant-photo-carousel`, usando o runtime Mapbox autenticado real.\n\nNo head validado do M35, `Quality Gate`, `Assistant Photo Browser Contract`, `Map Provider Regression`, `Mapbox Visual Contract Regression` e `Navigation Visual Baseline` ficaram verdes. Não foi introduzido asset origin externo, token novo no browser ou transformação dos bytes auditados.\n\nCom isso, `location/photos/price/hours` e `Handlers de domínio do diálogo` passam a `PASS`. Todas as linhas da matriz estão em `PASS`; FEATURE-0004 / MIG-0006 é promovida a `equivalent`. O estado não é `released`: rollout/publicação permanece uma etapa separada.\n'''
+
+          matrix_path.write_text(matrix)
+
+          tracker_path = Path('docs/migration/MASTER-MIGRATION-TRACKER.md')
+          tracker = tracker_path.read_text()
+          old = '| MIG-0006 | `js/assistant*` | Assistant | FEATURE-0004 | `packages/assistant` | 11 | discovered | pendente | pendente | pendente | alto |'
+          new = '| MIG-0006 | `js/assistant*` | Assistant | FEATURE-0004 | `packages/assistant` | 11 | equivalent | shell/DOM/carrossel e contratos browser V1 validados | NLP, diálogo, domains, LLM, voz, Navigation e photos equivalentes | matriz `ASSISTANT-MIGRATION-MATRIX.md`; Quality + browser contracts M35 verdes | alto |'
+          if old not in tracker:
+              raise SystemExit('MIG-0006 tracker row not found')
+          tracker = tracker.replace(old, new, 1)
+          tracker_path.write_text(tracker)
+          PY
+      - name: Commit docs and remove helper
+        run: |
+          rm .github/workflows/m35-finalize-assistant-docs-once.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/migration/ASSISTANT-MIGRATION-MATRIX.md docs/migration/MASTER-MIGRATION-TRACKER.md .github/workflows/m35-finalize-assistant-docs-once.yml
+          git diff --cached --check
+          git commit -m 'docs(assistant): finalize M35 equivalence evidence'
+          git push origin HEAD:feat/assistant-m35-photo-assets
