@@ -59,10 +59,10 @@ describe("M48 auth credentials", () => {
   });
 
   it("rejects malformed configuration and non-admin users without scopes", () => {
-    expect(() => parseConfiguredUsers("{")) .toThrow(
+    expect(() => parseConfiguredUsers("{")).toThrow(
       "DASHBOARD_USERS_JSON não contém JSON válido.",
     );
-    expect(() => parseConfiguredUsers("{}")) .toThrow(
+    expect(() => parseConfiguredUsers("{}")).toThrow(
       "DASHBOARD_USERS_JSON precisa ser uma lista.",
     );
 

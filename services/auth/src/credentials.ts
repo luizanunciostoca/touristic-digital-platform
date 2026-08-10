@@ -50,12 +50,7 @@ export function hashPassword(
 export function verifyPassword(password: unknown, encoded: unknown): boolean {
   if (typeof encoded !== "string") return false;
   const [scheme, encodedSalt, encodedHash, ...rest] = encoded.split("$");
-  if (
-    scheme !== "scrypt" ||
-    !encodedSalt ||
-    !encodedHash ||
-    rest.length > 0
-  ) {
+  if (scheme !== "scrypt" || !encodedSalt || !encodedHash || rest.length > 0) {
     return false;
   }
 
@@ -63,7 +58,9 @@ export function verifyPassword(password: unknown, encoded: unknown): boolean {
     const salt = Buffer.from(encodedSalt, "base64url");
     const expected = Buffer.from(encodedHash, "base64url");
     const actual = scryptSync(safeString(password, 200), salt, expected.length);
-    return expected.length === actual.length && timingSafeEqual(expected, actual);
+    return (
+      expected.length === actual.length && timingSafeEqual(expected, actual)
+    );
   } catch {
     return false;
   }
@@ -129,7 +126,9 @@ export function authenticateConfiguredUser(
   passwordInput: unknown,
 ): AuthConfiguredUser | null {
   const email = normalizeAuthEmail(emailInput);
-  const user = email ? users.find((candidate) => candidate.email === email) : undefined;
+  const user = email
+    ? users.find((candidate) => candidate.email === email)
+    : undefined;
   const dummyHash = users[0]?.passwordHash;
   const passwordValid = verifyPassword(
     passwordInput,

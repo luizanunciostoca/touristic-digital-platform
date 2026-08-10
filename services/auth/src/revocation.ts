@@ -13,9 +13,7 @@ export interface AuthRevocationStore {
 export function createAuthRevocationStore(): AuthRevocationStore {
   const revoked = new Map<string, number>();
 
-  const cleanup = (
-    nowEpochSeconds = Math.floor(Date.now() / 1000),
-  ): number => {
+  const cleanup = (nowEpochSeconds = Math.floor(Date.now() / 1000)): number => {
     let removed = 0;
     for (const [sessionId, expiresAt] of revoked.entries()) {
       if (expiresAt <= nowEpochSeconds) {

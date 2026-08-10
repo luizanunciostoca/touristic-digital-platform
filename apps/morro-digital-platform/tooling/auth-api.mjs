@@ -75,7 +75,9 @@ function createLoginLimiter() {
 }
 
 export function createAuthApi({ getEnvironmentValue, audit = () => {} }) {
-  const secret = String(getEnvironmentValue("DASHBOARD_AUTH_SECRET") || "").trim();
+  const secret = String(
+    getEnvironmentValue("DASHBOARD_AUTH_SECRET") || "",
+  ).trim();
   const usersJson = getEnvironmentValue("DASHBOARD_USERS_JSON") || "";
   const production = getEnvironmentValue("NODE_ENV") === "production";
   const configuredOrigin = getEnvironmentValue("DASHBOARD_AUTH_ORIGIN") || "";
@@ -99,7 +101,8 @@ export function createAuthApi({ getEnvironmentValue, audit = () => {} }) {
     secret.length >= 32 &&
     !configurationError &&
     users.length > 0 &&
-    (!production || Boolean(publicOrigin({ headers: {} }, configuredOrigin, true)));
+    (!production ||
+      Boolean(publicOrigin({ headers: {} }, configuredOrigin, true)));
 
   function originAllowed(request) {
     const expectedOrigin = publicOrigin(request, configuredOrigin, production);
@@ -294,7 +297,13 @@ export function createAuthApi({ getEnvironmentValue, audit = () => {} }) {
       });
       return;
     }
-    if (!verifyCsrfToken(firstHeader(request.headers["x-csrf-token"]), active, secret)) {
+    if (
+      !verifyCsrfToken(
+        firstHeader(request.headers["x-csrf-token"]),
+        active,
+        secret,
+      )
+    ) {
       audit(request, {
         action: "dashboard.mutation",
         result: "denied",
@@ -308,14 +317,21 @@ export function createAuthApi({ getEnvironmentValue, audit = () => {} }) {
     }
 
     revocations.revoke(active);
-    response.setHeader("Set-Cookie", serializeClearedSessionCookie(secureCookie));
+    response.setHeader(
+      "Set-Cookie",
+      serializeClearedSessionCookie(secureCookie),
+    );
     audit(request, { action: "dashboard.logout", result: "success" });
     json(response, 200, { success: true });
   }
 
   return Object.freeze({
     matches(pathname) {
-      return pathname === `${authPrefix}/login` || pathname === `${authPrefix}/session` || pathname === `${authPrefix}/logout`;
+      return (
+        pathname === `${authPrefix}/login` ||
+        pathname === `${authPrefix}/session` ||
+        pathname === `${authPrefix}/logout`
+      );
     },
     async handle(request, response, pathname) {
       if (pathname === `${authPrefix}/login` && request.method === "POST") {

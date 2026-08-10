@@ -37,6 +37,9 @@ importers:
       "@touristic/assistant":
         specifier: workspace:*
         version: link:../../packages/assistant
+      "@touristic/auth-server":
+        specifier: workspace:*
+        version: link:../../services/auth
       "@touristic/core":
         specifier: workspace:*
         version: link:../../packages/core
