@@ -54,7 +54,9 @@ No missing value is synthesized.
 
 ## Integrity contract
 
-The enrichment overlay contains exactly 131 rows keyed by `(category, name)`. Catalog composition throws if an expected enrichment row is missing. Tests freeze:
+The enrichment overlay contains exactly 131 rows keyed by `(category, name)`. Catalog composition throws if an expected enrichment row is missing. The composition boundary is explicitly typed as `readonly MorroV1SearchEnrichment[]`, and frozen output objects are reconstructed field-by-field so ESLint does not permit unsafe inferred spreads.
+
+Tests freeze:
 
 - total POI count;
 - exact category counts;
