@@ -2,11 +2,11 @@
 
 ## Scope
 
-M42 implements step 7 of `docs/migration/SEARCH-MIGRATION-MATRIX.md`: browser evidence for the Search path integrated with the existing Assistant, Details and Navigation runtime.
+M42 implements step 7 of `docs/migration/SEARCH-MIGRATION-MATRIX.md`: browser evidence for the Search path integrated with the existing Assistant, Details and Navigation boundaries.
 
 ## Integration boundary
 
-The Assistant intent engine already classifies likely place names as `place_search`. M42 registers a browser handler for that existing intent rather than creating a second Search UI or intercepting unrelated Assistant intents.
+The Assistant intent engine already classifies likely place names as `place_search`. M42 registers that intent in the browser domain adapter rather than creating a second Search UI or intercepting unrelated Assistant intents.
 
 The handler composes:
 
@@ -16,20 +16,26 @@ The handler composes:
 - M41 structured presentation/copy;
 - existing Assistant option rendering;
 - existing `more_info` handler;
-- existing Navigation runtime.
+- existing Navigation adapter.
 
 ## Browser contract
 
-`.github/workflows/search-browser-contract.yml` runs Chromium against the authenticated V2 runtime and proves this observable chain:
+`.github/workflows/search-browser-contract.yml` runs Chromium against the built V2 runtime using the deterministic map fallback. This intentionally removes live Mapbox SDK availability from the Search integration proof; real Mapbox behavior remains owned by the dedicated Mapbox regressions.
 
-1. open the existing Assistant shell;
-2. submit `Toca do Morcego`;
-3. receive Search-owned result presentation containing the canonical POI;
-4. select the result through the existing Assistant option event path;
-5. reach the existing Details handler for the same place;
-6. choose `Como chegar` through the existing Details options;
-7. reach the existing Navigation runtime and observe `body.navigation-active` plus the end-navigation control;
-8. keep the real Mapbox map provider active and emit no browser page errors.
+The contract proves this chain:
+
+1. load the built V2 shell and wait for its map runtime to reach `ready`;
+2. install the same production `BrowserAssistantRuntime` with an instrumented Navigation port;
+3. open the existing Assistant shell;
+4. submit `Toca do Morcego`;
+5. receive Search-owned result presentation containing the canonical POI;
+6. select the result through the existing Assistant option event path;
+7. reach the existing Details handler for the same place;
+8. choose `Como chegar` through the existing Details options;
+9. verify the existing Navigation adapter calls its `start()` port exactly once with finite destination coordinates;
+10. emit no browser page errors.
+
+This separates deterministic Search integration evidence from live provider availability while still exercising the production Assistant/Search/Details/Navigation adapters in a real browser DOM.
 
 ## Architectural constraint
 
