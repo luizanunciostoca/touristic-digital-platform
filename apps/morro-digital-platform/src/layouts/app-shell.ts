@@ -76,6 +76,35 @@ function createAppShellMarkup(): string {
         </div>
       </div>
 
+      <section id="assistantVoiceSettings" class="assistant-voice-settings hidden" aria-hidden="true" aria-labelledby="assistantVoiceSettingsTitle">
+        <div class="assistant-voice-settings-header">
+          <h2 id="assistantVoiceSettingsTitle">Configurações de voz</h2>
+          <button id="assistantVoiceSettingsClose" type="button" aria-label="Fechar configurações de voz">×</button>
+        </div>
+        <label class="assistant-voice-settings-row">
+          <span>Voz do assistente</span>
+          <input id="assistantVoiceEnabled" type="checkbox" />
+        </label>
+        <label class="assistant-voice-settings-field" for="assistantVoiceSelect">
+          <span>Voz</span>
+          <select id="assistantVoiceSelect" class="assistant-voice-selector"></select>
+        </label>
+        <label class="assistant-voice-settings-field" for="assistantVoiceSpeed">
+          <span>Velocidade <output id="assistantVoiceSpeedValue" for="assistantVoiceSpeed">1.00×</output></span>
+          <input id="assistantVoiceSpeed" type="range" min="0.5" max="2" step="0.05" value="1" />
+        </label>
+        <label class="assistant-voice-settings-field" for="assistantVoiceLanguage">
+          <span>Idioma</span>
+          <select id="assistantVoiceLanguage">
+            <option value="pt">Português</option>
+            <option value="en">English</option>
+            <option value="es">Español</option>
+            <option value="he">עברית</option>
+          </select>
+        </label>
+        <p class="assistant-voice-settings-support" aria-live="polite">As preferências são salvas neste navegador.</p>
+      </section>
+
       <div id="assistant-input-area" class="assistant-input-area">
         <input
           type="text"
