@@ -23,8 +23,12 @@ async function readFrozenAssets(): Promise<readonly FrozenAsset[]> {
     .filter(Boolean)
     .map((line) => {
       const match = /^([a-f0-9]{64})\s{2}(.+)$/u.exec(line);
-      if (!match) throw new Error(`Invalid photo asset manifest line: ${line}`);
-      return { hash: match[1], path: match[2] };
+      const hash = match?.[1];
+      const path = match?.[2];
+      if (!hash || !path) {
+        throw new Error(`Invalid photo asset manifest line: ${line}`);
+      }
+      return { hash, path };
     });
 }
 
