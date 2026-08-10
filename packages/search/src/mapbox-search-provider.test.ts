@@ -12,7 +12,10 @@ function response(payload: unknown, ok = true): Response {
   } as Response;
 }
 
-function requestedUrl(fetchMock: ReturnType<typeof vi.fn<typeof fetch>>, index: number): URL {
+function requestedUrl(
+  fetchMock: ReturnType<typeof vi.fn<typeof fetch>>,
+  index: number,
+): URL {
   const input = fetchMock.mock.calls[index]?.[0];
   if (!input) throw new Error(`Missing fetch call at index ${index}`);
 
