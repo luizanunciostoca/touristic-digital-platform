@@ -1,0 +1,37 @@
+name: M43 Format Docs Once
+
+on:
+  push:
+    branches:
+      - docs/search-m43-post-m42-audit
+    paths:
+      - .github/workflows/m43-format-docs-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: docs/search-m43-post-m42-audit
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Format M43 documentation
+        run: pnpm exec prettier --write docs/migration/SEARCH-MIGRATION-MATRIX.md docs/qa/SEARCH-M43-POST-M42-AUDIT.md
+      - name: Commit formatted docs and remove helper
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/m43-format-docs-once.yml
+          git add docs/migration/SEARCH-MIGRATION-MATRIX.md docs/qa/SEARCH-M43-POST-M42-AUDIT.md
+          git commit -m "docs(search): format M43 audit"
+          git push origin HEAD:docs/search-m43-post-m42-audit
