@@ -1,6 +1,7 @@
 import {
   createAssistantContextManager,
   createAssistantDialogController,
+  normalizeAssistantVoiceLanguage,
   type AssistantDialogResponse,
 } from "@touristic/assistant";
 
@@ -9,6 +10,7 @@ import { createAssistantLlmHandler } from "./assistant-llm-adapter.js";
 import { createAssistantBrowserDomainHandlers } from "./assistant-domain-adapter.js";
 import { createAssistantNavigationAppHandlers } from "./assistant-navigation-adapter.js";
 import { createMorroAssistantV1DestinationResolver } from "./assistant-v1-place-resolver.js";
+import { createAssistantBrowserVoice } from "./assistant-voice-adapter.js";
 
 interface AssistantRuntimeEnvironmentGlobal {
   readonly __MORRO_RUNTIME_ENV__?: {
@@ -162,6 +164,15 @@ export function installBrowserAssistantRuntime(
     }),
   });
 
+  const view = options.document.defaultView;
+  const voice =
+    view?.speechSynthesis && typeof view.SpeechSynthesisUtterance === "function"
+      ? createAssistantBrowserVoice({
+          synthesis: view.speechSynthesis,
+          createUtterance: (text) => new view.SpeechSynthesisUtterance(text),
+          ...(storage ? { storage } : {}),
+        })
+      : null;
   const input = options.document.getElementById("assistantInput");
   const sendButton = options.document.getElementById("sendButton");
   let destroyed = false;
@@ -174,6 +185,10 @@ export function installBrowserAssistantRuntime(
     appendMessage(options.document, "user", value);
     const response = await controller.processUserInput(value);
     appendMessage(options.document, "assistant", response.text);
+    voice?.speak(
+      response.text,
+      normalizeAssistantVoiceLanguage(options.document.documentElement.lang),
+    );
     const photoPresentation = readPhotoPresentation(response);
     if (photoPresentation) {
       appendPhotoCarousel(options.document, photoPresentation);
@@ -219,6 +234,7 @@ export function installBrowserAssistantRuntime(
         "morro:assistant-option-selected",
         onOptionSelected,
       );
+      voice?.destroy();
       context.flush();
     },
   });
