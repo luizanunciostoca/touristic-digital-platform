@@ -15,6 +15,7 @@ import {
   createAssistantBrowserVoiceInput,
   resolveAssistantSpeechRecognitionConstructor,
 } from "./assistant-voice-input-adapter.js";
+import { installAssistantVoiceSettings } from "./assistant-voice-settings.js";
 
 interface AssistantRuntimeEnvironmentGlobal {
   readonly __MORRO_RUNTIME_ENV__?: {
@@ -214,6 +215,16 @@ export function installBrowserAssistantRuntime(
           ...(storage ? { storage } : {}),
         })
       : null;
+  const voiceSettings = installAssistantVoiceSettings({
+    document: options.document,
+    voice,
+    voices: () =>
+      view?.speechSynthesis.getVoices().map((item) => ({
+        name: item.name,
+        lang: item.lang,
+        default: item.default,
+      })) ?? [],
+  });
   const input = options.document.getElementById("assistantInput");
   const sendButton = options.document.getElementById("sendButton");
   const voiceButton = options.document.getElementById("voiceButton");
@@ -227,9 +238,11 @@ export function installBrowserAssistantRuntime(
     appendMessage(options.document, "user", value);
     const response = await controller.processUserInput(value);
     appendMessage(options.document, "assistant", response.text);
+    const voicePreferences = voice?.getPreferences();
     voice?.speak(
       response.text,
-      normalizeAssistantVoiceLanguage(options.document.documentElement.lang),
+      voicePreferences?.language ??
+        normalizeAssistantVoiceLanguage(options.document.documentElement.lang),
     );
     const photoPresentation = readPhotoPresentation(response);
     if (photoPresentation) {
@@ -293,9 +306,9 @@ export function installBrowserAssistantRuntime(
   };
   const onVoiceClick = (): void => {
     if (destroyed) return;
-    const language = normalizeAssistantVoiceLanguage(
-      options.document.documentElement.lang,
-    );
+    const language =
+      voice?.getPreferences().language ??
+      normalizeAssistantVoiceLanguage(options.document.documentElement.lang);
     if (!voiceInput) {
       appendMessage(
         options.document,
@@ -339,6 +352,7 @@ export function installBrowserAssistantRuntime(
         "morro:assistant-option-selected",
         onOptionSelected,
       );
+      voiceSettings.destroy();
       voiceInput?.destroy();
       voice?.destroy();
       context.flush();
