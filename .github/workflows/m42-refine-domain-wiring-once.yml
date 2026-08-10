@@ -23,6 +23,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Move Search handler ownership to domain adapter
         run: |
+          git fetch origin main:refs/remotes/origin/main
           git checkout origin/main -- apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts
           python - <<'PY'
           from pathlib import Path
