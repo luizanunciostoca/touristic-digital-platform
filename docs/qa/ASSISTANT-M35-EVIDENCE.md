@@ -32,13 +32,13 @@ No external photo origin, new browser secret, synthetic replacement asset, or tr
 
 Validated implementation head: `e423807227a32f0492bfdbd0396a201f122913c1`.
 
-| Gate | Run | Result |
-| --- | ---: | --- |
-| Quality Gate | `31400332081` | success |
-| Assistant Photo Browser Contract | `31400332074` | success |
-| Map Provider Regression | `31400332107` | success |
+| Gate                              |           Run | Result  |
+| --------------------------------- | ------------: | ------- |
+| Quality Gate                      | `31400332081` | success |
+| Assistant Photo Browser Contract  | `31400332074` | success |
+| Map Provider Regression           | `31400332107` | success |
 | Mapbox Visual Contract Regression | `31400332035` | success |
-| Navigation Visual Baseline | `31400332236` | success |
+| Navigation Visual Baseline        | `31400332236` | success |
 
 The subsequent M35 documentation promotion changes only migration evidence/registry state and does not modify the validated photo/runtime implementation.
 
