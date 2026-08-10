@@ -24,7 +24,8 @@ describe("assistant DOM view", () => {
     );
     expect(result).toContain("&lt;img src=x onerror=alert(3)&gt;");
     expect(result).not.toContain("<script>");
-    expect(result).not.toContain("onclick=");
+    expect(result).not.toContain("<b onclick=");
+    expect(result).not.toContain("<img");
   });
 
   it("escapes text entities while preserving their visible meaning", () => {
