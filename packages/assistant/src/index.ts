@@ -12,3 +12,4 @@ export * from "./proactive-copy.js";
 export * from "./proactive-suggestions.js";
 export * from "./user-profile.js";
 export * from "./v1-baseline.js";
+export * from "./voice-synthesis.js";
