@@ -11,6 +11,9 @@ describe("assistant DOM view", () => {
     ).toBe(
       "💰 <b>Segunda Praia</b><br><strong>R$ 80-150</strong><br><em>por pessoa</em>",
     );
+    expect(sanitizeAssistantRenderableHtml("A<br/>B<br />C")).toBe(
+      "A<br>B<br>C",
+    );
   });
 
   it("escapes executable or attributed markup instead of trusting response HTML", () => {
