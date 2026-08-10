@@ -32,10 +32,10 @@ describe("createAssistantLlmHandler", () => {
     const fetchImplementation = vi.fn(
       async (_input: RequestInfo | URL, init?: RequestInit) => {
         expect(init?.credentials).toBe("same-origin");
-        const payload = JSON.parse(String(init?.body)) as Record<
-          string,
-          unknown
-        >;
+        const body = init?.body;
+        expect(typeof body).toBe("string");
+        if (typeof body !== "string") throw new Error("expected string body");
+        const payload = JSON.parse(body) as Record<string, unknown>;
         expect(payload).toMatchObject({
           input: "me explique a história da Segunda Praia",
           userType: "tourist",
