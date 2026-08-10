@@ -38,7 +38,8 @@ const COPY: Readonly<Record<SearchPresentationLocale, SearchPresentationCopy>> =
   Object.freeze({
     pt: Object.freeze({
       loading: "Pensando...",
-      empty: "Não encontrei informações sobre isso. Pode tentar de outra forma?",
+      empty:
+        "Não encontrei informações sobre isso. Pode tentar de outra forma?",
       error:
         "Desculpe, ocorreu um erro ao processar sua solicitação. Tente novamente.",
       resultsHeading: (query: string) =>
@@ -47,7 +48,8 @@ const COPY: Readonly<Record<SearchPresentationLocale, SearchPresentationCopy>> =
     }),
     en: Object.freeze({
       loading: "Thinking...",
-      empty: "I couldn't find information about that. Could you try another way?",
+      empty:
+        "I couldn't find information about that. Could you try another way?",
       error:
         "Sorry, an error occurred while processing your request. Please try again.",
       resultsHeading: (query: string) => `Found these results for "${query}":`,
@@ -101,9 +103,7 @@ export function createSearchPresentationRows(
         index: index + 1,
         icon: getSearchCategoryIcon(result.category),
         name: result.name,
-        description: result.placeFormatted
-          ? ` — ${result.placeFormatted}`
-          : "",
+        description: result.placeFormatted ? ` — ${result.placeFormatted}` : "",
       }),
     ),
   );
