@@ -216,3 +216,14 @@ export {
   type MapboxSearchProximity,
   type MapboxSearchResult,
 } from "./mapbox-search-provider.js";
+
+export {
+  createSearchApplication,
+  filterV1RegionalMapboxResults,
+  isLikelyV1PlaceQuery,
+  isWithinV1SearchRegion,
+  type SearchApplicationConfig,
+  type SearchApplicationOptions,
+  type SearchApplicationResult,
+  type SearchExternalProvider,
+} from "./search-application.js";
