@@ -43,7 +43,7 @@ Esta matriz controla a migração de FEATURE-0004. `PASS` só pode ser usado qua
 | Boundary `/api/ai/*`                  | legado + registry          | `/api/ai/assistant/respond` + alias legado `/api/assistant/respond`                                             | PASS       | nenhum segredo no cliente; provider server-side, validação, rate limit e timeout                                                        |
 | Voz                                   | `voice/**`                 | `src/voice-synthesis.ts` + `assistant-voice-adapter.ts` + `assistant-voice-input-adapter.ts`                    | PASS       | síntese, microfone one-shot, configuração visual, persistência V1, PT/EN/ES/HE e fallback sem Web Speech cobertos por evidência browser |
 | Integração Navigation                 | diálogo/mensagens V1       | `src/navigation-handlers.ts` → resolver/app controller → `NavigationSessionBootstrap` → `@touristic/navigation` | PASS       | universo curado integral, matcher, boundary e início/cancelamento de rota cobertos                                                      |
-| UI shell do assistente                | shell V1                   | app V2                                                                                                          | PARTIAL    | abertura, fechamento, menu, mensagens e estados visuais equivalentes                                                                    |
+| UI shell do assistente                | shell V1                   | `assistant-shell-ui.ts` + app V2                                                                                | PASS       | inicia oculto; show/hide/toggle, minimizar, Escape, tutorial guard, ARIA, foco e conteúdo associado cobertos por regressões browser     |
 
 ## Estado do milestone M19
 
@@ -162,3 +162,13 @@ O M33 conecta o `message-pipeline.ts` já validado ao DOM real do Assistente. `a
 As regressões unitárias verificam a fronteira de sanitização e o Quality Gate completo valida lint, typecheck, suíte integral e build. O `Assistant Voice Browser Contract` também permanece verde, comprovando que o novo lifecycle visual não regrediu síntese, microfone, preferências ou fallback. Com isso, `Mensagens — DOM/UI` passa a `PASS`.
 
 A FEATURE-0004 / MIG-0006 ainda não está integralmente equivalente. Permanecem o delivery físico dos assets de fotos e a paridade visual completa do shell do Assistente, incluindo os estados observáveis de abertura, minimização e composição final da interface.
+
+## Estado do milestone M34
+
+O M34 fecha a paridade observável do shell do Assistente. `assistant-shell-ui.ts` centraliza o lifecycle de abertura e fechamento que antes estava disperso no `browser-entry.ts`: o modal inicia com `hidden` como na baseline V1, o quick action abre e fecha o shell, o botão de minimizar e a tecla Escape fecham a interface, e o fechamento é bloqueado enquanto o tutorial está ativo.
+
+O controlador sincroniza `hidden`, `aria-hidden`, `aria-expanded`, `aria-controls`, a classe ativa do quick action e `assistant-modal-open` no `body`. Ao abrir, o input recebe foco; ao fechar, componentes associados de carrossel/follow-up também são ocultados. Regressões unitárias cobrem estado inicial, abertura/fechamento, acessibilidade, Escape e tutorial guard.
+
+O contrato browser foi ampliado para validar a própria sequência V1: Assistente oculto no carregamento, abertura explícita pelo mood button, dez opções disponíveis e ordem de foco do modal aberto. No mesmo head, `Quality Gate`, `Assistant Voice Browser Contract`, `Map Provider Regression`, `Map Tour Browser Regression`, `Mapbox Visual Contract Regression`, `Navigation Visual Baseline` e `Navigation Accessibility Baseline` ficaram verdes. Com isso, `UI shell do assistente` passa a `PASS`.
+
+A FEATURE-0004 / MIG-0006 ainda não é promovida a `equivalent` exclusivamente porque o delivery físico dos assets binários de `photos` permanece pendente. O catálogo, resolver e wiring visual de fotos já existem; falta disponibilizar os arquivos auditados da V1 no runtime V2 (ou definir um asset origin controlado) e validar a apresentação final.

@@ -41,7 +41,7 @@ function createAppShellMarkup(): string {
         </button>
       </div>
 
-      <div id="assistant-messages" class="assistant-modal auto-size grow-upward">
+      <div id="assistant-messages" class="assistant-modal auto-size grow-upward hidden" aria-hidden="true">
         <button class="minimize-button" aria-label="Minimize assistant" data-i18n-aria="assistant_minimize">×</button>
         <div class="messages-area">
           <div class="message assistant" data-message-type="standard">

@@ -194,10 +194,19 @@ jobs:
 
             await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded', timeout: 30000 });
             await waitReady(page);
+
+            const initialAssistantVisible = await page.evaluate(() =>
+              Boolean(document.querySelector('#assistant-messages:not(.hidden)')),
+            );
+            if (initialAssistantVisible) {
+              throw new Error(`Assistant must start hidden like audited V1 for ${name}.`);
+            }
+
+            await page.locator('.quick-actions .action-button.primary').click();
+            await page.locator('#assistant-messages:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
             const state = await readContract(page);
 
             let focusOrder = null;
-            let normalizedAppFocus = null;
             if (!forcedColors) {
               await page.evaluate(() => document.activeElement?.blur?.());
               focusOrder = [];
@@ -206,32 +215,24 @@ jobs:
                 focusOrder.push(await page.evaluate(() => {
                   const element = document.activeElement;
                   if (!element) return 'none';
-                  if (element.classList?.contains('mapboxgl-canvas')) return 'mapbox-canvas';
-                  if (element.classList?.contains('mapboxgl-ctrl-logo')) return 'mapbox-logo';
-                  if (element.classList?.contains('mood-button')) return 'mood-button';
                   if (element.classList?.contains('minimize-button')) return 'minimize-button';
                   if (element.classList?.contains('assistant-option-btn')) return 'assistant-option';
                   return `${element.tagName?.toLowerCase?.() || 'unknown'}#${element.id || ''}.${element.className || ''}`;
                 }));
               }
-              normalizedAppFocus = focusOrder.filter((entry) => entry !== 'mapbox-logo');
             }
 
             const suffix = forcedColors ? 'forced-colors' : 'normal';
             await page.screenshot({ path: `${outputDir}/${name}-${suffix}.png`, fullPage: false, animations: 'disabled' });
-            const result = { state, focusOrder, normalizedAppFocus, pageErrors, mapboxHttpErrors };
+            const result = { state, focusOrder, pageErrors, mapboxHttpErrors };
             writeFileSync(`${outputDir}/${name}-${suffix}.json`, JSON.stringify(result, null, 2));
 
             assertContract(state, name, forcedColors);
 
             if (!forcedColors) {
-              const expectedRawFocus = ['mapbox-canvas', 'mapbox-logo', 'mood-button', 'minimize-button', 'assistant-option'];
-              const expectedAppFocus = ['mapbox-canvas', 'mood-button', 'minimize-button', 'assistant-option'];
-              if (JSON.stringify(focusOrder) !== JSON.stringify(expectedRawFocus)) {
-                throw new Error(`Mapbox keyboard trace diverged for ${name}: ${JSON.stringify(focusOrder)}`);
-              }
-              if (JSON.stringify(normalizedAppFocus) !== JSON.stringify(expectedAppFocus)) {
-                throw new Error(`V1 functional keyboard order diverged for ${name}: ${JSON.stringify(normalizedAppFocus)}`);
+              const expectedFocus = ['minimize-button', 'assistant-option', 'assistant-option', 'assistant-option', 'assistant-option'];
+              if (JSON.stringify(focusOrder) !== JSON.stringify(expectedFocus)) {
+                throw new Error(`Opened assistant keyboard trace diverged for ${name}: ${JSON.stringify(focusOrder)}`);
               }
             }
 
@@ -260,7 +261,7 @@ jobs:
               v1Commit: '60746fd7fed97b805758b37adfdbe3bad2582bfe',
               mapboxGlJs: '3.12.0',
               style: 'mapbox://styles/mapbox/streets-v12',
-              vendorFocusNormalization: 'Mapbox logo remains focusable; functional app order is evaluated with the vendor logo normalized out.',
+              assistantLifecycle: 'The audited V1 starts hidden; the contract opens the Assistant before validating its modal focus order.',
               evidence,
             }, null, 2));
           })().catch((error) => {
