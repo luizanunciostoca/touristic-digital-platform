@@ -1,0 +1,101 @@
+name: M31 Weather Wire Once
+
+on:
+  push:
+    branches: [feat/assistant-m31-weather-parity]
+    paths: [.github/workflows/m31-weather-wire-once.yml]
+
+permissions:
+  contents: write
+
+jobs:
+  wire:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/assistant-m31-weather-parity
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: pnpm install --frozen-lockfile
+      - name: Wire weather copy and update tests
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          p = Path('apps/morro-digital-platform/src/assistant/assistant-domain-adapter.ts')
+          s = p.read_text()
+          s = s.replace(
+            'import { resolveAssistantV1Photos } from "./assistant-v1-photo-catalog.js";\n',
+            'import { resolveAssistantV1Photos } from "./assistant-v1-photo-catalog.js";\nimport {\n  assistantWeatherFallback,\n  formatAssistantWeather,\n  type AssistantWeatherLanguage,\n} from "./assistant-weather-copy.js";\n'
+          )
+          start = s.index('const WEATHER_OPTIONS = [')
+          end = s.index('const PLACE_DETAILS_OPTIONS = [')
+          s = s[:start] + s[end:]
+          start = s.index('function weatherCondition(')
+          end = s.index('async function getWeather(')
+          s = s[:start] + s[end:]
+          old = '''async function getWeather(\n  fetchImplementation: typeof globalThis.fetch,\n): Promise<AssistantDialogResponse> {\n  try {\n    const reading = await fetchMorroWeather(fetchImplementation);\n    return {\n      text: `Agora em Morro de São Paulo: ${reading.temperatureCelsius}°C, ${weatherCondition(reading)}.`,\n      options: [...WEATHER_OPTIONS],\n      metadata: {\n        domain: "weather",\n        state: "resolved",\n        temperatureCelsius: reading.temperatureCelsius,\n        weatherCode: reading.weatherCode,\n        isDay: reading.isDay,\n      },\n    };\n  } catch {\n    return {\n      text: "Em Morro de São Paulo, a temperatura costuma ficar entre 25°C e 32°C. O período mais chuvoso vai de novembro a março e a época mais seca costuma ser de junho a setembro.",\n      options: [...WEATHER_OPTIONS],\n      metadata: { domain: "weather", state: "generic_fallback" },\n    };\n  }\n}\n'''
+          new = '''async function getWeather(\n  fetchImplementation: typeof globalThis.fetch,\n  language: AssistantWeatherLanguage,\n): Promise<AssistantDialogResponse> {\n  try {\n    const reading = await fetchMorroWeather(fetchImplementation);\n    const copy = formatAssistantWeather(reading, language);\n    return {\n      text: copy.text,\n      options: [...copy.options],\n      metadata: {\n        domain: "weather",\n        state: "resolved",\n        language,\n        temperatureCelsius: reading.temperatureCelsius,\n        temperatureMaxCelsius: reading.temperatureMaxCelsius,\n        temperatureMinCelsius: reading.temperatureMinCelsius,\n        humidityPercent: reading.humidityPercent,\n        windSpeedKph: reading.windSpeedKph,\n        rainChancePercent: reading.rainChancePercent,\n        weatherCode: reading.weatherCode,\n        isDay: reading.isDay,\n      },\n    };\n  } catch {\n    const copy = assistantWeatherFallback(language);\n    return {\n      text: copy.text,\n      options: [...copy.options],\n      metadata: { domain: "weather", state: "generic_fallback", language },\n    };\n  }\n}\n'''
+          if old not in s:
+              raise SystemExit('getWeather block not found')
+          s = s.replace(old, new, 1)
+          s = s.replace(
+            '      weather: () => getWeather(fetchImplementation),',
+            '      weather: (request) =>\n        getWeather(fetchImplementation, request.intent.entities.language ?? "pt"),'
+          )
+          p.write_text(s)
+
+          p = Path('apps/morro-digital-platform/src/weather/weather-widget.test.ts')
+          s = p.read_text()
+          s = s.replace(
+            '''            temperatureCelsius: 28.6,\n            weatherCode: 1,\n            isDay: true,''',
+            '''            temperatureCelsius: 28.6,\n            temperatureMaxCelsius: 31.2,\n            temperatureMinCelsius: 24.4,\n            humidityPercent: 78.4,\n            windSpeedKph: 17.6,\n            rainChancePercent: 42.2,\n            weatherCode: 1,\n            isDay: true,'''
+          )
+          s = s.replace(
+            '''      temperatureCelsius: 29,\n      weatherCode: 1,\n      isDay: true,''',
+            '''      temperatureCelsius: 29,\n      temperatureMaxCelsius: 31,\n      temperatureMinCelsius: 24,\n      humidityPercent: 78,\n      windSpeedKph: 18,\n      rainChancePercent: 42,\n      weatherCode: 1,\n      isDay: true,'''
+          )
+          p.write_text(s)
+
+          p = Path('apps/morro-digital-platform/src/assistant/assistant-domain-adapter.test.ts')
+          s = p.read_text()
+          s = s.replace(
+            '''          temperatureCelsius: 28,\n          weatherCode: 2,\n          isDay: true,''',
+            '''          temperatureCelsius: 28,\n          temperatureMaxCelsius: 31,\n          temperatureMinCelsius: 24,\n          humidityPercent: 78,\n          windSpeedKph: 18,\n          rainChancePercent: 42,\n          weatherCode: 2,\n          isDay: true,''',
+            1
+          )
+          old = '''      text: "Agora em Morro de São Paulo: 28°C, parcialmente nublado.",\n      options: [\n        { label: "Temperatura agora", value: "temperatura agora" },\n        { label: "Vai chover?", value: "vai chover" },\n        { label: "Previsão do tempo", value: "previsao do tempo" },\n        { label: "Como está a maré?", value: "mare" },\n        { label: "Voltar ao menu principal", value: "voltar ao menu" },\n      ],\n      metadata: {\n        domain: "weather",\n        state: "resolved",\n        temperatureCelsius: 28,\n        weatherCode: 2,\n        isDay: true,\n      },'''
+          new = '''      text: "Agora em Morro de São Paulo: 28°C, parcialmente nublado. Hoje: máxima de 31°C, mínima de 24°C, umidade 78%, vento 18 km/h e chance de chuva de 42%.",\n      options: [\n        { label: "Temperatura agora", value: "temperatura agora" },\n        { label: "Vai chover?", value: "vai chover" },\n        { label: "Previsão do tempo", value: "previsao do tempo" },\n        { label: "Como está a maré?", value: "mare" },\n        { label: "Voltar ao menu principal", value: "voltar ao menu" },\n      ],\n      metadata: {\n        domain: "weather",\n        state: "resolved",\n        language: "pt",\n        temperatureCelsius: 28,\n        temperatureMaxCelsius: 31,\n        temperatureMinCelsius: 24,\n        humidityPercent: 78,\n        windSpeedKph: 18,\n        rainChancePercent: 42,\n        weatherCode: 2,\n        isDay: true,\n      },'''
+          if old not in s:
+              raise SystemExit('weather expected block not found')
+          s = s.replace(old, new, 1)
+          s = s.replace(
+            '      metadata: { domain: "weather", state: "generic_fallback" },',
+            '      metadata: { domain: "weather", state: "generic_fallback", language: "pt" },',
+            1
+          )
+          marker = '''  it("falls back to audited V1 climate guidance when weather is unavailable", async () => {'''
+          test = '''  it("uses the intent language for the complete weather response", async () => {\n    const fetchImplementation: typeof globalThis.fetch = async () =>\n      new Response(\n        JSON.stringify({\n          temperatureCelsius: 28,\n          temperatureMaxCelsius: 31,\n          temperatureMinCelsius: 24,\n          humidityPercent: 78,\n          windSpeedKph: 18,\n          rainChancePercent: 42,\n          weatherCode: 2,\n          isDay: true,\n        }),\n        { status: 200, headers: { "Content-Type": "application/json" } },\n      );\n    const handlers = createAssistantBrowserDomainHandlers({ fetch: fetchImplementation });\n    const englishRequest = request("weather");\n    englishRequest.intent.entities.language = "en";\n\n    const response = await handlers.weather?.(englishRequest);\n\n    expect(response?.text).toContain("Right now in Morro de São Paulo");\n    expect(response?.text).toContain("humidity 78%");\n    expect(response?.metadata).toEqual(\n      expect.objectContaining({ domain: "weather", state: "resolved", language: "en" }),\n    );\n  });\n\n'''
+          if marker not in s:
+              raise SystemExit('fallback test marker not found')
+          s = s.replace(marker, test + marker, 1)
+          p.write_text(s)
+          PY
+          pnpm exec prettier --write apps/morro-digital-platform/src/assistant/assistant-domain-adapter.ts apps/morro-digital-platform/src/assistant/assistant-domain-adapter.test.ts apps/morro-digital-platform/src/assistant/assistant-weather-copy.ts apps/morro-digital-platform/src/assistant/assistant-weather-copy.test.ts apps/morro-digital-platform/src/weather/weather-widget.test.ts
+          pnpm format:check
+          pnpm architecture:check
+          pnpm typecheck
+          pnpm test
+      - name: Commit and remove helper
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/m31-weather-wire-once.yml
+          git add apps/morro-digital-platform/src/assistant/assistant-domain-adapter.ts apps/morro-digital-platform/src/assistant/assistant-domain-adapter.test.ts apps/morro-digital-platform/src/assistant/assistant-weather-copy.ts apps/morro-digital-platform/src/assistant/assistant-weather-copy.test.ts apps/morro-digital-platform/src/weather/weather-widget.test.ts
+          git commit -m "feat(assistant): complete multilingual M31 weather responses"
+          git push
