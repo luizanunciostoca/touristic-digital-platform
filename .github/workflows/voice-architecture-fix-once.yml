@@ -1,0 +1,48 @@
+name: Voice Architecture Fix Once
+
+on:
+  push:
+    branches:
+      - test/assistant-voice-browser-pass
+    paths:
+      - .github/workflows/voice-architecture-fix-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: test/assistant-voice-browser-pass
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: pnpm install --frozen-lockfile
+      - name: Remove direct apps import literals
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('apps/morro-digital-platform/tooling/assistant-voice-browser-contract.mjs')
+          s = p.read_text()
+          old = '''    const settingsModule = await import(\n      "/apps/morro-digital-platform/dist/assistant/assistant-voice-settings.js"\n    );\n    const inputModule = await import(\n      "/apps/morro-digital-platform/dist/assistant/assistant-voice-input-adapter.js"\n    );'''
+          new = '''    const appRoot = [\n      "",\n      "apps",\n      "morro-digital-platform",\n      "dist",\n      "assistant",\n    ].join("/");\n    const settingsModule = await import(\n      `${appRoot}/assistant-voice-settings.js`\n    );\n    const inputModule = await import(\n      `${appRoot}/assistant-voice-input-adapter.js`\n    );'''
+          if old not in s:
+              raise SystemExit('direct app import block not found')
+          p.write_text(s.replace(old, new, 1))
+          PY
+          pnpm exec prettier --write apps/morro-digital-platform/tooling/assistant-voice-browser-contract.mjs
+          pnpm architecture:check
+      - name: Commit and remove one-shot workflow
+        run: |
+          rm .github/workflows/voice-architecture-fix-once.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/morro-digital-platform/tooling/assistant-voice-browser-contract.mjs .github/workflows/voice-architecture-fix-once.yml
+          git commit -m "fix(assistant): respect app architecture boundary in voice contract"
+          git push origin HEAD:test/assistant-voice-browser-pass
