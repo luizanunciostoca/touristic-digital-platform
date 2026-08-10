@@ -230,16 +230,17 @@ export function searchCatalog<T extends SearchCatalogItem>(
 
   const filteredCatalog = filterSearchCatalog(catalog, filters);
   const deterministicResults = filteredCatalog
-    .map((item) => {
+    .flatMap((item): SearchResult<T>[] => {
       const matchType = classifyMatch(item, normalizedQuery);
-      if (!matchType) return null;
-      return Object.freeze({
-        item,
-        matchType,
-        score: MATCH_SCORE[matchType],
-      });
+      if (!matchType) return [];
+      return [
+        Object.freeze({
+          item,
+          matchType,
+          score: MATCH_SCORE[matchType],
+        }),
+      ];
     })
-    .filter((result): result is SearchResult<T> => result !== null)
     .sort((left, right) => {
       const byScore = right.score - left.score;
       return byScore !== 0 ? byScore : stableNameCompare(left.item, right.item);
