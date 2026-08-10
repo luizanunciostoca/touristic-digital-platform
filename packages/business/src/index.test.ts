@@ -53,8 +53,8 @@ describe("normalizeBusinessProfile", () => {
 
 describe("createBusinessProfileService", () => {
   it("scopes repository reads and writes to a normalized business ID", async () => {
-    const getProfile = vi.fn<BusinessProfileRepository["getProfile"]>(async () =>
-      normalizeBusinessProfile({ id: "toca", name: "Toca" }),
+    const getProfile = vi.fn<BusinessProfileRepository["getProfile"]>(
+      async () => normalizeBusinessProfile({ id: "toca", name: "Toca" }),
     );
     const saveProfile = vi.fn<BusinessProfileRepository["saveProfile"]>(
       async (_businessId: string, profile: BusinessProfile) => profile,
@@ -78,7 +78,9 @@ describe("createBusinessProfileService", () => {
 
   it("fails closed when a write has no valid tenant ID", async () => {
     const repository: BusinessProfileRepository = {
-      getProfile: vi.fn<BusinessProfileRepository["getProfile"]>(async () => null),
+      getProfile: vi.fn<BusinessProfileRepository["getProfile"]>(
+        async () => null,
+      ),
       saveProfile: vi.fn<BusinessProfileRepository["saveProfile"]>(
         async (_businessId: string, profile: BusinessProfile) => profile,
       ),

@@ -39,7 +39,8 @@ export interface BusinessProfileService {
 function safeText(value: unknown, fallback = ""): string {
   let source = fallback;
   if (typeof value === "string") source = value || fallback;
-  else if (typeof value === "number" && Number.isFinite(value)) source = String(value);
+  else if (typeof value === "number" && Number.isFinite(value))
+    source = String(value);
   else if (typeof value === "boolean") source = value ? "true" : "false";
   return source.replace(/[<>]/gu, "").slice(0, 240);
 }

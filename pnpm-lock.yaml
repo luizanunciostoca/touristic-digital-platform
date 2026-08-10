@@ -63,6 +63,8 @@ importers:
         specifier: workspace:*
         version: link:../auth
 
+  packages/business: {}
+
   packages/core: {}
 
   packages/design-system: {}
