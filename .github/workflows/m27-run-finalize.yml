@@ -18,7 +18,7 @@ jobs:
           node-version: 22
       - run: pnpm install --frozen-lockfile
       - run: node apps/morro-digital-platform/tooling/m27-finalize.mjs
-      - run: pnpm exec prettier --write apps/morro-digital-platform/src/assistant/assistant-llm-adapter.ts apps/morro-digital-platform/src/assistant/assistant-llm-adapter.test.ts apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts apps/morro-digital-platform/tooling/assistant-api.mjs apps/morro-digital-platform/tooling/dev-server.mjs docs/migration/ASSISTANT-MIGRATION-MATRIX.md
+      - run: pnpm exec prettier --write apps/morro-digital-platform/src/assistant/assistant-llm-adapter.ts apps/morro-digital-platform/src/assistant/assistant-llm-adapter.test.ts apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts apps/morro-digital-platform/tooling/assistant-api.mjs apps/morro-digital-platform/tooling/dev-server.mjs apps/morro-digital-platform/tooling/m27-finalize.mjs docs/migration/ASSISTANT-MIGRATION-MATRIX.md
       - run: pnpm format:check
       - run: pnpm architecture:check
       - run: pnpm features:check
