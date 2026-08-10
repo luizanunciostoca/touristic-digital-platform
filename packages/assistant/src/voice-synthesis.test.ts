@@ -8,7 +8,9 @@ import {
   type AssistantVoiceStorage,
 } from "./voice-synthesis.js";
 
-function memoryStorage(initial: Record<string, string> = {}): AssistantVoiceStorage {
+function memoryStorage(
+  initial: Record<string, string> = {},
+): AssistantVoiceStorage {
   const values = new Map(Object.entries(initial));
   return {
     getItem: (key) => values.get(key) ?? null,
@@ -27,9 +29,9 @@ describe("assistant voice synthesis contract", () => {
   });
 
   it("cleans markup, emoji and legacy entities before speech", () => {
-    expect(cleanAssistantSpeechText("<b>Olá</b> 😄 &amp; bem-vindo&nbsp;!")).toBe(
-      "Olá e bem-vindo !",
-    );
+    expect(
+      cleanAssistantSpeechText("<b>Olá</b> 😄 &amp; bem-vindo&nbsp;!"),
+    ).toBe("Olá e bem-vindo !");
   });
 
   it("prefers the saved voice, then exact locale, then language prefix", () => {

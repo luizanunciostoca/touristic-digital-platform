@@ -12,7 +12,11 @@ import {
 export interface AssistantBrowserVoiceOptions {
   readonly synthesis: Pick<
     SpeechSynthesis,
-    "cancel" | "getVoices" | "speak" | "addEventListener" | "removeEventListener"
+    | "cancel"
+    | "getVoices"
+    | "speak"
+    | "addEventListener"
+    | "removeEventListener"
   >;
   readonly createUtterance: (text: string) => SpeechSynthesisUtterance;
   readonly storage?: AssistantVoiceStorage;

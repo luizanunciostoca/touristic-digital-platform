@@ -36,14 +36,21 @@ export const DEFAULT_ASSISTANT_VOICE_PREFERENCES: AssistantVoicePreferences =
     language: "pt",
   });
 
-const LOCALES: Readonly<Record<AssistantVoiceLanguage, string>> = Object.freeze({
-  pt: "pt-BR",
-  en: "en-US",
-  es: "es-ES",
-  he: "he-IL",
-});
+const LOCALES: Readonly<Record<AssistantVoiceLanguage, string>> = Object.freeze(
+  {
+    pt: "pt-BR",
+    en: "en-US",
+    es: "es-ES",
+    he: "he-IL",
+  },
+);
 
-function finiteRange(value: unknown, fallback: number, min: number, max: number): number {
+function finiteRange(
+  value: unknown,
+  fallback: number,
+  min: number,
+  max: number,
+): number {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return fallback;
   return Math.min(max, Math.max(min, numeric));
@@ -110,7 +117,8 @@ export function loadAssistantVoicePreferences(
   let parsed: Partial<AssistantVoicePreferences> = {};
   try {
     const serialized = storage.getItem(ASSISTANT_VOICE_STORAGE_KEY);
-    if (serialized) parsed = JSON.parse(serialized) as Partial<AssistantVoicePreferences>;
+    if (serialized)
+      parsed = JSON.parse(serialized) as Partial<AssistantVoicePreferences>;
   } catch {
     parsed = {};
   }
@@ -156,7 +164,10 @@ export function saveAssistantVoicePreferences(
       preferences.enabled ? "true" : "false",
     );
     storage.setItem(ASSISTANT_VOICE_SPEED_KEY, String(preferences.rate));
-    storage.setItem(ASSISTANT_VOICE_LANGUAGE_KEY, assistantVoiceLocale(preferences.language));
+    storage.setItem(
+      ASSISTANT_VOICE_LANGUAGE_KEY,
+      assistantVoiceLocale(preferences.language),
+    );
     if (preferences.selectedVoice) {
       storage.setItem(ASSISTANT_VOICE_NAME_KEY, preferences.selectedVoice);
     }

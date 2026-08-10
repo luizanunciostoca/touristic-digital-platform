@@ -24,11 +24,16 @@ function fakeVoice(name: string, lang: string): SpeechSynthesisVoice {
 describe("createAssistantBrowserVoice", () => {
   it("speaks sanitized text using the matching locale voice", () => {
     const utterances: SpeechSynthesisUtterance[] = [];
-    const voices = [fakeVoice("Português", "pt-BR"), fakeVoice("English", "en-US")];
+    const voices = [
+      fakeVoice("Português", "pt-BR"),
+      fakeVoice("English", "en-US"),
+    ];
     const synthesis = {
       cancel: vi.fn(),
       getVoices: vi.fn(() => voices),
-      speak: vi.fn((utterance: SpeechSynthesisUtterance) => utterances.push(utterance)),
+      speak: vi.fn((utterance: SpeechSynthesisUtterance) =>
+        utterances.push(utterance),
+      ),
       addEventListener: vi.fn(),
       removeEventListener: vi.fn(),
     };
@@ -36,7 +41,14 @@ describe("createAssistantBrowserVoice", () => {
       synthesis,
       storage: memoryStorage(),
       createUtterance: (text) =>
-        ({ text, lang: "", volume: 1, rate: 1, pitch: 1, voice: null }) as SpeechSynthesisUtterance,
+        ({
+          text,
+          lang: "",
+          volume: 1,
+          rate: 1,
+          pitch: 1,
+          voice: null,
+        }) as SpeechSynthesisUtterance,
     });
 
     expect(voice.speak("<b>Hello</b> 🌴", "en")).toBe(true);
