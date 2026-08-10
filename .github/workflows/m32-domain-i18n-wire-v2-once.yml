@@ -1,0 +1,82 @@
+name: M32 Domain I18n Wire V2 Once
+
+on:
+  push:
+    branches: [feat/assistant-m32-domain-i18n]
+    paths: [.github/workflows/m32-domain-i18n-wire-v2-once.yml]
+
+permissions:
+  contents: write
+
+jobs:
+  wire:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/assistant-m32-domain-i18n
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: pnpm install --frozen-lockfile
+      - name: Wire localized handlers without metadata drift
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          nearby = Path('apps/morro-digital-platform/src/assistant/assistant-nearby-adapter.ts')
+          s = nearby.read_text()
+          s = s.replace(', language }', ' }')
+          s = s.replace(',\n        language,\n      },', ',\n      },')
+          s = s.replace('        language,\n        count:', '        count:')
+          nearby.write_text(s)
+
+          p = Path('apps/morro-digital-platform/src/assistant/assistant-domain-adapter.ts')
+          s = p.read_text()
+          insert = '''import {\n  askPlaceCopy,\n  favoritesCopy,\n  formatPlaceDetailsCopy,\n  helpResponse,\n  hoursCopy,\n  locationCopy,\n  moreInfoUnavailable,\n  photosCopy,\n  placeDetailsOptions,\n  priceCopy,\n  type AssistantDomainLanguage,\n} from "./assistant-domain-copy.js";\n'''
+          anchor = 'import { resolveAssistantNearby } from "./assistant-nearby-adapter.js";\n'
+          if insert not in s:
+              s = s.replace(anchor, anchor + insert)
+          start = s.index('const PLACE_DETAILS_OPTIONS = [')
+          end = s.index('async function getWeather(')
+          s = s[:start] + s[end:]
+
+          start = s.index('function getCurrentLocation(')
+          end = s.index('async function getPhotos(')
+          s = s[:start] + '''function getCurrentLocation(\n  language: AssistantDomainLanguage,\n  geolocation?: AssistantGeolocationPort,\n): Promise<AssistantDialogResponse> {\n  const copy = locationCopy(language);\n  if (!geolocation) {\n    return Promise.resolve({\n      text: copy.unavailable,\n      metadata: { domain: "my_location", state: "unavailable" },\n    });\n  }\n  return new Promise((resolve) => {\n    geolocation.getCurrentPosition(\n      (position) => resolve({\n        text: copy.resolved,\n        metadata: {\n          domain: "my_location",\n          state: "resolved",\n          location: {\n            lat: position.coords.latitude,\n            lon: position.coords.longitude,\n            accuracy: position.coords.accuracy,\n          },\n        },\n      }),\n      () => resolve({\n        text: copy.failed,\n        metadata: { domain: "my_location", state: "denied_or_failed" },\n      }),\n      { enableHighAccuracy: true, maximumAge: 15_000, timeout: 10_000 },\n    );\n  });\n}\n\n''' + s[end:]
+
+          start = s.index('async function getPhotos(')
+          end = s.index('function formatPlaceDetails(')
+          s = s[:start] + '''async function getPhotos(\n  place: string,\n  language: AssistantDomainLanguage,\n  fetchImplementation: typeof globalThis.fetch,\n): Promise<AssistantDialogResponse> {\n  const photoSet = resolveAssistantV1Photos(place);\n  if (!photoSet) return {\n    text: photosCopy(language, "unavailable", place),\n    metadata: { domain: "photos", state: "unavailable", place },\n  };\n  const firstImage = photoSet.images[0];\n  if (!firstImage) return {\n    text: photosCopy(language, "unavailable", photoSet.place),\n    metadata: { domain: "photos", state: "unavailable", place: photoSet.place },\n  };\n  try {\n    const probe = await fetchImplementation(firstImage, { method: "HEAD" });\n    if (!probe.ok) throw new Error("photo_asset_unavailable");\n  } catch {\n    return {\n      text: photosCopy(language, "asset_source_pending", photoSet.place),\n      metadata: {\n        domain: "photos",\n        state: "asset_source_pending",\n        place: photoSet.place,\n        images: [...photoSet.images],\n      },\n    };\n  }\n  return {\n    text: photosCopy(language, "resolved", photoSet.place, photoSet.images.length),\n    metadata: {\n      domain: "photos",\n      state: "resolved",\n      place: photoSet.place,\n      images: [...photoSet.images],\n      presentation: "carousel",\n    },\n  };\n}\n\n''' + s[end:]
+
+          start = s.index('function formatPlaceDetails(')
+          end = s.index('async function getPlaceDetails(')
+          s = s[:start] + s[end:]
+          start = s.index('async function getPlaceDetails(')
+          end = s.index('async function getPlaceHours(')
+          s = s[:start] + '''async function getPlaceDetails(\n  place: string,\n  language: AssistantDomainLanguage,\n  options: AssistantBrowserDomainAdapterOptions,\n): Promise<AssistantDialogResponse> {\n  const details = await fetchAssistantPlaceDetails(place, {\n    ...(options.mapboxAccessToken ? { accessToken: options.mapboxAccessToken } : {}),\n    ...(options.fetch ? { fetch: options.fetch } : {}),\n  });\n  if (!details) return {\n    text: moreInfoUnavailable(language, place),\n    options: [...placeDetailsOptions(language)],\n    metadata: { domain: "more_info", state: "unavailable", place },\n  };\n  return {\n    text: formatPlaceDetailsCopy(language, details),\n    options: [...placeDetailsOptions(language)],\n    metadata: { domain: "more_info", state: "resolved", place: details.name, details },\n  };\n}\n\n''' + s[end:]
+
+          start = s.index('async function getPlaceHours(')
+          end = s.index('export function createAssistantBrowserDomainHandlers(')
+          s = s[:start] + '''async function getPlaceHours(\n  place: string,\n  language: AssistantDomainLanguage,\n  options: AssistantBrowserDomainAdapterOptions,\n): Promise<AssistantDialogResponse> {\n  const details = await fetchAssistantPlaceDetails(place, {\n    ...(options.mapboxAccessToken ? { accessToken: options.mapboxAccessToken } : {}),\n    ...(options.fetch ? { fetch: options.fetch } : {}),\n  });\n  if (!details || details.openNow === null) return {\n    text: hoursCopy(language, place, null),\n    metadata: { domain: "hours", state: "unavailable", place },\n  };\n  return {\n    text: hoursCopy(language, details.name, details.openNow),\n    options: [...placeDetailsOptions(language)],\n    metadata: { domain: "hours", state: "resolved", place: details.name, openNow: details.openNow },\n  };\n}\n\n''' + s[end:]
+
+          start = s.index('  return createAssistantDomainHandlers({')
+          s = s[:start] + '''  return createAssistantDomainHandlers({\n    copy: {\n      askPlace: (intent, request) => ({\n        text: askPlaceCopy(request.intent.entities.language ?? "pt", intent),\n        metadata: { domain: intent, state: "awaiting_place" },\n      }),\n    },\n    ports: {\n      weather: (request) =>\n        getWeather(fetchImplementation, request.intent.entities.language ?? "pt"),\n      myLocation: (request) =>\n        getCurrentLocation(request.intent.entities.language ?? "pt", options.geolocation),\n      photos: (place, request) =>\n        getPhotos(place, request.intent.entities.language ?? "pt", fetchImplementation),\n      price: (place, request) => {\n        const language = request.intent.entities.language ?? "pt";\n        return {\n          text: priceCopy(language, place),\n          options: [...placeDetailsOptions(language)],\n          metadata: { domain: "price", state: "v1_guidance", place },\n        };\n      },\n      hours: (place, request) =>\n        getPlaceHours(place, request.intent.entities.language ?? "pt", options),\n      moreInfo: (place, request) =>\n        getPlaceDetails(place, request.intent.entities.language ?? "pt", options),\n      nearby: (request) => resolveAssistantNearby(request, options.geolocation),\n      favorites: (request) => {\n        const language = request.intent.entities.language ?? "pt";\n        const favorites = profile.getFavoritePlaces();\n        return {\n          text: favoritesCopy(language, favorites.map((place) => place.name)),\n          ...(favorites.length > 0 ? { options: favorites.map((place) => ({ label: place.name, value: place.name })) } : {}),\n          metadata: { domain: "favorites", count: favorites.length },\n        };\n      },\n      help: (request) => {\n        const copy = helpResponse(request.intent.entities.language ?? "pt");\n        return { text: copy.text, options: [...copy.options], metadata: { domain: "help" } };\n      },\n    },\n  });\n}\n'''
+          p.write_text(s)
+          PY
+          pnpm exec prettier --write apps/morro-digital-platform/src/assistant/assistant-domain-adapter.ts apps/morro-digital-platform/src/assistant/assistant-nearby-adapter.ts apps/morro-digital-platform/src/assistant/assistant-domain-copy.ts packages/assistant/src/domain-handlers.ts
+          pnpm format:check
+          pnpm architecture:check
+          pnpm typecheck
+          pnpm test
+      - name: Commit clean M32 wiring
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/m32-domain-i18n-wire-once.yml .github/workflows/m32-domain-i18n-wire-v2-once.yml
+          git add apps/morro-digital-platform/src/assistant packages/assistant/src/domain-handlers.ts
+          git commit -m "feat(assistant): wire M32 domain handlers i18n"
+          git push
