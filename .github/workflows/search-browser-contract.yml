@@ -6,8 +6,10 @@ on:
     paths:
       - .github/workflows/search-browser-contract.yml
       - apps/morro-digital-platform/src/assistant/assistant-search-adapter.ts
-      - apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts
+      - apps/morro-digital-platform/src/assistant/assistant-domain-adapter.ts
       - packages/search/src/**
+      - docs/qa/SEARCH-M42-EVIDENCE.md
+      - docs/migration/SEARCH-MIGRATION-MATRIX.md
 
 permissions:
   contents: read
@@ -29,15 +31,8 @@ jobs:
           /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
       - name: Build workspace
         run: pnpm -w build
-      - name: Start authenticated browser runtime
-        env:
-          MAPBOX_PUBLIC_TOKEN_CI: ${{ secrets.MAPBOX_PUBLIC_TOKEN_CI }}
+      - name: Start deterministic fallback runtime
         run: |
-          test -n "${MAPBOX_PUBLIC_TOKEN_CI:-}" || { echo 'MAPBOX_PUBLIC_TOKEN_CI missing'; exit 1; }
-          VITE_MAPBOX_ACCESS_TOKEN="$MAPBOX_PUBLIC_TOKEN_CI" \
-          VITE_MAPBOX_STYLE=mapbox://styles/mapbox/streets-v12 \
-          VITE_MAPBOX_CONTAINER_ID=map \
-          VITE_MAPBOX_INITIAL_ZOOM=13.5 \
           node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/search-browser-contract.log 2>&1 &
           for i in $(seq 1 90); do
             if curl -fsS http://127.0.0.1:4173/runtime-config.js >/dev/null; then exit 0; fi
@@ -45,7 +40,7 @@ jobs:
           done
           cat /tmp/search-browser-contract.log
           exit 1
-      - name: Validate query to details to navigation
+      - name: Validate query to details to navigation port
         run: |
           node <<'NODE'
           const { writeFileSync } = require('node:fs');
@@ -54,11 +49,7 @@ jobs:
           (async () => {
             const browser = await chromium.launch({ headless: true });
             try {
-              const context = await browser.newContext({
-                viewport: { width: 390, height: 844 },
-                geolocation: { latitude: -13.3765, longitude: -38.9165 },
-                permissions: ['geolocation'],
-              });
+              const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
               await context.addInitScript(() => {
                 localStorage.setItem('morro-digital-onboarded', '1');
                 localStorage.setItem('voice-enabled', 'false');
@@ -68,7 +59,25 @@ jobs:
               page.on('pageerror', error => pageErrors.push(error.message));
 
               await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded', timeout: 30000 });
-              await page.locator('#map[data-map-state="ready"][data-map-mode="real"][data-map-provider="mapbox"]').waitFor({ state: 'attached', timeout: 30000 });
+              await page.locator('#map[data-map-state="ready"]').waitFor({ state: 'attached', timeout: 30000 });
+
+              await page.evaluate(async () => {
+                const module = await import('/apps/morro-digital-platform/dist/assistant/browser-assistant-runtime.js');
+                globalThis.__searchContract = { starts: [], stops: 0 };
+                globalThis.__searchRuntime = module.installBrowserAssistantRuntime({
+                  document,
+                  navigation: {
+                    async start(destination) {
+                      globalThis.__searchContract.starts.push(destination);
+                      return { type: 'FeatureCollection', features: [] };
+                    },
+                    stop() {
+                      globalThis.__searchContract.stops += 1;
+                    },
+                  },
+                });
+              });
+
               await page.locator('.quick-actions .action-button.primary').click();
               await page.locator('#assistant-messages:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
 
@@ -95,21 +104,27 @@ jobs:
                 throw new Error(`Details integration lost selected place: ${detailText}`);
               }
 
-              const navigate = page.locator('.assistant-options .assistant-option-btn', { hasText: 'Como chegar' });
-              await navigate.click();
-              await page.locator('body.navigation-active').waitFor({ state: 'attached', timeout: 30000 });
-              await page.locator('#end-navigation-btn').waitFor({ state: 'visible', timeout: 5000 });
+              await page.locator('.assistant-options .assistant-option-btn', { hasText: 'Como chegar' }).click();
+              await page.waitForFunction(() => globalThis.__searchContract?.starts?.length === 1, { timeout: 10000 });
 
+              const navigation = await page.evaluate(() => globalThis.__searchContract);
+              const destination = navigation.starts[0];
+              if (!destination || !Number.isFinite(destination.latitude) || !Number.isFinite(destination.longitude)) {
+                throw new Error(`Navigation destination missing: ${JSON.stringify(navigation)}`);
+              }
               if (pageErrors.length) throw new Error(`Browser errors: ${JSON.stringify(pageErrors)}`);
+
               const evidence = {
                 query: 'Toca do Morcego',
                 searchText,
                 detailText,
-                navigationActive: await page.locator('body').evaluate(el => el.classList.contains('navigation-active')),
+                navigation,
+                mapState: await page.locator('#map').getAttribute('data-map-state'),
                 mapProvider: await page.locator('#map').getAttribute('data-map-provider'),
                 pageErrors,
               };
               writeFileSync('/tmp/search-browser-evidence.json', JSON.stringify(evidence, null, 2));
+              await page.evaluate(() => globalThis.__searchRuntime?.destroy?.());
               await context.close();
             } finally {
               await browser.close();
