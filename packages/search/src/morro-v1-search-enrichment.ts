@@ -9,16 +9,20 @@ export interface MorroV1SearchEnrichment {
   readonly tags?: readonly string[];
 }
 
+const rawMorroV1SearchEnrichment: readonly MorroV1SearchEnrichment[] = [
+  ...morroV1SearchEnrichmentPart1,
+  ...morroV1SearchEnrichmentPart2,
+  ...morroV1SearchEnrichmentPart3,
+] as readonly MorroV1SearchEnrichment[];
+
 export const morroV1SearchEnrichment: readonly MorroV1SearchEnrichment[] =
   Object.freeze(
-    [
-      ...morroV1SearchEnrichmentPart1,
-      ...morroV1SearchEnrichmentPart2,
-      ...morroV1SearchEnrichmentPart3,
-    ].map((item) =>
-      Object.freeze({
-        ...item,
-        ...(item.tags ? { tags: Object.freeze([...item.tags]) } : {}),
+    rawMorroV1SearchEnrichment.map((item) =>
+      Object.freeze<MorroV1SearchEnrichment>({
+        category: item.category,
+        name: item.name,
+        ...(item.area ? { area: item.area } : {}),
+        ...(item.tags ? { tags: Object.freeze(Array.from(item.tags)) } : {}),
       }),
     ),
   );
