@@ -31,8 +31,13 @@ describe("Mapbox Search provider", () => {
   });
 
   it("preserves V1 default and optional request parameters", async () => {
-    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(response({ features: [] }));
-    const provider = createMapboxSearchProvider({ token: "token", fetch: fetchMock });
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(response({ features: [] }));
+    const provider = createMapboxSearchProvider({
+      token: "token",
+      fetch: fetchMock,
+    });
 
     await provider.search("Morro", {
       language: "es",
@@ -56,8 +61,13 @@ describe("Mapbox Search provider", () => {
   });
 
   it("uses Morro defaults and supports global search without proximity", async () => {
-    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(response({ features: [] }));
-    const provider = createMapboxSearchProvider({ token: "token", fetch: fetchMock });
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(response({ features: [] }));
+    const provider = createMapboxSearchProvider({
+      token: "token",
+      fetch: fetchMock,
+    });
 
     await provider.search("Praia");
     await provider.searchGlobal("Salvador");
