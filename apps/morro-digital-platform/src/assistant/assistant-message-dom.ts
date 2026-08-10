@@ -43,7 +43,9 @@ function getOrCreateArea(
       assistant.appendChild(container);
     }
   } else {
-    const navigationArea = assistant.querySelector(".navigation-instruction-area");
+    const navigationArea = assistant.querySelector(
+      ".navigation-instruction-area",
+    );
     if (navigationArea) {
       assistant.insertBefore(container, navigationArea);
     } else {

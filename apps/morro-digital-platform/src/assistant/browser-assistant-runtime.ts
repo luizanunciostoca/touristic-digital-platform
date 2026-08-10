@@ -9,6 +9,11 @@ import type { NavigationSessionBootstrap } from "../navigation/navigation-sessio
 import { createAssistantLlmHandler } from "./assistant-llm-adapter.js";
 import { createAssistantBrowserDomainHandlers } from "./assistant-domain-adapter.js";
 import { createAssistantMessageDom } from "./assistant-message-dom.js";
+import {
+  clearAssistantDomOptions,
+  readAssistantResponseOptions,
+  renderAssistantDomOptions,
+} from "./assistant-dom-view.js";
 import { createAssistantNavigationAppHandlers } from "./assistant-navigation-adapter.js";
 import { createMorroAssistantV1DestinationResolver } from "./assistant-v1-place-resolver.js";
 import { createAssistantBrowserVoice } from "./assistant-voice-adapter.js";
@@ -228,9 +233,14 @@ export function installBrowserAssistantRuntime(
   ): Promise<AssistantDialogResponse> => {
     const value = rawInput.trim();
     if (!value) return { text: "Como posso ajudar?" };
+    clearAssistantDomOptions(options.document);
     appendStandardMessage("user", value);
     const response = await controller.processUserInput(value);
     appendStandardMessage("assistant", response.text);
+    const responseOptions = readAssistantResponseOptions(response);
+    if (responseOptions.length > 0) {
+      renderAssistantDomOptions(options.document, responseOptions);
+    }
     const voicePreferences = voice?.getPreferences();
     voice?.speak(
       response.text,

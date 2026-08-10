@@ -19,7 +19,9 @@ describe("assistant DOM view", () => {
     );
 
     expect(result).toContain("&lt;script&gt;alert(1)&lt;/script&gt;");
-    expect(result).toContain("&lt;b onclick=&quot;alert(2)&quot;&gt;unsafe</b>");
+    expect(result).toContain(
+      "&lt;b onclick=&quot;alert(2)&quot;&gt;unsafe</b>",
+    );
     expect(result).toContain("&lt;img src=x onerror=alert(3)&gt;");
     expect(result).not.toContain("<script>");
     expect(result).not.toContain("onclick=");
