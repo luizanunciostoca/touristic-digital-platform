@@ -11,6 +11,10 @@ import { createAssistantBrowserDomainHandlers } from "./assistant-domain-adapter
 import { createAssistantNavigationAppHandlers } from "./assistant-navigation-adapter.js";
 import { createMorroAssistantV1DestinationResolver } from "./assistant-v1-place-resolver.js";
 import { createAssistantBrowserVoice } from "./assistant-voice-adapter.js";
+import {
+  createAssistantBrowserVoiceInput,
+  resolveAssistantSpeechRecognitionConstructor,
+} from "./assistant-voice-input-adapter.js";
 
 interface AssistantRuntimeEnvironmentGlobal {
   readonly __MORRO_RUNTIME_ENV__?: {
@@ -63,8 +67,9 @@ function readPhotoPresentation(
 ): AssistantPhotoPresentation | null {
   const metadata = response.metadata;
   if (!metadata || typeof metadata !== "object") return null;
-  if (metadata.domain !== "photos" || metadata.state !== "resolved")
+  if (metadata.domain !== "photos" || metadata.state !== "resolved") {
     return null;
+  }
   if (
     metadata.presentation !== "carousel" ||
     typeof metadata.place !== "string"
@@ -135,6 +140,42 @@ function resolveMapboxAccessToken(override?: string): string | undefined {
   return runtime || undefined;
 }
 
+function voiceInputMessage(
+  language: ReturnType<typeof normalizeAssistantVoiceLanguage>,
+  state: "listening" | "unsupported" | "error",
+): string {
+  const messages = {
+    pt: {
+      listening: "Estou ouvindo...",
+      unsupported:
+        "Desculpe, seu navegador não suporta reconhecimento de voz. Por favor, digite sua pergunta.",
+      error:
+        "Desculpe, não consegui entender. Pode tentar novamente ou digitar sua pergunta?",
+    },
+    en: {
+      listening: "I'm listening...",
+      unsupported:
+        "Sorry, your browser does not support voice recognition. Please type your question.",
+      error:
+        "Sorry, I couldn't understand. Please try again or type your question.",
+    },
+    es: {
+      listening: "Estoy escuchando...",
+      unsupported:
+        "Lo siento, tu navegador no admite reconocimiento de voz. Escribe tu pregunta.",
+      error:
+        "Lo siento, no pude entender. Inténtalo de nuevo o escribe tu pregunta.",
+    },
+    he: {
+      listening: "אני מקשיב...",
+      unsupported:
+        "מצטערים, הדפדפן שלך אינו תומך בזיהוי קולי. אנא הקלד את השאלה.",
+      error: "מצטערים, לא הצלחתי להבין. נסה שוב או הקלד את השאלה.",
+    },
+  } as const;
+  return messages[language][state];
+}
+
 export function installBrowserAssistantRuntime(
   options: BrowserAssistantRuntimeOptions,
 ): BrowserAssistantRuntime {
@@ -175,6 +216,7 @@ export function installBrowserAssistantRuntime(
       : null;
   const input = options.document.getElementById("assistantInput");
   const sendButton = options.document.getElementById("sendButton");
+  const voiceButton = options.document.getElementById("voiceButton");
   let destroyed = false;
 
   const process = async (
@@ -196,6 +238,40 @@ export function installBrowserAssistantRuntime(
     return response;
   };
 
+  const Recognition = view
+    ? resolveAssistantSpeechRecognitionConstructor(view)
+    : null;
+  const voiceInput = Recognition
+    ? createAssistantBrowserVoiceInput({
+        Recognition,
+        language: normalizeAssistantVoiceLanguage(
+          options.document.documentElement.lang,
+        ),
+        onResult: (transcript) => {
+          void process(transcript);
+        },
+        onError: () => {
+          appendMessage(
+            options.document,
+            "assistant",
+            voiceInputMessage(
+              normalizeAssistantVoiceLanguage(
+                options.document.documentElement.lang,
+              ),
+              "error",
+            ),
+          );
+        },
+        onListeningChange: (listening) => {
+          voiceButton?.classList.toggle("listening", listening);
+          voiceButton?.setAttribute(
+            "aria-pressed",
+            listening ? "true" : "false",
+          );
+        },
+      })
+    : null;
+
   const submitInput = (): void => {
     if (destroyed || !(input instanceof HTMLInputElement)) return;
     const value = input.value;
@@ -215,9 +291,37 @@ export function installBrowserAssistantRuntime(
     const value = typeof detail?.value === "string" ? detail.value : "";
     if (value) void process(value);
   };
+  const onVoiceClick = (): void => {
+    if (destroyed) return;
+    const language = normalizeAssistantVoiceLanguage(
+      options.document.documentElement.lang,
+    );
+    if (!voiceInput) {
+      appendMessage(
+        options.document,
+        "assistant",
+        voiceInputMessage(language, "unsupported"),
+      );
+      return;
+    }
+    if (voiceInput.isListening()) {
+      voiceInput.stop();
+      return;
+    }
+    voiceInput.setLanguage(language);
+    if (voiceInput.start()) {
+      appendMessage(
+        options.document,
+        "assistant",
+        voiceInputMessage(language, "listening"),
+      );
+    }
+  };
 
   sendButton?.addEventListener("click", onSendClick);
   input?.addEventListener("keydown", onInputKeyDown);
+  voiceButton?.setAttribute("aria-pressed", "false");
+  voiceButton?.addEventListener("click", onVoiceClick);
   options.document.addEventListener(
     "morro:assistant-option-selected",
     onOptionSelected,
@@ -230,10 +334,12 @@ export function installBrowserAssistantRuntime(
       destroyed = true;
       sendButton?.removeEventListener("click", onSendClick);
       input?.removeEventListener("keydown", onInputKeyDown);
+      voiceButton?.removeEventListener("click", onVoiceClick);
       options.document.removeEventListener(
         "morro:assistant-option-selected",
         onOptionSelected,
       );
+      voiceInput?.destroy();
       voice?.destroy();
       context.flush();
     },
