@@ -19,6 +19,8 @@ export interface AssistantSearchAdapterOptions {
   readonly mapboxAccessToken?: string;
 }
 
+type AssistantSearchLanguage = "pt" | "en" | "es" | "he";
+
 function localPresentationItem(
   item: MorroV1SearchCatalogItem,
 ): SearchPresentationItem {
@@ -33,6 +35,22 @@ function externalPresentationItem(
     category: item.category,
     ...(item.placeFormatted ? { placeFormatted: item.placeFormatted } : {}),
   };
+}
+
+function detailsSelectionValue(
+  name: string,
+  language: AssistantSearchLanguage,
+): string {
+  switch (language) {
+    case "en":
+      return `Tell me more about ${name}`;
+    case "es":
+      return `Detalles sobre ${name}`;
+    case "he":
+      return `פרטים על ${name}`;
+    default:
+      return `Fale sobre ${name}`;
+  }
 }
 
 export function createAssistantSearchHandler(
@@ -78,7 +96,7 @@ export function createAssistantSearchHandler(
       ),
       options: items.map((item) => ({
         label: formatSearchResultText(item),
-        value: `mais informações sobre ${item.name}`,
+        value: detailsSelectionValue(item.name, language),
       })),
       metadata: {
         domain: "search",
