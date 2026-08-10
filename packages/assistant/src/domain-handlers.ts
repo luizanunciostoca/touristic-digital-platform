@@ -56,6 +56,7 @@ export interface AssistantDomainHandlerCopy {
       AssistantDomainIntent,
       "photos" | "price" | "hours" | "more_info"
     >,
+    request: AssistantDialogIntentHandlerContext,
   ): AssistantDialogResponse;
 }
 
@@ -97,7 +98,7 @@ function createPlaceHandler(
 ): AssistantDialogIntentHandler {
   return async (request) => {
     const place = resolvePlace(request);
-    if (!place) return copy.askPlace(intent);
+    if (!place) return copy.askPlace(intent, request);
     return port(place, request);
   };
 }
