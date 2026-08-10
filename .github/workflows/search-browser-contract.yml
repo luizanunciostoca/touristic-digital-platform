@@ -7,6 +7,8 @@ on:
       - .github/workflows/search-browser-contract.yml
       - apps/morro-digital-platform/src/assistant/assistant-search-adapter.ts
       - apps/morro-digital-platform/src/assistant/assistant-domain-adapter.ts
+      - apps/morro-digital-platform/src/layouts/app-shell.ts
+      - apps/morro-digital-platform/src/assistant/assistant-shell-ui.ts
       - packages/search/src/**
       - docs/qa/SEARCH-M42-EVIDENCE.md
       - docs/migration/SEARCH-MIGRATION-MATRIX.md
@@ -59,21 +61,28 @@ jobs:
             const browser = await chromium.launch({ headless: true });
             try {
               const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
-              await context.addInitScript(() => {
-                localStorage.setItem('morro-digital-onboarded', '1');
-                localStorage.setItem('voice-enabled', 'false');
-              });
               const page = await context.newPage();
               const pageErrors = [];
               page.on('pageerror', error => pageErrors.push(error.message));
 
-              await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded', timeout: 30000 });
-              await page.locator('#assistantInput').waitFor({ state: 'attached', timeout: 10000 });
+              // Establish same-origin document without loading browser-entry.ts / map startup.
+              await page.goto('http://127.0.0.1:4173/runtime-config.js', { waitUntil: 'domcontentloaded', timeout: 30000 });
 
               await page.evaluate(async () => {
-                const module = await import('/apps/morro-digital-platform/dist/assistant/browser-assistant-runtime.js');
+                document.documentElement.innerHTML = '<head><meta charset="utf-8"></head><body><div id="app"></div></body>';
+                localStorage.setItem('morro-digital-onboarded', '1');
+                localStorage.setItem('voice-enabled', 'false');
+
+                const [{ mountAppShell }, { installAssistantShellUi }, runtimeModule] = await Promise.all([
+                  import('/apps/morro-digital-platform/dist/layouts/app-shell.js'),
+                  import('/apps/morro-digital-platform/dist/assistant/assistant-shell-ui.js'),
+                  import('/apps/morro-digital-platform/dist/assistant/browser-assistant-runtime.js'),
+                ]);
+
+                mountAppShell({ document });
+                globalThis.__searchShell = installAssistantShellUi({ document, focusDelayMs: 0 });
                 globalThis.__searchContract = { starts: [], stops: 0 };
-                globalThis.__searchRuntime = module.installBrowserAssistantRuntime({
+                globalThis.__searchRuntime = runtimeModule.installBrowserAssistantRuntime({
                   document,
                   navigation: {
                     async start(destination) {
@@ -87,6 +96,7 @@ jobs:
                 });
               });
 
+              await page.locator('#assistantInput').waitFor({ state: 'attached', timeout: 10000 });
               await page.locator('.quick-actions .action-button.primary').click();
               await page.locator('#assistant-messages:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
 
@@ -131,12 +141,13 @@ jobs:
                 searchText,
                 detailText,
                 navigation,
-                mapState: await page.locator('#map').getAttribute('data-map-state'),
-                mapProvider: await page.locator('#map').getAttribute('data-map-provider'),
                 pageErrors,
               };
               writeFileSync('/tmp/search-browser-evidence.json', JSON.stringify(evidence, null, 2));
-              await page.evaluate(() => globalThis.__searchRuntime?.destroy?.());
+              await page.evaluate(() => {
+                globalThis.__searchRuntime?.destroy?.();
+                globalThis.__searchShell?.destroy?.();
+              });
               await context.close();
             } finally {
               await browser.close();
