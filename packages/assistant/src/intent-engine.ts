@@ -438,7 +438,7 @@ const INTENT_PATTERNS: ReadonlyArray<{
     intent: "more_info",
     confidence: 1,
     patterns: [
-      /(mais informacoes|mais informações|mais info|detalhes|tell me more|more info|more details|sobre o|sobre a|me fale sobre|fale sobre|o que e|o que é|what is)/i,
+      /(mais informacoes|mais informações|mais info|detalhes|tell me more|more info|more details|sobre o|sobre a|me fale sobre|fale sobre|o que e|o que é|what is|detalles|más información|mas informacion|פרטים|מה זה)/i,
     ],
   },
   {

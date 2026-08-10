@@ -1,0 +1,212 @@
+name: Search Browser Contract
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/search-browser-contract.yml
+      - apps/morro-digital-platform/public/index.html
+      - apps/morro-digital-platform/src/assistant/assistant-search-adapter.ts
+      - apps/morro-digital-platform/src/assistant/assistant-domain-adapter.ts
+      - apps/morro-digital-platform/src/layouts/app-shell.ts
+      - apps/morro-digital-platform/src/assistant/assistant-shell-ui.ts
+      - packages/assistant/src/intent-engine.ts
+      - packages/assistant/src/intent-engine.more-info-i18n.test.ts
+      - packages/search/src/**
+      - docs/qa/SEARCH-M42-EVIDENCE.md
+      - docs/migration/SEARCH-MIGRATION-MATRIX.md
+
+permissions:
+  contents: read
+
+jobs:
+  search-browser-contract:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install deterministic Chromium
+        run: |
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+      - name: Build workspace
+        run: pnpm -w build
+      - name: Start browser asset server
+        run: |
+          node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/search-browser-contract.log 2>&1 &
+          for i in $(seq 1 90); do
+            if curl -fsS http://127.0.0.1:4173/runtime-config.js >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/search-browser-contract.log
+          exit 1
+      - name: Validate query to details to navigation port
+        run: |
+          node <<'NODE'
+          const { writeFileSync } = require('node:fs');
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+
+          async function poll(page, probe, label, timeout = 15000) {
+            const deadline = Date.now() + timeout;
+            while (Date.now() < deadline) {
+              if (await probe()) return;
+              await page.waitForTimeout(100);
+            }
+            throw new Error(`${label} did not become ready`);
+          }
+
+          async function snapshot(page) {
+            return page.evaluate(() => ({
+              selectedValues: globalThis.__searchContract?.selectedValues ?? [],
+              messages: Array.from(document.querySelectorAll('#assistant-messages .message')).map(node => ({
+                role: node.className,
+                text: node.textContent,
+              })),
+              options: Array.from(document.querySelectorAll('.assistant-options .assistant-option-btn')).map(node => ({
+                text: node.textContent,
+                value: node.dataset.value,
+              })),
+            }));
+          }
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            try {
+              const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+              const page = await context.newPage();
+              const pageErrors = [];
+              page.on('pageerror', error => pageErrors.push(error.message));
+
+              await page.route('**/apps/morro-digital-platform/dist/browser-entry.js', route => route.abort());
+              await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded', timeout: 30000 });
+
+              await page.evaluate(async () => {
+                localStorage.setItem('morro-digital-onboarded', '1');
+                localStorage.setItem('voice-enabled', 'false');
+
+                const [{ mountAppShell }, { installAssistantShellUi }, runtimeModule] = await Promise.all([
+                  import('/apps/morro-digital-platform/dist/layouts/app-shell.js'),
+                  import('/apps/morro-digital-platform/dist/assistant/assistant-shell-ui.js'),
+                  import('/apps/morro-digital-platform/dist/assistant/browser-assistant-runtime.js'),
+                ]);
+
+                mountAppShell({ document });
+                document.getElementById('loading-overlay')?.remove();
+                globalThis.__searchShell = installAssistantShellUi({ document, focusDelayMs: 0 });
+                globalThis.__searchContract = { starts: [], stops: 0, selectedValues: [] };
+                document.addEventListener('morro:assistant-option-selected', event => {
+                  const value = event instanceof CustomEvent && typeof event.detail?.value === 'string'
+                    ? event.detail.value
+                    : null;
+                  if (value) globalThis.__searchContract.selectedValues.push(value);
+                });
+                globalThis.__searchRuntime = runtimeModule.installBrowserAssistantRuntime({
+                  document,
+                  navigation: {
+                    async start(destination) {
+                      globalThis.__searchContract.starts.push(destination);
+                      return { type: 'FeatureCollection', features: [] };
+                    },
+                    stop() {
+                      globalThis.__searchContract.stops += 1;
+                    },
+                  },
+                });
+              });
+
+              await page.locator('#assistantInput').waitFor({ state: 'attached', timeout: 10000 });
+              await page.locator('.quick-actions .action-button.primary').click();
+              await page.locator('#assistant-messages:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
+
+              await page.locator('#assistantInput').fill('Toca do Morcego');
+              await page.locator('#sendButton').click();
+              const searchResult = page.locator('.assistant-options .assistant-option-btn', { hasText: 'Toca do Morcego' }).first();
+              await searchResult.waitFor({ state: 'visible', timeout: 10000 });
+
+              const searchText = await page.locator('#assistant-messages .message.assistant').last().textContent();
+              if (!searchText?.includes('Encontrei estes resultados para "Toca do Morcego"')) {
+                throw new Error(`Search response diverged: ${searchText}`);
+              }
+
+              const selectedValue = await searchResult.getAttribute('data-value');
+              if (selectedValue !== 'Fale sobre Toca do Morcego') {
+                throw new Error(`Search option value diverged: ${selectedValue}`);
+              }
+
+              await searchResult.click();
+              await poll(
+                page,
+                () => page.evaluate(() => globalThis.__searchContract?.selectedValues?.length === 1),
+                'search result selection bridge',
+                5000,
+              );
+
+              const navigate = page.locator('.assistant-options .assistant-option-btn', { hasText: 'Como chegar' }).last();
+              try {
+                await navigate.waitFor({ state: 'visible', timeout: 10000 });
+              } catch (error) {
+                const diagnostics = await snapshot(page);
+                writeFileSync('/tmp/search-browser-evidence.json', JSON.stringify({
+                  query: 'Toca do Morcego',
+                  searchText,
+                  selectedValue,
+                  diagnostics,
+                  pageErrors,
+                }, null, 2));
+                throw new Error(`Details options did not render after selection: ${JSON.stringify(diagnostics)}`, { cause: error });
+              }
+
+              const detailText = await page.locator('#assistant-messages .message.assistant').last().textContent();
+              if (!detailText?.toLocaleLowerCase('pt-BR').includes('toca do morcego')) {
+                throw new Error(`Details integration lost selected place: ${detailText}`);
+              }
+
+              await navigate.click();
+              await poll(
+                page,
+                () => page.evaluate(() => globalThis.__searchContract?.starts?.length === 1),
+                'navigation port',
+                10000,
+              );
+
+              const navigation = await page.evaluate(() => globalThis.__searchContract);
+              const destination = navigation.starts[0];
+              if (!destination || !Number.isFinite(destination.latitude) || !Number.isFinite(destination.longitude)) {
+                throw new Error(`Navigation destination missing: ${JSON.stringify(navigation)}`);
+              }
+              if (pageErrors.length) throw new Error(`Browser errors: ${JSON.stringify(pageErrors)}`);
+
+              const evidence = {
+                query: 'Toca do Morcego',
+                searchText,
+                selectedValue,
+                detailText,
+                navigation,
+                pageErrors,
+              };
+              writeFileSync('/tmp/search-browser-evidence.json', JSON.stringify(evidence, null, 2));
+              await page.evaluate(() => {
+                globalThis.__searchRuntime?.destroy?.();
+                globalThis.__searchShell?.destroy?.();
+              });
+              await context.close();
+            } finally {
+              await browser.close();
+            }
+          })().catch(error => { console.error(error); process.exit(1); });
+          NODE
+      - name: Show diagnostics
+        if: failure()
+        run: cat /tmp/search-browser-contract.log || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: search-browser-evidence
+          path: /tmp/search-browser-evidence.json
+          retention-days: 1
+          if-no-files-found: ignore
