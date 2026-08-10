@@ -1,0 +1,204 @@
+export interface SearchCatalogItem {
+  readonly id?: string;
+  readonly name: string;
+  readonly category: string;
+  readonly aliases?: readonly string[];
+  readonly tags?: readonly string[];
+  readonly area?: string | null;
+  readonly latitude?: number;
+  readonly longitude?: number;
+}
+
+export interface SearchFilters {
+  readonly categories?: readonly string[];
+  readonly tags?: readonly string[];
+  readonly areas?: readonly string[];
+}
+
+export type SearchMatchType =
+  | "exact"
+  | "alias"
+  | "name_prefix"
+  | "alias_prefix"
+  | "name_contains"
+  | "alias_contains"
+  | "tag"
+  | "area";
+
+export interface SearchResult<T extends SearchCatalogItem = SearchCatalogItem> {
+  readonly item: T;
+  readonly matchType: SearchMatchType;
+  readonly score: number;
+}
+
+const MATCH_SCORE: Readonly<Record<SearchMatchType, number>> = Object.freeze({
+  exact: 100,
+  alias: 95,
+  name_prefix: 85,
+  alias_prefix: 80,
+  name_contains: 70,
+  alias_contains: 65,
+  tag: 55,
+  area: 45,
+});
+
+const ACCENTS_MAP: Readonly<Record<string, string>> = Object.freeze({
+  á: "a",
+  à: "a",
+  ã: "a",
+  â: "a",
+  ä: "a",
+  é: "e",
+  è: "e",
+  ê: "e",
+  ë: "e",
+  í: "i",
+  ì: "i",
+  î: "i",
+  ï: "i",
+  ó: "o",
+  ò: "o",
+  õ: "o",
+  ô: "o",
+  ö: "o",
+  ú: "u",
+  ù: "u",
+  û: "u",
+  ü: "u",
+  ç: "c",
+  ñ: "n",
+});
+
+export function normalizeSearchText(value: string): string {
+  if (!value) return "";
+
+  return value
+    .toLowerCase()
+    .replace(
+      /[áàãâäéèêëíìîïóòõôöúùûüçñ]/g,
+      (character) => ACCENTS_MAP[character] ?? character,
+    )
+    .replace(/[^\w\s\u0590-\u05FF\u0600-\u06FF]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function normalizedValues(
+  values: readonly string[] | undefined,
+): readonly string[] {
+  if (!values) return [];
+  return values.map(normalizeSearchText).filter(Boolean);
+}
+
+function matchesAllFilters(
+  item: SearchCatalogItem,
+  filters: SearchFilters,
+): boolean {
+  const categories = normalizedValues(filters.categories);
+  const tags = normalizedValues(filters.tags);
+  const areas = normalizedValues(filters.areas);
+
+  if (
+    categories.length > 0 &&
+    !categories.includes(normalizeSearchText(item.category))
+  ) {
+    return false;
+  }
+
+  const itemTags = normalizedValues(item.tags);
+  if (tags.length > 0 && !tags.every((tag) => itemTags.includes(tag))) {
+    return false;
+  }
+
+  if (
+    areas.length > 0 &&
+    !areas.includes(normalizeSearchText(item.area ?? ""))
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
+export function filterSearchCatalog<T extends SearchCatalogItem>(
+  catalog: readonly T[],
+  filters: SearchFilters = {},
+): readonly T[] {
+  return Object.freeze(
+    catalog.filter((item) => matchesAllFilters(item, filters)),
+  );
+}
+
+function classifyMatch(
+  item: SearchCatalogItem,
+  query: string,
+): SearchMatchType | null {
+  const name = normalizeSearchText(item.name);
+  const aliases = normalizedValues(item.aliases);
+  const tags = normalizedValues(item.tags);
+  const area = normalizeSearchText(item.area ?? "");
+
+  if (name === query) return "exact";
+  if (aliases.includes(query)) return "alias";
+  if (name.startsWith(query)) return "name_prefix";
+  if (aliases.some((alias) => alias.startsWith(query))) return "alias_prefix";
+  if (name.includes(query)) return "name_contains";
+  if (aliases.some((alias) => alias.includes(query))) return "alias_contains";
+  if (tags.includes(query)) return "tag";
+  if (area === query) return "area";
+  return null;
+}
+
+function stableNameCompare(
+  left: SearchCatalogItem,
+  right: SearchCatalogItem,
+): number {
+  return normalizeSearchText(left.name).localeCompare(
+    normalizeSearchText(right.name),
+    "en",
+  );
+}
+
+export function searchCatalog<T extends SearchCatalogItem>(
+  catalog: readonly T[],
+  query: string,
+  filters: SearchFilters = {},
+): readonly SearchResult<T>[] {
+  const normalizedQuery = normalizeSearchText(query);
+  if (!normalizedQuery) return Object.freeze([]);
+
+  const results = filterSearchCatalog(catalog, filters)
+    .map((item) => {
+      const matchType = classifyMatch(item, normalizedQuery);
+      if (!matchType) return null;
+      return Object.freeze({
+        item,
+        matchType,
+        score: MATCH_SCORE[matchType],
+      });
+    })
+    .filter((result): result is SearchResult<T> => result !== null)
+    .sort((left, right) => {
+      const byScore = right.score - left.score;
+      return byScore !== 0 ? byScore : stableNameCompare(left.item, right.item);
+    });
+
+  return Object.freeze(results);
+}
+
+export function createSearchIndex<T extends SearchCatalogItem>(
+  catalog: readonly T[],
+) {
+  const snapshot = Object.freeze([...catalog]);
+
+  return Object.freeze({
+    size: snapshot.length,
+    all: (): readonly T[] => snapshot,
+    filter: (filters: SearchFilters = {}): readonly T[] =>
+      filterSearchCatalog(snapshot, filters),
+    search: (
+      query: string,
+      filters: SearchFilters = {},
+    ): readonly SearchResult<T>[] => searchCatalog(snapshot, query, filters),
+  });
+}
