@@ -59,6 +59,41 @@ const HELP_OPTIONS: Record<AssistantDomainLanguage, readonly AssistantDomainOpti
   ],
 };
 
+const NEARBY_OPTIONS: Record<AssistantDomainLanguage, readonly AssistantDomainOption[]> = {
+  pt: [
+    { label: "Praias", value: "praias perto de mim" },
+    { label: "Restaurantes", value: "restaurantes perto de mim" },
+    { label: "Pousadas", value: "pousadas perto de mim" },
+    { label: "Atrações", value: "atrações perto de mim" },
+    { label: "Passeios", value: "passeios perto de mim" },
+    { label: "Emergências", value: "emergências perto de mim" },
+  ],
+  en: [
+    { label: "Beaches", value: "beaches near me" },
+    { label: "Restaurants", value: "restaurants near me" },
+    { label: "Hotels", value: "hotels near me" },
+    { label: "Attractions", value: "attractions near me" },
+    { label: "Tours", value: "tours near me" },
+    { label: "Emergencies", value: "emergencies near me" },
+  ],
+  es: [
+    { label: "Playas", value: "playas cerca de mi" },
+    { label: "Restaurantes", value: "restaurantes cerca de mi" },
+    { label: "Posadas", value: "posadas cerca de mi" },
+    { label: "Atracciones", value: "atracciones cerca de mi" },
+    { label: "Paseos", value: "paseos cerca de mi" },
+    { label: "Emergencias", value: "emergencias cerca de mi" },
+  ],
+  he: [
+    { label: "חופים", value: "חופים קרובים אליי" },
+    { label: "מסעדות", value: "מסעדות קרובות אליי" },
+    { label: "מלונות", value: "מלונות קרובים אליי" },
+    { label: "אטרקציות", value: "אטרקציות קרובות אליי" },
+    { label: "סיורים", value: "סיורים קרובים אליי" },
+    { label: "חירום", value: "שירותי חירום קרובים אליי" },
+  ],
+};
+
 export function placeDetailsOptions(language: AssistantDomainLanguage): readonly AssistantDomainOption[] {
   return PLACE_OPTIONS[language];
 }
@@ -71,6 +106,39 @@ export function helpResponse(language: AssistantDomainLanguage) {
     he: "אני יכול לעזור עם חופים, מסעדות, מלונות, אטרקציות, סיורים, חיי לילה, מיקום, מועדפים ומסלולים.",
   };
   return { text: text[language], options: HELP_OPTIONS[language] };
+}
+
+export function askPlaceCopy(
+  language: AssistantDomainLanguage,
+  intent: "photos" | "price" | "hours" | "more_info",
+): string {
+  const copy: Record<AssistantDomainLanguage, Record<typeof intent, string>> = {
+    pt: {
+      photos: "De qual local você quer ver fotos?",
+      price: "De qual local você quer saber o preço?",
+      hours: "De qual local você quer saber o horário?",
+      more_info: "Sobre qual local você quer mais informações?",
+    },
+    en: {
+      photos: "Which place would you like to see photos of?",
+      price: "Which place would you like price information for?",
+      hours: "Which place would you like opening hours for?",
+      more_info: "Which place would you like more information about?",
+    },
+    es: {
+      photos: "¿De qué lugar quieres ver fotos?",
+      price: "¿De qué lugar quieres saber el precio?",
+      hours: "¿De qué lugar quieres saber el horario?",
+      more_info: "¿Sobre qué lugar quieres más información?",
+    },
+    he: {
+      photos: "של איזה מקום תרצה לראות תמונות?",
+      price: "על איזה מקום תרצה מידע על המחיר?",
+      hours: "על איזה מקום תרצה לדעת את שעות הפתיחה?",
+      more_info: "על איזה מקום תרצה מידע נוסף?",
+    },
+  };
+  return copy[language][intent];
 }
 
 export function locationCopy(language: AssistantDomainLanguage) {
@@ -97,6 +165,58 @@ export function locationCopy(language: AssistantDomainLanguage) {
     },
   };
   return copy[language];
+}
+
+export function nearbyCopy(
+  language: AssistantDomainLanguage,
+  state: "awaiting_category" | "location_required" | "empty" | "denied_or_failed",
+): { readonly text: string; readonly options?: readonly AssistantDomainOption[] } {
+  const text: Record<AssistantDomainLanguage, Record<typeof state, string>> = {
+    pt: {
+      awaiting_category: "Posso buscar o que está mais perto de você, mas primeiro me diga a categoria: praias, restaurantes, pousadas, atrações, passeios ou emergências.",
+      location_required: "Para buscar lugares próximos, preciso da sua localização atual.",
+      empty: "Não encontrei locais dessa categoria no catálogo curado de Morro de São Paulo.",
+      denied_or_failed: "Não consegui obter sua localização. Verifique a permissão de localização e tente novamente.",
+    },
+    en: {
+      awaiting_category: "I can find what is closest to you, but first choose a category: beaches, restaurants, hotels, attractions, tours, or emergencies.",
+      location_required: "To find nearby places, I need your current location.",
+      empty: "I couldn't find places in this category in the curated Morro de São Paulo catalog.",
+      denied_or_failed: "I couldn't get your location. Check location permission and try again.",
+    },
+    es: {
+      awaiting_category: "Puedo buscar lo que está más cerca de ti, pero primero elige una categoría: playas, restaurantes, posadas, atracciones, paseos o emergencias.",
+      location_required: "Para buscar lugares cercanos, necesito tu ubicación actual.",
+      empty: "No encontré lugares de esta categoría en el catálogo curado de Morro de São Paulo.",
+      denied_or_failed: "No pude obtener tu ubicación. Verifica el permiso de ubicación e inténtalo de nuevo.",
+    },
+    he: {
+      awaiting_category: "אני יכול למצוא מה הכי קרוב אליך, אבל קודם בחר קטגוריה: חופים, מסעדות, מלונות, אטרקציות, סיורים או שירותי חירום.",
+      location_required: "כדי למצוא מקומות קרובים אני צריך את המיקום הנוכחי שלך.",
+      empty: "לא מצאתי מקומות בקטגוריה הזו בקטלוג האוצר של מורו דה סאו פאולו.",
+      denied_or_failed: "לא הצלחתי לקבל את המיקום שלך. בדוק את הרשאת המיקום ונסה שוב.",
+    },
+  };
+  return {
+    text: text[language][state],
+    ...(state === "awaiting_category" || state === "empty"
+      ? { options: NEARBY_OPTIONS[language] }
+      : {}),
+  };
+}
+
+export function nearbyResolvedCopy(
+  language: AssistantDomainLanguage,
+  results: readonly { readonly name: string; readonly distanceMeters: number }[],
+): string {
+  const list = results.map((result) => `${result.name} (${result.distanceMeters} m)`).join(", ");
+  const text: Record<AssistantDomainLanguage, string> = {
+    pt: `Mais perto de você: ${list}.`,
+    en: `Closest to you: ${list}.`,
+    es: `Más cerca de ti: ${list}.`,
+    he: `הכי קרוב אליך: ${list}.`,
+  };
+  return text[language];
 }
 
 export function favoritesCopy(language: AssistantDomainLanguage, names: readonly string[]) {
@@ -197,13 +317,31 @@ export function formatPlaceDetailsCopy(
   const parts = [details.name];
   if (details.category) parts.push(details.category);
   if (details.address) parts.push(details.address);
-  if (details.openNow !== null) parts.push(hoursCopy(language, "", details.openNow).replace(/^\s+|\s+agora\.$|\s+now\.$|\s+ahora\.$|\s+עכשיו\.$/gu, ""));
+  if (details.openNow !== null) {
+    const openState: Record<AssistantDomainLanguage, readonly [string, string]> = {
+      pt: ["Aberto agora", "Fechado agora"],
+      en: ["Open now", "Closed now"],
+      es: ["Abierto ahora", "Cerrado ahora"],
+      he: ["פתוח עכשיו", "סגור עכשיו"],
+    };
+    parts.push(openState[language][details.openNow ? 0 : 1]);
+  }
   if (details.phone) {
-    const phoneLabel: Record<AssistantDomainLanguage, string> = { pt: "Telefone", en: "Phone", es: "Teléfono", he: "טלפון" };
+    const phoneLabel: Record<AssistantDomainLanguage, string> = {
+      pt: "Telefone",
+      en: "Phone",
+      es: "Teléfono",
+      he: "טלפון",
+    };
     parts.push(`${phoneLabel[language]}: ${details.phone}`);
   }
   if (details.website) {
-    const siteLabel: Record<AssistantDomainLanguage, string> = { pt: "Site", en: "Website", es: "Sitio web", he: "אתר" };
+    const siteLabel: Record<AssistantDomainLanguage, string> = {
+      pt: "Site",
+      en: "Website",
+      es: "Sitio web",
+      he: "אתר",
+    };
     parts.push(`${siteLabel[language]}: ${details.website}`);
   }
   return parts.join(" · ");
