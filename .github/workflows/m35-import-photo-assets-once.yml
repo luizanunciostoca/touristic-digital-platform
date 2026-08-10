@@ -31,7 +31,7 @@ jobs:
           mkdir -p images
           tar -xzf /tmp/m35-artifact/photo-assets.tar.gz -C images
           sha256sum -c /tmp/m35-artifact/photo-assets.sha256
-          test "$(find images/fotos -type f -name '*.jpg' | wc -l)" -eq 63
+          test "$(find images/fotos -type f \( -name '*.jpg' -o -name '*.jpeg' \) | wc -l)" -eq 63
       - name: Commit physical assets and remove helper
         run: |
           git config user.name "github-actions[bot]"
