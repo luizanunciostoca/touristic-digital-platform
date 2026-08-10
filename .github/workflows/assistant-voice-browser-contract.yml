@@ -67,3 +67,5 @@ jobs:
           path: /tmp/assistant-voice-browser-contract
           if-no-files-found: error
           retention-days: 14
+
+# Permanent MIG-0006 Voice regression; intentionally retained after parity closes.
