@@ -1,0 +1,51 @@
+name: M38 Compose Enriched Catalog Once
+on:
+  push:
+    branches:
+      - feat/search-m38-shared-v1-catalog
+permissions:
+  contents: write
+jobs:
+  compose:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/search-m38-shared-v1-catalog
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Compose audited enrichment over frozen base catalog
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('packages/search/src/morro-v1-search-catalog.ts')
+          text = path.read_text()
+          import_line = 'import {\n  morroV1SearchCatalogKey,\n  morroV1SearchEnrichmentByKey,\n} from "./morro-v1-search-enrichment.js";\n'
+          if 'morroV1SearchEnrichmentByKey' not in text:
+              text = text.replace('import type { SearchCatalogItem } from "./index.js";\n', 'import type { SearchCatalogItem } from "./index.js";\n' + import_line)
+          text = text.replace(
+              'export const morroV1SearchCatalog: readonly MorroV1SearchCatalogItem[] =\n  Object.freeze([',
+              'const morroV1SearchBaseCatalog: readonly MorroV1SearchCatalogItem[] =\n  Object.freeze(['
+          )
+          append = '''\n\nexport const morroV1SearchCatalog: readonly MorroV1SearchCatalogItem[] =\n  Object.freeze(\n    morroV1SearchBaseCatalog.map((item) => {\n      const enrichment = morroV1SearchEnrichmentByKey.get(\n        morroV1SearchCatalogKey(item.category, item.name),\n      );\n      if (!enrichment) {\n        throw new Error(`Missing V1 search enrichment for ${item.category}:${item.name}`);\n      }\n      return Object.freeze({\n        ...item,\n        ...(enrichment.area ? { area: enrichment.area } : {}),\n        ...(enrichment.tags ? { tags: enrichment.tags } : {}),\n      });\n    }),\n  );\n'''
+          if 'Missing V1 search enrichment' not in text:
+              text = text.rstrip() + append
+          path.write_text(text)
+          PY
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm format
+      - name: Commit composition and remove helper
+        run: |
+          rm .github/workflows/m38-compose-enriched-catalog-once.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add packages/search .github/workflows/m38-compose-enriched-catalog-once.yml
+          git commit -m "feat(search): compose complete V1 discovery read model"
+          git push origin HEAD:feat/search-m38-shared-v1-catalog
