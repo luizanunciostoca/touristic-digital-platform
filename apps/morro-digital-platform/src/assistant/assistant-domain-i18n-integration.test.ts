@@ -141,8 +141,8 @@ describe("assistant domain i18n integration", () => {
     expect(response?.text).toContain("categoría");
     expect(response?.options).toEqual(
       expect.arrayContaining([
-        { label: "Playas", value: "playas cerca de mí" },
-        { label: "Restaurantes", value: "restaurantes cerca de mí" },
+        { label: "Playas", value: "playas cerca de mi" },
+        { label: "Restaurantes", value: "restaurantes cerca de mi" },
       ]),
     );
     expect(response?.metadata).toEqual({
