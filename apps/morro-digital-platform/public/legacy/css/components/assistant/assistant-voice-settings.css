@@ -1,0 +1,75 @@
+.assistant-voice-settings {
+  position: fixed;
+  right: 0.75rem;
+  bottom: calc(var(--assistant-input-bottom) + var(--assistant-bar-height) + 0.75rem);
+  z-index: 2200;
+  width: min(22rem, calc(100vw - 1.5rem));
+  padding: 1rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(229, 231, 235, 0.92);
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.18);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: grid;
+  gap: 0.85rem;
+}
+
+.assistant-voice-settings.hidden { display: none; }
+
+.assistant-voice-settings-header,
+.assistant-voice-settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.assistant-voice-settings-header h2 {
+  margin: 0;
+  font-size: 1rem;
+  color: #1f2937;
+}
+
+#assistantVoiceSettingsClose {
+  border: 0;
+  background: transparent;
+  color: #004bc7;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+}
+
+.assistant-voice-settings-field {
+  display: grid;
+  gap: 0.4rem;
+  color: #374151;
+  font-size: 0.875rem;
+}
+
+.assistant-voice-settings select,
+.assistant-voice-settings input[type="range"] {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.assistant-voice-settings select:not(.assistant-voice-selector) {
+  min-height: 2.75rem;
+  border-radius: 0.75rem;
+  border: 1px solid #d1d5db;
+  background: #f8fafc;
+  padding: 0 0.75rem;
+}
+
+.assistant-voice-settings-support {
+  margin: 0;
+  font-size: 0.76rem;
+  color: #6b7280;
+}
+
+.assistant-voice-settings[data-voice-supported="false"] .assistant-voice-settings-support::before {
+  content: "Síntese de voz indisponível neste navegador. ";
+}
