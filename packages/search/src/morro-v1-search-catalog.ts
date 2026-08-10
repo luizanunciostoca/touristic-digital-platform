@@ -1,4 +1,8 @@
 import type { SearchCatalogItem } from "./index.js";
+import {
+  morroV1SearchCatalogKey,
+  morroV1SearchEnrichmentByKey,
+} from "./morro-v1-search-enrichment.js";
 
 export interface MorroV1SearchCatalogItem extends SearchCatalogItem {
   readonly latitude: number;
@@ -14,7 +18,7 @@ export interface MorroV1SearchCatalogItem extends SearchCatalogItem {
  * category, canonical name, coordinates and aliases. Geographic eligibility
  * remains a resolver concern and is applied by `assistant-v1-place-boundary`.
  */
-export const morroV1SearchCatalog: readonly MorroV1SearchCatalogItem[] =
+const morroV1SearchBaseCatalog: readonly MorroV1SearchCatalogItem[] =
   Object.freeze([
     {
       name: "Primeira Praia",
@@ -926,3 +930,22 @@ export const morroV1SearchCatalog: readonly MorroV1SearchCatalogItem[] =
       aliases: ["caiaque", "kayak", "canoagem"],
     },
   ]);
+
+export const morroV1SearchCatalog: readonly MorroV1SearchCatalogItem[] =
+  Object.freeze(
+    morroV1SearchBaseCatalog.map((item) => {
+      const enrichment = morroV1SearchEnrichmentByKey.get(
+        morroV1SearchCatalogKey(item.category, item.name),
+      );
+      if (!enrichment) {
+        throw new Error(
+          `Missing V1 search enrichment for ${item.category}:${item.name}`,
+        );
+      }
+      return Object.freeze({
+        ...item,
+        ...(enrichment.area ? { area: enrichment.area } : {}),
+        ...(enrichment.tags ? { tags: enrichment.tags } : {}),
+      });
+    }),
+  );

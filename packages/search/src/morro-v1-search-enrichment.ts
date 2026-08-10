@@ -23,7 +23,10 @@ export const morroV1SearchEnrichment: readonly MorroV1SearchEnrichment[] =
     ),
   );
 
-export function morroV1SearchCatalogKey(category: string, name: string): string {
+export function morroV1SearchCatalogKey(
+  category: string,
+  name: string,
+): string {
   return `${category}\u0000${name}`;
 }
 
