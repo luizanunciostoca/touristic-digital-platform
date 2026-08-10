@@ -1,14 +1,24 @@
-import type { AssistantDestinationCatalogEntry } from "./assistant-destination-resolver.js";
+import type { SearchCatalogItem } from "./index.js";
+import {
+  morroV1SearchCatalogKey,
+  morroV1SearchEnrichmentByKey,
+} from "./morro-v1-search-enrichment.js";
+
+export interface MorroV1SearchCatalogItem extends SearchCatalogItem {
+  readonly latitude: number;
+  readonly longitude: number;
+  readonly category: string;
+}
 
 /**
  * Frozen projection of V1 `js/map/locations/locations.js` at
  * 60746fd7fed97b805758b37adfdbe3bad2582bfe.
  *
- * Only fields consumed by the V1 assistant place resolver are retained:
+ * Frozen base discovery fields retained from the V1 canonical catalog:
  * category, canonical name, coordinates and aliases. Geographic eligibility
  * remains a resolver concern and is applied by `assistant-v1-place-boundary`.
  */
-export const morroAssistantV1DestinationCatalog: readonly AssistantDestinationCatalogEntry[] =
+const morroV1SearchBaseCatalog: readonly MorroV1SearchCatalogItem[] =
   Object.freeze([
     {
       name: "Primeira Praia",
@@ -920,3 +930,22 @@ export const morroAssistantV1DestinationCatalog: readonly AssistantDestinationCa
       aliases: ["caiaque", "kayak", "canoagem"],
     },
   ]);
+
+export const morroV1SearchCatalog: readonly MorroV1SearchCatalogItem[] =
+  Object.freeze(
+    morroV1SearchBaseCatalog.map((item) => {
+      const enrichment = morroV1SearchEnrichmentByKey.get(
+        morroV1SearchCatalogKey(item.category, item.name),
+      );
+      if (!enrichment) {
+        throw new Error(
+          `Missing V1 search enrichment for ${item.category}:${item.name}`,
+        );
+      }
+      return Object.freeze({
+        ...item,
+        ...(enrichment.area ? { area: enrichment.area } : {}),
+        ...(enrichment.tags ? { tags: enrichment.tags } : {}),
+      });
+    }),
+  );

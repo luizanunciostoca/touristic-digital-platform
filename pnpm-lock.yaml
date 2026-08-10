@@ -46,6 +46,9 @@ importers:
       "@touristic/navigation":
         specifier: workspace:*
         version: link:../../packages/navigation
+      "@touristic/search":
+        specifier: workspace:*
+        version: link:../../packages/search
 
   packages/assistant: {}
 

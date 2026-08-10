@@ -7,7 +7,8 @@
     "@touristic/assistant": "workspace:*",
     "@touristic/core": "workspace:*",
     "@touristic/geospatial": "workspace:*",
-    "@touristic/navigation": "workspace:*"
+    "@touristic/navigation": "workspace:*",
+    "@touristic/search": "workspace:*"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",

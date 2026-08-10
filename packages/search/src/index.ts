@@ -202,3 +202,7 @@ export function createSearchIndex<T extends SearchCatalogItem>(
     ): readonly SearchResult<T>[] => searchCatalog(snapshot, query, filters),
   });
 }
+export {
+  morroV1SearchCatalog,
+  type MorroV1SearchCatalogItem,
+} from "./morro-v1-search-catalog.js";

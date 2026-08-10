@@ -8,7 +8,7 @@ import {
   nearbyResolvedCopy,
   type AssistantDomainLanguage,
 } from "./assistant-domain-copy.js";
-import { morroAssistantV1DestinationCatalog } from "./assistant-v1-destination-catalog.js";
+import { morroV1SearchCatalog } from "@touristic/search";
 import { isAssistantV1PlaceWithinRadius } from "./assistant-v1-place-boundary.js";
 
 export interface AssistantNearbyGeolocationPort {
@@ -103,7 +103,7 @@ export async function resolveAssistantNearby(
     const position = await requestPosition(geolocation);
     const latitude = position.coords.latitude;
     const longitude = position.coords.longitude;
-    const results = morroAssistantV1DestinationCatalog
+    const results = morroV1SearchCatalog
       .filter(
         (entry) =>
           entry.category === category && isAssistantV1PlaceWithinRadius(entry),
