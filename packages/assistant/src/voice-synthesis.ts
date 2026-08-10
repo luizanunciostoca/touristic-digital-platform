@@ -75,7 +75,10 @@ export function cleanAssistantSpeechText(value: unknown): string {
     .replace(/&quot;/giu, '"')
     .replace(/&#39;/giu, "'")
     .replace(/[\uE000-\uF8FF]/gu, " ")
-    .replace(/[\p{Extended_Pictographic}\p{Emoji_Presentation}\p{Regional_Indicator}\u200D\uFE0F]/gu, " ")
+    .replace(/\p{Extended_Pictographic}/gu, " ")
+    .replace(/\p{Emoji_Presentation}/gu, " ")
+    .replace(/\p{Regional_Indicator}/gu, " ")
+    .replace(/\u200D|\uFE0F/gu, " ")
     .replace(/\s+/gu, " ")
     .trim();
 }
