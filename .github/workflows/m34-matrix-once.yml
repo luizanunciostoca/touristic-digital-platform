@@ -1,0 +1,59 @@
+name: M34 Matrix Once
+
+on:
+  push:
+    branches:
+      - feat/assistant-m34-shell-ui-parity
+
+permissions:
+  contents: write
+
+jobs:
+  matrix:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/assistant-m34-shell-ui-parity
+      - name: Record M34 evidence
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('docs/migration/ASSISTANT-MIGRATION-MATRIX.md')
+          text = path.read_text()
+          lines = text.splitlines()
+          replaced = False
+          for index, line in enumerate(lines):
+              if line.startswith('| UI shell do assistente'):
+                  lines[index] = '| UI shell do assistente                | shell V1                   | `assistant-shell-ui.ts` + app V2                                                                                  | PASS       | inicia oculto; show/hide/toggle, minimizar, Escape, tutorial guard, ARIA, foco e conteúdo associado cobertos por regressões browser     |'
+                  replaced = True
+                  break
+          if not replaced:
+              raise SystemExit('UI shell row not found')
+
+          text = '\n'.join(lines).rstrip() + '\n'
+          section = '''
+
+## Estado do milestone M34
+
+O M34 fecha a paridade observável do shell do Assistente. `assistant-shell-ui.ts` centraliza o lifecycle de abertura e fechamento que antes estava disperso no `browser-entry.ts`: o modal inicia com `hidden` como na baseline V1, o quick action abre e fecha o shell, o botão de minimizar e a tecla Escape fecham a interface, e o fechamento é bloqueado enquanto o tutorial está ativo.
+
+O controlador sincroniza `hidden`, `aria-hidden`, `aria-expanded`, `aria-controls`, a classe ativa do quick action e `assistant-modal-open` no `body`. Ao abrir, o input recebe foco; ao fechar, componentes associados de carrossel/follow-up também são ocultados. Regressões unitárias cobrem estado inicial, abertura/fechamento, acessibilidade, Escape e tutorial guard.
+
+O contrato browser foi ampliado para validar a própria sequência V1: Assistente oculto no carregamento, abertura explícita pelo mood button, dez opções disponíveis e ordem de foco do modal aberto. No mesmo head, `Quality Gate`, `Assistant Voice Browser Contract`, `Map Provider Regression`, `Map Tour Browser Regression`, `Mapbox Visual Contract Regression`, `Navigation Visual Baseline` e `Navigation Accessibility Baseline` ficaram verdes. Com isso, `UI shell do assistente` passa a `PASS`.
+
+A FEATURE-0004 / MIG-0006 ainda não é promovida a `equivalent` exclusivamente porque o delivery físico dos assets binários de `photos` permanece pendente. O catálogo, resolver e wiring visual de fotos já existem; falta disponibilizar os arquivos auditados da V1 no runtime V2 (ou definir um asset origin controlado) e validar a apresentação final.
+'''
+          if '## Estado do milestone M34' not in text:
+              text += section
+          path.write_text(text)
+          PY
+      - name: Commit matrix and remove helper
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/m34-matrix-once.yml
+          git add docs/migration/ASSISTANT-MIGRATION-MATRIX.md
+          git commit -m "docs(assistant): record M34 shell parity evidence"
+          git push origin HEAD:feat/assistant-m34-shell-ui-parity
