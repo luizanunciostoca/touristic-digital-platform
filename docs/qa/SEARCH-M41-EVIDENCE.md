@@ -43,7 +43,7 @@ M41 preserves that data contract as structured rows with index, icon, name and d
 
 V1 builds result HTML with provider-derived `name` and `placeFormatted` values inside `<strong>`/`<br>` markup. The Search migration matrix explicitly requires sanitization rather than trusting provider HTML.
 
-M41 therefore does not emit HTML. Provider strings remain plain structured values for a future browser adapter to render with safe text nodes while preserving the same visible text, ordering and iconography.
+M41 therefore does not emit HTML. Provider strings remain plain structured values for a future browser adapter to render with safe text nodes while preserving the same visible text, ordering and iconography. The executable test boundary includes provider-looking markup as plain data so a later browser renderer cannot assume these strings are trusted HTML.
 
 ## Multilingual copy
 
@@ -68,4 +68,4 @@ Locale variants such as `en-US` resolve to their base supported locale. Unsuppor
 
 ## Exit gate
 
-M41 may close only when the final authored head passes installation, formatting, architecture, Feature Registry, lint, typecheck, tests and build, and the PR diff contains only permanent presentation-contract files and evidence.
+M41 may close only when this final authored head passes installation, formatting, architecture, Feature Registry, lint, typecheck, tests and build, and the PR diff contains only permanent presentation-contract files and evidence. Any temporary formatter workflow must be absent from the final diff before merge.
