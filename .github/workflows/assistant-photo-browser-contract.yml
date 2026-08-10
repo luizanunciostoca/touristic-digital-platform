@@ -1,0 +1,127 @@
+name: Assistant Photo Browser Contract
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/assistant-photo-browser-contract.yml
+      - images/fotos/**
+      - docs/qa/ASSISTANT-V1-PHOTO-ASSETS.sha256
+      - apps/morro-digital-platform/src/assistant/assistant-v1-photo-assets.test.ts
+      - apps/morro-digital-platform/src/assistant/assistant-v1-photo-catalog.ts
+      - apps/morro-digital-platform/src/assistant/assistant-domain-adapter.ts
+      - apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts
+      - apps/morro-digital-platform/tooling/dev-server.mjs
+
+permissions:
+  contents: read
+
+jobs:
+  photo-browser-contract:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install deterministic Chromium
+        run: |
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+      - name: Build workspace
+        run: pnpm -w build
+      - name: Start browser runtime
+        run: |
+          node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/photo-browser-contract.log 2>&1 &
+          echo $! >/tmp/photo-browser-contract.pid
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:4173/runtime-config.js >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/photo-browser-contract.log
+          exit 1
+      - name: Validate physical bytes, MIME and carousel flow
+        run: |
+          node <<'NODE'
+          const { createHash } = require('node:crypto');
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+
+          const expectedAssets = new Map([
+            ['/images/fotos/farol_do_morro1.jpg', 'e404a31c4f155637f1c5e969c9b25610cc824b0fdc1528dd04a3f067065a0434'],
+            ['/images/fotos/primeira_praia2.jpeg', '0fcf94e6f7518415af009e8e57eca53093f87cc96789c6a64c55a2646524b90c'],
+            ['/images/fotos/toca_do_morcego2.jpg', '8cd4c26a1cd3356c728a6ca06559b52ae1fbbee93aa822ab0dc6bfe0f51db3c6'],
+          ]);
+
+          async function validateStaticAsset(path, expectedHash) {
+            const response = await fetch(`http://127.0.0.1:4173${path}`);
+            if (!response.ok) throw new Error(`${path} returned HTTP ${response.status}`);
+            const contentType = response.headers.get('content-type') || '';
+            if (!contentType.toLowerCase().startsWith('image/jpeg')) {
+              throw new Error(`${path} returned unexpected content type ${contentType}`);
+            }
+            const bytes = Buffer.from(await response.arrayBuffer());
+            const hash = createHash('sha256').update(bytes).digest('hex');
+            if (hash !== expectedHash) {
+              throw new Error(`${path} hash drifted: ${hash}`);
+            }
+          }
+
+          (async () => {
+            for (const [path, hash] of expectedAssets) {
+              await validateStaticAsset(path, hash);
+            }
+
+            const browser = await chromium.launch({ headless: true });
+            try {
+              const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+              await context.addInitScript(() => {
+                localStorage.setItem('morro-digital-onboarded', '1');
+                localStorage.setItem('voice-enabled', 'false');
+              });
+              const page = await context.newPage();
+              const pageErrors = [];
+              page.on('pageerror', (error) => pageErrors.push(error.message));
+
+              await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded', timeout: 30000 });
+              await page.locator('.quick-actions .action-button.primary').click();
+              await page.locator('#assistant-messages:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
+              await page.locator('#assistantInput').fill('Fotos da Toca do Morcego');
+              await page.locator('#sendButton').click();
+
+              const carousel = page.locator('.assistant-photo-carousel');
+              await carousel.waitFor({ state: 'visible', timeout: 10000 });
+              const sources = await carousel.locator('img').evaluateAll((images) =>
+                images.map((image) => new URL(image.src).pathname),
+              );
+              const expectedSources = [
+                '/images/fotos/toca_do_morcego1.jpg',
+                '/images/fotos/toca_do_morcego2.jpg',
+                '/images/fotos/toca_do_morcego3.jpg',
+              ];
+              if (JSON.stringify(sources) !== JSON.stringify(expectedSources)) {
+                throw new Error(`Unexpected carousel sources: ${JSON.stringify(sources)}`);
+              }
+
+              await page.waitForFunction(() => {
+                const image = document.querySelector('.assistant-photo-carousel img');
+                return image instanceof HTMLImageElement && image.complete && image.naturalWidth > 0;
+              }, { timeout: 10000 });
+
+              if (pageErrors.length) {
+                throw new Error(`Browser errors: ${JSON.stringify(pageErrors)}`);
+              }
+              await context.close();
+            } finally {
+              await browser.close();
+            }
+          })().catch((error) => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+      - name: Show diagnostics
+        if: failure()
+        run: cat /tmp/photo-browser-contract.log || true
