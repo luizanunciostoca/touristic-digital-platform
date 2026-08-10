@@ -7,10 +7,10 @@
       "name": "Mapa Interativo",
       "domain": "geospatial",
       "wave": 4,
-      "status": "baseline-pending",
+      "status": "equivalent",
       "legacySources": ["v1:mapbox", "v1:leaflet"],
       "targetPackages": ["@touristic/geospatial"],
-      "equivalence": { "behavior": false, "visual": false, "api": false }
+      "equivalence": { "behavior": true, "visual": true, "api": true }
     },
     {
       "id": "FEATURE-0002",
