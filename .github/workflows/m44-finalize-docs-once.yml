@@ -1,0 +1,59 @@
+name: M44 Finalize Docs Once
+
+on:
+  push:
+    branches:
+      - feat/search-m44-fuzzy-fallback
+    paths:
+      - .github/workflows/m44-finalize-docs-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  docs:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/search-m44-fuzzy-fallback
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Promote fuzzy matrix row after M44
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('docs/migration/SEARCH-MIGRATION-MATRIX.md')
+          s = p.read_text()
+          s = s.replace('# Search & Discovery — Migration Matrix (M43 post-M42 audit)', '# Search & Discovery — Migration Matrix (M44 final audit)')
+          s = s.replace('tracks their V2 equivalence after M37–M42.', 'tracks their V2 equivalence after M37–M44.')
+          s = s.replace('- audited V2 merge: `5e66720d7c3c68086e492961162eb612fd7b8858` (M42)', '- audited V2 base: `02623622c043af12d662898cce878a522f93f8e8` (M43)\n- M44 evidence: `docs/qa/SEARCH-M44-EVIDENCE.md`')
+          old = '| Fuzzy fallback                              | V1-compatible Dice behavior                                                 | Assistant still proves Dice threshold `0.55`; Search-owned M37 core has no fuzzy fallback                          | PARTIAL | Port/reuse Dice only after deterministic Search matching fails; keep threshold `0.55` and precedence. |'
+          new = '| Fuzzy fallback                              | V1-compatible Dice behavior                                                 | M44 Search-owned normalized Dice fallback, threshold `0.55`, canonical + alias matching, deterministic precedence | PASS    | Keep fuzzy as fallback only after deterministic Search matching returns no result.                      |'
+          if old not in s:
+              raise SystemExit('Expected fuzzy matrix row not found')
+          s = s.replace(old, new)
+          start = s.index('## Post-M42 score')
+          end = s.index('## M43 exit decision')
+          replacement = '''## Post-M44 score\n\nCore matrix rows:\n\n- `PASS`: 21\n- `PARTIAL`: 0\n- `GAP`: 0\n- `N/A`: 1\n- total: 22\n\nEvery applicable Search equivalence contract is now `PASS`. The only `N/A` row is the standalone Search UI accessibility surface, because the audited V1 product path is consumed through Assistant rather than through an independent Search-owned modal/input.\n\nM44 closes the final functional gap by moving the already-proven V1 Dice fuzzy fallback into `@touristic/search` while preserving deterministic precedence and threshold `0.55`.\n\n## Promotion order after M44\n\n1. Run the complete repository Quality Gate on the final authored M44 head.\n2. Run Search Browser Contract on that same head.\n3. Confirm no temporary workflow remains in the diff.\n4. Promote `FEATURE-0002` only after those gates are green.\n5. Treat the visual equivalence contract as the audited Search presentation inside the existing Assistant consumer surface; do not invent a standalone Search UI.\n\n'''
+          s = s[:start] + replacement + s[end:]
+          s = s.replace('## M43 exit decision', '## M44 exit decision')
+          s = s.replace('M43 is an audit checkpoint, not an equivalence milestone. It may merge when this matrix and `docs/qa/SEARCH-M43-POST-M42-AUDIT.md` are the only intended changes and the official Quality Gate is green.\n\n`FEATURE-0002` remains unpromoted until the remaining fuzzy Search contract is implemented and validated.', 'M44 is the final Search equivalence implementation milestone. It may close only when code, evidence, final matrix and Feature Registry promotion are validated together on one authored head with Quality Gate and Search Browser Contract green.')
+          p.write_text(s)
+          PY
+      - name: Format permanent M44 files
+        run: pnpm exec prettier --write packages/search/src/index.ts packages/search/src/search-fuzzy.test.ts docs/qa/SEARCH-M44-EVIDENCE.md docs/migration/SEARCH-MIGRATION-MATRIX.md
+      - name: Commit permanent changes and remove helper
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/m44-finalize-docs-once.yml
+          git add packages/search/src/index.ts packages/search/src/search-fuzzy.test.ts docs/qa/SEARCH-M44-EVIDENCE.md docs/migration/SEARCH-MIGRATION-MATRIX.md
+          git commit -m "docs(search): finalize M44 equivalence evidence"
+          git push origin HEAD:feat/search-m44-fuzzy-fallback
