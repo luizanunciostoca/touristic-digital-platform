@@ -20,10 +20,7 @@ import {
   priceCopy,
   type AssistantDomainLanguage,
 } from "./assistant-domain-copy.js";
-import {
-  fetchAssistantPlaceDetails,
-  type AssistantPlaceDetails,
-} from "./assistant-place-details-adapter.js";
+import { fetchAssistantPlaceDetails } from "./assistant-place-details-adapter.js";
 import { resolveAssistantV1Photos } from "./assistant-v1-photo-catalog.js";
 import {
   assistantWeatherFallback,
