@@ -81,6 +81,7 @@ jobs:
                 ]);
 
                 mountAppShell({ document });
+                document.getElementById('loading-overlay')?.remove();
                 globalThis.__searchShell = installAssistantShellUi({ document, focusDelayMs: 0 });
                 globalThis.__searchContract = { starts: [], stops: 0 };
                 globalThis.__searchRuntime = runtimeModule.installBrowserAssistantRuntime({
