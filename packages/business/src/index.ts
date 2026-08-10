@@ -37,19 +37,29 @@ export interface BusinessProfileService {
 }
 
 function safeText(value: unknown, fallback = ""): string {
-  const source = value === null || value === undefined || value === "" ? fallback : value;
-  return String(source).replace(/[<>]/gu, "").slice(0, 240);
+  let source = fallback;
+  if (typeof value === "string") source = value || fallback;
+  else if (typeof value === "number" && Number.isFinite(value)) source = String(value);
+  else if (typeof value === "boolean") source = value ? "true" : "false";
+  return source.replace(/[<>]/gu, "").slice(0, 240);
 }
 
 export function normalizeBusinessId(value: unknown): string {
-  return safeText(value).trim().toLowerCase().replace(/[^a-z0-9_-]+/gu, "-").replace(/^-+|-+$/gu, "");
+  return safeText(value)
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/gu, "-")
+    .replace(/^-+|-+$/gu, "");
 }
 
 export function normalizeBusinessProfile(
   profile: unknown,
   fallbackId = "business-local",
 ): BusinessProfile {
-  const record = profile && typeof profile === "object" ? (profile as Record<string, unknown>) : {};
+  const record =
+    profile && typeof profile === "object"
+      ? (profile as Record<string, unknown>)
+      : {};
   const rawPromotion =
     record.promotion && typeof record.promotion === "object"
       ? (record.promotion as Record<string, unknown>)
@@ -87,7 +97,9 @@ export function createBusinessProfileService(
   repository: BusinessProfileRepository,
 ): BusinessProfileService {
   return Object.freeze({
-    async getProfile(businessIdInput: unknown): Promise<BusinessProfile | null> {
+    async getProfile(
+      businessIdInput: unknown,
+    ): Promise<BusinessProfile | null> {
       const businessId = normalizeBusinessId(businessIdInput);
       if (!businessId) return null;
       const profile = await repository.getProfile(businessId);
