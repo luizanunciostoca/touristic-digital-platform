@@ -467,6 +467,26 @@ async function runUnsupportedContract(browser) {
   const page = await context.newPage();
   await page.goto(BASE_URL, { waitUntil: "domcontentloaded", timeout: 30000 });
   await waitForAssistant(page);
+  await poll(
+    page,
+    () =>
+      page.evaluate(() => {
+        const panel = document.getElementById("assistantVoiceSettings");
+        const enabled = document.getElementById("assistantVoiceEnabled");
+        const voice = document.getElementById("assistantVoiceSelect");
+        const speed = document.getElementById("assistantVoiceSpeed");
+        const language = document.getElementById("assistantVoiceLanguage");
+        return (
+          panel?.dataset.voiceSupported === "false" &&
+          enabled?.disabled === true &&
+          voice?.disabled === true &&
+          speed?.disabled === true &&
+          language?.disabled === true
+        );
+      }),
+    "unsupported-voice-settings",
+    10000,
+  );
   await page.locator("#configButton").click();
   const state = await page.evaluate(() => ({
     supported: document.getElementById("assistantVoiceSettings")?.dataset
