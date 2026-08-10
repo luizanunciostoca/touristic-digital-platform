@@ -194,6 +194,7 @@ export function installBrowserAssistantRuntime(
       : {}),
     ...(options.fetch ? { fetch: options.fetch } : {}),
     ...(mapboxAccessToken ? { mapboxAccessToken } : {}),
+    language: () => options.document.documentElement.lang,
   });
   const controller = createAssistantDialogController({
     context,
