@@ -57,6 +57,12 @@ importers:
 
   packages/auth: {}
 
+  packages/auth-browser:
+    dependencies:
+      "@touristic/auth":
+        specifier: workspace:*
+        version: link:../auth
+
   packages/core: {}
 
   packages/design-system: {}

@@ -64,7 +64,9 @@ describe("M48 browser auth adapter", () => {
   });
 
   it("attaches same-origin credentials and CSRF to protected mutations", async () => {
-    const fetchFn = vi.fn<typeof fetch>().mockResolvedValue(new Response(null, { status: 200 }));
+    const fetchFn = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(new Response(null, { status: 200 }));
     const storage = storageFixture({ md_dashboard_csrf: "csrf-existing" });
     const location = locationFixture();
     const client = createDashboardAuthClient({
@@ -77,11 +79,15 @@ describe("M48 browser auth adapter", () => {
 
     const [, init] = fetchFn.mock.calls[0] ?? [];
     expect(init?.credentials).toBe("same-origin");
-    expect(new Headers(init?.headers).get("X-CSRF-Token")).toBe("csrf-existing");
+    expect(new Headers(init?.headers).get("X-CSRF-Token")).toBe(
+      "csrf-existing",
+    );
   });
 
   it("does not intercept unprotected or login requests", async () => {
-    const fetchFn = vi.fn<typeof fetch>().mockResolvedValue(new Response(null, { status: 200 }));
+    const fetchFn = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(new Response(null, { status: 200 }));
     const storage = storageFixture();
     const location = locationFixture();
     const client = createDashboardAuthClient({
@@ -100,7 +106,9 @@ describe("M48 browser auth adapter", () => {
   });
 
   it("redirects 401 to a dashboard-scoped return path", async () => {
-    const fetchFn = vi.fn<typeof fetch>().mockResolvedValue(new Response(null, { status: 401 }));
+    const fetchFn = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(new Response(null, { status: 401 }));
     const storage = storageFixture({ md_dashboard_csrf: "csrf-existing" });
     const location = locationFixture("/dashboard/metrics.html", "?tab=1");
     const client = createDashboardAuthClient({
@@ -149,7 +157,9 @@ describe("M48 browser auth adapter", () => {
   });
 
   it("logs out through the protected mutation and clears browser CSRF state", async () => {
-    const fetchFn = vi.fn<typeof fetch>().mockResolvedValue(new Response(null, { status: 200 }));
+    const fetchFn = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(new Response(null, { status: 200 }));
     const storage = storageFixture({ md_dashboard_csrf: "csrf-existing" });
     const location = locationFixture();
     const client = createDashboardAuthClient({

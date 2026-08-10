@@ -36,7 +36,9 @@ export interface DashboardAuthClientOptions {
 }
 
 export interface DashboardAuthClient {
-  readonly getSession: (force?: boolean) => Promise<DashboardSessionResponse | null>;
+  readonly getSession: (
+    force?: boolean,
+  ) => Promise<DashboardSessionResponse | null>;
   readonly secureFetch: (
     input: RequestInfo | URL,
     init?: RequestInit,
@@ -58,8 +60,8 @@ function isProtectedRequest(input: RequestInfo | URL, origin: string): boolean {
   const url = requestUrl(input, origin);
   return Boolean(
     url &&
-      url.origin === origin &&
-      protectedPrefixes.some((prefix) => url.pathname.startsWith(prefix)),
+    url.origin === origin &&
+    protectedPrefixes.some((prefix) => url.pathname.startsWith(prefix)),
   );
 }
 
@@ -83,10 +85,7 @@ function requestMethod(input: RequestInfo | URL, init?: RequestInit): string {
   return "GET";
 }
 
-function requestHeaders(
-  input: RequestInfo | URL,
-  init?: RequestInit,
-): Headers {
+function requestHeaders(input: RequestInfo | URL, init?: RequestInit): Headers {
   if (init?.headers) return new Headers(init.headers);
   if (typeof Request !== "undefined" && input instanceof Request) {
     return new Headers(input.headers);
@@ -101,7 +100,9 @@ export function createDashboardAuthClient(
   let sessionPromise: Promise<DashboardSessionResponse | null> | null = null;
   let csrfToken = storage.getItem(csrfStorageKey) ?? "";
 
-  async function getSession(force = false): Promise<DashboardSessionResponse | null> {
+  async function getSession(
+    force = false,
+  ): Promise<DashboardSessionResponse | null> {
     if (demoMode) return null;
     if (!force && sessionPromise) return sessionPromise;
 
