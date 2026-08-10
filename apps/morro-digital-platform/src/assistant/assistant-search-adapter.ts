@@ -73,7 +73,9 @@ export function createAssistantSearchHandler(
       (row) => `${row.index}. ${row.icon} ${row.name}${row.description}`,
     );
     return {
-      text: [copy.resultsHeading(query), ...lines, copy.selectPrompt].join("\n"),
+      text: [copy.resultsHeading(query), ...lines, copy.selectPrompt].join(
+        "\n",
+      ),
       options: items.map((item) => ({
         label: formatSearchResultText(item),
         value: `mais informações sobre ${item.name}`,
