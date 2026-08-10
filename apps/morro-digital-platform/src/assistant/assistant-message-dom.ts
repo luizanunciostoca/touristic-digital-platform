@@ -61,7 +61,9 @@ function renderRecord(
 
   const message = document.createElement("div");
   message.classList.add("message", record.sender);
-  message.classList.add(record.area === "navigation" ? "navigation" : "assistant");
+  message.classList.add(
+    record.area === "navigation" ? "navigation" : "assistant",
+  );
   if (record.customClass) message.classList.add(record.customClass);
   if (record.id) message.id = record.id;
   message.dataset.messageType = record.messageType;
