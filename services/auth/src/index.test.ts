@@ -44,7 +44,9 @@ describe("M48 auth server security primitives", () => {
   });
 
   it("fails closed for undersized secrets", () => {
-    expect(createSessionToken(principal, "short", { nowEpochSeconds: now })).toBeNull();
+    expect(
+      createSessionToken(principal, "short", { nowEpochSeconds: now }),
+    ).toBeNull();
     expect(verifySessionToken("invalid", "short", now)).toBeNull();
   });
 
@@ -104,7 +106,11 @@ describe("M48 auth server security primitives", () => {
   it("accepts explicit same-origin Origin and Referer values", () => {
     const expectedOrigin = "https://morro.example";
     expect(
-      isSameOriginAllowed({ expectedOrigin, origin: expectedOrigin, production: true }),
+      isSameOriginAllowed({
+        expectedOrigin,
+        origin: expectedOrigin,
+        production: true,
+      }),
     ).toBe(true);
     expect(
       isSameOriginAllowed({
@@ -124,8 +130,12 @@ describe("M48 auth server security primitives", () => {
         production: true,
       }),
     ).toBe(false);
-    expect(isSameOriginAllowed({ expectedOrigin, production: true })).toBe(false);
-    expect(isSameOriginAllowed({ expectedOrigin, production: false })).toBe(true);
+    expect(isSameOriginAllowed({ expectedOrigin, production: true })).toBe(
+      false,
+    );
+    expect(isSameOriginAllowed({ expectedOrigin, production: false })).toBe(
+      true,
+    );
   });
 
   it("keeps dashboard return paths local and rejects open redirects", () => {

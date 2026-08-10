@@ -73,6 +73,12 @@ importers:
 
   packages/shared: {}
 
+  services/auth:
+    dependencies:
+      "@touristic/auth":
+        specifier: workspace:*
+        version: link:../../packages/auth
+
 packages:
   "@esbuild/aix-ppc64@0.28.1":
     resolution:

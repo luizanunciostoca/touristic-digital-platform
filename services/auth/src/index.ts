@@ -1,8 +1,4 @@
-import {
-  createHmac,
-  randomUUID,
-  timingSafeEqual,
-} from "node:crypto";
+import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 
 import {
   normalizeAuthSessionIdentity,
