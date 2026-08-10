@@ -100,8 +100,12 @@ describe("searchCatalog", () => {
 
   it("matches canonical names and aliases accent-insensitively", () => {
     expect(searchCatalog(catalog, "PORTALO")[0]).toMatchObject({
-      matchType: "alias",
+      matchType: "exact",
       item: { name: "Portaló" },
+    });
+    expect(searchCatalog(catalog, "first beach")[0]).toMatchObject({
+      matchType: "alias",
+      item: { name: "Primeira Praia" },
     });
     expect(searchCatalog(catalog, "café das artes")[0]).toMatchObject({
       matchType: "exact",
@@ -126,11 +130,14 @@ describe("searchCatalog", () => {
   });
 
   it("applies filters before matching", () => {
-    expect(
-      searchCatalog(catalog, "praia", { categories: ["beaches"] }).map(
-        (result) => result.item.name,
-      ),
-    ).toEqual(["Primeira Praia"]);
+    const results = searchCatalog(catalog, "toca", {
+      categories: ["attractions"],
+    });
+
+    expect(results.map((result) => result.item.name)).toEqual([
+      "Toca do Morcego",
+    ]);
+    expect(results[0]?.matchType).toBe("alias");
   });
 });
 
