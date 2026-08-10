@@ -52,6 +52,8 @@ importers:
 
   packages/assistant: {}
 
+  packages/auth: {}
+
   packages/core: {}
 
   packages/design-system: {}
