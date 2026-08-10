@@ -58,6 +58,20 @@ jobs:
             throw new Error(`${label} did not become ready`);
           }
 
+          async function snapshot(page) {
+            return page.evaluate(() => ({
+              selectedValues: globalThis.__searchContract?.selectedValues ?? [],
+              messages: Array.from(document.querySelectorAll('#assistant-messages .message')).map(node => ({
+                role: node.className,
+                text: node.textContent,
+              })),
+              options: Array.from(document.querySelectorAll('.assistant-options .assistant-option-btn')).map(node => ({
+                text: node.textContent,
+                value: node.dataset.value,
+              })),
+            }));
+          }
+
           (async () => {
             const browser = await chromium.launch({ headless: true });
             try {
@@ -66,7 +80,6 @@ jobs:
               const pageErrors = [];
               page.on('pageerror', error => pageErrors.push(error.message));
 
-              // Load the production HTML/import-map contract while preventing the map entrypoint from starting.
               await page.route('**/apps/morro-digital-platform/dist/browser-entry.js', route => route.abort());
               await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded', timeout: 30000 });
 
@@ -83,7 +96,13 @@ jobs:
                 mountAppShell({ document });
                 document.getElementById('loading-overlay')?.remove();
                 globalThis.__searchShell = installAssistantShellUi({ document, focusDelayMs: 0 });
-                globalThis.__searchContract = { starts: [], stops: 0 };
+                globalThis.__searchContract = { starts: [], stops: 0, selectedValues: [] };
+                document.addEventListener('morro:assistant-option-selected', event => {
+                  const value = event instanceof CustomEvent && typeof event.detail?.value === 'string'
+                    ? event.detail.value
+                    : null;
+                  if (value) globalThis.__searchContract.selectedValues.push(value);
+                });
                 globalThis.__searchRuntime = runtimeModule.installBrowserAssistantRuntime({
                   document,
                   navigation: {
@@ -111,13 +130,34 @@ jobs:
               if (!searchText?.includes('Encontrei estes resultados para "Toca do Morcego"')) {
                 throw new Error(`Search response diverged: ${searchText}`);
               }
-              if (!searchText.includes('Toca do Morcego')) {
-                throw new Error(`Search result missing canonical POI: ${searchText}`);
+
+              const selectedValue = await searchResult.getAttribute('data-value');
+              if (selectedValue !== 'mais informações sobre Toca do Morcego') {
+                throw new Error(`Search option value diverged: ${selectedValue}`);
               }
 
               await searchResult.click();
+              await poll(
+                page,
+                () => page.evaluate(() => globalThis.__searchContract?.selectedValues?.length === 1),
+                'search result selection bridge',
+                5000,
+              );
+
               const navigate = page.locator('.assistant-options .assistant-option-btn', { hasText: 'Como chegar' }).last();
-              await navigate.waitFor({ state: 'visible', timeout: 15000 });
+              try {
+                await navigate.waitFor({ state: 'visible', timeout: 10000 });
+              } catch (error) {
+                const diagnostics = await snapshot(page);
+                writeFileSync('/tmp/search-browser-evidence.json', JSON.stringify({
+                  query: 'Toca do Morcego',
+                  searchText,
+                  selectedValue,
+                  diagnostics,
+                  pageErrors,
+                }, null, 2));
+                throw new Error(`Details options did not render after selection: ${JSON.stringify(diagnostics)}`, { cause: error });
+              }
 
               const detailText = await page.locator('#assistant-messages .message.assistant').last().textContent();
               if (!detailText?.includes('Toca do Morcego')) {
@@ -142,6 +182,7 @@ jobs:
               const evidence = {
                 query: 'Toca do Morcego',
                 searchText,
+                selectedValue,
                 detailText,
                 navigation,
                 pageErrors,
