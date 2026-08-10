@@ -26,4 +26,10 @@ describe("assistant DOM view", () => {
     expect(result).not.toContain("<script>");
     expect(result).not.toContain("onclick=");
   });
+
+  it("escapes text entities while preserving their visible meaning", () => {
+    expect(sanitizeAssistantRenderableHtml('Praia & "mar" < 3')).toBe(
+      "Praia &amp; &quot;mar&quot; &lt; 3",
+    );
+  });
 });
