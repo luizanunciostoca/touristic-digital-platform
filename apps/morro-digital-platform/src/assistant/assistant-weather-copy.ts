@@ -93,7 +93,8 @@ function conditionKey(reading: WeatherReading): string {
 }
 
 function condition(reading: WeatherReading, language: AssistantWeatherLanguage): string {
-  return CONDITIONS[language][conditionKey(reading)] ?? CONDITIONS[language].clearDay;
+  const dictionary = CONDITIONS[language];
+  return dictionary[conditionKey(reading)] ?? dictionary.clearDay ?? "";
 }
 
 export function formatAssistantWeather(
