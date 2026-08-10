@@ -38,9 +38,6 @@ function createElement(initialClasses: string[] = []) {
     removeEventListener(type: string) {
       listeners.delete(type);
     },
-    dispatch(type: string, event: Event) {
-      listeners.get(type)?.(event);
-    },
     querySelector: (_selector: string) => null as unknown,
   };
 }
@@ -79,9 +76,6 @@ function fixture() {
     removeEventListener(type: string) {
       documentListeners.delete(type);
     },
-    dispatch(type: string, event: Event) {
-      documentListeners.get(type)?.(event);
-    },
   } as unknown as Document;
 
   return {
@@ -92,6 +86,9 @@ function fixture() {
     carousel,
     followUp,
     body,
+    dispatchKeydown(key: string) {
+      documentListeners.get("keydown")?.({ key } as unknown as Event);
+    },
   };
 }
 
@@ -144,9 +141,7 @@ describe("assistant shell UI", () => {
     const shell = installAssistantShellUi({ document: view.document });
     shell.show();
 
-    view.document.dispatchEvent(
-      new KeyboardEvent("keydown", { key: "Escape" }),
-    );
+    view.dispatchKeydown("Escape");
 
     expect(shell.isVisible()).toBe(false);
   });
