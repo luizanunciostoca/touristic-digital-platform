@@ -75,6 +75,8 @@ The remaining partial contracts are intentionally consumer-facing seams: login/d
 
 `FEATURE-0008` therefore remains `baseline-pending` at M48. Its Auth primitives are executable, but final equivalence must be proven through the protected Business consumer and browser surface.
 
+The formatting-only M48 helper was removed from the branch before final validation; it is not part of the permanent milestone diff.
+
 ## Exit gate
 
 M48 may merge only after the documentation head repeats the official Quality Gate and Auth Integration Contract, the final diff contains no temporary helper workflow, and the PR has no unresolved review thread.
