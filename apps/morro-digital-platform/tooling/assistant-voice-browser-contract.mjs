@@ -162,6 +162,15 @@ async function waitForAssistant(page) {
     .waitFor({ state: "visible", timeout: 30000 });
 }
 
+async function poll(page, probe, label, timeout = 15000) {
+  const deadline = Date.now() + timeout;
+  while (Date.now() < deadline) {
+    if (await probe()) return;
+    await page.waitForTimeout(100);
+  }
+  throw new Error(`${label} did not become ready`);
+}
+
 async function runSupportedContract(browser) {
   const context = await browser.newContext({
     viewport: { width: 390, height: 844 },
@@ -290,15 +299,19 @@ async function runSupportedContract(browser) {
     .locator("#assistant-messages .message.assistant")
     .count();
   await page.locator("#voiceButton").click();
-  await page.waitForFunction(
-    ({ userMessagesBefore, assistantMessagesBefore }) =>
-      document.querySelectorAll("#assistant-messages .message.user").length >
-        userMessagesBefore &&
-      document.querySelectorAll("#assistant-messages .message.assistant")
-        .length > assistantMessagesBefore &&
-      globalThis.__voiceContract.spoken.length > 0,
-    { userMessagesBefore, assistantMessagesBefore },
-    { timeout: 15000 },
+  await poll(
+    page,
+    () =>
+      page.evaluate(
+        ({ userMessagesBefore, assistantMessagesBefore }) =>
+          document.querySelectorAll("#assistant-messages .message.user")
+            .length > userMessagesBefore &&
+          document.querySelectorAll("#assistant-messages .message.assistant")
+            .length > assistantMessagesBefore &&
+          globalThis.__voiceContract.spoken.length > 0,
+        { userMessagesBefore, assistantMessagesBefore },
+      ),
+    "voice-process",
   );
 
   const microphone = await page.evaluate(() => {
@@ -377,12 +390,17 @@ async function runSupportedContract(browser) {
   await page.locator("#assistantVoiceSettingsClose").click();
   await page.locator("#assistantInput").fill("help");
   await page.locator("#sendButton").click();
-  await page.waitForFunction(
-    (count) =>
-      document.querySelectorAll("#assistant-messages .message.user").length >
-      count,
-    userMessagesBefore + 1,
-    { timeout: 10000 },
+  await poll(
+    page,
+    () =>
+      page.evaluate(
+        (count) =>
+          document.querySelectorAll("#assistant-messages .message.user")
+            .length > count,
+        userMessagesBefore + 1,
+      ),
+    "disabled-text-process",
+    10000,
   );
   await page.waitForTimeout(250);
   const disabled = await page.evaluate(() => ({
@@ -469,12 +487,17 @@ async function runUnsupportedContract(browser) {
     .count();
   await page.locator("#assistantVoiceSettingsClose").click();
   await page.locator("#voiceButton").click();
-  await page.waitForFunction(
-    (before) =>
-      document.querySelectorAll("#assistant-messages .message.assistant")
-        .length > before,
-    assistantMessagesBefore,
-    { timeout: 5000 },
+  await poll(
+    page,
+    () =>
+      page.evaluate(
+        (before) =>
+          document.querySelectorAll("#assistant-messages .message.assistant")
+            .length > before,
+        assistantMessagesBefore,
+      ),
+    "unsupported-fallback",
+    5000,
   );
   const fallback = await page
     .locator("#assistant-messages .message.assistant")
