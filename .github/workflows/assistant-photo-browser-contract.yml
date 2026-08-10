@@ -88,7 +88,7 @@ jobs:
               await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded', timeout: 30000 });
               await page.locator('.quick-actions .action-button.primary').click();
               await page.locator('#assistant-messages:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
-              await page.locator('#assistantInput').fill('Fotos da Toca do Morcego');
+              await page.locator('#assistantInput').fill('Fotos de Toca do Morcego');
               await page.locator('#sendButton').click();
 
               const carousel = page.locator('.assistant-photo-carousel');
