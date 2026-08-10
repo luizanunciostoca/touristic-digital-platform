@@ -20,11 +20,11 @@ The handler composes:
 
 ## Browser contract
 
-`.github/workflows/search-browser-contract.yml` runs Chromium against the built V2 runtime using the deterministic map fallback. This intentionally removes live Mapbox SDK availability from the Search integration proof; real Mapbox behavior remains owned by the dedicated Mapbox regressions.
+`.github/workflows/search-browser-contract.yml` runs Chromium against the built V2 shell without making Search evidence depend on live Mapbox SDK readiness. Real Mapbox behavior remains owned by the dedicated Mapbox regressions.
 
 The contract proves this chain:
 
-1. load the built V2 shell and wait for its map runtime to reach `ready`;
+1. load the built V2 shell and wait for the Assistant DOM to exist;
 2. install the same production `BrowserAssistantRuntime` with an instrumented Navigation port;
 3. open the existing Assistant shell;
 4. submit `Toca do Morcego`;
@@ -35,7 +35,7 @@ The contract proves this chain:
 9. verify the existing Navigation adapter calls its `start()` port exactly once with finite destination coordinates;
 10. emit no browser page errors.
 
-This separates deterministic Search integration evidence from live provider availability while still exercising the production Assistant/Search/Details/Navigation adapters in a real browser DOM.
+This separates deterministic Search integration evidence from map-provider availability while still exercising the production Assistant/Search/Details/Navigation adapters in a real browser DOM. The Navigation runtime itself and the real Mapbox map remain covered by their dedicated regressions.
 
 ## Architectural constraint
 
