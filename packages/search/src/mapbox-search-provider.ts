@@ -81,7 +81,7 @@ function categoryFromPoiCategories(
   featureType: string,
   poiCategories: readonly string[],
 ): string {
-  let category = FEATURE_CATEGORY[featureType] ?? "places";
+  const category = FEATURE_CATEGORY[featureType] ?? "places";
   const poiCategory = poiCategories[0]?.toLowerCase();
   if (!poiCategory) return category;
 
@@ -161,10 +161,7 @@ export function normalizeMapboxFeature(
 export function createMapboxSearchProvider(config: MapboxSearchProviderConfig) {
   const cache = new Map<
     string,
-    {
-      readonly timestamp: number;
-      readonly results: readonly MapboxSearchResult[];
-    }
+    { readonly timestamp: number; readonly results: readonly MapboxSearchResult[] }
   >();
   const now = config.now ?? Date.now;
 
@@ -172,13 +169,13 @@ export function createMapboxSearchProvider(config: MapboxSearchProviderConfig) {
     query: string,
     options: MapboxSearchOptions = {},
   ): Promise<readonly MapboxSearchResult[]> {
-    if (!query || query.trim().length < 2 || !config.token)
+    if (!query || query.trim().length < 2 || !config.token) {
       return Object.freeze([]);
+    }
 
     const cacheKey = `${query.toLowerCase()}|${JSON.stringify(options)}`;
     const cached = cache.get(cacheKey);
-    if (cached && now() - cached.timestamp < CACHE_TTL_MS)
-      return cached.results;
+    if (cached && now() - cached.timestamp < CACHE_TTL_MS) return cached.results;
 
     const params = new URLSearchParams();
     params.set("q", query.trim());
@@ -196,17 +193,13 @@ export function createMapboxSearchProvider(config: MapboxSearchProviderConfig) {
     if (options.poiCategory) params.set("poi_category", options.poiCategory);
 
     try {
-      const response = await config.fetch(
-        `${SEARCH_BASE_URL}?${params.toString()}`,
-      );
+      const response = await config.fetch(`${SEARCH_BASE_URL}?${params.toString()}`);
       if (!response.ok) return Object.freeze([]);
 
       const payload = (await response.json()) as MapboxSearchResponse;
       if (!payload.features?.length) return Object.freeze([]);
 
-      const results = Object.freeze(
-        payload.features.map(normalizeMapboxFeature),
-      );
+      const results = Object.freeze(payload.features.map(normalizeMapboxFeature));
       cache.set(cacheKey, { timestamp: now(), results });
       return results;
     } catch {
