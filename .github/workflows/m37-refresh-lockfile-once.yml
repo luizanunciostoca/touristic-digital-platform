@@ -20,7 +20,7 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-      - run: pnpm install --lockfile-only
+      - run: pnpm install
       - run: pnpm format
       - name: Commit generated lockfile/format and remove helper
         run: |
