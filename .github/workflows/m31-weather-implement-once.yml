@@ -1,0 +1,60 @@
+name: M31 Weather Implement Once
+
+on:
+  push:
+    branches:
+      - feat/assistant-m31-weather-parity
+    paths:
+      - .github/workflows/m31-weather-implement-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  implement:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/assistant-m31-weather-parity
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: pnpm install --frozen-lockfile
+      - name: Implement M31 weather contract
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          widget = Path('apps/morro-digital-platform/src/weather/weather-widget.ts')
+          s = widget.read_text()
+          s = s.replace('''export interface WeatherReading {\n  readonly temperatureCelsius: number;\n  readonly weatherCode: number;\n  readonly isDay: boolean;\n}''','''export interface WeatherReading {\n  readonly temperatureCelsius: number;\n  readonly temperatureMaxCelsius: number;\n  readonly temperatureMinCelsius: number;\n  readonly humidityPercent: number;\n  readonly windSpeedKph: number;\n  readonly rainChancePercent: number;\n  readonly weatherCode: number;\n  readonly isDay: boolean;\n}''')
+          s = s.replace('''  const weatherCode: unknown = Reflect.get(payload, "weatherCode");\n  const isDay: unknown = Reflect.get(payload, "isDay");''','''  const temperatureMax: unknown = Reflect.get(payload, "temperatureMaxCelsius");\n  const temperatureMin: unknown = Reflect.get(payload, "temperatureMinCelsius");\n  const humidity: unknown = Reflect.get(payload, "humidityPercent");\n  const windSpeed: unknown = Reflect.get(payload, "windSpeedKph");\n  const rainChance: unknown = Reflect.get(payload, "rainChancePercent");\n  const weatherCode: unknown = Reflect.get(payload, "weatherCode");\n  const isDay: unknown = Reflect.get(payload, "isDay");''')
+          s = s.replace('''    typeof weatherCode !== "number" ||\n    !Number.isFinite(weatherCode) ||''','''    typeof temperatureMax !== "number" ||\n    !Number.isFinite(temperatureMax) ||\n    typeof temperatureMin !== "number" ||\n    !Number.isFinite(temperatureMin) ||\n    typeof humidity !== "number" ||\n    !Number.isFinite(humidity) ||\n    typeof windSpeed !== "number" ||\n    !Number.isFinite(windSpeed) ||\n    typeof rainChance !== "number" ||\n    !Number.isFinite(rainChance) ||\n    typeof weatherCode !== "number" ||\n    !Number.isFinite(weatherCode) ||''')
+          s = s.replace('''    temperatureCelsius: Math.round(temperature),\n    weatherCode,\n    isDay,''','''    temperatureCelsius: Math.round(temperature),\n    temperatureMaxCelsius: Math.round(temperatureMax),\n    temperatureMinCelsius: Math.round(temperatureMin),\n    humidityPercent: Math.round(humidity),\n    windSpeedKph: Math.round(windSpeed),\n    rainChancePercent: Math.round(rainChance),\n    weatherCode,\n    isDay,''')
+          widget.write_text(s)
+
+          server = Path('apps/morro-digital-platform/tooling/dev-server.mjs')
+          s = server.read_text()
+          s = s.replace('url.searchParams.set("include", "current");','url.searchParams.set("include", "current,days");')
+          s = s.replace('''  const current = payload?.currentConditions;\n  const temperatureCelsius = current?.temp;''','''  const current = payload?.currentConditions;\n  const today = payload?.days?.[0];\n  const temperatureCelsius = current?.temp;''')
+          s = s.replace('''  return {\n    temperatureCelsius,\n    weatherCode: conditionToWeatherCode(current?.conditions || icon),\n    isDay: !icon.includes("night"),\n    provider: "visual-crossing",\n  };''','''  if (\n    typeof today?.tempmax !== "number" ||\n    typeof today?.tempmin !== "number" ||\n    typeof current?.humidity !== "number" ||\n    typeof current?.windspeed !== "number" ||\n    typeof today?.precipprob !== "number"\n  ) {\n    throw new Error("Visual Crossing returned incomplete weather details.");\n  }\n\n  return {\n    temperatureCelsius,\n    temperatureMaxCelsius: today.tempmax,\n    temperatureMinCelsius: today.tempmin,\n    humidityPercent: current.humidity,\n    windSpeedKph: current.windspeed,\n    rainChancePercent: today.precipprob,\n    weatherCode: conditionToWeatherCode(current?.conditions || icon),\n    isDay: !icon.includes("night"),\n    provider: "visual-crossing",\n  };''')
+          s = s.replace('url.searchParams.set("current", "temperature_2m,weather_code,is_day");','url.searchParams.set("current", "temperature_2m,relative_humidity_2m,weather_code,is_day,wind_speed_10m");\n  url.searchParams.set("daily", "temperature_2m_max,temperature_2m_min,precipitation_probability_max");')
+          s = s.replace('''  const current = payload?.current;\n  if (\n    typeof current?.temperature_2m !== "number" ||''','''  const current = payload?.current;\n  const daily = payload?.daily;\n  if (\n    typeof current?.temperature_2m !== "number" ||\n    typeof current?.relative_humidity_2m !== "number" ||\n    typeof current?.wind_speed_10m !== "number" ||\n    typeof daily?.temperature_2m_max?.[0] !== "number" ||\n    typeof daily?.temperature_2m_min?.[0] !== "number" ||\n    typeof daily?.precipitation_probability_max?.[0] !== "number" ||''')
+          s = s.replace('''  return {\n    temperatureCelsius: current.temperature_2m,\n    weatherCode: current.weather_code,\n    isDay: current.is_day === 1,\n    provider: "open-meteo",\n  };''','''  return {\n    temperatureCelsius: current.temperature_2m,\n    temperatureMaxCelsius: daily.temperature_2m_max[0],\n    temperatureMinCelsius: daily.temperature_2m_min[0],\n    humidityPercent: current.relative_humidity_2m,\n    windSpeedKph: current.wind_speed_10m,\n    rainChancePercent: daily.precipitation_probability_max[0],\n    weatherCode: current.weather_code,\n    isDay: current.is_day === 1,\n    provider: "open-meteo",\n  };''')
+          server.write_text(s)
+          PY
+          pnpm exec prettier --write apps/morro-digital-platform/src/weather/weather-widget.ts apps/morro-digital-platform/tooling/dev-server.mjs
+          pnpm architecture:check
+          pnpm typecheck
+      - name: Commit implementation and remove one-shot workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/m31-weather-implement-once.yml
+          git add apps/morro-digital-platform/src/weather/weather-widget.ts apps/morro-digital-platform/tooling/dev-server.mjs
+          git commit -m "feat(assistant): expand M31 weather runtime contract"
+          git push
