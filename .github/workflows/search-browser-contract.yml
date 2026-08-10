@@ -31,7 +31,7 @@ jobs:
           /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
       - name: Build workspace
         run: pnpm -w build
-      - name: Start deterministic fallback runtime
+      - name: Start browser asset server
         run: |
           node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/search-browser-contract.log 2>&1 &
           for i in $(seq 1 90); do
@@ -46,6 +46,15 @@ jobs:
           const { writeFileSync } = require('node:fs');
           const { chromium } = require('/tmp/pw/node_modules/playwright');
 
+          async function poll(page, probe, label, timeout = 15000) {
+            const deadline = Date.now() + timeout;
+            while (Date.now() < deadline) {
+              if (await probe()) return;
+              await page.waitForTimeout(100);
+            }
+            throw new Error(`${label} did not become ready`);
+          }
+
           (async () => {
             const browser = await chromium.launch({ headless: true });
             try {
@@ -59,7 +68,7 @@ jobs:
               page.on('pageerror', error => pageErrors.push(error.message));
 
               await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded', timeout: 30000 });
-              await page.locator('#map[data-map-state="ready"]').waitFor({ state: 'attached', timeout: 30000 });
+              await page.locator('#assistantInput').waitFor({ state: 'attached', timeout: 10000 });
 
               await page.evaluate(async () => {
                 const module = await import('/apps/morro-digital-platform/dist/assistant/browser-assistant-runtime.js');
@@ -94,18 +103,21 @@ jobs:
               }
 
               await page.locator('.assistant-options .assistant-option-btn').first().click();
-              await page.waitForFunction(() => {
-                const buttons = Array.from(document.querySelectorAll('.assistant-options .assistant-option-btn'));
-                return buttons.some(button => button.textContent?.includes('Como chegar'));
-              }, { timeout: 15000 });
+              const navigate = page.locator('.assistant-options .assistant-option-btn', { hasText: 'Como chegar' });
+              await navigate.waitFor({ state: 'visible', timeout: 15000 });
 
               const detailText = await page.locator('#assistant-messages .message.assistant').last().textContent();
               if (!detailText?.includes('Toca do Morcego')) {
                 throw new Error(`Details integration lost selected place: ${detailText}`);
               }
 
-              await page.locator('.assistant-options .assistant-option-btn', { hasText: 'Como chegar' }).click();
-              await page.waitForFunction(() => globalThis.__searchContract?.starts?.length === 1, { timeout: 10000 });
+              await navigate.click();
+              await poll(
+                page,
+                () => page.evaluate(() => globalThis.__searchContract?.starts?.length === 1),
+                'navigation port',
+                10000,
+              );
 
               const navigation = await page.evaluate(() => globalThis.__searchContract);
               const destination = navigation.starts[0];
