@@ -139,6 +139,7 @@ describe("assistant domain i18n integration", () => {
     const response = await handlers.nearby?.(request("nearby", "es"));
 
     expect(response?.text).toContain("categoría");
+    expect(response?.options).toHaveLength(6);
     expect(response?.options).toEqual(
       expect.arrayContaining([
         { label: "Playas", value: "playas cerca de mi" },
