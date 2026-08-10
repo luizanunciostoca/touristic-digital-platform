@@ -28,12 +28,14 @@ jobs:
         run: pnpm install --no-frozen-lockfile
       - name: Format M49 files
         run: pnpm exec prettier --write packages/business pnpm-lock.yaml
-      - name: Validate Business core
-        run: |
-          pnpm --filter @touristic/business lint
-          pnpm --filter @touristic/business typecheck
-          pnpm --filter @touristic/business test
-          pnpm --filter @touristic/business build
+      - name: Lint Business core
+        run: pnpm --filter @touristic/business lint
+      - name: Typecheck Business core
+        run: pnpm --filter @touristic/business typecheck
+      - name: Test Business core
+        run: pnpm --filter @touristic/business test
+      - name: Build Business core
+        run: pnpm --filter @touristic/business build
       - name: Commit prepared M49 core and remove helper
         run: |
           rm .github/workflows/m49-prepare-business-core-once.yml
