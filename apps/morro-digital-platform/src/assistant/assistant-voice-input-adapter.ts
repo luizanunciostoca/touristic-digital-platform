@@ -155,5 +155,7 @@ export function resolveAssistantSpeechRecognitionConstructor(
     readonly SpeechRecognition?: AssistantSpeechRecognitionConstructor;
     readonly webkitSpeechRecognition?: AssistantSpeechRecognitionConstructor;
   };
-  return candidate.SpeechRecognition ?? candidate.webkitSpeechRecognition ?? null;
+  return (
+    candidate.SpeechRecognition ?? candidate.webkitSpeechRecognition ?? null
+  );
 }
