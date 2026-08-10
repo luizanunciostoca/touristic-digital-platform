@@ -1,6 +1,24 @@
 /* ======================================================
    ASSISTANT MODAL UI
+   
+   Arquivo CSS completo para gerenciar a interface do modal
+   do assistente virtual, incluindo:
+   - Layout base e posicionamento
+   - Aparência visual (cores, sombras, bordas)
+   - Efeitos visuais (glassmorphism, transições)
+   - Animações de entrada/saída
+   - Estilos para mensagens (usuário/assistente)
+   - Responsividade
+   - Suporte para tema escuro
+   - Carrossel e componentes especiais
+   - Controles e botões
+   
+   Organizado por seções para fácil manutenção
    ====================================================== */
+
+/* -----------------------------------------------------
+   1. DEFINIÇÕES PRINCIPAIS E CONTAINERS
+   ----------------------------------------------------- */
 
 :root {
   --assistant-input-bottom: max(0rem, env(safe-area-inset-bottom, 0px));
@@ -13,6 +31,7 @@
   --assistant-modal-top-gap: 5vh;
 }
 
+/* Container principal do assistente */
 .assistant-container {
   bottom: 90px;
   z-index: 2002;
@@ -21,10 +40,21 @@
   position: fixed;
 }
 
+/* Modo de navegação ativa */
 body.navigation-active .assistant-container {
-  bottom: 180px;
+  bottom: 180px; /* Mais alto quando a navegação está ativa */
 }
 
+/* Modal principal
+   ================================================================
+   FONTE DE VERDADE Única — NÃO ALTERAR EM OUTROS ARQUIVOS JS/CSS
+   Regras:
+     - Posição horizontal: left 50% (centralizado)
+     - Posição vertical: bottom fixo acima da barra de input (~80px)
+     - Cresce SEMPRE para cima (transform-origin: bottom center)
+     - Altura máxima: 50vh → nunca ultrapassa 10% do topo (bottom=40% + 50vh = 90vh)
+     - O JS NÃO deve sobrescrever top/bottom/max-height
+   ================================================================ */
 #assistant-messages {
   position: fixed !important;
   left: 0.5rem !important;
@@ -33,23 +63,29 @@ body.navigation-active .assistant-container {
   transform: none !important;
   transform-origin: bottom left !important;
   z-index: 2001;
+
   width: min(calc(100vw - 1rem), 48rem);
   max-width: min(calc(100vw - 1rem), 48rem);
   min-width: min(18rem, calc(100vw - 1rem));
   height: auto !important;
   max-height: calc(100dvh - (var(--assistant-input-bottom) + var(--assistant-bar-height) + 0.75rem)) !important;
   min-height: 4.5rem;
+
   border-radius: 1.25rem;
-  box-shadow: 0 10px 25px rgba(0, 75, 199, 0.15), 0 5px 12px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.3);
+  box-shadow: 0 10px 25px rgba(0, 75, 199, 0.15), 0 5px 12px rgba(0, 0, 0, 0.1),
+    0 0 0 1px rgba(255, 255, 255, 0.3);
   border: 0.19rem solid rgba(253, 253, 253, 0.82);
+
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
+
   padding: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   box-sizing: border-box;
   margin-bottom: 0;
+
   pointer-events: auto;
   transition: width 0.3s ease, max-height 0.3s ease, bottom 0.3s ease, left 0.3s ease;
 }
@@ -60,6 +96,7 @@ body.navigation-active .assistant-container {
   height: 0;
 }
 
+/* Botão de minimizar - com zona de segurança */
 #assistant-messages .minimize-button {
   position: absolute;
   top: 0.35rem;
@@ -72,7 +109,7 @@ body.navigation-active .assistant-container {
   width: 2.5rem;
   height: 2.5rem;
   display: flex;
-  z-index: 30;
+  z-index: 30; /* Acima de todo o conteúdo */
   padding: 0;
   align-items: center;
   justify-content: center;
@@ -88,9 +125,14 @@ body.navigation-active .assistant-container {
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
+/* Ajustes para modo 3D do mapa */
 body.map-3d-mode #assistant-messages {
   z-index: 500;
 }
+
+/* -----------------------------------------------------
+   2. ÁREA DE MENSAGENS
+   ----------------------------------------------------- */
 
 #assistant-messages .messages-area {
   flex: 1;
@@ -103,7 +145,7 @@ body.map-3d-mode #assistant-messages {
   position: relative;
   scroll-behavior: smooth;
   transform-origin: bottom center;
-  padding: 0.25rem 0.32rem 0.35rem;
+  padding: 0.2rem 0.32rem 0.35rem;
   scrollbar-width: thin;
   scrollbar-color: rgba(0, 75, 199, 0.3) transparent;
   -ms-overflow-style: -ms-autohiding-scrollbar;
@@ -125,7 +167,8 @@ body.map-3d-mode #assistant-messages {
 }
 
 #assistant-messages.grow-upward {
-  transition: max-height 0.3s cubic-bezier(0.16, 1, 0.3, 1), height 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: max-height 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              height 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   transform-origin: bottom center !important;
   height: auto !important;
   overflow: hidden;
@@ -139,6 +182,10 @@ body.map-3d-mode #assistant-messages {
 
 #assistant-messages.map-interaction {
   max-height: calc(100dvh - (var(--assistant-input-bottom) + var(--assistant-bar-height) + 0.75rem)) !important;
+}
+
+#assistant-messages .messages-area {
+  padding-top: 0.25rem;
 }
 
 #assistant-messages.auto-size {
@@ -170,6 +217,10 @@ body.map-3d-mode #assistant-messages {
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
+
+/* -----------------------------------------------------
+   3. ESTILOS PARA MENSAGENS
+   ----------------------------------------------------- */
 
 #assistant-messages .message {
   padding: 0.5rem 2.45rem 0.42rem 0.6rem;
@@ -251,8 +302,13 @@ body.map-3d-mode #assistant-messages {
 }
 
 @keyframes pulseCursor {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
 }
 
 .typing-cursor {
@@ -261,6 +317,34 @@ body.map-3d-mode #assistant-messages {
   color: #004bc7;
   animation: pulseCursor 1.2s ease-in-out infinite;
   font-weight: bold;
+}
+
+#assistant-messages .navigation-instruction-area {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  overflow-y: auto;
+}
+
+#assistant-messages .minimize-button {
+  position: absolute;
+  top: 0.35rem;
+  right: 0.35rem;
+  border: none;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #004bc7;
+  cursor: pointer;
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  z-index: 30;
+  padding: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(4px);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
 }
 
 #assistant-messages .minimize-button:active {
@@ -368,6 +452,10 @@ body.map-3d-mode #assistant-messages {
 .assistant-voice-settings[data-voice-supported="false"] .assistant-voice-settings-support::before {
   content: "Síntese de voz indisponível neste navegador. ";
 }
+
+/* -----------------------------------------------------
+   6. ÁREA DE INPUT DO ASSISTENTE
+   ----------------------------------------------------- */
 
 .assistant-input-area {
   position: fixed;
