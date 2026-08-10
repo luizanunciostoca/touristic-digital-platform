@@ -1,0 +1,42 @@
+name: M35 Import Photo Assets Once
+
+on:
+  push:
+    branches:
+      - feat/assistant-m35-photo-assets
+
+permissions:
+  contents: write
+
+jobs:
+  import-assets:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/assistant-m35-photo-assets
+      - name: Download audited V1 artifact
+        env:
+          ASSET_URL: "https://sdmntprbrazilsouth.oaiusercontent.com/files/00000000-93b8-820e-bdb3-69af35504f83/raw?se=2026-08-10T13%3A41%3A31Z&sp=r&sv=2026-02-06&sr=b&scid=540a6747-3f55-542e-a6bd-1b21f084466f&skoid=db6dad9e-03ee-465b-aef6-ce0f63a161dc&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-08-10T13%3A24%3A54Z&ske=2026-08-11T13%3A24%3A54Z&sks=b&skv=2026-02-06&sig=Q7KJU%2BHZgRLQm0u/sCcTEAFPA6z4t9p%2BvcU%2Br2R6rjQ%3D"
+        run: |
+          curl --fail --location --silent --show-error "$ASSET_URL" --output /tmp/m35-v1-photo-assets.zip
+          mkdir -p /tmp/m35-artifact
+          unzip -q /tmp/m35-v1-photo-assets.zip -d /tmp/m35-artifact
+          test -f /tmp/m35-artifact/photo-assets.tar.gz
+          test -f /tmp/m35-artifact/photo-assets.sha256
+      - name: Import and verify exact V1 bytes
+        run: |
+          rm -rf images/fotos
+          mkdir -p images
+          tar -xzf /tmp/m35-artifact/photo-assets.tar.gz -C images
+          sha256sum -c /tmp/m35-artifact/photo-assets.sha256
+          test "$(find images/fotos -type f -name '*.jpg' | wc -l)" -eq 63
+      - name: Commit physical assets and remove helper
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/m35-import-photo-assets-once.yml
+          git add images/fotos
+          git commit -m "feat(assistant): import audited V1 photo assets"
+          git push origin HEAD:feat/assistant-m35-photo-assets
