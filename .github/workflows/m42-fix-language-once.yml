@@ -1,0 +1,50 @@
+name: M42 Fix Language Boundaries Once
+
+on:
+  push:
+    branches:
+      - feat/search-m42-browser-integration
+    paths:
+      - .github/workflows/m42-fix-language-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/search-m42-browser-integration
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Apply token-boundary language detection
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('packages/assistant/src/intent-engine.ts')
+          text = path.read_text()
+          old_en = '''  } else if (\n    /(the|is|are|what|where|how|can|i\\b|you\\b|me\\b|my\\b)/i.test(input)\n  ) {'''
+          new_en = '''  } else if (\n    /\\b(the|is|are|what|where|how|can|i|you|me|my)\\b/i.test(normalized)\n  ) {'''
+          old_es = '''  } else if (\n    /(el|la|los|las|que|donde|como|es\\b|son|hay|quiero)/i.test(input)\n  ) {'''
+          new_es = '''  } else if (\n    /\\b(el|la|los|las|que|donde|como|es|son|hay|quiero)\\b/i.test(\n      normalized,\n    )\n  ) {'''
+          if old_en not in text or old_es not in text:
+              raise SystemExit('Expected language detection blocks were not found')
+          text = text.replace(old_en, new_en).replace(old_es, new_es)
+          path.write_text(text)
+          PY
+          pnpm exec prettier --write packages/assistant/src/intent-engine.ts packages/assistant/src/intent-engine.language-regression.test.ts
+          pnpm --filter @touristic/assistant test
+      - name: Commit fix and remove helper
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/m42-fix-language-once.yml
+          git add packages/assistant/src/intent-engine.ts packages/assistant/src/intent-engine.language-regression.test.ts
+          git commit -m "fix(assistant): detect language by complete tokens"
+          git push origin HEAD:feat/search-m42-browser-integration
