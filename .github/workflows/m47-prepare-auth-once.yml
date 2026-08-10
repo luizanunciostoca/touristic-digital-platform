@@ -1,0 +1,43 @@
+name: M47 Prepare Auth Once
+
+on:
+  push:
+    branches:
+      - feat/auth-m47-core
+    paths:
+      - .github/workflows/m47-prepare-auth-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/auth-m47-core
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Refresh workspace lockfile
+        run: pnpm install --lockfile-only
+      - name: Format M47 permanent files
+        run: >-
+          pnpm exec prettier --write
+          packages/auth/package.json
+          packages/auth/tsconfig.json
+          packages/auth/src/index.ts
+          packages/auth/src/index.test.ts
+      - name: Commit permanent changes and remove helper
+        run: |
+          rm .github/workflows/m47-prepare-auth-once.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pnpm-lock.yaml packages/auth .github/workflows/m47-prepare-auth-once.yml
+          git commit -m "chore(auth): prepare M47 workspace once"
+          git push origin HEAD:feat/auth-m47-core
