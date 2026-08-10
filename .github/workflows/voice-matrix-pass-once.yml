@@ -1,0 +1,40 @@
+name: Voice Matrix PASS Once
+
+on:
+  push:
+    branches:
+      - test/assistant-voice-browser-pass
+    paths:
+      - .github/workflows/voice-matrix-pass-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: test/assistant-voice-browser-pass
+      - name: Promote Voice row to PASS
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('docs/migration/ASSISTANT-MIGRATION-MATRIX.md')
+          s = p.read_text()
+          old = '| Voz                                   | `voice/**`                 | `src/voice-synthesis.ts` + `assistant-voice-adapter.ts` + `assistant-voice-input-adapter.ts`                    | PARTIAL    | síntese, preferências e entrada por voz PT/EN/ES/HE conectadas; seletor/configuração visual ainda pendente                               |'
+          new = '| Voz                                   | `voice/**`                 | `src/voice-synthesis.ts` + `assistant-voice-adapter.ts` + `assistant-voice-input-adapter.ts`                    | PASS       | síntese, microfone one-shot, configuração visual, persistência V1, PT/EN/ES/HE e fallback sem Web Speech cobertos por evidência browser |'
+          if old not in s:
+              raise SystemExit('Voice PARTIAL row not found')
+          s = s.replace(old, new, 1)
+          p.write_text(s)
+          PY
+      - name: Commit promotion and remove one-shot workflow
+        run: |
+          rm .github/workflows/voice-matrix-pass-once.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/migration/ASSISTANT-MIGRATION-MATRIX.md .github/workflows/voice-matrix-pass-once.yml
+          git commit -m "docs(assistant): promote voice parity to PASS"
+          git push origin HEAD:test/assistant-voice-browser-pass
