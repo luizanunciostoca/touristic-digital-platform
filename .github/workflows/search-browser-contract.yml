@@ -10,6 +10,8 @@ on:
       - apps/morro-digital-platform/src/assistant/assistant-domain-adapter.ts
       - apps/morro-digital-platform/src/layouts/app-shell.ts
       - apps/morro-digital-platform/src/assistant/assistant-shell-ui.ts
+      - packages/assistant/src/intent-engine.ts
+      - packages/assistant/src/intent-engine.more-info-i18n.test.ts
       - packages/search/src/**
       - docs/qa/SEARCH-M42-EVIDENCE.md
       - docs/migration/SEARCH-MIGRATION-MATRIX.md
@@ -132,7 +134,7 @@ jobs:
               }
 
               const selectedValue = await searchResult.getAttribute('data-value');
-              if (selectedValue !== 'mais informações sobre Toca do Morcego') {
+              if (selectedValue !== 'Fale sobre Toca do Morcego') {
                 throw new Error(`Search option value diverged: ${selectedValue}`);
               }
 
