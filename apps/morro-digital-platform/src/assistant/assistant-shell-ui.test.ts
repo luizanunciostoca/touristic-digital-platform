@@ -38,7 +38,9 @@ function createElement(initialClasses: string[] = []) {
     removeEventListener(type: string) {
       listeners.delete(type);
     },
-    querySelector: () => null as unknown,
+    querySelector(_selector: string) {
+      return null as unknown;
+    },
   };
 }
 
