@@ -1,0 +1,49 @@
+name: M31 Weather Matrix Once
+
+on:
+  push:
+    branches: [feat/assistant-m31-weather-parity]
+    paths: [.github/workflows/m31-weather-matrix-once.yml]
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/assistant-m31-weather-parity
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: pnpm install --frozen-lockfile
+      - name: Promote Weather only
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('docs/migration/ASSISTANT-MIGRATION-MATRIX.md')
+          s = p.read_text()
+          old = '| weather/location/photos/price/hours   | `intent-engine.js`         | `src/intent-engine.ts` + `src/domain-handlers.ts`                                                               | PARTIAL    | weather, geolocalização, photos e hours conectados; assets binários de photos e paridade completa de weather/i18n ainda pendentes        |'
+          new = '\n'.join([
+            '| weather                               | `intent-engine.js`         | `src/intent-engine.ts` + `src/domain-handlers.ts` + `assistant-weather-copy.ts`                                  | PASS       | atual + máxima/mínima + umidade + vento + chance de chuva; Visual Crossing/Open-Meteo; copy PT/EN/ES/HE e fallback cobertos por testes |',
+            '| location/photos/price/hours            | `intent-engine.js`         | `src/intent-engine.ts` + `src/domain-handlers.ts`                                                               | PARTIAL    | geolocalização e hours conectados; assets binários de photos e paridades observáveis restantes ainda pendentes                         |',
+          ])
+          if old not in s:
+              raise SystemExit('weather matrix row not found')
+          p.write_text(s.replace(old, new, 1))
+          PY
+          pnpm exec prettier --write docs/migration/ASSISTANT-MIGRATION-MATRIX.md
+          pnpm format:check
+      - name: Commit matrix and remove helper
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/m31-weather-matrix-once.yml
+          git add docs/migration/ASSISTANT-MIGRATION-MATRIX.md
+          git commit -m "docs(assistant): promote M31 Weather to PASS"
+          git push
