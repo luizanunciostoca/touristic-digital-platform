@@ -428,10 +428,19 @@ async function runContract(browser) {
   );
 
   const unsupported = await page.evaluate(async () => {
-    const settingsModule =
-      await import("/apps/morro-digital-platform/dist/assistant/assistant-voice-settings.js");
-    const inputModule =
-      await import("/apps/morro-digital-platform/dist/assistant/assistant-voice-input-adapter.js");
+    const appRoot = [
+      "",
+      "apps",
+      "morro-digital-platform",
+      "dist",
+      "assistant",
+    ].join("/");
+    const settingsModule = await import(
+      `${appRoot}/assistant-voice-settings.js`
+    );
+    const inputModule = await import(
+      `${appRoot}/assistant-voice-input-adapter.js`
+    );
     const controller = settingsModule.installAssistantVoiceSettings({
       document,
       voice: null,
