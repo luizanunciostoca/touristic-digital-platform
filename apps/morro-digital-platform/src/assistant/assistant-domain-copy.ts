@@ -5,7 +5,10 @@ export interface AssistantDomainOption {
   readonly value: string;
 }
 
-const PLACE_OPTIONS: Record<AssistantDomainLanguage, readonly AssistantDomainOption[]> = {
+const PLACE_OPTIONS: Record<
+  AssistantDomainLanguage,
+  readonly AssistantDomainOption[]
+> = {
   pt: [
     { label: "Como chegar", value: "como chegar" },
     { label: "Ver fotos", value: "ver fotos" },
@@ -32,7 +35,10 @@ const PLACE_OPTIONS: Record<AssistantDomainLanguage, readonly AssistantDomainOpt
   ],
 };
 
-const HELP_OPTIONS: Record<AssistantDomainLanguage, readonly AssistantDomainOption[]> = {
+const HELP_OPTIONS: Record<
+  AssistantDomainLanguage,
+  readonly AssistantDomainOption[]
+> = {
   pt: [
     { label: "Praias", value: "praias" },
     { label: "Restaurantes", value: "restaurantes" },
@@ -59,7 +65,10 @@ const HELP_OPTIONS: Record<AssistantDomainLanguage, readonly AssistantDomainOpti
   ],
 };
 
-const NEARBY_OPTIONS: Record<AssistantDomainLanguage, readonly AssistantDomainOption[]> = {
+const NEARBY_OPTIONS: Record<
+  AssistantDomainLanguage,
+  readonly AssistantDomainOption[]
+> = {
   pt: [
     { label: "Praias", value: "praias perto de mim" },
     { label: "Restaurantes", value: "restaurantes perto de mim" },
@@ -94,7 +103,9 @@ const NEARBY_OPTIONS: Record<AssistantDomainLanguage, readonly AssistantDomainOp
   ],
 };
 
-export function placeDetailsOptions(language: AssistantDomainLanguage): readonly AssistantDomainOption[] {
+export function placeDetailsOptions(
+  language: AssistantDomainLanguage,
+): readonly AssistantDomainOption[] {
   return PLACE_OPTIONS[language];
 }
 
@@ -142,21 +153,27 @@ export function askPlaceCopy(
 }
 
 export function locationCopy(language: AssistantDomainLanguage) {
-  const copy: Record<AssistantDomainLanguage, { unavailable: string; resolved: string; failed: string }> = {
+  const copy: Record<
+    AssistantDomainLanguage,
+    { unavailable: string; resolved: string; failed: string }
+  > = {
     pt: {
       unavailable: "Não consegui acessar sua localização neste dispositivo.",
       resolved: "Localização atualizada com sucesso.",
-      failed: "Não consegui obter sua localização. Verifique a permissão de localização e tente novamente.",
+      failed:
+        "Não consegui obter sua localização. Verifique a permissão de localização e tente novamente.",
     },
     en: {
       unavailable: "I couldn't access your location on this device.",
       resolved: "Location updated successfully.",
-      failed: "I couldn't get your location. Check location permission and try again.",
+      failed:
+        "I couldn't get your location. Check location permission and try again.",
     },
     es: {
       unavailable: "No pude acceder a tu ubicación en este dispositivo.",
       resolved: "Ubicación actualizada correctamente.",
-      failed: "No pude obtener tu ubicación. Verifica el permiso de ubicación e inténtalo de nuevo.",
+      failed:
+        "No pude obtener tu ubicación. Verifica el permiso de ubicación e inténtalo de nuevo.",
     },
     he: {
       unavailable: "לא הצלחתי לגשת למיקום שלך במכשיר הזה.",
@@ -169,32 +186,50 @@ export function locationCopy(language: AssistantDomainLanguage) {
 
 export function nearbyCopy(
   language: AssistantDomainLanguage,
-  state: "awaiting_category" | "location_required" | "empty" | "denied_or_failed",
-): { readonly text: string; readonly options?: readonly AssistantDomainOption[] } {
+  state:
+    "awaiting_category" | "location_required" | "empty" | "denied_or_failed",
+): {
+  readonly text: string;
+  readonly options?: readonly AssistantDomainOption[];
+} {
   const text: Record<AssistantDomainLanguage, Record<typeof state, string>> = {
     pt: {
-      awaiting_category: "Posso buscar o que está mais perto de você, mas primeiro me diga a categoria: praias, restaurantes, pousadas, atrações, passeios ou emergências.",
-      location_required: "Para buscar lugares próximos, preciso da sua localização atual.",
-      empty: "Não encontrei locais dessa categoria no catálogo curado de Morro de São Paulo.",
-      denied_or_failed: "Não consegui obter sua localização. Verifique a permissão de localização e tente novamente.",
+      awaiting_category:
+        "Posso buscar o que está mais perto de você, mas primeiro me diga a categoria: praias, restaurantes, pousadas, atrações, passeios ou emergências.",
+      location_required:
+        "Para buscar lugares próximos, preciso da sua localização atual.",
+      empty:
+        "Não encontrei locais dessa categoria no catálogo curado de Morro de São Paulo.",
+      denied_or_failed:
+        "Não consegui obter sua localização. Verifique a permissão de localização e tente novamente.",
     },
     en: {
-      awaiting_category: "I can find what is closest to you, but first choose a category: beaches, restaurants, hotels, attractions, tours, or emergencies.",
+      awaiting_category:
+        "I can find what is closest to you, but first choose a category: beaches, restaurants, hotels, attractions, tours, or emergencies.",
       location_required: "To find nearby places, I need your current location.",
-      empty: "I couldn't find places in this category in the curated Morro de São Paulo catalog.",
-      denied_or_failed: "I couldn't get your location. Check location permission and try again.",
+      empty:
+        "I couldn't find places in this category in the curated Morro de São Paulo catalog.",
+      denied_or_failed:
+        "I couldn't get your location. Check location permission and try again.",
     },
     es: {
-      awaiting_category: "Puedo buscar lo que está más cerca de ti, pero primero elige una categoría: playas, restaurantes, posadas, atracciones, paseos o emergencias.",
-      location_required: "Para buscar lugares cercanos, necesito tu ubicación actual.",
-      empty: "No encontré lugares de esta categoría en el catálogo curado de Morro de São Paulo.",
-      denied_or_failed: "No pude obtener tu ubicación. Verifica el permiso de ubicación e inténtalo de nuevo.",
+      awaiting_category:
+        "Puedo buscar lo que está más cerca de ti, pero primero elige una categoría: playas, restaurantes, posadas, atracciones, paseos o emergencias.",
+      location_required:
+        "Para buscar lugares cercanos, necesito tu ubicación actual.",
+      empty:
+        "No encontré lugares de esta categoría en el catálogo curado de Morro de São Paulo.",
+      denied_or_failed:
+        "No pude obtener tu ubicación. Verifica el permiso de ubicación e inténtalo de nuevo.",
     },
     he: {
-      awaiting_category: "אני יכול למצוא מה הכי קרוב אליך, אבל קודם בחר קטגוריה: חופים, מסעדות, מלונות, אטרקציות, סיורים או שירותי חירום.",
-      location_required: "כדי למצוא מקומות קרובים אני צריך את המיקום הנוכחי שלך.",
+      awaiting_category:
+        "אני יכול למצוא מה הכי קרוב אליך, אבל קודם בחר קטגוריה: חופים, מסעדות, מלונות, אטרקציות, סיורים או שירותי חירום.",
+      location_required:
+        "כדי למצוא מקומות קרובים אני צריך את המיקום הנוכחי שלך.",
       empty: "לא מצאתי מקומות בקטגוריה הזו בקטלוג האוצר של מורו דה סאו פאולו.",
-      denied_or_failed: "לא הצלחתי לקבל את המיקום שלך. בדוק את הרשאת המיקום ונסה שוב.",
+      denied_or_failed:
+        "לא הצלחתי לקבל את המיקום שלך. בדוק את הרשאת המיקום ונסה שוב.",
     },
   };
   return {
@@ -207,9 +242,14 @@ export function nearbyCopy(
 
 export function nearbyResolvedCopy(
   language: AssistantDomainLanguage,
-  results: readonly { readonly name: string; readonly distanceMeters: number }[],
+  results: readonly {
+    readonly name: string;
+    readonly distanceMeters: number;
+  }[],
 ): string {
-  const list = results.map((result) => `${result.name} (${result.distanceMeters} m)`).join(", ");
+  const list = results
+    .map((result) => `${result.name} (${result.distanceMeters} m)`)
+    .join(", ");
   const text: Record<AssistantDomainLanguage, string> = {
     pt: `Mais perto de você: ${list}.`,
     en: `Closest to you: ${list}.`,
@@ -219,7 +259,10 @@ export function nearbyResolvedCopy(
   return text[language];
 }
 
-export function favoritesCopy(language: AssistantDomainLanguage, names: readonly string[]) {
+export function favoritesCopy(
+  language: AssistantDomainLanguage,
+  names: readonly string[],
+) {
   if (names.length === 0) {
     const empty: Record<AssistantDomainLanguage, string> = {
       pt: "Você ainda não adicionou lugares aos favoritos.",
@@ -293,7 +336,10 @@ export function hoursCopy(
   return text[language];
 }
 
-export function moreInfoUnavailable(language: AssistantDomainLanguage, place: string): string {
+export function moreInfoUnavailable(
+  language: AssistantDomainLanguage,
+  place: string,
+): string {
   const text: Record<AssistantDomainLanguage, string> = {
     pt: `Não encontrei detalhes atualizados de ${place}.`,
     en: `I couldn't find up-to-date details for ${place}.`,
@@ -318,7 +364,10 @@ export function formatPlaceDetailsCopy(
   if (details.category) parts.push(details.category);
   if (details.address) parts.push(details.address);
   if (details.openNow !== null) {
-    const openState: Record<AssistantDomainLanguage, readonly [string, string]> = {
+    const openState: Record<
+      AssistantDomainLanguage,
+      readonly [string, string]
+    > = {
       pt: ["Aberto agora", "Fechado agora"],
       en: ["Open now", "Closed now"],
       es: ["Abierto ahora", "Cerrado ahora"],
@@ -347,7 +396,10 @@ export function formatPlaceDetailsCopy(
   return parts.join(" · ");
 }
 
-export function priceCopy(language: AssistantDomainLanguage, place: string): string {
+export function priceCopy(
+  language: AssistantDomainLanguage,
+  place: string,
+): string {
   const text: Record<AssistantDomainLanguage, string> = {
     pt: `💰 Sobre preços em <b>${place}</b>:<br><br>As informações de preço podem variar. Recomendo verificar diretamente com o estabelecimento.<br><br>Em geral, as praias de Morro de São Paulo são <b>gratuitas</b>. Passeios de barco custam em torno de <b>R$ 80-150</b> por pessoa. Restaurantes variam de <b>R$ 30-150</b> por pessoa.`,
     en: `💰 About prices at <b>${place}</b>:<br><br>Prices may vary. I recommend checking directly with the establishment.<br><br>In general, the beaches in Morro de São Paulo are <b>free</b>. Boat tours cost around <b>R$ 80-150</b> per person. Restaurants range from <b>R$ 30-150</b> per person.`,

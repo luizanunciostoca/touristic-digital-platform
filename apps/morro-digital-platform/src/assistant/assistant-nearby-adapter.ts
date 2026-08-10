@@ -84,7 +84,7 @@ export async function resolveAssistantNearby(
     return {
       text: copy.text,
       ...(copy.options ? { options: [...copy.options] } : {}),
-      metadata: { domain: "nearby", state: "awaiting_category", language },
+      metadata: { domain: "nearby", state: "awaiting_category" },
     };
   }
 
@@ -95,7 +95,6 @@ export async function resolveAssistantNearby(
         domain: "nearby",
         state: "location_required",
         category,
-        language,
       },
     };
   }
@@ -123,7 +122,7 @@ export async function resolveAssistantNearby(
       return {
         text: copy.text,
         ...(copy.options ? { options: [...copy.options] } : {}),
-        metadata: { domain: "nearby", state: "empty", category, language },
+        metadata: { domain: "nearby", state: "empty", category },
       };
     }
 
@@ -137,7 +136,6 @@ export async function resolveAssistantNearby(
         domain: "nearby",
         state: "resolved",
         category,
-        language,
         count: results.length,
         results,
       },
@@ -149,7 +147,6 @@ export async function resolveAssistantNearby(
         domain: "nearby",
         state: "denied_or_failed",
         category,
-        language,
       },
     };
   }
