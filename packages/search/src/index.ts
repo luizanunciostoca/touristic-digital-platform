@@ -23,7 +23,8 @@ export type SearchMatchType =
   | "name_contains"
   | "alias_contains"
   | "tag"
-  | "area";
+  | "area"
+  | "fuzzy";
 
 export interface SearchResult<T extends SearchCatalogItem = SearchCatalogItem> {
   readonly item: T;
@@ -31,16 +32,19 @@ export interface SearchResult<T extends SearchCatalogItem = SearchCatalogItem> {
   readonly score: number;
 }
 
-const MATCH_SCORE: Readonly<Record<SearchMatchType, number>> = Object.freeze({
-  exact: 100,
-  alias: 95,
-  name_prefix: 85,
-  alias_prefix: 80,
-  name_contains: 70,
-  alias_contains: 65,
-  tag: 55,
-  area: 45,
-});
+const MATCH_SCORE: Readonly<Record<Exclude<SearchMatchType, "fuzzy">, number>> =
+  Object.freeze({
+    exact: 100,
+    alias: 95,
+    name_prefix: 85,
+    alias_prefix: 80,
+    name_contains: 70,
+    alias_contains: 65,
+    tag: 55,
+    area: 45,
+  });
+
+const V1_FUZZY_THRESHOLD = 0.55;
 
 const ACCENTS_MAP: Readonly<Record<string, string>> = Object.freeze({
   á: "a",
@@ -81,6 +85,31 @@ export function normalizeSearchText(value: string): string {
     .replace(/[^\w\s\u0590-\u05FF\u0600-\u06FF]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+export function diceSearchSimilarity(left: string, right: string): number {
+  const a = normalizeSearchText(left);
+  const b = normalizeSearchText(right);
+  if (!a || !b) return 0;
+  if (a === b) return 1;
+  if (a.length < 2 || b.length < 2) return 0;
+
+  const bigrams = new Map<string, number>();
+  for (let index = 0; index < a.length - 1; index += 1) {
+    const pair = a.slice(index, index + 2);
+    bigrams.set(pair, (bigrams.get(pair) ?? 0) + 1);
+  }
+
+  let matches = 0;
+  for (let index = 0; index < b.length - 1; index += 1) {
+    const pair = b.slice(index, index + 2);
+    const count = bigrams.get(pair) ?? 0;
+    if (count <= 0) continue;
+    bigrams.set(pair, count - 1);
+    matches += 1;
+  }
+
+  return (2 * matches) / (a.length - 1 + (b.length - 1));
 }
 
 function normalizedValues(
@@ -132,7 +161,7 @@ export function filterSearchCatalog<T extends SearchCatalogItem>(
 function classifyMatch(
   item: SearchCatalogItem,
   query: string,
-): SearchMatchType | null {
+): Exclude<SearchMatchType, "fuzzy"> | null {
   const name = normalizeSearchText(item.name);
   const aliases = normalizedValues(item.aliases);
   const tags = normalizedValues(item.tags);
@@ -159,6 +188,38 @@ function stableNameCompare(
   );
 }
 
+function findBestFuzzyResult<T extends SearchCatalogItem>(
+  catalog: readonly T[],
+  query: string,
+): SearchResult<T> | null {
+  let bestItem: T | null = null;
+  let bestScore = 0;
+
+  for (const item of catalog) {
+    const canonicalScore = diceSearchSimilarity(query, item.name);
+    if (canonicalScore > bestScore) {
+      bestScore = canonicalScore;
+      bestItem = item;
+    }
+
+    for (const alias of item.aliases ?? []) {
+      const aliasScore = diceSearchSimilarity(query, alias);
+      if (aliasScore > bestScore) {
+        bestScore = aliasScore;
+        bestItem = item;
+      }
+    }
+  }
+
+  if (!bestItem || bestScore < V1_FUZZY_THRESHOLD) return null;
+
+  return Object.freeze({
+    item: bestItem,
+    matchType: "fuzzy" as const,
+    score: bestScore,
+  });
+}
+
 export function searchCatalog<T extends SearchCatalogItem>(
   catalog: readonly T[],
   query: string,
@@ -167,23 +228,30 @@ export function searchCatalog<T extends SearchCatalogItem>(
   const normalizedQuery = normalizeSearchText(query);
   if (!normalizedQuery) return Object.freeze([]);
 
-  const results = filterSearchCatalog(catalog, filters)
-    .map((item) => {
+  const filteredCatalog = filterSearchCatalog(catalog, filters);
+  const deterministicResults = filteredCatalog
+    .flatMap((item): SearchResult<T>[] => {
       const matchType = classifyMatch(item, normalizedQuery);
-      if (!matchType) return null;
-      return Object.freeze({
-        item,
-        matchType,
-        score: MATCH_SCORE[matchType],
-      });
+      if (!matchType) return [];
+      return [
+        Object.freeze({
+          item,
+          matchType,
+          score: MATCH_SCORE[matchType],
+        }),
+      ];
     })
-    .filter((result): result is SearchResult<T> => result !== null)
     .sort((left, right) => {
       const byScore = right.score - left.score;
       return byScore !== 0 ? byScore : stableNameCompare(left.item, right.item);
     });
 
-  return Object.freeze(results);
+  if (deterministicResults.length > 0) {
+    return Object.freeze(deterministicResults);
+  }
+
+  const fuzzyResult = findBestFuzzyResult(filteredCatalog, normalizedQuery);
+  return fuzzyResult ? Object.freeze([fuzzyResult]) : Object.freeze([]);
 }
 
 export function createSearchIndex<T extends SearchCatalogItem>(
@@ -202,6 +270,8 @@ export function createSearchIndex<T extends SearchCatalogItem>(
     ): readonly SearchResult<T>[] => searchCatalog(snapshot, query, filters),
   });
 }
+
+export const searchV1FuzzyThreshold = V1_FUZZY_THRESHOLD;
 
 export {
   morroV1SearchCatalog,

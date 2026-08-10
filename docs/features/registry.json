@@ -17,10 +17,10 @@
       "name": "Busca e Descoberta",
       "domain": "marketplace",
       "wave": 5,
-      "status": "baseline-pending",
+      "status": "equivalent",
       "legacySources": ["v1:search", "v1:assistant"],
       "targetPackages": ["@touristic/search", "@touristic/marketplace"],
-      "equivalence": { "behavior": false, "visual": false, "api": false }
+      "equivalence": { "behavior": true, "visual": true, "api": true }
     },
     {
       "id": "FEATURE-0003",
