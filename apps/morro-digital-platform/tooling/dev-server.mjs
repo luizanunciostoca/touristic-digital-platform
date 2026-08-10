@@ -160,7 +160,7 @@ async function fetchVisualCrossingWeather(apiKey) {
     `https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/${location}`,
   );
   url.searchParams.set("unitGroup", "metric");
-  url.searchParams.set("include", "current");
+  url.searchParams.set("include", "current,days");
   url.searchParams.set("key", apiKey);
   url.searchParams.set("contentType", "json");
 
@@ -174,14 +174,30 @@ async function fetchVisualCrossingWeather(apiKey) {
 
   const payload = await response.json();
   const current = payload?.currentConditions;
+  const today = payload?.days?.[0];
   const temperatureCelsius = current?.temp;
   if (typeof temperatureCelsius !== "number") {
     throw new Error("Visual Crossing returned incomplete current conditions.");
   }
 
   const icon = String(current?.icon || "");
+  if (
+    typeof today?.tempmax !== "number" ||
+    typeof today?.tempmin !== "number" ||
+    typeof current?.humidity !== "number" ||
+    typeof current?.windspeed !== "number" ||
+    typeof today?.precipprob !== "number"
+  ) {
+    throw new Error("Visual Crossing returned incomplete weather details.");
+  }
+
   return {
     temperatureCelsius,
+    temperatureMaxCelsius: today.tempmax,
+    temperatureMinCelsius: today.tempmin,
+    humidityPercent: current.humidity,
+    windSpeedKph: current.windspeed,
+    rainChancePercent: today.precipprob,
     weatherCode: conditionToWeatherCode(current?.conditions || icon),
     isDay: !icon.includes("night"),
     provider: "visual-crossing",
@@ -192,7 +208,14 @@ async function fetchOpenMeteoWeather() {
   const url = new URL("https://api.open-meteo.com/v1/forecast");
   url.searchParams.set("latitude", String(morroLatitude));
   url.searchParams.set("longitude", String(morroLongitude));
-  url.searchParams.set("current", "temperature_2m,weather_code,is_day");
+  url.searchParams.set(
+    "current",
+    "temperature_2m,relative_humidity_2m,weather_code,is_day,wind_speed_10m",
+  );
+  url.searchParams.set(
+    "daily",
+    "temperature_2m_max,temperature_2m_min,precipitation_probability_max",
+  );
   url.searchParams.set("timezone", "America/Bahia");
 
   const response = await fetch(url, {
@@ -205,8 +228,14 @@ async function fetchOpenMeteoWeather() {
 
   const payload = await response.json();
   const current = payload?.current;
+  const daily = payload?.daily;
   if (
     typeof current?.temperature_2m !== "number" ||
+    typeof current?.relative_humidity_2m !== "number" ||
+    typeof current?.wind_speed_10m !== "number" ||
+    typeof daily?.temperature_2m_max?.[0] !== "number" ||
+    typeof daily?.temperature_2m_min?.[0] !== "number" ||
+    typeof daily?.precipitation_probability_max?.[0] !== "number" ||
     typeof current?.weather_code !== "number" ||
     (current?.is_day !== 0 && current?.is_day !== 1)
   ) {
@@ -215,6 +244,11 @@ async function fetchOpenMeteoWeather() {
 
   return {
     temperatureCelsius: current.temperature_2m,
+    temperatureMaxCelsius: daily.temperature_2m_max[0],
+    temperatureMinCelsius: daily.temperature_2m_min[0],
+    humidityPercent: current.relative_humidity_2m,
+    windSpeedKph: current.wind_speed_10m,
+    rainChancePercent: daily.precipitation_probability_max[0],
     weatherCode: current.weather_code,
     isDay: current.is_day === 1,
     provider: "open-meteo",
