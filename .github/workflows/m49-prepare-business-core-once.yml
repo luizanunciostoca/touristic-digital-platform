@@ -1,4 +1,4 @@
-name: M49 Prepare Business Core Once
+name: M49 Prepare Business Core Once (lint-fixed)
 
 on:
   push:
