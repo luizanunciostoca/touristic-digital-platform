@@ -4,10 +4,16 @@ export type AssistantWeatherLanguage = "pt" | "en" | "es" | "he";
 
 export interface AssistantWeatherCopy {
   readonly text: string;
-  readonly options: ReadonlyArray<{ readonly label: string; readonly value: string }>;
+  readonly options: ReadonlyArray<{
+    readonly label: string;
+    readonly value: string;
+  }>;
 }
 
-const OPTIONS: Record<AssistantWeatherLanguage, AssistantWeatherCopy["options"]> = {
+const OPTIONS: Record<
+  AssistantWeatherLanguage,
+  AssistantWeatherCopy["options"]
+> = {
   pt: [
     { label: "Temperatura agora", value: "temperatura agora" },
     { label: "Vai chover?", value: "vai chover" },
@@ -85,14 +91,18 @@ function conditionKey(reading: WeatherReading): string {
   const code = reading.weatherCode;
   if ([95, 96, 99].includes(code)) return "thunder";
   if ([71, 73, 75, 77, 85, 86].includes(code)) return "frozen";
-  if ([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(code)) return "rain";
+  if ([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(code))
+    return "rain";
   if ([45, 48].includes(code)) return "fog";
   if (code === 3) return "cloudy";
   if ([1, 2].includes(code)) return "partly";
   return reading.isDay ? "clearDay" : "clearNight";
 }
 
-function condition(reading: WeatherReading, language: AssistantWeatherLanguage): string {
+function condition(
+  reading: WeatherReading,
+  language: AssistantWeatherLanguage,
+): string {
   const dictionary = CONDITIONS[language];
   return dictionary[conditionKey(reading)] ?? dictionary.clearDay ?? "";
 }
@@ -121,7 +131,9 @@ export function formatAssistantWeather(
   return { text: text[language], options: OPTIONS[language] };
 }
 
-export function assistantWeatherFallback(language: AssistantWeatherLanguage): AssistantWeatherCopy {
+export function assistantWeatherFallback(
+  language: AssistantWeatherLanguage,
+): AssistantWeatherCopy {
   const text: Record<AssistantWeatherLanguage, string> = {
     pt: "Em Morro de São Paulo, a temperatura costuma ficar entre 25°C e 32°C. O período mais chuvoso vai de novembro a março e a época mais seca costuma ser de junho a setembro.",
     en: "In Morro de São Paulo, temperatures usually range from 25°C to 32°C. The rainiest period is usually from November to March, and the drier season from June to September.",

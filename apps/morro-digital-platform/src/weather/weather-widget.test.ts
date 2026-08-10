@@ -9,6 +9,11 @@ describe("fetchMorroWeather", () => {
         new Response(
           JSON.stringify({
             temperatureCelsius: 28.6,
+            temperatureMaxCelsius: 31.2,
+            temperatureMinCelsius: 24.4,
+            humidityPercent: 78.4,
+            windSpeedKph: 17.6,
+            rainChancePercent: 42.2,
             weatherCode: 1,
             isDay: true,
           }),
@@ -18,6 +23,11 @@ describe("fetchMorroWeather", () => {
 
     await expect(fetchMorroWeather(fetchImplementation)).resolves.toEqual({
       temperatureCelsius: 29,
+      temperatureMaxCelsius: 31,
+      temperatureMinCelsius: 24,
+      humidityPercent: 78,
+      windSpeedKph: 18,
+      rainChancePercent: 42,
       weatherCode: 1,
       isDay: true,
     });

@@ -137,6 +137,11 @@ describe("assistant browser domain adapter", () => {
       new Response(
         JSON.stringify({
           temperatureCelsius: 28,
+          temperatureMaxCelsius: 31,
+          temperatureMinCelsius: 24,
+          humidityPercent: 78,
+          windSpeedKph: 18,
+          rainChancePercent: 42,
           weatherCode: 2,
           isDay: true,
         }),
@@ -152,7 +157,7 @@ describe("assistant browser domain adapter", () => {
     const response = await handlers.weather?.(request("weather"));
 
     expect(response).toEqual({
-      text: "Agora em Morro de São Paulo: 28°C, parcialmente nublado.",
+      text: "Agora em Morro de São Paulo: 28°C, parcialmente nublado. Hoje: máxima de 31°C, mínima de 24°C, umidade 78%, vento 18 km/h e chance de chuva de 42%.",
       options: [
         { label: "Temperatura agora", value: "temperatura agora" },
         { label: "Vai chover?", value: "vai chover" },
@@ -163,11 +168,49 @@ describe("assistant browser domain adapter", () => {
       metadata: {
         domain: "weather",
         state: "resolved",
+        language: "pt",
         temperatureCelsius: 28,
+        temperatureMaxCelsius: 31,
+        temperatureMinCelsius: 24,
+        humidityPercent: 78,
+        windSpeedKph: 18,
+        rainChancePercent: 42,
         weatherCode: 2,
         isDay: true,
       },
     });
+  });
+
+  it("uses the intent language for the complete weather response", async () => {
+    const fetchImplementation: typeof globalThis.fetch = async () =>
+      new Response(
+        JSON.stringify({
+          temperatureCelsius: 28,
+          temperatureMaxCelsius: 31,
+          temperatureMinCelsius: 24,
+          humidityPercent: 78,
+          windSpeedKph: 18,
+          rainChancePercent: 42,
+          weatherCode: 2,
+          isDay: true,
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      );
+    const handlers = createAssistantBrowserDomainHandlers({
+      fetch: fetchImplementation,
+    });
+    const englishRequest = request("weather");
+    englishRequest.intent.entities.language = "en";
+    const response = await handlers.weather?.(englishRequest);
+    expect(response?.text).toContain("Right now in Morro de São Paulo");
+    expect(response?.text).toContain("humidity 78%");
+    expect(response?.metadata).toEqual(
+      expect.objectContaining({
+        domain: "weather",
+        state: "resolved",
+        language: "en",
+      }),
+    );
   });
 
   it("falls back to audited V1 climate guidance when weather is unavailable", async () => {
@@ -191,7 +234,11 @@ describe("assistant browser domain adapter", () => {
         { label: "Como está a maré?", value: "mare" },
         { label: "Voltar ao menu principal", value: "voltar ao menu" },
       ],
-      metadata: { domain: "weather", state: "generic_fallback" },
+      metadata: {
+        domain: "weather",
+        state: "generic_fallback",
+        language: "pt",
+      },
     });
   });
 

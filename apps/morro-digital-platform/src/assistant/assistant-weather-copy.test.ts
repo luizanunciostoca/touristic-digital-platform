@@ -36,7 +36,9 @@ describe("assistant weather copy", () => {
   it("preserves language-specific observable copy", () => {
     expect(formatAssistantWeather(reading, "pt").text).toContain("máxima");
     expect(formatAssistantWeather(reading, "en").text).toContain("humidity");
-    expect(formatAssistantWeather(reading, "es").text).toContain("probabilidad");
+    expect(formatAssistantWeather(reading, "es").text).toContain(
+      "probabilidad",
+    );
     expect(formatAssistantWeather(reading, "he").text).toContain("לחות");
   });
 
