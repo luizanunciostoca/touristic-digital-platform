@@ -1,12 +1,31 @@
+import { normalizeAuthSessionIdentity } from "@touristic/auth";
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  createAuthorizedBusinessProfileService,
   createBusinessProfileService,
   normalizeBusinessId,
   normalizeBusinessProfile,
   type BusinessProfile,
   type BusinessProfileRepository,
 } from "./index.js";
+
+function session(
+  role: "owner" | "manager" | "viewer" | "admin",
+  businessIds: readonly string[] = ["toca"],
+) {
+  const value = normalizeAuthSessionIdentity({
+    subject: `${role}-user`,
+    email: `${role}@example.com`,
+    role,
+    businessIds,
+    issuedAt: 1_700_000_000,
+    expiresAt: 4_000_000_000,
+    sessionId: `${role}-session`,
+  });
+  if (!value) throw new Error("TEST_SESSION_INVALID");
+  return value;
+}
 
 describe("normalizeBusinessId", () => {
   it("normalizes a tenant key without trusting display text", () => {
@@ -90,5 +109,63 @@ describe("createBusinessProfileService", () => {
     await expect(service.saveProfile("<> ", {})).rejects.toThrow(
       "INVALID_BUSINESS_ID",
     );
+  });
+});
+
+describe("createAuthorizedBusinessProfileService", () => {
+  function repository(): BusinessProfileRepository {
+    return {
+      getProfile: vi.fn<BusinessProfileRepository["getProfile"]>(async (id) =>
+        normalizeBusinessProfile({ id, name: "Toca" }, id),
+      ),
+      saveProfile: vi.fn<BusinessProfileRepository["saveProfile"]>(
+        async (_businessId, profile) => profile,
+      ),
+    };
+  }
+
+  it("allows an authenticated scoped owner to read and mutate its tenant", async () => {
+    const store = repository();
+    const service = createAuthorizedBusinessProfileService(store);
+    const owner = session("owner", ["toca"]);
+
+    await expect(service.getProfile(owner, " TOCA ")).resolves.toMatchObject({
+      id: "toca",
+    });
+    await expect(
+      service.saveProfile(owner, "toca", { name: "Toca atualizada" }),
+    ).resolves.toMatchObject({ id: "toca", name: "Toca atualizada" });
+  });
+
+  it("rejects missing sessions and cross-tenant access", async () => {
+    const service = createAuthorizedBusinessProfileService(repository());
+
+    await expect(service.getProfile(null, "toca")).rejects.toThrow(
+      "BUSINESS_AUTH_AUTHENTICATION_REQUIRED",
+    );
+    await expect(
+      service.getProfile(session("manager", ["empresa-a"]), "empresa-b"),
+    ).rejects.toThrow("BUSINESS_AUTH_BUSINESS_ACCESS_DENIED");
+  });
+
+  it("keeps viewer access read-only", async () => {
+    const service = createAuthorizedBusinessProfileService(repository());
+    const viewer = session("viewer", ["toca"]);
+
+    await expect(service.getProfile(viewer, "toca")).resolves.toMatchObject({
+      id: "toca",
+    });
+    await expect(
+      service.saveProfile(viewer, "toca", { name: "Bloqueado" }),
+    ).rejects.toThrow("BUSINESS_AUTH_READ_ONLY_ROLE");
+  });
+
+  it("preserves admin tenant bypass through the Auth policy", async () => {
+    const service = createAuthorizedBusinessProfileService(repository());
+    const admin = session("admin", []);
+
+    await expect(
+      service.saveProfile(admin, "qualquer-negocio", { name: "Admin" }),
+    ).resolves.toMatchObject({ id: "qualquer-negocio", name: "Admin" });
   });
 });
