@@ -37,6 +37,9 @@ importers:
       "@touristic/assistant":
         specifier: workspace:*
         version: link:../../packages/assistant
+      "@touristic/auth-server":
+        specifier: workspace:*
+        version: link:../../services/auth
       "@touristic/core":
         specifier: workspace:*
         version: link:../../packages/core
@@ -53,6 +56,12 @@ importers:
   packages/assistant: {}
 
   packages/auth: {}
+
+  packages/auth-browser:
+    dependencies:
+      "@touristic/auth":
+        specifier: workspace:*
+        version: link:../auth
 
   packages/core: {}
 
@@ -72,6 +81,12 @@ importers:
   packages/search: {}
 
   packages/shared: {}
+
+  services/auth:
+    dependencies:
+      "@touristic/auth":
+        specifier: workspace:*
+        version: link:../../packages/auth
 
 packages:
   "@esbuild/aix-ppc64@0.28.1":

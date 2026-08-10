@@ -4,6 +4,7 @@ import { createServer } from "node:http";
 import { extname, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createAssistantApi } from "./assistant-api.mjs";
+import { createAuthApi } from "./auth-api.mjs";
 
 const repositoryRoot = resolve(
   fileURLToPath(new URL("../../../", import.meta.url)),
@@ -83,6 +84,10 @@ async function loadLocalEnvironment() {
 const localEnvironment = await loadLocalEnvironment();
 
 const assistantApi = createAssistantApi({
+  getEnvironmentValue: (key) => process.env[key] ?? localEnvironment[key] ?? "",
+});
+
+const authApi = createAuthApi({
   getEnvironmentValue: (key) => process.env[key] ?? localEnvironment[key] ?? "",
 });
 
@@ -347,6 +352,10 @@ const server = createServer(async (request, response) => {
     }
     if (requestUrl.pathname === "/api/weather") {
       await serveWeather(response);
+      return;
+    }
+    if (authApi.matches(requestUrl.pathname)) {
+      await authApi.handle(request, response, requestUrl.pathname);
       return;
     }
     if (assistantApi.matches(requestUrl.pathname)) {

@@ -1,0 +1,140 @@
+name: Auth Integration Contract
+
+on:
+  pull_request:
+    paths:
+      - "packages/auth/**"
+      - "packages/auth-browser/**"
+      - "services/auth/**"
+      - "apps/morro-digital-platform/package.json"
+      - "apps/morro-digital-platform/tooling/auth-api.mjs"
+      - "apps/morro-digital-platform/tooling/dev-server.mjs"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/auth-integration-contract.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "packages/auth/**"
+      - "packages/auth-browser/**"
+      - "services/auth/**"
+      - "apps/morro-digital-platform/package.json"
+      - "apps/morro-digital-platform/tooling/auth-api.mjs"
+      - "apps/morro-digital-platform/tooling/dev-server.mjs"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/auth-integration-contract.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  auth-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Validate Auth packages
+        run: |
+          pnpm --filter @touristic/auth test
+          pnpm --filter @touristic/auth-server lint
+          pnpm --filter @touristic/auth-server typecheck
+          pnpm --filter @touristic/auth-server test
+          pnpm --filter @touristic/auth-browser lint
+          pnpm --filter @touristic/auth-browser typecheck
+          pnpm --filter @touristic/auth-browser test
+      - name: Build workspace
+        run: pnpm -w build
+      - name: Validate real login/session/logout HTTP contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          PORT=4174
+          ORIGIN="http://127.0.0.1:${PORT}"
+          SECRET="0123456789abcdef0123456789abcdef"
+          PASSWORD="correct horse battery staple"
+          HASH=$(node --input-type=module -e "import('./services/auth/dist/credentials.js').then(m => console.log(m.hashPassword(process.argv[1], Buffer.alloc(16, 9))))" "$PASSWORD")
+          USERS=$(node -e 'console.log(JSON.stringify([{id:"owner-1",email:"owner@example.com",passwordHash:process.argv[1],role:"owner",businessIds:["toca-do-morcego"]}]))' "$HASH")
+
+          DASHBOARD_AUTH_SECRET="$SECRET" \
+          DASHBOARD_USERS_JSON="$USERS" \
+          PORT="$PORT" \
+          HOST="127.0.0.1" \
+          node apps/morro-digital-platform/tooling/dev-server.mjs > /tmp/m48-auth-server.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true; cat /tmp/m48-auth-server.log || true' EXIT
+
+          for _ in $(seq 1 40); do
+            if curl --fail --silent "$ORIGIN/runtime-config.js" >/dev/null; then break; fi
+            sleep 0.25
+          done
+
+          LOGIN_STATUS=$(curl --silent --output /tmp/login.json --dump-header /tmp/login.headers --write-out '%{http_code}' \
+            --cookie-jar /tmp/auth.cookies \
+            --header "Origin: $ORIGIN" \
+            --header 'Content-Type: application/json' \
+            --data "{\"email\":\"owner@example.com\",\"password\":\"$PASSWORD\"}" \
+            "$ORIGIN/api/dashboard/auth/login")
+          test "$LOGIN_STATUS" = "200"
+          grep -Eiq '^set-cookie: .*HttpOnly' /tmp/login.headers
+          grep -Eiq '^set-cookie: .*SameSite=Strict' /tmp/login.headers
+
+          python - <<'PY'
+          import json
+          data=json.load(open('/tmp/login.json'))
+          assert data['success'] is True
+          assert data['authenticated'] is True
+          assert data['user']['role'] == 'owner'
+          assert data['user']['businessIds'] == ['toca-do-morcego']
+          assert isinstance(data['csrfToken'], str) and len(data['csrfToken']) > 20
+          open('/tmp/csrf.txt','w').write(data['csrfToken'])
+          PY
+          cp /tmp/auth.cookies /tmp/auth-before-logout.cookies
+
+          SESSION_STATUS=$(curl --silent --output /tmp/session.json --write-out '%{http_code}' \
+            --cookie /tmp/auth.cookies \
+            "$ORIGIN/api/dashboard/auth/session")
+          test "$SESSION_STATUS" = "200"
+          python - <<'PY'
+          import json
+          data=json.load(open('/tmp/session.json'))
+          assert data['authenticated'] is True
+          assert data['user']['id'] == 'owner-1'
+          PY
+
+          CSRF=$(cat /tmp/csrf.txt)
+          BAD_CSRF_STATUS=$(curl --silent --output /tmp/bad-csrf.json --write-out '%{http_code}' \
+            --cookie /tmp/auth.cookies \
+            --header "Origin: $ORIGIN" \
+            --header 'X-CSRF-Token: wrong' \
+            --request POST \
+            "$ORIGIN/api/dashboard/auth/logout")
+          test "$BAD_CSRF_STATUS" = "403"
+          grep -q 'INVALID_CSRF' /tmp/bad-csrf.json
+
+          LOGOUT_STATUS=$(curl --silent --output /tmp/logout.json --write-out '%{http_code}' \
+            --cookie /tmp/auth.cookies \
+            --cookie-jar /tmp/auth.cookies \
+            --header "Origin: $ORIGIN" \
+            --header "X-CSRF-Token: $CSRF" \
+            --request POST \
+            "$ORIGIN/api/dashboard/auth/logout")
+          test "$LOGOUT_STATUS" = "200"
+          grep -q '"success":true' /tmp/logout.json
+
+          REVOKED_STATUS=$(curl --silent --output /tmp/revoked.json --write-out '%{http_code}' \
+            --cookie /tmp/auth-before-logout.cookies \
+            "$ORIGIN/api/dashboard/auth/session")
+          test "$REVOKED_STATUS" = "401"
+
+          CROSS_ORIGIN_STATUS=$(curl --silent --output /tmp/cross-origin.json --write-out '%{http_code}' \
+            --header 'Origin: https://evil.example' \
+            --header 'Content-Type: application/json' \
+            --data "{\"email\":\"owner@example.com\",\"password\":\"$PASSWORD\"}" \
+            "$ORIGIN/api/dashboard/auth/login")
+          test "$CROSS_ORIGIN_STATUS" = "403"
+          grep -q 'ORIGIN_DENIED' /tmp/cross-origin.json
