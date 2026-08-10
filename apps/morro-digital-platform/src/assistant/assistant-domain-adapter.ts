@@ -8,9 +8,19 @@ import {
 import { fetchMorroWeather } from "../weather/weather-widget.js";
 import { resolveAssistantNearby } from "./assistant-nearby-adapter.js";
 import {
-  fetchAssistantPlaceDetails,
-  type AssistantPlaceDetails,
-} from "./assistant-place-details-adapter.js";
+  askPlaceCopy,
+  favoritesCopy,
+  formatPlaceDetailsCopy,
+  helpResponse,
+  hoursCopy,
+  locationCopy,
+  moreInfoUnavailable,
+  photosCopy,
+  placeDetailsOptions,
+  priceCopy,
+  type AssistantDomainLanguage,
+} from "./assistant-domain-copy.js";
+import { fetchAssistantPlaceDetails } from "./assistant-place-details-adapter.js";
 import { resolveAssistantV1Photos } from "./assistant-v1-photo-catalog.js";
 import {
   assistantWeatherFallback,
@@ -32,13 +42,6 @@ export interface AssistantBrowserDomainAdapterOptions {
   readonly fetch?: typeof globalThis.fetch;
   readonly mapboxAccessToken?: string;
 }
-
-const PLACE_DETAILS_OPTIONS = [
-  { label: "Como chegar", value: "como chegar" },
-  { label: "Ver fotos", value: "ver fotos" },
-  { label: "Horário", value: "horário" },
-  { label: "Voltar ao menu principal", value: "voltar ao menu" },
-];
 
 async function getWeather(
   fetchImplementation: typeof globalThis.fetch,
@@ -75,20 +78,21 @@ async function getWeather(
 }
 
 function getCurrentLocation(
+  language: AssistantDomainLanguage,
   geolocation?: AssistantGeolocationPort,
 ): Promise<AssistantDialogResponse> {
+  const copy = locationCopy(language);
   if (!geolocation) {
     return Promise.resolve({
-      text: "Não consegui acessar sua localização neste dispositivo.",
+      text: copy.unavailable,
       metadata: { domain: "my_location", state: "unavailable" },
     });
   }
-
   return new Promise((resolve) => {
     geolocation.getCurrentPosition(
-      (position) => {
+      (position) =>
         resolve({
-          text: "Localização atualizada com sucesso.",
+          text: copy.resolved,
           metadata: {
             domain: "my_location",
             state: "resolved",
@@ -98,14 +102,12 @@ function getCurrentLocation(
               accuracy: position.coords.accuracy,
             },
           },
-        });
-      },
-      () => {
+        }),
+      () =>
         resolve({
-          text: "Não consegui obter sua localização. Verifique a permissão de localização e tente novamente.",
+          text: copy.failed,
           metadata: { domain: "my_location", state: "denied_or_failed" },
-        });
-      },
+        }),
       { enableHighAccuracy: true, maximumAge: 15_000, timeout: 10_000 },
     );
   });
@@ -113,36 +115,31 @@ function getCurrentLocation(
 
 async function getPhotos(
   place: string,
+  language: AssistantDomainLanguage,
   fetchImplementation: typeof globalThis.fetch,
 ): Promise<AssistantDialogResponse> {
   const photoSet = resolveAssistantV1Photos(place);
-  if (!photoSet) {
+  if (!photoSet)
     return {
-      text: `Não encontrei fotos disponíveis de ${place}.`,
+      text: photosCopy(language, "unavailable", place),
       metadata: { domain: "photos", state: "unavailable", place },
     };
-  }
-
   const firstImage = photoSet.images[0];
-  if (!firstImage) {
+  if (!firstImage)
     return {
-      text: `Não encontrei fotos disponíveis de ${photoSet.place}.`,
+      text: photosCopy(language, "unavailable", photoSet.place),
       metadata: {
         domain: "photos",
         state: "unavailable",
         place: photoSet.place,
       },
     };
-  }
-
   try {
-    const probe = await fetchImplementation(firstImage, {
-      method: "HEAD",
-    });
+    const probe = await fetchImplementation(firstImage, { method: "HEAD" });
     if (!probe.ok) throw new Error("photo_asset_unavailable");
   } catch {
     return {
-      text: `As fotos de ${photoSet.place} estão catalogadas, mas os arquivos ainda não estão disponíveis nesta versão.`,
+      text: photosCopy(language, "asset_source_pending", photoSet.place),
       metadata: {
         domain: "photos",
         state: "asset_source_pending",
@@ -151,9 +148,13 @@ async function getPhotos(
       },
     };
   }
-
   return {
-    text: `Encontrei ${photoSet.images.length} fotos de ${photoSet.place}.`,
+    text: photosCopy(
+      language,
+      "resolved",
+      photoSet.place,
+      photoSet.images.length,
+    ),
     metadata: {
       domain: "photos",
       state: "resolved",
@@ -164,19 +165,9 @@ async function getPhotos(
   };
 }
 
-function formatPlaceDetails(details: AssistantPlaceDetails): string {
-  const parts = [details.name];
-  if (details.category) parts.push(details.category);
-  if (details.address) parts.push(details.address);
-  if (details.openNow !== null)
-    parts.push(details.openNow ? "Aberto agora" : "Fechado agora");
-  if (details.phone) parts.push(`Telefone: ${details.phone}`);
-  if (details.website) parts.push(`Site: ${details.website}`);
-  return parts.join(" · ");
-}
-
 async function getPlaceDetails(
   place: string,
+  language: AssistantDomainLanguage,
   options: AssistantBrowserDomainAdapterOptions,
 ): Promise<AssistantDialogResponse> {
   const details = await fetchAssistantPlaceDetails(place, {
@@ -185,17 +176,15 @@ async function getPlaceDetails(
       : {}),
     ...(options.fetch ? { fetch: options.fetch } : {}),
   });
-  if (!details) {
+  if (!details)
     return {
-      text: `Não encontrei detalhes atualizados de ${place}.`,
-      options: [...PLACE_DETAILS_OPTIONS],
+      text: moreInfoUnavailable(language, place),
+      options: [...placeDetailsOptions(language)],
       metadata: { domain: "more_info", state: "unavailable", place },
     };
-  }
-
   return {
-    text: formatPlaceDetails(details),
-    options: [...PLACE_DETAILS_OPTIONS],
+    text: formatPlaceDetailsCopy(language, details),
+    options: [...placeDetailsOptions(language)],
     metadata: {
       domain: "more_info",
       state: "resolved",
@@ -207,6 +196,7 @@ async function getPlaceDetails(
 
 async function getPlaceHours(
   place: string,
+  language: AssistantDomainLanguage,
   options: AssistantBrowserDomainAdapterOptions,
 ): Promise<AssistantDialogResponse> {
   const details = await fetchAssistantPlaceDetails(place, {
@@ -215,16 +205,14 @@ async function getPlaceHours(
       : {}),
     ...(options.fetch ? { fetch: options.fetch } : {}),
   });
-  if (!details || details.openNow === null) {
+  if (!details || details.openNow === null)
     return {
-      text: `Não encontrei um horário de funcionamento atualizado para ${place}.`,
+      text: hoursCopy(language, place, null),
       metadata: { domain: "hours", state: "unavailable", place },
     };
-  }
-
   return {
-    text: `${details.name} está ${details.openNow ? "aberto" : "fechado"} agora.`,
-    options: [...PLACE_DETAILS_OPTIONS],
+    text: hoursCopy(language, details.name, details.openNow),
+    options: [...placeDetailsOptions(language)],
     metadata: {
       domain: "hours",
       state: "resolved",
@@ -243,52 +231,73 @@ export function createAssistantBrowserDomainHandlers(
   const fetchImplementation = options.fetch ?? globalThis.fetch;
 
   return createAssistantDomainHandlers({
+    copy: {
+      askPlace: (intent, request) => ({
+        text: askPlaceCopy(request.intent.entities.language ?? "pt", intent),
+        metadata: { domain: intent, state: "awaiting_place" },
+      }),
+    },
     ports: {
       weather: (request) =>
         getWeather(
           fetchImplementation,
           request.intent.entities.language ?? "pt",
         ),
-      myLocation: () => getCurrentLocation(options.geolocation),
-      photos: (place) => getPhotos(place, fetchImplementation),
-      price: (place) => ({
-        text:
-          `💰 Sobre preços em <b>${place}</b>:<br><br>` +
-          `As informações de preço podem variar. Recomendo verificar diretamente com o estabelecimento.<br><br>` +
-          `Em geral, as praias de Morro de São Paulo são <b>gratuitas</b>. Passeios de barco custam em torno de <b>R$ 80-150</b> por pessoa. Restaurantes variam de <b>R$ 30-150</b> por pessoa.`,
-        options: [...PLACE_DETAILS_OPTIONS],
-        metadata: { domain: "price", state: "v1_guidance", place },
-      }),
-      hours: (place) => getPlaceHours(place, options),
-      moreInfo: (place) => getPlaceDetails(place, options),
-      nearby: (request) => resolveAssistantNearby(request, options.geolocation),
-      favorites: () => {
-        const favorites = profile.getFavoritePlaces();
-        if (favorites.length === 0) {
-          return {
-            text: "Você ainda não adicionou lugares aos favoritos.",
-            metadata: { domain: "favorites", count: 0 },
-          };
-        }
+      myLocation: (request) =>
+        getCurrentLocation(
+          request.intent.entities.language ?? "pt",
+          options.geolocation,
+        ),
+      photos: (place, request) =>
+        getPhotos(
+          place,
+          request.intent.entities.language ?? "pt",
+          fetchImplementation,
+        ),
+      price: (place, request) => {
+        const language = request.intent.entities.language ?? "pt";
         return {
-          text: `Seus favoritos: ${favorites.map((place) => place.name).join(", ")}.`,
-          options: favorites.map((place) => ({
-            label: place.name,
-            value: place.name,
-          })),
+          text: priceCopy(language, place),
+          options: [...placeDetailsOptions(language)],
+          metadata: { domain: "price", state: "v1_guidance", place },
+        };
+      },
+      hours: (place, request) =>
+        getPlaceHours(place, request.intent.entities.language ?? "pt", options),
+      moreInfo: (place, request) =>
+        getPlaceDetails(
+          place,
+          request.intent.entities.language ?? "pt",
+          options,
+        ),
+      nearby: (request) => resolveAssistantNearby(request, options.geolocation),
+      favorites: (request) => {
+        const language = request.intent.entities.language ?? "pt";
+        const favorites = profile.getFavoritePlaces();
+        return {
+          text: favoritesCopy(
+            language,
+            favorites.map((place) => place.name),
+          ),
+          ...(favorites.length > 0
+            ? {
+                options: favorites.map((place) => ({
+                  label: place.name,
+                  value: place.name,
+                })),
+              }
+            : {}),
           metadata: { domain: "favorites", count: favorites.length },
         };
       },
-      help: () => ({
-        text: "Posso ajudar com praias, restaurantes, pousadas, atrações, passeios, vida noturna, localização, favoritos e rotas.",
-        options: [
-          { label: "Praias", value: "praias" },
-          { label: "Restaurantes", value: "restaurantes" },
-          { label: "Pousadas", value: "pousadas" },
-          { label: "Atrações", value: "atrações" },
-        ],
-        metadata: { domain: "help" },
-      }),
+      help: (request) => {
+        const copy = helpResponse(request.intent.entities.language ?? "pt");
+        return {
+          text: copy.text,
+          options: [...copy.options],
+          metadata: { domain: "help" },
+        };
+      },
     },
   });
 }
