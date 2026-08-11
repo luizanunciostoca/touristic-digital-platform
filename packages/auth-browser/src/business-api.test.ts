@@ -3,7 +3,9 @@ import { describe, expect, it, vi } from "vitest";
 import { createDashboardAuthClient } from "./index.js";
 
 function createClient(fetchFn: typeof fetch) {
-  const values = new Map<string, string>([["md_dashboard_csrf", "csrf-existing"]]);
+  const values = new Map<string, string>([
+    ["md_dashboard_csrf", "csrf-existing"],
+  ]);
   return createDashboardAuthClient({
     fetchFn,
     storage: {

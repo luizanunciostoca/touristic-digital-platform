@@ -92,7 +92,9 @@ describe("M51 Business dashboard browser client", () => {
   });
 
   it("saves profile mutations only through the Auth secureFetch port", async () => {
-    const fixture = authFixture(session(), [profileResponse("Toca Atualizada")]);
+    const fixture = authFixture(session(), [
+      profileResponse("Toca Atualizada"),
+    ]);
     const client = createBusinessDashboardClient(fixture.authClient);
 
     const result = await client.saveProfile("toca-do-morcego", {

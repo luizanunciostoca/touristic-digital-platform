@@ -2,10 +2,7 @@ import type {
   DashboardAuthClient,
   DashboardSessionResponse,
 } from "@touristic/auth-browser";
-import {
-  normalizeBusinessId,
-  type BusinessProfile,
-} from "@touristic/business";
+import { normalizeBusinessId, type BusinessProfile } from "@touristic/business";
 
 export interface BusinessDashboardBootstrap {
   readonly session: DashboardSessionResponse;
@@ -17,7 +14,9 @@ export interface BusinessDashboardClient {
   readonly bootstrap: (
     requestedBusinessId?: unknown,
   ) => Promise<BusinessDashboardBootstrap>;
-  readonly loadProfile: (businessId: unknown) => Promise<BusinessProfile | null>;
+  readonly loadProfile: (
+    businessId: unknown,
+  ) => Promise<BusinessProfile | null>;
   readonly saveProfile: (
     businessId: unknown,
     profile: unknown,
@@ -55,7 +54,9 @@ async function readError(response: Response): Promise<string> {
     .clone()
     .json()
     .catch(() => ({}))) as { error?: unknown };
-  return typeof body.error === "string" ? body.error : `HTTP_${response.status}`;
+  return typeof body.error === "string"
+    ? body.error
+    : `HTTP_${response.status}`;
 }
 
 export function createBusinessDashboardClient(
