@@ -133,14 +133,14 @@ jobs:
                   route: { showRoute: async () => ({ success: false, code: 'NOT_USED', excludeFromBusinessMetrics: true }) }
                 };
                 const runtime = new runtimeModule.BusinessOnboardingRuntime(host, adapters, window);
+                await runtime.onStepEnter(host.snapshot());
+
                 const surface = new surfaceModule.BusinessOnboardingSurface({
                   document,
                   host,
-                  onStepEnter: snapshot => runtime.onStepEnter(snapshot),
                   onRuntimeAction: action => runtime.handleAction(action)
                 });
                 surface.mount(document.querySelector('#root'));
-                await new Promise(resolve => setTimeout(resolve, 50));
 
                 const profile = host.snapshot().session.conversationDraft.context.tutorialBusinessProfile;
                 const preview = document.querySelector('.business-onboarding-profile-preview');
