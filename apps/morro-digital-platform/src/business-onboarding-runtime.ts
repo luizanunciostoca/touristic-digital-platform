@@ -7,7 +7,6 @@ import type {
   BusinessOnboardingHostController,
   BusinessOnboardingHostSnapshot,
 } from "@touristic/business/onboarding-host";
-import { buildBusinessTutorialProfile } from "@touristic/business/onboarding-profile";
 import { resolveBusinessOnboardingStep } from "@touristic/business/onboarding-presentation";
 import {
   buildBusinessTutorialRecommendationCandidate,
@@ -216,6 +215,9 @@ export class BusinessOnboardingRuntime {
     }
 
     if (snapshot.stepId === "profile") {
+      const { buildBusinessTutorialProfile } = await import(
+        "@touristic/business/onboarding-profile"
+      );
       const recommendationCandidate = isRecord(
         context.tutorialBusinessCandidate,
       )
