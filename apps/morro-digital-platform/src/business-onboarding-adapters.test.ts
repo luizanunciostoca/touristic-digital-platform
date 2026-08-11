@@ -19,9 +19,8 @@ describe("M54 Business onboarding adapters", () => {
 
   it("resolves an existing Business location through Search-backed geospatial coordinates", async () => {
     const ports = createBusinessOnboardingAdapters();
-    const location = await ports.location.findExistingLocation(
-      "Toca do Morcego",
-    );
+    const location =
+      await ports.location.findExistingLocation("Toca do Morcego");
 
     expect(location).toEqual(
       expect.objectContaining({
@@ -78,7 +77,9 @@ describe("M54 Business onboarding adapters", () => {
     const ports = createBusinessOnboardingAdapters();
     const response = await ports.assistant.ask("ajuda", "pt");
 
-    expect(response.metadata).toEqual(expect.objectContaining({ domain: "help" }));
+    expect(response.metadata).toEqual(
+      expect.objectContaining({ domain: "help" }),
+    );
     expect(response.onboardingLocale).toBe("pt");
     expect(response.options?.length).toBeGreaterThan(0);
   });

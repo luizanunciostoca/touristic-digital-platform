@@ -41,8 +41,7 @@ export type BusinessOnboardingAssistantResponse = AssistantDialogResponse & {
   readonly onboardingLocale: string;
 };
 
-export interface BusinessOnboardingDiscoveryAdapter
-  extends BusinessDiscoveryPort {
+export interface BusinessOnboardingDiscoveryAdapter extends BusinessDiscoveryPort {
   readonly searchBusiness: (
     query: string,
   ) => Promise<readonly BusinessOnboardingSearchMatch[]>;
@@ -62,8 +61,7 @@ export interface BusinessOnboardingAssistantAdapter extends BusinessAssistantPor
   ) => Promise<BusinessOnboardingAssistantResponse>;
 }
 
-export interface BusinessOnboardingConcreteAdapters
-  extends BusinessOnboardingPorts {
+export interface BusinessOnboardingConcreteAdapters extends BusinessOnboardingPorts {
   readonly discovery: BusinessOnboardingDiscoveryAdapter;
   readonly location: BusinessOnboardingLocationAdapter;
   readonly assistant: BusinessOnboardingAssistantAdapter;
