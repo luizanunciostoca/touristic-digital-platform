@@ -26,6 +26,32 @@ function stringValue(value: unknown): string {
   return typeof value === "string" ? value : "";
 }
 
+function routeSummary(value: unknown): string {
+  if (!value || typeof value !== "object") return "";
+  const result = value as {
+    readonly success?: unknown;
+    readonly distanceMeters?: unknown;
+    readonly durationSeconds?: unknown;
+    readonly code?: unknown;
+  };
+  if (result.success !== true) {
+    return typeof result.code === "string"
+      ? `Rota indisponível: ${result.code}.`
+      : "Rota indisponível.";
+  }
+  const distance =
+    typeof result.distanceMeters === "number" &&
+    Number.isFinite(result.distanceMeters)
+      ? `${Math.round(result.distanceMeters)} m`
+      : "distância calculada";
+  const duration =
+    typeof result.durationSeconds === "number" &&
+    Number.isFinite(result.durationSeconds)
+      ? `${Math.max(1, Math.round(result.durationSeconds / 60))} min`
+      : "tempo calculado";
+  return `Rota confirmada: ${distance} · ${duration}.`;
+}
+
 function contextValue(
   snapshot: BusinessOnboardingHostSnapshot,
   field: string | undefined,
@@ -276,15 +302,21 @@ export class BusinessOnboardingSurface {
         "Simular busca por voz",
         true,
       );
-    } else if (
-      snapshot.stepId === "route" &&
-      context.businessTutorialRouteReady !== true
-    ) {
+    } else if (snapshot.stepId === "route") {
       const note = this.document.createElement("p");
       note.className = "business-onboarding-runtime-note";
       note.textContent =
-        "A rota permanece bloqueada até existir um port de rota equivalente ao fluxo V1.";
+        routeSummary(context.businessRouteResult) ||
+        "Calculando uma rota demonstrativa com o serviço real de navegação...";
       actions.append(note);
+      if (context.businessTutorialRouteReady !== true) {
+        this.appendRuntimeButton(
+          actions,
+          "route-retry",
+          "Tentar rota novamente",
+          true,
+        );
+      }
     }
 
     if (actions.childElementCount > 0) container.append(actions);

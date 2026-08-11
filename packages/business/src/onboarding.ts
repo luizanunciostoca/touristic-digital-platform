@@ -192,10 +192,39 @@ export interface BusinessAssistantPort {
   readonly ask: (message: string, locale: string) => Promise<unknown>;
 }
 
+export interface BusinessRouteCoordinate {
+  readonly latitude: number;
+  readonly longitude: number;
+}
+
+export interface BusinessRouteRequest {
+  readonly origin: BusinessRouteCoordinate;
+  readonly destination: BusinessRouteCoordinate;
+  readonly destinationName: string;
+  readonly language?: string;
+}
+
+export interface BusinessRouteResult {
+  readonly success: boolean;
+  readonly code: string;
+  readonly distanceMeters: number;
+  readonly durationSeconds: number;
+  readonly route: unknown;
+  readonly tutorial: true;
+  readonly excludeFromBusinessMetrics: true;
+}
+
+export interface BusinessRoutePort {
+  readonly showRoute: (
+    request: BusinessRouteRequest,
+  ) => Promise<BusinessRouteResult>;
+}
+
 export interface BusinessOnboardingPorts {
   readonly discovery?: BusinessDiscoveryPort;
   readonly location?: BusinessLocationPort;
   readonly assistant?: BusinessAssistantPort;
+  readonly route?: BusinessRoutePort;
 }
 
 function safeText(value: unknown, maxLength = 240): string {

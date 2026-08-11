@@ -8,8 +8,21 @@ import type {
   BusinessDiscoveryPort,
   BusinessLocationPort,
   BusinessOnboardingPorts,
+  BusinessRoutePort,
+  BusinessRouteRequest,
+  BusinessRouteResult,
 } from "@touristic/business/onboarding";
-import type { Coordinates } from "@touristic/geospatial";
+import {
+  createMapboxDirectionsRoutingProvider,
+  type Coordinates,
+} from "@touristic/geospatial";
+import {
+  createSameOriginRoutingProvider,
+  requestRoute,
+  type FetchLike as RoutingFetchLike,
+  type RouteFeatureCollection,
+  type RoutingLanguage,
+} from "@touristic/navigation";
 import {
   createSearchIndex,
   morroV1SearchCatalog,
@@ -61,16 +74,24 @@ export interface BusinessOnboardingAssistantAdapter extends BusinessAssistantPor
   ) => Promise<BusinessOnboardingAssistantResponse>;
 }
 
+export interface BusinessOnboardingRouteAdapter extends BusinessRoutePort {
+  readonly showRoute: (
+    request: BusinessRouteRequest,
+  ) => Promise<BusinessRouteResult>;
+}
+
 export interface BusinessOnboardingConcreteAdapters extends BusinessOnboardingPorts {
   readonly discovery: BusinessOnboardingDiscoveryAdapter;
   readonly location: BusinessOnboardingLocationAdapter;
   readonly assistant: BusinessOnboardingAssistantAdapter;
+  readonly route: BusinessOnboardingRouteAdapter;
 }
 
 export interface BusinessOnboardingAdapterOptions {
   readonly geolocation?: AssistantGeolocationPort;
   readonly fetch?: typeof globalThis.fetch;
   readonly mapboxAccessToken?: string;
+  readonly routeTimeoutMs?: number;
 }
 
 const businessSearchIndex = createSearchIndex(morroV1SearchCatalog);
@@ -190,6 +211,108 @@ function createAssistantAdapter(
   });
 }
 
+function asRoutingFetch(fetchImpl: typeof globalThis.fetch): RoutingFetchLike {
+  return async (input, init) => {
+    const response = await fetchImpl(input, init);
+    return {
+      ok: response.ok,
+      status: response.status,
+      json: () => response.json(),
+    };
+  };
+}
+
+function numericProperty(value: unknown, key: "distance" | "duration"): number {
+  if (!value || typeof value !== "object") return 0;
+  const candidate = (value as Record<string, unknown>)[key];
+  return typeof candidate === "number" && Number.isFinite(candidate)
+    ? candidate
+    : 0;
+}
+
+function routeSummary(route: RouteFeatureCollection): {
+  readonly distanceMeters: number;
+  readonly durationSeconds: number;
+} {
+  const summary = route.features[0]?.properties?.summary;
+  return Object.freeze({
+    distanceMeters: numericProperty(summary, "distance"),
+    durationSeconds: numericProperty(summary, "duration"),
+  });
+}
+
+function routingLanguage(value: string | undefined): RoutingLanguage {
+  return value === "en" || value === "es" || value === "he" ? value : "pt";
+}
+
+function routeFailure(code: string): BusinessRouteResult {
+  return Object.freeze({
+    success: false,
+    code,
+    distanceMeters: 0,
+    durationSeconds: 0,
+    route: null,
+    tutorial: true,
+    excludeFromBusinessMetrics: true,
+  });
+}
+
+function routeErrorCode(error: unknown): string {
+  if (
+    error &&
+    typeof error === "object" &&
+    "code" in error &&
+    typeof (error as { readonly code?: unknown }).code === "string"
+  ) {
+    return (error as { readonly code: string }).code;
+  }
+  return "ROUTING_FAILED";
+}
+
+function createRouteAdapter(
+  options: BusinessOnboardingAdapterOptions,
+): BusinessOnboardingRouteAdapter {
+  const fetchImpl = options.fetch ?? globalThis.fetch;
+  const primaryProvider = createSameOriginRoutingProvider({
+    fetchImpl: asRoutingFetch(fetchImpl),
+  });
+  const fallbackProvider = options.mapboxAccessToken
+    ? createMapboxDirectionsRoutingProvider({
+        token: options.mapboxAccessToken,
+      })
+    : null;
+
+  return Object.freeze({
+    async showRoute(
+      request: BusinessRouteRequest,
+    ): Promise<BusinessRouteResult> {
+      try {
+        const route = await requestRoute({
+          start: [request.origin.longitude, request.origin.latitude],
+          end: [request.destination.longitude, request.destination.latitude],
+          profile: "foot-walking",
+          language: routingLanguage(request.language),
+          timeoutMs: options.routeTimeoutMs ?? 15_000,
+          primaryProvider,
+          fallbackProvider,
+          allowFallback: fallbackProvider !== null,
+        });
+        const summary = routeSummary(route);
+        return Object.freeze({
+          success: true,
+          code: "ROUTE_VERIFIED",
+          ...summary,
+          route,
+          tutorial: true,
+          excludeFromBusinessMetrics: true,
+        });
+      } catch (error) {
+        return routeFailure(routeErrorCode(error));
+      }
+    },
+  });
+}
+
 export function createBusinessOnboardingAdapters(
   options: BusinessOnboardingAdapterOptions = {},
 ): BusinessOnboardingConcreteAdapters {
@@ -197,5 +320,6 @@ export function createBusinessOnboardingAdapters(
     discovery: createDiscoveryAdapter(),
     location: createLocationAdapter(options.geolocation),
     assistant: createAssistantAdapter(options),
+    route: createRouteAdapter(options),
   });
 }

@@ -1,0 +1,176 @@
+name: Business Onboarding Route Browser Contract
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/business-onboarding-route-browser-contract.yml"
+      - "apps/morro-digital-platform/src/business-onboarding-*.ts"
+      - "packages/business/src/onboarding*.ts"
+      - "packages/navigation/**"
+      - "packages/geospatial/**"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/business-onboarding-route-browser-contract.yml"
+      - "apps/morro-digital-platform/src/business-onboarding-*.ts"
+      - "packages/business/src/onboarding*.ts"
+      - "packages/navigation/**"
+      - "packages/geospatial/**"
+
+permissions:
+  contents: read
+
+jobs:
+  onboarding-route-browser:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install deterministic Chromium
+        run: |
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+      - name: Build workspace
+        run: pnpm -w build
+      - name: Start deterministic module origin
+        run: |
+          set -euo pipefail
+          PORT=4182
+          HOST=127.0.0.1
+          PORT="$PORT" HOST="$HOST" node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/m57-route-server.log 2>&1 &
+          echo $! >/tmp/m57-route-server.pid
+          for _ in $(seq 1 60); do
+            if curl --fail --silent "http://${HOST}:${PORT}/runtime-config.js" >/dev/null; then exit 0; fi
+            sleep 0.25
+          done
+          cat /tmp/m57-route-server.log
+          exit 1
+      - name: Validate verified route guard and Navigation handoff
+        run: |
+          node <<'NODE'
+          const { writeFileSync } = require('node:fs');
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+
+          (async () => {
+            const origin = 'http://127.0.0.1:4182';
+            const browser = await chromium.launch({ headless: true });
+            const evidence = { errors: [], events: [] };
+            try {
+              const page = await browser.newPage();
+              page.on('pageerror', error => evidence.errors.push(error.message));
+              await page.exposeFunction('recordM57RouteEvent', event => evidence.events.push(event));
+              await page.route('**/api/routing/directions', async route => {
+                const request = route.request();
+                const body = JSON.parse(request.postData() || '{}');
+                evidence.request = { method: request.method(), body };
+                await route.fulfill({
+                  status: 200,
+                  contentType: 'application/json',
+                  body: JSON.stringify({
+                    type: 'FeatureCollection',
+                    features: [{
+                      geometry: {
+                        type: 'LineString',
+                        coordinates: [[-38.914, -13.377], [-38.912, -13.375]],
+                      },
+                      properties: { summary: { distance: 310, duration: 240 } },
+                    }],
+                  }),
+                });
+              });
+
+              await page.goto(`${origin}/runtime-config.js`, { waitUntil: 'domcontentloaded' });
+              await page.evaluate(() => {
+                document.open();
+                document.write(`<!doctype html><html><head><meta charset="utf-8"><script type="importmap">${JSON.stringify({ imports: {
+                  '@touristic/assistant': '/packages/assistant/dist/index.js',
+                  '@touristic/business/onboarding': '/packages/business/dist/onboarding.js',
+                  '@touristic/business/onboarding-host': '/packages/business/dist/onboarding-host.js',
+                  '@touristic/business/onboarding-presentation': '/packages/business/dist/onboarding-presentation.js',
+                  '@touristic/business/onboarding-steps': '/packages/business/dist/onboarding-steps.js',
+                  '@touristic/geospatial': '/packages/geospatial/dist/index.js',
+                  '@touristic/navigation': '/packages/navigation/dist/index.js',
+                  '@touristic/search': '/packages/search/dist/index.js'
+                } })}<\/script></head><body><main>M57 route contract</main></body></html>`);
+                document.close();
+              });
+
+              const result = await page.evaluate(async () => {
+                for (const name of ['businessTutorialRouteRendered', 'businessOnboardingRouteFailed', 'morro:navigation-requested']) {
+                  window.addEventListener(name, event => window.recordM57RouteEvent({ name, detail: event.detail }));
+                }
+                const onboarding = await import('/packages/business/dist/onboarding.js');
+                const hostModule = await import('/packages/business/dist/onboarding-host.js');
+                const adaptersModule = await import('/apps/morro-digital-platform/dist/business-onboarding-adapters.js');
+                const runtimeModule = await import('/apps/morro-digital-platform/dist/business-onboarding-runtime.js');
+
+                const base = onboarding.createBusinessOnboardingSession({
+                  context: {
+                    businessName: 'Toca do Morcego',
+                    businessLocation: {
+                      coordinates: { latitude: -13.375, longitude: -38.912 },
+                    },
+                    businessLocationConfirmed: true,
+                  },
+                });
+                const session = onboarding.transitionBusinessOnboarding(base, 'route', { reason: 'm57-browser-contract' });
+                let runtime = null;
+                const host = new hostModule.BusinessOnboardingHostController({
+                  session,
+                  beforeTransition: context => runtime?.beforeTransition(context) ?? false,
+                });
+                const adapters = adaptersModule.createBusinessOnboardingAdapters({ fetch: window.fetch.bind(window) });
+                runtime = new runtimeModule.BusinessOnboardingRuntime(host, adapters, window);
+
+                await runtime.onStepEnter(host.snapshot());
+                const verified = host.snapshot();
+                const advanced = await host.next();
+                return {
+                  verifiedStep: verified.stepId,
+                  routeReady: verified.session.conversationDraft.context.businessTutorialRouteReady,
+                  routeResult: verified.session.conversationDraft.context.businessRouteResult,
+                  advancedStep: advanced.stepId,
+                };
+              });
+
+              if (evidence.request?.method !== 'POST') throw new Error(`Routing method diverged: ${JSON.stringify(evidence.request)}`);
+              if (evidence.request?.body?.profile !== 'foot-walking' || evidence.request?.body?.language !== 'pt') throw new Error(`Routing payload diverged: ${JSON.stringify(evidence.request)}`);
+              if (result.verifiedStep !== 'route' || result.routeReady !== true) throw new Error(`Route guard was not released: ${JSON.stringify(result)}`);
+              if (result.routeResult?.success !== true || result.routeResult?.distanceMeters !== 310 || result.routeResult?.durationSeconds !== 240) throw new Error(`Verified route summary diverged: ${JSON.stringify(result.routeResult)}`);
+              if (result.routeResult?.excludeFromBusinessMetrics !== true) throw new Error('Tutorial route leaked into Business metrics');
+              if (result.advancedStep !== 'conversion') throw new Error(`Route did not advance to conversion: ${result.advancedStep}`);
+              if (!evidence.events.some(event => event.name === 'businessTutorialRouteRendered' && event.detail?.success === true)) throw new Error('Missing verified route rendered event');
+              if (!evidence.events.some(event => event.name === 'morro:navigation-requested' && event.detail?.source === 'business-onboarding')) throw new Error('Missing Navigation ownership handoff');
+              if (evidence.events.some(event => event.name === 'businessOnboardingRouteFailed')) throw new Error(`Unexpected route failure event: ${JSON.stringify(evidence.events)}`);
+              if (evidence.errors.length) throw new Error(`Browser errors: ${JSON.stringify(evidence.errors)}`);
+
+              Object.assign(evidence, { result, status: 'PASS' });
+              writeFileSync('/tmp/m57-business-route-evidence.json', JSON.stringify(evidence, null, 2));
+            } finally {
+              await browser.close();
+            }
+          })().catch(error => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+      - name: Show diagnostics
+        if: failure()
+        run: cat /tmp/m57-route-server.log || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: business-onboarding-route-browser-evidence
+          path: /tmp/m57-business-route-evidence.json
+          retention-days: 1
+          if-no-files-found: ignore
+      - name: Stop runtime
+        if: always()
+        run: kill "$(cat /tmp/m57-route-server.pid)" 2>/dev/null || true

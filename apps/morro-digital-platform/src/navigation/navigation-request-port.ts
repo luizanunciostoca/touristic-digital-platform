@@ -1,6 +1,7 @@
 import type { NavigationDestinationInput } from "./navigation-session-bootstrap.js";
 import type { NavigationDomLifecycle } from "./navigation-dom-lifecycle.js";
 
+// Shared browser ingress for validated feature-owned navigation intents, including Business onboarding.
 export const NAVIGATION_REQUEST_EVENT = "morro:navigation-requested";
 
 export interface NavigationRequestPortOptions {
