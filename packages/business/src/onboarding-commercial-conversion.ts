@@ -57,7 +57,11 @@ const FALLBACK_PLANS = Object.freeze([
     description: "Presença no mapa, perfil comercial e descoberta orgânica.",
     priceLabel: "Valor confirmado antes do pagamento",
     goals: Object.freeze(["brand"]),
-    features: Object.freeze(["Perfil comercial", "Mapa e busca", "Informações em quatro idiomas"]),
+    features: Object.freeze([
+      "Perfil comercial",
+      "Mapa e busca",
+      "Informações em quatro idiomas",
+    ]),
     recommended: false,
   }),
   Object.freeze({
@@ -66,7 +70,11 @@ const FALLBACK_PLANS = Object.freeze([
     description: "Mais ferramentas para gerar contatos, reservas e vendas.",
     priceLabel: "Valor confirmado antes do pagamento",
     goals: Object.freeze(["clients", "reservations", "whatsapp", "sales"]),
-    features: Object.freeze(["Tudo do Essencial", "Promoções e ofertas", "Métricas e painel do parceiro"]),
+    features: Object.freeze([
+      "Tudo do Essencial",
+      "Promoções e ofertas",
+      "Métricas e painel do parceiro",
+    ]),
     recommended: true,
   }),
   Object.freeze({
@@ -75,7 +83,11 @@ const FALLBACK_PLANS = Object.freeze([
     description: "Campanhas, eventos e maior capacidade de ativação comercial.",
     priceLabel: "Valor confirmado antes do pagamento",
     goals: Object.freeze(["events"]),
-    features: Object.freeze(["Tudo do Crescimento", "Campanhas e eventos", "Acompanhamento comercial avançado"]),
+    features: Object.freeze([
+      "Tudo do Crescimento",
+      "Campanhas e eventos",
+      "Acompanhamento comercial avançado",
+    ]),
     recommended: false,
   }),
 ] satisfies readonly BusinessCommercialPlan[]);
@@ -116,7 +128,12 @@ export function buildBusinessCommercialContractor(
     phone: safeText(input.phone, 80),
     document: safeText(input.document, 80),
   });
-  if (!contractor.name || !validEmail(contractor.email) || !contractor.phone || !contractor.document) {
+  if (
+    !contractor.name ||
+    !validEmail(contractor.email) ||
+    !contractor.phone ||
+    !contractor.document
+  ) {
     return null;
   }
   return contractor;
@@ -128,27 +145,51 @@ export function buildBusinessCommercialAcceptances(
 ): readonly BusinessCommercialAcceptance[] | null {
   if (!input.terms || !input.privacy || !acceptedAt) return null;
   const acceptances: BusinessCommercialAcceptance[] = [
-    Object.freeze({ type: "terms", version: BUSINESS_PARTNER_TERMS_VERSION, acceptedAt }),
-    Object.freeze({ type: "privacy", version: BUSINESS_PRIVACY_VERSION, acceptedAt }),
+    Object.freeze({
+      type: "terms",
+      version: BUSINESS_PARTNER_TERMS_VERSION,
+      acceptedAt,
+    }),
+    Object.freeze({
+      type: "privacy",
+      version: BUSINESS_PRIVACY_VERSION,
+      acceptedAt,
+    }),
   ];
   if (input.marketing) {
-    acceptances.push(Object.freeze({ type: "marketing", version: "consent-v1", acceptedAt }));
+    acceptances.push(
+      Object.freeze({
+        type: "marketing",
+        version: "consent-v1",
+        acceptedAt,
+      }),
+    );
   }
   return Object.freeze(acceptances);
 }
 
-export function buildBusinessCommercialCheckoutHandoff(input: Readonly<{
-  sessionId?: unknown;
-  planId?: unknown;
-  contractor?: BusinessCommercialContractor | null;
-  businessDraft?: Readonly<Record<string, unknown>>;
-  acceptedTerms?: readonly BusinessCommercialAcceptance[] | null;
-  returnUrl?: unknown;
-}>): BusinessCommercialCheckoutHandoff | null {
+export function buildBusinessCommercialCheckoutHandoff(
+  input: Readonly<{
+    sessionId?: unknown;
+    planId?: unknown;
+    contractor?: BusinessCommercialContractor | null;
+    businessDraft?: Readonly<Record<string, unknown>>;
+    acceptedTerms?: readonly BusinessCommercialAcceptance[] | null;
+    returnUrl?: unknown;
+  }>,
+): BusinessCommercialCheckoutHandoff | null {
   const sessionId = safeText(input.sessionId, 120);
   const planId = safeText(input.planId, 80);
   const returnUrl = safeText(input.returnUrl, 500);
-  if (!sessionId || !planId || !input.contractor || !input.acceptedTerms?.length || !returnUrl) return null;
+  if (
+    !sessionId ||
+    !planId ||
+    !input.contractor ||
+    !input.acceptedTerms?.length ||
+    !returnUrl
+  ) {
+    return null;
+  }
   return Object.freeze({
     sessionId,
     planId,
@@ -167,7 +208,13 @@ export function acceptBusinessCommercialVerifiedPayment(
 ): BusinessCommercialActivation | null {
   const sessionId = safeText(expectedSessionId, 120);
   const resultSessionId = safeText(result.sessionId, 120);
-  if (result.verified !== true || !sessionId || resultSessionId !== sessionId) return null;
+  if (
+    result.verified !== true ||
+    !sessionId ||
+    resultSessionId !== sessionId
+  ) {
+    return null;
+  }
   const reference = safeText(result.reference, 160);
   if (!reference) return null;
   return Object.freeze({
