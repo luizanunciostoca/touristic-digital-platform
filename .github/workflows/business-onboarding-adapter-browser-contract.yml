@@ -1,0 +1,162 @@
+name: Business Onboarding Adapter Browser Contract
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/business-onboarding-adapter-browser-contract.yml"
+      - "apps/morro-digital-platform/src/business-onboarding-adapters.ts"
+      - "apps/morro-digital-platform/src/business-onboarding-adapters.test.ts"
+      - "packages/business/**"
+      - "packages/search/**"
+      - "packages/geospatial/**"
+      - "packages/assistant/**"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/business-onboarding-adapter-browser-contract.yml"
+      - "apps/morro-digital-platform/src/business-onboarding-adapters.ts"
+      - "apps/morro-digital-platform/src/business-onboarding-adapters.test.ts"
+      - "packages/business/**"
+      - "packages/search/**"
+      - "packages/geospatial/**"
+      - "packages/assistant/**"
+
+permissions:
+  contents: read
+
+jobs:
+  onboarding-adapters-browser:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install deterministic Chromium
+        run: |
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+      - name: Build workspace
+        run: pnpm -w build
+      - name: Start deterministic module origin
+        shell: bash
+        run: |
+          set -euo pipefail
+          PORT=4178 HOST=127.0.0.1 node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/m54-onboarding-server.log 2>&1 &
+          echo $! >/tmp/m54-server.pid
+          for _ in $(seq 1 60); do
+            if curl --fail --silent "http://127.0.0.1:${PORT}/runtime-config.js" >/dev/null; then exit 0; fi
+            sleep 0.25
+          done
+          cat /tmp/m54-onboarding-server.log
+          exit 1
+      - name: Validate Search Geo Assistant onboarding adapters
+        run: |
+          node <<'NODE'
+          const { writeFileSync } = require('node:fs');
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+
+          (async () => {
+            const origin = 'http://127.0.0.1:4178';
+            const browser = await chromium.launch({ headless: true });
+            const evidence = { errors: [] };
+            try {
+              const page = await browser.newPage();
+              page.on('pageerror', error => evidence.errors.push(error.message));
+              await page.goto(`${origin}/runtime-config.js`, { waitUntil: 'domcontentloaded' });
+
+              await page.evaluate(() => {
+                document.open();
+                document.write(`<!doctype html><html><head><meta charset="utf-8"><script type="importmap">${JSON.stringify({ imports: {
+                  '@touristic/assistant': '/packages/assistant/dist/index.js',
+                  '@touristic/business': '/packages/business/dist/index.js',
+                  '@touristic/geospatial': '/packages/geospatial/dist/index.js',
+                  '@touristic/search': '/packages/search/dist/index.js'
+                } })}<\/script></head><body><main id="fixture">M54</main></body></html>`);
+                document.close();
+              });
+
+              const result = await page.evaluate(async () => {
+                const module = await import('/apps/morro-digital-platform/dist/business-onboarding-adapters.js');
+                const ports = module.createBusinessOnboardingAdapters({
+                  geolocation: {
+                    getCurrentPosition(success) {
+                      success({
+                        coords: {
+                          accuracy: 7,
+                          altitude: null,
+                          altitudeAccuracy: null,
+                          heading: null,
+                          latitude: -13.377,
+                          longitude: -38.914,
+                          speed: null,
+                        },
+                        timestamp: 1,
+                      });
+                    },
+                  },
+                });
+
+                const discovery = await ports.discovery.searchBusiness('Toca do Morcego');
+                const existingLocation = await ports.location.findExistingLocation('Toca do Morcego');
+                const deviceLocation = await ports.location.requestDeviceLocation();
+                const assistant = await ports.assistant.ask('ajuda', 'pt');
+
+                return {
+                  discovery,
+                  existingLocation,
+                  deviceLocation,
+                  assistant: {
+                    text: assistant.text,
+                    options: assistant.options,
+                    metadata: assistant.metadata,
+                    onboardingLocale: assistant.onboardingLocale,
+                  },
+                };
+              });
+
+              if (!Array.isArray(result.discovery) || result.discovery.length === 0) throw new Error('Discovery adapter returned no result');
+              if (result.discovery[0]?.name !== 'Toca do Morcego') throw new Error(`Unexpected discovery result: ${JSON.stringify(result.discovery[0])}`);
+              if (result.existingLocation?.source !== 'catalog') throw new Error(`Catalog location did not resolve: ${JSON.stringify(result.existingLocation)}`);
+              if (!Number.isFinite(result.existingLocation?.coordinates?.latitude) || !Number.isFinite(result.existingLocation?.coordinates?.longitude)) throw new Error('Catalog coordinates are invalid');
+              if (result.deviceLocation?.source !== 'device' || result.deviceLocation?.accuracy !== 7) throw new Error(`Device location port diverged: ${JSON.stringify(result.deviceLocation)}`);
+              if (result.assistant?.metadata?.domain !== 'help') throw new Error(`Assistant adapter did not use domain handler: ${JSON.stringify(result.assistant)}`);
+              if (result.assistant?.onboardingLocale !== 'pt') throw new Error('Onboarding locale was not preserved');
+              if (!Array.isArray(result.assistant?.options) || result.assistant.options.length === 0) throw new Error('Assistant options were not preserved');
+              if (evidence.errors.length) throw new Error(`Browser errors: ${JSON.stringify(evidence.errors)}`);
+
+              Object.assign(evidence, {
+                discoveryName: result.discovery[0].name,
+                discoverySource: 'shared-v1-search-catalog',
+                catalogLocation: result.existingLocation,
+                deviceLocation: result.deviceLocation,
+                assistantDomain: result.assistant.metadata.domain,
+                onboardingLocale: result.assistant.onboardingLocale,
+              });
+              writeFileSync('/tmp/m54-onboarding-adapter-evidence.json', JSON.stringify(evidence, null, 2));
+            } finally {
+              await browser.close();
+            }
+          })().catch(error => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+      - name: Show diagnostics
+        if: failure()
+        run: cat /tmp/m54-onboarding-server.log || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: business-onboarding-adapter-browser-evidence
+          path: /tmp/m54-onboarding-adapter-evidence.json
+          retention-days: 1
+          if-no-files-found: ignore
+      - name: Stop runtime
+        if: always()
+        run: kill "$(cat /tmp/m54-server.pid)" 2>/dev/null || true
