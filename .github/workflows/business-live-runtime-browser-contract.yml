@@ -1,0 +1,189 @@
+name: Business Live Runtime Browser Contract
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/business-live-runtime-browser-contract.yml"
+      - "apps/morro-digital-platform/src/business-onboarding-runtime.ts"
+      - "packages/business/src/onboarding-*.ts"
+      - "packages/business/package.json"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/business-live-runtime-browser-contract.yml"
+      - "apps/morro-digital-platform/src/business-onboarding-runtime.ts"
+      - "packages/business/src/onboarding-*.ts"
+      - "packages/business/package.json"
+
+permissions:
+  contents: read
+
+jobs:
+  live-runtime-browser:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install deterministic Chromium
+        run: |
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+      - name: Build workspace
+        run: pnpm -w build
+      - name: Start deterministic module origin
+        run: |
+          PORT=4187 HOST=127.0.0.1 node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/m65-live-runtime-server.log 2>&1 &
+          echo $! >/tmp/m65-live-runtime-server.pid
+          for _ in $(seq 1 60); do
+            curl --fail --silent http://127.0.0.1:4187/runtime-config.js >/dev/null && exit 0
+            sleep .25
+          done
+          cat /tmp/m65-live-runtime-server.log
+          exit 1
+      - name: Validate semantic live runtime
+        run: |
+          node <<'NODE'
+          const { writeFileSync } = require('node:fs');
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            const evidence = { events: [], assistantQueries: [], errors: [] };
+            try {
+              const page = await browser.newPage();
+              page.on('pageerror', error => evidence.errors.push(error.message));
+              await page.exposeFunction('recordM65Event', event => evidence.events.push(event));
+              await page.exposeFunction('recordM65AssistantQuery', query => evidence.assistantQueries.push(query));
+              await page.goto('http://127.0.0.1:4187/runtime-config.js');
+              await page.evaluate(() => {
+                document.open();
+                document.write(`<!doctype html><html><head><meta charset="utf-8"><script type="importmap">${JSON.stringify({ imports: {
+                  '@touristic/business/onboarding-presentation': '/packages/business/dist/onboarding-presentation.js',
+                  '@touristic/business/onboarding-recommendation': '/packages/business/dist/onboarding-recommendation.js',
+                  '@touristic/business/onboarding-steps': '/packages/business/dist/onboarding-steps.js',
+                  '@touristic/business/onboarding-workspace': '/packages/business/dist/onboarding-workspace.js'
+                } })}<\/script></head><body></body></html>`);
+                document.close();
+              });
+
+              const result = await page.evaluate(async () => {
+                const watched = [
+                  'businessConversationPresentation',
+                  'businessLiveMapPresentationRequested',
+                  'businessLiveSurfaceFocusRequested',
+                  'businessOnboardingReputationAssistantResult',
+                  'businessTutorialWorkspaceOpened'
+                ];
+                for (const name of watched) {
+                  window.addEventListener(name, event => window.recordM65Event({ name, detail: event.detail }));
+                }
+
+                const runtimeModule = await import('/apps/morro-digital-platform/dist/business-onboarding-runtime.js');
+                const context = {
+                  businessName: 'Toca do Morcego',
+                  category: 'events',
+                  specialty: 'Sunset',
+                  businessLocation: {
+                    name: 'Toca do Morcego',
+                    category: 'events',
+                    source: 'catalog',
+                    coordinates: { latitude: -13.376, longitude: -38.915 }
+                  }
+                };
+                let currentStep = 'arrival';
+                const session = {
+                  selectedLanguage: 'pt',
+                  createdAt: '2026-08-11T12:00:00.000Z',
+                  businessDraft: {},
+                  conversationDraft: { context }
+                };
+                const host = {
+                  snapshot: () => ({ stepId: currentStep, session }),
+                  updateRuntimeContext: patch => Object.assign(context, patch)
+                };
+                const adapters = {
+                  discovery: { searchBusiness: async () => [] },
+                  location: { findExistingLocation: async () => null, requestDeviceLocation: async () => null },
+                  route: { showRoute: async () => ({ success:false, code:'NOT_USED', distanceMeters:0, durationSeconds:0, route:null, tutorial:true, excludeFromBusinessMetrics:true }) },
+                  assistant: {
+                    ask: async (query, locale) => {
+                      await window.recordM65AssistantQuery(query);
+                      return { text: `assistant:${query}`, intent: 'business', language: locale, onboardingLocale: locale };
+                    }
+                  }
+                };
+                const runtime = new runtimeModule.BusinessOnboardingRuntime(host, adapters, window);
+
+                for (const step of ['arrival','context','map','conversion','reputation','promotions','analytics','partner-panel','ecosystem']) {
+                  currentStep = step;
+                  await runtime.onStepEnter(host.snapshot());
+                }
+
+                context.businessLocation = null;
+                currentStep = 'arrival';
+                await runtime.onStepEnter(host.snapshot());
+
+                const bundle = await (await fetch('/apps/morro-digital-platform/dist/business-onboarding-runtime.js')).text();
+                return {
+                  hasLegacyAssistantGlobal: bundle.includes('_assistantSendMessage'),
+                  hasLegacyMapGlobal: bundle.includes('getActiveMapInstance'),
+                  hasLegacyShowAssistant: bundle.includes('showAssistant')
+                };
+              });
+
+              const events = evidence.events;
+              const names = name => events.filter(event => event.name === name);
+              const mapPresentations = names('businessLiveMapPresentationRequested');
+              if (mapPresentations.length !== 3) throw new Error(`Expected 3 map presentations, got ${mapPresentations.length}`);
+              if (mapPresentations.some(event => event.detail?.tutorial !== true || event.detail?.excludeFromBusinessMetrics !== true)) throw new Error('Map presentation metric boundary diverged');
+
+              const placePresentations = names('businessConversationPresentation').filter(event => event.detail?.kind === 'place');
+              if (placePresentations.length !== 3) throw new Error(`Expected 3 place presentations, got ${placePresentations.length}`);
+              const actions = placePresentations[0]?.detail?.actions?.map(action => action.action);
+              if (JSON.stringify(actions) !== JSON.stringify(['place-info','place-route','place-profile'])) throw new Error(`V1 place actions diverged: ${JSON.stringify(actions)}`);
+
+              const errorPresentations = names('businessConversationPresentation').filter(event => event.detail?.kind === 'error');
+              if (errorPresentations.length !== 1 || !errorPresentations[0].detail?.message?.includes('Não mostraremos um ponto aproximado')) throw new Error('Missing fail-closed location presentation');
+
+              const focus = names('businessLiveSurfaceFocusRequested').map(event => `${event.detail?.stepId}:${event.detail?.surface}`);
+              for (const required of ['arrival:map','context:assistant','map:map','conversion:navigation','promotions:promotions','analytics:analytics','partner-panel:partner-panel','ecosystem:map']) {
+                if (!focus.includes(required)) throw new Error(`Missing live focus intent: ${required}`);
+              }
+
+              if (JSON.stringify(evidence.assistantQueries) !== JSON.stringify(['Mostre avaliações e informações de Toca do Morcego.'])) throw new Error(`Reputation Assistant delegation diverged: ${JSON.stringify(evidence.assistantQueries)}`);
+              if (names('businessOnboardingReputationAssistantResult').length !== 1) throw new Error('Missing reputation Assistant result event');
+              if (names('businessTutorialWorkspaceOpened').length !== 1) throw new Error('Partner workspace behavior regressed');
+              if (result.hasLegacyAssistantGlobal || result.hasLegacyMapGlobal || result.hasLegacyShowAssistant) throw new Error(`Legacy browser global restored: ${JSON.stringify(result)}`);
+              if (evidence.errors.length) throw new Error(`Browser errors: ${JSON.stringify(evidence.errors)}`);
+
+              evidence.legacyGlobalsRestored = false;
+              evidence.liveRuntime = 'semantic-ports';
+              writeFileSync('/tmp/m65-live-runtime-evidence.json', JSON.stringify(evidence, null, 2));
+            } finally {
+              await browser.close();
+            }
+          })().catch(error => { console.error(error); process.exit(1); });
+          NODE
+      - name: Show diagnostics
+        if: failure()
+        run: |
+          cat /tmp/m65-live-runtime-server.log || true
+          cat /tmp/m65-live-runtime-evidence.json || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: business-m65-live-runtime-evidence
+          path: /tmp/m65-live-runtime-evidence.json
+          if-no-files-found: ignore
+      - name: Stop runtime
+        if: always()
+        run: |
+          if [ -f /tmp/m65-live-runtime-server.pid ]; then kill "$(cat /tmp/m65-live-runtime-server.pid)" || true; fi
