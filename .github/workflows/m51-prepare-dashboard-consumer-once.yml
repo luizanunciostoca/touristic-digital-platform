@@ -1,0 +1,43 @@
+name: M51 Prepare Dashboard Consumer Once
+
+on:
+  push:
+    branches:
+      - feat/business-m51-dashboard-consumer
+    paths:
+      - .github/workflows/m51-prepare-dashboard-consumer-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/business-m51-dashboard-consumer
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Update workspace lockfile
+        run: pnpm install --no-frozen-lockfile
+      - name: Format and validate M51 code
+        run: |
+          pnpm exec prettier --write packages/auth-browser/src/index.ts packages/auth-browser/src/business-api.test.ts apps/morro-digital-platform/package.json apps/morro-digital-platform/src/business-dashboard-client.ts apps/morro-digital-platform/src/business-dashboard-client.test.ts pnpm-lock.yaml
+          pnpm --filter @touristic/auth-browser test
+          pnpm --filter @touristic/morro-digital-platform typecheck
+          pnpm --filter @touristic/morro-digital-platform test
+      - name: Persist and remove helper
+        run: |
+          rm .github/workflows/m51-prepare-dashboard-consumer-once.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat(business): prepare authenticated dashboard consumer"
+          git push origin HEAD:feat/business-m51-dashboard-consumer
