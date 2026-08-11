@@ -14,22 +14,81 @@ export type BusinessOnboardingEditableField =
   | "objective"
   | "audience";
 
+const RUNTIME_CONTEXT_KEYS = new Set([
+  "businessLocation",
+  "businessLocationCandidate",
+  "businessLocationConfirmed",
+  "businessVoiceDiscoveryReady",
+  "businessRankingExplanationReady",
+  "businessTutorialRouteReady",
+  "businessDiscoveryResult",
+  "businessAssistantResult",
+  "businessRouteResult",
+]);
+
 function safeText(value: unknown, maxLength: number): string {
   if (typeof value !== "string") return "";
-  return value.replace(/[<>\u0000-\u001f\u007f]/gu, " ").replace(/\s+/gu, " ").trim().slice(0, maxLength);
+  return value
+    .replace(/[<>\u0000-\u001f\u007f]/gu, " ")
+    .replace(/\s+/gu, " ")
+    .trim()
+    .slice(0, maxLength);
 }
 
 function normalizeName(value: string): string {
-  return value.normalize("NFD").replace(/[\u0300-\u036f]/gu, "").toLowerCase().trim();
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/gu, "")
+    .toLowerCase()
+    .trim();
 }
 
-function fieldForStep(stepId: BusinessOnboardingStepId): BusinessOnboardingEditableField | null {
+function fieldForStep(
+  stepId: BusinessOnboardingStepId,
+): BusinessOnboardingEditableField | null {
   if (stepId === "category") return "category";
   if (stepId === "specialty") return "specialty";
   if (stepId === "name") return "businessName";
   if (stepId === "objective") return "objective";
   if (stepId === "audience") return "audience";
   return null;
+}
+
+function replaceContext(
+  session: BusinessOnboardingSession,
+  context: Readonly<Record<string, unknown>>,
+  reason: string,
+  now: Date,
+): BusinessOnboardingSession {
+  const updatedAt = now.toISOString();
+  return Object.freeze({
+    ...session,
+    conversationDraft: Object.freeze({
+      ...session.conversationDraft,
+      context: Object.freeze({ ...context }),
+      reason,
+      updatedAt,
+    }),
+    updatedAt,
+  });
+}
+
+export function updateBusinessOnboardingRuntimeContext(
+  session: BusinessOnboardingSession,
+  patch: Readonly<Record<string, unknown>>,
+  now = new Date(),
+): BusinessOnboardingSession {
+  const safePatch: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(patch)) {
+    if (RUNTIME_CONTEXT_KEYS.has(key)) safePatch[key] = value;
+  }
+  if (Object.keys(safePatch).length === 0) return session;
+  return replaceContext(
+    session,
+    { ...session.conversationDraft.context, ...safePatch },
+    "runtime-context",
+    now,
+  );
 }
 
 export function updateBusinessOnboardingStepInput(
@@ -47,7 +106,10 @@ export function updateBusinessOnboardingStepInput(
   }
 
   const sanitized = safeText(value, field === "businessName" ? 80 : 160);
-  const nextContext: Record<string, unknown> = { ...currentContext, [field]: sanitized };
+  const nextContext: Record<string, unknown> = {
+    ...currentContext,
+    [field]: sanitized,
+  };
   let businessDraft = session.businessDraft;
   let selectedObjective = session.selectedObjective;
 
