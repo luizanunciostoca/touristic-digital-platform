@@ -1,5 +1,7 @@
 # Auth M47 — Domain Core Evidence
 
+> Superseded branch note: this branch was created from the M46 base and its M47 implementation has since been integrated into `main` together with later Auth/Business milestones. This branch must not be merged again.
+
 ## Scope
 
 M47 establishes the first executable `FEATURE-0008` boundary as a framework-independent package. It intentionally excludes HTTP, cookies, login endpoints, password storage, CSRF transport and Business UI.
