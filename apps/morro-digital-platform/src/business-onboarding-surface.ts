@@ -26,6 +26,12 @@ function stringValue(value: unknown): string {
   return typeof value === "string" ? value : "";
 }
 
+function objectValue(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object"
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
 function routeSummary(value: unknown): string {
   if (!value || typeof value !== "object") return "";
   const result = value as {
@@ -268,6 +274,41 @@ export class BusinessOnboardingSurface {
     container.append(button);
   }
 
+  private renderProfilePreview(
+    container: HTMLElement,
+    profile: Record<string, unknown>,
+  ): void {
+    const preview = this.document.createElement("article");
+    preview.className = "business-onboarding-profile-preview";
+    preview.setAttribute("aria-label", "Prévia do perfil da empresa");
+
+    const title = this.document.createElement("h2");
+    title.textContent = stringValue(profile.name) || "Sua empresa";
+    const meta = this.document.createElement("p");
+    meta.textContent = [
+      stringValue(profile.categoryLabel),
+      stringValue(profile.specialty),
+    ]
+      .filter(Boolean)
+      .join(" · ");
+    const description = this.document.createElement("p");
+    description.textContent = stringValue(profile.description);
+    const location = this.document.createElement("p");
+    location.textContent = `${profile.locationIsExample === true ? "Localização demonstrativa" : "Localização"}: ${stringValue(profile.locationLabel) || "Morro de São Paulo"}`;
+
+    preview.append(title, meta, description, location);
+
+    const promotion = objectValue(profile.promotion);
+    if (promotion) {
+      const offer = this.document.createElement("p");
+      offer.className = "business-onboarding-profile-promotion";
+      offer.textContent = `${stringValue(promotion.title)} — ${stringValue(promotion.description)}`;
+      preview.append(offer);
+    }
+
+    container.append(preview);
+  }
+
   private renderRuntimeActions(
     container: HTMLElement,
     snapshot: BusinessOnboardingHostSnapshot,
@@ -302,6 +343,25 @@ export class BusinessOnboardingSurface {
         "Simular busca por voz",
         true,
       );
+    } else if (snapshot.stepId === "profile") {
+      const profile = objectValue(context.tutorialBusinessProfile);
+      if (profile) {
+        this.renderProfilePreview(container, profile);
+        this.appendRuntimeButton(actions, "profile-map", "Ver no mapa");
+        this.appendRuntimeButton(
+          actions,
+          "profile-primary",
+          stringValue(profile.cta) || "Ver empresa",
+          true,
+        );
+        if (objectValue(profile.promotion)) {
+          this.appendRuntimeButton(
+            actions,
+            "profile-promotion",
+            "Ver promoção",
+          );
+        }
+      }
     } else if (snapshot.stepId === "route") {
       const note = this.document.createElement("p");
       note.className = "business-onboarding-runtime-note";

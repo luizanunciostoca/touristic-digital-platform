@@ -12,6 +12,7 @@ import {
   buildBusinessTutorialRecommendationCandidate,
   evaluateBusinessTutorialRecommendation,
 } from "@touristic/business/onboarding-recommendation";
+import { BUSINESS_ONBOARDING_CATEGORIES } from "@touristic/business/onboarding-steps";
 
 import type { BusinessOnboardingConcreteAdapters } from "./business-onboarding-adapters.js";
 
@@ -20,6 +21,9 @@ export type BusinessOnboardingRuntimeAction =
   | "location-use-device"
   | "location-search-again"
   | "voice-simulate"
+  | "profile-map"
+  | "profile-primary"
+  | "profile-promotion"
   | "route-retry";
 
 function text(value: unknown): string {
@@ -65,6 +69,14 @@ function tutorialOrigin(
     latitude: Math.max(-90, Math.min(90, destination.latitude - 0.0016)),
     longitude: Math.max(-180, Math.min(180, destination.longitude + 0.0017)),
   });
+}
+
+function categoryLabel(value: unknown): string {
+  const category = text(value);
+  return (
+    BUSINESS_ONBOARDING_CATEGORIES.find((option) => option.value === category)
+      ?.label ?? "Negócio local"
+  );
 }
 
 export class BusinessOnboardingRuntime {
@@ -202,9 +214,36 @@ export class BusinessOnboardingRuntime {
     }
 
     if (snapshot.stepId === "profile") {
+      const { buildBusinessTutorialProfile } =
+        await import("@touristic/business/onboarding-profile");
+      const recommendationCandidate = isRecord(
+        context.tutorialBusinessCandidate,
+      )
+        ? context.tutorialBusinessCandidate
+        : null;
+      const promotion = isRecord(context.businessDemoPromotion)
+        ? context.businessDemoPromotion
+        : null;
+      const profile = buildBusinessTutorialProfile(context, {
+        categoryLabel: categoryLabel(context.category),
+        cta: text(recommendationCandidate?.cta) || "Ver empresa",
+        ...(promotion
+          ? {
+              promotion: {
+                id: text(promotion.id),
+                title: text(promotion.title),
+                description: text(promotion.description),
+                cta: text(promotion.cta) || "Ver oferta",
+                validUntil: text(promotion.validUntil),
+              },
+            }
+          : {}),
+      });
+      this.host.updateRuntimeContext({ tutorialBusinessProfile: profile });
       dispatch(this.view, "businessOnboardingProfileOpened", {
-        businessName: text(context.businessName),
+        profile,
         tutorial: true,
+        excludeFromBusinessMetrics: true,
       });
       return;
     }
@@ -269,6 +308,46 @@ export class BusinessOnboardingRuntime {
         simulated: true,
         results,
         tutorial: true,
+      });
+      return true;
+    }
+
+    if (
+      action === "profile-map" ||
+      action === "profile-primary" ||
+      action === "profile-promotion"
+    ) {
+      const profile =
+        this.host.snapshot().session.conversationDraft.context
+          .tutorialBusinessProfile;
+      if (!isRecord(profile)) return false;
+
+      if (action === "profile-map") {
+        dispatch(this.view, "businessTutorialProfileMapAction", {
+          businessId: text(profile.id),
+          tutorial: true,
+          excludeFromBusinessMetrics: true,
+        });
+        return true;
+      }
+
+      if (action === "profile-primary") {
+        dispatch(this.view, "businessTutorialProfilePrimaryAction", {
+          businessId: text(profile.id),
+          actionLabel: text(profile.cta),
+          tutorial: true,
+          excludeFromBusinessMetrics: true,
+        });
+        return true;
+      }
+
+      const promotion = isRecord(profile.promotion) ? profile.promotion : null;
+      if (!promotion) return false;
+      dispatch(this.view, "businessTutorialProfilePromotionAction", {
+        businessId: text(profile.id),
+        promotionId: text(promotion.id),
+        tutorial: true,
+        excludeFromBusinessMetrics: true,
       });
       return true;
     }

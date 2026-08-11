@@ -12,7 +12,8 @@
     "./onboarding-host": "./src/onboarding-host.ts",
     "./onboarding-steps": "./src/onboarding-steps.ts",
     "./onboarding-presentation": "./src/onboarding-presentation.ts",
-    "./onboarding-recommendation": "./src/onboarding-recommendation.ts"
+    "./onboarding-recommendation": "./src/onboarding-recommendation.ts",
+    "./onboarding-profile": "./src/onboarding-profile.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
