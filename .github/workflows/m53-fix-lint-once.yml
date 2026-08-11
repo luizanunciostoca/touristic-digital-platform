@@ -26,13 +26,13 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Fix sanitizer and chapter typing
+      - name: Fix sanitizer and step literal typing
         run: |
           python - <<'PY'
           from pathlib import Path
           p = Path('packages/business/src/onboarding.ts')
           s = p.read_text()
-          old = '''function safeText(value: unknown, maxLength = 240): string {
+          old_safe = '''function safeText(value: unknown, maxLength = 240): string {
             if (typeof value !== "string") return "";
             return value
               .replace(/[\\u0000-\\u001F\\u007F<>]/gu, " ")
@@ -40,7 +40,7 @@ jobs:
               .trim()
               .slice(0, maxLength);
           }'''
-          new = '''function safeText(value: unknown, maxLength = 240): string {
+          new_safe = '''function safeText(value: unknown, maxLength = 240): string {
             if (typeof value !== "string") return "";
             const sanitized = Array.from(value, (character) => {
               const codePoint = character.codePointAt(0) ?? 0;
@@ -50,16 +50,41 @@ jobs:
             }).join("");
             return sanitized.replace(/\\s+/gu, " ").trim().slice(0, maxLength);
           }'''
-          if old not in s:
+          if old_safe not in s:
               raise SystemExit('expected safeText block not found')
-          s = s.replace(old, new)
-          old_chapters = '''export const BUSINESS_ONBOARDING_CHAPTERS: readonly BusinessOnboardingChapter[] =
-            Object.freeze(['''
-          new_chapters = '''export const BUSINESS_ONBOARDING_CHAPTERS: readonly BusinessOnboardingChapter[] =
-            Object.freeze<readonly BusinessOnboardingChapter[]>(['''
-          if old_chapters not in s:
-              raise SystemExit('expected chapter declaration not found')
-          p.write_text(s.replace(old_chapters, new_chapters))
+          s = s.replace(old_safe, new_safe)
+          marker = '''export interface BusinessOnboardingChapter {
+            readonly id: string;
+            readonly title: string;
+            readonly shortTitle: string;
+            readonly description: string;
+            readonly steps: readonly BusinessOnboardingStepId[];
+          }
+
+          export const BUSINESS_ONBOARDING_CHAPTERS'''
+          replacement = '''export interface BusinessOnboardingChapter {
+            readonly id: string;
+            readonly title: string;
+            readonly shortTitle: string;
+            readonly description: string;
+            readonly steps: readonly BusinessOnboardingStepId[];
+          }
+
+          function onboardingSteps<const T extends readonly BusinessOnboardingStepId[]>(
+            steps: T,
+          ): readonly BusinessOnboardingStepId[] {
+            return Object.freeze([...steps]);
+          }
+
+          export const BUSINESS_ONBOARDING_CHAPTERS'''
+          if marker not in s:
+              raise SystemExit('expected chapter interface marker not found')
+          s = s.replace(marker, replacement)
+          replaced = s.count('steps: Object.freeze([')
+          if replaced != 5:
+              raise SystemExit(f'expected 5 step arrays, found {replaced}')
+          s = s.replace('steps: Object.freeze([', 'steps: onboardingSteps([')
+          p.write_text(s)
           PY
       - name: Format and validate Business package
         run: |
