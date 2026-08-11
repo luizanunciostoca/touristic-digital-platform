@@ -51,12 +51,12 @@ describe("M58 Business tutorial recommendation sandbox", () => {
     expect(
       scoreBusinessTutorialRecommendation("Quero ver Toca do Morcego", candidate),
     ).toBe(100);
-    expect(scoreBusinessTutorialRecommendation("procuro sunset", candidate)).toBe(
-      30,
-    );
-    expect(scoreBusinessTutorialRecommendation("algo tranquilo", candidate)).toBe(
-      0,
-    );
+    expect(
+      scoreBusinessTutorialRecommendation("procuro sunset", candidate),
+    ).toBe(30);
+    expect(
+      scoreBusinessTutorialRecommendation("algo tranquilo", candidate),
+    ).toBe(0);
   });
 
   it("renders only scores at or above the V1 threshold", () => {
