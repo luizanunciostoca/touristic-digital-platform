@@ -1,0 +1,203 @@
+name: Business Onboarding Workspace Browser Contract
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/business-onboarding-workspace-browser-contract.yml"
+      - "apps/morro-digital-platform/src/business-onboarding-*.ts"
+      - "apps/morro-digital-platform/public/business-onboarding.*"
+      - "packages/business/src/onboarding-workspace*.ts"
+      - "packages/business/src/onboarding-context*.ts"
+      - "packages/business/package.json"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/business-onboarding-workspace-browser-contract.yml"
+      - "apps/morro-digital-platform/src/business-onboarding-*.ts"
+      - "apps/morro-digital-platform/public/business-onboarding.*"
+      - "packages/business/src/onboarding-workspace*.ts"
+      - "packages/business/src/onboarding-context*.ts"
+      - "packages/business/package.json"
+
+permissions:
+  contents: read
+
+jobs:
+  onboarding-workspace-browser:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install deterministic Chromium
+        run: |
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+      - name: Build workspace
+        run: pnpm -w build
+      - name: Start deterministic module origin
+        run: |
+          set -euo pipefail
+          PORT=4184
+          HOST=127.0.0.1
+          PORT="$PORT" HOST="$HOST" node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/m60-workspace-server.log 2>&1 &
+          echo $! >/tmp/m60-workspace-server.pid
+          for _ in $(seq 1 60); do
+            if curl --fail --silent "http://${HOST}:${PORT}/runtime-config.js" >/dev/null; then exit 0; fi
+            sleep 0.25
+          done
+          cat /tmp/m60-workspace-server.log
+          exit 1
+      - name: Validate sandbox promotion, session summary and protected dashboard handoff
+        run: |
+          node <<'NODE'
+          const { writeFileSync } = require('node:fs');
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+
+          (async () => {
+            const origin = 'http://127.0.0.1:4184';
+            const browser = await chromium.launch({ headless: true });
+            const evidence = { errors: [], events: [] };
+            try {
+              const page = await browser.newPage();
+              page.on('pageerror', error => evidence.errors.push(error.message));
+              await page.exposeFunction('recordM60WorkspaceEvent', event => evidence.events.push(event));
+              await page.goto(`${origin}/runtime-config.js`, { waitUntil: 'domcontentloaded' });
+              await page.evaluate(() => {
+                document.open();
+                document.write(`<!doctype html><html><head><meta charset="utf-8"><script type="importmap">${JSON.stringify({ imports: {
+                  '@touristic/business/onboarding': '/packages/business/dist/onboarding.js',
+                  '@touristic/business/onboarding-host': '/packages/business/dist/onboarding-host.js',
+                  '@touristic/business/onboarding-presentation': '/packages/business/dist/onboarding-presentation.js',
+                  '@touristic/business/onboarding-recommendation': '/packages/business/dist/onboarding-recommendation.js',
+                  '@touristic/business/onboarding-steps': '/packages/business/dist/onboarding-steps.js',
+                  '@touristic/business/onboarding-workspace': '/packages/business/dist/onboarding-workspace.js'
+                } })}<\/script></head><body><main id="root"></main></body></html>`);
+                document.close();
+              });
+
+              const result = await page.evaluate(async () => {
+                for (const name of [
+                  'businessTutorialPromotionSaved',
+                  'businessTutorialWorkspaceOpened',
+                  'businessProtectedDashboardRequested'
+                ]) {
+                  window.addEventListener(name, event => window.recordM60WorkspaceEvent({ name, detail: event.detail }));
+                }
+
+                const onboarding = await import('/packages/business/dist/onboarding.js');
+                const hostModule = await import('/packages/business/dist/onboarding-host.js');
+                const runtimeModule = await import('/apps/morro-digital-platform/dist/business-onboarding-runtime.js');
+                const surfaceModule = await import('/apps/morro-digital-platform/dist/business-onboarding-surface.js');
+
+                const adapters = {
+                  discovery: { searchBusiness: async () => [] },
+                  location: { findExistingLocation: async () => null, requestDeviceLocation: async () => null },
+                  assistant: { ask: async () => ({}) },
+                  route: { showRoute: async () => ({ success: false, code: 'NOT_USED', distanceMeters: 0, durationSeconds: 0, route: null, tutorial: true, excludeFromBusinessMetrics: true }) }
+                };
+
+                const base = onboarding.createBusinessOnboardingSession({
+                  context: {
+                    businessName: 'Toca do Morcego',
+                    category: 'events',
+                    businessTutorialEventSummary: {
+                      business_discovered_by_menu: 1,
+                      business_profile_opened: 1,
+                      business_route_started: 1
+                    }
+                  }
+                });
+                const promotionSession = onboarding.transitionBusinessOnboarding(base, 'promotions', { reason: 'm60-promotion-contract' });
+                const promotionHost = new hostModule.BusinessOnboardingHostController({ session: promotionSession });
+                const promotionRuntime = new runtimeModule.BusinessOnboardingRuntime(promotionHost, adapters, window);
+                const promotionSurface = new surfaceModule.BusinessOnboardingSurface({
+                  document,
+                  host: promotionHost,
+                  onRuntimeAction: action => promotionRuntime.handleAction(action)
+                });
+                promotionSurface.mount(document.querySelector('#root'));
+
+                const form = document.querySelector('[data-workspace-promotion="true"]');
+                if (!form) throw new Error('Promotion form was not rendered');
+                form.querySelector('[name="title"]').value = '<Sunset Premium>';
+                form.querySelector('[name="description"]').value = 'Benefício demonstrativo para visitantes.';
+                form.querySelector('[name="cta"]').value = 'Ver benefício';
+                form.querySelector('[name="validUntil"]').value = '2026-12-31';
+                form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+                await new Promise(resolve => setTimeout(resolve, 20));
+
+                const afterPromotion = promotionHost.snapshot().session;
+                const promotion = afterPromotion.conversationDraft.context.businessDemoPromotion;
+                const summaryAfterPromotion = afterPromotion.conversationDraft.context.businessTutorialEventSummary;
+                promotionSurface.destroy();
+
+                const panelSession = onboarding.transitionBusinessOnboarding(afterPromotion, 'partner-panel', { reason: 'm60-workspace-contract' });
+                const panelHost = new hostModule.BusinessOnboardingHostController({ session: panelSession });
+                const panelRuntime = new runtimeModule.BusinessOnboardingRuntime(panelHost, adapters, window);
+                await panelRuntime.onStepEnter(panelHost.snapshot());
+                const panelSurface = new surfaceModule.BusinessOnboardingSurface({
+                  document,
+                  host: panelHost,
+                  onRuntimeAction: action => panelRuntime.handleAction(action)
+                });
+                panelSurface.mount(document.querySelector('#root'));
+
+                const workspace = panelHost.snapshot().session.conversationDraft.context.businessTutorialWorkspace;
+                const preview = document.querySelector('.business-onboarding-workspace-preview');
+                const previewText = preview?.textContent || '';
+                const iframeCount = document.querySelectorAll('iframe').length;
+                document.querySelector('[data-runtime-action="workspace-open-dashboard"]')?.click();
+                await new Promise(resolve => setTimeout(resolve, 20));
+
+                return { promotion, summaryAfterPromotion, workspace, previewText, iframeCount };
+              });
+
+              if (result.promotion?.title !== 'Sunset Premium') throw new Error(`Promotion sanitization diverged: ${JSON.stringify(result.promotion)}`);
+              if (result.promotion?.environment !== 'sandbox' || result.promotion?.publishable !== false) throw new Error(`Promotion escaped sandbox: ${JSON.stringify(result.promotion)}`);
+              if (result.promotion?.tutorial !== true || result.promotion?.excludeFromBusinessMetrics !== true) throw new Error('Promotion metrics boundary diverged');
+              if (result.summaryAfterPromotion?.business_demo_promotion_created !== 1) throw new Error(`Promotion event summary missing: ${JSON.stringify(result.summaryAfterPromotion)}`);
+              if (result.workspace?.businessName !== 'Toca do Morcego' || result.workspace?.eventCount !== 4) throw new Error(`Workspace snapshot diverged: ${JSON.stringify(result.workspace)}`);
+              if (result.workspace?.tutorial !== true || result.workspace?.excludeFromBusinessMetrics !== true) throw new Error('Workspace metrics boundary diverged');
+              if (!result.previewText.includes('Descoberta pelo menu') || !result.previewText.includes('Perfil aberto') || !result.previewText.includes('Rota iniciada') || !result.previewText.includes('Promoção criada')) throw new Error(`Workspace preview missing metrics: ${result.previewText}`);
+              if (!result.previewText.includes('não alimentam métricas comerciais')) throw new Error('Workspace isolation disclosure missing');
+              if (result.iframeCount !== 0) throw new Error(`Workspace bypassed protected dashboard with ${result.iframeCount} iframe(s)`);
+
+              const promotionEvent = evidence.events.find(event => event.name === 'businessTutorialPromotionSaved');
+              if (!promotionEvent || promotionEvent.detail?.promotion?.publishable !== false || promotionEvent.detail?.excludeFromBusinessMetrics !== true) throw new Error(`Promotion event boundary diverged: ${JSON.stringify(promotionEvent)}`);
+              const workspaceEvent = evidence.events.find(event => event.name === 'businessTutorialWorkspaceOpened');
+              if (!workspaceEvent || workspaceEvent.detail?.excludeFromBusinessMetrics !== true) throw new Error(`Workspace open event missing: ${JSON.stringify(workspaceEvent)}`);
+              const handoff = evidence.events.find(event => event.name === 'businessProtectedDashboardRequested');
+              if (!handoff || handoff.detail?.requiresAuthentication !== true || handoff.detail?.href !== '/apps/morro-digital-platform/public/business-dashboard.html') throw new Error(`Protected dashboard handoff diverged: ${JSON.stringify(handoff)}`);
+              if (handoff.detail?.tutorial !== true || handoff.detail?.excludeFromBusinessMetrics !== true) throw new Error('Dashboard handoff metrics boundary diverged');
+              if (evidence.errors.length) throw new Error(`Browser errors: ${JSON.stringify(evidence.errors)}`);
+
+              Object.assign(evidence, { result, status: 'PASS' });
+              writeFileSync('/tmp/m60-business-workspace-evidence.json', JSON.stringify(evidence, null, 2));
+            } finally {
+              await browser.close();
+            }
+          })().catch(error => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+      - name: Show diagnostics
+        if: failure()
+        run: cat /tmp/m60-workspace-server.log || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: business-onboarding-workspace-browser-evidence
+          path: /tmp/m60-business-workspace-evidence.json
+          retention-days: 1
+          if-no-files-found: ignore
+      - name: Stop runtime
+        if: always()
+        run: kill "$(cat /tmp/m60-workspace-server.pid)" 2>/dev/null || true
