@@ -49,42 +49,43 @@ export interface BusinessPaymentVerification {
   readonly reference?: unknown;
 }
 
-export const BUSINESS_COMMERCIAL_PLANS = Object.freeze([
-  Object.freeze({
-    id: "essential",
-    name: "Essencial",
-    description: "Presença no mapa, perfil comercial e descoberta orgânica.",
-    goals: Object.freeze(["brand"]),
-    features: Object.freeze([
-      "Perfil comercial",
-      "Mapa e busca",
-      "Informações em quatro idiomas",
-    ]),
-  }),
-  Object.freeze({
-    id: "growth",
-    name: "Crescimento",
-    description: "Mais ferramentas para gerar contatos, reservas e vendas.",
-    goals: Object.freeze(["clients", "reservations", "whatsapp", "sales"]),
-    recommended: true,
-    features: Object.freeze([
-      "Tudo do Essencial",
-      "Promoções e ofertas",
-      "Métricas e painel do parceiro",
-    ]),
-  }),
-  Object.freeze({
-    id: "performance",
-    name: "Performance",
-    description: "Campanhas, eventos e maior capacidade de ativação comercial.",
-    goals: Object.freeze(["events"]),
-    features: Object.freeze([
-      "Tudo do Crescimento",
-      "Campanhas e eventos",
-      "Acompanhamento comercial avançado",
-    ]),
-  }),
-] satisfies readonly BusinessCommercialPlan[]);
+export const BUSINESS_COMMERCIAL_PLANS: readonly BusinessCommercialPlan[] =
+  Object.freeze([
+    Object.freeze({
+      id: "essential",
+      name: "Essencial",
+      description: "Presença no mapa, perfil comercial e descoberta orgânica.",
+      goals: Object.freeze(["brand"]),
+      features: Object.freeze([
+        "Perfil comercial",
+        "Mapa e busca",
+        "Informações em quatro idiomas",
+      ]),
+    }),
+    Object.freeze({
+      id: "growth",
+      name: "Crescimento",
+      description: "Mais ferramentas para gerar contatos, reservas e vendas.",
+      goals: Object.freeze(["clients", "reservations", "whatsapp", "sales"]),
+      recommended: true,
+      features: Object.freeze([
+        "Tudo do Essencial",
+        "Promoções e ofertas",
+        "Métricas e painel do parceiro",
+      ]),
+    }),
+    Object.freeze({
+      id: "performance",
+      name: "Performance",
+      description: "Campanhas, eventos e maior capacidade de ativação comercial.",
+      goals: Object.freeze(["events"]),
+      features: Object.freeze([
+        "Tudo do Crescimento",
+        "Campanhas e eventos",
+        "Acompanhamento comercial avançado",
+      ]),
+    }),
+  ]);
 
 function safeText(value: unknown, maxLength = 240): string {
   if (typeof value !== "string") return "";
@@ -98,7 +99,7 @@ export function recommendBusinessCommercialPlan(
   return (
     BUSINESS_COMMERCIAL_PLANS.find((plan) => plan.goals.includes(goal)) ??
     BUSINESS_COMMERCIAL_PLANS.find((plan) => plan.recommended) ??
-    BUSINESS_COMMERCIAL_PLANS[0]
+    BUSINESS_COMMERCIAL_PLANS[0]!
   );
 }
 
