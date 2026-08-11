@@ -57,9 +57,7 @@ describe("M58 Business tutorial recommendation sandbox", () => {
     expect(
       scoreBusinessTutorialRecommendation("procuro sunset", candidate),
     ).toBe(85);
-    expect(
-      scoreBusinessTutorialRecommendation("para casais", candidate),
-    ).toBe(15);
+    expect(scoreBusinessTutorialRecommendation("para casais", candidate)).toBe(15);
   });
 
   it("renders only scores at or above the V1 threshold", () => {
