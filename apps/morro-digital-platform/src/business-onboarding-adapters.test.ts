@@ -6,15 +6,14 @@ describe("M54 Business onboarding adapters", () => {
   it("binds Business discovery to the shared V1 Search catalog", async () => {
     const ports = createBusinessOnboardingAdapters();
     const results = await ports.discovery.searchBusiness("Toca do Morcego");
+    const coordinates = results[0]?.coordinates;
 
     expect(results.length).toBeGreaterThan(0);
     expect(results[0]?.name).toBe("Toca do Morcego");
-    expect(results[0]?.coordinates).toEqual(
-      expect.objectContaining({
-        latitude: expect.any(Number),
-        longitude: expect.any(Number),
-      }),
-    );
+    expect(typeof coordinates?.latitude).toBe("number");
+    expect(typeof coordinates?.longitude).toBe("number");
+    expect(Number.isFinite(coordinates?.latitude)).toBe(true);
+    expect(Number.isFinite(coordinates?.longitude)).toBe(true);
   });
 
   it("resolves an existing Business location through Search-backed geospatial coordinates", async () => {
@@ -22,16 +21,12 @@ describe("M54 Business onboarding adapters", () => {
     const location =
       await ports.location.findExistingLocation("Toca do Morcego");
 
-    expect(location).toEqual(
-      expect.objectContaining({
-        name: "Toca do Morcego",
-        source: "catalog",
-        coordinates: expect.objectContaining({
-          latitude: expect.any(Number),
-          longitude: expect.any(Number),
-        }),
-      }),
-    );
+    expect(location?.name).toBe("Toca do Morcego");
+    expect(location?.source).toBe("catalog");
+    expect(typeof location?.coordinates.latitude).toBe("number");
+    expect(typeof location?.coordinates.longitude).toBe("number");
+    expect(Number.isFinite(location?.coordinates.latitude)).toBe(true);
+    expect(Number.isFinite(location?.coordinates.longitude)).toBe(true);
   });
 
   it("keeps device location behind the browser geolocation port", async () => {
