@@ -45,15 +45,15 @@ jobs:
           set -euo pipefail
           PORT=4181
           HOST=127.0.0.1
-          PORT="$PORT" HOST="$HOST" node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/m55-onboarding-server.log 2>&1 &
-          echo $! >/tmp/m55-server.pid
+          PORT="$PORT" HOST="$HOST" node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/m56-onboarding-server.log 2>&1 &
+          echo $! >/tmp/m56-server.pid
           for _ in $(seq 1 60); do
             if curl --fail --silent "http://${HOST}:${PORT}/apps/morro-digital-platform/public/business-onboarding.html" >/dev/null; then exit 0; fi
             sleep 0.25
           done
-          cat /tmp/m55-onboarding-server.log
+          cat /tmp/m56-onboarding-server.log
           exit 1
-      - name: Validate onboarding host lifecycle
+      - name: Validate onboarding step content and wiring
         run: |
           node <<'NODE'
           const { writeFileSync } = require('node:fs');
@@ -65,14 +65,20 @@ jobs:
             try {
               const page = await browser.newPage();
               page.on('pageerror', error => evidence.errors.push(error.message));
-              await page.exposeFunction('recordM55Event', event => evidence.events.push(event));
+              await page.exposeFunction('recordM56Event', event => evidence.events.push(event));
               await page.addInitScript(() => {
-                window.addEventListener('businessTutorialActivityChanged', event => {
-                  window.recordM55Event({ name: 'activity', detail: event.detail });
-                });
-                window.addEventListener('businessConversationAbandoned', event => {
-                  window.recordM55Event({ name: 'abandoned', detail: event.detail });
-                });
+                for (const name of [
+                  'businessTutorialActivityChanged',
+                  'businessConversationAbandoned',
+                  'businessTutorialLocationCandidate',
+                  'businessTutorialLocationResolved',
+                  'businessOnboardingDiscoveryResult',
+                  'businessOnboardingAssistantResult'
+                ]) {
+                  window.addEventListener(name, event => {
+                    window.recordM56Event({ name, detail: event.detail });
+                  });
+                }
               });
 
               await page.goto('http://127.0.0.1:4181/apps/morro-digital-platform/public/business-onboarding.html', { waitUntil: 'domcontentloaded' });
@@ -83,29 +89,52 @@ jobs:
                 role: document.querySelector('#businessOnboardingSurface')?.getAttribute('role'),
                 modal: document.querySelector('#businessOnboardingSurface')?.getAttribute('aria-modal'),
                 title: document.querySelector('#businessOnboardingTitle')?.textContent,
+                eyebrow: document.querySelector('#businessOnboardingEyebrow')?.textContent,
                 progress: document.querySelector('#businessOnboardingProgress')?.textContent,
-                step: document.querySelector('#businessOnboardingStep')?.textContent,
                 backHidden: document.querySelector('[data-action="back"]')?.hidden,
-                nextLabel: document.querySelector('[data-action="next"]')?.textContent,
               }));
-
               if (!initial.active) throw new Error('Tutorial activity class was not mounted');
               if (initial.role !== 'dialog' || initial.modal !== 'true') throw new Error(`Dialog semantics diverged: ${JSON.stringify(initial)}`);
-              if (!initial.progress?.includes('Capítulo 1 de 5')) throw new Error(`Initial chapter progress diverged: ${initial.progress}`);
-              if (!initial.step?.includes('welcome')) throw new Error(`Initial step diverged: ${initial.step}`);
+              if (initial.title !== 'Veja como turistas encontram e escolhem o seu negócio') throw new Error(`Welcome copy diverged: ${initial.title}`);
+              if (!initial.progress?.includes('Capítulo 1 de 5')) throw new Error(`Initial progress diverged: ${initial.progress}`);
               if (initial.backHidden !== true) throw new Error('Back button must be hidden on welcome');
 
-              await page.locator('[data-action="next"]').click();
-              await page.waitForFunction(() => document.querySelector('#businessOnboardingStep')?.textContent?.includes('category'));
-              const forward = await page.evaluate(() => ({
-                progress: document.querySelector('#businessOnboardingProgress')?.textContent,
-                step: document.querySelector('#businessOnboardingStep')?.textContent,
-                backHidden: document.querySelector('[data-action="back"]')?.hidden,
-              }));
-              if (!forward.step?.includes('category') || forward.backHidden !== false) throw new Error(`Forward transition diverged: ${JSON.stringify(forward)}`);
+              const next = page.locator('[data-action="next"]');
+              await next.click();
+              await page.getByRole('heading', { name: 'Qual é a categoria principal?' }).waitFor();
+              await page.locator('[data-input-value="events"]').click();
+              if (await page.locator('[data-input-value="events"]').getAttribute('aria-pressed') !== 'true') throw new Error('Category selection did not persist');
 
-              await page.locator('[data-action="back"]').click();
-              await page.waitForFunction(() => document.querySelector('#businessOnboardingStep')?.textContent?.includes('welcome'));
+              await next.click();
+              await page.getByRole('heading', { name: 'O que melhor diferencia o negócio?' }).waitFor();
+              await page.locator('[data-input-value="Sunset"]').click();
+
+              await next.click();
+              const nameInput = page.locator('[data-onboarding-input="true"]');
+              await nameInput.fill('Toca do Morcego');
+              await next.click();
+
+              await page.getByRole('heading', { name: 'Qual resultado você mais deseja?' }).waitFor();
+              await page.locator('[data-input-value="events"]').click();
+              await next.click();
+
+              await page.getByRole('heading', { name: 'Quem você mais deseja alcançar?' }).waitFor();
+              await page.locator('[data-input-value="premium"]').click();
+              await next.click();
+
+              await page.getByRole('heading', { name: 'Agora vamos mostrar como um turista encontra Toca do Morcego' }).waitFor();
+              await page.locator('[data-runtime-action="location-confirm"]').waitFor({ state: 'visible' });
+              await page.locator('[data-runtime-action="location-confirm"]').click();
+              await next.click();
+              await page.getByRole('heading', { name: 'O turista precisa de ajuda, mas ainda não conhece Toca do Morcego' }).waitFor();
+
+              const foundation = await page.evaluate(() => ({
+                title: document.querySelector('#businessOnboardingTitle')?.textContent,
+                progress: document.querySelector('#businessOnboardingProgress')?.textContent,
+              }));
+              if (!foundation.progress?.includes('Capítulo 2 de 5')) throw new Error(`Chapter transition diverged: ${foundation.progress}`);
+              if (!evidence.events.some(event => event.name === 'businessTutorialLocationCandidate' && event.detail?.location)) throw new Error('Missing real catalog location candidate event');
+              if (!evidence.events.some(event => event.name === 'businessTutorialLocationResolved' && event.detail?.foundExisting === true)) throw new Error('Missing location confirmation event');
 
               await page.locator('[data-action="skip"]').click();
               await page.locator('#businessOnboardingSurface').waitFor({ state: 'detached' });
@@ -113,13 +142,13 @@ jobs:
                 active: document.body.classList.contains('md-business-tutorial-active'),
               }));
               if (afterSkip.active) throw new Error('Tutorial activity class remained after skip');
-              if (!evidence.events.some(event => event.name === 'activity' && event.detail?.active === true)) throw new Error('Missing active lifecycle event');
-              if (!evidence.events.some(event => event.name === 'activity' && event.detail?.active === false)) throw new Error('Missing inactive lifecycle event');
-              if (!evidence.events.some(event => event.name === 'abandoned' && event.detail?.reason === 'user_skip')) throw new Error('Missing skip/abandon lifecycle event');
+              if (!evidence.events.some(event => event.name === 'businessTutorialActivityChanged' && event.detail?.active === true)) throw new Error('Missing active lifecycle event');
+              if (!evidence.events.some(event => event.name === 'businessTutorialActivityChanged' && event.detail?.active === false)) throw new Error('Missing inactive lifecycle event');
+              if (!evidence.events.some(event => event.name === 'businessConversationAbandoned' && event.detail?.reason === 'user_skip')) throw new Error('Missing skip/abandon lifecycle event');
               if (evidence.errors.length) throw new Error(`Browser errors: ${JSON.stringify(evidence.errors)}`);
 
-              Object.assign(evidence, { initial, forward, afterSkip, result: 'PASS' });
-              writeFileSync('/tmp/m55-onboarding-browser-evidence.json', JSON.stringify(evidence, null, 2));
+              Object.assign(evidence, { initial, foundation, afterSkip, result: 'PASS' });
+              writeFileSync('/tmp/m56-onboarding-browser-evidence.json', JSON.stringify(evidence, null, 2));
             } finally {
               await browser.close();
             }
@@ -130,14 +159,14 @@ jobs:
           NODE
       - name: Show diagnostics
         if: failure()
-        run: cat /tmp/m55-onboarding-server.log || true
+        run: cat /tmp/m56-onboarding-server.log || true
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: business-onboarding-browser-evidence
-          path: /tmp/m55-onboarding-browser-evidence.json
+          path: /tmp/m56-onboarding-browser-evidence.json
           retention-days: 1
           if-no-files-found: ignore
       - name: Stop runtime
         if: always()
-        run: kill "$(cat /tmp/m55-server.pid)" 2>/dev/null || true
+        run: kill "$(cat /tmp/m56-server.pid)" 2>/dev/null || true

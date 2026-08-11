@@ -9,7 +9,9 @@
   "exports": {
     ".": "./src/index.ts",
     "./onboarding": "./src/onboarding.ts",
-    "./onboarding-host": "./src/onboarding-host.ts"
+    "./onboarding-host": "./src/onboarding-host.ts",
+    "./onboarding-steps": "./src/onboarding-steps.ts",
+    "./onboarding-presentation": "./src/onboarding-presentation.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",

@@ -36,6 +36,60 @@ describe("BusinessOnboardingHostController", () => {
     expect(welcome.stepId).toBe("welcome");
   });
 
+  it("persists the five V1 business inputs into workflow and business draft state", async () => {
+    const host = new BusinessOnboardingHostController();
+    await host.next();
+
+    host.updateStepInput("category", "events");
+    await host.next();
+    host.updateStepInput("specialty", "Sunset");
+    await host.next();
+    host.updateStepInput("name", "Toca do Morcego");
+    await host.next();
+    host.updateStepInput("objective", "events");
+    await host.next();
+    host.updateStepInput("audience", "premium");
+
+    const snapshot = host.snapshot();
+    expect(snapshot.session.conversationDraft.context).toMatchObject({
+      category: "events",
+      specialty: "Sunset",
+      businessName: "Toca do Morcego",
+      objective: "events",
+      audience: "premium",
+    });
+    expect(snapshot.session.businessDraft.categoryId).toBe("events");
+    expect(snapshot.session.businessDraft.specialtyTags).toEqual(["Sunset"]);
+    expect(snapshot.session.businessDraft.displayName).toBe("Toca do Morcego");
+    expect(snapshot.session.businessDraft.normalizedName).toBe(
+      "toca do morcego",
+    );
+    expect(snapshot.session.selectedObjective).toBe("events");
+  });
+
+  it("drops an incompatible specialty when category changes", () => {
+    const host = new BusinessOnboardingHostController();
+    host.updateStepInput("category", "events");
+    host.updateStepInput("specialty", "Sunset");
+    host.updateStepInput("category", "lodging");
+
+    expect(
+      host.snapshot().session.conversationDraft.context.specialty,
+    ).toBeUndefined();
+    expect(host.snapshot().session.businessDraft.specialtyTags).toEqual([]);
+  });
+
+  it("accepts only bounded runtime context keys", () => {
+    const host = new BusinessOnboardingHostController();
+    host.updateRuntimeContext({
+      businessVoiceDiscoveryReady: true,
+      credential: "must-not-enter-workflow-state",
+    });
+    const context = host.snapshot().session.conversationDraft.context;
+    expect(context.businessVoiceDiscoveryReady).toBe(true);
+    expect(context.credential).toBeUndefined();
+  });
+
   it("resumes a paused non-expired session and rejects an expired one", () => {
     const base = createBusinessOnboardingSession({
       locale: "es",

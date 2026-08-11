@@ -8,6 +8,10 @@ import {
   type BusinessOnboardingSession,
   type BusinessOnboardingStepId,
 } from "./onboarding.js";
+import {
+  updateBusinessOnboardingRuntimeContext,
+  updateBusinessOnboardingStepInput,
+} from "./onboarding-context.js";
 
 export const BUSINESS_ONBOARDING_GUARD_TIMEOUT_MS = 8000;
 
@@ -110,6 +114,32 @@ export class BusinessOnboardingHostController {
       canGoForward: stepIndex < ORDERED_STEPS.length - 1,
       chapter: getBusinessOnboardingChapter(stepId),
     });
+  }
+
+  updateStepInput(
+    stepId: BusinessOnboardingStepId,
+    value: unknown,
+    now = new Date(),
+  ): BusinessOnboardingHostSnapshot {
+    this.session = updateBusinessOnboardingStepInput(
+      this.session,
+      stepId,
+      value,
+      now,
+    );
+    return this.snapshot();
+  }
+
+  updateRuntimeContext(
+    patch: Readonly<Record<string, unknown>>,
+    now = new Date(),
+  ): BusinessOnboardingHostSnapshot {
+    this.session = updateBusinessOnboardingRuntimeContext(
+      this.session,
+      patch,
+      now,
+    );
+    return this.snapshot();
   }
 
   async move(
