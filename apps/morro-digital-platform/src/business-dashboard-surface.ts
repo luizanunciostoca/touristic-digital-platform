@@ -24,7 +24,11 @@ export function requestedBusinessId(search: string): string | undefined {
 export function patchBusinessProfile(
   current: BusinessProfile | null,
   businessId: string,
-  input: { readonly name: string; readonly categoryLabel: string; readonly description: string },
+  input: {
+    readonly name: string;
+    readonly categoryLabel: string;
+    readonly description: string;
+  },
 ): BusinessProfile {
   return normalizeBusinessProfile(
     {
@@ -46,7 +50,10 @@ export interface BusinessDashboardSurfaceOptions {
   readonly authClient: DashboardAuthClient;
 }
 
-function requiredElement<T extends HTMLElement>(document: Document, id: string): T {
+function requiredElement<T extends HTMLElement>(
+  document: Document,
+  id: string,
+): T {
   const element = document.getElementById(id);
   if (!element) throw new Error(`MISSING_DASHBOARD_ELEMENT:${id}`);
   return element as T;
@@ -61,14 +68,20 @@ export async function mountBusinessDashboardSurface(
 ): Promise<void> {
   const { document, storage, search, dashboardClient, authClient } = options;
   const entryScreen = requiredElement<HTMLElement>(document, "search-screen");
-  const mainDashboard = requiredElement<HTMLElement>(document, "main-dashboard");
+  const mainDashboard = requiredElement<HTMLElement>(
+    document,
+    "main-dashboard",
+  );
   const entryMessage = requiredElement<HTMLElement>(document, "entry-message");
   const sidebar = requiredElement<HTMLElement>(document, "dashboard-sidebar");
   const overlay = requiredElement<HTMLElement>(document, "mobile-overlay");
   const form = requiredElement<HTMLFormElement>(document, "profile-form");
   const status = requiredElement<HTMLElement>(document, "profile-status");
   const nameInput = requiredElement<HTMLInputElement>(document, "profile-name");
-  const categoryInput = requiredElement<HTMLInputElement>(document, "profile-category");
+  const categoryInput = requiredElement<HTMLInputElement>(
+    document,
+    "profile-category",
+  );
   const descriptionInput = requiredElement<HTMLTextAreaElement>(
     document,
     "profile-description",
@@ -83,18 +96,26 @@ export async function mountBusinessDashboardSurface(
   }
 
   function activateView(view: BusinessDashboardView): void {
-    document.querySelectorAll<HTMLElement>("[data-view-panel]").forEach((panel) => {
-      panel.classList.toggle("active", panel.dataset.viewPanel === view);
-    });
-    document.querySelectorAll<HTMLElement>("[data-dashboard-view]").forEach((button) => {
-      button.classList.toggle("active", button.dataset.dashboardView === view);
-    });
+    document
+      .querySelectorAll<HTMLElement>("[data-view-panel]")
+      .forEach((panel) => {
+        panel.classList.toggle("active", panel.dataset.viewPanel === view);
+      });
+    document
+      .querySelectorAll<HTMLElement>("[data-dashboard-view]")
+      .forEach((button) => {
+        button.classList.toggle(
+          "active",
+          button.dataset.dashboardView === view,
+        );
+      });
     closeMobileMenu();
   }
 
   function renderProfile(profile: BusinessProfile | null): void {
     activeProfile = profile;
-    const safeProfile = profile ?? normalizeBusinessProfile({ id: businessId }, businessId);
+    const safeProfile =
+      profile ?? normalizeBusinessProfile({ id: businessId }, businessId);
     setText(document, "business-name", safeProfile.name);
     setText(document, "summary-name", safeProfile.name);
     setText(document, "summary-category", safeProfile.categoryLabel);
@@ -104,14 +125,18 @@ export async function mountBusinessDashboardSurface(
     descriptionInput.value = safeProfile.description;
   }
 
-  document.querySelectorAll<HTMLElement>("[data-dashboard-view]").forEach((button) => {
-    button.addEventListener("click", () => {
-      const candidate = button.dataset.dashboardView;
-      if (businessDashboardViews.includes(candidate as BusinessDashboardView)) {
-        activateView(candidate as BusinessDashboardView);
-      }
+  document
+    .querySelectorAll<HTMLElement>("[data-dashboard-view]")
+    .forEach((button) => {
+      button.addEventListener("click", () => {
+        const candidate = button.dataset.dashboardView;
+        if (
+          businessDashboardViews.includes(candidate as BusinessDashboardView)
+        ) {
+          activateView(candidate as BusinessDashboardView);
+        }
+      });
     });
-  });
 
   requiredElement<HTMLButtonElement>(document, "mobile-menu").addEventListener(
     "click",
@@ -122,28 +147,29 @@ export async function mountBusinessDashboardSurface(
   );
   overlay.addEventListener("click", closeMobileMenu);
 
-  requiredElement<HTMLButtonElement>(document, "sidebar-collapse").addEventListener(
-    "click",
-    () => sidebar.classList.toggle("collapsed"),
-  );
+  requiredElement<HTMLButtonElement>(
+    document,
+    "sidebar-collapse",
+  ).addEventListener("click", () => sidebar.classList.toggle("collapsed"));
 
   const storedTheme = storage.getItem("business-dashboard-theme");
   if (storedTheme === "dark") document.documentElement.dataset.theme = "dark";
   requiredElement<HTMLButtonElement>(document, "theme-toggle").addEventListener(
     "click",
     () => {
-      const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+      const next =
+        document.documentElement.dataset.theme === "dark" ? "light" : "dark";
       document.documentElement.dataset.theme = next;
       storage.setItem("business-dashboard-theme", next);
     },
   );
 
-  requiredElement<HTMLButtonElement>(document, "logout-button").addEventListener(
-    "click",
-    () => {
-      void authClient.logout();
-    },
-  );
+  requiredElement<HTMLButtonElement>(
+    document,
+    "logout-button",
+  ).addEventListener("click", () => {
+    void authClient.logout();
+  });
 
   form.addEventListener("submit", (event) => {
     event.preventDefault();
@@ -160,12 +186,15 @@ export async function mountBusinessDashboardSurface(
         status.textContent = "Perfil salvo com segurança.";
       })
       .catch((error: unknown) => {
-        status.textContent = error instanceof Error ? error.message : "Falha ao salvar perfil.";
+        status.textContent =
+          error instanceof Error ? error.message : "Falha ao salvar perfil.";
       });
   });
 
   try {
-    const bootstrap = await dashboardClient.bootstrap(requestedBusinessId(search));
+    const bootstrap = await dashboardClient.bootstrap(
+      requestedBusinessId(search),
+    );
     businessId = bootstrap.businessId;
     renderProfile(bootstrap.profile);
     entryScreen.hidden = true;
