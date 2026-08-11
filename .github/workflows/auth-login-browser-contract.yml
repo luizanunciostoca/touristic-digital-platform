@@ -1,0 +1,170 @@
+name: Auth Login Browser Contract
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/auth-login-browser-contract.yml"
+      - "dashboard/**"
+      - "apps/morro-digital-platform/src/business-login-entry.ts"
+      - "apps/morro-digital-platform/src/business-dashboard-*.ts"
+      - "packages/auth-browser/**"
+      - "apps/morro-digital-platform/tooling/auth-api.mjs"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/auth-login-browser-contract.yml"
+      - "dashboard/**"
+      - "apps/morro-digital-platform/src/business-login-entry.ts"
+      - "apps/morro-digital-platform/src/business-dashboard-*.ts"
+      - "packages/auth-browser/**"
+      - "apps/morro-digital-platform/tooling/auth-api.mjs"
+
+permissions:
+  contents: read
+
+jobs:
+  auth-login-browser:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install deterministic Chromium
+        run: |
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+      - name: Build workspace
+        run: pnpm -w build
+      - name: Start authenticated runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          PORT=4187
+          SECRET="0123456789abcdef0123456789abcdef"
+          PASSWORD="correct horse battery staple"
+          HASH=$(node --input-type=module -e "import('./services/auth/dist/credentials.js').then(m => console.log(m.hashPassword(process.argv[1], Buffer.alloc(16, 11))))" "$PASSWORD")
+          USERS=$(node -e 'console.log(JSON.stringify([{id:"owner-1",email:"owner@example.com",passwordHash:process.argv[1],role:"owner",businessIds:["toca-do-morcego"]}]))' "$HASH")
+          DASHBOARD_AUTH_SECRET="$SECRET" DASHBOARD_USERS_JSON="$USERS" PORT="$PORT" HOST="127.0.0.1" \
+            node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/m66-auth-login-server.log 2>&1 &
+          echo $! >/tmp/m66-auth-login-server.pid
+          for _ in $(seq 1 60); do
+            if curl --fail --silent "http://127.0.0.1:${PORT}/dashboard/login.html" >/dev/null; then exit 0; fi
+            sleep 0.25
+          done
+          cat /tmp/m66-auth-login-server.log
+          exit 1
+      - name: Validate login surface and lifecycle
+        run: |
+          node <<'NODE'
+          const { writeFileSync } = require('node:fs');
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+
+          (async () => {
+            const origin = 'http://127.0.0.1:4187';
+            const browser = await chromium.launch({ headless: true });
+            const evidence = { errors: [] };
+            try {
+              const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+              const page = await context.newPage();
+              page.on('pageerror', error => evidence.errors.push(error.message));
+
+              const returnPath = '/dashboard/index-v3-improved.html?businessId=toca-do-morcego';
+              await page.goto(`${origin}/dashboard/login.html?return=${encodeURIComponent(returnPath)}`, {
+                waitUntil: 'domcontentloaded',
+                timeout: 30000,
+              });
+
+              if ((await page.getByRole('heading', { name: 'Painel Morro Digital' }).count()) !== 1) {
+                throw new Error('Frozen login heading missing');
+              }
+              if ((await page.locator('#email').getAttribute('autocomplete')) !== 'username') {
+                throw new Error('Username autocomplete contract diverged');
+              }
+              if ((await page.locator('#password').getAttribute('autocomplete')) !== 'current-password') {
+                throw new Error('Password autocomplete contract diverged');
+              }
+              if (!(await page.locator('.security').textContent()).includes('cookie HttpOnly')) {
+                throw new Error('Security disclosure missing');
+              }
+
+              await page.locator('#email').fill('owner@example.com');
+              await page.locator('#password').fill('wrong-password');
+              await page.locator('#submit').click();
+              await page.locator('#message:not([hidden])').waitFor({ state: 'visible', timeout: 10000 });
+              if (!(await page.locator('#message').textContent()).includes('E-mail ou senha inválidos')) {
+                throw new Error('Invalid credentials message diverged');
+              }
+              if (new URL(page.url()).pathname !== '/dashboard/login.html') {
+                throw new Error('Invalid login escaped login surface');
+              }
+
+              await page.locator('#password').fill('correct horse battery staple');
+              await page.locator('#submit').click();
+              await page.waitForURL(url => url.pathname === '/apps/morro-digital-platform/public/business-dashboard.html', {
+                timeout: 15000,
+              });
+              await page.locator('#main-dashboard:not([hidden])').waitFor({ state: 'visible', timeout: 10000 });
+              if (!page.url().includes('businessId=toca-do-morcego')) {
+                throw new Error(`Canonical dashboard return query was not preserved: ${page.url()}`);
+              }
+              const csrfProjection = await page.evaluate(() => sessionStorage.getItem('md_dashboard_csrf'));
+              if (!csrfProjection) throw new Error('Browser-safe CSRF projection was not retained');
+              const session = await context.request.get(`${origin}/api/dashboard/auth/session`);
+              if (session.status() !== 200) throw new Error(`Authenticated session missing: ${session.status()}`);
+
+              await page.locator('#logout-button').click();
+              await page.waitForURL(url => url.pathname === '/dashboard/login.html', { timeout: 10000 });
+              const sessionAfterLogout = await context.request.get(`${origin}/api/dashboard/auth/session`);
+              if (sessionAfterLogout.status() !== 401) {
+                throw new Error(`Logout did not revoke session: ${sessionAfterLogout.status()}`);
+              }
+
+              await page.goto(`${origin}/dashboard/login.html?return=${encodeURIComponent('//evil.example/steal')}`, {
+                waitUntil: 'domcontentloaded',
+              });
+              await page.locator('#email').fill('owner@example.com');
+              await page.locator('#password').fill('correct horse battery staple');
+              await page.locator('#submit').click();
+              await page.waitForURL(url => url.pathname === '/apps/morro-digital-platform/public/business-dashboard.html', {
+                timeout: 15000,
+              });
+              if (new URL(page.url()).origin !== origin) {
+                throw new Error(`Unsafe return escaped same origin: ${page.url()}`);
+              }
+
+              evidence.invalidCredentials = true;
+              evidence.validLogin = true;
+              evidence.csrfProjection = true;
+              evidence.canonicalReturn = true;
+              evidence.logoutRevoked = true;
+              evidence.unsafeReturnRejected = true;
+              if (evidence.errors.length) throw new Error(`Browser errors: ${JSON.stringify(evidence.errors)}`);
+              writeFileSync('/tmp/m66-auth-login-evidence.json', JSON.stringify(evidence, null, 2));
+              await context.close();
+            } finally {
+              await browser.close();
+            }
+          })().catch(error => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+      - name: Show diagnostics
+        if: failure()
+        run: cat /tmp/m66-auth-login-server.log || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: auth-login-browser-evidence
+          path: /tmp/m66-auth-login-evidence.json
+          retention-days: 1
+          if-no-files-found: ignore
+      - name: Stop runtime
+        if: always()
+        run: kill "$(cat /tmp/m66-auth-login-server.pid)" 2>/dev/null || true
