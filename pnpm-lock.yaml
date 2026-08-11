@@ -80,6 +80,8 @@ importers:
 
   packages/core: {}
 
+  packages/crm: {}
+
   packages/design-system: {}
 
   packages/geospatial:
