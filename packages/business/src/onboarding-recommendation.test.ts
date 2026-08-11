@@ -44,7 +44,7 @@ describe("M58 Business tutorial recommendation sandbox", () => {
     expect(Object.isFrozen(candidate)).toBe(true);
   });
 
-  it("preserves the frozen V1 recommendation weights", () => {
+  it("preserves the frozen V1 additive recommendation weights", () => {
     expect(
       scoreBusinessTutorialRecommendation("Quero uma festa hoje", candidate),
     ).toBe(55);
@@ -56,25 +56,25 @@ describe("M58 Business tutorial recommendation sandbox", () => {
     ).toBe(100);
     expect(
       scoreBusinessTutorialRecommendation("procuro sunset", candidate),
-    ).toBe(30);
+    ).toBe(85);
     expect(
-      scoreBusinessTutorialRecommendation("algo tranquilo", candidate),
-    ).toBe(0);
+      scoreBusinessTutorialRecommendation("para casais", candidate),
+    ).toBe(15);
   });
 
   it("renders only scores at or above the V1 threshold", () => {
     expect(
-      evaluateBusinessTutorialRecommendation("Quero uma festa", candidate),
+      evaluateBusinessTutorialRecommendation("procuro sunset", candidate),
     ).toMatchObject({
-      score: 55,
+      score: 85,
       rendered: true,
       tutorial: true,
       excludeFromBusinessMetrics: true,
     });
     expect(
-      evaluateBusinessTutorialRecommendation("procuro sunset", candidate),
+      evaluateBusinessTutorialRecommendation("para casais", candidate),
     ).toMatchObject({
-      score: 30,
+      score: 15,
       rendered: false,
     });
   });
