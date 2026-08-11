@@ -77,6 +77,10 @@ Unit tests additionally cover resume/expiry, immutable transitions, guard denial
 
 M55 does not implement Payments/commercial conversion, analytics endpoints, recommendation sandbox ownership, partner workspace, or unrelated Business profile persistence breadth.
 
+## Final validation checkpoint
+
+The final authored head must repeat all M55 and adjacent Business/Auth regressions after the migration matrix is updated; no earlier green head is reused as the merge gate.
+
 ## Exit gate
 
 M55 may close only when the final authored head passes:
