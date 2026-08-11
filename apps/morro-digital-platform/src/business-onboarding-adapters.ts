@@ -76,7 +76,9 @@ function toSearchMatch(
 
 function createDiscoveryAdapter(): BusinessDiscoveryPort {
   return Object.freeze({
-    async searchBusiness(query: string): Promise<readonly BusinessOnboardingSearchMatch[]> {
+    async searchBusiness(
+      query: string,
+    ): Promise<readonly BusinessOnboardingSearchMatch[]> {
       return Object.freeze(
         businessSearchIndex.search(query).slice(0, 5).map(toSearchMatch),
       );
@@ -152,9 +154,10 @@ function createAssistantAdapter(
   return Object.freeze({
     async ask(
       message: string,
-      _locale: string,
-    ): Promise<AssistantDialogResponse> {
-      return controller.processUserInput(message);
+      locale: string,
+    ): Promise<AssistantDialogResponse & { readonly onboardingLocale: string }> {
+      const response = await controller.processUserInput(message);
+      return Object.freeze({ ...response, onboardingLocale: locale });
     },
   });
 }
