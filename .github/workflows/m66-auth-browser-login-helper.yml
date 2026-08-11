@@ -29,7 +29,7 @@ jobs:
       - name: Apply and format Auth browser login patch
         run: |
           python3 .github/scripts/m66-auth-browser-login-patch.py
-          pnpm exec prettier --write packages/auth-browser/src/index.ts packages/auth-browser/src/index.test.ts apps/morro-digital-platform/src/business-login-entry.ts dashboard/login.html dashboard/login.css dashboard/index-v3-improved.html
+          pnpm exec prettier --write packages/auth-browser/src/index.ts packages/auth-browser/src/index.test.ts apps/morro-digital-platform/src/business-login-entry.ts apps/morro-digital-platform/src/business-dashboard-client.test.ts dashboard/login.html dashboard/login.css dashboard/index-v3-improved.html
       - name: Validate M66 login patch
         run: |
           pnpm --filter @touristic/auth-browser lint
@@ -44,7 +44,7 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add packages/auth-browser/src/index.ts packages/auth-browser/src/index.test.ts apps/morro-digital-platform/src/business-login-entry.ts dashboard/login.html dashboard/login.css dashboard/index-v3-improved.html
+          git add packages/auth-browser/src/index.ts packages/auth-browser/src/index.test.ts apps/morro-digital-platform/src/business-login-entry.ts apps/morro-digital-platform/src/business-dashboard-client.test.ts dashboard/login.html dashboard/login.css dashboard/index-v3-improved.html
           if git diff --cached --quiet; then exit 0; fi
           git commit -m "feat(auth): port M66 Business login surface"
           git push origin HEAD:feat/auth-m66-login-surface-parity
