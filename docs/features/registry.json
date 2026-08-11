@@ -105,13 +105,13 @@
       "name": "Autenticação e Sessão",
       "domain": "identity",
       "wave": 6,
-      "status": "baseline-pending",
+      "status": "equivalent",
       "legacySources": ["v1:auth"],
       "targetPackages": ["@touristic/auth"],
       "equivalence": {
-        "behavior": false,
-        "visual": false,
-        "api": false
+        "behavior": true,
+        "visual": true,
+        "api": true
       }
     },
     {
