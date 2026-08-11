@@ -3,16 +3,21 @@ from pathlib import Path
 matrix_path = Path('docs/migration/CRM-MIGRATION-MATRIX.md')
 matrix = matrix_path.read_text()
 matrix = matrix.replace('# CRM Administrativo — Migration Matrix (M68 domain model)', '# CRM Administrativo — Migration Matrix (M69 authorization policy)', 1)
-old_auth = '| Platform authentication/session integration    | V1 host auth infrastructure + client auth hook       | `FEATURE-0008` is equivalent platform-wide, but CRM consumer absent | PARTIAL | Consume platform Auth; do not port host-specific auth blindly.                  |'
-new_auth = '| Platform authentication/session integration    | V1 host auth infrastructure + client auth hook       | `@touristic/crm/authorization` consumes equivalent platform Auth; no CRM server/browser consumer yet | PARTIAL | Auth dependency and CRM policy are executable; integration remains incomplete until a real CRM boundary consumes them. |'
-if old_auth not in matrix:
+lines = matrix.splitlines()
+found_auth = False
+found_policy = False
+for index, line in enumerate(lines):
+    if line.startswith('| Platform authentication/session integration'):
+        lines[index] = '| Platform authentication/session integration    | V1 host auth infrastructure + client auth hook       | `@touristic/crm/authorization` consumes equivalent platform Auth; no CRM server/browser consumer yet | PARTIAL | Auth dependency and CRM policy are executable; integration remains incomplete until a real CRM boundary consumes them. |'
+        found_auth = True
+    elif line.startswith('| Server-side audit/authorization'):
+        lines[index] = '| Server-side audit/authorization                | protected tRPC procedures + host auth                | CRM policy now requires active session and denies viewer mutations; server boundary/audit absent | PARTIAL | Reuse the CRM policy in mutable/read APIs and add structured denial audit before PASS. |'
+        found_policy = True
+if not found_auth:
     raise SystemExit('auth row anchor missing')
-matrix = matrix.replace(old_auth, new_auth, 1)
-old_policy = '| Server-side audit/authorization                | protected tRPC procedures + host auth                | platform Auth primitives exist; CRM policies absent                 | PARTIAL | Reuse Auth identity/session and add CRM-specific authorization/audit decisions. |'
-new_policy = '| Server-side audit/authorization                | protected tRPC procedures + host auth                | CRM policy now requires active session and denies viewer mutations; server boundary/audit absent | PARTIAL | Reuse the CRM policy in mutable/read APIs and add structured denial audit before PASS. |'
-if old_policy not in matrix:
+if not found_policy:
     raise SystemExit('policy row anchor missing')
-matrix = matrix.replace(old_policy, new_policy, 1)
+matrix = '\n'.join(lines) + '\n'
 score_anchor = 'M68 adds the first CRM-owned executable core without claiming end-to-end parity. Pipeline vocabulary/order and persistence modeling advance from GAP to PARTIAL; browser, API, authorization and concrete persistence remain open.'
 replacement = 'M69 adds a CRM-owned authorization policy over equivalent platform Auth. The score remains unchanged because no real CRM server/browser boundary consumes the policy yet: `0 PASS / 5 PARTIAL / 20 GAP / 0 N/A`.'
 if score_anchor not in matrix:
