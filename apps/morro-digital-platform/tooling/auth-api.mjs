@@ -1,3 +1,4 @@
+import { authorizeBusinessAccess } from "@touristic/auth";
 import {
   authenticateConfiguredUser,
   createAuthRevocationStore,
@@ -172,6 +173,74 @@ export function createAuthApi({ getEnvironmentValue, audit = () => {} }) {
     return session;
   }
 
+  function authorizeBusinessRequest(
+    request,
+    response,
+    businessIdInput,
+    { mutation = false, auditAction = "business.resource" } = {},
+  ) {
+    const active = requireSession(request, response);
+    if (!active) return null;
+    if (mutation && !originAllowed(request)) {
+      audit(request, {
+        action: auditAction,
+        result: "denied",
+        reason: "cross_origin_request",
+      });
+      json(response, 403, {
+        error: "ORIGIN_DENIED",
+        message: "Origem da solicitação não autorizada.",
+      });
+      return null;
+    }
+    if (
+      mutation &&
+      !verifyCsrfToken(
+        firstHeader(request.headers["x-csrf-token"]),
+        active,
+        secret,
+      )
+    ) {
+      audit(request, {
+        action: auditAction,
+        result: "denied",
+        reason: "invalid_csrf",
+      });
+      json(response, 403, {
+        error: "INVALID_CSRF",
+        message: "Validação de segurança expirada. Recarregue o painel.",
+      });
+      return null;
+    }
+    const decision = authorizeBusinessAccess(active, businessIdInput, {
+      mutation,
+    });
+    if (!decision.allowed || !decision.businessId) {
+      audit(request, {
+        action: auditAction,
+        result: "denied",
+        reason: decision.reason,
+      });
+      if (decision.reason === "invalid_business_id")
+        json(response, 400, {
+          error: "INVALID_BUSINESS_ID",
+          message: "Identificador de empresa inválido.",
+        });
+      else if (decision.reason === "read_only_role")
+        json(response, 403, {
+          error: "READ_ONLY_ROLE",
+          message: "Este usuário possui acesso somente para leitura.",
+        });
+      else
+        json(response, 403, {
+          error: "BUSINESS_ACCESS_DENIED",
+          message: "Acesso à empresa não autorizado.",
+        });
+      return null;
+    }
+    return Object.freeze({ session: active, businessId: decision.businessId });
+  }
+
   async function login(request, response) {
     if (!originAllowed(request)) {
       audit(request, {
@@ -326,6 +395,7 @@ export function createAuthApi({ getEnvironmentValue, audit = () => {} }) {
   }
 
   return Object.freeze({
+    authorizeBusinessRequest,
     matches(pathname) {
       return (
         pathname === `${authPrefix}/login` ||

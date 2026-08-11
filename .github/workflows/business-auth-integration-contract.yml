@@ -1,0 +1,134 @@
+name: Business Auth Integration Contract
+
+on:
+  pull_request:
+    paths:
+      - "packages/auth/**"
+      - "packages/business/**"
+      - "services/auth/**"
+      - "apps/morro-digital-platform/package.json"
+      - "apps/morro-digital-platform/tooling/auth-api.mjs"
+      - "apps/morro-digital-platform/tooling/business-api.mjs"
+      - "apps/morro-digital-platform/tooling/dev-server.mjs"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/business-auth-integration-contract.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "packages/auth/**"
+      - "packages/business/**"
+      - "services/auth/**"
+      - "apps/morro-digital-platform/package.json"
+      - "apps/morro-digital-platform/tooling/auth-api.mjs"
+      - "apps/morro-digital-platform/tooling/business-api.mjs"
+      - "apps/morro-digital-platform/tooling/dev-server.mjs"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/business-auth-integration-contract.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  business-auth-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Validate Business and Auth packages
+        run: |
+          pnpm --filter @touristic/auth test
+          pnpm --filter @touristic/business lint
+          pnpm --filter @touristic/business typecheck
+          pnpm --filter @touristic/business test
+      - name: Build workspace
+        run: pnpm -w build
+      - name: Validate protected Business HTTP contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          PORT=4175
+          ORIGIN="http://127.0.0.1:${PORT}"
+          SECRET="0123456789abcdef0123456789abcdef"
+          PASSWORD="correct horse battery staple"
+          HASH=$(node --input-type=module -e "import('./services/auth/dist/credentials.js').then(m => console.log(m.hashPassword(process.argv[1], Buffer.alloc(16, 7))))" "$PASSWORD")
+          USERS=$(node -e 'console.log(JSON.stringify([{id:"owner-1",email:"owner@example.com",passwordHash:process.argv[1],role:"owner",businessIds:["toca-do-morcego"]},{id:"viewer-1",email:"viewer@example.com",passwordHash:process.argv[1],role:"viewer",businessIds:["toca-do-morcego"]}]))' "$HASH")
+
+          DASHBOARD_AUTH_SECRET="$SECRET" DASHBOARD_USERS_JSON="$USERS" PORT="$PORT" HOST="127.0.0.1" \
+            node apps/morro-digital-platform/tooling/dev-server.mjs > /tmp/m50-business-server.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true; cat /tmp/m50-business-server.log || true' EXIT
+
+          for _ in $(seq 1 40); do
+            if curl --fail --silent "$ORIGIN/runtime-config.js" >/dev/null; then break; fi
+            sleep 0.25
+          done
+
+          OWNER_LOGIN=$(curl --silent --output /tmp/owner-login.json --write-out '%{http_code}' \
+            --cookie-jar /tmp/owner.cookies \
+            --header "Origin: $ORIGIN" \
+            --header 'Content-Type: application/json' \
+            --data "{\"email\":\"owner@example.com\",\"password\":\"$PASSWORD\"}" \
+            "$ORIGIN/api/dashboard/auth/login")
+          test "$OWNER_LOGIN" = "200"
+          node -e 'const fs=require("fs"); const data=JSON.parse(fs.readFileSync("/tmp/owner-login.json")); fs.writeFileSync("/tmp/owner-csrf.txt", data.csrfToken)'
+          OWNER_CSRF=$(cat /tmp/owner-csrf.txt)
+
+          PUT_STATUS=$(curl --silent --output /tmp/profile-put.json --write-out '%{http_code}' \
+            --cookie /tmp/owner.cookies \
+            --header "Origin: $ORIGIN" \
+            --header "X-CSRF-Token: $OWNER_CSRF" \
+            --header 'Content-Type: application/json' \
+            --request PUT \
+            --data '{"name":"Toca do Morcego","categoryLabel":"Experiência","locationLabel":"Morro de São Paulo"}' \
+            "$ORIGIN/api/business/toca-do-morcego/profile")
+          test "$PUT_STATUS" = "200"
+          grep -q '"name":"Toca do Morcego"' /tmp/profile-put.json
+
+          GET_STATUS=$(curl --silent --output /tmp/profile-get.json --write-out '%{http_code}' \
+            --cookie /tmp/owner.cookies \
+            "$ORIGIN/api/business/toca-do-morcego/profile")
+          test "$GET_STATUS" = "200"
+          grep -q '"id":"toca-do-morcego"' /tmp/profile-get.json
+
+          TENANT_STATUS=$(curl --silent --output /tmp/tenant-denied.json --write-out '%{http_code}' \
+            --cookie /tmp/owner.cookies \
+            "$ORIGIN/api/business/outra-empresa/profile")
+          test "$TENANT_STATUS" = "403"
+          grep -q 'BUSINESS_ACCESS_DENIED' /tmp/tenant-denied.json
+
+          BAD_CSRF_STATUS=$(curl --silent --output /tmp/bad-csrf.json --write-out '%{http_code}' \
+            --cookie /tmp/owner.cookies \
+            --header "Origin: $ORIGIN" \
+            --header 'X-CSRF-Token: wrong' \
+            --header 'Content-Type: application/json' \
+            --request PUT \
+            --data '{"name":"Blocked"}' \
+            "$ORIGIN/api/business/toca-do-morcego/profile")
+          test "$BAD_CSRF_STATUS" = "403"
+          grep -q 'INVALID_CSRF' /tmp/bad-csrf.json
+
+          VIEWER_LOGIN=$(curl --silent --output /tmp/viewer-login.json --write-out '%{http_code}' \
+            --cookie-jar /tmp/viewer.cookies \
+            --header "Origin: $ORIGIN" \
+            --header 'Content-Type: application/json' \
+            --data "{\"email\":\"viewer@example.com\",\"password\":\"$PASSWORD\"}" \
+            "$ORIGIN/api/dashboard/auth/login")
+          test "$VIEWER_LOGIN" = "200"
+          node -e 'const fs=require("fs"); const data=JSON.parse(fs.readFileSync("/tmp/viewer-login.json")); fs.writeFileSync("/tmp/viewer-csrf.txt", data.csrfToken)'
+          VIEWER_CSRF=$(cat /tmp/viewer-csrf.txt)
+          VIEWER_PUT=$(curl --silent --output /tmp/viewer-put.json --write-out '%{http_code}' \
+            --cookie /tmp/viewer.cookies \
+            --header "Origin: $ORIGIN" \
+            --header "X-CSRF-Token: $VIEWER_CSRF" \
+            --header 'Content-Type: application/json' \
+            --request PUT \
+            --data '{"name":"Blocked viewer"}' \
+            "$ORIGIN/api/business/toca-do-morcego/profile")
+          test "$VIEWER_PUT" = "403"
+          grep -q 'READ_ONLY_ROLE' /tmp/viewer-put.json
