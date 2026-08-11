@@ -54,7 +54,11 @@ const CATEGORY_TERMS = Object.freeze({
 
 function safeText(value: unknown, maxLength = 240): string {
   if (typeof value !== "string") return "";
-  return value.replace(/[<>]/gu, " ").replace(/\s+/gu, " ").trim().slice(0, maxLength);
+  return value
+    .replace(/[<>]/gu, " ")
+    .replace(/\s+/gu, " ")
+    .trim()
+    .slice(0, maxLength);
 }
 
 function normalize(value: unknown): string {
