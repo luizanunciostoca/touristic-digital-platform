@@ -37,6 +37,38 @@ export interface BusinessOnboardingResolvedLocation {
   readonly accuracy?: number;
 }
 
+export type BusinessOnboardingAssistantResponse = AssistantDialogResponse & {
+  readonly onboardingLocale: string;
+};
+
+export interface BusinessOnboardingDiscoveryAdapter
+  extends BusinessDiscoveryPort {
+  readonly searchBusiness: (
+    query: string,
+  ) => Promise<readonly BusinessOnboardingSearchMatch[]>;
+}
+
+export interface BusinessOnboardingLocationAdapter extends BusinessLocationPort {
+  readonly findExistingLocation: (
+    businessName: string,
+  ) => Promise<BusinessOnboardingResolvedLocation | null>;
+  readonly requestDeviceLocation: () => Promise<BusinessOnboardingResolvedLocation | null>;
+}
+
+export interface BusinessOnboardingAssistantAdapter extends BusinessAssistantPort {
+  readonly ask: (
+    message: string,
+    locale: string,
+  ) => Promise<BusinessOnboardingAssistantResponse>;
+}
+
+export interface BusinessOnboardingConcreteAdapters
+  extends BusinessOnboardingPorts {
+  readonly discovery: BusinessOnboardingDiscoveryAdapter;
+  readonly location: BusinessOnboardingLocationAdapter;
+  readonly assistant: BusinessOnboardingAssistantAdapter;
+}
+
 export interface BusinessOnboardingAdapterOptions {
   readonly geolocation?: AssistantGeolocationPort;
   readonly fetch?: typeof globalThis.fetch;
@@ -72,13 +104,13 @@ function toSearchMatch(
   });
 }
 
-function createDiscoveryAdapter(): BusinessDiscoveryPort {
+function createDiscoveryAdapter(): BusinessOnboardingDiscoveryAdapter {
   return Object.freeze({
-    async searchBusiness(
-      query: string,
-    ): Promise<readonly BusinessOnboardingSearchMatch[]> {
-      return Object.freeze(
-        businessSearchIndex.search(query).slice(0, 5).map(toSearchMatch),
+    searchBusiness(query: string) {
+      return Promise.resolve(
+        Object.freeze(
+          businessSearchIndex.search(query).slice(0, 5).map(toSearchMatch),
+        ),
       );
     },
   });
@@ -113,22 +145,22 @@ function requestDeviceLocation(
 
 function createLocationAdapter(
   geolocation?: AssistantGeolocationPort,
-): BusinessLocationPort {
+): BusinessOnboardingLocationAdapter {
   return Object.freeze({
-    async findExistingLocation(
-      businessName: string,
-    ): Promise<BusinessOnboardingResolvedLocation | null> {
+    findExistingLocation(businessName: string) {
       const result = businessSearchIndex.search(businessName)[0];
-      if (!result) return null;
+      if (!result) return Promise.resolve(null);
       const coordinates = coordinatesFor(result.item);
-      if (!coordinates) return null;
+      if (!coordinates) return Promise.resolve(null);
 
-      return Object.freeze({
-        name: result.item.name,
-        category: result.item.category,
-        coordinates,
-        source: "catalog" as const,
-      });
+      return Promise.resolve(
+        Object.freeze({
+          name: result.item.name,
+          category: result.item.category,
+          coordinates,
+          source: "catalog" as const,
+        }),
+      );
     },
     requestDeviceLocation: () => requestDeviceLocation(geolocation),
   });
@@ -136,7 +168,7 @@ function createLocationAdapter(
 
 function createAssistantAdapter(
   options: BusinessOnboardingAdapterOptions,
-): BusinessAssistantPort {
+): BusinessOnboardingAssistantAdapter {
   const context = createAssistantContextManager();
   const controller = createAssistantDialogController({
     context,
@@ -153,9 +185,7 @@ function createAssistantAdapter(
     async ask(
       message: string,
       locale: string,
-    ): Promise<
-      AssistantDialogResponse & { readonly onboardingLocale: string }
-    > {
+    ): Promise<BusinessOnboardingAssistantResponse> {
       const response = await controller.processUserInput(message);
       return Object.freeze({ ...response, onboardingLocale: locale });
     },
@@ -164,7 +194,7 @@ function createAssistantAdapter(
 
 export function createBusinessOnboardingAdapters(
   options: BusinessOnboardingAdapterOptions = {},
-): BusinessOnboardingPorts {
+): BusinessOnboardingConcreteAdapters {
   return Object.freeze({
     discovery: createDiscoveryAdapter(),
     location: createLocationAdapter(options.geolocation),
