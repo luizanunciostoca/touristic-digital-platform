@@ -1,0 +1,38 @@
+name: M59 Matrix Format Once
+
+on:
+  push:
+    branches:
+      - feat/business-m59-profile-sandbox-runtime
+    paths:
+      - .github/workflows/m59-matrix-format-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/business-m59-profile-sandbox-runtime
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec prettier --write docs/migration/BUSINESS-MIGRATION-MATRIX.md
+      - name: Commit canonical formatting
+        run: |
+          if git diff --quiet; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/migration/BUSINESS-MIGRATION-MATRIX.md
+          git commit -m "style(business): format M59 migration matrix"
+          git push origin HEAD:feat/business-m59-profile-sandbox-runtime
