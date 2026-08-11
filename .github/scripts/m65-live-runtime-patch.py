@@ -47,7 +47,6 @@ methods = ctor + '''
       | "map"
       | "navigation"
       | "promotions"
-      | "settings"
       | "analytics"
       | "partner-panel",
     stepId: string,
@@ -169,11 +168,6 @@ live_steps = '''    if (snapshot.stepId === "conversion") {
 
     if (snapshot.stepId === "promotions") {
       this.requestLiveSurfaceFocus("promotions", "promotions");
-      return;
-    }
-
-    if (snapshot.stepId === "notifications") {
-      this.requestLiveSurfaceFocus("settings", "notifications");
       return;
     }
 
