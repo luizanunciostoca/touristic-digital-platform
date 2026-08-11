@@ -1,0 +1,143 @@
+name: Business Onboarding Browser Contract
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/business-onboarding-browser-contract.yml"
+      - "apps/morro-digital-platform/src/business-onboarding-*.ts"
+      - "apps/morro-digital-platform/public/business-onboarding.*"
+      - "packages/business/src/onboarding*.ts"
+      - "packages/business/package.json"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/business-onboarding-browser-contract.yml"
+      - "apps/morro-digital-platform/src/business-onboarding-*.ts"
+      - "apps/morro-digital-platform/public/business-onboarding.*"
+      - "packages/business/src/onboarding*.ts"
+      - "packages/business/package.json"
+
+permissions:
+  contents: read
+
+jobs:
+  onboarding-browser:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install deterministic Chromium
+        run: |
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+      - name: Build workspace
+        run: pnpm -w build
+      - name: Start deterministic app origin
+        shell: bash
+        run: |
+          set -euo pipefail
+          PORT=4181
+          HOST=127.0.0.1
+          PORT="$PORT" HOST="$HOST" node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/m55-onboarding-server.log 2>&1 &
+          echo $! >/tmp/m55-server.pid
+          for _ in $(seq 1 60); do
+            if curl --fail --silent "http://${HOST}:${PORT}/apps/morro-digital-platform/public/business-onboarding.html" >/dev/null; then exit 0; fi
+            sleep 0.25
+          done
+          cat /tmp/m55-onboarding-server.log
+          exit 1
+      - name: Validate onboarding host lifecycle
+        run: |
+          node <<'NODE'
+          const { writeFileSync } = require('node:fs');
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            const evidence = { errors: [], events: [] };
+            try {
+              const page = await browser.newPage();
+              page.on('pageerror', error => evidence.errors.push(error.message));
+              await page.exposeFunction('recordM55Event', event => evidence.events.push(event));
+              await page.addInitScript(() => {
+                window.addEventListener('businessTutorialActivityChanged', event => {
+                  window.recordM55Event({ name: 'activity', detail: event.detail });
+                });
+                window.addEventListener('businessConversationAbandoned', event => {
+                  window.recordM55Event({ name: 'abandoned', detail: event.detail });
+                });
+              });
+
+              await page.goto('http://127.0.0.1:4181/apps/morro-digital-platform/public/business-onboarding.html', { waitUntil: 'domcontentloaded' });
+              await page.locator('#businessOnboardingSurface').waitFor({ state: 'visible' });
+
+              const initial = await page.evaluate(() => ({
+                active: document.body.classList.contains('md-business-tutorial-active'),
+                role: document.querySelector('#businessOnboardingSurface')?.getAttribute('role'),
+                modal: document.querySelector('#businessOnboardingSurface')?.getAttribute('aria-modal'),
+                title: document.querySelector('#businessOnboardingTitle')?.textContent,
+                progress: document.querySelector('#businessOnboardingProgress')?.textContent,
+                step: document.querySelector('#businessOnboardingStep')?.textContent,
+                backHidden: document.querySelector('[data-action="back"]')?.hidden,
+                nextLabel: document.querySelector('[data-action="next"]')?.textContent,
+              }));
+
+              if (!initial.active) throw new Error('Tutorial activity class was not mounted');
+              if (initial.role !== 'dialog' || initial.modal !== 'true') throw new Error(`Dialog semantics diverged: ${JSON.stringify(initial)}`);
+              if (!initial.progress?.includes('Capítulo 1 de 5')) throw new Error(`Initial chapter progress diverged: ${initial.progress}`);
+              if (!initial.step?.includes('welcome')) throw new Error(`Initial step diverged: ${initial.step}`);
+              if (initial.backHidden !== true) throw new Error('Back button must be hidden on welcome');
+
+              await page.locator('[data-action="next"]').click();
+              await page.waitForFunction(() => document.querySelector('#businessOnboardingStep')?.textContent?.includes('category'));
+              const forward = await page.evaluate(() => ({
+                progress: document.querySelector('#businessOnboardingProgress')?.textContent,
+                step: document.querySelector('#businessOnboardingStep')?.textContent,
+                backHidden: document.querySelector('[data-action="back"]')?.hidden,
+              }));
+              if (!forward.step?.includes('category') || forward.backHidden !== false) throw new Error(`Forward transition diverged: ${JSON.stringify(forward)}`);
+
+              await page.locator('[data-action="back"]').click();
+              await page.waitForFunction(() => document.querySelector('#businessOnboardingStep')?.textContent?.includes('welcome'));
+
+              await page.locator('[data-action="skip"]').click();
+              await page.locator('#businessOnboardingSurface').waitFor({ state: 'detached' });
+              const afterSkip = await page.evaluate(() => ({
+                active: document.body.classList.contains('md-business-tutorial-active'),
+              }));
+              if (afterSkip.active) throw new Error('Tutorial activity class remained after skip');
+              if (!evidence.events.some(event => event.name === 'activity' && event.detail?.active === true)) throw new Error('Missing active lifecycle event');
+              if (!evidence.events.some(event => event.name === 'activity' && event.detail?.active === false)) throw new Error('Missing inactive lifecycle event');
+              if (!evidence.events.some(event => event.name === 'abandoned' && event.detail?.reason === 'user_skip')) throw new Error('Missing skip/abandon lifecycle event');
+              if (evidence.errors.length) throw new Error(`Browser errors: ${JSON.stringify(evidence.errors)}`);
+
+              Object.assign(evidence, { initial, forward, afterSkip, result: 'PASS' });
+              writeFileSync('/tmp/m55-onboarding-browser-evidence.json', JSON.stringify(evidence, null, 2));
+            } finally {
+              await browser.close();
+            }
+          })().catch(error => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+      - name: Show diagnostics
+        if: failure()
+        run: cat /tmp/m55-onboarding-server.log || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: business-onboarding-browser-evidence
+          path: /tmp/m55-onboarding-browser-evidence.json
+          retention-days: 1
+          if-no-files-found: ignore
+      - name: Stop runtime
+        if: always()
+        run: kill "$(cat /tmp/m55-server.pid)" 2>/dev/null || true
