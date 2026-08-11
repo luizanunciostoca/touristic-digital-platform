@@ -1,0 +1,37 @@
+name: M56 Matrix Format Once
+
+on:
+  push:
+    branches:
+      - feat/business-m56-onboarding-step-contracts
+    paths:
+      - .github/workflows/m56-matrix-format-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/business-m56-onboarding-step-contracts
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Format migration matrix
+        run: pnpm exec prettier --write docs/migration/BUSINESS-MIGRATION-MATRIX.md
+      - name: Verify format
+        run: pnpm exec prettier --check docs/migration/BUSINESS-MIGRATION-MATRIX.md
+      - name: Commit and self-remove
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/m56-matrix-format-once.yml
+          git add docs/migration/BUSINESS-MIGRATION-MATRIX.md
+          git commit -m "style(business): format M56 migration matrix"
+          git push origin HEAD:feat/business-m56-onboarding-step-contracts
