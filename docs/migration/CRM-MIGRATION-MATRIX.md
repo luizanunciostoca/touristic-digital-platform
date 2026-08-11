@@ -14,33 +14,33 @@
 - tracker item: `MIG-0008`;
 - current V2 state: no `apps/admin-crm` application exists.
 
-| Contract | Frozen V1 evidence | V2 state at M67 | Status | Migration decision |
-| --- | --- | --- | --- | --- |
-| CRM application shell and authenticated layout | React client + `CRMLayout`/dashboard layout | no CRM app/surface | GAP | Create CRM-owned app shell only after core/API boundary is frozen. |
-| Platform authentication/session integration | V1 host auth infrastructure + client auth hook | `FEATURE-0008` is equivalent platform-wide, but CRM consumer absent | PARTIAL | Consume platform Auth; do not port host-specific auth blindly. |
-| Dashboard metrics and funnel | `Dashboard.tsx`; CRM metric procedures | no CRM consumer/domain | GAP | Freeze metric semantics before UI migration. |
-| Lead list and search/filter lifecycle | `Leads.tsx` | absent | GAP | Preserve CRM record semantics and bounded queries. |
-| Lead detail and activity lifecycle | `LeadDetail.tsx` | absent | GAP | Preserve detail/history relationships. |
-| 16-stage sales pipeline | full stage selector in frozen LeadDetail | absent | GAP | Freeze stage vocabulary/order and transition rules before implementation. |
-| Lead CRUD and server validation | tRPC routes + DB functions | absent | GAP | Create server-authoritative domain/API contract first. |
-| Meetings lifecycle | `Meetings.tsx`; create/complete/no-show/cancel | absent | GAP | Model lifecycle as explicit commands and auditable transitions. |
-| Proposals lifecycle | `Proposals.tsx`; proposal procedures | absent | GAP | Freeze proposal states and relationships. |
-| Tokenized proposal public view | `/proposals/view/:token` | absent | GAP | Preserve bounded server-validated token access. |
-| Contracts lifecycle | `Contracts.tsx`; create/sign/cancel behavior | absent | GAP | Preserve proposal linkage and valid state transitions. |
-| Tokenized contract public view | `/contracts/view/:token` | absent | GAP | Preserve bounded server-validated token access. |
-| Follow-up lifecycle | `FollowUps.tsx`; create/generate/send/respond | absent | GAP | Separate deterministic CRM state from AI text generation. |
-| Follow-up automation settings | Settings + scheduled follow-up handler | absent | GAP | Freeze settings semantics and fail-closed automation rules. |
-| Trials lifecycle | `Trials.tsx`; convert/cancel/expire | absent | GAP | Preserve explicit transitions and timestamps. |
-| Trial scheduled expiry | `scheduledHandlers.ts`; cron documentation | absent | GAP | Scheduled mutation must remain authenticated and idempotent. |
-| Referrals lifecycle | `Referrals.tsx`; edit/contact/lost/benefit/link lead | absent | GAP | Freeze statuses, benefit semantics and lead relation. |
-| CRM settings | `Settings.tsx` | absent | GAP | Inventory each setting before porting UI. |
-| Persistence model | Drizzle ORM + MySQL via `server/db.ts` | no CRM persistence target | GAP | Freeze schema/constraints, then define repository ports and migration strategy. |
-| Object storage | `server/storage.ts` + S3 client | no CRM storage adapter | GAP | Keep credentials server-only; define explicit storage port if still required. |
-| AI-assisted CRM content | AI chat/generation behaviors in client/server | platform Assistant exists, CRM adapter absent | PARTIAL | Reuse shared AI capability where compatible; CRM owns authorization/context. |
-| Scheduled job protection | documented protected cron handlers | no CRM scheduled runtime | GAP | Never expose unauthenticated scheduled mutations. |
-| Server-side audit/authorization | protected tRPC procedures + host auth | platform Auth primitives exist; CRM policies absent | PARTIAL | Reuse Auth identity/session and add CRM-specific authorization/audit decisions. |
-| Automated regression coverage | `server/crm.test.ts`, auth tests | no CRM test suite | GAP | Port contract tests alongside each milestone, not after UI completion. |
-| Responsive/accessibility visual surface | Radix/Tailwind CRM pages | no frozen V2 visual evidence | GAP | Capture deterministic browser baseline before visual parity claims. |
+| Contract                                       | Frozen V1 evidence                                   | V2 state at M67                                                     | Status  | Migration decision                                                              |
+| ---------------------------------------------- | ---------------------------------------------------- | ------------------------------------------------------------------- | ------- | ------------------------------------------------------------------------------- |
+| CRM application shell and authenticated layout | React client + `CRMLayout`/dashboard layout          | no CRM app/surface                                                  | GAP     | Create CRM-owned app shell only after core/API boundary is frozen.              |
+| Platform authentication/session integration    | V1 host auth infrastructure + client auth hook       | `FEATURE-0008` is equivalent platform-wide, but CRM consumer absent | PARTIAL | Consume platform Auth; do not port host-specific auth blindly.                  |
+| Dashboard metrics and funnel                   | `Dashboard.tsx`; CRM metric procedures               | no CRM consumer/domain                                              | GAP     | Freeze metric semantics before UI migration.                                    |
+| Lead list and search/filter lifecycle          | `Leads.tsx`                                          | absent                                                              | GAP     | Preserve CRM record semantics and bounded queries.                              |
+| Lead detail and activity lifecycle             | `LeadDetail.tsx`                                     | absent                                                              | GAP     | Preserve detail/history relationships.                                          |
+| 16-stage sales pipeline                        | full stage selector in frozen LeadDetail             | absent                                                              | GAP     | Freeze stage vocabulary/order and transition rules before implementation.       |
+| Lead CRUD and server validation                | tRPC routes + DB functions                           | absent                                                              | GAP     | Create server-authoritative domain/API contract first.                          |
+| Meetings lifecycle                             | `Meetings.tsx`; create/complete/no-show/cancel       | absent                                                              | GAP     | Model lifecycle as explicit commands and auditable transitions.                 |
+| Proposals lifecycle                            | `Proposals.tsx`; proposal procedures                 | absent                                                              | GAP     | Freeze proposal states and relationships.                                       |
+| Tokenized proposal public view                 | `/proposals/view/:token`                             | absent                                                              | GAP     | Preserve bounded server-validated token access.                                 |
+| Contracts lifecycle                            | `Contracts.tsx`; create/sign/cancel behavior         | absent                                                              | GAP     | Preserve proposal linkage and valid state transitions.                          |
+| Tokenized contract public view                 | `/contracts/view/:token`                             | absent                                                              | GAP     | Preserve bounded server-validated token access.                                 |
+| Follow-up lifecycle                            | `FollowUps.tsx`; create/generate/send/respond        | absent                                                              | GAP     | Separate deterministic CRM state from AI text generation.                       |
+| Follow-up automation settings                  | Settings + scheduled follow-up handler               | absent                                                              | GAP     | Freeze settings semantics and fail-closed automation rules.                     |
+| Trials lifecycle                               | `Trials.tsx`; convert/cancel/expire                  | absent                                                              | GAP     | Preserve explicit transitions and timestamps.                                   |
+| Trial scheduled expiry                         | `scheduledHandlers.ts`; cron documentation           | absent                                                              | GAP     | Scheduled mutation must remain authenticated and idempotent.                    |
+| Referrals lifecycle                            | `Referrals.tsx`; edit/contact/lost/benefit/link lead | absent                                                              | GAP     | Freeze statuses, benefit semantics and lead relation.                           |
+| CRM settings                                   | `Settings.tsx`                                       | absent                                                              | GAP     | Inventory each setting before porting UI.                                       |
+| Persistence model                              | Drizzle ORM + MySQL via `server/db.ts`               | no CRM persistence target                                           | GAP     | Freeze schema/constraints, then define repository ports and migration strategy. |
+| Object storage                                 | `server/storage.ts` + S3 client                      | no CRM storage adapter                                              | GAP     | Keep credentials server-only; define explicit storage port if still required.   |
+| AI-assisted CRM content                        | AI chat/generation behaviors in client/server        | platform Assistant exists, CRM adapter absent                       | PARTIAL | Reuse shared AI capability where compatible; CRM owns authorization/context.    |
+| Scheduled job protection                       | documented protected cron handlers                   | no CRM scheduled runtime                                            | GAP     | Never expose unauthenticated scheduled mutations.                               |
+| Server-side audit/authorization                | protected tRPC procedures + host auth                | platform Auth primitives exist; CRM policies absent                 | PARTIAL | Reuse Auth identity/session and add CRM-specific authorization/audit decisions. |
+| Automated regression coverage                  | `server/crm.test.ts`, auth tests                     | no CRM test suite                                                   | GAP     | Port contract tests alongside each milestone, not after UI completion.          |
+| Responsive/accessibility visual surface        | Radix/Tailwind CRM pages                             | no frozen V2 visual evidence                                        | GAP     | Capture deterministic browser baseline before visual parity claims.             |
 
 ## M67 score
 
