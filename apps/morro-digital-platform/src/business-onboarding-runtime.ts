@@ -1,8 +1,6 @@
-import {
-  buildBusinessTutorialRecommendationCandidate,
-  evaluateBusinessTutorialRecommendation,
-  type BusinessRouteCoordinate,
-  type BusinessRouteResult,
+import type {
+  BusinessRouteCoordinate,
+  BusinessRouteResult,
 } from "@touristic/business/onboarding";
 import type {
   BusinessOnboardingGuardContext,
@@ -10,6 +8,10 @@ import type {
   BusinessOnboardingHostSnapshot,
 } from "@touristic/business/onboarding-host";
 import { resolveBusinessOnboardingStep } from "@touristic/business/onboarding-presentation";
+import {
+  buildBusinessTutorialRecommendationCandidate,
+  evaluateBusinessTutorialRecommendation,
+} from "@touristic/business/onboarding-recommendation";
 
 import type { BusinessOnboardingConcreteAdapters } from "./business-onboarding-adapters.js";
 
@@ -153,13 +155,20 @@ export class BusinessOnboardingRuntime {
         response,
         tutorial: true,
       });
-      dispatch(this.view, "businessTutorialRecommendationEvaluated", recommendation);
+      dispatch(
+        this.view,
+        "businessTutorialRecommendationEvaluated",
+        recommendation,
+      );
       if (recommendation.rendered) {
+        const locationNote = candidate.locationIsExample
+          ? " · localização usada apenas como exemplo"
+          : "";
         dispatch(this.view, "businessConversationPresentation", {
           source: "business-recommendation-sandbox",
           kind: "recommendation",
           title: candidate.name,
-          message: `Candidata compatível com a intenção: ${candidate.categoryLabel} · ${candidate.specialty}${candidate.locationIsExample ? " · localização usada apenas como exemplo" : ""}.`,
+          message: `Candidata compatível com a intenção: ${candidate.categoryLabel} · ${candidate.specialty}${locationNote}.`,
           actions: [
             { action: "place-profile", label: candidate.cta, primary: true },
             { action: "place-info", label: "Ver informações" },
@@ -167,7 +176,11 @@ export class BusinessOnboardingRuntime {
           tutorial: true,
           excludeFromBusinessMetrics: true,
         });
-        dispatch(this.view, "businessTutorialRecommendationRendered", recommendation);
+        dispatch(
+          this.view,
+          "businessTutorialRecommendationRendered",
+          recommendation,
+        );
       }
       return;
     }
