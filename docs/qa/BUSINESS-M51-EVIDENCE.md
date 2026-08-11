@@ -58,6 +58,10 @@ After M51:
 - Morro app lint/typecheck/tests including dashboard bootstrap/load/save behavior;
 - full workspace build.
 
+## Final validation checkpoint
+
+The first PR head already passed the Dashboard Client, Auth and Business/Auth integration contracts. Its only Quality Gate failure was Prettier alignment in the migration matrix. The official formatter corrected that document and removed its one-shot helper. This authored checkpoint must therefore repeat all permanent gates on one clean head before merge.
+
 ## Exit gate
 
 M51 may merge only after the final authored head passes:
