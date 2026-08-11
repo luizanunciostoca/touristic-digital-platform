@@ -7,7 +7,8 @@
     "@touristic/auth": "workspace:*"
   },
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./onboarding": "./src/onboarding.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
