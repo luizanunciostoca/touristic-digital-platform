@@ -1,11 +1,17 @@
-import { normalizeBusinessProfile, type BusinessProfile } from "@touristic/business";
+import {
+  normalizeBusinessProfile,
+  type BusinessProfile,
+} from "@touristic/business";
 
 const STYLE_ID = "md-business-profile-view-styles";
 
 export type BusinessProfileViewAction = "primary" | "map" | "promotion";
 
 export interface BusinessProfileViewOptions {
-  readonly onAction?: (action: BusinessProfileViewAction, profile: BusinessProfile) => void;
+  readonly onAction?: (
+    action: BusinessProfileViewAction,
+    profile: BusinessProfile,
+  ) => void;
   readonly onClose?: (profile: BusinessProfile) => void;
 }
 
@@ -47,38 +53,57 @@ export function openBusinessProfileView(
   panel.innerHTML = `<header class="md-business-profile-hero"><button type="button" class="md-business-profile-close" aria-label="Fechar perfil">×</button><div><span class="md-business-profile-badge">${data.tutorial ? "PRÉVIA PERSONALIZADA" : "PARCEIRO MORRO DIGITAL"}</span><h2 class="md-business-profile-title"></h2><div class="md-business-profile-subtitle"></div></div></header><div class="md-business-profile-body"><div class="md-business-profile-meta"></div><div class="md-business-profile-gallery" aria-label="Galeria demonstrativa"><div class="md-business-profile-gallery-item">Imagem principal</div><div class="md-business-profile-gallery-item">Produtos ou serviços</div><div class="md-business-profile-gallery-item">Experiência do cliente</div></div><p class="md-business-profile-description"></p><div class="md-business-profile-promotion" hidden></div><div class="md-business-profile-notice"></div><div class="md-business-profile-actions"></div></div>`;
 
   const title = panel.querySelector<HTMLElement>(".md-business-profile-title");
-  const subtitle = panel.querySelector<HTMLElement>(".md-business-profile-subtitle");
+  const subtitle = panel.querySelector<HTMLElement>(
+    ".md-business-profile-subtitle",
+  );
   const meta = panel.querySelector<HTMLElement>(".md-business-profile-meta");
-  const description = panel.querySelector<HTMLElement>(".md-business-profile-description");
-  if (!title || !subtitle || !meta || !description) throw new Error("INVALID_PROFILE_VIEW_TEMPLATE");
+  const description = panel.querySelector<HTMLElement>(
+    ".md-business-profile-description",
+  );
+  if (!title || !subtitle || !meta || !description)
+    throw new Error("INVALID_PROFILE_VIEW_TEMPLATE");
   title.textContent = data.name;
   subtitle.textContent = `${data.categoryLabel} · ${data.specialty}`;
   meta.textContent = data.locationLabel;
   description.textContent = data.description;
 
-  const promotion = panel.querySelector<HTMLElement>(".md-business-profile-promotion");
+  const promotion = panel.querySelector<HTMLElement>(
+    ".md-business-profile-promotion",
+  );
   if (promotion && data.promotion) {
     promotion.hidden = false;
-    promotion.innerHTML = '<small>Promoção ativa</small><h3></h3><p></p><button type="button"></button>';
+    promotion.innerHTML =
+      '<small>Promoção ativa</small><h3></h3><p></p><button type="button"></button>';
     const promotionTitle = promotion.querySelector<HTMLElement>("h3");
     const promotionText = promotion.querySelector<HTMLElement>("p");
-    const promotionButton = promotion.querySelector<HTMLButtonElement>("button");
+    const promotionButton =
+      promotion.querySelector<HTMLButtonElement>("button");
     if (promotionTitle && promotionText && promotionButton) {
       promotionTitle.textContent = data.promotion.title;
-      promotionText.textContent = data.promotion.description + (data.promotion.validUntil ? ` · válida até ${data.promotion.validUntil}` : "");
+      promotionText.textContent =
+        data.promotion.description +
+        (data.promotion.validUntil
+          ? ` · válida até ${data.promotion.validUntil}`
+          : "");
       promotionButton.textContent = data.promotion.cta;
-      promotionButton.addEventListener("click", () => options.onAction?.("promotion", data));
+      promotionButton.addEventListener("click", () =>
+        options.onAction?.("promotion", data),
+      );
     }
   }
 
-  const notice = panel.querySelector<HTMLElement>(".md-business-profile-notice");
+  const notice = panel.querySelector<HTMLElement>(
+    ".md-business-profile-notice",
+  );
   if (notice) {
     notice.textContent = data.locationIsExample
       ? "A localização exibida é usada apenas como exemplo durante o tutorial. Horários, avaliações, imagens e contatos serão adicionados no cadastro definitivo."
       : "Horários, avaliações, imagens e contatos serão exibidos aqui após o cadastro definitivo.";
   }
 
-  const actions = panel.querySelector<HTMLElement>(".md-business-profile-actions");
+  const actions = panel.querySelector<HTMLElement>(
+    ".md-business-profile-actions",
+  );
   if (!actions) throw new Error("INVALID_PROFILE_VIEW_ACTIONS");
   const primary = document.createElement("button");
   primary.type = "button";
@@ -93,7 +118,10 @@ export function openBusinessProfileView(
   map.addEventListener("click", () => options.onAction?.("map", data));
   actions.append(map);
 
-  const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  const previousFocus =
+    document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
   const onKey = (event: KeyboardEvent): void => {
     if (event.key === "Escape" && backdrop.isConnected) close();
   };
@@ -103,7 +131,9 @@ export function openBusinessProfileView(
     previousFocus?.focus();
     options.onClose?.(data);
   };
-  const closeButton = panel.querySelector<HTMLButtonElement>(".md-business-profile-close");
+  const closeButton = panel.querySelector<HTMLButtonElement>(
+    ".md-business-profile-close",
+  );
   if (!closeButton) throw new Error("INVALID_PROFILE_VIEW_CLOSE");
   closeButton.addEventListener("click", close);
   backdrop.addEventListener("click", (event) => {
