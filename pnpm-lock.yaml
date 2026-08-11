@@ -40,6 +40,9 @@ importers:
       "@touristic/auth":
         specifier: workspace:*
         version: link:../../packages/auth
+      "@touristic/auth-browser":
+        specifier: workspace:*
+        version: link:../../packages/auth-browser
       "@touristic/auth-server":
         specifier: workspace:*
         version: link:../../services/auth

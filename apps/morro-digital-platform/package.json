@@ -6,6 +6,7 @@
   "dependencies": {
     "@touristic/assistant": "workspace:*",
     "@touristic/auth": "workspace:*",
+    "@touristic/auth-browser": "workspace:*",
     "@touristic/auth-server": "workspace:*",
     "@touristic/business": "workspace:*",
     "@touristic/core": "workspace:*",
