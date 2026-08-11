@@ -1,0 +1,79 @@
+name: M64 doc helper
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feat/business-m64-browser-scope-reconciliation
+    paths:
+      - ".github/workflows/m64-doc-helper.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  docs:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/business-m64-browser-scope-reconciliation
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Reconcile M64 matrix
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('docs/migration/BUSINESS-MIGRATION-MATRIX.md')
+          s = p.read_text()
+          s = s.replace(
+            '# Business Portal — Migration Matrix (M63 production profile view parity)',
+            '# Business Portal — Migration Matrix (M64 browser scope reconciliation)',
+          )
+          s = s.replace(
+            'After M63, `FEATURE-0005` remains `baseline-pending`. M61/M62 closed the Business-owned commercial conversion lifecycle while preserving Payments ownership, and M63 ports the frozen production profile browser view onto the authenticated dashboard. Wider live Business runtime and broader Business browser behavior remain partial.',
+            'After M64, `FEATURE-0005` remains `baseline-pending`. M63 completed the only frozen production module under `js/business/*`; M64 reconciles that frozen tree and confirms no additional Business-owned browser module remains outside the separately classified onboarding runtime. `Live Business runtime` remains the only partial contract.',
+          )
+          s = s.replace('V2 evidence at M63', 'V2 evidence at M64')
+          old = '| Business domain/browser behavior        | `js/business/*`                                                       | `@touristic/business` domain plus authenticated dashboard and dedicated onboarding browser flow exist; broader V1 browser behavior remains                                       | PARTIAL | Keep Business core framework-independent; continue remaining browser adapters.                                                                       |'
+          new = '| Business domain/browser behavior        | `js/business/*`                                                       | frozen tree contains only `profile/business-profile-view.js`; M63 completes that production surface over the existing protected Business model/dashboard                          | PASS    | Keep Business core framework-independent; classify onboarding runtime responsibilities separately.                                                   |'
+          if old not in s: raise SystemExit('business domain row not found')
+          s = s.replace(old, new)
+          s = s.replace('## M63 score', '## M64 score')
+          s = s.replace('- `PASS`: 17\n- `PARTIAL`: 2', '- `PASS`: 18\n- `PARTIAL`: 1')
+          old_summary = '`Business profile behavior` is now `PASS`: M63 reuses the protected V2 profile model/persistence and restores the frozen production browser view with accessible modal semantics, optional promotion, delegated primary/map/promotion actions and no synthetic business data. `Business domain/browser behavior` and `Live Business runtime` remain `PARTIAL`. `Checkout client` remains `N/A` for Business because provider/payment execution belongs to `FEATURE-0009`. M63 still does not claim full Business equivalence.'
+          new_summary = '`Business profile behavior` remains `PASS` from M63. M64 audits the frozen `js/business/*` tree and proves that its only production module is the profile view already ported in M63, so `Business domain/browser behavior` is now `PASS`. `Live Business runtime` remains the sole `PARTIAL`. `Checkout client` remains `N/A` because provider/payment execution belongs to `FEATURE-0009`. Full Business equivalence is still not claimed.'
+          if old_summary not in s: raise SystemExit('summary not found')
+          s = s.replace(old_summary, new_summary)
+          marker = '`BUSINESS-M63-EVIDENCE.md` and the permanent Business Production Profile Browser Contract prove the authenticated production profile modal, frozen V1 view semantics, optional promotion, delegated actions, Escape teardown and absence of synthetic ratings/hours/images/contacts.\n'
+          addition = marker + '\n`BUSINESS-M64-EVIDENCE.md` proves frozen-tree completeness for `js/business/*`: the only child domain is `profile/` and its only production JavaScript file is the M63-covered `business-profile-view.js`.\n'
+          if marker not in s: raise SystemExit('M63 evidence marker missing')
+          s = s.replace(marker, addition)
+          s = s.replace(
+            'The official Quality Gate must validate formatting, architecture, Feature Registry, lint, typecheck, tests and build. The Business Dashboard Browser Contract and Business Production Profile Browser Contract must remain green on the final permanent M63 head, together with any other path-triggered regressions.',
+            'The official Quality Gate must validate formatting, architecture, Feature Registry, lint, typecheck, tests and build on the final permanent M64 head. M64 is a frozen-scope reconciliation and does not add runtime code.',
+          )
+          s = s.replace(
+            'M64 should audit the two remaining `PARTIAL` contracts — `Business domain/browser behavior` and `Live Business runtime` — from frozen production V1 call sites and select the smallest observable production behavior that can be ported without inventing analytics or restoring legacy globals.\n\nZero GAPs and a production-profile PASS at M63 do not make `FEATURE-0005` equivalent while these two PARTIAL contracts remain.',
+            'M65 should audit the sole remaining `PARTIAL`, `Live Business runtime`, responsibility by responsibility. Existing V2 ports for Search, Assistant, Navigation, profile, route, workspace and commercial conversion must be reused; analytics, reputation and notifications must not be fabricated, and legacy browser globals must not be restored.\n\n`FEATURE-0005` remains `baseline-pending` until that final runtime contract is reconciled with executable evidence.',
+          )
+          p.write_text(s)
+          PY
+          pnpm exec prettier --write docs/migration/BUSINESS-MIGRATION-MATRIX.md docs/qa/BUSINESS-M64-EVIDENCE.md
+      - name: Commit M64 docs only
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/migration/BUSINESS-MIGRATION-MATRIX.md docs/qa/BUSINESS-M64-EVIDENCE.md
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "docs(business): reconcile M64 browser scope"
+          git push origin HEAD:feat/business-m64-browser-scope-reconciliation
