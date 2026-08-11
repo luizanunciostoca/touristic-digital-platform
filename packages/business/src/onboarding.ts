@@ -44,7 +44,8 @@ export const BUSINESS_ONBOARDING_STEP_STATE = Object.freeze({
   finish: "COMPLETED",
 } as const);
 
-export type BusinessOnboardingStepId = keyof typeof BUSINESS_ONBOARDING_STEP_STATE;
+export type BusinessOnboardingStepId =
+  keyof typeof BUSINESS_ONBOARDING_STEP_STATE;
 export type BusinessOnboardingState =
   (typeof BUSINESS_ONBOARDING_STEP_STATE)[BusinessOnboardingStepId];
 
@@ -119,7 +120,12 @@ export const BUSINESS_ONBOARDING_CHAPTERS: readonly BusinessOnboardingChapter[] 
       title: "Gestão e crescimento",
       shortTitle: "Crescimento",
       description: "Métricas, painel, ecossistema e conclusão.",
-      steps: Object.freeze(["analytics", "partner-panel", "ecosystem", "finish"]),
+      steps: Object.freeze([
+        "analytics",
+        "partner-panel",
+        "ecosystem",
+        "finish",
+      ]),
     }),
   ]);
 
@@ -232,10 +238,16 @@ export function getBusinessOnboardingChapter(stepId: unknown):
   | null {
   if (typeof stepId !== "string") return null;
 
-  for (let chapterIndex = 0; chapterIndex < BUSINESS_ONBOARDING_CHAPTERS.length; chapterIndex += 1) {
+  for (
+    let chapterIndex = 0;
+    chapterIndex < BUSINESS_ONBOARDING_CHAPTERS.length;
+    chapterIndex += 1
+  ) {
     const chapter = BUSINESS_ONBOARDING_CHAPTERS[chapterIndex];
     if (!chapter) continue;
-    const chapterStepIndex = chapter.steps.indexOf(stepId as BusinessOnboardingStepId);
+    const chapterStepIndex = chapter.steps.indexOf(
+      stepId as BusinessOnboardingStepId,
+    );
     if (chapterStepIndex < 0) continue;
 
     return Object.freeze({
@@ -252,15 +264,19 @@ export function getBusinessOnboardingChapter(stepId: unknown):
   return null;
 }
 
-export function createBusinessOnboardingSession(input: {
-  readonly context?: BusinessOnboardingContext;
-  readonly locale?: string;
-  readonly now?: Date;
-} = {}): BusinessOnboardingSession {
+export function createBusinessOnboardingSession(
+  input: {
+    readonly context?: BusinessOnboardingContext;
+    readonly locale?: string;
+    readonly now?: Date;
+  } = {},
+): BusinessOnboardingSession {
   const now = input.now ?? new Date();
   const context = input.context ?? {};
   const createdAt = now.toISOString();
-  const expiresAt = new Date(now.getTime() + BUSINESS_ONBOARDING_TTL_MS).toISOString();
+  const expiresAt = new Date(
+    now.getTime() + BUSINESS_ONBOARDING_TTL_MS,
+  ).toISOString();
   const businessName = safeText(context.businessName, 180);
   const specialty = safeText(context.specialty, 120);
 
@@ -336,7 +352,8 @@ export function setBusinessOnboardingStatus(
 ): BusinessOnboardingSession {
   const now = input.now ?? new Date();
   const updatedAt = now.toISOString();
-  const currentState = status === "COMPLETED" ? "COMPLETED" : session.currentState;
+  const currentState =
+    status === "COMPLETED" ? "COMPLETED" : session.currentState;
 
   return Object.freeze({
     ...session,
@@ -361,9 +378,9 @@ export function completeBusinessOnboardingCapability(
 
   return Object.freeze({
     ...session,
-    completedCapabilities: freezeArray(
-      [...new Set([...session.completedCapabilities, capability])],
-    ),
+    completedCapabilities: freezeArray([
+      ...new Set([...session.completedCapabilities, capability]),
+    ]),
   });
 }
 
@@ -376,9 +393,9 @@ export function skipBusinessOnboardingCapability(
 
   return Object.freeze({
     ...session,
-    skippedCapabilities: freezeArray(
-      [...new Set([...session.skippedCapabilities, capability])],
-    ),
+    skippedCapabilities: freezeArray([
+      ...new Set([...session.skippedCapabilities, capability]),
+    ]),
   });
 }
 

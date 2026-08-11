@@ -17,7 +17,9 @@ const now = new Date("2026-08-10T22:30:00-03:00");
 describe("M53 Business onboarding core", () => {
   it("freezes the five V1 chapters and 28 ordered steps", () => {
     expect(BUSINESS_ONBOARDING_CHAPTERS).toHaveLength(5);
-    expect(BUSINESS_ONBOARDING_CHAPTERS.flatMap((chapter) => chapter.steps)).toHaveLength(28);
+    expect(
+      BUSINESS_ONBOARDING_CHAPTERS.flatMap((chapter) => chapter.steps),
+    ).toHaveLength(28);
     expect(BUSINESS_ONBOARDING_CHAPTERS[0]?.steps).toEqual([
       "welcome",
       "category",
@@ -147,7 +149,10 @@ describe("M53 Business onboarding core", () => {
   it("deduplicates completed and skipped capability sets", () => {
     const session = createBusinessOnboardingSession({ now });
     const completed = completeBusinessOnboardingCapability(
-      completeBusinessOnboardingCapability(session, "business_location_confirmed"),
+      completeBusinessOnboardingCapability(
+        session,
+        "business_location_confirmed",
+      ),
       "business_location_confirmed",
     );
     const skipped = skipBusinessOnboardingCapability(
