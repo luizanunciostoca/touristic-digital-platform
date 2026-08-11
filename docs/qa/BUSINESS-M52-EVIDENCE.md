@@ -65,6 +65,10 @@ No other Business row is promoted by M52. In particular, onboarding, discovery/l
 
 `FEATURE-0005` remains `baseline-pending`.
 
+## Final-head discipline
+
+The final authored M52 head intentionally re-runs the permanent dashboard browser contract together with the Quality Gate and triggered accessibility regression after the matrix is formatted and the promotion decision is recorded.
+
 ## Exit gate
 
 M52 may merge only when the final authored head passes:
