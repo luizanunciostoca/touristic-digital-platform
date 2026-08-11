@@ -1,4 +1,4 @@
-# Business Portal — Migration Matrix (M63 production profile view parity)
+# Business Portal — Migration Matrix (M64 browser scope reconciliation)
 
 ## Status semantics
 
@@ -7,11 +7,11 @@
 - `GAP` — no V2 Business-owned equivalent exists yet.
 - `N/A` — contract belongs to another feature.
 
-After M63, `FEATURE-0005` remains `baseline-pending`. M61/M62 closed the Business-owned commercial conversion lifecycle while preserving Payments ownership, and M63 ports the frozen production profile browser view onto the authenticated dashboard. Wider live Business runtime and broader Business browser behavior remain partial.
+After M64, `FEATURE-0005` remains `baseline-pending`. M63 completed the only frozen production module under `js/business/*`; M64 reconciles that frozen tree and confirms no additional Business-owned browser module remains outside the separately classified onboarding runtime. `Live Business runtime` remains the only partial contract.
 
-| Contract                                | Frozen V1 evidence                                                    | V2 evidence at M63                                                                                                                                                               | Status  | Migration decision                                                                                                                                   |
+| Contract                                | Frozen V1 evidence                                                    | V2 evidence at M64                                                                                                                                                               | Status  | Migration decision                                                                                                                                   |
 | --------------------------------------- | --------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Business domain/browser behavior        | `js/business/*`                                                       | `@touristic/business` domain plus authenticated dashboard and dedicated onboarding browser flow exist; broader V1 browser behavior remains                                       | PARTIAL | Keep Business core framework-independent; continue remaining browser adapters.                                                                       |
+| Business domain/browser behavior        | `js/business/*`                                                       | frozen tree contains only `profile/business-profile-view.js`; M63 completes that production surface over the existing protected Business model/dashboard                         | PASS    | Keep Business core framework-independent; classify onboarding runtime responsibilities separately.                                                   |
 | Business profile behavior               | `js/business/profile/*`                                               | immutable model + protected GET/PUT + authenticated dashboard editing + M63 production modal view with optional promotion, delegated actions and deterministic Chromium evidence | PASS    | Keep one normalized `BusinessProfile` model and preserve Auth-owned persistence/authorization.                                                       |
 | Authenticated dashboard consumer        | `dashboard/*`                                                         | M51 client is mounted in M52 and browser-tested with real Auth session, Business scope, profile load/save and logout                                                             | PASS    | Keep dashboard consumption behind centralized Auth browser boundary.                                                                                 |
 | Protected dashboard API consumption     | `dashboard/auth-client.js` protects authenticated dashboard resources | `@touristic/auth-browser` protects `/api/business`; app load/save use only `DashboardAuthClient.secureFetch()`                                                                   | PASS    | Keep all future dashboard mutations on the centralized Auth browser boundary.                                                                        |
@@ -32,10 +32,10 @@ After M63, `FEATURE-0005` remains `baseline-pending`. M61/M62 closed the Busines
 | Dashboard visual surface                | `dashboard/*.html/css/js`                                             | M52 mounted shell reproduces/auth-tests sidebar, header, primary views, theme, logout, profile states and responsive menu                                                        | PASS    | Keep analytics explicitly unavailable until their endpoints are separately ported.                                                                   |
 | Business onboarding visual surface      | V1 onboarding/tutorial browser flow                                   | full 28-step presentation remains browser-tested; M59 adds profile preview, M60 partner workspace, and M62 commercial preparation plus Payments-ownership disclosure             | PASS    | Preserve accessible controls and browser evidence while production runtime ports evolve.                                                             |
 
-## M63 score
+## M64 score
 
-- `PASS`: 17
-- `PARTIAL`: 2
+- `PASS`: 18
+- `PARTIAL`: 1
 - `GAP`: 0
 - `N/A`: 1
 - total: 20
@@ -48,7 +48,7 @@ The Business browser neither creates checkout/provider sessions nor stores provi
 
 The permanent Commercial Browser Contract proves this lifecycle in deterministic Chromium. It also proves the `events → performance` plan fallback through the M61 core, contractor sanitization, explicit Payments-ownership disclosure, absence of payment execution state in the handoff, rejection of invalid verification and exactly one valid activation event.
 
-`Business profile behavior` is now `PASS`: M63 reuses the protected V2 profile model/persistence and restores the frozen production browser view with accessible modal semantics, optional promotion, delegated primary/map/promotion actions and no synthetic business data. `Business domain/browser behavior` and `Live Business runtime` remain `PARTIAL`. `Checkout client` remains `N/A` for Business because provider/payment execution belongs to `FEATURE-0009`. M63 still does not claim full Business equivalence.
+`Business profile behavior` remains `PASS` from M63. M64 audits the frozen `js/business/*` tree and proves that its only production module is the profile view already ported in M63, so `Business domain/browser behavior` is now `PASS`. `Live Business runtime` remains the sole `PARTIAL`. `Checkout client` remains `N/A` because provider/payment execution belongs to `FEATURE-0009`. Full Business equivalence is still not claimed.
 
 ## Dependency rule
 
@@ -80,10 +80,12 @@ Payment/checkout execution remains owned by `FEATURE-0009`; Business may prepare
 
 `BUSINESS-M63-EVIDENCE.md` and the permanent Business Production Profile Browser Contract prove the authenticated production profile modal, frozen V1 view semantics, optional promotion, delegated actions, Escape teardown and absence of synthetic ratings/hours/images/contacts.
 
-The official Quality Gate must validate formatting, architecture, Feature Registry, lint, typecheck, tests and build. The Business Dashboard Browser Contract and Business Production Profile Browser Contract must remain green on the final permanent M63 head, together with any other path-triggered regressions.
+`BUSINESS-M64-EVIDENCE.md` proves frozen-tree completeness for `js/business/*`: the only child domain is `profile/` and its only production JavaScript file is the M63-covered `business-profile-view.js`.
+
+The official Quality Gate must validate formatting, architecture, Feature Registry, lint, typecheck, tests and build on the final permanent M64 head. M64 is a frozen-scope reconciliation and does not add runtime code.
 
 ## Next implementation milestone
 
-M64 should audit the two remaining `PARTIAL` contracts — `Business domain/browser behavior` and `Live Business runtime` — from frozen production V1 call sites and select the smallest observable production behavior that can be ported without inventing analytics or restoring legacy globals.
+M65 should audit the sole remaining `PARTIAL`, `Live Business runtime`, responsibility by responsibility. Existing V2 ports for Search, Assistant, Navigation, profile, route, workspace and commercial conversion must be reused; analytics, reputation and notifications must not be fabricated, and legacy browser globals must not be restored.
 
-Zero GAPs and a production-profile PASS at M63 do not make `FEATURE-0005` equivalent while these two PARTIAL contracts remain.
+`FEATURE-0005` remains `baseline-pending` until that final runtime contract is reconciled with executable evidence.
