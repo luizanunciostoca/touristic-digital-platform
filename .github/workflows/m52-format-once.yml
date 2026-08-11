@@ -1,0 +1,41 @@
+name: M52 Format Once
+
+on:
+  push:
+    branches:
+      - feat/business-m52-dashboard-surface
+    paths:
+      - .github/workflows/m52-format-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/business-m52-dashboard-surface
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Format M52 files
+        run: >-
+          pnpm exec prettier --write
+          apps/morro-digital-platform/public/business-dashboard.css
+          apps/morro-digital-platform/public/business-dashboard.html
+          apps/morro-digital-platform/src/business-dashboard-surface.ts
+      - name: Commit formatted files and remove helper
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/m52-format-once.yml
+          git add apps/morro-digital-platform/public/business-dashboard.css apps/morro-digital-platform/public/business-dashboard.html apps/morro-digital-platform/src/business-dashboard-surface.ts
+          git commit -m "style(business): format M52 dashboard surface"
+          git push origin HEAD:feat/business-m52-dashboard-surface
