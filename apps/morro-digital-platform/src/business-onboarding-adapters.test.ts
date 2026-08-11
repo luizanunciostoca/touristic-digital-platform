@@ -89,8 +89,16 @@ describe("M54/M57 Business onboarding adapters", () => {
     let observedPayload: unknown;
     const ports = createBusinessOnboardingAdapters({
       fetch: async (input, init) => {
-        observedUrl = String(input);
-        observedPayload = JSON.parse(String(init?.body));
+        observedUrl =
+          typeof input === "string"
+            ? input
+            : input instanceof URL
+              ? input.href
+              : input.url;
+        if (typeof init?.body !== "string") {
+          throw new Error("Expected JSON routing request body");
+        }
+        observedPayload = JSON.parse(init.body) as unknown;
         return new Response(
           JSON.stringify({
             type: "FeatureCollection",
