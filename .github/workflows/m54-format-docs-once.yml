@@ -1,0 +1,37 @@
+name: M54 Format Docs Once
+
+on:
+  push:
+    branches:
+      - feat/business-m54-onboarding-adapters
+    paths:
+      - ".github/workflows/m54-format-docs-once.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/business-m54-onboarding-adapters
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Format M54 documentation
+        run: pnpm exec prettier --write docs/migration/BUSINESS-MIGRATION-MATRIX.md docs/qa/BUSINESS-M54-EVIDENCE.md
+      - name: Commit formatted docs and remove helper
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm .github/workflows/m54-format-docs-once.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/migration/BUSINESS-MIGRATION-MATRIX.md docs/qa/BUSINESS-M54-EVIDENCE.md .github/workflows/m54-format-docs-once.yml
+          git commit -m "style(business): format M54 docs"
+          git push origin HEAD:feat/business-m54-onboarding-adapters
