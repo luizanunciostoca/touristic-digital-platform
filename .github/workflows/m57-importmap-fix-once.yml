@@ -1,0 +1,43 @@
+name: M57 Importmap Fix Once
+
+on:
+  push:
+    branches:
+      - feat/business-m57-onboarding-route-parity
+    paths:
+      - ".github/workflows/m57-importmap-fix-once.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/business-m57-onboarding-route-parity
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Add Navigation to onboarding import maps
+        run: |
+          python3 -c 'from pathlib import Path; p=Path(".github/workflows/business-onboarding-adapter-browser-contract.yml"); t=p.read_text(); old="                  '\''@touristic/geospatial'\'': '\''/packages/geospatial/dist/index.js'\'',\n                  '\''@touristic/search'\'': '\''/packages/search/dist/index.js'\''"; new="                  '\''@touristic/geospatial'\'': '\''/packages/geospatial/dist/index.js'\'',\n                  '\''@touristic/navigation'\'': '\''/packages/navigation/dist/index.js'\'',\n                  '\''@touristic/search'\'': '\''/packages/search/dist/index.js'\''"; assert old in t; p.write_text(t.replace(old,new))'
+          python3 -c 'from pathlib import Path; p=Path("apps/morro-digital-platform/public/business-onboarding.html"); t=p.read_text(); old="          \"@touristic/geospatial\": \"/packages/geospatial/dist/index.js\",\n          \"@touristic/search\": \"/packages/search/dist/index.js\""; new="          \"@touristic/geospatial\": \"/packages/geospatial/dist/index.js\",\n          \"@touristic/navigation\": \"/packages/navigation/dist/index.js\",\n          \"@touristic/search\": \"/packages/search/dist/index.js\""; assert old in t; p.write_text(t.replace(old,new))'
+          pnpm exec prettier --write .github/workflows/business-onboarding-adapter-browser-contract.yml apps/morro-digital-platform/public/business-onboarding.html
+          pnpm exec prettier --check .github/workflows/business-onboarding-adapter-browser-contract.yml apps/morro-digital-platform/public/business-onboarding.html
+      - name: Commit and self-remove
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          rm .github/workflows/m57-importmap-fix-once.yml
+          git add .github/workflows/business-onboarding-adapter-browser-contract.yml apps/morro-digital-platform/public/business-onboarding.html .github/workflows/m57-importmap-fix-once.yml
+          git commit -m "test(business): resolve M57 Navigation imports"
+          git push origin HEAD:feat/business-m57-onboarding-route-parity
