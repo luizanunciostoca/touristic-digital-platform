@@ -71,6 +71,7 @@ jobs:
                 document.open();
                 document.write(`<!doctype html><html><head><meta charset="utf-8"><script type="importmap">${JSON.stringify({ imports: {
                   '@touristic/assistant': '/packages/assistant/dist/index.js',
+                  '@touristic/auth': '/packages/auth/dist/index.js',
                   '@touristic/business': '/packages/business/dist/index.js',
                   '@touristic/business/onboarding': '/packages/business/dist/onboarding.js',
                   '@touristic/business/onboarding-host': '/packages/business/dist/onboarding-host.js',
