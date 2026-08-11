@@ -3,8 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "dependencies": {
+    "@touristic/auth": "workspace:*"
+  },
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./authorization": "./src/authorization.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
