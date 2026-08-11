@@ -13,6 +13,7 @@ export interface BusinessOnboardingSurfaceOptions {
   readonly onStepEnter?: (
     snapshot: BusinessOnboardingHostSnapshot,
   ) => void | Promise<void>;
+  readonly onRuntimeAction?: (action: string) => boolean | Promise<boolean>;
 }
 
 function renderProgress(snapshot: BusinessOnboardingHostSnapshot): string {
@@ -35,6 +36,7 @@ export class BusinessOnboardingSurface {
   private readonly onSkip?: BusinessOnboardingSurfaceOptions["onSkip"];
   private readonly onComplete?: BusinessOnboardingSurfaceOptions["onComplete"];
   private readonly onStepEnter?: BusinessOnboardingSurfaceOptions["onStepEnter"];
+  private readonly onRuntimeAction?: BusinessOnboardingSurfaceOptions["onRuntimeAction"];
   private root: HTMLElement | null = null;
   private busy = false;
   private lastEnteredStepId: string | null = null;
@@ -45,6 +47,7 @@ export class BusinessOnboardingSurface {
     this.onSkip = options.onSkip;
     this.onComplete = options.onComplete;
     this.onStepEnter = options.onStepEnter;
+    this.onRuntimeAction = options.onRuntimeAction;
   }
 
   mount(container: HTMLElement = this.document.body): HTMLElement {
@@ -83,6 +86,11 @@ export class BusinessOnboardingSurface {
       const inputValue = target.closest<HTMLElement>("[data-input-value]")?.dataset.inputValue;
       if (inputValue !== undefined) {
         this.handleInput(inputValue);
+        return;
+      }
+      const runtimeAction = target.closest<HTMLElement>("[data-runtime-action]")?.dataset.runtimeAction;
+      if (runtimeAction) {
+        void this.handleRuntimeAction(runtimeAction);
         return;
       }
       const action = target.closest<HTMLElement>("[data-action]")?.dataset.action;
@@ -128,6 +136,18 @@ export class BusinessOnboardingSurface {
     const snapshot = this.host.snapshot();
     this.host.updateStepInput(snapshot.stepId, value);
     this.render();
+  }
+
+  private async handleRuntimeAction(action: string): Promise<void> {
+    if (!this.onRuntimeAction) return;
+    this.setBusy(true, "Executando ação...");
+    try {
+      const completed = await this.onRuntimeAction(action);
+      this.render();
+      this.setStatus(completed ? "Ação concluída." : "Não foi possível concluir esta ação.");
+    } finally {
+      this.setBusy(false);
+    }
   }
 
   private validateCurrentInput(): boolean {
@@ -187,6 +207,48 @@ export class BusinessOnboardingSurface {
     } finally {
       this.setBusy(false);
     }
+  }
+
+  private appendRuntimeButton(
+    container: HTMLElement,
+    action: string,
+    label: string,
+    primary = false,
+  ): void {
+    const button = this.document.createElement("button");
+    button.type = "button";
+    button.dataset.runtimeAction = action;
+    button.className = primary
+      ? "business-onboarding-runtime-action is-primary"
+      : "business-onboarding-runtime-action";
+    button.textContent = label;
+    container.append(button);
+  }
+
+  private renderRuntimeActions(
+    container: HTMLElement,
+    snapshot: BusinessOnboardingHostSnapshot,
+  ): void {
+    const context = snapshot.session.conversationDraft.context;
+    const actions = this.document.createElement("div");
+    actions.className = "business-onboarding-runtime-actions";
+
+    if (snapshot.stepId === "ready") {
+      if (context.businessLocationCandidate) {
+        this.appendRuntimeButton(actions, "location-confirm", "É este local", true);
+      }
+      this.appendRuntimeButton(actions, "location-search-again", "Procurar novamente");
+      this.appendRuntimeButton(actions, "location-use-device", "Usar minha localização");
+    } else if (snapshot.stepId === "voice-discovery") {
+      this.appendRuntimeButton(actions, "voice-simulate", "Simular busca por voz", true);
+    } else if (snapshot.stepId === "route" && context.businessTutorialRouteReady !== true) {
+      const note = this.document.createElement("p");
+      note.className = "business-onboarding-runtime-note";
+      note.textContent = "A rota permanece bloqueada até existir um port de rota equivalente ao fluxo V1.";
+      actions.append(note);
+    }
+
+    if (actions.childElementCount > 0) container.append(actions);
   }
 
   private renderOptions(
@@ -267,6 +329,8 @@ export class BusinessOnboardingSurface {
       });
       container.append(metrics);
     }
+
+    this.renderRuntimeActions(container, snapshot);
   }
 
   render(): void {
@@ -299,6 +363,7 @@ export class BusinessOnboardingSurface {
     if (!this.onStepEnter || snapshot.stepId === this.lastEnteredStepId) return;
     this.lastEnteredStepId = snapshot.stepId;
     await this.onStepEnter(snapshot);
+    this.render();
   }
 
   destroy(): void {
