@@ -88,12 +88,107 @@ function categoryLabel(value: unknown): string {
   );
 }
 
+function liveLocation(value: unknown): Readonly<{
+  name: string;
+  category: string;
+  source: string;
+  latitude: number;
+  longitude: number;
+}> | null {
+  if (!isRecord(value)) return null;
+  const coordinate = routeCoordinate(value);
+  if (!coordinate) return null;
+  return Object.freeze({
+    name: text(value.name),
+    category: text(value.category),
+    source: text(value.source),
+    latitude: coordinate.latitude,
+    longitude: coordinate.longitude,
+  });
+}
+
 export class BusinessOnboardingRuntime {
   constructor(
     private readonly host: BusinessOnboardingHostController,
     private readonly adapters: BusinessOnboardingConcreteAdapters,
     private readonly view: Window = window,
   ) {}
+
+  private requestLiveSurfaceFocus(
+    surface:
+      | "assistant"
+      | "map"
+      | "navigation"
+      | "promotions"
+      | "analytics"
+      | "partner-panel",
+    stepId: string,
+  ): void {
+    dispatch(this.view, "businessLiveSurfaceFocusRequested", {
+      surface,
+      stepId,
+      tutorial: true,
+      excludeFromBusinessMetrics: true,
+    });
+  }
+
+  private presentLiveBusiness(
+    stepId: "arrival" | "map" | "ecosystem",
+  ): boolean {
+    const context = this.host.snapshot().session.conversationDraft.context;
+    const location = liveLocation(context.businessLocation);
+    if (!location) {
+      dispatch(this.view, "businessConversationPresentation", {
+        source: "business-live-runtime",
+        kind: "error",
+        title: "Localização ainda não confirmada",
+        message:
+          "Não mostraremos um ponto aproximado. Volte e confirme a localização do negócio.",
+        actions: [
+          {
+            action: "previous",
+            label: "Voltar e tentar novamente",
+            primary: true,
+          },
+        ],
+        tutorial: true,
+        excludeFromBusinessMetrics: true,
+      });
+      return false;
+    }
+
+    const businessName =
+      text(context.businessName) || location.name || "Sua empresa";
+    const category = categoryLabel(context.category);
+    const specialty = text(context.specialty) || "Experiência local";
+    const detail = Object.freeze({
+      source: "business-live-runtime",
+      stepId,
+      businessName,
+      categoryLabel: category,
+      specialty,
+      location,
+      tutorial: true,
+      excludeFromBusinessMetrics: true,
+    });
+
+    dispatch(this.view, "businessLiveMapPresentationRequested", detail);
+    dispatch(this.view, "businessConversationPresentation", {
+      source: "business-live-runtime",
+      kind: "place",
+      title: businessName,
+      message: `${category} · ${specialty}`,
+      actions: [
+        { action: "place-info", label: "Informações" },
+        { action: "place-route", label: "Como chegar", primary: true },
+        { action: "place-profile", label: "Ver perfil completo" },
+      ],
+      tutorial: true,
+      excludeFromBusinessMetrics: true,
+    });
+    this.requestLiveSurfaceFocus("map", stepId);
+    return true;
+  }
 
   private trackTutorialEvent(key: BusinessTutorialEventKey): void {
     const context = this.host.snapshot().session.conversationDraft.context;
@@ -126,6 +221,11 @@ export class BusinessOnboardingRuntime {
   async onStepEnter(snapshot: BusinessOnboardingHostSnapshot): Promise<void> {
     const context = snapshot.session.conversationDraft.context;
     const step = resolveBusinessOnboardingStep(snapshot.stepId, context);
+
+    if (snapshot.stepId === "arrival") {
+      this.presentLiveBusiness("arrival");
+      return;
+    }
 
     if (snapshot.stepId === "ready") {
       await this.findLocationCandidate();
@@ -219,6 +319,16 @@ export class BusinessOnboardingRuntime {
       return;
     }
 
+    if (snapshot.stepId === "context") {
+      this.requestLiveSurfaceFocus("assistant", "context");
+      return;
+    }
+
+    if (snapshot.stepId === "map") {
+      this.presentLiveBusiness("map");
+      return;
+    }
+
     if (snapshot.stepId === "ranking-explanation") {
       const explanation = Object.freeze({
         category: text(context.category),
@@ -232,6 +342,42 @@ export class BusinessOnboardingRuntime {
         explanation,
         tutorial: true,
       });
+      return;
+    }
+
+    if (snapshot.stepId === "conversion") {
+      this.requestLiveSurfaceFocus("navigation", "conversion");
+      return;
+    }
+
+    if (snapshot.stepId === "reputation") {
+      const businessName = text(context.businessName) || "sua empresa";
+      const query = `Mostre avaliações e informações de ${businessName}.`;
+      const response = await this.adapters.assistant.ask(
+        query,
+        snapshot.session.selectedLanguage,
+      );
+      dispatch(this.view, "businessOnboardingReputationAssistantResult", {
+        query,
+        response,
+        tutorial: true,
+        excludeFromBusinessMetrics: true,
+      });
+      return;
+    }
+
+    if (snapshot.stepId === "promotions") {
+      this.requestLiveSurfaceFocus("promotions", "promotions");
+      return;
+    }
+
+    if (snapshot.stepId === "analytics") {
+      this.requestLiveSurfaceFocus("analytics", "analytics");
+      return;
+    }
+
+    if (snapshot.stepId === "ecosystem") {
+      this.presentLiveBusiness("ecosystem");
       return;
     }
 
@@ -283,6 +429,7 @@ export class BusinessOnboardingRuntime {
       });
       this.host.updateRuntimeContext({ businessTutorialWorkspace: workspace });
       dispatch(this.view, "businessTutorialWorkspaceOpened", workspace);
+      this.requestLiveSurfaceFocus("partner-panel", "partner-panel");
     }
   }
 
