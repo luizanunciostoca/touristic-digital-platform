@@ -283,7 +283,7 @@ export class BusinessOnboardingRuntime {
       ...result,
       destinationName: text(context.businessName) || "Sua empresa",
     });
-    // Business proves the tutorial route; Navigation remains the owner of map/navigation lifecycle and presentation.
+    // Route verification ends Business ownership; navigation lifecycle and presentation start at the shared request event.
     dispatch(this.view, "morro:navigation-requested", {
       destination,
       source: "business-onboarding",
