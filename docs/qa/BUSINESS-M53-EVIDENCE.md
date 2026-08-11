@@ -77,7 +77,20 @@ Payments/checkout are not Business-owned in M53. Commercial conversion and payme
 - completion state;
 - completed/skipped capability deduplication.
 
+The core also passes package-local lint, typecheck and tests after replacing control-character regex sanitization with an equivalent code-point-safe implementation and preserving literal step typing through the chapter builder.
+
 Existing Business/Auth regressions are required to remain green to prove the onboarding core does not regress the protected Business resource or mounted dashboard surface.
+
+## Matrix result
+
+The conservative M53 Business matrix becomes:
+
+- `PASS`: 5;
+- `PARTIAL`: 8;
+- `GAP`: 6;
+- `N/A`: 1.
+
+Only `Onboarding session/workflow state` is promoted to `PASS`. Business onboarding orchestration and engine move to `PARTIAL`; conversation, discovery and location remain `PARTIAL` until concrete adapters/browser orchestration exist.
 
 ## Promotion decision
 
