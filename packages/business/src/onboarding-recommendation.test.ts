@@ -49,7 +49,10 @@ describe("M58 Business tutorial recommendation sandbox", () => {
       scoreBusinessTutorialRecommendation("Quero uma festa hoje", candidate),
     ).toBe(55);
     expect(
-      scoreBusinessTutorialRecommendation("Quero ver Toca do Morcego", candidate),
+      scoreBusinessTutorialRecommendation(
+        "Quero ver Toca do Morcego",
+        candidate,
+      ),
     ).toBe(100);
     expect(
       scoreBusinessTutorialRecommendation("procuro sunset", candidate),
