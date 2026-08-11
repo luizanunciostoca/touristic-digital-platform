@@ -77,6 +77,7 @@ jobs:
                   '@touristic/business/onboarding-host': '/packages/business/dist/onboarding-host.js',
                   '@touristic/business/onboarding-presentation': '/packages/business/dist/onboarding-presentation.js',
                   '@touristic/business/onboarding-recommendation': '/packages/business/dist/onboarding-recommendation.js',
+                  '@touristic/business/onboarding-workspace': '/packages/business/dist/onboarding-workspace.js',
                   '@touristic/business/onboarding-profile': '/packages/business/dist/onboarding-profile.js',
                   '@touristic/business/onboarding-steps': '/packages/business/dist/onboarding-steps.js',
                   '@touristic/geospatial': '/packages/geospatial/dist/index.js',

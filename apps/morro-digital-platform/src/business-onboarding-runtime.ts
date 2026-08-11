@@ -13,6 +13,12 @@ import {
   evaluateBusinessTutorialRecommendation,
 } from "@touristic/business/onboarding-recommendation";
 import { BUSINESS_ONBOARDING_CATEGORIES } from "@touristic/business/onboarding-steps";
+import {
+  buildBusinessTutorialPromotion,
+  buildBusinessTutorialWorkspaceSnapshot,
+  incrementBusinessTutorialEventSummary,
+  type BusinessTutorialEventKey,
+} from "@touristic/business/onboarding-workspace";
 
 import type { BusinessOnboardingConcreteAdapters } from "./business-onboarding-adapters.js";
 
@@ -24,7 +30,9 @@ export type BusinessOnboardingRuntimeAction =
   | "profile-map"
   | "profile-primary"
   | "profile-promotion"
-  | "route-retry";
+  | "route-retry"
+  | "workspace-open-dashboard"
+  | `workspace-promotion-save:${string}`;
 
 function text(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
@@ -86,6 +94,15 @@ export class BusinessOnboardingRuntime {
     private readonly view: Window = window,
   ) {}
 
+  private trackTutorialEvent(key: BusinessTutorialEventKey): void {
+    const context = this.host.snapshot().session.conversationDraft.context;
+    const summary = incrementBusinessTutorialEventSummary(
+      context.businessTutorialEventSummary,
+      key,
+    );
+    this.host.updateRuntimeContext({ businessTutorialEventSummary: summary });
+  }
+
   beforeTransition(context: BusinessOnboardingGuardContext): boolean {
     if (context.direction === "previous") return true;
     const state = context.session.conversationDraft.context;
@@ -116,16 +133,19 @@ export class BusinessOnboardingRuntime {
 
     if (snapshot.stepId === "menu-discovery") {
       await this.runDiscovery(text(context.category));
+      this.trackTutorialEvent("business_discovered_by_menu");
       return;
     }
 
     if (snapshot.stepId === "text-discovery") {
       await this.runDiscovery(step.description.replace(/[“”"]/gu, ""));
+      this.trackTutorialEvent("business_discovered_by_text_search");
       return;
     }
 
     if (snapshot.stepId === "name-discovery") {
       await this.runDiscovery(text(context.businessName));
+      this.trackTutorialEvent("business_discovered_by_name");
       return;
     }
 
@@ -173,6 +193,7 @@ export class BusinessOnboardingRuntime {
         recommendation,
       );
       if (recommendation.rendered) {
+        this.trackTutorialEvent("business_recommended_by_assistant");
         const locationNote = candidate.locationIsExample
           ? " · localização usada apenas como exemplo"
           : "";
@@ -240,6 +261,7 @@ export class BusinessOnboardingRuntime {
           : {}),
       });
       this.host.updateRuntimeContext({ tutorialBusinessProfile: profile });
+      this.trackTutorialEvent("business_profile_opened");
       dispatch(this.view, "businessOnboardingProfileOpened", {
         profile,
         tutorial: true,
@@ -250,6 +272,16 @@ export class BusinessOnboardingRuntime {
 
     if (snapshot.stepId === "route") {
       await this.verifyRoute(snapshot);
+      return;
+    }
+
+    if (snapshot.stepId === "partner-panel") {
+      const workspace = buildBusinessTutorialWorkspaceSnapshot({
+        businessName: context.businessName,
+        eventSummary: context.businessTutorialEventSummary,
+      });
+      this.host.updateRuntimeContext({ businessTutorialWorkspace: workspace });
+      dispatch(this.view, "businessTutorialWorkspaceOpened", workspace);
     }
   }
 
@@ -304,6 +336,7 @@ export class BusinessOnboardingRuntime {
         step.description.replace(/[“”"]/gu, ""),
       );
       this.host.updateRuntimeContext({ businessVoiceDiscoveryReady: true });
+      this.trackTutorialEvent("business_discovered_by_voice");
       dispatch(this.view, "businessVoiceDiscoveryRecognized", {
         simulated: true,
         results,
@@ -332,6 +365,7 @@ export class BusinessOnboardingRuntime {
       }
 
       if (action === "profile-primary") {
+        this.trackTutorialEvent("business_contact_action");
         dispatch(this.view, "businessTutorialProfilePrimaryAction", {
           businessId: text(profile.id),
           actionLabel: text(profile.cta),
@@ -343,6 +377,7 @@ export class BusinessOnboardingRuntime {
 
       const promotion = isRecord(profile.promotion) ? profile.promotion : null;
       if (!promotion) return false;
+      this.trackTutorialEvent("business_demo_promotion_viewed");
       dispatch(this.view, "businessTutorialProfilePromotionAction", {
         businessId: text(profile.id),
         promotionId: text(promotion.id),
@@ -354,6 +389,37 @@ export class BusinessOnboardingRuntime {
 
     if (action === "route-retry") {
       return this.verifyRoute(this.host.snapshot());
+    }
+
+    if (action === "workspace-open-dashboard") {
+      dispatch(this.view, "businessProtectedDashboardRequested", {
+        href: "/apps/morro-digital-platform/public/business-dashboard.html",
+        tutorial: true,
+        requiresAuthentication: true,
+        excludeFromBusinessMetrics: true,
+      });
+      return true;
+    }
+
+    if (action.startsWith("workspace-promotion-save:")) {
+      let input: Record<string, unknown>;
+      try {
+        input = JSON.parse(
+          decodeURIComponent(action.slice("workspace-promotion-save:".length)),
+        ) as Record<string, unknown>;
+      } catch {
+        return false;
+      }
+      const promotion = buildBusinessTutorialPromotion(input);
+      if (!promotion) return false;
+      this.host.updateRuntimeContext({ businessDemoPromotion: promotion });
+      this.trackTutorialEvent("business_demo_promotion_created");
+      dispatch(this.view, "businessTutorialPromotionSaved", {
+        promotion,
+        tutorial: true,
+        excludeFromBusinessMetrics: true,
+      });
+      return true;
     }
 
     return false;
@@ -398,6 +464,7 @@ export class BusinessOnboardingRuntime {
       return false;
     }
 
+    this.trackTutorialEvent("business_route_started");
     dispatch(this.view, "businessTutorialRouteRendered", {
       ...result,
       destinationName: text(context.businessName) || "Sua empresa",

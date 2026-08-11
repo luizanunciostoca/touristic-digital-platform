@@ -135,6 +135,25 @@ export class BusinessOnboardingSurface {
         target.closest<HTMLElement>("[data-action]")?.dataset.action;
       if (action) void this.handleAction(action);
     });
+    root.addEventListener("submit", (event) => {
+      const form = event.target;
+      if (
+        !(form instanceof HTMLFormElement) ||
+        form.dataset.workspacePromotion !== "true"
+      )
+        return;
+      event.preventDefault();
+      const data = new FormData(form);
+      const payload = {
+        title: data.get("title"),
+        description: data.get("description"),
+        cta: data.get("cta"),
+        validUntil: data.get("validUntil"),
+      };
+      void this.handleRuntimeAction(
+        `workspace-promotion-save:${encodeURIComponent(JSON.stringify(payload))}`,
+      );
+    });
     root.addEventListener("input", (event) => {
       const target = event.target;
       if (
@@ -309,6 +328,87 @@ export class BusinessOnboardingSurface {
     container.append(preview);
   }
 
+  private renderWorkspaceSummary(
+    container: HTMLElement,
+    workspace: Record<string, unknown>,
+  ): void {
+    const panel = this.document.createElement("article");
+    panel.className = "business-onboarding-workspace-preview";
+    panel.setAttribute("aria-label", "Resumo da sessão demonstrativa");
+    const title = this.document.createElement("h2");
+    title.textContent = `Resultados de ${stringValue(workspace.businessName) || "Sua empresa"}`;
+    const note = this.document.createElement("p");
+    note.textContent =
+      "Estes números pertencem somente a esta demonstração e não alimentam métricas comerciais.";
+    panel.append(title, note);
+    const metrics = Array.isArray(workspace.metrics) ? workspace.metrics : [];
+    const list = this.document.createElement("dl");
+    list.className = "business-onboarding-workspace-metrics";
+    for (const metricValue of metrics) {
+      const metric = objectValue(metricValue);
+      if (!metric) continue;
+      const row = this.document.createElement("div");
+      const label = this.document.createElement("dt");
+      label.textContent = stringValue(metric.label);
+      const value = this.document.createElement("dd");
+      value.textContent = String(
+        typeof metric.value === "number" ? metric.value : 0,
+      );
+      row.append(label, value);
+      list.append(row);
+    }
+    panel.append(list);
+    container.append(panel);
+  }
+
+  private renderPromotionForm(
+    container: HTMLElement,
+    context: Readonly<Record<string, unknown>>,
+  ): void {
+    const defaults: Record<string, readonly [string, string, string]> = {
+      restaurant: [
+        "Oferta especial de hoje",
+        "Condição exclusiva para quem encontrou a empresa pelo Morro Digital.",
+        "Ver oferta",
+      ],
+      lodging: [
+        "Benefício na reserva",
+        "Consulte uma condição especial para sua hospedagem.",
+        "Consultar",
+      ],
+      tour: [
+        "Condição especial no passeio",
+        "Garanta uma vantagem ao reservar pelo Morro Digital.",
+        "Reservar",
+      ],
+      events: [
+        "Ingresso ou benefício especial",
+        "Confira a condição disponível para este evento.",
+        "Ver evento",
+      ],
+    };
+    const [defaultTitle, defaultDescription, defaultCta] = defaults[
+      stringValue(context.category)
+    ] ?? [
+      "Oferta especial",
+      "Confira uma condição exclusiva disponível agora.",
+      "Ver oferta",
+    ];
+    const form = this.document.createElement("form");
+    form.dataset.workspacePromotion = "true";
+    form.className = "business-onboarding-promotion-form";
+    form.innerHTML = `<label>Título<input name="title" maxlength="90" required></label><label>Descrição<textarea name="description" maxlength="220" required></textarea></label><label>Botão<input name="cta" maxlength="50" required></label><label>Validade<input name="validUntil" type="date"></label><button type="submit" class="business-onboarding-runtime-action is-primary">Salvar promoção demonstrativa</button>`;
+    const title = form.querySelector<HTMLInputElement>('input[name="title"]');
+    const description = form.querySelector<HTMLTextAreaElement>(
+      'textarea[name="description"]',
+    );
+    const cta = form.querySelector<HTMLInputElement>('input[name="cta"]');
+    if (title) title.value = defaultTitle;
+    if (description) description.value = defaultDescription;
+    if (cta) cta.value = defaultCta;
+    container.append(form);
+  }
+
   private renderRuntimeActions(
     container: HTMLElement,
     snapshot: BusinessOnboardingHostSnapshot,
@@ -362,6 +462,17 @@ export class BusinessOnboardingSurface {
           );
         }
       }
+    } else if (snapshot.stepId === "promotions") {
+      this.renderPromotionForm(container, context);
+    } else if (snapshot.stepId === "partner-panel") {
+      const workspace = objectValue(context.businessTutorialWorkspace);
+      if (workspace) this.renderWorkspaceSummary(container, workspace);
+      this.appendRuntimeButton(
+        actions,
+        "workspace-open-dashboard",
+        "Abrir dashboard protegido",
+        true,
+      );
     } else if (snapshot.stepId === "route") {
       const note = this.document.createElement("p");
       note.className = "business-onboarding-runtime-note";
