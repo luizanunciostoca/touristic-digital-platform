@@ -376,7 +376,9 @@ export function isActiveCrmFunnelStage(
 }
 
 export function crmFunnelStageIndex(stage: CrmLeadStage): number | null {
-  const index = (crmActiveFunnelStages as readonly CrmLeadStage[]).indexOf(stage);
+  const index = (crmActiveFunnelStages as readonly CrmLeadStage[]).indexOf(
+    stage,
+  );
   return index < 0 ? null : index;
 }
 
