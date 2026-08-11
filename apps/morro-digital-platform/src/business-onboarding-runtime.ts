@@ -26,10 +26,10 @@ function text(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
-function dispatch(
+function dispatch<T extends object>(
   view: Window,
   name: string,
-  detail: Readonly<Record<string, unknown>>,
+  detail: Readonly<T>,
 ): void {
   view.dispatchEvent(new CustomEvent(name, { detail }));
 }
