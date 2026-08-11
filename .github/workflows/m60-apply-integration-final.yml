@@ -1,0 +1,51 @@
+name: M60 Apply Integration Final
+on:
+  push:
+    branches: [feat/business-m60-partner-workspace]
+    paths: [.github/workflows/m60-apply-integration-final.yml]
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/business-m60-partner-workspace
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Reuse audited M60 patch and fix FormData compatibility
+        run: |
+          python <<'PY'
+          from pathlib import Path
+          workflow = Path('.github/workflows/m60-apply-integration-retry.yml').read_text().splitlines()
+          start = next(i for i,l in enumerate(workflow) if l.strip() == "python <<'PY'") + 1
+          end = next(i for i in range(start, len(workflow)) if workflow[i].strip() == 'PY')
+          script = '\n'.join(line[10:] if line.startswith('          ') else line for line in workflow[start:end])
+          exec(compile(script, '<m60-reused-patch>', 'exec'))
+
+          p = Path('apps/morro-digital-platform/src/business-onboarding-surface.ts')
+          s = p.read_text()
+          old = '      const payload = Object.fromEntries(new FormData(form).entries());'
+          new = '''      const data = new FormData(form);\n      const payload = {\n        title: data.get("title"),\n        description: data.get("description"),\n        cta: data.get("cta"),\n        validUntil: data.get("validUntil"),\n      };'''
+          if old not in s:
+              raise SystemExit('FormData compatibility pattern missing')
+          p.write_text(s.replace(old, new, 1))
+          PY
+      - run: pnpm exec prettier --write packages/business/src/onboarding-context.ts apps/morro-digital-platform/src/business-onboarding-runtime.ts apps/morro-digital-platform/src/business-onboarding-surface.ts apps/morro-digital-platform/public/business-onboarding.html
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+      - name: Commit integration
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add packages/business/src/onboarding-context.ts apps/morro-digital-platform/src/business-onboarding-runtime.ts apps/morro-digital-platform/src/business-onboarding-surface.ts apps/morro-digital-platform/public/business-onboarding.html
+          git commit -m "feat(business): integrate M60 partner workspace runtime"
+          git push origin HEAD:feat/business-m60-partner-workspace
