@@ -88,7 +88,9 @@ export class BusinessOnboardingSurface {
   }
 
   setStatus(message: string): void {
-    const status = this.root?.querySelector<HTMLElement>("#businessOnboardingStatus");
+    const status = this.root?.querySelector<HTMLElement>(
+      "#businessOnboardingStatus",
+    );
     if (status) status.textContent = message;
   }
 
@@ -134,19 +136,34 @@ export class BusinessOnboardingSurface {
     if (!this.root) return;
     const snapshot = this.host.snapshot();
     const chapter = snapshot.chapter;
-    const progress = this.root.querySelector<HTMLElement>("#businessOnboardingProgress");
-    const title = this.root.querySelector<HTMLElement>("#businessOnboardingTitle");
-    const description = this.root.querySelector<HTMLElement>("#businessOnboardingDescription");
-    const step = this.root.querySelector<HTMLElement>("#businessOnboardingStep");
-    const back = this.root.querySelector<HTMLButtonElement>('[data-action="back"]');
-    const next = this.root.querySelector<HTMLButtonElement>('[data-action="next"]');
+    const progress = this.root.querySelector<HTMLElement>(
+      "#businessOnboardingProgress",
+    );
+    const title = this.root.querySelector<HTMLElement>(
+      "#businessOnboardingTitle",
+    );
+    const description = this.root.querySelector<HTMLElement>(
+      "#businessOnboardingDescription",
+    );
+    const step = this.root.querySelector<HTMLElement>(
+      "#businessOnboardingStep",
+    );
+    const back = this.root.querySelector<HTMLButtonElement>(
+      '[data-action="back"]',
+    );
+    const next = this.root.querySelector<HTMLButtonElement>(
+      '[data-action="next"]',
+    );
 
     if (progress) progress.textContent = renderProgress(snapshot);
-    if (title) title.textContent = text(chapter?.title) || "Seu negócio no Morro Digital";
+    if (title)
+      title.textContent =
+        text(chapter?.title) || "Seu negócio no Morro Digital";
     if (description) description.textContent = text(chapter?.description);
     if (step) step.textContent = `Etapa atual: ${snapshot.stepId}`;
     if (back) back.hidden = !snapshot.canGoBack;
-    if (next) next.textContent = snapshot.canGoForward ? "Continuar" : "Concluir";
+    if (next)
+      next.textContent = snapshot.canGoForward ? "Continuar" : "Concluir";
     this.setStatus("");
   }
 

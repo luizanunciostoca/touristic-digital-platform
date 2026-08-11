@@ -45,7 +45,9 @@ const ORDERED_STEPS = Object.freeze(
   BUSINESS_ONBOARDING_CHAPTERS.flatMap((chapter) => [...chapter.steps]),
 );
 
-function currentStepId(session: BusinessOnboardingSession): BusinessOnboardingStepId {
+function currentStepId(
+  session: BusinessOnboardingSession,
+): BusinessOnboardingStepId {
   const stepId = session.conversationDraft.currentStepId;
   return stepId && ORDERED_STEPS.includes(stepId) ? stepId : "welcome";
 }
