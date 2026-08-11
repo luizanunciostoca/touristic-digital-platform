@@ -19,6 +19,8 @@ M54 binds the framework-independent Business onboarding ports introduced in M53 
 - `BusinessLocationPort.requestDeviceLocation()` to a browser geolocation capability boundary with the same high-accuracy/timeout policy already used by the Assistant;
 - `BusinessAssistantPort` to the real `AssistantDialogController` and existing Morro domain handlers.
 
+The M53 onboarding contracts are re-exported from the public `@touristic/business` entrypoint. The app does not import internal Business source files, and M54 exposes concrete typed adapter interfaces that specialize the core `unknown` port responses without weakening the framework-independent Business contract.
+
 No Business-owned credential, cookie, CSRF, session-signing or tenant-authorization logic is introduced.
 
 ## Deterministic unit evidence
