@@ -44,6 +44,60 @@ function sessionResponse(csrfToken = "csrf-1") {
 }
 
 describe("M48 browser auth adapter", () => {
+  it("logs in through the same-origin Auth boundary and caches the safe session projection", async () => {
+    const fetchFn = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(sessionResponse("csrf-login"));
+    const storage = storageFixture();
+    const location = locationFixture("/dashboard/login.html");
+    const client = createDashboardAuthClient({
+      fetchFn,
+      storage: storage.port,
+      location: location.port,
+    });
+
+    const session = await client.login({
+      email: "owner@example.com",
+      password: "secret",
+    });
+    const cached = await client.getSession();
+
+    expect(session.user.email).toBe("owner@example.com");
+    expect(cached).toBe(session);
+    expect(storage.values.get("md_dashboard_csrf")).toBe("csrf-login");
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+    expect(fetchFn).toHaveBeenCalledWith("/api/dashboard/auth/login", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email: "owner@example.com", password: "secret" }),
+    });
+  });
+
+  it("fails login without retaining stale browser CSRF state", async () => {
+    const fetchFn = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(JSON.stringify({ message: "E-mail ou senha inválidos." }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    const storage = storageFixture({ md_dashboard_csrf: "stale" });
+    const location = locationFixture("/dashboard/login.html");
+    const client = createDashboardAuthClient({
+      fetchFn,
+      storage: storage.port,
+      location: location.port,
+    });
+
+    await expect(
+      client.login({ email: "owner@example.com", password: "wrong" }),
+    ).rejects.toThrow("E-mail ou senha inválidos.");
+    expect(storage.values.has("md_dashboard_csrf")).toBe(false);
+  });
+
   it("loads and caches the browser-safe session projection", async () => {
     const fetchFn = vi.fn<typeof fetch>().mockResolvedValue(sessionResponse());
     const storage = storageFixture();

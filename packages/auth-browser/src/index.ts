@@ -19,6 +19,11 @@ export interface DashboardSessionResponse {
   };
 }
 
+export interface DashboardLoginCredentials {
+  readonly email: string;
+  readonly password: string;
+}
+
 export interface BrowserStoragePort {
   readonly getItem: (key: string) => string | null;
   readonly setItem: (key: string, value: string) => void;
@@ -40,6 +45,9 @@ export interface DashboardAuthClientOptions {
 }
 
 export interface DashboardAuthClient {
+  readonly login: (
+    credentials: DashboardLoginCredentials,
+  ) => Promise<DashboardSessionResponse>;
   readonly getSession: (
     force?: boolean,
   ) => Promise<DashboardSessionResponse | null>;
@@ -103,6 +111,42 @@ export function createDashboardAuthClient(
   const { fetchFn, storage, location, demoMode = false } = options;
   let sessionPromise: Promise<DashboardSessionResponse | null> | null = null;
   let csrfToken = storage.getItem(csrfStorageKey) ?? "";
+
+  async function login(
+    credentials: DashboardLoginCredentials,
+  ): Promise<DashboardSessionResponse> {
+    const response = await fetchFn("/api/dashboard/auth/login", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email: credentials.email,
+        password: credentials.password,
+      }),
+    });
+    const data = (await response.json().catch(() => ({}))) as Partial<
+      DashboardSessionResponse & { message: string }
+    >;
+    if (!response.ok || data.authenticated !== true || !data.csrfToken) {
+      csrfToken = "";
+      sessionPromise = null;
+      storage.removeItem(csrfStorageKey);
+      throw new Error(
+        typeof data.message === "string" && data.message.trim()
+          ? data.message
+          : "Não foi possível entrar.",
+      );
+    }
+
+    const session = data as DashboardSessionResponse;
+    csrfToken = session.csrfToken;
+    storage.setItem(csrfStorageKey, csrfToken);
+    sessionPromise = Promise.resolve(session);
+    return session;
+  }
 
   async function getSession(
     force = false,
@@ -198,5 +242,5 @@ export function createDashboardAuthClient(
     return response.ok;
   }
 
-  return Object.freeze({ getSession, secureFetch, logout });
+  return Object.freeze({ login, getSession, secureFetch, logout });
 }

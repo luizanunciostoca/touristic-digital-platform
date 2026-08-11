@@ -3,7 +3,8 @@ import { createDashboardAuthClient } from "@touristic/auth-browser";
 const defaultDashboardPath = "/dashboard/index-v3-improved.html";
 
 export function safeBusinessDashboardReturnPath(search: string): string {
-  const value = new URLSearchParams(search).get("return") ?? defaultDashboardPath;
+  const value =
+    new URLSearchParams(search).get("return") ?? defaultDashboardPath;
   if (
     !value.startsWith("/dashboard/") ||
     value.startsWith("//") ||

@@ -30,6 +30,7 @@ function authFixture(
   const secureFetch = vi.fn<DashboardAuthClient["secureFetch"]>();
   for (const response of responses) secureFetch.mockResolvedValueOnce(response);
   const authClient: DashboardAuthClient = {
+    login: vi.fn().mockRejectedValue(new Error("NOT_USED_IN_DASHBOARD_CLIENT")),
     getSession: vi.fn().mockResolvedValue(sessionValue),
     secureFetch,
     logout: vi.fn().mockResolvedValue(true),
