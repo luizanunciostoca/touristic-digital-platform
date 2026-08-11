@@ -45,6 +45,10 @@ After M50:
 
 `FEATURE-0005` remains `baseline-pending`.
 
+## Final validation checkpoint
+
+The first executable Business/Auth run completed successfully before the documentation-only formatting correction. The final authored head must repeat both the Quality Gate and the permanent Business/Auth integration contract so the merge evidence is tied to one clean commit with no one-shot helpers.
+
 ## Exit gate
 
 M50 may merge only when the final authored head passes:
