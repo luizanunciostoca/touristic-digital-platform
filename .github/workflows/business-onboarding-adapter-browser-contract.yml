@@ -47,10 +47,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          PORT=4178 HOST=127.0.0.1 node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/m54-onboarding-server.log 2>&1 &
+          PORT=4178
+          HOST=127.0.0.1
+          PORT="$PORT" HOST="$HOST" node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/m54-onboarding-server.log 2>&1 &
           echo $! >/tmp/m54-server.pid
           for _ in $(seq 1 60); do
-            if curl --fail --silent "http://127.0.0.1:${PORT}/runtime-config.js" >/dev/null; then exit 0; fi
+            if curl --fail --silent "http://${HOST}:${PORT}/runtime-config.js" >/dev/null; then exit 0; fi
             sleep 0.25
           done
           cat /tmp/m54-onboarding-server.log
