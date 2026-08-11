@@ -154,17 +154,20 @@ export function buildBusinessCommercialDraft(input: Readonly<{
 export function buildBusinessCheckoutHandoff(input: Readonly<{
   sessionId?: unknown;
   commercialDraft?: BusinessCommercialDraft | null;
-  businessDraft?: Readonly<Record<string, unknown>>;
+  businessDraft?: Readonly<object>;
   returnUrl?: unknown;
 }>): BusinessCheckoutHandoff | null {
   const sessionId = safeText(input.sessionId, 160);
   const returnUrl = safeText(input.returnUrl, 500);
   if (!sessionId || !returnUrl || !input.commercialDraft) return null;
+  const businessDraft: Readonly<Record<string, unknown>> = Object.freeze({
+    ...(input.businessDraft ?? {}),
+  });
   return Object.freeze({
     sessionId,
     planId: input.commercialDraft.selectedPlanId,
     contractor: input.commercialDraft.contractor,
-    businessDraft: Object.freeze({ ...(input.businessDraft ?? {}) }),
+    businessDraft,
     acceptedTerms: input.commercialDraft.acceptedTerms,
     returnUrl,
     requiresPaymentProvider: true,
