@@ -8,7 +8,7 @@ import type {
   BusinessDiscoveryPort,
   BusinessLocationPort,
   BusinessOnboardingPorts,
-} from "@touristic/business";
+} from "@touristic/business/onboarding";
 import type { Coordinates } from "@touristic/geospatial";
 import {
   createSearchIndex,
