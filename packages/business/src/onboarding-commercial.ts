@@ -77,7 +77,8 @@ export const BUSINESS_COMMERCIAL_PLANS: readonly BusinessCommercialPlan[] =
     Object.freeze({
       id: "performance",
       name: "Performance",
-      description: "Campanhas, eventos e maior capacidade de ativação comercial.",
+      description:
+        "Campanhas, eventos e maior capacidade de ativação comercial.",
       goals: Object.freeze(["events"]),
       features: Object.freeze([
         "Tudo do Crescimento",
@@ -89,7 +90,11 @@ export const BUSINESS_COMMERCIAL_PLANS: readonly BusinessCommercialPlan[] =
 
 function safeText(value: unknown, maxLength = 240): string {
   if (typeof value !== "string") return "";
-  return value.replace(/[<>]/gu, "").replace(/\s+/gu, " ").trim().slice(0, maxLength);
+  return value
+    .replace(/[<>]/gu, "")
+    .replace(/\s+/gu, " ")
+    .trim()
+    .slice(0, maxLength);
 }
 
 export function recommendBusinessCommercialPlan(
@@ -103,15 +108,17 @@ export function recommendBusinessCommercialPlan(
   );
 }
 
-export function buildBusinessCommercialDraft(input: Readonly<{
-  selectedPlanId?: unknown;
-  objective?: unknown;
-  contractor?: Readonly<Record<string, unknown>>;
-  acceptTerms?: unknown;
-  acceptPrivacy?: unknown;
-  marketingConsent?: unknown;
-  acceptedAt?: unknown;
-}>): BusinessCommercialDraft | null {
+export function buildBusinessCommercialDraft(
+  input: Readonly<{
+    selectedPlanId?: unknown;
+    objective?: unknown;
+    contractor?: Readonly<Record<string, unknown>>;
+    acceptTerms?: unknown;
+    acceptPrivacy?: unknown;
+    marketingConsent?: unknown;
+    acceptedAt?: unknown;
+  }>,
+): BusinessCommercialDraft | null {
   if (input.acceptTerms !== true || input.acceptPrivacy !== true) return null;
   const recommended = recommendBusinessCommercialPlan(input.objective);
   const requestedPlanId = safeText(input.selectedPlanId, 80);
@@ -125,7 +132,12 @@ export function buildBusinessCommercialDraft(input: Readonly<{
     phone: safeText(contractorInput.phone, 80),
     document: safeText(contractorInput.document, 80),
   });
-  if (!contractor.name || !contractor.email || !contractor.phone || !contractor.document) {
+  if (
+    !contractor.name ||
+    !contractor.email ||
+    !contractor.phone ||
+    !contractor.document
+  ) {
     return null;
   }
   const acceptedAt =
@@ -133,8 +145,16 @@ export function buildBusinessCommercialDraft(input: Readonly<{
       ? input.acceptedAt
       : new Date().toISOString();
   const acceptedTerms: BusinessCommercialAcceptance[] = [
-    Object.freeze({ type: "terms", version: BUSINESS_TERMS_VERSION, acceptedAt }),
-    Object.freeze({ type: "privacy", version: BUSINESS_PRIVACY_VERSION, acceptedAt }),
+    Object.freeze({
+      type: "terms",
+      version: BUSINESS_TERMS_VERSION,
+      acceptedAt,
+    }),
+    Object.freeze({
+      type: "privacy",
+      version: BUSINESS_PRIVACY_VERSION,
+      acceptedAt,
+    }),
   ];
   if (input.marketingConsent === true) {
     acceptedTerms.push(
@@ -151,12 +171,14 @@ export function buildBusinessCommercialDraft(input: Readonly<{
   });
 }
 
-export function buildBusinessCheckoutHandoff(input: Readonly<{
-  sessionId?: unknown;
-  commercialDraft?: BusinessCommercialDraft | null;
-  businessDraft?: Readonly<object>;
-  returnUrl?: unknown;
-}>): BusinessCheckoutHandoff | null {
+export function buildBusinessCheckoutHandoff(
+  input: Readonly<{
+    sessionId?: unknown;
+    commercialDraft?: BusinessCommercialDraft | null;
+    businessDraft?: Readonly<object>;
+    returnUrl?: unknown;
+  }>,
+): BusinessCheckoutHandoff | null {
   const sessionId = safeText(input.sessionId, 160);
   const returnUrl = safeText(input.returnUrl, 500);
   if (!sessionId || !returnUrl || !input.commercialDraft) return null;

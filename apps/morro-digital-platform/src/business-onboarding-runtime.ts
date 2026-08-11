@@ -32,7 +32,8 @@ export type BusinessOnboardingRuntimeAction =
   | "profile-promotion"
   | "route-retry"
   | "workspace-open-dashboard"
-  | `workspace-promotion-save:${string}`;
+  | `workspace-promotion-save:${string}`
+  | `commercial-prepare-checkout:${string}`;
 
 function text(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
@@ -401,6 +402,58 @@ export class BusinessOnboardingRuntime {
       return true;
     }
 
+    if (action.startsWith("commercial-prepare-checkout:")) {
+      let input: Record<string, unknown>;
+      try {
+        input = JSON.parse(
+          decodeURIComponent(
+            action.slice("commercial-prepare-checkout:".length),
+          ),
+        ) as Record<string, unknown>;
+      } catch {
+        return false;
+      }
+      const snapshot = this.host.snapshot();
+      const context = snapshot.session.conversationDraft.context;
+      const { buildBusinessCheckoutHandoff, buildBusinessCommercialDraft } =
+        await import("@touristic/business/onboarding-commercial");
+      const contractor = isRecord(input.contractor) ? input.contractor : {};
+      const commercialDraft = buildBusinessCommercialDraft({
+        selectedPlanId: input.selectedPlanId,
+        objective: context.objective,
+        contractor,
+        acceptTerms: input.acceptTerms,
+        acceptPrivacy: input.acceptPrivacy,
+        marketingConsent: input.marketingConsent,
+      });
+      if (!commercialDraft) return false;
+      const handoff = buildBusinessCheckoutHandoff({
+        sessionId: `business-onboarding:${snapshot.session.createdAt}`,
+        commercialDraft,
+        businessDraft: snapshot.session.businessDraft,
+        returnUrl: this.view.location.href,
+      });
+      if (!handoff) return false;
+      this.host.updateRuntimeContext({
+        businessCommercialDraft: commercialDraft,
+        businessCheckoutHandoff: handoff,
+      });
+      dispatch(this.view, "businessTutorialLeadReady", {
+        businessName: text(context.businessName),
+        objective: text(context.objective),
+        source: "business-onboarding-v2-m61",
+        tutorial: true,
+        excludeFromBusinessMetrics: true,
+      });
+      dispatch(this.view, "businessCheckoutRequested", handoff);
+      dispatch(this.view, "businessCommercialCheckoutPrepared", {
+        planId: handoff.planId,
+        requiresPaymentProvider: true,
+        tutorial: false,
+      });
+      return true;
+    }
+
     if (action.startsWith("workspace-promotion-save:")) {
       let input: Record<string, unknown>;
       try {
@@ -423,6 +476,28 @@ export class BusinessOnboardingRuntime {
     }
 
     return false;
+  }
+
+  async verifyPayment(
+    detail: Readonly<Record<string, unknown>>,
+  ): Promise<boolean> {
+    const snapshot = this.host.snapshot();
+    const { verifyBusinessPaymentForSession } =
+      await import("@touristic/business/onboarding-commercial");
+    const confirmation = verifyBusinessPaymentForSession(
+      `business-onboarding:${snapshot.session.createdAt}`,
+      detail,
+    );
+    if (!confirmation) return false;
+    this.host.updateRuntimeContext({
+      businessPaymentConfirmation: confirmation,
+    });
+    dispatch(this.view, "businessCommercialActivationReady", {
+      reference: confirmation.reference,
+      verifiedByPaymentsBoundary: true,
+      tutorial: false,
+    });
+    return true;
   }
 
   private async verifyRoute(

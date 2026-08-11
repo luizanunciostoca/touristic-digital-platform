@@ -137,22 +137,40 @@ export class BusinessOnboardingSurface {
     });
     root.addEventListener("submit", (event) => {
       const form = event.target;
-      if (
-        !(form instanceof HTMLFormElement) ||
-        form.dataset.workspacePromotion !== "true"
-      )
+      if (!(form instanceof HTMLFormElement)) return;
+      if (form.dataset.workspacePromotion === "true") {
+        event.preventDefault();
+        const data = new FormData(form);
+        const payload = {
+          title: data.get("title"),
+          description: data.get("description"),
+          cta: data.get("cta"),
+          validUntil: data.get("validUntil"),
+        };
+        void this.handleRuntimeAction(
+          `workspace-promotion-save:${encodeURIComponent(JSON.stringify(payload))}`,
+        );
         return;
-      event.preventDefault();
-      const data = new FormData(form);
-      const payload = {
-        title: data.get("title"),
-        description: data.get("description"),
-        cta: data.get("cta"),
-        validUntil: data.get("validUntil"),
-      };
-      void this.handleRuntimeAction(
-        `workspace-promotion-save:${encodeURIComponent(JSON.stringify(payload))}`,
-      );
+      }
+      if (form.dataset.commercialConversion === "true") {
+        event.preventDefault();
+        const data = new FormData(form);
+        const payload = {
+          selectedPlanId: data.get("planId"),
+          contractor: {
+            name: data.get("name"),
+            email: data.get("email"),
+            phone: data.get("phone"),
+            document: data.get("document"),
+          },
+          acceptTerms: data.get("terms") === "on",
+          acceptPrivacy: data.get("privacy") === "on",
+          marketingConsent: data.get("marketing") === "on",
+        };
+        void this.handleRuntimeAction(
+          `commercial-prepare-checkout:${encodeURIComponent(JSON.stringify(payload))}`,
+        );
+      }
     });
     root.addEventListener("input", (event) => {
       const target = event.target;
@@ -409,6 +427,34 @@ export class BusinessOnboardingSurface {
     container.append(form);
   }
 
+  private renderCommercialForm(
+    container: HTMLElement,
+    snapshot: BusinessOnboardingHostSnapshot,
+  ): void {
+    const context = snapshot.session.conversationDraft.context;
+    const existing = objectValue(context.businessCheckoutHandoff);
+    if (existing) {
+      const notice = this.document.createElement("p");
+      notice.className = "business-onboarding-runtime-note";
+      notice.textContent =
+        "Cadastro comercial preparado. O pagamento só poderá ser confirmado pelo serviço seguro de Payments.";
+      container.append(notice);
+      return;
+    }
+    const objective = stringValue(context.objective);
+    const recommended =
+      objective === "events"
+        ? "performance"
+        : objective === "brand"
+          ? "essential"
+          : "growth";
+    const form = this.document.createElement("form");
+    form.dataset.commercialConversion = "true";
+    form.className = "business-onboarding-commercial-form";
+    form.innerHTML = `<fieldset><legend>Plano</legend><label><input type="radio" name="planId" value="essential" ${recommended === "essential" ? "checked" : ""}> Essencial</label><label><input type="radio" name="planId" value="growth" ${recommended === "growth" ? "checked" : ""}> Crescimento</label><label><input type="radio" name="planId" value="performance" ${recommended === "performance" ? "checked" : ""}> Performance</label></fieldset><label>Nome completo<input name="name" autocomplete="name" maxlength="120" required></label><label>E-mail<input name="email" type="email" autocomplete="email" maxlength="160" required></label><label>Telefone/WhatsApp<input name="phone" autocomplete="tel" maxlength="80" required></label><label>CPF ou CNPJ<input name="document" maxlength="80" required></label><label><input type="checkbox" name="terms" required> Li e aceito os Termos de Parceria.</label><label><input type="checkbox" name="privacy" required> Li e aceito a Política de Privacidade.</label><label><input type="checkbox" name="marketing"> Autorizo comunicações comerciais (opcional).</label><p class="business-onboarding-runtime-note">Nenhum pagamento é executado nesta tela. Ao continuar, o Business prepara apenas um handoff para o serviço de Payments.</p><button type="submit" class="business-onboarding-runtime-action is-primary">Preparar pagamento seguro</button>`;
+    container.append(form);
+  }
+
   private renderRuntimeActions(
     container: HTMLElement,
     snapshot: BusinessOnboardingHostSnapshot,
@@ -473,6 +519,8 @@ export class BusinessOnboardingSurface {
         "Abrir dashboard protegido",
         true,
       );
+    } else if (snapshot.stepId === "finish") {
+      this.renderCommercialForm(container, snapshot);
     } else if (snapshot.stepId === "route") {
       const note = this.document.createElement("p");
       note.className = "business-onboarding-runtime-note";
