@@ -5,10 +5,7 @@ import {
 } from "@touristic/auth";
 
 export type CrmAuthorizationReason =
-  | "allowed"
-  | "authentication_required"
-  | "session_expired"
-  | "read_only_role";
+  "allowed" | "authentication_required" | "session_expired" | "read_only_role";
 
 export interface CrmAuthorizationDecision {
   readonly allowed: boolean;

@@ -80,7 +80,11 @@ importers:
 
   packages/core: {}
 
-  packages/crm: {}
+  packages/crm:
+    dependencies:
+      "@touristic/auth":
+        specifier: workspace:*
+        version: link:../auth
 
   packages/design-system: {}
 
