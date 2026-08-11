@@ -48,6 +48,10 @@ Initial M67 matrix:
 
 The only partials are dependency reuse: platform Auth, shared AI capability and server-side identity primitives exist but are not yet integrated into a CRM-owned boundary.
 
+## Promotion decision
+
+After the documentation-only baseline head passed the official Quality Gate, `FEATURE-0006` advances from `planned` to `baseline-pending` and `MIG-0008` advances from `discovered` to `snapshotted`. This records completed discovery/baseline work only; the CRM matrix remains `0 PASS / 3 PARTIAL / 22 GAP`.
+
 ## Next milestone
 
 M68 should freeze the CRM data model and pipeline vocabulary from the Drizzle schema/database access layer, then create framework-independent CRM domain types, repository ports and authorization decisions. It must not mount the CRM browser application yet.

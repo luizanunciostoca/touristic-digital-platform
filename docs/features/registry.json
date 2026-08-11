@@ -77,7 +77,7 @@
       "name": "CRM Administrativo",
       "domain": "admin",
       "wave": 7,
-      "status": "planned",
+      "status": "baseline-pending",
       "legacySources": ["crm:v1"],
       "targetPackages": ["apps/admin-crm"],
       "equivalence": {
