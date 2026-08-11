@@ -145,7 +145,7 @@ jobs:
               if (!(await page.locator('#dashboard-sidebar').evaluate(node => node.classList.contains('mobile-open')))) throw new Error('Mobile sidebar did not open');
               if (await page.locator('#mobile-overlay').isHidden()) throw new Error('Mobile overlay did not open');
               await page.locator('#mobile-overlay').click({ position: { x: 380, y: 400 } });
-
+              await page.locator('#mobile-menu').click();
               await page.locator('#logout-button').click();
               await page.waitForURL(url => url.pathname === '/dashboard/login.html', { timeout: 10000 }).catch(() => {});
               const sessionAfterLogout = await context.request.get(`${origin}/api/dashboard/auth/session`);
