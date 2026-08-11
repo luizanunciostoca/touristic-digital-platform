@@ -4,6 +4,10 @@ import {
   type BusinessProfile,
 } from "@touristic/business";
 import type { BusinessDashboardClient } from "./business-dashboard-client.js";
+import {
+  openBusinessProfileView,
+  type BusinessProfileViewAction,
+} from "./business-profile-view.js";
 
 export const businessDashboardViews = Object.freeze([
   "dashboard",
@@ -61,6 +65,18 @@ function requiredElement<T extends HTMLElement>(
 
 function setText(document: Document, id: string, value: string): void {
   requiredElement(document, id).textContent = value || "—";
+}
+
+function dispatchProfileAction(
+  document: Document,
+  action: BusinessProfileViewAction,
+  profile: BusinessProfile,
+): void {
+  document.defaultView?.dispatchEvent(
+    new CustomEvent("businessProfileAction", {
+      detail: Object.freeze({ action, profile }),
+    }),
+  );
 }
 
 export async function mountBusinessDashboardSurface(
@@ -124,6 +140,25 @@ export async function mountBusinessDashboardSurface(
     categoryInput.value = safeProfile.categoryLabel;
     descriptionInput.value = safeProfile.description;
   }
+
+  const profileSummary = requiredElement<HTMLElement>(
+    document,
+    "summary-description",
+  ).closest(".panel-card");
+  if (!profileSummary) throw new Error("MISSING_PROFILE_SUMMARY_PANEL");
+  const previewButton = document.createElement("button");
+  previewButton.id = "open-business-profile";
+  previewButton.type = "button";
+  previewButton.className = "button secondary";
+  previewButton.textContent = "Visualizar perfil";
+  previewButton.addEventListener("click", () => {
+    if (!activeProfile) return;
+    openBusinessProfileView(document, activeProfile, {
+      onAction: (action, profile) =>
+        dispatchProfileAction(document, action, profile),
+    });
+  });
+  profileSummary.append(previewButton);
 
   document
     .querySelectorAll<HTMLElement>("[data-dashboard-view]")

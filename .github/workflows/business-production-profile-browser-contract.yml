@@ -1,0 +1,108 @@
+name: Business Production Profile Browser Contract
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/business-production-profile-browser-contract.yml"
+      - "apps/morro-digital-platform/src/business-profile-view.ts"
+      - "apps/morro-digital-platform/src/business-dashboard-surface.ts"
+      - "packages/business/src/index.ts"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/business-production-profile-browser-contract.yml"
+      - "apps/morro-digital-platform/src/business-profile-view.ts"
+      - "apps/morro-digital-platform/src/business-dashboard-surface.ts"
+      - "packages/business/src/index.ts"
+
+permissions:
+  contents: read
+
+jobs:
+  production-profile-browser:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install deterministic Chromium
+        run: |
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+      - run: pnpm -w build
+      - name: Start authenticated Business runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          PORT=4179
+          SECRET="0123456789abcdef0123456789abcdef"
+          PASSWORD="correct horse battery staple"
+          HASH=$(node --input-type=module -e "import('./services/auth/dist/credentials.js').then(m => console.log(m.hashPassword(process.argv[1], Buffer.alloc(16, 7))))" "$PASSWORD")
+          USERS=$(node -e 'console.log(JSON.stringify([{id:"owner-1",email:"owner@example.com",passwordHash:process.argv[1],role:"owner",businessIds:["toca-do-morcego"]}]))' "$HASH")
+          DASHBOARD_AUTH_SECRET="$SECRET" DASHBOARD_USERS_JSON="$USERS" PORT="$PORT" HOST="127.0.0.1" node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/m63-profile-server.log 2>&1 &
+          echo $! >/tmp/m63-profile-server.pid
+          for _ in $(seq 1 60); do curl --fail --silent "http://127.0.0.1:${PORT}/runtime-config.js" >/dev/null && exit 0; sleep .25; done
+          cat /tmp/m63-profile-server.log; exit 1
+      - name: Validate protected production profile view
+        run: |
+          node <<'NODE'
+          const { writeFileSync } = require('node:fs');
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+          (async () => {
+            const origin = 'http://127.0.0.1:4179';
+            const browser = await chromium.launch({ headless: true });
+            const evidence = { actions: [], errors: [] };
+            try {
+              const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+              const page = await context.newPage();
+              page.on('pageerror', e => evidence.errors.push(e.message));
+              const login = await context.request.post(`${origin}/api/dashboard/auth/login`, { headers: { Origin: origin, 'Content-Type': 'application/json' }, data: { email: 'owner@example.com', password: 'correct horse battery staple' } });
+              const loginBody = await login.json();
+              if (login.status() !== 200 || !loginBody.csrfToken) throw new Error('Authenticated setup failed');
+              const seed = await context.request.put(`${origin}/api/business/toca-do-morcego/profile`, {
+                headers: { Origin: origin, 'Content-Type': 'application/json', 'X-CSRF-Token': loginBody.csrfToken },
+                data: { id:'toca-do-morcego', name:'Toca do Morcego', categoryLabel:'Experiência', specialty:'Sunset', description:'Experiência ao pôr do sol', cta:'Ver empresa', locationLabel:'Morro de São Paulo', locationIsExample:false, tutorial:false, excludeFromBusinessMetrics:false, promotion:{id:'sunset',title:'Sunset especial',description:'Experiência promocional',cta:'Ver oferta',validUntil:'2026-12-31'} }
+              });
+              if (seed.status() !== 200) throw new Error(`Profile seed failed: ${seed.status()}`);
+              await page.exposeFunction('recordProfileAction', detail => evidence.actions.push(detail.action));
+              await page.goto(`${origin}/apps/morro-digital-platform/public/business-dashboard.html?businessId=toca-do-morcego`, { waitUntil:'domcontentloaded', timeout:30000 });
+              await page.locator('#main-dashboard:not([hidden])').waitFor({ state:'visible', timeout:10000 });
+              await page.evaluate(() => window.addEventListener('businessProfileAction', e => window.recordProfileAction(e.detail)));
+              await page.locator('#open-business-profile').click();
+              const dialog = page.locator('[data-business-profile-view="true"][role="dialog"]');
+              await dialog.waitFor({ state:'visible' });
+              if ((await dialog.getAttribute('aria-label')) !== 'Perfil de Toca do Morcego') throw new Error('Dialog label diverged');
+              if (!(await dialog.getByText('PARCEIRO MORRO DIGITAL').isVisible())) throw new Error('Production badge missing');
+              if (!(await dialog.getByText('Sunset especial').isVisible())) throw new Error('Promotion missing');
+              if (!(await dialog.getByText('Horários, avaliações, imagens e contatos serão exibidos aqui após o cadastro definitivo.').isVisible())) throw new Error('Unavailable-data notice missing');
+              await dialog.getByRole('button', { name:'Ver oferta' }).click();
+              await dialog.getByRole('button', { name:'Ver empresa' }).click();
+              await dialog.getByRole('button', { name:'Ver no mapa' }).click();
+              if (JSON.stringify(evidence.actions) !== JSON.stringify(['promotion','primary','map'])) throw new Error(`Action contract diverged: ${JSON.stringify(evidence.actions)}`);
+              await page.keyboard.press('Escape');
+              await dialog.waitFor({ state:'detached' });
+              if (evidence.errors.length) throw new Error(`Browser errors: ${JSON.stringify(evidence.errors)}`);
+              evidence.profile = 'Toca do Morcego'; evidence.modalAccessible = true; evidence.syntheticBusinessData = false;
+              writeFileSync('/tmp/m63-production-profile-evidence.json', JSON.stringify(evidence, null, 2));
+              await context.close();
+            } finally { await browser.close(); }
+          })().catch(error => { console.error(error); process.exit(1); });
+          NODE
+      - name: Show diagnostics
+        if: failure()
+        run: cat /tmp/m63-profile-server.log || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: business-production-profile-evidence
+          path: /tmp/m63-production-profile-evidence.json
+          retention-days: 1
+          if-no-files-found: ignore
+      - name: Stop runtime
+        if: always()
+        run: kill "$(cat /tmp/m63-profile-server.pid)" 2>/dev/null || true
