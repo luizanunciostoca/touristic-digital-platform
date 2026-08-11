@@ -10,6 +10,7 @@ on:
       - "packages/business/**"
       - "packages/search/**"
       - "packages/geospatial/**"
+      - "packages/navigation/**"
       - "packages/assistant/**"
   push:
     branches:
@@ -21,6 +22,7 @@ on:
       - "packages/business/**"
       - "packages/search/**"
       - "packages/geospatial/**"
+      - "packages/navigation/**"
       - "packages/assistant/**"
 
 permissions:
@@ -78,8 +80,9 @@ jobs:
                   '@touristic/assistant': '/packages/assistant/dist/index.js',
                   '@touristic/business': '/packages/business/dist/index.js',
                   '@touristic/geospatial': '/packages/geospatial/dist/index.js',
+                  '@touristic/navigation': '/packages/navigation/dist/index.js',
                   '@touristic/search': '/packages/search/dist/index.js'
-                } })}<\/script></head><body><main id="fixture">M54</main></body></html>`);
+                } })}<\/script></head><body><main id="fixture">M57</main></body></html>`);
                 document.close();
               });
 
