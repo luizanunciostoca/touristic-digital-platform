@@ -208,11 +208,7 @@ export function acceptBusinessCommercialVerifiedPayment(
 ): BusinessCommercialActivation | null {
   const sessionId = safeText(expectedSessionId, 120);
   const resultSessionId = safeText(result.sessionId, 120);
-  if (
-    result.verified !== true ||
-    !sessionId ||
-    resultSessionId !== sessionId
-  ) {
+  if (result.verified !== true || !sessionId || resultSessionId !== sessionId) {
     return null;
   }
   const reference = safeText(result.reference, 160);
