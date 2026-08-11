@@ -17,7 +17,11 @@ function text(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
-function dispatch(view: Window, name: string, detail: Readonly<Record<string, unknown>>): void {
+function dispatch(
+  view: Window,
+  name: string,
+  detail: Readonly<Record<string, unknown>>,
+): void {
   view.dispatchEvent(new CustomEvent(name, { detail }));
 }
 
@@ -28,7 +32,9 @@ export class BusinessOnboardingRuntime {
     private readonly view: Window = window,
   ) {}
 
-  async beforeTransition(context: BusinessOnboardingGuardContext): Promise<boolean> {
+  async beforeTransition(
+    context: BusinessOnboardingGuardContext,
+  ): Promise<boolean> {
     if (context.direction === "previous") return true;
     const state = context.session.conversationDraft.context;
 
@@ -137,9 +143,13 @@ export class BusinessOnboardingRuntime {
     }
   }
 
-  async handleAction(action: BusinessOnboardingRuntimeAction): Promise<boolean> {
+  async handleAction(
+    action: BusinessOnboardingRuntimeAction,
+  ): Promise<boolean> {
     if (action === "location-confirm") {
-      const candidate = this.host.snapshot().session.conversationDraft.context.businessLocationCandidate;
+      const candidate =
+        this.host.snapshot().session.conversationDraft.context
+          .businessLocationCandidate;
       if (!candidate) return false;
       this.host.updateRuntimeContext({
         businessLocation: candidate,
@@ -180,7 +190,9 @@ export class BusinessOnboardingRuntime {
         "voice-discovery",
         snapshot.session.conversationDraft.context,
       );
-      const results = await this.runDiscovery(step.description.replace(/[“”"]/gu, ""));
+      const results = await this.runDiscovery(
+        step.description.replace(/[“”"]/gu, ""),
+      );
       this.host.updateRuntimeContext({ businessVoiceDiscoveryReady: true });
       dispatch(this.view, "businessVoiceDiscoveryRecognized", {
         simulated: true,
@@ -198,7 +210,8 @@ export class BusinessOnboardingRuntime {
       this.host.snapshot().session.conversationDraft.context.businessName,
     );
     if (!businessName) return false;
-    const candidate = await this.adapters.location.findExistingLocation(businessName);
+    const candidate =
+      await this.adapters.location.findExistingLocation(businessName);
     this.host.updateRuntimeContext({
       businessLocationCandidate: candidate,
       businessLocationConfirmed: false,

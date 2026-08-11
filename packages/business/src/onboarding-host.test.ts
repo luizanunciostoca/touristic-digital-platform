@@ -61,7 +61,9 @@ describe("BusinessOnboardingHostController", () => {
     expect(snapshot.session.businessDraft.categoryId).toBe("events");
     expect(snapshot.session.businessDraft.specialtyTags).toEqual(["Sunset"]);
     expect(snapshot.session.businessDraft.displayName).toBe("Toca do Morcego");
-    expect(snapshot.session.businessDraft.normalizedName).toBe("toca do morcego");
+    expect(snapshot.session.businessDraft.normalizedName).toBe(
+      "toca do morcego",
+    );
     expect(snapshot.session.selectedObjective).toBe("events");
   });
 
@@ -71,7 +73,9 @@ describe("BusinessOnboardingHostController", () => {
     host.updateStepInput("specialty", "Sunset");
     host.updateStepInput("category", "lodging");
 
-    expect(host.snapshot().session.conversationDraft.context.specialty).toBeUndefined();
+    expect(
+      host.snapshot().session.conversationDraft.context.specialty,
+    ).toBeUndefined();
     expect(host.snapshot().session.businessDraft.specialtyTags).toEqual([]);
   });
 

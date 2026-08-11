@@ -1,11 +1,20 @@
 :root {
   color-scheme: dark;
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
   background: #08111f;
   color: #f8fafc;
 }
 
-* { box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+}
 
 body {
   min-height: 100vh;
@@ -13,10 +22,14 @@ body {
   display: grid;
   place-items: center;
   padding: 24px;
-  background: radial-gradient(circle at top, rgba(56, 189, 248, 0.12), transparent 34%), #08111f;
+  background:
+    radial-gradient(circle at top, rgba(56, 189, 248, 0.12), transparent 34%),
+    #08111f;
 }
 
-.business-onboarding-surface { width: min(760px, 100%); }
+.business-onboarding-surface {
+  width: min(760px, 100%);
+}
 
 .business-onboarding-card {
   border: 1px solid rgba(148, 163, 184, 0.2);
@@ -28,7 +41,9 @@ body {
 
 .business-onboarding-header,
 .business-onboarding-body,
-.business-onboarding-actions { padding: 24px; }
+.business-onboarding-actions {
+  padding: 24px;
+}
 
 .business-onboarding-header {
   display: flex;
@@ -47,16 +62,27 @@ body {
   text-transform: uppercase;
 }
 
-.business-onboarding-progress { color: #7dd3fc; }
-.business-onboarding-eyebrow { color: #94a3b8; }
+.business-onboarding-progress {
+  color: #7dd3fc;
+}
+.business-onboarding-eyebrow {
+  color: #94a3b8;
+}
 
-h1 { margin: 0; font-size: clamp(1.55rem, 4vw, 2.35rem); }
+h1 {
+  margin: 0;
+  font-size: clamp(1.55rem, 4vw, 2.35rem);
+}
 
 #businessOnboardingDescription,
 #businessOnboardingStatus,
-.business-onboarding-response { color: #cbd5e1; }
+.business-onboarding-response {
+  color: #cbd5e1;
+}
 
-.business-onboarding-body { min-height: 220px; }
+.business-onboarding-body {
+  min-height: 220px;
+}
 
 .business-onboarding-options {
   display: grid;
@@ -90,9 +116,16 @@ h1 { margin: 0; font-size: clamp(1.55rem, 4vw, 2.35rem); }
 }
 
 .business-onboarding-input:focus-visible,
-button:focus-visible { outline: 3px solid rgba(56, 189, 248, 0.5); outline-offset: 2px; }
+button:focus-visible {
+  outline: 3px solid rgba(56, 189, 248, 0.5);
+  outline-offset: 2px;
+}
 
-.business-onboarding-items { display: grid; gap: 10px; padding-left: 22px; }
+.business-onboarding-items {
+  display: grid;
+  gap: 10px;
+  padding-left: 22px;
+}
 
 .business-onboarding-metrics {
   display: grid;
@@ -107,8 +140,15 @@ button:focus-visible { outline: 3px solid rgba(56, 189, 248, 0.5); outline-offse
   background: rgba(148, 163, 184, 0.06);
 }
 
-.business-onboarding-metrics dt { color: #94a3b8; font-size: 0.8rem; }
-.business-onboarding-metrics dd { margin: 6px 0 0; font-size: 1.35rem; font-weight: 800; }
+.business-onboarding-metrics dt {
+  color: #94a3b8;
+  font-size: 0.8rem;
+}
+.business-onboarding-metrics dd {
+  margin: 6px 0 0;
+  font-size: 1.35rem;
+  font-weight: 800;
+}
 
 .business-onboarding-actions {
   display: flex;
@@ -127,17 +167,41 @@ button {
   font-weight: 700;
 }
 
-button[data-action="next"] { margin-left: auto; background: #38bdf8; color: #082f49; }
-button[data-action="back"], button[data-action="skip"] { background: rgba(148, 163, 184, 0.12); color: #e2e8f0; }
-button[data-action="skip"] { min-width: 44px; padding: 0; font-size: 1.35rem; }
-button:disabled { cursor: wait; opacity: 0.55; }
+button[data-action="next"] {
+  margin-left: auto;
+  background: #38bdf8;
+  color: #082f49;
+}
+button[data-action="back"],
+button[data-action="skip"] {
+  background: rgba(148, 163, 184, 0.12);
+  color: #e2e8f0;
+}
+button[data-action="skip"] {
+  min-width: 44px;
+  padding: 0;
+  font-size: 1.35rem;
+}
+button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
 
 @media (max-width: 640px) {
-  body { align-items: end; padding: 0; }
-  .business-onboarding-card { border-radius: 24px 24px 0 0; }
+  body {
+    align-items: end;
+    padding: 0;
+  }
+  .business-onboarding-card {
+    border-radius: 24px 24px 0 0;
+  }
   .business-onboarding-header,
   .business-onboarding-body,
-  .business-onboarding-actions { padding: 20px; }
+  .business-onboarding-actions {
+    padding: 20px;
+  }
   .business-onboarding-options,
-  .business-onboarding-metrics { grid-template-columns: 1fr; }
+  .business-onboarding-metrics {
+    grid-template-columns: 1fr;
+  }
 }

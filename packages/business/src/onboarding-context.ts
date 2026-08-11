@@ -8,11 +8,7 @@ import {
 } from "./onboarding-steps.js";
 
 export type BusinessOnboardingEditableField =
-  | "category"
-  | "specialty"
-  | "businessName"
-  | "objective"
-  | "audience";
+  "category" | "specialty" | "businessName" | "objective" | "audience";
 
 const RUNTIME_CONTEXT_KEYS = new Set([
   "businessLocation",
@@ -28,11 +24,16 @@ const RUNTIME_CONTEXT_KEYS = new Set([
 
 function safeText(value: unknown, maxLength: number): string {
   if (typeof value !== "string") return "";
-  return value
-    .replace(/[<>\u0000-\u001f\u007f]/gu, " ")
-    .replace(/\s+/gu, " ")
-    .trim()
-    .slice(0, maxLength);
+  const sanitized = Array.from(value, (character) => {
+    const codePoint = character.codePointAt(0) ?? 0;
+    return codePoint <= 31 ||
+      codePoint === 127 ||
+      character === "<" ||
+      character === ">"
+      ? " "
+      : character;
+  }).join("");
+  return sanitized.replace(/\s+/gu, " ").trim().slice(0, maxLength);
 }
 
 function normalizeName(value: string): string {

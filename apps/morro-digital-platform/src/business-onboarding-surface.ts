@@ -83,22 +83,29 @@ export class BusinessOnboardingSurface {
     root.addEventListener("click", (event) => {
       const target = event.target;
       if (!(target instanceof HTMLElement) || this.busy) return;
-      const inputValue = target.closest<HTMLElement>("[data-input-value]")?.dataset.inputValue;
+      const inputValue =
+        target.closest<HTMLElement>("[data-input-value]")?.dataset.inputValue;
       if (inputValue !== undefined) {
         this.handleInput(inputValue);
         return;
       }
-      const runtimeAction = target.closest<HTMLElement>("[data-runtime-action]")?.dataset.runtimeAction;
+      const runtimeAction = target.closest<HTMLElement>("[data-runtime-action]")
+        ?.dataset.runtimeAction;
       if (runtimeAction) {
         void this.handleRuntimeAction(runtimeAction);
         return;
       }
-      const action = target.closest<HTMLElement>("[data-action]")?.dataset.action;
+      const action =
+        target.closest<HTMLElement>("[data-action]")?.dataset.action;
       if (action) void this.handleAction(action);
     });
     root.addEventListener("input", (event) => {
       const target = event.target;
-      if (!(target instanceof HTMLInputElement) || target.dataset.onboardingInput !== "true") return;
+      if (
+        !(target instanceof HTMLInputElement) ||
+        target.dataset.onboardingInput !== "true"
+      )
+        return;
       this.host.updateStepInput(this.host.snapshot().stepId, target.value);
     });
     container.append(root);
@@ -119,16 +126,20 @@ export class BusinessOnboardingSurface {
   }
 
   setStatus(message: string): void {
-    const status = this.root?.querySelector<HTMLElement>("#businessOnboardingStatus");
+    const status = this.root?.querySelector<HTMLElement>(
+      "#businessOnboardingStatus",
+    );
     if (status) status.textContent = message;
   }
 
   private setBusy(busy: boolean, label = ""): void {
     this.busy = busy;
     this.root?.setAttribute("aria-busy", String(busy));
-    this.root?.querySelectorAll<HTMLButtonElement>("button").forEach((button) => {
-      button.disabled = busy;
-    });
+    this.root
+      ?.querySelectorAll<HTMLButtonElement>("button")
+      .forEach((button) => {
+        button.disabled = busy;
+      });
     if (label) this.setStatus(label);
   }
 
@@ -144,7 +155,9 @@ export class BusinessOnboardingSurface {
     try {
       const completed = await this.onRuntimeAction(action);
       this.render();
-      this.setStatus(completed ? "Ação concluída." : "Não foi possível concluir esta ação.");
+      this.setStatus(
+        completed ? "Ação concluída." : "Não foi possível concluir esta ação.",
+      );
     } finally {
       this.setBusy(false);
     }
@@ -235,16 +248,38 @@ export class BusinessOnboardingSurface {
 
     if (snapshot.stepId === "ready") {
       if (context.businessLocationCandidate) {
-        this.appendRuntimeButton(actions, "location-confirm", "É este local", true);
+        this.appendRuntimeButton(
+          actions,
+          "location-confirm",
+          "É este local",
+          true,
+        );
       }
-      this.appendRuntimeButton(actions, "location-search-again", "Procurar novamente");
-      this.appendRuntimeButton(actions, "location-use-device", "Usar minha localização");
+      this.appendRuntimeButton(
+        actions,
+        "location-search-again",
+        "Procurar novamente",
+      );
+      this.appendRuntimeButton(
+        actions,
+        "location-use-device",
+        "Usar minha localização",
+      );
     } else if (snapshot.stepId === "voice-discovery") {
-      this.appendRuntimeButton(actions, "voice-simulate", "Simular busca por voz", true);
-    } else if (snapshot.stepId === "route" && context.businessTutorialRouteReady !== true) {
+      this.appendRuntimeButton(
+        actions,
+        "voice-simulate",
+        "Simular busca por voz",
+        true,
+      );
+    } else if (
+      snapshot.stepId === "route" &&
+      context.businessTutorialRouteReady !== true
+    ) {
       const note = this.document.createElement("p");
       note.className = "business-onboarding-runtime-note";
-      note.textContent = "A rota permanece bloqueada até existir um port de rota equivalente ao fluxo V1.";
+      note.textContent =
+        "A rota permanece bloqueada até existir um port de rota equivalente ao fluxo V1.";
       actions.append(note);
     }
 
@@ -254,10 +289,16 @@ export class BusinessOnboardingSurface {
   private renderOptions(
     container: HTMLElement,
     snapshot: BusinessOnboardingHostSnapshot,
-    options: readonly Readonly<{ value: string; label: string; icon?: string }>[],
+    options: readonly Readonly<{
+      value: string;
+      label: string;
+      icon?: string;
+    }>[],
     field: string,
   ): void {
-    const selected = String(snapshot.session.conversationDraft.context[field] ?? "");
+    const selected = String(
+      snapshot.session.conversationDraft.context[field] ?? "",
+    );
     const group = this.document.createElement("div");
     group.className = "business-onboarding-options";
     group.setAttribute("role", "group");
@@ -282,7 +323,12 @@ export class BusinessOnboardingSurface {
     const definition = resolveBusinessOnboardingStep(snapshot.stepId, context);
 
     if (definition.options && definition.field) {
-      this.renderOptions(container, snapshot, definition.options, definition.field);
+      this.renderOptions(
+        container,
+        snapshot,
+        definition.options,
+        definition.field,
+      );
     }
 
     if (definition.type === "text" && definition.field) {
@@ -340,13 +386,27 @@ export class BusinessOnboardingSurface {
       snapshot.stepId,
       snapshot.session.conversationDraft.context,
     );
-    const progress = this.root.querySelector<HTMLElement>("#businessOnboardingProgress");
-    const eyebrow = this.root.querySelector<HTMLElement>("#businessOnboardingEyebrow");
-    const title = this.root.querySelector<HTMLElement>("#businessOnboardingTitle");
-    const description = this.root.querySelector<HTMLElement>("#businessOnboardingDescription");
-    const content = this.root.querySelector<HTMLElement>("#businessOnboardingContent");
-    const back = this.root.querySelector<HTMLButtonElement>('[data-action="back"]');
-    const next = this.root.querySelector<HTMLButtonElement>('[data-action="next"]');
+    const progress = this.root.querySelector<HTMLElement>(
+      "#businessOnboardingProgress",
+    );
+    const eyebrow = this.root.querySelector<HTMLElement>(
+      "#businessOnboardingEyebrow",
+    );
+    const title = this.root.querySelector<HTMLElement>(
+      "#businessOnboardingTitle",
+    );
+    const description = this.root.querySelector<HTMLElement>(
+      "#businessOnboardingDescription",
+    );
+    const content = this.root.querySelector<HTMLElement>(
+      "#businessOnboardingContent",
+    );
+    const back = this.root.querySelector<HTMLButtonElement>(
+      '[data-action="back"]',
+    );
+    const next = this.root.querySelector<HTMLButtonElement>(
+      '[data-action="next"]',
+    );
 
     if (progress) progress.textContent = renderProgress(snapshot);
     if (eyebrow) eyebrow.textContent = definition.eyebrow;
@@ -354,7 +414,10 @@ export class BusinessOnboardingSurface {
     if (description) description.textContent = definition.description;
     if (content) this.renderContent(content, snapshot);
     if (back) back.hidden = !snapshot.canGoBack;
-    if (next) next.textContent = snapshot.canGoForward ? definition.primary ?? "Continuar" : definition.primary ?? "Concluir";
+    if (next)
+      next.textContent = snapshot.canGoForward
+        ? (definition.primary ?? "Continuar")
+        : (definition.primary ?? "Concluir");
     this.setStatus("");
   }
 
