@@ -1,0 +1,208 @@
+name: Business Onboarding Commercial Browser Contract
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/business-onboarding-commercial-browser-contract.yml"
+      - "apps/morro-digital-platform/src/business-onboarding-*.ts"
+      - "apps/morro-digital-platform/public/business-onboarding.*"
+      - "packages/business/src/onboarding-commercial*.ts"
+      - "packages/business/src/onboarding-context*.ts"
+      - "packages/business/package.json"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/business-onboarding-commercial-browser-contract.yml"
+      - "apps/morro-digital-platform/src/business-onboarding-*.ts"
+      - "apps/morro-digital-platform/public/business-onboarding.*"
+      - "packages/business/src/onboarding-commercial*.ts"
+      - "packages/business/src/onboarding-context*.ts"
+      - "packages/business/package.json"
+
+permissions:
+  contents: read
+
+jobs:
+  onboarding-commercial-browser:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install deterministic Chromium
+        run: |
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+      - name: Build workspace
+        run: pnpm -w build
+      - name: Start deterministic module origin
+        run: |
+          set -euo pipefail
+          PORT=4185
+          HOST=127.0.0.1
+          PORT="$PORT" HOST="$HOST" node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/m61-commercial-server.log 2>&1 &
+          echo $! >/tmp/m61-commercial-server.pid
+          for _ in $(seq 1 60); do
+            if curl --fail --silent "http://${HOST}:${PORT}/runtime-config.js" >/dev/null; then exit 0; fi
+            sleep 0.25
+          done
+          cat /tmp/m61-commercial-server.log
+          exit 1
+      - name: Validate Business-to-Payments handoff boundary
+        run: |
+          node <<'NODE'
+          const { writeFileSync } = require('node:fs');
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+
+          (async () => {
+            const origin = 'http://127.0.0.1:4185';
+            const browser = await chromium.launch({ headless: true });
+            const evidence = { errors: [], events: [] };
+            try {
+              const page = await browser.newPage();
+              page.on('pageerror', error => evidence.errors.push(error.message));
+              await page.exposeFunction('recordM61Event', event => evidence.events.push(event));
+              await page.goto(`${origin}/runtime-config.js`, { waitUntil: 'domcontentloaded' });
+              await page.evaluate(() => {
+                document.open();
+                document.write(`<!doctype html><html><head><meta charset="utf-8"><script type="importmap">${JSON.stringify({ imports: {
+                  '@touristic/business/onboarding': '/packages/business/dist/onboarding.js',
+                  '@touristic/business/onboarding-host': '/packages/business/dist/onboarding-host.js',
+                  '@touristic/business/onboarding-presentation': '/packages/business/dist/onboarding-presentation.js',
+                  '@touristic/business/onboarding-recommendation': '/packages/business/dist/onboarding-recommendation.js',
+                  '@touristic/business/onboarding-steps': '/packages/business/dist/onboarding-steps.js',
+                  '@touristic/business/onboarding-workspace': '/packages/business/dist/onboarding-workspace.js',
+                  '@touristic/business/onboarding-commercial': '/packages/business/dist/onboarding-commercial.js'
+                } })}<\/script></head><body><main id="root"></main></body></html>`);
+                document.close();
+              });
+
+              const result = await page.evaluate(async () => {
+                for (const name of [
+                  'businessTutorialLeadReady',
+                  'businessCheckoutRequested',
+                  'businessCommercialCheckoutPrepared',
+                  'businessCommercialActivationReady'
+                ]) {
+                  window.addEventListener(name, event => window.recordM61Event({ name, detail: event.detail }));
+                }
+
+                const onboarding = await import('/packages/business/dist/onboarding.js');
+                const hostModule = await import('/packages/business/dist/onboarding-host.js');
+                const runtimeModule = await import('/apps/morro-digital-platform/dist/business-onboarding-runtime.js');
+                const surfaceModule = await import('/apps/morro-digital-platform/dist/business-onboarding-surface.js');
+
+                const base = onboarding.createBusinessOnboardingSession({
+                  context: {
+                    businessName: 'Toca do Morcego',
+                    category: 'events',
+                    specialty: 'Sunset',
+                    objective: 'events'
+                  }
+                }, new Date('2026-08-11T12:00:00.000Z'));
+                const finishSession = onboarding.transitionBusinessOnboarding(base, 'finish', { reason: 'm61-commercial-contract' });
+                const host = new hostModule.BusinessOnboardingHostController({ session: finishSession });
+                const adapters = {
+                  discovery: { searchBusiness: async () => [] },
+                  location: { findExistingLocation: async () => null, requestDeviceLocation: async () => null },
+                  assistant: { ask: async () => ({}) },
+                  route: { showRoute: async () => ({ success: false, code: 'NOT_USED', distanceMeters: 0, durationSeconds: 0, route: null, tutorial: true, excludeFromBusinessMetrics: true }) }
+                };
+                const runtime = new runtimeModule.BusinessOnboardingRuntime(host, adapters, window);
+                const surface = new surfaceModule.BusinessOnboardingSurface({
+                  document,
+                  host,
+                  onRuntimeAction: action => runtime.handleAction(action)
+                });
+                surface.mount(document.querySelector('#root'));
+
+                const form = document.querySelector('[data-commercial-conversion="true"]');
+                if (!form) throw new Error('Commercial form was not rendered');
+                form.querySelector('[name="name"]').value = '<Luiz>';
+                form.querySelector('[name="email"]').value = 'luiz@example.com';
+                form.querySelector('[name="phone"]').value = '75999999999';
+                form.querySelector('[name="document"]').value = '12345678900';
+                form.querySelector('[name="terms"]').checked = true;
+                form.querySelector('[name="privacy"]').checked = true;
+                form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+                await new Promise(resolve => setTimeout(resolve, 50));
+
+                const afterPrepare = host.snapshot().session;
+                const handoff = afterPrepare.conversationDraft.context.businessCheckoutHandoff;
+                const commercialDraft = afterPrepare.conversationDraft.context.businessCommercialDraft;
+                const wrongSessionAccepted = await runtime.verifyPayment({
+                  verified: true,
+                  sessionId: 'business-onboarding:wrong-session',
+                  reference: 'pay-wrong'
+                });
+                const unverifiedAccepted = await runtime.verifyPayment({
+                  verified: false,
+                  sessionId: handoff?.sessionId,
+                  reference: 'pay-unverified'
+                });
+                const verifiedAccepted = await runtime.verifyPayment({
+                  verified: true,
+                  sessionId: handoff?.sessionId,
+                  reference: '<pay-1>'
+                });
+                const confirmation = host.snapshot().session.conversationDraft.context.businessPaymentConfirmation;
+                return {
+                  formText: form.textContent || '',
+                  handoff,
+                  commercialDraft,
+                  wrongSessionAccepted,
+                  unverifiedAccepted,
+                  verifiedAccepted,
+                  confirmation
+                };
+              });
+
+              if (result.commercialDraft?.selectedPlanId !== 'performance') throw new Error(`Plan recommendation diverged: ${JSON.stringify(result.commercialDraft)}`);
+              if (result.commercialDraft?.contractor?.name !== 'Luiz') throw new Error(`Contractor sanitization diverged: ${JSON.stringify(result.commercialDraft)}`);
+              if (result.commercialDraft?.tutorial !== true || result.commercialDraft?.excludeFromBusinessMetrics !== true) throw new Error('Commercial draft tutorial boundary diverged');
+              if (result.handoff?.requiresPaymentProvider !== true || result.handoff?.tutorial !== false) throw new Error(`Payments handoff boundary diverged: ${JSON.stringify(result.handoff)}`);
+              if (!String(result.handoff?.sessionId || '').startsWith('business-onboarding:')) throw new Error(`Correlation id missing: ${JSON.stringify(result.handoff)}`);
+              if ('paymentStatus' in (result.handoff || {}) || 'verified' in (result.handoff || {})) throw new Error('Business handoff claimed payment confirmation');
+              if (!result.formText.includes('Nenhum pagamento é executado nesta tela')) throw new Error('Payment ownership disclosure missing');
+              if (result.wrongSessionAccepted !== false || result.unverifiedAccepted !== false) throw new Error('Invalid payment verification was accepted');
+              if (result.verifiedAccepted !== true || result.confirmation?.reference !== 'pay-1') throw new Error(`Verified payment boundary diverged: ${JSON.stringify(result.confirmation)}`);
+
+              const lead = evidence.events.find(event => event.name === 'businessTutorialLeadReady');
+              if (!lead || lead.detail?.source !== 'business-onboarding-v2-m61' || lead.detail?.excludeFromBusinessMetrics !== true) throw new Error(`Lead handoff diverged: ${JSON.stringify(lead)}`);
+              const checkout = evidence.events.find(event => event.name === 'businessCheckoutRequested');
+              if (!checkout || checkout.detail?.requiresPaymentProvider !== true || checkout.detail?.tutorial !== false) throw new Error(`Checkout request missing: ${JSON.stringify(checkout)}`);
+              const prepared = evidence.events.find(event => event.name === 'businessCommercialCheckoutPrepared');
+              if (!prepared || prepared.detail?.requiresPaymentProvider !== true) throw new Error(`Prepared event missing: ${JSON.stringify(prepared)}`);
+              const activationEvents = evidence.events.filter(event => event.name === 'businessCommercialActivationReady');
+              if (activationEvents.length !== 1 || activationEvents[0].detail?.verifiedByPaymentsBoundary !== true || activationEvents[0].detail?.reference !== 'pay-1') throw new Error(`Activation boundary diverged: ${JSON.stringify(activationEvents)}`);
+              if (evidence.errors.length) throw new Error(`Browser errors: ${JSON.stringify(evidence.errors)}`);
+
+              Object.assign(evidence, { result, status: 'PASS' });
+              writeFileSync('/tmp/m61-commercial-evidence.json', JSON.stringify(evidence, null, 2));
+            } finally {
+              await browser.close();
+            }
+          })().catch(error => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+      - name: Show diagnostics
+        if: failure()
+        run: cat /tmp/m61-commercial-server.log || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: business-onboarding-commercial-browser-evidence
+          path: /tmp/m61-commercial-evidence.json
+          retention-days: 1
+          if-no-files-found: ignore
+      - name: Stop runtime
+        if: always()
+        run: kill "$(cat /tmp/m61-commercial-server.pid)" 2>/dev/null || true
