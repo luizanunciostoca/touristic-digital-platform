@@ -222,10 +222,7 @@ function asRoutingFetch(fetchImpl: typeof globalThis.fetch): RoutingFetchLike {
   };
 }
 
-function numericProperty(
-  value: unknown,
-  key: "distance" | "duration",
-): number {
+function numericProperty(value: unknown, key: "distance" | "duration"): number {
   if (!value || typeof value !== "object") return 0;
   const candidate = (value as Record<string, unknown>)[key];
   return typeof candidate === "number" && Number.isFinite(candidate)
@@ -280,11 +277,15 @@ function createRouteAdapter(
     fetchImpl: asRoutingFetch(fetchImpl),
   });
   const fallbackProvider = options.mapboxAccessToken
-    ? createMapboxDirectionsRoutingProvider({ token: options.mapboxAccessToken })
+    ? createMapboxDirectionsRoutingProvider({
+        token: options.mapboxAccessToken,
+      })
     : null;
 
   return Object.freeze({
-    async showRoute(request: BusinessRouteRequest): Promise<BusinessRouteResult> {
+    async showRoute(
+      request: BusinessRouteRequest,
+    ): Promise<BusinessRouteResult> {
       try {
         const route = await requestRoute({
           start: [request.origin.longitude, request.origin.latitude],

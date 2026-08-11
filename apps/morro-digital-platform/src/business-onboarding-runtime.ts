@@ -54,7 +54,9 @@ function routeCoordinate(value: unknown): BusinessRouteCoordinate | null {
   return Object.freeze({ latitude, longitude });
 }
 
-function tutorialOrigin(destination: BusinessRouteCoordinate): BusinessRouteCoordinate {
+function tutorialOrigin(
+  destination: BusinessRouteCoordinate,
+): BusinessRouteCoordinate {
   return Object.freeze({
     latitude: Math.max(-90, Math.min(90, destination.latitude - 0.0016)),
     longitude: Math.max(-180, Math.min(180, destination.longitude + 0.0017)),
