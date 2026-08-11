@@ -71,14 +71,20 @@ M56 does not introduce credentials, signed session cookies, CSRF secrets, tenant
 
 ## Validation
 
-Targeted Business package validation on the final authored implementation before the final repository gate includes:
+Targeted Business package validation on the final authored implementation includes:
 
 - formatting of all M56-authored files;
 - `@touristic/business` lint;
 - `@touristic/business` typecheck;
-- `@touristic/business` tests.
+- `@touristic/business` tests;
+- `@touristic/morro-digital-platform` lint;
+- `@touristic/morro-digital-platform` typecheck.
 
-The final merge gate must still pass on one permanent head:
+The permanent browser and integration regressions were also revalidated after the M56 binding work: Business Onboarding Browser, Business Onboarding Adapter, Business Auth Integration, Business Dashboard Browser and Navigation Accessibility all passed together before the final documentation-only checkpoint.
+
+The migration matrix is now recorded conservatively at `11 PASS / 4 PARTIAL / 4 GAP / 1 N/A`. The two promoted contracts are the tutorial/presentation contract and the Business onboarding visual surface. Business onboarding orchestration remains `PARTIAL` specifically because route execution still lacks an equivalent explicit port.
+
+The final merge gate must pass on one permanent head:
 
 - official Quality Gate;
 - Business Onboarding Browser Contract;
@@ -95,3 +101,5 @@ M56 does not absorb Payments/commercial conversion, invent analytics endpoints, 
 ## Exit decision
 
 Migration statuses may only be promoted where the final executable evidence proves the observable V1 contract. Any remaining route/commercial/analytics/runtime breadth stays PARTIAL or GAP for later milestones.
+
+The next Business milestone is M57: freeze and port the smallest equivalent route capability required by the onboarding `route` step, preserving fail-closed behavior when routing is unavailable and keeping navigation/geospatial ownership outside Business.
