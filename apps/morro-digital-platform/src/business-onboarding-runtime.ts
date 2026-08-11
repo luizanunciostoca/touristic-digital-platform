@@ -1,6 +1,8 @@
-import type {
-  BusinessRouteCoordinate,
-  BusinessRouteResult,
+import {
+  buildBusinessTutorialRecommendationCandidate,
+  evaluateBusinessTutorialRecommendation,
+  type BusinessRouteCoordinate,
+  type BusinessRouteResult,
 } from "@touristic/business/onboarding";
 import type {
   BusinessOnboardingGuardContext,
@@ -136,12 +138,37 @@ export class BusinessOnboardingRuntime {
         query,
         snapshot.session.selectedLanguage,
       );
-      this.host.updateRuntimeContext({ businessAssistantResult: response });
+      const candidate = buildBusinessTutorialRecommendationCandidate(context);
+      const recommendation = evaluateBusinessTutorialRecommendation(
+        query,
+        candidate,
+      );
+      this.host.updateRuntimeContext({
+        businessAssistantResult: response,
+        tutorialBusinessCandidate: candidate,
+        businessRecommendationResult: recommendation,
+      });
       dispatch(this.view, "businessOnboardingAssistantResult", {
         query,
         response,
         tutorial: true,
       });
+      dispatch(this.view, "businessTutorialRecommendationEvaluated", recommendation);
+      if (recommendation.rendered) {
+        dispatch(this.view, "businessConversationPresentation", {
+          source: "business-recommendation-sandbox",
+          kind: "recommendation",
+          title: candidate.name,
+          message: `Candidata compatível com a intenção: ${candidate.categoryLabel} · ${candidate.specialty}${candidate.locationIsExample ? " · localização usada apenas como exemplo" : ""}.`,
+          actions: [
+            { action: "place-profile", label: candidate.cta, primary: true },
+            { action: "place-info", label: "Ver informações" },
+          ],
+          tutorial: true,
+          excludeFromBusinessMetrics: true,
+        });
+        dispatch(this.view, "businessTutorialRecommendationRendered", recommendation);
+      }
       return;
     }
 
