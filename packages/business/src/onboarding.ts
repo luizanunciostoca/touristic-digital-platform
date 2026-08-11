@@ -57,6 +57,12 @@ export interface BusinessOnboardingChapter {
   readonly steps: readonly BusinessOnboardingStepId[];
 }
 
+function onboardingSteps<const T extends readonly BusinessOnboardingStepId[]>(
+  steps: T,
+): readonly BusinessOnboardingStepId[] {
+  return Object.freeze([...steps]);
+}
+
 export const BUSINESS_ONBOARDING_CHAPTERS: readonly BusinessOnboardingChapter[] =
   Object.freeze([
     Object.freeze({
@@ -64,7 +70,7 @@ export const BUSINESS_ONBOARDING_CHAPTERS: readonly BusinessOnboardingChapter[] 
       title: "Seu negócio",
       shortTitle: "Negócio",
       description: "Categoria, identidade, objetivo e público.",
-      steps: Object.freeze([
+      steps: onboardingSteps([
         "welcome",
         "category",
         "specialty",
@@ -79,7 +85,7 @@ export const BUSINESS_ONBOARDING_CHAPTERS: readonly BusinessOnboardingChapter[] 
       title: "Como o turista encontra você",
       shortTitle: "Descoberta",
       description: "Confiança, menu, texto, nome e voz.",
-      steps: Object.freeze([
+      steps: onboardingSteps([
         "arrival",
         "trust-cycle",
         "menu-discovery",
@@ -93,7 +99,7 @@ export const BUSINESS_ONBOARDING_CHAPTERS: readonly BusinessOnboardingChapter[] 
       title: "Inteligência e alcance",
       shortTitle: "Inteligência",
       description: "Idiomas, disponibilidade e recomendação contextual.",
-      steps: Object.freeze([
+      steps: onboardingSteps([
         "multilingual",
         "always-on",
         "assistant-query",
@@ -106,7 +112,7 @@ export const BUSINESS_ONBOARDING_CHAPTERS: readonly BusinessOnboardingChapter[] 
       title: "Experiência que gera ação",
       shortTitle: "Experiência",
       description: "Mapa, perfil, rota, confiança e promoções.",
-      steps: Object.freeze([
+      steps: onboardingSteps([
         "map",
         "profile",
         "route",
@@ -120,7 +126,7 @@ export const BUSINESS_ONBOARDING_CHAPTERS: readonly BusinessOnboardingChapter[] 
       title: "Gestão e crescimento",
       shortTitle: "Crescimento",
       description: "Métricas, painel, ecossistema e conclusão.",
-      steps: Object.freeze([
+      steps: onboardingSteps([
         "analytics",
         "partner-panel",
         "ecosystem",
@@ -194,11 +200,16 @@ export interface BusinessOnboardingPorts {
 
 function safeText(value: unknown, maxLength = 240): string {
   if (typeof value !== "string") return "";
-  return value
-    .replace(/[\u0000-\u001F\u007F<>]/gu, " ")
-    .replace(/\s+/gu, " ")
-    .trim()
-    .slice(0, maxLength);
+  const sanitized = Array.from(value, (character) => {
+    const codePoint = character.codePointAt(0) ?? 0;
+    return codePoint <= 31 ||
+      codePoint === 127 ||
+      character === "<" ||
+      character === ">"
+      ? " "
+      : character;
+  }).join("");
+  return sanitized.replace(/\s+/gu, " ").trim().slice(0, maxLength);
 }
 
 function normalizeName(value: unknown): string {
