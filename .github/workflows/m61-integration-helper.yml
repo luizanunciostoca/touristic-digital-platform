@@ -1,0 +1,89 @@
+name: M61 integration helper
+on:
+  push:
+    branches: [feat/business-m61-commercial-conversion-handoff]
+    paths: [.github/workflows/m61-integration-helper.yml]
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/business-m61-commercial-conversion-handoff
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Apply M61 runtime and surface integration
+        run: |
+          python <<'PY'
+          from pathlib import Path
+
+          runtime = Path('apps/morro-digital-platform/src/business-onboarding-runtime.ts')
+          text = runtime.read_text()
+          text = text.replace(
+            '  | "workspace-open-dashboard"\n  | `workspace-promotion-save:${string}`;',
+            '  | "workspace-open-dashboard"\n  | `workspace-promotion-save:${string}`\n  | `commercial-prepare-checkout:${string}`;'
+          )
+          marker = '''    if (action.startsWith("workspace-promotion-save:")) {\n'''
+          insertion = '''    if (action.startsWith("commercial-prepare-checkout:")) {\n      let input: Record<string, unknown>;\n      try {\n        input = JSON.parse(\n          decodeURIComponent(action.slice("commercial-prepare-checkout:".length)),\n        ) as Record<string, unknown>;\n      } catch {\n        return false;\n      }\n      const snapshot = this.host.snapshot();\n      const context = snapshot.session.conversationDraft.context;\n      const { buildBusinessCheckoutHandoff, buildBusinessCommercialDraft } =\n        await import("@touristic/business/onboarding-commercial");\n      const contractor = isRecord(input.contractor) ? input.contractor : {};\n      const commercialDraft = buildBusinessCommercialDraft({\n        selectedPlanId: input.selectedPlanId,\n        objective: context.objective,\n        contractor,\n        acceptTerms: input.acceptTerms,\n        acceptPrivacy: input.acceptPrivacy,\n        marketingConsent: input.marketingConsent,\n      });\n      if (!commercialDraft) return false;\n      const handoff = buildBusinessCheckoutHandoff({\n        sessionId: `business-onboarding:${snapshot.session.createdAt}`,\n        commercialDraft,\n        businessDraft: snapshot.session.businessDraft,\n        returnUrl: this.view.location.href,\n      });\n      if (!handoff) return false;\n      this.host.updateRuntimeContext({\n        businessCommercialDraft: commercialDraft,\n        businessCheckoutHandoff: handoff,\n      });\n      dispatch(this.view, "businessTutorialLeadReady", {\n        businessName: text(context.businessName),\n        objective: text(context.objective),\n        source: "business-onboarding-v2-m61",\n        tutorial: true,\n        excludeFromBusinessMetrics: true,\n      });\n      dispatch(this.view, "businessCheckoutRequested", handoff);\n      dispatch(this.view, "businessCommercialCheckoutPrepared", {\n        planId: handoff.planId,\n        requiresPaymentProvider: true,\n        tutorial: false,\n      });\n      return true;\n    }\n\n'''
+          if marker not in text:
+            raise SystemExit('runtime insertion marker missing')
+          text = text.replace(marker, insertion + marker, 1)
+
+          method_marker = '''  private async verifyRoute(\n'''
+          method = '''  async verifyPayment(detail: Readonly<Record<string, unknown>>): Promise<boolean> {\n    const snapshot = this.host.snapshot();\n    const { verifyBusinessPaymentForSession } =\n      await import("@touristic/business/onboarding-commercial");\n    const confirmation = verifyBusinessPaymentForSession(\n      `business-onboarding:${snapshot.session.createdAt}`,\n      detail,\n    );\n    if (!confirmation) return false;\n    this.host.updateRuntimeContext({ businessPaymentConfirmation: confirmation });\n    dispatch(this.view, "businessCommercialActivationReady", {\n      reference: confirmation.reference,\n      verifiedByPaymentsBoundary: true,\n      tutorial: false,\n    });\n    return true;\n  }\n\n'''
+          if method_marker not in text:
+            raise SystemExit('runtime method marker missing')
+          text = text.replace(method_marker, method + method_marker, 1)
+          runtime.write_text(text)
+
+          surface = Path('apps/morro-digital-platform/src/business-onboarding-surface.ts')
+          text = surface.read_text()
+          submit_marker = '''      if (\n        !(form instanceof HTMLFormElement) ||\n        form.dataset.workspacePromotion !== "true"\n      )\n        return;\n      event.preventDefault();\n      const data = new FormData(form);\n      const payload = {\n        title: data.get("title"),\n        description: data.get("description"),\n        cta: data.get("cta"),\n        validUntil: data.get("validUntil"),\n      };\n      void this.handleRuntimeAction(\n        `workspace-promotion-save:${encodeURIComponent(JSON.stringify(payload))}`,\n      );\n'''
+          submit_replacement = '''      if (!(form instanceof HTMLFormElement)) return;\n      if (form.dataset.workspacePromotion === "true") {\n        event.preventDefault();\n        const data = new FormData(form);\n        const payload = {\n          title: data.get("title"),\n          description: data.get("description"),\n          cta: data.get("cta"),\n          validUntil: data.get("validUntil"),\n        };\n        void this.handleRuntimeAction(\n          `workspace-promotion-save:${encodeURIComponent(JSON.stringify(payload))}`,\n        );\n        return;\n      }\n      if (form.dataset.commercialConversion === "true") {\n        event.preventDefault();\n        const data = new FormData(form);\n        const payload = {\n          selectedPlanId: data.get("planId"),\n          contractor: {\n            name: data.get("name"),\n            email: data.get("email"),\n            phone: data.get("phone"),\n            document: data.get("document"),\n          },\n          acceptTerms: data.get("terms") === "on",\n          acceptPrivacy: data.get("privacy") === "on",\n          marketingConsent: data.get("marketing") === "on",\n        };\n        void this.handleRuntimeAction(\n          `commercial-prepare-checkout:${encodeURIComponent(JSON.stringify(payload))}`,\n        );\n      }\n'''
+          if submit_marker not in text:
+            raise SystemExit('surface submit marker missing')
+          text = text.replace(submit_marker, submit_replacement, 1)
+
+          form_marker = '''  private renderRuntimeActions(\n'''
+          commercial_form = '''  private renderCommercialForm(\n    container: HTMLElement,\n    snapshot: BusinessOnboardingHostSnapshot,\n  ): void {\n    const context = snapshot.session.conversationDraft.context;\n    const existing = objectValue(context.businessCheckoutHandoff);\n    if (existing) {\n      const notice = this.document.createElement("p");\n      notice.className = "business-onboarding-runtime-note";\n      notice.textContent =\n        "Cadastro comercial preparado. O pagamento só poderá ser confirmado pelo serviço seguro de Payments.";\n      container.append(notice);\n      return;\n    }\n    const objective = stringValue(context.objective);\n    const recommended =\n      objective === "events" ? "performance" : objective === "brand" ? "essential" : "growth";\n    const form = this.document.createElement("form");\n    form.dataset.commercialConversion = "true";\n    form.className = "business-onboarding-commercial-form";\n    form.innerHTML = `<fieldset><legend>Plano</legend><label><input type="radio" name="planId" value="essential" ${recommended === "essential" ? "checked" : ""}> Essencial</label><label><input type="radio" name="planId" value="growth" ${recommended === "growth" ? "checked" : ""}> Crescimento</label><label><input type="radio" name="planId" value="performance" ${recommended === "performance" ? "checked" : ""}> Performance</label></fieldset><label>Nome completo<input name="name" autocomplete="name" maxlength="120" required></label><label>E-mail<input name="email" type="email" autocomplete="email" maxlength="160" required></label><label>Telefone/WhatsApp<input name="phone" autocomplete="tel" maxlength="80" required></label><label>CPF ou CNPJ<input name="document" maxlength="80" required></label><label><input type="checkbox" name="terms" required> Li e aceito os Termos de Parceria.</label><label><input type="checkbox" name="privacy" required> Li e aceito a Política de Privacidade.</label><label><input type="checkbox" name="marketing"> Autorizo comunicações comerciais (opcional).</label><p class="business-onboarding-runtime-note">Nenhum pagamento é executado nesta tela. Ao continuar, o Business prepara apenas um handoff para o serviço de Payments.</p><button type="submit" class="business-onboarding-runtime-action is-primary">Preparar pagamento seguro</button>`;\n    container.append(form);\n  }\n\n'''
+          if form_marker not in text:
+            raise SystemExit('surface form marker missing')
+          text = text.replace(form_marker, commercial_form + form_marker, 1)
+          finish_marker = '''    } else if (snapshot.stepId === "route") {\n'''
+          finish_insert = '''    } else if (snapshot.stepId === "finish") {\n      this.renderCommercialForm(container, snapshot);\n'''
+          if finish_marker not in text:
+            raise SystemExit('surface finish marker missing')
+          text = text.replace(finish_marker, finish_insert + finish_marker, 1)
+          surface.write_text(text)
+
+          entry = Path('apps/morro-digital-platform/src/business-onboarding-entry.ts')
+          text = entry.read_text()
+          old = '''  runtime = new BusinessOnboardingRuntime(host, adapters, window);\n\n  mountBusinessOnboardingSurface({\n'''
+          new = '''  runtime = new BusinessOnboardingRuntime(host, adapters, window);\n  window.addEventListener("businessPaymentVerified", (event) => {\n    if (!(event instanceof CustomEvent) || !runtime) return;\n    const detail =\n      event.detail && typeof event.detail === "object"\n        ? (event.detail as Record<string, unknown>)\n        : {};\n    void runtime.verifyPayment(detail);\n  });\n\n  mountBusinessOnboardingSurface({\n'''
+          if old not in text:
+            raise SystemExit('entry marker missing')
+          entry.write_text(text.replace(old, new, 1))
+
+          html = Path('apps/morro-digital-platform/public/business-onboarding.html')
+          text = html.read_text()
+          anchor = '"@touristic/business/onboarding-workspace": "/packages/business/dist/onboarding-workspace.js",'
+          replacement = anchor + '\n          "@touristic/business/onboarding-commercial": "/packages/business/dist/onboarding-commercial.js",'
+          if anchor not in text:
+            raise SystemExit('html import map marker missing')
+          html.write_text(text.replace(anchor, replacement, 1))
+          PY
+      - run: pnpm exec prettier --write packages/business/src/onboarding-commercial.ts packages/business/src/onboarding-commercial.test.ts packages/business/src/onboarding-context.ts packages/business/package.json apps/morro-digital-platform/src/business-onboarding-runtime.ts apps/morro-digital-platform/src/business-onboarding-surface.ts apps/morro-digital-platform/src/business-onboarding-entry.ts apps/morro-digital-platform/public/business-onboarding.html
+      - run: pnpm --filter @touristic/business lint && pnpm --filter @touristic/business typecheck && pnpm --filter @touristic/business test && pnpm --filter @touristic/morro-digital-platform typecheck && pnpm --filter @touristic/morro-digital-platform test && pnpm -w build
+      - name: Commit validated patch
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add packages/business apps/morro-digital-platform
+          git commit -m "feat(business): integrate M61 commercial handoff" || exit 0
+          git push
