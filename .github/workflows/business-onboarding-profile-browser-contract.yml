@@ -1,0 +1,204 @@
+name: Business Onboarding Profile Browser Contract
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/business-onboarding-profile-browser-contract.yml"
+      - "apps/morro-digital-platform/src/business-onboarding-*.ts"
+      - "apps/morro-digital-platform/public/business-onboarding.*"
+      - "packages/business/src/onboarding-profile*.ts"
+      - "packages/business/package.json"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/business-onboarding-profile-browser-contract.yml"
+      - "apps/morro-digital-platform/src/business-onboarding-*.ts"
+      - "apps/morro-digital-platform/public/business-onboarding.*"
+      - "packages/business/src/onboarding-profile*.ts"
+      - "packages/business/package.json"
+
+permissions:
+  contents: read
+
+jobs:
+  onboarding-profile-browser:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install deterministic Chromium
+        run: |
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+      - name: Build workspace
+        run: pnpm -w build
+      - name: Start deterministic module origin
+        run: |
+          set -euo pipefail
+          PORT=4183
+          HOST=127.0.0.1
+          PORT="$PORT" HOST="$HOST" node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/m59-profile-server.log 2>&1 &
+          echo $! >/tmp/m59-profile-server.pid
+          for _ in $(seq 1 60); do
+            if curl --fail --silent "http://${HOST}:${PORT}/runtime-config.js" >/dev/null; then exit 0; fi
+            sleep 0.25
+          done
+          cat /tmp/m59-profile-server.log
+          exit 1
+      - name: Validate tutorial profile runtime and actions
+        run: |
+          node <<'NODE'
+          const { writeFileSync } = require('node:fs');
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+
+          (async () => {
+            const origin = 'http://127.0.0.1:4183';
+            const browser = await chromium.launch({ headless: true });
+            const evidence = { errors: [], events: [] };
+            try {
+              const page = await browser.newPage();
+              page.on('pageerror', error => evidence.errors.push(error.message));
+              await page.exposeFunction('recordM59ProfileEvent', event => evidence.events.push(event));
+              await page.goto(`${origin}/runtime-config.js`, { waitUntil: 'domcontentloaded' });
+              await page.evaluate(() => {
+                document.open();
+                document.write(`<!doctype html><html><head><meta charset="utf-8"><script type="importmap">${JSON.stringify({ imports: {
+                  '@touristic/assistant': '/packages/assistant/dist/index.js',
+                  '@touristic/business': '/packages/business/dist/index.js',
+                  '@touristic/business/onboarding': '/packages/business/dist/onboarding.js',
+                  '@touristic/business/onboarding-host': '/packages/business/dist/onboarding-host.js',
+                  '@touristic/business/onboarding-presentation': '/packages/business/dist/onboarding-presentation.js',
+                  '@touristic/business/onboarding-recommendation': '/packages/business/dist/onboarding-recommendation.js',
+                  '@touristic/business/onboarding-profile': '/packages/business/dist/onboarding-profile.js',
+                  '@touristic/business/onboarding-steps': '/packages/business/dist/onboarding-steps.js',
+                  '@touristic/geospatial': '/packages/geospatial/dist/index.js',
+                  '@touristic/navigation': '/packages/navigation/dist/index.js',
+                  '@touristic/search': '/packages/search/dist/index.js'
+                } })}<\/script></head><body><main id="root"></main></body></html>`);
+                document.close();
+              });
+
+              const result = await page.evaluate(async () => {
+                for (const name of [
+                  'businessOnboardingProfileOpened',
+                  'businessTutorialProfileMapAction',
+                  'businessTutorialProfilePrimaryAction',
+                  'businessTutorialProfilePromotionAction'
+                ]) {
+                  window.addEventListener(name, event => window.recordM59ProfileEvent({ name, detail: event.detail }));
+                }
+
+                const onboarding = await import('/packages/business/dist/onboarding.js');
+                const hostModule = await import('/packages/business/dist/onboarding-host.js');
+                const runtimeModule = await import('/apps/morro-digital-platform/dist/business-onboarding-runtime.js');
+                const surfaceModule = await import('/apps/morro-digital-platform/dist/business-onboarding-surface.js');
+
+                const base = onboarding.createBusinessOnboardingSession({
+                  context: {
+                    businessName: '<Toca do Morcego>',
+                    category: 'events',
+                    specialty: 'Sunset',
+                    businessLocation: {
+                      matchedName: 'Toca do Morcego',
+                      address: 'Morro de São Paulo',
+                      isExample: false
+                    },
+                    businessLocationConfirmed: true,
+                    tutorialBusinessCandidate: {
+                      id: 'tutorial-toca',
+                      cta: 'Ver evento'
+                    },
+                    businessDemoPromotion: {
+                      id: 'promo-demo',
+                      title: 'Sunset especial',
+                      description: 'Experiência demonstrativa',
+                      cta: 'Ver oferta',
+                      validUntil: '2026-12-31'
+                    }
+                  }
+                });
+                const session = onboarding.transitionBusinessOnboarding(base, 'profile', { reason: 'm59-browser-contract' });
+                const host = new hostModule.BusinessOnboardingHostController({ session });
+                const adapters = {
+                  discovery: { searchBusiness: async () => [] },
+                  location: { findExistingLocation: async () => null, requestDeviceLocation: async () => null },
+                  assistant: { ask: async () => ({}) },
+                  route: { showRoute: async () => ({ success: false, code: 'NOT_USED', excludeFromBusinessMetrics: true }) }
+                };
+                const runtime = new runtimeModule.BusinessOnboardingRuntime(host, adapters, window);
+                const surface = new surfaceModule.BusinessOnboardingSurface({
+                  document,
+                  host,
+                  onStepEnter: snapshot => runtime.onStepEnter(snapshot),
+                  onRuntimeAction: action => runtime.handleAction(action)
+                });
+                surface.mount(document.querySelector('#root'));
+                await new Promise(resolve => setTimeout(resolve, 50));
+
+                const profile = host.snapshot().session.conversationDraft.context.tutorialBusinessProfile;
+                const preview = document.querySelector('.business-onboarding-profile-preview');
+                const title = preview?.querySelector('h2')?.textContent;
+                const content = preview?.textContent || '';
+                const buttons = [...document.querySelectorAll('[data-runtime-action]')].map(button => ({
+                  action: button.getAttribute('data-runtime-action'),
+                  label: button.textContent
+                }));
+
+                document.querySelector('[data-runtime-action="profile-map"]')?.click();
+                await new Promise(resolve => setTimeout(resolve, 10));
+                document.querySelector('[data-runtime-action="profile-primary"]')?.click();
+                await new Promise(resolve => setTimeout(resolve, 10));
+                document.querySelector('[data-runtime-action="profile-promotion"]')?.click();
+                await new Promise(resolve => setTimeout(resolve, 10));
+
+                return { profile, title, content, buttons };
+              });
+
+              if (result.profile?.name !== 'Toca do Morcego') throw new Error(`Profile name diverged: ${JSON.stringify(result.profile)}`);
+              if (result.profile?.categoryLabel !== 'Casa de eventos' || result.profile?.specialty !== 'Sunset') throw new Error(`Profile classification diverged: ${JSON.stringify(result.profile)}`);
+              if (result.profile?.cta !== 'Ver evento') throw new Error(`Profile CTA diverged: ${result.profile?.cta}`);
+              if (result.profile?.locationLabel !== 'Morro de São Paulo' || result.profile?.locationIsExample !== false) throw new Error(`Profile location diverged: ${JSON.stringify(result.profile)}`);
+              if (result.profile?.promotion?.id !== 'promo-demo') throw new Error(`Profile promotion missing: ${JSON.stringify(result.profile)}`);
+              if (result.profile?.tutorial !== true || result.profile?.excludeFromBusinessMetrics !== true) throw new Error('Tutorial profile metrics boundary diverged');
+              if ('rating' in result.profile || 'openNow' in result.profile) throw new Error('Profile invented rating/opening state');
+              if (result.title !== 'Toca do Morcego' || !result.content.includes('Casa de eventos · Sunset')) throw new Error(`Profile preview diverged: ${JSON.stringify(result)}`);
+              for (const action of ['profile-map', 'profile-primary', 'profile-promotion']) {
+                if (!result.buttons.some(button => button.action === action)) throw new Error(`Missing runtime action ${action}`);
+              }
+              for (const name of ['businessOnboardingProfileOpened', 'businessTutorialProfileMapAction', 'businessTutorialProfilePrimaryAction', 'businessTutorialProfilePromotionAction']) {
+                const event = evidence.events.find(entry => entry.name === name);
+                if (!event) throw new Error(`Missing event ${name}`);
+                if (event.detail?.tutorial !== true || event.detail?.excludeFromBusinessMetrics !== true) throw new Error(`Metrics boundary diverged for ${name}`);
+              }
+              if (evidence.errors.length) throw new Error(`Browser errors: ${JSON.stringify(evidence.errors)}`);
+
+              Object.assign(evidence, { result, status: 'PASS' });
+              writeFileSync('/tmp/m59-business-profile-evidence.json', JSON.stringify(evidence, null, 2));
+            } finally {
+              await browser.close();
+            }
+          })().catch(error => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+      - name: Show diagnostics
+        if: failure()
+        run: cat /tmp/m59-profile-server.log || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: business-onboarding-profile-browser-evidence
+          path: /tmp/m59-business-profile-evidence.json
+          retention-days: 1
+          if-no-files-found: ignore
+      - name: Stop runtime
+        if: always()
+        run: kill "$(cat /tmp/m59-profile-server.pid)" 2>/dev/null || true
