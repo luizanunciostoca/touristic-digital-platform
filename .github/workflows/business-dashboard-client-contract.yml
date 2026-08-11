@@ -1,0 +1,48 @@
+name: Business Dashboard Client Contract
+
+on:
+  pull_request:
+    paths:
+      - "packages/auth-browser/**"
+      - "apps/morro-digital-platform/package.json"
+      - "apps/morro-digital-platform/src/business-dashboard-client.ts"
+      - "apps/morro-digital-platform/src/business-dashboard-client.test.ts"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/business-dashboard-client-contract.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "packages/auth-browser/**"
+      - "apps/morro-digital-platform/package.json"
+      - "apps/morro-digital-platform/src/business-dashboard-client.ts"
+      - "apps/morro-digital-platform/src/business-dashboard-client.test.ts"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/business-dashboard-client-contract.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  dashboard-client:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Validate Auth browser Business protection
+        run: |
+          pnpm --filter @touristic/auth-browser lint
+          pnpm --filter @touristic/auth-browser typecheck
+          pnpm --filter @touristic/auth-browser test
+      - name: Validate Business dashboard consumer
+        run: |
+          pnpm --filter @touristic/morro-digital-platform lint
+          pnpm --filter @touristic/morro-digital-platform typecheck
+          pnpm --filter @touristic/morro-digital-platform test
+      - name: Build workspace
+        run: pnpm -w build
