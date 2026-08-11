@@ -27,10 +27,10 @@ jobs:
           cache: pnpm
       - name: Integrate workspace lockfile
         run: pnpm install --lockfile-only
-      - name: Format generated M68 artifacts
-        run: pnpm exec prettier --write packages/crm/src/index.ts pnpm-lock.yaml
       - name: Install frozen workspace
         run: pnpm install --frozen-lockfile
+      - name: Format generated M68 artifacts
+        run: pnpm exec prettier --write packages/crm/src/index.ts pnpm-lock.yaml
       - name: Validate CRM domain package
         run: |
           pnpm --filter @touristic/crm lint
