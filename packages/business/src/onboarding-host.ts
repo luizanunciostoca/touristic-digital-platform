@@ -8,7 +8,10 @@ import {
   type BusinessOnboardingSession,
   type BusinessOnboardingStepId,
 } from "./onboarding.js";
-import { updateBusinessOnboardingStepInput } from "./onboarding-context.js";
+import {
+  updateBusinessOnboardingRuntimeContext,
+  updateBusinessOnboardingStepInput,
+} from "./onboarding-context.js";
 
 export const BUSINESS_ONBOARDING_GUARD_TIMEOUT_MS = 8000;
 
@@ -122,6 +125,18 @@ export class BusinessOnboardingHostController {
       this.session,
       stepId,
       value,
+      now,
+    );
+    return this.snapshot();
+  }
+
+  updateRuntimeContext(
+    patch: Readonly<Record<string, unknown>>,
+    now = new Date(),
+  ): BusinessOnboardingHostSnapshot {
+    this.session = updateBusinessOnboardingRuntimeContext(
+      this.session,
+      patch,
       now,
     );
     return this.snapshot();
