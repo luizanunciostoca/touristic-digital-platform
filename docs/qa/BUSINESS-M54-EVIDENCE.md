@@ -49,7 +49,7 @@ The permanent `Business Onboarding Adapter Browser Contract` builds the real wor
 - real Assistant dialog/domain-handler integration;
 - preservation of onboarding locale and Assistant options.
 
-The contract requires no live Mapbox request.
+The contract requires no live Mapbox request. The final authored checkpoint must repeat this browser contract together with the repository Quality Gate after the matrix and evidence are finalized.
 
 ## Matrix effect
 
