@@ -32,9 +32,7 @@ export class BusinessOnboardingRuntime {
     private readonly view: Window = window,
   ) {}
 
-  async beforeTransition(
-    context: BusinessOnboardingGuardContext,
-  ): Promise<boolean> {
+  beforeTransition(context: BusinessOnboardingGuardContext): boolean {
     if (context.direction === "previous") return true;
     const state = context.session.conversationDraft.context;
 

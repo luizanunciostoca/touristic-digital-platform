@@ -22,6 +22,10 @@ function renderProgress(snapshot: BusinessOnboardingHostSnapshot): string {
   return `Capítulo ${chapter.chapterNumber} de ${chapter.totalChapters} · Etapa ${chapter.chapterStepNumber} de ${chapter.chapterStepTotal}`;
 }
 
+function stringValue(value: unknown): string {
+  return typeof value === "string" ? value : "";
+}
+
 function contextValue(
   snapshot: BusinessOnboardingHostSnapshot,
   field: string | undefined,
@@ -296,8 +300,8 @@ export class BusinessOnboardingSurface {
     }>[],
     field: string,
   ): void {
-    const selected = String(
-      snapshot.session.conversationDraft.context[field] ?? "",
+    const selected = stringValue(
+      snapshot.session.conversationDraft.context[field],
     );
     const group = this.document.createElement("div");
     group.className = "business-onboarding-options";
@@ -336,7 +340,7 @@ export class BusinessOnboardingSurface {
       input.type = "text";
       input.dataset.onboardingInput = "true";
       input.className = "business-onboarding-input";
-      input.value = String(context[definition.field] ?? "");
+      input.value = stringValue(context[definition.field]);
       input.placeholder = definition.placeholder ?? "";
       if (definition.maxLength) input.maxLength = definition.maxLength;
       input.setAttribute("aria-label", definition.title);
