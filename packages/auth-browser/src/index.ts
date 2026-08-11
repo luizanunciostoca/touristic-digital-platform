@@ -1,6 +1,10 @@
 import type { AuthRole } from "@touristic/auth";
 
-const protectedPrefixes = Object.freeze(["/api/dashboard", "/api/offers"]);
+const protectedPrefixes = Object.freeze([
+  "/api/dashboard",
+  "/api/offers",
+  "/api/business",
+]);
 const safeMethods = new Set(["GET", "HEAD", "OPTIONS"]);
 const csrfStorageKey = "md_dashboard_csrf";
 
