@@ -20,6 +20,9 @@ const RUNTIME_CONTEXT_KEYS = new Set([
   "businessDiscoveryResult",
   "businessAssistantResult",
   "businessRouteResult",
+  "tutorialBusinessCandidate",
+  "businessRecommendationResult",
+  "tutorialBusinessProfile",
 ]);
 
 function safeText(value: unknown, maxLength: number): string {
