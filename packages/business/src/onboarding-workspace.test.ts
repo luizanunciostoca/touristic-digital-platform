@@ -21,12 +21,14 @@ describe("Business tutorial partner workspace", () => {
     expect(workspace.businessName).toBe("Maré Alta");
     expect(workspace.eventCount).toBe(3);
     expect(
-      workspace.metrics.find((metric) => metric.key === "business_profile_opened")
-        ?.value,
+      workspace.metrics.find(
+        (metric) => metric.key === "business_profile_opened",
+      )?.value,
     ).toBe(2);
     expect(
-      workspace.metrics.find((metric) => metric.key === "business_route_started")
-        ?.value,
+      workspace.metrics.find(
+        (metric) => metric.key === "business_route_started",
+      )?.value,
     ).toBe(1);
     expect(workspace.metrics).toHaveLength(10);
     expect(workspace.excludeFromBusinessMetrics).toBe(true);

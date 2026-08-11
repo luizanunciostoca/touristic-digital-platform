@@ -11,7 +11,8 @@ export const BUSINESS_TUTORIAL_EVENT_LABELS = Object.freeze({
   business_demo_promotion_viewed: "Promoção visualizada",
 } as const);
 
-export type BusinessTutorialEventKey = keyof typeof BUSINESS_TUTORIAL_EVENT_LABELS;
+export type BusinessTutorialEventKey =
+  keyof typeof BUSINESS_TUTORIAL_EVENT_LABELS;
 
 export interface BusinessTutorialWorkspaceMetric {
   readonly key: BusinessTutorialEventKey;
@@ -77,10 +78,12 @@ export function buildBusinessTutorialWorkspaceSnapshot(input: {
       ? (input.eventSummary as Record<string, unknown>)
       : {};
   const metrics = Object.freeze(
-    (Object.entries(BUSINESS_TUTORIAL_EVENT_LABELS) as readonly [
-      BusinessTutorialEventKey,
-      string,
-    ][]).map(([key, label]) =>
+    (
+      Object.entries(BUSINESS_TUTORIAL_EVENT_LABELS) as readonly [
+        BusinessTutorialEventKey,
+        string,
+      ][]
+    ).map(([key, label]) =>
       Object.freeze({ key, label, value: eventCount(record[key]) }),
     ),
   );
@@ -93,7 +96,9 @@ export function buildBusinessTutorialWorkspaceSnapshot(input: {
   });
 }
 
-export function getBusinessTutorialPromotionDefaults(category: unknown): Readonly<{
+export function getBusinessTutorialPromotionDefaults(
+  category: unknown,
+): Readonly<{
   title: string;
   description: string;
   cta: string;
