@@ -347,7 +347,7 @@ export function createBusinessOnboardingSession(
     completedCapabilities: freezeArray([]),
     skippedCapabilities: freezeArray([]),
     createdAt,
-    updatedAt,
+    updatedAt: createdAt,
     expiresAt,
   });
 }
