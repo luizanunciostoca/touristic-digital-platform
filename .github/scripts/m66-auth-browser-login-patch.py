@@ -158,3 +158,27 @@ if describe_anchor not in tests:
     raise SystemExit('test describe anchor missing')
 tests = tests.replace(describe_anchor, addition, 1)
 test_path.write_text(tests)
+
+dashboard_test_path = Path('apps/morro-digital-platform/src/business-dashboard-client.test.ts')
+dashboard_tests = dashboard_test_path.read_text()
+auth_fixture_anchor = '''  const authClient: DashboardAuthClient = {
+    getSession: vi.fn().mockResolvedValue(sessionValue),
+    secureFetch,
+    logout: vi.fn().mockResolvedValue(true),
+  };
+'''
+auth_fixture_replacement = '''  const authClient: DashboardAuthClient = {
+    login: vi.fn().mockRejectedValue(new Error("NOT_USED_IN_DASHBOARD_CLIENT")),
+    getSession: vi.fn().mockResolvedValue(sessionValue),
+    secureFetch,
+    logout: vi.fn().mockResolvedValue(true),
+  };
+'''
+if auth_fixture_anchor not in dashboard_tests:
+    raise SystemExit('dashboard auth fixture anchor missing')
+dashboard_tests = dashboard_tests.replace(
+    auth_fixture_anchor,
+    auth_fixture_replacement,
+    1,
+)
+dashboard_test_path.write_text(dashboard_tests)
