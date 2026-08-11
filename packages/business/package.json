@@ -13,7 +13,8 @@
     "./onboarding-steps": "./src/onboarding-steps.ts",
     "./onboarding-presentation": "./src/onboarding-presentation.ts",
     "./onboarding-recommendation": "./src/onboarding-recommendation.ts",
-    "./onboarding-profile": "./src/onboarding-profile.ts"
+    "./onboarding-profile": "./src/onboarding-profile.ts",
+    "./onboarding-workspace": "./src/onboarding-workspace.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
