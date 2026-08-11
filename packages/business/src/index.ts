@@ -3,8 +3,6 @@ import {
   type AuthSessionIdentity,
 } from "@touristic/auth";
 
-export * from "./onboarding.js";
-
 export interface BusinessPromotion {
   readonly id: string;
   readonly title: string;
