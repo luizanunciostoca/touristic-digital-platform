@@ -1,0 +1,183 @@
+name: Business Dashboard Browser Contract
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/business-dashboard-browser-contract.yml"
+      - "apps/morro-digital-platform/public/business-dashboard.html"
+      - "apps/morro-digital-platform/public/business-dashboard.css"
+      - "apps/morro-digital-platform/src/business-dashboard-entry.ts"
+      - "apps/morro-digital-platform/src/business-dashboard-surface.ts"
+      - "apps/morro-digital-platform/src/business-dashboard-surface.test.ts"
+      - "apps/morro-digital-platform/src/business-dashboard-client.ts"
+      - "packages/auth-browser/**"
+      - "packages/business/**"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/business-dashboard-browser-contract.yml"
+      - "apps/morro-digital-platform/public/business-dashboard.html"
+      - "apps/morro-digital-platform/public/business-dashboard.css"
+      - "apps/morro-digital-platform/src/business-dashboard-entry.ts"
+      - "apps/morro-digital-platform/src/business-dashboard-surface.ts"
+      - "apps/morro-digital-platform/src/business-dashboard-surface.test.ts"
+      - "apps/morro-digital-platform/src/business-dashboard-client.ts"
+      - "packages/auth-browser/**"
+      - "packages/business/**"
+
+permissions:
+  contents: read
+
+jobs:
+  dashboard-browser:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install deterministic Chromium
+        run: |
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+      - name: Build workspace
+        run: pnpm -w build
+      - name: Start authenticated Business runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          PORT=4177
+          SECRET="0123456789abcdef0123456789abcdef"
+          PASSWORD="correct horse battery staple"
+          HASH=$(node --input-type=module -e "import('./services/auth/dist/credentials.js').then(m => console.log(m.hashPassword(process.argv[1], Buffer.alloc(16, 7))))" "$PASSWORD")
+          USERS=$(node -e 'console.log(JSON.stringify([{id:"owner-1",email:"owner@example.com",passwordHash:process.argv[1],role:"owner",businessIds:["toca-do-morcego"]}]))' "$HASH")
+          DASHBOARD_AUTH_SECRET="$SECRET" DASHBOARD_USERS_JSON="$USERS" PORT="$PORT" HOST="127.0.0.1" \
+            node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/m52-dashboard-server.log 2>&1 &
+          echo $! >/tmp/m52-server.pid
+          for _ in $(seq 1 60); do
+            if curl --fail --silent "http://127.0.0.1:${PORT}/runtime-config.js" >/dev/null; then exit 0; fi
+            sleep 0.25
+          done
+          cat /tmp/m52-dashboard-server.log
+          exit 1
+      - name: Validate authenticated dashboard surface
+        run: |
+          node <<'NODE'
+          const { writeFileSync } = require('node:fs');
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+
+          (async () => {
+            const origin = 'http://127.0.0.1:4177';
+            const browser = await chromium.launch({ headless: true });
+            const evidence = { errors: [] };
+            try {
+              const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+              const page = await context.newPage();
+              page.on('pageerror', error => evidence.errors.push(error.message));
+
+              const login = await context.request.post(`${origin}/api/dashboard/auth/login`, {
+                headers: { Origin: origin, 'Content-Type': 'application/json' },
+                data: { email: 'owner@example.com', password: 'correct horse battery staple' },
+              });
+              if (login.status() !== 200) throw new Error(`Login failed: ${login.status()}`);
+              const loginBody = await login.json();
+              const csrfToken = loginBody.csrfToken;
+              if (!csrfToken) throw new Error('Login did not return CSRF projection');
+
+              const seed = await context.request.put(`${origin}/api/business/toca-do-morcego/profile`, {
+                headers: {
+                  Origin: origin,
+                  'Content-Type': 'application/json',
+                  'X-CSRF-Token': csrfToken,
+                },
+                data: {
+                  id: 'toca-do-morcego',
+                  name: 'Toca do Morcego',
+                  categoryLabel: 'Experiência',
+                  specialty: 'Sunset',
+                  description: 'Experiência ao pôr do sol',
+                  cta: 'Ver empresa',
+                  locationLabel: 'Morro de São Paulo',
+                },
+              });
+              if (seed.status() !== 200) throw new Error(`Profile seed failed: ${seed.status()}`);
+
+              await page.goto(`${origin}/apps/morro-digital-platform/public/business-dashboard.html?businessId=toca-do-morcego`, {
+                waitUntil: 'domcontentloaded',
+                timeout: 30000,
+              });
+              await page.locator('#main-dashboard:not([hidden])').waitFor({ state: 'visible', timeout: 10000 });
+              if (!(await page.locator('#search-screen').isHidden())) throw new Error('Entry screen remained visible');
+              if ((await page.locator('#business-name').textContent()) !== 'Toca do Morcego') throw new Error('Business header did not render protected profile');
+
+              const unavailable = await page.locator('.metric-card small').allTextContents();
+              if (!unavailable.every(text => text.includes('Endpoint ainda não migrado'))) {
+                throw new Error(`Dashboard invented analytics state: ${JSON.stringify(unavailable)}`);
+              }
+
+              await page.locator('[data-dashboard-view="performance"]').click();
+              await page.locator('[data-view-panel="performance"].active').waitFor({ state: 'visible' });
+              await page.locator('[data-dashboard-view="settings"]').click();
+              await page.locator('[data-view-panel="settings"].active').waitFor({ state: 'visible' });
+
+              await page.locator('#profile-name').fill('Toca do Morcego M52');
+              await page.locator('#profile-description').fill('Perfil salvo pela superfície M52');
+              await page.locator('#save-profile').click();
+              await page.locator('#profile-status').filter({ hasText: 'Perfil salvo com segurança.' }).waitFor({ state: 'visible', timeout: 10000 });
+
+              const saved = await context.request.get(`${origin}/api/business/toca-do-morcego/profile`);
+              const savedBody = await saved.json();
+              if (saved.status() !== 200 || savedBody.profile?.name !== 'Toca do Morcego M52') {
+                throw new Error(`Saved profile diverged: ${JSON.stringify(savedBody)}`);
+              }
+
+              await page.locator('#theme-toggle').click();
+              if ((await page.locator('html').getAttribute('data-theme')) !== 'dark') throw new Error('Theme toggle did not persist dark state');
+              if ((await page.evaluate(() => localStorage.getItem('business-dashboard-theme'))) !== 'dark') throw new Error('Theme state was not persisted');
+
+              await page.setViewportSize({ width: 390, height: 844 });
+              await page.locator('#mobile-menu').click();
+              if (!(await page.locator('#dashboard-sidebar').evaluate(node => node.classList.contains('mobile-open')))) throw new Error('Mobile sidebar did not open');
+              if (await page.locator('#mobile-overlay').isHidden()) throw new Error('Mobile overlay did not open');
+              await page.locator('#mobile-overlay').click({ position: { x: 380, y: 400 } });
+              await page.locator('#mobile-menu').click();
+              await page.locator('#logout-button').click();
+              await page.waitForURL(url => url.pathname === '/dashboard/login.html', { timeout: 10000 }).catch(() => {});
+              const sessionAfterLogout = await context.request.get(`${origin}/api/dashboard/auth/session`);
+              if (sessionAfterLogout.status() !== 401) throw new Error(`Logout did not revoke session: ${sessionAfterLogout.status()}`);
+
+              evidence.businessName = 'Toca do Morcego M52';
+              evidence.views = ['dashboard', 'performance', 'settings'];
+              evidence.theme = 'dark';
+              evidence.mobileSidebar = true;
+              evidence.logoutRevoked = true;
+              evidence.analyticsInvented = false;
+              if (evidence.errors.length) throw new Error(`Browser errors: ${JSON.stringify(evidence.errors)}`);
+              writeFileSync('/tmp/m52-dashboard-browser-evidence.json', JSON.stringify(evidence, null, 2));
+              await context.close();
+            } finally {
+              await browser.close();
+            }
+          })().catch(error => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+      - name: Show diagnostics
+        if: failure()
+        run: cat /tmp/m52-dashboard-server.log || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: business-dashboard-browser-evidence
+          path: /tmp/m52-dashboard-browser-evidence.json
+          retention-days: 1
+          if-no-files-found: ignore
+      - name: Stop runtime
+        if: always()
+        run: kill "$(cat /tmp/m52-server.pid)" 2>/dev/null || true
