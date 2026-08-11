@@ -144,32 +144,6 @@ export interface BusinessOnboardingContext {
   readonly [key: string]: unknown;
 }
 
-export interface BusinessTutorialRecommendationCandidate {
-  readonly id: string;
-  readonly name: string;
-  readonly category: string;
-  readonly categoryLabel: string;
-  readonly specialty: string;
-  readonly objective: string;
-  readonly audience: string;
-  readonly cta: string;
-  readonly latitude: number | null;
-  readonly longitude: number | null;
-  readonly locationSource: string;
-  readonly locationIsExample: boolean;
-  readonly tutorial: true;
-  readonly excludeFromBusinessMetrics: true;
-}
-
-export interface BusinessTutorialRecommendationResult {
-  readonly query: string;
-  readonly score: number;
-  readonly rendered: boolean;
-  readonly candidate: BusinessTutorialRecommendationCandidate;
-  readonly tutorial: true;
-  readonly excludeFromBusinessMetrics: true;
-}
-
 export interface BusinessOnboardingConversationDraft {
   readonly currentStepId: BusinessOnboardingStepId | null;
   readonly context: Readonly<Record<string, unknown>>;
@@ -253,17 +227,6 @@ export interface BusinessOnboardingPorts {
   readonly route?: BusinessRoutePort;
 }
 
-const BUSINESS_RECOMMENDATION_CATEGORY_TERMS = Object.freeze({
-  restaurant: ["restaurante", "jantar", "almoço", "comida", "comer", "food", "dinner"],
-  lodging: ["pousada", "hotel", "hospedagem", "quarto", "stay", "lodging"],
-  tour: ["passeio", "tour", "barco", "lancha", "mergulho"],
-  transport: ["transfer", "transporte", "táxi", "taxi", "aeroporto", "salvador"],
-  fashion: ["roupa", "moda", "loja", "comprar", "acessórios", "souvenir"],
-  market: ["mercado", "supermercado", "entrega", "bebidas", "compras"],
-  events: ["evento", "festa", "noite", "ingresso", "show", "sunset"],
-  other: ["negócio", "serviço", "empresa", "recomenda"],
-} as const);
-
 function safeText(value: unknown, maxLength = 240): string {
   if (typeof value !== "string") return "";
   const sanitized = Array.from(value, (character) => {
@@ -284,102 +247,6 @@ function normalizeName(value: unknown): string {
     .replace(/[\u0300-\u036f]/gu, "")
     .toLowerCase()
     .trim();
-}
-
-function recommendationLocation(value: unknown): {
-  readonly latitude: number | null;
-  readonly longitude: number | null;
-  readonly source: string;
-  readonly isExample: boolean;
-} {
-  if (!value || typeof value !== "object") {
-    return Object.freeze({ latitude: null, longitude: null, source: "tutorial", isExample: false });
-  }
-  const record = value as Record<string, unknown>;
-  const coordinates =
-    record.coordinates && typeof record.coordinates === "object"
-      ? (record.coordinates as Record<string, unknown>)
-      : record;
-  const latitude =
-    typeof coordinates.latitude === "number" && Number.isFinite(coordinates.latitude)
-      ? coordinates.latitude
-      : typeof coordinates.lat === "number" && Number.isFinite(coordinates.lat)
-        ? coordinates.lat
-        : null;
-  const longitude =
-    typeof coordinates.longitude === "number" && Number.isFinite(coordinates.longitude)
-      ? coordinates.longitude
-      : typeof coordinates.lon === "number" && Number.isFinite(coordinates.lon)
-        ? coordinates.lon
-        : null;
-  return Object.freeze({
-    latitude,
-    longitude,
-    source: safeText(record.source, 80) || "tutorial",
-    isExample: record.isExample === true || record.source === "device",
-  });
-}
-
-export function buildBusinessTutorialRecommendationCandidate(
-  context: BusinessOnboardingContext = {},
-  input: {
-    readonly categoryLabel?: string;
-    readonly cta?: string;
-    readonly id?: string;
-  } = {},
-): BusinessTutorialRecommendationCandidate {
-  const location = recommendationLocation(context.businessLocation);
-  const name = safeText(context.businessName, 180) || "Sua empresa";
-  return Object.freeze({
-    id: safeText(input.id, 180) || `tutorial-business-${normalizeName(name).replace(/\s+/gu, "-") || "candidate"}`,
-    name,
-    category: safeText(context.category, 120) || "other",
-    categoryLabel: safeText(input.categoryLabel, 120) || "Negócio local",
-    specialty: safeText(context.specialty, 180) || "Experiência local",
-    objective: safeText(context.objective, 180),
-    audience: safeText(context.audience, 180),
-    cta: safeText(input.cta, 120) || "Ver empresa",
-    latitude: location.latitude,
-    longitude: location.longitude,
-    locationSource: location.source,
-    locationIsExample: location.isExample,
-    tutorial: true,
-    excludeFromBusinessMetrics: true,
-  });
-}
-
-export function scoreBusinessTutorialRecommendation(
-  queryInput: unknown,
-  candidate: BusinessTutorialRecommendationCandidate,
-): number {
-  const query = normalizeName(queryInput);
-  if (!query) return 0;
-  const category = candidate.category as keyof typeof BUSINESS_RECOMMENDATION_CATEGORY_TERMS;
-  const terms =
-    BUSINESS_RECOMMENDATION_CATEGORY_TERMS[category] ??
-    BUSINESS_RECOMMENDATION_CATEGORY_TERMS.other;
-  let score = 0;
-  if (terms.some((term) => query.includes(normalizeName(term)))) score += 55;
-  if (candidate.specialty && query.includes(normalizeName(candidate.specialty))) score += 30;
-  if (candidate.name && query.includes(normalizeName(candidate.name))) score += 100;
-  if (candidate.audience && query.includes(normalizeName(candidate.audience))) score += 15;
-  return Math.min(score, 100);
-}
-
-export function evaluateBusinessTutorialRecommendation(
-  queryInput: unknown,
-  candidate: BusinessTutorialRecommendationCandidate,
-): BusinessTutorialRecommendationResult {
-  const query = safeText(queryInput, 240);
-  const score = scoreBusinessTutorialRecommendation(query, candidate);
-  return Object.freeze({
-    query,
-    score,
-    rendered: score >= 50,
-    candidate,
-    tutorial: true,
-    excludeFromBusinessMetrics: true,
-  });
 }
 
 function freezeArray<T>(values: readonly T[]): readonly T[] {
