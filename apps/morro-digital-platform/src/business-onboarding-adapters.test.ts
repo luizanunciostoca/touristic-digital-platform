@@ -65,9 +65,8 @@ describe("M54 Business onboarding adapters", () => {
       },
     });
 
-    const location = (await ports.location?.requestDeviceLocation()) as
-      | BusinessOnboardingResolvedLocation
-      | null;
+    const location =
+      (await ports.location?.requestDeviceLocation()) as BusinessOnboardingResolvedLocation | null;
 
     expect(location).toEqual({
       name: "device-location",
@@ -89,7 +88,9 @@ describe("M54 Business onboarding adapters", () => {
       | (AssistantDialogResponse & { readonly onboardingLocale: string })
       | undefined;
 
-    expect(response?.metadata).toEqual(expect.objectContaining({ domain: "help" }));
+    expect(response?.metadata).toEqual(
+      expect.objectContaining({ domain: "help" }),
+    );
     expect(response?.onboardingLocale).toBe("pt");
     expect(response?.options?.length).toBeGreaterThan(0);
   });

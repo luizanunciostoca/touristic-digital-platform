@@ -45,9 +45,7 @@ export interface BusinessOnboardingAdapterOptions {
 
 const businessSearchIndex = createSearchIndex(morroV1SearchCatalog);
 
-function coordinatesFor(
-  item: MorroV1SearchCatalogItem,
-): Coordinates | null {
+function coordinatesFor(item: MorroV1SearchCatalogItem): Coordinates | null {
   if (
     typeof item.latitude !== "number" ||
     !Number.isFinite(item.latitude) ||
@@ -155,7 +153,9 @@ function createAssistantAdapter(
     async ask(
       message: string,
       locale: string,
-    ): Promise<AssistantDialogResponse & { readonly onboardingLocale: string }> {
+    ): Promise<
+      AssistantDialogResponse & { readonly onboardingLocale: string }
+    > {
       const response = await controller.processUserInput(message);
       return Object.freeze({ ...response, onboardingLocale: locale });
     },
