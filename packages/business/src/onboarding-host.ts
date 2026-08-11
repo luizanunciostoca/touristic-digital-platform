@@ -85,8 +85,8 @@ export class BusinessOnboardingHostController {
             })
           : existing
         : createBusinessOnboardingSession({
-            locale: options.locale,
             now,
+            ...(options.locale ? { locale: options.locale } : {}),
           });
     this.beforeTransition = options.beforeTransition;
     this.guardTimeoutMs = Math.max(
@@ -147,7 +147,10 @@ export class BusinessOnboardingHostController {
     return this.move("previous", now);
   }
 
-  pause(reason = "user_skip", now = new Date()): BusinessOnboardingHostSnapshot {
+  pause(
+    reason = "user_skip",
+    now = new Date(),
+  ): BusinessOnboardingHostSnapshot {
     this.session = setBusinessOnboardingStatus(this.session, "PAUSED", {
       now,
       reason,
