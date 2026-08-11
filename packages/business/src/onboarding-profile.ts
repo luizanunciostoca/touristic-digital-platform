@@ -32,7 +32,10 @@ function locationDetails(value: unknown): {
     location.address,
     text(
       location.matchedName,
-      text(location.name, isExample ? "Localização demonstrativa" : "Morro de São Paulo"),
+      text(
+        location.name,
+        isExample ? "Localização demonstrativa" : "Morro de São Paulo",
+      ),
     ),
   );
   return Object.freeze({ label, isExample });

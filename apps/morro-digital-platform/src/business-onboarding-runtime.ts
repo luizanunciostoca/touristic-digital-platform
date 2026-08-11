@@ -74,9 +74,8 @@ function tutorialOrigin(
 function categoryLabel(value: unknown): string {
   const category = text(value);
   return (
-    BUSINESS_ONBOARDING_CATEGORIES.find(
-      (option) => option.value === category,
-    )?.label ?? "Negócio local"
+    BUSINESS_ONBOARDING_CATEGORIES.find((option) => option.value === category)
+      ?.label ?? "Negócio local"
   );
 }
 
@@ -215,9 +214,8 @@ export class BusinessOnboardingRuntime {
     }
 
     if (snapshot.stepId === "profile") {
-      const { buildBusinessTutorialProfile } = await import(
-        "@touristic/business/onboarding-profile"
-      );
+      const { buildBusinessTutorialProfile } =
+        await import("@touristic/business/onboarding-profile");
       const recommendationCandidate = isRecord(
         context.tutorialBusinessCandidate,
       )
@@ -319,8 +317,9 @@ export class BusinessOnboardingRuntime {
       action === "profile-primary" ||
       action === "profile-promotion"
     ) {
-      const profile = this.host.snapshot().session.conversationDraft.context
-        .tutorialBusinessProfile;
+      const profile =
+        this.host.snapshot().session.conversationDraft.context
+          .tutorialBusinessProfile;
       if (!isRecord(profile)) return false;
 
       if (action === "profile-map") {
