@@ -8,6 +8,10 @@ import type {
   BusinessOnboardingHostSnapshot,
 } from "@touristic/business/onboarding-host";
 import { resolveBusinessOnboardingStep } from "@touristic/business/onboarding-presentation";
+import {
+  buildBusinessTutorialRecommendationCandidate,
+  evaluateBusinessTutorialRecommendation,
+} from "@touristic/business/onboarding-recommendation";
 
 import type { BusinessOnboardingConcreteAdapters } from "./business-onboarding-adapters.js";
 
@@ -22,10 +26,10 @@ function text(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
-function dispatch(
+function dispatch<T extends object>(
   view: Window,
   name: string,
-  detail: Readonly<Record<string, unknown>>,
+  detail: Readonly<T>,
 ): void {
   view.dispatchEvent(new CustomEvent(name, { detail }));
 }
@@ -136,12 +140,48 @@ export class BusinessOnboardingRuntime {
         query,
         snapshot.session.selectedLanguage,
       );
-      this.host.updateRuntimeContext({ businessAssistantResult: response });
+      const candidate = buildBusinessTutorialRecommendationCandidate(context);
+      const recommendation = evaluateBusinessTutorialRecommendation(
+        query,
+        candidate,
+      );
+      this.host.updateRuntimeContext({
+        businessAssistantResult: response,
+        tutorialBusinessCandidate: candidate,
+        businessRecommendationResult: recommendation,
+      });
       dispatch(this.view, "businessOnboardingAssistantResult", {
         query,
         response,
         tutorial: true,
       });
+      dispatch(
+        this.view,
+        "businessTutorialRecommendationEvaluated",
+        recommendation,
+      );
+      if (recommendation.rendered) {
+        const locationNote = candidate.locationIsExample
+          ? " · localização usada apenas como exemplo"
+          : "";
+        dispatch(this.view, "businessConversationPresentation", {
+          source: "business-recommendation-sandbox",
+          kind: "recommendation",
+          title: candidate.name,
+          message: `Candidata compatível com a intenção: ${candidate.categoryLabel} · ${candidate.specialty}${locationNote}.`,
+          actions: [
+            { action: "place-profile", label: candidate.cta, primary: true },
+            { action: "place-info", label: "Ver informações" },
+          ],
+          tutorial: true,
+          excludeFromBusinessMetrics: true,
+        });
+        dispatch(
+          this.view,
+          "businessTutorialRecommendationRendered",
+          recommendation,
+        );
+      }
       return;
     }
 
