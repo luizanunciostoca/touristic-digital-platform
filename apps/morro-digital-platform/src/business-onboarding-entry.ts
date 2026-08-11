@@ -15,6 +15,14 @@ function start(): void {
     beforeTransition: (context) => runtime?.beforeTransition(context) ?? false,
   });
   runtime = new BusinessOnboardingRuntime(host, adapters, window);
+  window.addEventListener("businessPaymentVerified", (event) => {
+    if (!(event instanceof CustomEvent) || !runtime) return;
+    const detail =
+      event.detail && typeof event.detail === "object"
+        ? (event.detail as Record<string, unknown>)
+        : {};
+    void runtime.verifyPayment(detail);
+  });
 
   mountBusinessOnboardingSurface({
     host,

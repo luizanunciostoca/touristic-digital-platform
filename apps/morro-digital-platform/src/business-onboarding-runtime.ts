@@ -32,7 +32,8 @@ export type BusinessOnboardingRuntimeAction =
   | "profile-promotion"
   | "route-retry"
   | "workspace-open-dashboard"
-  | `workspace-promotion-save:${string}`;
+  | `workspace-promotion-save:${string}`
+  | `commercial-prepare-checkout:${string}`;
 
 function text(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
@@ -401,6 +402,62 @@ export class BusinessOnboardingRuntime {
       return true;
     }
 
+    if (action.startsWith("commercial-prepare-checkout:")) {
+      let input: Record<string, unknown>;
+      try {
+        input = JSON.parse(
+          decodeURIComponent(
+            action.slice("commercial-prepare-checkout:".length),
+          ),
+        ) as Record<string, unknown>;
+      } catch {
+        return false;
+      }
+      const snapshot = this.host.snapshot();
+      const context = snapshot.session.conversationDraft.context;
+      const {
+        buildBusinessCommercialAcceptances,
+        buildBusinessCommercialCheckoutHandoff,
+        buildBusinessCommercialContractor,
+        recommendBusinessCommercialPlan,
+      } = await import("@touristic/business/onboarding-commercial-conversion");
+      const contractorInput = isRecord(input.contractor)
+        ? input.contractor
+        : {};
+      const contractor = buildBusinessCommercialContractor(contractorInput);
+      const acceptedTerms = buildBusinessCommercialAcceptances(
+        {
+          terms: input.acceptTerms === true,
+          privacy: input.acceptPrivacy === true,
+          marketing: input.marketingConsent === true,
+        },
+        new Date().toISOString(),
+      );
+      const recommendedPlan = recommendBusinessCommercialPlan(
+        context.objective,
+      );
+      const planId = text(input.selectedPlanId) || recommendedPlan?.id || "";
+      const handoff = buildBusinessCommercialCheckoutHandoff({
+        sessionId: `business-onboarding:${snapshot.session.createdAt}`,
+        planId,
+        contractor,
+        acceptedTerms,
+        businessDraft: { ...snapshot.session.businessDraft },
+        returnUrl: this.view.location.href,
+      });
+      if (!handoff) return false;
+      this.host.updateRuntimeContext({
+        businessCommercialCheckoutHandoff: handoff,
+      });
+      dispatch(this.view, "businessCheckoutRequested", handoff);
+      dispatch(this.view, "businessCommercialCheckoutPrepared", {
+        planId: handoff.planId,
+        requiresPaymentsCapability: true,
+        tutorial: false,
+      });
+      return true;
+    }
+
     if (action.startsWith("workspace-promotion-save:")) {
       let input: Record<string, unknown>;
       try {
@@ -423,6 +480,28 @@ export class BusinessOnboardingRuntime {
     }
 
     return false;
+  }
+
+  async verifyPayment(
+    detail: Readonly<Record<string, unknown>>,
+  ): Promise<boolean> {
+    const snapshot = this.host.snapshot();
+    const { acceptBusinessCommercialVerifiedPayment } =
+      await import("@touristic/business/onboarding-commercial-conversion");
+    const activation = acceptBusinessCommercialVerifiedPayment(
+      `business-onboarding:${snapshot.session.createdAt}`,
+      detail,
+    );
+    if (!activation) return false;
+    this.host.updateRuntimeContext({
+      businessCommercialActivation: activation,
+    });
+    dispatch(this.view, "businessCommercialActivationReady", {
+      ...activation,
+      verifiedByPaymentsBoundary: true,
+      tutorial: false,
+    });
+    return true;
   }
 
   private async verifyRoute(
