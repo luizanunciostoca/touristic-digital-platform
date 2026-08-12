@@ -82,7 +82,7 @@ jobs:
               echo "$label expected HTTP $expected but received $actual"
               cat "$file" || true
               echo "--- server log ---"
-              cat /tmp/m73-crm-server.log || true
+              cat /tmp/crm-platform-server.log || true
               exit 1
             fi
           }
@@ -92,9 +92,9 @@ jobs:
           CRM_DATABASE_URL="mysql://root:crm-pass@127.0.0.1:3306/morro_crm" \
           PORT="$PORT" \
           HOST="127.0.0.1" \
-          node apps/morro-digital-platform/tooling/dev-server.mjs > /tmp/m73-crm-server.log 2>&1 &
+          node apps/morro-digital-platform/tooling/dev-server.mjs > /tmp/crm-platform-server.log 2>&1 &
           SERVER_PID=$!
-          trap 'kill "$SERVER_PID" 2>/dev/null || true; cat /tmp/m73-crm-server.log || true' EXIT
+          trap 'kill "$SERVER_PID" 2>/dev/null || true; cat /tmp/crm-platform-server.log || true' EXIT
 
           for _ in $(seq 1 60); do
             if curl --fail --silent "$ORIGIN/runtime-config.js" >/dev/null; then break; fi
@@ -104,6 +104,10 @@ jobs:
           UNAUTH=$(curl --silent --output /tmp/crm-unauth.json --write-out '%{http_code}' "$ORIGIN/api/crm/leads")
           assert_http "$UNAUTH" 401 /tmp/crm-unauth.json unauthenticated-read
           grep -q 'AUTH_REQUIRED' /tmp/crm-unauth.json
+
+          MEETING_UNAUTH=$(curl --silent --output /tmp/meeting-unauth.json --write-out '%{http_code}' "$ORIGIN/api/crm/meetings")
+          assert_http "$MEETING_UNAUTH" 401 /tmp/meeting-unauth.json unauthenticated-meeting-read
+          grep -q 'AUTH_REQUIRED' /tmp/meeting-unauth.json
 
           LOGIN=$(curl --silent --output /tmp/owner-login.json --cookie-jar /tmp/owner.cookies --write-out '%{http_code}' \
             --header "Origin: $ORIGIN" --header 'Content-Type: application/json' \
@@ -143,6 +147,7 @@ jobs:
           assert data['data']['id'] > 0
           open('/tmp/lead-id.txt','w').write(str(data['data']['id']))
           PY
+          LEAD_ID=$(cat /tmp/lead-id.txt)
 
           LIST=$(curl --silent --output /tmp/crm-list.json --write-out '%{http_code}' \
             --cookie /tmp/owner.cookies "$ORIGIN/api/crm/leads?search=Toca&limit=25&offset=0")
@@ -153,6 +158,47 @@ jobs:
           assert len(data['data']) == 1
           assert data['data'][0]['companyName'] == 'Toca do Morcego'
           PY
+
+          MEETING_BAD_CSRF=$(curl --silent --output /tmp/meeting-bad-csrf.json --write-out '%{http_code}' \
+            --cookie /tmp/owner.cookies --header "Origin: $ORIGIN" --header 'X-CSRF-Token: wrong' \
+            --header 'Content-Type: application/json' \
+            --data "{\"leadId\":$LEAD_ID,\"title\":\"Blocked\",\"scheduledAt\":\"2026-08-25T17:30:00.000Z\",\"modality\":\"online\"}" \
+            "$ORIGIN/api/crm/meetings")
+          assert_http "$MEETING_BAD_CSRF" 403 /tmp/meeting-bad-csrf.json meeting-invalid-csrf
+          grep -q 'INVALID_CSRF' /tmp/meeting-bad-csrf.json
+
+          MEETING_CREATE=$(curl --silent --output /tmp/meeting-create.json --write-out '%{http_code}' \
+            --cookie /tmp/owner.cookies --header "Origin: $ORIGIN" --header "X-CSRF-Token: $OWNER_CSRF" \
+            --header 'Content-Type: application/json' \
+            --data "{\"leadId\":$LEAD_ID,\"title\":\"Diagnóstico comercial\",\"scheduledAt\":\"2026-08-25T17:30:00.000Z\",\"modality\":\"in_person\",\"location\":\"Morro de São Paulo\"}" \
+            "$ORIGIN/api/crm/meetings")
+          assert_http "$MEETING_CREATE" 200 /tmp/meeting-create.json meeting-create
+          python3 - <<'PY'
+          import json
+          data=json.load(open('/tmp/meeting-create.json'))
+          assert data['data']['title'] == 'Diagnóstico comercial'
+          assert data['data']['status'] == 'scheduled'
+          assert data['data']['modality'] == 'in_person'
+          open('/tmp/meeting-id.txt','w').write(str(data['data']['id']))
+          PY
+          MEETING_ID=$(cat /tmp/meeting-id.txt)
+
+          MEETING_LIST=$(curl --silent --output /tmp/meeting-list.json --write-out '%{http_code}' \
+            --cookie /tmp/owner.cookies "$ORIGIN/api/crm/meetings?leadId=$LEAD_ID")
+          assert_http "$MEETING_LIST" 200 /tmp/meeting-list.json meeting-list
+          python3 - <<'PY'
+          import json
+          data=json.load(open('/tmp/meeting-list.json'))
+          assert len(data['data']) == 1
+          assert data['data'][0]['title'] == 'Diagnóstico comercial'
+          PY
+
+          MEETING_UPDATE=$(curl --silent --output /tmp/meeting-update.json --write-out '%{http_code}' \
+            --request PATCH --cookie /tmp/owner.cookies --header "Origin: $ORIGIN" --header "X-CSRF-Token: $OWNER_CSRF" \
+            --header 'Content-Type: application/json' --data '{"status":"done"}' \
+            "$ORIGIN/api/crm/meetings/$MEETING_ID")
+          assert_http "$MEETING_UPDATE" 200 /tmp/meeting-update.json meeting-update
+          grep -q '"status":"done"' /tmp/meeting-update.json
 
           VIEWER_LOGIN=$(curl --silent --output /tmp/viewer-login.json --cookie-jar /tmp/viewer.cookies --write-out '%{http_code}' \
             --header "Origin: $ORIGIN" --header 'Content-Type: application/json' \
@@ -173,13 +219,24 @@ jobs:
           assert_http "$VIEWER_WRITE" 403 /tmp/crm-viewer.json viewer-write
           grep -q 'READ_ONLY_ROLE' /tmp/crm-viewer.json
 
+          MEETING_VIEWER_WRITE=$(curl --silent --output /tmp/meeting-viewer.json --write-out '%{http_code}' \
+            --request PATCH --cookie /tmp/viewer.cookies --header "Origin: $ORIGIN" --header "X-CSRF-Token: $VIEWER_CSRF" \
+            --header 'Content-Type: application/json' --data '{"status":"cancelled"}' \
+            "$ORIGIN/api/crm/meetings/$MEETING_ID")
+          assert_http "$MEETING_VIEWER_WRITE" 403 /tmp/meeting-viewer.json meeting-viewer-write
+          grep -q 'READ_ONLY_ROLE' /tmp/meeting-viewer.json
+
           cd services/crm
-          node --input-type=module - <<'NODE'
+          LEAD_ID="$LEAD_ID" MEETING_ID="$MEETING_ID" node --input-type=module - <<'NODE'
           import mysql from 'mysql2/promise';
           const pool = mysql.createPool('mysql://root:crm-pass@127.0.0.1:3306/morro_crm');
           const [leads] = await pool.query('SELECT company_name, assigned_to_subject FROM crm_leads');
           if (leads.length !== 1 || leads[0].company_name !== 'Toca do Morcego' || leads[0].assigned_to_subject !== 'owner-1') process.exit(1);
-          const [audits] = await pool.query("SELECT reason, actor_subject FROM crm_audit_events WHERE reason = 'read_only_role'");
-          if (audits.length < 1 || audits[0].actor_subject !== 'viewer-1') process.exit(1);
+          const [meetings] = await pool.query('SELECT lead_id, title, status, created_by_subject FROM crm_meetings WHERE id = ?', [Number(process.env.MEETING_ID)]);
+          if (meetings.length !== 1 || meetings[0].lead_id !== Number(process.env.LEAD_ID) || meetings[0].title !== 'Diagnóstico comercial' || meetings[0].status !== 'done' || meetings[0].created_by_subject !== 'owner-1') process.exit(1);
+          const [interactions] = await pool.query("SELECT type, actor_subject FROM crm_interactions WHERE lead_id = ? AND type = 'meeting'", [Number(process.env.LEAD_ID)]);
+          if (interactions.length < 1 || interactions[0].actor_subject !== 'owner-1') process.exit(1);
+          const [audits] = await pool.query("SELECT operation, reason, actor_subject FROM crm_audit_events WHERE reason = 'read_only_role'");
+          if (!audits.some((row) => row.actor_subject === 'viewer-1' && row.operation === 'meeting.update')) process.exit(1);
           await pool.end();
           NODE
