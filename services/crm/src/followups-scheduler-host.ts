@@ -26,7 +26,9 @@ export class CrmFollowUpSchedulerHost {
       !Number.isSafeInteger(options.intervalMs) ||
       options.intervalMs < 1_000
     ) {
-      throw new Error("CRM follow-up scheduler interval must be at least 1000ms");
+      throw new Error(
+        "CRM follow-up scheduler interval must be at least 1000ms",
+      );
     }
   }
 
@@ -68,8 +70,7 @@ export class CrmFollowUpSchedulerHost {
   }
 }
 
-export interface CreateCrmFollowUpSchedulerHostOptions
-  extends CrmFollowUpSchedulerHostOptions {
+export interface CreateCrmFollowUpSchedulerHostOptions extends CrmFollowUpSchedulerHostOptions {
   readonly delivery: CrmFollowUpDeliveryPort;
   readonly createTaskUid: () => string;
   readonly now?: () => Date;
