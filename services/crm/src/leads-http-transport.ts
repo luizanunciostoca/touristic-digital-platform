@@ -1,6 +1,7 @@
 import type { AuthSessionIdentity } from "@touristic/auth";
 import type {
   CrmLeadBoundaryResult,
+  CrmLeadCreateInput,
   CrmLeadServerBoundary,
 } from "@touristic/crm/leads-boundary";
 
@@ -43,7 +44,7 @@ function response(
 
 function resultResponse<T>(result: CrmLeadBoundaryResult<T>): CrmHttpResponse {
   if (result.ok) {
-    return response(200, { data: result.value as unknown });
+    return response(200, { data: result.value });
   }
 
   if (
@@ -81,6 +82,12 @@ function isMutation(method: string): boolean {
   return method !== "GET" && method !== "HEAD";
 }
 
+function objectBody(body: unknown): Record<string, unknown> {
+  return body && typeof body === "object" && !Array.isArray(body)
+    ? { ...(body as Record<string, unknown>) }
+    : {};
+}
+
 export class CrmLeadHttpTransport {
   constructor(
     private readonly boundary: CrmLeadServerBoundary,
@@ -109,21 +116,16 @@ export class CrmLeadHttpTransport {
       return resultResponse(await this.boundary.list(session, request.query));
     }
     if (matched.kind === "collection" && request.method === "POST") {
+      const body = objectBody(request.body);
       return resultResponse(
-        await this.boundary.create(
-          session,
-          (request.body ?? {}) as Record<string, unknown>,
-        ),
+        await this.boundary.create(session, body as CrmLeadCreateInput),
       );
     }
     if (matched.kind === "lead" && request.method === "GET") {
       return resultResponse(await this.boundary.get(session, matched.id));
     }
     if (matched.kind === "lead" && request.method === "PATCH") {
-      const body =
-        request.body && typeof request.body === "object"
-          ? (request.body as Record<string, unknown>)
-          : {};
+      const body = objectBody(request.body);
       return resultResponse(
         await this.boundary.update(session, { ...body, id: matched.id }),
       );
@@ -132,10 +134,7 @@ export class CrmLeadHttpTransport {
       return resultResponse(await this.boundary.delete(session, { id: matched.id }));
     }
     if (matched.kind === "stage" && request.method === "POST") {
-      const body =
-        request.body && typeof request.body === "object"
-          ? (request.body as Record<string, unknown>)
-          : {};
+      const body = objectBody(request.body);
       return resultResponse(
         await this.boundary.updateStage(session, {
           id: matched.id,
