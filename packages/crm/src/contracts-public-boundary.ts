@@ -96,9 +96,9 @@ export class CrmContractPublicBoundary {
     private readonly now: () => Date = () => new Date(),
   ) {}
 
-  async view(
-    tokenValue: unknown,
-  ): Promise<CrmContractPublicResult<CrmContractPublicView>> {
+  async view(tokenValue: unknown): Promise<
+    CrmContractPublicResult<CrmContractPublicView>
+  > {
     const token = safeToken(tokenValue);
     if (!token) return { ok: false, reason: "invalid_token" };
     const contract = await this.repository.findByShareToken(token);
