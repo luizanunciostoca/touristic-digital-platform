@@ -259,15 +259,6 @@ export class CrmTrialServerBoundary {
   ): Promise<CrmTrialBoundaryResult<CrmTrial>> {
     const resolved = await this.resolveActive("trial.expire", session, input.id);
     if (!resolved.ok) return resolved;
-    if (resolved.value.endDate.getTime() > this.now().getTime()) {
-      return this.reject(
-        "trial.expire",
-        session,
-        "invalid_transition",
-        resolved.value.id,
-        resolved.value.leadId,
-      );
-    }
     const updated = await this.repository.markExpired(resolved.value.id);
     await this.repository.appendInteraction({
       leadId: resolved.value.leadId,
