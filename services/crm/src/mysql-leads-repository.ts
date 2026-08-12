@@ -61,6 +61,18 @@ function mapLead(row: LeadRow): CrmLead {
   };
 }
 
+function boundedLimit(value: number | undefined): number {
+  return Number.isSafeInteger(value) && value !== undefined && value >= 1 && value <= 200
+    ? value
+    : 50;
+}
+
+function boundedOffset(value: number | undefined): number {
+  return Number.isSafeInteger(value) && value !== undefined && value >= 0
+    ? value
+    : 0;
+}
+
 export class MySqlCrmLeadRepository implements CrmLeadBoundaryRepository {
   constructor(private readonly pool: Pool) {}
 
@@ -82,12 +94,11 @@ export class MySqlCrmLeadRepository implements CrmLeadBoundaryRepository {
       const pattern = `%${query.search}%`;
       values.push(pattern, pattern, pattern);
     }
-    const limit = query?.limit ?? 50;
-    const offset = query?.offset ?? 0;
-    values.push(limit, offset);
+    const limit = boundedLimit(query?.limit);
+    const offset = boundedOffset(query?.offset);
     const clause = where.length ? ` WHERE ${where.join(" AND ")}` : "";
     const [rows] = await this.pool.execute<LeadRow[]>(
-      `SELECT ${leadColumns} FROM crm_leads${clause} ORDER BY updated_at DESC, id DESC LIMIT ? OFFSET ?`,
+      `SELECT ${leadColumns} FROM crm_leads${clause} ORDER BY updated_at DESC, id DESC LIMIT ${limit} OFFSET ${offset}`,
       values,
     );
     return rows.map(mapLead);
