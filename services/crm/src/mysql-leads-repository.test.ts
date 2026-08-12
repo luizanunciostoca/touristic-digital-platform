@@ -52,7 +52,7 @@ describe("CRM M71 MySQL persistence", () => {
   it("falls back to safe pagination bounds for invalid direct repository input", async () => {
     const { pool, calls } = poolFixture([[]]);
     const repository = new MySqlCrmLeadRepository(pool as never);
-    await repository.list({ limit: 0, offset: -1 } as never);
+    await repository.list({ limit: 0, offset: -1 });
     expect(calls[0]?.sql).toContain("LIMIT 50 OFFSET 0");
   });
 

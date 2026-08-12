@@ -62,7 +62,10 @@ function mapLead(row: LeadRow): CrmLead {
 }
 
 function boundedLimit(value: number | undefined): number {
-  return Number.isSafeInteger(value) && value !== undefined && value >= 1 && value <= 200
+  return Number.isSafeInteger(value) &&
+    value !== undefined &&
+    value >= 1 &&
+    value <= 200
     ? value
     : 50;
 }
