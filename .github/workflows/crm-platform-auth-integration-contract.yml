@@ -109,6 +109,10 @@ jobs:
           assert_http "$MEETING_UNAUTH" 401 /tmp/meeting-unauth.json unauthenticated-meeting-read
           grep -q 'AUTH_REQUIRED' /tmp/meeting-unauth.json
 
+          PROPOSAL_UNAUTH=$(curl --silent --output /tmp/proposal-unauth.json --write-out '%{http_code}' "$ORIGIN/api/crm/proposals")
+          assert_http "$PROPOSAL_UNAUTH" 401 /tmp/proposal-unauth.json unauthenticated-proposal-read
+          grep -q 'AUTH_REQUIRED' /tmp/proposal-unauth.json
+
           LOGIN=$(curl --silent --output /tmp/owner-login.json --cookie-jar /tmp/owner.cookies --write-out '%{http_code}' \
             --header "Origin: $ORIGIN" --header 'Content-Type: application/json' \
             --data "{\"email\":\"owner@example.com\",\"password\":\"$PASSWORD\"}" \
@@ -200,6 +204,65 @@ jobs:
           assert_http "$MEETING_UPDATE" 200 /tmp/meeting-update.json meeting-update
           grep -q '"status":"done"' /tmp/meeting-update.json
 
+          PROPOSAL_BAD_CSRF=$(curl --silent --output /tmp/proposal-bad-csrf.json --write-out '%{http_code}' \
+            --cookie /tmp/owner.cookies --header "Origin: $ORIGIN" --header 'X-CSRF-Token: wrong' \
+            --header 'Content-Type: application/json' \
+            --data "{\"leadId\":$LEAD_ID,\"title\":\"Blocked\",\"monthlyValue\":\"10.00\"}" \
+            "$ORIGIN/api/crm/proposals")
+          assert_http "$PROPOSAL_BAD_CSRF" 403 /tmp/proposal-bad-csrf.json proposal-invalid-csrf
+          grep -q 'INVALID_CSRF' /tmp/proposal-bad-csrf.json
+
+          PROPOSAL_CREATE=$(curl --silent --output /tmp/proposal-create.json --write-out '%{http_code}' \
+            --cookie /tmp/owner.cookies --header "Origin: $ORIGIN" --header "X-CSRF-Token: $OWNER_CSRF" \
+            --header 'Content-Type: application/json' \
+            --data "{\"leadId\":$LEAD_ID,\"title\":\"Proposta Comercial — Morro Digital\",\"planName\":\"Plano Essencial\",\"monthlyValue\":\"299.00\",\"setupFee\":\"99.90\",\"trialDays\":14,\"features\":[\"Página personalizada\",\"Mapa interativo\"]}" \
+            "$ORIGIN/api/crm/proposals")
+          assert_http "$PROPOSAL_CREATE" 200 /tmp/proposal-create.json proposal-create
+          python3 - <<'PY'
+          import json
+          data=json.load(open('/tmp/proposal-create.json'))
+          assert data['data']['title'] == 'Proposta Comercial — Morro Digital'
+          assert data['data']['status'] == 'draft'
+          assert data['data']['monthlyValue'] == '299.00'
+          open('/tmp/proposal-id.txt','w').write(str(data['data']['id']))
+          PY
+          PROPOSAL_ID=$(cat /tmp/proposal-id.txt)
+
+          PROPOSAL_LIST=$(curl --silent --output /tmp/proposal-list.json --write-out '%{http_code}' \
+            --cookie /tmp/owner.cookies "$ORIGIN/api/crm/proposals?leadId=$LEAD_ID")
+          assert_http "$PROPOSAL_LIST" 200 /tmp/proposal-list.json proposal-list
+          python3 - <<'PY'
+          import json
+          data=json.load(open('/tmp/proposal-list.json'))
+          assert len(data['data']) == 1
+          assert data['data'][0]['title'] == 'Proposta Comercial — Morro Digital'
+          assert data['data'][0]['status'] == 'draft'
+          PY
+
+          PROPOSAL_SEND=$(curl --silent --output /tmp/proposal-send.json --write-out '%{http_code}' \
+            --request POST --cookie /tmp/owner.cookies --header "Origin: $ORIGIN" --header "X-CSRF-Token: $OWNER_CSRF" \
+            --header 'Content-Type: application/json' \
+            "$ORIGIN/api/crm/proposals/$PROPOSAL_ID/send")
+          assert_http "$PROPOSAL_SEND" 200 /tmp/proposal-send.json proposal-send
+          grep -q '"status":"sent"' /tmp/proposal-send.json
+
+          PROPOSAL_RESPOND=$(curl --silent --output /tmp/proposal-respond.json --write-out '%{http_code}' \
+            --request POST --cookie /tmp/owner.cookies --header "Origin: $ORIGIN" --header "X-CSRF-Token: $OWNER_CSRF" \
+            --header 'Content-Type: application/json' --data '{"accepted":true}' \
+            "$ORIGIN/api/crm/proposals/$PROPOSAL_ID/respond")
+          assert_http "$PROPOSAL_RESPOND" 200 /tmp/proposal-respond.json proposal-respond
+          grep -q '"status":"accepted"' /tmp/proposal-respond.json
+
+          PROPOSAL_ACCEPTED=$(curl --silent --output /tmp/proposal-accepted.json --write-out '%{http_code}' \
+            --cookie /tmp/owner.cookies "$ORIGIN/api/crm/proposals/accepted?leadId=$LEAD_ID")
+          assert_http "$PROPOSAL_ACCEPTED" 200 /tmp/proposal-accepted.json proposal-accepted
+          python3 - <<'PY'
+          import json
+          data=json.load(open('/tmp/proposal-accepted.json'))
+          assert data['data']['status'] == 'accepted'
+          assert data['data']['id'] > 0
+          PY
+
           VIEWER_LOGIN=$(curl --silent --output /tmp/viewer-login.json --cookie-jar /tmp/viewer.cookies --write-out '%{http_code}' \
             --header "Origin: $ORIGIN" --header 'Content-Type: application/json' \
             --data "{\"email\":\"viewer@example.com\",\"password\":\"$PASSWORD\"}" \
@@ -226,17 +289,31 @@ jobs:
           assert_http "$MEETING_VIEWER_WRITE" 403 /tmp/meeting-viewer.json meeting-viewer-write
           grep -q 'READ_ONLY_ROLE' /tmp/meeting-viewer.json
 
+          PROPOSAL_VIEWER_WRITE=$(curl --silent --output /tmp/proposal-viewer.json --write-out '%{http_code}' \
+            --cookie /tmp/viewer.cookies --header "Origin: $ORIGIN" --header "X-CSRF-Token: $VIEWER_CSRF" \
+            --header 'Content-Type: application/json' \
+            --data "{\"leadId\":$LEAD_ID,\"title\":\"Viewer blocked\",\"monthlyValue\":\"10.00\"}" \
+            "$ORIGIN/api/crm/proposals")
+          assert_http "$PROPOSAL_VIEWER_WRITE" 403 /tmp/proposal-viewer.json proposal-viewer-write
+          grep -q 'READ_ONLY_ROLE' /tmp/proposal-viewer.json
+
           cd services/crm
-          LEAD_ID="$LEAD_ID" MEETING_ID="$MEETING_ID" node --input-type=module - <<'NODE'
+          LEAD_ID="$LEAD_ID" MEETING_ID="$MEETING_ID" PROPOSAL_ID="$PROPOSAL_ID" node --input-type=module - <<'NODE'
           import mysql from 'mysql2/promise';
           const pool = mysql.createPool('mysql://root:crm-pass@127.0.0.1:3306/morro_crm');
-          const [leads] = await pool.query('SELECT company_name, assigned_to_subject FROM crm_leads');
-          if (leads.length !== 1 || leads[0].company_name !== 'Toca do Morcego' || leads[0].assigned_to_subject !== 'owner-1') process.exit(1);
+          const [leads] = await pool.query('SELECT company_name, assigned_to_subject, stage FROM crm_leads');
+          if (leads.length !== 1 || leads[0].company_name !== 'Toca do Morcego' || leads[0].assigned_to_subject !== 'owner-1' || leads[0].stage !== 'contract_sent') process.exit(1);
           const [meetings] = await pool.query('SELECT lead_id, title, status, created_by_subject FROM crm_meetings WHERE id = ?', [Number(process.env.MEETING_ID)]);
           if (meetings.length !== 1 || meetings[0].lead_id !== Number(process.env.LEAD_ID) || meetings[0].title !== 'Diagnóstico comercial' || meetings[0].status !== 'done' || meetings[0].created_by_subject !== 'owner-1') process.exit(1);
-          const [interactions] = await pool.query("SELECT type, actor_subject FROM crm_interactions WHERE lead_id = ? AND type = 'meeting'", [Number(process.env.LEAD_ID)]);
-          if (interactions.length < 1 || interactions[0].actor_subject !== 'owner-1') process.exit(1);
+          const [proposals] = await pool.query('SELECT lead_id, title, status, created_by_subject, share_token FROM crm_proposals WHERE id = ?', [Number(process.env.PROPOSAL_ID)]);
+          if (proposals.length !== 1 || proposals[0].lead_id !== Number(process.env.LEAD_ID) || proposals[0].title !== 'Proposta Comercial — Morro Digital' || proposals[0].status !== 'accepted' || proposals[0].created_by_subject !== 'owner-1') process.exit(1);
+          if (typeof proposals[0].share_token !== 'string' || proposals[0].share_token.length < 16 || proposals[0].share_token.length > 64) process.exit(1);
+          const [meetingInteractions] = await pool.query("SELECT type, actor_subject FROM crm_interactions WHERE lead_id = ? AND type = 'meeting'", [Number(process.env.LEAD_ID)]);
+          if (meetingInteractions.length < 1 || meetingInteractions[0].actor_subject !== 'owner-1') process.exit(1);
+          const [proposalInteractions] = await pool.query("SELECT type, actor_subject FROM crm_interactions WHERE lead_id = ? AND type = 'proposal'", [Number(process.env.LEAD_ID)]);
+          if (proposalInteractions.length < 3 || proposalInteractions.some((row) => row.actor_subject !== 'owner-1')) process.exit(1);
           const [audits] = await pool.query("SELECT operation, reason, actor_subject FROM crm_audit_events WHERE reason = 'read_only_role'");
           if (!audits.some((row) => row.actor_subject === 'viewer-1' && row.operation === 'meeting.update')) process.exit(1);
+          if (!audits.some((row) => row.actor_subject === 'viewer-1' && row.operation === 'proposal.create')) process.exit(1);
           await pool.end();
           NODE
