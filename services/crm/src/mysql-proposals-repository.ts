@@ -63,7 +63,9 @@ function mapProposal(row: ProposalRow): CrmProposal {
   };
 }
 
-export class MySqlCrmProposalRepository implements CrmProposalBoundaryRepository {
+export class MySqlCrmProposalRepository
+  implements CrmProposalBoundaryRepository
+{
   constructor(private readonly pool: Pool) {}
 
   async list(leadId?: CrmId): Promise<readonly CrmProposal[]> {
