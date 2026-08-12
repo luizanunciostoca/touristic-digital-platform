@@ -67,8 +67,7 @@ export class CrmTrialSchedulerHost {
   }
 }
 
-export interface CreateCrmTrialSchedulerHostOptions
-  extends CrmTrialSchedulerHostOptions {
+export interface CreateCrmTrialSchedulerHostOptions extends CrmTrialSchedulerHostOptions {
   readonly createTaskUid: () => string;
   readonly actorSubject?: string;
 }
