@@ -46,6 +46,11 @@
       "types": "./src/contracts-public-boundary.ts",
       "node": "./dist/contracts-public-boundary.js",
       "default": "./src/contracts-public-boundary.ts"
+    },
+    "./followups-boundary": {
+      "types": "./src/followups-boundary.ts",
+      "node": "./dist/followups-boundary.js",
+      "default": "./src/followups-boundary.ts"
     }
   },
   "scripts": {
