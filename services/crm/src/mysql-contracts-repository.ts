@@ -4,6 +4,7 @@ import type {
   CrmContractCreateRecord,
   CrmContractUpdateRecord,
 } from "@touristic/crm/contracts-boundary";
+import type { CrmContractPublicSignRecord } from "@touristic/crm/contracts-public-boundary";
 import type { Pool, ResultSetHeader, RowDataPacket } from "mysql2/promise";
 
 interface ContractRow extends RowDataPacket {
@@ -71,6 +72,14 @@ export class MySqlCrmContractRepository implements CrmContractBoundaryRepository
     return rows[0] ? mapContract(rows[0]) : null;
   }
 
+  async findByShareToken(token: string): Promise<CrmContract | null> {
+    const [rows] = await this.pool.execute<ContractRow[]>(
+      `SELECT ${contractColumns} FROM crm_contracts WHERE share_token = ? LIMIT 1`,
+      [token],
+    );
+    return rows[0] ? mapContract(rows[0]) : null;
+  }
+
   async leadExists(leadId: CrmId): Promise<boolean> {
     const [rows] = await this.pool.execute<RowDataPacket[]>(
       "SELECT id FROM crm_leads WHERE id = ? LIMIT 1",
@@ -133,6 +142,25 @@ export class MySqlCrmContractRepository implements CrmContractBoundaryRepository
     const updated = await this.findById(id);
     if (!updated) throw new Error("crm_contract_update_readback_failed");
     return updated;
+  }
+
+  async signSentByToken(
+    record: CrmContractPublicSignRecord,
+  ): Promise<CrmContract | null> {
+    const [result] = await this.pool.execute<ResultSetHeader>(
+      `UPDATE crm_contracts
+       SET status = 'signed', signed_at = ?, signature_data = ?, signer_name = ?, signer_ip = ?
+       WHERE share_token = ? AND status = 'sent'`,
+      [
+        record.signedAt,
+        record.signatureData,
+        record.signerName,
+        record.signerIp,
+        record.token,
+      ],
+    );
+    if (result.affectedRows !== 1) return null;
+    return this.findByShareToken(record.token);
   }
 
   async updateLeadStage(leadId: CrmId, stage: CrmLeadStage): Promise<void> {
