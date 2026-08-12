@@ -3,6 +3,8 @@ import mysql, { type Pool, type PoolOptions } from "mysql2/promise";
 import { CrmLeadHttpTransport } from "./leads-http-transport.js";
 import { CrmMeetingHttpTransport } from "./meetings-http-transport.js";
 import { MySqlCrmLeadAuditPort } from "./mysql-audit-port.js";
+import { MySqlCrmContractAuditPort } from "./mysql-contracts-audit-port.js";
+import { MySqlCrmContractRepository } from "./mysql-contracts-repository.js";
 import { MySqlCrmLeadRepository } from "./mysql-leads-repository.js";
 import { MySqlCrmMeetingAuditPort } from "./mysql-meetings-audit-port.js";
 import { MySqlCrmMeetingRepository } from "./mysql-meetings-repository.js";
@@ -15,6 +17,8 @@ export {
   CrmLeadHttpTransport,
   CrmMeetingHttpTransport,
   CrmProposalHttpTransport,
+  MySqlCrmContractAuditPort,
+  MySqlCrmContractRepository,
   MySqlCrmLeadAuditPort,
   MySqlCrmLeadRepository,
   MySqlCrmMeetingAuditPort,
