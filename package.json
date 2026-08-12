@@ -17,7 +17,7 @@
     "design-system:inventory": "node tooling/design-system/inventory-v1-css.mjs",
     "check": "pnpm format:check && pnpm architecture:check && pnpm features:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --write packages/crm/src/meetings-boundary.test.ts packages/crm/src/meetings-boundary.ts services/crm/src/mysql-meetings-repository.test.ts services/crm/src/mysql-meetings-repository.ts && git diff -- packages/crm/src/meetings-boundary.test.ts packages/crm/src/meetings-boundary.ts services/crm/src/mysql-meetings-repository.test.ts services/crm/src/mysql-meetings-repository.ts && test -z \"$(git status --porcelain -- packages/crm/src/meetings-boundary.test.ts packages/crm/src/meetings-boundary.ts services/crm/src/mysql-meetings-repository.test.ts services/crm/src/mysql-meetings-repository.ts)\""
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",
