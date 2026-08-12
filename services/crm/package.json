@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
+    "@touristic/auth": "workspace:*",
     "@touristic/crm": "workspace:*",
     "mysql2": "^3.14.5"
   },
