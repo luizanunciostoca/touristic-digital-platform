@@ -5,6 +5,7 @@ export interface CrmHttpRequest {
   readonly pathname: string;
   readonly query?: Readonly<Record<string, unknown>>;
   readonly body?: unknown;
+  readonly clientIp?: string;
 }
 
 export interface CrmHttpResponse {
