@@ -60,6 +60,12 @@ function route(
     : null;
 }
 
+function normalizeHttpId(value: unknown): unknown {
+  if (typeof value !== "string" || !/^[1-9]\d*$/u.test(value)) return value;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) ? parsed : value;
+}
+
 export class CrmMeetingHttpTransport {
   constructor(
     private readonly boundary: CrmMeetingServerBoundary,
@@ -80,7 +86,10 @@ export class CrmMeetingHttpTransport {
 
     if (matched.kind === "collection" && request.method === "GET") {
       return resultResponse(
-        await this.boundary.list(session, request.query?.leadId),
+        await this.boundary.list(
+          session,
+          normalizeHttpId(request.query?.leadId),
+        ),
       );
     }
     if (matched.kind === "collection" && request.method === "POST") {
@@ -98,7 +107,10 @@ export class CrmMeetingHttpTransport {
     if (matched.kind === "meeting" && request.method === "PATCH") {
       const body = crmObjectBody(request.body);
       return resultResponse(
-        await this.boundary.update(session, { ...body, id: matched.id }),
+        await this.boundary.update(session, {
+          ...body,
+          id: normalizeHttpId(matched.id),
+        }),
       );
     }
 
