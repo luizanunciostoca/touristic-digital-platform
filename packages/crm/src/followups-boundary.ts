@@ -263,7 +263,10 @@ export class CrmFollowUpServerBoundary {
     if (leadIdValue !== undefined && !leadId) {
       return this.reject("follow_up.list", session, "invalid_input");
     }
-    return { ok: true, value: await this.repository.list(leadId) };
+    return {
+      ok: true,
+      value: await this.repository.list(leadId ?? undefined),
+    };
   }
 
   async pending(
