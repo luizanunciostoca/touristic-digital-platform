@@ -51,4 +51,18 @@ CREATE TABLE IF NOT EXISTS crm_interactions (
   INDEX crm_interactions_lead_created_idx (lead_id, created_at),
   CONSTRAINT crm_interactions_lead_fk FOREIGN KEY (lead_id) REFERENCES crm_leads(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS crm_audit_events (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  operation VARCHAR(80) NOT NULL,
+  allowed BOOLEAN NOT NULL,
+  reason VARCHAR(80) NOT NULL,
+  actor_subject VARCHAR(191) NULL,
+  lead_id BIGINT UNSIGNED NULL,
+  created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  INDEX crm_audit_operation_created_idx (operation, created_at),
+  INDEX crm_audit_actor_created_idx (actor_subject, created_at),
+  INDEX crm_audit_lead_created_idx (lead_id, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 `;
