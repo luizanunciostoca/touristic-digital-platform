@@ -47,7 +47,11 @@ function harness(initial: CrmContract | null = contract()) {
       current?.shareToken === value ? current : null,
     signSentByToken: async (record) => {
       signatures.push(record);
-      if (!current || current.shareToken !== record.token || current.status !== "sent") {
+      if (
+        !current ||
+        current.shareToken !== record.token ||
+        current.status !== "sent"
+      ) {
         return null;
       }
       current = contract({
