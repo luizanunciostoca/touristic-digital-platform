@@ -218,7 +218,10 @@ export class CrmContractServerBoundary {
     if (leadIdValue !== undefined && !leadId) {
       return this.reject("contract.list", session, "invalid_input");
     }
-    return { ok: true, value: await this.repository.list(leadId) };
+    return {
+      ok: true,
+      value: await this.repository.list(leadId ?? undefined),
+    };
   }
 
   async create(
