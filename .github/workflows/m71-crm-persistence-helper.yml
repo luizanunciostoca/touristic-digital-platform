@@ -27,6 +27,17 @@ jobs:
           cache: pnpm
       - run: pnpm install --lockfile-only
       - run: pnpm install --frozen-lockfile
+      - name: Apply M71 validation fixes
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('services/crm/src/mysql-leads-repository.ts')
+          s=p.read_text().replace('const values: unknown[] = [];','const values: Array<string | number | Date | null> = [];')
+          p.write_text(s)
+          p=Path('services/crm/src/mysql-leads-repository.test.ts')
+          s=p.read_text().replace('type Call = { sql: string; values?: unknown[] };','type Call = { sql: string; values: unknown[] | undefined };')
+          p.write_text(s)
+          PY
       - name: Format M71 artifacts
         run: pnpm exec prettier --write services/crm/package.json services/crm/tsconfig.json services/crm/src/index.ts services/crm/src/schema.ts services/crm/src/mysql-leads-repository.ts services/crm/src/mysql-leads-repository.test.ts pnpm-lock.yaml
       - name: Validate CRM server
