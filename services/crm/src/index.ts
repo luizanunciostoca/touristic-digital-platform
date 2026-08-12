@@ -3,12 +3,14 @@ import mysql, { type Pool, type PoolOptions } from "mysql2/promise";
 import { CrmLeadHttpTransport } from "./leads-http-transport.js";
 import { MySqlCrmLeadAuditPort } from "./mysql-audit-port.js";
 import { MySqlCrmLeadRepository } from "./mysql-leads-repository.js";
+import { MySqlCrmMeetingRepository } from "./mysql-meetings-repository.js";
 import { crmM71SchemaSql } from "./schema.js";
 
 export {
   CrmLeadHttpTransport,
   MySqlCrmLeadAuditPort,
   MySqlCrmLeadRepository,
+  MySqlCrmMeetingRepository,
   crmM71SchemaSql,
 };
 export type {
