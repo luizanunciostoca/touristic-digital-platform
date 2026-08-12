@@ -8,7 +8,8 @@
   },
   "exports": {
     ".": "./src/index.ts",
-    "./authorization": "./src/authorization.ts"
+    "./authorization": "./src/authorization.ts",
+    "./leads-boundary": "./src/leads-boundary.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
