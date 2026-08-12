@@ -1,4 +1,4 @@
-import type { CrmId, CrmProposal } from "@touristic/crm";
+import type { CrmId, CrmLeadStage, CrmProposal } from "@touristic/crm";
 import type {
   CrmProposalBoundaryRepository,
   CrmProposalCreateRecord,
@@ -141,10 +141,7 @@ export class MySqlCrmProposalRepository
     return updated;
   }
 
-  async updateLeadStage(
-    leadId: CrmId,
-    stage: "contract_sent",
-  ): Promise<void> {
+  async updateLeadStage(leadId: CrmId, stage: CrmLeadStage): Promise<void> {
     await this.pool.execute(
       "UPDATE crm_leads SET stage = ?, last_contact_at = CURRENT_TIMESTAMP(3) WHERE id = ?",
       [stage, leadId],
