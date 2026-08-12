@@ -118,7 +118,7 @@ describe("CRM M87 follow-ups scheduler", () => {
     [setting({ isActive: false }), "inactive"],
     [setting({ messageTemplate: null }), "missing template"],
     [setting({ maxAttempts: 1 }), "attempt limit"],
-  ] as const)("skips unsafe automation: %s", async (configured, _label) => {
+  ] as const)("skips unsafe automation: %s", async (configured) => {
     const source =
       configured.maxAttempts === 1
         ? followUp({ attemptNumber: 2 })
