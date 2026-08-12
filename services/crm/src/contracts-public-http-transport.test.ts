@@ -61,14 +61,24 @@ function harness(initial: CrmContract | null = contract()) {
 }
 
 describe("CRM M82 public contract token HTTP transport", () => {
-  it("serves a tokenized contract without an authenticated session", async () => {
+  it("serves only the public contract projection without a session", async () => {
     const result = await harness().handle({
       method: "GET",
       pathname: `/api/crm/public/contracts/${token}`,
     });
-    expect(result).toMatchObject({
+    expect(result).toEqual({
       status: 200,
-      body: { data: { id: 51, status: "sent" } },
+      body: {
+        data: {
+          title: "Contrato Morro Digital",
+          content: "Cláusula 1. Objeto.",
+          monthlyValue: "299.00",
+          status: "sent",
+          sentAt: now,
+          signedAt: null,
+          signerName: null,
+        },
+      },
     });
   });
 
@@ -89,10 +99,12 @@ describe("CRM M82 public contract token HTTP transport", () => {
         data: {
           status: "signed",
           signerName: "Cliente Morro",
-          signerIp: "203.0.113.10",
         },
       },
     });
+    expect(result.body.data).not.toHaveProperty("signatureData");
+    expect(result.body.data).not.toHaveProperty("signerIp");
+    expect(result.body.data).not.toHaveProperty("shareToken");
   });
 
   it("returns stable token, not-found and transition errors", async () => {
