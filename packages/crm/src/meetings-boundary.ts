@@ -15,9 +15,7 @@ import {
 } from "./authorization.js";
 
 export type CrmMeetingBoundaryOperation =
-  | "meeting.list"
-  | "meeting.create"
-  | "meeting.update";
+  "meeting.list" | "meeting.create" | "meeting.update";
 
 export interface CrmMeetingAuditEvent {
   readonly operation: CrmMeetingBoundaryOperation;
