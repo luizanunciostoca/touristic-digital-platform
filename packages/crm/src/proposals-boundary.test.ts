@@ -88,7 +88,11 @@ function harness(options: { role?: AuthRole; sessionPresent?: boolean } = {}) {
   };
   const boundary = new CrmProposalServerBoundary(
     repository,
-    { record: async (event) => audits.push(event) },
+    {
+      record: async (event) => {
+        audits.push(event);
+      },
+    },
     () => token,
     () => now,
   );
