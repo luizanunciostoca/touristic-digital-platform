@@ -79,7 +79,11 @@ function harness() {
   };
   const boundary = new CrmMeetingServerBoundary(
     repository,
-    { record: async (event) => audits.push(event) },
+    {
+      record: async (event) => {
+        audits.push(event);
+      },
+    },
     () => now,
   );
   return { boundary, audits, interactions };
