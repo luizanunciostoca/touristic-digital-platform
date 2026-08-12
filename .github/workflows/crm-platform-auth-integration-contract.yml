@@ -73,6 +73,20 @@ jobs:
           HASH=$(node --input-type=module -e "import('./services/auth/dist/credentials.js').then(m => console.log(m.hashPassword(process.argv[1], Buffer.alloc(16, 7))))" "$PASSWORD")
           USERS=$(node -e 'console.log(JSON.stringify([{id:"owner-1",email:"owner@example.com",passwordHash:process.argv[1],role:"owner",businessIds:["toca-do-morcego"]},{id:"viewer-1",email:"viewer@example.com",passwordHash:process.argv[1],role:"viewer",businessIds:["toca-do-morcego"]}]))' "$HASH")
 
+          assert_http() {
+            local actual="$1"
+            local expected="$2"
+            local file="$3"
+            local label="$4"
+            if [ "$actual" != "$expected" ]; then
+              echo "$label expected HTTP $expected but received $actual"
+              cat "$file" || true
+              echo "--- server log ---"
+              cat /tmp/m73-crm-server.log || true
+              exit 1
+            fi
+          }
+
           DASHBOARD_AUTH_SECRET="$SECRET" \
           DASHBOARD_USERS_JSON="$USERS" \
           CRM_DATABASE_URL="mysql://root:crm-pass@127.0.0.1:3306/morro_crm" \
@@ -88,14 +102,14 @@ jobs:
           done
 
           UNAUTH=$(curl --silent --output /tmp/crm-unauth.json --write-out '%{http_code}' "$ORIGIN/api/crm/leads")
-          test "$UNAUTH" = "401"
+          assert_http "$UNAUTH" 401 /tmp/crm-unauth.json unauthenticated-read
           grep -q 'AUTH_REQUIRED' /tmp/crm-unauth.json
 
           LOGIN=$(curl --silent --output /tmp/owner-login.json --cookie-jar /tmp/owner.cookies --write-out '%{http_code}' \
             --header "Origin: $ORIGIN" --header 'Content-Type: application/json' \
             --data "{\"email\":\"owner@example.com\",\"password\":\"$PASSWORD\"}" \
             "$ORIGIN/api/dashboard/auth/login")
-          test "$LOGIN" = "200"
+          assert_http "$LOGIN" 200 /tmp/owner-login.json owner-login
           python3 - <<'PY'
           import json
           data=json.load(open('/tmp/owner-login.json'))
@@ -107,21 +121,21 @@ jobs:
             --cookie /tmp/owner.cookies --header "Origin: $ORIGIN" --header 'X-CSRF-Token: wrong' \
             --header 'Content-Type: application/json' --data '{"companyName":"Blocked"}' \
             "$ORIGIN/api/crm/leads")
-          test "$BAD_CSRF" = "403"
+          assert_http "$BAD_CSRF" 403 /tmp/crm-bad-csrf.json invalid-csrf
           grep -q 'INVALID_CSRF' /tmp/crm-bad-csrf.json
 
           CROSS=$(curl --silent --output /tmp/crm-cross.json --write-out '%{http_code}' \
             --cookie /tmp/owner.cookies --header 'Origin: https://evil.example' --header "X-CSRF-Token: $OWNER_CSRF" \
             --header 'Content-Type: application/json' --data '{"companyName":"Blocked"}' \
             "$ORIGIN/api/crm/leads")
-          test "$CROSS" = "403"
+          assert_http "$CROSS" 403 /tmp/crm-cross.json cross-origin
           grep -q 'ORIGIN_DENIED' /tmp/crm-cross.json
 
           CREATE=$(curl --silent --output /tmp/crm-create.json --write-out '%{http_code}' \
             --cookie /tmp/owner.cookies --header "Origin: $ORIGIN" --header "X-CSRF-Token: $OWNER_CSRF" \
             --header 'Content-Type: application/json' --data '{"companyName":"Toca do Morcego","segment":"events"}' \
             "$ORIGIN/api/crm/leads")
-          test "$CREATE" = "200"
+          assert_http "$CREATE" 200 /tmp/crm-create.json owner-create
           python3 - <<'PY'
           import json
           data=json.load(open('/tmp/crm-create.json'))
@@ -132,7 +146,7 @@ jobs:
 
           LIST=$(curl --silent --output /tmp/crm-list.json --write-out '%{http_code}' \
             --cookie /tmp/owner.cookies "$ORIGIN/api/crm/leads?search=Toca&limit=25&offset=0")
-          test "$LIST" = "200"
+          assert_http "$LIST" 200 /tmp/crm-list.json owner-list
           python3 - <<'PY'
           import json
           data=json.load(open('/tmp/crm-list.json'))
@@ -144,7 +158,7 @@ jobs:
             --header "Origin: $ORIGIN" --header 'Content-Type: application/json' \
             --data "{\"email\":\"viewer@example.com\",\"password\":\"$PASSWORD\"}" \
             "$ORIGIN/api/dashboard/auth/login")
-          test "$VIEWER_LOGIN" = "200"
+          assert_http "$VIEWER_LOGIN" 200 /tmp/viewer-login.json viewer-login
           python3 - <<'PY'
           import json
           data=json.load(open('/tmp/viewer-login.json'))
@@ -156,7 +170,7 @@ jobs:
             --cookie /tmp/viewer.cookies --header "Origin: $ORIGIN" --header "X-CSRF-Token: $VIEWER_CSRF" \
             --header 'Content-Type: application/json' --data '{"companyName":"Viewer blocked"}' \
             "$ORIGIN/api/crm/leads")
-          test "$VIEWER_WRITE" = "403"
+          assert_http "$VIEWER_WRITE" 403 /tmp/crm-viewer.json viewer-write
           grep -q 'READ_ONLY_ROLE' /tmp/crm-viewer.json
 
           cd services/crm
