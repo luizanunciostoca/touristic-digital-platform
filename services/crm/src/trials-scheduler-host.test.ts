@@ -48,7 +48,9 @@ describe("CRM M92 trials scheduler host", () => {
     const onRun = vi.fn();
     const onError = vi.fn();
     const successful = new CrmTrialSchedulerHost(
-      { runDue: async () => ({ ...emptyResult, considered: 2, expired: 2 }) } as CrmTrialScheduler,
+      {
+        runDue: async () => ({ ...emptyResult, considered: 2, expired: 2 }),
+      } as CrmTrialScheduler,
       { intervalMs: 1_000, onRun, onError },
     );
     await successful.runOnce();
