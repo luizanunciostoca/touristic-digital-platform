@@ -149,10 +149,7 @@ describe("CRM M77/M83 MySQL proposals persistence", () => {
       status: "accepted",
       responded_at: respondedAt,
     };
-    const { pool, calls } = poolFixture([
-      { affectedRows: 1 },
-      [acceptedRow],
-    ]);
+    const { pool, calls } = poolFixture([{ affectedRows: 1 }, [acceptedRow]]);
     const repository = new MySqlCrmProposalRepository(pool as never);
     const updated = await repository.respondActiveByToken({
       token: proposalRow.share_token,
@@ -160,9 +157,7 @@ describe("CRM M77/M83 MySQL proposals persistence", () => {
       respondedAt,
     });
     expect(calls[0]?.sql).toContain("status IN ('sent','viewed')");
-    expect(calls[0]?.sql).toContain(
-      "valid_until IS NULL OR valid_until >= ?",
-    );
+    expect(calls[0]?.sql).toContain("valid_until IS NULL OR valid_until >= ?");
     expect(calls[0]?.values).toEqual([
       "accepted",
       respondedAt,
