@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 
 import { CrmContractServerBoundary } from "@touristic/crm/contracts-boundary";
+import { CrmContractPublicBoundary } from "@touristic/crm/contracts-public-boundary";
 import { CrmLeadServerBoundary } from "@touristic/crm/leads-boundary";
 import { CrmMeetingServerBoundary } from "@touristic/crm/meetings-boundary";
 import { CrmProposalServerBoundary } from "@touristic/crm/proposals-boundary";
@@ -8,6 +9,7 @@ import {
   applyCrmM71Schema,
   createCrmMySqlPoolFromEnvironment,
   CrmContractHttpTransport,
+  CrmContractPublicHttpTransport,
   CrmLeadHttpTransport,
   CrmMeetingHttpTransport,
   CrmProposalHttpTransport,
@@ -22,6 +24,7 @@ import {
 } from "@touristic/crm-server";
 
 const crmPrefixes = [
+  "/api/crm/public/contracts",
   "/api/crm/contracts",
   "/api/crm/leads",
   "/api/crm/meetings",
@@ -67,6 +70,15 @@ function queryObject(searchParams) {
   return query;
 }
 
+function clientIp(request) {
+  const forwarded = request.headers?.["x-forwarded-for"];
+  const first = Array.isArray(forwarded) ? forwarded[0] : forwarded;
+  if (typeof first === "string" && first.trim()) {
+    return first.split(",")[0]?.trim();
+  }
+  return request.socket?.remoteAddress || request.connection?.remoteAddress || "unknown";
+}
+
 function createUnavailableApi() {
   return Object.freeze({
     matches: matchesCrmPath,
@@ -93,11 +105,13 @@ export function createCrmApi({ authApi, getEnvironmentValue }) {
   const pool = createCrmMySqlPoolFromEnvironment({
     CRM_DATABASE_URL: databaseUrl,
   });
+  const contractRepository = new MySqlCrmContractRepository(pool);
   const contractBoundary = new CrmContractServerBoundary(
-    new MySqlCrmContractRepository(pool),
+    contractRepository,
     new MySqlCrmContractAuditPort(pool),
     createShareToken,
   );
+  const contractPublicBoundary = new CrmContractPublicBoundary(contractRepository);
   const leadBoundary = new CrmLeadServerBoundary(
     new MySqlCrmLeadRepository(pool),
     new MySqlCrmLeadAuditPort(pool),
@@ -147,6 +161,7 @@ export function createCrmApi({ authApi, getEnvironmentValue }) {
         },
       };
       const transports = [
+        new CrmContractPublicHttpTransport(contractPublicBoundary),
         new CrmContractHttpTransport(contractBoundary, authPort),
         new CrmLeadHttpTransport(leadBoundary, authPort),
         new CrmMeetingHttpTransport(meetingBoundary, authPort),
@@ -164,6 +179,7 @@ export function createCrmApi({ authApi, getEnvironmentValue }) {
         method: String(request.method || "GET"),
         pathname: requestUrl.pathname,
         query: queryObject(requestUrl.searchParams),
+        clientIp: clientIp(request),
         ...(body === undefined ? {} : { body }),
       });
       response.setHeader("Vary", "Cookie");
