@@ -144,18 +144,17 @@ describe("CRM M82 public contract token boundary", () => {
       }),
     ]);
     expect(stages).toEqual(["contract_signed"]);
-    expect(interactions).toEqual([
-      expect.objectContaining({
-        leadId: 7,
-        actorSubject: "public-contract-token",
-        metadata: expect.objectContaining({
-          contractId: "51",
-          status: "signed",
-          signerName: "Cliente Morro",
-          signerIp: "203.0.113.10",
-        }),
-      }),
-    ]);
+    expect(interactions).toHaveLength(1);
+    expect(interactions[0]).toMatchObject({
+      leadId: 7,
+      actorSubject: "public-contract-token",
+    });
+    expect(interactions[0]?.metadata).toEqual({
+      contractId: "51",
+      status: "signed",
+      signerName: "Cliente Morro",
+      signerIp: "203.0.113.10",
+    });
   });
 
   it("rejects draft, signed and cancelled contracts", async () => {
