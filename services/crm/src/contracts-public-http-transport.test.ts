@@ -39,7 +39,11 @@ function harness(initial: CrmContract | null = contract()) {
     findByShareToken: async (value) =>
       current?.shareToken === value ? current : null,
     signSentByToken: async (record) => {
-      if (!current || current.status !== "sent" || current.shareToken !== record.token) {
+      if (
+        !current ||
+        current.status !== "sent" ||
+        current.shareToken !== record.token
+      ) {
         return null;
       }
       current = contract({
