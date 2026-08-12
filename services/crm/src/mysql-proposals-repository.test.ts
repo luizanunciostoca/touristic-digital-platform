@@ -62,34 +62,37 @@ describe("CRM M76 MySQL proposals persistence", () => {
     expect(calls[0]?.values).toEqual([7]);
   });
 
-  it("persists stable actor subject, JSON features and reads back insert id", async () => {
-    const { pool, calls } = poolFixture([{ insertId: 41 }, [proposalRow]]);
-    const repository = new MySqlCrmProposalRepository(pool as never);
-    const created = await repository.create({
-      leadId: 7,
-      title: proposalRow.title,
-      planName: proposalRow.plan_name,
-      monthlyValue: proposalRow.monthly_value,
-      setupFee: proposalRow.setup_fee,
-      trialDays: proposalRow.trial_days,
-      features: ["Página personalizada"],
-      customMessage: null,
-      shareToken: proposalRow.share_token,
-      status: "draft",
-      validUntil: proposalRow.valid_until,
-      createdBySubject: "owner-1",
-    });
-    expect(created).toMatchObject({
-      id: 41,
-      features: ["Página personalizada"],
-    });
-    expect(calls[0]?.sql).toContain("created_by_subject");
-    expect(calls[0]?.values).toContain("owner-1");
-    expect(calls[0]?.values).toContain(
-      JSON.stringify(["Página personalizada"]),
-    );
-    expect(calls[1]?.values).toEqual([41]);
-  });
+  it(
+    "persists stable actor subject, JSON features and reads back insert id",
+    async () => {
+      const { pool, calls } = poolFixture([{ insertId: 41 }, [proposalRow]]);
+      const repository = new MySqlCrmProposalRepository(pool as never);
+      const created = await repository.create({
+        leadId: 7,
+        title: proposalRow.title,
+        planName: proposalRow.plan_name,
+        monthlyValue: proposalRow.monthly_value,
+        setupFee: proposalRow.setup_fee,
+        trialDays: proposalRow.trial_days,
+        features: ["Página personalizada"],
+        customMessage: null,
+        shareToken: proposalRow.share_token,
+        status: "draft",
+        validUntil: proposalRow.valid_until,
+        createdBySubject: "owner-1",
+      });
+      expect(created).toMatchObject({
+        id: 41,
+        features: ["Página personalizada"],
+      });
+      expect(calls[0]?.sql).toContain("created_by_subject");
+      expect(calls[0]?.values).toContain("owner-1");
+      expect(calls[0]?.values).toContain(
+        JSON.stringify(["Página personalizada"]),
+      );
+      expect(calls[1]?.values).toEqual([41]);
+    },
+  );
 
   it("uses prepared proposal and authoritative lead lifecycle updates", async () => {
     const { pool, calls } = poolFixture([
@@ -122,22 +125,25 @@ describe("CRM M76 MySQL proposals persistence", () => {
     expect(calls[2]?.values).toEqual(["contract_sent", 7]);
   });
 
-  it("persists proposal interactions without interpolating content or actor", async () => {
-    const { pool, calls } = poolFixture();
-    const repository = new MySqlCrmProposalRepository(pool as never);
-    await repository.appendInteraction({
-      leadId: 7,
-      content: "Proposta enviada ao cliente",
-      actorSubject: "owner-1",
-      metadata: { proposalId: "41" },
-    });
-    expect(calls[0]?.sql).toContain("VALUES (?, 'proposal', ?, ?, ?)");
-    expect(calls[0]?.sql).not.toContain("owner-1");
-    expect(calls[0]?.values).toEqual([
-      7,
-      "Proposta enviada ao cliente",
-      JSON.stringify({ proposalId: "41" }),
-      "owner-1",
-    ]);
-  });
+  it(
+    "persists proposal interactions without interpolating content or actor",
+    async () => {
+      const { pool, calls } = poolFixture();
+      const repository = new MySqlCrmProposalRepository(pool as never);
+      await repository.appendInteraction({
+        leadId: 7,
+        content: "Proposta enviada ao cliente",
+        actorSubject: "owner-1",
+        metadata: { proposalId: "41" },
+      });
+      expect(calls[0]?.sql).toContain("VALUES (?, 'proposal', ?, ?, ?)");
+      expect(calls[0]?.sql).not.toContain("owner-1");
+      expect(calls[0]?.values).toEqual([
+        7,
+        "Proposta enviada ao cliente",
+        JSON.stringify({ proposalId: "41" }),
+        "owner-1",
+      ]);
+    },
+  );
 });
