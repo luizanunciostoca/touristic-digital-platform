@@ -304,7 +304,8 @@ export class CrmContractServerBoundary {
     if (!id) return this.reject("contract.send", session, "invalid_input");
 
     const contract = await this.repository.findById(id);
-    if (!contract) return this.reject("contract.send", session, "not_found", id);
+    if (!contract)
+      return this.reject("contract.send", session, "not_found", id);
     if (!isContractStatus(contract.status) || contract.status !== "draft") {
       return this.reject(
         "contract.send",
@@ -344,7 +345,8 @@ export class CrmContractServerBoundary {
     }
 
     const contract = await this.repository.findById(id);
-    if (!contract) return this.reject("contract.sign", session, "not_found", id);
+    if (!contract)
+      return this.reject("contract.sign", session, "not_found", id);
     if (
       !isContractStatus(contract.status) ||
       !["draft", "sent"].includes(contract.status)
@@ -387,7 +389,8 @@ export class CrmContractServerBoundary {
     }
 
     const contract = await this.repository.findById(id);
-    if (!contract) return this.reject("contract.cancel", session, "not_found", id);
+    if (!contract)
+      return this.reject("contract.cancel", session, "not_found", id);
     if (
       !isContractStatus(contract.status) ||
       contract.status === "signed" ||
