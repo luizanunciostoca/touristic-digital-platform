@@ -1,7 +1,6 @@
 import type { AuthSessionIdentity } from "@touristic/auth";
 import type {
   CrmLeadBoundaryResult,
-  CrmLeadCreateInput,
   CrmLeadServerBoundary,
 } from "@touristic/crm/leads-boundary";
 
@@ -118,7 +117,10 @@ export class CrmLeadHttpTransport {
     if (matched.kind === "collection" && request.method === "POST") {
       const body = objectBody(request.body);
       return resultResponse(
-        await this.boundary.create(session, body as CrmLeadCreateInput),
+        await this.boundary.create(session, {
+          ...body,
+          companyName: body.companyName,
+        }),
       );
     }
     if (matched.kind === "lead" && request.method === "GET") {
