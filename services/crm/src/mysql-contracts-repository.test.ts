@@ -146,7 +146,9 @@ describe("CRM M80/M82 MySQL contracts persistence", () => {
       signerName: "Cliente Morro",
       signerIp: "203.0.113.10",
     });
-    expect(calls[0]?.sql).toContain("WHERE share_token = ? AND status = 'sent'");
+    expect(calls[0]?.sql).toContain(
+      "WHERE share_token = ? AND status = 'sent'",
+    );
     expect(calls[0]?.values).toEqual([
       signedRow.signed_at,
       "signature",
