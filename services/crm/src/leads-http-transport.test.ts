@@ -94,20 +94,15 @@ function transportFixture(role: AuthSessionIdentity["role"] | null) {
 describe("CRM M72 authenticated lead transport", () => {
   it("maps unauthenticated reads through the CRM boundary and durable audit contract", async () => {
     const { transport, audits } = transportFixture(null);
-    await expect(
-      transport.handle({ method: "GET", pathname: "/api/crm/leads" }),
-    ).resolves.toEqual(
-      expect.objectContaining({
-        status: 401,
-        body: expect.objectContaining({ error: "AUTH_REQUIRED" }),
-      }),
-    );
-    expect(audits).toEqual([
-      expect.objectContaining({
-        operation: "lead.list",
-        reason: "authentication_required",
-      }),
-    ]);
+    const result = await transport.handle({
+      method: "GET",
+      pathname: "/api/crm/leads",
+    });
+    expect(result.status).toBe(401);
+    expect(result.body.error).toBe("AUTH_REQUIRED");
+    expect(audits).toHaveLength(1);
+    expect(audits[0]?.operation).toBe("lead.list");
+    expect(audits[0]?.reason).toBe("authentication_required");
   });
 
   it("allows authenticated reads and delegates validation to the server boundary", async () => {
@@ -124,12 +119,8 @@ describe("CRM M72 authenticated lead transport", () => {
       pathname: "/api/crm/leads",
       query: { limit: 5000 },
     });
-    expect(invalid).toEqual(
-      expect.objectContaining({
-        status: 400,
-        body: expect.objectContaining({ error: "INVALID_INPUT" }),
-      }),
-    );
+    expect(invalid.status).toBe(400);
+    expect(invalid.body.error).toBe("INVALID_INPUT");
   });
 
   it("fails viewer mutations closed after platform mutation security succeeds", async () => {
@@ -140,12 +131,8 @@ describe("CRM M72 authenticated lead transport", () => {
       body: { companyName: "Blocked" },
     });
     expect(result.status).toBe(403);
-    expect(audits.at(-1)).toEqual(
-      expect.objectContaining({
-        operation: "lead.create",
-        reason: "read_only_role",
-      }),
-    );
+    expect(audits.at(-1)?.operation).toBe("lead.create");
+    expect(audits.at(-1)?.reason).toBe("read_only_role");
   });
 
   it("rejects mutation security before CRM writes without reimplementing CSRF rules", async () => {
@@ -157,18 +144,13 @@ describe("CRM M72 authenticated lead transport", () => {
         reason: "invalid_csrf",
       }),
     });
-    await expect(
-      denied.handle({
-        method: "POST",
-        pathname: "/api/crm/leads",
-        body: { companyName: "Nope" },
-      }),
-    ).resolves.toEqual(
-      expect.objectContaining({
-        status: 403,
-        body: expect.objectContaining({ error: "INVALID_CSRF" }),
-      }),
-    );
+    const result = await denied.handle({
+      method: "POST",
+      pathname: "/api/crm/leads",
+      body: { companyName: "Nope" },
+    });
+    expect(result.status).toBe(403);
+    expect(result.body.error).toBe("INVALID_CSRF");
   });
 
   it("persists boundary audit events with prepared placeholders", async () => {
