@@ -24,7 +24,9 @@ function session(role: AuthRole): AuthSessionIdentity {
   };
 }
 
-function setting(overrides: Partial<CrmFollowUpSetting> = {}): CrmFollowUpSetting {
+function setting(
+  overrides: Partial<CrmFollowUpSetting> = {},
+): CrmFollowUpSetting {
   return {
     id: 3,
     name: "Follow-up comercial",
@@ -194,9 +196,15 @@ describe("CRM M86 follow-ups HTTP transport", () => {
       method: "POST",
       pathname: "/api/crm/follow-ups/11/sent",
     });
-    expect(sent).toMatchObject({ status: 200, body: { data: { status: "sent" } } });
+    expect(sent).toMatchObject({
+      status: 200,
+      body: { data: { status: "sent" } },
+    });
 
-    const respondedTransport = harness({ role: "manager", initialStatus: "sent" });
+    const respondedTransport = harness({
+      role: "manager",
+      initialStatus: "sent",
+    });
     const responded = await respondedTransport.handle({
       method: "POST",
       pathname: "/api/crm/follow-ups/11/responded",
