@@ -79,7 +79,10 @@ export class MySqlCrmContractRepository implements CrmContractBoundaryRepository
     return rows.length > 0;
   }
 
-  async proposalBelongsToLead(proposalId: CrmId, leadId: CrmId): Promise<boolean> {
+  async proposalBelongsToLead(
+    proposalId: CrmId,
+    leadId: CrmId,
+  ): Promise<boolean> {
     const [rows] = await this.pool.execute<RowDataPacket[]>(
       "SELECT id FROM crm_proposals WHERE id = ? AND lead_id = ? LIMIT 1",
       [proposalId, leadId],
