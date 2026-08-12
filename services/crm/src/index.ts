@@ -6,6 +6,8 @@ import { MySqlCrmLeadAuditPort } from "./mysql-audit-port.js";
 import { MySqlCrmLeadRepository } from "./mysql-leads-repository.js";
 import { MySqlCrmMeetingAuditPort } from "./mysql-meetings-audit-port.js";
 import { MySqlCrmMeetingRepository } from "./mysql-meetings-repository.js";
+import { MySqlCrmProposalAuditPort } from "./mysql-proposals-audit-port.js";
+import { MySqlCrmProposalRepository } from "./mysql-proposals-repository.js";
 import { crmM71SchemaSql } from "./schema.js";
 
 export {
@@ -15,6 +17,8 @@ export {
   MySqlCrmLeadRepository,
   MySqlCrmMeetingAuditPort,
   MySqlCrmMeetingRepository,
+  MySqlCrmProposalAuditPort,
+  MySqlCrmProposalRepository,
   crmM71SchemaSql,
 };
 export type {
