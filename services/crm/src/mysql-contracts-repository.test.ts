@@ -134,10 +134,7 @@ describe("CRM M80/M82 MySQL contracts persistence", () => {
       signer_name: "Cliente Morro",
       signer_ip: "203.0.113.10",
     };
-    const { pool, calls } = poolFixture([
-      { affectedRows: 1 },
-      [signedRow],
-    ]);
+    const { pool, calls } = poolFixture([{ affectedRows: 1 }, [signedRow]]);
     const repository = new MySqlCrmContractRepository(pool as never);
     const signed = await repository.signSentByToken({
       token: "contract_token_1234567890",
