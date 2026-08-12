@@ -121,7 +121,10 @@ export class MySqlCrmProposalRepository
     return created;
   }
 
-  async update(id: CrmId, patch: CrmProposalUpdateRecord): Promise<CrmProposal> {
+  async update(
+    id: CrmId,
+    patch: CrmProposalUpdateRecord,
+  ): Promise<CrmProposal> {
     const columns: Record<keyof CrmProposalUpdateRecord, string> = {
       status: "status",
       sentAt: "sent_at",
