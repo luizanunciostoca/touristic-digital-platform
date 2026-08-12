@@ -22,7 +22,10 @@ export class CrmFollowUpSchedulerHost {
     private readonly scheduler: CrmFollowUpScheduler,
     private readonly options: CrmFollowUpSchedulerHostOptions,
   ) {
-    if (!Number.isSafeInteger(options.intervalMs) || options.intervalMs < 1_000) {
+    if (
+      !Number.isSafeInteger(options.intervalMs) ||
+      options.intervalMs < 1_000
+    ) {
       throw new Error("CRM follow-up scheduler interval must be at least 1000ms");
     }
   }
