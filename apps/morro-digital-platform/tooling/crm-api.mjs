@@ -5,6 +5,7 @@ import { CrmContractPublicBoundary } from "@touristic/crm/contracts-public-bound
 import { CrmLeadServerBoundary } from "@touristic/crm/leads-boundary";
 import { CrmMeetingServerBoundary } from "@touristic/crm/meetings-boundary";
 import { CrmProposalServerBoundary } from "@touristic/crm/proposals-boundary";
+import { CrmProposalPublicBoundary } from "@touristic/crm/proposals-public-boundary";
 import {
   applyCrmM71Schema,
   createCrmMySqlPoolFromEnvironment,
@@ -13,6 +14,7 @@ import {
   CrmLeadHttpTransport,
   CrmMeetingHttpTransport,
   CrmProposalHttpTransport,
+  CrmProposalPublicHttpTransport,
   MySqlCrmContractAuditPort,
   MySqlCrmContractRepository,
   MySqlCrmLeadAuditPort,
@@ -25,6 +27,7 @@ import {
 
 const crmPrefixes = [
   "/api/crm/public/contracts",
+  "/api/crm/public/proposals",
   "/api/crm/contracts",
   "/api/crm/leads",
   "/api/crm/meetings",
@@ -126,10 +129,14 @@ export function createCrmApi({ authApi, getEnvironmentValue }) {
     new MySqlCrmMeetingRepository(pool),
     new MySqlCrmMeetingAuditPort(pool),
   );
+  const proposalRepository = new MySqlCrmProposalRepository(pool);
   const proposalBoundary = new CrmProposalServerBoundary(
-    new MySqlCrmProposalRepository(pool),
+    proposalRepository,
     new MySqlCrmProposalAuditPort(pool),
     createShareToken,
+  );
+  const proposalPublicBoundary = new CrmProposalPublicBoundary(
+    proposalRepository,
   );
   let schemaReady;
 
@@ -168,6 +175,7 @@ export function createCrmApi({ authApi, getEnvironmentValue }) {
       };
       const transports = [
         new CrmContractPublicHttpTransport(contractPublicBoundary),
+        new CrmProposalPublicHttpTransport(proposalPublicBoundary),
         new CrmContractHttpTransport(contractBoundary, authPort),
         new CrmLeadHttpTransport(leadBoundary, authPort),
         new CrmMeetingHttpTransport(meetingBoundary, authPort),

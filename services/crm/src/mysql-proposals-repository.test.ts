@@ -38,7 +38,7 @@ const proposalRow = {
   updated_at: new Date("2026-08-12T16:00:00.000Z"),
 };
 
-describe("CRM M77 MySQL proposals persistence", () => {
+describe("CRM M77/M83 MySQL proposals persistence", () => {
   it("freezes V1 proposal states with unique public token and subject identity", () => {
     expect(crmM71SchemaSql).toContain(
       "CREATE TABLE IF NOT EXISTS crm_proposals",
@@ -117,6 +117,66 @@ describe("CRM M77 MySQL proposals persistence", () => {
     expect(calls[0]?.sql).not.toContain("contract_sent");
     expect(calls[0]?.values).toEqual(["sent", sentAt, 41]);
     expect(calls[2]?.values).toEqual(["contract_sent", 7]);
+  });
+
+  it("finds and marks public proposals viewed with prepared token queries", async () => {
+    const viewedAt = new Date("2026-08-12T20:00:00.000Z");
+    const viewedRow = { ...proposalRow, status: "viewed", viewed_at: viewedAt };
+    const { pool, calls } = poolFixture([
+      [proposalRow],
+      { affectedRows: 1 },
+      [viewedRow],
+    ]);
+    const repository = new MySqlCrmProposalRepository(pool as never);
+    const found = await repository.findByShareToken(proposalRow.share_token);
+    const viewed = await repository.markViewedByToken(
+      proposalRow.share_token,
+      viewedAt,
+    );
+    expect(found?.id).toBe(41);
+    expect(calls[0]?.sql).toContain("WHERE share_token = ? LIMIT 1");
+    expect(calls[0]?.values).toEqual([proposalRow.share_token]);
+    expect(calls[1]?.sql).toContain("status = 'viewed'");
+    expect(calls[1]?.sql).toContain("AND status = 'sent'");
+    expect(calls[1]?.values).toEqual([viewedAt, proposalRow.share_token]);
+    expect(viewed?.status).toBe("viewed");
+  });
+
+  it("atomically responds only to active, unexpired public proposal tokens", async () => {
+    const respondedAt = new Date("2026-08-12T20:00:00.000Z");
+    const acceptedRow = {
+      ...proposalRow,
+      status: "accepted",
+      responded_at: respondedAt,
+    };
+    const { pool, calls } = poolFixture([{ affectedRows: 1 }, [acceptedRow]]);
+    const repository = new MySqlCrmProposalRepository(pool as never);
+    const updated = await repository.respondActiveByToken({
+      token: proposalRow.share_token,
+      status: "accepted",
+      respondedAt,
+    });
+    expect(calls[0]?.sql).toContain("status IN ('sent','viewed')");
+    expect(calls[0]?.sql).toContain("valid_until IS NULL OR valid_until >= ?");
+    expect(calls[0]?.values).toEqual([
+      "accepted",
+      respondedAt,
+      proposalRow.share_token,
+      respondedAt,
+    ]);
+    expect(updated?.status).toBe("accepted");
+  });
+
+  it("fails closed when the atomic public proposal response updates no row", async () => {
+    const { pool, calls } = poolFixture([{ affectedRows: 0 }]);
+    const repository = new MySqlCrmProposalRepository(pool as never);
+    const result = await repository.respondActiveByToken({
+      token: proposalRow.share_token,
+      status: "rejected",
+      respondedAt: new Date("2026-08-12T20:00:00.000Z"),
+    });
+    expect(result).toBeNull();
+    expect(calls).toHaveLength(1);
   });
 
   it("persists proposal interactions and audit events without interpolation", async () => {
