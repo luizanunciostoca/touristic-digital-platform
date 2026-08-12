@@ -1,14 +1,18 @@
 import { randomBytes } from "node:crypto";
 
+import { CrmContractServerBoundary } from "@touristic/crm/contracts-boundary";
 import { CrmLeadServerBoundary } from "@touristic/crm/leads-boundary";
 import { CrmMeetingServerBoundary } from "@touristic/crm/meetings-boundary";
 import { CrmProposalServerBoundary } from "@touristic/crm/proposals-boundary";
 import {
   applyCrmM71Schema,
   createCrmMySqlPoolFromEnvironment,
+  CrmContractHttpTransport,
   CrmLeadHttpTransport,
   CrmMeetingHttpTransport,
   CrmProposalHttpTransport,
+  MySqlCrmContractAuditPort,
+  MySqlCrmContractRepository,
   MySqlCrmLeadAuditPort,
   MySqlCrmLeadRepository,
   MySqlCrmMeetingAuditPort,
@@ -18,11 +22,12 @@ import {
 } from "@touristic/crm-server";
 
 const crmPrefixes = [
+  "/api/crm/contracts",
   "/api/crm/leads",
   "/api/crm/meetings",
   "/api/crm/proposals",
 ];
-const maxBodyBytes = 64 * 1024;
+const maxBodyBytes = 128 * 1024;
 
 function matchesCrmPath(pathname) {
   return crmPrefixes.some(
@@ -71,7 +76,7 @@ function createUnavailableApi() {
   });
 }
 
-function createProposalShareToken() {
+function createShareToken() {
   return randomBytes(24).toString("base64url");
 }
 
@@ -88,6 +93,11 @@ export function createCrmApi({ authApi, getEnvironmentValue }) {
   const pool = createCrmMySqlPoolFromEnvironment({
     CRM_DATABASE_URL: databaseUrl,
   });
+  const contractBoundary = new CrmContractServerBoundary(
+    new MySqlCrmContractRepository(pool),
+    new MySqlCrmContractAuditPort(pool),
+    createShareToken,
+  );
   const leadBoundary = new CrmLeadServerBoundary(
     new MySqlCrmLeadRepository(pool),
     new MySqlCrmLeadAuditPort(pool),
@@ -99,7 +109,7 @@ export function createCrmApi({ authApi, getEnvironmentValue }) {
   const proposalBoundary = new CrmProposalServerBoundary(
     new MySqlCrmProposalRepository(pool),
     new MySqlCrmProposalAuditPort(pool),
-    createProposalShareToken,
+    createShareToken,
   );
   let schemaReady;
 
@@ -137,6 +147,7 @@ export function createCrmApi({ authApi, getEnvironmentValue }) {
         },
       };
       const transports = [
+        new CrmContractHttpTransport(contractBoundary, authPort),
         new CrmLeadHttpTransport(leadBoundary, authPort),
         new CrmMeetingHttpTransport(meetingBoundary, authPort),
         new CrmProposalHttpTransport(proposalBoundary, authPort),
