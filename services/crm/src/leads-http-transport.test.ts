@@ -1,13 +1,16 @@
 import type { AuthSessionIdentity } from "@touristic/auth";
-import type {
-  CrmLead,
-  CrmLeadAuditEvent,
-  CrmLeadBoundaryRepository,
-} from "@touristic/crm";
-import { CrmLeadServerBoundary } from "@touristic/crm/leads-boundary";
+import type { CrmLead } from "@touristic/crm";
+import {
+  CrmLeadServerBoundary,
+  type CrmLeadAuditEvent,
+  type CrmLeadBoundaryRepository,
+} from "@touristic/crm/leads-boundary";
 import { describe, expect, it } from "vitest";
 
-import { CrmLeadHttpTransport, type CrmTransportAuthPort } from "./leads-http-transport.js";
+import {
+  CrmLeadHttpTransport,
+  type CrmTransportAuthPort,
+} from "./leads-http-transport.js";
 import { MySqlCrmLeadAuditPort } from "./mysql-audit-port.js";
 import { crmM71SchemaSql } from "./schema.js";
 
@@ -81,7 +84,11 @@ function transportFixture(role: AuthSessionIdentity["role"] | null) {
     resolveSession: async () => (role ? session(role) : null),
     authorizeMutation: async () => ({ allowed: true }),
   };
-  return { transport: new CrmLeadHttpTransport(boundary, auth), audits };
+  return {
+    boundary,
+    transport: new CrmLeadHttpTransport(boundary, auth),
+    audits,
+  };
 }
 
 describe("CRM M72 authenticated lead transport", () => {
@@ -90,10 +97,16 @@ describe("CRM M72 authenticated lead transport", () => {
     await expect(
       transport.handle({ method: "GET", pathname: "/api/crm/leads" }),
     ).resolves.toEqual(
-      expect.objectContaining({ status: 401, body: expect.objectContaining({ error: "AUTH_REQUIRED" }) }),
+      expect.objectContaining({
+        status: 401,
+        body: expect.objectContaining({ error: "AUTH_REQUIRED" }),
+      }),
     );
     expect(audits).toEqual([
-      expect.objectContaining({ operation: "lead.list", reason: "authentication_required" }),
+      expect.objectContaining({
+        operation: "lead.list",
+        reason: "authentication_required",
+      }),
     ]);
   });
 
@@ -112,7 +125,10 @@ describe("CRM M72 authenticated lead transport", () => {
       query: { limit: 5000 },
     });
     expect(invalid).toEqual(
-      expect.objectContaining({ status: 400, body: expect.objectContaining({ error: "INVALID_INPUT" }) }),
+      expect.objectContaining({
+        status: 400,
+        body: expect.objectContaining({ error: "INVALID_INPUT" }),
+      }),
     );
   });
 
@@ -125,23 +141,33 @@ describe("CRM M72 authenticated lead transport", () => {
     });
     expect(result.status).toBe(403);
     expect(audits.at(-1)).toEqual(
-      expect.objectContaining({ operation: "lead.create", reason: "read_only_role" }),
+      expect.objectContaining({
+        operation: "lead.create",
+        reason: "read_only_role",
+      }),
     );
   });
 
   it("rejects mutation security before CRM writes without reimplementing CSRF rules", async () => {
-    const { transport } = transportFixture("manager");
-    const denied = new CrmLeadHttpTransport(
-      (transport as unknown as { boundary: CrmLeadServerBoundary }).boundary,
-      {
-        resolveSession: async () => session("manager"),
-        authorizeMutation: async () => ({ allowed: false, reason: "invalid_csrf" }),
-      },
-    );
+    const { boundary } = transportFixture("manager");
+    const denied = new CrmLeadHttpTransport(boundary, {
+      resolveSession: async () => session("manager"),
+      authorizeMutation: async () => ({
+        allowed: false,
+        reason: "invalid_csrf",
+      }),
+    });
     await expect(
-      denied.handle({ method: "POST", pathname: "/api/crm/leads", body: { companyName: "Nope" } }),
+      denied.handle({
+        method: "POST",
+        pathname: "/api/crm/leads",
+        body: { companyName: "Nope" },
+      }),
     ).resolves.toEqual(
-      expect.objectContaining({ status: 403, body: expect.objectContaining({ error: "INVALID_CSRF" }) }),
+      expect.objectContaining({
+        status: 403,
+        body: expect.objectContaining({ error: "INVALID_CSRF" }),
+      }),
     );
   });
 
@@ -173,7 +199,9 @@ describe("CRM M72 authenticated lead transport", () => {
   });
 
   it("freezes the durable audit table in the server schema", () => {
-    expect(crmM71SchemaSql).toContain("CREATE TABLE IF NOT EXISTS crm_audit_events");
+    expect(crmM71SchemaSql).toContain(
+      "CREATE TABLE IF NOT EXISTS crm_audit_events",
+    );
     expect(crmM71SchemaSql).toContain("actor_subject VARCHAR(191) NULL");
   });
 });
