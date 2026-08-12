@@ -1,5 +1,6 @@
 import mysql, { type Pool, type PoolOptions } from "mysql2/promise";
 
+import { CrmContractHttpTransport } from "./contracts-http-transport.js";
 import { CrmLeadHttpTransport } from "./leads-http-transport.js";
 import { CrmMeetingHttpTransport } from "./meetings-http-transport.js";
 import { MySqlCrmLeadAuditPort } from "./mysql-audit-port.js";
@@ -14,6 +15,7 @@ import { CrmProposalHttpTransport } from "./proposals-http-transport.js";
 import { crmM71SchemaSql } from "./schema.js";
 
 export {
+  CrmContractHttpTransport,
   CrmLeadHttpTransport,
   CrmMeetingHttpTransport,
   CrmProposalHttpTransport,
