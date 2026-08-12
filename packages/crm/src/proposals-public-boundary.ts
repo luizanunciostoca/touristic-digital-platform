@@ -66,7 +66,10 @@ function safeToken(value: unknown): string | null {
   return /^[A-Za-z0-9_-]{16,64}$/u.test(token) ? token : null;
 }
 
-function safeOptionalText(value: unknown, maxLength: number): string | null | undefined {
+function safeOptionalText(
+  value: unknown,
+  maxLength: number,
+): string | null | undefined {
   if (value === undefined || value === null || value === "") return null;
   if (typeof value !== "string") return undefined;
   const normalized = Array.from(value, (character) => {
@@ -99,7 +102,9 @@ function publicView(proposal: CrmProposal): CrmProposalPublicView {
 }
 
 function isExpired(proposal: CrmProposal, now: Date): boolean {
-  return Boolean(proposal.validUntil && proposal.validUntil.getTime() < now.getTime());
+  return Boolean(
+    proposal.validUntil && proposal.validUntil.getTime() < now.getTime(),
+  );
 }
 
 export class CrmProposalPublicBoundary {
