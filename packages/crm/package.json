@@ -36,6 +36,11 @@
       "types": "./src/contracts-boundary.ts",
       "node": "./dist/contracts-boundary.js",
       "default": "./src/contracts-boundary.ts"
+    },
+    "./contracts-public-boundary": {
+      "types": "./src/contracts-public-boundary.ts",
+      "node": "./dist/contracts-public-boundary.js",
+      "default": "./src/contracts-public-boundary.ts"
     }
   },
   "scripts": {
