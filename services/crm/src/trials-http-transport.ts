@@ -16,9 +16,7 @@ const trialsPrefix = "/api/crm/trials";
 
 type TrialAction = "convert" | "cancel" | "expire";
 
-function resultResponse<T>(
-  result: CrmTrialBoundaryResult<T>,
-): CrmHttpResponse {
+function resultResponse<T>(result: CrmTrialBoundaryResult<T>): CrmHttpResponse {
   if (result.ok) return crmHttpResponse(200, { data: result.value });
 
   if (
@@ -51,9 +49,7 @@ function resultResponse<T>(
   });
 }
 
-function route(
-  pathname: string,
-):
+function route(pathname: string):
   | { readonly kind: "collection" }
   | {
       readonly kind: "action";
