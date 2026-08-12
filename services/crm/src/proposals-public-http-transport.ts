@@ -31,7 +31,9 @@ function route(pathname: string): PublicProposalRoute | null {
   return null;
 }
 
-function resultResponse<T>(result: CrmProposalPublicResult<T>): CrmHttpResponse {
+function resultResponse<T>(
+  result: CrmProposalPublicResult<T>,
+): CrmHttpResponse {
   if (result.ok) return crmHttpResponse(200, { data: result.value });
   if (result.reason === "not_found") {
     return crmHttpResponse(404, { error: "NOT_FOUND", reason: result.reason });
@@ -49,7 +51,8 @@ function resultResponse<T>(result: CrmProposalPublicResult<T>): CrmHttpResponse 
     });
   }
   return crmHttpResponse(400, {
-    error: result.reason === "invalid_token" ? "INVALID_TOKEN" : "INVALID_INPUT",
+    error:
+      result.reason === "invalid_token" ? "INVALID_TOKEN" : "INVALID_INPUT",
     reason: result.reason,
   });
 }
