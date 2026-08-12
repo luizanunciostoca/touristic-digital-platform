@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { createAssistantApi } from "./assistant-api.mjs";
 import { createAuthApi } from "./auth-api.mjs";
 import { createBusinessApi } from "./business-api.mjs";
+import { createCrmApi } from "./crm-api.mjs";
 
 const repositoryRoot = resolve(
   fileURLToPath(new URL("../../../", import.meta.url)),
@@ -109,6 +110,11 @@ const assistantApi = createAssistantApi({
 const authApi = createAuthApi({
   getEnvironmentValue: (key) => process.env[key] ?? localEnvironment[key] ?? "",
   audit: auditSecurityEvent,
+});
+
+const crmApi = createCrmApi({
+  authApi,
+  getEnvironmentValue: (key) => process.env[key] ?? localEnvironment[key] ?? "",
 });
 
 const businessApi = createBusinessApi({ authApi });
@@ -380,6 +386,10 @@ const server = createServer(async (request, response) => {
       await authApi.handle(request, response, requestUrl.pathname);
       return;
     }
+    if (crmApi.matches(requestUrl.pathname)) {
+      await crmApi.handle(request, response, requestUrl);
+      return;
+    }
     if (businessApi.matches(requestUrl.pathname)) {
       await businessApi.handle(request, response, requestUrl.pathname);
       return;
@@ -402,7 +412,18 @@ const server = createServer(async (request, response) => {
       contentTypes[extname(filePath)] || "application/octet-stream",
     );
     createReadStream(filePath).pipe(response);
-  } catch {
+  } catch (error) {
+    if (String(request.url || "").startsWith("/api/")) {
+      console.error(
+        "API runtime failure.",
+        error instanceof Error ? error.stack || error.message : error,
+      );
+      response.statusCode = 500;
+      response.setHeader("Content-Type", "application/json; charset=utf-8");
+      response.setHeader("Cache-Control", "no-store");
+      response.end(JSON.stringify({ error: "INTERNAL_SERVER_ERROR" }));
+      return;
+    }
     response.statusCode = 404;
     response.setHeader("Content-Type", "text/plain; charset=utf-8");
     response.end("Recurso não encontrado.");

@@ -7,9 +7,21 @@
     "@touristic/auth": "workspace:*"
   },
   "exports": {
-    ".": "./src/index.ts",
-    "./authorization": "./src/authorization.ts",
-    "./leads-boundary": "./src/leads-boundary.ts"
+    ".": {
+      "types": "./src/index.ts",
+      "node": "./dist/index.js",
+      "default": "./src/index.ts"
+    },
+    "./authorization": {
+      "types": "./src/authorization.ts",
+      "node": "./dist/authorization.js",
+      "default": "./src/authorization.ts"
+    },
+    "./leads-boundary": {
+      "types": "./src/leads-boundary.ts",
+      "node": "./dist/leads-boundary.js",
+      "default": "./src/leads-boundary.ts"
+    }
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",

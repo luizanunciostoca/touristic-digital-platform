@@ -26,7 +26,7 @@ describe("CRM M71 MySQL persistence", () => {
     expect(crmM71SchemaSql).not.toContain("assignedToId");
   });
 
-  it("uses prepared placeholders and bounded pagination for list queries", async () => {
+  it("keeps filters prepared while using bounded pagination literals", async () => {
     const { pool, calls } = poolFixture([[]]);
     const repository = new MySqlCrmLeadRepository(pool as never);
     await repository.list({
@@ -38,7 +38,7 @@ describe("CRM M71 MySQL persistence", () => {
     });
     expect(calls).toHaveLength(1);
     expect(calls[0]?.sql).toContain("stage = ?");
-    expect(calls[0]?.sql).toContain("LIMIT ? OFFSET ?");
+    expect(calls[0]?.sql).toContain("LIMIT 25 OFFSET 5");
     expect(calls[0]?.sql).not.toContain("Toca");
     expect(calls[0]?.values).toEqual([
       "new_lead",
@@ -46,9 +46,14 @@ describe("CRM M71 MySQL persistence", () => {
       "%Toca%",
       "%Toca%",
       "%Toca%",
-      25,
-      5,
     ]);
+  });
+
+  it("falls back to safe pagination bounds for invalid direct repository input", async () => {
+    const { pool, calls } = poolFixture([[]]);
+    const repository = new MySqlCrmLeadRepository(pool as never);
+    await repository.list({ limit: 0, offset: -1 });
+    expect(calls[0]?.sql).toContain("LIMIT 50 OFFSET 0");
   });
 
   it("reads back the generated id before returning a created lead", async () => {

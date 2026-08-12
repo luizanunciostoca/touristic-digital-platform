@@ -1,0 +1,185 @@
+name: CRM Platform Auth Integration Contract
+
+on:
+  pull_request:
+    paths:
+      - "apps/morro-digital-platform/package.json"
+      - "apps/morro-digital-platform/tooling/auth-api.mjs"
+      - "apps/morro-digital-platform/tooling/crm-api.mjs"
+      - "apps/morro-digital-platform/tooling/dev-server.mjs"
+      - "packages/crm/**"
+      - "services/crm/**"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/crm-platform-auth-integration-contract.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "apps/morro-digital-platform/package.json"
+      - "apps/morro-digital-platform/tooling/auth-api.mjs"
+      - "apps/morro-digital-platform/tooling/crm-api.mjs"
+      - "apps/morro-digital-platform/tooling/dev-server.mjs"
+      - "packages/crm/**"
+      - "services/crm/**"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/crm-platform-auth-integration-contract.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  crm-auth-contract:
+    runs-on: ubuntu-24.04
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: crm-pass
+          MYSQL_DATABASE: morro_crm
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -pcrm-pass"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Validate Auth and CRM packages
+        run: |
+          pnpm --filter @touristic/auth-server test
+          pnpm --filter @touristic/crm test
+          pnpm --filter @touristic/crm-server lint
+          pnpm --filter @touristic/crm-server typecheck
+          pnpm --filter @touristic/crm-server test
+      - name: Build workspace
+        run: pnpm -w build
+      - name: Validate real cookie/session/origin/CSRF/MySQL contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          PORT=4176
+          ORIGIN="http://127.0.0.1:${PORT}"
+          SECRET="0123456789abcdef0123456789abcdef"
+          PASSWORD="correct horse battery staple"
+          HASH=$(node --input-type=module -e "import('./services/auth/dist/credentials.js').then(m => console.log(m.hashPassword(process.argv[1], Buffer.alloc(16, 7))))" "$PASSWORD")
+          USERS=$(node -e 'console.log(JSON.stringify([{id:"owner-1",email:"owner@example.com",passwordHash:process.argv[1],role:"owner",businessIds:["toca-do-morcego"]},{id:"viewer-1",email:"viewer@example.com",passwordHash:process.argv[1],role:"viewer",businessIds:["toca-do-morcego"]}]))' "$HASH")
+
+          assert_http() {
+            local actual="$1"
+            local expected="$2"
+            local file="$3"
+            local label="$4"
+            if [ "$actual" != "$expected" ]; then
+              echo "$label expected HTTP $expected but received $actual"
+              cat "$file" || true
+              echo "--- server log ---"
+              cat /tmp/m73-crm-server.log || true
+              exit 1
+            fi
+          }
+
+          DASHBOARD_AUTH_SECRET="$SECRET" \
+          DASHBOARD_USERS_JSON="$USERS" \
+          CRM_DATABASE_URL="mysql://root:crm-pass@127.0.0.1:3306/morro_crm" \
+          PORT="$PORT" \
+          HOST="127.0.0.1" \
+          node apps/morro-digital-platform/tooling/dev-server.mjs > /tmp/m73-crm-server.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true; cat /tmp/m73-crm-server.log || true' EXIT
+
+          for _ in $(seq 1 60); do
+            if curl --fail --silent "$ORIGIN/runtime-config.js" >/dev/null; then break; fi
+            sleep 0.25
+          done
+
+          UNAUTH=$(curl --silent --output /tmp/crm-unauth.json --write-out '%{http_code}' "$ORIGIN/api/crm/leads")
+          assert_http "$UNAUTH" 401 /tmp/crm-unauth.json unauthenticated-read
+          grep -q 'AUTH_REQUIRED' /tmp/crm-unauth.json
+
+          LOGIN=$(curl --silent --output /tmp/owner-login.json --cookie-jar /tmp/owner.cookies --write-out '%{http_code}' \
+            --header "Origin: $ORIGIN" --header 'Content-Type: application/json' \
+            --data "{\"email\":\"owner@example.com\",\"password\":\"$PASSWORD\"}" \
+            "$ORIGIN/api/dashboard/auth/login")
+          assert_http "$LOGIN" 200 /tmp/owner-login.json owner-login
+          python3 - <<'PY'
+          import json
+          data=json.load(open('/tmp/owner-login.json'))
+          open('/tmp/owner-csrf.txt','w').write(data['csrfToken'])
+          PY
+          OWNER_CSRF=$(cat /tmp/owner-csrf.txt)
+
+          BAD_CSRF=$(curl --silent --output /tmp/crm-bad-csrf.json --write-out '%{http_code}' \
+            --cookie /tmp/owner.cookies --header "Origin: $ORIGIN" --header 'X-CSRF-Token: wrong' \
+            --header 'Content-Type: application/json' --data '{"companyName":"Blocked"}' \
+            "$ORIGIN/api/crm/leads")
+          assert_http "$BAD_CSRF" 403 /tmp/crm-bad-csrf.json invalid-csrf
+          grep -q 'INVALID_CSRF' /tmp/crm-bad-csrf.json
+
+          CROSS=$(curl --silent --output /tmp/crm-cross.json --write-out '%{http_code}' \
+            --cookie /tmp/owner.cookies --header 'Origin: https://evil.example' --header "X-CSRF-Token: $OWNER_CSRF" \
+            --header 'Content-Type: application/json' --data '{"companyName":"Blocked"}' \
+            "$ORIGIN/api/crm/leads")
+          assert_http "$CROSS" 403 /tmp/crm-cross.json cross-origin
+          grep -q 'ORIGIN_DENIED' /tmp/crm-cross.json
+
+          CREATE=$(curl --silent --output /tmp/crm-create.json --write-out '%{http_code}' \
+            --cookie /tmp/owner.cookies --header "Origin: $ORIGIN" --header "X-CSRF-Token: $OWNER_CSRF" \
+            --header 'Content-Type: application/json' --data '{"companyName":"Toca do Morcego","segment":"events"}' \
+            "$ORIGIN/api/crm/leads")
+          assert_http "$CREATE" 200 /tmp/crm-create.json owner-create
+          python3 - <<'PY'
+          import json
+          data=json.load(open('/tmp/crm-create.json'))
+          assert data['data']['companyName'] == 'Toca do Morcego'
+          assert data['data']['id'] > 0
+          open('/tmp/lead-id.txt','w').write(str(data['data']['id']))
+          PY
+
+          LIST=$(curl --silent --output /tmp/crm-list.json --write-out '%{http_code}' \
+            --cookie /tmp/owner.cookies "$ORIGIN/api/crm/leads?search=Toca&limit=25&offset=0")
+          assert_http "$LIST" 200 /tmp/crm-list.json owner-list
+          python3 - <<'PY'
+          import json
+          data=json.load(open('/tmp/crm-list.json'))
+          assert len(data['data']) == 1
+          assert data['data'][0]['companyName'] == 'Toca do Morcego'
+          PY
+
+          VIEWER_LOGIN=$(curl --silent --output /tmp/viewer-login.json --cookie-jar /tmp/viewer.cookies --write-out '%{http_code}' \
+            --header "Origin: $ORIGIN" --header 'Content-Type: application/json' \
+            --data "{\"email\":\"viewer@example.com\",\"password\":\"$PASSWORD\"}" \
+            "$ORIGIN/api/dashboard/auth/login")
+          assert_http "$VIEWER_LOGIN" 200 /tmp/viewer-login.json viewer-login
+          python3 - <<'PY'
+          import json
+          data=json.load(open('/tmp/viewer-login.json'))
+          open('/tmp/viewer-csrf.txt','w').write(data['csrfToken'])
+          PY
+          VIEWER_CSRF=$(cat /tmp/viewer-csrf.txt)
+
+          VIEWER_WRITE=$(curl --silent --output /tmp/crm-viewer.json --write-out '%{http_code}' \
+            --cookie /tmp/viewer.cookies --header "Origin: $ORIGIN" --header "X-CSRF-Token: $VIEWER_CSRF" \
+            --header 'Content-Type: application/json' --data '{"companyName":"Viewer blocked"}' \
+            "$ORIGIN/api/crm/leads")
+          assert_http "$VIEWER_WRITE" 403 /tmp/crm-viewer.json viewer-write
+          grep -q 'READ_ONLY_ROLE' /tmp/crm-viewer.json
+
+          cd services/crm
+          node --input-type=module - <<'NODE'
+          import mysql from 'mysql2/promise';
+          const pool = mysql.createPool('mysql://root:crm-pass@127.0.0.1:3306/morro_crm');
+          const [leads] = await pool.query('SELECT company_name, assigned_to_subject FROM crm_leads');
+          if (leads.length !== 1 || leads[0].company_name !== 'Toca do Morcego' || leads[0].assigned_to_subject !== 'owner-1') process.exit(1);
+          const [audits] = await pool.query("SELECT reason, actor_subject FROM crm_audit_events WHERE reason = 'read_only_role'");
+          if (audits.length < 1 || audits[0].actor_subject !== 'viewer-1') process.exit(1);
+          await pool.end();
+          NODE
