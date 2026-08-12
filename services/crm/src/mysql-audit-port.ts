@@ -1,4 +1,7 @@
-import type { CrmLeadAuditEvent, CrmLeadAuditPort } from "@touristic/crm/leads-boundary";
+import type {
+  CrmLeadAuditEvent,
+  CrmLeadAuditPort,
+} from "@touristic/crm/leads-boundary";
 import type { Pool } from "mysql2/promise";
 
 export class MySqlCrmLeadAuditPort implements CrmLeadAuditPort {

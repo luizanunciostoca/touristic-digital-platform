@@ -111,6 +111,9 @@ importers:
 
   services/crm:
     dependencies:
+      "@touristic/auth":
+        specifier: workspace:*
+        version: link:../../packages/auth
       "@touristic/crm":
         specifier: workspace:*
         version: link:../../packages/crm

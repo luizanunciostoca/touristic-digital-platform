@@ -61,7 +61,9 @@ function resultResponse<T>(result: CrmLeadBoundaryResult<T>): CrmHttpResponse {
   return response(400, { error: "INVALID_INPUT", reason: result.reason });
 }
 
-function route(pathname: string):
+function route(
+  pathname: string,
+):
   | { readonly kind: "collection" }
   | { readonly kind: "lead"; readonly id: string }
   | { readonly kind: "stage"; readonly id: string }
@@ -133,7 +135,9 @@ export class CrmLeadHttpTransport {
       );
     }
     if (matched.kind === "lead" && request.method === "DELETE") {
-      return resultResponse(await this.boundary.delete(session, { id: matched.id }));
+      return resultResponse(
+        await this.boundary.delete(session, { id: matched.id }),
+      );
     }
     if (matched.kind === "stage" && request.method === "POST") {
       const body = objectBody(request.body);
