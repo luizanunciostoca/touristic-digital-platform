@@ -247,9 +247,11 @@ export class CrmMeetingServerBoundary {
       return this.reject("meeting.create", session, "not_found", null, leadId);
     }
 
-    const meetingLink = safeText(input.meetingLink, 500);
-    const location = safeText(input.location, 300);
-    const notes = safeText(input.notes, 4000);
+    const meetingLink =
+      input.meetingLink === undefined ? null : safeText(input.meetingLink, 500);
+    const location =
+      input.location === undefined ? null : safeText(input.location, 300);
+    const notes = input.notes === undefined ? null : safeText(input.notes, 4000);
     if (
       meetingLink === undefined ||
       location === undefined ||
