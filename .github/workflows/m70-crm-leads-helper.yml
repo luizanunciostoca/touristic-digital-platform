@@ -27,6 +27,25 @@ jobs:
           cache: pnpm
       - run: pnpm install --lockfile-only
       - run: pnpm install --frozen-lockfile
+      - name: Apply M70 lint fixes
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('packages/crm/src/leads-boundary.ts')
+          text = path.read_text()
+          old = '  const normalized = value.replace(/[\\u0000-\\u001f\\u007f]/g, " ").replace(/\\s+/g, " ").trim();'
+          new = '''  const normalized = Array.from(value, (character) => {\n    const codePoint = character.codePointAt(0) ?? 0;\n    return codePoint <= 31 || codePoint == 127 ? " " : character;\n  })\n    .join("")\n    .replace(/\\s+/g, " ")\n    .trim();'''
+          if old not in text:
+              raise SystemExit('safeText anchor missing')
+          text = text.replace(old, new, 1)
+          old = '  return Object.keys(patch).length > 0 ? (patch as CrmLeadUpdateRecord) : null;'
+          new = '  return Object.keys(patch).length > 0 ? patch : null;'
+          if old not in text:
+              raise SystemExit('update patch anchor missing')
+          text = text.replace('  const patch: Record<string, unknown> = {};', '  const patch: { -readonly [K in keyof CrmLeadUpdateRecord]?: CrmLeadUpdateRecord[K] } = {};', 1)
+          text = text.replace(old, new, 1)
+          path.write_text(text)
+          PY
       - name: Format M70 artifacts
         run: pnpm exec prettier --write packages/crm/package.json packages/crm/src/leads-boundary.ts packages/crm/src/leads-boundary.test.ts pnpm-lock.yaml
       - name: Validate CRM package
