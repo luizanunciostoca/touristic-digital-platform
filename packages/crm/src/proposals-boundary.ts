@@ -274,7 +274,8 @@ export class CrmProposalServerBoundary {
     const proposals = await this.repository.list(leadId);
     return {
       ok: true,
-      value: proposals.find((proposal) => proposal.status === "accepted") ?? null,
+      value:
+        proposals.find((proposal) => proposal.status === "accepted") ?? null,
     };
   }
 
@@ -364,7 +365,8 @@ export class CrmProposalServerBoundary {
     if (!id) return this.reject("proposal.send", session, "invalid_input");
 
     const proposal = await this.repository.findById(id);
-    if (!proposal) return this.reject("proposal.send", session, "not_found", id);
+    if (!proposal)
+      return this.reject("proposal.send", session, "not_found", id);
     if (!isProposalStatus(proposal.status) || proposal.status !== "draft") {
       return this.reject(
         "proposal.send",
@@ -374,7 +376,10 @@ export class CrmProposalServerBoundary {
         proposal.leadId,
       );
     }
-    if (proposal.validUntil && proposal.validUntil.getTime() < this.now().getTime()) {
+    if (
+      proposal.validUntil &&
+      proposal.validUntil.getTime() < this.now().getTime()
+    ) {
       return this.reject(
         "proposal.send",
         session,
@@ -410,8 +415,12 @@ export class CrmProposalServerBoundary {
     }
 
     const proposal = await this.repository.findById(id);
-    if (!proposal) return this.reject("proposal.respond", session, "not_found", id);
-    if (isFinalStatus(proposal.status) || !["sent", "viewed"].includes(proposal.status)) {
+    if (!proposal)
+      return this.reject("proposal.respond", session, "not_found", id);
+    if (
+      isFinalStatus(proposal.status) ||
+      !["sent", "viewed"].includes(proposal.status)
+    ) {
       return this.reject(
         "proposal.respond",
         session,
@@ -420,7 +429,10 @@ export class CrmProposalServerBoundary {
         proposal.leadId,
       );
     }
-    if (proposal.validUntil && proposal.validUntil.getTime() < this.now().getTime()) {
+    if (
+      proposal.validUntil &&
+      proposal.validUntil.getTime() < this.now().getTime()
+    ) {
       return this.reject(
         "proposal.respond",
         session,

@@ -199,12 +199,16 @@ describe("CRM M76 proposals boundary", () => {
   it("returns the accepted proposal for contract prefill and fails closed for viewer mutations", async () => {
     const accepted = harness(proposal({ status: "accepted" }));
     const found = await accepted.boundary.getAccepted(session("viewer"), 7);
-    expect(found).toMatchObject({ ok: true, value: { id: 21, status: "accepted" } });
+    expect(found).toMatchObject({
+      ok: true,
+      value: { id: 21, status: "accepted" },
+    });
 
     const blocked = harness();
-    expect(
-      await blocked.boundary.send(session("viewer"), { id: 21 }),
-    ).toEqual({ ok: false, reason: "read_only_role" });
+    expect(await blocked.boundary.send(session("viewer"), { id: 21 })).toEqual({
+      ok: false,
+      reason: "read_only_role",
+    });
     expect(blocked.audits.at(-1)?.reason).toBe("read_only_role");
   });
 });
