@@ -65,9 +65,7 @@ function mapFollowUp(row: FollowUpRow): CrmFollowUp {
   };
 }
 
-export class MySqlCrmFollowUpRepository
-  implements CrmFollowUpBoundaryRepository
-{
+export class MySqlCrmFollowUpRepository implements CrmFollowUpBoundaryRepository {
   constructor(private readonly pool: Pool) {}
 
   async listSettings(): Promise<readonly CrmFollowUpSetting[]> {
@@ -93,7 +91,8 @@ export class MySqlCrmFollowUpRepository
         ],
       );
       const updated = await this.findSettingById(record.id);
-      if (!updated) throw new Error("crm_follow_up_setting_update_readback_failed");
+      if (!updated)
+        throw new Error("crm_follow_up_setting_update_readback_failed");
       return updated;
     }
 
@@ -108,7 +107,8 @@ export class MySqlCrmFollowUpRepository
       ],
     );
     const created = await this.findSettingById(result.insertId);
-    if (!created) throw new Error("crm_follow_up_setting_create_readback_failed");
+    if (!created)
+      throw new Error("crm_follow_up_setting_create_readback_failed");
     return created;
   }
 
@@ -184,7 +184,8 @@ export class MySqlCrmFollowUpRepository
       "UPDATE crm_follow_ups SET status = 'sent', sent_at = ? WHERE id = ? AND status = 'pending'",
       [sentAt, id],
     );
-    if (result.affectedRows !== 1) throw new Error("crm_follow_up_mark_sent_conflict");
+    if (result.affectedRows !== 1)
+      throw new Error("crm_follow_up_mark_sent_conflict");
     const updated = await this.findById(id);
     if (!updated) throw new Error("crm_follow_up_mark_sent_readback_failed");
     return updated;
