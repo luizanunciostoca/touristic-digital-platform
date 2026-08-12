@@ -125,7 +125,10 @@ function requiredText(value: unknown, maxLength: number): string | null {
     : null;
 }
 
-function safeMoney(value: unknown, required: boolean): CrmMoney | null | undefined {
+function safeMoney(
+  value: unknown,
+  required: boolean,
+): CrmMoney | null | undefined {
   if (value === null || value === "") return required ? undefined : null;
   if (typeof value !== "string") return undefined;
   const normalized = value.trim();
@@ -342,7 +345,9 @@ export class CrmProposalServerBoundary {
       return this.reject("proposal.send", session, "invalid_input");
     }
     const existing = await this.repository.findById(id);
-    if (!existing) return this.reject("proposal.send", session, "not_found", id);
+    if (!existing) {
+      return this.reject("proposal.send", session, "not_found", id);
+    }
 
     const proposal = await this.repository.update(id, {
       status: "sent",
