@@ -40,7 +40,9 @@ function mapMeeting(row: MeetingRow): CrmMeeting {
   };
 }
 
-export class MySqlCrmMeetingRepository implements CrmMeetingBoundaryRepository {
+export class MySqlCrmMeetingRepository
+  implements CrmMeetingBoundaryRepository
+{
   constructor(private readonly pool: Pool) {}
 
   async list(leadId?: CrmId): Promise<readonly CrmMeeting[]> {
@@ -111,7 +113,9 @@ export class MySqlCrmMeetingRepository implements CrmMeetingBoundaryRepository {
     ][];
     if (!entries.length) throw new Error("crm_meeting_empty_update");
     await this.pool.execute(
-      `UPDATE crm_meetings SET ${entries.map(([key]) => `${columns[key]} = ?`).join(", ")} WHERE id = ?`,
+      `UPDATE crm_meetings SET ${entries
+        .map(([key]) => `${columns[key]} = ?`)
+        .join(", ")} WHERE id = ?`,
       [...entries.map(([, value]) => value), id],
     );
     const updated = await this.findById(id);
