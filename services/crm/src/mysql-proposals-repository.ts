@@ -63,9 +63,7 @@ function mapProposal(row: ProposalRow): CrmProposal {
   };
 }
 
-export class MySqlCrmProposalRepository
-  implements CrmProposalBoundaryRepository
-{
+export class MySqlCrmProposalRepository implements CrmProposalBoundaryRepository {
   constructor(private readonly pool: Pool) {}
 
   async list(leadId?: CrmId): Promise<readonly CrmProposal[]> {
@@ -121,10 +119,7 @@ export class MySqlCrmProposalRepository
     return created;
   }
 
-  async update(
-    id: CrmId,
-    patch: CrmProposalUpdateRecord,
-  ): Promise<CrmProposal> {
+  async update(id: CrmId, patch: CrmProposalUpdateRecord): Promise<CrmProposal> {
     const columns: Record<keyof CrmProposalUpdateRecord, string> = {
       status: "status",
       sentAt: "sent_at",
