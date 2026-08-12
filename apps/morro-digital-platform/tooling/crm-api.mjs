@@ -1,17 +1,27 @@
+import { randomBytes } from "node:crypto";
+
 import { CrmLeadServerBoundary } from "@touristic/crm/leads-boundary";
 import { CrmMeetingServerBoundary } from "@touristic/crm/meetings-boundary";
+import { CrmProposalServerBoundary } from "@touristic/crm/proposals-boundary";
 import {
   applyCrmM71Schema,
   createCrmMySqlPoolFromEnvironment,
   CrmLeadHttpTransport,
   CrmMeetingHttpTransport,
+  CrmProposalHttpTransport,
   MySqlCrmLeadAuditPort,
   MySqlCrmLeadRepository,
   MySqlCrmMeetingAuditPort,
   MySqlCrmMeetingRepository,
+  MySqlCrmProposalAuditPort,
+  MySqlCrmProposalRepository,
 } from "@touristic/crm-server";
 
-const crmPrefixes = ["/api/crm/leads", "/api/crm/meetings"];
+const crmPrefixes = [
+  "/api/crm/leads",
+  "/api/crm/meetings",
+  "/api/crm/proposals",
+];
 const maxBodyBytes = 64 * 1024;
 
 function matchesCrmPath(pathname) {
@@ -61,6 +71,10 @@ function createUnavailableApi() {
   });
 }
 
+function createProposalShareToken() {
+  return randomBytes(24).toString("base64url");
+}
+
 export function createCrmApi({ authApi, getEnvironmentValue }) {
   if (!authApi?.resolveSession || !authApi?.authorizeMutation) {
     throw new Error("CRM_AUTH_BOUNDARY_REQUIRED");
@@ -81,6 +95,11 @@ export function createCrmApi({ authApi, getEnvironmentValue }) {
   const meetingBoundary = new CrmMeetingServerBoundary(
     new MySqlCrmMeetingRepository(pool),
     new MySqlCrmMeetingAuditPort(pool),
+  );
+  const proposalBoundary = new CrmProposalServerBoundary(
+    new MySqlCrmProposalRepository(pool),
+    new MySqlCrmProposalAuditPort(pool),
+    createProposalShareToken,
   );
   let schemaReady;
 
@@ -120,6 +139,7 @@ export function createCrmApi({ authApi, getEnvironmentValue }) {
       const transports = [
         new CrmLeadHttpTransport(leadBoundary, authPort),
         new CrmMeetingHttpTransport(meetingBoundary, authPort),
+        new CrmProposalHttpTransport(proposalBoundary, authPort),
       ];
       const transport = transports.find((candidate) =>
         candidate.matches(requestUrl.pathname),
