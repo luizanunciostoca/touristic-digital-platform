@@ -193,7 +193,9 @@ describe("CRM M79 contracts boundary", () => {
       "Cliente solicitou revisão",
     );
 
-    const signedHarness = harness(contract({ status: "signed", signedAt: now }));
+    const signedHarness = harness(
+      contract({ status: "signed", signedAt: now }),
+    );
     expect(
       await signedHarness.boundary.cancel(session("owner"), { id: 51 }),
     ).toEqual({ ok: false, reason: "invalid_transition" });
