@@ -35,7 +35,7 @@ const contractRow = {
   updated_at: new Date("2026-08-12T18:30:00.000Z"),
 };
 
-describe("CRM M80 MySQL contracts persistence", () => {
+describe("CRM M80/M82 MySQL contracts persistence", () => {
   it("freezes the V1 contract schema with proposal linkage and unique token", () => {
     expect(crmM71SchemaSql).toContain(
       "CREATE TABLE IF NOT EXISTS crm_contracts",
@@ -112,6 +112,66 @@ describe("CRM M80 MySQL contracts persistence", () => {
       "UPDATE crm_contracts SET status = ?, signed_at = ?, signature_data = ? WHERE id = ?",
     );
     expect(updated.status).toBe("signed");
+  });
+
+  it("finds public contracts by prepared share-token lookup", async () => {
+    const { pool, calls } = poolFixture([[contractRow]]);
+    const repository = new MySqlCrmContractRepository(pool as never);
+    const found = await repository.findByShareToken(
+      "contract_token_1234567890",
+    );
+    expect(calls[0]?.sql).toContain("WHERE share_token = ? LIMIT 1");
+    expect(calls[0]?.values).toEqual(["contract_token_1234567890"]);
+    expect(found?.id).toBe(51);
+  });
+
+  it("atomically signs only a sent share token and reads back signer evidence", async () => {
+    const signedRow = {
+      ...contractRow,
+      status: "signed",
+      signed_at: new Date("2026-08-12T19:00:00.000Z"),
+      signature_data: "signature",
+      signer_name: "Cliente Morro",
+      signer_ip: "203.0.113.10",
+    };
+    const { pool, calls } = poolFixture([{ affectedRows: 1 }, [signedRow]]);
+    const repository = new MySqlCrmContractRepository(pool as never);
+    const signed = await repository.signSentByToken({
+      token: "contract_token_1234567890",
+      signedAt: signedRow.signed_at,
+      signatureData: "signature",
+      signerName: "Cliente Morro",
+      signerIp: "203.0.113.10",
+    });
+    expect(calls[0]?.sql).toContain(
+      "WHERE share_token = ? AND status = 'sent'",
+    );
+    expect(calls[0]?.values).toEqual([
+      signedRow.signed_at,
+      "signature",
+      "Cliente Morro",
+      "203.0.113.10",
+      "contract_token_1234567890",
+    ]);
+    expect(signed).toMatchObject({
+      status: "signed",
+      signerName: "Cliente Morro",
+      signerIp: "203.0.113.10",
+    });
+  });
+
+  it("fails closed when the atomic public sign does not update exactly one row", async () => {
+    const { pool, calls } = poolFixture([{ affectedRows: 0 }]);
+    const repository = new MySqlCrmContractRepository(pool as never);
+    const result = await repository.signSentByToken({
+      token: "contract_token_1234567890",
+      signedAt: new Date("2026-08-12T19:00:00.000Z"),
+      signatureData: "signature",
+      signerName: "Cliente Morro",
+      signerIp: "203.0.113.10",
+    });
+    expect(result).toBeNull();
+    expect(calls).toHaveLength(1);
   });
 
   it("persists contract interactions, lead advancement and audit records", async () => {
