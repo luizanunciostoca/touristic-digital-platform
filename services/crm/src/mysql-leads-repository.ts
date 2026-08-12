@@ -66,7 +66,7 @@ export class MySqlCrmLeadRepository implements CrmLeadBoundaryRepository {
 
   async list(query?: CrmLeadQuery): Promise<readonly CrmLead[]> {
     const where: string[] = [];
-    const values: unknown[] = [];
+    const values: Array<string | number | Date | null> = [];
     if (query?.stage) {
       where.push("stage = ?");
       values.push(query.stage);
@@ -76,7 +76,9 @@ export class MySqlCrmLeadRepository implements CrmLeadBoundaryRepository {
       values.push(query.status);
     }
     if (query?.search) {
-      where.push("(company_name LIKE ? OR contact_name LIKE ? OR email LIKE ?)");
+      where.push(
+        "(company_name LIKE ? OR contact_name LIKE ? OR email LIKE ?)",
+      );
       const pattern = `%${query.search}%`;
       values.push(pattern, pattern, pattern);
     }
@@ -103,7 +105,22 @@ export class MySqlCrmLeadRepository implements CrmLeadBoundaryRepository {
     const [result] = await this.pool.execute<ResultSetHeader>(
       `INSERT INTO crm_leads (company_name, segment, contact_name, phone, whatsapp, email, address, website, notes, stage, status, source, assigned_to_subject, monthly_value)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [record.companyName, record.segment ?? null, record.contactName ?? null, record.phone ?? null, record.whatsapp ?? null, record.email ?? null, record.address ?? null, record.website ?? null, record.notes ?? null, record.stage, record.status, record.source ?? null, record.assignedToSubject, record.monthlyValue ?? null],
+      [
+        record.companyName,
+        record.segment ?? null,
+        record.contactName ?? null,
+        record.phone ?? null,
+        record.whatsapp ?? null,
+        record.email ?? null,
+        record.address ?? null,
+        record.website ?? null,
+        record.notes ?? null,
+        record.stage,
+        record.status,
+        record.source ?? null,
+        record.assignedToSubject,
+        record.monthlyValue ?? null,
+      ],
     );
     const created = await this.findById(result.insertId);
     if (!created) throw new Error("crm_lead_create_readback_failed");
@@ -112,9 +129,23 @@ export class MySqlCrmLeadRepository implements CrmLeadBoundaryRepository {
 
   async update(id: CrmId, patch: CrmLeadUpdateRecord): Promise<CrmLead> {
     const columns: Record<keyof CrmLeadUpdateRecord, string> = {
-      companyName: "company_name", segment: "segment", contactName: "contact_name", phone: "phone", whatsapp: "whatsapp", email: "email", address: "address", website: "website", notes: "notes", source: "source", monthlyValue: "monthly_value", status: "status",
+      companyName: "company_name",
+      segment: "segment",
+      contactName: "contact_name",
+      phone: "phone",
+      whatsapp: "whatsapp",
+      email: "email",
+      address: "address",
+      website: "website",
+      notes: "notes",
+      source: "source",
+      monthlyValue: "monthly_value",
+      status: "status",
     };
-    const entries = Object.entries(patch) as [keyof CrmLeadUpdateRecord, string][];
+    const entries = Object.entries(patch) as [
+      keyof CrmLeadUpdateRecord,
+      string,
+    ][];
     if (!entries.length) throw new Error("crm_lead_empty_update");
     await this.pool.execute(
       `UPDATE crm_leads SET ${entries.map(([key]) => `${columns[key]} = ?`).join(", ")} WHERE id = ?`,
@@ -125,8 +156,15 @@ export class MySqlCrmLeadRepository implements CrmLeadBoundaryRepository {
     return updated;
   }
 
-  async updateStage(id: CrmId, stage: CrmLeadStage, lastContactAt: Date): Promise<CrmLead> {
-    await this.pool.execute("UPDATE crm_leads SET stage = ?, last_contact_at = ? WHERE id = ?", [stage, lastContactAt, id]);
+  async updateStage(
+    id: CrmId,
+    stage: CrmLeadStage,
+    lastContactAt: Date,
+  ): Promise<CrmLead> {
+    await this.pool.execute(
+      "UPDATE crm_leads SET stage = ?, last_contact_at = ? WHERE id = ?",
+      [stage, lastContactAt, id],
+    );
     const updated = await this.findById(id);
     if (!updated) throw new Error("crm_lead_stage_readback_failed");
     return updated;
@@ -145,10 +183,22 @@ export class MySqlCrmLeadRepository implements CrmLeadBoundaryRepository {
     }
   }
 
-  async appendInteraction(input: { readonly leadId: CrmId; readonly type: "system" | "stage_change"; readonly content: string; readonly actorSubject: string; readonly metadata?: Readonly<Record<string, string>> }): Promise<void> {
+  async appendInteraction(input: {
+    readonly leadId: CrmId;
+    readonly type: "system" | "stage_change";
+    readonly content: string;
+    readonly actorSubject: string;
+    readonly metadata?: Readonly<Record<string, string>>;
+  }): Promise<void> {
     await this.pool.execute(
       "INSERT INTO crm_interactions (lead_id, type, content, metadata, actor_subject) VALUES (?, ?, ?, ?, ?)",
-      [input.leadId, input.type, input.content, input.metadata ? JSON.stringify(input.metadata) : null, input.actorSubject],
+      [
+        input.leadId,
+        input.type,
+        input.content,
+        input.metadata ? JSON.stringify(input.metadata) : null,
+        input.actorSubject,
+      ],
     );
   }
 }
