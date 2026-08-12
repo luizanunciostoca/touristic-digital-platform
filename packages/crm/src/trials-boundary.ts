@@ -242,7 +242,11 @@ export class CrmTrialServerBoundary {
     session: AuthSessionIdentity | null,
     input: CrmTrialIdInput,
   ): Promise<CrmTrialBoundaryResult<CrmTrial>> {
-    const resolved = await this.resolveActive("trial.cancel", session, input.id);
+    const resolved = await this.resolveActive(
+      "trial.cancel",
+      session,
+      input.id,
+    );
     if (!resolved.ok) return resolved;
     const updated = await this.repository.markCancelled(resolved.value.id);
     await this.repository.appendInteraction({
@@ -257,7 +261,11 @@ export class CrmTrialServerBoundary {
     session: AuthSessionIdentity | null,
     input: CrmTrialIdInput,
   ): Promise<CrmTrialBoundaryResult<CrmTrial>> {
-    const resolved = await this.resolveActive("trial.expire", session, input.id);
+    const resolved = await this.resolveActive(
+      "trial.expire",
+      session,
+      input.id,
+    );
     if (!resolved.ok) return resolved;
     const updated = await this.repository.markExpired(resolved.value.id);
     await this.repository.appendInteraction({
@@ -269,7 +277,10 @@ export class CrmTrialServerBoundary {
   }
 
   private async resolveActive(
-    operation: Exclude<CrmTrialBoundaryOperation, "trial.list" | "trial.create">,
+    operation: Exclude<
+      CrmTrialBoundaryOperation,
+      "trial.list" | "trial.create"
+    >,
     session: AuthSessionIdentity | null,
     idValue: unknown,
   ): Promise<CrmTrialBoundaryResult<CrmTrial>> {
