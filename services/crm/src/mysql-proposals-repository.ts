@@ -140,10 +140,7 @@ export class MySqlCrmProposalRepository implements CrmProposalBoundaryRepository
     return updated;
   }
 
-  async updateLeadStage(
-    leadId: CrmId,
-    stage: "contract_sent",
-  ): Promise<void> {
+  async updateLeadStage(leadId: CrmId, stage: "contract_sent"): Promise<void> {
     await this.pool.execute(
       "UPDATE crm_leads SET stage = ?, last_contact_at = CURRENT_TIMESTAMP(3) WHERE id = ?",
       [stage, leadId],
