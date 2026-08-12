@@ -85,14 +85,22 @@ describe("CRM M76 MySQL proposals persistence", () => {
     });
     expect(calls[0]?.sql).toContain("created_by_subject");
     expect(calls[0]?.values).toContain("owner-1");
-    expect(calls[0]?.values).toContain(JSON.stringify(["Página personalizada"]));
+    expect(calls[0]?.values).toContain(
+      JSON.stringify(["Página personalizada"]),
+    );
     expect(calls[1]?.values).toEqual([41]);
   });
 
   it("uses prepared proposal and authoritative lead lifecycle updates", async () => {
     const { pool, calls } = poolFixture([
       {},
-      [{ ...proposalRow, status: "accepted", responded_at: proposalRow.updated_at }],
+      [
+        {
+          ...proposalRow,
+          status: "accepted",
+          responded_at: proposalRow.updated_at,
+        },
+      ],
       {},
     ]);
     const repository = new MySqlCrmProposalRepository(pool as never);
