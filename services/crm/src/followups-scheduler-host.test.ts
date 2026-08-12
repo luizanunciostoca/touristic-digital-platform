@@ -25,7 +25,7 @@ describe("CRM M88 follow-ups scheduler host", () => {
 
   it("runs immediately, serializes overlapping ticks and stops cleanly", async () => {
     vi.useFakeTimers();
-    let release: (() => void) | null = null;
+    let release: () => void = () => {};
     let calls = 0;
     const scheduler = {
       runDue: async () => {
@@ -45,12 +45,12 @@ describe("CRM M88 follow-ups scheduler host", () => {
     await vi.advanceTimersByTimeAsync(3_000);
     expect(calls).toBe(1);
 
-    release?.();
+    release();
     await Promise.resolve();
     await vi.advanceTimersByTimeAsync(1_000);
     expect(calls).toBe(2);
 
-    release?.();
+    release();
     await host.stop();
     expect(host.started).toBe(false);
     vi.useRealTimers();
