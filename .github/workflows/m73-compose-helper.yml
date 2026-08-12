@@ -79,6 +79,7 @@ jobs:
           pnpm --filter @touristic/crm-server test
           pnpm --filter @touristic/morro-digital-platform typecheck
           pnpm -w build
+          rm -rf .turbo
           pnpm check
       - name: Commit permanent M73 code only
         run: |
