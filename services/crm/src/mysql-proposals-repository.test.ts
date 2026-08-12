@@ -94,36 +94,39 @@ describe("CRM M76 MySQL proposals persistence", () => {
     },
   );
 
-  it("uses prepared proposal and authoritative lead lifecycle updates", async () => {
-    const { pool, calls } = poolFixture([
-      {},
-      [
-        {
-          ...proposalRow,
-          status: "accepted",
-          responded_at: proposalRow.updated_at,
-        },
-      ],
-      {},
-    ]);
-    const repository = new MySqlCrmProposalRepository(pool as never);
-    const updated = await repository.update(41, {
-      status: "accepted",
-      respondedAt: proposalRow.updated_at,
-    });
-    expect(updated.status).toBe("accepted");
-    expect(calls[0]?.sql).toContain("status = ?");
-    expect(calls[0]?.sql).not.toContain("accepted");
-    expect(calls[0]?.values).toEqual([
-      "accepted",
-      proposalRow.updated_at,
-      41,
-    ]);
+  it(
+    "uses prepared proposal and authoritative lead lifecycle updates",
+    async () => {
+      const { pool, calls } = poolFixture([
+        {},
+        [
+          {
+            ...proposalRow,
+            status: "accepted",
+            responded_at: proposalRow.updated_at,
+          },
+        ],
+        {},
+      ]);
+      const repository = new MySqlCrmProposalRepository(pool as never);
+      const updated = await repository.update(41, {
+        status: "accepted",
+        respondedAt: proposalRow.updated_at,
+      });
+      expect(updated.status).toBe("accepted");
+      expect(calls[0]?.sql).toContain("status = ?");
+      expect(calls[0]?.sql).not.toContain("accepted");
+      expect(calls[0]?.values).toEqual([
+        "accepted",
+        proposalRow.updated_at,
+        41,
+      ]);
 
-    await repository.updateLeadStage(7, "contract_sent");
-    expect(calls[2]?.sql).toContain("stage = ?");
-    expect(calls[2]?.values).toEqual(["contract_sent", 7]);
-  });
+      await repository.updateLeadStage(7, "contract_sent");
+      expect(calls[2]?.sql).toContain("stage = ?");
+      expect(calls[2]?.values).toEqual(["contract_sent", 7]);
+    },
+  );
 
   it(
     "persists proposal interactions without interpolating content or actor",
