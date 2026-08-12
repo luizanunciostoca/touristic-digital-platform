@@ -33,7 +33,7 @@ Um item não pode avançar para `equivalent` sem evidência visual ou comportame
 
 ## CRM baseline congelada — MIG-0008
 
-M67 froze the standalone CRM V1 at `luizidebook/morro-digital-crm@1915d0260c79f30a63b926a1123e609083587745`. M68 started the framework-independent domain core. M69 adds CRM-owned authorization over equivalent platform Auth: active-session reads, viewer mutation denial, owner/manager/admin mutations. The matrix remains `0 PASS / 5 PARTIAL / 20 GAP`; `MIG-0008` stays `migrating` and `FEATURE-0006` stays `baseline-pending`.
+M67 froze the standalone CRM V1 at `luizidebook/morro-digital-crm@1915d0260c79f30a63b926a1123e609083587745`. M68 started the framework-independent domain core and M69 added CRM-owned authorization. M70 adds a server-authoritative leads/pipeline boundary with bounded validation, policy enforcement, denial audit events and a corrected create lifecycle that never writes `leadId: 0`. The matrix is `0 PASS / 8 PARTIAL / 17 GAP`; `MIG-0008` remains `migrating` and `FEATURE-0006` remains `baseline-pending`.
 
 ## Business equivalente — MIG-0007
 
