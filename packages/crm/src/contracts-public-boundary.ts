@@ -10,6 +10,16 @@ export type CrmContractPublicResult<T> =
   | { readonly ok: true; readonly value: T }
   | { readonly ok: false; readonly reason: CrmContractPublicReason };
 
+export interface CrmContractPublicView {
+  readonly title: string;
+  readonly content: string;
+  readonly monthlyValue: string | null;
+  readonly status: CrmContract["status"];
+  readonly sentAt: Date | null;
+  readonly signedAt: Date | null;
+  readonly signerName: string | null;
+}
+
 export interface CrmContractPublicSignInput {
   readonly token: unknown;
   readonly signatureData: unknown;
@@ -68,24 +78,38 @@ function safeSignature(value: unknown): string | null {
   return signature;
 }
 
+function publicView(contract: CrmContract): CrmContractPublicView {
+  return Object.freeze({
+    title: contract.title,
+    content: contract.content,
+    monthlyValue: contract.monthlyValue,
+    status: contract.status,
+    sentAt: contract.sentAt,
+    signedAt: contract.signedAt,
+    signerName: contract.signerName,
+  });
+}
+
 export class CrmContractPublicBoundary {
   constructor(
     private readonly repository: CrmContractPublicRepository,
     private readonly now: () => Date = () => new Date(),
   ) {}
 
-  async view(tokenValue: unknown): Promise<CrmContractPublicResult<CrmContract>> {
+  async view(
+    tokenValue: unknown,
+  ): Promise<CrmContractPublicResult<CrmContractPublicView>> {
     const token = safeToken(tokenValue);
     if (!token) return { ok: false, reason: "invalid_token" };
     const contract = await this.repository.findByShareToken(token);
     return contract
-      ? { ok: true, value: contract }
+      ? { ok: true, value: publicView(contract) }
       : { ok: false, reason: "not_found" };
   }
 
   async sign(
     input: CrmContractPublicSignInput,
-  ): Promise<CrmContractPublicResult<CrmContract>> {
+  ): Promise<CrmContractPublicResult<CrmContractPublicView>> {
     const token = safeToken(input.token);
     if (!token) return { ok: false, reason: "invalid_token" };
 
@@ -124,6 +148,6 @@ export class CrmContractPublicBoundary {
         signerIp,
       },
     });
-    return { ok: true, value: signed };
+    return { ok: true, value: publicView(signed) };
   }
 }
