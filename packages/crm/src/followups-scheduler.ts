@@ -52,7 +52,9 @@ export class CrmFollowUpScheduler {
       this.repository.listPending(),
       this.repository.listSettings(),
     ]);
-    const settingsById = new Map(settings.map((setting) => [setting.id, setting]));
+    const settingsById = new Map(
+      settings.map((setting) => [setting.id, setting]),
+    );
     let claimed = 0;
     let sent = 0;
     let skipped = 0;
