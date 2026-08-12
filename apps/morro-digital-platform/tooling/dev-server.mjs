@@ -412,7 +412,18 @@ const server = createServer(async (request, response) => {
       contentTypes[extname(filePath)] || "application/octet-stream",
     );
     createReadStream(filePath).pipe(response);
-  } catch {
+  } catch (error) {
+    if (String(request.url || "").startsWith("/api/")) {
+      console.error(
+        "API runtime failure.",
+        error instanceof Error ? error.stack || error.message : error,
+      );
+      response.statusCode = 500;
+      response.setHeader("Content-Type", "application/json; charset=utf-8");
+      response.setHeader("Cache-Control", "no-store");
+      response.end(JSON.stringify({ error: "INTERNAL_SERVER_ERROR" }));
+      return;
+    }
     response.statusCode = 404;
     response.setHeader("Content-Type", "text/plain; charset=utf-8");
     response.end("Recurso não encontrado.");
