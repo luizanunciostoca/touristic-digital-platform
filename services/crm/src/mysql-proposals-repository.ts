@@ -4,6 +4,10 @@ import type {
   CrmProposalCreateRecord,
   CrmProposalUpdateRecord,
 } from "@touristic/crm/proposals-boundary";
+import type {
+  CrmProposalPublicRepository,
+  CrmProposalPublicRespondRecord,
+} from "@touristic/crm/proposals-public-boundary";
 import type { Pool, ResultSetHeader, RowDataPacket } from "mysql2/promise";
 
 interface ProposalRow extends RowDataPacket {
@@ -63,7 +67,9 @@ function mapProposal(row: ProposalRow): CrmProposal {
   };
 }
 
-export class MySqlCrmProposalRepository implements CrmProposalBoundaryRepository {
+export class MySqlCrmProposalRepository
+  implements CrmProposalBoundaryRepository, CrmProposalPublicRepository
+{
   constructor(private readonly pool: Pool) {}
 
   async list(leadId?: CrmId): Promise<readonly CrmProposal[]> {
@@ -84,6 +90,38 @@ export class MySqlCrmProposalRepository implements CrmProposalBoundaryRepository
       [id],
     );
     return rows[0] ? mapProposal(rows[0]) : null;
+  }
+
+  async findByShareToken(token: string): Promise<CrmProposal | null> {
+    const [rows] = await this.pool.execute<ProposalRow[]>(
+      `SELECT ${proposalColumns} FROM crm_proposals WHERE share_token = ? LIMIT 1`,
+      [token],
+    );
+    return rows[0] ? mapProposal(rows[0]) : null;
+  }
+
+  async markViewedByToken(
+    token: string,
+    viewedAt: Date,
+  ): Promise<CrmProposal | null> {
+    await this.pool.execute<ResultSetHeader>(
+      "UPDATE crm_proposals SET status = 'viewed', viewed_at = ? WHERE share_token = ? AND status = 'sent'",
+      [viewedAt, token],
+    );
+    return this.findByShareToken(token);
+  }
+
+  async respondActiveByToken(
+    record: CrmProposalPublicRespondRecord,
+  ): Promise<CrmProposal | null> {
+    const [result] = await this.pool.execute<ResultSetHeader>(
+      "UPDATE crm_proposals SET status = ?, responded_at = ? WHERE share_token = ? AND status IN ('sent','viewed') AND (valid_until IS NULL OR valid_until >= ?)",
+      [record.status, record.respondedAt, record.token, record.respondedAt],
+    );
+    if (result.affectedRows !== 1) return null;
+    const updated = await this.findByShareToken(record.token);
+    if (!updated) throw new Error("crm_proposal_public_response_readback_failed");
+    return updated;
   }
 
   async leadExists(leadId: CrmId): Promise<boolean> {
