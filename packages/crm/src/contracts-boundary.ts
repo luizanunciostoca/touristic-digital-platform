@@ -22,10 +22,7 @@ export type CrmContractBoundaryOperation =
   | "contract.cancel";
 
 export type CrmContractBoundaryReason =
-  | CrmAuthorizationReason
-  | "invalid_input"
-  | "not_found"
-  | "invalid_transition";
+  CrmAuthorizationReason | "invalid_input" | "not_found" | "invalid_transition";
 
 export interface CrmContractAuditEvent {
   readonly operation: CrmContractBoundaryOperation;
