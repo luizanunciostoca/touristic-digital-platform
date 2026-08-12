@@ -159,7 +159,10 @@ export class CrmTrialServerBoundary {
     if (leadIdValue !== undefined && !leadId) {
       return this.reject("trial.list", session, "invalid_input");
     }
-    return { ok: true, value: await this.repository.list(leadId) };
+    return {
+      ok: true,
+      value: await this.repository.list(leadId ?? undefined),
+    };
   }
 
   async create(
