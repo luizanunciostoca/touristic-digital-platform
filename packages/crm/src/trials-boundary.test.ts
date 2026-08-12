@@ -40,7 +40,9 @@ function trial(overrides: Partial<CrmTrial> = {}): CrmTrial {
   };
 }
 
-function harness(options: { readonly initial?: CrmTrial; readonly leadExists?: boolean } = {}) {
+function harness(
+  options: { readonly initial?: CrmTrial; readonly leadExists?: boolean } = {},
+) {
   let current = options.initial ?? trial();
   const calls: string[] = [];
   const auditEvents: CrmTrialAuditEvent[] = [];
@@ -148,22 +150,21 @@ describe("CRM M89 trials boundary", () => {
       ok: true,
       value: { status: "converted", convertedAt: now },
     });
-    expect(calls).toEqual([
-      "converted",
-      "lead:active_client",
-      "interaction",
-    ]);
+    expect(calls).toEqual(["converted", "lead:active_client", "interaction"]);
   });
 
   it.each([
     ["cancel", "cancelled"],
     ["expire", "expired"],
-  ] as const)("supports manual active -> %s lifecycle", async (command, status) => {
-    const { boundary, calls } = harness();
-    const result = await boundary[command](session("manager"), { id: 11 });
-    expect(result).toMatchObject({ ok: true, value: { status } });
-    expect(calls).toEqual([status, "interaction"]);
-  });
+  ] as const)(
+    "supports manual active -> %s lifecycle",
+    async (command, status) => {
+      const { boundary, calls } = harness();
+      const result = await boundary[command](session("manager"), { id: 11 });
+      expect(result).toMatchObject({ ok: true, value: { status } });
+      expect(calls).toEqual([status, "interaction"]);
+    },
+  );
 
   it.each(["converted", "cancelled", "expired"] as const)(
     "rejects mutations after terminal trial status %s",
