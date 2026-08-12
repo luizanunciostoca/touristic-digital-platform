@@ -111,6 +111,40 @@ CREATE TABLE IF NOT EXISTS crm_contracts (
   CONSTRAINT crm_contracts_proposal_fk FOREIGN KEY (proposal_id) REFERENCES crm_proposals(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS crm_follow_up_settings (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  name VARCHAR(160) NOT NULL,
+  interval_days INT UNSIGNED NOT NULL,
+  max_attempts INT UNSIGNED NOT NULL,
+  message_template TEXT NULL,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updated_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  INDEX crm_follow_up_settings_active_idx (is_active, id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS crm_follow_ups (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  lead_id BIGINT UNSIGNED NOT NULL,
+  setting_id BIGINT UNSIGNED NULL,
+  attempt_number INT UNSIGNED NOT NULL DEFAULT 1,
+  status ENUM('pending','sent','responded','skipped') NOT NULL DEFAULT 'pending',
+  generated_message TEXT NULL,
+  scheduled_at TIMESTAMP(3) NOT NULL,
+  sent_at TIMESTAMP(3) NULL,
+  responded_at TIMESTAMP(3) NULL,
+  schedule_cron_task_uid VARCHAR(191) NULL,
+  created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updated_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  INDEX crm_follow_ups_lead_scheduled_idx (lead_id, scheduled_at),
+  INDEX crm_follow_ups_status_scheduled_idx (status, scheduled_at),
+  INDEX crm_follow_ups_setting_idx (setting_id),
+  CONSTRAINT crm_follow_ups_lead_fk FOREIGN KEY (lead_id) REFERENCES crm_leads(id) ON DELETE CASCADE,
+  CONSTRAINT crm_follow_ups_setting_fk FOREIGN KEY (setting_id) REFERENCES crm_follow_up_settings(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS crm_interactions (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   lead_id BIGINT UNSIGNED NOT NULL,
