@@ -52,7 +52,8 @@ function harness() {
   }> = [];
   let current = meeting();
   const repository: CrmMeetingBoundaryRepository = {
-    list: async (leadId) => (leadId === undefined || leadId === current.leadId ? [current] : []),
+    list: async (leadId) =>
+      leadId === undefined || leadId === current.leadId ? [current] : [],
     findById: async (id) => (id === current.id ? current : null),
     leadExists: async (leadId) => leadId === 7,
     create: async (record: CrmMeetingCreateRecord) => {
@@ -92,24 +93,27 @@ describe("CRM M74 meetings boundary", () => {
     if (result.ok) expect(result.value).toHaveLength(1);
   });
 
-  it("creates a scheduled meeting and appends the frozen meeting interaction", async () => {
-    const { boundary, interactions } = harness();
-    const result = await boundary.create(session("owner"), {
-      leadId: 7,
-      title: "Diagnóstico comercial",
-      scheduledAt: "2026-08-25T17:30:00.000Z",
-      modality: "in_person",
-      location: "Morro de São Paulo",
-    });
-    expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect(result.value.status).toBe("scheduled");
-      expect(result.value.modality).toBe("in_person");
-    }
-    expect(interactions).toHaveLength(1);
-    expect(interactions[0]?.content).toContain("Diagnóstico comercial");
-    expect(interactions[0]?.actorSubject).toBe("crm-owner");
-  });
+  it(
+    "creates a scheduled meeting and appends the frozen meeting interaction",
+    async () => {
+      const { boundary, interactions } = harness();
+      const result = await boundary.create(session("owner"), {
+        leadId: 7,
+        title: "Diagnóstico comercial",
+        scheduledAt: "2026-08-25T17:30:00.000Z",
+        modality: "in_person",
+        location: "Morro de São Paulo",
+      });
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.status).toBe("scheduled");
+        expect(result.value.modality).toBe("in_person");
+      }
+      expect(interactions).toHaveLength(1);
+      expect(interactions[0]?.content).toContain("Diagnóstico comercial");
+      expect(interactions[0]?.actorSubject).toBe("crm-owner");
+    },
+  );
 
   it.each(["done", "cancelled", "no_show"] as const)(
     "preserves the frozen %s lifecycle transition",
