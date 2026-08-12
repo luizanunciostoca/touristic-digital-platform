@@ -21,10 +21,7 @@ export type CrmFollowUpBoundaryOperation =
   | "follow_up.mark_responded";
 
 export type CrmFollowUpBoundaryReason =
-  | CrmAuthorizationReason
-  | "invalid_input"
-  | "not_found"
-  | "invalid_transition";
+  CrmAuthorizationReason | "invalid_input" | "not_found" | "invalid_transition";
 
 export interface CrmFollowUpAuditEvent {
   readonly operation: CrmFollowUpBoundaryOperation;
@@ -221,7 +218,6 @@ export class CrmFollowUpServerBoundary {
       true,
     );
     if (!authorization.ok) return authorization;
-
     const name = safeRequiredText(input.name, 160);
     const intervalDays = safePositiveInteger(input.intervalDays, 365);
     const maxAttempts = safePositiveInteger(input.maxAttempts, 100);
@@ -237,7 +233,6 @@ export class CrmFollowUpServerBoundary {
     ) {
       return this.reject("follow_up.setting_save", session, "invalid_input");
     }
-
     return {
       ok: true,
       value: await this.repository.upsertSetting({
@@ -300,12 +295,13 @@ export class CrmFollowUpServerBoundary {
       leadId,
     );
     if (!authorization.ok) return authorization;
-
     const scheduledAt = safeDate(input.scheduledAt);
     const attemptNumber = safePositiveInteger(input.attemptNumber, 100, 1);
     if (
       !leadId ||
-      (input.settingId !== undefined && input.settingId !== null && !settingId) ||
+      (input.settingId !== undefined &&
+        input.settingId !== null &&
+        !settingId) ||
       !scheduledAt ||
       attemptNumber === null
     ) {
@@ -318,12 +314,23 @@ export class CrmFollowUpServerBoundary {
       );
     }
     if (!(await this.repository.leadExists(leadId))) {
-      return this.reject("follow_up.create", session, "not_found", null, leadId);
+      return this.reject(
+        "follow_up.create",
+        session,
+        "not_found",
+        null,
+        leadId,
+      );
     }
     if (settingId && !(await this.repository.settingExists(settingId))) {
-      return this.reject("follow_up.create", session, "not_found", null, leadId);
+      return this.reject(
+        "follow_up.create",
+        session,
+        "not_found",
+        null,
+        leadId,
+      );
     }
-
     return {
       ok: true,
       value: await this.repository.create({
@@ -348,10 +355,11 @@ export class CrmFollowUpServerBoundary {
       id,
     );
     if (!authorization.ok) return authorization;
-    if (!id) return this.reject("follow_up.mark_sent", session, "invalid_input");
-
+    if (!id)
+      return this.reject("follow_up.mark_sent", session, "invalid_input");
     const followUp = await this.repository.findById(id);
-    if (!followUp) return this.reject("follow_up.mark_sent", session, "not_found", id);
+    if (!followUp)
+      return this.reject("follow_up.mark_sent", session, "not_found", id);
     if (followUp.status !== "pending") {
       return this.reject(
         "follow_up.mark_sent",
@@ -361,7 +369,6 @@ export class CrmFollowUpServerBoundary {
         followUp.leadId,
       );
     }
-
     const sentAt = this.now();
     const updated = await this.repository.markSent(id, sentAt);
     await this.repository.appendInteraction({
@@ -388,7 +395,6 @@ export class CrmFollowUpServerBoundary {
     if (!id) {
       return this.reject("follow_up.mark_responded", session, "invalid_input");
     }
-
     const followUp = await this.repository.findById(id);
     if (!followUp) {
       return this.reject("follow_up.mark_responded", session, "not_found", id);
@@ -402,7 +408,6 @@ export class CrmFollowUpServerBoundary {
         followUp.leadId,
       );
     }
-
     const updated = await this.repository.markResponded(id, this.now());
     await this.repository.appendInteraction({
       leadId: followUp.leadId,
