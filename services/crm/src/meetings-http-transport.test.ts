@@ -42,12 +42,14 @@ function meeting(overrides: Partial<CrmMeeting> = {}): CrmMeeting {
   };
 }
 
-function harness(options: {
-  role?: AuthRole;
-  sessionPresent?: boolean;
-  mutationAllowed?: boolean;
-  mutationReason?: "cross_origin_request" | "invalid_csrf";
-} = {}) {
+function harness(
+  options: {
+    role?: AuthRole;
+    sessionPresent?: boolean;
+    mutationAllowed?: boolean;
+    mutationReason?: "cross_origin_request" | "invalid_csrf";
+  } = {},
+) {
   let current = meeting();
   const repository: CrmMeetingBoundaryRepository = {
     list: async (leadId) =>
@@ -163,19 +165,22 @@ describe("CRM M75 meetings HTTP transport", () => {
   it.each([
     ["invalid_csrf", "INVALID_CSRF"],
     ["cross_origin_request", "ORIGIN_DENIED"],
-  ] as const)("denies mutation security failure %s", async (reason, error) => {
-    const transport = harness({
-      role: "owner",
-      mutationAllowed: false,
-      mutationReason: reason,
-    });
-    const result = await transport.handle({
-      method: "POST",
-      pathname: "/api/crm/meetings",
-      body: {},
-    });
-    expect(result).toMatchObject({ status: 403, body: { error, reason } });
-  });
+  ] as const)(
+    "denies mutation security failure %s",
+    async (reason, error) => {
+      const transport = harness({
+        role: "owner",
+        mutationAllowed: false,
+        mutationReason: reason,
+      });
+      const result = await transport.handle({
+        method: "POST",
+        pathname: "/api/crm/meetings",
+        body: {},
+      });
+      expect(result).toMatchObject({ status: 403, body: { error, reason } });
+    },
+  );
 
   it("rejects unsupported methods without inventing meeting delete", async () => {
     const transport = harness({ role: "owner" });
