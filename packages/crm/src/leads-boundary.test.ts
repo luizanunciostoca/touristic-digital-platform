@@ -57,7 +57,13 @@ function fixture() {
     list: async () => [current],
     findById: async (id) => (id === current.id ? current : null),
     create: async (record) => {
-      current = { ...current, id: 42, companyName: record.companyName, stage: record.stage, status: record.status };
+      current = {
+        ...current,
+        id: 42,
+        companyName: record.companyName,
+        stage: record.stage,
+        status: record.status,
+      };
       return current;
     },
     update: async (_id, patch) => {
@@ -97,7 +103,11 @@ describe("CRM M70 leads boundary", () => {
       reason: "authentication_required",
     });
     expect(audits).toEqual([
-      expect.objectContaining({ operation: "lead.list", allowed: false, reason: "authentication_required" }),
+      expect.objectContaining({
+        operation: "lead.list",
+        allowed: false,
+        reason: "authentication_required",
+      }),
     ]);
   });
 
@@ -112,21 +122,32 @@ describe("CRM M70 leads boundary", () => {
     });
     expect(allowed.ok).toBe(true);
 
-    await expect(boundary.list(session("viewer"), { limit: 5000 })).resolves.toEqual({
+    await expect(
+      boundary.list(session("viewer"), { limit: 5000 }),
+    ).resolves.toEqual({
       ok: false,
       reason: "invalid_input",
     });
-    expect(audits.at(-1)).toEqual(expect.objectContaining({ reason: "invalid_input" }));
+    expect(audits.at(-1)).toEqual(
+      expect.objectContaining({ reason: "invalid_input" }),
+    );
   });
 
   it("blocks viewer mutations before repository writes", async () => {
     const { boundary, audits, checklist } = fixture();
-    await expect(boundary.create(session("viewer"), { companyName: "Blocked" })).resolves.toEqual({
+    await expect(
+      boundary.create(session("viewer"), { companyName: "Blocked" }),
+    ).resolves.toEqual({
       ok: false,
       reason: "read_only_role",
     });
     expect(checklist).toHaveLength(0);
-    expect(audits.at(-1)).toEqual(expect.objectContaining({ operation: "lead.create", reason: "read_only_role" }));
+    expect(audits.at(-1)).toEqual(
+      expect.objectContaining({
+        operation: "lead.create",
+        reason: "read_only_role",
+      }),
+    );
   });
 
   it("creates the lead before checklist and interaction so no leadId 0 write can occur", async () => {
@@ -151,8 +172,16 @@ describe("CRM M70 leads boundary", () => {
     expect(interactions).toEqual([{ leadId: 7, type: "stage_change" }]);
 
     await expect(
-      boundary.updateStage(session("admin"), { id: 7, stage: "invented_stage" }),
+      boundary.updateStage(session("admin"), {
+        id: 7,
+        stage: "invented_stage",
+      }),
     ).resolves.toEqual({ ok: false, reason: "invalid_input" });
-    expect(audits.at(-1)).toEqual(expect.objectContaining({ operation: "lead.update_stage", reason: "invalid_input" }));
+    expect(audits.at(-1)).toEqual(
+      expect.objectContaining({
+        operation: "lead.update_stage",
+        reason: "invalid_input",
+      }),
+    );
   });
 });
