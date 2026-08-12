@@ -102,10 +102,10 @@ export class MySqlCrmMeetingRepository implements CrmMeetingBoundaryRepository {
       status: "status",
       notes: "notes",
     };
-    const entries = Object.entries(patch) as [
+    const entries = Object.entries(patch) as Array<[
       keyof CrmMeetingUpdateRecord,
-      CrmMeetingUpdateRecord[keyof CrmMeetingUpdateRecord],
-    ][];
+      string | Date | null,
+    ]>;
     if (!entries.length) throw new Error("crm_meeting_empty_update");
     await this.pool.execute(
       `UPDATE crm_meetings SET ${entries
