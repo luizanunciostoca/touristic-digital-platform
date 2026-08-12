@@ -8,11 +8,13 @@ import { MySqlCrmMeetingAuditPort } from "./mysql-meetings-audit-port.js";
 import { MySqlCrmMeetingRepository } from "./mysql-meetings-repository.js";
 import { MySqlCrmProposalAuditPort } from "./mysql-proposals-audit-port.js";
 import { MySqlCrmProposalRepository } from "./mysql-proposals-repository.js";
+import { CrmProposalHttpTransport } from "./proposals-http-transport.js";
 import { crmM71SchemaSql } from "./schema.js";
 
 export {
   CrmLeadHttpTransport,
   CrmMeetingHttpTransport,
+  CrmProposalHttpTransport,
   MySqlCrmLeadAuditPort,
   MySqlCrmLeadRepository,
   MySqlCrmMeetingAuditPort,
