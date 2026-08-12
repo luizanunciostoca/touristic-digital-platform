@@ -56,6 +56,11 @@
       "types": "./src/followups-scheduler.ts",
       "node": "./dist/followups-scheduler.js",
       "default": "./src/followups-scheduler.ts"
+    },
+    "./trials-boundary": {
+      "types": "./src/trials-boundary.ts",
+      "node": "./dist/trials-boundary.js",
+      "default": "./src/trials-boundary.ts"
     }
   },
   "scripts": {
