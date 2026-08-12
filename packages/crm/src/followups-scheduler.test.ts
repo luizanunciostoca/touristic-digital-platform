@@ -8,7 +8,9 @@ import {
 
 const now = new Date("2026-08-12T21:30:00.000Z");
 
-function setting(overrides: Partial<CrmFollowUpSetting> = {}): CrmFollowUpSetting {
+function setting(
+  overrides: Partial<CrmFollowUpSetting> = {},
+): CrmFollowUpSetting {
   return {
     id: 3,
     name: "Follow-up comercial",
@@ -40,13 +42,15 @@ function followUp(overrides: Partial<CrmFollowUp> = {}): CrmFollowUp {
   };
 }
 
-function harness(options: {
-  readonly followUps?: readonly CrmFollowUp[];
-  readonly settings?: readonly CrmFollowUpSetting[];
-  readonly claimAllowed?: boolean;
-  readonly delivered?: boolean;
-  readonly deliveryThrows?: boolean;
-} = {}) {
+function harness(
+  options: {
+    readonly followUps?: readonly CrmFollowUp[];
+    readonly settings?: readonly CrmFollowUpSetting[];
+    readonly claimAllowed?: boolean;
+    readonly delivered?: boolean;
+    readonly deliveryThrows?: boolean;
+  } = {},
+) {
   const calls: string[] = [];
   const repository: CrmFollowUpSchedulerRepository = {
     listPending: async () => options.followUps ?? [followUp()],
@@ -116,7 +120,9 @@ describe("CRM M87 follow-ups scheduler", () => {
     [setting({ maxAttempts: 1 }), "attempt limit"],
   ] as const)("skips unsafe automation: %s", async (configured, _label) => {
     const source =
-      configured.maxAttempts === 1 ? followUp({ attemptNumber: 2 }) : followUp();
+      configured.maxAttempts === 1
+        ? followUp({ attemptNumber: 2 })
+        : followUp();
     const { scheduler, calls } = harness({
       followUps: [source],
       settings: [configured],
