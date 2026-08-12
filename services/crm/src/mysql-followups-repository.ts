@@ -4,6 +4,7 @@ import type {
   CrmFollowUpCreateRecord,
   CrmFollowUpSettingRecord,
 } from "@touristic/crm/followups-boundary";
+import type { CrmFollowUpSchedulerRepository } from "@touristic/crm/followups-scheduler";
 import type { Pool, ResultSetHeader, RowDataPacket } from "mysql2/promise";
 
 interface FollowUpSettingRow extends RowDataPacket {
@@ -65,7 +66,9 @@ function mapFollowUp(row: FollowUpRow): CrmFollowUp {
   };
 }
 
-export class MySqlCrmFollowUpRepository implements CrmFollowUpBoundaryRepository {
+export class MySqlCrmFollowUpRepository
+  implements CrmFollowUpBoundaryRepository, CrmFollowUpSchedulerRepository
+{
   constructor(private readonly pool: Pool) {}
 
   async listSettings(): Promise<readonly CrmFollowUpSetting[]> {
@@ -134,7 +137,7 @@ export class MySqlCrmFollowUpRepository implements CrmFollowUpBoundaryRepository
 
   async listPending(): Promise<readonly CrmFollowUp[]> {
     const [rows] = await this.pool.execute<FollowUpRow[]>(
-      `SELECT ${followUpColumns} FROM crm_follow_ups WHERE status = 'pending' AND scheduled_at <= CURRENT_TIMESTAMP(3) ORDER BY scheduled_at ASC, id ASC`,
+      `SELECT ${followUpColumns} FROM crm_follow_ups WHERE status = 'pending' AND scheduled_at <= CURRENT_TIMESTAMP(3) AND schedule_cron_task_uid IS NULL ORDER BY scheduled_at ASC, id ASC`,
     );
     return rows.map(mapFollowUp);
   }
@@ -201,6 +204,51 @@ export class MySqlCrmFollowUpRepository implements CrmFollowUpBoundaryRepository
     const updated = await this.findById(id);
     if (!updated)
       throw new Error("crm_follow_up_mark_responded_readback_failed");
+    return updated;
+  }
+
+  async claimPending(id: CrmId, taskUid: string): Promise<boolean> {
+    const [result] = await this.pool.execute<ResultSetHeader>(
+      "UPDATE crm_follow_ups SET schedule_cron_task_uid = ? WHERE id = ? AND status = 'pending' AND scheduled_at <= CURRENT_TIMESTAMP(3) AND schedule_cron_task_uid IS NULL",
+      [taskUid, id],
+    );
+    return result.affectedRows === 1;
+  }
+
+  async releaseClaim(id: CrmId, taskUid: string): Promise<void> {
+    await this.pool.execute(
+      "UPDATE crm_follow_ups SET schedule_cron_task_uid = NULL WHERE id = ? AND status = 'pending' AND schedule_cron_task_uid = ?",
+      [id, taskUid],
+    );
+  }
+
+  async markSentClaimed(
+    id: CrmId,
+    taskUid: string,
+    sentAt: Date,
+  ): Promise<CrmFollowUp> {
+    const [result] = await this.pool.execute<ResultSetHeader>(
+      "UPDATE crm_follow_ups SET status = 'sent', sent_at = ? WHERE id = ? AND status = 'pending' AND schedule_cron_task_uid = ?",
+      [sentAt, id, taskUid],
+    );
+    if (result.affectedRows !== 1)
+      throw new Error("crm_follow_up_scheduler_mark_sent_conflict");
+    const updated = await this.findById(id);
+    if (!updated)
+      throw new Error("crm_follow_up_scheduler_mark_sent_readback_failed");
+    return updated;
+  }
+
+  async markSkippedClaimed(id: CrmId, taskUid: string): Promise<CrmFollowUp> {
+    const [result] = await this.pool.execute<ResultSetHeader>(
+      "UPDATE crm_follow_ups SET status = 'skipped' WHERE id = ? AND status = 'pending' AND schedule_cron_task_uid = ?",
+      [id, taskUid],
+    );
+    if (result.affectedRows !== 1)
+      throw new Error("crm_follow_up_scheduler_mark_skipped_conflict");
+    const updated = await this.findById(id);
+    if (!updated)
+      throw new Error("crm_follow_up_scheduler_mark_skipped_readback_failed");
     return updated;
   }
 
