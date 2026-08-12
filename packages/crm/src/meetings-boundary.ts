@@ -99,7 +99,10 @@ export type CrmMeetingBoundaryResult<T> =
       readonly reason: CrmAuthorizationReason | "invalid_input" | "not_found";
     };
 
-function safeText(value: unknown, maxLength: number): string | null | undefined {
+function safeText(
+  value: unknown,
+  maxLength: number,
+): string | null | undefined {
   if (value === null || value === "") return null;
   if (typeof value !== "string") return undefined;
   const normalized = Array.from(value, (character) => {
@@ -234,7 +237,13 @@ export class CrmMeetingServerBoundary {
       !scheduledAt ||
       !isMeetingModality(input.modality)
     ) {
-      return this.reject("meeting.create", session, "invalid_input", null, leadId);
+      return this.reject(
+        "meeting.create",
+        session,
+        "invalid_input",
+        null,
+        leadId,
+      );
     }
     if (!(await this.repository.leadExists(leadId))) {
       return this.reject("meeting.create", session, "not_found", null, leadId);
@@ -248,7 +257,13 @@ export class CrmMeetingServerBoundary {
       location === undefined ||
       notes === undefined
     ) {
-      return this.reject("meeting.create", session, "invalid_input", null, leadId);
+      return this.reject(
+        "meeting.create",
+        session,
+        "invalid_input",
+        null,
+        leadId,
+      );
     }
 
     const meeting = await this.repository.create({
@@ -285,24 +300,48 @@ export class CrmMeetingServerBoundary {
     if (!id) return this.reject("meeting.update", session, "invalid_input");
 
     const existing = await this.repository.findById(id);
-    if (!existing) return this.reject("meeting.update", session, "not_found", id);
+    if (!existing) {
+      return this.reject("meeting.update", session, "not_found", id);
+    }
 
     const patch: {
       -readonly [K in keyof CrmMeetingUpdateRecord]?: CrmMeetingUpdateRecord[K];
     } = {};
     if (input.title !== undefined) {
       const title = safeRequiredText(input.title, 180);
-      if (!title) return this.reject("meeting.update", session, "invalid_input", id, existing.leadId);
+      if (!title) {
+        return this.reject(
+          "meeting.update",
+          session,
+          "invalid_input",
+          id,
+          existing.leadId,
+        );
+      }
       patch.title = title;
     }
     if (input.scheduledAt !== undefined) {
       const scheduledAt = safeDate(input.scheduledAt);
-      if (!scheduledAt) return this.reject("meeting.update", session, "invalid_input", id, existing.leadId);
+      if (!scheduledAt) {
+        return this.reject(
+          "meeting.update",
+          session,
+          "invalid_input",
+          id,
+          existing.leadId,
+        );
+      }
       patch.scheduledAt = scheduledAt;
     }
     if (input.modality !== undefined) {
       if (!isMeetingModality(input.modality)) {
-        return this.reject("meeting.update", session, "invalid_input", id, existing.leadId);
+        return this.reject(
+          "meeting.update",
+          session,
+          "invalid_input",
+          id,
+          existing.leadId,
+        );
       }
       patch.modality = input.modality;
     }
@@ -314,18 +353,36 @@ export class CrmMeetingServerBoundary {
       if (input[field] === undefined) continue;
       const value = safeText(input[field], maxLength);
       if (value === undefined) {
-        return this.reject("meeting.update", session, "invalid_input", id, existing.leadId);
+        return this.reject(
+          "meeting.update",
+          session,
+          "invalid_input",
+          id,
+          existing.leadId,
+        );
       }
       patch[field] = value;
     }
     if (input.status !== undefined) {
       if (!isMeetingStatus(input.status)) {
-        return this.reject("meeting.update", session, "invalid_input", id, existing.leadId);
+        return this.reject(
+          "meeting.update",
+          session,
+          "invalid_input",
+          id,
+          existing.leadId,
+        );
       }
       patch.status = input.status;
     }
     if (Object.keys(patch).length === 0) {
-      return this.reject("meeting.update", session, "invalid_input", id, existing.leadId);
+      return this.reject(
+        "meeting.update",
+        session,
+        "invalid_input",
+        id,
+        existing.leadId,
+      );
     }
 
     return { ok: true, value: await this.repository.update(id, patch) };
