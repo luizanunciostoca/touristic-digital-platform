@@ -114,7 +114,9 @@ describe("CRM M75 meetings HTTP transport", () => {
       query: { leadId: "7" },
     });
     expect(result.status).toBe(200);
-    expect(result.body.data).toEqual([expect.objectContaining({ leadId: 7 })]);
+    expect(result.body.data).toEqual([
+      expect.objectContaining({ leadId: 7 }),
+    ]);
   });
 
   it("creates a meeting for an authenticated mutable role", async () => {
@@ -178,7 +180,10 @@ describe("CRM M75 meetings HTTP transport", () => {
         pathname: "/api/crm/meetings",
         body: {},
       });
-      expect(result).toMatchObject({ status: 403, body: { error, reason } });
+      expect(result).toMatchObject({
+        status: 403,
+        body: { error, reason },
+      });
     },
   );
 
@@ -189,6 +194,9 @@ describe("CRM M75 meetings HTTP transport", () => {
         method: "DELETE",
         pathname: "/api/crm/meetings/11",
       }),
-    ).toMatchObject({ status: 405, body: { error: "METHOD_NOT_ALLOWED" } });
+    ).toMatchObject({
+      status: 405,
+      body: { error: "METHOD_NOT_ALLOWED" },
+    });
   });
 });
