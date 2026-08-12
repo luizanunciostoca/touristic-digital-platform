@@ -85,6 +85,32 @@ CREATE TABLE IF NOT EXISTS crm_proposals (
   CONSTRAINT crm_proposals_lead_fk FOREIGN KEY (lead_id) REFERENCES crm_leads(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS crm_contracts (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  lead_id BIGINT UNSIGNED NOT NULL,
+  proposal_id BIGINT UNSIGNED NULL,
+  title VARCHAR(180) NOT NULL,
+  content MEDIUMTEXT NOT NULL,
+  monthly_value DECIMAL(10,2) NULL,
+  status ENUM('draft','sent','signed','cancelled') NOT NULL DEFAULT 'draft',
+  share_token VARCHAR(64) NOT NULL,
+  sent_at TIMESTAMP(3) NULL,
+  signed_at TIMESTAMP(3) NULL,
+  signature_data TEXT NULL,
+  signer_name VARCHAR(180) NULL,
+  signer_ip VARCHAR(80) NULL,
+  created_by_subject VARCHAR(191) NOT NULL,
+  created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updated_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  UNIQUE KEY crm_contracts_share_token_uq (share_token),
+  INDEX crm_contracts_lead_created_idx (lead_id, created_at),
+  INDEX crm_contracts_proposal_idx (proposal_id),
+  INDEX crm_contracts_status_signed_idx (status, signed_at),
+  CONSTRAINT crm_contracts_lead_fk FOREIGN KEY (lead_id) REFERENCES crm_leads(id) ON DELETE CASCADE,
+  CONSTRAINT crm_contracts_proposal_fk FOREIGN KEY (proposal_id) REFERENCES crm_proposals(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS crm_interactions (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   lead_id BIGINT UNSIGNED NOT NULL,
