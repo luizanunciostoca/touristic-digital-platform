@@ -230,8 +230,9 @@ describe("CRM M84 follow-ups boundary", () => {
       ok: false,
       reason: "invalid_input",
     });
-    expect(
-      await boundary.markSent(session("owner"), { id: -1 }),
-    ).toEqual({ ok: false, reason: "invalid_input" });
+    expect(await boundary.markSent(session("owner"), { id: -1 })).toEqual({
+      ok: false,
+      reason: "invalid_input",
+    });
   });
 });
