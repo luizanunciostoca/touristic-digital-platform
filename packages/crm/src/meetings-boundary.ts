@@ -251,7 +251,8 @@ export class CrmMeetingServerBoundary {
       input.meetingLink === undefined ? null : safeText(input.meetingLink, 500);
     const location =
       input.location === undefined ? null : safeText(input.location, 300);
-    const notes = input.notes === undefined ? null : safeText(input.notes, 4000);
+    const notes =
+      input.notes === undefined ? null : safeText(input.notes, 4000);
     if (
       meetingLink === undefined ||
       location === undefined ||
