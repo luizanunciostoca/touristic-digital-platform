@@ -162,3 +162,46 @@ describe("CRM M90 MySQL trials persistence", () => {
     ]);
   });
 });
+
+describe("CRM M92 MySQL trials expiry scheduler persistence", () => {
+  it("lists only unclaimed active trials whose end date is due", async () => {
+    const { pool, calls } = poolFixture([[trialRow]]);
+    const repository = new MySqlCrmTrialRepository(pool as never);
+    const due = await repository.listDue();
+    expect(due).toHaveLength(1);
+    expect(calls[0]?.sql).toContain("status = 'active'");
+    expect(calls[0]?.sql).toContain("end_date <= CURRENT_TIMESTAMP(3)");
+    expect(calls[0]?.sql).toContain("schedule_cron_task_uid IS NULL");
+  });
+
+  it("claims due trials atomically with a prepared task uid", async () => {
+    const { pool, calls } = poolFixture([{ affectedRows: 1 }]);
+    const repository = new MySqlCrmTrialRepository(pool as never);
+    await expect(repository.claimDue(41, "task-41")).resolves.toBe(true);
+    expect(calls[0]?.sql).toContain("schedule_cron_task_uid = ?");
+    expect(calls[0]?.sql).toContain("status = 'active'");
+    expect(calls[0]?.sql).toContain("end_date <= CURRENT_TIMESTAMP(3)");
+    expect(calls[0]?.values).toEqual(["task-41", 41]);
+  });
+
+  it("expires only the trial owned by the scheduler claim", async () => {
+    const { pool, calls } = poolFixture([
+      { affectedRows: 1 },
+      [{ ...trialRow, status: "expired", schedule_cron_task_uid: "task-41" }],
+    ]);
+    const repository = new MySqlCrmTrialRepository(pool as never);
+    const expired = await repository.markExpiredClaimed(41, "task-41");
+    expect(expired.status).toBe("expired");
+    expect(calls[0]?.sql).toContain("schedule_cron_task_uid = ?");
+    expect(calls[0]?.values).toEqual([41, "task-41"]);
+  });
+
+  it("releases only the matching active scheduler claim", async () => {
+    const { pool, calls } = poolFixture();
+    const repository = new MySqlCrmTrialRepository(pool as never);
+    await repository.releaseClaim(41, "task-41");
+    expect(calls[0]?.sql).toContain("schedule_cron_task_uid = NULL");
+    expect(calls[0]?.sql).toContain("status = 'active'");
+    expect(calls[0]?.values).toEqual([41, "task-41"]);
+  });
+});
