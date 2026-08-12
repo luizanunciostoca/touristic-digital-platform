@@ -101,10 +101,7 @@ export type CrmProposalBoundaryResult<T> =
       readonly reason: CrmAuthorizationReason | "invalid_input" | "not_found";
     };
 
-function safeText(
-  value: unknown,
-  maxLength: number,
-): string | null | undefined {
+function safeText(value: unknown, maxLength: number): string | null | undefined {
   if (value === null || value === "") return null;
   if (typeof value !== "string") return undefined;
   const normalized = Array.from(value, (character) => {
@@ -226,7 +223,10 @@ export class CrmProposalServerBoundary {
     if (leadIdValue !== undefined && !leadId) {
       return this.reject("proposal.list", session, "invalid_input");
     }
-    return { ok: true, value: await this.repository.list(leadId) };
+    return {
+      ok: true,
+      value: await this.repository.list(leadId ?? undefined),
+    };
   }
 
   async getAccepted(
