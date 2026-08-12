@@ -40,9 +40,7 @@ function mapMeeting(row: MeetingRow): CrmMeeting {
   };
 }
 
-export class MySqlCrmMeetingRepository
-  implements CrmMeetingBoundaryRepository
-{
+export class MySqlCrmMeetingRepository implements CrmMeetingBoundaryRepository {
   constructor(private readonly pool: Pool) {}
 
   async list(leadId?: CrmId): Promise<readonly CrmMeeting[]> {
@@ -94,10 +92,7 @@ export class MySqlCrmMeetingRepository
     return created;
   }
 
-  async update(
-    id: CrmId,
-    patch: CrmMeetingUpdateRecord,
-  ): Promise<CrmMeeting> {
+  async update(id: CrmId, patch: CrmMeetingUpdateRecord): Promise<CrmMeeting> {
     const columns: Record<keyof CrmMeetingUpdateRecord, string> = {
       title: "title",
       scheduledAt: "scheduled_at",
