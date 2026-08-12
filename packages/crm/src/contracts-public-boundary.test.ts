@@ -76,12 +76,28 @@ function harness(initial: CrmContract | null = contract()) {
 }
 
 describe("CRM M82 public contract token boundary", () => {
-  it("returns a contract by a valid capability token without authentication", async () => {
+  it("returns only the public contract projection for a valid token", async () => {
     const result = await harness().boundary.view(token);
-    expect(result).toMatchObject({
+    expect(result).toEqual({
       ok: true,
-      value: { id: 51, status: "sent", shareToken: token },
+      value: {
+        title: "Contrato Morro Digital",
+        content: "Cláusula 1. Objeto.",
+        monthlyValue: "299.00",
+        status: "sent",
+        sentAt: now,
+        signedAt: null,
+        signerName: null,
+      },
     });
+    if (result.ok) {
+      expect(result.value).not.toHaveProperty("id");
+      expect(result.value).not.toHaveProperty("leadId");
+      expect(result.value).not.toHaveProperty("proposalId");
+      expect(result.value).not.toHaveProperty("shareToken");
+      expect(result.value).not.toHaveProperty("signatureData");
+      expect(result.value).not.toHaveProperty("signerIp");
+    }
   });
 
   it("fails closed for malformed and unknown tokens", async () => {
@@ -103,12 +119,16 @@ describe("CRM M82 public contract token boundary", () => {
       signerName: "  Cliente   Morro  ",
       signerIp: "203.0.113.10",
     });
-    expect(result).toMatchObject({
+    expect(result).toEqual({
       ok: true,
       value: {
+        title: "Contrato Morro Digital",
+        content: "Cláusula 1. Objeto.",
+        monthlyValue: "299.00",
         status: "signed",
+        sentAt: now,
+        signedAt: now,
         signerName: "Cliente Morro",
-        signerIp: "203.0.113.10",
       },
     });
     expect(signatures).toEqual([
