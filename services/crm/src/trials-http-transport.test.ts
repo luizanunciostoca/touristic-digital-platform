@@ -117,7 +117,9 @@ describe("CRM M91 trials HTTP transport", () => {
       query: { leadId: "7" },
     });
     expect(result.status).toBe(200);
-    expect(result.body.data).toEqual([expect.objectContaining({ leadId: 7 })]);
+    expect(result.body.data).toEqual([
+      expect.objectContaining({ leadId: 7 }),
+    ]);
   });
 
   it("creates a V1-compatible trial with the boundary defaults", async () => {
@@ -137,17 +139,20 @@ describe("CRM M91 trials HTTP transport", () => {
     ["convert", "converted"],
     ["cancel", "cancelled"],
     ["expire", "expired"],
-  ] as const)("executes explicit %s lifecycle action", async (action, status) => {
-    const transport = harness({ role: "manager" });
-    const result = await transport.handle({
-      method: "POST",
-      pathname: `/api/crm/trials/21/${action}`,
-    });
-    expect(result).toMatchObject({
-      status: 200,
-      body: { data: { id: 21, status } },
-    });
-  });
+  ] as const)(
+    "executes explicit %s lifecycle action",
+    async (action, status) => {
+      const transport = harness({ role: "manager" });
+      const result = await transport.handle({
+        method: "POST",
+        pathname: `/api/crm/trials/21/${action}`,
+      });
+      expect(result).toMatchObject({
+        status: 200,
+        body: { data: { id: 21, status } },
+      });
+    },
+  );
 
   it("maps terminal lifecycle mutation to an HTTP conflict", async () => {
     const transport = harness({ role: "owner", initialStatus: "cancelled" });
