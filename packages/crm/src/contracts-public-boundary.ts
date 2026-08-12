@@ -1,10 +1,7 @@
 import type { CrmContract, CrmId, CrmLeadStage } from "./index.js";
 
 export type CrmContractPublicReason =
-  | "invalid_token"
-  | "not_found"
-  | "invalid_input"
-  | "invalid_transition";
+  "invalid_token" | "not_found" | "invalid_input" | "invalid_transition";
 
 export type CrmContractPublicResult<T> =
   | { readonly ok: true; readonly value: T }
