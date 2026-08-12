@@ -91,7 +91,7 @@ describe("CRM M89 trials boundary", () => {
     const { boundary, auditEvents } = harness();
     await expect(boundary.list(null)).resolves.toEqual({
       ok: false,
-      reason: "auth_required",
+      reason: "authentication_required",
     });
     expect(auditEvents).toEqual([
       expect.objectContaining({ operation: "trial.list", allowed: false }),
