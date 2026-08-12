@@ -1,0 +1,49 @@
+name: M71 CRM persistence helper
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feat/crm-m71-mysql-persistence
+    paths:
+      - ".github/workflows/m71-crm-persistence-helper.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/crm-m71-mysql-persistence
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --lockfile-only
+      - run: pnpm install --frozen-lockfile
+      - name: Format M71 artifacts
+        run: pnpm exec prettier --write services/crm/package.json services/crm/tsconfig.json services/crm/src/index.ts services/crm/src/schema.ts services/crm/src/mysql-leads-repository.ts services/crm/src/mysql-leads-repository.test.ts pnpm-lock.yaml
+      - name: Validate CRM server
+        run: |
+          pnpm --filter @touristic/crm-server lint
+          pnpm --filter @touristic/crm-server typecheck
+          pnpm --filter @touristic/crm-server test
+          pnpm --filter @touristic/crm-server build
+      - name: Validate repository quality
+        run: pnpm check
+      - name: Commit permanent M71 integration only
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add services/crm pnpm-lock.yaml
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "chore(crm): integrate M71 MySQL persistence"
+          git push origin HEAD:feat/crm-m71-mysql-persistence
