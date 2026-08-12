@@ -9,15 +9,18 @@
   "exports": {
     ".": {
       "types": "./src/index.ts",
-      "default": "./dist/index.js"
+      "node": "./dist/index.js",
+      "default": "./src/index.ts"
     },
     "./authorization": {
       "types": "./src/authorization.ts",
-      "default": "./dist/authorization.js"
+      "node": "./dist/authorization.js",
+      "default": "./src/authorization.ts"
     },
     "./leads-boundary": {
       "types": "./src/leads-boundary.ts",
-      "default": "./dist/leads-boundary.js"
+      "node": "./dist/leads-boundary.js",
+      "default": "./src/leads-boundary.ts"
     }
   },
   "scripts": {
