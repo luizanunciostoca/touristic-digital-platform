@@ -114,9 +114,7 @@ describe("CRM M75 meetings HTTP transport", () => {
       query: { leadId: "7" },
     });
     expect(result.status).toBe(200);
-    expect(result.body.data).toEqual([
-      expect.objectContaining({ leadId: 7 }),
-    ]);
+    expect(result.body.data).toEqual([expect.objectContaining({ leadId: 7 })]);
   });
 
   it("creates a meeting for an authenticated mutable role", async () => {
