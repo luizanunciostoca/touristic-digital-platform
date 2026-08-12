@@ -1,0 +1,56 @@
+name: M70 CRM leads helper
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feat/crm-m70-leads-boundary
+    paths:
+      - ".github/workflows/m70-crm-leads-helper.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/crm-m70-leads-boundary
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --lockfile-only
+      - run: pnpm install --frozen-lockfile
+      - name: Format M70 artifacts
+        run: pnpm exec prettier --write packages/crm/package.json packages/crm/src/leads-boundary.ts packages/crm/src/leads-boundary.test.ts pnpm-lock.yaml
+      - name: Validate CRM package
+        run: |
+          pnpm --filter @touristic/crm lint
+          pnpm --filter @touristic/crm typecheck
+          pnpm --filter @touristic/crm test
+          pnpm --filter @touristic/crm build
+      - name: Validate repository quality
+        run: |
+          pnpm format:check
+          pnpm architecture:check
+          pnpm features:check
+          pnpm lint
+          pnpm typecheck
+          pnpm test
+          pnpm build
+      - name: Commit permanent M70 integration only
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add packages/crm/package.json packages/crm/src/leads-boundary.ts packages/crm/src/leads-boundary.test.ts pnpm-lock.yaml
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "chore(crm): integrate M70 leads boundary"
+          git push origin HEAD:feat/crm-m70-leads-boundary
