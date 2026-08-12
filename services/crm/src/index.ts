@@ -2,6 +2,7 @@ import mysql, { type Pool, type PoolOptions } from "mysql2/promise";
 
 import { CrmContractHttpTransport } from "./contracts-http-transport.js";
 import { CrmContractPublicHttpTransport } from "./contracts-public-http-transport.js";
+import { CrmFollowUpHttpTransport } from "./followups-http-transport.js";
 import { CrmLeadHttpTransport } from "./leads-http-transport.js";
 import { CrmMeetingHttpTransport } from "./meetings-http-transport.js";
 import { MySqlCrmLeadAuditPort } from "./mysql-audit-port.js";
@@ -21,6 +22,7 @@ import { crmM71SchemaSql } from "./schema.js";
 export {
   CrmContractHttpTransport,
   CrmContractPublicHttpTransport,
+  CrmFollowUpHttpTransport,
   CrmLeadHttpTransport,
   CrmMeetingHttpTransport,
   CrmProposalHttpTransport,
