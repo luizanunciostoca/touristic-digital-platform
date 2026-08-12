@@ -1,7 +1,7 @@
 import type {
-  CrmLeadBoundaryResult,
-  CrmLeadServerBoundary,
-} from "@touristic/crm/leads-boundary";
+  CrmMeetingBoundaryResult,
+  CrmMeetingServerBoundary,
+} from "@touristic/crm/meetings-boundary";
 
 import {
   crmHttpResponse,
@@ -12,9 +12,11 @@ import {
   type CrmTransportAuthPort,
 } from "./http-transport.js";
 
-const leadsPrefix = "/api/crm/leads";
+const meetingsPrefix = "/api/crm/meetings";
 
-function resultResponse<T>(result: CrmLeadBoundaryResult<T>): CrmHttpResponse {
+function resultResponse<T>(
+  result: CrmMeetingBoundaryResult<T>,
+): CrmHttpResponse {
   if (result.ok) {
     return crmHttpResponse(200, { data: result.value });
   }
@@ -47,23 +49,26 @@ function route(
   pathname: string,
 ):
   | { readonly kind: "collection" }
-  | { readonly kind: "lead"; readonly id: string }
-  | { readonly kind: "stage"; readonly id: string }
+  | { readonly kind: "meeting"; readonly id: string }
   | null {
-  if (pathname === leadsPrefix) return { kind: "collection" };
-  if (!pathname.startsWith(`${leadsPrefix}/`)) return null;
-  const rest = pathname.slice(leadsPrefix.length + 1);
+  if (pathname === meetingsPrefix) return { kind: "collection" };
+  if (!pathname.startsWith(`${meetingsPrefix}/`)) return null;
+  const rest = pathname.slice(meetingsPrefix.length + 1);
   const parts = rest.split("/").filter(Boolean);
-  if (parts.length === 1 && parts[0]) return { kind: "lead", id: parts[0] };
-  if (parts.length === 2 && parts[0] && parts[1] === "stage") {
-    return { kind: "stage", id: parts[0] };
-  }
-  return null;
+  return parts.length === 1 && parts[0]
+    ? { kind: "meeting", id: parts[0] }
+    : null;
 }
 
-export class CrmLeadHttpTransport {
+function normalizeHttpId(value: unknown): unknown {
+  if (typeof value !== "string" || !/^[1-9]\d*$/u.test(value)) return value;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) ? parsed : value;
+}
+
+export class CrmMeetingHttpTransport {
   constructor(
-    private readonly boundary: CrmLeadServerBoundary,
+    private readonly boundary: CrmMeetingServerBoundary,
     private readonly auth: CrmTransportAuthPort,
   ) {}
 
@@ -80,37 +85,31 @@ export class CrmLeadHttpTransport {
     const { session } = security;
 
     if (matched.kind === "collection" && request.method === "GET") {
-      return resultResponse(await this.boundary.list(session, request.query));
+      return resultResponse(
+        await this.boundary.list(
+          session,
+          normalizeHttpId(request.query?.leadId),
+        ),
+      );
     }
     if (matched.kind === "collection" && request.method === "POST") {
       const body = crmObjectBody(request.body);
       return resultResponse(
         await this.boundary.create(session, {
           ...body,
-          companyName: body.companyName,
+          leadId: body.leadId,
+          title: body.title,
+          scheduledAt: body.scheduledAt,
+          modality: body.modality,
         }),
       );
     }
-    if (matched.kind === "lead" && request.method === "GET") {
-      return resultResponse(await this.boundary.get(session, matched.id));
-    }
-    if (matched.kind === "lead" && request.method === "PATCH") {
+    if (matched.kind === "meeting" && request.method === "PATCH") {
       const body = crmObjectBody(request.body);
       return resultResponse(
-        await this.boundary.update(session, { ...body, id: matched.id }),
-      );
-    }
-    if (matched.kind === "lead" && request.method === "DELETE") {
-      return resultResponse(
-        await this.boundary.delete(session, { id: matched.id }),
-      );
-    }
-    if (matched.kind === "stage" && request.method === "POST") {
-      const body = crmObjectBody(request.body);
-      return resultResponse(
-        await this.boundary.updateStage(session, {
-          id: matched.id,
-          stage: body.stage,
+        await this.boundary.update(session, {
+          ...body,
+          id: normalizeHttpId(matched.id),
         }),
       );
     }
@@ -118,9 +117,3 @@ export class CrmLeadHttpTransport {
     return crmHttpResponse(405, { error: "METHOD_NOT_ALLOWED" });
   }
 }
-
-export type {
-  CrmHttpRequest,
-  CrmHttpResponse,
-  CrmTransportAuthPort,
-} from "./http-transport.js";

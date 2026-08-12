@@ -1,14 +1,24 @@
 import { CrmLeadServerBoundary } from "@touristic/crm/leads-boundary";
+import { CrmMeetingServerBoundary } from "@touristic/crm/meetings-boundary";
 import {
   applyCrmM71Schema,
   createCrmMySqlPoolFromEnvironment,
   CrmLeadHttpTransport,
+  CrmMeetingHttpTransport,
   MySqlCrmLeadAuditPort,
   MySqlCrmLeadRepository,
+  MySqlCrmMeetingAuditPort,
+  MySqlCrmMeetingRepository,
 } from "@touristic/crm-server";
 
-const crmPrefix = "/api/crm/leads";
+const crmPrefixes = ["/api/crm/leads", "/api/crm/meetings"];
 const maxBodyBytes = 64 * 1024;
+
+function matchesCrmPath(pathname) {
+  return crmPrefixes.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+}
 
 function json(response, statusCode, payload) {
   response.statusCode = statusCode;
@@ -44,9 +54,7 @@ function queryObject(searchParams) {
 
 function createUnavailableApi() {
   return Object.freeze({
-    matches(pathname) {
-      return pathname === crmPrefix || pathname.startsWith(`${crmPrefix}/`);
-    },
+    matches: matchesCrmPath,
     async handle(_request, response) {
       json(response, 503, { error: "CRM_DATABASE_NOT_CONFIGURED" });
     },
@@ -66,9 +74,14 @@ export function createCrmApi({ authApi, getEnvironmentValue }) {
   const pool = createCrmMySqlPoolFromEnvironment({
     CRM_DATABASE_URL: databaseUrl,
   });
-  const repository = new MySqlCrmLeadRepository(pool);
-  const audit = new MySqlCrmLeadAuditPort(pool);
-  const boundary = new CrmLeadServerBoundary(repository, audit);
+  const leadBoundary = new CrmLeadServerBoundary(
+    new MySqlCrmLeadRepository(pool),
+    new MySqlCrmLeadAuditPort(pool),
+  );
+  const meetingBoundary = new CrmMeetingServerBoundary(
+    new MySqlCrmMeetingRepository(pool),
+    new MySqlCrmMeetingAuditPort(pool),
+  );
   let schemaReady;
 
   async function ensureSchema() {
@@ -77,9 +90,7 @@ export function createCrmApi({ authApi, getEnvironmentValue }) {
   }
 
   return Object.freeze({
-    matches(pathname) {
-      return pathname === crmPrefix || pathname.startsWith(`${crmPrefix}/`);
-    },
+    matches: matchesCrmPath,
 
     async handle(request, response, requestUrl) {
       await ensureSchema();
@@ -98,15 +109,25 @@ export function createCrmApi({ authApi, getEnvironmentValue }) {
         session && request.method !== "GET" && request.method !== "HEAD"
           ? authApi.authorizeMutation(request, session, "crm.resource")
           : { allowed: true };
-
-      const transport = new CrmLeadHttpTransport(boundary, {
+      const authPort = {
         async resolveSession() {
           return session;
         },
         async authorizeMutation() {
           return mutationSecurity;
         },
-      });
+      };
+      const transports = [
+        new CrmLeadHttpTransport(leadBoundary, authPort),
+        new CrmMeetingHttpTransport(meetingBoundary, authPort),
+      ];
+      const transport = transports.find((candidate) =>
+        candidate.matches(requestUrl.pathname),
+      );
+      if (!transport) {
+        json(response, 404, { error: "NOT_FOUND" });
+        return;
+      }
 
       const result = await transport.handle({
         method: String(request.method || "GET"),
