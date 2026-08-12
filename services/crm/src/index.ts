@@ -7,6 +7,8 @@ import { CrmMeetingHttpTransport } from "./meetings-http-transport.js";
 import { MySqlCrmLeadAuditPort } from "./mysql-audit-port.js";
 import { MySqlCrmContractAuditPort } from "./mysql-contracts-audit-port.js";
 import { MySqlCrmContractRepository } from "./mysql-contracts-repository.js";
+import { MySqlCrmFollowUpAuditPort } from "./mysql-followups-audit-port.js";
+import { MySqlCrmFollowUpRepository } from "./mysql-followups-repository.js";
 import { MySqlCrmLeadRepository } from "./mysql-leads-repository.js";
 import { MySqlCrmMeetingAuditPort } from "./mysql-meetings-audit-port.js";
 import { MySqlCrmMeetingRepository } from "./mysql-meetings-repository.js";
@@ -25,6 +27,8 @@ export {
   CrmProposalPublicHttpTransport,
   MySqlCrmContractAuditPort,
   MySqlCrmContractRepository,
+  MySqlCrmFollowUpAuditPort,
+  MySqlCrmFollowUpRepository,
   MySqlCrmLeadAuditPort,
   MySqlCrmLeadRepository,
   MySqlCrmMeetingAuditPort,
