@@ -31,7 +31,7 @@ jobs:
         run: pnpm exec prettier --write services/crm/package.json services/crm/src/index.ts services/crm/src/schema.ts services/crm/src/mysql-audit-port.ts services/crm/src/leads-http-transport.ts services/crm/src/leads-http-transport.test.ts pnpm-lock.yaml
       - name: Validate CRM server
         run: |
-          # M72 must pass isolated server gates before global Quality.
+          # M72 validates explicit input construction before global Quality.
           pnpm --filter @touristic/crm-server lint
           pnpm --filter @touristic/crm-server typecheck
           pnpm --filter @touristic/crm-server test
