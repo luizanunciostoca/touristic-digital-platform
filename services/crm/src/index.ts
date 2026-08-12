@@ -19,9 +19,12 @@ import { MySqlCrmMeetingAuditPort } from "./mysql-meetings-audit-port.js";
 import { MySqlCrmMeetingRepository } from "./mysql-meetings-repository.js";
 import { MySqlCrmProposalAuditPort } from "./mysql-proposals-audit-port.js";
 import { MySqlCrmProposalRepository } from "./mysql-proposals-repository.js";
+import { MySqlCrmTrialAuditPort } from "./mysql-trials-audit-port.js";
+import { MySqlCrmTrialRepository } from "./mysql-trials-repository.js";
 import { CrmProposalHttpTransport } from "./proposals-http-transport.js";
 import { CrmProposalPublicHttpTransport } from "./proposals-public-http-transport.js";
 import { crmM71SchemaSql } from "./schema.js";
+import { crmM90TrialsSchemaSql } from "./trials-schema.js";
 
 export {
   CrmContractHttpTransport,
@@ -42,8 +45,11 @@ export {
   MySqlCrmMeetingRepository,
   MySqlCrmProposalAuditPort,
   MySqlCrmProposalRepository,
+  MySqlCrmTrialAuditPort,
+  MySqlCrmTrialRepository,
   createCrmFollowUpSchedulerHost,
   crmM71SchemaSql,
+  crmM90TrialsSchemaSql,
 };
 export type {
   CreateCrmFollowUpSchedulerHostOptions,
@@ -74,11 +80,20 @@ export function createCrmMySqlPoolFromEnvironment(
   return mysql.createPool(options);
 }
 
-export async function applyCrmM71Schema(pool: Pool): Promise<void> {
-  for (const statement of crmM71SchemaSql
+async function applySqlStatements(pool: Pool, sql: string): Promise<void> {
+  for (const statement of sql
     .split(";\n")
     .map((value) => value.trim())
     .filter(Boolean)) {
     await pool.query(statement);
   }
+}
+
+export async function applyCrmM71Schema(pool: Pool): Promise<void> {
+  await applySqlStatements(pool, crmM71SchemaSql);
+}
+
+export async function applyCrmM90Schema(pool: Pool): Promise<void> {
+  await applyCrmM71Schema(pool);
+  await applySqlStatements(pool, crmM90TrialsSchemaSql);
 }
