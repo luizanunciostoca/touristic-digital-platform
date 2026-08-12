@@ -125,7 +125,10 @@ describe("CRM M85 MySQL follow-ups persistence", () => {
     ]);
     const repository = new MySqlCrmFollowUpRepository(pool as never);
     const sent = await repository.markSent(11, sentRow.sent_at);
-    const responded = await repository.markResponded(11, respondedRow.responded_at);
+    const responded = await repository.markResponded(
+      11,
+      respondedRow.responded_at,
+    );
     expect(sent.status).toBe("sent");
     expect(responded.status).toBe("responded");
     expect(calls[0]?.sql).toContain("AND status = 'pending'");
