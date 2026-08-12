@@ -43,7 +43,7 @@ const followUpRow = {
   updated_at: new Date("2026-08-12T20:40:00.000Z"),
 };
 
-describe("CRM M85 MySQL follow-ups persistence", () => {
+describe("CRM M85/M87 MySQL follow-ups persistence", () => {
   it("adds durable settings and follow-up tables with frozen status vocabulary", () => {
     expect(crmM71SchemaSql).toContain(
       "CREATE TABLE IF NOT EXISTS crm_follow_up_settings",
@@ -101,13 +101,14 @@ describe("CRM M85 MySQL follow-ups persistence", () => {
     expect(calls[2]?.values).toEqual([7]);
   });
 
-  it("selects only due pending work", async () => {
+  it("selects only due unclaimed pending work", async () => {
     const { pool, calls } = poolFixture([[followUpRow]]);
     const repository = new MySqlCrmFollowUpRepository(pool as never);
     const pending = await repository.listPending();
     expect(pending).toHaveLength(1);
     expect(calls[0]?.sql).toContain("status = 'pending'");
     expect(calls[0]?.sql).toContain("scheduled_at <= CURRENT_TIMESTAMP(3)");
+    expect(calls[0]?.sql).toContain("schedule_cron_task_uid IS NULL");
   });
 
   it("uses atomic lifecycle transitions for sent and responded", async () => {
@@ -133,6 +134,40 @@ describe("CRM M85 MySQL follow-ups persistence", () => {
     expect(responded.status).toBe("responded");
     expect(calls[0]?.sql).toContain("AND status = 'pending'");
     expect(calls[2]?.sql).toContain("AND status = 'sent'");
+  });
+
+  it("claims scheduler work atomically and binds terminal updates to the claim", async () => {
+    const sentRow = {
+      ...followUpRow,
+      status: "sent",
+      sent_at: new Date("2026-08-12T21:30:00.000Z"),
+      schedule_cron_task_uid: "task-1",
+    };
+    const skippedRow = {
+      ...followUpRow,
+      status: "skipped",
+      schedule_cron_task_uid: "task-2",
+    };
+    const { pool, calls } = poolFixture([
+      { affectedRows: 1 },
+      { affectedRows: 1 },
+      [sentRow],
+      { affectedRows: 1 },
+      [skippedRow],
+      { affectedRows: 1 },
+    ]);
+    const repository = new MySqlCrmFollowUpRepository(pool as never);
+    await expect(repository.claimPending(11, "task-1")).resolves.toBe(true);
+    await repository.markSentClaimed(11, "task-1", sentRow.sent_at);
+    await repository.markSkippedClaimed(11, "task-2");
+    await repository.releaseClaim(11, "task-3");
+    expect(calls[0]?.sql).toContain("schedule_cron_task_uid IS NULL");
+    expect(calls[0]?.values).toEqual(["task-1", 11]);
+    expect(calls[1]?.sql).toContain("schedule_cron_task_uid = ?");
+    expect(calls[1]?.values).toEqual([sentRow.sent_at, 11, "task-1"]);
+    expect(calls[3]?.values).toEqual([11, "task-2"]);
+    expect(calls[5]?.sql).toContain("SET schedule_cron_task_uid = NULL");
+    expect(calls[5]?.values).toEqual([11, "task-3"]);
   });
 
   it("persists follow-up interactions, last-contact and audit without interpolation", async () => {

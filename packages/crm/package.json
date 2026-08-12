@@ -51,6 +51,11 @@
       "types": "./src/followups-boundary.ts",
       "node": "./dist/followups-boundary.js",
       "default": "./src/followups-boundary.ts"
+    },
+    "./followups-scheduler": {
+      "types": "./src/followups-scheduler.ts",
+      "node": "./dist/followups-scheduler.js",
+      "default": "./src/followups-scheduler.ts"
     }
   },
   "scripts": {
