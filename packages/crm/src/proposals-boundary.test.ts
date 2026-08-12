@@ -125,10 +125,10 @@ describe("CRM M76 proposals lifecycle boundary", () => {
     });
 
     const acceptedHarness = harness({ role: "viewer" });
-    await acceptedHarness.boundary.respond(
-      session("manager"),
-      { id: 21, accepted: true },
-    );
+    await acceptedHarness.boundary.respond(session("manager"), {
+      id: 21,
+      accepted: true,
+    });
     expect(
       await acceptedHarness.boundary.getAccepted(
         acceptedHarness.activeSession,
@@ -165,7 +165,8 @@ describe("CRM M76 proposals lifecycle boundary", () => {
     });
     expect(interactions[0]).toMatchObject({
       leadId: 7,
-      content: 'Proposta "Proposta Comercial — Morro Digital" criada — R$ 299.00/mês',
+      content:
+        'Proposta "Proposta Comercial — Morro Digital" criada — R$ 299.00/mês',
     });
   });
 
