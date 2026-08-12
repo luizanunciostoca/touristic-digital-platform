@@ -117,9 +117,7 @@ describe("CRM M91 trials HTTP transport", () => {
       query: { leadId: "7" },
     });
     expect(result.status).toBe(200);
-    expect(result.body.data).toEqual([
-      expect.objectContaining({ leadId: 7 }),
-    ]);
+    expect(result.body.data).toEqual([expect.objectContaining({ leadId: 7 })]);
   });
 
   it("creates a V1-compatible trial with the boundary defaults", async () => {
