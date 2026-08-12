@@ -79,10 +79,7 @@ describe("CRM M80 MySQL contracts persistence", () => {
   });
 
   it("creates a contract with stable subject identity and reads it back", async () => {
-    const { pool, calls } = poolFixture([
-      { insertId: 51 },
-      [contractRow],
-    ]);
+    const { pool, calls } = poolFixture([{ insertId: 51 }, [contractRow]]);
     const repository = new MySqlCrmContractRepository(pool as never);
     const created = await repository.create({
       leadId: 7,
