@@ -99,7 +99,7 @@ function harness(initial: CrmContract = contract()) {
     () => now,
   );
 
-  return { boundary, audits, interactions, leadStages };
+  return { boundary, repository, audits, interactions, leadStages };
 }
 
 describe("CRM M79 contracts boundary", () => {
@@ -226,7 +226,7 @@ describe("CRM M79 contracts boundary", () => {
 
     const repositoryHarness = harness();
     const invalidTokenBoundary = new CrmContractServerBoundary(
-      (repositoryHarness.boundary as never)["repository"],
+      repositoryHarness.repository,
       { record: async () => {} },
       () => "short",
       () => now,
