@@ -120,7 +120,8 @@ export class MySqlCrmProposalRepository
     );
     if (result.affectedRows !== 1) return null;
     const updated = await this.findByShareToken(record.token);
-    if (!updated) throw new Error("crm_proposal_public_response_readback_failed");
+    if (!updated)
+      throw new Error("crm_proposal_public_response_readback_failed");
     return updated;
   }
 
