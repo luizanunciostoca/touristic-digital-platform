@@ -83,7 +83,10 @@ describe("CRM M77 MySQL proposals persistence", () => {
       createdBySubject: "owner-1",
     });
     expect(created.id).toBe(41);
-    expect(created.features).toEqual(["Página personalizada", "Mapa interativo"]);
+    expect(created.features).toEqual([
+      "Página personalizada",
+      "Mapa interativo",
+    ]);
     expect(calls[0]?.sql).toContain("created_by_subject");
     expect(calls[0]?.values).toContain("owner-1");
     expect(calls[0]?.values).toContain(
@@ -95,7 +98,13 @@ describe("CRM M77 MySQL proposals persistence", () => {
   it("uses prepared updates for lifecycle timestamps and lead stage advancement", async () => {
     const { pool, calls } = poolFixture([
       {},
-      [{ ...proposalRow, status: "sent", sent_at: new Date("2026-08-12T17:00:00.000Z") }],
+      [
+        {
+          ...proposalRow,
+          status: "sent",
+          sent_at: new Date("2026-08-12T17:00:00.000Z"),
+        },
+      ],
       {},
     ]);
     const repository = new MySqlCrmProposalRepository(pool as never);
