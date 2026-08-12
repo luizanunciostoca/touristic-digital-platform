@@ -76,7 +76,11 @@ function clientIp(request) {
   if (typeof first === "string" && first.trim()) {
     return first.split(",")[0]?.trim();
   }
-  return request.socket?.remoteAddress || request.connection?.remoteAddress || "unknown";
+  return (
+    request.socket?.remoteAddress ||
+    request.connection?.remoteAddress ||
+    "unknown"
+  );
 }
 
 function createUnavailableApi() {
@@ -111,7 +115,9 @@ export function createCrmApi({ authApi, getEnvironmentValue }) {
     new MySqlCrmContractAuditPort(pool),
     createShareToken,
   );
-  const contractPublicBoundary = new CrmContractPublicBoundary(contractRepository);
+  const contractPublicBoundary = new CrmContractPublicBoundary(
+    contractRepository,
+  );
   const leadBoundary = new CrmLeadServerBoundary(
     new MySqlCrmLeadRepository(pool),
     new MySqlCrmLeadAuditPort(pool),
