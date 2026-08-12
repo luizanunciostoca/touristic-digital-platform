@@ -27,23 +27,25 @@ jobs:
           cache: pnpm
       - run: pnpm install --lockfile-only
       - run: pnpm install --frozen-lockfile
-      - name: Apply M70 lint fixes
+      - name: Apply M70 validation fixes
         run: |
           python3 - <<'PY'
           from pathlib import Path
           path = Path('packages/crm/src/leads-boundary.ts')
           text = path.read_text()
           old = '  const normalized = value.replace(/[\\u0000-\\u001f\\u007f]/g, " ").replace(/\\s+/g, " ").trim();'
-          new = '''  const normalized = Array.from(value, (character) => {\n    const codePoint = character.codePointAt(0) ?? 0;\n    return codePoint <= 31 || codePoint == 127 ? " " : character;\n  })\n    .join("")\n    .replace(/\\s+/g, " ")\n    .trim();'''
-          if old not in text:
-              raise SystemExit('safeText anchor missing')
-          text = text.replace(old, new, 1)
+          new = '''  const normalized = Array.from(value, (character) => {\n    const codePoint = character.codePointAt(0) ?? 0;\n    return codePoint <= 31 || codePoint === 127 ? " " : character;\n  })\n    .join("")\n    .replace(/\\s+/g, " ")\n    .trim();'''
+          if old in text:
+              text = text.replace(old, new, 1)
           old = '  return Object.keys(patch).length > 0 ? (patch as CrmLeadUpdateRecord) : null;'
-          new = '  return Object.keys(patch).length > 0 ? patch : null;'
-          if old not in text:
-              raise SystemExit('update patch anchor missing')
-          text = text.replace('  const patch: Record<string, unknown> = {};', '  const patch: { -readonly [K in keyof CrmLeadUpdateRecord]?: CrmLeadUpdateRecord[K] } = {};', 1)
-          text = text.replace(old, new, 1)
+          if old in text:
+              text = text.replace('  const patch: Record<string, unknown> = {};', '  const patch: { -readonly [K in keyof CrmLeadUpdateRecord]?: CrmLeadUpdateRecord[K] } = {};', 1)
+              text = text.replace(old, '  return Object.keys(patch).length > 0 ? patch : null;', 1)
+
+          start = text.index('function normalizeCreate(')
+          end = text.index('\nfunction normalizeUpdate(', start)
+          replacement = '''function normalizeCreate(input: CrmLeadCreateInput): CrmLeadCreateRecord | null {\n  const companyName = safeText(input.companyName, 160);\n  if (!companyName) return null;\n\n  const optionalEmail =\n    input.email === undefined || input.email === \"\"\n      ? undefined\n      : safeEmail(input.email);\n  if (input.email !== undefined && input.email !== \"\" && !optionalEmail) {\n    return null;\n  }\n  const monthlyValue =\n    input.monthlyValue === undefined || input.monthlyValue === \"\"\n      ? undefined\n      : safeMoney(input.monthlyValue);\n  if (\n    input.monthlyValue !== undefined &&\n    input.monthlyValue !== \"\" &&\n    !monthlyValue\n  ) {\n    return null;\n  }\n\n  const record: {\n    -readonly [K in keyof CrmLeadCreateRecord]: CrmLeadCreateRecord[K];\n  } = {\n    companyName,\n    assignedToSubject: \"\",\n    stage: \"new_lead\",\n    status: \"active\",\n  };\n\n  const textFields = [\n    [\"segment\", 120],\n    [\"contactName\", 160],\n    [\"phone\", 80],\n    [\"whatsapp\", 80],\n    [\"address\", 240],\n    [\"website\", 240],\n    [\"notes\", 4000],\n    [\"source\", 160],\n  ] as const;\n  for (const [field, maxLength] of textFields) {\n    const value = safeText(input[field], maxLength);\n    if (value !== undefined) record[field] = value;\n  }\n  if (optionalEmail !== undefined) record.email = optionalEmail;\n  if (monthlyValue !== undefined) record.monthlyValue = monthlyValue;\n  return record;\n}\n'''
+          text = text[:start] + replacement + text[end:]
           path.write_text(text)
           PY
       - name: Format M70 artifacts
