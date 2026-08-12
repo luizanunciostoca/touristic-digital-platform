@@ -39,6 +39,25 @@ CREATE TABLE IF NOT EXISTS crm_checklist_items (
   CONSTRAINT crm_checklist_lead_fk FOREIGN KEY (lead_id) REFERENCES crm_leads(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS crm_meetings (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  lead_id BIGINT UNSIGNED NOT NULL,
+  title VARCHAR(180) NOT NULL,
+  scheduled_at TIMESTAMP(3) NOT NULL,
+  modality ENUM('in_person','online') NOT NULL,
+  meeting_link VARCHAR(500) NULL,
+  location VARCHAR(300) NULL,
+  status ENUM('scheduled','done','cancelled','no_show') NOT NULL DEFAULT 'scheduled',
+  notes TEXT NULL,
+  created_by_subject VARCHAR(191) NOT NULL,
+  created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updated_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  INDEX crm_meetings_lead_scheduled_idx (lead_id, scheduled_at),
+  INDEX crm_meetings_status_scheduled_idx (status, scheduled_at),
+  CONSTRAINT crm_meetings_lead_fk FOREIGN KEY (lead_id) REFERENCES crm_leads(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS crm_interactions (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   lead_id BIGINT UNSIGNED NOT NULL,

@@ -21,6 +21,11 @@
       "types": "./src/leads-boundary.ts",
       "node": "./dist/leads-boundary.js",
       "default": "./src/leads-boundary.ts"
+    },
+    "./meetings-boundary": {
+      "types": "./src/meetings-boundary.ts",
+      "node": "./dist/meetings-boundary.js",
+      "default": "./src/meetings-boundary.ts"
     }
   },
   "scripts": {
