@@ -1,0 +1,36 @@
+name: M77 format helper
+
+on:
+  push:
+    branches:
+      - feat/crm-m77-proposals-mysql
+    paths:
+      - ".github/workflows/m77-format-helper.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/crm-m77-proposals-mysql
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec prettier --write services/crm/src/mysql-proposals-repository.ts services/crm/src/mysql-proposals-repository.test.ts
+      - name: Commit formatted M77 files only
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add services/crm/src/mysql-proposals-repository.ts services/crm/src/mysql-proposals-repository.test.ts
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "style(crm): format M77 proposals persistence"
+          git push origin HEAD:feat/crm-m77-proposals-mysql
