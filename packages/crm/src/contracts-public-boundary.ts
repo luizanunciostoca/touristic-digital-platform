@@ -35,21 +35,21 @@ export interface CrmContractPublicSignRecord {
   readonly signerIp: string;
 }
 
+type ContractLookup = Promise<CrmContract | null>;
+type PublicContractResult = Promise<
+  CrmContractPublicResult<CrmContractPublicView>
+>;
+
 export interface CrmContractPublicRepository {
-  readonly findByShareToken: (token: string) => Promise<CrmContract | null>;
-  readonly signSentByToken: (
-    record: CrmContractPublicSignRecord,
-  ) => Promise<CrmContract | null>;
-  readonly updateLeadStage: (
-    leadId: CrmId,
-    stage: CrmLeadStage,
-  ) => Promise<void>;
-  readonly appendInteraction: (input: {
+  findByShareToken(token: string): ContractLookup;
+  signSentByToken(record: CrmContractPublicSignRecord): ContractLookup;
+  updateLeadStage(leadId: CrmId, stage: CrmLeadStage): Promise<void>;
+  appendInteraction(input: {
     readonly leadId: CrmId;
     readonly content: string;
     readonly actorSubject: string;
     readonly metadata?: Readonly<Record<string, string>>;
-  }) => Promise<void>;
+  }): Promise<void>;
 }
 
 function safeToken(value: unknown): string | null {
@@ -96,9 +96,7 @@ export class CrmContractPublicBoundary {
     private readonly now: () => Date = () => new Date(),
   ) {}
 
-  async view(tokenValue: unknown): Promise<
-    CrmContractPublicResult<CrmContractPublicView>
-  > {
+  async view(tokenValue: unknown): PublicContractResult {
     const token = safeToken(tokenValue);
     if (!token) return { ok: false, reason: "invalid_token" };
     const contract = await this.repository.findByShareToken(token);
@@ -107,9 +105,7 @@ export class CrmContractPublicBoundary {
       : { ok: false, reason: "not_found" };
   }
 
-  async sign(
-    input: CrmContractPublicSignInput,
-  ): Promise<CrmContractPublicResult<CrmContractPublicView>> {
+  async sign(input: CrmContractPublicSignInput): PublicContractResult {
     const token = safeToken(input.token);
     if (!token) return { ok: false, reason: "invalid_token" };
 
