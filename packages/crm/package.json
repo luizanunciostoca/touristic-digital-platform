@@ -26,6 +26,11 @@
       "types": "./src/meetings-boundary.ts",
       "node": "./dist/meetings-boundary.js",
       "default": "./src/meetings-boundary.ts"
+    },
+    "./proposals-boundary": {
+      "types": "./src/proposals-boundary.ts",
+      "node": "./dist/proposals-boundary.js",
+      "default": "./src/proposals-boundary.ts"
     }
   },
   "scripts": {
