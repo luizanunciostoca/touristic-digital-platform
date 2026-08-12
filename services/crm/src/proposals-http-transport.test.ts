@@ -117,7 +117,11 @@ describe("CRM M78 proposals HTTP transport", () => {
     const created = await transport.handle({
       method: "POST",
       pathname: "/api/crm/proposals",
-      body: { leadId: 7, title: "Nova proposta", monthlyValue: "349.00" },
+      body: {
+        leadId: 7,
+        title: "Nova proposta",
+        monthlyValue: "349.00",
+      },
     });
     expect(created).toMatchObject({
       status: 200,
@@ -127,12 +131,18 @@ describe("CRM M78 proposals HTTP transport", () => {
       method: "POST",
       pathname: "/api/crm/proposals/41/send",
     });
-    expect(sent).toMatchObject({ status: 200, body: { data: { status: "sent" } } });
+    expect(sent).toMatchObject({
+      status: 200,
+      body: { data: { status: "sent" } },
+    });
   });
 
   it("returns the accepted proposal for a lead", async () => {
     const transport = harness("owner");
-    await transport.handle({ method: "POST", pathname: "/api/crm/proposals/41/send" });
+    await transport.handle({
+      method: "POST",
+      pathname: "/api/crm/proposals/41/send",
+    });
     await transport.handle({
       method: "POST",
       pathname: "/api/crm/proposals/41/respond",
@@ -154,7 +164,11 @@ describe("CRM M78 proposals HTTP transport", () => {
       await harness("viewer").handle({
         method: "POST",
         pathname: "/api/crm/proposals",
-        body: { leadId: 7, title: "Bloqueada", monthlyValue: "10.00" },
+        body: {
+          leadId: 7,
+          title: "Bloqueada",
+          monthlyValue: "10.00",
+        },
       }),
     ).toMatchObject({ status: 403, body: { error: "READ_ONLY_ROLE" } });
   });
