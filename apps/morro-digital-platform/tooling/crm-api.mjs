@@ -58,10 +58,14 @@ export function createCrmApi({ authApi, getEnvironmentValue }) {
     throw new Error("CRM_AUTH_BOUNDARY_REQUIRED");
   }
 
-  const databaseUrl = String(getEnvironmentValue("CRM_DATABASE_URL") || "").trim();
+  const databaseUrl = String(
+    getEnvironmentValue("CRM_DATABASE_URL") || "",
+  ).trim();
   if (!databaseUrl) return createUnavailableApi();
 
-  const pool = createCrmMySqlPoolFromEnvironment({ CRM_DATABASE_URL: databaseUrl });
+  const pool = createCrmMySqlPoolFromEnvironment({
+    CRM_DATABASE_URL: databaseUrl,
+  });
   const repository = new MySqlCrmLeadRepository(pool);
   const audit = new MySqlCrmLeadAuditPort(pool);
   const boundary = new CrmLeadServerBoundary(repository, audit);

@@ -173,6 +173,36 @@ export function createAuthApi({ getEnvironmentValue, audit = () => {} }) {
     return session;
   }
 
+  function authorizeMutation(
+    request,
+    active,
+    auditAction = "platform.mutation",
+  ) {
+    if (!originAllowed(request)) {
+      audit(request, {
+        action: auditAction,
+        result: "denied",
+        reason: "cross_origin_request",
+      });
+      return Object.freeze({ allowed: false, reason: "cross_origin_request" });
+    }
+    if (
+      !verifyCsrfToken(
+        firstHeader(request.headers["x-csrf-token"]),
+        active,
+        secret,
+      )
+    ) {
+      audit(request, {
+        action: auditAction,
+        result: "denied",
+        reason: "invalid_csrf",
+      });
+      return Object.freeze({ allowed: false, reason: "invalid_csrf" });
+    }
+    return Object.freeze({ allowed: true });
+  }
+
   function authorizeBusinessRequest(
     request,
     response,
@@ -396,6 +426,8 @@ export function createAuthApi({ getEnvironmentValue, audit = () => {} }) {
 
   return Object.freeze({
     authorizeBusinessRequest,
+    authorizeMutation,
+    resolveSession: currentSession,
     matches(pathname) {
       return (
         pathname === `${authPrefix}/login` ||

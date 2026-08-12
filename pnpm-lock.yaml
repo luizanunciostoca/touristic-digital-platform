@@ -52,6 +52,12 @@ importers:
       "@touristic/core":
         specifier: workspace:*
         version: link:../../packages/core
+      "@touristic/crm":
+        specifier: workspace:*
+        version: link:../../packages/crm
+      "@touristic/crm-server":
+        specifier: workspace:*
+        version: link:../../services/crm
       "@touristic/geospatial":
         specifier: workspace:*
         version: link:../../packages/geospatial

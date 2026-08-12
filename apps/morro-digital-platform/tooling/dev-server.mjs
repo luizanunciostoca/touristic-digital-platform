@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { createAssistantApi } from "./assistant-api.mjs";
 import { createAuthApi } from "./auth-api.mjs";
 import { createBusinessApi } from "./business-api.mjs";
+import { createCrmApi } from "./crm-api.mjs";
 
 const repositoryRoot = resolve(
   fileURLToPath(new URL("../../../", import.meta.url)),
@@ -109,6 +110,11 @@ const assistantApi = createAssistantApi({
 const authApi = createAuthApi({
   getEnvironmentValue: (key) => process.env[key] ?? localEnvironment[key] ?? "",
   audit: auditSecurityEvent,
+});
+
+const crmApi = createCrmApi({
+  authApi,
+  getEnvironmentValue: (key) => process.env[key] ?? localEnvironment[key] ?? "",
 });
 
 const businessApi = createBusinessApi({ authApi });
@@ -378,6 +384,10 @@ const server = createServer(async (request, response) => {
     }
     if (authApi.matches(requestUrl.pathname)) {
       await authApi.handle(request, response, requestUrl.pathname);
+      return;
+    }
+    if (crmApi.matches(requestUrl.pathname)) {
+      await crmApi.handle(request, response, requestUrl);
       return;
     }
     if (businessApi.matches(requestUrl.pathname)) {
