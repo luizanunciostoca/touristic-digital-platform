@@ -51,7 +51,11 @@ function harness(initial: CrmProposal | null = proposal()) {
       current?.shareToken === value ? current : null,
     markViewedByToken: async (value, timestamp) => {
       viewedAt.push(timestamp);
-      if (!current || current.shareToken !== value || current.status !== "sent") {
+      if (
+        !current ||
+        current.shareToken !== value ||
+        current.status !== "sent"
+      ) {
         return current?.shareToken === value ? current : null;
       }
       current = proposal({ ...current, status: "viewed", viewedAt: timestamp });
@@ -144,7 +148,9 @@ describe("CRM M83 public proposal token boundary", () => {
       ok: true,
       value: { status: "accepted", respondedAt: now },
     });
-    expect(responses).toEqual([{ token, status: "accepted", respondedAt: now }]);
+    expect(responses).toEqual([
+      { token, status: "accepted", respondedAt: now },
+    ]);
     expect(stages).toEqual(["contract_sent"]);
     expect(interactions).toHaveLength(1);
     expect(interactions[0]).toMatchObject({
