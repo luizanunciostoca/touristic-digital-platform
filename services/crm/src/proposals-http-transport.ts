@@ -1,5 +1,6 @@
 import type {
   CrmProposalBoundaryResult,
+  CrmProposalCreateInput,
   CrmProposalServerBoundary,
 } from "@touristic/crm/proposals-boundary";
 
@@ -74,6 +75,21 @@ function normalizeHttpId(value: unknown): unknown {
   return Number.isSafeInteger(parsed) ? parsed : value;
 }
 
+function proposalCreateInput(body: unknown): CrmProposalCreateInput {
+  const value = crmObjectBody(body);
+  return {
+    leadId: normalizeHttpId(value.leadId),
+    title: value.title,
+    monthlyValue: value.monthlyValue,
+    planName: value.planName,
+    setupFee: value.setupFee,
+    trialDays: value.trialDays,
+    features: value.features,
+    customMessage: value.customMessage,
+    validUntil: value.validUntil,
+  };
+}
+
 export class CrmProposalHttpTransport {
   constructor(
     private readonly boundary: CrmProposalServerBoundary,
@@ -104,7 +120,7 @@ export class CrmProposalHttpTransport {
     }
     if (matched.kind === "collection" && request.method === "POST") {
       return resultResponse(
-        await this.boundary.create(session, crmObjectBody(request.body)),
+        await this.boundary.create(session, proposalCreateInput(request.body)),
       );
     }
     if (matched.kind === "accepted" && request.method === "GET") {
