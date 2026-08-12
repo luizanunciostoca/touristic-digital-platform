@@ -1,0 +1,53 @@
+name: M73 format helper
+
+on:
+  push:
+    branches:
+      - feat/crm-m73-platform-auth-composition
+    paths:
+      - ".github/workflows/m73-format-helper.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/crm-m73-platform-auth-composition
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Remove unnecessary test assertion
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('services/crm/src/mysql-leads-repository.test.ts')
+          text = path.read_text()
+          old = '    await repository.list({ limit: 0, offset: -1 } as never);\n'
+          new = '    await repository.list({ limit: 0, offset: -1 });\n'
+          if old not in text:
+            raise SystemExit('pagination assertion anchor not found')
+          path.write_text(text.replace(old, new, 1))
+          PY
+      - run: pnpm exec prettier --write services/crm/src/mysql-leads-repository.ts services/crm/src/mysql-leads-repository.test.ts
+      - name: Validate CRM and formatting
+        run: |
+          pnpm --filter @touristic/crm-server lint
+          pnpm --filter @touristic/crm-server typecheck
+          pnpm --filter @touristic/crm-server test
+          pnpm exec prettier --check services/crm/src/mysql-leads-repository.ts services/crm/src/mysql-leads-repository.test.ts
+      - name: Commit permanent fixes only
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add services/crm/src/mysql-leads-repository.ts services/crm/src/mysql-leads-repository.test.ts
+          git commit -m "fix(crm): normalize MySQL repository checks"
+          git push origin HEAD:feat/crm-m73-platform-auth-composition
