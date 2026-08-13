@@ -73,6 +73,7 @@ export class CrmTrialNotificationHost {
 export interface CreateCrmTrialNotificationHostOptions extends CrmTrialNotificationHostOptions {
   readonly delivery: CrmTrialNotificationDeliveryPort;
   readonly createTaskUid: () => string;
+  readonly claimLeaseMs: number;
   readonly now?: () => Date;
   readonly actorSubject?: string;
 }
@@ -85,6 +86,7 @@ export function createCrmTrialNotificationHost(
     new MySqlCrmTrialRepository(pool),
     options.delivery,
     options.createTaskUid,
+    options.claimLeaseMs,
     options.now,
     options.actorSubject,
   );
