@@ -1,8 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { CrmTrialNotificationProcessor } from "@touristic/crm/trials-notification";
+import {
+  CRM_TRIAL_NOTIFICATION_IDEMPOTENCY_CAPABILITY,
+  type CrmTrialNotificationProcessor,
+} from "@touristic/crm/trials-notification";
 
-import { CrmTrialNotificationHost } from "./trials-notification-host.js";
+import {
+  createCrmTrialNotificationHost,
+  CrmTrialNotificationHost,
+} from "./trials-notification-host.js";
 
 const emptyResult = {
   considered: 0,
@@ -11,7 +17,7 @@ const emptyResult = {
   failed: 0,
 };
 
-describe("CRM M94 trial notification host", () => {
+describe("CRM M98 trial notification host provider capability", () => {
   it("rejects unsafe sub-second polling intervals", () => {
     expect(
       () =>
@@ -22,6 +28,36 @@ describe("CRM M94 trial notification host", () => {
           { intervalMs: 999 },
         ),
     ).toThrow("CRM trial notification interval must be at least 1000ms");
+  });
+
+  it("fails closed before wiring a delivery adapter without provider deduplication", () => {
+    expect(() =>
+      createCrmTrialNotificationHost({} as never, {
+        intervalMs: 1_000,
+        claimLeaseMs: 60_000,
+        createTaskUid: () => "notification-1",
+        delivery: {
+          send: async () => ({ delivered: true }),
+        },
+      }),
+    ).toThrow(
+      "CRM trial notification delivery must provide stable-key provider deduplication",
+    );
+  });
+
+  it("accepts an adapter that declares stable-key provider deduplication", () => {
+    expect(() =>
+      createCrmTrialNotificationHost({} as never, {
+        intervalMs: 1_000,
+        claimLeaseMs: 60_000,
+        createTaskUid: () => "notification-1",
+        delivery: {
+          idempotencyCapability:
+            CRM_TRIAL_NOTIFICATION_IDEMPOTENCY_CAPABILITY,
+          send: async () => ({ delivered: true }),
+        },
+      }),
+    ).not.toThrow();
   });
 
   it("coalesces overlapping runs into one processor execution", async () => {
