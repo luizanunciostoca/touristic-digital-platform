@@ -5,7 +5,7 @@ const root = new URL("../../../", import.meta.url);
 const read = (path: string) => readFile(new URL(path, root), "utf8");
 
 describe("CRM M106 Leads browser client", () => {
-  it("exposes a dedicated read-only Leads view in the authenticated shell", async () => {
+  it("exposes a dedicated Leads view in the authenticated shell", async () => {
     const html = await read("apps/admin-crm/public/index.html");
 
     expect(html).toContain('id="leads-view"');
@@ -32,11 +32,11 @@ describe("CRM M106 Leads browser client", () => {
     expect(shell).not.toContain("insertAdjacentHTML");
   });
 
-  it("keeps M106 read-only", async () => {
+  it("keeps edit, delete and stage mutation out of the Leads surface", async () => {
     const shell = await read("apps/admin-crm/public/shell.js");
 
-    expect(shell).not.toContain('method:"POST"');
     expect(shell).not.toContain('method:"PATCH"');
     expect(shell).not.toContain('method:"DELETE"');
+    expect(shell).not.toContain("/stage");
   });
 });
