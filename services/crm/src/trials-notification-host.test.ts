@@ -52,8 +52,7 @@ describe("CRM M98 trial notification host provider capability", () => {
         claimLeaseMs: 60_000,
         createTaskUid: () => "notification-1",
         delivery: {
-          idempotencyCapability:
-            CRM_TRIAL_NOTIFICATION_IDEMPOTENCY_CAPABILITY,
+          idempotencyCapability: CRM_TRIAL_NOTIFICATION_IDEMPOTENCY_CAPABILITY,
           send: async () => ({ delivered: true }),
         },
       }),
