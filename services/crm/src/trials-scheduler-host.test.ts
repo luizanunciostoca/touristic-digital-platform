@@ -16,7 +16,7 @@ describe("CRM M92 trials scheduler host", () => {
     expect(
       () =>
         new CrmTrialSchedulerHost(
-          { runDue: async () => emptyResult } as CrmTrialScheduler,
+          { runDue: async () => emptyResult } as unknown as CrmTrialScheduler,
           { intervalMs: 999 },
         ),
     ).toThrow("CRM trial scheduler interval must be at least 1000ms");
@@ -50,7 +50,7 @@ describe("CRM M92 trials scheduler host", () => {
     const successful = new CrmTrialSchedulerHost(
       {
         runDue: async () => ({ ...emptyResult, considered: 2, expired: 2 }),
-      } as CrmTrialScheduler,
+      } as unknown as CrmTrialScheduler,
       { intervalMs: 1_000, onRun, onError },
     );
     await successful.runOnce();
@@ -67,7 +67,7 @@ describe("CRM M92 trials scheduler host", () => {
         runDue: async () => {
           throw new Error("scheduler_failed");
         },
-      } as CrmTrialScheduler,
+      } as unknown as CrmTrialScheduler,
       { intervalMs: 1_000, onError },
     );
     await expect(failing.runOnce()).resolves.toBeUndefined();
