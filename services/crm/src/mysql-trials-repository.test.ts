@@ -205,3 +205,37 @@ describe("CRM M92 MySQL trials expiry scheduler persistence", () => {
     expect(calls[0]?.values).toEqual([41, "task-41"]);
   });
 });
+
+describe("CRM M93 MySQL trial notification persistence", () => {
+  it("lists only expired trials without a durable notification timestamp", async () => {
+    const expired = { ...trialRow, status: "expired" };
+    const { pool, calls } = poolFixture([[expired]]);
+    const repository = new MySqlCrmTrialRepository(pool as never);
+    const pending = await repository.listExpiredUnnotified();
+    expect(pending).toHaveLength(1);
+    expect(calls[0]?.sql).toContain("status = 'expired'");
+    expect(calls[0]?.sql).toContain("notified_at IS NULL");
+  });
+
+  it("marks an expired trial notified exactly once with prepared values", async () => {
+    const at = new Date("2026-08-13T00:00:00.000Z");
+    const { pool, calls } = poolFixture([
+      { affectedRows: 1 },
+      [{ ...trialRow, status: "expired", notified_at: at }],
+    ]);
+    const repository = new MySqlCrmTrialRepository(pool as never);
+    const updated = await repository.markNotified(41, at);
+    expect(updated.notifiedAt).toEqual(at);
+    expect(calls[0]?.sql).toContain("status = 'expired'");
+    expect(calls[0]?.sql).toContain("notified_at IS NULL");
+    expect(calls[0]?.values).toEqual([at, 41]);
+  });
+
+  it("fails closed when notification state was already persisted", async () => {
+    const { pool } = poolFixture([{ affectedRows: 0 }]);
+    const repository = new MySqlCrmTrialRepository(pool as never);
+    await expect(
+      repository.markNotified(41, new Date("2026-08-13T00:00:00.000Z")),
+    ).rejects.toThrow("crm_trial_notification_mark_notified_conflict");
+  });
+});
