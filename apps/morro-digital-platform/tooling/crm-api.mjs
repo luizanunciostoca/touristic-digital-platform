@@ -7,8 +7,9 @@ import { CrmLeadServerBoundary } from "@touristic/crm/leads-boundary";
 import { CrmMeetingServerBoundary } from "@touristic/crm/meetings-boundary";
 import { CrmProposalServerBoundary } from "@touristic/crm/proposals-boundary";
 import { CrmProposalPublicBoundary } from "@touristic/crm/proposals-public-boundary";
+import { CrmReferralServerBoundary } from "@touristic/crm/referrals-boundary";
 import {
-  applyCrmM71Schema,
+  applyCrmM99Schema,
   createCrmMySqlPoolFromEnvironment,
   CrmContractHttpTransport,
   CrmContractPublicHttpTransport,
@@ -17,6 +18,7 @@ import {
   CrmMeetingHttpTransport,
   CrmProposalHttpTransport,
   CrmProposalPublicHttpTransport,
+  CrmReferralHttpTransport,
   MySqlCrmContractAuditPort,
   MySqlCrmContractRepository,
   MySqlCrmFollowUpAuditPort,
@@ -27,6 +29,8 @@ import {
   MySqlCrmMeetingRepository,
   MySqlCrmProposalAuditPort,
   MySqlCrmProposalRepository,
+  MySqlCrmReferralAuditPort,
+  MySqlCrmReferralRepository,
 } from "@touristic/crm-server";
 
 const crmPrefixes = [
@@ -37,6 +41,7 @@ const crmPrefixes = [
   "/api/crm/leads",
   "/api/crm/meetings",
   "/api/crm/proposals",
+  "/api/crm/referrals",
 ];
 const maxBodyBytes = 128 * 1024;
 
@@ -147,10 +152,14 @@ export function createCrmApi({ authApi, getEnvironmentValue }) {
   const proposalPublicBoundary = new CrmProposalPublicBoundary(
     proposalRepository,
   );
+  const referralBoundary = new CrmReferralServerBoundary(
+    new MySqlCrmReferralRepository(pool),
+    new MySqlCrmReferralAuditPort(pool),
+  );
   let schemaReady;
 
   async function ensureSchema() {
-    schemaReady ??= applyCrmM71Schema(pool);
+    schemaReady ??= applyCrmM99Schema(pool);
     return schemaReady;
   }
 
@@ -190,6 +199,7 @@ export function createCrmApi({ authApi, getEnvironmentValue }) {
         new CrmLeadHttpTransport(leadBoundary, authPort),
         new CrmMeetingHttpTransport(meetingBoundary, authPort),
         new CrmProposalHttpTransport(proposalBoundary, authPort),
+        new CrmReferralHttpTransport(referralBoundary, authPort),
       ];
       const transport = transports.find((candidate) =>
         candidate.matches(requestUrl.pathname),
