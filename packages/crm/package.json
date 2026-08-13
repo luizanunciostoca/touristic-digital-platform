@@ -66,6 +66,11 @@
       "types": "./src/trials-scheduler.ts",
       "node": "./dist/trials-scheduler.js",
       "default": "./src/trials-scheduler.ts"
+    },
+    "./trials-notification": {
+      "types": "./src/trials-notification.ts",
+      "node": "./dist/trials-notification.js",
+      "default": "./src/trials-notification.ts"
     }
   },
   "scripts": {
