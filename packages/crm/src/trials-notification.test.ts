@@ -180,11 +180,15 @@ describe("CRM M97 trials expiry notification provider idempotency", () => {
       failed: 0,
     });
 
-    expect(send.mock.calls[0]?.[0].idempotencyKey).toBe(
-      "crm.trial.expired.notification:v1:31",
+    expect(send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        idempotencyKey: "crm.trial.expired.notification:v1:31",
+      }),
     );
-    expect(retrySend.mock.calls[0]?.[0].idempotencyKey).toBe(
-      send.mock.calls[0]?.[0].idempotencyKey,
+    expect(retrySend).toHaveBeenCalledWith(
+      expect.objectContaining({
+        idempotencyKey: "crm.trial.expired.notification:v1:31",
+      }),
     );
   });
 
@@ -216,8 +220,10 @@ describe("CRM M97 trials expiry notification provider idempotency", () => {
       failed: 0,
     });
     expect(send).toHaveBeenCalledTimes(1);
-    expect(send.mock.calls[0]?.[0].idempotencyKey).toBe(
-      "crm.trial.expired.notification:v1:31",
+    expect(send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        idempotencyKey: "crm.trial.expired.notification:v1:31",
+      }),
     );
     expect(getClaim()).toBeNull();
   });
