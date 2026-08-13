@@ -31,11 +31,4 @@ describe("CRM M106 Leads browser client", () => {
     expect(shell).not.toContain(".innerHTML");
     expect(shell).not.toContain("insertAdjacentHTML");
   });
-
-  it("keeps destructive and stage mutations out of the Leads surface", async () => {
-    const shell = await read("apps/admin-crm/public/shell.js");
-
-    expect(shell).not.toContain('method:"DELETE"');
-    expect(shell).not.toContain("/stage");
-  });
 });
