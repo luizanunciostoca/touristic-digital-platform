@@ -60,7 +60,9 @@ describe("M105 CRM browser auth transport", () => {
 
     const [, init] = fetchFn.mock.calls[0] ?? [];
     expect(init?.credentials).toBe("same-origin");
-    expect(new Headers(init?.headers).get("X-CSRF-Token")).toBe("csrf-crm");
+    expect(new Headers(init?.headers).get("X-CSRF-Token")).toBe(
+      "csrf-crm",
+    );
   });
 
   it("preserves the CRM shell return path after a protected 401", async () => {
@@ -102,9 +104,10 @@ describe("M105 CRM browser auth transport", () => {
       location: location.port,
     });
 
-    const response = await client.secureFetch("/api/crm/trials/trial-1/cancel", {
-      method: "POST",
-    });
+    const response = await client.secureFetch(
+      "/api/crm/trials/trial-1/cancel",
+      { method: "POST" },
+    );
 
     expect(response.status).toBe(200);
     expect(fetchFn).toHaveBeenCalledTimes(3);
