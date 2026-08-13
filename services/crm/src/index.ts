@@ -23,10 +23,13 @@ import { MySqlCrmMeetingAuditPort } from "./mysql-meetings-audit-port.js";
 import { MySqlCrmMeetingRepository } from "./mysql-meetings-repository.js";
 import { MySqlCrmProposalAuditPort } from "./mysql-proposals-audit-port.js";
 import { MySqlCrmProposalRepository } from "./mysql-proposals-repository.js";
+import { MySqlCrmReferralAuditPort } from "./mysql-referrals-audit-port.js";
+import { MySqlCrmReferralRepository } from "./mysql-referrals-repository.js";
 import { MySqlCrmTrialAuditPort } from "./mysql-trials-audit-port.js";
 import { MySqlCrmTrialRepository } from "./mysql-trials-repository.js";
 import { CrmProposalHttpTransport } from "./proposals-http-transport.js";
 import { CrmProposalPublicHttpTransport } from "./proposals-public-http-transport.js";
+import { crmM99ReferralsSchemaSql } from "./referrals-schema.js";
 import { crmM71SchemaSql } from "./schema.js";
 import { CrmTrialHttpTransport } from "./trials-http-transport.js";
 import {
@@ -65,6 +68,8 @@ export {
   MySqlCrmMeetingRepository,
   MySqlCrmProposalAuditPort,
   MySqlCrmProposalRepository,
+  MySqlCrmReferralAuditPort,
+  MySqlCrmReferralRepository,
   MySqlCrmTrialAuditPort,
   MySqlCrmTrialRepository,
   createCrmFollowUpSchedulerHost,
@@ -74,6 +79,7 @@ export {
   crmM90TrialsSchemaSql,
   crmM94TrialsNotificationClaimSchemaSql,
   crmM95TrialsNotificationLeaseSchemaSql,
+  crmM99ReferralsSchemaSql,
 };
 export type {
   CreateCrmFollowUpSchedulerHostOptions,
@@ -146,4 +152,9 @@ export async function applyCrmM95Schema(pool: Pool): Promise<void> {
   );
   if (columns.length > 0) return;
   await applySqlStatements(pool, crmM95TrialsNotificationLeaseSchemaSql);
+}
+
+export async function applyCrmM99Schema(pool: Pool): Promise<void> {
+  await applyCrmM95Schema(pool);
+  await applySqlStatements(pool, crmM99ReferralsSchemaSql);
 }
