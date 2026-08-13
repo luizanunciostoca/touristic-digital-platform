@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { CrmTrial } from "./index.js";
 import {
+  createCrmTrialNotificationIdempotencyKey,
   CrmTrialNotificationProcessor,
   type CrmTrialNotificationRepository,
 } from "./trials-notification.js";
@@ -111,7 +112,19 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-describe("CRM M96 trials expiry notification claim heartbeat", () => {
+describe("CRM M97 trials expiry notification provider idempotency", () => {
+  it("derives a stable versioned provider key from the logical trial event", () => {
+    expect(createCrmTrialNotificationIdempotencyKey(31)).toBe(
+      "crm.trial.expired.notification:v1:31",
+    );
+    expect(createCrmTrialNotificationIdempotencyKey(31)).toBe(
+      createCrmTrialNotificationIdempotencyKey(31),
+    );
+    expect(createCrmTrialNotificationIdempotencyKey(32)).not.toBe(
+      createCrmTrialNotificationIdempotencyKey(31),
+    );
+  });
+
   it("rejects unsafe sub-second claim leases", () => {
     const { repository } = harness();
     expect(
@@ -138,10 +151,41 @@ describe("CRM M96 trials expiry notification claim heartbeat", () => {
       trialId: 31,
       leadId: 7,
       expiredAt: new Date("2026-08-12T00:00:00.000Z"),
+      idempotencyKey: "crm.trial.expired.notification:v1:31",
     });
     expect(getCurrent().notifiedAt).toEqual(new Date(baseNow));
     expect(getClaim()).toBeNull();
     expect(appendInteraction).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the provider key stable across a released retry with a new claim uid", async () => {
+    const { processor, repository, send } = harness(false);
+    await expect(processor.runPending()).resolves.toMatchObject({
+      claimed: 1,
+      delivered: 0,
+      failed: 1,
+    });
+
+    const retrySend = vi.fn(async () => ({ delivered: true }));
+    const retry = new CrmTrialNotificationProcessor(
+      repository,
+      { send: retrySend },
+      () => "different-claim-owner",
+      claimLeaseMs,
+      () => new Date(baseNow + 1_000),
+    );
+    await expect(retry.runPending()).resolves.toMatchObject({
+      claimed: 1,
+      delivered: 1,
+      failed: 0,
+    });
+
+    expect(send.mock.calls[0]?.[0].idempotencyKey).toBe(
+      "crm.trial.expired.notification:v1:31",
+    );
+    expect(retrySend.mock.calls[0]?.[0].idempotencyKey).toBe(
+      send.mock.calls[0]?.[0].idempotencyKey,
+    );
   });
 
   it("does not steal a live claim before its lease expires", async () => {
@@ -172,6 +216,9 @@ describe("CRM M96 trials expiry notification claim heartbeat", () => {
       failed: 0,
     });
     expect(send).toHaveBeenCalledTimes(1);
+    expect(send.mock.calls[0]?.[0].idempotencyKey).toBe(
+      "crm.trial.expired.notification:v1:31",
+    );
     expect(getClaim()).toBeNull();
   });
 
