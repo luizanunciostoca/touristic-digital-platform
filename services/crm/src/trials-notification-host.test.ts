@@ -6,11 +6,12 @@ import { CrmTrialNotificationHost } from "./trials-notification-host.js";
 
 const emptyResult = {
   considered: 0,
+  claimed: 0,
   delivered: 0,
   failed: 0,
 };
 
-describe("CRM M93 trial notification host", () => {
+describe("CRM M94 trial notification host", () => {
   it("rejects unsafe sub-second polling intervals", () => {
     expect(
       () =>
@@ -52,6 +53,7 @@ describe("CRM M93 trial notification host", () => {
       {
         runPending: async () => ({
           considered: 2,
+          claimed: 2,
           delivered: 2,
           failed: 0,
         }),
@@ -61,6 +63,7 @@ describe("CRM M93 trial notification host", () => {
     await successful.runOnce();
     expect(onRun).toHaveBeenCalledWith({
       considered: 2,
+      claimed: 2,
       delivered: 2,
       failed: 0,
     });
