@@ -269,12 +269,7 @@ export class CrmReferralServerBoundary {
     session: AuthSessionIdentity | null,
     input: CrmReferralEditInput,
   ): Promise<CrmReferralBoundaryResult<CrmReferral>> {
-    const resolved = await this.resolve(
-      "referral.edit",
-      session,
-      input.id,
-      false,
-    );
+    const resolved = await this.resolve("referral.edit", session, input.id);
     if (!resolved.ok) return resolved;
 
     const referredName = safeOptionalText(input.referredName, 255);
@@ -339,12 +334,7 @@ export class CrmReferralServerBoundary {
     session: AuthSessionIdentity | null,
     input: CrmReferralLinkLeadInput,
   ): Promise<CrmReferralBoundaryResult<CrmReferral>> {
-    const resolved = await this.resolve(
-      "referral.link_lead",
-      session,
-      input.id,
-      false,
-    );
+    const resolved = await this.resolve("referral.link_lead", session, input.id);
     if (!resolved.ok) return resolved;
     const referredLeadId = normalizeCrmId(input.referredLeadId);
     if (!referredLeadId) {
@@ -379,7 +369,6 @@ export class CrmReferralServerBoundary {
       "referral.grant_benefit",
       session,
       input.id,
-      false,
     );
     if (!resolved.ok) return resolved;
     const benefitDescription = safeRequiredText(input.benefitDescription, 10_000);
@@ -410,7 +399,7 @@ export class CrmReferralServerBoundary {
     idValue: unknown,
     nextStatus: Exclude<CrmReferralStatus, "pending">,
   ): Promise<CrmReferralBoundaryResult<CrmReferral>> {
-    const resolved = await this.resolve(operation, session, idValue, true);
+    const resolved = await this.resolve(operation, session, idValue);
     if (!resolved.ok) return resolved;
 
     const allowed =
@@ -448,10 +437,12 @@ export class CrmReferralServerBoundary {
   }
 
   private async resolve(
-    operation: Exclude<CrmReferralBoundaryOperation, "referral.list" | "referral.create">,
+    operation: Exclude<
+      CrmReferralBoundaryOperation,
+      "referral.list" | "referral.create"
+    >,
     session: AuthSessionIdentity | null,
     idValue: unknown,
-    mutation: boolean,
   ): Promise<CrmReferralBoundaryResult<CrmReferral>> {
     const id = normalizeCrmId(idValue);
     const authorization = await this.authorize(operation, session, true, id);
