@@ -26,6 +26,10 @@ import { CrmProposalPublicHttpTransport } from "./proposals-public-http-transpor
 import { crmM71SchemaSql } from "./schema.js";
 import { CrmTrialHttpTransport } from "./trials-http-transport.js";
 import {
+  CrmTrialNotificationHost,
+  createCrmTrialNotificationHost,
+} from "./trials-notification-host.js";
+import {
   CrmTrialSchedulerHost,
   createCrmTrialSchedulerHost,
 } from "./trials-scheduler-host.js";
@@ -41,6 +45,7 @@ export {
   CrmProposalHttpTransport,
   CrmProposalPublicHttpTransport,
   CrmTrialHttpTransport,
+  CrmTrialNotificationHost,
   CrmTrialSchedulerHost,
   MySqlCrmContractAuditPort,
   MySqlCrmContractRepository,
@@ -55,6 +60,7 @@ export {
   MySqlCrmTrialAuditPort,
   MySqlCrmTrialRepository,
   createCrmFollowUpSchedulerHost,
+  createCrmTrialNotificationHost,
   createCrmTrialSchedulerHost,
   crmM71SchemaSql,
   crmM90TrialsSchemaSql,
@@ -63,6 +69,10 @@ export type {
   CreateCrmFollowUpSchedulerHostOptions,
   CrmFollowUpSchedulerHostOptions,
 } from "./followups-scheduler-host.js";
+export type {
+  CreateCrmTrialNotificationHostOptions,
+  CrmTrialNotificationHostOptions,
+} from "./trials-notification-host.js";
 export type {
   CreateCrmTrialSchedulerHostOptions,
   CrmTrialSchedulerHostOptions,
