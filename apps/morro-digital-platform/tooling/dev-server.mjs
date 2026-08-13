@@ -47,6 +47,17 @@ const contentTypes = Object.freeze({
   ".woff2": "font/woff2",
 });
 
+const publicCrmDocuments = Object.freeze([
+  {
+    pattern: /^\/proposals\/view\/[A-Za-z0-9_-]{16,64}$/u,
+    relativePath: "apps/admin-crm/public/proposal-public.html",
+  },
+  {
+    pattern: /^\/contracts\/view\/[A-Za-z0-9_-]{16,64}$/u,
+    relativePath: "apps/admin-crm/public/contract-public.html",
+  },
+]);
+
 function parseDotEnv(content) {
   const values = {};
   for (const rawLine of content.split(/\r?\n/u)) {
@@ -133,6 +144,13 @@ function createRuntimeEnvironment() {
 
 function resolveRequestPath(pathname) {
   if (pathname === "/") return defaultDocument;
+
+  const publicDocument = publicCrmDocuments.find(({ pattern }) =>
+    pattern.test(pathname),
+  );
+  if (publicDocument) {
+    return resolve(repositoryRoot, publicDocument.relativePath);
+  }
 
   const decoded = decodeURIComponent(pathname);
   const requestedPath = resolve(repositoryRoot, `.${decoded}`);
