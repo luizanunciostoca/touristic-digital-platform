@@ -22,10 +22,7 @@ export type CrmReferralBoundaryOperation =
   | "referral.grant_benefit";
 
 export type CrmReferralBoundaryReason =
-  | CrmAuthorizationReason
-  | "invalid_input"
-  | "not_found"
-  | "invalid_transition";
+  CrmAuthorizationReason | "invalid_input" | "not_found" | "invalid_transition";
 
 export interface CrmReferralAuditEvent {
   readonly operation: CrmReferralBoundaryOperation;
@@ -279,7 +276,10 @@ export class CrmReferralServerBoundary {
     const resolved = await this.resolve("referral.edit", session, input.id);
     if (!resolved.ok) return resolved;
 
-    const referredName = safeOptionalText(input.referredName, 255);
+    const referredName =
+      input.referredName === undefined
+        ? undefined
+        : safeRequiredText(input.referredName, 255);
     const referredPhone = safeOptionalText(input.referredPhone, 30);
     const referredEmail = safeOptionalText(input.referredEmail, 320);
     const notes = safeOptionalText(input.notes, 10_000);
@@ -308,7 +308,7 @@ export class CrmReferralServerBoundary {
     }
 
     const updated = await this.repository.update(resolved.value.id, {
-      ...(referredName !== undefined ? { referredName } : {}),
+      ...(typeof referredName === "string" ? { referredName } : {}),
       ...(referredPhone !== undefined ? { referredPhone } : {}),
       ...(referredEmail !== undefined ? { referredEmail } : {}),
       ...(notes !== undefined ? { notes } : {}),
@@ -341,7 +341,11 @@ export class CrmReferralServerBoundary {
     session: AuthSessionIdentity | null,
     input: CrmReferralLinkLeadInput,
   ): Promise<CrmReferralBoundaryResult<CrmReferral>> {
-    const resolved = await this.resolve("referral.link_lead", session, input.id);
+    const resolved = await this.resolve(
+      "referral.link_lead",
+      session,
+      input.id,
+    );
     if (!resolved.ok) return resolved;
     const referredLeadId = normalizeCrmId(input.referredLeadId);
     if (!referredLeadId) {
@@ -364,7 +368,9 @@ export class CrmReferralServerBoundary {
     }
     return {
       ok: true,
-      value: await this.repository.update(resolved.value.id, { referredLeadId }),
+      value: await this.repository.update(resolved.value.id, {
+        referredLeadId,
+      }),
     };
   }
 
@@ -378,7 +384,10 @@ export class CrmReferralServerBoundary {
       input.id,
     );
     if (!resolved.ok) return resolved;
-    const benefitDescription = safeRequiredText(input.benefitDescription, 10_000);
+    const benefitDescription = safeRequiredText(
+      input.benefitDescription,
+      10_000,
+    );
     if (!benefitDescription || resolved.value.benefitGrantedAt !== null) {
       return this.reject(
         "referral.grant_benefit",
