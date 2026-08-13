@@ -206,8 +206,8 @@ describe("CRM M92 MySQL trials expiry scheduler persistence", () => {
   });
 });
 
-describe("CRM M93 MySQL trial notification persistence", () => {
-  it("lists only expired trials without a durable notification timestamp", async () => {
+describe("CRM M94 MySQL trial notification claiming", () => {
+  it("lists only expired, unnotified and unclaimed trials", async () => {
     const expired = { ...trialRow, status: "expired" };
     const { pool, calls } = poolFixture([[expired]]);
     const repository = new MySqlCrmTrialRepository(pool as never);
@@ -215,27 +215,53 @@ describe("CRM M93 MySQL trial notification persistence", () => {
     expect(pending).toHaveLength(1);
     expect(calls[0]?.sql).toContain("status = 'expired'");
     expect(calls[0]?.sql).toContain("notified_at IS NULL");
+    expect(calls[0]?.sql).toContain("notification_task_uid IS NULL");
   });
 
-  it("marks an expired trial notified exactly once with prepared values", async () => {
+  it("claims an expired unnotified trial atomically", async () => {
+    const { pool, calls } = poolFixture([{ affectedRows: 1 }]);
+    const repository = new MySqlCrmTrialRepository(pool as never);
+    await expect(
+      repository.claimExpiredUnnotified(41, "notify-41"),
+    ).resolves.toBe(true);
+    expect(calls[0]?.sql).toContain("notification_task_uid = ?");
+    expect(calls[0]?.sql).toContain("notified_at IS NULL");
+    expect(calls[0]?.values).toEqual(["notify-41", 41]);
+  });
+
+  it("releases only the matching pending notification claim", async () => {
+    const { pool, calls } = poolFixture();
+    const repository = new MySqlCrmTrialRepository(pool as never);
+    await repository.releaseNotificationClaim(41, "notify-41");
+    expect(calls[0]?.sql).toContain("notification_task_uid = NULL");
+    expect(calls[0]?.sql).toContain("notification_task_uid = ?");
+    expect(calls[0]?.values).toEqual([41, "notify-41"]);
+  });
+
+  it("marks notified only for the owner and clears the claim", async () => {
     const at = new Date("2026-08-13T00:00:00.000Z");
     const { pool, calls } = poolFixture([
       { affectedRows: 1 },
       [{ ...trialRow, status: "expired", notified_at: at }],
     ]);
     const repository = new MySqlCrmTrialRepository(pool as never);
-    const updated = await repository.markNotified(41, at);
+    const updated = await repository.markNotifiedClaimed(41, "notify-41", at);
     expect(updated.notifiedAt).toEqual(at);
-    expect(calls[0]?.sql).toContain("status = 'expired'");
-    expect(calls[0]?.sql).toContain("notified_at IS NULL");
-    expect(calls[0]?.values).toEqual([at, 41]);
+    expect(calls[0]?.sql).toContain("notified_at = ?");
+    expect(calls[0]?.sql).toContain("notification_task_uid = NULL");
+    expect(calls[0]?.sql).toContain("notification_task_uid = ?");
+    expect(calls[0]?.values).toEqual([at, 41, "notify-41"]);
   });
 
-  it("fails closed when notification state was already persisted", async () => {
+  it("fails closed when notification claim ownership is lost", async () => {
     const { pool } = poolFixture([{ affectedRows: 0 }]);
     const repository = new MySqlCrmTrialRepository(pool as never);
     await expect(
-      repository.markNotified(41, new Date("2026-08-13T00:00:00.000Z")),
+      repository.markNotifiedClaimed(
+        41,
+        "notify-41",
+        new Date("2026-08-13T00:00:00.000Z"),
+      ),
     ).rejects.toThrow("crm_trial_notification_mark_notified_conflict");
   });
 });

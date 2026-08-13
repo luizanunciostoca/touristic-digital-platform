@@ -69,7 +69,7 @@ export class MySqlCrmTrialRepository
 
   async listExpiredUnnotified(): Promise<readonly CrmTrial[]> {
     const [rows] = await this.pool.execute<TrialRow[]>(
-      `SELECT ${trialColumns} FROM crm_trials WHERE status = 'expired' AND notified_at IS NULL ORDER BY end_date ASC, id ASC`,
+      `SELECT ${trialColumns} FROM crm_trials WHERE status = 'expired' AND notified_at IS NULL AND notification_task_uid IS NULL ORDER BY end_date ASC, id ASC`,
     );
     return rows.map(mapTrial);
   }
@@ -164,10 +164,29 @@ export class MySqlCrmTrialRepository
     );
   }
 
-  async markNotified(id: CrmId, notifiedAt: Date): Promise<CrmTrial> {
+  async claimExpiredUnnotified(id: CrmId, taskUid: string): Promise<boolean> {
     const [result] = await this.pool.execute<ResultSetHeader>(
-      "UPDATE crm_trials SET notified_at = ? WHERE id = ? AND status = 'expired' AND notified_at IS NULL",
-      [notifiedAt, id],
+      "UPDATE crm_trials SET notification_task_uid = ? WHERE id = ? AND status = 'expired' AND notified_at IS NULL AND notification_task_uid IS NULL",
+      [taskUid, id],
+    );
+    return result.affectedRows === 1;
+  }
+
+  async releaseNotificationClaim(id: CrmId, taskUid: string): Promise<void> {
+    await this.pool.execute(
+      "UPDATE crm_trials SET notification_task_uid = NULL WHERE id = ? AND status = 'expired' AND notified_at IS NULL AND notification_task_uid = ?",
+      [id, taskUid],
+    );
+  }
+
+  async markNotifiedClaimed(
+    id: CrmId,
+    taskUid: string,
+    notifiedAt: Date,
+  ): Promise<CrmTrial> {
+    const [result] = await this.pool.execute<ResultSetHeader>(
+      "UPDATE crm_trials SET notified_at = ?, notification_task_uid = NULL WHERE id = ? AND status = 'expired' AND notified_at IS NULL AND notification_task_uid = ?",
+      [notifiedAt, id, taskUid],
     );
     if (result.affectedRows !== 1)
       throw new Error("crm_trial_notification_mark_notified_conflict");
