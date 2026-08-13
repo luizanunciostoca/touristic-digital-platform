@@ -41,9 +41,7 @@ function mapReferral(row: ReferralRow): CrmReferral {
   };
 }
 
-export class MySqlCrmReferralRepository
-  implements CrmReferralBoundaryRepository
-{
+export class MySqlCrmReferralRepository implements CrmReferralBoundaryRepository {
   constructor(private readonly pool: Pool) {}
 
   async list(referrerLeadId?: CrmId): Promise<readonly CrmReferral[]> {
