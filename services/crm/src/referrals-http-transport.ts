@@ -14,7 +14,8 @@ import {
 
 const referralsPrefix = "/api/crm/referrals";
 
-type ReferralAction = "contact" | "convert" | "lose" | "link-lead" | "grant-benefit";
+type ReferralAction =
+  "contact" | "convert" | "lose" | "link-lead" | "grant-benefit";
 
 type ReferralRoute =
   | { readonly kind: "collection" }
