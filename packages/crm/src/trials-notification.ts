@@ -51,7 +51,9 @@ export class CrmTrialNotificationProcessor {
     private readonly actorSubject = "crm-trial-notification",
   ) {
     if (!Number.isSafeInteger(claimLeaseMs) || claimLeaseMs < 1_000) {
-      throw new Error("CRM trial notification claim lease must be at least 1000ms");
+      throw new Error(
+        "CRM trial notification claim lease must be at least 1000ms",
+      );
     }
   }
 
