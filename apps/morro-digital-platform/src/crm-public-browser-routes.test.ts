@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { Script } from "node:vm";
 
 import { describe, expect, it } from "vitest";
 
@@ -20,8 +21,8 @@ describe("CRM M119 public browser routes", () => {
     const proposal = await source("../../admin-crm/public/proposal-public.js");
     const contract = await source("../../admin-crm/public/contract-public.js");
 
-    expect(() => new Function(proposal)).not.toThrow();
-    expect(() => new Function(contract)).not.toThrow();
+    expect(() => new Script(proposal)).not.toThrow();
+    expect(() => new Script(contract)).not.toThrow();
     expect(proposal).toContain("window.location.pathname.match");
     expect(contract).toContain("window.location.pathname.match");
     expect(contract).toContain('canvas.toDataURL("image/png")');
