@@ -10,6 +10,11 @@ export interface CrmTrialNotificationRepository {
     claimedAt: Date,
     staleBefore: Date,
   ) => Promise<boolean>;
+  readonly renewNotificationClaim: (
+    id: CrmId,
+    taskUid: string,
+    renewedAt: Date,
+  ) => Promise<boolean>;
   readonly releaseNotificationClaim: (
     id: CrmId,
     taskUid: string,
@@ -39,6 +44,11 @@ export interface CrmTrialNotificationResult {
   readonly claimed: number;
   readonly delivered: number;
   readonly failed: number;
+}
+
+interface DeliveryWithHeartbeatResult {
+  readonly delivered: boolean;
+  readonly claimLost: boolean;
 }
 
 export class CrmTrialNotificationProcessor {
@@ -81,12 +91,8 @@ export class CrmTrialNotificationProcessor {
       claimed += 1;
 
       try {
-        const result = await this.delivery.send({
-          trialId: trial.id,
-          leadId: trial.leadId,
-          expiredAt: trial.endDate,
-        });
-        if (!result.delivered) {
+        const result = await this.deliverWithHeartbeat(trial, taskUid);
+        if (!result.delivered || result.claimLost) {
           failed += 1;
           await this.repository.releaseNotificationClaim(trial.id, taskUid);
           continue;
@@ -116,5 +122,43 @@ export class CrmTrialNotificationProcessor {
       delivered,
       failed,
     };
+  }
+
+  private async deliverWithHeartbeat(
+    trial: CrmTrial,
+    taskUid: string,
+  ): Promise<DeliveryWithHeartbeatResult> {
+    const heartbeatMs = Math.max(250, Math.floor(this.claimLeaseMs / 3));
+    let claimLost = false;
+    let renewal: Promise<void> | null = null;
+
+    const renew = () => {
+      if (claimLost || renewal) return;
+      renewal = this.repository
+        .renewNotificationClaim(trial.id, taskUid, this.now())
+        .then((renewed) => {
+          if (!renewed) claimLost = true;
+        })
+        .catch(() => {
+          claimLost = true;
+        })
+        .finally(() => {
+          renewal = null;
+        });
+    };
+
+    const timer = setInterval(renew, heartbeatMs);
+    try {
+      const result = await this.delivery.send({
+        trialId: trial.id,
+        leadId: trial.leadId,
+        expiredAt: trial.endDate,
+      });
+      if (renewal) await renewal;
+      return { delivered: result.delivered, claimLost };
+    } finally {
+      clearInterval(timer);
+      if (renewal) await renewal;
+    }
   }
 }
