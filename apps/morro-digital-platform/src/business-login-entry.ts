@@ -5,11 +5,9 @@ const defaultDashboardPath = "/dashboard/index-v3-improved.html";
 export function safeBusinessDashboardReturnPath(search: string): string {
   const value =
     new URLSearchParams(search).get("return") ?? defaultDashboardPath;
-  if (
-    !value.startsWith("/dashboard/") ||
-    value.startsWith("//") ||
-    value.includes("\\")
-  ) {
+  const allowedInternalPath =
+    value.startsWith("/dashboard/") || value.startsWith("/apps/admin-crm/");
+  if (!allowedInternalPath || value.startsWith("//") || value.includes("\\")) {
     return defaultDashboardPath;
   }
   return value;
