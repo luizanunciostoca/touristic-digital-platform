@@ -90,7 +90,10 @@ export class MySqlCrmReferralRepository
         record.notes,
       ],
     );
-    return this.readBack(result.insertId, "crm_referral_create_readback_failed");
+    return this.readBack(
+      result.insertId,
+      "crm_referral_create_readback_failed",
+    );
   }
 
   async update(id: CrmId, patch: CrmReferralPatch): Promise<CrmReferral> {
