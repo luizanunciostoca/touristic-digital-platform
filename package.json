@@ -17,7 +17,7 @@
     "design-system:inventory": "node tooling/design-system/inventory-v1-css.mjs",
     "check": "pnpm format:check && pnpm architecture:check && pnpm features:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build",
     "format": "prettier --write .",
-    "format:check": "prettier --write packages/crm/src/referrals-boundary.ts packages/crm/src/referrals-boundary.test.ts && git diff -- packages/crm/src/referrals-boundary.ts packages/crm/src/referrals-boundary.test.ts"
+    "format:check": "prettier --check ."
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",
