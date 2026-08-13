@@ -178,6 +178,18 @@ export class MySqlCrmTrialRepository
     return result.affectedRows === 1;
   }
 
+  async renewNotificationClaim(
+    id: CrmId,
+    taskUid: string,
+    renewedAt: Date,
+  ): Promise<boolean> {
+    const [result] = await this.pool.execute<ResultSetHeader>(
+      "UPDATE crm_trials SET notification_claimed_at = ? WHERE id = ? AND status = 'expired' AND notified_at IS NULL AND notification_task_uid = ?",
+      [renewedAt, id, taskUid],
+    );
+    return result.affectedRows === 1;
+  }
+
   async releaseNotificationClaim(id: CrmId, taskUid: string): Promise<void> {
     await this.pool.execute(
       "UPDATE crm_trials SET notification_task_uid = NULL, notification_claimed_at = NULL WHERE id = ? AND status = 'expired' AND notified_at IS NULL AND notification_task_uid = ?",
