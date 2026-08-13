@@ -71,6 +71,11 @@
       "types": "./src/trials-notification.ts",
       "node": "./dist/trials-notification.js",
       "default": "./src/trials-notification.ts"
+    },
+    "./referrals-boundary": {
+      "types": "./src/referrals-boundary.ts",
+      "node": "./dist/referrals-boundary.js",
+      "default": "./src/referrals-boundary.ts"
     }
   },
   "scripts": {
