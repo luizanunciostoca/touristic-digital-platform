@@ -44,6 +44,19 @@ export interface CrmTrialNotificationDeliveryPort {
   }) => Promise<{ readonly delivered: boolean }>;
 }
 
+export function assertCrmTrialNotificationDeliveryIdempotency(
+  delivery: CrmTrialNotificationDeliveryPort,
+): void {
+  if (
+    delivery.idempotencyCapability !==
+    CRM_TRIAL_NOTIFICATION_IDEMPOTENCY_CAPABILITY
+  ) {
+    throw new Error(
+      "CRM trial notification delivery must provide stable-key provider deduplication",
+    );
+  }
+}
+
 export interface CrmTrialNotificationResult {
   readonly considered: number;
   readonly claimed: number;
@@ -71,14 +84,6 @@ export class CrmTrialNotificationProcessor {
     private readonly now: () => Date = () => new Date(),
     private readonly actorSubject = "crm-trial-notification",
   ) {
-    if (
-      delivery.idempotencyCapability !==
-      CRM_TRIAL_NOTIFICATION_IDEMPOTENCY_CAPABILITY
-    ) {
-      throw new Error(
-        "CRM trial notification delivery must provide stable-key provider deduplication",
-      );
-    }
     if (!Number.isSafeInteger(claimLeaseMs) || claimLeaseMs < 1_000) {
       throw new Error(
         "CRM trial notification claim lease must be at least 1000ms",
