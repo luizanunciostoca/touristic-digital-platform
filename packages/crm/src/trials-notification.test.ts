@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { CrmTrial } from "./index.js";
 import {
@@ -31,12 +31,27 @@ function harness(delivered = true) {
   let claim: { uid: string; claimedAt: Date | null } | null = null;
   let uid = 0;
   let nowMs = baseNow;
+  let renewalAllowed = true;
   const appendInteraction = vi.fn(async () => {});
 
   const isClaimAvailable = (staleBefore: Date) =>
     claim === null ||
     claim.claimedAt === null ||
     claim.claimedAt.getTime() <= staleBefore.getTime();
+
+  const renewNotificationClaim = vi.fn(
+    async (_id: number, taskUid: string, renewedAt: Date) => {
+      if (
+        !renewalAllowed ||
+        current.notifiedAt !== null ||
+        claim?.uid !== taskUid
+      ) {
+        return false;
+      }
+      claim = { uid: taskUid, claimedAt: renewedAt };
+      return true;
+    },
+  );
 
   const repository: CrmTrialNotificationRepository = {
     listExpiredUnnotified: async (staleBefore) =>
@@ -50,6 +65,7 @@ function harness(delivered = true) {
       claim = { uid: taskUid, claimedAt };
       return true;
     },
+    renewNotificationClaim,
     releaseNotificationClaim: async (_id, taskUid) => {
       if (claim?.uid === taskUid && current.notifiedAt === null) claim = null;
     },
@@ -74,6 +90,7 @@ function harness(delivered = true) {
     processor,
     repository,
     send,
+    renewNotificationClaim,
     appendInteraction,
     getCurrent: () => current,
     getClaim: () => claim,
@@ -83,10 +100,17 @@ function harness(delivered = true) {
     setNow: (value: number) => {
       nowMs = value;
     },
+    setRenewalAllowed: (value: boolean) => {
+      renewalAllowed = value;
+    },
   };
 }
 
-describe("CRM M95 trials expiry notification claim lease", () => {
+afterEach(() => {
+  vi.useRealTimers();
+});
+
+describe("CRM M96 trials expiry notification claim heartbeat", () => {
   it("rejects unsafe sub-second claim leases", () => {
     const { repository } = harness();
     expect(
@@ -159,6 +183,97 @@ describe("CRM M95 trials expiry notification claim lease", () => {
       delivered: 1,
     });
     expect(send).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps a long-running delivery claim alive so a second instance cannot reclaim it", async () => {
+    vi.useFakeTimers();
+    const {
+      repository,
+      renewNotificationClaim,
+      getClaim,
+      setNow,
+    } = harness();
+    let releaseDelivery: (() => void) | undefined;
+    const gate = new Promise<void>((resolve) => {
+      releaseDelivery = resolve;
+    });
+    const send = vi.fn(async () => {
+      await gate;
+      return { delivered: true };
+    });
+    const first = new CrmTrialNotificationProcessor(
+      repository,
+      { send },
+      () => "instance-a",
+      claimLeaseMs,
+      () => getClaim()?.claimedAt ?? new Date(baseNow),
+    );
+
+    const firstRun = first.runPending();
+    await Promise.resolve();
+    expect(getClaim()?.uid).toBe("instance-a");
+
+    setNow(baseNow + 20_000);
+    await vi.advanceTimersByTimeAsync(20_000);
+    expect(renewNotificationClaim).toHaveBeenCalledTimes(1);
+    expect(getClaim()?.claimedAt).toEqual(new Date(baseNow));
+
+    const second = new CrmTrialNotificationProcessor(
+      repository,
+      { send },
+      () => "instance-b",
+      claimLeaseMs,
+      () => new Date(baseNow + 60_000),
+    );
+    await expect(second.runPending()).resolves.toEqual({
+      considered: 0,
+      claimed: 0,
+      delivered: 0,
+      failed: 0,
+    });
+
+    releaseDelivery?.();
+    await firstRun;
+    expect(send).toHaveBeenCalledTimes(1);
+  });
+
+  it("fails closed when heartbeat renewal loses claim ownership", async () => {
+    vi.useFakeTimers();
+    const {
+      repository,
+      appendInteraction,
+      setRenewalAllowed,
+    } = harness();
+    setRenewalAllowed(false);
+    let releaseDelivery: (() => void) | undefined;
+    const gate = new Promise<void>((resolve) => {
+      releaseDelivery = resolve;
+    });
+    const processor = new CrmTrialNotificationProcessor(
+      repository,
+      {
+        send: async () => {
+          await gate;
+          return { delivered: true };
+        },
+      },
+      () => "instance-a",
+      claimLeaseMs,
+      () => new Date(baseNow),
+    );
+
+    const run = processor.runPending();
+    await Promise.resolve();
+    await vi.advanceTimersByTimeAsync(20_000);
+    releaseDelivery?.();
+
+    await expect(run).resolves.toEqual({
+      considered: 1,
+      claimed: 1,
+      delivered: 0,
+      failed: 1,
+    });
+    expect(appendInteraction).not.toHaveBeenCalled();
   });
 
   it("releases the durable claim when delivery is not confirmed", async () => {
