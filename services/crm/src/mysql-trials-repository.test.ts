@@ -238,12 +238,7 @@ describe("CRM M95 MySQL trial notification claim leases", () => {
     expect(calls[0]?.sql).toContain("notification_task_uid = ?");
     expect(calls[0]?.sql).toContain("notification_claimed_at = ?");
     expect(calls[0]?.sql).toContain("notification_claimed_at <= ?");
-    expect(calls[0]?.values).toEqual([
-      "notify-41",
-      claimedAt,
-      41,
-      staleBefore,
-    ]);
+    expect(calls[0]?.values).toEqual(["notify-41", claimedAt, 41, staleBefore]);
   });
 
   it("releases only the matching owner and clears its lease timestamp", async () => {
