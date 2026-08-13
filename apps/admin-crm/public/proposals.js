@@ -17,6 +17,9 @@ const status = document.querySelector("#proposals-status");
 const table = document.querySelector("#proposals-table");
 const body = document.querySelector("#proposals-body");
 const count = document.querySelector("#proposals-count");
+const createForm = document.querySelector("#proposal-create-form");
+const createSubmit = document.querySelector("#proposal-create-submit");
+const createStatus = document.querySelector("#proposal-create-status");
 
 const statusLabels = {
   draft: "Rascunho",
@@ -55,6 +58,41 @@ function setStatus(message) {
   if (status) status.textContent = message;
 }
 
+function actionCell(proposal) {
+  const cell = document.createElement("td");
+  if (proposal.status !== "draft") {
+    cell.textContent = "—";
+    return cell;
+  }
+
+  const button = document.createElement("button");
+  button.type = "button";
+  button.textContent = "Enviar";
+  button.addEventListener("click", async () => {
+    button.disabled = true;
+    try {
+      const response = await auth.secureFetch(
+        `/api/crm/proposals/${proposal.id}/send`,
+        {
+          method: "POST",
+          headers: { Accept: "application/json" },
+        },
+      );
+      if (!response.ok) {
+        setStatus("Não foi possível enviar a proposta.");
+        return;
+      }
+      await loadProposals();
+    } catch {
+      setStatus("Não foi possível enviar a proposta.");
+    } finally {
+      button.disabled = false;
+    }
+  });
+  cell.append(button);
+  return cell;
+}
+
 function renderProposals(proposals) {
   if (!(body instanceof HTMLElement) || !(table instanceof HTMLElement)) return;
   body.replaceChildren();
@@ -69,6 +107,7 @@ function renderProposals(proposals) {
       textCell(`${proposal.trialDays ?? 0} dias`),
       textCell(statusLabels[proposal.status] || proposal.status),
       textCell(dateLabel(proposal.validUntil)),
+      actionCell(proposal),
     );
     body.append(row);
   }
@@ -90,7 +129,9 @@ async function loadProposals() {
       headers: { Accept: "application/json" },
     });
     if (!response.ok) {
-      if (response.status !== 401) setStatus("Não foi possível carregar as propostas.");
+      if (response.status !== 401) {
+        setStatus("Não foi possível carregar as propostas.");
+      }
       return;
     }
     const payload = await response.json();
@@ -102,6 +143,56 @@ async function loadProposals() {
   } catch {
     setStatus("Não foi possível carregar as propostas.");
   }
+}
+
+if (createForm instanceof HTMLFormElement) {
+  createForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const formData = new FormData(createForm);
+    const validUntil = String(formData.get("validUntil") || "").trim();
+    const payload = {
+      leadId: String(formData.get("leadId") || "").trim(),
+      title: String(formData.get("title") || "").trim(),
+      planName: String(formData.get("planName") || "").trim() || null,
+      monthlyValue: String(formData.get("monthlyValue") || "").trim(),
+      setupFee: String(formData.get("setupFee") || "").trim() || null,
+      trialDays: Number(formData.get("trialDays") || 0),
+      validUntil: validUntil || null,
+    };
+
+    if (createSubmit instanceof HTMLButtonElement) {
+      createSubmit.disabled = true;
+    }
+    if (createStatus) createStatus.textContent = "Criando proposta…";
+
+    try {
+      const response = await auth.secureFetch("/api/crm/proposals", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+      if (!response.ok) {
+        if (createStatus) {
+          createStatus.textContent = "Não foi possível criar a proposta.";
+        }
+        return;
+      }
+      createForm.reset();
+      if (createStatus) createStatus.textContent = "Proposta criada.";
+      await loadProposals();
+    } catch {
+      if (createStatus) {
+        createStatus.textContent = "Não foi possível criar a proposta.";
+      }
+    } finally {
+      if (createSubmit instanceof HTMLButtonElement) {
+        createSubmit.disabled = false;
+      }
+    }
+  });
 }
 
 void auth
