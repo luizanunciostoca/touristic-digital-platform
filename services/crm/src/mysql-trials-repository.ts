@@ -3,6 +3,7 @@ import type {
   CrmTrialBoundaryRepository,
   CrmTrialCreateRecord,
 } from "@touristic/crm/trials-boundary";
+import type { CrmTrialSchedulerRepository } from "@touristic/crm/trials-scheduler";
 import type { Pool, ResultSetHeader, RowDataPacket } from "mysql2/promise";
 
 interface TrialRow extends RowDataPacket {
@@ -38,7 +39,9 @@ function mapTrial(row: TrialRow): CrmTrial {
   };
 }
 
-export class MySqlCrmTrialRepository implements CrmTrialBoundaryRepository {
+export class MySqlCrmTrialRepository
+  implements CrmTrialBoundaryRepository, CrmTrialSchedulerRepository
+{
   constructor(private readonly pool: Pool) {}
 
   async list(leadId?: CrmId): Promise<readonly CrmTrial[]> {
@@ -50,6 +53,13 @@ export class MySqlCrmTrialRepository implements CrmTrialBoundaryRepository {
       : await this.pool.execute<TrialRow[]>(
           `SELECT ${trialColumns} FROM crm_trials ORDER BY created_at DESC, id DESC`,
         );
+    return rows.map(mapTrial);
+  }
+
+  async listDue(): Promise<readonly CrmTrial[]> {
+    const [rows] = await this.pool.execute<TrialRow[]>(
+      `SELECT ${trialColumns} FROM crm_trials WHERE status = 'active' AND end_date <= CURRENT_TIMESTAMP(3) AND schedule_cron_task_uid IS NULL ORDER BY end_date ASC, id ASC`,
+    );
     return rows.map(mapTrial);
   }
 
@@ -113,6 +123,34 @@ export class MySqlCrmTrialRepository implements CrmTrialBoundaryRepository {
     if (result.affectedRows !== 1)
       throw new Error("crm_trial_mark_expired_conflict");
     return this.readBack(id, "crm_trial_mark_expired_readback_failed");
+  }
+
+  async claimDue(id: CrmId, taskUid: string): Promise<boolean> {
+    const [result] = await this.pool.execute<ResultSetHeader>(
+      "UPDATE crm_trials SET schedule_cron_task_uid = ? WHERE id = ? AND status = 'active' AND end_date <= CURRENT_TIMESTAMP(3) AND schedule_cron_task_uid IS NULL",
+      [taskUid, id],
+    );
+    return result.affectedRows === 1;
+  }
+
+  async releaseClaim(id: CrmId, taskUid: string): Promise<void> {
+    await this.pool.execute(
+      "UPDATE crm_trials SET schedule_cron_task_uid = NULL WHERE id = ? AND status = 'active' AND schedule_cron_task_uid = ?",
+      [id, taskUid],
+    );
+  }
+
+  async markExpiredClaimed(id: CrmId, taskUid: string): Promise<CrmTrial> {
+    const [result] = await this.pool.execute<ResultSetHeader>(
+      "UPDATE crm_trials SET status = 'expired' WHERE id = ? AND status = 'active' AND schedule_cron_task_uid = ?",
+      [id, taskUid],
+    );
+    if (result.affectedRows !== 1)
+      throw new Error("crm_trial_scheduler_mark_expired_conflict");
+    return this.readBack(
+      id,
+      "crm_trial_scheduler_mark_expired_readback_failed",
+    );
   }
 
   async updateLeadStage(input: {

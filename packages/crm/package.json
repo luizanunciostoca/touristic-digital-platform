@@ -61,6 +61,11 @@
       "types": "./src/trials-boundary.ts",
       "node": "./dist/trials-boundary.js",
       "default": "./src/trials-boundary.ts"
+    },
+    "./trials-scheduler": {
+      "types": "./src/trials-scheduler.ts",
+      "node": "./dist/trials-scheduler.js",
+      "default": "./src/trials-scheduler.ts"
     }
   },
   "scripts": {
