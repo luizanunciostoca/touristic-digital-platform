@@ -36,6 +36,7 @@ export interface CrmTrialNotificationDeliveryPort {
     readonly trialId: CrmId;
     readonly leadId: CrmId;
     readonly expiredAt: Date;
+    readonly idempotencyKey: string;
   }) => Promise<{ readonly delivered: boolean }>;
 }
 
@@ -49,6 +50,12 @@ export interface CrmTrialNotificationResult {
 interface DeliveryWithHeartbeatResult {
   readonly delivered: boolean;
   readonly claimLost: boolean;
+}
+
+export function createCrmTrialNotificationIdempotencyKey(
+  trialId: CrmId,
+): string {
+  return `crm.trial.expired.notification:v1:${trialId}`;
 }
 
 export class CrmTrialNotificationProcessor {
@@ -160,6 +167,7 @@ export class CrmTrialNotificationProcessor {
         trialId: trial.id,
         leadId: trial.leadId,
         expiredAt: trial.endDate,
+        idempotencyKey: createCrmTrialNotificationIdempotencyKey(trial.id),
       });
       await waitForRenewal();
       return { delivered: result.delivered, claimLost };
