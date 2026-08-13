@@ -17,7 +17,7 @@
     "design-system:inventory": "node tooling/design-system/inventory-v1-css.mjs",
     "check": "pnpm format:check && pnpm architecture:check && pnpm features:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build",
     "format": "prettier --write .",
-    "format:check": "prettier services/crm/src/referrals-http-transport.ts --write && git diff -- services/crm/src/referrals-http-transport.ts && exit 1"
+    "format:check": "prettier --check ."
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",
