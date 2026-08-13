@@ -1,4 +1,8 @@
-import mysql, { type Pool, type PoolOptions } from "mysql2/promise";
+import mysql, {
+  type Pool,
+  type PoolOptions,
+  type RowDataPacket,
+} from "mysql2/promise";
 
 import { CrmContractHttpTransport } from "./contracts-http-transport.js";
 import { CrmContractPublicHttpTransport } from "./contracts-public-http-transport.js";
@@ -33,7 +37,10 @@ import {
   CrmTrialSchedulerHost,
   createCrmTrialSchedulerHost,
 } from "./trials-scheduler-host.js";
-import { crmM90TrialsSchemaSql } from "./trials-schema.js";
+import {
+  crmM90TrialsSchemaSql,
+  crmM94TrialsNotificationClaimSchemaSql,
+} from "./trials-schema.js";
 
 export {
   CrmContractHttpTransport,
@@ -64,6 +71,7 @@ export {
   createCrmTrialSchedulerHost,
   crmM71SchemaSql,
   crmM90TrialsSchemaSql,
+  crmM94TrialsNotificationClaimSchemaSql,
 };
 export type {
   CreateCrmFollowUpSchedulerHostOptions,
@@ -118,4 +126,13 @@ export async function applyCrmM71Schema(pool: Pool): Promise<void> {
 export async function applyCrmM90Schema(pool: Pool): Promise<void> {
   await applyCrmM71Schema(pool);
   await applySqlStatements(pool, crmM90TrialsSchemaSql);
+}
+
+export async function applyCrmM94Schema(pool: Pool): Promise<void> {
+  await applyCrmM90Schema(pool);
+  const [columns] = await pool.query<RowDataPacket[]>(
+    "SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'crm_trials' AND COLUMN_NAME = 'notification_task_uid' LIMIT 1",
+  );
+  if (columns.length > 0) return;
+  await applySqlStatements(pool, crmM94TrialsNotificationClaimSchemaSql);
 }
