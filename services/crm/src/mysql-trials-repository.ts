@@ -3,6 +3,7 @@ import type {
   CrmTrialBoundaryRepository,
   CrmTrialCreateRecord,
 } from "@touristic/crm/trials-boundary";
+import type { CrmTrialNotificationRepository } from "@touristic/crm/trials-notification";
 import type { CrmTrialSchedulerRepository } from "@touristic/crm/trials-scheduler";
 import type { Pool, ResultSetHeader, RowDataPacket } from "mysql2/promise";
 
@@ -40,7 +41,10 @@ function mapTrial(row: TrialRow): CrmTrial {
 }
 
 export class MySqlCrmTrialRepository
-  implements CrmTrialBoundaryRepository, CrmTrialSchedulerRepository
+  implements
+    CrmTrialBoundaryRepository,
+    CrmTrialSchedulerRepository,
+    CrmTrialNotificationRepository
 {
   constructor(private readonly pool: Pool) {}
 
@@ -59,6 +63,13 @@ export class MySqlCrmTrialRepository
   async listDue(): Promise<readonly CrmTrial[]> {
     const [rows] = await this.pool.execute<TrialRow[]>(
       `SELECT ${trialColumns} FROM crm_trials WHERE status = 'active' AND end_date <= CURRENT_TIMESTAMP(3) AND schedule_cron_task_uid IS NULL ORDER BY end_date ASC, id ASC`,
+    );
+    return rows.map(mapTrial);
+  }
+
+  async listExpiredUnnotified(): Promise<readonly CrmTrial[]> {
+    const [rows] = await this.pool.execute<TrialRow[]>(
+      `SELECT ${trialColumns} FROM crm_trials WHERE status = 'expired' AND notified_at IS NULL ORDER BY end_date ASC, id ASC`,
     );
     return rows.map(mapTrial);
   }
@@ -150,6 +161,19 @@ export class MySqlCrmTrialRepository
     return this.readBack(
       id,
       "crm_trial_scheduler_mark_expired_readback_failed",
+    );
+  }
+
+  async markNotified(id: CrmId, notifiedAt: Date): Promise<CrmTrial> {
+    const [result] = await this.pool.execute<ResultSetHeader>(
+      "UPDATE crm_trials SET notified_at = ? WHERE id = ? AND status = 'expired' AND notified_at IS NULL",
+      [notifiedAt, id],
+    );
+    if (result.affectedRows !== 1)
+      throw new Error("crm_trial_notification_mark_notified_conflict");
+    return this.readBack(
+      id,
+      "crm_trial_notification_mark_notified_readback_failed",
     );
   }
 
