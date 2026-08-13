@@ -147,6 +147,13 @@ export class CrmTrialNotificationProcessor {
         });
     };
 
+    const waitForRenewal = async (): Promise<void> => {
+      const pendingRenewal = renewal;
+      if (pendingRenewal !== null) {
+        await pendingRenewal;
+      }
+    };
+
     const timer = setInterval(renew, heartbeatMs);
     try {
       const result = await this.delivery.send({
@@ -154,11 +161,11 @@ export class CrmTrialNotificationProcessor {
         leadId: trial.leadId,
         expiredAt: trial.endDate,
       });
-      if (renewal) await renewal;
+      await waitForRenewal();
       return { delivered: result.delivered, claimLost };
     } finally {
       clearInterval(timer);
-      if (renewal) await renewal;
+      await waitForRenewal();
     }
   }
 }
