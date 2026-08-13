@@ -26,7 +26,7 @@ function date(value) {
 }
 
 function money(value) {
-  if (value === null || value === undefined ||-value) return "—";
+  if (value === null || value === undefined || value === "") return "—";
   const number = Number(value);
   return Number.isFinite(number)
     ? number.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
@@ -34,9 +34,20 @@ function money(value) {
 }
 
 function safeToken(value) {
-  return typeof value === "string" && /^[A-Za-z0-9_]+{$/.u.test(value)
-    ? ((value.length >= 16 && value.length <= 64) ? value : null)
-    : null;
+  if (typeof value !== "string") return null;
+  const normalized = value.trim();
+  return /^[A-Za-z0-9_-]{16,64}$/u.test(normalized) ? normalized : null;
+}
+
+function tokenFromLocation() {
+  const queryToken = safeToken(
+    new URLSearchParams(window.location.search).get("token"),
+  );
+  if (queryToken) return queryToken;
+  const matched = window.location.pathname.match(
+    /^\/contracts\/view\/([A-Za-z0-9_-]{16,64})$/u,
+  );
+  return safeToken(matched?.[1] ?? null);
 }
 
 function point(event) {
@@ -49,19 +60,19 @@ function point(event) {
 
 function begin(event) {
   drawing = true;
-  const p = point(event);
+  const current = point(event);
   context.beginPath();
-  context.moveTo(p.x, p.y);
+  context.moveTo(current.x, current.y);
   event.preventDefault();
 }
 
 function move(event) {
   if (!drawing) return;
-  const p = point(event);
+  const current = point(event);
   context.lineWidth = 3;
   context.lineCap = "round";
   context.strokeStyle = "#111";
-  context.lineTo(p.x, p.y);
+  context.lineTo(current.x, current.y);
   context.stroke();
   hasSignature = true;
   event.preventDefault();
@@ -95,24 +106,30 @@ function render(contract) {
 }
 
 async function loadContract() {
-  token = safeToken(new URLSearchParams(window.location.search).get("token"));
+  token = tokenFromLocation();
   if (!token) {
     statusNode.textContent = "Link de contrato inválido.";
     statusNode.className = "error";
     return;
   }
   try {
-    const response = await fetch(`/api/crm/public/contracts/${encodeURIComponent(token)}`);
+    const response = await fetch(
+      `/api/crm/public/contracts/${encodeURIComponent(token)}`,
+      { headers: { Accept: "application/json" } },
+    );
     const payload = await response.json();
-    if (!response.ok || !payload?.data) throw new Error(payload?.error || `HTTP ${response.status}`);
+    if (!response.ok || !payload?.data) {
+      throw new Error(payload?.error || `HTTP ${response.status}`);
+    }
     render(payload.data);
   } catch (error) {
-    statusNode.textContent = `Tão foi possível carregar o contrato (${error instanceof Error ? error.message : "UNKNOWN_ERROR"}).`;
+    statusNode.textContent = `Não foi possível carregar o contrato (${error instanceof Error ? error.message : "UNKNOWN_ERROR"}).`;
     statusNode.className = "error";
   }
 }
 
 async function signContract() {
+  if (!token) return;
   const signerName = signerNameInput.value.trim();
   if (!signerName) {
     signStatus.textContent = "Informe o nome completo.";
@@ -125,16 +142,24 @@ async function signContract() {
   signButton.disabled = true;
   signStatus.textContent = "Enviando assinatura…";
   try {
-    const response = await fetch(`/api/crm/public/contracts/${encodeURIComponent(token)}/sign`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        signerName,
-        signatureData: canvas.toDataURL"image/png"),
-      }),
-    });
+    const response = await fetch(
+      `/api/crm/public/contracts/${encodeURIComponent(token)}/sign`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          signerName,
+          signatureData: canvas.toDataURL("image/png"),
+        }),
+      },
+    );
     const payload = await response.json();
-    if (!response.ok || !payload?.data) throw new Error(payload?.error || `HTTP ${response.status}`);
+    if (!response.ok || !payload?.data) {
+      throw new Error(payload?.error || `HTTP ${response.status}`);
+    }
     render(payload.data);
     signStatus.textContent = "Contrato assinado com sucesso.";
     signStatus.className = "success";
@@ -150,6 +175,6 @@ canvas.addEventListener("pointermove", move);
 canvas.addEventListener("pointerup", end);
 canvas.addEventListener("pointerleave", end);
 clearButton.addEventListener("click", clearSignature);
-signButton.addEventListener("click", signContract);
+signButton.addEventListener("click", () => void signContract());
 
 void loadContract();
