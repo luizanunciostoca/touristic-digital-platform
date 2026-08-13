@@ -29,6 +29,7 @@ import { MySqlCrmTrialAuditPort } from "./mysql-trials-audit-port.js";
 import { MySqlCrmTrialRepository } from "./mysql-trials-repository.js";
 import { CrmProposalHttpTransport } from "./proposals-http-transport.js";
 import { CrmProposalPublicHttpTransport } from "./proposals-public-http-transport.js";
+import { CrmReferralHttpTransport } from "./referrals-http-transport.js";
 import { crmM99ReferralsSchemaSql } from "./referrals-schema.js";
 import { crmM71SchemaSql } from "./schema.js";
 import { CrmTrialHttpTransport } from "./trials-http-transport.js";
@@ -55,6 +56,7 @@ export {
   CrmMeetingHttpTransport,
   CrmProposalHttpTransport,
   CrmProposalPublicHttpTransport,
+  CrmReferralHttpTransport,
   CrmTrialHttpTransport,
   CrmTrialNotificationHost,
   CrmTrialSchedulerHost,
