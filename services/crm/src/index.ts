@@ -40,6 +40,7 @@ import {
 import {
   crmM90TrialsSchemaSql,
   crmM94TrialsNotificationClaimSchemaSql,
+  crmM95TrialsNotificationLeaseSchemaSql,
 } from "./trials-schema.js";
 
 export {
@@ -72,6 +73,7 @@ export {
   crmM71SchemaSql,
   crmM90TrialsSchemaSql,
   crmM94TrialsNotificationClaimSchemaSql,
+  crmM95TrialsNotificationLeaseSchemaSql,
 };
 export type {
   CreateCrmFollowUpSchedulerHostOptions,
@@ -135,4 +137,13 @@ export async function applyCrmM94Schema(pool: Pool): Promise<void> {
   );
   if (columns.length > 0) return;
   await applySqlStatements(pool, crmM94TrialsNotificationClaimSchemaSql);
+}
+
+export async function applyCrmM95Schema(pool: Pool): Promise<void> {
+  await applyCrmM94Schema(pool);
+  const [columns] = await pool.query<RowDataPacket[]>(
+    "SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'crm_trials' AND COLUMN_NAME = 'notification_claimed_at' LIMIT 1",
+  );
+  if (columns.length > 0) return;
+  await applySqlStatements(pool, crmM95TrialsNotificationLeaseSchemaSql);
 }

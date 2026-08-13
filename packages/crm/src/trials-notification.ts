@@ -1,10 +1,14 @@
 import type { CrmId, CrmTrial } from "./index.js";
 
 export interface CrmTrialNotificationRepository {
-  readonly listExpiredUnnotified: () => Promise<readonly CrmTrial[]>;
+  readonly listExpiredUnnotified: (
+    staleBefore: Date,
+  ) => Promise<readonly CrmTrial[]>;
   readonly claimExpiredUnnotified: (
     id: CrmId,
     taskUid: string,
+    claimedAt: Date,
+    staleBefore: Date,
   ) => Promise<boolean>;
   readonly releaseNotificationClaim: (
     id: CrmId,
@@ -42,21 +46,36 @@ export class CrmTrialNotificationProcessor {
     private readonly repository: CrmTrialNotificationRepository,
     private readonly delivery: CrmTrialNotificationDeliveryPort,
     private readonly createTaskUid: () => string,
+    private readonly claimLeaseMs: number,
     private readonly now: () => Date = () => new Date(),
     private readonly actorSubject = "crm-trial-notification",
-  ) {}
+  ) {
+    if (!Number.isSafeInteger(claimLeaseMs) || claimLeaseMs < 1_000) {
+      throw new Error(
+        "CRM trial notification claim lease must be at least 1000ms",
+      );
+    }
+  }
 
   async runPending(): Promise<CrmTrialNotificationResult> {
-    const trials = await this.repository.listExpiredUnnotified();
+    const scanAt = this.now();
+    const staleBefore = new Date(scanAt.getTime() - this.claimLeaseMs);
+    const trials = await this.repository.listExpiredUnnotified(staleBefore);
     let claimed = 0;
     let delivered = 0;
     let failed = 0;
 
     for (const trial of trials) {
       const taskUid = this.createTaskUid();
+      const claimedAt = this.now();
+      const claimStaleBefore = new Date(
+        claimedAt.getTime() - this.claimLeaseMs,
+      );
       const ownsClaim = await this.repository.claimExpiredUnnotified(
         trial.id,
         taskUid,
+        claimedAt,
+        claimStaleBefore,
       );
       if (!ownsClaim) continue;
       claimed += 1;
