@@ -218,9 +218,16 @@ export class CrmReferralServerBoundary {
     if (!authorization.ok) return authorization;
 
     const referredName = safeRequiredText(input.referredName, 255);
-    const referredPhone = safeOptionalText(input.referredPhone, 30);
-    const referredEmail = safeOptionalText(input.referredEmail, 320);
-    const notes = safeOptionalText(input.notes, 10_000);
+    const referredPhone =
+      input.referredPhone === undefined
+        ? null
+        : safeOptionalText(input.referredPhone, 30);
+    const referredEmail =
+      input.referredEmail === undefined
+        ? null
+        : safeOptionalText(input.referredEmail, 320);
+    const notes =
+      input.notes === undefined ? null : safeOptionalText(input.notes, 10_000);
     if (
       !referrerLeadId ||
       !referredName ||
