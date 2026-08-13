@@ -87,7 +87,8 @@ describe("CRM M94 trials expiry notification claiming", () => {
   });
 
   it("releases the durable claim when delivery is not confirmed", async () => {
-    const { processor, appendInteraction, getCurrent, getClaim } = harness(false);
+    const { processor, appendInteraction, getCurrent, getClaim } =
+      harness(false);
     await expect(processor.runPending()).resolves.toEqual({
       considered: 1,
       claimed: 1,
