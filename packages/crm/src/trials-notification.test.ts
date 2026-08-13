@@ -90,6 +90,7 @@ function harness(delivered = true) {
     processor,
     repository,
     send,
+    now,
     renewNotificationClaim,
     appendInteraction,
     getCurrent: () => current,
@@ -189,6 +190,7 @@ describe("CRM M96 trials expiry notification claim heartbeat", () => {
     vi.useFakeTimers();
     const {
       repository,
+      now,
       renewNotificationClaim,
       getClaim,
       setNow,
@@ -206,7 +208,7 @@ describe("CRM M96 trials expiry notification claim heartbeat", () => {
       { send },
       () => "instance-a",
       claimLeaseMs,
-      () => getClaim()?.claimedAt ?? new Date(baseNow),
+      now,
     );
 
     const firstRun = first.runPending();
@@ -216,7 +218,7 @@ describe("CRM M96 trials expiry notification claim heartbeat", () => {
     setNow(baseNow + 20_000);
     await vi.advanceTimersByTimeAsync(20_000);
     expect(renewNotificationClaim).toHaveBeenCalledTimes(1);
-    expect(getClaim()?.claimedAt).toEqual(new Date(baseNow));
+    expect(getClaim()?.claimedAt).toEqual(new Date(baseNow + 20_000));
 
     const second = new CrmTrialNotificationProcessor(
       repository,
@@ -239,11 +241,7 @@ describe("CRM M96 trials expiry notification claim heartbeat", () => {
 
   it("fails closed when heartbeat renewal loses claim ownership", async () => {
     vi.useFakeTimers();
-    const {
-      repository,
-      appendInteraction,
-      setRenewalAllowed,
-    } = harness();
+    const { repository, appendInteraction, setRenewalAllowed } = harness();
     setRenewalAllowed(false);
     let releaseDelivery: (() => void) | undefined;
     const gate = new Promise<void>((resolve) => {
