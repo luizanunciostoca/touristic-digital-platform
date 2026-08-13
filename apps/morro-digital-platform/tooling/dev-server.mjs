@@ -116,6 +116,7 @@ const crmApi = createCrmApi({
   authApi,
   getEnvironmentValue: (key) => process.env[key] ?? localEnvironment[key] ?? "",
 });
+await crmApi.start();
 
 const businessApi = createBusinessApi({ authApi });
 
@@ -429,6 +430,29 @@ const server = createServer(async (request, response) => {
     response.end("Recurso não encontrado.");
   }
 });
+
+let shuttingDown = false;
+
+async function shutdown(signal) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  console.log(`Encerrando Morro Digital após ${signal}.`);
+  server.close(() => {
+    void crmApi
+      .stop()
+      .then(() => process.exit(0))
+      .catch((error) => {
+        console.error(
+          "Falha ao encerrar o runtime CRM.",
+          error instanceof Error ? error.stack || error.message : error,
+        );
+        process.exit(1);
+      });
+  });
+}
+
+process.once("SIGINT", () => void shutdown("SIGINT"));
+process.once("SIGTERM", () => void shutdown("SIGTERM"));
 
 server.listen(port, host, () => {
   console.log(`Morro Digital disponível em http://${host}:${port}`);
