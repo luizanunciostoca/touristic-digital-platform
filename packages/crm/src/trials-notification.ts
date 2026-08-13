@@ -31,7 +31,11 @@ export interface CrmTrialNotificationRepository {
   }) => Promise<void>;
 }
 
+export const CRM_TRIAL_NOTIFICATION_IDEMPOTENCY_CAPABILITY =
+  "stable-key-provider-deduplication" as const;
+
 export interface CrmTrialNotificationDeliveryPort {
+  readonly idempotencyCapability?: typeof CRM_TRIAL_NOTIFICATION_IDEMPOTENCY_CAPABILITY;
   readonly send: (input: {
     readonly trialId: CrmId;
     readonly leadId: CrmId;
@@ -67,6 +71,14 @@ export class CrmTrialNotificationProcessor {
     private readonly now: () => Date = () => new Date(),
     private readonly actorSubject = "crm-trial-notification",
   ) {
+    if (
+      delivery.idempotencyCapability !==
+      CRM_TRIAL_NOTIFICATION_IDEMPOTENCY_CAPABILITY
+    ) {
+      throw new Error(
+        "CRM trial notification delivery must provide stable-key provider deduplication",
+      );
+    }
     if (!Number.isSafeInteger(claimLeaseMs) || claimLeaseMs < 1_000) {
       throw new Error(
         "CRM trial notification claim lease must be at least 1000ms",
