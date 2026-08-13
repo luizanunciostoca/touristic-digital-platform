@@ -171,7 +171,10 @@ export class MySqlCrmTrialRepository
     );
     if (result.affectedRows !== 1)
       throw new Error("crm_trial_notification_mark_notified_conflict");
-    return this.readBack(id, "crm_trial_notification_mark_notified_readback_failed");
+    return this.readBack(
+      id,
+      "crm_trial_notification_mark_notified_readback_failed",
+    );
   }
 
   async updateLeadStage(input: {
