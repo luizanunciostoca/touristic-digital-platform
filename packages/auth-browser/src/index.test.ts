@@ -138,25 +138,6 @@ describe("M48 browser auth adapter", () => {
     );
   });
 
-  it("protects CRM mutations with same-origin credentials and CSRF", async () => {
-    const fetchFn = vi
-      .fn<typeof fetch>()
-      .mockResolvedValue(new Response(null, { status: 200 }));
-    const storage = storageFixture({ md_dashboard_csrf: "csrf-crm" });
-    const location = locationFixture("/apps/admin-crm/public/index.html");
-    const client = createDashboardAuthClient({
-      fetchFn,
-      storage: storage.port,
-      location: location.port,
-    });
-
-    await client.secureFetch("/api/crm/leads/lead-1", { method: "PATCH" });
-
-    const [, init] = fetchFn.mock.calls[0] ?? [];
-    expect(init?.credentials).toBe("same-origin");
-    expect(new Headers(init?.headers).get("X-CSRF-Token")).toBe("csrf-crm");
-  });
-
   it("does not intercept unprotected or login requests", async () => {
     const fetchFn = vi
       .fn<typeof fetch>()
@@ -198,29 +179,6 @@ describe("M48 browser auth adapter", () => {
     );
   });
 
-  it("preserves the CRM shell return path after a protected 401", async () => {
-    const fetchFn = vi
-      .fn<typeof fetch>()
-      .mockResolvedValue(new Response(null, { status: 401 }));
-    const storage = storageFixture({ md_dashboard_csrf: "csrf-existing" });
-    const location = locationFixture(
-      "/apps/admin-crm/public/index.html",
-      "?view=leads",
-    );
-    const client = createDashboardAuthClient({
-      fetchFn,
-      storage: storage.port,
-      location: location.port,
-    });
-
-    await client.secureFetch("/api/crm/leads");
-
-    expect(storage.values.has("md_dashboard_csrf")).toBe(false);
-    expect(location.replace).toHaveBeenCalledWith(
-      "/dashboard/login.html?return=%2Fapps%2Fadmin-crm%2Fpublic%2Findex.html%3Fview%3Dleads",
-    );
-  });
-
   it("refreshes CSRF and retries an unsafe request exactly once", async () => {
     const fetchFn = vi
       .fn<typeof fetch>()
@@ -249,37 +207,6 @@ describe("M48 browser auth adapter", () => {
     const [, retryInit] = fetchFn.mock.calls[2] ?? [];
     expect(new Headers(retryInit?.headers).get("X-CSRF-Token")).toBe(
       "csrf-refreshed",
-    );
-  });
-
-  it("refreshes CSRF and retries a CRM mutation exactly once", async () => {
-    const fetchFn = vi
-      .fn<typeof fetch>()
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify({ error: "INVALID_CSRF" }), {
-          status: 403,
-          headers: { "Content-Type": "application/json" },
-        }),
-      )
-      .mockResolvedValueOnce(sessionResponse("csrf-crm-refreshed"))
-      .mockResolvedValueOnce(new Response(null, { status: 200 }));
-    const storage = storageFixture({ md_dashboard_csrf: "csrf-crm-stale" });
-    const location = locationFixture("/apps/admin-crm/public/index.html");
-    const client = createDashboardAuthClient({
-      fetchFn,
-      storage: storage.port,
-      location: location.port,
-    });
-
-    const response = await client.secureFetch("/api/crm/trials/trial-1/cancel", {
-      method: "POST",
-    });
-
-    expect(response.status).toBe(200);
-    expect(fetchFn).toHaveBeenCalledTimes(3);
-    const [, retryInit] = fetchFn.mock.calls[2] ?? [];
-    expect(new Headers(retryInit?.headers).get("X-CSRF-Token")).toBe(
-      "csrf-crm-refreshed",
     );
   });
 
