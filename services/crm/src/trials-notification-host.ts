@@ -1,4 +1,5 @@
 import {
+  assertCrmTrialNotificationDeliveryIdempotency,
   CrmTrialNotificationProcessor,
   type CrmTrialNotificationDeliveryPort,
   type CrmTrialNotificationResult,
@@ -82,6 +83,7 @@ export function createCrmTrialNotificationHost(
   pool: Pool,
   options: CreateCrmTrialNotificationHostOptions,
 ): CrmTrialNotificationHost {
+  assertCrmTrialNotificationDeliveryIdempotency(options.delivery);
   const processor = new CrmTrialNotificationProcessor(
     new MySqlCrmTrialRepository(pool),
     options.delivery,
