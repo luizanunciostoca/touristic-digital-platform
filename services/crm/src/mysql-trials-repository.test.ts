@@ -245,11 +245,7 @@ describe("CRM M94 MySQL trial notification claiming", () => {
       [{ ...trialRow, status: "expired", notified_at: at }],
     ]);
     const repository = new MySqlCrmTrialRepository(pool as never);
-    const updated = await repository.markNotifiedClaimed(
-      41,
-      "notify-41",
-      at,
-    );
+    const updated = await repository.markNotifiedClaimed(41, "notify-41", at);
     expect(updated.notifiedAt).toEqual(at);
     expect(calls[0]?.sql).toContain("notified_at = ?");
     expect(calls[0]?.sql).toContain("notification_task_uid = NULL");
