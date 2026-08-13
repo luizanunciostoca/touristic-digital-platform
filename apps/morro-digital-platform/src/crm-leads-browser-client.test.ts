@@ -32,10 +32,9 @@ describe("CRM M106 Leads browser client", () => {
     expect(shell).not.toContain("insertAdjacentHTML");
   });
 
-  it("keeps edit, delete and stage mutation out of the Leads surface", async () => {
+  it("keeps destructive and stage mutations out of the Leads surface", async () => {
     const shell = await read("apps/admin-crm/public/shell.js");
 
-    expect(shell).not.toContain('method:"PATCH"');
     expect(shell).not.toContain('method:"DELETE"');
     expect(shell).not.toContain("/stage");
   });
