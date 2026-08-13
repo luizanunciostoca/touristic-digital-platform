@@ -188,13 +188,8 @@ describe("CRM M96 trials expiry notification claim heartbeat", () => {
 
   it("keeps a long-running delivery claim alive so a second instance cannot reclaim it", async () => {
     vi.useFakeTimers();
-    const {
-      repository,
-      now,
-      renewNotificationClaim,
-      getClaim,
-      setNow,
-    } = harness();
+    const { repository, now, renewNotificationClaim, getClaim, setNow } =
+      harness();
     let releaseDelivery: (() => void) | undefined;
     const gate = new Promise<void>((resolve) => {
       releaseDelivery = resolve;
