@@ -30,7 +30,9 @@ describe("CRM M95 trials notification lease schema", () => {
 
     await applyCrmM95Schema(pool as never);
     expect(
-      queries.filter((sql) => sql.includes("ADD COLUMN notification_claimed_at")),
+      queries.filter((sql) =>
+        sql.includes("ADD COLUMN notification_claimed_at"),
+      ),
     ).toHaveLength(0);
   });
 
