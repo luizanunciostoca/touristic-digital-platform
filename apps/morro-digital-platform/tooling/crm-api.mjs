@@ -8,6 +8,7 @@ import { CrmMeetingServerBoundary } from "@touristic/crm/meetings-boundary";
 import { CrmProposalServerBoundary } from "@touristic/crm/proposals-boundary";
 import { CrmProposalPublicBoundary } from "@touristic/crm/proposals-public-boundary";
 import { CrmReferralServerBoundary } from "@touristic/crm/referrals-boundary";
+import { CrmTrialServerBoundary } from "@touristic/crm/trials-boundary";
 import {
   applyCrmM99Schema,
   createCrmMySqlPoolFromEnvironment,
@@ -19,6 +20,7 @@ import {
   CrmProposalHttpTransport,
   CrmProposalPublicHttpTransport,
   CrmReferralHttpTransport,
+  CrmTrialHttpTransport,
   MySqlCrmContractAuditPort,
   MySqlCrmContractRepository,
   MySqlCrmFollowUpAuditPort,
@@ -31,6 +33,8 @@ import {
   MySqlCrmProposalRepository,
   MySqlCrmReferralAuditPort,
   MySqlCrmReferralRepository,
+  MySqlCrmTrialAuditPort,
+  MySqlCrmTrialRepository,
 } from "@touristic/crm-server";
 
 const crmPrefixes = [
@@ -42,6 +46,7 @@ const crmPrefixes = [
   "/api/crm/meetings",
   "/api/crm/proposals",
   "/api/crm/referrals",
+  "/api/crm/trials",
 ];
 const maxBodyBytes = 128 * 1024;
 
@@ -156,6 +161,10 @@ export function createCrmApi({ authApi, getEnvironmentValue }) {
     new MySqlCrmReferralRepository(pool),
     new MySqlCrmReferralAuditPort(pool),
   );
+  const trialBoundary = new CrmTrialServerBoundary(
+    new MySqlCrmTrialRepository(pool),
+    new MySqlCrmTrialAuditPort(pool),
+  );
   let schemaReady;
 
   async function ensureSchema() {
@@ -200,6 +209,7 @@ export function createCrmApi({ authApi, getEnvironmentValue }) {
         new CrmMeetingHttpTransport(meetingBoundary, authPort),
         new CrmProposalHttpTransport(proposalBoundary, authPort),
         new CrmReferralHttpTransport(referralBoundary, authPort),
+        new CrmTrialHttpTransport(trialBoundary, authPort),
       ];
       const transport = transports.find((candidate) =>
         candidate.matches(requestUrl.pathname),
