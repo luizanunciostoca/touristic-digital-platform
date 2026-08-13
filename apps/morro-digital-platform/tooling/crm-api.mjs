@@ -12,6 +12,7 @@ import { CrmTrialServerBoundary } from "@touristic/crm/trials-boundary";
 import {
   applyCrmM99Schema,
   createCrmMySqlPoolFromEnvironment,
+  createCrmTrialSchedulerHost,
   CrmContractHttpTransport,
   CrmContractPublicHttpTransport,
   CrmFollowUpHttpTransport,
@@ -49,6 +50,7 @@ const crmPrefixes = [
   "/api/crm/trials",
 ];
 const maxBodyBytes = 128 * 1024;
+const defaultTrialSchedulerIntervalMs = 60_000;
 
 function matchesCrmPath(pathname) {
   return crmPrefixes.some(
@@ -104,6 +106,8 @@ function clientIp(request) {
 function createUnavailableApi() {
   return Object.freeze({
     matches: matchesCrmPath,
+    async start() {},
+    async stop() {},
     async handle(_request, response) {
       json(response, 503, { error: "CRM_DATABASE_NOT_CONFIGURED" });
     },
@@ -112,6 +116,10 @@ function createUnavailableApi() {
 
 function createShareToken() {
   return randomBytes(24).toString("base64url");
+}
+
+function createTaskUid() {
+  return randomBytes(18).toString("base64url");
 }
 
 export function createCrmApi({ authApi, getEnvironmentValue }) {
@@ -165,7 +173,23 @@ export function createCrmApi({ authApi, getEnvironmentValue }) {
     new MySqlCrmTrialRepository(pool),
     new MySqlCrmTrialAuditPort(pool),
   );
+  const trialScheduler = createCrmTrialSchedulerHost(pool, {
+    intervalMs: Number(
+      getEnvironmentValue("CRM_TRIAL_SCHEDULER_INTERVAL_MS") ||
+        defaultTrialSchedulerIntervalMs,
+    ),
+    createTaskUid,
+    actorSubject: "crm-system:trial-scheduler",
+    onError(error) {
+      console.error(
+        "CRM trial scheduler failure.",
+        error instanceof Error ? error.stack || error.message : error,
+      );
+    },
+  });
   let schemaReady;
+  let started = false;
+  let stopped = false;
 
   async function ensureSchema() {
     schemaReady ??= applyCrmM99Schema(pool);
@@ -174,6 +198,21 @@ export function createCrmApi({ authApi, getEnvironmentValue }) {
 
   return Object.freeze({
     matches: matchesCrmPath,
+
+    async start() {
+      if (started) return;
+      if (stopped) throw new Error("CRM_RUNTIME_ALREADY_STOPPED");
+      await ensureSchema();
+      trialScheduler.start();
+      started = true;
+    },
+
+    async stop() {
+      if (stopped) return;
+      stopped = true;
+      await trialScheduler.stop();
+      await pool.end();
+    },
 
     async handle(request, response, requestUrl) {
       await ensureSchema();
