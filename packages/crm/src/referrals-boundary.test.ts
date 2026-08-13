@@ -42,7 +42,10 @@ function referral(overrides: Partial<CrmReferral> = {}): CrmReferral {
 }
 
 function harness(
-  options: { readonly initial?: CrmReferral; readonly leadExists?: boolean } = {},
+  options: {
+    readonly initial?: CrmReferral;
+    readonly leadExists?: boolean;
+  } = {},
 ) {
   let current = options.initial ?? referral();
   const calls: string[] = [];
@@ -141,11 +144,15 @@ describe("CRM M98 referrals lifecycle boundary", () => {
 
   it("supports explicit contacted -> converted lifecycle transitions", async () => {
     const { boundary, getCurrent } = harness();
-    await expect(boundary.contact(session(), { id: 21 })).resolves.toMatchObject({
+    await expect(
+      boundary.contact(session(), { id: 21 }),
+    ).resolves.toMatchObject({
       ok: true,
       value: { status: "contacted" },
     });
-    await expect(boundary.convert(session(), { id: 21 })).resolves.toMatchObject({
+    await expect(
+      boundary.convert(session(), { id: 21 }),
+    ).resolves.toMatchObject({
       ok: true,
       value: { status: "converted" },
     });
