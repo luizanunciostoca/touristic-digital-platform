@@ -70,8 +70,7 @@ export class CrmTrialNotificationHost {
   }
 }
 
-export interface CreateCrmTrialNotificationHostOptions
-  extends CrmTrialNotificationHostOptions {
+export interface CreateCrmTrialNotificationHostOptions extends CrmTrialNotificationHostOptions {
   readonly delivery: CrmTrialNotificationDeliveryPort;
   readonly now?: () => Date;
   readonly actorSubject?: string;
