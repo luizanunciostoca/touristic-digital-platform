@@ -6,3 +6,4 @@ packages/design-system/src/core-ui/feedback.ts
 apps/morro-digital-platform/public/index.html
 apps/morro-digital-platform/public/styles.css
 apps/morro-digital-platform/public/legacy/**
+apps/admin-crm/public/**
