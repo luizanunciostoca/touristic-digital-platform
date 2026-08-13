@@ -21,6 +21,15 @@ type ReferralAction =
   | "link-lead"
   | "grant-benefit";
 
+type ReferralRoute =
+  | { readonly kind: "collection" }
+  | { readonly kind: "referral"; readonly id: string }
+  | {
+      readonly kind: "action";
+      readonly id: string;
+      readonly action: ReferralAction;
+    };
+
 function resultResponse<T>(
   result: CrmReferralBoundaryResult<T>,
 ): CrmHttpResponse {
@@ -55,15 +64,7 @@ function resultResponse<T>(
   });
 }
 
-function route(pathname: string):
-  | { readonly kind: "collection" }
-  | { readonly kind: "referral"; readonly id: string }
-  | {
-      readonly kind: "action";
-      readonly id: string;
-      readonly action: ReferralAction;
-    }
-  | null {
+function route(pathname: string): ReferralRoute | null {
   if (pathname === referralsPrefix) return { kind: "collection" };
   if (!pathname.startsWith(`${referralsPrefix}/`)) return null;
   const parts = pathname
