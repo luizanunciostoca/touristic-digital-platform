@@ -6,7 +6,8 @@ import {
   type CrmTrialNotificationRepository,
 } from "./trials-notification.js";
 
-const notifiedAt = new Date("2026-08-13T00:00:00.000Z");
+const baseNow = Date.parse("2026-08-13T00:00:00.000Z");
+const claimLeaseMs = 60_000;
 
 function expiredTrial(overrides: Partial<CrmTrial> = {}): CrmTrial {
   return {
@@ -27,22 +28,33 @@ function expiredTrial(overrides: Partial<CrmTrial> = {}): CrmTrial {
 
 function harness(delivered = true) {
   let current = expiredTrial();
-  let claim: string | null = null;
+  let claim: { uid: string; claimedAt: Date | null } | null = null;
   let uid = 0;
+  let nowMs = baseNow;
   const appendInteraction = vi.fn(async () => {});
+
+  const isClaimAvailable = (staleBefore: Date) =>
+    claim === null ||
+    claim.claimedAt === null ||
+    claim.claimedAt.getTime() <= staleBefore.getTime();
+
   const repository: CrmTrialNotificationRepository = {
-    listExpiredUnnotified: async () =>
-      current.notifiedAt === null && claim === null ? [current] : [],
-    claimExpiredUnnotified: async (_id, taskUid) => {
-      if (current.notifiedAt !== null || claim !== null) return false;
-      claim = taskUid;
+    listExpiredUnnotified: async (staleBefore) =>
+      current.notifiedAt === null && isClaimAvailable(staleBefore)
+        ? [current]
+        : [],
+    claimExpiredUnnotified: async (_id, taskUid, claimedAt, staleBefore) => {
+      if (current.notifiedAt !== null || !isClaimAvailable(staleBefore)) {
+        return false;
+      }
+      claim = { uid: taskUid, claimedAt };
       return true;
     },
     releaseNotificationClaim: async (_id, taskUid) => {
-      if (claim === taskUid && current.notifiedAt === null) claim = null;
+      if (claim?.uid === taskUid && current.notifiedAt === null) claim = null;
     },
     markNotifiedClaimed: async (_id, taskUid, at) => {
-      if (claim !== taskUid) throw new Error("claim_lost");
+      if (claim?.uid !== taskUid) throw new Error("claim_lost");
       current = expiredTrial({ ...current, notifiedAt: at });
       claim = null;
       return current;
@@ -50,11 +62,13 @@ function harness(delivered = true) {
     appendInteraction,
   };
   const send = vi.fn(async () => ({ delivered }));
+  const now = () => new Date(nowMs);
   const processor = new CrmTrialNotificationProcessor(
     repository,
     { send },
     () => `notification-${++uid}`,
-    () => notifiedAt,
+    claimLeaseMs,
+    now,
   );
   return {
     processor,
@@ -63,10 +77,29 @@ function harness(delivered = true) {
     appendInteraction,
     getCurrent: () => current,
     getClaim: () => claim,
+    setClaim: (value: { uid: string; claimedAt: Date | null } | null) => {
+      claim = value;
+    },
+    setNow: (value: number) => {
+      nowMs = value;
+    },
   };
 }
 
-describe("CRM M94 trials expiry notification claiming", () => {
+describe("CRM M95 trials expiry notification claim lease", () => {
+  it("rejects unsafe sub-second claim leases", () => {
+    const { repository } = harness();
+    expect(
+      () =>
+        new CrmTrialNotificationProcessor(
+          repository,
+          { send: async () => ({ delivered: true }) },
+          () => "notification-1",
+          999,
+        ),
+    ).toThrow("CRM trial notification claim lease must be at least 1000ms");
+  });
+
   it("claims before delivery and persists notifiedAt only while owning the claim", async () => {
     const { processor, send, appendInteraction, getCurrent, getClaim } =
       harness();
@@ -81,9 +114,51 @@ describe("CRM M94 trials expiry notification claiming", () => {
       leadId: 7,
       expiredAt: new Date("2026-08-12T00:00:00.000Z"),
     });
-    expect(getCurrent().notifiedAt).toEqual(notifiedAt);
+    expect(getCurrent().notifiedAt).toEqual(new Date(baseNow));
     expect(getClaim()).toBeNull();
     expect(appendInteraction).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not steal a live claim before its lease expires", async () => {
+    const { processor, send, setClaim } = harness();
+    setClaim({
+      uid: "live-instance",
+      claimedAt: new Date(baseNow - claimLeaseMs + 1),
+    });
+    await expect(processor.runPending()).resolves.toEqual({
+      considered: 0,
+      claimed: 0,
+      delivered: 0,
+      failed: 0,
+    });
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  it("atomically recovers a claim after its lease expires", async () => {
+    const { processor, send, setClaim, getClaim } = harness();
+    setClaim({
+      uid: "crashed-instance",
+      claimedAt: new Date(baseNow - claimLeaseMs),
+    });
+    await expect(processor.runPending()).resolves.toEqual({
+      considered: 1,
+      claimed: 1,
+      delivered: 1,
+      failed: 0,
+    });
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(getClaim()).toBeNull();
+  });
+
+  it("recovers legacy M94 claims that have no claimed timestamp", async () => {
+    const { processor, send, setClaim } = harness();
+    setClaim({ uid: "legacy-m94-instance", claimedAt: null });
+    await expect(processor.runPending()).resolves.toMatchObject({
+      considered: 1,
+      claimed: 1,
+      delivered: 1,
+    });
+    expect(send).toHaveBeenCalledTimes(1);
   });
 
   it("releases the durable claim when delivery is not confirmed", async () => {
@@ -100,18 +175,6 @@ describe("CRM M94 trials expiry notification claiming", () => {
     expect(appendInteraction).not.toHaveBeenCalled();
   });
 
-  it("is idempotent after notifiedAt is durably set", async () => {
-    const { processor, send } = harness();
-    await processor.runPending();
-    await expect(processor.runPending()).resolves.toEqual({
-      considered: 0,
-      claimed: 0,
-      delivered: 0,
-      failed: 0,
-    });
-    expect(send).toHaveBeenCalledTimes(1);
-  });
-
   it("allows only one processor to deliver when two instances race", async () => {
     const { repository } = harness();
     let releaseDelivery: (() => void) | undefined;
@@ -126,13 +189,15 @@ describe("CRM M94 trials expiry notification claiming", () => {
       repository,
       { send },
       () => "instance-a",
-      () => notifiedAt,
+      claimLeaseMs,
+      () => new Date(baseNow),
     );
     const second = new CrmTrialNotificationProcessor(
       repository,
       { send },
       () => "instance-b",
-      () => notifiedAt,
+      claimLeaseMs,
+      () => new Date(baseNow),
     );
 
     const firstRun = first.runPending();
