@@ -23,9 +23,7 @@ async function requestBody(request: IncomingMessage): Promise<string> {
 function checkoutRequest(): CheckoutProviderRequest {
   const input = createCheckoutProviderRequest({
     paymentId: normalizePaymentId("pay_wire_sandbox_0001"),
-    idempotencyKey: createPaymentIdempotencyKey(
-      "ord_wire_sandbox_0001",
-    ),
+    idempotencyKey: createPaymentIdempotencyKey("ord_wire_sandbox_0001"),
     amount: createMoney(49_900, "BRL"),
     description: "Plano Crescimento",
     returnUrl: "http://127.0.0.1/checkout/return",
@@ -59,27 +57,20 @@ describe("M140 sandbox provider HTTP wire contract", () => {
 
     const server = createServer(async (request, response) => {
       try {
-        if (
-          request.method !== "POST" ||
-          request.url !== "/v1/checkouts"
-        ) {
+        if (request.method !== "POST" || request.url !== "/v1/checkouts") {
           response.writeHead(404).end();
           return;
         }
         const body = JSON.parse(await requestBody(request)) as unknown;
         const idempotencyKey = request.headers["idempotency-key"];
-        const key =
-          typeof idempotencyKey === "string" ? idempotencyKey : "";
+        const key = typeof idempotencyKey === "string" ? idempotencyKey : "";
         received.push({
           authorization: request.headers.authorization,
           contentType: request.headers["content-type"],
           idempotencyKey:
-            typeof idempotencyKey === "string"
-              ? idempotencyKey
-              : undefined,
+            typeof idempotencyKey === "string" ? idempotencyKey : undefined,
           mode: request.headers["x-touristic-provider-mode"] as
-            | string
-            | undefined,
+            string | undefined,
           body,
         });
         if (
@@ -97,8 +88,7 @@ describe("M140 sandbox provider HTTP wire contract", () => {
           Object.freeze({
             version: 1,
             checkoutId: "chk_wire_sandbox_0001",
-            checkoutUrl:
-              checkoutOrigin + "/pay/chk_wire_sandbox_0001",
+            checkoutUrl: checkoutOrigin + "/pay/chk_wire_sandbox_0001",
             paymentReference: null,
           });
         sessions.set(key, session);
@@ -139,8 +129,7 @@ describe("M140 sandbox provider HTTP wire contract", () => {
 
       expect(first).toEqual({
         providerCheckoutId: "chk_wire_sandbox_0001",
-        checkoutUrl:
-          checkoutOrigin + "/pay/chk_wire_sandbox_0001",
+        checkoutUrl: checkoutOrigin + "/pay/chk_wire_sandbox_0001",
         providerReference: null,
       });
       expect(replay).toEqual(first);
@@ -159,8 +148,7 @@ describe("M140 sandbox provider HTTP wire contract", () => {
           amount: { minorUnits: 49_900, currency: "BRL" },
           description: "Plano Crescimento",
           returnUrl: "http://127.0.0.1/checkout/return",
-          webhookUrl:
-            "http://127.0.0.1/api/payments/v1/webhooks/sandbox",
+          webhookUrl: "http://127.0.0.1/api/payments/v1/webhooks/sandbox",
           customer: {
             name: "Cliente Wire",
             email: "wire@example.com",

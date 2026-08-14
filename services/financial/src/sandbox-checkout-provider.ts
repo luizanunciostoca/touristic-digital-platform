@@ -100,32 +100,19 @@ function configuredTimeout(value: unknown): number {
     throw new Error("PAYMENTS_PROVIDER_TIMEOUT_MS is invalid");
   }
   const timeout = Number(raw);
-  if (
-    !Number.isSafeInteger(timeout) ||
-    timeout < 500 ||
-    timeout > 15_000
-  ) {
+  if (!Number.isSafeInteger(timeout) || timeout < 500 || timeout > 15_000) {
     throw new Error("PAYMENTS_PROVIDER_TIMEOUT_MS is invalid");
   }
   return timeout;
 }
 
 async function responseJson(response: Response): Promise<unknown> {
-  const declaredLength = Number(
-    response.headers.get("content-length") ?? "0",
-  );
-  if (
-    Number.isFinite(declaredLength) &&
-    declaredLength > maxResponseBytes
-  ) {
-    throw new SandboxCheckoutProviderError(
-      "SANDBOX_PROVIDER_INVALID_RESPONSE",
-    );
+  const declaredLength = Number(response.headers.get("content-length") ?? "0");
+  if (Number.isFinite(declaredLength) && declaredLength > maxResponseBytes) {
+    throw new SandboxCheckoutProviderError("SANDBOX_PROVIDER_INVALID_RESPONSE");
   }
   if (!response.body) {
-    throw new SandboxCheckoutProviderError(
-      "SANDBOX_PROVIDER_INVALID_RESPONSE",
-    );
+    throw new SandboxCheckoutProviderError("SANDBOX_PROVIDER_INVALID_RESPONSE");
   }
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
@@ -151,9 +138,7 @@ async function responseJson(response: Response): Promise<unknown> {
   try {
     return JSON.parse(text);
   } catch {
-    throw new SandboxCheckoutProviderError(
-      "SANDBOX_PROVIDER_INVALID_RESPONSE",
-    );
+    throw new SandboxCheckoutProviderError("SANDBOX_PROVIDER_INVALID_RESPONSE");
   }
 }
 
@@ -184,26 +169,20 @@ export function createSandboxCheckoutProviderFromEnvironment(
     false,
   );
   if (!baseUrl) {
-    throw new Error(
-      "PAYMENTS_SANDBOX_PROVIDER_BASE_URL is required",
-    );
+    throw new Error("PAYMENTS_SANDBOX_PROVIDER_BASE_URL is required");
   }
   const token = boundedValue(
     environment.PAYMENTS_SANDBOX_PROVIDER_API_TOKEN,
     1_024,
   );
   if (token.length < 32) {
-    throw new Error(
-      "PAYMENTS_SANDBOX_PROVIDER_API_TOKEN is required",
-    );
+    throw new Error("PAYMENTS_SANDBOX_PROVIDER_API_TOKEN is required");
   }
   const checkoutOrigins = configuredOrigins(
     environment.PAYMENTS_SANDBOX_CHECKOUT_ORIGINS,
     production,
   );
-  const timeoutMs = configuredTimeout(
-    environment.PAYMENTS_PROVIDER_TIMEOUT_MS,
-  );
+  const timeoutMs = configuredTimeout(environment.PAYMENTS_PROVIDER_TIMEOUT_MS);
   const fetchProvider = options.fetch ?? globalThis.fetch;
   if (typeof fetchProvider !== "function") {
     throw new Error("PAYMENTS_SANDBOX_PROVIDER_FETCH_UNAVAILABLE");
@@ -274,9 +253,7 @@ export function createSandboxCheckoutProviderFromEnvironment(
         return session;
       } catch (error) {
         if (error instanceof SandboxCheckoutProviderError) throw error;
-        throw new SandboxCheckoutProviderError(
-          "SANDBOX_PROVIDER_UNAVAILABLE",
-        );
+        throw new SandboxCheckoutProviderError("SANDBOX_PROVIDER_UNAVAILABLE");
       }
     },
   });

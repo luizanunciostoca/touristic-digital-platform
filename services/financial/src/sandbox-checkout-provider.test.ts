@@ -17,8 +17,7 @@ function environment() {
   return {
     NODE_ENV: "production",
     PAYMENTS_PROVIDER_MODE: "sandbox",
-    PAYMENTS_SANDBOX_PROVIDER_BASE_URL:
-      "https://api.sandbox-payments.example/",
+    PAYMENTS_SANDBOX_PROVIDER_BASE_URL: "https://api.sandbox-payments.example/",
     PAYMENTS_SANDBOX_PROVIDER_API_TOKEN:
       "sandbox-token-with-at-least-thirty-two-characters",
     PAYMENTS_SANDBOX_CHECKOUT_ORIGINS:
@@ -136,14 +135,11 @@ describe("M140 sandbox checkout provider adapter", () => {
     const unavailable = createSandboxCheckoutProviderFromEnvironment(
       environment(),
       {
-        fetch: () =>
-          Promise.reject(new Error("secret network failure detail")),
+        fetch: () => Promise.reject(new Error("secret network failure detail")),
       },
     );
     await expect(unavailable.createCheckout(request())).rejects.toEqual(
-      new SandboxCheckoutProviderError(
-        "SANDBOX_PROVIDER_UNAVAILABLE",
-      ),
+      new SandboxCheckoutProviderError("SANDBOX_PROVIDER_UNAVAILABLE"),
     );
 
     const oversized = createSandboxCheckoutProviderFromEnvironment(
@@ -158,9 +154,7 @@ describe("M140 sandbox checkout provider adapter", () => {
       },
     );
     await expect(oversized.createCheckout(request())).rejects.toEqual(
-      new SandboxCheckoutProviderError(
-        "SANDBOX_PROVIDER_INVALID_RESPONSE",
-      ),
+      new SandboxCheckoutProviderError("SANDBOX_PROVIDER_INVALID_RESPONSE"),
     );
 
     const wrongOrigin = createSandboxCheckoutProviderFromEnvironment(
@@ -181,9 +175,7 @@ describe("M140 sandbox checkout provider adapter", () => {
       },
     );
     await expect(wrongOrigin.createCheckout(request())).rejects.toEqual(
-      new SandboxCheckoutProviderError(
-        "SANDBOX_PROVIDER_INVALID_RESPONSE",
-      ),
+      new SandboxCheckoutProviderError("SANDBOX_PROVIDER_INVALID_RESPONSE"),
     );
   });
 

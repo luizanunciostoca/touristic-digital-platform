@@ -317,9 +317,7 @@ function normalizeProviderIdempotencyKey(
   const normalized = normalizeString(value, 256);
   const prefix = "payment:v1:";
   if (!normalized.startsWith(prefix)) return null;
-  const expected = createPaymentIdempotencyKey(
-    normalized.slice(prefix.length),
-  );
+  const expected = createPaymentIdempotencyKey(normalized.slice(prefix.length));
   return expected === normalized ? expected : null;
 }
 
@@ -334,14 +332,9 @@ export function createCheckoutProviderRequest(input: {
   readonly metadata: unknown;
 }): CheckoutProviderRequest | null {
   const paymentId = normalizePaymentId(input.paymentId);
-  const idempotencyKey = normalizeProviderIdempotencyKey(
-    input.idempotencyKey,
-  );
+  const idempotencyKey = normalizeProviderIdempotencyKey(input.idempotencyKey);
   const amountInput = input.amount as Partial<Money> | null | undefined;
-  const amount = createMoney(
-    amountInput?.minorUnits,
-    amountInput?.currency,
-  );
+  const amount = createMoney(amountInput?.minorUnits, amountInput?.currency);
   const description = normalizeProviderText(input.description, 240);
   const returnUrl = normalizeProviderUrl(input.returnUrl);
   const webhookUrl = normalizeProviderUrl(input.webhookUrl);
@@ -372,10 +365,7 @@ export function createCheckoutProviderRequest(input: {
   }
 
   const name = normalizeProviderText(customerInput.name, 160);
-  const email = normalizeProviderText(
-    customerInput.email,
-    200,
-  ).toLowerCase();
+  const email = normalizeProviderText(customerInput.email, 200).toLowerCase();
   const phone =
     customerInput.phone === null
       ? null
@@ -435,8 +425,7 @@ export function normalizeCheckoutProviderSession(
   if (
     !PROVIDER_REFERENCE.test(providerCheckoutId) ||
     !checkoutUrl ||
-    (providerReference !== null &&
-      !PROVIDER_REFERENCE.test(providerReference))
+    (providerReference !== null && !PROVIDER_REFERENCE.test(providerReference))
   ) {
     return null;
   }

@@ -112,7 +112,6 @@ function collectEnvironment(getEnvironmentValue) {
   );
 }
 
-
 function configuredWebhookUrl(value, production) {
   try {
     const url = new URL(value);
@@ -327,8 +326,7 @@ export function createPaymentsApi({
         orders,
         payments,
         access: new MySqlCheckoutAccessRepository(orderingPool),
-        provider:
-          createSandboxCheckoutProviderFromEnvironment(environment),
+        provider: createSandboxCheckoutProviderFromEnvironment(environment),
         webhookUrl,
         authorization: createPaymentsCheckoutAuthorizationPort({
           authApi,

@@ -94,8 +94,7 @@ describe("M140 checkout provider contract constructors", () => {
       }),
     ).toEqual({
       providerCheckoutId: "chk_sandbox_0001",
-      checkoutUrl:
-        "https://sandbox-payments.example/checkout/chk_sandbox_0001",
+      checkoutUrl: "https://sandbox-payments.example/checkout/chk_sandbox_0001",
       providerReference: null,
     });
     expect(

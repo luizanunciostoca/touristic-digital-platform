@@ -198,7 +198,6 @@ function errorResponse(
   );
 }
 
-
 function normalizeWebhookUrl(value: unknown): string {
   if (typeof value !== "string" || value.length > 2_048) return "";
   try {

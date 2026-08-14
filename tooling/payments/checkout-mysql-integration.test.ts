@@ -263,8 +263,7 @@ describeMySql.sequential("M138 checkout application MySQL integration", () => {
       provider: {
         createCheckout: (input) =>
           Promise.resolve({
-            providerCheckoutId:
-              "chk_mysql_http_" + input.paymentId,
+            providerCheckoutId: "chk_mysql_http_" + input.paymentId,
             checkoutUrl:
               "https://checkout.sandbox-payments.example/pay/" +
               input.paymentId,
