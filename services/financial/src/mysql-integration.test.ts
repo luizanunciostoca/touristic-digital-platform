@@ -16,8 +16,10 @@ import {
   MySqlPaymentIdempotencyPort,
   MySqlPaymentRepository,
   MySqlProviderWebhookEventRepository,
-  applyFinancialM141Schema,
+  MySqlVerifiedPaymentResultRepository,
+  applyFinancialM142Schema,
   createFinancialMySqlPoolFromEnvironment,
+  createVerifiedPaymentOutcomeService,
 } from "./index.js";
 
 const databaseUrl = process.env.FINANCIAL_DATABASE_URL;
@@ -62,7 +64,7 @@ function ledger(
   });
 }
 
-describeMySql.sequential("M137/M141 Financial MySQL integration", () => {
+describeMySql.sequential("M137/M142 Financial MySQL integration", () => {
   let pool: Pool;
 
   beforeAll(async () => {
@@ -79,11 +81,12 @@ describeMySql.sequential("M137/M141 Financial MySQL integration", () => {
     pool = createFinancialMySqlPoolFromEnvironment({
       FINANCIAL_DATABASE_URL: databaseUrl,
     });
-    await applyFinancialM141Schema(pool);
+    await applyFinancialM142Schema(pool);
   });
 
   beforeEach(async () => {
     await pool.query("DROP TRIGGER IF EXISTS financial_test_fail_posting");
+    await pool.query("DELETE FROM financial_payment_results");
     await pool.query("DELETE FROM financial_provider_events");
     await pool.query("DELETE FROM financial_ledger_postings");
     await pool.query("DELETE FROM financial_ledger_transactions");
@@ -193,6 +196,54 @@ describeMySql.sequential("M137/M141 Financial MySQL integration", () => {
         payload_hash: "a".repeat(64),
       }),
     ]);
+  });
+
+  it("applies a verified provider outcome and persists one authoritative result", async () => {
+    const payments = new MySqlPaymentRepository(pool);
+    const saved = await payments.save(payment());
+    const events = new MySqlProviderWebhookEventRepository(pool);
+    const results = new MySqlVerifiedPaymentResultRepository(pool);
+    const outcomes = createVerifiedPaymentOutcomeService({
+      payments,
+      results,
+      clock: { now: () => "2026-08-14T19:34:02Z" },
+    });
+    const verified = normalizeVerifiedProviderPaymentEvent({
+      providerEventId: "pwe_mysql_outcome_0001",
+      externalReference: saved.id,
+      providerPaymentReference: "sandbox_mysql_outcome_0001",
+      status: "paid",
+      occurredAt: "2026-08-14T19:34:01Z",
+    });
+    if (!verified) throw new Error("EVENT_FIXTURE_INVALID");
+    const claim = await events.claim({
+      event: verified,
+      payloadSha256: "c".repeat(64),
+      receivedAt: "2026-08-14T19:34:02Z",
+      matchedPaymentId: saved.id,
+    });
+
+    await expect(outcomes.apply(claim.receipt.event)).resolves.toMatchObject({
+      disposition: "applied",
+      payment: { status: "confirmed" },
+      result: {
+        kind: "approved",
+        paymentStatus: "confirmed",
+        providerEventId: verified.providerEventId,
+      },
+    });
+    await expect(outcomes.apply(claim.receipt.event)).resolves.toMatchObject({
+      disposition: "replayed",
+    });
+    await expect(payments.findById(saved.id)).resolves.toMatchObject({
+      status: "confirmed",
+      providerReference: "sandbox_mysql_outcome_0001",
+    });
+    const [rows] = await pool.query<RowDataPacket[]>(
+      "SELECT COUNT(*) AS total FROM financial_payment_results WHERE payment_id = ?",
+      [saved.id],
+    );
+    expect(Number(rows[0]?.total)).toBe(1);
   });
 
   it("replays an exact Ledger append and rejects divergent content", async () => {

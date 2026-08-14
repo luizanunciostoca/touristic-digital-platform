@@ -5,6 +5,7 @@ import {
   type FinancialCheckoutProviderPort,
   type Payment,
   type PaymentRepositoryPort,
+  type VerifiedPaymentResultRepositoryPort,
 } from "@touristic/financial";
 import {
   CheckoutApplicationError,
@@ -116,6 +117,7 @@ export interface CheckoutHttpTransportDependencies {
   readonly application: ProviderNeutralCheckoutApplicationService;
   readonly orders: OrderRepositoryPort;
   readonly payments: PaymentRepositoryPort;
+  readonly paymentResults?: VerifiedPaymentResultRepositoryPort;
   readonly access: CheckoutAccessRepositoryPort;
   readonly provider: FinancialCheckoutProviderPort;
   readonly webhookUrl: string;
@@ -695,6 +697,55 @@ export class CheckoutHttpTransport {
       return errorResponse(503, "CHECKOUT_UNAVAILABLE", correlationId);
     }
 
+    const terminalStatus = payment.status === "pending" ? null : payment.status;
+    const paymentResult =
+      terminalStatus && this.dependencies.paymentResults
+        ? await this.dependencies.paymentResults.findByPaymentStatus(
+            payment.id,
+            terminalStatus,
+          )
+        : null;
+    if (
+      paymentResult &&
+      (paymentResult.paymentId !== payment.id ||
+        paymentResult.orderReference !== order.id ||
+        paymentResult.paymentStatus !== payment.status)
+    ) {
+      await recordAudit(this.dependencies.audit, {
+        action: "checkout.status",
+        result: "failure",
+        reason: "inconsistent_verified_result",
+        correlationId,
+        actorSubject: access.actorSubject,
+        destinationId: access.destinationId,
+        tenantId: access.tenantId,
+        orderId,
+      });
+      return errorResponse(503, "CHECKOUT_UNAVAILABLE", correlationId);
+    }
+    const approved =
+      paymentResult?.kind === "approved" &&
+      paymentResult.paymentStatus === "confirmed";
+    const failed = paymentResult && !approved ? paymentResult : null;
+    const verifiedPayment = approved
+      ? Object.freeze({
+          verified: true as const,
+          sessionId: order.source.reference,
+          reference: paymentResult.paymentReference ?? payment.id,
+          definitiveBusinessId: null,
+          activationStatus: "READY_TO_CONVERT" as const,
+          resultId: paymentResult.resultId,
+        })
+      : null;
+    const verifiedFailure = failed
+      ? Object.freeze({
+          verified: true as const,
+          sessionId: order.source.reference,
+          reason: failed.kind,
+          resultId: failed.resultId,
+        })
+      : null;
+
     await recordAudit(this.dependencies.audit, {
       action: "checkout.status",
       result: "success",
@@ -716,8 +767,10 @@ export class CheckoutHttpTransport {
             payment.status === "confirmed" || payment.status === "refunded"
               ? payment.providerReference
               : null,
-          activationStatus: null,
+          activationStatus: approved ? "READY_TO_CONVERT" : null,
           definitiveBusinessId: null,
+          verifiedPayment,
+          verifiedFailure,
         }),
       },
       correlationId,

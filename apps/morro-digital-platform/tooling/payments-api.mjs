@@ -7,10 +7,12 @@ import {
   MySqlPaymentIdempotencyPort,
   MySqlPaymentRepository,
   MySqlProviderWebhookEventRepository,
-  applyFinancialM141Schema,
+  MySqlVerifiedPaymentResultRepository,
+  applyFinancialM142Schema,
   createFinancialMySqlPoolFromEnvironment,
   createSandboxCheckoutProviderFromEnvironment,
   createSandboxWebhookVerifierFromEnvironment,
+  createVerifiedPaymentOutcomeService,
   sandboxWebhookPath,
 } from "@touristic/financial-server";
 import {
@@ -338,11 +340,19 @@ export function createPaymentsApi({
       pools.push(financialPool);
       await Promise.all([
         applyOrderingM139Schema(orderingPool),
-        applyFinancialM141Schema(financialPool),
+        applyFinancialM142Schema(financialPool),
       ]);
 
       const orders = new MySqlOrderRepository(orderingPool);
       const payments = new MySqlPaymentRepository(financialPool);
+      const paymentResults = new MySqlVerifiedPaymentResultRepository(
+        financialPool,
+      );
+      const outcomes = createVerifiedPaymentOutcomeService({
+        payments,
+        results: paymentResults,
+        clock: systemCheckoutClock,
+      });
       const application = createProviderNeutralCheckoutApplicationService({
         orders,
         payments,
@@ -356,6 +366,7 @@ export function createPaymentsApi({
         application,
         orders,
         payments,
+        paymentResults,
         access: new MySqlCheckoutAccessRepository(orderingPool),
         provider: createSandboxCheckoutProviderFromEnvironment(environment),
         webhookUrl,
@@ -384,6 +395,7 @@ export function createPaymentsApi({
         verifier: createSandboxWebhookVerifierFromEnvironment(environment),
         events: new MySqlProviderWebhookEventRepository(financialPool),
         payments,
+        outcomes,
         audit: {
           record(event) {
             runtimeAudit(audit, event);

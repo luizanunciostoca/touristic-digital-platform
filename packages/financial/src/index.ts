@@ -119,6 +119,17 @@ export const providerPaymentStatuses = Object.freeze([
 
 export type ProviderPaymentStatus = (typeof providerPaymentStatuses)[number];
 
+export const verifiedPaymentResultKinds = Object.freeze([
+  "approved",
+  "failed",
+  "cancelled",
+  "expired",
+  "refunded",
+] as const);
+export type VerifiedPaymentResultKind =
+  (typeof verifiedPaymentResultKinds)[number];
+export type VerifiedPaymentTerminalStatus = Exclude<PaymentStatus, "pending">;
+
 export interface VerifiedProviderPaymentEvent {
   readonly providerEventId: ProviderEventId;
   readonly externalReference: PaymentId;
@@ -132,6 +143,38 @@ export interface FinancialWebhookVerifierPort {
     rawBody: Uint8Array,
     signature: string,
   ): Promise<VerifiedProviderPaymentEvent | null>;
+}
+
+export interface VerifiedPaymentResult {
+  readonly resultId: FinancialEventId;
+  readonly providerEventId: ProviderEventId;
+  readonly paymentId: PaymentId;
+  readonly orderReference: string;
+  readonly kind: VerifiedPaymentResultKind;
+  readonly paymentStatus: VerifiedPaymentTerminalStatus;
+  readonly paymentReference: string | null;
+  readonly occurredAt: string;
+  readonly recordedAt: string;
+}
+
+export interface VerifiedPaymentResultRepositoryPort {
+  findByProviderEventId(
+    providerEventId: ProviderEventId,
+  ): Promise<VerifiedPaymentResult | null>;
+  findByPaymentStatus(
+    paymentId: PaymentId,
+    paymentStatus: VerifiedPaymentTerminalStatus,
+  ): Promise<VerifiedPaymentResult | null>;
+  save(result: VerifiedPaymentResult): Promise<VerifiedPaymentResult>;
+}
+
+export type VerifiedPaymentTransitionDisposition =
+  "applied" | "no_change" | "stale" | "deferred";
+
+export interface VerifiedPaymentTransition {
+  readonly disposition: VerifiedPaymentTransitionDisposition;
+  readonly payment: Payment;
+  readonly resultKind: VerifiedPaymentResultKind | null;
 }
 
 export type LedgerDirection = "debit" | "credit";
@@ -487,6 +530,77 @@ export function normalizeVerifiedProviderPaymentEvent(
   });
 }
 
+const paymentStatusByResultKind: Readonly<
+  Record<VerifiedPaymentResultKind, VerifiedPaymentTerminalStatus>
+> = Object.freeze({
+  approved: "confirmed",
+  failed: "failed",
+  cancelled: "cancelled",
+  expired: "expired",
+  refunded: "refunded",
+});
+
+export function normalizeVerifiedPaymentResult(
+  input: Readonly<{
+    resultId?: unknown;
+    providerEventId?: unknown;
+    paymentId?: unknown;
+    orderReference?: unknown;
+    kind?: unknown;
+    paymentStatus?: unknown;
+    paymentReference?: unknown;
+    occurredAt?: unknown;
+    recordedAt?: unknown;
+  }>,
+): VerifiedPaymentResult | null {
+  const resultId = normalizeFinancialEventId(input.resultId);
+  const providerEventId = normalizeProviderEventId(input.providerEventId);
+  const paymentId = normalizePaymentId(input.paymentId);
+  const orderReference = normalizeFinancialReference(input.orderReference, 120);
+  const kind =
+    typeof input.kind === "string" &&
+    verifiedPaymentResultKinds.includes(input.kind as VerifiedPaymentResultKind)
+      ? (input.kind as VerifiedPaymentResultKind)
+      : null;
+  const paymentStatus =
+    typeof input.paymentStatus === "string" &&
+    paymentStatuses.includes(input.paymentStatus as PaymentStatus) &&
+    input.paymentStatus !== "pending"
+      ? (input.paymentStatus as VerifiedPaymentTerminalStatus)
+      : null;
+  const paymentReference =
+    input.paymentReference === null
+      ? null
+      : normalizeProviderText(input.paymentReference, 160);
+  const occurredAt = normalizeFinancialTimestamp(input.occurredAt);
+  const recordedAt = normalizeFinancialTimestamp(input.recordedAt);
+  if (
+    !resultId ||
+    !providerEventId ||
+    !paymentId ||
+    !orderReference ||
+    !kind ||
+    !paymentStatus ||
+    paymentStatusByResultKind[kind] !== paymentStatus ||
+    (paymentReference !== null && !PROVIDER_REFERENCE.test(paymentReference)) ||
+    !occurredAt ||
+    !recordedAt
+  ) {
+    return null;
+  }
+  return Object.freeze({
+    resultId,
+    providerEventId,
+    paymentId,
+    orderReference,
+    kind,
+    paymentStatus,
+    paymentReference,
+    occurredAt: new Date(occurredAt).toISOString(),
+    recordedAt: new Date(recordedAt).toISOString(),
+  });
+}
+
 export function createPendingPayment(input: {
   readonly id: unknown;
   readonly orderReference: unknown;
@@ -548,6 +662,78 @@ export function assertPaymentTransition(
   if (!isPaymentTransitionAllowed(from, to)) {
     throw new Error(`FINANCIAL_INVALID_PAYMENT_TRANSITION:${from}:${to}`);
   }
+}
+
+function targetPaymentStatus(
+  status: ProviderPaymentStatus,
+): VerifiedPaymentTerminalStatus {
+  return status === "paid" ? "confirmed" : status;
+}
+
+function resultKindForStatus(
+  status: VerifiedPaymentTerminalStatus,
+): VerifiedPaymentResultKind {
+  return status === "confirmed" ? "approved" : status;
+}
+
+export function applyVerifiedProviderPaymentEvent(
+  payment: Payment,
+  eventInput: VerifiedProviderPaymentEvent,
+): VerifiedPaymentTransition {
+  const event = normalizeVerifiedProviderPaymentEvent(eventInput);
+  if (!event || event.externalReference !== payment.id) {
+    throw new Error("FINANCIAL_PROVIDER_EVENT_PAYMENT_MISMATCH");
+  }
+  const targetStatus = targetPaymentStatus(event.status);
+  const resultKind = resultKindForStatus(targetStatus);
+  if (
+    payment.providerReference !== null &&
+    event.providerPaymentReference !== null &&
+    payment.providerReference !== event.providerPaymentReference
+  ) {
+    return Object.freeze({
+      disposition: "deferred" as const,
+      payment,
+      resultKind: null,
+    });
+  }
+  if (payment.status === targetStatus) {
+    return Object.freeze({
+      disposition: "no_change" as const,
+      payment,
+      resultKind,
+    });
+  }
+  if (Date.parse(event.occurredAt) <= Date.parse(payment.updatedAt)) {
+    return Object.freeze({
+      disposition: "stale" as const,
+      payment,
+      resultKind: null,
+    });
+  }
+  if (!isPaymentTransitionAllowed(payment.status, targetStatus)) {
+    return Object.freeze({
+      disposition: "deferred" as const,
+      payment,
+      resultKind: null,
+    });
+  }
+  const updated = Object.freeze({
+    ...payment,
+    status: targetStatus,
+    providerReference:
+      payment.providerReference ?? event.providerPaymentReference,
+    updatedAt: event.occurredAt,
+    confirmedAt:
+      targetStatus === "confirmed" ? event.occurredAt : payment.confirmedAt,
+    refundedAt:
+      targetStatus === "refunded" ? event.occurredAt : payment.refundedAt,
+  });
+  return Object.freeze({
+    disposition: "applied" as const,
+    payment: updated,
+    resultKind,
+  });
 }
 
 function normalizeLedgerPosting(value: LedgerPosting): LedgerPosting {

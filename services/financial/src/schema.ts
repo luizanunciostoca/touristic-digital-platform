@@ -75,3 +75,30 @@ CREATE TABLE IF NOT EXISTS financial_provider_events (
   INDEX idx_financial_provider_events_status (payment_status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 `;
+
+export const financialM142SchemaSql = `
+CREATE TABLE IF NOT EXISTS financial_payment_results (
+  result_id VARCHAR(120) COLLATE utf8mb4_bin PRIMARY KEY,
+  provider_event_id VARCHAR(120) COLLATE utf8mb4_bin NOT NULL UNIQUE,
+  payment_id VARCHAR(120) COLLATE utf8mb4_bin NOT NULL,
+  order_reference VARCHAR(120) COLLATE utf8mb4_bin NOT NULL,
+  result_kind ENUM('approved','failed','cancelled','expired','refunded') NOT NULL,
+  payment_status ENUM('confirmed','failed','cancelled','expired','refunded') NOT NULL,
+  payment_reference VARCHAR(180) COLLATE utf8mb4_bin NULL,
+  occurred_at DATETIME(3) NOT NULL,
+  recorded_at DATETIME(3) NOT NULL,
+  CONSTRAINT fk_financial_payment_result_event
+    FOREIGN KEY (provider_event_id)
+    REFERENCES financial_provider_events(provider_event_id)
+    ON DELETE RESTRICT
+    ON UPDATE RESTRICT,
+  CONSTRAINT fk_financial_payment_result_payment
+    FOREIGN KEY (payment_id)
+    REFERENCES financial_payments(payment_id)
+    ON DELETE RESTRICT
+    ON UPDATE RESTRICT,
+  UNIQUE KEY uq_financial_payment_result_status (payment_id, payment_status),
+  INDEX idx_financial_payment_results_order (order_reference),
+  INDEX idx_financial_payment_results_recorded (recorded_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+`;

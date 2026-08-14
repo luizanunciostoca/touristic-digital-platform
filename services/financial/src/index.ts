@@ -9,12 +9,24 @@ import {
   type ProviderWebhookEventRepositoryPort,
   type ProviderWebhookReceipt,
 } from "./mysql-provider-webhook-event-repository.js";
+import { MySqlVerifiedPaymentResultRepository } from "./mysql-verified-payment-result-repository.js";
 import {
   SandboxCheckoutProviderError,
   createSandboxCheckoutProviderFromEnvironment,
 } from "./sandbox-checkout-provider.js";
 import { createSandboxWebhookVerifierFromEnvironment } from "./sandbox-webhook-verifier.js";
-import { financialM137SchemaSql, financialM141SchemaSql } from "./schema.js";
+import {
+  financialM137SchemaSql,
+  financialM141SchemaSql,
+  financialM142SchemaSql,
+} from "./schema.js";
+import {
+  createVerifiedPaymentOutcomeService,
+  type VerifiedPaymentOutcome,
+  type VerifiedPaymentOutcomeApplicationPort,
+  type VerifiedPaymentOutcomeDisposition,
+  type VerifiedPaymentOutcomeServiceDependencies,
+} from "./verified-payment-outcome-service.js";
 import {
   FinancialWebhookHttpTransport,
   sandboxWebhookPath,
@@ -25,18 +37,25 @@ export {
   MySqlPaymentIdempotencyPort,
   MySqlPaymentRepository,
   MySqlProviderWebhookEventRepository,
+  MySqlVerifiedPaymentResultRepository,
   FinancialWebhookHttpTransport,
   SandboxCheckoutProviderError,
   createSandboxCheckoutProviderFromEnvironment,
   createSandboxWebhookVerifierFromEnvironment,
+  createVerifiedPaymentOutcomeService,
   financialM137SchemaSql,
   financialM141SchemaSql,
+  financialM142SchemaSql,
   sandboxWebhookPath,
 };
 export type {
   ProviderWebhookEventClaim,
   ProviderWebhookEventRepositoryPort,
   ProviderWebhookReceipt,
+  VerifiedPaymentOutcome,
+  VerifiedPaymentOutcomeApplicationPort,
+  VerifiedPaymentOutcomeDisposition,
+  VerifiedPaymentOutcomeServiceDependencies,
 };
 
 export interface FinancialMySqlEnvironment {
@@ -74,4 +93,9 @@ export async function applyFinancialM137Schema(pool: Pool): Promise<void> {
 export async function applyFinancialM141Schema(pool: Pool): Promise<void> {
   await applyFinancialM137Schema(pool);
   await applySqlStatements(pool, financialM141SchemaSql);
+}
+
+export async function applyFinancialM142Schema(pool: Pool): Promise<void> {
+  await applyFinancialM141Schema(pool);
+  await applySqlStatements(pool, financialM142SchemaSql);
 }
