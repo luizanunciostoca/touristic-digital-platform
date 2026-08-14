@@ -189,6 +189,16 @@ export function createAssistantApi({
     });
   }
 
+  function observeProviderFailure(reason, statusCode) {
+    observeProviderEvent({
+      type: "provider.request.failed",
+      provider: "openai",
+      at: new Date(now()).toISOString(),
+      reason,
+      ...(Number.isInteger(statusCode) ? { statusCode } : {}),
+    });
+  }
+
   return Object.freeze({
     observabilitySnapshot,
     matches(pathname) {
@@ -308,10 +318,8 @@ export function createAssistantApi({
           );
 
           if (!upstream.ok) {
-            costGovernor.release(reservation, {
-              reason: "provider_http_error",
-              statusCode: upstream.status,
-            });
+            observeProviderFailure("provider_http_error", upstream.status);
+            costGovernor.settle(reservation, {});
             reservationClosed = true;
             sendJson(response, upstream.status === 429 ? 429 : 502, {
               error: "assistant_provider_error",
@@ -343,12 +351,12 @@ export function createAssistantApi({
           sendJson(response, 200, normalized);
         } catch (error) {
           if (!reservationClosed) {
-            costGovernor.release(reservation, {
-              reason:
-                error?.name === "AbortError"
-                  ? "provider_timeout"
-                  : "provider_request_failed",
-            });
+            observeProviderFailure(
+              error?.name === "AbortError"
+                ? "provider_timeout"
+                : "provider_request_failed",
+            );
+            costGovernor.settle(reservation, {});
           }
           throw error;
         } finally {
