@@ -34,5 +34,9 @@ describe("CRM M119 public browser routes", () => {
     expect(contract).not.toContain(
       'canvas.addEventListener("pointerleave", end)',
     );
+    expect(contract).toContain(
+      'canvas.addEventListener("lostpointercapture", recoverPointer)',
+    );
+    expect(contract).toContain("event.pointerId === activePointerId");
   });
 });
