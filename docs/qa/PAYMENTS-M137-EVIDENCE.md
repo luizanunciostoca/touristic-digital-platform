@@ -79,7 +79,9 @@ After reconciliation with current `main`, preparation run `31838007226 — SUCCE
 @touristic/financial-server: lint + typecheck + 13 tests + build
 ```
 
-The permanent tests cover unique collisions, immutable field enforcement, canonical UTC, forged runtime values, optimistic concurrency, atomic rollback, exact replay and corrupt Ledger sequence rejection.
+The permanent unit tests cover unique collisions, immutable field enforcement, canonical UTC, forged runtime values, optimistic concurrency, atomic rollback, exact replay and corrupt Ledger sequence rejection.
+
+`Payments Persistence Integration` additionally provisions MySQL 8.4 with distinct Ordering and Financial databases. It executes the real DDL/adapters, proves case-sensitive identity storage, Payment/idempotency replay, exact Ledger replay and database-level rollback when a later posting fails.
 
 The final repository-wide Quality Gate is a promotion requirement and is recorded on the M137 pull request head.
 
