@@ -55,6 +55,7 @@ describeMySql.sequential("M137 Ordering MySQL integration", () => {
   let pool: Pool;
 
   beforeAll(async () => {
+    if (!adminUrl || !databaseUrl) throw new Error("MYSQL_INTEGRATION_URLS_REQUIRED");
     const admin = await mysql.createConnection(adminUrl);
     try {
       await admin.query(

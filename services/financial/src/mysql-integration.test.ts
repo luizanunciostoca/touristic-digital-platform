@@ -1,4 +1,4 @@
-import mysql, { type Pool } from "mysql2/promise";
+import mysql, { type Pool, type RowDataPacket } from "mysql2/promise";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import {
@@ -64,6 +64,7 @@ describeMySql.sequential("M137 Financial MySQL integration", () => {
   let pool: Pool;
 
   beforeAll(async () => {
+    if (!adminUrl || !databaseUrl) throw new Error("MYSQL_INTEGRATION_URLS_REQUIRED");
     const admin = await mysql.createConnection(adminUrl);
     try {
       await admin.query(
@@ -157,7 +158,7 @@ describeMySql.sequential("M137 Financial MySQL integration", () => {
     );
 
     await expect(repository.append(value)).rejects.toThrow();
-    const [rows] = await pool.query<mysql.RowDataPacket[]>(
+    const [rows] = await pool.query<RowDataPacket[]>(
       "SELECT transaction_id FROM financial_ledger_transactions WHERE external_key = ?",
       [value.externalKey],
     );
