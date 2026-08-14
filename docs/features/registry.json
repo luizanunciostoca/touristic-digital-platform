@@ -121,11 +121,11 @@
     {
       "id": "FEATURE-0009",
       "name": "Pagamentos e Assinaturas",
-      "domain": "payments",
+      "domain": "financial",
       "wave": 8,
-      "status": "planned",
+      "status": "baseline-pending",
       "legacySources": ["v1:checkout"],
-      "targetPackages": ["@touristic/payments"],
+      "targetPackages": ["@touristic/ordering", "@touristic/financial"],
       "equivalence": {
         "behavior": false,
         "visual": false,
