@@ -7,6 +7,7 @@ const currencyBrand: unique symbol = Symbol("CurrencyCode");
 const paymentIdBrand: unique symbol = Symbol("PaymentId");
 const ledgerTransactionIdBrand: unique symbol = Symbol("LedgerTransactionId");
 const financialEventIdBrand: unique symbol = Symbol("FinancialEventId");
+const providerEventIdBrand: unique symbol = Symbol("ProviderEventId");
 const paymentIdempotencyKeyBrand: unique symbol = Symbol(
   "PaymentIdempotencyKey",
 );
@@ -18,6 +19,9 @@ export type LedgerTransactionId = string & {
 };
 export type FinancialEventId = string & {
   readonly [financialEventIdBrand]: true;
+};
+export type ProviderEventId = string & {
+  readonly [providerEventIdBrand]: true;
 };
 export type PaymentIdempotencyKey = string & {
   readonly [paymentIdempotencyKeyBrand]: true;
@@ -116,8 +120,8 @@ export const providerPaymentStatuses = Object.freeze([
 export type ProviderPaymentStatus = (typeof providerPaymentStatuses)[number];
 
 export interface VerifiedProviderPaymentEvent {
-  readonly providerEventId: string;
-  readonly externalReference: string;
+  readonly providerEventId: ProviderEventId;
+  readonly externalReference: PaymentId;
   readonly providerPaymentReference: string | null;
   readonly status: ProviderPaymentStatus;
   readonly occurredAt: string;
@@ -249,6 +253,13 @@ export function normalizeFinancialEventId(
 ): FinancialEventId | null {
   const normalized = normalizePrefixedId(value, "fev_");
   return normalized ? (normalized as FinancialEventId) : null;
+}
+
+export function normalizeProviderEventId(
+  value: unknown,
+): ProviderEventId | null {
+  const normalized = normalizePrefixedId(value, "pwe_");
+  return normalized ? (normalized as ProviderEventId) : null;
 }
 
 export function normalizeFinancialReference(
@@ -433,6 +444,46 @@ export function normalizeCheckoutProviderSession(
     providerCheckoutId,
     checkoutUrl,
     providerReference,
+  });
+}
+
+export function normalizeVerifiedProviderPaymentEvent(
+  input: Readonly<{
+    providerEventId?: unknown;
+    externalReference?: unknown;
+    providerPaymentReference?: unknown;
+    status?: unknown;
+    occurredAt?: unknown;
+  }>,
+): VerifiedProviderPaymentEvent | null {
+  const providerEventId = normalizeProviderEventId(input.providerEventId);
+  const externalReference = normalizePaymentId(input.externalReference);
+  const providerPaymentReference =
+    input.providerPaymentReference === null
+      ? null
+      : normalizeProviderText(input.providerPaymentReference, 160);
+  const status =
+    typeof input.status === "string" &&
+    providerPaymentStatuses.includes(input.status as ProviderPaymentStatus)
+      ? (input.status as ProviderPaymentStatus)
+      : null;
+  const occurredAt = normalizeFinancialTimestamp(input.occurredAt);
+  if (
+    !providerEventId ||
+    !externalReference ||
+    (providerPaymentReference !== null &&
+      !PROVIDER_REFERENCE.test(providerPaymentReference)) ||
+    !status ||
+    !occurredAt
+  ) {
+    return null;
+  }
+  return Object.freeze({
+    providerEventId,
+    externalReference,
+    providerPaymentReference,
+    status,
+    occurredAt: new Date(occurredAt).toISOString(),
   });
 }
 

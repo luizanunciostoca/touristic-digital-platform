@@ -1,0 +1,72 @@
+name: Payments Verified Webhook Contract
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "packages/financial/**"
+      - "services/financial/**"
+      - "apps/morro-digital-platform/tooling/payments-api.mjs"
+      - "apps/morro-digital-platform/tooling/payments-api.test.mjs"
+      - ".github/workflows/payments-verified-webhook-contract.yml"
+      - "pnpm-lock.yaml"
+  pull_request:
+    paths:
+      - "packages/financial/**"
+      - "services/financial/**"
+      - "apps/morro-digital-platform/tooling/payments-api.mjs"
+      - "apps/morro-digital-platform/tooling/payments-api.test.mjs"
+      - ".github/workflows/payments-verified-webhook-contract.yml"
+      - "pnpm-lock.yaml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: payments-webhook-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verified-webhook-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: m141-webhook
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -pm141-webhook"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    env:
+      MYSQL_ADMIN_DATABASE_URL: mysql://root:m141-webhook@127.0.0.1:3306/mysql
+      FINANCIAL_DATABASE_URL: mysql://root:m141-webhook@127.0.0.1:3306/financial_m137_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Raw-body verifier and transport unit contracts
+        run: pnpm --filter @touristic/financial-server test
+      - name: Durable provider-event replay contract
+        run: pnpm --filter @touristic/financial-server test:integration
+      - name: Build Node runtime package entrypoints
+        run: |
+          pnpm --filter @touristic/auth build
+          pnpm --filter @touristic/financial build
+          pnpm --filter @touristic/ordering build
+          pnpm --filter @touristic/financial-server build
+          pnpm --filter @touristic/ordering-server build
+      - name: Node runtime raw-body preservation
+        run: pnpm exec vitest run apps/morro-digital-platform/tooling/payments-api.test.mjs

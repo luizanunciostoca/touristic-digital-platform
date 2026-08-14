@@ -70,7 +70,7 @@ function checkoutHandoff() {
   };
 }
 
-describe("M139 payments API runtime boundary", () => {
+describe("M139/M141 payments API runtime boundary", () => {
   it("stays fail-closed when operational configuration is absent", async () => {
     const api = createPaymentsApi({
       authApi: {},
@@ -134,6 +134,54 @@ describe("M139 payments API runtime boundary", () => {
     });
     expect(captured.correlationId).toMatch(/^corr_/u);
     expect(response.header("x-correlation-id")).toBe(captured.correlationId);
+  });
+
+  it("preserves exact raw webhook bytes and signature headers", async () => {
+    let captured;
+    const api = createPaymentsApi({
+      transport: { handle: () => Promise.reject(new Error("UNEXPECTED")) },
+      webhookTransport: {
+        handle(input) {
+          captured = input;
+          return Promise.resolve({
+            status: 202,
+            body: {
+              data: { accepted: true, matched: false, replayed: false },
+            },
+            headers: { "Cache-Control": "no-store" },
+          });
+        },
+      },
+      audit: () => undefined,
+    });
+    const response = responseCapture();
+    const body = '{ "version": 1, "eventId": "pwe_runtime_00000001" }';
+
+    expect(api.matches("/api/payments/v1/webhooks/sandbox")).toBe(true);
+    await api.handle(
+      request({
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "content-length": String(Buffer.byteLength(body)),
+          "x-sandbox-signature": "t=1786748400,v1=" + "a".repeat(64),
+        },
+        body,
+      }),
+      response,
+      new URL("http://localhost/api/payments/v1/webhooks/sandbox"),
+    );
+
+    expect(response.statusCode).toBe(202);
+    expect(Buffer.from(captured.rawBody).toString("utf8")).toBe(body);
+    expect(captured).toMatchObject({
+      method: "POST",
+      pathname: "/api/payments/v1/webhooks/sandbox",
+      headers: {
+        "x-sandbox-signature": "t=1786748400,v1=" + "a".repeat(64),
+      },
+    });
+    expect(captured).not.toHaveProperty("body");
   });
 
   it("rejects unsupported content types before the transport", async () => {

@@ -4,18 +4,39 @@ import { MySqlLedgerTransactionRepository } from "./mysql-ledger-repository.js";
 import { MySqlPaymentIdempotencyPort } from "./mysql-payment-idempotency-port.js";
 import { MySqlPaymentRepository } from "./mysql-payment-repository.js";
 import {
+  MySqlProviderWebhookEventRepository,
+  type ProviderWebhookEventClaim,
+  type ProviderWebhookEventRepositoryPort,
+  type ProviderWebhookReceipt,
+} from "./mysql-provider-webhook-event-repository.js";
+import {
   SandboxCheckoutProviderError,
   createSandboxCheckoutProviderFromEnvironment,
 } from "./sandbox-checkout-provider.js";
-import { financialM137SchemaSql } from "./schema.js";
+import { createSandboxWebhookVerifierFromEnvironment } from "./sandbox-webhook-verifier.js";
+import { financialM137SchemaSql, financialM141SchemaSql } from "./schema.js";
+import {
+  FinancialWebhookHttpTransport,
+  sandboxWebhookPath,
+} from "./webhook-http-transport.js";
 
 export {
   MySqlLedgerTransactionRepository,
   MySqlPaymentIdempotencyPort,
   MySqlPaymentRepository,
+  MySqlProviderWebhookEventRepository,
+  FinancialWebhookHttpTransport,
   SandboxCheckoutProviderError,
   createSandboxCheckoutProviderFromEnvironment,
+  createSandboxWebhookVerifierFromEnvironment,
   financialM137SchemaSql,
+  financialM141SchemaSql,
+  sandboxWebhookPath,
+};
+export type {
+  ProviderWebhookEventClaim,
+  ProviderWebhookEventRepositoryPort,
+  ProviderWebhookReceipt,
 };
 
 export interface FinancialMySqlEnvironment {
@@ -48,4 +69,9 @@ async function applySqlStatements(pool: Pool, sql: string): Promise<void> {
 
 export async function applyFinancialM137Schema(pool: Pool): Promise<void> {
   await applySqlStatements(pool, financialM137SchemaSql);
+}
+
+export async function applyFinancialM141Schema(pool: Pool): Promise<void> {
+  await applyFinancialM137Schema(pool);
+  await applySqlStatements(pool, financialM141SchemaSql);
 }
