@@ -337,7 +337,6 @@ export class CheckoutApplicationError extends Error {
 }
 
 const CHECKOUT_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/u;
-const CHECKOUT_TEXT_FORBIDDEN = /[\u0000-\u001f\u007f<>]/u;
 const CHECKOUT_ACCEPTANCE_TYPES = Object.freeze([
   "terms",
   "privacy",
@@ -356,9 +355,17 @@ function checkoutRecord(value: unknown): Record<string, unknown> | null {
 
 function normalizeCheckoutText(value: unknown, maxLength: number): string {
   const normalized = normalizeString(value, maxLength);
-  return normalized && !CHECKOUT_TEXT_FORBIDDEN.test(normalized)
-    ? normalized
-    : "";
+  if (!normalized) return "";
+  const hasForbiddenCharacter = Array.from(normalized).some((character) => {
+    const codePoint = character.codePointAt(0) ?? 0;
+    return (
+      codePoint <= 31 ||
+      codePoint === 127 ||
+      character === "<" ||
+      character === ">"
+    );
+  });
+  return hasForbiddenCharacter ? "" : normalized;
 }
 
 function normalizeOptionalCheckoutText(
