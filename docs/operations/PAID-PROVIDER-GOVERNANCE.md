@@ -13,10 +13,11 @@ Este contrato começa pelo OpenAI Assistant porque é o provider pago server-sid
 3. **Fail closed.** Se limites, tarifas ou confirmação operacional não estiverem configurados, nenhuma chamada paga é enviada.
 4. **Reserva antes da chamada.** Cada request reserva um valor conservador antes de acessar o provider.
 5. **Liquidação pelo uso real.** Quando o provider retorna tokens de uso, o runtime calcula o custo com as tarifas configuradas.
-6. **Uso ausente não significa custo zero.** Uma resposta bem-sucedida sem telemetria de uso consome a reserva conservadora.
-7. **Concorrência é limitada separadamente do orçamento.**
-8. **Preços não são hard-coded.** O operador deve usar as tarifas vigentes do modelo configurado.
-9. **Observabilidade não expõe segredos.** Eventos estruturados contêm provider, custo, tokens, latência, reason e metadata segura; nunca API keys.
+6. **Uso ausente não significa custo zero.** Uma resposta sem telemetria de uso consome a reserva conservadora.
+7. **Falha após tentativa externa é custo incerto.** Depois que a chamada foi tentada, timeout/429/5xx também consomem a reserva quando não há prova de custo real, evitando subcontagem e tempestades de retry.
+8. **Concorrência é limitada separadamente do orçamento.**
+9. **Preços não são hard-coded.** O operador deve usar as tarifas vigentes do modelo configurado.
+10. **Observabilidade não expõe segredos.** Eventos estruturados contêm provider, custo, tokens, latência, reason e metadata segura; nunca API keys.
 
 ## Gate de ativação
 
@@ -53,23 +54,24 @@ Assistant request
 → concurrency preflight
 → reserve OPENAI_REQUEST_RESERVE_USD
 → provider request
-→ provider usage
-→ prompt/completion cost calculation
-→ settle actual cost
+→ provider usage quando disponível
+→ prompt/completion cost calculation ou reserva conservadora
+→ settle
 → structured observability event
 → response
 ```
 
-Em erro/timeout antes de uma resposta faturável confirmada, a reserva é liberada e o evento registra o motivo. Em sucesso sem `usage`, a reserva é liquidada integralmente de forma conservadora.
+Uma reserva pode ser liberada quando uma integração futura conseguir provar que nenhuma tentativa faturável ocorreu. No Assistant atual, depois que a chamada ao provider foi tentada, sucesso sem `usage`, timeout, 429 e 5xx são tratados conservadoramente: sem custo real comprovado, a reserva é liquidada integralmente. Isso pode superestimar gasto interno, mas nunca subestima silenciosamente consumo potencial.
 
 ## Eventos estruturados
 
-O governor produz eventos com prefixo lógico `provider.*`:
+O governor e a integração produzem eventos com prefixo lógico `provider.*`:
 
 - `provider.request.reserved`;
 - `provider.request.denied`;
 - `provider.request.settled`;
 - `provider.request.released`;
+- `provider.request.failed`;
 - `provider.budget.threshold`;
 - `provider.billing_guard.denied` na integração do Assistant.
 
