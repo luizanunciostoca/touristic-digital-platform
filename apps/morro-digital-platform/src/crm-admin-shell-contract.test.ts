@@ -5,7 +5,7 @@ const root = new URL("../../../", import.meta.url);
 const read = (path: string) => readFile(new URL(path, root), "utf8");
 
 describe("CRM M104 browser shell", () => {
-  it("exposes the frozen V1 primary modules without claiming UI parity", async () => {
+  it("exposes the frozen V1 primary modules with truthful current capabilities", async () => {
     const html = await read("apps/admin-crm/public/index.html");
     for (const module of [
       "Dashboard",
@@ -20,7 +20,12 @@ describe("CRM M104 browser shell", () => {
     ]) {
       expect(html).toContain(module);
     }
-    expect(html).toContain("UI pendente");
+    expect(html).toContain("Consulta + criação + envio + resposta");
+    expect(html).toContain("Consulta + criação + envio + cancelamento");
+    expect(html).toContain("Consulta + agendamento + histórico + configurações");
+    expect(html).toContain("Consulta + criação + conversão + cancelamento + expiração");
+    expect(html).toContain("Consulta + cadastro + vínculo + contato + conversão/perda");
+    expect(html).toContain("UI pendente — sem boundary CRM genérico");
   });
 
   it("keeps the shell behind the shared platform session surface", async () => {
