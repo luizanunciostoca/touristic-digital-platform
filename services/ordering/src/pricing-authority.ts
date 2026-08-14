@@ -74,9 +74,11 @@ export function createOrderPricingAuthorityFromEnvironment(
   }
 
   return Object.freeze({
-    async resolvePlan(planId: string): Promise<PricingQuote | null> {
-      if (typeof planId !== "string" || planId.trim() !== planId) return null;
-      return quotes.get(planId) ?? null;
+    resolvePlan(planId: string): Promise<PricingQuote | null> {
+      if (typeof planId !== "string" || planId.trim() !== planId) {
+        return Promise.resolve(null);
+      }
+      return Promise.resolve(quotes.get(planId) ?? null);
     },
   });
 }
