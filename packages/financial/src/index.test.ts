@@ -6,6 +6,7 @@ import {
   createLedgerTransaction,
   createMoney,
   createPaymentIdempotencyKey,
+  createPendingPayment,
   isPaymentTransitionAllowed,
   normalizeFinancialEventId,
   normalizeFinancialTimestamp,
@@ -89,6 +90,59 @@ describe("M136 financial identities and timestamps", () => {
       "payment:v1:ord_12345678",
     );
     expect(createPaymentIdempotencyKey("order with spaces")).toBeNull();
+  });
+});
+
+describe("M138 pending Payment construction", () => {
+  it("derives immutable pending state from an Order and canonicalizes time", () => {
+    const payment = createPendingPayment({
+      id: paymentId(),
+      orderReference: "ord_12345678",
+      amount: brl(49_900),
+      createdAt: "2026-08-14T19:30:00Z",
+    });
+
+    expect(payment).toEqual({
+      id: "pay_12345678",
+      idempotencyKey: "payment:v1:ord_12345678",
+      subject: { kind: "order", reference: "ord_12345678" },
+      amount: { minorUnits: 49_900, currency: "BRL" },
+      status: "pending",
+      providerReference: null,
+      createdAt: "2026-08-14T19:30:00.000Z",
+      updatedAt: "2026-08-14T19:30:00.000Z",
+      confirmedAt: null,
+      refundedAt: null,
+    });
+    expect(Object.isFrozen(payment)).toBe(true);
+    expect(Object.isFrozen(payment?.subject)).toBe(true);
+  });
+
+  it("rejects zero-value, malformed identity and invalid timestamp inputs", () => {
+    expect(
+      createPendingPayment({
+        id: paymentId(),
+        orderReference: "ord_12345678",
+        amount: brl(0),
+        createdAt: "2026-08-14T19:30:00Z",
+      }),
+    ).toBeNull();
+    expect(
+      createPendingPayment({
+        id: "bad-payment",
+        orderReference: "ord_12345678",
+        amount: brl(100),
+        createdAt: "2026-08-14T19:30:00Z",
+      }),
+    ).toBeNull();
+    expect(
+      createPendingPayment({
+        id: paymentId(),
+        orderReference: "ord_12345678",
+        amount: brl(100),
+        createdAt: "not-a-date",
+      }),
+    ).toBeNull();
   });
 });
 

@@ -274,6 +274,48 @@ export function createPaymentIdempotencyKey(
   return `payment:v1:${normalized}` as PaymentIdempotencyKey;
 }
 
+export function createPendingPayment(input: {
+  readonly id: unknown;
+  readonly orderReference: unknown;
+  readonly amount: Money;
+  readonly createdAt: unknown;
+}): Payment | null {
+  const id = normalizePaymentId(input.id);
+  const orderReference = normalizeFinancialReference(input.orderReference, 120);
+  const idempotencyKey = createPaymentIdempotencyKey(orderReference);
+  const amountInput = input.amount as Partial<Money> | null | undefined;
+  const amount = createMoney(amountInput?.minorUnits, amountInput?.currency);
+  const createdAt = normalizeFinancialTimestamp(input.createdAt);
+
+  if (
+    !id ||
+    !orderReference ||
+    !idempotencyKey ||
+    !amount ||
+    amount.minorUnits === 0 ||
+    !createdAt
+  ) {
+    return null;
+  }
+
+  const canonicalCreatedAt = new Date(createdAt).toISOString();
+  return Object.freeze({
+    id,
+    idempotencyKey,
+    subject: Object.freeze({
+      kind: "order" as const,
+      reference: orderReference,
+    }),
+    amount,
+    status: "pending" as const,
+    providerReference: null,
+    createdAt: canonicalCreatedAt,
+    updatedAt: canonicalCreatedAt,
+    confirmedAt: null,
+    refundedAt: null,
+  });
+}
+
 export function isPaymentTransitionAllowed(
   from: PaymentStatus,
   to: PaymentStatus,
