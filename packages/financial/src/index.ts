@@ -186,7 +186,8 @@ function normalizePrefixedId(
 }
 
 export function normalizeCurrencyCode(value: unknown): CurrencyCode | null {
-  const normalized = normalizeString(value, 3).toUpperCase();
+  if (typeof value !== "string") return null;
+  const normalized = value.trim().toUpperCase();
   return CURRENCY.test(normalized) ? (normalized as CurrencyCode) : null;
 }
 
