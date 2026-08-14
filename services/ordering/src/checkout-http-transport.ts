@@ -697,8 +697,7 @@ export class CheckoutHttpTransport {
       return errorResponse(503, "CHECKOUT_UNAVAILABLE", correlationId);
     }
 
-    const terminalStatus =
-      payment.status === "pending" ? null : payment.status;
+    const terminalStatus = payment.status === "pending" ? null : payment.status;
     const paymentResult =
       terminalStatus && this.dependencies.paymentResults
         ? await this.dependencies.paymentResults.findByPaymentStatus(

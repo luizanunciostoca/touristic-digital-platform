@@ -496,8 +496,7 @@ describe("M139 checkout HTTP/Auth/security transport", () => {
       findByProviderEventId: () => Promise.resolve(approved),
       findByPaymentStatus: (paymentId, status) =>
         Promise.resolve(
-          paymentId === approved.paymentId &&
-            status === approved.paymentStatus
+          paymentId === approved.paymentId && status === approved.paymentStatus
             ? approved
             : null,
         ),

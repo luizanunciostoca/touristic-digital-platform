@@ -33,15 +33,12 @@ function payment(status: Payment["status"] = "pending"): Payment {
     status,
     providerReference: terminal ? "sandbox_outcome_service_0001" : null,
     createdAt: "2026-08-14T23:30:00Z",
-    updatedAt: terminal
-      ? "2026-08-14T23:30:01Z"
-      : "2026-08-14T23:30:00Z",
+    updatedAt: terminal ? "2026-08-14T23:30:01Z" : "2026-08-14T23:30:00Z",
     confirmedAt:
       status === "confirmed" || status === "refunded"
         ? "2026-08-14T23:30:01Z"
         : null,
-    refundedAt:
-      status === "refunded" ? "2026-08-14T23:30:02Z" : null,
+    refundedAt: status === "refunded" ? "2026-08-14T23:30:02Z" : null,
   };
 }
 
@@ -174,11 +171,7 @@ describe("M142 verified Payment outcome service", () => {
     const confirmed = service(payment("confirmed"));
     await expect(
       confirmed.outcomes.apply(
-        event(
-          "failed",
-          "pwe_outcome_service_stale",
-          "2026-08-14T23:30:00Z",
-        ),
+        event("failed", "pwe_outcome_service_stale", "2026-08-14T23:30:00Z"),
       ),
     ).resolves.toMatchObject({
       disposition: "stale",
@@ -189,11 +182,7 @@ describe("M142 verified Payment outcome service", () => {
     const pending = service(payment());
     await expect(
       pending.outcomes.apply(
-        event(
-          "refunded",
-          "pwe_outcome_service_refund",
-          "2026-08-14T23:30:02Z",
-        ),
+        event("refunded", "pwe_outcome_service_refund", "2026-08-14T23:30:02Z"),
       ),
     ).resolves.toMatchObject({
       disposition: "deferred",

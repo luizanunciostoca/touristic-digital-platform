@@ -12,9 +12,7 @@ import {
 
 function payment(status: Payment["status"] = "pending"): Payment {
   const id = normalizePaymentId("pay_verified_transition_0001");
-  const key = createPaymentIdempotencyKey(
-    "ord_verified_transition_0001",
-  );
+  const key = createPaymentIdempotencyKey("ord_verified_transition_0001");
   const amount = createMoney(49_900, "BRL");
   if (!id || !key || !amount) throw new Error("FIXTURE_INVALID");
   return {
@@ -30,15 +28,12 @@ function payment(status: Payment["status"] = "pending"): Payment {
       status === "pending" ? null : "sandbox_verified_payment_0001",
     createdAt: "2026-08-14T23:20:00Z",
     updatedAt:
-      status === "pending"
-        ? "2026-08-14T23:20:00Z"
-        : "2026-08-14T23:21:00Z",
+      status === "pending" ? "2026-08-14T23:20:00Z" : "2026-08-14T23:21:00Z",
     confirmedAt:
       status === "confirmed" || status === "refunded"
         ? "2026-08-14T23:21:00Z"
         : null,
-    refundedAt:
-      status === "refunded" ? "2026-08-14T23:22:00Z" : null,
+    refundedAt: status === "refunded" ? "2026-08-14T23:22:00Z" : null,
   };
 }
 
@@ -59,7 +54,9 @@ function event(
 
 describe("M142 verified Payment transition", () => {
   it("confirms pending Payment only from a verified paid event", () => {
-    expect(applyVerifiedProviderPaymentEvent(payment(), event("paid"))).toMatchObject({
+    expect(
+      applyVerifiedProviderPaymentEvent(payment(), event("paid")),
+    ).toMatchObject({
       disposition: "applied",
       payment: {
         status: "confirmed",

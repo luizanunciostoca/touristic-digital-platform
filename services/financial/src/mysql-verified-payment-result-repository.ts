@@ -82,9 +82,7 @@ function compatibleTransitionResult(
   );
 }
 
-export class MySqlVerifiedPaymentResultRepository
-  implements VerifiedPaymentResultRepositoryPort
-{
+export class MySqlVerifiedPaymentResultRepository implements VerifiedPaymentResultRepositoryPort {
   constructor(private readonly pool: Pool) {}
 
   async findByProviderEventId(

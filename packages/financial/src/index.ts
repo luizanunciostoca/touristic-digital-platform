@@ -128,10 +128,7 @@ export const verifiedPaymentResultKinds = Object.freeze([
 ] as const);
 export type VerifiedPaymentResultKind =
   (typeof verifiedPaymentResultKinds)[number];
-export type VerifiedPaymentTerminalStatus = Exclude<
-  PaymentStatus,
-  "pending"
->;
+export type VerifiedPaymentTerminalStatus = Exclude<PaymentStatus, "pending">;
 
 export interface VerifiedProviderPaymentEvent {
   readonly providerEventId: ProviderEventId;
@@ -172,10 +169,7 @@ export interface VerifiedPaymentResultRepositoryPort {
 }
 
 export type VerifiedPaymentTransitionDisposition =
-  | "applied"
-  | "no_change"
-  | "stale"
-  | "deferred";
+  "applied" | "no_change" | "stale" | "deferred";
 
 export interface VerifiedPaymentTransition {
   readonly disposition: VerifiedPaymentTransitionDisposition;
@@ -562,15 +556,10 @@ export function normalizeVerifiedPaymentResult(
   const resultId = normalizeFinancialEventId(input.resultId);
   const providerEventId = normalizeProviderEventId(input.providerEventId);
   const paymentId = normalizePaymentId(input.paymentId);
-  const orderReference = normalizeFinancialReference(
-    input.orderReference,
-    120,
-  );
+  const orderReference = normalizeFinancialReference(input.orderReference, 120);
   const kind =
     typeof input.kind === "string" &&
-    verifiedPaymentResultKinds.includes(
-      input.kind as VerifiedPaymentResultKind,
-    )
+    verifiedPaymentResultKinds.includes(input.kind as VerifiedPaymentResultKind)
       ? (input.kind as VerifiedPaymentResultKind)
       : null;
   const paymentStatus =
@@ -593,8 +582,7 @@ export function normalizeVerifiedPaymentResult(
     !kind ||
     !paymentStatus ||
     paymentStatusByResultKind[kind] !== paymentStatus ||
-    (paymentReference !== null &&
-      !PROVIDER_REFERENCE.test(paymentReference)) ||
+    (paymentReference !== null && !PROVIDER_REFERENCE.test(paymentReference)) ||
     !occurredAt ||
     !recordedAt
   ) {
@@ -737,13 +725,9 @@ export function applyVerifiedProviderPaymentEvent(
       payment.providerReference ?? event.providerPaymentReference,
     updatedAt: event.occurredAt,
     confirmedAt:
-      targetStatus === "confirmed"
-        ? event.occurredAt
-        : payment.confirmedAt,
+      targetStatus === "confirmed" ? event.occurredAt : payment.confirmedAt,
     refundedAt:
-      targetStatus === "refunded"
-        ? event.occurredAt
-        : payment.refundedAt,
+      targetStatus === "refunded" ? event.occurredAt : payment.refundedAt,
   });
   return Object.freeze({
     disposition: "applied" as const,
