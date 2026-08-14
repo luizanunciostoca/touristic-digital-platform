@@ -26,6 +26,9 @@ describe("CRM M104 browser shell", () => {
     expect(html).toContain("cancelamento + expiração");
     expect(html).toContain("vínculo + contato + conversão/perda");
     expect(html).toContain("sem boundary CRM genérico");
+    expect(html).not.toContain('href="#settings"');
+    expect(html).toContain('aria-disabled="true"');
+    expect(html).toContain("Em breve");
   });
 
   it("keeps the shell behind the shared platform session surface", async () => {
