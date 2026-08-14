@@ -10,6 +10,7 @@ import {
   normalizeOrderId,
   normalizeOrderRequestKey,
   normalizeOrderSourceReference,
+  type Order,
   type OrderPricingAuthorityPort,
   type OrderRepositoryPort,
   type OrderPlacedEvent,
@@ -168,7 +169,7 @@ describe("M136 Ordering ports", () => {
     const repository: OrderRepositoryPort = {
       findById: vi.fn(async () => stored),
       findByRequestKey: vi.fn(async () => stored),
-      save: vi.fn(async (order) => order),
+      save: vi.fn(async (order: Order) => order),
     };
 
     await expect(pricing.resolvePlan("performance")).resolves.toEqual(quote());
