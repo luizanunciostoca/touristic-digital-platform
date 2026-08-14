@@ -140,6 +140,12 @@ data-map-marker-count="8"
 
 O atributo `aria-busy` é aplicado durante a inicialização e removido ao concluir ou falhar.
 
+## Checkout HTTP M139
+
+O servidor Node local também compõe a fronteira provider-neutral de Payments em `/api/payments/v1/checkouts`. Ela permanece fail-closed até que bancos Ordering/Financial distintos, catálogo de preço, destination, allowlist e dois secrets independentes estejam configurados conforme `.env.example`.
+
+A criação aceita uma sessão platform com origin/CSRF/business scope ou uma capability convidada curta emitida server-side e vinculada ao handoff completo. O status exige `X-Checkout-Token`; somente o hash do token é persistido. Nenhum endpoint do M139 chama provider, retorna checkout URL, confirma pagamento ou movimenta dinheiro.
+
 ## Validação mínima antes de merge
 
 ```bash
