@@ -8,6 +8,37 @@ const createForm = document.querySelector("#referral-create-form");
 const createSubmit = document.querySelector("#referral-create-submit");
 const createStatus = document.querySelector("#referral-create-status");
 
+function actionButton(referralId, action, label) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.dataset.referralId = String(referralId);
+  button.dataset.referralAction = action;
+  button.textContent = label;
+  return button;
+}
+
+function actionRow(item) {
+  const row = document.createElement("p");
+  if (item.status === "pending") {
+    row.append(
+      actionButton(item.id, "contact", "Marcar contatada"),
+      document.createTextNode(" "),
+      actionButton(item.id, "convert", "Converter"),
+      document.createTextNode(" "),
+      actionButton(item.id, "lose", "Marcar perdida"),
+    );
+  } else if (item.status === "contacted") {
+    row.append(
+      actionButton(item.id, "convert", "Converter"),
+      document.createTextNode(" "),
+      actionButton(item.id, "lose", "Marcar perdida"),
+    );
+  } else {
+    row.textContent = "Lifecycle finalizado.";
+  }
+  return row;
+}
+
 function render(items) {
   list.replaceChildren();
   status.textContent = items.length
@@ -19,7 +50,7 @@ function render(items) {
     heading.textContent = `Registro #${String(item.id)}`;
     const state = document.createElement("p");
     state.textContent = `Status: ${String(item.status ?? "—")}`;
-    article.append(heading, state);
+    article.append(heading, state, actionRow(item));
     list.append(article);
   }
 }
@@ -67,6 +98,41 @@ async function createReferral(event) {
   }
 }
 
+async function runAction(referralId, action, button) {
+  button.disabled = true;
+  status.textContent = "Atualizando indicação…";
+  try {
+    const response = await auth.secureFetch(
+      `/api/crm/referrals/${referralId}/${action}`,
+      { method: "POST", headers: { Accept: "application/json" } },
+    );
+    if (!response.ok) {
+      status.textContent =
+        response.status === 409
+          ? "A transição não é permitida para esta indicação."
+          : `Falha ao atualizar (${response.status}).`;
+      return;
+    }
+    await loadReferrals();
+  } catch {
+    status.textContent = "Falha ao atualizar a indicação.";
+  } finally {
+    button.disabled = false;
+  }
+}
+
+list?.addEventListener("click", (event) => {
+  const target = event.target;
+  if (!(target instanceof HTMLElement)) return;
+  const button = target.closest("button[data-referral-action]");
+  if (!(button instanceof HTMLButtonElement)) return;
+  const referralId = button.dataset.referralId;
+  const action = button.dataset.referralAction;
+  if (referralId && ["contact", "convert", "lose"].includes(action || "")) {
+    void runAction(referralId, action, button);
+  }
+});
+
 createForm?.addEventListener("submit", (event) => {
   void createReferral(event);
 });
@@ -75,7 +141,7 @@ async function start() {
   try {
     const session = await auth.requireSession({ returnTo: window.location.pathname });
     if (!session) return;
-    sessionStatus.textContent = "Sessão autenticada.";
+    sessionStatus.textContent = "Sessão autenticada. Lifecycle operacional.";
     await loadReferrals();
   } catch (error) {
     const message = error instanceof Error ? error.message : "UNKNOWN_ERROR";
