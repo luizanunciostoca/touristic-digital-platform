@@ -6,6 +6,9 @@ const pendingStatus = document.querySelector("#pending-status");
 const pendingList = document.querySelector("#pending-list");
 const settingsStatus = document.querySelector("#settings-status");
 const settingsList = document.querySelector("#settings-list");
+const createForm = document.querySelector("#follow-up-create-form");
+const createSubmit = document.querySelector("#follow-up-create-submit");
+const createStatus = document.querySelector("#follow-up-create-status");
 
 function text(value, fallback = "—") {
   return value === null || value === undefined || value === "" ? fallback : String(value);
@@ -79,11 +82,95 @@ async function readData(path) {
   return payload.data;
 }
 
+async function loadPending() {
+  pendingStatus.textContent = "Carregando follow-ups…";
+  renderPending(await readData("/api/crm/follow-ups/pending"));
+}
+
+function setCreateStatus(message) {
+  if (createStatus) createStatus.textContent = message;
+}
+
+async function createFollowUp(event) {
+  event.preventDefault();
+  if (!(createForm instanceof HTMLFormElement)) return;
+  if (!createForm.reportValidity()) return;
+
+  const data = new FormData(createForm);
+  const leadId = Number(data.get("leadId"));
+  const settingValue = String(data.get("settingId") || "").trim();
+  const settingId = settingValue ? Number(settingValue) : null;
+  const attemptNumber = Number(data.get("attemptNumber"));
+  const scheduledValue = String(data.get("scheduledAt") || "").trim();
+  const scheduledAt = new Date(scheduledValue);
+
+  if (
+    !Number.isSafeInteger(leadId) ||
+    leadId < 1 ||
+    (settingId !== null && (!Number.isSafeInteger(settingId) || settingId < 1)) ||
+    !Number.isSafeInteger(attemptNumber) ||
+    attemptNumber < 1 ||
+    attemptNumber > 100 ||
+    !scheduledValue ||
+    !Number.isFinite(scheduledAt.getTime())
+  ) {
+    setCreateStatus("Revise os dados do follow-up.");
+    return;
+  }
+
+  const payload = {
+    leadId,
+    scheduledAt: scheduledAt.toISOString(),
+    attemptNumber,
+    ...(settingId === null ? {} : { settingId }),
+  };
+
+  if (createSubmit instanceof HTMLButtonElement) createSubmit.disabled = true;
+  setCreateStatus("Agendando follow-up…");
+  try {
+    const response = await auth.secureFetch("/api/crm/follow-ups", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+      if (response.status !== 401) {
+        setCreateStatus(
+          response.status === 403
+            ? "Você não possui permissão para agendar follow-ups."
+            : response.status === 404
+              ? "Lead ou configuração não encontrados."
+              : "Não foi possível agendar o follow-up.",
+        );
+      }
+      return;
+    }
+    const result = await response.json();
+    if (!result?.data) {
+      setCreateStatus("Resposta de agendamento inválida.");
+      return;
+    }
+    createForm.reset();
+    const attemptInput = createForm.elements.namedItem("attemptNumber");
+    if (attemptInput instanceof HTMLInputElement) attemptInput.value = "1";
+    setCreateStatus("Follow-up agendado com sucesso.");
+    await loadPending();
+  } catch {
+    setCreateStatus("Não foi possível agendar o follow-up.");
+  } finally {
+    if (createSubmit instanceof HTMLButtonElement) createSubmit.disabled = false;
+  }
+}
+
+createForm?.addEventListener("submit", (event) => {
+  void createFollowUp(event);
+});
+
 async function start() {
   try {
     const session = await auth.requireSession({ returnTo: window.location.pathname });
     if (!session) return;
-    sessionStatus.textContent = "Sessão autenticada. Consulta somente leitura.";
+    sessionStatus.textContent = "Sessão autenticada. Agendamento operacional.";
     const [pending, settings] = await Promise.all([
       readData("/api/crm/follow-ups/pending"),
       readData("/api/crm/follow-ups/settings"),
