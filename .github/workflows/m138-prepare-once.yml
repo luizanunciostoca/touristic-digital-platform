@@ -1,0 +1,50 @@
+name: M138 Prepare Once
+
+on:
+  push:
+    branches:
+      - feat/payments-m138-checkout-application
+
+permissions:
+  contents: write
+
+concurrency:
+  group: m138-prepare-once
+  cancel-in-progress: false
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/payments-m138-checkout-application
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Format M138 files
+        run: |
+          pnpm exec prettier --write \
+            packages/financial/src/index.ts \
+            packages/ordering/src/checkout-application.test.ts \
+            packages/ordering/src/index.ts \
+            services/ordering/src/pricing-authority.test.ts
+      - name: Commit formatting
+        run: |
+          if git diff --quiet; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            packages/financial/src/index.ts \
+            packages/ordering/src/checkout-application.test.ts \
+            packages/ordering/src/index.ts \
+            services/ordering/src/pricing-authority.test.ts
+          git commit -m "style: format M138 checkout service"
+          git push origin HEAD:feat/payments-m138-checkout-application
