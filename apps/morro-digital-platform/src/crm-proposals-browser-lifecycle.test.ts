@@ -6,8 +6,8 @@ async function source(path: string): Promise<string> {
   return readFile(new URL(path, import.meta.url), "utf8");
 }
 
-describe("CRM proposal browser lifecycle", () => {
-  it("keeps proposal creation bounded", async () => {
+describe("CRM M121 proposals browser lifecycle", () => {
+  it("exposes a proposal creation form aligned with server limits", async () => {
     const page = await source("../../admin-crm/public/proposals.html");
 
     expect(page).toContain('id="proposal-create-form"');
@@ -17,7 +17,7 @@ describe("CRM proposal browser lifecycle", () => {
     expect(page).toContain('name="monthlyValue" required');
   });
 
-  it("supports authenticated proposal actions", async () => {
+  it("uses authenticated create and send endpoints while keeping server transitions authoritative", async () => {
     const client = await source("../../admin-crm/public/proposals.js");
 
     expect(client).toContain('auth.secureFetch("/api/crm/proposals"');
