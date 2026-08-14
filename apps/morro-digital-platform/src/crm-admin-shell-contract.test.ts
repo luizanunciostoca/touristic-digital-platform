@@ -20,7 +20,12 @@ describe("CRM M104 browser shell", () => {
     ]) {
       expect(html).toContain(module);
     }
-    expect(html).toContain("UI pendente");
+    expect(html).toContain("criação + envio + resposta");
+    expect(html).toContain("envio + cancelamento");
+    expect(html).toContain("histórico + configurações");
+    expect(html).toContain("cancelamento + expiração");
+    expect(html).toContain("vínculo + contato + conversão/perda");
+    expect(html).toContain("sem boundary CRM genérico");
   });
 
   it("keeps the shell behind the shared platform session surface", async () => {
