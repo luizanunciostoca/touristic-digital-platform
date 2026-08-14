@@ -87,16 +87,16 @@ Em múltiplas réplicas, cada processo possui seu próprio contador. Por isso:
 
 ## Respostas de proteção
 
-| Condição | HTTP | Erro |
-| --- | ---: | --- |
-| API key ausente | 503 | `assistant_not_configured` |
-| billing guard incompleto | 503 | `assistant_billing_guard_not_configured` |
-| orçamento diário/mensal insuficiente para nova reserva | 429 | `assistant_budget_exhausted` |
-| concorrência local atingida | 429 | `assistant_concurrency_limited` |
-| rate limit por IP | 429 | `assistant_rate_limited` |
-| provider 429 | 429 | `assistant_provider_error` |
-| provider error | 502 | `assistant_provider_error` |
-| timeout | 504 | `assistant_timeout` |
+| Condição                                               | HTTP | Erro                                     |
+| ------------------------------------------------------ | ---: | ---------------------------------------- |
+| API key ausente                                        |  503 | `assistant_not_configured`               |
+| billing guard incompleto                               |  503 | `assistant_billing_guard_not_configured` |
+| orçamento diário/mensal insuficiente para nova reserva |  429 | `assistant_budget_exhausted`             |
+| concorrência local atingida                            |  429 | `assistant_concurrency_limited`          |
+| rate limit por IP                                      |  429 | `assistant_rate_limited`                 |
+| provider 429                                           |  429 | `assistant_provider_error`               |
+| provider error                                         |  502 | `assistant_provider_error`               |
+| timeout                                                |  504 | `assistant_timeout`                      |
 
 ## Operação antes de reativar billing
 

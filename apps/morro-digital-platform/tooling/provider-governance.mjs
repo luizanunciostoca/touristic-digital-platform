@@ -72,7 +72,8 @@ export function createProviderCostGovernor({
   onEvent = () => {},
   thresholds = DEFAULT_THRESHOLDS,
 } = {}) {
-  const normalizedProvider = String(provider || "provider").trim() || "provider";
+  const normalizedProvider =
+    String(provider || "provider").trim() || "provider";
   const dailyLimit = positiveFinite(dailyLimitUsd);
   const monthlyLimit = positiveFinite(monthlyLimitUsd);
   const reserveUsd = positiveFinite(requestReserveUsd);
@@ -84,10 +85,10 @@ export function createProviderCostGovernor({
 
   const configured = Boolean(
     dailyLimit &&
-      monthlyLimit &&
-      reserveUsd &&
-      reserveUsd <= dailyLimit &&
-      reserveUsd <= monthlyLimit,
+    monthlyLimit &&
+    reserveUsd &&
+    reserveUsd <= dailyLimit &&
+    reserveUsd <= monthlyLimit,
   );
 
   let daily = createWindow(utcDayKey(now()));
@@ -154,7 +155,10 @@ export function createProviderCostGovernor({
     refreshWindows();
     if (!configured) return reject("budget_not_configured");
     if (activeRequests >= concurrency) {
-      return reject("concurrency_limit", { activeRequests, maxConcurrency: concurrency });
+      return reject("concurrency_limit", {
+        activeRequests,
+        maxConcurrency: concurrency,
+      });
     }
 
     const dailyCommitted = daily.spentUsd + daily.reservedUsd + reserveUsd;
@@ -165,7 +169,8 @@ export function createProviderCostGovernor({
       });
     }
 
-    const monthlyCommitted = monthly.spentUsd + monthly.reservedUsd + reserveUsd;
+    const monthlyCommitted =
+      monthly.spentUsd + monthly.reservedUsd + reserveUsd;
     if (monthlyCommitted > monthlyLimit) {
       return reject("monthly_budget_exhausted", {
         limitUsd: monthlyLimit,
@@ -200,7 +205,10 @@ export function createProviderCostGovernor({
     if (!reservation || !reservations.has(reservation.id)) return false;
     reservations.delete(reservation.id);
     activeRequests = Math.max(0, activeRequests - 1);
-    daily.reservedUsd = Math.max(0, daily.reservedUsd - reservation.reservedUsd);
+    daily.reservedUsd = Math.max(
+      0,
+      daily.reservedUsd - reservation.reservedUsd,
+    );
     monthly.reservedUsd = Math.max(
       0,
       monthly.reservedUsd - reservation.reservedUsd,

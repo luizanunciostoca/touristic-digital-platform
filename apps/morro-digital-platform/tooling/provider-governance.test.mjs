@@ -53,9 +53,9 @@ describe("paid provider cost governance", () => {
     expect(snapshot.daily.reservedUsd).toBe(0);
     expect(snapshot.daily.spentUsd).toBe(0.25);
     expect(snapshot.daily.totalTokens).toBe(150);
-    expect(events.some((event) => event.type === "provider.request.settled")).toBe(
-      true,
-    );
+    expect(
+      events.some((event) => event.type === "provider.request.settled"),
+    ).toBe(true);
   });
 
   it("blocks requests that would cross the daily budget", () => {
@@ -112,10 +112,11 @@ describe("paid provider cost governance", () => {
       .map(([event]) => event)
       .filter(
         (event) =>
-          event.type === "provider.budget.threshold" && event.period === "daily",
+          event.type === "provider.budget.threshold" &&
+          event.period === "daily",
       );
-    expect(thresholdEvents.filter((event) => event.threshold === 0.5)).toHaveLength(
-      1,
-    );
+    expect(
+      thresholdEvents.filter((event) => event.threshold === 0.5),
+    ).toHaveLength(1);
   });
 });

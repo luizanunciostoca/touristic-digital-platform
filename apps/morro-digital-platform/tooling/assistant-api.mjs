@@ -256,7 +256,10 @@ export function createAssistantApi({
         const context = sanitizeContext(body.context);
         const history = sanitizeHistory(body.history);
         const model = environment("OPENAI_MODEL").trim() || "gpt-4o-mini";
-        const budgetAttempt = costGovernor.reserve({ model, surface: "assistant" });
+        const budgetAttempt = costGovernor.reserve({
+          model,
+          surface: "assistant",
+        });
         if (!budgetAttempt.allowed) {
           const concurrencyLimited =
             budgetAttempt.reason === "concurrency_limit";
