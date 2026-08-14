@@ -38,5 +38,7 @@ describe("CRM M119 public browser routes", () => {
       'canvas.addEventListener("lostpointercapture", recoverPointer)',
     );
     expect(contract).toContain("event.pointerId === activePointerId");
+    expect(contract).toContain("Math.min(Math.max(x, 0), canvas.width)");
+    expect(contract).toContain("Math.min(Math.max(y, 0), canvas.height)");
   });
 });
