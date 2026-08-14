@@ -1,0 +1,68 @@
+name: M142 Temporary Formatter
+
+on:
+  push:
+    branches:
+      - feat/payments-m142-verified-outcomes
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/payments-m142-verified-outcomes
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Format M142 files
+        run: |
+          pnpm exec prettier --write \
+            packages/financial/src/index.ts \
+            packages/financial/src/verified-payment-outcome.test.ts \
+            services/financial/src/index.ts \
+            services/financial/src/schema.ts \
+            services/financial/src/mysql-verified-payment-result-repository.ts \
+            services/financial/src/verified-payment-outcome-service.ts \
+            services/financial/src/verified-payment-outcome-service.test.ts \
+            services/financial/src/webhook-http-transport.ts \
+            services/financial/src/webhook-http-transport.test.ts \
+            services/financial/src/mysql-integration.test.ts \
+            services/ordering/src/checkout-http-transport.ts \
+            services/ordering/src/checkout-http-transport.test.ts \
+            apps/morro-digital-platform/tooling/payments-api.mjs \
+            .github/workflows/payments-verified-outcome-contract.yml
+      - name: Commit formatting
+        run: |
+          if git diff --quiet; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            packages/financial/src/index.ts \
+            packages/financial/src/verified-payment-outcome.test.ts \
+            services/financial/src/index.ts \
+            services/financial/src/schema.ts \
+            services/financial/src/mysql-verified-payment-result-repository.ts \
+            services/financial/src/verified-payment-outcome-service.ts \
+            services/financial/src/verified-payment-outcome-service.test.ts \
+            services/financial/src/webhook-http-transport.ts \
+            services/financial/src/webhook-http-transport.test.ts \
+            services/financial/src/mysql-integration.test.ts \
+            services/ordering/src/checkout-http-transport.ts \
+            services/ordering/src/checkout-http-transport.test.ts \
+            apps/morro-digital-platform/tooling/payments-api.mjs \
+            .github/workflows/payments-verified-outcome-contract.yml
+          git commit -m "style(payments): format M142 changes"
+          git push origin HEAD:feat/payments-m142-verified-outcomes

@@ -1,0 +1,78 @@
+name: Payments Verified Outcome Contract
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "packages/financial/**"
+      - "packages/business/src/onboarding-commercial-conversion*"
+      - "services/financial/**"
+      - "services/ordering/**"
+      - "apps/morro-digital-platform/tooling/payments-api.mjs"
+      - ".github/workflows/payments-verified-outcome-contract.yml"
+      - "pnpm-lock.yaml"
+  pull_request:
+    paths:
+      - "packages/financial/**"
+      - "packages/business/src/onboarding-commercial-conversion*"
+      - "services/financial/**"
+      - "services/ordering/**"
+      - "apps/morro-digital-platform/tooling/payments-api.mjs"
+      - ".github/workflows/payments-verified-outcome-contract.yml"
+      - "pnpm-lock.yaml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: payments-outcome-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verified-outcome-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: m142-outcome
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -pm142-outcome"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    env:
+      MYSQL_ADMIN_DATABASE_URL: mysql://root:m142-outcome@127.0.0.1:3306/mysql
+      FINANCIAL_DATABASE_URL: mysql://root:m142-outcome@127.0.0.1:3306/financial_m137_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Payment state machine and result unit contracts
+        run: |
+          pnpm --filter @touristic/financial test
+          pnpm --filter @touristic/financial-server test
+      - name: Business-safe status projection contract
+        run: |
+          pnpm --filter @touristic/ordering-server test
+          pnpm --filter @touristic/business test
+      - name: Durable outcome integration
+        run: pnpm --filter @touristic/financial-server test:integration
+      - name: Build composed runtime boundaries
+        run: |
+          pnpm --filter @touristic/auth build
+          pnpm --filter @touristic/financial build
+          pnpm --filter @touristic/ordering build
+          pnpm --filter @touristic/financial-server build
+          pnpm --filter @touristic/ordering-server build
