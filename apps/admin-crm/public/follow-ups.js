@@ -98,3 +98,4 @@ async function start() {
 }
 
 void start();
+void import("./follow-ups-lifecycle.js");
