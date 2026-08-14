@@ -29,7 +29,7 @@ describe("CRM M104 browser shell", () => {
     expect(html).not.toContain('href="#settings"');
     expect(html).toContain('aria-disabled="true"');
     expect(html).toContain("Em breve");
-    expect(html).toContain('/apps/admin-crm/public/meetings.html');
+    expect(html).toContain("/apps/admin-crm/public/meetings.html");
     expect(html).not.toContain('id="meetings-view"');
   });
 
