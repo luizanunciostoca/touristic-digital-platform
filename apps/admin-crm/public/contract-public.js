@@ -89,6 +89,10 @@ function end(event) {
   event.preventDefault();
 }
 
+function recoverPointer(event) {
+  if (event.pointerId === activePointerId) activePointerId = null;
+}
+
 function clearSignature() {
   if (
     activePointerId !== null &&
@@ -187,6 +191,7 @@ canvas.addEventListener("pointerdown", begin);
 canvas.addEventListener("pointermove", move);
 canvas.addEventListener("pointerup", end);
 canvas.addEventListener("pointercancel", end);
+canvas.addEventListener("lostpointercapture", recoverPointer);
 clearButton.addEventListener("click", clearSignature);
 signButton.addEventListener("click", () => void signContract());
 
