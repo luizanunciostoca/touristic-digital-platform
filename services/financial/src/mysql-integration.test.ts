@@ -277,8 +277,32 @@ describeMySql.sequential("M137/M143 Financial MySQL integration", () => {
     ).resolves.toMatchObject({
       disposition: "posted",
       transactions: [
-        { externalKey: expect.stringContaining("approved") },
-        { externalKey: expect.stringContaining("refunded") },
+        {
+          externalKey: expect.stringMatching(/^payment_result_fev_/u),
+          postings: [
+            {
+              accountReference: "asset:provider_clearing",
+              direction: "debit",
+            },
+            {
+              accountReference: "revenue:checkout",
+              direction: "credit",
+            },
+          ],
+        },
+        {
+          externalKey: expect.stringMatching(/^payment_result_fev_/u),
+          postings: [
+            {
+              accountReference: "revenue:checkout",
+              direction: "debit",
+            },
+            {
+              accountReference: "asset:provider_clearing",
+              direction: "credit",
+            },
+          ],
+        },
       ],
     });
     await expect(
@@ -300,7 +324,7 @@ describeMySql.sequential("M137/M143 Financial MySQL integration", () => {
     expect(Number(transactionRows[0]?.total)).toBe(2);
     const [balances] = await pool.query<RowDataPacket[]>(
       `SELECT account_reference,
-              SUM(CASE direction WHEN 'debit' THEN amount_minor ELSE -amount_minor END) AS balance
+              SUM(CASE direction WHEN 'debit' THEN CAST(amount_minor AS SIGNED) ELSE -CAST(amount_minor AS SIGNED) END) AS balance
        FROM financial_ledger_postings
        GROUP BY account_reference
        ORDER BY account_reference`,
