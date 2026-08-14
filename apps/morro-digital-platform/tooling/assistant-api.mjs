@@ -1,3 +1,8 @@
+import {
+  calculateTokenCostUsd,
+  createProviderCostGovernor,
+} from "./provider-governance.mjs";
+
 const ASSISTANT_TIMEOUT_MS = 12_000;
 const ASSISTANT_RATE_WINDOW_MS = 60_000;
 const ASSISTANT_RATE_LIMIT = 30;
@@ -30,6 +35,11 @@ function safeString(value, maxLength) {
     .replace(/[\u0000-\u001f\u007f]/gu, " ")
     .trim()
     .slice(0, maxLength);
+}
+
+function positiveNumber(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 }
 
 function sanitizeContext(value) {
@@ -123,10 +133,30 @@ export function createAssistantApi({
   getEnvironmentValue,
   fetchImplementation = globalThis.fetch,
   now = Date.now,
+  observeProviderEvent = (event) =>
+    console.info(`[provider-observability] ${JSON.stringify(event)}`),
 } = {}) {
   const rateBuckets = new Map();
   const environment =
     getEnvironmentValue ?? ((key) => String(process.env[key] ?? ""));
+  const hardLimitConfirmed =
+    environment("OPENAI_PROVIDER_HARD_LIMIT_CONFIRMED").trim().toLowerCase() ===
+    "true";
+  const inputUsdPerMillion = positiveNumber(
+    environment("OPENAI_INPUT_USD_PER_1M_TOKENS"),
+  );
+  const outputUsdPerMillion = positiveNumber(
+    environment("OPENAI_OUTPUT_USD_PER_1M_TOKENS"),
+  );
+  const costGovernor = createProviderCostGovernor({
+    provider: "openai",
+    dailyLimitUsd: environment("OPENAI_DAILY_COST_LIMIT_USD"),
+    monthlyLimitUsd: environment("OPENAI_MONTHLY_COST_LIMIT_USD"),
+    requestReserveUsd: environment("OPENAI_REQUEST_RESERVE_USD"),
+    maxConcurrency: environment("OPENAI_MAX_CONCURRENCY") || 4,
+    now,
+    onEvent: observeProviderEvent,
+  });
 
   function rateAllowed(request) {
     const timestamp = now();
@@ -151,7 +181,16 @@ export function createAssistantApi({
     };
   }
 
+  function observabilitySnapshot() {
+    return Object.freeze({
+      hardLimitConfirmed,
+      pricingConfigured: Boolean(inputUsdPerMillion && outputUsdPerMillion),
+      usage: costGovernor.snapshot(),
+    });
+  }
+
   return Object.freeze({
+    observabilitySnapshot,
     matches(pathname) {
       return (
         pathname === "/api/ai/assistant/respond" ||
@@ -186,6 +225,23 @@ export function createAssistantApi({
         sendJson(response, 503, { error: "assistant_not_configured" });
         return;
       }
+      if (
+        !hardLimitConfirmed ||
+        !inputUsdPerMillion ||
+        !outputUsdPerMillion ||
+        !costGovernor.configured
+      ) {
+        observeProviderEvent({
+          type: "provider.billing_guard.denied",
+          provider: "openai",
+          at: new Date(now()).toISOString(),
+          reason: "billing_guard_not_configured",
+        });
+        sendJson(response, 503, {
+          error: "assistant_billing_guard_not_configured",
+        });
+        return;
+      }
 
       try {
         const body = await readJsonBody(request);
@@ -199,11 +255,26 @@ export function createAssistantApi({
         const userType = body.userType === "resident" ? "resident" : "tourist";
         const context = sanitizeContext(body.context);
         const history = sanitizeHistory(body.history);
+        const model = environment("OPENAI_MODEL").trim() || "gpt-4o-mini";
+        const budgetAttempt = costGovernor.reserve({ model, surface: "assistant" });
+        if (!budgetAttempt.allowed) {
+          const concurrencyLimited =
+            budgetAttempt.reason === "concurrency_limit";
+          sendJson(response, 429, {
+            error: concurrencyLimited
+              ? "assistant_concurrency_limited"
+              : "assistant_budget_exhausted",
+          });
+          return;
+        }
+
+        const reservation = budgetAttempt.reservation;
         const controller = new AbortController();
         const timeout = setTimeout(
           () => controller.abort(),
           ASSISTANT_TIMEOUT_MS,
         );
+        let reservationClosed = false;
 
         try {
           const upstream = await fetchImplementation(
@@ -215,7 +286,7 @@ export function createAssistantApi({
                 Authorization: `Bearer ${apiKey}`,
               },
               body: JSON.stringify({
-                model: environment("OPENAI_MODEL").trim() || "gpt-4o-mini",
+                model,
                 messages: [
                   { role: "system", content: ASSISTANT_SYSTEM_PROMPT },
                   {
@@ -234,6 +305,11 @@ export function createAssistantApi({
           );
 
           if (!upstream.ok) {
+            costGovernor.release(reservation, {
+              reason: "provider_http_error",
+              statusCode: upstream.status,
+            });
+            reservationClosed = true;
             sendJson(response, upstream.status === 429 ? 429 : 502, {
               error: "assistant_provider_error",
             });
@@ -241,12 +317,37 @@ export function createAssistantApi({
           }
 
           const data = await upstream.json();
+          const providerUsage = data?.usage || {};
+          const costUsd = calculateTokenCostUsd({
+            promptTokens: providerUsage.prompt_tokens,
+            completionTokens: providerUsage.completion_tokens,
+            inputUsdPerMillion,
+            outputUsdPerMillion,
+          });
+          costGovernor.settle(reservation, {
+            costUsd,
+            promptTokens: providerUsage.prompt_tokens,
+            completionTokens: providerUsage.completion_tokens,
+            totalTokens: providerUsage.total_tokens,
+          });
+          reservationClosed = true;
+
           const content = data?.choices?.[0]?.message?.content;
           const normalized = normalizeProviderResponse(
             parseJsonObject(content),
           );
           if (!normalized.text) throw new Error("assistant_invalid_response");
           sendJson(response, 200, normalized);
+        } catch (error) {
+          if (!reservationClosed) {
+            costGovernor.release(reservation, {
+              reason:
+                error?.name === "AbortError"
+                  ? "provider_timeout"
+                  : "provider_request_failed",
+            });
+          }
+          throw error;
         } finally {
           clearTimeout(timeout);
         }
