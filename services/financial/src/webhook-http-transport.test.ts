@@ -4,10 +4,12 @@ import {
   createMoney,
   createPaymentIdempotencyKey,
   normalizePaymentId,
+  normalizeVerifiedPaymentResult,
   normalizeVerifiedProviderPaymentEvent,
   type Payment,
   type PaymentId,
   type PaymentRepositoryPort,
+  type VerifiedPaymentResult,
 } from "@touristic/financial";
 
 import {
@@ -23,6 +25,10 @@ import type {
   VerifiedPaymentOutcomeApplicationPort,
   VerifiedPaymentOutcomeDisposition,
 } from "./verified-payment-outcome-service.js";
+import type {
+  VerifiedPaymentAccountingApplicationPort,
+  VerifiedPaymentAccountingDisposition,
+} from "./verified-payment-accounting-service.js";
 
 function payment(): Payment {
   const id = normalizePaymentId("pay_webhook_transport_0001");
@@ -41,6 +47,22 @@ function payment(): Payment {
     confirmedAt: null,
     refundedAt: null,
   };
+}
+
+function result(): VerifiedPaymentResult {
+  const value = normalizeVerifiedPaymentResult({
+    resultId: "fev_webhook_accounting_0001",
+    providerEventId: "pwe_webhook_transport_0001",
+    paymentId: "pay_webhook_transport_0001",
+    orderReference: "ord_webhook_transport_0001",
+    kind: "approved",
+    paymentStatus: "confirmed",
+    paymentReference: "sandbox_payment_transport_0001",
+    occurredAt: "2026-08-14T23:00:01Z",
+    recordedAt: "2026-08-14T23:00:02Z",
+  });
+  if (!value) throw new Error("RESULT_FIXTURE_INVALID");
+  return value;
 }
 
 function event() {
@@ -92,6 +114,8 @@ function harness(
     readonly claimed?: boolean;
     readonly failure?: Error | null;
     readonly outcomeDisposition?: VerifiedPaymentOutcomeDisposition;
+    readonly outcomeResult?: VerifiedPaymentResult | null;
+    readonly accountingDisposition?: VerifiedPaymentAccountingDisposition;
   } = {},
 ) {
   const audits: FinancialWebhookAuditEvent[] = [];
@@ -110,7 +134,23 @@ function harness(
           options.outcomeDisposition ??
           (options.claimed === false ? "replayed" : "applied"),
         payment: value,
-        result: null,
+        result: options.outcomeResult ?? null,
+      });
+    },
+  };
+  const accountingEvents: Array<{
+    payment: Payment;
+    result: VerifiedPaymentResult;
+  }> = [];
+  const accounting: VerifiedPaymentAccountingApplicationPort = {
+    apply(inputPayment, inputResult) {
+      accountingEvents.push({
+        payment: inputPayment,
+        result: inputResult,
+      });
+      return Promise.resolve({
+        disposition: options.accountingDisposition ?? "posted",
+        transactions: Object.freeze([]),
       });
     },
   };
@@ -121,6 +161,7 @@ function harness(
     events,
     payments: new MemoryPayments(value),
     outcomes,
+    accounting,
     audit: {
       record(value) {
         audits.push(value);
@@ -129,7 +170,7 @@ function harness(
     },
     clock: { now: () => "2026-08-14T23:00:02Z" },
   });
-  return { transport, events, audits, outcomeEvents };
+  return { transport, events, audits, outcomeEvents, accountingEvents };
 }
 
 function request(rawBody = Buffer.from('{"verified":"bytes"}')) {
@@ -144,7 +185,7 @@ function request(rawBody = Buffer.from('{"verified":"bytes"}')) {
   };
 }
 
-describe("M142 verified webhook outcome transport", () => {
+describe("M143 verified webhook accounting transport", () => {
   it("durably claims a matched event without mutating Payment", async () => {
     const { transport, events, audits, outcomeEvents } = harness();
     const rawBody = Buffer.from('{"verified":"exact bytes"}');
@@ -161,6 +202,7 @@ describe("M142 verified webhook outcome transport", () => {
           matched: true,
           replayed: false,
           outcome: "applied",
+          accounting: "not_applicable",
         },
       },
     });
@@ -178,6 +220,7 @@ describe("M142 verified webhook outcome transport", () => {
       matched: true,
       replayed: false,
       outcome: "applied",
+      accounting: "not_applicable",
     });
   });
 
@@ -191,6 +234,7 @@ describe("M142 verified webhook outcome transport", () => {
           matched: false,
           replayed: false,
           outcome: "unmatched",
+          accounting: "not_applicable",
         },
       },
     });
@@ -204,9 +248,34 @@ describe("M142 verified webhook outcome transport", () => {
           matched: true,
           replayed: true,
           outcome: "replayed",
+          accounting: "not_applicable",
         },
       },
     });
+  });
+
+  it("posts accounting only from the persisted verified outcome", async () => {
+    const approved = result();
+    const { transport, accountingEvents } = harness({
+      outcomeResult: approved,
+    });
+
+    await expect(transport.handle(request())).resolves.toMatchObject({
+      status: 202,
+      body: {
+        data: {
+          accepted: true,
+          outcome: "applied",
+          accounting: "posted",
+        },
+      },
+    });
+    expect(accountingEvents).toEqual([
+      {
+        payment: payment(),
+        result: approved,
+      },
+    ]);
   });
 
   it("rejects unverified input and normalizes event collisions", async () => {

@@ -4,6 +4,7 @@ import { authorizeBusinessAccess } from "@touristic/auth";
 import { createProviderNeutralCheckoutApplicationService } from "@touristic/ordering";
 import {
   FinancialWebhookHttpTransport,
+  MySqlLedgerTransactionRepository,
   MySqlPaymentIdempotencyPort,
   MySqlPaymentRepository,
   MySqlProviderWebhookEventRepository,
@@ -12,6 +13,7 @@ import {
   createFinancialMySqlPoolFromEnvironment,
   createSandboxCheckoutProviderFromEnvironment,
   createSandboxWebhookVerifierFromEnvironment,
+  createVerifiedPaymentAccountingService,
   createVerifiedPaymentOutcomeService,
   sandboxWebhookPath,
 } from "@touristic/financial-server";
@@ -353,6 +355,10 @@ export function createPaymentsApi({
         results: paymentResults,
         clock: systemCheckoutClock,
       });
+      const accounting = createVerifiedPaymentAccountingService({
+        ledger: new MySqlLedgerTransactionRepository(financialPool),
+        results: paymentResults,
+      });
       const application = createProviderNeutralCheckoutApplicationService({
         orders,
         payments,
@@ -396,6 +402,7 @@ export function createPaymentsApi({
         events: new MySqlProviderWebhookEventRepository(financialPool),
         payments,
         outcomes,
+        accounting,
         audit: {
           record(event) {
             runtimeAudit(audit, event);

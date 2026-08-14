@@ -16,6 +16,10 @@ import type {
   VerifiedPaymentOutcomeApplicationPort,
   VerifiedPaymentOutcomeDisposition,
 } from "./verified-payment-outcome-service.js";
+import type {
+  VerifiedPaymentAccountingApplicationPort,
+  VerifiedPaymentAccountingDisposition,
+} from "./verified-payment-accounting-service.js";
 
 export const sandboxWebhookPath = "/api/payments/v1/webhooks/sandbox";
 
@@ -43,6 +47,7 @@ export interface FinancialWebhookAuditEvent {
   readonly matched: boolean | null;
   readonly replayed: boolean | null;
   readonly outcome: VerifiedPaymentOutcomeDisposition | null;
+  readonly accounting: VerifiedPaymentAccountingDisposition | null;
 }
 
 export interface FinancialWebhookAuditPort {
@@ -58,6 +63,7 @@ export interface FinancialWebhookHttpTransportDependencies {
   readonly events: ProviderWebhookEventRepositoryPort;
   readonly payments: PaymentRepositoryPort;
   readonly outcomes: VerifiedPaymentOutcomeApplicationPort;
+  readonly accounting: VerifiedPaymentAccountingApplicationPort;
   readonly audit: FinancialWebhookAuditPort;
   readonly clock: FinancialWebhookClockPort;
 }
@@ -151,6 +157,7 @@ export class FinancialWebhookHttpTransport {
         matched: null,
         replayed: null,
         outcome: null,
+        accounting: null,
       });
       return response(503, { error: "WEBHOOK_UNAVAILABLE" }, correlationId);
     }
@@ -165,6 +172,7 @@ export class FinancialWebhookHttpTransport {
         matched: null,
         replayed: null,
         outcome: null,
+        accounting: null,
       });
       return response(401, { error: "WEBHOOK_UNAUTHORIZED" }, correlationId);
     }
@@ -194,6 +202,16 @@ export class FinancialWebhookHttpTransport {
       if (matched && outcome.disposition === "unmatched") {
         throw new Error("FINANCIAL_MATCHED_PAYMENT_DISAPPEARED");
       }
+      const accounting =
+        outcome.payment && outcome.result
+          ? await this.dependencies.accounting.apply(
+              outcome.payment,
+              outcome.result,
+            )
+          : Object.freeze({
+              disposition: "not_applicable" as const,
+              transactions: Object.freeze([]),
+            });
       await audit(this.dependencies.audit, {
         action: "webhook.receive",
         result: "success",
@@ -204,6 +222,7 @@ export class FinancialWebhookHttpTransport {
         matched,
         replayed,
         outcome: outcome.disposition,
+        accounting: accounting.disposition,
       });
       return response(
         202,
@@ -213,6 +232,7 @@ export class FinancialWebhookHttpTransport {
             matched,
             replayed,
             outcome: outcome.disposition,
+            accounting: accounting.disposition,
           }),
         },
         correlationId,
@@ -231,6 +251,7 @@ export class FinancialWebhookHttpTransport {
         matched: null,
         replayed: null,
         outcome: null,
+        accounting: null,
       });
       return response(
         collision ? 409 : 503,
