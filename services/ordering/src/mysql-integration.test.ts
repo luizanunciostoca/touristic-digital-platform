@@ -35,7 +35,8 @@ function order(
     currency: "BRL",
     pricingVersion: "plans_2026_08",
   });
-  if (!id || !requestKey || !source || !quote) throw new Error("FIXTURE_INVALID");
+  if (!id || !requestKey || !source || !quote)
+    throw new Error("FIXTURE_INVALID");
   const pricing = capturePricingSnapshot(quote, "2026-08-14T19:30:00Z");
   if (!pricing) throw new Error("FIXTURE_INVALID");
   const value = createOrder({
@@ -55,7 +56,8 @@ describeMySql.sequential("M137 Ordering MySQL integration", () => {
   let pool: Pool;
 
   beforeAll(async () => {
-    if (!adminUrl || !databaseUrl) throw new Error("MYSQL_INTEGRATION_URLS_REQUIRED");
+    if (!adminUrl || !databaseUrl)
+      throw new Error("MYSQL_INTEGRATION_URLS_REQUIRED");
     const admin = await mysql.createConnection(adminUrl);
     try {
       await admin.query(
@@ -85,7 +87,9 @@ describeMySql.sequential("M137 Ordering MySQL integration", () => {
 
     expect(saved.createdAt).toBe("2026-08-14T19:31:00.000Z");
     expect(saved.pricing.capturedAt).toBe("2026-08-14T19:30:00.000Z");
-    await expect(repository.findByRequestKey(initial.requestKey)).resolves.toEqual(saved);
+    await expect(
+      repository.findByRequestKey(initial.requestKey),
+    ).resolves.toEqual(saved);
 
     const pending = createOrder({
       ...saved,
@@ -107,7 +111,11 @@ describeMySql.sequential("M137 Ordering MySQL integration", () => {
     await repository.save(upper);
     await repository.save(lower);
 
-    await expect(repository.findById(upper.id)).resolves.toMatchObject({ id: upper.id });
-    await expect(repository.findById(lower.id)).resolves.toMatchObject({ id: lower.id });
+    await expect(repository.findById(upper.id)).resolves.toMatchObject({
+      id: upper.id,
+    });
+    await expect(repository.findById(lower.id)).resolves.toMatchObject({
+      id: lower.id,
+    });
   });
 });

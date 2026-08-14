@@ -64,7 +64,8 @@ describeMySql.sequential("M137 Financial MySQL integration", () => {
   let pool: Pool;
 
   beforeAll(async () => {
-    if (!adminUrl || !databaseUrl) throw new Error("MYSQL_INTEGRATION_URLS_REQUIRED");
+    if (!adminUrl || !databaseUrl)
+      throw new Error("MYSQL_INTEGRATION_URLS_REQUIRED");
     const admin = await mysql.createConnection(adminUrl);
     try {
       await admin.query(
@@ -97,14 +98,18 @@ describeMySql.sequential("M137 Financial MySQL integration", () => {
     const claims = new MySqlPaymentIdempotencyPort(pool);
     const payments = new MySqlPaymentRepository(pool);
 
-    await expect(claims.claim(value.idempotencyKey, value.id)).resolves.toEqual({
-      claimed: true,
-      paymentId: value.id,
-    });
-    await expect(claims.claim(value.idempotencyKey, value.id)).resolves.toEqual({
-      claimed: false,
-      paymentId: value.id,
-    });
+    await expect(claims.claim(value.idempotencyKey, value.id)).resolves.toEqual(
+      {
+        claimed: true,
+        paymentId: value.id,
+      },
+    );
+    await expect(claims.claim(value.idempotencyKey, value.id)).resolves.toEqual(
+      {
+        claimed: false,
+        paymentId: value.id,
+      },
+    );
 
     const saved = await payments.save(value);
     expect(saved.createdAt).toBe("2026-08-14T19:31:00.000Z");
