@@ -61,6 +61,7 @@ function point(event) {
 function begin(event) {
   if (activePointerId !== null) return;
   activePointerId = event.pointerId;
+  canvas.setPointerCapture(event.pointerId);
   const current = point(event);
   context.beginPath();
   context.moveTo(current.x, current.y);
@@ -81,11 +82,20 @@ function move(event) {
 
 function end(event) {
   if (event.pointerId !== activePointerId) return;
+  if (canvas.hasPointerCapture(event.pointerId)) {
+    canvas.releasePointerCapture(event.pointerId);
+  }
   activePointerId = null;
   event.preventDefault();
 }
 
 function clearSignature() {
+  if (
+    activePointerId !== null &&
+    canvas.hasPointerCapture(activePointerId)
+  ) {
+    canvas.releasePointerCapture(activePointerId);
+  }
   activePointerId = null;
   context.clearRect(0, 0, canvas.width, canvas.height);
   hasSignature = false;
@@ -176,7 +186,6 @@ async function signContract() {
 canvas.addEventListener("pointerdown", begin);
 canvas.addEventListener("pointermove", move);
 canvas.addEventListener("pointerup", end);
-canvas.addEventListener("pointerleave", end);
 canvas.addEventListener("pointercancel", end);
 clearButton.addEventListener("click", clearSignature);
 signButton.addEventListener("click", () => void signContract());
