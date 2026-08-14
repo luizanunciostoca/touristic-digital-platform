@@ -13,7 +13,7 @@ describe("CRM M127 referral lead association browser", () => {
     expect(client).toContain("data-referral-link-form");
     expect(client).toContain('input.name = "referredLeadId"');
     expect(client).toContain("/link-lead");
-    expect(client).toContain('body: JSON.stringify({ referredLeadId })');
+    expect(client).toContain("body: JSON.stringify({ referredLeadId })");
     expect(client).toContain('method: "POST"');
     expect(client).not.toContain("grant-benefit");
   });
