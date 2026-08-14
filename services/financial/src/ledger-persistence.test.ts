@@ -33,7 +33,10 @@ function transaction() {
 
 describe("M137 MySqlLedgerTransactionRepository", () => {
   it("commits transaction and postings atomically through one MySQL connection", async () => {
-    const execute = vi.fn(async () => [{ affectedRows: 1 }, []]);
+    const execute = vi.fn(async (sql: string) => {
+      void sql;
+      return [{ affectedRows: 1 }, []];
+    });
     const beginTransaction = vi.fn(async () => undefined);
     const commit = vi.fn(async () => undefined);
     const rollback = vi.fn(async () => undefined);
