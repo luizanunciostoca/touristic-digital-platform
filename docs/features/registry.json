@@ -141,7 +141,7 @@
       "legacySources": [],
       "targetPackages": ["@touristic/affiliates"],
       "equivalence": {
-        "behavior": true,
+        "behavior": false,
         "visual": false,
         "api": false
       }
