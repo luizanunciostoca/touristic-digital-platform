@@ -257,7 +257,7 @@ function harness(
 
 describe("M139 checkout HTTP/Auth/security transport", () => {
   it("creates a versioned checkout with bound idempotency and no PII projection", async () => {
-    const { transport, access, audits } = harness();
+    const { transport, access, audits, providerRequests } = harness();
     const result = await transport.handle(createRequest());
 
     expect(result.status).toBe(201);
