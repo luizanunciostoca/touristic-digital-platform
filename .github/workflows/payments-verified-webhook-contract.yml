@@ -61,5 +61,12 @@ jobs:
         run: pnpm --filter @touristic/financial-server test
       - name: Durable provider-event replay contract
         run: pnpm --filter @touristic/financial-server test:integration
+      - name: Build Node runtime package entrypoints
+        run: |
+          pnpm --filter @touristic/auth build
+          pnpm --filter @touristic/financial build
+          pnpm --filter @touristic/ordering build
+          pnpm --filter @touristic/financial-server build
+          pnpm --filter @touristic/ordering-server build
       - name: Node runtime raw-body preservation
         run: pnpm exec vitest run apps/morro-digital-platform/tooling/payments-api.test.mjs
