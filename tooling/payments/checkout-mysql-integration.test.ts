@@ -260,6 +260,18 @@ describeMySql.sequential("M138 checkout application MySQL integration", () => {
       orders,
       payments,
       access: new MySqlCheckoutAccessRepository(orderingPool),
+      provider: {
+        createCheckout: (input) =>
+          Promise.resolve({
+            providerCheckoutId:
+              "chk_mysql_http_" + input.paymentId,
+            checkoutUrl:
+              "https://checkout.sandbox-payments.example/pay/" +
+              input.paymentId,
+            providerReference: null,
+          }),
+      },
+      webhookUrl: "https://api.morro.digital/payments/webhook",
       authorization: {
         authorizeCreate: () =>
           Promise.resolve({ allowed: true as const, context }),
@@ -323,6 +335,8 @@ describeMySql.sequential("M138 checkout application MySQL integration", () => {
         data: {
           checkoutId: "ord_mysql_http_0001",
           status: "PENDING",
+          checkoutUrl:
+            "https://checkout.sandbox-payments.example/pay/pay_mysql_http_0001",
         },
       },
     });
