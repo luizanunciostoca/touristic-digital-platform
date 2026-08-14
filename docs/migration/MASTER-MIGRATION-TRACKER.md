@@ -23,7 +23,7 @@ Um item não pode avançar para `equivalent` sem evidência visual ou comportame
 | MIG-0007 | Business Portal | Business | FEATURE-0005 | `packages/business` + Business surfaces/adapters in `apps/morro-digital-platform` | 6 | equivalent | dashboard, 28-step onboarding, production profile and browser lifecycle contracts evidenced | 19/19 Business-owned contracts PASS; checkout execution remains Payments-owned N/A | `BUSINESS-MIGRATION-MATRIX.md`; M54–M65 evidence; PR #128 Quality + Business browser contracts | alto |
 | MIG-0008 | `luizidebook/morro-digital-crm@1915d026` | CRM | FEATURE-0006 | `@touristic/crm` + `@touristic/crm-server` + `apps/admin-crm` | 7 | migrating | authenticated shell and dedicated browser surfaces exist; consolidated V1 visual/accessibility equivalence remains open | 25 contracts: 17 PASS / 5 PARTIAL / 3 GAP at M133; leads, meetings, proposals, contracts, follow-ups, trials, referrals, public token flows, schedulers and audit are executable | `CRM-V1-BASELINE.md`; `CRM-MIGRATION-MATRIX.md`; M67–M133 evidence | alto |
 | MIG-0009 | autenticação e sessão | Auth | FEATURE-0008 | `packages/auth` + `packages/auth-browser` + Auth surfaces in `dashboard/` | 6 | equivalent | login V1-equivalent and canonical dashboard return proven in Chromium | 20/20 Auth contracts PASS: login/session/cookie/CSRF/origin/roles/tenant/audit/revocation | `AUTH-MIGRATION-MATRIX.md`; M47–M48 + M50–M52 + M66 evidence; PR #129 Quality + Auth/Business browser contracts | crítico |
-| MIG-0010 | pagamentos/assinaturas | Payments | FEATURE-0009 | `packages/payments` | 8 | discovered | pendente | pendente | sandbox pendente | crítico |
+| MIG-0010 | pagamentos/assinaturas | Ordering / Financial | FEATURE-0009 | `@touristic/ordering` + `@touristic/financial` | 8 | snapshotted | checkout/browser baseline congelado; superfície V2 ainda não implementada | V1 checkout congelado em M135; 34 contratos: 1 PASS / 5 PARTIAL / 27 GAP / 1 N/A; pricing server-authoritative, idempotência, webhook HMAC, status público e confirmação financeira inventariados | `PAYMENTS-V1-BASELINE.md`; `PAYMENTS-MIGRATION-MATRIX.md`; `PAYMENTS-M135-EVIDENCE.md` | crítico |
 | MIG-0011 | afiliados | Affiliates | FEATURE-0010 | `packages/affiliates` | 9 | discovered | pendente | pendente | pendente | crítico |
 | MIG-0012 | `js/map*` + bootstrap V1 | Geospatial | FEATURE-0001 | `packages/geospatial` + `apps/morro-digital-platform/src/bootstrap/geospatial.ts` | 4 | equivalent | Mapbox Visual Contract validado nos três viewports, normal e `forced-colors` | Runtime, adapter, Mapbox real, fallback, rollback e lifecycle comprovados | PR #17 head final `2d84629b`; runs `31237633579`, `31237633601`, `31237633577` verdes | crítico |
 | MIG-0013 | Home / seletor de roteiros V1 | Core UI / Tours | FEATURE-0007 | `apps/morro-digital-platform/src/browser-entry.ts` | 4 | equivalent | matriz Home v4: loading, map-ready, teclado, contraste e texto ampliado comprovados | troca 8→5→5→8, falhas e offline/provider indisponível comprovados | PRs #19/#17/#20 incorporados; Quality Gate final da matriz `31237787144` verde | alto |
@@ -58,6 +58,57 @@ M65 closes the final Business-owned parity contract. The canonical matrix is `19
 ## Auth equivalente — MIG-0009
 
 M66 closes the four consumer-dependent Auth parity rows intentionally left partial in M48. The canonical matrix is `20 PASS / 0 PARTIAL / 0 GAP / 0 N/A`. The feature is `equivalent`, not `released`. Permanent evidence includes the Auth Integration Contract, Auth Login Browser Contract and Business dashboard/security regressions on PR #129.
+
+## Payments baseline congelada — MIG-0010
+
+M135 congela a Wave 8 a partir de:
+
+```text
+V1: luizidebook/morro-de-sao-paulo-digital@60746fd7fed97b805758b37adfdbe3bad2582bfe
+V2 base: luizidebook/touristic-digital-platform@9ae94f64f7f644a480ae4313d7f2fca32b53c613
+```
+
+Fontes V1 auditadas:
+
+- `server/business-checkout.js`;
+- `server/__tests__/business-checkout.test.js`;
+- `js/onboarding/runtime/business-checkout-client.js`.
+
+O baseline preserva pricing server-authoritative, handoff comercial validado, idempotência antes da chamada externa, checkout/provider server-side, public token bounded, polling browser limitado, webhook HMAC-SHA256 e promoção a `CONFIRMED` somente após evento financeiro válido. Pagamento confirmado produz conversão ainda `publishable: false`; Business só consome um resultado já verificado.
+
+A V1 possui limitações que **não** serão copiadas como padrão desejável: repository/idempotência em memória, ausência de Order formal, ledger, refund/reversal, reconciliação, split/repasse e lifecycle completo de assinatura. Esses itens são hardening/escopo arquitetural V2 e permanecem GAP.
+
+A matriz canônica M135 é:
+
+```text
+PASS      1
+PARTIAL   5
+GAP      27
+N/A       1
+TOTAL    34
+```
+
+`MIG-0010` avança de `discovered` para `snapshotted`; `FEATURE-0009` avança de `planned` para `baseline-pending`. Nenhuma equivalência behavior/visual/API é reivindicada e nenhum provider financeiro é habilitado.
+
+O alvo da feature é `@touristic/ordering` + `@touristic/financial`. `Payments` permanece o nome de produto da feature; a arquitetura canônica define Ordering como owner de Order e Financial como owner de Payment/Ledger/Split/Refund/Transfer/Reconciliation. Não será criado um terceiro pacote redundante apenas para reproduzir o nome da feature.
+
+Ordem de implementação:
+
+1. vocabulário e ports framework-independent de Ordering/Financial;
+2. persistência durable de Order/Payment/idempotência;
+3. pricing authority e application service de checkout;
+4. HTTP/security boundary;
+5. provider-neutral sandbox adapter;
+6. webhook authenticity + durable dedup + state machine;
+7. verified payment result para Business;
+8. ledger e invariantes financeiras;
+9. refund/reversal;
+10. reconciliation;
+11. split/repasse/settlement;
+12. subscription semantics após baseline próprio;
+13. browser lifecycle + E2E/sandbox/recovery.
+
+Affiliates permanece depois dessa cadeia porque attribution/commission/wallet/payout devem consumir eventos financeiros autoritativos e reversíveis, não inferir conversão a partir do browser.
 
 ## Evidência consolidada — checkpoint Home + Runtime + Geospatial
 
