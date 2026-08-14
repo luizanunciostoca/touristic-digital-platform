@@ -239,8 +239,7 @@ function runtimeAudit(defaultAudit, event) {
 export function createPaymentsApi({
   authApi,
   getEnvironmentValue = (key) => process.env[key] ?? "",
-  audit = (event) =>
-    console.warn(`[payments-audit] ${JSON.stringify(event)}`),
+  audit = (event) => console.warn(`[payments-audit] ${JSON.stringify(event)}`),
   transport: injectedTransport,
 } = {}) {
   let runtime = injectedTransport
@@ -256,9 +255,8 @@ export function createPaymentsApi({
     try {
       if (!authApi) throw new Error("PAYMENTS_AUTH_API_REQUIRED");
       const environment = collectEnvironment(getEnvironmentValue);
-      const returnUrls = createCheckoutReturnUrlPolicyFromEnvironment(
-        environment,
-      );
+      const returnUrls =
+        createCheckoutReturnUrlPolicyFromEnvironment(environment);
       const destinationContext = normalizeCheckoutRequestContext({
         requesterKind: "authenticated",
         actorSubject: "runtime:payments",
@@ -291,9 +289,7 @@ export function createPaymentsApi({
         clock: systemCheckoutClock,
         pricing: createOrderPricingAuthorityFromEnvironment(environment),
       });
-      const origins = allowedOrigins(
-        environment.PAYMENTS_RETURN_URL_ORIGINS,
-      );
+      const origins = allowedOrigins(environment.PAYMENTS_RETURN_URL_ORIGINS);
       const transport = new CheckoutHttpTransport({
         application,
         orders,
@@ -350,17 +346,15 @@ export function createPaymentsApi({
   return Object.freeze({
     matches(pathname) {
       return (
-        pathname === checkoutPrefix ||
-        pathname.startsWith(checkoutPrefix + "/")
+        pathname === checkoutPrefix || pathname.startsWith(checkoutPrefix + "/")
       );
     },
     start,
     stop,
     async handle(request, response, requestUrl) {
       const correlationId =
-        normalizeCheckoutCorrelationId(
-          header(request, "x-correlation-id"),
-        ) || "corr_" + randomUUID();
+        normalizeCheckoutCorrelationId(header(request, "x-correlation-id")) ||
+        "corr_" + randomUUID();
 
       if (!runtime) {
         sendJson(

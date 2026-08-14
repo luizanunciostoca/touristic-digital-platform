@@ -71,9 +71,7 @@ export interface CheckoutHttpAuthorizationPort {
   ): Promise<CheckoutHttpAuthorizationDecision>;
 }
 
-export type CheckoutRateLimitBucket =
-  | "checkout-create"
-  | "checkout-status";
+export type CheckoutRateLimitBucket = "checkout-create" | "checkout-status";
 
 export interface CheckoutRateLimitRequest {
   readonly bucket: CheckoutRateLimitBucket;
@@ -89,9 +87,7 @@ export interface CheckoutRateLimitDecision {
 }
 
 export interface CheckoutHttpRateLimitPort {
-  consume(
-    input: CheckoutRateLimitRequest,
-  ): Promise<CheckoutRateLimitDecision>;
+  consume(input: CheckoutRateLimitRequest): Promise<CheckoutRateLimitDecision>;
 }
 
 export interface CheckoutHttpAuditEvent {
@@ -153,10 +149,7 @@ function firstHeader(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
-function header(
-  request: CheckoutHttpRequest,
-  name: string,
-): string {
+function header(request: CheckoutHttpRequest, name: string): string {
   const headers = request.headers ?? {};
   const target = name.toLowerCase();
   for (const [key, value] of Object.entries(headers)) {
@@ -214,10 +207,7 @@ function clientKey(request: CheckoutHttpRequest): string {
   return value || "unknown";
 }
 
-function publicPaymentStatus(
-  payment: Payment,
-  order: Order,
-): string {
+function publicPaymentStatus(payment: Payment, order: Order): string {
   if (payment.status === "confirmed") return "CONFIRMED";
   if (payment.status === "failed") return "FAILED";
   if (payment.status === "cancelled") return "CANCELLED";
@@ -290,9 +280,7 @@ function accessMatches(
     createdAt: access.createdAt,
     expiresAt: access.expiresAt,
   });
-  return Boolean(
-    proposed && sameCheckoutAccessAuthority(access, proposed),
-  );
+  return Boolean(proposed && sameCheckoutAccessAuthority(access, proposed));
 }
 
 async function recordAudit(
@@ -308,13 +296,8 @@ export class CheckoutHttpTransport {
   constructor(
     private readonly dependencies: CheckoutHttpTransportDependencies,
   ) {
-    const ttl =
-      dependencies.statusTtlSeconds ?? 24 * 60 * 60;
-    if (
-      !Number.isSafeInteger(ttl) ||
-      ttl < 10 * 60 ||
-      ttl > 7 * 24 * 60 * 60
-    ) {
+    const ttl = dependencies.statusTtlSeconds ?? 24 * 60 * 60;
+    if (!Number.isSafeInteger(ttl) || ttl < 10 * 60 || ttl > 7 * 24 * 60 * 60) {
       throw new Error("CHECKOUT_STATUS_TTL_INVALID");
     }
     this.statusTtlSeconds = ttl;
@@ -322,23 +305,16 @@ export class CheckoutHttpTransport {
 
   matches(pathname: string): boolean {
     return (
-      pathname === checkoutPrefix ||
-      pathname.startsWith(checkoutPrefix + "/")
+      pathname === checkoutPrefix || pathname.startsWith(checkoutPrefix + "/")
     );
   }
 
-  async handle(
-    request: CheckoutHttpRequest,
-  ): Promise<CheckoutHttpResponse> {
+  async handle(request: CheckoutHttpRequest): Promise<CheckoutHttpResponse> {
     const correlationId = normalizeCheckoutCorrelationId(
       request.correlationId ?? header(request, "x-correlation-id"),
     );
     if (!correlationId) {
-      return errorResponse(
-        400,
-        "CORRELATION_ID_REQUIRED",
-        "corr_invalid",
-      );
+      return errorResponse(400, "CORRELATION_ID_REQUIRED", "corr_invalid");
     }
 
     const matched = route(request.pathname);
@@ -356,11 +332,7 @@ export class CheckoutHttpTransport {
       }
       return errorResponse(405, "METHOD_NOT_ALLOWED", correlationId);
     } catch {
-      return errorResponse(
-        503,
-        "CHECKOUT_UNAVAILABLE",
-        correlationId,
-      );
+      return errorResponse(503, "CHECKOUT_UNAVAILABLE", correlationId);
     }
   }
 
@@ -382,44 +354,25 @@ export class CheckoutHttpTransport {
         tenantId: null,
         orderId: null,
       });
-      return errorResponse(
-        400,
-        "INVALID_CHECKOUT_REQUEST",
-        correlationId,
-      );
+      return errorResponse(400, "INVALID_CHECKOUT_REQUEST", correlationId);
     }
 
     const expectedIdempotency = createBusinessOrderRequestKey(
       handoff.sessionId,
       handoff.planId,
     );
-    const providedIdempotency = header(
-      request,
-      "idempotency-key",
-    );
+    const providedIdempotency = header(request, "idempotency-key");
     if (!providedIdempotency) {
-      return errorResponse(
-        400,
-        "IDEMPOTENCY_KEY_REQUIRED",
-        correlationId,
-      );
+      return errorResponse(400, "IDEMPOTENCY_KEY_REQUIRED", correlationId);
     }
-    if (
-      !expectedIdempotency ||
-      providedIdempotency !== expectedIdempotency
-    ) {
-      return errorResponse(
-        409,
-        "IDEMPOTENCY_KEY_MISMATCH",
-        correlationId,
-      );
+    if (!expectedIdempotency || providedIdempotency !== expectedIdempotency) {
+      return errorResponse(409, "IDEMPOTENCY_KEY_MISMATCH", correlationId);
     }
 
-    const authorization =
-      await this.dependencies.authorization.authorizeCreate(
-        request,
-        handoff,
-      );
+    const authorization = await this.dependencies.authorization.authorizeCreate(
+      request,
+      handoff,
+    );
     if (!authorization.allowed) {
       await recordAudit(this.dependencies.audit, {
         action: "checkout.create",
@@ -433,9 +386,7 @@ export class CheckoutHttpTransport {
       });
       return authorizationError(authorization.reason, correlationId);
     }
-    const context = normalizeCheckoutRequestContext(
-      authorization.context,
-    );
+    const context = normalizeCheckoutRequestContext(authorization.context);
     if (!context) {
       return authorizationError("missing_context", correlationId);
     }
@@ -451,11 +402,7 @@ export class CheckoutHttpTransport {
         tenantId: context.tenantId,
         orderId: null,
       });
-      return errorResponse(
-        400,
-        "RETURN_URL_DENIED",
-        correlationId,
-      );
+      return errorResponse(400, "RETURN_URL_DENIED", correlationId);
     }
 
     const now = canonicalNow(this.dependencies.clock);
@@ -482,25 +429,20 @@ export class CheckoutHttpTransport {
         tenantId: context.tenantId,
         orderId: null,
       });
-      return errorResponse(
-        429,
-        "RATE_LIMITED",
-        correlationId,
-        undefined,
-        {
-          "Retry-After": String(rate.retryAfterSeconds),
-        },
-      );
+      return errorResponse(429, "RATE_LIMITED", correlationId, undefined, {
+        "Retry-After": String(rate.retryAfterSeconds),
+      });
     }
 
     try {
-      const result =
-        await this.dependencies.application.startCheckout(handoff);
+      const result = await this.dependencies.application.startCheckout(handoff);
       const fingerprint = checkoutRequestFingerprint(handoff, context);
-      const capability =
-        this.dependencies.statusCapabilities.issue(result.order.id);
-      const existing =
-        await this.dependencies.access.findByOrderId(result.order.id);
+      const capability = this.dependencies.statusCapabilities.issue(
+        result.order.id,
+      );
+      const existing = await this.dependencies.access.findByOrderId(
+        result.order.id,
+      );
       let access: CheckoutAccessRecord;
       let replayed = result.replayed;
 
@@ -560,11 +502,7 @@ export class CheckoutHttpTransport {
           tenantId: context.tenantId,
           orderId: result.order.id,
         });
-        return errorResponse(
-          409,
-          "STATUS_CAPABILITY_EXPIRED",
-          correlationId,
-        );
+        return errorResponse(409, "STATUS_CAPABILITY_EXPIRED", correlationId);
       }
 
       await recordAudit(this.dependencies.audit, {
@@ -583,16 +521,12 @@ export class CheckoutHttpTransport {
           data: Object.freeze({
             checkoutId: result.order.id,
             paymentId: result.payment.id,
-            status: publicPaymentStatus(
-              result.payment,
-              result.order,
-            ),
+            status: publicPaymentStatus(result.payment, result.order),
             plan: Object.freeze({
               id: result.order.pricing.planId,
               name: result.order.pricing.planName,
               amount: result.order.pricing.amount,
-              pricingVersion:
-                result.order.pricing.pricingVersion,
+              pricingVersion: result.order.pricing.pricingVersion,
             }),
             statusToken: capability.token,
             statusExpiresAt: access.expiresAt,
@@ -606,18 +540,9 @@ export class CheckoutHttpTransport {
         error instanceof CheckoutApplicationError
           ? applicationError(error, correlationId)
           : error instanceof Error &&
-              error.message ===
-                "ORDERING_CHECKOUT_ACCESS_CONFLICT"
-            ? errorResponse(
-                409,
-                "IDEMPOTENCY_CONFLICT",
-                correlationId,
-              )
-            : errorResponse(
-                503,
-                "CHECKOUT_UNAVAILABLE",
-                correlationId,
-              );
+              error.message === "ORDERING_CHECKOUT_ACCESS_CONFLICT"
+            ? errorResponse(409, "IDEMPOTENCY_CONFLICT", correlationId)
+            : errorResponse(503, "CHECKOUT_UNAVAILABLE", correlationId);
       await recordAudit(this.dependencies.audit, {
         action: "checkout.create",
         result: "failure",
@@ -649,15 +574,9 @@ export class CheckoutHttpTransport {
       nowMs: Date.parse(now),
     });
     if (!rate.allowed) {
-      return errorResponse(
-        429,
-        "RATE_LIMITED",
-        correlationId,
-        undefined,
-        {
-          "Retry-After": String(rate.retryAfterSeconds),
-        },
-      );
+      return errorResponse(429, "RATE_LIMITED", correlationId, undefined, {
+        "Retry-After": String(rate.retryAfterSeconds),
+      });
     }
 
     const orderId = normalizeOrderId(orderIdInput);
@@ -673,15 +592,10 @@ export class CheckoutHttpTransport {
         tenantId: null,
         orderId: null,
       });
-      return errorResponse(
-        404,
-        "CHECKOUT_NOT_FOUND",
-        correlationId,
-      );
+      return errorResponse(404, "CHECKOUT_NOT_FOUND", correlationId);
     }
 
-    const access =
-      await this.dependencies.access.findByOrderId(orderId);
+    const access = await this.dependencies.access.findByOrderId(orderId);
     if (
       !access ||
       Date.parse(access.expiresAt) <= Date.parse(now) ||
@@ -701,11 +615,7 @@ export class CheckoutHttpTransport {
         tenantId: null,
         orderId: null,
       });
-      return errorResponse(
-        404,
-        "CHECKOUT_NOT_FOUND",
-        correlationId,
-      );
+      return errorResponse(404, "CHECKOUT_NOT_FOUND", correlationId);
     }
 
     const [order, payment] = await Promise.all([
@@ -728,11 +638,7 @@ export class CheckoutHttpTransport {
         tenantId: access.tenantId,
         orderId,
       });
-      return errorResponse(
-        503,
-        "CHECKOUT_UNAVAILABLE",
-        correlationId,
-      );
+      return errorResponse(503, "CHECKOUT_UNAVAILABLE", correlationId);
     }
 
     await recordAudit(this.dependencies.audit, {
@@ -753,8 +659,7 @@ export class CheckoutHttpTransport {
           sessionId: order.source.reference,
           status: publicPaymentStatus(payment, order),
           paymentReference:
-            payment.status === "confirmed" ||
-            payment.status === "refunded"
+            payment.status === "confirmed" || payment.status === "refunded"
               ? payment.providerReference
               : null,
           activationStatus: null,

@@ -3,10 +3,7 @@ import {
   normalizePaymentId,
   type PaymentId,
 } from "@touristic/financial";
-import {
-  normalizeOrderId,
-  type OrderId,
-} from "@touristic/ordering";
+import { normalizeOrderId, type OrderId } from "@touristic/ordering";
 
 import {
   isCheckoutSha256Hex,
@@ -53,9 +50,7 @@ export function createCheckoutAccessRecord(input: {
   const orderId = normalizeOrderId(input.orderId);
   const paymentId = normalizePaymentId(input.paymentId);
   const context = normalizeCheckoutRequestContext(input.context);
-  const correlationId = normalizeCheckoutCorrelationId(
-    input.correlationId,
-  );
+  const correlationId = normalizeCheckoutCorrelationId(input.correlationId);
   const createdAt = canonicalTimestamp(input.createdAt);
   const expiresAt = canonicalTimestamp(input.expiresAt);
   if (

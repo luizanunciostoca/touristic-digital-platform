@@ -58,12 +58,21 @@ importers:
       "@touristic/crm-server":
         specifier: workspace:*
         version: link:../../services/crm
+      "@touristic/financial-server":
+        specifier: workspace:*
+        version: link:../../services/financial
       "@touristic/geospatial":
         specifier: workspace:*
         version: link:../../packages/geospatial
       "@touristic/navigation":
         specifier: workspace:*
         version: link:../../packages/navigation
+      "@touristic/ordering":
+        specifier: workspace:*
+        version: link:../../packages/ordering
+      "@touristic/ordering-server":
+        specifier: workspace:*
+        version: link:../../services/ordering
       "@touristic/search":
         specifier: workspace:*
         version: link:../../packages/search
@@ -146,6 +155,9 @@ importers:
 
   services/ordering:
     dependencies:
+      "@touristic/financial":
+        specifier: workspace:*
+        version: link:../../packages/financial
       "@touristic/ordering":
         specifier: workspace:*
         version: link:../../packages/ordering

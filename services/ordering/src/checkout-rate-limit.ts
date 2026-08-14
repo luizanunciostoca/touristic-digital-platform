@@ -41,9 +41,7 @@ export function createInMemoryCheckoutRateLimitPort(
         const first = active[0] ?? input.nowMs;
         const retryAfterSeconds = Math.max(
           1,
-          Math.ceil(
-            (input.windowMs - (input.nowMs - first)) / 1_000,
-          ),
+          Math.ceil((input.windowMs - (input.nowMs - first)) / 1_000),
         );
         attempts.delete(mapKey);
         attempts.set(mapKey, active);
@@ -53,9 +51,7 @@ export function createInMemoryCheckoutRateLimitPort(
       }
 
       if (!attempts.has(mapKey) && attempts.size >= maxKeys) {
-        const oldest = attempts.keys().next().value as
-          | string
-          | undefined;
+        const oldest = attempts.keys().next().value as string | undefined;
         if (oldest) attempts.delete(oldest);
       }
       active.push(input.nowMs);

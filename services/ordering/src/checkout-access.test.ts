@@ -47,9 +47,7 @@ describe("M139 durable checkout access contract", () => {
   it("rejects malformed hashes, correlation and non-forward expiry", () => {
     expect(record({ tokenHash: "short" })).toBeNull();
     expect(record({ correlationId: "bad" })).toBeNull();
-    expect(
-      record({ expiresAt: "2026-08-14T21:59:59Z" }),
-    ).toBeNull();
+    expect(record({ expiresAt: "2026-08-14T21:59:59Z" })).toBeNull();
   });
 
   it("treats retry correlation/timestamps as metadata while binding authority fields", () => {
@@ -77,9 +75,7 @@ describe("M139 durable checkout access contract", () => {
     expect(orderingM139SchemaSql).toContain(
       "token_hash BINARY(32) NOT NULL UNIQUE",
     );
-    expect(orderingM139SchemaSql).toContain(
-      "FOREIGN KEY (order_id)",
-    );
+    expect(orderingM139SchemaSql).toContain("FOREIGN KEY (order_id)");
     expect(orderingM139SchemaSql).not.toContain("public_token");
   });
 });

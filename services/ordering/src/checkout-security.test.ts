@@ -65,15 +65,11 @@ describe("M139 checkout security primitives", () => {
     expect(first).toEqual(second);
     expect(first.token).toMatch(/^cst_v1_[A-Za-z0-9_-]+$/u);
     expect(first.tokenHash).toMatch(/^[a-f0-9]{64}$/u);
-    expect(
-      capability.verify(orderId, first.token, first.tokenHash),
-    ).toBe(true);
-    expect(
-      capability.verify(orderId, first.token + "x", first.tokenHash),
-    ).toBe(false);
-    expect(
-      capability.verify(orderId, first.token, "0".repeat(64)),
-    ).toBe(false);
+    expect(capability.verify(orderId, first.token, first.tokenHash)).toBe(true);
+    expect(capability.verify(orderId, first.token + "x", first.tokenHash)).toBe(
+      false,
+    );
+    expect(capability.verify(orderId, first.token, "0".repeat(64))).toBe(false);
   });
 
   it("binds a bounded guest capability to the full normalized handoff and context", () => {
@@ -85,12 +81,9 @@ describe("M139 checkout security primitives", () => {
     );
     expect(token).not.toBeNull();
 
-    const verified = verifyCheckoutHandoffCapability(
-      token,
-      request(),
-      secret,
-      { nowEpochSeconds: 1_776_000_100 },
-    );
+    const verified = verifyCheckoutHandoffCapability(token, request(), secret, {
+      nowEpochSeconds: 1_776_000_100,
+    });
     expect(verified).toEqual({
       requesterKind: "guest_capability",
       actorSubject: "guest:security_session_123",
@@ -107,12 +100,9 @@ describe("M139 checkout security primitives", () => {
       ),
     ).toBeNull();
     expect(
-      verifyCheckoutHandoffCapability(
-        token,
-        request(),
-        secret,
-        { nowEpochSeconds: 1_776_001_000 },
-      ),
+      verifyCheckoutHandoffCapability(token, request(), secret, {
+        nowEpochSeconds: 1_776_001_000,
+      }),
     ).toBeNull();
   });
 
@@ -162,25 +152,18 @@ describe("M139 checkout security primitives", () => {
     if (!context) throw new Error("FIXTURE_INVALID");
 
     expect(
-      policy.allows(
-        "https://morro.digital/checkout/return?state=1",
-        context,
-      ),
+      policy.allows("https://morro.digital/checkout/return?state=1", context),
     ).toBe(true);
-    expect(
-      policy.allows("https://evil.example/return", context),
-    ).toBe(false);
-    expect(
-      policy.allows("http://morro.digital/return", context),
-    ).toBe(false);
+    expect(policy.allows("https://evil.example/return", context)).toBe(false);
+    expect(policy.allows("http://morro.digital/return", context)).toBe(false);
   });
 
   it("fails closed when security secrets or allowlists are absent", () => {
     expect(() => createCheckoutStatusCapability("short")).toThrow(
       "PAYMENTS_STATUS_TOKEN_SECRET is required",
     );
-    expect(() =>
-      createCheckoutReturnUrlPolicyFromEnvironment({}),
-    ).toThrow("PAYMENTS_RETURN_URL_ORIGINS is required");
+    expect(() => createCheckoutReturnUrlPolicyFromEnvironment({})).toThrow(
+      "PAYMENTS_RETURN_URL_ORIGINS is required",
+    );
   });
 });

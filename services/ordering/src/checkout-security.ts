@@ -1,8 +1,4 @@
-import {
-  createHash,
-  createHmac,
-  timingSafeEqual,
-} from "node:crypto";
+import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 
 import {
   normalizeBusinessCheckoutHandoff,
@@ -17,9 +13,7 @@ const ACTOR_SUBJECT = /^[A-Za-z0-9][A-Za-z0-9@._:-]{1,159}$/u;
 const CORRELATION_ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{7,119}$/u;
 const SHA256_HEX = /^[a-f0-9]{64}$/u;
 
-export type CheckoutRequesterKind =
-  | "authenticated"
-  | "guest_capability";
+export type CheckoutRequesterKind = "authenticated" | "guest_capability";
 
 export interface CheckoutRequestContext {
   readonly requesterKind: CheckoutRequesterKind;
@@ -33,18 +27,11 @@ export interface CheckoutStatusCapability {
     token: string;
     tokenHash: string;
   }>;
-  verify(
-    orderId: OrderId,
-    token: unknown,
-    storedTokenHash: unknown,
-  ): boolean;
+  verify(orderId: OrderId, token: unknown, storedTokenHash: unknown): boolean;
 }
 
 export interface CheckoutReturnUrlPolicy {
-  allows(
-    returnUrl: string,
-    context: CheckoutRequestContext,
-  ): boolean;
+  allows(returnUrl: string, context: CheckoutRequestContext): boolean;
 }
 
 export interface CheckoutReturnUrlEnvironment {
@@ -106,9 +93,7 @@ export function normalizeCheckoutRequestContext(
     !requesterKind ||
     !actorSubject ||
     !destinationId ||
-    (input.tenantId !== null &&
-      input.tenantId !== undefined &&
-      !tenantId)
+    (input.tenantId !== null && input.tenantId !== undefined && !tenantId)
   ) {
     return null;
   }
@@ -120,9 +105,7 @@ export function normalizeCheckoutRequestContext(
   });
 }
 
-function canonicalHandoff(
-  handoff: ValidatedBusinessCheckoutHandoff,
-): string {
+function canonicalHandoff(handoff: ValidatedBusinessCheckoutHandoff): string {
   const acceptedTerms = [...handoff.acceptedTerms]
     .sort((left, right) => left.type.localeCompare(right.type))
     .map((acceptance) => ({
@@ -150,8 +133,7 @@ function canonicalHandoff(
     acceptedTerms,
     returnUrl: handoff.returnUrl,
     tutorial: handoff.tutorial,
-    requiresPaymentsCapability:
-      handoff.requiresPaymentsCapability,
+    requiresPaymentsCapability: handoff.requiresPaymentsCapability,
   });
 }
 
@@ -178,9 +160,7 @@ function signature(part: string, secret: string): string {
 }
 
 function validatedHandoff(
-  input:
-    | CheckoutApplicationRequest
-    | ValidatedBusinessCheckoutHandoff,
+  input: CheckoutApplicationRequest | ValidatedBusinessCheckoutHandoff,
 ): ValidatedBusinessCheckoutHandoff | null {
   return normalizeBusinessCheckoutHandoff(input);
 }
@@ -256,9 +236,7 @@ export function createCheckoutStatusCapability(
 }
 
 export function createCheckoutHandoffCapability(
-  input:
-    | CheckoutApplicationRequest
-    | ValidatedBusinessCheckoutHandoff,
+  input: CheckoutApplicationRequest | ValidatedBusinessCheckoutHandoff,
   contextInput: Readonly<{
     destinationId?: unknown;
     tenantId?: unknown;
@@ -273,8 +251,7 @@ export function createCheckoutHandoffCapability(
     actorSubject: handoff ? "guest:" + handoff.sessionId : "",
     destinationId: contextInput.destinationId as string,
     tenantId:
-      contextInput.tenantId === null ||
-      contextInput.tenantId === undefined
+      contextInput.tenantId === null || contextInput.tenantId === undefined
         ? null
         : (contextInput.tenantId as string),
   });
@@ -310,9 +287,7 @@ export function createCheckoutHandoffCapability(
 
 export function verifyCheckoutHandoffCapability(
   tokenInput: unknown,
-  input:
-    | CheckoutApplicationRequest
-    | ValidatedBusinessCheckoutHandoff,
+  input: CheckoutApplicationRequest | ValidatedBusinessCheckoutHandoff,
   secretInput: unknown,
   options: VerifyCheckoutHandoffCapabilityOptions = {},
 ): CheckoutRequestContext | null {
@@ -351,8 +326,7 @@ export function verifyCheckoutHandoffCapability(
       requesterKind: "guest_capability",
       actorSubject: "guest:" + handoff.sessionId,
       destinationId: payload.did as string,
-      tenantId:
-        payload.tid === null ? null : (payload.tid as string),
+      tenantId: payload.tid === null ? null : (payload.tid as string),
     });
     if (
       payload.v !== 1 ||
@@ -367,10 +341,7 @@ export function verifyCheckoutHandoffCapability(
       expiresAt <= issuedAt ||
       expiresAt - issuedAt > maxTtlSeconds ||
       !context ||
-      !safeTextEqual(
-        payload.fp,
-        checkoutHandoffFingerprint(handoff),
-      )
+      !safeTextEqual(payload.fp, checkoutHandoffFingerprint(handoff))
     ) {
       return null;
     }
@@ -380,10 +351,7 @@ export function verifyCheckoutHandoffCapability(
   }
 }
 
-function configuredOrigin(
-  value: string,
-  production: boolean,
-): string | null {
+function configuredOrigin(value: string, production: boolean): string | null {
   try {
     const url = new URL(value);
     if (
@@ -418,9 +386,7 @@ export function createCheckoutReturnUrlPolicyFromEnvironment(
   if (entries.length === 0 || entries.length > 20) {
     throw new Error("PAYMENTS_RETURN_URL_ORIGINS is required");
   }
-  const origins = entries.map((value) =>
-    configuredOrigin(value, production),
-  );
+  const origins = entries.map((value) => configuredOrigin(value, production));
   if (origins.some((value) => value === null)) {
     throw new Error("PAYMENTS_RETURN_URL_ORIGINS is invalid");
   }

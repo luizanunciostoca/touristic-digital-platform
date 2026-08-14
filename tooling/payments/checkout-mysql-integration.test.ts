@@ -304,21 +304,15 @@ describeMySql.sequential("M138 checkout application MySQL integration", () => {
       "SELECT HEX(token_hash) AS token_hash FROM ordering_checkout_access WHERE order_id = ?",
       ["ord_mysql_http_0001"],
     );
-    const persisted = (
-      rows as unknown as Array<{ token_hash: string }>
-    )[0];
+    const persisted = (rows as unknown as Array<{ token_hash: string }>)[0];
     expect(persisted?.token_hash).toBe(
-      createHash("sha256")
-        .update(statusToken)
-        .digest("hex")
-        .toUpperCase(),
+      createHash("sha256").update(statusToken).digest("hex").toUpperCase(),
     );
     expect(JSON.stringify(rows)).not.toContain(statusToken);
 
     const validStatus = await transport.handle({
       method: "GET",
-      pathname:
-        "/api/payments/v1/checkouts/ord_mysql_http_0001",
+      pathname: "/api/payments/v1/checkouts/ord_mysql_http_0001",
       headers: { "X-Checkout-Token": statusToken },
       clientIp: "203.0.113.30",
       correlationId: "corr_mysql_http_status",
@@ -335,16 +329,14 @@ describeMySql.sequential("M138 checkout application MySQL integration", () => {
 
     const invalidToken = await transport.handle({
       method: "GET",
-      pathname:
-        "/api/payments/v1/checkouts/ord_mysql_http_0001",
+      pathname: "/api/payments/v1/checkouts/ord_mysql_http_0001",
       headers: { "X-Checkout-Token": "wrong" },
       clientIp: "203.0.113.30",
       correlationId: "corr_mysql_http_denied_1",
     });
     const unknownOrder = await transport.handle({
       method: "GET",
-      pathname:
-        "/api/payments/v1/checkouts/ord_mysql_unknown_0001",
+      pathname: "/api/payments/v1/checkouts/ord_mysql_unknown_0001",
       headers: { "X-Checkout-Token": "wrong" },
       clientIp: "203.0.113.30",
       correlationId: "corr_mysql_http_denied_2",
@@ -357,9 +349,9 @@ describeMySql.sequential("M138 checkout application MySQL integration", () => {
       createRequest(handoff(), "corr_mysql_http_replay"),
     );
     expect(replay.status).toBe(200);
-    expect(
-      (replay.body.data as Record<string, unknown>).statusToken,
-    ).toBe(statusToken);
+    expect((replay.body.data as Record<string, unknown>).statusToken).toBe(
+      statusToken,
+    );
 
     const divergent = await transport.handle(
       createRequest(
@@ -378,5 +370,4 @@ describeMySql.sequential("M138 checkout application MySQL integration", () => {
       body: { error: "IDEMPOTENCY_CONFLICT" },
     });
   });
-
 });

@@ -92,9 +92,7 @@ describe("M139 payments API runtime boundary", () => {
       clientIp: "203.0.113.20",
     });
     expect(captured.correlationId).toMatch(/^corr_/u);
-    expect(response.header("x-correlation-id")).toBe(
-      captured.correlationId,
-    );
+    expect(response.header("x-correlation-id")).toBe(captured.correlationId);
   });
 
   it("rejects unsupported content types before the transport", async () => {

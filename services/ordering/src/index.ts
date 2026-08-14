@@ -2,10 +2,7 @@ import mysql, { type Pool, type PoolOptions } from "mysql2/promise";
 
 import { MySqlCheckoutAccessRepository } from "./mysql-checkout-access-repository.js";
 import { MySqlOrderRepository } from "./mysql-order-repository.js";
-import {
-  orderingM137SchemaSql,
-  orderingM139SchemaSql,
-} from "./schema.js";
+import { orderingM137SchemaSql, orderingM139SchemaSql } from "./schema.js";
 
 export {
   MySqlCheckoutAccessRepository,

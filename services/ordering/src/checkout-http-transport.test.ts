@@ -82,9 +82,7 @@ function fixtures(): { order: Order; payment: Payment } {
     "http_session_12345678",
     "growth",
   );
-  const source = normalizeOrderSourceReference(
-    "http_session_12345678",
-  );
+  const source = normalizeOrderSourceReference("http_session_12345678");
   const quote = createPricingQuote({
     planId: "growth",
     planName: "Crescimento",
@@ -95,10 +93,7 @@ function fixtures(): { order: Order; payment: Payment } {
   if (!id || !requestKey || !source || !quote) {
     throw new Error("FIXTURE_INVALID");
   }
-  const pricing = capturePricingSnapshot(
-    quote,
-    "2026-08-14T22:30:00Z",
-  );
+  const pricing = capturePricingSnapshot(quote, "2026-08-14T22:30:00Z");
   if (!pricing) throw new Error("FIXTURE_INVALID");
   const order = createOrder({
     id,
@@ -123,14 +118,10 @@ class MemoryOrders implements OrderRepositoryPort {
   constructor(readonly order: Order) {}
 
   findById(orderId: OrderId): Promise<Order | null> {
-    return Promise.resolve(
-      orderId === this.order.id ? this.order : null,
-    );
+    return Promise.resolve(orderId === this.order.id ? this.order : null);
   }
 
-  findByRequestKey(
-    requestKey: OrderRequestKey,
-  ): Promise<Order | null> {
+  findByRequestKey(requestKey: OrderRequestKey): Promise<Order | null> {
     return Promise.resolve(
       requestKey === this.order.requestKey ? this.order : null,
     );
@@ -145,9 +136,7 @@ class MemoryPayments implements PaymentRepositoryPort {
   constructor(readonly payment: Payment) {}
 
   findById(paymentId: PaymentId): Promise<Payment | null> {
-    return Promise.resolve(
-      paymentId === this.payment.id ? this.payment : null,
-    );
+    return Promise.resolve(paymentId === this.payment.id ? this.payment : null);
   }
 
   save(payment: Payment): Promise<Payment> {
@@ -167,9 +156,7 @@ class MemoryAccess implements CheckoutAccessRepositoryPort {
   claim(record: CheckoutAccessRecord): Promise<CheckoutAccessRecord> {
     if (!this.current) this.current = record;
     if (!sameCheckoutAccessAuthority(this.current, record)) {
-      return Promise.reject(
-        new Error("ORDERING_CHECKOUT_ACCESS_CONFLICT"),
-      );
+      return Promise.reject(new Error("ORDERING_CHECKOUT_ACCESS_CONFLICT"));
     }
     return Promise.resolve(this.current);
   }
@@ -190,8 +177,7 @@ function createRequest(
     pathname: "/api/payments/v1/checkouts",
     body: handoff(),
     headers: {
-      "Idempotency-Key":
-        "business:http_session_12345678:growth",
+      "Idempotency-Key": "business:http_session_12345678:growth",
     },
     clientIp: "203.0.113.10",
     correlationId: "corr_http_12345678",
@@ -199,11 +185,13 @@ function createRequest(
   };
 }
 
-function harness(options: {
-  readonly authorization?: CheckoutHttpAuthorizationPort;
-  readonly rateLimits?: CheckoutHttpRateLimitPort;
-  readonly application?: ProviderNeutralCheckoutApplicationService;
-} = {}) {
+function harness(
+  options: {
+    readonly authorization?: CheckoutHttpAuthorizationPort;
+    readonly rateLimits?: CheckoutHttpRateLimitPort;
+    readonly application?: ProviderNeutralCheckoutApplicationService;
+  } = {},
+) {
   const { order, payment } = fixtures();
   const access = new MemoryAccess();
   const audits: CheckoutHttpAuditEvent[] = [];
@@ -216,8 +204,7 @@ function harness(options: {
   if (!context) throw new Error("FIXTURE_INVALID");
   const application: ProviderNeutralCheckoutApplicationService =
     options.application ?? {
-      startCheckout: () =>
-        Promise.resolve({ order, payment, replayed: false }),
+      startCheckout: () => Promise.resolve({ order, payment, replayed: false }),
     };
   const transport = new CheckoutHttpTransport({
     application,
@@ -225,19 +212,15 @@ function harness(options: {
     payments: new MemoryPayments(payment),
     access,
     authorization: options.authorization ?? {
-      authorizeCreate: () =>
-        Promise.resolve({ allowed: true, context }),
+      authorizeCreate: () => Promise.resolve({ allowed: true, context }),
     },
     returnUrls: {
-      allows: (returnUrl) =>
-        returnUrl.startsWith("https://morro.digital/"),
+      allows: (returnUrl) => returnUrl.startsWith("https://morro.digital/"),
     },
     statusCapabilities: createCheckoutStatusCapability(
       "http-status-secret-with-at-least-thirty-two-characters",
     ),
-    rateLimits:
-      options.rateLimits ??
-      createInMemoryCheckoutRateLimitPort(),
+    rateLimits: options.rateLimits ?? createInMemoryCheckoutRateLimitPort(),
     audit: {
       record: (event) => {
         audits.push(event);
@@ -272,9 +255,7 @@ describe("M139 checkout HTTP/Auth/security transport", () => {
         replayed: false,
       },
     });
-    expect(JSON.stringify(result.body)).not.toContain(
-      "http@example.com",
-    );
+    expect(JSON.stringify(result.body)).not.toContain("http@example.com");
     expect(access.current).not.toHaveProperty("token");
     expect(access.current?.tokenHash).toMatch(/^[a-f0-9]{64}$/u);
     expect(audits.at(-1)).toMatchObject({
@@ -295,9 +276,7 @@ describe("M139 checkout HTTP/Auth/security transport", () => {
       },
     });
 
-    const missing = await base.transport.handle(
-      createRequest({ headers: {} }),
-    );
+    const missing = await base.transport.handle(createRequest({ headers: {} }));
     const divergent = await base.transport.handle(
       createRequest({
         headers: { "Idempotency-Key": "business:other:growth" },
@@ -353,14 +332,10 @@ describe("M139 checkout HTTP/Auth/security transport", () => {
 
     expect(first.status).toBe(201);
     expect(second.status).toBe(200);
-    expect(
-      (second.body.data as Record<string, unknown>).statusToken,
-    ).toBe(
+    expect((second.body.data as Record<string, unknown>).statusToken).toBe(
       (first.body.data as Record<string, unknown>).statusToken,
     );
-    expect(
-      (second.body.data as Record<string, unknown>).replayed,
-    ).toBe(true);
+    expect((second.body.data as Record<string, unknown>).replayed).toBe(true);
   });
 
   it("rejects a divergent handoff reusing the same logical Order", async () => {
@@ -387,14 +362,12 @@ describe("M139 checkout HTTP/Auth/security transport", () => {
   it("serves a minimal status only for the exact unexpired capability", async () => {
     const { transport, order } = harness();
     const created = await transport.handle(createRequest());
-    const token = (created.body.data as Record<string, unknown>)
-      .statusToken;
+    const token = (created.body.data as Record<string, unknown>).statusToken;
 
     const valid = await transport.handle(
       createRequest({
         method: "GET",
-        pathname:
-          "/api/payments/v1/checkouts/" + order.id,
+        pathname: "/api/payments/v1/checkouts/" + order.id,
         body: undefined,
         headers: { "X-Checkout-Token": token },
         correlationId: "corr_status_12345678",
@@ -462,15 +435,11 @@ describe("M139 checkout HTTP/Auth/security transport", () => {
       application: {
         startCheckout: () =>
           Promise.reject(
-            new CheckoutApplicationError(
-              "CHECKOUT_PLAN_NOT_CONFIGURED",
-            ),
+            new CheckoutApplicationError("CHECKOUT_PLAN_NOT_CONFIGURED"),
           ),
       },
     });
-    const unavailable = await notConfigured.transport.handle(
-      createRequest(),
-    );
+    const unavailable = await notConfigured.transport.handle(createRequest());
 
     expect(unavailable).toMatchObject({
       status: 503,
@@ -492,15 +461,13 @@ describe("M139 in-memory rate limiter", () => {
       windowMs: 1_000,
     };
 
-    await expect(
-      limiter.consume({ ...base, nowMs: 0 }),
-    ).resolves.toMatchObject({ allowed: true });
+    await expect(limiter.consume({ ...base, nowMs: 0 })).resolves.toMatchObject(
+      { allowed: true },
+    );
     await expect(
       limiter.consume({ ...base, nowMs: 100 }),
     ).resolves.toMatchObject({ allowed: true });
-    await expect(
-      limiter.consume({ ...base, nowMs: 200 }),
-    ).resolves.toEqual({
+    await expect(limiter.consume({ ...base, nowMs: 200 })).resolves.toEqual({
       allowed: false,
       retryAfterSeconds: 1,
     });

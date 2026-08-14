@@ -134,8 +134,7 @@ const businessApi = createBusinessApi({ authApi });
 
 const paymentsApi = createPaymentsApi({
   authApi,
-  getEnvironmentValue: (key) =>
-    process.env[key] ?? localEnvironment[key] ?? "",
+  getEnvironmentValue: (key) => process.env[key] ?? localEnvironment[key] ?? "",
 });
 await paymentsApi.start();
 

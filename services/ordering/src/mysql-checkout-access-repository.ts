@@ -1,13 +1,6 @@
-import type {
-  Pool,
-  ResultSetHeader,
-  RowDataPacket,
-} from "mysql2/promise";
+import type { Pool, ResultSetHeader, RowDataPacket } from "mysql2/promise";
 
-import {
-  normalizeOrderId,
-  type OrderId,
-} from "@touristic/ordering";
+import { normalizeOrderId, type OrderId } from "@touristic/ordering";
 
 import {
   createCheckoutAccessRecord,
@@ -59,9 +52,7 @@ function fromRow(row: CheckoutAccessRow): CheckoutAccessRecord {
     requestFingerprint: row.request_fingerprint.toString("hex"),
     tokenHash: row.token_hash.toString("hex"),
     context: {
-      requesterKind: row.requester_kind as
-        | "authenticated"
-        | "guest_capability",
+      requesterKind: row.requester_kind as "authenticated" | "guest_capability",
       actorSubject: row.actor_subject,
       destinationId: row.destination_id,
       tenantId: row.tenant_id,
@@ -76,9 +67,7 @@ function fromRow(row: CheckoutAccessRow): CheckoutAccessRecord {
   return record;
 }
 
-export class MySqlCheckoutAccessRepository
-  implements CheckoutAccessRepositoryPort
-{
+export class MySqlCheckoutAccessRepository implements CheckoutAccessRepositoryPort {
   constructor(private readonly pool: Pool) {}
 
   async findByOrderId(
