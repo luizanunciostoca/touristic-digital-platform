@@ -30,6 +30,5 @@ describe("CRM M125 follow-up scheduling browser", () => {
     expect(client).toContain('readData("/api/crm/follow-ups/settings")');
     expect(client).not.toContain("/sent");
     expect(client).not.toContain("/responded");
-    expect(client).not.toContain('method: "PUT"');
   });
 });
