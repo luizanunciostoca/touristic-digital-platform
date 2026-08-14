@@ -2,7 +2,12 @@ import { Readable } from "node:stream";
 
 import { describe, expect, it } from "vitest";
 
-import { createPaymentsApi } from "./payments-api.mjs";
+import { createCheckoutHandoffCapability } from "@touristic/ordering-server";
+
+import {
+  createPaymentsApi,
+  createPaymentsCheckoutAuthorizationPort,
+} from "./payments-api.mjs";
 
 function request({ method = "GET", headers = {}, body } = {}) {
   const stream = Readable.from(body === undefined ? [] : [body]);
@@ -26,6 +31,42 @@ function responseCapture() {
     header(name) {
       return headers.get(name.toLowerCase());
     },
+  };
+}
+
+function checkoutHandoff() {
+  return {
+    sessionId: "runtime_guest_session",
+    planId: "growth",
+    contractor: {
+      name: "Runtime Guest",
+      email: "runtime@example.com",
+      phone: "+55 75 99999-0000",
+      document: "123.456.789-00",
+    },
+    businessDraft: {
+      demoBusinessId: "runtime-demo",
+      displayName: "Runtime Business",
+      categoryId: "restaurant",
+      specialty: "Local",
+      environment: "sandbox",
+      publishable: false,
+    },
+    acceptedTerms: [
+      {
+        type: "terms",
+        version: "terms_v1",
+        acceptedAt: "2026-08-14T22:55:00Z",
+      },
+      {
+        type: "privacy",
+        version: "privacy_v1",
+        acceptedAt: "2026-08-14T22:55:00Z",
+      },
+    ],
+    returnUrl: "https://morro.digital/checkout/return",
+    tutorial: false,
+    requiresPaymentsCapability: true,
   };
 }
 
@@ -124,4 +165,153 @@ describe("M139 payments API runtime boundary", () => {
     });
     expect(calls).toBe(0);
   });
+
+  it("binds authenticated mutations to CSRF, role and business scope", async () => {
+    const now = Math.floor(Date.now() / 1_000);
+    const active = Object.freeze({
+      subject: "user-runtime",
+      email: "owner@example.com",
+      role: "owner",
+      businessIds: Object.freeze(["business-1"]),
+      issuedAt: now - 60,
+      expiresAt: now + 3_600,
+      sessionId: "session-runtime",
+    });
+    const port = createPaymentsCheckoutAuthorizationPort({
+      authApi: {
+        resolveSession: () => active,
+        authorizeMutation: () => ({ allowed: true }),
+      },
+      destinationId: "morro",
+      handoffSecret: "runtime-handoff-secret-with-thirty-two-characters",
+      origins: new Set(["https://morro.digital"]),
+      production: true,
+    });
+
+    await expect(
+      port.authorizeCreate(
+        {
+          headers: {
+            "x-business-id": "business-1",
+            origin: "https://morro.digital",
+          },
+        },
+        checkoutHandoff(),
+      ),
+    ).resolves.toEqual({
+      allowed: true,
+      context: {
+        requesterKind: "authenticated",
+        actorSubject: "user-runtime",
+        destinationId: "morro",
+        tenantId: "business-1",
+      },
+    });
+
+    const viewerPort = createPaymentsCheckoutAuthorizationPort({
+      authApi: {
+        resolveSession: () => ({ ...active, role: "viewer" }),
+        authorizeMutation: () => ({ allowed: true }),
+      },
+      destinationId: "morro",
+      handoffSecret: "runtime-handoff-secret-with-thirty-two-characters",
+      origins: new Set(["https://morro.digital"]),
+      production: true,
+    });
+    await expect(
+      viewerPort.authorizeCreate(
+        { headers: { "x-business-id": "business-1" } },
+        checkoutHandoff(),
+      ),
+    ).resolves.toEqual({
+      allowed: false,
+      reason: "read_only_role",
+    });
+
+    const csrfPort = createPaymentsCheckoutAuthorizationPort({
+      authApi: {
+        resolveSession: () => active,
+        authorizeMutation: () => ({
+          allowed: false,
+          reason: "invalid_csrf",
+        }),
+      },
+      destinationId: "morro",
+      handoffSecret: "runtime-handoff-secret-with-thirty-two-characters",
+      origins: new Set(["https://morro.digital"]),
+      production: true,
+    });
+    await expect(
+      csrfPort.authorizeCreate(
+        { headers: { "x-business-id": "business-1" } },
+        checkoutHandoff(),
+      ),
+    ).resolves.toEqual({
+      allowed: false,
+      reason: "invalid_csrf",
+    });
+  });
+
+  it("accepts only an exact signed guest handoff from an allowed origin", async () => {
+    const now = Math.floor(Date.now() / 1_000);
+    const secret = "runtime-handoff-secret-with-thirty-two-characters";
+    const token = createCheckoutHandoffCapability(
+      checkoutHandoff(),
+      { destinationId: "morro", tenantId: null },
+      secret,
+      { nowEpochSeconds: now, ttlSeconds: 300 },
+    );
+    if (!token) throw new Error("GUEST_TOKEN_FIXTURE_INVALID");
+    const port = createPaymentsCheckoutAuthorizationPort({
+      authApi: {
+        resolveSession: () => null,
+        authorizeMutation: () => ({ allowed: false }),
+      },
+      destinationId: "morro",
+      handoffSecret: secret,
+      origins: new Set(["https://morro.digital"]),
+      production: true,
+    });
+    const headers = {
+      "x-checkout-handoff-token": token,
+      origin: "https://morro.digital",
+    };
+
+    await expect(
+      port.authorizeCreate({ headers }, checkoutHandoff()),
+    ).resolves.toMatchObject({
+      allowed: true,
+      context: {
+        requesterKind: "guest_capability",
+        actorSubject: "guest:runtime_guest_session",
+        destinationId: "morro",
+        tenantId: null,
+      },
+    });
+    await expect(
+      port.authorizeCreate(
+        { headers: { ...headers, origin: "https://evil.example" } },
+        checkoutHandoff(),
+      ),
+    ).resolves.toEqual({
+      allowed: false,
+      reason: "cross_origin_request",
+    });
+    await expect(
+      port.authorizeCreate(
+        { headers },
+        {
+          ...checkoutHandoff(),
+          contractor: {
+            ...checkoutHandoff().contractor,
+            email: "changed@example.com",
+          },
+        },
+      ),
+    ).resolves.toEqual({
+      allowed: false,
+      reason: "invalid_guest_capability",
+    });
+  });
+
 });

@@ -23,7 +23,7 @@ Um item não pode avançar para `equivalent` sem evidência visual ou comportame
 | MIG-0007 | Business Portal | Business | FEATURE-0005 | `packages/business` + Business surfaces/adapters in `apps/morro-digital-platform` | 6 | equivalent | dashboard, 28-step onboarding, production profile and browser lifecycle contracts evidenced | 19/19 Business-owned contracts PASS; checkout execution remains Payments-owned N/A | `BUSINESS-MIGRATION-MATRIX.md`; M54–M65 evidence; PR #128 Quality + Business browser contracts | alto |
 | MIG-0008 | `luizidebook/morro-digital-crm@1915d026` | CRM | FEATURE-0006 | `@touristic/crm` + `@touristic/crm-server` + `apps/admin-crm` | 7 | migrating | authenticated shell and dedicated browser surfaces exist; consolidated V1 visual/accessibility equivalence remains open | 25 contracts: 17 PASS / 5 PARTIAL / 3 GAP at M133; leads, meetings, proposals, contracts, follow-ups, trials, referrals, public token flows, schedulers and audit are executable | `CRM-V1-BASELINE.md`; `CRM-MIGRATION-MATRIX.md`; M67–M133 evidence | alto |
 | MIG-0009 | autenticação e sessão | Auth | FEATURE-0008 | `packages/auth` + `packages/auth-browser` + Auth surfaces in `dashboard/` | 6 | equivalent | login V1-equivalent and canonical dashboard return proven in Chromium | 20/20 Auth contracts PASS: login/session/cookie/CSRF/origin/roles/tenant/audit/revocation | `AUTH-MIGRATION-MATRIX.md`; M47–M48 + M50–M52 + M66 evidence; PR #129 Quality + Auth/Business browser contracts | crítico |
-| MIG-0010 | pagamentos/assinaturas | Ordering / Financial | FEATURE-0009 | `@touristic/ordering` + `@touristic/ordering-server` + `@touristic/financial` + `@touristic/financial-server` | 8 | migrating | M138 compõe handoff, pricing autoritativo, Order/Payment e retry cross-database; HTTP/provider/browser ainda ausentes | 34 contratos: 9 PASS / 10 PARTIAL / 14 GAP / 1 N/A; criação provider-neutral e recuperação idempotente possuem prova unitária e MySQL real | `PAYMENTS-V1-BASELINE.md`; `PAYMENTS-MIGRATION-MATRIX.md`; evidências M135–M138 | crítico |
+| MIG-0010 | pagamentos/assinaturas | Ordering / Financial | FEATURE-0009 | `@touristic/ordering` + `@touristic/ordering-server` + `@touristic/financial` + `@touristic/financial-server` + runtime HTTP no Morro Digital | 8 | migrating | M139 materializa create/status HTTP provider-neutral e projections sem PII; provider/browser continuam ausentes | 34 contratos: 14 PASS / 9 PARTIAL / 10 GAP / 1 N/A; Auth/CSRF/tenant ou capability convidada, idempotência, token hash, status mínimo, rate limit e MySQL real têm prova executável | `PAYMENTS-V1-BASELINE.md`; `PAYMENTS-MIGRATION-MATRIX.md`; evidências M135–M139 | crítico |
 | MIG-0011 | afiliados | Affiliates | FEATURE-0010 | `packages/affiliates` | 9 | discovered | pendente | pendente | pendente | crítico |
 | MIG-0012 | `js/map*` + bootstrap V1 | Geospatial | FEATURE-0001 | `packages/geospatial` + `apps/morro-digital-platform/src/bootstrap/geospatial.ts` | 4 | equivalent | Mapbox Visual Contract validado nos três viewports, normal e `forced-colors` | Runtime, adapter, Mapbox real, fallback, rollback e lifecycle comprovados | PR #17 head final `2d84629b`; runs `31237633579`, `31237633601`, `31237633577` verdes | crítico |
 | MIG-0013 | Home / seletor de roteiros V1 | Core UI / Tours | FEATURE-0007 | `apps/morro-digital-platform/src/browser-entry.ts` | 4 | equivalent | matriz Home v4: loading, map-ready, teclado, contraste e texto ampliado comprovados | troca 8→5→5→8, falhas e offline/provider indisponível comprovados | PRs #19/#17/#20 incorporados; Quality Gate final da matriz `31237787144` verde | alto |
@@ -70,33 +70,35 @@ M136 materializou os domínios/ports framework-independent `@touristic/ordering`
 @touristic/financial-server → FINANCIAL_DATABASE_URL
 ```
 
-M138 agora materializa o application service provider-neutral e comprova:
+M138 materializou o application service provider-neutral, pricing server-authoritative e checkpoints recuperáveis entre os bancos. M139 agora acrescenta:
 
-- revalidação server-side do handoff Business, inclusive sandbox, não-publicação e aceites legais;
-- `ORDERING_PRICING_CATALOG_JSON` obrigatório, versionado e em minor units inteiras, sem fallback silencioso;
-- IDs Order/Payment criptograficamente gerados no servidor;
-- Order consultado antes do catálogo em retries, preservando o snapshot contratado mesmo após mudança de preço;
-- claim `payment:v1:<orderReference>` anterior a qualquer futuro provider;
-- persistência de Order e Payment pelos adapters M137;
-- reparo idempotente quando há interrupção após Order/claim e antes do Payment;
-- resultado sem PII, checkout URL, public token ou detalhes de provider;
-- teste permanente com MySQL 8.4 e bancos Ordering/Financial separados.
+- `POST /api/payments/v1/checkouts` e `GET /api/payments/v1/checkouts/:orderId`;
+- body JSON limitado, correlation ID propagado e `Idempotency-Key=business:<sessionId>:<planId>` obrigatório;
+- mutação autenticada com sessão, origin, CSRF, role e business scope, ou capability convidada HMAC curta vinculada ao handoff completo;
+- allowlist exata de return origin;
+- capability de status opaca, timing-safe, com somente SHA-256 persistido em `ordering_checkout_access`;
+- replay exato que devolve o mesmo token e divergência de autoridade que falha com conflito;
+- projeções create/status sem contractor PII;
+- limites 12/min create e 60/min status no adapter single-process;
+- auditoria estruturada e runtime fail-closed quando bancos, catálogo ou configuração de segurança faltam;
+- prova permanente MySQL 8.4 para hash-only, status válido, negação indistinguível e replay/conflito.
 
-A matriz canônica M138 é:
+A matriz canônica M139 é:
 
 ```text
-PASS      9
-PARTIAL  10
-GAP      14
+PASS     14
+PARTIAL   9
+GAP      10
 N/A       1
 TOTAL    34
 ```
 
-`MIG-0010` e `FEATURE-0009` permanecem `migrating`; equivalence behavior/visual/API continua `false`. M138 não adiciona provider, SDK financeiro, HTTP route, webhook endpoint, public token, browser checkout, recorrência ou transação monetária real.
+`MIG-0010` e `FEATURE-0009` permanecem `migrating`; equivalence behavior/visual/API continua `false`. M139 não adiciona provider/SDK financeiro, criação de checkout externa, webhook, browser checkout, confirmação financeira, ledger operacional, refund, settlement, recorrência ou transação monetária real.
 
-O próximo milestone é M139 — HTTP/Auth/security boundary. Provider sandbox, webhook criptograficamente verificado, state machine composta, reconciliation, settlement e subscriptions permanecem posteriores.
+O próximo milestone é M140 — provider sandbox atrás do port já congelado. Webhook criptograficamente verificado, state machine composta, reconciliation, settlement e subscriptions permanecem posteriores.
 
 Affiliates continua bloqueado até Payment/Ledger autoritativos e reversíveis estarem persistidos e publicados como eventos confiáveis.
+
 ## Evidência consolidada — checkpoint Home + Runtime + Geospatial
 
 A sequência de consolidação foi concluída em `main` por squash, preservando a separação arquitetural:

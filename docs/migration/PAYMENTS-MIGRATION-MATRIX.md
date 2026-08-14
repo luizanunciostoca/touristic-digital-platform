@@ -1,4 +1,4 @@
-# Payments / Ordering / Financial — Migration Matrix (M138 checkout application)
+# Payments / Ordering / Financial — Migration Matrix (M139 HTTP/Auth/security)
 
 ## Status semantics
 
@@ -16,17 +16,17 @@
 - V2 baseline checkpoint: `luizidebook/touristic-digital-platform@881b5a2a943f00325b90a9d0f75d7a291d9cbeae` (M135);
 - V2 Business handoff: `@touristic/business/onboarding-commercial-conversion`.
 
-## M138 implementation boundary
+## M139 implementation boundary
 
-M138 builds on the M137 repositories without adding a provider or transport. The provider-neutral application service in `@touristic/ordering` now composes the public Ordering and Financial ports.
+M139 builds on the provider-neutral M138 application and the separate M137 MySQL stores. It adds an HTTP/Auth/security adapter without moving provider authority into Business and without calling any payment provider.
 
-The application boundary revalidates the immutable Business handoff, resolves new Orders through the required server-only `ORDERING_PRICING_CATALOG_JSON`, allocates cryptographically random server identities, persists Order/Payment and claims `payment:v1:<orderReference>`.
+The create route revalidates the complete handoff, binds the exact Business logical idempotency header, enforces an exact return-origin allowlist and accepts either a platform session protected by origin/CSRF/role/business scope or a short-lived HMAC guest capability bound to the entire normalized handoff, destination and tenant.
 
-Retries first load the existing Order by `business:<sessionId>:<planId>`; therefore a previously captured price is never replaced by a newer catalog value. Because Ordering and Financial intentionally own separate databases, the service does not claim distributed ACID. It instead leaves durable checkpoints and repairs a missing Payment/order transition idempotently after interruption. A permanent MySQL 8.4 test proves this sequence across the two real schemas.
+A durable `ordering_checkout_access` record binds Order, Payment, request fingerprint and requester context. The public status token is deterministic for safe exact retry, but plaintext is never stored: MySQL receives only its SHA-256 hash. Status lookup uses timing-safe verification, identical 404 projections for unknown/invalid authority and a minimal non-PII result.
 
-The result exposes Order/Payment state only. Contractor PII, provider URL/token, public checkout token and provider details are not returned.
+The Morro Digital Node runtime parses bounded JSON, composes both database pools, pricing, repositories and transport, propagates correlation IDs and fails closed when any required database, catalog, secret, destination or origin policy is missing. Rate limiting is deliberately single-process in M139 and therefore remains PARTIAL for a horizontally scaled deployment.
 
-M138 still adds **no** HTTP/Auth checkout boundary, provider adapter/SDK, provider call, webhook endpoint, browser checkout, subscription runtime or real money movement.
+M139 still adds **no** provider adapter/SDK/call, provider checkout URL, webhook endpoint, verified payment outcome, browser checkout, subscription runtime or real money movement.
 
 ## Matrix
 
@@ -35,20 +35,20 @@ M138 still adds **no** HTTP/Auth checkout boundary, provider adapter/SDK, provid
 | Business commercial preparation         | V1 commercial adapter prepares plan/contractor/terms                                            | M61/M62 provide the immutable Business-owned handoff; M138 consumes and revalidates it without moving ownership                                            | N/A     | Business remains owner; Ordering receives only a bounded application request.                                                   |
 | Payments ownership boundary             | checkout client/server perform financial execution                                              | Domain packages plus M138 application composition keep provider/financial authority outside Business                                                       | PASS    | Preserve this direction in HTTP and provider milestones.                                                                        |
 | Server-authoritative plan pricing       | `BUSINESS_PLANS_JSON`; browser supplies only `planId`                                           | required `ORDERING_PRICING_CATALOG_JSON`, immutable `PricingQuote`/snapshot, integer minor units, duplicate/zero/malformed fail-closed behavior            | PASS    | Operations must configure a versioned server catalog; browser amounts are ignored.                                              |
-| Checkout input normalization/validation | session, plan, contractor, sandbox draft, required terms                                        | M138 revalidates bounded contractor/draft/acceptances/return URL, requires sandbox + `publishable=false`, terms/privacy and the Payments capability marker | PASS    | HTTP may add authentication/allowlists but cannot weaken this application boundary.                                             |
+| Checkout input normalization/validation | session, plan, contractor, sandbox draft, required terms | M138 application validation plus M139 bounded JSON, exact return-origin policy and authenticated/signed requester boundary | PASS | Transport cannot weaken the server application validation. |
 | Logical checkout/order identity         | V1 `bco_<uuid>`                                                                                 | cryptographically random server Order/Payment IDs are validated before durable persistence; logical Business request key remains separate                  | PASS    | Public checkout identity/token remains a later HTTP/security concern.                                                           |
-| Client idempotency key                  | `business:<sessionId>:<planId>`                                                                 | application service derives and consumes the logical key, loads it before pricing and returns the same Order/Payment; HTTP header enforcement is absent    | PARTIAL | M139 must bind the authenticated/bounded HTTP request to this correlation.                                                      |
+| Client idempotency key | `business:<sessionId>:<planId>` | M139 requires the exact derived `Idempotency-Key` before application execution; absent/divergent headers fail deterministically | PASS | Keep the header and durable request key coupled before any provider call. |
 | Server idempotency                      | repository lookup before provider call                                                          | M138 finds/claims durable `payment:v1:<orderReference>` before any future provider and repairs a claim without Payment after interruption                  | PASS    | Provider execution must reuse this authority and never invent a second key.                                                     |
-| Checkout session creation API           | `POST /api/business-checkout/sessions`                                                          | no V2 Payments HTTP surface                                                                                                                                | GAP     | Build only after persistence and application service.                                                                           |
+| Checkout session creation API | `POST /api/business-checkout/sessions` | versioned `POST /api/payments/v1/checkouts` returns authoritative pending Order/Payment, plan snapshot and bounded status capability | PASS | Provider creation remains a separate port execution contract. |
 | Provider port                           | V1 calls configured payment API URL/token                                                       | provider-neutral `FinancialCheckoutProviderPort` + `FinancialWebhookVerifierPort`; no SDK/import in domain                                                 | PASS    | Future adapters implement these ports server-side.                                                                              |
-| Provider checkout creation              | external reference, amount/currency, payer, return URL, webhook URL, metadata                   | M138 prepares authoritative pending Order/Payment only; it deliberately makes no provider request                                                          | GAP     | Implement only behind the frozen provider port after M139 HTTP/Auth/security.                                                   |
-| Public checkout token                   | cryptographic 24-byte random token, timing-safe comparison                                      | absent                                                                                                                                                     | GAP     | Preserve bounded public access with server-side token handling.                                                                 |
-| Public payment status                   | limited projection under `/sessions/:id`                                                        | absent                                                                                                                                                     | GAP     | Expose minimal projection after persistence.                                                                                    |
+| Provider checkout creation | external reference, amount/currency, payer, return URL, webhook URL, metadata | M139 stops at authoritative pending Order/Payment and performs no provider request | GAP | M140 implements only behind the frozen provider port and M139 authority. |
+| Public checkout token | cryptographic 24-byte random token, timing-safe comparison | opaque HMAC-derived `cst_v1_*` capability, SHA-256-only persistence, timing-safe exact verification and bounded expiry | PASS | Never persist or log plaintext; secret rotation intentionally invalidates existing capabilities. |
+| Public payment status | limited projection under `/sessions/:id` | `GET /api/payments/v1/checkouts/:orderId` returns a minimal non-PII projection; invalid token and unknown Order share the same 404 | PASS | Provider/Business outcome fields remain null until later authoritative composition. |
 | Browser checkout launch                 | popup `noopener,noreferrer`, location fallback                                                  | V2 Business does not execute checkout; Payments browser adapter absent                                                                                     | GAP     | Add after protected server lifecycle exists.                                                                                    |
 | Browser confirmation wait               | poll every 2.5 s, max 240 attempts                                                              | absent                                                                                                                                                     | GAP     | Preserve bounded wait/result semantics; transport may evolve.                                                                   |
 | Browser verified-payment event          | `businessPaymentVerified` after server says `CONFIRMED`                                         | Business consumer exists; Financial exposes versioned `PaymentApproved`; adapter to Business absent                                                        | PARTIAL | Later composition maps authoritative payment result to Business correlation.                                                    |
 | Browser failure event                   | `businessPaymentVerificationFailed`                                                             | Business fail-closed consumer exists; Financial statuses/events provide vocabulary, producer/browser adapter absent                                        | PARTIAL | Add typed Payments failure result without synthetic confirmation.                                                               |
-| Webhook authenticity                    | HMAC-SHA256 over raw body + timing-safe compare                                                 | `FinancialWebhookVerifierPort` freezes verification boundary and raw-body contract; cryptographic adapter absent                                           | PARTIAL | M139+ provider adapter implements and proves HMAC/signature semantics.                                                          |
+| Webhook authenticity | HMAC-SHA256 over raw body + timing-safe compare | `FinancialWebhookVerifierPort` freezes verification boundary and raw-body contract; cryptographic provider adapter absent | PARTIAL | M141 must verify the selected sandbox provider signature before parsing/mutation. |
 | Webhook unmatched handling              | valid unknown event -> 202 matched false                                                        | absent                                                                                                                                                     | GAP     | Preserve non-leaking acknowledgement semantics in HTTP layer.                                                                   |
 | Webhook replay/idempotency              | repeated `CONFIRMED` record does not reconvert                                                  | provider event identity vocabulary exists, but durable event dedup/out-of-order store is absent                                                            | GAP     | Add durable provider-event claim before state mutation.                                                                         |
 | Payment state authority                 | paid/approved/confirmed -> `CONFIRMED`; non-paid does not promote                               | domain transition guards plus repository compare-and-swap prevent invalid/stale lifecycle overwrites; application orchestration is absent                  | PARTIAL | Apply verified provider outcomes atomically in the later payment-state service.                                                 |
@@ -60,43 +60,41 @@ M138 still adds **no** HTTP/Auth checkout boundary, provider adapter/SDK, provid
 | Reconciliation                          | Release/Financial architecture requires reconciliation                                          | absent                                                                                                                                                     | GAP     | Provider state must reconcile against internal Payment/Ledger.                                                                  |
 | Split/repasse                           | CAP-0017                                                                                        | balanced ledger foundation exists, but no split/transfer/settlement model                                                                                  | GAP     | Implement only after durable ledger and reconciliation.                                                                         |
 | Subscription lifecycle                  | FEATURE-0009 is "Pagamentos e Assinaturas"; V1 frozen slice only covers initial checkout        | absent                                                                                                                                                     | GAP     | Freeze recurrence semantics separately; do not infer them from checkout.                                                        |
-| Financial audit/observability           | architecture requires audit/metrics; M134 covers provider-cost ops only, not product money      | versioned Order/Payment events and immutable ledger vocabulary exist; durable audit/metrics/correlation runtime absent                                     | PARTIAL | Add audit/metrics around persisted operations; never reuse M134 budget as ledger.                                               |
+| Financial audit/observability | architecture requires audit/metrics; M134 covers provider-cost ops only, not product money | M139 emits structured checkout create/status/runtime audit with correlation and no PII/token; durable audit, metrics and financial-operation telemetry remain absent | PARTIAL | Add durable/central observability around verified provider and ledger operations. |
 | Sandbox/provider E2E                    | V1 has injected fetch tests; architecture requires payment sandbox                              | no provider adapter or sandbox integration                                                                                                                 | GAP     | Require deterministic adapter tests plus provider sandbox before equivalence.                                                   |
-| Rate limiting                           | V1 create/status optionally 12/minute                                                           | no Payments HTTP surface                                                                                                                                   | GAP     | Define route-specific limits when HTTP layer is introduced.                                                                     |
-| Auth/tenant context                     | platform Auth exists; V1 checkout is onboarding session oriented                                | reusable Auth primitives exist; Ordering/Financial are framework-independent and composition is intentionally absent                                       | PARTIAL | Apply Auth/tenant policy in HTTP/application composition, not domain value objects.                                             |
-| Rollback/migration strategy             | release process requires migration and rollback                                                 | M137 additive schemas remain non-destructive; M138 adds no schema and proves recoverable cross-database checkpoints instead of claiming distributed ACID   | PARTIAL | Future schema changes need versioned expand/contract migrations; provider execution needs explicit compensation/reconciliation. |
+| Rate limiting | V1 create/status optionally 12/minute | M139 enforces 12/min create and 60/min status with bounded in-memory buckets keyed by requester/IP | PARTIAL | Replace/compose with a distributed limiter before horizontally scaled production. |
+| Auth/tenant context | platform Auth exists; V1 checkout is onboarding session oriented | authenticated requests require valid session, origin, CSRF, mutation role and business scope; guests require a short-lived signed full-handoff capability bound to destination/tenant | PASS | Business may issue the guest capability server-side; browsers never mint authority. |
+| Rollback/migration strategy | release process requires migration and rollback | M139 adds only an additive access-authority table and provider-neutral runtime; removing routes leaves M137/M138 Order/Payment data intact and no external side effect exists | PARTIAL | Use expand/contract for future provider-event/reconciliation schemas and explicit compensation after external side effects. |
 
-## M138 score
+## M139 score
 
-- `PASS`: 9
-- `PARTIAL`: 10
-- `GAP`: 14
+- `PASS`: 14
+- `PARTIAL`: 9
+- `GAP`: 10
 - `N/A`: 1
 - total: 34
 
-M138 closes the provider-neutral checkout application and authoritative pricing layer. Provider execution, HTTP/public status, webhook, browser, reconciliation, settlement and subscription contracts remain deliberately below PASS.
+M139 closes the provider-neutral HTTP/Auth/security boundary. Provider execution, webhook, browser, verified Business activation, reconciliation, settlement and subscription contracts remain deliberately below PASS.
 
 ## Promotion decision
 
-After M138 and a green Quality Gate on the final head:
+After M139 and green Quality plus Payments Persistence Integration gates on the final head:
 
 - `FEATURE-0009` and `MIG-0010` remain `migrating`;
 - behavior/visual/API equivalence flags remain `false`;
-- `@touristic/ordering` owns the provider-neutral application service;
-- `@touristic/ordering-server` owns server pricing configuration and identity/clock adapters;
-- no payment provider, checkout route or money movement is enabled.
+- `@touristic/ordering-server` owns durable checkout access and transport security;
+- the Morro Digital Node adapter composes Auth, two domain databases and the versioned routes fail-closed;
+- no payment provider, checkout URL or money movement is enabled.
 
 ## Next milestone
 
-M139 should implement the HTTP/Auth/security boundary:
+M140 should implement one sandbox payment provider behind `FinancialCheckoutProviderPort`:
 
-1. versioned create/status contracts and stable error mapping;
-2. authenticated or explicitly bounded guest context;
-3. destination/tenant/correlation propagation;
-4. strict request body and idempotency binding;
-5. safe return URL policy;
-6. minimal non-PII status projection;
-7. cryptographic public status capability with timing-safe comparison;
-8. route-specific rate limits and structured audit/observability.
+1. provider configuration and credentials remain server-only and fail-closed;
+2. exact mapping from authoritative Payment/Order to provider request;
+3. provider idempotency reuses `payment:v1:<orderReference>`;
+4. timeouts, normalized failures and safe audit without secrets/PII;
+5. deterministic adapter tests plus a real sandbox contract gate;
+6. no provider outcome is trusted until a later cryptographically verified webhook milestone.
 
-Provider sandbox execution remains M140. Cryptographically verified webhook replay protection, authoritative provider outcome application and Business verified-result composition remain separate later milestones. Affiliates stays blocked.
+Webhook replay protection is M141. Authoritative provider outcome application and Business verified-result composition remain later milestones. Affiliates stays blocked.

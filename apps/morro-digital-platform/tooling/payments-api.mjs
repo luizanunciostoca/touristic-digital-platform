@@ -147,7 +147,7 @@ function browserOriginAllowed(request, origins, production) {
   return !production;
 }
 
-function authorizationPort({
+export function createPaymentsCheckoutAuthorizationPort({
   authApi,
   destinationId,
   handoffSecret,
@@ -295,7 +295,7 @@ export function createPaymentsApi({
         orders,
         payments,
         access: new MySqlCheckoutAccessRepository(orderingPool),
-        authorization: authorizationPort({
+        authorization: createPaymentsCheckoutAuthorizationPort({
           authApi,
           destinationId: destinationContext.destinationId,
           handoffSecret: environment.PAYMENTS_HANDOFF_SECRET,
