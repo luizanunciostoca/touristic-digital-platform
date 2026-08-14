@@ -3,11 +3,15 @@ import { randomUUID } from "node:crypto";
 import { authorizeBusinessAccess } from "@touristic/auth";
 import { createProviderNeutralCheckoutApplicationService } from "@touristic/ordering";
 import {
+  FinancialWebhookHttpTransport,
   MySqlPaymentIdempotencyPort,
   MySqlPaymentRepository,
-  applyFinancialM137Schema,
+  MySqlProviderWebhookEventRepository,
+  applyFinancialM141Schema,
   createFinancialMySqlPoolFromEnvironment,
   createSandboxCheckoutProviderFromEnvironment,
+  createSandboxWebhookVerifierFromEnvironment,
+  sandboxWebhookPath,
 } from "@touristic/financial-server";
 import {
   CheckoutHttpTransport,
@@ -28,7 +32,7 @@ import {
 const checkoutPrefix = "/api/payments/v1/checkouts";
 const maxBodyBytes = 64 * 1024;
 
-class CheckoutHttpInputError extends Error {
+class PaymentsHttpInputError extends Error {
   constructor(status, code) {
     super(code);
     this.status = status;
@@ -60,30 +64,46 @@ function sendJson(response, status, payload, correlationId, headers = {}) {
   response.end(JSON.stringify(payload));
 }
 
-async function readJsonBody(request) {
+async function readRawBody(
+  request,
+  {
+    tooLargeCode = "CHECKOUT_REQUEST_TOO_LARGE",
+    emptyCode = "INVALID_CHECKOUT_REQUEST",
+  } = {},
+) {
   const declaredLength = Number(header(request, "content-length") || "0");
   if (Number.isFinite(declaredLength) && declaredLength > maxBodyBytes) {
-    throw new CheckoutHttpInputError(413, "CHECKOUT_REQUEST_TOO_LARGE");
+    throw new PaymentsHttpInputError(413, tooLargeCode);
   }
   const chunks = [];
   let total = 0;
   for await (const rawChunk of request) {
-    const chunk = Buffer.isBuffer(rawChunk)
-      ? rawChunk
-      : Buffer.from(String(rawChunk));
+    const chunk =
+      typeof rawChunk === "string"
+        ? Buffer.from(rawChunk)
+        : rawChunk instanceof Uint8Array
+          ? Buffer.from(rawChunk)
+          : null;
+    if (!chunk) throw new PaymentsHttpInputError(400, emptyCode);
     total += chunk.length;
     if (total > maxBodyBytes) {
-      throw new CheckoutHttpInputError(413, "CHECKOUT_REQUEST_TOO_LARGE");
+      throw new PaymentsHttpInputError(413, tooLargeCode);
     }
     chunks.push(chunk);
   }
   if (total === 0) {
-    throw new CheckoutHttpInputError(400, "INVALID_CHECKOUT_REQUEST");
+    throw new PaymentsHttpInputError(400, emptyCode);
   }
+  return Buffer.concat(chunks);
+}
+
+async function readJsonBody(request) {
+  const rawBody = await readRawBody(request);
   try {
-    return JSON.parse(Buffer.concat(chunks).toString("utf8"));
+    const decoded = new TextDecoder("utf-8", { fatal: true }).decode(rawBody);
+    return JSON.parse(decoded);
   } catch {
-    throw new CheckoutHttpInputError(400, "INVALID_CHECKOUT_JSON");
+    throw new PaymentsHttpInputError(400, "INVALID_CHECKOUT_JSON");
   }
 }
 
@@ -104,6 +124,8 @@ function collectEnvironment(getEnvironmentValue) {
     "PAYMENTS_SANDBOX_CHECKOUT_ORIGINS",
     "PAYMENTS_PROVIDER_TIMEOUT_MS",
     "PAYMENTS_WEBHOOK_URL",
+    "PAYMENTS_SANDBOX_WEBHOOK_SECRET",
+    "PAYMENTS_WEBHOOK_TOLERANCE_SECONDS",
   ];
   return Object.freeze(
     Object.fromEntries(
@@ -121,7 +143,8 @@ function configuredWebhookUrl(value, production) {
       url.username ||
       url.password ||
       url.search ||
-      url.hash
+      url.hash ||
+      url.pathname !== sandboxWebhookPath
     ) {
       return "";
     }
@@ -267,12 +290,20 @@ export function createPaymentsApi({
   getEnvironmentValue = (key) => process.env[key] ?? "",
   audit = (event) => console.warn(`[payments-audit] ${JSON.stringify(event)}`),
   transport: injectedTransport,
+  webhookTransport: injectedWebhookTransport,
 } = {}) {
-  let runtime = injectedTransport
-    ? Object.freeze({ transport: injectedTransport, pools: [] })
+  const hasInjectedTransport = Boolean(
+    injectedTransport || injectedWebhookTransport,
+  );
+  let runtime = hasInjectedTransport
+    ? Object.freeze({
+        transport: injectedTransport ?? null,
+        webhookTransport: injectedWebhookTransport ?? null,
+        pools: [],
+      })
     : null;
-  let startAttempted = Boolean(injectedTransport);
-  let started = Boolean(injectedTransport);
+  let startAttempted = hasInjectedTransport;
+  let started = hasInjectedTransport;
 
   async function start() {
     if (started || startAttempted) return started;
@@ -307,7 +338,7 @@ export function createPaymentsApi({
       pools.push(financialPool);
       await Promise.all([
         applyOrderingM139Schema(orderingPool),
-        applyFinancialM137Schema(financialPool),
+        applyFinancialM141Schema(financialPool),
       ]);
 
       const orders = new MySqlOrderRepository(orderingPool);
@@ -349,7 +380,19 @@ export function createPaymentsApi({
         clock: systemCheckoutClock,
         ...(statusTtlSeconds === undefined ? {} : { statusTtlSeconds }),
       });
-      runtime = Object.freeze({ transport, pools });
+      const webhookTransport = new FinancialWebhookHttpTransport({
+        verifier: createSandboxWebhookVerifierFromEnvironment(environment),
+        events: new MySqlProviderWebhookEventRepository(financialPool),
+        payments,
+        audit: {
+          record(event) {
+            runtimeAudit(audit, event);
+            return Promise.resolve();
+          },
+        },
+        clock: systemCheckoutClock,
+      });
+      runtime = Object.freeze({ transport, webhookTransport, pools });
       started = true;
       runtimeAudit(audit, {
         action: "checkout.runtime",
@@ -379,7 +422,9 @@ export function createPaymentsApi({
   return Object.freeze({
     matches(pathname) {
       return (
-        pathname === checkoutPrefix || pathname.startsWith(checkoutPrefix + "/")
+        pathname === sandboxWebhookPath ||
+        pathname === checkoutPrefix ||
+        pathname.startsWith(checkoutPrefix + "/")
       );
     },
     start,
@@ -388,21 +433,27 @@ export function createPaymentsApi({
       const correlationId =
         normalizeCheckoutCorrelationId(header(request, "x-correlation-id")) ||
         "corr_" + randomUUID();
+      const webhookRequest = requestUrl.pathname === sandboxWebhookPath;
+      const unavailableCode = webhookRequest
+        ? "WEBHOOK_UNAVAILABLE"
+        : "CHECKOUT_UNAVAILABLE";
 
       if (!runtime) {
         sendJson(
           response,
           503,
-          { error: "CHECKOUT_UNAVAILABLE" },
+          { error: unavailableCode },
           correlationId,
         );
         return;
       }
 
+      const method = String(request.method || "GET").toUpperCase();
       let body;
+      let rawBody = new Uint8Array();
       if (
-        String(request.method || "GET").toUpperCase() === "POST" &&
-        requestUrl.pathname === checkoutPrefix
+        method === "POST" &&
+        (requestUrl.pathname === checkoutPrefix || webhookRequest)
       ) {
         const contentType = header(request, "content-type")
           .split(";", 1)[0]
@@ -417,9 +468,16 @@ export function createPaymentsApi({
           return;
         }
         try {
-          body = await readJsonBody(request);
+          if (webhookRequest) {
+            rawBody = await readRawBody(request, {
+              tooLargeCode: "WEBHOOK_REQUEST_TOO_LARGE",
+              emptyCode: "INVALID_WEBHOOK_REQUEST",
+            });
+          } else {
+            body = await readJsonBody(request);
+          }
         } catch (error) {
-          if (error instanceof CheckoutHttpInputError) {
+          if (error instanceof PaymentsHttpInputError) {
             sendJson(
               response,
               error.status,
@@ -431,22 +489,47 @@ export function createPaymentsApi({
           sendJson(
             response,
             400,
-            { error: "INVALID_CHECKOUT_REQUEST" },
+            {
+              error: webhookRequest
+                ? "INVALID_WEBHOOK_REQUEST"
+                : "INVALID_CHECKOUT_REQUEST",
+            },
             correlationId,
           );
           return;
         }
       }
 
-      try {
-        const result = await runtime.transport.handle({
-          method: String(request.method || "GET"),
-          pathname: requestUrl.pathname,
-          headers: request.headers ?? {},
-          body,
-          clientIp: request.socket?.remoteAddress,
+      const selectedTransport = webhookRequest
+        ? runtime.webhookTransport
+        : runtime.transport;
+      if (!selectedTransport) {
+        sendJson(
+          response,
+          503,
+          { error: unavailableCode },
           correlationId,
-        });
+        );
+        return;
+      }
+
+      try {
+        const result = webhookRequest
+          ? await selectedTransport.handle({
+              method,
+              pathname: requestUrl.pathname,
+              headers: request.headers ?? {},
+              rawBody,
+              correlationId,
+            })
+          : await selectedTransport.handle({
+              method,
+              pathname: requestUrl.pathname,
+              headers: request.headers ?? {},
+              body,
+              clientIp: request.socket?.remoteAddress,
+              correlationId,
+            });
         sendJson(
           response,
           result.status,
@@ -456,7 +539,7 @@ export function createPaymentsApi({
         );
       } catch {
         runtimeAudit(audit, {
-          action: "checkout.http",
+          action: webhookRequest ? "webhook.http" : "checkout.http",
           result: "failure",
           reason: "unhandled_transport_failure",
           correlationId,
@@ -464,10 +547,11 @@ export function createPaymentsApi({
         sendJson(
           response,
           503,
-          { error: "CHECKOUT_UNAVAILABLE" },
+          { error: unavailableCode },
           correlationId,
         );
       }
+
     },
   });
 }
