@@ -1,5 +1,8 @@
 import {
+  createCheckoutProviderRequest,
+  normalizeCheckoutProviderSession,
   normalizeFinancialTimestamp,
+  type FinancialCheckoutProviderPort,
   type Payment,
   type PaymentRepositoryPort,
 } from "@touristic/financial";
@@ -114,6 +117,8 @@ export interface CheckoutHttpTransportDependencies {
   readonly orders: OrderRepositoryPort;
   readonly payments: PaymentRepositoryPort;
   readonly access: CheckoutAccessRepositoryPort;
+  readonly provider: FinancialCheckoutProviderPort;
+  readonly webhookUrl: string;
   readonly authorization: CheckoutHttpAuthorizationPort;
   readonly returnUrls: CheckoutReturnUrlPolicy;
   readonly statusCapabilities: CheckoutStatusCapability;
@@ -191,6 +196,24 @@ function errorResponse(
     correlationId,
     headers,
   );
+}
+
+function normalizeWebhookUrl(value: unknown): string {
+  if (typeof value !== "string" || value.length > 2_048) return "";
+  try {
+    const url = new URL(value);
+    if (
+      (url.protocol !== "https:" && url.protocol !== "http:") ||
+      url.username ||
+      url.password ||
+      url.hash
+    ) {
+      return "";
+    }
+    return url.toString();
+  } catch {
+    return "";
+  }
 }
 
 function canonicalNow(clock: CheckoutHttpClockPort): string {
@@ -292,6 +315,7 @@ async function recordAudit(
 
 export class CheckoutHttpTransport {
   private readonly statusTtlSeconds: number;
+  private readonly webhookUrl: string;
 
   constructor(
     private readonly dependencies: CheckoutHttpTransportDependencies,
@@ -300,7 +324,10 @@ export class CheckoutHttpTransport {
     if (!Number.isSafeInteger(ttl) || ttl < 10 * 60 || ttl > 7 * 24 * 60 * 60) {
       throw new Error("CHECKOUT_STATUS_TTL_INVALID");
     }
+    const webhookUrl = normalizeWebhookUrl(dependencies.webhookUrl);
+    if (!webhookUrl) throw new Error("CHECKOUT_WEBHOOK_URL_INVALID");
     this.statusTtlSeconds = ttl;
+    this.webhookUrl = webhookUrl;
   }
 
   matches(pathname: string): boolean {
@@ -505,6 +532,32 @@ export class CheckoutHttpTransport {
         return errorResponse(409, "STATUS_CAPABILITY_EXPIRED", correlationId);
       }
 
+      const providerRequest = createCheckoutProviderRequest({
+        paymentId: result.payment.id,
+        idempotencyKey: result.payment.idempotencyKey,
+        amount: result.payment.amount,
+        description: result.order.pricing.planName,
+        returnUrl: handoff.returnUrl,
+        webhookUrl: this.webhookUrl,
+        customer: handoff.contractor,
+        metadata: {
+          orderId: result.order.id,
+          paymentId: result.payment.id,
+          sessionId: handoff.sessionId,
+          destinationId: context.destinationId,
+          ...(context.tenantId ? { tenantId: context.tenantId } : {}),
+        },
+      });
+      if (!providerRequest) {
+        throw new Error("CHECKOUT_PROVIDER_REQUEST_INVALID");
+      }
+      const providerSession = normalizeCheckoutProviderSession(
+        await this.dependencies.provider.createCheckout(providerRequest),
+      );
+      if (!providerSession) {
+        throw new Error("CHECKOUT_PROVIDER_SESSION_INVALID");
+      }
+
       await recordAudit(this.dependencies.audit, {
         action: "checkout.create",
         result: "success",
@@ -530,6 +583,7 @@ export class CheckoutHttpTransport {
             }),
             statusToken: capability.token,
             statusExpiresAt: access.expiresAt,
+            checkoutUrl: providerSession.checkoutUrl,
             replayed,
           }),
         },

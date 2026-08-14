@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   createPendingPayment,
+  type CheckoutProviderRequest,
+  type FinancialCheckoutProviderPort,
   type Payment,
   type PaymentId,
   type PaymentRepositoryPort,
@@ -189,11 +191,13 @@ function harness(
     readonly authorization?: CheckoutHttpAuthorizationPort;
     readonly rateLimits?: CheckoutHttpRateLimitPort;
     readonly application?: ProviderNeutralCheckoutApplicationService;
+    readonly provider?: FinancialCheckoutProviderPort;
   } = {},
 ) {
   const { order, payment } = fixtures();
   const access = new MemoryAccess();
   const audits: CheckoutHttpAuditEvent[] = [];
+  const providerRequests: CheckoutProviderRequest[] = [];
   const context = normalizeCheckoutRequestContext({
     requesterKind: "authenticated",
     actorSubject: "user-123",
@@ -210,6 +214,18 @@ function harness(
     orders: new MemoryOrders(order),
     payments: new MemoryPayments(payment),
     access,
+    provider: options.provider ?? {
+      createCheckout: (input) => {
+        providerRequests.push(input);
+        return Promise.resolve({
+          providerCheckoutId: "chk_http_sandbox_0001",
+          checkoutUrl:
+            "https://checkout.sandbox-payments.example/pay/chk_http_sandbox_0001",
+          providerReference: null,
+        });
+      },
+    },
+    webhookUrl: "https://api.morro.digital/payments/webhook",
     authorization: options.authorization ?? {
       authorizeCreate: () => Promise.resolve({ allowed: true, context }),
     },
@@ -229,12 +245,19 @@ function harness(
     clock: { now: () => "2026-08-14T22:30:00Z" },
     statusTtlSeconds: 3_600,
   });
-  return { transport, access, audits, order, payment };
+  return {
+    transport,
+    access,
+    audits,
+    providerRequests,
+    order,
+    payment,
+  };
 }
 
 describe("M139 checkout HTTP/Auth/security transport", () => {
   it("creates a versioned checkout with bound idempotency and no PII projection", async () => {
-    const { transport, access, audits } = harness();
+    const { transport, access, audits, providerRequests } = harness();
     const result = await transport.handle(createRequest());
 
     expect(result.status).toBe(201);
@@ -251,12 +274,37 @@ describe("M139 checkout HTTP/Auth/security transport", () => {
           id: "growth",
           amount: { minorUnits: 49_900, currency: "BRL" },
         },
+        checkoutUrl:
+          "https://checkout.sandbox-payments.example/pay/chk_http_sandbox_0001",
         replayed: false,
       },
     });
     expect(JSON.stringify(result.body)).not.toContain("http@example.com");
     expect(access.current).not.toHaveProperty("token");
     expect(access.current?.tokenHash).toMatch(/^[a-f0-9]{64}$/u);
+    expect(providerRequests).toEqual([
+      {
+        paymentId: "pay_http_12345678",
+        idempotencyKey: "payment:v1:ord_http_12345678",
+        amount: { minorUnits: 49_900, currency: "BRL" },
+        description: "Crescimento",
+        returnUrl: "https://morro.digital/checkout/return",
+        webhookUrl: "https://api.morro.digital/payments/webhook",
+        customer: {
+          name: "Cliente HTTP",
+          email: "http@example.com",
+          phone: "+55 75 99999-0000",
+          document: "123.456.789-00",
+        },
+        metadata: {
+          destinationId: "morro",
+          orderId: "ord_http_12345678",
+          paymentId: "pay_http_12345678",
+          sessionId: "http_session_12345678",
+          tenantId: "business-123",
+        },
+      },
+    ]);
     expect(audits.at(-1)).toMatchObject({
       action: "checkout.create",
       result: "success",
@@ -325,7 +373,7 @@ describe("M139 checkout HTTP/Auth/security transport", () => {
   });
 
   it("returns the same deterministic status token on an exact replay", async () => {
-    const { transport } = harness();
+    const { transport, providerRequests } = harness();
     const first = await transport.handle(createRequest());
     const second = await transport.handle(createRequest());
 
@@ -335,6 +383,8 @@ describe("M139 checkout HTTP/Auth/security transport", () => {
       (first.body.data as Record<string, unknown>).statusToken,
     );
     expect((second.body.data as Record<string, unknown>).replayed).toBe(true);
+    expect(providerRequests).toHaveLength(2);
+    expect(providerRequests[1]).toEqual(providerRequests[0]);
   });
 
   it("rejects a divergent handoff reusing the same logical Order", async () => {
@@ -426,6 +476,31 @@ describe("M139 checkout HTTP/Auth/security transport", () => {
       status: 429,
       body: { error: "RATE_LIMITED" },
       headers: { "Retry-After": "42" },
+    });
+  });
+
+  it("normalizes provider failures without leaking provider details or PII", async () => {
+    const { transport, audits } = harness({
+      provider: {
+        createCheckout: () =>
+          Promise.reject(new Error("provider-token-and-secret-detail")),
+      },
+    });
+
+    const unavailable = await transport.handle(createRequest());
+
+    expect(unavailable).toMatchObject({
+      status: 503,
+      body: { error: "CHECKOUT_UNAVAILABLE" },
+    });
+    expect(JSON.stringify(unavailable)).not.toContain(
+      "provider-token-and-secret-detail",
+    );
+    expect(JSON.stringify(audits)).not.toContain("http@example.com");
+    expect(audits.at(-1)).toMatchObject({
+      action: "checkout.create",
+      result: "failure",
+      reason: "internal_failure",
     });
   });
 

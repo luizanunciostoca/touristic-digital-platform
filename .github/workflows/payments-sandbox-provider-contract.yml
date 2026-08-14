@@ -1,0 +1,54 @@
+name: Payments Sandbox Provider Contract
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "packages/financial/**"
+      - "packages/ordering/**"
+      - "services/financial/**"
+      - "services/ordering/**"
+      - "tooling/payments/provider-sandbox-contract.test.ts"
+      - "apps/morro-digital-platform/tooling/payments-api.mjs"
+      - ".github/workflows/payments-sandbox-provider-contract.yml"
+      - "pnpm-lock.yaml"
+  pull_request:
+    paths:
+      - "packages/financial/**"
+      - "packages/ordering/**"
+      - "services/financial/**"
+      - "services/ordering/**"
+      - "tooling/payments/provider-sandbox-contract.test.ts"
+      - "apps/morro-digital-platform/tooling/payments-api.mjs"
+      - ".github/workflows/payments-sandbox-provider-contract.yml"
+      - "pnpm-lock.yaml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: payments-sandbox-provider-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sandbox-provider-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Financial provider unit contract
+        run: pnpm --filter @touristic/financial-server test
+      - name: Ordering provider composition contract
+        run: pnpm --filter @touristic/ordering-server test
+      - name: Local sandbox HTTP wire and idempotency contract
+        run: pnpm exec vitest run tooling/payments/provider-sandbox-contract.test.ts

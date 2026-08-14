@@ -274,6 +274,168 @@ export function createPaymentIdempotencyKey(
   return `payment:v1:${normalized}` as PaymentIdempotencyKey;
 }
 
+const PROVIDER_METADATA_KEY = /^[A-Za-z0-9_.:-]{1,80}$/u;
+const PROVIDER_REFERENCE = /^[A-Za-z0-9._:-]{4,160}$/u;
+const PROVIDER_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/u;
+
+function normalizeProviderText(value: unknown, maxLength: number): string {
+  const normalized = normalizeString(value, maxLength);
+  if (!normalized) return "";
+  const forbidden = Array.from(normalized).some((character) => {
+    const codePoint = character.codePointAt(0) ?? 0;
+    return (
+      codePoint <= 31 ||
+      codePoint === 127 ||
+      character === "<" ||
+      character === ">"
+    );
+  });
+  return forbidden ? "" : normalized;
+}
+
+function normalizeProviderUrl(value: unknown): string {
+  const normalized = normalizeProviderText(value, 2_048);
+  if (!normalized) return "";
+  try {
+    const url = new URL(normalized);
+    if (
+      (url.protocol !== "https:" && url.protocol !== "http:") ||
+      url.username ||
+      url.password
+    ) {
+      return "";
+    }
+    return url.toString();
+  } catch {
+    return "";
+  }
+}
+
+function normalizeProviderIdempotencyKey(
+  value: unknown,
+): PaymentIdempotencyKey | null {
+  const normalized = normalizeString(value, 256);
+  const prefix = "payment:v1:";
+  if (!normalized.startsWith(prefix)) return null;
+  const expected = createPaymentIdempotencyKey(normalized.slice(prefix.length));
+  return expected === normalized ? expected : null;
+}
+
+export function createCheckoutProviderRequest(input: {
+  readonly paymentId: unknown;
+  readonly idempotencyKey: unknown;
+  readonly amount: unknown;
+  readonly description: unknown;
+  readonly returnUrl: unknown;
+  readonly webhookUrl: unknown;
+  readonly customer: unknown;
+  readonly metadata: unknown;
+}): CheckoutProviderRequest | null {
+  const paymentId = normalizePaymentId(input.paymentId);
+  const idempotencyKey = normalizeProviderIdempotencyKey(input.idempotencyKey);
+  const amountInput = input.amount as Partial<Money> | null | undefined;
+  const amount = createMoney(amountInput?.minorUnits, amountInput?.currency);
+  const description = normalizeProviderText(input.description, 240);
+  const returnUrl = normalizeProviderUrl(input.returnUrl);
+  const webhookUrl = normalizeProviderUrl(input.webhookUrl);
+  const customerInput =
+    input.customer !== null &&
+    typeof input.customer === "object" &&
+    !Array.isArray(input.customer)
+      ? (input.customer as Record<string, unknown>)
+      : null;
+  const metadataInput =
+    input.metadata !== null &&
+    typeof input.metadata === "object" &&
+    !Array.isArray(input.metadata)
+      ? (input.metadata as Record<string, unknown>)
+      : null;
+  if (
+    !paymentId ||
+    !idempotencyKey ||
+    !amount ||
+    amount.minorUnits <= 0 ||
+    !description ||
+    !returnUrl ||
+    !webhookUrl ||
+    !customerInput ||
+    !metadataInput
+  ) {
+    return null;
+  }
+
+  const name = normalizeProviderText(customerInput.name, 160);
+  const email = normalizeProviderText(customerInput.email, 200).toLowerCase();
+  const phone =
+    customerInput.phone === null
+      ? null
+      : normalizeProviderText(customerInput.phone, 40);
+  const document =
+    customerInput.document === null
+      ? null
+      : normalizeProviderText(customerInput.document, 40);
+  if (
+    !name ||
+    !PROVIDER_EMAIL.test(email) ||
+    (customerInput.phone !== null && !phone) ||
+    (customerInput.document !== null && !document)
+  ) {
+    return null;
+  }
+
+  const entries = Object.entries(metadataInput);
+  if (entries.length > 20) return null;
+  const metadata: Record<string, string> = {};
+  for (const [key, rawValue] of entries.sort(([left], [right]) =>
+    left.localeCompare(right),
+  )) {
+    const value = normalizeProviderText(rawValue, 200);
+    if (!PROVIDER_METADATA_KEY.test(key) || !value) return null;
+    metadata[key] = value;
+  }
+
+  return Object.freeze({
+    paymentId,
+    idempotencyKey,
+    amount,
+    description,
+    returnUrl,
+    webhookUrl,
+    customer: Object.freeze({ name, email, phone, document }),
+    metadata: Object.freeze(metadata),
+  });
+}
+
+export function normalizeCheckoutProviderSession(
+  input: Readonly<{
+    providerCheckoutId?: unknown;
+    checkoutUrl?: unknown;
+    providerReference?: unknown;
+  }>,
+): CheckoutProviderSession | null {
+  const providerCheckoutId = normalizeProviderText(
+    input.providerCheckoutId,
+    160,
+  );
+  const checkoutUrl = normalizeProviderUrl(input.checkoutUrl);
+  const providerReference =
+    input.providerReference === null
+      ? null
+      : normalizeProviderText(input.providerReference, 160);
+  if (
+    !PROVIDER_REFERENCE.test(providerCheckoutId) ||
+    !checkoutUrl ||
+    (providerReference !== null && !PROVIDER_REFERENCE.test(providerReference))
+  ) {
+    return null;
+  }
+  return Object.freeze({
+    providerCheckoutId,
+    checkoutUrl,
+    providerReference,
+  });
+}
+
 export function createPendingPayment(input: {
   readonly id: unknown;
   readonly orderReference: unknown;

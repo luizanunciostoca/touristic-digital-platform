@@ -260,6 +260,17 @@ describeMySql.sequential("M138 checkout application MySQL integration", () => {
       orders,
       payments,
       access: new MySqlCheckoutAccessRepository(orderingPool),
+      provider: {
+        createCheckout: (input) =>
+          Promise.resolve({
+            providerCheckoutId: "chk_mysql_http_" + input.paymentId,
+            checkoutUrl:
+              "https://checkout.sandbox-payments.example/pay/" +
+              input.paymentId,
+            providerReference: null,
+          }),
+      },
+      webhookUrl: "https://api.morro.digital/payments/webhook",
       authorization: {
         authorizeCreate: () =>
           Promise.resolve({ allowed: true as const, context }),
@@ -295,6 +306,9 @@ describeMySql.sequential("M138 checkout application MySQL integration", () => {
     );
     expect(created.status).toBe(201);
     const createdData = created.body.data as Record<string, unknown>;
+    expect(createdData.checkoutUrl).toBe(
+      "https://checkout.sandbox-payments.example/pay/pay_mysql_http_0001",
+    );
     const statusToken = createdData.statusToken;
     if (typeof statusToken !== "string") {
       throw new Error("STATUS_TOKEN_MISSING");

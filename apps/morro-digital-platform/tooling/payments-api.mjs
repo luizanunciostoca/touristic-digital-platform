@@ -7,6 +7,7 @@ import {
   MySqlPaymentRepository,
   applyFinancialM137Schema,
   createFinancialMySqlPoolFromEnvironment,
+  createSandboxCheckoutProviderFromEnvironment,
 } from "@touristic/financial-server";
 import {
   CheckoutHttpTransport,
@@ -97,12 +98,37 @@ function collectEnvironment(getEnvironmentValue) {
     "PAYMENTS_RETURN_URL_ORIGINS",
     "PAYMENTS_DESTINATION_ID",
     "PAYMENTS_STATUS_TOKEN_TTL_SECONDS",
+    "PAYMENTS_PROVIDER_MODE",
+    "PAYMENTS_SANDBOX_PROVIDER_BASE_URL",
+    "PAYMENTS_SANDBOX_PROVIDER_API_TOKEN",
+    "PAYMENTS_SANDBOX_CHECKOUT_ORIGINS",
+    "PAYMENTS_PROVIDER_TIMEOUT_MS",
+    "PAYMENTS_WEBHOOK_URL",
   ];
   return Object.freeze(
     Object.fromEntries(
       keys.map((key) => [key, String(getEnvironmentValue(key) ?? "").trim()]),
     ),
   );
+}
+
+function configuredWebhookUrl(value, production) {
+  try {
+    const url = new URL(value);
+    if (
+      (url.protocol !== "https:" && url.protocol !== "http:") ||
+      (production && url.protocol !== "https:") ||
+      url.username ||
+      url.password ||
+      url.search ||
+      url.hash
+    ) {
+      return "";
+    }
+    return url.toString();
+  } catch {
+    return "";
+  }
 }
 
 function configuredStatusTtl(value) {
@@ -269,6 +295,11 @@ export function createPaymentsApi({
       const statusTtlSeconds = configuredStatusTtl(
         environment.PAYMENTS_STATUS_TOKEN_TTL_SECONDS,
       );
+      const webhookUrl = configuredWebhookUrl(
+        environment.PAYMENTS_WEBHOOK_URL,
+        environment.NODE_ENV === "production",
+      );
+      if (!webhookUrl) throw new Error("PAYMENTS_WEBHOOK_URL_REQUIRED");
       const orderingPool = createOrderingMySqlPoolFromEnvironment(environment);
       pools.push(orderingPool);
       const financialPool =
@@ -295,6 +326,8 @@ export function createPaymentsApi({
         orders,
         payments,
         access: new MySqlCheckoutAccessRepository(orderingPool),
+        provider: createSandboxCheckoutProviderFromEnvironment(environment),
+        webhookUrl,
         authorization: createPaymentsCheckoutAuthorizationPort({
           authApi,
           destinationId: destinationContext.destinationId,
