@@ -10,6 +10,12 @@ function nonNegativeInteger(value) {
   return Number.isInteger(parsed) && parsed >= 0 ? parsed : 0;
 }
 
+function optionalNonNegativeInteger(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed >= 0 ? parsed : null;
+}
+
 function utcDayKey(timestamp) {
   return new Date(timestamp).toISOString().slice(0, 10);
 }
@@ -55,10 +61,17 @@ export function calculateTokenCostUsd({
 }) {
   const inputRate = positiveFinite(inputUsdPerMillion);
   const outputRate = positiveFinite(outputUsdPerMillion);
-  if (!inputRate || !outputRate) return null;
+  const prompt = optionalNonNegativeInteger(promptTokens);
+  const completion = optionalNonNegativeInteger(completionTokens);
+  if (
+    !inputRate ||
+    !outputRate ||
+    prompt === null ||
+    completion === null
+  ) {
+    return null;
+  }
 
-  const prompt = nonNegativeInteger(promptTokens);
-  const completion = nonNegativeInteger(completionTokens);
   return (prompt * inputRate + completion * outputRate) / 1_000_000;
 }
 
@@ -225,11 +238,11 @@ export function createProviderCostGovernor({
     const totalTokens = nonNegativeInteger(
       usage.totalTokens || promptTokens + completionTokens,
     );
-    const explicitCost = Number(usage.costUsd);
-    const costUsd =
-      Number.isFinite(explicitCost) && explicitCost >= 0
-        ? explicitCost
-        : reservation.reservedUsd;
+    const hasExplicitCost =
+      typeof usage.costUsd === "number" &&
+      Number.isFinite(usage.costUsd) &&
+      usage.costUsd >= 0;
+    const costUsd = hasExplicitCost ? usage.costUsd : reservation.reservedUsd;
 
     daily.spentUsd += costUsd;
     monthly.spentUsd += costUsd;
@@ -248,10 +261,9 @@ export function createProviderCostGovernor({
       completionTokens,
       totalTokens,
       latencyMs: Math.max(0, now() - reservation.startedAt),
-      usageSource:
-        Number.isFinite(explicitCost) && explicitCost >= 0
-          ? "provider_usage"
-          : "conservative_reservation",
+      usageSource: hasExplicitCost
+        ? "provider_usage"
+        : "conservative_reservation",
       metadata: reservation.metadata,
     });
     return snapshot();
