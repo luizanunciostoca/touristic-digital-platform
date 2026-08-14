@@ -25,7 +25,6 @@ describe("CRM M124 browser lifecycle", () => {
     expect(client).toContain('method: "POST"');
     expect(client).toContain("data-referral-action");
     expect(client).toContain('["contact", "convert", "lose"]');
-    expect(client).not.toContain("link-lead");
     expect(client).not.toContain("grant-benefit");
   });
 });

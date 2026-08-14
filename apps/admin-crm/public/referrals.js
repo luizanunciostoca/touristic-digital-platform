@@ -39,6 +39,29 @@ function actionRow(item) {
   return row;
 }
 
+function linkLeadForm(item) {
+  const form = document.createElement("form");
+  form.dataset.referralLinkForm = "true";
+  form.dataset.referralId = String(item.id);
+
+  const label = document.createElement("label");
+  label.textContent = "Lead indicado ";
+  const input = document.createElement("input");
+  input.name = "referredLeadId";
+  input.type = "number";
+  input.min = "1";
+  input.step = "1";
+  input.required = true;
+  if (item.referredLeadId) input.value = String(item.referredLeadId);
+  label.append(input);
+
+  const button = document.createElement("button");
+  button.type = "submit";
+  button.textContent = "Vincular Lead";
+  form.append(label, button);
+  return form;
+}
+
 function render(items) {
   list.replaceChildren();
   status.textContent = items.length
@@ -50,7 +73,17 @@ function render(items) {
     heading.textContent = `Registro #${String(item.id)}`;
     const state = document.createElement("p");
     state.textContent = `Status: ${String(item.status ?? "—")}`;
-    article.append(heading, state, actionRow(item));
+    const linkedLead = document.createElement("p");
+    linkedLead.textContent = `Lead indicado vinculado: ${String(
+      item.referredLeadId ?? "—",
+    )}`;
+    article.append(
+      heading,
+      state,
+      linkedLead,
+      actionRow(item),
+      linkLeadForm(item),
+    );
     list.append(article);
   }
 }
@@ -121,6 +154,46 @@ async function runAction(referralId, action, button) {
   }
 }
 
+async function linkLead(form) {
+  if (!form.reportValidity()) return;
+  const referralId = form.dataset.referralId;
+  const referredLeadId = Number(new FormData(form).get("referredLeadId"));
+  if (
+    !referralId ||
+    !Number.isSafeInteger(referredLeadId) ||
+    referredLeadId < 1
+  ) {
+    status.textContent = "Revise o Lead indicado.";
+    return;
+  }
+
+  const button = form.querySelector('button[type="submit"]');
+  if (button instanceof HTMLButtonElement) button.disabled = true;
+  status.textContent = "Vinculando Lead…";
+  try {
+    const response = await auth.secureFetch(
+      `/api/crm/referrals/${referralId}/link-lead`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({ referredLeadId }),
+      },
+    );
+    if (!response.ok) {
+      status.textContent = `Falha ao vincular Lead (${response.status}).`;
+      return;
+    }
+    await loadReferrals();
+  } catch {
+    status.textContent = "Falha ao vincular Lead.";
+  } finally {
+    if (button instanceof HTMLButtonElement) button.disabled = false;
+  }
+}
+
 list?.addEventListener("click", (event) => {
   const target = event.target;
   if (!(target instanceof HTMLElement)) return;
@@ -131,6 +204,14 @@ list?.addEventListener("click", (event) => {
   if (referralId && ["contact", "convert", "lose"].includes(action || "")) {
     void runAction(referralId, action, button);
   }
+});
+
+list?.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const form = event.target;
+  if (!(form instanceof HTMLFormElement)) return;
+  if (!form.matches("form[data-referral-link-form]")) return;
+  void linkLead(form);
 });
 
 createForm?.addEventListener("submit", (event) => {
