@@ -63,12 +63,7 @@ export function calculateTokenCostUsd({
   const outputRate = positiveFinite(outputUsdPerMillion);
   const prompt = optionalNonNegativeInteger(promptTokens);
   const completion = optionalNonNegativeInteger(completionTokens);
-  if (
-    !inputRate ||
-    !outputRate ||
-    prompt === null ||
-    completion === null
-  ) {
+  if (!inputRate || !outputRate || prompt === null || completion === null) {
     return null;
   }
 
