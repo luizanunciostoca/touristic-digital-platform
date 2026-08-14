@@ -14,10 +14,7 @@ import {
   createSandboxCheckoutProviderFromEnvironment,
 } from "./sandbox-checkout-provider.js";
 import { createSandboxWebhookVerifierFromEnvironment } from "./sandbox-webhook-verifier.js";
-import {
-  financialM137SchemaSql,
-  financialM141SchemaSql,
-} from "./schema.js";
+import { financialM137SchemaSql, financialM141SchemaSql } from "./schema.js";
 import {
   FinancialWebhookHttpTransport,
   sandboxWebhookPath,

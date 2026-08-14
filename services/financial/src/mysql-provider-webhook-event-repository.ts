@@ -45,7 +45,9 @@ function timestamp(value: Date | string): string {
   return date.toISOString();
 }
 
-function normalizeReceipt(input: ProviderWebhookReceipt): ProviderWebhookReceipt {
+function normalizeReceipt(
+  input: ProviderWebhookReceipt,
+): ProviderWebhookReceipt {
   const event = normalizeVerifiedProviderPaymentEvent(input.event);
   const payloadSha256 =
     typeof input.payloadSha256 === "string"
@@ -61,8 +63,7 @@ function normalizeReceipt(input: ProviderWebhookReceipt): ProviderWebhookReceipt
     !payloadHashPattern.test(payloadSha256) ||
     !receivedAt ||
     (input.matchedPaymentId !== null && !matchedPaymentId) ||
-    (matchedPaymentId !== null &&
-      matchedPaymentId !== event.externalReference)
+    (matchedPaymentId !== null && matchedPaymentId !== event.externalReference)
   ) {
     throw new Error("FINANCIAL_INVALID_PROVIDER_EVENT_RECEIPT");
   }
@@ -119,9 +120,7 @@ function sameProviderEvent(
   );
 }
 
-export class MySqlProviderWebhookEventRepository
-  implements ProviderWebhookEventRepositoryPort
-{
+export class MySqlProviderWebhookEventRepository implements ProviderWebhookEventRepositoryPort {
   constructor(private readonly pool: Pool) {}
 
   private async findById(

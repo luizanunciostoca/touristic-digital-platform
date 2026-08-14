@@ -54,7 +54,6 @@ CREATE TABLE IF NOT EXISTS financial_ledger_postings (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 `;
 
-
 export const financialM141SchemaSql = `
 CREATE TABLE IF NOT EXISTS financial_provider_events (
   provider_event_id VARCHAR(120) COLLATE utf8mb4_bin PRIMARY KEY,

@@ -439,12 +439,7 @@ export function createPaymentsApi({
         : "CHECKOUT_UNAVAILABLE";
 
       if (!runtime) {
-        sendJson(
-          response,
-          503,
-          { error: unavailableCode },
-          correlationId,
-        );
+        sendJson(response, 503, { error: unavailableCode }, correlationId);
         return;
       }
 
@@ -504,12 +499,7 @@ export function createPaymentsApi({
         ? runtime.webhookTransport
         : runtime.transport;
       if (!selectedTransport) {
-        sendJson(
-          response,
-          503,
-          { error: unavailableCode },
-          correlationId,
-        );
+        sendJson(response, 503, { error: unavailableCode }, correlationId);
         return;
       }
 
@@ -544,14 +534,8 @@ export function createPaymentsApi({
           reason: "unhandled_transport_failure",
           correlationId,
         });
-        sendJson(
-          response,
-          503,
-          { error: unavailableCode },
-          correlationId,
-        );
+        sendJson(response, 503, { error: unavailableCode }, correlationId);
       }
-
     },
   });
 }

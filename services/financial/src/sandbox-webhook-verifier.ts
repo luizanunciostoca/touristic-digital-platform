@@ -45,7 +45,9 @@ function verifiedPayload(rawBody: Uint8Array): Record<string, unknown> | null {
   try {
     const decoded = new TextDecoder("utf-8", { fatal: true }).decode(rawBody);
     const parsed = JSON.parse(decoded) as unknown;
-    return parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)
+    return parsed !== null &&
+      typeof parsed === "object" &&
+      !Array.isArray(parsed)
       ? (parsed as Record<string, unknown>)
       : null;
   } catch {

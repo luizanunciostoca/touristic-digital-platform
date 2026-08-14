@@ -13,8 +13,7 @@ import type {
   ProviderWebhookReceipt,
 } from "./mysql-provider-webhook-event-repository.js";
 
-export const sandboxWebhookPath =
-  "/api/payments/v1/webhooks/sandbox";
+export const sandboxWebhookPath = "/api/payments/v1/webhooks/sandbox";
 
 export interface FinancialWebhookHttpRequest {
   readonly method: string;
@@ -124,22 +123,16 @@ export class FinancialWebhookHttpTransport {
       return response(404, { error: "WEBHOOK_NOT_FOUND" }, correlationId);
     }
     if (request.method.toUpperCase() !== "POST") {
-      return response(
-        405,
-        { error: "METHOD_NOT_ALLOWED" },
-        correlationId,
-        { Allow: "POST" },
-      );
+      return response(405, { error: "METHOD_NOT_ALLOWED" }, correlationId, {
+        Allow: "POST",
+      });
     }
 
     const signature = header(request.headers, "x-sandbox-signature");
     let event: VerifiedProviderPaymentEvent | null;
     try {
       event = signature
-        ? await this.dependencies.verifier.verify(
-            request.rawBody,
-            signature,
-          )
+        ? await this.dependencies.verifier.verify(request.rawBody, signature)
         : null;
     } catch {
       await audit(this.dependencies.audit, {
@@ -152,11 +145,7 @@ export class FinancialWebhookHttpTransport {
         matched: null,
         replayed: null,
       });
-      return response(
-        503,
-        { error: "WEBHOOK_UNAVAILABLE" },
-        correlationId,
-      );
+      return response(503, { error: "WEBHOOK_UNAVAILABLE" }, correlationId);
     }
     if (!event) {
       await audit(this.dependencies.audit, {
@@ -169,11 +158,7 @@ export class FinancialWebhookHttpTransport {
         matched: null,
         replayed: null,
       });
-      return response(
-        401,
-        { error: "WEBHOOK_UNAUTHORIZED" },
-        correlationId,
-      );
+      return response(401, { error: "WEBHOOK_UNAUTHORIZED" }, correlationId);
     }
 
     try {
@@ -229,9 +214,7 @@ export class FinancialWebhookHttpTransport {
       return response(
         collision ? 409 : 503,
         {
-          error: collision
-            ? "WEBHOOK_EVENT_CONFLICT"
-            : "WEBHOOK_UNAVAILABLE",
+          error: collision ? "WEBHOOK_EVENT_CONFLICT" : "WEBHOOK_UNAVAILABLE",
         },
         correlationId,
       );

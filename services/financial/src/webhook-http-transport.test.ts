@@ -94,8 +94,7 @@ function harness(
     options.claimed ?? true,
     options.failure ?? null,
   );
-  const verified =
-    options.verified === undefined ? event() : options.verified;
+  const verified = options.verified === undefined ? event() : options.verified;
   const value = options.matched === false ? null : payment();
   const transport = new FinancialWebhookHttpTransport({
     verifier: {
@@ -158,9 +157,7 @@ describe("M141 verified webhook HTTP transport", () => {
 
   it("acknowledges a valid unknown event and an exact replay", async () => {
     const unknown = harness({ matched: false });
-    await expect(
-      unknown.transport.handle(request()),
-    ).resolves.toMatchObject({
+    await expect(unknown.transport.handle(request())).resolves.toMatchObject({
       status: 202,
       body: {
         data: { accepted: true, matched: false, replayed: false },
@@ -168,9 +165,7 @@ describe("M141 verified webhook HTTP transport", () => {
     });
 
     const replay = harness({ claimed: false });
-    await expect(
-      replay.transport.handle(request()),
-    ).resolves.toMatchObject({
+    await expect(replay.transport.handle(request())).resolves.toMatchObject({
       status: 202,
       body: {
         data: { accepted: true, matched: true, replayed: true },
@@ -180,9 +175,7 @@ describe("M141 verified webhook HTTP transport", () => {
 
   it("rejects unverified input and normalizes event collisions", async () => {
     const denied = harness({ verified: null });
-    await expect(
-      denied.transport.handle(request()),
-    ).resolves.toMatchObject({
+    await expect(denied.transport.handle(request())).resolves.toMatchObject({
       status: 401,
       body: { error: "WEBHOOK_UNAUTHORIZED" },
     });
@@ -191,9 +184,7 @@ describe("M141 verified webhook HTTP transport", () => {
     const collision = harness({
       failure: new Error("FINANCIAL_PROVIDER_EVENT_COLLISION"),
     });
-    await expect(
-      collision.transport.handle(request()),
-    ).resolves.toMatchObject({
+    await expect(collision.transport.handle(request())).resolves.toMatchObject({
       status: 409,
       body: { error: "WEBHOOK_EVENT_CONFLICT" },
     });
