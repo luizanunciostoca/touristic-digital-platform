@@ -18,17 +18,23 @@ import {
   financialM137SchemaSql,
   financialM141SchemaSql,
 } from "./schema.js";
+import {
+  FinancialWebhookHttpTransport,
+  sandboxWebhookPath,
+} from "./webhook-http-transport.js";
 
 export {
   MySqlLedgerTransactionRepository,
   MySqlPaymentIdempotencyPort,
   MySqlPaymentRepository,
   MySqlProviderWebhookEventRepository,
+  FinancialWebhookHttpTransport,
   SandboxCheckoutProviderError,
   createSandboxCheckoutProviderFromEnvironment,
   createSandboxWebhookVerifierFromEnvironment,
   financialM137SchemaSql,
   financialM141SchemaSql,
+  sandboxWebhookPath,
 };
 export type {
   ProviderWebhookEventClaim,
