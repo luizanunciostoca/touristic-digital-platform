@@ -37,7 +37,7 @@ Plataforma multi-destino que evolui a V1 do Morro Digital sem reconstruí-la de 
 - `@touristic/search`
 - `@touristic/shared`
 
-`@touristic/financial` e `@touristic/ordering` começaram no M136 como packages de domínio/ports. O M137 adiciona `@touristic/financial-server` e `@touristic/ordering-server` com persistência MySQL durável, sem provider, HTTP, webhook público, checkout browser ou movimentação monetária. A existência desses adapters indica progresso de `FEATURE-0009`, não disponibilidade de pagamentos em produção.
+`@touristic/financial` e `@touristic/ordering` começaram no M136 como packages de domínio/ports. O M137 adicionou `@touristic/financial-server` e `@touristic/ordering-server` com persistência MySQL durável. O M138 acrescenta o application service provider-neutral, revalidação do handoff, pricing authority server-only e composição recuperável entre os dois bancos. Ainda não existem provider, HTTP/Auth de checkout, webhook público, checkout browser ou movimentação monetária; esse progresso não significa disponibilidade de pagamentos em produção.
 
 Packages-alvo ainda não materializados, como `@touristic/affiliates`, não devem ser tratados como implementados até existirem fisicamente com contratos e evidência executável.
 
