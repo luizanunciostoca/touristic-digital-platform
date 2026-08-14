@@ -12,6 +12,10 @@ import type {
   ProviderWebhookEventRepositoryPort,
   ProviderWebhookReceipt,
 } from "./mysql-provider-webhook-event-repository.js";
+import type {
+  VerifiedPaymentOutcomeApplicationPort,
+  VerifiedPaymentOutcomeDisposition,
+} from "./verified-payment-outcome-service.js";
 
 export const sandboxWebhookPath = "/api/payments/v1/webhooks/sandbox";
 
@@ -38,6 +42,7 @@ export interface FinancialWebhookAuditEvent {
   readonly status: ProviderPaymentStatus | null;
   readonly matched: boolean | null;
   readonly replayed: boolean | null;
+  readonly outcome: VerifiedPaymentOutcomeDisposition | null;
 }
 
 export interface FinancialWebhookAuditPort {
@@ -52,6 +57,7 @@ export interface FinancialWebhookHttpTransportDependencies {
   readonly verifier: FinancialWebhookVerifierPort;
   readonly events: ProviderWebhookEventRepositoryPort;
   readonly payments: PaymentRepositoryPort;
+  readonly outcomes: VerifiedPaymentOutcomeApplicationPort;
   readonly audit: FinancialWebhookAuditPort;
   readonly clock: FinancialWebhookClockPort;
 }
@@ -144,6 +150,7 @@ export class FinancialWebhookHttpTransport {
         status: null,
         matched: null,
         replayed: null,
+        outcome: null,
       });
       return response(503, { error: "WEBHOOK_UNAVAILABLE" }, correlationId);
     }
@@ -157,6 +164,7 @@ export class FinancialWebhookHttpTransport {
         status: null,
         matched: null,
         replayed: null,
+        outcome: null,
       });
       return response(401, { error: "WEBHOOK_UNAUTHORIZED" }, correlationId);
     }
@@ -176,6 +184,16 @@ export class FinancialWebhookHttpTransport {
       const claim = await this.dependencies.events.claim(receipt);
       const matched = claim.receipt.matchedPaymentId !== null;
       const replayed = !claim.claimed;
+      const outcome = matched
+        ? await this.dependencies.outcomes.apply(claim.receipt.event)
+        : Object.freeze({
+            disposition: "unmatched" as const,
+            payment: null,
+            result: null,
+          });
+      if (matched && outcome.disposition === "unmatched") {
+        throw new Error("FINANCIAL_MATCHED_PAYMENT_DISAPPEARED");
+      }
       await audit(this.dependencies.audit, {
         action: "webhook.receive",
         result: "success",
@@ -185,6 +203,7 @@ export class FinancialWebhookHttpTransport {
         status: event.status,
         matched,
         replayed,
+        outcome: outcome.disposition,
       });
       return response(
         202,
@@ -193,6 +212,7 @@ export class FinancialWebhookHttpTransport {
             accepted: true,
             matched,
             replayed,
+            outcome: outcome.disposition,
           }),
         },
         correlationId,
@@ -210,6 +230,7 @@ export class FinancialWebhookHttpTransport {
         status: event.status,
         matched: null,
         replayed: null,
+        outcome: null,
       });
       return response(
         collision ? 409 : 503,

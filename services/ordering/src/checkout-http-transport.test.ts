@@ -2,11 +2,13 @@ import { describe, expect, it } from "vitest";
 
 import {
   createPendingPayment,
+  normalizeVerifiedPaymentResult,
   type CheckoutProviderRequest,
   type FinancialCheckoutProviderPort,
   type Payment,
   type PaymentId,
   type PaymentRepositoryPort,
+  type VerifiedPaymentResultRepositoryPort,
 } from "@touristic/financial";
 import {
   CheckoutApplicationError,
@@ -192,9 +194,13 @@ function harness(
     readonly rateLimits?: CheckoutHttpRateLimitPort;
     readonly application?: ProviderNeutralCheckoutApplicationService;
     readonly provider?: FinancialCheckoutProviderPort;
+    readonly payment?: Payment;
+    readonly paymentResults?: VerifiedPaymentResultRepositoryPort;
   } = {},
 ) {
-  const { order, payment } = fixtures();
+  const fixture = fixtures();
+  const order = fixture.order;
+  const payment = options.payment ?? fixture.payment;
   const access = new MemoryAccess();
   const audits: CheckoutHttpAuditEvent[] = [];
   const providerRequests: CheckoutProviderRequest[] = [];
@@ -213,6 +219,9 @@ function harness(
     application,
     orders: new MemoryOrders(order),
     payments: new MemoryPayments(payment),
+    ...(options.paymentResults
+      ? { paymentResults: options.paymentResults }
+      : {}),
     access,
     provider: options.provider ?? {
       createCheckout: (input) => {
@@ -436,6 +445,8 @@ describe("M139 checkout HTTP/Auth/security transport", () => {
           paymentReference: null,
           activationStatus: null,
           definitiveBusinessId: null,
+          verifiedPayment: null,
+          verifiedFailure: null,
         },
       },
     });
@@ -458,6 +469,74 @@ describe("M139 checkout HTTP/Auth/security transport", () => {
         body: { error: "CHECKOUT_NOT_FOUND" },
       });
     }
+  });
+
+  it("projects only a persisted approved result for Business conversion", async () => {
+    const fixture = fixtures();
+    const confirmed: Payment = {
+      ...fixture.payment,
+      status: "confirmed",
+      providerReference: "sandbox_business_verified_0001",
+      updatedAt: "2026-08-14T22:30:01Z",
+      confirmedAt: "2026-08-14T22:30:01Z",
+    };
+    const approved = normalizeVerifiedPaymentResult({
+      resultId: "fev_business_verified_0001",
+      providerEventId: "pwe_business_verified_0001",
+      paymentId: confirmed.id,
+      orderReference: fixture.order.id,
+      kind: "approved",
+      paymentStatus: "confirmed",
+      paymentReference: confirmed.providerReference,
+      occurredAt: "2026-08-14T22:30:01Z",
+      recordedAt: "2026-08-14T22:30:02Z",
+    });
+    if (!approved) throw new Error("RESULT_FIXTURE_INVALID");
+    const paymentResults: VerifiedPaymentResultRepositoryPort = {
+      findByProviderEventId: () => Promise.resolve(approved),
+      findByPaymentStatus: (paymentId, status) =>
+        Promise.resolve(
+          paymentId === approved.paymentId &&
+            status === approved.paymentStatus
+            ? approved
+            : null,
+        ),
+      save: () => Promise.resolve(approved),
+    };
+    const { transport, order } = harness({
+      payment: confirmed,
+      paymentResults,
+    });
+    const created = await transport.handle(createRequest());
+    const token = (created.body.data as Record<string, unknown>).statusToken;
+    const result = await transport.handle(
+      createRequest({
+        method: "GET",
+        pathname: "/api/payments/v1/checkouts/" + order.id,
+        body: undefined,
+        headers: { "X-Checkout-Token": token },
+        correlationId: "corr_verified_status_0001",
+      }),
+    );
+
+    expect(result).toMatchObject({
+      status: 200,
+      body: {
+        data: {
+          status: "CONFIRMED",
+          paymentReference: "sandbox_business_verified_0001",
+          activationStatus: "READY_TO_CONVERT",
+          definitiveBusinessId: null,
+          verifiedPayment: {
+            verified: true,
+            sessionId: "http_session_12345678",
+            reference: "sandbox_business_verified_0001",
+            resultId: "fev_business_verified_0001",
+          },
+          verifiedFailure: null,
+        },
+      },
+    });
   });
 
   it("enforces explicit route rate limits", async () => {

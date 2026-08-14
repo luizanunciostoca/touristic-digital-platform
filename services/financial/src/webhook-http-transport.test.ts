@@ -19,6 +19,10 @@ import type {
   ProviderWebhookEventRepositoryPort,
   ProviderWebhookReceipt,
 } from "./mysql-provider-webhook-event-repository.js";
+import type {
+  VerifiedPaymentOutcomeApplicationPort,
+  VerifiedPaymentOutcomeDisposition,
+} from "./verified-payment-outcome-service.js";
 
 function payment(): Payment {
   const id = normalizePaymentId("pay_webhook_transport_0001");
@@ -87,6 +91,7 @@ function harness(
     readonly verified?: ReturnType<typeof event> | null;
     readonly claimed?: boolean;
     readonly failure?: Error | null;
+    readonly outcomeDisposition?: VerifiedPaymentOutcomeDisposition;
   } = {},
 ) {
   const audits: FinancialWebhookAuditEvent[] = [];
@@ -96,12 +101,26 @@ function harness(
   );
   const verified = options.verified === undefined ? event() : options.verified;
   const value = options.matched === false ? null : payment();
+  const outcomeEvents: ReturnType<typeof event>[] = [];
+  const outcomes: VerifiedPaymentOutcomeApplicationPort = {
+    apply(input) {
+      outcomeEvents.push(input);
+      return Promise.resolve({
+        disposition:
+          options.outcomeDisposition ??
+          (options.claimed === false ? "replayed" : "applied"),
+        payment: value,
+        result: null,
+      });
+    },
+  };
   const transport = new FinancialWebhookHttpTransport({
     verifier: {
       verify: () => Promise.resolve(verified),
     },
     events,
     payments: new MemoryPayments(value),
+    outcomes,
     audit: {
       record(value) {
         audits.push(value);
@@ -110,7 +129,7 @@ function harness(
     },
     clock: { now: () => "2026-08-14T23:00:02Z" },
   });
-  return { transport, events, audits };
+  return { transport, events, audits, outcomeEvents };
 }
 
 function request(rawBody = Buffer.from('{"verified":"bytes"}')) {
@@ -125,9 +144,9 @@ function request(rawBody = Buffer.from('{"verified":"bytes"}')) {
   };
 }
 
-describe("M141 verified webhook HTTP transport", () => {
+describe("M142 verified webhook outcome transport", () => {
   it("durably claims a matched event without mutating Payment", async () => {
-    const { transport, events, audits } = harness();
+    const { transport, events, audits, outcomeEvents } = harness();
     const rawBody = Buffer.from('{"verified":"exact bytes"}');
 
     await expect(transport.handle(request(rawBody))).resolves.toEqual({
@@ -137,10 +156,16 @@ describe("M141 verified webhook HTTP transport", () => {
         "X-Correlation-ID": "corr_webhook_transport_0001",
       },
       body: {
-        data: { accepted: true, matched: true, replayed: false },
+        data: {
+          accepted: true,
+          matched: true,
+          replayed: false,
+          outcome: "applied",
+        },
       },
     });
     expect(events.receipts).toHaveLength(1);
+    expect(outcomeEvents).toEqual([event()]);
     expect(events.receipts[0]).toMatchObject({
       payloadSha256:
         "d24bbc9440833f333fedf33049a5bf3cdfe756c0e6a49bf5092d7b0fb5aa3ae3",
@@ -152,6 +177,7 @@ describe("M141 verified webhook HTTP transport", () => {
       reason: "accepted_matched",
       matched: true,
       replayed: false,
+      outcome: "applied",
     });
   });
 
@@ -160,7 +186,12 @@ describe("M141 verified webhook HTTP transport", () => {
     await expect(unknown.transport.handle(request())).resolves.toMatchObject({
       status: 202,
       body: {
-        data: { accepted: true, matched: false, replayed: false },
+        data: {
+          accepted: true,
+          matched: false,
+          replayed: false,
+          outcome: "unmatched",
+        },
       },
     });
 
@@ -168,7 +199,12 @@ describe("M141 verified webhook HTTP transport", () => {
     await expect(replay.transport.handle(request())).resolves.toMatchObject({
       status: 202,
       body: {
-        data: { accepted: true, matched: true, replayed: true },
+        data: {
+          accepted: true,
+          matched: true,
+          replayed: true,
+          outcome: "replayed",
+        },
       },
     });
   });
