@@ -1,0 +1,68 @@
+name: Payments Operational Ledger Contract
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "packages/financial/**"
+      - "services/financial/**"
+      - "apps/morro-digital-platform/tooling/payments-api.mjs"
+      - ".github/workflows/payments-operational-ledger-contract.yml"
+      - "pnpm-lock.yaml"
+  pull_request:
+    paths:
+      - "packages/financial/**"
+      - "services/financial/**"
+      - "apps/morro-digital-platform/tooling/payments-api.mjs"
+      - ".github/workflows/payments-operational-ledger-contract.yml"
+      - "pnpm-lock.yaml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: payments-ledger-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  operational-ledger-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: m143-ledger
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -pm143-ledger"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    env:
+      MYSQL_ADMIN_DATABASE_URL: mysql://root:m143-ledger@127.0.0.1:3306/mysql
+      FINANCIAL_DATABASE_URL: mysql://root:m143-ledger@127.0.0.1:3306/financial_m137_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Verified accounting unit and recovery contracts
+        run: pnpm --filter @touristic/financial-server test
+      - name: Approval and reversal MySQL integration
+        run: pnpm --filter @touristic/financial-server test:integration
+      - name: Build composed Financial runtime
+        run: |
+          pnpm --filter @touristic/auth build
+          pnpm --filter @touristic/financial build
+          pnpm --filter @touristic/ordering build
+          pnpm --filter @touristic/financial-server build
+          pnpm --filter @touristic/ordering-server build
