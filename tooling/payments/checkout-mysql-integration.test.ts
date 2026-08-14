@@ -306,6 +306,9 @@ describeMySql.sequential("M138 checkout application MySQL integration", () => {
     );
     expect(created.status).toBe(201);
     const createdData = created.body.data as Record<string, unknown>;
+    expect(createdData.checkoutUrl).toBe(
+      "https://checkout.sandbox-payments.example/pay/pay_mysql_http_0001",
+    );
     const statusToken = createdData.statusToken;
     if (typeof statusToken !== "string") {
       throw new Error("STATUS_TOKEN_MISSING");
@@ -334,8 +337,6 @@ describeMySql.sequential("M138 checkout application MySQL integration", () => {
         data: {
           checkoutId: "ord_mysql_http_0001",
           status: "PENDING",
-          checkoutUrl:
-            "https://checkout.sandbox-payments.example/pay/pay_mysql_http_0001",
         },
       },
     });

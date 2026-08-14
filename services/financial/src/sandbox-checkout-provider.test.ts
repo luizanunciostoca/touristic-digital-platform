@@ -59,7 +59,12 @@ describe("M140 sandbox checkout provider adapter", () => {
     let capturedUrl = "";
     let capturedInit: RequestInit | undefined;
     const fetchMock: typeof fetch = (input, init) => {
-      capturedUrl = String(input);
+      capturedUrl =
+        input instanceof URL
+          ? input.toString()
+          : typeof input === "string"
+            ? input
+            : input.url;
       capturedInit = init;
       return Promise.resolve(
         new Response(
@@ -98,7 +103,11 @@ describe("M140 sandbox checkout provider adapter", () => {
     expect(headers.get("Authorization")).toBe(
       "Bearer sandbox-token-with-at-least-thirty-two-characters",
     );
-    expect(JSON.parse(String(capturedInit?.body))).toEqual({
+    const capturedBody = capturedInit?.body;
+    if (typeof capturedBody !== "string") {
+      throw new Error("CAPTURED_PROVIDER_BODY_INVALID");
+    }
+    expect(JSON.parse(capturedBody)).toEqual({
       version: 1,
       externalReference: "pay_sandbox_adapter_0001",
       amount: { minorUnits: 49_900, currency: "BRL" },
