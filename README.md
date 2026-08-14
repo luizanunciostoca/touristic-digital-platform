@@ -10,21 +10,32 @@ Plataforma multi-destino que evolui a V1 do Morro Digital sem reconstruí-la de 
 4. Mapbox permanece como engine geoespacial principal; OpenRouteService e Leaflet compõem a estratégia de resiliência.
 5. Nenhuma remoção ocorre sem inventário, ADR, testes e evidência de equivalência.
 
-## Estrutura
+## Estrutura física atual
 
-- `apps/`: produtos executáveis por público e operação.
-- `packages/`: capacidades reutilizáveis e contratos.
-- `services/`: processos de backend, filas e integrações.
-- `tooling/`: engenharia, migração e observatórios.
-- `infrastructure/`: deploy, ambientes e observabilidade.
-- `docs/`: constituição, handbook, ADRs e migração.
+- `apps/`: produtos executáveis por público e operação, incluindo Morro Digital e Admin CRM.
+- `packages/`: capacidades reutilizáveis e contratos de domínio.
+- `services/`: adapters/processos server-side atualmente materializados para Auth e CRM.
+- `tooling/`: enforcement arquitetural, inventários e engenharia de suporte.
+- `docs/`: constituição, arquitetura, handbook, ADRs, QA, operações e migração.
+- `.github/workflows/`: Quality Gate e contratos automatizados especializados.
 
-## Primeiros pacotes
+`infrastructure/` faz parte do boundary arquitetural desejado para deploy, ambientes e observabilidade, mas **ainda não existe como diretório físico no `main`**. Até que esse boundary seja materializado, não deve ser apresentado como implementação concluída; automação de CI/release e parte do runtime operacional permanecem distribuídas entre `.github/workflows/`, `tooling/`, `apps/*/tooling` e `docs/operations`.
 
+## Packages atuais
+
+- `@touristic/assistant`
+- `@touristic/auth`
+- `@touristic/auth-browser`
+- `@touristic/business`
 - `@touristic/core`
-- `@touristic/shared`
+- `@touristic/crm`
 - `@touristic/design-system`
 - `@touristic/geospatial`
+- `@touristic/navigation`
+- `@touristic/search`
+- `@touristic/shared`
+
+Packages planejados no Feature Registry, como Payments e Affiliates, não devem ser tratados como implementados até existirem com contratos e evidência executável.
 
 ## Comandos
 
@@ -34,6 +45,14 @@ pnpm install
 pnpm check
 ```
 
-## Estado
+## Estado canônico
 
-Fundação oficial em construção. A V1 continua como baseline funcional e comportamental até que cada onda obtenha equivalência comprovada.
+O status funcional deve ser lido em conjunto com:
+
+- `docs/features/registry.json`;
+- `docs/migration/MASTER-MIGRATION-TRACKER.md`;
+- matrizes de migração por feature;
+- evidências permanentes em `docs/qa/`;
+- Quality Gate do head correspondente.
+
+`equivalent` não significa `released`. A V1 continua como baseline para as ondas ainda não fechadas, enquanto rollout e produção obedecem ao processo separado de release.
