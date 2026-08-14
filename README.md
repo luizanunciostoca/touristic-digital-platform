@@ -14,7 +14,7 @@ Plataforma multi-destino que evolui a V1 do Morro Digital sem reconstruí-la de 
 
 - `apps/`: produtos executáveis por público e operação, incluindo Morro Digital e Admin CRM.
 - `packages/`: capacidades reutilizáveis e contratos de domínio.
-- `services/`: adapters/processos server-side atualmente materializados para Auth e CRM.
+- `services/`: adapters/processos server-side atualmente materializados para Auth, CRM, Ordering e Financial.
 - `tooling/`: enforcement arquitetural, inventários e engenharia de suporte.
 - `docs/`: constituição, arquitetura, handbook, ADRs, QA, operações e migração.
 - `.github/workflows/`: Quality Gate e contratos automatizados especializados.
@@ -37,7 +37,7 @@ Plataforma multi-destino que evolui a V1 do Morro Digital sem reconstruí-la de 
 - `@touristic/search`
 - `@touristic/shared`
 
-`@touristic/financial` e `@touristic/ordering` começam no M136 como packages de domínio/ports, sem provider, HTTP ou persistência financeira. A existência física desses packages indica que `FEATURE-0009` entrou em migração; não significa que checkout ou money movement estejam disponíveis.
+`@touristic/financial` e `@touristic/ordering` começaram no M136 como packages de domínio/ports. O M137 adiciona `@touristic/financial-server` e `@touristic/ordering-server` com persistência MySQL durável, sem provider, HTTP, webhook público, checkout browser ou movimentação monetária. A existência desses adapters indica progresso de `FEATURE-0009`, não disponibilidade de pagamentos em produção.
 
 Packages-alvo ainda não materializados, como `@touristic/affiliates`, não devem ser tratados como implementados até existirem fisicamente com contratos e evidência executável.
 
