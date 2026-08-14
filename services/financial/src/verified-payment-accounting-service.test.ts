@@ -37,15 +37,12 @@ function payment(status: Payment["status"]): Payment {
     providerReference: "sandbox_accounting_service_0001",
     createdAt: "2026-08-15T00:00:00Z",
     updatedAt:
-      status === "refunded"
-        ? "2026-08-15T00:00:02Z"
-        : "2026-08-15T00:00:01Z",
+      status === "refunded" ? "2026-08-15T00:00:02Z" : "2026-08-15T00:00:01Z",
     confirmedAt:
       status === "confirmed" || status === "refunded"
         ? "2026-08-15T00:00:01Z"
         : null,
-    refundedAt:
-      status === "refunded" ? "2026-08-15T00:00:02Z" : null,
+    refundedAt: status === "refunded" ? "2026-08-15T00:00:02Z" : null,
   };
 }
 
@@ -66,9 +63,7 @@ function result(
           : "failed",
     paymentReference: "sandbox_accounting_service_0001",
     occurredAt:
-      kind === "refunded"
-        ? "2026-08-15T00:00:02Z"
-        : "2026-08-15T00:00:01Z",
+      kind === "refunded" ? "2026-08-15T00:00:02Z" : "2026-08-15T00:00:01Z",
     recordedAt: "2026-08-15T00:00:03Z",
   });
   if (!value) throw new Error("RESULT_FIXTURE_INVALID");
@@ -85,9 +80,7 @@ class MemoryLedger implements LedgerTransactionRepositoryPort {
   append(transaction: LedgerTransaction): Promise<void> {
     const existing = this.transactions.get(transaction.externalKey);
     if (existing && JSON.stringify(existing) !== JSON.stringify(transaction)) {
-      return Promise.reject(
-        new Error("FINANCIAL_LEDGER_IDEMPOTENCY_CONFLICT"),
-      );
+      return Promise.reject(new Error("FINANCIAL_LEDGER_IDEMPOTENCY_CONFLICT"));
     }
     this.transactions.set(transaction.externalKey, transaction);
     return Promise.resolve();
@@ -221,9 +214,7 @@ describe("M143 verified Payment accounting", () => {
 
     await expect(
       accounting.apply(payment("confirmed"), mismatched),
-    ).rejects.toThrow(
-      "FINANCIAL_ACCOUNTING_RESULT_PAYMENT_MISMATCH",
-    );
+    ).rejects.toThrow("FINANCIAL_ACCOUNTING_RESULT_PAYMENT_MISMATCH");
     expect(ledger.transactions).toHaveLength(0);
   });
 });

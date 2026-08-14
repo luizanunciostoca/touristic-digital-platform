@@ -17,9 +17,7 @@ export const providerClearingAccount = "asset:provider_clearing";
 export const checkoutRevenueAccount = "revenue:checkout";
 
 export type VerifiedPaymentAccountingDisposition =
-  | "posted"
-  | "replayed"
-  | "not_applicable";
+  "posted" | "replayed" | "not_applicable";
 
 export interface VerifiedPaymentAccountingOutcome {
   readonly disposition: VerifiedPaymentAccountingDisposition;
@@ -175,9 +173,7 @@ export function createVerifiedPaymentAccountingService(
         disposition: entries.every((entry) => entry.replayed)
           ? ("replayed" as const)
           : ("posted" as const),
-        transactions: Object.freeze(
-          entries.map((entry) => entry.transaction),
-        ),
+        transactions: Object.freeze(entries.map((entry) => entry.transaction)),
       });
     },
   });
