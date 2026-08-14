@@ -44,7 +44,9 @@ const ORDER_COLUMNS = `
 
 function timestamp(value: Date | string): string {
   const date = value instanceof Date ? value : new Date(value);
-  if (!Number.isFinite(date.getTime())) throw new Error("ORDERING_INVALID_DB_TIMESTAMP");
+  if (!Number.isFinite(date.getTime())) {
+    throw new Error("ORDERING_INVALID_DB_TIMESTAMP");
+  }
   return date.toISOString();
 }
 
@@ -136,14 +138,11 @@ export class MySqlOrderRepository implements OrderRepositoryPort {
   async save(order: Order): Promise<Order> {
     const normalized = normalizeOrder(order);
     await this.pool.execute(
-      `INSERT INTO ordering_orders (
+      `INSERT IGNORE INTO ordering_orders (
         order_id, request_key, source_kind, source_reference, status,
         plan_id, plan_name, amount_minor, currency, pricing_version,
         pricing_captured_at, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      ON DUPLICATE KEY UPDATE
-        status = VALUES(status),
-        updated_at = VALUES(updated_at)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         normalized.id,
         normalized.requestKey,
@@ -161,11 +160,35 @@ export class MySqlOrderRepository implements OrderRepositoryPort {
       ],
     );
 
-    const persisted = await this.findById(normalized.id);
-    if (!persisted) throw new Error("ORDERING_ORDER_NOT_PERSISTED");
+    let persisted = await this.findById(normalized.id);
+    if (!persisted) {
+      const conflicting = await this.findByRequestKey(normalized.requestKey);
+      if (conflicting) throw new Error("ORDERING_REQUEST_KEY_CONFLICT");
+      throw new Error("ORDERING_ORDER_NOT_PERSISTED");
+    }
     if (!sameImmutableOrder(persisted, normalized)) {
       throw new Error("ORDERING_IMMUTABLE_ORDER_CONFLICT");
     }
+
+    if (
+      persisted.status !== normalized.status ||
+      persisted.updatedAt !== normalized.updatedAt
+    ) {
+      await this.pool.execute(
+        `UPDATE ordering_orders
+         SET status = ?, updated_at = ?
+         WHERE order_id = ? AND request_key = ?`,
+        [
+          normalized.status,
+          new Date(normalized.updatedAt),
+          normalized.id,
+          normalized.requestKey,
+        ],
+      );
+      persisted = await this.findById(normalized.id);
+      if (!persisted) throw new Error("ORDERING_ORDER_NOT_PERSISTED");
+    }
+
     return persisted;
   }
 }
