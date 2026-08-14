@@ -122,11 +122,31 @@ async function responseJson(response: Response): Promise<unknown> {
       "SANDBOX_PROVIDER_INVALID_RESPONSE",
     );
   }
-  const text = await response.text();
-  if (Buffer.byteLength(text) > maxResponseBytes) {
+  if (!response.body) {
     throw new SandboxCheckoutProviderError(
       "SANDBOX_PROVIDER_INVALID_RESPONSE",
     );
+  }
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let receivedBytes = 0;
+  let text = "";
+  try {
+    while (true) {
+      const chunk = await reader.read();
+      if (chunk.done) break;
+      receivedBytes += chunk.value.byteLength;
+      if (receivedBytes > maxResponseBytes) {
+        await reader.cancel();
+        throw new SandboxCheckoutProviderError(
+          "SANDBOX_PROVIDER_INVALID_RESPONSE",
+        );
+      }
+      text += decoder.decode(chunk.value, { stream: true });
+    }
+    text += decoder.decode();
+  } finally {
+    reader.releaseLock();
   }
   try {
     return JSON.parse(text);

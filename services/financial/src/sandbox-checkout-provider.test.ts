@@ -133,6 +133,36 @@ describe("M140 sandbox checkout provider adapter", () => {
       new SandboxCheckoutProviderError("SANDBOX_PROVIDER_REJECTED"),
     );
 
+    const unavailable = createSandboxCheckoutProviderFromEnvironment(
+      environment(),
+      {
+        fetch: () =>
+          Promise.reject(new Error("secret network failure detail")),
+      },
+    );
+    await expect(unavailable.createCheckout(request())).rejects.toEqual(
+      new SandboxCheckoutProviderError(
+        "SANDBOX_PROVIDER_UNAVAILABLE",
+      ),
+    );
+
+    const oversized = createSandboxCheckoutProviderFromEnvironment(
+      environment(),
+      {
+        fetch: () =>
+          Promise.resolve(
+            new Response("x".repeat(64 * 1024 + 1), {
+              status: 200,
+            }),
+          ),
+      },
+    );
+    await expect(oversized.createCheckout(request())).rejects.toEqual(
+      new SandboxCheckoutProviderError(
+        "SANDBOX_PROVIDER_INVALID_RESPONSE",
+      ),
+    );
+
     const wrongOrigin = createSandboxCheckoutProviderFromEnvironment(
       environment(),
       {

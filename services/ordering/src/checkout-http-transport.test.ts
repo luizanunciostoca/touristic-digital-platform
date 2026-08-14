@@ -479,6 +479,31 @@ describe("M139 checkout HTTP/Auth/security transport", () => {
     });
   });
 
+  it("normalizes provider failures without leaking provider details or PII", async () => {
+    const { transport, audits } = harness({
+      provider: {
+        createCheckout: () =>
+          Promise.reject(new Error("provider-token-and-secret-detail")),
+      },
+    });
+
+    const unavailable = await transport.handle(createRequest());
+
+    expect(unavailable).toMatchObject({
+      status: 503,
+      body: { error: "CHECKOUT_UNAVAILABLE" },
+    });
+    expect(JSON.stringify(unavailable)).not.toContain(
+      "provider-token-and-secret-detail",
+    );
+    expect(JSON.stringify(audits)).not.toContain("http@example.com");
+    expect(audits.at(-1)).toMatchObject({
+      action: "checkout.create",
+      result: "failure",
+      reason: "internal_failure",
+    });
+  });
+
   it("maps application configuration and conflict failures without leaking internals", async () => {
     const notConfigured = harness({
       application: {
