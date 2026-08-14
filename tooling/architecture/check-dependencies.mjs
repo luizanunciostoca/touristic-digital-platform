@@ -70,6 +70,22 @@ for (const workspace of workspaces) {
         `packages/shared deve permanecer agnóstico e não pode depender de ${dependencyName}`,
       );
     }
+
+    if (
+      ["packages/financial", "services/financial"].includes(
+        workspace.relativeDir,
+      ) &&
+      (targetKind === "apps" ||
+        [
+          "packages/ordering",
+          "services/ordering",
+          "packages/business",
+        ].includes(target.relativeDir))
+    ) {
+      violations.push(
+        `${workspace.relativeDir} deve permanecer independente de ${target.relativeDir}`,
+      );
+    }
   }
 }
 

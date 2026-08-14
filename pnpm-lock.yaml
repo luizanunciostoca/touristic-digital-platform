@@ -135,6 +135,24 @@ importers:
         specifier: ^3.14.5
         version: 3.23.3(@types/node@24.13.3)
 
+  services/financial:
+    dependencies:
+      "@touristic/financial":
+        specifier: workspace:*
+        version: link:../../packages/financial
+      mysql2:
+        specifier: ^3.14.5
+        version: 3.23.3(@types/node@24.13.3)
+
+  services/ordering:
+    dependencies:
+      "@touristic/ordering":
+        specifier: workspace:*
+        version: link:../../packages/ordering
+      mysql2:
+        specifier: ^3.14.5
+        version: 3.23.3(@types/node@24.13.3)
+
 packages:
   "@esbuild/aix-ppc64@0.28.1":
     resolution:

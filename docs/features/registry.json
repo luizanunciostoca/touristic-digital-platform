@@ -125,7 +125,12 @@
       "wave": 8,
       "status": "migrating",
       "legacySources": ["v1:checkout"],
-      "targetPackages": ["@touristic/ordering", "@touristic/financial"],
+      "targetPackages": [
+        "@touristic/ordering",
+        "@touristic/ordering-server",
+        "@touristic/financial",
+        "@touristic/financial-server"
+      ],
       "equivalence": {
         "behavior": false,
         "visual": false,
