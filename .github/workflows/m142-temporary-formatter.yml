@@ -41,7 +41,11 @@ jobs:
             services/ordering/src/checkout-http-transport.ts \
             services/ordering/src/checkout-http-transport.test.ts \
             apps/morro-digital-platform/tooling/payments-api.mjs \
-            .github/workflows/payments-verified-outcome-contract.yml
+            .github/workflows/payments-verified-outcome-contract.yml \
+            docs/migration/PAYMENTS-MIGRATION-MATRIX.md \
+            docs/migration/MASTER-MIGRATION-TRACKER.md \
+            docs/qa/PAYMENTS-M142-EVIDENCE.md \
+            README.md
       - name: Commit formatting
         run: |
           if git diff --quiet; then
@@ -63,6 +67,10 @@ jobs:
             services/ordering/src/checkout-http-transport.ts \
             services/ordering/src/checkout-http-transport.test.ts \
             apps/morro-digital-platform/tooling/payments-api.mjs \
-            .github/workflows/payments-verified-outcome-contract.yml
+            .github/workflows/payments-verified-outcome-contract.yml \
+            docs/migration/PAYMENTS-MIGRATION-MATRIX.md \
+            docs/migration/MASTER-MIGRATION-TRACKER.md \
+            docs/qa/PAYMENTS-M142-EVIDENCE.md \
+            README.md
           git commit -m "style(payments): format M142 changes"
           git push origin HEAD:feat/payments-m142-verified-outcomes
