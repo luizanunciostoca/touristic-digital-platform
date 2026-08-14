@@ -114,6 +114,23 @@ describe("assistant paid-provider governance", () => {
     expect(snapshot.usage.daily.spentUsd).toBeCloseTo(0.002);
   });
 
+  it("charges the conservative reservation when provider usage is absent", async () => {
+    const fetchImplementation = vi.fn(async () => providerResponse());
+    const api = createAssistantApi({
+      getEnvironmentValue: environment({
+        OPENAI_REQUEST_RESERVE_USD: "0.75",
+      }),
+      fetchImplementation,
+      observeProviderEvent: () => {},
+    });
+    const output = response();
+
+    await api.handle(request(), output);
+
+    expect(output.statusCode).toBe(200);
+    expect(api.observabilitySnapshot().usage.daily.spentUsd).toBe(0.75);
+  });
+
   it("blocks a new call when the reservation would cross the daily ceiling", async () => {
     const fetchImplementation = vi.fn(async () =>
       providerResponse({
