@@ -73,12 +73,22 @@ export interface OrderPlacedEvent {
 
 function normalizeString(value: unknown, maxLength: number): string {
   if (typeof value !== "string") return "";
-  return value.trim().slice(0, maxLength);
+  const normalized = value.trim();
+  return normalized.length > 0 && normalized.length <= maxLength
+    ? normalized
+    : "";
 }
 
 function normalizeSafeReference(value: unknown, maxLength: number): string {
   const normalized = normalizeString(value, maxLength);
   return normalized && ID_BODY.test(normalized) ? normalized : "";
+}
+
+function isOrderStatus(value: unknown): value is OrderStatus {
+  return (
+    typeof value === "string" &&
+    orderStatuses.includes(value as OrderStatus)
+  );
 }
 
 export function normalizeOrderId(value: unknown): OrderId | null {
@@ -103,7 +113,9 @@ export function normalizeOrderRequestKey(
   value: unknown,
 ): OrderRequestKey | null {
   const normalized = normalizeString(value, 220);
-  return REQUEST_KEY.test(normalized) ? (normalized as OrderRequestKey) : null;
+  return normalized && REQUEST_KEY.test(normalized)
+    ? (normalized as OrderRequestKey)
+    : null;
 }
 
 export function normalizeOrderSourceReference(
@@ -137,14 +149,16 @@ export function capturePricingSnapshot(
   capturedAt: unknown,
 ): OrderPricingSnapshot | null {
   const timestamp = normalizeFinancialTimestamp(capturedAt);
-  if (!timestamp) return null;
-  const amount = createMoney(quote.amount.minorUnits, quote.amount.currency);
-  if (!amount) return null;
-  return Object.freeze({
+  const normalizedQuote = createPricingQuote({
     planId: quote.planId,
     planName: quote.planName,
-    amount,
+    minorUnits: quote.amount.minorUnits,
+    currency: quote.amount.currency,
     pricingVersion: quote.pricingVersion,
+  });
+  if (!timestamp || !normalizedQuote) return null;
+  return Object.freeze({
+    ...normalizedQuote,
     capturedAt: timestamp,
   });
 }
@@ -162,26 +176,33 @@ export function createOrder(input: {
   const updatedAt = normalizeFinancialTimestamp(
     input.updatedAt ?? input.createdAt,
   );
-  if (!createdAt || !updatedAt) return null;
-  if (
-    !normalizeOrderId(input.id) ||
-    !normalizeOrderRequestKey(input.requestKey)
-  ) {
-    return null;
-  }
+  const id = normalizeOrderId(input.id);
+  const requestKey = normalizeOrderRequestKey(input.requestKey);
   const source = normalizeOrderSourceReference(input.source.reference);
-  if (!source || source.kind !== input.source.kind) return null;
+  const status = input.status ?? "draft";
   const pricing = capturePricingSnapshot(
     input.pricing,
     input.pricing.capturedAt,
   );
-  if (!pricing) return null;
+
+  if (
+    !createdAt ||
+    !updatedAt ||
+    !id ||
+    !requestKey ||
+    !source ||
+    source.kind !== input.source.kind ||
+    !isOrderStatus(status) ||
+    !pricing
+  ) {
+    return null;
+  }
 
   return Object.freeze({
-    id: input.id,
-    requestKey: input.requestKey,
+    id,
+    requestKey,
     source,
-    status: input.status ?? "draft",
+    status,
     pricing,
     createdAt,
     updatedAt,
