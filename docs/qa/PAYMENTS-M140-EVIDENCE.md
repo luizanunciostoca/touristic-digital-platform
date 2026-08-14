@@ -46,6 +46,14 @@ Domain/provider tests prove:
 
 The permanent `Payments Sandbox Provider Contract` workflow runs provider unit tests, Ordering composition tests and this HTTP wire contract without third-party credentials. Quality and Payments Persistence Integration remain required on the same promotion head.
 
+Validated checkpoint `97ee51deb3dc288f16ea1a1b2b5a4eea7b6b73e7`:
+
+- Quality Gate `31847069740 — SUCCESS`;
+- Payments Persistence Integration `31847069803 — SUCCESS`;
+- Payments Sandbox Provider Contract `31847069794 — SUCCESS`.
+
+Final promotion still requires the same three gates on the final documentation head.
+
 ## Migration result
 
 ```text
