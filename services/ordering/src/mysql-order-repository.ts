@@ -1,6 +1,7 @@
-import type { Pool, RowDataPacket } from "mysql2/promise";
+import type { Pool, ResultSetHeader, RowDataPacket } from "mysql2/promise";
 
 import {
+  assertOrderTransition,
   createOrder,
   normalizeOrderId,
   normalizeOrderRequestKey,
@@ -115,6 +116,10 @@ function sameImmutableOrder(left: Order, right: Order): boolean {
   );
 }
 
+function sameMutableOrder(left: Order, right: Order): boolean {
+  return left.status === right.status && left.updatedAt === right.updatedAt;
+}
+
 export class MySqlOrderRepository implements OrderRepositoryPort {
   constructor(private readonly pool: Pool) {}
 
@@ -173,23 +178,38 @@ export class MySqlOrderRepository implements OrderRepositoryPort {
       throw new Error("ORDERING_IMMUTABLE_ORDER_CONFLICT");
     }
 
-    if (
-      persisted.status !== normalized.status ||
-      persisted.updatedAt !== normalized.updatedAt
-    ) {
-      await this.pool.execute(
+    if (!sameMutableOrder(persisted, normalized)) {
+      assertOrderTransition(persisted.status, normalized.status);
+      if (Date.parse(normalized.updatedAt) <= Date.parse(persisted.updatedAt)) {
+        throw new Error("ORDERING_STALE_ORDER_UPDATE");
+      }
+
+      const [result] = await this.pool.execute<ResultSetHeader>(
         `UPDATE ordering_orders
          SET status = ?, updated_at = ?
-         WHERE order_id = ? AND request_key = ?`,
+         WHERE order_id = ? AND request_key = ?
+           AND status = ? AND updated_at = ?`,
         [
           normalized.status,
           new Date(normalized.updatedAt),
           normalized.id,
           normalized.requestKey,
+          persisted.status,
+          new Date(persisted.updatedAt),
         ],
       );
+      if (result.affectedRows !== 1) {
+        throw new Error("ORDERING_CONCURRENT_ORDER_MODIFICATION");
+      }
+
       persisted = await this.findById(normalized.id);
       if (!persisted) throw new Error("ORDERING_ORDER_NOT_PERSISTED");
+      if (
+        !sameImmutableOrder(persisted, normalized) ||
+        !sameMutableOrder(persisted, normalized)
+      ) {
+        throw new Error("ORDERING_CONCURRENT_ORDER_MODIFICATION");
+      }
     }
 
     return persisted;

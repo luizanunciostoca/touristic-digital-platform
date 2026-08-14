@@ -5,7 +5,6 @@
   "type": "module",
   "dependencies": {
     "@touristic/financial": "workspace:*",
-    "@touristic/ordering": "workspace:*",
     "mysql2": "^3.14.5"
   },
   "exports": {
@@ -17,7 +16,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "lint": "eslint src",
-    "test": "pnpm --filter @touristic/financial build && pnpm --filter @touristic/ordering build && vitest run --passWithNoTests",
+    "test": "pnpm --filter @touristic/financial build && vitest run --passWithNoTests",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   }
 }

@@ -54,7 +54,12 @@ export class MySqlPaymentIdempotencyPort implements PaymentIdempotencyPort {
       throw new Error("FINANCIAL_IDEMPOTENCY_PAYMENT_ID_CONFLICT");
     }
     const claimedPaymentId = normalizePaymentId(row.payment_id);
-    if (!claimedPaymentId) {
+    if (
+      row.idempotency_key !== normalizedKey ||
+      !claimedPaymentId ||
+      (result.affectedRows !== 0 && result.affectedRows !== 1) ||
+      (result.affectedRows === 1 && claimedPaymentId !== normalizedPaymentId)
+    ) {
       throw new Error("FINANCIAL_INVALID_PERSISTED_IDEMPOTENCY_CLAIM");
     }
 
@@ -75,7 +80,7 @@ export class MySqlPaymentIdempotencyPort implements PaymentIdempotencyPort {
     );
     if (!rows[0]) return null;
     const paymentId = normalizePaymentId(rows[0].payment_id);
-    if (!paymentId) {
+    if (rows[0].idempotency_key !== normalizedKey || !paymentId) {
       throw new Error("FINANCIAL_INVALID_PERSISTED_IDEMPOTENCY_CLAIM");
     }
     return paymentId;

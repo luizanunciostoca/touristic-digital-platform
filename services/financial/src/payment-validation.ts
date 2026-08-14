@@ -10,12 +10,24 @@ import {
 } from "@touristic/financial";
 
 function boundedOptionalReference(value: unknown, maxLength: number): string | null {
-  if (value === null || value === undefined || value === "") return null;
-  if (typeof value !== "string") return null;
+  if (value === null) return null;
+  if (typeof value !== "string") {
+    throw new Error("FINANCIAL_INVALID_PROVIDER_REFERENCE");
+  }
   const normalized = value.trim();
-  if (!normalized || normalized.length > maxLength) return null;
-  if (/[^\u0020-\u007e]/u.test(normalized)) return null;
+  if (
+    !normalized ||
+    normalized.length > maxLength ||
+    /[^\u0020-\u007e]/u.test(normalized)
+  ) {
+    throw new Error("FINANCIAL_INVALID_PROVIDER_REFERENCE");
+  }
   return normalized;
+}
+
+function canonicalTimestamp(value: unknown): string {
+  const normalized = normalizeFinancialTimestamp(value);
+  return normalized ? new Date(normalized).toISOString() : "";
 }
 
 function isPaymentStatus(value: unknown): value is PaymentStatus {
@@ -26,9 +38,10 @@ function isPaymentStatus(value: unknown): value is PaymentStatus {
 }
 
 function optionalTimestamp(value: unknown): string | null {
-  if (value === null || value === undefined || value === "") return null;
-  const normalized = normalizeFinancialTimestamp(value);
-  return normalized || null;
+  if (value === null) return null;
+  const normalized = canonicalTimestamp(value);
+  if (!normalized) throw new Error("FINANCIAL_INVALID_PAYMENT_TIMESTAMP");
+  return normalized;
 }
 
 export function normalizePaymentForPersistence(payment: Payment): Payment {
@@ -42,8 +55,8 @@ export function normalizePaymentForPersistence(payment: Payment): Payment {
     payment.amount.minorUnits,
     payment.amount.currency,
   );
-  const createdAt = normalizeFinancialTimestamp(payment.createdAt);
-  const updatedAt = normalizeFinancialTimestamp(payment.updatedAt);
+  const createdAt = canonicalTimestamp(payment.createdAt);
+  const updatedAt = canonicalTimestamp(payment.updatedAt);
   const confirmedAt = optionalTimestamp(payment.confirmedAt);
   const refundedAt = optionalTimestamp(payment.refundedAt);
   const providerReference = boundedOptionalReference(
@@ -81,13 +94,17 @@ export function normalizePaymentForPersistence(payment: Payment): Payment {
     throw new Error("FINANCIAL_NON_REFUNDED_PAYMENT_HAS_REFUND_TIMESTAMP");
   }
 
-  if (confirmedAt && Date.parse(confirmedAt) < createdMs) {
+  if (
+    confirmedAt &&
+    (Date.parse(confirmedAt) < createdMs || Date.parse(confirmedAt) > updatedMs)
+  ) {
     throw new Error("FINANCIAL_INVALID_CONFIRMATION_TIME_ORDER");
   }
   if (
     refundedAt &&
     confirmedAt &&
-    Date.parse(refundedAt) < Date.parse(confirmedAt)
+    (Date.parse(refundedAt) < Date.parse(confirmedAt) ||
+      Date.parse(refundedAt) > updatedMs)
   ) {
     throw new Error("FINANCIAL_INVALID_REFUND_TIME_ORDER");
   }

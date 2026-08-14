@@ -200,4 +200,39 @@ describe("M137 MySqlLedgerTransactionRepository", () => {
       "FINANCIAL_LEDGER_IDEMPOTENCY_CONFLICT",
     );
   });
+  it("rejects persisted ledgers with non-contiguous posting sequences", async () => {
+    const value = transaction();
+    const execute = vi.fn(async (sql: string) => {
+      if (sql.includes("FROM financial_ledger_transactions")) {
+        return [[{
+          transaction_id: value.id,
+          external_key: value.externalKey,
+          occurred_at: new Date(value.occurredAt),
+          currency: "BRL",
+        }], []];
+      }
+      if (sql.includes("FROM financial_ledger_postings")) {
+        return [[
+          {
+            posting_sequence: 0,
+            account_reference: "cash:provider",
+            direction: "debit",
+            amount_minor: 49_900,
+          },
+          {
+            posting_sequence: 2,
+            account_reference: "revenue:platform",
+            direction: "credit",
+            amount_minor: 49_900,
+          },
+        ], []];
+      }
+      throw new Error(`Unexpected SQL: ${sql}`);
+    });
+    const repository = new MySqlLedgerTransactionRepository({ execute } as never);
+
+    await expect(repository.findByExternalKey(value.externalKey)).rejects.toThrow(
+      "FINANCIAL_INVALID_PERSISTED_LEDGER",
+    );
+  });
 });

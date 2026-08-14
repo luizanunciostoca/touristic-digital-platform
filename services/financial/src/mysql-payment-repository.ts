@@ -1,6 +1,7 @@
-import type { Pool, RowDataPacket } from "mysql2/promise";
+import type { Pool, ResultSetHeader, RowDataPacket } from "mysql2/promise";
 
 import {
+  assertPaymentTransition,
   createMoney,
   createPaymentIdempotencyKey,
   normalizeFinancialReference,
@@ -107,6 +108,16 @@ function sameImmutablePayment(left: Payment, right: Payment): boolean {
   );
 }
 
+function sameMutablePayment(left: Payment, right: Payment): boolean {
+  return (
+    left.status === right.status &&
+    left.providerReference === right.providerReference &&
+    left.updatedAt === right.updatedAt &&
+    left.confirmedAt === right.confirmedAt &&
+    left.refundedAt === right.refundedAt
+  );
+}
+
 export class MySqlPaymentRepository implements PaymentRepositoryPort {
   constructor(private readonly pool: Pool) {}
 
@@ -166,18 +177,31 @@ export class MySqlPaymentRepository implements PaymentRepositoryPort {
       throw new Error("FINANCIAL_IMMUTABLE_PAYMENT_CONFLICT");
     }
 
-    if (
-      persisted.status !== normalized.status ||
-      persisted.providerReference !== normalized.providerReference ||
-      persisted.updatedAt !== normalized.updatedAt ||
-      persisted.confirmedAt !== normalized.confirmedAt ||
-      persisted.refundedAt !== normalized.refundedAt
-    ) {
-      await this.pool.execute(
+    if (!sameMutablePayment(persisted, normalized)) {
+      assertPaymentTransition(persisted.status, normalized.status);
+      if (Date.parse(normalized.updatedAt) <= Date.parse(persisted.updatedAt)) {
+        throw new Error("FINANCIAL_STALE_PAYMENT_UPDATE");
+      }
+      if (
+        (persisted.providerReference !== null &&
+          normalized.providerReference !== persisted.providerReference) ||
+        (persisted.confirmedAt !== null &&
+          normalized.confirmedAt !== persisted.confirmedAt) ||
+        (persisted.refundedAt !== null &&
+          normalized.refundedAt !== persisted.refundedAt)
+      ) {
+        throw new Error("FINANCIAL_PAYMENT_LIFECYCLE_CONFLICT");
+      }
+
+      const [result] = await this.pool.execute<ResultSetHeader>(
         `UPDATE financial_payments
          SET status = ?, provider_reference = ?, updated_at = ?,
              confirmed_at = ?, refunded_at = ?
-         WHERE payment_id = ? AND idempotency_key = ?`,
+         WHERE payment_id = ? AND idempotency_key = ?
+           AND status = ? AND updated_at = ?
+           AND provider_reference <=> ?
+           AND confirmed_at <=> ?
+           AND refunded_at <=> ?`,
         [
           normalized.status,
           normalized.providerReference,
@@ -186,10 +210,25 @@ export class MySqlPaymentRepository implements PaymentRepositoryPort {
           normalized.refundedAt ? new Date(normalized.refundedAt) : null,
           normalized.id,
           normalized.idempotencyKey,
+          persisted.status,
+          new Date(persisted.updatedAt),
+          persisted.providerReference,
+          persisted.confirmedAt ? new Date(persisted.confirmedAt) : null,
+          persisted.refundedAt ? new Date(persisted.refundedAt) : null,
         ],
       );
+      if (result.affectedRows !== 1) {
+        throw new Error("FINANCIAL_CONCURRENT_PAYMENT_MODIFICATION");
+      }
+
       persisted = await this.findById(normalized.id);
       if (!persisted) throw new Error("FINANCIAL_PAYMENT_NOT_PERSISTED");
+      if (
+        !sameImmutablePayment(persisted, normalized) ||
+        !sameMutablePayment(persisted, normalized)
+      ) {
+        throw new Error("FINANCIAL_CONCURRENT_PAYMENT_MODIFICATION");
+      }
     }
 
     return persisted;

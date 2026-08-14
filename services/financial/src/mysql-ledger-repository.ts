@@ -27,6 +27,9 @@ interface LedgerPostingRow extends RowDataPacket {
   amount_minor: number | string;
 }
 
+const LEDGER_EXTERNAL_KEY = /^[A-Za-z0-9_-]+$/u;
+const MAX_LEDGER_POSTINGS = 256;
+
 function timestamp(value: Date | string): string {
   const date = value instanceof Date ? value : new Date(value);
   if (!Number.isFinite(date.getTime())) {
@@ -108,7 +111,13 @@ export class MySqlLedgerTransactionRepository
   constructor(private readonly pool: Pool) {}
 
   async append(transaction: LedgerTransaction): Promise<void> {
-    const normalized = createLedgerTransaction(transaction);
+    if (transaction.postings.length > MAX_LEDGER_POSTINGS) {
+      throw new Error("FINANCIAL_LEDGER_TOO_MANY_POSTINGS");
+    }
+    const normalized = createLedgerTransaction({
+      ...transaction,
+      occurredAt: timestamp(transaction.occurredAt),
+    });
     const connection = await this.pool.getConnection();
     let duplicate = false;
 
@@ -135,14 +144,17 @@ export class MySqlLedgerTransactionRepository
   async findByExternalKey(
     externalKey: string,
   ): Promise<LedgerTransaction | null> {
-    if (
-      typeof externalKey !== "string" ||
-      !externalKey.trim() ||
-      externalKey.trim().length > 160
-    ) {
+    if (typeof externalKey !== "string") {
       throw new Error("FINANCIAL_INVALID_LEDGER_EXTERNAL_KEY");
     }
     const normalizedExternalKey = externalKey.trim();
+    if (
+      !normalizedExternalKey ||
+      normalizedExternalKey.length > 160 ||
+      !LEDGER_EXTERNAL_KEY.test(normalizedExternalKey)
+    ) {
+      throw new Error("FINANCIAL_INVALID_LEDGER_EXTERNAL_KEY");
+    }
     const [transactions] = await this.pool.execute<LedgerTransactionRow[]>(
       `SELECT transaction_id, external_key, occurred_at, currency
        FROM financial_ledger_transactions
@@ -154,7 +166,9 @@ export class MySqlLedgerTransactionRepository
     if (!row) return null;
 
     const id = normalizeLedgerTransactionId(row.transaction_id);
-    if (!id) throw new Error("FINANCIAL_INVALID_PERSISTED_LEDGER");
+    if (!id || row.external_key !== normalizedExternalKey) {
+      throw new Error("FINANCIAL_INVALID_PERSISTED_LEDGER");
+    }
     const [postingRows] = await this.pool.execute<LedgerPostingRow[]>(
       `SELECT posting_sequence, account_reference, direction, amount_minor
        FROM financial_ledger_postings
@@ -163,7 +177,10 @@ export class MySqlLedgerTransactionRepository
       [id],
     );
 
-    const postings = postingRows.map((posting) => {
+    const postings = postingRows.map((posting, index) => {
+      if (posting.posting_sequence !== index) {
+        throw new Error("FINANCIAL_INVALID_PERSISTED_LEDGER");
+      }
       if (!isDirection(posting.direction)) {
         throw new Error("FINANCIAL_INVALID_PERSISTED_LEDGER");
       }
