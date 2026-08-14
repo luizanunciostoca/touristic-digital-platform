@@ -86,8 +86,7 @@ function normalizeSafeReference(value: unknown, maxLength: number): string {
 
 function isOrderStatus(value: unknown): value is OrderStatus {
   return (
-    typeof value === "string" &&
-    orderStatuses.includes(value as OrderStatus)
+    typeof value === "string" && orderStatuses.includes(value as OrderStatus)
   );
 }
 

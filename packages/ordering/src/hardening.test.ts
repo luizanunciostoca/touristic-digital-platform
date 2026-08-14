@@ -52,7 +52,10 @@ describe("M136 ordering identity hardening", () => {
   it("rejects oversized values instead of truncating them into valid identities", () => {
     expect(normalizeOrderId(`ord_${"a".repeat(200)}`)).toBeNull();
     expect(
-      createBusinessOrderRequestKey(`session_${"a".repeat(200)}`, "performance"),
+      createBusinessOrderRequestKey(
+        `session_${"a".repeat(200)}`,
+        "performance",
+      ),
     ).toBeNull();
     expect(
       normalizeOrderRequestKey(`business:${"a".repeat(220)}:performance`),
