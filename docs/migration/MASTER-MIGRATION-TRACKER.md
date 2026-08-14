@@ -21,19 +21,35 @@ Um item não pode avançar para `equivalent` sem evidência visual ou comportame
 | MIG-0005 | `js/navigation*` | Navigation | FEATURE-0003 | `packages/navigation` + adapters em `packages/geospatial` + composição no app | 4 | equivalent | banner, guidance, first-person/câmera, minimizar/maximizar, forced-colors, texto 200% e mobile/tablet/desktop comprovados | 24/24 cenários obrigatórios PASS: sessão, accuracy, routing, Mapbox Directions fallback, geometry, bearing, arrival, events, lifecycle e provider fallback/teardown | matriz `NAVIGATION-MIG-0005-EQUIVALENCE-MATRIX.md`; PRs #49/#52/#53/#54/#55; Quality Gates #542/#568/#569/#575 e browser gates verdes | crítico |
 | MIG-0006 | `js/assistant*` | Assistant | FEATURE-0004 | `packages/assistant` | 11 | equivalent | shell/DOM/carrossel e contratos browser V1 validados | NLP, diálogo, domains, LLM, voz, Navigation e photos equivalentes | matriz `ASSISTANT-MIGRATION-MATRIX.md`; Quality + browser contracts M35 verdes | alto |
 | MIG-0007 | Business Portal | Business | FEATURE-0005 | `packages/business` + Business surfaces/adapters in `apps/morro-digital-platform` | 6 | equivalent | dashboard, 28-step onboarding, production profile and browser lifecycle contracts evidenced | 19/19 Business-owned contracts PASS; checkout execution remains Payments-owned N/A | `BUSINESS-MIGRATION-MATRIX.md`; M54–M65 evidence; PR #128 Quality + Business browser contracts | alto |
-| MIG-0008 | `luizidebook/morro-digital-crm@1915d026` | CRM | FEATURE-0006 | `@touristic/crm` + `@touristic/crm-server` + future `apps/admin-crm` | 7 | migrating | baseline visual inventory frozen; browser parity not implemented | 25 contracts: 0 PASS / 8 PARTIAL / 17 GAP; domain, auth, leads boundary and first MySQL persistence slice executable | `CRM-V1-BASELINE.md`; `CRM-MIGRATION-MATRIX.md`; M67–M71 evidence | alto |
+| MIG-0008 | `luizidebook/morro-digital-crm@1915d026` | CRM | FEATURE-0006 | `@touristic/crm` + `@touristic/crm-server` + `apps/admin-crm` | 7 | migrating | authenticated shell and dedicated browser surfaces exist; consolidated V1 visual/accessibility equivalence remains open | 25 contracts: 17 PASS / 5 PARTIAL / 3 GAP at M133; leads, meetings, proposals, contracts, follow-ups, trials, referrals, public token flows, schedulers and audit are executable | `CRM-V1-BASELINE.md`; `CRM-MIGRATION-MATRIX.md`; M67–M133 evidence | alto |
 | MIG-0009 | autenticação e sessão | Auth | FEATURE-0008 | `packages/auth` + `packages/auth-browser` + Auth surfaces in `dashboard/` | 6 | equivalent | login V1-equivalent and canonical dashboard return proven in Chromium | 20/20 Auth contracts PASS: login/session/cookie/CSRF/origin/roles/tenant/audit/revocation | `AUTH-MIGRATION-MATRIX.md`; M47–M48 + M50–M52 + M66 evidence; PR #129 Quality + Auth/Business browser contracts | crítico |
 | MIG-0010 | pagamentos/assinaturas | Payments | FEATURE-0009 | `packages/payments` | 8 | discovered | pendente | pendente | sandbox pendente | crítico |
 | MIG-0011 | afiliados | Affiliates | FEATURE-0010 | `packages/affiliates` | 9 | discovered | pendente | pendente | pendente | crítico |
 | MIG-0012 | `js/map*` + bootstrap V1 | Geospatial | FEATURE-0001 | `packages/geospatial` + `apps/morro-digital-platform/src/bootstrap/geospatial.ts` | 4 | equivalent | Mapbox Visual Contract validado nos três viewports, normal e `forced-colors` | Runtime, adapter, Mapbox real, fallback, rollback e lifecycle comprovados | PR #17 head final `2d84629b`; runs `31237633579`, `31237633601`, `31237633577` verdes | crítico |
 | MIG-0013 | Home / seletor de roteiros V1 | Core UI / Tours | FEATURE-0007 | `apps/morro-digital-platform/src/browser-entry.ts` | 4 | equivalent | matriz Home v4: loading, map-ready, teclado, contraste e texto ampliado comprovados | troca 8→5→5→8, falhas e offline/provider indisponível comprovados | PRs #19/#17/#20 incorporados; Quality Gate final da matriz `31237787144` verde | alto |
-| MIG-0014 | `js/tours/tour-data.js` | Tours | FEATURE-0007 | `apps/morro-digital-platform/src/config/tour-catalog.ts` + `tour-localization.ts` | 4 | equivalent | estrutura e conteúdo editorial multilíngue dos 3 roteiros preservados em PT-BR, EN, ES e HE | 3 roteiros / 18 paradas; descrições, narrações, dicas, fallbacks, chaves V1, geometria e mídia preservados | PR #18; Quality Gate #385 verde; revalidação integradora obrigatória após sync com `main` | alto |
+| MIG-0014 | `js/tours/tour-data.js` | Tours | FEATURE-0007 | `apps/morro-digital-platform/src/config/tour-catalog.ts` + `tour-localization.ts` | 4 | equivalent | estrutura e conteúdo editorial multilíngue dos 3 roteiros preservados em PT-BR, EN, ES e HE | 3 roteiros / 18 paradas; descrições, narrações, dicas, fallbacks, chaves V1, geometria e mídia preservados | PR #18; Quality Gate #385 verde; evidência incorporada ao estado equivalente | alto |
 | MIG-0015 | marcadores e centro do mapa da V1 | Geospatial / Tours | FEATURE-0001 | `apps/morro-digital-platform/src/config/tour-markers.ts` + `tour-selection.ts` | 4 | equivalent | rota, source/layers, câmera e 8/5 paradas validados no Mapbox real | substituição atômica, recentralização, troca 8→5→5→8 e rollback comprovados | PR #17 runs Provider `31237633601` e Tour Browser `31237633588` verdes | crítico |
 | MIG-0016 | resolvedor `findTourByKeyword` da V1 | Tours | FEATURE-0007 | `apps/morro-digital-platform/src/config/tour-search.ts` | 4 | equivalent | n/a | aliases, acentos, termos barco/Gamboa, quadriciclo/ATV e retorno seguro preservados | testes automatizados do Runtime M1 + Quality Gates posteriores verdes | médio |
 
-## CRM baseline congelada — MIG-0008
+## CRM reconciliado — MIG-0008
 
-M67 froze the standalone CRM V1 at `luizidebook/morro-digital-crm@1915d0260c79f30a63b926a1123e609083587745`. M68 started the framework-independent domain core, M69 added CRM-owned authorization and M70 added the server-authoritative leads/pipeline boundary. M71 introduces `@touristic/crm-server` with server-only MySQL persistence for leads, checklist and interactions, prepared statements, relational constraints and stable `assignedToSubject` identity. The matrix remains `0 PASS / 8 PARTIAL / 17 GAP`; `MIG-0008` remains `migrating` and `FEATURE-0006` remains `baseline-pending`.
+M67 congelou o CRM V1 em `luizidebook/morro-digital-crm@1915d0260c79f30a63b926a1123e609083587745`. A documentação anterior deste tracker parava em M71/M72 e, por isso, já não representava o código real.
+
+Entre M73 e M133 foram incorporados:
+
+- composição real com platform Auth/Node;
+- persistência MySQL e auditoria durável para os principais agregados comerciais;
+- Meetings, Proposals e Contracts internos;
+- views públicas tokenizadas de propostas e contratos;
+- Follow-ups com settings e scheduler;
+- Trials com expiração, notificação, durable claim, lease, heartbeat e idempotency key estável;
+- Referrals;
+- shell autenticado `apps/admin-crm`;
+- browser lifecycles de Leads, Meetings, Proposals, Contracts, Follow-ups, Trials e Referrals;
+- busca/filtros de Leads;
+- hardening do canvas de assinatura pública até M133.
+
+A matriz canônica atual é `17 PASS / 5 PARTIAL / 3 GAP / 0 N/A`. `MIG-0008` permanece `migrating`: ainda faltam dashboard metrics/funnel autoritativos, CRM settings genéricos, decisão/adapter de object storage e fechamento de alguns contratos parciais, além da matriz visual/acessibilidade consolidada. `FEATURE-0006` deve permanecer `migrating`, não `equivalent`, até esse fechamento.
 
 ## Business equivalente — MIG-0007
 
@@ -119,22 +135,11 @@ O manifest v4 mantém três modos de prova:
 
 A jornada `home` está em `equivalent`, não `released`.
 
-## Pendência ativa da Wave 4
+## Wave 4 reconciliada
 
-A pendência funcional ainda aberta fora de Navigation é **MIG-0014 — conteúdo dos roteiros**.
+A antiga seção deste tracker dizia que **MIG-0014 — conteúdo dos roteiros** ainda era uma pendência ativa e que o PR #18 deveria permanecer draft. Essa afirmação ficou obsoleta depois da promoção já registrada na própria tabela: `MIG-0014` está `equivalent`, com 3 roteiros / 18 paradas e conteúdo multilíngue preservado.
 
-O PR #18 deve permanecer draft até:
-
-- confrontar diretamente a V1 congelada `60746fd7fed97b805758b37adfdbe3bad2582bfe`;
-- inventariar todos os campos editoriais dos 3 roteiros e 18 paradas;
-- preservar os idiomas realmente suportados pela V1;
-- migrar descrições completas, narrações, dicas e metadados de acessibilidade quando existirem na fonte;
-- validar fallback e chaves de tradução;
-- adicionar testes de equivalência por campo/chave;
-- registrar qualquer mudança intencional como `preservar`, `corrigir` ou `melhorar`;
-- executar Quality Gate completo no head final.
-
-MIG-0014 só poderá avançar para `equivalent` após essa evidência.
+A fonte de verdade atual é a linha `MIG-0014` acima. Qualquer issue ou documento auxiliar ainda descrevendo essa implementação como pendente deve ser encerrado ou marcado como histórico para não competir com o tracker canônico.
 
 ## Navigation equivalente — MIG-0005
 
