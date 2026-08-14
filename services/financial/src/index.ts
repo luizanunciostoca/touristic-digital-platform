@@ -3,12 +3,18 @@ import mysql, { type Pool, type PoolOptions } from "mysql2/promise";
 import { MySqlLedgerTransactionRepository } from "./mysql-ledger-repository.js";
 import { MySqlPaymentIdempotencyPort } from "./mysql-payment-idempotency-port.js";
 import { MySqlPaymentRepository } from "./mysql-payment-repository.js";
+import {
+  SandboxCheckoutProviderError,
+  createSandboxCheckoutProviderFromEnvironment,
+} from "./sandbox-checkout-provider.js";
 import { financialM137SchemaSql } from "./schema.js";
 
 export {
   MySqlLedgerTransactionRepository,
   MySqlPaymentIdempotencyPort,
   MySqlPaymentRepository,
+  SandboxCheckoutProviderError,
+  createSandboxCheckoutProviderFromEnvironment,
   financialM137SchemaSql,
 };
 
