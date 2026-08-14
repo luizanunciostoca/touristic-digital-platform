@@ -6,14 +6,16 @@ import {
   systemCheckoutClock,
 } from "./index.js";
 
-function catalog(plans: readonly Record<string, unknown>[] = [
-  {
-    id: "growth",
-    name: "Crescimento",
-    minorUnits: 49_900,
-    currency: "BRL",
-  },
-]): string {
+function catalog(
+  plans: readonly Record<string, unknown>[] = [
+    {
+      id: "growth",
+      name: "Crescimento",
+      minorUnits: 49_900,
+      currency: "BRL",
+    },
+  ],
+): string {
   return JSON.stringify({
     version: "plans_2026_08",
     plans,
@@ -40,9 +42,9 @@ describe("M138 authoritative pricing environment", () => {
   });
 
   it("fails closed on missing, malformed, duplicate and zero-value catalogs", () => {
-    expect(() =>
-      createOrderPricingAuthorityFromEnvironment({}),
-    ).toThrow("ORDERING_PRICING_CATALOG_JSON is required");
+    expect(() => createOrderPricingAuthorityFromEnvironment({})).toThrow(
+      "ORDERING_PRICING_CATALOG_JSON is required",
+    );
     expect(() =>
       createOrderPricingAuthorityFromEnvironment({
         ORDERING_PRICING_CATALOG_JSON: "{",

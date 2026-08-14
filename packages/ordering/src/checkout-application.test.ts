@@ -85,9 +85,7 @@ class MemoryOrderRepository implements OrderRepositoryPort {
     return this.byId.get(orderId) ?? null;
   }
 
-  async findByRequestKey(
-    requestKey: OrderRequestKey,
-  ): Promise<Order | null> {
+  async findByRequestKey(requestKey: OrderRequestKey): Promise<Order | null> {
     return this.byRequestKey.get(requestKey) ?? null;
   }
 
@@ -372,9 +370,9 @@ describe("M138 provider-neutral checkout application service", () => {
     const key = createPaymentIdempotencyKey(result.order.id);
 
     expect(key).toBe("payment:v1:ord_checkout_0001");
-    await expect(
-      dependencies.paymentIdempotency.find(key!),
-    ).resolves.toBe(result.payment.id);
+    await expect(dependencies.paymentIdempotency.find(key!)).resolves.toBe(
+      result.payment.id,
+    );
     const reconstructed = createOrder({
       ...result.order,
       status: "pending_payment",

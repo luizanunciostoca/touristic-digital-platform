@@ -263,10 +263,7 @@ export interface ValidatedCheckoutBusinessDraft {
   readonly publishable: false;
 }
 
-export type ValidatedCheckoutAcceptanceType =
-  | "terms"
-  | "privacy"
-  | "marketing";
+export type ValidatedCheckoutAcceptanceType = "terms" | "privacy" | "marketing";
 
 export interface ValidatedCheckoutAcceptance {
   readonly type: ValidatedCheckoutAcceptanceType;
@@ -463,10 +460,7 @@ export function normalizeBusinessCheckoutHandoff(
     draftInput.categoryId === undefined || draftInput.categoryId === null
       ? null
       : normalizeSafeReference(draftInput.categoryId, 80);
-  const specialty = normalizeOptionalCheckoutText(
-    draftInput.specialty,
-    180,
-  );
+  const specialty = normalizeOptionalCheckoutText(draftInput.specialty, 180);
 
   if (
     (draftInput.demoBusinessId !== undefined &&
@@ -535,10 +529,7 @@ function canonicalCheckoutTimestamp(value: unknown): string {
   return new Date(normalized).toISOString();
 }
 
-function laterCheckoutTimestamp(
-  previous: string,
-  candidate: string,
-): string {
+function laterCheckoutTimestamp(previous: string, candidate: string): string {
   const previousMs = Date.parse(previous);
   const candidateMs = Date.parse(candidate);
   if (!Number.isFinite(previousMs) || !Number.isFinite(candidateMs)) {

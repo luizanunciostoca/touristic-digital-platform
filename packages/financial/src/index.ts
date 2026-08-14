@@ -281,16 +281,10 @@ export function createPendingPayment(input: {
   readonly createdAt: unknown;
 }): Payment | null {
   const id = normalizePaymentId(input.id);
-  const orderReference = normalizeFinancialReference(
-    input.orderReference,
-    120,
-  );
+  const orderReference = normalizeFinancialReference(input.orderReference, 120);
   const idempotencyKey = createPaymentIdempotencyKey(orderReference);
   const amountInput = input.amount as Partial<Money> | null | undefined;
-  const amount = createMoney(
-    amountInput?.minorUnits,
-    amountInput?.currency,
-  );
+  const amount = createMoney(amountInput?.minorUnits, amountInput?.currency);
   const createdAt = normalizeFinancialTimestamp(input.createdAt);
 
   if (
