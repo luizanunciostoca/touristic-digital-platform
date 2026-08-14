@@ -176,7 +176,10 @@ export type FinancialDomainEvent = PaymentApprovedEvent | PaymentRefundedEvent;
 
 function normalizeString(value: unknown, maxLength: number): string {
   if (typeof value !== "string") return "";
-  return value.trim().slice(0, maxLength);
+  const normalized = value.trim();
+  return normalized.length > 0 && normalized.length <= maxLength
+    ? normalized
+    : "";
 }
 
 function normalizePrefixedId(
@@ -253,12 +256,12 @@ export function normalizeFinancialReference(
   maxLength = 160,
 ): string {
   const normalized = normalizeString(value, maxLength);
-  return ID_BODY.test(normalized) ? normalized : "";
+  return normalized && ID_BODY.test(normalized) ? normalized : "";
 }
 
 export function normalizeFinancialTimestamp(value: unknown): string {
   const normalized = normalizeString(value, 40);
-  if (!ISO_TIMESTAMP.test(normalized)) return "";
+  if (!normalized || !ISO_TIMESTAMP.test(normalized)) return "";
   const timestamp = Date.parse(normalized);
   return Number.isFinite(timestamp) ? normalized : "";
 }
@@ -294,8 +297,11 @@ export function assertPaymentTransition(
 
 function normalizeLedgerPosting(value: LedgerPosting): LedgerPosting {
   const accountReference = normalizeString(value.accountReference, 120);
-  if (!ACCOUNT_REFERENCE.test(accountReference)) {
+  if (!accountReference || !ACCOUNT_REFERENCE.test(accountReference)) {
     throw new Error("FINANCIAL_INVALID_LEDGER_ACCOUNT");
+  }
+  if (value.direction !== "debit" && value.direction !== "credit") {
+    throw new Error("FINANCIAL_INVALID_LEDGER_DIRECTION");
   }
   const amount = createMoney(value.amount.minorUnits, value.amount.currency);
   if (!amount || amount.minorUnits === 0) {
@@ -314,8 +320,10 @@ export function createLedgerTransaction(input: {
   readonly occurredAt: string;
   readonly postings: readonly LedgerPosting[];
 }): LedgerTransaction {
+  const id = normalizeLedgerTransactionId(input.id);
   const externalKey = normalizeString(input.externalKey, 160);
   const occurredAt = normalizeFinancialTimestamp(input.occurredAt);
+  if (!id) throw new Error("FINANCIAL_INVALID_LEDGER_ID");
   if (!externalKey || !ID_BODY.test(externalKey)) {
     throw new Error("FINANCIAL_INVALID_LEDGER_EXTERNAL_KEY");
   }
@@ -347,7 +355,7 @@ export function createLedgerTransaction(input: {
   }
 
   return Object.freeze({
-    id: input.id,
+    id,
     externalKey,
     occurredAt,
     postings: Object.freeze(postings),
