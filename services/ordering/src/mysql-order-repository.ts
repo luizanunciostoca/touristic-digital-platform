@@ -88,9 +88,12 @@ function normalizeOrder(order: Order): Order {
     requestKey: order.requestKey,
     source: order.source,
     status: order.status,
-    pricing: order.pricing,
-    createdAt: order.createdAt,
-    updatedAt: order.updatedAt,
+    pricing: {
+      ...order.pricing,
+      capturedAt: timestamp(order.pricing.capturedAt),
+    },
+    createdAt: timestamp(order.createdAt),
+    updatedAt: timestamp(order.updatedAt),
   });
   if (!normalized) throw new Error("ORDERING_INVALID_ORDER");
   return normalized;
