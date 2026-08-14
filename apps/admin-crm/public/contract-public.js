@@ -52,9 +52,11 @@ function tokenFromLocation() {
 
 function point(event) {
   const rect = canvas.getBoundingClientRect();
+  const x = ((event.clientX - rect.left) / rect.width) * canvas.width;
+  const y = ((event.clientY - rect.top) / rect.height) * canvas.height;
   return {
-    x: ((event.clientX - rect.left) / rect.width) * canvas.width,
-    y: ((event.clientY - rect.top) / rect.height) * canvas.height,
+    x: Math.min(Math.max(x, 0), canvas.width),
+    y: Math.min(Math.max(y, 0), canvas.height),
   };
 }
 
