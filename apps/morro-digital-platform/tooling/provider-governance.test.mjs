@@ -17,6 +17,15 @@ describe("paid provider cost governance", () => {
     ).toBe(2);
   });
 
+  it("does not interpret missing token usage as zero cost", () => {
+    expect(
+      calculateTokenCostUsd({
+        inputUsdPerMillion: 1,
+        outputUsdPerMillion: 2,
+      }),
+    ).toBeNull();
+  });
+
   it("fails closed when budgets are not configured", () => {
     const governor = createProviderCostGovernor({ provider: "openai" });
     expect(governor.configured).toBe(false);
