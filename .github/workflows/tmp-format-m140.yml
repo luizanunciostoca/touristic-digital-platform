@@ -28,7 +28,6 @@ jobs:
       - name: Format M140 files
         run: |
           pnpm exec prettier --write \
-            .env.example \
             .github/workflows/payments-sandbox-provider-contract.yml \
             apps/morro-digital-platform/tooling/payments-api.mjs \
             docs/migration/MASTER-MIGRATION-TRACKER.md \
