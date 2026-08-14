@@ -16,7 +16,7 @@ const signStatus = document.querySelector("#sign-status");
 const context = canvas.getContext("2d");
 
 let token = null;
-let drawing = false;
+let activePointerId = null;
 let hasSignature = false;
 
 function date(value) {
@@ -59,7 +59,8 @@ function point(event) {
 }
 
 function begin(event) {
-  drawing = true;
+  if (activePointerId !== null) return;
+  activePointerId = event.pointerId;
   const current = point(event);
   context.beginPath();
   context.moveTo(current.x, current.y);
@@ -67,7 +68,7 @@ function begin(event) {
 }
 
 function move(event) {
-  if (!drawing) return;
+  if (event.pointerId !== activePointerId) return;
   const current = point(event);
   context.lineWidth = 3;
   context.lineCap = "round";
@@ -79,11 +80,13 @@ function move(event) {
 }
 
 function end(event) {
-  drawing = false;
+  if (event.pointerId !== activePointerId) return;
+  activePointerId = null;
   event.preventDefault();
 }
 
 function clearSignature() {
+  activePointerId = null;
   context.clearRect(0, 0, canvas.width, canvas.height);
   hasSignature = false;
 }
