@@ -12,8 +12,11 @@
     "@touristic/core": "workspace:*",
     "@touristic/crm": "workspace:*",
     "@touristic/crm-server": "workspace:*",
+    "@touristic/financial-server": "workspace:*",
     "@touristic/geospatial": "workspace:*",
     "@touristic/navigation": "workspace:*",
+    "@touristic/ordering": "workspace:*",
+    "@touristic/ordering-server": "workspace:*",
     "@touristic/search": "workspace:*"
   },
   "scripts": {

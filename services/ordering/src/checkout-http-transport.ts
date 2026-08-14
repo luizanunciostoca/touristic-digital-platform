@@ -347,13 +347,21 @@ export class CheckoutHttpTransport {
     }
 
     const method = request.method.toUpperCase();
-    if (matched.kind === "collection" && method === "POST") {
-      return this.create(request, correlationId);
+    try {
+      if (matched.kind === "collection" && method === "POST") {
+        return await this.create(request, correlationId);
+      }
+      if (matched.kind === "status" && method === "GET") {
+        return await this.status(request, matched.orderId, correlationId);
+      }
+      return errorResponse(405, "METHOD_NOT_ALLOWED", correlationId);
+    } catch {
+      return errorResponse(
+        503,
+        "CHECKOUT_UNAVAILABLE",
+        correlationId,
+      );
     }
-    if (matched.kind === "status" && method === "GET") {
-      return this.status(request, matched.orderId, correlationId);
-    }
-    return errorResponse(405, "METHOD_NOT_ALLOWED", correlationId);
   }
 
   private async create(

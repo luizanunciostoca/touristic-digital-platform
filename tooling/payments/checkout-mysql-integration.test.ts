@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import {
@@ -18,10 +20,16 @@ import {
   createFinancialMySqlPoolFromEnvironment,
 } from "../../services/financial/src/index.js";
 import {
+  CheckoutHttpTransport,
+  MySqlCheckoutAccessRepository,
   MySqlOrderRepository,
-  applyOrderingM137Schema,
+  applyOrderingM139Schema,
+  createCheckoutReturnUrlPolicyFromEnvironment,
+  createCheckoutStatusCapability,
+  createInMemoryCheckoutRateLimitPort,
   createOrderPricingAuthorityFromEnvironment,
   createOrderingMySqlPoolFromEnvironment,
+  normalizeCheckoutRequestContext,
 } from "../../services/ordering/src/index.js";
 
 const adminUrl = process.env.MYSQL_ADMIN_DATABASE_URL;
@@ -109,11 +117,12 @@ describeMySql.sequential("M138 checkout application MySQL integration", () => {
     financialPool = createFinancialMySqlPoolFromEnvironment({
       FINANCIAL_DATABASE_URL: financialUrl,
     });
-    await applyOrderingM137Schema(orderingPool);
+    await applyOrderingM139Schema(orderingPool);
     await applyFinancialM137Schema(financialPool);
   });
 
   beforeEach(async () => {
+    await orderingPool.query("DELETE FROM ordering_checkout_access");
     await financialPool.query("DELETE FROM financial_ledger_postings");
     await financialPool.query("DELETE FROM financial_ledger_transactions");
     await financialPool.query("DELETE FROM financial_payments");
@@ -222,4 +231,152 @@ describeMySql.sequential("M138 checkout application MySQL integration", () => {
       persistedPayments.findById(repaired.payment.id),
     ).resolves.toEqual(repaired.payment);
   });
+
+  it("persists only the status-token hash and enforces exact HTTP replay authority", async () => {
+    const orders = new MySqlOrderRepository(orderingPool);
+    const payments = new MySqlPaymentRepository(financialPool);
+    const application = createProviderNeutralCheckoutApplicationService({
+      orders,
+      payments,
+      paymentIdempotency: new MySqlPaymentIdempotencyPort(financialPool),
+      identities: {
+        allocateOrderId: () => "ord_mysql_http_0001",
+        allocatePaymentId: () => "pay_mysql_http_0001",
+      },
+      clock: { now: () => "2026-08-14T22:45:00Z" },
+      pricing: createOrderPricingAuthorityFromEnvironment({
+        ORDERING_PRICING_CATALOG_JSON: pricingCatalog(49_900),
+      }),
+    });
+    const context = normalizeCheckoutRequestContext({
+      requesterKind: "authenticated",
+      actorSubject: "user:mysql",
+      destinationId: "morro",
+      tenantId: "business-mysql",
+    });
+    if (!context) throw new Error("FIXTURE_INVALID");
+    const transport = new CheckoutHttpTransport({
+      application,
+      orders,
+      payments,
+      access: new MySqlCheckoutAccessRepository(orderingPool),
+      authorization: {
+        authorizeCreate: () =>
+          Promise.resolve({ allowed: true as const, context }),
+      },
+      returnUrls: createCheckoutReturnUrlPolicyFromEnvironment({
+        NODE_ENV: "production",
+        PAYMENTS_RETURN_URL_ORIGINS: "https://morro.digital",
+      }),
+      statusCapabilities: createCheckoutStatusCapability(
+        "mysql-http-status-secret-with-thirty-two-characters",
+      ),
+      rateLimits: createInMemoryCheckoutRateLimitPort(),
+      audit: { record: () => Promise.resolve() },
+      clock: { now: () => "2026-08-14T22:45:00Z" },
+      statusTtlSeconds: 3_600,
+    });
+    const createRequest = (
+      body: CheckoutApplicationRequest,
+      correlationId: string,
+    ) => ({
+      method: "POST",
+      pathname: "/api/payments/v1/checkouts",
+      headers: {
+        "Idempotency-Key": "business:mysql_checkout_session:growth",
+      },
+      body,
+      clientIp: "203.0.113.30",
+      correlationId,
+    });
+
+    const created = await transport.handle(
+      createRequest(handoff(), "corr_mysql_http_create"),
+    );
+    expect(created.status).toBe(201);
+    const createdData = created.body.data as Record<string, unknown>;
+    const statusToken = createdData.statusToken;
+    if (typeof statusToken !== "string") {
+      throw new Error("STATUS_TOKEN_MISSING");
+    }
+
+    const [rows] = await orderingPool.query(
+      "SELECT HEX(token_hash) AS token_hash FROM ordering_checkout_access WHERE order_id = ?",
+      ["ord_mysql_http_0001"],
+    );
+    const persisted = (
+      rows as unknown as Array<{ token_hash: string }>
+    )[0];
+    expect(persisted?.token_hash).toBe(
+      createHash("sha256")
+        .update(statusToken)
+        .digest("hex")
+        .toUpperCase(),
+    );
+    expect(JSON.stringify(rows)).not.toContain(statusToken);
+
+    const validStatus = await transport.handle({
+      method: "GET",
+      pathname:
+        "/api/payments/v1/checkouts/ord_mysql_http_0001",
+      headers: { "X-Checkout-Token": statusToken },
+      clientIp: "203.0.113.30",
+      correlationId: "corr_mysql_http_status",
+    });
+    expect(validStatus).toMatchObject({
+      status: 200,
+      body: {
+        data: {
+          checkoutId: "ord_mysql_http_0001",
+          status: "PENDING",
+        },
+      },
+    });
+
+    const invalidToken = await transport.handle({
+      method: "GET",
+      pathname:
+        "/api/payments/v1/checkouts/ord_mysql_http_0001",
+      headers: { "X-Checkout-Token": "wrong" },
+      clientIp: "203.0.113.30",
+      correlationId: "corr_mysql_http_denied_1",
+    });
+    const unknownOrder = await transport.handle({
+      method: "GET",
+      pathname:
+        "/api/payments/v1/checkouts/ord_mysql_unknown_0001",
+      headers: { "X-Checkout-Token": "wrong" },
+      clientIp: "203.0.113.30",
+      correlationId: "corr_mysql_http_denied_2",
+    });
+    expect(invalidToken.status).toBe(404);
+    expect(unknownOrder.status).toBe(404);
+    expect(invalidToken.body).toEqual(unknownOrder.body);
+
+    const replay = await transport.handle(
+      createRequest(handoff(), "corr_mysql_http_replay"),
+    );
+    expect(replay.status).toBe(200);
+    expect(
+      (replay.body.data as Record<string, unknown>).statusToken,
+    ).toBe(statusToken);
+
+    const divergent = await transport.handle(
+      createRequest(
+        {
+          ...handoff(),
+          contractor: {
+            ...(handoff().contractor as Record<string, unknown>),
+            email: "divergent@example.com",
+          },
+        },
+        "corr_mysql_http_conflict",
+      ),
+    );
+    expect(divergent).toMatchObject({
+      status: 409,
+      body: { error: "IDEMPOTENCY_CONFLICT" },
+    });
+  });
+
 });

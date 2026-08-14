@@ -7,6 +7,7 @@ import { createAssistantApi } from "./assistant-api.mjs";
 import { createAuthApi } from "./auth-api.mjs";
 import { createBusinessApi } from "./business-api.mjs";
 import { createCrmApi } from "./crm-api.mjs";
+import { createPaymentsApi } from "./payments-api.mjs";
 
 const repositoryRoot = resolve(
   fileURLToPath(new URL("../../../", import.meta.url)),
@@ -130,6 +131,13 @@ const crmApi = createCrmApi({
 await crmApi.start();
 
 const businessApi = createBusinessApi({ authApi });
+
+const paymentsApi = createPaymentsApi({
+  authApi,
+  getEnvironmentValue: (key) =>
+    process.env[key] ?? localEnvironment[key] ?? "",
+});
+await paymentsApi.start();
 
 function createRuntimeEnvironment() {
   return Object.freeze(
@@ -413,6 +421,10 @@ const server = createServer(async (request, response) => {
       await businessApi.handle(request, response, requestUrl.pathname);
       return;
     }
+    if (paymentsApi.matches(requestUrl.pathname)) {
+      await paymentsApi.handle(request, response, requestUrl);
+      return;
+    }
     if (assistantApi.matches(requestUrl.pathname)) {
       await assistantApi.handle(request, response);
       return;
@@ -456,12 +468,11 @@ async function shutdown(signal) {
   shuttingDown = true;
   console.log(`Encerrando Morro Digital após ${signal}.`);
   server.close(() => {
-    void crmApi
-      .stop()
+    void Promise.all([crmApi.stop(), paymentsApi.stop()])
       .then(() => process.exit(0))
       .catch((error) => {
         console.error(
-          "Falha ao encerrar o runtime CRM.",
+          "Falha ao encerrar os runtimes do servidor.",
           error instanceof Error ? error.stack || error.message : error,
         );
         process.exit(1);
