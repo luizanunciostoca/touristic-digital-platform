@@ -64,7 +64,15 @@ Unit contracts cover:
 
 MySQL integration covers the additive schema, durable Payment mutation and exactly one authoritative result. The permanent Payments Verified Outcome Contract runs domain/server tests, Ordering projection tests, the existing Business consumer suite, MySQL integration and composed runtime builds.
 
-Final promotion requires green Quality Gate, Payments Persistence Integration, Payments Sandbox Provider Contract, Payments Verified Webhook Contract and Payments Verified Outcome Contract on one final head.
+Validated implementation checkpoint `ad7e2cbc919a92511586af85f4cc80733dd2b9a7`:
+
+- Quality Gate `31851192822 — SUCCESS`;
+- Payments Persistence Integration `31851192790 — SUCCESS`;
+- Payments Sandbox Provider Contract `31851192693 — SUCCESS`;
+- Payments Verified Webhook Contract `31851192680 — SUCCESS`;
+- Payments Verified Outcome Contract `31851192858 — SUCCESS`.
+
+Final promotion requires green Quality Gate, Payments Persistence Integration, Payments Sandbox Provider Contract, Payments Verified Webhook Contract and Payments Verified Outcome Contract on one final head. The documentation-only evidence commit must repeat those gates before merge.
 
 ## Migration result
 
