@@ -76,9 +76,11 @@ for (const workspace of workspaces) {
         workspace.relativeDir,
       ) &&
       (targetKind === "apps" ||
-        ["packages/ordering", "services/ordering", "packages/business"].includes(
-          target.relativeDir,
-        ))
+        [
+          "packages/ordering",
+          "services/ordering",
+          "packages/business",
+        ].includes(target.relativeDir))
     ) {
       violations.push(
         `${workspace.relativeDir} deve permanecer independente de ${target.relativeDir}`,
