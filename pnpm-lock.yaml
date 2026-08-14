@@ -94,6 +94,8 @@ importers:
 
   packages/design-system: {}
 
+  packages/financial: {}
+
   packages/geospatial:
     dependencies:
       "@touristic/core":
@@ -104,6 +106,12 @@ importers:
         version: link:../shared
 
   packages/navigation: {}
+
+  packages/ordering:
+    dependencies:
+      "@touristic/financial":
+        specifier: workspace:*
+        version: link:../financial
 
   packages/search: {}
 

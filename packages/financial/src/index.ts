@@ -7,14 +7,18 @@ const currencyBrand: unique symbol = Symbol("CurrencyCode");
 const paymentIdBrand: unique symbol = Symbol("PaymentId");
 const ledgerTransactionIdBrand: unique symbol = Symbol("LedgerTransactionId");
 const financialEventIdBrand: unique symbol = Symbol("FinancialEventId");
-const paymentIdempotencyKeyBrand: unique symbol = Symbol("PaymentIdempotencyKey");
+const paymentIdempotencyKeyBrand: unique symbol = Symbol(
+  "PaymentIdempotencyKey",
+);
 
 export type CurrencyCode = string & { readonly [currencyBrand]: true };
 export type PaymentId = string & { readonly [paymentIdBrand]: true };
 export type LedgerTransactionId = string & {
   readonly [ledgerTransactionIdBrand]: true;
 };
-export type FinancialEventId = string & { readonly [financialEventIdBrand]: true };
+export type FinancialEventId = string & {
+  readonly [financialEventIdBrand]: true;
+};
 export type PaymentIdempotencyKey = string & {
   readonly [paymentIdempotencyKeyBrand]: true;
 };
@@ -96,7 +100,9 @@ export interface CheckoutProviderSession {
 }
 
 export interface FinancialCheckoutProviderPort {
-  createCheckout(input: CheckoutProviderRequest): Promise<CheckoutProviderSession>;
+  createCheckout(
+    input: CheckoutProviderRequest,
+  ): Promise<CheckoutProviderSession>;
 }
 
 export const providerPaymentStatuses = Object.freeze([
@@ -235,7 +241,9 @@ export function normalizeLedgerTransactionId(
   return normalized ? (normalized as LedgerTransactionId) : null;
 }
 
-export function normalizeFinancialEventId(value: unknown): FinancialEventId | null {
+export function normalizeFinancialEventId(
+  value: unknown,
+): FinancialEventId | null {
   const normalized = normalizePrefixedId(value, "fev_");
   return normalized ? (normalized as FinancialEventId) : null;
 }
@@ -318,7 +326,10 @@ export function createLedgerTransaction(input: {
 
   const postings = input.postings.map(normalizeLedgerPosting);
   const currency = postings[0]?.amount.currency;
-  if (!currency || postings.some((posting) => posting.amount.currency !== currency)) {
+  if (
+    !currency ||
+    postings.some((posting) => posting.amount.currency !== currency)
+  ) {
     throw new Error("FINANCIAL_LEDGER_CURRENCY_MISMATCH");
   }
 

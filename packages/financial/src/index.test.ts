@@ -58,7 +58,9 @@ describe("M136 financial money vocabulary", () => {
 
     const usd = createMoney(100, "USD");
     if (!usd) throw new Error("TEST_MONEY_INVALID");
-    expect(() => addMoney(brl(100), usd)).toThrow("FINANCIAL_CURRENCY_MISMATCH");
+    expect(() => addMoney(brl(100), usd)).toThrow(
+      "FINANCIAL_CURRENCY_MISMATCH",
+    );
 
     const max = brl(Number.MAX_SAFE_INTEGER);
     expect(() => addMoney(max, brl(1))).toThrow("FINANCIAL_AMOUNT_OVERFLOW");

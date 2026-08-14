@@ -11,7 +11,9 @@ const orderIdBrand: unique symbol = Symbol("OrderId");
 const orderRequestKeyBrand: unique symbol = Symbol("OrderRequestKey");
 
 export type OrderId = string & { readonly [orderIdBrand]: true };
-export type OrderRequestKey = string & { readonly [orderRequestKeyBrand]: true };
+export type OrderRequestKey = string & {
+  readonly [orderRequestKeyBrand]: true;
+};
 
 export const orderStatuses = Object.freeze([
   "draft",
@@ -97,7 +99,9 @@ export function createBusinessOrderRequestKey(
   return `business:${session}:${plan}` as OrderRequestKey;
 }
 
-export function normalizeOrderRequestKey(value: unknown): OrderRequestKey | null {
+export function normalizeOrderRequestKey(
+  value: unknown,
+): OrderRequestKey | null {
   const normalized = normalizeString(value, 220);
   return REQUEST_KEY.test(normalized) ? (normalized as OrderRequestKey) : null;
 }
@@ -155,14 +159,22 @@ export function createOrder(input: {
   readonly updatedAt?: unknown;
 }): Order | null {
   const createdAt = normalizeFinancialTimestamp(input.createdAt);
-  const updatedAt = normalizeFinancialTimestamp(input.updatedAt ?? input.createdAt);
+  const updatedAt = normalizeFinancialTimestamp(
+    input.updatedAt ?? input.createdAt,
+  );
   if (!createdAt || !updatedAt) return null;
-  if (!normalizeOrderId(input.id) || !normalizeOrderRequestKey(input.requestKey)) {
+  if (
+    !normalizeOrderId(input.id) ||
+    !normalizeOrderRequestKey(input.requestKey)
+  ) {
     return null;
   }
   const source = normalizeOrderSourceReference(input.source.reference);
   if (!source || source.kind !== input.source.kind) return null;
-  const pricing = capturePricingSnapshot(input.pricing, input.pricing.capturedAt);
+  const pricing = capturePricingSnapshot(
+    input.pricing,
+    input.pricing.capturedAt,
+  );
   if (!pricing) return null;
 
   return Object.freeze({
@@ -188,7 +200,10 @@ export function isOrderTransitionAllowed(
   return false;
 }
 
-export function assertOrderTransition(from: OrderStatus, to: OrderStatus): void {
+export function assertOrderTransition(
+  from: OrderStatus,
+  to: OrderStatus,
+): void {
   if (!isOrderTransitionAllowed(from, to)) {
     throw new Error(`ORDERING_INVALID_TRANSITION:${from}:${to}`);
   }

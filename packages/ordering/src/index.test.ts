@@ -57,7 +57,9 @@ describe("M136 ordering identities", () => {
     expect(createBusinessOrderRequestKey("session_123", "performance")).toBe(
       "business:session_123:performance",
     );
-    expect(createBusinessOrderRequestKey("session with spaces", "performance")).toBeNull();
+    expect(
+      createBusinessOrderRequestKey("session with spaces", "performance"),
+    ).toBeNull();
     expect(normalizeOrderRequestKey("business:session_123:performance")).toBe(
       "business:session_123:performance",
     );
@@ -131,7 +133,10 @@ describe("M136 order lifecycle", () => {
         reference: "demo_business_123",
       },
     });
-    expect(order?.pricing.amount).toEqual({ minorUnits: 49_900, currency: "BRL" });
+    expect(order?.pricing.amount).toEqual({
+      minorUnits: 49_900,
+      currency: "BRL",
+    });
     expect(order).not.toHaveProperty("providerUrl");
     expect(order).not.toHaveProperty("providerToken");
     expect(Object.isFrozen(order)).toBe(true);
@@ -139,17 +144,17 @@ describe("M136 order lifecycle", () => {
 
   it("allows only explicit forward order transitions plus idempotent repeats", () => {
     expect(isOrderTransitionAllowed("draft", "pending_payment")).toBe(true);
-    expect(isOrderTransitionAllowed("pending_payment", "payment_confirmed")).toBe(
-      true,
-    );
-    expect(isOrderTransitionAllowed("payment_confirmed", "pending_payment")).toBe(
-      false,
-    );
+    expect(
+      isOrderTransitionAllowed("pending_payment", "payment_confirmed"),
+    ).toBe(true);
+    expect(
+      isOrderTransitionAllowed("payment_confirmed", "pending_payment"),
+    ).toBe(false);
     expect(isOrderTransitionAllowed("cancelled", "draft")).toBe(false);
     expect(isOrderTransitionAllowed("cancelled", "cancelled")).toBe(true);
-    expect(() => assertOrderTransition("payment_confirmed", "cancelled")).toThrow(
-      "ORDERING_INVALID_TRANSITION:payment_confirmed:cancelled",
-    );
+    expect(() =>
+      assertOrderTransition("payment_confirmed", "cancelled"),
+    ).toThrow("ORDERING_INVALID_TRANSITION:payment_confirmed:cancelled");
   });
 });
 
@@ -173,7 +178,9 @@ describe("M136 Ordering ports", () => {
     };
 
     await expect(pricing.resolvePlan("performance")).resolves.toEqual(quote());
-    await expect(repository.findByRequestKey(requestKey())).resolves.toBe(stored);
+    await expect(repository.findByRequestKey(requestKey())).resolves.toBe(
+      stored,
+    );
     await expect(repository.save(stored)).resolves.toBe(stored);
   });
 
