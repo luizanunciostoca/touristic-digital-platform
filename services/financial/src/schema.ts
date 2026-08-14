@@ -36,7 +36,7 @@ CREATE TABLE IF NOT EXISTS financial_ledger_transactions (
 
 CREATE TABLE IF NOT EXISTS financial_ledger_postings (
   posting_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  transaction_id VARCHAR(120) NOT NULL,
+  transaction_id VARCHAR(120) COLLATE utf8mb4_bin NOT NULL,
   posting_sequence INT UNSIGNED NOT NULL,
   account_reference VARCHAR(120) COLLATE utf8mb4_bin NOT NULL,
   direction ENUM('debit','credit') NOT NULL,
