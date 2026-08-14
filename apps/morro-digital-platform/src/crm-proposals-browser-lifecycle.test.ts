@@ -23,7 +23,11 @@ describe("CRM M121 proposals browser lifecycle", () => {
     expect(client).toContain('auth.secureFetch("/api/crm/proposals"');
     expect(client).toContain('method: "POST"');
     expect(client).toContain("/api/crm/proposals/${proposal.id}/send");
-    expect(client).toContain('proposal.status !== "draft"');
+    expect(client).toContain('proposal.status === "draft"');
+    expect(client).toContain('proposal.status === "sent"');
+    expect(client).toContain("/api/crm/proposals/${proposal.id}/respond");
+    expect(client).toContain("JSON.stringify({ accepted: true })");
+    expect(client).toContain("JSON.stringify({ accepted: false })");
     expect(client).toContain("await loadProposals()");
   });
 });

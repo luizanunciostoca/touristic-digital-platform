@@ -58,38 +58,91 @@ function setStatus(message) {
   if (status) status.textContent = message;
 }
 
-function actionCell(proposal) {
-  const cell = document.createElement("td");
-  if (proposal.status !== "draft") {
-    cell.textContent = "—";
-    return cell;
+async function mutateProposal(path, options, buttons, failureMessage) {
+  for (const button of buttons) button.disabled = true;
+  try {
+    const response = await auth.secureFetch(path, options);
+    if (!response.ok) {
+      setStatus(`${failureMessage} (${response.status}).`);
+      return;
+    }
+    await loadProposals();
+  } catch {
+    setStatus(failureMessage);
+  } finally {
+    for (const button of buttons) button.disabled = false;
   }
+}
 
+function actionButton(label) {
   const button = document.createElement("button");
   button.type = "button";
-  button.textContent = "Enviar";
-  button.addEventListener("click", async () => {
-    button.disabled = true;
-    try {
-      const response = await auth.secureFetch(
+  button.textContent = label;
+  return button;
+}
+
+function actionCell(proposal) {
+  const cell = document.createElement("td");
+
+  if (proposal.status === "draft") {
+    const send = actionButton("Enviar");
+    send.addEventListener("click", () => {
+      void mutateProposal(
         `/api/crm/proposals/${proposal.id}/send`,
         {
           method: "POST",
           headers: { Accept: "application/json" },
         },
+        [send],
+        "Não foi possível enviar a proposta.",
       );
-      if (!response.ok) {
-        setStatus("Não foi possível enviar a proposta.");
-        return;
-      }
-      await loadProposals();
-    } catch {
-      setStatus("Não foi possível enviar a proposta.");
-    } finally {
-      button.disabled = false;
-    }
-  });
-  cell.append(button);
+    });
+    cell.append(send);
+    return cell;
+  }
+
+  if (proposal.status === "sent") {
+    const accept = actionButton("Aceitar");
+    const reject = actionButton("Recusar");
+    const buttons = [accept, reject];
+
+    accept.addEventListener("click", () => {
+      void mutateProposal(
+        `/api/crm/proposals/${proposal.id}/respond`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify({ accepted: true }),
+        },
+        buttons,
+        "Não foi possível aceitar a proposta.",
+      );
+    });
+
+    reject.addEventListener("click", () => {
+      void mutateProposal(
+        `/api/crm/proposals/${proposal.id}/respond`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify({ accepted: false }),
+        },
+        buttons,
+        "Não foi possível recusar a proposta.",
+      );
+    });
+
+    cell.append(accept, document.createTextNode(" "), reject);
+    return cell;
+  }
+
+  cell.textContent = "—";
   return cell;
 }
 
