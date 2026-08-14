@@ -35,7 +35,7 @@ Plataforma multi-destino que evolui a V1 do Morro Digital sem reconstruí-la de 
 - `@touristic/search`
 - `@touristic/shared`
 
-Packages planejados no Feature Registry, como Payments e Affiliates, não devem ser tratados como implementados até existirem com contratos e evidência executável.
+Packages-alvo declarados no Feature Registry, como `@touristic/ordering`, `@touristic/financial` e `@touristic/affiliates`, não devem ser tratados como implementados até existirem fisicamente com contratos e evidência executável. Um feature status como `baseline-pending` significa que o escopo foi congelado, não que o runtime correspondente já existe.
 
 ## Comandos
 
