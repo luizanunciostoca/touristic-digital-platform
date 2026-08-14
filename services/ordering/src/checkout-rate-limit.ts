@@ -51,7 +51,7 @@ export function createInMemoryCheckoutRateLimitPort(
       }
 
       if (!attempts.has(mapKey) && attempts.size >= maxKeys) {
-        const oldest = attempts.keys().next().value as string | undefined;
+        const oldest = attempts.keys().next().value;
         if (oldest) attempts.delete(oldest);
       }
       active.push(input.nowMs);

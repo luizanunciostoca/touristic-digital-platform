@@ -23,7 +23,6 @@ import {
 } from "@touristic/ordering";
 
 import {
-  createCheckoutAccessRecord,
   sameCheckoutAccessAuthority,
   type CheckoutAccessRecord,
   type CheckoutAccessRepositoryPort,
