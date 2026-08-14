@@ -13,7 +13,9 @@ describe("CRM M126 follow-up settings browser", () => {
 
     expect(page).toContain('id="follow-up-setting-form"');
     expect(page).toContain('name="name" required maxlength="160"');
-    expect(page).toContain('name="intervalDays" type="number" min="1" max="365"');
+    expect(page).toContain(
+      'name="intervalDays" type="number" min="1" max="365"',
+    );
     expect(page).toContain(
       'name="maxAttempts" type="number" min="1" max="100"',
     );
