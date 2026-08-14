@@ -290,7 +290,7 @@ describe("M139 checkout HTTP/Auth/security transport", () => {
       application: {
         startCheckout: () => {
           calls += 1;
-          return Promise.resolve(fixtures());
+          return Promise.resolve({ ...fixtures(), replayed: false });
         },
       },
     });
@@ -332,7 +332,7 @@ describe("M139 checkout HTTP/Auth/security transport", () => {
       body: { error: "INVALID_CSRF" },
     });
 
-    const returnDenied = await denied.transport.handle(
+    const returnDenied = await harness().transport.handle(
       createRequest({
         body: {
           ...handoff(),
@@ -340,7 +340,10 @@ describe("M139 checkout HTTP/Auth/security transport", () => {
         },
       }),
     );
-    expect(returnDenied.status).toBe(403);
+    expect(returnDenied).toMatchObject({
+      status: 400,
+      body: { error: "RETURN_URL_DENIED" },
+    });
   });
 
   it("returns the same deterministic status token on an exact replay", async () => {
