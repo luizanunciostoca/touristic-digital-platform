@@ -123,7 +123,7 @@
       "name": "Pagamentos e Assinaturas",
       "domain": "financial",
       "wave": 8,
-      "status": "baseline-pending",
+      "status": "migrating",
       "legacySources": ["v1:checkout"],
       "targetPackages": ["@touristic/ordering", "@touristic/financial"],
       "equivalence": {

@@ -30,12 +30,16 @@ Plataforma multi-destino que evolui a V1 do Morro Digital sem reconstruí-la de 
 - `@touristic/core`
 - `@touristic/crm`
 - `@touristic/design-system`
+- `@touristic/financial`
 - `@touristic/geospatial`
 - `@touristic/navigation`
+- `@touristic/ordering`
 - `@touristic/search`
 - `@touristic/shared`
 
-Packages-alvo declarados no Feature Registry, como `@touristic/ordering`, `@touristic/financial` e `@touristic/affiliates`, não devem ser tratados como implementados até existirem fisicamente com contratos e evidência executável. Um feature status como `baseline-pending` significa que o escopo foi congelado, não que o runtime correspondente já existe.
+`@touristic/financial` e `@touristic/ordering` começam no M136 como packages de domínio/ports, sem provider, HTTP ou persistência financeira. A existência física desses packages indica que `FEATURE-0009` entrou em migração; não significa que checkout ou money movement estejam disponíveis.
+
+Packages-alvo ainda não materializados, como `@touristic/affiliates`, não devem ser tratados como implementados até existirem fisicamente com contratos e evidência executável.
 
 ## Comandos
 
