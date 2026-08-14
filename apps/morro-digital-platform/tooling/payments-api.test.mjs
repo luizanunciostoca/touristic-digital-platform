@@ -313,5 +313,4 @@ describe("M139 payments API runtime boundary", () => {
       reason: "invalid_guest_capability",
     });
   });
-
 });
