@@ -22,13 +22,13 @@ A browser return URL, checkout-provider create response or caller-supplied amoun
 
 The verified mapping is:
 
-| Provider status | Target Payment | Result |
-| --- | --- | --- |
-| `paid` | `confirmed` | `approved` |
-| `failed` | `failed` | `failed` |
-| `cancelled` | `cancelled` | `cancelled` |
-| `expired` | `expired` | `expired` |
-| `refunded` | `refunded` | `refunded` |
+| Provider status | Target Payment | Result      |
+| --------------- | -------------- | ----------- |
+| `paid`          | `confirmed`    | `approved`  |
+| `failed`        | `failed`       | `failed`    |
+| `cancelled`     | `cancelled`    | `cancelled` |
+| `expired`       | `expired`      | `expired`   |
+| `refunded`      | `refunded`     | `refunded`  |
 
 Allowed transitions remain `pending → confirmed|failed|cancelled|expired` and `confirmed → refunded`. Same-state delivery is idempotent. Older terminal evidence is `stale`; an invalid order or conflicting provider reference is `deferred`. Neither disposition mutates Payment or fabricates a result.
 
