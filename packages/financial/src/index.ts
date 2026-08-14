@@ -435,7 +435,7 @@ export function normalizeCheckoutProviderSession(
   if (
     !PROVIDER_REFERENCE.test(providerCheckoutId) ||
     !checkoutUrl ||
-    (input.providerReference !== null &&
+    (providerReference !== null &&
       !PROVIDER_REFERENCE.test(providerReference))
   ) {
     return null;
