@@ -22,8 +22,8 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-      - name: Refresh workspace lockfile
-        run: pnpm install --lockfile-only
+      - name: Refresh workspace lockfile and install dependencies
+        run: pnpm install --no-frozen-lockfile
       - name: Apply canonical formatting
         run: pnpm format
       - name: Validate Financial
