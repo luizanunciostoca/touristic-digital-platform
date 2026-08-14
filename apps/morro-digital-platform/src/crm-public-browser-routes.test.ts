@@ -26,5 +26,6 @@ describe("CRM M119 public browser routes", () => {
     expect(proposal).toContain("window.location.pathname.match");
     expect(contract).toContain("window.location.pathname.match");
     expect(contract).toContain('canvas.toDataURL("image/png")');
+    expect(contract).toContain('canvas.addEventListener("pointercancel", end)');
   });
 });

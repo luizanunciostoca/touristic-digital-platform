@@ -174,6 +174,7 @@ canvas.addEventListener("pointerdown", begin);
 canvas.addEventListener("pointermove", move);
 canvas.addEventListener("pointerup", end);
 canvas.addEventListener("pointerleave", end);
+canvas.addEventListener("pointercancel", end);
 clearButton.addEventListener("click", clearSignature);
 signButton.addEventListener("click", () => void signContract());
 
