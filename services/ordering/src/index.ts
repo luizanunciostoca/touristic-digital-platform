@@ -4,6 +4,14 @@ import { MySqlOrderRepository } from "./mysql-order-repository.js";
 import { orderingM137SchemaSql } from "./schema.js";
 
 export { MySqlOrderRepository, orderingM137SchemaSql };
+export {
+  createNodeCheckoutIdentityPort,
+  systemCheckoutClock,
+} from "./checkout-runtime.js";
+export {
+  createOrderPricingAuthorityFromEnvironment,
+  type OrderingPricingEnvironment,
+} from "./pricing-authority.js";
 
 export interface OrderingMySqlEnvironment {
   readonly ORDERING_DATABASE_URL?: string;
