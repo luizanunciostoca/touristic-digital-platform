@@ -53,3 +53,26 @@ CREATE TABLE IF NOT EXISTS financial_ledger_postings (
   INDEX idx_financial_ledger_postings_account (account_reference)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 `;
+
+
+export const financialM141SchemaSql = `
+CREATE TABLE IF NOT EXISTS financial_provider_events (
+  provider_event_id VARCHAR(120) COLLATE utf8mb4_bin PRIMARY KEY,
+  external_reference VARCHAR(120) COLLATE utf8mb4_bin NOT NULL,
+  provider_payment_reference VARCHAR(180) COLLATE utf8mb4_bin NULL,
+  payment_status ENUM('paid','failed','cancelled','expired','refunded') NOT NULL,
+  occurred_at DATETIME(3) NOT NULL,
+  received_at DATETIME(3) NOT NULL,
+  payload_sha256 BINARY(32) NOT NULL,
+  matched_payment_id VARCHAR(120) COLLATE utf8mb4_bin NULL,
+  CONSTRAINT fk_financial_provider_event_payment
+    FOREIGN KEY (matched_payment_id)
+    REFERENCES financial_payments(payment_id)
+    ON DELETE RESTRICT
+    ON UPDATE RESTRICT,
+  INDEX idx_financial_provider_events_external (external_reference),
+  INDEX idx_financial_provider_events_payment (matched_payment_id),
+  INDEX idx_financial_provider_events_occurred (occurred_at),
+  INDEX idx_financial_provider_events_status (payment_status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+`;
