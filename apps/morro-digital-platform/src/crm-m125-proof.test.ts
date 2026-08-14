@@ -15,7 +15,9 @@ describe("CRM M125 follow-up scheduling browser", () => {
     expect(page).toContain('name="leadId" type="number" min="1"');
     expect(page).toContain('name="settingId" type="number" min="1"');
     expect(page).toContain('name="scheduledAt" type="datetime-local" required');
-    expect(page).toContain('name="attemptNumber" type="number" min="1" max="100"');
+    expect(page).toContain(
+      'name="attemptNumber" type="number" min="1" max="100"',
+    );
   });
 
   it("uses authenticated scheduling without delivery mutations", async () => {
