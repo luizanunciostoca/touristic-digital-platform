@@ -1,11 +1,4 @@
-import {
-  afterAll,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  it,
-} from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import {
   createPaymentIdempotencyKey,
@@ -37,12 +30,8 @@ const financialUrl = process.env.FINANCIAL_DATABASE_URL;
 const describeMySql =
   adminUrl && orderingUrl && financialUrl ? describe : describe.skip;
 
-type OrderingPool = ReturnType<
-  typeof createOrderingMySqlPoolFromEnvironment
->;
-type FinancialPool = ReturnType<
-  typeof createFinancialMySqlPoolFromEnvironment
->;
+type OrderingPool = ReturnType<typeof createOrderingMySqlPoolFromEnvironment>;
+type FinancialPool = ReturnType<typeof createFinancialMySqlPoolFromEnvironment>;
 
 function pricingCatalog(minorUnits: number): string {
   return JSON.stringify({
@@ -128,9 +117,7 @@ describeMySql.sequential("M138 checkout application MySQL integration", () => {
     await financialPool.query("DELETE FROM financial_ledger_postings");
     await financialPool.query("DELETE FROM financial_ledger_transactions");
     await financialPool.query("DELETE FROM financial_payments");
-    await financialPool.query(
-      "DELETE FROM financial_payment_idempotency",
-    );
+    await financialPool.query("DELETE FROM financial_payment_idempotency");
     await orderingPool.query("DELETE FROM ordering_orders");
   });
 
@@ -143,13 +130,10 @@ describeMySql.sequential("M138 checkout application MySQL integration", () => {
   it("repairs an interrupted cross-database start without repricing", async () => {
     const orders = new MySqlOrderRepository(orderingPool);
     const persistedPayments = new MySqlPaymentRepository(financialPool);
-    const paymentIdempotency = new MySqlPaymentIdempotencyPort(
-      financialPool,
-    );
+    const paymentIdempotency = new MySqlPaymentIdempotencyPort(financialPool);
     let failNextPaymentSave = true;
     const payments: PaymentRepositoryPort = {
-      findById: (paymentId) =>
-        persistedPayments.findById(paymentId),
+      findById: (paymentId) => persistedPayments.findById(paymentId),
       save(payment: Payment): Promise<Payment> {
         if (failNextPaymentSave) {
           failNextPaymentSave = false;
@@ -172,17 +156,16 @@ describeMySql.sequential("M138 checkout application MySQL integration", () => {
         return "pay_mysql_checkout_0001";
       },
     };
-    const firstService =
-      createProviderNeutralCheckoutApplicationService({
-        orders,
-        payments,
-        paymentIdempotency,
-        identities,
-        clock: { now: () => "2026-08-14T21:30:00Z" },
-        pricing: createOrderPricingAuthorityFromEnvironment({
-          ORDERING_PRICING_CATALOG_JSON: pricingCatalog(49_900),
-        }),
-      });
+    const firstService = createProviderNeutralCheckoutApplicationService({
+      orders,
+      payments,
+      paymentIdempotency,
+      identities,
+      clock: { now: () => "2026-08-14T21:30:00Z" },
+      pricing: createOrderPricingAuthorityFromEnvironment({
+        ORDERING_PRICING_CATALOG_JSON: pricingCatalog(49_900),
+      }),
+    });
 
     await expect(firstService.startCheckout(handoff())).rejects.toThrow(
       "SIMULATED_CROSS_DATABASE_INTERRUPTION",
@@ -199,28 +182,25 @@ describeMySql.sequential("M138 checkout application MySQL integration", () => {
       pricing: { amount: { minorUnits: 49_900, currency: "BRL" } },
     });
     if (!interruptedOrder) throw new Error("FIXTURE_INVALID");
-    const idempotencyKey = createPaymentIdempotencyKey(
-      interruptedOrder.id,
-    );
+    const idempotencyKey = createPaymentIdempotencyKey(interruptedOrder.id);
     if (!idempotencyKey) throw new Error("FIXTURE_INVALID");
-    await expect(
-      paymentIdempotency.find(idempotencyKey),
-    ).resolves.toBe("pay_mysql_checkout_0001");
+    await expect(paymentIdempotency.find(idempotencyKey)).resolves.toBe(
+      "pay_mysql_checkout_0001",
+    );
     await expect(
       persistedPayments.findById("pay_mysql_checkout_0001" as never),
     ).resolves.toBeNull();
 
-    const repairService =
-      createProviderNeutralCheckoutApplicationService({
-        orders,
-        payments,
-        paymentIdempotency,
-        identities,
-        clock: { now: () => "2026-08-14T21:30:00Z" },
-        pricing: createOrderPricingAuthorityFromEnvironment({
-          ORDERING_PRICING_CATALOG_JSON: pricingCatalog(99_900),
-        }),
-      });
+    const repairService = createProviderNeutralCheckoutApplicationService({
+      orders,
+      payments,
+      paymentIdempotency,
+      identities,
+      clock: { now: () => "2026-08-14T21:30:00Z" },
+      pricing: createOrderPricingAuthorityFromEnvironment({
+        ORDERING_PRICING_CATALOG_JSON: pricingCatalog(99_900),
+      }),
+    });
     const repaired = await repairService.startCheckout(handoff());
 
     expect(repaired).toMatchObject({
