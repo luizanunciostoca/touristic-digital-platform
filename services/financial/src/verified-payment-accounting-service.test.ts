@@ -164,7 +164,7 @@ describe("M143 verified Payment accounting", () => {
     await expect(
       accounting.apply(payment("confirmed"), approved),
     ).resolves.toMatchObject({ disposition: "replayed" });
-    expect(ledger.transactions).toHaveLength(1);
+    expect(ledger.transactions.size).toBe(1);
   });
 
   it("recovers a missing approval posting before a refund reversal", async () => {
@@ -193,7 +193,7 @@ describe("M143 verified Payment accounting", () => {
         },
       ],
     });
-    expect(ledger.transactions).toHaveLength(2);
+    expect(ledger.transactions.size).toBe(2);
     await expect(
       accounting.apply(payment("refunded"), refunded),
     ).resolves.toMatchObject({ disposition: "replayed" });
@@ -207,18 +207,21 @@ describe("M143 verified Payment accounting", () => {
       disposition: "not_applicable",
       transactions: [],
     });
-    expect(ledger.transactions).toHaveLength(0);
+    expect(ledger.transactions.size).toBe(0);
   });
 
   it("rejects a result/payment mismatch before touching the ledger", async () => {
     const approved = result("approved");
-    const mismatched: Payment = {
-      ...payment("confirmed"),
-      subject: { kind: "order", reference: "ord_other_accounting_0001" },
-    };
+    const mismatched = normalizeVerifiedPaymentResult({
+      ...approved,
+      orderReference: "ord_other_accounting_0001",
+    });
+    if (!mismatched) throw new Error("RESULT_FIXTURE_INVALID");
     const { ledger, accounting } = service([approved]);
 
-    await expect(accounting.apply(mismatched, approved)).rejects.toThrow(
+    await expect(
+      accounting.apply(payment("confirmed"), mismatched),
+    ).rejects.toThrow(
       "FINANCIAL_ACCOUNTING_RESULT_PAYMENT_MISMATCH",
     );
     expect(ledger.transactions).toHaveLength(0);
