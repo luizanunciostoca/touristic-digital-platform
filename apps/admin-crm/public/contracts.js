@@ -17,8 +17,16 @@ const status = document.querySelector("#contracts-status");
 const table = document.querySelector("#contracts-table");
 const body = document.querySelector("#contracts-body");
 const count = document.querySelector("#contracts-count");
+const createForm = document.querySelector("#contract-create-form");
+const createSubmit = document.querySelector("#contract-create-submit");
+const createStatus = document.querySelector("#contract-create-status");
 
-const statusLabels = { draft: "Rascunho", sent: "Enviado", signed: "Assinado", cancelled: "Cancelado" };
+const statusLabels = {
+  draft: "Rascunho",
+  sent: "Enviado",
+  signed: "Assinado",
+  cancelled: "Cancelado",
+};
 
 function textCell(value) {
   const cell = document.createElement("td");
@@ -30,7 +38,10 @@ function money(value) {
   if (typeof value !== "string" || !value) return "—";
   const parsed = Number(value);
   return Number.isFinite(parsed)
-    ? new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(parsed)
+    ? new Intl.NumberFormat("pt-BR", {
+        style: "currency",
+        currency: "BRL",
+      }).format(parsed)
     : value;
 }
 
@@ -46,6 +57,66 @@ function setStatus(message) {
   if (status) status.textContent = message;
 }
 
+async function command(path, bodyValue) {
+  const response = await auth.secureFetch(path, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      ...(bodyValue === undefined ? {} : { "Content-Type": "application/json" }),
+    },
+    ...(bodyValue === undefined ? {} : { body: JSON.stringify(bodyValue) }),
+  });
+  return response.ok;
+}
+
+function actionCell(contract) {
+  const cell = document.createElement("td");
+  const actions = [];
+
+  if (contract.status === "draft") {
+    actions.push({ label: "Enviar", suffix: "send" });
+  }
+  if (contract.status !== "signed" && contract.status !== "cancelled") {
+    actions.push({ label: "Cancelar", suffix: "cancel" });
+  }
+
+  if (actions.length === 0) {
+    cell.textContent = "—";
+    return cell;
+  }
+
+  for (const action of actions) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = action.label;
+    button.addEventListener("click", async () => {
+      button.disabled = true;
+      try {
+        const bodyValue =
+          action.suffix === "cancel"
+            ? { reason: window.prompt("Motivo do cancelamento (opcional)") || null }
+            : undefined;
+        const ok = await command(
+          `/api/crm/contracts/${contract.id}/${action.suffix}`,
+          bodyValue,
+        );
+        if (!ok) {
+          setStatus(`Não foi possível ${action.label.toLowerCase()} o contrato.`);
+          return;
+        }
+        await loadContracts();
+      } catch {
+        setStatus(`Não foi possível ${action.label.toLowerCase()} o contrato.`);
+      } finally {
+        button.disabled = false;
+      }
+    });
+    cell.append(button);
+  }
+
+  return cell;
+}
+
 function renderContracts(contracts) {
   if (!(body instanceof HTMLElement) || !(table instanceof HTMLElement)) return;
   body.replaceChildren();
@@ -59,11 +130,14 @@ function renderContracts(contracts) {
       textCell(statusLabels[contract.status] || contract.status),
       textCell(dateLabel(contract.sentAt)),
       textCell(dateLabel(contract.signedAt)),
+      actionCell(contract),
     );
     body.append(row);
   }
   table.hidden = contracts.length === 0;
-  if (count) count.textContent = `${contracts.length} ${contracts.length === 1 ? "contrato" : "contratos"}`;
+  if (count) {
+    count.textContent = `${contracts.length} ${contracts.length === 1 ? "contrato" : "contratos"}`;
+  }
   setStatus(
     contracts.length === 0
       ? "Nenhum contrato encontrado."
@@ -78,7 +152,9 @@ async function loadContracts() {
       headers: { Accept: "application/json" },
     });
     if (!response.ok) {
-      if (response.status !== 401) setStatus("Não foi possível carregar os contratos.");
+      if (response.status !== 401) {
+        setStatus("Não foi possível carregar os contratos.");
+      }
       return;
     }
     const payload = await response.json();
@@ -92,6 +168,55 @@ async function loadContracts() {
   }
 }
 
+if (createForm instanceof HTMLFormElement) {
+  createForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const formData = new FormData(createForm);
+    const proposalId = String(formData.get("proposalId") || "").trim();
+    const monthlyValue = String(formData.get("monthlyValue") || "").trim();
+    const payload = {
+      leadId: String(formData.get("leadId") || "").trim(),
+      proposalId: proposalId || null,
+      title: String(formData.get("title") || "").trim(),
+      content: String(formData.get("content") || "").trim(),
+      monthlyValue: monthlyValue || null,
+    };
+
+    if (createSubmit instanceof HTMLButtonElement) {
+      createSubmit.disabled = true;
+    }
+    if (createStatus) createStatus.textContent = "Criando contrato…";
+
+    try {
+      const response = await auth.secureFetch("/api/crm/contracts", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+      if (!response.ok) {
+        if (createStatus) {
+          createStatus.textContent = "Não foi possível criar o contrato.";
+        }
+        return;
+      }
+      createForm.reset();
+      if (createStatus) createStatus.textContent = "Contrato criado.";
+      await loadContracts();
+    } catch {
+      if (createStatus) {
+        createStatus.textContent = "Não foi possível criar o contrato.";
+      }
+    } finally {
+      if (createSubmit instanceof HTMLButtonElement) {
+        createSubmit.disabled = false;
+      }
+    }
+  });
+}
+
 void auth
   .getSession()
   .then((session) => {
@@ -102,5 +227,7 @@ void auth
   })
   .catch(() => {
     const current = `${window.location.pathname}${window.location.search}`;
-    window.location.replace(`/dashboard/login.html?return=${encodeURIComponent(current)}`);
+    window.location.replace(
+      `/dashboard/login.html?return=${encodeURIComponent(current)}`,
+    );
   });
