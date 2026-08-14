@@ -1,0 +1,43 @@
+name: M137 Prepare Once
+
+on:
+  push:
+    branches:
+      - feat/payments-m137-durable-persistence
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/payments-m137-durable-persistence
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Refresh lockfile and install dependencies
+        run: pnpm install --no-frozen-lockfile
+      - name: Apply canonical formatting
+        run: pnpm format
+      - name: Validate Ordering persistence
+        run: pnpm --filter @touristic/ordering-server lint && pnpm --filter @touristic/ordering-server typecheck && pnpm --filter @touristic/ordering-server test && pnpm --filter @touristic/ordering-server build
+      - name: Validate Financial persistence
+        run: pnpm --filter @touristic/financial-server lint && pnpm --filter @touristic/financial-server typecheck && pnpm --filter @touristic/financial-server test && pnpm --filter @touristic/financial-server build
+      - name: Commit prepared M137 state
+        run: |
+          if git diff --quiet; then
+            echo "No preparation changes required."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "chore(payments): prepare M137 persistence workspace"
+          git push
