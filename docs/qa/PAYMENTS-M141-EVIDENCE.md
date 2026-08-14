@@ -56,6 +56,15 @@ Checkpoint `08f0f68e07463d0ec44be14db6f61dfeaedf0289` already passed:
 
 The permanent Payments Verified Webhook Contract plus repository-wide Quality remain required on the final promotion head.
 
+Validated checkpoint `f54d309dc22c843d4037101fc1c7af45b8eefc90`:
+
+- Quality Gate `31849196675 — SUCCESS`;
+- Payments Persistence Integration `31849196634 — SUCCESS`;
+- Payments Sandbox Provider Contract `31849196671 — SUCCESS`;
+- Payments Verified Webhook Contract `31849196753 — SUCCESS`.
+
+Final promotion still requires all four gates on the final documentation head.
+
 ## Migration result
 
 ```text
