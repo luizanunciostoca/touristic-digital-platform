@@ -16,7 +16,8 @@ interface ClaimRow extends RowDataPacket {
 
 function normalizeKey(key: PaymentIdempotencyKey): PaymentIdempotencyKey {
   const prefix = "payment:v1:";
-  if (!key.startsWith(prefix)) throw new Error("FINANCIAL_INVALID_IDEMPOTENCY_KEY");
+  if (!key.startsWith(prefix))
+    throw new Error("FINANCIAL_INVALID_IDEMPOTENCY_KEY");
   const normalized = createPaymentIdempotencyKey(key.slice(prefix.length));
   if (!normalized || normalized !== key) {
     throw new Error("FINANCIAL_INVALID_IDEMPOTENCY_KEY");

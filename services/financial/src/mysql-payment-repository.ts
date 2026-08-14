@@ -170,7 +170,8 @@ export class MySqlPaymentRepository implements PaymentRepositoryPort {
       const conflicting = await this.findByIdempotencyKey(
         normalized.idempotencyKey,
       );
-      if (conflicting) throw new Error("FINANCIAL_PAYMENT_IDEMPOTENCY_CONFLICT");
+      if (conflicting)
+        throw new Error("FINANCIAL_PAYMENT_IDEMPOTENCY_CONFLICT");
       throw new Error("FINANCIAL_PAYMENT_NOT_PERSISTED");
     }
     if (!sameImmutablePayment(persisted, normalized)) {

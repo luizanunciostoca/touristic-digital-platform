@@ -14,7 +14,10 @@ import { orderingM137SchemaSql } from "./schema.js";
 
 function order() {
   const id = normalizeOrderId("ord_12345678");
-  const requestKey = createBusinessOrderRequestKey("session_123", "performance");
+  const requestKey = createBusinessOrderRequestKey(
+    "session_123",
+    "performance",
+  );
   const source = normalizeOrderSourceReference("demo_business_123");
   const quote = createPricingQuote({
     planId: "performance",
@@ -23,7 +26,8 @@ function order() {
     currency: "BRL",
     pricingVersion: "plans_2026_08",
   });
-  if (!id || !requestKey || !source || !quote) throw new Error("TEST_FIXTURE_INVALID");
+  if (!id || !requestKey || !source || !quote)
+    throw new Error("TEST_FIXTURE_INVALID");
   const pricing = capturePricingSnapshot(quote, "2026-08-14T19:30:00Z");
   if (!pricing) throw new Error("TEST_FIXTURE_INVALID");
   const value = createOrder({
@@ -59,11 +63,21 @@ function row(value = order()) {
 
 describe("M137 Ordering schema", () => {
   it("owns Order persistence without financial/provider tables", () => {
-    expect(orderingM137SchemaSql).toContain("CREATE TABLE IF NOT EXISTS ordering_orders");
-    expect(orderingM137SchemaSql).toContain("request_key VARCHAR(220) COLLATE utf8mb4_bin NOT NULL UNIQUE");
-    expect(orderingM137SchemaSql).toContain("amount_minor BIGINT UNSIGNED NOT NULL");
-    expect(orderingM137SchemaSql).toContain("pricing_version VARCHAR(80) COLLATE utf8mb4_bin NOT NULL");
-    expect(orderingM137SchemaSql).toContain("CHECK (amount_minor <= 9007199254740991)");
+    expect(orderingM137SchemaSql).toContain(
+      "CREATE TABLE IF NOT EXISTS ordering_orders",
+    );
+    expect(orderingM137SchemaSql).toContain(
+      "request_key VARCHAR(220) COLLATE utf8mb4_bin NOT NULL UNIQUE",
+    );
+    expect(orderingM137SchemaSql).toContain(
+      "amount_minor BIGINT UNSIGNED NOT NULL",
+    );
+    expect(orderingM137SchemaSql).toContain(
+      "pricing_version VARCHAR(80) COLLATE utf8mb4_bin NOT NULL",
+    );
+    expect(orderingM137SchemaSql).toContain(
+      "CHECK (amount_minor <= 9007199254740991)",
+    );
     expect(orderingM137SchemaSql).not.toContain("financial_payments");
     expect(orderingM137SchemaSql).not.toContain("provider_token");
   });
@@ -104,7 +118,11 @@ describe("M137 MySqlOrderRepository", () => {
       createdAt: "2026-08-14T19:31:00.000Z",
       updatedAt: "2026-08-14T19:35:00.000Z",
     });
-    expect(execute.mock.calls.some(([sql]) => String(sql).includes("UPDATE ordering_orders"))).toBe(true);
+    expect(
+      execute.mock.calls.some(([sql]) =>
+        String(sql).includes("UPDATE ordering_orders"),
+      ),
+    ).toBe(true);
   });
 
   it("does not mutate another order when the unique request key already belongs elsewhere", async () => {
@@ -124,8 +142,14 @@ describe("M137 MySqlOrderRepository", () => {
     });
     const repository = new MySqlOrderRepository({ execute } as never);
 
-    await expect(repository.save(value)).rejects.toThrow("ORDERING_REQUEST_KEY_CONFLICT");
-    expect(execute.mock.calls.some(([sql]) => String(sql).includes("UPDATE ordering_orders"))).toBe(false);
+    await expect(repository.save(value)).rejects.toThrow(
+      "ORDERING_REQUEST_KEY_CONFLICT",
+    );
+    expect(
+      execute.mock.calls.some(([sql]) =>
+        String(sql).includes("UPDATE ordering_orders"),
+      ),
+    ).toBe(false);
   });
 
   it("rejects a lost update when the compare-and-swap predicate no longer matches", async () => {
@@ -140,7 +164,8 @@ describe("M137 MySqlOrderRepository", () => {
     const execute = vi.fn(async (sql: string) => {
       if (sql.includes("INSERT IGNORE")) return [{ affectedRows: 0 }, []];
       if (sql.includes("WHERE order_id = ?")) return [[row(initial)], []];
-      if (sql.includes("UPDATE ordering_orders")) return [{ affectedRows: 0 }, []];
+      if (sql.includes("UPDATE ordering_orders"))
+        return [{ affectedRows: 0 }, []];
       throw new Error(`Unexpected SQL: ${sql}`);
     });
     const repository = new MySqlOrderRepository({ execute } as never);

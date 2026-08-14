@@ -15,7 +15,8 @@ function payment(overrides: Partial<Payment> = {}): Payment {
   const id = normalizePaymentId("pay_12345678");
   const idempotencyKey = createPaymentIdempotencyKey("ord_12345678");
   const amount = createMoney(49_900, "BRL");
-  if (!id || !idempotencyKey || !amount) throw new Error("TEST_FIXTURE_INVALID");
+  if (!id || !idempotencyKey || !amount)
+    throw new Error("TEST_FIXTURE_INVALID");
   return {
     id,
     idempotencyKey,
@@ -54,10 +55,18 @@ describe("M137 Financial schema", () => {
     expect(financialM137SchemaSql).toContain("financial_payments");
     expect(financialM137SchemaSql).toContain("financial_ledger_transactions");
     expect(financialM137SchemaSql).toContain("financial_ledger_postings");
-    expect(financialM137SchemaSql).toContain("amount_minor BIGINT UNSIGNED NOT NULL");
-    expect(financialM137SchemaSql).toContain("idempotency_key VARCHAR(180) COLLATE utf8mb4_bin PRIMARY KEY");
-    expect(financialM137SchemaSql).toContain("external_key VARCHAR(160) COLLATE utf8mb4_bin NOT NULL UNIQUE");
-    expect(financialM137SchemaSql).toContain("CHECK (amount_minor <= 9007199254740991)");
+    expect(financialM137SchemaSql).toContain(
+      "amount_minor BIGINT UNSIGNED NOT NULL",
+    );
+    expect(financialM137SchemaSql).toContain(
+      "idempotency_key VARCHAR(180) COLLATE utf8mb4_bin PRIMARY KEY",
+    );
+    expect(financialM137SchemaSql).toContain(
+      "external_key VARCHAR(160) COLLATE utf8mb4_bin NOT NULL UNIQUE",
+    );
+    expect(financialM137SchemaSql).toContain(
+      "CHECK (amount_minor <= 9007199254740991)",
+    );
     expect(financialM137SchemaSql).not.toContain("ordering_orders");
   });
 });
@@ -81,8 +90,14 @@ describe("M137 MySqlPaymentIdempotencyPort", () => {
     });
     const port = new MySqlPaymentIdempotencyPort({ execute } as never);
 
-    await expect(port.claim(key, id)).resolves.toEqual({ claimed: true, paymentId: id });
-    await expect(port.claim(key, id)).resolves.toEqual({ claimed: false, paymentId: id });
+    await expect(port.claim(key, id)).resolves.toEqual({
+      claimed: true,
+      paymentId: id,
+    });
+    await expect(port.claim(key, id)).resolves.toEqual({
+      claimed: false,
+      paymentId: id,
+    });
   });
 
   it("fails closed if the proposed PaymentId is already owned by another key", async () => {
@@ -93,9 +108,9 @@ describe("M137 MySqlPaymentIdempotencyPort", () => {
     });
     const port = new MySqlPaymentIdempotencyPort({ execute } as never);
 
-    await expect(port.claim(payment().idempotencyKey, payment().id)).rejects.toThrow(
-      "FINANCIAL_IDEMPOTENCY_PAYMENT_ID_CONFLICT",
-    );
+    await expect(
+      port.claim(payment().idempotencyKey, payment().id),
+    ).rejects.toThrow("FINANCIAL_IDEMPOTENCY_PAYMENT_ID_CONFLICT");
   });
 });
 
@@ -143,8 +158,10 @@ describe("M137 MySqlPaymentRepository", () => {
     const execute = vi.fn(async (sql: string) => {
       if (sql.includes("INSERT IGNORE")) return [{ affectedRows: 0 }, []];
       if (sql.includes("WHERE payment_id = ?")) return [[], []];
-      if (sql.includes("WHERE idempotency_key = ?")) return [[conflictingRow], []];
-      if (sql.includes("UPDATE financial_payments")) throw new Error("UPDATE_MUST_NOT_RUN");
+      if (sql.includes("WHERE idempotency_key = ?"))
+        return [[conflictingRow], []];
+      if (sql.includes("UPDATE financial_payments"))
+        throw new Error("UPDATE_MUST_NOT_RUN");
       throw new Error(`Unexpected SQL: ${sql}`);
     });
     const repository = new MySqlPaymentRepository({ execute } as never);
@@ -152,19 +169,23 @@ describe("M137 MySqlPaymentRepository", () => {
     await expect(repository.save(incoming)).rejects.toThrow(
       "FINANCIAL_PAYMENT_IDEMPOTENCY_CONFLICT",
     );
-    expect(execute.mock.calls.some(([sql]) => String(sql).includes("UPDATE financial_payments"))).toBe(false);
+    expect(
+      execute.mock.calls.some(([sql]) =>
+        String(sql).includes("UPDATE financial_payments"),
+      ),
+    ).toBe(false);
   });
 
   it("rejects forged optional values instead of silently erasing them", async () => {
     const execute = vi.fn();
     const repository = new MySqlPaymentRepository({ execute } as never);
 
-    await expect(repository.save(payment({ providerReference: "\n" }))).rejects.toThrow(
-      "FINANCIAL_INVALID_PROVIDER_REFERENCE",
-    );
-    await expect(repository.save(payment({ confirmedAt: "not-a-time" }))).rejects.toThrow(
-      "FINANCIAL_INVALID_PAYMENT_TIMESTAMP",
-    );
+    await expect(
+      repository.save(payment({ providerReference: "\n" })),
+    ).rejects.toThrow("FINANCIAL_INVALID_PROVIDER_REFERENCE");
+    await expect(
+      repository.save(payment({ confirmedAt: "not-a-time" })),
+    ).rejects.toThrow("FINANCIAL_INVALID_PAYMENT_TIMESTAMP");
     expect(execute).not.toHaveBeenCalled();
   });
 
@@ -179,7 +200,8 @@ describe("M137 MySqlPaymentRepository", () => {
     const execute = vi.fn(async (sql: string) => {
       if (sql.includes("INSERT IGNORE")) return [{ affectedRows: 0 }, []];
       if (sql.includes("WHERE payment_id = ?")) return [[row(initial)], []];
-      if (sql.includes("UPDATE financial_payments")) return [{ affectedRows: 0 }, []];
+      if (sql.includes("UPDATE financial_payments"))
+        return [{ affectedRows: 0 }, []];
       throw new Error(`Unexpected SQL: ${sql}`);
     });
     const repository = new MySqlPaymentRepository({ execute } as never);

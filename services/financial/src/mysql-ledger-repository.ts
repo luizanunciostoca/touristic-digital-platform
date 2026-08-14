@@ -1,8 +1,4 @@
-import type {
-  Pool,
-  PoolConnection,
-  RowDataPacket,
-} from "mysql2/promise";
+import type { Pool, PoolConnection, RowDataPacket } from "mysql2/promise";
 
 import {
   createLedgerTransaction,
@@ -48,7 +44,10 @@ function isDuplicateKey(error: unknown): boolean {
   return candidate.code === "ER_DUP_ENTRY" || candidate.errno === 1062;
 }
 
-function sameLedger(left: LedgerTransaction, right: LedgerTransaction): boolean {
+function sameLedger(
+  left: LedgerTransaction,
+  right: LedgerTransaction,
+): boolean {
   if (
     left.id !== right.id ||
     left.externalKey !== right.externalKey ||
@@ -105,9 +104,7 @@ async function insertLedger(
   }
 }
 
-export class MySqlLedgerTransactionRepository
-  implements LedgerTransactionRepositoryPort
-{
+export class MySqlLedgerTransactionRepository implements LedgerTransactionRepositoryPort {
   constructor(private readonly pool: Pool) {}
 
   async append(transaction: LedgerTransaction): Promise<void> {

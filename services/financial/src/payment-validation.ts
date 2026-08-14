@@ -9,7 +9,10 @@ import {
   type PaymentStatus,
 } from "@touristic/financial";
 
-function boundedOptionalReference(value: unknown, maxLength: number): string | null {
+function boundedOptionalReference(
+  value: unknown,
+  maxLength: number,
+): string | null {
   if (value === null) return null;
   if (typeof value !== "string") {
     throw new Error("FINANCIAL_INVALID_PROVIDER_REFERENCE");
@@ -80,16 +83,19 @@ export function normalizePaymentForPersistence(payment: Payment): Payment {
 
   const createdMs = Date.parse(createdAt);
   const updatedMs = Date.parse(updatedAt);
-  if (updatedMs < createdMs) throw new Error("FINANCIAL_INVALID_PAYMENT_TIME_ORDER");
+  if (updatedMs < createdMs)
+    throw new Error("FINANCIAL_INVALID_PAYMENT_TIME_ORDER");
 
   if (payment.status === "confirmed" || payment.status === "refunded") {
-    if (!confirmedAt) throw new Error("FINANCIAL_CONFIRMED_PAYMENT_REQUIRES_TIMESTAMP");
+    if (!confirmedAt)
+      throw new Error("FINANCIAL_CONFIRMED_PAYMENT_REQUIRES_TIMESTAMP");
   } else if (confirmedAt) {
     throw new Error("FINANCIAL_UNCONFIRMED_PAYMENT_HAS_CONFIRMATION_TIMESTAMP");
   }
 
   if (payment.status === "refunded") {
-    if (!refundedAt) throw new Error("FINANCIAL_REFUNDED_PAYMENT_REQUIRES_TIMESTAMP");
+    if (!refundedAt)
+      throw new Error("FINANCIAL_REFUNDED_PAYMENT_REQUIRES_TIMESTAMP");
   } else if (refundedAt) {
     throw new Error("FINANCIAL_NON_REFUNDED_PAYMENT_HAS_REFUND_TIMESTAMP");
   }
@@ -112,7 +118,10 @@ export function normalizePaymentForPersistence(payment: Payment): Payment {
   return Object.freeze({
     id,
     idempotencyKey: expectedIdempotencyKey,
-    subject: Object.freeze({ kind: "order" as const, reference: orderReference }),
+    subject: Object.freeze({
+      kind: "order" as const,
+      reference: orderReference,
+    }),
     amount,
     status: payment.status,
     providerReference,

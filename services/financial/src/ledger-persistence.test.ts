@@ -49,7 +49,9 @@ describe("M137 MySqlLedgerTransactionRepository", () => {
       release,
     };
     const getConnection = vi.fn(async () => connection);
-    const repository = new MySqlLedgerTransactionRepository({ getConnection } as never);
+    const repository = new MySqlLedgerTransactionRepository({
+      getConnection,
+    } as never);
 
     await expect(repository.append(transaction())).resolves.toBeUndefined();
 
@@ -84,7 +86,9 @@ describe("M137 MySqlLedgerTransactionRepository", () => {
       rollback,
       release,
     }));
-    const repository = new MySqlLedgerTransactionRepository({ getConnection } as never);
+    const repository = new MySqlLedgerTransactionRepository({
+      getConnection,
+    } as never);
 
     await expect(repository.append(transaction())).rejects.toThrow(
       "POSTING_WRITE_FAILED",
@@ -116,28 +120,36 @@ describe("M137 MySqlLedgerTransactionRepository", () => {
     const value = transaction();
     const executePool = vi.fn(async (sql: string) => {
       if (sql.includes("FROM financial_ledger_transactions")) {
-        return [[{
-          transaction_id: value.id,
-          external_key: value.externalKey,
-          occurred_at: new Date(value.occurredAt),
-          currency: "BRL",
-        }], []];
+        return [
+          [
+            {
+              transaction_id: value.id,
+              external_key: value.externalKey,
+              occurred_at: new Date(value.occurredAt),
+              currency: "BRL",
+            },
+          ],
+          [],
+        ];
       }
       if (sql.includes("FROM financial_ledger_postings")) {
-        return [[
-          {
-            posting_sequence: 0,
-            account_reference: "cash:provider",
-            direction: "debit",
-            amount_minor: 49_900,
-          },
-          {
-            posting_sequence: 1,
-            account_reference: "revenue:platform",
-            direction: "credit",
-            amount_minor: 49_900,
-          },
-        ], []];
+        return [
+          [
+            {
+              posting_sequence: 0,
+              account_reference: "cash:provider",
+              direction: "debit",
+              amount_minor: 49_900,
+            },
+            {
+              posting_sequence: 1,
+              account_reference: "revenue:platform",
+              direction: "credit",
+              amount_minor: 49_900,
+            },
+          ],
+          [],
+        ];
       }
       throw new Error(`Unexpected SQL: ${sql}`);
     });
@@ -169,28 +181,36 @@ describe("M137 MySqlLedgerTransactionRepository", () => {
     const value = transaction();
     const execute = vi.fn(async (sql: string) => {
       if (sql.includes("FROM financial_ledger_transactions")) {
-        return [[{
-          transaction_id: "led_87654321",
-          external_key: value.externalKey,
-          occurred_at: new Date(value.occurredAt),
-          currency: "BRL",
-        }], []];
+        return [
+          [
+            {
+              transaction_id: "led_87654321",
+              external_key: value.externalKey,
+              occurred_at: new Date(value.occurredAt),
+              currency: "BRL",
+            },
+          ],
+          [],
+        ];
       }
       if (sql.includes("FROM financial_ledger_postings")) {
-        return [[
-          {
-            posting_sequence: 0,
-            account_reference: "cash:provider",
-            direction: "debit",
-            amount_minor: 49_900,
-          },
-          {
-            posting_sequence: 1,
-            account_reference: "revenue:platform",
-            direction: "credit",
-            amount_minor: 49_900,
-          },
-        ], []];
+        return [
+          [
+            {
+              posting_sequence: 0,
+              account_reference: "cash:provider",
+              direction: "debit",
+              amount_minor: 49_900,
+            },
+            {
+              posting_sequence: 1,
+              account_reference: "revenue:platform",
+              direction: "credit",
+              amount_minor: 49_900,
+            },
+          ],
+          [],
+        ];
       }
       throw new Error(`Unexpected SQL: ${sql}`);
     });
@@ -207,35 +227,45 @@ describe("M137 MySqlLedgerTransactionRepository", () => {
     const value = transaction();
     const execute = vi.fn(async (sql: string) => {
       if (sql.includes("FROM financial_ledger_transactions")) {
-        return [[{
-          transaction_id: value.id,
-          external_key: value.externalKey,
-          occurred_at: new Date(value.occurredAt),
-          currency: "BRL",
-        }], []];
+        return [
+          [
+            {
+              transaction_id: value.id,
+              external_key: value.externalKey,
+              occurred_at: new Date(value.occurredAt),
+              currency: "BRL",
+            },
+          ],
+          [],
+        ];
       }
       if (sql.includes("FROM financial_ledger_postings")) {
-        return [[
-          {
-            posting_sequence: 0,
-            account_reference: "cash:provider",
-            direction: "debit",
-            amount_minor: 49_900,
-          },
-          {
-            posting_sequence: 2,
-            account_reference: "revenue:platform",
-            direction: "credit",
-            amount_minor: 49_900,
-          },
-        ], []];
+        return [
+          [
+            {
+              posting_sequence: 0,
+              account_reference: "cash:provider",
+              direction: "debit",
+              amount_minor: 49_900,
+            },
+            {
+              posting_sequence: 2,
+              account_reference: "revenue:platform",
+              direction: "credit",
+              amount_minor: 49_900,
+            },
+          ],
+          [],
+        ];
       }
       throw new Error(`Unexpected SQL: ${sql}`);
     });
-    const repository = new MySqlLedgerTransactionRepository({ execute } as never);
+    const repository = new MySqlLedgerTransactionRepository({
+      execute,
+    } as never);
 
-    await expect(repository.findByExternalKey(value.externalKey)).rejects.toThrow(
-      "FINANCIAL_INVALID_PERSISTED_LEDGER",
-    );
+    await expect(
+      repository.findByExternalKey(value.externalKey),
+    ).rejects.toThrow("FINANCIAL_INVALID_PERSISTED_LEDGER");
   });
 });
