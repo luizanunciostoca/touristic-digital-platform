@@ -131,6 +131,35 @@ describe("assistant paid-provider governance", () => {
     expect(api.observabilitySnapshot().usage.daily.spentUsd).toBe(0.75);
   });
 
+  it("charges the conservative reservation after an uncertain provider error", async () => {
+    const events = [];
+    const fetchImplementation = vi.fn(async () => ({
+      ok: false,
+      status: 502,
+    }));
+    const api = createAssistantApi({
+      getEnvironmentValue: environment({
+        OPENAI_REQUEST_RESERVE_USD: "0.8",
+      }),
+      fetchImplementation,
+      observeProviderEvent: (event) => events.push(event),
+    });
+    const output = response();
+
+    await api.handle(request(), output);
+
+    expect(output.statusCode).toBe(502);
+    expect(api.observabilitySnapshot().usage.daily.spentUsd).toBe(0.8);
+    expect(
+      events.some(
+        (event) =>
+          event.type === "provider.request.failed" &&
+          event.reason === "provider_http_error" &&
+          event.statusCode === 502,
+      ),
+    ).toBe(true);
+  });
+
   it("blocks a new call when the reservation would cross the daily ceiling", async () => {
     const fetchImplementation = vi.fn(async () =>
       providerResponse({
