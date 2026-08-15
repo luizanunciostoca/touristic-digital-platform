@@ -1,0 +1,78 @@
+name: Payments Refund Command Contract
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "packages/auth/**"
+      - "packages/financial/**"
+      - "services/financial/**"
+      - "services/ordering/**"
+      - "apps/morro-digital-platform/tooling/payments-api.mjs"
+      - "apps/morro-digital-platform/tooling/payments-api.test.mjs"
+      - ".github/workflows/payments-refund-command-contract.yml"
+      - "pnpm-lock.yaml"
+  pull_request:
+    paths:
+      - "packages/auth/**"
+      - "packages/financial/**"
+      - "services/financial/**"
+      - "services/ordering/**"
+      - "apps/morro-digital-platform/tooling/payments-api.mjs"
+      - "apps/morro-digital-platform/tooling/payments-api.test.mjs"
+      - ".github/workflows/payments-refund-command-contract.yml"
+      - "pnpm-lock.yaml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: payments-refund-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  refund-command-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: m144-refund
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -pm144-refund"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    env:
+      MYSQL_ADMIN_DATABASE_URL: mysql://root:m144-refund@127.0.0.1:3306/mysql
+      FINANCIAL_DATABASE_URL: mysql://root:m144-refund@127.0.0.1:3306/financial_m137_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Refund domain, application, adapter and HTTP contracts
+        run: |
+          pnpm --filter @touristic/financial test
+          pnpm --filter @touristic/financial-server test
+      - name: Durable refund and verified reversal integration
+        run: pnpm --filter @touristic/financial-server test:integration
+      - name: Runtime routing and authority contract
+        run: pnpm --filter @touristic/morro-digital-platform test -- tooling/payments-api.test.mjs
+      - name: Build composed refund runtime
+        run: |
+          pnpm --filter @touristic/auth build
+          pnpm --filter @touristic/financial build
+          pnpm --filter @touristic/ordering build
+          pnpm --filter @touristic/financial-server build
+          pnpm --filter @touristic/ordering-server build
