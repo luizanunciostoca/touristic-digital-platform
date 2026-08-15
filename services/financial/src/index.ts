@@ -3,6 +3,7 @@ import mysql, { type Pool, type PoolOptions } from "mysql2/promise";
 import { MySqlLedgerTransactionRepository } from "./mysql-ledger-repository.js";
 import { MySqlPaymentIdempotencyPort } from "./mysql-payment-idempotency-port.js";
 import { MySqlPaymentRepository } from "./mysql-payment-repository.js";
+import { MySqlRefundRequestRepository } from "./mysql-refund-request-repository.js";
 import {
   MySqlProviderWebhookEventRepository,
   type ProviderWebhookEventClaim,
@@ -19,7 +20,16 @@ import {
   financialM137SchemaSql,
   financialM141SchemaSql,
   financialM142SchemaSql,
+  financialM144SchemaSql,
 } from "./schema.js";
+import {
+  RefundApplicationError,
+  createRefundApplicationService,
+  type RefundApplicationErrorCode,
+  type RefundApplicationResult,
+  type RefundApplicationService,
+  type RefundApplicationServiceDependencies,
+} from "./refund-application-service.js";
 import {
   createVerifiedPaymentOutcomeService,
   type VerifiedPaymentOutcome,
@@ -40,9 +50,12 @@ import {
 } from "./webhook-http-transport.js";
 
 export {
+  RefundApplicationError,
+  createRefundApplicationService,
   MySqlLedgerTransactionRepository,
   MySqlPaymentIdempotencyPort,
   MySqlPaymentRepository,
+  MySqlRefundRequestRepository,
   MySqlProviderWebhookEventRepository,
   MySqlVerifiedPaymentResultRepository,
   FinancialWebhookHttpTransport,
@@ -54,9 +67,14 @@ export {
   financialM137SchemaSql,
   financialM141SchemaSql,
   financialM142SchemaSql,
+  financialM144SchemaSql,
   sandboxWebhookPath,
 };
 export type {
+  RefundApplicationErrorCode,
+  RefundApplicationResult,
+  RefundApplicationService,
+  RefundApplicationServiceDependencies,
   ProviderWebhookEventClaim,
   ProviderWebhookEventRepositoryPort,
   ProviderWebhookReceipt,
@@ -110,4 +128,9 @@ export async function applyFinancialM141Schema(pool: Pool): Promise<void> {
 export async function applyFinancialM142Schema(pool: Pool): Promise<void> {
   await applyFinancialM141Schema(pool);
   await applySqlStatements(pool, financialM142SchemaSql);
+}
+
+export async function applyFinancialM144Schema(pool: Pool): Promise<void> {
+  await applyFinancialM142Schema(pool);
+  await applySqlStatements(pool, financialM144SchemaSql);
 }
