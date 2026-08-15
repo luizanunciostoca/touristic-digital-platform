@@ -25,12 +25,26 @@ import {
 } from "./schema.js";
 import {
   RefundApplicationError,
+  RefundHttpTransport,
   createRefundApplicationService,
   type RefundApplicationErrorCode,
   type RefundApplicationResult,
   type RefundApplicationService,
   type RefundApplicationServiceDependencies,
 } from "./refund-application-service.js";
+import {
+  RefundHttpTransport,
+  refundHttpPrefix,
+  type RefundHttpAuditPort,
+  type RefundHttpAuthorizationContext,
+  type RefundHttpAuthorizationDecision,
+  type RefundHttpAuthorizationDenialReason,
+  type RefundHttpAuthorizationPort,
+  type RefundHttpRateLimitPort,
+  type RefundHttpRequest,
+  type RefundHttpResponse,
+  type RefundHttpTransportDependencies,
+} from "./refund-http-transport.js";
 import {
   createVerifiedPaymentOutcomeService,
   type VerifiedPaymentOutcome,
@@ -70,6 +84,7 @@ export {
   financialM141SchemaSql,
   financialM142SchemaSql,
   financialM144SchemaSql,
+  refundHttpPrefix,
   sandboxWebhookPath,
 };
 export type {
@@ -77,6 +92,15 @@ export type {
   RefundApplicationResult,
   RefundApplicationService,
   RefundApplicationServiceDependencies,
+  RefundHttpAuditPort,
+  RefundHttpAuthorizationContext,
+  RefundHttpAuthorizationDecision,
+  RefundHttpAuthorizationDenialReason,
+  RefundHttpAuthorizationPort,
+  RefundHttpRateLimitPort,
+  RefundHttpRequest,
+  RefundHttpResponse,
+  RefundHttpTransportDependencies,
   ProviderWebhookEventClaim,
   ProviderWebhookEventRepositoryPort,
   ProviderWebhookReceipt,
