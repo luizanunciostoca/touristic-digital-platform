@@ -288,12 +288,9 @@ describeMySql.sequential("M148 Ticketing transactional MySQL contract", () => {
       "SELECT synced_at, checkin_id FROM ticketing_offline_envelopes WHERE envelope_id = ?",
       [command.envelope.id],
     );
-    expect(rows).toEqual([
-      expect.objectContaining({
-        checkin_id: command.checkIn.id,
-        synced_at: expect.any(Date),
-      }),
-    ]);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.checkin_id).toBe(command.checkIn.id);
+    expect(rows[0]?.synced_at).toBeInstanceOf(Date);
 
     const replay = await tx.commitOfflineSync(command);
     expect(replay.replayed).toBe(true);
