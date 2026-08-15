@@ -23,6 +23,8 @@ Close the M147 consistency gap before any public Ticketing runtime: ticket state
 - offline integration proves envelope, state, history and sync marker are committed together;
 - permanent `Ticketing M148 Transaction Contract` runs lint, typecheck, application tests, MySQL transaction integration and build.
 
+The final promotion candidate must pass Quality Gate, the M147 Ticketing regression contract and the M148 transaction contract on one identical head. Automatic formatting commits are not accepted as final evidence; the final checkpoint is produced by a normal repository commit after all temporary tooling has been removed.
+
 ## Boundaries
 
 M148 does not add a public HTTP API, browser check-in UI, QR image rendering, device credential provisioning or production activation. Signing material remains server-side. Those capabilities require their own Auth/CSRF/role/rate-limit/audit and device-security contracts.
