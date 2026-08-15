@@ -1,4 +1,4 @@
-# Payments / Ordering / Financial — Migration Matrix (M141 verified webhook)
+# Payments / Ordering / Financial — Migration Matrix (M144 durable refund command)
 
 ## Status semantics
 
@@ -16,19 +16,19 @@
 - V2 baseline checkpoint: `luizidebook/touristic-digital-platform@881b5a2a943f00325b90a9d0f75d7a291d9cbeae` (M135);
 - V2 Business handoff: `@touristic/business/onboarding-commercial-conversion`.
 
-## M141 implementation boundary
+## M144 implementation boundary
 
-M141 builds on the M140 sandbox checkout adapter but keeps every provider outcome non-authoritative until cryptographic verification and durable claim succeed. The public callback is fixed at `POST /api/payments/v1/webhooks/sandbox`.
+M144 adds a provider-neutral full-refund command without granting authority to an application response. The only public command is `POST /api/payments/v1/payments/:paymentId/refunds`, with exact body `{"reason":"requested_by_business"}` and payment-bound `Idempotency-Key: refund:v1:<paymentId>`.
 
-The Node runtime retains the exact request bytes under a 64 KiB bound. `SandboxWebhookVerifier` validates `X-Sandbox-Signature: t=<unix-seconds>,v1=<hex>` using HMAC-SHA256 over `<timestamp>.<raw-body>`, timing-safe comparison and a configurable 60–900 second replay window. JSON decoding and event normalization happen only after signature success.
+The application accepts only a confirmed Payment backed by its persisted approved result and approval ledger transaction. Amount, currency and provider payment reference come from that immutable authority; the caller cannot submit or override them. `financial_refund_requests` claims one deterministic request before the provider call and preserves exact retries across timeout or process failure.
 
-Verified events require a strongly normalized `pwe_*` identity, the M140 Payment ID as external reference, a known provider status and canonical UTC occurrence time. `financial_provider_events` stores the first payload hash, normalized event, receive time and optional matched Payment. Exact replay returns the first receipt; reuse of an event ID with different signed content fails without overwrite.
+The sandbox adapter maps that command to `POST /v1/refunds` with server-only credentials and the same durable key. A valid provider acceptance records only `provider_accepted`; it never changes Payment, emits a Business result or posts a reversal. Only the later HMAC-verified, durably claimed `refunded` webhook applies the M142 state transition and M143 immutable compensating ledger entry.
 
-A valid event whose Payment is unknown remains durably accepted with `matched=false` and HTTP 202. M143 now composes only persisted `approved` and `refunded` results into deterministic double-entry transactions. Failed/cancelled/expired outcomes never post money; exact delivery retry replays the same ledger transaction after any interrupted write.
+Runtime authorization is authenticated-only and binds active session, origin/CSRF mutation approval, writable role, requested business, persisted checkout tenant and Payment identity. The boundary rejects guests, cross-tenant access, ambiguous paths, extra body fields and divergent idempotency before the provider command, applies a conservative 6/minute mutation limiter and returns no provider reference or PII.
 
 ## Matrix
 
-| Contract                                | Frozen V1 / architecture evidence                                                               | V2 state at M143                                                                                                                                                                         | Status  | Migration decision                                                                                           |
+| Contract                                | Frozen V1 / architecture evidence                                                               | V2 state at M144                                                                                                                                                                         | Status  | Migration decision                                                                                           |
 | --------------------------------------- | ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------ |
 | Business commercial preparation         | V1 commercial adapter prepares plan/contractor/terms                                            | M61/M62 provide the immutable Business-owned handoff; M138 consumes and revalidates it without moving ownership                                                                          | N/A     | Business remains owner; Ordering receives only a bounded application request.                                |
 | Payments ownership boundary             | checkout client/server perform financial execution                                              | Domain packages plus M138 application composition keep provider/financial authority outside Business                                                                                     | PASS    | Preserve this direction in HTTP and provider milestones.                                                     |
@@ -54,29 +54,29 @@ A valid event whose Payment is unknown remains durably accepted with `matched=fa
 | Durable payment persistence             | V1 reference implementation is memory-only                                                      | `MySqlPaymentRepository` persists validated Payment state with immutable amount/subject/idempotency, canonical UTC and optimistic concurrency                                            | PASS    | Keep provider execution outside the repository and add integration/database tests before release.            |
 | Order model                             | architecture CAP-0015 requires `OrderPlaced`                                                    | durable Order plus M138 allocation, authoritative snapshot and `draft → pending_payment` composition are executable; retries never reprice                                               | PASS    | Event publication/outbox remains a later operational concern.                                                |
 | Financial ledger                        | architecture CAP-0016/0017 and Domain Map define Financial as money source of truth             | M143 posts one deterministic balanced approval transaction from persisted verified evidence; replay is exact, failures are non-monetary, and MySQL posting rollback remains atomic       | PASS    | Ledger is now operational for the checkout outcome slice; reconciliation and settlement remain separate.     |
-| Refund/reversal                         | architecture requires refund events/financial correctness; V1 checkout slice has no formal flow | a verified `refunded` result recovers any missing approval posting before appending an immutable full compensating reversal; refund initiation/provider command remains absent           | PARTIAL | Add the idempotent provider-neutral refund command; never mutate historical postings.                        |
+| Refund/reversal                         | architecture requires refund events/financial correctness; V1 checkout slice has no formal flow | M144 claims one durable full-refund request, calls a provider-neutral sandbox port with exact idempotency, keeps Payment confirmed on provider acceptance, and completes only after verified webhook plus immutable reversal | PASS    | Preserve the command/event separation; never edit historical postings or trust the provider command response. |
 | Reconciliation                          | Release/Financial architecture requires reconciliation                                          | absent                                                                                                                                                                                   | GAP     | Provider state must reconcile against internal Payment/Ledger.                                               |
 | Split/repasse                           | CAP-0017                                                                                        | balanced ledger foundation exists, but no split/transfer/settlement model                                                                                                                | GAP     | Implement only after durable ledger and reconciliation.                                                      |
 | Subscription lifecycle                  | FEATURE-0009 is "Pagamentos e Assinaturas"; V1 frozen slice only covers initial checkout        | absent                                                                                                                                                                                   | GAP     | Freeze recurrence semantics separately; do not infer them from checkout.                                     |
 | Financial audit/observability           | architecture requires audit/metrics; M134 covers provider-cost ops only, not product money      | webhook audit now includes outcome and accounting disposition without PII/secrets; deterministic ledger keys support traceability, while durable central audit/metrics remain absent     | PARTIAL | Add durable reconciliation findings, alerts and operator acknowledgement.                                    |
 | Sandbox/provider E2E                    | V1 has injected fetch tests; architecture requires payment sandbox                              | deterministic unit coverage plus a permanent local HTTP sandbox wire/idempotency contract; no live third-party sandbox credential or browser journey yet                                 | PARTIAL | Keep the local wire proof; require deployed provider sandbox plus browser E2E before equivalence.            |
-| Rate limiting                           | V1 create/status optionally 12/minute                                                           | M139 enforces 12/min create and 60/min status with bounded in-memory buckets keyed by requester/IP                                                                                       | PARTIAL | Replace/compose with a distributed limiter before horizontally scaled production.                            |
-| Auth/tenant context                     | platform Auth exists; V1 checkout is onboarding session oriented                                | authenticated requests require valid session, origin, CSRF, mutation role and business scope; guests require a short-lived signed full-handoff capability bound to destination/tenant    | PASS    | Business may issue the guest capability server-side; browsers never mint authority.                          |
+| Rate limiting                           | V1 create/status optionally 12/minute                                                           | M139 enforces 12/min create and 60/min status; M144 adds 6/min refund mutations with bounded in-memory requester/tenant/IP buckets                                              | PARTIAL | Replace/compose with a distributed limiter before horizontally scaled production.                              |
+| Auth/tenant context                     | platform Auth exists; V1 checkout is onboarding session oriented                                | checkout supports authenticated or signed guest authority; refund is authenticated-only and binds session, CSRF, writable role, business header, persisted checkout tenant and Payment | PASS    | Keep refund authority narrower than checkout creation and fail closed on missing tenant linkage.              |
 | Rollback/migration strategy             | release process requires migration and rollback                                                 | outcome/accounting is retry-safe and expand-only; disabling composition retains provider evidence, results and immutable ledger entries, including compensating reversals                | PARTIAL | Rollback must never delete or rewrite financial history; retry from the persisted result.                    |
 
-## M143 score
+## M144 score
 
-- `PASS`: 20
-- `PARTIAL`: 7
+- `PASS`: 21
+- `PARTIAL`: 6
 - `GAP`: 6
 - `N/A`: 1
 - total: 34
 
-M143 makes the already balanced ledger operational for verified checkout approval and refund reversal without broadening provider authority. Refund initiation, provider reconciliation, settlement, subscriptions and browser execution remain below PASS.
+M144 closes the full-refund command/reversal slice without broadening payment authority: provider acceptance remains pending until the independently verified webhook. Provider reconciliation, settlement, subscriptions and browser execution remain below PASS.
 
 ## Promotion decision
 
-After M143 and green Quality, Persistence, Sandbox Provider, Verified Webhook, Verified Outcome and Operational Ledger gates on the final head:
+After M144 and green Quality, Persistence, Sandbox Provider, Verified Webhook, Verified Outcome, Operational Ledger and Refund Command gates on the final head:
 
 - `FEATURE-0009` and `MIG-0010` remain `migrating`;
 - behavior/visual/API equivalence flags remain `false`;
@@ -84,16 +84,16 @@ After M143 and green Quality, Persistence, Sandbox Provider, Verified Webhook, V
 - deterministic result keys make retry and concurrent delivery converge;
 - failed/cancelled/expired results create no accounting postings;
 - refund uses an immutable compensating transaction and never edits approval history;
-- no provider refund command or real money movement is enabled.
+- no provider reconciliation, settlement, subscription or real-money production provider is enabled.
 
 ## Next milestone
 
-M144 must introduce provider-neutral refund initiation behind an authenticated application boundary:
+M145 must add provider reconciliation as a separate operator-safe process:
 
-1. accept only full refunds of a confirmed Payment with an approved result and approval ledger;
-2. claim one durable refund request and provider idempotency key;
-3. call a sandbox refund port without changing Payment from the command response;
-4. wait for the cryptographically verified `refunded` webhook before reversal;
-5. recover safely across provider timeout and duplicate operator requests.
+1. fetch/ingest provider state through a read-only provider port;
+2. compare provider status and amount against Payment, verified results and ledger;
+3. persist deterministic mismatch findings without rewriting financial history;
+4. make exact reruns converge and preserve unmatched evidence;
+5. expose bounded audit/metrics and explicit acknowledgement/remediation states.
 
-M145 then reconciles provider state, Payment, verified results and ledger with durable mismatch findings. Split/repasse/settlement remains later. Affiliates stays blocked.
+M146 may then introduce split/repasse/settlement on reconciled balances. Subscriptions, browser sandbox E2E and Affiliates remain later and blocked by their own contracts.
