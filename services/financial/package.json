@@ -11,6 +11,10 @@
     ".": {
       "types": "./src/index.ts",
       "default": "./dist/index.js"
+    },
+    "./settlement": {
+      "types": "./src/settlement.ts",
+      "default": "./dist/settlement.js"
     }
   },
   "scripts": {
@@ -18,6 +22,7 @@
     "lint": "eslint src",
     "test": "pnpm --filter @touristic/financial build && vitest run --passWithNoTests",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test:integration": "pnpm --filter @touristic/financial build && vitest run src/mysql-integration.test.ts"
+    "test:integration": "pnpm --filter @touristic/financial build && vitest run src/mysql-integration.test.ts",
+    "test:settlement-integration": "pnpm --filter @touristic/financial build && vitest run src/settlement-mysql-integration.test.ts"
   }
 }
