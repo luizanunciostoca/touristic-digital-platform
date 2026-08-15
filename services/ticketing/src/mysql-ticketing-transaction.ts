@@ -16,8 +16,7 @@ export interface TicketingTransactionalCommandResult {
   readonly replayed: boolean;
 }
 
-export interface TicketingOfflineTransactionalCommandResult
-  extends TicketingTransactionalCommandResult {
+export interface TicketingOfflineTransactionalCommandResult extends TicketingTransactionalCommandResult {
   readonly envelope: TicketOfflineEnvelope;
 }
 
@@ -80,7 +79,8 @@ interface EnvelopeRow extends RowDataPacket {
 function time(value: Date | string | null): string | null {
   if (value === null) return null;
   const parsed = value instanceof Date ? value : new Date(value);
-  if (!Number.isFinite(parsed.getTime())) throw new Error("TICKETING_INVALID_DB_TIMESTAMP");
+  if (!Number.isFinite(parsed.getTime()))
+    throw new Error("TICKETING_INVALID_DB_TIMESTAMP");
   return parsed.toISOString();
 }
 
@@ -230,9 +230,7 @@ async function insertCheckIn(
   );
 }
 
-export class MySqlTicketingTransactionalCommand
-  implements TicketingTransactionalCommandPort
-{
+export class MySqlTicketingTransactionalCommand implements TicketingTransactionalCommandPort {
   constructor(private readonly pool: Pool) {}
 
   async commitCheckIn(input: {
@@ -248,7 +246,11 @@ export class MySqlTicketingTransactionalCommand
       if (replay) {
         assertReplayIdentity(replay, input.checkIn);
         await connection.commit();
-        return Object.freeze({ ticket: current, checkIn: replay, replayed: true });
+        return Object.freeze({
+          ticket: current,
+          checkIn: replay,
+          replayed: true,
+        });
       }
       assertExpectedCurrent(current, input.before);
       await updateTicket(connection, input.after);

@@ -31,34 +31,68 @@ import type { TicketingTransactionalCommandPort } from "./mysql-ticketing-transa
 
 class MemoryOrders implements OrderRepositoryPort {
   constructor(private readonly current: Order | null) {}
-  findById(orderId: string) { return Promise.resolve(this.current?.id === orderId ? this.current : null); }
-  findByRequestKey() { return Promise.resolve(this.current); }
-  save(order: Order) { return Promise.resolve(order); }
+  findById(orderId: string) {
+    return Promise.resolve(this.current?.id === orderId ? this.current : null);
+  }
+  findByRequestKey() {
+    return Promise.resolve(this.current);
+  }
+  save(order: Order) {
+    return Promise.resolve(order);
+  }
 }
 
 class MemoryPayments implements PaymentRepositoryPort {
   constructor(private readonly current: Payment | null) {}
-  findById(paymentId: string) { return Promise.resolve(this.current?.id === paymentId ? this.current : null); }
-  save(payment: Payment) { return Promise.resolve(payment); }
+  findById(paymentId: string) {
+    return Promise.resolve(
+      this.current?.id === paymentId ? this.current : null,
+    );
+  }
+  save(payment: Payment) {
+    return Promise.resolve(payment);
+  }
 }
 
 class MemoryTickets implements TicketRepositoryPort {
   readonly values = new Map<string, Ticket>();
-  findById(ticketId: string) { return Promise.resolve(this.values.get(ticketId) ?? null); }
-  findByCode(code: string) { return Promise.resolve([...this.values.values()].find((ticket) => ticket.code === code) ?? null); }
-  findByOrderId(orderId: string) { return Promise.resolve([...this.values.values()].filter((ticket) => ticket.orderId === orderId)); }
-  save(ticket: Ticket) { this.values.set(ticket.id, ticket); return Promise.resolve(ticket); }
+  findById(ticketId: string) {
+    return Promise.resolve(this.values.get(ticketId) ?? null);
+  }
+  findByCode(code: string) {
+    return Promise.resolve(
+      [...this.values.values()].find((ticket) => ticket.code === code) ?? null,
+    );
+  }
+  findByOrderId(orderId: string) {
+    return Promise.resolve(
+      [...this.values.values()].filter((ticket) => ticket.orderId === orderId),
+    );
+  }
+  save(ticket: Ticket) {
+    this.values.set(ticket.id, ticket);
+    return Promise.resolve(ticket);
+  }
 }
 
 class MemoryCheckIns implements TicketCheckInRepositoryPort {
   readonly values: TicketCheckIn[] = [];
-  append(checkIn: TicketCheckIn) { this.values.push(checkIn); return Promise.resolve(); }
-  listByTicketId(ticketId: string) { return Promise.resolve(this.values.filter((entry) => entry.ticketId === ticketId)); }
+  append(checkIn: TicketCheckIn) {
+    this.values.push(checkIn);
+    return Promise.resolve();
+  }
+  listByTicketId(ticketId: string) {
+    return Promise.resolve(
+      this.values.filter((entry) => entry.ticketId === ticketId),
+    );
+  }
 }
 
 class MemoryOffline {
   readonly values = new Map<string, TicketOfflineEnvelope>();
-  findById(id: string) { return Promise.resolve(this.values.get(id) ?? null); }
+  findById(id: string) {
+    return Promise.resolve(this.values.get(id) ?? null);
+  }
 }
 
 class MemoryTransactions implements TicketingTransactionalCommandPort {
@@ -67,9 +101,20 @@ class MemoryTransactions implements TicketingTransactionalCommandPort {
     private readonly checkIns: MemoryCheckIns,
     private readonly offline: MemoryOffline,
   ) {}
-  async commitCheckIn(input: { before: Ticket; after: Ticket; checkIn: TicketCheckIn }) {
-    const replay = this.checkIns.values.find((entry) => entry.id === input.checkIn.id);
-    if (replay) return { ticket: this.tickets.values.get(input.before.id)!, checkIn: replay, replayed: true };
+  async commitCheckIn(input: {
+    before: Ticket;
+    after: Ticket;
+    checkIn: TicketCheckIn;
+  }) {
+    const replay = this.checkIns.values.find(
+      (entry) => entry.id === input.checkIn.id,
+    );
+    if (replay)
+      return {
+        ticket: this.tickets.values.get(input.before.id)!,
+        checkIn: replay,
+        replayed: true,
+      };
     this.tickets.values.set(input.after.id, input.after);
     this.checkIns.values.push(input.checkIn);
     return { ticket: input.after, checkIn: input.checkIn, replayed: false };
@@ -83,14 +128,26 @@ class MemoryTransactions implements TicketingTransactionalCommandPort {
   }) {
     const existingEnvelope = this.offline.values.get(input.envelope.id);
     if (existingEnvelope) {
-      const replay = this.checkIns.values.find((entry) => entry.id === input.checkIn.id);
+      const replay = this.checkIns.values.find(
+        (entry) => entry.id === input.checkIn.id,
+      );
       if (!replay) throw new Error("OFFLINE_REPLAY_INCOMPLETE");
-      return { envelope: existingEnvelope, ticket: this.tickets.values.get(input.before.id)!, checkIn: replay, replayed: true };
+      return {
+        envelope: existingEnvelope,
+        ticket: this.tickets.values.get(input.before.id)!,
+        checkIn: replay,
+        replayed: true,
+      };
     }
     this.offline.values.set(input.envelope.id, input.envelope);
     this.tickets.values.set(input.after.id, input.after);
     this.checkIns.values.push(input.checkIn);
-    return { envelope: input.envelope, ticket: input.after, checkIn: input.checkIn, replayed: false };
+    return {
+      envelope: input.envelope,
+      ticket: input.after,
+      checkIn: input.checkIn,
+      replayed: false,
+    };
   }
 }
 
@@ -98,15 +155,30 @@ function fixtures() {
   const orderId = normalizeOrderId("ord_ticketing_service_0001");
   const paymentId = normalizePaymentId("pay_ticketing_service_0001");
   const amount = createMoney(18_900, "BRL");
-  const secret = normalizeTicketSigningSecret("ticketing-service-signing-secret-0001");
-  if (!orderId || !paymentId || !amount || !secret) throw new Error("FIXTURE_INVALID");
-  const pricing = createPricingQuote({ planId: "tour_volta_ilha", planName: "Passeio Volta à Ilha", minorUnits: amount.minorUnits, currency: amount.currency, pricingVersion: "2026-08" });
-  const requestKey = createBusinessOrderRequestKey("session_ticketing_0001", "tour_volta_ilha");
+  const secret = normalizeTicketSigningSecret(
+    "ticketing-service-signing-secret-0001",
+  );
+  if (!orderId || !paymentId || !amount || !secret)
+    throw new Error("FIXTURE_INVALID");
+  const pricing = createPricingQuote({
+    planId: "tour_volta_ilha",
+    planName: "Passeio Volta à Ilha",
+    minorUnits: amount.minorUnits,
+    currency: amount.currency,
+    pricingVersion: "2026-08",
+  });
+  const requestKey = createBusinessOrderRequestKey(
+    "session_ticketing_0001",
+    "tour_volta_ilha",
+  );
   if (!pricing || !requestKey) throw new Error("FIXTURE_INVALID");
   const order = createOrder({
     id: orderId,
     requestKey,
-    source: { kind: "business_onboarding", reference: "session_ticketing_0001" },
+    source: {
+      kind: "business_onboarding",
+      reference: "session_ticketing_0001",
+    },
     status: "payment_confirmed",
     pricing: { ...pricing, capturedAt: "2026-08-15T09:00:00Z" },
     createdAt: "2026-08-15T09:00:00Z",
@@ -142,7 +214,12 @@ function harness() {
     offline,
     transactions: new MemoryTransactions(tickets, checkIns, offline),
     signingSecret: fixture.secret,
-    clock: { now: () => new Date(Date.parse("2026-08-15T10:00:00Z") + tick++ * 1000).toISOString() },
+    clock: {
+      now: () =>
+        new Date(
+          Date.parse("2026-08-15T10:00:00Z") + tick++ * 1000,
+        ).toISOString(),
+    },
   });
   return { service, tickets, checkIns, offline, fixture };
 }
@@ -165,19 +242,30 @@ describe("M148 transactional ticketing application", () => {
     const { service, fixture } = harness();
     const issued = await service.issueTicket(issueInput(fixture));
     expect(issued.ticket.status).toBe("issued");
-    expect((await service.issueTicket(issueInput(fixture))).replayed).toBe(true);
+    expect((await service.issueTicket(issueInput(fixture))).replayed).toBe(
+      true,
+    );
   });
 
   it("rejects caller money divergence", async () => {
     const { service, fixture, tickets } = harness();
-    await expect(service.issueTicket({ ...issueInput(fixture), amount: createMoney(100, "BRL") })).rejects.toMatchObject({ code: "TICKETING_FINANCIAL_AUTHORITY_MISMATCH" });
+    await expect(
+      service.issueTicket({
+        ...issueInput(fixture),
+        amount: createMoney(100, "BRL"),
+      }),
+    ).rejects.toMatchObject({ code: "TICKETING_FINANCIAL_AUTHORITY_MISMATCH" });
     expect(tickets.values.size).toBe(0);
   });
 
   it("replays the same QR attempt instead of advancing validated to used", async () => {
     const { service, fixture, checkIns } = harness();
     const issued = await service.issueTicket(issueInput(fixture));
-    const request = { qrPayload: issued.qrPayload, operatorReference: "operator_001", occurredAt: "2026-08-15T10:30:00Z" };
+    const request = {
+      qrPayload: issued.qrPayload,
+      operatorReference: "operator_001",
+      occurredAt: "2026-08-15T10:30:00Z",
+    };
     const first = await service.checkInByQr(request);
     const replay = await service.checkInByQr(request);
     expect(first.ticket.status).toBe("validated");
@@ -191,10 +279,29 @@ describe("M148 transactional ticketing application", () => {
     const { service, fixture, checkIns } = harness();
     const issued = await service.issueTicket(issueInput(fixture));
     const queuedAt = "2026-08-15T10:45:00Z";
-    const signature = createTicketOfflineEnvelopeSignature({ ticketId: issued.ticket.id, operation: "validate", payload: issued.qrPayload, queuedAt }, fixture.secret);
-    const envelope = createTicketOfflineEnvelope({ id: "toe_ticketing_service_0001", ticketId: issued.ticket.id, operation: "validate", payload: issued.qrPayload, signature, queuedAt });
+    const signature = createTicketOfflineEnvelopeSignature(
+      {
+        ticketId: issued.ticket.id,
+        operation: "validate",
+        payload: issued.qrPayload,
+        queuedAt,
+      },
+      fixture.secret,
+    );
+    const envelope = createTicketOfflineEnvelope({
+      id: "toe_ticketing_service_0001",
+      ticketId: issued.ticket.id,
+      operation: "validate",
+      payload: issued.qrPayload,
+      signature,
+      queuedAt,
+    });
     if (!envelope) throw new Error("ENVELOPE_FIXTURE_INVALID");
-    const input = { envelope, operatorReference: "operator_002", recordedAt: "2026-08-15T10:46:00Z" };
+    const input = {
+      envelope,
+      operatorReference: "operator_002",
+      recordedAt: "2026-08-15T10:46:00Z",
+    };
     const first = await service.syncOfflineEnvelope(input);
     const replay = await service.syncOfflineEnvelope(input);
     expect(first.ticket.status).toBe("validated");
@@ -207,9 +314,25 @@ describe("M148 transactional ticketing application", () => {
     const issued = await service.issueTicket(issueInput(fixture));
     const payload = `tck.v1.tck_other_ticket_0001.${"a".repeat(64)}`;
     const queuedAt = "2026-08-15T10:45:00Z";
-    const signature = createTicketOfflineEnvelopeSignature({ ticketId: issued.ticket.id, operation: "validate", payload, queuedAt }, fixture.secret);
-    const envelope = createTicketOfflineEnvelope({ id: "toe_ticketing_service_0002", ticketId: issued.ticket.id, operation: "validate", payload, signature, queuedAt });
+    const signature = createTicketOfflineEnvelopeSignature(
+      { ticketId: issued.ticket.id, operation: "validate", payload, queuedAt },
+      fixture.secret,
+    );
+    const envelope = createTicketOfflineEnvelope({
+      id: "toe_ticketing_service_0002",
+      ticketId: issued.ticket.id,
+      operation: "validate",
+      payload,
+      signature,
+      queuedAt,
+    });
     if (!envelope) throw new Error("ENVELOPE_FIXTURE_INVALID");
-    await expect(service.syncOfflineEnvelope({ envelope, operatorReference: "operator_002", recordedAt: "2026-08-15T10:46:00Z" })).rejects.toMatchObject({ code: "TICKETING_OFFLINE_ENVELOPE_INVALID" });
+    await expect(
+      service.syncOfflineEnvelope({
+        envelope,
+        operatorReference: "operator_002",
+        recordedAt: "2026-08-15T10:46:00Z",
+      }),
+    ).rejects.toMatchObject({ code: "TICKETING_OFFLINE_ENVELOPE_INVALID" });
   });
 });

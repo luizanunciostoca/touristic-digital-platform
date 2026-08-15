@@ -178,8 +178,10 @@ async function findCheckInReplay(
   checkInId: string,
 ): Promise<TicketCheckIn | null> {
   return (
-    await dependencies.checkIns.listByTicketId(ticket.id)
-  ).find((entry) => entry.id === checkInId) ?? null;
+    (await dependencies.checkIns.listByTicketId(ticket.id)).find(
+      (entry) => entry.id === checkInId,
+    ) ?? null
+  );
 }
 
 export function createTicketingApplicationService(

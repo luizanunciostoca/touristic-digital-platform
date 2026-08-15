@@ -30,8 +30,11 @@ function fixture() {
   const orderId = normalizeOrderId("ord_ticketing_m148_0001");
   const paymentId = normalizePaymentId("pay_ticketing_m148_0001");
   const amount = createMoney(12_500, "BRL");
-  const secret = normalizeTicketSigningSecret("ticketing-m148-secret-0001-secure");
-  if (!orderId || !paymentId || !amount || !secret) throw new Error("FIXTURE_INVALID");
+  const secret = normalizeTicketSigningSecret(
+    "ticketing-m148-secret-0001-secure",
+  );
+  if (!orderId || !paymentId || !amount || !secret)
+    throw new Error("FIXTURE_INVALID");
   const ticket = createTicket({
     id: "tck_ticketing_m148_0001",
     orderId,
@@ -54,7 +57,8 @@ describeMySql.sequential("M148 Ticketing transactional MySQL contract", () => {
   let pool: Pool;
 
   beforeAll(async () => {
-    if (!adminUrl || !databaseUrl) throw new Error("MYSQL_INTEGRATION_URLS_REQUIRED");
+    if (!adminUrl || !databaseUrl)
+      throw new Error("MYSQL_INTEGRATION_URLS_REQUIRED");
     const admin = await mysql.createConnection(adminUrl);
     try {
       await admin.query(
@@ -63,7 +67,9 @@ describeMySql.sequential("M148 Ticketing transactional MySQL contract", () => {
     } finally {
       await admin.end();
     }
-    pool = createTicketingMySqlPoolFromEnvironment({ TICKETING_DATABASE_URL: databaseUrl });
+    pool = createTicketingMySqlPoolFromEnvironment({
+      TICKETING_DATABASE_URL: databaseUrl,
+    });
     await applyTicketingM147Schema(pool);
   });
 
@@ -106,7 +112,9 @@ describeMySql.sequential("M148 Ticketing transactional MySQL contract", () => {
     expect(first.replayed).toBe(false);
     expect(first.ticket.status).toBe("validated");
 
-    const current = await new MySqlTicketRepository(pool).findById(command.before.id);
+    const current = await new MySqlTicketRepository(pool).findById(
+      command.before.id,
+    );
     expect(current?.status).toBe("validated");
     await expect(
       new MySqlTicketCheckInRepository(pool).listByTicketId(command.before.id),
@@ -126,10 +134,14 @@ describeMySql.sequential("M148 Ticketing transactional MySQL contract", () => {
       SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'm148 forced checkin failure'`);
     const tx = new MySqlTicketingTransactionalCommand(pool);
     await expect(tx.commitCheckIn(onlineCommand())).rejects.toThrow();
-    const persisted = await new MySqlTicketRepository(pool).findById(fixture().ticket.id);
+    const persisted = await new MySqlTicketRepository(pool).findById(
+      fixture().ticket.id,
+    );
     expect(persisted?.status).toBe("issued");
     await expect(
-      new MySqlTicketCheckInRepository(pool).listByTicketId(fixture().ticket.id),
+      new MySqlTicketCheckInRepository(pool).listByTicketId(
+        fixture().ticket.id,
+      ),
     ).resolves.toEqual([]);
   });
 
@@ -139,7 +151,12 @@ describeMySql.sequential("M148 Ticketing transactional MySQL contract", () => {
     if (!qrPayload) throw new Error("FIXTURE_INVALID");
     const queuedAt = "2026-08-15T11:45:00Z";
     const signature = createTicketOfflineEnvelopeSignature(
-      { ticketId: ticket.id, operation: "validate", payload: qrPayload, queuedAt },
+      {
+        ticketId: ticket.id,
+        operation: "validate",
+        payload: qrPayload,
+        queuedAt,
+      },
       secret,
     );
     const envelope = createTicketOfflineEnvelope({
@@ -160,7 +177,10 @@ describeMySql.sequential("M148 Ticketing transactional MySQL contract", () => {
       recordedAt: "2026-08-15T11:46:00Z",
     });
     if (!envelope || !checkIn) throw new Error("FIXTURE_INVALID");
-    const after = applyTicketCheckIn(ticket, { result: "validated", occurredAt: queuedAt });
+    const after = applyTicketCheckIn(ticket, {
+      result: "validated",
+      occurredAt: queuedAt,
+    });
     const tx = new MySqlTicketingTransactionalCommand(pool);
     const first = await tx.commitOfflineSync({
       before: ticket,
@@ -179,7 +199,10 @@ describeMySql.sequential("M148 Ticketing transactional MySQL contract", () => {
       [envelope.id],
     );
     expect(rows).toEqual([
-      expect.objectContaining({ checkin_id: checkIn.id, synced_at: expect.any(Date) }),
+      expect.objectContaining({
+        checkin_id: checkIn.id,
+        synced_at: expect.any(Date),
+      }),
     ]);
 
     const replay = await tx.commitOfflineSync({
