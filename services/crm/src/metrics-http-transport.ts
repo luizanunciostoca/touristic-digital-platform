@@ -13,7 +13,9 @@ import {
 
 const metricsPath = "/api/crm/metrics/funnel";
 
-function resultResponse<T>(result: CrmMetricsBoundaryResult<T>): CrmHttpResponse {
+function resultResponse<T>(
+  result: CrmMetricsBoundaryResult<T>,
+): CrmHttpResponse {
   if (result.ok) return crmHttpResponse(200, { data: result.value });
   if (
     result.reason === "authentication_required" ||
@@ -24,7 +26,10 @@ function resultResponse<T>(result: CrmMetricsBoundaryResult<T>): CrmHttpResponse
       reason: result.reason,
     });
   }
-  return crmHttpResponse(403, { error: "ACCESS_DENIED", reason: result.reason });
+  return crmHttpResponse(403, {
+    error: "ACCESS_DENIED",
+    reason: result.reason,
+  });
 }
 
 export class CrmMetricsHttpTransport {

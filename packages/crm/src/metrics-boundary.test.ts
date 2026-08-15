@@ -10,7 +10,9 @@ import {
 
 const now = new Date("2026-08-15T05:00:00.000Z");
 
-function session(expiresAt = Math.floor(now.getTime() / 1000) + 300): AuthSessionIdentity {
+function session(
+  expiresAt = Math.floor(now.getTime() / 1000) + 300,
+): AuthSessionIdentity {
   return {
     subject: "crm-viewer",
     email: "viewer@example.com",
@@ -88,7 +90,9 @@ describe("CRM M138 dashboard metrics boundary", () => {
       () => now,
     );
 
-    const result = await boundary.read(session(Math.floor(now.getTime() / 1000)));
+    const result = await boundary.read(
+      session(Math.floor(now.getTime() / 1000)),
+    );
     expect(result).toEqual({ ok: false, reason: "session_expired" });
     expect(readSnapshot).not.toHaveBeenCalled();
   });

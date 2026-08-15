@@ -87,7 +87,9 @@ describe("CRM M138 authoritative dashboard browser", () => {
   });
 
   it("composes metrics through the shared CRM runtime instead of a browser-owned calculation", async () => {
-    const runtime = await read("apps/morro-digital-platform/tooling/crm-api.mjs");
+    const runtime = await read(
+      "apps/morro-digital-platform/tooling/crm-api.mjs",
+    );
     expect(runtime).toContain("CrmMetricsServerBoundary");
     expect(runtime).toContain("MySqlCrmMetricsRepository");
     expect(runtime).toContain("MySqlCrmMetricsAuditPort");

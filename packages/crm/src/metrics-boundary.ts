@@ -11,10 +11,7 @@ import type {
   CrmMoney,
 } from "./index.js";
 
-export type CrmDashboardFunnelStage = Exclude<
-  CrmLeadStage,
-  "churned" | "lost"
->;
+export type CrmDashboardFunnelStage = Exclude<CrmLeadStage, "churned" | "lost">;
 
 export interface CrmDashboardStageConversion {
   readonly stage: CrmDashboardFunnelStage;

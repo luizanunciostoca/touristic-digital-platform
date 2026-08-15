@@ -140,9 +140,7 @@ function recentInteraction(
   });
 }
 
-async function readConsistentSnapshot(
-  connection: PoolConnection,
-): Promise<{
+async function readConsistentSnapshot(connection: PoolConnection): Promise<{
   readonly aggregateRows: AggregateRow[];
   readonly stageRows: StageCountRow[];
   readonly recentLeadRows: RecentLeadRow[];
@@ -166,10 +164,11 @@ async function readConsistentSnapshot(
     const [recentLeadRows] = await connection.execute<RecentLeadRow[]>(
       "SELECT id, company_name, stage, created_at FROM crm_leads ORDER BY created_at DESC, id DESC LIMIT 5",
     );
-    const [recentInteractionRows] =
-      await connection.execute<RecentInteractionRow[]>(
-        "SELECT id, lead_id, type, content, created_at FROM crm_interactions ORDER BY created_at DESC, id DESC LIMIT 10",
-      );
+    const [recentInteractionRows] = await connection.execute<
+      RecentInteractionRow[]
+    >(
+      "SELECT id, lead_id, type, content, created_at FROM crm_interactions ORDER BY created_at DESC, id DESC LIMIT 10",
+    );
     await connection.commit();
     return {
       aggregateRows,
@@ -223,8 +222,7 @@ export class MySqlCrmMetricsRepository implements CrmMetricsRepository {
       active,
       converted,
       lost,
-      conversionRate:
-        total > 0 ? Math.round((converted / total) * 100) : 0,
+      conversionRate: total > 0 ? Math.round((converted / total) * 100) : 0,
       totalRevenue: normalizeMoney(aggregate.total_revenue),
       stageGroups: Object.freeze(stageGroups),
       stageConversion: Object.freeze(stageConversion(total, stageGroups)),

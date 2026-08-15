@@ -182,7 +182,9 @@ describe("CRM M138 authoritative dashboard metrics", () => {
     ]);
     const repository = new MySqlCrmMetricsRepository(pool as never);
 
-    await expect(repository.readSnapshot()).rejects.toThrow("MYSQL_READ_FAILED");
+    await expect(repository.readSnapshot()).rejects.toThrow(
+      "MYSQL_READ_FAILED",
+    );
     expect(lifecycle).toEqual([
       "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ",
       "START TRANSACTION READ ONLY",
