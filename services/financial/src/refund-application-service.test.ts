@@ -245,6 +245,35 @@ describe("M144 durable full-refund application service", () => {
     expect(commands[1]).toEqual(commands[0]);
   });
 
+  it("does not resend an uncertain claim after a verified refund wins the race", async () => {
+    const commands: RefundProviderCommand[] = [];
+    const provider: FinancialRefundProviderPort = {
+      requestRefund(command) {
+        commands.push(command);
+        return Promise.reject(new Error("UNCERTAIN"));
+      },
+    };
+    const { application, payments, fixture } = harness({ provider });
+    await expect(
+      application.requestFullRefund(fixture.payment.id),
+    ).rejects.toThrow("UNCERTAIN");
+    payments.current = {
+      ...fixture.payment,
+      status: "refunded",
+      updatedAt: "2026-08-15T00:15:10Z",
+      refundedAt: "2026-08-15T00:15:10Z",
+    };
+
+    await expect(
+      application.requestFullRefund(fixture.payment.id),
+    ).resolves.toMatchObject({
+      status: "COMPLETED",
+      replayed: true,
+      request: { status: "claimed" },
+    });
+    expect(commands).toHaveLength(1);
+  });
+
   it("reports completion only from verified refunded Payment state", async () => {
     const { application, payments, calls, fixture } = harness();
     await application.requestFullRefund(fixture.payment.id);
