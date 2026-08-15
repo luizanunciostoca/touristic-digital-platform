@@ -226,17 +226,19 @@ describeMySql.sequential("M148 Ticketing transactional MySQL contract", () => {
       tx.commitCheckIn(onlineCommand()),
       tx.commitCheckIn(competingCommand()),
     ]);
-    expect(outcomes.filter((entry) => entry.status === "fulfilled")).toHaveLength(
-      1,
-    );
-    expect(outcomes.filter((entry) => entry.status === "rejected")).toHaveLength(
-      1,
-    );
+    expect(
+      outcomes.filter((entry) => entry.status === "fulfilled"),
+    ).toHaveLength(1);
+    expect(
+      outcomes.filter((entry) => entry.status === "rejected"),
+    ).toHaveLength(1);
     const rejected = outcomes.find((entry) => entry.status === "rejected");
     if (!rejected || rejected.status !== "rejected") {
       throw new Error("EXPECTED_CONCURRENT_REJECTION");
     }
-    expect(String(rejected.reason)).toContain("TICKETING_CONCURRENT_TRANSITION");
+    expect(String(rejected.reason)).toContain(
+      "TICKETING_CONCURRENT_TRANSITION",
+    );
 
     const persisted = await new MySqlTicketRepository(pool).findById(
       fixture().ticket.id,
