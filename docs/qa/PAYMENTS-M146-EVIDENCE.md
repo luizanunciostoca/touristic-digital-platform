@@ -77,6 +77,10 @@ The permanent validation set is:
 
 A final checkpoint SHA and run IDs are recorded in the pull request only after all permanent gates are green on the same head.
 
+## Final candidate validation boundary
+
+Before the final same-head validation, the M146 settlement integration was isolated onto `financial_m146_test`, the legacy M137/M143 MySQL suite was restored to clean only tables from its own M145 schema, temporary repair workflows were removed, and the legacy Financial MySQL contract was independently proven green after that cleanup correction. No final-success claim is made here until all ten permanent workflows above succeed on the exact same candidate SHA.
+
 ## Migration result
 
 M146 is expected to move only the `Split/repasse` row from GAP to PASS. The final matrix remains conservative until the complete final-head validation is green:
