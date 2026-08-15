@@ -64,6 +64,13 @@ export interface PaymentsBrowserVerifiedPayment {
   readonly activationStatus: string | null;
 }
 
+export interface PaymentsBrowserVerifiedFailure {
+  readonly verified: true;
+  readonly sessionId: string;
+  readonly reason: string;
+  readonly resultId: string;
+}
+
 export interface PaymentsBrowserCheckoutFailure {
   readonly sessionId: string;
   readonly message: string;
@@ -106,6 +113,7 @@ interface CheckoutStatusProjection {
   readonly sessionId: string;
   readonly status: string;
   readonly verifiedPayment: PaymentsBrowserVerifiedPayment | null;
+  readonly verifiedFailure: PaymentsBrowserVerifiedFailure | null;
 }
 
 function record(value: unknown): Record<string, unknown> | null {
@@ -344,6 +352,18 @@ function verifiedPayment(
   });
 }
 
+function verifiedFailure(
+  value: unknown,
+): PaymentsBrowserVerifiedFailure | null {
+  const data = record(value);
+  if (!data || data.verified !== true) return null;
+  const sessionId = text(data.sessionId, 120);
+  const reason = text(data.reason, 80);
+  const resultId = text(data.resultId, 160);
+  if (!sessionId || !reason || !resultId) return null;
+  return Object.freeze({ verified: true, sessionId, reason, resultId });
+}
+
 function statusProjection(value: unknown): CheckoutStatusProjection | null {
   const envelope = record(value);
   const data = record(envelope?.data);
@@ -357,6 +377,7 @@ function statusProjection(value: unknown): CheckoutStatusProjection | null {
     sessionId,
     status,
     verifiedPayment: verifiedPayment(data.verifiedPayment),
+    verifiedFailure: verifiedFailure(data.verifiedFailure),
   });
 }
 
@@ -425,6 +446,13 @@ export function createPaymentsBrowserCheckoutClient(
         }
 
         if (projection.status === "CONFIRMED") {
+          if (projection.verifiedFailure) {
+            throw paymentFailure(
+              handoff.sessionId,
+              "PAYMENTS_BROWSER_INVALID_RESPONSE",
+              "A confirmação do pagamento retornou evidências conflitantes.",
+            );
+          }
           if (!projection.verifiedPayment) continue;
           if (projection.verifiedPayment.sessionId !== handoff.sessionId) {
             throw paymentFailure(
@@ -443,10 +471,33 @@ export function createPaymentsBrowserCheckoutClient(
           projection.status === "EXPIRED" ||
           projection.status === "REFUNDED"
         ) {
+          if (projection.verifiedPayment) {
+            throw paymentFailure(
+              handoff.sessionId,
+              "PAYMENTS_BROWSER_INVALID_RESPONSE",
+              "A confirmação do pagamento retornou evidências conflitantes.",
+            );
+          }
+          if (!projection.verifiedFailure) continue;
+          if (projection.verifiedFailure.sessionId !== handoff.sessionId) {
+            throw paymentFailure(
+              handoff.sessionId,
+              "PAYMENTS_BROWSER_STATUS_IDENTITY_MISMATCH",
+              "A falha do pagamento não corresponde a esta contratação.",
+            );
+          }
           throw paymentFailure(
             handoff.sessionId,
             "PAYMENTS_BROWSER_PAYMENT_NOT_COMPLETED",
             "O pagamento não foi concluído.",
+          );
+        }
+
+        if (projection.verifiedPayment || projection.verifiedFailure) {
+          throw paymentFailure(
+            handoff.sessionId,
+            "PAYMENTS_BROWSER_INVALID_RESPONSE",
+            "O estado do pagamento não corresponde à evidência verificada.",
           );
         }
       }
