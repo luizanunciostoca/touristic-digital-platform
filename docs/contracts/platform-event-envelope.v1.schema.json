@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://touristic.digital/contracts/platform-event-envelope.v1.schema.json",
+  "title": "Platform Event Envelope v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "eventId",
+    "type",
+    "version",
+    "occurredAt",
+    "destinationId",
+    "correlationId",
+    "payload"
+  ],
+  "properties": {
+    "eventId": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "type": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "version": { "type": "integer", "minimum": 1 },
+    "occurredAt": { "type": "string", "format": "date-time" },
+    "destinationId": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "tenantId": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "correlationId": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "causationId": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "payload": {}
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://touristic.digital/contracts/platform-observation.v1.schema.json",
+  "title": "Platform Observation v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "observationId",
+    "kind",
+    "name",
+    "severity",
+    "occurredAt",
+    "destinationId",
+    "correlationId",
+    "attributes"
+  ],
+  "properties": {
+    "observationId": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "kind": {
+      "type": "string",
+      "enum": ["log", "metric", "trace", "audit", "alert"]
+    },
+    "name": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "severity": {
+      "type": "string",
+      "enum": ["debug", "info", "warn", "error", "critical"]
+    },
+    "occurredAt": { "type": "string", "format": "date-time" },
+    "destinationId": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "tenantId": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "correlationId": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "causationId": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "attributes": {
+      "type": "object",
+      "additionalProperties": {
+        "type": ["string", "number", "boolean", "null"]
+      }
+    }
+  }
+}

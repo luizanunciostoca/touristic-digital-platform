@@ -28,6 +28,8 @@ jobs:
         run: pnpm architecture:check
       - name: Validate Feature Registry
         run: pnpm features:check
+      - name: Validate platform contracts
+        run: pnpm platform:contracts:check
       - name: Lint
         run: pnpm lint
       - name: Typecheck

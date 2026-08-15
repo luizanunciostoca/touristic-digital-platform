@@ -98,7 +98,9 @@ Mercado Pago, Stripe, Asaas ou outros provedores são adapters; nenhuma regra de
 
 ## 14. Eventos e integrações
 
-Eventos de domínio usam envelope versionado com `eventId`, `type`, `version`, `occurredAt`, `destinationId`, `tenantId` quando aplicável, `correlationId`, `causationId` e payload.
+Eventos de domínio usam envelope versionado com `eventId`, `type`, `version`, `occurredAt`, `destinationId`, `tenantId` quando aplicável, `correlationId`, `causationId` quando aplicável e `payload`.
+
+O contrato executável canônico é `PLATFORM-EVENT-ENVELOPE`, registrado em `docs/contracts/registry.json` e descrito por `docs/contracts/platform-event-envelope.v1.schema.json`. O runtime correspondente pertence a `@touristic/core`; produtores não devem criar envelopes paralelos incompatíveis.
 
 Integrações externas devem ser idempotentes, observáveis e resilientes. Webhooks exigem assinatura, replay protection e processamento seguro.
 
@@ -113,7 +115,10 @@ A Definition of Done exige:
 - validação de fronteiras arquiteturais;
 - análise de segurança e dependências;
 - documentação atualizada;
-- observabilidade e rollback definidos.
+- observabilidade e rollback definidos;
+- contratos canônicos reconciliados entre registry, schema, runtime e evidência.
+
+O Quality Gate transversal executa `pnpm platform:contracts:check` para impedir drift dos contratos de plataforma.
 
 ## 16. Versionamento
 
@@ -137,13 +142,16 @@ Nenhum item é removido sem:
 - funcionalidades: Feature Registry;
 - capacidades: Capability Matrix;
 - dependências entre domínios: Domain Map e Module Contracts;
+- contratos transversais: `docs/contracts/registry.json`;
 - regras: Business Rules Catalog;
 - evolução: Product Roadmap e Evolution Strategy;
 - releases: Release Process.
 
 ## 19. Observabilidade
 
-Logs estruturados, métricas, traces, auditoria e alertas devem incluir contexto de destino, tenant e correlação. Pagamentos, reservas, afiliados, integrações, GIS e autenticação possuem monitoramento específico.
+Logs estruturados, métricas, traces, auditoria e alertas devem incluir contexto de destino, tenant quando aplicável e correlação. Pagamentos, reservas, afiliados, integrações, GIS e autenticação possuem monitoramento específico.
+
+O envelope mínimo canônico é `PLATFORM-OBSERVATION`, descrito por `docs/contracts/platform-observation.v1.schema.json`. Ele padroniza identidade da observação, tipo, nome, severidade, timestamp, destino, correlação, causação opcional e atributos estruturados primitivos. Este contrato é a base transversal; cada domínio continua responsável por métricas, alertas, SLOs e políticas específicas.
 
 ## 20. Regra final
 
