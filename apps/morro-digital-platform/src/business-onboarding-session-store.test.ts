@@ -89,9 +89,7 @@ describe("BusinessOnboardingBrowserSessionStore", () => {
     });
 
     store.save(session);
-    expect(
-      store.load(new Date("2026-08-09T12:00:00.000Z")),
-    ).toBeNull();
+    expect(store.load(new Date("2026-08-09T12:00:00.000Z"))).toBeNull();
     expect(storage.getItem(BUSINESS_ONBOARDING_BROWSER_SESSION_KEY)).toBeNull();
 
     storage.setItem(
@@ -110,7 +108,9 @@ describe("BusinessOnboardingBrowserSessionStore", () => {
     });
 
     store.save(active);
-    expect(storage.getItem(BUSINESS_ONBOARDING_BROWSER_SESSION_KEY)).not.toBeNull();
+    expect(
+      storage.getItem(BUSINESS_ONBOARDING_BROWSER_SESSION_KEY),
+    ).not.toBeNull();
 
     const completed = setBusinessOnboardingStatus(active, "COMPLETED", {
       now: new Date("2026-08-15T03:10:00.000Z"),

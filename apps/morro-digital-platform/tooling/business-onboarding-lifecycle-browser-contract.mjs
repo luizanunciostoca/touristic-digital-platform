@@ -6,10 +6,12 @@ const { chromium } = require(
   process.env.PLAYWRIGHT_MODULE || "/tmp/pw/node_modules/playwright",
 );
 
-const origin = process.env.BUSINESS_ONBOARDING_ORIGIN || "http://127.0.0.1:4181";
+const origin =
+  process.env.BUSINESS_ONBOARDING_ORIGIN || "http://127.0.0.1:4181";
 const url = `${origin}/apps/morro-digital-platform/public/business-onboarding.html`;
 const sessionKey = "morro-digital-business-onboarding-session-v2";
-const initializationMarker = "business-onboarding-lifecycle-contract-initialized";
+const initializationMarker =
+  "business-onboarding-lifecycle-contract-initialized";
 const evidencePath =
   process.env.BUSINESS_ONBOARDING_EVIDENCE ||
   "/tmp/business-onboarding-lifecycle-browser-evidence.json";
@@ -38,7 +40,9 @@ async function currentEvents(page) {
 }
 
 async function waitForSurface(page) {
-  await page.locator("#businessOnboardingSurface").waitFor({ state: "visible" });
+  await page
+    .locator("#businessOnboardingSurface")
+    .waitFor({ state: "visible" });
   await page.waitForFunction(
     () => document.activeElement?.id === "businessOnboardingTitle",
   );
@@ -103,22 +107,32 @@ try {
       ),
     };
   });
-  assert(initial.role === "dialog", `Expected dialog role: ${JSON.stringify(initial)}`);
-  assert(initial.modal === "true", `Expected modal semantics: ${JSON.stringify(initial)}`);
+  assert(
+    initial.role === "dialog",
+    `Expected dialog role: ${JSON.stringify(initial)}`,
+  );
+  assert(
+    initial.modal === "true",
+    `Expected modal semantics: ${JSON.stringify(initial)}`,
+  );
   assert(
     initial.labelledBy === "businessOnboardingTitle" &&
       initial.describedBy === "businessOnboardingDescription",
     `Dialog accessible name/description diverged: ${JSON.stringify(initial)}`,
   );
   assert(
-    initial.titleTabIndex === "-1" && initial.activeElementId === "businessOnboardingTitle",
+    initial.titleTabIndex === "-1" &&
+      initial.activeElementId === "businessOnboardingTitle",
     `Initial focus was not placed on the step heading: ${JSON.stringify(initial)}`,
   );
   assert(
     initial.statusLive === "polite" && initial.statusAtomic === "true",
     `Status live-region semantics diverged: ${JSON.stringify(initial)}`,
   );
-  assert(initial.pauseVisible && initial.restartVisible, "Lifecycle controls are missing");
+  assert(
+    initial.pauseVisible && initial.restartVisible,
+    "Lifecycle controls are missing",
+  );
 
   await page.locator('[data-action="next"]').focus();
   await page.keyboard.press("Tab");
@@ -127,13 +141,16 @@ try {
     label: document.activeElement?.getAttribute("aria-label"),
   }));
   assert(
-    wrappedFocus.action === "skip" && wrappedFocus.label === "Pular tutorial por agora",
+    wrappedFocus.action === "skip" &&
+      wrappedFocus.label === "Pular tutorial por agora",
     `Focus trap did not wrap inside the dialog: ${JSON.stringify(wrappedFocus)}`,
   );
 
   const next = page.locator('[data-action="next"]');
   await next.click();
-  await page.getByRole("heading", { name: "Qual é a categoria principal?" }).waitFor();
+  await page
+    .getByRole("heading", { name: "Qual é a categoria principal?" })
+    .waitFor();
   await page.locator('[data-input-value="events"]').click();
   await page.locator('[data-action="back"]').click();
   await page
@@ -142,19 +159,33 @@ try {
     })
     .waitFor();
   await next.click();
-  await page.getByRole("heading", { name: "Qual é a categoria principal?" }).waitFor();
+  await page
+    .getByRole("heading", { name: "Qual é a categoria principal?" })
+    .waitFor();
   assert(
-    (await page.locator('[data-input-value="events"]').getAttribute("aria-pressed")) ===
-      "true",
+    (await page
+      .locator('[data-input-value="events"]')
+      .getAttribute("aria-pressed")) === "true",
     "Back/forward navigation lost the selected category",
   );
 
   await page.getByRole("button", { name: "Pausar e sair" }).click();
-  await page.locator("#businessOnboardingSurface").waitFor({ state: "detached" });
+  await page
+    .locator("#businessOnboardingSurface")
+    .waitFor({ state: "detached" });
   const paused = await storedSession(page);
-  assert(paused?.status === "PAUSED", `Pause did not persist PAUSED: ${JSON.stringify(paused)}`);
-  assert(paused?.stepId === "category", `Pause lost current step: ${JSON.stringify(paused)}`);
-  assert(paused?.context?.category === "events", "Pause lost current step input");
+  assert(
+    paused?.status === "PAUSED",
+    `Pause did not persist PAUSED: ${JSON.stringify(paused)}`,
+  );
+  assert(
+    paused?.stepId === "category",
+    `Pause lost current step: ${JSON.stringify(paused)}`,
+  );
+  assert(
+    paused?.context?.category === "events",
+    "Pause lost current step input",
+  );
   assert(
     (await currentEvents(page)).some(
       (event) =>
@@ -167,13 +198,22 @@ try {
 
   await page.reload({ waitUntil: "domcontentloaded" });
   await waitForSurface(page);
-  await page.getByRole("heading", { name: "Qual é a categoria principal?" }).waitFor();
+  await page
+    .getByRole("heading", { name: "Qual é a categoria principal?" })
+    .waitFor();
   const resumed = await storedSession(page);
-  assert(resumed?.status === "ACTIVE", `Paused session did not resume ACTIVE: ${JSON.stringify(resumed)}`);
-  assert(resumed?.stepId === "category", `Resume lost current step: ${JSON.stringify(resumed)}`);
   assert(
-    (await page.locator('[data-input-value="events"]').getAttribute("aria-pressed")) ===
-      "true",
+    resumed?.status === "ACTIVE",
+    `Paused session did not resume ACTIVE: ${JSON.stringify(resumed)}`,
+  );
+  assert(
+    resumed?.stepId === "category",
+    `Resume lost current step: ${JSON.stringify(resumed)}`,
+  );
+  assert(
+    (await page
+      .locator('[data-input-value="events"]')
+      .getAttribute("aria-pressed")) === "true",
     "Resume lost selected category",
   );
   assert(
@@ -197,7 +237,10 @@ try {
     restarted?.status === "ACTIVE" && restarted?.stepId === "welcome",
     `Restart did not reset lifecycle state: ${JSON.stringify(restarted)}`,
   );
-  assert(restarted?.context?.category === undefined, "Restart retained stale input context");
+  assert(
+    restarted?.context?.category === undefined,
+    "Restart retained stale input context",
+  );
   assert(
     (await currentEvents(page)).some(
       (event) =>
@@ -208,10 +251,14 @@ try {
   );
 
   await next.click();
-  await page.getByRole("heading", { name: "Qual é a categoria principal?" }).waitFor();
+  await page
+    .getByRole("heading", { name: "Qual é a categoria principal?" })
+    .waitFor();
   await page.locator('[data-input-value="events"]').click();
   await page.getByRole("button", { name: "Pular tutorial por agora" }).click();
-  await page.locator("#businessOnboardingSurface").waitFor({ state: "detached" });
+  await page
+    .locator("#businessOnboardingSurface")
+    .waitFor({ state: "detached" });
   const skipped = await storedSession(page);
   assert(
     skipped?.status === "PAUSED" && skipped?.stepId === "category",
@@ -229,11 +276,14 @@ try {
 
   await page.reload({ waitUntil: "domcontentloaded" });
   await waitForSurface(page);
-  await page.getByRole("heading", { name: "Qual é a categoria principal?" }).waitFor();
+  await page
+    .getByRole("heading", { name: "Qual é a categoria principal?" })
+    .waitFor();
 
   await page.evaluate((key) => {
     const raw = localStorage.getItem(key);
-    if (!raw) throw new Error("Missing resumable session before completion proof");
+    if (!raw)
+      throw new Error("Missing resumable session before completion proof");
     const payload = JSON.parse(raw);
     payload.status = "ACTIVE";
     payload.stepId = "finish";
@@ -243,10 +293,18 @@ try {
   await page.reload({ waitUntil: "domcontentloaded" });
   await waitForSurface(page);
   const finishState = await storedSession(page);
-  assert(finishState?.stepId === "finish", `Failed to restore final step: ${JSON.stringify(finishState)}`);
+  assert(
+    finishState?.stepId === "finish",
+    `Failed to restore final step: ${JSON.stringify(finishState)}`,
+  );
   await page.locator('[data-action="next"]').click();
-  await page.locator("#businessOnboardingSurface").waitFor({ state: "detached" });
-  assert((await storedSession(page)) === null, "Completed onboarding remained resumable");
+  await page
+    .locator("#businessOnboardingSurface")
+    .waitFor({ state: "detached" });
+  assert(
+    (await storedSession(page)) === null,
+    "Completed onboarding remained resumable",
+  );
   assert(
     (await currentEvents(page)).some(
       (event) =>
@@ -264,7 +322,9 @@ try {
     })
     .waitFor();
   await page.keyboard.press("Escape");
-  await page.locator("#businessOnboardingSurface").waitFor({ state: "detached" });
+  await page
+    .locator("#businessOnboardingSurface")
+    .waitFor({ state: "detached" });
   const escaped = await storedSession(page);
   assert(
     escaped?.status === "PAUSED" && escaped?.stepId === "welcome",

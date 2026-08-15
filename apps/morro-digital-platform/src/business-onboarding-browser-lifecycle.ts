@@ -91,9 +91,11 @@ export class BusinessOnboardingBrowserLifecycle {
     );
 
     if (title && this.document.defaultView?.MutationObserver) {
-      this.titleObserver = new this.document.defaultView.MutationObserver(() => {
-        this.focusTitle();
-      });
+      this.titleObserver = new this.document.defaultView.MutationObserver(
+        () => {
+          this.focusTitle();
+        },
+      );
       this.titleObserver.observe(title, {
         childList: true,
         characterData: true,
@@ -162,7 +164,8 @@ export class BusinessOnboardingBrowserLifecycle {
   };
 
   private readonly handleActivityChanged = (event: Event): void => {
-    if (!(event instanceof CustomEvent) || event.detail?.active !== false) return;
+    if (!(event instanceof CustomEvent) || event.detail?.active !== false)
+      return;
     this.dispose(true);
   };
 

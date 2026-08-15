@@ -75,7 +75,8 @@ function safeText(value: unknown, maxLength: number): string {
 }
 
 function sanitizeValue(value: unknown, depth = 0): unknown {
-  if (depth > MAX_VALUE_DEPTH || value === null) return value === null ? null : undefined;
+  if (depth > MAX_VALUE_DEPTH || value === null)
+    return value === null ? null : undefined;
   if (typeof value === "string") return safeText(value, 800);
   if (typeof value === "number") return Number.isFinite(value) ? value : null;
   if (typeof value === "boolean") return value;
@@ -116,10 +117,9 @@ function sanitizeContext(value: unknown): Readonly<Record<string, unknown>> {
 function sanitizeCapabilities(value: unknown): readonly string[] {
   if (!Array.isArray(value)) return Object.freeze([]);
   return Object.freeze(
-    [...new Set(value.map((item) => safeText(item, 120)).filter(Boolean))].slice(
-      0,
-      MAX_ARRAY_ITEMS,
-    ),
+    [
+      ...new Set(value.map((item) => safeText(item, 120)).filter(Boolean)),
+    ].slice(0, MAX_ARRAY_ITEMS),
   );
 }
 
@@ -153,7 +153,8 @@ function restoreSession(
   const createdMs = dateMs(persisted.createdAt);
   const updatedMs = dateMs(persisted.updatedAt);
   const expiresMs = dateMs(persisted.expiresAt);
-  if (createdMs === null || updatedMs === null || expiresMs === null) return null;
+  if (createdMs === null || updatedMs === null || expiresMs === null)
+    return null;
   if (createdMs > now.getTime() + MAX_CLOCK_SKEW_MS) return null;
   if (updatedMs < createdMs || updatedMs > now.getTime() + MAX_CLOCK_SKEW_MS) {
     return null;
@@ -185,7 +186,9 @@ function restoreSession(
 
   return Object.freeze({
     ...session,
-    completedCapabilities: sanitizeCapabilities(persisted.completedCapabilities),
+    completedCapabilities: sanitizeCapabilities(
+      persisted.completedCapabilities,
+    ),
     skippedCapabilities: sanitizeCapabilities(persisted.skippedCapabilities),
   });
 }
@@ -220,7 +223,9 @@ export class BusinessOnboardingBrowserSessionStore {
       stepId: session.conversationDraft.currentStepId ?? "welcome",
       selectedLanguage: safeText(session.selectedLanguage, 20) || "pt",
       context: sanitizeContext(session.conversationDraft.context),
-      completedCapabilities: sanitizeCapabilities(session.completedCapabilities),
+      completedCapabilities: sanitizeCapabilities(
+        session.completedCapabilities,
+      ),
       skippedCapabilities: sanitizeCapabilities(session.skippedCapabilities),
       createdAt: session.createdAt,
       updatedAt: session.updatedAt,
