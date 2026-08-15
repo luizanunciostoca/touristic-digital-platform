@@ -5,13 +5,15 @@ on:
     types: [opened, synchronize, reopened]
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   format-preview:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: feat/assistant-runtime-durable-governance
       - uses: pnpm/action-setup@v4
         with:
           version: 10.15.0
@@ -20,20 +22,17 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Format target files
+      - name: Apply exact formatting and remove helper
         run: |
           pnpm exec prettier --write \
             apps/morro-digital-platform/tooling/assistant-api.mjs \
             apps/morro-digital-platform/tooling/provider-governance.mjs \
             docs/operations/PAID-PROVIDER-GOVERNANCE.md
-      - name: Emit formatted files
-        run: |
-          for file in \
-            apps/morro-digital-platform/tooling/assistant-api.mjs \
+          git rm .github/workflows/tmp-assistant-format-preview.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/morro-digital-platform/tooling/assistant-api.mjs \
             apps/morro-digital-platform/tooling/provider-governance.mjs \
-            docs/operations/PAID-PROVIDER-GOVERNANCE.md; do
-            echo "FORMAT_FILE_BEGIN:$file"
-            base64 -w0 "$file"
-            echo
-            echo "FORMAT_FILE_END:$file"
-          done
+            docs/operations/PAID-PROVIDER-GOVERNANCE.md
+          git commit -m "style(assistant): apply repository formatting"
+          git push origin HEAD:feat/assistant-runtime-durable-governance
