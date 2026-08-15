@@ -125,7 +125,9 @@ function requireIsoTimestamp(value: string, field: string): string {
   return value;
 }
 
-function requireObservationKind(value: PlatformObservationKind): PlatformObservationKind {
+function requireObservationKind(
+  value: PlatformObservationKind,
+): PlatformObservationKind {
   if (!OBSERVATION_KINDS.has(value)) {
     throw new Error("Observation kind is invalid.");
   }
@@ -158,7 +160,9 @@ function freezeObservationAttributes(
       typeof value === "boolean" ||
       (typeof value === "number" && Number.isFinite(value));
     if (!isPrimitive) {
-      throw new Error(`Observation attribute ${normalizedKey} must be primitive.`);
+      throw new Error(
+        `Observation attribute ${normalizedKey} must be primitive.`,
+      );
     }
     normalized[normalizedKey] = value;
   }
@@ -168,7 +172,9 @@ function freezeObservationAttributes(
 
 function createSecureId(prefix: "evt" | "corr" | "obs"): string {
   if (typeof globalThis.crypto?.randomUUID !== "function") {
-    throw new Error("Secure randomUUID support is required for platform contracts.");
+    throw new Error(
+      "Secure randomUUID support is required for platform contracts.",
+    );
   }
   return `${prefix}_${globalThis.crypto.randomUUID()}`;
 }
@@ -182,16 +188,6 @@ function resolveRuntimeOptions(
   };
 }
 
-function extractPayloadString(
-  payload: unknown,
-  field: "destinationId" | "tenantId",
-): string | undefined {
-  if (typeof payload !== "object" || payload === null) return undefined;
-  if (!(field in payload)) return undefined;
-  const value = (payload as Record<string, unknown>)[field];
-  return typeof value === "string" ? value : undefined;
-}
-
 export function createPlatformEvent<TPayload>(
   type: string,
   payload: TPayload,
@@ -200,10 +196,9 @@ export function createPlatformEvent<TPayload>(
 ): PlatformEvent<TPayload> {
   const runtime = resolveRuntimeOptions(options);
   const destinationId = requireBoundedString(
-    metadata.destinationId ?? extractPayloadString(payload, "destinationId"),
+    metadata.destinationId,
     "Event destinationId",
   );
-  const tenantId = metadata.tenantId ?? extractPayloadString(payload, "tenantId");
   const occurredAt = requireIsoTimestamp(
     metadata.occurredAt ?? runtime.now(),
     "Event occurredAt",
@@ -219,8 +214,10 @@ export function createPlatformEvent<TPayload>(
     payload,
     occurredAt,
     destinationId,
-    ...(tenantId
-      ? { tenantId: requireBoundedString(tenantId, "Event tenantId") }
+    ...(metadata.tenantId
+      ? {
+          tenantId: requireBoundedString(metadata.tenantId, "Event tenantId"),
+        }
       : {}),
     correlationId: requireBoundedString(
       metadata.correlationId ?? runtime.createId("corr"),
@@ -333,14 +330,8 @@ export class EventBus {
     payload: TPayload,
     metadata: PlatformEventMetadata = {},
   ): Promise<void> {
-    const destinationId =
-      metadata.destinationId ??
-      this.#destinationId ??
-      extractPayloadString(payload, "destinationId");
-    const tenantId =
-      metadata.tenantId ??
-      this.#tenantId ??
-      extractPayloadString(payload, "tenantId");
+    const destinationId = metadata.destinationId ?? this.#destinationId;
+    const tenantId = metadata.tenantId ?? this.#tenantId;
     const resolvedMetadata: PlatformEventMetadata = {
       ...metadata,
       ...(destinationId ? { destinationId } : {}),
@@ -413,8 +404,9 @@ export function createPlatformRuntime(input: {
   readonly registry: ModuleRegistry;
   readonly events?: EventBus;
 }): PlatformRuntime {
-  if (!input.destination.id.trim())
+  if (!input.destination.id.trim()) {
     throw new Error("Destination id is required.");
+  }
 
   const destination = Object.freeze({
     ...input.destination,
