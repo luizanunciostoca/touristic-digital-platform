@@ -84,7 +84,7 @@ function harness(
   responses: Response[],
   options: {
     readonly authority?: Readonly<Record<string, string>>;
-    readonly popupResult?: unknown | null;
+    readonly popupResult?: object | null;
     readonly maxPollAttempts?: number;
   } = {},
 ) {
@@ -98,7 +98,13 @@ function harness(
 
   const client = createPaymentsBrowserCheckoutClient({
     fetchFn: async (input, init = {}) => {
-      requests.push({ url: String(input), init });
+      const url =
+        typeof input === "string"
+          ? input
+          : input instanceof URL
+            ? input.toString()
+            : input.url;
+      requests.push({ url, init });
       const response = responses[responseIndex];
       responseIndex += 1;
       if (!response) throw new Error("UNEXPECTED_FETCH");
@@ -118,8 +124,12 @@ function harness(
       assign: (url) => assignments.push(url),
     },
     signals: {
-      verified: (detail) => verified.push(detail),
-      failed: (detail) => failed.push(detail),
+      verified: (detail) => {
+        verified.push(detail);
+      },
+      failed: (detail) => {
+        failed.push(detail);
+      },
     },
     scheduler: {
       wait: async (milliseconds) => {
@@ -211,9 +221,7 @@ describe("M148 payments browser checkout client", () => {
     );
 
     const status = result.requests[1]!;
-    expect(status.url).toBe(
-      "/api/payments/v1/checkouts/ord_m148checkout001",
-    );
+    expect(status.url).toBe("/api/payments/v1/checkouts/ord_m148checkout001");
     expect(status.init.method).toBe("GET");
     expect(status.init.cache).toBe("no-store");
     expect(status.init.credentials).toBe("same-origin");
@@ -223,10 +231,9 @@ describe("M148 payments browser checkout client", () => {
   });
 
   it("uses location fallback only when the popup is blocked", async () => {
-    const result = harness(
-      [checkoutResponse(), statusResponse("FAILED")],
-      { popupResult: null },
-    );
+    const result = harness([checkoutResponse(), statusResponse("FAILED")], {
+      popupResult: null,
+    });
     const session = await result.client.start(handoff);
     await expect(session.confirmation).rejects.toMatchObject({
       code: "PAYMENTS_BROWSER_PAYMENT_NOT_COMPLETED",
@@ -282,7 +289,11 @@ describe("M148 payments browser checkout client", () => {
 
   it("times out deterministically without retaining the status capability", async () => {
     const result = harness(
-      [checkoutResponse(), statusResponse("PENDING"), statusResponse("PENDING")],
+      [
+        checkoutResponse(),
+        statusResponse("PENDING"),
+        statusResponse("PENDING"),
+      ],
       { maxPollAttempts: 2 },
     );
     const session = await result.client.start(handoff);
@@ -314,15 +325,12 @@ describe("M148 payments browser checkout client", () => {
   });
 
   it("supports authenticated authority without exposing authority control over reserved headers", async () => {
-    const result = harness(
-      [checkoutResponse(), statusResponse("FAILED")],
-      {
-        authority: {
-          "X-CSRF-Token": "csrf-token-m148",
-          "X-Business-ID": "business_12345678",
-        },
+    const result = harness([checkoutResponse(), statusResponse("FAILED")], {
+      authority: {
+        "X-CSRF-Token": "csrf-token-m148",
+        "X-Business-ID": "business_12345678",
       },
-    );
+    });
     const session = await result.client.start(handoff);
     await expect(session.confirmation).rejects.toBeInstanceOf(
       PaymentsBrowserCheckoutError,

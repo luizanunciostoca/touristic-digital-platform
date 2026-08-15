@@ -43,7 +43,7 @@ export interface PaymentsBrowserCheckoutAuthorityPort {
 }
 
 export interface PaymentsBrowserCheckoutPopupPort {
-  open(url: string, target: string, features: string): unknown | null;
+  open(url: string, target: string, features: string): object | null;
   assign(url: string): void;
 }
 
@@ -52,9 +52,7 @@ export interface PaymentsBrowserCheckoutSchedulerPort {
 }
 
 export interface PaymentsBrowserCheckoutSignalPort {
-  verified(
-    detail: PaymentsBrowserVerifiedPayment,
-  ): void | Promise<void>;
+  verified(detail: PaymentsBrowserVerifiedPayment): void | Promise<void>;
   failed(detail: PaymentsBrowserCheckoutFailure): void | Promise<void>;
 }
 
@@ -157,7 +155,10 @@ function safeCorrelationId(value: unknown): string {
 }
 
 function defaultCorrelationId(): string {
-  if (typeof crypto === "undefined" || typeof crypto.randomUUID !== "function") {
+  if (
+    typeof crypto === "undefined" ||
+    typeof crypto.randomUUID !== "function"
+  ) {
     throw new PaymentsBrowserCheckoutError(
       "PAYMENTS_BROWSER_INVALID_CORRELATION_ID",
       "Não foi possível iniciar a contratação com segurança.",
@@ -180,7 +181,11 @@ function positiveInteger(
   maximum: number,
 ): number {
   const candidate = value ?? fallback;
-  if (!Number.isSafeInteger(candidate) || candidate <= 0 || candidate > maximum) {
+  if (
+    !Number.isSafeInteger(candidate) ||
+    candidate <= 0 ||
+    candidate > maximum
+  ) {
     throw new Error("PAYMENTS_BROWSER_POLL_CONFIGURATION_INVALID");
   }
   return candidate;
@@ -192,7 +197,10 @@ function normalizedAuthorityHeaders(
   const headers = new Headers();
   for (const [name, rawValue] of Object.entries(input)) {
     const key = name.trim().toLowerCase();
-    const value = text(rawValue, key === "x-checkout-handoff-token" ? 2_048 : 512);
+    const value = text(
+      rawValue,
+      key === "x-checkout-handoff-token" ? 2_048 : 512,
+    );
     if (!value) {
       throw new PaymentsBrowserCheckoutError(
         "PAYMENTS_BROWSER_INVALID_AUTHORITY",
@@ -237,10 +245,21 @@ function normalizedAuthorityHeaders(
     );
   }
 
-  return Object.freeze(Object.fromEntries(headers.entries()));
+  const normalized: Record<string, string> = {};
+  for (const name of [
+    "x-checkout-handoff-token",
+    "x-csrf-token",
+    "x-business-id",
+  ]) {
+    const value = headers.get(name);
+    if (value) normalized[name] = value;
+  }
+  return Object.freeze(normalized);
 }
 
-async function responseJson(response: Response): Promise<Record<string, unknown>> {
+async function responseJson(
+  response: Response,
+): Promise<Record<string, unknown>> {
   const body = await response.text();
   if (new TextEncoder().encode(body).byteLength > maxResponseBytes) {
     throw new PaymentsBrowserCheckoutError(
@@ -261,7 +280,9 @@ async function responseJson(response: Response): Promise<Record<string, unknown>
   }
 }
 
-async function checkedJson(response: Response): Promise<Record<string, unknown>> {
+async function checkedJson(
+  response: Response,
+): Promise<Record<string, unknown>> {
   const payload = await responseJson(response);
   if (!response.ok) {
     const code = text(payload.error, 120) || "CHECKOUT_REJECTED";
@@ -282,7 +303,8 @@ function createProjection(value: unknown): CheckoutCreateProjection | null {
   const status = text(data.status, 40);
   const statusToken = text(data.statusToken, 256);
   const statusExpiresAt = canonicalTimestamp(data.statusExpiresAt);
-  const checkoutUrl = data.checkoutUrl === null ? null : canonicalUrl(data.checkoutUrl);
+  const checkoutUrl =
+    data.checkoutUrl === null ? null : canonicalUrl(data.checkoutUrl);
   const replayed = data.replayed === true;
   if (
     !checkoutId.startsWith("ord_") ||
@@ -305,7 +327,9 @@ function createProjection(value: unknown): CheckoutCreateProjection | null {
   });
 }
 
-function verifiedPayment(value: unknown): PaymentsBrowserVerifiedPayment | null {
+function verifiedPayment(
+  value: unknown,
+): PaymentsBrowserVerifiedPayment | null {
   const data = record(value);
   if (!data || data.verified !== true) return null;
   const sessionId = text(data.sessionId, 120);
@@ -530,7 +554,9 @@ export function createWindowPaymentsBrowserCheckoutSignals(
 ): PaymentsBrowserCheckoutSignalPort {
   return Object.freeze({
     verified(detail: PaymentsBrowserVerifiedPayment): void {
-      view.dispatchEvent(new CustomEvent("businessPaymentVerified", { detail }));
+      view.dispatchEvent(
+        new CustomEvent("businessPaymentVerified", { detail }),
+      );
     },
     failed(detail: PaymentsBrowserCheckoutFailure): void {
       view.dispatchEvent(
