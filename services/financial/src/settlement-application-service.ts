@@ -318,9 +318,14 @@ export function createSettlementApplicationService(
       if (!settlement) throw new Error("FINANCIAL_SETTLEMENT_INVALID");
       const claim = await dependencies.settlement.claimSettlement(settlement);
       if (claim.settlement.status !== "claimed") return claim;
-      const command = createFinancialSettlementProviderCommand(
-        claim.settlement,
-      );
+      const command = createFinancialSettlementProviderCommand({
+        settlementId: claim.settlement.id,
+        payableId: claim.settlement.payableId,
+        paymentId: claim.settlement.paymentId,
+        beneficiaryReference: claim.settlement.beneficiaryReference,
+        amount: claim.settlement.amount,
+        idempotencyKey: claim.settlement.idempotencyKey,
+      });
       if (!command) throw new Error("FINANCIAL_SETTLEMENT_COMMAND_INVALID");
       const receipt = await dependencies.provider.requestTransfer(command);
       const accepted = await dependencies.settlement.acceptProvider(
