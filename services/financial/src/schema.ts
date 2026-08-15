@@ -123,6 +123,7 @@ CREATE TABLE IF NOT EXISTS financial_refund_requests (
   CONSTRAINT fk_financial_refund_approved_result
     FOREIGN KEY (approved_result_id) REFERENCES financial_payment_results(result_id)
     ON DELETE RESTRICT ON UPDATE RESTRICT,
+  UNIQUE KEY uq_financial_refund_provider_reference (provider_refund_reference),
   INDEX idx_financial_refund_status (status),
   INDEX idx_financial_refund_updated (updated_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
