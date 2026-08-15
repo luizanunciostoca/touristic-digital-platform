@@ -119,7 +119,7 @@ export class MySqlTicketingTransactionalCommand implements TicketingTransactiona
     this.inner = new RawMySqlTicketingTransactionalCommand(pool);
   }
 
-  async commitCheckIn(input: {
+  commitCheckIn(input: {
     readonly before: Ticket;
     readonly after: Ticket;
     readonly checkIn: TicketCheckIn;
@@ -131,7 +131,7 @@ export class MySqlTicketingTransactionalCommand implements TicketingTransactiona
     return this.inner.commitCheckIn(command);
   }
 
-  async commitOfflineSync(input: {
+  commitOfflineSync(input: {
     readonly before: Ticket;
     readonly after: Ticket;
     readonly checkIn: TicketCheckIn;
