@@ -1,0 +1,47 @@
+name: Temporary M148 Formatter
+
+on:
+  push:
+    branches:
+      - feat/ticketing-m148-transactional-checkin
+    paths:
+      - ".github/workflows/m148-format-once.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/ticketing-m148-transactional-checkin
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Apply canonical formatting
+        run: |
+          pnpm exec prettier --write \
+            services/ticketing/src/mysql-ticketing-transaction.ts \
+            services/ticketing/src/ticketing-application-service.test.ts \
+            services/ticketing/src/ticketing-application-service.ts \
+            services/ticketing/src/transaction-mysql-integration.test.ts
+          git diff --check
+      - name: Publish formatting and remove helper
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/m148-format-once.yml
+          git add \
+            services/ticketing/src/mysql-ticketing-transaction.ts \
+            services/ticketing/src/ticketing-application-service.test.ts \
+            services/ticketing/src/ticketing-application-service.ts \
+            services/ticketing/src/transaction-mysql-integration.test.ts
+          git commit -m "style(ticketing): format M148 transaction boundary"
+          git push origin HEAD:feat/ticketing-m148-transactional-checkin
