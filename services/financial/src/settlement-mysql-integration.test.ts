@@ -32,7 +32,15 @@ import {
 
 const databaseUrl = process.env.FINANCIAL_DATABASE_URL;
 const adminUrl = process.env.MYSQL_ADMIN_DATABASE_URL;
-const describeMySql = databaseUrl && adminUrl ? describe : describe.skip;
+const settlementDatabaseUrl = databaseUrl
+  ? (() => {
+      const url = new URL(databaseUrl);
+      url.pathname = "/financial_m146_test";
+      return url.toString();
+    })()
+  : undefined;
+const describeMySql =
+  settlementDatabaseUrl && adminUrl ? describe : describe.skip;
 
 const paymentId = normalizePaymentId("pay_m146_settlement_0001")!;
 const reconciliationRunId = normalizeReconciliationRunId(
@@ -79,7 +87,7 @@ describeMySql.sequential("M146 settlement MySQL integration", () => {
   let pool: Pool;
 
   beforeAll(async () => {
-    if (!adminUrl || !databaseUrl)
+    if (!adminUrl || !settlementDatabaseUrl)
       throw new Error("MYSQL_INTEGRATION_URLS_REQUIRED");
     const admin = await mysql.createConnection(adminUrl);
     try {
@@ -90,7 +98,7 @@ describeMySql.sequential("M146 settlement MySQL integration", () => {
       await admin.end();
     }
     pool = createFinancialMySqlPoolFromEnvironment({
-      FINANCIAL_DATABASE_URL: databaseUrl,
+      FINANCIAL_DATABASE_URL: settlementDatabaseUrl,
     });
     await applyFinancialM146Schema(pool);
   });
