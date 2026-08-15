@@ -38,6 +38,8 @@ Adding an HMAC secret to the browser, fabricating CSRF, inferring Business autho
 
 `Payments M149 Browser Checkout Contract` builds the workspace, runs the focused client unit contract and launches deterministic Chromium. The focused unit contract proves both success and terminal-failure recovery windows, identity matching, contradictory evidence rejection, bounded timeout and authority exclusivity. Chromium proves launch headers/idempotency, private status-token reuse, authoritative success, safe popup behavior, blocked-popup fallback, zero storage persistence of the status capability and zero page errors.
 
+The final validation candidate is intentionally re-run after widening only the TypeScript type of the verified-failure test fixture's `sessionId` parameter from its inferred literal to `string`. That correction changes no browser/runtime behavior and exists solely so the session-substitution negative test can compile and exercise the existing fail-closed identity guard.
+
 Final promotion additionally requires repository-wide Quality on the same final head/merge ref. Backend Payments contracts remain authoritative and are not replaced by this browser proof.
 
 ## Migration result
