@@ -10,6 +10,8 @@ const ASSISTANT_TIMEOUT_MS = 12_000;
 const ASSISTANT_RATE_WINDOW_MS = 60_000;
 const ASSISTANT_RATE_LIMIT = 30;
 const MAX_BODY_BYTES = 64 * 1024;
+const ASSISTANT_MAX_OUTPUT_TOKENS = 600;
+const ASSISTANT_CONSERVATIVE_PROMPT_TOKEN_CEILING = MAX_BODY_BYTES * 2;
 
 const SUPPORTED_LANGUAGES = new Set(["pt", "en", "es", "he"]);
 const ALLOWED_CATEGORIES = new Set([
@@ -48,6 +50,11 @@ function positiveNumber(value) {
 function positiveInteger(value) {
   const parsed = Number(value);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
+function roundUsdUp(value) {
+  if (!Number.isFinite(value) || value <= 0) return null;
+  return Math.ceil(value * 1_000_000) / 1_000_000;
 }
 
 function sanitizeContext(value) {
@@ -152,11 +159,33 @@ export function createAssistantApi({
   const hardLimitConfirmed =
     environment("OPENAI_PROVIDER_HARD_LIMIT_CONFIRMED").trim().toLowerCase() ===
     "true";
+  const model = environment("OPENAI_MODEL").trim();
+  const pricingModel = environment("OPENAI_PRICING_MODEL").trim();
+  const pricingModelMatches = Boolean(model && pricingModel === model);
   const inputUsdPerMillion = positiveNumber(
     environment("OPENAI_INPUT_USD_PER_1M_TOKENS"),
   );
   const outputUsdPerMillion = positiveNumber(
     environment("OPENAI_OUTPUT_USD_PER_1M_TOKENS"),
+  );
+  const pricingConfigured = Boolean(
+    pricingModelMatches && inputUsdPerMillion && outputUsdPerMillion,
+  );
+  const configuredRequestReserveUsd = positiveNumber(
+    environment("OPENAI_REQUEST_RESERVE_USD"),
+  );
+  const minimumRequestReserveUsd = roundUsdUp(
+    calculateTokenCostUsd({
+      promptTokens: ASSISTANT_CONSERVATIVE_PROMPT_TOKEN_CEILING,
+      completionTokens: ASSISTANT_MAX_OUTPUT_TOKENS,
+      inputUsdPerMillion,
+      outputUsdPerMillion,
+    }),
+  );
+  const requestReserveAdequate = Boolean(
+    configuredRequestReserveUsd &&
+    minimumRequestReserveUsd &&
+    configuredRequestReserveUsd >= minimumRequestReserveUsd,
   );
   const runtimeReplicaCount = positiveInteger(
     environment("OPENAI_RUNTIME_REPLICA_COUNT"),
@@ -204,7 +233,16 @@ export function createAssistantApi({
   function observabilitySnapshot() {
     return Object.freeze({
       hardLimitConfirmed,
-      pricingConfigured: Boolean(inputUsdPerMillion && outputUsdPerMillion),
+      model: model || null,
+      pricingModel: pricingModel || null,
+      pricingConfigured,
+      pricingModelMatches,
+      configuredRequestReserveUsd,
+      minimumRequestReserveUsd,
+      requestReserveAdequate,
+      conservativePromptTokenCeiling:
+        ASSISTANT_CONSERVATIVE_PROMPT_TOKEN_CEILING,
+      maxOutputTokens: ASSISTANT_MAX_OUTPUT_TOKENS,
       runtimeReplicaCount,
       runtimeTopologySafe,
       persistentGovernanceConfigured: Boolean(resolvedGovernanceStateStore),
@@ -221,6 +259,20 @@ export function createAssistantApi({
       ...(Number.isInteger(statusCode) ? { statusCode } : {}),
       metadata,
     });
+  }
+
+  function billingGuardReason(persistenceUnavailable) {
+    if (persistenceUnavailable) return "governance_state_unavailable";
+    if (!hardLimitConfirmed) return "provider_hard_limit_not_confirmed";
+    if (!model) return "model_not_configured";
+    if (!pricingModel) return "pricing_model_not_configured";
+    if (!pricingModelMatches) return "pricing_model_mismatch";
+    if (!inputUsdPerMillion || !outputUsdPerMillion) {
+      return "pricing_rates_not_configured";
+    }
+    if (!configuredRequestReserveUsd) return "request_reserve_not_configured";
+    if (!requestReserveAdequate) return "request_reserve_below_runtime_floor";
+    return "billing_guard_not_configured";
   }
 
   return Object.freeze({
@@ -263,10 +315,9 @@ export function createAssistantApi({
         return;
       }
 
-      const model = environment("OPENAI_MODEL").trim() || "gpt-4o-mini";
       const requestMetadata = Object.freeze({
         correlationId,
-        model,
+        model: model || "unconfigured",
         surface: "assistant",
       });
 
@@ -288,8 +339,8 @@ export function createAssistantApi({
 
       if (
         !hardLimitConfirmed ||
-        !inputUsdPerMillion ||
-        !outputUsdPerMillion ||
+        !pricingConfigured ||
+        !requestReserveAdequate ||
         !costGovernor.configured
       ) {
         const persistence = costGovernor.snapshot().persistence;
@@ -300,9 +351,9 @@ export function createAssistantApi({
           type: "provider.billing_guard.denied",
           provider: "openai",
           at: new Date(now()).toISOString(),
-          reason: persistenceUnavailable
-            ? "governance_state_unavailable"
-            : "billing_guard_not_configured",
+          reason: billingGuardReason(persistenceUnavailable),
+          configuredRequestReserveUsd,
+          minimumRequestReserveUsd,
           metadata: requestMetadata,
         });
         sendJson(response, 503, {
@@ -359,6 +410,7 @@ export function createAssistantApi({
               headers: {
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${apiKey}`,
+                "X-Client-Request-Id": correlationId,
               },
               body: JSON.stringify({
                 model,
@@ -371,7 +423,7 @@ export function createAssistantApi({
                   ...history,
                   { role: "user", content: input },
                 ],
-                max_tokens: 600,
+                max_tokens: ASSISTANT_MAX_OUTPUT_TOKENS,
                 temperature: 0.4,
                 response_format: { type: "json_object" },
               }),
