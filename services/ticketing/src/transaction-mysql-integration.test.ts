@@ -24,7 +24,15 @@ import {
 
 const databaseUrl = process.env.TICKETING_DATABASE_URL;
 const adminUrl = process.env.MYSQL_ADMIN_DATABASE_URL;
-const describeMySql = databaseUrl && adminUrl ? describe : describe.skip;
+const transactionDatabaseUrl = databaseUrl
+  ? (() => {
+      const url = new URL(databaseUrl);
+      url.pathname = "/ticketing_m148_test";
+      return url.toString();
+    })()
+  : undefined;
+const describeMySql =
+  transactionDatabaseUrl && adminUrl ? describe : describe.skip;
 
 function fixture() {
   const orderId = normalizeOrderId("ord_ticketing_m148_0001");
@@ -57,18 +65,18 @@ describeMySql.sequential("M148 Ticketing transactional MySQL contract", () => {
   let pool: Pool;
 
   beforeAll(async () => {
-    if (!adminUrl || !databaseUrl)
+    if (!adminUrl || !transactionDatabaseUrl)
       throw new Error("MYSQL_INTEGRATION_URLS_REQUIRED");
     const admin = await mysql.createConnection(adminUrl);
     try {
       await admin.query(
-        "CREATE DATABASE IF NOT EXISTS ticketing_m147_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci",
+        "CREATE DATABASE IF NOT EXISTS ticketing_m148_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci",
       );
     } finally {
       await admin.end();
     }
     pool = createTicketingMySqlPoolFromEnvironment({
-      TICKETING_DATABASE_URL: databaseUrl,
+      TICKETING_DATABASE_URL: transactionDatabaseUrl,
     });
     await applyTicketingM147Schema(pool);
   });
@@ -105,47 +113,26 @@ describeMySql.sequential("M148 Ticketing transactional MySQL contract", () => {
     return { before: ticket, after, checkIn };
   }
 
-  it("commits ticket transition and history atomically with exact replay", async () => {
-    const tx = new MySqlTicketingTransactionalCommand(pool);
-    const command = onlineCommand();
-    const first = await tx.commitCheckIn(command);
-    expect(first.replayed).toBe(false);
-    expect(first.ticket.status).toBe("validated");
+  function competingCommand() {
+    const { ticket } = fixture();
+    const after = applyTicketCheckIn(ticket, {
+      result: "cancelled",
+      occurredAt: "2026-08-15T11:31:00Z",
+    });
+    const checkIn = createTicketCheckIn({
+      id: "tci_ticketing_m148_competing_0001",
+      ticketId: ticket.id,
+      result: "cancelled",
+      channel: "online",
+      operatorReference: "operator_m148_competing",
+      occurredAt: "2026-08-15T11:31:00Z",
+      recordedAt: "2026-08-15T11:31:01Z",
+    });
+    if (!checkIn) throw new Error("FIXTURE_INVALID");
+    return { before: ticket, after, checkIn };
+  }
 
-    const current = await new MySqlTicketRepository(pool).findById(
-      command.before.id,
-    );
-    expect(current?.status).toBe("validated");
-    await expect(
-      new MySqlTicketCheckInRepository(pool).listByTicketId(command.before.id),
-    ).resolves.toHaveLength(1);
-
-    const replay = await tx.commitCheckIn(command);
-    expect(replay.replayed).toBe(true);
-    expect(replay.checkIn.id).toBe(command.checkIn.id);
-    await expect(
-      new MySqlTicketCheckInRepository(pool).listByTicketId(command.before.id),
-    ).resolves.toHaveLength(1);
-  });
-
-  it("rolls back the ticket state when history persistence fails", async () => {
-    await pool.query(`CREATE TRIGGER ticketing_m148_fail_checkin
-      BEFORE INSERT ON ticketing_checkins FOR EACH ROW
-      SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'm148 forced checkin failure'`);
-    const tx = new MySqlTicketingTransactionalCommand(pool);
-    await expect(tx.commitCheckIn(onlineCommand())).rejects.toThrow();
-    const persisted = await new MySqlTicketRepository(pool).findById(
-      fixture().ticket.id,
-    );
-    expect(persisted?.status).toBe("issued");
-    await expect(
-      new MySqlTicketCheckInRepository(pool).listByTicketId(
-        fixture().ticket.id,
-      ),
-    ).resolves.toEqual([]);
-  });
-
-  it("commits offline envelope, state, history and sync marker in one transaction", async () => {
+  function offlineCommand() {
     const { ticket, secret } = fixture();
     const qrPayload = createTicketQrPayload(ticket.id, secret);
     if (!qrPayload) throw new Error("FIXTURE_INVALID");
@@ -181,37 +168,147 @@ describeMySql.sequential("M148 Ticketing transactional MySQL contract", () => {
       result: "validated",
       occurredAt: queuedAt,
     });
-    const tx = new MySqlTicketingTransactionalCommand(pool);
-    const first = await tx.commitOfflineSync({
+    return {
       before: ticket,
       after,
       checkIn,
       envelope,
       syncedAt: "2026-08-15T11:46:00Z",
+    };
+  }
+
+  it("commits ticket transition and history atomically with exact replay", async () => {
+    const tx = new MySqlTicketingTransactionalCommand(pool);
+    const command = onlineCommand();
+    const first = await tx.commitCheckIn(command);
+    expect(first.replayed).toBe(false);
+    expect(first.ticket.status).toBe("validated");
+
+    const current = await new MySqlTicketRepository(pool).findById(
+      command.before.id,
+    );
+    expect(current?.status).toBe("validated");
+    await expect(
+      new MySqlTicketCheckInRepository(pool).listByTicketId(command.before.id),
+    ).resolves.toHaveLength(1);
+
+    const replay = await tx.commitCheckIn(command);
+    expect(replay.replayed).toBe(true);
+    expect(replay.checkIn.id).toBe(command.checkIn.id);
+    await expect(
+      new MySqlTicketCheckInRepository(pool).listByTicketId(command.before.id),
+    ).resolves.toHaveLength(1);
+  });
+
+  it("rejects cross-ticket command identity before mutating persistence", async () => {
+    const tx = new MySqlTicketingTransactionalCommand(pool);
+    const command = onlineCommand();
+    const mismatched = createTicket({
+      ...command.after,
+      id: "tck_ticketing_m148_other_0001",
     });
+    if (!mismatched) throw new Error("FIXTURE_INVALID");
+
+    await expect(
+      tx.commitCheckIn({ ...command, after: mismatched }),
+    ).rejects.toThrow("TICKETING_TRANSACTION_IDENTITY_MISMATCH");
+    await expect(
+      new MySqlTicketRepository(pool).findById(command.before.id),
+    ).resolves.toMatchObject({ status: "issued" });
+    await expect(
+      new MySqlTicketCheckInRepository(pool).listByTicketId(command.before.id),
+    ).resolves.toEqual([]);
+  });
+
+  it("allows exactly one of two stale concurrent transitions to commit", async () => {
+    const tx = new MySqlTicketingTransactionalCommand(pool);
+    const outcomes = await Promise.allSettled([
+      tx.commitCheckIn(onlineCommand()),
+      tx.commitCheckIn(competingCommand()),
+    ]);
+    expect(outcomes.filter((entry) => entry.status === "fulfilled")).toHaveLength(
+      1,
+    );
+    expect(outcomes.filter((entry) => entry.status === "rejected")).toHaveLength(
+      1,
+    );
+    const rejected = outcomes.find((entry) => entry.status === "rejected");
+    if (!rejected || rejected.status !== "rejected") {
+      throw new Error("EXPECTED_CONCURRENT_REJECTION");
+    }
+    expect(String(rejected.reason)).toContain("TICKETING_CONCURRENT_TRANSITION");
+
+    const persisted = await new MySqlTicketRepository(pool).findById(
+      fixture().ticket.id,
+    );
+    expect(["validated", "cancelled"]).toContain(persisted?.status);
+    await expect(
+      new MySqlTicketCheckInRepository(pool).listByTicketId(
+        fixture().ticket.id,
+      ),
+    ).resolves.toHaveLength(1);
+  });
+
+  it("rolls back the ticket state when history persistence fails", async () => {
+    await pool.query(`CREATE TRIGGER ticketing_m148_fail_checkin
+      BEFORE INSERT ON ticketing_checkins FOR EACH ROW
+      SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'm148 forced checkin failure'`);
+    const tx = new MySqlTicketingTransactionalCommand(pool);
+    await expect(tx.commitCheckIn(onlineCommand())).rejects.toThrow();
+    const persisted = await new MySqlTicketRepository(pool).findById(
+      fixture().ticket.id,
+    );
+    expect(persisted?.status).toBe("issued");
+    await expect(
+      new MySqlTicketCheckInRepository(pool).listByTicketId(
+        fixture().ticket.id,
+      ),
+    ).resolves.toEqual([]);
+  });
+
+  it("commits offline envelope, state, history and sync marker in one transaction", async () => {
+    const command = offlineCommand();
+    const tx = new MySqlTicketingTransactionalCommand(pool);
+    const first = await tx.commitOfflineSync(command);
     expect(first.replayed).toBe(false);
     expect(first.ticket.status).toBe("validated");
     await expect(
-      new MySqlTicketOfflineEnvelopeRepository(pool).findById(envelope.id),
-    ).resolves.toEqual(envelope);
+      new MySqlTicketOfflineEnvelopeRepository(pool).findById(
+        command.envelope.id,
+      ),
+    ).resolves.toEqual(command.envelope);
     const [rows] = await pool.query(
       "SELECT synced_at, checkin_id FROM ticketing_offline_envelopes WHERE envelope_id = ?",
-      [envelope.id],
+      [command.envelope.id],
     );
     expect(rows).toEqual([
       expect.objectContaining({
-        checkin_id: checkIn.id,
+        checkin_id: command.checkIn.id,
         synced_at: expect.any(Date),
       }),
     ]);
 
-    const replay = await tx.commitOfflineSync({
-      before: ticket,
-      after,
-      checkIn,
-      envelope,
-      syncedAt: "2026-08-15T11:46:00Z",
-    });
+    const replay = await tx.commitOfflineSync(command);
     expect(replay.replayed).toBe(true);
+  });
+
+  it("rolls back envelope and ticket state when offline history persistence fails", async () => {
+    await pool.query(`CREATE TRIGGER ticketing_m148_fail_checkin
+      BEFORE INSERT ON ticketing_checkins FOR EACH ROW
+      SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'm148 forced offline failure'`);
+    const command = offlineCommand();
+    const tx = new MySqlTicketingTransactionalCommand(pool);
+    await expect(tx.commitOfflineSync(command)).rejects.toThrow();
+    await expect(
+      new MySqlTicketRepository(pool).findById(command.before.id),
+    ).resolves.toMatchObject({ status: "issued" });
+    await expect(
+      new MySqlTicketCheckInRepository(pool).listByTicketId(command.before.id),
+    ).resolves.toEqual([]);
+    await expect(
+      new MySqlTicketOfflineEnvelopeRepository(pool).findById(
+        command.envelope.id,
+      ),
+    ).resolves.toBeNull();
   });
 });
