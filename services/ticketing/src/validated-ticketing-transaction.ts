@@ -112,9 +112,7 @@ function canonicalOffline(input: {
   });
 }
 
-export class MySqlTicketingTransactionalCommand
-  implements TicketingTransactionalCommandPort
-{
+export class MySqlTicketingTransactionalCommand implements TicketingTransactionalCommandPort {
   private readonly inner: RawMySqlTicketingTransactionalCommand;
 
   constructor(pool: Pool) {
