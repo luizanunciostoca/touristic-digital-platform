@@ -10,7 +10,7 @@ import {
 } from "./payments-browser-checkout-client.js";
 
 const handoff = Object.freeze({
-  sessionId: "business_session_m148",
+  sessionId: "business_session_m149",
   planId: "growth",
   contractor: Object.freeze({
     name: "Luiz Silva",
@@ -19,7 +19,7 @@ const handoff = Object.freeze({
     document: "12345678900",
   }),
   businessDraft: Object.freeze({
-    demoBusinessId: "demo_business_m148",
+    demoBusinessId: "demo_business_m149",
     displayName: "Toca do Morcego",
     categoryId: "events",
     specialty: "Sunset",
@@ -53,8 +53,8 @@ function jsonResponse(body: unknown, status = 200): Response {
 function checkoutResponse() {
   return jsonResponse({
     data: {
-      checkoutId: "ord_m148checkout001",
-      paymentId: "pay_m148payment001",
+      checkoutId: "ord_m149checkout001",
+      paymentId: "pay_m149payment001",
       status: "PENDING",
       statusToken: `cst_v1_${"a".repeat(43)}`,
       statusExpiresAt: "2026-08-16T04:30:00.000Z",
@@ -71,13 +71,26 @@ function statusResponse(
 ) {
   return jsonResponse({
     data: {
-      checkoutId: "ord_m148checkout001",
-      sessionId: "business_session_m148",
+      checkoutId: "ord_m149checkout001",
+      sessionId: "business_session_m149",
       status,
       verifiedPayment,
       ...overrides,
     },
   });
+}
+
+function verifiedFailure(
+  resultId: string,
+  sessionId = handoff.sessionId,
+  reason = "failed",
+) {
+  return {
+    verified: true,
+    sessionId,
+    reason,
+    resultId,
+  };
 }
 
 function harness(
@@ -113,7 +126,7 @@ function harness(
     authority: {
       resolveCreateHeaders: async () =>
         options.authority ?? {
-          "X-Checkout-Handoff-Token": "signed-handoff-token-m148",
+          "X-Checkout-Handoff-Token": "signed-handoff-token-m149",
         },
     },
     popup: {
@@ -136,7 +149,7 @@ function harness(
         waits.push(milliseconds);
       },
     },
-    correlationId: () => "browser:m148-correlation-0001",
+    correlationId: () => "browser:m149-correlation-0001",
     ...(options.maxPollAttempts
       ? { maxPollAttempts: options.maxPollAttempts }
       : {}),
@@ -153,7 +166,7 @@ function harness(
   };
 }
 
-describe("M148 payments browser checkout client", () => {
+describe("M149 payments browser checkout client", () => {
   it("preserves the frozen 2.5 second / 240 attempt polling defaults", () => {
     expect(PAYMENTS_BROWSER_POLL_INTERVAL_MS).toBe(2_500);
     expect(PAYMENTS_BROWSER_MAX_POLL_ATTEMPTS).toBe(240);
@@ -163,10 +176,10 @@ describe("M148 payments browser checkout client", () => {
     const verifiedPayment = {
       verified: true,
       sessionId: handoff.sessionId,
-      reference: "provider-payment-m148",
+      reference: "provider-payment-m149",
       definitiveBusinessId: null,
       activationStatus: "READY_TO_CONVERT",
-      resultId: "fev_m148",
+      resultId: "fev_m149",
     };
     const result = harness([
       checkoutResponse(),
@@ -178,8 +191,8 @@ describe("M148 payments browser checkout client", () => {
     const confirmation = await session.confirmation;
 
     expect(session).toMatchObject({
-      checkoutId: "ord_m148checkout001",
-      paymentId: "pay_m148payment001",
+      checkoutId: "ord_m149checkout001",
+      paymentId: "pay_m149payment001",
       status: "PENDING",
       checkoutUrl: "https://sandbox-payments.example.test/checkout/001",
       replayed: false,
@@ -188,7 +201,7 @@ describe("M148 payments browser checkout client", () => {
     expect(confirmation).toEqual({
       verified: true,
       sessionId: handoff.sessionId,
-      reference: "provider-payment-m148",
+      reference: "provider-payment-m149",
       definitiveBusinessId: null,
       activationStatus: "READY_TO_CONVERT",
     });
@@ -211,17 +224,17 @@ describe("M148 payments browser checkout client", () => {
     expect(create.init.cache).toBe("no-store");
     const createHeaders = new Headers(create.init.headers);
     expect(createHeaders.get("Idempotency-Key")).toBe(
-      "business:business_session_m148:growth",
+      "business:business_session_m149:growth",
     );
     expect(createHeaders.get("X-Checkout-Handoff-Token")).toBe(
-      "signed-handoff-token-m148",
+      "signed-handoff-token-m149",
     );
     expect(createHeaders.get("X-Correlation-ID")).toBe(
-      "browser:m148-correlation-0001",
+      "browser:m149-correlation-0001",
     );
 
     const status = result.requests[1]!;
-    expect(status.url).toBe("/api/payments/v1/checkouts/ord_m148checkout001");
+    expect(status.url).toBe("/api/payments/v1/checkouts/ord_m149checkout001");
     expect(status.init.method).toBe("GET");
     expect(status.init.cache).toBe("no-store");
     expect(status.init.credentials).toBe("same-origin");
@@ -231,9 +244,16 @@ describe("M148 payments browser checkout client", () => {
   });
 
   it("uses location fallback only when the popup is blocked", async () => {
-    const result = harness([checkoutResponse(), statusResponse("FAILED")], {
-      popupResult: null,
-    });
+    const result = harness(
+      [
+        checkoutResponse(),
+        statusResponse("FAILED"),
+        statusResponse("FAILED", null, {
+          verifiedFailure: verifiedFailure("fev_m149_popup_failure"),
+        }),
+      ],
+      { popupResult: null },
+    );
     const session = await result.client.start(handoff);
     await expect(session.confirmation).rejects.toMatchObject({
       code: "PAYMENTS_BROWSER_PAYMENT_NOT_COMPLETED",
@@ -241,6 +261,7 @@ describe("M148 payments browser checkout client", () => {
     expect(result.assignments).toEqual([
       "https://sandbox-payments.example.test/checkout/001",
     ]);
+    expect(result.waits).toEqual([2_500, 2_500]);
     expect(result.failed).toEqual([
       expect.objectContaining({
         sessionId: handoff.sessionId,
@@ -268,6 +289,77 @@ describe("M148 payments browser checkout client", () => {
     });
     expect(result.waits).toHaveLength(2);
     expect(result.verified).toHaveLength(1);
+  });
+
+  it("waits for persisted verified failure evidence before emitting a terminal failure", async () => {
+    const result = harness([
+      checkoutResponse(),
+      statusResponse("FAILED"),
+      statusResponse("FAILED", null, {
+        verifiedFailure: verifiedFailure("fev_m149_verified_failure"),
+      }),
+    ]);
+    const session = await result.client.start(handoff);
+    await expect(session.confirmation).rejects.toMatchObject({
+      code: "PAYMENTS_BROWSER_PAYMENT_NOT_COMPLETED",
+    });
+    expect(result.waits).toEqual([2_500, 2_500]);
+    expect(result.verified).toEqual([]);
+    expect(result.failed).toEqual([
+      expect.objectContaining({
+        sessionId: handoff.sessionId,
+        code: "PAYMENTS_BROWSER_PAYMENT_NOT_COMPLETED",
+      }),
+    ]);
+  });
+
+  it("fails closed when verified failure evidence substitutes another Business session", async () => {
+    const result = harness([
+      checkoutResponse(),
+      statusResponse("FAILED", null, {
+        verifiedFailure: verifiedFailure(
+          "fev_m149_substituted_failure",
+          "substituted_session",
+        ),
+      }),
+    ]);
+    const session = await result.client.start(handoff);
+    await expect(session.confirmation).rejects.toMatchObject({
+      code: "PAYMENTS_BROWSER_STATUS_IDENTITY_MISMATCH",
+    });
+    expect(result.verified).toEqual([]);
+    expect(result.failed).toEqual([
+      expect.objectContaining({
+        code: "PAYMENTS_BROWSER_STATUS_IDENTITY_MISMATCH",
+      }),
+    ]);
+  });
+
+  it("fails closed on contradictory verified payment and failure evidence", async () => {
+    const result = harness([
+      checkoutResponse(),
+      statusResponse(
+        "CONFIRMED",
+        {
+          verified: true,
+          sessionId: handoff.sessionId,
+          reference: "provider-payment-conflict",
+          definitiveBusinessId: null,
+          activationStatus: "READY_TO_CONVERT",
+        },
+        {
+          verifiedFailure: verifiedFailure("fev_m149_conflict"),
+        },
+      ),
+    ]);
+    const session = await result.client.start(handoff);
+    await expect(session.confirmation).rejects.toMatchObject({
+      code: "PAYMENTS_BROWSER_INVALID_RESPONSE",
+    });
+    expect(result.verified).toEqual([]);
+    expect(result.failed).toEqual([
+      expect.objectContaining({ code: "PAYMENTS_BROWSER_INVALID_RESPONSE" }),
+    ]);
   });
 
   it("fails closed when the status response belongs to another checkout or Business session", async () => {
@@ -325,21 +417,29 @@ describe("M148 payments browser checkout client", () => {
   });
 
   it("supports authenticated authority without exposing authority control over reserved headers", async () => {
-    const result = harness([checkoutResponse(), statusResponse("FAILED")], {
-      authority: {
-        "X-CSRF-Token": "csrf-token-m148",
-        "X-Business-ID": "business_12345678",
+    const result = harness(
+      [
+        checkoutResponse(),
+        statusResponse("FAILED", null, {
+          verifiedFailure: verifiedFailure("fev_m149_authenticated_failure"),
+        }),
+      ],
+      {
+        authority: {
+          "X-CSRF-Token": "csrf-token-m149",
+          "X-Business-ID": "business_12345678",
+        },
       },
-    });
+    );
     const session = await result.client.start(handoff);
     await expect(session.confirmation).rejects.toBeInstanceOf(
       PaymentsBrowserCheckoutError,
     );
     const headers = new Headers(result.requests[0]!.init.headers);
-    expect(headers.get("X-CSRF-Token")).toBe("csrf-token-m148");
+    expect(headers.get("X-CSRF-Token")).toBe("csrf-token-m149");
     expect(headers.get("X-Business-ID")).toBe("business_12345678");
     expect(headers.get("Idempotency-Key")).toBe(
-      "business:business_session_m148:growth",
+      "business:business_session_m149:growth",
     );
   });
 });
