@@ -8,6 +8,11 @@
       "types": "./src/index.ts",
       "node": "./dist/index.js",
       "default": "./src/index.ts"
+    },
+    "./settlement": {
+      "types": "./src/settlement.ts",
+      "node": "./dist/settlement.js",
+      "default": "./src/settlement.ts"
     }
   },
   "scripts": {

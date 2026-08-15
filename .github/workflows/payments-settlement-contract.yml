@@ -1,0 +1,76 @@
+name: Payments Settlement Contract
+
+on:
+  pull_request:
+    paths:
+      - "packages/financial/**"
+      - "services/financial/**"
+      - "docs/migration/PAYMENTS-MIGRATION-MATRIX.md"
+      - "docs/migration/MASTER-MIGRATION-TRACKER.md"
+      - "docs/qa/PAYMENTS-M146-EVIDENCE.md"
+      - ".github/workflows/payments-settlement-contract.yml"
+      - "pnpm-lock.yaml"
+  push:
+    branches:
+      - main
+    paths:
+      - "packages/financial/**"
+      - "services/financial/**"
+      - "docs/migration/PAYMENTS-MIGRATION-MATRIX.md"
+      - "docs/migration/MASTER-MIGRATION-TRACKER.md"
+      - "docs/qa/PAYMENTS-M146-EVIDENCE.md"
+      - ".github/workflows/payments-settlement-contract.yml"
+      - "pnpm-lock.yaml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: payments-settlement-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  settlement-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: m146-settlement
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -pm146-settlement"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    env:
+      MYSQL_ADMIN_DATABASE_URL: mysql://root:m146-settlement@127.0.0.1:3306/mysql
+      FINANCIAL_DATABASE_URL: mysql://root:m146-settlement@127.0.0.1:3306/financial_m146_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Validate settlement domain contracts
+        run: |
+          pnpm --filter @touristic/financial lint
+          pnpm --filter @touristic/financial typecheck
+          pnpm --filter @touristic/financial test
+          pnpm --filter @touristic/financial build
+      - name: Validate settlement server contracts
+        run: |
+          pnpm --filter @touristic/financial-server lint
+          pnpm --filter @touristic/financial-server typecheck
+          pnpm --filter @touristic/financial-server exec vitest run src/sandbox-settlement-provider.test.ts
+      - name: Validate durable allocation, settlement and refund recovery
+        run: pnpm --filter @touristic/financial-server test:settlement-integration
+      - name: Build settlement server boundary
+        run: pnpm --filter @touristic/financial-server build

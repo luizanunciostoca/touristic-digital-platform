@@ -106,8 +106,8 @@ describeMySql.sequential("M137/M143 Financial MySQL integration", () => {
     await pool.query("DELETE FROM financial_provider_events");
     await pool.query("DELETE FROM financial_ledger_postings");
     await pool.query("DELETE FROM financial_ledger_transactions");
-    await pool.query("DELETE FROM financial_payments");
     await pool.query("DELETE FROM financial_payment_idempotency");
+    await pool.query("DELETE FROM financial_payments");
   });
 
   afterAll(async () => {
