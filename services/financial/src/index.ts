@@ -28,6 +28,13 @@ import {
   type VerifiedPaymentOutcomeServiceDependencies,
 } from "./verified-payment-outcome-service.js";
 import {
+  createVerifiedPaymentAccountingService,
+  type VerifiedPaymentAccountingApplicationPort,
+  type VerifiedPaymentAccountingDisposition,
+  type VerifiedPaymentAccountingOutcome,
+  type VerifiedPaymentAccountingServiceDependencies,
+} from "./verified-payment-accounting-service.js";
+import {
   FinancialWebhookHttpTransport,
   sandboxWebhookPath,
 } from "./webhook-http-transport.js";
@@ -43,6 +50,7 @@ export {
   createSandboxCheckoutProviderFromEnvironment,
   createSandboxWebhookVerifierFromEnvironment,
   createVerifiedPaymentOutcomeService,
+  createVerifiedPaymentAccountingService,
   financialM137SchemaSql,
   financialM141SchemaSql,
   financialM142SchemaSql,
@@ -56,6 +64,10 @@ export type {
   VerifiedPaymentOutcomeApplicationPort,
   VerifiedPaymentOutcomeDisposition,
   VerifiedPaymentOutcomeServiceDependencies,
+  VerifiedPaymentAccountingApplicationPort,
+  VerifiedPaymentAccountingDisposition,
+  VerifiedPaymentAccountingOutcome,
+  VerifiedPaymentAccountingServiceDependencies,
 };
 
 export interface FinancialMySqlEnvironment {

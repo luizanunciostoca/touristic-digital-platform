@@ -19,12 +19,18 @@ import {
   MySqlVerifiedPaymentResultRepository,
   applyFinancialM142Schema,
   createFinancialMySqlPoolFromEnvironment,
+  createVerifiedPaymentAccountingService,
   createVerifiedPaymentOutcomeService,
 } from "./index.js";
 
 const databaseUrl = process.env.FINANCIAL_DATABASE_URL;
 const adminUrl = process.env.MYSQL_ADMIN_DATABASE_URL;
 const describeMySql = databaseUrl && adminUrl ? describe : describe.skip;
+
+interface AccountBalanceRow extends RowDataPacket {
+  account_reference: string;
+  balance: number | string;
+}
 
 function payment(): Payment {
   const id = normalizePaymentId("pay_mysql_12345678");
@@ -64,7 +70,7 @@ function ledger(
   });
 }
 
-describeMySql.sequential("M137/M142 Financial MySQL integration", () => {
+describeMySql.sequential("M137/M143 Financial MySQL integration", () => {
   let pool: Pool;
 
   beforeAll(async () => {
@@ -198,15 +204,20 @@ describeMySql.sequential("M137/M142 Financial MySQL integration", () => {
     ]);
   });
 
-  it("applies a verified provider outcome and persists one authoritative result", async () => {
+  it("posts approval and immutable refund reversal exactly once", async () => {
     const payments = new MySqlPaymentRepository(pool);
     const saved = await payments.save(payment());
     const events = new MySqlProviderWebhookEventRepository(pool);
     const results = new MySqlVerifiedPaymentResultRepository(pool);
+    const ledger = new MySqlLedgerTransactionRepository(pool);
     const outcomes = createVerifiedPaymentOutcomeService({
       payments,
       results,
-      clock: { now: () => "2026-08-14T19:34:02Z" },
+      clock: { now: () => "2026-08-14T19:34:05Z" },
+    });
+    const accounting = createVerifiedPaymentAccountingService({
+      ledger,
+      results,
     });
     const verified = normalizeVerifiedProviderPaymentEvent({
       providerEventId: "pwe_mysql_outcome_0001",
@@ -223,7 +234,8 @@ describeMySql.sequential("M137/M142 Financial MySQL integration", () => {
       matchedPaymentId: saved.id,
     });
 
-    await expect(outcomes.apply(claim.receipt.event)).resolves.toMatchObject({
+    const approval = await outcomes.apply(claim.receipt.event);
+    expect(approval).toMatchObject({
       disposition: "applied",
       payment: { status: "confirmed" },
       result: {
@@ -232,18 +244,101 @@ describeMySql.sequential("M137/M142 Financial MySQL integration", () => {
         providerEventId: verified.providerEventId,
       },
     });
-    await expect(outcomes.apply(claim.receipt.event)).resolves.toMatchObject({
-      disposition: "replayed",
+    if (!approval.payment || !approval.result) {
+      throw new Error("APPROVAL_OUTCOME_INVALID");
+    }
+    await expect(
+      accounting.apply(approval.payment, approval.result),
+    ).resolves.toMatchObject({ disposition: "posted" });
+    await expect(
+      accounting.apply(approval.payment, approval.result),
+    ).resolves.toMatchObject({ disposition: "replayed" });
+
+    const refundEvent = normalizeVerifiedProviderPaymentEvent({
+      providerEventId: "pwe_mysql_refund_0001",
+      externalReference: saved.id,
+      providerPaymentReference: "sandbox_mysql_outcome_0001",
+      status: "refunded",
+      occurredAt: "2026-08-14T19:34:03Z",
     });
+    if (!refundEvent) throw new Error("EVENT_FIXTURE_INVALID");
+    const refundClaim = await events.claim({
+      event: refundEvent,
+      payloadSha256: "d".repeat(64),
+      receivedAt: "2026-08-14T19:34:04Z",
+      matchedPaymentId: saved.id,
+    });
+    const refund = await outcomes.apply(refundClaim.receipt.event);
+    expect(refund).toMatchObject({
+      disposition: "applied",
+      payment: { status: "refunded" },
+      result: { kind: "refunded", paymentStatus: "refunded" },
+    });
+    if (!refund.payment || !refund.result) {
+      throw new Error("REFUND_OUTCOME_INVALID");
+    }
+    const reversal = await accounting.apply(refund.payment, refund.result);
+    expect(reversal).toMatchObject({
+      disposition: "posted",
+      transactions: [
+        {
+          postings: [
+            {
+              accountReference: "asset:provider_clearing",
+              direction: "debit",
+            },
+            {
+              accountReference: "revenue:checkout",
+              direction: "credit",
+            },
+          ],
+        },
+        {
+          postings: [
+            {
+              accountReference: "revenue:checkout",
+              direction: "debit",
+            },
+            {
+              accountReference: "asset:provider_clearing",
+              direction: "credit",
+            },
+          ],
+        },
+      ],
+    });
+    for (const transaction of reversal.transactions) {
+      expect(transaction.externalKey).toMatch(/^payment_result_fev_/u);
+    }
+    await expect(
+      accounting.apply(refund.payment, refund.result),
+    ).resolves.toMatchObject({ disposition: "replayed" });
+
     await expect(payments.findById(saved.id)).resolves.toMatchObject({
-      status: "confirmed",
+      status: "refunded",
       providerReference: "sandbox_mysql_outcome_0001",
     });
-    const [rows] = await pool.query<RowDataPacket[]>(
+    const [resultRows] = await pool.query<RowDataPacket[]>(
       "SELECT COUNT(*) AS total FROM financial_payment_results WHERE payment_id = ?",
       [saved.id],
     );
-    expect(Number(rows[0]?.total)).toBe(1);
+    expect(Number(resultRows[0]?.total)).toBe(2);
+    const [transactionRows] = await pool.query<RowDataPacket[]>(
+      "SELECT COUNT(*) AS total FROM financial_ledger_transactions WHERE external_key LIKE 'payment_result_%'",
+    );
+    expect(Number(transactionRows[0]?.total)).toBe(2);
+    const [balances] = await pool.query<AccountBalanceRow[]>(
+      `SELECT account_reference,
+              SUM(CASE direction WHEN 'debit' THEN CAST(amount_minor AS SIGNED) ELSE -CAST(amount_minor AS SIGNED) END) AS balance
+       FROM financial_ledger_postings
+       GROUP BY account_reference
+       ORDER BY account_reference`,
+    );
+    expect(balances.map((row) => row.account_reference)).toEqual([
+      "asset:provider_clearing",
+      "revenue:checkout",
+    ]);
+    expect(balances.map((row) => Number(row.balance))).toEqual([0, 0]);
   });
 
   it("replays an exact Ledger append and rejects divergent content", async () => {

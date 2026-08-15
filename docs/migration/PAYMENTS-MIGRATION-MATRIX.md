@@ -24,11 +24,11 @@ The Node runtime retains the exact request bytes under a 64 KiB bound. `SandboxW
 
 Verified events require a strongly normalized `pwe_*` identity, the M140 Payment ID as external reference, a known provider status and canonical UTC occurrence time. `financial_provider_events` stores the first payload hash, normalized event, receive time and optional matched Payment. Exact replay returns the first receipt; reuse of an event ID with different signed content fails without overwrite.
 
-A valid event whose Payment is unknown remains durably accepted with `matched=false` and HTTP 202, preserving non-leaking V1 semantics and evidence for later reconciliation. M142 applies a matched receipt only after cryptographic verification and durable claim; an exact replay may re-enter the deterministic outcome service solely to replay or recover the same result after interruption.
+A valid event whose Payment is unknown remains durably accepted with `matched=false` and HTTP 202. M143 now composes only persisted `approved` and `refunded` results into deterministic double-entry transactions. Failed/cancelled/expired outcomes never post money; exact delivery retry replays the same ledger transaction after any interrupted write.
 
 ## Matrix
 
-| Contract                                | Frozen V1 / architecture evidence                                                               | V2 state at M142                                                                                                                                                                         | Status  | Migration decision                                                                                           |
+| Contract                                | Frozen V1 / architecture evidence                                                               | V2 state at M143                                                                                                                                                                         | Status  | Migration decision                                                                                           |
 | --------------------------------------- | ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------ |
 | Business commercial preparation         | V1 commercial adapter prepares plan/contractor/terms                                            | M61/M62 provide the immutable Business-owned handoff; M138 consumes and revalidates it without moving ownership                                                                          | N/A     | Business remains owner; Ordering receives only a bounded application request.                                |
 | Payments ownership boundary             | checkout client/server perform financial execution                                              | Domain packages plus M138 application composition keep provider/financial authority outside Business                                                                                     | PASS    | Preserve this direction in HTTP and provider milestones.                                                     |
@@ -53,18 +53,18 @@ A valid event whose Payment is unknown remains durably accepted with `matched=fa
 | Business conversion after payment       | confirmed payment creates non-publishable conversion                                            | a persisted approved result projects the existing Business `verified/sessionId/reference` contract; failure has a distinct projection and no result can publish a Business automatically | PASS    | Business activation remains separate, non-publishable and correlated to the exact onboarding session.        |
 | Durable payment persistence             | V1 reference implementation is memory-only                                                      | `MySqlPaymentRepository` persists validated Payment state with immutable amount/subject/idempotency, canonical UTC and optimistic concurrency                                            | PASS    | Keep provider execution outside the repository and add integration/database tests before release.            |
 | Order model                             | architecture CAP-0015 requires `OrderPlaced`                                                    | durable Order plus M138 allocation, authoritative snapshot and `draft → pending_payment` composition are executable; retries never reprice                                               | PASS    | Event publication/outbox remains a later operational concern.                                                |
-| Financial ledger                        | architecture CAP-0016/0017 and Domain Map define Financial as money source of truth             | balanced domain ledger plus transactional MySQL header/postings append, full rollback, exact-replay idempotency and corruption checks                                                    | PASS    | Operational posting/reversal/reconciliation remain later milestones.                                         |
-| Refund/reversal                         | architecture requires refund events/financial correctness; V1 checkout slice has no formal flow | `refunded` terminal state + `PaymentRefunded` v1 event exist; refund application/ledger reversal/provider flow absent                                                                    | PARTIAL | Implement deterministic reversal only after durable Payment/Ledger.                                          |
+| Financial ledger                        | architecture CAP-0016/0017 and Domain Map define Financial as money source of truth             | M143 posts one deterministic balanced approval transaction from persisted verified evidence; replay is exact, failures are non-monetary, and MySQL posting rollback remains atomic       | PASS    | Ledger is now operational for the checkout outcome slice; reconciliation and settlement remain separate.     |
+| Refund/reversal                         | architecture requires refund events/financial correctness; V1 checkout slice has no formal flow | a verified `refunded` result recovers any missing approval posting before appending an immutable full compensating reversal; refund initiation/provider command remains absent           | PARTIAL | Add the idempotent provider-neutral refund command; never mutate historical postings.                        |
 | Reconciliation                          | Release/Financial architecture requires reconciliation                                          | absent                                                                                                                                                                                   | GAP     | Provider state must reconcile against internal Payment/Ledger.                                               |
 | Split/repasse                           | CAP-0017                                                                                        | balanced ledger foundation exists, but no split/transfer/settlement model                                                                                                                | GAP     | Implement only after durable ledger and reconciliation.                                                      |
 | Subscription lifecycle                  | FEATURE-0009 is "Pagamentos e Assinaturas"; V1 frozen slice only covers initial checkout        | absent                                                                                                                                                                                   | GAP     | Freeze recurrence semantics separately; do not infer them from checkout.                                     |
-| Financial audit/observability           | architecture requires audit/metrics; M134 covers provider-cost ops only, not product money      | M142 adds applied/replayed/recovered/stale/deferred/unmatched outcome disposition to non-PII webhook audit; durable central audit and operational metrics remain absent                  | PARTIAL | Add durable/central observability around ledger operations and reconciliation.                               |
+| Financial audit/observability           | architecture requires audit/metrics; M134 covers provider-cost ops only, not product money      | webhook audit now includes outcome and accounting disposition without PII/secrets; deterministic ledger keys support traceability, while durable central audit/metrics remain absent     | PARTIAL | Add durable reconciliation findings, alerts and operator acknowledgement.                                    |
 | Sandbox/provider E2E                    | V1 has injected fetch tests; architecture requires payment sandbox                              | deterministic unit coverage plus a permanent local HTTP sandbox wire/idempotency contract; no live third-party sandbox credential or browser journey yet                                 | PARTIAL | Keep the local wire proof; require deployed provider sandbox plus browser E2E before equivalence.            |
 | Rate limiting                           | V1 create/status optionally 12/minute                                                           | M139 enforces 12/min create and 60/min status with bounded in-memory buckets keyed by requester/IP                                                                                       | PARTIAL | Replace/compose with a distributed limiter before horizontally scaled production.                            |
 | Auth/tenant context                     | platform Auth exists; V1 checkout is onboarding session oriented                                | authenticated requests require valid session, origin, CSRF, mutation role and business scope; guests require a short-lived signed full-handoff capability bound to destination/tenant    | PASS    | Business may issue the guest capability server-side; browsers never mint authority.                          |
-| Rollback/migration strategy             | release process requires migration and rollback                                                 | M142 is expand-only: the result table references immutable provider evidence and Payment; disabling application/projection retains all rows for retry, forensics and reconciliation      | PARTIAL | Keep result/event rows on rollback; schema removal is forbidden while evidence may be referenced.            |
+| Rollback/migration strategy             | release process requires migration and rollback                                                 | outcome/accounting is retry-safe and expand-only; disabling composition retains provider evidence, results and immutable ledger entries, including compensating reversals                | PARTIAL | Rollback must never delete or rewrite financial history; retry from the persisted result.                    |
 
-## M142 score
+## M143 score
 
 - `PASS`: 20
 - `PARTIAL`: 7
@@ -72,28 +72,28 @@ A valid event whose Payment is unknown remains durably accepted with `matched=fa
 - `N/A`: 1
 - total: 34
 
-M142 closes verified Payment state application and the authoritative result bridge to Business. Operational ledger posting, refund/reversal execution, reconciliation, settlement, subscriptions and browser execution remain below PASS.
+M143 makes the already balanced ledger operational for verified checkout approval and refund reversal without broadening provider authority. Refund initiation, provider reconciliation, settlement, subscriptions and browser execution remain below PASS.
 
 ## Promotion decision
 
-After M142 and green Quality, Payments Persistence Integration, Sandbox Provider, Verified Webhook and Verified Outcome gates on the final head:
+After M143 and green Quality, Persistence, Sandbox Provider, Verified Webhook, Verified Outcome and Operational Ledger gates on the final head:
 
 - `FEATURE-0009` and `MIG-0010` remain `migrating`;
 - behavior/visual/API equivalence flags remain `false`;
-- only cryptographically verified, durably claimed and matched evidence may change Payment;
-- exact retries converge on one deterministic persisted result;
-- Business receives approval only from that persisted result and never from browser return;
-- no operational ledger posting or real money movement is enabled.
+- only a persisted approved/refunded Financial result can create a ledger transaction;
+- deterministic result keys make retry and concurrent delivery converge;
+- failed/cancelled/expired results create no accounting postings;
+- refund uses an immutable compensating transaction and never edits approval history;
+- no provider refund command or real money movement is enabled.
 
 ## Next milestone
 
-M143 must make the existing balanced ledger operational around authoritative Payment outcomes:
+M144 must introduce provider-neutral refund initiation behind an authenticated application boundary:
 
-1. post an idempotent double-entry transaction for an approved Payment;
-2. define provider-neutral refund/reversal commands and verified completion;
-3. post compensating entries instead of mutating historical ledger rows;
-4. reconcile provider evidence, Payment, result and ledger with explicit mismatch states;
-5. expose durable audit/metrics for unresolved mismatches;
-6. prove crash/retry and concurrent delivery recovery in MySQL.
+1. accept only full refunds of a confirmed Payment with an approved result and approval ledger;
+2. claim one durable refund request and provider idempotency key;
+3. call a sandbox refund port without changing Payment from the command response;
+4. wait for the cryptographically verified `refunded` webhook before reversal;
+5. recover safely across provider timeout and duplicate operator requests.
 
-Split/repasse/settlement and subscriptions remain later milestones. Browser checkout/E2E follows the protected server lifecycle. Affiliates stays blocked.
+M145 then reconciles provider state, Payment, verified results and ledger with durable mismatch findings. Split/repasse/settlement remains later. Affiliates stays blocked.
