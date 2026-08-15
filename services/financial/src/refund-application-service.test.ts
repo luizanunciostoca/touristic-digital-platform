@@ -93,7 +93,9 @@ class MemoryResults implements VerifiedPaymentResultRepositoryPort {
   findByProviderEventId(
     id: ProviderEventId,
   ): Promise<VerifiedPaymentResult | null> {
-    return Promise.resolve(this.value?.providerEventId === id ? this.value : null);
+    return Promise.resolve(
+      this.value?.providerEventId === id ? this.value : null,
+    );
   }
   findByPaymentStatus(
     id: PaymentId,
@@ -123,7 +125,9 @@ class MemoryLedger implements LedgerTransactionRepositoryPort {
 class MemoryRefunds implements RefundRequestRepositoryPort {
   current: RefundRequest | null = null;
   findByPaymentId(id: PaymentId): Promise<RefundRequest | null> {
-    return Promise.resolve(this.current?.paymentId === id ? this.current : null);
+    return Promise.resolve(
+      this.current?.paymentId === id ? this.current : null,
+    );
   }
   claim(request: RefundRequest) {
     const claimed = this.current === null;

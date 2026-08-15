@@ -1,8 +1,4 @@
-import type {
-  Pool,
-  ResultSetHeader,
-  RowDataPacket,
-} from "mysql2/promise";
+import type { Pool, ResultSetHeader, RowDataPacket } from "mysql2/promise";
 
 import {
   normalizePaymentId,
@@ -73,9 +69,7 @@ function sameImmutable(left: RefundRequest, right: RefundRequest): boolean {
   );
 }
 
-export class MySqlRefundRequestRepository
-  implements RefundRequestRepositoryPort
-{
+export class MySqlRefundRequestRepository implements RefundRequestRepositoryPort {
   constructor(private readonly pool: Pool) {}
 
   private async findById(
@@ -188,7 +182,8 @@ export class MySqlRefundRequestRepository
       if (
         raced?.status === "provider_accepted" &&
         raced.providerRefundReference === proposed.providerRefundReference
-      ) return raced;
+      )
+        return raced;
       throw new Error("FINANCIAL_CONCURRENT_REFUND_MODIFICATION");
     }
     const saved = await this.findById(existing.id);

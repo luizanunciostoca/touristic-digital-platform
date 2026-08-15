@@ -275,7 +275,6 @@ export function createSandboxCheckoutProviderFromEnvironment(
   });
 }
 
-
 export function createSandboxRefundProviderFromEnvironment(
   environment: SandboxCheckoutProviderEnvironment,
   options: SandboxCheckoutProviderOptions = {},

@@ -81,19 +81,18 @@ function harness(
       });
     },
   };
-  const authorization: RefundHttpAuthorizationPort =
-    options.authorization ?? {
-      authorizeRefund() {
-        authorizationCalls += 1;
-        return Promise.resolve({
-          allowed: true as const,
-          context: {
-            actorSubject: "user-refund-http",
-            tenantId: "business-refund-http",
-          },
-        });
-      },
-    };
+  const authorization: RefundHttpAuthorizationPort = options.authorization ?? {
+    authorizeRefund() {
+      authorizationCalls += 1;
+      return Promise.resolve({
+        allowed: true as const,
+        context: {
+          actorSubject: "user-refund-http",
+          tenantId: "business-refund-http",
+        },
+      });
+    },
+  };
   const transport = new RefundHttpTransport({
     application,
     authorization,
@@ -203,10 +202,12 @@ describe("M144 authenticated refund HTTP boundary", () => {
           }),
       },
     });
-    await expect(viewer.transport.handle(httpRequest())).resolves.toMatchObject({
-      status: 403,
-      body: { error: "READ_ONLY_ROLE" },
-    });
+    await expect(viewer.transport.handle(httpRequest())).resolves.toMatchObject(
+      {
+        status: 403,
+        body: { error: "READ_ONLY_ROLE" },
+      },
+    );
     expect(viewer.applicationCalls()).toBe(0);
   });
 
@@ -227,7 +228,9 @@ describe("M144 authenticated refund HTTP boundary", () => {
     });
 
     const limited = harness({ rateAllowed: false });
-    await expect(limited.transport.handle(httpRequest())).resolves.toMatchObject({
+    await expect(
+      limited.transport.handle(httpRequest()),
+    ).resolves.toMatchObject({
       status: 429,
       body: { error: "RATE_LIMITED" },
       headers: { "Retry-After": "30" },

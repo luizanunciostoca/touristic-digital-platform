@@ -385,8 +385,7 @@ describe("M139/M141 payments API runtime boundary", () => {
     });
     const response = responseCapture();
     const body = JSON.stringify({ reason: "requested_by_business" });
-    const pathname =
-      "/api/payments/v1/payments/pay_runtime_00000001/refunds";
+    const pathname = "/api/payments/v1/payments/pay_runtime_00000001/refunds";
 
     expect(api.matches(pathname)).toBe(true);
     await api.handle(
@@ -498,5 +497,4 @@ describe("M139/M141 payments API runtime boundary", () => {
       reason: "authentication_required",
     });
   });
-
 });

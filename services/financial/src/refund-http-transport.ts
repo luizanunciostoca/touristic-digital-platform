@@ -286,8 +286,10 @@ export class RefundHttpTransport {
       return errorResponse(409, "IDEMPOTENCY_KEY_MISMATCH", correlationId);
     }
 
-    const authorization =
-      await this.dependencies.authorization.authorizeRefund(request, paymentId);
+    const authorization = await this.dependencies.authorization.authorizeRefund(
+      request,
+      paymentId,
+    );
     if (!authorization.allowed) {
       await this.dependencies.audit.record({
         action: "payment.refund",
@@ -334,9 +336,8 @@ export class RefundHttpTransport {
     }
 
     try {
-      const result = await this.dependencies.application.requestFullRefund(
-        paymentId,
-      );
+      const result =
+        await this.dependencies.application.requestFullRefund(paymentId);
       await this.dependencies.audit.record({
         action: "payment.refund",
         result: "success",

@@ -260,9 +260,7 @@ describe("M140/M144 sandbox payment provider adapters", () => {
       accepted: true,
       providerRefundReference: "sandbox_refund_0001",
     });
-    expect(capturedUrl).toBe(
-      "https://api.sandbox-payments.example/v1/refunds",
-    );
+    expect(capturedUrl).toBe("https://api.sandbox-payments.example/v1/refunds");
     const headers = new Headers(capturedInit?.headers);
     expect(headers.get("Idempotency-Key")).toBe(
       "refund:v1:pay_sandbox_refund_0001",
@@ -300,5 +298,4 @@ describe("M140/M144 sandbox payment provider adapters", () => {
       new SandboxCheckoutProviderError("SANDBOX_PROVIDER_INVALID_RESPONSE"),
     );
   });
-
 });

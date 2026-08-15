@@ -436,9 +436,7 @@ export function createRefundIdempotencyKey(
   paymentIdInput: unknown,
 ): RefundIdempotencyKey | null {
   const paymentId = normalizePaymentId(paymentIdInput);
-  return paymentId
-    ? (`refund:v1:${paymentId}` as RefundIdempotencyKey)
-    : null;
+  return paymentId ? (`refund:v1:${paymentId}` as RefundIdempotencyKey) : null;
 }
 
 function normalizeRefundIdempotencyKey(
@@ -503,7 +501,8 @@ export function normalizeRefundRequest(
     !createdAt ||
     !updatedAt ||
     Date.parse(updatedAt) < Date.parse(createdAt)
-  ) return null;
+  )
+    return null;
   return Object.freeze({
     id,
     idempotencyKey,
@@ -546,7 +545,8 @@ export function createRefundProviderCommand(
     amount.minorUnits <= 0 ||
     !PROVIDER_REFERENCE.test(providerPaymentReference) ||
     input.reason !== "requested_by_business"
-  ) return null;
+  )
+    return null;
   return Object.freeze({
     refundRequestId,
     paymentId,
