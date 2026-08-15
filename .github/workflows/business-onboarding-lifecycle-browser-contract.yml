@@ -1,0 +1,78 @@
+name: Business Onboarding Lifecycle Browser Contract
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/business-onboarding-lifecycle-browser-contract.yml"
+      - "apps/morro-digital-platform/src/business-onboarding-browser-lifecycle.ts"
+      - "apps/morro-digital-platform/src/business-onboarding-entry.ts"
+      - "apps/morro-digital-platform/src/business-onboarding-session-store.ts"
+      - "apps/morro-digital-platform/src/business-onboarding-surface.ts"
+      - "apps/morro-digital-platform/public/business-onboarding.*"
+      - "apps/morro-digital-platform/tooling/business-onboarding-lifecycle-browser-contract.mjs"
+      - "packages/business/src/onboarding*.ts"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/business-onboarding-lifecycle-browser-contract.yml"
+      - "apps/morro-digital-platform/src/business-onboarding-browser-lifecycle.ts"
+      - "apps/morro-digital-platform/src/business-onboarding-entry.ts"
+      - "apps/morro-digital-platform/src/business-onboarding-session-store.ts"
+      - "apps/morro-digital-platform/src/business-onboarding-surface.ts"
+      - "apps/morro-digital-platform/public/business-onboarding.*"
+      - "apps/morro-digital-platform/tooling/business-onboarding-lifecycle-browser-contract.mjs"
+      - "packages/business/src/onboarding*.ts"
+
+permissions:
+  contents: read
+
+jobs:
+  lifecycle-browser:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install deterministic Chromium
+        run: |
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+      - name: Build workspace
+        run: pnpm -w build
+      - name: Start deterministic app origin
+        shell: bash
+        run: |
+          set -euo pipefail
+          PORT=4181
+          HOST=127.0.0.1
+          PORT="$PORT" HOST="$HOST" node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/business-onboarding-lifecycle-server.log 2>&1 &
+          echo $! >/tmp/business-onboarding-lifecycle-server.pid
+          for _ in $(seq 1 60); do
+            if curl --fail --silent "http://${HOST}:${PORT}/apps/morro-digital-platform/public/business-onboarding.html" >/dev/null; then exit 0; fi
+            sleep 0.25
+          done
+          cat /tmp/business-onboarding-lifecycle-server.log
+          exit 1
+      - name: Validate resumable and accessible browser lifecycle
+        env:
+          BUSINESS_ONBOARDING_ORIGIN: http://127.0.0.1:4181
+        run: node apps/morro-digital-platform/tooling/business-onboarding-lifecycle-browser-contract.mjs
+      - name: Show diagnostics
+        if: failure()
+        run: cat /tmp/business-onboarding-lifecycle-server.log || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: business-onboarding-lifecycle-browser-evidence
+          path: /tmp/business-onboarding-lifecycle-browser-evidence.json
+          retention-days: 1
+          if-no-files-found: ignore
+      - name: Stop runtime
+        if: always()
+        run: kill "$(cat /tmp/business-onboarding-lifecycle-server.pid)" 2>/dev/null || true
