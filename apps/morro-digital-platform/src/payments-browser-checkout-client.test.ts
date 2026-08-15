@@ -82,8 +82,8 @@ function statusResponse(
 
 function verifiedFailure(
   resultId: string,
-  sessionId = handoff.sessionId,
-  reason = "failed",
+  sessionId: string = handoff.sessionId,
+  reason: string = "failed",
 ) {
   return {
     verified: true,
