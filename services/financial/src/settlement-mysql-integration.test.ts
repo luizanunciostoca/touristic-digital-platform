@@ -210,7 +210,7 @@ describeMySql.sequential("M146 settlement MySQL integration", () => {
         ledger: new MySqlLedgerTransactionRepository(pool),
         settlement: new MySqlFinancialSettlementRepository(pool),
         provider,
-        clock: { now: () => "2026-08-15T04:30:00Z" },
+        clock: { now: () => "2026-08-15T05:00:00Z" },
       }),
     };
   }
