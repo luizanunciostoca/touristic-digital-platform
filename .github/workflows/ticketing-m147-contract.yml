@@ -63,17 +63,23 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Validate Ticketing domain and application
+      - name: Build Ticketing runtime dependencies
+        run: |
+          pnpm --filter @touristic/financial build
+          pnpm --filter @touristic/ordering build
+      - name: Validate Ticketing domain
         run: |
           pnpm --filter @touristic/ticketing lint
           pnpm --filter @touristic/ticketing typecheck
           pnpm --filter @touristic/ticketing test
+      - name: Build Ticketing domain
+        run: pnpm --filter @touristic/ticketing build
+      - name: Validate Ticketing server application
+        run: |
           pnpm --filter @touristic/ticketing-server lint
           pnpm --filter @touristic/ticketing-server typecheck
           pnpm --filter @touristic/ticketing-server test
       - name: Validate durable Ticketing persistence
         run: pnpm --filter @touristic/ticketing-server test:integration
-      - name: Build Ticketing packages
-        run: |
-          pnpm --filter @touristic/ticketing build
-          pnpm --filter @touristic/ticketing-server build
+      - name: Build Ticketing server
+        run: pnpm --filter @touristic/ticketing-server build
