@@ -35,7 +35,11 @@ jobs:
             services/financial/src/webhook-http-transport.test.ts \
             services/financial/src/mysql-integration.test.ts \
             apps/morro-digital-platform/tooling/payments-api.mjs \
-            .github/workflows/payments-operational-ledger-contract.yml
+            .github/workflows/payments-operational-ledger-contract.yml \
+            docs/migration/PAYMENTS-MIGRATION-MATRIX.md \
+            docs/migration/MASTER-MIGRATION-TRACKER.md \
+            docs/qa/PAYMENTS-M143-EVIDENCE.md \
+            README.md
       - name: Commit formatting
         run: |
           if git diff --quiet; then
@@ -51,6 +55,10 @@ jobs:
             services/financial/src/webhook-http-transport.test.ts \
             services/financial/src/mysql-integration.test.ts \
             apps/morro-digital-platform/tooling/payments-api.mjs \
-            .github/workflows/payments-operational-ledger-contract.yml
+            .github/workflows/payments-operational-ledger-contract.yml \
+            docs/migration/PAYMENTS-MIGRATION-MATRIX.md \
+            docs/migration/MASTER-MIGRATION-TRACKER.md \
+            docs/qa/PAYMENTS-M143-EVIDENCE.md \
+            README.md
           git commit -m "style(payments): format M143 changes"
           git push origin HEAD:feat/payments-m143-operational-ledger
