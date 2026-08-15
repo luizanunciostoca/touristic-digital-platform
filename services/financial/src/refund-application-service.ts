@@ -133,8 +133,15 @@ export function createRefundApplicationService(
       ) {
         throw new RefundApplicationError("REFUND_REQUEST_CONFLICT");
       }
+      if (existing && payment.status === "refunded") {
+        return Object.freeze({
+          request: existing,
+          status: "COMPLETED" as const,
+          replayed: true,
+        });
+      }
       if (existing?.status === "provider_accepted") {
-        if (payment.status !== "confirmed" && payment.status !== "refunded") {
+        if (payment.status !== "confirmed") {
           throw new RefundApplicationError("REFUND_NOT_ALLOWED");
         }
         return Object.freeze({
