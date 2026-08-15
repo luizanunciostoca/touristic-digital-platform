@@ -1,0 +1,62 @@
+name: Temporary M146 Isolation Cleanup
+
+on:
+  push:
+    branches:
+      - feat/payments-m146-settlement
+    paths:
+      - ".github/workflows/m146-isolation-cleanup-once.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/payments-m146-settlement
+      - name: Isolate M146 settlement database
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("services/financial/src/settlement-mysql-integration.test.ts")
+          s = p.read_text()
+          old = '''const databaseUrl = process.env.FINANCIAL_DATABASE_URL;
+          const adminUrl = process.env.MYSQL_ADMIN_DATABASE_URL;
+          const describeMySql = databaseUrl && adminUrl ? describe : describe.skip;'''
+          new = '''const databaseUrl = process.env.FINANCIAL_DATABASE_URL;
+          const adminUrl = process.env.MYSQL_ADMIN_DATABASE_URL;
+          const settlementDatabaseUrl = databaseUrl
+            ? (() => {
+                const url = new URL(databaseUrl);
+                url.pathname = "/financial_m146_test";
+                return url.toString();
+              })()
+            : undefined;
+          const describeMySql =
+            settlementDatabaseUrl && adminUrl ? describe : describe.skip;'''
+          # account for source being flush-left after heredoc dedent
+          old = old.replace("          ", "")
+          new = new.replace("          ", "")
+          assert s.count(old) == 1, "expected M146 database prelude exactly once"
+          s = s.replace(old, new, 1)
+          assert s.count('if (!adminUrl || !databaseUrl)') == 1
+          s = s.replace('if (!adminUrl || !databaseUrl)', 'if (!adminUrl || !settlementDatabaseUrl)', 1)
+          assert s.count('FINANCIAL_DATABASE_URL: databaseUrl,') == 1
+          s = s.replace('FINANCIAL_DATABASE_URL: databaseUrl,', 'FINANCIAL_DATABASE_URL: settlementDatabaseUrl,', 1)
+          p.write_text(s)
+          PY
+          git diff --check
+      - name: Commit isolation and remove temporary helpers
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm -f \
+            .github/workflows/m146-cleanup-order-fix.yml \
+            .github/workflows/m146-db-isolation-fix-once.yml \
+            .github/workflows/m146-isolation-cleanup-once.yml
+          git add services/financial/src/settlement-mysql-integration.test.ts
+          git commit -m "test(payments): isolate M146 MySQL settlement suite"
+          git push origin HEAD:feat/payments-m146-settlement
