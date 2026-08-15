@@ -1,53 +1,38 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
-import { BusinessOnboardingHostController } from "./onboarding-host.js";
+import {
+  BusinessOnboardingHostController,
+  type BusinessOnboardingHostSnapshot,
+} from "./onboarding-host.js";
 
 describe("BusinessOnboardingHostController lifecycle observation", () => {
   it("emits committed workflow mutations without reporting blocked transitions", async () => {
-    const onChange = vi.fn();
+    const observed: BusinessOnboardingHostSnapshot[] = [];
     const host = new BusinessOnboardingHostController({
-      onChange,
+      onChange: (snapshot) => observed.push(snapshot),
       beforeTransition: ({ fromStepId }) => fromStepId !== "category",
     });
 
     await host.next();
-    expect(onChange).toHaveBeenLastCalledWith(
-      expect.objectContaining({ stepId: "category" }),
-    );
+    expect(observed.at(-1)?.stepId).toBe("category");
 
     host.updateStepInput("category", "events");
-    expect(onChange).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        session: expect.objectContaining({ status: "ACTIVE" }),
-        stepId: "category",
-      }),
-    );
+    expect(observed.at(-1)?.stepId).toBe("category");
+    expect(observed.at(-1)?.session.status).toBe("ACTIVE");
 
-    const callsBeforeBlockedMove = onChange.mock.calls.length;
+    const callsBeforeBlockedMove = observed.length;
     await host.next();
     expect(host.snapshot().stepId).toBe("category");
-    expect(onChange).toHaveBeenCalledTimes(callsBeforeBlockedMove);
+    expect(observed).toHaveLength(callsBeforeBlockedMove);
 
     host.pause("user_pause");
-    expect(onChange).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        session: expect.objectContaining({ status: "PAUSED" }),
-      }),
-    );
+    expect(observed.at(-1)?.session.status).toBe("PAUSED");
 
     host.restart();
-    expect(onChange).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        session: expect.objectContaining({ status: "ACTIVE" }),
-        stepId: "welcome",
-      }),
-    );
+    expect(observed.at(-1)?.session.status).toBe("ACTIVE");
+    expect(observed.at(-1)?.stepId).toBe("welcome");
 
     host.complete();
-    expect(onChange).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        session: expect.objectContaining({ status: "COMPLETED" }),
-      }),
-    );
+    expect(observed.at(-1)?.session.status).toBe("COMPLETED");
   });
 });
