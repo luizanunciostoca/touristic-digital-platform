@@ -98,6 +98,9 @@ describeMySql.sequential("M137/M143 Financial MySQL integration", () => {
 
   beforeEach(async () => {
     await pool.query("DROP TRIGGER IF EXISTS financial_test_fail_posting");
+    await pool.query("DELETE FROM financial_settlements");
+    await pool.query("DELETE FROM financial_payables");
+    await pool.query("DELETE FROM financial_allocations");
     await pool.query("DELETE FROM financial_reconciliation_run_findings");
     await pool.query("DELETE FROM financial_reconciliation_runs");
     await pool.query("DELETE FROM financial_reconciliation_findings");
@@ -106,8 +109,8 @@ describeMySql.sequential("M137/M143 Financial MySQL integration", () => {
     await pool.query("DELETE FROM financial_provider_events");
     await pool.query("DELETE FROM financial_ledger_postings");
     await pool.query("DELETE FROM financial_ledger_transactions");
-    await pool.query("DELETE FROM financial_payments");
     await pool.query("DELETE FROM financial_payment_idempotency");
+    await pool.query("DELETE FROM financial_payments");
   });
 
   afterAll(async () => {
