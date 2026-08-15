@@ -1,4 +1,4 @@
-import mysql, { type Pool } from "mysql2/promise";
+import mysql, { type Pool, type RowDataPacket } from "mysql2/promise";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { createMoney, normalizePaymentId } from "@touristic/financial";
@@ -33,6 +33,11 @@ const transactionDatabaseUrl = databaseUrl
   : undefined;
 const describeMySql =
   transactionDatabaseUrl && adminUrl ? describe : describe.skip;
+
+interface OfflineEnvelopeSyncRow extends RowDataPacket {
+  synced_at: Date;
+  checkin_id: string;
+}
 
 function fixture() {
   const orderId = normalizeOrderId("ord_ticketing_m148_0001");
@@ -279,7 +284,7 @@ describeMySql.sequential("M148 Ticketing transactional MySQL contract", () => {
         command.envelope.id,
       ),
     ).resolves.toEqual(command.envelope);
-    const [rows] = await pool.query(
+    const [rows] = await pool.query<OfflineEnvelopeSyncRow[]>(
       "SELECT synced_at, checkin_id FROM ticketing_offline_envelopes WHERE envelope_id = ?",
       [command.envelope.id],
     );
