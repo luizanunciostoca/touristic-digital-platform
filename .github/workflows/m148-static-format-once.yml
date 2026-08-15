@@ -99,6 +99,7 @@ jobs:
             apps/morro-digital-platform/src/payments-browser-checkout-client.test.ts
           pnpm --filter @touristic/morro-digital-platform lint
           pnpm --filter @touristic/morro-digital-platform typecheck
+          pnpm -w build
           pnpm --filter @touristic/morro-digital-platform test
           git diff --check
       - name: Commit permanent files and remove helper
