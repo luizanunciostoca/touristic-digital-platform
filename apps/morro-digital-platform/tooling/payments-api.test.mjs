@@ -7,6 +7,7 @@ import { createCheckoutHandoffCapability } from "@touristic/ordering-server";
 import {
   createPaymentsApi,
   createPaymentsCheckoutAuthorizationPort,
+  createPaymentsRefundAuthorizationPort,
 } from "./payments-api.mjs";
 
 function request({ method = "GET", headers = {}, body } = {}) {
@@ -359,6 +360,141 @@ describe("M139/M141 payments API runtime boundary", () => {
     ).resolves.toEqual({
       allowed: false,
       reason: "invalid_guest_capability",
+    });
+  });
+
+  it("routes bounded refund JSON to the dedicated transport", async () => {
+    let captured;
+    const api = createPaymentsApi({
+      refundTransport: {
+        handle(input) {
+          captured = input;
+          return Promise.resolve({
+            status: 202,
+            body: {
+              data: {
+                refundId: "rfd_runtime_00000001",
+                status: "AWAITING_VERIFIED_EVENT",
+              },
+            },
+            headers: { "Cache-Control": "no-store" },
+          });
+        },
+      },
+      audit: () => undefined,
+    });
+    const response = responseCapture();
+    const body = JSON.stringify({ reason: "requested_by_business" });
+    const pathname = "/api/payments/v1/payments/pay_runtime_00000001/refunds";
+
+    expect(api.matches(pathname)).toBe(true);
+    await api.handle(
+      request({
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "content-length": String(Buffer.byteLength(body)),
+          "idempotency-key": "refund:v1:pay_runtime_00000001",
+        },
+        body,
+      }),
+      response,
+      new URL("http://localhost" + pathname),
+    );
+
+    expect(response.statusCode).toBe(202);
+    expect(captured).toMatchObject({
+      method: "POST",
+      pathname,
+      body: { reason: "requested_by_business" },
+      clientIp: "203.0.113.20",
+    });
+    expect(captured.correlationId).toMatch(/^corr_/u);
+  });
+
+  it("binds refund authority to active session, CSRF and checkout tenant", async () => {
+    const now = Math.floor(Date.now() / 1_000);
+    const active = Object.freeze({
+      subject: "user-refund-runtime",
+      email: "owner@example.com",
+      role: "owner",
+      businessIds: Object.freeze(["business-1"]),
+      issuedAt: now - 60,
+      expiresAt: now + 3_600,
+      sessionId: "session-refund-runtime",
+    });
+    const payment = {
+      id: "pay_refund_runtime_0001",
+      subject: { kind: "order", reference: "ord_refund_runtime_0001" },
+    };
+    const base = {
+      authApi: {
+        resolveSession: () => active,
+        authorizeMutation: () => ({ allowed: true }),
+      },
+      payments: {
+        findById: () => Promise.resolve(payment),
+      },
+      access: {
+        findByOrderId: () =>
+          Promise.resolve({
+            orderId: payment.subject.reference,
+            paymentId: payment.id,
+            tenantId: "business-1",
+          }),
+      },
+    };
+    const port = createPaymentsRefundAuthorizationPort(base);
+
+    await expect(
+      port.authorizeRefund(
+        { headers: { "x-business-id": "business-1" } },
+        payment.id,
+      ),
+    ).resolves.toEqual({
+      allowed: true,
+      context: {
+        actorSubject: "user-refund-runtime",
+        tenantId: "business-1",
+      },
+    });
+
+    const mismatched = createPaymentsRefundAuthorizationPort({
+      ...base,
+      access: {
+        findByOrderId: () =>
+          Promise.resolve({
+            orderId: payment.subject.reference,
+            paymentId: payment.id,
+            tenantId: "business-2",
+          }),
+      },
+    });
+    await expect(
+      mismatched.authorizeRefund(
+        { headers: { "x-business-id": "business-1" } },
+        payment.id,
+      ),
+    ).resolves.toEqual({
+      allowed: false,
+      reason: "business_access_denied",
+    });
+
+    const guest = createPaymentsRefundAuthorizationPort({
+      ...base,
+      authApi: {
+        resolveSession: () => null,
+        authorizeMutation: () => ({ allowed: false }),
+      },
+    });
+    await expect(
+      guest.authorizeRefund(
+        { headers: { "x-business-id": "business-1" } },
+        payment.id,
+      ),
+    ).resolves.toEqual({
+      allowed: false,
+      reason: "authentication_required",
     });
   });
 });

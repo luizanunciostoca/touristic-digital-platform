@@ -3,6 +3,7 @@ import mysql, { type Pool, type PoolOptions } from "mysql2/promise";
 import { MySqlLedgerTransactionRepository } from "./mysql-ledger-repository.js";
 import { MySqlPaymentIdempotencyPort } from "./mysql-payment-idempotency-port.js";
 import { MySqlPaymentRepository } from "./mysql-payment-repository.js";
+import { MySqlRefundRequestRepository } from "./mysql-refund-request-repository.js";
 import {
   MySqlProviderWebhookEventRepository,
   type ProviderWebhookEventClaim,
@@ -13,13 +14,36 @@ import { MySqlVerifiedPaymentResultRepository } from "./mysql-verified-payment-r
 import {
   SandboxCheckoutProviderError,
   createSandboxCheckoutProviderFromEnvironment,
+  createSandboxRefundProviderFromEnvironment,
 } from "./sandbox-checkout-provider.js";
 import { createSandboxWebhookVerifierFromEnvironment } from "./sandbox-webhook-verifier.js";
 import {
   financialM137SchemaSql,
   financialM141SchemaSql,
   financialM142SchemaSql,
+  financialM144SchemaSql,
 } from "./schema.js";
+import {
+  RefundApplicationError,
+  createRefundApplicationService,
+  type RefundApplicationErrorCode,
+  type RefundApplicationResult,
+  type RefundApplicationService,
+  type RefundApplicationServiceDependencies,
+} from "./refund-application-service.js";
+import {
+  RefundHttpTransport,
+  refundHttpPrefix,
+  type RefundHttpAuditPort,
+  type RefundHttpAuthorizationContext,
+  type RefundHttpAuthorizationDecision,
+  type RefundHttpAuthorizationDenialReason,
+  type RefundHttpAuthorizationPort,
+  type RefundHttpRateLimitPort,
+  type RefundHttpRequest,
+  type RefundHttpResponse,
+  type RefundHttpTransportDependencies,
+} from "./refund-http-transport.js";
 import {
   createVerifiedPaymentOutcomeService,
   type VerifiedPaymentOutcome,
@@ -40,23 +64,43 @@ import {
 } from "./webhook-http-transport.js";
 
 export {
+  RefundApplicationError,
+  RefundHttpTransport,
+  createRefundApplicationService,
   MySqlLedgerTransactionRepository,
   MySqlPaymentIdempotencyPort,
   MySqlPaymentRepository,
+  MySqlRefundRequestRepository,
   MySqlProviderWebhookEventRepository,
   MySqlVerifiedPaymentResultRepository,
   FinancialWebhookHttpTransport,
   SandboxCheckoutProviderError,
   createSandboxCheckoutProviderFromEnvironment,
+  createSandboxRefundProviderFromEnvironment,
   createSandboxWebhookVerifierFromEnvironment,
   createVerifiedPaymentOutcomeService,
   createVerifiedPaymentAccountingService,
   financialM137SchemaSql,
   financialM141SchemaSql,
   financialM142SchemaSql,
+  financialM144SchemaSql,
+  refundHttpPrefix,
   sandboxWebhookPath,
 };
 export type {
+  RefundApplicationErrorCode,
+  RefundApplicationResult,
+  RefundApplicationService,
+  RefundApplicationServiceDependencies,
+  RefundHttpAuditPort,
+  RefundHttpAuthorizationContext,
+  RefundHttpAuthorizationDecision,
+  RefundHttpAuthorizationDenialReason,
+  RefundHttpAuthorizationPort,
+  RefundHttpRateLimitPort,
+  RefundHttpRequest,
+  RefundHttpResponse,
+  RefundHttpTransportDependencies,
   ProviderWebhookEventClaim,
   ProviderWebhookEventRepositoryPort,
   ProviderWebhookReceipt,
@@ -110,4 +154,9 @@ export async function applyFinancialM141Schema(pool: Pool): Promise<void> {
 export async function applyFinancialM142Schema(pool: Pool): Promise<void> {
   await applyFinancialM141Schema(pool);
   await applySqlStatements(pool, financialM142SchemaSql);
+}
+
+export async function applyFinancialM144Schema(pool: Pool): Promise<void> {
+  await applyFinancialM142Schema(pool);
+  await applySqlStatements(pool, financialM144SchemaSql);
 }

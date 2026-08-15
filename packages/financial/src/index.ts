@@ -8,6 +8,8 @@ const paymentIdBrand: unique symbol = Symbol("PaymentId");
 const ledgerTransactionIdBrand: unique symbol = Symbol("LedgerTransactionId");
 const financialEventIdBrand: unique symbol = Symbol("FinancialEventId");
 const providerEventIdBrand: unique symbol = Symbol("ProviderEventId");
+const refundRequestIdBrand: unique symbol = Symbol("RefundRequestId");
+const refundIdempotencyKeyBrand: unique symbol = Symbol("RefundIdempotencyKey");
 const paymentIdempotencyKeyBrand: unique symbol = Symbol(
   "PaymentIdempotencyKey",
 );
@@ -22,6 +24,12 @@ export type FinancialEventId = string & {
 };
 export type ProviderEventId = string & {
   readonly [providerEventIdBrand]: true;
+};
+export type RefundRequestId = string & {
+  readonly [refundRequestIdBrand]: true;
+};
+export type RefundIdempotencyKey = string & {
+  readonly [refundIdempotencyKeyBrand]: true;
 };
 export type PaymentIdempotencyKey = string & {
   readonly [paymentIdempotencyKeyBrand]: true;
@@ -77,6 +85,58 @@ export interface PaymentIdempotencyPort {
     proposedPaymentId: PaymentId,
   ): Promise<PaymentIdempotencyClaim>;
   find(key: PaymentIdempotencyKey): Promise<PaymentId | null>;
+}
+
+export const refundRequestStatuses = Object.freeze([
+  "claimed",
+  "provider_accepted",
+] as const);
+export type RefundRequestStatus = (typeof refundRequestStatuses)[number];
+
+export interface RefundRequest {
+  readonly id: RefundRequestId;
+  readonly idempotencyKey: RefundIdempotencyKey;
+  readonly paymentId: PaymentId;
+  readonly approvedResultId: FinancialEventId;
+  readonly amount: Money;
+  readonly providerPaymentReference: string;
+  readonly status: RefundRequestStatus;
+  readonly providerRefundReference: string | null;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+
+export interface RefundRequestClaim {
+  readonly claimed: boolean;
+  readonly request: RefundRequest;
+}
+
+export interface RefundRequestRepositoryPort {
+  findByPaymentId(paymentId: PaymentId): Promise<RefundRequest | null>;
+  claim(request: RefundRequest): Promise<RefundRequestClaim>;
+  acceptProvider(
+    refundRequestId: RefundRequestId,
+    providerRefundReference: string,
+    updatedAt: string,
+  ): Promise<RefundRequest>;
+}
+
+export interface RefundProviderCommand {
+  readonly refundRequestId: RefundRequestId;
+  readonly paymentId: PaymentId;
+  readonly idempotencyKey: RefundIdempotencyKey;
+  readonly amount: Money;
+  readonly providerPaymentReference: string;
+  readonly reason: "requested_by_business";
+}
+
+export interface RefundProviderReceipt {
+  readonly accepted: true;
+  readonly providerRefundReference: string;
+}
+
+export interface FinancialRefundProviderPort {
+  requestRefund(input: RefundProviderCommand): Promise<RefundProviderReceipt>;
 }
 
 export interface CheckoutCustomer {
@@ -284,6 +344,13 @@ export function normalizePaymentId(value: unknown): PaymentId | null {
   return normalized ? (normalized as PaymentId) : null;
 }
 
+export function normalizeRefundRequestId(
+  value: unknown,
+): RefundRequestId | null {
+  const normalized = normalizePrefixedId(value, "rfd_");
+  return normalized ? (normalized as RefundRequestId) : null;
+}
+
 export function normalizeLedgerTransactionId(
   value: unknown,
 ): LedgerTransactionId | null {
@@ -363,6 +430,146 @@ function normalizeProviderUrl(value: unknown): string {
   } catch {
     return "";
   }
+}
+
+export function createRefundIdempotencyKey(
+  paymentIdInput: unknown,
+): RefundIdempotencyKey | null {
+  const paymentId = normalizePaymentId(paymentIdInput);
+  return paymentId ? (`refund:v1:${paymentId}` as RefundIdempotencyKey) : null;
+}
+
+function normalizeRefundIdempotencyKey(
+  value: unknown,
+): RefundIdempotencyKey | null {
+  const normalized = normalizeString(value, 180);
+  const prefix = "refund:v1:";
+  if (!normalized.startsWith(prefix)) return null;
+  const expected = createRefundIdempotencyKey(normalized.slice(prefix.length));
+  return expected === normalized ? expected : null;
+}
+
+export function normalizeRefundRequest(
+  input: Readonly<{
+    id?: unknown;
+    idempotencyKey?: unknown;
+    paymentId?: unknown;
+    approvedResultId?: unknown;
+    amount?: unknown;
+    providerPaymentReference?: unknown;
+    status?: unknown;
+    providerRefundReference?: unknown;
+    createdAt?: unknown;
+    updatedAt?: unknown;
+  }>,
+): RefundRequest | null {
+  const id = normalizeRefundRequestId(input.id);
+  const paymentId = normalizePaymentId(input.paymentId);
+  const idempotencyKey = normalizeRefundIdempotencyKey(input.idempotencyKey);
+  const approvedResultId = normalizeFinancialEventId(input.approvedResultId);
+  const amountInput = input.amount as Partial<Money> | null | undefined;
+  const amount = createMoney(amountInput?.minorUnits, amountInput?.currency);
+  const providerPaymentReference = normalizeProviderText(
+    input.providerPaymentReference,
+    160,
+  );
+  const status =
+    typeof input.status === "string" &&
+    refundRequestStatuses.includes(input.status as RefundRequestStatus)
+      ? (input.status as RefundRequestStatus)
+      : null;
+  const providerRefundReference =
+    input.providerRefundReference === null
+      ? null
+      : normalizeProviderText(input.providerRefundReference, 160);
+  const createdAt = normalizeFinancialTimestamp(input.createdAt);
+  const updatedAt = normalizeFinancialTimestamp(input.updatedAt);
+  if (
+    !id ||
+    !paymentId ||
+    !idempotencyKey ||
+    idempotencyKey !== createRefundIdempotencyKey(paymentId) ||
+    !approvedResultId ||
+    !amount ||
+    amount.minorUnits <= 0 ||
+    !PROVIDER_REFERENCE.test(providerPaymentReference) ||
+    !status ||
+    (providerRefundReference !== null &&
+      !PROVIDER_REFERENCE.test(providerRefundReference)) ||
+    (status === "claimed" && providerRefundReference !== null) ||
+    (status === "provider_accepted" && providerRefundReference === null) ||
+    !createdAt ||
+    !updatedAt ||
+    Date.parse(updatedAt) < Date.parse(createdAt)
+  )
+    return null;
+  return Object.freeze({
+    id,
+    idempotencyKey,
+    paymentId,
+    approvedResultId,
+    amount,
+    providerPaymentReference,
+    status,
+    providerRefundReference,
+    createdAt: new Date(createdAt).toISOString(),
+    updatedAt: new Date(updatedAt).toISOString(),
+  });
+}
+
+export function createRefundProviderCommand(
+  input: Readonly<{
+    refundRequestId?: unknown;
+    paymentId?: unknown;
+    idempotencyKey?: unknown;
+    amount?: unknown;
+    providerPaymentReference?: unknown;
+    reason?: unknown;
+  }>,
+): RefundProviderCommand | null {
+  const refundRequestId = normalizeRefundRequestId(input.refundRequestId);
+  const paymentId = normalizePaymentId(input.paymentId);
+  const idempotencyKey = normalizeRefundIdempotencyKey(input.idempotencyKey);
+  const amountInput = input.amount as Partial<Money> | null | undefined;
+  const amount = createMoney(amountInput?.minorUnits, amountInput?.currency);
+  const providerPaymentReference = normalizeProviderText(
+    input.providerPaymentReference,
+    160,
+  );
+  if (
+    !refundRequestId ||
+    !paymentId ||
+    !idempotencyKey ||
+    idempotencyKey !== createRefundIdempotencyKey(paymentId) ||
+    !amount ||
+    amount.minorUnits <= 0 ||
+    !PROVIDER_REFERENCE.test(providerPaymentReference) ||
+    input.reason !== "requested_by_business"
+  )
+    return null;
+  return Object.freeze({
+    refundRequestId,
+    paymentId,
+    idempotencyKey,
+    amount,
+    providerPaymentReference,
+    reason: "requested_by_business" as const,
+  });
+}
+
+export function normalizeRefundProviderReceipt(
+  input: Readonly<{
+    accepted?: unknown;
+    providerRefundReference?: unknown;
+  }>,
+): RefundProviderReceipt | null {
+  const reference = normalizeProviderText(input.providerRefundReference, 160);
+  return input.accepted === true && PROVIDER_REFERENCE.test(reference)
+    ? Object.freeze({
+        accepted: true as const,
+        providerRefundReference: reference,
+      })
+    : null;
 }
 
 function normalizeProviderIdempotencyKey(

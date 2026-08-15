@@ -102,3 +102,29 @@ CREATE TABLE IF NOT EXISTS financial_payment_results (
   INDEX idx_financial_payment_results_recorded (recorded_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 `;
+
+export const financialM144SchemaSql = `
+CREATE TABLE IF NOT EXISTS financial_refund_requests (
+  refund_request_id VARCHAR(120) COLLATE utf8mb4_bin PRIMARY KEY,
+  idempotency_key VARCHAR(180) COLLATE utf8mb4_bin NOT NULL UNIQUE,
+  payment_id VARCHAR(120) COLLATE utf8mb4_bin NOT NULL UNIQUE,
+  approved_result_id VARCHAR(120) COLLATE utf8mb4_bin NOT NULL UNIQUE,
+  amount_minor BIGINT UNSIGNED NOT NULL,
+  currency CHAR(3) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  provider_payment_reference VARCHAR(180) COLLATE utf8mb4_bin NOT NULL,
+  status ENUM('claimed','provider_accepted') NOT NULL,
+  provider_refund_reference VARCHAR(180) COLLATE utf8mb4_bin NULL,
+  created_at DATETIME(3) NOT NULL,
+  updated_at DATETIME(3) NOT NULL,
+  CONSTRAINT chk_financial_refund_amount_safe CHECK (amount_minor > 0 AND amount_minor <= 9007199254740991),
+  CONSTRAINT fk_financial_refund_payment
+    FOREIGN KEY (payment_id) REFERENCES financial_payments(payment_id)
+    ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_financial_refund_approved_result
+    FOREIGN KEY (approved_result_id) REFERENCES financial_payment_results(result_id)
+    ON DELETE RESTRICT ON UPDATE RESTRICT,
+  UNIQUE KEY uq_financial_refund_provider_reference (provider_refund_reference),
+  INDEX idx_financial_refund_status (status),
+  INDEX idx_financial_refund_updated (updated_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+`;

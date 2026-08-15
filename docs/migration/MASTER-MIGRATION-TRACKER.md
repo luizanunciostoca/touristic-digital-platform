@@ -63,42 +63,36 @@ M66 closes the four consumer-dependent Auth parity rows intentionally left parti
 
 M135 congelou a Wave 8 a partir da V1 `luizidebook/morro-de-sao-paulo-digital@60746fd7fed97b805758b37adfdbe3bad2582bfe` e separou Business, Ordering e Financial sem habilitar money movement.
 
-M136 materializou os domínios/ports framework-independent `@touristic/ordering` e `@touristic/financial`. M137 adicionou persistência MySQL isolada:
+M136 materializou `@touristic/ordering` e `@touristic/financial`. M137 adicionou persistência MySQL isolada; M138 compôs checkout provider-neutral e pricing server-authoritative; M139 acrescentou HTTP/Auth/security; M140 implementou o adapter sandbox; M141 adicionou webhook HMAC raw-body e claim append-only; M142 aplicou a state machine e persistiu o resultado verificado; M143 tornou approval/reversal operacionais no ledger double-entry.
+
+M144 fecha o slice de comando de refund integral:
+
+- aceita somente Payment `confirmed` com resultado `approved` persistido e lançamento de aprovação existente;
+- deriva valor, moeda e referência do provider exclusivamente da autoridade financeira persistida;
+- reclama `financial_refund_requests` antes da chamada externa, com ID determinístico e `refund:v1:<paymentId>`;
+- reusa exatamente o mesmo comando após timeout/incerteza e rejeita colisão ou conteúdo divergente;
+- chama `FinancialRefundProviderPort` e o adapter sandbox `POST /v1/refunds` com credenciais server-only;
+- persiste apenas `provider_accepted`; a resposta do comando não muda Payment nem contabiliza reversão;
+- conclui somente quando o webhook HMAC verificado aplica `refunded` e o M143 grava a reversão imutável;
+- expõe `POST /api/payments/v1/payments/:paymentId/refunds` com body e idempotência exatos;
+- exige sessão ativa, origin/CSRF, papel mutável, business solicitado, tenant do checkout persistido e Payment coincidentes;
+- bloqueia guest, cross-tenant, path ambíguo, body com campos extras e provider response inválida;
+- limita refund a 6 mutações/minuto por ator/tenant/IP e não retorna provider reference ou PII;
+- mantém integração MySQL e workflow permanente cobrindo claim, replay, recovery, verified outcome e reversal.
+
+A matriz canônica M144 passa a:
 
 ```text
-@touristic/ordering-server  → ORDERING_DATABASE_URL
-@touristic/financial-server → FINANCIAL_DATABASE_URL
-```
-
-M138 materializou o application service provider-neutral, pricing server-authoritative e checkpoints recuperáveis entre os bancos. M139 acrescentou create/status HTTP e Auth/security. M140 adicionou o adapter sandbox fail-closed. M141 adicionou webhook HMAC raw-body e claim append-only. M142 aplicou a state machine de Payment e persistiu o resultado verificado para Business.
-
-M143 agora torna o ledger operacional:
-
-- resultado persistido `approved` gera débito em `asset:provider_clearing` e crédito em `revenue:checkout`;
-- resultado persistido `refunded` gera a reversão compensatória nas direções opostas;
-- ID e external key do ledger são determinísticos pelo result ID;
-- replay/concurrency convergem pela idempotência durável do ledger;
-- se a aprovação foi persistida mas seu lançamento falhou, o refund recupera a aprovação antes da reversão;
-- falha, cancelamento e expiração verificados não geram postings;
-- qualquer posting inválido mantém rollback integral de header e postings;
-- webhook só confirma sucesso após outcome e accounting; falha intermediária retorna 503 para retry seguro;
-- audit não-PII registra a disposição do outcome e do accounting.
-
-A matriz canônica M143 permanece:
-
-```text
-PASS     20
-PARTIAL   7
+PASS     21
+PARTIAL   6
 GAP       6
 N/A       1
 TOTAL    34
 ```
 
-O score não muda porque o ledger durable já estava classificado como PASS; M143 fecha a lacuna operacional declarada nessa linha sem promover prematuramente refund/reconciliation completos.
+`MIG-0010` e `FEATURE-0009` permanecem `migrating`; equivalence behavior/visual/API continua `false`. Não existe ainda reconciliation com provider, split/repasse/settlement, recorrência, browser/E2E, limiter distribuído ou provider de produção/dinheiro real.
 
-`MIG-0010` e `FEATURE-0009` permanecem `migrating`; equivalence behavior/visual/API continua `false`. Não existe ainda comando de refund, reconciliation com provider, split/repasse/settlement, recorrência, browser/E2E ou dinheiro real.
-
-O próximo milestone é M144 — refund provider-neutral idempotente. M145 implementará reconciliation durável. Affiliates continua bloqueado até Payment/Ledger autoritativos e reversíveis estarem publicados como eventos confiáveis.
+O próximo milestone é M145 — reconciliation durável, read-only e operator-safe. M146 poderá tratar split/repasse/settlement sobre saldos reconciliados. Assinaturas, browser sandbox E2E e Affiliates continuam bloqueados até seus contratos e evidências próprios.
 
 ## Evidência consolidada — checkpoint Home + Runtime + Geospatial
 
