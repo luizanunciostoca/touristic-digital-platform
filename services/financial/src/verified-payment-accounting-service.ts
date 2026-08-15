@@ -62,6 +62,14 @@ function assertResultMatchesPayment(
   }
 }
 
+export function verifiedPaymentAccountingExternalKey(
+  resultInput: VerifiedPaymentResult,
+): string {
+  const result = normalizeVerifiedPaymentResult(resultInput);
+  if (!result) throw new Error("FINANCIAL_ACCOUNTING_RESULT_INVALID");
+  return "payment_result_" + result.resultId;
+}
+
 function ledgerIdentity(result: VerifiedPaymentResult) {
   const digest = createHash("sha256")
     .update("payment-accounting:v1:" + result.resultId)
@@ -71,7 +79,7 @@ function ledgerIdentity(result: VerifiedPaymentResult) {
   if (!id) throw new Error("FINANCIAL_ACCOUNTING_LEDGER_ID_INVALID");
   return Object.freeze({
     id,
-    externalKey: "payment_result_" + result.resultId,
+    externalKey: verifiedPaymentAccountingExternalKey(result),
   });
 }
 
