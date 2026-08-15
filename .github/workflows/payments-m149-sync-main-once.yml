@@ -1,0 +1,28 @@
+name: Temporary Payments M149 Sync Main
+
+on:
+  push:
+    branches:
+      - feat/payments-m148-browser-checkout
+    paths:
+      - ".github/workflows/payments-m149-sync-main-once.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/payments-m148-browser-checkout
+          fetch-depth: 0
+      - name: Merge current main without rewriting branch history
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git merge --no-edit origin/main
+          git push origin HEAD:feat/payments-m148-browser-checkout
