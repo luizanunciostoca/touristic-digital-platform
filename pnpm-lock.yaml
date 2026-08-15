@@ -126,6 +126,15 @@ importers:
 
   packages/shared: {}
 
+  packages/ticketing:
+    dependencies:
+      "@touristic/financial":
+        specifier: workspace:*
+        version: link:../financial
+      "@touristic/ordering":
+        specifier: workspace:*
+        version: link:../ordering
+
   services/auth:
     dependencies:
       "@touristic/auth":
@@ -161,6 +170,21 @@ importers:
       "@touristic/ordering":
         specifier: workspace:*
         version: link:../../packages/ordering
+      mysql2:
+        specifier: ^3.14.5
+        version: 3.23.3(@types/node@24.13.3)
+
+  services/ticketing:
+    dependencies:
+      "@touristic/financial":
+        specifier: workspace:*
+        version: link:../../packages/financial
+      "@touristic/ordering":
+        specifier: workspace:*
+        version: link:../../packages/ordering
+      "@touristic/ticketing":
+        specifier: workspace:*
+        version: link:../../packages/ticketing
       mysql2:
         specifier: ^3.14.5
         version: 3.23.3(@types/node@24.13.3)

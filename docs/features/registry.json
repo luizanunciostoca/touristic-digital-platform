@@ -150,6 +150,20 @@
         "visual": false,
         "api": false
       }
+    },
+    {
+      "id": "FEATURE-0011",
+      "name": "Ticketing e Check-in",
+      "domain": "ticketing",
+      "wave": 10,
+      "status": "migrating",
+      "legacySources": [],
+      "targetPackages": ["@touristic/ticketing", "@touristic/ticketing-server"],
+      "equivalence": {
+        "behavior": false,
+        "visual": false,
+        "api": false
+      }
     }
   ]
 }

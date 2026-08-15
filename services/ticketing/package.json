@@ -1,0 +1,25 @@
+{
+  "name": "@touristic/ticketing-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@touristic/financial": "workspace:*",
+    "@touristic/ordering": "workspace:*",
+    "@touristic/ticketing": "workspace:*",
+    "mysql2": "^3.14.5"
+  },
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "eslint src",
+    "test": "pnpm --filter @touristic/financial build && pnpm --filter @touristic/ordering build && pnpm --filter @touristic/ticketing build && vitest run --passWithNoTests",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test:integration": "pnpm --filter @touristic/financial build && pnpm --filter @touristic/ordering build && pnpm --filter @touristic/ticketing build && vitest run src/mysql-integration.test.ts"
+  }
+}

@@ -39,10 +39,10 @@ jobs:
           pnpm --filter @touristic/auth-browser lint
           pnpm --filter @touristic/auth-browser typecheck
           pnpm --filter @touristic/auth-browser test
+      - name: Build workspace
+        run: pnpm -w build
       - name: Validate Business dashboard consumer
         run: |
           pnpm --filter @touristic/morro-digital-platform lint
           pnpm --filter @touristic/morro-digital-platform typecheck
           pnpm --filter @touristic/morro-digital-platform test
-      - name: Build workspace
-        run: pnpm -w build
