@@ -164,8 +164,10 @@ export class BusinessOnboardingBrowserLifecycle {
   };
 
   private readonly handleActivityChanged = (event: Event): void => {
-    if (!(event instanceof CustomEvent) || event.detail?.active !== false)
-      return;
+    if (!(event instanceof CustomEvent)) return;
+    const detail = (event as CustomEvent<unknown>).detail;
+    if (!detail || typeof detail !== "object" || !("active" in detail)) return;
+    if (detail.active !== false) return;
     this.dispose(true);
   };
 
