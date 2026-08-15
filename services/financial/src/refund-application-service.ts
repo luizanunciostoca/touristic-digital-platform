@@ -146,10 +146,7 @@ export function createRefundApplicationService(
         }
         return Object.freeze({
           request: existing,
-          status:
-            payment.status === "refunded"
-              ? ("COMPLETED" as const)
-              : ("AWAITING_VERIFIED_EVENT" as const),
+          status: "AWAITING_VERIFIED_EVENT" as const,
           replayed: true,
         });
       }
