@@ -151,7 +151,10 @@ function requestedMoney(value: unknown): Money | null {
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
     return null;
   }
-  const input = value as { readonly minorUnits?: unknown; readonly currency?: unknown };
+  const input = value as {
+    readonly minorUnits?: unknown;
+    readonly currency?: unknown;
+  };
   return createMoney(input.minorUnits, input.currency);
 }
 
