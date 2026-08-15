@@ -184,8 +184,8 @@ export function createAssistantApi({
   );
   const requestReserveAdequate = Boolean(
     configuredRequestReserveUsd &&
-      minimumRequestReserveUsd &&
-      configuredRequestReserveUsd >= minimumRequestReserveUsd,
+    minimumRequestReserveUsd &&
+    configuredRequestReserveUsd >= minimumRequestReserveUsd,
   );
   const runtimeReplicaCount = positiveInteger(
     environment("OPENAI_RUNTIME_REPLICA_COUNT"),
