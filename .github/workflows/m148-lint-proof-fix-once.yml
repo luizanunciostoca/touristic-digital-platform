@@ -1,0 +1,58 @@
+name: Temporary M148 Typed MySQL Assertion Fix
+
+on:
+  push:
+    branches:
+      - feat/ticketing-m148-transactional-checkin
+    paths:
+      - ".github/workflows/m148-lint-proof-fix-once.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/ticketing-m148-transactional-checkin
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Type MySQL sync evidence without unsafe any
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("services/ticketing/src/transaction-mysql-integration.test.ts")
+          s = p.read_text()
+          old_import = 'import mysql, { type Pool } from "mysql2/promise";'
+          new_import = 'import mysql, { type Pool, type RowDataPacket } from "mysql2/promise";'
+          assert s.count(old_import) == 1
+          s = s.replace(old_import, new_import, 1)
+          anchor = '''const describeMySql =\n  transactionDatabaseUrl && adminUrl ? describe : describe.skip;\n'''
+          interface = '''const describeMySql =\n  transactionDatabaseUrl && adminUrl ? describe : describe.skip;\n\ninterface EnvelopeSyncRow extends RowDataPacket {\n  readonly synced_at: Date | null;\n  readonly checkin_id: string | null;\n}\n'''
+          assert s.count(anchor) == 1
+          s = s.replace(anchor, interface, 1)
+          old = '''    const [rows] = await pool.query(\n      "SELECT synced_at, checkin_id FROM ticketing_offline_envelopes WHERE envelope_id = ?",\n      [command.envelope.id],\n    );\n    expect(rows).toEqual([\n      expect.objectContaining({\n        checkin_id: command.checkIn.id,\n        synced_at: expect.any(Date),\n      }),\n    ]);'''
+          new = '''    const [rows] = await pool.query<EnvelopeSyncRow[]>(\n      "SELECT synced_at, checkin_id FROM ticketing_offline_envelopes WHERE envelope_id = ?",\n      [command.envelope.id],\n    );\n    expect(rows).toHaveLength(1);\n    expect(rows[0]?.checkin_id).toBe(command.checkIn.id);\n    expect(rows[0]?.synced_at).toBeInstanceOf(Date);'''
+          assert s.count(old) == 1, "expected unsafe sync assertion exactly once"
+          p.write_text(s.replace(old, new, 1))
+          PY
+          pnpm exec prettier --write services/ticketing/src/transaction-mysql-integration.test.ts
+          pnpm --filter @touristic/ticketing-server lint
+          pnpm --filter @touristic/ticketing-server typecheck
+          git diff --check
+      - name: Commit fix and remove helper
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/m148-lint-proof-fix-once.yml
+          git add services/ticketing/src/transaction-mysql-integration.test.ts
+          git commit -m "test(ticketing): type M148 MySQL sync evidence"
+          git push origin HEAD:feat/ticketing-m148-transactional-checkin
