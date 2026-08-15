@@ -62,6 +62,10 @@ The V1 browser refreshed the metric query every 30 seconds.
 
 The adapter:
 
+- acquires one dedicated MySQL connection for the complete dashboard read;
+- starts a `REPEATABLE READ` / `READ ONLY` transaction before the first metric query so aggregate totals, stage groups, recent Leads and recent interactions belong to one consistent database snapshot;
+- commits and releases the connection only after all four reads complete successfully;
+- rolls back and releases the connection if any snapshot query fails;
 - computes aggregate metrics server-side;
 - preserves `DECIMAL` revenue as an exact two-decimal string rather than introducing browser/floating-point authority;
 - initializes every known Lead stage to zero before applying persisted groups;
@@ -123,6 +127,9 @@ M138 does not modify:
   - zero-filled stage groups;
   - canonical stage conversion;
   - deterministic recent Lead/interaction projections;
+  - one `REPEATABLE READ` / `READ ONLY` transaction for the complete snapshot;
+  - commit + release after a successful snapshot;
+  - rollback + release when any snapshot query fails;
   - fail-closed aggregate/group reconciliation;
   - rejection of unknown persisted stage vocabulary.
 - `services/crm/src/metrics-http-transport.test.ts`
