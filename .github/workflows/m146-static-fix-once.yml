@@ -1,0 +1,76 @@
+name: Temporary M146 Static Fix
+
+on:
+  push:
+    branches:
+      - feat/payments-m146-settlement
+    paths:
+      - ".github/workflows/m146-static-fix-once.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/payments-m146-settlement
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Apply exact static fixes
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          p = Path('services/financial/src/mysql-settlement-repository.ts')
+          s = p.read_text()
+          s = s.replace('import {\n  createMoney,\n  type PaymentId,\n  type ReconciliationRunId,\n} from "@touristic/financial";', 'import { createMoney, type PaymentId } from "@touristic/financial";')
+          p.write_text(s)
+
+          p = Path('services/financial/src/settlement-application-service.ts')
+          s = p.read_text()
+          s = s.replace('  type FinancialAllocation,\n', '')
+          s = s.replace('  type FinancialPayable,\n', '')
+          s = s.replace('  type FinancialSettlement,\n', '')
+          s = s.replace('import { MySqlFinancialSettlementRepository } from "./mysql-settlement-repository.js";', 'import type { MySqlFinancialSettlementRepository } from "./mysql-settlement-repository.js";')
+          p.write_text(s)
+
+          p = Path('services/financial/src/settlement-mysql-integration.test.ts')
+          s = p.read_text()
+          s = s.replace('  type FinancialSettlementProviderSnapshot,\n} from "@touristic/financial";\nimport {\n  type FinancialSettlementProviderCommand,\n  type FinancialSettlementProviderPort,\n} from "@touristic/financial/settlement";', '} from "@touristic/financial";\nimport type {\n  FinancialSettlementProviderCommand,\n  FinancialSettlementProviderPort,\n  FinancialSettlementProviderSnapshot,\n} from "@touristic/financial/settlement";')
+          s = s.replace('    await pool.query("DELETE FROM financial_payments");\n    await pool.query("DELETE FROM financial_payment_idempotency");', '    await pool.query("DELETE FROM financial_payment_idempotency");\n    await pool.query("DELETE FROM financial_payments");')
+          p.write_text(s)
+          PY
+          pnpm exec prettier --write \
+            services/financial/src/mysql-settlement-repository.ts \
+            services/financial/src/settlement-application-service.ts \
+            services/financial/src/settlement-mysql-integration.test.ts \
+            services/financial/src/sandbox-settlement-provider.test.ts
+          pnpm --filter @touristic/financial build
+          pnpm --filter @touristic/financial-server lint
+          pnpm --filter @touristic/financial-server typecheck
+          git diff --check
+      - name: Commit exact fixes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            services/financial/src/mysql-settlement-repository.ts \
+            services/financial/src/settlement-application-service.ts \
+            services/financial/src/settlement-mysql-integration.test.ts \
+            services/financial/src/sandbox-settlement-provider.test.ts
+          if git diff --cached --quiet; then
+            echo "No static fixes needed"
+          else
+            git commit -m "fix(payments): tighten M146 server contracts"
+            git push origin HEAD:feat/payments-m146-settlement
+          fi
