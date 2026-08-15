@@ -6,20 +6,33 @@ type Call = { sql: string; values: unknown[] | undefined };
 
 function poolFixture(responses: unknown[]) {
   const calls: Call[] = [];
-  const pool = {
+  const lifecycle: string[] = [];
+  const connection = {
+    query: async (sql: string) => {
+      lifecycle.push(sql);
+      return [[], []];
+    },
     execute: async (sql: string, values?: unknown[]) => {
       calls.push({ sql, values });
-      return [responses.shift() ?? [], []];
+      const next = responses.shift();
+      if (next instanceof Error) throw next;
+      return [next ?? [], []];
     },
+    commit: async () => void lifecycle.push("COMMIT"),
+    rollback: async () => void lifecycle.push("ROLLBACK"),
+    release: () => void lifecycle.push("RELEASE"),
   };
-  return { pool, calls };
+  const pool = {
+    getConnection: async () => connection,
+  };
+  return { pool, calls, lifecycle };
 }
 
 describe("CRM M138 authoritative dashboard metrics", () => {
-  it("reproduces the frozen V1 funnel semantics from one server-owned snapshot", async () => {
+  it("reproduces the frozen V1 funnel semantics from one consistent read-only snapshot", async () => {
     const createdAt = new Date("2026-08-15T04:00:00.000Z");
     const interactionAt = new Date("2026-08-15T04:30:00.000Z");
-    const { pool, calls } = poolFixture([
+    const { pool, calls, lifecycle } = poolFixture([
       [
         {
           total: 8,
@@ -101,10 +114,16 @@ describe("CRM M138 authoritative dashboard metrics", () => {
     expect(calls[2]?.sql).toContain("LIMIT 5");
     expect(calls[3]?.sql).toContain("LIMIT 10");
     expect(calls.every((call) => call.values === undefined)).toBe(true);
+    expect(lifecycle).toEqual([
+      "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ",
+      "START TRANSACTION READ ONLY",
+      "COMMIT",
+      "RELEASE",
+    ]);
   });
 
   it("fails closed when grouped stage authority does not reconcile with the aggregate", async () => {
-    const { pool } = poolFixture([
+    const { pool, lifecycle } = poolFixture([
       [
         {
           total: 2,
@@ -123,6 +142,7 @@ describe("CRM M138 authoritative dashboard metrics", () => {
     await expect(repository.readSnapshot()).rejects.toThrow(
       "CRM_METRICS_STAGE_TOTAL_MISMATCH",
     );
+    expect(lifecycle.at(-1)).toBe("RELEASE");
   });
 
   it("rejects unknown persisted stage vocabulary instead of silently dropping it", async () => {
@@ -145,5 +165,29 @@ describe("CRM M138 authoritative dashboard metrics", () => {
     await expect(repository.readSnapshot()).rejects.toThrow(
       "CRM_METRICS_INVALID_STAGE",
     );
+  });
+
+  it("rolls back and releases the connection when any snapshot query fails", async () => {
+    const { pool, lifecycle } = poolFixture([
+      [
+        {
+          total: 1,
+          active: 1,
+          converted: 0,
+          lost: 0,
+          total_revenue: "0.00",
+        },
+      ],
+      new Error("MYSQL_READ_FAILED"),
+    ]);
+    const repository = new MySqlCrmMetricsRepository(pool as never);
+
+    await expect(repository.readSnapshot()).rejects.toThrow("MYSQL_READ_FAILED");
+    expect(lifecycle).toEqual([
+      "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ",
+      "START TRANSACTION READ ONLY",
+      "ROLLBACK",
+      "RELEASE",
+    ]);
   });
 });
