@@ -74,6 +74,10 @@ h1 {
   font-size: clamp(1.55rem, 4vw, 2.35rem);
 }
 
+#businessOnboardingTitle[tabindex="-1"]:focus {
+  outline: none;
+}
+
 #businessOnboardingDescription,
 #businessOnboardingStatus,
 .business-onboarding-response {
@@ -152,6 +156,7 @@ button:focus-visible {
 
 .business-onboarding-actions {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   gap: 12px;
   border-top: 1px solid rgba(148, 163, 184, 0.14);
@@ -173,7 +178,8 @@ button[data-action="next"] {
   color: #082f49;
 }
 button[data-action="back"],
-button[data-action="skip"] {
+button[data-action="skip"],
+.business-onboarding-lifecycle-action {
   background: rgba(148, 163, 184, 0.12);
   color: #e2e8f0;
 }
@@ -203,5 +209,8 @@ button:disabled {
   .business-onboarding-options,
   .business-onboarding-metrics {
     grid-template-columns: 1fr;
+  }
+  .business-onboarding-lifecycle-action {
+    flex: 1 1 auto;
   }
 }
