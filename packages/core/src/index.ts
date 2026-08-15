@@ -25,12 +25,22 @@ export function defineDestination(
 }
 
 export {
+  createPlatformEvent,
+  createPlatformObservation,
   createPlatformRuntime,
   EventBus,
   ModuleRegistry,
   type DestinationRuntimeConfig,
+  type EventBusOptions,
   type EventHandler,
+  type PlatformContractRuntimeOptions,
   type PlatformEvent,
+  type PlatformEventMetadata,
   type PlatformModule,
+  type PlatformObservation,
+  type PlatformObservationAttributes,
+  type PlatformObservationInput,
+  type PlatformObservationKind,
+  type PlatformObservationSeverity,
   type PlatformRuntime,
 } from "./runtime.js";

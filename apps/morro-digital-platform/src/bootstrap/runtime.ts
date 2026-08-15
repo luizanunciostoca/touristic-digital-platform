@@ -105,7 +105,9 @@ export async function bootstrapMorroDigital(
   registry.register(geospatialModule);
   registry.register(marketplaceModule);
 
-  const events = options.events ?? new EventBus();
+  const events =
+    options.events ??
+    new EventBus({ destinationId: morroDeSaoPauloDestination.id });
   const runtime = createPlatformRuntime({
     destination: {
       id: morroDeSaoPauloDestination.id,
