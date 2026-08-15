@@ -140,6 +140,37 @@ describe("assistant paid-provider governance", () => {
     expect(snapshot.usage.daily.spentUsd).toBeCloseTo(0.002);
   });
 
+  it("fails closed when the execution model is missing", async () => {
+    const events = [];
+    const fetchImplementation = vi.fn();
+    const api = createAssistantApi({
+      getEnvironmentValue: environment({
+        OPENAI_MODEL: "",
+      }),
+      fetchImplementation,
+      governanceStateStore: memoryStateStore(),
+      createRequestId: () => "req-model-missing",
+      observeProviderEvent: (event) => events.push(event),
+    });
+    const output = response();
+
+    await api.handle(request(), output);
+
+    expect(output.statusCode).toBe(503);
+    expect(JSON.parse(output.body).error).toBe(
+      "assistant_billing_guard_not_configured",
+    );
+    expect(fetchImplementation).not.toHaveBeenCalled();
+    expect(
+      events.some(
+        (event) =>
+          event.type === "provider.billing_guard.denied" &&
+          event.reason === "model_not_configured" &&
+          event.metadata.correlationId === "req-model-missing",
+      ),
+    ).toBe(true);
+  });
+
   it("fails closed when pricing is bound to a different model", async () => {
     const events = [];
     const fetchImplementation = vi.fn();
