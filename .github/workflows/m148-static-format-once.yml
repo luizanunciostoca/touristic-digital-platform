@@ -30,10 +30,17 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          p = Path('apps/morro-digital-platform/src/payments-browser-checkout-client.ts')
-          s = p.read_text()
-          old = '  return Object.freeze(Object.fromEntries(headers.entries()));'
-          new = '''  const normalized: Record<string, string> = {};
+
+          client = Path('apps/morro-digital-platform/src/payments-browser-checkout-client.ts')
+          s = client.read_text()
+          replacements = [
+              (
+                  '  open(url: string, target: string, features: string): unknown | null;',
+                  '  open(url: string, target: string, features: string): object | null;',
+              ),
+              (
+                  '  return Object.freeze(Object.fromEntries(headers.entries()));',
+                  '''  const normalized: Record<string, string> = {};
           for (const name of [
             "x-checkout-handoff-token",
             "x-csrf-token",
@@ -42,35 +49,62 @@ jobs:
             const value = headers.get(name);
             if (value) normalized[name] = value;
           }
-          return Object.freeze(normalized);'''.replace('          ', '')
-          if s.count(old) != 1:
-              raise SystemExit('authority return not found exactly once')
-          s = s.replace(old, new, 1)
-          old2 = '''function paymentFailure(
-            sessionId: string,
-            code: PaymentsBrowserCheckoutErrorCode,
-            message: string,
+          return Object.freeze(normalized);'''.replace('          ', ''),
+              ),
+              (
+                  '''function paymentFailure(
+          sessionId: string,
+          code: PaymentsBrowserCheckoutErrorCode,
+          message: string,
           ): PaymentsBrowserCheckoutError {
-            return new PaymentsBrowserCheckoutError(code, message);
-          }'''.replace('          ', '')
-          new2 = '''function paymentFailure(
-            sessionId: string,
-            code: PaymentsBrowserCheckoutErrorCode,
-            message: string,
+          return new PaymentsBrowserCheckoutError(code, message);
+          }'''.replace('          ', ''),
+                  '''function paymentFailure(
+          sessionId: string,
+          code: PaymentsBrowserCheckoutErrorCode,
+          message: string,
           ): PaymentsBrowserCheckoutError {
-            void sessionId;
-            return new PaymentsBrowserCheckoutError(code, message);
-          }'''.replace('          ', '')
-          if s.count(old2) != 1:
-              raise SystemExit('paymentFailure helper not found exactly once')
-          p.write_text(s.replace(old2, new2, 1))
+          void sessionId;
+          return new PaymentsBrowserCheckoutError(code, message);
+          }'''.replace('          ', ''),
+              ),
+          ]
+          for old, new in replacements:
+              if s.count(old) != 1:
+                  raise SystemExit(f'client replacement not found exactly once: {old[:80]!r}')
+              s = s.replace(old, new, 1)
+          client.write_text(s)
+
+          test = Path('apps/morro-digital-platform/src/payments-browser-checkout-client.test.ts')
+          t = test.read_text()
+          test_replacements = [
+              (
+                  '    readonly popupResult?: unknown | null;',
+                  '    readonly popupResult?: object | null;',
+              ),
+              (
+                  '      requests.push({ url: String(input), init });',
+                  '''      const url =
+          typeof input === "string"
+            ? input
+            : input instanceof URL
+              ? input.toString()
+              : input.url;
+          requests.push({ url, init });'''.replace('          ', ''),
+              ),
+          ]
+          for old, new in test_replacements:
+              if t.count(old) != 1:
+                  raise SystemExit(f'test replacement not found exactly once: {old!r}')
+              t = t.replace(old, new, 1)
+          test.write_text(t)
           PY
           pnpm exec prettier --write \
             apps/morro-digital-platform/src/payments-browser-checkout-client.ts \
             apps/morro-digital-platform/src/payments-browser-checkout-client.test.ts
           pnpm --filter @touristic/morro-digital-platform lint
           pnpm --filter @touristic/morro-digital-platform typecheck
-          pnpm --filter @touristic/morro-digital-platform test -- --runInBand || pnpm --filter @touristic/morro-digital-platform test
+          pnpm --filter @touristic/morro-digital-platform test
           git diff --check
       - name: Commit permanent files and remove helper
         shell: bash
