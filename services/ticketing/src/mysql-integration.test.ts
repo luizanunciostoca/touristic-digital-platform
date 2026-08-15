@@ -1,12 +1,5 @@
 import mysql, { type Pool } from "mysql2/promise";
-import {
-  afterAll,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  it,
-} from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { createMoney, normalizePaymentId } from "@touristic/financial";
 import { normalizeOrderId } from "@touristic/ordering";
