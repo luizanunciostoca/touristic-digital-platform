@@ -2,7 +2,7 @@
 
 ## Scope
 
-This evidence reconciles the cross-cutting Platform / QA / Observability / Contracts layer against the canonical architecture documents on base `97454fdd1173af2460757f8e9c18e9ff2d7dd4c2`.
+This evidence reconciles the cross-cutting Platform / QA / Observability / Contracts layer against the canonical architecture documents. Work started from `97454fdd1173af2460757f8e9c18e9ff2d7dd4c2` and was revalidated/rebased before PR against `9a37cbe4d16004ea3d709aef4238477fcc80145d` after the Assistant runtime governance merge advanced `main`.
 
 No business feature, payment behavior, CRM lifecycle, Ticketing flow, browser UI or provider integration is introduced by this change.
 
