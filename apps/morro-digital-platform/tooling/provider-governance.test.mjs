@@ -5,6 +5,18 @@ import {
   createProviderCostGovernor,
 } from "./provider-governance.mjs";
 
+function memoryStateStore() {
+  let state = null;
+  return {
+    load() {
+      return state ? structuredClone(state) : null;
+    },
+    save(nextState) {
+      state = structuredClone(nextState);
+    },
+  };
+}
+
 describe("paid provider cost governance", () => {
   it("calculates provider cost from prompt and completion usage", () => {
     expect(
@@ -127,5 +139,118 @@ describe("paid provider cost governance", () => {
     expect(
       thresholdEvents.filter((event) => event.threshold === 0.5),
     ).toHaveLength(1);
+  });
+
+  it("persists settled spend across process-style governor restarts", () => {
+    const store = memoryStateStore();
+    const options = {
+      provider: "openai",
+      dailyLimitUsd: 1,
+      monthlyLimitUsd: 10,
+      requestReserveUsd: 0.6,
+      maxConcurrency: 1,
+      stateStore: store,
+      requirePersistentState: true,
+      createReservationId: () => "reservation",
+    };
+    const firstGovernor = createProviderCostGovernor(options);
+    const attempt = firstGovernor.reserve({ correlationId: "req-1" });
+    firstGovernor.settle(attempt.reservation, { costUsd: 0.5 });
+
+    const restartedGovernor = createProviderCostGovernor({
+      ...options,
+      createReservationId: () => "reservation-2",
+    });
+    expect(restartedGovernor.snapshot().daily.spentUsd).toBe(0.5);
+    expect(restartedGovernor.reserve().reason).toBe("daily_budget_exhausted");
+  });
+
+  it("recovers an orphaned reservation conservatively after restart", () => {
+    const store = memoryStateStore();
+    const events = [];
+    const options = {
+      provider: "openai",
+      dailyLimitUsd: 1,
+      monthlyLimitUsd: 10,
+      requestReserveUsd: 0.6,
+      maxConcurrency: 1,
+      stateStore: store,
+      requirePersistentState: true,
+    };
+    const firstGovernor = createProviderCostGovernor({
+      ...options,
+      createReservationId: () => "orphan",
+    });
+    expect(firstGovernor.reserve({ correlationId: "req-orphan" }).allowed).toBe(
+      true,
+    );
+
+    const restartedGovernor = createProviderCostGovernor({
+      ...options,
+      createReservationId: () => "next",
+      onEvent: (event) => events.push(event),
+    });
+    const snapshot = restartedGovernor.snapshot();
+    expect(snapshot.activeRequests).toBe(0);
+    expect(snapshot.daily.reservedUsd).toBe(0);
+    expect(snapshot.daily.spentUsd).toBe(0.6);
+    expect(snapshot.persistence.recoveredReservations).toBe(1);
+    expect(restartedGovernor.reserve().reason).toBe("daily_budget_exhausted");
+    expect(
+      events.some(
+        (event) =>
+          event.type === "provider.request.recovered" &&
+          event.metadata.correlationId === "req-orphan",
+      ),
+    ).toBe(true);
+  });
+
+  it("fails closed when persistent state is required but unavailable", () => {
+    const governor = createProviderCostGovernor({
+      provider: "openai",
+      dailyLimitUsd: 10,
+      monthlyLimitUsd: 100,
+      requestReserveUsd: 1,
+      maxConcurrency: 2,
+      requirePersistentState: true,
+    });
+    expect(governor.configured).toBe(false);
+    expect(governor.reserve().reason).toBe("budget_not_configured");
+    expect(governor.snapshot().persistence.configured).toBe(false);
+  });
+
+  it("fails closed after a reservation cannot be persisted", () => {
+    const onEvent = vi.fn();
+    const governor = createProviderCostGovernor({
+      provider: "openai",
+      dailyLimitUsd: 10,
+      monthlyLimitUsd: 100,
+      requestReserveUsd: 1,
+      maxConcurrency: 2,
+      stateStore: {
+        load: () => null,
+        save: () => {
+          const error = new Error("disk unavailable");
+          error.code = "EIO";
+          throw error;
+        },
+      },
+      requirePersistentState: true,
+      onEvent,
+    });
+
+    expect(governor.reserve({ correlationId: "req-fail" }).reason).toBe(
+      "state_persistence_failed",
+    );
+    expect(governor.configured).toBe(false);
+    expect(
+      onEvent.mock.calls
+        .map(([event]) => event)
+        .some(
+          (event) =>
+            event.type === "provider.governance.persistence_failed" &&
+            event.errorCode === "EIO",
+        ),
+    ).toBe(true);
   });
 });
