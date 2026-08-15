@@ -8,13 +8,18 @@ import {
   MySqlPaymentIdempotencyPort,
   MySqlPaymentRepository,
   MySqlProviderWebhookEventRepository,
+  MySqlRefundRequestRepository,
   MySqlVerifiedPaymentResultRepository,
-  applyFinancialM142Schema,
+  RefundHttpTransport,
+  applyFinancialM144Schema,
   createFinancialMySqlPoolFromEnvironment,
+  createRefundApplicationService,
   createSandboxCheckoutProviderFromEnvironment,
+  createSandboxRefundProviderFromEnvironment,
   createSandboxWebhookVerifierFromEnvironment,
   createVerifiedPaymentAccountingService,
   createVerifiedPaymentOutcomeService,
+  refundHttpPrefix,
   sandboxWebhookPath,
 } from "@touristic/financial-server";
 import {
@@ -101,13 +106,20 @@ async function readRawBody(
   return Buffer.concat(chunks);
 }
 
-async function readJsonBody(request) {
-  const rawBody = await readRawBody(request);
+async function readJsonBody(
+  request,
+  {
+    tooLargeCode = "CHECKOUT_REQUEST_TOO_LARGE",
+    emptyCode = "INVALID_CHECKOUT_REQUEST",
+    invalidCode = "INVALID_CHECKOUT_JSON",
+  } = {},
+) {
+  const rawBody = await readRawBody(request, { tooLargeCode, emptyCode });
   try {
     const decoded = new TextDecoder("utf-8", { fatal: true }).decode(rawBody);
     return JSON.parse(decoded);
   } catch {
-    throw new PaymentsHttpInputError(400, "INVALID_CHECKOUT_JSON");
+    throw new PaymentsHttpInputError(400, invalidCode);
   }
 }
 
@@ -281,6 +293,90 @@ export function createPaymentsCheckoutAuthorizationPort({
   });
 }
 
+export function createPaymentsRefundAuthorizationPort({
+  authApi,
+  payments,
+  access,
+}) {
+  return Object.freeze({
+    async authorizeRefund(request, paymentId) {
+      const active = authApi.resolveSession(request);
+      if (!active) {
+        return Object.freeze({
+          allowed: false,
+          reason: "authentication_required",
+        });
+      }
+      const mutation = authApi.authorizeMutation(
+        request,
+        active,
+        "payment.refund",
+      );
+      if (!mutation.allowed) {
+        return Object.freeze({
+          allowed: false,
+          reason:
+            mutation.reason === "invalid_csrf"
+              ? "invalid_csrf"
+              : "cross_origin_request",
+        });
+      }
+
+      const business = authorizeBusinessAccess(
+        active,
+        header(request, "x-business-id"),
+        { mutation: true },
+      );
+      if (!business.allowed || !business.businessId) {
+        const reason =
+          business.reason === "read_only_role"
+            ? "read_only_role"
+            : business.reason === "invalid_business_id"
+              ? "missing_context"
+              : business.reason === "business_access_denied"
+                ? "business_access_denied"
+                : "authentication_required";
+        return Object.freeze({ allowed: false, reason });
+      }
+
+      const payment = await payments.findById(paymentId);
+      if (!payment || payment.subject.kind !== "order") {
+        return Object.freeze({
+          allowed: false,
+          reason: "business_access_denied",
+        });
+      }
+      let checkoutAccess;
+      try {
+        checkoutAccess = await access.findByOrderId(payment.subject.reference);
+      } catch {
+        return Object.freeze({
+          allowed: false,
+          reason: "business_access_denied",
+        });
+      }
+      if (
+        !checkoutAccess ||
+        checkoutAccess.paymentId !== payment.id ||
+        !checkoutAccess.tenantId ||
+        checkoutAccess.tenantId !== business.businessId
+      ) {
+        return Object.freeze({
+          allowed: false,
+          reason: "business_access_denied",
+        });
+      }
+      return Object.freeze({
+        allowed: true,
+        context: Object.freeze({
+          actorSubject: active.subject,
+          tenantId: checkoutAccess.tenantId,
+        }),
+      });
+    },
+  });
+}
+
 function runtimeAudit(defaultAudit, event) {
   try {
     defaultAudit(Object.freeze({ ...event }));
@@ -295,14 +391,16 @@ export function createPaymentsApi({
   audit = (event) => console.warn(`[payments-audit] ${JSON.stringify(event)}`),
   transport: injectedTransport,
   webhookTransport: injectedWebhookTransport,
+  refundTransport: injectedRefundTransport,
 } = {}) {
   const hasInjectedTransport = Boolean(
-    injectedTransport || injectedWebhookTransport,
+    injectedTransport || injectedWebhookTransport || injectedRefundTransport,
   );
   let runtime = hasInjectedTransport
     ? Object.freeze({
         transport: injectedTransport ?? null,
         webhookTransport: injectedWebhookTransport ?? null,
+        refundTransport: injectedRefundTransport ?? null,
         pools: [],
       })
     : null;
@@ -342,7 +440,7 @@ export function createPaymentsApi({
       pools.push(financialPool);
       await Promise.all([
         applyOrderingM139Schema(orderingPool),
-        applyFinancialM142Schema(financialPool),
+        applyFinancialM144Schema(financialPool),
       ]);
 
       const orders = new MySqlOrderRepository(orderingPool);
@@ -350,13 +448,16 @@ export function createPaymentsApi({
       const paymentResults = new MySqlVerifiedPaymentResultRepository(
         financialPool,
       );
+      const ledger = new MySqlLedgerTransactionRepository(financialPool);
+      const checkoutAccess = new MySqlCheckoutAccessRepository(orderingPool);
+      const rateLimits = createInMemoryCheckoutRateLimitPort();
       const outcomes = createVerifiedPaymentOutcomeService({
         payments,
         results: paymentResults,
         clock: systemCheckoutClock,
       });
       const accounting = createVerifiedPaymentAccountingService({
-        ledger: new MySqlLedgerTransactionRepository(financialPool),
+        ledger,
         results: paymentResults,
       });
       const application = createProviderNeutralCheckoutApplicationService({
@@ -373,7 +474,7 @@ export function createPaymentsApi({
         orders,
         payments,
         paymentResults,
-        access: new MySqlCheckoutAccessRepository(orderingPool),
+        access: checkoutAccess,
         provider: createSandboxCheckoutProviderFromEnvironment(environment),
         webhookUrl,
         authorization: createPaymentsCheckoutAuthorizationPort({
@@ -387,7 +488,7 @@ export function createPaymentsApi({
         statusCapabilities: createCheckoutStatusCapability(
           environment.PAYMENTS_STATUS_TOKEN_SECRET,
         ),
-        rateLimits: createInMemoryCheckoutRateLimitPort(),
+        rateLimits,
         audit: {
           record(event) {
             runtimeAudit(audit, event);
@@ -396,6 +497,34 @@ export function createPaymentsApi({
         },
         clock: systemCheckoutClock,
         ...(statusTtlSeconds === undefined ? {} : { statusTtlSeconds }),
+      });
+      const refundApplication = createRefundApplicationService({
+        payments,
+        results: paymentResults,
+        ledger,
+        refunds: new MySqlRefundRequestRepository(financialPool),
+        provider: createSandboxRefundProviderFromEnvironment(environment),
+        clock: systemCheckoutClock,
+      });
+      const refundTransport = new RefundHttpTransport({
+        application: refundApplication,
+        authorization: createPaymentsRefundAuthorizationPort({
+          authApi,
+          payments,
+          access: checkoutAccess,
+        }),
+        rateLimits: {
+          consume(input) {
+            return rateLimits.consume(input);
+          },
+        },
+        audit: {
+          record(event) {
+            runtimeAudit(audit, event);
+            return Promise.resolve();
+          },
+        },
+        clock: systemCheckoutClock,
       });
       const webhookTransport = new FinancialWebhookHttpTransport({
         verifier: createSandboxWebhookVerifierFromEnvironment(environment),
@@ -411,7 +540,12 @@ export function createPaymentsApi({
         },
         clock: systemCheckoutClock,
       });
-      runtime = Object.freeze({ transport, webhookTransport, pools });
+      runtime = Object.freeze({
+        transport,
+        webhookTransport,
+        refundTransport,
+        pools,
+      });
       started = true;
       runtimeAudit(audit, {
         action: "checkout.runtime",
@@ -443,7 +577,8 @@ export function createPaymentsApi({
       return (
         pathname === sandboxWebhookPath ||
         pathname === checkoutPrefix ||
-        pathname.startsWith(checkoutPrefix + "/")
+        pathname.startsWith(checkoutPrefix + "/") ||
+        pathname.startsWith(refundHttpPrefix + "/")
       );
     },
     start,
@@ -453,9 +588,14 @@ export function createPaymentsApi({
         normalizeCheckoutCorrelationId(header(request, "x-correlation-id")) ||
         "corr_" + randomUUID();
       const webhookRequest = requestUrl.pathname === sandboxWebhookPath;
+      const refundRequest =
+        requestUrl.pathname.startsWith(refundHttpPrefix + "/") &&
+        requestUrl.pathname.endsWith("/refunds");
       const unavailableCode = webhookRequest
         ? "WEBHOOK_UNAVAILABLE"
-        : "CHECKOUT_UNAVAILABLE";
+        : refundRequest
+          ? "REFUND_UNAVAILABLE"
+          : "CHECKOUT_UNAVAILABLE";
 
       if (!runtime) {
         sendJson(response, 503, { error: unavailableCode }, correlationId);
@@ -467,7 +607,9 @@ export function createPaymentsApi({
       let rawBody = new Uint8Array();
       if (
         method === "POST" &&
-        (requestUrl.pathname === checkoutPrefix || webhookRequest)
+        (requestUrl.pathname === checkoutPrefix ||
+          webhookRequest ||
+          refundRequest)
       ) {
         const contentType = header(request, "content-type")
           .split(";", 1)[0]
@@ -486,6 +628,12 @@ export function createPaymentsApi({
             rawBody = await readRawBody(request, {
               tooLargeCode: "WEBHOOK_REQUEST_TOO_LARGE",
               emptyCode: "INVALID_WEBHOOK_REQUEST",
+            });
+          } else if (refundRequest) {
+            body = await readJsonBody(request, {
+              tooLargeCode: "REFUND_REQUEST_TOO_LARGE",
+              emptyCode: "INVALID_REFUND_REQUEST",
+              invalidCode: "INVALID_REFUND_JSON",
             });
           } else {
             body = await readJsonBody(request);
@@ -506,7 +654,9 @@ export function createPaymentsApi({
             {
               error: webhookRequest
                 ? "INVALID_WEBHOOK_REQUEST"
-                : "INVALID_CHECKOUT_REQUEST",
+                : refundRequest
+                  ? "INVALID_REFUND_REQUEST"
+                  : "INVALID_CHECKOUT_REQUEST",
             },
             correlationId,
           );
@@ -516,7 +666,9 @@ export function createPaymentsApi({
 
       const selectedTransport = webhookRequest
         ? runtime.webhookTransport
-        : runtime.transport;
+        : refundRequest
+          ? runtime.refundTransport
+          : runtime.transport;
       if (!selectedTransport) {
         sendJson(response, 503, { error: unavailableCode }, correlationId);
         return;
@@ -548,7 +700,11 @@ export function createPaymentsApi({
         );
       } catch {
         runtimeAudit(audit, {
-          action: webhookRequest ? "webhook.http" : "checkout.http",
+          action: webhookRequest
+            ? "webhook.http"
+            : refundRequest
+              ? "payment.refund.http"
+              : "checkout.http",
           result: "failure",
           reason: "unhandled_transport_failure",
           correlationId,
