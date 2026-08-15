@@ -14,6 +14,7 @@ import { MySqlVerifiedPaymentResultRepository } from "./mysql-verified-payment-r
 import {
   SandboxCheckoutProviderError,
   createSandboxCheckoutProviderFromEnvironment,
+  createSandboxRefundProviderFromEnvironment,
 } from "./sandbox-checkout-provider.js";
 import { createSandboxWebhookVerifierFromEnvironment } from "./sandbox-webhook-verifier.js";
 import {
@@ -61,6 +62,7 @@ export {
   FinancialWebhookHttpTransport,
   SandboxCheckoutProviderError,
   createSandboxCheckoutProviderFromEnvironment,
+  createSandboxRefundProviderFromEnvironment,
   createSandboxWebhookVerifierFromEnvironment,
   createVerifiedPaymentOutcomeService,
   createVerifiedPaymentAccountingService,
