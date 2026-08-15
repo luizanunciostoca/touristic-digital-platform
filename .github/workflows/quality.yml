@@ -29,7 +29,7 @@ jobs:
       - name: Validate Feature Registry
         run: pnpm features:check
       - name: Validate platform contracts
-        run: pnpm platform:contracts:check
+        run: "pnpm platform:contracts:check"
       - name: Lint
         run: pnpm lint
       - name: Typecheck
