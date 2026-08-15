@@ -5,6 +5,7 @@ import { CrmContractPublicBoundary } from "@touristic/crm/contracts-public-bound
 import { CrmFollowUpServerBoundary } from "@touristic/crm/followups-boundary";
 import { CrmLeadServerBoundary } from "@touristic/crm/leads-boundary";
 import { CrmMeetingServerBoundary } from "@touristic/crm/meetings-boundary";
+import { CrmMetricsServerBoundary } from "@touristic/crm/metrics-boundary";
 import { CrmProposalServerBoundary } from "@touristic/crm/proposals-boundary";
 import { CrmProposalPublicBoundary } from "@touristic/crm/proposals-public-boundary";
 import { CrmReferralServerBoundary } from "@touristic/crm/referrals-boundary";
@@ -18,6 +19,7 @@ import {
   CrmFollowUpHttpTransport,
   CrmLeadHttpTransport,
   CrmMeetingHttpTransport,
+  CrmMetricsHttpTransport,
   CrmProposalHttpTransport,
   CrmProposalPublicHttpTransport,
   CrmReferralHttpTransport,
@@ -30,6 +32,8 @@ import {
   MySqlCrmLeadRepository,
   MySqlCrmMeetingAuditPort,
   MySqlCrmMeetingRepository,
+  MySqlCrmMetricsAuditPort,
+  MySqlCrmMetricsRepository,
   MySqlCrmProposalAuditPort,
   MySqlCrmProposalRepository,
   MySqlCrmReferralAuditPort,
@@ -45,6 +49,7 @@ const crmPrefixes = [
   "/api/crm/follow-ups",
   "/api/crm/leads",
   "/api/crm/meetings",
+  "/api/crm/metrics",
   "/api/crm/proposals",
   "/api/crm/referrals",
   "/api/crm/trials",
@@ -156,6 +161,10 @@ export function createCrmApi({ authApi, getEnvironmentValue }) {
     new MySqlCrmMeetingRepository(pool),
     new MySqlCrmMeetingAuditPort(pool),
   );
+  const metricsBoundary = new CrmMetricsServerBoundary(
+    new MySqlCrmMetricsRepository(pool),
+    new MySqlCrmMetricsAuditPort(pool),
+  );
   const proposalRepository = new MySqlCrmProposalRepository(pool);
   const proposalBoundary = new CrmProposalServerBoundary(
     proposalRepository,
@@ -246,6 +255,7 @@ export function createCrmApi({ authApi, getEnvironmentValue }) {
         new CrmFollowUpHttpTransport(followUpBoundary, authPort),
         new CrmLeadHttpTransport(leadBoundary, authPort),
         new CrmMeetingHttpTransport(meetingBoundary, authPort),
+        new CrmMetricsHttpTransport(metricsBoundary, authPort),
         new CrmProposalHttpTransport(proposalBoundary, authPort),
         new CrmReferralHttpTransport(referralBoundary, authPort),
         new CrmTrialHttpTransport(trialBoundary, authPort),

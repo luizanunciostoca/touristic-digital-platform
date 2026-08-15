@@ -21,7 +21,7 @@ Um item não pode avançar para `equivalent` sem evidência visual ou comportame
 | MIG-0005 | `js/navigation*` | Navigation | FEATURE-0003 | `packages/navigation` + adapters em `packages/geospatial` + composição no app | 4 | equivalent | banner, guidance, first-person/câmera, minimizar/maximizar, forced-colors, texto 200% e mobile/tablet/desktop comprovados | 24/24 cenários obrigatórios PASS: sessão, accuracy, routing, Mapbox Directions fallback, geometry, bearing, arrival, events, lifecycle e provider fallback/teardown | matriz `NAVIGATION-MIG-0005-EQUIVALENCE-MATRIX.md`; PRs #49/#52/#53/#54/#55; Quality Gates #542/#568/#569/#575 e browser gates verdes | crítico |
 | MIG-0006 | `js/assistant*` | Assistant | FEATURE-0004 | `packages/assistant` | 11 | equivalent | shell/DOM/carrossel e contratos browser V1 validados | NLP, diálogo, domains, LLM, voz, Navigation e photos equivalentes | matriz `ASSISTANT-MIGRATION-MATRIX.md`; Quality + browser contracts M35 verdes | alto |
 | MIG-0007 | Business Portal | Business | FEATURE-0005 | `packages/business` + Business surfaces/adapters in `apps/morro-digital-platform` | 6 | equivalent | dashboard, 28-step onboarding, production profile and browser lifecycle contracts evidenced | 19/19 Business-owned contracts PASS; checkout execution remains Payments-owned N/A | `BUSINESS-MIGRATION-MATRIX.md`; M54–M65 evidence; PR #128 Quality + Business browser contracts | alto |
-| MIG-0008 | `luizidebook/morro-digital-crm@1915d026` | CRM | FEATURE-0006 | `@touristic/crm` + `@touristic/crm-server` + `apps/admin-crm` | 7 | migrating | authenticated shell and dedicated browser surfaces exist; consolidated V1 visual/accessibility equivalence remains open | 25 contracts: 17 PASS / 5 PARTIAL / 3 GAP at M133; leads, meetings, proposals, contracts, follow-ups, trials, referrals, public token flows, schedulers and audit are executable | `CRM-V1-BASELINE.md`; `CRM-MIGRATION-MATRIX.md`; M67–M133 evidence | alto |
+| MIG-0008 | `luizidebook/morro-digital-crm@1915d026` | CRM | FEATURE-0006 | `@touristic/crm` + `@touristic/crm-server` + `apps/admin-crm` | 7 | migrating | authenticated shell and dedicated browser surfaces exist; consolidated V1 visual/accessibility equivalence remains open | 25 contracts: 18 PASS / 5 PARTIAL / 2 GAP at M138 candidate; dashboard metrics/funnel, leads, meetings, proposals, contracts, follow-ups, trials, referrals, public token flows, schedulers and audit are executable | `CRM-V1-BASELINE.md`; `CRM-MIGRATION-MATRIX.md`; M67–M138 evidence | alto |
 | MIG-0009 | autenticação e sessão | Auth | FEATURE-0008 | `packages/auth` + `packages/auth-browser` + Auth surfaces in `dashboard/` | 6 | equivalent | login V1-equivalent and canonical dashboard return proven in Chromium | 20/20 Auth contracts PASS: login/session/cookie/CSRF/origin/roles/tenant/audit/revocation | `AUTH-MIGRATION-MATRIX.md`; M47–M48 + M50–M52 + M66 evidence; PR #129 Quality + Auth/Business browser contracts | crítico |
 | MIG-0010 | pagamentos/assinaturas | Ordering / Financial | FEATURE-0009 | `@touristic/ordering` + `@touristic/ordering-server` + `@touristic/financial` + `@touristic/financial-server` + runtime HTTP/browser no Morro Digital | 8 | migrating | M149 adiciona browser launch/polling executável sem fabricar autoridade; composição pública Business → Payments continua bloqueada | 34 contratos: 27 PASS / 5 PARTIAL / 1 GAP / 1 N/A; sucesso e falha terminal browser exigem resultado Financial persistido e identity-matched | `PAYMENTS-V1-BASELINE.md`; `PAYMENTS-MIGRATION-MATRIX.md`; evidências M135–M149 | crítico |
 | MIG-0011 | afiliados | Affiliates | FEATURE-0010 | `packages/affiliates` | 9 | discovered | pendente | pendente | pendente | crítico |
@@ -36,7 +36,7 @@ Um item não pode avançar para `equivalent` sem evidência visual ou comportame
 
 M67 congelou o CRM V1 em `luizidebook/morro-digital-crm@1915d0260c79f30a63b926a1123e609083587745`. A documentação anterior deste tracker parava em M71/M72 e, por isso, já não representava o código real.
 
-Entre M73 e M133 foram incorporados:
+Entre M73 e M138 foram incorporados:
 
 - composição real com platform Auth/Node;
 - persistência MySQL e auditoria durável para os principais agregados comerciais;
@@ -48,9 +48,11 @@ Entre M73 e M133 foram incorporados:
 - shell autenticado `apps/admin-crm`;
 - browser lifecycles de Leads, Meetings, Proposals, Contracts, Follow-ups, Trials e Referrals;
 - busca/filtros de Leads;
-- hardening do canvas de assinatura pública até M133.
+- hardening do canvas de assinatura pública em M132–M136;
+- consolidação da superfície canônica de Meetings em M137;
+- dashboard metrics/funnel M138 server-authoritative, autenticado e GET-only, derivado de `crm_leads`/`crm_interactions` em um snapshot MySQL `REPEATABLE READ` / `READ ONLY` consistente.
 
-A matriz canônica atual é `17 PASS / 5 PARTIAL / 3 GAP / 0 N/A`. `MIG-0008` permanece `migrating`: ainda faltam dashboard metrics/funnel autoritativos, CRM settings genéricos, decisão/adapter de object storage e fechamento de alguns contratos parciais, além da matriz visual/acessibilidade consolidada. `FEATURE-0006` deve permanecer `migrating`, não `equivalent`, até esse fechamento.
+A matriz canônica candidata M138 é `18 PASS / 5 PARTIAL / 2 GAP / 0 N/A`. `MIG-0008` permanece `migrating`: ainda faltam Lead detail/activity e CRUD completo, fechamento ou reclassificação de Follow-up send/respond, CRM settings genéricos, decisão/adapter de object storage, contrato CRM-owned para AI-assisted content e matriz visual/acessibilidade consolidada. `FEATURE-0006` deve permanecer `migrating`, não `equivalent`, até esse fechamento e os gates separados de release.
 
 ## Business equivalente — MIG-0007
 
@@ -140,7 +142,7 @@ Map Tour Browser Regression: 31237633588 — success
 Mapbox Visual Contract Regression: 31237633577 — success
 ```
 
-O contrato validado preserva Mapbox GL JS 3.12.0, style V1, câmera inicial, source/layers, paints/dash/widths, `fitBounds`, 8→5→5 e restauração, teclado, logo vendor, alto contraste, fallback Leaflet e rollback após falha de SDK/inicialização.
+O contrato validado preserva Mapbox GL JS 3.12.0, style V1, câmera inicial, source/layers, paints/dash/widths, `fitBounds`, 8→5→5→8 e restauração, teclado, logo vendor, alto contraste, fallback Leaflet e rollback após falha de SDK/inicialização.
 
 ### Matriz formal — PR #20
 
