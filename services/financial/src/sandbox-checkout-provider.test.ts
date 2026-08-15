@@ -4,13 +4,18 @@ import {
   createCheckoutProviderRequest,
   createMoney,
   createPaymentIdempotencyKey,
+  createRefundIdempotencyKey,
+  createRefundProviderCommand,
   normalizePaymentId,
+  normalizeRefundRequestId,
   type CheckoutProviderRequest,
+  type RefundProviderCommand,
 } from "@touristic/financial";
 
 import {
   SandboxCheckoutProviderError,
   createSandboxCheckoutProviderFromEnvironment,
+  createSandboxRefundProviderFromEnvironment,
 } from "./sandbox-checkout-provider.js";
 
 function environment() {
@@ -54,7 +59,24 @@ function request(): CheckoutProviderRequest {
   return result;
 }
 
-describe("M140 sandbox checkout provider adapter", () => {
+function refundRequest(): RefundProviderCommand {
+  const paymentId = normalizePaymentId("pay_sandbox_refund_0001");
+  const idempotencyKey = createRefundIdempotencyKey(paymentId);
+  const refundRequestId = normalizeRefundRequestId("rfd_sandbox_refund_0001");
+  const amount = createMoney(49_900, "BRL");
+  const result = createRefundProviderCommand({
+    refundRequestId,
+    paymentId,
+    idempotencyKey,
+    amount,
+    providerPaymentReference: "sandbox_payment_refund_0001",
+    reason: "requested_by_business",
+  });
+  if (!result) throw new Error("REFUND_FIXTURE_INVALID");
+  return result;
+}
+
+describe("M140/M144 sandbox payment provider adapters", () => {
   it("maps the authoritative request and provider idempotency exactly", async () => {
     let capturedUrl = "";
     let capturedInit: RequestInit | undefined;
@@ -208,4 +230,75 @@ describe("M140 sandbox checkout provider adapter", () => {
       }),
     ).toThrow("PAYMENTS_SANDBOX_CHECKOUT_ORIGINS is required");
   });
+
+  it("maps the full-refund command and exact durable idempotency key", async () => {
+    let capturedUrl = "";
+    let capturedInit: RequestInit | undefined;
+    const provider = createSandboxRefundProviderFromEnvironment(environment(), {
+      fetch(input, init) {
+        capturedUrl =
+          input instanceof URL
+            ? input.toString()
+            : typeof input === "string"
+              ? input
+              : input.url;
+        capturedInit = init;
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              version: 1,
+              accepted: true,
+              refundId: "sandbox_refund_0001",
+            }),
+            { status: 202 },
+          ),
+        );
+      },
+    });
+
+    await expect(provider.requestRefund(refundRequest())).resolves.toEqual({
+      accepted: true,
+      providerRefundReference: "sandbox_refund_0001",
+    });
+    expect(capturedUrl).toBe(
+      "https://api.sandbox-payments.example/v1/refunds",
+    );
+    const headers = new Headers(capturedInit?.headers);
+    expect(headers.get("Idempotency-Key")).toBe(
+      "refund:v1:pay_sandbox_refund_0001",
+    );
+    const capturedBody = capturedInit?.body;
+    if (typeof capturedBody !== "string") {
+      throw new Error("CAPTURED_REFUND_BODY_INVALID");
+    }
+    expect(JSON.parse(capturedBody)).toEqual({
+      version: 1,
+      refundRequestId: "rfd_sandbox_refund_0001",
+      externalReference: "pay_sandbox_refund_0001",
+      paymentReference: "sandbox_payment_refund_0001",
+      amount: { minorUnits: 49_900, currency: "BRL" },
+      reason: "requested_by_business",
+    });
+  });
+
+  it("fails closed on an unverified refund provider receipt", async () => {
+    const provider = createSandboxRefundProviderFromEnvironment(environment(), {
+      fetch: () =>
+        Promise.resolve(
+          new Response(
+            JSON.stringify({
+              version: 1,
+              accepted: false,
+              refundId: "sandbox_refund_rejected_0001",
+            }),
+            { status: 200 },
+          ),
+        ),
+    });
+
+    await expect(provider.requestRefund(refundRequest())).rejects.toEqual(
+      new SandboxCheckoutProviderError("SANDBOX_PROVIDER_INVALID_RESPONSE"),
+    );
+  });
+
 });
