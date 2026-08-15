@@ -1,0 +1,280 @@
+name: Payments Browser Checkout Contract
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/payments-browser-checkout-contract.yml"
+      - "apps/morro-digital-platform/src/payments-browser-checkout-client*.ts"
+      - "packages/ordering/**"
+      - "apps/morro-digital-platform/tooling/dev-server.mjs"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/payments-browser-checkout-contract.yml"
+      - "apps/morro-digital-platform/src/payments-browser-checkout-client*.ts"
+      - "packages/ordering/**"
+      - "apps/morro-digital-platform/tooling/dev-server.mjs"
+
+permissions:
+  contents: read
+
+jobs:
+  payments-browser-checkout:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install deterministic Chromium
+        run: |
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+      - name: Build workspace
+        run: pnpm -w build
+      - name: Validate focused browser client unit contract
+        run: pnpm --filter @touristic/morro-digital-platform exec vitest run src/payments-browser-checkout-client.test.ts
+      - name: Start deterministic module origin
+        run: |
+          PORT=4186 HOST=127.0.0.1 node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/m148-browser-server.log 2>&1 &
+          echo $! >/tmp/m148-browser-server.pid
+          for _ in $(seq 1 60); do
+            curl --fail --silent http://127.0.0.1:4186/runtime-config.js >/dev/null && exit 0
+            sleep .25
+          done
+          cat /tmp/m148-browser-server.log
+          exit 1
+      - name: Validate checkout launch and authoritative confirmation in Chromium
+        run: |
+          node <<'NODE'
+          const { writeFileSync } = require('node:fs');
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            const evidence = { errors: [] };
+            try {
+              const page = await browser.newPage();
+              page.on('pageerror', error => evidence.errors.push(error.message));
+              await page.goto('http://127.0.0.1:4186/runtime-config.js');
+              await page.evaluate(() => {
+                document.open();
+                document.write(`<!doctype html><html><head><meta charset="utf-8"><script type="importmap">${JSON.stringify({ imports: {
+                  '@touristic/ordering': '/packages/ordering/dist/index.js'
+                } })}<\/script></head><body><main id="root"></main></body></html>`);
+                document.close();
+              });
+
+              const result = await page.evaluate(async () => {
+                const module = await import('/apps/morro-digital-platform/dist/payments-browser-checkout-client.js');
+                if (module.PAYMENTS_BROWSER_POLL_INTERVAL_MS !== 2500 || module.PAYMENTS_BROWSER_MAX_POLL_ATTEMPTS !== 240) {
+                  throw new Error('Frozen polling defaults diverged');
+                }
+
+                const handoff = {
+                  sessionId: 'business_session_m148_browser',
+                  planId: 'growth',
+                  contractor: {
+                    name: 'Luiz Silva',
+                    email: 'luiz@example.com',
+                    phone: '75999999999',
+                    document: '12345678900'
+                  },
+                  businessDraft: {
+                    demoBusinessId: 'demo_business_m148_browser',
+                    displayName: 'Toca do Morcego',
+                    categoryId: 'events',
+                    specialty: 'Sunset',
+                    environment: 'sandbox',
+                    publishable: false
+                  },
+                  acceptedTerms: [
+                    { type: 'terms', version: 'business-partner-terms-2026-08', acceptedAt: '2026-08-15T04:30:00.000Z' },
+                    { type: 'privacy', version: 'privacy-policy-2026-08', acceptedAt: '2026-08-15T04:30:00.000Z' }
+                  ],
+                  returnUrl: 'https://morro.example.test/business-onboarding.html',
+                  tutorial: false,
+                  requiresPaymentsCapability: true
+                };
+                const statusToken = `cst_v1_${'a'.repeat(43)}`;
+                const requests = [];
+                const waits = [];
+                const popupCalls = [];
+                const fallbackAssignments = [];
+                const events = [];
+                for (const name of ['businessPaymentVerified', 'businessPaymentVerificationFailed']) {
+                  window.addEventListener(name, event => events.push({ name, detail: event.detail }));
+                }
+                const signals = module.createWindowPaymentsBrowserCheckoutSignals(window);
+                const responses = [
+                  {
+                    data: {
+                      checkoutId: 'ord_m148browser001',
+                      paymentId: 'pay_m148browser001',
+                      status: 'PENDING',
+                      statusToken,
+                      statusExpiresAt: '2026-08-16T04:30:00.000Z',
+                      checkoutUrl: 'https://sandbox-payments.example.test/checkout/browser-001',
+                      replayed: false
+                    }
+                  },
+                  {
+                    data: {
+                      checkoutId: 'ord_m148browser001',
+                      sessionId: handoff.sessionId,
+                      status: 'CONFIRMED',
+                      verifiedPayment: null
+                    }
+                  },
+                  {
+                    data: {
+                      checkoutId: 'ord_m148browser001',
+                      sessionId: handoff.sessionId,
+                      status: 'CONFIRMED',
+                      verifiedPayment: {
+                        verified: true,
+                        sessionId: handoff.sessionId,
+                        reference: 'provider-payment-m148-browser',
+                        definitiveBusinessId: 'business_m148_browser',
+                        activationStatus: 'READY_TO_CONVERT',
+                        resultId: 'fev_m148_browser'
+                      }
+                    }
+                  }
+                ];
+                let responseIndex = 0;
+                const fetchFn = async (input, init = {}) => {
+                  const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+                  requests.push({
+                    url,
+                    method: init.method || 'GET',
+                    credentials: init.credentials || null,
+                    cache: init.cache || null,
+                    headers: Object.fromEntries(new Headers(init.headers).entries()),
+                    body: init.body || null
+                  });
+                  const payload = responses[responseIndex++];
+                  if (!payload) throw new Error('Unexpected browser fetch');
+                  return new Response(JSON.stringify(payload), {
+                    status: 200,
+                    headers: { 'content-type': 'application/json' }
+                  });
+                };
+                const client = module.createPaymentsBrowserCheckoutClient({
+                  fetchFn,
+                  authority: {
+                    resolveCreateHeaders: async () => ({
+                      'X-Checkout-Handoff-Token': 'signed-browser-capability-m148'
+                    })
+                  },
+                  popup: {
+                    open: (url, target, features) => {
+                      popupCalls.push({ url, target, features });
+                      return {};
+                    },
+                    assign: url => fallbackAssignments.push(url)
+                  },
+                  signals,
+                  scheduler: {
+                    wait: async milliseconds => { waits.push(milliseconds); }
+                  },
+                  correlationId: () => 'browser:m148-contract-0001'
+                });
+
+                localStorage.clear();
+                sessionStorage.clear();
+                const session = await client.start(handoff);
+                const confirmation = await session.confirmation;
+                const createHeaders = requests[0]?.headers || {};
+                const statusHeaders = requests.slice(1).map(request => request.headers);
+                const successEvents = events.filter(event => event.name === 'businessPaymentVerified');
+                const failureEvents = events.filter(event => event.name === 'businessPaymentVerificationFailed');
+
+                const blockedAssignments = [];
+                const blockedClient = module.createPaymentsBrowserCheckoutClient({
+                  fetchFn: async () => new Response(JSON.stringify({
+                    data: {
+                      checkoutId: 'ord_m148browser002',
+                      paymentId: 'pay_m148browser002',
+                      status: 'PENDING',
+                      statusToken: `cst_v1_${'b'.repeat(43)}`,
+                      statusExpiresAt: '2026-08-16T04:30:00.000Z',
+                      checkoutUrl: 'https://sandbox-payments.example.test/checkout/browser-002',
+                      replayed: false
+                    }
+                  }), { status: 200 }),
+                  authority: { resolveCreateHeaders: async () => ({ 'X-Checkout-Handoff-Token': 'signed-browser-capability-m148' }) },
+                  popup: { open: () => null, assign: url => blockedAssignments.push(url) },
+                  signals: { verified: () => {}, failed: () => {} },
+                  scheduler: { wait: async () => {} },
+                  correlationId: () => 'browser:m148-contract-0002',
+                  maxPollAttempts: 1
+                });
+                const blockedSession = await blockedClient.start(handoff);
+                blockedSession.confirmation.catch(() => {});
+                await Promise.resolve();
+
+                return {
+                  session,
+                  confirmation,
+                  requests,
+                  waits,
+                  popupCalls,
+                  fallbackAssignments,
+                  blockedAssignments,
+                  successEvents,
+                  failureEvents,
+                  createHeaders,
+                  statusHeaders,
+                  localStorage: Object.fromEntries(Array.from({ length: localStorage.length }, (_, index) => {
+                    const key = localStorage.key(index); return key ? [key, localStorage.getItem(key)] : ['', null];
+                  })),
+                  sessionStorage: Object.fromEntries(Array.from({ length: sessionStorage.length }, (_, index) => {
+                    const key = sessionStorage.key(index); return key ? [key, sessionStorage.getItem(key)] : ['', null];
+                  }))
+                };
+              });
+
+              if ('statusToken' in result.session) throw new Error('Status capability escaped public browser session');
+              if (result.confirmation?.verified !== true || result.confirmation?.reference !== 'provider-payment-m148-browser') throw new Error(`Authoritative confirmation mismatch: ${JSON.stringify(result.confirmation)}`);
+              if (result.successEvents.length !== 1 || result.failureEvents.length !== 0) throw new Error(`Business signal mismatch: ${JSON.stringify(result)}`);
+              if (result.waits.length !== 2 || result.waits.some(value => value !== 2500)) throw new Error(`Polling cadence mismatch: ${JSON.stringify(result.waits)}`);
+              if (result.popupCalls.length !== 1 || result.popupCalls[0].target !== 'morro-digital-checkout' || result.popupCalls[0].features !== 'noopener,noreferrer') throw new Error(`Popup contract mismatch: ${JSON.stringify(result.popupCalls)}`);
+              if (result.fallbackAssignments.length !== 0) throw new Error(`Unexpected location fallback: ${JSON.stringify(result.fallbackAssignments)}`);
+              if (result.blockedAssignments[0] !== 'https://sandbox-payments.example.test/checkout/browser-002') throw new Error(`Blocked popup fallback mismatch: ${JSON.stringify(result.blockedAssignments)}`);
+              if (result.requests[0]?.method !== 'POST' || result.requests[0]?.credentials !== 'same-origin' || result.requests[0]?.cache !== 'no-store') throw new Error(`Create request contract mismatch: ${JSON.stringify(result.requests[0])}`);
+              if (result.createHeaders['idempotency-key'] !== 'business:business_session_m148_browser:growth') throw new Error(`Idempotency mismatch: ${JSON.stringify(result.createHeaders)}`);
+              if (result.createHeaders['x-checkout-handoff-token'] !== 'signed-browser-capability-m148') throw new Error('Trusted authority missing');
+              if (result.statusHeaders.length !== 2 || result.statusHeaders.some(headers => headers['x-checkout-token'] !== `cst_v1_${'a'.repeat(43)}`)) throw new Error('Status capability was not reused exactly');
+              if (Object.keys(result.localStorage).length || Object.keys(result.sessionStorage).length) throw new Error(`Status capability was persisted: ${JSON.stringify({ local: result.localStorage, session: result.sessionStorage })}`);
+              if (evidence.errors.length) throw new Error(`Browser errors: ${JSON.stringify(evidence.errors)}`);
+
+              Object.assign(evidence, { result, status: 'PASS' });
+              writeFileSync('/tmp/m148-browser-evidence.json', JSON.stringify(evidence, null, 2));
+            } finally {
+              await browser.close();
+            }
+          })().catch(error => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+      - name: Show diagnostics
+        if: failure()
+        run: cat /tmp/m148-browser-server.log || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: payments-browser-checkout-evidence
+          path: /tmp/m148-browser-evidence.json
+          retention-days: 1
+          if-no-files-found: ignore
+      - name: Stop runtime
+        if: always()
+        run: kill "$(cat /tmp/m148-browser-server.pid)" 2>/dev/null || true
