@@ -67,6 +67,7 @@ async function publishMarkerFailure(
         markerIds: Object.freeze(markers.map((marker) => marker.id)),
         reason: describeMarkerError(error),
       }),
+      { destinationId: morroDeSaoPauloDestination.id },
     );
   } catch {
     return;
@@ -89,6 +90,7 @@ async function loadInitialMarkers(
         count: markers.length,
         markerIds: Object.freeze(markers.map((marker) => marker.id)),
       }),
+      { destinationId: morroDeSaoPauloDestination.id },
     );
     return markers.length;
   } catch (error) {
@@ -119,10 +121,14 @@ export async function bootstrapMorroDigital(
     events,
   });
 
-  await runtime.events.publish("DestinationLoaded", {
-    destinationId: runtime.destination.id,
-    modules: runtime.modules.map((module) => module.id),
-  });
+  await runtime.events.publish(
+    "DestinationLoaded",
+    {
+      destinationId: runtime.destination.id,
+      modules: runtime.modules.map((module) => module.id),
+    },
+    { destinationId: runtime.destination.id },
+  );
 
   const geospatialEngine = options.initializeGeospatial
     ? await options.initializeGeospatial(runtime.events)
