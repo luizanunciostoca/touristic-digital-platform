@@ -1,27 +1,9 @@
 from collections import Counter
 from pathlib import Path
 
-workflow_path = Path(".github/workflows/payments-browser-checkout-contract.yml")
 matrix_path = Path("docs/migration/PAYMENTS-MIGRATION-MATRIX.md")
 tracker_path = Path("docs/migration/MASTER-MIGRATION-TRACKER.md")
 evidence_path = Path("docs/qa/PAYMENTS-M149-EVIDENCE.md")
-
-workflow = workflow_path.read_text()
-workflow = workflow.replace(
-    "name: Payments Browser Checkout Contract",
-    "name: Payments M149 Browser Checkout Contract",
-    1,
-)
-workflow = workflow.replace("m148", "m149").replace("M148", "M149")
-trigger_anchor = '      - "apps/morro-digital-platform/tooling/dev-server.mjs"\n'
-doc_paths = (
-    '      - "docs/qa/PAYMENTS-M149-EVIDENCE.md"\n'
-    '      - "docs/migration/PAYMENTS-MIGRATION-MATRIX.md"\n'
-    '      - "docs/migration/MASTER-MIGRATION-TRACKER.md"\n'
-)
-assert workflow.count(trigger_anchor) == 2, "expected pull/push trigger anchors"
-workflow = workflow.replace(trigger_anchor, trigger_anchor + doc_paths)
-workflow_path.write_text(workflow)
 
 matrix = matrix_path.read_text()
 first_line, rest = matrix.split("\n", 1)
