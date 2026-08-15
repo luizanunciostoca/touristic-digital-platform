@@ -39,7 +39,7 @@ This contract does not claim that every existing domain has already migrated all
 
 Focused Core tests prove full envelope shape, immutability, fail-closed missing destination context and structured observation creation.
 
-## Transverse Quality Gates
+## Transverse Quality Gate
 
 `pnpm platform:contracts:check` validates:
 
@@ -50,8 +50,8 @@ Focused Core tests prove full envelope shape, immutability, fail-closed missing 
 - evidence references;
 - reconciliation in both `PLATFORM-BIBLE.md` and `MODULE-CONTRACTS.md`.
 
-The command is included in root `pnpm check`. A dedicated permanent `.github/workflows/platform-contracts.yml` workflow also runs the contract reconciliation on relevant pull requests and `main` pushes, while the existing central Quality Gate remains unchanged and continues to validate formatting, architecture, Feature Registry, lint, typecheck, full tests and build.
+The command remains independently executable and is chained by `pnpm architecture:check`. Because the existing central Quality Gate already executes `architecture:check`, the contract reconciliation now runs in both the official PR Quality Gate and root `pnpm check` without modifying `.github/workflows/quality.yml` or introducing a second Actions workflow.
 
 ## Promotion rule
 
-This change may be merged only after the final branch head passes both the repository Quality Gate and Platform Contracts workflow. Any other path-triggered permanent regression workflow must also remain green on the same final head/merge ref.
+This change may be merged only after the final branch head passes the repository Quality Gate, including the Platform Contracts reconciliation through `architecture:check`, formatting, Feature Registry, lint, typecheck, full tests and build. Any path-triggered permanent regression workflow must also remain green on the same final head/merge ref.
