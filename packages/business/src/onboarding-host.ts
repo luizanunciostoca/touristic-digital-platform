@@ -32,6 +32,7 @@ export interface BusinessOnboardingHostOptions {
   readonly beforeTransition?: (
     context: BusinessOnboardingGuardContext,
   ) => boolean | Promise<boolean>;
+  readonly onChange?: (snapshot: BusinessOnboardingHostSnapshot) => void;
 }
 
 export interface BusinessOnboardingHostSnapshot {
@@ -77,6 +78,7 @@ async function withTimeout(
 export class BusinessOnboardingHostController {
   private session: BusinessOnboardingSession;
   private readonly beforeTransition?: BusinessOnboardingHostOptions["beforeTransition"];
+  private readonly onChange?: BusinessOnboardingHostOptions["onChange"];
   private readonly guardTimeoutMs: number;
 
   constructor(options: BusinessOnboardingHostOptions = {}) {
@@ -95,6 +97,7 @@ export class BusinessOnboardingHostController {
             ...(options.locale ? { locale: options.locale } : {}),
           });
     this.beforeTransition = options.beforeTransition;
+    this.onChange = options.onChange;
     this.guardTimeoutMs = Math.max(
       100,
       options.guardTimeoutMs ?? BUSINESS_ONBOARDING_GUARD_TIMEOUT_MS,
@@ -116,30 +119,40 @@ export class BusinessOnboardingHostController {
     });
   }
 
+  private changed(): BusinessOnboardingHostSnapshot {
+    const snapshot = this.snapshot();
+    this.onChange?.(snapshot);
+    return snapshot;
+  }
+
   updateStepInput(
     stepId: BusinessOnboardingStepId,
     value: unknown,
     now = new Date(),
   ): BusinessOnboardingHostSnapshot {
-    this.session = updateBusinessOnboardingStepInput(
+    const nextSession = updateBusinessOnboardingStepInput(
       this.session,
       stepId,
       value,
       now,
     );
-    return this.snapshot();
+    if (nextSession === this.session) return this.snapshot();
+    this.session = nextSession;
+    return this.changed();
   }
 
   updateRuntimeContext(
     patch: Readonly<Record<string, unknown>>,
     now = new Date(),
   ): BusinessOnboardingHostSnapshot {
-    this.session = updateBusinessOnboardingRuntimeContext(
+    const nextSession = updateBusinessOnboardingRuntimeContext(
       this.session,
       patch,
       now,
     );
-    return this.snapshot();
+    if (nextSession === this.session) return this.snapshot();
+    this.session = nextSession;
+    return this.changed();
   }
 
   async move(
@@ -168,7 +181,7 @@ export class BusinessOnboardingHostController {
       now,
       reason: `host-${direction}`,
     });
-    return this.snapshot();
+    return this.changed();
   }
 
   async next(now = new Date()): Promise<BusinessOnboardingHostSnapshot> {
@@ -187,7 +200,7 @@ export class BusinessOnboardingHostController {
       now,
       reason,
     });
-    return this.snapshot();
+    return this.changed();
   }
 
   complete(now = new Date()): BusinessOnboardingHostSnapshot {
@@ -195,7 +208,7 @@ export class BusinessOnboardingHostController {
       now,
       reason: "complete",
     });
-    return this.snapshot();
+    return this.changed();
   }
 
   restart(now = new Date()): BusinessOnboardingHostSnapshot {
@@ -203,6 +216,6 @@ export class BusinessOnboardingHostController {
       locale: this.session.selectedLanguage,
       now,
     });
-    return this.snapshot();
+    return this.changed();
   }
 }
