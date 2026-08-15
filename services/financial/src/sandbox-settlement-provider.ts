@@ -37,7 +37,10 @@ function boundedText(value: unknown, maxLength: number): string {
 }
 
 function baseUrl(environment: SandboxSettlementEnvironment): URL {
-  const raw = boundedText(environment.PAYMENTS_SANDBOX_PROVIDER_BASE_URL, 2_048);
+  const raw = boundedText(
+    environment.PAYMENTS_SANDBOX_PROVIDER_BASE_URL,
+    2_048,
+  );
   if (!raw) throw new Error("PAYMENTS_SANDBOX_PROVIDER_BASE_URL is required");
   let url: URL;
   try {
@@ -62,7 +65,8 @@ function baseUrl(environment: SandboxSettlementEnvironment): URL {
 function timeoutMs(value: unknown): number {
   const raw = boundedText(value, 10);
   if (!raw) return 8_000;
-  if (!/^[0-9]+$/u.test(raw)) throw new Error("PAYMENTS_PROVIDER_TIMEOUT_MS is invalid");
+  if (!/^[0-9]+$/u.test(raw))
+    throw new Error("PAYMENTS_PROVIDER_TIMEOUT_MS is invalid");
   const parsed = Number(raw);
   if (!Number.isSafeInteger(parsed) || parsed < 500 || parsed > 15_000) {
     throw new Error("PAYMENTS_PROVIDER_TIMEOUT_MS is invalid");
@@ -133,7 +137,10 @@ export function createSandboxSettlementProviderFromEnvironment(
     throw new Error("PAYMENTS_SANDBOX_PROVIDER_FETCH_UNAVAILABLE");
   }
 
-  async function call(url: URL, init: RequestInit): Promise<Record<string, unknown>> {
+  async function call(
+    url: URL,
+    init: RequestInit,
+  ): Promise<Record<string, unknown>> {
     try {
       const response = await fetchProvider(url, {
         ...init,
@@ -156,7 +163,9 @@ export function createSandboxSettlementProviderFromEnvironment(
       return payload as Record<string, unknown>;
     } catch (error) {
       if (error instanceof SandboxSettlementProviderError) throw error;
-      throw new SandboxSettlementProviderError("SANDBOX_SETTLEMENT_UNAVAILABLE");
+      throw new SandboxSettlementProviderError(
+        "SANDBOX_SETTLEMENT_UNAVAILABLE",
+      );
     }
   }
 
@@ -212,7 +221,10 @@ export function createSandboxSettlementProviderFromEnvironment(
         );
       }
       const payload = await call(
-        new URL(`v1/transfers/${encodeURIComponent(reference)}`, providerBaseUrl),
+        new URL(
+          `v1/transfers/${encodeURIComponent(reference)}`,
+          providerBaseUrl,
+        ),
         {
           method: "GET",
           headers: {

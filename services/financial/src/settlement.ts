@@ -6,9 +6,7 @@ import {
   financialM146SettlementSchemaSql,
 } from "./settlement-schema.js";
 
-export {
-  MySqlFinancialSettlementRepository,
-} from "./mysql-settlement-repository.js";
+export { MySqlFinancialSettlementRepository } from "./mysql-settlement-repository.js";
 export {
   SettlementApplicationError,
   createSettlementApplicationService,
@@ -21,10 +19,7 @@ export {
   createSandboxSettlementProviderFromEnvironment,
   type SandboxSettlementEnvironment,
 } from "./sandbox-settlement-provider.js";
-export {
-  applyFinancialM146SettlementSchema,
-  financialM146SettlementSchemaSql,
-};
+export { applyFinancialM146SettlementSchema, financialM146SettlementSchemaSql };
 
 export async function applyFinancialM146Schema(pool: Pool): Promise<void> {
   await applyFinancialM145Schema(pool);

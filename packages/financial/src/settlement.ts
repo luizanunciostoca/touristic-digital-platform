@@ -45,23 +45,11 @@ export interface FinancialAllocationPlan {
 
 export type FinancialAllocationStatus = "claimed" | "active" | "reversed";
 export type FinancialPayableStatus =
-  | "blocked"
-  | "ready"
-  | "transfer_pending"
-  | "settled"
-  | "failed"
-  | "reversed";
+  "blocked" | "ready" | "transfer_pending" | "settled" | "failed" | "reversed";
 export type FinancialSettlementStatus =
-  | "claimed"
-  | "provider_accepted"
-  | "settled"
-  | "failed"
-  | "reversed";
+  "claimed" | "provider_accepted" | "settled" | "failed" | "reversed";
 export type FinancialSettlementProviderStatus =
-  | "pending"
-  | "paid"
-  | "failed"
-  | "reversed";
+  "pending" | "paid" | "failed" | "reversed";
 
 export interface FinancialAllocation {
   readonly id: FinancialAllocationId;
@@ -145,10 +133,7 @@ function text(value: unknown, maxLength: number): string {
   return normalized && normalized.length <= maxLength ? normalized : "";
 }
 
-function brandedId<T extends string>(
-  value: unknown,
-  prefix: string,
-): T | null {
+function brandedId<T extends string>(value: unknown, prefix: string): T | null {
   const normalized = text(value, 120);
   return normalized.startsWith(prefix) &&
     normalized.length >= prefix.length + 8 &&
@@ -291,7 +276,9 @@ export function normalizeFinancialAllocation(
       ? input.status
       : null;
   const ledgerExternalKey =
-    input.ledgerExternalKey === null ? null : text(input.ledgerExternalKey, 160);
+    input.ledgerExternalKey === null
+      ? null
+      : text(input.ledgerExternalKey, 160);
   const reversalLedgerExternalKey =
     input.reversalLedgerExternalKey === null
       ? null
@@ -385,9 +372,10 @@ export function normalizeFinancialPayable(
     !createdAt ||
     !updatedAt ||
     ((status === "blocked" || status === "ready") && settlementId !== null) ||
-    (["transfer_pending", "settled", "failed", "reversed"] as const).includes(
+    ((["transfer_pending", "settled", "failed", "reversed"] as const).includes(
       status as "transfer_pending" | "settled" | "failed" | "reversed",
-    ) && settlementId === null
+    ) &&
+      settlementId === null)
   ) {
     return null;
   }
@@ -448,7 +436,9 @@ export function normalizeFinancialSettlement(
       ? null
       : text(input.providerTransferReference, 160);
   const ledgerExternalKey =
-    input.ledgerExternalKey === null ? null : text(input.ledgerExternalKey, 160);
+    input.ledgerExternalKey === null
+      ? null
+      : text(input.ledgerExternalKey, 160);
   const reversalLedgerExternalKey =
     input.reversalLedgerExternalKey === null
       ? null
@@ -549,7 +539,8 @@ export function normalizeFinancialSettlementProviderReceipt(
   input: Readonly<{ accepted?: unknown; providerTransferReference?: unknown }>,
 ): FinancialSettlementProviderReceipt | null {
   const providerTransferReference = text(input.providerTransferReference, 160);
-  return input.accepted === true && PROVIDER_REFERENCE.test(providerTransferReference)
+  return input.accepted === true &&
+    PROVIDER_REFERENCE.test(providerTransferReference)
     ? Object.freeze({ accepted: true as const, providerTransferReference })
     : null;
 }

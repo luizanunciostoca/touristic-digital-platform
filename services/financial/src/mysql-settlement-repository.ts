@@ -67,7 +67,8 @@ interface SettlementRow extends RowDataPacket {
 function timestamp(value: Date | string | null): string | null {
   if (value === null) return null;
   const parsed = value instanceof Date ? value : new Date(value);
-  if (!Number.isFinite(parsed.getTime())) throw new Error("FINANCIAL_INVALID_DB_TIMESTAMP");
+  if (!Number.isFinite(parsed.getTime()))
+    throw new Error("FINANCIAL_INVALID_DB_TIMESTAMP");
   return parsed.toISOString();
 }
 
@@ -85,7 +86,10 @@ function allocationFromRow(row: AllocationRow): FinancialAllocation {
     paymentId: row.payment_id,
     reconciliationRunId: row.reconciliation_run_id,
     grossAmount: createMoney(safeMinor(row.gross_amount_minor), row.currency),
-    platformAmount: createMoney(safeMinor(row.platform_amount_minor), row.currency),
+    platformAmount: createMoney(
+      safeMinor(row.platform_amount_minor),
+      row.currency,
+    ),
     allocationHash: row.allocation_hash.toString("hex"),
     status: row.status,
     ledgerExternalKey: row.ledger_external_key,
@@ -193,7 +197,11 @@ export class MySqlFinancialSettlementRepository {
   async claimAllocation(input: {
     allocation: FinancialAllocation;
     payables: readonly FinancialPayable[];
-  }): Promise<{ allocation: FinancialAllocation; payables: readonly FinancialPayable[]; replayed: boolean }> {
+  }): Promise<{
+    allocation: FinancialAllocation;
+    payables: readonly FinancialPayable[];
+    replayed: boolean;
+  }> {
     const connection = await this.pool.getConnection();
     try {
       await connection.beginTransaction();
@@ -206,14 +214,15 @@ export class MySqlFinancialSettlementRepository {
         [input.allocation.paymentId],
       );
       const latest = latestRuns[0] as
-        | { reconciliation_run_id: string; finding_count: number }
-        | undefined;
+        { reconciliation_run_id: string; finding_count: number } | undefined;
       const [openFindings] = await connection.execute<RowDataPacket[]>(
         `SELECT COUNT(*) AS total FROM financial_reconciliation_findings
          WHERE payment_id = ? AND state <> 'resolved'`,
         [input.allocation.paymentId],
       );
-      const openCount = Number((openFindings[0] as { total?: number })?.total ?? 0);
+      const openCount = Number(
+        (openFindings[0] as { total?: number })?.total ?? 0,
+      );
       if (
         !latest ||
         latest.reconciliation_run_id !== input.allocation.reconciliationRunId ||
@@ -223,12 +232,19 @@ export class MySqlFinancialSettlementRepository {
         throw new Error("FINANCIAL_SETTLEMENT_RECONCILIATION_REQUIRED");
       }
 
-      const existing = await allocationByPayment(connection, input.allocation.paymentId);
+      const existing = await allocationByPayment(
+        connection,
+        input.allocation.paymentId,
+      );
       if (existing) {
-        const existingPayables = await payablesByAllocation(connection, existing.id);
+        const existingPayables = await payablesByAllocation(
+          connection,
+          existing.id,
+        );
         if (
           existing.allocationHash !== input.allocation.allocationHash ||
-          existing.reconciliationRunId !== input.allocation.reconciliationRunId ||
+          existing.reconciliationRunId !==
+            input.allocation.reconciliationRunId ||
           existingPayables.length !== input.payables.length ||
           existingPayables.some((value, index) => {
             const expected = input.payables[index];
@@ -243,7 +259,11 @@ export class MySqlFinancialSettlementRepository {
           throw new Error("FINANCIAL_SETTLEMENT_ALLOCATION_CONFLICT");
         }
         await connection.commit();
-        return { allocation: existing, payables: existingPayables, replayed: true };
+        return {
+          allocation: existing,
+          payables: existingPayables,
+          replayed: true,
+        };
       }
 
       await connection.execute(
@@ -286,7 +306,11 @@ export class MySqlFinancialSettlementRepository {
         );
       }
       await connection.commit();
-      return { allocation: input.allocation, payables: input.payables, replayed: false };
+      return {
+        allocation: input.allocation,
+        payables: input.payables,
+        replayed: false,
+      };
     } catch (error) {
       await connection.rollback();
       throw error;
@@ -301,7 +325,8 @@ export class MySqlFinancialSettlementRepository {
     updatedAt: string,
   ): Promise<FinancialAllocation> {
     const allocationId = normalizeFinancialAllocationId(allocationIdInput);
-    if (!allocationId || !ledgerExternalKey) throw new Error("FINANCIAL_INVALID_ALLOCATION_ACTIVATION");
+    if (!allocationId || !ledgerExternalKey)
+      throw new Error("FINANCIAL_INVALID_ALLOCATION_ACTIVATION");
     const connection = await this.pool.getConnection();
     try {
       await connection.beginTransaction();
@@ -312,11 +337,13 @@ export class MySqlFinancialSettlementRepository {
       const current = rows[0] ? allocationFromRow(rows[0]) : null;
       if (!current) throw new Error("FINANCIAL_ALLOCATION_NOT_FOUND");
       if (current.status === "active") {
-        if (current.ledgerExternalKey !== ledgerExternalKey) throw new Error("FINANCIAL_ALLOCATION_LEDGER_CONFLICT");
+        if (current.ledgerExternalKey !== ledgerExternalKey)
+          throw new Error("FINANCIAL_ALLOCATION_LEDGER_CONFLICT");
         await connection.commit();
         return current;
       }
-      if (current.status !== "claimed") throw new Error("FINANCIAL_ALLOCATION_NOT_ACTIVATABLE");
+      if (current.status !== "claimed")
+        throw new Error("FINANCIAL_ALLOCATION_NOT_ACTIVATABLE");
       await connection.execute(
         `UPDATE financial_allocations SET status='active', ledger_external_key=?, updated_at=? WHERE allocation_id=?`,
         [ledgerExternalKey, new Date(updatedAt), allocationId],
@@ -337,7 +364,9 @@ export class MySqlFinancialSettlementRepository {
     }
   }
 
-  async claimSettlement(settlement: FinancialSettlement): Promise<{ settlement: FinancialSettlement; replayed: boolean }> {
+  async claimSettlement(
+    settlement: FinancialSettlement,
+  ): Promise<{ settlement: FinancialSettlement; replayed: boolean }> {
     const connection = await this.pool.getConnection();
     try {
       await connection.beginTransaction();
@@ -405,7 +434,8 @@ export class MySqlFinancialSettlementRepository {
     updatedAt: string,
   ): Promise<FinancialSettlement> {
     const settlementId = normalizeFinancialSettlementId(settlementIdInput);
-    if (!settlementId || !providerTransferReference) throw new Error("FINANCIAL_INVALID_SETTLEMENT_ACCEPTANCE");
+    if (!settlementId || !providerTransferReference)
+      throw new Error("FINANCIAL_INVALID_SETTLEMENT_ACCEPTANCE");
     const connection = await this.pool.getConnection();
     try {
       await connection.beginTransaction();
@@ -416,11 +446,13 @@ export class MySqlFinancialSettlementRepository {
       const current = rows[0] ? settlementFromRow(rows[0]) : null;
       if (!current) throw new Error("FINANCIAL_SETTLEMENT_NOT_FOUND");
       if (current.status === "provider_accepted") {
-        if (current.providerTransferReference !== providerTransferReference) throw new Error("FINANCIAL_SETTLEMENT_PROVIDER_CONFLICT");
+        if (current.providerTransferReference !== providerTransferReference)
+          throw new Error("FINANCIAL_SETTLEMENT_PROVIDER_CONFLICT");
         await connection.commit();
         return current;
       }
-      if (current.status !== "claimed") throw new Error("FINANCIAL_SETTLEMENT_NOT_ACCEPTABLE");
+      if (current.status !== "claimed")
+        throw new Error("FINANCIAL_SETTLEMENT_NOT_ACCEPTABLE");
       await connection.execute(
         `UPDATE financial_settlements SET status='provider_accepted', provider_transfer_reference=?, updated_at=? WHERE settlement_id=?`,
         [providerTransferReference, new Date(updatedAt), settlementId],
@@ -459,9 +491,12 @@ export class MySqlFinancialSettlementRepository {
         await connection.commit();
         return current;
       }
-      if (input.status === "settled" && current.status !== "provider_accepted") throw new Error("FINANCIAL_SETTLEMENT_INVALID_TRANSITION");
-      if (input.status === "failed" && current.status !== "provider_accepted") throw new Error("FINANCIAL_SETTLEMENT_INVALID_TRANSITION");
-      if (input.status === "reversed" && current.status !== "settled") throw new Error("FINANCIAL_SETTLEMENT_INVALID_TRANSITION");
+      if (input.status === "settled" && current.status !== "provider_accepted")
+        throw new Error("FINANCIAL_SETTLEMENT_INVALID_TRANSITION");
+      if (input.status === "failed" && current.status !== "provider_accepted")
+        throw new Error("FINANCIAL_SETTLEMENT_INVALID_TRANSITION");
+      if (input.status === "reversed" && current.status !== "settled")
+        throw new Error("FINANCIAL_SETTLEMENT_INVALID_TRANSITION");
       await connection.execute(
         `UPDATE financial_settlements
          SET status=?, ledger_external_key=COALESCE(?, ledger_external_key),
@@ -504,7 +539,8 @@ export class MySqlFinancialSettlementRepository {
     updatedAt: string,
   ): Promise<FinancialAllocation> {
     const allocationId = normalizeFinancialAllocationId(allocationIdInput);
-    if (!allocationId || !reversalLedgerExternalKey) throw new Error("FINANCIAL_INVALID_ALLOCATION_REVERSAL");
+    if (!allocationId || !reversalLedgerExternalKey)
+      throw new Error("FINANCIAL_INVALID_ALLOCATION_REVERSAL");
     const connection = await this.pool.getConnection();
     try {
       await connection.beginTransaction();
@@ -515,11 +551,13 @@ export class MySqlFinancialSettlementRepository {
       const current = rows[0] ? allocationFromRow(rows[0]) : null;
       if (!current) throw new Error("FINANCIAL_ALLOCATION_NOT_FOUND");
       if (current.status === "reversed") {
-        if (current.reversalLedgerExternalKey !== reversalLedgerExternalKey) throw new Error("FINANCIAL_ALLOCATION_REVERSAL_CONFLICT");
+        if (current.reversalLedgerExternalKey !== reversalLedgerExternalKey)
+          throw new Error("FINANCIAL_ALLOCATION_REVERSAL_CONFLICT");
         await connection.commit();
         return current;
       }
-      if (current.status !== "active") throw new Error("FINANCIAL_ALLOCATION_NOT_REVERSIBLE");
+      if (current.status !== "active")
+        throw new Error("FINANCIAL_ALLOCATION_NOT_REVERSIBLE");
       const [pending] = await connection.execute<RowDataPacket[]>(
         `SELECT COUNT(*) AS total FROM financial_payables WHERE allocation_id=? AND status='transfer_pending'`,
         [allocationId],
@@ -529,7 +567,12 @@ export class MySqlFinancialSettlementRepository {
       }
       await connection.execute(
         `UPDATE financial_allocations SET status='reversed', reversal_ledger_external_key=?, reversed_at=?, updated_at=? WHERE allocation_id=?`,
-        [reversalLedgerExternalKey, new Date(updatedAt), new Date(updatedAt), allocationId],
+        [
+          reversalLedgerExternalKey,
+          new Date(updatedAt),
+          new Date(updatedAt),
+          allocationId,
+        ],
       );
       await connection.execute(
         `UPDATE financial_payables SET status='reversed', updated_at=? WHERE allocation_id=? AND status<>'reversed'`,

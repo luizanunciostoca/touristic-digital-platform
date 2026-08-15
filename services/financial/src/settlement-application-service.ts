@@ -118,7 +118,9 @@ function sameMoney(
   left: { minorUnits: number; currency: string },
   right: { minorUnits: number; currency: string },
 ) {
-  return left.minorUnits === right.minorUnits && left.currency === right.currency;
+  return (
+    left.minorUnits === right.minorUnits && left.currency === right.currency
+  );
 }
 
 function allocationExternalKey(allocationId: string) {
@@ -147,7 +149,9 @@ function receivableAccount(reference: string) {
 
 async function requireApprovalEvidence(
   dependencies: SettlementApplicationDependencies,
-  paymentId: Parameters<VerifiedPaymentResultRepositoryPort["findByPaymentStatus"]>[0],
+  paymentId: Parameters<
+    VerifiedPaymentResultRepositoryPort["findByPaymentStatus"]
+  >[0],
 ) {
   const approval = await dependencies.results.findByPaymentStatus(
     paymentId,
@@ -283,16 +287,19 @@ export function createSettlementApplicationService(
           "FINANCIAL_SETTLEMENT_PAYABLE_NOT_READY",
         );
       }
-      const existingAllocation = await dependencies.settlement.findAllocationByPaymentId(
-        payable.paymentId,
-      );
+      const existingAllocation =
+        await dependencies.settlement.findAllocationByPaymentId(
+          payable.paymentId,
+        );
       if (!existingAllocation || existingAllocation.status !== "active") {
         throw new SettlementApplicationError(
           "FINANCIAL_SETTLEMENT_PAYABLE_NOT_READY",
         );
       }
       const settlementId = settlementIdentity(payable.id);
-      const idempotencyKey = createFinancialSettlementIdempotencyKey(payable.id);
+      const idempotencyKey = createFinancialSettlementIdempotencyKey(
+        payable.id,
+      );
       if (!idempotencyKey) throw new Error("FINANCIAL_SETTLEMENT_KEY_INVALID");
       const createdAt = now(dependencies.clock);
       const settlement = normalizeFinancialSettlement({
@@ -314,7 +321,9 @@ export function createSettlementApplicationService(
       if (!settlement) throw new Error("FINANCIAL_SETTLEMENT_INVALID");
       const claim = await dependencies.settlement.claimSettlement(settlement);
       if (claim.settlement.status !== "claimed") return claim;
-      const command = createFinancialSettlementProviderCommand(claim.settlement);
+      const command = createFinancialSettlementProviderCommand(
+        claim.settlement,
+      );
       if (!command) throw new Error("FINANCIAL_SETTLEMENT_COMMAND_INVALID");
       const receipt = await dependencies.provider.requestTransfer(command);
       const accepted = await dependencies.settlement.acceptProvider(
@@ -326,9 +335,8 @@ export function createSettlementApplicationService(
     },
 
     async verifySettlement(settlementIdInput: string) {
-      const settlement = await dependencies.settlement.findSettlement(
-        settlementIdInput,
-      );
+      const settlement =
+        await dependencies.settlement.findSettlement(settlementIdInput);
       if (!settlement) {
         throw new SettlementApplicationError(
           "FINANCIAL_SETTLEMENT_PROVIDER_MISMATCH",
@@ -356,7 +364,8 @@ export function createSettlementApplicationService(
       if (
         !snapshot ||
         snapshot.settlementId !== settlement.id ||
-        snapshot.providerTransferReference !== settlement.providerTransferReference ||
+        snapshot.providerTransferReference !==
+          settlement.providerTransferReference ||
         !sameMoney(snapshot.amount, settlement.amount)
       ) {
         throw new SettlementApplicationError(
@@ -383,7 +392,10 @@ export function createSettlementApplicationService(
           reversalLedgerExternalKey: null,
           updatedAt: snapshot.observedAt,
         });
-        return Object.freeze({ settlement: failed, disposition: "failed" as const });
+        return Object.freeze({
+          settlement: failed,
+          disposition: "failed" as const,
+        });
       }
       if (snapshot.status === "paid") {
         const externalKey = settlementExternalKey(settlement.id);
@@ -394,7 +406,9 @@ export function createSettlementApplicationService(
             occurredAt: snapshot.observedAt,
             postings: [
               {
-                accountReference: payableAccount(settlement.beneficiaryReference),
+                accountReference: payableAccount(
+                  settlement.beneficiaryReference,
+                ),
                 direction: "debit",
                 amount: settlement.amount,
               },
@@ -413,7 +427,10 @@ export function createSettlementApplicationService(
           reversalLedgerExternalKey: null,
           updatedAt: snapshot.observedAt,
         });
-        return Object.freeze({ settlement: settled, disposition: "settled" as const });
+        return Object.freeze({
+          settlement: settled,
+          disposition: "settled" as const,
+        });
       }
       throw new SettlementApplicationError(
         "FINANCIAL_SETTLEMENT_PROVIDER_MISMATCH",
@@ -421,9 +438,8 @@ export function createSettlementApplicationService(
     },
 
     async verifySettlementReversal(settlementIdInput: string) {
-      const settlement = await dependencies.settlement.findSettlement(
-        settlementIdInput,
-      );
+      const settlement =
+        await dependencies.settlement.findSettlement(settlementIdInput);
       if (
         !settlement ||
         settlement.status !== "settled" ||
@@ -441,7 +457,8 @@ export function createSettlementApplicationService(
         !snapshot ||
         snapshot.status !== "reversed" ||
         snapshot.settlementId !== settlement.id ||
-        snapshot.providerTransferReference !== settlement.providerTransferReference ||
+        snapshot.providerTransferReference !==
+          settlement.providerTransferReference ||
         !sameMoney(snapshot.amount, settlement.amount)
       ) {
         throw new SettlementApplicationError(
@@ -475,10 +492,15 @@ export function createSettlementApplicationService(
         reversalLedgerExternalKey: externalKey,
         updatedAt: snapshot.observedAt,
       });
-      return Object.freeze({ settlement: reversed, disposition: "reversed" as const });
+      return Object.freeze({
+        settlement: reversed,
+        disposition: "reversed" as const,
+      });
     },
 
-    async reverseAllocationForRefund(paymentId: Parameters<PaymentRepositoryPort["findById"]>[0]) {
+    async reverseAllocationForRefund(
+      paymentId: Parameters<PaymentRepositoryPort["findById"]>[0],
+    ) {
       const payment = await dependencies.payments.findById(paymentId);
       if (!payment || payment.status !== "refunded") {
         throw new SettlementApplicationError(
@@ -502,9 +524,8 @@ export function createSettlementApplicationService(
           "FINANCIAL_SETTLEMENT_REFUND_EVIDENCE_MISSING",
         );
       }
-      const allocation = await dependencies.settlement.findAllocationByPaymentId(
-        payment.id,
-      );
+      const allocation =
+        await dependencies.settlement.findAllocationByPaymentId(payment.id);
       if (!allocation) {
         throw new SettlementApplicationError(
           "FINANCIAL_SETTLEMENT_REFUND_EVIDENCE_MISSING",
@@ -513,7 +534,9 @@ export function createSettlementApplicationService(
       if (allocation.status === "reversed") {
         return Object.freeze({ allocation, disposition: "replayed" as const });
       }
-      const payables = await dependencies.settlement.listPayables(allocation.id);
+      const payables = await dependencies.settlement.listPayables(
+        allocation.id,
+      );
       if (payables.some((payable) => payable.status === "transfer_pending")) {
         throw new SettlementApplicationError(
           "FINANCIAL_SETTLEMENT_TRANSFER_UNCERTAIN",
@@ -556,7 +579,10 @@ export function createSettlementApplicationService(
         externalKey,
         refund.occurredAt,
       );
-      return Object.freeze({ allocation: reversed, disposition: "reversed" as const });
+      return Object.freeze({
+        allocation: reversed,
+        disposition: "reversed" as const,
+      });
     },
   });
 }
