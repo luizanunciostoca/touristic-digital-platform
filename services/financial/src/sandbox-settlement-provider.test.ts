@@ -77,9 +77,12 @@ describe("M146 sandbox settlement provider", () => {
         { status: 200, headers: { "content-type": "application/json" } },
       );
     };
-    const provider = createSandboxSettlementProviderFromEnvironment(environment, {
-      fetch: fetchProvider,
-    });
+    const provider = createSandboxSettlementProviderFromEnvironment(
+      environment,
+      {
+        fetch: fetchProvider,
+      },
+    );
     await expect(provider.requestTransfer(command())).resolves.toEqual({
       accepted: true,
       providerTransferReference: "transfer-12345678",
@@ -105,9 +108,12 @@ describe("M146 sandbox settlement provider", () => {
         { status: 200 },
       );
     };
-    const provider = createSandboxSettlementProviderFromEnvironment(environment, {
-      fetch: fetchProvider,
-    });
+    const provider = createSandboxSettlementProviderFromEnvironment(
+      environment,
+      {
+        fetch: fetchProvider,
+      },
+    );
     await expect(
       provider.readTransfer({
         settlementId: command().settlementId,
@@ -127,9 +133,12 @@ describe("M146 sandbox settlement provider", () => {
         }),
         { status: 200 },
       );
-    const provider = createSandboxSettlementProviderFromEnvironment(environment, {
-      fetch: fetchProvider,
-    });
+    const provider = createSandboxSettlementProviderFromEnvironment(
+      environment,
+      {
+        fetch: fetchProvider,
+      },
+    );
     await expect(provider.requestTransfer(command())).rejects.toMatchObject({
       code: "SANDBOX_SETTLEMENT_INVALID_RESPONSE",
     });

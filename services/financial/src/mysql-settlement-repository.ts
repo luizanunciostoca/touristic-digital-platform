@@ -1,10 +1,6 @@
 import type { Pool, PoolConnection, RowDataPacket } from "mysql2/promise";
 
-import {
-  createMoney,
-  type PaymentId,
-  type ReconciliationRunId,
-} from "@touristic/financial";
+import { createMoney, type PaymentId } from "@touristic/financial";
 import {
   normalizeFinancialAllocation,
   normalizeFinancialAllocationId,

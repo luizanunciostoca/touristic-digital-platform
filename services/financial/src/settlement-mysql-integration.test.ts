@@ -7,11 +7,11 @@ import {
   normalizeLedgerTransactionId,
   normalizePaymentId,
   normalizeReconciliationRunId,
-  type FinancialSettlementProviderSnapshot,
 } from "@touristic/financial";
-import {
-  type FinancialSettlementProviderCommand,
-  type FinancialSettlementProviderPort,
+import type {
+  FinancialSettlementProviderCommand,
+  FinancialSettlementProviderPort,
+  FinancialSettlementProviderSnapshot,
 } from "@touristic/financial/settlement";
 
 import {
@@ -107,8 +107,8 @@ describeMySql.sequential("M146 settlement MySQL integration", () => {
     await pool.query("DELETE FROM financial_provider_events");
     await pool.query("DELETE FROM financial_ledger_postings");
     await pool.query("DELETE FROM financial_ledger_transactions");
-    await pool.query("DELETE FROM financial_payments");
     await pool.query("DELETE FROM financial_payment_idempotency");
+    await pool.query("DELETE FROM financial_payments");
     await seedApprovedAuthority();
   });
 

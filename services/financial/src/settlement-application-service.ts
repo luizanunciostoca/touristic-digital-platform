@@ -21,14 +21,11 @@ import {
   normalizeFinancialPayableId,
   normalizeFinancialSettlement,
   normalizeFinancialSettlementId,
-  type FinancialAllocation,
   type FinancialAllocationPlan,
-  type FinancialPayable,
-  type FinancialSettlement,
   type FinancialSettlementProviderPort,
 } from "@touristic/financial/settlement";
 
-import { MySqlFinancialSettlementRepository } from "./mysql-settlement-repository.js";
+import type { MySqlFinancialSettlementRepository } from "./mysql-settlement-repository.js";
 import {
   checkoutRevenueAccount,
   providerClearingAccount,
