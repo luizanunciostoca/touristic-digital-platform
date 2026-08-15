@@ -27,6 +27,11 @@ const databaseUrl = process.env.FINANCIAL_DATABASE_URL;
 const adminUrl = process.env.MYSQL_ADMIN_DATABASE_URL;
 const describeMySql = databaseUrl && adminUrl ? describe : describe.skip;
 
+interface AccountBalanceRow extends RowDataPacket {
+  account_reference: string;
+  balance: number | string;
+}
+
 function payment(): Payment {
   const id = normalizePaymentId("pay_mysql_12345678");
   const idempotencyKey = createPaymentIdempotencyKey("ord_mysql_12345678");
@@ -272,13 +277,11 @@ describeMySql.sequential("M137/M143 Financial MySQL integration", () => {
     if (!refund.payment || !refund.result) {
       throw new Error("REFUND_OUTCOME_INVALID");
     }
-    await expect(
-      accounting.apply(refund.payment, refund.result),
-    ).resolves.toMatchObject({
+    const reversal = await accounting.apply(refund.payment, refund.result);
+    expect(reversal).toMatchObject({
       disposition: "posted",
       transactions: [
         {
-          externalKey: expect.stringMatching(/^payment_result_fev_/u),
           postings: [
             {
               accountReference: "asset:provider_clearing",
@@ -291,7 +294,6 @@ describeMySql.sequential("M137/M143 Financial MySQL integration", () => {
           ],
         },
         {
-          externalKey: expect.stringMatching(/^payment_result_fev_/u),
           postings: [
             {
               accountReference: "revenue:checkout",
@@ -305,6 +307,9 @@ describeMySql.sequential("M137/M143 Financial MySQL integration", () => {
         },
       ],
     });
+    for (const transaction of reversal.transactions) {
+      expect(transaction.externalKey).toMatch(/^payment_result_fev_/u);
+    }
     await expect(
       accounting.apply(refund.payment, refund.result),
     ).resolves.toMatchObject({ disposition: "replayed" });
@@ -322,22 +327,16 @@ describeMySql.sequential("M137/M143 Financial MySQL integration", () => {
       "SELECT COUNT(*) AS total FROM financial_ledger_transactions WHERE external_key LIKE 'payment_result_%'",
     );
     expect(Number(transactionRows[0]?.total)).toBe(2);
-    const [balances] = await pool.query<RowDataPacket[]>(
+    const [balances] = await pool.query<AccountBalanceRow[]>(
       `SELECT account_reference,
               SUM(CASE direction WHEN 'debit' THEN CAST(amount_minor AS SIGNED) ELSE -CAST(amount_minor AS SIGNED) END) AS balance
        FROM financial_ledger_postings
        GROUP BY account_reference
        ORDER BY account_reference`,
     );
-    expect(balances).toEqual([
-      expect.objectContaining({
-        account_reference: "asset:provider_clearing",
-        balance: expect.anything(),
-      }),
-      expect.objectContaining({
-        account_reference: "revenue:checkout",
-        balance: expect.anything(),
-      }),
+    expect(balances.map((row) => row.account_reference)).toEqual([
+      "asset:provider_clearing",
+      "revenue:checkout",
     ]);
     expect(balances.map((row) => Number(row.balance))).toEqual([0, 0]);
   });
