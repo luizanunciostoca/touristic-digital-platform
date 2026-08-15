@@ -19,7 +19,7 @@ The application derives Payment ID, full amount, currency, provider payment refe
 
 `financial_refund_requests` stores one deterministic request per Payment and approved result. Its idempotency key is exactly `refund:v1:<paymentId>`; immutable authority fields are compared after every insert/replay so a UNIQUE collision cannot redirect or alter another request.
 
-The request is claimed before calling the provider. If the first provider call is uncertain, the row stays `claimed` and retry sends the exact same command and key. Provider acceptance advances only that request to `provider_accepted`; concurrent or divergent provider references fail closed.
+The request is claimed before calling the provider. If the first provider call is uncertain, the row stays `claimed` and retry sends the exact same command and key. If a verified refunded event wins that race first, retry reports completion without sending another provider command. Provider acceptance advances only that request to `provider_accepted`; concurrent or divergent provider references fail closed.
 
 The sandbox adapter sends `POST /v1/refunds` with server-only bearer credentials, sandbox-mode header, bounded timeout/response and the durable idempotency key. It accepts only a versioned `accepted: true` receipt with a normalized refund reference and never exposes provider bodies or secrets.
 
