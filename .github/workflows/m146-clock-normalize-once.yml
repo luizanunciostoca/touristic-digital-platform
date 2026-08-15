@@ -1,0 +1,31 @@
+name: Temporary M146 Clock Normalize
+
+on:
+  push:
+    branches:
+      - feat/payments-m146-settlement
+    paths:
+      - ".github/workflows/m146-clock-normalize-once.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/payments-m146-settlement
+      - name: Normalize fixture clock
+        run: |
+          python3 -c 'from pathlib import Path; p=Path("services/financial/src/settlement-mysql-integration.test.ts"); s=p.read_text(); old="clock: { now: () => \"2026-08-15T05:00:00Z\" }"; new="clock: { now: () => \"2026-08-15T04:30:00Z\" }"; assert s.count(old)==1, "expected unique clock fixture"; p.write_text(s.replace(old,new,1))'
+          git diff --check
+      - name: Commit fixture and remove helper
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/m146-clock-normalize-once.yml
+          git add services/financial/src/settlement-mysql-integration.test.ts
+          git commit -m "test(payments): normalize M146 settlement clock fixture"
+          git push origin HEAD:feat/payments-m146-settlement
