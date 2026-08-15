@@ -1,4 +1,4 @@
-# Payments / Ordering / Financial — Migration Matrix (M145 durable reconciliation)
+# Payments / Ordering / Financial — Migration Matrix (M146 split/repasse/settlement)
 
 ## Status semantics
 
@@ -26,9 +26,15 @@ The application compares provider presence, status, integer minor units and curr
 
 The admin boundary exposes only `POST /api/payments/v1/reconciliation/payments/:paymentId/runs`, `GET /api/payments/v1/reconciliation/payments/:paymentId/findings` and `POST /api/payments/v1/reconciliation/findings/:findingId/acknowledgements`. It requires an active admin session; mutations additionally require origin/CSRF and exact idempotency. All allowed, denied, rate-limited and failed outcomes are audited without provider references, secrets or PII. Acknowledgement records operator review but grants no authority to change financial state.
 
+## M146 implementation boundary
+
+M146 adds provider-neutral allocation, payable and settlement authority on top of the M145 reconciliation evidence. Allocation requires the persisted confirmed Payment, verified approval result, deterministic approval ledger transaction and the latest clean reconciliation run. The explicit allocation plan must conserve the authoritative Payment amount and currency; no commission percentage is hardcoded and caller/browser/provider amounts cannot redefine the financial fact.
+
+Durable MySQL allocation/payable/settlement state uses stable idempotency per payable. Provider transfer acceptance is a command receipt only and leaves the payable transfer-pending. Final settlement requires an identity- and amount-matched provider read-back. Balanced immutable ledger postings record allocation, verified settlement, provider reversal and refund-after-settlement beneficiary receivable without deleting or rewriting history. Refund allocation reversal fails closed while a transfer outcome is uncertain.
+
 ## Matrix
 
-| Contract                                | Frozen V1 / architecture evidence                                                               | V2 state at M145                                                                                                                                                                                                             | Status  | Migration decision                                                                                              |
+| Contract                                | Frozen V1 / architecture evidence                                                               | V2 state at M146                                                                                                                                                                                                             | Status  | Migration decision                                                                                              |
 | --------------------------------------- | ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | --------------------------------------------------------------------------------------------------------------- |
 | Business commercial preparation         | V1 commercial adapter prepares plan/contractor/terms                                            | M61/M62 provide the immutable Business-owned handoff; M138 consumes and revalidates it without moving ownership                                                                                                              | N/A     | Business remains owner; Ordering receives only a bounded application request.                                   |
 | Payments ownership boundary             | checkout client/server perform financial execution                                              | Domain packages plus M138 application composition keep provider/financial authority outside Business                                                                                                                         | PASS    | Preserve this direction in HTTP and provider milestones.                                                        |
@@ -56,7 +62,7 @@ The admin boundary exposes only `POST /api/payments/v1/reconciliation/payments/:
 | Financial ledger                        | architecture CAP-0016/0017 and Domain Map define Financial as money source of truth             | M143 posts one deterministic balanced approval transaction from persisted verified evidence; replay is exact, failures are non-monetary, and MySQL posting rollback remains atomic                                           | PASS    | Ledger is now operational for the checkout outcome slice; reconciliation and settlement remain separate.        |
 | Refund/reversal                         | architecture requires refund events/financial correctness; V1 checkout slice has no formal flow | M144 claims one durable full-refund request, calls a provider-neutral sandbox port with exact idempotency, keeps Payment confirmed on provider acceptance, and completes only after verified webhook plus immutable reversal | PASS    | Preserve the command/event separation; never edit historical postings or trust the provider command response.   |
 | Reconciliation                          | Release/Financial architecture requires reconciliation                                          | M145 reads provider state through a bounded port, compares Payment/result/ledger authority and transactionally persists deterministic runs/findings with exact replay, resolution, recurrence and acknowledgement            | PASS    | Keep reconciliation read-only; remediation must remain a separate explicit command backed by verified evidence. |
-| Split/repasse                           | CAP-0017                                                                                        | balanced ledger foundation exists, but no split/transfer/settlement model                                                                                                                                                    | GAP     | Implement only after durable ledger and reconciliation.                                                         |
+| Split/repasse                           | CAP-0017                                                                                        | M146 persists reconciled allocation/payable/settlement authority, uses stable per-payable idempotency, keeps provider acceptance non-authoritative, verifies transfer outcome by read-back and posts immutable balanced allocation/settlement/reversal/refund-recovery entries | PASS    | Keep production provider activation separate; Affiliates may only consume these primitives after its own authority contract. |
 | Subscription lifecycle                  | FEATURE-0009 is "Pagamentos e Assinaturas"; V1 frozen slice only covers initial checkout        | absent                                                                                                                                                                                                                       | GAP     | Freeze recurrence semantics separately; do not infer them from checkout.                                        |
 | Financial audit/observability           | architecture requires audit/metrics; M134 covers provider-cost ops only, not product money      | M145 adds durable findings and acknowledgement history plus bounded audit for admin success, denial, rate limit and failure; central metrics/alert delivery remain absent                                                    | PARTIAL | Add alerting and operational dashboards without granting them mutation authority.                               |
 | Sandbox/provider E2E                    | V1 has injected fetch tests; architecture requires payment sandbox                              | deterministic unit coverage plus a permanent local HTTP sandbox wire/idempotency contract; no live third-party sandbox credential or browser journey yet                                                                     | PARTIAL | Keep the local wire proof; require deployed provider sandbox plus browser E2E before equivalence.               |
@@ -64,29 +70,27 @@ The admin boundary exposes only `POST /api/payments/v1/reconciliation/payments/:
 | Auth/tenant context                     | platform Auth exists; V1 checkout is onboarding session oriented                                | checkout supports authenticated or signed guest authority; refund binds authenticated tenant authority; M145 reconciliation is active-admin-only and requires origin/CSRF on both mutations                                  | PASS    | Keep operator reconciliation distinct from tenant checkout and fail closed on non-admin authority.              |
 | Rollback/migration strategy             | release process requires migration and rollback                                                 | outcome/accounting is retry-safe and expand-only; disabling composition retains provider evidence, results and immutable ledger entries, including compensating reversals                                                    | PARTIAL | Rollback must never delete or rewrite financial history; retry from the persisted result.                       |
 
-## M145 score
+## M146 score
 
-- `PASS`: 22
+- `PASS`: 23
 - `PARTIAL`: 5
-- `GAP`: 6
+- `GAP`: 5
 - `N/A`: 1
 - total: 34
 
-M145 closes provider reconciliation without broadening financial authority: the process records comparison evidence and operator acknowledgement, but cannot mutate Payment, synthesize a verified result, post ledger entries or execute remediation. Settlement, subscriptions and browser execution remain below PASS.
+M146 closes the backend split/repasse/settlement contract without broadening authority to production money movement. Provider command acceptance is not settlement authority; verified read-back and immutable ledger evidence remain required. Subscriptions, browser execution/E2E, distributed rate limiting and a production provider remain below PASS.
 
 ## Promotion decision
 
-After M145 and green Quality, Persistence, Sandbox Provider, Verified Webhook, Verified Outcome, Operational Ledger, Refund Command and Reconciliation gates on the final head:
+After M146 and green Quality, Persistence, Sandbox Provider, Verified Webhook, Verified Outcome, Operational Ledger, Refund Command, Reconciliation, Settlement and Ticketing regression gates on the final head:
 
 - `FEATURE-0009` and `MIG-0010` remain `migrating`;
 - behavior/visual/API equivalence flags remain `false`;
-- reconciliation is read-only with respect to Payment, results, ledger and provider commands;
-- deterministic run/finding keys make retry and concurrent execution converge or fail on divergent reuse;
-- operator acknowledgement preserves authorship and never remediates a financial fact;
-- no settlement, subscription, browser checkout or real-money production provider is enabled.
+- split/repasse/settlement is backend-only and cannot be activated from browser/provider response alone;
+- provider transfer acceptance remains non-authoritative until verified read-back;
+- historical ledger entries remain immutable and refund/reversal use compensating entries;
+- no subscription lifecycle, browser checkout journey, distributed limiter or real-money production provider is enabled.
 
-## Next milestone
+## Remaining Payments work
 
-M146 may introduce split/repasse/settlement only from reconciled Financial authority. It must define immutable allocation, payable and settlement states; preserve balanced ledger postings; separate provider transfer commands from verified settlement outcomes; and make reversal/chargeback allocation explicit.
-
-Subscriptions, browser sandbox E2E and Affiliates remain later and blocked by their own contracts.
+The remaining Wave 8 gaps are subscription lifecycle and the browser checkout/confirmation journey. Partial contracts still include Business browser event composition, financial observability, deployed sandbox/browser E2E, distributed rate limiting and rollback/release completion. Affiliates remains a separate domain and may consume Financial settlement primitives only after its own attribution, commission and authorization contracts are implemented.
