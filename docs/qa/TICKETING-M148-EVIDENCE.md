@@ -7,6 +7,7 @@ Close the M147 consistency gap before any public Ticketing runtime: ticket state
 ## Scope
 
 - `MySqlTicketingTransactionalCommand` owns online and offline lifecycle commits.
+- A validated adapter canonicalizes commands and rejects identity, immutable-authority, lifecycle or channel mismatches before the raw persistence boundary.
 - The transaction locks the ticket row before applying a transition.
 - Online check-in writes ticket state + check-in history in one MySQL transaction.
 - Offline sync writes envelope + ticket state + check-in + sync marker in one transaction.
@@ -18,12 +19,13 @@ Close the M147 consistency gap before any public Ticketing runtime: ticket state
 ## Executable evidence
 
 - application tests prove QR exact replay and offline exact replay;
+- validation tests reject malformed transaction commands before MySQL mutation;
 - MySQL 8.4 integration proves atomic state/history commit;
 - a forced `BEFORE INSERT` check-in failure proves ticket-state rollback;
 - offline integration proves envelope, state, history and sync marker are committed together;
 - permanent `Ticketing M148 Transaction Contract` runs lint, typecheck, application tests, MySQL transaction integration and build.
 
-The final promotion candidate must pass Quality Gate, the M147 Ticketing regression contract and the M148 transaction contract on one identical head. Automatic formatting commits are not accepted as final evidence; the final checkpoint is produced by a normal repository commit after all temporary tooling has been removed.
+The final promotion candidate must pass Quality Gate, the M147 Ticketing regression contract and the M148 transaction contract on one identical head. Automatic formatting commits are not accepted as final evidence; this normal repository commit re-triggers those permanent gates after temporary formatting tooling has been removed.
 
 ## Boundaries
 
