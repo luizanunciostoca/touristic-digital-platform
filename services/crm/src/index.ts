@@ -13,6 +13,7 @@ import {
 } from "./followups-scheduler-host.js";
 import { CrmLeadHttpTransport } from "./leads-http-transport.js";
 import { CrmMeetingHttpTransport } from "./meetings-http-transport.js";
+import { CrmMetricsHttpTransport } from "./metrics-http-transport.js";
 import { MySqlCrmLeadAuditPort } from "./mysql-audit-port.js";
 import { MySqlCrmContractAuditPort } from "./mysql-contracts-audit-port.js";
 import { MySqlCrmContractRepository } from "./mysql-contracts-repository.js";
@@ -21,6 +22,8 @@ import { MySqlCrmFollowUpRepository } from "./mysql-followups-repository.js";
 import { MySqlCrmLeadRepository } from "./mysql-leads-repository.js";
 import { MySqlCrmMeetingAuditPort } from "./mysql-meetings-audit-port.js";
 import { MySqlCrmMeetingRepository } from "./mysql-meetings-repository.js";
+import { MySqlCrmMetricsAuditPort } from "./mysql-metrics-audit-port.js";
+import { MySqlCrmMetricsRepository } from "./mysql-metrics-repository.js";
 import { MySqlCrmProposalAuditPort } from "./mysql-proposals-audit-port.js";
 import { MySqlCrmProposalRepository } from "./mysql-proposals-repository.js";
 import { MySqlCrmReferralAuditPort } from "./mysql-referrals-audit-port.js";
@@ -54,6 +57,7 @@ export {
   CrmFollowUpSchedulerHost,
   CrmLeadHttpTransport,
   CrmMeetingHttpTransport,
+  CrmMetricsHttpTransport,
   CrmProposalHttpTransport,
   CrmProposalPublicHttpTransport,
   CrmReferralHttpTransport,
@@ -68,6 +72,8 @@ export {
   MySqlCrmLeadRepository,
   MySqlCrmMeetingAuditPort,
   MySqlCrmMeetingRepository,
+  MySqlCrmMetricsAuditPort,
+  MySqlCrmMetricsRepository,
   MySqlCrmProposalAuditPort,
   MySqlCrmProposalRepository,
   MySqlCrmReferralAuditPort,
