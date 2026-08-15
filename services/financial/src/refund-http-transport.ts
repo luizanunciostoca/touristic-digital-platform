@@ -109,11 +109,8 @@ function header(request: RefundHttpRequest, name: string): string {
 
 function route(pathname: string): PaymentId | null {
   if (!pathname.startsWith(refundHttpPrefix + "/")) return null;
-  const parts = pathname
-    .slice(refundHttpPrefix.length + 1)
-    .split("/")
-    .filter(Boolean);
-  return parts.length === 2 && parts[1] === "refunds"
+  const parts = pathname.slice(refundHttpPrefix.length + 1).split("/");
+  return parts.length === 2 && parts[0] && parts[1] === "refunds"
     ? normalizePaymentId(parts[0])
     : null;
 }
