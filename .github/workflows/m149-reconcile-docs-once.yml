@@ -38,6 +38,8 @@ jobs:
             docs/migration/PAYMENTS-MIGRATION-MATRIX.md \
             docs/migration/MASTER-MIGRATION-TRACKER.md
           git diff --check
+      - name: Build workspace dependencies
+        run: pnpm -w build
       - name: Run focused unit contract
         run: pnpm --filter @touristic/morro-digital-platform exec vitest run src/payments-browser-checkout-client.test.ts
       - name: Commit permanent M149 contract changes
