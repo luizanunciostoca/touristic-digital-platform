@@ -1,5 +1,8 @@
+import { randomUUID } from "node:crypto";
+
 import {
   calculateTokenCostUsd,
+  createJsonFileGovernanceStateStore,
   createProviderCostGovernor,
 } from "./provider-governance.mjs";
 
@@ -40,6 +43,11 @@ function safeString(value, maxLength) {
 function positiveNumber(value) {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+function positiveInteger(value) {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
 }
 
 function sanitizeContext(value) {
@@ -135,6 +143,8 @@ export function createAssistantApi({
   now = Date.now,
   observeProviderEvent = (event) =>
     console.info(`[provider-observability] ${JSON.stringify(event)}`),
+  governanceStateStore,
+  createRequestId = randomUUID,
 } = {}) {
   const rateBuckets = new Map();
   const environment =
@@ -148,14 +158,24 @@ export function createAssistantApi({
   const outputUsdPerMillion = positiveNumber(
     environment("OPENAI_OUTPUT_USD_PER_1M_TOKENS"),
   );
+  const runtimeReplicaCount = positiveInteger(
+    environment("OPENAI_RUNTIME_REPLICA_COUNT"),
+  );
+  const runtimeTopologySafe = runtimeReplicaCount === 1;
+  const stateFile = environment("OPENAI_GOVERNANCE_STATE_FILE").trim();
+  const resolvedGovernanceStateStore =
+    governanceStateStore ??
+    (stateFile ? createJsonFileGovernanceStateStore(stateFile) : null);
   const costGovernor = createProviderCostGovernor({
     provider: "openai",
     dailyLimitUsd: environment("OPENAI_DAILY_COST_LIMIT_USD"),
     monthlyLimitUsd: environment("OPENAI_MONTHLY_COST_LIMIT_USD"),
     requestReserveUsd: environment("OPENAI_REQUEST_RESERVE_USD"),
-    maxConcurrency: environment("OPENAI_MAX_CONCURRENCY") || 4,
+    maxConcurrency: environment("OPENAI_MAX_CONCURRENCY"),
     now,
     onEvent: observeProviderEvent,
+    stateStore: resolvedGovernanceStateStore,
+    requirePersistentState: true,
   });
 
   function rateAllowed(request) {
@@ -185,17 +205,21 @@ export function createAssistantApi({
     return Object.freeze({
       hardLimitConfirmed,
       pricingConfigured: Boolean(inputUsdPerMillion && outputUsdPerMillion),
+      runtimeReplicaCount,
+      runtimeTopologySafe,
+      persistentGovernanceConfigured: Boolean(resolvedGovernanceStateStore),
       usage: costGovernor.snapshot(),
     });
   }
 
-  function observeProviderFailure(reason, statusCode) {
+  function observeProviderFailure(reason, statusCode, metadata = {}) {
     observeProviderEvent({
       type: "provider.request.failed",
       provider: "openai",
       at: new Date(now()).toISOString(),
       reason,
       ...(Number.isInteger(statusCode) ? { statusCode } : {}),
+      metadata,
     });
   }
 
@@ -209,6 +233,9 @@ export function createAssistantApi({
     },
 
     async handle(request, response) {
+      const correlationId = createRequestId();
+      response.setHeader("X-Request-ID", correlationId);
+
       if (request.method !== "POST") {
         sendJson(
           response,
@@ -235,20 +262,53 @@ export function createAssistantApi({
         sendJson(response, 503, { error: "assistant_not_configured" });
         return;
       }
+
+      const model = environment("OPENAI_MODEL").trim() || "gpt-4o-mini";
+      const requestMetadata = Object.freeze({
+        correlationId,
+        model,
+        surface: "assistant",
+      });
+
+      if (!runtimeTopologySafe) {
+        observeProviderEvent({
+          type: "provider.runtime_guard.denied",
+          provider: "openai",
+          at: new Date(now()).toISOString(),
+          reason: runtimeReplicaCount
+            ? "distributed_governance_required"
+            : "runtime_replica_count_not_configured",
+          metadata: requestMetadata,
+        });
+        sendJson(response, 503, {
+          error: "assistant_runtime_governance_unsafe",
+        });
+        return;
+      }
+
       if (
         !hardLimitConfirmed ||
         !inputUsdPerMillion ||
         !outputUsdPerMillion ||
         !costGovernor.configured
       ) {
+        const persistence = costGovernor.snapshot().persistence;
+        const persistenceUnavailable =
+          persistence.required &&
+          (!persistence.configured || !persistence.healthy);
         observeProviderEvent({
           type: "provider.billing_guard.denied",
           provider: "openai",
           at: new Date(now()).toISOString(),
-          reason: "billing_guard_not_configured",
+          reason: persistenceUnavailable
+            ? "governance_state_unavailable"
+            : "billing_guard_not_configured",
+          metadata: requestMetadata,
         });
         sendJson(response, 503, {
-          error: "assistant_billing_guard_not_configured",
+          error: persistenceUnavailable
+            ? "assistant_governance_state_unavailable"
+            : "assistant_billing_guard_not_configured",
         });
         return;
       }
@@ -265,18 +325,20 @@ export function createAssistantApi({
         const userType = body.userType === "resident" ? "resident" : "tourist";
         const context = sanitizeContext(body.context);
         const history = sanitizeHistory(body.history);
-        const model = environment("OPENAI_MODEL").trim() || "gpt-4o-mini";
-        const budgetAttempt = costGovernor.reserve({
-          model,
-          surface: "assistant",
-        });
+        const budgetAttempt = costGovernor.reserve(requestMetadata);
         if (!budgetAttempt.allowed) {
           const concurrencyLimited =
             budgetAttempt.reason === "concurrency_limit";
-          sendJson(response, 429, {
-            error: concurrencyLimited
-              ? "assistant_concurrency_limited"
-              : "assistant_budget_exhausted",
+          const persistenceUnavailable = [
+            "state_persistence_failed",
+            "state_persistence_unavailable",
+          ].includes(budgetAttempt.reason);
+          sendJson(response, persistenceUnavailable ? 503 : 429, {
+            error: persistenceUnavailable
+              ? "assistant_governance_state_unavailable"
+              : concurrencyLimited
+                ? "assistant_concurrency_limited"
+                : "assistant_budget_exhausted",
           });
           return;
         }
@@ -318,7 +380,11 @@ export function createAssistantApi({
           );
 
           if (!upstream.ok) {
-            observeProviderFailure("provider_http_error", upstream.status);
+            observeProviderFailure(
+              "provider_http_error",
+              upstream.status,
+              requestMetadata,
+            );
             costGovernor.settle(reservation, {});
             reservationClosed = true;
             sendJson(response, upstream.status === 429 ? 429 : 502, {
@@ -355,6 +421,8 @@ export function createAssistantApi({
               error?.name === "AbortError"
                 ? "provider_timeout"
                 : "provider_request_failed",
+              undefined,
+              requestMetadata,
             );
             costGovernor.settle(reservation, {});
           }

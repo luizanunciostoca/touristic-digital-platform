@@ -38,9 +38,22 @@ function environment(overrides = {}) {
     OPENAI_MONTHLY_COST_LIMIT_USD: "100",
     OPENAI_REQUEST_RESERVE_USD: "1",
     OPENAI_MAX_CONCURRENCY: "2",
+    OPENAI_RUNTIME_REPLICA_COUNT: "1",
     ...overrides,
   };
   return (key) => values[key] || "";
+}
+
+function memoryStateStore() {
+  let state = null;
+  return {
+    load() {
+      return state ? structuredClone(state) : null;
+    },
+    save(nextState) {
+      state = structuredClone(nextState);
+    },
+  };
 }
 
 function providerResponse(usage = {}) {
@@ -76,6 +89,7 @@ describe("assistant paid-provider governance", () => {
         OPENAI_PROVIDER_HARD_LIMIT_CONFIRMED: "false",
       }),
       fetchImplementation,
+      governanceStateStore: memoryStateStore(),
       observeProviderEvent: () => {},
     });
     const output = response();
@@ -100,6 +114,7 @@ describe("assistant paid-provider governance", () => {
     const api = createAssistantApi({
       getEnvironmentValue: environment(),
       fetchImplementation,
+      governanceStateStore: memoryStateStore(),
       observeProviderEvent: () => {},
     });
     const output = response();
@@ -110,6 +125,8 @@ describe("assistant paid-provider governance", () => {
     const snapshot = api.observabilitySnapshot();
     expect(snapshot.hardLimitConfirmed).toBe(true);
     expect(snapshot.pricingConfigured).toBe(true);
+    expect(snapshot.runtimeTopologySafe).toBe(true);
+    expect(snapshot.persistentGovernanceConfigured).toBe(true);
     expect(snapshot.usage.daily.totalTokens).toBe(1500);
     expect(snapshot.usage.daily.spentUsd).toBeCloseTo(0.002);
   });
@@ -121,6 +138,7 @@ describe("assistant paid-provider governance", () => {
         OPENAI_REQUEST_RESERVE_USD: "0.75",
       }),
       fetchImplementation,
+      governanceStateStore: memoryStateStore(),
       observeProviderEvent: () => {},
     });
     const output = response();
@@ -142,6 +160,8 @@ describe("assistant paid-provider governance", () => {
         OPENAI_REQUEST_RESERVE_USD: "0.8",
       }),
       fetchImplementation,
+      governanceStateStore: memoryStateStore(),
+      createRequestId: () => "req-provider-error",
       observeProviderEvent: (event) => events.push(event),
     });
     const output = response();
@@ -150,12 +170,14 @@ describe("assistant paid-provider governance", () => {
 
     expect(output.statusCode).toBe(502);
     expect(api.observabilitySnapshot().usage.daily.spentUsd).toBe(0.8);
+    expect(output.headers.get("x-request-id")).toBe("req-provider-error");
     expect(
       events.some(
         (event) =>
           event.type === "provider.request.failed" &&
           event.reason === "provider_http_error" &&
-          event.statusCode === 502,
+          event.statusCode === 502 &&
+          event.metadata.correlationId === "req-provider-error",
       ),
     ).toBe(true);
   });
@@ -176,6 +198,7 @@ describe("assistant paid-provider governance", () => {
         OPENAI_REQUEST_RESERVE_USD: "0.6",
       }),
       fetchImplementation,
+      governanceStateStore: memoryStateStore(),
       observeProviderEvent: () => {},
     });
 
@@ -185,6 +208,94 @@ describe("assistant paid-provider governance", () => {
 
     const second = response();
     await api.handle(request(), second);
+    expect(second.statusCode).toBe(429);
+    expect(JSON.parse(second.body).error).toBe("assistant_budget_exhausted");
+    expect(fetchImplementation).toHaveBeenCalledTimes(1);
+  });
+
+  it("fails closed when runtime topology is not explicitly single-replica", async () => {
+    const events = [];
+    const fetchImplementation = vi.fn();
+    const api = createAssistantApi({
+      getEnvironmentValue: environment({
+        OPENAI_RUNTIME_REPLICA_COUNT: "2",
+      }),
+      fetchImplementation,
+      governanceStateStore: memoryStateStore(),
+      createRequestId: () => "req-topology",
+      observeProviderEvent: (event) => events.push(event),
+    });
+    const output = response();
+
+    await api.handle(request(), output);
+
+    expect(output.statusCode).toBe(503);
+    expect(JSON.parse(output.body).error).toBe(
+      "assistant_runtime_governance_unsafe",
+    );
+    expect(fetchImplementation).not.toHaveBeenCalled();
+    expect(
+      events.some(
+        (event) =>
+          event.type === "provider.runtime_guard.denied" &&
+          event.reason === "distributed_governance_required" &&
+          event.metadata.correlationId === "req-topology",
+      ),
+    ).toBe(true);
+  });
+
+  it("fails closed when durable governance state is unavailable", async () => {
+    const fetchImplementation = vi.fn();
+    const api = createAssistantApi({
+      getEnvironmentValue: environment(),
+      fetchImplementation,
+      observeProviderEvent: () => {},
+    });
+    const output = response();
+
+    await api.handle(request(), output);
+
+    expect(output.statusCode).toBe(503);
+    expect(JSON.parse(output.body).error).toBe(
+      "assistant_governance_state_unavailable",
+    );
+    expect(fetchImplementation).not.toHaveBeenCalled();
+  });
+
+  it("keeps settled budget across Assistant API recreation", async () => {
+    const store = memoryStateStore();
+    const fetchImplementation = vi.fn(async () =>
+      providerResponse({
+        prompt_tokens: 1,
+        completion_tokens: 0,
+        total_tokens: 1,
+      }),
+    );
+    const guardedEnvironment = environment({
+      OPENAI_INPUT_USD_PER_1M_TOKENS: "500000",
+      OPENAI_OUTPUT_USD_PER_1M_TOKENS: "500000",
+      OPENAI_DAILY_COST_LIMIT_USD: "1",
+      OPENAI_REQUEST_RESERVE_USD: "0.6",
+    });
+    const firstApi = createAssistantApi({
+      getEnvironmentValue: guardedEnvironment,
+      fetchImplementation,
+      governanceStateStore: store,
+      observeProviderEvent: () => {},
+    });
+    const first = response();
+    await firstApi.handle(request(), first);
+    expect(first.statusCode).toBe(200);
+
+    const restartedApi = createAssistantApi({
+      getEnvironmentValue: guardedEnvironment,
+      fetchImplementation,
+      governanceStateStore: store,
+      observeProviderEvent: () => {},
+    });
+    const second = response();
+    await restartedApi.handle(request(), second);
+
     expect(second.statusCode).toBe(429);
     expect(JSON.parse(second.body).error).toBe("assistant_budget_exhausted");
     expect(fetchImplementation).toHaveBeenCalledTimes(1);
