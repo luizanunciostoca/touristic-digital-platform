@@ -1,4 +1,4 @@
-name: Payments Browser Checkout Contract
+name: Payments M149 Browser Checkout Contract
 
 on:
   workflow_dispatch:
@@ -8,6 +8,9 @@ on:
       - "apps/morro-digital-platform/src/payments-browser-checkout-client*.ts"
       - "packages/ordering/**"
       - "apps/morro-digital-platform/tooling/dev-server.mjs"
+      - "docs/qa/PAYMENTS-M149-EVIDENCE.md"
+      - "docs/migration/PAYMENTS-MIGRATION-MATRIX.md"
+      - "docs/migration/MASTER-MIGRATION-TRACKER.md"
   push:
     branches: [main]
     paths:
@@ -15,6 +18,9 @@ on:
       - "apps/morro-digital-platform/src/payments-browser-checkout-client*.ts"
       - "packages/ordering/**"
       - "apps/morro-digital-platform/tooling/dev-server.mjs"
+      - "docs/qa/PAYMENTS-M149-EVIDENCE.md"
+      - "docs/migration/PAYMENTS-MIGRATION-MATRIX.md"
+      - "docs/migration/MASTER-MIGRATION-TRACKER.md"
 
 permissions:
   contents: read
