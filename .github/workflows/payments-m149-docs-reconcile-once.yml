@@ -1,0 +1,104 @@
+name: Temporary Payments M149 Docs Reconcile
+
+on:
+  push:
+    branches:
+      - feat/payments-m148-browser-checkout
+    paths:
+      - ".github/workflows/payments-m149-docs-reconcile-once.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/payments-m148-browser-checkout
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Reconcile canonical M149 docs
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+
+          matrix_path = Path('docs/migration/PAYMENTS-MIGRATION-MATRIX.md')
+          matrix = matrix_path.read_text()
+          replacements = [
+            (
+              'The adapter derives the exact `business:<sessionId>:<planId>` idempotency key, creates checkout with same-origin credentials, keeps the plaintext status capability private to the client closure, opens the provider URL with `noopener,noreferrer` plus blocked-popup location fallback, and preserves the frozen V1 polling budget of 2500 ms × 240 attempts. `CONFIRMED` alone is not success: only the authoritative persisted `verifiedPayment` projection can emit `businessPaymentVerified`; terminal/timeout paths emit bounded `businessPaymentVerificationFailed`.',
+              'The adapter derives the exact `business:<sessionId>:<planId>` idempotency key from Ordering, creates checkout with same-origin credentials, keeps the plaintext status capability private to the client closure, opens the provider URL with `noopener,noreferrer` plus blocked-popup location fallback, and preserves the frozen V1 polling budget of 2500 ms × 240 attempts. Confirmation is symmetric and server-authoritative: `CONFIRMED` is success only after an identity-matched persisted `verifiedPayment`; terminal Payment status is failure only after an identity-matched persisted `verifiedFailure`. A terminal row without its verified result remains an incomplete recovery window and continues bounded polling. Browser timeout is a local wait failure and does not fabricate a Financial result.'
+            ),
+            (
+              '| Browser confirmation wait                 | poll every 2.5 s, max 240 attempts                                                              | M149 preserves 2500 ms × 240 attempts, reuses the private status capability exactly and fails closed on timeout, terminal state or identity substitution',
+              '| Browser confirmation wait                 | poll every 2.5 s, max 240 attempts                                                              | M149 preserves 2500 ms × 240 attempts, keeps the status capability private and waits for persisted verified Financial evidence'
+            ),
+            (
+              '| Browser failure event                     | `businessPaymentVerificationFailed`                                                             | M149 emits the existing bounded Business failure signal for authoritative terminal state, timeout or normalized client failure without leaking the private status capability',
+              '| Browser failure event                     | `businessPaymentVerificationFailed`                                                             | M149 emits terminal Payment failure only from an identity-matched persisted `verifiedFailure`; terminal state without that evidence keeps polling, while bounded timeout remains a local client failure'
+            ),
+            (
+              'M149 closes the Payments-owned browser launch, bounded confirmation wait and Business-compatible result-signal contracts while preserving the audited M139 authority boundary. It does not make the public Business onboarding capable of creating a checkout by itself.',
+              'M149 closes the Payments-owned browser launch, bounded confirmation wait and Business-compatible result-signal contracts while preserving the audited M139 authority boundary and requiring persisted Financial evidence for both success and terminal failure. It does not make the public Business onboarding capable of creating a checkout by itself.'
+            ),
+            (
+              '- browser launch/polling and Business-compatible verified/failure signals are executable but require a legitimate M139 create authority supplied outside the client;\n- automatic public `businessCheckoutRequested` → Payments composition remains disabled;',
+              '- browser launch/polling and Business-compatible result signals are executable but require a legitimate M139 create authority supplied outside the client;\n- both success and terminal failure require their persisted, identity-matched Financial result before a Business-compatible signal is emitted;\n- automatic public `businessCheckoutRequested` → Payments composition remains disabled;'
+            ),
+          ]
+          for old, new in replacements:
+              if matrix.count(old) != 1:
+                  raise SystemExit(f'matrix anchor mismatch: {old[:80]}')
+              matrix = matrix.replace(old, new, 1)
+          matrix = matrix.replace(
+              ' | PASS    | Preserve the bounded V1 wait budget; provider/browser transport remains replaceable behind the client contract.               |',
+              ' | PASS    | A popup/return URL or bare Payment status is never confirmation.                                                             |',
+              1,
+          )
+          matrix = matrix.replace(
+              ' | PASS    | Failure signalling carries no authority to mutate Payment or Business state.                                                  |',
+              ' | PASS    | Failure signalling cannot manufacture a Financial result and carries no mutation authority.                                  |',
+              1,
+          )
+          matrix_path.write_text(matrix)
+
+          tracker_path = Path('docs/migration/MASTER-MIGRATION-TRACKER.md')
+          tracker = tracker_path.read_text()
+          tracker_replacements = [
+            (
+              '34 contratos: 27 PASS / 5 PARTIAL / 1 GAP / 1 N/A; checkout browser exige autoridade M139 legítima e só `verifiedPayment` autoritativo produz sucesso',
+              '34 contratos: 27 PASS / 5 PARTIAL / 1 GAP / 1 N/A; sucesso e falha terminal browser exigem resultado Financial persistido e identity-matched'
+            ),
+            (
+              '- `CONFIRMED` sem `verifiedPayment` não converte nem encerra como sucesso;\n- emite `businessPaymentVerified` somente do resultado Financial autoritativo e usa `businessPaymentVerificationFailed` para falha/timeout terminal;',
+              '- `CONFIRMED` sem `verifiedPayment` continua polling como janela de recuperação;\n- estado terminal sem `verifiedFailure` continua polling como janela de recuperação;\n- emite sucesso ou falha terminal somente de resultados Financial persistidos, autoritativos e identity-matched; timeout é falha local de espera e não cria resultado Financial;'
+            ),
+          ]
+          for old, new in tracker_replacements:
+              if tracker.count(old) != 1:
+                  raise SystemExit(f'tracker anchor mismatch: {old[:80]}')
+              tracker = tracker.replace(old, new, 1)
+          tracker_path.write_text(tracker)
+          PY
+          pnpm exec prettier --write \
+            docs/migration/PAYMENTS-MIGRATION-MATRIX.md \
+            docs/migration/MASTER-MIGRATION-TRACKER.md
+          git diff --check
+      - name: Commit canonical docs
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/migration/PAYMENTS-MIGRATION-MATRIX.md docs/migration/MASTER-MIGRATION-TRACKER.md
+          git commit -m "docs(payments): reconcile M149 verified result contracts"
+          git push origin HEAD:feat/payments-m148-browser-checkout
