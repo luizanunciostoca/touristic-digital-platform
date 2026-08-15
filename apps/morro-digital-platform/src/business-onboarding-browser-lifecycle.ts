@@ -39,6 +39,8 @@ export class BusinessOnboardingBrowserLifecycle {
   private readonly previousFocus: HTMLElement | null;
   private root: HTMLElement | null = null;
   private titleObserver: MutationObserver | null = null;
+  private restartReplayStepId: BusinessOnboardingHostSnapshot["stepId"] | null =
+    null;
   private disposed = false;
 
   constructor(options: BusinessOnboardingBrowserLifecycleOptions) {
@@ -94,6 +96,7 @@ export class BusinessOnboardingBrowserLifecycle {
       this.titleObserver = new this.document.defaultView.MutationObserver(
         () => {
           this.focusTitle();
+          void this.replayRestartedStepEnter();
         },
       );
       this.titleObserver.observe(title, {
@@ -180,10 +183,24 @@ export class BusinessOnboardingBrowserLifecycle {
 
   private async restart(): Promise<void> {
     if (this.disposed || !this.root?.isConnected) return;
+    const previousStepId = this.host.snapshot().stepId;
     const snapshot = this.host.restart();
+    this.restartReplayStepId =
+      previousStepId === snapshot.stepId ? null : previousStepId;
     this.surface.render();
     this.onRestart?.(snapshot);
     await this.onStepEnter?.(snapshot);
+    this.surface.render();
+    this.focusTitle();
+  }
+
+  private async replayRestartedStepEnter(): Promise<void> {
+    if (this.disposed || !this.restartReplayStepId || !this.onStepEnter) return;
+    const snapshot = this.host.snapshot();
+    if (snapshot.stepId !== this.restartReplayStepId) return;
+
+    this.restartReplayStepId = null;
+    await this.onStepEnter(snapshot);
     this.surface.render();
     this.focusTitle();
   }
@@ -198,6 +215,7 @@ export class BusinessOnboardingBrowserLifecycle {
   dispose(restoreFocus = false): void {
     if (this.disposed) return;
     this.disposed = true;
+    this.restartReplayStepId = null;
     this.titleObserver?.disconnect();
     this.titleObserver = null;
     this.root?.removeEventListener("click", this.handleClick);
