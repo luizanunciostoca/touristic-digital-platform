@@ -64,7 +64,7 @@ class FakeSettlementProvider implements FinancialSettlementProviderPort {
       providerTransferReference: input.providerTransferReference,
       status: this.status,
       amount: this.accepted.amount,
-      observedAt: "2026-08-15T05:00:00.000Z",
+      observedAt: "2026-08-15T04:31:00.000Z",
     });
   }
 }
