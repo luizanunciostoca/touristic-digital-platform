@@ -25,7 +25,6 @@ import {
 } from "./schema.js";
 import {
   RefundApplicationError,
-  RefundHttpTransport,
   createRefundApplicationService,
   type RefundApplicationErrorCode,
   type RefundApplicationResult,
@@ -66,6 +65,7 @@ import {
 
 export {
   RefundApplicationError,
+  RefundHttpTransport,
   createRefundApplicationService,
   MySqlLedgerTransactionRepository,
   MySqlPaymentIdempotencyPort,
