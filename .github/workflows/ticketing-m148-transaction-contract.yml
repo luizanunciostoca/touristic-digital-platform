@@ -1,0 +1,71 @@
+name: Ticketing M148 Transaction Contract
+
+on:
+  pull_request:
+    paths:
+      - "packages/ticketing/**"
+      - "services/ticketing/**"
+      - "docs/qa/TICKETING-M148-EVIDENCE.md"
+      - ".github/workflows/ticketing-m148-transaction-contract.yml"
+      - "pnpm-lock.yaml"
+  push:
+    branches:
+      - main
+    paths:
+      - "packages/ticketing/**"
+      - "services/ticketing/**"
+      - "docs/qa/TICKETING-M148-EVIDENCE.md"
+      - ".github/workflows/ticketing-m148-transaction-contract.yml"
+      - "pnpm-lock.yaml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ticketing-m148-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  transaction-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: m148-ticketing
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -pm148-ticketing"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    env:
+      MYSQL_ADMIN_DATABASE_URL: mysql://root:m148-ticketing@127.0.0.1:3306/mysql
+      TICKETING_DATABASE_URL: mysql://root:m148-ticketing@127.0.0.1:3306/ticketing_m147_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build shared dependencies
+        run: |
+          pnpm --filter @touristic/financial build
+          pnpm --filter @touristic/ordering build
+          pnpm --filter @touristic/ticketing build
+      - name: Validate Ticketing application and transaction contracts
+        run: |
+          pnpm --filter @touristic/ticketing-server lint
+          pnpm --filter @touristic/ticketing-server typecheck
+          pnpm --filter @touristic/ticketing-server test
+      - name: Validate atomic MySQL lifecycle
+        run: pnpm --filter @touristic/ticketing-server exec vitest run src/transaction-mysql-integration.test.ts
+      - name: Build Ticketing server
+        run: pnpm --filter @touristic/ticketing-server build
