@@ -5,6 +5,8 @@ on:
     paths:
       - "packages/ticketing/**"
       - "services/ticketing/**"
+      - "packages/ordering/**"
+      - "packages/financial/**"
       - "docs/qa/TICKETING-M148-EVIDENCE.md"
       - ".github/workflows/ticketing-m148-transaction-contract.yml"
       - "pnpm-lock.yaml"
@@ -14,6 +16,8 @@ on:
     paths:
       - "packages/ticketing/**"
       - "services/ticketing/**"
+      - "packages/ordering/**"
+      - "packages/financial/**"
       - "docs/qa/TICKETING-M148-EVIDENCE.md"
       - ".github/workflows/ticketing-m148-transaction-contract.yml"
       - "pnpm-lock.yaml"
