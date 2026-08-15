@@ -1,0 +1,73 @@
+name: Temporary M146 Documentation Reconcile
+
+on:
+  push:
+    branches:
+      - feat/payments-m146-settlement
+    paths:
+      - ".github/workflows/m146-doc-reconcile-once.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/payments-m146-settlement
+      - name: Reconcile M146 migration documentation
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          matrix = Path("docs/migration/PAYMENTS-MIGRATION-MATRIX.md")
+          text = matrix.read_text()
+          text = text.replace(
+              "# Payments / Ordering / Financial — Migration Matrix (M145 durable reconciliation)",
+              "# Payments / Ordering / Financial — Migration Matrix (M146 split/repasse/settlement)",
+              1,
+          )
+          marker = "\n## Matrix\n"
+          assert marker in text
+          m146_boundary = '''\n## M146 implementation boundary\n\nM146 adds provider-neutral allocation, payable and settlement authority on top of the M145 reconciliation evidence. Allocation requires the persisted confirmed Payment, verified approval result, deterministic approval ledger transaction and the latest clean reconciliation run. The explicit allocation plan must conserve the authoritative Payment amount and currency; no commission percentage is hardcoded and caller/browser/provider amounts cannot redefine the financial fact.\n\nDurable MySQL allocation/payable/settlement state uses stable idempotency per payable. Provider transfer acceptance is a command receipt only and leaves the payable transfer-pending. Final settlement requires an identity- and amount-matched provider read-back. Balanced immutable ledger postings record allocation, verified settlement, provider reversal and refund-after-settlement beneficiary receivable without deleting or rewriting history. Refund allocation reversal fails closed while a transfer outcome is uncertain.\n'''
+          if "## M146 implementation boundary" not in text:
+              text = text.replace(marker, m146_boundary + marker, 1)
+          text = text.replace("V2 state at M145", "V2 state at M146", 1)
+          old_split = "| Split/repasse                           | CAP-0017                                                                                        | balanced ledger foundation exists, but no split/transfer/settlement model                                                                                                                                                    | GAP     | Implement only after durable ledger and reconciliation.                                                         |"
+          new_split = "| Split/repasse                           | CAP-0017                                                                                        | M146 persists reconciled allocation/payable/settlement authority, uses stable per-payable idempotency, keeps provider acceptance non-authoritative, verifies transfer outcome by read-back and posts immutable balanced allocation/settlement/reversal/refund-recovery entries | PASS    | Keep production provider activation separate; Affiliates may only consume these primitives after its own authority contract. |"
+          assert old_split in text
+          text = text.replace(old_split, new_split, 1)
+          score_start = text.index("## M145 score")
+          promotion_start = text.index("## Promotion decision", score_start)
+          new_score = '''## M146 score\n\n- `PASS`: 23\n- `PARTIAL`: 5\n- `GAP`: 5\n- `N/A`: 1\n- total: 34\n\nM146 closes the backend split/repasse/settlement contract without broadening authority to production money movement. Provider command acceptance is not settlement authority; verified read-back and immutable ledger evidence remain required. Subscriptions, browser execution/E2E, distributed rate limiting and a production provider remain below PASS.\n\n'''
+          text = text[:score_start] + new_score + text[promotion_start:]
+          promotion_start = text.index("## Promotion decision")
+          new_tail = '''## Promotion decision\n\nAfter M146 and green Quality, Persistence, Sandbox Provider, Verified Webhook, Verified Outcome, Operational Ledger, Refund Command, Reconciliation, Settlement and Ticketing regression gates on the final head:\n\n- `FEATURE-0009` and `MIG-0010` remain `migrating`;\n- behavior/visual/API equivalence flags remain `false`;\n- split/repasse/settlement is backend-only and cannot be activated from browser/provider response alone;\n- provider transfer acceptance remains non-authoritative until verified read-back;\n- historical ledger entries remain immutable and refund/reversal use compensating entries;\n- no subscription lifecycle, browser checkout journey, distributed limiter or real-money production provider is enabled.\n\n## Remaining Payments work\n\nThe remaining Wave 8 gaps are subscription lifecycle and the browser checkout/confirmation journey. Partial contracts still include Business browser event composition, financial observability, deployed sandbox/browser E2E, distributed rate limiting and rollback/release completion. Affiliates remains a separate domain and may consume Financial settlement primitives only after its own attribution, commission and authorization contracts are implemented.\n'''
+          text = text[:promotion_start] + new_tail
+          matrix.write_text(text)
+
+          tracker = Path("docs/migration/MASTER-MIGRATION-TRACKER.md")
+          text = tracker.read_text()
+          lines = text.splitlines()
+          replacement = "| MIG-0010 | pagamentos/assinaturas | Ordering / Financial | FEATURE-0009 | `@touristic/ordering` + `@touristic/ordering-server` + `@touristic/financial` + `@touristic/financial-server` + runtime HTTP no Morro Digital | 8 | migrating | M146 mantém checkout/webhook/refund/reconciliation sem browser e adiciona split/repasse/settlement backend-only | 34 contratos: 23 PASS / 5 PARTIAL / 5 GAP / 1 N/A; allocation/payable/settlement duráveis exigem Payment aprovado, ledger e reconciliation limpa; provider acceptance não confirma settlement | `PAYMENTS-V1-BASELINE.md`; `PAYMENTS-MIGRATION-MATRIX.md`; evidências M135–M146 | crítico |"
+          matches = [i for i,line in enumerate(lines) if line.startswith("| MIG-0010 |")]
+          assert len(matches) == 1
+          lines[matches[0]] = replacement
+          text = "\n".join(lines) + "\n"
+          start = text.index("## Payments em migração — MIG-0010")
+          end = text.index("## Evidência consolidada — checkpoint Home + Runtime + Geospatial", start)
+          new_section = '''## Payments em migração — MIG-0010\n\nM135 congelou a Wave 8 a partir da V1 `luizidebook/morro-de-sao-paulo-digital@60746fd7fed97b805758b37adfdbe3bad2582bfe` e separou Business, Ordering e Financial sem habilitar money movement. M136–M144 materializaram domínio, persistência, checkout server-authoritative, HTTP/Auth, sandbox provider, webhook verificado, resultado persistido, ledger double-entry e refund durável. M145 adicionou reconciliation read-only e operator-safe.\n\nM146 fecha o contrato backend de split/repasse/settlement:\n\n- allocation só nasce de Payment confirmado, resultado aprovado, ledger de aprovação e latest reconciliation limpa;\n- o plano explícito precisa conservar exatamente minor units e moeda do Payment; nenhuma comissão é inferida/hardcoded;\n- `financial_allocations`, `financial_payables` e `financial_settlements` preservam estado durável e idempotência estável por payable;\n- aceite do provider mantém `provider_accepted`/`transfer_pending` e não cria settlement contábil;\n- somente read-back verificado de identidade, valor, moeda e tempo pode produzir settlement;\n- allocation, settlement e reversals usam postings double-entry imutáveis e chaves determinísticas;\n- refund após repasse cria `asset:beneficiary_receivable:*` para valor já transferido, sem apagar histórico;\n- refund é bloqueado enquanto o desfecho da transferência estiver incerto;\n- provider sandbox permanece server-only e produção/dinheiro real não é ativada por este milestone.\n\nA matriz canônica M146 passa a:\n\n```text\nPASS     23\nPARTIAL   5\nGAP       5\nN/A       1\nTOTAL    34\n```\n\n`MIG-0010` e `FEATURE-0009` permanecem `migrating`; equivalence behavior/visual/API continua `false`. Ainda faltam recorrência/assinaturas, browser checkout/confirmation, integração dos eventos Business parciais, observabilidade financeira completa, sandbox/browser E2E implantado, limiter distribuído e fechamento operacional de release/rollback. Affiliates permanece separado e não recebe autoridade financeira implícita.\n\n'''
+          text = text[:start] + new_section + text[end:]
+          tracker.write_text(text)
+          PY
+          git diff --check
+      - name: Commit docs and remove helper
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/m146-doc-reconcile-once.yml
+          git add docs/migration/PAYMENTS-MIGRATION-MATRIX.md docs/migration/MASTER-MIGRATION-TRACKER.md
+          git commit -m "docs(payments): reconcile M146 settlement milestone"
+          git push origin HEAD:feat/payments-m146-settlement
