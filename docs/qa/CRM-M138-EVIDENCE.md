@@ -10,6 +10,7 @@ M138 does not advance Lead detail, generic Settings, object storage, AI-assisted
 
 - repository: `luizidebook/touristic-digital-platform`;
 - branch base: `main@5e659459b2a3c81939cdca056a5b98ed2f4f120d`;
+- current PR base after branch creation: `main@9a37cbe4d16004ea3d709aef4238477fcc80145d`, advanced only by Assistant PR #230 with no changed-file overlap with M138;
 - previous CRM milestone: M137, merged by PR #227;
 - frozen CRM V1: `luizidebook/morro-digital-crm@1915d0260c79f30a63b926a1123e609083587745`.
 
