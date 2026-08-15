@@ -29,15 +29,14 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Reconcile M149 truth
         run: python3 .github/scripts/m149-reconcile-once.py
-      - name: Format and validate permanent files
+      - name: Format and validate documentation
         run: |
-          pnpm exec prettier --write .github/workflows/payments-browser-checkout-contract.yml docs/qa/PAYMENTS-M149-EVIDENCE.md docs/migration/PAYMENTS-MIGRATION-MATRIX.md docs/migration/MASTER-MIGRATION-TRACKER.md
+          pnpm exec prettier --write docs/qa/PAYMENTS-M149-EVIDENCE.md docs/migration/PAYMENTS-MIGRATION-MATRIX.md docs/migration/MASTER-MIGRATION-TRACKER.md
           git diff --check
-      - name: Commit permanent files and remove temporary tooling
+      - name: Commit permanent documentation
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git rm .github/workflows/m149-reconcile-docs-once.yml .github/scripts/m149-reconcile-once.py
-          git add .github/workflows/payments-browser-checkout-contract.yml docs/qa/PAYMENTS-M149-EVIDENCE.md docs/migration/PAYMENTS-MIGRATION-MATRIX.md docs/migration/MASTER-MIGRATION-TRACKER.md
+          git add docs/qa/PAYMENTS-M149-EVIDENCE.md docs/migration/PAYMENTS-MIGRATION-MATRIX.md docs/migration/MASTER-MIGRATION-TRACKER.md
           git commit -m "docs(payments): reconcile M149 browser checkout truth"
           git push origin HEAD:feat/payments-m148-browser-checkout
