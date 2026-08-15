@@ -1,0 +1,44 @@
+name: Temporary M146 Fixture Time Fix
+
+on:
+  push:
+    branches:
+      - feat/payments-m146-settlement
+    paths:
+      - ".github/workflows/m146-fixture-time-fix-once.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/payments-m146-settlement
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Align provider snapshot with test clock
+        shell: bash
+        run: |
+          python3 -c 'from pathlib import Path; p=Path("services/financial/src/settlement-mysql-integration.test.ts"); s=p.read_text(); old="observedAt: \"2026-08-15T05:00:00.000Z\""; new="observedAt: \"2026-08-15T04:30:00.000Z\""; assert s.count(old)==1, "expected unique fixture timestamp"; p.write_text(s.replace(old,new,1))'
+          pnpm exec prettier --check services/financial/src/settlement-mysql-integration.test.ts
+          pnpm --filter @touristic/financial-server lint
+          pnpm --filter @touristic/financial-server typecheck
+          git diff --check
+      - name: Commit fixture correction
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add services/financial/src/settlement-mysql-integration.test.ts
+          git commit -m "test(payments): align M146 provider snapshot clock"
+          git push origin HEAD:feat/payments-m146-settlement
