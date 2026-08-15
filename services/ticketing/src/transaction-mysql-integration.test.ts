@@ -214,9 +214,9 @@ describeMySql.sequential("M148 Ticketing transactional MySQL contract", () => {
     });
     if (!mismatched) throw new Error("FIXTURE_INVALID");
 
-    await expect(
-      tx.commitCheckIn({ ...command, after: mismatched }),
-    ).rejects.toThrow("TICKETING_TRANSACTION_IDENTITY_MISMATCH");
+    expect(() => tx.commitCheckIn({ ...command, after: mismatched })).toThrow(
+      "TICKETING_TRANSACTION_IDENTITY_MISMATCH",
+    );
     await expect(
       new MySqlTicketRepository(pool).findById(command.before.id),
     ).resolves.toMatchObject({ status: "issued" });
