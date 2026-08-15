@@ -101,6 +101,13 @@ export function createRefundApplicationService(
       if (!payment) {
         throw new RefundApplicationError("REFUND_PAYMENT_NOT_FOUND");
       }
+      if (payment.status !== "confirmed" && payment.status !== "refunded") {
+        throw new RefundApplicationError("REFUND_NOT_ALLOWED");
+      }
+      const existing = await dependencies.refunds.findByPaymentId(payment.id);
+      if (payment.status === "refunded" && !existing) {
+        throw new RefundApplicationError("REFUND_NOT_ALLOWED");
+      }
       const approved = await dependencies.results.findByPaymentStatus(
         payment.id,
         "confirmed",
@@ -120,7 +127,6 @@ export function createRefundApplicationService(
         throw new RefundApplicationError("REFUND_PROVIDER_REFERENCE_MISSING");
       }
 
-      const existing = await dependencies.refunds.findByPaymentId(payment.id);
       if (
         existing &&
         !sameAuthority(
