@@ -5,6 +5,7 @@ import {
   createTicketOfflineEnvelope,
   normalizeTicketCheckInId,
   normalizeTicketId,
+  normalizeTicketOfflineEnvelopeId,
   type TicketCheckIn,
   type TicketCheckInRepositoryPort,
   type TicketOfflineEnvelope,
@@ -128,7 +129,7 @@ export class MySqlTicketOfflineEnvelopeRepository {
   }
 
   async findById(envelopeId: string): Promise<TicketOfflineEnvelope | null> {
-    const normalizedId = normalizeTicketCheckInId(envelopeId);
+    const normalizedId = normalizeTicketOfflineEnvelopeId(envelopeId);
     if (!normalizedId) throw new Error("TICKETING_INVALID_OFFLINE_ENVELOPE_ID");
     const [rows] = await this.pool.execute<OfflineEnvelopeRow[]>(
       `SELECT envelope_id, ticket_id, operation, payload, signature,
@@ -146,7 +147,7 @@ export class MySqlTicketOfflineEnvelopeRepository {
     checkInId: string,
     syncedAt: string,
   ): Promise<void> {
-    const normalizedEnvelopeId = normalizeTicketCheckInId(envelopeId);
+    const normalizedEnvelopeId = normalizeTicketOfflineEnvelopeId(envelopeId);
     const normalizedCheckInId = normalizeTicketCheckInId(checkInId);
     if (!normalizedEnvelopeId || !normalizedCheckInId) {
       throw new Error("TICKETING_INVALID_OFFLINE_SYNC_REFERENCE");
