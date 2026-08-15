@@ -1,0 +1,48 @@
+name: Business Onboarding Format Helper
+
+on:
+  push:
+    branches:
+      - feat/business-onboarding-browser-lifecycle-hardening
+    paths:
+      - ".github/workflows/business-onboarding-format-helper.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/business-onboarding-browser-lifecycle-hardening
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Format lifecycle files
+        run: |
+          pnpm exec prettier --write \
+            apps/morro-digital-platform/src/business-onboarding-browser-lifecycle.ts \
+            apps/morro-digital-platform/src/business-onboarding-session-store.test.ts \
+            apps/morro-digital-platform/src/business-onboarding-session-store.ts \
+            apps/morro-digital-platform/tooling/business-onboarding-lifecycle-browser-contract.mjs
+      - name: Commit formatted files
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            apps/morro-digital-platform/src/business-onboarding-browser-lifecycle.ts \
+            apps/morro-digital-platform/src/business-onboarding-session-store.test.ts \
+            apps/morro-digital-platform/src/business-onboarding-session-store.ts \
+            apps/morro-digital-platform/tooling/business-onboarding-lifecycle-browser-contract.mjs
+          git commit -m "style(business): format onboarding browser lifecycle"
+          git push origin HEAD:feat/business-onboarding-browser-lifecycle-hardening
