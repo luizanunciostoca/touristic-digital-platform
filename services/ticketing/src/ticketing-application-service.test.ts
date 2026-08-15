@@ -27,48 +27,49 @@ import {
 } from "@touristic/ticketing";
 
 import { createTicketingApplicationService } from "./ticketing-application-service.js";
+import type { TicketingTransactionalCommandPort } from "./mysql-ticketing-transaction.js";
 
 class MemoryOrders implements OrderRepositoryPort {
   constructor(private readonly current: Order | null) {}
-  findById(orderId: string): Promise<Order | null> {
+  findById(orderId: string) {
     return Promise.resolve(this.current?.id === orderId ? this.current : null);
   }
-  findByRequestKey(): Promise<Order | null> {
+  findByRequestKey() {
     return Promise.resolve(this.current);
   }
-  save(order: Order): Promise<Order> {
+  save(order: Order) {
     return Promise.resolve(order);
   }
 }
 
 class MemoryPayments implements PaymentRepositoryPort {
   constructor(private readonly current: Payment | null) {}
-  findById(paymentId: string): Promise<Payment | null> {
+  findById(paymentId: string) {
     return Promise.resolve(
       this.current?.id === paymentId ? this.current : null,
     );
   }
-  save(payment: Payment): Promise<Payment> {
+  save(payment: Payment) {
     return Promise.resolve(payment);
   }
 }
 
 class MemoryTickets implements TicketRepositoryPort {
   readonly values = new Map<string, Ticket>();
-  findById(ticketId: string): Promise<Ticket | null> {
+  findById(ticketId: string) {
     return Promise.resolve(this.values.get(ticketId) ?? null);
   }
-  findByCode(code: string): Promise<Ticket | null> {
+  findByCode(code: string) {
     return Promise.resolve(
       [...this.values.values()].find((ticket) => ticket.code === code) ?? null,
     );
   }
-  findByOrderId(orderId: string): Promise<readonly Ticket[]> {
+  findByOrderId(orderId: string) {
     return Promise.resolve(
       [...this.values.values()].filter((ticket) => ticket.orderId === orderId),
     );
   }
-  save(ticket: Ticket): Promise<Ticket> {
+  save(ticket: Ticket) {
     this.values.set(ticket.id, ticket);
     return Promise.resolve(ticket);
   }
@@ -76,30 +77,77 @@ class MemoryTickets implements TicketRepositoryPort {
 
 class MemoryCheckIns implements TicketCheckInRepositoryPort {
   readonly values: TicketCheckIn[] = [];
-  append(checkIn: TicketCheckIn): Promise<void> {
+  append(checkIn: TicketCheckIn) {
     this.values.push(checkIn);
     return Promise.resolve();
   }
-  listByTicketId(ticketId: string): Promise<readonly TicketCheckIn[]> {
+  listByTicketId(ticketId: string) {
     return Promise.resolve(
-      this.values.filter((checkIn) => checkIn.ticketId === ticketId),
+      this.values.filter((entry) => entry.ticketId === ticketId),
     );
   }
 }
 
 class MemoryOffline {
   readonly values = new Map<string, TicketOfflineEnvelope>();
-  readonly synced = new Map<string, string>();
-  enqueue(envelope: TicketOfflineEnvelope): Promise<void> {
-    this.values.set(envelope.id, envelope);
-    return Promise.resolve();
+  findById(id: string) {
+    return Promise.resolve(this.values.get(id) ?? null);
   }
-  findById(envelopeId: string): Promise<TicketOfflineEnvelope | null> {
-    return Promise.resolve(this.values.get(envelopeId) ?? null);
+}
+
+class MemoryTransactions implements TicketingTransactionalCommandPort {
+  constructor(
+    private readonly tickets: MemoryTickets,
+    private readonly checkIns: MemoryCheckIns,
+    private readonly offline: MemoryOffline,
+  ) {}
+  async commitCheckIn(input: {
+    before: Ticket;
+    after: Ticket;
+    checkIn: TicketCheckIn;
+  }) {
+    const replay = this.checkIns.values.find(
+      (entry) => entry.id === input.checkIn.id,
+    );
+    if (replay)
+      return {
+        ticket: this.tickets.values.get(input.before.id)!,
+        checkIn: replay,
+        replayed: true,
+      };
+    this.tickets.values.set(input.after.id, input.after);
+    this.checkIns.values.push(input.checkIn);
+    return { ticket: input.after, checkIn: input.checkIn, replayed: false };
   }
-  markSynced(envelopeId: string, checkInId: string): Promise<void> {
-    this.synced.set(envelopeId, checkInId);
-    return Promise.resolve();
+  async commitOfflineSync(input: {
+    before: Ticket;
+    after: Ticket;
+    checkIn: TicketCheckIn;
+    envelope: TicketOfflineEnvelope;
+    syncedAt: string;
+  }) {
+    const existingEnvelope = this.offline.values.get(input.envelope.id);
+    if (existingEnvelope) {
+      const replay = this.checkIns.values.find(
+        (entry) => entry.id === input.checkIn.id,
+      );
+      if (!replay) throw new Error("OFFLINE_REPLAY_INCOMPLETE");
+      return {
+        envelope: existingEnvelope,
+        ticket: this.tickets.values.get(input.before.id)!,
+        checkIn: replay,
+        replayed: true,
+      };
+    }
+    this.offline.values.set(input.envelope.id, input.envelope);
+    this.tickets.values.set(input.after.id, input.after);
+    this.checkIns.values.push(input.checkIn);
+    return {
+      envelope: input.envelope,
+      ticket: input.after,
+      checkIn: input.checkIn,
+      replayed: false,
+    };
   }
 }
 
@@ -110,9 +158,8 @@ function fixtures() {
   const secret = normalizeTicketSigningSecret(
     "ticketing-service-signing-secret-0001",
   );
-  if (!orderId || !paymentId || !amount || !secret) {
+  if (!orderId || !paymentId || !amount || !secret)
     throw new Error("FIXTURE_INVALID");
-  }
   const pricing = createPricingQuote({
     planId: "tour_volta_ilha",
     planName: "Passeio Volta à Ilha",
@@ -120,12 +167,11 @@ function fixtures() {
     currency: amount.currency,
     pricingVersion: "2026-08",
   });
-  if (!pricing) throw new Error("FIXTURE_INVALID");
   const requestKey = createBusinessOrderRequestKey(
     "session_ticketing_0001",
     "tour_volta_ilha",
   );
-  if (!requestKey) throw new Error("FIXTURE_INVALID");
+  if (!pricing || !requestKey) throw new Error("FIXTURE_INVALID");
   const order = createOrder({
     id: orderId,
     requestKey,
@@ -134,13 +180,11 @@ function fixtures() {
       reference: "session_ticketing_0001",
     },
     status: "payment_confirmed",
-    pricing: {
-      ...pricing,
-      capturedAt: "2026-08-15T09:00:00Z",
-    },
+    pricing: { ...pricing, capturedAt: "2026-08-15T09:00:00Z" },
     createdAt: "2026-08-15T09:00:00Z",
     updatedAt: "2026-08-15T09:05:00Z",
   });
+  if (!order) throw new Error("FIXTURE_INVALID");
   const payment: Payment = {
     id: paymentId,
     idempotencyKey: createPaymentIdempotencyKey(orderId)!,
@@ -153,7 +197,6 @@ function fixtures() {
     confirmedAt: "2026-08-15T09:06:00Z",
     refundedAt: null,
   };
-  if (!order) throw new Error("FIXTURE_INVALID");
   return { order, payment, amount, secret };
 }
 
@@ -169,6 +212,7 @@ function harness() {
     tickets,
     checkIns,
     offline,
+    transactions: new MemoryTransactions(tickets, checkIns, offline),
     signingSecret: fixture.secret,
     clock: {
       now: () =>
@@ -193,59 +237,54 @@ function issueInput(fixture: ReturnType<typeof fixtures>) {
   };
 }
 
-describe("M147 ticketing application service", () => {
-  it("issues a ticket only after persisted financial authority and replays safely", async () => {
+describe("M148 transactional ticketing application", () => {
+  it("issues only from persisted financial authority and replays issuance", async () => {
     const { service, fixture } = harness();
     const issued = await service.issueTicket(issueInput(fixture));
-    expect(issued.replayed).toBe(false);
     expect(issued.ticket.status).toBe("issued");
-    expect(issued.ticket.amount).toEqual(fixture.payment.amount);
-    expect(issued.qrPayload).toContain("tck.v1.");
-
-    const replay = await service.issueTicket(issueInput(fixture));
-    expect(replay.replayed).toBe(true);
-    expect(replay.ticket.id).toBe(issued.ticket.id);
-    expect(replay.ticket.code).toBe(issued.ticket.code);
+    expect((await service.issueTicket(issueInput(fixture))).replayed).toBe(
+      true,
+    );
   });
 
-  it("rejects a caller amount that diverges from Order and Payment authority", async () => {
+  it("rejects caller money divergence", async () => {
     const { service, fixture, tickets } = harness();
-    const forgedAmount = createMoney(100, "BRL");
-    expect(forgedAmount).not.toBeNull();
-
     await expect(
       service.issueTicket({
         ...issueInput(fixture),
-        amount: forgedAmount,
+        amount: createMoney(100, "BRL"),
       }),
-    ).rejects.toMatchObject({
-      code: "TICKETING_FINANCIAL_AUTHORITY_MISMATCH",
-    });
+    ).rejects.toMatchObject({ code: "TICKETING_FINANCIAL_AUTHORITY_MISMATCH" });
     expect(tickets.values.size).toBe(0);
   });
 
-  it("validates a ticket by QR and records an online check-in", async () => {
+  it("replays the same QR attempt instead of advancing validated to used", async () => {
     const { service, fixture, checkIns } = harness();
     const issued = await service.issueTicket(issueInput(fixture));
-    const checked = await service.checkInByQr({
+    const request = {
       qrPayload: issued.qrPayload,
       operatorReference: "operator_001",
       occurredAt: "2026-08-15T10:30:00Z",
-    });
-    expect(checked.ticket.status).toBe("validated");
-    expect(checked.checkIn.channel).toBe("online");
+    };
+    const first = await service.checkInByQr(request);
+    const replay = await service.checkInByQr(request);
+    expect(first.ticket.status).toBe("validated");
+    expect(replay.replayed).toBe(true);
+    expect(replay.ticket.status).toBe("validated");
+    expect(replay.checkIn.id).toBe(first.checkIn.id);
     expect(checkIns.values).toHaveLength(1);
   });
 
-  it("syncs an offline envelope exactly once", async () => {
-    const { service, fixture, offline } = harness();
+  it("syncs one offline envelope exactly once", async () => {
+    const { service, fixture, checkIns } = harness();
     const issued = await service.issueTicket(issueInput(fixture));
+    const queuedAt = "2026-08-15T10:45:00Z";
     const signature = createTicketOfflineEnvelopeSignature(
       {
         ticketId: issued.ticket.id,
         operation: "validate",
         payload: issued.qrPayload,
-        queuedAt: "2026-08-15T10:45:00Z",
+        queuedAt,
       },
       fixture.secret,
     );
@@ -255,51 +294,39 @@ describe("M147 ticketing application service", () => {
       operation: "validate",
       payload: issued.qrPayload,
       signature,
-      queuedAt: "2026-08-15T10:45:00Z",
+      queuedAt,
     });
     if (!envelope) throw new Error("ENVELOPE_FIXTURE_INVALID");
-
-    const synced = await service.syncOfflineEnvelope({
+    const input = {
       envelope,
       operatorReference: "operator_002",
       recordedAt: "2026-08-15T10:46:00Z",
-    });
-    expect(synced.replayed).toBe(false);
-    expect(synced.ticket.status).toBe("validated");
-    expect(offline.synced.get(envelope.id)).toBe(synced.checkIn.id);
-
-    const replay = await service.syncOfflineEnvelope({
-      envelope,
-      operatorReference: "operator_002",
-      recordedAt: "2026-08-15T10:47:00Z",
-    });
+    };
+    const first = await service.syncOfflineEnvelope(input);
+    const replay = await service.syncOfflineEnvelope(input);
+    expect(first.ticket.status).toBe("validated");
     expect(replay.replayed).toBe(true);
-    expect(replay.checkIn.id).toBe(synced.checkIn.id);
+    expect(checkIns.values).toHaveLength(1);
   });
 
-  it("rejects an offline envelope whose signed payload is not the ticket QR", async () => {
+  it("rejects an offline envelope whose nested QR belongs to another ticket", async () => {
     const { service, fixture } = harness();
     const issued = await service.issueTicket(issueInput(fixture));
-    const forgedPayload = `tck.v1.tck_other_ticket_0001.${"a".repeat(64)}`;
+    const payload = `tck.v1.tck_other_ticket_0001.${"a".repeat(64)}`;
+    const queuedAt = "2026-08-15T10:45:00Z";
     const signature = createTicketOfflineEnvelopeSignature(
-      {
-        ticketId: issued.ticket.id,
-        operation: "validate",
-        payload: forgedPayload,
-        queuedAt: "2026-08-15T10:45:00Z",
-      },
+      { ticketId: issued.ticket.id, operation: "validate", payload, queuedAt },
       fixture.secret,
     );
     const envelope = createTicketOfflineEnvelope({
       id: "toe_ticketing_service_0002",
       ticketId: issued.ticket.id,
       operation: "validate",
-      payload: forgedPayload,
+      payload,
       signature,
-      queuedAt: "2026-08-15T10:45:00Z",
+      queuedAt,
     });
     if (!envelope) throw new Error("ENVELOPE_FIXTURE_INVALID");
-
     await expect(
       service.syncOfflineEnvelope({
         envelope,

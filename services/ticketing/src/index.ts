@@ -5,6 +5,11 @@ import {
   MySqlTicketCheckInRepository,
   MySqlTicketOfflineEnvelopeRepository,
 } from "./mysql-ticket-checkin-repository.js";
+import type {
+  TicketingOfflineTransactionalCommandResult,
+  TicketingTransactionalCommandPort,
+  TicketingTransactionalCommandResult,
+} from "./mysql-ticketing-transaction.js";
 import { ticketingM147SchemaSql } from "./schema.js";
 import {
   TicketingApplicationError,
@@ -15,11 +20,13 @@ import {
   type TicketingCheckInResult,
   type TicketingIssueResult,
 } from "./ticketing-application-service.js";
+import { MySqlTicketingTransactionalCommand } from "./validated-ticketing-transaction.js";
 
 export {
   MySqlTicketRepository,
   MySqlTicketCheckInRepository,
   MySqlTicketOfflineEnvelopeRepository,
+  MySqlTicketingTransactionalCommand,
   TicketingApplicationError,
   createTicketingApplicationService,
   ticketingM147SchemaSql,
@@ -31,6 +38,9 @@ export type {
   TicketingApplicationServiceDependencies,
   TicketingCheckInResult,
   TicketingIssueResult,
+  TicketingOfflineTransactionalCommandResult,
+  TicketingTransactionalCommandPort,
+  TicketingTransactionalCommandResult,
 };
 
 export interface TicketingMySqlEnvironment {
