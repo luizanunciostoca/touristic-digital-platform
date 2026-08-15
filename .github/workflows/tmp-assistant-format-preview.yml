@@ -1,0 +1,39 @@
+name: Temporary Assistant Format Preview
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  format-preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Format target files
+        run: |
+          pnpm exec prettier --write \
+            apps/morro-digital-platform/tooling/assistant-api.mjs \
+            apps/morro-digital-platform/tooling/provider-governance.mjs \
+            docs/operations/PAID-PROVIDER-GOVERNANCE.md
+      - name: Emit formatted files
+        run: |
+          for file in \
+            apps/morro-digital-platform/tooling/assistant-api.mjs \
+            apps/morro-digital-platform/tooling/provider-governance.mjs \
+            docs/operations/PAID-PROVIDER-GOVERNANCE.md; do
+            echo "FORMAT_FILE_BEGIN:$file"
+            base64 -w0 "$file"
+            echo
+            echo "FORMAT_FILE_END:$file"
+          done
