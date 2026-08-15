@@ -180,49 +180,53 @@ function harness() {
   return { service, tickets, checkIns, offline, fixture };
 }
 
+function issueInput(fixture: ReturnType<typeof fixtures>) {
+  return {
+    orderId: fixture.order.id,
+    paymentId: fixture.payment.id,
+    destinationId: "morro-de-sao-paulo",
+    product: { kind: "tour", reference: "volta-a-ilha" },
+    holderName: "Luiz Silva",
+    quantity: 2,
+    amount: fixture.amount,
+    issuedAt: "2026-08-15T10:00:00Z",
+  };
+}
+
 describe("M147 ticketing application service", () => {
-  it("issues a ticket only after a confirmed payment and replays safely", async () => {
+  it("issues a ticket only after persisted financial authority and replays safely", async () => {
     const { service, fixture } = harness();
-    const issued = await service.issueTicket({
-      orderId: fixture.order.id,
-      paymentId: fixture.payment.id,
-      destinationId: "morro-de-sao-paulo",
-      product: { kind: "tour", reference: "volta-a-ilha" },
-      holderName: "Luiz Silva",
-      quantity: 2,
-      amount: fixture.amount,
-      issuedAt: "2026-08-15T10:00:00Z",
-    });
+    const issued = await service.issueTicket(issueInput(fixture));
     expect(issued.replayed).toBe(false);
     expect(issued.ticket.status).toBe("issued");
+    expect(issued.ticket.amount).toEqual(fixture.payment.amount);
     expect(issued.qrPayload).toContain("tck.v1.");
 
-    const replay = await service.issueTicket({
-      orderId: fixture.order.id,
-      paymentId: fixture.payment.id,
-      destinationId: "morro-de-sao-paulo",
-      product: { kind: "tour", reference: "volta-a-ilha" },
-      holderName: "Luiz Silva",
-      quantity: 2,
-      amount: fixture.amount,
-      issuedAt: "2026-08-15T10:00:00Z",
-    });
+    const replay = await service.issueTicket(issueInput(fixture));
     expect(replay.replayed).toBe(true);
     expect(replay.ticket.id).toBe(issued.ticket.id);
+    expect(replay.ticket.code).toBe(issued.ticket.code);
+  });
+
+  it("rejects a caller amount that diverges from Order and Payment authority", async () => {
+    const { service, fixture, tickets } = harness();
+    const forgedAmount = createMoney(100, "BRL");
+    expect(forgedAmount).not.toBeNull();
+
+    await expect(
+      service.issueTicket({
+        ...issueInput(fixture),
+        amount: forgedAmount,
+      }),
+    ).rejects.toMatchObject({
+      code: "TICKETING_FINANCIAL_AUTHORITY_MISMATCH",
+    });
+    expect(tickets.values.size).toBe(0);
   });
 
   it("validates a ticket by QR and records an online check-in", async () => {
     const { service, fixture, checkIns } = harness();
-    const issued = await service.issueTicket({
-      orderId: fixture.order.id,
-      paymentId: fixture.payment.id,
-      destinationId: "morro-de-sao-paulo",
-      product: { kind: "tour", reference: "volta-a-ilha" },
-      holderName: "Luiz Silva",
-      quantity: 2,
-      amount: fixture.amount,
-      issuedAt: "2026-08-15T10:00:00Z",
-    });
+    const issued = await service.issueTicket(issueInput(fixture));
     const checked = await service.checkInByQr({
       qrPayload: issued.qrPayload,
       operatorReference: "operator_001",
@@ -235,16 +239,7 @@ describe("M147 ticketing application service", () => {
 
   it("syncs an offline envelope exactly once", async () => {
     const { service, fixture, offline } = harness();
-    const issued = await service.issueTicket({
-      orderId: fixture.order.id,
-      paymentId: fixture.payment.id,
-      destinationId: "morro-de-sao-paulo",
-      product: { kind: "tour", reference: "volta-a-ilha" },
-      holderName: "Luiz Silva",
-      quantity: 2,
-      amount: fixture.amount,
-      issuedAt: "2026-08-15T10:00:00Z",
-    });
+    const issued = await service.issueTicket(issueInput(fixture));
     const signature = createTicketOfflineEnvelopeSignature(
       {
         ticketId: issued.ticket.id,
@@ -280,5 +275,37 @@ describe("M147 ticketing application service", () => {
     });
     expect(replay.replayed).toBe(true);
     expect(replay.checkIn.id).toBe(synced.checkIn.id);
+  });
+
+  it("rejects an offline envelope whose signed payload is not the ticket QR", async () => {
+    const { service, fixture } = harness();
+    const issued = await service.issueTicket(issueInput(fixture));
+    const forgedPayload = `tck.v1.tck_other_ticket_0001.${"a".repeat(64)}`;
+    const signature = createTicketOfflineEnvelopeSignature(
+      {
+        ticketId: issued.ticket.id,
+        operation: "validate",
+        payload: forgedPayload,
+        queuedAt: "2026-08-15T10:45:00Z",
+      },
+      fixture.secret,
+    );
+    const envelope = createTicketOfflineEnvelope({
+      id: "toe_ticketing_service_0002",
+      ticketId: issued.ticket.id,
+      operation: "validate",
+      payload: forgedPayload,
+      signature,
+      queuedAt: "2026-08-15T10:45:00Z",
+    });
+    if (!envelope) throw new Error("ENVELOPE_FIXTURE_INVALID");
+
+    await expect(
+      service.syncOfflineEnvelope({
+        envelope,
+        operatorReference: "operator_002",
+        recordedAt: "2026-08-15T10:46:00Z",
+      }),
+    ).rejects.toMatchObject({ code: "TICKETING_OFFLINE_ENVELOPE_INVALID" });
   });
 });
