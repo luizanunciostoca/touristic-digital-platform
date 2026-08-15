@@ -25,7 +25,7 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Apply bounded static corrections and canonical formatting
+      - name: Apply proven static corrections and canonical formatting
         shell: bash
         run: |
           python3 - <<'PY'
@@ -50,23 +50,6 @@ jobs:
             if (value) normalized[name] = value;
           }
           return Object.freeze(normalized);'''.replace('          ', ''),
-              ),
-              (
-                  '''function paymentFailure(
-          sessionId: string,
-          code: PaymentsBrowserCheckoutErrorCode,
-          message: string,
-          ): PaymentsBrowserCheckoutError {
-          return new PaymentsBrowserCheckoutError(code, message);
-          }'''.replace('          ', ''),
-                  '''function paymentFailure(
-          sessionId: string,
-          code: PaymentsBrowserCheckoutErrorCode,
-          message: string,
-          ): PaymentsBrowserCheckoutError {
-          void sessionId;
-          return new PaymentsBrowserCheckoutError(code, message);
-          }'''.replace('          ', ''),
               ),
           ]
           for old, new in replacements:
