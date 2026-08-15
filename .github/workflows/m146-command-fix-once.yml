@@ -1,0 +1,73 @@
+name: Temporary M146 Command Fix
+
+on:
+  push:
+    branches:
+      - feat/payments-m146-settlement
+    paths:
+      - ".github/workflows/m146-command-fix-once.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/payments-m146-settlement
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Map persisted settlement to provider command explicitly
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('services/financial/src/settlement-application-service.ts')
+          s = p.read_text()
+          old = '''      const command = createFinancialSettlementProviderCommand(
+                claim.settlement,
+              );'''
+          if old not in s:
+              old = '''      const command = createFinancialSettlementProviderCommand(
+                claim.settlement,
+              );'''
+          if old not in s:
+              old = '''      const command = createFinancialSettlementProviderCommand(
+        claim.settlement,
+      );'''
+          new = '''      const command = createFinancialSettlementProviderCommand({
+        settlementId: claim.settlement.id,
+        payableId: claim.settlement.payableId,
+        paymentId: claim.settlement.paymentId,
+        beneficiaryReference: claim.settlement.beneficiaryReference,
+        amount: claim.settlement.amount,
+        idempotencyKey: claim.settlement.idempotencyKey,
+      });'''
+          if old not in s:
+              raise SystemExit('expected provider command mapping not found')
+          p.write_text(s.replace(old, new, 1))
+          PY
+          pnpm exec prettier --write services/financial/src/settlement-application-service.ts
+          pnpm --filter @touristic/financial build
+          pnpm --filter @touristic/financial-server lint
+          pnpm --filter @touristic/financial-server typecheck
+          git diff --check
+      - name: Commit fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add services/financial/src/settlement-application-service.ts
+          if git diff --cached --quiet; then
+            echo "No command fix needed"
+          else
+            git commit -m "fix(payments): map settlement provider command explicitly"
+            git push origin HEAD:feat/payments-m146-settlement
+          fi
