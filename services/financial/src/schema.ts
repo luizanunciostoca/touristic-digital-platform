@@ -128,3 +128,56 @@ CREATE TABLE IF NOT EXISTS financial_refund_requests (
   INDEX idx_financial_refund_updated (updated_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 `;
+
+export const financialM145SchemaSql = `
+CREATE TABLE IF NOT EXISTS financial_reconciliation_runs (
+  reconciliation_run_id VARCHAR(120) COLLATE utf8mb4_bin PRIMARY KEY,
+  payment_id VARCHAR(120) COLLATE utf8mb4_bin NOT NULL,
+  snapshot_hash BINARY(32) NOT NULL,
+  observed_at DATETIME(3) NOT NULL,
+  recorded_at DATETIME(3) NOT NULL,
+  finding_count TINYINT UNSIGNED NOT NULL,
+  CONSTRAINT chk_financial_reconciliation_finding_count CHECK (finding_count <= 7),
+  CONSTRAINT fk_financial_reconciliation_run_payment
+    FOREIGN KEY (payment_id) REFERENCES financial_payments(payment_id)
+    ON DELETE RESTRICT ON UPDATE RESTRICT,
+  INDEX idx_financial_reconciliation_run_payment (payment_id, recorded_at),
+  INDEX idx_financial_reconciliation_run_observed (observed_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS financial_reconciliation_findings (
+  reconciliation_finding_id VARCHAR(120) COLLATE utf8mb4_bin PRIMARY KEY,
+  payment_id VARCHAR(120) COLLATE utf8mb4_bin NOT NULL,
+  kind VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  severity ENUM('warning','critical') NOT NULL,
+  evidence_hash BINARY(32) NOT NULL,
+  expected_value VARCHAR(200) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  observed_value VARCHAR(200) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  state ENUM('open','acknowledged','resolved') NOT NULL,
+  first_seen_at DATETIME(3) NOT NULL,
+  last_seen_at DATETIME(3) NOT NULL,
+  acknowledged_at DATETIME(3) NULL,
+  acknowledged_by VARCHAR(200) COLLATE utf8mb4_bin NULL,
+  resolved_at DATETIME(3) NULL,
+  CONSTRAINT fk_financial_reconciliation_finding_payment
+    FOREIGN KEY (payment_id) REFERENCES financial_payments(payment_id)
+    ON DELETE RESTRICT ON UPDATE RESTRICT,
+  UNIQUE KEY uq_financial_reconciliation_evidence (payment_id, kind, evidence_hash),
+  INDEX idx_financial_reconciliation_finding_state (state, severity, last_seen_at),
+  INDEX idx_financial_reconciliation_finding_payment (payment_id, state)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS financial_reconciliation_run_findings (
+  reconciliation_run_id VARCHAR(120) COLLATE utf8mb4_bin NOT NULL,
+  reconciliation_finding_id VARCHAR(120) COLLATE utf8mb4_bin NOT NULL,
+  PRIMARY KEY (reconciliation_run_id, reconciliation_finding_id),
+  CONSTRAINT fk_financial_reconciliation_link_run
+    FOREIGN KEY (reconciliation_run_id)
+    REFERENCES financial_reconciliation_runs(reconciliation_run_id)
+    ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT fk_financial_reconciliation_link_finding
+    FOREIGN KEY (reconciliation_finding_id)
+    REFERENCES financial_reconciliation_findings(reconciliation_finding_id)
+    ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+`;

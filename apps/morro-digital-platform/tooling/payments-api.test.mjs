@@ -7,6 +7,7 @@ import { createCheckoutHandoffCapability } from "@touristic/ordering-server";
 import {
   createPaymentsApi,
   createPaymentsCheckoutAuthorizationPort,
+  createPaymentsReconciliationAuthorizationPort,
   createPaymentsRefundAuthorizationPort,
 } from "./payments-api.mjs";
 
@@ -495,6 +496,120 @@ describe("M139/M141 payments API runtime boundary", () => {
     ).resolves.toEqual({
       allowed: false,
       reason: "authentication_required",
+    });
+  });
+
+  it("routes bounded reconciliation JSON to the admin transport", async () => {
+    let captured;
+    const api = createPaymentsApi({
+      reconciliationTransport: {
+        handle(input) {
+          captured = input;
+          return Promise.resolve({
+            status: 201,
+            body: {
+              data: {
+                runId: "rrn_runtime_reconciliation_0001",
+                findingCount: 0,
+              },
+            },
+            headers: { "Cache-Control": "no-store" },
+          });
+        },
+      },
+      audit: () => undefined,
+    });
+    const response = responseCapture();
+    const body = JSON.stringify({
+      runId: "rrn_runtime_reconciliation_0001",
+    });
+    const pathname =
+      "/api/payments/v1/reconciliation/payments/" +
+      "pay_runtime_reconciliation_0001/runs";
+
+    expect(api.matches(pathname)).toBe(true);
+    await api.handle(
+      request({
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "content-length": String(Buffer.byteLength(body)),
+          "idempotency-key":
+            "reconciliation:v1:rrn_runtime_reconciliation_0001",
+        },
+        body,
+      }),
+      response,
+      new URL("http://localhost" + pathname),
+    );
+
+    expect(response.statusCode).toBe(201);
+    expect(captured).toMatchObject({
+      method: "POST",
+      pathname,
+      body: { runId: "rrn_runtime_reconciliation_0001" },
+      clientIp: "203.0.113.20",
+    });
+  });
+
+  it("restricts reconciliation reads and mutations to active admins", async () => {
+    const now = Math.floor(Date.now() / 1_000);
+    const admin = Object.freeze({
+      subject: "admin-reconciliation-runtime",
+      email: "admin@example.com",
+      role: "admin",
+      businessIds: Object.freeze([]),
+      issuedAt: now - 60,
+      expiresAt: now + 3_600,
+      sessionId: "session-reconciliation-runtime",
+    });
+    let mutationCalls = 0;
+    const port = createPaymentsReconciliationAuthorizationPort({
+      authApi: {
+        resolveSession: () => admin,
+        authorizeMutation: () => {
+          mutationCalls += 1;
+          return { allowed: true };
+        },
+      },
+    });
+
+    await expect(port.authorize({}, "reconciliation.read")).resolves.toEqual({
+      allowed: true,
+      actorSubject: "admin-reconciliation-runtime",
+    });
+    expect(mutationCalls).toBe(0);
+    await expect(port.authorize({}, "reconciliation.run")).resolves.toEqual({
+      allowed: true,
+      actorSubject: "admin-reconciliation-runtime",
+    });
+    expect(mutationCalls).toBe(1);
+
+    const owner = createPaymentsReconciliationAuthorizationPort({
+      authApi: {
+        resolveSession: () => ({ ...admin, role: "owner" }),
+        authorizeMutation: () => ({ allowed: true }),
+      },
+    });
+    await expect(owner.authorize({}, "reconciliation.read")).resolves.toEqual({
+      allowed: false,
+      reason: "admin_required",
+    });
+
+    const csrf = createPaymentsReconciliationAuthorizationPort({
+      authApi: {
+        resolveSession: () => admin,
+        authorizeMutation: () => ({
+          allowed: false,
+          reason: "invalid_csrf",
+        }),
+      },
+    });
+    await expect(
+      csrf.authorize({}, "reconciliation.acknowledge"),
+    ).resolves.toEqual({
+      allowed: false,
+      reason: "invalid_csrf",
     });
   });
 });

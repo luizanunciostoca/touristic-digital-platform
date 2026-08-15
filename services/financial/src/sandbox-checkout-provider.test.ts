@@ -15,6 +15,7 @@ import {
 import {
   SandboxCheckoutProviderError,
   createSandboxCheckoutProviderFromEnvironment,
+  createSandboxReconciliationProviderFromEnvironment,
   createSandboxRefundProviderFromEnvironment,
 } from "./sandbox-checkout-provider.js";
 
@@ -295,6 +296,102 @@ describe("M140/M144 sandbox payment provider adapters", () => {
     });
 
     await expect(provider.requestRefund(refundRequest())).rejects.toEqual(
+      new SandboxCheckoutProviderError("SANDBOX_PROVIDER_INVALID_RESPONSE"),
+    );
+  });
+
+  it("reads a bounded provider snapshot without mutating provider state", async () => {
+    const paymentId = normalizePaymentId("pay_sandbox_reconcile_0001");
+    const amount = createMoney(49_900, "BRL");
+    if (!paymentId || !amount) throw new Error("FIXTURE_INVALID");
+    let capturedUrl = "";
+    let capturedInit: RequestInit | undefined;
+    const provider = createSandboxReconciliationProviderFromEnvironment(
+      environment(),
+      {
+        fetch(input, init) {
+          capturedUrl =
+            input instanceof URL
+              ? input.toString()
+              : typeof input === "string"
+                ? input
+                : input.url;
+          capturedInit = init;
+          return Promise.resolve(
+            new Response(
+              JSON.stringify({
+                version: 1,
+                externalReference: paymentId,
+                paymentReference: "sandbox_payment_reconcile_0001",
+                status: "paid",
+                amount,
+                observedAt: "2026-08-15T02:00:00Z",
+              }),
+              { status: 200 },
+            ),
+          );
+        },
+      },
+    );
+
+    await expect(
+      provider.readPayment({
+        paymentId,
+        providerPaymentReference: "sandbox_payment_reconcile_0001",
+      }),
+    ).resolves.toEqual({
+      paymentId,
+      providerPaymentReference: "sandbox_payment_reconcile_0001",
+      status: "paid",
+      amount,
+      observedAt: "2026-08-15T02:00:00.000Z",
+    });
+    expect(capturedUrl).toBe(
+      "https://api.sandbox-payments.example/v1/payments/sandbox_payment_reconcile_0001",
+    );
+    expect(capturedInit?.method).toBe("GET");
+    expect(capturedInit?.body).toBeUndefined();
+  });
+
+  it("distinguishes provider absence and rejects identity substitution", async () => {
+    const paymentId = normalizePaymentId("pay_sandbox_reconcile_0001");
+    if (!paymentId) throw new Error("FIXTURE_INVALID");
+    const missing = createSandboxReconciliationProviderFromEnvironment(
+      environment(),
+      { fetch: () => Promise.resolve(new Response(null, { status: 404 })) },
+    );
+    await expect(
+      missing.readPayment({
+        paymentId,
+        providerPaymentReference: "sandbox_payment_reconcile_0001",
+      }),
+    ).resolves.toBeNull();
+
+    const substituted = createSandboxReconciliationProviderFromEnvironment(
+      environment(),
+      {
+        fetch: () =>
+          Promise.resolve(
+            new Response(
+              JSON.stringify({
+                version: 1,
+                externalReference: "pay_sandbox_reconcile_other",
+                paymentReference: "sandbox_payment_reconcile_0001",
+                status: "paid",
+                amount: { minorUnits: 49_900, currency: "BRL" },
+                observedAt: "2026-08-15T02:00:00Z",
+              }),
+              { status: 200 },
+            ),
+          ),
+      },
+    );
+    await expect(
+      substituted.readPayment({
+        paymentId,
+        providerPaymentReference: "sandbox_payment_reconcile_0001",
+      }),
+    ).rejects.toEqual(
       new SandboxCheckoutProviderError("SANDBOX_PROVIDER_INVALID_RESPONSE"),
     );
   });

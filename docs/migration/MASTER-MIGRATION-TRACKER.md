@@ -23,7 +23,7 @@ Um item não pode avançar para `equivalent` sem evidência visual ou comportame
 | MIG-0007 | Business Portal | Business | FEATURE-0005 | `packages/business` + Business surfaces/adapters in `apps/morro-digital-platform` | 6 | equivalent | dashboard, 28-step onboarding, production profile and browser lifecycle contracts evidenced | 19/19 Business-owned contracts PASS; checkout execution remains Payments-owned N/A | `BUSINESS-MIGRATION-MATRIX.md`; M54–M65 evidence; PR #128 Quality + Business browser contracts | alto |
 | MIG-0008 | `luizidebook/morro-digital-crm@1915d026` | CRM | FEATURE-0006 | `@touristic/crm` + `@touristic/crm-server` + `apps/admin-crm` | 7 | migrating | authenticated shell and dedicated browser surfaces exist; consolidated V1 visual/accessibility equivalence remains open | 25 contracts: 17 PASS / 5 PARTIAL / 3 GAP at M133; leads, meetings, proposals, contracts, follow-ups, trials, referrals, public token flows, schedulers and audit are executable | `CRM-V1-BASELINE.md`; `CRM-MIGRATION-MATRIX.md`; M67–M133 evidence | alto |
 | MIG-0009 | autenticação e sessão | Auth | FEATURE-0008 | `packages/auth` + `packages/auth-browser` + Auth surfaces in `dashboard/` | 6 | equivalent | login V1-equivalent and canonical dashboard return proven in Chromium | 20/20 Auth contracts PASS: login/session/cookie/CSRF/origin/roles/tenant/audit/revocation | `AUTH-MIGRATION-MATRIX.md`; M47–M48 + M50–M52 + M66 evidence; PR #129 Quality + Auth/Business browser contracts | crítico |
-| MIG-0010 | pagamentos/assinaturas | Ordering / Financial | FEATURE-0009 | `@touristic/ordering` + `@touristic/ordering-server` + `@touristic/financial` + `@touristic/financial-server` + runtime HTTP no Morro Digital | 8 | migrating | M143 mantém checkout/webhook/resultado sem browser e torna approval/refund ledger operacional | 34 contratos: 20 PASS / 7 PARTIAL / 6 GAP / 1 N/A; resultado verificado agora gera lançamento/reversão double-entry determinísticos e recuperáveis | `PAYMENTS-V1-BASELINE.md`; `PAYMENTS-MIGRATION-MATRIX.md`; evidências M135–M143 | crítico |
+| MIG-0010 | pagamentos/assinaturas | Ordering / Financial | FEATURE-0009 | `@touristic/ordering` + `@touristic/ordering-server` + `@touristic/financial` + `@touristic/financial-server` + runtime HTTP no Morro Digital | 8 | migrating | M145 mantém checkout/webhook/refund sem browser e acrescenta reconciliation read-only/operator-safe | 34 contratos: 22 PASS / 5 PARTIAL / 6 GAP / 1 N/A; provider, Payment, resultados e ledger são comparados em runs/findings duráveis sem remediação automática | `PAYMENTS-V1-BASELINE.md`; `PAYMENTS-MIGRATION-MATRIX.md`; evidências M135–M145 | crítico |
 | MIG-0011 | afiliados | Affiliates | FEATURE-0010 | `packages/affiliates` | 9 | discovered | pendente | pendente | pendente | crítico |
 | MIG-0012 | `js/map*` + bootstrap V1 | Geospatial | FEATURE-0001 | `packages/geospatial` + `apps/morro-digital-platform/src/bootstrap/geospatial.ts` | 4 | equivalent | Mapbox Visual Contract validado nos três viewports, normal e `forced-colors` | Runtime, adapter, Mapbox real, fallback, rollback e lifecycle comprovados | PR #17 head final `2d84629b`; runs `31237633579`, `31237633601`, `31237633577` verdes | crítico |
 | MIG-0013 | Home / seletor de roteiros V1 | Core UI / Tours | FEATURE-0007 | `apps/morro-digital-platform/src/browser-entry.ts` | 4 | equivalent | matriz Home v4: loading, map-ready, teclado, contraste e texto ampliado comprovados | troca 8→5→5→8, falhas e offline/provider indisponível comprovados | PRs #19/#17/#20 incorporados; Quality Gate final da matriz `31237787144` verde | alto |
@@ -63,36 +63,33 @@ M66 closes the four consumer-dependent Auth parity rows intentionally left parti
 
 M135 congelou a Wave 8 a partir da V1 `luizidebook/morro-de-sao-paulo-digital@60746fd7fed97b805758b37adfdbe3bad2582bfe` e separou Business, Ordering e Financial sem habilitar money movement.
 
-M136 materializou `@touristic/ordering` e `@touristic/financial`. M137 adicionou persistência MySQL isolada; M138 compôs checkout provider-neutral e pricing server-authoritative; M139 acrescentou HTTP/Auth/security; M140 implementou o adapter sandbox; M141 adicionou webhook HMAC raw-body e claim append-only; M142 aplicou a state machine e persistiu o resultado verificado; M143 tornou approval/reversal operacionais no ledger double-entry.
+M136 materializou os domínios; M137 adicionou persistência MySQL isolada; M138 compôs checkout e pricing server-authoritative; M139 acrescentou HTTP/Auth/security; M140 implementou o adapter sandbox; M141 adicionou webhook HMAC raw-body e claim append-only; M142 aplicou a state machine e persistiu o resultado verificado; M143 tornou approval/reversal operacionais no ledger double-entry; M144 fechou o comando durável de refund integral sem confiar na resposta do provider.
 
-M144 fecha o slice de comando de refund integral:
+M145 fecha reconciliation read-only e operator-safe:
 
-- aceita somente Payment `confirmed` com resultado `approved` persistido e lançamento de aprovação existente;
-- deriva valor, moeda e referência do provider exclusivamente da autoridade financeira persistida;
-- reclama `financial_refund_requests` antes da chamada externa, com ID determinístico e `refund:v1:<paymentId>`;
-- reusa exatamente o mesmo comando após timeout/incerteza e rejeita colisão ou conteúdo divergente;
-- chama `FinancialRefundProviderPort` e o adapter sandbox `POST /v1/refunds` com credenciais server-only;
-- persiste apenas `provider_accepted`; a resposta do comando não muda Payment nem contabiliza reversão;
-- conclui somente quando o webhook HMAC verificado aplica `refunded` e o M143 grava a reversão imutável;
-- expõe `POST /api/payments/v1/payments/:paymentId/refunds` com body e idempotência exatos;
-- exige sessão ativa, origin/CSRF, papel mutável, business solicitado, tenant do checkout persistido e Payment coincidentes;
-- bloqueia guest, cross-tenant, path ambíguo, body com campos extras e provider response inválida;
-- limita refund a 6 mutações/minuto por ator/tenant/IP e não retorna provider reference ou PII;
-- mantém integração MySQL e workflow permanente cobrindo claim, replay, recovery, verified outcome e reversal.
+- lê o Payment do provider por port dedicado e adapter sandbox `GET` server-only, sem comando ou body;
+- rejeita identidade divergente, resposta malformada e snapshot materialmente futuro;
+- compara presença, status, minor units e moeda com Payment, resultados verificados e lançamentos do ledger;
+- persiste runs, findings e vínculos append-oriented em transação, serializados por Payment;
+- usa IDs/evidence hashes determinísticos; replay exato converge e run ID reutilizado com snapshot divergente falha;
+- resolve findings ausentes sem apagar autoria de acknowledgement e reabre recorrência sem herdar aceite obsoleto;
+- expõe run, listagem e acknowledgement em boundary admin autenticado, com CSRF nas mutações, idempotência exata, rate limit e auditoria de sucesso/negação/falha;
+- não salva Payment, não fabrica resultado verificado, não lança ledger, não chama refund e não remedia automaticamente;
+- mantém integração MySQL e workflow permanente cobrindo domínio, service, adapter, runtime e regressões financeiras.
 
-A matriz canônica M144 passa a:
+A matriz canônica M145 passa a:
 
 ```text
-PASS     21
-PARTIAL   6
+PASS     22
+PARTIAL   5
 GAP       6
 N/A       1
 TOTAL    34
 ```
 
-`MIG-0010` e `FEATURE-0009` permanecem `migrating`; equivalence behavior/visual/API continua `false`. Não existe ainda reconciliation com provider, split/repasse/settlement, recorrência, browser/E2E, limiter distribuído ou provider de produção/dinheiro real.
+`MIG-0010` e `FEATURE-0009` permanecem `migrating`; equivalence behavior/visual/API continua `false`. Não existe ainda split/repasse/settlement, recorrência, browser/E2E, limiter distribuído ou provider de produção/dinheiro real.
 
-O próximo milestone é M145 — reconciliation durável, read-only e operator-safe. M146 poderá tratar split/repasse/settlement sobre saldos reconciliados. Assinaturas, browser sandbox E2E e Affiliates continuam bloqueados até seus contratos e evidências próprios.
+O próximo milestone é M146 — split/repasse/settlement sobre autoridade financeira reconciliada, com postings balanceados e estados de transferência verificados. Assinaturas, browser sandbox E2E e Affiliates continuam bloqueados até seus contratos e evidências próprios.
 
 ## Evidência consolidada — checkpoint Home + Runtime + Geospatial
 

@@ -7,20 +7,23 @@ import {
   createPaymentIdempotencyKey,
   normalizeLedgerTransactionId,
   normalizePaymentId,
+  normalizeReconciliationRunId,
   normalizeVerifiedProviderPaymentEvent,
   type Payment,
   type RefundProviderCommand,
 } from "@touristic/financial";
 
 import {
+  MySqlFinancialReconciliationRepository,
   MySqlLedgerTransactionRepository,
   MySqlPaymentIdempotencyPort,
   MySqlPaymentRepository,
   MySqlProviderWebhookEventRepository,
   MySqlRefundRequestRepository,
   MySqlVerifiedPaymentResultRepository,
-  applyFinancialM144Schema,
+  applyFinancialM145Schema,
   createFinancialMySqlPoolFromEnvironment,
+  createReconciliationApplicationService,
   createRefundApplicationService,
   createVerifiedPaymentAccountingService,
   createVerifiedPaymentOutcomeService,
@@ -90,11 +93,14 @@ describeMySql.sequential("M137/M143 Financial MySQL integration", () => {
     pool = createFinancialMySqlPoolFromEnvironment({
       FINANCIAL_DATABASE_URL: databaseUrl,
     });
-    await applyFinancialM144Schema(pool);
+    await applyFinancialM145Schema(pool);
   });
 
   beforeEach(async () => {
     await pool.query("DROP TRIGGER IF EXISTS financial_test_fail_posting");
+    await pool.query("DELETE FROM financial_reconciliation_run_findings");
+    await pool.query("DELETE FROM financial_reconciliation_runs");
+    await pool.query("DELETE FROM financial_reconciliation_findings");
     await pool.query("DELETE FROM financial_refund_requests");
     await pool.query("DELETE FROM financial_payment_results");
     await pool.query("DELETE FROM financial_provider_events");
@@ -331,7 +337,8 @@ describeMySql.sequential("M137/M143 Financial MySQL integration", () => {
     if (!refund.payment || !refund.result) {
       throw new Error("REFUND_OUTCOME_INVALID");
     }
-    const reversal = await accounting.apply(refund.payment, refund.result);
+    const refundedPayment = refund.payment;
+    const reversal = await accounting.apply(refundedPayment, refund.result);
     expect(reversal).toMatchObject({
       disposition: "posted",
       transactions: [
@@ -365,7 +372,7 @@ describeMySql.sequential("M137/M143 Financial MySQL integration", () => {
       expect(transaction.externalKey).toMatch(/^payment_result_fev_/u);
     }
     await expect(
-      accounting.apply(refund.payment, refund.result),
+      accounting.apply(refundedPayment, refund.result),
     ).resolves.toMatchObject({ disposition: "replayed" });
     await expect(
       refundApplication.requestFullRefund(saved.id),
@@ -400,6 +407,107 @@ describeMySql.sequential("M137/M143 Financial MySQL integration", () => {
       "revenue:checkout",
     ]);
     expect(balances.map((row) => Number(row.balance))).toEqual([0, 0]);
+
+    const reconciliationRepository = new MySqlFinancialReconciliationRepository(
+      pool,
+    );
+    let providerStatus: "paid" | "refunded" = "paid";
+    let reconciliationTick = 0;
+    const reconciliation = createReconciliationApplicationService({
+      payments,
+      results,
+      ledger,
+      reconciliation: reconciliationRepository,
+      provider: {
+        readPayment() {
+          return Promise.resolve({
+            paymentId: refundedPayment.id,
+            providerPaymentReference:
+              refundedPayment.providerReference ?? "missing",
+            status: providerStatus,
+            amount: refundedPayment.amount,
+            observedAt:
+              providerStatus === "paid"
+                ? "2026-08-14T19:34:07Z"
+                : "2026-08-14T19:34:08Z",
+          });
+        },
+      },
+      clock: {
+        now: () =>
+          new Date(
+            Date.parse("2026-08-14T19:34:09Z") + reconciliationTick++,
+          ).toISOString(),
+      },
+    });
+    const mismatchRun = normalizeReconciliationRunId(
+      "rrn_mysql_reconciliation_mismatch_0001",
+    );
+    const cleanRun = normalizeReconciliationRunId(
+      "rrn_mysql_reconciliation_clean_0001",
+    );
+    if (!mismatchRun || !cleanRun) throw new Error("RUN_FIXTURE_INVALID");
+
+    const mismatch = await reconciliation.reconcilePayment(
+      refundedPayment.id,
+      mismatchRun,
+    );
+    expect(mismatch).toMatchObject({
+      replayed: false,
+      run: { findingCount: 1 },
+      findings: [{ kind: "payment_status_mismatch", state: "open" }],
+    });
+    const mismatchFinding = mismatch.findings[0];
+    if (!mismatchFinding) throw new Error("FINDING_FIXTURE_INVALID");
+    await expect(
+      reconciliation.acknowledgeFinding(
+        mismatchFinding.id,
+        "operator:mysql-reconciliation",
+      ),
+    ).resolves.toMatchObject({
+      id: mismatchFinding.id,
+      state: "acknowledged",
+      acknowledgedBy: "operator:mysql-reconciliation",
+    });
+
+    providerStatus = "refunded";
+    await expect(
+      reconciliation.reconcilePayment(refundedPayment.id, cleanRun),
+    ).resolves.toMatchObject({
+      replayed: false,
+      run: { findingCount: 0 },
+      findings: [],
+    });
+    await expect(
+      reconciliation.reconcilePayment(refundedPayment.id, cleanRun),
+    ).resolves.toMatchObject({
+      replayed: true,
+      run: { findingCount: 0 },
+      findings: [],
+    });
+
+    providerStatus = "paid";
+    await expect(
+      reconciliation.reconcilePayment(refundedPayment.id, cleanRun),
+    ).rejects.toThrow("FINANCIAL_RECONCILIATION_RUN_CONFLICT");
+    providerStatus = "refunded";
+
+    await expect(
+      reconciliationRepository.listOpen(refundedPayment.id),
+    ).resolves.toEqual([]);
+    const [findingRows] = await pool.query<RowDataPacket[]>(
+      `SELECT state, acknowledged_by, resolved_at
+       FROM financial_reconciliation_findings
+       WHERE reconciliation_finding_id = ?`,
+      [mismatchFinding.id],
+    );
+    expect(findingRows).toEqual([
+      expect.objectContaining({
+        state: "resolved",
+        acknowledged_by: "operator:mysql-reconciliation",
+      }),
+    ]);
+    expect(findingRows[0]?.resolved_at).not.toBeNull();
   });
 
   it("replays an exact Ledger append and rejects divergent content", async () => {

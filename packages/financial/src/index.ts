@@ -1009,3 +1009,324 @@ export function createLedgerTransaction(input: {
     postings: Object.freeze(postings),
   });
 }
+
+const reconciliationRunIdBrand: unique symbol = Symbol("ReconciliationRunId");
+const reconciliationFindingIdBrand: unique symbol = Symbol(
+  "ReconciliationFindingId",
+);
+
+export type ReconciliationRunId = string & {
+  readonly [reconciliationRunIdBrand]: true;
+};
+export type ReconciliationFindingId = string & {
+  readonly [reconciliationFindingIdBrand]: true;
+};
+
+export const reconciliationProviderStatuses = Object.freeze([
+  "pending",
+  ...providerPaymentStatuses,
+] as const);
+export type ReconciliationProviderStatus =
+  (typeof reconciliationProviderStatuses)[number];
+
+export const reconciliationFindingKinds = Object.freeze([
+  "provider_payment_not_found",
+  "payment_status_mismatch",
+  "amount_mismatch",
+  "currency_mismatch",
+  "verified_result_missing",
+  "approval_ledger_missing",
+  "refund_ledger_missing",
+] as const);
+export type ReconciliationFindingKind =
+  (typeof reconciliationFindingKinds)[number];
+export type ReconciliationFindingSeverity = "warning" | "critical";
+export type ReconciliationFindingState = "open" | "acknowledged" | "resolved";
+
+export interface ReconciliationProviderSnapshot {
+  readonly paymentId: PaymentId;
+  readonly providerPaymentReference: string;
+  readonly status: ReconciliationProviderStatus;
+  readonly amount: Money;
+  readonly observedAt: string;
+}
+
+export interface FinancialReconciliationProviderPort {
+  readPayment(input: {
+    readonly paymentId: PaymentId;
+    readonly providerPaymentReference: string;
+  }): Promise<ReconciliationProviderSnapshot | null>;
+}
+
+export interface ReconciliationFindingDraft {
+  readonly id: ReconciliationFindingId;
+  readonly paymentId: PaymentId;
+  readonly kind: ReconciliationFindingKind;
+  readonly severity: ReconciliationFindingSeverity;
+  readonly evidenceHash: string;
+  readonly expected: string;
+  readonly observed: string;
+}
+
+export interface ReconciliationFinding extends ReconciliationFindingDraft {
+  readonly state: ReconciliationFindingState;
+  readonly firstSeenAt: string;
+  readonly lastSeenAt: string;
+  readonly acknowledgedAt: string | null;
+  readonly acknowledgedBy: string | null;
+  readonly resolvedAt: string | null;
+}
+
+export interface ReconciliationRun {
+  readonly id: ReconciliationRunId;
+  readonly paymentId: PaymentId;
+  readonly snapshotHash: string;
+  readonly observedAt: string;
+  readonly recordedAt: string;
+  readonly findingCount: number;
+}
+
+export interface ReconciliationRecordResult {
+  readonly run: ReconciliationRun;
+  readonly findings: readonly ReconciliationFinding[];
+  readonly replayed: boolean;
+}
+
+export interface FinancialReconciliationRepositoryPort {
+  record(input: {
+    readonly run: ReconciliationRun;
+    readonly findings: readonly ReconciliationFindingDraft[];
+  }): Promise<ReconciliationRecordResult>;
+  listOpen(paymentId: PaymentId): Promise<readonly ReconciliationFinding[]>;
+  acknowledge(
+    findingId: ReconciliationFindingId,
+    actorSubject: string,
+    acknowledgedAt: string,
+  ): Promise<ReconciliationFinding>;
+}
+
+const reconciliationEvidenceValue = /^[A-Za-z0-9:._-]{1,200}$/u;
+const sha256Hex = /^[a-f0-9]{64}$/u;
+
+export function normalizeReconciliationRunId(
+  value: unknown,
+): ReconciliationRunId | null {
+  const normalized = normalizeString(value, 120);
+  return normalized.startsWith("rrn_") &&
+    normalized.length >= 12 &&
+    ID_BODY.test(normalized)
+    ? (normalized as ReconciliationRunId)
+    : null;
+}
+
+export function normalizeReconciliationFindingId(
+  value: unknown,
+): ReconciliationFindingId | null {
+  const normalized = normalizeString(value, 120);
+  return normalized.startsWith("rcf_") &&
+    normalized.length >= 12 &&
+    ID_BODY.test(normalized)
+    ? (normalized as ReconciliationFindingId)
+    : null;
+}
+
+export function normalizeReconciliationProviderSnapshot(
+  input: Readonly<{
+    paymentId?: unknown;
+    providerPaymentReference?: unknown;
+    status?: unknown;
+    amount?: unknown;
+    observedAt?: unknown;
+  }>,
+): ReconciliationProviderSnapshot | null {
+  const paymentId = normalizePaymentId(input.paymentId);
+  const providerPaymentReference = normalizeProviderText(
+    input.providerPaymentReference,
+    160,
+  );
+  const status =
+    typeof input.status === "string" &&
+    reconciliationProviderStatuses.includes(
+      input.status as ReconciliationProviderStatus,
+    )
+      ? (input.status as ReconciliationProviderStatus)
+      : null;
+  const amountInput = input.amount as Partial<Money> | null | undefined;
+  const amount = createMoney(amountInput?.minorUnits, amountInput?.currency);
+  const observedAt = normalizeFinancialTimestamp(input.observedAt);
+  if (
+    !paymentId ||
+    !PROVIDER_REFERENCE.test(providerPaymentReference) ||
+    !status ||
+    !amount ||
+    amount.minorUnits <= 0 ||
+    !observedAt
+  ) {
+    return null;
+  }
+  return Object.freeze({
+    paymentId,
+    providerPaymentReference,
+    status,
+    amount,
+    observedAt: new Date(observedAt).toISOString(),
+  });
+}
+
+export function normalizeReconciliationFindingDraft(
+  input: Readonly<{
+    id?: unknown;
+    paymentId?: unknown;
+    kind?: unknown;
+    severity?: unknown;
+    evidenceHash?: unknown;
+    expected?: unknown;
+    observed?: unknown;
+  }>,
+): ReconciliationFindingDraft | null {
+  const id = normalizeReconciliationFindingId(input.id);
+  const paymentId = normalizePaymentId(input.paymentId);
+  const kind =
+    typeof input.kind === "string" &&
+    reconciliationFindingKinds.includes(input.kind as ReconciliationFindingKind)
+      ? (input.kind as ReconciliationFindingKind)
+      : null;
+  const severity =
+    input.severity === "warning" || input.severity === "critical"
+      ? input.severity
+      : null;
+  const evidenceHash =
+    typeof input.evidenceHash === "string" ? input.evidenceHash.trim() : "";
+  const expected =
+    typeof input.expected === "string" ? input.expected.trim() : "";
+  const observed =
+    typeof input.observed === "string" ? input.observed.trim() : "";
+  if (
+    !id ||
+    !paymentId ||
+    !kind ||
+    !severity ||
+    !sha256Hex.test(evidenceHash) ||
+    !reconciliationEvidenceValue.test(expected) ||
+    !reconciliationEvidenceValue.test(observed)
+  ) {
+    return null;
+  }
+  return Object.freeze({
+    id,
+    paymentId,
+    kind,
+    severity,
+    evidenceHash,
+    expected,
+    observed,
+  });
+}
+
+export function normalizeReconciliationFinding(
+  input: Readonly<{
+    id?: unknown;
+    paymentId?: unknown;
+    kind?: unknown;
+    severity?: unknown;
+    evidenceHash?: unknown;
+    expected?: unknown;
+    observed?: unknown;
+    state?: unknown;
+    firstSeenAt?: unknown;
+    lastSeenAt?: unknown;
+    acknowledgedAt?: unknown;
+    acknowledgedBy?: unknown;
+    resolvedAt?: unknown;
+  }>,
+): ReconciliationFinding | null {
+  const draft = normalizeReconciliationFindingDraft(input);
+  const state =
+    input.state === "open" ||
+    input.state === "acknowledged" ||
+    input.state === "resolved"
+      ? input.state
+      : null;
+  const firstSeenAt = normalizeFinancialTimestamp(input.firstSeenAt);
+  const lastSeenAt = normalizeFinancialTimestamp(input.lastSeenAt);
+  const acknowledgedAt =
+    input.acknowledgedAt === null
+      ? null
+      : normalizeFinancialTimestamp(input.acknowledgedAt);
+  const acknowledgedBy =
+    input.acknowledgedBy === null
+      ? null
+      : normalizeProviderText(input.acknowledgedBy, 200);
+  const resolvedAt =
+    input.resolvedAt === null
+      ? null
+      : normalizeFinancialTimestamp(input.resolvedAt);
+  if (
+    !draft ||
+    !state ||
+    !firstSeenAt ||
+    !lastSeenAt ||
+    Date.parse(lastSeenAt) < Date.parse(firstSeenAt) ||
+    (acknowledgedAt === null) !== (acknowledgedBy === null) ||
+    (state === "open" &&
+      (acknowledgedAt !== null || acknowledgedBy !== null)) ||
+    (state === "acknowledged" &&
+      (acknowledgedAt === null || acknowledgedBy === null)) ||
+    (acknowledgedAt !== null &&
+      Date.parse(acknowledgedAt) < Date.parse(firstSeenAt)) ||
+    (state === "resolved" && resolvedAt === null) ||
+    (state !== "resolved" && resolvedAt !== null) ||
+    (resolvedAt !== null && Date.parse(resolvedAt) < Date.parse(firstSeenAt))
+  ) {
+    return null;
+  }
+  return Object.freeze({
+    ...draft,
+    state,
+    firstSeenAt: new Date(firstSeenAt).toISOString(),
+    lastSeenAt: new Date(lastSeenAt).toISOString(),
+    acknowledgedAt:
+      acknowledgedAt === null ? null : new Date(acknowledgedAt).toISOString(),
+    acknowledgedBy,
+    resolvedAt: resolvedAt === null ? null : new Date(resolvedAt).toISOString(),
+  });
+}
+
+export function normalizeReconciliationRun(
+  input: Readonly<{
+    id?: unknown;
+    paymentId?: unknown;
+    snapshotHash?: unknown;
+    observedAt?: unknown;
+    recordedAt?: unknown;
+    findingCount?: unknown;
+  }>,
+): ReconciliationRun | null {
+  const id = normalizeReconciliationRunId(input.id);
+  const paymentId = normalizePaymentId(input.paymentId);
+  const snapshotHash =
+    typeof input.snapshotHash === "string" ? input.snapshotHash.trim() : "";
+  const observedAt = normalizeFinancialTimestamp(input.observedAt);
+  const recordedAt = normalizeFinancialTimestamp(input.recordedAt);
+  if (
+    !id ||
+    !paymentId ||
+    !sha256Hex.test(snapshotHash) ||
+    !observedAt ||
+    !recordedAt ||
+    typeof input.findingCount !== "number" ||
+    !Number.isSafeInteger(input.findingCount) ||
+    input.findingCount < 0 ||
+    input.findingCount > reconciliationFindingKinds.length
+  ) {
+    return null;
+  }
+  return Object.freeze({
+    id,
+    paymentId,
+    snapshotHash,
+    observedAt: new Date(observedAt).toISOString(),
+    recordedAt: new Date(recordedAt).toISOString(),
+    findingCount: input.findingCount,
+  });
+}

@@ -4,6 +4,7 @@ import { MySqlLedgerTransactionRepository } from "./mysql-ledger-repository.js";
 import { MySqlPaymentIdempotencyPort } from "./mysql-payment-idempotency-port.js";
 import { MySqlPaymentRepository } from "./mysql-payment-repository.js";
 import { MySqlRefundRequestRepository } from "./mysql-refund-request-repository.js";
+import { MySqlFinancialReconciliationRepository } from "./mysql-reconciliation-repository.js";
 import {
   MySqlProviderWebhookEventRepository,
   type ProviderWebhookEventClaim,
@@ -14,6 +15,7 @@ import { MySqlVerifiedPaymentResultRepository } from "./mysql-verified-payment-r
 import {
   SandboxCheckoutProviderError,
   createSandboxCheckoutProviderFromEnvironment,
+  createSandboxReconciliationProviderFromEnvironment,
   createSandboxRefundProviderFromEnvironment,
 } from "./sandbox-checkout-provider.js";
 import { createSandboxWebhookVerifierFromEnvironment } from "./sandbox-webhook-verifier.js";
@@ -22,6 +24,7 @@ import {
   financialM141SchemaSql,
   financialM142SchemaSql,
   financialM144SchemaSql,
+  financialM145SchemaSql,
 } from "./schema.js";
 import {
   RefundApplicationError,
@@ -31,6 +34,25 @@ import {
   type RefundApplicationService,
   type RefundApplicationServiceDependencies,
 } from "./refund-application-service.js";
+import {
+  ReconciliationApplicationError,
+  createReconciliationApplicationService,
+  type ReconciliationApplicationErrorCode,
+  type ReconciliationApplicationService,
+  type ReconciliationApplicationServiceDependencies,
+} from "./reconciliation-application-service.js";
+import {
+  ReconciliationHttpTransport,
+  reconciliationHttpPrefix,
+  type ReconciliationHttpAction,
+  type ReconciliationHttpAuditPort,
+  type ReconciliationHttpAuthorizationDecision,
+  type ReconciliationHttpAuthorizationPort,
+  type ReconciliationHttpRateLimitPort,
+  type ReconciliationHttpRequest,
+  type ReconciliationHttpResponse,
+  type ReconciliationHttpTransportDependencies,
+} from "./reconciliation-http-transport.js";
 import {
   RefundHttpTransport,
   refundHttpPrefix,
@@ -64,9 +86,13 @@ import {
 } from "./webhook-http-transport.js";
 
 export {
+  ReconciliationApplicationError,
+  ReconciliationHttpTransport,
   RefundApplicationError,
   RefundHttpTransport,
   createRefundApplicationService,
+  createReconciliationApplicationService,
+  MySqlFinancialReconciliationRepository,
   MySqlLedgerTransactionRepository,
   MySqlPaymentIdempotencyPort,
   MySqlPaymentRepository,
@@ -76,6 +102,7 @@ export {
   FinancialWebhookHttpTransport,
   SandboxCheckoutProviderError,
   createSandboxCheckoutProviderFromEnvironment,
+  createSandboxReconciliationProviderFromEnvironment,
   createSandboxRefundProviderFromEnvironment,
   createSandboxWebhookVerifierFromEnvironment,
   createVerifiedPaymentOutcomeService,
@@ -84,10 +111,23 @@ export {
   financialM141SchemaSql,
   financialM142SchemaSql,
   financialM144SchemaSql,
+  financialM145SchemaSql,
+  reconciliationHttpPrefix,
   refundHttpPrefix,
   sandboxWebhookPath,
 };
 export type {
+  ReconciliationApplicationErrorCode,
+  ReconciliationApplicationService,
+  ReconciliationApplicationServiceDependencies,
+  ReconciliationHttpAction,
+  ReconciliationHttpAuditPort,
+  ReconciliationHttpAuthorizationDecision,
+  ReconciliationHttpAuthorizationPort,
+  ReconciliationHttpRateLimitPort,
+  ReconciliationHttpRequest,
+  ReconciliationHttpResponse,
+  ReconciliationHttpTransportDependencies,
   RefundApplicationErrorCode,
   RefundApplicationResult,
   RefundApplicationService,
@@ -159,4 +199,9 @@ export async function applyFinancialM142Schema(pool: Pool): Promise<void> {
 export async function applyFinancialM144Schema(pool: Pool): Promise<void> {
   await applyFinancialM142Schema(pool);
   await applySqlStatements(pool, financialM144SchemaSql);
+}
+
+export async function applyFinancialM145Schema(pool: Pool): Promise<void> {
+  await applyFinancialM144Schema(pool);
+  await applySqlStatements(pool, financialM145SchemaSql);
 }

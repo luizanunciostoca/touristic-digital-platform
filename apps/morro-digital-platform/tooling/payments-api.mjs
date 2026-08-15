@@ -4,21 +4,26 @@ import { authorizeBusinessAccess } from "@touristic/auth";
 import { createProviderNeutralCheckoutApplicationService } from "@touristic/ordering";
 import {
   FinancialWebhookHttpTransport,
+  MySqlFinancialReconciliationRepository,
   MySqlLedgerTransactionRepository,
   MySqlPaymentIdempotencyPort,
   MySqlPaymentRepository,
   MySqlProviderWebhookEventRepository,
   MySqlRefundRequestRepository,
   MySqlVerifiedPaymentResultRepository,
+  ReconciliationHttpTransport,
   RefundHttpTransport,
-  applyFinancialM144Schema,
+  applyFinancialM145Schema,
   createFinancialMySqlPoolFromEnvironment,
+  createReconciliationApplicationService,
   createRefundApplicationService,
   createSandboxCheckoutProviderFromEnvironment,
+  createSandboxReconciliationProviderFromEnvironment,
   createSandboxRefundProviderFromEnvironment,
   createSandboxWebhookVerifierFromEnvironment,
   createVerifiedPaymentAccountingService,
   createVerifiedPaymentOutcomeService,
+  reconciliationHttpPrefix,
   refundHttpPrefix,
   sandboxWebhookPath,
 } from "@touristic/financial-server";
@@ -377,6 +382,39 @@ export function createPaymentsRefundAuthorizationPort({
   });
 }
 
+export function createPaymentsReconciliationAuthorizationPort({ authApi }) {
+  return Object.freeze({
+    async authorize(request, action) {
+      const active = authApi.resolveSession(request);
+      if (!active) {
+        return Object.freeze({
+          allowed: false,
+          reason: "authentication_required",
+        });
+      }
+      if (active.role !== "admin") {
+        return Object.freeze({ allowed: false, reason: "admin_required" });
+      }
+      if (action !== "reconciliation.read") {
+        const mutation = authApi.authorizeMutation(request, active, action);
+        if (!mutation.allowed) {
+          return Object.freeze({
+            allowed: false,
+            reason:
+              mutation.reason === "invalid_csrf"
+                ? "invalid_csrf"
+                : "cross_origin_request",
+          });
+        }
+      }
+      return Object.freeze({
+        allowed: true,
+        actorSubject: active.subject,
+      });
+    },
+  });
+}
+
 function runtimeAudit(defaultAudit, event) {
   try {
     defaultAudit(Object.freeze({ ...event }));
@@ -392,15 +430,20 @@ export function createPaymentsApi({
   transport: injectedTransport,
   webhookTransport: injectedWebhookTransport,
   refundTransport: injectedRefundTransport,
+  reconciliationTransport: injectedReconciliationTransport,
 } = {}) {
   const hasInjectedTransport = Boolean(
-    injectedTransport || injectedWebhookTransport || injectedRefundTransport,
+    injectedTransport ||
+    injectedWebhookTransport ||
+    injectedRefundTransport ||
+    injectedReconciliationTransport,
   );
   let runtime = hasInjectedTransport
     ? Object.freeze({
         transport: injectedTransport ?? null,
         webhookTransport: injectedWebhookTransport ?? null,
         refundTransport: injectedRefundTransport ?? null,
+        reconciliationTransport: injectedReconciliationTransport ?? null,
         pools: [],
       })
     : null;
@@ -440,7 +483,7 @@ export function createPaymentsApi({
       pools.push(financialPool);
       await Promise.all([
         applyOrderingM139Schema(orderingPool),
-        applyFinancialM144Schema(financialPool),
+        applyFinancialM145Schema(financialPool),
       ]);
 
       const orders = new MySqlOrderRepository(orderingPool);
@@ -498,6 +541,35 @@ export function createPaymentsApi({
         clock: systemCheckoutClock,
         ...(statusTtlSeconds === undefined ? {} : { statusTtlSeconds }),
       });
+      const reconciliationApplication = createReconciliationApplicationService({
+        payments,
+        results: paymentResults,
+        ledger,
+        provider:
+          createSandboxReconciliationProviderFromEnvironment(environment),
+        reconciliation: new MySqlFinancialReconciliationRepository(
+          financialPool,
+        ),
+        clock: systemCheckoutClock,
+      });
+      const reconciliationTransport = new ReconciliationHttpTransport({
+        application: reconciliationApplication,
+        authorization: createPaymentsReconciliationAuthorizationPort({
+          authApi,
+        }),
+        rateLimits: {
+          consume(input) {
+            return rateLimits.consume(input);
+          },
+        },
+        audit: {
+          record(event) {
+            runtimeAudit(audit, event);
+            return Promise.resolve();
+          },
+        },
+        clock: systemCheckoutClock,
+      });
       const refundApplication = createRefundApplicationService({
         payments,
         results: paymentResults,
@@ -544,6 +616,7 @@ export function createPaymentsApi({
         transport,
         webhookTransport,
         refundTransport,
+        reconciliationTransport,
         pools,
       });
       started = true;
@@ -578,7 +651,8 @@ export function createPaymentsApi({
         pathname === sandboxWebhookPath ||
         pathname === checkoutPrefix ||
         pathname.startsWith(checkoutPrefix + "/") ||
-        pathname.startsWith(refundHttpPrefix + "/")
+        pathname.startsWith(refundHttpPrefix + "/") ||
+        pathname.startsWith(reconciliationHttpPrefix + "/")
       );
     },
     start,
@@ -591,11 +665,16 @@ export function createPaymentsApi({
       const refundRequest =
         requestUrl.pathname.startsWith(refundHttpPrefix + "/") &&
         requestUrl.pathname.endsWith("/refunds");
+      const reconciliationRequest = requestUrl.pathname.startsWith(
+        reconciliationHttpPrefix + "/",
+      );
       const unavailableCode = webhookRequest
         ? "WEBHOOK_UNAVAILABLE"
         : refundRequest
           ? "REFUND_UNAVAILABLE"
-          : "CHECKOUT_UNAVAILABLE";
+          : reconciliationRequest
+            ? "RECONCILIATION_UNAVAILABLE"
+            : "CHECKOUT_UNAVAILABLE";
 
       if (!runtime) {
         sendJson(response, 503, { error: unavailableCode }, correlationId);
@@ -609,7 +688,8 @@ export function createPaymentsApi({
         method === "POST" &&
         (requestUrl.pathname === checkoutPrefix ||
           webhookRequest ||
-          refundRequest)
+          refundRequest ||
+          reconciliationRequest)
       ) {
         const contentType = header(request, "content-type")
           .split(";", 1)[0]
@@ -635,6 +715,12 @@ export function createPaymentsApi({
               emptyCode: "INVALID_REFUND_REQUEST",
               invalidCode: "INVALID_REFUND_JSON",
             });
+          } else if (reconciliationRequest) {
+            body = await readJsonBody(request, {
+              tooLargeCode: "RECONCILIATION_REQUEST_TOO_LARGE",
+              emptyCode: "INVALID_RECONCILIATION_REQUEST",
+              invalidCode: "INVALID_RECONCILIATION_JSON",
+            });
           } else {
             body = await readJsonBody(request);
           }
@@ -656,7 +742,9 @@ export function createPaymentsApi({
                 ? "INVALID_WEBHOOK_REQUEST"
                 : refundRequest
                   ? "INVALID_REFUND_REQUEST"
-                  : "INVALID_CHECKOUT_REQUEST",
+                  : reconciliationRequest
+                    ? "INVALID_RECONCILIATION_REQUEST"
+                    : "INVALID_CHECKOUT_REQUEST",
             },
             correlationId,
           );
@@ -668,7 +756,9 @@ export function createPaymentsApi({
         ? runtime.webhookTransport
         : refundRequest
           ? runtime.refundTransport
-          : runtime.transport;
+          : reconciliationRequest
+            ? runtime.reconciliationTransport
+            : runtime.transport;
       if (!selectedTransport) {
         sendJson(response, 503, { error: unavailableCode }, correlationId);
         return;
@@ -704,7 +794,9 @@ export function createPaymentsApi({
             ? "webhook.http"
             : refundRequest
               ? "payment.refund.http"
-              : "checkout.http",
+              : reconciliationRequest
+                ? "reconciliation.http"
+                : "checkout.http",
           result: "failure",
           reason: "unhandled_transport_failure",
           correlationId,
