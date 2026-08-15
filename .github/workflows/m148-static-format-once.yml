@@ -75,6 +75,18 @@ jobs:
               : input.url;
           requests.push({ url, init });'''.replace('          ', ''),
               ),
+              (
+                  '      verified: (detail) => verified.push(detail),',
+                  '''      verified: (detail) => {
+          verified.push(detail);
+          },'''.replace('          ', ''),
+              ),
+              (
+                  '      failed: (detail) => failed.push(detail),',
+                  '''      failed: (detail) => {
+          failed.push(detail);
+          },'''.replace('          ', ''),
+              ),
           ]
           for old, new in test_replacements:
               if t.count(old) != 1:
