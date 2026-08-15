@@ -10,10 +10,10 @@ Accounting receives both the canonical Payment and a normalized persisted `Verif
 
 Only two result kinds are monetary:
 
-| Result | Debit | Credit |
-| --- | --- | --- |
-| `approved` | `asset:provider_clearing` | `revenue:checkout` |
-| `refunded` | `revenue:checkout` | `asset:provider_clearing` |
+| Result     | Debit                     | Credit                    |
+| ---------- | ------------------------- | ------------------------- |
+| `approved` | `asset:provider_clearing` | `revenue:checkout`        |
+| `refunded` | `revenue:checkout`        | `asset:provider_clearing` |
 
 The amount and currency always come from the immutable authoritative Payment. `failed`, `cancelled` and `expired` return `not_applicable` with no posting.
 
