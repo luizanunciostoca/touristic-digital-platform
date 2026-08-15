@@ -25,7 +25,7 @@ Close the M147 consistency gap before any public Ticketing runtime: ticket state
 - offline integration proves envelope, state, history and sync marker are committed together;
 - permanent `Ticketing M148 Transaction Contract` runs lint, typecheck, application tests, MySQL transaction integration and build.
 
-The final promotion candidate must pass Quality Gate, the M147 Ticketing regression contract and the M148 transaction contract on one identical head. Automatic formatting commits are not accepted as final evidence; this normal repository commit re-triggers those permanent gates after temporary formatting tooling has been removed.
+The final promotion candidate must pass Quality Gate, the M147 Ticketing regression contract and the M148 transaction contract on one identical head. Automatic formatting commits are not accepted as final evidence; this normal repository commit re-triggers those permanent gates after both temporary formatters have been removed.
 
 ## Boundaries
 
