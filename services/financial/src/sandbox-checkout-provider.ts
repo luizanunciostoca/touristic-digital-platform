@@ -1,9 +1,14 @@
 import {
   createCheckoutProviderRequest,
+  createRefundProviderCommand,
   normalizeCheckoutProviderSession,
+  normalizeRefundProviderReceipt,
   type CheckoutProviderRequest,
   type CheckoutProviderSession,
   type FinancialCheckoutProviderPort,
+  type FinancialRefundProviderPort,
+  type RefundProviderCommand,
+  type RefundProviderReceipt,
 } from "@touristic/financial";
 
 export type SandboxCheckoutProviderErrorCode =
@@ -155,6 +160,17 @@ function providerBody(request: CheckoutProviderRequest) {
   });
 }
 
+function providerRefundBody(request: RefundProviderCommand) {
+  return Object.freeze({
+    version: 1,
+    refundRequestId: request.refundRequestId,
+    externalReference: request.paymentId,
+    paymentReference: request.providerPaymentReference,
+    amount: request.amount,
+    reason: request.reason,
+  });
+}
+
 export function createSandboxCheckoutProviderFromEnvironment(
   environment: SandboxCheckoutProviderEnvironment,
   options: SandboxCheckoutProviderOptions = {},
@@ -251,6 +267,94 @@ export function createSandboxCheckoutProviderFromEnvironment(
           );
         }
         return session;
+      } catch (error) {
+        if (error instanceof SandboxCheckoutProviderError) throw error;
+        throw new SandboxCheckoutProviderError("SANDBOX_PROVIDER_UNAVAILABLE");
+      }
+    },
+  });
+}
+
+
+export function createSandboxRefundProviderFromEnvironment(
+  environment: SandboxCheckoutProviderEnvironment,
+  options: SandboxCheckoutProviderOptions = {},
+): FinancialRefundProviderPort {
+  const production = environment.NODE_ENV === "production";
+  if (environment.PAYMENTS_PROVIDER_MODE !== "sandbox") {
+    throw new Error("PAYMENTS_PROVIDER_MODE=sandbox is required");
+  }
+  const baseUrl = configuredUrl(
+    environment.PAYMENTS_SANDBOX_PROVIDER_BASE_URL,
+    production,
+    false,
+  );
+  if (!baseUrl) {
+    throw new Error("PAYMENTS_SANDBOX_PROVIDER_BASE_URL is required");
+  }
+  const token = boundedValue(
+    environment.PAYMENTS_SANDBOX_PROVIDER_API_TOKEN,
+    1_024,
+  );
+  if (token.length < 32) {
+    throw new Error("PAYMENTS_SANDBOX_PROVIDER_API_TOKEN is required");
+  }
+  const timeoutMs = configuredTimeout(environment.PAYMENTS_PROVIDER_TIMEOUT_MS);
+  const fetchProvider = options.fetch ?? globalThis.fetch;
+  if (typeof fetchProvider !== "function") {
+    throw new Error("PAYMENTS_SANDBOX_PROVIDER_FETCH_UNAVAILABLE");
+  }
+  const endpoint = new URL("v1/refunds", baseUrl);
+
+  return Object.freeze({
+    async requestRefund(
+      input: RefundProviderCommand,
+    ): Promise<RefundProviderReceipt> {
+      const request = createRefundProviderCommand(input);
+      if (!request) {
+        throw new SandboxCheckoutProviderError(
+          "SANDBOX_PROVIDER_INVALID_REQUEST",
+        );
+      }
+
+      try {
+        const response = await fetchProvider(endpoint, {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+            Authorization: "Bearer " + token,
+            "Content-Type": "application/json",
+            "Idempotency-Key": request.idempotencyKey,
+            "X-Touristic-Provider-Mode": "sandbox",
+          },
+          body: JSON.stringify(providerRefundBody(request)),
+          redirect: "error",
+          signal: AbortSignal.timeout(timeoutMs),
+        });
+        if (!response.ok) {
+          throw new SandboxCheckoutProviderError(
+            response.status >= 400 && response.status < 500
+              ? "SANDBOX_PROVIDER_REJECTED"
+              : "SANDBOX_PROVIDER_UNAVAILABLE",
+          );
+        }
+        const payload = (await responseJson(response)) as Record<
+          string,
+          unknown
+        >;
+        const receipt =
+          payload?.version === 1
+            ? normalizeRefundProviderReceipt({
+                accepted: payload.accepted,
+                providerRefundReference: payload.refundId,
+              })
+            : null;
+        if (!receipt) {
+          throw new SandboxCheckoutProviderError(
+            "SANDBOX_PROVIDER_INVALID_RESPONSE",
+          );
+        }
+        return receipt;
       } catch (error) {
         if (error instanceof SandboxCheckoutProviderError) throw error;
         throw new SandboxCheckoutProviderError("SANDBOX_PROVIDER_UNAVAILABLE");
