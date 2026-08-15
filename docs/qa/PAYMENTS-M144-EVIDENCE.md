@@ -65,15 +65,15 @@ Unit tests cover:
 
 MySQL 8.4 integration covers the durable claim, provider acceptance, replay, unchanged confirmed Payment, verified refunded transition and immutable ledger reversal. The permanent Payments Refund Command Contract repeats domain/server tests, integration, runtime package builds and the Morro runtime boundary tests.
 
-Validated implementation checkpoint `a76ea3e9705236884e34199c535d4ea60f5c1b15`:
+Validated implementation checkpoint `3de29989b02944cb7b0d6430f9e12ded047c7dcf`:
 
-- Quality Gate `31854208786 — SUCCESS`;
-- Payments Persistence Integration `31854208746 — SUCCESS`;
-- Payments Sandbox Provider Contract `31854208728 — SUCCESS`;
-- Payments Verified Webhook Contract `31854208726 — SUCCESS`;
-- Payments Verified Outcome Contract `31854208733 — SUCCESS`;
-- Payments Operational Ledger Contract `31854208817 — SUCCESS`;
-- Payments Refund Command Contract `31854208745 — SUCCESS`.
+- Quality Gate `31854741449 — SUCCESS`;
+- Payments Persistence Integration `31854741446 — SUCCESS`;
+- Payments Sandbox Provider Contract `31854741442 — SUCCESS`;
+- Payments Verified Webhook Contract `31854741458 — SUCCESS`;
+- Payments Verified Outcome Contract `31854741451 — SUCCESS`;
+- Payments Operational Ledger Contract `31854741447 — SUCCESS`;
+- Payments Refund Command Contract `31854741464 — SUCCESS`.
 
 Final promotion requires the same seven green gates on the final documentation head.
 
