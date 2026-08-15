@@ -1,0 +1,32 @@
+name: Temporary M147 Format Probe
+
+on:
+  push:
+    branches:
+      - feat/ticketing-m147-domain-persistence
+    paths:
+      - "services/ticketing/src/mysql-integration.test.ts"
+      - ".github/workflows/m147-format-probe.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  format-probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Show canonical Prettier diff
+        run: |
+          pnpm exec prettier --write services/ticketing/src/mysql-integration.test.ts
+          git diff -- services/ticketing/src/mysql-integration.test.ts
+          test -z "$(git status --short services/ticketing/src/mysql-integration.test.ts)"
