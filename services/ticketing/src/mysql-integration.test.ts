@@ -37,7 +37,7 @@ function ticketFixture() {
     holderName: "Luiz Silva",
     quantity: 2,
     amount,
-    code: "MYSQL-TEST-0001-TCKT",
+    code: "MYSQ-TEST-0001-TCKT",
     status: "issued",
     issuedAt: "2026-08-15T10:00:00Z",
     updatedAt: "2026-08-15T10:00:00Z",
@@ -85,7 +85,7 @@ describeMySql.sequential("M147 Ticketing MySQL integration", () => {
     await expect(tickets.save(ticket)).resolves.toMatchObject({
       id: ticket.id,
       status: "issued",
-      code: "MYSQL-TEST-0001-TCKT",
+      code: "MYSQ-TEST-0001-TCKT",
     });
 
     const validated = createTicket({
