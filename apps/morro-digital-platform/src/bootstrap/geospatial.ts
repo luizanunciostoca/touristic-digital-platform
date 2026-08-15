@@ -69,6 +69,7 @@ async function publishInitializationFailure(
         ...payload,
         reason: describeInitializationError(error),
       }),
+      { destinationId: morroDeSaoPauloDestination.id },
     );
   } catch {
     return;
@@ -98,6 +99,9 @@ export async function initializeMorroGeospatial(
     providerId: engine.providerId,
     containerId: options.containerId,
   });
+  const eventMetadata = Object.freeze({
+    destinationId: morroDeSaoPauloDestination.id,
+  });
 
   try {
     await engine.initialize({
@@ -106,8 +110,8 @@ export async function initializeMorroGeospatial(
       zoom: options.zoom,
     });
 
-    await events.publish("MapInitialized", payload);
-    await events.publish("MapReady", payload);
+    await events.publish("MapInitialized", payload, eventMetadata);
+    await events.publish("MapReady", payload, eventMetadata);
 
     return Object.freeze({
       engine,
