@@ -28,6 +28,8 @@ import {
   type TicketSigningSecret,
 } from "@touristic/ticketing";
 
+import type { TicketingTransactionalCommandPort } from "./mysql-ticketing-transaction.js";
+
 export type TicketingApplicationErrorCode =
   | "TICKETING_ORDER_NOT_FOUND"
   | "TICKETING_PAYMENT_NOT_FOUND"
@@ -83,14 +85,9 @@ export interface TicketingApplicationServiceDependencies {
   readonly tickets: TicketRepositoryPort;
   readonly checkIns: TicketCheckInRepositoryPort;
   readonly offline: {
-    enqueue(envelope: TicketOfflineEnvelope): Promise<void>;
     findById(envelopeId: string): Promise<TicketOfflineEnvelope | null>;
-    markSynced(
-      envelopeId: string,
-      checkInId: string,
-      syncedAt: string,
-    ): Promise<void>;
   };
+  readonly transactions: TicketingTransactionalCommandPort;
   readonly signingSecret: TicketSigningSecret;
   readonly clock: { now(): string };
 }
@@ -129,11 +126,11 @@ function deterministicTicketCode(
 
 function deterministicCheckInId(
   ticketId: string,
-  result: string,
+  attemptKey: string,
   occurredAt: string,
 ) {
   const digest = createHash("sha256")
-    .update(`ticket-checkin:v1:${ticketId}:${result}:${occurredAt}`)
+    .update(`ticket-checkin:v2:${ticketId}:${attemptKey}:${occurredAt}`)
     .digest("hex")
     .slice(0, 32);
   const id = normalizeTicketCheckInId(`tci_${digest}`);
@@ -173,6 +170,16 @@ function sameTicketAuthority(left: Ticket, right: Ticket): boolean {
     left.code === right.code &&
     left.issuedAt === right.issuedAt
   );
+}
+
+async function findCheckInReplay(
+  dependencies: TicketingApplicationServiceDependencies,
+  ticket: Ticket,
+  checkInId: string,
+): Promise<TicketCheckIn | null> {
+  return (
+    await dependencies.checkIns.listByTicketId(ticket.id)
+  ).find((entry) => entry.id === checkInId) ?? null;
 }
 
 export function createTicketingApplicationService(
@@ -282,6 +289,15 @@ export function createTicketingApplicationService(
         throw new TicketingApplicationError("TICKETING_CHECKIN_INVALID");
       }
       const canonicalOccurredAt = new Date(occurredAt).toISOString();
+      const checkInId = deterministicCheckInId(
+        ticket.id,
+        "qr",
+        canonicalOccurredAt,
+      );
+      const replay = await findCheckInReplay(dependencies, ticket, checkInId);
+      if (replay) {
+        return Object.freeze({ ticket, checkIn: replay, replayed: true });
+      }
       const result = ticket.status === "issued" ? "validated" : "used";
       const updated = applyTicketCheckIn(ticket, {
         result,
@@ -293,7 +309,7 @@ export function createTicketingApplicationService(
           ? canonicalOccurredAt
           : recordedAtCandidate;
       const checkIn = createTicketCheckIn({
-        id: deterministicCheckInId(ticket.id, result, canonicalOccurredAt),
+        id: checkInId,
         ticketId: ticket.id,
         result,
         channel: "online",
@@ -304,15 +320,11 @@ export function createTicketingApplicationService(
       if (!checkIn) {
         throw new TicketingApplicationError("TICKETING_CHECKIN_INVALID");
       }
-      const existing = (
-        await dependencies.checkIns.listByTicketId(ticket.id)
-      ).find((entry) => entry.id === checkIn.id);
-      if (existing) {
-        return Object.freeze({ ticket, checkIn: existing, replayed: true });
-      }
-      const saved = await dependencies.tickets.save(updated);
-      await dependencies.checkIns.append(checkIn);
-      return Object.freeze({ ticket: saved, checkIn, replayed: false });
+      return dependencies.transactions.commitCheckIn({
+        before: ticket,
+        after: updated,
+        checkIn,
+      });
     },
 
     async checkInByCode(input: {
@@ -326,38 +338,41 @@ export function createTicketingApplicationService(
         throw new TicketingApplicationError("TICKETING_TICKET_NOT_FOUND");
       }
       const occurredAt = normalizeFinancialTimestamp(input.occurredAt);
-      if (!occurredAt) {
+      const result = typeof input.result === "string" ? input.result : null;
+      if (!occurredAt || !result) {
         throw new TicketingApplicationError("TICKETING_CHECKIN_INVALID");
       }
-      const result = typeof input.result === "string" ? input.result : null;
-      if (!result) {
-        throw new TicketingApplicationError("TICKETING_CHECKIN_INVALID");
+      const canonicalOccurredAt = new Date(occurredAt).toISOString();
+      const checkInId = deterministicCheckInId(
+        ticket.id,
+        `code:${result}`,
+        canonicalOccurredAt,
+      );
+      const replay = await findCheckInReplay(dependencies, ticket, checkInId);
+      if (replay) {
+        return Object.freeze({ ticket, checkIn: replay, replayed: true });
       }
       const updated = applyTicketCheckIn(ticket, {
         result,
-        occurredAt,
+        occurredAt: canonicalOccurredAt,
       });
       const checkIn = createTicketCheckIn({
-        id: deterministicCheckInId(ticket.id, result, occurredAt),
+        id: checkInId,
         ticketId: ticket.id,
         result,
         channel: "online",
         operatorReference: input.operatorReference,
-        occurredAt,
+        occurredAt: canonicalOccurredAt,
         recordedAt: canonicalNow(dependencies.clock),
       });
       if (!checkIn) {
         throw new TicketingApplicationError("TICKETING_CHECKIN_INVALID");
       }
-      const existing = (
-        await dependencies.checkIns.listByTicketId(ticket.id)
-      ).find((entry) => entry.id === checkIn.id);
-      if (existing) {
-        return Object.freeze({ ticket, checkIn: existing, replayed: true });
-      }
-      const saved = await dependencies.tickets.save(updated);
-      await dependencies.checkIns.append(checkIn);
-      return Object.freeze({ ticket: saved, checkIn, replayed: false });
+      return dependencies.transactions.commitCheckIn({
+        before: ticket,
+        after: updated,
+        checkIn,
+      });
     },
 
     async syncOfflineEnvelope(input: {
@@ -419,7 +434,11 @@ export function createTicketingApplicationService(
         occurredAt: envelope.queuedAt,
       });
       const checkIn = createTicketCheckIn({
-        id: deterministicCheckInId(ticket.id, result, envelope.queuedAt),
+        id: deterministicCheckInId(
+          ticket.id,
+          `offline:${envelope.operation}`,
+          envelope.queuedAt,
+        ),
         ticketId: ticket.id,
         result,
         channel: "offline_sync",
@@ -432,19 +451,12 @@ export function createTicketingApplicationService(
           "TICKETING_OFFLINE_ENVELOPE_INVALID",
         );
       }
-      await dependencies.offline.enqueue(envelope);
-      const saved = await dependencies.tickets.save(updated);
-      await dependencies.checkIns.append(checkIn);
-      await dependencies.offline.markSynced(
-        envelope.id,
-        checkIn.id,
-        recordedAt,
-      );
-      return Object.freeze({
-        envelope,
-        ticket: saved,
+      return dependencies.transactions.commitOfflineSync({
+        before: ticket,
+        after: updated,
         checkIn,
-        replayed: false,
+        envelope,
+        syncedAt: recordedAt,
       });
     },
   });
