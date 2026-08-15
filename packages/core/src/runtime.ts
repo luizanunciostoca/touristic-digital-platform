@@ -21,18 +21,10 @@ export interface PlatformEventMetadata {
 }
 
 export type PlatformObservationKind =
-  | "log"
-  | "metric"
-  | "trace"
-  | "audit"
-  | "alert";
+  "log" | "metric" | "trace" | "audit" | "alert";
 
 export type PlatformObservationSeverity =
-  | "debug"
-  | "info"
-  | "warn"
-  | "error"
-  | "critical";
+  "debug" | "info" | "warn" | "error" | "critical";
 
 export type PlatformObservationAttributes = Readonly<
   Record<string, string | number | boolean | null>

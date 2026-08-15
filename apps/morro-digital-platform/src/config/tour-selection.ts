@@ -23,11 +23,7 @@ export interface MorroTourSelectionControllerOptions {
 }
 
 type TourSelectionFailurePhase =
-  | "lookup"
-  | "start"
-  | "replace"
-  | "center"
-  | "publish";
+  "lookup" | "start" | "replace" | "center" | "publish";
 
 function describeSelectionError(error: unknown): string {
   return error instanceof Error
