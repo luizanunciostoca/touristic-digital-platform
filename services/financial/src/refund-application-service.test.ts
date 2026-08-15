@@ -299,6 +299,8 @@ describe("M144 durable full-refund application service", () => {
     await expect(
       harness({
         payment: { ...fixture.payment, status: "failed" },
+        approved: null,
+        ledger: null,
       }).application.requestFullRefund(fixture.payment.id),
     ).rejects.toThrow("REFUND_NOT_ALLOWED");
   });
