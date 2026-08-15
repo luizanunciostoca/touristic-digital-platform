@@ -9,6 +9,7 @@ import {
   normalizePaymentId,
   normalizeVerifiedProviderPaymentEvent,
   type Payment,
+  type RefundProviderCommand,
 } from "@touristic/financial";
 
 import {
@@ -16,9 +17,11 @@ import {
   MySqlPaymentIdempotencyPort,
   MySqlPaymentRepository,
   MySqlProviderWebhookEventRepository,
+  MySqlRefundRequestRepository,
   MySqlVerifiedPaymentResultRepository,
-  applyFinancialM142Schema,
+  applyFinancialM144Schema,
   createFinancialMySqlPoolFromEnvironment,
+  createRefundApplicationService,
   createVerifiedPaymentAccountingService,
   createVerifiedPaymentOutcomeService,
 } from "./index.js";
@@ -87,11 +90,12 @@ describeMySql.sequential("M137/M143 Financial MySQL integration", () => {
     pool = createFinancialMySqlPoolFromEnvironment({
       FINANCIAL_DATABASE_URL: databaseUrl,
     });
-    await applyFinancialM142Schema(pool);
+    await applyFinancialM144Schema(pool);
   });
 
   beforeEach(async () => {
     await pool.query("DROP TRIGGER IF EXISTS financial_test_fail_posting");
+    await pool.query("DELETE FROM financial_refund_requests");
     await pool.query("DELETE FROM financial_payment_results");
     await pool.query("DELETE FROM financial_provider_events");
     await pool.query("DELETE FROM financial_ledger_postings");
@@ -254,6 +258,56 @@ describeMySql.sequential("M137/M143 Financial MySQL integration", () => {
       accounting.apply(approval.payment, approval.result),
     ).resolves.toMatchObject({ disposition: "replayed" });
 
+    const refundCalls: RefundProviderCommand[] = [];
+    const refunds = new MySqlRefundRequestRepository(pool);
+    const refundApplication = createRefundApplicationService({
+      payments,
+      results,
+      ledger,
+      refunds,
+      provider: {
+        requestRefund(command) {
+          refundCalls.push(command);
+          return Promise.resolve({
+            accepted: true as const,
+            providerRefundReference: "sandbox_mysql_refund_0001",
+          });
+        },
+      },
+      clock: { now: () => "2026-08-14T19:34:06Z" },
+    });
+    await expect(
+      refundApplication.requestFullRefund(saved.id),
+    ).resolves.toMatchObject({
+      status: "AWAITING_VERIFIED_EVENT",
+      replayed: false,
+      request: {
+        paymentId: saved.id,
+        status: "provider_accepted",
+        idempotencyKey: "refund:v1:" + saved.id,
+      },
+    });
+    await expect(
+      refundApplication.requestFullRefund(saved.id),
+    ).resolves.toMatchObject({
+      status: "AWAITING_VERIFIED_EVENT",
+      replayed: true,
+    });
+    expect(refundCalls).toHaveLength(1);
+    await expect(payments.findById(saved.id)).resolves.toMatchObject({
+      status: "confirmed",
+    });
+    const [refundRequestRows] = await pool.query<RowDataPacket[]>(
+      "SELECT status, provider_refund_reference FROM financial_refund_requests WHERE payment_id = ?",
+      [saved.id],
+    );
+    expect(refundRequestRows).toEqual([
+      expect.objectContaining({
+        status: "provider_accepted",
+        provider_refund_reference: "sandbox_mysql_refund_0001",
+      }),
+    ]);
+
     const refundEvent = normalizeVerifiedProviderPaymentEvent({
       providerEventId: "pwe_mysql_refund_0001",
       externalReference: saved.id,
@@ -313,6 +367,13 @@ describeMySql.sequential("M137/M143 Financial MySQL integration", () => {
     await expect(
       accounting.apply(refund.payment, refund.result),
     ).resolves.toMatchObject({ disposition: "replayed" });
+    await expect(
+      refundApplication.requestFullRefund(saved.id),
+    ).resolves.toMatchObject({
+      status: "COMPLETED",
+      replayed: true,
+    });
+    expect(refundCalls).toHaveLength(1);
 
     await expect(payments.findById(saved.id)).resolves.toMatchObject({
       status: "refunded",
