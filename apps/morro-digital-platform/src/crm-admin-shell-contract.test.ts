@@ -29,6 +29,8 @@ describe("CRM M104 browser shell", () => {
     expect(html).not.toContain('href="#settings"');
     expect(html).toContain('aria-disabled="true"');
     expect(html).toContain("Em breve");
+    expect(html).toContain("/apps/admin-crm/public/meetings.html");
+    expect(html).not.toContain('id="meetings-view"');
   });
 
   it("keeps the shell behind the shared platform session surface", async () => {
@@ -39,6 +41,9 @@ describe("CRM M104 browser shell", () => {
     expect(shell).toContain("@touristic/auth-browser");
     expect(shell).toContain("getSession");
     expect(shell).toContain("/dashboard/login.html");
+    expect(shell).not.toContain('hash==="#meetings"');
+    expect(shell).not.toContain("loadMeetings");
+    expect(shell).not.toContain("renderMeetings");
     expect(loginEntry).toContain("/apps/admin-crm/");
   });
 });
