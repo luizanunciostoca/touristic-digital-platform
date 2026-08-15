@@ -40,36 +40,43 @@ function command() {
 
 describe("M146 sandbox settlement provider", () => {
   it("uses exact idempotency and bounded server-only transfer wire", async () => {
-    const fetchMock = vi.fn(async (url: URL | RequestInfo, init?: RequestInit) => {
-      expect(String(url)).toBe("https://sandbox.example.test/api/v1/transfers");
-      expect(init?.method).toBe("POST");
-      expect(new Headers(init?.headers).get("Idempotency-Key")).toBe(
-        "settlement:v1:pbl_12345678",
-      );
-      expect(new Headers(init?.headers).get("Authorization")).toBe(
-        `Bearer ${environment.PAYMENTS_SANDBOX_PROVIDER_API_TOKEN}`,
-      );
-      const body = JSON.parse(String(init?.body));
-      expect(body).toMatchObject({
-        version: 1,
-        settlementId: "stl_12345678",
-        paymentId: "pay_12345678",
-        payableId: "pbl_12345678",
-        amount: { minorUnits: 9_000, currency: "BRL" },
-      });
-      return new Response(
-        JSON.stringify({
+    const fetchMock = vi.fn(
+      async (url: URL | RequestInfo, init?: RequestInit) => {
+        expect(String(url)).toBe(
+          "https://sandbox.example.test/api/v1/transfers",
+        );
+        expect(init?.method).toBe("POST");
+        expect(new Headers(init?.headers).get("Idempotency-Key")).toBe(
+          "settlement:v1:pbl_12345678",
+        );
+        expect(new Headers(init?.headers).get("Authorization")).toBe(
+          `Bearer ${environment.PAYMENTS_SANDBOX_PROVIDER_API_TOKEN}`,
+        );
+        const body = JSON.parse(String(init?.body));
+        expect(body).toMatchObject({
           version: 1,
           settlementId: "stl_12345678",
-          accepted: true,
-          transferReference: "transfer-12345678",
-        }),
-        { status: 200, headers: { "content-type": "application/json" } },
-      );
-    });
-    const provider = createSandboxSettlementProviderFromEnvironment(environment, {
-      fetch: fetchMock as typeof fetch,
-    });
+          paymentId: "pay_12345678",
+          payableId: "pbl_12345678",
+          amount: { minorUnits: 9_000, currency: "BRL" },
+        });
+        return new Response(
+          JSON.stringify({
+            version: 1,
+            settlementId: "stl_12345678",
+            accepted: true,
+            transferReference: "transfer-12345678",
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        );
+      },
+    );
+    const provider = createSandboxSettlementProviderFromEnvironment(
+      environment,
+      {
+        fetch: fetchMock as typeof fetch,
+      },
+    );
     await expect(provider.requestTransfer(command())).resolves.toEqual({
       accepted: true,
       providerTransferReference: "transfer-12345678",
@@ -77,27 +84,32 @@ describe("M146 sandbox settlement provider", () => {
   });
 
   it("reads an identity-matched provider settlement snapshot", async () => {
-    const fetchMock = vi.fn(async (url: URL | RequestInfo, init?: RequestInit) => {
-      expect(String(url)).toBe(
-        "https://sandbox.example.test/api/v1/transfers/transfer-12345678",
-      );
-      expect(init?.method).toBe("GET");
-      expect(init?.body).toBeUndefined();
-      return new Response(
-        JSON.stringify({
-          version: 1,
-          settlementId: "stl_12345678",
-          transferReference: "transfer-12345678",
-          status: "paid",
-          amount: { minorUnits: 9_000, currency: "BRL" },
-          observedAt: "2026-08-15T04:30:00Z",
-        }),
-        { status: 200 },
-      );
-    });
-    const provider = createSandboxSettlementProviderFromEnvironment(environment, {
-      fetch: fetchMock as typeof fetch,
-    });
+    const fetchMock = vi.fn(
+      async (url: URL | RequestInfo, init?: RequestInit) => {
+        expect(String(url)).toBe(
+          "https://sandbox.example.test/api/v1/transfers/transfer-12345678",
+        );
+        expect(init?.method).toBe("GET");
+        expect(init?.body).toBeUndefined();
+        return new Response(
+          JSON.stringify({
+            version: 1,
+            settlementId: "stl_12345678",
+            transferReference: "transfer-12345678",
+            status: "paid",
+            amount: { minorUnits: 9_000, currency: "BRL" },
+            observedAt: "2026-08-15T04:30:00Z",
+          }),
+          { status: 200 },
+        );
+      },
+    );
+    const provider = createSandboxSettlementProviderFromEnvironment(
+      environment,
+      {
+        fetch: fetchMock as typeof fetch,
+      },
+    );
     await expect(
       provider.readTransfer({
         settlementId: command().settlementId,
@@ -107,18 +119,21 @@ describe("M146 sandbox settlement provider", () => {
   });
 
   it("fails closed on substituted settlement identity", async () => {
-    const provider = createSandboxSettlementProviderFromEnvironment(environment, {
-      fetch: (async () =>
-        new Response(
-          JSON.stringify({
-            version: 1,
-            settlementId: "stl_substituted",
-            accepted: true,
-            transferReference: "transfer-12345678",
-          }),
-          { status: 200 },
-        )) as typeof fetch,
-    });
+    const provider = createSandboxSettlementProviderFromEnvironment(
+      environment,
+      {
+        fetch: (async () =>
+          new Response(
+            JSON.stringify({
+              version: 1,
+              settlementId: "stl_substituted",
+              accepted: true,
+              transferReference: "transfer-12345678",
+            }),
+            { status: 200 },
+          )) as typeof fetch,
+      },
+    );
     await expect(provider.requestTransfer(command())).rejects.toMatchObject({
       code: "SANDBOX_SETTLEMENT_INVALID_RESPONSE",
     } satisfies Partial<SandboxSettlementProviderError>);

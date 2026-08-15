@@ -79,7 +79,8 @@ describeMySql.sequential("M146 settlement MySQL integration", () => {
   let pool: Pool;
 
   beforeAll(async () => {
-    if (!adminUrl || !databaseUrl) throw new Error("MYSQL_INTEGRATION_URLS_REQUIRED");
+    if (!adminUrl || !databaseUrl)
+      throw new Error("MYSQL_INTEGRATION_URLS_REQUIRED");
     const admin = await mysql.createConnection(adminUrl);
     try {
       await admin.query(
@@ -170,8 +171,16 @@ describeMySql.sequential("M146 settlement MySQL integration", () => {
         externalKey: "payment_result_fev_m146_approval_0001",
         occurredAt: "2026-08-15T04:01:00Z",
         postings: [
-          { accountReference: providerClearingAccount, direction: "debit", amount },
-          { accountReference: checkoutRevenueAccount, direction: "credit", amount },
+          {
+            accountReference: providerClearingAccount,
+            direction: "debit",
+            amount,
+          },
+          {
+            accountReference: checkoutRevenueAccount,
+            direction: "credit",
+            amount,
+          },
         ],
       }),
     );
@@ -206,7 +215,9 @@ describeMySql.sequential("M146 settlement MySQL integration", () => {
     };
   }
 
-  async function allocate(application: ReturnType<typeof createSettlementApplicationService>) {
+  async function allocate(
+    application: ReturnType<typeof createSettlementApplicationService>,
+  ) {
     return application.allocate({
       paymentId,
       reconciliationRunId,
@@ -227,16 +238,28 @@ describeMySql.sequential("M146 settlement MySQL integration", () => {
     const result = await allocate(application);
     expect(result.allocation.status).toBe("active");
     expect(result.payables).toEqual([
-      expect.objectContaining({ status: "ready", amount: createMoney(9_000, "BRL") }),
+      expect.objectContaining({
+        status: "ready",
+        amount: createMoney(9_000, "BRL"),
+      }),
     ]);
     const transaction = await ledger.findByExternalKey(
       `allocation_v1_${result.allocation.id}`,
     );
     expect(transaction?.postings).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ accountReference: checkoutRevenueAccount, direction: "debit" }),
-        expect.objectContaining({ accountReference: "revenue:platform", direction: "credit" }),
-        expect.objectContaining({ accountReference: "liability:payable:business_m146", direction: "credit" }),
+        expect.objectContaining({
+          accountReference: checkoutRevenueAccount,
+          direction: "debit",
+        }),
+        expect.objectContaining({
+          accountReference: "revenue:platform",
+          direction: "credit",
+        }),
+        expect.objectContaining({
+          accountReference: "liability:payable:business_m146",
+          direction: "credit",
+        }),
       ]),
     );
 
@@ -263,9 +286,13 @@ describeMySql.sequential("M146 settlement MySQL integration", () => {
   it("settles only after verified provider read and posts payable to clearing", async () => {
     const { application, provider, ledger } = harness();
     const allocation = await allocate(application);
-    const requested = await application.requestSettlement(allocation.payables[0]!.id);
+    const requested = await application.requestSettlement(
+      allocation.payables[0]!.id,
+    );
     provider.status = "paid";
-    const verified = await application.verifySettlement(requested.settlement.id);
+    const verified = await application.verifySettlement(
+      requested.settlement.id,
+    );
     expect(verified.settlement.status).toBe("settled");
     const posting = await ledger.findByExternalKey(
       `settlement_v1_${requested.settlement.id}`,
@@ -285,7 +312,9 @@ describeMySql.sequential("M146 settlement MySQL integration", () => {
   it("creates beneficiary receivable when refund happens after settlement", async () => {
     const { application, provider, ledger } = harness();
     const allocation = await allocate(application);
-    const requested = await application.requestSettlement(allocation.payables[0]!.id);
+    const requested = await application.requestSettlement(
+      allocation.payables[0]!.id,
+    );
     provider.status = "paid";
     await application.verifySettlement(requested.settlement.id);
     await seedRefundEvidence(ledger);
@@ -373,8 +402,16 @@ describeMySql.sequential("M146 settlement MySQL integration", () => {
         externalKey: "payment_result_fev_m146_refund_0001",
         occurredAt: "2026-08-15T05:10:00Z",
         postings: [
-          { accountReference: checkoutRevenueAccount, direction: "debit", amount },
-          { accountReference: providerClearingAccount, direction: "credit", amount },
+          {
+            accountReference: checkoutRevenueAccount,
+            direction: "debit",
+            amount,
+          },
+          {
+            accountReference: providerClearingAccount,
+            direction: "credit",
+            amount,
+          },
         ],
       }),
     );
