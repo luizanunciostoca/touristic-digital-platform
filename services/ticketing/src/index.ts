@@ -5,11 +5,10 @@ import {
   MySqlTicketCheckInRepository,
   MySqlTicketOfflineEnvelopeRepository,
 } from "./mysql-ticket-checkin-repository.js";
-import {
-  MySqlTicketingTransactionalCommand,
-  type TicketingOfflineTransactionalCommandResult,
-  type TicketingTransactionalCommandPort,
-  type TicketingTransactionalCommandResult,
+import type {
+  TicketingOfflineTransactionalCommandResult,
+  TicketingTransactionalCommandPort,
+  TicketingTransactionalCommandResult,
 } from "./mysql-ticketing-transaction.js";
 import { ticketingM147SchemaSql } from "./schema.js";
 import {
@@ -21,6 +20,7 @@ import {
   type TicketingCheckInResult,
   type TicketingIssueResult,
 } from "./ticketing-application-service.js";
+import { MySqlTicketingTransactionalCommand } from "./validated-ticketing-transaction.js";
 
 export {
   MySqlTicketRepository,
