@@ -410,7 +410,9 @@ export function createAssistantApi({
           reservationClosed = true;
 
           const content = data?.choices?.[0]?.message?.content;
-          const normalized = normalizeProviderResponse(parseJsonObject(content));
+          const normalized = normalizeProviderResponse(
+            parseJsonObject(content),
+          );
           if (!normalized.text) throw new Error("assistant_invalid_response");
           sendJson(response, 200, normalized);
         } catch (error) {

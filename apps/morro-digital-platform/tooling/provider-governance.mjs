@@ -1,10 +1,5 @@
 import { randomUUID } from "node:crypto";
-import {
-  mkdirSync,
-  readFileSync,
-  renameSync,
-  writeFileSync,
-} from "node:fs";
+import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
 const DEFAULT_THRESHOLDS = Object.freeze([0.5, 0.75, 0.9, 1]);
@@ -180,12 +175,12 @@ export function createProviderCostGovernor({
 
   const baseConfigured = Boolean(
     dailyLimit &&
-      monthlyLimit &&
-      reserveUsd &&
-      concurrency &&
-      reserveUsd <= dailyLimit &&
-      reserveUsd <= monthlyLimit &&
-      (!requirePersistentState || stateStore),
+    monthlyLimit &&
+    reserveUsd &&
+    concurrency &&
+    reserveUsd <= dailyLimit &&
+    reserveUsd <= monthlyLimit &&
+    (!requirePersistentState || stateStore),
   );
 
   let daily = createWindow(utcDayKey(now()));
@@ -341,8 +336,8 @@ export function createProviderCostGovernor({
       }),
       breached: Boolean(
         (dailySnapshot && dailySnapshot.spentUsd > dailySnapshot.limitUsd) ||
-          (monthlySnapshot &&
-            monthlySnapshot.spentUsd > monthlySnapshot.limitUsd),
+        (monthlySnapshot &&
+          monthlySnapshot.spentUsd > monthlySnapshot.limitUsd),
       ),
       daily: dailySnapshot,
       monthly: monthlySnapshot,
