@@ -67,8 +67,6 @@ jobs:
           pnpm --filter @touristic/financial-server test
       - name: Durable refund and verified reversal integration
         run: pnpm --filter @touristic/financial-server test:integration
-      - name: Runtime routing and authority contract
-        run: pnpm --filter @touristic/morro-digital-platform test -- tooling/payments-api.test.mjs
       - name: Build composed refund runtime
         run: |
           pnpm --filter @touristic/auth build
@@ -76,3 +74,5 @@ jobs:
           pnpm --filter @touristic/ordering build
           pnpm --filter @touristic/financial-server build
           pnpm --filter @touristic/ordering-server build
+      - name: Runtime routing and authority contract
+        run: pnpm --filter @touristic/morro-digital-platform test -- tooling/payments-api.test.mjs
