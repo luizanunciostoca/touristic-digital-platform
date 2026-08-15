@@ -46,7 +46,16 @@ Unit tests prove deterministic balanced approval, exact replay, approval recover
 
 MySQL 8.4 integration proves atomic approval plus immutable reversal, one row per result key, replay convergence and zero net balance after refund. The permanent Payments Operational Ledger Contract runs Financial server tests, MySQL integration and composed runtime builds.
 
-Final promotion requires green Quality Gate, Payments Persistence Integration, Payments Sandbox Provider Contract, Payments Verified Webhook Contract, Payments Verified Outcome Contract and Payments Operational Ledger Contract on one final head.
+Validated implementation checkpoint `9903dedca4434d7df570ef50189eb52f1be49c83`:
+
+- Quality Gate `31852486391 — SUCCESS`;
+- Payments Persistence Integration `31852486416 — SUCCESS`;
+- Payments Sandbox Provider Contract `31852486390 — SUCCESS`;
+- Payments Verified Webhook Contract `31852486415 — SUCCESS`;
+- Payments Verified Outcome Contract `31852486446 — SUCCESS`;
+- Payments Operational Ledger Contract `31852486387 — SUCCESS`.
+
+Final promotion requires green Quality Gate, Payments Persistence Integration, Payments Sandbox Provider Contract, Payments Verified Webhook Contract, Payments Verified Outcome Contract and Payments Operational Ledger Contract on one final head. The documentation-only evidence commit must repeat those gates before merge.
 
 ## Migration result
 
