@@ -23,7 +23,7 @@ Um item não pode avançar para `equivalent` sem evidência visual ou comportame
 | MIG-0007 | Business Portal | Business | FEATURE-0005 | `packages/business` + Business surfaces/adapters in `apps/morro-digital-platform` | 6 | equivalent | dashboard, 28-step onboarding, production profile and browser lifecycle contracts evidenced | 19/19 Business-owned contracts PASS; checkout execution remains Payments-owned N/A | `BUSINESS-MIGRATION-MATRIX.md`; M54–M65 evidence; PR #128 Quality + Business browser contracts | alto |
 | MIG-0008 | `luizidebook/morro-digital-crm@1915d026` | CRM | FEATURE-0006 | `@touristic/crm` + `@touristic/crm-server` + `apps/admin-crm` | 7 | migrating | authenticated shell and dedicated browser surfaces exist; consolidated V1 visual/accessibility equivalence remains open | 25 contracts: 17 PASS / 5 PARTIAL / 3 GAP at M133; leads, meetings, proposals, contracts, follow-ups, trials, referrals, public token flows, schedulers and audit are executable | `CRM-V1-BASELINE.md`; `CRM-MIGRATION-MATRIX.md`; M67–M133 evidence | alto |
 | MIG-0009 | autenticação e sessão | Auth | FEATURE-0008 | `packages/auth` + `packages/auth-browser` + Auth surfaces in `dashboard/` | 6 | equivalent | login V1-equivalent and canonical dashboard return proven in Chromium | 20/20 Auth contracts PASS: login/session/cookie/CSRF/origin/roles/tenant/audit/revocation | `AUTH-MIGRATION-MATRIX.md`; M47–M48 + M50–M52 + M66 evidence; PR #129 Quality + Auth/Business browser contracts | crítico |
-| MIG-0010 | pagamentos/assinaturas | Ordering / Financial | FEATURE-0009 | `@touristic/ordering` + `@touristic/ordering-server` + `@touristic/financial` + `@touristic/financial-server` + runtime HTTP no Morro Digital | 8 | migrating | M146 mantém checkout/webhook/refund/reconciliation sem browser e adiciona split/repasse/settlement backend-only | 34 contratos: 23 PASS / 5 PARTIAL / 5 GAP / 1 N/A; allocation/payable/settlement duráveis exigem Payment aprovado, ledger e reconciliation limpa; provider acceptance não confirma settlement | `PAYMENTS-V1-BASELINE.md`; `PAYMENTS-MIGRATION-MATRIX.md`; evidências M135–M146 | crítico |
+| MIG-0010 | pagamentos/assinaturas | Ordering / Financial | FEATURE-0009 | `@touristic/ordering` + `@touristic/ordering-server` + `@touristic/financial` + `@touristic/financial-server` + runtime HTTP/browser no Morro Digital | 8 | migrating | M149 adiciona browser launch/polling executável sem fabricar autoridade; composição pública Business → Payments continua bloqueada | 34 contratos: 27 PASS / 5 PARTIAL / 1 GAP / 1 N/A; checkout browser exige autoridade M139 legítima e só `verifiedPayment` autoritativo produz sucesso | `PAYMENTS-V1-BASELINE.md`; `PAYMENTS-MIGRATION-MATRIX.md`; evidências M135–M149 | crítico |
 | MIG-0011 | afiliados | Affiliates | FEATURE-0010 | `packages/affiliates` | 9 | discovered | pendente | pendente | pendente | crítico |
 | MIG-0017 | venda de ingressos/passeios e check-in operacional | Ticketing | FEATURE-0011 | `packages/ticketing` + `services/ticketing` | 10 | migrating | pendente | emissão pós-pagamento, QR assinado, check-in persistente e sincronização offline iniciados | `docs/qa/TICKETING-M147-EVIDENCE.md`; testes unitários e de integração do módulo | alto |
 | MIG-0012 | `js/map*` + bootstrap V1 | Geospatial | FEATURE-0001 | `packages/geospatial` + `apps/morro-digital-platform/src/bootstrap/geospatial.ts` | 4 | equivalent | Mapbox Visual Contract validado nos três viewports, normal e `forced-colors` | Runtime, adapter, Mapbox real, fallback, rollback e lifecycle comprovados | PR #17 head final `2d84629b`; runs `31237633579`, `31237633601`, `31237633577` verdes | crítico |
@@ -62,31 +62,31 @@ M66 closes the four consumer-dependent Auth parity rows intentionally left parti
 
 ## Payments em migração — MIG-0010
 
-M135 congelou a Wave 8 a partir da V1 `luizidebook/morro-de-sao-paulo-digital@60746fd7fed97b805758b37adfdbe3bad2582bfe` e separou Business, Ordering e Financial sem habilitar money movement. M136–M144 materializaram domínio, persistência, checkout server-authoritative, HTTP/Auth, sandbox provider, webhook verificado, resultado persistido, ledger double-entry e refund durável. M145 adicionou reconciliation read-only e operator-safe.
+M135 congelou a Wave 8 a partir da V1 `luizidebook/morro-de-sao-paulo-digital@60746fd7fed97b805758b37adfdbe3bad2582bfe` e separou Business, Ordering e Financial sem habilitar money movement. M136–M146 materializaram domínio, persistência, checkout server-authoritative, HTTP/Auth, sandbox provider, webhook verificado, resultado persistido, ledger double-entry, refund, reconciliation e split/repasse/settlement com read-back autoritativo.
 
-M146 fecha o contrato backend de split/repasse/settlement:
+M149 fecha o adapter Payments-owned de browser launch/confirmation sem quebrar M139:
 
-- allocation só nasce de Payment confirmado, resultado aprovado, ledger de aprovação e latest reconciliation limpa;
-- o plano explícito precisa conservar exatamente minor units e moeda do Payment; nenhuma comissão é inferida/hardcoded;
-- `financial_allocations`, `financial_payables` e `financial_settlements` preservam estado durável e idempotência estável por payable;
-- aceite do provider mantém `provider_accepted`/`transfer_pending` e não cria settlement contábil;
-- somente read-back verificado de identidade, valor, moeda e tempo pode produzir settlement;
-- allocation, settlement e reversals usam postings double-entry imutáveis e chaves determinísticas;
-- refund após repasse cria `asset:beneficiary_receivable:*` para valor já transferido, sem apagar histórico;
-- refund é bloqueado enquanto o desfecho da transferência estiver incerto;
-- provider sandbox permanece server-only e produção/dinheiro real não é ativada por este milestone.
+- aceita somente o handoff Business normalizado e exatamente um modelo de autoridade já auditado;
+- deriva `business:<sessionId>:<planId>` e nunca aceita preço/valor financeiro do browser como autoridade;
+- mantém o `cst_v1_*` somente no closure do cliente, sem local/session storage;
+- abre checkout com `noopener,noreferrer` e fallback de navegação apenas quando o popup é bloqueado;
+- preserva polling V1 de 2500 ms × 240 tentativas;
+- `CONFIRMED` sem `verifiedPayment` não converte nem encerra como sucesso;
+- emite `businessPaymentVerified` somente do resultado Financial autoritativo e usa `businessPaymentVerificationFailed` para falha/timeout terminal;
+- não assina capability guest no browser e não expõe o segredo HMAC server-only;
+- não auto-compõe `businessCheckoutRequested`, porque a superfície pública atual não possui uma fonte legítima de sessão+CSRF+Business scope nem endpoint server-side de bootstrap da capability guest.
 
-A matriz canônica M146 passa a:
+A matriz canônica M149 passa a:
 
 ```text
-PASS     23
+PASS     27
 PARTIAL   5
-GAP       5
+GAP       1
 N/A       1
 TOTAL    34
 ```
 
-`MIG-0010` e `FEATURE-0009` permanecem `migrating`; equivalence behavior/visual/API continua `false`. Ainda faltam recorrência/assinaturas, browser checkout/confirmation, integração dos eventos Business parciais, observabilidade financeira completa, sandbox/browser E2E implantado, limiter distribuído e fechamento operacional de release/rollback. Affiliates permanece separado e não recebe autoridade financeira implícita.
+`MIG-0010` e `FEATURE-0009` permanecem `migrating`; equivalence behavior/visual/API continua `false`. O GAP restante é recorrência/assinaturas. Permanecem PARTIAL a composição de autoridade Business → Payments, observabilidade financeira completa, provider/browser E2E implantado, limiter distribuído e fechamento operacional de release/rollback. Affiliates permanece separado e não recebe autoridade financeira implícita.
 
 ## Evidência consolidada — checkpoint Home + Runtime + Geospatial
 
