@@ -1,0 +1,41 @@
+name: Temporary M146 Legacy Cleanup Fix
+
+on:
+  push:
+    branches:
+      - feat/payments-m146-settlement
+    paths:
+      - ".github/workflows/m146-legacy-cleanup-fix-once.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/payments-m146-settlement
+      - name: Remove M146-only cleanup from legacy database suite
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("services/financial/src/mysql-integration.test.ts")
+          s = p.read_text()
+          block = '''    await pool.query("DELETE FROM financial_settlements");
+    await pool.query("DELETE FROM financial_payables");
+    await pool.query("DELETE FROM financial_allocations");
+'''
+          assert s.count(block) == 1, "expected legacy M146 cleanup block exactly once"
+          p.write_text(s.replace(block, "", 1))
+          PY
+          git diff --check
+      - name: Commit fix and remove helper
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/m146-legacy-cleanup-fix-once.yml
+          git add services/financial/src/mysql-integration.test.ts
+          git commit -m "test(payments): keep M146 cleanup isolated from legacy MySQL suite"
+          git push origin HEAD:feat/payments-m146-settlement
