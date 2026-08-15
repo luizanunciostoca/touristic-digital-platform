@@ -33,13 +33,16 @@ jobs:
           from pathlib import Path
           p = Path('services/financial/src/mysql-integration.test.ts')
           s = p.read_text()
-          block = '''    await pool.query("DELETE FROM financial_settlements");
-          await pool.query("DELETE FROM financial_payables");
-          await pool.query("DELETE FROM financial_allocations");
-          '''.replace('          await', '    await').replace('          ', '')
-          if s.count(block) != 1:
-              raise SystemExit('expected M146-only legacy cleanup block exactly once')
-          p.write_text(s.replace(block, '', 1))
+          lines = [
+              '    await pool.query("DELETE FROM financial_settlements");\n',
+              '    await pool.query("DELETE FROM financial_payables");\n',
+              '    await pool.query("DELETE FROM financial_allocations");\n',
+          ]
+          for line in lines:
+              if s.count(line) != 1:
+                  raise SystemExit(f'expected exactly one cleanup line: {line!r}')
+              s = s.replace(line, '', 1)
+          p.write_text(s)
           PY
           pnpm exec prettier --check services/financial/src/mysql-integration.test.ts
           pnpm --filter @touristic/financial-server lint
