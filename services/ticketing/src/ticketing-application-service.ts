@@ -1,7 +1,9 @@
 import { createHash } from "node:crypto";
 
 import {
+  createMoney,
   normalizeFinancialTimestamp,
+  type Money,
   type PaymentRepositoryPort,
 } from "@touristic/financial";
 import { type OrderRepositoryPort } from "@touristic/ordering";
@@ -30,6 +32,7 @@ export type TicketingApplicationErrorCode =
   | "TICKETING_ORDER_NOT_FOUND"
   | "TICKETING_PAYMENT_NOT_FOUND"
   | "TICKETING_PAYMENT_NOT_CONFIRMED"
+  | "TICKETING_FINANCIAL_AUTHORITY_MISMATCH"
   | "TICKETING_TICKET_CONFLICT"
   | "TICKETING_TICKET_NOT_FOUND"
   | "TICKETING_CHECKIN_INVALID"
@@ -111,6 +114,19 @@ function deterministicTicketId(
   return id;
 }
 
+function deterministicTicketCode(
+  orderReference: string,
+  productReference: string,
+): string {
+  const digest = createHash("sha256")
+    .update(`ticket-code:v1:${orderReference}:${productReference}`)
+    .digest("hex")
+    .toUpperCase();
+  const code = createTicketCode(digest);
+  if (!code) throw new Error("TICKETING_TICKET_CODE_INVALID");
+  return code;
+}
+
 function deterministicCheckInId(
   ticketId: string,
   result: string,
@@ -123,6 +139,20 @@ function deterministicCheckInId(
   const id = normalizeTicketCheckInId(`tci_${digest}`);
   if (!id) throw new Error("TICKETING_CHECKIN_ID_INVALID");
   return id;
+}
+
+function sameMoney(left: Money, right: Money): boolean {
+  return (
+    left.minorUnits === right.minorUnits && left.currency === right.currency
+  );
+}
+
+function requestedMoney(value: unknown): Money | null {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+  const input = value as { readonly minorUnits?: unknown; readonly currency?: unknown };
+  return createMoney(input.minorUnits, input.currency);
 }
 
 function sameTicketAuthority(left: Ticket, right: Ticket): boolean {
@@ -169,6 +199,18 @@ export function createTicketingApplicationService(
         throw new TicketingApplicationError("TICKETING_PAYMENT_NOT_CONFIRMED");
       }
 
+      const requestedAmount = requestedMoney(input.amount);
+      if (
+        order.status !== "payment_confirmed" ||
+        !sameMoney(payment.amount, order.pricing.amount) ||
+        !requestedAmount ||
+        !sameMoney(requestedAmount, payment.amount)
+      ) {
+        throw new TicketingApplicationError(
+          "TICKETING_FINANCIAL_AUTHORITY_MISMATCH",
+        );
+      }
+
       const product = input.product as {
         readonly kind?: unknown;
         readonly reference?: unknown;
@@ -180,7 +222,7 @@ export function createTicketingApplicationService(
       const ticketId = deterministicTicketId(order.id, productReference);
       const existing = await dependencies.tickets.findById(ticketId);
       const issuedAt = existing?.issuedAt ?? canonicalNow(dependencies.clock);
-      const code = createTicketCode(`${order.id}:${productReference}`);
+      const code = deterministicTicketCode(order.id, productReference);
       const ticket = createTicket({
         id: ticketId,
         orderId: order.id,
@@ -189,7 +231,7 @@ export function createTicketingApplicationService(
         product: input.product,
         holderName: input.holderName,
         quantity: input.quantity,
-        amount: input.amount,
+        amount: payment.amount,
         code,
         status: "issued",
         issuedAt,
@@ -329,6 +371,12 @@ export function createTicketingApplicationService(
       const ticket = await dependencies.tickets.findById(envelope.ticketId);
       if (!ticket) {
         throw new TicketingApplicationError("TICKETING_TICKET_NOT_FOUND");
+      }
+      const verifiedQr = verifyTicketQrPayload(envelope.payload, secret);
+      if (!verifiedQr || verifiedQr.ticketId !== ticket.id) {
+        throw new TicketingApplicationError(
+          "TICKETING_OFFLINE_ENVELOPE_INVALID",
+        );
       }
       const recordedAt = normalizeFinancialTimestamp(input.recordedAt);
       if (!recordedAt) {
