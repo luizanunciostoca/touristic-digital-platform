@@ -31,6 +31,7 @@ function environment(overrides = {}) {
   const values = {
     OPENAI_API_KEY: "test-key",
     OPENAI_MODEL: "test-model",
+    OPENAI_PRICING_MODEL: "test-model",
     OPENAI_PROVIDER_HARD_LIMIT_CONFIRMED: "true",
     OPENAI_INPUT_USD_PER_1M_TOKENS: "1",
     OPENAI_OUTPUT_USD_PER_1M_TOKENS: "2",
@@ -115,6 +116,7 @@ describe("assistant paid-provider governance", () => {
       getEnvironmentValue: environment(),
       fetchImplementation,
       governanceStateStore: memoryStateStore(),
+      createRequestId: () => "req-success",
       observeProviderEvent: () => {},
     });
     const output = response();
@@ -122,13 +124,86 @@ describe("assistant paid-provider governance", () => {
     await api.handle(request(), output);
 
     expect(output.statusCode).toBe(200);
+    expect(output.headers.get("x-request-id")).toBe("req-success");
+    expect(
+      fetchImplementation.mock.calls[0][1].headers["X-Client-Request-Id"],
+    ).toBe("req-success");
     const snapshot = api.observabilitySnapshot();
     expect(snapshot.hardLimitConfirmed).toBe(true);
     expect(snapshot.pricingConfigured).toBe(true);
+    expect(snapshot.pricingModelMatches).toBe(true);
+    expect(snapshot.requestReserveAdequate).toBe(true);
+    expect(snapshot.minimumRequestReserveUsd).toBeGreaterThan(0);
     expect(snapshot.runtimeTopologySafe).toBe(true);
     expect(snapshot.persistentGovernanceConfigured).toBe(true);
     expect(snapshot.usage.daily.totalTokens).toBe(1500);
     expect(snapshot.usage.daily.spentUsd).toBeCloseTo(0.002);
+  });
+
+  it("fails closed when pricing is bound to a different model", async () => {
+    const events = [];
+    const fetchImplementation = vi.fn();
+    const api = createAssistantApi({
+      getEnvironmentValue: environment({
+        OPENAI_PRICING_MODEL: "another-model",
+      }),
+      fetchImplementation,
+      governanceStateStore: memoryStateStore(),
+      createRequestId: () => "req-pricing-model",
+      observeProviderEvent: (event) => events.push(event),
+    });
+    const output = response();
+
+    await api.handle(request(), output);
+
+    expect(output.statusCode).toBe(503);
+    expect(JSON.parse(output.body).error).toBe(
+      "assistant_billing_guard_not_configured",
+    );
+    expect(fetchImplementation).not.toHaveBeenCalled();
+    expect(
+      events.some(
+        (event) =>
+          event.type === "provider.billing_guard.denied" &&
+          event.reason === "pricing_model_mismatch" &&
+          event.metadata.correlationId === "req-pricing-model",
+      ),
+    ).toBe(true);
+  });
+
+  it("fails closed when the configured per-call reserve is below the runtime floor", async () => {
+    const events = [];
+    const fetchImplementation = vi.fn();
+    const api = createAssistantApi({
+      getEnvironmentValue: environment({
+        OPENAI_REQUEST_RESERVE_USD: "0.1",
+      }),
+      fetchImplementation,
+      governanceStateStore: memoryStateStore(),
+      createRequestId: () => "req-under-reserved",
+      observeProviderEvent: (event) => events.push(event),
+    });
+    const output = response();
+
+    await api.handle(request(), output);
+
+    expect(output.statusCode).toBe(503);
+    expect(JSON.parse(output.body).error).toBe(
+      "assistant_billing_guard_not_configured",
+    );
+    expect(fetchImplementation).not.toHaveBeenCalled();
+    const snapshot = api.observabilitySnapshot();
+    expect(snapshot.requestReserveAdequate).toBe(false);
+    expect(snapshot.minimumRequestReserveUsd).toBeGreaterThan(0.1);
+    expect(
+      events.some(
+        (event) =>
+          event.type === "provider.billing_guard.denied" &&
+          event.reason === "request_reserve_below_runtime_floor" &&
+          event.configuredRequestReserveUsd === 0.1 &&
+          event.minimumRequestReserveUsd > 0.1,
+      ),
+    ).toBe(true);
   });
 
   it("charges the conservative reservation when provider usage is absent", async () => {
@@ -185,17 +260,15 @@ describe("assistant paid-provider governance", () => {
   it("blocks a new call when the reservation would cross the daily ceiling", async () => {
     const fetchImplementation = vi.fn(async () =>
       providerResponse({
-        prompt_tokens: 1,
+        prompt_tokens: 100_000,
         completion_tokens: 0,
-        total_tokens: 1,
+        total_tokens: 100_000,
       }),
     );
     const api = createAssistantApi({
       getEnvironmentValue: environment({
-        OPENAI_INPUT_USD_PER_1M_TOKENS: "500000",
-        OPENAI_OUTPUT_USD_PER_1M_TOKENS: "500000",
-        OPENAI_DAILY_COST_LIMIT_USD: "1",
-        OPENAI_REQUEST_RESERVE_USD: "0.6",
+        OPENAI_DAILY_COST_LIMIT_USD: "0.2",
+        OPENAI_REQUEST_RESERVE_USD: "0.15",
       }),
       fetchImplementation,
       governanceStateStore: memoryStateStore(),
@@ -266,16 +339,14 @@ describe("assistant paid-provider governance", () => {
     const store = memoryStateStore();
     const fetchImplementation = vi.fn(async () =>
       providerResponse({
-        prompt_tokens: 1,
+        prompt_tokens: 100_000,
         completion_tokens: 0,
-        total_tokens: 1,
+        total_tokens: 100_000,
       }),
     );
     const guardedEnvironment = environment({
-      OPENAI_INPUT_USD_PER_1M_TOKENS: "500000",
-      OPENAI_OUTPUT_USD_PER_1M_TOKENS: "500000",
-      OPENAI_DAILY_COST_LIMIT_USD: "1",
-      OPENAI_REQUEST_RESERVE_USD: "0.6",
+      OPENAI_DAILY_COST_LIMIT_USD: "0.2",
+      OPENAI_REQUEST_RESERVE_USD: "0.15",
     });
     const firstApi = createAssistantApi({
       getEnvironmentValue: guardedEnvironment,
