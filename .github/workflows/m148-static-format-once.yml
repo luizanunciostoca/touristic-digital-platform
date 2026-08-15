@@ -1,0 +1,85 @@
+name: Temporary M148 Static Formatter
+
+on:
+  push:
+    branches:
+      - feat/payments-m148-browser-checkout
+    paths:
+      - ".github/workflows/m148-static-format-once.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/payments-m148-browser-checkout
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Apply bounded static corrections and canonical formatting
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('apps/morro-digital-platform/src/payments-browser-checkout-client.ts')
+          s = p.read_text()
+          old = '  return Object.freeze(Object.fromEntries(headers.entries()));'
+          new = '''  const normalized: Record<string, string> = {};
+          for (const name of [
+            "x-checkout-handoff-token",
+            "x-csrf-token",
+            "x-business-id",
+          ]) {
+            const value = headers.get(name);
+            if (value) normalized[name] = value;
+          }
+          return Object.freeze(normalized);'''.replace('          ', '')
+          if s.count(old) != 1:
+              raise SystemExit('authority return not found exactly once')
+          s = s.replace(old, new, 1)
+          old2 = '''function paymentFailure(
+            sessionId: string,
+            code: PaymentsBrowserCheckoutErrorCode,
+            message: string,
+          ): PaymentsBrowserCheckoutError {
+            return new PaymentsBrowserCheckoutError(code, message);
+          }'''.replace('          ', '')
+          new2 = '''function paymentFailure(
+            sessionId: string,
+            code: PaymentsBrowserCheckoutErrorCode,
+            message: string,
+          ): PaymentsBrowserCheckoutError {
+            void sessionId;
+            return new PaymentsBrowserCheckoutError(code, message);
+          }'''.replace('          ', '')
+          if s.count(old2) != 1:
+              raise SystemExit('paymentFailure helper not found exactly once')
+          p.write_text(s.replace(old2, new2, 1))
+          PY
+          pnpm exec prettier --write \
+            apps/morro-digital-platform/src/payments-browser-checkout-client.ts \
+            apps/morro-digital-platform/src/payments-browser-checkout-client.test.ts
+          pnpm --filter @touristic/morro-digital-platform lint
+          pnpm --filter @touristic/morro-digital-platform typecheck
+          pnpm --filter @touristic/morro-digital-platform test -- --runInBand || pnpm --filter @touristic/morro-digital-platform test
+          git diff --check
+      - name: Commit permanent files and remove helper
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/m148-static-format-once.yml
+          git add \
+            apps/morro-digital-platform/src/payments-browser-checkout-client.ts \
+            apps/morro-digital-platform/src/payments-browser-checkout-client.test.ts
+          git commit -m "fix(payments): harden and format M148 browser client"
+          git push origin HEAD:feat/payments-m148-browser-checkout
