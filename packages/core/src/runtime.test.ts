@@ -60,6 +60,39 @@ describe("platform runtime", () => {
     );
   });
 
+  it("does not trust destination or tenant scope embedded in event payload", async () => {
+    const unscopedEvents = new EventBus({
+      createId: deterministicId,
+      now: () => FIXED_NOW,
+    });
+
+    await expect(
+      unscopedEvents.publish("ForgedScope", {
+        destinationId: "forged-destination",
+        tenantId: "forged-tenant",
+      }),
+    ).rejects.toThrow("Event destinationId is required.");
+
+    const scopedEvents = new EventBus({
+      destinationId: "morro-de-sao-paulo",
+      tenantId: "tenant_toca",
+      createId: deterministicId,
+      now: () => FIXED_NOW,
+    });
+    const handler = vi.fn();
+    scopedEvents.subscribe("ForgedScope", handler);
+
+    await scopedEvents.publish("ForgedScope", {
+      destinationId: "forged-destination",
+      tenantId: "forged-tenant",
+    });
+
+    expect(handler.mock.calls[0]?.[0]).toMatchObject({
+      destinationId: "morro-de-sao-paulo",
+      tenantId: "tenant_toca",
+    });
+  });
+
   it("creates a structured observation with correlation context", () => {
     const observation = createPlatformObservation(
       {
