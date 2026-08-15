@@ -10,7 +10,7 @@ No business feature, payment behavior, CRM lifecycle, Ticketing flow, browser UI
 
 `PLATFORM-BIBLE.md` already required versioned domain-event envelopes with destination/tenant/correlation context and treated observability as part of Definition of Done. `MODULE-CONTRACTS.md` also assigned event envelopes and standardized errors/context to Core.
 
-The executable `PlatformEvent` contract in `@touristic/core` only carried `type`, `payload` and `occurredAt`, so canonical documentation and runtime were inconsistent. The repository Quality Gate also had no dedicated step that verified cross-links between canonical contracts, schemas, runtime and QA evidence.
+The executable `PlatformEvent` contract in `@touristic/core` only carried `type`, `payload` and `occurredAt`, so canonical documentation and runtime were inconsistent. The repository Quality Gate also had no dedicated executable reconciliation between canonical contracts, schemas, runtime and QA evidence.
 
 ## Canonical contracts
 
@@ -39,7 +39,7 @@ This contract does not claim that every existing domain has already migrated all
 
 Focused Core tests prove full envelope shape, immutability, fail-closed missing destination context and structured observation creation.
 
-## Transverse Quality Gate
+## Transverse Quality Gates
 
 `pnpm platform:contracts:check` validates:
 
@@ -50,8 +50,8 @@ Focused Core tests prove full envelope shape, immutability, fail-closed missing 
 - evidence references;
 - reconciliation in both `PLATFORM-BIBLE.md` and `MODULE-CONTRACTS.md`.
 
-The command is included in both root `pnpm check` and `.github/workflows/quality.yml` before lint/typecheck/tests/build.
+The command is included in root `pnpm check`. A dedicated permanent `.github/workflows/platform-contracts.yml` workflow also runs the contract reconciliation on relevant pull requests and `main` pushes, while the existing central Quality Gate remains unchanged and continues to validate formatting, architecture, Feature Registry, lint, typecheck, full tests and build.
 
 ## Promotion rule
 
-This change may be merged only after the final branch head passes the repository Quality Gate, including formatting, architecture, Feature Registry, Platform Contracts, lint, typecheck, full tests and build. Any path-triggered permanent regression workflow must also remain green on the same final head/merge ref.
+This change may be merged only after the final branch head passes both the repository Quality Gate and Platform Contracts workflow. Any other path-triggered permanent regression workflow must also remain green on the same final head/merge ref.
