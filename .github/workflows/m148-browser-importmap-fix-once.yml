@@ -1,0 +1,42 @@
+name: Temporary M148 Browser Import Map Fix
+
+on:
+  push:
+    branches:
+      - feat/payments-m148-browser-checkout
+    paths:
+      - ".github/workflows/m148-browser-importmap-fix-once.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/payments-m148-browser-checkout
+      - name: Complete browser import map
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('.github/workflows/payments-browser-checkout-contract.yml')
+          s = p.read_text()
+          old = "                  '@touristic/ordering': '/packages/ordering/dist/index.js'"
+          new = "                  '@touristic/ordering': '/packages/ordering/dist/index.js',\n                  '@touristic/financial': '/packages/financial/dist/index.js'"
+          if s.count(old) != 1:
+              raise SystemExit('expected ordering import-map entry exactly once')
+          p.write_text(s.replace(old, new, 1))
+          PY
+          git diff --check
+      - name: Commit permanent workflow and remove helper
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/m148-browser-importmap-fix-once.yml
+          git add .github/workflows/payments-browser-checkout-contract.yml
+          git commit -m "fix(payments): complete M148 browser import map"
+          git push origin HEAD:feat/payments-m148-browser-checkout
