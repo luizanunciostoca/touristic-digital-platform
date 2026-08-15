@@ -1,5 +1,6 @@
 import type { EventBus } from "@touristic/core";
 import type { GeospatialEngine, MapMarker } from "@touristic/geospatial";
+import { morroDeSaoPauloDestination } from "./destination.js";
 import { getMorroTourById, type TourRouteContract } from "./tour-catalog.js";
 import { createMorroTourMarkers } from "./tour-markers.js";
 import { findMorroTourByKeyword } from "./tour-search.js";
@@ -37,6 +38,16 @@ function createSelectionResult(
   return Object.freeze({ activeTourId, markerCount });
 }
 
+async function publishTourEvent<TPayload>(
+  events: EventBus,
+  type: string,
+  payload: TPayload,
+): Promise<void> {
+  await events.publish(type, payload, {
+    destinationId: morroDeSaoPauloDestination.id,
+  });
+}
+
 async function publishSelectionFailure(
   events: EventBus,
   payload: Readonly<{
@@ -48,7 +59,7 @@ async function publishSelectionFailure(
   }>,
 ): Promise<void> {
   try {
-    await events.publish("TourSelectionFailed", payload);
+    await publishTourEvent(events, "TourSelectionFailed", payload);
   } catch {
     return;
   }
@@ -95,7 +106,8 @@ export function createMorroTourSelectionController(
     const nextMarkers = createMorroTourMarkers(nextTour.id);
 
     try {
-      await options.events.publish(
+      await publishTourEvent(
+        options.events,
         "TourSelectionStarted",
         Object.freeze({
           query,
@@ -152,7 +164,8 @@ export function createMorroTourSelectionController(
     activeTour = nextTour;
 
     try {
-      await options.events.publish(
+      await publishTourEvent(
+        options.events,
         "TourSelected",
         Object.freeze({
           tourId: nextTour.id,
