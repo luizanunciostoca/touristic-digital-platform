@@ -184,8 +184,8 @@ export function createAssistantApi({
   );
   const requestReserveAdequate = Boolean(
     configuredRequestReserveUsd &&
-    minimumRequestReserveUsd &&
-    configuredRequestReserveUsd >= minimumRequestReserveUsd,
+      minimumRequestReserveUsd &&
+      configuredRequestReserveUsd >= minimumRequestReserveUsd,
   );
   const runtimeReplicaCount = positiveInteger(
     environment("OPENAI_RUNTIME_REPLICA_COUNT"),
@@ -288,6 +288,23 @@ export function createAssistantApi({
       const correlationId = createRequestId();
       response.setHeader("X-Request-ID", correlationId);
 
+      let clientDisconnected = Boolean(request.aborted);
+      let abortProviderRequest = () => {};
+      const markClientDisconnected = () => {
+        if (clientDisconnected) return;
+        clientDisconnected = true;
+        abortProviderRequest("client_disconnected");
+      };
+
+      if (typeof request.once === "function") {
+        request.once("aborted", markClientDisconnected);
+      }
+      if (typeof response.once === "function") {
+        response.once("close", () => {
+          if (response.writableEnded === false) markClientDisconnected();
+        });
+      }
+
       if (request.method !== "POST") {
         sendJson(
           response,
@@ -365,7 +382,33 @@ export function createAssistantApi({
       }
 
       try {
-        const body = await readJsonBody(request);
+        let body;
+        try {
+          body = await readJsonBody(request);
+        } catch (error) {
+          if (clientDisconnected || request.aborted) return;
+          if (error?.message === "request_body_too_large") {
+            sendJson(response, 413, { error: "assistant_request_too_large" });
+            return;
+          }
+          if (error instanceof SyntaxError) {
+            sendJson(response, 400, { error: "assistant_invalid_json" });
+            return;
+          }
+          throw error;
+        }
+
+        if (clientDisconnected || request.aborted) {
+          observeProviderEvent({
+            type: "provider.request.cancelled",
+            provider: "openai",
+            at: new Date(now()).toISOString(),
+            reason: "client_disconnected_before_provider",
+            metadata: requestMetadata,
+          });
+          return;
+        }
+
         const input = safeString(body.input, 1_000);
         if (!input) {
           sendJson(response, 400, { error: "invalid_input" });
@@ -396,8 +439,17 @@ export function createAssistantApi({
 
         const reservation = budgetAttempt.reservation;
         const controller = new AbortController();
+        let abortReason = null;
+        abortProviderRequest = (reason) => {
+          if (controller.signal.aborted) return;
+          abortReason = reason;
+          controller.abort();
+        };
+        if (clientDisconnected || request.aborted) {
+          abortProviderRequest("client_disconnected");
+        }
         const timeout = setTimeout(
-          () => controller.abort(),
+          () => abortProviderRequest("provider_timeout"),
           ASSISTANT_TIMEOUT_MS,
         );
         let reservationClosed = false;
@@ -439,9 +491,11 @@ export function createAssistantApi({
             );
             costGovernor.settle(reservation, {});
             reservationClosed = true;
-            sendJson(response, upstream.status === 429 ? 429 : 502, {
-              error: "assistant_provider_error",
-            });
+            if (!clientDisconnected) {
+              sendJson(response, upstream.status === 429 ? 429 : 502, {
+                error: "assistant_provider_error",
+              });
+            }
             return;
           }
 
@@ -462,27 +516,39 @@ export function createAssistantApi({
           reservationClosed = true;
 
           const content = data?.choices?.[0]?.message?.content;
-          const normalized = normalizeProviderResponse(
-            parseJsonObject(content),
-          );
+          const normalized = normalizeProviderResponse(parseJsonObject(content));
           if (!normalized.text) throw new Error("assistant_invalid_response");
-          sendJson(response, 200, normalized);
+          if (!clientDisconnected) sendJson(response, 200, normalized);
         } catch (error) {
           if (!reservationClosed) {
             observeProviderFailure(
-              error?.name === "AbortError"
-                ? "provider_timeout"
-                : "provider_request_failed",
+              abortReason === "client_disconnected"
+                ? "client_disconnected"
+                : abortReason === "provider_timeout" ||
+                    error?.name === "AbortError"
+                  ? "provider_timeout"
+                  : "provider_request_failed",
               undefined,
               requestMetadata,
             );
             costGovernor.settle(reservation, {});
+            reservationClosed = true;
+          }
+          if (abortReason === "client_disconnected" || clientDisconnected) {
+            return;
+          }
+          if (abortReason === "provider_timeout") {
+            const timeoutError = new Error("assistant_timeout");
+            timeoutError.name = "AbortError";
+            throw timeoutError;
           }
           throw error;
         } finally {
+          abortProviderRequest = () => {};
           clearTimeout(timeout);
         }
       } catch (error) {
+        if (clientDisconnected) return;
         sendJson(response, error?.name === "AbortError" ? 504 : 502, {
           error:
             error?.name === "AbortError"
