@@ -115,7 +115,13 @@ export type CrmLeadDetailBoundaryResult<T> =
 
 function safeContent(value: unknown): string | null {
   if (typeof value !== "string") return null;
-  const normalized = value.replace(/[\u0000-\u001F\u007F]/gu, " ").trim();
+  const normalized = Array.from(value, (character) => {
+    const codePoint = character.codePointAt(0) ?? 0;
+    return codePoint <= 31 || codePoint === 127 ? " " : character;
+  })
+    .join("")
+    .replace(/\s+/gu, " ")
+    .trim();
   return normalized.length >= 1 && normalized.length <= 4000
     ? normalized
     : null;
@@ -229,6 +235,14 @@ export class CrmLeadDetailServerBoundary {
       leadId,
     );
     if (!auth.ok) return auth;
+    if (!session) {
+      return this.reject(
+        "lead.checklist_toggle",
+        session,
+        "invalid_input",
+        leadId,
+      );
+    }
     const id = normalizeCrmId(
       typeof input.id === "string" && /^\d+$/u.test(input.id)
         ? Number(input.id)
@@ -262,7 +276,7 @@ export class CrmLeadDetailServerBoundary {
       leadId,
       completed: input.completed,
       completedAt,
-      completedBySubject: input.completed ? session!.subject : null,
+      completedBySubject: input.completed ? session.subject : null,
     });
     if (!updated) {
       return this.reject(
@@ -276,7 +290,7 @@ export class CrmLeadDetailServerBoundary {
       leadId,
       type: "system",
       content: `Checklist: etapa ${input.completed ? "concluída" : "desmarcada"}`,
-      actorSubject: session!.subject,
+      actorSubject: session.subject,
     });
     return { ok: true, value: updated };
   }
@@ -301,6 +315,14 @@ export class CrmLeadDetailServerBoundary {
       leadId,
     );
     if (!auth.ok) return auth;
+    if (!session) {
+      return this.reject(
+        "lead.interaction_add",
+        session,
+        "invalid_input",
+        leadId,
+      );
+    }
     const content = safeContent(input.content);
     if (
       !leadId ||
@@ -329,7 +351,7 @@ export class CrmLeadDetailServerBoundary {
       leadId,
       type: input.type as CrmLeadDetailManualInteractionType,
       content,
-      actorSubject: session!.subject,
+      actorSubject: session.subject,
     });
     await this.repository.touchLeadLastContactAt(leadId, timestamp);
     return { ok: true, value: true };
