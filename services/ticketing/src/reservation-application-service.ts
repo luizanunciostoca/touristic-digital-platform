@@ -1,7 +1,4 @@
-import {
-  normalizePaymentId,
-  type PaymentId,
-} from "@touristic/financial";
+import { normalizePaymentId, type PaymentId } from "@touristic/financial";
 import { normalizeOrderId, type OrderId } from "@touristic/ordering";
 import {
   isTicketReservationExpired,
@@ -9,10 +6,6 @@ import {
   type TicketReservation,
   type TicketReservationId,
 } from "@touristic/ticketing/reservations";
-
-import type {
-  TicketReservationMutationResult,
-} from "./mysql-ticket-reservation-repository.js";
 
 export const ticketReservationApplicationErrorCodes = Object.freeze([
   "TICKETING_RESERVATION_CONFIRMATION_INVALID",
@@ -45,6 +38,11 @@ export interface TicketReservationConfirmationAuthorityPort {
   }): Promise<VerifiedTicketReservationAuthority | null>;
 }
 
+export interface TicketReservationConfirmationResult {
+  readonly reservation: TicketReservation;
+  readonly replayed: boolean;
+}
+
 export interface TicketReservationConfirmationRepositoryPort {
   findReservationById(
     reservationId: TicketReservationId,
@@ -55,7 +53,7 @@ export interface TicketReservationConfirmationRepositoryPort {
     readonly paymentId: PaymentId;
     readonly confirmedAt: string;
     readonly actorReference: string;
-  }): Promise<TicketReservationMutationResult>;
+  }): Promise<TicketReservationConfirmationResult>;
 }
 
 export interface TicketReservationClockPort {
@@ -68,7 +66,7 @@ export interface TicketReservationApplicationService {
     readonly orderId: unknown;
     readonly paymentId: unknown;
     readonly actorReference: unknown;
-  }): Promise<TicketReservationMutationResult>;
+  }): Promise<TicketReservationConfirmationResult>;
 }
 
 function normalizedActor(value: unknown): string | null {
