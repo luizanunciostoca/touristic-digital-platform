@@ -8,6 +8,7 @@ import { BusinessOnboardingBrowserLifecycle } from "./business-onboarding-browse
 import { BusinessOnboardingRuntime } from "./business-onboarding-runtime.js";
 import { BusinessOnboardingBrowserSessionStore } from "./business-onboarding-session-store.js";
 import { mountBusinessOnboardingSurface } from "./business-onboarding-surface.js";
+import { installBusinessPaymentsCheckoutComposition } from "./payments-business-checkout-composition.js";
 
 function resolveBrowserStorage(): Storage | null {
   try {
@@ -36,6 +37,7 @@ function start(): void {
   sessionStore.save(host.snapshot().session);
 
   runtime = new BusinessOnboardingRuntime(host, adapters, window);
+  installBusinessPaymentsCheckoutComposition(window, window.fetch.bind(window));
   window.addEventListener("businessPaymentVerified", (event) => {
     if (!(event instanceof CustomEvent) || !runtime) return;
     const detail =
