@@ -123,6 +123,33 @@ describe("CRM M72 authenticated lead transport", () => {
     expect(invalid.body.error).toBe("INVALID_INPUT");
   });
 
+  it("normalizes decimal route ids before GET PATCH and stage boundaries", async () => {
+    const { transport } = transportFixture("manager");
+
+    const read = await transport.handle({
+      method: "GET",
+      pathname: "/api/crm/leads/7",
+    });
+    expect(read.status).toBe(200);
+    expect((read.body.data as CrmLead).id).toBe(7);
+
+    const updated = await transport.handle({
+      method: "PATCH",
+      pathname: "/api/crm/leads/7",
+      body: { contactName: "Luiz M140" },
+    });
+    expect(updated.status).toBe(200);
+    expect((updated.body.data as CrmLead).contactName).toBe("Luiz M140");
+
+    const staged = await transport.handle({
+      method: "POST",
+      pathname: "/api/crm/leads/7/stage",
+      body: { stage: "first_contact" },
+    });
+    expect(staged.status).toBe(200);
+    expect((staged.body.data as CrmLead).stage).toBe("first_contact");
+  });
+
   it("fails viewer mutations closed after platform mutation security succeeds", async () => {
     const { transport, audits } = transportFixture("viewer");
     const result = await transport.handle({
