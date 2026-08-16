@@ -1,0 +1,60 @@
+name: Ticketing Payments MySQL Cleanup Once
+
+on:
+  push:
+    branches:
+      - fix/ticketing-feature-0011-current-main
+    paths:
+      - ".github/workflows/zz-ticketing-payments-mysql-cleanup-once.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fix-and-validate:
+    runs-on: ubuntu-24.04
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: m137-integration
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -pm137-integration"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    env:
+      MYSQL_ADMIN_DATABASE_URL: mysql://root:m137-integration@127.0.0.1:3306/mysql
+      ORDERING_DATABASE_URL: mysql://root:m137-integration@127.0.0.1:3306/ordering_m137_test
+      FINANCIAL_DATABASE_URL: mysql://root:m137-integration@127.0.0.1:3306/financial_m137_test
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/ticketing-feature-0011-current-main
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Respect Ticketing FK in M138 cleanup
+        shell: bash
+        run: |
+          python3 -c 'from pathlib import Path; p=Path("tooling/payments/checkout-mysql-integration.test.ts"); s=p.read_text(); old="    await financialPool.query(\"DELETE FROM financial_payment_idempotency\");\n    await orderingPool.query(\"DELETE FROM ordering_orders\");"; new="    await financialPool.query(\"DELETE FROM financial_payment_idempotency\");\n    await orderingPool.query(\"DELETE FROM ordering_ticketing_reservation_bindings\");\n    await orderingPool.query(\"DELETE FROM ordering_orders\");"; assert s.count(old) == 1, f"cleanup anchor count={s.count(old)}"; p.write_text(s.replace(old,new,1))'
+          pnpm exec prettier --write tooling/payments/checkout-mysql-integration.test.ts
+      - name: Validate M138 checkout MySQL integration
+        run: pnpm exec vitest run tooling/payments/checkout-mysql-integration.test.ts
+      - name: Commit validated cleanup
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tooling/payments/checkout-mysql-integration.test.ts
+          git commit -m "test(ticketing): isolate M138 checkout from Ticketing FK"
+          git push origin HEAD:fix/ticketing-feature-0011-current-main
