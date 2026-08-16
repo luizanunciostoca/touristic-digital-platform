@@ -51,6 +51,16 @@ A cancellation after the external call has started is an uncertain-billing condi
 - malformed JSON returns 400 with no provider spend;
 - oversized input returns 413 with no provider spend.
 
+## Post-reservation pre-provider cancellation follow-up
+
+A later runtime audit identified a narrower cancellation race: the client can disconnect synchronously while the durable reservation is being persisted. At that point `reserve()` has succeeded, but the paid provider has not yet been invoked.
+
+The runtime now distinguishes that state explicitly. If the disconnect is observed after durable reservation but before `fetch` is invoked, it calls the governor's durable `release()` path, emits correlated `provider.request.released` and `provider.request.cancelled` evidence with reason `client_disconnected_before_provider`, and returns without invoking OpenAI. The released state is persisted, so a process restart does not recover that reservation as uncertain spend.
+
+Once the provider invocation has started, the original conservative invariant remains unchanged: a disconnect aborts the in-flight call and, when provider usage is unavailable, settles the full reserve rather than assuming zero external cost.
+
+Permanent regression coverage now also forces a disconnect from inside reservation persistence and proves: zero provider calls, zero spent/reserved budget, zero active request, an empty durable reservation set, correlated release/cancellation events, and zero orphan recovery after a simulated runtime restart.
+
 ## Validation history
 
 The first draft Quality attempt correctly stopped on canonical formatting for `assistant-api.mjs`. A one-shot branch-only formatter applied repository Prettier output and removed itself, so no temporary workflow remains in the intended PR diff. The next draft Quality run is the authoritative validation of the formatted head before promotion.

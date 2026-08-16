@@ -117,6 +117,64 @@ describe("assistant request cancellation and input safety", () => {
     ).toBe(true);
   });
 
+  it("releases a durable reservation when the client disconnects before provider invocation", async () => {
+    const events = [];
+    const output = response();
+    let state = null;
+    const governanceStateStore = {
+      load() {
+        return state ? structuredClone(state) : null;
+      },
+      save(nextState) {
+        state = structuredClone(nextState);
+        if (state.reservations.length === 1) output.emit("close");
+      },
+    };
+    const fetchImplementation = vi.fn();
+    const api = createAssistantApi({
+      getEnvironmentValue: environment(),
+      fetchImplementation,
+      governanceStateStore,
+      createRequestId: () => "req-disconnect-after-reserve",
+      observeProviderEvent: (event) => events.push(event),
+    });
+
+    await api.handle(jsonRequest(), output);
+
+    expect(fetchImplementation).not.toHaveBeenCalled();
+    const snapshot = api.observabilitySnapshot().usage;
+    expect(snapshot.activeRequests).toBe(0);
+    expect(snapshot.daily.reservedUsd).toBe(0);
+    expect(snapshot.daily.spentUsd).toBe(0);
+    expect(state.reservations).toHaveLength(0);
+    expect(
+      events.some(
+        (event) =>
+          event.type === "provider.request.released" &&
+          event.reason === "client_disconnected_before_provider" &&
+          event.metadata.correlationId === "req-disconnect-after-reserve",
+      ),
+    ).toBe(true);
+    expect(
+      events.some(
+        (event) =>
+          event.type === "provider.request.cancelled" &&
+          event.reason === "client_disconnected_before_provider" &&
+          event.metadata.correlationId === "req-disconnect-after-reserve",
+      ),
+    ).toBe(true);
+
+    const restartedApi = createAssistantApi({
+      getEnvironmentValue: environment(),
+      fetchImplementation: vi.fn(),
+      governanceStateStore,
+      observeProviderEvent: () => {},
+    });
+    const restarted = restartedApi.observabilitySnapshot().usage;
+    expect(restarted.persistence.recoveredReservations).toBe(0);
+    expect(restarted.daily.spentUsd).toBe(0);
+  });
+
   it("does not reserve budget or call the provider when the client is already aborted", async () => {
     const events = [];
     const fetchImplementation = vi.fn();

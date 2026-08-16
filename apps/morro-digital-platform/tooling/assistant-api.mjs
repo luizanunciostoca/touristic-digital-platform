@@ -446,7 +446,17 @@ export function createAssistantApi({
           controller.abort();
         };
         if (clientDisconnected || request.aborted) {
-          abortProviderRequest("client_disconnected");
+          costGovernor.release(reservation, {
+            reason: "client_disconnected_before_provider",
+          });
+          observeProviderEvent({
+            type: "provider.request.cancelled",
+            provider: "openai",
+            at: new Date(now()).toISOString(),
+            reason: "client_disconnected_before_provider",
+            metadata: requestMetadata,
+          });
+          return;
         }
         const timeout = setTimeout(
           () => abortProviderRequest("provider_timeout"),
