@@ -27,6 +27,11 @@
       "node": "./dist/lead-detail-contract.js",
       "default": "./src/lead-detail-contract.ts"
     },
+    "./lead-detail-boundary": {
+      "types": "./src/lead-detail-boundary.ts",
+      "node": "./dist/lead-detail-boundary.js",
+      "default": "./src/lead-detail-boundary.ts"
+    },
     "./metrics-boundary": {
       "types": "./src/metrics-boundary.ts",
       "node": "./dist/metrics-boundary.js",
