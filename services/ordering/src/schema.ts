@@ -2,7 +2,7 @@ export const orderingM137SchemaSql = `
 CREATE TABLE IF NOT EXISTS ordering_orders (
   order_id VARCHAR(120) COLLATE utf8mb4_bin PRIMARY KEY,
   request_key VARCHAR(220) COLLATE utf8mb4_bin NOT NULL UNIQUE,
-  source_kind ENUM('business_onboarding','ticketing_reservation') NOT NULL,
+  source_kind ENUM('business_onboarding') NOT NULL,
   source_reference VARCHAR(120) COLLATE utf8mb4_bin NOT NULL,
   status ENUM('draft','pending_payment','payment_confirmed','cancelled') NOT NULL,
   plan_id VARCHAR(80) COLLATE utf8mb4_bin NOT NULL,
