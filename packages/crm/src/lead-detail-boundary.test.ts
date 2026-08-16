@@ -193,16 +193,11 @@ describe("CRM M140 lead detail boundary", () => {
       id: 11,
       completed: true,
     });
-    expect(result).toEqual(
-      expect.objectContaining({
-        ok: true,
-        value: expect.objectContaining({
-          completed: true,
-          completedAt: now,
-          completedBySubject: "crm-manager",
-        }),
-      }),
-    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.completed).toBe(true);
+    expect(result.value.completedAt).toEqual(now);
+    expect(result.value.completedBySubject).toBe("crm-manager");
     expect(checklistUpdates).toEqual([true]);
     expect(interactionWrites).toEqual([
       { type: "system", content: "Checklist: etapa concluída" },
