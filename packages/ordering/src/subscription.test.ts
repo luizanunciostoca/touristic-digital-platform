@@ -197,9 +197,9 @@ describe("M150 subscription renewal contract", () => {
       periodEndAt: "2026-10-16T03:05:00.000Z",
     });
     expect(intent?.pricing).toEqual(subscription.currentPeriod.pricing);
-    expect(
-      createSubscriptionRenewalRequestKey(subscription.id, 2),
-    ).toBe("sub_12345678:period:2");
+    expect(createSubscriptionRenewalRequestKey(subscription.id, 2)).toBe(
+      "sub_12345678:period:2",
+    );
     expect(
       prepareSubscriptionRenewal({
         subscription,
