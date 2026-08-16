@@ -61,6 +61,12 @@ function route(
   return null;
 }
 
+function routeId(value: string): number | string {
+  if (!/^\d+$/u.test(value)) return value;
+  const id = Number(value);
+  return Number.isSafeInteger(id) ? id : value;
+}
+
 export class CrmLeadHttpTransport {
   constructor(
     private readonly boundary: CrmLeadServerBoundary,
@@ -92,24 +98,29 @@ export class CrmLeadHttpTransport {
       );
     }
     if (matched.kind === "lead" && request.method === "GET") {
-      return resultResponse(await this.boundary.get(session, matched.id));
+      return resultResponse(
+        await this.boundary.get(session, routeId(matched.id)),
+      );
     }
     if (matched.kind === "lead" && request.method === "PATCH") {
       const body = crmObjectBody(request.body);
       return resultResponse(
-        await this.boundary.update(session, { ...body, id: matched.id }),
+        await this.boundary.update(session, {
+          ...body,
+          id: routeId(matched.id),
+        }),
       );
     }
     if (matched.kind === "lead" && request.method === "DELETE") {
       return resultResponse(
-        await this.boundary.delete(session, { id: matched.id }),
+        await this.boundary.delete(session, { id: routeId(matched.id) }),
       );
     }
     if (matched.kind === "stage" && request.method === "POST") {
       const body = crmObjectBody(request.body);
       return resultResponse(
         await this.boundary.updateStage(session, {
-          id: matched.id,
+          id: routeId(matched.id),
           stage: body.stage,
         }),
       );
