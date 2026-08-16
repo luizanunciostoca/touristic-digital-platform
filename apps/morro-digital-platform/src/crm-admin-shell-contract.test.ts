@@ -25,10 +25,14 @@ describe("CRM M104 browser shell", () => {
     expect(html).toContain("histórico + configurações");
     expect(html).toContain("cancelamento + expiração");
     expect(html).toContain("vínculo + contato + conversão/perda");
-    expect(html).toContain("sem boundary CRM genérico");
-    expect(html).not.toContain('href="#settings"');
-    expect(html).toContain('aria-disabled="true"');
-    expect(html).toContain("Em breve");
+    expect(html).toContain(
+      "/apps/admin-crm/public/settings.html\">Configurações",
+    );
+    expect(html).toContain(
+      "Follow-up mutável + visão canônica do funil e sistema",
+    );
+    expect(html).not.toContain("sem boundary CRM genérico");
+    expect(html).not.toContain("Configurações <small>Em breve</small>");
     expect(html).toContain("/apps/admin-crm/public/meetings.html");
     expect(html).not.toContain('id="meetings-view"');
   });
@@ -95,5 +99,50 @@ describe("CRM M138 authoritative dashboard browser", () => {
     expect(runtime).toContain("MySqlCrmMetricsAuditPort");
     expect(runtime).toContain("CrmMetricsHttpTransport");
     expect(runtime).toContain('"/api/crm/metrics"');
+  });
+});
+
+describe("CRM M139 Settings browser contract", () => {
+  it("restores the frozen V1 Settings sections without inventing a second mutable settings domain", async () => {
+    const html = await read("apps/admin-crm/public/settings.html");
+    for (const marker of [
+      "Configurações do sistema CRM",
+      "Follow-up Automático",
+      "Sobre o Sistema",
+      "Etapas do Funil de Vendas",
+      'name="intervalDays" type="number" min="1" max="30"',
+      'name="maxAttempts" type="number" min="1" max="20"',
+      "@touristic/crm/settings-contract",
+    ]) {
+      expect(html).toContain(marker);
+    }
+    expect(html).not.toContain("Follow-up com IA ativo");
+    expect(html).not.toContain("WhatsApp, LLM (IA)");
+  });
+
+  it("requires the shared session and reuses the existing audited Follow-up settings boundary", async () => {
+    const browser = await read("apps/admin-crm/public/settings.js");
+    expect(browser).toContain("@touristic/auth-browser");
+    expect(browser).toContain("requireSession");
+    expect(browser).toContain('/api/crm/follow-ups/settings"');
+    expect(browser).toContain('method: "PUT"');
+    expect(browser).toContain(
+      "messageTemplate: currentSetting?.messageTemplate ?? null",
+    );
+    expect(browser).toContain("crmSettingsFunnelStages");
+    expect(browser).toContain("crmSettingsV1Baseline");
+    expect(browser).toContain("textContent");
+    expect(browser).toContain("replaceChildren");
+    expect(browser).not.toContain("innerHTML");
+  });
+
+  it("keeps Settings presentation vocabulary derived from the CRM package", async () => {
+    const contract = await read("packages/crm/src/settings-contract.ts");
+    expect(contract).toContain("crmActiveFunnelStages.map");
+    expect(contract).toContain('new_lead: "Novo Lead"');
+    expect(contract).toContain('payment_done: "Pagamento Recebido"');
+    expect(contract).toContain('active_client: "Cliente Ativo"');
+    expect(contract).toContain("intervalDays: Object.freeze({ min: 1, max: 30 })");
+    expect(contract).toContain("maxAttempts: Object.freeze({ min: 1, max: 20 })");
   });
 });
