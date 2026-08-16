@@ -6,10 +6,7 @@ import {
   type TicketReservation,
 } from "@touristic/ticketing/reservations";
 
-import {
-  TicketReservationApplicationError,
-  createTicketReservationApplicationService,
-} from "./reservation-application-service.js";
+import { createTicketReservationApplicationService } from "./reservation-application-service.js";
 
 function reservation(): TicketReservation {
   const requestKey = createTicketReservationRequestKey(
@@ -56,7 +53,7 @@ describe("Ticketing reservation confirmation application service", () => {
         paymentId: "pay_authority_0001",
         actorReference: "payment_webhook",
       }),
-    ).rejects.toMatchObject<TicketReservationApplicationError>({
+    ).rejects.toMatchObject({
       code: "TICKETING_RESERVATION_PAYMENT_NOT_VERIFIED",
     });
 
@@ -71,7 +68,7 @@ describe("Ticketing reservation confirmation application service", () => {
   it("commits only the exact order and payment returned by backend authority", async () => {
     const held = reservation();
     const confirmAuthoritative = vi.fn().mockResolvedValue({
-      reservation: { ...held, status: "confirmed" },
+      reservation: held,
       replayed: false,
     });
     const service = createTicketReservationApplicationService({
@@ -123,7 +120,7 @@ describe("Ticketing reservation confirmation application service", () => {
         paymentId: "invalid",
         actorReference: "payment_webhook",
       }),
-    ).rejects.toMatchObject<TicketReservationApplicationError>({
+    ).rejects.toMatchObject({
       code: "TICKETING_RESERVATION_CONFIRMATION_INVALID",
     });
 
@@ -150,7 +147,7 @@ describe("Ticketing reservation confirmation application service", () => {
         paymentId: "pay_authority_0001",
         actorReference: "payment_webhook",
       }),
-    ).rejects.toMatchObject<TicketReservationApplicationError>({
+    ).rejects.toMatchObject({
       code: "TICKETING_RESERVATION_HOLD_EXPIRED",
     });
     expect(verify).not.toHaveBeenCalled();
