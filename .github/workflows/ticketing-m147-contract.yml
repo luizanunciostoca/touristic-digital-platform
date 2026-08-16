@@ -63,23 +63,34 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Build Ticketing runtime dependencies
+      - name: Build Ticketing runtime graph once
+        run: pnpm turbo run build --filter=@touristic/ticketing-server...
+      - name: Validate Ticketing domain and server contracts
         run: |
-          pnpm --filter @touristic/financial build
-          pnpm --filter @touristic/ordering build
-      - name: Validate Ticketing domain
-        run: |
-          pnpm --filter @touristic/ticketing lint
-          pnpm --filter @touristic/ticketing typecheck
-          pnpm --filter @touristic/ticketing test
-      - name: Build Ticketing domain
-        run: pnpm --filter @touristic/ticketing build
-      - name: Validate Ticketing server application
-        run: |
-          pnpm --filter @touristic/ticketing-server lint
-          pnpm --filter @touristic/ticketing-server typecheck
-          pnpm --filter @touristic/ticketing-server test
-      - name: Validate durable Ticketing persistence
-        run: pnpm --filter @touristic/ticketing-server test:integration
-      - name: Build Ticketing server
-        run: pnpm --filter @touristic/ticketing-server build
+          set -euo pipefail
+
+          (
+            set -euo pipefail
+            pnpm --filter @touristic/ticketing lint
+            pnpm --filter @touristic/ticketing typecheck
+            pnpm --filter @touristic/ticketing test
+          ) &
+          domain_pid=$!
+
+          (
+            set -euo pipefail
+            pnpm --filter @touristic/ticketing-server lint
+            pnpm --filter @touristic/ticketing-server typecheck
+            pnpm --filter @touristic/ticketing-server exec vitest run --passWithNoTests
+            pnpm --filter @touristic/ticketing-server exec vitest run src/mysql-integration.test.ts
+          ) &
+          server_pid=$!
+
+          domain_status=0
+          server_status=0
+          wait "$domain_pid" || domain_status=$?
+          wait "$server_pid" || server_status=$?
+
+          if (( domain_status != 0 || server_status != 0 )); then
+            exit 1
+          fi
