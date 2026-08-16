@@ -1,3 +1,4 @@
+# retry on serialized branch head
 name: Ticketing M139 M153 Compatibility Fix Once
 
 on:
