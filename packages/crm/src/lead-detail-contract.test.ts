@@ -1,14 +1,30 @@
 import { describe, expect, it } from "vitest";
 
-import { crmChecklistSteps } from "./index.js";
+import { crmChecklistSteps, crmLeadStages } from "./index.js";
 import {
   crmLeadDetailChecklist,
   crmLeadDetailInteractionLabels,
   crmLeadDetailManualInteractionTypes,
+  crmLeadDetailStages,
   isCrmLeadDetailManualInteractionType,
 } from "./lead-detail-contract.js";
 
 describe("CRM M140 frozen lead detail presentation", () => {
+  it("keeps every canonical lead stage including terminal states", () => {
+    expect(crmLeadDetailStages.map(({ stage }) => stage)).toEqual([
+      ...crmLeadStages,
+    ]);
+    expect(crmLeadDetailStages).toHaveLength(18);
+    expect(crmLeadDetailStages.at(-2)).toEqual({
+      stage: "churned",
+      label: "Churn",
+    });
+    expect(crmLeadDetailStages.at(-1)).toEqual({
+      stage: "lost",
+      label: "Perdido",
+    });
+  });
+
   it("keeps every canonical checklist step in the frozen V1 order", () => {
     expect(crmLeadDetailChecklist.map(({ step }) => step)).toEqual([
       ...crmChecklistSteps,
