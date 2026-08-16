@@ -8,7 +8,17 @@ on:
       - "packages/ordering/**"
       - "services/ordering/**"
       - "packages/financial/**"
+      - "services/financial/**"
+      - "packages/auth-browser/**"
+      - "apps/morro-digital-platform/tooling/ticketing-api.mjs"
+      - "apps/morro-digital-platform/tooling/dev-server.mjs"
+      - "apps/morro-digital-platform/public/ticketing.js"
+      - "apps/morro-digital-platform/public/ticketing.css"
+      - "apps/morro-digital-platform/public/tickets.html"
+      - "apps/morro-digital-platform/package.json"
       - "docs/qa/TICKETING-M147-EVIDENCE.md"
+      - "docs/qa/TICKETING-FEATURE-0011-CANONICAL-FULFILLMENT-EVIDENCE.md"
+      - "docs/migration/TICKETING-MIGRATION-MATRIX.md"
       - "docs/features/registry.json"
       - "docs/migration/MASTER-MIGRATION-TRACKER.md"
       - ".github/workflows/ticketing-m147-contract.yml"
@@ -22,7 +32,17 @@ on:
       - "packages/ordering/**"
       - "services/ordering/**"
       - "packages/financial/**"
+      - "services/financial/**"
+      - "packages/auth-browser/**"
+      - "apps/morro-digital-platform/tooling/ticketing-api.mjs"
+      - "apps/morro-digital-platform/tooling/dev-server.mjs"
+      - "apps/morro-digital-platform/public/ticketing.js"
+      - "apps/morro-digital-platform/public/ticketing.css"
+      - "apps/morro-digital-platform/public/tickets.html"
+      - "apps/morro-digital-platform/package.json"
       - "docs/qa/TICKETING-M147-EVIDENCE.md"
+      - "docs/qa/TICKETING-FEATURE-0011-CANONICAL-FULFILLMENT-EVIDENCE.md"
+      - "docs/migration/TICKETING-MIGRATION-MATRIX.md"
       - "docs/features/registry.json"
       - "docs/migration/MASTER-MIGRATION-TRACKER.md"
       - ".github/workflows/ticketing-m147-contract.yml"
@@ -83,8 +103,15 @@ jobs:
             pnpm --filter @touristic/ticketing typecheck
             pnpm --filter @touristic/ticketing-server lint
             pnpm --filter @touristic/ticketing-server typecheck
+            pnpm --filter @touristic/ordering lint
+            pnpm --filter @touristic/ordering typecheck
             pnpm --filter @touristic/ordering-server lint
             pnpm --filter @touristic/ordering-server typecheck
+            pnpm --filter @touristic/auth-browser lint
+            pnpm --filter @touristic/auth-browser typecheck
+            node --check apps/morro-digital-platform/tooling/ticketing-api.mjs
+            node --check apps/morro-digital-platform/tooling/dev-server.mjs
+            node --check apps/morro-digital-platform/public/ticketing.js
           ) &
           static_validation_pid=$!
 
