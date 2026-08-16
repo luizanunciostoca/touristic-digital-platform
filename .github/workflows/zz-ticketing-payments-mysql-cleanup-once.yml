@@ -47,6 +47,10 @@ jobs:
         run: |
           python3 -c 'from pathlib import Path; p=Path("tooling/payments/checkout-mysql-integration.test.ts"); s=p.read_text(); old="    await financialPool.query(\"DELETE FROM financial_payment_idempotency\");\n    await orderingPool.query(\"DELETE FROM ordering_orders\");"; new="    await financialPool.query(\"DELETE FROM financial_payment_idempotency\");\n    await orderingPool.query(\"DELETE FROM ordering_ticketing_reservation_bindings\");\n    await orderingPool.query(\"DELETE FROM ordering_orders\");"; assert s.count(old) == 1, f"cleanup anchor count={s.count(old)}"; p.write_text(s.replace(old,new,1))'
           pnpm exec prettier --write tooling/payments/checkout-mysql-integration.test.ts
+      - name: Build M138 package dependencies
+        run: |
+          pnpm --filter @touristic/financial build
+          pnpm --filter @touristic/ordering build
       - name: Validate M138 checkout MySQL integration
         run: pnpm exec vitest run tooling/payments/checkout-mysql-integration.test.ts
       - name: Commit validated cleanup
