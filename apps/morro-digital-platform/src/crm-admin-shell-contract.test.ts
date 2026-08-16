@@ -123,7 +123,8 @@ describe("CRM M139 Settings browser contract", () => {
   it("requires the shared session and reuses the existing audited Follow-up settings boundary", async () => {
     const browser = await read("apps/admin-crm/public/settings.js");
     expect(browser).toContain("@touristic/auth-browser");
-    expect(browser).toContain("requireSession");
+    expect(browser).toContain("createDashboardAuthClient");
+    expect(browser).toContain("getSession");
     expect(browser).toContain('/api/crm/follow-ups/settings"');
     expect(browser).toContain('method: "PUT"');
     expect(browser).toContain(
