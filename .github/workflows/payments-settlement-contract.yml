@@ -41,11 +41,6 @@ jobs:
           MYSQL_ROOT_PASSWORD: m146-settlement
         ports:
           - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping -h localhost -pm146-settlement"
-          --health-interval=5s
-          --health-timeout=5s
-          --health-retries=20
     env:
       MYSQL_ADMIN_DATABASE_URL: mysql://root:m146-settlement@127.0.0.1:3306/mysql
       FINANCIAL_DATABASE_URL: mysql://root:m146-settlement@127.0.0.1:3306/financial_m146_test
@@ -70,6 +65,31 @@ jobs:
           pnpm --filter @touristic/financial-server lint
           pnpm --filter @touristic/financial-server typecheck
           pnpm --filter @touristic/financial-server exec vitest run src/sandbox-settlement-provider.test.ts
+      - name: Wait for MySQL readiness
+        working-directory: services/financial
+        run: |
+          node --input-type=module <<'NODE'
+          import mysql from 'mysql2/promise';
+
+          const deadline = Date.now() + 90_000;
+          let lastError;
+
+          while (Date.now() < deadline) {
+            try {
+              const connection = await mysql.createConnection(process.env.MYSQL_ADMIN_DATABASE_URL);
+              await connection.query('SELECT 1');
+              await connection.end();
+              console.log('MySQL is ready');
+              process.exit(0);
+            } catch (error) {
+              lastError = error;
+              await new Promise((resolve) => setTimeout(resolve, 1_000));
+            }
+          }
+
+          console.error('MySQL did not become ready within 90 seconds', lastError);
+          process.exit(1);
+          NODE
       - name: Validate durable allocation, settlement and refund recovery
         run: pnpm --filter @touristic/financial-server test:settlement-integration
       - name: Build settlement server boundary
