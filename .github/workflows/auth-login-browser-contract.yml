@@ -44,8 +44,10 @@ jobs:
         run: |
           npm install --prefix /tmp/pw --no-save playwright@1.54.2
           /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
-      - name: Build workspace
-        run: pnpm -w build
+      - name: Build authenticated runtime graph
+        run: |
+          pnpm turbo run build --filter=@touristic/auth-server --filter=@touristic/business --filter=@touristic/crm-server --filter=@touristic/financial-server --filter=@touristic/ordering-server
+          pnpm --filter @touristic/morro-digital-platform build
       - name: Start authenticated runtime
         shell: bash
         run: |
