@@ -6,9 +6,7 @@ import {
   MySqlTicketOfflineEnvelopeRepository,
 } from "./mysql-ticket-checkin-repository.js";
 import { MySqlTicketReservationRepository } from "./mysql-ticket-reservation-repository.js";
-import {
-  createOrderingFinancialReservationConfirmationAuthority,
-} from "./ordering-financial-confirmation-authority.js";
+import { createOrderingFinancialReservationConfirmationAuthority } from "./ordering-financial-confirmation-authority.js";
 import {
   TicketReservationApplicationError,
   createTicketReservationApplicationService,
@@ -43,6 +41,10 @@ import {
   type TicketingIssueResult,
 } from "./ticketing-application-service.js";
 import { MySqlTicketingTransactionalCommand } from "./validated-ticketing-transaction.js";
+import {
+  createVerifiedPaymentTicketFulfillmentHandler,
+  type VerifiedPaymentTicketFulfillmentHandler,
+} from "./verified-payment-fulfillment-handler.js";
 
 export {
   MySqlTicketRepository,
@@ -56,6 +58,7 @@ export {
   createTicketReservationApplicationService,
   createTicketReservationFulfillmentService,
   createTicketingApplicationService,
+  createVerifiedPaymentTicketFulfillmentHandler,
   ticketingM147SchemaSql,
   ticketingM150ReservationSchemaSql,
 };
@@ -78,6 +81,7 @@ export type {
   TicketingOfflineTransactionalCommandResult,
   TicketingTransactionalCommandPort,
   TicketingTransactionalCommandResult,
+  VerifiedPaymentTicketFulfillmentHandler,
   VerifiedTicketReservationAuthority,
 };
 
