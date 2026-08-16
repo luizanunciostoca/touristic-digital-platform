@@ -20,6 +20,20 @@
       "schema": "docs/contracts/platform-observation.v1.schema.json",
       "runtime": "packages/core/src/runtime.ts",
       "evidence": "docs/qa/PLATFORM-CONTRACTS-OBSERVABILITY-EVIDENCE.md"
+    },
+    {
+      "id": "PLATFORM-HEALTH-SNAPSHOT",
+      "version": 1,
+      "owner": "core",
+      "kind": "health",
+      "status": "canonical",
+      "schema": "docs/contracts/platform-health-snapshot.v1.schema.json",
+      "runtime": "packages/core/src/health.ts",
+      "evidence": "docs/qa/PLATFORM-HEALTH-READINESS-EVIDENCE.md",
+      "fixtures": [
+        "docs/contracts/fixtures/platform-health-ready.v1.json",
+        "docs/contracts/fixtures/platform-health-not-ready.v1.json"
+      ]
     }
   ]
 }

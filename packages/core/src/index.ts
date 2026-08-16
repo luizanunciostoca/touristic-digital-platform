@@ -25,6 +25,18 @@ export function defineDestination(
 }
 
 export {
+  createPlatformHealthSnapshot,
+  type PlatformHealthCheck,
+  type PlatformHealthCheckInput,
+  type PlatformHealthCheckStatus,
+  type PlatformHealthRuntimeOptions,
+  type PlatformHealthSnapshot,
+  type PlatformHealthSnapshotInput,
+  type PlatformHealthStatus,
+  type PlatformReadinessStatus,
+} from "./health.js";
+
+export {
   createPlatformEvent,
   createPlatformObservation,
   createPlatformRuntime,

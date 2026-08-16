@@ -12,7 +12,12 @@ const marker: MapMarker = Object.freeze({
   }),
 });
 
-function createEngine(options: { readonly failMarkers?: boolean } = {}) {
+function createEngine(
+  options: {
+    readonly failMarkers?: boolean;
+    readonly initialized?: boolean;
+  } = {},
+) {
   const addMarkers = options.failMarkers
     ? vi.fn(async () => {
         throw new Error("Marker provider failed.");
@@ -21,7 +26,7 @@ function createEngine(options: { readonly failMarkers?: boolean } = {}) {
   const destroy = vi.fn(async () => undefined);
   const engine: GeospatialEngine = {
     providerId: "mapbox",
-    initialized: true,
+    initialized: options.initialized ?? true,
     initialize: vi.fn(async () => undefined),
     setCenter: vi.fn(async () => undefined),
     addMarkers,
@@ -40,6 +45,18 @@ describe("bootstrapMorroDigital", () => {
     expect(result.runtime.destination.locale).toBe("pt-BR");
     expect(result.startedModules).toEqual(["geospatial", "marketplace"]);
     expect(result.loadedMarkerCount).toBe(0);
+    expect(result.readiness).toMatchObject({
+      contractVersion: 1,
+      service: "morro-digital-platform",
+      status: "healthy",
+      readiness: "ready",
+      destinationId: "morro-de-sao-paulo",
+      checks: [
+        { name: "module-registry", status: "pass", critical: true },
+        { name: "bootstrap", status: "pass", critical: true },
+      ],
+    });
+    expect(result.readiness.correlationId).toMatch(/^corr_/u);
   });
 
   it("keeps marketplace dependency available", async () => {
@@ -50,6 +67,7 @@ describe("bootstrapMorroDigital", () => {
 
     expect(marketplace?.dependencies).toEqual(["geospatial"]);
     expect(Object.isFrozen(result)).toBe(true);
+    expect(Object.isFrozen(result.readiness)).toBe(true);
   });
 
   it("loads initial markers and publishes their immutable identifiers", async () => {
@@ -77,6 +95,15 @@ describe("bootstrapMorroDigital", () => {
     expect(fixture.addMarkers).toHaveBeenCalledWith([marker]);
     expect(result.loadedMarkerCount).toBe(1);
     expect(result.geospatialEngine).toBe(fixture.engine);
+    expect(result.readiness).toMatchObject({
+      status: "healthy",
+      readiness: "ready",
+      checks: [
+        { name: "module-registry", status: "pass", critical: true },
+        { name: "bootstrap", status: "pass", critical: true },
+        { name: "geospatial-runtime", status: "pass", critical: true },
+      ],
+    });
     expect(loadedPayloads).toEqual([
       {
         destinationId: "morro-de-sao-paulo",
@@ -85,6 +112,23 @@ describe("bootstrapMorroDigital", () => {
       },
     ]);
     expect(Object.isFrozen(loadedPayloads[0]?.markerIds)).toBe(true);
+  });
+
+  it("fails readiness closed when a requested critical runtime is not initialized", async () => {
+    const fixture = createEngine({ initialized: false });
+
+    const result = await bootstrapMorroDigital({
+      initializeGeospatial: vi.fn(async () => fixture.engine),
+    });
+
+    expect(result.readiness.status).toBe("unhealthy");
+    expect(result.readiness.readiness).toBe("not_ready");
+    expect(result.readiness.checks).toContainEqual({
+      name: "geospatial-runtime",
+      status: "fail",
+      critical: true,
+      detail: "Requested geospatial runtime did not initialize.",
+    });
   });
 
   it("destroys the engine and publishes failure when marker loading fails", async () => {
