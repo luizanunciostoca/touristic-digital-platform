@@ -73,6 +73,7 @@ describeMySql.sequential("M137 Ordering MySQL integration", () => {
   });
 
   beforeEach(async () => {
+    await pool.query("DELETE FROM ordering_ticketing_reservation_bindings");
     await pool.query("DELETE FROM ordering_orders");
   });
 
@@ -107,15 +108,9 @@ describeMySql.sequential("M137 Ordering MySQL integration", () => {
     const repository = new MySqlOrderRepository(pool);
     const upper = order("ord_mysql_Case1234", "mysql_session_Case1234");
     const lower = order("ord_mysql_case1234", "mysql_session_case1234");
-
     await repository.save(upper);
     await repository.save(lower);
-
-    await expect(repository.findById(upper.id)).resolves.toMatchObject({
-      id: upper.id,
-    });
-    await expect(repository.findById(lower.id)).resolves.toMatchObject({
-      id: lower.id,
-    });
+    await expect(repository.findById(upper.id)).resolves.toEqual(upper);
+    await expect(repository.findById(lower.id)).resolves.toEqual(lower);
   });
 });
