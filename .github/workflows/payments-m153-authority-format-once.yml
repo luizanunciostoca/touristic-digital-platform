@@ -1,0 +1,42 @@
+name: Payments M153 Authority Format Once
+
+on:
+  push:
+    branches:
+      - feat/payments-m153-feature-0009-closure
+    paths:
+      - ".github/workflows/payments-m153-authority-format-once.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/payments-m153-feature-0009-closure
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Apply canonical formatter
+        run: pnpm exec prettier --write apps/morro-digital-platform/src/payments-browser-authority-bootstrap.test.ts
+      - name: Verify canonical formatter
+        run: pnpm exec prettier --check apps/morro-digital-platform/src/payments-browser-authority-bootstrap.test.ts
+      - name: Commit canonical formatting
+        run: |
+          if git diff --quiet; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/morro-digital-platform/src/payments-browser-authority-bootstrap.test.ts
+          git commit -m "style(payments): apply canonical authority test formatting"
+          git push origin HEAD:feat/payments-m153-feature-0009-closure
