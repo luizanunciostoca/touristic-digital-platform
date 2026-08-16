@@ -22,7 +22,10 @@ function runtime() {
 
 describe("M152 bounded financial provider retry", () => {
   it("retries an idempotent POST after a network failure with the exact same command", async () => {
-    const captured: Array<{ key: string | null; body: BodyInit | null | undefined }> = [];
+    const captured: Array<{
+      key: string | null;
+      body: BodyInit | null | undefined;
+    }> = [];
     let attempt = 0;
     const fetchMock: typeof fetch = async (_input, init) => {
       captured.push({

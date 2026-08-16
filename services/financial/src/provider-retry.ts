@@ -69,7 +69,9 @@ function retryAuthorized(init: RequestInit): boolean {
   const method = (init.method ?? "GET").trim().toUpperCase();
   if (method === "GET" || method === "HEAD") return true;
   if (!new Set(["POST", "PUT", "PATCH", "DELETE"]).has(method)) return false;
-  const idempotencyKey = new Headers(init.headers).get("Idempotency-Key")?.trim();
+  const idempotencyKey = new Headers(init.headers)
+    .get("Idempotency-Key")
+    ?.trim();
   return Boolean(idempotencyKey && idempotencyKey.length <= 220);
 }
 

@@ -101,28 +101,36 @@ describe("M152 provider retry composition", () => {
   it("retries checkout transport failure with the exact durable idempotency command", async () => {
     const captured: RequestInit[] = [];
     let calls = 0;
-    const provider = createSandboxCheckoutProviderFromEnvironment(environment(), {
-      fetch: async (_input, init) => {
-        captured.push(init ?? {});
-        calls += 1;
-        if (calls === 1) throw new Error("secret network detail");
-        return new Response(
-          JSON.stringify({
-            version: 1,
-            checkoutId: "chk_retry_0001",
-            checkoutUrl: "https://checkout.provider.example/pay/chk_retry_0001",
-            paymentReference: null,
-          }),
-          { status: 201 },
-        );
+    const provider = createSandboxCheckoutProviderFromEnvironment(
+      environment(),
+      {
+        fetch: async (_input, init) => {
+          captured.push(init ?? {});
+          calls += 1;
+          if (calls === 1) throw new Error("secret network detail");
+          return new Response(
+            JSON.stringify({
+              version: 1,
+              checkoutId: "chk_retry_0001",
+              checkoutUrl:
+                "https://checkout.provider.example/pay/chk_retry_0001",
+              paymentReference: null,
+            }),
+            { status: 201 },
+          );
+        },
       },
-    });
+    );
 
-    await expect(provider.createCheckout(checkoutRequest())).resolves.toMatchObject({
+    await expect(
+      provider.createCheckout(checkoutRequest()),
+    ).resolves.toMatchObject({
       providerCheckoutId: "chk_retry_0001",
     });
     expect(captured).toHaveLength(2);
-    expect(captured.map((init) => new Headers(init.headers).get("Idempotency-Key"))).toEqual([
+    expect(
+      captured.map((init) => new Headers(init.headers).get("Idempotency-Key")),
+    ).toEqual([
       "payment:v1:ord_retry_adapter_0001",
       "payment:v1:ord_retry_adapter_0001",
     ]);
@@ -153,7 +161,9 @@ describe("M152 provider retry composition", () => {
       accepted: true,
       providerRefundReference: "refund-retry-0001",
     });
-    expect(captured.map((init) => new Headers(init.headers).get("Idempotency-Key"))).toEqual([
+    expect(
+      captured.map((init) => new Headers(init.headers).get("Idempotency-Key")),
+    ).toEqual([
       "refund:v1:pay_retry_refund_0001",
       "refund:v1:pay_retry_refund_0001",
     ]);
@@ -163,7 +173,8 @@ describe("M152 provider retry composition", () => {
   it("retries reconciliation 429 as a read-only GET and preserves identity checks", async () => {
     const paymentId = normalizePaymentId("pay_retry_reconcile_0001");
     const amount = createMoney(49_900, "BRL");
-    if (!paymentId || !amount) throw new Error("RECONCILIATION_FIXTURE_INVALID");
+    if (!paymentId || !amount)
+      throw new Error("RECONCILIATION_FIXTURE_INVALID");
     let calls = 0;
     const provider = createSandboxReconciliationProviderFromEnvironment(
       environment(),
@@ -199,29 +210,36 @@ describe("M152 provider retry composition", () => {
   it("retries settlement POST only because its durable idempotency key is present", async () => {
     const captured: RequestInit[] = [];
     let calls = 0;
-    const provider = createSandboxSettlementProviderFromEnvironment(environment(), {
-      fetch: async (_input, init) => {
-        captured.push(init ?? {});
-        calls += 1;
-        return calls === 1
-          ? new Response(null, { status: 503 })
-          : new Response(
-              JSON.stringify({
-                version: 1,
-                settlementId: "stl_retry_12345678",
-                accepted: true,
-                transferReference: "transfer-retry-12345678",
-              }),
-              { status: 200 },
-            );
+    const provider = createSandboxSettlementProviderFromEnvironment(
+      environment(),
+      {
+        fetch: async (_input, init) => {
+          captured.push(init ?? {});
+          calls += 1;
+          return calls === 1
+            ? new Response(null, { status: 503 })
+            : new Response(
+                JSON.stringify({
+                  version: 1,
+                  settlementId: "stl_retry_12345678",
+                  accepted: true,
+                  transferReference: "transfer-retry-12345678",
+                }),
+                { status: 200 },
+              );
+        },
       },
-    });
+    );
 
-    await expect(provider.requestTransfer(settlementCommand())).resolves.toEqual({
+    await expect(
+      provider.requestTransfer(settlementCommand()),
+    ).resolves.toEqual({
       accepted: true,
       providerTransferReference: "transfer-retry-12345678",
     });
-    expect(captured.map((init) => new Headers(init.headers).get("Idempotency-Key"))).toEqual([
+    expect(
+      captured.map((init) => new Headers(init.headers).get("Idempotency-Key")),
+    ).toEqual([
       "settlement:v1:pbl_retry_12345678",
       "settlement:v1:pbl_retry_12345678",
     ]);
@@ -230,12 +248,15 @@ describe("M152 provider retry composition", () => {
 
   it("never retries semantic rejection through the composed checkout adapter", async () => {
     let calls = 0;
-    const provider = createSandboxCheckoutProviderFromEnvironment(environment(), {
-      fetch: async () => {
-        calls += 1;
-        return new Response("secret provider detail", { status: 422 });
+    const provider = createSandboxCheckoutProviderFromEnvironment(
+      environment(),
+      {
+        fetch: async () => {
+          calls += 1;
+          return new Response("secret provider detail", { status: 422 });
+        },
       },
-    });
+    );
 
     await expect(provider.createCheckout(checkoutRequest())).rejects.toEqual(
       new SandboxCheckoutProviderError("SANDBOX_PROVIDER_REJECTED"),
