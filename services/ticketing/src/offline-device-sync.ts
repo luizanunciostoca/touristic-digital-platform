@@ -1,3 +1,5 @@
+import { createHash, timingSafeEqual } from "node:crypto";
+
 import {
   createTicketOfflineEnvelopeSignature,
   normalizeTicketSigningSecret,
@@ -9,6 +11,7 @@ import {
   type TicketSigningSecret,
 } from "@touristic/ticketing";
 
+import type { MySqlTicketOfflineDeviceRegistry } from "./mysql-offline-device-registry.js";
 import type { TicketingApplicationService } from "./ticketing-application-service.js";
 
 export interface TicketOfflineDeviceSyncService {
@@ -19,11 +22,25 @@ export interface TicketOfflineDeviceSyncService {
   }): Promise<TicketOfflineSyncResult>;
 }
 
+function fingerprint(value: string): string {
+  return createHash("sha256").update(value).digest("hex");
+}
+
+function secureEqual(left: string, right: string): boolean {
+  const leftBuffer = Buffer.from(left, "utf8");
+  const rightBuffer = Buffer.from(right, "utf8");
+  return (
+    leftBuffer.length === rightBuffer.length &&
+    timingSafeEqual(leftBuffer, rightBuffer)
+  );
+}
+
 export function createTicketOfflineDeviceSyncService(dependencies: {
   readonly provisioningSecret: string;
   readonly qrSigningSecret: TicketSigningSecret;
   readonly tickets: TicketRepositoryPort;
   readonly ticketing: TicketingApplicationService;
+  readonly devices: MySqlTicketOfflineDeviceRegistry;
   readonly clock: { now(): string };
 }): TicketOfflineDeviceSyncService {
   const qrSigningSecret = normalizeTicketSigningSecret(
@@ -40,6 +57,25 @@ export function createTicketOfflineDeviceSyncService(dependencies: {
         now,
       );
       if (!credential) throw new Error("TICKETING_DEVICE_CREDENTIAL_INVALID");
+      const registration = await dependencies.devices.findByDeviceId(
+        credential.claims.deviceId,
+      );
+      const observedFingerprint = fingerprint(credential.token);
+      if (
+        !registration ||
+        registration.revokedAt !== null ||
+        registration.destinationId !== credential.claims.destinationId ||
+        registration.issuedAt !== credential.claims.issuedAt ||
+        registration.expiresAt !== credential.claims.expiresAt ||
+        Date.parse(now) >= Date.parse(registration.expiresAt) ||
+        !secureEqual(
+          observedFingerprint,
+          registration.credentialFingerprint,
+        )
+      ) {
+        throw new Error("TICKETING_DEVICE_CREDENTIAL_REVOKED_OR_UNKNOWN");
+      }
+
       const deviceSecret = normalizeTicketSigningSecret(
         credential.envelopeSigningSecret,
       );
@@ -63,11 +99,16 @@ export function createTicketOfflineDeviceSyncService(dependencies: {
       if (!translatedSignature) {
         throw new Error("TICKETING_OFFLINE_ENVELOPE_INVALID");
       }
-      return dependencies.ticketing.syncOfflineEnvelope({
+      const result = await dependencies.ticketing.syncOfflineEnvelope({
         envelope: Object.freeze({ ...envelope, signature: translatedSignature }),
         operatorReference: credential.claims.deviceId,
         recordedAt: input.recordedAt,
       });
+      await dependencies.devices.recordSync(
+        credential.claims.deviceId,
+        String(input.recordedAt),
+      );
+      return result;
     },
   });
 }
