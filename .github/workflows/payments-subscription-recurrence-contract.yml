@@ -65,5 +65,11 @@ jobs:
         run: pnpm --filter @touristic/ordering test
       - name: Ordering durable Subscription persistence
         run: pnpm --filter @touristic/ordering-server test:integration
+      - name: Build server runtime entrypoints
+        run: |
+          pnpm --filter @touristic/financial-server build
+          pnpm --filter @touristic/ordering-server build
+      - name: Payments server authority bootstrap
+        run: pnpm --filter @touristic/morro-digital-platform exec vitest run tooling/payments-authority-bootstrap.test.mjs
       - name: Payments browser authority bootstrap
-        run: pnpm --filter @touristic/morro-digital-platform test -- payments-browser-authority-bootstrap.test.ts
+        run: pnpm --filter @touristic/morro-digital-platform exec vitest run src/payments-browser-authority-bootstrap.test.ts
