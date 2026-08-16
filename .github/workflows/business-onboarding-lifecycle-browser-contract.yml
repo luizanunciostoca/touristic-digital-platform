@@ -28,9 +28,14 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: business-onboarding-lifecycle-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   lifecycle-browser:
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
