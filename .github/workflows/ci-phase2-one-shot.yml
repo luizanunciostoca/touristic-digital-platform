@@ -28,6 +28,8 @@ jobs:
               '.github/workflows/business-onboarding-lifecycle-browser-contract.yml': ('business-onboarding-lifecycle', 15),
               '.github/workflows/auth-login-browser-contract.yml': ('auth-login-browser', 15),
           }
+          workflow_expr = '$' + '{' + '{ github.workflow }}'
+          ref_expr = '$' + '{' + '{ github.ref }}'
 
           for raw_path, (group_name, timeout) in targets.items():
               path = Path(raw_path)
@@ -42,7 +44,7 @@ jobs:
                   permissions,
                   permissions
                   + 'concurrency:\n'
-                  + f'  group: {group_name}-${{{{ github.workflow }}}}-${{{{ github.ref }}}}\n'
+                  + f'  group: {group_name}-{workflow_expr}-{ref_expr}\n'
                   + '  cancel-in-progress: true\n\n',
                   1,
               )
