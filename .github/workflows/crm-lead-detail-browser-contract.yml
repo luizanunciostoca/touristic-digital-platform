@@ -1,0 +1,353 @@
+name: CRM Lead Detail Browser Contract
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/crm-lead-detail-browser-contract.yml"
+      - "apps/admin-crm/public/index.html"
+      - "apps/admin-crm/public/lead-detail.html"
+      - "apps/admin-crm/public/lead-detail.js"
+      - "apps/admin-crm/public/lead-detail-links.js"
+      - "apps/morro-digital-platform/src/crm-lead-detail-contract.test.ts"
+      - "apps/morro-digital-platform/tooling/crm-api.mjs"
+      - "packages/crm/src/lead-detail-*.ts"
+      - "packages/crm/package.json"
+      - "services/crm/src/lead-detail-*.ts"
+      - "services/crm/src/mysql-lead-detail-*.ts"
+      - "services/crm/src/index.ts"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/crm-lead-detail-browser-contract.yml"
+      - "apps/admin-crm/public/index.html"
+      - "apps/admin-crm/public/lead-detail.html"
+      - "apps/admin-crm/public/lead-detail.js"
+      - "apps/admin-crm/public/lead-detail-links.js"
+      - "apps/morro-digital-platform/src/crm-lead-detail-contract.test.ts"
+      - "apps/morro-digital-platform/tooling/crm-api.mjs"
+      - "packages/crm/src/lead-detail-*.ts"
+      - "packages/crm/package.json"
+      - "services/crm/src/lead-detail-*.ts"
+      - "services/crm/src/mysql-lead-detail-*.ts"
+      - "services/crm/src/index.ts"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: crm-lead-detail-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lead-detail-browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: crm-pass
+          MYSQL_DATABASE: morro_crm
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -pcrm-pass"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Validate focused CRM contracts
+        run: |
+          pnpm --filter @touristic/crm test
+          pnpm --filter @touristic/crm-server lint
+          pnpm --filter @touristic/crm-server typecheck
+          pnpm --filter @touristic/crm-server test
+          pnpm --filter @touristic/morro-digital-platform test -- crm-lead-detail-contract.test.ts
+      - name: Install deterministic Chromium
+        run: |
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+      - name: Build authenticated CRM runtime graph
+        run: |
+          pnpm turbo run build --filter=@touristic/auth-browser --filter=@touristic/auth-server --filter=@touristic/crm --filter=@touristic/crm-server --filter=@touristic/business --filter=@touristic/financial-server --filter=@touristic/ordering-server
+          pnpm --filter @touristic/morro-digital-platform build
+      - name: Start authenticated CRM runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          PORT=4192
+          SECRET="0123456789abcdef0123456789abcdef"
+          PASSWORD="correct horse battery staple"
+          HASH=$(node --input-type=module -e "import('./services/auth/dist/credentials.js').then(m => console.log(m.hashPassword(process.argv[1], Buffer.alloc(16, 13))))" "$PASSWORD")
+          USERS=$(node -e 'console.log(JSON.stringify([{id:"owner-1",email:"owner@example.com",passwordHash:process.argv[1],role:"owner",businessIds:["toca-do-morcego"]},{id:"viewer-1",email:"viewer@example.com",passwordHash:process.argv[1],role:"viewer",businessIds:["toca-do-morcego"]}]))' "$HASH")
+          DASHBOARD_AUTH_SECRET="$SECRET" \
+          DASHBOARD_USERS_JSON="$USERS" \
+          CRM_DATABASE_URL="mysql://root:crm-pass@127.0.0.1:3306/morro_crm" \
+          PORT="$PORT" HOST="127.0.0.1" \
+            node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/crm-m140-server.log 2>&1 &
+          echo $! >/tmp/crm-m140-server.pid
+          for _ in $(seq 1 80); do
+            if curl --fail --silent "http://127.0.0.1:${PORT}/runtime-config.js" >/dev/null; then exit 0; fi
+            sleep .25
+          done
+          cat /tmp/crm-m140-server.log
+          exit 1
+      - name: Validate real Auth CSRF RBAC MySQL Lead Detail API
+        shell: bash
+        run: |
+          set -euo pipefail
+          ORIGIN="http://127.0.0.1:4192"
+          PASSWORD="correct horse battery staple"
+
+          assert_http() {
+            local actual="$1"
+            local expected="$2"
+            local file="$3"
+            local label="$4"
+            if [ "$actual" != "$expected" ]; then
+              echo "$label expected HTTP $expected but received $actual"
+              cat "$file" || true
+              echo "--- server log ---"
+              cat /tmp/crm-m140-server.log || true
+              exit 1
+            fi
+          }
+
+          UNAUTH=$(curl --silent --output /tmp/m140-unauth.json --write-out '%{http_code}' "$ORIGIN/api/crm/leads/1/detail")
+          assert_http "$UNAUTH" 401 /tmp/m140-unauth.json unauthenticated-detail
+          grep -q 'AUTH_REQUIRED' /tmp/m140-unauth.json
+
+          OWNER_LOGIN=$(curl --silent --output /tmp/m140-owner-login.json --cookie-jar /tmp/m140-owner.cookies --write-out '%{http_code}' \
+            --header "Origin: $ORIGIN" --header 'Content-Type: application/json' \
+            --data "{\"email\":\"owner@example.com\",\"password\":\"$PASSWORD\"}" \
+            "$ORIGIN/api/dashboard/auth/login")
+          assert_http "$OWNER_LOGIN" 200 /tmp/m140-owner-login.json owner-login
+          python3 - <<'PY'
+          import json
+          data=json.load(open('/tmp/m140-owner-login.json'))
+          open('/tmp/m140-owner-csrf.txt','w').write(data['csrfToken'])
+          PY
+          OWNER_CSRF=$(cat /tmp/m140-owner-csrf.txt)
+
+          CREATE=$(curl --silent --output /tmp/m140-create.json --write-out '%{http_code}' \
+            --cookie /tmp/m140-owner.cookies --header "Origin: $ORIGIN" --header "X-CSRF-Token: $OWNER_CSRF" \
+            --header 'Content-Type: application/json' \
+            --data '{"companyName":"Toca do Morcego","segment":"events","contactName":"Luiz"}' \
+            "$ORIGIN/api/crm/leads")
+          assert_http "$CREATE" 200 /tmp/m140-create.json owner-create
+          python3 - <<'PY'
+          import json
+          data=json.load(open('/tmp/m140-create.json'))
+          lead=data['data']
+          assert lead['companyName']=='Toca do Morcego'
+          open('/tmp/m140-lead-id.txt','w').write(str(lead['id']))
+          PY
+          LEAD_ID=$(cat /tmp/m140-lead-id.txt)
+
+          DETAIL=$(curl --silent --output /tmp/m140-detail.json --write-out '%{http_code}' \
+            --cookie /tmp/m140-owner.cookies "$ORIGIN/api/crm/leads/$LEAD_ID/detail")
+          assert_http "$DETAIL" 200 /tmp/m140-detail.json owner-detail
+          python3 - <<'PY'
+          import json
+          data=json.load(open('/tmp/m140-detail.json'))['data']
+          assert data['lead']['companyName']=='Toca do Morcego'
+          assert len(data['checklist'])==16
+          assert data['checklist'][0]['step']=='first_contact'
+          assert data['checklist'][0]['id'] is not None
+          assert any(item['type']=='system' and item['content']=='Lead cadastrado no sistema' for item in data['interactions'])
+          open('/tmp/m140-checklist-id.txt','w').write(str(data['checklist'][0]['id']))
+          PY
+          CHECKLIST_ID=$(cat /tmp/m140-checklist-id.txt)
+
+          BAD_CSRF=$(curl --silent --output /tmp/m140-bad-csrf.json --write-out '%{http_code}' \
+            --request PATCH --cookie /tmp/m140-owner.cookies --header "Origin: $ORIGIN" --header 'X-CSRF-Token: wrong' \
+            --header 'Content-Type: application/json' --data '{"completed":true}' \
+            "$ORIGIN/api/crm/leads/$LEAD_ID/checklist/$CHECKLIST_ID")
+          assert_http "$BAD_CSRF" 403 /tmp/m140-bad-csrf.json invalid-csrf
+          grep -q 'INVALID_CSRF' /tmp/m140-bad-csrf.json
+
+          VIEWER_LOGIN=$(curl --silent --output /tmp/m140-viewer-login.json --cookie-jar /tmp/m140-viewer.cookies --write-out '%{http_code}' \
+            --header "Origin: $ORIGIN" --header 'Content-Type: application/json' \
+            --data "{\"email\":\"viewer@example.com\",\"password\":\"$PASSWORD\"}" \
+            "$ORIGIN/api/dashboard/auth/login")
+          assert_http "$VIEWER_LOGIN" 200 /tmp/m140-viewer-login.json viewer-login
+          python3 - <<'PY'
+          import json
+          data=json.load(open('/tmp/m140-viewer-login.json'))
+          open('/tmp/m140-viewer-csrf.txt','w').write(data['csrfToken'])
+          PY
+          VIEWER_CSRF=$(cat /tmp/m140-viewer-csrf.txt)
+
+          VIEWER_READ=$(curl --silent --output /tmp/m140-viewer-read.json --write-out '%{http_code}' \
+            --cookie /tmp/m140-viewer.cookies "$ORIGIN/api/crm/leads/$LEAD_ID/detail")
+          assert_http "$VIEWER_READ" 200 /tmp/m140-viewer-read.json viewer-detail
+
+          VIEWER_WRITE=$(curl --silent --output /tmp/m140-viewer-write.json --write-out '%{http_code}' \
+            --request PATCH --cookie /tmp/m140-viewer.cookies --header "Origin: $ORIGIN" --header "X-CSRF-Token: $VIEWER_CSRF" \
+            --header 'Content-Type: application/json' --data '{"completed":true}' \
+            "$ORIGIN/api/crm/leads/$LEAD_ID/checklist/$CHECKLIST_ID")
+          assert_http "$VIEWER_WRITE" 403 /tmp/m140-viewer-write.json viewer-write
+          grep -q 'READ_ONLY_ROLE' /tmp/m140-viewer-write.json
+
+          CREATE_SECOND=$(curl --silent --output /tmp/m140-create-second.json --write-out '%{http_code}' \
+            --cookie /tmp/m140-owner.cookies --header "Origin: $ORIGIN" --header "X-CSRF-Token: $OWNER_CSRF" \
+            --header 'Content-Type: application/json' --data '{"companyName":"Second Lead"}' \
+            "$ORIGIN/api/crm/leads")
+          assert_http "$CREATE_SECOND" 200 /tmp/m140-create-second.json second-create
+          python3 - <<'PY'
+          import json
+          data=json.load(open('/tmp/m140-create-second.json'))
+          open('/tmp/m140-second-lead-id.txt','w').write(str(data['data']['id']))
+          PY
+          SECOND_ID=$(cat /tmp/m140-second-lead-id.txt)
+
+          CROSS_LEAD=$(curl --silent --output /tmp/m140-cross-lead.json --write-out '%{http_code}' \
+            --request PATCH --cookie /tmp/m140-owner.cookies --header "Origin: $ORIGIN" --header "X-CSRF-Token: $OWNER_CSRF" \
+            --header 'Content-Type: application/json' --data '{"completed":true}' \
+            "$ORIGIN/api/crm/leads/$SECOND_ID/checklist/$CHECKLIST_ID")
+          assert_http "$CROSS_LEAD" 404 /tmp/m140-cross-lead.json cross-lead-checklist
+
+          TOGGLE=$(curl --silent --output /tmp/m140-toggle.json --write-out '%{http_code}' \
+            --request PATCH --cookie /tmp/m140-owner.cookies --header "Origin: $ORIGIN" --header "X-CSRF-Token: $OWNER_CSRF" \
+            --header 'Content-Type: application/json' --data '{"completed":true}' \
+            "$ORIGIN/api/crm/leads/$LEAD_ID/checklist/$CHECKLIST_ID")
+          assert_http "$TOGGLE" 200 /tmp/m140-toggle.json owner-toggle
+          grep -q '"completed":true' /tmp/m140-toggle.json
+
+          SYSTEM_MANUAL=$(curl --silent --output /tmp/m140-system-manual.json --write-out '%{http_code}' \
+            --cookie /tmp/m140-owner.cookies --header "Origin: $ORIGIN" --header "X-CSRF-Token: $OWNER_CSRF" \
+            --header 'Content-Type: application/json' --data '{"type":"system","content":"blocked"}' \
+            "$ORIGIN/api/crm/leads/$LEAD_ID/interactions")
+          assert_http "$SYSTEM_MANUAL" 400 /tmp/m140-system-manual.json system-manual
+          grep -q 'INVALID_INPUT' /tmp/m140-system-manual.json
+
+          NOTE=$(curl --silent --output /tmp/m140-note.json --write-out '%{http_code}' \
+            --cookie /tmp/m140-owner.cookies --header "Origin: $ORIGIN" --header "X-CSRF-Token: $OWNER_CSRF" \
+            --header 'Content-Type: application/json' --data '{"type":"note","content":"Cliente pediu retorno amanhã"}' \
+            "$ORIGIN/api/crm/leads/$LEAD_ID/interactions")
+          assert_http "$NOTE" 200 /tmp/m140-note.json owner-note
+
+          READBACK=$(curl --silent --output /tmp/m140-readback.json --write-out '%{http_code}' \
+            --cookie /tmp/m140-owner.cookies "$ORIGIN/api/crm/leads/$LEAD_ID/detail")
+          assert_http "$READBACK" 200 /tmp/m140-readback.json owner-readback
+          python3 - <<'PY'
+          import json
+          data=json.load(open('/tmp/m140-readback.json'))['data']
+          assert data['checklist'][0]['completed'] is True
+          assert data['checklist'][0]['completedBySubject']=='owner-1'
+          assert any(item['type']=='note' and item['content']=='Cliente pediu retorno amanhã' for item in data['interactions'])
+          assert data['lead']['lastContactAt'] is not None
+          PY
+      - name: Validate authenticated Lead Detail browser lifecycle
+        run: |
+          node <<'NODE'
+          const { writeFileSync, readFileSync } = require('node:fs');
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+
+          (async () => {
+            const origin = 'http://127.0.0.1:4192';
+            const leadId = readFileSync('/tmp/m140-lead-id.txt', 'utf8').trim();
+            const browser = await chromium.launch({ headless: true });
+            const evidence = { errors: [], leadId };
+            try {
+              const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+              const page = await context.newPage();
+              page.on('pageerror', error => evidence.errors.push(error.message));
+
+              await page.goto(`${origin}/apps/admin-crm/public/lead-detail.html?id=${leadId}`, {
+                waitUntil: 'domcontentloaded',
+                timeout: 30000,
+              });
+              await page.waitForURL(url => url.pathname === '/dashboard/login.html', { timeout: 10000 });
+              await page.locator('#email').fill('owner@example.com');
+              await page.locator('#password').fill('correct horse battery staple');
+              await page.locator('#submit').click();
+              await page.waitForURL(url => url.pathname === '/apps/admin-crm/public/lead-detail.html', { timeout: 15000 });
+              await page.locator('#lead-detail-shell:not([hidden])').waitFor({ state: 'visible', timeout: 10000 });
+              await page.getByRole('heading', { name: 'Toca do Morcego' }).waitFor({ state: 'visible', timeout: 10000 });
+              await page.getByText('Lead sincronizado com o CRM.').waitFor({ state: 'visible', timeout: 10000 });
+
+              const stageOptions = await page.locator('#lead-stage option').allTextContents();
+              if (stageOptions.length !== 18 || !stageOptions.includes('Churn') || !stageOptions.includes('Perdido')) {
+                throw new Error(`Lead stage contract diverged: ${JSON.stringify(stageOptions)}`);
+              }
+
+              const firstChecklist = page.getByLabel('Primeiro Contato');
+              if (!(await firstChecklist.isChecked())) throw new Error('API-prepared checklist state missing');
+              await firstChecklist.uncheck();
+              await page.getByText(/0 de 16 etapas concluídas/).waitFor({ state: 'visible', timeout: 10000 });
+              await page.getByLabel('Primeiro Contato').check();
+              await page.getByText(/1 de 16 etapas concluídas/).waitFor({ state: 'visible', timeout: 10000 });
+
+              await page.locator('#lead-interaction-type').selectOption('note');
+              await page.locator('#lead-interaction-form textarea[name="content"]').fill('Nota criada pelo Chromium M140');
+              await page.locator('#lead-interaction-submit').click();
+              await page.getByText('Nota criada pelo Chromium M140').waitFor({ state: 'visible', timeout: 10000 });
+
+              await page.locator('#lead-stage').selectOption('first_contact');
+              await page.locator('#lead-stage-submit').click();
+              await page.getByText('Etapa atualizada.').waitFor({ state: 'visible', timeout: 10000 });
+
+              await page.locator('#lead-edit-form input[name="contactName"]').fill('Luiz M140');
+              await page.locator('#lead-edit-submit').click();
+              await page.getByText('Lead atualizado.').waitFor({ state: 'visible', timeout: 10000 });
+              await page.getByText('Luiz M140').first().waitFor({ state: 'visible', timeout: 10000 });
+
+              await page.goto(`${origin}/apps/admin-crm/#leads`, { waitUntil: 'domcontentloaded' });
+              await page.locator('#leads-body tr').first().waitFor({ state: 'visible', timeout: 10000 });
+              const detailLink = page.getByRole('link', { name: 'Detalhes' }).first();
+              await detailLink.waitFor({ state: 'visible', timeout: 10000 });
+              const href = await detailLink.getAttribute('href');
+              if (href !== `/apps/admin-crm/public/lead-detail.html?id=${leadId}`) {
+                throw new Error(`Lead detail navigation diverged: ${href}`);
+              }
+              await detailLink.click();
+              await page.waitForURL(url => url.pathname === '/apps/admin-crm/public/lead-detail.html' && url.searchParams.get('id') === leadId, { timeout: 10000 });
+
+              if (evidence.errors.length) throw new Error(`Browser errors: ${JSON.stringify(evidence.errors)}`);
+              evidence.authRedirect = true;
+              evidence.stageVocabulary = 18;
+              evidence.checklistToggle = true;
+              evidence.manualInteraction = true;
+              evidence.stageMutation = true;
+              evidence.leadEdit = true;
+              evidence.listNavigation = true;
+              writeFileSync('/tmp/crm-m140-browser-evidence.json', JSON.stringify(evidence, null, 2));
+              await context.close();
+            } finally {
+              await browser.close();
+            }
+          })().catch(error => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+      - name: Show diagnostics
+        if: failure()
+        run: |
+          cat /tmp/crm-m140-server.log || true
+          cat /tmp/m140-unauth.json || true
+          cat /tmp/m140-detail.json || true
+          cat /tmp/m140-readback.json || true
+          cat /tmp/crm-m140-browser-evidence.json || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: crm-m140-lead-detail-evidence
+          path: /tmp/crm-m140-browser-evidence.json
+          retention-days: 1
+          if-no-files-found: ignore
+      - name: Stop runtime
+        if: always()
+        run: |
+          if [ -f /tmp/crm-m140-server.pid ]; then kill "$(cat /tmp/crm-m140-server.pid)" 2>/dev/null || true; fi
