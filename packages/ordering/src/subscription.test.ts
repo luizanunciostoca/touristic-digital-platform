@@ -138,9 +138,7 @@ describe("M150 subscription activation contract", () => {
       startAt: "2026-08-16T03:05:00.000Z",
       endAt: "2026-09-16T03:05:00.000Z",
     });
-    expect(subscription.currentPeriod.pricing).toEqual(
-      initialOrder().pricing,
-    );
+    expect(subscription.currentPeriod.pricing).toEqual(initialOrder().pricing);
     expect(Object.isFrozen(subscription)).toBe(true);
     expect(Object.isFrozen(subscription.currentPeriod)).toBe(true);
   });
