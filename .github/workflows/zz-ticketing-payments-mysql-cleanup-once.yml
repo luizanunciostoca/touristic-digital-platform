@@ -42,10 +42,55 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Respect Ticketing FK in M138 cleanup
+      - name: Make M138 cleanup independent across schema generations
         shell: bash
         run: |
-          python3 -c 'from pathlib import Path; p=Path("tooling/payments/checkout-mysql-integration.test.ts"); s=p.read_text(); old="    await financialPool.query(\"DELETE FROM financial_payment_idempotency\");\n    await orderingPool.query(\"DELETE FROM ordering_orders\");"; new="    await financialPool.query(\"DELETE FROM financial_payment_idempotency\");\n    await orderingPool.query(\"DELETE FROM ordering_ticketing_reservation_bindings\");\n    await orderingPool.query(\"DELETE FROM ordering_orders\");"; assert s.count(old) == 1, f"cleanup anchor count={s.count(old)}"; p.write_text(s.replace(old,new,1))'
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("tooling/payments/checkout-mysql-integration.test.ts")
+          s = p.read_text()
+          old = '''  beforeEach(async () => {
+            await orderingPool.query(
+              "DELETE FROM ordering_subscription_renewal_intents",
+            );
+            await orderingPool.query("DELETE FROM ordering_subscriptions");
+            await orderingPool.query("DELETE FROM ordering_checkout_access");
+            await financialPool.query("DELETE FROM financial_ledger_postings");
+            await financialPool.query("DELETE FROM financial_ledger_transactions");
+            await financialPool.query("DELETE FROM financial_payments");
+            await financialPool.query("DELETE FROM financial_payment_idempotency");
+            await orderingPool.query("DELETE FROM ordering_orders");
+          });'''
+          new = '''  beforeEach(async () => {
+            for (const table of [
+              "ordering_subscription_renewal_intents",
+              "ordering_subscriptions",
+              "ordering_ticketing_reservation_bindings",
+            ]) {
+              try {
+                await orderingPool.query(`DELETE FROM ${table}`);
+              } catch (error) {
+                if (
+                  !error ||
+                  typeof error !== "object" ||
+                  !("code" in error) ||
+                  error.code !== "ER_NO_SUCH_TABLE"
+                ) {
+                  throw error;
+                }
+              }
+            }
+            await orderingPool.query("DELETE FROM ordering_checkout_access");
+            await financialPool.query("DELETE FROM financial_ledger_postings");
+            await financialPool.query("DELETE FROM financial_ledger_transactions");
+            await financialPool.query("DELETE FROM financial_payments");
+            await financialPool.query("DELETE FROM financial_payment_idempotency");
+            await orderingPool.query("DELETE FROM ordering_orders");
+          });'''
+          if s.count(old) != 1:
+              raise SystemExit(f"cleanup block count={s.count(old)}")
+          p.write_text(s.replace(old, new, 1))
+          PY
           pnpm exec prettier --write tooling/payments/checkout-mysql-integration.test.ts
       - name: Build M138 package dependencies
         run: |
@@ -60,5 +105,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add tooling/payments/checkout-mysql-integration.test.ts
-          git commit -m "test(ticketing): isolate M138 checkout from Ticketing FK"
+          git commit -m "test(ticketing): isolate M138 cleanup across ordering schemas"
           git push origin HEAD:fix/ticketing-feature-0011-current-main
