@@ -12,7 +12,6 @@ import type {
 import type { TicketingReservationOrderApplicationService } from "@touristic/ordering/ticketing-reservation";
 import {
   createTicketQrPayload,
-  normalizeTicketId,
   provisionTicketOfflineDeviceCredential,
   type Ticket,
   type TicketOfflineEnvelope,
