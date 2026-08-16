@@ -1,0 +1,80 @@
+name: Ticketing PR253 Format Once
+
+on:
+  pull_request:
+    types: [synchronize]
+    paths:
+      - ".github/workflows/ticketing-pr253-format-once.yml"
+      - "docs/migration/TICKETING-MIGRATION-MATRIX.md"
+      - "docs/qa/TICKETING-M150-EVIDENCE.md"
+      - "packages/ticketing/package.json"
+      - "packages/ticketing/src/reservations.test.ts"
+      - "packages/ticketing/src/reservations.ts"
+      - "services/ticketing/package.json"
+      - "services/ticketing/src/index.ts"
+      - "services/ticketing/src/mysql-ticket-reservation-repository.ts"
+      - "services/ticketing/src/reservation-application-service.test.ts"
+      - "services/ticketing/src/reservation-application-service.ts"
+      - "services/ticketing/src/reservation-mysql-integration.test.ts"
+      - "services/ticketing/src/reservation-schema.ts"
+
+permissions:
+  contents: write
+
+jobs:
+  format-once:
+    if: github.event.pull_request.number == 253 && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Apply repository formatter and remove helper
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm exec prettier --write \
+            docs/migration/TICKETING-MIGRATION-MATRIX.md \
+            docs/qa/TICKETING-M150-EVIDENCE.md \
+            packages/ticketing/package.json \
+            packages/ticketing/src/reservations.test.ts \
+            packages/ticketing/src/reservations.ts \
+            services/ticketing/package.json \
+            services/ticketing/src/index.ts \
+            services/ticketing/src/mysql-ticket-reservation-repository.ts \
+            services/ticketing/src/reservation-application-service.test.ts \
+            services/ticketing/src/reservation-application-service.ts \
+            services/ticketing/src/reservation-mysql-integration.test.ts \
+            services/ticketing/src/reservation-schema.ts
+          rm .github/workflows/ticketing-pr253-format-once.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            docs/migration/TICKETING-MIGRATION-MATRIX.md \
+            docs/qa/TICKETING-M150-EVIDENCE.md \
+            packages/ticketing/package.json \
+            packages/ticketing/src/reservations.test.ts \
+            packages/ticketing/src/reservations.ts \
+            services/ticketing/package.json \
+            services/ticketing/src/index.ts \
+            services/ticketing/src/mysql-ticket-reservation-repository.ts \
+            services/ticketing/src/reservation-application-service.test.ts \
+            services/ticketing/src/reservation-application-service.ts \
+            services/ticketing/src/reservation-mysql-integration.test.ts \
+            services/ticketing/src/reservation-schema.ts \
+            .github/workflows/ticketing-pr253-format-once.yml
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "style(ticketing): apply canonical M150 formatting"
+          git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
