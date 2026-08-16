@@ -96,4 +96,4 @@ Automatic recurring provider charging and timer/scheduler activation are intenti
 
 ## Promotion decision
 
-`FEATURE-0009` and `MIG-0010` remain `migrating`; behavior/visual/API equivalence flags remain `false` at this reconciliation checkpoint. Zero `GAP` rows is not sufficient for equivalence while the six approved `PARTIAL` contracts above remain unresolved or unproven.
+`FEATURE-0009` and `MIG-0010` remain `migrating`; behavior/visual/API equivalence flags remain `false` at this reconciliation checkpoint. Zero `GAP` rows is not sufficient for equivalence while the three remaining `PARTIAL` contracts above remain unresolved or unproven.
