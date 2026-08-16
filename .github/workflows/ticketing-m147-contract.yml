@@ -41,6 +41,7 @@ jobs:
     env:
       MYSQL_ADMIN_DATABASE_URL: mysql://root:m147-ticketing@127.0.0.1:3306/mysql
       TICKETING_DATABASE_URL: mysql://root:m147-ticketing@127.0.0.1:3306/ticketing_m147_test
+      TURBO_TELEMETRY_DISABLED: "1"
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -75,19 +76,17 @@ jobs:
 
           (
             set -euo pipefail
-            pnpm turbo run build --filter=@touristic/ticketing-server...
             pnpm --filter @touristic/ticketing lint
             pnpm --filter @touristic/ticketing typecheck
-            pnpm --filter @touristic/ticketing test
             pnpm --filter @touristic/ticketing-server lint
             pnpm --filter @touristic/ticketing-server typecheck
           ) &
-          preflight_pid=$!
+          static_validation_pid=$!
 
           mysql_pull_status=0
           wait "$mysql_pull_pid" || mysql_pull_status=$?
           if (( mysql_pull_status != 0 )); then
-            wait "$preflight_pid" || true
+            wait "$static_validation_pid" || true
             exit "$mysql_pull_status"
           fi
 
@@ -101,8 +100,16 @@ jobs:
             --health-retries=20 \
             mysql:8.4 >/tmp/m147-mysql-container-id
 
+          static_validation_status=0
+          wait "$static_validation_pid" || static_validation_status=$?
+          if (( static_validation_status != 0 )); then
+            exit "$static_validation_status"
+          fi
+
+          pnpm turbo run build --filter=@touristic/ticketing-server...
+
           mysql_health=""
-          for _ in $(seq 1 30); do
+          for _ in $(seq 1 120); do
             mysql_health="$(docker inspect --format='{{.State.Health.Status}}' "$mysql_container")"
             if [[ "$mysql_health" == "healthy" ]]; then
               break
@@ -110,17 +117,11 @@ jobs:
             if [[ "$mysql_health" == "unhealthy" ]]; then
               exit 1
             fi
-            sleep 1
+            sleep .25
           done
           if [[ "$mysql_health" != "healthy" ]]; then
             exit 1
           fi
 
-          preflight_status=0
-          wait "$preflight_pid" || preflight_status=$?
-          if (( preflight_status != 0 )); then
-            exit "$preflight_status"
-          fi
-
+          pnpm --filter @touristic/ticketing test
           pnpm --filter @touristic/ticketing-server exec vitest run --passWithNoTests
-          pnpm --filter @touristic/ticketing-server exec vitest run src/mysql-integration.test.ts
