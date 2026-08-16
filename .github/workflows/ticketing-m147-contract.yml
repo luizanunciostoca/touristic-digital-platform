@@ -6,6 +6,7 @@ on:
       - "packages/ticketing/**"
       - "services/ticketing/**"
       - "packages/ordering/**"
+      - "services/ordering/**"
       - "packages/financial/**"
       - "docs/qa/TICKETING-M147-EVIDENCE.md"
       - "docs/features/registry.json"
@@ -19,6 +20,7 @@ on:
       - "packages/ticketing/**"
       - "services/ticketing/**"
       - "packages/ordering/**"
+      - "services/ordering/**"
       - "packages/financial/**"
       - "docs/qa/TICKETING-M147-EVIDENCE.md"
       - "docs/features/registry.json"
@@ -41,6 +43,7 @@ jobs:
     env:
       MYSQL_ADMIN_DATABASE_URL: mysql://root:m147-ticketing@127.0.0.1:3306/mysql
       TICKETING_DATABASE_URL: mysql://root:m147-ticketing@127.0.0.1:3306/ticketing_m147_test
+      ORDERING_DATABASE_URL: mysql://root:m147-ticketing@127.0.0.1:3306/ordering_m137_test
       TURBO_TELEMETRY_DISABLED: "1"
     steps:
       - uses: actions/checkout@v4
@@ -80,6 +83,8 @@ jobs:
             pnpm --filter @touristic/ticketing typecheck
             pnpm --filter @touristic/ticketing-server lint
             pnpm --filter @touristic/ticketing-server typecheck
+            pnpm --filter @touristic/ordering-server lint
+            pnpm --filter @touristic/ordering-server typecheck
           ) &
           static_validation_pid=$!
 
@@ -123,5 +128,6 @@ jobs:
             exit 1
           fi
 
+          pnpm --filter @touristic/ordering-server exec vitest run src/ticketing-order-binding-mysql-integration.test.ts
           pnpm --filter @touristic/ticketing test
           pnpm --filter @touristic/ticketing-server exec vitest run --passWithNoTests
