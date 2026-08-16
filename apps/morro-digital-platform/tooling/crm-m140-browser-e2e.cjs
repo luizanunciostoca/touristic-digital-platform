@@ -47,6 +47,32 @@ async function main() {
       });
       persist();
     });
+    page.on("response", (response) => {
+      const url = new URL(response.url());
+      const method = response.request().method();
+      if (
+        url.pathname === `/api/crm/leads/${leadId}/stage` &&
+        method === "POST"
+      ) {
+        evidence.responses.stage = {
+          status: response.status(),
+          method,
+          pathname: url.pathname,
+        };
+        persist();
+      }
+      if (
+        url.pathname === `/api/crm/leads/${leadId}` &&
+        method === "PATCH"
+      ) {
+        evidence.responses.edit = {
+          status: response.status(),
+          method,
+          pathname: url.pathname,
+        };
+        persist();
+      }
+    });
 
     checkpoint("navigate-unauthenticated-detail");
     await page.goto(
@@ -130,55 +156,33 @@ async function main() {
 
     checkpoint("stage-mutation");
     await page.locator("#lead-stage").selectOption("first_contact");
-    const stageResponsePromise = page.waitForResponse((response) => {
-      const url = new URL(response.url());
-      return (
-        url.pathname === `/api/crm/leads/${leadId}/stage` &&
-        response.request().method() === "POST"
-      );
-    });
     await page.locator("#lead-stage-submit").click();
-    const stageResponse = await stageResponsePromise;
-    evidence.responses.stage = {
-      status: stageResponse.status(),
-      body: await stageResponse.text(),
-    };
-    persist();
-    if (!stageResponse.ok()) {
-      throw new Error(`Stage HTTP ${stageResponse.status()}`);
-    }
     await page.waitForFunction(
       () =>
         document.querySelector("#lead-stage-status")?.textContent?.trim() ===
         "Etapa atualizada.",
     );
+    if (evidence.responses.stage?.status !== 200) {
+      throw new Error(
+        `Stage browser mutation missing successful response: ${JSON.stringify(evidence.responses.stage)}`,
+      );
+    }
 
     checkpoint("lead-edit");
     await page
       .locator('#lead-edit-form input[name="contactName"]')
       .fill("Luiz M140");
-    const editResponsePromise = page.waitForResponse((response) => {
-      const url = new URL(response.url());
-      return (
-        url.pathname === `/api/crm/leads/${leadId}` &&
-        response.request().method() === "PATCH"
-      );
-    });
     await page.locator("#lead-edit-submit").click();
-    const editResponse = await editResponsePromise;
-    evidence.responses.edit = {
-      status: editResponse.status(),
-      body: await editResponse.text(),
-    };
-    persist();
-    if (!editResponse.ok()) {
-      throw new Error(`Edit HTTP ${editResponse.status()}`);
-    }
     await page.waitForFunction(
       () =>
         document.querySelector("#lead-edit-status")?.textContent?.trim() ===
         "Lead atualizado.",
     );
+    if (evidence.responses.edit?.status !== 200) {
+      throw new Error(
+        `Edit browser mutation missing successful response: ${JSON.stringify(evidence.responses.edit)}`,
+      );
+    }
     await page.getByText("Luiz M140").first().waitFor({ state: "visible" });
 
     checkpoint("list-to-detail-navigation");
