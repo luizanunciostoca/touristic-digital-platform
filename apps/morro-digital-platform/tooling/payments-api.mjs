@@ -5,6 +5,7 @@ import {
   createProviderNeutralCheckoutApplicationService,
   normalizeBusinessCheckoutHandoff,
 } from "@touristic/ordering";
+import { createTicketingCheckoutApplicationService } from "@touristic/ordering/ticketing-checkout";
 import {
   FinancialWebhookHttpTransport,
   MySqlFinancialReconciliationRepository,
@@ -34,7 +35,9 @@ import {
   CheckoutHttpTransport,
   MySqlCheckoutAccessRepository,
   MySqlOrderRepository,
+  MySqlTicketingOrderBindingRepository,
   applyOrderingM151Schema,
+  applyOrderingTicketingReservationSchema,
   createCheckoutHandoffCapability,
   createCheckoutReturnUrlPolicyFromEnvironment,
   createCheckoutStatusCapability,
@@ -45,6 +48,7 @@ import {
   normalizeCheckoutRequestContext,
   systemCheckoutClock,
   verifyCheckoutHandoffCapability,
+  verifyTicketingCheckoutHandoffCapability,
 } from "@touristic/ordering-server";
 
 const checkoutPrefix = "/api/payments/v1/checkouts";
@@ -484,6 +488,56 @@ export function createPaymentsCheckoutAuthorizationPort({
       }
       return Object.freeze({ allowed: true, context });
     },
+    async authorizeTicketingCreate(request, handoff) {
+      const active = authApi.resolveSession(request);
+      if (!active) {
+        return Object.freeze({
+          allowed: false,
+          reason: "authentication_required",
+        });
+      }
+      if (active.role === "viewer") {
+        return Object.freeze({ allowed: false, reason: "read_only_role" });
+      }
+      const mutation = authApi.authorizeMutation(
+        request,
+        active,
+        "checkout.create",
+      );
+      if (!mutation.allowed) {
+        return Object.freeze({
+          allowed: false,
+          reason:
+            mutation.reason === "invalid_csrf"
+              ? "invalid_csrf"
+              : "cross_origin_request",
+        });
+      }
+      const token = header(request, "x-checkout-handoff-token");
+      const context = verifyTicketingCheckoutHandoffCapability(
+        token,
+        handoff,
+        handoffSecret,
+      );
+      if (
+        !context ||
+        context.requesterKind !== "authenticated" ||
+        context.actorSubject !== active.subject ||
+        context.destinationId !== destinationId
+      ) {
+        return Object.freeze({
+          allowed: false,
+          reason: "invalid_guest_capability",
+        });
+      }
+      if (!browserOriginAllowed(request, origins, production)) {
+        return Object.freeze({
+          allowed: false,
+          reason: "cross_origin_request",
+        });
+      }
+      return Object.freeze({ allowed: true, context });
+    },
   });
 }
 
@@ -675,7 +729,10 @@ export function createPaymentsApi({
         createFinancialMySqlPoolFromEnvironment(environment);
       pools.push(financialPool);
       await Promise.all([
-        applyOrderingM151Schema(orderingPool),
+        (async () => {
+          await applyOrderingM151Schema(orderingPool);
+          await applyOrderingTicketingReservationSchema(orderingPool);
+        })(),
         applyFinancialM145Schema(financialPool),
       ]);
 
@@ -686,6 +743,8 @@ export function createPaymentsApi({
       );
       const ledger = new MySqlLedgerTransactionRepository(financialPool);
       const checkoutAccess = new MySqlCheckoutAccessRepository(orderingPool);
+      const paymentIdempotency = new MySqlPaymentIdempotencyPort(financialPool);
+      const identities = createNodeCheckoutIdentityPort();
       const rateLimits = createInMemoryCheckoutRateLimitPort();
       const outcomes = createVerifiedPaymentOutcomeService({
         payments,
@@ -699,10 +758,17 @@ export function createPaymentsApi({
       const application = createProviderNeutralCheckoutApplicationService({
         orders,
         payments,
-        paymentIdempotency: new MySqlPaymentIdempotencyPort(financialPool),
-        identities: createNodeCheckoutIdentityPort(),
+        paymentIdempotency,
+        identities,
         clock: systemCheckoutClock,
         pricing: createOrderPricingAuthorityFromEnvironment(environment),
+      });
+      const ticketingApplication = createTicketingCheckoutApplicationService({
+        orders,
+        bindings: new MySqlTicketingOrderBindingRepository(orderingPool),
+        payments,
+        paymentIdempotency,
+        identities,
       });
       const origins = allowedOrigins(environment.PAYMENTS_RETURN_URL_ORIGINS);
       const authorityBootstrapTransport =
@@ -716,6 +782,7 @@ export function createPaymentsApi({
         });
       const transport = new CheckoutHttpTransport({
         application,
+        ticketingApplication,
         orders,
         payments,
         paymentResults,

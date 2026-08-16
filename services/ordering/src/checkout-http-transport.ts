@@ -10,6 +10,7 @@ import {
 import {
   CheckoutApplicationError,
   createBusinessOrderRequestKey,
+  createTicketingOrderRequestKey,
   normalizeBusinessCheckoutHandoff,
   normalizeOrderId,
   type CheckoutApplicationRequest,
@@ -18,6 +19,12 @@ import {
   type ProviderNeutralCheckoutApplicationService,
   type ValidatedBusinessCheckoutHandoff,
 } from "@touristic/ordering";
+import {
+  normalizeTicketingCheckoutHandoff,
+  type TicketingCheckoutApplicationRequest,
+  type TicketingCheckoutApplicationService,
+  type ValidatedTicketingCheckoutHandoff,
+} from "@touristic/ordering/ticketing-checkout";
 
 import {
   createCheckoutAccessRecord,
@@ -33,6 +40,7 @@ import {
   type CheckoutReturnUrlPolicy,
   type CheckoutStatusCapability,
 } from "./checkout-security.js";
+import { ticketingCheckoutRequestFingerprint } from "./ticketing-checkout-handoff.js";
 
 export interface CheckoutHttpRequest {
   readonly method: string;
@@ -72,6 +80,10 @@ export interface CheckoutHttpAuthorizationPort {
   authorizeCreate(
     request: CheckoutHttpRequest,
     handoff: ValidatedBusinessCheckoutHandoff,
+  ): Promise<CheckoutHttpAuthorizationDecision>;
+  authorizeTicketingCreate?(
+    request: CheckoutHttpRequest,
+    handoff: ValidatedTicketingCheckoutHandoff,
   ): Promise<CheckoutHttpAuthorizationDecision>;
 }
 
@@ -115,6 +127,7 @@ export interface CheckoutHttpClockPort {
 
 export interface CheckoutHttpTransportDependencies {
   readonly application: ProviderNeutralCheckoutApplicationService;
+  readonly ticketingApplication?: TicketingCheckoutApplicationService;
   readonly orders: OrderRepositoryPort;
   readonly payments: PaymentRepositoryPort;
   readonly paymentResults?: VerifiedPaymentResultRepositoryPort;
@@ -138,6 +151,16 @@ const rateWindowMs = 60_000;
 type CheckoutRoute =
   | { readonly kind: "collection" }
   | { readonly kind: "status"; readonly orderId: string };
+
+type CheckoutCreateHandoff =
+  | {
+      readonly kind: "business";
+      readonly value: ValidatedBusinessCheckoutHandoff;
+    }
+  | {
+      readonly kind: "ticketing";
+      readonly value: ValidatedTicketingCheckoutHandoff;
+    };
 
 function route(pathname: string): CheckoutRoute | null {
   if (pathname === checkoutPrefix) return { kind: "collection" };
@@ -191,10 +214,7 @@ function errorResponse(
 ): CheckoutHttpResponse {
   return response(
     status,
-    {
-      error,
-      ...(reason ? { reason } : {}),
-    },
+    { error, ...(reason ? { reason } : {}) },
     correlationId,
     headers,
   );
@@ -267,22 +287,35 @@ function authorizationError(
 }
 
 function applicationError(
-  error: CheckoutApplicationError,
+  error: unknown,
   correlationId: string,
 ): CheckoutHttpResponse {
-  if (error.code === "CHECKOUT_INVALID_HANDOFF") {
+  if (error instanceof CheckoutApplicationError) {
+    if (error.code === "CHECKOUT_INVALID_HANDOFF") {
+      return errorResponse(400, "INVALID_CHECKOUT_REQUEST", correlationId);
+    }
+    if (error.code === "CHECKOUT_PLAN_NOT_CONFIGURED") {
+      return errorResponse(503, "CHECKOUT_NOT_CONFIGURED", correlationId);
+    }
+    if (error.code === "CHECKOUT_ORDER_NOT_REUSABLE") {
+      return errorResponse(409, "CHECKOUT_NOT_REUSABLE", correlationId);
+    }
+    if (
+      error.code === "CHECKOUT_ORDER_CONFLICT" ||
+      error.code === "CHECKOUT_PAYMENT_CONFLICT"
+    ) {
+      return errorResponse(409, "CHECKOUT_CONFLICT", correlationId);
+    }
+    return errorResponse(503, "CHECKOUT_UNAVAILABLE", correlationId);
+  }
+  const message = error instanceof Error ? error.message : "";
+  if (message.includes("INVALID")) {
     return errorResponse(400, "INVALID_CHECKOUT_REQUEST", correlationId);
   }
-  if (error.code === "CHECKOUT_PLAN_NOT_CONFIGURED") {
-    return errorResponse(503, "CHECKOUT_NOT_CONFIGURED", correlationId);
+  if (message.includes("NOT_FOUND")) {
+    return errorResponse(404, "CHECKOUT_NOT_FOUND", correlationId);
   }
-  if (error.code === "CHECKOUT_ORDER_NOT_REUSABLE") {
-    return errorResponse(409, "CHECKOUT_NOT_REUSABLE", correlationId);
-  }
-  if (
-    error.code === "CHECKOUT_ORDER_CONFLICT" ||
-    error.code === "CHECKOUT_PAYMENT_CONFLICT"
-  ) {
+  if (message.includes("CONFLICT")) {
     return errorResponse(409, "CHECKOUT_CONFLICT", correlationId);
   }
   return errorResponse(503, "CHECKOUT_UNAVAILABLE", correlationId);
@@ -313,6 +346,23 @@ async function recordAudit(
   event: CheckoutHttpAuditEvent,
 ): Promise<void> {
   await port.record(Object.freeze({ ...event }));
+}
+
+function normalizedCreateHandoff(
+  body: unknown,
+  ticketingEnabled: boolean,
+): CheckoutCreateHandoff | null {
+  const business = normalizeBusinessCheckoutHandoff(
+    body as CheckoutApplicationRequest,
+  );
+  if (business) return Object.freeze({ kind: "business", value: business });
+  if (!ticketingEnabled) return null;
+  const ticketing = normalizeTicketingCheckoutHandoff(
+    body as TicketingCheckoutApplicationRequest,
+  );
+  return ticketing
+    ? Object.freeze({ kind: "ticketing", value: ticketing })
+    : null;
 }
 
 export class CheckoutHttpTransport {
@@ -347,9 +397,7 @@ export class CheckoutHttpTransport {
     }
 
     const matched = route(request.pathname);
-    if (!matched) {
-      return errorResponse(404, "NOT_FOUND", correlationId);
-    }
+    if (!matched) return errorResponse(404, "NOT_FOUND", correlationId);
 
     const method = request.method.toUpperCase();
     try {
@@ -369,10 +417,11 @@ export class CheckoutHttpTransport {
     request: CheckoutHttpRequest,
     correlationId: string,
   ): Promise<CheckoutHttpResponse> {
-    const handoff = normalizeBusinessCheckoutHandoff(
-      request.body as CheckoutApplicationRequest,
+    const selected = normalizedCreateHandoff(
+      request.body,
+      Boolean(this.dependencies.ticketingApplication),
     );
-    if (!handoff) {
+    if (!selected) {
       await recordAudit(this.dependencies.audit, {
         action: "checkout.create",
         result: "denied",
@@ -386,22 +435,33 @@ export class CheckoutHttpTransport {
       return errorResponse(400, "INVALID_CHECKOUT_REQUEST", correlationId);
     }
 
-    const expectedIdempotency = createBusinessOrderRequestKey(
-      handoff.sessionId,
-      handoff.planId,
-    );
     const providedIdempotency = header(request, "idempotency-key");
     if (!providedIdempotency) {
       return errorResponse(400, "IDEMPOTENCY_KEY_REQUIRED", correlationId);
     }
+    const expectedIdempotency =
+      selected.kind === "business"
+        ? createBusinessOrderRequestKey(
+            selected.value.sessionId,
+            selected.value.planId,
+          )
+        : createTicketingOrderRequestKey(selected.value.reservationReference);
     if (!expectedIdempotency || providedIdempotency !== expectedIdempotency) {
       return errorResponse(409, "IDEMPOTENCY_KEY_MISMATCH", correlationId);
     }
 
-    const authorization = await this.dependencies.authorization.authorizeCreate(
-      request,
-      handoff,
-    );
+    const authorization =
+      selected.kind === "business"
+        ? await this.dependencies.authorization.authorizeCreate(
+            request,
+            selected.value,
+          )
+        : this.dependencies.authorization.authorizeTicketingCreate
+          ? await this.dependencies.authorization.authorizeTicketingCreate(
+              request,
+              selected.value,
+            )
+          : ({ allowed: false, reason: "authentication_required" } as const);
     if (!authorization.allowed) {
       await recordAudit(this.dependencies.audit, {
         action: "checkout.create",
@@ -416,11 +476,10 @@ export class CheckoutHttpTransport {
       return authorizationError(authorization.reason, correlationId);
     }
     const context = normalizeCheckoutRequestContext(authorization.context);
-    if (!context) {
-      return authorizationError("missing_context", correlationId);
-    }
+    if (!context) return authorizationError("missing_context", correlationId);
 
-    if (!this.dependencies.returnUrls.allows(handoff.returnUrl, context)) {
+    const returnUrl = selected.value.returnUrl;
+    if (!this.dependencies.returnUrls.allows(returnUrl, context)) {
       await recordAudit(this.dependencies.audit, {
         action: "checkout.create",
         result: "denied",
@@ -437,12 +496,7 @@ export class CheckoutHttpTransport {
     const now = canonicalNow(this.dependencies.clock);
     const rate = await this.dependencies.rateLimits.consume({
       bucket: "checkout-create",
-      key:
-        context.actorSubject +
-        ":" +
-        context.destinationId +
-        ":" +
-        clientKey(request),
+      key: `${context.actorSubject}:${context.destinationId}:${clientKey(request)}`,
       limit: createRateLimit,
       windowMs: rateWindowMs,
       nowMs: Date.parse(now),
@@ -464,8 +518,16 @@ export class CheckoutHttpTransport {
     }
 
     try {
-      const result = await this.dependencies.application.startCheckout(handoff);
-      const fingerprint = checkoutRequestFingerprint(handoff, context);
+      const result =
+        selected.kind === "business"
+          ? await this.dependencies.application.startCheckout(selected.value)
+          : await this.dependencies.ticketingApplication!.startCheckout(
+              selected.value,
+            );
+      const fingerprint =
+        selected.kind === "business"
+          ? checkoutRequestFingerprint(selected.value, context)
+          : ticketingCheckoutRequestFingerprint(selected.value, context);
       const capability = this.dependencies.statusCapabilities.issue(
         result.order.id,
       );
@@ -503,9 +565,7 @@ export class CheckoutHttpTransport {
           createdAt: now,
           expiresAt,
         });
-        if (!proposed) {
-          throw new Error("ORDERING_INVALID_CHECKOUT_ACCESS");
-        }
+        if (!proposed) throw new Error("ORDERING_INVALID_CHECKOUT_ACCESS");
         access = await this.dependencies.access.claim(proposed);
         if (
           !accessMatches(
@@ -534,36 +594,47 @@ export class CheckoutHttpTransport {
         return errorResponse(409, "STATUS_CAPABILITY_EXPIRED", correlationId);
       }
 
+      const customer =
+        selected.kind === "business"
+          ? selected.value.contractor
+          : selected.value.customer;
+      const sourceReference =
+        selected.kind === "business"
+          ? selected.value.sessionId
+          : selected.value.reservationReference;
       const providerRequest = createCheckoutProviderRequest({
         paymentId: result.payment.id,
         idempotencyKey: result.payment.idempotencyKey,
         amount: result.payment.amount,
         description: result.order.pricing.planName,
-        returnUrl: handoff.returnUrl,
+        returnUrl,
         webhookUrl: this.webhookUrl,
-        customer: handoff.contractor,
+        customer,
         metadata: {
           orderId: result.order.id,
           paymentId: result.payment.id,
-          sessionId: handoff.sessionId,
+          sessionId: sourceReference,
           destinationId: context.destinationId,
           ...(context.tenantId ? { tenantId: context.tenantId } : {}),
         },
       });
-      if (!providerRequest) {
+      if (!providerRequest)
         throw new Error("CHECKOUT_PROVIDER_REQUEST_INVALID");
-      }
       const providerSession = normalizeCheckoutProviderSession(
         await this.dependencies.provider.createCheckout(providerRequest),
       );
-      if (!providerSession) {
+      if (!providerSession)
         throw new Error("CHECKOUT_PROVIDER_SESSION_INVALID");
-      }
 
       await recordAudit(this.dependencies.audit, {
         action: "checkout.create",
         result: "success",
-        reason: replayed ? "replayed" : "created",
+        reason:
+          selected.kind === "business"
+            ? replayed
+              ? "replayed"
+              : "created"
+            : `ticketing:${replayed ? "replayed" : "created"}`,
         correlationId,
         actorSubject: context.actorSubject,
         destinationId: context.destinationId,
@@ -593,12 +664,10 @@ export class CheckoutHttpTransport {
       );
     } catch (error) {
       const mapped =
-        error instanceof CheckoutApplicationError
-          ? applicationError(error, correlationId)
-          : error instanceof Error &&
-              error.message === "ORDERING_CHECKOUT_ACCESS_CONFLICT"
-            ? errorResponse(409, "IDEMPOTENCY_CONFLICT", correlationId)
-            : errorResponse(503, "CHECKOUT_UNAVAILABLE", correlationId);
+        error instanceof Error &&
+        error.message === "ORDERING_CHECKOUT_ACCESS_CONFLICT"
+          ? errorResponse(409, "IDEMPOTENCY_CONFLICT", correlationId)
+          : applicationError(error, correlationId);
       await recordAudit(this.dependencies.audit, {
         action: "checkout.create",
         result: "failure",

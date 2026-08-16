@@ -13,6 +13,11 @@ import {
 } from "./mysql-provider-webhook-event-repository.js";
 import { MySqlVerifiedPaymentResultRepository } from "./mysql-verified-payment-result-repository.js";
 import {
+  MySqlVerifiedPaymentResultFeed,
+  type VerifiedPaymentResultCursor,
+  type VerifiedPaymentResultFeedPort,
+} from "./mysql-verified-payment-result-feed.js";
+import {
   SandboxCheckoutProviderError,
   createSandboxCheckoutProviderFromEnvironment,
   createSandboxReconciliationProviderFromEnvironment,
@@ -98,6 +103,7 @@ export {
   MySqlPaymentRepository,
   MySqlRefundRequestRepository,
   MySqlProviderWebhookEventRepository,
+  MySqlVerifiedPaymentResultFeed,
   MySqlVerifiedPaymentResultRepository,
   FinancialWebhookHttpTransport,
   SandboxCheckoutProviderError,
@@ -152,6 +158,8 @@ export type {
   VerifiedPaymentAccountingDisposition,
   VerifiedPaymentAccountingOutcome,
   VerifiedPaymentAccountingServiceDependencies,
+  VerifiedPaymentResultCursor,
+  VerifiedPaymentResultFeedPort,
 };
 
 export interface FinancialMySqlEnvironment {

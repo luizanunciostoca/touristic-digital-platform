@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Ingressos · Morro Digital</title>
+    <link rel="stylesheet" href="/ticketing.css" />
+  </head>
+  <body>
+    <main class="ticketing-shell">
+      <header class="ticketing-header">
+        <a class="back-link" href="/">← Morro Digital</a>
+        <div>
+          <p class="eyebrow">Morro Digital</p>
+          <h1>Ingressos e reservas</h1>
+          <p class="lead">
+            Reserve com preço congelado, finalize pelo checkout seguro e
+            apresente o QR emitido após a confirmação do pagamento.
+          </p>
+        </div>
+        <p id="session-label" class="session-label" aria-live="polite"></p>
+      </header>
+
+      <section class="panel" aria-labelledby="offers-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Disponibilidade em tempo real</p>
+            <h2 id="offers-title">Experiências disponíveis</h2>
+          </div>
+          <button
+            id="refresh-button"
+            class="button button-secondary"
+            type="button"
+          >
+            Atualizar
+          </button>
+        </div>
+        <div id="offers" class="offer-grid" aria-live="polite"></div>
+      </section>
+
+      <section class="panel" aria-labelledby="reservation-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Reserva</p>
+            <h2 id="reservation-title">Seus dados</h2>
+          </div>
+          <p class="secure-note">
+            Pagamento processado pelo Payments canônico.
+          </p>
+        </div>
+        <form id="reservation-form" class="reservation-form" novalidate>
+          <input id="inventory-id" name="inventoryId" type="hidden" />
+          <label>
+            Experiência
+            <input
+              id="selected-offer"
+              type="text"
+              readonly
+              placeholder="Selecione uma experiência acima"
+            />
+          </label>
+          <label>
+            Nome completo
+            <input
+              id="holder-name"
+              name="name"
+              autocomplete="name"
+              maxlength="160"
+              required
+            />
+          </label>
+          <label>
+            E-mail
+            <input
+              id="holder-email"
+              name="email"
+              type="email"
+              autocomplete="email"
+              maxlength="200"
+              required
+            />
+          </label>
+          <label>
+            Telefone <span>opcional</span>
+            <input
+              id="holder-phone"
+              name="phone"
+              autocomplete="tel"
+              maxlength="40"
+            />
+          </label>
+          <label>
+            Documento <span>opcional</span>
+            <input
+              id="holder-document"
+              name="document"
+              autocomplete="off"
+              maxlength="40"
+            />
+          </label>
+          <label>
+            Quantidade
+            <input
+              id="quantity"
+              name="quantity"
+              type="number"
+              inputmode="numeric"
+              min="1"
+              max="20"
+              value="1"
+              required
+            />
+          </label>
+          <div class="form-actions">
+            <p id="reservation-message" class="message" aria-live="polite"></p>
+            <button
+              id="reserve-button"
+              class="button button-primary"
+              type="submit"
+              disabled
+            >
+              Reservar e ir para pagamento
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <section class="panel" aria-labelledby="my-tickets-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Sua carteira</p>
+            <h2 id="my-tickets-title">Reservas e ingressos</h2>
+          </div>
+          <p class="secure-note">
+            O QR só é emitido após confirmação Financial verificada.
+          </p>
+        </div>
+        <div
+          id="reservations"
+          class="reservation-list"
+          aria-live="polite"
+        ></div>
+      </section>
+    </main>
+
+    <dialog id="ticket-dialog" class="ticket-dialog">
+      <button
+        id="ticket-close"
+        class="dialog-close"
+        type="button"
+        aria-label="Fechar"
+      >
+        ×
+      </button>
+      <p class="eyebrow">Ingresso confirmado</p>
+      <h2 id="ticket-title">Seu ingresso</h2>
+      <div
+        id="ticket-qr"
+        class="ticket-qr"
+        aria-label="QR code do ingresso"
+      ></div>
+      <p id="ticket-code" class="ticket-code"></p>
+      <p id="ticket-meta" class="ticket-meta"></p>
+    </dialog>
+
+    <script type="module" src="/ticketing.js"></script>
+  </body>
+</html>

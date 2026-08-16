@@ -12,7 +12,8 @@ import {
 } from "@touristic/financial";
 
 const ID_BODY = /^[A-Za-z0-9_-]+$/u;
-const REQUEST_KEY = /^business:[A-Za-z0-9_-]+:[A-Za-z0-9_-]+$/u;
+const REQUEST_KEY =
+  /^(?:business:[A-Za-z0-9_-]+:[A-Za-z0-9_-]+|ticketing:[A-Za-z0-9_-]+)$/u;
 
 const orderIdBrand: unique symbol = Symbol("OrderId");
 const orderRequestKeyBrand: unique symbol = Symbol("OrderRequestKey");
@@ -30,9 +31,10 @@ export const orderStatuses = Object.freeze([
 ] as const);
 
 export type OrderStatus = (typeof orderStatuses)[number];
+export type OrderSourceKind = "business_onboarding" | "ticketing_reservation";
 
 export interface OrderSourceReference {
-  readonly kind: "business_onboarding";
+  readonly kind: OrderSourceKind;
   readonly reference: string;
 }
 
@@ -97,6 +99,10 @@ function isOrderStatus(value: unknown): value is OrderStatus {
   );
 }
 
+function isOrderSourceKind(value: unknown): value is OrderSourceKind {
+  return value === "business_onboarding" || value === "ticketing_reservation";
+}
+
 export function normalizeOrderId(value: unknown): OrderId | null {
   const normalized = normalizeString(value, 120);
   if (!normalized.startsWith("ord_")) return null;
@@ -115,6 +121,14 @@ export function createBusinessOrderRequestKey(
   return `business:${session}:${plan}` as OrderRequestKey;
 }
 
+export function createTicketingOrderRequestKey(
+  reservationReference: unknown,
+): OrderRequestKey | null {
+  const reservation = normalizeSafeReference(reservationReference, 120);
+  if (!reservation) return null;
+  return `ticketing:${reservation}` as OrderRequestKey;
+}
+
 export function normalizeOrderRequestKey(
   value: unknown,
 ): OrderRequestKey | null {
@@ -126,13 +140,11 @@ export function normalizeOrderRequestKey(
 
 export function normalizeOrderSourceReference(
   value: unknown,
+  kind: unknown = "business_onboarding",
 ): OrderSourceReference | null {
   const reference = normalizeSafeReference(value, 120);
-  if (!reference) return null;
-  return Object.freeze({
-    kind: "business_onboarding" as const,
-    reference,
-  });
+  if (!reference || !isOrderSourceKind(kind)) return null;
+  return Object.freeze({ kind, reference });
 }
 
 export function createPricingQuote(input: {
@@ -184,7 +196,10 @@ export function createOrder(input: {
   );
   const id = normalizeOrderId(input.id);
   const requestKey = normalizeOrderRequestKey(input.requestKey);
-  const source = normalizeOrderSourceReference(input.source.reference);
+  const source = normalizeOrderSourceReference(
+    input.source.reference,
+    input.source.kind,
+  );
   const status = input.status ?? "draft";
   const pricing = capturePricingSnapshot(
     input.pricing,
@@ -197,7 +212,6 @@ export function createOrder(input: {
     !id ||
     !requestKey ||
     !source ||
-    source.kind !== input.source.kind ||
     !isOrderStatus(status) ||
     !pricing
   ) {
