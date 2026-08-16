@@ -217,7 +217,10 @@ function drawVersion(
 
 function matrixFor(payload: string): QrMatrix {
   const codewords = interleavedCodewords(payload);
-  const { modules, functions, setFunction } = createMatrix();
+  const matrix = createMatrix();
+  const { modules, functions } = matrix;
+  const setFunction = (row: number, col: number, dark: boolean): void =>
+    matrix.setFunction(row, col, dark);
 
   drawFinder(setFunction, 3, 3);
   drawFinder(setFunction, 3, SIZE - 4);
