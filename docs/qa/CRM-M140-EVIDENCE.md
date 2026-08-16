@@ -13,12 +13,13 @@ The repository formatter was applied to every M140 file reported by the Quality 
 - repository: `luizidebook/morro-digital-crm`
 - frozen SHA: `1915d0260c79f30a63b926a1123e609083587745`
 - primary page: `client/src/pages/LeadDetail.tsx`
+- canonical presentation vocabulary: `client/src/lib/crm.ts`
 - supporting procedures: `server/routers.ts` and `server/db.ts`
 
 The frozen page proves the following observable contract:
 
 1. complete lead summary and edit lifecycle;
-2. all 18 lead stages, including `churned` and `lost`;
+2. 18 recognized lead-state labels, while the editable `STAGE_ORDER` exposes exactly 16 operational funnel stages and excludes terminal `churned` / `lost` from the selector;
 3. the canonical 16-step commercial checklist;
 4. checklist completion/uncompletion with a system activity trail;
 5. newest-first interaction history;
@@ -34,7 +35,8 @@ The frozen V1 list/detail UI does **not** expose lead deletion. Server delete su
 
 `@touristic/crm/lead-detail-contract` freezes:
 
-- all 18 canonical lead stages and Portuguese labels;
+- all 18 recognized lead-state labels;
+- the exact 16-stage V1 `STAGE_ORDER` used by the Lead Detail selector;
 - all 16 checklist steps, labels and descriptions;
 - manual interaction types;
 - read-only labels for system/stage-change history events.
@@ -91,7 +93,7 @@ No new top-level CRM namespace or duplicate checkout/business domain is introduc
 
 - authenticated same-origin detail page;
 - complete lead summary;
-- 18-stage selector;
+- exact frozen 16-stage selector, while retaining labels for terminal readback states;
 - edit form;
 - checklist progress and toggles;
 - manual interaction form;
@@ -109,7 +111,7 @@ No new top-level CRM namespace or duplicate checkout/business domain is introduc
 - `packages/crm/src/lead-detail-contract.test.ts`
 - `packages/crm/src/lead-detail-boundary.test.ts`
 
-Covers stage/checklist vocabulary, auth denial, viewer denial, cross-lead checklist protection, system interaction semantics, manual event restrictions and `lastContactAt` behavior.
+Covers frozen selector/checklist vocabulary, terminal-state labels, auth denial, viewer denial, cross-lead checklist protection, system interaction semantics, manual event restrictions and `lastContactAt` behavior.
 
 ### Persistence / transport
 
@@ -138,13 +140,14 @@ Proves browser surface composition, list navigation, safe DOM use and runtime or
 - rejection of manually forged system interaction;
 - manual note + `lastContactAt` readback;
 - unauthenticated browser redirect to platform login;
-- full 18-stage browser vocabulary;
+- exact frozen 16-stage selector, with 18 recognized state labels retained by the contract;
 - checklist browser mutation;
 - interaction browser mutation;
 - stage mutation through the existing canonical endpoint;
 - lead edit through the existing canonical endpoint;
 - list → detail navigation;
-- zero page errors.
+- zero page errors;
+- bounded browser execution with incremental evidence checkpoints and diagnostics.
 
 ## Promotion rule
 
