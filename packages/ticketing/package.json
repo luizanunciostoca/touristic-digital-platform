@@ -12,6 +12,11 @@
       "types": "./src/index.ts",
       "node": "./dist/index.js",
       "default": "./src/index.ts"
+    },
+    "./reservations": {
+      "types": "./src/reservations.ts",
+      "node": "./dist/reservations.js",
+      "default": "./src/reservations.ts"
     }
   },
   "scripts": {
