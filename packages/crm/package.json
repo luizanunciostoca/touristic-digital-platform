@@ -96,6 +96,11 @@
       "types": "./src/settings-contract.ts",
       "node": "./dist/settings-contract.js",
       "default": "./src/settings-contract.ts"
+    },
+    "./ai-content-contract": {
+      "types": "./src/ai-content-contract.ts",
+      "node": "./dist/ai-content-contract.js",
+      "default": "./src/ai-content-contract.ts"
     }
   },
   "scripts": {

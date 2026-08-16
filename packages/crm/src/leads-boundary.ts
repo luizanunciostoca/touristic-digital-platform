@@ -269,6 +269,10 @@ function normalizeUpdate(
 
   for (const [field, maxLength] of textFields) {
     if (input[field] === undefined) continue;
+    if (field !== "companyName" && input[field] === "") {
+      patch[field] = "";
+      continue;
+    }
     const normalized = safeText(input[field], maxLength);
     if (!normalized) return null;
     patch[field] = normalized;

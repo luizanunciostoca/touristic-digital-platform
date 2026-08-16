@@ -77,7 +77,7 @@
       "name": "CRM Administrativo",
       "domain": "admin",
       "wave": 7,
-      "status": "migrating",
+      "status": "equivalent",
       "legacySources": ["crm:v1"],
       "targetPackages": [
         "@touristic/crm",
@@ -85,9 +85,9 @@
         "apps/admin-crm"
       ],
       "equivalence": {
-        "behavior": false,
-        "visual": false,
-        "api": false
+        "behavior": true,
+        "visual": true,
+        "api": true
       }
     },
     {

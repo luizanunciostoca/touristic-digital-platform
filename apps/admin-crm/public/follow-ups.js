@@ -1,6 +1,15 @@
-import { createAuthBrowserClient } from "@touristic/auth-browser";
+import { createDashboardAuthClient } from "@touristic/auth-browser";
 
-const auth = createAuthBrowserClient({ loginPath: "/apps/dashboard/login.html" });
+const auth = createDashboardAuthClient({
+  fetchFn: window.fetch.bind(window),
+  storage: window.sessionStorage,
+  location: {
+    origin: window.location.origin,
+    pathname: window.location.pathname,
+    search: window.location.search,
+    replace: (url) => window.location.replace(url),
+  },
+});
 const sessionStatus = document.querySelector("#session-status");
 const pendingStatus = document.querySelector("#pending-status");
 const pendingList = document.querySelector("#pending-list");
@@ -14,13 +23,17 @@ const settingSubmit = document.querySelector("#follow-up-setting-submit");
 const settingStatus = document.querySelector("#follow-up-setting-status");
 
 function text(value, fallback = "—") {
-  return value === null || value === undefined || value === "" ? fallback : String(value);
+  return value === null || value === undefined || value === ""
+    ? fallback
+    : String(value);
 }
 
 function date(value) {
   if (!value) return "—";
   const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? text(value) : parsed.toLocaleString("pt-BR");
+  return Number.isNaN(parsed.getTime())
+    ? text(value)
+    : parsed.toLocaleString("pt-BR");
 }
 
 function row(label, value) {
@@ -51,6 +64,27 @@ function renderPending(items) {
       row("Agendado para", date(item.scheduledAt)),
       row("Mensagem", item.generatedMessage),
     );
+    const actions = document.createElement("div");
+    actions.className = "lead-create-actions";
+    if (item.status === "pending") {
+      const sent = document.createElement("button");
+      sent.type = "button";
+      sent.textContent = "Marcar como enviado";
+      sent.addEventListener("click", () => {
+        void transitionFollowUp(item.id, "sent");
+      });
+      actions.append(sent);
+    }
+    if (item.status === "sent") {
+      const responded = document.createElement("button");
+      responded.type = "button";
+      responded.textContent = "Lead respondeu";
+      responded.addEventListener("click", () => {
+        void transitionFollowUp(item.id, "responded");
+      });
+      actions.append(responded);
+    }
+    if (actions.childElementCount > 0) article.append(actions);
     pendingList.append(article);
   }
 }
@@ -78,17 +112,45 @@ function renderSettings(items) {
   }
 }
 
+async function transitionFollowUp(id, transition) {
+  if (!Number.isSafeInteger(id) || id < 1) return;
+  if (transition !== "sent" && transition !== "responded") return;
+  pendingStatus.textContent =
+    transition === "sent"
+      ? "Marcando follow-up como enviado…"
+      : "Registrando resposta do lead…";
+  try {
+    const response = await auth.secureFetch(
+      `/api/crm/follow-ups/${id}/${transition}`,
+      { method: "POST", headers: { Accept: "application/json" } },
+    );
+    if (!response.ok) {
+      pendingStatus.textContent =
+        response.status === 403
+          ? "Você não possui permissão para alterar follow-ups."
+          : response.status === 409
+            ? "A transição do follow-up não é mais válida."
+            : "Não foi possível atualizar o follow-up.";
+      return;
+    }
+    await loadPending();
+  } catch {
+    pendingStatus.textContent = "Não foi possível atualizar o follow-up.";
+  }
+}
+
 async function readData(path) {
   const response = await auth.secureFetch(path);
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
   const payload = await response.json();
-  if (!payload || !Array.isArray(payload.data)) throw new Error("INVALID_RESPONSE");
+  if (!payload || !Array.isArray(payload.data))
+    throw new Error("INVALID_RESPONSE");
   return payload.data;
 }
 
 async function loadPending() {
   pendingStatus.textContent = "Carregando follow-ups…";
-  renderPending(await readData("/api/crm/follow-ups/pending"));
+  renderPending(await readData("/api/crm/follow-ups"));
 }
 
 async function loadSettings() {
@@ -116,7 +178,8 @@ async function createFollowUp(event) {
   if (
     !Number.isSafeInteger(leadId) ||
     leadId < 1 ||
-    (settingId !== null && (!Number.isSafeInteger(settingId) || settingId < 1)) ||
+    (settingId !== null &&
+      (!Number.isSafeInteger(settingId) || settingId < 1)) ||
     !Number.isSafeInteger(attemptNumber) ||
     attemptNumber < 1 ||
     attemptNumber > 100 ||
@@ -139,7 +202,10 @@ async function createFollowUp(event) {
   try {
     const response = await auth.secureFetch("/api/crm/follow-ups", {
       method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
       body: JSON.stringify(payload),
     });
     if (!response.ok) {
@@ -219,7 +285,10 @@ async function saveSetting(event) {
   try {
     const response = await auth.secureFetch("/api/crm/follow-ups/settings", {
       method: "PUT",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
       body: JSON.stringify(payload),
     });
     if (!response.ok) {
@@ -259,19 +328,20 @@ settingForm?.addEventListener("submit", (event) => {
 
 async function start() {
   try {
-    const session = await auth.requireSession({ returnTo: window.location.pathname });
-    if (!session) return;
+    const session = await auth.getSession();
+    if (!session) throw new Error("AUTH_REQUIRED");
     sessionStatus.textContent = "Sessão autenticada. Follow-ups operacionais.";
     const [pending, settings] = await Promise.all([
-      readData("/api/crm/follow-ups/pending"),
+      readData("/api/crm/follow-ups"),
       readData("/api/crm/follow-ups/settings"),
     ]);
     renderPending(pending);
     renderSettings(settings);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "UNKNOWN_ERROR";
-    pendingStatus.textContent = `Não foi possível carregar follow-ups (${message}).`;
-    settingsStatus.textContent = `Não foi possível carregar configurações (${message}).`;
+  } catch {
+    const current = `${window.location.pathname}${window.location.search}`;
+    window.location.replace(
+      `/dashboard/login.html?return=${encodeURIComponent(current)}`,
+    );
   }
 }
 

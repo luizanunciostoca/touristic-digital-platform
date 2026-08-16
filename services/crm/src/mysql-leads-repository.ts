@@ -76,6 +76,16 @@ function boundedOffset(value: number | undefined): number {
     : 0;
 }
 
+function persistenceValue(
+  key: keyof CrmLeadUpdateRecord,
+  value: string,
+): string | null {
+  if (key !== "companyName" && key !== "status" && value === "") {
+    return null;
+  }
+  return value;
+}
+
 export class MySqlCrmLeadRepository implements CrmLeadBoundaryRepository {
   constructor(private readonly pool: Pool) {}
 
@@ -163,7 +173,7 @@ export class MySqlCrmLeadRepository implements CrmLeadBoundaryRepository {
     if (!entries.length) throw new Error("crm_lead_empty_update");
     await this.pool.execute(
       `UPDATE crm_leads SET ${entries.map(([key]) => `${columns[key]} = ?`).join(", ")} WHERE id = ?`,
-      [...entries.map(([, value]) => value), id],
+      [...entries.map(([key, value]) => persistenceValue(key, value)), id],
     );
     const updated = await this.findById(id);
     if (!updated) throw new Error("crm_lead_update_readback_failed");
