@@ -80,9 +80,10 @@ export class MySqlFinancialResultCursorRepository
     );
     const row = rows[0];
     if (!row) return null;
-    const date = row.recorded_at instanceof Date
-      ? row.recorded_at
-      : new Date(row.recorded_at);
+    const date =
+      row.recorded_at instanceof Date
+        ? row.recorded_at
+        : new Date(row.recorded_at);
     if (!Number.isFinite(date.getTime()) || !row.result_id) {
       throw new Error("TICKETING_FINANCIAL_CURSOR_INVALID");
     }
@@ -102,8 +103,13 @@ export class MySqlFinancialResultCursorRepository
          consumer_name, recorded_at, result_id, updated_at
        ) VALUES (?, ?, ?, ?)
        ON DUPLICATE KEY UPDATE
-         recorded_at = VALUES(recorded_at),
-         result_id = VALUES(result_id),
+         result_id = IF(
+           VALUES(recorded_at) > recorded_at OR
+           (VALUES(recorded_at) = recorded_at AND VALUES(result_id) > result_id),
+           VALUES(result_id),
+           result_id
+         ),
+         recorded_at = GREATEST(recorded_at, VALUES(recorded_at)),
          updated_at = VALUES(updated_at)`,
       [this.consumerName, date, cursor.resultId, new Date()],
     );
