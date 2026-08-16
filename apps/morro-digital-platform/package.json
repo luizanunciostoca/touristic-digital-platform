@@ -17,9 +17,7 @@
     "@touristic/navigation": "workspace:*",
     "@touristic/ordering": "workspace:*",
     "@touristic/ordering-server": "workspace:*",
-    "@touristic/search": "workspace:*",
-    "@touristic/ticketing": "workspace:*",
-    "@touristic/ticketing-server": "workspace:*"
+    "@touristic/search": "workspace:*"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
