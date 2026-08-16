@@ -182,7 +182,7 @@ async function main() {
     await page.getByText("Luiz M140").first().waitFor({ state: "visible" });
 
     checkpoint("list-to-detail-navigation");
-    await page.goto(`${origin}/apps/admin-crm/#leads`, {
+    await page.goto(`${origin}/apps/admin-crm/public/index.html#leads`, {
       waitUntil: "domcontentloaded",
     });
     await page.locator("#leads-body tr").first().waitFor({ state: "visible" });
