@@ -27,9 +27,14 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: crm-platform-auth-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   crm-auth-contract:
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
     services:
       mysql:
         image: mysql:8.4
