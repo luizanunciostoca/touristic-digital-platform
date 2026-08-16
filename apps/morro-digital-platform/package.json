@@ -20,7 +20,7 @@
     "@touristic/search": "workspace:*"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "node tooling/ensure-core-runtime.mjs && tsc -p tsconfig.json",
     "dev": "pnpm -w build && node tooling/dev-server.mjs",
     "lint": "eslint src",
     "test": "vitest run",

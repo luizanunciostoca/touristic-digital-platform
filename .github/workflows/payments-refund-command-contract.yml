@@ -75,4 +75,4 @@ jobs:
           pnpm --filter @touristic/financial-server build
           pnpm --filter @touristic/ordering-server build
       - name: Runtime routing and authority contract
-        run: pnpm --filter @touristic/morro-digital-platform test -- tooling/payments-api.test.mjs
+        run: pnpm --filter @touristic/morro-digital-platform exec vitest run tooling/payments-api.test.mjs

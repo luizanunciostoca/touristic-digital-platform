@@ -1,6 +1,16 @@
-import { createDashboardAuthClient } from "@touristic/auth-browser";
+import type {
+  DashboardAuthClient,
+  DashboardAuthClientOptions,
+} from "@touristic/auth-browser";
+
+type AuthBrowserRuntime = Readonly<{
+  createDashboardAuthClient: (
+    options: DashboardAuthClientOptions,
+  ) => DashboardAuthClient;
+}>;
 
 const defaultDashboardPath = "/dashboard/index-v3-improved.html";
+const authBrowserRuntimePath = "/packages/auth-browser/dist/index.js";
 
 export function safeBusinessDashboardReturnPath(search: string): string {
   const value =
@@ -19,7 +29,19 @@ function requiredElement<T extends Element>(selector: string): T {
   return element;
 }
 
-export function mountBusinessLogin(): void {
+function exposeBootstrapFailure(): void {
+  const message = document.querySelector<HTMLElement>("#message");
+  const submit = document.querySelector<HTMLButtonElement>("#submit");
+  if (submit) submit.disabled = true;
+  if (!message) return;
+  message.textContent = "Acesso temporariamente indisponível.";
+  message.hidden = false;
+}
+
+export async function mountBusinessLogin(): Promise<void> {
+  const { createDashboardAuthClient } = (await import(
+    authBrowserRuntimePath
+  )) as AuthBrowserRuntime;
   const form = requiredElement<HTMLFormElement>("#login-form");
   const email = requiredElement<HTMLInputElement>("#email");
   const password = requiredElement<HTMLInputElement>("#password");
@@ -63,6 +85,10 @@ export function mountBusinessLogin(): void {
         submit.textContent = "Entrar com segurança";
       });
   });
+
+  submit.disabled = false;
 }
 
-if (typeof document !== "undefined") mountBusinessLogin();
+if (typeof document !== "undefined") {
+  void mountBusinessLogin().catch(() => exposeBootstrapFailure());
+}

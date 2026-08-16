@@ -7,14 +7,6 @@
     <meta name="theme-color" content="#07111f" />
     <title>Acesso ao Painel — Morro Digital</title>
     <link rel="stylesheet" href="/dashboard/login.css" />
-    <script type="importmap">
-      {
-        "imports": {
-          "@touristic/auth": "/packages/auth/dist/index.js",
-          "@touristic/auth-browser": "/packages/auth-browser/dist/index.js"
-        }
-      }
-    </script>
     <script
       type="module"
       src="/apps/morro-digital-platform/dist/business-login-entry.js"
@@ -51,7 +43,7 @@
           required
         />
 
-        <button id="submit" type="submit">Entrar com segurança</button>
+        <button id="submit" type="submit" disabled>Entrar com segurança</button>
         <div id="message" class="message" role="alert" hidden></div>
       </form>
 

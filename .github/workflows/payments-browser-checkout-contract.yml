@@ -75,15 +75,15 @@ jobs:
             try {
               const page = await browser.newPage();
               page.on('pageerror', error => evidence.errors.push(error.message));
-              await page.goto('http://127.0.0.1:4186/runtime-config.js');
-              await page.evaluate(() => {
-                document.open();
-                document.write(`<!doctype html><html><head><meta charset="utf-8"><script type="importmap">${JSON.stringify({ imports: {
-                  '@touristic/ordering': '/packages/ordering/dist/index.js',
-                  '@touristic/financial': '/packages/financial/dist/index.js'
-                } })}<\/script></head><body><main id="root"></main></body></html>`);
-                document.close();
-              });
+              await page.route('**/business-onboarding-entry.js', route => route.fulfill({
+                status: 200,
+                contentType: 'text/javascript; charset=utf-8',
+                body: ''
+              }));
+              await page.goto(
+                'http://127.0.0.1:4186/apps/morro-digital-platform/public/business-onboarding.html',
+                { waitUntil: 'domcontentloaded' }
+              );
 
               const result = await page.evaluate(async () => {
                 const module = await import('/apps/morro-digital-platform/dist/payments-browser-checkout-client.js');

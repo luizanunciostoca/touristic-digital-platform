@@ -68,7 +68,7 @@ export function createBusinessApi({
       }
 
       if (request.method === "GET") {
-        const access = authApi.authorizeBusinessRequest(
+        const access = await authApi.authorizeBusinessRequest(
           request,
           response,
           matched.businessId,
@@ -89,7 +89,7 @@ export function createBusinessApi({
       }
 
       if (request.method === "PUT") {
-        const access = authApi.authorizeBusinessRequest(
+        const access = await authApi.authorizeBusinessRequest(
           request,
           response,
           matched.businessId,
