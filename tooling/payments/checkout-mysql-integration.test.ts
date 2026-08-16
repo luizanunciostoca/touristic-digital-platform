@@ -122,10 +122,24 @@ describeMySql.sequential("M138 checkout application MySQL integration", () => {
   });
 
   beforeEach(async () => {
-    await orderingPool.query(
-      "DELETE FROM ordering_subscription_renewal_intents",
-    );
-    await orderingPool.query("DELETE FROM ordering_subscriptions");
+    for (const table of [
+      "ordering_subscription_renewal_intents",
+      "ordering_subscriptions",
+      "ordering_ticketing_reservation_bindings",
+    ]) {
+      try {
+        await orderingPool.query(`DELETE FROM ${table}`);
+      } catch (error) {
+        if (
+          !error ||
+          typeof error !== "object" ||
+          !("code" in error) ||
+          error.code !== "ER_NO_SUCH_TABLE"
+        ) {
+          throw error;
+        }
+      }
+    }
     await orderingPool.query("DELETE FROM ordering_checkout_access");
     await financialPool.query("DELETE FROM financial_ledger_postings");
     await financialPool.query("DELETE FROM financial_ledger_transactions");

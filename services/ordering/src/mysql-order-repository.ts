@@ -9,6 +9,7 @@ import {
   type OrderId,
   type OrderRepositoryPort,
   type OrderRequestKey,
+  type OrderSourceKind,
 } from "@touristic/ordering";
 
 interface OrderRow extends RowDataPacket {
@@ -51,10 +52,17 @@ function timestamp(value: Date | string): string {
   return date.toISOString();
 }
 
+function normalizeSourceKind(value: string): OrderSourceKind {
+  if (value === "business_onboarding" || value === "ticketing_reservation") {
+    return value;
+  }
+  throw new Error("ORDERING_INVALID_PERSISTED_ORDER");
+}
+
 function fromRow(row: OrderRow): Order {
   const id = normalizeOrderId(row.order_id);
   const requestKey = normalizeOrderRequestKey(row.request_key);
-  if (!id || !requestKey || row.source_kind !== "business_onboarding") {
+  if (!id || !requestKey) {
     throw new Error("ORDERING_INVALID_PERSISTED_ORDER");
   }
 
@@ -62,7 +70,7 @@ function fromRow(row: OrderRow): Order {
     id,
     requestKey,
     source: {
-      kind: "business_onboarding",
+      kind: normalizeSourceKind(row.source_kind),
       reference: row.source_reference,
     },
     status: row.status as Order["status"],
