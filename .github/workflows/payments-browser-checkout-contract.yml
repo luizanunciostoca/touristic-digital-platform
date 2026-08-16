@@ -47,8 +47,8 @@ jobs:
         run: |
           npm install --prefix /tmp/pw --no-save playwright@1.54.2
           /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
-      - name: Build workspace
-        run: pnpm -w build
+      - name: Build checkout runtime graph
+        run: pnpm -w exec turbo run build --filter=@touristic/morro-digital-platform...
       - name: Validate focused browser client unit contract
         run: pnpm --filter @touristic/morro-digital-platform exec vitest run src/payments-browser-checkout-client.test.ts
       - name: Start deterministic module origin
