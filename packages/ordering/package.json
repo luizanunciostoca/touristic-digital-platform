@@ -11,6 +11,11 @@
       "types": "./src/index.ts",
       "node": "./dist/index.js",
       "default": "./src/index.ts"
+    },
+    "./ticketing-reservation": {
+      "types": "./src/ticketing-reservation.ts",
+      "node": "./dist/ticketing-reservation.js",
+      "default": "./src/ticketing-reservation.ts"
     }
   },
   "scripts": {
