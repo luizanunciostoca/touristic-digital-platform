@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>CRM · Configurações</title>
+    <link rel="stylesheet" href="/apps/admin-crm/public/crm.css" />
+    <script type="importmap">
+      {"imports":{"@touristic/auth":"/packages/auth/dist/index.js","@touristic/auth-browser":"/packages/auth-browser/dist/index.js","@touristic/crm/settings-contract":"/packages/crm/dist/settings-contract.js"}}
+    </script>
+  </head>
+  <body>
+    <main id="settings-shell" class="content" hidden>
+      <p><a href="/apps/admin-crm/">← CRM</a></p>
+      <header>
+        <div>
+          <span class="eyebrow">Administração · CRM</span>
+          <h1>Configurações</h1>
+        </div>
+        <div id="session-chip" class="session-chip">Sessão protegida</div>
+      </header>
+
+      <section class="hero" aria-labelledby="settings-intro-title">
+        <span class="eyebrow">Contrato V1 congelado</span>
+        <h2 id="settings-intro-title">Configurações do sistema CRM</h2>
+        <p>
+          A única configuração mutável desta superfície é o Follow-up Automático.
+          Informações do sistema e etapas do funil são somente leitura e derivadas
+          do vocabulário CRM canônico.
+        </p>
+      </section>
+
+      <div id="settings-status" class="leads-status" role="status">
+        Validando sessão…
+      </div>
+
+      <section class="lead-create-card" aria-labelledby="follow-up-settings-title">
+        <div>
+          <span class="eyebrow">Automação</span>
+          <h3 id="follow-up-settings-title">Follow-up Automático</h3>
+        </div>
+        <form id="follow-up-setting-form" class="lead-create-form">
+          <label>
+            Nome da configuração
+            <input name="name" required maxlength="160" />
+          </label>
+          <label>
+            Intervalo entre tentativas (dias)
+            <input name="intervalDays" type="number" min="1" max="30" step="1" required />
+          </label>
+          <label>
+            Máximo de tentativas por lead
+            <input name="maxAttempts" type="number" min="1" max="20" step="1" required />
+          </label>
+          <label>
+            Status
+            <span>
+              <input name="isActive" type="checkbox" style="width: auto" /> Ativo
+            </span>
+          </label>
+          <div class="lead-create-actions">
+            <button id="follow-up-setting-submit" type="submit">
+              Salvar Configurações
+            </button>
+            <span id="follow-up-setting-status" role="status"></span>
+          </div>
+        </form>
+      </section>
+
+      <section class="lead-create-card" aria-labelledby="system-info-title">
+        <div>
+          <span class="eyebrow">Somente leitura</span>
+          <h3 id="system-info-title">Sobre o Sistema</h3>
+        </div>
+        <div id="system-info" class="grid"></div>
+      </section>
+
+      <section class="lead-create-card" aria-labelledby="funnel-stages-title">
+        <div>
+          <span class="eyebrow">Vocabulário canônico</span>
+          <h3 id="funnel-stages-title">Etapas do Funil de Vendas</h3>
+        </div>
+        <div id="funnel-stages" class="grid"></div>
+      </section>
+    </main>
+
+    <section id="session-loading" class="entry">
+      <div class="entry-card">
+        <span class="eyebrow">Morro Digital CRM</span>
+        <h1>Validando sessão…</h1>
+      </div>
+    </section>
+
+    <script type="module" src="./settings.js"></script>
+  </body>
+</html>
