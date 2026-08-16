@@ -176,7 +176,9 @@ export function createTicketingCheckoutApplicationService(dependencies: {
   readonly identities: { allocatePaymentId(): unknown };
 }): TicketingCheckoutApplicationService {
   return Object.freeze({
-    async startCheckout(input) {
+    async startCheckout(
+      input: TicketingCheckoutApplicationRequest,
+    ): Promise<TicketingCheckoutApplicationResult> {
       const handoff = normalizeTicketingCheckoutHandoff(input);
       if (!handoff) throw new Error("ORDERING_TICKETING_CHECKOUT_INVALID");
       const binding = await dependencies.bindings.findByReservationReference(
