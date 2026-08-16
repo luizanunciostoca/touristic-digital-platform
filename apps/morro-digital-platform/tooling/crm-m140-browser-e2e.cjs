@@ -29,7 +29,9 @@ async function main() {
   const browser = await chromium.launch({ headless: true });
   let context;
   try {
-    context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    context = await browser.newContext({
+      viewport: { width: 1280, height: 900 },
+    });
     const page = await context.newPage();
     page.setDefaultTimeout(10_000);
     page.setDefaultNavigationTimeout(15_000);
@@ -47,9 +49,12 @@ async function main() {
     });
 
     checkpoint("navigate-unauthenticated-detail");
-    await page.goto(`${origin}/apps/admin-crm/public/lead-detail.html?id=${leadId}`, {
-      waitUntil: "domcontentloaded",
-    });
+    await page.goto(
+      `${origin}/apps/admin-crm/public/lead-detail.html?id=${leadId}`,
+      {
+        waitUntil: "domcontentloaded",
+      },
+    );
     await page.waitForURL((url) => url.pathname === "/dashboard/login.html");
 
     checkpoint("platform-auth-login");
@@ -59,12 +64,20 @@ async function main() {
     await page.waitForURL(
       (url) => url.pathname === "/apps/admin-crm/public/lead-detail.html",
     );
-    await page.locator("#lead-detail-shell:not([hidden])").waitFor({ state: "visible" });
-    await page.getByRole("heading", { name: "Toca do Morcego" }).waitFor({ state: "visible" });
-    await page.getByText("Lead sincronizado com o CRM.").waitFor({ state: "visible" });
+    await page
+      .locator("#lead-detail-shell:not([hidden])")
+      .waitFor({ state: "visible" });
+    await page
+      .getByRole("heading", { name: "Toca do Morcego" })
+      .waitFor({ state: "visible" });
+    await page
+      .getByText("Lead sincronizado com o CRM.")
+      .waitFor({ state: "visible" });
 
     checkpoint("frozen-v1-stage-selector");
-    const stageOptions = await page.locator("#lead-stage option").allTextContents();
+    const stageOptions = await page
+      .locator("#lead-stage option")
+      .allTextContents();
     const expectedStages = [
       "Novo Lead",
       "Primeiro Contato",
@@ -84,18 +97,26 @@ async function main() {
       "Cliente Ativo",
     ];
     if (JSON.stringify(stageOptions) !== JSON.stringify(expectedStages)) {
-      throw new Error(`Lead stage selector diverged: ${JSON.stringify(stageOptions)}`);
+      throw new Error(
+        `Lead stage selector diverged: ${JSON.stringify(stageOptions)}`,
+      );
     }
 
     checkpoint("checklist-toggle");
-    const firstChecklist = page.getByRole("checkbox", { name: "Primeiro Contato" });
+    const firstChecklist = page.getByRole("checkbox", {
+      name: "Primeiro Contato",
+    });
     if (!(await firstChecklist.isChecked())) {
       throw new Error("API-prepared checklist state missing");
     }
     await firstChecklist.uncheck();
-    await page.getByText(/0 de 16 etapas concluídas/).waitFor({ state: "visible" });
+    await page
+      .getByText(/0 de 16 etapas concluídas/)
+      .waitFor({ state: "visible" });
     await firstChecklist.check();
-    await page.getByText(/1 de 16 etapas concluídas/).waitFor({ state: "visible" });
+    await page
+      .getByText(/1 de 16 etapas concluídas/)
+      .waitFor({ state: "visible" });
 
     checkpoint("manual-interaction");
     await page.locator("#lead-interaction-type").selectOption("note");
@@ -103,7 +124,9 @@ async function main() {
       .locator('#lead-interaction-form textarea[name="content"]')
       .fill("Nota criada pelo Chromium M140");
     await page.locator("#lead-interaction-submit").click();
-    await page.getByText("Nota criada pelo Chromium M140").waitFor({ state: "visible" });
+    await page
+      .getByText("Nota criada pelo Chromium M140")
+      .waitFor({ state: "visible" });
 
     checkpoint("stage-mutation");
     await page.locator("#lead-stage").selectOption("first_contact");
@@ -125,11 +148,15 @@ async function main() {
       throw new Error(`Stage HTTP ${stageResponse.status()}`);
     }
     await page.waitForFunction(
-      () => document.querySelector("#lead-stage-status")?.textContent?.trim() === "Etapa atualizada.",
+      () =>
+        document.querySelector("#lead-stage-status")?.textContent?.trim() ===
+        "Etapa atualizada.",
     );
 
     checkpoint("lead-edit");
-    await page.locator('#lead-edit-form input[name="contactName"]').fill("Luiz M140");
+    await page
+      .locator('#lead-edit-form input[name="contactName"]')
+      .fill("Luiz M140");
     const editResponsePromise = page.waitForResponse((response) => {
       const url = new URL(response.url());
       return (
@@ -148,15 +175,21 @@ async function main() {
       throw new Error(`Edit HTTP ${editResponse.status()}`);
     }
     await page.waitForFunction(
-      () => document.querySelector("#lead-edit-status")?.textContent?.trim() === "Lead atualizado.",
+      () =>
+        document.querySelector("#lead-edit-status")?.textContent?.trim() ===
+        "Lead atualizado.",
     );
     await page.getByText("Luiz M140").first().waitFor({ state: "visible" });
 
     checkpoint("list-to-detail-navigation");
-    await page.goto(`${origin}/apps/admin-crm/#leads`, { waitUntil: "domcontentloaded" });
+    await page.goto(`${origin}/apps/admin-crm/#leads`, {
+      waitUntil: "domcontentloaded",
+    });
     await page.locator("#leads-body tr").first().waitFor({ state: "visible" });
     const detailLink = page
-      .locator(`a.lead-detail-link[href="/apps/admin-crm/public/lead-detail.html?id=${leadId}"]`)
+      .locator(
+        `a.lead-detail-link[href="/apps/admin-crm/public/lead-detail.html?id=${leadId}"]`,
+      )
       .first();
     await detailLink.waitFor({ state: "visible" });
     await detailLink.click();
@@ -182,7 +215,8 @@ async function main() {
     });
     checkpoint("complete");
   } catch (error) {
-    evidence.failure = error instanceof Error ? error.stack || error.message : String(error);
+    evidence.failure =
+      error instanceof Error ? error.stack || error.message : String(error);
     persist();
     throw error;
   } finally {
@@ -192,12 +226,16 @@ async function main() {
 }
 
 const overallTimeout = new Promise((_, reject) => {
-  const timer = setTimeout(() => reject(new Error("CRM M140 browser lifecycle exceeded 90 seconds")), 90_000);
+  const timer = setTimeout(
+    () => reject(new Error("CRM M140 browser lifecycle exceeded 90 seconds")),
+    90_000,
+  );
   timer.unref?.();
 });
 
 Promise.race([main(), overallTimeout]).catch((error) => {
-  evidence.failure = error instanceof Error ? error.stack || error.message : String(error);
+  evidence.failure =
+    error instanceof Error ? error.stack || error.message : String(error);
   persist();
   console.error(error);
   process.exit(1);

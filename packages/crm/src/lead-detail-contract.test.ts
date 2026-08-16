@@ -38,8 +38,9 @@ describe("CRM M140 frozen lead detail presentation", () => {
     });
     expect(crmLeadDetailStageLabels.churned).toBe("Cancelado");
     expect(crmLeadDetailStageLabels.lost).toBe("Perdido");
-    expect(crmLeadDetailStages.some(({ stage }) => stage === "churned")).toBe(false);
-    expect(crmLeadDetailStages.some(({ stage }) => stage === "lost")).toBe(false);
+    const selectable = crmLeadDetailStages.map(({ stage }) => String(stage));
+    expect(selectable).not.toContain("churned");
+    expect(selectable).not.toContain("lost");
   });
 
   it("keeps every canonical checklist step in the frozen V1 order", () => {
