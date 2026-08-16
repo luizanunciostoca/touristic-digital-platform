@@ -14,8 +14,8 @@
 - tracker item: `MIG-0008`;
 - M139 prerequisite: already merged before M140 reconciliation;
 - M140: PR #260, Lead Detail / Activity restoration, merged to `main` as `6727b0bcb679677d2e481868bfc23ec80bd74214`;
-- M141: PR #266, residual equivalence closure rebased directly on post-M140 `main`;
-- target migration status after M141 gates: `equivalent`, **not** `released`.
+- M141: PR #266, residual equivalence closure, merged to `main` as `efad48ad30b86febb5e58496c1bcc25feb3937b0`;
+- final migration status: `equivalent`, **not** `released`.
 
 M73–M139 established platform Auth composition, MySQL persistence, audited commercial aggregates, schedulers, public token flows, authenticated browser lifecycles, dashboard/funnel metrics and the only mutable frozen Settings contract. M140 restores the frozen Lead Detail/Activity contract while preserving the exact 16-stage operational selector and all 18 recognized readback labels. M141 closes the remaining observable parity items without creating a parallel CRM domain, payment flow, ticketing flow, Assistant implementation or Marketplace redesign.
 
@@ -86,19 +86,19 @@ The permanent `CRM Equivalence Browser Contract` runs against real MySQL 8.4 and
 - no browser `pageerror` or non-benign failed request in the successful evidence run;
 - screenshots are uploaded by the permanent workflow for visual inspection.
 
+The post-merge `main@efad48ad30b86febb5e58496c1bcc25feb3937b0` reran and passed Quality, CRM Platform Auth, CRM Lead Detail Browser and CRM Equivalence Browser. The post-merge browser evidence artifact is `9260740071`, digest `sha256:d3e23f5abdb0008c9507344a66a15ba0f24deff89091e759014052f18355ac43`.
+
 See `docs/qa/CRM-M141-EQUIVALENCE-EVIDENCE.md` for the promotion record.
 
 ## Equivalence versus release
 
-`FEATURE-0006` may be `equivalent` when this matrix, Feature Registry, tracker and exact-head gates agree. `Equivalent` does **not** mean `released`.
+`FEATURE-0006` is `equivalent` because this matrix, Feature Registry, tracker and exact-head/post-merge gates agree. `Equivalent` does **not** mean `released`.
 
-Release remains a separate coordinator-controlled operation. PR #260 is already promoted in `main`; the remaining code-promotion step is PR #266:
+Both code-promotion steps are complete in `main`:
 
-1. require #266 at 0 behind and mergeable against the post-M140 `main`;
-2. require permanent Quality/Auth/CRM browser gates on the exact #266 head;
-3. promote #266 only through the coordinator;
-4. deploy to staging using the normal platform process;
-5. rerun staging smoke checks and observe platform health/readiness plus CRM auth/MySQL behavior;
-6. promote production only under the coordinator's release process.
+1. PR #260 / M140 → `6727b0bcb679677d2e481868bfc23ec80bd74214`;
+2. PR #266 / M141 → `efad48ad30b86febb5e58496c1bcc25feb3937b0`.
+
+Operational release remains coordinator-controlled: deploy staging using the normal platform process, rerun staging smoke checks and observe platform health/readiness plus CRM auth/MySQL behavior, then promote production only under the coordinator's release process.
 
 Rollback is intentionally simple because M140/M141 add no schema migration: revert #266 first, then #260 if necessary, and redeploy the previous known-good application artifact. No down-migration or parallel persistence path is required.

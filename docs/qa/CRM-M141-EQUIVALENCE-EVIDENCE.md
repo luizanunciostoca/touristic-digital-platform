@@ -25,37 +25,35 @@ Validated head:
 
 Proof on that head:
 
-- Quality Gate draft: success;
+- Quality Gate: success, including repository tests and build;
 - CRM Platform Auth Integration Contract: success;
-- CRM Lead Detail Browser Contract: success;
-- temporary ready-for-review full Quality: success, including repository tests and build;
-- returned to draft before promotion.
+- CRM Lead Detail Browser Contract: success.
 
-PR #260 was subsequently promoted by the coordinator/external integration flow and is now in `main` as:
+PR #260 was promoted by the coordinator/external integration flow and is in `main` as:
 
 ```text
 6727b0bcb679677d2e481868bfc23ec80bd74214
 ```
 
-The CRM closure work in this evidence did not perform that merge.
+The CRM closure work represented by this evidence did not execute that merge.
 
 M140 restores the frozen Lead Detail aggregate, exact 16 selectable operational stages, all recognized readback labels, 16-step checklist, activity history/manual interaction, edit/stage lifecycle and list-to-detail navigation. It reuses the existing MySQL schema and adds no migration.
 
 ### PR #266 — M141 residual equivalence closure
 
-Branch:
+Validated head:
 
 ```text
-feat/crm-m141-equivalence-closure
+00557b5cfc990331c5af57012e81e0aff2cd4526
 ```
 
-Base:
+PR #266 was reconciled directly onto the post-M140 `main`, reached 0 behind and mergeable, and passed the required permanent gates on that exact head. It was subsequently promoted by the coordinator/external integration flow and is in `main` as:
 
 ```text
-main
+efad48ad30b86febb5e58496c1bcc25feb3937b0
 ```
 
-After M140 promotion, #266 was reconciled directly onto post-M140 `main`; its promotion candidate must remain 0 behind and contain only the M141 residual closure.
+This CRM closure work did not execute that merge either.
 
 ## Lead optional-field clearing
 
@@ -181,17 +179,28 @@ For the critical Lead Detail and Follow-up surfaces it verifies:
 - HTML `hidden` state is honored via the CRM stylesheet so authenticated pages do not retain ghost loading surfaces;
 - screenshots are uploaded as workflow artifacts for visual inspection.
 
-The successful functional/visual evidence run before final documentation promotion was:
+Exact-head pre-merge evidence on `00557b5cfc990331c5af57012e81e0aff2cd4526`:
 
 ```text
-CRM Equivalence Browser Contract run #17
-run id: 31935098886
-head: 5d5be68de1bd84f4ca3eb87f41a30abbf6b8319e
-artifact id: 9260428935
-artifact digest: sha256:744f12b4d11d5a73a722c60b658859c9b515d616126c83f50dd4e6eedee84ec2
+Quality Gate run: 31935807732 — success
+latest duplicate Quality Gate run: 31936023179 — success
+CRM Platform Auth Integration Contract run: 31935807760 — success
+CRM Lead Detail Browser Contract run: 31935807779 — success
+CRM Equivalence Browser Contract run: 31935807756 — success
+artifact: 9260636789
+artifact digest: sha256:fc8cb030a3b031dcf76b0d5c85473ce3de02f903457f7ba1b7b8221ebef91364
 ```
 
-The authenticated hidden-state fix is frozen by the M141 static contract and the permanent browser workflow is required again on the exact final promotion head.
+Post-merge evidence on `main@efad48ad30b86febb5e58496c1bcc25feb3937b0`:
+
+```text
+Quality Gate run: 31936185623 — success
+CRM Platform Auth Integration Contract run: 31936185619 — success
+CRM Lead Detail Browser Contract run: 31936185643 — success
+CRM Equivalence Browser Contract run: 31936185617 — success
+artifact: 9260740071
+artifact digest: sha256:d3e23f5abdb0008c9507344a66a15ba0f24deff89091e759014052f18355ac43
+```
 
 ## Canonical score
 
@@ -203,18 +212,18 @@ N/A       1
 TOTAL    25
 ```
 
-No technical CRM parity gap remains after the final exact-head gates.
+No technical CRM parity gap remains.
 
 ## Canonical sources synchronized
 
-The final promotion candidate requires the same state in all canonical sources:
+The merged M141 state agrees across the canonical sources:
 
 - `CRM-MIGRATION-MATRIX.md`: `24 PASS / 0 PARTIAL / 0 GAP / 1 N/A`;
 - Feature Registry: `FEATURE-0006.status = equivalent` with behavior/visual/API all `true`;
 - `MASTER-MIGRATION-TRACKER.md`: `MIG-0008 = equivalent` with the M141 closure record;
 - this evidence record.
 
-Temporary tracker reconciliation tooling was removed before the clean post-M140 reconciliation. Only permanent CRM/runtime/workflow assets remain in the candidate branch.
+Temporary tracker reconciliation tooling was removed before the clean post-M140 reconciliation. Only permanent CRM/runtime/workflow assets remained in the M141 code candidate.
 
 ## Migrations
 
@@ -234,16 +243,12 @@ Both releases reuse the existing CRM MySQL schema.
 
 ## Release and rollback readiness
 
-Migration equivalence and release are separate states.
+Migration equivalence and release are separate states. Code promotion for the CRM equivalence work is complete:
 
-PR #260 is already promoted. Remaining coordinator promotion order:
+1. PR #260 / M140 → `6727b0bcb679677d2e481868bfc23ec80bd74214`;
+2. PR #266 / M141 → `efad48ad30b86febb5e58496c1bcc25feb3937b0`.
 
-1. verify #266 is based on `main`, 0 behind and mergeable;
-2. require permanent Quality, Platform Auth, CRM Lead Detail Browser and CRM Equivalence Browser gates on the exact #266 head;
-3. promote #266 only through the coordinator;
-4. deploy staging through the normal platform release process;
-5. smoke authenticated CRM/MySQL behavior and platform health/readiness;
-6. release production only through the coordinator-controlled process.
+Operational release remains coordinator-controlled: deploy staging through the normal platform release process, smoke authenticated CRM/MySQL behavior and platform health/readiness, and only then release production.
 
 Rollback:
 
@@ -251,14 +256,6 @@ Rollback:
 2. if necessary revert/deploy back from #260;
 3. no database down-migration is required because M140/M141 add no schema migration.
 
-## Promotion rule
+## Final rule
 
-`FEATURE-0006` is eligible for `equivalent` only when all of the following agree on the final PR head:
-
-- this evidence;
-- `CRM-MIGRATION-MATRIX.md`;
-- Feature Registry;
-- `MASTER-MIGRATION-TRACKER.md`;
-- permanent CRM browser/auth checks;
-- full Quality including tests and build;
-- PR remains coordinator-controlled and unmerged by this chat.
+`FEATURE-0006` is canonically `equivalent`, not `released`, because matrix, Feature Registry, tracker, exact-head gates and post-merge gates all agree. Any production-release declaration remains outside this CRM equivalence closure and belongs to the coordinator-controlled release process.
