@@ -18,14 +18,10 @@ import {
 } from "./lead-detail-contract.js";
 
 export type CrmLeadDetailOperation =
-  | "lead.detail"
-  | "lead.checklist_toggle"
-  | "lead.interaction_add";
+  "lead.detail" | "lead.checklist_toggle" | "lead.interaction_add";
 
 export type CrmLeadDetailReason =
-  | CrmAuthorizationReason
-  | "invalid_input"
-  | "not_found";
+  CrmAuthorizationReason | "invalid_input" | "not_found";
 
 export interface CrmLeadDetailAuditEvent {
   readonly operation: CrmLeadDetailOperation;
@@ -262,12 +258,7 @@ export class CrmLeadDetailServerBoundary {
       this.repository.findChecklistItemById(id),
     ]);
     if (!lead || !item || item.leadId !== leadId) {
-      return this.reject(
-        "lead.checklist_toggle",
-        session,
-        "not_found",
-        leadId,
-      );
+      return this.reject("lead.checklist_toggle", session, "not_found", leadId);
     }
 
     const completedAt = input.completed ? this.now() : null;
@@ -279,12 +270,7 @@ export class CrmLeadDetailServerBoundary {
       completedBySubject: input.completed ? session.subject : null,
     });
     if (!updated) {
-      return this.reject(
-        "lead.checklist_toggle",
-        session,
-        "not_found",
-        leadId,
-      );
+      return this.reject("lead.checklist_toggle", session, "not_found", leadId);
     }
     await this.repository.appendInteraction({
       leadId,
@@ -338,12 +324,7 @@ export class CrmLeadDetailServerBoundary {
     }
     const lead = await this.repository.findLeadById(leadId);
     if (!lead) {
-      return this.reject(
-        "lead.interaction_add",
-        session,
-        "not_found",
-        leadId,
-      );
+      return this.reject("lead.interaction_add", session, "not_found", leadId);
     }
 
     const timestamp = this.now();

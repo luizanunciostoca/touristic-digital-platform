@@ -42,9 +42,7 @@ function resultResponse<T>(
   });
 }
 
-function route(
-  pathname: string,
-):
+function route(pathname: string):
   | { readonly kind: "detail"; readonly leadId: string }
   | {
       readonly kind: "checklist";
@@ -54,19 +52,17 @@ function route(
   | { readonly kind: "interactions"; readonly leadId: string }
   | null {
   if (!pathname.startsWith(`${leadsPrefix}/`)) return null;
-  const parts = pathname.slice(leadsPrefix.length + 1).split("/").filter(Boolean);
+  const parts = pathname
+    .slice(leadsPrefix.length + 1)
+    .split("/")
+    .filter(Boolean);
   if (parts.length === 2 && parts[0] && parts[1] === "detail") {
     return { kind: "detail", leadId: parts[0] };
   }
   if (parts.length === 2 && parts[0] && parts[1] === "interactions") {
     return { kind: "interactions", leadId: parts[0] };
   }
-  if (
-    parts.length === 3 &&
-    parts[0] &&
-    parts[1] === "checklist" &&
-    parts[2]
-  ) {
+  if (parts.length === 3 && parts[0] && parts[1] === "checklist" && parts[2]) {
     return { kind: "checklist", leadId: parts[0], itemId: parts[2] };
   }
   return null;

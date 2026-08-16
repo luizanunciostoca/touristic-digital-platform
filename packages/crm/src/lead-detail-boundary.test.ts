@@ -78,7 +78,8 @@ function fixture() {
   const repository: CrmLeadDetailRepository = {
     findLeadById: async (id) => (id === 7 ? lead() : null),
     listChecklist: async () => [checklist],
-    findChecklistItemById: async (id) => (id === checklist.id ? checklist : null),
+    findChecklistItemById: async (id) =>
+      id === checklist.id ? checklist : null,
     setChecklistCompletion: async (input) => {
       if (input.id !== checklist.id || input.leadId !== checklist.leadId) {
         return null;

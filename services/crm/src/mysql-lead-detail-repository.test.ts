@@ -29,9 +29,13 @@ const checklistRow = {
 
 describe("CRM M140 lead detail MySQL persistence", () => {
   it("uses the existing checklist and interaction schema without a migration", () => {
-    expect(crmM71SchemaSql).toContain("CREATE TABLE IF NOT EXISTS crm_checklist_items");
+    expect(crmM71SchemaSql).toContain(
+      "CREATE TABLE IF NOT EXISTS crm_checklist_items",
+    );
     expect(crmM71SchemaSql).toContain("completed_by_subject VARCHAR(191) NULL");
-    expect(crmM71SchemaSql).toContain("CREATE TABLE IF NOT EXISTS crm_interactions");
+    expect(crmM71SchemaSql).toContain(
+      "CREATE TABLE IF NOT EXISTS crm_interactions",
+    );
     expect(crmM71SchemaSql).toContain("actor_subject VARCHAR(191) NOT NULL");
   });
 
@@ -64,13 +68,7 @@ describe("CRM M140 lead detail MySQL persistence", () => {
     });
     expect(updated?.completed).toBe(true);
     expect(calls[0]?.sql).toContain("WHERE id = ? AND lead_id = ?");
-    expect(calls[0]?.values).toEqual([
-      true,
-      completedAt,
-      "crm-manager",
-      11,
-      7,
-    ]);
+    expect(calls[0]?.values).toEqual([true, completedAt, "crm-manager", 11, 7]);
     expect(calls[1]?.values).toEqual([11]);
   });
 
@@ -95,7 +93,9 @@ describe("CRM M140 lead detail MySQL persistence", () => {
         actorSubject: "crm-admin",
       }),
     );
-    expect(calls[0]?.sql).toContain("ORDER BY created_at DESC, id DESC LIMIT 200");
+    expect(calls[0]?.sql).toContain(
+      "ORDER BY created_at DESC, id DESC LIMIT 200",
+    );
     expect(calls[0]?.values).toEqual([7]);
   });
 

@@ -60,7 +60,9 @@ describe("CRM M140 Lead Detail permanent contract", () => {
     expect(runtime).toContain("MySqlCrmLeadDetailRepository");
     expect(runtime).toContain("MySqlCrmLeadDetailAuditPort");
     expect(runtime).toContain("CrmLeadDetailHttpTransport");
-    expect(runtime).toContain("new CrmLeadDetailHttpTransport(leadDetailBoundary, authPort)");
+    expect(runtime).toContain(
+      "new CrmLeadDetailHttpTransport(leadDetailBoundary, authPort)",
+    );
     expect(runtime.indexOf("new CrmLeadDetailHttpTransport")).toBeLessThan(
       runtime.indexOf("new CrmLeadHttpTransport"),
     );
