@@ -80,10 +80,13 @@ describe("Payments browser authority bootstrap", () => {
         status: 201,
       }),
     );
-    const malformed = createServerIssuedPaymentsCheckoutAuthority(malformedFetch);
-    await expect(malformed.resolveCreateHeaders(handoff)).rejects.toMatchObject({
-      code: "PAYMENTS_BROWSER_INVALID_AUTHORITY",
-    });
+    const malformed =
+      createServerIssuedPaymentsCheckoutAuthority(malformedFetch);
+    await expect(malformed.resolveCreateHeaders(handoff)).rejects.toMatchObject(
+      {
+        code: "PAYMENTS_BROWSER_INVALID_AUTHORITY",
+      },
+    );
 
     const rejectedFetch = vi.fn<typeof fetch>();
     rejectedFetch.mockResolvedValue(
