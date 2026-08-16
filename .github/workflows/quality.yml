@@ -26,6 +26,13 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+      - name: Restore Turbo lint/typecheck cache
+        uses: actions/cache@v4
+        with:
+          path: /tmp/turbo-cache
+          key: turbo-${{ runner.os }}-node22-${{ hashFiles('pnpm-lock.yaml', 'turbo.json', 'eslint.config.mjs', 'tsconfig.base.json') }}-${{ github.sha }}
+          restore-keys: |
+            turbo-${{ runner.os }}-node22-${{ hashFiles('pnpm-lock.yaml', 'turbo.json', 'eslint.config.mjs', 'tsconfig.base.json') }}-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Check formatting
@@ -35,8 +42,12 @@ jobs:
       - name: Validate Feature Registry
         run: pnpm features:check
       - name: Lint
+        env:
+          TURBO_CACHE_DIR: /tmp/turbo-cache
         run: pnpm lint
       - name: Typecheck
+        env:
+          TURBO_CACHE_DIR: /tmp/turbo-cache
         run: pnpm typecheck
       - name: Test
         if: ${{ github.event_name == 'push' || github.event.pull_request.draft == false }}
