@@ -110,24 +110,26 @@ jobs:
           PASSWORD="correct horse battery staple"
 
           assert_http() {
-            local actual="$1"
-            local expected="$2"
-            local file="$3"
-            local label="$4"
+            local actual="$1" expected="$2" file="$3" label="$4"
             if [ "$actual" != "$expected" ]; then
               echo "$label expected HTTP $expected but received $actual"
               cat "$file" || true
-              echo "--- server log ---"
               cat /tmp/crm-m140-server.log || true
               exit 1
             fi
           }
 
-          UNAUTH=$(curl --silent --output /tmp/m140-unauth.json --write-out '%{http_code}' "$ORIGIN/api/crm/leads/1/detail")
+          request() {
+            local file="$1"
+            shift
+            curl --silent --output "$file" --write-out '%{http_code}' "$@"
+          }
+
+          UNAUTH=$(request /tmp/m140-unauth.json "$ORIGIN/api/crm/leads/1/detail")
           assert_http "$UNAUTH" 401 /tmp/m140-unauth.json unauthenticated-detail
           grep -q 'AUTH_REQUIRED' /tmp/m140-unauth.json
 
-          OWNER_LOGIN=$(curl --silent --output /tmp/m140-owner-login.json --cookie-jar /tmp/m140-owner.cookies --write-out '%{http_code}' \
+          OWNER_LOGIN=$(request /tmp/m140-owner-login.json --cookie-jar /tmp/m140-owner.cookies \
             --header "Origin: $ORIGIN" --header 'Content-Type: application/json' \
             --data "{\"email\":\"owner@example.com\",\"password\":\"$PASSWORD\"}" \
             "$ORIGIN/api/dashboard/auth/login")
@@ -139,23 +141,21 @@ jobs:
           PY
           OWNER_CSRF=$(cat /tmp/m140-owner-csrf.txt)
 
-          CREATE=$(curl --silent --output /tmp/m140-create.json --write-out '%{http_code}' \
-            --cookie /tmp/m140-owner.cookies --header "Origin: $ORIGIN" --header "X-CSRF-Token: $OWNER_CSRF" \
+          CREATE=$(request /tmp/m140-create.json --cookie /tmp/m140-owner.cookies \
+            --header "Origin: $ORIGIN" --header "X-CSRF-Token: $OWNER_CSRF" \
             --header 'Content-Type: application/json' \
             --data '{"companyName":"Toca do Morcego","segment":"events","contactName":"Luiz"}' \
             "$ORIGIN/api/crm/leads")
           assert_http "$CREATE" 200 /tmp/m140-create.json owner-create
           python3 - <<'PY'
           import json
-          data=json.load(open('/tmp/m140-create.json'))
-          lead=data['data']
+          lead=json.load(open('/tmp/m140-create.json'))['data']
           assert lead['companyName']=='Toca do Morcego'
           open('/tmp/m140-lead-id.txt','w').write(str(lead['id']))
           PY
           LEAD_ID=$(cat /tmp/m140-lead-id.txt)
 
-          DETAIL=$(curl --silent --output /tmp/m140-detail.json --write-out '%{http_code}' \
-            --cookie /tmp/m140-owner.cookies "$ORIGIN/api/crm/leads/$LEAD_ID/detail")
+          DETAIL=$(request /tmp/m140-detail.json --cookie /tmp/m140-owner.cookies "$ORIGIN/api/crm/leads/$LEAD_ID/detail")
           assert_http "$DETAIL" 200 /tmp/m140-detail.json owner-detail
           python3 - <<'PY'
           import json
@@ -169,14 +169,14 @@ jobs:
           PY
           CHECKLIST_ID=$(cat /tmp/m140-checklist-id.txt)
 
-          BAD_CSRF=$(curl --silent --output /tmp/m140-bad-csrf.json --write-out '%{http_code}' \
-            --request PATCH --cookie /tmp/m140-owner.cookies --header "Origin: $ORIGIN" --header 'X-CSRF-Token: wrong' \
+          BAD_CSRF=$(request /tmp/m140-bad-csrf.json --request PATCH --cookie /tmp/m140-owner.cookies \
+            --header "Origin: $ORIGIN" --header 'X-CSRF-Token: wrong' \
             --header 'Content-Type: application/json' --data '{"completed":true}' \
             "$ORIGIN/api/crm/leads/$LEAD_ID/checklist/$CHECKLIST_ID")
           assert_http "$BAD_CSRF" 403 /tmp/m140-bad-csrf.json invalid-csrf
           grep -q 'INVALID_CSRF' /tmp/m140-bad-csrf.json
 
-          VIEWER_LOGIN=$(curl --silent --output /tmp/m140-viewer-login.json --cookie-jar /tmp/m140-viewer.cookies --write-out '%{http_code}' \
+          VIEWER_LOGIN=$(request /tmp/m140-viewer-login.json --cookie-jar /tmp/m140-viewer.cookies \
             --header "Origin: $ORIGIN" --header 'Content-Type: application/json' \
             --data "{\"email\":\"viewer@example.com\",\"password\":\"$PASSWORD\"}" \
             "$ORIGIN/api/dashboard/auth/login")
@@ -188,19 +188,18 @@ jobs:
           PY
           VIEWER_CSRF=$(cat /tmp/m140-viewer-csrf.txt)
 
-          VIEWER_READ=$(curl --silent --output /tmp/m140-viewer-read.json --write-out '%{http_code}' \
-            --cookie /tmp/m140-viewer.cookies "$ORIGIN/api/crm/leads/$LEAD_ID/detail")
+          VIEWER_READ=$(request /tmp/m140-viewer-read.json --cookie /tmp/m140-viewer.cookies "$ORIGIN/api/crm/leads/$LEAD_ID/detail")
           assert_http "$VIEWER_READ" 200 /tmp/m140-viewer-read.json viewer-detail
 
-          VIEWER_WRITE=$(curl --silent --output /tmp/m140-viewer-write.json --write-out '%{http_code}' \
-            --request PATCH --cookie /tmp/m140-viewer.cookies --header "Origin: $ORIGIN" --header "X-CSRF-Token: $VIEWER_CSRF" \
+          VIEWER_WRITE=$(request /tmp/m140-viewer-write.json --request PATCH --cookie /tmp/m140-viewer.cookies \
+            --header "Origin: $ORIGIN" --header "X-CSRF-Token: $VIEWER_CSRF" \
             --header 'Content-Type: application/json' --data '{"completed":true}' \
             "$ORIGIN/api/crm/leads/$LEAD_ID/checklist/$CHECKLIST_ID")
           assert_http "$VIEWER_WRITE" 403 /tmp/m140-viewer-write.json viewer-write
           grep -q 'READ_ONLY_ROLE' /tmp/m140-viewer-write.json
 
-          CREATE_SECOND=$(curl --silent --output /tmp/m140-create-second.json --write-out '%{http_code}' \
-            --cookie /tmp/m140-owner.cookies --header "Origin: $ORIGIN" --header "X-CSRF-Token: $OWNER_CSRF" \
+          CREATE_SECOND=$(request /tmp/m140-create-second.json --cookie /tmp/m140-owner.cookies \
+            --header "Origin: $ORIGIN" --header "X-CSRF-Token: $OWNER_CSRF" \
             --header 'Content-Type: application/json' --data '{"companyName":"Second Lead"}' \
             "$ORIGIN/api/crm/leads")
           assert_http "$CREATE_SECOND" 200 /tmp/m140-create-second.json second-create
@@ -211,38 +210,50 @@ jobs:
           PY
           SECOND_ID=$(cat /tmp/m140-second-lead-id.txt)
 
-          CROSS_LEAD=$(curl --silent --output /tmp/m140-cross-lead.json --write-out '%{http_code}' \
-            --request PATCH --cookie /tmp/m140-owner.cookies --header "Origin: $ORIGIN" --header "X-CSRF-Token: $OWNER_CSRF" \
+          CROSS_LEAD=$(request /tmp/m140-cross-lead.json --request PATCH --cookie /tmp/m140-owner.cookies \
+            --header "Origin: $ORIGIN" --header "X-CSRF-Token: $OWNER_CSRF" \
             --header 'Content-Type: application/json' --data '{"completed":true}' \
             "$ORIGIN/api/crm/leads/$SECOND_ID/checklist/$CHECKLIST_ID")
           assert_http "$CROSS_LEAD" 404 /tmp/m140-cross-lead.json cross-lead-checklist
 
-          TOGGLE=$(curl --silent --output /tmp/m140-toggle.json --write-out '%{http_code}' \
-            --request PATCH --cookie /tmp/m140-owner.cookies --header "Origin: $ORIGIN" --header "X-CSRF-Token: $OWNER_CSRF" \
+          TOGGLE=$(request /tmp/m140-toggle.json --request PATCH --cookie /tmp/m140-owner.cookies \
+            --header "Origin: $ORIGIN" --header "X-CSRF-Token: $OWNER_CSRF" \
             --header 'Content-Type: application/json' --data '{"completed":true}' \
             "$ORIGIN/api/crm/leads/$LEAD_ID/checklist/$CHECKLIST_ID")
           assert_http "$TOGGLE" 200 /tmp/m140-toggle.json owner-toggle
-          grep -q '"completed":true' /tmp/m140-toggle.json
 
-          SYSTEM_MANUAL=$(curl --silent --output /tmp/m140-system-manual.json --write-out '%{http_code}' \
-            --cookie /tmp/m140-owner.cookies --header "Origin: $ORIGIN" --header "X-CSRF-Token: $OWNER_CSRF" \
+          SYSTEM_MANUAL=$(request /tmp/m140-system-manual.json --cookie /tmp/m140-owner.cookies \
+            --header "Origin: $ORIGIN" --header "X-CSRF-Token: $OWNER_CSRF" \
             --header 'Content-Type: application/json' --data '{"type":"system","content":"blocked"}' \
             "$ORIGIN/api/crm/leads/$LEAD_ID/interactions")
           assert_http "$SYSTEM_MANUAL" 400 /tmp/m140-system-manual.json system-manual
           grep -q 'INVALID_INPUT' /tmp/m140-system-manual.json
 
-          NOTE=$(curl --silent --output /tmp/m140-note.json --write-out '%{http_code}' \
-            --cookie /tmp/m140-owner.cookies --header "Origin: $ORIGIN" --header "X-CSRF-Token: $OWNER_CSRF" \
+          NOTE=$(request /tmp/m140-note.json --cookie /tmp/m140-owner.cookies \
+            --header "Origin: $ORIGIN" --header "X-CSRF-Token: $OWNER_CSRF" \
             --header 'Content-Type: application/json' --data '{"type":"note","content":"Cliente pediu retorno amanhã"}' \
             "$ORIGIN/api/crm/leads/$LEAD_ID/interactions")
           assert_http "$NOTE" 200 /tmp/m140-note.json owner-note
 
-          READBACK=$(curl --silent --output /tmp/m140-readback.json --write-out '%{http_code}' \
-            --cookie /tmp/m140-owner.cookies "$ORIGIN/api/crm/leads/$LEAD_ID/detail")
+          STAGE=$(request /tmp/m140-stage.json --cookie /tmp/m140-owner.cookies \
+            --header "Origin: $ORIGIN" --header "X-CSRF-Token: $OWNER_CSRF" \
+            --header 'Content-Type: application/json' --data '{"stage":"first_contact"}' \
+            "$ORIGIN/api/crm/leads/$LEAD_ID/stage")
+          assert_http "$STAGE" 200 /tmp/m140-stage.json owner-stage
+          grep -q '"stage":"first_contact"' /tmp/m140-stage.json
+
+          RESET_STAGE=$(request /tmp/m140-stage-reset.json --cookie /tmp/m140-owner.cookies \
+            --header "Origin: $ORIGIN" --header "X-CSRF-Token: $OWNER_CSRF" \
+            --header 'Content-Type: application/json' --data '{"stage":"new_lead"}' \
+            "$ORIGIN/api/crm/leads/$LEAD_ID/stage")
+          assert_http "$RESET_STAGE" 200 /tmp/m140-stage-reset.json reset-stage
+
+          READBACK=$(request /tmp/m140-readback.json --cookie /tmp/m140-owner.cookies "$ORIGIN/api/crm/leads/$LEAD_ID/detail")
           assert_http "$READBACK" 200 /tmp/m140-readback.json owner-readback
           python3 - <<'PY'
           import json
           data=json.load(open('/tmp/m140-readback.json'))['data']
+          assert data['lead']['stage']=='new_lead'
           assert data['checklist'][0]['completed'] is True
           assert data['checklist'][0]['completedBySubject']=='owner-1'
           assert any(item['type']=='note' and item['content']=='Cliente pediu retorno amanhã' for item in data['interactions'])
@@ -254,11 +265,16 @@ jobs:
           const { writeFileSync, readFileSync } = require('node:fs');
           const { chromium } = require('/tmp/pw/node_modules/playwright');
 
+          const origin = 'http://127.0.0.1:4192';
+          const leadId = readFileSync('/tmp/m140-lead-id.txt', 'utf8').trim();
+          const evidence = { errors: [], leadId, responses: {} };
+
+          function writeEvidence() {
+            writeFileSync('/tmp/crm-m140-browser-evidence.json', JSON.stringify(evidence, null, 2));
+          }
+
           (async () => {
-            const origin = 'http://127.0.0.1:4192';
-            const leadId = readFileSync('/tmp/m140-lead-id.txt', 'utf8').trim();
             const browser = await chromium.launch({ headless: true });
-            const evidence = { errors: [], leadId };
             try {
               const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
               const page = await context.newPage();
@@ -286,7 +302,7 @@ jobs:
               if (!(await firstChecklist.isChecked())) throw new Error('API-prepared checklist state missing');
               await firstChecklist.uncheck();
               await page.getByText(/0 de 16 etapas concluídas/).waitFor({ state: 'visible', timeout: 10000 });
-              await page.getByRole('checkbox', { name: 'Primeiro Contato' }).check();
+              await firstChecklist.check();
               await page.getByText(/1 de 16 etapas concluídas/).waitFor({ state: 'visible', timeout: 10000 });
 
               await page.locator('#lead-interaction-type').selectOption('note');
@@ -295,12 +311,30 @@ jobs:
               await page.getByText('Nota criada pelo Chromium M140').waitFor({ state: 'visible', timeout: 10000 });
 
               await page.locator('#lead-stage').selectOption('first_contact');
+              const stageResponsePromise = page.waitForResponse(response => {
+                const url = new URL(response.url());
+                return url.pathname === `/api/crm/leads/${leadId}/stage` && response.request().method() === 'POST';
+              }, { timeout: 10000 });
               await page.locator('#lead-stage-submit').click();
-              await page.getByText('Etapa atualizada.').waitFor({ state: 'visible', timeout: 10000 });
+              const stageResponse = await stageResponsePromise;
+              const stageBody = await stageResponse.text();
+              evidence.responses.stage = { status: stageResponse.status(), body: stageBody };
+              writeEvidence();
+              if (!stageResponse.ok()) throw new Error(`Stage HTTP ${stageResponse.status()}: ${stageBody}`);
+              await page.waitForFunction(() => document.querySelector('#lead-stage-status')?.textContent?.trim() === 'Etapa atualizada.', null, { timeout: 10000 });
 
               await page.locator('#lead-edit-form input[name="contactName"]').fill('Luiz M140');
+              const editResponsePromise = page.waitForResponse(response => {
+                const url = new URL(response.url());
+                return url.pathname === `/api/crm/leads/${leadId}` && response.request().method() === 'PATCH';
+              }, { timeout: 10000 });
               await page.locator('#lead-edit-submit').click();
-              await page.getByText('Lead atualizado.').waitFor({ state: 'visible', timeout: 10000 });
+              const editResponse = await editResponsePromise;
+              const editBody = await editResponse.text();
+              evidence.responses.edit = { status: editResponse.status(), body: editBody };
+              writeEvidence();
+              if (!editResponse.ok()) throw new Error(`Edit HTTP ${editResponse.status()}: ${editBody}`);
+              await page.waitForFunction(() => document.querySelector('#lead-edit-status')?.textContent?.trim() === 'Lead atualizado.', null, { timeout: 10000 });
               await page.getByText('Luiz M140').first().waitFor({ state: 'visible', timeout: 10000 });
 
               await page.goto(`${origin}/apps/admin-crm/#leads`, { waitUntil: 'domcontentloaded' });
@@ -315,15 +349,21 @@ jobs:
               await page.waitForURL(url => url.pathname === '/apps/admin-crm/public/lead-detail.html' && url.searchParams.get('id') === leadId, { timeout: 10000 });
 
               if (evidence.errors.length) throw new Error(`Browser errors: ${JSON.stringify(evidence.errors)}`);
-              evidence.authRedirect = true;
-              evidence.stageVocabulary = 18;
-              evidence.checklistToggle = true;
-              evidence.manualInteraction = true;
-              evidence.stageMutation = true;
-              evidence.leadEdit = true;
-              evidence.listNavigation = true;
-              writeFileSync('/tmp/crm-m140-browser-evidence.json', JSON.stringify(evidence, null, 2));
+              Object.assign(evidence, {
+                authRedirect: true,
+                stageVocabulary: 18,
+                checklistToggle: true,
+                manualInteraction: true,
+                stageMutation: true,
+                leadEdit: true,
+                listNavigation: true,
+              });
+              writeEvidence();
               await context.close();
+            } catch (error) {
+              evidence.failure = error instanceof Error ? error.message : String(error);
+              writeEvidence();
+              throw error;
             } finally {
               await browser.close();
             }
@@ -336,8 +376,8 @@ jobs:
         if: failure()
         run: |
           cat /tmp/crm-m140-server.log || true
-          cat /tmp/m140-unauth.json || true
-          cat /tmp/m140-detail.json || true
+          cat /tmp/m140-stage.json || true
+          cat /tmp/m140-stage-reset.json || true
           cat /tmp/m140-readback.json || true
           cat /tmp/crm-m140-browser-evidence.json || true
       - uses: actions/upload-artifact@v4
