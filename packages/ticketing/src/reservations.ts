@@ -66,6 +66,8 @@ export interface TicketReservation {
   readonly inventoryId: TicketInventoryId;
   readonly destinationId: string;
   readonly product: TicketProductReference;
+  readonly unitAmount: Money;
+  readonly pricingVersion: string;
   readonly holderReference: string;
   readonly quantity: number;
   readonly status: TicketReservationStatus;
@@ -123,6 +125,17 @@ function normalizePositiveInteger(
 function normalizedTimestamp(value: unknown): string | null {
   const timestamp = normalizeFinancialTimestamp(value);
   return timestamp ? new Date(timestamp).toISOString() : null;
+}
+
+function normalizePositiveMoney(value: unknown): Money | null {
+  const input = value as Partial<Money> | null | undefined;
+  const amount = createMoney(input?.minorUnits, input?.currency);
+  return amount && amount.minorUnits > 0 ? amount : null;
+}
+
+function normalizePricingVersion(value: unknown): string | null {
+  const normalized = normalizeString(value, 80);
+  return PRICING_VERSION.test(normalized) ? normalized : null;
 }
 
 export function normalizeTicketInventoryId(
@@ -196,12 +209,8 @@ export function createTicketInventoryOffer(input: {
   const destinationId = normalizeString(input.destinationId, 120);
   const product = normalizeTicketProductReference(input.product);
   const label = normalizeString(input.label, 160);
-  const pricingVersion = normalizeString(input.pricingVersion, 80);
-  const amountInput = input.unitAmount as Partial<Money> | null | undefined;
-  const unitAmount = createMoney(
-    amountInput?.minorUnits,
-    amountInput?.currency,
-  );
+  const unitAmount = normalizePositiveMoney(input.unitAmount);
+  const pricingVersion = normalizePricingVersion(input.pricingVersion);
   const capacity = normalizePositiveInteger(input.capacity, 100_000);
   const maxPerReservation = normalizePositiveInteger(
     input.maxPerReservation,
@@ -221,8 +230,7 @@ export function createTicketInventoryOffer(input: {
     !product ||
     label.length < 2 ||
     !unitAmount ||
-    unitAmount.minorUnits <= 0 ||
-    !PRICING_VERSION.test(pricingVersion) ||
+    !pricingVersion ||
     !capacity ||
     !maxPerReservation ||
     maxPerReservation > capacity ||
@@ -266,6 +274,8 @@ export function createTicketReservation(input: {
   readonly inventoryId: unknown;
   readonly destinationId: unknown;
   readonly product: unknown;
+  readonly unitAmount: unknown;
+  readonly pricingVersion: unknown;
   readonly holderReference: unknown;
   readonly quantity: unknown;
   readonly status?: unknown;
@@ -283,6 +293,8 @@ export function createTicketReservation(input: {
   const inventoryId = normalizeTicketInventoryId(input.inventoryId);
   const destinationId = normalizeString(input.destinationId, 120);
   const product = normalizeTicketProductReference(input.product);
+  const unitAmount = normalizePositiveMoney(input.unitAmount);
+  const pricingVersion = normalizePricingVersion(input.pricingVersion);
   const holderReference = normalizeString(input.holderReference, 120);
   const quantity = normalizePositiveInteger(input.quantity, 20);
   const status =
@@ -321,6 +333,8 @@ export function createTicketReservation(input: {
     !reservationRequestKeyMatchesInventory(requestKey, inventoryId) ||
     !DESTINATION_REFERENCE.test(destinationId) ||
     !product ||
+    !unitAmount ||
+    !pricingVersion ||
     !holderReference ||
     !ID_BODY.test(holderReference) ||
     !quantity ||
@@ -329,8 +343,8 @@ export function createTicketReservation(input: {
     !updatedAt ||
     Date.parse(expiresAt) <= Date.parse(createdAt) ||
     Date.parse(updatedAt) < Date.parse(createdAt) ||
-    ((input.orderId !== null && input.orderId !== undefined) && !orderId) ||
-    ((input.paymentId !== null && input.paymentId !== undefined) && !paymentId) ||
+    (input.orderId !== null && input.orderId !== undefined && !orderId) ||
+    (input.paymentId !== null && input.paymentId !== undefined && !paymentId) ||
     (status === "held" &&
       (orderId !== null ||
         paymentId !== null ||
@@ -366,6 +380,8 @@ export function createTicketReservation(input: {
     inventoryId,
     destinationId,
     product,
+    unitAmount,
+    pricingVersion,
     holderReference,
     quantity,
     status,
