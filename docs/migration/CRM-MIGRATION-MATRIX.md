@@ -13,8 +13,8 @@
 - V2 target feature: `FEATURE-0006`;
 - tracker item: `MIG-0008`;
 - M139 prerequisite: already merged before M140 reconciliation;
-- M140: PR #260, Lead Detail / Activity restoration;
-- M141: PR #266, residual equivalence closure stacked on #260;
+- M140: PR #260, Lead Detail / Activity restoration, merged to `main` as `6727b0bcb679677d2e481868bfc23ec80bd74214`;
+- M141: PR #266, residual equivalence closure rebased directly on post-M140 `main`;
 - target migration status after M141 gates: `equivalent`, **not** `released`.
 
 M73–M139 established platform Auth composition, MySQL persistence, audited commercial aggregates, schedulers, public token flows, authenticated browser lifecycles, dashboard/funnel metrics and the only mutable frozen Settings contract. M140 restores the frozen Lead Detail/Activity contract while preserving the exact 16-stage operational selector and all 18 recognized readback labels. M141 closes the remaining observable parity items without creating a parallel CRM domain, payment flow, ticketing flow, Assistant implementation or Marketplace redesign.
@@ -92,12 +92,13 @@ See `docs/qa/CRM-M141-EQUIVALENCE-EVIDENCE.md` for the promotion record.
 
 `FEATURE-0006` may be `equivalent` when this matrix, Feature Registry, tracker and exact-head gates agree. `Equivalent` does **not** mean `released`.
 
-Release remains a separate coordinator-controlled operation:
+Release remains a separate coordinator-controlled operation. PR #260 is already promoted in `main`; the remaining code-promotion step is PR #266:
 
-1. promote/merge #260 before #266;
-2. deploy to staging using the normal platform process;
-3. rerun permanent Quality/Auth/CRM browser gates and staging smoke checks;
-4. observe platform health/readiness and CRM auth/MySQL behavior;
-5. promote production only under the coordinator's release process.
+1. require #266 at 0 behind and mergeable against the post-M140 `main`;
+2. require permanent Quality/Auth/CRM browser gates on the exact #266 head;
+3. promote #266 only through the coordinator;
+4. deploy to staging using the normal platform process;
+5. rerun staging smoke checks and observe platform health/readiness plus CRM auth/MySQL behavior;
+6. promote production only under the coordinator's release process.
 
 Rollback is intentionally simple because M140/M141 add no schema migration: revert #266 first, then #260 if necessary, and redeploy the previous known-good application artifact. No down-migration or parallel persistence path is required.
