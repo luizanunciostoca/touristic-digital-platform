@@ -1,0 +1,58 @@
+name: PR260 M140 Format Once
+
+on:
+  push:
+    branches:
+      - feat/crm-m140-lead-detail-activity
+    paths:
+      - .github/workflows/pr260-format-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/crm-m140-lead-detail-activity
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Fix narrowed terminal-state assertions
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('packages/crm/src/lead-detail-contract.test.ts')
+          text = path.read_text()
+          text = text.replace(
+              '    expect(crmLeadDetailStages.some(({ stage }) => stage === "churned")).toBe(false);\n'
+              '    expect(crmLeadDetailStages.some(({ stage }) => stage === "lost")).toBe(false);\n',
+              '    const selectable = crmLeadDetailStages.map(({ stage }) => String(stage));\n'
+              '    expect(selectable).not.toContain("churned");\n'
+              '    expect(selectable).not.toContain("lost");\n',
+          )
+          path.write_text(text)
+          PY
+      - name: Apply canonical Prettier
+        run: |
+          pnpm exec prettier --write \
+            apps/morro-digital-platform/tooling/crm-m140-browser-e2e.cjs \
+            docs/migration/CRM-MIGRATION-MATRIX.md \
+            packages/crm/src/lead-detail-contract.test.ts
+      - name: Remove one-shot workflow and commit
+        run: |
+          rm .github/workflows/pr260-format-once.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git diff --cached --check
+          git commit -m "style(crm): apply canonical M140 formatting"
+          git push origin HEAD:feat/crm-m140-lead-detail-activity
