@@ -8,7 +8,6 @@ import { createAuthApi } from "./auth-api.mjs";
 import { createBusinessApi } from "./business-api.mjs";
 import { createCrmApi } from "./crm-api.mjs";
 import { createPaymentsApi } from "./payments-api.mjs";
-import { createTicketingApi } from "./ticketing-api.mjs";
 
 const repositoryRoot = resolve(
   fileURLToPath(new URL("../../../", import.meta.url)),
@@ -148,11 +147,30 @@ const paymentsApi = createPaymentsApi({
 });
 await paymentsApi.start();
 
-const ticketingApi = createTicketingApi({
-  authApi,
-  getEnvironmentValue: (key) => process.env[key] ?? localEnvironment[key] ?? "",
-});
-await ticketingApi.start();
+let ticketingApi = null;
+let ticketingApiPromise = null;
+
+async function getTicketingApi() {
+  if (ticketingApi) return ticketingApi;
+  if (!ticketingApiPromise) {
+    ticketingApiPromise = import("./ticketing-api.mjs")
+      .then(async ({ createTicketingApi }) => {
+        const api = createTicketingApi({
+          authApi,
+          getEnvironmentValue: (key) =>
+            process.env[key] ?? localEnvironment[key] ?? "",
+        });
+        await api.start();
+        ticketingApi = api;
+        return api;
+      })
+      .catch((error) => {
+        ticketingApiPromise = null;
+        throw error;
+      });
+  }
+  return ticketingApiPromise;
+}
 
 function createRuntimeEnvironment() {
   return Object.freeze(
@@ -463,9 +481,12 @@ const server = createServer(async (request, response) => {
       await paymentsApi.handle(request, response, requestUrl);
       return;
     }
-    if (ticketingApi.matches(requestUrl.pathname)) {
-      await ticketingApi.handle(request, response, requestUrl);
-      return;
+    if (requestUrl.pathname.startsWith("/api/ticketing")) {
+      const activeTicketingApi = await getTicketingApi();
+      if (activeTicketingApi.matches(requestUrl.pathname)) {
+        await activeTicketingApi.handle(request, response, requestUrl);
+        return;
+      }
     }
     if (assistantApi.matches(requestUrl.pathname)) {
       await assistantApi.handle(request, response);
@@ -517,7 +538,11 @@ async function shutdown(signal) {
   shuttingDown = true;
   console.log(`Encerrando Morro Digital após ${signal}.`);
   server.close(() => {
-    void Promise.all([crmApi.stop(), paymentsApi.stop(), ticketingApi.stop()])
+    void Promise.all([
+      crmApi.stop(),
+      paymentsApi.stop(),
+      ticketingApi ? ticketingApi.stop() : Promise.resolve(),
+    ])
       .then(() => process.exit(0))
       .catch((error) => {
         console.error(
