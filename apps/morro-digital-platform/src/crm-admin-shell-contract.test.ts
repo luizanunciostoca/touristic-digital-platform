@@ -143,7 +143,11 @@ describe("CRM M139 Settings browser contract", () => {
     expect(contract).toContain('new_lead: "Novo Lead"');
     expect(contract).toContain('payment_done: "Pagamento Recebido"');
     expect(contract).toContain('active_client: "Cliente Ativo"');
-    expect(contract).toContain("intervalDays: Object.freeze({ min: 1, max: 30 })");
-    expect(contract).toContain("maxAttempts: Object.freeze({ min: 1, max: 20 })");
+    expect(contract).toContain(
+      "intervalDays: Object.freeze({ min: 1, max: 30 })",
+    );
+    expect(contract).toContain(
+      "maxAttempts: Object.freeze({ min: 1, max: 20 })",
+    );
   });
 });
