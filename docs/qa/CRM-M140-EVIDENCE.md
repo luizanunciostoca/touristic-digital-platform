@@ -6,6 +6,8 @@ M140 closes the frozen V1 **Lead detail and activity lifecycle** without recreat
 
 The increment is intentionally stacked on the proven M139 Settings branch until the coordinator promotes M139. It must not be merged independently before that dependency is resolved.
 
+The repository formatter was applied to every M140 file reported by the Quality Gate before the final validation cycle. The temporary formatter workflow removed itself and is not part of the PR diff.
+
 ## Frozen V1 baseline
 
 - repository: `luizidebook/morro-digital-crm`
