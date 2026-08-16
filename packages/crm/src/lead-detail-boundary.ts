@@ -14,7 +14,6 @@ import { normalizeCrmId } from "./index.js";
 import {
   crmLeadDetailChecklist,
   isCrmLeadDetailManualInteractionType,
-  type CrmLeadDetailManualInteractionType,
 } from "./lead-detail-contract.js";
 
 export type CrmLeadDetailOperation =
@@ -330,7 +329,7 @@ export class CrmLeadDetailServerBoundary {
     const timestamp = this.now();
     await this.repository.appendInteraction({
       leadId,
-      type: input.type as CrmLeadDetailManualInteractionType,
+      type: input.type,
       content,
       actorSubject: session.subject,
     });
