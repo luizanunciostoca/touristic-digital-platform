@@ -1,5 +1,9 @@
 import mysql, { type Pool, type PoolOptions } from "mysql2/promise";
 
+import {
+  ticketingFinancialBridgeRollbackSql,
+  ticketingFinancialBridgeSchemaSql,
+} from "./financial-bridge-schema.js";
 import { MySqlTicketRepository } from "./mysql-ticket-repository.js";
 import {
   MySqlTicketCheckInRepository,
@@ -78,6 +82,8 @@ export {
   createVerifiedFinancialResultProcessor,
   createVerifiedPaymentTicketFulfillmentHandler,
   createVerifiedRefundTicketCancellationHandler,
+  ticketingFinancialBridgeRollbackSql,
+  ticketingFinancialBridgeSchemaSql,
   ticketingM147SchemaSql,
   ticketingM150ReservationSchemaSql,
 };
@@ -147,4 +153,11 @@ export async function applyTicketingM150ReservationSchema(
   pool: Pool,
 ): Promise<void> {
   await applySqlStatements(pool, ticketingM150ReservationSchemaSql);
+}
+
+export async function applyTicketingFinancialBridgeSchema(
+  pool: Pool,
+): Promise<void> {
+  await applyTicketingM150ReservationSchema(pool);
+  await applySqlStatements(pool, ticketingFinancialBridgeSchemaSql);
 }
