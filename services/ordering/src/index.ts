@@ -24,6 +24,7 @@ export * from "./checkout-access.js";
 export * from "./checkout-http-transport.js";
 export * from "./checkout-rate-limit.js";
 export * from "./checkout-security.js";
+export * from "./ticketing-checkout-http-transport.js";
 export {
   createNodeCheckoutIdentityPort,
   systemCheckoutClock,
