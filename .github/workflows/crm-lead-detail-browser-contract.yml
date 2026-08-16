@@ -282,11 +282,11 @@ jobs:
                 throw new Error(`Lead stage contract diverged: ${JSON.stringify(stageOptions)}`);
               }
 
-              const firstChecklist = page.getByLabel('Primeiro Contato');
+              const firstChecklist = page.getByRole('checkbox', { name: 'Primeiro Contato' });
               if (!(await firstChecklist.isChecked())) throw new Error('API-prepared checklist state missing');
               await firstChecklist.uncheck();
               await page.getByText(/0 de 16 etapas concluídas/).waitFor({ state: 'visible', timeout: 10000 });
-              await page.getByLabel('Primeiro Contato').check();
+              await page.getByRole('checkbox', { name: 'Primeiro Contato' }).check();
               await page.getByText(/1 de 16 etapas concluídas/).waitFor({ state: 'visible', timeout: 10000 });
 
               await page.locator('#lead-interaction-type').selectOption('note');
