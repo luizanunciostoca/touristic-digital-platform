@@ -1,0 +1,46 @@
+name: Affiliates FEATURE-0010 Contract
+
+on:
+  pull_request:
+    paths:
+      - "docs/product-architecture/AFFILIATES-CANONICAL-SCOPE.md"
+      - "docs/migration/AFFILIATES-MIGRATION-MATRIX.md"
+      - "docs/qa/AFFILIATES-FEATURE-0010-DISCOVERY-EVIDENCE.md"
+      - "docs/product-architecture/CAPABILITY-MATRIX.md"
+      - "docs/product-architecture/DOMAIN-MAP.md"
+      - "docs/product-architecture/MODULE-CONTRACTS.md"
+      - "docs/features/registry.json"
+      - "docs/migration/MASTER-MIGRATION-TRACKER.md"
+      - ".github/workflows/affiliates-feature-0010-contract.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Validate architecture and registry
+        run: pnpm architecture:check && pnpm features:check
+      - name: Validate discovery-only Affiliate boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f docs/product-architecture/AFFILIATES-CANONICAL-SCOPE.md
+          test -f docs/migration/AFFILIATES-MIGRATION-MATRIX.md
+          test -f docs/qa/AFFILIATES-FEATURE-0010-DISCOVERY-EVIDENCE.md
+          test ! -d packages/affiliates
+          test ! -d services/affiliates
+          grep -q 'FEATURE-0010' docs/product-architecture/AFFILIATES-CANONICAL-SCOPE.md
+          grep -q 'Financial' docs/product-architecture/AFFILIATES-CANONICAL-SCOPE.md
