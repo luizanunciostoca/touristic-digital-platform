@@ -25,9 +25,14 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: payments-browser-checkout-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   payments-browser-checkout:
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
