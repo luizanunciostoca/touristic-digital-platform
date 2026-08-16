@@ -2,8 +2,9 @@ import { createDashboardAuthClient } from "@touristic/auth-browser";
 import {
   crmLeadDetailInteractionLabels,
   crmLeadDetailManualInteractionTypes,
+  crmLeadDetailStageLabels,
+  crmLeadDetailStages,
 } from "@touristic/crm/lead-detail-contract";
-import { crmSettingsFunnelStages } from "@touristic/crm/settings-contract";
 
 const auth = createDashboardAuthClient({
   fetchFn: window.fetch.bind(window),
@@ -40,7 +41,6 @@ const interactions = document.querySelector("#lead-interactions");
 const search = new URLSearchParams(window.location.search);
 const leadIdValue = search.get("id");
 const leadId = /^\d+$/u.test(leadIdValue || "") ? Number(leadIdValue) : null;
-let currentLead = null;
 let readOnly = false;
 
 function text(value, fallback = "—") {
@@ -72,10 +72,7 @@ function money(value) {
 }
 
 function stageLabel(stage) {
-  return (
-    crmSettingsFunnelStages.find((candidate) => candidate.stage === stage)?.label ||
-    text(stage)
-  );
+  return crmLeadDetailStageLabels[stage] || text(stage);
 }
 
 function card(label, value) {
@@ -114,7 +111,7 @@ function setInput(form, name, value) {
 function renderStageOptions() {
   if (!(stageSelect instanceof HTMLSelectElement)) return;
   stageSelect.replaceChildren();
-  for (const { stage, label } of crmSettingsFunnelStages) {
+  for (const { stage, label } of crmLeadDetailStages) {
     const option = document.createElement("option");
     option.value = stage;
     option.textContent = label;
@@ -134,7 +131,6 @@ function renderInteractionTypeOptions() {
 }
 
 function hydrateLead(lead) {
-  currentLead = lead;
   if (companyHeading) companyHeading.textContent = text(lead.companyName, "Lead");
   if (stageSelect instanceof HTMLSelectElement) stageSelect.value = lead.stage;
   setInput(editForm, "companyName", lead.companyName);
@@ -172,7 +168,8 @@ function renderChecklist(items) {
   checklist.replaceChildren();
   const completed = items.filter((item) => item.completed).length;
   if (checklistProgress) {
-    const percentage = items.length === 0 ? 0 : Math.round((completed / items.length) * 100);
+    const percentage =
+      items.length === 0 ? 0 : Math.round((completed / items.length) * 100);
     checklistProgress.textContent = `${completed} de ${items.length} etapas concluídas · ${percentage}%`;
   }
 
@@ -234,7 +231,8 @@ function renderInteractions(items) {
     const heading = document.createElement("strong");
     const content = document.createElement("span");
     const metadata = document.createElement("span");
-    heading.textContent = crmLeadDetailInteractionLabels[item.type] || text(item.type);
+    heading.textContent =
+      crmLeadDetailInteractionLabels[item.type] || text(item.type);
     content.textContent = text(item.content);
     metadata.textContent = `${dateLabel(item.createdAt)} · ${text(item.actorSubject, "sistema")}`;
     article.append(heading, content, metadata);
