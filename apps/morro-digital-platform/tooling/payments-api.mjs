@@ -1,7 +1,10 @@
 import { randomUUID } from "node:crypto";
 
 import { authorizeBusinessAccess } from "@touristic/auth";
-import { createProviderNeutralCheckoutApplicationService } from "@touristic/ordering";
+import {
+  createProviderNeutralCheckoutApplicationService,
+  normalizeBusinessCheckoutHandoff,
+} from "@touristic/ordering";
 import {
   FinancialWebhookHttpTransport,
   MySqlFinancialReconciliationRepository,
@@ -31,7 +34,8 @@ import {
   CheckoutHttpTransport,
   MySqlCheckoutAccessRepository,
   MySqlOrderRepository,
-  applyOrderingM139Schema,
+  applyOrderingM151Schema,
+  createCheckoutHandoffCapability,
   createCheckoutReturnUrlPolicyFromEnvironment,
   createCheckoutStatusCapability,
   createInMemoryCheckoutRateLimitPort,
@@ -44,7 +48,10 @@ import {
 } from "@touristic/ordering-server";
 
 const checkoutPrefix = "/api/payments/v1/checkouts";
+const checkoutAuthorityPath = "/api/payments/v1/checkout-authority";
 const maxBodyBytes = 64 * 1024;
+const authorityRateWindowMs = 60_000;
+const authorityRateLimit = 24;
 
 class PaymentsHttpInputError extends Error {
   constructor(status, code) {
@@ -215,6 +222,188 @@ function browserOriginAllowed(request, origins, production) {
     }
   }
   return !production;
+}
+
+function authorityResponse(status, body, correlationId, headers = {}) {
+  return Object.freeze({
+    status,
+    body: Object.freeze({ ...body }),
+    headers: Object.freeze({
+      "Cache-Control": "no-store",
+      "X-Correlation-ID": correlationId,
+      ...headers,
+    }),
+  });
+}
+
+function authorityClientKey(request) {
+  const value =
+    typeof request.clientIp === "string"
+      ? request.clientIp.trim().slice(0, 100)
+      : "";
+  return value || "unknown";
+}
+
+function recordAuthorityAudit(audit, event) {
+  try {
+    audit(Object.freeze({ ...event }));
+  } catch {
+    // Capability issuance must not become financial authority through audit delivery.
+  }
+}
+
+export function createPaymentsCheckoutAuthorityBootstrap({
+  destinationId,
+  handoffSecret,
+  origins,
+  production,
+  rateLimits,
+  audit = () => undefined,
+  now = () => Date.now(),
+}) {
+  const destinationContext = normalizeCheckoutRequestContext({
+    requesterKind: "guest_capability",
+    actorSubject: "runtime:checkout-authority",
+    destinationId,
+    tenantId: null,
+  });
+  if (!destinationContext) {
+    throw new Error("PAYMENTS_DESTINATION_ID_REQUIRED");
+  }
+  if (!(origins instanceof Set) || origins.size === 0) {
+    throw new Error("PAYMENTS_RETURN_URL_ORIGINS_REQUIRED");
+  }
+  if (!rateLimits || typeof rateLimits.consume !== "function") {
+    throw new Error("PAYMENTS_RATE_LIMIT_PORT_REQUIRED");
+  }
+
+  return Object.freeze({
+    async handle(request) {
+      const correlationId =
+        normalizeCheckoutCorrelationId(
+          request.correlationId ?? header(request, "x-correlation-id"),
+        ) || "corr_invalid";
+      if (String(request.method || "GET").toUpperCase() !== "POST") {
+        return authorityResponse(
+          405,
+          { error: "METHOD_NOT_ALLOWED" },
+          correlationId,
+        );
+      }
+
+      const handoff = normalizeBusinessCheckoutHandoff(request.body);
+      if (!handoff) {
+        recordAuthorityAudit(audit, {
+          action: "checkout.authority",
+          result: "denied",
+          reason: "invalid_handoff",
+          correlationId,
+        });
+        return authorityResponse(
+          400,
+          { error: "INVALID_CHECKOUT_REQUEST" },
+          correlationId,
+        );
+      }
+      if (!browserOriginAllowed(request, origins, production)) {
+        recordAuthorityAudit(audit, {
+          action: "checkout.authority",
+          result: "denied",
+          reason: "cross_origin_request",
+          correlationId,
+        });
+        return authorityResponse(
+          403,
+          { error: "ORIGIN_DENIED" },
+          correlationId,
+        );
+      }
+      let returnOrigin = "";
+      try {
+        returnOrigin = new URL(handoff.returnUrl).origin;
+      } catch {
+        returnOrigin = "";
+      }
+      if (!returnOrigin || !origins.has(returnOrigin)) {
+        recordAuthorityAudit(audit, {
+          action: "checkout.authority",
+          result: "denied",
+          reason: "return_url_denied",
+          correlationId,
+        });
+        return authorityResponse(
+          400,
+          { error: "RETURN_URL_DENIED" },
+          correlationId,
+        );
+      }
+
+      const nowMs = Number(now());
+      if (!Number.isSafeInteger(nowMs) || nowMs < 0) {
+        return authorityResponse(
+          503,
+          { error: "CHECKOUT_AUTHORITY_UNAVAILABLE" },
+          correlationId,
+        );
+      }
+      const rate = await rateLimits.consume({
+        bucket: "checkout-create",
+        key: `authority:${destinationContext.destinationId}:${authorityClientKey(request)}`,
+        limit: authorityRateLimit,
+        windowMs: authorityRateWindowMs,
+        nowMs,
+      });
+      if (!rate.allowed) {
+        recordAuthorityAudit(audit, {
+          action: "checkout.authority",
+          result: "denied",
+          reason: "rate_limited",
+          correlationId,
+        });
+        return authorityResponse(
+          429,
+          { error: "RATE_LIMITED" },
+          correlationId,
+          { "Retry-After": String(rate.retryAfterSeconds) },
+        );
+      }
+
+      const handoffToken = createCheckoutHandoffCapability(
+        handoff,
+        {
+          destinationId: destinationContext.destinationId,
+          tenantId: null,
+        },
+        handoffSecret,
+        { nowEpochSeconds: Math.floor(nowMs / 1_000) },
+      );
+      if (!handoffToken) {
+        recordAuthorityAudit(audit, {
+          action: "checkout.authority",
+          result: "failure",
+          reason: "issuer_unavailable",
+          correlationId,
+        });
+        return authorityResponse(
+          503,
+          { error: "CHECKOUT_AUTHORITY_UNAVAILABLE" },
+          correlationId,
+        );
+      }
+
+      recordAuthorityAudit(audit, {
+        action: "checkout.authority",
+        result: "success",
+        reason: "issued",
+        correlationId,
+      });
+      return authorityResponse(
+        201,
+        { data: Object.freeze({ handoffToken }) },
+        correlationId,
+      );
+    },
+  });
 }
 
 export function createPaymentsCheckoutAuthorizationPort({
@@ -428,12 +617,14 @@ export function createPaymentsApi({
   getEnvironmentValue = (key) => process.env[key] ?? "",
   audit = (event) => console.warn(`[payments-audit] ${JSON.stringify(event)}`),
   transport: injectedTransport,
+  authorityBootstrapTransport: injectedAuthorityBootstrapTransport,
   webhookTransport: injectedWebhookTransport,
   refundTransport: injectedRefundTransport,
   reconciliationTransport: injectedReconciliationTransport,
 } = {}) {
   const hasInjectedTransport = Boolean(
     injectedTransport ||
+    injectedAuthorityBootstrapTransport ||
     injectedWebhookTransport ||
     injectedRefundTransport ||
     injectedReconciliationTransport,
@@ -441,6 +632,8 @@ export function createPaymentsApi({
   let runtime = hasInjectedTransport
     ? Object.freeze({
         transport: injectedTransport ?? null,
+        authorityBootstrapTransport:
+          injectedAuthorityBootstrapTransport ?? null,
         webhookTransport: injectedWebhookTransport ?? null,
         refundTransport: injectedRefundTransport ?? null,
         reconciliationTransport: injectedReconciliationTransport ?? null,
@@ -482,7 +675,7 @@ export function createPaymentsApi({
         createFinancialMySqlPoolFromEnvironment(environment);
       pools.push(financialPool);
       await Promise.all([
-        applyOrderingM139Schema(orderingPool),
+        applyOrderingM151Schema(orderingPool),
         applyFinancialM145Schema(financialPool),
       ]);
 
@@ -512,6 +705,15 @@ export function createPaymentsApi({
         pricing: createOrderPricingAuthorityFromEnvironment(environment),
       });
       const origins = allowedOrigins(environment.PAYMENTS_RETURN_URL_ORIGINS);
+      const authorityBootstrapTransport =
+        createPaymentsCheckoutAuthorityBootstrap({
+          destinationId: destinationContext.destinationId,
+          handoffSecret: environment.PAYMENTS_HANDOFF_SECRET,
+          origins,
+          production: environment.NODE_ENV === "production",
+          rateLimits,
+          audit: (event) => runtimeAudit(audit, event),
+        });
       const transport = new CheckoutHttpTransport({
         application,
         orders,
@@ -614,6 +816,7 @@ export function createPaymentsApi({
       });
       runtime = Object.freeze({
         transport,
+        authorityBootstrapTransport,
         webhookTransport,
         refundTransport,
         reconciliationTransport,
@@ -649,6 +852,7 @@ export function createPaymentsApi({
     matches(pathname) {
       return (
         pathname === sandboxWebhookPath ||
+        pathname === checkoutAuthorityPath ||
         pathname === checkoutPrefix ||
         pathname.startsWith(checkoutPrefix + "/") ||
         pathname.startsWith(refundHttpPrefix + "/") ||
@@ -661,6 +865,7 @@ export function createPaymentsApi({
       const correlationId =
         normalizeCheckoutCorrelationId(header(request, "x-correlation-id")) ||
         "corr_" + randomUUID();
+      const authorityRequest = requestUrl.pathname === checkoutAuthorityPath;
       const webhookRequest = requestUrl.pathname === sandboxWebhookPath;
       const refundRequest =
         requestUrl.pathname.startsWith(refundHttpPrefix + "/") &&
@@ -668,13 +873,15 @@ export function createPaymentsApi({
       const reconciliationRequest = requestUrl.pathname.startsWith(
         reconciliationHttpPrefix + "/",
       );
-      const unavailableCode = webhookRequest
-        ? "WEBHOOK_UNAVAILABLE"
-        : refundRequest
-          ? "REFUND_UNAVAILABLE"
-          : reconciliationRequest
-            ? "RECONCILIATION_UNAVAILABLE"
-            : "CHECKOUT_UNAVAILABLE";
+      const unavailableCode = authorityRequest
+        ? "CHECKOUT_AUTHORITY_UNAVAILABLE"
+        : webhookRequest
+          ? "WEBHOOK_UNAVAILABLE"
+          : refundRequest
+            ? "REFUND_UNAVAILABLE"
+            : reconciliationRequest
+              ? "RECONCILIATION_UNAVAILABLE"
+              : "CHECKOUT_UNAVAILABLE";
 
       if (!runtime) {
         sendJson(response, 503, { error: unavailableCode }, correlationId);
@@ -686,7 +893,8 @@ export function createPaymentsApi({
       let rawBody = new Uint8Array();
       if (
         method === "POST" &&
-        (requestUrl.pathname === checkoutPrefix ||
+        (authorityRequest ||
+          requestUrl.pathname === checkoutPrefix ||
           webhookRequest ||
           refundRequest ||
           reconciliationRequest)
@@ -721,6 +929,12 @@ export function createPaymentsApi({
               emptyCode: "INVALID_RECONCILIATION_REQUEST",
               invalidCode: "INVALID_RECONCILIATION_JSON",
             });
+          } else if (authorityRequest) {
+            body = await readJsonBody(request, {
+              tooLargeCode: "AUTHORITY_REQUEST_TOO_LARGE",
+              emptyCode: "INVALID_AUTHORITY_REQUEST",
+              invalidCode: "INVALID_AUTHORITY_JSON",
+            });
           } else {
             body = await readJsonBody(request);
           }
@@ -738,13 +952,15 @@ export function createPaymentsApi({
             response,
             400,
             {
-              error: webhookRequest
-                ? "INVALID_WEBHOOK_REQUEST"
-                : refundRequest
-                  ? "INVALID_REFUND_REQUEST"
-                  : reconciliationRequest
-                    ? "INVALID_RECONCILIATION_REQUEST"
-                    : "INVALID_CHECKOUT_REQUEST",
+              error: authorityRequest
+                ? "INVALID_AUTHORITY_REQUEST"
+                : webhookRequest
+                  ? "INVALID_WEBHOOK_REQUEST"
+                  : refundRequest
+                    ? "INVALID_REFUND_REQUEST"
+                    : reconciliationRequest
+                      ? "INVALID_RECONCILIATION_REQUEST"
+                      : "INVALID_CHECKOUT_REQUEST",
             },
             correlationId,
           );
@@ -752,13 +968,15 @@ export function createPaymentsApi({
         }
       }
 
-      const selectedTransport = webhookRequest
-        ? runtime.webhookTransport
-        : refundRequest
-          ? runtime.refundTransport
-          : reconciliationRequest
-            ? runtime.reconciliationTransport
-            : runtime.transport;
+      const selectedTransport = authorityRequest
+        ? runtime.authorityBootstrapTransport
+        : webhookRequest
+          ? runtime.webhookTransport
+          : refundRequest
+            ? runtime.refundTransport
+            : reconciliationRequest
+              ? runtime.reconciliationTransport
+              : runtime.transport;
       if (!selectedTransport) {
         sendJson(response, 503, { error: unavailableCode }, correlationId);
         return;
@@ -790,13 +1008,15 @@ export function createPaymentsApi({
         );
       } catch {
         runtimeAudit(audit, {
-          action: webhookRequest
-            ? "webhook.http"
-            : refundRequest
-              ? "payment.refund.http"
-              : reconciliationRequest
-                ? "reconciliation.http"
-                : "checkout.http",
+          action: authorityRequest
+            ? "checkout.authority.http"
+            : webhookRequest
+              ? "webhook.http"
+              : refundRequest
+                ? "payment.refund.http"
+                : reconciliationRequest
+                  ? "reconciliation.http"
+                  : "checkout.http",
           result: "failure",
           reason: "unhandled_transport_failure",
           correlationId,

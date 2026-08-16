@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { describe, expect, it } from "vitest";
 import type { AuthSessionIdentity } from "@touristic/auth";
 
@@ -160,6 +161,37 @@ describe("CRM M70 leads boundary", () => {
     expect(result).toEqual(expect.objectContaining({ ok: true }));
     expect(checklist).toEqual([42]);
     expect(interactions).toEqual([{ leadId: 42, type: "system" }]);
+  });
+
+  it("preserves frozen V1 optional-field clearing while keeping company name required", async () => {
+    const { boundary } = fixture();
+    const cleared = await boundary.update(session("manager"), {
+      id: 7,
+      segment: "",
+      contactName: "",
+      phone: "",
+      whatsapp: "",
+      email: "",
+      address: "",
+      website: "",
+      notes: "",
+      source: "",
+      monthlyValue: "",
+    });
+    expect(cleared).toEqual(
+      expect.objectContaining({
+        ok: true,
+        value: expect.objectContaining({
+          segment: "",
+          contactName: "",
+          notes: "",
+          monthlyValue: "",
+        }),
+      }),
+    );
+    await expect(
+      boundary.update(session("manager"), { id: 7, companyName: "" }),
+    ).resolves.toEqual({ ok: false, reason: "invalid_input" });
   });
 
   it("validates and audits stage changes while preserving the V1 interaction trail", async () => {

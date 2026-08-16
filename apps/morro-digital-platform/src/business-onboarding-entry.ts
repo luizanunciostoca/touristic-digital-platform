@@ -17,6 +17,20 @@ function resolveBrowserStorage(): Storage | null {
   }
 }
 
+function installPaymentsComposition(): void {
+  void import("./payments-business-checkout-composition.js")
+    .then(({ installBusinessPaymentsCheckoutComposition }) => {
+      installBusinessPaymentsCheckoutComposition(
+        window,
+        window.fetch.bind(window),
+      );
+    })
+    .catch(() => {
+      // Payments is an optional downstream composition for Business onboarding.
+      // A missing/unavailable Payments module must not prevent Business from mounting.
+    });
+}
+
 function start(): void {
   const adapters = createBusinessOnboardingAdapters({
     ...(navigator.geolocation ? { geolocation: navigator.geolocation } : {}),
@@ -79,6 +93,8 @@ function start(): void {
       );
     },
   });
+
+  installPaymentsComposition();
 
   const browserLifecycle = new BusinessOnboardingBrowserLifecycle({
     host,

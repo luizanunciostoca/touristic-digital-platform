@@ -93,6 +93,46 @@ describe("CRM M71 MySQL persistence", () => {
     expect(calls[1]?.values).toEqual([42]);
   });
 
+  it("translates explicit optional-field clearing to SQL null values", async () => {
+    const now = new Date("2026-08-16T00:00:00Z");
+    const row = {
+      id: 7,
+      company_name: "Toca",
+      segment: null,
+      contact_name: null,
+      phone: null,
+      whatsapp: null,
+      email: null,
+      address: null,
+      website: null,
+      notes: null,
+      stage: "new_lead",
+      status: "active",
+      source: null,
+      referred_by_id: null,
+      monthly_value: null,
+      created_at: now,
+      updated_at: now,
+      last_contact_at: null,
+      converted_at: null,
+    };
+    const { pool, calls } = poolFixture([[], [row]]);
+    const repository = new MySqlCrmLeadRepository(pool as never);
+
+    const updated = await repository.update(7, {
+      contactName: "",
+      email: "",
+      notes: "",
+      monthlyValue: "",
+    });
+
+    expect(updated.contactName).toBeNull();
+    expect(updated.monthlyValue).toBeNull();
+    expect(calls[0]?.sql).toContain("contact_name = ?");
+    expect(calls[0]?.sql).toContain("monthly_value = ?");
+    expect(calls[0]?.values).toEqual([null, null, null, null, 7]);
+  });
+
   it("initializes the frozen checklist idempotently with the real lead id", async () => {
     const { pool, calls } = poolFixture();
     const repository = new MySqlCrmLeadRepository(pool as never);

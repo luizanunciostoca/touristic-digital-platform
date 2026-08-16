@@ -16,6 +16,11 @@
       "types": "./src/subscription.ts",
       "node": "./dist/subscription.js",
       "default": "./src/subscription.ts"
+    },
+    "./subscription-application": {
+      "types": "./src/subscription-application.ts",
+      "node": "./dist/subscription-application.js",
+      "default": "./src/subscription-application.ts"
     }
   },
   "scripts": {
