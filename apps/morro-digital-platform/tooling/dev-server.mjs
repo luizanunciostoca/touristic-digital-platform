@@ -8,6 +8,7 @@ import { createAuthApi } from "./auth-api.mjs";
 import { createBusinessApi } from "./business-api.mjs";
 import { createCrmApi } from "./crm-api.mjs";
 import { createPaymentsApi } from "./payments-api.mjs";
+import { createPlatformOperations } from "./platform-operations.mjs";
 
 const repositoryRoot = resolve(
   fileURLToPath(new URL("../../../", import.meta.url)),
@@ -105,46 +106,60 @@ async function loadLocalEnvironment() {
 }
 
 const localEnvironment = await loadLocalEnvironment();
+const getEnvironmentValue = (key) =>
+  process.env[key] ?? localEnvironment[key] ?? "";
+
+let platformOperations = null;
 
 function auditSecurityEvent(request, event) {
   const pathname = (() => {
     try {
-      return new URL(request.url || "/", `http://${host}:${port}`).pathname;
+      return new URL(request?.url || "/", `http://${host}:${port}`).pathname;
     } catch {
       return "/";
     }
   })();
-  const record = {
-    action: String(event?.action || "security.unknown"),
-    result: String(event?.result || "unknown"),
-    reason: event?.reason ? String(event.reason) : undefined,
-    method: String(request.method || "GET"),
-    pathname,
-  };
-  console.warn(`[security-audit] ${JSON.stringify(record)}`);
+  if (!platformOperations) return;
+  platformOperations.emit({
+    kind: "audit",
+    name: "platform.security.audit",
+    severity:
+      event?.result === "denied" || event?.result === "unavailable"
+        ? "warn"
+        : "info",
+    correlationId: request?.morroCorrelationId,
+    attributes: {
+      action: String(event?.action || "security.unknown"),
+      result: String(event?.result || "unknown"),
+      reason: event?.reason ? String(event.reason) : null,
+      method: String(request?.method || "runtime"),
+      pathname,
+      businessId: event?.businessId ? String(event.businessId) : null,
+    },
+  });
 }
 
-const assistantApi = createAssistantApi({
-  getEnvironmentValue: (key) => process.env[key] ?? localEnvironment[key] ?? "",
-});
+const assistantApi = createAssistantApi({ getEnvironmentValue });
 
 const authApi = createAuthApi({
-  getEnvironmentValue: (key) => process.env[key] ?? localEnvironment[key] ?? "",
+  getEnvironmentValue,
   audit: auditSecurityEvent,
 });
 
-const crmApi = createCrmApi({
-  authApi,
-  getEnvironmentValue: (key) => process.env[key] ?? localEnvironment[key] ?? "",
+platformOperations = createPlatformOperations({
+  getEnvironmentValue,
+  additionalReadinessChecks: () => [
+    { name: "auth-security-state", ...authApi.readinessCheck() },
+  ],
 });
+await authApi.start();
+
+const crmApi = createCrmApi({ authApi, getEnvironmentValue });
 await crmApi.start();
 
 const businessApi = createBusinessApi({ authApi });
 
-const paymentsApi = createPaymentsApi({
-  authApi,
-  getEnvironmentValue: (key) => process.env[key] ?? localEnvironment[key] ?? "",
-});
+const paymentsApi = createPaymentsApi({ authApi, getEnvironmentValue });
 await paymentsApi.start();
 
 let ticketingApi = null;
@@ -155,11 +170,7 @@ async function getTicketingApi() {
   if (!ticketingApiPromise) {
     ticketingApiPromise = import("./ticketing-api.mjs")
       .then(async ({ createTicketingApi }) => {
-        const api = createTicketingApi({
-          authApi,
-          getEnvironmentValue: (key) =>
-            process.env[key] ?? localEnvironment[key] ?? "",
-        });
+        const api = createTicketingApi({ authApi, getEnvironmentValue });
         await api.start();
         ticketingApi = api;
         return api;
@@ -175,10 +186,7 @@ async function getTicketingApi() {
 function createRuntimeEnvironment() {
   return Object.freeze(
     Object.fromEntries(
-      runtimeEnvironmentKeys.map((key) => [
-        key,
-        process.env[key] ?? localEnvironment[key] ?? "",
-      ]),
+      runtimeEnvironmentKeys.map((key) => [key, getEnvironmentValue(key)]),
     ),
   );
 }
@@ -243,6 +251,7 @@ function applySecurityHeaders(response) {
       "font-src 'self' data: https://api.mapbox.com https://cdnjs.cloudflare.com https://fonts.gstatic.com",
       "object-src 'none'",
       "base-uri 'self'",
+      "form-action 'self'",
       "frame-ancestors 'none'",
     ].join("; "),
   );
@@ -259,6 +268,28 @@ function serveRuntimeConfig(response) {
   response.end(
     `globalThis.__MORRO_RUNTIME_ENV__ = Object.freeze(${serialized});\n`,
   );
+}
+
+function serveLiveness(response) {
+  response.statusCode = 200;
+  response.setHeader("Content-Type", "application/json; charset=utf-8");
+  response.setHeader("Cache-Control", "no-store");
+  response.end(
+    JSON.stringify({
+      status: "live",
+      service: platformOperations.service,
+      release: platformOperations.release,
+      checkedAt: new Date().toISOString(),
+    }),
+  );
+}
+
+function serveReadiness(response, correlationId) {
+  const snapshot = platformOperations.healthSnapshot(correlationId);
+  response.statusCode = snapshot.readiness === "ready" ? 200 : 503;
+  response.setHeader("Content-Type", "application/json; charset=utf-8");
+  response.setHeader("Cache-Control", "no-store");
+  response.end(JSON.stringify(snapshot));
 }
 
 function conditionToWeatherCode(condition) {
@@ -373,29 +404,52 @@ async function fetchOpenMeteoWeather() {
   };
 }
 
-async function fetchWeatherFromProviders() {
-  const visualCrossingKey = process.env.VISUAL_CROSSING_API_KEY?.trim();
+function safeProviderError(error) {
+  return error instanceof Error ? error.message : String(error || "unknown");
+}
+
+async function fetchWeatherFromProviders(correlationId) {
+  const visualCrossingKey = getEnvironmentValue(
+    "VISUAL_CROSSING_API_KEY",
+  ).trim();
   if (visualCrossingKey) {
     try {
-      return await fetchVisualCrossingWeather(visualCrossingKey);
+      const weather = await fetchVisualCrossingWeather(visualCrossingKey);
+      platformOperations.providerRecovered(
+        "weather-visual-crossing",
+        correlationId,
+      );
+      return weather;
     } catch (error) {
-      console.warn(
-        "Visual Crossing weather request failed; using Open-Meteo fallback.",
-        error instanceof Error ? error.message : error,
+      platformOperations.providerDegraded(
+        "weather-visual-crossing",
+        safeProviderError(error),
+        correlationId,
       );
     }
   }
-  return fetchOpenMeteoWeather();
+  try {
+    const weather = await fetchOpenMeteoWeather();
+    platformOperations.providerRecovered("weather-open-meteo", correlationId);
+    return weather;
+  } catch (error) {
+    platformOperations.providerDegraded(
+      "weather-open-meteo",
+      safeProviderError(error),
+      correlationId,
+    );
+    throw error;
+  }
 }
 
 function cacheAgeMs(now = Date.now()) {
   return weatherCache ? now - weatherCache.fetchedAt : Number.POSITIVE_INFINITY;
 }
 
-async function refreshWeatherCache() {
+async function refreshWeatherCache(correlationId) {
   if (weatherRequestInFlight) return weatherRequestInFlight;
 
-  weatherRequestInFlight = fetchWeatherFromProviders()
+  weatherRequestInFlight = fetchWeatherFromProviders(correlationId)
     .then((weather) => {
       weatherCache = { weather, fetchedAt: Date.now() };
       return weather;
@@ -407,31 +461,38 @@ async function refreshWeatherCache() {
   return weatherRequestInFlight;
 }
 
-async function getMorroWeather() {
+async function getMorroWeather(correlationId) {
   const age = cacheAgeMs();
   if (weatherCache && age <= weatherFreshTtlMs) {
     return { weather: weatherCache.weather, cacheState: "fresh" };
   }
 
   try {
-    const weather = await refreshWeatherCache();
+    const weather = await refreshWeatherCache(correlationId);
+    platformOperations.providerRecovered("weather-runtime", correlationId);
     return { weather, cacheState: "refreshed" };
   } catch (error) {
     const staleAge = cacheAgeMs();
     if (weatherCache && staleAge <= weatherStaleTtlMs) {
-      console.warn(
-        "Weather providers unavailable; serving stale cached conditions.",
-        error instanceof Error ? error.message : error,
+      platformOperations.providerDegraded(
+        "weather-runtime",
+        "serving-stale-cache",
+        correlationId,
       );
       return { weather: weatherCache.weather, cacheState: "stale" };
     }
+    platformOperations.providerDegraded(
+      "weather-runtime",
+      safeProviderError(error),
+      correlationId,
+    );
     throw error;
   }
 }
 
-async function serveWeather(response) {
+async function serveWeather(response, correlationId) {
   try {
-    const { weather, cacheState } = await getMorroWeather();
+    const { weather, cacheState } = await getMorroWeather(correlationId);
     response.statusCode = 200;
     response.setHeader("Content-Type", "application/json; charset=utf-8");
     response.setHeader("X-Weather-Cache", cacheState);
@@ -440,11 +501,7 @@ async function serveWeather(response) {
       "public, max-age=300, stale-while-revalidate=300",
     );
     response.end(JSON.stringify(weather));
-  } catch (error) {
-    console.error(
-      "Weather runtime unavailable.",
-      error instanceof Error ? error.message : error,
-    );
+  } catch {
     response.statusCode = 503;
     response.setHeader("Content-Type", "application/json; charset=utf-8");
     response.setHeader("Cache-Control", "no-store");
@@ -452,17 +509,40 @@ async function serveWeather(response) {
   }
 }
 
+function serviceDraining(response) {
+  response.statusCode = 503;
+  response.setHeader("Content-Type", "application/json; charset=utf-8");
+  response.setHeader("Cache-Control", "no-store");
+  response.setHeader("Retry-After", "5");
+  response.end(JSON.stringify({ error: "SERVICE_DRAINING" }));
+}
+
 const server = createServer(async (request, response) => {
   applySecurityHeaders(response);
+  const correlationId = platformOperations.correlationIdFromRequest(request);
+  request.morroCorrelationId = correlationId;
+  platformOperations.bindResponse(response, correlationId);
 
   try {
     const requestUrl = new URL(request.url || "/", `http://${host}:${port}`);
+    if (requestUrl.pathname === "/healthz") {
+      serveLiveness(response);
+      return;
+    }
+    if (requestUrl.pathname === "/readyz") {
+      serveReadiness(response, correlationId);
+      return;
+    }
+    if (!platformOperations.isAcceptingTraffic()) {
+      serviceDraining(response);
+      return;
+    }
     if (requestUrl.pathname === "/runtime-config.js") {
       serveRuntimeConfig(response);
       return;
     }
     if (requestUrl.pathname === "/api/weather") {
-      await serveWeather(response);
+      await serveWeather(response, correlationId);
       return;
     }
     if (authApi.matches(requestUrl.pathname)) {
@@ -515,10 +595,17 @@ const server = createServer(async (request, response) => {
     createReadStream(filePath).pipe(response);
   } catch (error) {
     if (String(request.url || "").startsWith("/api/")) {
-      console.error(
-        "API runtime failure.",
-        error instanceof Error ? error.stack || error.message : error,
-      );
+      platformOperations.emit({
+        kind: "alert",
+        name: "platform.http.unhandled_failure",
+        severity: "error",
+        correlationId,
+        attributes: {
+          method: String(request.method || "GET"),
+          pathname: String(request.url || "/").split("?", 1)[0],
+          reason: safeProviderError(error),
+        },
+      });
       response.statusCode = 500;
       response.setHeader("Content-Type", "application/json; charset=utf-8");
       response.setHeader("Cache-Control", "no-store");
@@ -531,32 +618,122 @@ const server = createServer(async (request, response) => {
   }
 });
 
+const openSockets = new Set();
+server.on("connection", (socket) => {
+  openSockets.add(socket);
+  socket.once("close", () => openSockets.delete(socket));
+});
+
 let shuttingDown = false;
+
+function delay(milliseconds) {
+  return new Promise((resolveDelay) => setTimeout(resolveDelay, milliseconds));
+}
+
+function closeServerWithin(timeoutMs, correlationId) {
+  return new Promise((resolveClose, rejectClose) => {
+    let settled = false;
+    const timeout = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      platformOperations.emit({
+        kind: "alert",
+        name: "platform.shutdown.drain_timeout",
+        severity: "critical",
+        correlationId,
+        attributes: { timeoutMs, openConnections: openSockets.size },
+      });
+      if (typeof server.closeAllConnections === "function") {
+        server.closeAllConnections();
+      } else {
+        for (const socket of openSockets) socket.destroy();
+      }
+      rejectClose(new Error("PLATFORM_SHUTDOWN_DRAIN_TIMEOUT"));
+    }, timeoutMs);
+
+    server.close((error) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      if (error) rejectClose(error);
+      else resolveClose();
+    });
+  });
+}
 
 async function shutdown(signal) {
   if (shuttingDown) return;
   shuttingDown = true;
-  console.log(`Encerrando Morro Digital após ${signal}.`);
-  server.close(() => {
-    void Promise.all([
-      crmApi.stop(),
-      paymentsApi.stop(),
-      ticketingApi ? ticketingApi.stop() : Promise.resolve(),
-    ])
-      .then(() => process.exit(0))
-      .catch((error) => {
-        console.error(
-          "Falha ao encerrar os runtimes do servidor.",
-          error instanceof Error ? error.stack || error.message : error,
-        );
-        process.exit(1);
-      });
+  const correlationId = platformOperations.correlationIdFromRequest({
+    headers: {},
   });
+  platformOperations.beginShutdown(signal, correlationId);
+
+  if (platformOperations.shutdownReadinessDelayMs > 0) {
+    await delay(platformOperations.shutdownReadinessDelayMs);
+  }
+
+  platformOperations.emit({
+    kind: "log",
+    name: "platform.shutdown.drain_started",
+    severity: "info",
+    correlationId,
+    attributes: { openConnections: openSockets.size },
+  });
+
+  let exitCode = 0;
+  try {
+    await closeServerWithin(
+      platformOperations.shutdownDrainTimeoutMs,
+      correlationId,
+    );
+  } catch (error) {
+    exitCode = 1;
+    platformOperations.emit({
+      kind: "alert",
+      name: "platform.shutdown.drain_failed",
+      severity: "error",
+      correlationId,
+      attributes: { reason: safeProviderError(error) },
+    });
+  }
+
+  const stops = await Promise.allSettled([
+    authApi.stop(),
+    crmApi.stop(),
+    paymentsApi.stop(),
+    ticketingApi ? ticketingApi.stop() : Promise.resolve(),
+  ]);
+  const failedStops = stops.filter((result) => result.status === "rejected");
+  if (failedStops.length > 0) {
+    exitCode = 1;
+    platformOperations.emit({
+      kind: "alert",
+      name: "platform.shutdown.runtime_stop_failed",
+      severity: "error",
+      correlationId,
+      attributes: { failedRuntimes: failedStops.length },
+    });
+  }
+
+  platformOperations.emit({
+    kind: "log",
+    name: "platform.shutdown.completed",
+    severity: exitCode === 0 ? "info" : "error",
+    correlationId,
+    attributes: { exitCode },
+  });
+  platformOperations.setListening(false, correlationId);
+  process.exit(exitCode);
 }
 
 process.once("SIGINT", () => void shutdown("SIGINT"));
 process.once("SIGTERM", () => void shutdown("SIGTERM"));
 
 server.listen(port, host, () => {
+  const correlationId = platformOperations.correlationIdFromRequest({
+    headers: {},
+  });
+  platformOperations.setListening(true, correlationId);
   console.log(`Morro Digital disponível em http://${host}:${port}`);
 });
