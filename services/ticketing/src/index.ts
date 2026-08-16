@@ -5,6 +5,19 @@ import {
   MySqlTicketCheckInRepository,
   MySqlTicketOfflineEnvelopeRepository,
 } from "./mysql-ticket-checkin-repository.js";
+import { MySqlTicketReservationRepository } from "./mysql-ticket-reservation-repository.js";
+import {
+  TicketReservationApplicationError,
+  createTicketReservationApplicationService,
+  type TicketReservationApplicationErrorCode,
+  type TicketReservationApplicationService,
+  type TicketReservationClockPort,
+  type TicketReservationConfirmationAuthorityPort,
+  type TicketReservationConfirmationRepositoryPort,
+  type TicketReservationConfirmationResult,
+  type VerifiedTicketReservationAuthority,
+} from "./reservation-application-service.js";
+import { ticketingM150ReservationSchemaSql } from "./reservation-schema.js";
 import type {
   TicketingOfflineTransactionalCommandResult,
   TicketingTransactionalCommandPort,
@@ -26,13 +39,23 @@ export {
   MySqlTicketRepository,
   MySqlTicketCheckInRepository,
   MySqlTicketOfflineEnvelopeRepository,
+  MySqlTicketReservationRepository,
   MySqlTicketingTransactionalCommand,
+  TicketReservationApplicationError,
   TicketingApplicationError,
+  createTicketReservationApplicationService,
   createTicketingApplicationService,
   ticketingM147SchemaSql,
+  ticketingM150ReservationSchemaSql,
 };
 
 export type {
+  TicketReservationApplicationErrorCode,
+  TicketReservationApplicationService,
+  TicketReservationClockPort,
+  TicketReservationConfirmationAuthorityPort,
+  TicketReservationConfirmationRepositoryPort,
+  TicketReservationConfirmationResult,
   TicketingApplicationErrorCode,
   TicketingApplicationService,
   TicketingApplicationServiceDependencies,
@@ -41,6 +64,7 @@ export type {
   TicketingOfflineTransactionalCommandResult,
   TicketingTransactionalCommandPort,
   TicketingTransactionalCommandResult,
+  VerifiedTicketReservationAuthority,
 };
 
 export interface TicketingMySqlEnvironment {
@@ -73,4 +97,10 @@ async function applySqlStatements(pool: Pool, sql: string): Promise<void> {
 
 export async function applyTicketingM147Schema(pool: Pool): Promise<void> {
   await applySqlStatements(pool, ticketingM147SchemaSql);
+}
+
+export async function applyTicketingM150ReservationSchema(
+  pool: Pool,
+): Promise<void> {
+  await applySqlStatements(pool, ticketingM150ReservationSchemaSql);
 }
