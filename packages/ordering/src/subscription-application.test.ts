@@ -16,10 +16,7 @@ import {
   normalizeOrderSourceReference,
   type Order,
 } from "./index.js";
-import {
-  createSubscriptionRecurrenceApplicationService,
-  SubscriptionRecurrenceError,
-} from "./subscription-application.js";
+import { createSubscriptionRecurrenceApplicationService } from "./subscription-application.js";
 import {
   createActiveSubscription,
   normalizeSubscriptionId,
@@ -84,15 +81,17 @@ function initialOrder(): Order {
   return order;
 }
 
-function verifiedResult(input: {
-  readonly kind?: VerifiedPaymentResult["kind"];
-  readonly paymentStatus?: VerifiedPaymentResult["paymentStatus"];
-  readonly orderReference?: string;
-  readonly paymentId?: string;
-  readonly resultId?: string;
-  readonly occurredAt?: string;
-  readonly recordedAt?: string;
-} = {}): VerifiedPaymentResult {
+function verifiedResult(
+  input: {
+    readonly kind?: VerifiedPaymentResult["kind"];
+    readonly paymentStatus?: VerifiedPaymentResult["paymentStatus"];
+    readonly orderReference?: string;
+    readonly paymentId?: string;
+    readonly resultId?: string;
+    readonly occurredAt?: string;
+    readonly recordedAt?: string;
+  } = {},
+): VerifiedPaymentResult {
   return {
     resultId: mustEventId(input.resultId ?? "fev_renewal123"),
     providerEventId: mustProviderEventId("pwe_renewal123"),
@@ -151,7 +150,10 @@ class MemorySubscriptions {
 }
 
 class MemoryRenewals {
-  readonly values = new Map<SubscriptionRenewalRequestKey, SubscriptionRenewalIntent>();
+  readonly values = new Map<
+    SubscriptionRenewalRequestKey,
+    SubscriptionRenewalIntent
+  >();
 
   findByRequestKey(
     key: SubscriptionRenewalRequestKey,
@@ -211,7 +213,9 @@ describe("M153 subscription recurrence application", () => {
         periodNumber: 2,
       },
     });
-    expect(first.intent?.pricing).toEqual(first.subscription.currentPeriod.pricing);
+    expect(first.intent?.pricing).toEqual(
+      first.subscription.currentPeriod.pricing,
+    );
 
     await expect(
       due.service.prepareDueRenewal({
@@ -283,7 +287,6 @@ describe("M153 subscription recurrence application", () => {
         status: "past_due",
         pastDueEvidence: {
           periodNumber: 2,
-          orderId: undefined,
           renewalOrderId: "ord_renewal01",
           kind: "failed",
         },
@@ -339,7 +342,7 @@ describe("M153 subscription recurrence application", () => {
         subscriptionId: "sub_12345678",
         verifiedOutcome: verifiedResult(),
       }),
-    ).rejects.toMatchObject<Partial<SubscriptionRecurrenceError>>({
+    ).rejects.toMatchObject({
       code: "SUBSCRIPTION_RECURRENCE_OUTCOME_NOT_CLAIMED",
     });
 

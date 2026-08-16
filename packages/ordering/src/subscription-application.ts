@@ -43,9 +43,7 @@ export interface SubscriptionRenewalPreparationResult {
 }
 
 export type SubscriptionRenewalOutcomeDisposition =
-  | "advanced"
-  | "past_due"
-  | "replayed";
+  "advanced" | "past_due" | "replayed";
 
 export interface SubscriptionRenewalOutcomeResult {
   readonly disposition: SubscriptionRenewalOutcomeDisposition;
@@ -144,12 +142,12 @@ function replayedOutcomeMatches(
   const evidence = subscription.pastDueEvidence;
   return Boolean(
     subscription.status === "past_due" &&
-      evidence &&
-      evidence.periodNumber === intent.periodNumber &&
-      evidence.renewalOrderId === intent.orderId &&
-      evidence.paymentId === outcome.paymentId &&
-      evidence.verifiedResultId === outcome.resultId &&
-      evidence.kind === outcome.kind,
+    evidence &&
+    evidence.periodNumber === intent.periodNumber &&
+    evidence.renewalOrderId === intent.orderId &&
+    evidence.paymentId === outcome.paymentId &&
+    evidence.verifiedResultId === outcome.resultId &&
+    evidence.kind === outcome.kind,
   );
 }
 
@@ -158,7 +156,8 @@ async function loadSubscription(
   input: unknown,
 ): Promise<Subscription> {
   const subscriptionId = requireSubscriptionId(input);
-  const subscription = await dependencies.subscriptions.findById(subscriptionId);
+  const subscription =
+    await dependencies.subscriptions.findById(subscriptionId);
   if (!subscription) failure("SUBSCRIPTION_RECURRENCE_NOT_FOUND");
   return subscription;
 }

@@ -312,7 +312,11 @@ export function createPaymentsCheckoutAuthorityBootstrap({
           reason: "cross_origin_request",
           correlationId,
         });
-        return authorityResponse(403, { error: "ORIGIN_DENIED" }, correlationId);
+        return authorityResponse(
+          403,
+          { error: "ORIGIN_DENIED" },
+          correlationId,
+        );
       }
       let returnOrigin = "";
       try {
@@ -628,7 +632,8 @@ export function createPaymentsApi({
   let runtime = hasInjectedTransport
     ? Object.freeze({
         transport: injectedTransport ?? null,
-        authorityBootstrapTransport: injectedAuthorityBootstrapTransport ?? null,
+        authorityBootstrapTransport:
+          injectedAuthorityBootstrapTransport ?? null,
         webhookTransport: injectedWebhookTransport ?? null,
         refundTransport: injectedRefundTransport ?? null,
         reconciliationTransport: injectedReconciliationTransport ?? null,

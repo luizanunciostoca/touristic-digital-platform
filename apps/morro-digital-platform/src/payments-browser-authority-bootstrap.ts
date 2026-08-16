@@ -1,6 +1,4 @@
-import type {
-  ValidatedBusinessCheckoutHandoff,
-} from "@touristic/ordering";
+import type { ValidatedBusinessCheckoutHandoff } from "@touristic/ordering";
 
 import {
   PaymentsBrowserCheckoutError,
@@ -11,8 +9,7 @@ export const PAYMENTS_HANDOFF_AUTHORITY_PATH =
   "/api/payments/v1/checkout-authority";
 
 const maxResponseBytes = 16 * 1024;
-const handoffTokenPattern =
-  /^[A-Za-z0-9_-]{16,1800}\.[A-Za-z0-9_-]{32,128}$/u;
+const handoffTokenPattern = /^[A-Za-z0-9_-]{16,1800}\.[A-Za-z0-9_-]{32,128}$/u;
 
 function record(value: unknown): Record<string, unknown> | null {
   return value !== null && typeof value === "object" && !Array.isArray(value)
@@ -28,7 +25,9 @@ function text(value: unknown, maxLength: number): string {
     : "";
 }
 
-async function responsePayload(response: Response): Promise<Record<string, unknown>> {
+async function responsePayload(
+  response: Response,
+): Promise<Record<string, unknown>> {
   const body = await response.text();
   if (new TextEncoder().encode(body).byteLength > maxResponseBytes) {
     throw new PaymentsBrowserCheckoutError(

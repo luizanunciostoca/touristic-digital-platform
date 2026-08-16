@@ -75,7 +75,10 @@ export function installBusinessPaymentsCheckoutComposition(
   view.addEventListener("businessCheckoutRequested", onCheckoutRequested);
   return Object.freeze({
     uninstall(): void {
-      view.removeEventListener("businessCheckoutRequested", onCheckoutRequested);
+      view.removeEventListener(
+        "businessCheckoutRequested",
+        onCheckoutRequested,
+      );
       inFlight.clear();
     },
   });

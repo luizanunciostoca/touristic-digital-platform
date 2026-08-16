@@ -118,7 +118,9 @@ describe("Payments server-issued checkout authority bootstrap", () => {
   });
 
   it("fails closed when the server-only HMAC secret is unavailable", async () => {
-    const result = await bootstrap({ handoffSecret: "short" }).handle(request());
+    const result = await bootstrap({ handoffSecret: "short" }).handle(
+      request(),
+    );
     expect(result.status).toBe(503);
     expect(result.body).toEqual({ error: "CHECKOUT_AUTHORITY_UNAVAILABLE" });
   });

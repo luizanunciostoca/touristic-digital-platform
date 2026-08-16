@@ -75,19 +75,28 @@ describe("Payments browser authority bootstrap", () => {
   it("fails closed on malformed or rejected authority responses", async () => {
     const malformed = createServerIssuedPaymentsCheckoutAuthority(
       vi.fn<typeof fetch>().mockResolvedValue(
-        new Response(JSON.stringify({ data: { handoffToken: "not-a-token" } }), {
-          status: 201,
-        }),
+        new Response(
+          JSON.stringify({ data: { handoffToken: "not-a-token" } }),
+          {
+            status: 201,
+          },
+        ),
       ),
     );
-    await expect(malformed.resolveCreateHeaders(handoff)).rejects.toMatchObject({
-      code: "PAYMENTS_BROWSER_INVALID_AUTHORITY",
-    });
+    await expect(malformed.resolveCreateHeaders(handoff)).rejects.toMatchObject(
+      {
+        code: "PAYMENTS_BROWSER_INVALID_AUTHORITY",
+      },
+    );
 
     const rejected = createServerIssuedPaymentsCheckoutAuthority(
-      vi.fn<typeof fetch>().mockResolvedValue(
-        new Response(JSON.stringify({ error: "ORIGIN_DENIED" }), { status: 403 }),
-      ),
+      vi
+        .fn<typeof fetch>()
+        .mockResolvedValue(
+          new Response(JSON.stringify({ error: "ORIGIN_DENIED" }), {
+            status: 403,
+          }),
+        ),
     );
     await expect(rejected.resolveCreateHeaders(handoff)).rejects.toBeInstanceOf(
       PaymentsBrowserCheckoutError,
