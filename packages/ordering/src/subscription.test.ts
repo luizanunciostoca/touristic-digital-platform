@@ -88,15 +88,17 @@ function initialOrder(): Order {
   return order;
 }
 
-function verifiedResult(input: {
-  readonly kind?: VerifiedPaymentResult["kind"];
-  readonly paymentStatus?: VerifiedPaymentResult["paymentStatus"];
-  readonly orderReference?: string;
-  readonly paymentId?: string;
-  readonly resultId?: string;
-  readonly occurredAt?: string;
-  readonly recordedAt?: string;
-} = {}): VerifiedPaymentResult {
+function verifiedResult(
+  input: {
+    readonly kind?: VerifiedPaymentResult["kind"];
+    readonly paymentStatus?: VerifiedPaymentResult["paymentStatus"];
+    readonly orderReference?: string;
+    readonly paymentId?: string;
+    readonly resultId?: string;
+    readonly occurredAt?: string;
+    readonly recordedAt?: string;
+  } = {},
+): VerifiedPaymentResult {
   const kind = input.kind ?? "approved";
   const paymentStatus = input.paymentStatus ?? "confirmed";
   return {
