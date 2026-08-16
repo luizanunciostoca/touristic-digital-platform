@@ -29,7 +29,7 @@ export interface DashboardLoginCredentials {
 export interface BrowserStoragePort {
   readonly getItem: (key: string) => string | null;
   readonly setItem: (key: string, value: string) => void;
-  readonly removeItem: (key: string, value?: string) => void;
+  readonly removeItem: (key: string) => void;
 }
 
 export interface BrowserLocationPort {
