@@ -59,6 +59,15 @@ const publicCrmDocuments = Object.freeze([
   },
 ]);
 
+const publicStaticRoots = Object.freeze([
+  resolve(repositoryRoot, "apps/morro-digital-platform/public"),
+  resolve(repositoryRoot, "apps/morro-digital-platform/dist"),
+  resolve(repositoryRoot, "apps/admin-crm/public"),
+  resolve(repositoryRoot, "dashboard"),
+  resolve(repositoryRoot, "images"),
+]);
+const packagesRoot = resolve(repositoryRoot, "packages");
+
 function parseDotEnv(content) {
   const values = {};
   for (const rawLine of content.split(/\r?\n/u)) {
@@ -149,6 +158,21 @@ function createRuntimeEnvironment() {
   );
 }
 
+function isWithinStaticRoot(candidate, root) {
+  return candidate === root || candidate.startsWith(`${root}${sep}`);
+}
+
+function isPublicStaticPath(candidate) {
+  if (publicStaticRoots.some((root) => isWithinStaticRoot(candidate, root))) {
+    return true;
+  }
+
+  const packagesPrefix = `${packagesRoot}${sep}`;
+  if (!candidate.startsWith(packagesPrefix)) return false;
+  const packageSegments = candidate.slice(packagesPrefix.length).split(sep);
+  return Boolean(packageSegments[0] && packageSegments[1] === "dist");
+}
+
 function resolveRequestPath(pathname) {
   if (pathname === "/") return defaultDocument;
 
@@ -166,6 +190,9 @@ function resolveRequestPath(pathname) {
   if (!requestedPath.startsWith(repositoryPrefix)) {
     throw new Error("Requested path is outside the repository root.");
   }
+  if (!isPublicStaticPath(requestedPath)) {
+    throw new Error("Requested path is not a public static asset.");
+  }
 
   return requestedPath;
 }
@@ -174,6 +201,11 @@ function applySecurityHeaders(response) {
   response.setHeader("X-Content-Type-Options", "nosniff");
   response.setHeader("Referrer-Policy", "no-referrer");
   response.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+  response.setHeader("X-Frame-Options", "DENY");
+  response.setHeader(
+    "Permissions-Policy",
+    "camera=(), microphone=(), geolocation=(self)",
+  );
   response.setHeader(
     "Content-Security-Policy",
     [
@@ -426,6 +458,13 @@ const server = createServer(async (request, response) => {
     }
     if (assistantApi.matches(requestUrl.pathname)) {
       await assistantApi.handle(request, response);
+      return;
+    }
+    if (requestUrl.pathname.startsWith("/api/")) {
+      response.statusCode = 404;
+      response.setHeader("Content-Type", "application/json; charset=utf-8");
+      response.setHeader("Cache-Control", "no-store");
+      response.end(JSON.stringify({ error: "NOT_FOUND" }));
       return;
     }
 
