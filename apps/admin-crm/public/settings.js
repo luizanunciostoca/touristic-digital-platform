@@ -1,10 +1,19 @@
-import { createAuthBrowserClient } from "@touristic/auth-browser";
+import { createDashboardAuthClient } from "@touristic/auth-browser";
 import {
   crmSettingsFunnelStages,
   crmSettingsV1Baseline,
 } from "@touristic/crm/settings-contract";
 
-const auth = createAuthBrowserClient({ loginPath: "/apps/dashboard/login.html" });
+const auth = createDashboardAuthClient({
+  fetchFn: window.fetch.bind(window),
+  storage: window.sessionStorage,
+  location: {
+    origin: window.location.origin,
+    pathname: window.location.pathname,
+    search: window.location.search,
+    replace: (url) => window.location.replace(url),
+  },
+});
 const shell = document.querySelector("#settings-shell");
 const loading = document.querySelector("#session-loading");
 const sessionChip = document.querySelector("#session-chip");
@@ -239,14 +248,26 @@ async function start() {
   renderSystemInfo();
   renderFunnelStages();
   setDefaults();
+
+  let session;
   try {
-    const session = await auth.requireSession({ returnTo: window.location.pathname });
-    if (!session) return;
-    if (sessionChip) {
-      sessionChip.textContent = `${text(session.user?.email)} · ${text(session.user?.role)}`;
-    }
-    if (loading instanceof HTMLElement) loading.hidden = true;
-    if (shell instanceof HTMLElement) shell.hidden = false;
+    session = await auth.getSession();
+    if (!session) throw new Error("AUTH_REQUIRED");
+  } catch {
+    const current = `${window.location.pathname}${window.location.search}`;
+    window.location.replace(
+      `/dashboard/login.html?return=${encodeURIComponent(current)}`,
+    );
+    return;
+  }
+
+  if (sessionChip) {
+    sessionChip.textContent = `${text(session.user.email)} · ${text(session.user.role)}`;
+  }
+  if (loading instanceof HTMLElement) loading.hidden = true;
+  if (shell instanceof HTMLElement) shell.hidden = false;
+
+  try {
     await loadFollowUpSetting();
   } catch (error) {
     const message = error instanceof Error ? error.message : "UNKNOWN_ERROR";
