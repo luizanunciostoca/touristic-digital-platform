@@ -1,8 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import {
-  normalizeTicketSigningSecret,
-} from "@touristic/ticketing";
+import { normalizeTicketSigningSecret } from "../../../packages/ticketing/dist/index.js";
 import {
   createTicketingCheckoutApplicationService,
 } from "@touristic/ordering/ticketing-checkout";
@@ -56,7 +54,7 @@ import {
   createVerifiedPaymentTicketFulfillmentHandler,
   createVerifiedRefundTicketCancellationHandler,
   ticketingHttpPrefix,
-} from "@touristic/ticketing-server";
+} from "../../../services/ticketing/dist/index.js";
 
 const maxBodyBytes = 32 * 1024;
 
@@ -108,16 +106,22 @@ async function readJsonBody(request) {
         : raw instanceof Uint8Array
           ? Buffer.from(raw)
           : null;
-    if (!chunk) throw new TicketingHttpInputError(400, "INVALID_TICKETING_REQUEST");
+    if (!chunk) {
+      throw new TicketingHttpInputError(400, "INVALID_TICKETING_REQUEST");
+    }
     total += chunk.length;
     if (total > maxBodyBytes) {
       throw new TicketingHttpInputError(413, "TICKETING_REQUEST_TOO_LARGE");
     }
     chunks.push(chunk);
   }
-  if (total === 0) throw new TicketingHttpInputError(400, "INVALID_TICKETING_REQUEST");
+  if (total === 0) {
+    throw new TicketingHttpInputError(400, "INVALID_TICKETING_REQUEST");
+  }
   try {
-    return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(Buffer.concat(chunks)));
+    return JSON.parse(
+      new TextDecoder("utf-8", { fatal: true }).decode(Buffer.concat(chunks)),
+    );
   } catch {
     throw new TicketingHttpInputError(400, "INVALID_TICKETING_JSON");
   }
@@ -144,7 +148,10 @@ function collectEnvironment(getEnvironmentValue) {
   ];
   return Object.freeze(
     Object.fromEntries(
-      keys.map((key) => [key, String(getEnvironmentValue(key) ?? "").trim()]),
+      keys.map((key) => [
+        key,
+        String(getEnvironmentValue(key) ?? "").trim(),
+      ]),
     ),
   );
 }
@@ -155,7 +162,9 @@ function featureEnabled(value) {
 
 function pollInterval(value) {
   if (!value) return 1_000;
-  if (!/^[0-9]+$/u.test(value)) throw new Error("TICKETING_FINANCIAL_POLL_INTERVAL_MS_INVALID");
+  if (!/^[0-9]+$/u.test(value)) {
+    throw new Error("TICKETING_FINANCIAL_POLL_INTERVAL_MS_INVALID");
+  }
   const parsed = Number(value);
   if (!Number.isSafeInteger(parsed) || parsed < 500 || parsed > 60_000) {
     throw new Error("TICKETING_FINANCIAL_POLL_INTERVAL_MS_INVALID");
@@ -195,7 +204,10 @@ export function createTicketingAuthorizationPort({ authApi }) {
     async authorize(request, { mutation, admin = false }) {
       const active = authApi.resolveSession(request);
       if (!active) {
-        return Object.freeze({ allowed: false, reason: "authentication_required" });
+        return Object.freeze({
+          allowed: false,
+          reason: "authentication_required",
+        });
       }
       if (admin && active.role !== "admin") {
         return Object.freeze({ allowed: false, reason: "admin_required" });
@@ -204,7 +216,11 @@ export function createTicketingAuthorizationPort({ authApi }) {
         if (active.role === "viewer") {
           return Object.freeze({ allowed: false, reason: "read_only_role" });
         }
-        const decision = authApi.authorizeMutation(request, active, "ticketing.mutate");
+        const decision = authApi.authorizeMutation(
+          request,
+          active,
+          "ticketing.mutate",
+        );
         if (!decision.allowed) {
           return Object.freeze({
             allowed: false,
@@ -232,12 +248,19 @@ export function createTicketingCheckoutAuthorizationPort({
     async authorizeCreate(request, handoff) {
       const active = authApi.resolveSession(request);
       if (!active) {
-        return Object.freeze({ allowed: false, reason: "authentication_required" });
+        return Object.freeze({
+          allowed: false,
+          reason: "authentication_required",
+        });
       }
       if (active.role === "viewer") {
         return Object.freeze({ allowed: false, reason: "read_only_role" });
       }
-      const mutation = authApi.authorizeMutation(request, active, "checkout.create");
+      const mutation = authApi.authorizeMutation(
+        request,
+        active,
+        "checkout.create",
+      );
       if (!mutation.allowed) {
         return Object.freeze({
           allowed: false,
@@ -254,14 +277,18 @@ export function createTicketingCheckoutAuthorizationPort({
       if (
         !reservation ||
         reservation.holderReference !== active.subject ||
-        (reservation.status !== "held" && reservation.status !== "confirmed") ||
+        (reservation.status !== "held" &&
+          reservation.status !== "confirmed") ||
         !holder ||
         holder.holderName !== handoff.customer.name ||
         holder.email !== handoff.customer.email ||
         holder.phone !== handoff.customer.phone ||
         holder.document !== handoff.customer.document
       ) {
-        return Object.freeze({ allowed: false, reason: "business_access_denied" });
+        return Object.freeze({
+          allowed: false,
+          reason: "business_access_denied",
+        });
       }
       const context = normalizeCheckoutRequestContext({
         requesterKind: "authenticated",
@@ -279,7 +306,8 @@ export function createTicketingCheckoutAuthorizationPort({
 export function createTicketingApi({
   authApi,
   getEnvironmentValue = (key) => process.env[key] ?? "",
-  audit = (event) => console.warn(`[ticketing-audit] ${JSON.stringify(event)}`),
+  audit = (event) =>
+    console.warn(`[ticketing-audit] ${JSON.stringify(event)}`),
   publicTransport: injectedPublicTransport,
   checkoutTransport: injectedCheckoutTransport,
 } = {}) {
@@ -321,7 +349,9 @@ export function createTicketingApi({
       const signingSecret = normalizeTicketSigningSecret(
         environment.TICKETING_SIGNING_SECRET,
       );
-      if (!signingSecret) throw new Error("TICKETING_SIGNING_SECRET_REQUIRED");
+      if (!signingSecret) {
+        throw new Error("TICKETING_SIGNING_SECRET_REQUIRED");
+      }
       if (environment.TICKETING_OFFLINE_PROVISIONING_SECRET.length < 32) {
         throw new Error("TICKETING_OFFLINE_PROVISIONING_SECRET_REQUIRED");
       }
@@ -357,13 +387,17 @@ export function createTicketingApi({
       const orders = new MySqlOrderRepository(orderingPool);
       const bindings = new MySqlTicketingOrderBindingRepository(orderingPool);
       const payments = new MySqlPaymentRepository(financialPool);
-      const verifiedResults = new MySqlVerifiedPaymentResultRepository(financialPool);
+      const verifiedResults = new MySqlVerifiedPaymentResultRepository(
+        financialPool,
+      );
       const identities = createNodeCheckoutIdentityPort();
-      const reservationOrders = createTicketingReservationOrderApplicationService({
-        orders,
-        bindings,
-        identities,
-      });
+      const reservationOrders = createTicketingReservationOrderApplicationService(
+        {
+          orders,
+          bindings,
+          identities,
+        },
+      );
       const ticketing = createTicketingApplicationService({
         orders,
         payments,
@@ -432,7 +466,8 @@ export function createTicketingApi({
           },
         },
         qrSigningSecret: signingSecret,
-        offlineProvisioningSecret: environment.TICKETING_OFFLINE_PROVISIONING_SECRET,
+        offlineProvisioningSecret:
+          environment.TICKETING_OFFLINE_PROVISIONING_SECRET,
         clock: systemCheckoutClock,
       });
 
@@ -479,7 +514,8 @@ export function createTicketingApi({
             auditSafely(audit, {
               action: "ticketing.financial_results",
               result: "failure",
-              reason: error instanceof Error ? error.message : "unknown",
+              reason:
+                error instanceof Error ? error.message : "unknown",
             });
           })
           .finally(() => {
@@ -488,9 +524,10 @@ export function createTicketingApi({
         return processing;
       };
       await drain();
-      const processorTimer = setInterval(() => void drain(), pollInterval(
-        environment.TICKETING_FINANCIAL_POLL_INTERVAL_MS,
-      ));
+      const processorTimer = setInterval(
+        () => void drain(),
+        pollInterval(environment.TICKETING_FINANCIAL_POLL_INTERVAL_MS),
+      );
       processorTimer.unref?.();
 
       runtime = {
@@ -515,7 +552,10 @@ export function createTicketingApi({
       auditSafely(audit, {
         action: "ticketing.runtime",
         result: "failure",
-        reason: error instanceof Error ? error.message : "configuration_or_persistence_unavailable",
+        reason:
+          error instanceof Error
+            ? error.message
+            : "configuration_or_persistence_unavailable",
       });
       return false;
     }
@@ -564,7 +604,11 @@ export function createTicketingApi({
         if (contentType !== "application/json") {
           sendJson(
             response,
-            { status: 415, headers: {}, body: { error: "UNSUPPORTED_MEDIA_TYPE" } },
+            {
+              status: 415,
+              headers: {},
+              body: { error: "UNSUPPORTED_MEDIA_TYPE" },
+            },
             correlationId,
           );
           return;
@@ -572,9 +616,17 @@ export function createTicketingApi({
         try {
           body = await readJsonBody(request);
         } catch (error) {
-          const status = error instanceof TicketingHttpInputError ? error.status : 400;
-          const code = error instanceof TicketingHttpInputError ? error.code : "INVALID_TICKETING_REQUEST";
-          sendJson(response, { status, headers: {}, body: { error: code } }, correlationId);
+          const status =
+            error instanceof TicketingHttpInputError ? error.status : 400;
+          const code =
+            error instanceof TicketingHttpInputError
+              ? error.code
+              : "INVALID_TICKETING_REQUEST";
+          sendJson(
+            response,
+            { status, headers: {}, body: { error: code } },
+            correlationId,
+          );
           return;
         }
       }
@@ -586,7 +638,11 @@ export function createTicketingApi({
       if (!selected) {
         sendJson(
           response,
-          { status: 503, headers: {}, body: { error: "TICKETING_FEATURE_DISABLED" } },
+          {
+            status: 503,
+            headers: {},
+            body: { error: "TICKETING_FEATURE_DISABLED" },
+          },
           correlationId,
         );
         return;
