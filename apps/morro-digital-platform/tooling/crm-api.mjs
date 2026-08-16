@@ -3,6 +3,7 @@ import { randomBytes } from "node:crypto";
 import { CrmContractServerBoundary } from "@touristic/crm/contracts-boundary";
 import { CrmContractPublicBoundary } from "@touristic/crm/contracts-public-boundary";
 import { CrmFollowUpServerBoundary } from "@touristic/crm/followups-boundary";
+import { CrmLeadDetailServerBoundary } from "@touristic/crm/lead-detail-boundary";
 import { CrmLeadServerBoundary } from "@touristic/crm/leads-boundary";
 import { CrmMeetingServerBoundary } from "@touristic/crm/meetings-boundary";
 import { CrmMetricsServerBoundary } from "@touristic/crm/metrics-boundary";
@@ -17,6 +18,7 @@ import {
   CrmContractHttpTransport,
   CrmContractPublicHttpTransport,
   CrmFollowUpHttpTransport,
+  CrmLeadDetailHttpTransport,
   CrmLeadHttpTransport,
   CrmMeetingHttpTransport,
   CrmMetricsHttpTransport,
@@ -29,6 +31,8 @@ import {
   MySqlCrmFollowUpAuditPort,
   MySqlCrmFollowUpRepository,
   MySqlCrmLeadAuditPort,
+  MySqlCrmLeadDetailAuditPort,
+  MySqlCrmLeadDetailRepository,
   MySqlCrmLeadRepository,
   MySqlCrmMeetingAuditPort,
   MySqlCrmMeetingRepository,
@@ -157,6 +161,10 @@ export function createCrmApi({ authApi, getEnvironmentValue }) {
     new MySqlCrmLeadRepository(pool),
     new MySqlCrmLeadAuditPort(pool),
   );
+  const leadDetailBoundary = new CrmLeadDetailServerBoundary(
+    new MySqlCrmLeadDetailRepository(pool),
+    new MySqlCrmLeadDetailAuditPort(pool),
+  );
   const meetingBoundary = new CrmMeetingServerBoundary(
     new MySqlCrmMeetingRepository(pool),
     new MySqlCrmMeetingAuditPort(pool),
@@ -253,6 +261,7 @@ export function createCrmApi({ authApi, getEnvironmentValue }) {
         new CrmProposalPublicHttpTransport(proposalPublicBoundary),
         new CrmContractHttpTransport(contractBoundary, authPort),
         new CrmFollowUpHttpTransport(followUpBoundary, authPort),
+        new CrmLeadDetailHttpTransport(leadDetailBoundary, authPort),
         new CrmLeadHttpTransport(leadBoundary, authPort),
         new CrmMeetingHttpTransport(meetingBoundary, authPort),
         new CrmMetricsHttpTransport(metricsBoundary, authPort),
