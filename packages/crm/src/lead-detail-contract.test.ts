@@ -1,28 +1,45 @@
 import { describe, expect, it } from "vitest";
 
-import { crmChecklistSteps, crmLeadStages } from "./index.js";
+import { crmChecklistSteps } from "./index.js";
 import {
   crmLeadDetailChecklist,
   crmLeadDetailInteractionLabels,
   crmLeadDetailManualInteractionTypes,
+  crmLeadDetailStageLabels,
+  crmLeadDetailStageOrder,
   crmLeadDetailStages,
   isCrmLeadDetailManualInteractionType,
 } from "./lead-detail-contract.js";
 
 describe("CRM M140 frozen lead detail presentation", () => {
-  it("keeps every canonical lead stage including terminal states", () => {
-    expect(crmLeadDetailStages.map(({ stage }) => stage)).toEqual([
-      ...crmLeadStages,
+  it("keeps the frozen 16-stage selector while preserving terminal-state labels", () => {
+    expect(crmLeadDetailStageOrder).toEqual([
+      "new_lead",
+      "first_contact",
+      "meeting_scheduled",
+      "proposal_sent",
+      "trial",
+      "contract_sent",
+      "contract_signed",
+      "payment_pending",
+      "payment_done",
+      "onboarding",
+      "photo_visit_scheduled",
+      "photo_visit_done",
+      "published",
+      "announced",
+      "feedback",
+      "active_client",
     ]);
-    expect(crmLeadDetailStages).toHaveLength(18);
-    expect(crmLeadDetailStages.at(-2)).toEqual({
-      stage: "churned",
-      label: "Churn",
-    });
+    expect(crmLeadDetailStages).toHaveLength(16);
     expect(crmLeadDetailStages.at(-1)).toEqual({
-      stage: "lost",
-      label: "Perdido",
+      stage: "active_client",
+      label: "Cliente Ativo",
     });
+    expect(crmLeadDetailStageLabels.churned).toBe("Cancelado");
+    expect(crmLeadDetailStageLabels.lost).toBe("Perdido");
+    expect(crmLeadDetailStages.some(({ stage }) => stage === "churned")).toBe(false);
+    expect(crmLeadDetailStages.some(({ stage }) => stage === "lost")).toBe(false);
   });
 
   it("keeps every canonical checklist step in the frozen V1 order", () => {
