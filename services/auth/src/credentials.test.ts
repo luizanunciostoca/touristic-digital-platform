@@ -28,7 +28,7 @@ describe("M48 auth credentials", () => {
     expect(verifyPassword("anything", null)).toBe(false);
   });
 
-  it("parses normalized configured users and preserves V1 role fallback", () => {
+  it("parses normalized configured users only with explicit valid roles", () => {
     const ownerHash = hashPassword("owner-password", Buffer.alloc(16, 1));
     const adminHash = hashPassword("admin-password", Buffer.alloc(16, 2));
     const users = parseConfiguredUsers(
@@ -36,7 +36,7 @@ describe("M48 auth credentials", () => {
         {
           email: " OWNER@EXAMPLE.COM ",
           passwordHash: ownerHash,
-          role: "unexpected-role",
+          role: "owner",
           businessIds: ["Toca_Do-Morcego", "toca_do-morcego"],
         },
         {
@@ -58,7 +58,7 @@ describe("M48 auth credentials", () => {
     expect(users[1]?.role).toBe("admin");
   });
 
-  it("rejects malformed configuration and non-admin users without scopes", () => {
+  it("rejects malformed configuration, invalid roles and missing scopes", () => {
     expect(() => parseConfiguredUsers("{")).toThrow(
       "DASHBOARD_USERS_JSON não contém JSON válido.",
     );
@@ -67,17 +67,30 @@ describe("M48 auth credentials", () => {
     );
 
     const passwordHash = hashPassword("owner-password", Buffer.alloc(16, 3));
-    expect(() =>
-      parseConfiguredUsers(
-        JSON.stringify([
-          {
-            email: "owner@example.com",
-            passwordHash,
-            role: "owner",
-            businessIds: [],
-          },
-        ]),
-      ),
-    ).toThrow("Usuário inválido em DASHBOARD_USERS_JSON na posição 0.");
+    const invalidUsers = [
+      {
+        email: "owner@example.com",
+        passwordHash,
+        role: "unexpected-role",
+        businessIds: ["toca-do-morcego"],
+      },
+      {
+        email: "owner@example.com",
+        passwordHash,
+        businessIds: ["toca-do-morcego"],
+      },
+      {
+        email: "owner@example.com",
+        passwordHash,
+        role: "owner",
+        businessIds: [],
+      },
+    ];
+
+    for (const user of invalidUsers) {
+      expect(() => parseConfiguredUsers(JSON.stringify([user]))).toThrow(
+        "Usuário inválido em DASHBOARD_USERS_JSON na posição 0.",
+      );
+    }
   });
 });
