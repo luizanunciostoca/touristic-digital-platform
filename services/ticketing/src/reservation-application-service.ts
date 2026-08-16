@@ -60,13 +60,17 @@ export interface TicketReservationClockPort {
   now(): unknown;
 }
 
+export interface TicketReservationConfirmationInput {
+  readonly reservationId: unknown;
+  readonly orderId: unknown;
+  readonly paymentId: unknown;
+  readonly actorReference: unknown;
+}
+
 export interface TicketReservationApplicationService {
-  confirmReservation(input: {
-    readonly reservationId: unknown;
-    readonly orderId: unknown;
-    readonly paymentId: unknown;
-    readonly actorReference: unknown;
-  }): Promise<TicketReservationConfirmationResult>;
+  confirmReservation(
+    input: TicketReservationConfirmationInput,
+  ): Promise<TicketReservationConfirmationResult>;
 }
 
 function normalizedActor(value: unknown): string | null {
@@ -87,7 +91,7 @@ export function createTicketReservationApplicationService(dependencies: {
   readonly clock: TicketReservationClockPort;
 }): TicketReservationApplicationService {
   return Object.freeze({
-    async confirmReservation(input) {
+    async confirmReservation(input: TicketReservationConfirmationInput) {
       const reservationId = normalizeTicketReservationId(input.reservationId);
       const orderId = normalizeOrderId(input.orderId);
       const paymentId = normalizePaymentId(input.paymentId);
