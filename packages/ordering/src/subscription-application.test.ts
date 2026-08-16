@@ -179,12 +179,20 @@ class MemoryRenewals {
 function fixture(now = "2026-09-16T03:05:00Z") {
   const subscriptions = new MemorySubscriptions(activeSubscription());
   const renewals = new MemoryRenewals();
+  let currentNow = now;
   const service = createSubscriptionRecurrenceApplicationService({
     subscriptions,
     renewalIntents: renewals,
-    clock: { now: () => now },
+    clock: { now: () => currentNow },
   });
-  return { subscriptions, renewals, service };
+  return {
+    subscriptions,
+    renewals,
+    service,
+    setNow(value: string) {
+      currentNow = value;
+    },
+  };
 }
 
 describe("M153 subscription recurrence application", () => {
@@ -231,12 +239,13 @@ describe("M153 subscription recurrence application", () => {
   });
 
   it("advances only from an identity-matched verified Financial approval and replays it", async () => {
-    const { service } = fixture("2026-09-16T03:08:00Z");
+    const { service, setNow } = fixture();
     await service.prepareDueRenewal({
       subscriptionId: "sub_12345678",
       renewalOrderId: "ord_renewal01",
       nextPeriodEndAt: "2026-10-16T03:05:00Z",
     });
+    setNow("2026-09-16T03:08:00Z");
     const outcome = verifiedResult();
 
     const applied = await service.applyVerifiedOutcome({
@@ -265,12 +274,13 @@ describe("M153 subscription recurrence application", () => {
   });
 
   it("persists verified terminal failure as past_due and refuses a blind new renewal", async () => {
-    const { service, renewals } = fixture("2026-09-16T03:08:00Z");
+    const { service, renewals, setNow } = fixture();
     await service.prepareDueRenewal({
       subscriptionId: "sub_12345678",
       renewalOrderId: "ord_renewal01",
       nextPeriodEndAt: "2026-10-16T03:05:00Z",
     });
+    setNow("2026-09-16T03:08:00Z");
     const failed = verifiedResult({
       kind: "failed",
       paymentStatus: "failed",
@@ -336,7 +346,7 @@ describe("M153 subscription recurrence application", () => {
   });
 
   it("fails closed on an unclaimed or unrelated verified outcome", async () => {
-    const { service } = fixture("2026-09-16T03:08:00Z");
+    const { service, setNow } = fixture();
     await expect(
       service.applyVerifiedOutcome({
         subscriptionId: "sub_12345678",
@@ -351,6 +361,7 @@ describe("M153 subscription recurrence application", () => {
       renewalOrderId: "ord_renewal01",
       nextPeriodEndAt: "2026-10-16T03:05:00Z",
     });
+    setNow("2026-09-16T03:08:00Z");
     await expect(
       service.applyVerifiedOutcome({
         subscriptionId: "sub_12345678",
