@@ -5,6 +5,7 @@ const protectedPrefixes = Object.freeze([
   "/api/offers",
   "/api/business",
   "/api/crm",
+  "/api/ticketing",
 ]);
 const safeMethods = new Set(["GET", "HEAD", "OPTIONS"]);
 const csrfStorageKey = "md_dashboard_csrf";
@@ -28,7 +29,7 @@ export interface DashboardLoginCredentials {
 export interface BrowserStoragePort {
   readonly getItem: (key: string) => string | null;
   readonly setItem: (key: string, value: string) => void;
-  readonly removeItem: (key: string) => void;
+  readonly removeItem: (key: string, value?: string) => void;
 }
 
 export interface BrowserLocationPort {
@@ -73,8 +74,8 @@ function isProtectedRequest(input: RequestInfo | URL, origin: string): boolean {
   const url = requestUrl(input, origin);
   return Boolean(
     url &&
-    url.origin === origin &&
-    protectedPrefixes.some((prefix) => url.pathname.startsWith(prefix)),
+      url.origin === origin &&
+      protectedPrefixes.some((prefix) => url.pathname.startsWith(prefix)),
   );
 }
 
@@ -85,7 +86,9 @@ function isLoginRequest(input: RequestInfo | URL, origin: string): boolean {
 function safeLoginUrl(location: BrowserLocationPort): string {
   const current = `${location.pathname}${location.search}`;
   const returnPath =
-    current.startsWith("/dashboard/") || current.startsWith("/apps/admin-crm/")
+    current.startsWith("/dashboard/") ||
+    current.startsWith("/apps/admin-crm/") ||
+    current === "/tickets.html"
       ? current
       : "/dashboard/index-v3-improved.html";
   return `/dashboard/login.html?return=${encodeURIComponent(returnPath)}`;
