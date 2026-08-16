@@ -153,8 +153,14 @@ type CheckoutRoute =
   | { readonly kind: "status"; readonly orderId: string };
 
 type CheckoutCreateHandoff =
-  | { readonly kind: "business"; readonly value: ValidatedBusinessCheckoutHandoff }
-  | { readonly kind: "ticketing"; readonly value: ValidatedTicketingCheckoutHandoff };
+  | {
+      readonly kind: "business";
+      readonly value: ValidatedBusinessCheckoutHandoff;
+    }
+  | {
+      readonly kind: "ticketing";
+      readonly value: ValidatedTicketingCheckoutHandoff;
+    };
 
 function route(pathname: string): CheckoutRoute | null {
   if (pathname === checkoutPrefix) return { kind: "collection" };
@@ -435,7 +441,10 @@ export class CheckoutHttpTransport {
     }
     const expectedIdempotency =
       selected.kind === "business"
-        ? createBusinessOrderRequestKey(selected.value.sessionId, selected.value.planId)
+        ? createBusinessOrderRequestKey(
+            selected.value.sessionId,
+            selected.value.planId,
+          )
         : createTicketingOrderRequestKey(selected.value.reservationReference);
     if (!expectedIdempotency || providedIdempotency !== expectedIdempotency) {
       return errorResponse(409, "IDEMPOTENCY_KEY_MISMATCH", correlationId);
@@ -519,8 +528,12 @@ export class CheckoutHttpTransport {
         selected.kind === "business"
           ? checkoutRequestFingerprint(selected.value, context)
           : ticketingCheckoutRequestFingerprint(selected.value, context);
-      const capability = this.dependencies.statusCapabilities.issue(result.order.id);
-      const existing = await this.dependencies.access.findByOrderId(result.order.id);
+      const capability = this.dependencies.statusCapabilities.issue(
+        result.order.id,
+      );
+      const existing = await this.dependencies.access.findByOrderId(
+        result.order.id,
+      );
       let access: CheckoutAccessRecord;
       let replayed = result.replayed;
 
@@ -605,11 +618,13 @@ export class CheckoutHttpTransport {
           ...(context.tenantId ? { tenantId: context.tenantId } : {}),
         },
       });
-      if (!providerRequest) throw new Error("CHECKOUT_PROVIDER_REQUEST_INVALID");
+      if (!providerRequest)
+        throw new Error("CHECKOUT_PROVIDER_REQUEST_INVALID");
       const providerSession = normalizeCheckoutProviderSession(
         await this.dependencies.provider.createCheckout(providerRequest),
       );
-      if (!providerSession) throw new Error("CHECKOUT_PROVIDER_SESSION_INVALID");
+      if (!providerSession)
+        throw new Error("CHECKOUT_PROVIDER_SESSION_INVALID");
 
       await recordAudit(this.dependencies.audit, {
         action: "checkout.create",
@@ -644,7 +659,8 @@ export class CheckoutHttpTransport {
       );
     } catch (error) {
       const mapped =
-        error instanceof Error && error.message === "ORDERING_CHECKOUT_ACCESS_CONFLICT"
+        error instanceof Error &&
+        error.message === "ORDERING_CHECKOUT_ACCESS_CONFLICT"
           ? errorResponse(409, "IDEMPOTENCY_CONFLICT", correlationId)
           : applicationError(error, correlationId);
       await recordAudit(this.dependencies.audit, {
@@ -705,7 +721,11 @@ export class CheckoutHttpTransport {
     if (
       !access ||
       Date.parse(access.expiresAt) <= Date.parse(now) ||
-      !this.dependencies.statusCapabilities.verify(orderId, token, access.tokenHash)
+      !this.dependencies.statusCapabilities.verify(
+        orderId,
+        token,
+        access.tokenHash,
+      )
     ) {
       await recordAudit(this.dependencies.audit, {
         action: "checkout.status",

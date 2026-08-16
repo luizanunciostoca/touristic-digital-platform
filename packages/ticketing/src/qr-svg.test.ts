@@ -15,8 +15,8 @@ describe("Ticketing QR SVG", () => {
 
   it("rejects non-ticket payloads and oversized signed payloads", () => {
     expect(renderTicketQrSvg("https://example.com")).toBeNull();
-    expect(() =>
-      renderTicketQrSvg(`tck.v1.${"x".repeat(400)}`),
-    ).toThrow("TICKETING_QR_PAYLOAD_TOO_LARGE");
+    expect(() => renderTicketQrSvg(`tck.v1.${"x".repeat(400)}`)).toThrow(
+      "TICKETING_QR_PAYLOAD_TOO_LARGE",
+    );
   });
 });

@@ -100,10 +100,7 @@ export function createTicketingOrderBinding(input: {
       ? input.quantity
       : null;
   const amountInput = input.amount as Partial<Money> | null | undefined;
-  const amount = createMoney(
-    amountInput?.minorUnits,
-    amountInput?.currency,
-  );
+  const amount = createMoney(amountInput?.minorUnits, amountInput?.currency);
   const pricingVersion = normalizeString(input.pricingVersion, 80);
   const boundAt = normalizeFinancialTimestamp(input.boundAt);
 
@@ -171,10 +168,7 @@ function normalizeHandoff(
       ? input.quantity
       : null;
   const amountInput = input.amount as Partial<Money> | null | undefined;
-  const amount = createMoney(
-    amountInput?.minorUnits,
-    amountInput?.currency,
-  );
+  const amount = createMoney(amountInput?.minorUnits, amountInput?.currency);
   const pricingVersion = normalizeString(input.pricingVersion, 80);
   const capturedAt = normalizeFinancialTimestamp(input.capturedAt);
   if (
@@ -230,13 +224,11 @@ function bindingFor(order: Order, handoff: NormalizedHandoff) {
   return binding;
 }
 
-export function createTicketingReservationOrderApplicationService(
-  dependencies: {
-    readonly orders: OrderRepositoryPort;
-    readonly bindings: TicketingOrderBindingRepositoryPort;
-    readonly identities: TicketingReservationOrderIdentityPort;
-  },
-): TicketingReservationOrderApplicationService {
+export function createTicketingReservationOrderApplicationService(dependencies: {
+  readonly orders: OrderRepositoryPort;
+  readonly bindings: TicketingOrderBindingRepositoryPort;
+  readonly identities: TicketingReservationOrderIdentityPort;
+}): TicketingReservationOrderApplicationService {
   const service: TicketingReservationOrderApplicationService = {
     async placeReservationOrder(input) {
       const handoff = normalizeHandoff(input);
@@ -249,7 +241,9 @@ export function createTicketingReservationOrderApplicationService(
       let order = await dependencies.orders.findByRequestKey(requestKey);
       let replayed = order !== null;
       if (!order) {
-        const orderId = normalizeOrderId(dependencies.identities.allocateOrderId());
+        const orderId = normalizeOrderId(
+          dependencies.identities.allocateOrderId(),
+        );
         const source = normalizeOrderSourceReference(
           handoff.reservationReference,
           "ticketing_reservation",

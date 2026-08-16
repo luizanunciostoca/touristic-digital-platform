@@ -54,10 +54,13 @@ export function normalizeTicketHolderProfile(input: {
   readonly updatedAt?: unknown;
 }): TicketHolderProfile | null {
   const holderReference =
-    typeof input.holderReference === "string" ? input.holderReference.trim() : "";
+    typeof input.holderReference === "string"
+      ? input.holderReference.trim()
+      : "";
   const holderName =
     typeof input.holderName === "string" ? input.holderName.trim() : "";
-  const email = typeof input.email === "string" ? input.email.trim().toLowerCase() : "";
+  const email =
+    typeof input.email === "string" ? input.email.trim().toLowerCase() : "";
   const phone = optionalText(input.phone, 40);
   const document = optionalText(input.document, 40);
   const createdAt = timestamp(input.createdAt);
@@ -66,7 +69,10 @@ export function normalizeTicketHolderProfile(input: {
     !HOLDER_REFERENCE.test(holderReference) ||
     !HOLDER_NAME.test(holderName) ||
     !EMAIL.test(email) ||
-    (input.phone !== undefined && input.phone !== null && input.phone !== "" && !phone) ||
+    (input.phone !== undefined &&
+      input.phone !== null &&
+      input.phone !== "" &&
+      !phone) ||
     (input.document !== undefined &&
       input.document !== null &&
       input.document !== "" &&
@@ -107,9 +113,13 @@ function fromRow(row: HolderRow): TicketHolderProfile {
 export class MySqlTicketHolderProfileRepository implements TicketHolderProfilePort {
   constructor(private readonly pool: Pool) {}
 
-  async findByHolderReference(holderReferenceInput: unknown): Promise<TicketHolderProfile | null> {
+  async findByHolderReference(
+    holderReferenceInput: unknown,
+  ): Promise<TicketHolderProfile | null> {
     const holderReference =
-      typeof holderReferenceInput === "string" ? holderReferenceInput.trim() : "";
+      typeof holderReferenceInput === "string"
+        ? holderReferenceInput.trim()
+        : "";
     if (!HOLDER_REFERENCE.test(holderReference)) {
       throw new Error("TICKETING_HOLDER_REFERENCE_INVALID");
     }
@@ -124,7 +134,9 @@ export class MySqlTicketHolderProfileRepository implements TicketHolderProfilePo
   }
 
   async resolveHolderName(holderReference: string): Promise<string | null> {
-    return (await this.findByHolderReference(holderReference))?.holderName ?? null;
+    return (
+      (await this.findByHolderReference(holderReference))?.holderName ?? null
+    );
   }
 
   async save(profileInput: TicketHolderProfile): Promise<TicketHolderProfile> {

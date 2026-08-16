@@ -55,7 +55,8 @@ interface ReservationRow extends RowDataPacket {
 function iso(value: Date | string | null): string | null {
   if (value === null) return null;
   const date = value instanceof Date ? value : new Date(value);
-  if (!Number.isFinite(date.getTime())) throw new Error("TICKETING_INVALID_DB_TIMESTAMP");
+  if (!Number.isFinite(date.getTime()))
+    throw new Error("TICKETING_INVALID_DB_TIMESTAMP");
   return date.toISOString();
 }
 
@@ -65,7 +66,10 @@ function inventoryFromRow(row: InventoryRow): TicketInventoryOffer {
     destinationId: row.destination_id,
     product: { kind: row.product_kind, reference: row.product_reference },
     label: row.label,
-    unitAmount: { minorUnits: Number(row.unit_amount_minor), currency: row.currency },
+    unitAmount: {
+      minorUnits: Number(row.unit_amount_minor),
+      currency: row.currency,
+    },
     pricingVersion: row.pricing_version,
     capacity: row.capacity,
     maxPerReservation: row.max_per_reservation,
@@ -88,7 +92,10 @@ function reservationFromRow(row: ReservationRow): TicketReservation {
     inventoryId: row.inventory_id,
     destinationId: row.destination_id,
     product: { kind: row.product_kind, reference: row.product_reference },
-    unitAmount: { minorUnits: Number(row.unit_amount_minor), currency: row.currency },
+    unitAmount: {
+      minorUnits: Number(row.unit_amount_minor),
+      currency: row.currency,
+    },
     pricingVersion: row.pricing_version,
     holderReference: row.holder_reference,
     quantity: row.quantity,
@@ -122,7 +129,9 @@ export class MySqlTicketingPublicReadRepository {
     holderReferenceInput: unknown,
   ): Promise<readonly TicketReservation[]> {
     const holderReference =
-      typeof holderReferenceInput === "string" ? holderReferenceInput.trim() : "";
+      typeof holderReferenceInput === "string"
+        ? holderReferenceInput.trim()
+        : "";
     if (!HOLDER_REFERENCE.test(holderReference)) {
       throw new Error("TICKETING_HOLDER_REFERENCE_INVALID");
     }

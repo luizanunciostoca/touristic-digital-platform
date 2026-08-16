@@ -53,9 +53,7 @@ function fromRow(row: ResultRow): VerifiedPaymentResult {
   return result;
 }
 
-export class MySqlVerifiedPaymentResultFeed
-  implements VerifiedPaymentResultFeedPort
-{
+export class MySqlVerifiedPaymentResultFeed implements VerifiedPaymentResultFeedPort {
   constructor(private readonly pool: Pool) {}
 
   async listAfter(
@@ -74,7 +72,12 @@ export class MySqlVerifiedPaymentResultFeed
            WHERE recorded_at > ? OR (recorded_at = ? AND result_id > ?)
            ORDER BY recorded_at ASC, result_id ASC
            LIMIT ?`,
-          [new Date(cursor.recordedAt), new Date(cursor.recordedAt), cursor.resultId, limit],
+          [
+            new Date(cursor.recordedAt),
+            new Date(cursor.recordedAt),
+            cursor.resultId,
+            limit,
+          ],
         )
       : await this.pool.execute<ResultRow[]>(
           `SELECT result_id, provider_event_id, payment_id, order_reference,

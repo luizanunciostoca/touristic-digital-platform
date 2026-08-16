@@ -11,17 +11,17 @@ function sameMoney(
   left: { readonly minorUnits: number; readonly currency: string },
   right: { readonly minorUnits: number; readonly currency: string },
 ): boolean {
-  return left.minorUnits === right.minorUnits && left.currency === right.currency;
+  return (
+    left.minorUnits === right.minorUnits && left.currency === right.currency
+  );
 }
 
-export function createOrderingFinancialReservationConfirmationAuthority(
-  dependencies: {
-    readonly bindings: TicketingOrderBindingRepositoryPort;
-    readonly orders: OrderRepositoryPort;
-    readonly payments: PaymentRepositoryPort;
-    readonly verifiedResults: VerifiedPaymentResultRepositoryPort;
-  },
-): TicketReservationConfirmationAuthorityPort {
+export function createOrderingFinancialReservationConfirmationAuthority(dependencies: {
+  readonly bindings: TicketingOrderBindingRepositoryPort;
+  readonly orders: OrderRepositoryPort;
+  readonly payments: PaymentRepositoryPort;
+  readonly verifiedResults: VerifiedPaymentResultRepositoryPort;
+}): TicketReservationConfirmationAuthorityPort {
   const authority: TicketReservationConfirmationAuthorityPort = {
     async verify(input) {
       const binding = await dependencies.bindings.findByReservationReference(

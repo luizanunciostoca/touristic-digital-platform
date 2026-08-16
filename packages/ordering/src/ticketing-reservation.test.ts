@@ -39,7 +39,10 @@ function repositories() {
       return orders.get(orderId) ?? null;
     },
     async findByRequestKey(requestKey: OrderRequestKey) {
-      return [...orders.values()].find((order) => order.requestKey === requestKey) ?? null;
+      return (
+        [...orders.values()].find((order) => order.requestKey === requestKey) ??
+        null
+      );
     },
     async save(order) {
       const existing = [...orders.values()].find(
@@ -57,7 +60,10 @@ function repositories() {
       return bindings.get(reference) ?? null;
     },
     async findByOrderId(orderId) {
-      return [...bindings.values()].find((value) => value.orderId === orderId) ?? null;
+      return (
+        [...bindings.values()].find((value) => value.orderId === orderId) ??
+        null
+      );
     },
     async save(value) {
       const existing = bindings.get(value.reservationReference);
@@ -76,7 +82,9 @@ describe("Ordering Ticketing reservation binding", () => {
     expect(
       normalizeTicketingReservationReference("trv_ticketing_binding_0001"),
     ).toBe("trv_ticketing_binding_0001");
-    expect(normalizeTicketingReservationReference("reservation_0001")).toBeNull();
+    expect(
+      normalizeTicketingReservationReference("reservation_0001"),
+    ).toBeNull();
   });
 
   it("captures the immutable order/product/price relation", () => {

@@ -50,7 +50,8 @@ function normalize(input: {
   revokedBy?: unknown;
   lastSyncAt?: unknown;
 }): TicketOfflineDeviceRegistration | null {
-  const deviceId = typeof input.deviceId === "string" ? input.deviceId.trim() : "";
+  const deviceId =
+    typeof input.deviceId === "string" ? input.deviceId.trim() : "";
   const destinationId =
     typeof input.destinationId === "string" ? input.destinationId.trim() : "";
   const credentialFingerprint =
@@ -77,7 +78,7 @@ function normalize(input: {
     !issuedAt ||
     !expiresAt ||
     Date.parse(expiresAt) <= Date.parse(issuedAt) ||
-    ((revokedAt === null) !== (revokedBy === null)) ||
+    (revokedAt === null) !== (revokedBy === null) ||
     (revokedBy !== null && !ACTOR.test(revokedBy))
   ) {
     return null;
@@ -105,18 +106,25 @@ function fromRow(row: DeviceRow): TicketOfflineDeviceRegistration {
     provisionedBy: row.provisioned_by,
     revokedAt: row.revoked_at ? new Date(row.revoked_at).toISOString() : null,
     revokedBy: row.revoked_by,
-    lastSyncAt: row.last_sync_at ? new Date(row.last_sync_at).toISOString() : null,
+    lastSyncAt: row.last_sync_at
+      ? new Date(row.last_sync_at).toISOString()
+      : null,
   });
-  if (!registration) throw new Error("TICKETING_OFFLINE_DEVICE_PERSISTED_INVALID");
+  if (!registration)
+    throw new Error("TICKETING_OFFLINE_DEVICE_PERSISTED_INVALID");
   return registration;
 }
 
 export class MySqlTicketOfflineDeviceRegistry {
   constructor(private readonly pool: Pool) {}
 
-  async findByDeviceId(deviceIdInput: unknown): Promise<TicketOfflineDeviceRegistration | null> {
-    const deviceId = typeof deviceIdInput === "string" ? deviceIdInput.trim() : "";
-    if (!DEVICE_ID.test(deviceId)) throw new Error("TICKETING_DEVICE_ID_INVALID");
+  async findByDeviceId(
+    deviceIdInput: unknown,
+  ): Promise<TicketOfflineDeviceRegistration | null> {
+    const deviceId =
+      typeof deviceIdInput === "string" ? deviceIdInput.trim() : "";
+    if (!DEVICE_ID.test(deviceId))
+      throw new Error("TICKETING_DEVICE_ID_INVALID");
     const [rows] = await this.pool.execute<DeviceRow[]>(
       `SELECT device_id, destination_id, credential_fingerprint, issued_at, expires_at,
               provisioned_by, revoked_at, revoked_by, last_sync_at
@@ -128,7 +136,9 @@ export class MySqlTicketOfflineDeviceRegistry {
     return rows[0] ? fromRow(rows[0]) : null;
   }
 
-  async provision(input: TicketOfflineDeviceRegistration): Promise<TicketOfflineDeviceRegistration> {
+  async provision(
+    input: TicketOfflineDeviceRegistration,
+  ): Promise<TicketOfflineDeviceRegistration> {
     const registration = normalize(input);
     if (!registration || registration.revokedAt || registration.revokedBy) {
       throw new Error("TICKETING_OFFLINE_DEVICE_INVALID");
@@ -162,9 +172,15 @@ export class MySqlTicketOfflineDeviceRegistry {
     return persisted;
   }
 
-  async revoke(deviceIdInput: unknown, revokedByInput: unknown, revokedAtInput: unknown) {
-    const deviceId = typeof deviceIdInput === "string" ? deviceIdInput.trim() : "";
-    const revokedBy = typeof revokedByInput === "string" ? revokedByInput.trim() : "";
+  async revoke(
+    deviceIdInput: unknown,
+    revokedByInput: unknown,
+    revokedAtInput: unknown,
+  ) {
+    const deviceId =
+      typeof deviceIdInput === "string" ? deviceIdInput.trim() : "";
+    const revokedBy =
+      typeof revokedByInput === "string" ? revokedByInput.trim() : "";
     const revokedAt = timestamp(revokedAtInput);
     if (!DEVICE_ID.test(deviceId) || !ACTOR.test(revokedBy) || !revokedAt) {
       throw new Error("TICKETING_OFFLINE_DEVICE_REVOKE_INVALID");
@@ -181,8 +197,12 @@ export class MySqlTicketOfflineDeviceRegistry {
     return persisted;
   }
 
-  async recordSync(deviceIdInput: unknown, syncedAtInput: unknown): Promise<void> {
-    const deviceId = typeof deviceIdInput === "string" ? deviceIdInput.trim() : "";
+  async recordSync(
+    deviceIdInput: unknown,
+    syncedAtInput: unknown,
+  ): Promise<void> {
+    const deviceId =
+      typeof deviceIdInput === "string" ? deviceIdInput.trim() : "";
     const syncedAt = timestamp(syncedAtInput);
     if (!DEVICE_ID.test(deviceId) || !syncedAt) {
       throw new Error("TICKETING_OFFLINE_DEVICE_SYNC_INVALID");

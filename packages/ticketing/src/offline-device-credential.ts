@@ -24,7 +24,9 @@ export interface ProvisionedTicketOfflineDeviceCredential {
 function secret(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const normalized = value.trim();
-  return normalized.length >= 32 && normalized.length <= 512 ? normalized : null;
+  return normalized.length >= 32 && normalized.length <= 512
+    ? normalized
+    : null;
 }
 
 function timestamp(value: unknown): string | null {
@@ -38,7 +40,8 @@ function canonicalClaims(input: {
   readonly issuedAt: unknown;
   readonly expiresAt: unknown;
 }): TicketOfflineDeviceCredentialClaims | null {
-  const deviceId = typeof input.deviceId === "string" ? input.deviceId.trim() : "";
+  const deviceId =
+    typeof input.deviceId === "string" ? input.deviceId.trim() : "";
   const destinationId =
     typeof input.destinationId === "string" ? input.destinationId.trim() : "";
   const issuedAt = timestamp(input.issuedAt);
@@ -133,7 +136,11 @@ export function verifyTicketOfflineDeviceCredential(
   } catch {
     return null;
   }
-  if (decoded === null || typeof decoded !== "object" || Array.isArray(decoded)) {
+  if (
+    decoded === null ||
+    typeof decoded !== "object" ||
+    Array.isArray(decoded)
+  ) {
     return null;
   }
   const input = decoded as Record<string, unknown>;

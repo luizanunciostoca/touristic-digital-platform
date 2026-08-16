@@ -70,10 +70,7 @@ export function createTicketOfflineDeviceSyncService(dependencies: {
         registration.issuedAt !== credential.claims.issuedAt ||
         registration.expiresAt !== credential.claims.expiresAt ||
         Date.parse(now) >= Date.parse(registration.expiresAt) ||
-        !secureEqual(
-          observedFingerprint,
-          registration.credentialFingerprint,
-        )
+        !secureEqual(observedFingerprint, registration.credentialFingerprint)
       ) {
         throw new Error("TICKETING_DEVICE_CREDENTIAL_REVOKED_OR_UNKNOWN");
       }
@@ -82,7 +79,10 @@ export function createTicketOfflineDeviceSyncService(dependencies: {
         credential.envelopeSigningSecret,
       );
       if (!deviceSecret) throw new Error("TICKETING_DEVICE_CREDENTIAL_INVALID");
-      const envelope = verifyTicketOfflineEnvelope(input.envelope, deviceSecret);
+      const envelope = verifyTicketOfflineEnvelope(
+        input.envelope,
+        deviceSecret,
+      );
       if (!envelope) throw new Error("TICKETING_OFFLINE_ENVELOPE_INVALID");
       const ticket = await dependencies.tickets.findById(envelope.ticketId);
       if (!ticket || ticket.destinationId !== credential.claims.destinationId) {
@@ -102,7 +102,10 @@ export function createTicketOfflineDeviceSyncService(dependencies: {
         throw new Error("TICKETING_OFFLINE_ENVELOPE_INVALID");
       }
       const result = await dependencies.ticketing.syncOfflineEnvelope({
-        envelope: Object.freeze({ ...envelope, signature: translatedSignature }),
+        envelope: Object.freeze({
+          ...envelope,
+          signature: translatedSignature,
+        }),
         operatorReference: credential.claims.deviceId,
         recordedAt: input.recordedAt,
       });

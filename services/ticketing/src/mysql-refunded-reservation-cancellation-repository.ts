@@ -159,9 +159,14 @@ async function selectTicketsForUpdate(
   return rows.map(ticketFromRow);
 }
 
-function eventId(reservationId: TicketReservationId, occurredAt: string): string {
+function eventId(
+  reservationId: TicketReservationId,
+  occurredAt: string,
+): string {
   return `rve_${createHash("sha256")
-    .update(`ticketing-reservation-event:v1:${reservationId}:cancelled:${occurredAt}`)
+    .update(
+      `ticketing-reservation-event:v1:${reservationId}:cancelled:${occurredAt}`,
+    )
     .digest("hex")
     .slice(0, 32)}`;
 }
@@ -210,9 +215,7 @@ async function cancelTicket(
   return cancelled;
 }
 
-export class MySqlRefundedReservationCancellationRepository
-  implements RefundedReservationCancellationRepositoryPort
-{
+export class MySqlRefundedReservationCancellationRepository implements RefundedReservationCancellationRepositoryPort {
   constructor(private readonly pool: Pool) {}
 
   async findReservationById(
@@ -263,7 +266,10 @@ export class MySqlRefundedReservationCancellationRepository
         throw new Error("TICKETING_REFUND_AUTHORITY_MISMATCH");
       }
 
-      const existingTickets = await selectTicketsForUpdate(connection, input.orderId);
+      const existingTickets = await selectTicketsForUpdate(
+        connection,
+        input.orderId,
+      );
       for (const ticket of existingTickets) {
         if (ticket.paymentId !== input.paymentId) {
           throw new Error("TICKETING_REFUND_TICKET_AUTHORITY_MISMATCH");

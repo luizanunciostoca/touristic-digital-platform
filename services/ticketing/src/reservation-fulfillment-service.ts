@@ -19,8 +19,7 @@ export interface TicketHolderProfilePort {
   resolveHolderName(holderReference: string): Promise<string | null>;
 }
 
-export interface TicketReservationFulfillmentResult
-  extends TicketingIssueResult {
+export interface TicketReservationFulfillmentResult extends TicketingIssueResult {
   readonly reservation: TicketReservation;
 }
 

@@ -38,7 +38,10 @@ export function createVerifiedFinancialResultProcessor(dependencies: {
       const results = await dependencies.feed.listAfter(current, limit);
       let processed = 0;
       for (const result of results) {
-        if (result.kind === "approved" && result.paymentStatus === "confirmed") {
+        if (
+          result.kind === "approved" &&
+          result.paymentStatus === "confirmed"
+        ) {
           await dependencies.fulfillment.handle(result);
         } else if (
           result.kind === "refunded" &&
@@ -63,9 +66,7 @@ interface CursorRow extends RowDataPacket {
   result_id: string;
 }
 
-export class MySqlFinancialResultCursorRepository
-  implements FinancialResultCursorRepositoryPort
-{
+export class MySqlFinancialResultCursorRepository implements FinancialResultCursorRepositoryPort {
   private readonly consumerName = "ticketing_verified_results_v1";
 
   constructor(private readonly pool: Pool) {}

@@ -56,9 +56,7 @@ const COLUMNS = `
   bound_at
 `;
 
-export class MySqlTicketingOrderBindingRepository
-  implements TicketingOrderBindingRepositoryPort
-{
+export class MySqlTicketingOrderBindingRepository implements TicketingOrderBindingRepositoryPort {
   constructor(private readonly pool: Pool) {}
 
   async findByReservationReference(
@@ -77,7 +75,9 @@ export class MySqlTicketingOrderBindingRepository
     return rows[0] ? fromRow(rows[0]) : null;
   }
 
-  async findByOrderId(orderIdInput: OrderId): Promise<TicketingOrderBinding | null> {
+  async findByOrderId(
+    orderIdInput: OrderId,
+  ): Promise<TicketingOrderBinding | null> {
     const orderId = normalizeOrderId(orderIdInput);
     if (!orderId) throw new Error("ORDERING_TICKETING_INVALID_ORDER_ID");
     const [rows] = await this.pool.execute<TicketingOrderBindingRow[]>(
@@ -87,7 +87,9 @@ export class MySqlTicketingOrderBindingRepository
     return rows[0] ? fromRow(rows[0]) : null;
   }
 
-  async save(bindingInput: TicketingOrderBinding): Promise<TicketingOrderBinding> {
+  async save(
+    bindingInput: TicketingOrderBinding,
+  ): Promise<TicketingOrderBinding> {
     const binding = createTicketingOrderBinding(bindingInput);
     if (!binding) throw new Error("ORDERING_TICKETING_INVALID_BINDING");
 

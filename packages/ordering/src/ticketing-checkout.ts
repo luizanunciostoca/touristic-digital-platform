@@ -134,7 +134,9 @@ function assertOrder(
   order: Order,
   reservationReference: string,
   binding: Awaited<
-    ReturnType<TicketingOrderBindingRepositoryPort["findByReservationReference"]>
+    ReturnType<
+      TicketingOrderBindingRepositoryPort["findByReservationReference"]
+    >
   >,
 ): void {
   if (
@@ -143,7 +145,8 @@ function assertOrder(
     order.source.kind !== "ticketing_reservation" ||
     order.source.reference !== reservationReference ||
     order.status === "cancelled" ||
-    (order.status !== "pending_payment" && order.status !== "payment_confirmed") ||
+    (order.status !== "pending_payment" &&
+      order.status !== "payment_confirmed") ||
     order.pricing.amount.minorUnits !== binding.amount.minorUnits ||
     order.pricing.amount.currency !== binding.amount.currency ||
     order.pricing.pricingVersion !== binding.pricingVersion ||
@@ -192,8 +195,10 @@ export function createTicketingCheckoutApplicationService(dependencies: {
       assertOrder(order, handoff.reservationReference, binding);
 
       const idempotencyKey = createPaymentIdempotencyKey(order.id);
-      if (!idempotencyKey) throw new Error("ORDERING_TICKETING_PAYMENT_CONFLICT");
-      let paymentId = await dependencies.paymentIdempotency.find(idempotencyKey);
+      if (!idempotencyKey)
+        throw new Error("ORDERING_TICKETING_PAYMENT_CONFLICT");
+      let paymentId =
+        await dependencies.paymentIdempotency.find(idempotencyKey);
       let replayed = paymentId !== null;
       if (!paymentId) {
         const proposedPaymentId = normalizePaymentId(

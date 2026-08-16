@@ -12,7 +12,8 @@ import {
 } from "@touristic/financial";
 
 const ID_BODY = /^[A-Za-z0-9_-]+$/u;
-const REQUEST_KEY = /^(?:business:[A-Za-z0-9_-]+:[A-Za-z0-9_-]+|ticketing:[A-Za-z0-9_-]+)$/u;
+const REQUEST_KEY =
+  /^(?:business:[A-Za-z0-9_-]+:[A-Za-z0-9_-]+|ticketing:[A-Za-z0-9_-]+)$/u;
 
 const orderIdBrand: unique symbol = Symbol("OrderId");
 const orderRequestKeyBrand: unique symbol = Symbol("OrderRequestKey");

@@ -91,7 +91,8 @@ export function ticketingCheckoutRequestFingerprint(
 }
 
 export function createTicketingCheckoutHandoffCapability(
-  input: TicketingCheckoutApplicationRequest | ValidatedTicketingCheckoutHandoff,
+  input:
+    TicketingCheckoutApplicationRequest | ValidatedTicketingCheckoutHandoff,
   contextInput: Readonly<{
     actorSubject?: unknown;
     destinationId?: unknown;
@@ -101,9 +102,14 @@ export function createTicketingCheckoutHandoffCapability(
 ): string | null {
   const handoff = normalizeTicketingCheckoutHandoff(input);
   const actorSubject = boundedText(contextInput.actorSubject, 160);
-  const destinationId = boundedText(contextInput.destinationId, 120).toLowerCase();
+  const destinationId = boundedText(
+    contextInput.destinationId,
+    120,
+  ).toLowerCase();
   const secret = normalizedSecret(secretInput);
-  const nowEpochSeconds = Math.floor(options.nowEpochSeconds ?? Date.now() / 1_000);
+  const nowEpochSeconds = Math.floor(
+    options.nowEpochSeconds ?? Date.now() / 1_000,
+  );
   const ttlSeconds = options.ttlSeconds ?? 10 * 60;
   if (
     !handoff ||
@@ -134,14 +140,17 @@ export function createTicketingCheckoutHandoffCapability(
 
 export function verifyTicketingCheckoutHandoffCapability(
   tokenInput: unknown,
-  input: TicketingCheckoutApplicationRequest | ValidatedTicketingCheckoutHandoff,
+  input:
+    TicketingCheckoutApplicationRequest | ValidatedTicketingCheckoutHandoff,
   secretInput: unknown,
   options: VerifyTicketingCheckoutHandoffCapabilityOptions = {},
 ): CheckoutRequestContext | null {
   const token = boundedText(tokenInput, 2_048);
   const handoff = normalizeTicketingCheckoutHandoff(input);
   const secret = normalizedSecret(secretInput);
-  const nowEpochSeconds = Math.floor(options.nowEpochSeconds ?? Date.now() / 1_000);
+  const nowEpochSeconds = Math.floor(
+    options.nowEpochSeconds ?? Date.now() / 1_000,
+  );
   const maxTtlSeconds = options.maxTtlSeconds ?? 30 * 60;
   if (
     !token ||

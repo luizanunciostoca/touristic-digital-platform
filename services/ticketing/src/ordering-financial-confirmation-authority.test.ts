@@ -128,7 +128,11 @@ function authority(overrides?: {
       bindings: {
         findByReservationReference: vi
           .fn()
-          .mockResolvedValue(overrides?.binding === undefined ? value.binding : overrides.binding),
+          .mockResolvedValue(
+            overrides?.binding === undefined
+              ? value.binding
+              : overrides.binding,
+          ),
         findByOrderId: vi.fn(),
         save: vi.fn(),
       },
@@ -165,7 +169,10 @@ describe("Ticketing canonical Ordering/Financial confirmation authority", () => 
         orderId: value.order.id,
         paymentId: value.payment.id,
       }),
-    ).resolves.toEqual({ orderId: value.order.id, paymentId: value.payment.id });
+    ).resolves.toEqual({
+      orderId: value.order.id,
+      paymentId: value.payment.id,
+    });
   });
 
   it("rejects a confirmed Payment when persisted verified Financial evidence is absent", async () => {
