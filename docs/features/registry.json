@@ -95,12 +95,12 @@
       "name": "Design System",
       "domain": "experience",
       "wave": 2,
-      "status": "inventory-in-progress",
+      "status": "equivalent",
       "legacySources": ["v1:css", "v1:assets"],
       "targetPackages": ["@touristic/design-system"],
       "equivalence": {
-        "behavior": false,
-        "visual": false,
+        "behavior": true,
+        "visual": true,
         "api": true
       }
     },

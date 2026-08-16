@@ -10,6 +10,14 @@ export const tokens = Object.freeze({
 
 export type DesignTokens = typeof tokens;
 
+export {
+  V1_DESIGN_TOKEN_SOURCE,
+  v1CssVariables,
+  v1Tokens,
+  type V1CssVariables,
+  type V1DesignTokens,
+} from "./tokens/v1.js";
+
 export { createAction, type ActionViewModel } from "./core-ui/action.js";
 export { createAppShell, type AppShellViewModel } from "./core-ui/app-shell.js";
 export { createFeedback, type FeedbackViewModel } from "./core-ui/feedback.js";
