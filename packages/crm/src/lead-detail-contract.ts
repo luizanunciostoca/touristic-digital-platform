@@ -1,5 +1,4 @@
 import {
-  crmLeadStages,
   type CrmChecklistStep,
   type CrmInteractionType,
   type CrmLeadStage,
@@ -17,28 +16,50 @@ export interface CrmLeadDetailStageDefinition {
 }
 
 export const crmLeadDetailStageLabels = Object.freeze({
-  new_lead: "Novo lead",
-  first_contact: "Primeiro contato",
-  meeting_scheduled: "Reunião agendada",
-  proposal_sent: "Proposta enviada",
+  new_lead: "Novo Lead",
+  first_contact: "Primeiro Contato",
+  meeting_scheduled: "Reunião Agendada",
+  proposal_sent: "Proposta Enviada",
   trial: "Trial",
-  contract_sent: "Contrato enviado",
-  contract_signed: "Contrato assinado",
-  payment_pending: "Pagamento pendente",
-  payment_done: "Pagamento concluído",
+  contract_sent: "Contrato Enviado",
+  contract_signed: "Contrato Assinado",
+  payment_pending: "Pagamento Pendente",
+  payment_done: "Pagamento Recebido",
   onboarding: "Onboarding",
-  photo_visit_scheduled: "Visita agendada",
-  photo_visit_done: "Visita concluída",
+  photo_visit_scheduled: "Visita Agendada",
+  photo_visit_done: "Visita Realizada",
   published: "Publicado",
-  announced: "Anunciado",
+  announced: "Divulgado",
   feedback: "Feedback",
-  active_client: "Cliente ativo",
-  churned: "Churn",
+  active_client: "Cliente Ativo",
+  churned: "Cancelado",
   lost: "Perdido",
 } satisfies Readonly<Record<CrmLeadStage, string>>);
 
+// Frozen V1 LeadDetail.tsx renders STAGE_ORDER, which contains the 16
+// operational funnel stages. churned/lost remain valid domain states and
+// labels for readback, but are intentionally not selectable from this surface.
+export const crmLeadDetailStageOrder = Object.freeze([
+  "new_lead",
+  "first_contact",
+  "meeting_scheduled",
+  "proposal_sent",
+  "trial",
+  "contract_sent",
+  "contract_signed",
+  "payment_pending",
+  "payment_done",
+  "onboarding",
+  "photo_visit_scheduled",
+  "photo_visit_done",
+  "published",
+  "announced",
+  "feedback",
+  "active_client",
+] as const satisfies readonly CrmLeadStage[]);
+
 export const crmLeadDetailStages = Object.freeze(
-  crmLeadStages.map((stage) =>
+  crmLeadDetailStageOrder.map((stage) =>
     Object.freeze({ stage, label: crmLeadDetailStageLabels[stage] }),
   ),
 ) satisfies readonly CrmLeadDetailStageDefinition[];
