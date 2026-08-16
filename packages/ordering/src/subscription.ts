@@ -54,10 +54,7 @@ export interface SubscriptionPastDueEvidence {
   readonly renewalOrderId: OrderId;
   readonly paymentId: PaymentId;
   readonly verifiedResultId: FinancialEventId;
-  readonly kind: Exclude<
-    VerifiedPaymentResultKind,
-    "approved" | "refunded"
-  >;
+  readonly kind: Exclude<VerifiedPaymentResultKind, "approved" | "refunded">;
   readonly occurredAt: string;
   readonly recordedAt: string;
 }
@@ -432,11 +429,7 @@ export function applyVerifiedSubscriptionRenewalFailure(input: {
     intent.orderId,
   );
   const updatedAt = canonicalTimestamp(input.updatedAt);
-  if (
-    !verified ||
-    !isVerifiedRenewalFailure(verifiedFailure) ||
-    !updatedAt
-  ) {
+  if (!verified || !isVerifiedRenewalFailure(verifiedFailure) || !updatedAt) {
     return null;
   }
 
