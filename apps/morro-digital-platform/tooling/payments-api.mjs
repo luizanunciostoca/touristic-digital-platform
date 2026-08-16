@@ -43,6 +43,7 @@ import {
   createCheckoutStatusCapability,
   createInMemoryCheckoutRateLimitPort,
   createNodeCheckoutIdentityPort,
+  createOrderingMySqlPoolFromEnvironment,
   createOrderPricingAuthorityFromEnvironment,
   normalizeCheckoutCorrelationId,
   normalizeCheckoutRequestContext,
