@@ -5,6 +5,7 @@ import {
   ticketingFinancialBridgeSchemaSql,
 } from "./financial-bridge-schema.js";
 import { MySqlTicketHolderProfileRepository } from "./mysql-ticket-holder-profile-repository.js";
+import { MySqlTicketOfflineDeviceRegistry } from "./mysql-offline-device-registry.js";
 import { MySqlTicketRepository } from "./mysql-ticket-repository.js";
 import {
   MySqlTicketCheckInRepository,
@@ -87,6 +88,7 @@ export {
   MySqlFinancialResultCursorRepository,
   MySqlRefundedReservationCancellationRepository,
   MySqlTicketHolderProfileRepository,
+  MySqlTicketOfflineDeviceRegistry,
   MySqlTicketRepository,
   MySqlTicketCheckInRepository,
   MySqlTicketOfflineEnvelopeRepository,
