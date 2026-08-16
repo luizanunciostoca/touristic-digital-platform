@@ -1,12 +1,8 @@
 import { randomUUID } from "node:crypto";
 
 import { normalizeTicketSigningSecret } from "../../../packages/ticketing/dist/index.js";
-import {
-  normalizeTicketingCheckoutHandoff,
-} from "@touristic/ordering/ticketing-checkout";
-import {
-  createTicketingReservationOrderApplicationService,
-} from "@touristic/ordering/ticketing-reservation";
+import { normalizeTicketingCheckoutHandoff } from "@touristic/ordering/ticketing-checkout";
+import { createTicketingReservationOrderApplicationService } from "@touristic/ordering/ticketing-reservation";
 import {
   MySqlOrderRepository,
   MySqlTicketingOrderBindingRepository,
@@ -71,7 +67,8 @@ function header(request, name) {
 }
 
 function sendJson(response, result, fallbackCorrelationId) {
-  const correlationId = result.headers?.["X-Correlation-ID"] || fallbackCorrelationId;
+  const correlationId =
+    result.headers?.["X-Correlation-ID"] || fallbackCorrelationId;
   response.statusCode = result.status;
   response.setHeader("Content-Type", "application/json; charset=utf-8");
   response.setHeader("Cache-Control", "no-store");
@@ -96,14 +93,16 @@ async function readJsonBody(request) {
         : raw instanceof Uint8Array
           ? Buffer.from(raw)
           : null;
-    if (!chunk) throw new TicketingHttpInputError(400, "INVALID_TICKETING_REQUEST");
+    if (!chunk)
+      throw new TicketingHttpInputError(400, "INVALID_TICKETING_REQUEST");
     total += chunk.length;
     if (total > maxBodyBytes) {
       throw new TicketingHttpInputError(413, "TICKETING_REQUEST_TOO_LARGE");
     }
     chunks.push(chunk);
   }
-  if (total === 0) throw new TicketingHttpInputError(400, "INVALID_TICKETING_REQUEST");
+  if (total === 0)
+    throw new TicketingHttpInputError(400, "INVALID_TICKETING_REQUEST");
   try {
     return JSON.parse(
       new TextDecoder("utf-8", { fatal: true }).decode(Buffer.concat(chunks)),
@@ -161,7 +160,10 @@ export function createTicketingAuthorizationPort({ authApi }) {
     async authorize(request, { mutation, admin = false }) {
       const active = authApi.resolveSession(request);
       if (!active) {
-        return Object.freeze({ allowed: false, reason: "authentication_required" });
+        return Object.freeze({
+          allowed: false,
+          reason: "authentication_required",
+        });
       }
       if (admin && active.role !== "admin") {
         return Object.freeze({ allowed: false, reason: "admin_required" });
@@ -170,7 +172,11 @@ export function createTicketingAuthorizationPort({ authApi }) {
         if (active.role === "viewer") {
           return Object.freeze({ allowed: false, reason: "read_only_role" });
         }
-        const decision = authApi.authorizeMutation(request, active, "ticketing.mutate");
+        const decision = authApi.authorizeMutation(
+          request,
+          active,
+          "ticketing.mutate",
+        );
         if (!decision.allowed) {
           return Object.freeze({
             allowed: false,
@@ -236,13 +242,19 @@ export function createTicketingApi({
       if (environment.PAYMENTS_HANDOFF_SECRET.length < 32) {
         throw new Error("PAYMENTS_HANDOFF_SECRET_REQUIRED");
       }
-      if (!/^[a-z0-9][a-z0-9_-]{1,119}$/u.test(environment.PAYMENTS_DESTINATION_ID)) {
+      if (
+        !/^[a-z0-9][a-z0-9_-]{1,119}$/u.test(
+          environment.PAYMENTS_DESTINATION_ID,
+        )
+      ) {
         throw new Error("PAYMENTS_DESTINATION_ID_REQUIRED");
       }
 
-      const ticketingPool = createTicketingMySqlPoolFromEnvironment(environment);
+      const ticketingPool =
+        createTicketingMySqlPoolFromEnvironment(environment);
       const orderingPool = createOrderingMySqlPoolFromEnvironment(environment);
-      const financialPool = createFinancialMySqlPoolFromEnvironment(environment);
+      const financialPool =
+        createFinancialMySqlPoolFromEnvironment(environment);
       pools.push(ticketingPool, orderingPool, financialPool);
       await Promise.all([
         applyTicketingPublicApiSchema(ticketingPool),
@@ -254,8 +266,12 @@ export function createTicketingApi({
       const tickets = new MySqlTicketRepository(ticketingPool);
       const checkIns = new MySqlTicketCheckInRepository(ticketingPool);
       const offline = new MySqlTicketOfflineEnvelopeRepository(ticketingPool);
-      const offlineDeviceRegistry = new MySqlTicketOfflineDeviceRegistry(ticketingPool);
-      const transactions = new MySqlTicketingTransactionalCommand(ticketingPool);
+      const offlineDeviceRegistry = new MySqlTicketOfflineDeviceRegistry(
+        ticketingPool,
+      );
+      const transactions = new MySqlTicketingTransactionalCommand(
+        ticketingPool,
+      );
       const reads = new MySqlTicketingPublicReadRepository(ticketingPool);
       const refundReservations =
         new MySqlRefundedReservationCancellationRepository(ticketingPool);
@@ -263,12 +279,15 @@ export function createTicketingApi({
       const orders = new MySqlOrderRepository(orderingPool);
       const bindings = new MySqlTicketingOrderBindingRepository(orderingPool);
       const payments = new MySqlPaymentRepository(financialPool);
-      const verifiedResults = new MySqlVerifiedPaymentResultRepository(financialPool);
-      const reservationOrders = createTicketingReservationOrderApplicationService({
-        orders,
-        bindings,
-        identities: createNodeCheckoutIdentityPort(),
-      });
+      const verifiedResults = new MySqlVerifiedPaymentResultRepository(
+        financialPool,
+      );
+      const reservationOrders =
+        createTicketingReservationOrderApplicationService({
+          orders,
+          bindings,
+          identities: createNodeCheckoutIdentityPort(),
+        });
       const ticketing = createTicketingApplicationService({
         orders,
         payments,
@@ -355,7 +374,8 @@ export function createTicketingApi({
           },
         },
         qrSigningSecret: signingSecret,
-        offlineProvisioningSecret: environment.TICKETING_OFFLINE_PROVISIONING_SECRET,
+        offlineProvisioningSecret:
+          environment.TICKETING_OFFLINE_PROVISIONING_SECRET,
         clock: systemCheckoutClock,
       });
 
@@ -424,16 +444,24 @@ export function createTicketingApi({
 
   return Object.freeze({
     matches(pathname) {
-      return pathname === ticketingHttpPrefix || pathname.startsWith(`${ticketingHttpPrefix}/`);
+      return (
+        pathname === ticketingHttpPrefix ||
+        pathname.startsWith(`${ticketingHttpPrefix}/`)
+      );
     },
     start,
     stop,
     async handle(request, response, requestUrl) {
-      const correlationId = header(request, "x-correlation-id") || `corr_${randomUUID()}`;
+      const correlationId =
+        header(request, "x-correlation-id") || `corr_${randomUUID()}`;
       if (!runtime?.publicTransport) {
         sendJson(
           response,
-          { status: 503, headers: {}, body: { error: "TICKETING_UNAVAILABLE" } },
+          {
+            status: 503,
+            headers: {},
+            body: { error: "TICKETING_UNAVAILABLE" },
+          },
           correlationId,
         );
         return;
@@ -447,7 +475,11 @@ export function createTicketingApi({
         if (contentType !== "application/json") {
           sendJson(
             response,
-            { status: 415, headers: {}, body: { error: "UNSUPPORTED_MEDIA_TYPE" } },
+            {
+              status: 415,
+              headers: {},
+              body: { error: "UNSUPPORTED_MEDIA_TYPE" },
+            },
             correlationId,
           );
           return;
@@ -455,12 +487,17 @@ export function createTicketingApi({
         try {
           body = await readJsonBody(request);
         } catch (error) {
-          const status = error instanceof TicketingHttpInputError ? error.status : 400;
+          const status =
+            error instanceof TicketingHttpInputError ? error.status : 400;
           const code =
             error instanceof TicketingHttpInputError
               ? error.code
               : "INVALID_TICKETING_REQUEST";
-          sendJson(response, { status, headers: {}, body: { error: code } }, correlationId);
+          sendJson(
+            response,
+            { status, headers: {}, body: { error: code } },
+            correlationId,
+          );
           return;
         }
       }
