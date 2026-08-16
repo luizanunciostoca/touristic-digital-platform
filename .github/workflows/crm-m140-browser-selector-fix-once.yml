@@ -1,0 +1,41 @@
+name: CRM M140 Browser Selector Fix Once
+
+on:
+  push:
+    branches: [feat/crm-m140-lead-detail-activity]
+    paths:
+      - ".github/workflows/crm-m140-browser-selector-fix-once.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  patch-once:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/crm-m140-lead-detail-activity
+      - name: Disambiguate checklist selector and remove helper
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('.github/workflows/crm-lead-detail-browser-contract.yml')
+          text = path.read_text()
+          old = "page.getByLabel('Primeiro Contato')"
+          new = "page.getByRole('checkbox', { name: 'Primeiro Contato' })"
+          count = text.count(old)
+          if count != 2:
+              raise SystemExit(f'expected exactly 2 ambiguous selectors, found {count}')
+          path.write_text(text.replace(old, new))
+          PY
+          rm .github/workflows/crm-m140-browser-selector-fix-once.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/workflows/crm-lead-detail-browser-contract.yml .github/workflows/crm-m140-browser-selector-fix-once.yml
+          git commit -m "test(crm): disambiguate M140 checklist selector"
+          git push origin HEAD:feat/crm-m140-lead-detail-activity
