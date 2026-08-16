@@ -40,6 +40,9 @@ CREATE TABLE IF NOT EXISTS ticketing_reservations (
   destination_id VARCHAR(120) COLLATE utf8mb4_bin NOT NULL,
   product_kind ENUM('tour','business_experience') NOT NULL,
   product_reference VARCHAR(120) COLLATE utf8mb4_bin NOT NULL,
+  unit_amount_minor BIGINT UNSIGNED NOT NULL,
+  currency CHAR(3) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  pricing_version VARCHAR(80) COLLATE utf8mb4_bin NOT NULL,
   holder_reference VARCHAR(120) COLLATE utf8mb4_bin NOT NULL,
   quantity INT UNSIGNED NOT NULL,
   status ENUM('held','confirmed','expired','cancelled') NOT NULL,
@@ -57,6 +60,9 @@ CREATE TABLE IF NOT EXISTS ticketing_reservations (
     ON DELETE RESTRICT
     ON UPDATE RESTRICT,
   CONSTRAINT chk_ticketing_reservation_quantity CHECK (quantity > 0 AND quantity <= 20),
+  CONSTRAINT chk_ticketing_reservation_amount_safe CHECK (
+    unit_amount_minor > 0 AND unit_amount_minor <= 9007199254740991
+  ),
   CONSTRAINT chk_ticketing_reservation_terminal_state CHECK (
     (status = 'held' AND order_id IS NULL AND payment_id IS NULL AND confirmed_at IS NULL AND expired_at IS NULL AND cancelled_at IS NULL)
     OR
