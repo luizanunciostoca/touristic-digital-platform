@@ -46,7 +46,8 @@ const token = `${"a".repeat(48)}.${"b".repeat(48)}`;
 
 describe("Payments browser authority bootstrap", () => {
   it("requests server authority and returns only the scoped handoff header", async () => {
-    const fetchFn = vi.fn<typeof fetch>().mockResolvedValue(
+    const fetchFn = vi.fn<typeof fetch>();
+    fetchFn.mockResolvedValue(
       new Response(JSON.stringify({ data: { handoffToken: token } }), {
         status: 201,
         headers: { "Content-Type": "application/json" },
@@ -73,31 +74,22 @@ describe("Payments browser authority bootstrap", () => {
   });
 
   it("fails closed on malformed or rejected authority responses", async () => {
-    const malformed = createServerIssuedPaymentsCheckoutAuthority(
-      vi.fn<typeof fetch>().mockResolvedValue(
-        new Response(
-          JSON.stringify({ data: { handoffToken: "not-a-token" } }),
-          {
-            status: 201,
-          },
-        ),
-      ),
+    const malformedFetch = vi.fn<typeof fetch>();
+    malformedFetch.mockResolvedValue(
+      new Response(JSON.stringify({ data: { handoffToken: "not-a-token" } }), {
+        status: 201,
+      }),
     );
-    await expect(malformed.resolveCreateHeaders(handoff)).rejects.toMatchObject(
-      {
-        code: "PAYMENTS_BROWSER_INVALID_AUTHORITY",
-      },
-    );
+    const malformed = createServerIssuedPaymentsCheckoutAuthority(malformedFetch);
+    await expect(malformed.resolveCreateHeaders(handoff)).rejects.toMatchObject({
+      code: "PAYMENTS_BROWSER_INVALID_AUTHORITY",
+    });
 
-    const rejected = createServerIssuedPaymentsCheckoutAuthority(
-      vi
-        .fn<typeof fetch>()
-        .mockResolvedValue(
-          new Response(JSON.stringify({ error: "ORIGIN_DENIED" }), {
-            status: 403,
-          }),
-        ),
+    const rejectedFetch = vi.fn<typeof fetch>();
+    rejectedFetch.mockResolvedValue(
+      new Response(JSON.stringify({ error: "ORIGIN_DENIED" }), { status: 403 }),
     );
+    const rejected = createServerIssuedPaymentsCheckoutAuthority(rejectedFetch);
     await expect(rejected.resolveCreateHeaders(handoff)).rejects.toBeInstanceOf(
       PaymentsBrowserCheckoutError,
     );
