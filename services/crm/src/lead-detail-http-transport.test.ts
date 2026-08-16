@@ -24,6 +24,13 @@ function session(role: AuthSessionIdentity["role"]): AuthSessionIdentity {
   };
 }
 
+function record(value: unknown): Readonly<Record<string, unknown>> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("Expected record payload");
+  }
+  return value as Readonly<Record<string, unknown>>;
+}
+
 const lead: CrmLead = {
   id: 7,
   companyName: "Toca do Morcego",
@@ -116,13 +123,11 @@ describe("CRM M140 lead detail transport", () => {
       pathname: "/api/crm/leads/7/detail",
     });
     expect(allowed.status).toBe(200);
-    expect(allowed.body.data).toEqual(
-      expect.objectContaining({
-        lead: expect.objectContaining({ id: 7 }),
-        checklist: expect.any(Array),
-        interactions: expect.any(Array),
-      }),
-    );
+    const detail = record(allowed.body.data);
+    const detailLead = record(detail.lead);
+    expect(detailLead.id).toBe(7);
+    expect(Array.isArray(detail.checklist)).toBe(true);
+    expect(Array.isArray(detail.interactions)).toBe(true);
 
     const anonymous = transportFixture(null);
     const denied = await anonymous.transport.handle({
@@ -177,9 +182,7 @@ describe("CRM M140 lead detail transport", () => {
       body: { completed: true },
     });
     expect(checklist.status).toBe(200);
-    expect(checklist.body.data).toEqual(
-      expect.objectContaining({ completed: true }),
-    );
+    expect(record(checklist.body.data).completed).toBe(true);
 
     const interaction = await transport.handle({
       method: "POST",
