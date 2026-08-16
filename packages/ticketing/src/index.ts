@@ -9,6 +9,8 @@ import {
 } from "@touristic/financial";
 import { normalizeOrderId, type OrderId } from "@touristic/ordering";
 
+export * from "./offline-device-credential.js";
+
 const ID_BODY = /^[A-Za-z0-9_-]+$/u;
 const TICKET_CODE = /^[A-Z0-9]{4}(?:-[A-Z0-9]{4}){3}$/u;
 const QR_SIGNATURE = /^[a-f0-9]{64}$/u;

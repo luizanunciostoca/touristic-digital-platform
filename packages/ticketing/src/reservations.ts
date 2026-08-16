@@ -183,8 +183,8 @@ export function reservationRequestKeyMatchesInventory(
   const inventoryId = normalizeTicketInventoryId(inventoryIdInput);
   return Boolean(
     requestKey &&
-    inventoryId &&
-    requestKey.startsWith(`ticketing:${inventoryId}:`),
+      inventoryId &&
+      requestKey.startsWith(`ticketing:${inventoryId}:`),
   );
 }
 
@@ -325,6 +325,9 @@ export function createTicketReservation(input: {
       ? null
       : normalizedTimestamp(input.cancelledAt);
   const updatedAt = normalizedTimestamp(input.updatedAt ?? input.createdAt);
+  const cancelledHoldShape =
+    orderId === null && paymentId === null && confirmedAt === null;
+  const cancelledConfirmedShape = Boolean(orderId && paymentId && confirmedAt);
 
   if (
     !id ||
@@ -366,10 +369,10 @@ export function createTicketReservation(input: {
         cancelledAt !== null)) ||
     (status === "cancelled" &&
       (!cancelledAt ||
-        orderId !== null ||
-        paymentId !== null ||
-        confirmedAt !== null ||
-        expiredAt !== null))
+        expiredAt !== null ||
+        (!cancelledHoldShape && !cancelledConfirmedShape) ||
+        (confirmedAt !== null &&
+          Date.parse(cancelledAt) < Date.parse(confirmedAt))))
   ) {
     return null;
   }
@@ -416,8 +419,8 @@ export function isTicketReservationExpired(
   const observedAt = normalizedTimestamp(observedAtInput);
   return Boolean(
     observedAt &&
-    reservation.status === "held" &&
-    Date.parse(observedAt) >= Date.parse(reservation.expiresAt),
+      reservation.status === "held" &&
+      Date.parse(observedAt) >= Date.parse(reservation.expiresAt),
   );
 }
 
@@ -513,5 +516,32 @@ export function cancelTicketReservation(
     updatedAt: cancelledAt,
   });
   if (!value) throw new Error("TICKETING_RESERVATION_CANCELLATION_INVALID");
+  return value;
+}
+
+export function cancelConfirmedTicketReservationAfterRefund(
+  reservation: TicketReservation,
+  cancelledAtInput: unknown,
+): TicketReservation {
+  const cancelledAt = normalizedTimestamp(cancelledAtInput);
+  if (
+    !cancelledAt ||
+    reservation.status !== "confirmed" ||
+    !reservation.orderId ||
+    !reservation.paymentId ||
+    !reservation.confirmedAt ||
+    Date.parse(cancelledAt) < Date.parse(reservation.confirmedAt)
+  ) {
+    throw new Error("TICKETING_RESERVATION_REFUND_CANCELLATION_INVALID");
+  }
+  const value = createTicketReservation({
+    ...reservation,
+    status: "cancelled",
+    cancelledAt,
+    updatedAt: cancelledAt,
+  });
+  if (!value) {
+    throw new Error("TICKETING_RESERVATION_REFUND_CANCELLATION_INVALID");
+  }
   return value;
 }

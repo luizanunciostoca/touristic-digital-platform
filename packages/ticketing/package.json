@@ -17,6 +17,11 @@
       "types": "./src/reservations.ts",
       "node": "./dist/reservations.js",
       "default": "./src/reservations.ts"
+    },
+    "./qr-svg": {
+      "types": "./src/qr-svg.ts",
+      "node": "./dist/qr-svg.js",
+      "default": "./src/qr-svg.ts"
     }
   },
   "scripts": {
