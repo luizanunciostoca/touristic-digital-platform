@@ -3,6 +3,7 @@ import {
   type VerifiedPaymentResult,
   type VerifiedPaymentResultRepositoryPort,
 } from "@touristic/financial";
+import { normalizeOrderId } from "@touristic/ordering";
 import type { TicketingOrderBindingRepositoryPort } from "@touristic/ordering/ticketing-reservation";
 import {
   applyTicketCheckIn,
@@ -25,7 +26,10 @@ export interface RefundedReservationCancellationRepositoryPort {
     readonly paymentId: string;
     readonly cancelledAt: string;
     readonly actorReference: string;
-  }): Promise<{ readonly reservation: TicketReservation; readonly replayed: boolean }>;
+  }): Promise<{
+    readonly reservation: TicketReservation;
+    readonly replayed: boolean;
+  }>;
 }
 
 export interface VerifiedRefundCancellationResult {
@@ -75,9 +79,9 @@ export function createVerifiedRefundTicketCancellationHandler(dependencies: {
         return null;
       }
 
-      const binding = await dependencies.bindings.findByOrderId(
-        result.orderReference as never,
-      );
+      const orderId = normalizeOrderId(result.orderReference);
+      if (!orderId) throw new Error("TICKETING_REFUND_ORDER_INVALID");
+      const binding = await dependencies.bindings.findByOrderId(orderId);
       if (!binding) return null;
       const reservationId = normalizeTicketReservationId(
         binding.reservationReference,
