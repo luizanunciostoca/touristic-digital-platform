@@ -11,6 +11,7 @@ import {
   isCrmLeadDetailManualInteractionType,
 } from "./lead-detail-contract.js";
 
+// Frozen V1 distinguishes 18 recognized states from the 16-stage editable funnel.
 describe("CRM M140 frozen lead detail presentation", () => {
   it("keeps the frozen 16-stage selector while preserving terminal-state labels", () => {
     expect(crmLeadDetailStageOrder).toEqual([
