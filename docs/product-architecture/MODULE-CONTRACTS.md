@@ -83,14 +83,17 @@ Não pode: recalcular ledger ou administrar afiliados.
 ### Financial
 
 Pode consumir: Core, Destination, Tenancy e ports de providers.
-Expõe: Payment, Ledger, Split, Refund, Transfer, Reconciliation e Wallet.
+Expõe: Payment, Ledger, Split, Refund, Transfer, Reconciliation, Allocation, Payable, Settlement e Wallet/financial position.
 Não pode: depender de UI, Marketplace, Admin CRM ou SDK específico em regras de domínio.
+É a única autoridade para materializar valores monetários, saldo, payable, settlement, payout/transfer e respectivas reversões. Um futuro entitlement de Affiliate somente pode produzir efeito financeiro por um port Financial versionado e validado pelas invariantes Financial.
 
 ### Affiliate
 
-Pode consumir: Core, Identity, Destination e eventos de Ordering/Financial.
-Expõe: afiliado, atribuição, comissão, carteira e payout.
-Não pode: pertencer a seller, tenant ou Business Portal.
+Pode consumir: Core, Identity, Destination e eventos ou records públicos versionados de Ordering/Financial.
+Expõe: identidade de afiliado, evidência de referral/atribuição, associação de atribuição/conversão e direito comercial de comissão conforme política aprovada.
+Não pode: pertencer a seller, tenant ou Business Portal; criar Payment; escrever ledger; criar ou alterar Financial Allocation/Payable/Wallet/Settlement; executar payout/transfer; acessar persistência Financial diretamente; tratar redirect, query string, local storage ou outro estado de browser como autoridade de conversão ou comissão.
+
+Um futuro handoff Affiliate → Financial deve ser um contrato público versionado. Affiliate pode apresentar o direito comercial e sua evidência; Financial aceita ou rejeita a materialização monetária segundo sua própria autoridade e invariantes.
 
 ### Business
 
