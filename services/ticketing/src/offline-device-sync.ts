@@ -14,12 +14,14 @@ import {
 import type { MySqlTicketOfflineDeviceRegistry } from "./mysql-offline-device-registry.js";
 import type { TicketingApplicationService } from "./ticketing-application-service.js";
 
+export interface TicketOfflineDeviceSyncInput {
+  readonly credentialToken: unknown;
+  readonly envelope: TicketOfflineEnvelope;
+  readonly recordedAt: unknown;
+}
+
 export interface TicketOfflineDeviceSyncService {
-  sync(input: {
-    readonly credentialToken: unknown;
-    readonly envelope: TicketOfflineEnvelope;
-    readonly recordedAt: unknown;
-  }): Promise<TicketOfflineSyncResult>;
+  sync(input: TicketOfflineDeviceSyncInput): Promise<TicketOfflineSyncResult>;
 }
 
 function fingerprint(value: string): string {
@@ -49,7 +51,7 @@ export function createTicketOfflineDeviceSyncService(dependencies: {
   if (!qrSigningSecret) throw new Error("TICKETING_SIGNING_SECRET_INVALID");
 
   return Object.freeze({
-    async sync(input) {
+    async sync(input: TicketOfflineDeviceSyncInput) {
       const now = dependencies.clock.now();
       const credential = verifyTicketOfflineDeviceCredential(
         input.credentialToken,
