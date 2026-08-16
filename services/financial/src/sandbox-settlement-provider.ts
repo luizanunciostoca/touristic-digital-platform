@@ -7,12 +7,20 @@ import {
   type FinancialSettlementProviderSnapshot,
 } from "@touristic/financial/settlement";
 
+import {
+  ProviderRequestUnavailableError,
+  createProviderRetryPolicyFromEnvironment,
+  executeBoundedProviderRequest,
+} from "./provider-retry.js";
+
 export interface SandboxSettlementEnvironment {
   readonly NODE_ENV?: string;
   readonly PAYMENTS_PROVIDER_MODE?: string;
   readonly PAYMENTS_SANDBOX_PROVIDER_BASE_URL?: string;
   readonly PAYMENTS_SANDBOX_PROVIDER_API_TOKEN?: string;
   readonly PAYMENTS_PROVIDER_TIMEOUT_MS?: string;
+  readonly PAYMENTS_PROVIDER_MAX_ATTEMPTS?: string;
+  readonly PAYMENTS_PROVIDER_RETRY_BASE_MS?: string;
 }
 
 export class SandboxSettlementProviderError extends Error {
@@ -132,6 +140,7 @@ export function createSandboxSettlementProviderFromEnvironment(
     throw new Error("PAYMENTS_SANDBOX_PROVIDER_API_TOKEN is required");
   }
   const timeout = timeoutMs(environment.PAYMENTS_PROVIDER_TIMEOUT_MS);
+  const retryPolicy = createProviderRetryPolicyFromEnvironment(environment);
   const fetchProvider = options.fetch ?? globalThis.fetch;
   if (typeof fetchProvider !== "function") {
     throw new Error("PAYMENTS_SANDBOX_PROVIDER_FETCH_UNAVAILABLE");
@@ -142,10 +151,12 @@ export function createSandboxSettlementProviderFromEnvironment(
     init: RequestInit,
   ): Promise<Record<string, unknown>> {
     try {
-      const response = await fetchProvider(url, {
-        ...init,
-        redirect: "error",
-        signal: AbortSignal.timeout(timeout),
+      const response = await executeBoundedProviderRequest({
+        fetch: fetchProvider,
+        url,
+        init,
+        timeoutMs: timeout,
+        policy: retryPolicy,
       });
       if (!response.ok) {
         throw new SandboxSettlementProviderError(
@@ -163,6 +174,11 @@ export function createSandboxSettlementProviderFromEnvironment(
       return payload as Record<string, unknown>;
     } catch (error) {
       if (error instanceof SandboxSettlementProviderError) throw error;
+      if (error instanceof ProviderRequestUnavailableError) {
+        throw new SandboxSettlementProviderError(
+          "SANDBOX_SETTLEMENT_UNAVAILABLE",
+        );
+      }
       throw new SandboxSettlementProviderError(
         "SANDBOX_SETTLEMENT_UNAVAILABLE",
       );
