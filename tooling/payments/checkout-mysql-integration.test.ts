@@ -122,6 +122,10 @@ describeMySql.sequential("M138 checkout application MySQL integration", () => {
   });
 
   beforeEach(async () => {
+    await orderingPool.query(
+      "DELETE FROM ordering_subscription_renewal_intents",
+    );
+    await orderingPool.query("DELETE FROM ordering_subscriptions");
     await orderingPool.query("DELETE FROM ordering_checkout_access");
     await financialPool.query("DELETE FROM financial_ledger_postings");
     await financialPool.query("DELETE FROM financial_ledger_transactions");

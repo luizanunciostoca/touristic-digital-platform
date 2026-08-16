@@ -2,13 +2,24 @@ import mysql, { type Pool, type PoolOptions } from "mysql2/promise";
 
 import { MySqlCheckoutAccessRepository } from "./mysql-checkout-access-repository.js";
 import { MySqlOrderRepository } from "./mysql-order-repository.js";
-import { orderingM137SchemaSql, orderingM139SchemaSql } from "./schema.js";
+import {
+  MySqlSubscriptionRenewalIntentRepository,
+  MySqlSubscriptionRepository,
+} from "./mysql-subscription-repositories.js";
+import {
+  orderingM137SchemaSql,
+  orderingM139SchemaSql,
+  orderingM151SchemaSql,
+} from "./schema.js";
 
 export {
   MySqlCheckoutAccessRepository,
   MySqlOrderRepository,
+  MySqlSubscriptionRenewalIntentRepository,
+  MySqlSubscriptionRepository,
   orderingM137SchemaSql,
   orderingM139SchemaSql,
+  orderingM151SchemaSql,
 };
 export * from "./checkout-access.js";
 export * from "./checkout-http-transport.js";
@@ -58,4 +69,9 @@ export async function applyOrderingM137Schema(pool: Pool): Promise<void> {
 export async function applyOrderingM139Schema(pool: Pool): Promise<void> {
   await applyOrderingM137Schema(pool);
   await applySqlStatements(pool, orderingM139SchemaSql);
+}
+
+export async function applyOrderingM151Schema(pool: Pool): Promise<void> {
+  await applyOrderingM139Schema(pool);
+  await applySqlStatements(pool, orderingM151SchemaSql);
 }
