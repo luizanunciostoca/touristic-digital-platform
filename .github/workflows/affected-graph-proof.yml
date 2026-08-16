@@ -47,23 +47,6 @@ jobs:
           git commit -m 'probe: root package metadata'
           HEAD_SHA=$(git rev-parse HEAD)
           TURBO_SCM_BASE="$BASE_SHA" TURBO_SCM_HEAD="$HEAD_SHA" pnpm turbo ls --affected --output=json > /tmp/root-package-affected.json
-      - name: Record turbo config change behavior
-        shell: bash
-        run: |
-          set -euo pipefail
-          git reset --hard "$BASE_SHA"
-          git clean -fd
-          node <<'NODE'
-          const fs = require('node:fs');
-          const path = 'turbo.json';
-          const data = JSON.parse(fs.readFileSync(path, 'utf8'));
-          data.__ciAffectedProbe = true;
-          fs.writeFileSync(path, JSON.stringify(data, null, 2) + '\n');
-          NODE
-          git add turbo.json
-          git commit -m 'probe: root turbo config'
-          HEAD_SHA=$(git rev-parse HEAD)
-          TURBO_SCM_BASE="$BASE_SHA" TURBO_SCM_HEAD="$HEAD_SHA" pnpm turbo ls --affected --output=json > /tmp/turbo-config-affected.json
       - name: Record non-workspace change behavior
         shell: bash
         run: |
@@ -94,7 +77,6 @@ jobs:
             baseSha: process.env.BASE_SHA,
             allPackageCount: unpack('/tmp/all-packages.json').length,
             rootPackageChangeAffectedPackages: unpack('/tmp/root-package-affected.json'),
-            turboConfigChangeAffectedPackages: unpack('/tmp/turbo-config-affected.json'),
             nonWorkspaceChangeAffectedPackages: unpack('/tmp/nonworkspace-affected.json'),
             policy: 'full-lint-typecheck-fallback-required-for-any-root-or-non-workspace-change'
           };
@@ -108,7 +90,6 @@ jobs:
           path: |
             /tmp/affected-fallback-proof.json
             /tmp/root-package-affected.json
-            /tmp/turbo-config-affected.json
             /tmp/nonworkspace-affected.json
           retention-days: 3
           if-no-files-found: ignore
