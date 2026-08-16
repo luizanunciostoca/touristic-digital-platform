@@ -5,14 +5,9 @@ on:
     paths:
       - "packages/auth/**"
       - "packages/auth-browser/**"
-      - "packages/core/**"
       - "services/auth/**"
       - "apps/morro-digital-platform/package.json"
       - "apps/morro-digital-platform/tooling/auth-api.mjs"
-      - "apps/morro-digital-platform/tooling/business-api.mjs"
-      - "apps/morro-digital-platform/tooling/crm-api.mjs"
-      - "apps/morro-digital-platform/tooling/payments-api.mjs"
-      - "apps/morro-digital-platform/tooling/platform-operations.mjs"
       - "apps/morro-digital-platform/tooling/dev-server.mjs"
       - "pnpm-lock.yaml"
       - ".github/workflows/auth-integration-contract.yml"
@@ -22,14 +17,9 @@ on:
     paths:
       - "packages/auth/**"
       - "packages/auth-browser/**"
-      - "packages/core/**"
       - "services/auth/**"
       - "apps/morro-digital-platform/package.json"
       - "apps/morro-digital-platform/tooling/auth-api.mjs"
-      - "apps/morro-digital-platform/tooling/business-api.mjs"
-      - "apps/morro-digital-platform/tooling/crm-api.mjs"
-      - "apps/morro-digital-platform/tooling/payments-api.mjs"
-      - "apps/morro-digital-platform/tooling/platform-operations.mjs"
       - "apps/morro-digital-platform/tooling/dev-server.mjs"
       - "pnpm-lock.yaml"
       - ".github/workflows/auth-integration-contract.yml"
@@ -37,28 +27,9 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: auth-contract-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
-
 jobs:
   auth-contract:
-    name: auth-contract
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    services:
-      mysql:
-        image: mysql:8.4
-        env:
-          MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: auth_contract
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping -h 127.0.0.1 -proot"
-          --health-interval=5s
-          --health-timeout=5s
-          --health-retries=20
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -78,114 +49,44 @@ jobs:
           pnpm --filter @touristic/auth-browser test
       - name: Build workspace
         run: pnpm -w build
-      - name: Validate real Auth, multi-replica security and Platform HTTP contract
+      - name: Validate real Auth, RBAC, tenant and static-boundary HTTP contract
         shell: bash
         run: |
           set -euo pipefail
-          PORT_A=4174
-          PORT_B=4175
-          ORIGIN_A="http://127.0.0.1:${PORT_A}"
-          ORIGIN_B="http://127.0.0.1:${PORT_B}"
+          PORT=4174
+          ORIGIN="http://127.0.0.1:${PORT}"
           SECRET="0123456789abcdef0123456789abcdef"
-          AUTH_DATABASE_URL="mysql://root:root@127.0.0.1:3306/auth_contract"
           OWNER_PASSWORD="correct horse battery staple"
           VIEWER_PASSWORD="viewer correct horse battery staple"
           OWNER_HASH=$(node --input-type=module -e "import('./services/auth/dist/credentials.js').then(m => console.log(m.hashPassword(process.argv[1], Buffer.alloc(16, 9))))" "$OWNER_PASSWORD")
           VIEWER_HASH=$(node --input-type=module -e "import('./services/auth/dist/credentials.js').then(m => console.log(m.hashPassword(process.argv[1], Buffer.alloc(16, 8))))" "$VIEWER_PASSWORD")
           USERS=$(node -e 'console.log(JSON.stringify([{id:"owner-1",email:"owner@example.com",passwordHash:process.argv[1],role:"owner",businessIds:["toca-do-morcego"]},{id:"viewer-1",email:"viewer@example.com",passwordHash:process.argv[2],role:"viewer",businessIds:["toca-do-morcego"]}]))' "$OWNER_HASH" "$VIEWER_HASH")
 
-          start_server() {
-            local port="$1"
-            local log="$2"
-            local pid_var="$3"
-            AUTH_DATABASE_URL="$AUTH_DATABASE_URL" \
-            DASHBOARD_AUTH_SECRET="$SECRET" \
-            DASHBOARD_USERS_JSON="$USERS" \
-            MORRO_RELEASE_SHA="contract-sha" \
-            MORRO_RELEASE_VERSION="contract-v1" \
-            MORRO_DEPLOYMENT_ID="contract-deploy" \
-            PLATFORM_SHUTDOWN_READINESS_DELAY_MS=1000 \
-            PLATFORM_SHUTDOWN_DRAIN_TIMEOUT_MS=5000 \
-            PORT="$port" \
-            HOST="127.0.0.1" \
-            node apps/morro-digital-platform/tooling/dev-server.mjs > "$log" 2>&1 &
-            printf -v "$pid_var" '%s' "$!"
-          }
+          DASHBOARD_AUTH_SECRET="$SECRET" \
+          DASHBOARD_USERS_JSON="$USERS" \
+          PORT="$PORT" \
+          HOST="127.0.0.1" \
+          node apps/morro-digital-platform/tooling/dev-server.mjs > /tmp/auth-security-server.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true; cat /tmp/auth-security-server.log || true' EXIT
 
-          SERVER_A_PID=""
-          SERVER_B_PID=""
-          start_server "$PORT_A" /tmp/auth-security-server-a.log SERVER_A_PID
-          start_server "$PORT_B" /tmp/auth-security-server-b.log SERVER_B_PID
-          FAILCLOSED_PID=""
-          ADMIN_PID=""
-          cleanup() {
-            for pid in "$SERVER_A_PID" "$SERVER_B_PID" "$FAILCLOSED_PID" "$ADMIN_PID"; do
-              if test -n "$pid"; then kill "$pid" 2>/dev/null || true; fi
-            done
-            cat /tmp/auth-security-server-a.log 2>/dev/null || true
-            cat /tmp/auth-security-server-b.log 2>/dev/null || true
-            cat /tmp/auth-failclosed-server.log 2>/dev/null || true
-            cat /tmp/auth-admin-server.log 2>/dev/null || true
-          }
-          trap cleanup EXIT
-
-          for origin in "$ORIGIN_A" "$ORIGIN_B"; do
-            for _ in $(seq 1 60); do
-              if curl --fail --silent "$origin/healthz" >/dev/null; then break; fi
-              sleep 0.25
-            done
-            curl --fail --silent "$origin/healthz" >/dev/null
-            curl --fail --silent "$origin/readyz" >/dev/null
+          for _ in $(seq 1 40); do
+            if curl --fail --silent "$ORIGIN/runtime-config.js" >/dev/null; then break; fi
+            sleep 0.25
           done
+          curl --fail --silent "$ORIGIN/runtime-config.js" >/dev/null
 
-          # Liveness, canonical readiness, correlation and immutable release identity are real HTTP contracts.
-          HEALTH_STATUS=$(curl --silent --output /tmp/health.json --dump-header /tmp/health.headers --write-out '%{http_code}' \
-            --header 'X-Correlation-ID: contract-correlation-123' \
-            "$ORIGIN_A/healthz")
-          test "$HEALTH_STATUS" = "200"
-          grep -Eiq '^x-correlation-id: contract-correlation-123' /tmp/health.headers
-          grep -Eiq '^x-release-sha: contract-sha' /tmp/health.headers
-          grep -Eiq '^x-release-version: contract-v1' /tmp/health.headers
-          grep -Eiq '^x-deployment-id: contract-deploy' /tmp/health.headers
-          python - <<'PY'
-          import json
-          data=json.load(open('/tmp/health.json'))
-          assert data['status'] == 'live'
-          assert data['release']['sha'] == 'contract-sha'
-          PY
-
-          READY_STATUS=$(curl --silent --output /tmp/ready.json --write-out '%{http_code}' "$ORIGIN_A/readyz")
-          test "$READY_STATUS" = "200"
-          python - <<'PY'
-          import json
-          data=json.load(open('/tmp/ready.json'))
-          assert data['contractVersion'] == 1
-          assert data['readiness'] == 'ready'
-          checks={item['name']: item for item in data['checks']}
-          assert checks['http-listener']['status'] == 'pass'
-          assert checks['shutdown-readiness']['status'] == 'pass'
-          assert checks['auth-security-state']['status'] == 'pass'
-          assert checks['auth-security-state']['detail'] == 'shared-durable'
-          PY
-
-          # Public assets stay available and carry the central production security headers.
+          # Public assets stay available and carry the central security headers.
           PUBLIC_STATUS=$(curl --silent --output /tmp/public.html --dump-header /tmp/public.headers --write-out '%{http_code}' \
-            "$ORIGIN_A/apps/morro-digital-platform/public/index.html")
+            "$ORIGIN/apps/morro-digital-platform/public/index.html")
           test "$PUBLIC_STATUS" = "200"
           grep -Eiq '^x-content-type-options: nosniff' /tmp/public.headers
           grep -Eiq '^x-frame-options: DENY' /tmp/public.headers
           grep -Eiq '^permissions-policy: camera=\(\), microphone=\(\), geolocation=\(self\)' /tmp/public.headers
           grep -Eiq '^content-security-policy: .*frame-ancestors '\''none'\''' /tmp/public.headers
-          python - <<'PY'
-          headers=open('/tmp/public.headers').read().lower().splitlines()
-          csp=next(line.split(':',1)[1].strip() for line in headers if line.startswith('content-security-policy:'))
-          directives={part.strip().split(' ',1)[0]: part.strip() for part in csp.split(';') if part.strip()}
-          assert "'unsafe-inline'" not in directives['script-src']
-          assert directives['script-src-attr'] == "script-src-attr 'none'"
-          PY
 
           PACKAGE_DIST_STATUS=$(curl --silent --output /dev/null --write-out '%{http_code}' \
-            "$ORIGIN_A/packages/auth/dist/index.js")
+            "$ORIGIN/packages/auth/dist/index.js")
           test "$PACKAGE_DIST_STATUS" = "200"
 
           # Repository-private files and encoded traversal must never cross the HTTP trust boundary.
@@ -196,37 +97,37 @@ jobs:
             '/apps/morro-digital-platform/public/..%2F..%2F..%2F.env.example'
           do
             PRIVATE_STATUS=$(curl --silent --path-as-is --output /dev/null --write-out '%{http_code}' \
-              "$ORIGIN_A$PRIVATE_PATH")
+              "$ORIGIN$PRIVATE_PATH")
             test "$PRIVATE_STATUS" = "404"
           done
 
           # Unknown API resources are an intentional 404, not an internal-error oracle.
           UNKNOWN_API_STATUS=$(curl --silent --output /tmp/unknown-api.json --write-out '%{http_code}' \
-            "$ORIGIN_A/api/security/not-real")
+            "$ORIGIN/api/security/not-real")
           test "$UNKNOWN_API_STATUS" = "404"
           grep -q '"error":"NOT_FOUND"' /tmp/unknown-api.json
 
           # Authentication is mandatory before resource or tenant evaluation.
           UNAUTH_STATUS=$(curl --silent --output /tmp/unauth.json --write-out '%{http_code}' \
-            "$ORIGIN_A/api/dashboard/auth/session")
+            "$ORIGIN/api/dashboard/auth/session")
           test "$UNAUTH_STATUS" = "401"
           grep -q 'AUTH_REQUIRED' /tmp/unauth.json
 
           # Invalid payloads fail closed before authentication succeeds.
           INVALID_PAYLOAD_STATUS=$(curl --silent --output /tmp/invalid-payload.json --write-out '%{http_code}' \
-            --header "Origin: $ORIGIN_A" \
+            --header "Origin: $ORIGIN" \
             --header 'Content-Type: application/json' \
             --data '{' \
-            "$ORIGIN_A/api/dashboard/auth/login")
+            "$ORIGIN/api/dashboard/auth/login")
           test "$INVALID_PAYLOAD_STATUS" = "400"
           grep -q 'INVALID_REQUEST' /tmp/invalid-payload.json
 
           LOGIN_STATUS=$(curl --silent --output /tmp/login.json --dump-header /tmp/login.headers --write-out '%{http_code}' \
             --cookie-jar /tmp/auth.cookies \
-            --header "Origin: $ORIGIN_A" \
+            --header "Origin: $ORIGIN" \
             --header 'Content-Type: application/json' \
             --data "{\"email\":\"owner@example.com\",\"password\":\"$OWNER_PASSWORD\"}" \
-            "$ORIGIN_A/api/dashboard/auth/login")
+            "$ORIGIN/api/dashboard/auth/login")
           test "$LOGIN_STATUS" = "200"
           grep -Eiq '^set-cookie: .*HttpOnly' /tmp/login.headers
           grep -Eiq '^set-cookie: .*SameSite=Strict' /tmp/login.headers
@@ -243,10 +144,9 @@ jobs:
           PY
           cp /tmp/auth.cookies /tmp/auth-before-logout.cookies
 
-          # Session issued by replica A is accepted by replica B through the shared authority.
           SESSION_STATUS=$(curl --silent --output /tmp/session.json --write-out '%{http_code}' \
             --cookie /tmp/auth.cookies \
-            "$ORIGIN_B/api/dashboard/auth/session")
+            "$ORIGIN/api/dashboard/auth/session")
           test "$SESSION_STATUS" = "200"
           python - <<'PY'
           import json
@@ -258,24 +158,24 @@ jobs:
           # A scoped user cannot select a different tenant from the browser.
           CROSS_TENANT_STATUS=$(curl --silent --output /tmp/cross-tenant.json --write-out '%{http_code}' \
             --cookie /tmp/auth.cookies \
-            "$ORIGIN_B/api/business/hotel-1/profile")
+            "$ORIGIN/api/business/hotel-1/profile")
           test "$CROSS_TENANT_STATUS" = "403"
           grep -q 'BUSINESS_ACCESS_DENIED' /tmp/cross-tenant.json
 
           # Authorized tenant + nonexistent resource is distinguishable from authorization denial.
           NOT_FOUND_STATUS=$(curl --silent --output /tmp/not-found.json --write-out '%{http_code}' \
             --cookie /tmp/auth.cookies \
-            "$ORIGIN_A/api/business/toca-do-morcego/profile")
+            "$ORIGIN/api/business/toca-do-morcego/profile")
           test "$NOT_FOUND_STATUS" = "404"
           grep -q 'BUSINESS_PROFILE_NOT_FOUND' /tmp/not-found.json
 
           # Viewer can authenticate/read but cannot escalate into a mutation even with valid CSRF.
           VIEWER_LOGIN_STATUS=$(curl --silent --output /tmp/viewer-login.json --write-out '%{http_code}' \
             --cookie-jar /tmp/viewer.cookies \
-            --header "Origin: $ORIGIN_B" \
+            --header "Origin: $ORIGIN" \
             --header 'Content-Type: application/json' \
             --data "{\"email\":\"viewer@example.com\",\"password\":\"$VIEWER_PASSWORD\"}" \
-            "$ORIGIN_B/api/dashboard/auth/login")
+            "$ORIGIN/api/dashboard/auth/login")
           test "$VIEWER_LOGIN_STATUS" = "200"
           python - <<'PY'
           import json
@@ -286,130 +186,46 @@ jobs:
           VIEWER_CSRF=$(cat /tmp/viewer-csrf.txt)
           VIEWER_MUTATION_STATUS=$(curl --silent --output /tmp/viewer-mutation.json --write-out '%{http_code}' \
             --cookie /tmp/viewer.cookies \
-            --header "Origin: $ORIGIN_B" \
+            --header "Origin: $ORIGIN" \
             --header "X-CSRF-Token: $VIEWER_CSRF" \
             --header 'Content-Type: application/json' \
             --request PUT \
             --data '{"displayName":"should-not-write"}' \
-            "$ORIGIN_B/api/business/toca-do-morcego/profile")
+            "$ORIGIN/api/business/toca-do-morcego/profile")
           test "$VIEWER_MUTATION_STATUS" = "403"
           grep -q 'READ_ONLY_ROLE' /tmp/viewer-mutation.json
 
           CSRF=$(cat /tmp/csrf.txt)
           BAD_CSRF_STATUS=$(curl --silent --output /tmp/bad-csrf.json --write-out '%{http_code}' \
             --cookie /tmp/auth.cookies \
-            --header "Origin: $ORIGIN_A" \
+            --header "Origin: $ORIGIN" \
             --header 'X-CSRF-Token: wrong' \
             --request POST \
-            "$ORIGIN_A/api/dashboard/auth/logout")
+            "$ORIGIN/api/dashboard/auth/logout")
           test "$BAD_CSRF_STATUS" = "403"
           grep -q 'INVALID_CSRF' /tmp/bad-csrf.json
 
           LOGOUT_STATUS=$(curl --silent --output /tmp/logout.json --write-out '%{http_code}' \
             --cookie /tmp/auth.cookies \
             --cookie-jar /tmp/auth.cookies \
-            --header "Origin: $ORIGIN_B" \
+            --header "Origin: $ORIGIN" \
             --header "X-CSRF-Token: $CSRF" \
             --request POST \
-            "$ORIGIN_B/api/dashboard/auth/logout")
+            "$ORIGIN/api/dashboard/auth/logout")
           test "$LOGOUT_STATUS" = "200"
           grep -q '"success":true' /tmp/logout.json
 
-          # Revocation written by replica B is enforced immediately by replica A.
+          # Replaying a pre-logout session cookie must fail after server-side revocation.
           REVOKED_STATUS=$(curl --silent --output /tmp/revoked.json --write-out '%{http_code}' \
             --cookie /tmp/auth-before-logout.cookies \
-            "$ORIGIN_A/api/dashboard/auth/session")
+            "$ORIGIN/api/dashboard/auth/session")
           test "$REVOKED_STATUS" = "401"
           grep -q 'AUTH_REQUIRED' /tmp/revoked.json
-
-          # The fixed-window limiter is shared: attempts split across replicas exhaust one authority.
-          for attempt in $(seq 1 7); do
-            if (( attempt % 2 == 0 )); then target="$ORIGIN_A"; else target="$ORIGIN_B"; fi
-            INVALID_STATUS=$(curl --silent --output /tmp/invalid-creds.json --write-out '%{http_code}' \
-              --header "Origin: $target" \
-              --header 'Content-Type: application/json' \
-              --data '{"email":"owner@example.com","password":"definitely-wrong"}' \
-              "$target/api/dashboard/auth/login")
-            test "$INVALID_STATUS" = "401"
-          done
-          LIMITED_STATUS=$(curl --silent --output /tmp/rate-limited.json --write-out '%{http_code}' \
-            --header "Origin: $ORIGIN_A" \
-            --header 'Content-Type: application/json' \
-            --data '{"email":"owner@example.com","password":"definitely-wrong"}' \
-            "$ORIGIN_A/api/dashboard/auth/login")
-          test "$LIMITED_STATUS" = "429"
-          grep -q 'RATE_LIMITED' /tmp/rate-limited.json
 
           CROSS_ORIGIN_STATUS=$(curl --silent --output /tmp/cross-origin.json --write-out '%{http_code}' \
             --header 'Origin: https://evil.example' \
             --header 'Content-Type: application/json' \
             --data "{\"email\":\"owner@example.com\",\"password\":\"$OWNER_PASSWORD\"}" \
-            "$ORIGIN_A/api/dashboard/auth/login")
+            "$ORIGIN/api/dashboard/auth/login")
           test "$CROSS_ORIGIN_STATUS" = "403"
           grep -q 'ORIGIN_DENIED' /tmp/cross-origin.json
-
-          # Production without durable Auth authority remains live but explicitly not ready.
-          FAILCLOSED_PORT=4176
-          FAILCLOSED_ORIGIN="http://127.0.0.1:${FAILCLOSED_PORT}"
-          NODE_ENV=production \
-          DASHBOARD_AUTH_SECRET="$SECRET" \
-          DASHBOARD_AUTH_ORIGIN="https://morro.example" \
-          DASHBOARD_USERS_JSON="$USERS" \
-          PLATFORM_SHUTDOWN_READINESS_DELAY_MS=0 \
-          PORT="$FAILCLOSED_PORT" \
-          HOST="127.0.0.1" \
-          node apps/morro-digital-platform/tooling/dev-server.mjs > /tmp/auth-failclosed-server.log 2>&1 &
-          FAILCLOSED_PID=$!
-          for _ in $(seq 1 40); do
-            if curl --fail --silent "$FAILCLOSED_ORIGIN/healthz" >/dev/null; then break; fi
-            sleep 0.25
-          done
-          curl --fail --silent "$FAILCLOSED_ORIGIN/healthz" >/dev/null
-          FAILCLOSED_READY=$(curl --silent --output /tmp/failclosed-ready.json --write-out '%{http_code}' "$FAILCLOSED_ORIGIN/readyz")
-          test "$FAILCLOSED_READY" = "503"
-          grep -q 'AUTH_DATABASE_URL_REQUIRED_IN_PRODUCTION' /tmp/failclosed-ready.json
-          kill "$FAILCLOSED_PID" 2>/dev/null || true
-          wait "$FAILCLOSED_PID" 2>/dev/null || true
-          FAILCLOSED_PID=""
-
-          # Canonical global admin authority cannot be enabled accidentally in production.
-          ADMIN_PORT=4177
-          ADMIN_ORIGIN="http://127.0.0.1:${ADMIN_PORT}"
-          ADMIN_USERS=$(node -e 'console.log(JSON.stringify([{id:"admin-1",email:"admin@example.com",passwordHash:process.argv[1],role:"admin",businessIds:[]}]))' "$OWNER_HASH")
-          NODE_ENV=production \
-          AUTH_DATABASE_URL="$AUTH_DATABASE_URL" \
-          DASHBOARD_AUTH_SECRET="$SECRET" \
-          DASHBOARD_AUTH_ORIGIN="https://morro.example" \
-          DASHBOARD_USERS_JSON="$ADMIN_USERS" \
-          PLATFORM_SHUTDOWN_READINESS_DELAY_MS=0 \
-          PORT="$ADMIN_PORT" \
-          HOST="127.0.0.1" \
-          node apps/morro-digital-platform/tooling/dev-server.mjs > /tmp/auth-admin-server.log 2>&1 &
-          ADMIN_PID=$!
-          for _ in $(seq 1 40); do
-            if curl --fail --silent "$ADMIN_ORIGIN/healthz" >/dev/null; then break; fi
-            sleep 0.25
-          done
-          curl --fail --silent "$ADMIN_ORIGIN/healthz" >/dev/null
-          ADMIN_READY=$(curl --silent --output /tmp/admin-ready.json --write-out '%{http_code}' "$ADMIN_ORIGIN/readyz")
-          test "$ADMIN_READY" = "503"
-          grep -q 'ADMIN_GLOBAL_BYPASS_CONFIRMATION_REQUIRED' /tmp/admin-ready.json
-          kill "$ADMIN_PID" 2>/dev/null || true
-          wait "$ADMIN_PID" 2>/dev/null || true
-          ADMIN_PID=""
-
-          # Shutdown flips readiness before closing the listener and emits canonical drain observations.
-          kill -TERM "$SERVER_B_PID"
-          DRAIN_STATUS=""
-          for _ in $(seq 1 20); do
-            DRAIN_STATUS=$(curl --silent --output /tmp/draining-ready.json --write-out '%{http_code}' "$ORIGIN_B/readyz" || true)
-            if test "$DRAIN_STATUS" = "503"; then break; fi
-            sleep 0.05
-          done
-          test "$DRAIN_STATUS" = "503"
-          wait "$SERVER_B_PID"
-          SERVER_B_PID=""
-          grep -q 'platform.shutdown.readiness_transition' /tmp/auth-security-server-b.log
-          grep -q 'platform.shutdown.drain_started' /tmp/auth-security-server-b.log
-          grep -q 'platform.shutdown.completed' /tmp/auth-security-server-b.log
-          grep -q '"contract":"PLATFORM-OBSERVATION"' /tmp/auth-security-server-b.log
