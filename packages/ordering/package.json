@@ -16,6 +16,16 @@
       "types": "./src/subscription.ts",
       "node": "./dist/subscription.js",
       "default": "./src/subscription.ts"
+    },
+    "./ticketing-reservation": {
+      "types": "./src/ticketing-reservation.ts",
+      "node": "./dist/ticketing-reservation.js",
+      "default": "./src/ticketing-reservation.ts"
+    },
+    "./ticketing-checkout": {
+      "types": "./src/ticketing-checkout.ts",
+      "node": "./dist/ticketing-checkout.js",
+      "default": "./src/ticketing-checkout.ts"
     }
   },
   "scripts": {
