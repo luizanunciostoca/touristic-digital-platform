@@ -2,41 +2,32 @@ import { randomUUID } from "node:crypto";
 
 import { normalizeTicketSigningSecret } from "../../../packages/ticketing/dist/index.js";
 import {
-  createTicketingCheckoutApplicationService,
+  normalizeTicketingCheckoutHandoff,
 } from "@touristic/ordering/ticketing-checkout";
 import {
   createTicketingReservationOrderApplicationService,
 } from "@touristic/ordering/ticketing-reservation";
 import {
-  MySqlCheckoutAccessRepository,
   MySqlOrderRepository,
   MySqlTicketingOrderBindingRepository,
-  TicketingCheckoutHttpTransport,
-  applyOrderingM139Schema,
   applyOrderingTicketingReservationSchema,
-  createCheckoutReturnUrlPolicyFromEnvironment,
-  createCheckoutStatusCapability,
-  createInMemoryCheckoutRateLimitPort,
   createNodeCheckoutIdentityPort,
   createOrderingMySqlPoolFromEnvironment,
-  normalizeCheckoutRequestContext,
+  createTicketingCheckoutHandoffCapability,
   systemCheckoutClock,
-  ticketingCheckoutPath,
 } from "@touristic/ordering-server";
 import {
-  MySqlPaymentIdempotencyPort,
   MySqlPaymentRepository,
   MySqlVerifiedPaymentResultFeed,
   MySqlVerifiedPaymentResultRepository,
-  applyFinancialM145Schema,
   createFinancialMySqlPoolFromEnvironment,
-  createSandboxCheckoutProviderFromEnvironment,
 } from "@touristic/financial-server";
 import {
   MySqlFinancialResultCursorRepository,
   MySqlRefundedReservationCancellationRepository,
   MySqlTicketCheckInRepository,
   MySqlTicketHolderProfileRepository,
+  MySqlTicketOfflineDeviceRegistry,
   MySqlTicketOfflineEnvelopeRepository,
   MySqlTicketRepository,
   MySqlTicketReservationRepository,
@@ -80,8 +71,7 @@ function header(request, name) {
 }
 
 function sendJson(response, result, fallbackCorrelationId) {
-  const correlationId =
-    result.headers?.["X-Correlation-ID"] || fallbackCorrelationId;
+  const correlationId = result.headers?.["X-Correlation-ID"] || fallbackCorrelationId;
   response.statusCode = result.status;
   response.setHeader("Content-Type", "application/json; charset=utf-8");
   response.setHeader("Cache-Control", "no-store");
@@ -106,18 +96,14 @@ async function readJsonBody(request) {
         : raw instanceof Uint8Array
           ? Buffer.from(raw)
           : null;
-    if (!chunk) {
-      throw new TicketingHttpInputError(400, "INVALID_TICKETING_REQUEST");
-    }
+    if (!chunk) throw new TicketingHttpInputError(400, "INVALID_TICKETING_REQUEST");
     total += chunk.length;
     if (total > maxBodyBytes) {
       throw new TicketingHttpInputError(413, "TICKETING_REQUEST_TOO_LARGE");
     }
     chunks.push(chunk);
   }
-  if (total === 0) {
-    throw new TicketingHttpInputError(400, "INVALID_TICKETING_REQUEST");
-  }
+  if (total === 0) throw new TicketingHttpInputError(400, "INVALID_TICKETING_REQUEST");
   try {
     return JSON.parse(
       new TextDecoder("utf-8", { fatal: true }).decode(Buffer.concat(chunks)),
@@ -129,7 +115,6 @@ async function readJsonBody(request) {
 
 function collectEnvironment(getEnvironmentValue) {
   const keys = [
-    "NODE_ENV",
     "TICKETING_FEATURE_ENABLED",
     "TICKETING_DATABASE_URL",
     "TICKETING_SIGNING_SECRET",
@@ -137,21 +122,12 @@ function collectEnvironment(getEnvironmentValue) {
     "TICKETING_FINANCIAL_POLL_INTERVAL_MS",
     "ORDERING_DATABASE_URL",
     "FINANCIAL_DATABASE_URL",
-    "PAYMENTS_STATUS_TOKEN_SECRET",
-    "PAYMENTS_RETURN_URL_ORIGINS",
-    "PAYMENTS_PROVIDER_MODE",
-    "PAYMENTS_SANDBOX_PROVIDER_BASE_URL",
-    "PAYMENTS_SANDBOX_PROVIDER_API_TOKEN",
-    "PAYMENTS_SANDBOX_CHECKOUT_ORIGINS",
-    "PAYMENTS_PROVIDER_TIMEOUT_MS",
-    "PAYMENTS_WEBHOOK_URL",
+    "PAYMENTS_HANDOFF_SECRET",
+    "PAYMENTS_DESTINATION_ID",
   ];
   return Object.freeze(
     Object.fromEntries(
-      keys.map((key) => [
-        key,
-        String(getEnvironmentValue(key) ?? "").trim(),
-      ]),
+      keys.map((key) => [key, String(getEnvironmentValue(key) ?? "").trim()]),
     ),
   );
 }
@@ -172,25 +148,6 @@ function pollInterval(value) {
   return parsed;
 }
 
-function configuredWebhookUrl(value, production) {
-  try {
-    const url = new URL(value);
-    if (
-      (url.protocol !== "https:" && url.protocol !== "http:") ||
-      (production && url.protocol !== "https:") ||
-      url.username ||
-      url.password ||
-      url.search ||
-      url.hash
-    ) {
-      return "";
-    }
-    return url.toString();
-  } catch {
-    return "";
-  }
-}
-
 function auditSafely(audit, event) {
   try {
     audit(Object.freeze({ ...event }));
@@ -204,10 +161,7 @@ export function createTicketingAuthorizationPort({ authApi }) {
     async authorize(request, { mutation, admin = false }) {
       const active = authApi.resolveSession(request);
       if (!active) {
-        return Object.freeze({
-          allowed: false,
-          reason: "authentication_required",
-        });
+        return Object.freeze({ allowed: false, reason: "authentication_required" });
       }
       if (admin && active.role !== "admin") {
         return Object.freeze({ allowed: false, reason: "admin_required" });
@@ -216,11 +170,7 @@ export function createTicketingAuthorizationPort({ authApi }) {
         if (active.role === "viewer") {
           return Object.freeze({ allowed: false, reason: "read_only_role" });
         }
-        const decision = authApi.authorizeMutation(
-          request,
-          active,
-          "ticketing.mutate",
-        );
+        const decision = authApi.authorizeMutation(request, active, "ticketing.mutate");
         if (!decision.allowed) {
           return Object.freeze({
             allowed: false,
@@ -239,83 +189,16 @@ export function createTicketingAuthorizationPort({ authApi }) {
   });
 }
 
-export function createTicketingCheckoutAuthorizationPort({
-  authApi,
-  reservations,
-  holders,
-}) {
-  return Object.freeze({
-    async authorizeCreate(request, handoff) {
-      const active = authApi.resolveSession(request);
-      if (!active) {
-        return Object.freeze({
-          allowed: false,
-          reason: "authentication_required",
-        });
-      }
-      if (active.role === "viewer") {
-        return Object.freeze({ allowed: false, reason: "read_only_role" });
-      }
-      const mutation = authApi.authorizeMutation(
-        request,
-        active,
-        "checkout.create",
-      );
-      if (!mutation.allowed) {
-        return Object.freeze({
-          allowed: false,
-          reason:
-            mutation.reason === "invalid_csrf"
-              ? "invalid_csrf"
-              : "cross_origin_request",
-        });
-      }
-      const reservation = await reservations.findReservationById(
-        handoff.reservationReference,
-      );
-      const holder = await holders.findByHolderReference(active.subject);
-      if (
-        !reservation ||
-        reservation.holderReference !== active.subject ||
-        (reservation.status !== "held" &&
-          reservation.status !== "confirmed") ||
-        !holder ||
-        holder.holderName !== handoff.customer.name ||
-        holder.email !== handoff.customer.email ||
-        holder.phone !== handoff.customer.phone ||
-        holder.document !== handoff.customer.document
-      ) {
-        return Object.freeze({
-          allowed: false,
-          reason: "business_access_denied",
-        });
-      }
-      const context = normalizeCheckoutRequestContext({
-        requesterKind: "authenticated",
-        actorSubject: active.subject,
-        destinationId: reservation.destinationId,
-        tenantId: null,
-      });
-      return context
-        ? Object.freeze({ allowed: true, context })
-        : Object.freeze({ allowed: false, reason: "missing_context" });
-    },
-  });
-}
-
 export function createTicketingApi({
   authApi,
   getEnvironmentValue = (key) => process.env[key] ?? "",
-  audit = (event) =>
-    console.warn(`[ticketing-audit] ${JSON.stringify(event)}`),
+  audit = (event) => console.warn(`[ticketing-audit] ${JSON.stringify(event)}`),
   publicTransport: injectedPublicTransport,
-  checkoutTransport: injectedCheckoutTransport,
 } = {}) {
-  const injected = Boolean(injectedPublicTransport || injectedCheckoutTransport);
+  const injected = Boolean(injectedPublicTransport);
   let runtime = injected
     ? Object.freeze({
-        publicTransport: injectedPublicTransport ?? null,
-        checkoutTransport: injectedCheckoutTransport ?? null,
+        publicTransport: injectedPublicTransport,
         pools: [],
         processorTimer: null,
         processing: null,
@@ -334,10 +217,7 @@ export function createTicketingApi({
       const enabled = featureEnabled(environment.TICKETING_FEATURE_ENABLED);
       if (!enabled) {
         runtime = Object.freeze({
-          publicTransport: new TicketingPublicHttpTransport({
-            enabled: false,
-          }),
-          checkoutTransport: null,
+          publicTransport: new TicketingPublicHttpTransport({ enabled: false }),
           pools,
           processorTimer: null,
           processing: null,
@@ -349,17 +229,16 @@ export function createTicketingApi({
       const signingSecret = normalizeTicketSigningSecret(
         environment.TICKETING_SIGNING_SECRET,
       );
-      if (!signingSecret) {
-        throw new Error("TICKETING_SIGNING_SECRET_REQUIRED");
-      }
+      if (!signingSecret) throw new Error("TICKETING_SIGNING_SECRET_REQUIRED");
       if (environment.TICKETING_OFFLINE_PROVISIONING_SECRET.length < 32) {
         throw new Error("TICKETING_OFFLINE_PROVISIONING_SECRET_REQUIRED");
       }
-      const webhookUrl = configuredWebhookUrl(
-        environment.PAYMENTS_WEBHOOK_URL,
-        environment.NODE_ENV === "production",
-      );
-      if (!webhookUrl) throw new Error("PAYMENTS_WEBHOOK_URL_REQUIRED");
+      if (environment.PAYMENTS_HANDOFF_SECRET.length < 32) {
+        throw new Error("PAYMENTS_HANDOFF_SECRET_REQUIRED");
+      }
+      if (!/^[a-z0-9][a-z0-9_-]{1,119}$/u.test(environment.PAYMENTS_DESTINATION_ID)) {
+        throw new Error("PAYMENTS_DESTINATION_ID_REQUIRED");
+      }
 
       const ticketingPool = createTicketingMySqlPoolFromEnvironment(environment);
       const orderingPool = createOrderingMySqlPoolFromEnvironment(environment);
@@ -367,11 +246,7 @@ export function createTicketingApi({
       pools.push(ticketingPool, orderingPool, financialPool);
       await Promise.all([
         applyTicketingPublicApiSchema(ticketingPool),
-        (async () => {
-          await applyOrderingM139Schema(orderingPool);
-          await applyOrderingTicketingReservationSchema(orderingPool);
-        })(),
-        applyFinancialM145Schema(financialPool),
+        applyOrderingTicketingReservationSchema(orderingPool),
       ]);
 
       const reservations = new MySqlTicketReservationRepository(ticketingPool);
@@ -379,6 +254,7 @@ export function createTicketingApi({
       const tickets = new MySqlTicketRepository(ticketingPool);
       const checkIns = new MySqlTicketCheckInRepository(ticketingPool);
       const offline = new MySqlTicketOfflineEnvelopeRepository(ticketingPool);
+      const offlineDeviceRegistry = new MySqlTicketOfflineDeviceRegistry(ticketingPool);
       const transactions = new MySqlTicketingTransactionalCommand(ticketingPool);
       const reads = new MySqlTicketingPublicReadRepository(ticketingPool);
       const refundReservations =
@@ -387,17 +263,12 @@ export function createTicketingApi({
       const orders = new MySqlOrderRepository(orderingPool);
       const bindings = new MySqlTicketingOrderBindingRepository(orderingPool);
       const payments = new MySqlPaymentRepository(financialPool);
-      const verifiedResults = new MySqlVerifiedPaymentResultRepository(
-        financialPool,
-      );
-      const identities = createNodeCheckoutIdentityPort();
-      const reservationOrders = createTicketingReservationOrderApplicationService(
-        {
-          orders,
-          bindings,
-          identities,
-        },
-      );
+      const verifiedResults = new MySqlVerifiedPaymentResultRepository(financialPool);
+      const reservationOrders = createTicketingReservationOrderApplicationService({
+        orders,
+        bindings,
+        identities: createNodeCheckoutIdentityPort(),
+      });
       const ticketing = createTicketingApplicationService({
         orders,
         payments,
@@ -447,7 +318,23 @@ export function createTicketingApi({
         qrSigningSecret: signingSecret,
         tickets,
         ticketing,
+        devices: offlineDeviceRegistry,
         clock: systemCheckoutClock,
+      });
+      const checkoutHandoffs = Object.freeze({
+        issue(input, actor) {
+          const handoff = normalizeTicketingCheckoutHandoff(input);
+          if (!handoff) return null;
+          const token = createTicketingCheckoutHandoffCapability(
+            handoff,
+            {
+              actorSubject: actor.subject,
+              destinationId: environment.PAYMENTS_DESTINATION_ID,
+            },
+            environment.PAYMENTS_HANDOFF_SECRET,
+          );
+          return token ? Object.freeze({ ...handoff, token }) : null;
+        },
       });
       const publicTransport = new TicketingPublicHttpTransport({
         enabled: true,
@@ -455,9 +342,11 @@ export function createTicketingApi({
         reads,
         holders,
         reservationOrders,
+        checkoutHandoffs,
         tickets,
         ticketing,
         offlineDevices,
+        offlineDeviceRegistry,
         authorization: createTicketingAuthorizationPort({ authApi }),
         audit: {
           record(event) {
@@ -466,42 +355,7 @@ export function createTicketingApi({
           },
         },
         qrSigningSecret: signingSecret,
-        offlineProvisioningSecret:
-          environment.TICKETING_OFFLINE_PROVISIONING_SECRET,
-        clock: systemCheckoutClock,
-      });
-
-      const checkoutAccess = new MySqlCheckoutAccessRepository(orderingPool);
-      const rateLimits = createInMemoryCheckoutRateLimitPort();
-      const statusCapabilities = createCheckoutStatusCapability(
-        environment.PAYMENTS_STATUS_TOKEN_SECRET,
-      );
-      const checkoutApplication = createTicketingCheckoutApplicationService({
-        orders,
-        bindings,
-        payments,
-        paymentIdempotency: new MySqlPaymentIdempotencyPort(financialPool),
-        identities,
-      });
-      const checkoutTransport = new TicketingCheckoutHttpTransport({
-        application: checkoutApplication,
-        access: checkoutAccess,
-        provider: createSandboxCheckoutProviderFromEnvironment(environment),
-        webhookUrl,
-        authorization: createTicketingCheckoutAuthorizationPort({
-          authApi,
-          reservations,
-          holders,
-        }),
-        returnUrls: createCheckoutReturnUrlPolicyFromEnvironment(environment),
-        statusCapabilities,
-        rateLimits,
-        audit: {
-          record(event) {
-            auditSafely(audit, event);
-            return Promise.resolve();
-          },
-        },
+        offlineProvisioningSecret: environment.TICKETING_OFFLINE_PROVISIONING_SECRET,
         clock: systemCheckoutClock,
       });
 
@@ -514,8 +368,7 @@ export function createTicketingApi({
             auditSafely(audit, {
               action: "ticketing.financial_results",
               result: "failure",
-              reason:
-                error instanceof Error ? error.message : "unknown",
+              reason: error instanceof Error ? error.message : "unknown",
             });
           })
           .finally(() => {
@@ -532,7 +385,6 @@ export function createTicketingApi({
 
       runtime = {
         publicTransport,
-        checkoutTransport,
         pools,
         processorTimer,
         get processing() {
@@ -572,25 +424,16 @@ export function createTicketingApi({
 
   return Object.freeze({
     matches(pathname) {
-      return (
-        pathname === ticketingHttpPrefix ||
-        pathname.startsWith(`${ticketingHttpPrefix}/`) ||
-        pathname === ticketingCheckoutPath
-      );
+      return pathname === ticketingHttpPrefix || pathname.startsWith(`${ticketingHttpPrefix}/`);
     },
     start,
     stop,
     async handle(request, response, requestUrl) {
-      const correlationId =
-        header(request, "x-correlation-id") || `corr_${randomUUID()}`;
-      if (!runtime) {
+      const correlationId = header(request, "x-correlation-id") || `corr_${randomUUID()}`;
+      if (!runtime?.publicTransport) {
         sendJson(
           response,
-          {
-            status: 503,
-            headers: {},
-            body: { error: "TICKETING_UNAVAILABLE" },
-          },
+          { status: 503, headers: {}, body: { error: "TICKETING_UNAVAILABLE" } },
           correlationId,
         );
         return;
@@ -604,11 +447,7 @@ export function createTicketingApi({
         if (contentType !== "application/json") {
           sendJson(
             response,
-            {
-              status: 415,
-              headers: {},
-              body: { error: "UNSUPPORTED_MEDIA_TYPE" },
-            },
+            { status: 415, headers: {}, body: { error: "UNSUPPORTED_MEDIA_TYPE" } },
             correlationId,
           );
           return;
@@ -616,43 +455,20 @@ export function createTicketingApi({
         try {
           body = await readJsonBody(request);
         } catch (error) {
-          const status =
-            error instanceof TicketingHttpInputError ? error.status : 400;
+          const status = error instanceof TicketingHttpInputError ? error.status : 400;
           const code =
             error instanceof TicketingHttpInputError
               ? error.code
               : "INVALID_TICKETING_REQUEST";
-          sendJson(
-            response,
-            { status, headers: {}, body: { error: code } },
-            correlationId,
-          );
+          sendJson(response, { status, headers: {}, body: { error: code } }, correlationId);
           return;
         }
       }
-
-      const selected =
-        requestUrl.pathname === ticketingCheckoutPath
-          ? runtime.checkoutTransport
-          : runtime.publicTransport;
-      if (!selected) {
-        sendJson(
-          response,
-          {
-            status: 503,
-            headers: {},
-            body: { error: "TICKETING_FEATURE_DISABLED" },
-          },
-          correlationId,
-        );
-        return;
-      }
-      const result = await selected.handle({
+      const result = await runtime.publicTransport.handle({
         method,
         pathname: requestUrl.pathname,
         headers: request.headers ?? {},
         body,
-        clientIp: request.socket?.remoteAddress,
         correlationId,
       });
       sendJson(response, result, correlationId);
