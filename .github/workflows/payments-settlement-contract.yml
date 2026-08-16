@@ -55,16 +55,43 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Validate settlement domain contracts
+        shell: bash
         run: |
-          pnpm --filter @touristic/financial lint
-          pnpm --filter @touristic/financial typecheck
-          pnpm --filter @touristic/financial test
+          set -euo pipefail
+          pnpm --filter @touristic/financial lint &
+          LINT_PID=$!
+          pnpm --filter @touristic/financial typecheck &
+          TYPECHECK_PID=$!
+          pnpm --filter @touristic/financial test &
+          TEST_PID=$!
+
+          STATUS=0
+          wait "$LINT_PID" || STATUS=1
+          wait "$TYPECHECK_PID" || STATUS=1
+          wait "$TEST_PID" || STATUS=1
+          if [ "$STATUS" -ne 0 ]; then
+            exit "$STATUS"
+          fi
+
           pnpm --filter @touristic/financial build
       - name: Validate settlement server contracts
+        shell: bash
         run: |
-          pnpm --filter @touristic/financial-server lint
-          pnpm --filter @touristic/financial-server typecheck
-          pnpm --filter @touristic/financial-server exec vitest run src/sandbox-settlement-provider.test.ts
+          set -euo pipefail
+          pnpm --filter @touristic/financial-server lint &
+          LINT_PID=$!
+          pnpm --filter @touristic/financial-server typecheck &
+          TYPECHECK_PID=$!
+          pnpm --filter @touristic/financial-server exec vitest run src/sandbox-settlement-provider.test.ts &
+          TEST_PID=$!
+
+          STATUS=0
+          wait "$LINT_PID" || STATUS=1
+          wait "$TYPECHECK_PID" || STATUS=1
+          wait "$TEST_PID" || STATUS=1
+          if [ "$STATUS" -ne 0 ]; then
+            exit "$STATUS"
+          fi
       - name: Wait for MySQL readiness
         working-directory: services/financial
         run: |
@@ -91,6 +118,6 @@ jobs:
           process.exit(1);
           NODE
       - name: Validate durable allocation, settlement and refund recovery
-        run: pnpm --filter @touristic/financial-server test:settlement-integration
+        run: pnpm --filter @touristic/financial-server exec vitest run src/settlement-mysql-integration.test.ts
       - name: Build settlement server boundary
         run: pnpm --filter @touristic/financial-server build
