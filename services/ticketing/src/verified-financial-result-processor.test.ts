@@ -7,7 +7,7 @@ import { createVerifiedFinancialResultProcessor } from "./verified-financial-res
 function result(kind: "approved" | "refunded", sequence: number) {
   const value = normalizeVerifiedPaymentResult({
     resultId: `fev_ticketing_result_${sequence.toString().padStart(8, "0")}`,
-    providerEventId: `pev_ticketing_result_${sequence.toString().padStart(8, "0")}`,
+    providerEventId: `pwe_ticketing_result_${sequence.toString().padStart(8, "0")}`,
     paymentId: `pay_ticketing_result_${sequence.toString().padStart(8, "0")}`,
     orderReference: `ord_ticketing_result_${sequence.toString().padStart(8, "0")}`,
     kind,
@@ -58,15 +58,29 @@ describe("verified Financial result processor", () => {
     const approved = result("approved", 1);
     let saved = false;
     const processor = createVerifiedFinancialResultProcessor({
-      feed: { async listAfter() { return [approved]; } },
+      feed: {
+        async listAfter() {
+          return [approved];
+        },
+      },
       cursor: {
-        async load() { return null; },
-        async save() { saved = true; },
+        async load() {
+          return null;
+        },
+        async save() {
+          saved = true;
+        },
       },
       fulfillment: {
-        async handle() { throw new Error("FULFILLMENT_FAILED"); },
+        async handle() {
+          throw new Error("FULFILLMENT_FAILED");
+        },
       },
-      refunds: { async handle() { return null; } },
+      refunds: {
+        async handle() {
+          return null;
+        },
+      },
     });
 
     await expect(processor.drain()).rejects.toThrow("FULFILLMENT_FAILED");
