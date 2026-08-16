@@ -21,7 +21,7 @@ Um item não pode avançar para `equivalent` sem evidência visual ou comportame
 | MIG-0005 | `js/navigation*` | Navigation | FEATURE-0003 | `packages/navigation` + adapters em `packages/geospatial` + composição no app | 4 | equivalent | banner, guidance, first-person/câmera, minimizar/maximizar, forced-colors, texto 200% e mobile/tablet/desktop comprovados | 24/24 cenários obrigatórios PASS: sessão, accuracy, routing, Mapbox Directions fallback, geometry, bearing, arrival, events, lifecycle e provider fallback/teardown | matriz `NAVIGATION-MIG-0005-EQUIVALENCE-MATRIX.md`; PRs #49/#52/#53/#54/#55; Quality Gates #542/#568/#569/#575 e browser gates verdes | crítico |
 | MIG-0006 | `js/assistant*` | Assistant | FEATURE-0004 | `packages/assistant` | 11 | equivalent | shell/DOM/carrossel e contratos browser V1 validados | NLP, diálogo, domains, LLM, voz, Navigation e photos equivalentes | matriz `ASSISTANT-MIGRATION-MATRIX.md`; Quality + browser contracts M35 verdes | alto |
 | MIG-0007 | Business Portal | Business | FEATURE-0005 | `packages/business` + Business surfaces/adapters in `apps/morro-digital-platform` | 6 | equivalent | dashboard, 28-step onboarding, production profile and browser lifecycle contracts evidenced | 19/19 Business-owned contracts PASS; checkout execution remains Payments-owned N/A | `BUSINESS-MIGRATION-MATRIX.md`; M54–M65 evidence; PR #128 Quality + Business browser contracts | alto |
-| MIG-0008 | `luizidebook/morro-digital-crm@1915d026` | CRM | FEATURE-0006 | `@touristic/crm` + `@touristic/crm-server` + `apps/admin-crm` | 7 | migrating | authenticated shell and dedicated browser surfaces exist; consolidated V1 visual/accessibility equivalence remains open | 25 contracts: 18 PASS / 5 PARTIAL / 2 GAP at M138 candidate; dashboard metrics/funnel, leads, meetings, proposals, contracts, follow-ups, trials, referrals, public token flows, schedulers and audit are executable | `CRM-V1-BASELINE.md`; `CRM-MIGRATION-MATRIX.md`; M67–M138 evidence | alto |
+| MIG-0008 | `luizidebook/morro-digital-crm@1915d026` | CRM | FEATURE-0006 | `@touristic/crm` + `@touristic/crm-server` + `apps/admin-crm` | 7 | equivalent | Lead Detail + Follow-ups validados em 390×844, 768×1024 e 1280×900, com teclado/foco/semântica, estilo CRM canônico e hidden-state correto | 25 contratos: 24 PASS / 0 PARTIAL / 0 GAP / 1 N/A; clearing opcional, Lead Detail/activity, Follow-up sent/responded e AI CRM-owned fechados; object storage N/A | `CRM-V1-BASELINE.md`; `CRM-MIGRATION-MATRIX.md`; `docs/qa/CRM-M141-EQUIVALENCE-EVIDENCE.md`; PRs #260/#266 e gates permanentes | alto |
 | MIG-0009 | autenticação e sessão | Auth | FEATURE-0008 | `packages/auth` + `packages/auth-browser` + Auth surfaces in `dashboard/` | 6 | equivalent | login V1-equivalent and canonical dashboard return proven in Chromium | 20/20 Auth contracts PASS: login/session/cookie/CSRF/origin/roles/tenant/audit/revocation | `AUTH-MIGRATION-MATRIX.md`; M47–M48 + M50–M52 + M66 evidence; PR #129 Quality + Auth/Business browser contracts | crítico |
 | MIG-0010 | pagamentos/assinaturas | Ordering / Financial | FEATURE-0009 | `@touristic/ordering` + `@touristic/ordering-server` + `@touristic/financial` + `@touristic/financial-server` + runtime HTTP/browser no Morro Digital | 8 | migrating | M149 adiciona browser launch/polling executável sem fabricar autoridade; composição pública Business → Payments continua bloqueada | 34 contratos: 27 PASS / 5 PARTIAL / 1 GAP / 1 N/A; sucesso e falha terminal browser exigem resultado Financial persistido e identity-matched | `PAYMENTS-V1-BASELINE.md`; `PAYMENTS-MIGRATION-MATRIX.md`; evidências M135–M149 | crítico |
 | MIG-0011 | afiliados | Affiliates | FEATURE-0010 | `packages/affiliates` | 9 | discovered | pendente | pendente | pendente | crítico |
@@ -32,28 +32,32 @@ Um item não pode avançar para `equivalent` sem evidência visual ou comportame
 | MIG-0015 | marcadores e centro do mapa da V1 | Geospatial / Tours | FEATURE-0001 | `apps/morro-digital-platform/src/config/tour-markers.ts` + `tour-selection.ts` | 4 | equivalent | rota, source/layers, câmera e 8/5 paradas validados no Mapbox real | substituição atômica, recentralização, troca 8→5→5→8 e rollback comprovados | PR #17 runs Provider `31237633601` e Tour Browser `31237633588` verdes | crítico |
 | MIG-0016 | resolvedor `findTourByKeyword` da V1 | Tours | FEATURE-0007 | `apps/morro-digital-platform/src/config/tour-search.ts` | 4 | equivalent | n/a | aliases, acentos, termos barco/Gamboa, quadriciclo/ATV e retorno seguro preservados | testes automatizados do Runtime M1 + Quality Gates posteriores verdes | médio |
 
-## CRM reconciliado — MIG-0008
+## CRM equivalente — MIG-0008
 
-M67 congelou o CRM V1 em `luizidebook/morro-digital-crm@1915d0260c79f30a63b926a1123e609083587745`. A documentação anterior deste tracker parava em M71/M72 e, por isso, já não representava o código real.
+M67 congelou o CRM V1 em `luizidebook/morro-digital-crm@1915d0260c79f30a63b926a1123e609083587745`. M73–M139 estabeleceram composição real com Platform Auth/Node, persistência MySQL, auditoria durável, Meetings, Proposals, Contracts, views públicas tokenizadas, Follow-ups/settings/scheduler, Trials com expiração e claims duráveis, Referrals, shell autenticado, busca/filtros e dashboard metrics/funnel server-authoritative.
 
-Entre M73 e M138 foram incorporados:
+M139, já incorporado antes desta reconciliação, restaurou o único contrato mutável de Settings congelado. M140 / PR #260 restaura Lead Detail / Activity sem duplicar módulos adjacentes: detalhe agregado, os 18 labels reconhecidos com o seletor operacional V1 de 16 etapas, checklist de 16 passos, activity trail, interação manual, edição/etapa e navegação Leads → Detail com Platform Auth, MySQL real e negative security paths.
 
-- composição real com platform Auth/Node;
-- persistência MySQL e auditoria durável para os principais agregados comerciais;
-- Meetings, Proposals e Contracts internos;
-- views públicas tokenizadas de propostas e contratos;
-- Follow-ups com settings e scheduler;
-- Trials com expiração, notificação, durable claim, lease, heartbeat e idempotency key estável;
-- Referrals;
-- shell autenticado `apps/admin-crm`;
-- browser lifecycles de Leads, Meetings, Proposals, Contracts, Follow-ups, Trials e Referrals;
-- busca/filtros de Leads;
-- hardening do canvas de assinatura pública em M132–M136;
-- consolidação da superfície canônica de Meetings em M137;
-- dashboard metrics/funnel M138 server-authoritative, autenticado e GET-only, derivado de `crm_leads`/`crm_interactions` em um snapshot MySQL `REPEATABLE READ` / `READ ONLY` consistente.
+M141 / PR #266 fecha os resíduos canônicos:
 
-A matriz canônica candidata M138 é `18 PASS / 5 PARTIAL / 2 GAP / 0 N/A`. `MIG-0008` permanece `migrating`: ainda faltam Lead detail/activity e CRUD completo, fechamento ou reclassificação de Follow-up send/respond, CRM settings genéricos, decisão/adapter de object storage, contrato CRM-owned para AI-assisted content e matriz visual/acessibilidade consolidada. `FEATURE-0006` deve permanecer `migrating`, não `equivalent`, até esse fechamento e os gates separados de release.
+- preserva o comando V1 de clearing de campos opcionais e traduz vazio opcional para `NULL` na persistência MySQL, inclusive `monthly_value DECIMAL`;
+- expõe no browser somente as transições Follow-up já server-authoritative `pending → sent → responded`, com `409 INVALID_TRANSITION` e `403 READ_ONLY_ROLE` nos negativos;
+- reclassifica object storage como `N/A`: o helper genérico congelado não possui consumidor CRM observável, portanto nenhum adapter artificial é criado;
+- adiciona contrato CRM-owned de conteúdo assistido através de `CrmSharedAssistantContentPort` / capability `crm.content.generate`, com contexto autorizado do CRM e sem provider/API key/fetch direto;
+- consolida prova Chromium em 390×844, 768×1024 e 1280×900, teclado/foco, semântica, Auth, MySQL, estilo CRM canônico, ocultação correta dos estados `hidden` e screenshots auditáveis;
+- mantém release/staging/rollback separados de equivalência.
 
+A matriz canônica M141 é:
+
+```text
+PASS     24
+PARTIAL   0
+GAP       0
+N/A       1
+TOTAL    25
+```
+
+`MIG-0008` e `FEATURE-0006` passam a `equivalent`, não `released`. M140/M141 não adicionam migration de banco. A promoção operacional permanece coordenada: #260 antes de #266; staging e production seguem os gates permanentes. Rollback é aplicação-first e em ordem reversa (#266, depois #260 se necessário), sem down-migration.
 ## Business equivalente — MIG-0007
 
 M65 closes the final Business-owned parity contract. The canonical matrix is `19 PASS / 0 PARTIAL / 0 GAP / 1 N/A`; checkout execution is the sole N/A because it belongs to `FEATURE-0009`. The Business feature is `equivalent`, not `released`. See `docs/qa/BUSINESS-M65-EVIDENCE.md` and PR #128 for the final Quality and deterministic Chromium evidence.

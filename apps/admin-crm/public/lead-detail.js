@@ -307,8 +307,7 @@ async function saveStage(event) {
 }
 
 function optionalValue(data, name) {
-  const value = String(data.get(name) || "").trim();
-  return value ? { [name]: value } : {};
+  return { [name]: String(data.get(name) || "").trim() };
 }
 
 async function saveLead(event) {

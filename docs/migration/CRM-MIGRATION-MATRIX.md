@@ -1,71 +1,103 @@
-# CRM Administrativo — Migration Matrix (M140 reconciliation)
+# CRM Administrativo — Migration Matrix (M141 equivalence closure)
 
 ## Status semantics
 
-- `PASS` — V2 exposes the audited contract with executable evidence.
-- `PARTIAL` — a material V2 path exists, but the complete frozen V1 contract or final browser/release evidence is not closed.
+- `PASS` — V2 exposes the audited frozen contract with executable evidence.
+- `PARTIAL` — a material V2 path exists, but the complete frozen contract or required evidence remains open.
 - `GAP` — no CRM-owned V2 equivalent exists yet.
-- `N/A` — contract is intentionally owned by another feature and must be consumed, not duplicated.
+- `N/A` — the frozen baseline does not require a CRM-owned implementation for current equivalence, or ownership intentionally belongs elsewhere.
 
-## Baseline and current checkpoint
+## Baseline and final checkpoint
 
 - frozen CRM V1: `luizidebook/morro-digital-crm@1915d0260c79f30a63b926a1123e609083587745`;
 - V2 target feature: `FEATURE-0006`;
 - tracker item: `MIG-0008`;
-- M140 dependency: proven M139 Settings branch / PR #247; M140 is intentionally stacked until coordinator promotion;
-- current feature status: `migrating`, not `equivalent` and not `released`.
+- M139 prerequisite: already merged before M140 reconciliation;
+- M140: PR #260, Lead Detail / Activity restoration;
+- M141: PR #266, residual equivalence closure stacked on #260;
+- target migration status after M141 gates: `equivalent`, **not** `released`.
 
-M73–M133 established real platform Auth/Node composition, MySQL persistence across the commercial aggregates, schedulers, public token flows and authenticated browser mutation lifecycles. M134–M136 hardened public contract signature pointer handling, M137 removed the duplicate Meetings shell lifecycle, M138 restored the frozen dashboard metric/funnel contract, and M139 restored the only mutable frozen V1 Settings contract by reusing the existing Follow-up settings boundary.
+M73–M139 established platform Auth composition, MySQL persistence, audited commercial aggregates, schedulers, public token flows, authenticated browser lifecycles, dashboard/funnel metrics and the only mutable frozen Settings contract. M140 restores the frozen Lead Detail/Activity contract while preserving the exact 16-stage operational selector and all 18 recognized readback labels. M141 closes the remaining observable parity items without creating a parallel CRM domain, payment flow, ticketing flow, Assistant implementation or Marketplace redesign.
 
-M140 closes the next ordered reconciliation item: frozen V1 `LeadDetail.tsx`. It restores the server-owned detail aggregate, the 18 recognized lead-state labels with the exact frozen 16-stage `STAGE_ORDER` selector, the canonical 16-step checklist, checklist mutation with activity trail, bounded newest-first interaction history, manual interaction creation with `lastContactAt` update, authenticated browser detail/edit/stage lifecycle and list-to-detail navigation. Existing Meetings, Proposals, Contracts, Trials and Follow-ups remain separate owners and are linked rather than recreated. The existing M71 MySQL schema already contains the required checklist/interactions persistence, so M140 adds no migration.
+M140 and M141 require no database migration. M141 preserves the V1 browser command for clearing optional fields (`""`) while translating empty optional persistence to SQL `NULL`, including the `DECIMAL` monthly value. Follow-up lifecycle uses the existing server-authoritative transitions. Object storage is explicitly reclassified `N/A` because the frozen V1 helper has no observable CRM consumer. AI-assisted CRM content is expressed as a CRM-owned authorized context boundary calling an injected shared capability port (`crm.content.generate`), with no provider/API-key authority in CRM.
 
-This matrix remains conservative where frozen V1 behavior is not fully reproduced or where a formal visual/release gate remains open.
+| Contract | Frozen V1 evidence | V2 state after M141 | Status | Final invariant |
+| --- | --- | --- | --- | --- |
+| CRM application shell and authenticated layout | React CRM layout | Authenticated `apps/admin-crm` shell + dedicated canonical surfaces | PASS | Platform Auth remains owner |
+| Platform authentication/session integration | V1 protected procedures/client session | `@touristic/auth-browser`, same-origin session, CSRF/origin/RBAC negative paths | PASS | No CRM-local auth |
+| Dashboard metrics and funnel | `Dashboard.tsx`, `metrics.funnel` | Server-authoritative MySQL snapshot, authenticated GET-only metrics/funnel | PASS | Read-only server calculation |
+| Lead list and search/filter lifecycle | `Leads.tsx` | Authenticated list, bounded search/filter, MySQL persistence, Details navigation | PASS | Bounded server query semantics |
+| Lead detail and activity lifecycle | `LeadDetail.tsx` | M140 aggregate, exact frozen stages/checklist, interactions, edit/stage, real MySQL + Chromium | PASS | Related modules stay separately owned |
+| Sales pipeline stages | frozen V1 selector/transitions | Exact 16 selectable stages + terminal readback labels, audited transitions | PASS | Server-authoritative transitions |
+| Lead CRUD and server validation | tRPC routes + frozen forms | Create/update/stage browser-observable; M141 proves optional-field clearing end-to-end; no delete UI invented because frozen pages expose none | PASS | `companyName` required; optional `""` means clear and persists as `NULL` |
+| Meetings lifecycle | `Meetings.tsx` | Existing canonical Meetings lifecycle linked from CRM | PASS | Explicit auditable transitions |
+| Proposals lifecycle | `Proposals.tsx` | Existing create/send/respond lifecycle | PASS | Preserve lead linkage/atomic state |
+| Tokenized proposal public view | `/proposals/view/:token` | Bounded tokenized public projection | PASS | Minimal public projection |
+| Contracts lifecycle | `Contracts.tsx` | Existing create/send/cancel lifecycle | PASS | Preserve proposal linkage/state guards |
+| Tokenized contract public view | `/contracts/view/:token` | Public signing flow with bounded signature payload | PASS | Bounded public projection |
+| Follow-up lifecycle | `FollowUps.tsx`; create/generate/send/respond | M141 exposes existing `pending → sent → responded` server transitions in browser; invalid transition 409 and viewer write 403 proven | PASS | No client-owned state authority |
+| Follow-up automation settings | Settings + scheduler | Existing authenticated GET/PUT settings + fail-closed scheduler | PASS | Unsafe automation remains policy-controlled |
+| Trials lifecycle | `Trials.tsx` | Existing create/convert/cancel/expire lifecycle | PASS | Explicit timestamps/guards |
+| Trial scheduled expiry | protected scheduled handlers | Durable claim/lease/heartbeat/idempotency | PASS | Internal/authenticated jobs |
+| Referrals lifecycle | `Referrals.tsx` | Existing registration/link/contact/conversion-loss lifecycle | PASS | Preserve relation/benefit semantics |
+| CRM settings | `Settings.tsx` | M139 reuses Follow-up settings for the only frozen mutable settings contract | PASS | No second generic settings store |
+| Persistence model | Drizzle/MySQL | Existing MySQL schema + prepared queries; M141 adds persistence translation for optional clear, no schema change | PASS | Durable server authority |
+| Object storage | generic `server/storage.ts` helper | Frozen baseline search found no CRM surface/router/domain consumer requiring object storage for observable equivalence | N/A | Do not create an unused adapter |
+| AI-assisted CRM content | CRM generation behaviors | `CrmAiContentBoundary` owns authorized lead/recent-interaction context and calls only injected `CrmSharedAssistantContentPort` capability `crm.content.generate` | PASS | No direct provider/API key/fetch or duplicate Assistant |
+| Scheduled job protection | protected cron handlers | Server-owned Follow-up/Trial hosts with durable claims/idempotency | PASS | No public unauthenticated scheduler mutation |
+| Server-side audit/authorization | protected procedures + host auth | Platform Auth, CRM authorization, durable audit, CSRF/origin and structured denials | PASS | Mutations fail closed |
+| Automated regression coverage | CRM/auth tests | Permanent package/server tests plus Platform Auth, Lead Detail Browser and final CRM Equivalence Browser gates | PASS | Exact-head gates required for promotion |
+| Responsive/accessibility visual surface | Radix/Tailwind frozen CRM surfaces | M141 Chromium evidence at 390×844, 768×1024 and 1280×900; semantic labels/statuses, keyboard focus, no root overflow, canonical CRM styling and hidden-state correctness | PASS | Visual evidence remains part of release gate |
 
-| Contract                                       | Frozen V1 evidence                                                | V2 state at M140                                                                                                                                                                                                                                                                                                          | Status  | Remaining decision                                                                                          |
-| ---------------------------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------- |
-| CRM application shell and authenticated layout | React client + `CRMLayout`/dashboard layout                       | `apps/admin-crm/public/index.html` provides authenticated shell/navigation and dedicated CRM surfaces; M137 keeps Meetings canonical; M139 exposes Settings; M140 adds direct Leads → Lead Detail navigation without rewriting the minified shell lifecycle                                                               | PASS    | Keep CRM browser auth owned by platform Auth.                                                               |
-| Platform authentication/session integration    | V1 host auth infrastructure + client auth hook                    | M73 composes real platform Auth/Node; browser requests use `@touristic/auth-browser`, same-origin credentials and CSRF for mutations; M140 uses the same boundary                                                                                                                                                         | PASS    | Preserve centralized Auth ownership.                                                                        |
-| Dashboard metrics and funnel                   | `Dashboard.tsx`; protected `metrics.funnel`; `getFunnelMetrics()` | M138 freezes V1 metric formulas, derives persisted snapshot, exposes authenticated GET-only `/api/crm/metrics/funnel`, renders KPIs/funnel/recent activity and refreshes every 30 seconds                                                                                                                                 | PASS    | Keep calculations server-authoritative/read-only.                                                           |
-| Lead list and search/filter lifecycle          | `Leads.tsx`                                                       | M106 read-only browser client, M128 search/filter UI, authenticated server query and MySQL persistence; M140 adds a dedicated Details link per lead                                                                                                                                                                       | PASS    | Maintain bounded server-side query semantics.                                                               |
-| Lead detail and activity lifecycle             | `LeadDetail.tsx`; checklist/interactions procedures               | M140 freezes all 18 recognized lead-state labels, the exact 16 selectable V1 funnel stages and 16 checklist steps; adds authenticated detail aggregate, ownership-bound checklist toggle, bounded newest-first activity, manual interaction + `lastContactAt`, dedicated browser surface and real MySQL/Chromium contract | PASS    | Keep related commercial modules separately owned; do not reintroduce duplicate lifecycle code.              |
-| Sales pipeline stages                          | frozen V1 stage selector and transitions                          | M70 server boundary + M109 browser stage flow; M140 Lead Detail uses the exact 16-stage frozen selector while retaining terminal-state labels for readback and the existing audited transition path                                                                                                                       | PASS    | Keep transitions server-authoritative.                                                                      |
-| Lead CRUD and server validation                | tRPC routes + DB functions                                        | create/update/stage are browser-observable; M140 expands detail editing to all currently supported update fields; server boundary also supports delete, but frozen `Leads.tsx`/`LeadDetail.tsx` did not expose a delete control and optional-field clearing semantics remain intentionally conservative                   | PARTIAL | Decide remaining observable CRUD/clear semantics from frozen evidence before PASS; do not invent delete UI. |
-| Meetings lifecycle                             | `Meetings.tsx`; create/complete/no-show/cancel                    | M74/M75 domain/persistence/HTTP; M110/M120+ browser consultation/scheduling/result; M137 removes duplicate shell implementation; M140 only links to canonical Meetings                                                                                                                                                    | PASS    | Preserve explicit auditable transitions.                                                                    |
-| Proposals lifecycle                            | `Proposals.tsx`; proposal procedures                              | M76–M78 domain/persistence/transport + M111/M121/M129 browser create/send/respond; M140 only links to canonical Proposals                                                                                                                                                                                                 | PASS    | Keep lead linkage and acceptance transitions atomic.                                                        |
-| Tokenized proposal public view                 | `/proposals/view/:token`                                          | M83 public boundary/transport + M117/M119 browser token routing/response                                                                                                                                                                                                                                                  | PASS    | Keep bounded public projection.                                                                             |
-| Contracts lifecycle                            | `Contracts.tsx`; create/sign/cancel                               | M79–M81 domain/persistence/transport + M112/M122 browser create/send/cancel; M140 only links to canonical Contracts                                                                                                                                                                                                       | PASS    | Preserve proposal linkage and state guards.                                                                 |
-| Tokenized contract public view                 | `/contracts/view/:token`                                          | M82 public sign boundary; M118/M119 route; M132–M136 pointer/capture/clamping hardening                                                                                                                                                                                                                                   | PASS    | Keep signature payload bounded and public projection minimal.                                               |
-| Follow-up lifecycle                            | `FollowUps.tsx`; create/generate/send/respond                     | M84–M88 server lifecycle/scheduler; browser can consult pending items, schedule follow-ups and view generated messages, but send/respond parity is not fully exposed                                                                                                                                                      | PARTIAL | Close observable send/respond contract or explicitly reclassify ownership.                                  |
-| Follow-up automation settings                  | Settings + scheduled follow-up handler                            | M139 authenticated GET/PUT settings browser lifecycle + fail-closed scheduler settings                                                                                                                                                                                                                                    | PASS    | Keep unsafe automation disabled by policy.                                                                  |
-| Trials lifecycle                               | `Trials.tsx`; convert/cancel/expire                               | M89–M91 domain/persistence/transport + M114/M125 browser create/convert/cancel/expire; M140 only links to canonical Trials                                                                                                                                                                                                | PASS    | Preserve explicit timestamps and transition guards.                                                         |
-| Trial scheduled expiry                         | `scheduledHandlers.ts`; cron docs                                 | M92 scheduler, M93 notification processor, M94–M97 durable claim/lease/idempotency and M102/M103 runtime lifecycle                                                                                                                                                                                                        | PASS    | Keep claims, heartbeat and provider idempotency stable.                                                     |
-| Referrals lifecycle                            | `Referrals.tsx`; edit/contact/lost/benefit/link lead              | M98–M101 server + M115/M124/M127 browser registration/link/contact/conversion-loss                                                                                                                                                                                                                                        | PASS    | Preserve lead relation/benefit semantics.                                                                   |
-| CRM settings                                   | `Settings.tsx`                                                    | M139 freezes Settings defaults/bounds + stage presentation in `@touristic/crm/settings-contract`; dedicated surface reuses Follow-up settings for the only V1 mutation                                                                                                                                                    | PASS    | Do not invent a second generic settings store.                                                              |
-| Persistence model                              | Drizzle/MySQL via `server/db.ts`                                  | `@touristic/crm-server` persists commercial aggregates, interactions and durable audit in MySQL; M140 reuses `crm_leads`, `crm_checklist_items`, `crm_interactions`, `crm_audit_events` with prepared queries and no schema change                                                                                        | PASS    | Historical migration/reconciliation remains deployment concern.                                             |
-| Object storage                                 | `server/storage.ts` + S3 client                                   | no reconciled CRM storage adapter in current V2                                                                                                                                                                                                                                                                           | GAP     | Confirm whether frozen V1 object storage is still required; if yes add explicit server-only port/adapter.   |
-| AI-assisted CRM content                        | AI chat/generation behaviors                                      | shared Assistant exists and Follow-up separates deterministic state from generated content, but no complete CRM-owned AI adapter/parity surface is frozen                                                                                                                                                                 | PARTIAL | Reuse shared Assistant only through authorized CRM context.                                                 |
-| Scheduled job protection                       | documented protected cron handlers                                | Follow-up and Trial schedulers use server-owned hosts with durable claims/idempotency rather than public unauthenticated mutation routes                                                                                                                                                                                  | PASS    | Keep jobs internal/authenticated/observable.                                                                |
-| Server-side audit/authorization                | protected tRPC procedures + host auth                             | platform Auth, CRM authorization, durable MySQL audit and shared origin/CSRF transport are composed across authenticated transports; M140 adds explicit negative audit for detail/checklist/activity denials                                                                                                              | PASS    | Continue structured denials and mutation evidence.                                                          |
-| Automated regression coverage                  | `server/crm.test.ts`, auth tests                                  | permanent domain/persistence/transport/browser composition tests cover migrated aggregates; M140 adds frozen vocabulary, negative boundary tests, prepared-query tests and real MySQL + Chromium contract                                                                                                                 | PASS    | Aggregate critical CRM browser gates into release GO criteria.                                              |
-| Responsive/accessibility visual surface        | Radix/Tailwind CRM pages                                          | browser surfaces use semantic controls/status states and focused contracts; M140 adds labeled forms/checklist/history, but no complete frozen V1 visual/accessibility equivalence matrix is consolidated                                                                                                                  | PARTIAL | Capture consolidated responsive/accessibility/visual evidence before `equivalent`.                          |
+## M141 canonical score
 
-## M140 reconciled score
+```text
+PASS     24
+PARTIAL   0
+GAP       0
+N/A       1
+TOTAL    25
+```
 
-- `PASS`: 20
-- `PARTIAL`: 4
-- `GAP`: 1
-- `N/A`: 0
-- total: 25
+The canonical progression is:
 
-The matrix moved from M72 (`0 PASS / 8 PARTIAL / 17 GAP`) to M133 (`17 PASS / 5 PARTIAL / 3 GAP`), M138 (`18 PASS / 5 PARTIAL / 2 GAP`), M139 (`19 PASS / 5 PARTIAL / 1 GAP`) and M140 (`20 PASS / 4 PARTIAL / 1 GAP`). `FEATURE-0006` remains `migrating`; Lead Detail closure does not imply remaining CRUD semantics, Follow-up send/respond, object storage, AI or final visual/release equivalence.
+```text
+M72   0 PASS / 8 PARTIAL / 17 GAP
+M133 17 PASS / 5 PARTIAL / 3 GAP
+M138 18 PASS / 5 PARTIAL / 2 GAP
+M139 19 PASS / 5 PARTIAL / 1 GAP
+M140 20 PASS / 4 PARTIAL / 1 GAP
+M141 24 PASS / 0 PARTIAL / 0 GAP / 1 N/A
+```
 
-## Remaining CRM closure order
+## M141 closure evidence
 
-1. Reconcile the remaining observable Lead CRUD/optional-field clearing behavior from frozen V1 evidence; do not invent delete UI absent from the frozen pages.
-2. Close or explicitly reclassify Follow-up send/respond behavior.
-3. Decide the frozen V1 object-storage requirement and add a server-only adapter only if still required.
-4. Freeze the CRM-owned AI-assisted contract instead of coupling directly to a provider.
-5. Consolidate responsive/accessibility/visual equivalence evidence.
-6. Run release-candidate, staging, rollback and production-readiness gates separately from migration equivalence.
+The permanent `CRM Equivalence Browser Contract` runs against real MySQL 8.4 and the authenticated Morro Digital runtime. It proves:
 
-This order keeps the server authoritative, prevents duplicate commercial domains and avoids claiming equivalence before the remaining observable contracts are proven. M140 stops at the next ordered PARTIAL after M139; object storage and other remaining gaps are untouched.
+- Platform Auth login and same-origin authenticated browser execution;
+- invalid Follow-up `pending → responded` transition fails `409 INVALID_TRANSITION`;
+- Viewer Follow-up mutation fails `403 READ_ONLY_ROLE`;
+- Lead optional fields begin populated, are cleared by the browser and read back durably as cleared values;
+- required company name remains intact;
+- Follow-up lifecycle reaches `pending → sent → responded`, with both browser mutations returning HTTP 200 and durable MySQL readback `responded`;
+- mobile `390×844`, tablet `768×1024`, desktop `1280×900`;
+- keyboard focus lands on visible interactive controls;
+- semantic headings, labels and live status regions are present;
+- no browser `pageerror` or non-benign failed request in the successful evidence run;
+- screenshots are uploaded by the permanent workflow for visual inspection.
+
+See `docs/qa/CRM-M141-EQUIVALENCE-EVIDENCE.md` for the promotion record.
+
+## Equivalence versus release
+
+`FEATURE-0006` may be `equivalent` when this matrix, Feature Registry, tracker and exact-head gates agree. `Equivalent` does **not** mean `released`.
+
+Release remains a separate coordinator-controlled operation:
+
+1. promote/merge #260 before #266;
+2. deploy to staging using the normal platform process;
+3. rerun permanent Quality/Auth/CRM browser gates and staging smoke checks;
+4. observe platform health/readiness and CRM auth/MySQL behavior;
+5. promote production only under the coordinator's release process.
+
+Rollback is intentionally simple because M140/M141 add no schema migration: revert #266 first, then #260 if necessary, and redeploy the previous known-good application artifact. No down-migration or parallel persistence path is required.

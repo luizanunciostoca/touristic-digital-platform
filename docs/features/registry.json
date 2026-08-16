@@ -10,11 +10,7 @@
       "status": "equivalent",
       "legacySources": ["v1:mapbox", "v1:leaflet"],
       "targetPackages": ["@touristic/geospatial"],
-      "equivalence": {
-        "behavior": true,
-        "visual": true,
-        "api": true
-      }
+      "equivalence": { "behavior": true, "visual": true, "api": true }
     },
     {
       "id": "FEATURE-0002",
@@ -24,11 +20,7 @@
       "status": "equivalent",
       "legacySources": ["v1:search", "v1:assistant"],
       "targetPackages": ["@touristic/search", "@touristic/marketplace"],
-      "equivalence": {
-        "behavior": true,
-        "visual": true,
-        "api": true
-      }
+      "equivalence": { "behavior": true, "visual": true, "api": true }
     },
     {
       "id": "FEATURE-0003",
@@ -38,11 +30,7 @@
       "status": "equivalent",
       "legacySources": ["v1:navigation", "v1:routing"],
       "targetPackages": ["@touristic/geospatial", "@touristic/navigation"],
-      "equivalence": {
-        "behavior": true,
-        "visual": true,
-        "api": true
-      }
+      "equivalence": { "behavior": true, "visual": true, "api": true }
     },
     {
       "id": "FEATURE-0004",
@@ -52,11 +40,7 @@
       "status": "equivalent",
       "legacySources": ["v1:assistant", "v1:tts"],
       "targetPackages": ["@touristic/assistant", "@touristic/voice"],
-      "equivalence": {
-        "behavior": true,
-        "visual": true,
-        "api": true
-      }
+      "equivalence": { "behavior": true, "visual": true, "api": true }
     },
     {
       "id": "FEATURE-0005",
@@ -66,29 +50,21 @@
       "status": "equivalent",
       "legacySources": ["v1:dashboard", "v1:onboarding"],
       "targetPackages": ["@touristic/business"],
-      "equivalence": {
-        "behavior": true,
-        "visual": true,
-        "api": true
-      }
+      "equivalence": { "behavior": true, "visual": true, "api": true }
     },
     {
       "id": "FEATURE-0006",
       "name": "CRM Administrativo",
       "domain": "admin",
       "wave": 7,
-      "status": "migrating",
+      "status": "equivalent",
       "legacySources": ["crm:v1"],
       "targetPackages": [
         "@touristic/crm",
         "@touristic/crm-server",
         "apps/admin-crm"
       ],
-      "equivalence": {
-        "behavior": false,
-        "visual": false,
-        "api": false
-      }
+      "equivalence": { "behavior": true, "visual": true, "api": true }
     },
     {
       "id": "FEATURE-0007",
@@ -98,11 +74,7 @@
       "status": "inventory-in-progress",
       "legacySources": ["v1:css", "v1:assets"],
       "targetPackages": ["@touristic/design-system"],
-      "equivalence": {
-        "behavior": false,
-        "visual": false,
-        "api": true
-      }
+      "equivalence": { "behavior": false, "visual": false, "api": true }
     },
     {
       "id": "FEATURE-0008",
@@ -112,11 +84,7 @@
       "status": "equivalent",
       "legacySources": ["v1:auth"],
       "targetPackages": ["@touristic/auth"],
-      "equivalence": {
-        "behavior": true,
-        "visual": true,
-        "api": true
-      }
+      "equivalence": { "behavior": true, "visual": true, "api": true }
     },
     {
       "id": "FEATURE-0009",
@@ -131,11 +99,7 @@
         "@touristic/financial",
         "@touristic/financial-server"
       ],
-      "equivalence": {
-        "behavior": false,
-        "visual": false,
-        "api": false
-      }
+      "equivalence": { "behavior": false, "visual": false, "api": false }
     },
     {
       "id": "FEATURE-0010",
@@ -145,11 +109,7 @@
       "status": "planned",
       "legacySources": [],
       "targetPackages": ["@touristic/affiliates"],
-      "equivalence": {
-        "behavior": false,
-        "visual": false,
-        "api": false
-      }
+      "equivalence": { "behavior": false, "visual": false, "api": false }
     },
     {
       "id": "FEATURE-0011",
@@ -159,11 +119,7 @@
       "status": "migrating",
       "legacySources": [],
       "targetPackages": ["@touristic/ticketing", "@touristic/ticketing-server"],
-      "equivalence": {
-        "behavior": false,
-        "visual": false,
-        "api": false
-      }
+      "equivalence": { "behavior": false, "visual": false, "api": false }
     }
   ]
 }
