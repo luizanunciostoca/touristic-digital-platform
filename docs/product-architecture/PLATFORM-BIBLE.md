@@ -19,7 +19,7 @@ Conectar turistas, moradores, empresas, operadores, afiliados e administradores 
 7. Aplicações dependem de pacotes; pacotes não dependem de aplicações.
 8. Domínios publicam contratos e eventos públicos, nunca detalhes internos.
 9. Dados operacionais possuem `destinationId`; dados privados empresariais também possuem `tenantId`.
-10. Segurança, LGPD, observabilidade e auditabilidade fazem parte da definição de pronto.
+10. Segurança, LGPD, observabilidade, health/readiness e auditabilidade fazem parte da definição de pronto.
 
 ## 4. Modelo organizacional
 
@@ -116,7 +116,8 @@ A Definition of Done exige:
 - análise de segurança e dependências;
 - documentação atualizada;
 - observabilidade e rollback definidos;
-- contratos canônicos reconciliados entre registry, schema, runtime e evidência.
+- health/readiness fail-closed para dependências críticas quando aplicável;
+- contratos canônicos reconciliados entre registry, schema, runtime, fixtures e evidência.
 
 O Quality Gate transversal executa `pnpm platform:contracts:check` para impedir drift dos contratos de plataforma.
 
@@ -147,11 +148,13 @@ Nenhum item é removido sem:
 - evolução: Product Roadmap e Evolution Strategy;
 - releases: Release Process.
 
-## 19. Observabilidade
+## 19. Observabilidade, health e readiness
 
 Logs estruturados, métricas, traces, auditoria e alertas devem incluir contexto de destino, tenant quando aplicável e correlação. Pagamentos, reservas, afiliados, integrações, GIS e autenticação possuem monitoramento específico.
 
 O envelope mínimo canônico é `PLATFORM-OBSERVATION`, descrito por `docs/contracts/platform-observation.v1.schema.json`. Ele padroniza identidade da observação, tipo, nome, severidade, timestamp, destino, correlação, causação opcional e atributos estruturados primitivos. Este contrato é a base transversal; cada domínio continua responsável por métricas, alertas, SLOs e políticas específicas.
+
+Health e readiness transversais usam `PLATFORM-HEALTH-SNAPSHOT`, descrito por `docs/contracts/platform-health-snapshot.v1.schema.json`. O snapshot transporta serviço, destino, tenant quando aplicável, correlação e checks estruturados. O estado agregado é derivado dos checks: falha crítica resulta obrigatoriamente em `unhealthy/not_ready`; degradações não críticas não podem ser reinterpretadas como saúde plena. Consumidores podem expor o snapshot por HTTP, worker probe ou superfície operacional sem redefinir sua semântica.
 
 ## 20. Regra final
 

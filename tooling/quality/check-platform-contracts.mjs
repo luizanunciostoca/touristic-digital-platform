@@ -59,7 +59,35 @@ const expectedContracts = Object.freeze({
       "attributes",
     ]),
   }),
+  "PLATFORM-HEALTH-SNAPSHOT": Object.freeze({
+    kind: "health",
+    required: Object.freeze([
+      "contractVersion",
+      "service",
+      "status",
+      "readiness",
+      "checkedAt",
+      "destinationId",
+      "correlationId",
+      "checks",
+    ]),
+    runtimeFields: Object.freeze([
+      "contractVersion",
+      "service",
+      "status",
+      "readiness",
+      "checkedAt",
+      "destinationId",
+      "tenantId",
+      "correlationId",
+      "checks",
+    ]),
+  }),
 });
+
+const HEALTH_STATUSES = new Set(["healthy", "degraded", "unhealthy"]);
+const READINESS_STATUSES = new Set(["ready", "not_ready"]);
+const HEALTH_CHECK_STATUSES = new Set(["pass", "warn", "fail"]);
 
 function fail(message) {
   throw new Error(`Platform contracts gate: ${message}`);
@@ -79,9 +107,25 @@ function assertUnique(values, label) {
   }
 }
 
+function assertBoundedString(value, label, maxLength = 160) {
+  if (
+    typeof value !== "string" ||
+    !value.trim() ||
+    value.trim().length > maxLength
+  ) {
+    fail(`${label} must be a non-empty string up to ${maxLength} characters.`);
+  }
+}
+
 function assertRequiredSchemaFields(contract, schema, expected) {
   if (schema.type !== "object" || schema.additionalProperties !== false) {
     fail(`${contract.id} schema must be a closed object.`);
+  }
+  if (
+    typeof schema.$id !== "string" ||
+    !schema.$id.endsWith(`.v${contract.version}.schema.json`)
+  ) {
+    fail(`${contract.id} schema id must match registry version.`);
   }
 
   const required = Array.isArray(schema.required) ? schema.required : [];
@@ -99,11 +143,142 @@ function assertRequiredSchemaFields(contract, schema, expected) {
   }
 }
 
+function assertHealthSchema(contract, schema) {
+  const properties = schema.properties ?? {};
+  const statusValues = properties.status?.enum ?? [];
+  const readinessValues = properties.readiness?.enum ?? [];
+  const checks = properties.checks;
+  const checkProperties = checks?.items?.properties ?? {};
+  const checkRequired = checks?.items?.required ?? [];
+
+  if (
+    statusValues.length !== HEALTH_STATUSES.size ||
+    statusValues.some((value) => !HEALTH_STATUSES.has(value))
+  ) {
+    fail(`${contract.id} schema has unexpected health statuses.`);
+  }
+  if (
+    readinessValues.length !== READINESS_STATUSES.size ||
+    readinessValues.some((value) => !READINESS_STATUSES.has(value))
+  ) {
+    fail(`${contract.id} schema has unexpected readiness statuses.`);
+  }
+  if (
+    checks?.type !== "array" ||
+    checks.minItems !== 1 ||
+    checks.maxItems !== 50 ||
+    checks.items?.type !== "object" ||
+    checks.items?.additionalProperties !== false
+  ) {
+    fail(`${contract.id} checks schema must be a bounded closed array.`);
+  }
+  for (const field of ["name", "status", "critical"]) {
+    if (!checkRequired.includes(field) || !(field in checkProperties)) {
+      fail(`${contract.id} check schema is missing ${field}.`);
+    }
+  }
+  const checkStatuses = checkProperties.status?.enum ?? [];
+  if (
+    checkStatuses.length !== HEALTH_CHECK_STATUSES.size ||
+    checkStatuses.some((value) => !HEALTH_CHECK_STATUSES.has(value))
+  ) {
+    fail(`${contract.id} schema has unexpected check statuses.`);
+  }
+}
+
 function assertRuntimeFields(contract, runtimeSource, expected) {
   for (const field of expected.runtimeFields) {
     if (!runtimeSource.includes(`readonly ${field}`)) {
       fail(`${contract.id} runtime is missing field ${field}.`);
     }
+  }
+}
+
+function assertHealthFixture(path, fixture) {
+  if (!fixture || typeof fixture !== "object" || Array.isArray(fixture)) {
+    fail(`${path} must be an object.`);
+  }
+
+  const required = expectedContracts["PLATFORM-HEALTH-SNAPSHOT"].required;
+  for (const field of required) {
+    if (!(field in fixture)) {
+      fail(`${path} is missing required field ${field}.`);
+    }
+  }
+  if (fixture.contractVersion !== 1) {
+    fail(`${path} contractVersion must be 1.`);
+  }
+  assertBoundedString(fixture.service, `${path} service`);
+  assertBoundedString(fixture.destinationId, `${path} destinationId`);
+  assertBoundedString(fixture.correlationId, `${path} correlationId`);
+  if (fixture.tenantId !== undefined) {
+    assertBoundedString(fixture.tenantId, `${path} tenantId`);
+  }
+  if (
+    typeof fixture.checkedAt !== "string" ||
+    Number.isNaN(Date.parse(fixture.checkedAt))
+  ) {
+    fail(`${path} checkedAt must be ISO-8601.`);
+  }
+  if (!HEALTH_STATUSES.has(fixture.status)) {
+    fail(`${path} has invalid status ${fixture.status}.`);
+  }
+  if (!READINESS_STATUSES.has(fixture.readiness)) {
+    fail(`${path} has invalid readiness ${fixture.readiness}.`);
+  }
+  if (
+    !Array.isArray(fixture.checks) ||
+    fixture.checks.length === 0 ||
+    fixture.checks.length > 50
+  ) {
+    fail(`${path} must contain between 1 and 50 checks.`);
+  }
+
+  const names = [];
+  for (const [index, check] of fixture.checks.entries()) {
+    if (!check || typeof check !== "object" || Array.isArray(check)) {
+      fail(`${path} check ${index} must be an object.`);
+    }
+    assertBoundedString(check.name, `${path} check ${index} name`);
+    names.push(check.name.trim());
+    if (!HEALTH_CHECK_STATUSES.has(check.status)) {
+      fail(`${path} check ${check.name} has invalid status ${check.status}.`);
+    }
+    if (typeof check.critical !== "boolean") {
+      fail(`${path} check ${check.name} critical must be boolean.`);
+    }
+    if (check.detail !== undefined) {
+      assertBoundedString(
+        check.detail,
+        `${path} check ${check.name} detail`,
+        500,
+      );
+    }
+  }
+  assertUnique(names, `${path} check names`);
+
+  const hasCriticalFailure = fixture.checks.some(
+    (check) => check.critical && check.status === "fail",
+  );
+  const hasDegradation = fixture.checks.some(
+    (check) => check.status !== "pass",
+  );
+  const expectedStatus = hasCriticalFailure
+    ? "unhealthy"
+    : hasDegradation
+      ? "degraded"
+      : "healthy";
+  const expectedReadiness = hasCriticalFailure ? "not_ready" : "ready";
+
+  if (fixture.status !== expectedStatus) {
+    fail(
+      `${path} status ${fixture.status} disagrees with checks (${expectedStatus}).`,
+    );
+  }
+  if (fixture.readiness !== expectedReadiness) {
+    fail(
+      `${path} readiness ${fixture.readiness} disagrees with critical checks (${expectedReadiness}).`,
+    );
   }
 }
 
@@ -133,6 +308,9 @@ async function validateContract(contract, evidenceCache) {
   ]);
   assertRequiredSchemaFields(contract, schema, expected);
   assertRuntimeFields(contract, runtimeSource, expected);
+  if (contract.id === "PLATFORM-HEALTH-SNAPSHOT") {
+    assertHealthSchema(contract, schema);
+  }
 
   let evidence = evidenceCache.get(contract.evidence);
   if (!evidence) {
@@ -144,6 +322,21 @@ async function validateContract(contract, evidenceCache) {
   }
   if (!evidence.includes(contract.schema)) {
     fail(`${contract.id} evidence does not reference its schema.`);
+  }
+
+  if (contract.id === "PLATFORM-HEALTH-SNAPSHOT") {
+    if (!Array.isArray(contract.fixtures) || contract.fixtures.length < 2) {
+      fail(`${contract.id} requires ready and not-ready fixtures.`);
+    }
+    assertUnique(contract.fixtures, `${contract.id} fixture paths`);
+    for (const fixturePath of contract.fixtures) {
+      assertHealthFixture(fixturePath, await readJson(fixturePath));
+      if (!evidence.includes(fixturePath)) {
+        fail(
+          `${contract.id} evidence does not reference fixture ${fixturePath}.`,
+        );
+      }
+    }
   }
 }
 

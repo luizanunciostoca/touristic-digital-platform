@@ -21,10 +21,10 @@ Definir dependências permitidas, contratos públicos, dados, eventos e proibiç
 ### Core
 
 Pode consumir: nenhuma regra de domínio.
-Expõe: IDs tipados, Result, Money, contexto, envelopes de evento, observabilidade transversal, erros padronizados e configuração base.
+Expõe: IDs tipados, Result, Money, contexto, envelopes de evento, observabilidade transversal, health/readiness, erros padronizados e configuração base.
 Não pode: importar Marketplace, Financial, Affiliate, Admin ou apps.
 
-O envelope público de evento é `PLATFORM-EVENT-ENVELOPE` (`docs/contracts/platform-event-envelope.v1.schema.json`). O envelope mínimo de observabilidade é `PLATFORM-OBSERVATION` (`docs/contracts/platform-observation.v1.schema.json`). Ambos pertencem a Core e não podem ser redefinidos por módulos consumidores.
+O envelope público de evento é `PLATFORM-EVENT-ENVELOPE` (`docs/contracts/platform-event-envelope.v1.schema.json`). O envelope mínimo de observabilidade é `PLATFORM-OBSERVATION` (`docs/contracts/platform-observation.v1.schema.json`). O snapshot transversal de health/readiness é `PLATFORM-HEALTH-SNAPSHOT` (`docs/contracts/platform-health-snapshot.v1.schema.json`). Os três pertencem a Core e não podem ser redefinidos por módulos consumidores.
 
 ### Destination
 
@@ -141,12 +141,14 @@ Toda API pública deve declarar:
 - erros em formato padronizado;
 - observabilidade e rate limit.
 
-## 5. Contrato de evento e observabilidade
+## 5. Contrato de evento, observabilidade e health/readiness
 
 Todo evento deve usar `PLATFORM-EVENT-ENVELOPE` e declarar owner, versão, payload, produtor, consumidores, política de retry, idempotência, retenção e tratamento de dados pessoais.
 
 Logs estruturados, métricas, traces, auditoria e alertas que atravessem fronteiras de módulo devem usar `PLATFORM-OBSERVATION` como envelope mínimo de contexto. Os contratos executáveis são `docs/contracts/platform-event-envelope.v1.schema.json` e `docs/contracts/platform-observation.v1.schema.json`.
 
+Health/readiness transversal deve usar `PLATFORM-HEALTH-SNAPSHOT` (`docs/contracts/platform-health-snapshot.v1.schema.json`). Checks críticos que falham tornam o snapshot `unhealthy/not_ready`; checks não críticos podem degradar a saúde sem bloquear readiness. Serviços e apps podem transportar o snapshot em probes próprias, mas não redefinir essa agregação.
+
 ## 6. Gate
 
-Uma dependência não prevista neste documento exige atualização do contrato e, quando estrutural, um ADR antes da implementação. Alterações nos contratos canônicos exigem registry, schema, runtime, evidência e `pnpm platform:contracts:check` reconciliados no mesmo PR.
+Uma dependência não prevista neste documento exige atualização do contrato e, quando estrutural, um ADR antes da implementação. Alterações nos contratos canônicos exigem registry, schema, runtime, fixtures quando aplicável, evidência e `pnpm platform:contracts:check` reconciliados no mesmo PR.

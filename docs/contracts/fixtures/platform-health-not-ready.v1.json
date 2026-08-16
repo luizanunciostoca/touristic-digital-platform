@@ -1,0 +1,22 @@
+{
+  "contractVersion": 1,
+  "service": "morro-digital-platform",
+  "status": "unhealthy",
+  "readiness": "not_ready",
+  "checkedAt": "2026-08-16T03:15:00.000Z",
+  "destinationId": "morro-de-sao-paulo",
+  "correlationId": "corr_platform_health_fixture_not_ready",
+  "checks": [
+    {
+      "name": "module-registry",
+      "status": "pass",
+      "critical": true
+    },
+    {
+      "name": "geospatial-runtime",
+      "status": "fail",
+      "critical": true,
+      "detail": "Provider runtime did not initialize."
+    }
+  ]
+}

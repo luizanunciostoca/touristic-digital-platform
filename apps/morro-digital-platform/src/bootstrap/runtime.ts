@@ -1,7 +1,10 @@
 import {
+  createPlatformHealthSnapshot,
   createPlatformRuntime,
   EventBus,
   ModuleRegistry,
+  type PlatformHealthCheckInput,
+  type PlatformHealthSnapshot,
   type PlatformModule,
   type PlatformRuntime,
 } from "@touristic/core";
@@ -36,6 +39,7 @@ export interface BootstrapResult {
   readonly startedModules: readonly string[];
   readonly geospatialEngine?: GeospatialEngine;
   readonly loadedMarkerCount: number;
+  readonly readiness: PlatformHealthSnapshot;
 }
 
 function describeMarkerError(error: unknown): string {
@@ -100,6 +104,35 @@ async function loadInitialMarkers(
   }
 }
 
+function createBootstrapReadiness(
+  runtime: PlatformRuntime,
+  geospatialRequested: boolean,
+  geospatialEngine: GeospatialEngine | undefined,
+): PlatformHealthSnapshot {
+  const checks: PlatformHealthCheckInput[] = [
+    { name: "module-registry", status: "pass", critical: true },
+    { name: "bootstrap", status: "pass", critical: true },
+  ];
+
+  if (geospatialRequested) {
+    const initialized = geospatialEngine?.initialized === true;
+    checks.push({
+      name: "geospatial-runtime",
+      status: initialized ? "pass" : "fail",
+      critical: true,
+      ...(initialized
+        ? {}
+        : { detail: "Requested geospatial runtime did not initialize." }),
+    });
+  }
+
+  return createPlatformHealthSnapshot({
+    service: "morro-digital-platform",
+    destinationId: runtime.destination.id,
+    checks,
+  });
+}
+
 export async function bootstrapMorroDigital(
   options: BootstrapMorroDigitalOptions = {},
 ): Promise<BootstrapResult> {
@@ -142,11 +175,17 @@ export async function bootstrapMorroDigital(
   const loadedMarkerCount = geospatialEngine
     ? await loadInitialMarkers(geospatialEngine, runtime.events, initialMarkers)
     : 0;
+  const readiness = createBootstrapReadiness(
+    runtime,
+    Boolean(options.initializeGeospatial),
+    geospatialEngine,
+  );
 
   return Object.freeze({
     runtime,
     startedModules: Object.freeze(runtime.modules.map((module) => module.id)),
     ...(geospatialEngine ? { geospatialEngine } : {}),
     loadedMarkerCount,
+    readiness,
   });
 }

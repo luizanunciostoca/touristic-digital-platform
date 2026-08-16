@@ -1,0 +1,21 @@
+{
+  "contractVersion": 1,
+  "service": "morro-digital-platform",
+  "status": "healthy",
+  "readiness": "ready",
+  "checkedAt": "2026-08-16T03:15:00.000Z",
+  "destinationId": "morro-de-sao-paulo",
+  "correlationId": "corr_platform_health_fixture_ready",
+  "checks": [
+    {
+      "name": "module-registry",
+      "status": "pass",
+      "critical": true
+    },
+    {
+      "name": "bootstrap",
+      "status": "pass",
+      "critical": true
+    }
+  ]
+}
