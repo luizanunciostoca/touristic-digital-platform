@@ -1,0 +1,43 @@
+name: Ticketing Surface Format Once
+
+on:
+  push:
+    branches:
+      - fix/ticketing-feature-0011-current-main
+    paths:
+      - ".github/workflows/zz-ticketing-surface-format-once.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  format-ticketing-surface:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/ticketing-feature-0011-current-main
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Apply canonical Prettier output
+        run: pnpm exec prettier --write apps/morro-digital-platform/public/ticketing.css apps/morro-digital-platform/public/ticketing.js apps/morro-digital-platform/public/tickets.html apps/morro-digital-platform/tooling/ticketing-api.mjs
+      - name: Commit formatted surface if needed
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo "No formatting changes required."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/morro-digital-platform/public/ticketing.css apps/morro-digital-platform/public/ticketing.js apps/morro-digital-platform/public/tickets.html apps/morro-digital-platform/tooling/ticketing-api.mjs
+          git commit -m "style(ticketing): format public surface"
+          git push origin HEAD:fix/ticketing-feature-0011-current-main
