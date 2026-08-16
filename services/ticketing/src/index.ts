@@ -7,6 +7,9 @@ import {
 } from "./mysql-ticket-checkin-repository.js";
 import { MySqlTicketReservationRepository } from "./mysql-ticket-reservation-repository.js";
 import {
+  createOrderingFinancialReservationConfirmationAuthority,
+} from "./ordering-financial-confirmation-authority.js";
+import {
   TicketReservationApplicationError,
   createTicketReservationApplicationService,
   type TicketReservationApplicationErrorCode,
@@ -17,6 +20,12 @@ import {
   type TicketReservationConfirmationResult,
   type VerifiedTicketReservationAuthority,
 } from "./reservation-application-service.js";
+import {
+  createTicketReservationFulfillmentService,
+  type TicketHolderProfilePort,
+  type TicketReservationFulfillmentResult,
+  type TicketReservationFulfillmentService,
+} from "./reservation-fulfillment-service.js";
 import { ticketingM150ReservationSchemaSql } from "./reservation-schema.js";
 import type {
   TicketingOfflineTransactionalCommandResult,
@@ -43,19 +52,24 @@ export {
   MySqlTicketingTransactionalCommand,
   TicketReservationApplicationError,
   TicketingApplicationError,
+  createOrderingFinancialReservationConfirmationAuthority,
   createTicketReservationApplicationService,
+  createTicketReservationFulfillmentService,
   createTicketingApplicationService,
   ticketingM147SchemaSql,
   ticketingM150ReservationSchemaSql,
 };
 
 export type {
+  TicketHolderProfilePort,
   TicketReservationApplicationErrorCode,
   TicketReservationApplicationService,
   TicketReservationClockPort,
   TicketReservationConfirmationAuthorityPort,
   TicketReservationConfirmationRepositoryPort,
   TicketReservationConfirmationResult,
+  TicketReservationFulfillmentResult,
+  TicketReservationFulfillmentService,
   TicketingApplicationErrorCode,
   TicketingApplicationService,
   TicketingApplicationServiceDependencies,
