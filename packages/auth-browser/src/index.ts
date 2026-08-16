@@ -5,6 +5,7 @@ const protectedPrefixes = Object.freeze([
   "/api/offers",
   "/api/business",
   "/api/crm",
+  "/api/ticketing",
 ]);
 const safeMethods = new Set(["GET", "HEAD", "OPTIONS"]);
 const csrfStorageKey = "md_dashboard_csrf";
@@ -85,7 +86,9 @@ function isLoginRequest(input: RequestInfo | URL, origin: string): boolean {
 function safeLoginUrl(location: BrowserLocationPort): string {
   const current = `${location.pathname}${location.search}`;
   const returnPath =
-    current.startsWith("/dashboard/") || current.startsWith("/apps/admin-crm/")
+    current.startsWith("/dashboard/") ||
+    current.startsWith("/apps/admin-crm/") ||
+    current === "/tickets.html"
       ? current
       : "/dashboard/index-v3-improved.html";
   return `/dashboard/login.html?return=${encodeURIComponent(returnPath)}`;
