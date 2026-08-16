@@ -17,6 +17,11 @@
       "node": "./dist/subscription.js",
       "default": "./src/subscription.ts"
     },
+    "./subscription-application": {
+      "types": "./src/subscription-application.ts",
+      "node": "./dist/subscription-application.js",
+      "default": "./src/subscription-application.ts"
+    },
     "./ticketing-reservation": {
       "types": "./src/ticketing-reservation.ts",
       "node": "./dist/ticketing-reservation.js",
