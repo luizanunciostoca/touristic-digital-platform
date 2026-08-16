@@ -1,0 +1,49 @@
+name: Payments M153 Final Doc Fix Once
+
+on:
+  push:
+    branches:
+      - feat/payments-m153-feature-0009-closure
+    paths:
+      - ".github/workflows/payments-m153-final-doc-fix-once.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/payments-m153-feature-0009-closure
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Fix stale PARTIAL count
+        shell: python
+        run: |
+          from pathlib import Path
+          path = Path("docs/migration/PAYMENTS-MIGRATION-MATRIX.md")
+          text = path.read_text()
+          old = "Zero `GAP` rows is not sufficient for equivalence while the six approved `PARTIAL` contracts above remain unresolved or unproven."
+          new = "Zero `GAP` rows is not sufficient for equivalence while the three remaining `PARTIAL` contracts above remain unresolved or unproven."
+          if old not in text:
+              raise SystemExit("stale sentence not found exactly once")
+          text = text.replace(old, new, 1)
+          path.write_text(text)
+      - run: pnpm exec prettier --write docs/migration/PAYMENTS-MIGRATION-MATRIX.md
+      - name: Commit final doc fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/migration/PAYMENTS-MIGRATION-MATRIX.md
+          git commit -m "docs(payments): correct M153 residual count"
+          git push origin HEAD:feat/payments-m153-feature-0009-closure
