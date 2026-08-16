@@ -283,7 +283,7 @@ function authorizationError(
   if (reason === "read_only_role") {
     return errorResponse(403, "READ_ONLY_ROLE", correlationId);
   }
-  return errorResponse(403, "ACCESS_DENIED", correlationId);
+  return errorResponse(403, "BUSINESS_ACCESS_DENIED", correlationId);
 }
 
 function applicationError(
@@ -629,7 +629,12 @@ export class CheckoutHttpTransport {
       await recordAudit(this.dependencies.audit, {
         action: "checkout.create",
         result: "success",
-        reason: `${selected.kind}:${replayed ? "replayed" : "created"}`,
+        reason:
+          selected.kind === "business"
+            ? replayed
+              ? "replayed"
+              : "created"
+            : `ticketing:${replayed ? "replayed" : "created"}`,
         correlationId,
         actorSubject: context.actorSubject,
         destinationId: context.destinationId,
@@ -669,9 +674,7 @@ export class CheckoutHttpTransport {
         reason:
           error instanceof CheckoutApplicationError
             ? error.code
-            : error instanceof Error
-              ? error.message.slice(0, 120)
-              : "internal_failure",
+            : "internal_failure",
         correlationId,
         actorSubject: context.actorSubject,
         destinationId: context.destinationId,
