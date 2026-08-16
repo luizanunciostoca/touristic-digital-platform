@@ -59,6 +59,8 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Build Financial package dependency
+        run: pnpm --filter @touristic/financial build
       - name: Ordering recurrence domain and application contracts
         run: pnpm --filter @touristic/ordering test
       - name: Ordering durable Subscription persistence
