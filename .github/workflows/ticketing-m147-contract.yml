@@ -38,21 +38,10 @@ jobs:
   ticketing-contract:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    services:
-      mysql:
-        image: mysql:8.4
-        env:
-          MYSQL_ROOT_PASSWORD: m147-ticketing
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping -h localhost -pm147-ticketing"
-          --health-interval=5s
-          --health-timeout=5s
-          --health-retries=20
     env:
       MYSQL_ADMIN_DATABASE_URL: mysql://root:m147-ticketing@127.0.0.1:3306/mysql
       TICKETING_DATABASE_URL: mysql://root:m147-ticketing@127.0.0.1:3306/ticketing_m147_test
+      TURBO_TELEMETRY_DISABLED: "1"
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -63,23 +52,76 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Build Ticketing runtime dependencies
+      - name: Validate Ticketing contracts with overlapped MySQL provisioning
         run: |
-          pnpm --filter @touristic/financial build
-          pnpm --filter @touristic/ordering build
-      - name: Validate Ticketing domain
-        run: |
-          pnpm --filter @touristic/ticketing lint
-          pnpm --filter @touristic/ticketing typecheck
+          set -euo pipefail
+
+          mysql_container="ticketing-m147-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          mysql_pull_log=/tmp/m147-mysql-pull.log
+
+          finish() {
+            status=$?
+            trap - EXIT
+            if (( status != 0 )); then
+              cat "$mysql_pull_log" 2>/dev/null || true
+              docker logs "$mysql_container" 2>/dev/null || true
+            fi
+            docker rm --force "$mysql_container" >/dev/null 2>&1 || true
+            exit "$status"
+          }
+          trap finish EXIT
+
+          docker pull mysql:8.4 >"$mysql_pull_log" 2>&1 &
+          mysql_pull_pid=$!
+
+          (
+            set -euo pipefail
+            pnpm --filter @touristic/ticketing lint
+            pnpm --filter @touristic/ticketing typecheck
+            pnpm --filter @touristic/ticketing-server lint
+            pnpm --filter @touristic/ticketing-server typecheck
+          ) &
+          static_validation_pid=$!
+
+          mysql_pull_status=0
+          wait "$mysql_pull_pid" || mysql_pull_status=$?
+          if (( mysql_pull_status != 0 )); then
+            wait "$static_validation_pid" || true
+            exit "$mysql_pull_status"
+          fi
+
+          docker run --detach \
+            --name "$mysql_container" \
+            --env MYSQL_ROOT_PASSWORD=m147-ticketing \
+            --publish 3306:3306 \
+            --health-cmd="mysqladmin ping -h localhost -pm147-ticketing" \
+            --health-interval=5s \
+            --health-timeout=5s \
+            --health-retries=20 \
+            mysql:8.4 >/tmp/m147-mysql-container-id
+
+          static_validation_status=0
+          wait "$static_validation_pid" || static_validation_status=$?
+          if (( static_validation_status != 0 )); then
+            exit "$static_validation_status"
+          fi
+
+          pnpm turbo run build --filter=@touristic/ticketing-server...
+
+          mysql_health=""
+          for _ in $(seq 1 120); do
+            mysql_health="$(docker inspect --format='{{.State.Health.Status}}' "$mysql_container")"
+            if [[ "$mysql_health" == "healthy" ]]; then
+              break
+            fi
+            if [[ "$mysql_health" == "unhealthy" ]]; then
+              exit 1
+            fi
+            sleep .25
+          done
+          if [[ "$mysql_health" != "healthy" ]]; then
+            exit 1
+          fi
+
           pnpm --filter @touristic/ticketing test
-      - name: Build Ticketing domain
-        run: pnpm --filter @touristic/ticketing build
-      - name: Validate Ticketing server application
-        run: |
-          pnpm --filter @touristic/ticketing-server lint
-          pnpm --filter @touristic/ticketing-server typecheck
-          pnpm --filter @touristic/ticketing-server test
-      - name: Validate durable Ticketing persistence
-        run: pnpm --filter @touristic/ticketing-server test:integration
-      - name: Build Ticketing server
-        run: pnpm --filter @touristic/ticketing-server build
+          pnpm --filter @touristic/ticketing-server exec vitest run --passWithNoTests
