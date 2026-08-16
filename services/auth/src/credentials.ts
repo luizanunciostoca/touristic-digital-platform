@@ -92,11 +92,14 @@ export function parseConfiguredUsers(
     const record = entry as Record<string, unknown>;
     const email = normalizeAuthEmail(record.email);
     const passwordHash = safeString(record.passwordHash, 500);
-    const role: AuthRole = isAuthRole(record.role) ? record.role : "owner";
+    const role: AuthRole | null = isAuthRole(record.role)
+      ? record.role
+      : null;
     const businessIds = normalizeBusinessScopes(record.businessIds);
     if (
       !email ||
       !passwordHash ||
+      !role ||
       (role !== "admin" && businessIds.length === 0)
     ) {
       throw new Error(
