@@ -1,7 +1,4 @@
-import {
-  crmActiveFunnelStages,
-  type CrmLeadStage,
-} from "./index.js";
+import { crmActiveFunnelStages, type CrmLeadStage } from "./index.js";
 
 /**
  * Labels frozen from the V1 CRM presentation contract.
