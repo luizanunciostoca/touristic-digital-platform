@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>CRM · Detalhe do Lead</title>
+    <link rel="stylesheet" href="/apps/admin-crm/public/crm.css" />
+    <script type="importmap">
+      {"imports":{"@touristic/auth":"/packages/auth/dist/index.js","@touristic/auth-browser":"/packages/auth-browser/dist/index.js","@touristic/crm/settings-contract":"/packages/crm/dist/settings-contract.js","@touristic/crm/lead-detail-contract":"/packages/crm/dist/lead-detail-contract.js"}}
+    </script>
+  </head>
+  <body>
+    <main id="lead-detail-shell" class="content" hidden>
+      <p><a href="/apps/admin-crm/#leads">← Leads</a></p>
+      <header>
+        <div>
+          <span class="eyebrow">Administração · CRM</span>
+          <h1 id="lead-company">Detalhe do Lead</h1>
+        </div>
+        <div id="session-chip" class="session-chip">Sessão protegida</div>
+      </header>
+
+      <div id="lead-detail-status" class="leads-status" role="status">
+        Carregando lead…
+      </div>
+
+      <section class="hero" aria-labelledby="lead-summary-title">
+        <span class="eyebrow">Contrato V1 congelado</span>
+        <h2 id="lead-summary-title">Resumo operacional</h2>
+        <div id="lead-summary" class="grid"></div>
+      </section>
+
+      <section class="lead-create-card" aria-labelledby="lead-stage-title">
+        <div>
+          <span class="eyebrow">Pipeline</span>
+          <h3 id="lead-stage-title">Etapa atual</h3>
+        </div>
+        <form id="lead-stage-form" class="lead-create-form">
+          <label>
+            Etapa do funil
+            <select id="lead-stage" name="stage" required></select>
+          </label>
+          <div class="lead-create-actions">
+            <button id="lead-stage-submit" type="submit">Salvar etapa</button>
+            <span id="lead-stage-status" role="status"></span>
+          </div>
+        </form>
+      </section>
+
+      <section class="lead-create-card" aria-labelledby="lead-edit-title">
+        <div>
+          <span class="eyebrow">Cadastro</span>
+          <h3 id="lead-edit-title">Informações do lead</h3>
+        </div>
+        <form id="lead-edit-form" class="lead-create-form">
+          <label>
+            Empresa
+            <input name="companyName" required maxlength="160" />
+          </label>
+          <label>
+            Segmento
+            <input name="segment" maxlength="120" />
+          </label>
+          <label>
+            Contato
+            <input name="contactName" maxlength="160" />
+          </label>
+          <label>
+            WhatsApp
+            <input name="whatsapp" maxlength="80" />
+          </label>
+          <label>
+            Telefone
+            <input name="phone" maxlength="80" />
+          </label>
+          <label>
+            E-mail
+            <input name="email" type="email" maxlength="160" />
+          </label>
+          <label>
+            Valor mensal
+            <input name="monthlyValue" inputmode="decimal" maxlength="32" />
+          </label>
+          <label>
+            Endereço
+            <input name="address" maxlength="240" />
+          </label>
+          <label>
+            Website
+            <input name="website" maxlength="240" />
+          </label>
+          <label>
+            Origem
+            <input name="source" maxlength="160" />
+          </label>
+          <label style="grid-column: 1 / -1">
+            Observações
+            <textarea name="notes" maxlength="4000" rows="4"></textarea>
+          </label>
+          <div class="lead-create-actions">
+            <button id="lead-edit-submit" type="submit">Salvar alterações</button>
+            <span id="lead-edit-status" role="status"></span>
+          </div>
+        </form>
+      </section>
+
+      <section class="lead-create-card" aria-labelledby="lead-checklist-title">
+        <div>
+          <span class="eyebrow">Jornada comercial</span>
+          <h3 id="lead-checklist-title">Checklist do processo</h3>
+          <p id="lead-checklist-progress" class="leads-status"></p>
+        </div>
+        <div id="lead-checklist" class="dashboard-list"></div>
+      </section>
+
+      <section class="lead-create-card" aria-labelledby="lead-interaction-title">
+        <div>
+          <span class="eyebrow">Atividade</span>
+          <h3 id="lead-interaction-title">Registrar interação</h3>
+        </div>
+        <form id="lead-interaction-form" class="lead-create-form">
+          <label>
+            Tipo
+            <select id="lead-interaction-type" name="type" required></select>
+          </label>
+          <label style="grid-column: span 2">
+            Registro
+            <textarea name="content" maxlength="4000" rows="3" required></textarea>
+          </label>
+          <div class="lead-create-actions">
+            <button id="lead-interaction-submit" type="submit">Adicionar interação</button>
+            <span id="lead-interaction-status" role="status"></span>
+          </div>
+        </form>
+      </section>
+
+      <section class="lead-create-card" aria-labelledby="lead-history-title">
+        <div>
+          <span class="eyebrow">Histórico</span>
+          <h3 id="lead-history-title">Atividade recente</h3>
+        </div>
+        <div id="lead-interactions" class="dashboard-list"></div>
+      </section>
+
+      <section class="lead-create-card" aria-labelledby="lead-actions-title">
+        <div>
+          <span class="eyebrow">Módulos relacionados</span>
+          <h3 id="lead-actions-title">Próximas ações</h3>
+        </div>
+        <nav class="lead-create-actions" aria-label="Ações comerciais do lead">
+          <a href="/apps/admin-crm/public/meetings.html">Reuniões</a>
+          <a href="/apps/admin-crm/public/proposals.html">Propostas</a>
+          <a href="/apps/admin-crm/public/contracts.html">Contratos</a>
+          <a href="/apps/admin-crm/public/trials.html">Trials</a>
+          <a href="/apps/admin-crm/public/follow-ups.html">Follow-ups</a>
+        </nav>
+      </section>
+    </main>
+
+    <section id="session-loading" class="entry">
+      <div class="entry-card">
+        <span class="eyebrow">Morro Digital CRM</span>
+        <h1>Validando sessão…</h1>
+      </div>
+    </section>
+
+    <script type="module" src="./lead-detail.js"></script>
+  </body>
+</html>
