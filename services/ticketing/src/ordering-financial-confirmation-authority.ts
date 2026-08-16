@@ -11,9 +11,7 @@ function sameMoney(
   left: { readonly minorUnits: number; readonly currency: string },
   right: { readonly minorUnits: number; readonly currency: string },
 ): boolean {
-  return (
-    left.minorUnits === right.minorUnits && left.currency === right.currency
-  );
+  return left.minorUnits === right.minorUnits && left.currency === right.currency;
 }
 
 export function createOrderingFinancialReservationConfirmationAuthority(
@@ -24,7 +22,7 @@ export function createOrderingFinancialReservationConfirmationAuthority(
     readonly verifiedResults: VerifiedPaymentResultRepositoryPort;
   },
 ): TicketReservationConfirmationAuthorityPort {
-  return Object.freeze({
+  const authority: TicketReservationConfirmationAuthorityPort = {
     async verify(input) {
       const binding = await dependencies.bindings.findByReservationReference(
         input.reservation.id,
@@ -79,5 +77,7 @@ export function createOrderingFinancialReservationConfirmationAuthority(
         paymentId: payment.id,
       });
     },
-  });
+  };
+
+  return Object.freeze(authority);
 }
