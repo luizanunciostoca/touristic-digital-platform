@@ -213,7 +213,9 @@ function eventId(
   occurredAt: string,
 ): string {
   const digest = createHash("sha256")
-    .update(`ticketing-reservation-event:v1:${reservationId}:${eventType}:${occurredAt}`)
+    .update(
+      `ticketing-reservation-event:v1:${reservationId}:${eventType}:${occurredAt}`,
+    )
     .digest("hex")
     .slice(0, EVENT_ID_BODY_LENGTH);
   return `rve_${digest}`;
@@ -363,7 +365,9 @@ function assertReplayIdentity(
 export class MySqlTicketReservationRepository {
   constructor(private readonly pool: Pool) {}
 
-  async saveInventory(offer: TicketInventoryOffer): Promise<TicketInventoryOffer> {
+  async saveInventory(
+    offer: TicketInventoryOffer,
+  ): Promise<TicketInventoryOffer> {
     const connection = await this.pool.getConnection();
     try {
       await connection.beginTransaction();
@@ -522,7 +526,10 @@ export class MySqlTicketReservationRepository {
       input.quantity <= 20
         ? input.quantity
         : null;
-    const heldAt = instant(input.heldAt, "TICKETING_RESERVATION_HELD_AT_INVALID");
+    const heldAt = instant(
+      input.heldAt,
+      "TICKETING_RESERVATION_HELD_AT_INVALID",
+    );
     const expiresAt = instant(
       input.expiresAt,
       "TICKETING_RESERVATION_EXPIRES_AT_INVALID",
@@ -545,7 +552,10 @@ export class MySqlTicketReservationRepository {
       if (!inventory) throw new Error("TICKETING_INVENTORY_NOT_FOUND");
       await expireStaleHolds(connection, inventoryId, heldAt);
 
-      const replay = await selectReservationByRequestKey(connection, requestKey);
+      const replay = await selectReservationByRequestKey(
+        connection,
+        requestKey,
+      );
       if (replay) {
         assertReplayIdentity(replay, {
           reservationId,
@@ -561,7 +571,11 @@ export class MySqlTicketReservationRepository {
         });
         if (!availability) throw new Error("TICKETING_AVAILABILITY_INVALID");
         await connection.commit();
-        return Object.freeze({ reservation: replay, availability, replayed: true });
+        return Object.freeze({
+          reservation: replay,
+          availability,
+          replayed: true,
+        });
       }
 
       if (!isTicketInventorySellable(inventory, heldAt)) {
@@ -619,7 +633,13 @@ export class MySqlTicketReservationRepository {
           new Date(reservation.updatedAt),
         ],
       );
-      await appendEvent(connection, reservation, "held", actorReference, heldAt);
+      await appendEvent(
+        connection,
+        reservation,
+        "held",
+        actorReference,
+        heldAt,
+      );
       const committedAfter = committedBefore + quantity;
       const availability = createTicketInventoryAvailability({
         inventory,
@@ -655,12 +675,24 @@ export class MySqlTicketReservationRepository {
     const connection = await this.pool.getConnection();
     try {
       await connection.beginTransaction();
-      const seed = await selectReservationById(connection, reservationId, false);
+      const seed = await selectReservationById(
+        connection,
+        reservationId,
+        false,
+      );
       if (!seed) throw new Error("TICKETING_RESERVATION_NOT_FOUND");
-      const inventory = await selectInventory(connection, seed.inventoryId, true);
+      const inventory = await selectInventory(
+        connection,
+        seed.inventoryId,
+        true,
+      );
       if (!inventory) throw new Error("TICKETING_INVENTORY_NOT_FOUND");
       await expireStaleHolds(connection, seed.inventoryId, confirmedAt);
-      const current = await selectReservationById(connection, reservationId, true);
+      const current = await selectReservationById(
+        connection,
+        reservationId,
+        true,
+      );
       if (!current) throw new Error("TICKETING_RESERVATION_NOT_FOUND");
       if (current.status === "confirmed") {
         if (
@@ -717,12 +749,24 @@ export class MySqlTicketReservationRepository {
     const connection = await this.pool.getConnection();
     try {
       await connection.beginTransaction();
-      const seed = await selectReservationById(connection, reservationId, false);
+      const seed = await selectReservationById(
+        connection,
+        reservationId,
+        false,
+      );
       if (!seed) throw new Error("TICKETING_RESERVATION_NOT_FOUND");
-      const inventory = await selectInventory(connection, seed.inventoryId, true);
+      const inventory = await selectInventory(
+        connection,
+        seed.inventoryId,
+        true,
+      );
       if (!inventory) throw new Error("TICKETING_INVENTORY_NOT_FOUND");
       await expireStaleHolds(connection, seed.inventoryId, cancelledAt);
-      const current = await selectReservationById(connection, reservationId, true);
+      const current = await selectReservationById(
+        connection,
+        reservationId,
+        true,
+      );
       if (!current) throw new Error("TICKETING_RESERVATION_NOT_FOUND");
       if (current.status === "cancelled") {
         await connection.commit();
@@ -764,7 +808,9 @@ export class MySqlTicketReservationRepository {
       rows.map((row) => {
         const id = normalizeTicketReservationId(row.reservation_id);
         const inventoryId = normalizeTicketInventoryId(row.inventory_id);
-        const requestKey = normalizeTicketReservationRequestKey(row.request_key);
+        const requestKey = normalizeTicketReservationRequestKey(
+          row.request_key,
+        );
         const occurredAt = time(row.occurred_at);
         const recordedAt = time(row.recorded_at);
         if (

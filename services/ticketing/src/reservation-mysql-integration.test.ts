@@ -17,13 +17,15 @@ const databaseUrl = process.env.TICKETING_DATABASE_URL;
 const adminUrl = process.env.MYSQL_ADMIN_DATABASE_URL;
 const describeMySql = databaseUrl && adminUrl ? describe : describe.skip;
 
-function offer(input: {
-  readonly id?: string;
-  readonly amount?: number;
-  readonly pricingVersion?: string;
-  readonly capacity?: number;
-  readonly updatedAt?: string;
-} = {}) {
+function offer(
+  input: {
+    readonly id?: string;
+    readonly amount?: number;
+    readonly pricingVersion?: string;
+    readonly capacity?: number;
+    readonly updatedAt?: string;
+  } = {},
+) {
   const value = createTicketInventoryOffer({
     id: input.id ?? "tin_reservation_mysql_0001",
     destinationId: "morro-de-sao-paulo",
@@ -110,11 +112,15 @@ describeMySql.sequential("M150 Ticketing reservation MySQL integration", () => {
     ]);
 
     const fulfilled = attempts.filter(
-      (attempt): attempt is PromiseFulfilledResult<Awaited<ReturnType<typeof reservations.hold>>> =>
-        attempt.status === "fulfilled",
+      (
+        attempt,
+      ): attempt is PromiseFulfilledResult<
+        Awaited<ReturnType<typeof reservations.hold>>
+      > => attempt.status === "fulfilled",
     );
     const rejected = attempts.filter(
-      (attempt): attempt is PromiseRejectedResult => attempt.status === "rejected",
+      (attempt): attempt is PromiseRejectedResult =>
+        attempt.status === "rejected",
     );
     expect(fulfilled).toHaveLength(1);
     expect(rejected).toHaveLength(1);
@@ -150,9 +156,9 @@ describeMySql.sequential("M150 Ticketing reservation MySQL integration", () => {
     expect(replay.replayed).toBe(true);
     expect(replay.reservation).toEqual(first.reservation);
     expect(replay.availability.committedQuantity).toBe(1);
-    await expect(reservations.listEvents(first.reservation.id)).resolves.toEqual([
-      expect.objectContaining({ eventType: "held" }),
-    ]);
+    await expect(
+      reservations.listEvents(first.reservation.id),
+    ).resolves.toEqual([expect.objectContaining({ eventType: "held" })]);
   });
 
   it("expires stale holds transactionally and releases capacity for the next buyer", async () => {
@@ -179,7 +185,9 @@ describeMySql.sequential("M150 Ticketing reservation MySQL integration", () => {
     await expect(
       reservations.findReservationById(first.reservation.id),
     ).resolves.toMatchObject({ status: "expired" });
-    await expect(reservations.listEvents(first.reservation.id)).resolves.toEqual([
+    await expect(
+      reservations.listEvents(first.reservation.id),
+    ).resolves.toEqual([
       expect.objectContaining({ eventType: "held" }),
       expect.objectContaining({
         eventType: "expired",
@@ -225,10 +233,12 @@ describeMySql.sequential("M150 Ticketing reservation MySQL integration", () => {
     await expect(
       reservations.availability(inventory.id, "2026-08-16T18:01:01.000Z"),
     ).resolves.toMatchObject({ remainingQuantity: 1 });
-    await expect(reservations.listEvents(held.reservation.id)).resolves.toEqual([
-      expect.objectContaining({ eventType: "held" }),
-      expect.objectContaining({ eventType: "cancelled" }),
-    ]);
+    await expect(reservations.listEvents(held.reservation.id)).resolves.toEqual(
+      [
+        expect.objectContaining({ eventType: "held" }),
+        expect.objectContaining({ eventType: "cancelled" }),
+      ],
+    );
   });
 
   it("snapshots catalog pricing and confirms only through backend authority", async () => {
@@ -280,9 +290,11 @@ describeMySql.sequential("M150 Ticketing reservation MySQL integration", () => {
       paymentId: "pay_ticket_reservation_0001",
       pricingVersion: "ticket-2026-08-v1",
     });
-    await expect(reservations.listEvents(held.reservation.id)).resolves.toEqual([
-      expect.objectContaining({ eventType: "held" }),
-      expect.objectContaining({ eventType: "confirmed" }),
-    ]);
+    await expect(reservations.listEvents(held.reservation.id)).resolves.toEqual(
+      [
+        expect.objectContaining({ eventType: "held" }),
+        expect.objectContaining({ eventType: "confirmed" }),
+      ],
+    );
   });
 });

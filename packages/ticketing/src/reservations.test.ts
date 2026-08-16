@@ -89,9 +89,7 @@ describe("ticket reservation contracts", () => {
       "tin_sunset_20260816",
       "browser_attempt_0001",
     );
-    expect(key).toBe(
-      "ticketing:tin_sunset_20260816:browser_attempt_0001",
-    );
+    expect(key).toBe("ticketing:tin_sunset_20260816:browser_attempt_0001");
     expect(
       reservationRequestKeyMatchesInventory(key, "tin_sunset_20260816"),
     ).toBe(true);
@@ -132,10 +130,7 @@ describe("ticket reservation contracts", () => {
     expect(isTicketReservationExpired(held, "2026-08-16T18:10:00.000Z")).toBe(
       true,
     );
-    const expired = expireTicketReservation(
-      held,
-      "2026-08-16T18:10:00.000Z",
-    );
+    const expired = expireTicketReservation(held, "2026-08-16T18:10:00.000Z");
     expect(expired.status).toBe("expired");
     expect(expired.expiredAt).toBe("2026-08-16T18:10:00.000Z");
 

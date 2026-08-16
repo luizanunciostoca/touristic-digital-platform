@@ -105,9 +105,8 @@ export function createTicketReservationApplicationService(dependencies: {
         );
       }
 
-      const reservation = await dependencies.reservations.findReservationById(
-        reservationId,
-      );
+      const reservation =
+        await dependencies.reservations.findReservationById(reservationId);
       if (!reservation) {
         throw new TicketReservationApplicationError(
           "TICKETING_RESERVATION_NOT_FOUND",

@@ -183,8 +183,8 @@ export function reservationRequestKeyMatchesInventory(
   const inventoryId = normalizeTicketInventoryId(inventoryIdInput);
   return Boolean(
     requestKey &&
-      inventoryId &&
-      requestKey.startsWith(`ticketing:${inventoryId}:`),
+    inventoryId &&
+    requestKey.startsWith(`ticketing:${inventoryId}:`),
   );
 }
 
@@ -416,8 +416,8 @@ export function isTicketReservationExpired(
   const observedAt = normalizedTimestamp(observedAtInput);
   return Boolean(
     observedAt &&
-      reservation.status === "held" &&
-      Date.parse(observedAt) >= Date.parse(reservation.expiresAt),
+    reservation.status === "held" &&
+    Date.parse(observedAt) >= Date.parse(reservation.expiresAt),
   );
 }
 
