@@ -38,7 +38,9 @@ function reedSolomonDivisor(degree: number): Uint8Array {
   for (let i = 0; i < degree; i += 1) {
     for (let j = 0; j < degree; j += 1) {
       result[j] = multiply(result[j] ?? 0, root);
-      if (j + 1 < degree) result[j] ^= result[j + 1] ?? 0;
+      if (j + 1 < degree) {
+        result[j] = (result[j] ?? 0) ^ (result[j + 1] ?? 0);
+      }
     }
     root = multiply(root, 0x02);
   }
@@ -55,7 +57,7 @@ function reedSolomonRemainder(
     result.copyWithin(0, 1);
     result[result.length - 1] = 0;
     for (let i = 0; i < result.length; i += 1) {
-      result[i] ^= multiply(divisor[i] ?? 0, factor);
+      result[i] = (result[i] ?? 0) ^ multiply(divisor[i] ?? 0, factor);
     }
   }
   return result;
