@@ -156,13 +156,13 @@
       "name": "Ticketing e Check-in",
       "domain": "ticketing",
       "wave": 10,
-      "status": "migrating",
+      "status": "equivalent",
       "legacySources": [],
       "targetPackages": ["@touristic/ticketing", "@touristic/ticketing-server"],
       "equivalence": {
-        "behavior": false,
-        "visual": false,
-        "api": false
+        "behavior": true,
+        "visual": true,
+        "api": true
       }
     }
   ]

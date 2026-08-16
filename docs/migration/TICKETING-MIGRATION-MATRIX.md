@@ -18,53 +18,61 @@ Catalog / Inventory
   -> offline sync where applicable
 ```
 
-Ticketing must never create a parallel checkout or treat browser/provider redirect state as payment authority.
+Ticketing never creates a parallel checkout and never treats browser/provider redirect state as payment authority.
 
-## Matrix after M150
+## Final matrix after #276
 
-| Capability                                              | V1  | V2 status                           | Evidence / boundary                                                                                                                |
-| ------------------------------------------------------- | --- | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| Ticket/product catalog identity                         | N/A | PASS                                | M150 `TicketInventoryOffer`; destination + product reference                                                                       |
-| Server-authoritative price snapshot                     | N/A | PASS                                | M150 inventory price/pricingVersion copied into hold under lock                                                                    |
-| Sale/event availability windows                         | N/A | PASS                                | M150 validated sale/start/end windows                                                                                              |
-| Capacity / inventory                                    | N/A | PASS                                | M150 durable `ticketing_inventory`                                                                                                 |
-| Temporary reservation hold                              | N/A | PASS                                | M150 durable `held` reservation                                                                                                    |
-| Hold expiration                                         | N/A | PASS                                | M150 stale-hold sweep in locked inventory transaction                                                                              |
-| Reservation cancellation                                | N/A | PASS                                | M150 cancellation releases capacity                                                                                                |
-| Reservation confirmation                                | N/A | PARTIAL                             | M150 fail-closed authority port exists; concrete canonical Ordering/Payments adapter remains open                                  |
-| Reservation idempotency                                 | N/A | PASS                                | unique request key + exact replay contract                                                                                         |
-| Overselling protection                                  | N/A | PASS                                | inventory row lock + concurrent MySQL capacity-1 proof                                                                             |
-| Reservation audit                                       | N/A | PASS                                | append-only `ticketing_reservation_events`                                                                                         |
-| Reservation -> Order relation                           | N/A | PARTIAL                             | confirmed reservation persists canonical `OrderId`; Ticketing-specific canonical order source contract remains Ordering-owned/open |
-| Reservation -> Payment relation                         | N/A | PARTIAL                             | confirmed reservation persists canonical `PaymentId`; concrete Financial confirmation adapter remains open                         |
-| Backend payment as fulfillment authority                | N/A | PASS boundary / PARTIAL integration | M147 issuance rejects unconfirmed/mismatched persisted payment; M150 confirmation cannot bypass authority port                     |
-| Ticket issuance after payment                           | N/A | PASS                                | M147 application service + financial consistency checks                                                                            |
-| Ticket -> Order -> Payment relation                     | N/A | PASS                                | M147 durable ticket fields and issuance checks                                                                                     |
-| Signed QR payload without PII                           | N/A | PASS                                | M147 HMAC QR contract                                                                                                              |
-| Human ticket code                                       | N/A | PASS                                | M147 deterministic hashed code                                                                                                     |
-| Online validation/check-in                              | N/A | PASS backend                        | M147 lifecycle + M148 atomic transaction boundary                                                                                  |
-| Check-in replay safety                                  | N/A | PASS                                | M148 deterministic attempt identity and exact replay                                                                               |
-| Concurrent check-in safety                              | N/A | PASS                                | M148 row lock and stale-transition failure proof                                                                                   |
-| Offline check-in envelope/sync                          | N/A | PASS backend                        | M147 signed envelope + M148 atomic sync                                                                                            |
-| Public authenticated Ticketing HTTP API                 | N/A | GAP                                 | intentionally not exposed yet                                                                                                      |
-| Ticket/Reservation browser UI                           | N/A | GAP                                 | intentionally not exposed yet                                                                                                      |
-| QR visual image rendering                               | N/A | GAP                                 | payload exists; image rendering not implemented                                                                                    |
-| Offline device credential provisioning                  | N/A | GAP                                 | server signing material is not exposed to devices/browser                                                                          |
-| Refund -> reservation/ticket cancellation orchestration | N/A | GAP                                 | requires Financial-owned refund authority contract                                                                                 |
-| Reservation -> ticket fulfillment orchestration         | N/A | GAP                                 | issuance primitive exists, but automatic fulfillment bridge after authoritative reservation confirmation remains open              |
-| Release/rollback activation                             | N/A | GAP                                 | FEATURE-0011 remains `migrating`                                                                                                   |
+| Capability                                              | V1  | V2 status | Evidence / boundary                                                              |
+| ------------------------------------------------------- | --- | --------- | -------------------------------------------------------------------------------- |
+| Ticket/product catalog identity                         | N/A | PASS      | Durable inventory/catalog contract                                               |
+| Server-authoritative price snapshot                     | N/A | PASS      | Pricing version captured under authoritative hold                                |
+| Sale/event availability windows                         | N/A | PASS      | Validated server-side windows                                                    |
+| Capacity / inventory                                    | N/A | PASS      | Durable inventory with locking                                                   |
+| Temporary reservation hold                              | N/A | PASS      | Durable held reservation lifecycle                                               |
+| Hold expiration                                         | N/A | PASS      | Locked stale-hold expiry                                                         |
+| Reservation cancellation                                | N/A | PASS      | Capacity is released deterministically                                           |
+| Reservation confirmation                                | N/A | PASS      | Canonical Ordering binding plus Financial verified-result authority              |
+| Reservation idempotency                                 | N/A | PASS      | Request-key replay and semantic collision protection                             |
+| Overselling protection                                  | N/A | PASS      | Inventory locking and concurrency proof                                          |
+| Reservation audit                                       | N/A | PASS      | Append-only reservation events                                                   |
+| Reservation -> Order relation                           | N/A | PASS      | Ordering-owned Ticketing reservation binding                                     |
+| Reservation -> Payment relation                         | N/A | PASS      | Persisted Financial result binding; browser is non-authoritative                 |
+| Backend payment as fulfillment authority                | N/A | PASS      | Only persisted verified Financial outcomes can authorize fulfillment             |
+| Ticket issuance after payment                           | N/A | PASS      | Ticketing application/fulfillment bridge                                         |
+| Ticket -> Order -> Payment relation                     | N/A | PASS      | Durable canonical identities                                                     |
+| Signed QR payload without PII                           | N/A | PASS      | Signed Ticketing payload                                                         |
+| Human ticket code                                       | N/A | PASS      | Deterministic server-owned code                                                  |
+| QR visual image rendering                               | N/A | PASS      | Public Ticketing browser surface renders QR artifacts                            |
+| Online validation/check-in                              | N/A | PASS      | Durable transactional check-in                                                   |
+| Check-in replay safety                                  | N/A | PASS      | Deterministic attempt identity and replay                                        |
+| Concurrent check-in safety                              | N/A | PASS      | Transactional locking and stale-transition protection                            |
+| Offline device credential provisioning                  | N/A | PASS      | Device credential boundary implemented without exposing server signing authority |
+| Offline check-in envelope/sync                          | N/A | PASS      | Signed offline envelope and durable verified-result processing                   |
+| Public authenticated Ticketing HTTP API                 | N/A | PASS      | Authenticated `/api/ticketing` runtime                                           |
+| Ticket/Reservation browser UI                           | N/A | PASS      | Public Ticketing browser surface integrated                                      |
+| Refund -> reservation/ticket cancellation orchestration | N/A | PASS      | Financial-authoritative refund cancellation path                                 |
+| Reservation -> ticket fulfillment orchestration         | N/A | PASS      | Canonical Ordering/Financial handoff drives fulfillment                          |
+| Release/rollback activation contract                    | N/A | PASS      | `docs/runbooks/TICKETING-FEATURE-0011-RELEASE.md` and fail-closed rollback path  |
 
-## Status summary
+## Final evidence
 
-This matrix deliberately does not promote `FEATURE-0011` to `equivalent` or `released`.
+PR #276 rebuilt FEATURE-0011 directly from the then-current `main` instead of promoting the stale historical #265/#270 branches. The final candidate head `1a5af7ef4c85821714f54c934667fb5669fdca06` was zero behind and mergeable at promotion time and completed 24 check runs with zero failures, zero in-progress and zero cancelled checks.
 
-M147 closed the issuance/QR/check-in foundation. M148 closed transactional check-in consistency. M150 closes catalog, capacity, holds, expiry, cancellation, reservation audit and overselling prevention. The highest-priority remaining integration gap is the canonical bridge:
+Permanent gates included Quality, Ticketing Contract, MySQL Integration, Payments Browser Checkout, Auth Login Browser, Sandbox Provider, Verified Outcome, Verified Webhook, Transaction, Refund Command, Recurrence, Settlement, Reconciliation and Operational Ledger contracts.
+
+The integrated implementation preserves the authority chain:
 
 ```text
-confirmed reservation
-  <-> Ticketing-aware Ordering contract
-  <-> persisted Financial confirmation
-  -> ticket fulfillment
+Business / Ticketing intent
+  -> Ordering canonical order/reservation binding
+  -> Payments / Financial verified outcome authority
+  -> Ticketing fulfillment / cancellation
 ```
 
-That bridge must be implemented without widening Ticketing into a second Ordering/Payments system.
+Browser state, redirect state and provider command acceptance remain non-authoritative.
+
+## Status
+
+`FEATURE-0011` is `equivalent`, not `released`.
+
+For this V2-native feature, `equivalent` means the approved V2 capability is implemented with applicable behavioral, browser/API, persistence, security and rollback evidence. Production deployment remains a separate release/readiness concern and does not justify leaving the feature registry on the obsolete pre-#276 `migrating` state.
