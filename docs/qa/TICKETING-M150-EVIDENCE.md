@@ -110,6 +110,7 @@ M150 does not add:
 
 - public Ticketing HTTP endpoints;
 - browser reservation UI;
+- catalog/inventory administration API or admin UI;
 - another checkout or payment provider integration;
 - a Ticketing-specific duplicate of Ordering;
 - visual QR rendering;
