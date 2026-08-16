@@ -29,8 +29,15 @@ Proof on that head:
 - CRM Platform Auth Integration Contract: success;
 - CRM Lead Detail Browser Contract: success;
 - temporary ready-for-review full Quality: success, including repository tests and build;
-- returned to draft;
-- no merge performed by the CRM closure chat.
+- returned to draft before promotion.
+
+PR #260 was subsequently promoted by the coordinator/external integration flow and is now in `main` as:
+
+```text
+6727b0bcb679677d2e481868bfc23ec80bd74214
+```
+
+The CRM closure work in this evidence did not perform that merge.
 
 M140 restores the frozen Lead Detail aggregate, exact 16 selectable operational stages, all recognized readback labels, 16-step checklist, activity history/manual interaction, edit/stage lifecycle and list-to-detail navigation. It reuses the existing MySQL schema and adds no migration.
 
@@ -45,10 +52,10 @@ feat/crm-m141-equivalence-closure
 Base:
 
 ```text
-feat/crm-m140-lead-detail-activity
+main
 ```
 
-The PR is intentionally stacked so the coordinator can promote #260 before #266.
+After M140 promotion, #266 was reconciled directly onto post-M140 `main`; its promotion candidate must remain 0 behind and contain only the M141 residual closure.
 
 ## Lead optional-field clearing
 
@@ -184,7 +191,7 @@ artifact id: 9260428935
 artifact digest: sha256:744f12b4d11d5a73a722c60b658859c9b515d616126c83f50dd4e6eedee84ec2
 ```
 
-The authenticated hidden-state fix is frozen by the M141 static contract and the permanent browser workflow is required again on this final promotion commit.
+The authenticated hidden-state fix is frozen by the M141 static contract and the permanent browser workflow is required again on the exact final promotion head.
 
 ## Canonical score
 
@@ -200,14 +207,14 @@ No technical CRM parity gap remains after the final exact-head gates.
 
 ## Canonical sources synchronized
 
-The final promotion candidate requires and now contains the same state in all canonical sources:
+The final promotion candidate requires the same state in all canonical sources:
 
 - `CRM-MIGRATION-MATRIX.md`: `24 PASS / 0 PARTIAL / 0 GAP / 1 N/A`;
 - Feature Registry: `FEATURE-0006.status = equivalent` with behavior/visual/API all `true`;
 - `MASTER-MIGRATION-TRACKER.md`: `MIG-0008 = equivalent` with the M141 closure record;
 - this evidence record.
 
-Temporary tracker reconciliation tooling was removed before this sealing commit. Only permanent CRM/runtime/workflow assets remain in the candidate branch.
+Temporary tracker reconciliation tooling was removed before the clean post-M140 reconciliation. Only permanent CRM/runtime/workflow assets remain in the candidate branch.
 
 ## Migrations
 
@@ -229,12 +236,12 @@ Both releases reuse the existing CRM MySQL schema.
 
 Migration equivalence and release are separate states.
 
-Coordinator promotion order:
+PR #260 is already promoted. Remaining coordinator promotion order:
 
-1. merge/promote PR #260;
-2. revalidate #266 against the resulting `main` and promote it;
-3. deploy staging through the normal platform release process;
-4. require permanent Quality, Platform Auth, CRM Lead Detail Browser and CRM Equivalence Browser gates;
+1. verify #266 is based on `main`, 0 behind and mergeable;
+2. require permanent Quality, Platform Auth, CRM Lead Detail Browser and CRM Equivalence Browser gates on the exact #266 head;
+3. promote #266 only through the coordinator;
+4. deploy staging through the normal platform release process;
 5. smoke authenticated CRM/MySQL behavior and platform health/readiness;
 6. release production only through the coordinator-controlled process.
 
