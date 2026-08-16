@@ -4,9 +4,9 @@
 
 M140 closes the frozen V1 **Lead detail and activity lifecycle** without recreating Meetings, Proposals, Contracts, Trials or Follow-ups. Those modules remain independently owned and are linked from the detail surface.
 
-The increment is intentionally stacked on the proven M139 Settings branch until the coordinator promotes M139. It must not be merged independently before that dependency is resolved.
+M139 / PR #247 is already merged into `main`; M140 is therefore no longer stacked on an open CRM dependency. The current main has advanced through unrelated Financial/Ordering work, and the post-M140-base main changes do not overlap the CRM files changed here. Coordinator-controlled promotion remains required; this chat does not merge the PR.
 
-The repository formatter was applied to every M140 file reported by the Quality Gate before the final validation cycle. The temporary formatter workflow removed itself and is not part of the PR diff.
+The repository formatter was applied to every M140 file reported by the Quality Gate before the final validation cycle. The temporary formatter workflow removed itself and is not part of the PR diff. The final contract test also avoids impossible terminal-state comparisons after the 16-stage selector type was correctly narrowed.
 
 ## Frozen V1 baseline
 
