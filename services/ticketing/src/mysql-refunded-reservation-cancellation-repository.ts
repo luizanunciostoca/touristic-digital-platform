@@ -1,6 +1,11 @@
 import { createHash } from "node:crypto";
 
-import type { Pool, PoolConnection, RowDataPacket } from "mysql2/promise";
+import type {
+  Pool,
+  PoolConnection,
+  ResultSetHeader,
+  RowDataPacket,
+} from "mysql2/promise";
 
 import {
   cancelConfirmedTicketReservationAfterRefund,
@@ -118,7 +123,10 @@ export class MySqlRefundedReservationCancellationRepository
     readonly paymentId: string;
     readonly cancelledAt: string;
     readonly actorReference: string;
-  }): Promise<{ readonly reservation: TicketReservation; readonly replayed: boolean }> {
+  }): Promise<{
+    readonly reservation: TicketReservation;
+    readonly replayed: boolean;
+  }> {
     const reservationId = normalizeTicketReservationId(input.reservationId);
     const cancelledAt = new Date(input.cancelledAt);
     if (!reservationId || !Number.isFinite(cancelledAt.getTime())) {
@@ -151,7 +159,7 @@ export class MySqlRefundedReservationCancellationRepository
         current,
         cancelledAt.toISOString(),
       );
-      await connection.execute(
+      const [update] = await connection.execute<ResultSetHeader>(
         `UPDATE ticketing_reservations
          SET status = 'cancelled', cancelled_at = ?, updated_at = ?
          WHERE reservation_id = ? AND status = 'confirmed'
@@ -164,6 +172,9 @@ export class MySqlRefundedReservationCancellationRepository
           input.paymentId,
         ],
       );
+      if (update.affectedRows !== 1) {
+        throw new Error("TICKETING_REFUND_CONCURRENT_MODIFICATION");
+      }
       await connection.execute(
         `INSERT INTO ticketing_reservation_events (
           event_id, reservation_id, inventory_id, event_type, request_key,
