@@ -70,11 +70,7 @@ CREATE TABLE IF NOT EXISTS ticketing_reservations (
     OR
     (status = 'expired' AND order_id IS NULL AND payment_id IS NULL AND confirmed_at IS NULL AND expired_at IS NOT NULL AND cancelled_at IS NULL)
     OR
-    (status = 'cancelled' AND expired_at IS NULL AND cancelled_at IS NOT NULL AND (
-      (order_id IS NULL AND payment_id IS NULL AND confirmed_at IS NULL)
-      OR
-      (order_id IS NOT NULL AND payment_id IS NOT NULL AND confirmed_at IS NOT NULL AND cancelled_at >= confirmed_at)
-    ))
+    (status = 'cancelled' AND order_id IS NULL AND payment_id IS NULL AND confirmed_at IS NULL AND expired_at IS NULL AND cancelled_at IS NOT NULL)
   ),
   INDEX idx_ticketing_reservations_inventory_status (
     inventory_id, status, expires_at
@@ -109,12 +105,5 @@ CREATE TABLE IF NOT EXISTS ticketing_reservation_events (
   INDEX idx_ticketing_reservation_events_inventory (
     inventory_id, occurred_at
   )
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS ticketing_financial_result_cursor (
-  consumer_name VARCHAR(100) COLLATE utf8mb4_bin PRIMARY KEY,
-  recorded_at DATETIME(3) NOT NULL,
-  result_id VARCHAR(120) COLLATE utf8mb4_bin NOT NULL,
-  updated_at DATETIME(3) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 `;
