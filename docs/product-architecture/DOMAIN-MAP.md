@@ -126,11 +126,11 @@ Responsável por logs, métricas, traces, alertas, correlação e saúde operaci
 - `PaymentRefunded`
 - `LedgerEntryPosted`
 - `CustomerAttributedToAffiliate`
-- `AffiliateCommissionEntitlementRecorded`
+- `AffiliateCommissionAccrued`
 - `PayoutCompleted`
 - `NotificationRequested`
 
-`AffiliateCommissionEntitlementRecorded` representa somente o direito comercial decidido pelo domínio Affiliate. `PayoutCompleted` e qualquer evento que represente movimento, liquidação ou saldo monetário são Financial-owned e podem ser consumidos por projeções Affiliate sem transferir autoridade.
+Os nomes `CustomerAttributedToAffiliate` e `AffiliateCommissionAccrued` permanecem conceitos arquiteturais históricos, não contratos executáveis aprovados de `FEATURE-0010`. Nenhum produtor deve ser implementado antes de schema/versionamento, política e autoridade estarem definidos. Em particular, `AffiliateCommissionAccrued` não transfere autoridade financeira ao domínio Affiliate. `PayoutCompleted` e qualquer evento que represente movimento, liquidação ou saldo monetário são Financial-owned e podem ser consumidos por projeções Affiliate sem transferir autoridade.
 
 ## 7. Ownership de dados
 
