@@ -81,6 +81,11 @@
       "types": "./src/referrals-boundary.ts",
       "node": "./dist/referrals-boundary.js",
       "default": "./src/referrals-boundary.ts"
+    },
+    "./settings-contract": {
+      "types": "./src/settings-contract.ts",
+      "node": "./dist/settings-contract.js",
+      "default": "./src/settings-contract.ts"
     }
   },
   "scripts": {
