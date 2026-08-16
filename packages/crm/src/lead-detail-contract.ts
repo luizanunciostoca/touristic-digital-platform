@@ -1,6 +1,8 @@
-import type {
-  CrmChecklistStep,
-  CrmInteractionType,
+import {
+  crmLeadStages,
+  type CrmChecklistStep,
+  type CrmInteractionType,
+  type CrmLeadStage,
 } from "./index.js";
 
 export interface CrmLeadDetailChecklistDefinition {
@@ -8,6 +10,38 @@ export interface CrmLeadDetailChecklistDefinition {
   readonly label: string;
   readonly description: string;
 }
+
+export interface CrmLeadDetailStageDefinition {
+  readonly stage: CrmLeadStage;
+  readonly label: string;
+}
+
+export const crmLeadDetailStageLabels = Object.freeze({
+  new_lead: "Novo lead",
+  first_contact: "Primeiro contato",
+  meeting_scheduled: "Reunião agendada",
+  proposal_sent: "Proposta enviada",
+  trial: "Trial",
+  contract_sent: "Contrato enviado",
+  contract_signed: "Contrato assinado",
+  payment_pending: "Pagamento pendente",
+  payment_done: "Pagamento concluído",
+  onboarding: "Onboarding",
+  photo_visit_scheduled: "Visita agendada",
+  photo_visit_done: "Visita concluída",
+  published: "Publicado",
+  announced: "Anunciado",
+  feedback: "Feedback",
+  active_client: "Cliente ativo",
+  churned: "Churn",
+  lost: "Perdido",
+} satisfies Readonly<Record<CrmLeadStage, string>>);
+
+export const crmLeadDetailStages = Object.freeze(
+  crmLeadStages.map((stage) =>
+    Object.freeze({ stage, label: crmLeadDetailStageLabels[stage] }),
+  ),
+) satisfies readonly CrmLeadDetailStageDefinition[];
 
 export const crmLeadDetailChecklist = Object.freeze([
   Object.freeze({
