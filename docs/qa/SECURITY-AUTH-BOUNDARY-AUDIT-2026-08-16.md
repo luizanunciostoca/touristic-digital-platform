@@ -75,19 +75,17 @@ The existing CSP `frame-ancestors 'none'` remains authoritative for modern brows
 
 The permanent Auth Integration Contract now proves these cases against the real Node HTTP runtime:
 
-| Negative case | Expected result |
-| --- | --- |
-| access without authentication | `401 AUTH_REQUIRED` |
-| cross-tenant Business access | `403 BUSINESS_ACCESS_DENIED` |
-| viewer privilege escalation via mutation | `403 READ_ONLY_ROLE` |
-| authorized tenant, missing resource | `404 BUSINESS_PROFILE_NOT_FOUND` |
-| malformed login JSON | `400 INVALID_REQUEST` |
-| replay of pre-logout session cookie | `401 AUTH_REQUIRED` after revocation |
-| cross-origin login attempt | `403 ORIGIN_DENIED` |
-| invalid CSRF on unsafe request | `403 INVALID_CSRF` |
-| private repository path over HTTP | `404` |
-| encoded traversal to private repository path | `404` |
-| unknown `/api/*` route | `404 NOT_FOUND` |
+- access without authentication → `401 AUTH_REQUIRED`;
+- cross-tenant Business access → `403 BUSINESS_ACCESS_DENIED`;
+- viewer privilege escalation via mutation → `403 READ_ONLY_ROLE`;
+- authorized tenant, missing resource → `404 BUSINESS_PROFILE_NOT_FOUND`;
+- malformed login JSON → `400 INVALID_REQUEST`;
+- replay of pre-logout session cookie → `401 AUTH_REQUIRED` after revocation;
+- cross-origin login attempt → `403 ORIGIN_DENIED`;
+- invalid CSRF on unsafe request → `403 INVALID_CSRF`;
+- private repository path over HTTP → `404`;
+- encoded traversal to private repository path → `404`;
+- unknown `/api/*` route → `404 NOT_FOUND`.
 
 The contract also retains successful login/session/logout, cookie flags, public static assets and package `dist` loading.
 
