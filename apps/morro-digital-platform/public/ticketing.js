@@ -6,6 +6,7 @@ const state = {
 };
 
 const checkoutStorageKey = "morro_ticketing_checkout_v1";
+const canonicalCheckoutPath = "/api/payments/v1/checkouts";
 const elements = {
   offers: document.querySelector("#offers"),
   reservations: document.querySelector("#reservations"),
@@ -367,9 +368,18 @@ async function resumeCheckout() {
   setMessage("A confirmação continua pendente. Você pode fechar esta página e voltar depois.");
 }
 
-async function createCheckout(reservationPayload, holder) {
+async function createCheckout(reservationPayload) {
   const descriptor = reservationPayload.checkout;
-  const response = await fetch(descriptor.path, {
+  if (
+    descriptor?.path !== canonicalCheckoutPath ||
+    !descriptor?.idempotencyKey ||
+    !descriptor?.handoffToken ||
+    !descriptor?.handoff ||
+    descriptor.handoff.reservationReference !== descriptor.reservationReference
+  ) {
+    throw new Error("CHECKOUT_HANDOFF_INVALID");
+  }
+  const response = await fetch(canonicalCheckoutPath, {
     method: "POST",
     credentials: "same-origin",
     cache: "no-store",
@@ -378,14 +388,10 @@ async function createCheckout(reservationPayload, holder) {
       "Content-Type": "application/json",
       "X-CSRF-Token": state.csrfToken,
       "X-Correlation-ID": correlationId(),
+      "X-Checkout-Handoff-Token": descriptor.handoffToken,
       "Idempotency-Key": descriptor.idempotencyKey,
     },
-    body: JSON.stringify({
-      reservationReference: descriptor.reservationReference,
-      customer: holder,
-      returnUrl: `${location.origin}/tickets.html`,
-      requiresPaymentsCapability: true,
-    }),
+    body: JSON.stringify(descriptor.handoff),
   });
   const payload = await json(response);
   const checkout = payload.data;
@@ -436,13 +442,14 @@ async function submitReservation(event) {
         inventoryId: state.selectedOffer.id,
         quantity,
         holder,
+        returnUrl: `${location.origin}/tickets.html`,
       }),
     });
     if (!payload.data?.reservation || !payload.data?.checkout) {
       throw new Error("RESERVATION_RESPONSE_INVALID");
     }
     setMessage("Reserva criada. Abrindo o checkout seguro…");
-    await createCheckout(payload.data, holder);
+    await createCheckout(payload.data);
   } catch (error) {
     setMessage(error.message || "Não foi possível criar a reserva.", true);
     elements.reserve.disabled = false;
