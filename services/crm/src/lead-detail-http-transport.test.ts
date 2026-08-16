@@ -7,10 +7,8 @@ import {
 import type { CrmLead } from "@touristic/crm";
 import { describe, expect, it } from "vitest";
 
-import {
-  CrmLeadDetailHttpTransport,
-  type CrmTransportAuthPort,
-} from "./lead-detail-http-transport.js";
+import { CrmLeadDetailHttpTransport } from "./lead-detail-http-transport.js";
+import type { CrmTransportAuthPort } from "./http-transport.js";
 
 const now = new Date("2026-08-16T04:15:00Z");
 
