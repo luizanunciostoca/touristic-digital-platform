@@ -51,4 +51,8 @@ A cancellation after the external call has started is an uncertain-billing condi
 - malformed JSON returns 400 with no provider spend;
 - oversized input returns 413 with no provider spend.
 
+## Validation history
+
+The first draft Quality attempt correctly stopped on canonical formatting for `assistant-api.mjs`. A one-shot branch-only formatter applied repository Prettier output and removed itself, so no temporary workflow remains in the intended PR diff. The next draft Quality run is the authoritative validation of the formatted head before promotion.
+
 The canonical repository Quality Gate remains authoritative for formatting, architecture, Feature Registry, lint, typecheck, full tests, and build before promotion.
