@@ -5,6 +5,7 @@ import {
   MySqlTicketCheckInRepository,
   MySqlTicketOfflineEnvelopeRepository,
 } from "./mysql-ticket-checkin-repository.js";
+import { MySqlRefundedReservationCancellationRepository } from "./mysql-refunded-reservation-cancellation-repository.js";
 import { MySqlTicketReservationRepository } from "./mysql-ticket-reservation-repository.js";
 import { createOrderingFinancialReservationConfirmationAuthority } from "./ordering-financial-confirmation-authority.js";
 import {
@@ -25,6 +26,12 @@ import {
   type TicketReservationFulfillmentService,
 } from "./reservation-fulfillment-service.js";
 import { ticketingM150ReservationSchemaSql } from "./reservation-schema.js";
+import {
+  createVerifiedRefundTicketCancellationHandler,
+  type RefundedReservationCancellationRepositoryPort,
+  type VerifiedRefundCancellationResult,
+  type VerifiedRefundTicketCancellationHandler,
+} from "./refund-cancellation.js";
 import type {
   TicketingOfflineTransactionalCommandResult,
   TicketingTransactionalCommandPort,
@@ -47,6 +54,7 @@ import {
 } from "./verified-payment-fulfillment-handler.js";
 
 export {
+  MySqlRefundedReservationCancellationRepository,
   MySqlTicketRepository,
   MySqlTicketCheckInRepository,
   MySqlTicketOfflineEnvelopeRepository,
@@ -59,11 +67,13 @@ export {
   createTicketReservationFulfillmentService,
   createTicketingApplicationService,
   createVerifiedPaymentTicketFulfillmentHandler,
+  createVerifiedRefundTicketCancellationHandler,
   ticketingM147SchemaSql,
   ticketingM150ReservationSchemaSql,
 };
 
 export type {
+  RefundedReservationCancellationRepositoryPort,
   TicketHolderProfilePort,
   TicketReservationApplicationErrorCode,
   TicketReservationApplicationService,
@@ -82,6 +92,8 @@ export type {
   TicketingTransactionalCommandPort,
   TicketingTransactionalCommandResult,
   VerifiedPaymentTicketFulfillmentHandler,
+  VerifiedRefundCancellationResult,
+  VerifiedRefundTicketCancellationHandler,
   VerifiedTicketReservationAuthority,
 };
 
