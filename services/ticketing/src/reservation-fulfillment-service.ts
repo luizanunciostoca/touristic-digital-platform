@@ -39,7 +39,7 @@ export function createTicketReservationFulfillmentService(dependencies: {
   readonly ticketing: TicketingApplicationService;
   readonly holderProfiles: TicketHolderProfilePort;
 }): TicketReservationFulfillmentService {
-  return Object.freeze({
+  const service: TicketReservationFulfillmentService = {
     async fulfill(input) {
       const reservationId = normalizeTicketReservationId(input.reservationId);
       const orderId = normalizeOrderId(input.orderId);
@@ -119,5 +119,7 @@ export function createTicketReservationFulfillmentService(dependencies: {
         replayed: reservationReplayed || issued.replayed,
       });
     },
-  });
+  };
+
+  return Object.freeze(service);
 }
