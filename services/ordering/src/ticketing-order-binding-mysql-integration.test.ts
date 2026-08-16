@@ -23,6 +23,22 @@ const databaseUrl = process.env.ORDERING_DATABASE_URL;
 const adminUrl = process.env.MYSQL_ADMIN_DATABASE_URL;
 const describeMySql = databaseUrl && adminUrl ? describe : describe.skip;
 
+async function createAdminConnectionWithRetry(url: string) {
+  let lastError: unknown = null;
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    try {
+      return await mysql.createConnection(url);
+    } catch (error) {
+      lastError = error;
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 250);
+      });
+    }
+  }
+  if (lastError instanceof Error) throw lastError;
+  throw new Error("MYSQL_ADMIN_CONNECTION_FAILED");
+}
+
 function order(): Order {
   const id = normalizeOrderId("ord_ticketing_mysql_0001");
   const requestKey = createBusinessOrderRequestKey(
@@ -60,7 +76,7 @@ describeMySql.sequential("Ticketing Ordering binding MySQL integration", () => {
   beforeAll(async () => {
     if (!adminUrl || !databaseUrl)
       throw new Error("MYSQL_INTEGRATION_URLS_REQUIRED");
-    const admin = await mysql.createConnection(adminUrl);
+    const admin = await createAdminConnectionWithRetry(adminUrl);
     try {
       await admin.query(
         "CREATE DATABASE IF NOT EXISTS ordering_m137_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci",
