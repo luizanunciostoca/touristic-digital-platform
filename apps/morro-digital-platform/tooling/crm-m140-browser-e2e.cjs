@@ -155,11 +155,10 @@ async function main() {
     checkpoint("stage-mutation");
     await page.locator("#lead-stage").selectOption("first_contact");
     await page.locator("#lead-stage-submit").click();
-    await page.waitForFunction(
-      () =>
-        document.querySelector("#lead-stage-status")?.textContent?.trim() ===
-        "Etapa atualizada.",
-    );
+    await page
+      .locator("#lead-stage-status")
+      .getByText("Etapa atualizada.", { exact: true })
+      .waitFor({ state: "visible" });
     if (evidence.responses.stage?.status !== 200) {
       throw new Error(
         `Stage browser mutation missing successful response: ${JSON.stringify(evidence.responses.stage)}`,
@@ -171,11 +170,10 @@ async function main() {
       .locator('#lead-edit-form input[name="contactName"]')
       .fill("Luiz M140");
     await page.locator("#lead-edit-submit").click();
-    await page.waitForFunction(
-      () =>
-        document.querySelector("#lead-edit-status")?.textContent?.trim() ===
-        "Lead atualizado.",
-    );
+    await page
+      .locator("#lead-edit-status")
+      .getByText("Lead atualizado.", { exact: true })
+      .waitFor({ state: "visible" });
     if (evidence.responses.edit?.status !== 200) {
       throw new Error(
         `Edit browser mutation missing successful response: ${JSON.stringify(evidence.responses.edit)}`,
