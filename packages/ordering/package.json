@@ -12,6 +12,11 @@
       "node": "./dist/index.js",
       "default": "./src/index.ts"
     },
+    "./subscription": {
+      "types": "./src/subscription.ts",
+      "node": "./dist/subscription.js",
+      "default": "./src/subscription.ts"
+    },
     "./ticketing-reservation": {
       "types": "./src/ticketing-reservation.ts",
       "node": "./dist/ticketing-reservation.js",
