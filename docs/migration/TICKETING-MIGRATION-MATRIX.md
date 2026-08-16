@@ -22,37 +22,37 @@ Ticketing never creates a parallel checkout and never treats browser/provider re
 
 ## Final matrix after #276
 
-| Capability | V1 | V2 status | Evidence / boundary |
-| --- | --- | --- | --- |
-| Ticket/product catalog identity | N/A | PASS | Durable inventory/catalog contract |
-| Server-authoritative price snapshot | N/A | PASS | Pricing version captured under authoritative hold |
-| Sale/event availability windows | N/A | PASS | Validated server-side windows |
-| Capacity / inventory | N/A | PASS | Durable inventory with locking |
-| Temporary reservation hold | N/A | PASS | Durable held reservation lifecycle |
-| Hold expiration | N/A | PASS | Locked stale-hold expiry |
-| Reservation cancellation | N/A | PASS | Capacity is released deterministically |
-| Reservation confirmation | N/A | PASS | Canonical Ordering binding plus Financial verified-result authority |
-| Reservation idempotency | N/A | PASS | Request-key replay and semantic collision protection |
-| Overselling protection | N/A | PASS | Inventory locking and concurrency proof |
-| Reservation audit | N/A | PASS | Append-only reservation events |
-| Reservation -> Order relation | N/A | PASS | Ordering-owned Ticketing reservation binding |
-| Reservation -> Payment relation | N/A | PASS | Persisted Financial result binding; browser is non-authoritative |
-| Backend payment as fulfillment authority | N/A | PASS | Only persisted verified Financial outcomes can authorize fulfillment |
-| Ticket issuance after payment | N/A | PASS | Ticketing application/fulfillment bridge |
-| Ticket -> Order -> Payment relation | N/A | PASS | Durable canonical identities |
-| Signed QR payload without PII | N/A | PASS | Signed Ticketing payload |
-| Human ticket code | N/A | PASS | Deterministic server-owned code |
-| QR visual image rendering | N/A | PASS | Public Ticketing browser surface renders QR artifacts |
-| Online validation/check-in | N/A | PASS | Durable transactional check-in |
-| Check-in replay safety | N/A | PASS | Deterministic attempt identity and replay |
-| Concurrent check-in safety | N/A | PASS | Transactional locking and stale-transition protection |
-| Offline device credential provisioning | N/A | PASS | Device credential boundary implemented without exposing server signing authority |
-| Offline check-in envelope/sync | N/A | PASS | Signed offline envelope and durable verified-result processing |
-| Public authenticated Ticketing HTTP API | N/A | PASS | Authenticated `/api/ticketing` runtime |
-| Ticket/Reservation browser UI | N/A | PASS | Public Ticketing browser surface integrated |
-| Refund -> reservation/ticket cancellation orchestration | N/A | PASS | Financial-authoritative refund cancellation path |
-| Reservation -> ticket fulfillment orchestration | N/A | PASS | Canonical Ordering/Financial handoff drives fulfillment |
-| Release/rollback activation contract | N/A | PASS | `docs/runbooks/TICKETING-FEATURE-0011-RELEASE.md` and fail-closed rollback path |
+| Capability                                              | V1  | V2 status | Evidence / boundary                                                              |
+| ------------------------------------------------------- | --- | --------- | -------------------------------------------------------------------------------- |
+| Ticket/product catalog identity                         | N/A | PASS      | Durable inventory/catalog contract                                               |
+| Server-authoritative price snapshot                     | N/A | PASS      | Pricing version captured under authoritative hold                                |
+| Sale/event availability windows                         | N/A | PASS      | Validated server-side windows                                                    |
+| Capacity / inventory                                    | N/A | PASS      | Durable inventory with locking                                                   |
+| Temporary reservation hold                              | N/A | PASS      | Durable held reservation lifecycle                                               |
+| Hold expiration                                         | N/A | PASS      | Locked stale-hold expiry                                                         |
+| Reservation cancellation                                | N/A | PASS      | Capacity is released deterministically                                           |
+| Reservation confirmation                                | N/A | PASS      | Canonical Ordering binding plus Financial verified-result authority              |
+| Reservation idempotency                                 | N/A | PASS      | Request-key replay and semantic collision protection                             |
+| Overselling protection                                  | N/A | PASS      | Inventory locking and concurrency proof                                          |
+| Reservation audit                                       | N/A | PASS      | Append-only reservation events                                                   |
+| Reservation -> Order relation                           | N/A | PASS      | Ordering-owned Ticketing reservation binding                                     |
+| Reservation -> Payment relation                         | N/A | PASS      | Persisted Financial result binding; browser is non-authoritative                 |
+| Backend payment as fulfillment authority                | N/A | PASS      | Only persisted verified Financial outcomes can authorize fulfillment             |
+| Ticket issuance after payment                           | N/A | PASS      | Ticketing application/fulfillment bridge                                         |
+| Ticket -> Order -> Payment relation                     | N/A | PASS      | Durable canonical identities                                                     |
+| Signed QR payload without PII                           | N/A | PASS      | Signed Ticketing payload                                                         |
+| Human ticket code                                       | N/A | PASS      | Deterministic server-owned code                                                  |
+| QR visual image rendering                               | N/A | PASS      | Public Ticketing browser surface renders QR artifacts                            |
+| Online validation/check-in                              | N/A | PASS      | Durable transactional check-in                                                   |
+| Check-in replay safety                                  | N/A | PASS      | Deterministic attempt identity and replay                                        |
+| Concurrent check-in safety                              | N/A | PASS      | Transactional locking and stale-transition protection                            |
+| Offline device credential provisioning                  | N/A | PASS      | Device credential boundary implemented without exposing server signing authority |
+| Offline check-in envelope/sync                          | N/A | PASS      | Signed offline envelope and durable verified-result processing                   |
+| Public authenticated Ticketing HTTP API                 | N/A | PASS      | Authenticated `/api/ticketing` runtime                                           |
+| Ticket/Reservation browser UI                           | N/A | PASS      | Public Ticketing browser surface integrated                                      |
+| Refund -> reservation/ticket cancellation orchestration | N/A | PASS      | Financial-authoritative refund cancellation path                                 |
+| Reservation -> ticket fulfillment orchestration         | N/A | PASS      | Canonical Ordering/Financial handoff drives fulfillment                          |
+| Release/rollback activation contract                    | N/A | PASS      | `docs/runbooks/TICKETING-FEATURE-0011-RELEASE.md` and fail-closed rollback path  |
 
 ## Final evidence
 
