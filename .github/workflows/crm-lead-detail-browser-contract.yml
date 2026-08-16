@@ -72,7 +72,7 @@ jobs:
           pnpm --filter @touristic/crm-server lint
           pnpm --filter @touristic/crm-server typecheck
           pnpm --filter @touristic/crm-server test
-          pnpm --filter @touristic/morro-digital-platform test -- crm-lead-detail-contract.test.ts
+          pnpm --filter @touristic/morro-digital-platform exec vitest run src/crm-lead-detail-contract.test.ts
       - name: Install deterministic Chromium
         run: |
           npm install --prefix /tmp/pw --no-save playwright@1.54.2
@@ -305,7 +305,7 @@ jobs:
 
               await page.goto(`${origin}/apps/admin-crm/#leads`, { waitUntil: 'domcontentloaded' });
               await page.locator('#leads-body tr').first().waitFor({ state: 'visible', timeout: 10000 });
-              const detailLink = page.getByRole('link', { name: 'Detalhes' }).first();
+              const detailLink = page.locator(`a.lead-detail-link[href="/apps/admin-crm/public/lead-detail.html?id=${leadId}"]`).first();
               await detailLink.waitFor({ state: 'visible', timeout: 10000 });
               const href = await detailLink.getAttribute('href');
               if (href !== `/apps/admin-crm/public/lead-detail.html?id=${leadId}`) {
