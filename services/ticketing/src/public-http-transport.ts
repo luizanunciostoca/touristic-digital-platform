@@ -5,6 +5,10 @@ import {
   createTicketingOrderRequestKey,
   type Order,
 } from "@touristic/ordering";
+import type {
+  TicketingCheckoutApplicationRequest,
+  ValidatedTicketingCheckoutHandoff,
+} from "@touristic/ordering/ticketing-checkout";
 import type { TicketingReservationOrderApplicationService } from "@touristic/ordering/ticketing-reservation";
 import {
   createTicketQrPayload,
@@ -25,14 +29,15 @@ import {
 } from "@touristic/ticketing/reservations";
 
 import type {
+  TicketHolderProfile,
+  MySqlTicketHolderProfileRepository,
+} from "./mysql-ticket-holder-profile-repository.js";
+import type { MySqlTicketOfflineDeviceRegistry } from "./mysql-offline-device-registry.js";
+import type {
   MySqlTicketReservationRepository,
   TicketReservationHoldResult,
   TicketReservationMutationResult,
 } from "./mysql-ticket-reservation-repository.js";
-import type {
-  TicketHolderProfile,
-  MySqlTicketHolderProfileRepository,
-} from "./mysql-ticket-holder-profile-repository.js";
 import type { MySqlTicketingPublicReadRepository } from "./mysql-ticketing-public-read-repository.js";
 import type { TicketOfflineDeviceSyncService } from "./offline-device-sync.js";
 import type { TicketingApplicationService } from "./ticketing-application-service.js";
@@ -92,15 +97,24 @@ export interface TicketingHttpAuditPort {
   }): Promise<void>;
 }
 
+export interface TicketingCheckoutHandoffPort {
+  issue(
+    handoff: TicketingCheckoutApplicationRequest,
+    actor: TicketingHttpActor,
+  ): ValidatedTicketingCheckoutHandoff & { readonly token: string } | null;
+}
+
 export interface TicketingPublicHttpTransportDependencies {
   readonly enabled: boolean;
   readonly reservations: MySqlTicketReservationRepository;
   readonly reads: MySqlTicketingPublicReadRepository;
   readonly holders: MySqlTicketHolderProfileRepository;
   readonly reservationOrders: TicketingReservationOrderApplicationService;
+  readonly checkoutHandoffs: TicketingCheckoutHandoffPort;
   readonly tickets: TicketRepositoryPort;
   readonly ticketing: TicketingApplicationService;
   readonly offlineDevices: TicketOfflineDeviceSyncService;
+  readonly offlineDeviceRegistry: MySqlTicketOfflineDeviceRegistry;
   readonly authorization: TicketingHttpAuthorizationPort;
   readonly audit: TicketingHttpAuditPort;
   readonly qrSigningSecret: TicketSigningSecret;
@@ -286,14 +300,25 @@ async function loadOwnReservation(
   return reservation && ownReservation(reservation, actor) ? reservation : null;
 }
 
-function checkoutDescriptor(reservation: TicketReservation, order: Order) {
+function checkoutDescriptor(
+  reservation: TicketReservation,
+  order: Order,
+  handoff: ValidatedTicketingCheckoutHandoff & { readonly token: string },
+) {
   const idempotencyKey = createTicketingOrderRequestKey(reservation.id);
   if (!idempotencyKey) throw new Error("ORDERING_TICKETING_HANDOFF_INVALID");
   return Object.freeze({
-    path: "/api/payments/v1/checkouts/ticketing-reservations",
+    path: "/api/payments/v1/checkouts",
     idempotencyKey,
     reservationReference: reservation.id,
     orderId: order.id,
+    handoffToken: handoff.token,
+    handoff: Object.freeze({
+      reservationReference: handoff.reservationReference,
+      customer: handoff.customer,
+      returnUrl: handoff.returnUrl,
+      requiresPaymentsCapability: handoff.requiresPaymentsCapability,
+    }),
   });
 }
 
@@ -338,14 +363,30 @@ export class TicketingPublicHttpTransport {
           envelope: body.envelope as TicketOfflineEnvelope,
           recordedAt: canonicalNow(this.dependencies.clock),
         });
+        await this.dependencies.audit.record({
+          action: "ticketing.offline.sync",
+          result: "success",
+          reason: result.replayed ? "replayed" : "applied",
+          actorSubject: null,
+          correlationId: correlation,
+          reservationId: null,
+        });
         return response(200, { data: result }, correlation);
       } catch {
+        await this.dependencies.audit.record({
+          action: "ticketing.offline.sync",
+          result: "denied",
+          reason: "device_auth_or_envelope_invalid",
+          actorSubject: null,
+          correlationId: correlation,
+          reservationId: null,
+        });
         return response(401, { error: "DEVICE_AUTH_REQUIRED" }, correlation);
       }
     }
 
     const mutation = method !== "GET";
-    const admin = relative === "/operator/offline-devices";
+    const admin = relative.startsWith("/operator/offline-devices");
     const authorization = await this.dependencies.authorization.authorize(request, {
       mutation,
       admin,
@@ -384,33 +425,31 @@ export class TicketingPublicHttpTransport {
         const inventoryId = typeof body?.inventoryId === "string" ? body.inventoryId : "";
         const quantity = body?.quantity;
         const holderInput = record(body?.holder);
+        const returnUrl = typeof body?.returnUrl === "string" ? body.returnUrl : "";
         const reference = header(request, "idempotency-key");
         const now = canonicalNow(this.dependencies.clock);
-        if (!IDEMPOTENCY_REFERENCE.test(reference) || !holderInput) {
+        if (!IDEMPOTENCY_REFERENCE.test(reference) || !holderInput || !returnUrl) {
           return response(400, { error: "INVALID_RESERVATION_REQUEST" }, correlation);
         }
         const inventory = await this.dependencies.reservations.findInventoryById(inventoryId);
         if (!inventory) return response(404, { error: "INVENTORY_NOT_FOUND" }, correlation);
         const requestKey = createTicketReservationRequestKey(inventory.id, reference);
         if (!requestKey) return response(400, { error: "INVALID_IDEMPOTENCY_KEY" }, correlation);
-        const profile: TicketHolderProfile | null = this.dependencies.holders
-          ? await (async () => {
-              const candidate = {
-                holderReference: actor.subject,
-                holderName: holderInput.name,
-                email: holderInput.email,
-                phone: holderInput.phone,
-                document: holderInput.document,
-                createdAt: now,
-                updatedAt: now,
-              };
-              try {
-                return await this.dependencies.holders.save(candidate as TicketHolderProfile);
-              } catch {
-                return null;
-              }
-            })()
-          : null;
+        const candidate = {
+          holderReference: actor.subject,
+          holderName: holderInput.name,
+          email: holderInput.email,
+          phone: holderInput.phone,
+          document: holderInput.document,
+          createdAt: now,
+          updatedAt: now,
+        };
+        let profile: TicketHolderProfile | null = null;
+        try {
+          profile = await this.dependencies.holders.save(candidate as TicketHolderProfile);
+        } catch {
+          profile = null;
+        }
         if (!profile) return response(400, { error: "INVALID_HOLDER_PROFILE" }, correlation);
         const held: TicketReservationHoldResult = await this.dependencies.reservations.hold({
           reservationId: reservationId(actor.subject, requestKey),
@@ -436,6 +475,21 @@ export class TicketingPublicHttpTransport {
           pricingVersion: held.reservation.pricingVersion,
           capturedAt: held.reservation.createdAt,
         });
+        const handoff = this.dependencies.checkoutHandoffs.issue(
+          {
+            reservationReference: held.reservation.id,
+            customer: Object.freeze({
+              name: profile.holderName,
+              email: profile.email,
+              phone: profile.phone,
+              document: profile.document,
+            }),
+            returnUrl,
+            requiresPaymentsCapability: true,
+          },
+          actor,
+        );
+        if (!handoff) throw new Error("ORDERING_TICKETING_HANDOFF_INVALID");
         await this.dependencies.audit.record({
           action: "ticketing.reservation.create",
           result: "success",
@@ -448,7 +502,11 @@ export class TicketingPublicHttpTransport {
           data: Object.freeze({
             reservation: publicReservation(held.reservation),
             availability: held.availability,
-            checkout: checkoutDescriptor(held.reservation, orderResult.order),
+            checkout: checkoutDescriptor(
+              held.reservation,
+              orderResult.order,
+              handoff,
+            ),
           }),
         }, correlation);
       }
@@ -517,7 +575,51 @@ export class TicketingPublicHttpTransport {
           this.dependencies.offlineProvisioningSecret,
         );
         if (!credential) return response(400, { error: "INVALID_DEVICE_REQUEST" }, correlation);
+        await this.dependencies.offlineDeviceRegistry.provision({
+          deviceId: credential.claims.deviceId,
+          destinationId: credential.claims.destinationId,
+          credentialFingerprint: createHash("sha256").update(credential.token).digest("hex"),
+          issuedAt: credential.claims.issuedAt,
+          expiresAt: credential.claims.expiresAt,
+          provisionedBy: actor.subject,
+          revokedAt: null,
+          revokedBy: null,
+          lastSyncAt: null,
+        });
+        await this.dependencies.audit.record({
+          action: "ticketing.offline.provision",
+          result: "success",
+          reason: "scoped_device_credential_issued",
+          actorSubject: actor.subject,
+          correlationId: correlation,
+          reservationId: null,
+        });
         return response(201, { data: credential }, correlation);
+      }
+
+      const revokeMatch = /^\/operator\/offline-devices\/(tdv_[A-Za-z0-9_-]+)\/revoke$/u.exec(relative);
+      if (revokeMatch?.[1] && method === "POST") {
+        const revoked = await this.dependencies.offlineDeviceRegistry.revoke(
+          revokeMatch[1],
+          actor.subject,
+          canonicalNow(this.dependencies.clock),
+        );
+        await this.dependencies.audit.record({
+          action: "ticketing.offline.revoke",
+          result: "success",
+          reason: revoked.revokedAt ? "revoked" : "unchanged",
+          actorSubject: actor.subject,
+          correlationId: correlation,
+          reservationId: null,
+        });
+        return response(200, {
+          data: Object.freeze({
+            deviceId: revoked.deviceId,
+            destinationId: revoked.destinationId,
+            expiresAt: revoked.expiresAt,
+            revokedAt: revoked.revokedAt,
+          }),
+        }, correlation);
       }
 
       return response(404, { error: "NOT_FOUND" }, correlation);
