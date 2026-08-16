@@ -184,8 +184,8 @@ export function createAssistantApi({
   );
   const requestReserveAdequate = Boolean(
     configuredRequestReserveUsd &&
-      minimumRequestReserveUsd &&
-      configuredRequestReserveUsd >= minimumRequestReserveUsd,
+    minimumRequestReserveUsd &&
+    configuredRequestReserveUsd >= minimumRequestReserveUsd,
   );
   const runtimeReplicaCount = positiveInteger(
     environment("OPENAI_RUNTIME_REPLICA_COUNT"),
@@ -516,7 +516,9 @@ export function createAssistantApi({
           reservationClosed = true;
 
           const content = data?.choices?.[0]?.message?.content;
-          const normalized = normalizeProviderResponse(parseJsonObject(content));
+          const normalized = normalizeProviderResponse(
+            parseJsonObject(content),
+          );
           if (!normalized.text) throw new Error("assistant_invalid_response");
           if (!clientDisconnected) sendJson(response, 200, normalized);
         } catch (error) {
