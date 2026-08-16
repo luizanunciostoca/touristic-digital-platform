@@ -1,0 +1,104 @@
+name: Payments M153 Documentation Reconcile Once
+
+on:
+  push:
+    branches:
+      - feat/payments-m153-feature-0009-closure
+    paths:
+      - ".github/workflows/payments-m153-docs-reconcile-once.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/payments-m153-feature-0009-closure
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Reconcile M153 matrix and tracker
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          matrix = Path("docs/migration/PAYMENTS-MIGRATION-MATRIX.md")
+          text = matrix.read_text()
+
+          text = text.replace(
+              "The runtime still requires application composition for recurrence. Therefore the Subscription row is now `PARTIAL`, not `GAP` and not `PASS`.",
+              "M153 now adds the approved runtime/application composition without inventing provider-specific recurring-charge or scheduler policy. The historical M150/M151/M152 checkpoint below is superseded by the M153 candidate reconciliation in this document.",
+          )
+
+          def replace_row(source: str, prefix: str, replacement: str) -> str:
+              pattern = re.compile(r"^" + re.escape(prefix) + r".*$", re.MULTILINE)
+              updated, count = pattern.subn(replacement, source, count=1)
+              if count != 1:
+                  raise SystemExit(f"expected one row for {prefix!r}, got {count}")
+              return updated
+
+          text = replace_row(
+              text,
+              "| Business → Payments authority composition",
+              "| Business → Payments authority composition | V1 public onboarding can begin checkout | M153 composes the existing server-only HMAC handoff capability into the real public onboarding browser/runtime: same-origin bootstrap issues a short-lived token, browser receives no HMAC secret/fabricated CSRF/financial authority, and checkout remains Payments-owned | PASS | Preserve the server-issued capability boundary; browser remains non-authoritative. |",
+          )
+          text = replace_row(
+              text,
+              "| Subscription lifecycle",
+              "| Subscription lifecycle | FEATURE-0009 includes subscriptions | M150 lifecycle + M151 durable MySQL persistence + M153 provider-neutral recurrence application service: deterministic claim/replay, verified-outcome-only advancement, verified terminal failure → `past_due`, no blind recharge and cancel-at-period-end finalization | PASS | Approved provider-neutral lifecycle/application composition is closed; automatic provider charging or a scheduler must not be invented without a separately approved contract. |",
+          )
+          text = replace_row(
+              text,
+              "| Rollback/migration strategy",
+              "| Rollback/migration strategy | release process | `PAYMENTS-RELEASE-ROLLBACK.md` defines expand-first schema, exact-head gates, independent activation, disable-first rollback, durable claim recovery and explicit preservation of all Financial history | PASS | Rollback disables composition/execution and recovers from persisted state; never delete or rewrite Financial history. |",
+          )
+
+          text = text.replace(
+              "## Reconciled score after M150/M151/M152\n\n```text\nPASS      27\nPARTIAL    6\nGAP        0\nN/A        1\nTOTAL     34\n```\n\nThis score corrects the previous M149 documentary truth. M150/M151 eliminate the semantic/persistence `GAP`, but the Subscription row remains `PARTIAL` because production application composition has not yet been proven.",
+              "## M153 implementation-candidate score\n\n```text\nPASS      30\nPARTIAL    3\nGAP        0\nN/A        1\nTOTAL     34\n```\n\nM153 closes the three approved application/runtime rows that were still partial after M150/M151/M152: public Business → Payments authority composition, the provider-neutral Subscription lifecycle/application executor, and the release/rollback strategy contract. This score is implementation-candidate truth, not release equivalence.",
+          )
+
+          text = re.sub(
+              r"## Real remaining work\n\n(?:\d+\..*\n)+",
+              "## Real remaining work\n\n1. emit recurrence/payment operational observations through the canonical Platform observation contract without mutation authority;\n2. obtain deployed third-party provider/browser E2E evidence before production-equivalence claims;\n3. prove the real production topology and add/compose a distributed limiter only if it is horizontally scaled.\n\nAutomatic recurring provider charging and timer/scheduler activation are intentionally not counted as missing implementation because no approved recurring-payment-instrument/provider contract or canonical scheduler contract exists in the source of truth. They remain disabled rather than being invented.\n",
+              text,
+              count=1,
+          )
+          matrix.write_text(text)
+
+          tracker = Path("docs/migration/MASTER-MIGRATION-TRACKER.md")
+          t = tracker.read_text()
+          t = replace_row(
+              t,
+              "| MIG-0010 |",
+              "| MIG-0010 | pagamentos/assinaturas | Ordering / Financial | FEATURE-0009 | `@touristic/ordering` + `@touristic/ordering-server` + `@touristic/financial` + `@touristic/financial-server` + runtime HTTP/browser no Morro Digital | 8 | migrating | M149 browser launch/polling + M153 Business → Payments bootstrap/composition executáveis sem mover autoridade financeira ao browser | 34 contratos: 30 PASS / 3 PARTIAL / 0 GAP / 1 N/A; M153 fecha authority composition, lifecycle/application recurrence e rollback contract; restam observabilidade canônica, provider/browser E2E implantado e limiter somente se topologia real exigir | `PAYMENTS-V1-BASELINE.md`; `PAYMENTS-MIGRATION-MATRIX.md`; M150/M151/M152; `PAYMENTS-RELEASE-ROLLBACK.md`; permanent Payments + Subscription Recurrence gates | crítico |",
+          )
+          t = t.replace(
+              "A matriz reconciliada após M150/M151/M152 é:\n\n```text\nPASS      27\nPARTIAL    6\nGAP        0\nN/A        1\nTOTAL     34\n```\n\n`MIG-0010` e `FEATURE-0009` permanecem `migrating`; equivalence behavior/visual/API continua `false`. Subscription deixa de ser `GAP`, mas permanece `PARTIAL` porque o executor/application composition de recorrência ainda não está ligado ao runtime. Também permanecem `PARTIAL`: composição legítima Business → Payments, observabilidade financeira/recurrence via contrato canônico, provider/browser E2E implantado, limiter distribuído caso a topologia real seja multi-réplica e fechamento operacional de release/rollback. Zero `GAP` não é suficiente para promoção.",
+              "M153 fecha os resíduos aprovados de composição/application que permaneciam após M150/M151/M152: o bootstrap público Business → Payments é server-issued e fail-closed; o executor provider-neutral de Subscription usa claims duráveis, replay determinístico e somente `VerifiedPaymentResult`; e o runbook de release/rollback preserva toda a história Financial. A matriz candidata passa a:\n\n```text\nPASS      30\nPARTIAL    3\nGAP        0\nN/A        1\nTOTAL     34\n```\n\n`MIG-0010` e `FEATURE-0009` permanecem `migrating`; equivalence behavior/visual/API continua `false`. Os três `PARTIAL` restantes são dependências horizontais/operacionais: observabilidade financeira/recurrence via contrato canônico, provider/browser E2E implantado e limiter distribuído somente se a topologia real for multi-réplica. Contrato de cobrança recorrente automática e scheduler não são inventados na ausência de política/contrato aprovado.",
+          )
+          tracker.write_text(t)
+      - name: Apply canonical formatting
+        run: pnpm exec prettier --write docs/migration/PAYMENTS-MIGRATION-MATRIX.md docs/migration/MASTER-MIGRATION-TRACKER.md
+      - name: Commit reconciled docs
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/migration/PAYMENTS-MIGRATION-MATRIX.md docs/migration/MASTER-MIGRATION-TRACKER.md
+          if git diff --cached --quiet; then
+            echo "No documentation changes required"
+            exit 0
+          fi
+          git commit -m "docs(payments): reconcile M153 candidate truth"
+          git push origin HEAD:feat/payments-m153-feature-0009-closure
