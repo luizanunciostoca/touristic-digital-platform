@@ -61,10 +61,7 @@ async function main() {
         };
         persist();
       }
-      if (
-        url.pathname === `/api/crm/leads/${leadId}` &&
-        method === "PATCH"
-      ) {
+      if (url.pathname === `/api/crm/leads/${leadId}` && method === "PATCH") {
         evidence.responses.edit = {
           status: response.status(),
           method,
