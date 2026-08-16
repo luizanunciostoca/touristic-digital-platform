@@ -1,5 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
+
+// Exact-head promotion requires the permanent CRM Auth and browser gates on this contract.
 const root = new URL("../../../", import.meta.url);
 const read = (path: string) => readFile(new URL(path, root), "utf8");
 describe("CRM M141 residual equivalence contracts", () => {
