@@ -5,11 +5,7 @@ import {
 } from "@touristic/financial";
 import { normalizeOrderId } from "@touristic/ordering";
 import type { TicketingOrderBindingRepositoryPort } from "@touristic/ordering/ticketing-reservation";
-import {
-  applyTicketCheckIn,
-  type Ticket,
-  type TicketRepositoryPort,
-} from "@touristic/ticketing";
+import type { Ticket } from "@touristic/ticketing";
 import {
   normalizeTicketReservationId,
   type TicketReservation,
@@ -28,6 +24,7 @@ export interface RefundedReservationCancellationRepositoryPort {
     readonly actorReference: string;
   }): Promise<{
     readonly reservation: TicketReservation;
+    readonly tickets: readonly Ticket[];
     readonly replayed: boolean;
   }>;
 }
@@ -57,21 +54,11 @@ function sameRefundResult(
   );
 }
 
-function cancellationTime(ticket: Ticket, refundedAt: string): string {
-  const current = Date.parse(ticket.updatedAt);
-  const candidate = Date.parse(refundedAt);
-  if (!Number.isFinite(current) || !Number.isFinite(candidate)) {
-    throw new Error("TICKETING_REFUND_TIMESTAMP_INVALID");
-  }
-  return new Date(Math.max(candidate, current + 1)).toISOString();
-}
-
 export function createVerifiedRefundTicketCancellationHandler(dependencies: {
   readonly bindings: TicketingOrderBindingRepositoryPort;
   readonly payments: PaymentRepositoryPort;
   readonly verifiedResults: VerifiedPaymentResultRepositoryPort;
   readonly reservations: RefundedReservationCancellationRepositoryPort;
-  readonly tickets: TicketRepositoryPort;
 }): VerifiedRefundTicketCancellationHandler {
   const handler: VerifiedRefundTicketCancellationHandler = {
     async handle(result) {
@@ -113,43 +100,12 @@ export function createVerifiedRefundTicketCancellationHandler(dependencies: {
         throw new Error("TICKETING_REFUND_AUTHORITY_MISMATCH");
       }
 
-      const reservationResult =
-        await dependencies.reservations.cancelConfirmedAfterRefund({
-          reservationId,
-          orderId: binding.orderId,
-          paymentId: result.paymentId,
-          cancelledAt: result.occurredAt,
-          actorReference: "verified_financial_refund",
-        });
-
-      const existingTickets = await dependencies.tickets.findByOrderId(
-        binding.orderId,
-      );
-      const tickets: Ticket[] = [];
-      let replayed = reservationResult.replayed;
-      for (const ticket of existingTickets) {
-        if (ticket.paymentId !== result.paymentId) {
-          throw new Error("TICKETING_REFUND_TICKET_AUTHORITY_MISMATCH");
-        }
-        if (ticket.status === "used") {
-          throw new Error("TICKETING_REFUND_TICKET_ALREADY_USED");
-        }
-        if (ticket.status === "cancelled") {
-          replayed = true;
-          tickets.push(ticket);
-          continue;
-        }
-        const cancelled = applyTicketCheckIn(ticket, {
-          result: "cancelled",
-          occurredAt: cancellationTime(ticket, result.occurredAt),
-        });
-        tickets.push(await dependencies.tickets.save(cancelled));
-      }
-
-      return Object.freeze({
-        reservation: reservationResult.reservation,
-        tickets: Object.freeze(tickets),
-        replayed,
+      return dependencies.reservations.cancelConfirmedAfterRefund({
+        reservationId,
+        orderId: binding.orderId,
+        paymentId: result.paymentId,
+        cancelledAt: result.occurredAt,
+        actorReference: "verified_financial_refund",
       });
     },
   };
