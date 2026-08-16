@@ -1,6 +1,7 @@
 const { readFileSync, writeFileSync } = require("node:fs");
 const { chromium } = require("/tmp/pw/node_modules/playwright");
 
+// Browser mutations synchronize on visible UI success while responses are captured as evidence.
 const origin = "http://127.0.0.1:4192";
 const leadId = readFileSync("/tmp/m140-lead-id.txt", "utf8").trim();
 const evidence = {
