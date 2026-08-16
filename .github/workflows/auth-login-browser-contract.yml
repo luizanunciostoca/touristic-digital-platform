@@ -10,6 +10,7 @@ on:
       - "apps/morro-digital-platform/src/business-dashboard-*.ts"
       - "packages/auth-browser/**"
       - "apps/morro-digital-platform/tooling/auth-api.mjs"
+      - "apps/morro-digital-platform/tooling/dev-server.mjs"
   push:
     branches:
       - main
@@ -20,6 +21,7 @@ on:
       - "apps/morro-digital-platform/src/business-dashboard-*.ts"
       - "packages/auth-browser/**"
       - "apps/morro-digital-platform/tooling/auth-api.mjs"
+      - "apps/morro-digital-platform/tooling/dev-server.mjs"
 
 permissions:
   contents: read
