@@ -23,7 +23,7 @@ Um item não pode avançar para `equivalent` sem evidência visual ou comportame
 | MIG-0007 | Business Portal | Business | FEATURE-0005 | `packages/business` + Business surfaces/adapters in `apps/morro-digital-platform` | 6 | equivalent | dashboard, 28-step onboarding, production profile and browser lifecycle contracts evidenced | 19/19 Business-owned contracts PASS; checkout execution remains Payments-owned N/A | `BUSINESS-MIGRATION-MATRIX.md`; M54–M65 evidence; PR #128 Quality + Business browser contracts | alto |
 | MIG-0008 | `luizidebook/morro-digital-crm@1915d026` | CRM | FEATURE-0006 | `@touristic/crm` + `@touristic/crm-server` + `apps/admin-crm` | 7 | equivalent | Lead Detail + Follow-ups validados em 390×844, 768×1024 e 1280×900, com teclado/foco/semântica, estilo CRM canônico e hidden-state correto | 25 contratos: 24 PASS / 0 PARTIAL / 0 GAP / 1 N/A; clearing opcional, Lead Detail/activity, Follow-up sent/responded e AI CRM-owned fechados; object storage N/A | `CRM-V1-BASELINE.md`; `CRM-MIGRATION-MATRIX.md`; `docs/qa/CRM-M141-EQUIVALENCE-EVIDENCE.md`; PRs #260/#266 e gates permanentes | alto |
 | MIG-0009 | autenticação e sessão | Auth | FEATURE-0008 | `packages/auth` + `packages/auth-browser` + Auth surfaces in `dashboard/` | 6 | equivalent | login V1-equivalent and canonical dashboard return proven in Chromium | 20/20 Auth contracts PASS: login/session/cookie/CSRF/origin/roles/tenant/audit/revocation | `AUTH-MIGRATION-MATRIX.md`; M47–M48 + M50–M52 + M66 evidence; PR #129 Quality + Auth/Business browser contracts | crítico |
-| MIG-0010 | pagamentos/assinaturas | Ordering / Financial | FEATURE-0009 | `@touristic/ordering` + `@touristic/ordering-server` + `@touristic/financial` + `@touristic/financial-server` + runtime HTTP/browser no Morro Digital | 8 | migrating | M149 browser launch/polling é executável sem fabricar autoridade; composição pública Business → Payments ainda não está ligada | 34 contratos: 27 PASS / 6 PARTIAL / 0 GAP / 1 N/A após M150/M151/M152; Subscription possui contrato e persistência durável, mas executor/runtime recorrente permanece PARTIAL | `PAYMENTS-V1-BASELINE.md`; `PAYMENTS-MIGRATION-MATRIX.md`; evidências M135–M150; PR #258/M151; PR #262/M152 | crítico |
+| MIG-0010 | pagamentos/assinaturas | Ordering / Financial | FEATURE-0009 | `@touristic/ordering` + `@touristic/ordering-server` + `@touristic/financial` + `@touristic/financial-server` + runtime HTTP/browser no Morro Digital | 8 | migrating | M149 browser launch/polling + M153 Business → Payments bootstrap/composition executáveis sem mover autoridade financeira ao browser | 34 contratos: 30 PASS / 3 PARTIAL / 0 GAP / 1 N/A; M153 fecha authority composition, lifecycle/application recurrence e rollback contract; restam observabilidade canônica, provider/browser E2E implantado e limiter somente se topologia real exigir | `PAYMENTS-V1-BASELINE.md`; `PAYMENTS-MIGRATION-MATRIX.md`; M150/M151/M152; `PAYMENTS-RELEASE-ROLLBACK.md`; permanent Payments + Subscription Recurrence gates | crítico |
 | MIG-0011 | afiliados | Affiliates | FEATURE-0010 | `packages/affiliates` | 9 | discovered | pendente | pendente | pendente | crítico |
 | MIG-0017 | venda de ingressos/passeios e check-in operacional | Ticketing | FEATURE-0011 | `packages/ticketing` + `services/ticketing` | 10 | migrating | pendente | emissão pós-pagamento, QR assinado, check-in persistente e sincronização offline iniciados | `docs/qa/TICKETING-M147-EVIDENCE.md`; testes unitários e de integração do módulo | alto |
 | MIG-0012 | `js/map*` + bootstrap V1 | Geospatial | FEATURE-0001 | `packages/geospatial` + `apps/morro-digital-platform/src/bootstrap/geospatial.ts` | 4 | equivalent | Mapbox Visual Contract validado nos três viewports, normal e `forced-colors` | Runtime, adapter, Mapbox real, fallback, rollback e lifecycle comprovados | PR #17 head final `2d84629b`; runs `31237633579`, `31237633601`, `31237633577` verdes | crítico |
@@ -76,17 +76,17 @@ M150 e M151 já estão incorporados e alteram a verdade documental anterior:
 - M151 / PR #258 foi mergeado como `e96fe6d5e025a2084437aa51a8691b65edfc9eec` e adiciona persistência MySQL durável para Subscription e renewal-intent claims com CAS, replay exato e unicidade por Subscription/período/Order;
 - Financial M152 (`8d07e4db0e3c619d520f1a3fc36dc4b14a6a65a2`) adiciona retries transitórios limitados para comandos de provider existentes sem transformar command acceptance em confirmação financeira nem autorizar recarga cega de uma recorrência terminalmente falha.
 
-A matriz reconciliada após M150/M151/M152 é:
+M153 fecha os resíduos aprovados de composição/application que permaneciam após M150/M151/M152: o bootstrap público Business → Payments é server-issued e fail-closed; o executor provider-neutral de Subscription usa claims duráveis, replay determinístico e somente `VerifiedPaymentResult`; e o runbook de release/rollback preserva toda a história Financial. A matriz candidata passa a:
 
 ```text
-PASS      27
-PARTIAL    6
+PASS      30
+PARTIAL    3
 GAP        0
 N/A        1
 TOTAL     34
 ```
 
-`MIG-0010` e `FEATURE-0009` permanecem `migrating`; equivalence behavior/visual/API continua `false`. Subscription deixa de ser `GAP`, mas permanece `PARTIAL` porque o executor/application composition de recorrência ainda não está ligado ao runtime. Também permanecem `PARTIAL`: composição legítima Business → Payments, observabilidade financeira/recurrence via contrato canônico, provider/browser E2E implantado, limiter distribuído caso a topologia real seja multi-réplica e fechamento operacional de release/rollback. Zero `GAP` não é suficiente para promoção.
+`MIG-0010` e `FEATURE-0009` permanecem `migrating`; equivalence behavior/visual/API continua `false`. Os três `PARTIAL` restantes são dependências horizontais/operacionais: observabilidade financeira/recurrence via contrato canônico, provider/browser E2E implantado e limiter distribuído somente se a topologia real for multi-réplica. Contrato de cobrança recorrente automática e scheduler não são inventados na ausência de política/contrato aprovado.
 
 ## Evidência consolidada — checkpoint Home + Runtime + Geospatial
 
