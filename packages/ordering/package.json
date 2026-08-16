@@ -11,6 +11,11 @@
       "types": "./src/index.ts",
       "node": "./dist/index.js",
       "default": "./src/index.ts"
+    },
+    "./subscription": {
+      "types": "./src/subscription.ts",
+      "node": "./dist/subscription.js",
+      "default": "./src/subscription.ts"
     }
   },
   "scripts": {
