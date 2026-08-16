@@ -26,7 +26,7 @@ describe("CRM M104 browser shell", () => {
     expect(html).toContain("cancelamento + expiração");
     expect(html).toContain("vínculo + contato + conversão/perda");
     expect(html).toContain(
-      "/apps/admin-crm/public/settings.html\">Configurações",
+      '/apps/admin-crm/public/settings.html">Configurações',
     );
     expect(html).toContain(
       "Follow-up mutável + visão canônica do funil e sistema",
