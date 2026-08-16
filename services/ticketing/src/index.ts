@@ -49,11 +49,20 @@ import {
 } from "./ticketing-application-service.js";
 import { MySqlTicketingTransactionalCommand } from "./validated-ticketing-transaction.js";
 import {
+  MySqlFinancialResultCursorRepository,
+  createVerifiedFinancialResultProcessor,
+  type FinancialResultCursor,
+  type FinancialResultCursorRepositoryPort,
+  type VerifiedFinancialResultFeedPort,
+  type VerifiedFinancialResultProcessor,
+} from "./verified-financial-result-processor.js";
+import {
   createVerifiedPaymentTicketFulfillmentHandler,
   type VerifiedPaymentTicketFulfillmentHandler,
 } from "./verified-payment-fulfillment-handler.js";
 
 export {
+  MySqlFinancialResultCursorRepository,
   MySqlRefundedReservationCancellationRepository,
   MySqlTicketRepository,
   MySqlTicketCheckInRepository,
@@ -66,6 +75,7 @@ export {
   createTicketReservationApplicationService,
   createTicketReservationFulfillmentService,
   createTicketingApplicationService,
+  createVerifiedFinancialResultProcessor,
   createVerifiedPaymentTicketFulfillmentHandler,
   createVerifiedRefundTicketCancellationHandler,
   ticketingM147SchemaSql,
@@ -73,6 +83,8 @@ export {
 };
 
 export type {
+  FinancialResultCursor,
+  FinancialResultCursorRepositoryPort,
   RefundedReservationCancellationRepositoryPort,
   TicketHolderProfilePort,
   TicketReservationApplicationErrorCode,
@@ -91,6 +103,8 @@ export type {
   TicketingOfflineTransactionalCommandResult,
   TicketingTransactionalCommandPort,
   TicketingTransactionalCommandResult,
+  VerifiedFinancialResultFeedPort,
+  VerifiedFinancialResultProcessor,
   VerifiedPaymentTicketFulfillmentHandler,
   VerifiedRefundCancellationResult,
   VerifiedRefundTicketCancellationHandler,
