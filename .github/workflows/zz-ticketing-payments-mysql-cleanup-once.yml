@@ -43,47 +43,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Make M138 cleanup independent across schema generations
-        shell: bash
         run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          p = Path("tooling/payments/checkout-mysql-integration.test.ts")
-          s = p.read_text()
-          start_marker = "  beforeEach(async () => {"
-          end_marker = "\n  afterAll(async () => {"
-          if s.count(start_marker) != 1 or s.count(end_marker) != 1:
-              raise SystemExit(f"markers beforeEach={s.count(start_marker)} afterAll={s.count(end_marker)}")
-          start = s.index(start_marker)
-          end = s.index(end_marker, start)
-          replacement = '''  beforeEach(async () => {
-            for (const table of [
-              "ordering_subscription_renewal_intents",
-              "ordering_subscriptions",
-              "ordering_ticketing_reservation_bindings",
-            ]) {
-              try {
-                await orderingPool.query(`DELETE FROM ${table}`);
-              } catch (error) {
-                if (
-                  !error ||
-                  typeof error !== "object" ||
-                  !("code" in error) ||
-                  error.code !== "ER_NO_SUCH_TABLE"
-                ) {
-                  throw error;
-                }
-              }
-            }
-            await orderingPool.query("DELETE FROM ordering_checkout_access");
-            await financialPool.query("DELETE FROM financial_ledger_postings");
-            await financialPool.query("DELETE FROM financial_ledger_transactions");
-            await financialPool.query("DELETE FROM financial_payments");
-            await financialPool.query("DELETE FROM financial_payment_idempotency");
-            await orderingPool.query("DELETE FROM ordering_orders");
-          });
-'''
-          p.write_text(s[:start] + replacement + s[end:])
-          PY
+          python3 .github/scripts/zz_ticketing_m138_cleanup_once.py
           pnpm exec prettier --write tooling/payments/checkout-mysql-integration.test.ts
       - name: Build M138 package dependencies
         run: |
