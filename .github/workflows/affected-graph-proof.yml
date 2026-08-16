@@ -1,0 +1,162 @@
+name: Affected Graph Proof
+
+on:
+  push:
+    branches:
+      - ci/affected-graph-proof
+
+permissions:
+  contents: read
+
+concurrency:
+  group: affected-graph-proof-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  prove:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Configure local-only probe commits
+        run: |
+          git config user.name 'ci-affected-proof'
+          git config user.email 'ci-affected-proof@example.invalid'
+          echo "BASE_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          pnpm turbo ls --output=json > /tmp/all-packages.json
+      - name: Prove changed package and dependents are selected
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p packages/auth/src
+          printf "export const __ciAffectedProbe: string = 123;\n" > packages/auth/src/__ci_affected_probe__.ts
+          git add packages/auth/src/__ci_affected_probe__.ts
+          git commit -m 'probe: invalid auth type'
+          HEAD_SHA=$(git rev-parse HEAD)
+          TURBO_SCM_BASE="$BASE_SHA" TURBO_SCM_HEAD="$HEAD_SHA" pnpm turbo ls --affected --output=json > /tmp/auth-affected.json
+          node <<'NODE'
+          const fs = require('node:fs');
+          const data = JSON.parse(fs.readFileSync('/tmp/auth-affected.json', 'utf8'));
+          const packages = Array.isArray(data) ? data : data.packages;
+          if (!Array.isArray(packages)) throw new Error('Unexpected turbo ls JSON shape');
+          const names = packages.map(item => typeof item === 'string' ? item : item.name).filter(Boolean);
+          if (!names.includes('@touristic/auth')) throw new Error(`Changed package missing: ${JSON.stringify(names)}`);
+          if (!names.includes('@touristic/business')) throw new Error(`Known dependent missing: ${JSON.stringify(names)}`);
+          fs.writeFileSync('/tmp/auth-affected-names.json', JSON.stringify(names, null, 2));
+          NODE
+      - name: Prove affected typecheck catches an intentional error
+        shell: bash
+        run: |
+          set -euo pipefail
+          HEAD_SHA=$(git rev-parse HEAD)
+          set +e
+          TURBO_SCM_BASE="$BASE_SHA" TURBO_SCM_HEAD="$HEAD_SHA" pnpm turbo run typecheck --affected --force > /tmp/invalid-affected.log 2>&1
+          STATUS=$?
+          set -e
+          if [ "$STATUS" -eq 0 ]; then
+            cat /tmp/invalid-affected.log
+            echo 'Affected typecheck unexpectedly accepted the intentional type error.'
+            exit 1
+          fi
+          grep -q '__ci_affected_probe__' /tmp/invalid-affected.log
+      - name: Measure valid affected lint and typecheck
+        shell: bash
+        run: |
+          set -euo pipefail
+          git reset --hard "$BASE_SHA"
+          git clean -fd
+          printf "export const __ciAffectedProbe: string = 'ok';\n" > packages/auth/src/__ci_affected_probe__.ts
+          git add packages/auth/src/__ci_affected_probe__.ts
+          git commit -m 'probe: valid auth change'
+          HEAD_SHA=$(git rev-parse HEAD)
+          START=$(date +%s%3N)
+          TURBO_SCM_BASE="$BASE_SHA" TURBO_SCM_HEAD="$HEAD_SHA" pnpm turbo run lint typecheck --affected --force
+          END=$(date +%s%3N)
+          echo $((END - START)) > /tmp/affected-duration-ms.txt
+      - name: Prove root package change selects the full package graph
+        shell: bash
+        run: |
+          set -euo pipefail
+          git reset --hard "$BASE_SHA"
+          git clean -fd
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = 'package.json';
+          const data = JSON.parse(fs.readFileSync(path, 'utf8'));
+          data.__ciAffectedProbe = true;
+          fs.writeFileSync(path, JSON.stringify(data, null, 2) + '\n');
+          NODE
+          git add package.json
+          git commit -m 'probe: root package metadata'
+          HEAD_SHA=$(git rev-parse HEAD)
+          TURBO_SCM_BASE="$BASE_SHA" TURBO_SCM_HEAD="$HEAD_SHA" pnpm turbo ls --affected --output=json > /tmp/root-affected.json
+          node <<'NODE'
+          const fs = require('node:fs');
+          const unpack = path => {
+            const data = JSON.parse(fs.readFileSync(path, 'utf8'));
+            const packages = Array.isArray(data) ? data : data.packages;
+            if (!Array.isArray(packages)) throw new Error(`Unexpected turbo ls JSON shape for ${path}`);
+            return packages.map(item => typeof item === 'string' ? item : item.name).filter(Boolean).sort();
+          };
+          const all = unpack('/tmp/all-packages.json');
+          const affected = unpack('/tmp/root-affected.json');
+          if (JSON.stringify(all) !== JSON.stringify(affected)) {
+            throw new Error(`Root package change did not select the full graph: all=${all.length}, affected=${affected.length}`);
+          }
+          NODE
+      - name: Record non-workspace change behavior without trusting it for promotion
+        shell: bash
+        run: |
+          set -euo pipefail
+          git reset --hard "$BASE_SHA"
+          git clean -fd
+          mkdir -p .github
+          printf 'probe\n' > .github/__ci_affected_probe__.txt
+          git add .github/__ci_affected_probe__.txt
+          git commit -m 'probe: non-workspace change'
+          HEAD_SHA=$(git rev-parse HEAD)
+          TURBO_SCM_BASE="$BASE_SHA" TURBO_SCM_HEAD="$HEAD_SHA" pnpm turbo ls --affected --output=json > /tmp/nonworkspace-affected.json
+      - name: Build proof evidence
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const unpack = path => {
+            const data = JSON.parse(fs.readFileSync(path, 'utf8'));
+            const packages = Array.isArray(data) ? data : data.packages;
+            if (!Array.isArray(packages)) throw new Error(`Unexpected turbo ls JSON shape for ${path}`);
+            return packages.map(item => typeof item === 'string' ? item : item.name).filter(Boolean).sort();
+          };
+          const evidence = {
+            baseSha: process.env.BASE_SHA,
+            allPackageCount: unpack('/tmp/all-packages.json').length,
+            authAffectedPackages: JSON.parse(fs.readFileSync('/tmp/auth-affected-names.json', 'utf8')),
+            invalidAffectedTypecheckRejected: true,
+            validAffectedLintTypecheckDurationMs: Number(fs.readFileSync('/tmp/affected-duration-ms.txt', 'utf8').trim()),
+            rootPackageChangeAffectedCount: unpack('/tmp/root-affected.json').length,
+            nonWorkspaceChangeAffectedPackages: unpack('/tmp/nonworkspace-affected.json')
+          };
+          fs.writeFileSync('/tmp/affected-graph-proof.json', JSON.stringify(evidence, null, 2));
+          console.log(JSON.stringify(evidence, null, 2));
+          NODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: affected-graph-proof
+          path: |
+            /tmp/affected-graph-proof.json
+            /tmp/invalid-affected.log
+            /tmp/auth-affected.json
+            /tmp/root-affected.json
+            /tmp/nonworkspace-affected.json
+          retention-days: 3
+          if-no-files-found: ignore
