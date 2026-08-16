@@ -45,6 +45,8 @@ function heldReservation() {
     inventoryId: "tin_sunset_20260816",
     destinationId: "morro-de-sao-paulo",
     product: { kind: "business_experience", reference: "toca-sunset" },
+    unitAmount: { minorUnits: 12000, currency: "BRL" },
+    pricingVersion: "2026.08.16",
     holderReference: "holder_00000001",
     quantity: 1,
     expiresAt: "2026-08-16T18:10:00.000Z",
@@ -96,6 +98,15 @@ describe("ticket reservation contracts", () => {
     expect(
       reservationRequestKeyMatchesInventory(key, "tin_other_inventory"),
     ).toBe(false);
+  });
+
+  it("snapshots catalog pricing into a hold", () => {
+    const reservation = heldReservation();
+    expect(reservation.unitAmount).toEqual({
+      minorUnits: 12000,
+      currency: "BRL",
+    });
+    expect(reservation.pricingVersion).toBe("2026.08.16");
   });
 
   it("confirms a live hold only with normalized order and payment authority", () => {
