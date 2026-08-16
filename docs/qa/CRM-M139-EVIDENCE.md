@@ -79,6 +79,8 @@ Permanent tests added/updated by M139:
   - proves safe DOM rendering and canonical CRM package vocabulary;
   - prevents reintroduction of the stale “generic boundary unavailable” claim.
 
+The repository formatter was applied to the M139 source, browser contract proof and migration matrix before the final gate rerun; no formatter helper remains in the PR diff.
+
 Because `packages/crm/**` is part of the `CRM Platform Auth Integration Contract` workflow path filter, this PR is eligible for the real cookie/session/origin/CSRF/MySQL contract on its own head. Full promotion additionally requires the complete Quality Gate on that exact head before the PR is considered ready for coordinator review.
 
 ## Matrix effect
