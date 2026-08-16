@@ -14,6 +14,12 @@ import {
   type RefundProviderReceipt,
 } from "@touristic/financial";
 
+import {
+  ProviderRequestUnavailableError,
+  createProviderRetryPolicyFromEnvironment,
+  executeBoundedProviderRequest,
+} from "./provider-retry.js";
+
 export type SandboxCheckoutProviderErrorCode =
   | "SANDBOX_PROVIDER_INVALID_REQUEST"
   | "SANDBOX_PROVIDER_REJECTED"
@@ -37,6 +43,8 @@ export interface SandboxCheckoutProviderEnvironment {
   readonly PAYMENTS_SANDBOX_PROVIDER_API_TOKEN?: string;
   readonly PAYMENTS_SANDBOX_CHECKOUT_ORIGINS?: string;
   readonly PAYMENTS_PROVIDER_TIMEOUT_MS?: string;
+  readonly PAYMENTS_PROVIDER_MAX_ATTEMPTS?: string;
+  readonly PAYMENTS_PROVIDER_RETRY_BASE_MS?: string;
 }
 
 export interface SandboxCheckoutProviderOptions {
@@ -174,6 +182,14 @@ function providerRefundBody(request: RefundProviderCommand) {
   });
 }
 
+function unavailable(error: unknown): never {
+  if (error instanceof SandboxCheckoutProviderError) throw error;
+  if (error instanceof ProviderRequestUnavailableError) {
+    throw new SandboxCheckoutProviderError("SANDBOX_PROVIDER_UNAVAILABLE");
+  }
+  throw new SandboxCheckoutProviderError("SANDBOX_PROVIDER_UNAVAILABLE");
+}
+
 export function createSandboxCheckoutProviderFromEnvironment(
   environment: SandboxCheckoutProviderEnvironment,
   options: SandboxCheckoutProviderOptions = {},
@@ -202,6 +218,7 @@ export function createSandboxCheckoutProviderFromEnvironment(
     production,
   );
   const timeoutMs = configuredTimeout(environment.PAYMENTS_PROVIDER_TIMEOUT_MS);
+  const retryPolicy = createProviderRetryPolicyFromEnvironment(environment);
   const fetchProvider = options.fetch ?? globalThis.fetch;
   if (typeof fetchProvider !== "function") {
     throw new Error("PAYMENTS_SANDBOX_PROVIDER_FETCH_UNAVAILABLE");
@@ -220,18 +237,22 @@ export function createSandboxCheckoutProviderFromEnvironment(
       }
 
       try {
-        const response = await fetchProvider(endpoint, {
-          method: "POST",
-          headers: {
-            Accept: "application/json",
-            Authorization: "Bearer " + token,
-            "Content-Type": "application/json",
-            "Idempotency-Key": request.idempotencyKey,
-            "X-Touristic-Provider-Mode": "sandbox",
+        const response = await executeBoundedProviderRequest({
+          fetch: fetchProvider,
+          url: endpoint,
+          timeoutMs,
+          policy: retryPolicy,
+          init: {
+            method: "POST",
+            headers: {
+              Accept: "application/json",
+              Authorization: "Bearer " + token,
+              "Content-Type": "application/json",
+              "Idempotency-Key": request.idempotencyKey,
+              "X-Touristic-Provider-Mode": "sandbox",
+            },
+            body: JSON.stringify(providerBody(request)),
           },
-          body: JSON.stringify(providerBody(request)),
-          redirect: "error",
-          signal: AbortSignal.timeout(timeoutMs),
         });
         if (!response.ok) {
           throw new SandboxCheckoutProviderError(
@@ -271,8 +292,7 @@ export function createSandboxCheckoutProviderFromEnvironment(
         }
         return session;
       } catch (error) {
-        if (error instanceof SandboxCheckoutProviderError) throw error;
-        throw new SandboxCheckoutProviderError("SANDBOX_PROVIDER_UNAVAILABLE");
+        return unavailable(error);
       }
     },
   });
@@ -302,6 +322,7 @@ export function createSandboxRefundProviderFromEnvironment(
     throw new Error("PAYMENTS_SANDBOX_PROVIDER_API_TOKEN is required");
   }
   const timeoutMs = configuredTimeout(environment.PAYMENTS_PROVIDER_TIMEOUT_MS);
+  const retryPolicy = createProviderRetryPolicyFromEnvironment(environment);
   const fetchProvider = options.fetch ?? globalThis.fetch;
   if (typeof fetchProvider !== "function") {
     throw new Error("PAYMENTS_SANDBOX_PROVIDER_FETCH_UNAVAILABLE");
@@ -320,18 +341,22 @@ export function createSandboxRefundProviderFromEnvironment(
       }
 
       try {
-        const response = await fetchProvider(endpoint, {
-          method: "POST",
-          headers: {
-            Accept: "application/json",
-            Authorization: "Bearer " + token,
-            "Content-Type": "application/json",
-            "Idempotency-Key": request.idempotencyKey,
-            "X-Touristic-Provider-Mode": "sandbox",
+        const response = await executeBoundedProviderRequest({
+          fetch: fetchProvider,
+          url: endpoint,
+          timeoutMs,
+          policy: retryPolicy,
+          init: {
+            method: "POST",
+            headers: {
+              Accept: "application/json",
+              Authorization: "Bearer " + token,
+              "Content-Type": "application/json",
+              "Idempotency-Key": request.idempotencyKey,
+              "X-Touristic-Provider-Mode": "sandbox",
+            },
+            body: JSON.stringify(providerRefundBody(request)),
           },
-          body: JSON.stringify(providerRefundBody(request)),
-          redirect: "error",
-          signal: AbortSignal.timeout(timeoutMs),
         });
         if (!response.ok) {
           throw new SandboxCheckoutProviderError(
@@ -358,8 +383,7 @@ export function createSandboxRefundProviderFromEnvironment(
         }
         return receipt;
       } catch (error) {
-        if (error instanceof SandboxCheckoutProviderError) throw error;
-        throw new SandboxCheckoutProviderError("SANDBOX_PROVIDER_UNAVAILABLE");
+        return unavailable(error);
       }
     },
   });
@@ -389,6 +413,7 @@ export function createSandboxReconciliationProviderFromEnvironment(
     throw new Error("PAYMENTS_SANDBOX_PROVIDER_API_TOKEN is required");
   }
   const timeoutMs = configuredTimeout(environment.PAYMENTS_PROVIDER_TIMEOUT_MS);
+  const retryPolicy = createProviderRetryPolicyFromEnvironment(environment);
   const fetchProvider = options.fetch ?? globalThis.fetch;
   if (typeof fetchProvider !== "function") {
     throw new Error("PAYMENTS_SANDBOX_PROVIDER_FETCH_UNAVAILABLE");
@@ -414,15 +439,19 @@ export function createSandboxReconciliationProviderFromEnvironment(
       );
 
       try {
-        const response = await fetchProvider(endpoint, {
-          method: "GET",
-          headers: {
-            Accept: "application/json",
-            Authorization: "Bearer " + token,
-            "X-Touristic-Provider-Mode": "sandbox",
+        const response = await executeBoundedProviderRequest({
+          fetch: fetchProvider,
+          url: endpoint,
+          timeoutMs,
+          policy: retryPolicy,
+          init: {
+            method: "GET",
+            headers: {
+              Accept: "application/json",
+              Authorization: "Bearer " + token,
+              "X-Touristic-Provider-Mode": "sandbox",
+            },
           },
-          redirect: "error",
-          signal: AbortSignal.timeout(timeoutMs),
         });
         if (response.status === 404) return null;
         if (!response.ok) {
@@ -457,8 +486,7 @@ export function createSandboxReconciliationProviderFromEnvironment(
         }
         return snapshot;
       } catch (error) {
-        if (error instanceof SandboxCheckoutProviderError) throw error;
-        throw new SandboxCheckoutProviderError("SANDBOX_PROVIDER_UNAVAILABLE");
+        return unavailable(error);
       }
     },
   });

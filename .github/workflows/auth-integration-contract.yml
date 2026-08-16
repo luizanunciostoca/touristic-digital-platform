@@ -49,35 +49,84 @@ jobs:
           pnpm --filter @touristic/auth-browser test
       - name: Build workspace
         run: pnpm -w build
-      - name: Validate real login/session/logout HTTP contract
+      - name: Validate real Auth, RBAC, tenant and static-boundary HTTP contract
         shell: bash
         run: |
           set -euo pipefail
           PORT=4174
           ORIGIN="http://127.0.0.1:${PORT}"
           SECRET="0123456789abcdef0123456789abcdef"
-          PASSWORD="correct horse battery staple"
-          HASH=$(node --input-type=module -e "import('./services/auth/dist/credentials.js').then(m => console.log(m.hashPassword(process.argv[1], Buffer.alloc(16, 9))))" "$PASSWORD")
-          USERS=$(node -e 'console.log(JSON.stringify([{id:"owner-1",email:"owner@example.com",passwordHash:process.argv[1],role:"owner",businessIds:["toca-do-morcego"]}]))' "$HASH")
+          OWNER_PASSWORD="correct horse battery staple"
+          VIEWER_PASSWORD="viewer correct horse battery staple"
+          OWNER_HASH=$(node --input-type=module -e "import('./services/auth/dist/credentials.js').then(m => console.log(m.hashPassword(process.argv[1], Buffer.alloc(16, 9))))" "$OWNER_PASSWORD")
+          VIEWER_HASH=$(node --input-type=module -e "import('./services/auth/dist/credentials.js').then(m => console.log(m.hashPassword(process.argv[1], Buffer.alloc(16, 8))))" "$VIEWER_PASSWORD")
+          USERS=$(node -e 'console.log(JSON.stringify([{id:"owner-1",email:"owner@example.com",passwordHash:process.argv[1],role:"owner",businessIds:["toca-do-morcego"]},{id:"viewer-1",email:"viewer@example.com",passwordHash:process.argv[2],role:"viewer",businessIds:["toca-do-morcego"]}]))' "$OWNER_HASH" "$VIEWER_HASH")
 
           DASHBOARD_AUTH_SECRET="$SECRET" \
           DASHBOARD_USERS_JSON="$USERS" \
           PORT="$PORT" \
           HOST="127.0.0.1" \
-          node apps/morro-digital-platform/tooling/dev-server.mjs > /tmp/m48-auth-server.log 2>&1 &
+          node apps/morro-digital-platform/tooling/dev-server.mjs > /tmp/auth-security-server.log 2>&1 &
           SERVER_PID=$!
-          trap 'kill "$SERVER_PID" 2>/dev/null || true; cat /tmp/m48-auth-server.log || true' EXIT
+          trap 'kill "$SERVER_PID" 2>/dev/null || true; cat /tmp/auth-security-server.log || true' EXIT
 
           for _ in $(seq 1 40); do
             if curl --fail --silent "$ORIGIN/runtime-config.js" >/dev/null; then break; fi
             sleep 0.25
           done
+          curl --fail --silent "$ORIGIN/runtime-config.js" >/dev/null
+
+          # Public assets stay available and carry the central security headers.
+          PUBLIC_STATUS=$(curl --silent --output /tmp/public.html --dump-header /tmp/public.headers --write-out '%{http_code}' \
+            "$ORIGIN/apps/morro-digital-platform/public/index.html")
+          test "$PUBLIC_STATUS" = "200"
+          grep -Eiq '^x-content-type-options: nosniff' /tmp/public.headers
+          grep -Eiq '^x-frame-options: DENY' /tmp/public.headers
+          grep -Eiq '^permissions-policy: camera=\(\), microphone=\(\), geolocation=\(self\)' /tmp/public.headers
+          grep -Eiq '^content-security-policy: .*frame-ancestors '\''none'\''' /tmp/public.headers
+
+          PACKAGE_DIST_STATUS=$(curl --silent --output /dev/null --write-out '%{http_code}' \
+            "$ORIGIN/packages/auth/dist/index.js")
+          test "$PACKAGE_DIST_STATUS" = "200"
+
+          # Repository-private files and encoded traversal must never cross the HTTP trust boundary.
+          for PRIVATE_PATH in \
+            '/.env.example' \
+            '/package.json' \
+            '/services/auth/src/index.ts' \
+            '/apps/morro-digital-platform/public/..%2F..%2F..%2F.env.example'
+          do
+            PRIVATE_STATUS=$(curl --silent --path-as-is --output /dev/null --write-out '%{http_code}' \
+              "$ORIGIN$PRIVATE_PATH")
+            test "$PRIVATE_STATUS" = "404"
+          done
+
+          # Unknown API resources are an intentional 404, not an internal-error oracle.
+          UNKNOWN_API_STATUS=$(curl --silent --output /tmp/unknown-api.json --write-out '%{http_code}' \
+            "$ORIGIN/api/security/not-real")
+          test "$UNKNOWN_API_STATUS" = "404"
+          grep -q '"error":"NOT_FOUND"' /tmp/unknown-api.json
+
+          # Authentication is mandatory before resource or tenant evaluation.
+          UNAUTH_STATUS=$(curl --silent --output /tmp/unauth.json --write-out '%{http_code}' \
+            "$ORIGIN/api/dashboard/auth/session")
+          test "$UNAUTH_STATUS" = "401"
+          grep -q 'AUTH_REQUIRED' /tmp/unauth.json
+
+          # Invalid payloads fail closed before authentication succeeds.
+          INVALID_PAYLOAD_STATUS=$(curl --silent --output /tmp/invalid-payload.json --write-out '%{http_code}' \
+            --header "Origin: $ORIGIN" \
+            --header 'Content-Type: application/json' \
+            --data '{' \
+            "$ORIGIN/api/dashboard/auth/login")
+          test "$INVALID_PAYLOAD_STATUS" = "400"
+          grep -q 'INVALID_REQUEST' /tmp/invalid-payload.json
 
           LOGIN_STATUS=$(curl --silent --output /tmp/login.json --dump-header /tmp/login.headers --write-out '%{http_code}' \
             --cookie-jar /tmp/auth.cookies \
             --header "Origin: $ORIGIN" \
             --header 'Content-Type: application/json' \
-            --data "{\"email\":\"owner@example.com\",\"password\":\"$PASSWORD\"}" \
+            --data "{\"email\":\"owner@example.com\",\"password\":\"$OWNER_PASSWORD\"}" \
             "$ORIGIN/api/dashboard/auth/login")
           test "$LOGIN_STATUS" = "200"
           grep -Eiq '^set-cookie: .*HttpOnly' /tmp/login.headers
@@ -106,6 +155,46 @@ jobs:
           assert data['user']['id'] == 'owner-1'
           PY
 
+          # A scoped user cannot select a different tenant from the browser.
+          CROSS_TENANT_STATUS=$(curl --silent --output /tmp/cross-tenant.json --write-out '%{http_code}' \
+            --cookie /tmp/auth.cookies \
+            "$ORIGIN/api/business/hotel-1/profile")
+          test "$CROSS_TENANT_STATUS" = "403"
+          grep -q 'BUSINESS_ACCESS_DENIED' /tmp/cross-tenant.json
+
+          # Authorized tenant + nonexistent resource is distinguishable from authorization denial.
+          NOT_FOUND_STATUS=$(curl --silent --output /tmp/not-found.json --write-out '%{http_code}' \
+            --cookie /tmp/auth.cookies \
+            "$ORIGIN/api/business/toca-do-morcego/profile")
+          test "$NOT_FOUND_STATUS" = "404"
+          grep -q 'BUSINESS_PROFILE_NOT_FOUND' /tmp/not-found.json
+
+          # Viewer can authenticate/read but cannot escalate into a mutation even with valid CSRF.
+          VIEWER_LOGIN_STATUS=$(curl --silent --output /tmp/viewer-login.json --write-out '%{http_code}' \
+            --cookie-jar /tmp/viewer.cookies \
+            --header "Origin: $ORIGIN" \
+            --header 'Content-Type: application/json' \
+            --data "{\"email\":\"viewer@example.com\",\"password\":\"$VIEWER_PASSWORD\"}" \
+            "$ORIGIN/api/dashboard/auth/login")
+          test "$VIEWER_LOGIN_STATUS" = "200"
+          python - <<'PY'
+          import json
+          data=json.load(open('/tmp/viewer-login.json'))
+          assert data['user']['role'] == 'viewer'
+          open('/tmp/viewer-csrf.txt','w').write(data['csrfToken'])
+          PY
+          VIEWER_CSRF=$(cat /tmp/viewer-csrf.txt)
+          VIEWER_MUTATION_STATUS=$(curl --silent --output /tmp/viewer-mutation.json --write-out '%{http_code}' \
+            --cookie /tmp/viewer.cookies \
+            --header "Origin: $ORIGIN" \
+            --header "X-CSRF-Token: $VIEWER_CSRF" \
+            --header 'Content-Type: application/json' \
+            --request PUT \
+            --data '{"displayName":"should-not-write"}' \
+            "$ORIGIN/api/business/toca-do-morcego/profile")
+          test "$VIEWER_MUTATION_STATUS" = "403"
+          grep -q 'READ_ONLY_ROLE' /tmp/viewer-mutation.json
+
           CSRF=$(cat /tmp/csrf.txt)
           BAD_CSRF_STATUS=$(curl --silent --output /tmp/bad-csrf.json --write-out '%{http_code}' \
             --cookie /tmp/auth.cookies \
@@ -126,15 +215,17 @@ jobs:
           test "$LOGOUT_STATUS" = "200"
           grep -q '"success":true' /tmp/logout.json
 
+          # Replaying a pre-logout session cookie must fail after server-side revocation.
           REVOKED_STATUS=$(curl --silent --output /tmp/revoked.json --write-out '%{http_code}' \
             --cookie /tmp/auth-before-logout.cookies \
             "$ORIGIN/api/dashboard/auth/session")
           test "$REVOKED_STATUS" = "401"
+          grep -q 'AUTH_REQUIRED' /tmp/revoked.json
 
           CROSS_ORIGIN_STATUS=$(curl --silent --output /tmp/cross-origin.json --write-out '%{http_code}' \
             --header 'Origin: https://evil.example' \
             --header 'Content-Type: application/json' \
-            --data "{\"email\":\"owner@example.com\",\"password\":\"$PASSWORD\"}" \
+            --data "{\"email\":\"owner@example.com\",\"password\":\"$OWNER_PASSWORD\"}" \
             "$ORIGIN/api/dashboard/auth/login")
           test "$CROSS_ORIGIN_STATUS" = "403"
           grep -q 'ORIGIN_DENIED' /tmp/cross-origin.json
