@@ -1,4 +1,4 @@
-export const orderingTicketingReservationSchemaSql = `
+export const orderingTicketingReservationSchemaSql: string = `
 CREATE TABLE IF NOT EXISTS ordering_ticketing_reservation_bindings (
   reservation_reference VARCHAR(120) COLLATE utf8mb4_bin PRIMARY KEY,
   order_id VARCHAR(120) COLLATE utf8mb4_bin NOT NULL UNIQUE,
