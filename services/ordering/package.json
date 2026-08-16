@@ -19,6 +19,6 @@
     "lint": "eslint src",
     "test": "pnpm --filter @touristic/financial build && pnpm --filter @touristic/ordering build && vitest run --passWithNoTests",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test:integration": "pnpm --filter @touristic/financial build && pnpm --filter @touristic/ordering build && vitest run src/mysql-integration.test.ts"
+    "test:integration": "pnpm --filter @touristic/financial build && pnpm --filter @touristic/ordering build && vitest run src/mysql-integration.test.ts src/ticketing-order-binding-mysql-integration.test.ts"
   }
 }
