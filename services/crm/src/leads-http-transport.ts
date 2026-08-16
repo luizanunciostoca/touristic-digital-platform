@@ -98,7 +98,9 @@ export class CrmLeadHttpTransport {
       );
     }
     if (matched.kind === "lead" && request.method === "GET") {
-      return resultResponse(await this.boundary.get(session, routeId(matched.id)));
+      return resultResponse(
+        await this.boundary.get(session, routeId(matched.id)),
+      );
     }
     if (matched.kind === "lead" && request.method === "PATCH") {
       const body = crmObjectBody(request.body);
