@@ -18,7 +18,7 @@ export function createVerifiedPaymentTicketFulfillmentHandler(dependencies: {
   readonly bindings: TicketingOrderBindingRepositoryPort;
   readonly fulfillment: TicketReservationFulfillmentService;
 }): VerifiedPaymentTicketFulfillmentHandler {
-  return Object.freeze({
+  const handler: VerifiedPaymentTicketFulfillmentHandler = {
     async handle(result) {
       if (result.kind !== "approved" || result.paymentStatus !== "confirmed") {
         return null;
@@ -40,5 +40,7 @@ export function createVerifiedPaymentTicketFulfillmentHandler(dependencies: {
         actorReference: "verified_payment_outcome",
       });
     },
-  });
+  };
+
+  return Object.freeze(handler);
 }
