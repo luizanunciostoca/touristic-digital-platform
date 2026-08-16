@@ -4,6 +4,10 @@ import { MySqlCheckoutAccessRepository } from "./mysql-checkout-access-repositor
 import { MySqlOrderRepository } from "./mysql-order-repository.js";
 import { MySqlTicketingOrderBindingRepository } from "./mysql-ticketing-order-binding-repository.js";
 import { orderingM137SchemaSql, orderingM139SchemaSql } from "./schema.js";
+import {
+  orderingTicketingBridgeRollbackSql,
+  orderingTicketingBridgeSchemaSql,
+} from "./ticketing-bridge-schema.js";
 import { orderingTicketingReservationSchemaSql } from "./ticketing-reservation-schema.js";
 
 export {
@@ -12,6 +16,8 @@ export {
   MySqlTicketingOrderBindingRepository,
   orderingM137SchemaSql,
   orderingM139SchemaSql,
+  orderingTicketingBridgeRollbackSql,
+  orderingTicketingBridgeSchemaSql,
   orderingTicketingReservationSchemaSql,
 };
 export * from "./checkout-access.js";
@@ -68,5 +74,6 @@ export async function applyOrderingTicketingReservationSchema(
   pool: Pool,
 ): Promise<void> {
   await applyOrderingM137Schema(pool);
+  await applySqlStatements(pool, orderingTicketingBridgeSchemaSql);
   await applySqlStatements(pool, orderingTicketingReservationSchemaSql);
 }
