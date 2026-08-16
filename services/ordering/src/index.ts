@@ -2,8 +2,16 @@ import mysql, { type Pool, type PoolOptions } from "mysql2/promise";
 
 import { MySqlCheckoutAccessRepository } from "./mysql-checkout-access-repository.js";
 import { MySqlOrderRepository } from "./mysql-order-repository.js";
+import {
+  MySqlSubscriptionRenewalIntentRepository,
+  MySqlSubscriptionRepository,
+} from "./mysql-subscription-repositories.js";
 import { MySqlTicketingOrderBindingRepository } from "./mysql-ticketing-order-binding-repository.js";
-import { orderingM137SchemaSql, orderingM139SchemaSql } from "./schema.js";
+import {
+  orderingM137SchemaSql,
+  orderingM139SchemaSql,
+  orderingM151SchemaSql,
+} from "./schema.js";
 import {
   orderingTicketingBridgeRollbackSql,
   orderingTicketingBridgeSchemaSql,
@@ -13,9 +21,12 @@ import { orderingTicketingReservationSchemaSql } from "./ticketing-reservation-s
 export {
   MySqlCheckoutAccessRepository,
   MySqlOrderRepository,
+  MySqlSubscriptionRenewalIntentRepository,
+  MySqlSubscriptionRepository,
   MySqlTicketingOrderBindingRepository,
   orderingM137SchemaSql,
   orderingM139SchemaSql,
+  orderingM151SchemaSql,
   orderingTicketingBridgeRollbackSql,
   orderingTicketingBridgeSchemaSql,
   orderingTicketingReservationSchemaSql,
@@ -69,6 +80,11 @@ export async function applyOrderingM137Schema(pool: Pool): Promise<void> {
 export async function applyOrderingM139Schema(pool: Pool): Promise<void> {
   await applyOrderingM137Schema(pool);
   await applySqlStatements(pool, orderingM139SchemaSql);
+}
+
+export async function applyOrderingM151Schema(pool: Pool): Promise<void> {
+  await applyOrderingM139Schema(pool);
+  await applySqlStatements(pool, orderingM151SchemaSql);
 }
 
 export async function applyOrderingTicketingReservationSchema(
