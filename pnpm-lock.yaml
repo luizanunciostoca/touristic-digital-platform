@@ -167,6 +167,9 @@ importers:
 
   services/financial:
     dependencies:
+      '@touristic/core':
+        specifier: workspace:*
+        version: link:../../packages/core
       '@touristic/financial':
         specifier: workspace:*
         version: link:../../packages/financial

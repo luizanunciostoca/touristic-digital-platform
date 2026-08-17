@@ -89,6 +89,13 @@ import {
   FinancialWebhookHttpTransport,
   sandboxWebhookPath,
 } from "./webhook-http-transport.js";
+import {
+  PaymentObservationEmitter,
+  createPaymentObservation,
+  type PaymentObservationInput,
+  type PaymentObservationName,
+  type PaymentObservationSink,
+} from "./payment-observation.js";
 
 export {
   ReconciliationApplicationError,
@@ -113,6 +120,8 @@ export {
   createSandboxWebhookVerifierFromEnvironment,
   createVerifiedPaymentOutcomeService,
   createVerifiedPaymentAccountingService,
+  PaymentObservationEmitter,
+  createPaymentObservation,
   financialM137SchemaSql,
   financialM141SchemaSql,
   financialM142SchemaSql,
@@ -158,6 +167,9 @@ export type {
   VerifiedPaymentAccountingDisposition,
   VerifiedPaymentAccountingOutcome,
   VerifiedPaymentAccountingServiceDependencies,
+  PaymentObservationInput,
+  PaymentObservationName,
+  PaymentObservationSink,
   VerifiedPaymentResultCursor,
   VerifiedPaymentResultFeedPort,
 };
