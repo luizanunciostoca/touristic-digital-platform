@@ -14,48 +14,17 @@ jobs:
   release-smoke:
     name: release-smoke
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           version: 10.15.0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
           cache: pnpm
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      - name: Re-run canonical repository quality
-        run: pnpm check
-      - name: Start built application runtime
-        shell: bash
-        run: |
-          set -euo pipefail
-          PORT=4199 HOST=127.0.0.1 node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/release-smoke.log 2>&1 &
-          echo $! >/tmp/release-smoke.pid
-          for _ in $(seq 1 80); do
-            if curl --fail --silent http://127.0.0.1:4199/runtime-config.js >/dev/null; then
-              exit 0
-            fi
-            sleep .25
-          done
-          cat /tmp/release-smoke.log
-          exit 1
-      - name: Validate HTTP smoke surface
-        shell: bash
-        run: |
-          set -euo pipefail
-          curl --fail --silent http://127.0.0.1:4199/runtime-config.js >/tmp/release-runtime-config.js
-          curl --fail --silent http://127.0.0.1:4199/apps/morro-digital-platform/public/index.html >/tmp/release-index.html
-          test -s /tmp/release-runtime-config.js
-          test -s /tmp/release-index.html
-      - name: Show diagnostics
-        if: failure()
-        run: cat /tmp/release-smoke.log || true
-      - name: Stop runtime
-        if: always()
-        run: |
-          if [ -f /tmp/release-smoke.pid ]; then
-            kill "$(cat /tmp/release-smoke.pid)" 2>/dev/null || true
-          fi
+      - name: Run reproducible release smoke
+        run: pnpm ci:smoke
