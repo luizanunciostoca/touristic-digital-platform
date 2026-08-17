@@ -1,0 +1,74 @@
+name: Affiliates FEATURE-0010 Contract
+
+on:
+  pull_request:
+    paths:
+      - "docs/product-architecture/AFFILIATES-CANONICAL-SCOPE.md"
+      - "docs/product-architecture/AFFILIATES-TECHNICAL-CONTRACT.md"
+      - "docs/product-architecture/AFFILIATES-DECISION-SHEET.md"
+      - "docs/product-architecture/AFFILIATES-THREAT-MODEL.md"
+      - "docs/migration/AFFILIATES-MIGRATION-MATRIX.md"
+      - "docs/qa/AFFILIATES-FEATURE-0010-DISCOVERY-EVIDENCE.md"
+      - "docs/qa/AFFILIATES-FEATURE-0010-TEST-PLAN.md"
+      - "docs/operations/AFFILIATES-ROLLOUT-ROLLBACK.md"
+      - "docs/product-architecture/CAPABILITY-MATRIX.md"
+      - "docs/product-architecture/DOMAIN-MAP.md"
+      - "docs/product-architecture/MODULE-CONTRACTS.md"
+      - "docs/features/registry.json"
+      - "docs/migration/MASTER-MIGRATION-TRACKER.md"
+      - ".github/workflows/affiliates-feature-0010-contract.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Validate architecture and registry
+        run: pnpm architecture:check && pnpm features:check
+      - name: Validate policy-neutral Affiliate boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -f docs/product-architecture/AFFILIATES-CANONICAL-SCOPE.md
+          test -f docs/product-architecture/AFFILIATES-TECHNICAL-CONTRACT.md
+          test -f docs/product-architecture/AFFILIATES-DECISION-SHEET.md
+          test -f docs/product-architecture/AFFILIATES-THREAT-MODEL.md
+          test -f docs/migration/AFFILIATES-MIGRATION-MATRIX.md
+          test -f docs/qa/AFFILIATES-FEATURE-0010-DISCOVERY-EVIDENCE.md
+          test -f docs/qa/AFFILIATES-FEATURE-0010-TEST-PLAN.md
+          test -f docs/operations/AFFILIATES-ROLLOUT-ROLLBACK.md
+
+          test ! -d packages/affiliates
+          test ! -d services/affiliates
+
+          grep -Fq 'Financial remains the only monetary source of truth' docs/product-architecture/AFFILIATES-CANONICAL-SCOPE.md
+          grep -Fq 'No Affiliate-owned payout, wallet or payment runtime is ever authorized.' docs/product-architecture/AFFILIATES-CANONICAL-SCOPE.md
+          grep -Fq 'affiliate:v1:<operation>:' docs/product-architecture/AFFILIATES-TECHNICAL-CONTRACT.md
+          grep -Fq 'AffiliateFinancialMaterializationPort' docs/product-architecture/AFFILIATES-TECHNICAL-CONTRACT.md
+
+          decision_count="$(grep -Ec '^## [0-9]+\.' docs/product-architecture/AFFILIATES-DECISION-SHEET.md)"
+          test "$decision_count" -eq 19
+
+          node <<'NODE'
+          const registry = require('./docs/features/registry.json');
+          const feature = registry.features.find((entry) => entry.id === 'FEATURE-0010');
+          if (!feature) process.exit(1);
+          if (feature.domain !== 'affiliates' || feature.status !== 'planned') process.exit(1);
+          if (feature.equivalence.behavior || feature.equivalence.visual || feature.equivalence.api) process.exit(1);
+          NODE
+
+          grep -Eq 'MIG-0011.*FEATURE-0010.*discovered' docs/migration/MASTER-MIGRATION-TRACKER.md

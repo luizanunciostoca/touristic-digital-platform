@@ -2,94 +2,96 @@
 
 ## Purpose
 
-Track the canonical readiness of the platform Affiliate domain without converting planned product ideas into invented runtime behavior.
+Track how far `FEATURE-0010` can be closed technically without converting unresolved product decisions into runtime behavior.
 
-This matrix is a discovery/architecture gate. It is not an implementation-completion claim.
+This is an architecture/readiness matrix, not a release-equivalence claim.
 
 ## Current result
 
 ```text
-PASS       3
-PARTIAL    2
-GAP       10
-N/A        2
-TOTAL     17
+PASS       15
+PARTIAL     3
+GAP         7
+N/A         2
+TOTAL      27
 ```
 
 `FEATURE-0010` remains `planned`. `MIG-0011` remains `discovered`.
 
+The remaining GAP/PARTIAL rows are product-policy dependent. Policy-neutral ownership, ports, idempotency, audit, authorization, privacy controls, threat model, migration plan, tests and rollout/rollback are now defined.
+
 ## Matrix
 
-| Capability                              | Status  | Canonical evidence                                                                           | Missing before implementation                                                            |
-| --------------------------------------- | ------- | -------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| Affiliate is a separate platform domain | PASS    | Domain Map and Module Contracts define Affiliate separately from Financial and Business      | none                                                                                     |
-| Business ownership boundary             | PASS    | Business cannot administer affiliates; Affiliate does not belong to seller/tenant            | none                                                                                     |
-| Financial monetary authority boundary   | PASS    | Financial owns Payment, ledger, allocation, payable, settlement, wallet authority and payout | none                                                                                     |
-| Affiliate identity                      | GAP     | Affiliate identity is named by CAP-0018/CAP-0023                                             | onboarding, eligibility, Identity relationship, destination scope, suspension model      |
-| Referral/attribution evidence           | GAP     | CAP-0018 requires attribution and deduplication                                              | accepted evidence sources, trust/signature model, privacy retention, replay rules        |
-| Attribution association                 | GAP     | `CustomerAttributedToAffiliate` is an architectural event concept                            | attribution subject, precedence/conflict rules, durable schema, producer contract        |
-| Attribution window                      | GAP     | CAP-0018 explicitly requires expiry testing                                                  | duration, start clock, renewal/reset behavior, precedence on overlapping evidence        |
-| Conversion association                  | PARTIAL | Affiliate may consume Ordering/Financial events; Ordering has canonical order identity       | exact qualifying conversion event and refund/cancellation consequences                   |
-| Commission entitlement ownership        | PARTIAL | CAP-0019 assigns Affiliate/Financial conceptually; M146 forbids implicit financial authority | precise split: Affiliate commercial entitlement versus Financial materialization command |
-| Commission formula/policy               | GAP     | Product roadmap mentions commissions                                                         | rate/base, fixed/percentage, rounding, caps, currency, version/effective dates           |
-| Commission state machine                | GAP     | reversal testing is expected by CAP-0019                                                     | approved lifecycle and semantics for pending/earned/reversed/cancelled/disputed states   |
-| Refund/cancellation/reversal semantics  | GAP     | Financial already has verified refund/reversal primitives                                    | entitlement consequences and ordering of Affiliate versus Financial reversals            |
-| Affiliate persistence                   | GAP     | no `packages/affiliates` or `services/affiliates` exists                                     | approved schema, ownership, migrations, repositories, concurrency contract               |
-| Audit and idempotency                   | GAP     | global contracts require both where applicable                                               | Affiliate-specific audit events, keys, replay/divergence rules and retention             |
-| Affiliate-to-Financial adapter          | GAP     | Financial allocation/payable/settlement primitives exist                                     | versioned materialization command, authorization, rejection/retry semantics              |
-| Browser/admin surfaces                  | N/A     | runtime authority is not ready                                                               | intentionally blocked until server-side contracts and authorization exist                |
-| Affiliate-owned payout/payment          | N/A     | prohibited by canonical authority                                                            | must never be implemented; Financial remains owner                                       |
+| Capability | Status | Canonical evidence | Remaining blocker |
+| --- | --- | --- | --- |
+| Affiliate is a separate platform domain | PASS | Domain Map, Module Contracts, canonical scope | none |
+| Business ownership boundary | PASS | Business cannot administer Affiliate | none |
+| Ordering read boundary | PASS | Ordering owns canonical order identity/state; Affiliate may consume only public records/events | none |
+| Financial monetary authority boundary | PASS | Financial owns Payment, ledger, allocation, payable, wallet, settlement, payout and monetary reversal | none |
+| Conceptual Affiliate schemas | PASS | `AFFILIATES-TECHNICAL-CONTRACT.md` defines policy-neutral identity/evidence/attribution/conversion/entitlement concepts | executable schema waits for policy fields |
+| Affiliate identity | GAP | concept and ownership fixed | identity/cardinality/scope decision |
+| Eligibility and suspension | GAP | fail-closed boundary fixed | approved eligibility/suspension semantics |
+| Referral/attribution evidence | PARTIAL | digest, replay, privacy and trust boundary fixed | accepted source contracts/trust rules |
+| Attribution subject and precedence | GAP | durable association concept fixed | subject and conflict/precedence policy |
+| Attribution window | GAP | server-clock/versioning invariant fixed | duration/start/expiry/reset policy |
+| Conversion association | PARTIAL | canonical Ordering/Financial evidence boundary fixed | exact qualifying conversion decision |
+| Commission entitlement ownership | PASS | Affiliate owns commercial entitlement evidence; Financial owns monetary consequence | none |
+| Commission formula/policy | GAP | policy snapshot/version/digest requirement fixed | base/model/rate/rounding/caps/currency/effective dates |
+| Commission lifecycle | GAP | versioned state-machine requirement fixed | approved states/transitions |
+| Refund/cancellation consequences | GAP | Financial reversal authority fixed | Affiliate entitlement consequence policy |
+| Canonical Affiliate event family | PASS | technical contract reserves event ownership/names and Platform envelope requirements | payload schemas wait for policy fields |
+| Idempotency strategy | PASS | deterministic digest keys, durable claim, exact/divergent replay semantics | none |
+| Audit contract | PASS | immutable actor/authorization/policy/digest/correlation/outcome contract | none |
+| Authorization boundaries | PASS | server-authoritative, no tenant inheritance, explicit admin/self/service boundaries | exact scope names are implementation detail |
+| Privacy/LGPD controls | PARTIAL | minimization, separation, configurable retention, DSR/audit requirements fixed | retention duration/legal policy |
+| Affiliate → Financial port | PASS | versioned materialization request/result boundary with no browser monetary authority | timing and executable entitlement payload wait for policy |
+| Test and invariants plan | PASS | `AFFILIATES-FEATURE-0010-TEST-PLAN.md` | runtime tests wait for implementation |
+| Threat model | PASS | `AFFILIATES-THREAT-MODEL.md` | none |
+| Migration plan | PASS | phased expand-only plan in technical contract | execution waits for decisions |
+| Rollout/rollback | PASS | `AFFILIATES-ROLLOUT-ROLLBACK.md` | execution waits for runtime |
+| Browser/admin surfaces | N/A | deliberately last; no runtime authority ready | must not be implemented before server contracts |
+| Affiliate-owned payout/payment/wallet | N/A | prohibited by canonical authority | must never be implemented |
 
-## Capability mapping
+## Product decision gate
 
-### CAP-0018 — Attribute customer/referral to affiliate
+Exactly 19 decisions remain and are enumerated in `docs/product-architecture/AFFILIATES-DECISION-SHEET.md`:
 
-Planned owner: Affiliate.
+1. affiliate identity;
+2. eligibility;
+3. suspension;
+4. referral evidence;
+5. attribution subject;
+6. attribution precedence;
+7. attribution window;
+8. qualifying conversion;
+9. commission base;
+10. fixed vs percentage;
+11. rate;
+12. rounding;
+13. caps;
+14. currency;
+15. effective dates/versioning;
+16. pending/earned/reversed/cancelled/disputed lifecycle;
+17. refund/cancellation consequences;
+18. Financial materialization timing;
+19. retention/LGPD.
 
-Implementation entry criteria:
+No runtime default is permitted for any of them.
 
-- approved affiliate identity contract;
-- approved referral evidence contract;
-- approved attribution subject and conflict rules;
-- approved expiry/window semantics;
-- server-side persistence and idempotency;
-- no conversion inference from redirect/browser state.
+## Required implementation sequence after approval
 
-### CAP-0019 — Determine commission entitlement
-
-Planned commercial owner: Affiliate.
-
-Financial consequence owner: Financial.
-
-Implementation entry criteria:
-
-- approved commission policy snapshot;
-- deterministic base/formula/rounding;
-- canonical Ordering conversion association;
-- explicit verified Financial evidence where payment is required;
-- approved refund/cancellation/dispute lifecycle;
-- versioned Affiliate-to-Financial materialization contract.
-
-Affiliate may record/evidence commercial entitlement. It may not post ledger entries or create Payment/payable/settlement/payout authority.
-
-### CAP-0020 — Affiliate financial position
-
-The future Affiliate Portal may expose a user-facing projection, but balance/wallet/payable/settlement authority must come from Financial.
-
-No Affiliate-owned wallet implementation is authorized by this matrix.
-
-## Required implementation sequence after `READY`
-
-1. Domain contracts and invariants.
-2. Durable Affiliate persistence.
-3. Application boundary and authorization.
-4. Canonical Ordering/Financial event or record adapters.
-5. Affiliate-to-Financial materialization adapter.
-6. Authenticated APIs.
-7. Browser/admin surfaces.
-8. Unit, integration, security, idempotency, concurrency and E2E validation.
-9. Capability matrix reconciliation and release evidence.
+1. Freeze the approved policy/ADR and Decision Sheet version.
+2. Create `@touristic/affiliates` domain types/invariants and additive persistence.
+3. Add durable idempotency and immutable audit.
+4. Add explicit authorization capabilities.
+5. Add canonical Ordering/Financial read/event adapters.
+6. Add attribution/conversion and entitlement application services.
+7. Add the Financial-owned materialization adapter, disabled by default.
+8. Add authenticated read APIs/projections.
+9. Add browser/admin surfaces last.
+10. Execute unit, integration, security, privacy, concurrency and E2E validation.
+11. Reconcile matrix/evidence and only then consider state promotion.
 
 ## Completion gate
 
-FEATURE-0010 cannot move to `equivalent` or a release-ready state while any required capability remains GAP/PARTIAL, while commission policy is implicit, while browser evidence can create commission authority, or while any Affiliate code can create Financial monetary state directly.
+FEATURE-0010 cannot move to `equivalent` or release-ready while any required row remains GAP/PARTIAL, while any Decision Sheet item lacks an approved versioned value, while browser evidence can create commission authority, or while Affiliate can create/mutate Financial monetary state directly.

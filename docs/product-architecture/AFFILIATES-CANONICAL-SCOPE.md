@@ -1,187 +1,195 @@
 # Affiliates Canonical Scope — FEATURE-0010
 
-## Status and decision
+## Status and checkpoint
 
 `FEATURE-0010 — Programa de Afiliados` remains `planned` and `MIG-0011` remains `discovered`.
 
-The repository contains enough architecture to identify the domain owner and its allowed dependencies, but not enough approved product policy to implement attribution, commission persistence, Financial materialization, APIs or browser/admin surfaces without inventing business rules.
+Revalidated source-of-truth checkpoint:
 
-This document therefore closes the canonical discovery boundary only. It does not authorize runtime implementation.
+```text
+main = ec4f51e0198cdeed51b37fabe5ed94ebb2e3ecb6
+PR #264 base = ec4f51e0198cdeed51b37fabe5ed94ebb2e3ecb6
+```
+
+The PR is policy-neutral. It deliberately contains no Affiliate runtime, persistence, API, UI, commission calculation or money movement.
 
 ## Sources reconciled
 
-The decision is based on the canonical repository sources available on `main`:
-
 - `docs/features/registry.json`;
 - `docs/migration/MASTER-MIGRATION-TRACKER.md`;
+- `docs/migration/AFFILIATES-MIGRATION-MATRIX.md`;
 - `docs/product-architecture/DOMAIN-MAP.md`;
 - `docs/product-architecture/MODULE-CONTRACTS.md`;
 - `docs/product-architecture/CAPABILITY-MATRIX.md`;
 - `docs/product-architecture/PRODUCT-ROADMAP.md`;
 - `docs/product-architecture/FEATURE-LIFECYCLE.md`;
-- `packages/business/src/onboarding-commercial-conversion.ts`;
 - `packages/ordering/src/index.ts`;
 - `packages/financial/src/settlement.ts`;
-- `docs/qa/PAYMENTS-M146-EVIDENCE.md`.
-
-No `packages/affiliates`, `services/affiliates`, Affiliate-specific migration baseline, Affiliate-specific contract schema, Affiliate branch or Affiliate implementation pull request existed at the discovery checkpoint.
+- `services/financial/src/settlement-application-service.ts`;
+- existing Payments M146/M150/M151/M152/M153 evidence in `main`.
 
 ## Canonical ownership
 
 ### Affiliate
 
-Affiliate owns the commercial program semantics that are independent from money movement:
+Affiliate owns only non-monetary program/commercial semantics:
 
-- platform-level affiliate identity;
-- referral and attribution evidence;
+- platform affiliate identity/program state under approved policy;
+- referral evidence intake and validation;
 - attribution association;
-- conversion association to canonical records;
-- commercial commission entitlement and its evidence;
-- non-financial commission lifecycle once that lifecycle is approved;
-- audit metadata for Affiliate-owned decisions;
-- Affiliate idempotency keys and replay semantics.
+- conversion association to canonical commerce evidence;
+- commercial commission entitlement evidence under an approved versioned policy;
+- Affiliate-owned audit/idempotency metadata.
 
-Affiliate is a platform domain. It does not belong to a seller, tenant or Business workspace.
-
-### Business
-
-Business does not administer the affiliate program and does not determine Affiliate commission authority. A Business record may be referenced by canonical Ordering/Catalog records where normal commerce requires it, but Business is not the owner of affiliate attribution, commission or settlement.
+Affiliate is not a seller/tenant subsystem and does not inherit Business authority.
 
 ### Ordering
 
-Ordering is the canonical source for order identity and order state. Affiliate may consume a versioned Ordering event or read contract to associate a previously valid attribution with a real order.
-
-Affiliate must never infer a conversion from a click, redirect, query string, local storage marker or browser callback alone.
+Ordering is the canonical source for order identity and order state. Affiliate consumes public versioned records/events only. It cannot mutate Ordering and cannot infer a conversion from click/redirect/browser state.
 
 ### Financial
 
-Financial remains the only financial source of truth.
+Financial remains the only monetary source of truth and owns:
 
-Financial owns:
+- Payment and verified payment outcomes;
+- ledger;
+- allocation and amount conservation;
+- payable;
+- wallet/financial position;
+- settlement;
+- provider transfer/payout;
+- reconciliation;
+- monetary reversals.
 
-- Payment authority;
-- ledger entries;
-- allocation conservation;
-- payables;
-- wallet/balance authority;
-- settlements;
-- provider transfer commands and verified read-back;
-- payout execution;
-- financial reversals and reconciliation.
+Affiliate may request materialization of an approved entitlement only through a versioned Financial-owned port. Financial independently authorizes, resolves and validates the authoritative evidence before any monetary mutation.
 
-Affiliate may eventually provide an approved commercial commission entitlement to a versioned Financial boundary. Financial must independently validate the authoritative Payment/order identity, amount, currency, reconciliation state and any other Financial invariant before creating or changing a monetary record.
+Affiliate never creates Payment, ledger entries, allocation, payable, wallet, settlement, payout or direct Financial database writes.
 
-Affiliate must not create a Payment, write a ledger, create a payable, mark a settlement as paid, execute a payout or directly mutate Financial persistence.
+### Business
 
-## Minimum domain concepts
+Business does not administer Affiliates and cannot grant or calculate Affiliate commission authority.
 
-The following concepts are required before runtime implementation, but their final schemas are intentionally not invented here.
+## Policy-neutral technical foundation completed
 
-### Affiliate identity
+This PR defines without commercial assumptions:
 
-A platform-level identity representing the affiliate program participant. The repository does not yet specify onboarding, eligibility, legal identity, destination scope, suspension rules or whether one Identity user may control multiple affiliate identities.
+- conceptual schema boundaries for Affiliate identity, referral evidence, attribution, conversion association and commission entitlement;
+- read-only Ordering/Financial evidence ports;
+- Affiliate → Financial materialization request/result boundary without browser-controlled amount/rate/payout instructions;
+- required canonical event family and ownership;
+- durable idempotency strategy and replay/divergence semantics;
+- immutable audit contract;
+- authorization/trust boundaries;
+- privacy/LGPD engineering requirements with configurable retention;
+- threat model;
+- unit/integration/security/privacy/concurrency/E2E test plan;
+- phased migration plan;
+- staged rollout, kill switches and rollback preserving Financial history.
 
-### Referral and attribution evidence
+Detailed contracts:
 
-Durable server-side evidence that a referral occurred. The repository does not yet approve the accepted evidence sources, signature/trust model, source priority, replay policy or privacy retention rules.
+- `docs/product-architecture/AFFILIATES-TECHNICAL-CONTRACT.md`;
+- `docs/product-architecture/AFFILIATES-THREAT-MODEL.md`;
+- `docs/qa/AFFILIATES-FEATURE-0010-TEST-PLAN.md`;
+- `docs/operations/AFFILIATES-ROLLOUT-ROLLBACK.md`.
 
-Browser-provided affiliate identifiers can be input evidence only after server validation; they cannot be commission authority by themselves.
+## Runtime deliberately not implemented
 
-### Attribution
+The following remain blocked until all Decision Sheet items are approved:
 
-A durable association between an approved affiliate identity and an approved attribution subject. The exact subject is not yet approved: customer identity, anonymous acquisition identity, session, device-safe token or another server-side acquisition identifier all remain product/architecture decisions.
+- `packages/affiliates`;
+- `services/affiliates`;
+- Affiliate database migrations;
+- executable Affiliate event schemas/producers/consumers;
+- attribution/commission application services;
+- commission amount calculation;
+- Financial materialization implementation;
+- Affiliate/admin APIs;
+- browser/portal/admin UI.
 
-### Attribution window
+No Affiliate-owned payout, wallet or payment runtime is ever authorized.
 
-`CAP-0018` requires expiry testing, which proves that attribution expiry is expected, but no canonical duration, renewal rule, precedence rule or clock boundary is specified.
+## Canonical event direction
 
-No duration is implemented or assumed by this decision.
+Required future Affiliate-owned event family:
 
-### Conversion association
+- `AffiliateReferralEvidenceRecorded`;
+- `AffiliateAttributionEstablished`;
+- `AffiliateConversionAssociated`;
+- `AffiliateCommissionEntitlementChanged`;
+- `AffiliateFinancialMaterializationRequested`.
 
-A conversion can only be associated from canonical commerce records. At minimum, it must reference canonical Ordering identity and financial evidence when payment is required.
+Required Financial-owned handoff responses:
 
-The exact qualifying conversion event is not yet approved. `OrderPlaced`, payment approval, payment confirmation, booking confirmation and later refund/cancellation interactions have materially different commission consequences and cannot be treated as interchangeable.
+- `AffiliateFinancialMaterializationAccepted`;
+- `AffiliateFinancialMaterializationRejected`.
 
-### Commission entitlement
+These names reserve domain ownership only. No producer may emit them until payload schemas are approved, registered and tested with `PLATFORM-EVENT-ENVELOPE`.
 
-Affiliate may own the commercial fact that an affiliate is entitled to a commission under an approved, versioned policy snapshot.
+Historical `CustomerAttributedToAffiliate` and `AffiliateCommissionAccrued` labels remain non-executable architecture concepts and must not be revived as implicit contracts.
 
-The repository does not yet define:
+## Affiliate → Financial boundary
 
-- rate or formula;
-- fixed versus percentage commission;
-- base amount;
-- rounding;
-- caps/floors;
-- destination or campaign overrides;
-- tax treatment;
-- currency behavior;
-- eligibility timing;
-- refund/cancellation/dispute rules;
-- policy versioning and effective dates.
+The policy-neutral request binds:
 
-Until these rules are approved, no commission amount may be calculated or persisted as monetary authority.
+- request ID;
+- entitlement ID and immutable revision;
+- affiliate ID;
+- conversion-association ID;
+- policy version;
+- entitlement digest;
+- correlation ID.
 
-### Commission state
+It deliberately does not carry browser-controlled rate, amount, payout destination, ledger posting, payable state or settlement state.
 
-A final commission state machine is not approved. The lifecycle must explicitly define eligibility, earning/accrual semantics, reversal, cancellation, dispute and Financial handoff before code is created.
+Financial returns a durable accepted/rejected/replayed result. `accepted` means request acceptance only; it never means payout, transfer or settlement completion.
 
-Financial settlement state must never be copied into an Affiliate-owned state machine as if Affiliate owned payout authority.
+The exact materialization timing and decision-gated entitlement fields remain product decisions.
 
-### Audit and idempotency
+## Idempotency and audit
 
-All future Affiliate mutations must be server-side, auditable and idempotent. Required keys must bind the operation to canonical identities and a policy/evidence version so exact replay converges and divergent replay fails closed.
+Every authoritative Affiliate mutation must:
 
-The exact key formats and retention requirements remain part of the future executable contract.
+- claim a durable deterministic idempotency key before mutation;
+- converge on exact replay;
+- fail closed on divergent replay;
+- use server-normalized immutable IDs/digests plus relevant policy/contract versions;
+- append immutable audit with actor, authorization, policy, before/after digest, idempotency, correlation/causation, outcome and reason;
+- exclude secrets, raw referral tokens/URLs and copied identity documents from audit/observability.
 
-## Financial settlement adapter boundary
+## Authorization and privacy
 
-The existing Financial settlement model already provides the monetary boundary that Affiliate must reuse instead of duplicating it.
+- browser/public input is untrusted evidence only;
+- authoritative mutations are server-side;
+- Business tenant roles do not inherit Affiliate authority;
+- Affiliate self-service reads require canonical Identity ownership once that identity model is approved;
+- admin actions require explicit platform authorization and audit;
+- Financial handoff is authenticated service-to-service and Financial reauthorizes/revalidates it;
+- raw referral/identity data is minimized and separated;
+- retention is policy-configured, not hard-coded;
+- data-subject and legal/audit-hold behavior must preserve mandatory Financial/compliance history.
 
-A future Affiliate-to-Financial adapter may submit only an approved, versioned entitlement/materialization command. It must not submit browser-controlled amounts as authority.
+## Decision gate
 
-Financial must remain responsible for turning any accepted commercial entitlement into Financial allocation/payable/settlement records under its own invariants. Existing Financial behavior already requires persisted Payment authority, verified result, deterministic ledger evidence, clean reconciliation and amount/currency conservation before allocation becomes active.
+Exactly the remaining product decisions are captured in `docs/product-architecture/AFFILIATES-DECISION-SHEET.md`. No additional commercial rule is introduced by this PR.
 
-No Affiliate settlement adapter is implemented until the commission policy and command contract are approved.
+Implementation cannot start until all 19 items are approved and versioned.
 
-## Runtime work deliberately not implemented
+## Migration and rollout
 
-The following work is deliberately blocked:
+After approval, implementation follows expand-only domain foundation → evidence/association → entitlement → disabled Financial handoff → controlled materialization → authenticated reads → browser/admin surfaces. UI is last.
 
-- `packages/affiliates` domain code;
-- Affiliate persistence and migrations;
-- application services;
-- event consumers/producers;
-- commission calculation;
-- Financial materialization adapter;
-- authenticated Affiliate APIs;
-- admin APIs or CRM integration;
-- Affiliate browser/portal surfaces;
-- redirect/click conversion inference;
-- wallet implementation;
-- payout implementation.
-
-Creating any of those now would require a business rule or authority contract that is not present in the repository.
-
-## Required decisions before `READY`
-
-FEATURE-0010 cannot enter implementation until all of the following are approved and versioned:
-
-1. affiliate identity/onboarding/eligibility model;
-2. accepted referral evidence sources and trust model;
-3. attribution subject and conflict/precedence rules;
-4. attribution window duration and expiry/renewal semantics;
-5. qualifying conversion event and relationship to Ordering/Financial states;
-6. commission formula, base, rounding, caps, currency and policy versioning;
-7. commission state machine including refund/cancellation/dispute/reversal;
-8. Affiliate-to-Financial materialization command and Financial rejection semantics;
-9. authorization/RBAC for operations and future admin/affiliate reads;
-10. privacy/retention requirements for referral evidence;
-11. metrics, observability, rollback and release criteria.
-
-After those decisions exist, implementation should proceed in the required order: domain contracts, persistence, application boundary, canonical event/record integration, Financial adapter, authenticated APIs, browser/admin surfaces, then validation and release evidence.
+Rollback disables Financial handoff first, preserves reconciliation/readback and immutable history, then disables Affiliate writers. No destructive down migration or Financial-history deletion is part of normal rollback.
 
 ## Completion condition
 
-FEATURE-0010 may be considered complete only when its approved capability matrix has no unresolved GAP/PARTIAL rows, server-side attribution and commission entitlement are durable and idempotent, conversion is proven from canonical Ordering/Financial evidence, Financial exclusively owns every monetary mutation and payout, authorization/audit/privacy requirements are validated, and the permanent Quality/integration/security gates are green on one release-candidate head.
+FEATURE-0010 can only become equivalent/release-ready when:
+
+- the Decision Sheet is fully approved/versioned;
+- all required matrix rows are PASS/N/A with justified evidence;
+- server-side attribution/conversion/entitlement are durable, authorized, audited and idempotent;
+- qualifying conversion comes only from approved canonical Ordering/Financial evidence;
+- Financial exclusively owns all monetary mutation/payout authority;
+- security/LGPD/threat-model tests pass;
+- rollout/rollback/observability are verified;
+- permanent Quality/integration/security gates pass on one exact release-candidate head.

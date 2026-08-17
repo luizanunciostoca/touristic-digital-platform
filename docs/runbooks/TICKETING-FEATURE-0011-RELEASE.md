@@ -1,11 +1,5 @@
 # FEATURE-0011 Ticketing release / rollback
 
-## Documentary status
-
-`FEATURE-0011` and `MIG-0017` are `equivalent` after PR #276 and the documentary reconciliation in PR #279. They are **not** `released`.
-
-This runbook governs future activation and rollback. Its existence is not evidence that staging or production activation has occurred.
-
 ## Authority invariants
 
 - Ordering owns the Reservation → canonical Order binding.
@@ -33,11 +27,11 @@ Payments retains its existing provider/webhook/status configuration. Do not copy
 
 ## Activation
 
-1. Deploy an immutable release candidate only after the official exact-head gates required by the repository are executable and green.
+1. Deploy the exact head after Quality, Ticketing M147, Ticketing M148 and affected Payments/Financial checks are green.
 2. Keep `TICKETING_FEATURE_ENABLED` unset/false on first deployment. Ticketing API must return `TICKETING_FEATURE_DISABLED`; Payments remains unaffected.
 3. Confirm Ordering, Financial and Ticketing database connectivity and schema application.
 4. Confirm the canonical Payments checkout route is healthy: `/api/payments/v1/checkouts`.
-5. Enable `TICKETING_FEATURE_ENABLED=true` only for the intended environment.
+5. Enable `TICKETING_FEATURE_ENABLED=true` for the intended environment.
 6. Prove the sequence with a non-production/safe fixture: Catalog → Hold → Ordering Order → canonical Payments checkout → persisted approved Financial result → Reservation confirmation → Ticket issuance → QR/human code → check-in.
 7. Prove verified refund propagation to Reservation/Ticket cancellation.
 8. If offline validation is enabled, provision a scoped device credential, perform one sync, prove replay-safe behavior, revoke it, and prove subsequent sync is rejected.
@@ -60,8 +54,6 @@ Application rollback is non-destructive:
 - Revocation is admin-only and audited.
 - Existing M148 offline envelope/check-in replay protection remains authoritative.
 
-## Equivalence evidence versus release evidence
+## Promotion gate
 
-The equivalence gate was satisfied by the implementation/evidence integrated through PR #276 and reconciled into the Registry/Ticketing matrix by PR #279. Historical pre-promotion wording must not be used to downgrade the current `equivalent` state.
-
-A production release is a separate decision. Do not mark FEATURE-0011 or MIG-0017 `released` until the Definition of Released in `docs/product-architecture/RELEASE-PROCESS.md` is satisfied, including immutable release identity, official gates, staging/go-no-go, activation evidence, stable health/metrics, critical reconciliation and a documented rollback path.
+Do not mark FEATURE-0011 `equivalent` until the exact final head is 0 behind `main`, mergeable, and all required checks plus the complete canonical sequence are evidenced. Do not merge from this runbook; promotion remains coordinator-controlled.

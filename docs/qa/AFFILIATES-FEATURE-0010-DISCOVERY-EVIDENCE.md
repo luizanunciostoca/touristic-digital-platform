@@ -1,98 +1,135 @@
 # FEATURE-0010 Affiliates — Canonical Discovery Evidence
 
-## Discovery lineage
+## Revalidated checkpoint
 
-Initial discovery started against `main` at:
-
-```text
-8d07e4db0e3c619d520f1a3fc36dc4b14a6a65a2
-```
-
-Before the original pull request was prepared, `main` advanced with Ordering M150 and the work was rebuilt cleanly on:
+GitHub is the source of truth.
 
 ```text
-91830cdbb485fbf4145e5655e81bffc13b459627
+main: ec4f51e0198cdeed51b37fabe5ed94ebb2e3ecb6
+PR #264 base before this update: ec4f51e0198cdeed51b37fabe5ed94ebb2e3ecb6
+PR #264 head before this update: 823a8661c0ca18edbb4ea4f2d753d191305ab17e
+compare: ahead 1 / behind 0 / mergeable
 ```
 
-For the final V2 documentary reconciliation, the branch was revalidated against and remains zero-behind:
+The current main already includes the relevant Ordering/Financial foundation. Nothing in it supplies the missing Affiliate commercial policy.
+
+## Canonical state inspected
+
+- Feature Registry: `FEATURE-0010`, domain `affiliates`, wave 9, `planned`, no legacy sources, target `@touristic/affiliates`, equivalence behavior/visual/API all false.
+- Master Migration Tracker: `MIG-0011`, domain Affiliates, wave 9, `discovered`.
+- Domain Map: Affiliate is separate; Financial is the only monetary source of truth.
+- Module Contracts: Affiliate consumes only public contracts; Business cannot administer Affiliate; Financial materialization is Financial-owned.
+- Capability Matrix: CAP-0018/19/20 reserve attribution, commercial entitlement and Financial position ownership without executable commercial policy.
+- Ordering: canonical order ID/status and `OrderPlacedEvent` exist; no Affiliate authority exists there.
+- Financial settlement domain/service: allocation/payable/settlement primitives, Payment confirmation/evidence, ledger and amount conservation already exist; Affiliate must reuse this authority rather than duplicate it.
+
+## PR and branch reconciliation
+
+PR #264 is the active Affiliate canonical-boundary PR. It was rebuilt on current main and the current diff contains documentation plus an Affiliate contract workflow only.
+
+Current changed-file inspection before this update contained no Affiliate runtime directories or implementation files.
+
+Affiliate-related branch search also found older/synchronization branches. They are not implementation sources for promotion. The previously contaminated runtime noted by coordination history is not present in the current #264 diff and must not be reintroduced from an old branch.
+
+## Policy-neutral technical work now completed
+
+This update closes everything that can be fixed without deciding commercial policy:
+
+- canonical domain/ownership boundaries;
+- conceptual schemas;
+- Ordering/Financial read boundaries;
+- versioned Affiliate → Financial materialization request/result contract shape without monetary/browser authority;
+- canonical event family and ownership;
+- durable idempotency/replay/divergence strategy;
+- immutable audit contract;
+- authorization/trust boundaries;
+- privacy/LGPD engineering requirements;
+- threat model;
+- test/invariant plan;
+- migration sequence;
+- staged rollout/kill switches/rollback.
+
+No Affiliate runtime, migration, provider, wallet, payout, payment, commission formula or browser commission authority is introduced.
+
+## Updated readiness
 
 ```text
-main@ec4f51e0198cdeed51b37fabe5ed94ebb2e3ecb6
+PASS       15
+PARTIAL     3
+GAP         7
+N/A         2
+TOTAL      27
 ```
 
-That current `main` already includes M153 Payments reconciliation and the final Ticketing documentary reconciliation. Neither addition supplies the missing Affiliate attribution/commission policy or transfers Financial monetary authority to Affiliate.
+The remaining PARTIAL/GAP items correspond to explicit product-policy decisions, not missing generic engineering work.
 
-## Sources inspected
+## Decision gate
 
-- `docs/features/registry.json` — `FEATURE-0010` is `planned`, wave 9, no legacy sources, target `@touristic/affiliates`, all equivalence flags false.
-- `docs/migration/MASTER-MIGRATION-TRACKER.md` — `MIG-0011` is `discovered`; the final rollup preserves FEATURE-0010 as planned/discovered and keeps production release separate.
-- `docs/product-architecture/DOMAIN-MAP.md` — Affiliate is a separate platform domain; Financial is the only source of financial truth.
-- `docs/product-architecture/MODULE-CONTRACTS.md` — Business cannot administer affiliates; Ordering cannot administer affiliates; Affiliate can affect monetary state only through a future explicit Financial boundary.
-- `docs/product-architecture/CAPABILITY-MATRIX.md` — CAP-0018/19/20 provide architectural direction but do not define executable product policy.
-- `docs/product-architecture/PRODUCT-ROADMAP.md` — the platform affiliate program is a future transaction/revenue initiative whose prioritization gate requires owner, contract, risk, acceptance criteria, dependencies and success metric before implementation.
-- `docs/product-architecture/FEATURE-LIFECYCLE.md` — implementation readiness requires closed scope, acceptance criteria, resolved dependencies, security/LGPD, planned tests and metrics.
-- `packages/business/src/onboarding-commercial-conversion.ts` — Business hands a normalized commercial checkout request to Payments and accepts only a verified payment result; it contains no Affiliate commission authority.
-- Ordering contracts — canonical order/subscription records exist, but there is no approved Affiliate attribution or qualifying-conversion contract.
-- Financial settlement contracts — Financial owns allocation, payable, settlement, provider transfer verification and settlement idempotency.
-- `docs/qa/PAYMENTS-M146-EVIDENCE.md` and the later Payments matrix — Financial only materializes money from persisted verified/reconciled authority; browser amounts are non-authoritative and no Affiliate payout authority is implied.
+`docs/product-architecture/AFFILIATES-DECISION-SHEET.md` contains exactly 19 decisions required to unlock runtime:
 
-## Existing implementation search
+1. affiliate identity;
+2. eligibility;
+3. suspension;
+4. referral evidence;
+5. attribution subject;
+6. attribution precedence;
+7. attribution window;
+8. qualifying conversion;
+9. commission base;
+10. fixed vs percentage;
+11. rate;
+12. rounding;
+13. caps;
+14. currency;
+15. effective dates/versioning;
+16. pending/earned/reversed/cancelled/disputed lifecycle;
+17. refund/cancellation consequences;
+18. Financial materialization timing;
+19. retention/LGPD.
 
-At the discovery checkpoint and again at the final documentary reconciliation:
+Missing values fail closed. The repository must not infer them from roadmap wording, Financial primitives, historical event names or browser behavior.
 
-- no `packages/affiliates` directory is part of `main`;
-- no `services/affiliates` directory is part of `main`;
-- no approved Affiliate runtime implementation is used as evidence;
-- the current PR is intentionally documentation/governance only.
+## Runtime contamination check
 
-## Discovery conclusion
-
-There is approved architectural/product direction for a separate platform Affiliate domain, but there is no approved executable scope sufficient for runtime implementation.
-
-Missing policy includes:
-
-- affiliate onboarding/eligibility/identity relationship;
-- accepted referral evidence and trust model;
-- attribution subject and precedence/conflict rules;
-- attribution-window duration and renewal semantics;
-- qualifying conversion event;
-- commission formula/base/rounding/caps/currency/versioning;
-- commission state machine and refund/cancellation/dispute/reversal behavior;
-- exact Affiliate-to-Financial materialization contract;
-- Affiliate authorization/RBAC;
-- privacy/retention rules;
-- metrics, observability and rollback criteria.
-
-Implementing persistence, APIs, events, commission calculation, browser/admin or payout behavior without those decisions would invent product policy and violate the feature lifecycle gate.
-
-## Canonical decision produced by this change
-
-The branch therefore performs documentation/architecture reconciliation only:
-
-1. preserves `FEATURE-0010` as `planned`;
-2. preserves `MIG-0011` as `discovered`;
-3. defines Affiliate as the owner of platform affiliate identity, validated referral/attribution evidence, conversion association and commercial commission entitlement under an approved policy;
-4. makes Financial exclusively authoritative for Payment, ledger, allocation, payable, wallet/financial position, settlement, transfer/payout and monetary reversals;
-5. makes browser/redirect evidence non-authoritative;
-6. records the detailed readiness matrix in `docs/migration/AFFILIATES-MIGRATION-MATRIX.md`;
-7. deliberately creates no Affiliate runtime, persistence, provider, payment or payout path.
-
-## Capability readiness
+The target state for this PR is intentionally:
 
 ```text
-PASS       3
-PARTIAL    2
-GAP       10
-N/A        2
-TOTAL     17
+packages/affiliates     ABSENT
+services/affiliates     ABSENT
+Affiliate DB migration  ABSENT
+Affiliate API/UI        ABSENT
+Affiliate payout/wallet ABSENT
 ```
 
-This tally is a discovery-readiness matrix, not a parity or release-equivalence score.
+The permanent contract workflow asserts the runtime directories remain absent in this phase.
 
-## Final validation scope
+## Validation available while Actions is unavailable
 
-The current PR diff is documentation-only and is compared directly against current `main`. No runtime test is fabricated for a runtime that intentionally does not exist.
+Connector/static validation completed:
 
-GitHub Actions is temporarily unavailable at this checkpoint. Therefore this evidence does **not** claim fresh exact-head CI success. The documentary audit can still verify source-of-truth consistency, ownership, changed-file scope, merge-base/behind state and absence of runtime changes. Official exact-head Quality/contract checks remain a pending promotion gate to execute when Actions is functional again.
+- revalidated `main` ref and SHA;
+- fetched Registry and Master Tracker from `main` directly rather than relying on stale code-search snapshots;
+- fetched current PR #264 metadata/diff;
+- verified `behind_by = 0` against `main` before this update;
+- inspected changed filenames and confirmed no Affiliate runtime;
+- inspected Ordering and Financial source contracts used by the boundary;
+- reconciled stale discovery evidence to current main;
+- prepared permanent Affiliate contract checks for the exact final head.
 
-Historical green checks remain supporting evidence only and are not reused as proof for the current PR head.
+GitHub Actions is currently unavailable, so official Quality cannot be claimed. Do not merge to `main` until the exact final head has passed the repository Quality Gate and the Affiliate contract workflow after Actions returns.
+
+## Required CI on final head
+
+At minimum:
+
+- frozen install;
+- `pnpm format:check`;
+- `pnpm architecture:check`;
+- `pnpm features:check`;
+- lint;
+- typecheck;
+- full tests;
+- build;
+- `Affiliates FEATURE-0010 Contract`.
+
+The PR must remain 0-behind and mergeable when those checks run.

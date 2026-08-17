@@ -1,9 +1,9 @@
-# Payments / Ordering / Financial — Migration Matrix (M153 current-main reconciliation)
+# Payments / Ordering / Financial — Migration Matrix (post-M150/M151/M152 reconciliation)
 
 ## Status semantics
 
 - `PASS` — V2 exposes the audited contract with executable evidence at the current layer.
-- `PARTIAL` — a reusable V2 primitive/port exists, but production composition or durable end-to-end execution is incomplete or not yet evidenced.
+- `PARTIAL` — a reusable V2 primitive/port exists, but production composition or durable end-to-end execution is incomplete.
 - `GAP` — no V2 equivalent exists yet.
 - `N/A` — contract intentionally belongs to another feature and must only be consumed.
 
@@ -21,14 +21,11 @@
 
 ## Reconciled main state
 
-M150/M151/M152 established the Subscription lifecycle, durable Subscription/renewal persistence and bounded provider retry behavior. M153 added the approved application/runtime composition without inventing a provider-specific recurring-charge or scheduler policy.
+This matrix was stale at M149 after M150/M151 had already reached `main`. The canonical lineage revalidated for this reconciliation is:
 
-Canonical lineage:
-
-- M150 Subscription recurrence contract — commit `91830cdbb485fbf4145e5655e81bffc13b459627`;
-- Financial M152 bounded provider retries — commit `8d07e4db0e3c619d520f1a3fc36dc4b14a6a65a2`;
-- M151 durable Subscription persistence — PR #258, merged as `e96fe6d5e025a2084437aa51a8691b65edfc9eec`;
-- M153 application/runtime reconciliation — PR #267, merged as `f43b0f13618913ac62e775167e8a56d9c49749b2`.
+- M150 Subscription recurrence contract — commit `91830cdbb485fbf4145e5655e81bffc13b459627`, ancestor of `main`;
+- Financial M152 bounded provider retries — commit `8d07e4db0e3c619d520f1a3fc36dc4b14a6a65a2`, ancestor of `main`;
+- M151 durable Subscription persistence — PR #258, merged as `e96fe6d5e025a2084437aa51a8691b65edfc9eec`.
 
 M150 defines the provider-neutral Subscription lifecycle with `active`, `cancel_at_period_end`, `past_due` and `cancelled`; immutable paid-period identity; deterministic `<subscriptionId>:period:<n>` renewal keys; server-snapshot pricing; verified-outcome-only advancement; verified terminal failure to `past_due`; and no blind recharge.
 
@@ -36,7 +33,7 @@ M151 persists Subscription snapshots and renewal-intent claims in Ordering MySQL
 
 Financial M152 adds bounded transient retries around existing provider commands without changing financial authority. Those retries do not authorize an automatic second recurring charge after a verified terminal renewal failure.
 
-M153 composes the server-issued Business → Payments authority bootstrap, provider-neutral recurrence application service and expand-first/disable-first release/rollback contract. Because PR #267 is merged, the matrix below is the current repository truth, not a pre-merge implementation candidate.
+M153 now adds the approved runtime/application composition without inventing provider-specific recurring-charge or scheduler policy. The historical M150/M151/M152 checkpoint below is superseded by the M153 candidate reconciliation in this document.
 
 ## Matrix
 
@@ -77,7 +74,7 @@ M153 composes the server-issued Business → Payments authority bootstrap, provi
 | Auth/tenant context                       | platform Auth                                        | authenticated checkout/refund/reconciliation boundaries bind real session/CSRF/tenant/admin scope; guest handoff verification is separate                                                                                                                                  | PASS    | Do not infer authority from browser state.                                                                                                                                     |
 | Rollback/migration strategy               | release process                                      | `PAYMENTS-RELEASE-ROLLBACK.md` defines expand-first schema, exact-head gates, independent activation, disable-first rollback, durable claim recovery and explicit preservation of all Financial history                                                                    | PASS    | Rollback disables composition/execution and recovers from persisted state; never delete or rewrite Financial history.                                                          |
 
-## M153 current-main score
+## M153 implementation-candidate score
 
 ```text
 PASS      30
@@ -87,18 +84,16 @@ N/A        1
 TOTAL     34
 ```
 
-M153 closes the three approved application/runtime rows that were still partial after M150/M151/M152: public Business → Payments authority composition, the provider-neutral Subscription lifecycle/application executor, and the release/rollback strategy contract. This is the current merged implementation truth. It is **not** release equivalence.
+M153 closes the three approved application/runtime rows that were still partial after M150/M151/M152: public Business → Payments authority composition, the provider-neutral Subscription lifecycle/application executor, and the release/rollback strategy contract. This score is implementation-candidate truth, not release equivalence.
 
 ## Real remaining work
 
 1. emit recurrence/payment operational observations through the canonical Platform observation contract without mutation authority;
-2. obtain deployed third-party provider/browser E2E evidence before equivalence or production claims;
+2. obtain deployed third-party provider/browser E2E evidence before production-equivalence claims;
 3. prove the real production topology and add/compose a distributed limiter only if it is horizontally scaled.
 
 Automatic recurring provider charging and timer/scheduler activation are intentionally not counted as missing implementation because no approved recurring-payment-instrument/provider contract or canonical scheduler contract exists in the source of truth. They remain disabled rather than being invented.
 
 ## Promotion decision
 
-`FEATURE-0009` and `MIG-0010` remain `migrating`; behavior/visual/API equivalence flags remain `false`. Zero `GAP` rows is not sufficient for equivalence while the three remaining `PARTIAL` contracts above remain unresolved or unproven.
-
-`docs/operations/PAYMENTS-RELEASE-ROLLBACK.md` is an activation/rollback contract, not evidence that production release occurred. `released` may only be asserted after the platform Definition of Released is satisfied.
+`FEATURE-0009` and `MIG-0010` remain `migrating`; behavior/visual/API equivalence flags remain `false` at this reconciliation checkpoint. Zero `GAP` rows is not sufficient for equivalence while the three remaining `PARTIAL` contracts above remain unresolved or unproven.

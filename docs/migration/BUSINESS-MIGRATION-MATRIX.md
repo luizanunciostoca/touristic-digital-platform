@@ -7,7 +7,7 @@
 - `GAP` — no V2 Business-owned equivalent exists yet.
 - `N/A` — contract belongs to another feature.
 
-After M65, all audited Business-owned contracts have executable V2 equivalence evidence. The frozen `js/business/*` production scope is complete from M63/M64, and M65 reconciles the final `business-live-runtime.js` responsibilities through explicit semantic events and existing owner ports without restoring legacy globals. `FEATURE-0005` is `equivalent`; rollout/release remains separate.
+After M65, all audited Business-owned contracts have executable V2 equivalence evidence. The frozen `js/business/*` production scope is complete from M63/M64, and M65 reconciles the final `business-live-runtime.js` responsibilities through explicit semantic events and existing owner ports without restoring legacy globals. `FEATURE-0005` is therefore eligible for `equivalent`; rollout/release remains separate.
 
 | Contract                                | Frozen V1 evidence                                                    | V2 evidence at M65                                                                                                                                                                                                                                         | Status | Migration decision                                                                                                                                   |
 | --------------------------------------- | --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -28,8 +28,8 @@ After M65, all audited Business-owned contracts have executable V2 equivalence e
 | Partner workspace adapter               | `business-partner-workspace-adapter.js`                               | M60 renders session-only metrics, creates sandbox promotions and hands off explicitly to the protected authenticated dashboard                                                                                                                             | PASS   | Keep tutorial workspace isolated; Auth protects the real dashboard and production analytics remain separate.                                         |
 | Live Business runtime                   | `business-live-runtime.js`                                            | M65 semantic runtime presents the confirmed business on arrival/map/ecosystem, delegates reputation to Assistant, emits explicit owner-facing focus intents, fails closed without coordinates and avoids legacy globals; permanent Chromium contract green | PASS   | Preserve observable orchestration through typed V2 events/ports; do not restore global DOM integration or absorb external feature ownership.         |
 | Commercial conversion adapter           | `business-commercial-conversion-adapter.js`                           | M61 ports the framework-independent commercial core; M62 binds it to the finish-step browser form, Payments handoff and fail-closed verified activation lifecycle                                                                                          | PASS   | Keep payment/subscription execution in `FEATURE-0009`; Business owns only commercial preparation and handoff consumption.                            |
-| Checkout client                         | `business-checkout-client.js`                                         | `FEATURE-0009` is `migrating`; M153 is merged, while Payments still owns execution and retains three PARTIAL rows                                                                                                                                          | N/A    | Payment execution belongs to Payments; Business only prepares the handoff and consumes its verified boundary.                                       |
-| Dashboard visual surface                | `dashboard/*.html/css/js`                                             | M52 mounted shell reproduces/auth-tests sidebar, header, primary views, theme, logout, profile states and responsive menu                                                                                                                                       | PASS   | Keep analytics explicitly unavailable until their endpoints are separately ported.                                                                   |
+| Checkout client                         | `business-checkout-client.js`                                         | `FEATURE-0009` remains planned                                                                                                                                                                                                                             | N/A    | Payment execution belongs to Payments; Business only consumes its verified boundary.                                                                 |
+| Dashboard visual surface                | `dashboard/*.html/css/js`                                             | M52 mounted shell reproduces/auth-tests sidebar, header, primary views, theme, logout, profile states and responsive menu                                                                                                                                  | PASS   | Keep analytics explicitly unavailable until their endpoints are separately ported.                                                                   |
 | Business onboarding visual surface      | V1 onboarding/tutorial browser flow                                   | full 28-step presentation remains browser-tested; M59 adds profile preview, M60 partner workspace, and M62 commercial preparation plus Payments-ownership disclosure                                                                                       | PASS   | Preserve accessible controls and browser evidence while production runtime ports evolve.                                                             |
 
 ## M65 score
@@ -48,7 +48,7 @@ The Business browser neither creates checkout/provider sessions nor stores provi
 
 The permanent Commercial Browser Contract proves this lifecycle in deterministic Chromium. It also proves the `events → performance` plan fallback through the M61 core, contractor sanitization, explicit Payments-ownership disclosure, absence of payment execution state in the handoff, rejection of invalid verification and exactly one valid activation event.
 
-`Business profile behavior` remains `PASS` from M63 and `Business domain/browser behavior` remains `PASS` from the M64 frozen-tree reconciliation. M65 promotes the final `Live Business runtime` contract to `PASS` through semantic V2 orchestration plus deterministic Chromium evidence. `Checkout client` remains `N/A` because provider/payment execution belongs to `FEATURE-0009`. All Business-owned rows are PASS, so Business equivalence is claimed at the feature boundary without absorbing Payments-owned execution.
+`Business profile behavior` remains `PASS` from M63 and `Business domain/browser behavior` remains `PASS` from the M64 frozen-tree reconciliation. M65 promotes the final `Live Business runtime` contract to `PASS` through semantic V2 orchestration plus deterministic Chromium evidence. `Checkout client` remains `N/A` because provider/payment execution belongs to `FEATURE-0009`. All Business-owned rows are now PASS, so Business equivalence is claimed at the feature boundary without absorbing Payments-owned execution.
 
 ## Dependency rule
 
@@ -56,7 +56,7 @@ No Business implementation milestone may introduce its own credential/session/co
 
 The onboarding workflow correlation remains product/workflow state only and is not an authentication authority or proof of payment. Its runtime allowlist persists only explicit Business workflow results and rejects unrelated fields.
 
-Payment/checkout execution remains owned by `FEATURE-0009`; Business may prepare and consume the explicit port but must not absorb provider execution or financial verification ownership. The current Payments lifecycle state is `migrating`, not `planned`.
+Payment/checkout execution remains owned by `FEATURE-0009`; Business may prepare and consume the explicit port but must not absorb provider execution or financial verification ownership.
 
 ## Evidence
 
@@ -84,10 +84,10 @@ Payment/checkout execution remains owned by `FEATURE-0009`; Business may prepare
 
 `BUSINESS-M65-EVIDENCE.md` and the permanent Business Live Runtime Browser Contract prove the final semantic live-runtime responsibilities, fail-closed location behavior, Assistant delegation, owner-facing focus intents, metric exclusion and absence of legacy browser globals.
 
-The official Quality Gate and every path-triggered Business browser contract validate the implementation/equivalence evidence at the relevant integrated checkpoints. Historical green runs do not themselves prove a production release.
+The official Quality Gate and every path-triggered Business browser contract must validate the final permanent M65 head after the registry/tracker reconciliation. No temporary helper workflow or script may remain in the diff.
 
 ## Equivalence state
 
-M65 closes the final Business-owned `PARTIAL`. The matrix is `19 PASS / 0 PARTIAL / 0 GAP / 1 N/A`; the sole N/A is Payments-owned checkout execution.
+M65 closes the final Business-owned `PARTIAL`. The matrix is now `19 PASS / 0 PARTIAL / 0 GAP / 1 N/A`; the sole N/A is Payments-owned checkout execution.
 
-`FEATURE-0005` is `equivalent`, not `released`. Future Business work must be treated as new scope, release/rollout, or a separately evidenced improvement rather than unfinished V1 parity.
+`FEATURE-0005` advances to `equivalent`, not `released`. Future Business work must be treated as new scope, release/rollout, or a separately evidenced improvement rather than unfinished V1 parity.
