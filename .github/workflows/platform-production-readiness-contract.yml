@@ -67,7 +67,6 @@ jobs:
       MORRO_DEPLOYMENT_ID: platform-contract-deployment
       PLATFORM_SHUTDOWN_READINESS_DELAY_MS: 1500
       PLATFORM_SHUTDOWN_DRAIN_TIMEOUT_MS: 5000
-      NODE_ENV: production
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -99,6 +98,7 @@ jobs:
           start_server() {
             local port="$1"
             local log="$2"
+            NODE_ENV=production \
             DASHBOARD_AUTH_ORIGIN="http://127.0.0.1:4180" \
             PORT="$port" HOST="127.0.0.1" \
               node apps/morro-digital-platform/tooling/dev-server.mjs >"$log" 2>&1 &
