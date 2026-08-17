@@ -22,35 +22,35 @@ The remaining GAP/PARTIAL rows are product-policy dependent. Policy-neutral owne
 
 ## Matrix
 
-| Capability | Status | Canonical evidence | Remaining blocker |
-| --- | --- | --- | --- |
-| Affiliate is a separate platform domain | PASS | Domain Map, Module Contracts, canonical scope | none |
-| Business ownership boundary | PASS | Business cannot administer Affiliate | none |
-| Ordering read boundary | PASS | Ordering owns canonical order identity/state; Affiliate may consume only public records/events | none |
-| Financial monetary authority boundary | PASS | Financial owns Payment, ledger, allocation, payable, wallet, settlement, payout and monetary reversal | none |
-| Conceptual Affiliate schemas | PASS | `AFFILIATES-TECHNICAL-CONTRACT.md` defines policy-neutral identity/evidence/attribution/conversion/entitlement concepts | executable schema waits for policy fields |
-| Affiliate identity | GAP | concept and ownership fixed | identity/cardinality/scope decision |
-| Eligibility and suspension | GAP | fail-closed boundary fixed | approved eligibility/suspension semantics |
-| Referral/attribution evidence | PARTIAL | digest, replay, privacy and trust boundary fixed | accepted source contracts/trust rules |
-| Attribution subject and precedence | GAP | durable association concept fixed | subject and conflict/precedence policy |
-| Attribution window | GAP | server-clock/versioning invariant fixed | duration/start/expiry/reset policy |
-| Conversion association | PARTIAL | canonical Ordering/Financial evidence boundary fixed | exact qualifying conversion decision |
-| Commission entitlement ownership | PASS | Affiliate owns commercial entitlement evidence; Financial owns monetary consequence | none |
-| Commission formula/policy | GAP | policy snapshot/version/digest requirement fixed | base/model/rate/rounding/caps/currency/effective dates |
-| Commission lifecycle | GAP | versioned state-machine requirement fixed | approved states/transitions |
-| Refund/cancellation consequences | GAP | Financial reversal authority fixed | Affiliate entitlement consequence policy |
-| Canonical Affiliate event family | PASS | technical contract reserves event ownership/names and Platform envelope requirements | payload schemas wait for policy fields |
-| Idempotency strategy | PASS | deterministic digest keys, durable claim, exact/divergent replay semantics | none |
-| Audit contract | PASS | immutable actor/authorization/policy/digest/correlation/outcome contract | none |
-| Authorization boundaries | PASS | server-authoritative, no tenant inheritance, explicit admin/self/service boundaries | exact scope names are implementation detail |
-| Privacy/LGPD controls | PARTIAL | minimization, separation, configurable retention, DSR/audit requirements fixed | retention duration/legal policy |
-| Affiliate → Financial port | PASS | versioned materialization request/result boundary with no browser monetary authority | timing and executable entitlement payload wait for policy |
-| Test and invariants plan | PASS | `AFFILIATES-FEATURE-0010-TEST-PLAN.md` | runtime tests wait for implementation |
-| Threat model | PASS | `AFFILIATES-THREAT-MODEL.md` | none |
-| Migration plan | PASS | phased expand-only plan in technical contract | execution waits for decisions |
-| Rollout/rollback | PASS | `AFFILIATES-ROLLOUT-ROLLBACK.md` | execution waits for runtime |
-| Browser/admin surfaces | N/A | deliberately last; no runtime authority ready | must not be implemented before server contracts |
-| Affiliate-owned payout/payment/wallet | N/A | prohibited by canonical authority | must never be implemented |
+| Capability                              | Status  | Canonical evidence                                                                                                      | Remaining blocker                                         |
+| --------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| Affiliate is a separate platform domain | PASS    | Domain Map, Module Contracts, canonical scope                                                                           | none                                                      |
+| Business ownership boundary             | PASS    | Business cannot administer Affiliate                                                                                    | none                                                      |
+| Ordering read boundary                  | PASS    | Ordering owns canonical order identity/state; Affiliate may consume only public records/events                          | none                                                      |
+| Financial monetary authority boundary   | PASS    | Financial owns Payment, ledger, allocation, payable, wallet, settlement, payout and monetary reversal                   | none                                                      |
+| Conceptual Affiliate schemas            | PASS    | `AFFILIATES-TECHNICAL-CONTRACT.md` defines policy-neutral identity/evidence/attribution/conversion/entitlement concepts | executable schema waits for policy fields                 |
+| Affiliate identity                      | GAP     | concept and ownership fixed                                                                                             | identity/cardinality/scope decision                       |
+| Eligibility and suspension              | GAP     | fail-closed boundary fixed                                                                                              | approved eligibility/suspension semantics                 |
+| Referral/attribution evidence           | PARTIAL | digest, replay, privacy and trust boundary fixed                                                                        | accepted source contracts/trust rules                     |
+| Attribution subject and precedence      | GAP     | durable association concept fixed                                                                                       | subject and conflict/precedence policy                    |
+| Attribution window                      | GAP     | server-clock/versioning invariant fixed                                                                                 | duration/start/expiry/reset policy                        |
+| Conversion association                  | PARTIAL | canonical Ordering/Financial evidence boundary fixed                                                                    | exact qualifying conversion decision                      |
+| Commission entitlement ownership        | PASS    | Affiliate owns commercial entitlement evidence; Financial owns monetary consequence                                     | none                                                      |
+| Commission formula/policy               | GAP     | policy snapshot/version/digest requirement fixed                                                                        | base/model/rate/rounding/caps/currency/effective dates    |
+| Commission lifecycle                    | GAP     | versioned state-machine requirement fixed                                                                               | approved states/transitions                               |
+| Refund/cancellation consequences        | GAP     | Financial reversal authority fixed                                                                                      | Affiliate entitlement consequence policy                  |
+| Canonical Affiliate event family        | PASS    | technical contract reserves event ownership/names and Platform envelope requirements                                    | payload schemas wait for policy fields                    |
+| Idempotency strategy                    | PASS    | deterministic digest keys, durable claim, exact/divergent replay semantics                                              | none                                                      |
+| Audit contract                          | PASS    | immutable actor/authorization/policy/digest/correlation/outcome contract                                                | none                                                      |
+| Authorization boundaries                | PASS    | server-authoritative, no tenant inheritance, explicit admin/self/service boundaries                                     | exact scope names are implementation detail               |
+| Privacy/LGPD controls                   | PARTIAL | minimization, separation, configurable retention, DSR/audit requirements fixed                                          | retention duration/legal policy                           |
+| Affiliate → Financial port              | PASS    | versioned materialization request/result boundary with no browser monetary authority                                    | timing and executable entitlement payload wait for policy |
+| Test and invariants plan                | PASS    | `AFFILIATES-FEATURE-0010-TEST-PLAN.md`                                                                                  | runtime tests wait for implementation                     |
+| Threat model                            | PASS    | `AFFILIATES-THREAT-MODEL.md`                                                                                            | none                                                      |
+| Migration plan                          | PASS    | phased expand-only plan in technical contract                                                                           | execution waits for decisions                             |
+| Rollout/rollback                        | PASS    | `AFFILIATES-ROLLOUT-ROLLBACK.md`                                                                                        | execution waits for runtime                               |
+| Browser/admin surfaces                  | N/A     | deliberately last; no runtime authority ready                                                                           | must not be implemented before server contracts           |
+| Affiliate-owned payout/payment/wallet   | N/A     | prohibited by canonical authority                                                                                       | must never be implemented                                 |
 
 ## Product decision gate
 
