@@ -1,4 +1,4 @@
-# Payments / Ordering / Financial — Migration Matrix (post-M150/M151/M152 reconciliation)
+# Payments / Ordering / Financial — Migration Matrix (FEATURE-0009 production-readiness candidate)
 
 ## Status semantics
 
@@ -21,11 +21,12 @@
 
 ## Reconciled main state
 
-This matrix was stale at M149 after M150/M151 had already reached `main`. The canonical lineage revalidated for this reconciliation is:
+The canonical lineage revalidated for this reconciliation is:
 
 - M150 Subscription recurrence contract — commit `91830cdbb485fbf4145e5655e81bffc13b459627`, ancestor of `main`;
+- M151 durable Subscription persistence — PR #258, merged as `e96fe6d5e025a2084437aa51a8691b65edfc9eec`;
 - Financial M152 bounded provider retries — commit `8d07e4db0e3c619d520f1a3fc36dc4b14a6a65a2`, ancestor of `main`;
-- M151 durable Subscription persistence — PR #258, merged as `e96fe6d5e025a2084437aa51a8691b65edfc9eec`.
+- M153 runtime/application closure — commit `f43b0f13618913ac62e775167e8a56d9c49749b2`, ancestor of the production-readiness base.
 
 M150 defines the provider-neutral Subscription lifecycle with `active`, `cancel_at_period_end`, `past_due` and `cancelled`; immutable paid-period identity; deterministic `<subscriptionId>:period:<n>` renewal keys; server-snapshot pricing; verified-outcome-only advancement; verified terminal failure to `past_due`; and no blind recharge.
 
@@ -33,7 +34,9 @@ M151 persists Subscription snapshots and renewal-intent claims in Ordering MySQL
 
 Financial M152 adds bounded transient retries around existing provider commands without changing financial authority. Those retries do not authorize an automatic second recurring charge after a verified terminal renewal failure.
 
-M153 now adds the approved runtime/application composition without inventing provider-specific recurring-charge or scheduler policy. The historical M150/M151/M152 checkpoint below is superseded by the M153 candidate reconciliation in this document.
+M153 adds the approved runtime/application composition without inventing provider-specific recurring-charge or scheduler policy.
+
+The FEATURE-0009 production-readiness candidate is stacked on the Platform production-readiness candidate. It adds canonical Payments/Financial observations, provider degraded/recovered visibility, recurrence observation ports, and a provider-neutral real-browser E2E runner without changing Business/browser financial authority.
 
 ## Matrix
 
@@ -68,32 +71,34 @@ M153 now adds the approved runtime/application composition without inventing pro
 | Reconciliation                            | release/financial architecture                       | read-only provider comparison with durable deterministic runs/findings and acknowledgement history                                                                                                                                                                         | PASS    | Remediation remains a separate verified command.                                                                                                                               |
 | Split/repasse                             | CAP-0017                                             | durable allocation/payable/settlement with verified provider read-back and immutable balanced postings                                                                                                                                                                     | PASS    | Affiliates is separate and receives no implicit authority.                                                                                                                     |
 | Subscription lifecycle                    | FEATURE-0009 includes subscriptions                  | M150 lifecycle + M151 durable MySQL persistence + M153 provider-neutral recurrence application service: deterministic claim/replay, verified-outcome-only advancement, verified terminal failure → `past_due`, no blind recharge and cancel-at-period-end finalization     | PASS    | Approved provider-neutral lifecycle/application composition is closed; automatic provider charging or a scheduler must not be invented without a separately approved contract. |
-| Financial audit/observability             | platform requires audit/metrics                      | durable reconciliation findings and bounded audit exist; cross-module `PLATFORM-OBSERVATION` metrics/alerts for product-money/recurrence are not yet complete                                                                                                              | PARTIAL | Observability must stay read-only and non-authoritative.                                                                                                                       |
-| Sandbox/provider E2E                      | architecture requires payment sandbox                | deterministic local HTTP sandbox/provider/browser contracts exist; deployed third-party sandbox browser journey is not yet evidenced                                                                                                                                       | PARTIAL | Do not claim deployed E2E without real provider evidence.                                                                                                                      |
-| Rate limiting                             | V1 bounded create/status                             | checkout/refund/reconciliation have bounded in-memory actor/IP buckets                                                                                                                                                                                                     | PARTIAL | Distributed limiter is required only if production is actually multi-replica/horizontally scaled.                                                                              |
-| Auth/tenant context                       | platform Auth                                        | authenticated checkout/refund/reconciliation boundaries bind real session/CSRF/tenant/admin scope; guest handoff verification is separate                                                                                                                                  | PASS    | Do not infer authority from browser state.                                                                                                                                     |
+| Financial audit/observability             | platform requires audit/metrics                      | candidate emits checkout/webhook/refund/reconciliation lifecycle observations through canonical `createPlatformObservation`; correlation context reaches provider calls; provider degraded/recovered is deduplicated; recurrence exposes a non-authoritative observation port and canonical Payments adapter; observation delivery cannot mutate financial/subscription outcomes | PASS    | Code-level observability is closed. No autonomous recurrence trigger is invented; any future approved trigger must compose the existing recurrence observation port.           |
+| Sandbox/provider E2E                      | architecture requires payment sandbox                | deterministic local HTTP/browser contracts remain; candidate adds a real-provider browser runner, configurable fixture/adapter steps, provider-origin validation and sanitized evidence, but no deployed third-party sandbox run is yet evidenced                         | PARTIAL | Code/readiness is complete; do not claim deployed E2E until the runner passes against the exact deployed SHA and real provider sandbox.                                        |
+| Rate limiting                             | V1 bounded create/status                             | checkout/authority/refund/reconciliation use bounded in-memory buckets behind asynchronous rate-limit ports; repository/deployment config contains no Payments replica-count/autoscaling/shared-limiter evidence                                                            | PARTIAL | Do not invent distributed infrastructure. Prove single active Payments replica, or implement a shared atomic limiter behind the existing ports if production is multi-replica.  |
+| Auth/tenant context                       | platform Auth                                        | authenticated checkout/refund/reconciliation boundaries await durable session resolution and bind real session/CSRF/tenant/admin scope; guest handoff verification is separate                                                                                            | PASS    | Do not infer authority from browser state; synchronous regression of async Auth consumption is a release blocker.                                                             |
 | Rollback/migration strategy               | release process                                      | `PAYMENTS-RELEASE-ROLLBACK.md` defines expand-first schema, exact-head gates, independent activation, disable-first rollback, durable claim recovery and explicit preservation of all Financial history                                                                    | PASS    | Rollback disables composition/execution and recovers from persisted state; never delete or rewrite Financial history.                                                          |
 
-## M153 implementation-candidate score
+## FEATURE-0009 production-readiness candidate score
 
 ```text
-PASS      30
-PARTIAL    3
+PASS      31
+PARTIAL    2
 GAP        0
 N/A        1
 TOTAL     34
 ```
 
-M153 closes the three approved application/runtime rows that were still partial after M150/M151/M152: public Business → Payments authority composition, the provider-neutral Subscription lifecycle/application executor, and the release/rollback strategy contract. This score is implementation-candidate truth, not release equivalence.
+The candidate closes the code-level Financial/Subscription observability row. It does not convert environment evidence into implementation evidence: provider/browser remains PARTIAL until a real deployed sandbox run exists, and rate limiting remains PARTIAL until the actual production replica topology is proven.
 
-## Real remaining work
+## Remaining work requiring external/deployment evidence
 
-1. emit recurrence/payment operational observations through the canonical Platform observation contract without mutation authority;
-2. obtain deployed third-party provider/browser E2E evidence before production-equivalence claims;
-3. prove the real production topology and add/compose a distributed limiter only if it is horizontally scaled.
+1. run `apps/morro-digital-platform/tooling/payments-provider-browser-e2e.mjs` against the exact deployed candidate SHA and real configured provider sandbox, then preserve the generated evidence;
+2. record the real production Payments replica topology. If at most one active Payments replica is enforced, preserve that deployment evidence. If more than one active replica can serve these endpoints, implement/compose a shared atomic limiter behind the existing provider-neutral async ports before promotion;
+3. run all required GitHub branch-protection/CI gates on the exact final head when GitHub Actions is available again.
+
+There is no additional repository-side distributed-limiter implementation justified by current source-of-truth topology evidence, and no provider-specific E2E interaction can be truthfully implemented without the selected provider sandbox/credentials. `docs/operations/PAYMENTS-FEATURE-0009-PRODUCTION-READINESS.md` defines the executable evidence procedure.
 
 Automatic recurring provider charging and timer/scheduler activation are intentionally not counted as missing implementation because no approved recurring-payment-instrument/provider contract or canonical scheduler contract exists in the source of truth. They remain disabled rather than being invented.
 
 ## Promotion decision
 
-`FEATURE-0009` and `MIG-0010` remain `migrating`; behavior/visual/API equivalence flags remain `false` at this reconciliation checkpoint. Zero `GAP` rows is not sufficient for equivalence while the three remaining `PARTIAL` contracts above remain unresolved or unproven.
+`FEATURE-0009` and `MIG-0010` remain `migrating`; behavior/visual/API equivalence flags remain `false` at this reconciliation checkpoint. Zero `GAP` rows and 31 implementation PASS rows are not sufficient for equivalence while deployed provider/browser evidence, production rate-limit topology evidence and official exact-head CI gates remain unavailable.
