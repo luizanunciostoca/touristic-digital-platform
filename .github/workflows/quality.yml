@@ -50,8 +50,8 @@ jobs:
         run: pnpm features:check
       - name: Validate CI and repository governance contracts
         run: pnpm ci:governance:check
-      - name: Audit workflow supply chain
-        run: pnpm ci:supply-chain
+      - name: Enforce workflow supply chain
+        run: pnpm ci:supply-chain:strict
       - name: Lint
         env:
           TURBO_CACHE_DIR: /tmp/turbo-cache
