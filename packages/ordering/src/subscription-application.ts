@@ -22,10 +22,28 @@ export interface SubscriptionRecurrenceClockPort {
   now(): unknown;
 }
 
+export interface SubscriptionRecurrenceObservation {
+  readonly action: "renewal.prepare" | "renewal.apply_verified_outcome";
+  readonly disposition:
+    | SubscriptionRenewalPreparationDisposition
+    | SubscriptionRenewalOutcomeDisposition;
+  readonly subscriptionId: string;
+  readonly periodNumber: number;
+  readonly orderId: string | null;
+  readonly verifiedResultId: string | null;
+  readonly correlationId: string;
+  readonly severity: "info" | "warn";
+}
+
+export interface SubscriptionRecurrenceObservationPort {
+  record(event: SubscriptionRecurrenceObservation): void;
+}
+
 export interface SubscriptionRecurrenceDependencies {
   readonly subscriptions: SubscriptionRepositoryPort;
   readonly renewalIntents: SubscriptionRenewalIntentRepositoryPort;
   readonly clock: SubscriptionRecurrenceClockPort;
+  readonly observations?: SubscriptionRecurrenceObservationPort;
 }
 
 export type SubscriptionRenewalPreparationDisposition =
@@ -99,6 +117,81 @@ function requireRenewalOrderId(value: unknown): OrderId {
   return orderId;
 }
 
+function recurrenceCorrelationId(
+  value: unknown,
+  subscriptionId: string,
+  periodNumber: number,
+  action: string,
+): string {
+  const supplied = typeof value === "string" ? value.trim() : "";
+  if (/^[A-Za-z0-9._:-]{1,160}$/u.test(supplied)) return supplied;
+  return `recurrence:${subscriptionId}:period:${periodNumber}:${action}`.slice(
+    0,
+    160,
+  );
+}
+
+function recordObservation(
+  dependencies: SubscriptionRecurrenceDependencies,
+  event: SubscriptionRecurrenceObservation,
+): void {
+  try {
+    dependencies.observations?.record(Object.freeze({ ...event }));
+  } catch {
+    // Observability is read-only and cannot change Subscription/Financial authority.
+  }
+}
+
+function observePreparation(
+  dependencies: SubscriptionRecurrenceDependencies,
+  result: SubscriptionRenewalPreparationResult,
+  requestedCorrelationId: unknown,
+): SubscriptionRenewalPreparationResult {
+  const periodNumber =
+    result.intent?.periodNumber ?? result.subscription.currentPeriod.number;
+  recordObservation(dependencies, {
+    action: "renewal.prepare",
+    disposition: result.disposition,
+    subscriptionId: result.subscription.id,
+    periodNumber,
+    orderId: result.intent?.orderId ?? null,
+    verifiedResultId: null,
+    correlationId: recurrenceCorrelationId(
+      requestedCorrelationId,
+      result.subscription.id,
+      periodNumber,
+      "prepare",
+    ),
+    severity:
+      result.disposition === "blocked_past_due" ? "warn" : "info",
+  });
+  return result;
+}
+
+function observeOutcome(
+  dependencies: SubscriptionRecurrenceDependencies,
+  result: SubscriptionRenewalOutcomeResult,
+  verifiedOutcome: VerifiedPaymentResult,
+  requestedCorrelationId: unknown,
+): SubscriptionRenewalOutcomeResult {
+  recordObservation(dependencies, {
+    action: "renewal.apply_verified_outcome",
+    disposition: result.disposition,
+    subscriptionId: result.subscription.id,
+    periodNumber: result.intent.periodNumber,
+    orderId: result.intent.orderId,
+    verifiedResultId: verifiedOutcome.resultId,
+    correlationId: recurrenceCorrelationId(
+      requestedCorrelationId,
+      result.subscription.id,
+      result.intent.periodNumber,
+      "outcome",
+    ),
+    severity: result.disposition === "past_due" ? "warn" : "info",
+  });
+  return result;
+}
+
 function sameIntent(
   left: SubscriptionRenewalIntent,
   right: SubscriptionRenewalIntent,
@@ -170,6 +263,7 @@ export function createSubscriptionRecurrenceApplicationService(
       readonly subscriptionId: unknown;
       readonly renewalOrderId: unknown;
       readonly nextPeriodEndAt: unknown;
+      readonly correlationId?: unknown;
     }): Promise<SubscriptionRenewalPreparationResult> {
       const subscription = await loadSubscription(
         dependencies,
@@ -179,26 +273,38 @@ export function createSubscriptionRecurrenceApplicationService(
       const dueAt = subscription.currentPeriod.endAt;
 
       if (subscription.status === "cancelled") {
-        return Object.freeze({
-          disposition: "already_cancelled" as const,
-          subscription,
-          intent: null,
-        });
+        return observePreparation(
+          dependencies,
+          Object.freeze({
+            disposition: "already_cancelled" as const,
+            subscription,
+            intent: null,
+          }),
+          input.correlationId,
+        );
       }
       if (subscription.status === "past_due") {
-        return Object.freeze({
-          disposition: "blocked_past_due" as const,
-          subscription,
-          intent: null,
-        });
+        return observePreparation(
+          dependencies,
+          Object.freeze({
+            disposition: "blocked_past_due" as const,
+            subscription,
+            intent: null,
+          }),
+          input.correlationId,
+        );
       }
       if (subscription.status === "cancel_at_period_end") {
         if (Date.parse(now) < Date.parse(dueAt)) {
-          return Object.freeze({
-            disposition: "not_due" as const,
-            subscription,
-            intent: null,
-          });
+          return observePreparation(
+            dependencies,
+            Object.freeze({
+              disposition: "not_due" as const,
+              subscription,
+              intent: null,
+            }),
+            input.correlationId,
+          );
         }
         const cancelled = finalizeSubscriptionCancellation({
           subscription,
@@ -206,19 +312,27 @@ export function createSubscriptionRecurrenceApplicationService(
         });
         if (!cancelled) failure("SUBSCRIPTION_RECURRENCE_STATE_CONFLICT");
         const persisted = await dependencies.subscriptions.save(cancelled);
-        return Object.freeze({
-          disposition: "cancelled" as const,
-          subscription: persisted,
-          intent: null,
-        });
+        return observePreparation(
+          dependencies,
+          Object.freeze({
+            disposition: "cancelled" as const,
+            subscription: persisted,
+            intent: null,
+          }),
+          input.correlationId,
+        );
       }
 
       if (Date.parse(now) < Date.parse(dueAt)) {
-        return Object.freeze({
-          disposition: "not_due" as const,
-          subscription,
-          intent: null,
-        });
+        return observePreparation(
+          dependencies,
+          Object.freeze({
+            disposition: "not_due" as const,
+            subscription,
+            intent: null,
+          }),
+          input.correlationId,
+        );
       }
 
       const periodNumber = subscription.currentPeriod.number + 1;
@@ -230,11 +344,15 @@ export function createSubscriptionRecurrenceApplicationService(
       const existing =
         await dependencies.renewalIntents.findByRequestKey(requestKey);
       if (existing) {
-        return Object.freeze({
-          disposition: "renewal_replayed" as const,
-          subscription,
-          intent: existing,
-        });
+        return observePreparation(
+          dependencies,
+          Object.freeze({
+            disposition: "renewal_replayed" as const,
+            subscription,
+            intent: existing,
+          }),
+          input.correlationId,
+        );
       }
 
       const renewalOrderId = requireRenewalOrderId(input.renewalOrderId);
@@ -258,13 +376,17 @@ export function createSubscriptionRecurrenceApplicationService(
         if (!sameIntent(claim.intent, intent)) {
           failure("SUBSCRIPTION_RECURRENCE_INTENT_CONFLICT");
         }
-        return Object.freeze({
-          disposition: claim.claimed
-            ? ("renewal_claimed" as const)
-            : ("renewal_replayed" as const),
-          subscription,
-          intent: claim.intent,
-        });
+        return observePreparation(
+          dependencies,
+          Object.freeze({
+            disposition: claim.claimed
+              ? ("renewal_claimed" as const)
+              : ("renewal_replayed" as const),
+            subscription,
+            intent: claim.intent,
+          }),
+          input.correlationId,
+        );
       } catch (error) {
         if (
           error instanceof Error &&
@@ -279,6 +401,7 @@ export function createSubscriptionRecurrenceApplicationService(
     async applyVerifiedOutcome(input: {
       readonly subscriptionId: unknown;
       readonly verifiedOutcome: VerifiedPaymentResult;
+      readonly correlationId?: unknown;
     }): Promise<SubscriptionRenewalOutcomeResult> {
       const subscription = await loadSubscription(
         dependencies,
@@ -304,11 +427,16 @@ export function createSubscriptionRecurrenceApplicationService(
       if (!intent) failure("SUBSCRIPTION_RECURRENCE_OUTCOME_NOT_CLAIMED");
 
       if (replayedOutcomeMatches(subscription, intent, input.verifiedOutcome)) {
-        return Object.freeze({
-          disposition: "replayed" as const,
-          subscription,
-          intent,
-        });
+        return observeOutcome(
+          dependencies,
+          Object.freeze({
+            disposition: "replayed" as const,
+            subscription,
+            intent,
+          }),
+          input.verifiedOutcome,
+          input.correlationId,
+        );
       }
 
       if (subscription.status !== "active") {
@@ -332,14 +460,19 @@ export function createSubscriptionRecurrenceApplicationService(
             });
       if (!next) failure("SUBSCRIPTION_RECURRENCE_INVALID_VERIFIED_OUTCOME");
       const persisted = await dependencies.subscriptions.save(next);
-      return Object.freeze({
-        disposition:
-          persisted.status === "past_due"
-            ? ("past_due" as const)
-            : ("advanced" as const),
-        subscription: persisted,
-        intent,
-      });
+      return observeOutcome(
+        dependencies,
+        Object.freeze({
+          disposition:
+            persisted.status === "past_due"
+              ? ("past_due" as const)
+              : ("advanced" as const),
+          subscription: persisted,
+          intent,
+        }),
+        input.verifiedOutcome,
+        input.correlationId,
+      );
     },
   });
 }
