@@ -1,8 +1,5 @@
 export type ReferralEvidenceSource =
-  | "checkout_code"
-  | "server_referral"
-  | "platform_link"
-  | "platform_qr";
+  "checkout_code" | "server_referral" | "platform_link" | "platform_qr";
 
 export type CommissionModel = "percentage";
 export type CommissionBaseAuthority = "financial_net_eligible_platform_revenue";

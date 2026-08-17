@@ -15,7 +15,8 @@ import type { AffiliatePolicyV1 } from "./policy.js";
 
 export interface OrderingConversionEvidence {
   readonly orderId: string;
-  readonly status: "draft" | "pending_payment" | "payment_confirmed" | "cancelled";
+  readonly status:
+    "draft" | "pending_payment" | "payment_confirmed" | "cancelled";
   readonly contractVersion: number;
 }
 

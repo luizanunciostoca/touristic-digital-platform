@@ -4,7 +4,9 @@ const HEX_256 = /^[a-f0-9]{64}$/;
 const CURRENCY = /^[A-Z]{3}$/;
 
 export type AffiliateId = string & { readonly __brand: "AffiliateId" };
-export type AffiliateProgramId = string & { readonly __brand: "AffiliateProgramId" };
+export type AffiliateProgramId = string & {
+  readonly __brand: "AffiliateProgramId";
+};
 export type AffiliateMembershipId = string & {
   readonly __brand: "AffiliateMembershipId";
 };

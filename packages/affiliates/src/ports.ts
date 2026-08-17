@@ -44,29 +44,23 @@ export interface AffiliateEligibilityPort {
 }
 
 export interface AffiliateOrderingEvidencePort {
-  getOrderEvidence(orderId: string): Promise<
-    | Readonly<{
-        orderId: string;
-        status: "draft" | "pending_payment" | "payment_confirmed" | "cancelled";
-        contractVersion: number;
-      }>
-    | null
-  >;
+  getOrderEvidence(orderId: string): Promise<Readonly<{
+    orderId: string;
+    status: "draft" | "pending_payment" | "payment_confirmed" | "cancelled";
+    contractVersion: number;
+  }> | null>;
 }
 
 export interface AffiliateFinancialEvidencePort {
-  getConversionEvidence(orderId: string): Promise<
-    | Readonly<{
-        paymentReference: string;
-        paymentConfirmed: boolean;
-        confirmedAt: string;
-        eligibleRevenueMinorUnits: number;
-        currency: string;
-        evidenceDigest: string;
-        contractVersion: number;
-      }>
-    | null
-  >;
+  getConversionEvidence(orderId: string): Promise<Readonly<{
+    paymentReference: string;
+    paymentConfirmed: boolean;
+    confirmedAt: string;
+    eligibleRevenueMinorUnits: number;
+    currency: string;
+    evidenceDigest: string;
+    contractVersion: number;
+  }> | null>;
 }
 
 export interface AffiliateFinancialMaterializationPort {
@@ -110,7 +104,10 @@ export type AffiliateIdempotencyClaim =
   | Readonly<{ status: "conflict"; semanticDigest: string }>;
 
 export interface AffiliateIdempotencyPort {
-  claim(key: string, semanticDigest: string): Promise<AffiliateIdempotencyClaim>;
+  claim(
+    key: string,
+    semanticDigest: string,
+  ): Promise<AffiliateIdempotencyClaim>;
 }
 
 export interface AffiliateDigestPort {

@@ -43,11 +43,7 @@ export function calculateCommissionMinorUnits(
 }
 
 export type CommissionEntitlementStatus =
-  | "pending"
-  | "earned"
-  | "cancelled"
-  | "reversed"
-  | "disputed";
+  "pending" | "earned" | "cancelled" | "reversed" | "disputed";
 
 export interface CommissionEntitlement {
   readonly id: CommissionEntitlementId;
@@ -97,9 +93,8 @@ export function createCommissionEntitlement(
     paymentMaturity,
     input.conversion.serviceOccurredAt,
   );
-  const status: CommissionEntitlementStatus = input.affiliateSuspendedAtConversion
-    ? "disputed"
-    : "pending";
+  const status: CommissionEntitlementStatus =
+    input.affiliateSuspendedAtConversion ? "disputed" : "pending";
 
   return Object.freeze({
     id: input.id,
@@ -175,10 +170,7 @@ export function resolveEntitlementDispute(
   eligibility: AffiliateEligibilitySnapshot,
   now: string,
 ): CommissionEntitlement | null {
-  if (
-    entitlement.status !== "disputed" ||
-    entitlement.disputedFrom === null
-  ) {
+  if (entitlement.status !== "disputed" || entitlement.disputedFrom === null) {
     return null;
   }
   if (resolution === "restore") {

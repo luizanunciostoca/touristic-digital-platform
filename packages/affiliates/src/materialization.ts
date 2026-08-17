@@ -13,10 +13,7 @@ import { isSha256 } from "./ids.js";
 import type { AffiliatePolicyV1 } from "./policy.js";
 
 export type MaterializationState =
-  | "not_requested"
-  | "pending"
-  | "accepted"
-  | "rejected";
+  "not_requested" | "pending" | "accepted" | "rejected";
 
 export interface AffiliateFinancialMaterializationRequestV1 {
   readonly requestId: MaterializationRequestId;

@@ -130,7 +130,8 @@ export function chooseAttribution(
   if (candidateRank > existingRank) return candidate;
   if (candidateRank < existingRank) return existing;
 
-  return Date.parse(candidate.establishedAt) > Date.parse(existing.establishedAt)
+  return Date.parse(candidate.establishedAt) >
+    Date.parse(existing.establishedAt)
     ? candidate
     : existing;
 }

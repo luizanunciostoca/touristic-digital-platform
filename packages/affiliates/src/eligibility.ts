@@ -12,10 +12,7 @@ export interface AffiliateAccount {
 }
 
 export type AffiliateMembershipStatus =
-  | "pending"
-  | "approved"
-  | "suspended"
-  | "closed";
+  "pending" | "approved" | "suspended" | "closed";
 
 export interface AffiliateProgramMembership {
   readonly id: AffiliateMembershipId;
@@ -28,10 +25,7 @@ export interface AffiliateProgramMembership {
 }
 
 export type FinancialOnboardingStatus =
-  | "not_started"
-  | "pending"
-  | "eligible"
-  | "blocked";
+  "not_started" | "pending" | "eligible" | "blocked";
 
 export interface AffiliateEligibilitySnapshot {
   readonly identityVerified: boolean;

@@ -191,12 +191,12 @@ describe("attribution", () => {
       SHA_B,
     );
 
-    expect(
-      chooseAttribution(link, qr, "open", "2026-08-17T11:00:00Z"),
-    ).toBe(qr);
-    expect(
-      chooseAttribution(qr, server, "open", "2026-08-17T11:00:00Z"),
-    ).toBe(server);
+    expect(chooseAttribution(link, qr, "open", "2026-08-17T11:00:00Z")).toBe(
+      qr,
+    );
+    expect(chooseAttribution(qr, server, "open", "2026-08-17T11:00:00Z")).toBe(
+      server,
+    );
     expect(
       chooseAttribution(server, code, "open", "2026-08-17T11:00:00Z"),
     ).toBe(code);
@@ -272,18 +272,11 @@ describe("conversion and entitlement", () => {
     const pending = pendingEntitlement();
     expect(pending.maturityAt).toBe("2026-08-30T18:00:00Z");
     expect(
-      markEntitlementEarned(
-        pending,
-        eligibility(),
-        "2026-08-30T17:59:59Z",
-      ),
+      markEntitlementEarned(pending, eligibility(), "2026-08-30T17:59:59Z"),
     ).toBeNull();
     expect(
-      markEntitlementEarned(
-        pending,
-        eligibility(),
-        "2026-08-30T18:00:00Z",
-      )?.status,
+      markEntitlementEarned(pending, eligibility(), "2026-08-30T18:00:00Z")
+        ?.status,
     ).toBe("earned");
   });
 
@@ -323,11 +316,7 @@ describe("conversion and entitlement", () => {
     }
 
     const earned = required(
-      markEntitlementEarned(
-        pending,
-        eligibility(),
-        "2026-08-30T18:00:00Z",
-      ),
+      markEntitlementEarned(pending, eligibility(), "2026-08-30T18:00:00Z"),
     );
     const reversal = required(
       applyRefundConsequence({
