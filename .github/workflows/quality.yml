@@ -15,7 +15,6 @@ concurrency:
 
 jobs:
   quality:
-    name: quality
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
