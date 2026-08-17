@@ -62,9 +62,28 @@ describe("Platform production operations", () => {
     expect(draining.readiness).toBe("not_ready");
   });
 
+  it("fails production readiness when immutable release identity is absent", () => {
+    const operations = createPlatformOperations({
+      getEnvironmentValue: environment({ NODE_ENV: "production" }),
+      sink: () => undefined,
+    });
+    operations.setListening(true, "corr_started");
+
+    const snapshot = operations.healthSnapshot("corr_release_missing");
+    expect(snapshot.readiness).toBe("not_ready");
+    expect(snapshot.checks).toContainEqual({
+      name: "release-identity",
+      status: "fail",
+      critical: true,
+      detail: "MORRO_RELEASE_IDENTITY_REQUIRED_IN_PRODUCTION",
+    });
+  });
+
   it("keeps degraded providers visible without making optional providers critical", () => {
     const records = [];
-    const operations = createPlatformOperations({ sink: (record) => records.push(record) });
+    const operations = createPlatformOperations({
+      sink: (record) => records.push(record),
+    });
     operations.setListening(true, "corr_started");
     records.length = 0;
 
@@ -116,7 +135,8 @@ describe("Platform production operations", () => {
       sink: () => undefined,
     });
     const response = responseCapture({
-      "Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline'",
+      "Content-Security-Policy":
+        "default-src 'self'; script-src 'self' 'unsafe-inline'",
     });
 
     operations.bindResponse(response, "corr_release");
@@ -144,7 +164,8 @@ describe("Platform production operations", () => {
     operations.setListening(true, "corr_rollback");
 
     const rollback = records.find(
-      (record) => record.observation.name === "platform.release.rollback_activated",
+      (record) =>
+        record.observation.name === "platform.release.rollback_activated",
     );
     expect(rollback).toBeDefined();
     expect(rollback.observation.attributes).toMatchObject({
