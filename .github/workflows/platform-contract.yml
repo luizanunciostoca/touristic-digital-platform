@@ -1,0 +1,59 @@
+name: Platform Contract
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/platform-contract.yml"
+      - "tooling/quality/check-platform-contracts.mjs"
+      - "docs/contracts/**"
+      - "docs/product-architecture/PLATFORM-BIBLE.md"
+      - "docs/product-architecture/MODULE-CONTRACTS.md"
+      - "packages/core/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/platform-contract.yml"
+      - "tooling/quality/check-platform-contracts.mjs"
+      - "docs/contracts/**"
+      - "docs/product-architecture/PLATFORM-BIBLE.md"
+      - "docs/product-architecture/MODULE-CONTRACTS.md"
+      - "packages/core/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: platform-contract-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  platform-contract:
+    name: platform-contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Validate canonical Platform contracts
+        run: pnpm platform:contracts:check
+      - name: Lint Core
+        run: pnpm --filter @touristic/core lint
+      - name: Typecheck Core
+        run: pnpm --filter @touristic/core typecheck
+      - name: Test Core
+        run: pnpm --filter @touristic/core test
+      - name: Build Core
+        run: pnpm --filter @touristic/core build
