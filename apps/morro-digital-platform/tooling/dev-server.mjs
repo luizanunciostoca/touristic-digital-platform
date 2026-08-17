@@ -724,7 +724,7 @@ async function shutdown(signal) {
     attributes: { exitCode },
   });
   platformOperations.setListening(false, correlationId);
-  process.exit(exitCode);
+  process.exitCode = exitCode;
 }
 
 process.once("SIGINT", () => void shutdown("SIGINT"));
