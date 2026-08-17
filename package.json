@@ -22,7 +22,7 @@
     "ci:platform": "pnpm platform:contracts:check && pnpm --filter @touristic/core lint && pnpm --filter @touristic/core typecheck && pnpm --filter @touristic/core test && pnpm --filter @touristic/core build",
     "ci:smoke": "pnpm ci:quality && node tooling/quality/run-release-smoke.mjs",
     "design-system:inventory": "node tooling/design-system/inventory-v1-css.mjs",
-    "check": "pnpm format:check && pnpm architecture:check && pnpm features:check && pnpm ci:governance:check && pnpm ci:supply-chain && pnpm lint && pnpm typecheck && pnpm test && pnpm build",
+    "check": "pnpm format:check && pnpm architecture:check && pnpm features:check && pnpm ci:governance:check && pnpm ci:supply-chain:strict && pnpm lint && pnpm typecheck && pnpm test && pnpm build",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
