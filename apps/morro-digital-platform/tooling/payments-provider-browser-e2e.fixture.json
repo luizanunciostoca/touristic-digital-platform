@@ -1,0 +1,43 @@
+{
+  "appBaseUrl": "${ENV:PAYMENTS_E2E_APP_BASE_URL}",
+  "entryPath": "/apps/morro-digital-platform/public/business-onboarding.html",
+  "timeoutMs": 180000,
+  "handoff": {
+    "sessionId": "business_session_provider_e2e_0001",
+    "planId": "growth",
+    "contractor": {
+      "name": "Provider E2E Test",
+      "email": "provider-e2e@example.test",
+      "phone": "75999999999",
+      "document": "12345678900"
+    },
+    "businessDraft": {
+      "demoBusinessId": "demo_business_provider_e2e_0001",
+      "displayName": "Provider E2E Test Business",
+      "categoryId": "events",
+      "specialty": "Provider sandbox verification",
+      "environment": "sandbox",
+      "publishable": false
+    },
+    "acceptedTerms": [
+      {
+        "type": "terms",
+        "version": "business-partner-terms-2026-08",
+        "acceptedAt": "2026-08-17T20:00:00.000Z"
+      },
+      {
+        "type": "privacy",
+        "version": "privacy-policy-2026-08",
+        "acceptedAt": "2026-08-17T20:00:00.000Z"
+      }
+    ],
+    "returnUrl": "${APP_BASE_URL}/apps/morro-digital-platform/public/business-onboarding.html",
+    "tutorial": false,
+    "requiresPaymentsCapability": true
+  },
+  "provider": {
+    "expectedOrigins": ["${ENV:PAYMENTS_E2E_PROVIDER_ORIGIN}"],
+    "allowNoInteraction": false,
+    "steps": []
+  }
+}
