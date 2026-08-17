@@ -6,10 +6,11 @@ GitHub is the source of truth.
 
 ```text
 main: ec4f51e0198cdeed51b37fabe5ed94ebb2e3ecb6
-PR #264 base before this update: ec4f51e0198cdeed51b37fabe5ed94ebb2e3ecb6
-PR #264 head before this update: 823a8661c0ca18edbb4ea4f2d753d191305ab17e
-compare: ahead 1 / behind 0 / mergeable
+PR: #264
+base: main
 ```
+
+The exact PR head is intentionally read from GitHub metadata during validation rather than hard-coded into this file, because changing this evidence would itself create a new head. The branch must remain zero-behind and mergeable against the checkpoint above before official CI and before merge.
 
 The current main already includes the relevant Ordering/Financial foundation. Nothing in it supplies the missing Affiliate commercial policy.
 
@@ -25,11 +26,15 @@ The current main already includes the relevant Ordering/Financial foundation. No
 
 ## PR and branch reconciliation
 
-PR #264 is the active Affiliate canonical-boundary PR. It was rebuilt on current main and the current diff contains documentation plus an Affiliate contract workflow only.
+PR #264 is the active Affiliate canonical-boundary PR.
 
-Current changed-file inspection before this update contained no Affiliate runtime directories or implementation files.
+During reconciliation, concurrent commits temporarily placed Payments, Ticketing, Business and broad Master Tracker edits on the branch. They were not force-overwritten. Instead, a later fast-forward reconciliation restored those paths exactly to the current `main` blobs so the net PR diff returned to FEATURE-0010 scope.
 
-Affiliate-related branch search also found older/synchronization branches. They are not implementation sources for promotion. The previously contaminated runtime noted by coordination history is not present in the current #264 diff and must not be reintroduced from an old branch.
+The post-reconciliation net diff contains only the Affiliate contract workflow, Affiliate documentation/QA/operations documents and the directly necessary Affiliate sections of Capability Matrix, Domain Map and Module Contracts.
+
+No `packages/affiliates`, `services/affiliates`, Affiliate migration, API, UI, provider, wallet or payout runtime is part of the target diff.
+
+Older Affiliate/synchronization branches are not implementation sources for promotion. Previously contaminated runtime must not be reintroduced from historical branches.
 
 ## Policy-neutral technical work now completed
 
@@ -105,18 +110,18 @@ The permanent contract workflow asserts the runtime directories remain absent in
 
 ## Validation available while Actions is unavailable
 
-Connector/static validation completed:
+Connector/static validation completed during this reconciliation:
 
-- revalidated `main` ref and SHA;
-- fetched Registry and Master Tracker from `main` directly rather than relying on stale code-search snapshots;
-- fetched current PR #264 metadata/diff;
-- verified `behind_by = 0` against `main` before this update;
-- inspected changed filenames and confirmed no Affiliate runtime;
+- revalidated `main` ref and SHA directly;
+- fetched Registry and Master Tracker from `main` rather than relying on stale code-search snapshots;
+- fetched PR #264 metadata and compared the branch directly to `main`;
 - inspected Ordering and Financial source contracts used by the boundary;
-- reconciled stale discovery evidence to current main;
-- prepared permanent Affiliate contract checks for the exact final head.
+- inspected changed filenames and removed unrelated net-diff contamination by restoring those files to exact `main` blobs;
+- confirmed `packages/affiliates` and `services/affiliates` are absent at the reconciled head;
+- prepared a permanent Affiliate contract workflow that checks the Decision Sheet cardinality, Registry state, MIG-0011 state and absence of Affiliate runtime;
+- normalized changed documentation for repository formatting checks.
 
-GitHub Actions is currently unavailable, so official Quality cannot be claimed. Do not merge to `main` until the exact final head has passed the repository Quality Gate and the Affiliate contract workflow after Actions returns.
+GitHub Actions is currently unavailable and the observed workflow execution failure is a startup failure rather than a completed named Quality result. Therefore official Quality cannot be claimed. Do not merge to `main` until the exact final head has passed the repository Quality Gate and the Affiliate contract workflow after Actions returns.
 
 ## Required CI on final head
 
@@ -132,4 +137,4 @@ At minimum:
 - build;
 - `Affiliates FEATURE-0010 Contract`.
 
-The PR must remain 0-behind and mergeable when those checks run.
+The exact head must be re-compared to `main` immediately before those checks and again before merge; `behind_by` must be zero and the PR must remain mergeable.
