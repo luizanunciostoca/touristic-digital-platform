@@ -540,7 +540,68 @@ export async function applyAffiliatesM154Schema(pool: Pool): Promise<void> {
   await insertSchema(pool);
 }
 
+export interface AffiliateAccountRecord {
+  readonly affiliateId: string;
+  readonly identityReference: string;
+  readonly pseudonymousReference: string;
+  readonly status: "active" | "suspended" | "inactive";
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+
+export interface AffiliateMembershipRecord {
+  readonly membershipId: string;
+  readonly affiliateId: string;
+  readonly programId: string;
+  readonly status: "active" | "suspended" | "inactive";
+  readonly joinedAt: string;
+  readonly endedAt: string | null;
+  readonly updatedAt: string;
+}
+
+export class MySqlAffiliateAccountRepository {
+  public constructor(private readonly pool: Pool) {}
+
+  public async saveAccount(account: AffiliateAccountRecord): Promise<void> {
+    await this.pool.execute(
+      `INSERT INTO affiliate_accounts
+       (affiliate_id, identity_reference, pseudonymous_reference, status, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE status = VALUES(status), updated_at = VALUES(updated_at)`,
+      [
+        account.affiliateId,
+        account.identityReference,
+        account.pseudonymousReference,
+        account.status,
+        new Date(account.createdAt),
+        new Date(account.updatedAt),
+      ],
+    );
+  }
+
+  public async saveMembership(
+    membership: AffiliateMembershipRecord,
+  ): Promise<void> {
+    await this.pool.execute(
+      `INSERT INTO affiliate_memberships
+       (membership_id, affiliate_id, program_id, status, joined_at, ended_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE status = VALUES(status), ended_at = VALUES(ended_at), updated_at = VALUES(updated_at)`,
+      [
+        membership.membershipId,
+        membership.affiliateId,
+        membership.programId,
+        membership.status,
+        new Date(membership.joinedAt),
+        membership.endedAt ? new Date(membership.endedAt) : null,
+        new Date(membership.updatedAt),
+      ],
+    );
+  }
+}
+
 export interface AffiliatePersistencePorts {
+  readonly accounts: MySqlAffiliateAccountRepository;
   readonly referrals: MySqlAffiliateReferralEvidenceRepository;
   readonly attributions: MySqlAffiliateAttributionRepository;
   readonly conversions: MySqlAffiliateConversionRepository;
@@ -554,6 +615,7 @@ export function createAffiliatePersistencePorts(
   pool: Pool,
 ): AffiliatePersistencePorts {
   return {
+    accounts: new MySqlAffiliateAccountRepository(pool),
     referrals: new MySqlAffiliateReferralEvidenceRepository(pool),
     attributions: new MySqlAffiliateAttributionRepository(pool),
     conversions: new MySqlAffiliateConversionRepository(pool),
