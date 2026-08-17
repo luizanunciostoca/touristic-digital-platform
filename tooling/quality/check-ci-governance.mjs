@@ -155,7 +155,7 @@ requireIncludes(releaseGate, ".github/workflows/release-promotion-gate.yml", [
   "workflow_dispatch:",
   "expected_sha:",
   "name: release / smoke",
-  "git rev-parse origin/main",
+  "git ls-remote origin refs/heads/main",
   "pnpm platform:contracts:check",
   "pnpm build",
   "runtime-config.js",
