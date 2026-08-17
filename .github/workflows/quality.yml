@@ -39,6 +39,8 @@ jobs:
         run: pnpm architecture:check
       - name: Validate Feature Registry
         run: pnpm features:check
+      - name: Validate CI and repository governance contracts
+        run: pnpm ci:governance:check
 
   lint:
     name: quality / lint
