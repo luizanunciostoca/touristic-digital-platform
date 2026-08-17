@@ -1,3 +1,5 @@
+import { EventEmitter } from "node:events";
+
 import { describe, expect, it } from "vitest";
 
 import { createPlatformOperations } from "./platform-operations.mjs";
@@ -63,9 +65,11 @@ describe("Platform production operations", () => {
   });
 
   it("fails production readiness when immutable release identity is absent", () => {
+    const processEvents = new EventEmitter();
     const operations = createPlatformOperations({
       getEnvironmentValue: environment({ NODE_ENV: "production" }),
       sink: () => undefined,
+      processEvents,
     });
     operations.setListening(true, "corr_started");
 
@@ -77,6 +81,49 @@ describe("Platform production operations", () => {
       critical: true,
       detail: "MORRO_RELEASE_IDENTITY_REQUIRED_IN_PRODUCTION",
     });
+
+    operations.setListening(false, "corr_stopped");
+    expect(processEvents.listenerCount("uncaughtExceptionMonitor")).toBe(0);
+  });
+
+  it("observes fatal process failures without replacing the crash semantics", () => {
+    const records = [];
+    const processEvents = new EventEmitter();
+    const operations = createPlatformOperations({
+      getEnvironmentValue: environment({
+        NODE_ENV: "production",
+        MORRO_RELEASE_SHA: "fatal-sha",
+        MORRO_RELEASE_VERSION: "2.0.0",
+        MORRO_DEPLOYMENT_ID: "fatal-deploy",
+      }),
+      sink: (record) => records.push(record),
+      processEvents,
+    });
+
+    operations.setListening(true, "corr_started");
+    expect(processEvents.listenerCount("uncaughtExceptionMonitor")).toBe(1);
+
+    processEvents.emit(
+      "uncaughtExceptionMonitor",
+      new TypeError("fatal runtime failure"),
+      "unhandledRejection",
+    );
+
+    const fatal = records.find(
+      (record) => record.observation.name === "platform.runtime.fatal_failure",
+    );
+    expect(fatal).toBeDefined();
+    expect(fatal.observation.severity).toBe("critical");
+    expect(fatal.observation.attributes).toMatchObject({
+      releaseSha: "fatal-sha",
+      deploymentId: "fatal-deploy",
+      origin: "unhandledRejection",
+      errorName: "TypeError",
+      message: "fatal runtime failure",
+    });
+
+    operations.setListening(false, "corr_stopped");
+    expect(processEvents.listenerCount("uncaughtExceptionMonitor")).toBe(0);
   });
 
   it("keeps degraded providers visible without making optional providers critical", () => {
