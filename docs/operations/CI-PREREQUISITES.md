@@ -10,13 +10,16 @@ Run from the repository root with Node.js 22+ and pnpm 10.15.0:
 
 ```bash
 pnpm install --frozen-lockfile
-pnpm ci:supply-chain
 pnpm ci:quality
 pnpm ci:platform
 pnpm ci:smoke
 ```
 
-`pnpm ci:supply-chain:strict` is the zero-tolerance target for external GitHub Actions references. Audit mode is kept available while the historical workflow set is migrated to immutable pins; it still fails immediately on unsafe constructs such as `pull_request_target`, `permissions: write-all`, missing top-level permissions, or `secrets: inherit`.
+`pnpm ci:quality` is the canonical repository quality gate. It starts with `pnpm ci:supply-chain` and then executes the existing format, architecture, feature-registry, lint, typecheck, test and build checks through `pnpm check`.
+
+For diagnostics only, `pnpm ci:supply-chain` can be run independently. `pnpm ci:supply-chain:strict` is the zero-tolerance target for external GitHub Actions references. Audit mode is intentionally retained while the specialized historical workflow set is migrated to immutable pins; it still fails immediately on unsafe constructs such as `pull_request_target`, `permissions: write-all`, missing top-level permissions, or `secrets: inherit`.
+
+`pnpm ci:smoke` runs `pnpm ci:quality` first and then starts the application runtime locally to verify non-empty `/runtime-config.js` and `/apps/morro-digital-platform/public/index.html` responses.
 
 ## GitHub Actions permissions
 
@@ -31,7 +34,7 @@ Additional permissions must be granted only to the job/workflow that requires th
 
 ## Immutable Action references
 
-Recovery/control workflows pin external Actions to immutable commits. The reviewed v4 commit targets on 2026-08-17 are:
+Recovery/control workflows and the canonical domain contracts hardened by this preparation pin external Actions to immutable commits. The reviewed v4 commit targets on 2026-08-17 are:
 
 - `actions/checkout`: `11d5960a326750d5838078e36cf38b85af677262`
 - `actions/setup-node`: `49933ea5288caeca8642d1e84afbd3f7d6820020`
@@ -40,6 +43,8 @@ Recovery/control workflows pin external Actions to immutable commits. The review
 - `actions/upload-artifact`: `ea165f8d65b6e75b540449e92b4886f43607fa02`
 
 Dependabot is configured for the `github-actions` ecosystem so pin updates can arrive as reviewable PRs instead of mutable tag movement.
+
+The repository is **not yet declared fully SHA-pinned**. Specialized browser/evidence workflows that were not part of the canonical hardening set remain visible to `ci:supply-chain` audit mode and are tracked in `WORKFLOW-HARDENING-STATUS.md`. Strict mode must not become the required quality contract until the mutable-reference count reaches zero.
 
 ## Repository secret names
 
@@ -53,14 +58,15 @@ The GitHub integration currently cannot list repository secret metadata, so pres
 
 Browser evidence workflows may install Playwright/Chromium and should remain path-scoped. Persistence/integration workflows may require their declared MySQL service. These specialized contracts are permanent evidence but are not globally required branch-protection contexts.
 
+Container service images such as `mysql:8.4` are currently tag-pinned, not digest-pinned. Their digest migration is a separate supply-chain hardening step and must be performed with compatibility validation; it is not silently enforced by the current Action-reference auditor.
+
 ## Restore validation order
 
-1. `pnpm ci:supply-chain` locally.
-2. `pnpm ci:quality` locally.
-3. `pnpm ci:platform` locally.
-4. `pnpm ci:smoke` locally.
-5. After GitHub Actions returns, require an exact-head named `quality` run.
-6. Require the affected path-scoped domain contracts that actually trigger for that diff.
-7. Run `platform-contract` when its paths are affected.
-8. Run manual `release-smoke` on the exact release-candidate head.
-9. Only then promote through protected PR flow.
+1. Run `pnpm ci:quality` locally; this includes the workflow supply-chain audit.
+2. Run `pnpm ci:platform` locally when Platform paths are affected.
+3. Run `pnpm ci:smoke` locally for a release candidate.
+4. After GitHub Actions returns, require an exact-head named `quality` run.
+5. Require the affected path-scoped domain contracts that actually trigger for that diff.
+6. Run `platform-contract` when its paths are affected.
+7. Run manual `release-smoke` on the exact release-candidate head.
+8. Only then promote through protected PR flow.
