@@ -67,6 +67,7 @@ export function createPlatformOperations({
   getEnvironmentValue = (key) => process.env[key] ?? "",
   additionalReadinessChecks = () => [],
   sink = (record) => process.stdout.write(`${JSON.stringify(record)}\n`),
+  processEvents = process,
 } = {}) {
   const production = getEnvironmentValue("NODE_ENV") === "production";
   const release = Object.freeze({
@@ -101,6 +102,7 @@ export function createPlatformOperations({
   const degradedProviders = new Map();
   let listening = false;
   let acceptingTraffic = true;
+  let fatalFailureMonitorInstalled = false;
 
   function newCorrelationId() {
     return `corr_${randomUUID()}`;
@@ -158,6 +160,47 @@ export function createPlatformOperations({
       // Observation delivery cannot change request authority or response outcome.
     }
     return observation;
+  }
+
+  function fatalFailureMonitor(error, origin) {
+    emit({
+      kind: "alert",
+      name: "platform.runtime.fatal_failure",
+      severity: "critical",
+      attributes: {
+        origin: bounded(origin, 80) || "uncaughtException",
+        errorName: error instanceof Error ? error.name : "UnknownError",
+        message:
+          error instanceof Error
+            ? error.message
+            : bounded(error, 500) || "unknown fatal process failure",
+      },
+    });
+  }
+
+  function installFatalFailureMonitor() {
+    if (
+      !production ||
+      fatalFailureMonitorInstalled ||
+      typeof processEvents?.on !== "function"
+    ) {
+      return;
+    }
+    processEvents.on("uncaughtExceptionMonitor", fatalFailureMonitor);
+    fatalFailureMonitorInstalled = true;
+  }
+
+  function removeFatalFailureMonitor() {
+    if (!fatalFailureMonitorInstalled) return;
+    if (typeof processEvents?.off === "function") {
+      processEvents.off("uncaughtExceptionMonitor", fatalFailureMonitor);
+    } else if (typeof processEvents?.removeListener === "function") {
+      processEvents.removeListener(
+        "uncaughtExceptionMonitor",
+        fatalFailureMonitor,
+      );
+    }
+    fatalFailureMonitorInstalled = false;
   }
 
   function providerDegraded(provider, reason, correlationId) {
@@ -229,6 +272,8 @@ export function createPlatformOperations({
 
   function setListening(value, correlationId = newCorrelationId()) {
     listening = Boolean(value);
+    if (listening) installFatalFailureMonitor();
+    else removeFatalFailureMonitor();
     emit({
       kind: "log",
       name: listening ? "platform.runtime.started" : "platform.runtime.stopped",
