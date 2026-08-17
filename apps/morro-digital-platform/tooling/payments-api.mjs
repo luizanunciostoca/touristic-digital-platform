@@ -52,6 +52,8 @@ import {
   verifyTicketingCheckoutHandoffCapability,
 } from "@touristic/ordering-server";
 
+import { createPaymentsPlatformObservability } from "./payments-observability.mjs";
+
 const checkoutPrefix = "/api/payments/v1/checkouts";
 const checkoutAuthorityPath = "/api/payments/v1/checkout-authority";
 const maxBodyBytes = 64 * 1024;
@@ -671,6 +673,7 @@ export function createPaymentsApi({
   authApi,
   getEnvironmentValue = (key) => process.env[key] ?? "",
   audit = (event) => console.warn(`[payments-audit] ${JSON.stringify(event)}`),
+  observability: injectedObservability,
   transport: injectedTransport,
   authorityBootstrapTransport: injectedAuthorityBootstrapTransport,
   webhookTransport: injectedWebhookTransport,
@@ -697,6 +700,12 @@ export function createPaymentsApi({
     : null;
   let startAttempted = hasInjectedTransport;
   let started = hasInjectedTransport;
+  let observability = injectedObservability ?? null;
+
+  function recordRuntimeAudit(event) {
+    runtimeAudit(audit, event);
+    observability?.recordAudit(event);
+  }
 
   async function start() {
     if (started || startAttempted) return started;
@@ -716,6 +725,9 @@ export function createPaymentsApi({
       if (!destinationContext) {
         throw new Error("PAYMENTS_DESTINATION_ID_REQUIRED");
       }
+      observability ??= createPaymentsPlatformObservability({
+        destinationId: destinationContext.destinationId,
+      });
       const statusTtlSeconds = configuredStatusTtl(
         environment.PAYMENTS_STATUS_TOKEN_TTL_SECONDS,
       );
@@ -779,7 +791,7 @@ export function createPaymentsApi({
           origins,
           production: environment.NODE_ENV === "production",
           rateLimits,
-          audit: (event) => runtimeAudit(audit, event),
+          audit: (event) => recordRuntimeAudit(event),
         });
       const transport = new CheckoutHttpTransport({
         application,
@@ -788,7 +800,9 @@ export function createPaymentsApi({
         payments,
         paymentResults,
         access: checkoutAccess,
-        provider: createSandboxCheckoutProviderFromEnvironment(environment),
+        provider: observability.observeCheckoutProvider(
+          createSandboxCheckoutProviderFromEnvironment(environment),
+        ),
         webhookUrl,
         authorization: createPaymentsCheckoutAuthorizationPort({
           authApi,
@@ -804,7 +818,7 @@ export function createPaymentsApi({
         rateLimits,
         audit: {
           record(event) {
-            runtimeAudit(audit, event);
+            recordRuntimeAudit(event);
             return Promise.resolve();
           },
         },
@@ -815,8 +829,9 @@ export function createPaymentsApi({
         payments,
         results: paymentResults,
         ledger,
-        provider:
+        provider: observability.observeReconciliationProvider(
           createSandboxReconciliationProviderFromEnvironment(environment),
+        ),
         reconciliation: new MySqlFinancialReconciliationRepository(
           financialPool,
         ),
@@ -834,7 +849,7 @@ export function createPaymentsApi({
         },
         audit: {
           record(event) {
-            runtimeAudit(audit, event);
+            recordRuntimeAudit(event);
             return Promise.resolve();
           },
         },
@@ -845,7 +860,9 @@ export function createPaymentsApi({
         results: paymentResults,
         ledger,
         refunds: new MySqlRefundRequestRepository(financialPool),
-        provider: createSandboxRefundProviderFromEnvironment(environment),
+        provider: observability.observeRefundProvider(
+          createSandboxRefundProviderFromEnvironment(environment),
+        ),
         clock: systemCheckoutClock,
       });
       const refundTransport = new RefundHttpTransport({
@@ -862,7 +879,7 @@ export function createPaymentsApi({
         },
         audit: {
           record(event) {
-            runtimeAudit(audit, event);
+            recordRuntimeAudit(event);
             return Promise.resolve();
           },
         },
@@ -876,7 +893,7 @@ export function createPaymentsApi({
         accounting,
         audit: {
           record(event) {
-            runtimeAudit(audit, event);
+            recordRuntimeAudit(event);
             return Promise.resolve();
           },
         },
@@ -891,7 +908,7 @@ export function createPaymentsApi({
         pools,
       });
       started = true;
-      runtimeAudit(audit, {
+      recordRuntimeAudit({
         action: "checkout.runtime",
         result: "success",
         reason: "ready",
@@ -900,7 +917,7 @@ export function createPaymentsApi({
     } catch {
       await Promise.allSettled(pools.map((pool) => pool.end()));
       runtime = null;
-      runtimeAudit(audit, {
+      recordRuntimeAudit({
         action: "checkout.runtime",
         result: "failure",
         reason: "configuration_or_persistence_unavailable",
@@ -1051,22 +1068,26 @@ export function createPaymentsApi({
       }
 
       try {
-        const result = webhookRequest
-          ? await selectedTransport.handle({
-              method,
-              pathname: requestUrl.pathname,
-              headers: request.headers ?? {},
-              rawBody,
-              correlationId,
-            })
-          : await selectedTransport.handle({
-              method,
-              pathname: requestUrl.pathname,
-              headers: request.headers ?? {},
-              body,
-              clientIp: request.socket?.remoteAddress,
-              correlationId,
-            });
+        const execute = () =>
+          webhookRequest
+            ? selectedTransport.handle({
+                method,
+                pathname: requestUrl.pathname,
+                headers: request.headers ?? {},
+                rawBody,
+                correlationId,
+              })
+            : selectedTransport.handle({
+                method,
+                pathname: requestUrl.pathname,
+                headers: request.headers ?? {},
+                body,
+                clientIp: request.socket?.remoteAddress,
+                correlationId,
+              });
+        const result = observability
+          ? await observability.runWithCorrelation(correlationId, execute)
+          : await execute();
         sendJson(
           response,
           result.status,
@@ -1075,7 +1096,7 @@ export function createPaymentsApi({
           result.headers,
         );
       } catch {
-        runtimeAudit(audit, {
+        recordRuntimeAudit({
           action: authorityRequest
             ? "checkout.authority.http"
             : webhookRequest
