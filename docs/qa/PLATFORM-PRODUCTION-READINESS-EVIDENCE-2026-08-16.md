@@ -1,94 +1,139 @@
-# Platform Production Readiness Evidence — 2026-08-16
+# Platform Production Readiness Evidence — revalidated 2026-08-17
 
 Scope: horizontal Platform/Health/Readiness/Observability/Security/Quality/CI/governance preparation only.
 
-## Baseline reconciled
+This document distinguishes implemented/static evidence from CI/runtime evidence that is still pending because GitHub Actions is temporarily unavailable.
 
-- PR #251 is merged and remains the canonical health/readiness contract source.
-- PR #250 is merged and its documented residual security risks were revalidated against current runtime code rather than assumed.
-- Issue #240 remains the CI optimization reference; current Quality Gate already implements the important draft-fast/full-promotion split, concurrency cancellation and bounded execution.
-- No alternate Platform health or observation schema was introduced.
+## Source-of-truth baseline
 
-## Platform gaps
+- target repository: `luizidebook/touristic-digital-platform`;
+- target PR: `#268`, branch `chore/platform-production-readiness-final`;
+- base is `main`;
+- final merge is forbidden until the exact final head receives official checks;
+- Ticketing/Payments product authority is not redefined by this Platform work.
 
-| Gap                                   | Result | Evidence                                                                                                                                     |
-| ------------------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| Real liveness HTTP                    | closed | `GET /healthz` returns process/listener liveness and release identity.                                                                       |
-| Real readiness HTTP                   | closed | `GET /readyz` returns canonical `PLATFORM-HEALTH-SNAPSHOT`; critical failures return 503.                                                    |
-| HTTP correlation propagation          | closed | valid inbound `X-Correlation-ID` is propagated; otherwise server generates one; response always includes the ID.                             |
-| Canonical observation sink            | closed | runtime emits canonical `createPlatformObservation` records as JSON lines marked `PLATFORM-OBSERVATION`.                                     |
-| Degraded provider observations        | closed | weather primary/fallback/stale/unavailable transitions emit degraded/recovered observations as non-critical warnings.                        |
-| Shutdown readiness transition         | closed | signal changes readiness to `not_ready` before listener drain.                                                                               |
-| Bounded HTTP drain/failure visibility | closed | configurable drain timeout, forced connection close and critical/failure observations.                                                       |
-| Release identity visibility           | closed | release SHA/version/deployment ID response headers and observation attributes.                                                               |
-| Rollback observations                 | closed | rollback startup emits `platform.release.rollback_activated` with from/to release SHA.                                                       |
-| Canonical Core runtime consumption    | closed | `@touristic/core` keeps TypeScript types on `src` while Node executes built `dist` output, matching executable workspace package boundaries. |
+## Implemented Platform gaps
 
-## Security residuals from #250
+| Gap | Current implementation |
+| --- | --- |
+| Liveness | `GET /healthz` returns HTTP process liveness and release identity. |
+| Readiness | `GET /readyz` returns canonical `PLATFORM-HEALTH-SNAPSHOT` v1 and maps critical failure to HTTP 503. |
+| Production release identity | `release-identity` is critical; production is not ready without SHA, version and deployment ID. |
+| Correlation ID | bounded valid inbound `X-Correlation-ID` is propagated; invalid/missing input is replaced by a server-generated ID. |
+| Canonical observations | runtime uses `createPlatformObservation` and emits a single `PLATFORM-OBSERVATION` JSON-line envelope. |
+| Provider degraded/recovered | weather primary/fallback/stale transitions emit non-critical degraded/recovered observations. |
+| Shutdown readiness | signal moves readiness to `not_ready` before listener drain. |
+| Bounded drain | configurable timeout emits failure evidence and forcibly closes remaining connections when necessary. |
+| Release/rollback visibility | response headers and observation attributes carry release identity; rollback startup carries from/to SHA evidence. |
+| Auth shared security state | production requires durable MySQL state for login rate limits and session revocation; unavailable state fails closed. |
+| HTTP/static boundary | serving is restricted to approved static roots and package `dist`; repository-private/source paths remain outside the public boundary. |
 
-### CSP `'unsafe-inline'`
+## Auth durable/shared authority
 
-**Unrestricted script risk closed.** `script-src` no longer contains `'unsafe-inline'` and `script-src-attr 'none'` blocks inline event-handler attributes.
+`services/auth/src/security-state.ts` owns the shared security-state contract:
 
-The hardened policy initially exposed a real compatibility gap: the login surface still depended on an inline import map. The login now loads the Auth browser runtime from a same-origin module URL and no longer needs that inline map. Preserved Business/CRM browser shells that still use static import maps are authorized only by three explicit SHA-256 CSP hashes matching the exact reviewed JSON bytes; modifying those bytes invalidates authorization instead of falling back to `'unsafe-inline'`.
+- `auth_login_rate_limits`;
+- `auth_session_revocations`;
+- SHA-256 namespaced limiter/session keys;
+- transactional login consumption with row locking;
+- durable session revocation;
+- fail-closed errors.
 
-**Style compatibility residual remains explicit.** `style-src 'unsafe-inline'` is still required by preserved V1 inline styles. It is not being hidden or expanded to scripts. Removing it requires a UI style migration with visual-equivalence evidence and is outside this production-hardening change.
+Focused unit coverage now proves:
 
-### Login rate limiting was process-local
+- in-memory policy behavior for development/test;
+- idempotent SQL schema initialization;
+- durable row-lock/commit behavior;
+- rollback/release on SQL authority failure.
 
-**Production gap closed.** Auth now uses a shared durable MySQL security authority in production. Login limiter keys are hashed and consumption is serialized transactionally with row locking. Missing/unavailable durable state fails readiness and Auth closed.
+The new `Platform Production Readiness Contract` is prepared to provide the still-missing real MySQL runtime proof with two HTTP replicas sharing the same Auth authority, including cross-replica revocation. It has **not** yet passed and must not be represented as passing evidence until Actions executes successfully.
 
-Process-local security state remains development/test only.
+## CSP/browser hardening truth
 
-### Logout revocation was process-local
+The previous evidence overstated CSP closure. Current executable truth is:
 
-**Production gap closed.** Session revocations are persisted in the same shared Auth authority and checked for every authenticated session resolution. Database failures deny authority rather than accepting the token.
+- dashboard login and redirect bootstraps were moved to same-origin module files;
+- Platform appends the reviewed import-map hashes to `script-src`;
+- Platform injects `script-src-attr 'none'` to reject inline event-handler attributes;
+- preserved V1/CRM browser shells still require the existing literal `script-src 'unsafe-inline'` compatibility token for inline import-map compatibility;
+- `style-src 'unsafe-inline'` also remains for preserved V1 styling.
 
-The Auth integration contract now starts two HTTP replicas against the same MySQL authority and proves that a session revoked by one replica is rejected by the other.
+Therefore this PR does **not** claim literal removal of script `'unsafe-inline'`. Removing that compatibility residual requires migration and browser validation of every preserved import map before the token can be safely deleted.
 
-### Admin global tenant bypass
+## Payments/Ticketing scope reconciliation
 
-**Canonical role semantics preserved; accidental production enablement closed.** The underlying Auth contract still defines `admin` as global tenant authority. Production refuses readiness when an admin is configured unless `DASHBOARD_ADMIN_GLOBAL_BYPASS_CONFIRMED=true` is explicitly set. Every cross-scope use emits a security audit observation.
+Platform must await asynchronous domain route handlers so rejected promises reach the central HTTP failure boundary. Those await/integration changes are allowed horizontal integration; they do not change domain business authority.
 
-This avoids silently changing the canonical Auth role contract while making exceptional global authority an explicit operator decision.
+Unrelated Payments workflow/path noise and an inherited Financial import in Business onboarding were removed from the PR during this revalidation.
 
-## CI / Issue #240 reconciliation
+The remaining Payments browser-contract workflow adjustment exists only to exercise the browser client through the real served page/CSP boundary; it must pass when Actions returns.
 
-No broad workflow rewrite was justified.
+Ticketing remains lazy-loaded and retains current-main domain authority. Platform only preserves its route/runtime lifecycle integration and awaits its asynchronous handler.
 
-Preserved:
+## Production release identity
 
-- draft-fast Quality Gate;
-- full tests/build for ready PRs and `main`;
-- permanent MySQL contracts;
-- permanent Chromium/browser contracts;
-- architecture and feature-registry checks;
-- frozen lockfile installation.
+Production readiness now fails closed if any immutable identity component is absent:
 
-Changed:
+- `MORRO_RELEASE_SHA` (with `GITHUB_SHA` accepted as SHA fallback when present);
+- `MORRO_RELEASE_VERSION`;
+- `MORRO_DEPLOYMENT_ID`.
 
-- canonical Quality job explicitly named `quality`;
-- Auth contract explicitly named `auth-contract`, bounded to 15 minutes and given concurrency cancellation;
-- existing Auth HTTP contract reused for MySQL multi-replica, Platform probes/CSP/correlation/release/shutdown tests instead of introducing another heavy workflow;
-- direct Morro Digital app builds ensure the Core runtime artifact exists, while full workspace builds reuse an already-current Core artifact instead of compiling it twice.
+This prevents an unidentified revision from becoming `ready` even if the listener and Auth state are otherwise healthy.
 
-No test or coverage step was removed to save Actions minutes.
+## Graceful shutdown
 
-## Governance preparation
+Implemented sequence:
 
-Repository rulesets were observed empty. The connected integration cannot access classic branch-protection administration, so no unsafe governance write was attempted.
+1. signal marks shutdown readiness `not_ready`;
+2. `/readyz` becomes 503 while the listener remains available during the configured convergence delay;
+3. application traffic is rejected as `SERVICE_DRAINING`;
+4. listener drain begins;
+5. drain is bounded by `PLATFORM_SHUTDOWN_DRAIN_TIMEOUT_MS`;
+6. timeout/failure emits canonical observations and remaining sockets are forced closed;
+7. Auth/CRM/Payments and materialized Ticketing runtime stops are collected;
+8. stop failures affect exit status and emit observations;
+9. shutdown completion/runtime-stop evidence is emitted before process exit.
 
-Existing `.github/CODEOWNERS` is valid and owned by `@luizidebook`.
+## Static validations performed during this revalidation
 
-The exact owner-side ruleset procedure is documented in `docs/operations/REPOSITORY-GOVERNANCE-PREPARATION.md`. The globally required status context should be `quality`; path-scoped heavy contracts must not be made global required contexts while they do not run on every pull request.
+Performed through the GitHub source-of-truth connector and direct code review:
 
-## Validation contract
+- main/head/mergeability comparison;
+- full PR changed-file inventory;
+- complete PR patch review and targeted file-level patch review;
+- current Ticketing integration review;
+- current Payments integration/browser-contract review;
+- current CSP/header/browser bootstrap review;
+- current Auth contracts/security-state review;
+- removal of unrelated inherited changes;
+- focused Platform unit-test addition;
+- focused durable Auth security-state test expansion;
+- new path-scoped production-readiness workflow prepared for later execution;
+- runbook reconciled against executable behavior.
 
-Required acceptance evidence for this change:
+A direct local clone/install could not be used in this environment because outbound GitHub/DNS access from the local container is unavailable and `pnpm` is not installed there. This limitation is not converted into a passing test claim.
 
-1. non-draft `quality` succeeds (format, architecture, Feature Registry, lint, typecheck, all tests, build);
-2. `auth-contract` succeeds with MySQL service and two replicas;
-3. Auth login browser contract succeeds under the hardened CSP;
-4. Business Auth and CRM Platform Auth permanent contracts remain green, proving the async shared-Auth composition does not alter their product authority;
-5. no changed functional Business/CRM/Payments/Ticketing/Affiliates behavior beyond consumption of the hardened horizontal Platform/Auth boundary;
-6. PR remains unmerged for coordinator review.
+## Pending official evidence
+
+When Actions becomes available, the exact final PR head must run and pass:
+
+1. `Quality Gate / quality` — format, architecture, Feature Registry, lint, typecheck, test, build;
+2. `Platform Production Readiness Contract / platform-production` — MySQL, two-replica shared Auth, probes, release/correlation identity and graceful shutdown;
+3. `Auth Integration Contract / auth-contract`;
+4. relevant Business Auth / CRM Platform Auth path-scoped contracts triggered by the final diff;
+5. Payments browser checkout contract because the CSP/browser exercise path is changed;
+6. any repository security/supply-chain checks that are configured to run for the final head.
+
+Cancelled, blocked, skipped-required or absent checks are not acceptance evidence.
+
+## Promotion rule
+
+Do not merge #268 while Actions is unavailable.
+
+Promotion becomes permissible only when:
+
+- PR remains 0-behind against current `main`;
+- GitHub reports it mergeable;
+- exact-head required checks have completed successfully;
+- no new domain-authority regression appears in the final compare;
+- the final head SHA is the same SHA whose checks are being accepted.
