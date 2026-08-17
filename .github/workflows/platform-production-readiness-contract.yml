@@ -95,13 +95,14 @@ jobs:
           USERS=$(node -e 'console.log(JSON.stringify([{id:"owner-1",email:"owner@example.com",passwordHash:process.argv[1],role:"owner",businessIds:["toca-do-morcego"]}]))' "$PASSWORD_HASH")
           export DASHBOARD_USERS_JSON="$USERS"
 
+          LAST_SERVER_PID=''
           start_server() {
             local port="$1"
             local log="$2"
             DASHBOARD_AUTH_ORIGIN="http://127.0.0.1:4180" \
             PORT="$port" HOST="127.0.0.1" \
               node apps/morro-digital-platform/tooling/dev-server.mjs >"$log" 2>&1 &
-            echo $!
+            LAST_SERVER_PID=$!
           }
 
           wait_ready() {
@@ -115,8 +116,10 @@ jobs:
             return 1
           }
 
-          PID1=$(start_server 4180 /tmp/platform-4180.log)
-          PID2=$(start_server 4181 /tmp/platform-4181.log)
+          start_server 4180 /tmp/platform-4180.log
+          PID1=$LAST_SERVER_PID
+          start_server 4181 /tmp/platform-4181.log
+          PID2=$LAST_SERVER_PID
           cleanup() {
             kill "$PID1" "$PID2" 2>/dev/null || true
             wait "$PID1" 2>/dev/null || true
