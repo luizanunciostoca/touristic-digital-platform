@@ -2,157 +2,174 @@
 
 Repository: `luizidebook/touristic-digital-platform`
 Audited `main`: `ec4f51e0198cdeed51b37fabe5ed94ebb2e3ecb6`
-Scope: CI, Quality and repository governance preparation only.
+Scope: CI, Quality and repository-governance preparation only.
 
 ## Executive result
 
-The versioned repository has a valid permanent Quality Gate and multiple permanent domain contracts, but GitHub Actions execution is currently blocked by the incident tracked in Issue #282. Current affected PR events resolve to deleted workflow id `334828426` and finish as `startup_failure` without real jobs.
+The versioned repository already has a permanent global Quality Gate and multiple path-scoped domain contracts. GitHub Actions execution is currently blocked by Issue #282: fresh connector-triggered events resolve only to deleted workflow id `334828426` and finish as `startup_failure` without real named jobs.
 
-The repository also has substantial workflow-registry debt: the Actions API reports 359 registered workflows, including many active historical formatter/fixer/one-shot/temporary workflows. That debt must be cleaned after Actions execution is restored, because mass deletion during the incident can add more deleted-workflow records and complicate diagnosis.
+This preparation does not bypass that incident. It makes the validation topology deterministic and locally inspectable so the first restored Actions event can immediately prove whether CI is healthy.
 
-This CI preparation introduces a stable granular Quality topology, a repository-governance contract, an exact-SHA release smoke gate and an executable restore/promotion runbook. It does not merge itself and does not change product behavior.
+Canonical decisions of this branch:
 
-## Revalidated blocker
+- keep exactly one globally provisioned Quality job named `quality`;
+- preserve one checkout/setup/install/cache lifecycle per Quality run;
+- preserve draft-fast validation and full ready/main/manual validation;
+- add `workflow_dispatch` for controlled recovery;
+- add executable `pnpm ci:governance:check` repository-governance validation;
+- add an explicit exact-SHA `Release Promotion Gate`;
+- keep Auth/Business/CRM/Payments/Ticketing contracts path-scoped;
+- do not add a weaker duplicate Platform workflow because PR #268 now owns the stronger production-readiness contract;
+- defer mass temporary-workflow cleanup until Actions registration is healthy.
 
-### Issue #282
+PR #285 is superseded and closed unmerged. PR #286 is the canonical CI/governance recovery candidate.
 
-Issue #282 remains the canonical blocker for Actions restoration.
+## Revalidated blocker — Issue #282
 
-Observed on 2026-08-17:
+Current coordinator observations:
 
-- no current versioned file contains `BuildFailed`;
-- PR #268 current head is `ab583a107e7de8afd78501b4aca574b9cf688b13`;
-- PR #268 has no commit statuses and its observed PR run is `startup_failure` from workflow id `334828426`;
-- PR #264 head is `823a8661c0ca18edbb4ea4f2d753d191305ab17e`;
-- PR #264 has repeated `startup_failure` runs from workflow id `334828426` and no real named workflow jobs;
-- the repository Actions permissions endpoint is not readable through the connected integration, so the owner/admin must perform the administrative restore in GitHub Settings.
+- `main` remains `ec4f51e0198cdeed51b37fabe5ed94ebb2e3ecb6`;
+- no current versioned workflow file contains `BuildFailed`;
+- current PR #268 and #264 heads are 0-behind and mergeable but their fresh connector-triggered runs still resolve only to workflow id `334828426` / `startup_failure`;
+- #286 itself has also reproduced the same deleted-workflow startup failure;
+- the connected integration cannot perform the owner-side Actions settings remediation.
 
-This confirms that no direct-merge workaround is justified.
+Therefore lack of current named checks is an external CI execution blocker, not green evidence and not a reason to merge directly.
 
 ## Historical execution evidence
 
-The permanent Quality Gate executed successfully immediately before the current incident. A representative historical run is Quality Gate run `31946480588`, created 2026-08-16 12:13:35Z, conclusion `success`, whose single historical `quality` job completed formatting, architecture, Feature Registry, lint, typecheck, test and build.
+The permanent Quality Gate executed successfully immediately before the current incident. Historical green runs prove the repository had a functioning full Quality topology before the registration failure, but they are not promotion evidence for any current head.
 
-The current incident is therefore not evidence that these commands are inherently absent or invalid; the immediate blocker is workflow execution/registration. The new branch still requires fresh exact-head CI before promotion.
+Every current candidate still requires fresh exact-head checks after Actions restoration.
 
-## Permanent workflow audit
-
-### Global Quality Gate
+## Canonical global Quality Gate
 
 File: `.github/workflows/quality.yml`
 
-Baseline behavior on `main`:
+### Trigger contract
 
 - `pull_request`: opened, synchronize, reopened, ready-for-review and converted-to-draft;
 - `push`: `main`;
-- no path filters, which is correct for a globally required check;
+- `workflow_dispatch`: administrative recovery/manual full validation;
+- no PR path filters;
 - `contents: read` only;
-- concurrency cancels stale runs;
-- format, architecture, Feature Registry, lint, typecheck, test and build are present.
+- concurrency cancels stale runs for the same PR/ref.
 
-Preparation change:
+### One-job topology
 
-- emits `quality / preflight`, `quality / lint`, `quality / typecheck`, `quality / test`, `quality / build` and aggregate `quality`;
-- drafts emit stable test/build contexts but defer their heavy commands;
-- `ready_for_review` forces real test/build execution;
-- aggregate `quality` cannot succeed unless every component job succeeds;
-- `quality / preflight` now runs `pnpm ci:governance:check`.
+Quality intentionally uses one provisioned job named `quality`.
 
-This provides a single stable branch-protection context (`quality`) without losing granular diagnostics.
+That job performs one:
+
+- checkout;
+- pnpm setup;
+- Node setup;
+- Turbo cache restore;
+- frozen dependency install.
+
+It then runs these named steps in sequence:
+
+1. formatting;
+2. architecture boundaries plus canonical Platform contracts;
+3. Feature Registry validation;
+4. CI/repository governance validation;
+5. lint;
+6. typecheck;
+7. tests when the event is not a draft PR;
+8. build when the event is not a draft PR.
+
+Draft PRs therefore remain fast through typecheck. `ready_for_review` retriggers the same exact head and executes full Test + Build. Pushes to `main` and manual dispatch also execute the full gate.
+
+### Why Quality is not split into component jobs
+
+Issue #240 already establishes the cost rule: avoid multiple small jobs that repeat setup and per-job minute rounding when a domain/gate can run safely as one job.
+
+A temporary #286 design split preflight/lint/typecheck/test/build into separate runners. Coordinator revalidation rejected that design before promotion because it would multiply checkout/setup/install work without measured benefit and contradict the repository's CI cost architecture.
+
+Failure isolation remains available through named steps and logs inside `quality`; separate runners are not required to know which command failed.
+
+The globally required branch-protection context remains exactly `quality`.
+
+## CI governance executable contract
+
+File: `tooling/quality/check-ci-governance.mjs`
+Root script: `pnpm ci:governance:check`
+
+The checker validates that:
+
+- versioned workflow files exist;
+- no versioned workflow or filename contains stale `BuildFailed` references;
+- root scripts for format, architecture, registry, lint, typecheck, test, build, Platform contracts, governance and aggregate check exist;
+- global Quality has PR, push-to-main and manual recovery triggers;
+- global Quality has no PR path filters;
+- global Quality contains all required commands;
+- global Quality uses exactly one provisioned job and does not reintroduce `quality / ...` component jobs;
+- permanent Auth, Business, CRM, Payments and Ticketing contract files retain their owner/path/permissions markers;
+- canonical Platform schema/event/health validation remains registered;
+- Release Promotion Gate remains explicit/manual and exact-SHA aware;
+- critical CODEOWNERS/root-foundation entries exist;
+- likely temporary/one-shot workflow files are reported for later controlled cleanup.
+
+The temporary-workflow inventory is informational until the dedicated cleanup phase; merely finding historical helper files does not make the current recovery gate red.
+
+## Permanent domain contract policy
+
+Domain contracts are affected-change evidence and must not become global required contexts.
 
 ### Auth
 
-File: `.github/workflows/auth-integration-contract.yml`
-
-Audit result: permanent/path-scoped.
-
-- PR + push-to-main triggers exist.
-- Paths cover Auth packages, Auth browser, Auth server, the Auth runtime adapter/dev server and lockfile.
-- Permissions are read-only.
-- Job validates Auth packages and real HTTP security/RBAC/tenant boundaries.
-
-Do not make `auth-contract` globally required because unrelated PRs do not emit it.
+`auth-integration-contract.yml` remains path-scoped to Auth/runtime changes and validates Auth packages plus real HTTP security/RBAC/tenant boundaries.
 
 ### Business
 
-File: `.github/workflows/business-auth-integration-contract.yml`
-
-Audit result: permanent/path-scoped.
-
-- PR + push-to-main triggers exist.
-- Paths cover Business/Auth packages plus Business/Auth runtime adapters and dev server.
-- Permissions are read-only.
-- Job validates Business/Auth packages and protected Business HTTP behavior.
-
-Do not make `business-auth-contract` globally required.
+`business-auth-integration-contract.yml` remains path-scoped to Business/Auth integration changes.
 
 ### CRM
 
-Files reviewed:
-
-- `.github/workflows/crm-platform-auth-integration-contract.yml`
-- `.github/workflows/crm-equivalence-browser-contract.yml`
-
-Audit result: permanent/path-scoped.
-
-The platform/Auth integration contract covers `crm-api.mjs`, `auth-api.mjs`, `dev-server.mjs`, CRM packages/services and lockfile. The equivalence/browser contract covers focused CRM equivalence/browser/runtime evidence. Both use PR + push-to-main triggers; the focused equivalence contract also supports manual dispatch.
-
-Do not make these globally required.
+`crm-platform-auth-integration-contract.yml` and focused CRM equivalence/browser contracts remain path-scoped to CRM/Auth/runtime changes.
 
 ### Payments
 
-Files reviewed:
-
-- `.github/workflows/payments-subscription-recurrence-contract.yml`
-- `.github/workflows/payments-browser-checkout-contract.yml`
-
-Audit result: permanent/path-scoped.
-
-Payments is correctly validated through Ordering/Financial/server/browser authority paths rather than a duplicate standalone Payments package. The recurrence contract covers Financial, Ordering, Ordering server and Payments runtime files. The browser checkout contract covers browser checkout clients, Ordering and runtime server surfaces. Both have PR + push-to-main triggers and manual dispatch.
-
-Do not make these globally required.
+Payments continues to be validated through Ordering/Financial/runtime authority contracts, including recurrence and browser checkout where affected. These remain path-scoped.
 
 ### Ticketing
 
-Files reviewed:
+Ticketing domain/transaction/MySQL contracts remain path-scoped and retain canonical Ordering/Financial authority boundaries.
 
-- `.github/workflows/ticketing-m147-contract.yml`
-- `.github/workflows/ticketing-m148-transaction-contract.yml`
+### Affiliates
 
-Audit result: permanent/path-scoped.
+PR #264 introduces its own permanent `Affiliates FEATURE-0010 Contract`, intentionally scoped to the Affiliate policy-neutral documentary/architecture surface. It is not part of #286 and must not become globally required.
 
-Both validate Ticketing plus Ordering/Financial dependencies with deterministic MySQL execution. Both have PR + push-to-main triggers and manual dispatch. Their path filters are appropriate for Ticketing domain changes; runtime-only platform composition changes still receive global Quality/Platform validation and must use the applicable integration contract when the runtime adapter itself is changed.
+## Platform validation ownership
 
-Do not make these globally required.
+Two layers are intentionally distinct:
 
-### Platform
+1. `pnpm platform:contracts:check`, consumed by global `architecture:check`, validates the canonical `PLATFORM-EVENT-ENVELOPE`, `PLATFORM-OBSERVATION` and `PLATFORM-HEALTH-SNAPSHOT` contract registry/schema/runtime relationship.
+2. PR #268 owns the stronger runtime/production-specific `Platform Production Readiness Contract / platform-production`, including real MySQL shared Auth, probes, release/correlation identity and shutdown behavior.
 
-There is intentionally no duplicate always-running Platform workflow added by this preparation.
+#286 does not create another parallel Platform runtime gate. Doing so would duplicate responsibility and make promotion semantics ambiguous.
 
-Platform's canonical contract gate is `pnpm platform:contracts:check`, executed by `pnpm architecture:check`, which is already part of global `quality / preflight`. It validates the canonical `PLATFORM-EVENT-ENVELOPE`, `PLATFORM-OBSERVATION` and `PLATFORM-HEALTH-SNAPSHOT` registry/schema/runtime/evidence relationship.
+## Release Promotion Gate
 
-Adding a second always-running Platform workflow would duplicate global Quality work without adding a new trust boundary.
+File: `.github/workflows/release-promotion-gate.yml`
 
-### Release / smoke
+Permanent/manual promotion contract:
 
-New file: `.github/workflows/release-promotion-gate.yml`
-
-Audit intent: permanent/manual promotion gate.
-
-- trigger is `workflow_dispatch` only;
+- `workflow_dispatch` only;
 - operator supplies `expected_sha`;
-- checkout uses that exact SHA;
-- the job proves both checked-out HEAD and current `origin/main` equal the approved SHA;
-- validates Platform contracts;
+- checkout is pinned to that exact SHA;
+- workflow verifies checked-out HEAD and current `origin/main` equal the approved SHA;
+- validates canonical Platform contracts;
 - builds the release candidate;
-- starts the local runtime and smokes deterministic local surfaces;
-- never deploys, activates a provider, or changes product data.
+- boots the local runtime;
+- smokes deterministic local surfaces;
+- does not deploy, activate providers or mutate product data.
 
-It is not a PR required check. It is post-merge release evidence.
+This is post-merge/release evidence, not a globally required PR context.
 
 ## Package scripts / local gates
 
-Current repository scripts include:
+The branch preserves root scripts for:
 
 - `format:check`;
 - `architecture:check`;
@@ -161,100 +178,87 @@ Current repository scripts include:
 - `typecheck`;
 - `test`;
 - `build`;
-- `platform:contracts:check`;
-- aggregate `check`.
+- `platform:contracts:check`.
 
-This preparation adds `ci:governance:check` and includes it in aggregate `check`.
+It adds:
 
-`tooling/quality/check-ci-governance.mjs` inspects every versioned workflow file for stale `BuildFailed` references, validates the permanent Quality topology and domain contract markers, validates Platform/release-gate invariants, validates critical CODEOWNERS entries and reports high-confidence temporary/one-shot cleanup candidates.
+- `ci:governance:check`;
+- inclusion of governance validation in aggregate `check`.
 
-The script deliberately reports legacy temporary workflows instead of failing merely because they exist; otherwise the prepared Quality Gate would be guaranteed red before the controlled cleanup PR can occur.
+This makes the repository's permanent CI structure inspectable without depending on GitHub-hosted execution.
 
-## YAML validation strategy
+## YAML/static validation strategy
 
-Permanent workflow YAML is protected through multiple layers:
+Permanent workflow syntax/structure is protected in layers:
 
-1. `pnpm format:check` uses Prettier across the repository and therefore parses changed YAML as part of Quality preflight.
-2. `pnpm ci:governance:check` validates critical workflow structure and trigger/contract markers.
-3. GitHub's own workflow registration/parser is the final platform-specific parser once Actions execution is restored.
-4. Fresh exact-head named jobs remain mandatory promotion evidence; static parsing alone never authorizes a merge.
+1. Prettier parsing through `pnpm format:check`;
+2. semantic marker/topology checks through `pnpm ci:governance:check`;
+3. GitHub workflow registration/parser after Actions restoration;
+4. fresh exact-head execution as the final acceptance gate.
+
+Static validation never substitutes for the official execution gate.
 
 ## Trigger and path-filter policy
 
-### Global gate
+### Global Quality
 
-`Quality Gate` must remain without PR path filters so required context `quality` always appears.
+No PR path filters. The stable `quality` context must appear for every PR once Actions is working.
 
 ### Domain contracts
 
-Permanent Auth/Business/CRM/Payments/Ticketing contracts remain path-scoped to avoid unnecessary MySQL/Chromium/runtime work and Actions consumption. They are affected-change evidence, not global branch-protection contexts.
+Keep expensive MySQL/Chromium/domain runtime workflows path-scoped. They are required only when affected and must not deadlock unrelated PRs through global branch protection.
 
 ### Release gate
 
-Release Promotion Gate remains manual only so a successful PR cannot accidentally become deployment/promotion authorization.
-
-## Quality duplication audit
-
-The old Quality workflow serialized all checks inside one `quality` job. It was efficient but gave poor failure isolation and no granular contexts.
-
-The prepared topology parallelizes lint/typecheck/test/build and keeps a small aggregate `quality` context. This increases setup/install work per full ready PR, but provides deterministic named gates and allows failures to complete independently. `setup-node`/pnpm store caching and Turbo caches on static jobs reduce the repeated setup cost; concurrency still cancels stale PR runs.
-
-Domain workflows are not folded into global Quality because they require materially different environments (MySQL, Chromium, focused runtime fixtures) and are already path-scoped.
-
-Platform contract validation remains inside global preflight instead of being duplicated into a second always-running workflow.
+Manual only. A PR success must never implicitly become deployment/promotion authority.
 
 ## Temporary / one-shot workflow debt
 
-The Actions API currently reports 359 registered workflows. High-confidence temporary families observed include:
+GitHub's Actions registry contains substantial historical workflow metadata, including deleted and one-shot registrations. That registry history is not the same thing as current versioned files.
 
-- M52–M58 formatter/fix/once helpers;
-- M134–M148 temporary formatter/fixer/prepare/probe/reconcile helpers;
-- M146 clock/database/fixture/isolation/documentation one-shot workflows;
-- M148 browser/import-map/MySQL/static formatter/fix helpers;
-- Payments M153 documentation/format/recurrence one-shot helpers;
-- PR-specific formatters such as PR248/PR260 helpers;
-- Affiliates temporary formatter/reconcile helpers;
-- Assistant temporary format/sync/one-shot helpers;
-- diagnostic workflows such as routing/CSS/cascade diagnostics;
-- `ci-phase2-one-shot.yml`;
-- `placeholder-invalid.yml`.
+Cleanup policy after CI restoration:
 
-The registry count includes workflow history and should not be treated as the eventual versioned-file target. Cleanup acceptance is based on the contents of `.github/workflows`, not on instantly forcing historical registry entries to disappear.
+- inventory current `.github/workflows` files;
+- use `pnpm ci:governance:check` to report high-confidence helper candidates;
+- verify no open PR/recovery path still needs each candidate;
+- delete helpers in a dedicated cleanup PR;
+- require Quality on the cleanup PR and resulting `main`;
+- preserve permanent validation/regression/release workflows.
 
-### Removal policy
+Do not mass-delete files while the Actions registration incident itself is unresolved.
 
-After CI restore:
+## CODEOWNERS
 
-- delete high-confidence one-shot/formatter/fixer/probe/temporary workflows through a dedicated PR;
-- preserve permanent contract/regression/release workflows;
-- confirm no open PR depends on a candidate before deletion;
-- require Quality on the cleanup PR and resulting main;
-- do not recreate temporary workflows merely to edit code when equivalent local/PR development is possible.
+`.github/CODEOWNERS` has a default owner and critical repository ownership. No duplicate ownership mechanism is needed.
 
-## CODEOWNERS audit
+If independent review becomes available, Code Owner review can be required. In a single-maintainer state, governance must not create an impossible approval deadlock; PR-only changes, exact checks and no-bypass protection remain the enforceable controls.
 
-`.github/CODEOWNERS` exists and has a default owner `@luizidebook`, explicit ownership for `/.github/`, docs, tooling, infrastructure, apps, core/shared/design/geospatial/services and critical root foundation files.
+## Branch protection / rulesets
 
-That is sufficient for current single-maintainer ownership. No duplicate ownership file is needed. Branch protection should require Code Owner review only when an independent reviewer actually exists; governance must not deadlock the repository.
+Current `main` is unprotected. The rulesets capability is unavailable for this private repository on the current plan; use classic branch protection after real check contexts are restored.
 
-## Branch protection / ruleset audit
+Target protection:
 
-The connected integration cannot read classic `main` protection (`403 Resource not accessible by integration`). The rulesets API is also inaccessible for this current private-repository plan and returns a plan/visibility restriction. Therefore repository protection cannot be truthfully asserted or changed from this integration.
-
-Target configuration is documented in `docs/operations/CI-RESTORE-PROMOTION-RUNBOOK.md`:
-
-- PR required;
+- pull request required;
 - conversation resolution required;
-- `quality` required;
-- up-to-date branch required when available;
-- force push blocked;
-- deletion blocked;
-- admin/broad bypass disabled;
-- no path-scoped domain contract configured globally;
-- one approval + Code Owner review only when an independent reviewer exists.
+- globally require exactly `quality`;
+- require branch up-to-date where supported;
+- block force pushes;
+- block deletion;
+- disable broad admin bypass where the UI supports it;
+- do not globally require path-scoped domain contracts.
 
 ## Promotion decision
 
-**Current decision: HOLD.**
+**HOLD until Issue #282 is restored.**
 
-The CI/governance branch is prepared, but GitHub Actions has not yet produced fresh named checks on its exact head. No merge is authorized until Issue #282's execution blocker is administratively restored and the sequence in the CI restore runbook succeeds.
+#286 is the designated CI/governance recovery candidate, but it must remain draft/unmerged until:
+
+1. its exact final head is 0-behind and mergeable;
+2. real `Quality Gate / quality` executes and is green on that exact head with Test + Build enabled;
+3. it is merged through the PR flow;
+4. resulting `main` Quality is green;
+5. `Release Promotion Gate / release / smoke` succeeds against the exact resulting main SHA;
+6. classic branch protection is configured around the real `quality` context.
+
+No startup-failed, skipped-required, historical or absent check is acceptance evidence.
