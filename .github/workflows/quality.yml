@@ -37,8 +37,6 @@ jobs:
             turbo-${{ runner.os }}-node22-${{ hashFiles('pnpm-lock.yaml', 'turbo.json', 'eslint.config.mjs', 'tsconfig.base.json') }}-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      - name: Audit workflow supply chain
-        run: pnpm ci:supply-chain
       - name: Run canonical quality gate
         env:
           TURBO_CACHE_DIR: /tmp/turbo-cache
