@@ -71,6 +71,7 @@ Important names include:
 
 - `platform.runtime.started`;
 - `platform.runtime.stopped`;
+- `platform.runtime.fatal_failure`;
 - `platform.security.audit`;
 - `platform.provider.degraded`;
 - `platform.provider.recovered`;
@@ -82,6 +83,8 @@ Important names include:
 - `platform.shutdown.runtime_stop_failed`;
 - `platform.shutdown.completed`;
 - `platform.release.rollback_activated`.
+
+Fatal process visibility uses Node's `uncaughtExceptionMonitor` while the production runtime is listening. This is observation-only: it does not install an `uncaughtException` recovery handler, does not convert an unhandled rejection into a successful process, and does not suppress Node's normal fatal termination semantics.
 
 The sink must never contain credentials, raw passwords, cookies, CSRF tokens, provider secrets, raw session IDs or raw login-limiter keys.
 
@@ -225,6 +228,10 @@ Clear `MORRO_ROLLBACK_FROM_SHA` on the next normal forward release.
 
 Treat as process/listener failure. Inspect runtime/container state and startup logs.
 
+### Fatal process failure
+
+Search the final process output for `platform.runtime.fatal_failure` and correlate it with the same release/deployment identity. Its `origin` distinguishes ordinary `uncaughtException` from an unhandled rejection promoted to an exception by Node. The monitor is evidence only; rely on the process supervisor/orchestrator to restart or replace the failed instance rather than attempting in-process recovery.
+
 ### `/healthz=200`, `/readyz=503`
 
 Read `checks[]` first.
@@ -256,7 +263,7 @@ When GitHub Actions is available, the exact final head must pass at minimum:
 The Platform production contract must prove with real MySQL:
 
 - executable workspace build;
-- focused Platform/Auth unit contracts;
+- focused Platform/Auth unit contracts, including fatal-process observation lifecycle;
 - two simultaneously running HTTP replicas sharing the same Auth authority;
 - `/healthz` and `/readyz` behavior;
 - correlation/release headers;
