@@ -1,0 +1,201 @@
+name: Platform Production Readiness Contract
+
+on:
+  pull_request:
+    paths:
+      - ".env.example"
+      - "packages/core/**"
+      - "packages/auth/**"
+      - "services/auth/**"
+      - "apps/morro-digital-platform/package.json"
+      - "apps/morro-digital-platform/tooling/auth-api.mjs"
+      - "apps/morro-digital-platform/tooling/dev-server.mjs"
+      - "apps/morro-digital-platform/tooling/platform-operations.mjs"
+      - "apps/morro-digital-platform/tooling/platform-operations.test.mjs"
+      - "dashboard/**"
+      - "docs/operations/PLATFORM-PRODUCTION-RUNBOOK.md"
+      - ".github/workflows/platform-production-readiness-contract.yml"
+      - "pnpm-lock.yaml"
+  push:
+    branches: [main]
+    paths:
+      - ".env.example"
+      - "packages/core/**"
+      - "packages/auth/**"
+      - "services/auth/**"
+      - "apps/morro-digital-platform/package.json"
+      - "apps/morro-digital-platform/tooling/auth-api.mjs"
+      - "apps/morro-digital-platform/tooling/dev-server.mjs"
+      - "apps/morro-digital-platform/tooling/platform-operations.mjs"
+      - "apps/morro-digital-platform/tooling/platform-operations.test.mjs"
+      - "dashboard/**"
+      - "docs/operations/PLATFORM-PRODUCTION-RUNBOOK.md"
+      - ".github/workflows/platform-production-readiness-contract.yml"
+      - "pnpm-lock.yaml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: platform-production-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  platform-production:
+    name: platform-production
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: platform-contract
+          MYSQL_DATABASE: platform_auth_contract
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -pplatform-contract"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    env:
+      AUTH_DATABASE_URL: mysql://root:platform-contract@127.0.0.1:3306/platform_auth_contract
+      DASHBOARD_AUTH_SECRET: 0123456789abcdef0123456789abcdef
+      MORRO_RELEASE_SHA: platform-contract-sha
+      MORRO_RELEASE_VERSION: 2.0.0-contract
+      MORRO_DEPLOYMENT_ID: platform-contract-deployment
+      PLATFORM_SHUTDOWN_READINESS_DELAY_MS: 1500
+      PLATFORM_SHUTDOWN_DRAIN_TIMEOUT_MS: 5000
+      NODE_ENV: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build executable workspace
+        run: pnpm -w build
+      - name: Focused Platform and Auth state contracts
+        run: |
+          pnpm --filter @touristic/morro-digital-platform test -- tooling/platform-operations.test.mjs
+          pnpm --filter @touristic/auth-server test
+      - name: Production HTTP, shared Auth and graceful shutdown contract
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          PASSWORD='correct horse battery staple'
+          PASSWORD_HASH=$(node --input-type=module -e "import('./services/auth/dist/credentials.js').then(m => console.log(m.hashPassword(process.argv[1], Buffer.alloc(16, 7))))" "$PASSWORD")
+          USERS=$(node -e 'console.log(JSON.stringify([{id:"owner-1",email:"owner@example.com",passwordHash:process.argv[1],role:"owner",businessIds:["toca-do-morcego"]}]))' "$PASSWORD_HASH")
+          export DASHBOARD_USERS_JSON="$USERS"
+
+          start_server() {
+            local port="$1"
+            local log="$2"
+            DASHBOARD_AUTH_ORIGIN="http://127.0.0.1:4180" \
+            PORT="$port" HOST="127.0.0.1" \
+              node apps/morro-digital-platform/tooling/dev-server.mjs >"$log" 2>&1 &
+            echo $!
+          }
+
+          wait_ready() {
+            local origin="$1"
+            for _ in $(seq 1 80); do
+              if curl --fail --silent "$origin/readyz" >/dev/null; then
+                return 0
+              fi
+              sleep 0.25
+            done
+            return 1
+          }
+
+          PID1=$(start_server 4180 /tmp/platform-4180.log)
+          PID2=$(start_server 4181 /tmp/platform-4181.log)
+          cleanup() {
+            kill "$PID1" "$PID2" 2>/dev/null || true
+            wait "$PID1" 2>/dev/null || true
+            wait "$PID2" 2>/dev/null || true
+            cat /tmp/platform-4180.log || true
+            cat /tmp/platform-4181.log || true
+          }
+          trap cleanup EXIT
+
+          wait_ready http://127.0.0.1:4180
+          wait_ready http://127.0.0.1:4181
+
+          curl --fail --silent --dump-header /tmp/health.headers \
+            --header 'X-Correlation-ID: platform_contract_correlation' \
+            http://127.0.0.1:4180/healthz >/tmp/health.json
+          grep -Eiq '^x-correlation-id: platform_contract_correlation' /tmp/health.headers
+          grep -Eiq '^x-release-sha: platform-contract-sha' /tmp/health.headers
+          grep -Eiq '^x-release-version: 2.0.0-contract' /tmp/health.headers
+          grep -Eiq '^x-deployment-id: platform-contract-deployment' /tmp/health.headers
+
+          curl --fail --silent http://127.0.0.1:4180/readyz >/tmp/ready.json
+          python - <<'PY'
+          import json
+          data=json.load(open('/tmp/ready.json'))
+          assert data['readiness'] == 'ready'
+          checks={check['name']: check for check in data['checks']}
+          assert checks['http-listener']['status'] == 'pass'
+          assert checks['shutdown-readiness']['status'] == 'pass'
+          assert checks['release-identity']['status'] == 'pass'
+          assert checks['auth-security-state']['status'] == 'pass'
+          assert checks['auth-security-state']['detail'] == 'shared-durable'
+          PY
+
+          LOGIN_STATUS=$(curl --silent --output /tmp/login.json --write-out '%{http_code}' \
+            --cookie-jar /tmp/shared.cookies \
+            --header 'Origin: http://127.0.0.1:4180' \
+            --header 'Content-Type: application/json' \
+            --data "{\"email\":\"owner@example.com\",\"password\":\"$PASSWORD\"}" \
+            http://127.0.0.1:4180/api/dashboard/auth/login)
+          test "$LOGIN_STATUS" = "200"
+          python - <<'PY'
+          import json
+          data=json.load(open('/tmp/login.json'))
+          open('/tmp/csrf.txt','w').write(data['csrfToken'])
+          PY
+          CSRF=$(cat /tmp/csrf.txt)
+          cp /tmp/shared.cookies /tmp/pre-revocation.cookies
+
+          LOGOUT_STATUS=$(curl --silent --output /tmp/logout.json --write-out '%{http_code}' \
+            --cookie /tmp/shared.cookies \
+            --header 'Origin: http://127.0.0.1:4180' \
+            --header "X-CSRF-Token: $CSRF" \
+            --request POST \
+            http://127.0.0.1:4181/api/dashboard/auth/logout)
+          test "$LOGOUT_STATUS" = "200"
+
+          REVOKED_STATUS=$(curl --silent --output /tmp/revoked.json --write-out '%{http_code}' \
+            --cookie /tmp/pre-revocation.cookies \
+            http://127.0.0.1:4180/api/dashboard/auth/session)
+          test "$REVOKED_STATUS" = "401"
+          grep -q 'AUTH_REQUIRED' /tmp/revoked.json
+
+          kill -TERM "$PID1"
+          DRAINING_STATUS=000
+          for _ in $(seq 1 12); do
+            DRAINING_STATUS=$(curl --silent --output /tmp/draining.json --write-out '%{http_code}' \
+              http://127.0.0.1:4180/readyz || true)
+            if test "$DRAINING_STATUS" = "503"; then break; fi
+            sleep 0.1
+          done
+          test "$DRAINING_STATUS" = "503"
+          grep -q '"readiness":"not_ready"' /tmp/draining.json
+          wait "$PID1"
+
+          kill -TERM "$PID2"
+          wait "$PID2"
+          trap - EXIT
+
+          grep -q '"name":"platform.shutdown.readiness_transition"' /tmp/platform-4180.log
+          grep -q '"name":"platform.shutdown.drain_started"' /tmp/platform-4180.log
+          grep -q '"name":"platform.shutdown.completed"' /tmp/platform-4180.log
+          grep -q '"name":"platform.runtime.stopped"' /tmp/platform-4180.log
