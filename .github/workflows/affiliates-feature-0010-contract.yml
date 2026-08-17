@@ -1,0 +1,121 @@
+name: Affiliates FEATURE-0010 Contract
+
+on:
+  pull_request:
+    paths:
+      - "packages/affiliates/**"
+      - "package.json"
+      - "pnpm-workspace.yaml"
+      - "docs/product-architecture/AFFILIATES-CANONICAL-SCOPE.md"
+      - "docs/product-architecture/AFFILIATES-TECHNICAL-CONTRACT.md"
+      - "docs/product-architecture/AFFILIATES-DECISION-SHEET.md"
+      - "docs/product-architecture/AFFILIATES-THREAT-MODEL.md"
+      - "docs/migration/AFFILIATES-MIGRATION-MATRIX.md"
+      - "docs/qa/AFFILIATES-FEATURE-0010-DISCOVERY-EVIDENCE.md"
+      - "docs/qa/AFFILIATES-FEATURE-0010-TEST-PLAN.md"
+      - "docs/operations/AFFILIATES-ROLLOUT-ROLLBACK.md"
+      - "docs/product-architecture/CAPABILITY-MATRIX.md"
+      - "docs/product-architecture/DOMAIN-MAP.md"
+      - "docs/product-architecture/MODULE-CONTRACTS.md"
+      - "docs/features/registry.json"
+      - "docs/migration/MASTER-MIGRATION-TRACKER.md"
+      - ".github/workflows/affiliates-feature-0010-contract.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Validate architecture and registry
+        run: pnpm architecture:check && pnpm features:check
+      - name: Validate Affiliate runtime foundation
+        run: pnpm affiliates:check
+      - name: Validate Affiliate authority and policy contract
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -f packages/affiliates/package.json
+          test -f packages/affiliates/src/index.ts
+          test -f packages/affiliates/src/policy.ts
+          test -f packages/affiliates/src/attribution.ts
+          test -f packages/affiliates/src/commission.ts
+          test -f packages/affiliates/src/conversion.ts
+          test -f packages/affiliates/src/eligibility.ts
+          test -f packages/affiliates/src/ids.ts
+          test -f packages/affiliates/src/materialization.ts
+          test -f packages/affiliates/src/ports.ts
+          test -f packages/affiliates/src/events.ts
+          test -f packages/affiliates/src/index.test.ts
+          test -f packages/affiliates/tsconfig.json
+          test ! -d services/affiliates
+          grep -Fq -- '- "!packages/affiliates"' pnpm-workspace.yaml
+
+          test -f docs/product-architecture/AFFILIATES-CANONICAL-SCOPE.md
+          test -f docs/product-architecture/AFFILIATES-TECHNICAL-CONTRACT.md
+          test -f docs/product-architecture/AFFILIATES-DECISION-SHEET.md
+          test -f docs/product-architecture/AFFILIATES-THREAT-MODEL.md
+          test -f docs/migration/AFFILIATES-MIGRATION-MATRIX.md
+          test -f docs/qa/AFFILIATES-FEATURE-0010-DISCOVERY-EVIDENCE.md
+          test -f docs/qa/AFFILIATES-FEATURE-0010-TEST-PLAN.md
+          test -f docs/operations/AFFILIATES-ROLLOUT-ROLLBACK.md
+
+          grep -Fq 'Status: **APPROVED**' docs/product-architecture/AFFILIATES-DECISION-SHEET.md
+          grep -Fq 'Policy version: **AFFILIATE-POLICY-V1**' docs/product-architecture/AFFILIATES-DECISION-SHEET.md
+          grep -Fq 'Financial remains the only monetary source of truth' docs/product-architecture/AFFILIATES-CANONICAL-SCOPE.md
+          grep -Fq 'No Affiliate-owned payout, wallet or payment runtime is ever authorized.' docs/product-architecture/AFFILIATES-CANONICAL-SCOPE.md
+          grep -Fq 'affiliate:v1:<operation>:' docs/product-architecture/AFFILIATES-TECHNICAL-CONTRACT.md
+          grep -Fq 'AffiliateFinancialMaterializationPort' docs/product-architecture/AFFILIATES-TECHNICAL-CONTRACT.md
+          grep -Fq 'rateBasisPoints: 3000' packages/affiliates/src/policy.ts
+          grep -Fq 'attributionWindowDays: 30' packages/affiliates/src/policy.ts
+          grep -Fq 'subscriptionRenewalsEligible: false' packages/affiliates/src/policy.ts
+          grep -Fq 'financial_net_eligible_platform_revenue' packages/affiliates/src/policy.ts
+
+          decision_count="$(grep -Ec '^## [0-9]+\.' docs/product-architecture/AFFILIATES-DECISION-SHEET.md)"
+          test "$decision_count" -eq 19
+
+          node <<'NODE'
+          const affiliateManifest = require('./packages/affiliates/package.json');
+          const rootManifest = require('./package.json');
+          if (affiliateManifest.name !== '@touristic/affiliates') process.exit(1);
+          if (affiliateManifest.type !== 'module') process.exit(1);
+          if (affiliateManifest.dependencies || affiliateManifest.devDependencies) process.exit(1);
+          if (!rootManifest.scripts?.['affiliates:check']) process.exit(1);
+          NODE
+
+          if grep -REn --include='*.ts' --include='*.tsx' \
+            '@touristic/(business|financial|ordering)|services/(business|financial|ordering)|apps/' \
+            packages/affiliates/src; then
+            echo 'Affiliate domain source crossed a forbidden implementation boundary.' >&2
+            exit 1
+          fi
+
+          if grep -REin --include='*.ts' --include='*.tsx' --exclude='*.test.ts' \
+            '(payoutDestination|settlementInstruction|providerToken|providerSecret)' \
+            packages/affiliates/src; then
+            echo 'Affiliate domain source contains a forbidden monetary/provider instruction.' >&2
+            exit 1
+          fi
+
+          node <<'NODE'
+          const registry = require('./docs/features/registry.json');
+          const feature = registry.features.find((entry) => entry.id === 'FEATURE-0010');
+          if (!feature) process.exit(1);
+          if (feature.domain !== 'affiliates' || feature.status !== 'planned') process.exit(1);
+          if (feature.equivalence.behavior || feature.equivalence.visual || feature.equivalence.api) process.exit(1);
+          NODE
+
+          grep -Eq 'MIG-0011.*FEATURE-0010.*discovered' docs/migration/MASTER-MIGRATION-TRACKER.md
