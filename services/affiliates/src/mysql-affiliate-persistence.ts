@@ -540,6 +540,86 @@ export async function applyAffiliatesM154Schema(pool: Pool): Promise<void> {
   await insertSchema(pool);
 }
 
+export interface AffiliateMaterializationRequestRecord {
+  readonly requestId: string;
+  readonly entitlementId: string;
+  readonly entitlementRevision: number;
+  readonly affiliateId: string;
+  readonly conversionId: string;
+  readonly policyVersion: string;
+  readonly entitlementDigest: string;
+  readonly correlationId: string;
+  readonly state: "pending" | "accepted" | "rejected";
+  readonly financialReference: string | null;
+  readonly rejectionCode: string | null;
+  readonly retryable: boolean;
+  readonly attempts: number;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+
+export class MySqlAffiliateMaterializationRepository {
+  public constructor(private readonly pool: Pool) {}
+
+  public async createPending(
+    request: AffiliateMaterializationRequestRecord,
+  ): Promise<AffiliateMaterializationRequestRecord> {
+    await this.pool.execute(
+      `INSERT INTO affiliate_materialization_requests
+       (request_id, entitlement_id, entitlement_revision, affiliate_id, conversion_id, policy_version,
+        entitlement_digest, correlation_id, state, financial_reference, rejection_code, retryable,
+        attempts, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, UNHEX(?), ?, 'pending', NULL, NULL, 0, 0, ?, ?)
+       ON DUPLICATE KEY UPDATE request_id = request_id`,
+      [
+        request.requestId,
+        request.entitlementId,
+        request.entitlementRevision,
+        request.affiliateId,
+        request.conversionId,
+        request.policyVersion,
+        request.entitlementDigest,
+        request.correlationId,
+        new Date(request.createdAt),
+        new Date(request.updatedAt),
+      ],
+    );
+    return request;
+  }
+
+  public async recordResult(
+    input: Readonly<{
+      requestId: string;
+      accepted: boolean;
+      financialReference?: string;
+      code?: string;
+      retryable?: boolean;
+      occurredAt: string;
+    }>,
+  ): Promise<void> {
+    const [result] = await this.pool.execute<ResultSetHeader>(
+      `UPDATE affiliate_materialization_requests
+       SET state = ?, financial_reference = ?, rejection_code = ?, retryable = ?, attempts = attempts + 1, updated_at = ?
+       WHERE request_id = ? AND state = 'pending'`,
+      [
+        input.accepted ? "accepted" : "rejected",
+        input.financialReference ?? null,
+        input.code ?? null,
+        input.retryable ? 1 : 0,
+        new Date(input.occurredAt),
+        input.requestId,
+      ],
+    );
+    if (result.affectedRows !== 1) {
+      const [rows] = await this.pool.execute<RowDataPacket[]>(
+        "SELECT request_id FROM affiliate_materialization_requests WHERE request_id = ? LIMIT 1",
+        [input.requestId],
+      );
+      if (!rows[0]) throw new Error("AFFILIATE_MATERIALIZATION_NOT_FOUND");
+    }
+  }
+}
+
 export interface AffiliateAccountRecord {
   readonly affiliateId: string;
   readonly identityReference: string;
@@ -602,6 +682,7 @@ export class MySqlAffiliateAccountRepository {
 
 export interface AffiliatePersistencePorts {
   readonly accounts: MySqlAffiliateAccountRepository;
+  readonly materializations: MySqlAffiliateMaterializationRepository;
   readonly referrals: MySqlAffiliateReferralEvidenceRepository;
   readonly attributions: MySqlAffiliateAttributionRepository;
   readonly conversions: MySqlAffiliateConversionRepository;
@@ -616,6 +697,7 @@ export function createAffiliatePersistencePorts(
 ): AffiliatePersistencePorts {
   return {
     accounts: new MySqlAffiliateAccountRepository(pool),
+    materializations: new MySqlAffiliateMaterializationRepository(pool),
     referrals: new MySqlAffiliateReferralEvidenceRepository(pool),
     attributions: new MySqlAffiliateAttributionRepository(pool),
     conversions: new MySqlAffiliateConversionRepository(pool),

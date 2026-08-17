@@ -149,6 +149,26 @@ CREATE TABLE IF NOT EXISTS affiliate_audit_events (
   INDEX idx_affiliate_audit_subject (subject_reference, occurred_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS affiliate_materialization_requests (
+  request_id VARCHAR(120) COLLATE utf8mb4_bin PRIMARY KEY,
+  entitlement_id VARCHAR(120) COLLATE utf8mb4_bin NOT NULL,
+  entitlement_revision INT UNSIGNED NOT NULL,
+  affiliate_id VARCHAR(120) COLLATE utf8mb4_bin NOT NULL,
+  conversion_id VARCHAR(120) COLLATE utf8mb4_bin NOT NULL,
+  policy_version VARCHAR(80) COLLATE utf8mb4_bin NOT NULL,
+  entitlement_digest BINARY(32) NOT NULL,
+  correlation_id VARCHAR(180) COLLATE utf8mb4_bin NOT NULL,
+  state ENUM('pending','accepted','rejected') NOT NULL,
+  financial_reference VARCHAR(180) COLLATE utf8mb4_bin NULL,
+  rejection_code VARCHAR(120) COLLATE utf8mb4_bin NULL,
+  retryable TINYINT(1) NOT NULL DEFAULT 0,
+  attempts INT UNSIGNED NOT NULL DEFAULT 0,
+  created_at DATETIME(3) NOT NULL,
+  updated_at DATETIME(3) NOT NULL,
+  UNIQUE KEY uq_affiliate_materialization_entitlement_revision (entitlement_id, entitlement_revision),
+  INDEX idx_affiliate_materialization_state (state, updated_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS affiliate_outbox_events (
   event_id VARCHAR(120) COLLATE utf8mb4_bin PRIMARY KEY,
   event_type VARCHAR(120) COLLATE utf8mb4_bin NOT NULL,
