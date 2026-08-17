@@ -21,6 +21,7 @@ This document distinguishes implemented/static evidence from CI/runtime evidence
 | Production release identity | `release-identity` is critical; production is not ready without SHA, version and deployment ID. |
 | Correlation ID | bounded valid inbound `X-Correlation-ID` is propagated; invalid/missing input is replaced by a server-generated ID. |
 | Canonical observations | runtime uses `createPlatformObservation` and emits a single `PLATFORM-OBSERVATION` JSON-line envelope. |
+| Runtime fatal failures | production installs an `uncaughtExceptionMonitor` observer while listening and emits `platform.runtime.fatal_failure` without suppressing Node crash semantics. |
 | Provider degraded/recovered | weather primary/fallback/stale transitions emit non-critical degraded/recovered observations. |
 | Shutdown readiness | signal moves readiness to `not_ready` before listener drain. |
 | Bounded drain | configurable timeout emits failure evidence and forcibly closes remaining connections when necessary. |
@@ -80,6 +81,14 @@ Production readiness now fails closed if any immutable identity component is abs
 
 This prevents an unidentified revision from becoming `ready` even if the listener and Auth state are otherwise healthy.
 
+## Runtime failure visibility
+
+Handled HTTP route failures emit `platform.http.unhandled_failure` before returning the bounded 500 response.
+
+Fatal process failures are observed with Node's `uncaughtExceptionMonitor` only while the production runtime is listening. The observer emits `platform.runtime.fatal_failure` with release/deployment identity, origin and bounded error metadata. It deliberately does not register an `uncaughtException` recovery handler, so Node's normal fatal termination behavior remains authoritative.
+
+Focused Platform unit coverage exercises monitor installation, fatal observation emission for an `unhandledRejection` origin and listener removal on runtime stop.
+
 ## Graceful shutdown
 
 Implemented sequence:
@@ -106,10 +115,12 @@ Performed through the GitHub source-of-truth connector and direct code review:
 - current CSP/header/browser bootstrap review;
 - current Auth contracts/security-state review;
 - removal of unrelated inherited changes;
-- focused Platform unit-test addition;
+- focused Platform unit-test addition, including fatal-process observation lifecycle;
 - focused durable Auth security-state test expansion;
 - new path-scoped production-readiness workflow prepared for later execution;
-- runbook reconciled against executable behavior.
+- workflow YAML parse and shell syntax validation outside Actions;
+- runbook reconciled against executable behavior;
+- formatting-only EOF normalization for modified Payments/Ticketing integration files.
 
 A direct local clone/install could not be used in this environment because outbound GitHub/DNS access from the local container is unavailable and `pnpm` is not installed there. This limitation is not converted into a passing test claim.
 
