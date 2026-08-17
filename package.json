@@ -16,6 +16,7 @@
     "features:check": "node -e \"const r=require('./docs/features/registry.json'); const ids=r.features.map(f=>f.id); if(new Set(ids).size!==ids.length) process.exit(1); if(r.features.some(f=>!/^FEATURE-\\d{4}$/.test(f.id))) process.exit(1); console.log('Feature Registry válido:', ids.length, 'features')\"",
     "platform:contracts:check": "node tooling/quality/check-platform-contracts.mjs",
     "environment:check": "node tooling/quality/check-environment-reconciliation.mjs",
+    "ci:governance:check": "node tooling/quality/check-ci-governance.mjs",
     "design-system:inventory": "node tooling/design-system/inventory-v1-css.mjs",
     "affiliates:lint": "eslint packages/affiliates/src",
     "affiliates:typecheck": "tsc -p packages/affiliates/tsconfig.json --noEmit",
@@ -26,7 +27,7 @@
     "affiliates:server:test": "pnpm --filter @touristic/affiliates-server test",
     "affiliates:server:build": "pnpm --filter @touristic/affiliates-server build",
     "affiliates:check": "pnpm affiliates:lint && pnpm affiliates:typecheck && pnpm affiliates:test && pnpm affiliates:build && pnpm affiliates:server:lint && pnpm affiliates:server:typecheck && pnpm affiliates:server:test && pnpm affiliates:server:build",
-    "check": "pnpm format:check && pnpm architecture:check && pnpm features:check && pnpm environment:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm affiliates:check",
+    "check": "pnpm format:check && pnpm architecture:check && pnpm features:check && pnpm environment:check && pnpm ci:governance:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm affiliates:check",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
