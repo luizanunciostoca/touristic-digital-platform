@@ -36,9 +36,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git fetch --no-tags origin main
           test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
-          test "$(git rev-parse origin/main)" = "$EXPECTED_SHA"
+          REMOTE_MAIN_SHA="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
+          test "$REMOTE_MAIN_SHA" = "$EXPECTED_SHA"
       - uses: pnpm/action-setup@v4
         with:
           version: ${{ env.PNPM_VERSION }}
