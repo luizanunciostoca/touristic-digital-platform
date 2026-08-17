@@ -1,70 +1,73 @@
 # Morro Digital — Platform Production Runbook
 
 Status: canonical operational runbook for the Morro Digital HTTP runtime.
-Scope: Platform health/readiness, deploy, shutdown, rollback, observability, Auth production hardening and basic incident/recovery.
+Scope: Platform health/readiness, correlation/release identity, observations, graceful shutdown, rollback, Auth shared security state and HTTP hardening.
 
 This runbook does not redefine Business, CRM, Ordering, Payments, Financial, Ticketing or Affiliates authority.
 
-## 1. Runtime contracts
+## 1. Runtime probes
 
-### Liveness — `GET /healthz`
+### `GET /healthz`
 
-`/healthz` answers whether the Node HTTP process and listener are alive. A live process returns HTTP `200` even when the instance must not receive production traffic.
+Liveness answers whether the HTTP process can answer requests. A live process returns HTTP `200` even when it must not receive production traffic.
 
-The response includes:
+The response exposes only operational identity:
 
 - `status: live`;
-- service identity;
-- release identity;
-- observation time.
+- service;
+- release SHA/version/deployment identity;
+- observation timestamp.
 
-Do not use liveness as a traffic-admission check. A database/provider failure must not create a restart loop when the process itself is healthy.
+Do not use liveness as a traffic-admission signal.
 
-### Readiness — `GET /readyz`
+### `GET /readyz`
 
-`/readyz` returns the canonical `PLATFORM-HEALTH-SNAPSHOT` v1 payload.
+Readiness returns the canonical `PLATFORM-HEALTH-SNAPSHOT` v1 contract.
 
 - HTTP `200`: `readiness=ready`;
 - HTTP `503`: `readiness=not_ready`.
 
-Critical `fail` checks remove the instance from readiness. Non-critical provider `warn` checks degrade the snapshot without removing readiness.
+Critical checks currently are:
 
-Current critical checks include:
+- `http-listener`;
+- `shutdown-readiness`;
+- `release-identity`;
+- `auth-security-state`.
 
-- HTTP listener;
-- shutdown traffic-admission state;
-- Auth security-state authority.
+Production readiness fails closed when any release identity field is missing. Non-production may use local/unknown identity without pretending it is a deployable production revision.
 
-### Correlation and release headers
+Provider warnings are non-critical: they may produce `status=degraded` while readiness remains `ready`.
 
-Every HTTP response carries:
+## 2. Correlation and immutable release identity
+
+Every HTTP response receives:
 
 - `X-Correlation-ID`;
 - `X-Release-SHA`;
 - `X-Release-Version`;
 - `X-Deployment-ID`.
 
-A bounded, syntactically valid inbound `X-Correlation-ID` is propagated. Invalid/missing IDs are replaced with a server-generated correlation ID.
+Inbound `X-Correlation-ID` is propagated only when it matches the bounded server pattern. Missing or invalid input is replaced with a generated `corr_<uuid>` value.
 
-Release values are injected through:
+Production deployment must inject:
 
-- `MORRO_RELEASE_SHA` (or `GITHUB_SHA` as a CI fallback);
+- `MORRO_RELEASE_SHA`;
 - `MORRO_RELEASE_VERSION`;
 - `MORRO_DEPLOYMENT_ID`.
 
-Production deployment tooling must provide immutable values. `unknown` is operationally valid for local development only.
+`GITHUB_SHA` is accepted only as a SHA fallback when present. Production must not be promoted while `/readyz` reports a failed `release-identity` check.
 
-## 2. Canonical observation sink
+For an intentional rollback deployment, set `MORRO_ROLLBACK_FROM_SHA` to the unhealthy release SHA.
 
-Runtime observations are created exclusively through the existing `createPlatformObservation` contract and emitted as one JSON record per line to stdout:
+## 3. Canonical observations
+
+Runtime observations use the existing `createPlatformObservation` contract. The HTTP runtime emits newline-delimited JSON to stdout with envelope:
 
 ```json
-{ "contract": "PLATFORM-OBSERVATION", "contractVersion": 1, "observation": {} }
+{"contract":"PLATFORM-OBSERVATION","contractVersion":1,"observation":{}}
 ```
 
-The process does not introduce a second observability schema. The platform/collector layer may route stdout JSON to the chosen log/metric/alert backend.
-
-Operational names currently emitted include:
+Important names include:
 
 - `platform.runtime.started`;
 - `platform.runtime.stopped`;
@@ -80,180 +83,185 @@ Operational names currently emitted include:
 - `platform.shutdown.completed`;
 - `platform.release.rollback_activated`.
 
-Never log credentials, session cookies, CSRF tokens, provider secrets, raw password material, raw session IDs or raw login limiter keys.
+The sink must never contain credentials, raw passwords, cookies, CSRF tokens, provider secrets, raw session IDs or raw login-limiter keys.
 
-## 3. Provider degradation
+Collector/exporter selection remains infrastructure-owned; do not introduce a second application observation schema.
 
-Weather providers are non-critical Platform dependencies.
+## 4. Provider degradation and recovery
 
-- Visual Crossing failure emits a degraded observation and permits Open-Meteo fallback.
-- Open-Meteo failure emits a degraded observation.
-- Serving a bounded stale weather cache emits `weather-runtime` degradation.
-- Recovery emits a recovery observation and clears the degraded readiness warning.
+Weather providers are optional/non-critical Platform dependencies.
 
-Provider degradation is therefore visible without incorrectly converting a non-critical dependency into platform unavailability.
+- Visual Crossing failure emits degradation and permits Open-Meteo fallback.
+- Open-Meteo failure emits degradation.
+- bounded stale-cache serving is observable as degradation;
+- successful recovery emits `platform.provider.recovered` and removes the provider warning.
 
-## 4. Auth production hardening
+A non-critical provider outage must not create a process restart loop or falsely remove an otherwise usable revision from readiness.
 
-### Shared rate-limit and revocation authority
+## 5. Auth shared/durable security state
 
-Production Auth requires `AUTH_DATABASE_URL`.
+Production Auth requires `AUTH_DATABASE_URL` pointing every active replica at the same MySQL authority.
 
-The canonical Auth server owns two idempotently-created MySQL state tables:
+The Auth server owns two idempotently-created tables:
 
 - `auth_login_rate_limits`;
 - `auth_session_revocations`.
 
-All active replicas must point to the same durable Auth authority. Rate-limit and revocation keys are SHA-256 namespaced digests; raw client IPs and raw session IDs are not persisted in those tables.
+Login limiter keys and session revocation keys are namespaced SHA-256 digests. Raw IP/session identifiers are not persisted in those tables.
 
-If the durable authority is absent or unavailable:
+Login consumption is serialized transactionally with a row lock. Session revocation is checked on every authenticated session resolution.
+
+If the durable state is absent, cannot initialize, or later becomes unavailable:
 
 - Auth fails closed;
+- `auth-security-state` fails readiness;
 - `/readyz` returns `503`;
-- login/session/logout authority is not replaced by process-local state.
+- production must not fall back to process-local authority.
 
-Process-local Auth security state is development/test only.
+In-memory state remains development/test only.
 
-The runtime uses the direct socket peer address as the login limiter key and intentionally does not trust arbitrary `X-Forwarded-For` input. Production ingress must preserve the intended client-source semantics at the trusted network boundary.
+### Client address trust boundary
 
-### Admin global tenant authority
+Login rate limiting uses the direct socket peer address. The Auth runtime intentionally does not trust arbitrary `X-Forwarded-For` input as security authority. If a trusted reverse proxy is introduced, preserve this boundary explicitly at ingress rather than accepting user-controlled forwarding headers in application code.
 
-The canonical Auth role model still defines `admin` as global tenant authority. Production does not silently enable that exceptional authority.
+### Global admin authority
 
-If configured users include `admin`, set:
+The canonical role model still permits global `admin` authority. Production refuses readiness when an admin is configured unless the operator explicitly sets:
 
 `DASHBOARD_ADMIN_GLOBAL_BYPASS_CONFIRMED=true`
 
-only after explicitly approving the global scope. Without the confirmation the Auth readiness check fails closed. Every actual admin access outside its listed business scopes emits `dashboard.admin_global_tenant_bypass` through the security audit observation.
+Use that only after approving global scope. Cross-scope admin use is emitted through the security audit observation.
 
-Prefer scoped `owner`/`manager` accounts when global admin authority is unnecessary.
+## 6. Browser and HTTP security boundary
 
-### CSP
+The central runtime sets:
 
-The production HTTP runtime does not permit unrestricted inline script execution:
+- `X-Content-Type-Options: nosniff`;
+- `Referrer-Policy: no-referrer`;
+- `Cross-Origin-Opener-Policy: same-origin`;
+- `X-Frame-Options: DENY`;
+- a restrictive `Permissions-Policy`;
+- CSP with same-origin defaults and explicit Map/V1 compatibility sources;
+- `script-src-attr 'none'`, injected by Platform binding, to reject inline event-handler attributes.
 
-- `script-src` omits `'unsafe-inline'`;
-- `script-src-attr 'none'` blocks inline event-handler attributes;
-- legacy static import maps that still bridge preserved browser modules are allowed only through explicit SHA-256 CSP hashes matching their exact immutable JSON bytes;
-- the login surface no longer depends on an inline import map and loads its Auth browser runtime from a same-origin module URL.
+### CSP compatibility residual
 
-An edit to a hashed legacy import map invalidates its CSP authorization until the exact new content is reviewed and a replacement hash is deliberately approved. Do not add `'unsafe-inline'` to make an import-map or browser regression disappear.
+The preserved V1/CRM browser shells still contain inline import maps. The current `script-src` therefore retains the existing `'unsafe-inline'` compatibility token and Platform appends three reviewed SHA-256 import-map hashes.
 
-`style-src 'unsafe-inline'` remains a documented compatibility residual because the preserved V1 UI still contains inline styles. Do not weaken script CSP to accommodate UI code. Remove the style residual only when those legacy inline styles are migrated without visual-regression risk.
+Do **not** claim that the literal `'unsafe-inline'` token has been removed from `script-src` in this release. Removing that residual safely requires migrating/verifying every preserved inline import map and its browser contracts first.
 
-## 5. Deploy procedure
+`style-src 'unsafe-inline'` also remains for preserved V1 visual compatibility.
 
-1. Confirm the exact source SHA and immutable artifact/image being deployed.
-2. Confirm the target environment has the required domain databases/providers configured by their owning runbooks.
-3. Configure Auth production authority:
-   - `AUTH_DATABASE_URL` points to the shared durable MySQL authority;
-   - `DASHBOARD_AUTH_SECRET` is strong and server-only;
-   - `DASHBOARD_AUTH_ORIGIN` is the exact HTTPS origin;
-   - `DASHBOARD_USERS_JSON` is valid;
-   - global admin confirmation remains `false` unless explicitly approved.
-4. Inject `MORRO_RELEASE_SHA`, `MORRO_RELEASE_VERSION` and `MORRO_DEPLOYMENT_ID`.
-5. Keep `MORRO_ROLLBACK_FROM_SHA` empty for a normal forward deploy.
-6. Start the new instance/revision.
-7. Probe `/healthz`; require HTTP `200` and verify release headers.
-8. Probe `/readyz`; require HTTP `200`, `readiness=ready`, and the expected release identity.
-9. Confirm a canonical `platform.runtime.started` observation exists for the deployed release.
-10. Admit the revision to production traffic only after readiness passes.
+The dashboard login and dashboard redirect surfaces themselves no longer need large inline executable bootstraps; they load same-origin module files.
 
-Recommended smoke commands:
+## 7. Static-file trust boundary
 
-```bash
-curl -fsS -D /tmp/health.headers https://HOST/healthz
-curl -fsS https://HOST/readyz
-```
+Only approved public roots and built package `dist` output may be served. Repository-private paths, source trees, environment files and encoded path traversal must remain inaccessible over HTTP.
 
-Inspect `X-Release-SHA` and `X-Correlation-ID` in the response headers.
+Unknown `/api/*` paths return intentional JSON `404`, not filesystem or internal-error details.
 
-## 6. Graceful shutdown
+## 8. Graceful shutdown
 
 On `SIGTERM` or `SIGINT`:
 
-1. the runtime immediately changes shutdown readiness to `not_ready`;
-2. `/readyz` starts returning `503` while `/healthz` remains live;
+1. readiness immediately transitions to `not_ready`;
+2. `/readyz` returns `503` while `/healthz` remains live during the transition window;
 3. normal application traffic receives `503 SERVICE_DRAINING`;
-4. the runtime waits `PLATFORM_SHUTDOWN_READINESS_DELAY_MS` so the load balancer can observe the transition;
+4. the runtime waits `PLATFORM_SHUTDOWN_READINESS_DELAY_MS` for ingress/load-balancer convergence;
 5. the HTTP listener begins draining;
 6. drain is bounded by `PLATFORM_SHUTDOWN_DRAIN_TIMEOUT_MS`;
 7. timeout emits a critical observation and remaining connections are forcibly closed;
-8. Auth/CRM/Payments runtime stop results are collected and failures are observed;
-9. shutdown completion is observed before process exit.
+8. Auth/CRM/Payments and materialized Ticketing runtimes are stopped with failure aggregation;
+9. completion and runtime-stop observations are emitted before exit.
 
 Defaults:
 
-- readiness transition delay: `5000 ms` in production, `0 ms` outside production;
-- HTTP drain timeout: `15000 ms`.
+- production readiness delay: `5000 ms`;
+- non-production readiness delay: `0 ms`;
+- drain timeout: `15000 ms`.
 
-Do not configure an unbounded drain.
+Never configure an unbounded drain.
 
-## 7. Rollback procedure
+## 9. Deploy procedure
 
-Rollback means deploying a previously verified immutable artifact; it does not mean editing production files in place.
+1. Select the exact immutable artifact and source SHA.
+2. Configure domain-owned databases/providers according to their own runbooks.
+3. Configure production Auth:
+   - `AUTH_DATABASE_URL` shared by all replicas;
+   - strong server-only `DASHBOARD_AUTH_SECRET`;
+   - exact `DASHBOARD_AUTH_ORIGIN`;
+   - valid `DASHBOARD_USERS_JSON`;
+   - global-admin confirmation only when explicitly approved.
+4. Inject `MORRO_RELEASE_SHA`, `MORRO_RELEASE_VERSION`, `MORRO_DEPLOYMENT_ID`.
+5. Keep `MORRO_ROLLBACK_FROM_SHA` empty for a forward deploy.
+6. Start the candidate revision without production traffic.
+7. Require `/healthz=200` and verify release headers.
+8. Require `/readyz=200`, `readiness=ready`, and all critical checks passing.
+9. Confirm `platform.runtime.started` for the same release/deployment identity.
+10. Shift traffic only after those gates pass.
 
-1. Record the unhealthy/current release SHA (`BAD_SHA`).
-2. Select the last verified healthy artifact and SHA (`GOOD_SHA`).
-3. Deploy that immutable artifact with:
+## 10. Rollback procedure
+
+Rollback means redeploying the last verified immutable artifact.
+
+1. Record `BAD_SHA` from the unhealthy revision.
+2. Select `GOOD_SHA` and its already-verified artifact.
+3. Deploy with:
    - `MORRO_RELEASE_SHA=GOOD_SHA`;
-   - `MORRO_RELEASE_VERSION=<healthy release version>`;
-   - `MORRO_DEPLOYMENT_ID=<new rollback deployment id>`;
+   - correct release version;
+   - a new deployment ID;
    - `MORRO_ROLLBACK_FROM_SHA=BAD_SHA`.
 4. Require `/healthz=200`.
-5. Require `/readyz=200` and `readiness=ready` before shifting traffic.
+5. Require `/readyz=200` before traffic admission.
 6. Confirm `platform.release.rollback_activated` contains `fromReleaseSha=BAD_SHA` and `toReleaseSha=GOOD_SHA`.
-7. Confirm correlation/release headers show `GOOD_SHA` on user-facing traffic.
-8. Preserve the failed release evidence for incident analysis; do not delete it to hide the rollback.
+7. Confirm user-facing release headers show `GOOD_SHA`.
+8. Preserve the failed-release evidence for incident analysis.
 
 Clear `MORRO_ROLLBACK_FROM_SHA` on the next normal forward release.
 
-## 8. Basic incident and recovery
+## 11. Failure handling
 
-### `/healthz` fails
+### `/healthz` unavailable
 
-Treat as process/listener failure. Inspect process/container state, startup failure, port binding and the most recent runtime observations. Restart only after identifying whether the failure is process-level rather than dependency-level.
+Treat as process/listener failure. Inspect runtime/container state and startup logs.
 
 ### `/healthz=200`, `/readyz=503`
 
-Read `checks[]` from the health snapshot.
+Read `checks[]` first.
 
-- `auth-security-state`: verify MySQL reachability, credentials/TLS, schema permissions and `AUTH_DATABASE_URL` consistency across replicas.
-- `shutdown-readiness`: the instance is draining; do not re-admit it.
-- `http-listener`: listener state is invalid; inspect runtime lifecycle.
+- `release-identity`: deployment metadata is incomplete; do not admit traffic.
+- `auth-security-state`: restore the shared MySQL authority; never switch production to in-memory state.
+- `shutdown-readiness`: instance is intentionally draining.
+- `http-listener`: runtime lifecycle is inconsistent.
 
-Do not bypass readiness by routing traffic directly to an unhealthy instance.
+### Provider degraded but readiness remains ready
 
-### Weather degraded, readiness stays ready
+Inspect `platform.provider.degraded`; restore the dependency and confirm the matching recovery event.
 
-Inspect `platform.provider.degraded` and provider/network health. The warning is intentionally non-critical. Restore provider reachability; recovery will clear the warning.
+### Drain timeout
 
-### Auth database outage
+Use the shutdown correlation ID to group readiness transition, drain start, timeout/failure, runtime-stop results and completion. Fix the blocking connection/downstream close before increasing timeout values.
 
-Do not switch production to in-memory rate limiting/revocation. Restore the durable authority or rollback to a release/environment with a valid authority. Production Auth remains fail-closed by design.
+## 12. Required promotion gates
 
-### Drain timeout/failure
+Do not merge/promote Platform based only on static review.
 
-Use the shutdown correlation ID to group:
+When GitHub Actions is available, the exact final head must pass at minimum:
 
-- readiness transition;
-- drain start;
-- timeout/failure;
-- runtime stop result;
-- completion.
+- `Quality Gate / quality`;
+- `Platform Production Readiness Contract / platform-production`;
+- `Auth Integration Contract / auth-contract`;
+- relevant path-scoped browser/Auth contracts triggered by the final diff.
 
-Determine whether a long-lived HTTP connection, downstream close operation or database pool stop prevented clean termination. Correct the cause before increasing timeouts.
+The Platform production contract must prove with real MySQL:
 
-## 9. Release acceptance checklist
+- executable workspace build;
+- focused Platform/Auth unit contracts;
+- two simultaneously running HTTP replicas sharing the same Auth authority;
+- `/healthz` and `/readyz` behavior;
+- correlation/release headers;
+- cross-replica session revocation;
+- readiness transition to `503` before listener drain;
+- clean bounded shutdown observations.
 
-A release is operationally acceptable only when:
-
-- Quality Gate passes;
-- relevant permanent contracts pass;
-- `/healthz` passes;
-- `/readyz` passes;
-- release headers identify the intended immutable artifact;
-- canonical startup observations are present;
-- production Auth uses shared durable security state;
-- no unapproved global admin authority is enabled;
-- rollback artifact and procedure are known before traffic promotion.
+A cancelled/not-started workflow is not passing evidence.
