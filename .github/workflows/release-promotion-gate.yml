@@ -1,0 +1,84 @@
+name: Release Promotion Gate
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Exact main SHA approved for promotion
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-promotion-${{ inputs.expected_sha }}
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: "22"
+  PNPM_VERSION: "10.15.0"
+  TURBO_TELEMETRY_DISABLED: "1"
+
+jobs:
+  smoke:
+    name: release / smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.expected_sha }}
+          fetch-depth: 0
+      - name: Prove exact promotion SHA is current main
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          test "$(git rev-parse origin/main)" = "$EXPECTED_SHA"
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Validate canonical Platform contracts
+        run: pnpm platform:contracts:check
+      - name: Build release candidate
+        run: pnpm build
+      - name: Start local release candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          PORT=4199 HOST=127.0.0.1 node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/release-promotion.log 2>&1 &
+          echo $! >/tmp/release-promotion.pid
+          for _ in $(seq 1 80); do
+            if curl --fail --silent http://127.0.0.1:4199/runtime-config.js >/dev/null; then
+              exit 0
+            fi
+            sleep .25
+          done
+          cat /tmp/release-promotion.log
+          exit 1
+      - name: Smoke canonical local surfaces
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error http://127.0.0.1:4199/runtime-config.js >/tmp/runtime-config.js
+          curl --fail --silent --show-error http://127.0.0.1:4199/apps/morro-digital-platform/public/index.html >/tmp/platform-index.html
+          test -s /tmp/runtime-config.js
+          test -s /tmp/platform-index.html
+      - name: Show runtime diagnostics
+        if: failure()
+        run: cat /tmp/release-promotion.log || true
+      - name: Stop release candidate
+        if: always()
+        run: |
+          if [ -f /tmp/release-promotion.pid ]; then
+            kill "$(cat /tmp/release-promotion.pid)" 2>/dev/null || true
+          fi
