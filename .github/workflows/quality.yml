@@ -13,45 +13,152 @@ concurrency:
   group: quality-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+env:
+  NODE_VERSION: "22"
+  PNPM_VERSION: "10.15.0"
+  TURBO_TELEMETRY_DISABLED: "1"
+
 jobs:
-  quality:
+  preflight:
+    name: quality / preflight
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
         with:
-          version: 10.15.0
+          version: ${{ env.PNPM_VERSION }}
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
-      - name: Restore Turbo lint/typecheck cache
-        uses: actions/cache@v4
-        with:
-          path: /tmp/turbo-cache
-          key: turbo-${{ runner.os }}-node22-${{ hashFiles('pnpm-lock.yaml', 'turbo.json', 'eslint.config.mjs', 'tsconfig.base.json') }}-${{ github.sha }}
-          restore-keys: |
-            turbo-${{ runner.os }}-node22-${{ hashFiles('pnpm-lock.yaml', 'turbo.json', 'eslint.config.mjs', 'tsconfig.base.json') }}-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - run: pnpm install --frozen-lockfile
       - name: Check formatting
         run: pnpm format:check
       - name: Check architecture boundaries
         run: pnpm architecture:check
       - name: Validate Feature Registry
         run: pnpm features:check
+
+  lint:
+    name: quality / lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - uses: actions/cache@v4
+        with:
+          path: /tmp/turbo-cache
+          key: turbo-lint-${{ runner.os }}-node22-${{ hashFiles('pnpm-lock.yaml', 'turbo.json', 'eslint.config.mjs') }}-${{ github.sha }}
+          restore-keys: |
+            turbo-lint-${{ runner.os }}-node22-${{ hashFiles('pnpm-lock.yaml', 'turbo.json', 'eslint.config.mjs') }}-
+      - run: pnpm install --frozen-lockfile
       - name: Lint
         env:
           TURBO_CACHE_DIR: /tmp/turbo-cache
         run: pnpm lint
+
+  typecheck:
+    name: quality / typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - uses: actions/cache@v4
+        with:
+          path: /tmp/turbo-cache
+          key: turbo-typecheck-${{ runner.os }}-node22-${{ hashFiles('pnpm-lock.yaml', 'turbo.json', 'tsconfig.base.json') }}-${{ github.sha }}
+          restore-keys: |
+            turbo-typecheck-${{ runner.os }}-node22-${{ hashFiles('pnpm-lock.yaml', 'turbo.json', 'tsconfig.base.json') }}-
+      - run: pnpm install --frozen-lockfile
       - name: Typecheck
         env:
           TURBO_CACHE_DIR: /tmp/turbo-cache
         run: pnpm typecheck
+
+  test:
+    name: quality / test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Draft PR deferral
+        if: ${{ github.event_name == 'pull_request' && github.event.pull_request.draft == true }}
+        run: echo "Full tests are deferred while the pull request is draft; ready_for_review retriggers this job."
+      - uses: actions/checkout@v4
+        if: ${{ github.event_name == 'push' || github.event.pull_request.draft == false }}
+      - uses: pnpm/action-setup@v4
+        if: ${{ github.event_name == 'push' || github.event.pull_request.draft == false }}
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        if: ${{ github.event_name == 'push' || github.event.pull_request.draft == false }}
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+        if: ${{ github.event_name == 'push' || github.event.pull_request.draft == false }}
       - name: Test
         if: ${{ github.event_name == 'push' || github.event.pull_request.draft == false }}
         run: pnpm test
+
+  build:
+    name: quality / build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Draft PR deferral
+        if: ${{ github.event_name == 'pull_request' && github.event.pull_request.draft == true }}
+        run: echo "Full build is deferred while the pull request is draft; ready_for_review retriggers this job."
+      - uses: actions/checkout@v4
+        if: ${{ github.event_name == 'push' || github.event.pull_request.draft == false }}
+      - uses: pnpm/action-setup@v4
+        if: ${{ github.event_name == 'push' || github.event.pull_request.draft == false }}
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        if: ${{ github.event_name == 'push' || github.event.pull_request.draft == false }}
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+        if: ${{ github.event_name == 'push' || github.event.pull_request.draft == false }}
       - name: Build
         if: ${{ github.event_name == 'push' || github.event.pull_request.draft == false }}
         run: pnpm build
+
+  quality:
+    name: quality
+    if: ${{ always() }}
+    needs: [preflight, lint, typecheck, test, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Aggregate required Quality Gate
+        env:
+          PREFLIGHT_RESULT: ${{ needs.preflight.result }}
+          LINT_RESULT: ${{ needs.lint.result }}
+          TYPECHECK_RESULT: ${{ needs.typecheck.result }}
+          TEST_RESULT: ${{ needs.test.result }}
+          BUILD_RESULT: ${{ needs.build.result }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf 'preflight=%s\nlint=%s\ntypecheck=%s\ntest=%s\nbuild=%s\n' \
+            "$PREFLIGHT_RESULT" "$LINT_RESULT" "$TYPECHECK_RESULT" "$TEST_RESULT" "$BUILD_RESULT"
+          for result in "$PREFLIGHT_RESULT" "$LINT_RESULT" "$TYPECHECK_RESULT" "$TEST_RESULT" "$BUILD_RESULT"; do
+            test "$result" = "success"
+          done
