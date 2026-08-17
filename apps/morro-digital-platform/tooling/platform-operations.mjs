@@ -65,6 +65,7 @@ export function createPlatformOperations({
   additionalReadinessChecks = () => [],
   sink = (record) => process.stdout.write(`${JSON.stringify(record)}\n`),
 } = {}) {
+  const production = getEnvironmentValue("NODE_ENV") === "production";
   const release = Object.freeze({
     sha: releaseField(
       getEnvironmentValue("MORRO_RELEASE_SHA") ||
@@ -73,6 +74,9 @@ export function createPlatformOperations({
     version: releaseField(getEnvironmentValue("MORRO_RELEASE_VERSION")),
     deploymentId: releaseField(getEnvironmentValue("MORRO_DEPLOYMENT_ID")),
   });
+  const releaseIdentityConfigured = Object.values(release).every(
+    (value) => value !== "unknown",
+  );
   const rollbackFromSha = bounded(
     getEnvironmentValue("MORRO_ROLLBACK_FROM_SHA"),
     160,
@@ -80,7 +84,7 @@ export function createPlatformOperations({
   const shutdownReadinessDelayMs = integerEnvironment(
     getEnvironmentValue,
     "PLATFORM_SHUTDOWN_READINESS_DELAY_MS",
-    getEnvironmentValue("NODE_ENV") === "production" ? 5_000 : 0,
+    production ? 5_000 : 0,
     0,
     60_000,
   );
@@ -193,6 +197,16 @@ export function createPlatformOperations({
         status: acceptingTraffic ? "pass" : "fail",
         critical: true,
         detail: acceptingTraffic ? "accepting-traffic" : "draining",
+      },
+      {
+        name: "release-identity",
+        status: production && !releaseIdentityConfigured ? "fail" : "pass",
+        critical: true,
+        detail: releaseIdentityConfigured
+          ? "immutable-release-identity-configured"
+          : production
+            ? "MORRO_RELEASE_IDENTITY_REQUIRED_IN_PRODUCTION"
+            : "local-development-identity",
       },
       ...additionalReadinessChecks(),
       ...Array.from(degradedProviders, ([provider, detail]) => ({
