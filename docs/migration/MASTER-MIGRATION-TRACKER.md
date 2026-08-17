@@ -229,7 +229,7 @@ Platform production-readiness PR #268 remains a separate open runtime/hardening 
 
 The V2 documentary truth is internally consistent at this checkpoint:
 
-- **equivalent, not released:** FEATURE-0001 through FEATURE-0008 except FEATURE-0009, plus FEATURE-0011;
+- **equivalent, not released:** FEATURE-0001 through FEATURE-0008, plus FEATURE-0011;
 - **migrating:** FEATURE-0009 / MIG-0010;
 - **planned + discovered:** FEATURE-0010 / MIG-0011;
 - **released:** none.
