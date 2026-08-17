@@ -134,7 +134,7 @@ describe("FEATURE-0009 subscription recurrence observations", () => {
   it("records prepare and verified renewal transitions with correlation IDs", async () => {
     const subscriptions = new MemorySubscriptions(activeSubscription());
     const renewals = new MemoryRenewals();
-    const events: Array<Record<string, unknown>> = [];
+    const events: unknown[] = [];
     let now = "2026-09-16T03:05:00Z";
     const service = createSubscriptionRecurrenceApplicationService({
       subscriptions,
