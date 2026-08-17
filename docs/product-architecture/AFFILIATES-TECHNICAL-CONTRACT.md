@@ -2,199 +2,135 @@
 
 ## Status
 
-This is the policy-neutral technical contract for `FEATURE-0010`.
+`AFFILIATE-POLICY-V1` is approved and the first executable domain foundation now exists in `packages/affiliates`.
 
-Canonical checkpoint: `main@ec4f51e0198cdeed51b37fabe5ed94ebb2e3ecb6`.
+Canonical integration checkpoint remains `main@ec4f51e0198cdeed51b37fabe5ed94ebb2e3ecb6`. `FEATURE-0010` remains `planned` and `MIG-0011` remains `discovered` until persistence, adapters, application behavior, security/integration evidence and final release gates justify promotion.
 
-`FEATURE-0010` remains `planned` and `MIG-0011` remains `discovered`. This document does not authorize runtime behavior, persistence, APIs, UI, commission calculation or Financial mutation. It fixes the boundaries and invariants that do not depend on commercial policy so implementation can begin only after the Decision Sheet is approved.
+This contract authorizes only the behavior explicitly frozen by `docs/product-architecture/AFFILIATES-DECISION-SHEET.md`. It does not authorize Affiliate-owned Payment, ledger, payable, wallet, settlement, transfer, payout, provider access or browser monetary authority.
 
-The contract is intentionally not registered in `docs/contracts/registry.json`: that registry is for executable canonical contracts with schema/runtime/evidence. Affiliate executable schemas must not be registered before their decision-gated fields are approved.
+## Canonical ownership
 
-## Non-negotiable ownership invariants
-
-1. Affiliate is a platform domain, separate from Business, Ordering and Financial.
-2. Affiliate owns affiliate identity/program semantics, referral evidence, attribution, conversion association and commercial commission entitlement evidence.
-3. Ordering remains authoritative for order identity and order state.
-4. Financial remains authoritative for Payment, ledger, allocation, payable, wallet/financial position, settlement, transfer/payout, reconciliation and monetary reversals.
+1. Affiliate is a platform domain separate from Business, Ordering and Financial.
+2. Affiliate owns affiliate account/program semantics, referral evidence, attribution, conversion association and commercial commission-entitlement evidence.
+3. Ordering remains authoritative for canonical Order identity and state.
+4. Financial remains authoritative for Payment, eligible platform revenue, ledger, allocation, payable, wallet/position, settlement, transfer/payout, reconciliation, FX and monetary reversals.
 5. Affiliate never writes Financial persistence directly.
-6. Browser state, redirect parameters, query strings, cookies or local storage are untrusted evidence only; none can create authoritative conversion or commission state.
-7. No rate, formula, attribution duration, precedence rule, lifecycle transition or refund consequence is implicit.
-8. Business and tenant membership do not confer Affiliate administration or commission authority.
-9. Cross-domain communication uses public versioned ports, records or `PLATFORM-EVENT-ENVELOPE` events.
-10. Exact replay converges; divergent replay with the same idempotency key fails closed.
+6. Browser state, redirects, query strings, cookies and local storage are untrusted evidence/transport only.
+7. Business/tenant membership does not confer Affiliate authority.
+8. Cross-domain interaction uses versioned ports/events and explicit authorization.
+9. Exact idempotent replay converges; divergent replay fails closed.
+10. Historical policy/evidence is immutable; later policy versions never silently rewrite prior rights.
 
-## Conceptual schemas
+## Approved runtime policy
 
-These are conceptual aggregates, not database migrations. Fields marked decision-gated must remain absent from executable persistence until approved.
+`packages/affiliates/src/policy.ts` freezes `AFFILIATE-POLICY-V1`:
 
-### Affiliate identity concept
+- global Affiliate account linked to canonical Identity and program memberships;
+- two eligibility levels: attribution and Financial materialization;
+- suspension blocks new attribution/materialization and freezes affected entitlement review;
+- accepted V1 evidence: platform link/deep-link, platform QR, explicit checkout code and authenticated/versioned server referral;
+- pseudonymous server-owned `AcquisitionSubjectId`;
+- precedence: checkout code > authenticated server referral > platform link/QR, latest valid evidence inside the same tier;
+- 30-day server-clock attribution window;
+- Order attribution locks at `pending_payment`;
+- qualifying conversion requires Ordering `payment_confirmed` plus verified Financial evidence;
+- subscription renewals are not commissionable in V1;
+- commission base is Financial-authoritative net eligible platform revenue;
+- percentage model only, 3000 basis points, integer minor units, final half-up rounding;
+- no commercial cap/minimum in V1;
+- entitlement currency equals the Financial eligible-revenue currency; Affiliate performs no FX;
+- policy snapshot freezes when authoritative attribution is established;
+- entitlement lifecycle is `pending`, `earned`, `cancelled`, `reversed`, `disputed`;
+- maturity is at least seven calendar days after verified payment and not before service/performance when a canonical service date exists;
+- refund/cancellation/chargeback behavior follows the approved Decision Sheet while Financial retains monetary reversal authority;
+- Financial materialization is allowed only for `earned` entitlement plus Financial-eligible beneficiary;
+- default engineering retention is 90 days raw referral evidence, 24 months pseudonymous attribution/conversion metadata and five years commercial/audit evidence, subject to jurisdictional/legal hold.
 
-Required policy-neutral fields:
+## Executable domain foundation
 
-- `affiliateId`: opaque server-generated stable identifier;
-- `identityReference`: reference to canonical Identity, without copying credentials or identity PII;
-- `createdAt`, `updatedAt`;
-- `recordVersion` for optimistic concurrency;
-- audit/correlation metadata.
+`packages/affiliates` contains no external runtime dependency and is split by responsibility:
 
-Decision-gated fields:
+- `ids.ts`: branded server identifiers and bounded timestamp/digest/currency validators;
+- `eligibility.ts`: Affiliate account/program membership and attribution/materialization eligibility invariants;
+- `attribution.ts`: server-validated referral evidence, expiry and deterministic precedence/lock resolution;
+- `conversion.ts`: canonical Ordering/Financial evidence boundary and one initial-purchase conversion shape;
+- `commission.ts`: integer commission calculation, maturity, lifecycle, dispute and refund/reversal consequences;
+- `materialization.ts`: Financial request/result contract without amount/rate/currency/payout/settlement instructions;
+- `ports.ts`: authorization, evidence, repositories, durable idempotency, audit and Financial handoff ports;
+- `events.ts`: versioned TypeScript event payload/envelope types owned by Affiliate;
+- `index.test.ts`: executable policy/invariant tests.
 
-- identity cardinality and ownership model;
-- eligibility semantics;
-- suspension semantics;
-- any destination/program scope derived from product policy.
+No `services/affiliates`, Affiliate database migration, HTTP API, browser/admin UI or monetary provider adapter exists yet.
 
-### Referral evidence concept
+## Domain records
 
-Required policy-neutral fields:
+### Affiliate account and membership
 
-- `evidenceId`: opaque server-generated identifier;
-- `affiliateId` candidate reference;
-- `evidenceFingerprint`: SHA-256 digest of the canonicalized evidence input;
-- `sourceContractVersion`;
-- `observedAt` when supplied by an approved source;
-- `receivedAt` from the server clock;
-- `correlationId` and `causationId` when available;
-- retention-policy reference, without a hard-coded duration.
+Canonical runtime types use opaque `AffiliateId`, `AffiliateProgramId` and `AffiliateMembershipId`. Affiliate stores canonical Identity references rather than copying credentials/PII. Membership state controls program participation independently from Business roles.
 
-Decision-gated fields:
+### Referral evidence and attribution
 
-- accepted source types;
-- trust/signature requirements;
-- source precedence;
-- source-specific replay identity;
-- whether raw evidence is retained at all.
+Only server-validated evidence can become `ReferralEvidence`. Evidence requires a SHA-256 fingerprint and server timestamps. Attribution uses a server-owned `AcquisitionSubjectId`, evidence reference/fingerprint, source, policy version, establishment timestamp and 30-day expiry. Order lock prevents later referral input from hijacking an already locked Order attribution.
 
-Raw browser payload is never itself an authoritative record.
+### Conversion association
 
-### Attribution concept
+A conversion association requires public canonical Ordering evidence with status `payment_confirmed` and verified Financial evidence containing the authoritative eligible-revenue basis, currency, evidence digest and contract version. Browser callbacks and subscription renewals cannot qualify in V1.
 
-Required policy-neutral fields:
+Repository/persistence must enforce one canonical conversion association per Order; the domain type alone is not treated as sufficient concurrency proof.
 
-- `attributionId`;
-- `affiliateId`;
-- `subjectReference` as a typed opaque canonical reference;
-- accepted evidence references/digests;
-- `policyVersion`;
-- server timestamps;
-- `recordVersion`;
-- audit/correlation metadata.
+### Commission entitlement
 
-Decision-gated fields:
+The entitlement stores Affiliate/program/conversion/attribution identity, policy version, revision, commercial status, eligible revenue snapshot, calculated commission minor units, currency, 3000-bps policy snapshot and maturity timestamp.
 
-- subject kind;
-- precedence/conflict rules;
-- window start/expiry/reset behavior;
-- replacement versus coexistence semantics.
+Calculation uses `BigInt` integer arithmetic and half-up rounding. No JavaScript floating-point percentage calculation is allowed.
 
-### Conversion association concept
-
-Required policy-neutral fields:
-
-- `conversionAssociationId`;
-- `attributionId`;
-- `affiliateId`;
-- canonical `orderId` when Ordering is involved;
-- `qualifyingConversionReference` carrying type and contract version, but no assumed qualifying event;
-- canonical Financial evidence reference when the approved conversion contract requires financial proof;
-- server association timestamp;
-- audit/correlation metadata.
-
-A click, redirect or browser callback cannot satisfy `qualifyingConversionReference`.
-
-### Commission entitlement concept
-
-Required policy-neutral fields:
-
-- `entitlementId`;
-- `affiliateId`;
-- `attributionId`;
-- `conversionAssociationId`;
-- `policyVersion`;
-- immutable policy snapshot digest;
-- immutable calculation-input digest;
-- `recordVersion`;
-- audit/correlation metadata.
-
-Decision-gated and therefore intentionally undefined:
-
-- commission base;
-- fixed versus percentage model;
-- rate;
-- rounding;
-- caps;
-- currency behavior;
-- effective dates;
-- lifecycle state values/transitions;
-- refund/cancellation effects;
-- monetary materialization timing.
-
-No monetary amount may be inferred merely because this conceptual record exists.
+Partial refund before `earned` reprices the pending right using authoritative Financial basis. Refund after `earned` creates an explicit reversal consequence; it does not mutate Financial state or silently rewrite monetary history.
 
 ## Public port boundaries
 
-The names below reserve responsibility, not executable implementation.
+`AffiliateOrderingEvidencePort` reads canonical Order state only.
 
-```ts
-export interface AffiliateOrderingEvidencePort {
-  findOrder(orderId: string): Promise<Readonly<{
-    id: string;
-    status: string;
-    sourceKind: string;
-    updatedAt: string;
-  }> | null>;
-}
+`AffiliateFinancialEvidencePort` reads verified payment/conversion and eligible-revenue evidence only.
 
-export interface AffiliateFinancialEvidencePort {
-  findFinancialEvidence(reference: string): Promise<Readonly<{
-    reference: string;
-    kind: string;
-    version: number;
-    verified: boolean;
-    observedAt: string;
-  }> | null>;
-}
+`AffiliateFinancialMaterializationPort` receives `AffiliateFinancialMaterializationRequestV1` containing only:
 
-export interface AffiliateFinancialMaterializationRequestV1 {
-  readonly requestId: string;
-  readonly entitlementId: string;
-  readonly entitlementRevision: string;
-  readonly affiliateId: string;
-  readonly conversionAssociationId: string;
-  readonly policyVersion: string;
-  readonly entitlementDigest: string;
-  readonly correlationId: string;
-}
+- request ID;
+- entitlement ID and revision;
+- Affiliate ID;
+- conversion-association ID;
+- policy version;
+- entitlement digest;
+- correlation ID.
 
-export type AffiliateFinancialMaterializationResultV1 =
-  | Readonly<{
-      status: "accepted";
-      financialReference: string;
-      replayed: boolean;
-    }>
-  | Readonly<{
-      status: "rejected";
-      code: string;
-      retryable: boolean;
-      replayed: boolean;
-    }>;
+The request deliberately contains no amount, rate, currency, payout destination, provider credential, ledger posting or settlement instruction. Financial independently resolves/validates its monetary consequence. `accepted` means request accepted by Financial, never paid/settled/transferred.
 
-export interface AffiliateFinancialMaterializationPort {
-  requestMaterialization(
-    request: AffiliateFinancialMaterializationRequestV1,
-  ): Promise<AffiliateFinancialMaterializationResultV1>;
-}
+The port also defines durable materialization readback so uncertain delivery can be resolved before retry.
+
+## Idempotency and audit
+
+Mutation identities use:
+
+```text
+affiliate:v1:<operation>:<sha256(canonical immutable inputs)>
 ```
 
-The request deliberately carries no browser-controlled amount, rate, payout destination, ledger posting or settlement instruction. When executable policy exists, Financial must resolve and independently validate the approved entitlement snapshot plus authoritative Ordering/Financial evidence before any monetary effect.
+The canonical input serializer sorts object keys recursively. Durable implementations must claim the key atomically. Exact replay returns the original semantic outcome; a reused key with divergent semantic digest is a conflict and fails closed.
 
-`accepted` means only that Financial accepted the materialization request under its own idempotency and invariants. It does not mean paid, settled or transferred.
+Every authoritative state-changing application operation must append immutable audit containing actor, authorization decision, Affiliate/subject references, policy/contract version, before/after digest where applicable, idempotency digest, correlation/causation, server time, outcome and machine-readable reason. Secrets, raw referral tokens, full URLs, provider credentials and copied identity documents are forbidden.
 
-## Canonical event families
+## Authorization
 
-The following event names are reserved as the required future event family. They are not executable until payload schemas are approved, registered and tested with `PLATFORM-EVENT-ENVELOPE`.
+- public/browser callers can submit only untrusted evidence through an authenticated/validated server boundary;
+- authoritative attribution, conversion, entitlement and materialization changes are server-side operations;
+- Affiliate self-service must prove canonical Identity ownership;
+- admin operations require explicit platform/admin capability; tenant membership is insufficient;
+- Affiliate service-to-Financial handoff uses an authenticated Affiliate service principal;
+- Financial independently authorizes and validates the request;
+- cross-affiliate and cross-destination access fails closed unless explicitly authorized.
 
-Affiliate-owned:
+## Events
+
+TypeScript event types now exist for:
 
 - `AffiliateReferralEvidenceRecorded`;
 - `AffiliateAttributionEstablished`;
@@ -202,148 +138,63 @@ Affiliate-owned:
 - `AffiliateCommissionEntitlementChanged`;
 - `AffiliateFinancialMaterializationRequested`.
 
-Financial-owned responses/projections:
+They conform structurally to `PLATFORM-EVENT-ENVELOPE` v1. These are not yet registered as externally executable contracts in `docs/contracts/registry.json`: registration requires a real producer/consumer, canonical JSON schema, compatibility tests and evidence on the exact implementation head.
 
-- `AffiliateFinancialMaterializationAccepted`;
-- `AffiliateFinancialMaterializationRejected`.
+Historical labels `CustomerAttributedToAffiliate` and `AffiliateCommissionAccrued` remain non-executable and must not be emitted by new runtime.
 
-Historical architecture labels `CustomerAttributedToAffiliate` and `AffiliateCommissionAccrued` are not executable contracts and must not be emitted by new runtime.
+## Privacy/LGPD
 
-Every executable Affiliate event must declare owner, schema version, producer, consumers, correlation/causation IDs, retry policy, idempotency identity, retention classification and personal-data classification. Event payloads must use stable IDs and digests rather than raw referral URLs, credentials or copied identity PII.
+Identity remains owner of canonical PII. Affiliate persists stable references and minimized evidence/digests. Raw referral evidence is retained only when necessary and follows the approved 90-day maximum default. Pseudonymous and commercial/audit retention follows the approved policy, with jurisdictional configuration and lawful holds. Analytics/logs/traces must not contain raw referral tokens, unnecessary direct identifiers or credentials.
 
-## Idempotency strategy
+## Implementation sequence
 
-### Canonical key form
+### Phase 0 — complete
 
-Future mutation keys use:
+Canonical ownership, Decision Sheet, threat model, test plan, migration matrix and rollout/rollback contract.
 
-```text
-affiliate:v1:<operation>:<sha256(canonical immutable inputs)>
-```
+### Phase 1 — complete
 
-The canonical digest includes only immutable server-normalized references, relevant contract/policy versions and accepted evidence digests. It must not depend on object key order, local timezone formatting or mutable browser state.
+`AFFILIATE-POLICY-V1` approved and frozen in documentation/code.
 
-### Operation identities
+### Phase 2A — complete on this PR head
 
-- evidence intake: approved source contract identity plus stable source evidence identity/fingerprint;
-- attribution: subject reference plus accepted evidence digest plus attribution-policy version;
-- conversion association: canonical conversion reference plus attribution ID plus qualifying-conversion contract version;
-- entitlement: conversion-association ID plus affiliate ID plus commission-policy version;
-- Financial materialization: entitlement ID plus immutable entitlement revision/digest.
+Pure `@touristic/affiliates` domain types/invariants, ports, TypeScript events and unit/invariant tests. No database or external side effect.
 
-### Replay behavior
+The package manifest exists, but the package is temporarily excluded from pnpm workspace linking until the pinned pnpm version can regenerate `pnpm-lock.yaml` reproducibly. Root `affiliates:*` commands explicitly lint/typecheck/test/build it, so the source remains inside repository quality gates during this transition.
 
-- exact replay returns the original semantic result and `replayed: true` where exposed;
-- same idempotency key with different canonical input fails closed and emits an audit/security observation;
-- in-flight concurrency must be serialized by a durable unique claim or compare-and-swap, not an in-memory lock;
-- retries after uncertain cross-domain delivery query durable state before another side effect;
-- idempotency records outlive the retry horizon and follow the approved retention policy.
+### Phase 2B — next
 
-## Audit contract
+Add application services, durable persistence, unique/idempotency claims and immutable audit using additive migrations. Keep external Financial materialization disabled.
 
-Every Affiliate state-changing operation must append an immutable audit record with at least:
+### Phase 3
 
-- `auditId`;
-- operation name and contract version;
-- actor kind and canonical actor reference;
-- authorization decision reference;
-- affiliate ID when applicable;
-- affected subject/entity IDs;
-- policy/contract versions;
-- previous and next state digests when a mutation occurs;
-- idempotency key digest;
-- correlation ID, causation ID and triggering event ID when applicable;
-- server timestamp;
-- outcome (`accepted`, `rejected`, `replayed`, `conflict` or `failed`);
-- machine-readable reason code.
+Add read-only Ordering/Financial adapters and event consumers; validate durable attribution/conversion/entitlement behavior and concurrency.
 
-Audit records must not contain secrets, raw tokens, full referral URLs, provider credentials or copied identity documents. Audit is distinct from mutable operational logs and from Financial ledger history.
+### Phase 4
 
-## Authorization boundaries
+Implement Financial-owned materialization adapter disabled/dark first, with accepted/rejected/readback/replay evidence and no Affiliate monetary persistence.
 
-- All authoritative Affiliate mutations are server-side.
-- Public/browser referral input, if later enabled, enters as untrusted evidence and cannot directly create attribution, conversion, entitlement or Financial materialization.
-- Affiliate self-service reads are disabled until affiliate identity ownership is approved and can be proven from canonical Identity.
-- Admin operations require explicit platform/admin authorization; tenant membership alone is insufficient.
-- Business Portal cannot administer affiliates.
-- Financial materialization is service-to-service and accepted only from an authenticated Affiliate service principal through a Financial-owned port.
-- Financial independently authorizes and validates every materialization request.
-- No Affiliate capability grants direct database, provider SDK, payout, wallet or settlement access.
-- Cross-destination or cross-affiliate reads fail closed unless an explicit platform authorization contract exists.
+### Phase 5
 
-Exact scope names are an implementation detail to be defined with the Auth capability registry; they are not a commercial decision and must follow least privilege.
+Authenticated read APIs/projections after authorization/privacy tests.
 
-## Privacy and LGPD requirements
+### Phase 6
 
-The implementation must enforce:
+Browser/admin surfaces last. Browser remains presentation/input only.
 
-- purpose limitation: referral evidence is collected only for approved attribution/commission purposes;
-- data minimization: persist stable IDs/digests instead of raw URLs, headers, IPs or device identifiers whenever possible;
-- separation: Identity remains owner of identity PII; Affiliate stores references rather than copies;
-- configurable retention: duration is policy-driven and must not be compiled into code;
-- data-subject handling: lookup/export/deletion or anonymization flows must be possible where legally applicable;
-- legal/audit holds: deletion must not corrupt required immutable Financial or compliance evidence;
-- sanitized analytics/observability: no raw referral token or direct PII in logs, metrics or traces;
-- access logging for privileged reads of Affiliate evidence;
-- encryption in transit and at rest through platform infrastructure controls;
-- documented lawful basis/notice before collecting any new personal-data category.
+## Release invariants
 
-The concrete retention duration remains a Decision Sheet item.
+1. Affiliate source must not import Business/Ordering/Financial implementations, service internals or apps.
+2. Browser-controlled monetary values cannot create entitlement/Financial state.
+3. Every authoritative mutation is authorized, durable-idempotent and audited.
+4. Ordering/Financial evidence crosses public ports only.
+5. One Order cannot create multiple authoritative Affiliate conversions.
+6. Financial may reject materialization without Affiliate mutating monetary state.
+7. Materialization `accepted` is not payout/settlement.
+8. Refund/reversal is explicit and audit-preserving.
+9. Suspended/ineligible operations fail closed.
+10. Rollback never deletes Financial history or transfers monetary authority to Affiliate.
 
-## Migration plan
+## Promotion gate
 
-### Phase 0 — completed by this PR
-
-- canonical ownership and non-goals;
-- conceptual schemas;
-- ports and event families;
-- idempotency/audit/security/privacy contracts;
-- test strategy;
-- threat model;
-- rollout/rollback plan;
-- explicit commercial Decision Sheet.
-
-No runtime or migration is created.
-
-### Phase 1 — policy freeze
-
-After the Decision Sheet is approved, record one versioned Affiliate policy contract/ADR. Any still-unknown field remains fail-closed and cannot receive a default.
-
-### Phase 2 — expand-only domain foundation
-
-Create `@touristic/affiliates` domain types, normalizers, invariants and durable tables with additive migrations. Add repositories and idempotency/audit claims. No UI and no Financial side effect.
-
-### Phase 3 — canonical evidence and association
-
-Add read-only Ordering/Financial adapters and event consumers. Validate durable attribution/conversion association under the approved policy. Keep Financial materialization disabled.
-
-### Phase 4 — Financial handoff
-
-Implement the versioned Affiliate → Financial port on the Financial side. Start disabled/dark, validate accepted/rejected/replay behavior and prove no Affiliate-owned monetary persistence.
-
-### Phase 5 — read APIs and projections
-
-Expose authenticated Affiliate/admin reads only after authorization and privacy tests pass. Financial position remains a Financial-owned projection.
-
-### Phase 6 — browser/admin surfaces
-
-Add UI last. Browser remains a presentation/input layer without commission authority.
-
-## Invariants to turn into executable tests
-
-1. No Affiliate code imports Financial persistence or provider adapters.
-2. No browser-controlled amount/rate/affiliate ID can directly create entitlement or Financial state.
-3. Every authoritative mutation requires durable idempotency and audit.
-4. Exact replay converges; divergent replay fails.
-5. Ordering/Financial evidence is read through public boundaries only.
-6. No commission entitlement can be materialized without a versioned policy snapshot and conversion evidence.
-7. Financial may reject a materialization request without mutating ledger/payable/settlement state.
-8. `accepted` materialization is not equivalent to payout/settlement.
-9. Refund/cancellation evidence cannot be silently ignored once the approved lifecycle says it changes entitlement.
-10. Suspended/ineligible behavior must remain undefined/fail-closed until approved, never guessed.
-11. Retention is configurable and testable; raw evidence is minimized.
-12. Rollback never deletes Financial history or reassigns monetary authority to Affiliate.
-
-## Runtime gate
-
-Runtime creation is blocked until all 19 items in `AFFILIATES-DECISION-SHEET.md` are approved and versioned. Once approved, implementation may begin from Phase 2 without reopening the ownership, idempotency, audit, authorization, LGPD, threat-model or rollback boundaries defined here.
+Policy approval unblocks implementation; it does not establish equivalence. `FEATURE-0010` must remain `planned` and `MIG-0011` must remain `discovered` until the required runtime/persistence/integration/security/privacy/E2E evidence exists and the exact final head passes all official repository and Affiliate gates.

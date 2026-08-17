@@ -2,154 +2,174 @@
 
 ## Status
 
-This is the canonical test plan before commercial policy approval. It defines tests that can be prepared now and decision-dependent scenarios that become parameterized fixtures later. No test is allowed to invent a rate, attribution window or lifecycle rule.
+`AFFILIATE-POLICY-V1` is approved and the pure domain foundation exists in `packages/affiliates`.
 
-## Static architecture gate — executable without product decisions
+The current test target is no longer a policy-neutral placeholder: approved V1 policy values must be asserted explicitly. `FEATURE-0010` remains `planned` and `MIG-0011` remains `discovered` until persistence/integration/release evidence is complete.
 
-The permanent Affiliate contract workflow must verify:
+## Permanent architecture and policy gate
 
-- canonical Affiliate scope, technical contract, Decision Sheet, threat model, migration matrix and rollout/rollback docs exist;
-- `FEATURE-0010` stays `planned` with all equivalence flags false until runtime/equivalence evidence exists;
-- `MIG-0011` stays `discovered` during this policy-neutral phase;
-- no `packages/affiliates` or `services/affiliates` runtime exists before the Decision Sheet gate is satisfied;
+The Affiliate workflow must verify:
+
+- canonical scope, Technical Contract, approved Decision Sheet, threat model, migration matrix and rollout/rollback docs exist;
+- the Decision Sheet contains exactly 19 approved decisions and policy version `AFFILIATE-POLICY-V1`;
+- `FEATURE-0010` stays `planned` with equivalence flags false until complete evidence exists;
+- `MIG-0011` stays `discovered` during the current implementation stage;
+- `packages/affiliates` exists and `services/affiliates` remains absent until persistence/application service work is intentionally introduced;
+- Affiliate source does not import Business/Ordering/Financial implementations, service internals or apps;
+- Affiliate runtime contains no provider credentials, payout destination or settlement instruction;
 - architecture and Feature Registry checks pass;
-- Business/Ordering/Financial ownership statements are present and do not grant Affiliate monetary authority;
-- Decision Sheet contains exactly the 19 required product decisions.
+- root `affiliates:check` executes Affiliate lint, typecheck, tests and build;
+- approved constants remain 30-day attribution, 3000 bps, percentage-only, no subscription renewal commission and Financial net eligible platform revenue authority.
 
-## Domain tests after policy approval
+## Executable domain tests — current
 
-### Identity and program state
+`packages/affiliates/src/index.test.ts` must cover at minimum:
 
-- normalize/reject malformed IDs;
-- reject missing canonical Identity relationship;
-- enforce approved identity cardinality and eligibility/suspension rules through policy fixtures;
-- optimistic concurrency rejects stale writes;
-- exact replay returns the same result.
+### Policy and eligibility
 
-### Referral evidence
+- `AFFILIATE-POLICY-V1` approved constants are frozen;
+- attribution eligibility requires verified Identity/contact, terms, approved membership and no fraud/suspension block;
+- Financial materialization eligibility additionally requires Financial onboarding eligibility.
 
-- each approved source has positive and negative trust/signature fixtures;
-- malformed/oversized evidence fails before mutation;
-- duplicate source evidence converges;
-- same idempotency key with divergent evidence fails closed;
-- client time cannot override server receipt time;
-- raw secret/token/URL data is absent from audit/events/observability.
+### Referral evidence and attribution
 
-### Attribution
+- unvalidated evidence cannot become canonical evidence;
+- malformed digest/timestamp fails closed;
+- 30-day expiry uses server time;
+- source precedence is checkout code > authenticated server referral > link/QR;
+- latest valid evidence wins inside the same precedence tier;
+- locked Order attribution cannot be replaced;
+- browser/client time cannot extend the authoritative window.
 
-- approved subject type is required;
-- precedence conflicts are tested from versioned policy fixtures;
-- window start/expiry/reset is tested at exact boundaries using an injected clock;
-- parallel claims produce one deterministic authoritative result;
-- no browser marker alone creates attribution.
+### Conversion
 
-### Conversion association
-
-- only approved canonical Ordering/Financial evidence qualifies;
-- nonexistent/stale/mismatched order references fail;
-- browser callback/click alone fails;
-- duplicate association converges;
-- out-of-order events are retained/retried or rejected according to the versioned contract without fabricating a conversion.
+- Ordering must be `payment_confirmed`;
+- verified Financial payment/conversion evidence is mandatory;
+- Financial eligible revenue/currency/digest/contract version are required;
+- subscription renewal is rejected in V1;
+- browser click/redirect/callback cannot qualify.
 
 ### Commission entitlement
 
-- policy snapshot version is mandatory and immutable;
-- calculation is deterministic for approved fixtures;
-- base/model/rate/rounding/caps/currency are supplied only by approved policy fixtures;
-- lifecycle transitions match the approved transition graph;
-- invalid transition fails without mutation;
-- replay and concurrency are deterministic;
-- no entitlement path writes Financial persistence.
+- 3000-bps calculation uses integer minor units;
+- half-up behavior is tested on exact half-unit boundaries;
+- unsafe/fractional inputs fail;
+- maturity waits at least seven days after verified payment and until service/performance when later;
+- suspension/dispute cannot silently become earned;
+- invalid lifecycle transitions fail without mutation;
+- partial refund before earned reprices under the original policy;
+- full refund before earned cancels;
+- refund after earned creates explicit reversal evidence preserving previous and remaining amount.
 
-## Affiliate → Financial integration tests
+### Financial materialization boundary
 
-- request contains entitlement identity/revision/digest and no browser monetary authority;
-- Financial rejects unknown/stale/tampered entitlement evidence without ledger/payable/settlement mutation;
+- only `earned` + Financial-eligible entitlement can request materialization;
+- request contains identity/revision/digest/correlation only;
+- request does not contain commission amount, rate, currency, payout destination, provider secret or settlement instruction;
+- `accepted` is not represented as paid/settled/transferred.
+
+### Idempotency
+
+- immutable inputs are canonicalized independent of object-key order;
+- key format is `affiliate:v1:<operation>:<sha256>`;
+- invalid operation/digest fails closed.
+
+## Application-service tests — next stage
+
+Every authoritative use case must test the sequence:
+
+1. explicit authorization;
+2. eligibility resolution where applicable;
+3. canonical source/evidence validation;
+4. deterministic idempotency key;
+5. durable idempotency claim;
+6. domain invariant execution;
+7. repository mutation using compare-and-swap/unique constraints;
+8. immutable audit append;
+9. event/outbox recording where applicable.
+
+Required negative cases:
+
+- anonymous/public caller attempts authoritative mutation;
+- tenant/Business membership attempts Affiliate administration;
+- affiliate A accesses affiliate B;
+- stale policy/version;
+- reused idempotency key with divergent semantic digest;
+- concurrent duplicate evidence/Order conversion/entitlement claim;
+- persistence failure before/after idempotency claim;
+- audit/outbox failure and transaction rollback behavior.
+
+## Ordering/Financial integration tests — future stages
+
+- public Ordering adapter returns canonical Order evidence only;
+- Financial adapter returns verified payment and eligible-revenue evidence only;
+- one Order yields at most one canonical Affiliate conversion under concurrency;
+- stale/mismatched Ordering/Financial evidence fails closed;
+- Financial independently validates materialization entitlement/evidence;
 - exact materialization replay converges;
-- divergent request with reused key fails;
-- accepted request is not reported as payout/settlement;
-- Financial independently validates its required Ordering/Payment/reconciliation evidence;
-- transient rejection is retryable only when explicitly classified;
-- uncertain delivery performs durable readback before retry;
-- refund/cancellation/reversal fixtures follow the approved policy while Financial remains the monetary authority.
+- uncertain delivery performs durable readback before any retry;
+- Financial rejection causes no Affiliate-owned ledger/payable/settlement mutation;
+- refund/cancellation/reversal remains Financial-authoritative for monetary consequence.
 
-## Authorization tests
+## Authorization/security tests
 
-- anonymous/browser caller cannot perform authoritative mutations;
-- Business tenant/member cannot administer Affiliate by inheritance;
-- affiliate A cannot read/write affiliate B;
-- cross-destination access fails closed unless explicitly authorized;
-- privileged admin action requires the intended platform scope and appends audit;
-- Affiliate service identity is required for Financial handoff;
-- direct database/provider access from Affiliate is absent by architecture gate.
+- browser/public evidence cannot directly create attribution, conversion, entitlement or materialization;
+- Business roles confer no Affiliate permission;
+- admin operations require explicit platform capability;
+- self-service proves canonical Identity ownership;
+- service-to-Financial materialization requires Affiliate service identity;
+- cross-affiliate/cross-destination access fails closed;
+- direct database/provider access across domain boundaries is absent.
 
-## Audit and idempotency tests
+## Audit/idempotency tests
 
-- every state-changing outcome emits immutable audit metadata;
-- replay outcome is audit-visible without duplicating business state;
-- conflict/divergence is audit-visible;
-- actor, authorization decision, policy version, correlation and causation are present where applicable;
-- secrets/raw referral tokens/identity documents are absent;
-- idempotency survives process restart and parallel requests.
+- every state-changing accepted/rejected/replayed/conflict outcome is audit-visible;
+- audit carries actor, authorization decision, policy version, correlation/causation and state digests where applicable;
+- audit contains no raw referral token, full URL, identity document or provider credential;
+- idempotency survives restart and parallel requests;
+- exact replay does not duplicate canonical state or events.
 
 ## Privacy/LGPD tests
 
-- retention duration is configuration/policy, not hard-coded;
-- expired evidence follows the approved deletion/anonymization behavior;
-- legal/audit hold does not corrupt Financial history;
-- data export/subject lookup is scoped to the authorized identity;
-- observability and analytics contain sanitized identifiers only;
-- privileged evidence reads are audit logged.
+- raw referral retention default is 90 days and configurable by jurisdiction/legal hold;
+- pseudonymous attribution/conversion retention defaults to 24 months from relevant activity;
+- commercial/audit evidence defaults to five years after closure/settlement subject to applicable rules;
+- expiry deletes/anonymizes only data permitted to be removed;
+- DSR/export lookup is authorized and Identity-scoped;
+- Financial/accounting history is never deleted by Affiliate retention jobs;
+- observability/analytics use sanitized identifiers only.
 
-## Threat-model negative tests
+## Persistence/migration tests — before durable stage promotion
 
-Cover at least:
-
-- affiliate-ID tampering;
-- referral replay/stuffing;
-- attribution hijacking;
-- client clock manipulation;
-- fake conversion;
-- monetary/formula injection;
-- stale policy replay;
-- stale entitlement materialization;
-- refund/materialization race;
-- tenant privilege escalation;
-- PII/log leakage;
-- event schema/version poisoning;
-- evidence flood/rate-limit behavior.
-
-## Persistence and migration tests
-
-- additive migrations apply to an empty database and current production schema;
-- unique/idempotency constraints enforce canonical claims;
-- rollback disables writers before application rollback;
-- backward-compatible readers tolerate expanded schema;
-- no down migration deletes Affiliate evidence needed for audit or any Financial history;
-- a pre-activation rollback leaves Financial state untouched.
+- additive migration applies to empty and current schema;
+- unique constraints enforce evidence fingerprint, one conversion per Order and durable idempotency identities;
+- optimistic revision/CAS rejects stale writes;
+- transaction includes mutation, idempotency/audit/outbox claims where required;
+- expand-only rollback disables writers before application rollback;
+- no down migration destroys evidence needed for audit/reconciliation or any Financial history.
 
 ## Rollout tests
 
-- feature disabled: no Affiliate side effects;
-- shadow/read-only mode: evidence validation and metrics may run without entitlement/Financial mutation;
-- materialization kill switch blocks new handoffs without deleting records;
-- recovery replays durable pending work idempotently;
-- mixed-version deployment remains compatible during expand/contract;
-- final promotion requires Quality, architecture, unit, integration, security and E2E gates on one exact head.
+- feature disabled: no Affiliate authoritative side effects;
+- shadow mode validates evidence/metrics without entitlement/materialization mutation;
+- materialization kill switch prevents new handoffs while preserving durable state;
+- recovery reads durable materialization state before retry;
+- mixed-version deployment preserves old policy snapshots;
+- final promotion uses one exact, zero-behind head.
 
-## CI gate order after runtime exists
+## CI gate order
 
 1. frozen install;
-2. format check;
-3. architecture plus platform contracts plus Feature Registry;
-4. lint;
-5. typecheck;
-6. Affiliate unit/invariant tests;
-7. Affiliate persistence integration tests;
-8. Ordering/Financial contract integration tests;
-9. authorization/security/privacy negative tests;
-10. build;
-11. browser/admin E2E only after those surfaces exist;
-12. release-candidate evidence reconciliation.
+2. `pnpm format:check`;
+3. architecture/platform contracts/Feature Registry;
+4. repository lint/typecheck/tests/build;
+5. `pnpm affiliates:check`;
+6. Affiliate persistence integration tests once persistence exists;
+7. Ordering/Financial contract integration tests once adapters exist;
+8. authorization/security/privacy/concurrency tests;
+9. browser/admin E2E only after those surfaces exist;
+10. release evidence reconciliation.
 
-Until runtime exists, the static architecture gate is the only Affiliate-specific executable gate; full repository Quality must still pass when GitHub Actions is available.
+## Current evidence boundary
+
+Local engineering validation for the domain foundation includes strict TypeScript compilation and a compiled-JavaScript smoke suite. The permanent Vitest/ESLint/Prettier/frozen-install gates are defined but cannot be claimed green until they execute in the repository environment. GitHub Actions startup failure is not a passing Quality result.
