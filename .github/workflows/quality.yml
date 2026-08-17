@@ -1,11 +1,11 @@
 name: Quality Gate
 
 on:
-  workflow_dispatch:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
   push:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -14,21 +14,26 @@ concurrency:
   group: quality-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+env:
+  NODE_VERSION: "22"
+  PNPM_VERSION: "10.15.0"
+  TURBO_TELEMETRY_DISABLED: "1"
+
 jobs:
   quality:
     name: quality
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
-          version: 10.15.0
+          version: ${{ env.PNPM_VERSION }}
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: 22
+          node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
-      - name: Restore Turbo cache
+      - name: Restore Turbo lint/typecheck cache
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: /tmp/turbo-cache
@@ -37,7 +42,27 @@ jobs:
             turbo-${{ runner.os }}-node22-${{ hashFiles('pnpm-lock.yaml', 'turbo.json', 'eslint.config.mjs', 'tsconfig.base.json') }}-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      - name: Run canonical quality gate
+      - name: Check formatting
+        run: pnpm format:check
+      - name: Check architecture boundaries
+        run: pnpm architecture:check
+      - name: Validate Feature Registry
+        run: pnpm features:check
+      - name: Validate CI and repository governance contracts
+        run: pnpm ci:governance:check
+      - name: Audit workflow supply chain
+        run: pnpm ci:supply-chain
+      - name: Lint
         env:
           TURBO_CACHE_DIR: /tmp/turbo-cache
-        run: pnpm ci:quality
+        run: pnpm lint
+      - name: Typecheck
+        env:
+          TURBO_CACHE_DIR: /tmp/turbo-cache
+        run: pnpm typecheck
+      - name: Test
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
+        run: pnpm test
+      - name: Build
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
+        run: pnpm build

@@ -1,22 +1,21 @@
 # Workflow hardening status
 
-## Baseline
+## Coordination baseline
 
-Prepared against `main` commit `ec4f51e0198cdeed51b37fabe5ed94ebb2e3ecb6` on 2026-08-17 while GitHub Actions event execution was still failing through deleted workflow registration `334828426` (`BuildFailed`). Revalidate the base SHA before promotion.
+This file describes the stacked CI hardening layer prepared after canonical recovery PR #286. The common `main` baseline at preparation time is `ec4f51e0198cdeed51b37fabe5ed94ebb2e3ecb6`, but #286 is the immediate PR base until it is promoted.
 
-The branch contains CI, repository-governance, operational documentation and quality-tooling changes only. It does not intentionally change product runtime or business rules.
+PR #286 remains sole owner of the canonical Quality topology, repository-governance checker, exact-SHA Release Promotion Gate and restore runbook. This layer adds supply-chain hardening, domain trigger/path reconciliation, one-shot cleanup and local reproducibility without creating a competing Quality or release workflow.
 
-## Current workflow inventory
+## Workflow inventory after this layer
 
-The preparation branch contains 40 workflow files after removal of three one-shot V2 capture workflows and addition of the permanent Platform and manual Release Smoke gates.
+After removing the three historical V2 capture one-shots and using #286's single Release Promotion Gate, the stacked tree contains 39 workflow files.
 
-### Hardened in this preparation
+### Hardened set
 
-The following 22 workflows are in the hardened set: their relevant external Actions are pinned to reviewed immutable commits, and their trigger/path contracts were reconciled where the workflow's execution graph was audited in this preparation.
+The following 21 workflows are in the hardened set. Their relevant external Actions use reviewed immutable commit SHAs, and their trigger/path contracts were reconciled where the execution graph was audited:
 
 - `quality.yml`
-- `platform-contract.yml`
-- `release-smoke-gate.yml`
+- `release-promotion-gate.yml`
 - `auth-integration-contract.yml`
 - `auth-login-browser-contract.yml`
 - `business-auth-integration-contract.yml`
@@ -37,11 +36,13 @@ The following 22 workflows are in the hardened set: their relevant external Acti
 - `ticketing-m147-contract.yml`
 - `ticketing-m148-transaction-contract.yml`
 
-Notable trigger fixes include restoring all three Map regressions from the historical `feat/mapbox-gl-runtime` push target to `main`, removing broad `MASTER-MIGRATION-TRACKER.md` triggers from runtime-heavy Payments/Ticketing gates, and expanding composed Auth/CRM/Payments path filters to include the packages/services they actually build or exercise.
+Platform contracts remain permanent through `pnpm architecture:check` → `pnpm platform:contracts:check`, validated by the global Quality Gate and exact-SHA Release Promotion Gate. No weaker duplicate Platform workflow is introduced.
+
+Notable trigger fixes include restoring all three Map regressions from historical `feat/mapbox-gl-runtime` push targets to `main`, removing broad `MASTER-MIGRATION-TRACKER.md` triggers from runtime-heavy Payments/Ticketing gates, and expanding composed Auth/CRM/Payments filters to include packages/services actually built or exercised. Payments M149 now observes its Auth/Business/CRM/Financial/Ordering runtime graph.
 
 ### Specialized migration set
 
-The following 18 specialized workflows remain outside the completed SHA-pinning/path-filter migration set. They remain permanent evidence workflows, not globally required branch-protection contexts:
+The following 18 specialized workflows remain outside the completed SHA-pinning/path-filter migration set:
 
 - `assistant-photo-browser-contract.yml`
 - `assistant-voice-browser-contract.yml`
@@ -62,39 +63,33 @@ The following 18 specialized workflows remain outside the completed SHA-pinning/
 - `navigation-visual-baseline.yml`
 - `search-browser-contract.yml`
 
-Do not rewrite these large browser contracts mechanically. For each file, read the full workflow, preserve its evidence logic, reconcile `paths` against the packages/services/runtime actually built, then replace mutable external Action references with reviewed immutable SHAs.
+These remain permanent evidence workflows, not global required contexts. Do not rewrite them mechanically: read each full workflow, preserve evidence logic, reconcile `paths` to the actual execution graph, then replace mutable external Action refs with reviewed SHAs.
 
 ## Supply-chain contract
 
-`pnpm ci:quality` now calls `pnpm ci:supply-chain` before the existing repository quality checks. Audit mode fails on unsafe workflow configuration but reports, rather than blocks on, remaining mutable Action references.
+Global Quality now runs `pnpm ci:supply-chain` after `pnpm ci:governance:check`. The root full `pnpm check` also includes both governance and supply-chain audit.
 
-`pnpm ci:supply-chain:strict` is already available and is the target end-state. Promotion rule:
+Audit mode fails on unsafe configuration (`pull_request_target`, `permissions: write-all`, missing top-level permissions, `secrets: inherit`) while reporting remaining mutable external refs. `pnpm ci:supply-chain:strict` already exists as the end-state but is not required yet.
+
+Strict promotion rule:
 
 1. migrate all 18 specialized workflows;
-2. run strict mode and require zero mutable external Action references;
-3. only then change the canonical `ci:quality` command from audit mode to strict mode;
-4. verify the exact-head `quality` check in GitHub Actions before making it a required branch-protection context.
+2. run strict mode and require zero mutable external Action refs;
+3. only then replace audit mode with strict enforcement in the global Quality contract;
+4. verify a real exact-head `quality` check before branch-protection policy changes.
 
-Dependabot is configured for the `github-actions` ecosystem so later pin changes are reviewable.
+Dependabot is configured for `github-actions` so later pin updates are reviewable.
 
 ## Secrets and provider prerequisites
 
-The known CI secret name found in current workflows is `MAPBOX_PUBLIC_TOKEN_CI`. Its value must never be copied into repository content or diagnostics. Repository-secret metadata could not be listed through the current GitHub integration, so availability remains a settings/readback check for Actions restoration.
+The known CI secret name is `MAPBOX_PUBLIC_TOKEN_CI`. Its value must never enter repository content or diagnostics. Repository-secret metadata cannot currently be listed through the connected integration.
 
-Mapbox-authenticated evidence is specialized and must not be used to make the global `quality` context depend on a provider secret.
-
-## Required-check policy
-
-The stable global required context should be `quality` only after a real exact-head run succeeds again. Path-scoped domain contracts are required by promotion procedure when their affected paths trigger; they must not all be configured as global required checks because unrelated PRs can legitimately skip them.
-
-`platform-contract` is path-scoped. `release-smoke` is manual and should be executed on an exact release-candidate head.
+Mapbox-authenticated evidence remains specialized and must never make global Quality depend on a provider secret.
 
 ## Promotion boundary while Actions is broken
 
-- Keep the CI preparation PR draft/unmerged.
-- Keep feature/product PRs unmerged when their official gates cannot execute.
-- Do not treat deleted `BuildFailed` startup failures as product test results.
-- Do not enable a required `quality` context in branch protection until GitHub can actually create that named check again.
+- #286 remains the first recovery probe and must stay unmerged until #282 is resolved.
+- This stacked layer must also stay draft/unmerged while its official exact-head gates cannot execute.
+- Deleted `BuildFailed` startup failures are not product test results.
+- Do not enable required `quality` branch protection until GitHub can create that named context again.
 - Do not use direct merge as a CI bypass.
-
-When Actions returns, follow `CI-RESTORE-PROMOTION.md` exactly and discard historical green evidence in favor of exact-head reruns.
