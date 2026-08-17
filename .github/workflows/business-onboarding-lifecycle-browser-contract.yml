@@ -5,25 +5,35 @@ on:
   pull_request:
     paths:
       - ".github/workflows/business-onboarding-lifecycle-browser-contract.yml"
+      - "apps/morro-digital-platform/package.json"
       - "apps/morro-digital-platform/src/business-onboarding-browser-lifecycle.ts"
       - "apps/morro-digital-platform/src/business-onboarding-entry.ts"
       - "apps/morro-digital-platform/src/business-onboarding-session-store.ts"
       - "apps/morro-digital-platform/src/business-onboarding-surface.ts"
       - "apps/morro-digital-platform/public/business-onboarding.*"
       - "apps/morro-digital-platform/tooling/business-onboarding-lifecycle-browser-contract.mjs"
+      - "apps/morro-digital-platform/tooling/dev-server.mjs"
       - "packages/business/src/onboarding*.ts"
+      - "packages/business/package.json"
+      - "package.json"
+      - "pnpm-lock.yaml"
   push:
     branches:
       - main
     paths:
       - ".github/workflows/business-onboarding-lifecycle-browser-contract.yml"
+      - "apps/morro-digital-platform/package.json"
       - "apps/morro-digital-platform/src/business-onboarding-browser-lifecycle.ts"
       - "apps/morro-digital-platform/src/business-onboarding-entry.ts"
       - "apps/morro-digital-platform/src/business-onboarding-session-store.ts"
       - "apps/morro-digital-platform/src/business-onboarding-surface.ts"
       - "apps/morro-digital-platform/public/business-onboarding.*"
       - "apps/morro-digital-platform/tooling/business-onboarding-lifecycle-browser-contract.mjs"
+      - "apps/morro-digital-platform/tooling/dev-server.mjs"
       - "packages/business/src/onboarding*.ts"
+      - "packages/business/package.json"
+      - "package.json"
+      - "pnpm-lock.yaml"
 
 permissions:
   contents: read
@@ -37,9 +47,9 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
           cache: pnpm
@@ -71,7 +81,7 @@ jobs:
       - name: Show diagnostics
         if: failure()
         run: cat /tmp/business-onboarding-lifecycle-server.log || true
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: business-onboarding-lifecycle-browser-evidence
