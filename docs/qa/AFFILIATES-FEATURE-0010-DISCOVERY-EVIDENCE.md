@@ -1,6 +1,6 @@
 # FEATURE-0010 Affiliates — Canonical Discovery Evidence
 
-## Checkpoint
+## Discovery lineage
 
 Initial discovery started against `main` at:
 
@@ -8,36 +8,42 @@ Initial discovery started against `main` at:
 8d07e4db0e3c619d520f1a3fc36dc4b14a6a65a2
 ```
 
-Before opening the pull request, `main` advanced with Ordering M150 and the work was rebuilt cleanly on:
+Before the original pull request was prepared, `main` advanced with Ordering M150 and the work was rebuilt cleanly on:
 
 ```text
 91830cdbb485fbf4145e5655e81bffc13b459627
 ```
 
-The reconciled checkpoint contains Financial M152 bounded provider retries, the M146 Financial allocation/payable/settlement authority that Affiliates must not duplicate, and Ordering M150 subscription recurrence. M150 does not supply the missing Affiliate attribution or commission policy.
+For the final V2 documentary reconciliation, the branch was revalidated against and remains zero-behind:
+
+```text
+main@ec4f51e0198cdeed51b37fabe5ed94ebb2e3ecb6
+```
+
+That current `main` already includes M153 Payments reconciliation and the final Ticketing documentary reconciliation. Neither addition supplies the missing Affiliate attribution/commission policy or transfers Financial monetary authority to Affiliate.
 
 ## Sources inspected
 
 - `docs/features/registry.json` — `FEATURE-0010` is `planned`, wave 9, no legacy sources, target `@touristic/affiliates`, all equivalence flags false.
-- `docs/migration/MASTER-MIGRATION-TRACKER.md` — `MIG-0011` is `discovered`; visual, behavior and tests were pending. The Payments section explicitly preserves Affiliates as a separate feature without implicit financial authority.
+- `docs/migration/MASTER-MIGRATION-TRACKER.md` — `MIG-0011` is `discovered`; the final rollup preserves FEATURE-0010 as planned/discovered and keeps production release separate.
 - `docs/product-architecture/DOMAIN-MAP.md` — Affiliate is a separate platform domain; Financial is the only source of financial truth.
-- `docs/product-architecture/MODULE-CONTRACTS.md` — Business cannot administer affiliates; Ordering cannot administer affiliates; Financial and Affiliate communicate only through public boundaries.
-- `docs/product-architecture/CAPABILITY-MATRIX.md` — CAP-0018/19/20 provide architectural direction, including expiry/deduplication and reversal expectations, but did not define executable policy.
-- `docs/product-architecture/PRODUCT-ROADMAP.md` — the platform affiliate program is a V2.1 transaction/revenue initiative; the prioritization gate still requires owner, contract, risk, acceptance criteria, dependencies and success metric before entering a sprint.
-- `docs/product-architecture/FEATURE-LIFECYCLE.md` — `READY` requires closed scope, acceptance criteria, resolved dependencies, security/LGPD, planned tests and metrics.
+- `docs/product-architecture/MODULE-CONTRACTS.md` — Business cannot administer affiliates; Ordering cannot administer affiliates; Affiliate can affect monetary state only through a future explicit Financial boundary.
+- `docs/product-architecture/CAPABILITY-MATRIX.md` — CAP-0018/19/20 provide architectural direction but do not define executable product policy.
+- `docs/product-architecture/PRODUCT-ROADMAP.md` — the platform affiliate program is a future transaction/revenue initiative whose prioritization gate requires owner, contract, risk, acceptance criteria, dependencies and success metric before implementation.
+- `docs/product-architecture/FEATURE-LIFECYCLE.md` — implementation readiness requires closed scope, acceptance criteria, resolved dependencies, security/LGPD, planned tests and metrics.
 - `packages/business/src/onboarding-commercial-conversion.ts` — Business hands a normalized commercial checkout request to Payments and accepts only a verified payment result; it contains no Affiliate commission authority.
-- `packages/ordering/src/index.ts` and M150 recurrence additions — Ordering owns canonical order/subscription records but does not define Affiliate attribution or commission authority.
-- `packages/financial/src/settlement.ts` — Financial owns allocation, payable, settlement, provider transfer verification and settlement idempotency.
-- `docs/qa/PAYMENTS-M146-EVIDENCE.md` — Financial only allocates from persisted verified/reconciled authority; browser amounts are not authoritative; M146 explicitly does not infer commission rules or grant payout authority to Affiliates.
+- Ordering contracts — canonical order/subscription records exist, but there is no approved Affiliate attribution or qualifying-conversion contract.
+- Financial settlement contracts — Financial owns allocation, payable, settlement, provider transfer verification and settlement idempotency.
+- `docs/qa/PAYMENTS-M146-EVIDENCE.md` and the later Payments matrix — Financial only materializes money from persisted verified/reconciled authority; browser amounts are non-authoritative and no Affiliate payout authority is implied.
 
 ## Existing implementation search
 
-At the reconciled checkpoint:
+At the discovery checkpoint and again at the final documentary reconciliation:
 
-- no `packages/affiliates` directory exists;
-- no `services/affiliates` directory exists;
-- branch search for `affiliate` returned no Affiliate implementation branch;
-- pull-request search found no Affiliate implementation PR; only historical Payments/status PRs that explicitly kept Affiliates blocked or separate.
+- no `packages/affiliates` directory is part of `main`;
+- no `services/affiliates` directory is part of `main`;
+- no approved Affiliate runtime implementation is used as evidence;
+- the current PR is intentionally documentation/governance only.
 
 ## Discovery conclusion
 
@@ -69,7 +75,7 @@ The branch therefore performs documentation/architecture reconciliation only:
 4. makes Financial exclusively authoritative for Payment, ledger, allocation, payable, wallet/financial position, settlement, transfer/payout and monetary reversals;
 5. makes browser/redirect evidence non-authoritative;
 6. records the detailed readiness matrix in `docs/migration/AFFILIATES-MIGRATION-MATRIX.md`;
-7. deliberately does not create runtime code.
+7. deliberately creates no Affiliate runtime, persistence, provider, payment or payout path.
 
 ## Capability readiness
 
@@ -83,8 +89,10 @@ TOTAL     17
 
 This tally is a discovery-readiness matrix, not a parity or release-equivalence score.
 
-## Validation scope
+## Final validation scope
 
-Because the decision intentionally creates no executable Affiliate runtime, no Affiliate runtime test is fabricated. The branch must instead preserve the repository Quality Gate, formatting, architecture boundaries, Feature Registry validity, lint/typecheck/tests/build and existing Financial/Ordering/Business regressions.
+The current PR diff is documentation-only and is compared directly against current `main`. No runtime test is fabricated for a runtime that intentionally does not exist.
 
-A final head and CI status are recorded in the pull request after the branch diff is complete.
+GitHub Actions is temporarily unavailable at this checkpoint. Therefore this evidence does **not** claim fresh exact-head CI success. The documentary audit can still verify source-of-truth consistency, ownership, changed-file scope, merge-base/behind state and absence of runtime changes. Official exact-head Quality/contract checks remain a pending promotion gate to execute when Actions is functional again.
+
+Historical green checks remain supporting evidence only and are not reused as proof for the current PR head.
