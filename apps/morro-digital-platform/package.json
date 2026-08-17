@@ -24,6 +24,7 @@
     "dev": "pnpm -w build && node tooling/dev-server.mjs",
     "lint": "eslint src",
     "test": "vitest run",
+    "test:provider-e2e": "node tooling/payments-provider-browser-e2e.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   }
 }
