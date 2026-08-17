@@ -65,12 +65,8 @@ requireIncludes(quality, ".github/workflows/quality.yml", [
   "name: Quality Gate",
   "pull_request:",
   "push:",
+  "workflow_dispatch:",
   "branches: [main]",
-  "name: quality / preflight",
-  "name: quality / lint",
-  "name: quality / typecheck",
-  "name: quality / test",
-  "name: quality / build",
   "name: quality",
   "pnpm format:check",
   "pnpm architecture:check",
@@ -83,6 +79,13 @@ requireIncludes(quality, ".github/workflows/quality.yml", [
 ]);
 if (/\npull_request:\s*\n(?:.|\n)*?\n\s+paths(?:-ignore)?:/m.test(quality)) {
   fail("global Quality Gate must not use pull_request path filters");
+}
+if (quality.includes("name: quality /")) {
+  fail("Quality Gate must remain consolidated instead of multiplying setup jobs");
+}
+const qualityRunnerCount = (quality.match(/^\s{4}runs-on:/gmu) ?? []).length;
+if (qualityRunnerCount !== 1) {
+  fail(`Quality Gate must use exactly one provisioned job; found ${qualityRunnerCount}`);
 }
 
 const domainContracts = [
@@ -181,6 +184,7 @@ const temporaryCandidates = workflowFiles.filter(
 console.log(
   `CI governance valid: ${workflowFiles.length} versioned workflows inspected.`,
 );
+console.log("Quality topology valid: one consolidated provisioned job named quality.");
 console.log(
   `Temporary/one-shot cleanup candidates: ${temporaryCandidates.length}.`,
 );
