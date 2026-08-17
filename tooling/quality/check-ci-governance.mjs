@@ -28,7 +28,10 @@ if (!workflowFiles.length) fail("no versioned workflows were found");
 
 const workflowSources = new Map(
   await Promise.all(
-    workflowFiles.map(async (name) => [name, await text(`.github/workflows/${name}`)]),
+    workflowFiles.map(async (name) => [
+      name,
+      await text(`.github/workflows/${name}`),
+    ]),
   ),
 );
 
@@ -89,19 +92,39 @@ const domainContracts = [
   },
   {
     file: "business-auth-integration-contract.yml",
-    markers: ["pull_request:", "push:", "packages/business/**", "services/auth/**"],
+    markers: [
+      "pull_request:",
+      "push:",
+      "packages/business/**",
+      "services/auth/**",
+    ],
   },
   {
     file: "crm-equivalence-browser-contract.yml",
-    markers: ["pull_request:", "push:", "packages/crm/src/**", "services/crm/src/**"],
+    markers: [
+      "pull_request:",
+      "push:",
+      "packages/crm/src/**",
+      "services/crm/src/**",
+    ],
   },
   {
     file: "payments-subscription-recurrence-contract.yml",
-    markers: ["pull_request:", "push:", "packages/financial/**", "packages/ordering/**"],
+    markers: [
+      "pull_request:",
+      "push:",
+      "packages/financial/**",
+      "packages/ordering/**",
+    ],
   },
   {
     file: "ticketing-m147-contract.yml",
-    markers: ["pull_request:", "push:", "packages/ticketing/**", "services/ticketing/**"],
+    markers: [
+      "pull_request:",
+      "push:",
+      "packages/ticketing/**",
+      "services/ticketing/**",
+    ],
   },
 ];
 
@@ -117,7 +140,9 @@ for (const contract of domainContracts) {
   ]);
 }
 
-const platformContracts = await text("tooling/quality/check-platform-contracts.mjs");
+const platformContracts = await text(
+  "tooling/quality/check-platform-contracts.mjs",
+);
 requireIncludes(platformContracts, "tooling/quality/check-platform-contracts.mjs", [
   "PLATFORM-EVENT-ENVELOPE",
   "PLATFORM-OBSERVATION",
@@ -153,7 +178,9 @@ const temporaryCandidates = workflowFiles.filter(
   (name) => temporaryPattern.test(name) || name === "placeholder-invalid.yml",
 );
 
-console.log(`CI governance valid: ${workflowFiles.length} versioned workflows inspected.`);
+console.log(
+  `CI governance valid: ${workflowFiles.length} versioned workflows inspected.`,
+);
 console.log(
   `Temporary/one-shot cleanup candidates: ${temporaryCandidates.length}.`,
 );
