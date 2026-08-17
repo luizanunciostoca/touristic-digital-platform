@@ -125,7 +125,7 @@ describe("Platform production operations", () => {
     expect(generated).toMatch(/^corr_[0-9a-f-]{36}$/u);
   });
 
-  it("binds immutable release identity, correlation ID and approved import-map hashes", () => {
+  it("binds immutable release identity and hardened CSP controls", () => {
     const operations = createPlatformOperations({
       getEnvironmentValue: environment({
         MORRO_RELEASE_SHA: "abc123",
@@ -147,6 +147,7 @@ describe("Platform production operations", () => {
     expect(response.header("x-deployment-id")).toBe("deploy-42");
     const csp = response.header("content-security-policy");
     expect(csp.match(/'sha256-[^']+'/gu)).toHaveLength(3);
+    expect(csp).toContain("script-src-attr 'none'");
   });
 
   it("emits explicit rollback identity when a rollback deployment starts", () => {
