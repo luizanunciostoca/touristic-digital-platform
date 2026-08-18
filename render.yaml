@@ -52,9 +52,10 @@ services:
       - key: MERCADO_PAGO_CHECKOUT_ORIGINS
         sync: false
 
-      # Reuse the exact provider secrets already configured on the V1 Render
-      # service. Render resolves these values internally; no secret value is
-      # written to GitHub or copied through application/browser code.
+      # Approved no-rotation migration: reuse the exact provider secrets already
+      # configured on the V1 Render service. Render resolves these values inside
+      # the workspace; no secret value is written to GitHub or browser code.
+      # The existing source service must be named `morro-digital` in this workspace.
       - key: MERCADO_PAGO_ACCESS_TOKEN
         fromService:
           type: web
