@@ -16,13 +16,33 @@ for (const line of lines) {
 }
 
 const required = [
+  "PLATFORM_SHUTDOWN_READINESS_DELAY_MS",
+  "PLATFORM_SHUTDOWN_DRAIN_TIMEOUT_MS",
+  "DASHBOARD_AUTH_SECRET",
+  "DASHBOARD_AUTH_ORIGIN",
+  "DASHBOARD_USERS_JSON",
+  "AUTH_DATABASE_URL",
+  "DASHBOARD_ADMIN_GLOBAL_BYPASS_CONFIRMED",
   "ORDERING_DATABASE_URL",
   "FINANCIAL_DATABASE_URL",
+  "ORDERING_PRICING_CATALOG_JSON",
   "PAYMENTS_DESTINATION_ID",
   "PAYMENTS_RETURN_URL_ORIGINS",
+  "PAYMENTS_STATUS_TOKEN_SECRET",
+  "PAYMENTS_HANDOFF_SECRET",
   "PAYMENTS_PROVIDER_MODE",
+  "PAYMENTS_WEBHOOK_URL",
+  "PAYMENTS_WEBHOOK_TOLERANCE_SECONDS",
+  "PAYMENTS_PROVIDER_TIMEOUT_MS",
+  "PAYMENTS_PROVIDER_MAX_ATTEMPTS",
+  "PAYMENTS_PROVIDER_RETRY_BASE_MS",
   "PAYMENTS_RUNTIME_REPLICA_COUNT",
   "PAYMENTS_RATE_LIMIT_DISTRIBUTED_STORE_CONFIGURED",
+  "V1_PAYMENT_PROVIDER_API_URL",
+  "MERCADO_PAGO_ACCESS_TOKEN",
+  "MERCADO_PAGO_WEBHOOK_SECRET",
+  "MERCADO_PAGO_CHECKOUT_ORIGINS",
+  "MERCADO_PAGO_CHECKOUT_MODE",
   "AFFILIATES_DATABASE_URL",
   "AFFILIATES_DATABASE_POOL_SIZE",
 ];
@@ -40,6 +60,18 @@ if (replicas > 1 && !distributed)
     "Multi-replica Payments requires a distributed rate-limit store",
   );
 
+const checkoutMode = values.get("MERCADO_PAGO_CHECKOUT_MODE");
+if (checkoutMode !== "test" && checkoutMode !== "production") {
+  throw new Error("MERCADO_PAGO_CHECKOUT_MODE must be test or production");
+}
+
+const readinessDelay = Number(values.get("PLATFORM_SHUTDOWN_READINESS_DELAY_MS"));
+const drainTimeout = Number(values.get("PLATFORM_SHUTDOWN_DRAIN_TIMEOUT_MS"));
+if (!Number.isSafeInteger(readinessDelay) || readinessDelay < 0)
+  throw new Error("PLATFORM_SHUTDOWN_READINESS_DELAY_MS must be non-negative");
+if (!Number.isSafeInteger(drainTimeout) || drainTimeout < 1000)
+  throw new Error("PLATFORM_SHUTDOWN_DRAIN_TIMEOUT_MS must be >= 1000");
+
 console.log(
-  `Environment inventory valid: ${values.size} keys; Payments replicas=${replicas}; distributedRateLimit=${distributed}`,
+  `Environment inventory valid: ${values.size} keys; Payments replicas=${replicas}; distributedRateLimit=${distributed}; MercadoPagoMode=${checkoutMode}`,
 );
