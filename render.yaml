@@ -67,10 +67,15 @@ services:
       - key: MERCADO_PAGO_CHECKOUT_ORIGINS
         sync: false
 
-      # Approved no-rotation migration: reuse the exact provider secrets already
-      # configured on the V1 Render service. Render resolves these values inside
-      # the workspace; no secret value is written to GitHub or browser code.
-      # The existing source service must be named `morro-digital` in this workspace.
+      # Approved no-rotation migration: reuse the exact provider configuration
+      # already present on the V1 Render service. The pre-deploy gate verifies
+      # that BUSINESS_PAYMENT_API_URL is the official Mercado Pago API before
+      # allowing either inherited secret to be used by the V2 runtime.
+      - key: V1_PAYMENT_PROVIDER_API_URL
+        fromService:
+          type: web
+          name: morro-digital
+          envVarKey: BUSINESS_PAYMENT_API_URL
       - key: MERCADO_PAGO_ACCESS_TOKEN
         fromService:
           type: web
