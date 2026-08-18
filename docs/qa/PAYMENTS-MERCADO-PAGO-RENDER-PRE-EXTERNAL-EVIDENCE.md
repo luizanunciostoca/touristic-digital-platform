@@ -4,6 +4,8 @@
 
 This evidence records what is implemented and statically auditable on `feat/payments-mercado-pago-render-v2` before any claim of provider verification.
 
+Candidate head at this checkpoint: `02c177fdc437e505dc3930e7ee19bdb8b94794c4`.
+
 It does **not** promote `FEATURE-0009` / `MIG-0010` to provider-verified or production-ready.
 
 ## Implemented candidate
