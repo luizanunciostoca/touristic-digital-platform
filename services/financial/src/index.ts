@@ -19,11 +19,19 @@ import {
 } from "./mysql-verified-payment-result-feed.js";
 import {
   SandboxCheckoutProviderError,
-  createSandboxCheckoutProviderFromEnvironment,
-  createSandboxReconciliationProviderFromEnvironment,
-  createSandboxRefundProviderFromEnvironment,
+  createSandboxCheckoutProviderFromEnvironment as createSandboxCheckoutProviderFromEnvironmentInternal,
+  createSandboxReconciliationProviderFromEnvironment as createSandboxReconciliationProviderFromEnvironmentInternal,
+  createSandboxRefundProviderFromEnvironment as createSandboxRefundProviderFromEnvironmentInternal,
 } from "./sandbox-checkout-provider.js";
-import { createSandboxWebhookVerifierFromEnvironment } from "./sandbox-webhook-verifier.js";
+import { createSandboxWebhookVerifierFromEnvironment as createSandboxWebhookVerifierFromEnvironmentInternal } from "./sandbox-webhook-verifier.js";
+import {
+  MercadoPagoProviderError,
+  createMercadoPagoCheckoutProviderFromEnvironment,
+  createMercadoPagoReconciliationProviderFromEnvironment,
+  createMercadoPagoRefundProviderFromEnvironment,
+  createMercadoPagoWebhookVerifierFromEnvironment,
+  type MercadoPagoProviderEnvironment,
+} from "./mercado-pago-provider.js";
 import {
   financialM137SchemaSql,
   financialM141SchemaSql,
@@ -102,6 +110,112 @@ import {
   type SubscriptionRecurrenceObservationPort,
 } from "./subscription-recurrence-observation.js";
 
+type SandboxCheckoutEnvironment = Parameters<
+  typeof createSandboxCheckoutProviderFromEnvironmentInternal
+>[0];
+type SandboxCheckoutOptions = Parameters<
+  typeof createSandboxCheckoutProviderFromEnvironmentInternal
+>[1];
+type SandboxWebhookEnvironment = Parameters<
+  typeof createSandboxWebhookVerifierFromEnvironmentInternal
+>[0];
+type SandboxWebhookOptions = Parameters<
+  typeof createSandboxWebhookVerifierFromEnvironmentInternal
+>[1];
+type PaymentsProviderEnvironment = SandboxCheckoutEnvironment &
+  SandboxWebhookEnvironment &
+  MercadoPagoProviderEnvironment;
+
+function firstConfigured(...values: readonly (string | undefined)[]): string | undefined {
+  return values.find((value) => typeof value === "string" && value.trim())?.trim();
+}
+
+function withMercadoPagoRenderCompatibility(
+  environment: PaymentsProviderEnvironment,
+): MercadoPagoProviderEnvironment {
+  return Object.freeze({
+    ...environment,
+    MERCADO_PAGO_ACCESS_TOKEN: firstConfigured(
+      environment.MERCADO_PAGO_ACCESS_TOKEN,
+      process.env.MERCADO_PAGO_ACCESS_TOKEN,
+      environment.BUSINESS_PAYMENT_API_TOKEN,
+      process.env.BUSINESS_PAYMENT_API_TOKEN,
+    ),
+    MERCADO_PAGO_WEBHOOK_SECRET: firstConfigured(
+      environment.MERCADO_PAGO_WEBHOOK_SECRET,
+      process.env.MERCADO_PAGO_WEBHOOK_SECRET,
+      environment.BUSINESS_PAYMENT_WEBHOOK_SECRET,
+      process.env.BUSINESS_PAYMENT_WEBHOOK_SECRET,
+    ),
+    MERCADO_PAGO_CHECKOUT_ORIGINS: firstConfigured(
+      environment.MERCADO_PAGO_CHECKOUT_ORIGINS,
+      process.env.MERCADO_PAGO_CHECKOUT_ORIGINS,
+    ),
+    MERCADO_PAGO_CHECKOUT_MODE: firstConfigured(
+      environment.MERCADO_PAGO_CHECKOUT_MODE,
+      process.env.MERCADO_PAGO_CHECKOUT_MODE,
+    ),
+  });
+}
+
+export function createSandboxCheckoutProviderFromEnvironment(
+  environment: PaymentsProviderEnvironment,
+  options: SandboxCheckoutOptions = {},
+) {
+  if (environment.PAYMENTS_PROVIDER_MODE === "mercado_pago") {
+    return createMercadoPagoCheckoutProviderFromEnvironment(
+      withMercadoPagoRenderCompatibility(environment),
+      { fetch: options.fetch },
+    );
+  }
+  return createSandboxCheckoutProviderFromEnvironmentInternal(environment, options);
+}
+
+export function createSandboxRefundProviderFromEnvironment(
+  environment: PaymentsProviderEnvironment,
+  options: SandboxCheckoutOptions = {},
+) {
+  if (environment.PAYMENTS_PROVIDER_MODE === "mercado_pago") {
+    return createMercadoPagoRefundProviderFromEnvironment(
+      withMercadoPagoRenderCompatibility(environment),
+      { fetch: options.fetch },
+    );
+  }
+  return createSandboxRefundProviderFromEnvironmentInternal(environment, options);
+}
+
+export function createSandboxReconciliationProviderFromEnvironment(
+  environment: PaymentsProviderEnvironment,
+  options: SandboxCheckoutOptions = {},
+) {
+  if (environment.PAYMENTS_PROVIDER_MODE === "mercado_pago") {
+    return createMercadoPagoReconciliationProviderFromEnvironment(
+      withMercadoPagoRenderCompatibility(environment),
+      { fetch: options.fetch },
+    );
+  }
+  return createSandboxReconciliationProviderFromEnvironmentInternal(
+    environment,
+    options,
+  );
+}
+
+export function createSandboxWebhookVerifierFromEnvironment(
+  environment: PaymentsProviderEnvironment,
+  options: SandboxWebhookOptions = {},
+) {
+  if (environment.PAYMENTS_PROVIDER_MODE === "mercado_pago") {
+    const mercadoOptions = options.clock
+      ? { now: () => options.clock?.nowEpochMilliseconds() ?? Date.now() }
+      : {};
+    return createMercadoPagoWebhookVerifierFromEnvironment(
+      withMercadoPagoRenderCompatibility(environment),
+      mercadoOptions,
+    );
+  }
+  return createSandboxWebhookVerifierFromEnvironmentInternal(environment, options);
+}
+
 export {
   ReconciliationApplicationError,
   ReconciliationHttpTransport,
@@ -119,10 +233,11 @@ export {
   MySqlVerifiedPaymentResultRepository,
   FinancialWebhookHttpTransport,
   SandboxCheckoutProviderError,
-  createSandboxCheckoutProviderFromEnvironment,
-  createSandboxReconciliationProviderFromEnvironment,
-  createSandboxRefundProviderFromEnvironment,
-  createSandboxWebhookVerifierFromEnvironment,
+  MercadoPagoProviderError,
+  createMercadoPagoCheckoutProviderFromEnvironment,
+  createMercadoPagoReconciliationProviderFromEnvironment,
+  createMercadoPagoRefundProviderFromEnvironment,
+  createMercadoPagoWebhookVerifierFromEnvironment,
   createVerifiedPaymentOutcomeService,
   createVerifiedPaymentAccountingService,
   PaymentObservationEmitter,
@@ -180,6 +295,7 @@ export type {
   SubscriptionRecurrenceObservationPort,
   VerifiedPaymentResultCursor,
   VerifiedPaymentResultFeedPort,
+  MercadoPagoProviderEnvironment,
 };
 
 export interface FinancialMySqlEnvironment {
