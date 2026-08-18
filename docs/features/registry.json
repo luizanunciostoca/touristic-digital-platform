@@ -163,7 +163,7 @@
         "local": "LOCAL_VERIFIED",
         "mysql": "CONTAINER_VERIFIED",
         "provider": "NOT_APPLICABLE",
-        "note": "Affiliates persistence, idempotency, audit and outbox passed against local MySQL; external readback, browser and Actions remain pending."
+        "note": "Affiliates persistence, idempotency, audit and outbox passed against local MySQL; durable materialization readback, accepted/rejected persistence, retry claim and privacy/legal-hold schema are implemented in the candidate branch, while external Ordering/Financial integration, browser evidence and Actions remain pending."
       }
     },
     {
@@ -183,7 +183,7 @@
         "local": "LOCAL_VERIFIED",
         "mysql": "CONTAINER_VERIFIED",
         "provider": "NOT_APPLICABLE",
-        "note": "Ticketing server passed 31/31 tests with local MySQL, including reservation binding and transaction persistence."
+        "note": "Ticketing server passed 31/31 tests with local MySQL, including reservation binding and transaction persistence; the local browser contract smoke also covers authenticated reservation, checkout handoff, confirmation and ticket retrieval paths."
       }
     }
   ]
