@@ -226,6 +226,42 @@ function isoTimestamp(value: unknown): string {
   return Number.isFinite(parsed) ? new Date(parsed).toISOString() : "";
 }
 
+function providerMetadata(value: unknown): Record<string, unknown> | null {
+  return value !== null && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function hasAuthoritativePaymentMetadata(
+  payload: Record<string, unknown>,
+): boolean {
+  const externalReference = boundedString(payload.external_reference, 160);
+  const currency = boundedString(payload.currency_id, 8).toUpperCase();
+  const majorAmount = Number(payload.transaction_amount);
+  const metadata = providerMetadata(payload.metadata);
+  if (!externalReference || currency !== "BRL" || !Number.isFinite(majorAmount) || !metadata) {
+    return false;
+  }
+
+  const metadataPaymentId = boundedString(metadata.morro_payment_id, 160);
+  const metadataCurrency = boundedString(metadata.morro_currency, 8).toUpperCase();
+  const metadataMinorUnitsRaw = boundedString(
+    metadata.morro_amount_minor_units === undefined
+      ? ""
+      : String(metadata.morro_amount_minor_units),
+    24,
+  );
+  if (!/^[0-9]+$/u.test(metadataMinorUnitsRaw)) return false;
+  const metadataMinorUnits = Number(metadataMinorUnitsRaw);
+  if (!Number.isSafeInteger(metadataMinorUnits) || metadataMinorUnits <= 0) return false;
+
+  return (
+    metadataPaymentId === externalReference &&
+    metadataCurrency === currency &&
+    Math.round(majorAmount * 100) === metadataMinorUnits
+  );
+}
+
 function unavailable(error: unknown): never {
   if (error instanceof MercadoPagoProviderError) throw error;
   if (error instanceof ProviderRequestUnavailableError) {
@@ -296,7 +332,12 @@ export function createMercadoPagoCheckoutProviderFromEnvironment(
               auto_return: "approved",
               external_reference: request.paymentId,
               notification_url: request.webhookUrl,
-              metadata: request.metadata,
+              metadata: {
+                ...request.metadata,
+                morro_payment_id: request.paymentId,
+                morro_amount_minor_units: String(request.amount.minorUnits),
+                morro_currency: request.amount.currency,
+              },
             }),
           },
         });
@@ -519,13 +560,22 @@ function parseWebhookEnvelope(rawBody: Uint8Array): {
   dataId: string;
   action: string;
 } | null {
-  if (!(rawBody instanceof Uint8Array) || rawBody.byteLength === 0 || rawBody.byteLength > maxResponseBytes) {
+  if (
+    !(rawBody instanceof Uint8Array) ||
+    rawBody.byteLength === 0 ||
+    rawBody.byteLength > maxResponseBytes
+  ) {
     return null;
   }
   try {
-    const parsed = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(rawBody)) as Record<string, unknown>;
+    const parsed = JSON.parse(
+      new TextDecoder("utf-8", { fatal: true }).decode(rawBody),
+    ) as Record<string, unknown>;
     const data = parsed.data as Record<string, unknown> | undefined;
-    const dataId = boundedString(data?.id === undefined ? "" : String(data.id), 180);
+    const dataId = boundedString(
+      data?.id === undefined ? "" : String(data.id),
+      180,
+    );
     const action = boundedString(parsed.action, 120);
     return dataId ? { dataId, action } : null;
   } catch {
@@ -542,14 +592,22 @@ export function createMercadoPagoWebhookVerifierFromEnvironment(
   }
   const secret = webhookSecret(environment);
   accessToken(environment);
-  const tolerance = webhookToleranceSeconds(environment.PAYMENTS_WEBHOOK_TOLERANCE_SECONDS);
+  const tolerance = webhookToleranceSeconds(
+    environment.PAYMENTS_WEBHOOK_TOLERANCE_SECONDS,
+  );
   const now = options.now ?? Date.now;
 
   return Object.freeze({
-    async verify(rawBody: Uint8Array, signatureEnvelope: string): Promise<VerifiedProviderPaymentEvent | null> {
+    async verify(
+      rawBody: Uint8Array,
+      signatureEnvelope: string,
+    ): Promise<VerifiedProviderPaymentEvent | null> {
       let envelope: { signature?: unknown; requestId?: unknown };
       try {
-        envelope = JSON.parse(signatureEnvelope) as { signature?: unknown; requestId?: unknown };
+        envelope = JSON.parse(signatureEnvelope) as {
+          signature?: unknown;
+          requestId?: unknown;
+        };
       } catch {
         return null;
       }
@@ -559,12 +617,16 @@ export function createMercadoPagoWebhookVerifierFromEnvironment(
       if (!signature || !requestId || !webhook) return null;
 
       const timestamp = Number(signature.timestamp);
-      const timestampSeconds = signature.timestamp.length === 13 ? Math.floor(timestamp / 1000) : timestamp;
+      const timestampSeconds =
+        signature.timestamp.length === 13
+          ? Math.floor(timestamp / 1000)
+          : timestamp;
       const nowMilliseconds = Number(now());
       if (
         !Number.isSafeInteger(timestamp) ||
         !Number.isFinite(nowMilliseconds) ||
-        Math.abs(Math.floor(nowMilliseconds / 1000) - timestampSeconds) > tolerance
+        Math.abs(Math.floor(nowMilliseconds / 1000) - timestampSeconds) >
+          tolerance
       ) {
         return null;
       }
@@ -572,13 +634,20 @@ export function createMercadoPagoWebhookVerifierFromEnvironment(
       const manifest = `id:${webhook.dataId};request-id:${requestId};ts:${signature.timestamp};`;
       const expected = createHmac("sha256", secret).update(manifest).digest();
       const provided = Buffer.from(signature.digest, "hex");
-      if (provided.byteLength !== expected.byteLength || !timingSafeEqual(provided, expected)) {
+      if (
+        provided.byteLength !== expected.byteLength ||
+        !timingSafeEqual(provided, expected)
+      ) {
         return null;
       }
 
       let payment: Record<string, unknown> | null;
       try {
-        payment = await readMercadoPagoPayment(environment, webhook.dataId, options);
+        payment = await readMercadoPagoPayment(
+          environment,
+          webhook.dataId,
+          options,
+        );
       } catch {
         throw new MercadoPagoProviderError("MERCADO_PAGO_UNAVAILABLE");
       }
@@ -589,12 +658,17 @@ export function createMercadoPagoWebhookVerifierFromEnvironment(
         // keeps authority closed until Mercado Pago reports a terminal payment state.
         return null;
       }
+      if (!hasAuthoritativePaymentMetadata(payment)) return null;
       const externalReference = boundedString(payment.external_reference, 160);
       const occurredAt = isoTimestamp(
         payment.date_last_updated ?? payment.date_approved ?? payment.date_created,
       );
       const providerPaymentReference = String(payment.id ?? webhook.dataId);
-      if (!externalReference || !occurredAt || providerPaymentReference !== webhook.dataId) {
+      if (
+        !externalReference ||
+        !occurredAt ||
+        providerPaymentReference !== webhook.dataId
+      ) {
         return null;
       }
       const eventDigest = createHash("sha256")
