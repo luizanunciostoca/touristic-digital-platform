@@ -5,6 +5,7 @@ on:
     types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
   push:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -13,18 +14,24 @@ concurrency:
   group: quality-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+env:
+  NODE_VERSION: "22"
+  PNPM_VERSION: "10.15.0"
+  TURBO_TELEMETRY_DISABLED: "1"
+
 jobs:
   quality:
+    name: quality
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
         with:
-          version: 10.15.0
+          version: ${{ env.PNPM_VERSION }}
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
       - name: Restore Turbo lint/typecheck cache
         uses: actions/cache@v4
@@ -41,6 +48,8 @@ jobs:
         run: pnpm architecture:check
       - name: Validate Feature Registry
         run: pnpm features:check
+      - name: Validate CI and repository governance contracts
+        run: pnpm ci:governance:check
       - name: Lint
         env:
           TURBO_CACHE_DIR: /tmp/turbo-cache
@@ -50,8 +59,8 @@ jobs:
           TURBO_CACHE_DIR: /tmp/turbo-cache
         run: pnpm typecheck
       - name: Test
-        if: ${{ github.event_name == 'push' || github.event.pull_request.draft == false }}
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
         run: pnpm test
       - name: Build
-        if: ${{ github.event_name == 'push' || github.event.pull_request.draft == false }}
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
         run: pnpm build
