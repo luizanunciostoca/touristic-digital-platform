@@ -38,6 +38,13 @@ import { CrmProposalPublicHttpTransport } from "./proposals-public-http-transpor
 import { CrmReferralHttpTransport } from "./referrals-http-transport.js";
 import { crmM99ReferralsSchemaSql } from "./referrals-schema.js";
 import { crmM71SchemaSql } from "./schema.js";
+import { crmM155SchemaSql } from "./crm-settings-schema.js";
+import { MySqlCrmSettingsRepository } from "./crm-settings-service.js";
+import {
+  FilesystemCrmStorageAdapter,
+  S3CrmStorageAdapter,
+  createCrmStorageAdapterFromEnvironment,
+} from "./crm-storage-adapter.js";
 import { CrmTrialHttpTransport } from "./trials-http-transport.js";
 import {
   CrmTrialNotificationHost,
@@ -94,6 +101,11 @@ export {
   crmM94TrialsNotificationClaimSchemaSql,
   crmM95TrialsNotificationLeaseSchemaSql,
   crmM99ReferralsSchemaSql,
+  crmM155SchemaSql,
+  MySqlCrmSettingsRepository,
+  FilesystemCrmStorageAdapter,
+  S3CrmStorageAdapter,
+  createCrmStorageAdapterFromEnvironment,
 };
 export type {
   CreateCrmFollowUpSchedulerHostOptions,
@@ -171,4 +183,9 @@ export async function applyCrmM95Schema(pool: Pool): Promise<void> {
 export async function applyCrmM99Schema(pool: Pool): Promise<void> {
   await applyCrmM95Schema(pool);
   await applySqlStatements(pool, crmM99ReferralsSchemaSql);
+}
+
+export async function applyCrmM155Schema(pool: Pool): Promise<void> {
+  await applyCrmM99Schema(pool);
+  await applySqlStatements(pool, crmM155SchemaSql);
 }

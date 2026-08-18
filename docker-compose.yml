@@ -1,0 +1,73 @@
+version: "3.8"
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: morro-digital-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: dev_root_password
+      MYSQL_DATABASE: morro_digital_dev
+      MYSQL_USER: morro_dev
+      MYSQL_PASSWORD: dev_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "localhost",
+          "-u",
+          "root",
+          "-pdev_root_password",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - morro-digital
+
+  app:
+    build:
+      context: .
+      target: development
+    container_name: morro-digital-app
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      ORDERING_DATABASE_URL: mysql://morro_dev:dev_password@mysql:3306/morro_digital_dev
+      FINANCIAL_DATABASE_URL: mysql://morro_dev:dev_password@mysql:3306/morro_digital_dev
+      CRM_DATABASE_URL: mysql://morro_dev:dev_password@mysql:3306/morro_digital_dev
+      AFFILIATES_DATABASE_URL: mysql://morro_dev:dev_password@mysql:3306/morro_digital_dev
+      TICKETING_DATABASE_URL: mysql://morro_dev:dev_password@mysql:3306/morro_digital_dev
+      PAYMENTS_PROVIDER_MODE: sandbox
+      PAYMENTS_DESTINATION_ID: morro-de-sao-paulo
+      PAYMENTS_RETURN_URL_ORIGINS: http://localhost:3000
+      PAYMENTS_RUNTIME_REPLICA_COUNT: "1"
+      PAYMENTS_RATE_LIMIT_DISTRIBUTED_STORE_CONFIGURED: "false"
+      CRM_STORAGE_TYPE: filesystem
+      CRM_STORAGE_BASE_PATH: /var/crm-storage
+    ports:
+      - "3000:3000"
+      - "3001:3001"
+      - "3002:3002"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - crm_storage:/var/crm-storage
+    networks:
+      - morro-digital
+
+volumes:
+  mysql_data:
+  crm_storage:
+
+networks:
+  morro-digital:
+    driver: bridge

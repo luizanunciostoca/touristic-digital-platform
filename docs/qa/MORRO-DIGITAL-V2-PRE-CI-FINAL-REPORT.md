@@ -14,37 +14,37 @@ O repositório foi deixado no estado **READY_FOR_CI / PRE-CI OPERATIONAL READINE
 
 ## Trabalho implementado
 
-| Área | Resultado |
-|---|---|
-| Affiliates domain | Foundation `AFFILIATE-POLICY-V1` incorporada e formatada; `FEATURE-0010` permanece `migrating`, sem equivalência visual/API alegada. |
-| Affiliates persistence | Schema MySQL aditivo para accounts, memberships, referral evidence, attribution, conversions, entitlement revisions, idempotency claims, audit events, materialization requests e outbox. |
-| Affiliates application | Mutation transacional de referral/attribution com lock de Order, idempotência exata, auditoria e outbox no mesmo commit; repositories para account/membership/evidence/attribution/conversion/entitlement/materialization. |
-| Affiliates adapters/API | Adapters provider-neutral para Ordering/Financial evidence, authorization/eligibility e materialization; API autenticada, destination-scoped, correlation-aware e bloqueadora de amount/currency/payout/provider credentials no browser. |
-| Payments observability | Helper Financial sobre `Platform Observation v1` com nomes canônicos para checkout, webhook, verified outcome, refund, reconciliation, provider degradation/recovery e rate limiting. |
-| Payments topology | Guard do rate limiter de checkout que falha fechado quando há mais de uma réplica sem store distribuído. |
-| Environment reconciliation | `pnpm environment:check`, inventário em `.env.example`, `PAYMENTS_RUNTIME_REPLICA_COUNT` e flag explícita de store distribuído. |
-| Governance/documentation | Feature Registry, Master Migration Tracker, Affiliates matrix, M154 evidence, pre-CI readiness, rollback docs e evidence index reconciliados. |
+| Área                       | Resultado                                                                                                                                                                                                                                |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Affiliates domain          | Foundation `AFFILIATE-POLICY-V1` incorporada e formatada; `FEATURE-0010` permanece `migrating`, sem equivalência visual/API alegada.                                                                                                     |
+| Affiliates persistence     | Schema MySQL aditivo para accounts, memberships, referral evidence, attribution, conversions, entitlement revisions, idempotency claims, audit events, materialization requests e outbox.                                                |
+| Affiliates application     | Mutation transacional de referral/attribution com lock de Order, idempotência exata, auditoria e outbox no mesmo commit; repositories para account/membership/evidence/attribution/conversion/entitlement/materialization.               |
+| Affiliates adapters/API    | Adapters provider-neutral para Ordering/Financial evidence, authorization/eligibility e materialization; API autenticada, destination-scoped, correlation-aware e bloqueadora de amount/currency/payout/provider credentials no browser. |
+| Payments observability     | Helper Financial sobre `Platform Observation v1` com nomes canônicos para checkout, webhook, verified outcome, refund, reconciliation, provider degradation/recovery e rate limiting.                                                    |
+| Payments topology          | Guard do rate limiter de checkout que falha fechado quando há mais de uma réplica sem store distribuído.                                                                                                                                 |
+| Environment reconciliation | `pnpm environment:check`, inventário em `.env.example`, `PAYMENTS_RUNTIME_REPLICA_COUNT` e flag explícita de store distribuído.                                                                                                          |
+| Governance/documentation   | Feature Registry, Master Migration Tracker, Affiliates matrix, M154 evidence, pre-CI readiness, rollback docs e evidence index reconciliados.                                                                                            |
 
 ## Local evidence
 
-| Gate | Result |
-|---|---|
-| `pnpm format:check` | PASS |
-| `pnpm architecture:check` | PASS; 22 workspaces / canonical contracts valid |
-| `pnpm features:check` | PASS; 11 features |
-| `pnpm environment:check` | PASS; 38 documented keys; Payments replicas=1; distributed rate-limit=false |
-| `pnpm lint` | PASS |
-| `pnpm typecheck` | PASS |
-| `pnpm test` | PASS |
-| `pnpm build` | PASS; 22 workspaces |
-| `pnpm check` | PASS |
-| Browser/Auth/Payments targeted tests | 35 tests passed |
-| Financial server | 74 passed; 10 MySQL tests skipped |
-| Ordering server | 34 passed; 7 MySQL tests skipped |
-| Ticketing server | 18 passed; 13 MySQL tests skipped |
-| Affiliates domain | 8 passed |
-| Affiliates server | 3 HTTP security tests passed; 1 MySQL integration test skipped |
-| `git diff --check` | PASS |
+| Gate                                 | Result                                                                      |
+| ------------------------------------ | --------------------------------------------------------------------------- |
+| `pnpm format:check`                  | PASS                                                                        |
+| `pnpm architecture:check`            | PASS; 22 workspaces / canonical contracts valid                             |
+| `pnpm features:check`                | PASS; 11 features                                                           |
+| `pnpm environment:check`             | PASS; 38 documented keys; Payments replicas=1; distributed rate-limit=false |
+| `pnpm lint`                          | PASS                                                                        |
+| `pnpm typecheck`                     | PASS                                                                        |
+| `pnpm test`                          | PASS                                                                        |
+| `pnpm build`                         | PASS; 22 workspaces                                                         |
+| `pnpm check`                         | PASS                                                                        |
+| Browser/Auth/Payments targeted tests | 35 tests passed                                                             |
+| Financial server                     | 74 passed; 10 MySQL tests skipped                                           |
+| Ordering server                      | 34 passed; 7 MySQL tests skipped                                            |
+| Ticketing server                     | 18 passed; 13 MySQL tests skipped                                           |
+| Affiliates domain                    | 8 passed                                                                    |
+| Affiliates server                    | 3 HTTP security tests passed; 1 MySQL integration test skipped              |
+| `git diff --check`                   | PASS                                                                        |
 
 ## External blockers
 
@@ -54,17 +54,17 @@ The GitHub PR is healthy enough for CI: `OPEN`, `MERGEABLE`, `CLEAN`, head `19c4
 
 ## Commits in the published branch
 
-| Commit | Scope |
-|---|---|
-| `8b8baada` | Affiliates policy/domain foundation |
-| `1c84ec13` | Durable persistence and transactional attribution |
-| `187973e2` | Account and program membership repositories |
-| `af44c092` | Adapters, materialization and authenticated API |
-| `12b451d0` | Affiliates evidence and migration documentation |
+| Commit     | Scope                                                   |
+| ---------- | ------------------------------------------------------- |
+| `8b8baada` | Affiliates policy/domain foundation                     |
+| `1c84ec13` | Durable persistence and transactional attribution       |
+| `187973e2` | Account and program membership repositories             |
+| `af44c092` | Adapters, materialization and authenticated API         |
+| `12b451d0` | Affiliates evidence and migration documentation         |
 | `dfced91c` | Payments observation contract and topology-safe limiter |
-| `36e6e602` | Environment and rollback readiness checks |
-| `1a7493c1` | Foundation formatting normalization |
-| `19c4cb6b` | Registry, tracker and evidence index reconciliation |
+| `36e6e602` | Environment and rollback readiness checks               |
+| `1a7493c1` | Foundation formatting normalization                     |
+| `19c4cb6b` | Registry, tracker and evidence index reconciliation     |
 
 ## Required post-CI gates
 
