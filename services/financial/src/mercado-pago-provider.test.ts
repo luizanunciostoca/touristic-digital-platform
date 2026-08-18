@@ -256,13 +256,14 @@ describe("Mercado Pago payment provider adapter", () => {
     );
   });
 
-  it("authenticates webhook bytes and only promotes terminal provider state", async () => {
+  it("authenticates signed query identity and only promotes terminal provider state", async () => {
     const rawBody = Buffer.from(
       JSON.stringify({ action: "payment.updated", data: { id: "123456789" } }),
     );
     const timestamp = "1787018400";
     const requestId = "request-mercado-pago-0001";
-    const manifest = `id:123456789;request-id:${requestId};ts:${timestamp};`;
+    const dataId = "123456789";
+    const manifest = `id:${dataId};request-id:${requestId};ts:${timestamp};`;
     const digest = createHmac(
       "sha256",
       environment().MERCADO_PAGO_WEBHOOK_SECRET,
@@ -272,6 +273,7 @@ describe("Mercado Pago payment provider adapter", () => {
     const signatureEnvelope = JSON.stringify({
       signature: `ts=${timestamp},v1=${digest}`,
       requestId,
+      dataId,
     });
     const now = () => 1_787_018_400_000;
 
@@ -294,6 +296,18 @@ describe("Mercado Pago payment provider adapter", () => {
     ).resolves.toBe(true);
     await expect(
       authenticating.verify(rawBody, signatureEnvelope),
+    ).resolves.toBeNull();
+
+    const substitutedQuery = JSON.stringify({
+      signature: `ts=${timestamp},v1=${digest}`,
+      requestId,
+      dataId: "987654321",
+    });
+    await expect(
+      authenticating.verifyAuthenticity(rawBody, substitutedQuery),
+    ).resolves.toBe(false);
+    await expect(
+      authenticating.verify(rawBody, substitutedQuery),
     ).resolves.toBeNull();
 
     const terminal = createMercadoPagoWebhookVerifierFromEnvironment(
