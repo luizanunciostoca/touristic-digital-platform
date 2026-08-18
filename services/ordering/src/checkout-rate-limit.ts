@@ -63,3 +63,24 @@ export function createInMemoryCheckoutRateLimitPort(
     },
   });
 }
+
+export interface CheckoutRateLimitTopologyConfig {
+  readonly runtimeReplicaCount: number;
+  readonly distributedStoreConfigured: boolean;
+}
+
+export function createTopologySafeCheckoutRateLimitPort(
+  config: CheckoutRateLimitTopologyConfig,
+  maxKeys = 10_000,
+): CheckoutHttpRateLimitPort {
+  if (
+    !Number.isSafeInteger(config.runtimeReplicaCount) ||
+    config.runtimeReplicaCount < 1
+  ) {
+    throw new Error("CHECKOUT_RATE_LIMIT_RUNTIME_REPLICA_COUNT_INVALID");
+  }
+  if (config.runtimeReplicaCount > 1 && !config.distributedStoreConfigured) {
+    throw new Error("CHECKOUT_RATE_LIMIT_DISTRIBUTED_STORE_REQUIRED");
+  }
+  return createInMemoryCheckoutRateLimitPort(maxKeys);
+}

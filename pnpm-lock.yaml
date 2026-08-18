@@ -77,6 +77,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/search
 
+  packages/affiliates: {}
+
   packages/assistant: {}
 
   packages/auth: {}
@@ -135,6 +137,15 @@ importers:
         specifier: workspace:*
         version: link:../ordering
 
+  services/affiliates:
+    dependencies:
+      "@touristic/affiliates":
+        specifier: workspace:*
+        version: link:../../packages/affiliates
+      mysql2:
+        specifier: ^3.14.5
+        version: 3.23.3(@types/node@24.13.3)
+
   services/auth:
     dependencies:
       "@touristic/auth":
@@ -155,6 +166,9 @@ importers:
 
   services/financial:
     dependencies:
+      "@touristic/core":
+        specifier: workspace:*
+        version: link:../../packages/core
       "@touristic/financial":
         specifier: workspace:*
         version: link:../../packages/financial

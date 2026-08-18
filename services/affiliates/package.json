@@ -1,0 +1,17 @@
+{
+  "name": "@touristic/affiliates-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@touristic/affiliates": "workspace:*",
+    "mysql2": "^3.14.5"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "eslint src",
+    "test": "pnpm --filter @touristic/affiliates build && pnpm build && vitest run --passWithNoTests",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test:integration": "pnpm --filter @touristic/affiliates build && pnpm build && vitest run src/mysql-integration.test.ts"
+  }
+}

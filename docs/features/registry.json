@@ -142,9 +142,12 @@
       "name": "Programa de Afiliados",
       "domain": "affiliates",
       "wave": 9,
-      "status": "planned",
+      "status": "migrating",
       "legacySources": [],
-      "targetPackages": ["@touristic/affiliates"],
+      "targetPackages": [
+        "@touristic/affiliates",
+        "@touristic/affiliates-server"
+      ],
       "equivalence": {
         "behavior": false,
         "visual": false,
