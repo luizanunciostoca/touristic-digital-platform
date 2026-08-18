@@ -53,6 +53,8 @@ const request = createCheckoutProviderRequest({
   customer: {
     name: "Morro Digital V2 Test",
     email: required("MERCADO_PAGO_E2E_PAYER_EMAIL"),
+    phone: null,
+    document: null,
   },
   metadata: {
     purpose: "provider_e2e",
