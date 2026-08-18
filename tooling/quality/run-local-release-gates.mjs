@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
 
 const skipCheck = process.argv.includes("--skip-check");
 const packageJson = JSON.parse(
@@ -38,6 +39,12 @@ else
   );
 
 for (const [name, command, args] of commands) {
+  if (command === "node" && args[0] && !existsSync(args[0])) {
+    console.log(
+      `[local-release-gates] ${name}: NOT_CONFIGURED (missing file ${args[0]})`,
+    );
+    continue;
+  }
   if (
     command === "pnpm" &&
     args[0] === "run" &&
@@ -68,6 +75,7 @@ for (const [name, command, args] of commands) {
         "payments-predeploy",
         "mercado-pago-preflight",
         "render-smoke",
+        "affiliates-integration-smoke",
         "ticketing-browser-smoke",
         "migration-dry-run",
         "release-identity-smoke",
