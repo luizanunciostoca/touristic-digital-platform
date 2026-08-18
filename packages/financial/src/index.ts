@@ -194,6 +194,8 @@ export interface VerifiedProviderPaymentEvent {
   readonly providerEventId: ProviderEventId;
   readonly externalReference: PaymentId;
   readonly providerPaymentReference: string | null;
+  readonly amountMinorUnits: number | null;
+  readonly currency: string | null;
   readonly status: ProviderPaymentStatus;
   readonly occurredAt: string;
 }
@@ -702,6 +704,8 @@ export function normalizeVerifiedProviderPaymentEvent(
     providerEventId?: unknown;
     externalReference?: unknown;
     providerPaymentReference?: unknown;
+    amountMinorUnits?: unknown;
+    currency?: unknown;
     status?: unknown;
     occurredAt?: unknown;
   }>,
@@ -712,6 +716,18 @@ export function normalizeVerifiedProviderPaymentEvent(
     input.providerPaymentReference === null
       ? null
       : normalizeProviderText(input.providerPaymentReference, 160);
+  const amountMinorUnits =
+    input.amountMinorUnits === undefined || input.amountMinorUnits === null
+      ? null
+      : typeof input.amountMinorUnits === "number" &&
+          Number.isSafeInteger(input.amountMinorUnits) &&
+          input.amountMinorUnits > 0
+        ? input.amountMinorUnits
+        : null;
+  const currency =
+    input.currency === undefined || input.currency === null
+      ? null
+      : normalizeCurrencyCode(input.currency);
   const status =
     typeof input.status === "string" &&
     providerPaymentStatuses.includes(input.status as ProviderPaymentStatus)
@@ -723,6 +739,10 @@ export function normalizeVerifiedProviderPaymentEvent(
     !externalReference ||
     (providerPaymentReference !== null &&
       !PROVIDER_REFERENCE.test(providerPaymentReference)) ||
+    (input.amountMinorUnits !== undefined &&
+      input.amountMinorUnits !== null &&
+      amountMinorUnits === null) ||
+    (input.currency !== undefined && input.currency !== null && !currency) ||
     !status ||
     !occurredAt
   ) {
@@ -732,6 +752,8 @@ export function normalizeVerifiedProviderPaymentEvent(
     providerEventId,
     externalReference,
     providerPaymentReference,
+    amountMinorUnits,
+    currency,
     status,
     occurredAt: new Date(occurredAt).toISOString(),
   });
@@ -897,6 +919,17 @@ export function applyVerifiedProviderPaymentEvent(
     payment.providerReference !== null &&
     event.providerPaymentReference !== null &&
     payment.providerReference !== event.providerPaymentReference
+  ) {
+    return Object.freeze({
+      disposition: "deferred" as const,
+      payment,
+      resultKind: null,
+    });
+  }
+  if (
+    (event.amountMinorUnits !== null &&
+      event.amountMinorUnits !== payment.amount.minorUnits) ||
+    (event.currency !== null && event.currency !== payment.amount.currency)
   ) {
     return Object.freeze({
       disposition: "deferred" as const,

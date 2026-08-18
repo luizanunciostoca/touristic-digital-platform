@@ -40,6 +40,7 @@ function payment(status: Payment["status"] = "pending"): Payment {
 function event(
   status: "paid" | "failed" | "cancelled" | "expired" | "refunded",
   occurredAt = "2026-08-14T23:21:00Z",
+  overrides: Readonly<Record<string, unknown>> = {},
 ) {
   const value = normalizeVerifiedProviderPaymentEvent({
     providerEventId: "pwe_verified_transition_0001",
@@ -47,6 +48,7 @@ function event(
     providerPaymentReference: "sandbox_verified_payment_0001",
     status,
     occurredAt,
+    ...overrides,
   });
   if (!value) throw new Error("EVENT_FIXTURE_INVALID");
   return value;
@@ -94,6 +96,24 @@ describe("M142 verified Payment transition", () => {
       },
       resultKind: "refunded",
     });
+  });
+
+  it("defers terminal transition when provider amount differs from Payment", () => {
+    expect(
+      applyVerifiedProviderPaymentEvent(
+        payment(),
+        event("paid", "2026-08-14T23:21:00Z", { amountMinorUnits: 49_901 }),
+      ),
+    ).toMatchObject({ disposition: "deferred", resultKind: null });
+  });
+
+  it("defers terminal transition when provider currency differs from Payment", () => {
+    expect(
+      applyVerifiedProviderPaymentEvent(
+        payment(),
+        event("paid", "2026-08-14T23:21:00Z", { currency: "USD" }),
+      ),
+    ).toMatchObject({ disposition: "deferred", resultKind: null });
   });
 
   it("rejects forged result kind/status pairs", () => {

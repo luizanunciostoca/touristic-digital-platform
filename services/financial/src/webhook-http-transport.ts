@@ -23,6 +23,14 @@ import type {
 
 export const sandboxWebhookPath = "/api/payments/v1/webhooks/sandbox";
 
+interface AuthenticatingFinancialWebhookVerifierPort
+  extends FinancialWebhookVerifierPort {
+  readonly verifyAuthenticity?: (
+    rawBody: Uint8Array,
+    signature: string,
+  ) => Promise<boolean>;
+}
+
 export interface FinancialWebhookHttpRequest {
   readonly method: string;
   readonly pathname: string;
@@ -84,6 +92,26 @@ function header(
   return "";
 }
 
+function isMercadoPagoWebhook(
+  headers: Readonly<Record<string, unknown>>,
+): boolean {
+  return Boolean(header(headers, "x-signature") && header(headers, "x-request-id"));
+}
+
+function verifierSignature(headers: Readonly<Record<string, unknown>>): string {
+  const mercadoPagoSignature = header(headers, "x-signature");
+  const mercadoPagoRequestId = header(headers, "x-request-id");
+  const mercadoPagoDataId = header(headers, "x-morro-provider-data-id");
+  if (mercadoPagoSignature && mercadoPagoRequestId) {
+    return JSON.stringify({
+      signature: mercadoPagoSignature,
+      requestId: mercadoPagoRequestId,
+      dataId: mercadoPagoDataId,
+    });
+  }
+  return header(headers, "x-sandbox-signature");
+}
+
 function response(
   status: number,
   body: Readonly<Record<string, unknown>>,
@@ -140,7 +168,8 @@ export class FinancialWebhookHttpTransport {
       });
     }
 
-    const signature = header(request.headers, "x-sandbox-signature");
+    const mercadoPago = isMercadoPagoWebhook(request.headers);
+    const signature = verifierSignature(request.headers);
     let event: VerifiedProviderPaymentEvent | null;
     try {
       event = signature
@@ -162,6 +191,60 @@ export class FinancialWebhookHttpTransport {
       return response(503, { error: "WEBHOOK_UNAVAILABLE" }, correlationId);
     }
     if (!event) {
+      const authenticatingVerifier = this.dependencies
+        .verifier as AuthenticatingFinancialWebhookVerifierPort;
+      if (
+        mercadoPago &&
+        signature &&
+        typeof authenticatingVerifier.verifyAuthenticity === "function"
+      ) {
+        let authentic = false;
+        try {
+          authentic = await authenticatingVerifier.verifyAuthenticity(
+            request.rawBody,
+            signature,
+          );
+        } catch {
+          await audit(this.dependencies.audit, {
+            action: "webhook.receive",
+            result: "failure",
+            reason: "verifier_unavailable",
+            correlationId,
+            providerEventId: null,
+            status: null,
+            matched: null,
+            replayed: null,
+            outcome: null,
+            accounting: null,
+          });
+          return response(503, { error: "WEBHOOK_UNAVAILABLE" }, correlationId);
+        }
+        if (authentic) {
+          await audit(this.dependencies.audit, {
+            action: "webhook.receive",
+            result: "success",
+            reason: "accepted_non_terminal",
+            correlationId,
+            providerEventId: null,
+            status: null,
+            matched: null,
+            replayed: null,
+            outcome: null,
+            accounting: null,
+          });
+          return response(
+            200,
+            {
+              data: Object.freeze({
+                accepted: true,
+                terminal: false,
+              }),
+            },
+            correlationId,
+          );
+        }
+      }
+
       await audit(this.dependencies.audit, {
         action: "webhook.receive",
         result: "denied",
@@ -225,7 +308,7 @@ export class FinancialWebhookHttpTransport {
         accounting: accounting.disposition,
       });
       return response(
-        202,
+        mercadoPago ? 200 : 202,
         {
           data: Object.freeze({
             accepted: true,

@@ -158,7 +158,7 @@ function auditSafely(audit, event) {
 export function createTicketingAuthorizationPort({ authApi }) {
   return Object.freeze({
     async authorize(request, { mutation, admin = false }) {
-      const active = authApi.resolveSession(request);
+      const active = await authApi.resolveSession(request);
       if (!active) {
         return Object.freeze({
           allowed: false,

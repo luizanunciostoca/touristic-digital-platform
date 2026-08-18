@@ -1,0 +1,123 @@
+services:
+  - type: web
+    name: morro-digital-v2
+    runtime: node
+    region: virginia
+    plan: starter
+    buildCommand: corepack enable && corepack prepare pnpm@10.15.0 --activate && pnpm install --frozen-lockfile && pnpm build
+    preDeployCommand: node apps/morro-digital-platform/tooling/payments-migrate.mjs
+    startCommand: node apps/morro-digital-platform/tooling/dev-server.mjs
+    healthCheckPath: /readyz
+    maxShutdownDelaySeconds: 30
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+
+      # Production Auth boundary used by Payments authenticated authority.
+      - key: DASHBOARD_AUTH_SECRET
+        generateValue: true
+      - key: DASHBOARD_USERS_JSON
+        sync: false
+      - key: DASHBOARD_AUTH_ORIGIN
+        sync: false
+      - key: DASHBOARD_SESSION_TTL_SECONDS
+        value: "28800"
+      - key: AUTH_DATABASE_URL
+        sync: false
+      # Set true only when the configured production user set intentionally
+      # contains a global admin. Leaving it false/unset fails readiness closed.
+      - key: DASHBOARD_ADMIN_GLOBAL_BYPASS_CONFIRMED
+        sync: false
+
+      # Platform readiness / graceful shutdown. Release SHA/branch/instance
+      # identity is derived automatically from Render-provided runtime variables.
+      - key: PLATFORM_SHUTDOWN_READINESS_DELAY_MS
+        value: "5000"
+      - key: PLATFORM_SHUTDOWN_DRAIN_TIMEOUT_MS
+        value: "15000"
+
+      # Durable domain databases. Keep Ordering and Financial isolated.
+      - key: ORDERING_DATABASE_URL
+        sync: false
+      - key: FINANCIAL_DATABASE_URL
+        sync: false
+      - key: ORDERING_PRICING_CATALOG_JSON
+        sync: false
+
+      # Checkout authority and public-return policy.
+      - key: PAYMENTS_DESTINATION_ID
+        value: morro-de-sao-paulo
+      - key: PAYMENTS_RETURN_URL_ORIGINS
+        sync: false
+      - key: PAYMENTS_STATUS_TOKEN_SECRET
+        generateValue: true
+      - key: PAYMENTS_HANDOFF_SECRET
+        generateValue: true
+      - key: PAYMENTS_STATUS_TOKEN_TTL_SECONDS
+        value: "86400"
+
+      # Provider selection. Start in Mercado Pago test checkout mode; production
+      # must be enabled only after provider E2E and webhook/readback validation.
+      - key: PAYMENTS_PROVIDER_MODE
+        value: mercado_pago
+      - key: MERCADO_PAGO_CHECKOUT_MODE
+        value: test
+      # Checkout Pro's current API reference documents sandbox_init_point on this
+      # exact HTTPS origin. The adapter rejects every other origin. Revalidate the
+      # actual provider response during preflight before any production cutover.
+      - key: MERCADO_PAGO_CHECKOUT_ORIGINS
+        value: https://sandbox.mercadopago.com
+
+      # Approved no-rotation migration: reuse the exact provider configuration
+      # already present on the V1 Render service. The pre-deploy gate verifies
+      # that BUSINESS_PAYMENT_API_URL is the official Mercado Pago API before
+      # allowing either inherited secret to be used by the V2 runtime.
+      - key: V1_PAYMENT_PROVIDER_API_URL
+        fromService:
+          type: web
+          name: morro-digital
+          envVarKey: BUSINESS_PAYMENT_API_URL
+      - key: MERCADO_PAGO_ACCESS_TOKEN
+        fromService:
+          type: web
+          name: morro-digital
+          envVarKey: BUSINESS_PAYMENT_API_TOKEN
+      - key: MERCADO_PAGO_WEBHOOK_SECRET
+        fromService:
+          type: web
+          name: morro-digital
+          envVarKey: BUSINESS_PAYMENT_WEBHOOK_SECRET
+
+      - key: PAYMENTS_WEBHOOK_URL
+        sync: false
+      - key: PAYMENTS_WEBHOOK_TOLERANCE_SECONDS
+        value: "300"
+      - key: PAYMENTS_PROVIDER_TIMEOUT_MS
+        value: "8000"
+      - key: PAYMENTS_PROVIDER_MAX_ATTEMPTS
+        value: "2"
+      - key: PAYMENTS_PROVIDER_RETRY_BASE_MS
+        value: "100"
+
+      # Current rate limiter is process-local and therefore requires one replica.
+      - key: PAYMENTS_RUNTIME_REPLICA_COUNT
+        value: "1"
+      - key: PAYMENTS_RATE_LIMIT_DISTRIBUTED_STORE_CONFIGURED
+        value: "false"
+
+      # Existing browser/runtime provider configuration. Keep public and secret
+      # values separated exactly as in the repository environment contract.
+      - key: VITE_MAPBOX_ACCESS_TOKEN
+        sync: false
+      - key: VITE_MAPBOX_STYLE
+        sync: false
+      - key: VITE_MAPBOX_CONTAINER_ID
+        value: map
+      - key: VITE_MAPBOX_INITIAL_ZOOM
+        value: "14"
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-4o-mini

@@ -1,8 +1,9 @@
 import { authorizeBusinessAccess } from "@touristic/auth";
 import {
   authenticateConfiguredUser,
-  createAuthRevocationStore,
+  createInMemoryAuthSecurityState,
   createSessionToken,
+  createSqlAuthSecurityState,
   csrfTokenForSession,
   isSameOriginAllowed,
   parseConfiguredUsers,
@@ -13,6 +14,7 @@ import {
   verifyCsrfToken,
   verifySessionToken,
 } from "@touristic/auth-server";
+import { createCrmMySqlPoolFromEnvironment } from "@touristic/crm-server";
 
 const authPrefix = "/api/dashboard/auth";
 const loginWindowMs = 15 * 60 * 1000;
@@ -57,22 +59,15 @@ function publicOrigin(request, configuredOrigin, production) {
   return host ? `http://${host}` : "";
 }
 
-function createLoginLimiter() {
-  const attempts = new Map();
-  return {
-    allow(key, now = Date.now()) {
-      const recent = (attempts.get(key) || []).filter(
-        (timestamp) => now - timestamp < loginWindowMs,
-      );
-      if (recent.length >= loginLimit) {
-        attempts.set(key, recent);
-        return false;
-      }
-      recent.push(now);
-      attempts.set(key, recent);
-      return true;
-    },
-  };
+function safeErrorCode(error) {
+  if (!error) return "unknown";
+  if (typeof error === "object" && typeof error.code === "string") {
+    return error.code.slice(0, 120);
+  }
+  if (error instanceof Error && error.message) {
+    return error.message.slice(0, 120);
+  }
+  return "unknown";
 }
 
 export function createAuthApi({ getEnvironmentValue, audit = () => {} }) {
@@ -82,28 +77,115 @@ export function createAuthApi({ getEnvironmentValue, audit = () => {} }) {
   const usersJson = getEnvironmentValue("DASHBOARD_USERS_JSON") || "";
   const production = getEnvironmentValue("NODE_ENV") === "production";
   const configuredOrigin = getEnvironmentValue("DASHBOARD_AUTH_ORIGIN") || "";
+  const authDatabaseUrl = String(
+    getEnvironmentValue("AUTH_DATABASE_URL") || "",
+  ).trim();
+  const adminGlobalBypassConfirmed =
+    String(getEnvironmentValue("DASHBOARD_ADMIN_GLOBAL_BYPASS_CONFIRMED") || "")
+      .trim()
+      .toLowerCase() === "true";
   const ttlRaw = Number(
     getEnvironmentValue("DASHBOARD_SESSION_TTL_SECONDS") || 8 * 60 * 60,
   );
   const ttlSeconds = Number.isFinite(ttlRaw) ? ttlRaw : 8 * 60 * 60;
   const secureCookie = production;
-  const revocations = createAuthRevocationStore();
-  const limiter = createLoginLimiter();
+
+  let securityState;
+  let durableSecurityStateCreated = false;
+  try {
+    if (authDatabaseUrl) {
+      const pool = createCrmMySqlPoolFromEnvironment({
+        CRM_DATABASE_URL: authDatabaseUrl,
+      });
+      securityState = createSqlAuthSecurityState(pool);
+      durableSecurityStateCreated = true;
+    } else {
+      securityState = createInMemoryAuthSecurityState();
+    }
+  } catch (error) {
+    durableSecurityStateCreated = false;
+    securityState = createInMemoryAuthSecurityState();
+    audit(null, {
+      action: "dashboard.security_state",
+      result: "unavailable",
+      reason: safeErrorCode(error),
+    });
+  }
 
   let users = [];
   let configurationError = null;
+  let securityStateInitialized = false;
+  let securityStateHealthy = false;
+  let securityStateError = null;
+  let stopped = false;
+
   try {
     users = parseConfiguredUsers(usersJson);
   } catch (error) {
     configurationError = error;
   }
 
-  const configured = () =>
-    secret.length >= 32 &&
-    !configurationError &&
-    users.length > 0 &&
-    (!production ||
-      Boolean(publicOrigin({ headers: {} }, configuredOrigin, true)));
+  const hasGlobalAdmin = users.some((user) => user.role === "admin");
+  const productionSecurityConfigured =
+    !production ||
+    (durableSecurityStateCreated &&
+      (!hasGlobalAdmin || adminGlobalBypassConfirmed));
+
+  function baseConfigured() {
+    return (
+      secret.length >= 32 &&
+      !configurationError &&
+      users.length > 0 &&
+      productionSecurityConfigured &&
+      (!production ||
+        Boolean(publicOrigin({ headers: {} }, configuredOrigin, true)))
+    );
+  }
+
+  const configured = () => baseConfigured() && securityStateInitialized;
+
+  function markSecurityHealthy() {
+    securityStateHealthy = true;
+    securityStateError = null;
+  }
+
+  function markSecurityFailure(error) {
+    securityStateHealthy = false;
+    securityStateError = safeErrorCode(error);
+  }
+
+  function readinessCheck() {
+    if (!baseConfigured()) {
+      const reason = !productionSecurityConfigured
+        ? !authDatabaseUrl
+          ? "AUTH_DATABASE_URL_REQUIRED_IN_PRODUCTION"
+          : !durableSecurityStateCreated
+            ? "AUTH_DURABLE_SECURITY_STATE_INVALID"
+            : "ADMIN_GLOBAL_BYPASS_CONFIRMATION_REQUIRED"
+        : configurationError
+          ? "DASHBOARD_USERS_JSON_INVALID"
+          : secret.length < 32
+            ? "DASHBOARD_AUTH_SECRET_INVALID"
+            : users.length === 0
+              ? "DASHBOARD_USERS_REQUIRED"
+              : "DASHBOARD_AUTH_ORIGIN_REQUIRED";
+      return Object.freeze({ status: "fail", critical: true, detail: reason });
+    }
+    if (!securityStateInitialized || !securityStateHealthy) {
+      return Object.freeze({
+        status: "fail",
+        critical: true,
+        detail: securityStateError || "AUTH_SECURITY_STATE_NOT_READY",
+      });
+    }
+    return Object.freeze({
+      status: "pass",
+      critical: true,
+      detail: durableSecurityStateCreated
+        ? "shared-durable"
+        : "process-local-development",
+    });
+  }
 
   function originAllowed(request) {
     const expectedOrigin = publicOrigin(request, configuredOrigin, production);
@@ -115,11 +197,24 @@ export function createAuthApi({ getEnvironmentValue, audit = () => {} }) {
     });
   }
 
-  function currentSession(request) {
+  async function currentSession(request) {
     if (!configured()) return null;
     const cookies = parseCookies(firstHeader(request.headers.cookie));
     const verified = verifySessionToken(cookies[sessionCookieName], secret);
-    if (!verified || revocations.isRevoked(verified.sessionId)) return null;
+    if (!verified) return null;
+    try {
+      const revoked = await securityState.isRevoked(verified.sessionId);
+      markSecurityHealthy();
+      if (revoked) return null;
+    } catch (error) {
+      markSecurityFailure(error);
+      audit(request, {
+        action: "dashboard.security_state",
+        result: "unavailable",
+        reason: securityStateError,
+      });
+      return null;
+    }
     const currentUser = users.find((user) => user.id === verified.subject);
     if (!currentUser) return null;
     return Object.freeze({
@@ -152,13 +247,17 @@ export function createAuthApi({ getEnvironmentValue, audit = () => {} }) {
     });
   }
 
-  function requireSession(request, response) {
+  async function requireSession(request, response) {
     if (!configured()) {
       unavailable(response);
       return null;
     }
-    const session = currentSession(request);
+    const session = await currentSession(request);
     if (!session) {
+      if (!securityStateHealthy) {
+        unavailable(response);
+        return null;
+      }
       audit(request, {
         action: "dashboard.session",
         result: "denied",
@@ -203,13 +302,13 @@ export function createAuthApi({ getEnvironmentValue, audit = () => {} }) {
     return Object.freeze({ allowed: true });
   }
 
-  function authorizeBusinessRequest(
+  async function authorizeBusinessRequest(
     request,
     response,
     businessIdInput,
     { mutation = false, auditAction = "business.resource" } = {},
   ) {
-    const active = requireSession(request, response);
+    const active = await requireSession(request, response);
     if (!active) return null;
     if (mutation && !originAllowed(request)) {
       audit(request, {
@@ -268,6 +367,17 @@ export function createAuthApi({ getEnvironmentValue, audit = () => {} }) {
         });
       return null;
     }
+    if (
+      active.role === "admin" &&
+      !active.businessIds.includes(decision.businessId)
+    ) {
+      audit(request, {
+        action: "dashboard.admin_global_tenant_bypass",
+        result: "allowed",
+        reason: production ? "operator_confirmed" : "development",
+        businessId: decision.businessId,
+      });
+    }
     return Object.freeze({ session: active, businessId: decision.businessId });
   }
 
@@ -290,7 +400,29 @@ export function createAuthApi({ getEnvironmentValue, audit = () => {} }) {
     }
 
     const limiterKey = request.socket?.remoteAddress || "unknown";
-    if (!limiter.allow(limiterKey)) {
+    let allowed;
+    try {
+      allowed = await securityState.consumeLoginAttempt(limiterKey, {
+        windowMs: loginWindowMs,
+        limit: loginLimit,
+      });
+      markSecurityHealthy();
+    } catch (error) {
+      markSecurityFailure(error);
+      audit(request, {
+        action: "dashboard.login_rate_limit",
+        result: "unavailable",
+        reason: securityStateError,
+      });
+      unavailable(response);
+      return;
+    }
+    if (!allowed) {
+      audit(request, {
+        action: "dashboard.login_rate_limit",
+        result: "denied",
+        reason: "limit_exceeded",
+      });
       json(response, 429, {
         error: "RATE_LIMITED",
         message: "Muitas tentativas de login. Tente novamente mais tarde.",
@@ -356,8 +488,8 @@ export function createAuthApi({ getEnvironmentValue, audit = () => {} }) {
     json(response, 200, { success: true, ...payload });
   }
 
-  function session(request, response) {
-    const active = requireSession(request, response);
+  async function session(request, response) {
+    const active = await requireSession(request, response);
     if (!active) return;
     const payload = sessionPayload(active);
     if (!payload) {
@@ -368,8 +500,8 @@ export function createAuthApi({ getEnvironmentValue, audit = () => {} }) {
     json(response, 200, payload);
   }
 
-  function logout(request, response) {
-    const active = requireSession(request, response);
+  async function logout(request, response) {
+    const active = await requireSession(request, response);
     if (!active) return;
 
     if (!originAllowed(request)) {
@@ -415,7 +547,19 @@ export function createAuthApi({ getEnvironmentValue, audit = () => {} }) {
       return;
     }
 
-    revocations.revoke(active);
+    try {
+      await securityState.revoke(active);
+      markSecurityHealthy();
+    } catch (error) {
+      markSecurityFailure(error);
+      audit(request, {
+        action: "dashboard.logout",
+        result: "unavailable",
+        reason: securityStateError,
+      });
+      unavailable(response);
+      return;
+    }
     response.setHeader(
       "Set-Cookie",
       serializeClearedSessionCookie(secureCookie),
@@ -428,6 +572,42 @@ export function createAuthApi({ getEnvironmentValue, audit = () => {} }) {
     authorizeBusinessRequest,
     authorizeMutation,
     resolveSession: currentSession,
+    readinessCheck,
+
+    async start() {
+      if (stopped) throw new Error("AUTH_RUNTIME_ALREADY_STOPPED");
+      if (production && !durableSecurityStateCreated) {
+        securityStateError = authDatabaseUrl
+          ? "AUTH_DURABLE_SECURITY_STATE_INVALID"
+          : "AUTH_DATABASE_URL_REQUIRED_IN_PRODUCTION";
+        return;
+      }
+      try {
+        await securityState.initialize();
+        securityStateInitialized = true;
+        markSecurityHealthy();
+      } catch (error) {
+        securityStateInitialized = false;
+        markSecurityFailure(error);
+        audit(null, {
+          action: "dashboard.security_state",
+          result: "unavailable",
+          reason: securityStateError,
+        });
+      }
+    },
+
+    async stop() {
+      if (stopped) return;
+      stopped = true;
+      try {
+        await securityState.close();
+      } finally {
+        securityStateInitialized = false;
+        securityStateHealthy = false;
+      }
+    },
+
     matches(pathname) {
       return (
         pathname === `${authPrefix}/login` ||
@@ -441,11 +621,11 @@ export function createAuthApi({ getEnvironmentValue, audit = () => {} }) {
         return;
       }
       if (pathname === `${authPrefix}/session` && request.method === "GET") {
-        session(request, response);
+        await session(request, response);
         return;
       }
       if (pathname === `${authPrefix}/logout` && request.method === "POST") {
-        logout(request, response);
+        await logout(request, response);
         return;
       }
       json(response, 405, { error: "METHOD_NOT_ALLOWED" });
