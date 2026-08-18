@@ -96,6 +96,11 @@ import {
   type PaymentObservationName,
   type PaymentObservationSink,
 } from "./payment-observation.js";
+import {
+  createSubscriptionRecurrenceObservationService,
+  type SubscriptionRecurrenceObservationInput,
+  type SubscriptionRecurrenceObservationPort,
+} from "./subscription-recurrence-observation.js";
 
 export {
   ReconciliationApplicationError,
@@ -122,6 +127,7 @@ export {
   createVerifiedPaymentAccountingService,
   PaymentObservationEmitter,
   createPaymentObservation,
+  createSubscriptionRecurrenceObservationService,
   financialM137SchemaSql,
   financialM141SchemaSql,
   financialM142SchemaSql,
@@ -170,6 +176,8 @@ export type {
   PaymentObservationInput,
   PaymentObservationName,
   PaymentObservationSink,
+  SubscriptionRecurrenceObservationInput,
+  SubscriptionRecurrenceObservationPort,
   VerifiedPaymentResultCursor,
   VerifiedPaymentResultFeedPort,
 };

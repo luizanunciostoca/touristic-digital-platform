@@ -14,7 +14,13 @@ export type PaymentObservationName =
   | "payments.reconciliation.completed"
   | "payments.provider.degraded"
   | "payments.provider.recovered"
-  | "payments.rate_limited";
+  | "payments.rate_limited"
+  | "payments.subscription.renewal.claimed"
+  | "payments.subscription.renewal.succeeded"
+  | "payments.subscription.renewal.failed"
+  | "payments.subscription.past_due"
+  | "payments.subscription.retry_exhausted"
+  | "payments.subscription.cancelled";
 
 export interface PaymentObservationInput {
   readonly name: PaymentObservationName;
