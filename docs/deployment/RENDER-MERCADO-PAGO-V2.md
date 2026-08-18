@@ -4,6 +4,8 @@
 
 Reutilizar a infraestrutura Render e as mesmas credenciais de pagamento já configuradas na V1 sem expor, duplicar manualmente ou rotacionar os valores secretos, sem interromper a V1 durante a validação e sem enfraquecer a autoridade financeira da V2.
 
+A estratégia de migração aprovada é **no-rotation**: V1 e V2 usam a mesma identidade/credenciais do provider durante a janela de transição. A V1 permanece disponível como rollback até a conclusão dos gates da V2.
+
 A V2 mantém a cadeia de autoridade:
 
 ```text
