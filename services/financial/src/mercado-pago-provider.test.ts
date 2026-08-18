@@ -87,6 +87,54 @@ function response(payload: unknown, status = 200): Response {
   });
 }
 
+function webhookFixture() {
+  const rawBody = Buffer.from(
+    JSON.stringify({ action: "payment.updated", data: { id: "123456789" } }),
+  );
+  const timestamp = "1787018400";
+  const requestId = "request-mercado-pago-0001";
+  const dataId = "123456789";
+  const manifest = `id:${dataId};request-id:${requestId};ts:${timestamp};`;
+  const digest = createHmac(
+    "sha256",
+    environment().MERCADO_PAGO_WEBHOOK_SECRET,
+  )
+    .update(manifest)
+    .digest("hex");
+  return {
+    rawBody,
+    signatureEnvelope: JSON.stringify({
+      signature: `ts=${timestamp},v1=${digest}`,
+      requestId,
+      dataId,
+    }),
+    timestamp,
+    requestId,
+    dataId,
+    digest,
+    now: () => 1_787_018_400_000,
+  };
+}
+
+function authoritativePaymentReadback(
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
+  return {
+    id: 123456789,
+    status: "approved",
+    external_reference: "pay_mercado_pago_0001",
+    currency_id: "BRL",
+    transaction_amount: 499,
+    date_last_updated: "2026-08-17T23:00:00Z",
+    metadata: {
+      morro_payment_id: "pay_mercado_pago_0001",
+      morro_amount_minor_units: "49900",
+      morro_currency: "BRL",
+    },
+    ...overrides,
+  };
+}
+
 describe("Mercado Pago payment provider adapter", () => {
   it("creates Checkout Pro preference from authoritative Financial values", async () => {
     let capturedUrl = "";
@@ -138,6 +186,12 @@ describe("Mercado Pago payment provider adapter", () => {
       notification_url:
         "https://v2.morro.digital/api/payments/v1/webhooks/sandbox",
       auto_return: "approved",
+      metadata: {
+        orderId: "ord_mercado_pago_0001",
+        morro_payment_id: "pay_mercado_pago_0001",
+        morro_amount_minor_units: "49900",
+        morro_currency: "BRL",
+      },
     });
   });
 
@@ -256,26 +310,8 @@ describe("Mercado Pago payment provider adapter", () => {
     );
   });
 
-  it("authenticates signed query identity and only promotes terminal provider state", async () => {
-    const rawBody = Buffer.from(
-      JSON.stringify({ action: "payment.updated", data: { id: "123456789" } }),
-    );
-    const timestamp = "1787018400";
-    const requestId = "request-mercado-pago-0001";
-    const dataId = "123456789";
-    const manifest = `id:${dataId};request-id:${requestId};ts:${timestamp};`;
-    const digest = createHmac(
-      "sha256",
-      environment().MERCADO_PAGO_WEBHOOK_SECRET,
-    )
-      .update(manifest)
-      .digest("hex");
-    const signatureEnvelope = JSON.stringify({
-      signature: `ts=${timestamp},v1=${digest}`,
-      requestId,
-      dataId,
-    });
-    const now = () => 1_787_018_400_000;
+  it("authenticates signed query identity and only promotes amount-bound terminal provider state", async () => {
+    const fixture = webhookFixture();
 
     const pendingFetch: typeof fetch = () =>
       Promise.resolve(
@@ -289,49 +325,104 @@ describe("Mercado Pago payment provider adapter", () => {
     const authenticating =
       createMercadoPagoAuthenticatingWebhookVerifierFromEnvironment(
         environment(),
-        { fetch: pendingFetch, now },
+        { fetch: pendingFetch, now: fixture.now },
       );
     await expect(
-      authenticating.verifyAuthenticity(rawBody, signatureEnvelope),
+      authenticating.verifyAuthenticity(
+        fixture.rawBody,
+        fixture.signatureEnvelope,
+      ),
     ).resolves.toBe(true);
     await expect(
-      authenticating.verify(rawBody, signatureEnvelope),
+      authenticating.verify(fixture.rawBody, fixture.signatureEnvelope),
     ).resolves.toBeNull();
 
     const substitutedQuery = JSON.stringify({
-      signature: `ts=${timestamp},v1=${digest}`,
-      requestId,
+      signature: `ts=${fixture.timestamp},v1=${fixture.digest}`,
+      requestId: fixture.requestId,
       dataId: "987654321",
     });
     await expect(
-      authenticating.verifyAuthenticity(rawBody, substitutedQuery),
+      authenticating.verifyAuthenticity(fixture.rawBody, substitutedQuery),
     ).resolves.toBe(false);
     await expect(
-      authenticating.verify(rawBody, substitutedQuery),
+      authenticating.verify(fixture.rawBody, substitutedQuery),
     ).resolves.toBeNull();
 
-    const terminal = createMercadoPagoWebhookVerifierFromEnvironment(
+    const terminal = createMercadoPagoAuthenticatingWebhookVerifierFromEnvironment(
       environment(),
       {
-        now,
-        fetch: () =>
-          Promise.resolve(
-            response({
-              id: 123456789,
-              status: "approved",
-              external_reference: "pay_mercado_pago_0001",
-              date_last_updated: "2026-08-17T23:00:00Z",
-            }),
-          ),
+        now: fixture.now,
+        fetch: () => Promise.resolve(response(authoritativePaymentReadback())),
       },
     );
     await expect(
-      terminal.verify(rawBody, signatureEnvelope),
+      terminal.verify(fixture.rawBody, fixture.signatureEnvelope),
     ).resolves.toMatchObject({
       externalReference: "pay_mercado_pago_0001",
       providerPaymentReference: "123456789",
       status: "paid",
       occurredAt: "2026-08-17T23:00:00.000Z",
     });
+  });
+
+  it("refuses terminal promotion when provider readback amount or currency drifts from authoritative metadata", async () => {
+    const fixture = webhookFixture();
+    const wrongAmount = createMercadoPagoAuthenticatingWebhookVerifierFromEnvironment(
+      environment(),
+      {
+        now: fixture.now,
+        fetch: () =>
+          Promise.resolve(
+            response(authoritativePaymentReadback({ transaction_amount: 498 })),
+          ),
+      },
+    );
+    await expect(
+      wrongAmount.verify(fixture.rawBody, fixture.signatureEnvelope),
+    ).resolves.toBeNull();
+
+    const wrongCurrency =
+      createMercadoPagoAuthenticatingWebhookVerifierFromEnvironment(
+        environment(),
+        {
+          now: fixture.now,
+          fetch: () =>
+            Promise.resolve(
+              response(
+                authoritativePaymentReadback({
+                  currency_id: "USD",
+                  transaction_amount: 499,
+                }),
+              ),
+            ),
+        },
+      );
+    await expect(
+      wrongCurrency.verify(fixture.rawBody, fixture.signatureEnvelope),
+    ).resolves.toBeNull();
+
+    const substitutedMetadata =
+      createMercadoPagoAuthenticatingWebhookVerifierFromEnvironment(
+        environment(),
+        {
+          now: fixture.now,
+          fetch: () =>
+            Promise.resolve(
+              response(
+                authoritativePaymentReadback({
+                  metadata: {
+                    morro_payment_id: "pay_mercado_pago_0001",
+                    morro_amount_minor_units: "50000",
+                    morro_currency: "BRL",
+                  },
+                }),
+              ),
+            ),
+        },
+      );
+    await expect(
+      substitutedMetadata.verify(fixture.rawBody, fixture.signatureEnvelope),
+    ).resolves.toBeNull();
   });
 });
