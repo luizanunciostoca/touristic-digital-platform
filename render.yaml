@@ -64,11 +64,11 @@ services:
         value: mercado_pago
       - key: MERCADO_PAGO_CHECKOUT_MODE
         value: test
-      # Exact sandbox origins documented/expected for Checkout Pro. The provider
-      # adapter still rejects every other origin. After preflight, keep only the
-      # exact origin actually returned by this Mercado Pago account.
+      # Checkout Pro's current API reference documents sandbox_init_point on this
+      # exact HTTPS origin. The adapter rejects every other origin. Revalidate the
+      # actual provider response during preflight before any production cutover.
       - key: MERCADO_PAGO_CHECKOUT_ORIGINS
-        value: https://sandbox.mercadopago.com,https://sandbox.mercadopago.com.br
+        value: https://sandbox.mercadopago.com
 
       # Approved no-rotation migration: reuse the exact provider configuration
       # already present on the V1 Render service. The pre-deploy gate verifies
