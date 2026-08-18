@@ -185,4 +185,28 @@ CREATE TABLE IF NOT EXISTS affiliate_outbox_events (
   UNIQUE KEY uq_affiliate_outbox_aggregate_event (event_type, aggregate_id),
   INDEX idx_affiliate_outbox_delivery (status, available_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS affiliate_privacy_requests (
+  request_id VARCHAR(120) COLLATE utf8mb4_bin PRIMARY KEY,
+  affiliate_id VARCHAR(120) COLLATE utf8mb4_bin NOT NULL,
+  request_kind ENUM('dsr','anonymization','retention_purge') NOT NULL,
+  status ENUM('requested','completed','blocked_legal_hold','rejected') NOT NULL,
+  requested_by VARCHAR(180) COLLATE utf8mb4_bin NOT NULL,
+  reason VARCHAR(255) COLLATE utf8mb4_bin NOT NULL,
+  requested_at DATETIME(3) NOT NULL,
+  completed_at DATETIME(3) NULL,
+  INDEX idx_affiliate_privacy_status (affiliate_id, status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS affiliate_legal_holds (
+  hold_id VARCHAR(120) COLLATE utf8mb4_bin PRIMARY KEY,
+  affiliate_id VARCHAR(120) COLLATE utf8mb4_bin NOT NULL,
+  reason VARCHAR(255) COLLATE utf8mb4_bin NOT NULL,
+  active TINYINT(1) NOT NULL DEFAULT 1,
+  created_by VARCHAR(180) COLLATE utf8mb4_bin NOT NULL,
+  created_at DATETIME(3) NOT NULL,
+  released_at DATETIME(3) NULL,
+  released_by VARCHAR(180) COLLATE utf8mb4_bin NULL,
+  INDEX idx_affiliate_legal_hold_active (affiliate_id, active)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 `;

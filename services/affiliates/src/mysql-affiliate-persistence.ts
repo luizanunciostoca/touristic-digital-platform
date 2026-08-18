@@ -558,6 +558,44 @@ export interface AffiliateMaterializationRequestRecord {
   readonly updatedAt: string;
 }
 
+function materializationFromRow(
+  row: RowDataPacket & {
+    request_id: string;
+    entitlement_id: string;
+    entitlement_revision: number;
+    affiliate_id: string;
+    conversion_id: string;
+    policy_version: string;
+    entitlement_digest: Buffer;
+    correlation_id: string;
+    state: AffiliateMaterializationRequestRecord["state"];
+    financial_reference: string | null;
+    rejection_code: string | null;
+    retryable: number;
+    attempts: number;
+    created_at: Date;
+    updated_at: Date;
+  },
+): AffiliateMaterializationRequestRecord {
+  return {
+    requestId: row.request_id,
+    entitlementId: row.entitlement_id,
+    entitlementRevision: row.entitlement_revision,
+    affiliateId: row.affiliate_id,
+    conversionId: row.conversion_id,
+    policyVersion: row.policy_version,
+    entitlementDigest: row.entitlement_digest.toString("hex"),
+    correlationId: row.correlation_id,
+    state: row.state,
+    financialReference: row.financial_reference,
+    rejectionCode: row.rejection_code,
+    retryable: row.retryable === 1,
+    attempts: row.attempts,
+    createdAt: row.created_at.toISOString(),
+    updatedAt: row.updated_at.toISOString(),
+  };
+}
+
 export class MySqlAffiliateMaterializationRepository {
   public constructor(private readonly pool: Pool) {}
 
@@ -617,6 +655,57 @@ export class MySqlAffiliateMaterializationRepository {
       );
       if (!rows[0]) throw new Error("AFFILIATE_MATERIALIZATION_NOT_FOUND");
     }
+  }
+
+  public async readMaterialization(
+    requestId: string,
+  ): Promise<AffiliateMaterializationRequestRecord | null> {
+    const [rows] = await this.pool.execute<RowDataPacket[]>(
+      "SELECT * FROM affiliate_materialization_requests WHERE request_id = ? LIMIT 1",
+      [requestId],
+    );
+    const row = rows[0] as (RowDataPacket & {
+      request_id: string;
+      entitlement_id: string;
+      entitlement_revision: number;
+      affiliate_id: string;
+      conversion_id: string;
+      policy_version: string;
+      entitlement_digest: Buffer;
+      correlation_id: string;
+      state: AffiliateMaterializationRequestRecord["state"];
+      financial_reference: string | null;
+      rejection_code: string | null;
+      retryable: number;
+      attempts: number;
+      created_at: Date;
+      updated_at: Date;
+    }) | undefined;
+    return row ? materializationFromRow(row) : null;
+  }
+
+  public async listRetryable(
+    now: string,
+    limit = 50,
+  ): Promise<ReadonlyArray<AffiliateMaterializationRequestRecord>> {
+    const boundedLimit = Math.max(1, Math.min(100, Math.trunc(limit)));
+    const [rows] = await this.pool.query<RowDataPacket[]>(
+      `SELECT * FROM affiliate_materialization_requests
+       WHERE state = 'rejected' AND retryable = 1 AND updated_at <= ?
+       ORDER BY updated_at ASC LIMIT ${boundedLimit}`,
+      [new Date(now)],
+    );
+    return rows.map((row) => materializationFromRow(row as never));
+  }
+
+  public async claimRetry(requestId: string, occurredAt: string): Promise<boolean> {
+    const [result] = await this.pool.execute<ResultSetHeader>(
+      `UPDATE affiliate_materialization_requests
+       SET state = 'pending', retryable = 0, updated_at = ?
+       WHERE request_id = ? AND state = 'rejected' AND retryable = 1`,
+      [new Date(occurredAt), requestId],
+    );
+    return result.affectedRows === 1;
   }
 }
 
