@@ -25,6 +25,7 @@ const morroLongitude = -38.9146;
 const weatherTimeoutMs = 8_000;
 const weatherFreshTtlMs = 5 * 60 * 1000;
 const weatherStaleTtlMs = 30 * 60 * 1000;
+const mercadoPagoWebhookPath = "/api/payments/v1/webhooks/sandbox";
 const runtimeEnvironmentKeys = Object.freeze([
   "VITE_MAPBOX_ACCESS_TOKEN",
   "VITE_MAPBOX_STYLE",
@@ -160,7 +161,9 @@ await crmApi.start();
 const businessApi = createBusinessApi({ authApi });
 
 const paymentsApi = createPaymentsApi({ authApi, getEnvironmentValue });
-await paymentsApi.start();
+if (!(await paymentsApi.start())) {
+  throw new Error("PAYMENTS_RUNTIME_UNAVAILABLE");
+}
 
 let ticketingApi = null;
 let ticketingApiPromise = null;
@@ -558,6 +561,10 @@ const server = createServer(async (request, response) => {
       return;
     }
     if (paymentsApi.matches(requestUrl.pathname)) {
+      if (requestUrl.pathname === mercadoPagoWebhookPath) {
+        request.headers["x-morro-provider-data-id"] =
+          requestUrl.searchParams.get("data.id") ?? "";
+      }
       await paymentsApi.handle(request, response, requestUrl);
       return;
     }
