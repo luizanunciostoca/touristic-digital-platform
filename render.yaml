@@ -51,14 +51,21 @@ services:
         value: test
       - key: MERCADO_PAGO_CHECKOUT_ORIGINS
         sync: false
-      - key: MERCADO_PAGO_ACCESS_TOKEN
-        sync: false
-      - key: MERCADO_PAGO_WEBHOOK_SECRET
-        sync: false
 
-      # Copy a confirmed Mercado Pago credential from the V1 Render environment
-      # directly into the canonical fields above. Do not presume that a generic
-      # V1 gateway token is itself a Mercado Pago Access Token.
+      # Reuse the exact provider secrets already configured on the V1 Render
+      # service. Render resolves these values internally; no secret value is
+      # written to GitHub or copied through application/browser code.
+      - key: MERCADO_PAGO_ACCESS_TOKEN
+        fromService:
+          type: web
+          name: morro-digital
+          envVarKey: BUSINESS_PAYMENT_API_TOKEN
+      - key: MERCADO_PAGO_WEBHOOK_SECRET
+        fromService:
+          type: web
+          name: morro-digital
+          envVarKey: BUSINESS_PAYMENT_WEBHOOK_SECRET
+
       - key: PAYMENTS_WEBHOOK_URL
         sync: false
       - key: PAYMENTS_WEBHOOK_TOLERANCE_SECONDS
