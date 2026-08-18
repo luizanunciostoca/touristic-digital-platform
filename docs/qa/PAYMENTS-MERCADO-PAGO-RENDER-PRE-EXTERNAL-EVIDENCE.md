@@ -12,6 +12,7 @@ It does **not** promote `FEATURE-0009` / `MIG-0010` to provider-verified or prod
 - Fixed server-side API authority: `https://api.mercadopago.com/`.
 - Checkout preference creation from authoritative Financial values.
 - Exact checkout-origin allowlist.
+- Test Blueprint is restricted to `https://sandbox.mercadopago.com`, matching the sandbox `init_point` currently documented by Mercado Pago Checkout Pro; any different origin observed at preflight is NO-GO until officially verified.
 - Refund adapter with durable idempotency key.
 - Payment readback/reconciliation with identity, BRL and amount validation.
 - Mercado Pago webhook authentication bound to:
@@ -74,7 +75,7 @@ Status: `BLOCKED_EXTERNAL` until all of the following exist:
 2. `AUTH_DATABASE_URL`, Ordering DB, Financial DB and canonical pricing catalog are configured.
 3. Pre-deploy returns `PAYMENTS-PREDEPLOY` v2 `pass`.
 4. `/healthz` and `/readyz` return the expected release identity and readiness.
-5. Provider preflight creates a test preference with the inherited/direct credential.
+5. Provider preflight creates a test preference with the inherited/direct credential and returns the allowlisted sandbox origin exactly.
 6. Mercado Pago webhook simulator validates the V2 HTTPS endpoint.
 7. A controlled test payment proves checkout -> webhook -> readback -> verified result -> ledger.
 8. Replay and invalid-signature behavior is observed on the deployed runtime.
