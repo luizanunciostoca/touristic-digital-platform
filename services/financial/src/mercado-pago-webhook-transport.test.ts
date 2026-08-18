@@ -63,6 +63,7 @@ function request() {
     headers: {
       "X-Signature": `ts=1787018400,v1=${"a".repeat(64)}`,
       "X-Request-Id": "request-mp-transport-0001",
+      "X-Morro-Provider-Data-Id": "123456789",
     },
     rawBody: Buffer.from(
       JSON.stringify({ action: "payment.updated", data: { id: "123456789" } }),
