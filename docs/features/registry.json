@@ -140,7 +140,7 @@
         "local": "LOCAL_VERIFIED",
         "mysql": "CONTAINER_VERIFIED",
         "provider": "BLOCKED_EXTERNAL",
-        "note": "Recurring observation and topology guard verified locally; provider sandbox credentials are still required."
+        "note": "Historical local/MySQL evidence remains valid as recorded, but Mercado Pago/Render code was merged later via PR #293 and the post-merge/post-governance exact HEAD has not been rerun in a checkout-capable environment. Provider, Render and real browser E2E remain externally blocked; no equivalence promotion is justified."
       }
     },
     {
@@ -163,7 +163,7 @@
         "local": "LOCAL_VERIFIED",
         "mysql": "CONTAINER_VERIFIED",
         "provider": "NOT_APPLICABLE",
-        "note": "Affiliates persistence, idempotency, audit and outbox passed against local MySQL; durable materialization readback, accepted/rejected persistence, retry claim and privacy/legal-hold schema are implemented in the candidate branch, while external Ordering/Financial integration, browser evidence and Actions remain pending."
+        "note": "Durable Affiliates runtime is on main and historical MySQL evidence exists, but Affiliate runtime changed after the recorded 96fefbb5 validation and the exact current HEAD has not been rerun. Ordering/Financial readback, browser evidence and official Actions remain pending; no equivalence promotion is justified."
       }
     },
     {
