@@ -2,11 +2,9 @@
 
 ## Objetivo
 
-Reutilizar a infraestrutura Render e as mesmas credenciais de pagamento já configuradas na V1 sem expor, duplicar manualmente ou rotacionar os valores secretos, sem interromper a V1 durante a validação e sem enfraquecer a autoridade financeira da V2.
+Reutilizar o ambiente Render e, quando a V1 estiver realmente ligada diretamente ao Mercado Pago, reutilizar as mesmas credenciais já configuradas no serviço V1 sem expor, copiar manualmente ou rotacionar segredos.
 
-A estratégia de migração aprovada é **no-rotation**: V1 e V2 usam a mesma identidade/credenciais do provider durante a janela de transição. A V1 permanece disponível como rollback até a conclusão dos gates da V2.
-
-A V2 mantém a cadeia de autoridade:
+A V1 permanece intacta como rollback até todos os gates externos da V2 passarem.
 
 ```text
 Business handoff -> Ordering -> Financial -> Mercado Pago
@@ -15,205 +13,316 @@ Business handoff -> Ordering -> Financial -> Mercado Pago
                          verified result <- webhook/readback
 ```
 
-Business e browser não recebem Access Token, segredo de webhook nem autoridade para confirmar pagamento.
+Business e browser nunca recebem Access Token, segredo de webhook ou autoridade para confirmar pagamento.
 
-## Regra de segurança
+## Estado implementado no código
 
-Nunca copie um Access Token ou segredo de webhook para:
+A V2 possui:
+
+- adapter Checkout Pro;
+- checkout com valores vindos da autoridade Ordering/Financial;
+- refund idempotente;
+- readback/reconciliation do Payment;
+- webhook autenticado por `x-signature`, `x-request-id` e `data.id` da query string;
+- verificação de consistência entre `data.id` da query e do corpo;
+- readback antes de promover resultado financeiro terminal;
+- ACK HTTP 200 para notificação Mercado Pago autenticamente assinada;
+- eventos `pending` reconhecidos sem fabricar resultado terminal;
+- verified payment result persistido antes de accounting;
+- proteção contra replay/collision;
+- allowlist exata de origins do checkout;
+- `/healthz` e `/readyz`;
+- release/correlation/deployment identity;
+- graceful shutdown com readiness transition e bounded drain;
+- Auth de produção com security state MySQL durável;
+- pre-deploy de migrations Ordering/Financial;
+- smoke reproduzível de Render;
+- preflight reproduzível do provider Mercado Pago.
+
+## Segurança dos segredos
+
+Nunca registre Access Token ou segredo de webhook em:
 
 - GitHub;
 - `.env.example`;
-- código-fonte;
-- PR, issue ou comentário;
-- bundle `VITE_*`/browser;
-- logs ou evidências de QA.
+- PR/issue/comentário;
+- browser ou variável `VITE_*`;
+- logs/evidências de QA.
 
-Os segredos permanecem em Environment/Secrets do Render.
+Os segredos permanecem no Render.
 
-## Reuso automático das credenciais da V1
+## Reuso automático da V1 com verificação fail-closed
 
-A V1 declara no Render os nomes externos:
+A V1 declara:
 
+- `BUSINESS_PAYMENT_API_URL`;
 - `BUSINESS_PAYMENT_API_TOKEN`;
-- `BUSINESS_PAYMENT_WEBHOOK_SECRET`;
-- `BUSINESS_PAYMENT_API_URL`.
+- `BUSINESS_PAYMENT_WEBHOOK_SECRET`.
 
-A V2 usa internamente os nomes canônicos:
-
-- `MERCADO_PAGO_ACCESS_TOKEN`;
-- `MERCADO_PAGO_WEBHOOK_SECRET`;
-- `MERCADO_PAGO_CHECKOUT_ORIGINS`;
-- `MERCADO_PAGO_CHECKOUT_MODE`.
-
-O `render.yaml` da V2 usa `fromService.envVarKey` para obter os dois valores secretos diretamente do serviço Render V1 `morro-digital`:
-
-```yaml
-- key: MERCADO_PAGO_ACCESS_TOKEN
-  fromService:
-    type: web
-    name: morro-digital
-    envVarKey: BUSINESS_PAYMENT_API_TOKEN
-
-- key: MERCADO_PAGO_WEBHOOK_SECRET
-  fromService:
-    type: web
-    name: morro-digital
-    envVarKey: BUSINESS_PAYMENT_WEBHOOK_SECRET
-```
-
-Portanto:
-
-- o mesmo Access Token continua sendo a fonte da V1 e é injetado na V2 pelo Render;
-- o mesmo segredo de webhook continua sendo a fonte da V1 e é injetado na V2 pelo Render;
-- os valores não aparecem no Blueprint nem no GitHub;
-- não é necessário copiar/colar os valores manualmente;
-- não é necessário gerar credenciais novas apenas para a migração;
-- a V1 permanece intacta e continua apta a rollback.
-
-A referência automática depende de o serviço existente no mesmo workspace Render se chamar `morro-digital` e possuir as duas variáveis legadas configuradas. Se o nome real do serviço V1 for diferente, ajuste apenas `fromService.name`; nunca copie o valor secreto para o repositório.
-
-O Render suporta referências `fromService` para variáveis de ambiente de serviços existentes no mesmo workspace, inclusive serviços que não estejam definidos no mesmo Blueprint. Se a referência não puder ser resolvida durante o sync, o deploy V2 deve ser tratado como bloqueado.
-
-`BUSINESS_PAYMENT_API_URL` não é usado pela implementação V2. O adapter Mercado Pago fixa a API server-side em `https://api.mercadopago.com/`, eliminando endpoint configurável no runtime V2.
-
-## Sequência no Render
-
-### 1. Preservar V1
-
-Não altere nem desligue o serviço V1 antes do aceite completo da V2. Ele é o rollback operacional durante a migração.
-
-### 2. Criar serviço V2 separado
-
-Use `render.yaml` da V2 para criar `morro-digital-v2` no mesmo workspace Render da V1.
-
-O serviço deve permanecer com uma única réplica enquanto o rate limit distribuído não estiver configurado.
-
-Durante a criação/sync do Blueprint, o Render deve resolver automaticamente:
+O Blueprint V2 referencia as três variáveis diretamente do serviço `morro-digital` no mesmo workspace:
 
 ```text
+morro-digital/BUSINESS_PAYMENT_API_URL
+  -> morro-digital-v2/V1_PAYMENT_PROVIDER_API_URL
+
 morro-digital/BUSINESS_PAYMENT_API_TOKEN
-        -> morro-digital-v2/MERCADO_PAGO_ACCESS_TOKEN
+  -> morro-digital-v2/MERCADO_PAGO_ACCESS_TOKEN
 
 morro-digital/BUSINESS_PAYMENT_WEBHOOK_SECRET
-        -> morro-digital-v2/MERCADO_PAGO_WEBHOOK_SECRET
+  -> morro-digital-v2/MERCADO_PAGO_WEBHOOK_SECRET
 ```
 
-Nenhum valor secreto deve ser digitado no GitHub ou incluído no YAML.
+Antes do deploy, `payments-migrate.mjs` verifica que `V1_PAYMENT_PROVIDER_API_URL` usa HTTPS e o host exato `api.mercadopago.com`.
 
-### 3. Configurar persistência e autoridade V2
+Se a V1 estiver usando um gateway/intermediário, o pre-deploy termina com:
 
-Cadastre no serviço V2 os valores que não existem na V1 e são próprios da arquitetura V2:
+```text
+V1_PAYMENT_PROVIDER_IS_NOT_DIRECT_MERCADO_PAGO
+```
+
+Nesse caso nenhum segredo é enviado ao Mercado Pago pela V2. O deploy fica bloqueado até a credencial direta correta ser configurada.
+
+Essa regra remove a necessidade de presumir que um token genérico da V1 seja um Access Token Mercado Pago.
+
+## Blueprint Render da V2
+
+O serviço canônico é:
+
+```text
+morro-digital-v2
+```
+
+Configuração operacional preparada:
+
+```text
+build -> preDeploy migration/config gate -> start -> /readyz
+```
+
+O Blueprint usa:
+
+- `preDeployCommand`: migrations + provider identity/config validation;
+- `healthCheckPath: /readyz`;
+- `maxShutdownDelaySeconds: 30`;
+- uma única réplica enquanto rate limit distribuído não existir;
+- `MERCADO_PAGO_CHECKOUT_MODE=test` inicialmente.
+
+A identidade de release usa automaticamente os valores fornecidos pelo Render (`RENDER_GIT_COMMIT`, branch e identidade da instância/serviço), com `MORRO_RELEASE_*` disponível somente como override explícito.
+
+## Valores que o operador precisa configurar no Render
+
+Os seguintes valores são próprios da V2 e não podem ser inferidos com segurança da V1:
+
+### Auth
+
+- `DASHBOARD_USERS_JSON`;
+- `DASHBOARD_AUTH_ORIGIN`;
+- `AUTH_DATABASE_URL`;
+- `DASHBOARD_ADMIN_GLOBAL_BYPASS_CONFIRMED`.
+
+`DASHBOARD_AUTH_SECRET` é gerado pelo Blueprint.
+
+Se `DASHBOARD_USERS_JSON` possuir um usuário `admin`, `DASHBOARD_ADMIN_GLOBAL_BYPASS_CONFIRMED=true` só deve ser definido se a autoridade global desse administrador for intencional. Caso contrário a readiness permanece fechada.
+
+### Ordering / Financial
 
 - `ORDERING_DATABASE_URL`;
 - `FINANCIAL_DATABASE_URL`;
-- `ORDERING_PRICING_CATALOG_JSON`;
+- `ORDERING_PRICING_CATALOG_JSON`.
+
+Ordering e Financial devem manter ownership/bancos separados conforme a arquitetura V2.
+
+### Checkout
+
 - `PAYMENTS_RETURN_URL_ORIGINS`;
-- `DASHBOARD_USERS_JSON`;
-- `DASHBOARD_AUTH_ORIGIN`;
-- `MERCADO_PAGO_CHECKOUT_ORIGINS`;
 - `PAYMENTS_WEBHOOK_URL`;
-- demais valores server-only exigidos pelo Blueprint.
+- `MERCADO_PAGO_CHECKOUT_ORIGINS`.
 
-Ordering e Financial devem permanecer em bancos/usuários com ownership separado conforme o contrato de ambiente.
+O Blueprint gera automaticamente:
 
-### 4. Confirmar herança dos segredos sem revelá-los
+- `PAYMENTS_STATUS_TOKEN_SECRET`;
+- `PAYMENTS_HANDOFF_SECRET`.
 
-No serviço `morro-digital-v2`, confirme apenas que as variáveis abaixo estão resolvidas/configuradas:
+## Sequência exata no Render
 
-- `MERCADO_PAGO_ACCESS_TOKEN`;
-- `MERCADO_PAGO_WEBHOOK_SECRET`.
+### 1. Não alterar a V1
 
-Não registre nem copie seus valores em evidências. O critério de aceite é presença + provider E2E bem-sucedido, não exposição visual do segredo.
+Mantenha `morro-digital` funcionando. Não apague variáveis nem desligue o serviço.
 
-Se o Blueprint não conseguir resolver uma variável `fromService`, trate isso como falha de configuração e não habilite checkout. Corrija o nome do serviço V1 ou da variável de origem; não substitua por segredo hard-coded.
+### 2. Criar/sincronizar o Blueprint V2
 
-### 5. Manter Checkout em teste
+Crie `morro-digital-v2` no **mesmo workspace** da V1 usando o `render.yaml` deste branch/commit aprovado.
 
-Configure inicialmente:
+Durante o sync, confirme que as três referências `fromService` foram resolvidas. Não abra nem copie o valor secreto.
 
-```text
-PAYMENTS_PROVIDER_MODE=mercado_pago
-MERCADO_PAGO_CHECKOUT_MODE=test
-```
-
-Não mude para `production` até concluir todos os gates deste documento.
-
-### 6. Configurar allowlist do checkout
-
-`MERCADO_PAGO_CHECKOUT_ORIGINS` deve conter somente origins HTTPS realmente retornadas pelo Mercado Pago para a conta/ambiente validado.
-
-Não use wildcard. Execute uma preferência controlada e registre apenas a origin do `sandbox_init_point`/`init_point` esperado.
-
-### 7. Configurar callback
+### 3. Preencher Auth
 
 Configure:
 
 ```text
-PAYMENTS_WEBHOOK_URL=https://<host-v2>/api/payments/v1/webhooks/sandbox
+DASHBOARD_USERS_JSON=<JSON canônico de usuários>
+DASHBOARD_AUTH_ORIGIN=https://<host-v2-ou-dominio-final>
+AUTH_DATABASE_URL=<MySQL TLS/durável>
+DASHBOARD_ADMIN_GLOBAL_BYPASS_CONFIRMED=false|true
 ```
 
-O pathname legado `webhooks/sandbox` é mantido temporariamente para preservar os contratos M141 existentes durante a substituição do adapter. Ele recebe assinatura Mercado Pago quando `PAYMENTS_PROVIDER_MODE=mercado_pago`.
+### 4. Preencher bancos e catálogo
 
-A assinatura secreta do Mercado Pago é gerada para a aplicação de integração e não precisa ser rotacionada apenas porque estamos adicionando o endpoint V2. A V2 reutiliza o mesmo segredo já usado pela aplicação na V1; o endpoint V2 deve, mesmo assim, ser validado com uma notificação real/simulada antes do GO.
+Configure:
 
-### 8. Executar provider E2E
+```text
+ORDERING_DATABASE_URL=<MySQL Ordering>
+FINANCIAL_DATABASE_URL=<MySQL Financial>
+ORDERING_PRICING_CATALOG_JSON=<catálogo canônico aprovado>
+```
 
-Validar, nesta ordem:
+O pre-deploy aplica Ordering M151 + ticketing reservation e Financial M145, e executa `SELECT 1` nos dois bancos. Qualquer falha aborta o deploy antes de receber tráfego.
 
-1. criação de checkout a partir do handoff Business/Ordering;
-2. retorno de URL Mercado Pago dentro da allowlist;
-3. ausência de token/segredo no browser e em logs;
-4. pagamento de teste;
-5. webhook com assinatura válida;
-6. notificação `pending` reconhecida sem fabricar resultado financeiro terminal;
-7. `approved`/estado terminal confirmado por readback do provider;
-8. persistência do verified payment result;
-9. ledger/accounting derivado somente do resultado verificado;
-10. polling do browser convergindo para resultado persistido;
-11. refund controlado, quando aplicável;
-12. reconciliation GET confirmando identidade, valor, moeda e estado;
-13. replay de webhook idempotente;
-14. assinatura inválida negada;
-15. `external_reference` substituída negada.
+### 5. Configurar origins e webhook
 
-### 9. Confirmar reuso da identidade do provider
+Configure inicialmente:
 
-Depois do E2E:
+```text
+PAYMENTS_RETURN_URL_ORIGINS=https://<host-v2>
+PAYMENTS_WEBHOOK_URL=https://<host-v2>/api/payments/v1/webhooks/sandbox
+PAYMENTS_PROVIDER_MODE=mercado_pago
+MERCADO_PAGO_CHECKOUT_MODE=test
+```
 
-- confirme que V1 continua operacional;
-- confirme que V2 usa o mesmo provider/account esperado;
-- confirme `MERCADO_PAGO_ACCESS_TOKEN` resolvido por `fromService`;
-- confirme `MERCADO_PAGO_WEBHOOK_SECRET` resolvido por `fromService`;
-- confirme que nenhum segredo real foi adicionado ao repositório;
-- mantenha a V1 intacta durante a janela de rollback.
+`MERCADO_PAGO_CHECKOUT_ORIGINS` deve conter apenas origins HTTPS efetivamente retornadas pela conta Mercado Pago validada. Não use wildcard.
 
-### 10. Produção
+### 6. Executar o deploy
 
-Somente depois de provider E2E, banco/migrations, smoke browser, observabilidade e rollback aprovados:
+O deploy só deve prosseguir se o log de pre-deploy terminar com:
+
+```json
+{"contract":"PAYMENTS-PREDEPLOY","contractVersion":2,"status":"pass"}
+```
+
+O output nunca contém Access Token ou segredo de webhook.
+
+### 7. Validar health/readiness
+
+Com o endereço HTTPS do serviço:
+
+```bash
+MORRO_V2_BASE_URL=https://<host-v2> pnpm payments:render:smoke
+```
+
+O gate exige:
+
+- `/healthz` HTTP 200;
+- `/readyz` HTTP 200;
+- readiness `ready`;
+- release SHA configurado;
+- release version/deployment identity configurados;
+- correlation ID;
+- ausência de critical readiness failures.
+
+### 8. Executar preflight Mercado Pago
+
+Ainda em modo `test`, configure apenas para o comando de validação:
+
+```text
+MERCADO_PAGO_E2E_PAYER_EMAIL=<email de usuário de teste aprovado>
+MERCADO_PAGO_E2E_AMOUNT_MINOR_UNITS=<valor de teste aprovado em centavos>
+```
+
+Execute:
+
+```bash
+pnpm payments:mercado-pago:preflight
+```
+
+O comando cria uma preferência Checkout Pro em modo de teste usando o adapter real e retorna:
+
+- `paymentId` interno de teste;
+- ID da preferência;
+- origin do checkout;
+- checkout URL para completar o pagamento com usuário de teste.
+
+Nenhuma cobrança é realizada automaticamente pelo script.
+
+### 9. Testar o webhook
+
+A URL deve ser:
+
+```text
+https://<host-v2>/api/payments/v1/webhooks/sandbox
+```
+
+A integração valida:
+
+- `x-signature`;
+- `x-request-id`;
+- `data.id` da query string;
+- consistência do mesmo ID no corpo;
+- janela temporal da assinatura;
+- readback do Payment no Mercado Pago;
+- identidade `external_reference`;
+- estado terminal antes de contabilizar.
+
+Use o simulador oficial de Webhooks da aplicação Mercado Pago e, depois, um pagamento de teste real do provider.
+
+### 10. Validar lifecycle completo
+
+A evidência final deve provar:
+
+1. Business/Ordering cria checkout;
+2. Financial cria a preferência Mercado Pago;
+3. checkout URL está na allowlist;
+4. pagamento de teste é concluído;
+5. webhook assinado chega ao endpoint V2;
+6. `pending` não cria resultado financeiro terminal;
+7. `approved` é confirmado por readback;
+8. verified payment result é persistido;
+9. ledger é derivado uma única vez;
+10. polling/browser converge para o resultado persistido;
+11. replay não duplica contabilização;
+12. assinatura inválida recebe 401;
+13. `data.id` query/body divergente é rejeitado;
+14. `external_reference` divergente é rejeitado;
+15. reconciliation confere estado/identidade/valor/moeda;
+16. refund controlado é idempotente.
+
+## Promoção para produção
+
+Somente depois de todos os gates acima e dos gates oficiais de CI/browser/Platform:
 
 ```text
 MERCADO_PAGO_CHECKOUT_MODE=production
 ```
 
-Revalide o `init_point`, a allowlist, o webhook e o readback com o ambiente de produção antes do GO.
+Depois da alteração:
 
-## Critérios de rollback
+1. novo deploy;
+2. `/healthz` e `/readyz` novamente;
+3. confirmar `init_point` de produção e allowlist;
+4. validar webhook/readback de produção;
+5. observar logs/alertas;
+6. manter V1 disponível durante a janela de rollback.
 
-Retorne tráfego para a V1 ou desabilite o checkout V2 se ocorrer qualquer um dos seguintes:
+## Critérios de rollback / NO-GO
 
-- `fromService` não resolver um segredo obrigatório;
+Não promova ou retorne tráfego para V1 se ocorrer qualquer um dos seguintes:
+
+- `fromService` não resolver uma variável;
+- `V1_PAYMENT_PROVIDER_IS_NOT_DIRECT_MERCADO_PAGO`;
+- migration/pre-deploy falhar;
+- `/readyz` != 200;
+- identidade de release ausente;
 - assinatura de webhook não validável;
-- divergência entre `external_reference` e Payment V2;
+- divergência query/body `data.id`;
+- divergência `external_reference`;
 - divergência de valor/moeda;
-- Payment marcado como confirmado sem verified result persistido;
-- replay gerando dupla contabilização;
+- Payment confirmado sem verified result persistido;
+- replay gerar dupla contabilização;
 - refund não idempotente;
-- provider readback indisponível de forma persistente;
-- segredo visível em log/browser;
-- readiness/dependências V2 indisponíveis.
+- provider readback persistentemente indisponível;
+- segredo aparecer em browser/log/evidência;
+- Auth security state ou bancos ficarem indisponíveis.
 
 Não apague Payments, ledger, webhooks ou evidências financeiras durante rollback.
 
-## Encerramento da migração
+## Encerramento
 
-A V1 só deve ser aposentada depois de uma janela operacional estável da V2, com provider real validado, observabilidade ativa e rollback testado. Até lá, V1 e V2 permanecem serviços distintos, mas compartilham a mesma identidade/credenciais do provider dentro do Render sem expor os valores secretos.
+A implementação de código pode ser considerada pronta para validação externa quando os testes/quality do head passarem. A integração só é `PROVIDER_VERIFIED` depois dos passos Render + Mercado Pago acima. A V1 só deve ser aposentada depois de uma janela operacional estável da V2, observabilidade ativa e rollback testado.
