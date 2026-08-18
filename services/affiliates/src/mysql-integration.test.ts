@@ -25,8 +25,10 @@ describe.skipIf(!databaseUrl)("Affiliates M154 MySQL persistence", () => {
     }),
   };
   const digest = {
-    sha256: async () =>
-      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    sha256: async (input: string) => {
+      const { createHash } = await import("node:crypto");
+      return createHash("sha256").update(input).digest("hex");
+    },
   };
   const service = new AffiliateApplicationService(pool, authorization, digest);
 

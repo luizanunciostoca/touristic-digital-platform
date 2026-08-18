@@ -135,6 +135,12 @@
         "behavior": false,
         "visual": false,
         "api": false
+      },
+      "verification": {
+        "local": "LOCAL_VERIFIED",
+        "mysql": "CONTAINER_VERIFIED",
+        "provider": "BLOCKED_EXTERNAL",
+        "note": "Recurring observation and topology guard verified locally; provider sandbox credentials are still required."
       }
     },
     {
@@ -152,6 +158,12 @@
         "behavior": false,
         "visual": false,
         "api": false
+      },
+      "verification": {
+        "local": "LOCAL_VERIFIED",
+        "mysql": "CONTAINER_VERIFIED",
+        "provider": "NOT_APPLICABLE",
+        "note": "Affiliates persistence, idempotency, audit and outbox passed against local MySQL; external readback, browser and Actions remain pending."
       }
     },
     {
@@ -166,6 +178,12 @@
         "behavior": true,
         "visual": true,
         "api": true
+      },
+      "verification": {
+        "local": "LOCAL_VERIFIED",
+        "mysql": "CONTAINER_VERIFIED",
+        "provider": "NOT_APPLICABLE",
+        "note": "Ticketing server passed 31/31 tests with local MySQL, including reservation binding and transaction persistence."
       }
     }
   ]

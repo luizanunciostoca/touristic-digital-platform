@@ -206,7 +206,11 @@ export class AffiliateApplicationService {
       "SELECT HEX(semantic_digest) AS semantic_digest FROM affiliate_idempotency_claims WHERE idempotency_key = ? FOR UPDATE",
       [key],
     );
-    if (rows[0]?.semantic_digest !== semanticDigest)
+    const storedDigest: unknown = rows[0]?.semantic_digest;
+    if (
+      typeof storedDigest !== "string" ||
+      storedDigest.toLowerCase() !== semanticDigest.toLowerCase()
+    )
       throw new Error("AFFILIATE_IDEMPOTENCY_CONFLICT");
     return true;
   }
