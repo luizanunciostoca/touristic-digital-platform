@@ -101,10 +101,12 @@ function isMercadoPagoWebhook(
 function verifierSignature(headers: Readonly<Record<string, unknown>>): string {
   const mercadoPagoSignature = header(headers, "x-signature");
   const mercadoPagoRequestId = header(headers, "x-request-id");
+  const mercadoPagoDataId = header(headers, "x-morro-provider-data-id");
   if (mercadoPagoSignature && mercadoPagoRequestId) {
     return JSON.stringify({
       signature: mercadoPagoSignature,
       requestId: mercadoPagoRequestId,
+      dataId: mercadoPagoDataId,
     });
   }
   return header(headers, "x-sandbox-signature");
