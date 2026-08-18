@@ -2,7 +2,7 @@
 
 ## Objetivo
 
-Reutilizar a infraestrutura Render e as credenciais de pagamento já validadas operacionalmente na V1 sem copiar segredos para o GitHub, sem interromper a V1 durante a validação e sem enfraquecer a autoridade financeira da V2.
+Reutilizar a infraestrutura Render e, quando comprovadamente forem credenciais diretas do Mercado Pago, reutilizar os segredos de pagamento já presentes na V1 sem copiá-los para o GitHub, sem interromper a V1 durante a validação e sem enfraquecer a autoridade financeira da V2.
 
 A V2 mantém a cadeia de autoridade:
 
@@ -28,13 +28,15 @@ Nunca copie um Access Token ou segredo de webhook para:
 
 Os segredos devem permanecer em Environment/Secrets do Render.
 
-## Estado da V1
+## Estado da V1 e verificação obrigatória
 
 A V1 declara no seu Blueprint os nomes externos:
 
 - `BUSINESS_PAYMENT_API_TOKEN`;
 - `BUSINESS_PAYMENT_WEBHOOK_SECRET`;
 - `BUSINESS_PAYMENT_API_URL`.
+
+Esses nomes descrevem uma integração genérica. Portanto, o fato de a V1 ter funcionado não prova por si só que `BUSINESS_PAYMENT_API_TOKEN` seja um Access Token que possa ser enviado diretamente para `api.mercadopago.com`: ele também pode ser um token de um gateway/intermediário usado pela V1.
 
 Na V2 os nomes canônicos são:
 
@@ -43,7 +45,7 @@ Na V2 os nomes canônicos são:
 - `MERCADO_PAGO_CHECKOUT_ORIGINS`;
 - `MERCADO_PAGO_CHECKOUT_MODE`.
 
-Durante a migração, o adapter V2 aceita temporariamente os dois primeiros nomes legados da V1 como fallback server-only. Isso existe apenas para permitir cutover sem exposição de segredo. Depois da validação, copie os valores para os nomes canônicos e remova os aliases antigos do serviço V2.
+Antes de reutilizar qualquer valor da V1, confirme no Render/ambiente correspondente que o segredo é realmente a credencial direta da conta Mercado Pago usada pelo checkout. Só então copie o valor, dentro do secret manager, para o nome canônico da V2.
 
 `BUSINESS_PAYMENT_API_URL` não é reutilizado pela implementação V2. O adapter Mercado Pago fixa a API server-side em `https://api.mercadopago.com/`, eliminando endpoint de provider configurável por segredo.
 
@@ -71,20 +73,16 @@ Cadastre no serviço V2:
 
 Ordering e Financial devem permanecer em bancos/usuários com ownership separado conforme o contrato de ambiente.
 
-### 4. Migrar os segredos do provider dentro do Render
+### 4. Verificar e migrar os segredos do provider dentro do Render
 
-Preferência:
+1. identifique no serviço V1 o provider/gateway efetivamente usado por `BUSINESS_PAYMENT_API_URL` sem revelar o valor secreto;
+2. confirme se `BUSINESS_PAYMENT_API_TOKEN` é realmente um Access Token direto do Mercado Pago ou somente uma credencial do gateway V1;
+3. se for um Access Token direto e ainda válido, copie-o no Render para `MERCADO_PAGO_ACCESS_TOKEN` do serviço V2;
+4. confirme qual segredo de assinatura corresponde às notificações Mercado Pago que serão direcionadas à V2 e configure-o como `MERCADO_PAGO_WEBHOOK_SECRET`;
+5. se a V1 usava um gateway intermediário, não trate o token desse gateway como Access Token do Mercado Pago: obtenha/reutilize a credencial Mercado Pago real que está por trás da integração;
+6. não revele nenhum dos valores durante esse processo.
 
-1. copie o valor secreto de pagamento da V1 diretamente para `MERCADO_PAGO_ACCESS_TOKEN` do serviço V2;
-2. copie o segredo de webhook correspondente para `MERCADO_PAGO_WEBHOOK_SECRET`;
-3. não revele os valores durante a cópia.
-
-Se o painel/processo operacional não permitir a migração canônica de imediato, use temporariamente no serviço V2:
-
-- `BUSINESS_PAYMENT_API_TOKEN`;
-- `BUSINESS_PAYMENT_WEBHOOK_SECRET`.
-
-O runtime V2 tratará esses nomes como aliases somente no servidor.
+O Blueprint V2 não cadastra automaticamente os nomes legados da V1. Isso impede que um token genérico seja promovido por engano a credencial Mercado Pago.
 
 ### 5. Manter Checkout em teste
 
@@ -135,16 +133,14 @@ Validar, nesta ordem:
 14. assinatura inválida negada;
 15. `external_reference` substituída negada.
 
-### 9. Promover nomes canônicos
+### 9. Confirmar nomes canônicos
 
 Depois do E2E:
 
 - confirme `MERCADO_PAGO_ACCESS_TOKEN` configurado;
 - confirme `MERCADO_PAGO_WEBHOOK_SECRET` configurado;
-- remova `BUSINESS_PAYMENT_API_TOKEN` da V2;
-- remova `BUSINESS_PAYMENT_WEBHOOK_SECRET` da V2.
-
-A V1 pode continuar com seus próprios nomes enquanto permanecer disponível para rollback.
+- confirme que nenhum segredo legado da V1 foi adicionado ao serviço V2 sem necessidade;
+- mantenha a V1 intacta enquanto durar a janela de rollback.
 
 ### 10. Produção
 
