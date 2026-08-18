@@ -594,7 +594,19 @@ export function createMercadoPagoWebhookVerifierFromEnvironment(
         payment.date_last_updated ?? payment.date_approved ?? payment.date_created,
       );
       const providerPaymentReference = String(payment.id ?? webhook.dataId);
-      if (!externalReference || !occurredAt || providerPaymentReference !== webhook.dataId) {
+      const transactionAmount = Number(payment.transaction_amount);
+      const amountMinorUnits =
+        Number.isFinite(transactionAmount) && transactionAmount > 0
+          ? Math.round(transactionAmount * 100)
+          : null;
+      const currency = boundedString(payment.currency_id, 8).toUpperCase();
+      if (
+        !externalReference ||
+        !occurredAt ||
+        providerPaymentReference !== webhook.dataId ||
+        amountMinorUnits === null ||
+        !currency
+      ) {
         return null;
       }
       const eventDigest = createHash("sha256")
@@ -613,6 +625,8 @@ export function createMercadoPagoWebhookVerifierFromEnvironment(
         providerEventId: `pwe_mp_${eventDigest}`,
         externalReference,
         providerPaymentReference,
+        amountMinorUnits,
+        currency,
         status,
         occurredAt,
       });
