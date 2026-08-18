@@ -101,11 +101,9 @@ O Blueprint usa:
 - `maxShutdownDelaySeconds: 30`;
 - uma única réplica enquanto rate limit distribuído não existir;
 - `MERCADO_PAGO_CHECKOUT_MODE=test` inicialmente;
-- origins sandbox exatas iniciais:
-  - `https://sandbox.mercadopago.com`;
-  - `https://sandbox.mercadopago.com.br`.
+- origin sandbox inicial exata `https://sandbox.mercadopago.com`, conforme o `sandbox_init_point` atualmente documentado na API Reference do Checkout Pro.
 
-O adapter rejeita qualquer outra origin. Depois do primeiro preflight mantenha apenas a origin realmente retornada pela conta.
+O adapter rejeita qualquer outra origin. Se o primeiro preflight real devolver uma origin HTTPS diferente, interrompa o gate e valide essa origin contra documentação oficial antes de alterar a allowlist. Não use wildcard.
 
 A identidade de release usa automaticamente variáveis do Render (`RENDER_GIT_COMMIT`, branch e identidade service/instance), mantendo `MORRO_RELEASE_*` como override explícito.
 
@@ -135,7 +133,7 @@ Ordering e Financial devem manter ownership/bancos separados conforme a arquitet
 - `PAYMENTS_RETURN_URL_ORIGINS`;
 - `PAYMENTS_WEBHOOK_URL`.
 
-Não é necessário preencher manualmente `MERCADO_PAGO_CHECKOUT_ORIGINS` para o primeiro deploy de teste: o Blueprint já fornece as origins sandbox exatas. Depois do preflight, reduza a lista para a origin observada.
+Não é necessário preencher manualmente `MERCADO_PAGO_CHECKOUT_ORIGINS` para o primeiro deploy de teste: o Blueprint já fornece `https://sandbox.mercadopago.com`. Depois do preflight, mantenha essa origin somente se ela coincidir com a origin realmente retornada pela conta.
 
 O Blueprint gera automaticamente:
 
@@ -185,6 +183,7 @@ O Blueprint já mantém:
 ```text
 PAYMENTS_PROVIDER_MODE=mercado_pago
 MERCADO_PAGO_CHECKOUT_MODE=test
+MERCADO_PAGO_CHECKOUT_ORIGINS=https://sandbox.mercadopago.com
 ```
 
 ### 6. Executar o deploy
@@ -218,7 +217,7 @@ pnpm payments:mercado-pago:preflight
 
 O comando cria uma preferência Checkout Pro controlada e retorna `paymentId`, ID da preferência, origin e checkout URL. Nenhuma cobrança é realizada automaticamente.
 
-Depois do preflight, compare `checkoutOrigin` com `MERCADO_PAGO_CHECKOUT_ORIGINS` e mantenha somente a origin efetivamente usada pela conta.
+A origin retornada deve coincidir exatamente com `MERCADO_PAGO_CHECKOUT_ORIGINS`. Uma diferença é `NO-GO` até revisão contra documentação oficial; não amplie a allowlist por tentativa e erro.
 
 ### 9. Testar o webhook
 
@@ -260,7 +259,7 @@ A evidência final deve provar:
 Somente depois de todos os gates acima e dos gates oficiais de CI/browser/Platform:
 
 1. trocar `MERCADO_PAGO_CHECKOUT_MODE=production`;
-2. trocar `MERCADO_PAGO_CHECKOUT_ORIGINS` pelas origins exatas de `init_point` produtivo, sem sandbox e sem wildcard;
+2. trocar `MERCADO_PAGO_CHECKOUT_ORIGINS` pela origin HTTPS exata do `init_point` produtivo realmente retornado pela conta, sem sandbox e sem wildcard;
 3. novo deploy;
 4. revalidar `/healthz` e `/readyz`;
 5. validar webhook/readback produtivo;
