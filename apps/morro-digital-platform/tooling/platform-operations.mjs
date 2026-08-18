@@ -73,10 +73,18 @@ export function createPlatformOperations({
   const release = Object.freeze({
     sha: releaseField(
       getEnvironmentValue("MORRO_RELEASE_SHA") ||
-        getEnvironmentValue("GITHUB_SHA"),
+        getEnvironmentValue("GITHUB_SHA") ||
+        getEnvironmentValue("RENDER_GIT_COMMIT"),
     ),
-    version: releaseField(getEnvironmentValue("MORRO_RELEASE_VERSION")),
-    deploymentId: releaseField(getEnvironmentValue("MORRO_DEPLOYMENT_ID")),
+    version: releaseField(
+      getEnvironmentValue("MORRO_RELEASE_VERSION") ||
+        getEnvironmentValue("RENDER_GIT_BRANCH"),
+    ),
+    deploymentId: releaseField(
+      getEnvironmentValue("MORRO_DEPLOYMENT_ID") ||
+        getEnvironmentValue("RENDER_INSTANCE_ID") ||
+        getEnvironmentValue("RENDER_SERVICE_ID"),
+    ),
   });
   const releaseIdentityConfigured = Object.values(release).every(
     (value) => value !== "unknown",
