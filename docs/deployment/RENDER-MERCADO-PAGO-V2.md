@@ -72,6 +72,8 @@ Portanto:
 
 A referência automática depende de o serviço existente no mesmo workspace Render se chamar `morro-digital` e possuir as duas variáveis legadas configuradas. Se o nome real do serviço V1 for diferente, ajuste apenas `fromService.name`; nunca copie o valor secreto para o repositório.
 
+O Render suporta referências `fromService` para variáveis de ambiente de serviços existentes no mesmo workspace, inclusive serviços que não estejam definidos no mesmo Blueprint. Se a referência não puder ser resolvida durante o sync, o deploy V2 deve ser tratado como bloqueado.
+
 `BUSINESS_PAYMENT_API_URL` não é usado pela implementação V2. O adapter Mercado Pago fixa a API server-side em `https://api.mercadopago.com/`, eliminando endpoint configurável no runtime V2.
 
 ## Sequência no Render
@@ -152,7 +154,7 @@ PAYMENTS_WEBHOOK_URL=https://<host-v2>/api/payments/v1/webhooks/sandbox
 
 O pathname legado `webhooks/sandbox` é mantido temporariamente para preservar os contratos M141 existentes durante a substituição do adapter. Ele recebe assinatura Mercado Pago quando `PAYMENTS_PROVIDER_MODE=mercado_pago`.
 
-A assinatura secreta do Mercado Pago pertence à aplicação de integração. A V2 reutiliza o mesmo segredo da aplicação já configurado na V1; o endpoint V2 deve ser validado com uma notificação real/simulada antes do GO.
+A assinatura secreta do Mercado Pago é gerada para a aplicação de integração e não precisa ser rotacionada apenas porque estamos adicionando o endpoint V2. A V2 reutiliza o mesmo segredo já usado pela aplicação na V1; o endpoint V2 deve, mesmo assim, ser validado com uma notificação real/simulada antes do GO.
 
 ### 8. Executar provider E2E
 
