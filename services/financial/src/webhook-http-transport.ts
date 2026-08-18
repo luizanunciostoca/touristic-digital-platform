@@ -84,6 +84,18 @@ function header(
   return "";
 }
 
+function verifierSignature(headers: Readonly<Record<string, unknown>>): string {
+  const mercadoPagoSignature = header(headers, "x-signature");
+  const mercadoPagoRequestId = header(headers, "x-request-id");
+  if (mercadoPagoSignature && mercadoPagoRequestId) {
+    return JSON.stringify({
+      signature: mercadoPagoSignature,
+      requestId: mercadoPagoRequestId,
+    });
+  }
+  return header(headers, "x-sandbox-signature");
+}
+
 function response(
   status: number,
   body: Readonly<Record<string, unknown>>,
@@ -140,7 +152,7 @@ export class FinancialWebhookHttpTransport {
       });
     }
 
-    const signature = header(request.headers, "x-sandbox-signature");
+    const signature = verifierSignature(request.headers);
     let event: VerifiedProviderPaymentEvent | null;
     try {
       event = signature
