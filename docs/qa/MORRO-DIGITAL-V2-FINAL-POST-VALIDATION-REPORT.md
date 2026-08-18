@@ -13,30 +13,30 @@ O estado **não deve ser chamado de RELEASED globalmente**. Há evidência local
 
 ## Quadro de evidências
 
-| Área | Classificação | Evidência real | Limite atual |
-|---|---|---|---|
-| Core UI, Geospatial, Navigation, Assistant, Business e Auth | EQUIVALENT_VERIFIED | Contratos e evidências permanentes já incorporados; aplicação principal abriu localmente | Release operacional e Actions não revalidados neste ciclo |
-| Design System / MIG-0003 | EQUIVALENT_VERIFIED | 41 custom properties estruturadas em tokens V1; testes do design system e tracker reconciliado | Não promovido a released sem staging/Actions |
-| CRM / MIG-0008 | EQUIVALENT_VERIFIED | 164/164 testes do CRM server com MySQL local; Settings genéricos, schema `crm_settings` e adapter filesystem/S3-compatible; contratos browser existentes | Staging, Actions e prova de object storage S3 real permanecem externos |
-| Payments / MIG-0010 | BLOCKED_EXTERNAL | Financial 91/91 e Ordering 41/41 com MySQL real; observabilidade de recurring lifecycle; topology guard single-replica; browser principal local | Provider sandbox E2E exige `PAYMENTS_SANDBOX_PROVIDER_BASE_URL`, `PAYMENTS_SANDBOX_PROVIDER_API_TOKEN` e `PAYMENTS_SANDBOX_WEBHOOK_SECRET` |
-| Affiliates / MIG-0011 | EQUIVALENT_VERIFIED (local) | Affiliates 4/4 com MySQL real; digest de idempotência normalizado case-insensitive; persistência, auditoria e outbox exercitados | Readback externo Ordering/Financial, DSR/retenção, browser E2E e Actions ainda pendentes |
-| Ticketing / MIG-0017 | EQUIVALENT_VERIFIED | Ticketing 31/31 com MySQL real; reservation binding e transaction persistence exercitados; integração Ordering/Financial local | Browser E2E específico de Ticketing e provider sandbox não separados |
-| Banco e migrations | CONTAINER_VERIFIED | 40 tabelas criadas no MySQL local para Financial, CRM, Ordering, Ticketing e Affiliates; migrations aplicadas com dependência Ordering corrigida | Não substitui migration dry-run/backup/restore em staging |
-| Browser E2E | BROWSER_VERIFIED | 75 arquivos e 374 testes da aplicação; servidor local via `vite-node` em `http://127.0.0.1:4173`; mapa, clima, assistente e categorias carregados; assistente aberto com sucesso | Rotas autenticadas e checkout real exigem sessão/credenciais específicas |
-| Quality Gate individual | LOCAL_VERIFIED | Lint, typecheck, testes e build dos pacotes afetados passaram; gate histórico completo de 37 tarefas e validações individuais foram confirmados | `pnpm check` agregado não foi usado como nova evidência nesta etapa devido a artefatos/cache `.turbo`; os gates individuais continuam a fonte desta classificação |
-| Rollback drill | LOCAL_VERIFIED | `deploy good` readiness 200 → `deploy bad` readiness 503 → redeploy good readiness 200/health 200 | Drill não prova backup/restore ou rollback em staging |
-| Provider E2E | BLOCKED_EXTERNAL | Script `tooling/payments/provider-sandbox-e2e.mjs` executado e falhou fail-closed | Três variáveis de credencial do sandbox provider ausentes |
+| Área                                                        | Classificação               | Evidência real                                                                                                                                                                   | Limite atual                                                                                                                                                      |
+| ----------------------------------------------------------- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Core UI, Geospatial, Navigation, Assistant, Business e Auth | EQUIVALENT_VERIFIED         | Contratos e evidências permanentes já incorporados; aplicação principal abriu localmente                                                                                         | Release operacional e Actions não revalidados neste ciclo                                                                                                         |
+| Design System / MIG-0003                                    | EQUIVALENT_VERIFIED         | 41 custom properties estruturadas em tokens V1; testes do design system e tracker reconciliado                                                                                   | Não promovido a released sem staging/Actions                                                                                                                      |
+| CRM / MIG-0008                                              | EQUIVALENT_VERIFIED         | 164/164 testes do CRM server com MySQL local; Settings genéricos, schema `crm_settings` e adapter filesystem/S3-compatible; contratos browser existentes                         | Staging, Actions e prova de object storage S3 real permanecem externos                                                                                            |
+| Payments / MIG-0010                                         | BLOCKED_EXTERNAL            | Financial 91/91 e Ordering 41/41 com MySQL real; observabilidade de recurring lifecycle; topology guard single-replica; browser principal local                                  | Provider sandbox E2E exige `PAYMENTS_SANDBOX_PROVIDER_BASE_URL`, `PAYMENTS_SANDBOX_PROVIDER_API_TOKEN` e `PAYMENTS_SANDBOX_WEBHOOK_SECRET`                        |
+| Affiliates / MIG-0011                                       | EQUIVALENT_VERIFIED (local) | Affiliates 4/4 com MySQL real; digest de idempotência normalizado case-insensitive; persistência, auditoria e outbox exercitados                                                 | Readback externo Ordering/Financial, DSR/retenção, browser E2E e Actions ainda pendentes                                                                          |
+| Ticketing / MIG-0017                                        | EQUIVALENT_VERIFIED         | Ticketing 31/31 com MySQL real; reservation binding e transaction persistence exercitados; integração Ordering/Financial local                                                   | Browser E2E específico de Ticketing e provider sandbox não separados                                                                                              |
+| Banco e migrations                                          | CONTAINER_VERIFIED          | 40 tabelas criadas no MySQL local para Financial, CRM, Ordering, Ticketing e Affiliates; migrations aplicadas com dependência Ordering corrigida                                 | Não substitui migration dry-run/backup/restore em staging                                                                                                         |
+| Browser E2E                                                 | BROWSER_VERIFIED            | 75 arquivos e 374 testes da aplicação; servidor local via `vite-node` em `http://127.0.0.1:4173`; mapa, clima, assistente e categorias carregados; assistente aberto com sucesso | Rotas autenticadas e checkout real exigem sessão/credenciais específicas                                                                                          |
+| Quality Gate individual                                     | LOCAL_VERIFIED              | Lint, typecheck, testes e build dos pacotes afetados passaram; gate histórico completo de 37 tarefas e validações individuais foram confirmados                                  | `pnpm check` agregado não foi usado como nova evidência nesta etapa devido a artefatos/cache `.turbo`; os gates individuais continuam a fonte desta classificação |
+| Rollback drill                                              | LOCAL_VERIFIED              | `deploy good` readiness 200 → `deploy bad` readiness 503 → redeploy good readiness 200/health 200                                                                                | Drill não prova backup/restore ou rollback em staging                                                                                                             |
+| Provider E2E                                                | BLOCKED_EXTERNAL            | Script `tooling/payments/provider-sandbox-e2e.mjs` executado e falhou fail-closed                                                                                                | Três variáveis de credencial do sandbox provider ausentes                                                                                                         |
 
 ## Testes MySQL executados
 
-| Domínio | Resultado |
-|---|---:|
-| Financial | 91/91 PASS |
-| Ordering | 41/41 PASS |
-| CRM | 164/164 PASS |
-| Ticketing | 31/31 PASS |
-| Affiliates | 4/4 PASS |
-| **Total** | **331/331 PASS** |
+| Domínio    |        Resultado |
+| ---------- | ---------------: |
+| Financial  |       91/91 PASS |
+| Ordering   |       41/41 PASS |
+| CRM        |     164/164 PASS |
+| Ticketing  |       31/31 PASS |
+| Affiliates |         4/4 PASS |
+| **Total**  | **331/331 PASS** |
 
 O teste de Affiliates revelou e corrigiu um defeito legítimo: o MySQL retornava o digest em caixa diferente da representação do input. A comparação do `semantic_digest` agora é case-insensitive, preservando a proteção contra replay e conflito sem relaxar a igualdade semântica. O teste de Ordering também passou a limpar explicitamente os vínculos de Ticketing antes dos testes, respeitando a dependência de dados.
 
