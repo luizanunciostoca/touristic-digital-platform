@@ -133,7 +133,7 @@ function firstConfigured(
   return values.find((value) => typeof value === "string" && value.trim())?.trim();
 }
 
-function withMercadoPagoRenderCompatibility(
+function withCanonicalMercadoPagoEnvironment(
   environment: PaymentsProviderEnvironment,
 ): MercadoPagoProviderEnvironment {
   return Object.freeze({
@@ -141,14 +141,10 @@ function withMercadoPagoRenderCompatibility(
     MERCADO_PAGO_ACCESS_TOKEN: firstConfigured(
       environment.MERCADO_PAGO_ACCESS_TOKEN,
       process.env.MERCADO_PAGO_ACCESS_TOKEN,
-      environment.BUSINESS_PAYMENT_API_TOKEN,
-      process.env.BUSINESS_PAYMENT_API_TOKEN,
     ),
     MERCADO_PAGO_WEBHOOK_SECRET: firstConfigured(
       environment.MERCADO_PAGO_WEBHOOK_SECRET,
       process.env.MERCADO_PAGO_WEBHOOK_SECRET,
-      environment.BUSINESS_PAYMENT_WEBHOOK_SECRET,
-      process.env.BUSINESS_PAYMENT_WEBHOOK_SECRET,
     ),
     MERCADO_PAGO_CHECKOUT_ORIGINS: firstConfigured(
       environment.MERCADO_PAGO_CHECKOUT_ORIGINS,
@@ -158,6 +154,8 @@ function withMercadoPagoRenderCompatibility(
       environment.MERCADO_PAGO_CHECKOUT_MODE,
       process.env.MERCADO_PAGO_CHECKOUT_MODE,
     ),
+    BUSINESS_PAYMENT_API_TOKEN: undefined,
+    BUSINESS_PAYMENT_WEBHOOK_SECRET: undefined,
   });
 }
 
@@ -167,7 +165,7 @@ export function createSandboxCheckoutProviderFromEnvironment(
 ) {
   if (environment.PAYMENTS_PROVIDER_MODE === "mercado_pago") {
     return createMercadoPagoCheckoutProviderFromEnvironment(
-      withMercadoPagoRenderCompatibility(environment),
+      withCanonicalMercadoPagoEnvironment(environment),
       { fetch: options.fetch },
     );
   }
@@ -180,7 +178,7 @@ export function createSandboxRefundProviderFromEnvironment(
 ) {
   if (environment.PAYMENTS_PROVIDER_MODE === "mercado_pago") {
     return createMercadoPagoRefundProviderFromEnvironment(
-      withMercadoPagoRenderCompatibility(environment),
+      withCanonicalMercadoPagoEnvironment(environment),
       { fetch: options.fetch },
     );
   }
@@ -193,7 +191,7 @@ export function createSandboxReconciliationProviderFromEnvironment(
 ) {
   if (environment.PAYMENTS_PROVIDER_MODE === "mercado_pago") {
     return createMercadoPagoReconciliationProviderFromEnvironment(
-      withMercadoPagoRenderCompatibility(environment),
+      withCanonicalMercadoPagoEnvironment(environment),
       { fetch: options.fetch },
     );
   }
@@ -212,7 +210,7 @@ export function createSandboxWebhookVerifierFromEnvironment(
       ? { now: () => options.clock?.nowEpochMilliseconds() ?? Date.now() }
       : {};
     return createMercadoPagoAuthenticatingWebhookVerifierFromEnvironment(
-      withMercadoPagoRenderCompatibility(environment),
+      withCanonicalMercadoPagoEnvironment(environment),
       mercadoOptions,
     );
   }
