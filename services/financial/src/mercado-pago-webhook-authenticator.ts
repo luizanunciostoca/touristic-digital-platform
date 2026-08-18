@@ -1,6 +1,9 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
-import type { FinancialWebhookVerifierPort } from "@touristic/financial";
+import type {
+  FinancialWebhookVerifierPort,
+  VerifiedProviderPaymentEvent,
+} from "@touristic/financial";
 
 import {
   createMercadoPagoWebhookVerifierFromEnvironment,
@@ -40,7 +43,7 @@ function parseSignature(value: string): { timestamp: string; digest: string } | 
     : null;
 }
 
-function webhookDataId(rawBody: Uint8Array): string {
+function webhookBodyDataId(rawBody: Uint8Array): string {
   if (
     !(rawBody instanceof Uint8Array) ||
     rawBody.byteLength === 0 ||
@@ -57,6 +60,36 @@ function webhookDataId(rawBody: Uint8Array): string {
   } catch {
     return "";
   }
+}
+
+function parseEnvelope(value: string): {
+  signature: string;
+  requestId: string;
+  dataId: string;
+} | null {
+  let envelope: {
+    signature?: unknown;
+    requestId?: unknown;
+    dataId?: unknown;
+  };
+  try {
+    envelope = JSON.parse(value) as {
+      signature?: unknown;
+      requestId?: unknown;
+      dataId?: unknown;
+    };
+  } catch {
+    return null;
+  }
+  const signature = boundedString(envelope.signature, 240);
+  const requestId = boundedString(envelope.requestId, 180);
+  const dataId = boundedString(
+    envelope.dataId === undefined ? "" : String(envelope.dataId),
+    180,
+  );
+  return signature && requestId && dataId
+    ? { signature, requestId, dataId }
+    : null;
 }
 
 function secret(environment: MercadoPagoProviderEnvironment): string {
@@ -100,19 +133,11 @@ export function createMercadoPagoAuthenticatingWebhookVerifierFromEnvironment(
     rawBody: Uint8Array,
     signatureEnvelope: string,
   ): Promise<boolean> {
-    let envelope: { signature?: unknown; requestId?: unknown };
-    try {
-      envelope = JSON.parse(signatureEnvelope) as {
-        signature?: unknown;
-        requestId?: unknown;
-      };
-    } catch {
-      return false;
-    }
-    const signature = parseSignature(boundedString(envelope.signature, 240));
-    const requestId = boundedString(envelope.requestId, 180);
-    const dataId = webhookDataId(rawBody);
-    if (!signature || !requestId || !dataId) return false;
+    const envelope = parseEnvelope(signatureEnvelope);
+    if (!envelope) return false;
+    const signature = parseSignature(envelope.signature);
+    const bodyDataId = webhookBodyDataId(rawBody);
+    if (!signature || !bodyDataId || bodyDataId !== envelope.dataId) return false;
 
     const timestamp = Number(signature.timestamp);
     const timestampSeconds =
@@ -126,7 +151,7 @@ export function createMercadoPagoAuthenticatingWebhookVerifierFromEnvironment(
       return false;
     }
 
-    const manifest = `id:${dataId};request-id:${requestId};ts:${signature.timestamp};`;
+    const manifest = `id:${envelope.dataId};request-id:${envelope.requestId};ts:${signature.timestamp};`;
     const expected = createHmac("sha256", webhookSecret).update(manifest).digest();
     const provided = Buffer.from(signature.digest, "hex");
     return (
@@ -135,8 +160,13 @@ export function createMercadoPagoAuthenticatingWebhookVerifierFromEnvironment(
     );
   }
 
-  return Object.freeze({
-    verify: terminalVerifier.verify.bind(terminalVerifier),
-    verifyAuthenticity,
-  });
+  async function verify(
+    rawBody: Uint8Array,
+    signatureEnvelope: string,
+  ): Promise<VerifiedProviderPaymentEvent | null> {
+    if (!(await verifyAuthenticity(rawBody, signatureEnvelope))) return null;
+    return terminalVerifier.verify(rawBody, signatureEnvelope);
+  }
+
+  return Object.freeze({ verify, verifyAuthenticity });
 }
