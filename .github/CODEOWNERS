@@ -3,8 +3,12 @@
 
 # Governança e automação
 /.github/ @luizidebook
+/.github/workflows/ @luizidebook
+/.github/CODEOWNERS @luizidebook
 /docs/ @luizidebook
+/docs/operations/ @luizidebook
 /tooling/ @luizidebook
+/tooling/quality/ @luizidebook
 /infrastructure/ @luizidebook
 
 # Aplicações e capacidades compartilhadas

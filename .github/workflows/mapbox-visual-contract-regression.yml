@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - feat/mapbox-gl-runtime
+      - main
     paths:
       - .github/workflows/mapbox-visual-contract-regression.yml
       - apps/morro-digital-platform/src/bootstrap/geospatial.ts
@@ -13,6 +13,8 @@ on:
       - apps/morro-digital-platform/public/styles.css
       - apps/morro-digital-platform/tooling/dev-server.mjs
       - packages/geospatial/src/infrastructure/mapbox-gl-driver.ts
+      - package.json
+      - pnpm-lock.yaml
   pull_request:
     paths:
       - .github/workflows/mapbox-visual-contract-regression.yml
@@ -22,6 +24,8 @@ on:
       - apps/morro-digital-platform/public/styles.css
       - apps/morro-digital-platform/tooling/dev-server.mjs
       - packages/geospatial/src/infrastructure/mapbox-gl-driver.ts
+      - package.json
+      - pnpm-lock.yaml
 
 permissions:
   contents: read
@@ -30,9 +34,11 @@ jobs:
   visual-contract:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
           cache: pnpm
@@ -273,7 +279,7 @@ jobs:
       - name: Show diagnostics
         if: failure()
         run: cat /tmp/mapbox-visual-contract.log || true
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: mapbox-visual-contract-evidence
