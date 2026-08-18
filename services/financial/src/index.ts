@@ -32,6 +32,7 @@ import {
   createMercadoPagoWebhookVerifierFromEnvironment,
   type MercadoPagoProviderEnvironment,
 } from "./mercado-pago-provider.js";
+import { createMercadoPagoAuthenticatingWebhookVerifierFromEnvironment } from "./mercado-pago-webhook-authenticator.js";
 import {
   financialM137SchemaSql,
   financialM141SchemaSql,
@@ -113,20 +114,22 @@ import {
 type SandboxCheckoutEnvironment = Parameters<
   typeof createSandboxCheckoutProviderFromEnvironmentInternal
 >[0];
-type SandboxCheckoutOptions = Parameters<
-  typeof createSandboxCheckoutProviderFromEnvironmentInternal
->[1];
+type SandboxCheckoutOptions = NonNullable<
+  Parameters<typeof createSandboxCheckoutProviderFromEnvironmentInternal>[1]
+>;
 type SandboxWebhookEnvironment = Parameters<
   typeof createSandboxWebhookVerifierFromEnvironmentInternal
 >[0];
-type SandboxWebhookOptions = Parameters<
-  typeof createSandboxWebhookVerifierFromEnvironmentInternal
->[1];
+type SandboxWebhookOptions = NonNullable<
+  Parameters<typeof createSandboxWebhookVerifierFromEnvironmentInternal>[1]
+>;
 type PaymentsProviderEnvironment = SandboxCheckoutEnvironment &
   SandboxWebhookEnvironment &
   MercadoPagoProviderEnvironment;
 
-function firstConfigured(...values: readonly (string | undefined)[]): string | undefined {
+function firstConfigured(
+  ...values: readonly (string | undefined)[]
+): string | undefined {
   return values.find((value) => typeof value === "string" && value.trim())?.trim();
 }
 
@@ -208,7 +211,7 @@ export function createSandboxWebhookVerifierFromEnvironment(
     const mercadoOptions = options.clock
       ? { now: () => options.clock?.nowEpochMilliseconds() ?? Date.now() }
       : {};
-    return createMercadoPagoWebhookVerifierFromEnvironment(
+    return createMercadoPagoAuthenticatingWebhookVerifierFromEnvironment(
       withMercadoPagoRenderCompatibility(environment),
       mercadoOptions,
     );
@@ -238,6 +241,7 @@ export {
   createMercadoPagoReconciliationProviderFromEnvironment,
   createMercadoPagoRefundProviderFromEnvironment,
   createMercadoPagoWebhookVerifierFromEnvironment,
+  createMercadoPagoAuthenticatingWebhookVerifierFromEnvironment,
   createVerifiedPaymentOutcomeService,
   createVerifiedPaymentAccountingService,
   PaymentObservationEmitter,
