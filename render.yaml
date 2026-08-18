@@ -46,15 +46,9 @@ services:
       - key: MERCADO_PAGO_WEBHOOK_SECRET
         sync: false
 
-      # Temporary V1 -> V2 compatibility aliases. These permit a controlled
-      # secret migration from the existing Render service without GitHub exposure.
-      # Populate only when the canonical MERCADO_PAGO_* names have not yet been
-      # copied; remove the aliases after validation.
-      - key: BUSINESS_PAYMENT_API_TOKEN
-        sync: false
-      - key: BUSINESS_PAYMENT_WEBHOOK_SECRET
-        sync: false
-
+      # Copy a confirmed Mercado Pago credential from the V1 Render environment
+      # directly into the canonical fields above. Do not presume that a generic
+      # V1 gateway token is itself a Mercado Pago Access Token.
       - key: PAYMENTS_WEBHOOK_URL
         sync: false
       - key: PAYMENTS_WEBHOOK_TOLERANCE_SECONDS
