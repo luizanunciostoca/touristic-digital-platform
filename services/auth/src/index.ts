@@ -9,6 +9,7 @@ import {
 
 export * from "./credentials.js";
 export * from "./revocation.js";
+export * from "./security-state.js";
 
 export const sessionCookieName = "md_dashboard_session";
 export const defaultSessionTtlSeconds = 8 * 60 * 60;

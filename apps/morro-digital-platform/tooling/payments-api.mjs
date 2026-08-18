@@ -43,6 +43,7 @@ import {
   createCheckoutStatusCapability,
   createInMemoryCheckoutRateLimitPort,
   createNodeCheckoutIdentityPort,
+  createOrderingMySqlPoolFromEnvironment,
   createOrderPricingAuthorityFromEnvironment,
   normalizeCheckoutCorrelationId,
   normalizeCheckoutRequestContext,
@@ -419,7 +420,7 @@ export function createPaymentsCheckoutAuthorizationPort({
 }) {
   return Object.freeze({
     async authorizeCreate(request, handoff) {
-      const active = authApi.resolveSession(request);
+      const active = await authApi.resolveSession(request);
       if (active) {
         const mutation = authApi.authorizeMutation(
           request,
@@ -489,7 +490,7 @@ export function createPaymentsCheckoutAuthorizationPort({
       return Object.freeze({ allowed: true, context });
     },
     async authorizeTicketingCreate(request, handoff) {
-      const active = authApi.resolveSession(request);
+      const active = await authApi.resolveSession(request);
       if (!active) {
         return Object.freeze({
           allowed: false,
@@ -548,7 +549,7 @@ export function createPaymentsRefundAuthorizationPort({
 }) {
   return Object.freeze({
     async authorizeRefund(request, paymentId) {
-      const active = authApi.resolveSession(request);
+      const active = await authApi.resolveSession(request);
       if (!active) {
         return Object.freeze({
           allowed: false,
@@ -628,7 +629,7 @@ export function createPaymentsRefundAuthorizationPort({
 export function createPaymentsReconciliationAuthorizationPort({ authApi }) {
   return Object.freeze({
     async authorize(request, action) {
-      const active = authApi.resolveSession(request);
+      const active = await authApi.resolveSession(request);
       if (!active) {
         return Object.freeze({
           allowed: false,

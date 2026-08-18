@@ -243,7 +243,7 @@ export function createCrmApi({ authApi, getEnvironmentValue }) {
         }
       }
 
-      const session = authApi.resolveSession(request);
+      const session = await authApi.resolveSession(request);
       const mutationSecurity =
         session && request.method !== "GET" && request.method !== "HEAD"
           ? authApi.authorizeMutation(request, session, "crm.resource")
