@@ -14,6 +14,7 @@ This is a release-evidence decision, not a statement that the implementation is 
 - Workflow hardening commit: `a4be956a57edba2e21dd2c8073594eb0c573f387`.
 - Affiliates workflow reconciliation/pinning commit: `ff197b3758b0f1c02a5c1bff8073e424a7f37521`.
 - Feature Registry truth reconciliation commit: `175fa1b927a3476e05c292624710faa11863049c`.
+- PR #285 is closed unmerged after the safe residual changes were ported directly to `main`.
 - This document is evidence-only and does not alter runtime behavior.
 
 ## Exact-head execution environment
@@ -40,7 +41,7 @@ These are execution-environment blockers. They must not be converted into PASS r
 | 5 | Mercado Pago/provider E2E with test credentials | **BLOCKED_EXTERNAL** | No provider credentials/DB URLs are available here. PR #293 itself classifies the provider path as external-validation-required. No provider verification is claimed. |
 | 6 | Feature Registry promotion | **RECONCILED / NO UNSUPPORTED PROMOTION** | FEATURE-0001..0008 and FEATURE-0011 remain `equivalent`. FEATURE-0009 Payments and FEATURE-0010 Affiliates remain `migrating`; notes now distinguish historical evidence from the required exact-HEAD rerun. |
 | 7 | Final Go/No-Go report | **DONE** | This document is the canonical closeout record for this execution. |
-| 8 | PR #285 workflow closeout directly on main | **DONE, PR CLOSURE PENDING AT REPORT WRITE** | The diverged #285 branch was not merged. Its safe residual workflow hardening was ported directly onto current main, preserving newer Mercado Pago/Render and Affiliates work. |
+| 8 | PR #285 workflow closeout directly on main | **DONE / CLOSED UNMERGED** | The diverged #285 branch was not merged. Its safe residual workflow hardening was ported directly onto current main, preserving newer Mercado Pago/Render and Affiliates work; the PR was then closed with evidence links. |
 
 ## Historical local evidence that remains valid as historical evidence
 
