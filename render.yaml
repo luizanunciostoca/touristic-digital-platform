@@ -13,6 +13,16 @@ services:
       - key: HOST
         value: 0.0.0.0
 
+      # Production Auth boundary used by Payments authenticated authority.
+      - key: DASHBOARD_AUTH_SECRET
+        generateValue: true
+      - key: DASHBOARD_USERS_JSON
+        sync: false
+      - key: DASHBOARD_AUTH_ORIGIN
+        sync: false
+      - key: DASHBOARD_SESSION_TTL_SECONDS
+        value: "28800"
+
       # Durable domain databases. Keep Ordering and Financial isolated.
       - key: ORDERING_DATABASE_URL
         sync: false
