@@ -32,9 +32,9 @@ function environment() {
     PAYMENTS_PROVIDER_RETRY_BASE_MS: "0",
     PAYMENTS_WEBHOOK_TOLERANCE_SECONDS: "300",
     MERCADO_PAGO_ACCESS_TOKEN:
-      "APP_USR-test-token-with-at-least-thirty-two-characters",
+      "fixture-token-not-a-real-credential-with-thirty-two-characters",
     MERCADO_PAGO_WEBHOOK_SECRET:
-      "mercado-pago-webhook-secret-with-enough-entropy",
+      "fixture-webhook-secret-not-a-real-credential-value",
     MERCADO_PAGO_CHECKOUT_ORIGINS: "https://checkout.mercadopago.example",
     MERCADO_PAGO_CHECKOUT_MODE: "test",
   };
@@ -117,7 +117,7 @@ describe("Mercado Pago payment provider adapter", () => {
     expect(capturedUrl).toBe("https://api.mercadopago.com/checkout/preferences");
     const headers = new Headers(capturedInit?.headers);
     expect(headers.get("Authorization")).toBe(
-      "Bearer APP_USR-test-token-with-at-least-thirty-two-characters",
+      "Bearer fixture-token-not-a-real-credential-with-thirty-two-characters",
     );
     expect(headers.get("X-Idempotency-Key")).toBe(
       "payment:v1:ord_mercado_pago_0001",
@@ -292,7 +292,9 @@ describe("Mercado Pago payment provider adapter", () => {
     await expect(
       authenticating.verifyAuthenticity(rawBody, signatureEnvelope),
     ).resolves.toBe(true);
-    await expect(authenticating.verify(rawBody, signatureEnvelope)).resolves.toBeNull();
+    await expect(
+      authenticating.verify(rawBody, signatureEnvelope),
+    ).resolves.toBeNull();
 
     const terminal = createMercadoPagoWebhookVerifierFromEnvironment(
       environment(),
@@ -309,7 +311,9 @@ describe("Mercado Pago payment provider adapter", () => {
           ),
       },
     );
-    await expect(terminal.verify(rawBody, signatureEnvelope)).resolves.toMatchObject({
+    await expect(
+      terminal.verify(rawBody, signatureEnvelope),
+    ).resolves.toMatchObject({
       externalReference: "pay_mercado_pago_0001",
       providerPaymentReference: "123456789",
       status: "paid",
