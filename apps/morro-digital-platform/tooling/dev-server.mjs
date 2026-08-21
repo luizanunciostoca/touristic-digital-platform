@@ -111,6 +111,7 @@ const getEnvironmentValue = (key) =>
   process.env[key] ?? localEnvironment[key] ?? "";
 
 let platformOperations = null;
+let paymentsRuntimeReady = false;
 
 function auditSecurityEvent(request, event) {
   const pathname = (() => {
@@ -151,6 +152,14 @@ platformOperations = createPlatformOperations({
   getEnvironmentValue,
   additionalReadinessChecks: () => [
     { name: "auth-security-state", ...authApi.readinessCheck() },
+    {
+      name: "payments-runtime",
+      status: paymentsRuntimeReady ? "pass" : "fail",
+      critical: true,
+      detail: paymentsRuntimeReady
+        ? "payments-runtime-ready"
+        : "PAYMENTS_RUNTIME_UNAVAILABLE",
+    },
   ],
 });
 await authApi.start();
@@ -161,9 +170,7 @@ await crmApi.start();
 const businessApi = createBusinessApi({ authApi });
 
 const paymentsApi = createPaymentsApi({ authApi, getEnvironmentValue });
-if (!(await paymentsApi.start())) {
-  throw new Error("PAYMENTS_RUNTIME_UNAVAILABLE");
-}
+paymentsRuntimeReady = await paymentsApi.start();
 
 let ticketingApi = null;
 let ticketingApiPromise = null;
@@ -711,6 +718,7 @@ async function shutdown(signal) {
     paymentsApi.stop(),
     ticketingApi ? ticketingApi.stop() : Promise.resolve(),
   ]);
+  paymentsRuntimeReady = false;
   const failedStops = stops.filter((result) => result.status === "rejected");
   if (failedStops.length > 0) {
     exitCode = 1;
