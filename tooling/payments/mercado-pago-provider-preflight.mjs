@@ -27,13 +27,16 @@ function positiveInteger(name) {
 function firstOrigin(value) {
   const raw = value.split(",")[0]?.trim() ?? "";
   const url = new URL(raw);
-  if (url.protocol !== "https:") throw new Error("PAYMENTS_RETURN_URL_ORIGINS_INVALID");
+  if (url.protocol !== "https:")
+    throw new Error("PAYMENTS_RETURN_URL_ORIGINS_INVALID");
   return url.origin;
 }
 
 const suffix = `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
 const paymentId = normalizePaymentId(`pay_mp_preflight_${suffix}`);
-const idempotencyKey = createPaymentIdempotencyKey(`ord_mp_preflight_${suffix}`);
+const idempotencyKey = createPaymentIdempotencyKey(
+  `ord_mp_preflight_${suffix}`,
+);
 const amount = createMoney(
   positiveInteger("MERCADO_PAGO_E2E_AMOUNT_MINOR_UNITS"),
   "BRL",

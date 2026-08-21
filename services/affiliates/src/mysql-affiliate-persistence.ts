@@ -664,23 +664,25 @@ export class MySqlAffiliateMaterializationRepository {
       "SELECT * FROM affiliate_materialization_requests WHERE request_id = ? LIMIT 1",
       [requestId],
     );
-    const row = rows[0] as (RowDataPacket & {
-      request_id: string;
-      entitlement_id: string;
-      entitlement_revision: number;
-      affiliate_id: string;
-      conversion_id: string;
-      policy_version: string;
-      entitlement_digest: Buffer;
-      correlation_id: string;
-      state: AffiliateMaterializationRequestRecord["state"];
-      financial_reference: string | null;
-      rejection_code: string | null;
-      retryable: number;
-      attempts: number;
-      created_at: Date;
-      updated_at: Date;
-    }) | undefined;
+    const row = rows[0] as
+      | (RowDataPacket & {
+          request_id: string;
+          entitlement_id: string;
+          entitlement_revision: number;
+          affiliate_id: string;
+          conversion_id: string;
+          policy_version: string;
+          entitlement_digest: Buffer;
+          correlation_id: string;
+          state: AffiliateMaterializationRequestRecord["state"];
+          financial_reference: string | null;
+          rejection_code: string | null;
+          retryable: number;
+          attempts: number;
+          created_at: Date;
+          updated_at: Date;
+        })
+      | undefined;
     return row ? materializationFromRow(row) : null;
   }
 
@@ -698,7 +700,10 @@ export class MySqlAffiliateMaterializationRepository {
     return rows.map((row) => materializationFromRow(row as never));
   }
 
-  public async claimRetry(requestId: string, occurredAt: string): Promise<boolean> {
+  public async claimRetry(
+    requestId: string,
+    occurredAt: string,
+  ): Promise<boolean> {
     const [result] = await this.pool.execute<ResultSetHeader>(
       `UPDATE affiliate_materialization_requests
        SET state = 'pending', retryable = 0, updated_at = ?

@@ -130,7 +130,9 @@ type PaymentsProviderEnvironment = SandboxCheckoutEnvironment &
 function firstConfigured(
   ...values: readonly (string | undefined)[]
 ): string | undefined {
-  return values.find((value) => typeof value === "string" && value.trim())?.trim();
+  return values
+    .find((value) => typeof value === "string" && value.trim())
+    ?.trim();
 }
 
 function withCanonicalMercadoPagoEnvironment(
@@ -169,7 +171,10 @@ export function createSandboxCheckoutProviderFromEnvironment(
       { fetch: options.fetch },
     );
   }
-  return createSandboxCheckoutProviderFromEnvironmentInternal(environment, options);
+  return createSandboxCheckoutProviderFromEnvironmentInternal(
+    environment,
+    options,
+  );
 }
 
 export function createSandboxRefundProviderFromEnvironment(
@@ -182,7 +187,10 @@ export function createSandboxRefundProviderFromEnvironment(
       { fetch: options.fetch },
     );
   }
-  return createSandboxRefundProviderFromEnvironmentInternal(environment, options);
+  return createSandboxRefundProviderFromEnvironmentInternal(
+    environment,
+    options,
+  );
 }
 
 export function createSandboxReconciliationProviderFromEnvironment(
@@ -214,7 +222,10 @@ export function createSandboxWebhookVerifierFromEnvironment(
       mercadoOptions,
     );
   }
-  return createSandboxWebhookVerifierFromEnvironmentInternal(environment, options);
+  return createSandboxWebhookVerifierFromEnvironmentInternal(
+    environment,
+    options,
+  );
 }
 
 export {

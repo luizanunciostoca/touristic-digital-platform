@@ -33,7 +33,8 @@ async function request(pathname) {
 
 function requireHeader(headers, name) {
   const value = headers.get(name)?.trim() ?? "";
-  if (!value || value === "unknown") throw new Error(`${name.toUpperCase()}_MISSING`);
+  if (!value || value === "unknown")
+    throw new Error(`${name.toUpperCase()}_MISSING`);
   return value;
 }
 

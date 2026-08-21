@@ -65,7 +65,9 @@ function checkoutRequest(): CheckoutProviderRequest {
 
 function refundRequest(): RefundProviderCommand {
   const paymentId = normalizePaymentId("pay_mercado_pago_refund_0001");
-  const refundRequestId = normalizeRefundRequestId("rfd_mercado_pago_refund_0001");
+  const refundRequestId = normalizeRefundRequestId(
+    "rfd_mercado_pago_refund_0001",
+  );
   const idempotencyKey = createRefundIdempotencyKey(paymentId);
   const amount = createMoney(49_900, "BRL");
   const request = createRefundProviderCommand({
@@ -114,7 +116,9 @@ describe("Mercado Pago payment provider adapter", () => {
       checkoutUrl: "https://checkout.mercadopago.example/test/pref-0001",
       providerReference: null,
     });
-    expect(capturedUrl).toBe("https://api.mercadopago.com/checkout/preferences");
+    expect(capturedUrl).toBe(
+      "https://api.mercadopago.com/checkout/preferences",
+    );
     const headers = new Headers(capturedInit?.headers);
     expect(headers.get("Authorization")).toBe(
       "Bearer fixture-token-not-a-real-credential-with-thirty-two-characters",
@@ -175,7 +179,9 @@ describe("Mercado Pago payment provider adapter", () => {
         fetch(input, init) {
           capturedUrl = input instanceof URL ? input.toString() : String(input);
           capturedInit = init;
-          return Promise.resolve(response({ id: 987654321, status: "approved" }));
+          return Promise.resolve(
+            response({ id: 987654321, status: "approved" }),
+          );
         },
       },
     );

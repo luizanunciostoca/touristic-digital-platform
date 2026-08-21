@@ -81,11 +81,15 @@ if (/\npull_request:\s*\n(?:.|\n)*?\n\s+paths(?:-ignore)?:/m.test(quality)) {
   fail("global Quality Gate must not use pull_request path filters");
 }
 if (quality.includes("name: quality /")) {
-  fail("Quality Gate must remain consolidated instead of multiplying setup jobs");
+  fail(
+    "Quality Gate must remain consolidated instead of multiplying setup jobs",
+  );
 }
 const qualityRunnerCount = (quality.match(/^\s{4}runs-on:/gmu) ?? []).length;
 if (qualityRunnerCount !== 1) {
-  fail(`Quality Gate must use exactly one provisioned job; found ${qualityRunnerCount}`);
+  fail(
+    `Quality Gate must use exactly one provisioned job; found ${qualityRunnerCount}`,
+  );
 }
 
 const domainContracts = [
@@ -104,12 +108,7 @@ const domainContracts = [
   },
   {
     file: "crm-equivalence-browser-contract.yml",
-    markers: [
-      "pull_request:",
-      "push:",
-      "packages/crm/**",
-      "services/crm/**",
-    ],
+    markers: ["pull_request:", "push:", "packages/crm/**", "services/crm/**"],
   },
   {
     file: "payments-subscription-recurrence-contract.yml",
@@ -146,11 +145,15 @@ for (const contract of domainContracts) {
 const platformContracts = await text(
   "tooling/quality/check-platform-contracts.mjs",
 );
-requireIncludes(platformContracts, "tooling/quality/check-platform-contracts.mjs", [
-  "PLATFORM-EVENT-ENVELOPE",
-  "PLATFORM-OBSERVATION",
-  "PLATFORM-HEALTH-SNAPSHOT",
-]);
+requireIncludes(
+  platformContracts,
+  "tooling/quality/check-platform-contracts.mjs",
+  [
+    "PLATFORM-EVENT-ENVELOPE",
+    "PLATFORM-OBSERVATION",
+    "PLATFORM-HEALTH-SNAPSHOT",
+  ],
+);
 
 const releaseGate = workflowSources.get("release-promotion-gate.yml");
 if (!releaseGate) fail("release-promotion-gate.yml is missing");
@@ -184,7 +187,9 @@ const temporaryCandidates = workflowFiles.filter(
 console.log(
   `CI governance valid: ${workflowFiles.length} versioned workflows inspected.`,
 );
-console.log("Quality topology valid: one consolidated provisioned job named quality.");
+console.log(
+  "Quality topology valid: one consolidated provisioned job named quality.",
+);
 console.log(
   `Temporary/one-shot cleanup candidates: ${temporaryCandidates.length}.`,
 );

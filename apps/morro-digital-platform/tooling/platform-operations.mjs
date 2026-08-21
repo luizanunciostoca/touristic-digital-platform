@@ -57,7 +57,9 @@ function bindApprovedImportMapHashes(response) {
 
   directives[scriptIndex] =
     `${directives[scriptIndex]} ${approvedInlineImportMapHashes.join(" ")}`;
-  if (!directives.some((directive) => directive.startsWith("script-src-attr "))) {
+  if (
+    !directives.some((directive) => directive.startsWith("script-src-attr "))
+  ) {
     directives.push("script-src-attr 'none'");
   }
   response.setHeader("Content-Security-Policy", directives.join("; "));

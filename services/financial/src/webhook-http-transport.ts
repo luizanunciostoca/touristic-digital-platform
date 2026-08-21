@@ -23,8 +23,7 @@ import type {
 
 export const sandboxWebhookPath = "/api/payments/v1/webhooks/sandbox";
 
-interface AuthenticatingFinancialWebhookVerifierPort
-  extends FinancialWebhookVerifierPort {
+interface AuthenticatingFinancialWebhookVerifierPort extends FinancialWebhookVerifierPort {
   readonly verifyAuthenticity?: (
     rawBody: Uint8Array,
     signature: string,
@@ -95,7 +94,9 @@ function header(
 function isMercadoPagoWebhook(
   headers: Readonly<Record<string, unknown>>,
 ): boolean {
-  return Boolean(header(headers, "x-signature") && header(headers, "x-request-id"));
+  return Boolean(
+    header(headers, "x-signature") && header(headers, "x-request-id"),
+  );
 }
 
 function verifierSignature(headers: Readonly<Record<string, unknown>>): string {

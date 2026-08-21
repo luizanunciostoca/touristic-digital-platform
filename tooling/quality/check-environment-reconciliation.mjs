@@ -65,7 +65,9 @@ if (checkoutMode !== "test" && checkoutMode !== "production") {
   throw new Error("MERCADO_PAGO_CHECKOUT_MODE must be test or production");
 }
 
-const readinessDelay = Number(values.get("PLATFORM_SHUTDOWN_READINESS_DELAY_MS"));
+const readinessDelay = Number(
+  values.get("PLATFORM_SHUTDOWN_READINESS_DELAY_MS"),
+);
 const drainTimeout = Number(values.get("PLATFORM_SHUTDOWN_DRAIN_TIMEOUT_MS"));
 if (!Number.isSafeInteger(readinessDelay) || readinessDelay < 0)
   throw new Error("PLATFORM_SHUTDOWN_READINESS_DELAY_MS must be non-negative");

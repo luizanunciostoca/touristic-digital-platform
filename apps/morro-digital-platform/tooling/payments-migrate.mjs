@@ -142,7 +142,8 @@ try {
       contract: "PAYMENTS-PREDEPLOY",
       contractVersion: 2,
       status: "fail",
-      reason: error instanceof Error ? error.message : "UNKNOWN_PREDEPLOY_FAILURE",
+      reason:
+        error instanceof Error ? error.message : "UNKNOWN_PREDEPLOY_FAILURE",
     })}\n`,
   );
   process.exitCode = 1;

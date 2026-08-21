@@ -11,8 +11,7 @@ import {
   type MercadoPagoProviderOptions,
 } from "./mercado-pago-provider.js";
 
-export interface AuthenticatingFinancialWebhookVerifierPort
-  extends FinancialWebhookVerifierPort {
+export interface AuthenticatingFinancialWebhookVerifierPort extends FinancialWebhookVerifierPort {
   verifyAuthenticity(
     rawBody: Uint8Array,
     signatureEnvelope: string,
@@ -27,7 +26,9 @@ function boundedString(value: unknown, maxLength: number): string {
   return normalized && normalized.length <= maxLength ? normalized : "";
 }
 
-function parseSignature(value: string): { timestamp: string; digest: string } | null {
+function parseSignature(
+  value: string,
+): { timestamp: string; digest: string } | null {
   let timestamp = "";
   let digest = "";
   for (const part of value.split(",")) {
@@ -126,7 +127,9 @@ export function createMercadoPagoAuthenticatingWebhookVerifierFromEnvironment(
     options,
   );
   const webhookSecret = secret(environment);
-  const tolerance = toleranceSeconds(environment.PAYMENTS_WEBHOOK_TOLERANCE_SECONDS);
+  const tolerance = toleranceSeconds(
+    environment.PAYMENTS_WEBHOOK_TOLERANCE_SECONDS,
+  );
   const now = options.now ?? Date.now;
 
   async function verifyAuthenticity(
@@ -137,22 +140,28 @@ export function createMercadoPagoAuthenticatingWebhookVerifierFromEnvironment(
     if (!envelope) return false;
     const signature = parseSignature(envelope.signature);
     const bodyDataId = webhookBodyDataId(rawBody);
-    if (!signature || !bodyDataId || bodyDataId !== envelope.dataId) return false;
+    if (!signature || !bodyDataId || bodyDataId !== envelope.dataId)
+      return false;
 
     const timestamp = Number(signature.timestamp);
     const timestampSeconds =
-      signature.timestamp.length === 13 ? Math.floor(timestamp / 1000) : timestamp;
+      signature.timestamp.length === 13
+        ? Math.floor(timestamp / 1000)
+        : timestamp;
     const nowMilliseconds = Number(now());
     if (
       !Number.isSafeInteger(timestamp) ||
       !Number.isFinite(nowMilliseconds) ||
-      Math.abs(Math.floor(nowMilliseconds / 1000) - timestampSeconds) > tolerance
+      Math.abs(Math.floor(nowMilliseconds / 1000) - timestampSeconds) >
+        tolerance
     ) {
       return false;
     }
 
     const manifest = `id:${envelope.dataId};request-id:${envelope.requestId};ts:${signature.timestamp};`;
-    const expected = createHmac("sha256", webhookSecret).update(manifest).digest();
+    const expected = createHmac("sha256", webhookSecret)
+      .update(manifest)
+      .digest();
     const provided = Buffer.from(signature.digest, "hex");
     return (
       provided.byteLength === expected.byteLength &&
