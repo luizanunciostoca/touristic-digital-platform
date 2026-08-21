@@ -48,6 +48,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          trap 'echo "Affiliate contract gate failed at line ${LINENO}: ${BASH_COMMAND}" >&2' ERR
 
           require_fixed() {
             local expected="$1"
