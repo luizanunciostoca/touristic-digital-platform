@@ -97,7 +97,12 @@ describe("Mercado Pago payment provider adapter", () => {
       environment(),
       {
         fetch(input, init) {
-          capturedUrl = input instanceof URL ? input.toString() : String(input);
+          capturedUrl =
+            typeof input === "string"
+              ? input
+              : input instanceof URL
+                ? input.href
+                : input.url;
           capturedInit = init;
           return Promise.resolve(
             response({
@@ -177,7 +182,12 @@ describe("Mercado Pago payment provider adapter", () => {
       environment(),
       {
         fetch(input, init) {
-          capturedUrl = input instanceof URL ? input.toString() : String(input);
+          capturedUrl =
+            typeof input === "string"
+              ? input
+              : input instanceof URL
+                ? input.href
+                : input.url;
           capturedInit = init;
           return Promise.resolve(
             response({ id: 987654321, status: "approved" }),
@@ -326,6 +336,8 @@ describe("Mercado Pago payment provider adapter", () => {
               id: 123456789,
               status: "approved",
               external_reference: "pay_mercado_pago_0001",
+              transaction_amount: 499,
+              currency_id: "BRL",
               date_last_updated: "2026-08-17T23:00:00Z",
             }),
           ),
@@ -336,6 +348,8 @@ describe("Mercado Pago payment provider adapter", () => {
     ).resolves.toMatchObject({
       externalReference: "pay_mercado_pago_0001",
       providerPaymentReference: "123456789",
+      amountMinorUnits: 49_900,
+      currency: "BRL",
       status: "paid",
       occurredAt: "2026-08-17T23:00:00.000Z",
     });

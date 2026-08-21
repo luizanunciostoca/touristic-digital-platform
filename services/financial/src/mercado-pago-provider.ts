@@ -71,6 +71,13 @@ function boundedString(value: unknown, maxLength: number): string {
   return normalized && normalized.length <= maxLength ? normalized : "";
 }
 
+function boundedIdentifier(value: unknown, maxLength: number): string {
+  if (typeof value === "number") {
+    return Number.isSafeInteger(value) && value >= 0 ? String(value) : "";
+  }
+  return boundedString(value, maxLength);
+}
+
 function accessToken(environment: MercadoPagoProviderEnvironment): string {
   const token = boundedString(
     environment.MERCADO_PAGO_ACCESS_TOKEN ??
@@ -394,7 +401,7 @@ export function createMercadoPagoRefundProviderFromEnvironment(
         const payload = await boundedJson(response);
         const receipt = normalizeRefundProviderReceipt({
           accepted: true,
-          providerRefundReference: String(payload.id ?? ""),
+          providerRefundReference: boundedIdentifier(payload.id, 180),
         });
         if (!receipt) {
           throw new MercadoPagoProviderError("MERCADO_PAGO_INVALID_RESPONSE");
@@ -448,7 +455,9 @@ export function createMercadoPagoReconciliationProviderFromEnvironment(
   }
   accessToken(environment);
   return Object.freeze({
-    async readPayment(input): Promise<ReconciliationProviderSnapshot | null> {
+    async readPayment(
+      input: Parameters<FinancialReconciliationProviderPort["readPayment"]>[0],
+    ): Promise<ReconciliationProviderSnapshot | null> {
       try {
         const payload = await readMercadoPagoPayment(
           environment,
@@ -477,7 +486,7 @@ export function createMercadoPagoReconciliationProviderFromEnvironment(
         }
         const snapshot = normalizeReconciliationProviderSnapshot({
           paymentId: externalReference,
-          providerPaymentReference: String(payload.id ?? ""),
+          providerPaymentReference: boundedIdentifier(payload.id, 180),
           status,
           amount: { minorUnits: Math.round(majorAmount * 100), currency },
           observedAt,
@@ -544,10 +553,7 @@ function parseWebhookEnvelope(rawBody: Uint8Array): {
       new TextDecoder("utf-8", { fatal: true }).decode(rawBody),
     ) as Record<string, unknown>;
     const data = parsed.data as Record<string, unknown> | undefined;
-    const dataId = boundedString(
-      data?.id === undefined ? "" : String(data.id),
-      180,
-    );
+    const dataId = boundedIdentifier(data?.id, 180);
     const action = boundedString(parsed.action, 120);
     return dataId ? { dataId, action } : null;
   } catch {
@@ -636,7 +642,10 @@ export function createMercadoPagoWebhookVerifierFromEnvironment(
           payment.date_approved ??
           payment.date_created,
       );
-      const providerPaymentReference = String(payment.id ?? webhook.dataId);
+      const providerPaymentReference =
+        payment.id === undefined
+          ? webhook.dataId
+          : boundedIdentifier(payment.id, 180);
       const transactionAmount = Number(payment.transaction_amount);
       const amountMinorUnits =
         Number.isFinite(transactionAmount) && transactionAmount > 0
