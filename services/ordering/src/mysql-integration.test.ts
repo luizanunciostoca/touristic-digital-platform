@@ -135,7 +135,6 @@ describeMySql.sequential("M151 Ordering MySQL integration", () => {
   });
 
   beforeEach(async () => {
-    await pool.query("DELETE FROM ordering_ticketing_reservation_bindings");
     await pool.query("DELETE FROM ordering_subscription_renewal_intents");
     await pool.query("DELETE FROM ordering_subscriptions");
     await pool.query("DELETE FROM ordering_checkout_access");
