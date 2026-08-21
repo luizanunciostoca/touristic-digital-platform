@@ -44,23 +44,32 @@ describe("Affiliates authenticated HTTP boundary", () => {
     expect(result.body).toEqual({ error: "FORBIDDEN" });
   });
 
-  it("rejects browser monetary authority before application mutation", async () => {
-    const deps = dependencies();
-    const result = await handleAffiliateHttpRequest(
-      {
-        method: "POST",
-        pathname: "/api/affiliates/v1/referrals",
-        destinationId: "morro",
-        body: { source: "checkout_code", amount: 1000 },
-      },
-      deps,
-    );
-    expect(result.status).toBe(400);
-    expect(result.body).toEqual({ error: "MONETARY_AUTHORITY_FORBIDDEN" });
-    expect(
-      deps.application.recordReferralAndEstablishAttribution,
-    ).not.toHaveBeenCalled();
-  });
+  it.each([
+    ["amount", { source: "checkout_code", amount: 1000 }],
+    [
+      "provider credential",
+      { source: "checkout_code", providerToken: "browser-controlled" },
+    ],
+  ])(
+    "rejects browser %s authority before application mutation",
+    async (_label, body) => {
+      const deps = dependencies();
+      const result = await handleAffiliateHttpRequest(
+        {
+          method: "POST",
+          pathname: "/api/affiliates/v1/referrals",
+          destinationId: "morro",
+          body,
+        },
+        deps,
+      );
+      expect(result.status).toBe(400);
+      expect(result.body).toEqual({ error: "MONETARY_AUTHORITY_FORBIDDEN" });
+      expect(
+        deps.application.recordReferralAndEstablishAttribution,
+      ).not.toHaveBeenCalled();
+    },
+  );
 
   it("returns a scoped read projection for the authenticated affiliate", async () => {
     const deps = dependencies();

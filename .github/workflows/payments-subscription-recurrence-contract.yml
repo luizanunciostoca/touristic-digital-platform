@@ -71,6 +71,7 @@ jobs:
         run: pnpm --filter @touristic/ordering-server test:integration
       - name: Build server runtime entrypoints
         run: |
+          pnpm --filter @touristic/core build
           pnpm --filter @touristic/financial-server build
           pnpm --filter @touristic/ordering-server build
       - name: Payments server authority bootstrap
