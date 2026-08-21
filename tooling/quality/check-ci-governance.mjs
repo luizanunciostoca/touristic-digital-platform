@@ -107,8 +107,8 @@ const domainContracts = [
     markers: [
       "pull_request:",
       "push:",
-      "packages/crm/src/**",
-      "services/crm/src/**",
+      "packages/crm/**",
+      "services/crm/**",
     ],
   },
   {
