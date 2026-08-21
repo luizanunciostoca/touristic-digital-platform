@@ -9,6 +9,7 @@ import { createBusinessApi } from "./business-api.mjs";
 import { createCrmApi } from "./crm-api.mjs";
 import { createPaymentsApi } from "./payments-api.mjs";
 import { createPlatformOperations } from "./platform-operations.mjs";
+import { rewriteWorkspaceModuleSpecifiers } from "./workspace-browser-modules.mjs";
 
 const repositoryRoot = resolve(
   fileURLToPath(new URL("../../../", import.meta.url)),
@@ -606,6 +607,11 @@ const server = createServer(async (request, response) => {
       "Content-Type",
       contentTypes[extname(filePath)] || "application/octet-stream",
     );
+    if (extname(filePath) === ".js") {
+      const source = await readFile(filePath, "utf8");
+      response.end(rewriteWorkspaceModuleSpecifiers(source));
+      return;
+    }
     createReadStream(filePath).pipe(response);
   } catch (error) {
     if (String(request.url || "").startsWith("/api/")) {

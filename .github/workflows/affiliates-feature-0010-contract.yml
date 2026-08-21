@@ -49,6 +49,15 @@ jobs:
         run: |
           set -euo pipefail
 
+          require_fixed() {
+            local expected="$1"
+            local file="$2"
+            if ! grep -Fq "$expected" "$file"; then
+              echo "Missing required Affiliate contract text in ${file}: ${expected}" >&2
+              exit 1
+            fi
+          }
+
           test -f packages/affiliates/package.json
           test -f packages/affiliates/src/index.ts
           test -f packages/affiliates/src/policy.ts
@@ -76,19 +85,22 @@ jobs:
           test -f docs/qa/AFFILIATES-FEATURE-0010-TEST-PLAN.md
           test -f docs/operations/AFFILIATES-ROLLOUT-ROLLBACK.md
 
-          grep -Fq 'Status: **APPROVED**' docs/product-architecture/AFFILIATES-DECISION-SHEET.md
-          grep -Fq 'Policy version: **AFFILIATE-POLICY-V1**' docs/product-architecture/AFFILIATES-DECISION-SHEET.md
-          grep -Fq 'Financial remains the only monetary source of truth' docs/product-architecture/AFFILIATES-CANONICAL-SCOPE.md
-          grep -Fq 'No Affiliate-owned payout, wallet or payment runtime is ever authorized.' docs/product-architecture/AFFILIATES-CANONICAL-SCOPE.md
-          grep -Fq 'affiliate:v1:<operation>:' docs/product-architecture/AFFILIATES-TECHNICAL-CONTRACT.md
-          grep -Fq 'AffiliateFinancialMaterializationPort' docs/product-architecture/AFFILIATES-TECHNICAL-CONTRACT.md
-          grep -Fq 'rateBasisPoints: 3000' packages/affiliates/src/policy.ts
-          grep -Fq 'attributionWindowDays: 30' packages/affiliates/src/policy.ts
-          grep -Fq 'subscriptionRenewalsEligible: false' packages/affiliates/src/policy.ts
-          grep -Fq 'financial_net_eligible_platform_revenue' packages/affiliates/src/policy.ts
+          require_fixed 'Status: **APPROVED**' docs/product-architecture/AFFILIATES-DECISION-SHEET.md
+          require_fixed 'Policy version: **AFFILIATE-POLICY-V1**' docs/product-architecture/AFFILIATES-DECISION-SHEET.md
+          require_fixed 'Financial remains the only monetary source of truth' docs/product-architecture/AFFILIATES-CANONICAL-SCOPE.md
+          require_fixed 'No Affiliate-owned payout, wallet or payment runtime is ever authorized.' docs/product-architecture/AFFILIATES-CANONICAL-SCOPE.md
+          require_fixed 'affiliate:v1:<operation>:' docs/product-architecture/AFFILIATES-TECHNICAL-CONTRACT.md
+          require_fixed 'AffiliateFinancialMaterializationPort' docs/product-architecture/AFFILIATES-TECHNICAL-CONTRACT.md
+          require_fixed 'rateBasisPoints: 3000' packages/affiliates/src/policy.ts
+          require_fixed 'attributionWindowDays: 30' packages/affiliates/src/policy.ts
+          require_fixed 'subscriptionRenewalsEligible: false' packages/affiliates/src/policy.ts
+          require_fixed 'financial_net_eligible_platform_revenue' packages/affiliates/src/policy.ts
 
           decision_count="$(grep -Ec '^## [0-9]+\.' docs/product-architecture/AFFILIATES-DECISION-SHEET.md)"
-          test "$decision_count" -eq 19
+          if [ "$decision_count" -ne 19 ]; then
+            echo "Expected 19 Affiliate decisions, found ${decision_count}." >&2
+            exit 1
+          fi
 
           node <<'NODE'
           const affiliateManifest = require('./packages/affiliates/package.json');
@@ -118,9 +130,16 @@ jobs:
           node <<'NODE'
           const registry = require('./docs/features/registry.json');
           const feature = registry.features.find((entry) => entry.id === 'FEATURE-0010');
-          if (!feature) process.exit(1);
-          if (feature.domain !== 'affiliates' || feature.status !== 'migrating') process.exit(1);
-          if (feature.equivalence.behavior || feature.equivalence.visual || feature.equivalence.api) process.exit(1);
+          if (!feature) throw new Error('FEATURE-0010 is missing from the feature registry.');
+          if (feature.domain !== 'affiliates' || feature.status !== 'migrating') {
+            throw new Error(`FEATURE-0010 registry state diverged: ${feature.domain}/${feature.status}`);
+          }
+          if (feature.equivalence.behavior || feature.equivalence.visual || feature.equivalence.api) {
+            throw new Error('FEATURE-0010 was promoted without complete equivalence evidence.');
+          }
           NODE
 
-          grep -Eq 'MIG-0011.*FEATURE-0010.*(migrating|discovered)' docs/migration/MASTER-MIGRATION-TRACKER.md
+          if ! grep -Eq 'MIG-0011.*FEATURE-0010.*(migrating|discovered)' docs/migration/MASTER-MIGRATION-TRACKER.md; then
+            echo 'MIG-0011 is missing or has an invalid state in the master migration tracker.' >&2
+            exit 1
+          fi
