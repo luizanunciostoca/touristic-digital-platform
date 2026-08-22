@@ -46,6 +46,7 @@ for (const scriptName of [
   "format:check",
   "architecture:check",
   "features:check",
+  "environment:check",
   "lint",
   "typecheck",
   "test",
@@ -71,6 +72,7 @@ requireIncludes(quality, ".github/workflows/quality.yml", [
   "pnpm format:check",
   "pnpm architecture:check",
   "pnpm features:check",
+  "pnpm environment:check",
   "pnpm ci:governance:check",
   "pnpm lint",
   "pnpm typecheck",
@@ -191,10 +193,10 @@ if (/^\s{2}(pull_request|push):/m.test(releaseGate)) {
 
 const codeowners = await text(".github/CODEOWNERS");
 requireIncludes(codeowners, ".github/CODEOWNERS", [
-  "* @luizidebook",
-  "/.github/ @luizidebook",
-  "/package.json @luizidebook",
-  "/pnpm-lock.yaml @luizidebook",
+  "* @luizanunciostoca",
+  "/.github/ @luizanunciostoca",
+  "/package.json @luizanunciostoca",
+  "/pnpm-lock.yaml @luizanunciostoca",
 ]);
 
 const temporaryPattern =

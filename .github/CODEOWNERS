@@ -1,28 +1,28 @@
 # Ownership padrão da plataforma
-* @luizidebook
+* @luizanunciostoca
 
 # Governança e automação
-/.github/ @luizidebook
-/.github/workflows/ @luizidebook
-/.github/CODEOWNERS @luizidebook
-/docs/ @luizidebook
-/docs/operations/ @luizidebook
-/tooling/ @luizidebook
-/tooling/quality/ @luizidebook
-/infrastructure/ @luizidebook
+/.github/ @luizanunciostoca
+/.github/workflows/ @luizanunciostoca
+/.github/CODEOWNERS @luizanunciostoca
+/docs/ @luizanunciostoca
+/docs/operations/ @luizanunciostoca
+/tooling/ @luizanunciostoca
+/tooling/quality/ @luizanunciostoca
+/infrastructure/ @luizanunciostoca
 
 # Aplicações e capacidades compartilhadas
-/apps/ @luizidebook
-/packages/core/ @luizidebook
-/packages/shared/ @luizidebook
-/packages/design-system/ @luizidebook
-/packages/geospatial/ @luizidebook
-/services/ @luizidebook
+/apps/ @luizanunciostoca
+/packages/core/ @luizanunciostoca
+/packages/shared/ @luizanunciostoca
+/packages/design-system/ @luizanunciostoca
+/packages/geospatial/ @luizanunciostoca
+/services/ @luizanunciostoca
 
 # Arquivos críticos da fundação
-/package.json @luizidebook
-/pnpm-lock.yaml @luizidebook
-/pnpm-workspace.yaml @luizidebook
-/turbo.json @luizidebook
-/tsconfig.base.json @luizidebook
-/eslint.config.mjs @luizidebook
+/package.json @luizanunciostoca
+/pnpm-lock.yaml @luizanunciostoca
+/pnpm-workspace.yaml @luizanunciostoca
+/turbo.json @luizanunciostoca
+/tsconfig.base.json @luizanunciostoca
+/eslint.config.mjs @luizanunciostoca
