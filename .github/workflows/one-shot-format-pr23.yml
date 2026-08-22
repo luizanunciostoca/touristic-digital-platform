@@ -1,0 +1,61 @@
+name: One-shot format PR23
+
+on:
+  push:
+    branches:
+      - ops/format-pr23-20260822
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: fix/mercado-pago-test-confirmation-bridge-20260822
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1
+        with:
+          version: 10.15.0
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Format only regression test
+        run: pnpm exec prettier --write services/financial/src/mercado-pago-environment-composition.test.ts
+
+      - name: Commit formatted test to PR branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add services/financial/src/mercado-pago-environment-composition.test.ts
+          git diff --cached --check
+          if git diff --cached --quiet; then
+            echo "No formatting changes needed"
+          else
+            git commit -m "style(payments): format Mercado Pago env bridge test"
+            git push origin HEAD:fix/mercado-pago-test-confirmation-bridge-20260822
+          fi
+
+      - name: Remove one-shot workflow from utility branch
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin ops/format-pr23-20260822
+          git checkout -B utility-cleanup origin/ops/format-pr23-20260822
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm -f .github/workflows/one-shot-format-pr23.yml
+          git commit -m "chore: remove one-shot PR23 formatter"
+          git push origin HEAD:ops/format-pr23-20260822
