@@ -191,10 +191,10 @@ if (/^\s{2}(pull_request|push):/m.test(releaseGate)) {
 
 const codeowners = await text(".github/CODEOWNERS");
 requireIncludes(codeowners, ".github/CODEOWNERS", [
-  "* @luizidebook",
-  "/.github/ @luizidebook",
-  "/package.json @luizidebook",
-  "/pnpm-lock.yaml @luizidebook",
+  "* @luizanunciostoca",
+  "/.github/ @luizanunciostoca",
+  "/package.json @luizanunciostoca",
+  "/pnpm-lock.yaml @luizanunciostoca",
 ]);
 
 const temporaryPattern =
