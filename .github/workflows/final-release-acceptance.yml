@@ -14,6 +14,7 @@ on:
 permissions:
   contents: read
   actions: write
+  statuses: write
 
 concurrency:
   group: final-release-acceptance-${{ github.ref }}
@@ -74,6 +75,18 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
+
+      - name: Publish pending acceptance status
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
+            -f state=pending \
+            -f context='Final Release Acceptance' \
+            -f description='Exact-head browser and staging acceptance is running' \
+            -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" >/dev/null
 
       - name: Prove exact acceptance SHA is current main
         shell: bash
@@ -216,3 +229,31 @@ jobs:
           remote_main_sha="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
           test "$remote_main_sha" = "$GITHUB_SHA"
           echo "Final acceptance SHA remained frozen: $GITHUB_SHA"
+
+      - name: Publish final acceptance status
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          set -euo pipefail
+          case "$JOB_STATUS" in
+            success)
+              state=success
+              description='Exact-head browser and staging acceptance passed'
+              ;;
+            cancelled)
+              state=error
+              description='Exact-head browser and staging acceptance was cancelled'
+              ;;
+            *)
+              state=failure
+              description='Exact-head browser or staging acceptance failed'
+              ;;
+          esac
+          gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
+            -f state="$state" \
+            -f context='Final Release Acceptance' \
+            -f description="$description" \
+            -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" >/dev/null
