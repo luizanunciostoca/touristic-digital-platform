@@ -43,6 +43,7 @@ const required = [
   "MERCADO_PAGO_WEBHOOK_SECRET",
   "MERCADO_PAGO_CHECKOUT_ORIGINS",
   "MERCADO_PAGO_CHECKOUT_MODE",
+  "MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED",
   "AFFILIATES_DATABASE_URL",
   "AFFILIATES_DATABASE_POOL_SIZE",
 ];
@@ -63,6 +64,17 @@ if (replicas > 1 && !distributed)
 const checkoutMode = values.get("MERCADO_PAGO_CHECKOUT_MODE");
 if (checkoutMode !== "test" && checkoutMode !== "production") {
   throw new Error("MERCADO_PAGO_CHECKOUT_MODE must be test or production");
+}
+const testCredentialsConfirmed = values.get(
+  "MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED",
+);
+if (
+  testCredentialsConfirmed !== "true" &&
+  testCredentialsConfirmed !== "false"
+) {
+  throw new Error(
+    "MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED must be true or false",
+  );
 }
 
 const readinessDelay = Number(

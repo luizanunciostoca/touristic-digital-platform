@@ -97,7 +97,8 @@ Preencha no fluxo seguro do Render, sem copiá-los para PRs, issues ou chat:
 ### Payments / Mercado Pago
 
 - `PAYMENTS_RETURN_URL_ORIGINS`: origin HTTPS exata do staging;
-- `MERCADO_PAGO_ACCESS_TOKEN`: access token da aplicação/test account aprovada;
+- `MERCADO_PAGO_ACCESS_TOKEN`: Access Token exibido em **Testes > Credenciais de teste** da aplicação Checkout Pro aprovada;
+- `MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED`: `true` somente após essa origem TEST ter sido conferida pelo operador;
 - `MERCADO_PAGO_WEBHOOK_SECRET`: segredo oficial do webhook da mesma aplicação;
 - `PAYMENTS_WEBHOOK_URL`: `https://<host-staging>/api/payments/v1/webhooks/sandbox`.
 
@@ -110,7 +111,7 @@ MERCADO_PAGO_CHECKOUT_ORIGINS=https://www.mercadopago.com,https://www.mercadopag
 V1_PAYMENT_PROVIDER_API_URL=https://api.mercadopago.com
 ```
 
-Em `MERCADO_PAGO_CHECKOUT_MODE=test`, o adapter faz um read-only em `/users/me` e exige `tags` contendo `test_user` com `site_id=MLB` antes de criar a preferência. Somente depois desse guard ele aceita o `init_point` em uma das origins oficiais acima. Uma credencial que não seja de test user falha fechada antes de qualquer preferência.
+Em `MERCADO_PAGO_CHECKOUT_MODE=test`, o adapter exige `MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED=true` antes de qualquer chamada de criação de preferência. Essa confirmação registra que o operador conferiu o Access Token diretamente em **Testes > Credenciais de teste**. O fluxo atual do Checkout Pro emite essas credenciais automaticamente; portanto o runtime não infere mais TEST pela tag de `/users/me`. Depois desse guard, somente o `init_point` em uma das origins oficiais acima é aceito.
 
 ### Mapbox
 

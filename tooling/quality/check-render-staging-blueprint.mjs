@@ -88,13 +88,19 @@ for (const required of [
 }
 
 for (const required of [
-  'new URL("users/me", mercadoLivreApiBaseUrl)',
-  'tags.includes("test_user")',
-  'siteId !== "MLB"',
+  "MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED",
+  "requireMercadoPagoTestCredentialsConfirmation(environment);",
   "payload.init_point",
   "MERCADO_PAGO_TEST_ACCOUNT_REQUIRED",
 ]) {
   requireText(mercadoPagoProvider, required);
+}
+for (const obsolete of [
+  'new URL("users/me", mercadoLivreApiBaseUrl)',
+  'tags.includes("test_user")',
+  "mercadoLivreApiBaseUrl",
+]) {
+  forbidText(mercadoPagoProvider, obsolete);
 }
 forbidText(
   mercadoPagoProvider,
@@ -128,6 +134,7 @@ for (const key of [
   "ORDERING_PRICING_CATALOG_JSON",
   "PAYMENTS_RETURN_URL_ORIGINS",
   "MERCADO_PAGO_ACCESS_TOKEN",
+  "MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED",
   "MERCADO_PAGO_WEBHOOK_SECRET",
   "PAYMENTS_WEBHOOK_URL",
   "VITE_MAPBOX_ACCESS_TOKEN",
@@ -191,5 +198,5 @@ for (const required of [
 }
 
 console.log(
-  "Render staging Blueprint contract valid: canonical repo/main, isolated MySQL 8.4, autoDeploy off, verified Mercado Pago test-account checkout, legacy staging preserved.",
+  "Render staging Blueprint contract valid: canonical repo/main, isolated MySQL 8.4, autoDeploy off, explicit Mercado Pago automatic TEST credential confirmation, legacy staging preserved.",
 );
