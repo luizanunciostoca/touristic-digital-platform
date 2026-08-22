@@ -12,7 +12,7 @@ jobs:
   patch:
     if: github.head_ref == 'fix/payments-provider-safe-audit-20260822'
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -111,6 +111,7 @@ jobs:
           `);
           NODE
           pnpm exec prettier --write apps/morro-digital-platform/tooling/payments-api.mjs apps/morro-digital-platform/tooling/payments-provider-safe-audit.test.mjs
+          pnpm build
           pnpm exec vitest run apps/morro-digital-platform/tooling/payments-provider-safe-audit.test.mjs
       - name: Commit patch
         shell: bash
