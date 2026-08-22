@@ -23,6 +23,10 @@ const mercadoPagoProvider = fs.readFileSync(
   ),
   "utf8",
 );
+const mercadoPagoPreflight = fs.readFileSync(
+  new URL("../payments/mercado-pago-provider-preflight.mjs", import.meta.url),
+  "utf8",
+);
 
 function requireText(source, text, label = text) {
   if (!source.includes(text))
@@ -106,6 +110,11 @@ forbidText(
   mercadoPagoProvider,
   "payload.sandbox_init_point",
   "legacy sandbox_init_point selection",
+);
+requireText(
+  mercadoPagoPreflight,
+  'MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED: required(\n    "MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED",\n  )',
+  "provider preflight propagates explicit TEST credential confirmation",
 );
 
 const autoDeployDisabled = blueprint.match(/autoDeploy: false/gu)?.length ?? 0;
