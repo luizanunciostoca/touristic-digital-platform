@@ -139,8 +139,8 @@
       "verification": {
         "local": "LOCAL_VERIFIED",
         "mysql": "CONTAINER_VERIFIED",
-        "provider": "BLOCKED_EXTERNAL",
-        "note": "Historical local/MySQL evidence remains valid as recorded, but Mercado Pago/Render code was merged later via PR #293 and the post-merge/post-governance exact HEAD has not been rerun in a checkout-capable environment. Provider, Render and real browser E2E remain externally blocked; no equivalence promotion is justified."
+        "provider": "CONFIGURED",
+        "note": "Release-candidate evidence on 2026-08-22 supersedes the former external-blocked note: the candidate tree passed Quality and Payments contracts, the canonical MySQL matrix passed 339/339, and isolated Render V2 staging deployed the canonical main candidate with PAYMENTS-PREDEPLOY PASS and Mercado Pago direct-official-api configured in test mode. The real provider acceptance chain (test checkout/payment, signed webhook, authoritative readback, Ordering/Financial reconciliation, replay/idempotency and test refund/readback) is still pending; provider is CONFIGURED, not PROVIDER_VERIFIED, and no equivalence promotion is justified."
       }
     },
     {
@@ -163,7 +163,7 @@
         "local": "LOCAL_VERIFIED",
         "mysql": "CONTAINER_VERIFIED",
         "provider": "NOT_APPLICABLE",
-        "note": "Durable Affiliates runtime is on main and historical MySQL evidence exists, but Affiliate runtime changed after the recorded 96fefbb5 validation and the exact current HEAD has not been rerun. Ordering/Financial readback, browser evidence and official Actions remain pending; no equivalence promotion is justified."
+        "note": "Durable Affiliates runtime is on main. On the 2026-08-22 release-candidate tree the permanent Affiliates FEATURE-0010 Contract passed and the canonical MySQL matrix included Affiliates 4/4 within 339/339 total. Remaining PARTIAL lifecycle/privacy/browser-E2E work still prevents equivalence; no equivalence promotion is justified."
       }
     },
     {
