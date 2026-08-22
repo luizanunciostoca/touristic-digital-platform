@@ -81,8 +81,6 @@ describe("Mercado Pago environment composition", () => {
         "https://www.mercadopago.com.br/checkout/v1/redirect?pref_id=pref-env-bridge-0001",
       providerReference: null,
     });
-    expect(calls).toEqual([
-      "https://api.mercadopago.com/checkout/preferences",
-    ]);
+    expect(calls).toEqual(["https://api.mercadopago.com/checkout/preferences"]);
   });
 });
