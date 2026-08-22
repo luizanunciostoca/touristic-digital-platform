@@ -6,6 +6,8 @@ Criar um staging da V2 que seja rastreável ao repositório canônico `luizanunc
 
 Este runbook é **fail-closed**: nenhuma mutation de banco, deploy do candidate ou chamada paga deve ocorrer enquanto as pré-condições abaixo não estiverem comprovadas.
 
+Toda evidência de CI e acceptance citada neste runbook deve corresponder ao head exato que será promovido; evidência de SHA anterior não autoriza deploy.
+
 ## Estado legado observado em 2026-08-21
 
 O recurso Render existente `morro-digital-staging` **não é o staging da V2**. A auditoria read-only mostrou:
