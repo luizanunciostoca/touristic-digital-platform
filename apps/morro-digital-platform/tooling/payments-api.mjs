@@ -667,6 +667,42 @@ function runtimeAudit(defaultAudit, event) {
   }
 }
 
+const safeCheckoutProviderFailureReasons = Object.freeze({
+  MERCADO_PAGO_TEST_ACCOUNT_REQUIRED: "test_account_required",
+  MERCADO_PAGO_REJECTED: "provider_rejected",
+  MERCADO_PAGO_UNAVAILABLE: "provider_unavailable",
+  MERCADO_PAGO_INVALID_RESPONSE: "provider_invalid_response",
+  MERCADO_PAGO_INVALID_REQUEST: "provider_invalid_request",
+});
+
+export function createAuditedCheckoutProvider(provider, audit = () => {}) {
+  if (!provider || typeof provider.createCheckout !== "function") {
+    throw new Error("PAYMENTS_CHECKOUT_PROVIDER_REQUIRED");
+  }
+  return Object.freeze({
+    async createCheckout(input) {
+      try {
+        return await provider.createCheckout(input);
+      } catch (error) {
+        const code =
+          error !== null &&
+          typeof error === "object" &&
+          typeof error.code === "string"
+            ? error.code
+            : "";
+        const reason = safeCheckoutProviderFailureReasons[code];
+        if (reason)
+          runtimeAudit(audit, {
+            action: "checkout.provider",
+            result: "failure",
+            reason,
+          });
+        throw error;
+      }
+    },
+  });
+}
+
 export function createPaymentsApi({
   authApi,
   getEnvironmentValue = (key) => process.env[key] ?? "",
@@ -788,7 +824,10 @@ export function createPaymentsApi({
         payments,
         paymentResults,
         access: checkoutAccess,
-        provider: createSandboxCheckoutProviderFromEnvironment(environment),
+        provider: createAuditedCheckoutProvider(
+          createSandboxCheckoutProviderFromEnvironment(environment),
+          audit,
+        ),
         webhookUrl,
         authorization: createPaymentsCheckoutAuthorizationPort({
           authApi,
