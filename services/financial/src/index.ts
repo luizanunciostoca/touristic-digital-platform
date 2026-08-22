@@ -163,6 +163,10 @@ function withCanonicalMercadoPagoEnvironment(
     environment.MERCADO_PAGO_CHECKOUT_MODE,
     process.env.MERCADO_PAGO_CHECKOUT_MODE,
   );
+  const testCredentialsConfirmed = firstConfigured(
+    environment.MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED,
+    process.env.MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED,
+  );
 
   if (accessToken) canonical.MERCADO_PAGO_ACCESS_TOKEN = accessToken;
   else delete canonical.MERCADO_PAGO_ACCESS_TOKEN;
@@ -173,6 +177,10 @@ function withCanonicalMercadoPagoEnvironment(
   else delete canonical.MERCADO_PAGO_CHECKOUT_ORIGINS;
   if (checkoutMode) canonical.MERCADO_PAGO_CHECKOUT_MODE = checkoutMode;
   else delete canonical.MERCADO_PAGO_CHECKOUT_MODE;
+  if (testCredentialsConfirmed)
+    canonical.MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED =
+      testCredentialsConfirmed;
+  else delete canonical.MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED;
 
   return Object.freeze(canonical);
 }
