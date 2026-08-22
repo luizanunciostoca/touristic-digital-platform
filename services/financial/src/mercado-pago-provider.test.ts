@@ -176,13 +176,7 @@ describe("Mercado Pago payment provider adapter", () => {
     const unsafe = createMercadoPagoCheckoutProviderFromEnvironment(
       environment(),
       {
-        fetch(input) {
-          const url =
-            typeof input === "string"
-              ? input
-              : input instanceof URL
-                ? input.href
-                : input.url;
+        fetch() {
           return Promise.resolve(
             response({
               id: "pref-mercado-pago-0001",
