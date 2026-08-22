@@ -61,6 +61,8 @@ jobs:
         run: pnpm architecture:check
       - name: Validate Feature Registry
         run: pnpm features:check
+      - name: Reconcile environment inventory
+        run: pnpm environment:check
       - name: Validate CI and repository governance contracts
         run: pnpm ci:governance:check
       - name: Enforce workflow supply chain
