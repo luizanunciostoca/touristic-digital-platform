@@ -33,35 +33,35 @@ Evidence available before this documentation-only reconciliation:
 
 ## Matrix
 
-| Capability | Status | Current canonical evidence | Remaining blocker |
-| --- | --- | --- | --- |
-| Affiliate is a separate platform domain | PASS | Domain Map, Module Contracts, canonical scope | none |
-| Business ownership boundary | PASS | Business cannot administer Affiliate by tenant inheritance | none |
-| Ordering read boundary | PASS | Ordering owns canonical Order identity/state; Affiliate consumes canonical evidence through explicit boundaries | none at contract layer |
-| Financial monetary authority boundary | PASS | Financial owns Payment, eligible revenue, ledger, payable/wallet, settlement, payout, reconciliation, FX and monetary reversals | none |
-| Conceptual Affiliate schemas | PASS | Technical contract plus executable domain types cover identity/evidence/attribution/conversion/entitlement concepts | none at domain-contract layer |
-| Affiliate identity | PARTIAL | Typed identity/program/membership invariants plus durable repositories exist under AFFILIATE-POLICY-V1 | complete application authorization/lifecycle evidence |
-| Eligibility and suspension | PARTIAL | Eligibility/suspension rules and durable state primitives exist | complete service-boundary enforcement and integration evidence |
-| Referral/attribution evidence | PARTIAL | Server validation, SHA-256 fingerprint, accepted sources, durable repositories and transactional orchestration exist | production source-adapter and end-to-end evidence |
-| Attribution subject and precedence | PARTIAL | `AcquisitionSubjectId`, precedence, deterministic selection/lock behavior and durable persistence exist | concurrent/live integration proof across canonical evidence sources |
-| Attribution window | PARTIAL | 30-day server-clock expiry, Order lock semantics and durable persistence exist | expiry/lock/replay integration proof under final staging flow |
-| Conversion association | PARTIAL | Conversion domain/runtime requires canonical Ordering/Financial evidence and durable conversion persistence exists | complete final cross-domain acceptance evidence |
-| Commission entitlement ownership | PASS | Affiliate owns commercial entitlement evidence; Financial owns monetary consequence | none |
-| Commission formula/policy | PARTIAL | 3000-bps integer-minor-unit half-up calculation and immutable policy snapshot are executable | final durable application/integration evidence |
-| Commission lifecycle | PARTIAL | pending/earned/cancelled/reversed/disputed transitions and maturity policy are executable with durable primitives | end-to-end lifecycle/concurrency evidence |
-| Refund/cancellation consequences | PARTIAL | pending repricing and explicit post-earned reversal consequence logic exist | final canonical Financial reconciliation acceptance |
-| Canonical Affiliate event family | PASS | executable versioned Affiliate event payload/envelope types plus technical contract | none at domain-contract layer |
-| Idempotency strategy | PASS | deterministic keys, durable idempotency table/repository and exact/divergent replay contract | none at contract/persistence layer |
-| Audit contract | PASS | immutable audit fields and durable audit/outbox primitives are present | none at contract/persistence layer |
-| Authorization boundaries | PASS | explicit authorization port, authenticated HTTP boundary and no tenant inheritance | none at contract layer |
-| Privacy/LGPD controls | PARTIAL | policy fixes retention windows and pseudonymization requirements | retention jobs, DSR/anonymization/legal-hold execution evidence |
-| Affiliate → Financial port | PASS | versioned materialization request/result/readback boundary carries no browser-controlled monetary/payout/provider instruction | final integration acceptance remains separate from ownership correctness |
-| Test and invariants plan | PASS | executable tests plus `AFFILIATES-FEATURE-0010-TEST-PLAN.md`; permanent candidate contract green | none at plan/contract layer |
-| Threat model | PASS | `AFFILIATES-THREAT-MODEL.md` | none |
-| Migration plan | PASS | phased expand-only plan in technical contract | none at planning layer |
-| Rollout/rollback | PASS | `AFFILIATES-ROLLOUT-ROLLBACK.md` | none at planning layer; staging acceptance remains required |
-| Browser/admin surfaces | N/A | deliberately last; browser is never commission/payment authority | implement only if product scope requires a surface, without changing authority |
-| Affiliate-owned payout/payment/wallet | N/A | prohibited by canonical authority | must never be implemented |
+| Capability                              | Status  | Current canonical evidence                                                                                                      | Remaining blocker                                                              |
+| --------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| Affiliate is a separate platform domain | PASS    | Domain Map, Module Contracts, canonical scope                                                                                   | none                                                                           |
+| Business ownership boundary             | PASS    | Business cannot administer Affiliate by tenant inheritance                                                                      | none                                                                           |
+| Ordering read boundary                  | PASS    | Ordering owns canonical Order identity/state; Affiliate consumes canonical evidence through explicit boundaries                 | none at contract layer                                                         |
+| Financial monetary authority boundary   | PASS    | Financial owns Payment, eligible revenue, ledger, payable/wallet, settlement, payout, reconciliation, FX and monetary reversals | none                                                                           |
+| Conceptual Affiliate schemas            | PASS    | Technical contract plus executable domain types cover identity/evidence/attribution/conversion/entitlement concepts             | none at domain-contract layer                                                  |
+| Affiliate identity                      | PARTIAL | Typed identity/program/membership invariants plus durable repositories exist under AFFILIATE-POLICY-V1                          | complete application authorization/lifecycle evidence                          |
+| Eligibility and suspension              | PARTIAL | Eligibility/suspension rules and durable state primitives exist                                                                 | complete service-boundary enforcement and integration evidence                 |
+| Referral/attribution evidence           | PARTIAL | Server validation, SHA-256 fingerprint, accepted sources, durable repositories and transactional orchestration exist            | production source-adapter and end-to-end evidence                              |
+| Attribution subject and precedence      | PARTIAL | `AcquisitionSubjectId`, precedence, deterministic selection/lock behavior and durable persistence exist                         | concurrent/live integration proof across canonical evidence sources            |
+| Attribution window                      | PARTIAL | 30-day server-clock expiry, Order lock semantics and durable persistence exist                                                  | expiry/lock/replay integration proof under final staging flow                  |
+| Conversion association                  | PARTIAL | Conversion domain/runtime requires canonical Ordering/Financial evidence and durable conversion persistence exists              | complete final cross-domain acceptance evidence                                |
+| Commission entitlement ownership        | PASS    | Affiliate owns commercial entitlement evidence; Financial owns monetary consequence                                             | none                                                                           |
+| Commission formula/policy               | PARTIAL | 3000-bps integer-minor-unit half-up calculation and immutable policy snapshot are executable                                    | final durable application/integration evidence                                 |
+| Commission lifecycle                    | PARTIAL | pending/earned/cancelled/reversed/disputed transitions and maturity policy are executable with durable primitives               | end-to-end lifecycle/concurrency evidence                                      |
+| Refund/cancellation consequences        | PARTIAL | pending repricing and explicit post-earned reversal consequence logic exist                                                     | final canonical Financial reconciliation acceptance                            |
+| Canonical Affiliate event family        | PASS    | executable versioned Affiliate event payload/envelope types plus technical contract                                             | none at domain-contract layer                                                  |
+| Idempotency strategy                    | PASS    | deterministic keys, durable idempotency table/repository and exact/divergent replay contract                                    | none at contract/persistence layer                                             |
+| Audit contract                          | PASS    | immutable audit fields and durable audit/outbox primitives are present                                                          | none at contract/persistence layer                                             |
+| Authorization boundaries                | PASS    | explicit authorization port, authenticated HTTP boundary and no tenant inheritance                                              | none at contract layer                                                         |
+| Privacy/LGPD controls                   | PARTIAL | policy fixes retention windows and pseudonymization requirements                                                                | retention jobs, DSR/anonymization/legal-hold execution evidence                |
+| Affiliate → Financial port              | PASS    | versioned materialization request/result/readback boundary carries no browser-controlled monetary/payout/provider instruction   | final integration acceptance remains separate from ownership correctness       |
+| Test and invariants plan                | PASS    | executable tests plus `AFFILIATES-FEATURE-0010-TEST-PLAN.md`; permanent candidate contract green                                | none at plan/contract layer                                                    |
+| Threat model                            | PASS    | `AFFILIATES-THREAT-MODEL.md`                                                                                                    | none                                                                           |
+| Migration plan                          | PASS    | phased expand-only plan in technical contract                                                                                   | none at planning layer                                                         |
+| Rollout/rollback                        | PASS    | `AFFILIATES-ROLLOUT-ROLLBACK.md`                                                                                                | none at planning layer; staging acceptance remains required                    |
+| Browser/admin surfaces                  | N/A     | deliberately last; browser is never commission/payment authority                                                                | implement only if product scope requires a surface, without changing authority |
+| Affiliate-owned payout/payment/wallet   | N/A     | prohibited by canonical authority                                                                                               | must never be implemented                                                      |
 
 ## Product decision gate
 
