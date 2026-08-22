@@ -101,11 +101,11 @@ O Blueprint usa:
 - `maxShutdownDelaySeconds: 30`;
 - uma única réplica enquanto rate limit distribuído não existir;
 - `MERCADO_PAGO_CHECKOUT_MODE=test` inicialmente;
-- `MERCADO_PAGO_CHECKOUT_MODE=test` exige que `/users/me` identifique a credencial como `test_user` do site `MLB` antes de criar qualquer preferência;
+- `MERCADO_PAGO_CHECKOUT_MODE=test` exige `MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED=true`, registrando que o Access Token foi conferido diretamente em **Testes > Credenciais de teste**;
 - Checkout Pro usa o `init_point` retornado pelo provider;
 - a allowlist inicial aceita somente `https://www.mercadopago.com` e `https://www.mercadopago.com.br`.
 
-O adapter rejeita credencial não-test antes da preferência e rejeita qualquer checkout origin fora da allowlist. Se o provider devolver outra origin HTTPS, interrompa o gate e valide essa origin contra documentação oficial antes de alterar a allowlist. Não use wildcard.
+O adapter rejeita TEST mode sem confirmação operacional explícita antes da preferência e rejeita qualquer checkout origin fora da allowlist. Se o provider devolver outra origin HTTPS, interrompa o gate e valide essa origin contra documentação oficial antes de alterar a allowlist. Não use wildcard.
 
 A identidade de release usa automaticamente variáveis do Render (`RENDER_GIT_COMMIT`, branch e identidade service/instance), mantendo `MORRO_RELEASE_*` como override explícito.
 
@@ -135,7 +135,7 @@ Ordering e Financial devem manter ownership/bancos separados conforme a arquitet
 - `PAYMENTS_RETURN_URL_ORIGINS`;
 - `PAYMENTS_WEBHOOK_URL`.
 
-Não é necessário preencher manualmente `MERCADO_PAGO_CHECKOUT_ORIGINS` para o primeiro deploy de teste: o Blueprint já fornece `https://www.mercadopago.com,https://www.mercadopago.com.br`. O modo `test` só prossegue depois de comprovar `test_user` + `MLB`; não amplie a allowlist por tentativa e erro.
+Não é necessário preencher manualmente `MERCADO_PAGO_CHECKOUT_ORIGINS` para o primeiro deploy de teste: o Blueprint já fornece `https://www.mercadopago.com,https://www.mercadopago.com.br`. O modo `test` só prossegue com `MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED=true`, após o operador conferir o Access Token na tela **Testes > Credenciais de teste**; não amplie a allowlist por tentativa e erro.
 
 O Blueprint gera automaticamente:
 

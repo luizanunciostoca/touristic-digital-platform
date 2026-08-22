@@ -37,6 +37,7 @@ function environment() {
       "fixture-webhook-secret-not-a-real-credential-value",
     MERCADO_PAGO_CHECKOUT_ORIGINS: "https://checkout.mercadopago.example",
     MERCADO_PAGO_CHECKOUT_MODE: "test",
+    MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED: "true",
   };
 }
 
@@ -89,16 +90,8 @@ function response(payload: unknown, status = 200): Response {
   });
 }
 
-function testAccountResponse(): Response {
-  return response({
-    id: 987654321,
-    site_id: "MLB",
-    tags: ["normal", "test_user", "user_info_verified"],
-  });
-}
-
 describe("Mercado Pago payment provider adapter", () => {
-  it("verifies the test seller and creates Checkout Pro preference from authoritative Financial values", async () => {
+  it("creates Checkout Pro preference with explicitly confirmed automatic TEST credentials", async () => {
     const calls: Array<{ url: string; init: RequestInit | undefined }> = [];
     const provider = createMercadoPagoCheckoutProviderFromEnvironment(
       environment(),
@@ -111,9 +104,6 @@ describe("Mercado Pago payment provider adapter", () => {
                 ? input.href
                 : input.url;
           calls.push({ url, init });
-          if (url === "https://api.mercadolibre.com/users/me") {
-            return Promise.resolve(testAccountResponse());
-          }
           return Promise.resolve(
             response({
               id: "pref-mercado-pago-0001",
@@ -132,14 +122,9 @@ describe("Mercado Pago payment provider adapter", () => {
       providerReference: null,
     });
     expect(calls.map((call) => call.url)).toEqual([
-      "https://api.mercadolibre.com/users/me",
       "https://api.mercadopago.com/checkout/preferences",
     ]);
-    const accountHeaders = new Headers(calls[0]?.init?.headers);
-    expect(accountHeaders.get("Authorization")).toBe(
-      "Bearer fixture-token-not-a-real-credential-with-thirty-two-characters",
-    );
-    const preferenceInit = calls[1]?.init;
+    const preferenceInit = calls[0]?.init;
     const headers = new Headers(preferenceInit?.headers);
     expect(headers.get("Authorization")).toBe(
       "Bearer fixture-token-not-a-real-credential-with-thirty-two-characters",
@@ -166,16 +151,17 @@ describe("Mercado Pago payment provider adapter", () => {
     });
   });
 
-  it("fails closed before preference creation when test mode is not backed by an MLB test user", async () => {
+  it("fails closed before preference creation when TEST credentials are not explicitly confirmed", async () => {
     let calls = 0;
     const provider = createMercadoPagoCheckoutProviderFromEnvironment(
-      environment(),
+      {
+        ...environment(),
+        MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED: "false",
+      },
       {
         fetch: () => {
           calls += 1;
-          return Promise.resolve(
-            response({ id: 123456789, site_id: "MLB", tags: ["normal"] }),
-          );
+          return Promise.resolve(response({}));
         },
       },
     );
@@ -183,7 +169,7 @@ describe("Mercado Pago payment provider adapter", () => {
     await expect(provider.createCheckout(checkoutRequest())).rejects.toEqual(
       new MercadoPagoProviderError("MERCADO_PAGO_TEST_ACCOUNT_REQUIRED"),
     );
-    expect(calls).toBe(1);
+    expect(calls).toBe(0);
   });
 
   it("fails closed on unsafe checkout origin and missing credentials", async () => {
@@ -197,9 +183,6 @@ describe("Mercado Pago payment provider adapter", () => {
               : input instanceof URL
                 ? input.href
                 : input.url;
-          if (url === "https://api.mercadolibre.com/users/me") {
-            return Promise.resolve(testAccountResponse());
-          }
           return Promise.resolve(
             response({
               id: "pref-mercado-pago-0001",
