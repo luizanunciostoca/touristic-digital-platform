@@ -53,6 +53,7 @@ for (const forbidden of [
   "healthCheckPath: /api/health",
   "runtime: postgres",
   "fromDatabase:",
+  "corepack enable && corepack prepare",
 ]) {
   forbidText(blueprint, forbidden);
 }
@@ -68,6 +69,7 @@ for (const required of [
   "mountPath: /var/lib/mysql",
   "name: morro-digital-v2-staging",
   "runtime: node",
+  "buildCommand: corepack pnpm install --frozen-lockfile && corepack pnpm build",
   "preDeployCommand: node tooling/render/with-staging-mysql-env.mjs node apps/morro-digital-platform/tooling/payments-migrate.mjs",
   "startCommand: node tooling/render/with-staging-mysql-env.mjs node apps/morro-digital-platform/tooling/dev-server.mjs",
   "healthCheckPath: /readyz",
