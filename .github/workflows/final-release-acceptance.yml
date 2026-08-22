@@ -1,0 +1,218 @@
+name: Final Release Acceptance
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/final-release-acceptance.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/final-release-acceptance.yml"
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: final-release-acceptance-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: 22
+  PNPM_VERSION: 10.15.0
+  TURBO_TELEMETRY_DISABLED: 1
+  STAGING_URL: https://morro-digital-v2-staging.onrender.com
+
+jobs:
+  validate:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Validate deterministic acceptance inventory
+        shell: bash
+        run: |
+          set -euo pipefail
+          workflows=(
+            assistant-photo-browser-contract.yml
+            assistant-voice-browser-contract.yml
+            auth-login-browser-contract.yml
+            business-dashboard-browser-contract.yml
+            business-live-runtime-browser-contract.yml
+            business-onboarding-adapter-browser-contract.yml
+            business-onboarding-browser-contract.yml
+            business-onboarding-commercial-browser-contract.yml
+            business-onboarding-lifecycle-browser-contract.yml
+            business-onboarding-profile-browser-contract.yml
+            business-onboarding-route-browser-contract.yml
+            business-onboarding-workspace-browser-contract.yml
+            business-production-profile-browser-contract.yml
+            crm-equivalence-browser-contract.yml
+            crm-lead-detail-browser-contract.yml
+            map-provider-regression.yml
+            map-tour-browser-regression.yml
+            mapbox-visual-contract-regression.yml
+            navigation-accessibility-baseline.yml
+            navigation-visual-baseline.yml
+            payments-browser-checkout-contract.yml
+            search-browser-contract.yml
+          )
+          for workflow in "${workflows[@]}"; do
+            test -f ".github/workflows/$workflow"
+            grep -Eq '^[[:space:]]*workflow_dispatch:' ".github/workflows/$workflow"
+          done
+          echo "Validated ${#workflows[@]} deterministic acceptance workflows."
+
+  acceptance:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Prove exact acceptance SHA is current main
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          remote_main_sha="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
+          test "$remote_main_sha" = "$GITHUB_SHA"
+          echo "Exact main SHA: $GITHUB_SHA"
+
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 10.15.0
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Dispatch exact-head deterministic browser matrix
+        id: dispatch
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          workflows=(
+            assistant-photo-browser-contract.yml
+            assistant-voice-browser-contract.yml
+            auth-login-browser-contract.yml
+            business-dashboard-browser-contract.yml
+            business-live-runtime-browser-contract.yml
+            business-onboarding-adapter-browser-contract.yml
+            business-onboarding-browser-contract.yml
+            business-onboarding-commercial-browser-contract.yml
+            business-onboarding-lifecycle-browser-contract.yml
+            business-onboarding-profile-browser-contract.yml
+            business-onboarding-route-browser-contract.yml
+            business-onboarding-workspace-browser-contract.yml
+            business-production-profile-browser-contract.yml
+            crm-equivalence-browser-contract.yml
+            crm-lead-detail-browser-contract.yml
+            map-provider-regression.yml
+            map-tour-browser-regression.yml
+            mapbox-visual-contract-regression.yml
+            navigation-accessibility-baseline.yml
+            navigation-visual-baseline.yml
+            payments-browser-checkout-contract.yml
+            search-browser-contract.yml
+          )
+
+          : > /tmp/final-acceptance-runs.tsv
+          for workflow in "${workflows[@]}"; do
+            echo "Dispatching $workflow on main@$GITHUB_SHA"
+            gh workflow run "$workflow" --ref main
+
+            run_id=""
+            for _ in $(seq 1 45); do
+              run_id="$(
+                gh run list \
+                  --workflow "$workflow" \
+                  --event workflow_dispatch \
+                  --branch main \
+                  --limit 10 \
+                  --json databaseId,headSha,createdAt \
+                | jq -r --arg sha "$GITHUB_SHA" '[.[] | select(.headSha == $sha)][0].databaseId // empty'
+              )"
+              if [ -n "$run_id" ]; then
+                break
+              fi
+              sleep 2
+            done
+
+            if [ -z "$run_id" ]; then
+              echo "Unable to discover dispatched run for $workflow" >&2
+              exit 1
+            fi
+
+            printf '%s\t%s\n' "$workflow" "$run_id" >> /tmp/final-acceptance-runs.tsv
+            echo "$workflow -> run $run_id"
+          done
+
+          echo "Dispatched ${#workflows[@]} workflows."
+
+      - name: Wait for exact-head browser matrix
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          failed=0
+          while IFS=$'\t' read -r workflow run_id; do
+            echo "Waiting for $workflow (run $run_id)"
+            if ! gh run watch "$run_id" --exit-status; then
+              echo "FAILED: $workflow (run $run_id)" >&2
+              failed=1
+            else
+              observed_sha="$(gh run view "$run_id" --json headSha --jq '.headSha')"
+              if [ "$observed_sha" != "$GITHUB_SHA" ]; then
+                echo "SHA DRIFT: $workflow expected $GITHUB_SHA got $observed_sha" >&2
+                failed=1
+              else
+                echo "PASS: $workflow @ $observed_sha"
+              fi
+            fi
+          done < /tmp/final-acceptance-runs.tsv
+          exit "$failed"
+
+      - name: Prove exact-SHA live staging health and readiness
+        shell: bash
+        run: |
+          set -euo pipefail
+          last_output=""
+          for _ in $(seq 1 90); do
+            if output="$(MORRO_V2_BASE_URL="$STAGING_URL" pnpm --silent payments:render:smoke 2>&1)"; then
+              release_sha="$(printf '%s\n' "$output" | tail -n 1 | jq -r '.releaseSha // empty' 2>/dev/null || true)"
+              if [ "$release_sha" = "$GITHUB_SHA" ]; then
+                printf '%s\n' "$output"
+                echo "Exact-SHA staging smoke PASS: $release_sha"
+                exit 0
+              fi
+              last_output="$output"
+              echo "Staging release is ${release_sha:-unknown}; waiting for $GITHUB_SHA"
+            else
+              last_output="$output"
+              echo "Staging smoke not ready yet; retrying"
+            fi
+            sleep 10
+          done
+          printf '%s\n' "$last_output" >&2
+          echo "Exact-SHA staging smoke timed out for $GITHUB_SHA" >&2
+          exit 1
+
+      - name: Re-prove main did not move during acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          remote_main_sha="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
+          test "$remote_main_sha" = "$GITHUB_SHA"
+          echo "Final acceptance SHA remained frozen: $GITHUB_SHA"
