@@ -21,6 +21,7 @@ on:
       - "docs/features/registry.json"
       - "docs/migration/MASTER-MIGRATION-TRACKER.md"
       - ".github/workflows/affiliates-feature-0010-contract.yml"
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -29,6 +30,19 @@ jobs:
   contract:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: affiliates-m154
+          MYSQL_DATABASE: affiliates_m154_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -paffiliates-m154"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
@@ -44,6 +58,10 @@ jobs:
         run: pnpm architecture:check && pnpm features:check
       - name: Validate Affiliate runtime foundation
         run: pnpm affiliates:check
+      - name: Validate Affiliate MySQL persistence
+        env:
+          AFFILIATES_DATABASE_URL: mysql://root:affiliates-m154@127.0.0.1:3306/affiliates_m154_test
+        run: pnpm --filter @touristic/affiliates-server test:integration
       - name: Validate Affiliate authority and policy contract
         shell: bash
         run: |

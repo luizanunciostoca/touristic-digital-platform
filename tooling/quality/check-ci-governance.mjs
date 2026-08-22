@@ -76,6 +76,8 @@ requireIncludes(quality, ".github/workflows/quality.yml", [
   "pnpm typecheck",
   "pnpm test",
   "pnpm build",
+  "Validate canonical MySQL matrix",
+  "Canonical MySQL matrix:",
 ]);
 if (/\npull_request:\s*\n(?:.|\n)*?\n\s+paths(?:-ignore)?:/m.test(quality)) {
   fail("global Quality Gate must not use pull_request path filters");
@@ -84,6 +86,23 @@ if (quality.includes("name: quality /")) {
   fail(
     "Quality Gate must remain consolidated instead of multiplying setup jobs",
   );
+}
+const requiredQualityOrder = [
+  "- name: Lint",
+  "- name: Typecheck",
+  "- name: Test",
+  "- name: Build",
+  "- name: Validate canonical MySQL matrix",
+];
+let previousQualityStage = -1;
+for (const stage of requiredQualityOrder) {
+  const stageIndex = quality.indexOf(stage);
+  if (stageIndex <= previousQualityStage) {
+    fail(
+      `Quality Gate stage order diverged; expected ${requiredQualityOrder.join(" -> ")}`,
+    );
+  }
+  previousQualityStage = stageIndex;
 }
 const qualityRunnerCount = (quality.match(/^\s{4}runs-on:/gmu) ?? []).length;
 if (qualityRunnerCount !== 1) {

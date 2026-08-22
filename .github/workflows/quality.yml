@@ -23,7 +23,20 @@ jobs:
   quality:
     name: quality
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: canonical-mysql
+          MYSQL_DATABASE: affiliates_m154_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -pcanonical-mysql"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
@@ -66,3 +79,67 @@ jobs:
       - name: Build
         if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
         run: pnpm build
+      - name: Validate canonical MySQL matrix
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
+        env:
+          MYSQL_ADMIN_DATABASE_URL: mysql://root:canonical-mysql@127.0.0.1:3306/mysql
+          FINANCIAL_DATABASE_URL: mysql://root:canonical-mysql@127.0.0.1:3306/financial_m137_test
+          ORDERING_DATABASE_URL: mysql://root:canonical-mysql@127.0.0.1:3306/ordering_m137_test
+          TICKETING_DATABASE_URL: mysql://root:canonical-mysql@127.0.0.1:3306/ticketing_m147_test
+          AFFILIATES_DATABASE_URL: mysql://root:canonical-mysql@127.0.0.1:3306/affiliates_m154_test
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          run_suite() {
+            local domain="$1"
+            local workspace="$2"
+            pnpm --filter "$workspace" exec vitest run \
+              --passWithNoTests \
+              --no-file-parallelism \
+              --reporter=json \
+              --outputFile="/tmp/mysql-${domain}.json"
+          }
+
+          run_suite financial @touristic/financial-server
+          run_suite ordering @touristic/ordering-server
+          run_suite crm @touristic/crm-server
+          run_suite ticketing @touristic/ticketing-server
+          run_suite affiliates @touristic/affiliates-server
+
+          node <<'NODE'
+          const { readFileSync } = require('node:fs');
+
+          const domains = ['financial', 'ordering', 'crm', 'ticketing', 'affiliates'];
+          let passed = 0;
+          let total = 0;
+
+          for (const domain of domains) {
+            const result = JSON.parse(readFileSync(`/tmp/mysql-${domain}.json`, 'utf8'));
+            const failed = result.numFailedTests ?? 0;
+            const skipped = result.numPendingTests ?? 0;
+            const failedSuites = result.numFailedTestSuites ?? 0;
+            const skippedSuites = result.numPendingTestSuites ?? 0;
+            const domainPassed = result.numPassedTests ?? 0;
+            const domainTotal = result.numTotalTests ?? 0;
+
+            if (
+              failed !== 0 ||
+              skipped !== 0 ||
+              failedSuites !== 0 ||
+              skippedSuites !== 0 ||
+              domainPassed !== domainTotal ||
+              domainTotal === 0
+            ) {
+              throw new Error(
+                `${domain} MySQL matrix is incomplete: passed=${domainPassed}, total=${domainTotal}, failed=${failed}, skipped=${skipped}, failedSuites=${failedSuites}, skippedSuites=${skippedSuites}`,
+              );
+            }
+
+            console.log(`${domain}: ${domainPassed}/${domainTotal} PASS`);
+            passed += domainPassed;
+            total += domainTotal;
+          }
+
+          console.log(`Canonical MySQL matrix: ${passed}/${total} PASS`);
+          NODE

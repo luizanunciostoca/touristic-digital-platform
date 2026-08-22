@@ -19,6 +19,7 @@ on:
       - "apps/morro-digital-platform/src/business-dashboard-client.test.ts"
       - "pnpm-lock.yaml"
       - ".github/workflows/business-dashboard-client-contract.yml"
+  workflow_dispatch:
 
 permissions:
   contents: read
