@@ -23,7 +23,6 @@
     "payments:predeploy": "node apps/morro-digital-platform/tooling/payments-migrate.mjs",
     "payments:mercado-pago:preflight": "node tooling/payments/mercado-pago-provider-preflight.mjs",
     "payments:render:smoke": "node tooling/payments/render-v2-smoke.mjs",
-    "staging:render:check": "node tooling/quality/check-render-staging-blueprint.mjs && node --test tooling/render/with-staging-mysql-env.test.mjs && sh -n tooling/render/mysql-staging/01-init-databases.sh",
     "affiliates:lint": "eslint packages/affiliates/src",
     "affiliates:typecheck": "tsc -p packages/affiliates/tsconfig.json --noEmit",
     "affiliates:test": "vitest run packages/affiliates/src/index.test.ts",
