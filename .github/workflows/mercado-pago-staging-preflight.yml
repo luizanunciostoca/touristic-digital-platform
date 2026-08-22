@@ -18,7 +18,7 @@ jobs:
     timeout-minutes: 5
     env:
       STAGING_URL: https://morro-digital-v2-staging.onrender.com
-      EXPECTED_RELEASE_SHA: b048e3f3d5c18a8baec944e6b58168e6dca33eaf
+      EXPECTED_RELEASE_SHA: 06aff1f1d6980a44820c582a64b288d42a4bd7de
     steps:
       - name: Create real TEST checkout through staging runtime
         shell: bash
