@@ -17,7 +17,10 @@ const runbook = fs.readFileSync(
   "utf8",
 );
 const mercadoPagoProvider = fs.readFileSync(
-  new URL("../../services/financial/src/mercado-pago-provider.ts", import.meta.url),
+  new URL(
+    "../../services/financial/src/mercado-pago-provider.ts",
+    import.meta.url,
+  ),
   "utf8",
 );
 

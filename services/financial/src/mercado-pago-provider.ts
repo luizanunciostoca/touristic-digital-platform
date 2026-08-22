@@ -282,9 +282,7 @@ async function requireMercadoPagoTestAccount(input: {
   }
   const payload = await boundedJson(response);
   const tags = Array.isArray(payload.tags)
-    ? payload.tags
-        .map((value) => boundedString(value, 80))
-        .filter(Boolean)
+    ? payload.tags.map((value) => boundedString(value, 80)).filter(Boolean)
     : [];
   const siteId = boundedString(payload.site_id, 16).toUpperCase();
   if (!tags.includes("test_user") || siteId !== "MLB") {
