@@ -16,6 +16,10 @@ const runbook = fs.readFileSync(
   new URL("../../docs/deployment/RENDER-STAGING-V2.md", import.meta.url),
   "utf8",
 );
+const mercadoPagoProvider = fs.readFileSync(
+  new URL("../../services/financial/src/mercado-pago-provider.ts", import.meta.url),
+  "utf8",
+);
 
 function requireText(source, text, label = text) {
   if (!source.includes(text))
@@ -74,11 +78,26 @@ for (const required of [
   "startCommand: node tooling/render/with-staging-mysql-env.mjs node apps/morro-digital-platform/tooling/dev-server.mjs",
   "healthCheckPath: /readyz",
   "value: https://api.mercadopago.com",
-  "value: https://sandbox.mercadopago.com",
+  "value: https://www.mercadopago.com,https://www.mercadopago.com.br",
   "value: mapbox://styles/mapbox/streets-v12",
 ]) {
   requireText(blueprint, required);
 }
+
+for (const required of [
+  'new URL("users/me", mercadoLivreApiBaseUrl)',
+  'tags.includes("test_user")',
+  'siteId !== "MLB"',
+  "payload.init_point",
+  "MERCADO_PAGO_TEST_ACCOUNT_REQUIRED",
+]) {
+  requireText(mercadoPagoProvider, required);
+}
+forbidText(
+  mercadoPagoProvider,
+  "payload.sandbox_init_point",
+  "legacy sandbox_init_point selection",
+);
 
 const autoDeployDisabled = blueprint.match(/autoDeploy: false/gu)?.length ?? 0;
 if (autoDeployDisabled !== 2) {
@@ -169,5 +188,5 @@ for (const required of [
 }
 
 console.log(
-  "Render staging Blueprint contract valid: canonical repo/main, isolated MySQL 8.4, autoDeploy off, provider test mode, legacy staging preserved.",
+  "Render staging Blueprint contract valid: canonical repo/main, isolated MySQL 8.4, autoDeploy off, verified Mercado Pago test-account checkout, legacy staging preserved.",
 );
