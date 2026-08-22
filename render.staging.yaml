@@ -158,8 +158,10 @@ services:
       - key: ORDERING_PRICING_CATALOG_JSON
         sync: false
 
-      # Payments starts in real-provider TEST mode only. Production checkout is
-      # forbidden in this staging Blueprint.
+      # Payments stays in real-provider TEST mode only. In test mode the adapter
+      # verifies that the credential owner is an MLB `test_user` before creating
+      # a preference, then accepts only official Mercado Pago `init_point` hosts.
+      # Production checkout remains forbidden in this staging Blueprint.
       - key: PAYMENTS_DESTINATION_ID
         value: morro-de-sao-paulo
       - key: PAYMENTS_RETURN_URL_ORIGINS
@@ -175,7 +177,7 @@ services:
       - key: MERCADO_PAGO_CHECKOUT_MODE
         value: test
       - key: MERCADO_PAGO_CHECKOUT_ORIGINS
-        value: https://sandbox.mercadopago.com
+        value: https://www.mercadopago.com,https://www.mercadopago.com.br
       - key: V1_PAYMENT_PROVIDER_API_URL
         value: https://api.mercadopago.com
       - key: MERCADO_PAGO_ACCESS_TOKEN

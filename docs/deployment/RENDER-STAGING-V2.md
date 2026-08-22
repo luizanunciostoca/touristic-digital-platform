@@ -106,9 +106,11 @@ O Blueprint fixa:
 ```text
 PAYMENTS_PROVIDER_MODE=mercado_pago
 MERCADO_PAGO_CHECKOUT_MODE=test
-MERCADO_PAGO_CHECKOUT_ORIGINS=https://sandbox.mercadopago.com
+MERCADO_PAGO_CHECKOUT_ORIGINS=https://www.mercadopago.com,https://www.mercadopago.com.br
 V1_PAYMENT_PROVIDER_API_URL=https://api.mercadopago.com
 ```
+
+Em `MERCADO_PAGO_CHECKOUT_MODE=test`, o adapter faz um read-only em `/users/me` e exige `tags` contendo `test_user` com `site_id=MLB` antes de criar a preferência. Somente depois desse guard ele aceita o `init_point` em uma das origins oficiais acima. Uma credencial que não seja de test user falha fechada antes de qualquer preferência.
 
 ### Mapbox
 

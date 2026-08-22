@@ -89,27 +89,37 @@ function response(payload: unknown, status = 200): Response {
   });
 }
 
+function testAccountResponse(): Response {
+  return response({
+    id: 987654321,
+    site_id: "MLB",
+    tags: ["normal", "test_user", "user_info_verified"],
+  });
+}
+
 describe("Mercado Pago payment provider adapter", () => {
-  it("creates Checkout Pro preference from authoritative Financial values", async () => {
-    let capturedUrl = "";
-    let capturedInit: RequestInit | undefined;
+  it("verifies the test seller and creates Checkout Pro preference from authoritative Financial values", async () => {
+    const calls: Array<{ url: string; init: RequestInit | undefined }> = [];
     const provider = createMercadoPagoCheckoutProviderFromEnvironment(
       environment(),
       {
         fetch(input, init) {
-          capturedUrl =
+          const url =
             typeof input === "string"
               ? input
               : input instanceof URL
                 ? input.href
                 : input.url;
-          capturedInit = init;
+          calls.push({ url, init });
+          if (url === "https://api.mercadolibre.com/users/me") {
+            return Promise.resolve(testAccountResponse());
+          }
           return Promise.resolve(
             response({
               id: "pref-mercado-pago-0001",
               init_point: "https://checkout.mercadopago.example/prod/pref-0001",
               sandbox_init_point:
-                "https://checkout.mercadopago.example/test/pref-0001",
+                "https://checkout.mercadopago.example/legacy/pref-0001",
             }),
           );
         },
@@ -118,23 +128,29 @@ describe("Mercado Pago payment provider adapter", () => {
 
     await expect(provider.createCheckout(checkoutRequest())).resolves.toEqual({
       providerCheckoutId: "pref-mercado-pago-0001",
-      checkoutUrl: "https://checkout.mercadopago.example/test/pref-0001",
+      checkoutUrl: "https://checkout.mercadopago.example/prod/pref-0001",
       providerReference: null,
     });
-    expect(capturedUrl).toBe(
+    expect(calls.map((call) => call.url)).toEqual([
+      "https://api.mercadolibre.com/users/me",
       "https://api.mercadopago.com/checkout/preferences",
+    ]);
+    const accountHeaders = new Headers(calls[0]?.init?.headers);
+    expect(accountHeaders.get("Authorization")).toBe(
+      "Bearer fixture-token-not-a-real-credential-with-thirty-two-characters",
     );
-    const headers = new Headers(capturedInit?.headers);
+    const preferenceInit = calls[1]?.init;
+    const headers = new Headers(preferenceInit?.headers);
     expect(headers.get("Authorization")).toBe(
       "Bearer fixture-token-not-a-real-credential-with-thirty-two-characters",
     );
     expect(headers.get("X-Idempotency-Key")).toBe(
       "payment:v1:ord_mercado_pago_0001",
     );
-    if (typeof capturedInit?.body !== "string") {
+    if (typeof preferenceInit?.body !== "string") {
       throw new Error("CAPTURED_BODY_INVALID");
     }
-    expect(JSON.parse(capturedInit.body)).toMatchObject({
+    expect(JSON.parse(preferenceInit.body)).toMatchObject({
       items: [
         {
           id: "pay_mercado_pago_0001",
@@ -150,17 +166,47 @@ describe("Mercado Pago payment provider adapter", () => {
     });
   });
 
+  it("fails closed before preference creation when test mode is not backed by an MLB test user", async () => {
+    let calls = 0;
+    const provider = createMercadoPagoCheckoutProviderFromEnvironment(
+      environment(),
+      {
+        fetch: () => {
+          calls += 1;
+          return Promise.resolve(
+            response({ id: 123456789, site_id: "MLB", tags: ["normal"] }),
+          );
+        },
+      },
+    );
+
+    await expect(provider.createCheckout(checkoutRequest())).rejects.toEqual(
+      new MercadoPagoProviderError("MERCADO_PAGO_TEST_ACCOUNT_REQUIRED"),
+    );
+    expect(calls).toBe(1);
+  });
+
   it("fails closed on unsafe checkout origin and missing credentials", async () => {
     const unsafe = createMercadoPagoCheckoutProviderFromEnvironment(
       environment(),
       {
-        fetch: () =>
-          Promise.resolve(
+        fetch(input) {
+          const url =
+            typeof input === "string"
+              ? input
+              : input instanceof URL
+                ? input.href
+                : input.url;
+          if (url === "https://api.mercadolibre.com/users/me") {
+            return Promise.resolve(testAccountResponse());
+          }
+          return Promise.resolve(
             response({
               id: "pref-mercado-pago-0001",
-              sandbox_init_point: "https://evil.example/pref-0001",
+              init_point: "https://evil.example/pref-0001",
             }),
-          ),
+          );
+        },
       },
     );
     await expect(unsafe.createCheckout(checkoutRequest())).rejects.toEqual(
