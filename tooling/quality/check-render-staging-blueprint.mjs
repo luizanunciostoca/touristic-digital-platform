@@ -18,16 +18,20 @@ const runbook = fs.readFileSync(
 );
 
 function requireText(source, text, label = text) {
-  if (!source.includes(text)) throw new Error(`Missing staging contract: ${label}`);
+  if (!source.includes(text))
+    throw new Error(`Missing staging contract: ${label}`);
 }
 
 function forbidText(source, text, label = text) {
-  if (source.includes(text)) throw new Error(`Forbidden staging contract text: ${label}`);
+  if (source.includes(text))
+    throw new Error(`Forbidden staging contract text: ${label}`);
 }
 
 function envBlock(key) {
   const lines = blueprint.split(/\r?\n/u);
-  const start = lines.findIndex((line) => line.trim() === `- key: ${key}`);
+  const start = lines.findIndex(
+    (line) => line.trim() === `- key: ${key}`,
+  );
   if (start < 0) throw new Error(`Missing staging environment key: ${key}`);
   const block = [];
   for (let index = start; index < lines.length; index += 1) {
@@ -149,7 +153,10 @@ for (const domain of ["AUTH", "ORDERING", "FINANCIAL", "AFFILIATES"]) {
 }
 
 requireText(mysqlDockerfile, "FROM mysql:8.4");
-requireText(mysqlDockerfile, "/docker-entrypoint-initdb.d/01-init-databases.sh");
+requireText(
+  mysqlDockerfile,
+  "/docker-entrypoint-initdb.d/01-init-databases.sh",
+);
 
 for (const required of [
   "morro-digital-staging",
