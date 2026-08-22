@@ -1,0 +1,221 @@
+name: Mapbox CI Diagnostic
+
+on:
+  push:
+    branches:
+      - diag/mapbox-style-20260822
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    env:
+      MAPBOX_PUBLIC_TOKEN_CI: ${{ secrets.MAPBOX_PUBLIC_TOKEN_CI }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install deterministic Chromium
+        run: |
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+          mkdir -p /tmp/mapbox-ci-diagnostic
+      - name: Validate secret shape and style API
+        run: |
+          set +e
+          if [ -z "${MAPBOX_PUBLIC_TOKEN_CI:-}" ]; then
+            echo "token_present=false" | tee /tmp/mapbox-ci-diagnostic/preflight.txt
+            exit 0
+          fi
+          echo "token_present=true" | tee /tmp/mapbox-ci-diagnostic/preflight.txt
+          if [[ "$MAPBOX_PUBLIC_TOKEN_CI" == pk.* ]]; then
+            echo "token_prefix=public" | tee -a /tmp/mapbox-ci-diagnostic/preflight.txt
+          else
+            echo "token_prefix=unexpected" | tee -a /tmp/mapbox-ci-diagnostic/preflight.txt
+          fi
+          STATUS=$(curl -sS -o /tmp/mapbox-ci-diagnostic/style-response.json -w '%{http_code}' \
+            "https://api.mapbox.com/styles/v1/mapbox/streets-v12?access_token=${MAPBOX_PUBLIC_TOKEN_CI}")
+          echo "style_http_status=${STATUS}" | tee -a /tmp/mapbox-ci-diagnostic/preflight.txt
+          if [ "$STATUS" != "200" ]; then
+            node -e "const fs=require('fs');const p='/tmp/mapbox-ci-diagnostic/style-response.json';try{const x=JSON.parse(fs.readFileSync(p,'utf8'));console.log('style_error='+JSON.stringify({message:x.message||null,error:x.error||null}));}catch{console.log('style_error=non-json-response')}" | tee -a /tmp/mapbox-ci-diagnostic/preflight.txt
+          fi
+          exit 0
+      - name: Build workspace
+        run: pnpm -w build
+      - name: Start authenticated application runtime
+        run: |
+          test -n "${MAPBOX_PUBLIC_TOKEN_CI:-}" || { echo 'MAPBOX_PUBLIC_TOKEN_CI missing'; exit 1; }
+          VITE_MAPBOX_ACCESS_TOKEN="$MAPBOX_PUBLIC_TOKEN_CI" \
+          VITE_MAPBOX_STYLE=mapbox://styles/mapbox/streets-v12 \
+          VITE_MAPBOX_CONTAINER_ID=map \
+          VITE_MAPBOX_INITIAL_ZOOM=13.5 \
+          node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/mapbox-ci-diagnostic/server.log 2>&1 &
+          echo $! >/tmp/mapbox-ci-diagnostic/server.pid
+          for i in $(seq 1 90); do
+            if curl -fsS http://127.0.0.1:4173/runtime-config.js >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/mapbox-ci-diagnostic/server.log
+          exit 1
+      - name: Diagnose application and isolated Mapbox lifecycle
+        run: |
+          node <<'NODE'
+          const { writeFileSync } = require('node:fs');
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+
+          const token = process.env.MAPBOX_PUBLIC_TOKEN_CI || '';
+          const redact = (value) => String(value || '').replace(/access_token=[^&]+/gu, 'access_token=[redacted]');
+
+          function installNetworkDiagnostics(page, bucket) {
+            page.on('console', (message) => {
+              if (['error', 'warning'].includes(message.type())) bucket.console.push({ type: message.type(), text: redact(message.text()) });
+            });
+            page.on('pageerror', (error) => bucket.pageErrors.push(redact(error.message)));
+            page.on('requestfailed', (request) => {
+              const url = request.url();
+              if (url.includes('mapbox.com')) bucket.requestFailures.push({ url: redact(url), error: request.failure()?.errorText || null });
+            });
+            page.on('response', (response) => {
+              const url = response.url();
+              if (url.includes('mapbox.com')) bucket.responses.push({ status: response.status(), url: redact(url) });
+            });
+          }
+
+          async function inspectApplication(browser, origin) {
+            const bucket = { origin, console: [], pageErrors: [], requestFailures: [], responses: [] };
+            const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+            await context.addInitScript(() => {
+              localStorage.setItem('morro-digital-onboarded', '1');
+              localStorage.setItem('voice-enabled', 'false');
+            });
+            const page = await context.newPage();
+            installNetworkDiagnostics(page, bucket);
+            await page.goto(`${origin}/`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+            await page.locator('#map[data-map-mode="real"][data-map-provider="mapbox"]').waitFor({ state: 'attached', timeout: 30000 });
+            await page.waitForFunction(() => Boolean(globalThis.mapboxPrimaryInstance), null, { timeout: 30000 });
+            await page.evaluate(() => {
+              globalThis.__mapboxLifecycleDiagnostic = { errors: [], events: [] };
+              const map = globalThis.mapboxPrimaryInstance;
+              for (const type of ['load', 'style.load', 'idle', 'data', 'sourcedata', 'styledata']) {
+                map.on?.(type, () => globalThis.__mapboxLifecycleDiagnostic.events.push(type));
+              }
+              map.on?.('error', (event) => {
+                globalThis.__mapboxLifecycleDiagnostic.errors.push({
+                  message: event?.error?.message || String(event?.error || 'unknown'),
+                  sourceId: event?.sourceId || null,
+                });
+              });
+            });
+            await page.waitForTimeout(35000);
+            bucket.state = await page.evaluate(() => {
+              const map = globalThis.mapboxPrimaryInstance;
+              const element = document.getElementById('map');
+              const style = map?.getStyle?.();
+              return {
+                mapState: element?.getAttribute('data-map-state') || null,
+                mode: element?.getAttribute('data-map-mode') || null,
+                provider: element?.getAttribute('data-map-provider') || null,
+                activeTour: element?.getAttribute('data-active-tour') || null,
+                markerCount: document.querySelectorAll('#map .mapboxgl-marker').length,
+                tourMarkerCount: document.querySelectorAll('#map .tour-stop-marker').length,
+                canvasPresent: Boolean(element?.querySelector('.mapboxgl-canvas')),
+                sdkVersion: globalThis.mapboxgl?.version || null,
+                styleLoaded: Boolean(map?.isStyleLoaded?.()),
+                loaded: typeof map?.loaded === 'function' ? Boolean(map.loaded()) : null,
+                tilesLoaded: typeof map?.areTilesLoaded === 'function' ? Boolean(map.areTilesLoaded()) : null,
+                styleName: style?.name || null,
+                styleSourceIds: style?.sources ? Object.keys(style.sources) : [],
+                lifecycle: globalThis.__mapboxLifecycleDiagnostic,
+              };
+            });
+            await context.close();
+            return bucket;
+          }
+
+          async function inspectIsolated(browser) {
+            const bucket = { origin: 'isolated-setContent', console: [], pageErrors: [], requestFailures: [], responses: [] };
+            const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+            const page = await context.newPage();
+            installNetworkDiagnostics(page, bucket);
+            await page.setContent('<!doctype html><html><head></head><body><div id="map" style="width:390px;height:700px"></div></body></html>', { waitUntil: 'domcontentloaded' });
+            await page.addScriptTag({ url: 'https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.js' });
+            await page.evaluate((accessToken) => {
+              globalThis.__isolated = { errors: [], events: [] };
+              mapboxgl.accessToken = accessToken;
+              const map = new mapboxgl.Map({
+                container: 'map',
+                style: 'mapbox://styles/mapbox/streets-v12',
+                center: [-38.9159969, -13.4],
+                zoom: 13.5,
+                projection: 'globe',
+                antialias: true,
+              });
+              globalThis.__isolatedMap = map;
+              for (const type of ['load', 'style.load', 'idle', 'data', 'sourcedata', 'styledata']) map.on(type, () => globalThis.__isolated.events.push(type));
+              map.on('error', (event) => globalThis.__isolated.errors.push({ message: event?.error?.message || String(event?.error || 'unknown'), sourceId: event?.sourceId || null }));
+            }, token);
+            await page.waitForTimeout(35000);
+            bucket.state = await page.evaluate(() => {
+              const map = globalThis.__isolatedMap;
+              const style = map?.getStyle?.();
+              return {
+                sdkVersion: globalThis.mapboxgl?.version || null,
+                styleLoaded: Boolean(map?.isStyleLoaded?.()),
+                loaded: typeof map?.loaded === 'function' ? Boolean(map.loaded()) : null,
+                tilesLoaded: typeof map?.areTilesLoaded === 'function' ? Boolean(map.areTilesLoaded()) : null,
+                styleName: style?.name || null,
+                styleSourceIds: style?.sources ? Object.keys(style.sources) : [],
+                lifecycle: globalThis.__isolated,
+              };
+            });
+            await context.close();
+            return bucket;
+          }
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            try {
+              const result = {
+                application127: await inspectApplication(browser, 'http://127.0.0.1:4173'),
+                applicationLocalhost: await inspectApplication(browser, 'http://localhost:4173'),
+                isolated: await inspectIsolated(browser),
+              };
+              writeFileSync('/tmp/mapbox-ci-diagnostic/browser.json', JSON.stringify(result, null, 2));
+              const summary = Object.fromEntries(Object.entries(result).map(([key, value]) => [key, {
+                state: value.state,
+                mapboxHttpErrors: value.responses.filter((x) => x.status >= 400),
+                requestFailures: value.requestFailures,
+                pageErrors: value.pageErrors,
+                console: value.console,
+              }]));
+              console.log(JSON.stringify(summary, null, 2));
+            } finally {
+              await browser.close();
+            }
+          })().catch((error) => {
+            writeFileSync('/tmp/mapbox-ci-diagnostic/browser-failure.txt', String(error?.stack || error));
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+      - name: Show server diagnostics
+        if: always()
+        run: |
+          cat /tmp/mapbox-ci-diagnostic/preflight.txt || true
+          cat /tmp/mapbox-ci-diagnostic/server.log || true
+          cat /tmp/mapbox-ci-diagnostic/browser-failure.txt || true
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: mapbox-ci-diagnostic-evidence
+          path: /tmp/mapbox-ci-diagnostic
+          retention-days: 3
+          if-no-files-found: error
