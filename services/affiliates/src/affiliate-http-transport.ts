@@ -121,7 +121,7 @@ const browserMonetaryAuthorityFields = new Set([
   "amount",
   "currency",
   "payout",
-  ["provider", "Token"].join(""),
+  "providerToken",
 ]);
 
 function hasBrowserMonetaryAuthority(

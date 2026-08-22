@@ -107,11 +107,13 @@ jobs:
           const affiliateManifest = require('./packages/affiliates/package.json');
           const serverManifest = require('./services/affiliates/package.json');
           const rootManifest = require('./package.json');
-          if (affiliateManifest.name !== '@touristic/affiliates') process.exit(1);
-          if (affiliateManifest.type !== 'module') process.exit(1);
-          if (affiliateManifest.dependencies || affiliateManifest.devDependencies) process.exit(1);
-          if (serverManifest.name !== '@touristic/affiliates-server') process.exit(1);
-          if (!rootManifest.scripts?.['affiliates:check']) process.exit(1);
+          if (affiliateManifest.name !== '@touristic/affiliates') throw new Error('Affiliate package name diverged.');
+          if (affiliateManifest.type !== 'module') throw new Error('Affiliate package must remain ESM.');
+          if (affiliateManifest.dependencies || affiliateManifest.devDependencies) {
+            throw new Error('Affiliate domain package must remain dependency-free.');
+          }
+          if (serverManifest.name !== '@touristic/affiliates-server') throw new Error('Affiliate server package name diverged.');
+          if (!rootManifest.scripts?.['affiliates:check']) throw new Error('Root affiliates:check script is missing.');
           NODE
 
           if grep -REn --include='*.ts' --include='*.tsx' \
@@ -121,12 +123,63 @@ jobs:
             exit 1
           fi
 
-          if grep -REin --include='*.ts' --include='*.tsx' --exclude='*.test.ts' \
-            '(payoutDestination|settlementInstruction|providerToken|providerSecret)' \
-            packages/affiliates/src services/affiliates/src; then
-            echo 'Affiliate runtime contains a forbidden monetary/provider instruction.' >&2
-            exit 1
-          fi
+          node <<'NODE'
+          const { readdirSync, readFileSync } = require('node:fs');
+          const { join, relative } = require('node:path');
+
+          const roots = ['packages/affiliates/src', 'services/affiliates/src'];
+          const forbidden = /(payoutDestination|settlementInstruction|providerToken|providerSecret)/gu;
+          const rejectionGuard = {
+            path: 'services/affiliates/src/affiliate-http-transport.ts',
+            line: '"providerToken",',
+            identifier: 'providerToken',
+          };
+          const violations = [];
+          let rejectionGuardOccurrences = 0;
+
+          function sourceFiles(directory) {
+            return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+              const path = join(directory, entry.name);
+              if (entry.isDirectory()) return sourceFiles(path);
+              if (!/\.tsx?$/u.test(entry.name) || /\.test\.tsx?$/u.test(entry.name)) {
+                return [];
+              }
+              return [path];
+            });
+          }
+
+          for (const root of roots) {
+            for (const path of sourceFiles(root)) {
+              const source = readFileSync(path, 'utf8');
+              const lines = source.split('\n');
+              for (const match of source.matchAll(forbidden)) {
+                const lineNumber = source.slice(0, match.index).split('\n').length;
+                const line = lines[lineNumber - 1]?.trim() ?? '';
+                const repositoryPath = relative('.', path);
+                if (
+                  repositoryPath === rejectionGuard.path &&
+                  match[0] === rejectionGuard.identifier &&
+                  line === rejectionGuard.line
+                ) {
+                  rejectionGuardOccurrences += 1;
+                  continue;
+                }
+                violations.push(`${repositoryPath}:${lineNumber}:${line}`);
+              }
+            }
+          }
+
+          if (rejectionGuardOccurrences !== 1 || violations.length > 0) {
+            console.error('Affiliate runtime contains a forbidden monetary/provider instruction.');
+            for (const violation of violations) console.error(violation);
+            process.exit(1);
+          }
+          NODE
+
+          grep -Fq 'providerToken: "forbidden-provider-token"' \
+            services/affiliates/src/affiliate-http-transport.test.ts
+          grep -Fq 'if (hasBrowserMonetaryAuthority(body)) {' \
+            services/affiliates/src/affiliate-http-transport.ts
 
           node <<'NODE'
           const registry = require('./docs/features/registry.json');
