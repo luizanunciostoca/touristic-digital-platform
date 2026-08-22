@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
-import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const databaseDomains = Object.freeze([
   ["AUTH", "AUTH_DATABASE_URL"],
@@ -31,7 +31,10 @@ function parseHostPort(environment) {
 function databaseUrl(environment, domain, hostPort) {
   const database = required(environment, `STAGING_${domain}_DATABASE_NAME`);
   const user = required(environment, `STAGING_${domain}_DATABASE_USER`);
-  const password = required(environment, `STAGING_${domain}_DATABASE_PASSWORD`);
+  const password = required(
+    environment,
+    `STAGING_${domain}_DATABASE_PASSWORD`,
+  );
   for (const [name, value] of [
     ["database", database],
     ["user", user],
@@ -71,7 +74,9 @@ export function buildStagingDatabaseEnvironment(environment = process.env) {
 
 function isDirectInvocation() {
   if (!process.argv[1]) return false;
-  return resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url));
+  return (
+    resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url))
+  );
 }
 
 if (isDirectInvocation()) {
@@ -116,7 +121,9 @@ if (isDirectInvocation()) {
       }
 
       child.on("error", (error) => {
-        process.stderr.write(`staging command failed to start: ${error.message}\n`);
+        process.stderr.write(
+          `staging command failed to start: ${error.message}\n`,
+        );
         process.exitCode = 1;
       });
       child.on("exit", (code, signal) => {
