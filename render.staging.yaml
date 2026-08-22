@@ -1,0 +1,224 @@
+# Morro Digital V2 — isolated acceptance staging only.
+#
+# This Blueprint intentionally does NOT modify or adopt the legacy
+# `morro-digital-staging` service. Keep that service and its Postgres database
+# intact as rollback evidence until V2 staging is accepted.
+services:
+  - type: pserv
+    name: morro-digital-v2-staging-mysql
+    runtime: docker
+    repo: https://github.com/luizanunciostoca/touristic-digital-platform
+    branch: main
+    region: ohio
+    plan: starter
+    autoDeploy: false
+    dockerContext: .
+    dockerfilePath: ./tooling/render/mysql-staging/Dockerfile
+    disk:
+      name: mysql-data
+      mountPath: /var/lib/mysql
+      sizeGB: 10
+    envVars:
+      - key: MYSQL_ROOT_PASSWORD
+        generateValue: true
+      - key: AUTH_DATABASE_NAME
+        value: morro_auth_staging
+      - key: AUTH_DATABASE_USER
+        value: morro_auth
+      - key: AUTH_DATABASE_PASSWORD
+        generateValue: true
+      - key: ORDERING_DATABASE_NAME
+        value: morro_ordering_staging
+      - key: ORDERING_DATABASE_USER
+        value: morro_ordering
+      - key: ORDERING_DATABASE_PASSWORD
+        generateValue: true
+      - key: FINANCIAL_DATABASE_NAME
+        value: morro_financial_staging
+      - key: FINANCIAL_DATABASE_USER
+        value: morro_financial
+      - key: FINANCIAL_DATABASE_PASSWORD
+        generateValue: true
+      - key: AFFILIATES_DATABASE_NAME
+        value: morro_affiliates_staging
+      - key: AFFILIATES_DATABASE_USER
+        value: morro_affiliates
+      - key: AFFILIATES_DATABASE_PASSWORD
+        generateValue: true
+
+  - type: web
+    name: morro-digital-v2-staging
+    runtime: node
+    repo: https://github.com/luizanunciostoca/touristic-digital-platform
+    branch: main
+    region: ohio
+    plan: starter
+    autoDeploy: false
+    buildCommand: corepack enable && corepack prepare pnpm@10.15.0 --activate && pnpm install --frozen-lockfile && pnpm build
+    preDeployCommand: node tooling/render/with-staging-mysql-env.mjs node apps/morro-digital-platform/tooling/payments-migrate.mjs
+    startCommand: node tooling/render/with-staging-mysql-env.mjs node apps/morro-digital-platform/tooling/dev-server.mjs
+    healthCheckPath: /readyz
+    maxShutdownDelaySeconds: 30
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+
+      # Private MySQL topology. Passwords remain generated on the private service;
+      # the wrapper constructs mysql:// URLs only in process memory.
+      - key: STAGING_MYSQL_HOSTPORT
+        fromService:
+          type: pserv
+          name: morro-digital-v2-staging-mysql
+          property: hostport
+      - key: STAGING_AUTH_DATABASE_NAME
+        fromService:
+          type: pserv
+          name: morro-digital-v2-staging-mysql
+          envVarKey: AUTH_DATABASE_NAME
+      - key: STAGING_AUTH_DATABASE_USER
+        fromService:
+          type: pserv
+          name: morro-digital-v2-staging-mysql
+          envVarKey: AUTH_DATABASE_USER
+      - key: STAGING_AUTH_DATABASE_PASSWORD
+        fromService:
+          type: pserv
+          name: morro-digital-v2-staging-mysql
+          envVarKey: AUTH_DATABASE_PASSWORD
+      - key: STAGING_ORDERING_DATABASE_NAME
+        fromService:
+          type: pserv
+          name: morro-digital-v2-staging-mysql
+          envVarKey: ORDERING_DATABASE_NAME
+      - key: STAGING_ORDERING_DATABASE_USER
+        fromService:
+          type: pserv
+          name: morro-digital-v2-staging-mysql
+          envVarKey: ORDERING_DATABASE_USER
+      - key: STAGING_ORDERING_DATABASE_PASSWORD
+        fromService:
+          type: pserv
+          name: morro-digital-v2-staging-mysql
+          envVarKey: ORDERING_DATABASE_PASSWORD
+      - key: STAGING_FINANCIAL_DATABASE_NAME
+        fromService:
+          type: pserv
+          name: morro-digital-v2-staging-mysql
+          envVarKey: FINANCIAL_DATABASE_NAME
+      - key: STAGING_FINANCIAL_DATABASE_USER
+        fromService:
+          type: pserv
+          name: morro-digital-v2-staging-mysql
+          envVarKey: FINANCIAL_DATABASE_USER
+      - key: STAGING_FINANCIAL_DATABASE_PASSWORD
+        fromService:
+          type: pserv
+          name: morro-digital-v2-staging-mysql
+          envVarKey: FINANCIAL_DATABASE_PASSWORD
+      - key: STAGING_AFFILIATES_DATABASE_NAME
+        fromService:
+          type: pserv
+          name: morro-digital-v2-staging-mysql
+          envVarKey: AFFILIATES_DATABASE_NAME
+      - key: STAGING_AFFILIATES_DATABASE_USER
+        fromService:
+          type: pserv
+          name: morro-digital-v2-staging-mysql
+          envVarKey: AFFILIATES_DATABASE_USER
+      - key: STAGING_AFFILIATES_DATABASE_PASSWORD
+        fromService:
+          type: pserv
+          name: morro-digital-v2-staging-mysql
+          envVarKey: AFFILIATES_DATABASE_PASSWORD
+      - key: AFFILIATES_DATABASE_POOL_SIZE
+        value: "4"
+
+      # Auth stays fail-closed until the operator provides the accepted staging
+      # identity set and exact HTTPS origin.
+      - key: DASHBOARD_AUTH_SECRET
+        generateValue: true
+      - key: DASHBOARD_USERS_JSON
+        sync: false
+      - key: DASHBOARD_AUTH_ORIGIN
+        sync: false
+      - key: DASHBOARD_SESSION_TTL_SECONDS
+        value: "28800"
+      - key: DASHBOARD_ADMIN_GLOBAL_BYPASS_CONFIRMED
+        value: "false"
+
+      - key: PLATFORM_SHUTDOWN_READINESS_DELAY_MS
+        value: "5000"
+      - key: PLATFORM_SHUTDOWN_DRAIN_TIMEOUT_MS
+        value: "15000"
+
+      # Ordering is the price authority. Never source amount/currency from the
+      # browser during acceptance testing.
+      - key: ORDERING_PRICING_CATALOG_JSON
+        sync: false
+
+      # Payments starts in real-provider TEST mode only. Production checkout is
+      # forbidden in this staging Blueprint.
+      - key: PAYMENTS_DESTINATION_ID
+        value: morro-de-sao-paulo
+      - key: PAYMENTS_RETURN_URL_ORIGINS
+        sync: false
+      - key: PAYMENTS_STATUS_TOKEN_SECRET
+        generateValue: true
+      - key: PAYMENTS_HANDOFF_SECRET
+        generateValue: true
+      - key: PAYMENTS_STATUS_TOKEN_TTL_SECONDS
+        value: "86400"
+      - key: PAYMENTS_PROVIDER_MODE
+        value: mercado_pago
+      - key: MERCADO_PAGO_CHECKOUT_MODE
+        value: test
+      - key: MERCADO_PAGO_CHECKOUT_ORIGINS
+        value: https://sandbox.mercadopago.com
+      - key: V1_PAYMENT_PROVIDER_API_URL
+        value: https://api.mercadopago.com
+      - key: MERCADO_PAGO_ACCESS_TOKEN
+        sync: false
+      - key: MERCADO_PAGO_WEBHOOK_SECRET
+        sync: false
+      - key: PAYMENTS_WEBHOOK_URL
+        sync: false
+      - key: PAYMENTS_WEBHOOK_TOLERANCE_SECONDS
+        value: "300"
+      - key: PAYMENTS_PROVIDER_TIMEOUT_MS
+        value: "8000"
+      - key: PAYMENTS_PROVIDER_MAX_ATTEMPTS
+        value: "2"
+      - key: PAYMENTS_PROVIDER_RETRY_BASE_MS
+        value: "100"
+      - key: PAYMENTS_RUNTIME_REPLICA_COUNT
+        value: "1"
+      - key: PAYMENTS_RATE_LIMIT_DISTRIBUTED_STORE_CONFIGURED
+        value: "false"
+
+      # Public browser provider configuration. The public token is supplied in
+      # Render rather than copied from GitHub Actions.
+      - key: VITE_MAPBOX_ACCESS_TOKEN
+        sync: false
+      - key: VITE_MAPBOX_STYLE
+        value: mapbox://styles/mapbox/streets-v12
+      - key: VITE_MAPBOX_CONTAINER_ID
+        value: map
+      - key: VITE_MAPBOX_INITIAL_ZOOM
+        value: "14"
+
+      # A key alone never authorizes paid OpenAI traffic. Governance remains
+      # explicitly closed until provider/budget evidence is configured.
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-4o-mini
+      - key: OPENAI_PRICING_MODEL
+        value: gpt-4o-mini
+      - key: OPENAI_PROVIDER_HARD_LIMIT_CONFIRMED
+        value: "false"
+      - key: OPENAI_MAX_CONCURRENCY
+        value: "4"
+      - key: OPENAI_RUNTIME_REPLICA_COUNT
+        value: "1"
