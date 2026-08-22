@@ -1,8 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import {
-  buildStagingDatabaseEnvironment,
-} from "./with-staging-mysql-env.mjs";
+import { buildStagingDatabaseEnvironment } from "./with-staging-mysql-env.mjs";
 
 function fixture(overrides = {}) {
   return {
@@ -37,10 +35,7 @@ test("derives four isolated MySQL URLs and URL-encodes credentials", () => {
   assert.equal(auth.hostname, "morro-digital-v2-staging-mysql");
   assert.equal(auth.port, "3306");
   assert.equal(decodeURIComponent(auth.username), "morro_auth");
-  assert.equal(
-    decodeURIComponent(auth.password),
-    "auth+/=safe-password",
-  );
+  assert.equal(decodeURIComponent(auth.password), "auth+/=safe-password");
   assert.equal(auth.pathname, "/morro_auth_staging");
 
   const names = Object.values(derived).map((value) =>

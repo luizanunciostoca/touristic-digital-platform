@@ -29,9 +29,7 @@ function forbidText(source, text, label = text) {
 
 function envBlock(key) {
   const lines = blueprint.split(/\r?\n/u);
-  const start = lines.findIndex(
-    (line) => line.trim() === `- key: ${key}`,
-  );
+  const start = lines.findIndex((line) => line.trim() === `- key: ${key}`);
   if (start < 0) throw new Error(`Missing staging environment key: ${key}`);
   const block = [];
   for (let index = start; index < lines.length; index += 1) {

@@ -17,9 +17,8 @@ function required(environment, name) {
 
 function parseHostPort(environment) {
   const value = required(environment, "STAGING_MYSQL_HOSTPORT");
-  const match = /^(?<host>[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?):(?<port>\d{1,5})$/u.exec(
-    value,
-  );
+  const match =
+    /^(?<host>[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?):(?<port>\d{1,5})$/u.exec(value);
   if (!match) throw new Error("STAGING_MYSQL_HOSTPORT_INVALID");
   const port = Number(match.groups.port);
   if (!Number.isSafeInteger(port) || port < 1 || port > 65535) {
@@ -31,10 +30,7 @@ function parseHostPort(environment) {
 function databaseUrl(environment, domain, hostPort) {
   const database = required(environment, `STAGING_${domain}_DATABASE_NAME`);
   const user = required(environment, `STAGING_${domain}_DATABASE_USER`);
-  const password = required(
-    environment,
-    `STAGING_${domain}_DATABASE_PASSWORD`,
-  );
+  const password = required(environment, `STAGING_${domain}_DATABASE_PASSWORD`);
   for (const [name, value] of [
     ["database", database],
     ["user", user],
@@ -74,9 +70,7 @@ export function buildStagingDatabaseEnvironment(environment = process.env) {
 
 function isDirectInvocation() {
   if (!process.argv[1]) return false;
-  return (
-    resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url))
-  );
+  return resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url));
 }
 
 if (isDirectInvocation()) {
