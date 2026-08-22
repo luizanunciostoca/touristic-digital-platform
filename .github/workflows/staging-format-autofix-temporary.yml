@@ -1,0 +1,64 @@
+name: Temporary Staging Prettier Autofix
+
+on:
+  push:
+    branches:
+      - ops/render-v2-staging-blueprint-20260821
+    paths:
+      - .github/workflows/staging-format-autofix-temporary.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format-and-remove-self:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ops/render-v2-staging-blueprint-20260821
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Apply canonical Prettier output
+        run: >-
+          pnpm exec prettier --write
+          tooling/quality/check-render-staging-blueprint.mjs
+          tooling/render/with-staging-mysql-env.mjs
+          tooling/render/with-staging-mysql-env.test.mjs
+      - name: Remove temporary workflow and validate allowlist
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm .github/workflows/staging-format-autofix-temporary.yml
+          git diff --check
+          mapfile -t changed < <(git status --porcelain | sed -E 's/^.. //' | sort)
+          allowed=(
+            '.github/workflows/staging-format-autofix-temporary.yml'
+            'tooling/quality/check-render-staging-blueprint.mjs'
+            'tooling/render/with-staging-mysql-env.mjs'
+            'tooling/render/with-staging-mysql-env.test.mjs'
+          )
+          for path in "${changed[@]}"; do
+            printf '%s\n' "${allowed[@]}" | grep -Fxq "$path" || {
+              echo "Unexpected autofix path: $path" >&2
+              exit 1
+            }
+          done
+      - name: Commit canonical formatting
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add tooling/quality/check-render-staging-blueprint.mjs \
+            tooling/render/with-staging-mysql-env.mjs \
+            tooling/render/with-staging-mysql-env.test.mjs
+          git commit -am 'style(staging): apply canonical Prettier output'
+          git push origin HEAD:ops/render-v2-staging-blueprint-20260821
