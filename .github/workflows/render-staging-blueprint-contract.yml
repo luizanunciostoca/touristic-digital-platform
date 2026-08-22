@@ -1,0 +1,42 @@
+name: Render Staging Blueprint Contract
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - render.staging.yaml
+      - docs/deployment/RENDER-STAGING-V2.md
+      - tooling/render/mysql-staging/**
+      - tooling/render/with-staging-mysql-env.mjs
+      - tooling/render/with-staging-mysql-env.test.mjs
+      - tooling/quality/check-render-staging-blueprint.mjs
+      - package.json
+      - .github/workflows/render-staging-blueprint-contract.yml
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+      - name: Validate staging Blueprint invariants
+        run: node tooling/quality/check-render-staging-blueprint.mjs
+      - name: Validate staging MySQL URL derivation
+        run: node --test tooling/render/with-staging-mysql-env.test.mjs
+      - name: Validate MySQL init shell syntax
+        run: sh -n tooling/render/mysql-staging/01-init-databases.sh
+      - name: Reject committed secret-like staging values
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -En '(sk_live_|sk_test_|APP_USR-[A-Za-z0-9_-]{16,}|pk\.[A-Za-z0-9_-]{20,}|Bearer[[:space:]]+[A-Za-z0-9._-]{20,})' \
+            render.staging.yaml docs/deployment/RENDER-STAGING-V2.md tooling/render/mysql-staging/*; then
+            echo 'Potential provider secret/token was committed in staging IaC.' >&2
+            exit 1
+          fi
