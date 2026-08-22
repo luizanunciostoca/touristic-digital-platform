@@ -1,0 +1,142 @@
+name: Mercado Pago Staging Preflight
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/mercado-pago-staging-preflight.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mercado-pago-staging-preflight-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      STAGING_URL: https://morro-digital-v2-staging.onrender.com
+      EXPECTED_RELEASE_SHA: 220a536606a39e82e6a3f3ba3c78d823dfe98242
+    steps:
+      - name: Create real TEST checkout through staging runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const { randomUUID } = require('node:crypto');
+
+          const base = new URL(process.env.STAGING_URL);
+          const expectedSha = String(process.env.EXPECTED_RELEASE_SHA || '').trim();
+          if (base.protocol !== 'https:' || base.hostname !== 'morro-digital-v2-staging.onrender.com') {
+            throw new Error('STAGING_URL_FAIL_CLOSED');
+          }
+          if (!/^[0-9a-f]{40}$/.test(expectedSha)) throw new Error('EXPECTED_SHA_INVALID');
+
+          async function jsonRequest(path, options = {}) {
+            const response = await fetch(new URL(path, base), {
+              redirect: 'error',
+              signal: AbortSignal.timeout(15000),
+              ...options,
+            });
+            const text = await response.text();
+            let body = null;
+            try { body = JSON.parse(text); } catch {}
+            return { response, body };
+          }
+
+          const health = await jsonRequest('/healthz', { headers: { Accept: 'application/json' } });
+          const releaseSha = health.response.headers.get('x-release-sha') || '';
+          if (health.response.status !== 200 || health.body?.status !== 'live' || releaseSha !== expectedSha) {
+            throw new Error(`STAGING_RELEASE_MISMATCH:${health.response.status}:${releaseSha || 'unknown'}`);
+          }
+
+          const ready = await jsonRequest('/readyz', { headers: { Accept: 'application/json' } });
+          if (ready.response.status !== 200 || ready.body?.readiness !== 'ready' || ready.response.headers.get('x-release-sha') !== expectedSha) {
+            throw new Error(`STAGING_NOT_READY:${ready.response.status}`);
+          }
+
+          const sessionId = `mpstg_${Date.now()}_${randomUUID().replaceAll('-', '').slice(0, 12)}`;
+          const planId = 'staging-acceptance';
+          const acceptedAt = new Date().toISOString();
+          const handoff = {
+            sessionId,
+            planId,
+            contractor: {
+              name: 'Morro Digital Staging Test Buyer',
+              email: 'morro-digital-staging-buyer@example.com',
+              phone: '5500000000000',
+              document: '00000000000',
+            },
+            businessDraft: {
+              demoBusinessId: 'morro-digital-staging-test',
+              displayName: 'Morro Digital Staging Acceptance',
+              categoryId: 'test',
+              specialty: 'Provider acceptance',
+              environment: 'sandbox',
+              publishable: false,
+            },
+            acceptedTerms: [
+              { type: 'terms', version: 'staging-acceptance-terms-v1', acceptedAt },
+              { type: 'privacy', version: 'staging-acceptance-privacy-v1', acceptedAt },
+            ],
+            returnUrl: `${base.origin}/?payments=staging-acceptance`,
+            tutorial: false,
+            requiresPaymentsCapability: true,
+          };
+
+          const commonHeaders = {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            Origin: base.origin,
+          };
+
+          const authority = await jsonRequest('/api/payments/v1/checkout-authority', {
+            method: 'POST',
+            headers: commonHeaders,
+            body: JSON.stringify(handoff),
+          });
+          if (authority.response.status !== 201 || typeof authority.body?.data?.handoffToken !== 'string') {
+            throw new Error(`AUTHORITY_FAILED:${authority.response.status}:${authority.body?.error || 'unknown'}`);
+          }
+          const handoffToken = authority.body.data.handoffToken;
+
+          const checkout = await jsonRequest('/api/payments/v1/checkouts', {
+            method: 'POST',
+            headers: {
+              ...commonHeaders,
+              'Idempotency-Key': `business:${sessionId}:${planId}`,
+              'X-Checkout-Handoff-Token': handoffToken,
+            },
+            body: JSON.stringify(handoff),
+          });
+          if (![200, 201].includes(checkout.response.status)) {
+            throw new Error(`CHECKOUT_FAILED:${checkout.response.status}:${checkout.body?.error || 'unknown'}`);
+          }
+
+          const data = checkout.body?.data;
+          if (!data || typeof data.checkoutId !== 'string' || typeof data.paymentId !== 'string' || typeof data.checkoutUrl !== 'string') {
+            throw new Error('CHECKOUT_RESPONSE_INVALID');
+          }
+          const checkoutUrl = new URL(data.checkoutUrl);
+          if (checkoutUrl.protocol !== 'https:' || checkoutUrl.username || checkoutUrl.password) {
+            throw new Error('CHECKOUT_URL_INVALID');
+          }
+
+          // Deliberately never print handoffToken or statusToken.
+          console.log(JSON.stringify({
+            contract: 'MERCADO-PAGO-STAGING-PREFLIGHT',
+            status: 'pass',
+            releaseSha,
+            checkoutHttpStatus: checkout.response.status,
+            checkoutId: data.checkoutId,
+            paymentId: data.paymentId,
+            paymentStatus: data.status,
+            planId: data.plan?.id,
+            amount: data.plan?.amount,
+            providerCheckoutOrigin: checkoutUrl.origin,
+            checkoutUrl: checkoutUrl.toString(),
+            replayed: data.replayed,
+          }));
+          NODE
