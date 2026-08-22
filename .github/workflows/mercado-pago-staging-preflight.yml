@@ -24,8 +24,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          node <<'NODE'
-          const { randomUUID } = require('node:crypto');
+          node --input-type=module <<'NODE'
+          import { randomUUID } from 'node:crypto';
 
           const base = new URL(process.env.STAGING_URL);
           const expectedSha = String(process.env.EXPECTED_RELEASE_SHA || '').trim();
