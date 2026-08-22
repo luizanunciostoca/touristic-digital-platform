@@ -117,6 +117,21 @@ function field(value: unknown, max = 180): string {
   return bounded(value, max) ? value : "";
 }
 
+const browserMonetaryAuthorityFields = new Set([
+  "amount",
+  "currency",
+  "payout",
+  "providerToken",
+]);
+
+function hasBrowserMonetaryAuthority(
+  body: Readonly<Record<string, unknown>>,
+): boolean {
+  return Object.keys(body).some((key) =>
+    browserMonetaryAuthorityFields.has(key),
+  );
+}
+
 export async function handleAffiliateHttpRequest(
   request: AffiliateHttpRequest,
   dependencies: AffiliateHttpDependencies,
@@ -158,12 +173,7 @@ export async function handleAffiliateHttpRequest(
     const body = bodyRecord(request.body);
     if (!body || !decision.actor.affiliateId)
       return response(400, { error: "INVALID_REFERRAL_REQUEST" }, correlation);
-    if (
-      body.amount !== undefined ||
-      body.currency !== undefined ||
-      body.payout !== undefined ||
-      body.providerToken !== undefined
-    ) {
+    if (hasBrowserMonetaryAuthority(body)) {
       return response(
         400,
         { error: "MONETARY_AUTHORITY_FORBIDDEN" },

@@ -9,6 +9,7 @@ import { createBusinessApi } from "./business-api.mjs";
 import { createCrmApi } from "./crm-api.mjs";
 import { createPaymentsApi } from "./payments-api.mjs";
 import { createPlatformOperations } from "./platform-operations.mjs";
+import { rewriteWorkspaceModuleSpecifiers } from "./workspace-browser-modules.mjs";
 
 const repositoryRoot = resolve(
   fileURLToPath(new URL("../../../", import.meta.url)),
@@ -111,6 +112,7 @@ const getEnvironmentValue = (key) =>
   process.env[key] ?? localEnvironment[key] ?? "";
 
 let platformOperations = null;
+let paymentsRuntimeReady = false;
 
 function auditSecurityEvent(request, event) {
   const pathname = (() => {
@@ -151,6 +153,14 @@ platformOperations = createPlatformOperations({
   getEnvironmentValue,
   additionalReadinessChecks: () => [
     { name: "auth-security-state", ...authApi.readinessCheck() },
+    {
+      name: "payments-runtime",
+      status: paymentsRuntimeReady ? "pass" : "fail",
+      critical: true,
+      detail: paymentsRuntimeReady
+        ? "payments-runtime-ready"
+        : "PAYMENTS_RUNTIME_UNAVAILABLE",
+    },
   ],
 });
 await authApi.start();
@@ -161,9 +171,7 @@ await crmApi.start();
 const businessApi = createBusinessApi({ authApi });
 
 const paymentsApi = createPaymentsApi({ authApi, getEnvironmentValue });
-if (!(await paymentsApi.start())) {
-  throw new Error("PAYMENTS_RUNTIME_UNAVAILABLE");
-}
+paymentsRuntimeReady = await paymentsApi.start();
 
 let ticketingApi = null;
 let ticketingApiPromise = null;
@@ -599,6 +607,11 @@ const server = createServer(async (request, response) => {
       "Content-Type",
       contentTypes[extname(filePath)] || "application/octet-stream",
     );
+    if (extname(filePath) === ".js") {
+      const source = await readFile(filePath, "utf8");
+      response.end(rewriteWorkspaceModuleSpecifiers(source));
+      return;
+    }
     createReadStream(filePath).pipe(response);
   } catch (error) {
     if (String(request.url || "").startsWith("/api/")) {
@@ -711,6 +724,7 @@ async function shutdown(signal) {
     paymentsApi.stop(),
     ticketingApi ? ticketingApi.stop() : Promise.resolve(),
   ]);
+  paymentsRuntimeReady = false;
   const failedStops = stops.filter((result) => result.status === "rejected");
   if (failedStops.length > 0) {
     exitCode = 1;

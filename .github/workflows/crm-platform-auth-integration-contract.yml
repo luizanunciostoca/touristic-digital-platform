@@ -29,6 +29,7 @@ on:
       - "package.json"
       - "pnpm-lock.yaml"
       - ".github/workflows/crm-platform-auth-integration-contract.yml"
+  workflow_dispatch:
 
 permissions:
   contents: read

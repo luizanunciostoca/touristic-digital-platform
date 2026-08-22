@@ -16,7 +16,9 @@ import type {
 export interface OrderingReadPort {
   getOrderEvidence(
     orderId: string,
-  ): Promise<Awaited<ReturnType<AffiliateOrderingEvidencePort["getOrderEvidence"]>>>;
+  ): Promise<
+    Awaited<ReturnType<AffiliateOrderingEvidencePort["getOrderEvidence"]>>
+  >;
 }
 
 export class OrderingAffiliateEvidenceAdapter implements AffiliateOrderingEvidencePort {
@@ -32,7 +34,9 @@ export class OrderingAffiliateEvidenceAdapter implements AffiliateOrderingEviden
 export interface FinancialVerifiedReadPort {
   getConversionEvidence(
     orderId: string,
-  ): Promise<Awaited<ReturnType<AffiliateFinancialEvidencePort["getConversionEvidence"]>>>;
+  ): Promise<
+    Awaited<ReturnType<AffiliateFinancialEvidencePort["getConversionEvidence"]>>
+  >;
 }
 
 export class FinancialVerifiedEvidenceAdapter implements AffiliateFinancialEvidencePort {
@@ -94,12 +98,17 @@ function requestFromRecord(
   record: AffiliateMaterializationRequestRecord,
 ): AffiliateFinancialMaterializationRequestV1 {
   return {
-    requestId: record.requestId as AffiliateFinancialMaterializationRequestV1["requestId"],
-    entitlementId: record.entitlementId as AffiliateFinancialMaterializationRequestV1["entitlementId"],
+    requestId:
+      record.requestId as AffiliateFinancialMaterializationRequestV1["requestId"],
+    entitlementId:
+      record.entitlementId as AffiliateFinancialMaterializationRequestV1["entitlementId"],
     entitlementRevision: record.entitlementRevision,
-    affiliateId: record.affiliateId as AffiliateFinancialMaterializationRequestV1["affiliateId"],
-    conversionAssociationId: record.conversionId as AffiliateFinancialMaterializationRequestV1["conversionAssociationId"],
-    policyVersion: record.policyVersion as AffiliateFinancialMaterializationRequestV1["policyVersion"],
+    affiliateId:
+      record.affiliateId as AffiliateFinancialMaterializationRequestV1["affiliateId"],
+    conversionAssociationId:
+      record.conversionId as AffiliateFinancialMaterializationRequestV1["conversionAssociationId"],
+    policyVersion:
+      record.policyVersion as AffiliateFinancialMaterializationRequestV1["policyVersion"],
     entitlementDigest: record.entitlementDigest,
     correlationId: record.correlationId,
   };
@@ -115,7 +124,9 @@ export class DurableFinancialMaterializationAdapter implements AffiliateFinancia
   public async requestMaterialization(
     request: AffiliateFinancialMaterializationRequestV1,
   ): Promise<AffiliateFinancialMaterializationResultV1> {
-    const existing = await this.repository.readMaterialization(request.requestId);
+    const existing = await this.repository.readMaterialization(
+      request.requestId,
+    );
     const existingResult = existing ? resultFromRecord(existing) : null;
     if (existingResult) return existingResult;
 
@@ -139,11 +150,17 @@ export class DurableFinancialMaterializationAdapter implements AffiliateFinancia
     };
     await this.repository.createPending(pending);
 
-    const localAfterClaim = await this.repository.readMaterialization(request.requestId);
-    const localResult = localAfterClaim ? resultFromRecord(localAfterClaim) : null;
+    const localAfterClaim = await this.repository.readMaterialization(
+      request.requestId,
+    );
+    const localResult = localAfterClaim
+      ? resultFromRecord(localAfterClaim)
+      : null;
     if (localResult) return localResult;
 
-    const readback = await this.financial.readMaterialization(request.requestId);
+    const readback = await this.financial.readMaterialization(
+      request.requestId,
+    );
     if (readback) {
       await this.repository.recordResult(
         readback.accepted
@@ -194,7 +211,9 @@ export class DurableFinancialMaterializationAdapter implements AffiliateFinancia
     const results: AffiliateFinancialMaterializationResultV1[] = [];
     for (const record of retryable) {
       if (!(await this.repository.claimRetry(record.requestId, now))) continue;
-      results.push(await this.requestMaterialization(requestFromRecord(record)));
+      results.push(
+        await this.requestMaterialization(requestFromRecord(record)),
+      );
     }
     return results;
   }

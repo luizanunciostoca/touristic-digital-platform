@@ -71,6 +71,13 @@ function boundedString(value: unknown, maxLength: number): string {
   return normalized && normalized.length <= maxLength ? normalized : "";
 }
 
+function boundedIdentifier(value: unknown, maxLength: number): string {
+  if (typeof value === "number") {
+    return Number.isSafeInteger(value) && value >= 0 ? String(value) : "";
+  }
+  return boundedString(value, maxLength);
+}
+
 function accessToken(environment: MercadoPagoProviderEnvironment): string {
   const token = boundedString(
     environment.MERCADO_PAGO_ACCESS_TOKEN ??
@@ -147,7 +154,9 @@ function checkoutMode(value: unknown): "production" | "test" {
   throw new Error("MERCADO_PAGO_CHECKOUT_MODE is invalid");
 }
 
-async function boundedJson(response: Response): Promise<Record<string, unknown>> {
+async function boundedJson(
+  response: Response,
+): Promise<Record<string, unknown>> {
   const declaredLength = Number(response.headers.get("content-length") ?? "0");
   if (Number.isFinite(declaredLength) && declaredLength > maxResponseBytes) {
     throw new MercadoPagoProviderError("MERCADO_PAGO_INVALID_RESPONSE");
@@ -193,14 +202,9 @@ function majorUnits(minorUnits: number): number {
   return value;
 }
 
-function providerStatus(value: unknown):
-  | "pending"
-  | "paid"
-  | "failed"
-  | "cancelled"
-  | "expired"
-  | "refunded"
-  | null {
+function providerStatus(
+  value: unknown,
+): "pending" | "paid" | "failed" | "cancelled" | "expired" | "refunded" | null {
   switch (boundedString(value, 40).toLowerCase()) {
     case "approved":
       return "paid";
@@ -257,7 +261,9 @@ export function createMercadoPagoCheckoutProviderFromEnvironment(
   const endpoint = new URL("checkout/preferences", mercadoPagoApiBaseUrl);
 
   return Object.freeze({
-    async createCheckout(input: CheckoutProviderRequest): Promise<CheckoutProviderSession> {
+    async createCheckout(
+      input: CheckoutProviderRequest,
+    ): Promise<CheckoutProviderSession> {
       const request = createCheckoutProviderRequest(input);
       if (!request || request.amount.currency !== "BRL") {
         throw new MercadoPagoProviderError("MERCADO_PAGO_INVALID_REQUEST");
@@ -354,7 +360,9 @@ export function createMercadoPagoRefundProviderFromEnvironment(
   const policy = createProviderRetryPolicyFromEnvironment(environment);
 
   return Object.freeze({
-    async requestRefund(input: RefundProviderCommand): Promise<RefundProviderReceipt> {
+    async requestRefund(
+      input: RefundProviderCommand,
+    ): Promise<RefundProviderReceipt> {
       const request = createRefundProviderCommand(input);
       if (!request || request.amount.currency !== "BRL") {
         throw new MercadoPagoProviderError("MERCADO_PAGO_INVALID_REQUEST");
@@ -378,7 +386,9 @@ export function createMercadoPagoRefundProviderFromEnvironment(
               "Idempotency-Key": request.idempotencyKey,
               "X-Idempotency-Key": request.idempotencyKey,
             },
-            body: JSON.stringify({ amount: majorUnits(request.amount.minorUnits) }),
+            body: JSON.stringify({
+              amount: majorUnits(request.amount.minorUnits),
+            }),
           },
         });
         if (!response.ok) {
@@ -391,7 +401,7 @@ export function createMercadoPagoRefundProviderFromEnvironment(
         const payload = await boundedJson(response);
         const receipt = normalizeRefundProviderReceipt({
           accepted: true,
-          providerRefundReference: String(payload.id ?? ""),
+          providerRefundReference: boundedIdentifier(payload.id, 180),
         });
         if (!receipt) {
           throw new MercadoPagoProviderError("MERCADO_PAGO_INVALID_RESPONSE");
@@ -445,7 +455,9 @@ export function createMercadoPagoReconciliationProviderFromEnvironment(
   }
   accessToken(environment);
   return Object.freeze({
-    async readPayment(input): Promise<ReconciliationProviderSnapshot | null> {
+    async readPayment(
+      input: Parameters<FinancialReconciliationProviderPort["readPayment"]>[0],
+    ): Promise<ReconciliationProviderSnapshot | null> {
       try {
         const payload = await readMercadoPagoPayment(
           environment,
@@ -454,10 +466,15 @@ export function createMercadoPagoReconciliationProviderFromEnvironment(
         );
         if (!payload) return null;
         const status = providerStatus(payload.status);
-        const externalReference = boundedString(payload.external_reference, 160);
+        const externalReference = boundedString(
+          payload.external_reference,
+          160,
+        );
         const currency = boundedString(payload.currency_id, 8).toUpperCase();
         const majorAmount = Number(payload.transaction_amount);
-        const observedAt = isoTimestamp(payload.date_last_updated ?? payload.date_created);
+        const observedAt = isoTimestamp(
+          payload.date_last_updated ?? payload.date_created,
+        );
         if (
           !status ||
           externalReference !== input.paymentId ||
@@ -469,12 +486,15 @@ export function createMercadoPagoReconciliationProviderFromEnvironment(
         }
         const snapshot = normalizeReconciliationProviderSnapshot({
           paymentId: externalReference,
-          providerPaymentReference: String(payload.id ?? ""),
+          providerPaymentReference: boundedIdentifier(payload.id, 180),
           status,
           amount: { minorUnits: Math.round(majorAmount * 100), currency },
           observedAt,
         });
-        if (!snapshot || snapshot.providerPaymentReference !== input.providerPaymentReference) {
+        if (
+          !snapshot ||
+          snapshot.providerPaymentReference !== input.providerPaymentReference
+        ) {
           throw new MercadoPagoProviderError("MERCADO_PAGO_INVALID_RESPONSE");
         }
         return snapshot;
@@ -498,7 +518,9 @@ function webhookToleranceSeconds(value: unknown): number {
   return parsed;
 }
 
-function parseSignature(value: string): { timestamp: string; digest: string } | null {
+function parseSignature(
+  value: string,
+): { timestamp: string; digest: string } | null {
   const parts = value.split(",");
   let timestamp = "";
   let digest = "";
@@ -519,13 +541,19 @@ function parseWebhookEnvelope(rawBody: Uint8Array): {
   dataId: string;
   action: string;
 } | null {
-  if (!(rawBody instanceof Uint8Array) || rawBody.byteLength === 0 || rawBody.byteLength > maxResponseBytes) {
+  if (
+    !(rawBody instanceof Uint8Array) ||
+    rawBody.byteLength === 0 ||
+    rawBody.byteLength > maxResponseBytes
+  ) {
     return null;
   }
   try {
-    const parsed = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(rawBody)) as Record<string, unknown>;
+    const parsed = JSON.parse(
+      new TextDecoder("utf-8", { fatal: true }).decode(rawBody),
+    ) as Record<string, unknown>;
     const data = parsed.data as Record<string, unknown> | undefined;
-    const dataId = boundedString(data?.id === undefined ? "" : String(data.id), 180);
+    const dataId = boundedIdentifier(data?.id, 180);
     const action = boundedString(parsed.action, 120);
     return dataId ? { dataId, action } : null;
   } catch {
@@ -542,14 +570,22 @@ export function createMercadoPagoWebhookVerifierFromEnvironment(
   }
   const secret = webhookSecret(environment);
   accessToken(environment);
-  const tolerance = webhookToleranceSeconds(environment.PAYMENTS_WEBHOOK_TOLERANCE_SECONDS);
+  const tolerance = webhookToleranceSeconds(
+    environment.PAYMENTS_WEBHOOK_TOLERANCE_SECONDS,
+  );
   const now = options.now ?? Date.now;
 
   return Object.freeze({
-    async verify(rawBody: Uint8Array, signatureEnvelope: string): Promise<VerifiedProviderPaymentEvent | null> {
+    async verify(
+      rawBody: Uint8Array,
+      signatureEnvelope: string,
+    ): Promise<VerifiedProviderPaymentEvent | null> {
       let envelope: { signature?: unknown; requestId?: unknown };
       try {
-        envelope = JSON.parse(signatureEnvelope) as { signature?: unknown; requestId?: unknown };
+        envelope = JSON.parse(signatureEnvelope) as {
+          signature?: unknown;
+          requestId?: unknown;
+        };
       } catch {
         return null;
       }
@@ -559,12 +595,16 @@ export function createMercadoPagoWebhookVerifierFromEnvironment(
       if (!signature || !requestId || !webhook) return null;
 
       const timestamp = Number(signature.timestamp);
-      const timestampSeconds = signature.timestamp.length === 13 ? Math.floor(timestamp / 1000) : timestamp;
+      const timestampSeconds =
+        signature.timestamp.length === 13
+          ? Math.floor(timestamp / 1000)
+          : timestamp;
       const nowMilliseconds = Number(now());
       if (
         !Number.isSafeInteger(timestamp) ||
         !Number.isFinite(nowMilliseconds) ||
-        Math.abs(Math.floor(nowMilliseconds / 1000) - timestampSeconds) > tolerance
+        Math.abs(Math.floor(nowMilliseconds / 1000) - timestampSeconds) >
+          tolerance
       ) {
         return null;
       }
@@ -572,13 +612,20 @@ export function createMercadoPagoWebhookVerifierFromEnvironment(
       const manifest = `id:${webhook.dataId};request-id:${requestId};ts:${signature.timestamp};`;
       const expected = createHmac("sha256", secret).update(manifest).digest();
       const provided = Buffer.from(signature.digest, "hex");
-      if (provided.byteLength !== expected.byteLength || !timingSafeEqual(provided, expected)) {
+      if (
+        provided.byteLength !== expected.byteLength ||
+        !timingSafeEqual(provided, expected)
+      ) {
         return null;
       }
 
       let payment: Record<string, unknown> | null;
       try {
-        payment = await readMercadoPagoPayment(environment, webhook.dataId, options);
+        payment = await readMercadoPagoPayment(
+          environment,
+          webhook.dataId,
+          options,
+        );
       } catch {
         throw new MercadoPagoProviderError("MERCADO_PAGO_UNAVAILABLE");
       }
@@ -591,9 +638,14 @@ export function createMercadoPagoWebhookVerifierFromEnvironment(
       }
       const externalReference = boundedString(payment.external_reference, 160);
       const occurredAt = isoTimestamp(
-        payment.date_last_updated ?? payment.date_approved ?? payment.date_created,
+        payment.date_last_updated ??
+          payment.date_approved ??
+          payment.date_created,
       );
-      const providerPaymentReference = String(payment.id ?? webhook.dataId);
+      const providerPaymentReference =
+        payment.id === undefined
+          ? webhook.dataId
+          : boundedIdentifier(payment.id, 180);
       const transactionAmount = Number(payment.transaction_amount);
       const amountMinorUnits =
         Number.isFinite(transactionAmount) && transactionAmount > 0

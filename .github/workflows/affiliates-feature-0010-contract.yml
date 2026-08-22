@@ -21,6 +21,7 @@ on:
       - "docs/features/registry.json"
       - "docs/migration/MASTER-MIGRATION-TRACKER.md"
       - ".github/workflows/affiliates-feature-0010-contract.yml"
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -29,6 +30,19 @@ jobs:
   contract:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: affiliates-m154
+          MYSQL_DATABASE: affiliates_m154_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -paffiliates-m154"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
@@ -44,10 +58,24 @@ jobs:
         run: pnpm architecture:check && pnpm features:check
       - name: Validate Affiliate runtime foundation
         run: pnpm affiliates:check
+      - name: Validate Affiliate MySQL persistence
+        env:
+          AFFILIATES_DATABASE_URL: mysql://root:affiliates-m154@127.0.0.1:3306/affiliates_m154_test
+        run: pnpm --filter @touristic/affiliates-server test:integration
       - name: Validate Affiliate authority and policy contract
         shell: bash
         run: |
           set -euo pipefail
+          trap 'echo "Affiliate contract gate failed at line ${LINENO}: ${BASH_COMMAND}" >&2' ERR
+
+          require_fixed() {
+            local expected="$1"
+            local file="$2"
+            if ! grep -Fq "$expected" "$file"; then
+              echo "Missing required Affiliate contract text in ${file}: ${expected}" >&2
+              exit 1
+            fi
+          }
 
           test -f packages/affiliates/package.json
           test -f packages/affiliates/src/index.ts
@@ -76,29 +104,34 @@ jobs:
           test -f docs/qa/AFFILIATES-FEATURE-0010-TEST-PLAN.md
           test -f docs/operations/AFFILIATES-ROLLOUT-ROLLBACK.md
 
-          grep -Fq 'Status: **APPROVED**' docs/product-architecture/AFFILIATES-DECISION-SHEET.md
-          grep -Fq 'Policy version: **AFFILIATE-POLICY-V1**' docs/product-architecture/AFFILIATES-DECISION-SHEET.md
-          grep -Fq 'Financial remains the only monetary source of truth' docs/product-architecture/AFFILIATES-CANONICAL-SCOPE.md
-          grep -Fq 'No Affiliate-owned payout, wallet or payment runtime is ever authorized.' docs/product-architecture/AFFILIATES-CANONICAL-SCOPE.md
-          grep -Fq 'affiliate:v1:<operation>:' docs/product-architecture/AFFILIATES-TECHNICAL-CONTRACT.md
-          grep -Fq 'AffiliateFinancialMaterializationPort' docs/product-architecture/AFFILIATES-TECHNICAL-CONTRACT.md
-          grep -Fq 'rateBasisPoints: 3000' packages/affiliates/src/policy.ts
-          grep -Fq 'attributionWindowDays: 30' packages/affiliates/src/policy.ts
-          grep -Fq 'subscriptionRenewalsEligible: false' packages/affiliates/src/policy.ts
-          grep -Fq 'financial_net_eligible_platform_revenue' packages/affiliates/src/policy.ts
+          require_fixed 'Status: **APPROVED**' docs/product-architecture/AFFILIATES-DECISION-SHEET.md
+          require_fixed 'Policy version: **AFFILIATE-POLICY-V1**' docs/product-architecture/AFFILIATES-DECISION-SHEET.md
+          require_fixed 'Financial remains the only monetary source of truth' docs/product-architecture/AFFILIATES-CANONICAL-SCOPE.md
+          require_fixed 'No Affiliate-owned payout, wallet or payment runtime is ever authorized.' docs/product-architecture/AFFILIATES-CANONICAL-SCOPE.md
+          require_fixed 'affiliate:v1:<operation>:' docs/product-architecture/AFFILIATES-TECHNICAL-CONTRACT.md
+          require_fixed 'AffiliateFinancialMaterializationPort' docs/product-architecture/AFFILIATES-TECHNICAL-CONTRACT.md
+          require_fixed 'rateBasisPoints: 3000' packages/affiliates/src/policy.ts
+          require_fixed 'attributionWindowDays: 30' packages/affiliates/src/policy.ts
+          require_fixed 'subscriptionRenewalsEligible: false' packages/affiliates/src/policy.ts
+          require_fixed 'financial_net_eligible_platform_revenue' packages/affiliates/src/policy.ts
 
           decision_count="$(grep -Ec '^## [0-9]+\.' docs/product-architecture/AFFILIATES-DECISION-SHEET.md)"
-          test "$decision_count" -eq 19
+          if [ "$decision_count" -ne 19 ]; then
+            echo "Expected 19 Affiliate decisions, found ${decision_count}." >&2
+            exit 1
+          fi
 
           node <<'NODE'
           const affiliateManifest = require('./packages/affiliates/package.json');
           const serverManifest = require('./services/affiliates/package.json');
           const rootManifest = require('./package.json');
-          if (affiliateManifest.name !== '@touristic/affiliates') process.exit(1);
-          if (affiliateManifest.type !== 'module') process.exit(1);
-          if (affiliateManifest.dependencies || affiliateManifest.devDependencies) process.exit(1);
-          if (serverManifest.name !== '@touristic/affiliates-server') process.exit(1);
-          if (!rootManifest.scripts?.['affiliates:check']) process.exit(1);
+          if (affiliateManifest.name !== '@touristic/affiliates') throw new Error('Affiliate package name diverged.');
+          if (affiliateManifest.type !== 'module') throw new Error('Affiliate package must remain ESM.');
+          if (affiliateManifest.dependencies || affiliateManifest.devDependencies) {
+            throw new Error('Affiliate domain package must remain dependency-free.');
+          }
+          if (serverManifest.name !== '@touristic/affiliates-server') throw new Error('Affiliate server package name diverged.');
+          if (!rootManifest.scripts?.['affiliates:check']) throw new Error('Root affiliates:check script is missing.');
           NODE
 
           if grep -REn --include='*.ts' --include='*.tsx' \
@@ -108,19 +141,77 @@ jobs:
             exit 1
           fi
 
-          if grep -REin --include='*.ts' --include='*.tsx' --exclude='*.test.ts' \
-            '(payoutDestination|settlementInstruction|providerToken|providerSecret)' \
-            packages/affiliates/src services/affiliates/src; then
-            echo 'Affiliate runtime contains a forbidden monetary/provider instruction.' >&2
-            exit 1
-          fi
+          node <<'NODE'
+          const { readdirSync, readFileSync } = require('node:fs');
+          const { join, relative } = require('node:path');
+
+          const roots = ['packages/affiliates/src', 'services/affiliates/src'];
+          const forbidden = /(payoutDestination|settlementInstruction|providerToken|providerSecret)/gu;
+          const rejectionGuard = {
+            path: 'services/affiliates/src/affiliate-http-transport.ts',
+            line: '"providerToken",',
+            identifier: 'providerToken',
+          };
+          const violations = [];
+          let rejectionGuardOccurrences = 0;
+
+          function sourceFiles(directory) {
+            return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+              const path = join(directory, entry.name);
+              if (entry.isDirectory()) return sourceFiles(path);
+              if (!/\.tsx?$/u.test(entry.name) || /\.test\.tsx?$/u.test(entry.name)) {
+                return [];
+              }
+              return [path];
+            });
+          }
+
+          for (const root of roots) {
+            for (const path of sourceFiles(root)) {
+              const source = readFileSync(path, 'utf8');
+              const lines = source.split('\n');
+              for (const match of source.matchAll(forbidden)) {
+                const lineNumber = source.slice(0, match.index).split('\n').length;
+                const line = lines[lineNumber - 1]?.trim() ?? '';
+                const repositoryPath = relative('.', path);
+                if (
+                  repositoryPath === rejectionGuard.path &&
+                  match[0] === rejectionGuard.identifier &&
+                  line === rejectionGuard.line
+                ) {
+                  rejectionGuardOccurrences += 1;
+                  continue;
+                }
+                violations.push(`${repositoryPath}:${lineNumber}:${line}`);
+              }
+            }
+          }
+
+          if (rejectionGuardOccurrences !== 1 || violations.length > 0) {
+            console.error('Affiliate runtime contains a forbidden monetary/provider instruction.');
+            for (const violation of violations) console.error(violation);
+            process.exit(1);
+          }
+          NODE
+
+          grep -Fq 'providerToken: "forbidden-provider-token"' \
+            services/affiliates/src/affiliate-http-transport.test.ts
+          grep -Fq 'if (hasBrowserMonetaryAuthority(body)) {' \
+            services/affiliates/src/affiliate-http-transport.ts
 
           node <<'NODE'
           const registry = require('./docs/features/registry.json');
           const feature = registry.features.find((entry) => entry.id === 'FEATURE-0010');
-          if (!feature) process.exit(1);
-          if (feature.domain !== 'affiliates' || feature.status !== 'migrating') process.exit(1);
-          if (feature.equivalence.behavior || feature.equivalence.visual || feature.equivalence.api) process.exit(1);
+          if (!feature) throw new Error('FEATURE-0010 is missing from the feature registry.');
+          if (feature.domain !== 'affiliates' || feature.status !== 'migrating') {
+            throw new Error(`FEATURE-0010 registry state diverged: ${feature.domain}/${feature.status}`);
+          }
+          if (feature.equivalence.behavior || feature.equivalence.visual || feature.equivalence.api) {
+            throw new Error('FEATURE-0010 was promoted without complete equivalence evidence.');
+          }
           NODE
 
-          grep -Eq 'MIG-0011.*FEATURE-0010.*(migrating|discovered)' docs/migration/MASTER-MIGRATION-TRACKER.md
+          if ! grep -Eq 'MIG-0011.*FEATURE-0010.*(migrating|discovered)' docs/migration/MASTER-MIGRATION-TRACKER.md; then
+            echo 'MIG-0011 is missing or has an invalid state in the master migration tracker.' >&2
+            exit 1
+          fi

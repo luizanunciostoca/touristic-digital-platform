@@ -82,10 +82,7 @@ describe("Auth security state", () => {
     const connectionExecute = vi
       .fn()
       .mockResolvedValueOnce([{}, []])
-      .mockResolvedValueOnce([
-        [{ window_started_at: 100, attempts: 1 }],
-        [],
-      ])
+      .mockResolvedValueOnce([[{ window_started_at: 100, attempts: 1 }], []])
       .mockResolvedValueOnce([{}, []]);
     const connection = {
       beginTransaction,

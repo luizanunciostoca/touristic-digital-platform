@@ -1,14 +1,21 @@
 import { createDashboardAuthClient } from "@touristic/auth-browser";
 
-const defaultDashboardPath = "/dashboard/index-v3-improved.html";
+const legacyDashboardPath = "/dashboard/index-v3-improved.html";
+const defaultDashboardPath =
+  "/apps/morro-digital-platform/public/business-dashboard.html";
 
 export function safeBusinessDashboardReturnPath(search: string): string {
   const value =
     new URLSearchParams(search).get("return") ?? defaultDashboardPath;
   const allowedInternalPath =
-    value.startsWith("/dashboard/") || value.startsWith("/apps/admin-crm/");
+    value.startsWith("/dashboard/") ||
+    value.startsWith("/apps/admin-crm/") ||
+    value.startsWith(defaultDashboardPath);
   if (!allowedInternalPath || value.startsWith("//") || value.includes("\\")) {
     return defaultDashboardPath;
+  }
+  if (value.startsWith(legacyDashboardPath)) {
+    return `${defaultDashboardPath}${value.slice(legacyDashboardPath.length)}`;
   }
   return value;
 }

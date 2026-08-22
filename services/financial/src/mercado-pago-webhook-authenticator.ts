@@ -11,8 +11,7 @@ import {
   type MercadoPagoProviderOptions,
 } from "./mercado-pago-provider.js";
 
-export interface AuthenticatingFinancialWebhookVerifierPort
-  extends FinancialWebhookVerifierPort {
+export interface AuthenticatingFinancialWebhookVerifierPort extends FinancialWebhookVerifierPort {
   verifyAuthenticity(
     rawBody: Uint8Array,
     signatureEnvelope: string,
@@ -27,7 +26,16 @@ function boundedString(value: unknown, maxLength: number): string {
   return normalized && normalized.length <= maxLength ? normalized : "";
 }
 
-function parseSignature(value: string): { timestamp: string; digest: string } | null {
+function boundedIdentifier(value: unknown, maxLength: number): string {
+  if (typeof value === "number") {
+    return Number.isSafeInteger(value) && value >= 0 ? String(value) : "";
+  }
+  return boundedString(value, maxLength);
+}
+
+function parseSignature(
+  value: string,
+): { timestamp: string; digest: string } | null {
   let timestamp = "";
   let digest = "";
   for (const part of value.split(",")) {
@@ -56,7 +64,7 @@ function webhookBodyDataId(rawBody: Uint8Array): string {
       new TextDecoder("utf-8", { fatal: true }).decode(rawBody),
     ) as Record<string, unknown>;
     const data = parsed.data as Record<string, unknown> | undefined;
-    return boundedString(data?.id === undefined ? "" : String(data.id), 180);
+    return boundedIdentifier(data?.id, 180);
   } catch {
     return "";
   }
@@ -83,10 +91,7 @@ function parseEnvelope(value: string): {
   }
   const signature = boundedString(envelope.signature, 240);
   const requestId = boundedString(envelope.requestId, 180);
-  const dataId = boundedString(
-    envelope.dataId === undefined ? "" : String(envelope.dataId),
-    180,
-  );
+  const dataId = boundedIdentifier(envelope.dataId, 180);
   return signature && requestId && dataId
     ? { signature, requestId, dataId }
     : null;
@@ -126,37 +131,45 @@ export function createMercadoPagoAuthenticatingWebhookVerifierFromEnvironment(
     options,
   );
   const webhookSecret = secret(environment);
-  const tolerance = toleranceSeconds(environment.PAYMENTS_WEBHOOK_TOLERANCE_SECONDS);
+  const tolerance = toleranceSeconds(
+    environment.PAYMENTS_WEBHOOK_TOLERANCE_SECONDS,
+  );
   const now = options.now ?? Date.now;
 
-  async function verifyAuthenticity(
+  function verifyAuthenticity(
     rawBody: Uint8Array,
     signatureEnvelope: string,
   ): Promise<boolean> {
     const envelope = parseEnvelope(signatureEnvelope);
-    if (!envelope) return false;
+    if (!envelope) return Promise.resolve(false);
     const signature = parseSignature(envelope.signature);
     const bodyDataId = webhookBodyDataId(rawBody);
-    if (!signature || !bodyDataId || bodyDataId !== envelope.dataId) return false;
+    if (!signature || !bodyDataId || bodyDataId !== envelope.dataId)
+      return Promise.resolve(false);
 
     const timestamp = Number(signature.timestamp);
     const timestampSeconds =
-      signature.timestamp.length === 13 ? Math.floor(timestamp / 1000) : timestamp;
+      signature.timestamp.length === 13
+        ? Math.floor(timestamp / 1000)
+        : timestamp;
     const nowMilliseconds = Number(now());
     if (
       !Number.isSafeInteger(timestamp) ||
       !Number.isFinite(nowMilliseconds) ||
-      Math.abs(Math.floor(nowMilliseconds / 1000) - timestampSeconds) > tolerance
+      Math.abs(Math.floor(nowMilliseconds / 1000) - timestampSeconds) >
+        tolerance
     ) {
-      return false;
+      return Promise.resolve(false);
     }
 
     const manifest = `id:${envelope.dataId};request-id:${envelope.requestId};ts:${signature.timestamp};`;
-    const expected = createHmac("sha256", webhookSecret).update(manifest).digest();
+    const expected = createHmac("sha256", webhookSecret)
+      .update(manifest)
+      .digest();
     const provided = Buffer.from(signature.digest, "hex");
-    return (
+    return Promise.resolve(
       provided.byteLength === expected.byteLength &&
-      timingSafeEqual(provided, expected)
+        timingSafeEqual(provided, expected),
     );
   }
 

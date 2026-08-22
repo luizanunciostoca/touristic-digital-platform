@@ -15,6 +15,8 @@ function body(overrides: Record<string, unknown> = {}): Uint8Array {
       eventId: "pwe_sandbox_00000001",
       externalReference: "pay_sandbox_webhook_0001",
       paymentReference: "sandbox_payment_0001",
+      amountMinorUnits: 49_900,
+      currency: "BRL",
       status: "paid",
       occurredAt: "2026-08-14T22:59:59Z",
       ...overrides,
@@ -50,6 +52,8 @@ describe("M141 sandbox raw-body webhook verifier", () => {
       providerEventId: "pwe_sandbox_00000001",
       externalReference: "pay_sandbox_webhook_0001",
       providerPaymentReference: "sandbox_payment_0001",
+      amountMinorUnits: 49_900,
+      currency: "BRL",
       status: "paid",
       occurredAt: "2026-08-14T22:59:59.000Z",
     });
@@ -76,6 +80,26 @@ describe("M141 sandbox raw-body webhook verifier", () => {
     const invalid = body({ externalReference: "ord_not_a_payment" });
     await expect(
       verifier().verify(invalid, signature(invalid)),
+    ).resolves.toBeNull();
+
+    const invalidAmount = body({ amountMinorUnits: -1 });
+    await expect(
+      verifier().verify(invalidAmount, signature(invalidAmount)),
+    ).resolves.toBeNull();
+
+    const invalidCurrency = body({ currency: "INVALID" });
+    await expect(
+      verifier().verify(invalidCurrency, signature(invalidCurrency)),
+    ).resolves.toBeNull();
+
+    const missingAmount = body({ amountMinorUnits: undefined });
+    await expect(
+      verifier().verify(missingAmount, signature(missingAmount)),
+    ).resolves.toBeNull();
+
+    const missingCurrency = body({ currency: undefined });
+    await expect(
+      verifier().verify(missingCurrency, signature(missingCurrency)),
     ).resolves.toBeNull();
   });
 

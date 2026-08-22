@@ -113,7 +113,14 @@ export function createSandboxWebhookVerifierFromEnvironment(
     }
 
     const payload = verifiedPayload(rawBody);
-    if (!payload || payload.version !== 1) return null;
+    if (
+      !payload ||
+      payload.version !== 1 ||
+      payload.amountMinorUnits === undefined ||
+      payload.currency === undefined
+    ) {
+      return null;
+    }
     return normalizeVerifiedProviderPaymentEvent({
       providerEventId: payload.eventId,
       externalReference: payload.externalReference,
@@ -121,6 +128,8 @@ export function createSandboxWebhookVerifierFromEnvironment(
         payload.paymentReference === undefined
           ? null
           : payload.paymentReference,
+      amountMinorUnits: payload.amountMinorUnits,
+      currency: payload.currency,
       status: payload.status,
       occurredAt: payload.occurredAt,
     });

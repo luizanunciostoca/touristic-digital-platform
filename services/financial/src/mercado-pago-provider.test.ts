@@ -65,7 +65,9 @@ function checkoutRequest(): CheckoutProviderRequest {
 
 function refundRequest(): RefundProviderCommand {
   const paymentId = normalizePaymentId("pay_mercado_pago_refund_0001");
-  const refundRequestId = normalizeRefundRequestId("rfd_mercado_pago_refund_0001");
+  const refundRequestId = normalizeRefundRequestId(
+    "rfd_mercado_pago_refund_0001",
+  );
   const idempotencyKey = createRefundIdempotencyKey(paymentId);
   const amount = createMoney(49_900, "BRL");
   const request = createRefundProviderCommand({
@@ -95,7 +97,12 @@ describe("Mercado Pago payment provider adapter", () => {
       environment(),
       {
         fetch(input, init) {
-          capturedUrl = input instanceof URL ? input.toString() : String(input);
+          capturedUrl =
+            typeof input === "string"
+              ? input
+              : input instanceof URL
+                ? input.href
+                : input.url;
           capturedInit = init;
           return Promise.resolve(
             response({
@@ -114,7 +121,9 @@ describe("Mercado Pago payment provider adapter", () => {
       checkoutUrl: "https://checkout.mercadopago.example/test/pref-0001",
       providerReference: null,
     });
-    expect(capturedUrl).toBe("https://api.mercadopago.com/checkout/preferences");
+    expect(capturedUrl).toBe(
+      "https://api.mercadopago.com/checkout/preferences",
+    );
     const headers = new Headers(capturedInit?.headers);
     expect(headers.get("Authorization")).toBe(
       "Bearer fixture-token-not-a-real-credential-with-thirty-two-characters",
@@ -173,9 +182,16 @@ describe("Mercado Pago payment provider adapter", () => {
       environment(),
       {
         fetch(input, init) {
-          capturedUrl = input instanceof URL ? input.toString() : String(input);
+          capturedUrl =
+            typeof input === "string"
+              ? input
+              : input instanceof URL
+                ? input.href
+                : input.url;
           capturedInit = init;
-          return Promise.resolve(response({ id: 987654321, status: "approved" }));
+          return Promise.resolve(
+            response({ id: 987654321, status: "approved" }),
+          );
         },
       },
     );
@@ -320,6 +336,8 @@ describe("Mercado Pago payment provider adapter", () => {
               id: 123456789,
               status: "approved",
               external_reference: "pay_mercado_pago_0001",
+              transaction_amount: 499,
+              currency_id: "BRL",
               date_last_updated: "2026-08-17T23:00:00Z",
             }),
           ),
@@ -330,6 +348,8 @@ describe("Mercado Pago payment provider adapter", () => {
     ).resolves.toMatchObject({
       externalReference: "pay_mercado_pago_0001",
       providerPaymentReference: "123456789",
+      amountMinorUnits: 49_900,
+      currency: "BRL",
       status: "paid",
       occurredAt: "2026-08-17T23:00:00.000Z",
     });

@@ -46,17 +46,24 @@ describe("Affiliates authenticated HTTP boundary", () => {
 
   it("rejects browser monetary authority before application mutation", async () => {
     const deps = dependencies();
-    const result = await handleAffiliateHttpRequest(
-      {
-        method: "POST",
-        pathname: "/api/affiliates/v1/referrals",
-        destinationId: "morro",
-        body: { source: "checkout_code", amount: 1000 },
-      },
-      deps,
-    );
-    expect(result.status).toBe(400);
-    expect(result.body).toEqual({ error: "MONETARY_AUTHORITY_FORBIDDEN" });
+    for (const monetaryInput of [
+      { amount: 1000 },
+      { currency: "BRL" },
+      { payout: { destination: "forbidden" } },
+      { providerToken: "forbidden-provider-token" },
+    ]) {
+      const result = await handleAffiliateHttpRequest(
+        {
+          method: "POST",
+          pathname: "/api/affiliates/v1/referrals",
+          destinationId: "morro",
+          body: { source: "checkout_code", ...monetaryInput },
+        },
+        deps,
+      );
+      expect(result.status).toBe(400);
+      expect(result.body).toEqual({ error: "MONETARY_AUTHORITY_FORBIDDEN" });
+    }
     expect(
       deps.application.recordReferralAndEstablishAttribution,
     ).not.toHaveBeenCalled();
