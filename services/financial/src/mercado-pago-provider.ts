@@ -36,6 +36,7 @@ export interface MercadoPagoProviderEnvironment {
   readonly MERCADO_PAGO_WEBHOOK_SECRET?: string;
   readonly MERCADO_PAGO_CHECKOUT_ORIGINS?: string;
   readonly MERCADO_PAGO_CHECKOUT_MODE?: string;
+  readonly MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED?: string;
   readonly BUSINESS_PAYMENT_API_TOKEN?: string;
   readonly BUSINESS_PAYMENT_WEBHOOK_SECRET?: string;
 }
@@ -63,7 +64,6 @@ export class MercadoPagoProviderError extends Error {
 }
 
 const mercadoPagoApiBaseUrl = new URL("https://api.mercadopago.com/");
-const mercadoLivreApiBaseUrl = new URL("https://api.mercadolibre.com/");
 const maxResponseBytes = 64 * 1024;
 const signaturePattern = /^[A-Fa-f0-9]{64}$/u;
 
@@ -248,44 +248,14 @@ function fetchProvider(options: MercadoPagoProviderOptions): typeof fetch {
   return provider;
 }
 
-async function requireMercadoPagoTestAccount(input: {
-  readonly environment: MercadoPagoProviderEnvironment;
-  readonly token: string;
-  readonly fetch: typeof fetch;
-  readonly timeoutMs: number;
-}): Promise<void> {
-  const endpoint = new URL("users/me", mercadoLivreApiBaseUrl);
-  let response: Response;
-  try {
-    response = await executeBoundedProviderRequest({
-      fetch: input.fetch,
-      url: endpoint,
-      timeoutMs: input.timeoutMs,
-      policy: createProviderRetryPolicyFromEnvironment(input.environment),
-      init: {
-        method: "GET",
-        headers: {
-          Accept: "application/json",
-          Authorization: `Bearer ${input.token}`,
-        },
-      },
-    });
-  } catch (error) {
-    return unavailable(error);
-  }
-  if (!response.ok) {
-    throw new MercadoPagoProviderError(
-      response.status >= 400 && response.status < 500
-        ? "MERCADO_PAGO_REJECTED"
-        : "MERCADO_PAGO_UNAVAILABLE",
-    );
-  }
-  const payload = await boundedJson(response);
-  const tags = Array.isArray(payload.tags)
-    ? payload.tags.map((value) => boundedString(value, 80)).filter(Boolean)
-    : [];
-  const siteId = boundedString(payload.site_id, 16).toUpperCase();
-  if (!tags.includes("test_user") || siteId !== "MLB") {
+function requireMercadoPagoTestCredentialsConfirmation(
+  environment: MercadoPagoProviderEnvironment,
+): void {
+  const confirmed = boundedString(
+    environment.MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED,
+    16,
+  ).toLowerCase();
+  if (confirmed !== "true") {
     throw new MercadoPagoProviderError("MERCADO_PAGO_TEST_ACCOUNT_REQUIRED");
   }
 }
@@ -314,12 +284,7 @@ export function createMercadoPagoCheckoutProviderFromEnvironment(
       }
       try {
         if (mode === "test") {
-          await requireMercadoPagoTestAccount({
-            environment,
-            token,
-            fetch: fetchImpl,
-            timeoutMs: timeout,
-          });
+          requireMercadoPagoTestCredentialsConfirmation(environment);
         }
         const response = await executeBoundedProviderRequest({
           fetch: fetchImpl,
