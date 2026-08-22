@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildStagingDatabaseEnvironment } from "./with-staging-mysql-env.mjs";
+import {
+  buildStagingDatabaseEnvironment,
+} from "./with-staging-mysql-env.mjs";
 
 function fixture(overrides = {}) {
   return {
@@ -35,11 +37,14 @@ test("derives four isolated MySQL URLs and URL-encodes credentials", () => {
   assert.equal(auth.hostname, "morro-digital-v2-staging-mysql");
   assert.equal(auth.port, "3306");
   assert.equal(decodeURIComponent(auth.username), "morro_auth");
-  assert.equal(decodeURIComponent(auth.password), "auth+/=safe-password");
+  assert.equal(
+    decodeURIComponent(auth.password),
+    "auth+/=safe-password",
+  );
   assert.equal(auth.pathname, "/morro_auth_staging");
 
-  const names = Object.values(derived).map(
-    (value) => new URL(value).pathname.slice(1),
+  const names = Object.values(derived).map((value) =>
+    new URL(value).pathname.slice(1),
   );
   assert.equal(new Set(names).size, 4);
 });
@@ -48,7 +53,9 @@ test("rejects non-private-host hostport shapes", () => {
   assert.throws(
     () =>
       buildStagingDatabaseEnvironment(
-        fixture({ STAGING_MYSQL_HOSTPORT: "https://mysql.example.com:3306" }),
+        fixture({
+          STAGING_MYSQL_HOSTPORT: "https://mysql.example.com:3306",
+        }),
       ),
     /STAGING_MYSQL_HOSTPORT_INVALID/u,
   );
@@ -58,7 +65,9 @@ test("rejects SQL identifier injection", () => {
   assert.throws(
     () =>
       buildStagingDatabaseEnvironment(
-        fixture({ STAGING_ORDERING_DATABASE_NAME: "morro_ordering;DROP" }),
+        fixture({
+          STAGING_ORDERING_DATABASE_NAME: "morro_ordering;DROP",
+        }),
       ),
     /STAGING_ORDERING_DATABASE_INVALID/u,
   );
@@ -68,7 +77,9 @@ test("rejects ownership collisions between domain schemas", () => {
   assert.throws(
     () =>
       buildStagingDatabaseEnvironment(
-        fixture({ STAGING_FINANCIAL_DATABASE_NAME: "morro_ordering_staging" }),
+        fixture({
+          STAGING_FINANCIAL_DATABASE_NAME: "morro_ordering_staging",
+        }),
       ),
     /STAGING_DATABASE_OWNERSHIP_COLLISION/u,
   );
