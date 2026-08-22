@@ -1,0 +1,38 @@
+name: Mapbox Token Preflight
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    env:
+      MAPBOX_PUBLIC_TOKEN_CI: ${{ secrets.MAPBOX_PUBLIC_TOKEN_CI }}
+    steps:
+      - name: Validate Mapbox public token without disclosure
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${MAPBOX_PUBLIC_TOKEN_CI:-}" ]; then
+            echo "token_present=false"
+            exit 1
+          fi
+          echo "token_present=true"
+          if [[ "$MAPBOX_PUBLIC_TOKEN_CI" == pk.* ]]; then
+            echo "token_prefix=public"
+          else
+            echo "token_prefix=unexpected"
+            exit 1
+          fi
+          STATUS=$(curl -sS -o /tmp/style-response.json -w '%{http_code}' \
+            "https://api.mapbox.com/styles/v1/mapbox/streets-v12?access_token=${MAPBOX_PUBLIC_TOKEN_CI}")
+          echo "style_http_status=${STATUS}"
+          if [ "$STATUS" != "200" ]; then
+            node -e "const fs=require('fs');try{const x=JSON.parse(fs.readFileSync('/tmp/style-response.json','utf8'));console.log('style_error='+JSON.stringify({message:x.message||null,error:x.error||null}));}catch{console.log('style_error=non-json-response')}"
+            exit 1
+          fi
+          echo "mapbox_token_preflight=pass"
