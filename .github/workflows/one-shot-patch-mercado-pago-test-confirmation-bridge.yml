@@ -1,0 +1,205 @@
+name: One-shot patch Mercado Pago test confirmation bridge
+
+on:
+  push:
+    branches:
+      - ops/patch-mercado-pago-test-confirmation-bridge-20260822
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: fix/mercado-pago-test-confirmation-bridge-20260822
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1
+        with:
+          version: 10.15.0
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Apply exact environment bridge patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          python <<'PY'
+          from pathlib import Path
+
+          path = Path('services/financial/src/index.ts')
+          text = path.read_text()
+
+          old = '''  const checkoutMode = firstConfigured(
+            environment.MERCADO_PAGO_CHECKOUT_MODE,
+            process.env.MERCADO_PAGO_CHECKOUT_MODE,
+          );
+          '''
+          new = old + '''  const testCredentialsConfirmed = firstConfigured(
+            environment.MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED,
+            process.env.MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED,
+          );
+          '''
+          if text.count(old) != 1:
+              raise SystemExit('CHECKOUT_MODE_BRIDGE_ANCHOR_NOT_UNIQUE')
+          text = text.replace(old, new, 1)
+
+          old = '''  if (checkoutMode) canonical.MERCADO_PAGO_CHECKOUT_MODE = checkoutMode;
+          else delete canonical.MERCADO_PAGO_CHECKOUT_MODE;
+
+          return Object.freeze(canonical);
+          '''
+          new = '''  if (checkoutMode) canonical.MERCADO_PAGO_CHECKOUT_MODE = checkoutMode;
+          else delete canonical.MERCADO_PAGO_CHECKOUT_MODE;
+          if (testCredentialsConfirmed)
+            canonical.MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED =
+              testCredentialsConfirmed;
+          else delete canonical.MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED;
+
+          return Object.freeze(canonical);
+          '''
+          if text.count(old) != 1:
+              raise SystemExit('CHECKOUT_MODE_ASSIGNMENT_ANCHOR_NOT_UNIQUE')
+          text = text.replace(old, new, 1)
+          path.write_text(text)
+          PY
+
+          cat > services/financial/src/mercado-pago-environment-composition.test.ts <<'EOF'
+          import { afterEach, describe, expect, it, vi } from "vitest";
+
+          import {
+            createCheckoutProviderRequest,
+            createMoney,
+            createPaymentIdempotencyKey,
+            normalizePaymentId,
+          } from "@touristic/financial";
+
+          import { createSandboxCheckoutProviderFromEnvironment } from "./index.js";
+
+          afterEach(() => {
+            vi.unstubAllEnvs();
+          });
+
+          describe("Mercado Pago environment composition", () => {
+            it("propagates the TEST credential confirmation from process.env to the adapter", async () => {
+              vi.stubEnv(
+                "MERCADO_PAGO_ACCESS_TOKEN",
+                "fixture-token-not-a-real-credential-with-thirty-two-characters",
+              );
+              vi.stubEnv(
+                "MERCADO_PAGO_CHECKOUT_ORIGINS",
+                "https://www.mercadopago.com.br",
+              );
+              vi.stubEnv("MERCADO_PAGO_CHECKOUT_MODE", "test");
+              vi.stubEnv("MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED", "true");
+
+              const paymentId = normalizePaymentId("pay_env_bridge_0001");
+              const idempotencyKey = createPaymentIdempotencyKey(
+                "ord_env_bridge_0001",
+              );
+              const request = createCheckoutProviderRequest({
+                paymentId,
+                idempotencyKey,
+                amount: createMoney(100, "BRL"),
+                description: "Staging acceptance",
+                returnUrl: "https://morro-digital-v2-staging.onrender.com/",
+                webhookUrl:
+                  "https://morro-digital-v2-staging.onrender.com/api/payments/v1/webhooks/sandbox",
+                customer: {
+                  name: "Morro Digital Test Buyer",
+                  email: "test@testuser.com",
+                  phone: "5500000000000",
+                  document: "00000000000",
+                },
+                metadata: { orderId: "ord_env_bridge_0001" },
+              });
+              if (!request) throw new Error("CHECKOUT_FIXTURE_INVALID");
+
+              const calls: string[] = [];
+              const provider = createSandboxCheckoutProviderFromEnvironment(
+                { PAYMENTS_PROVIDER_MODE: "mercado_pago" },
+                {
+                  fetch(input) {
+                    calls.push(
+                      typeof input === "string"
+                        ? input
+                        : input instanceof URL
+                          ? input.href
+                          : input.url,
+                    );
+                    return Promise.resolve(
+                      new Response(
+                        JSON.stringify({
+                          id: "pref-env-bridge-0001",
+                          init_point:
+                            "https://www.mercadopago.com.br/checkout/v1/redirect?pref_id=pref-env-bridge-0001",
+                        }),
+                        {
+                          status: 201,
+                          headers: { "Content-Type": "application/json" },
+                        },
+                      ),
+                    );
+                  },
+                },
+              );
+
+              await expect(provider.createCheckout(request)).resolves.toEqual({
+                providerCheckoutId: "pref-env-bridge-0001",
+                checkoutUrl:
+                  "https://www.mercadopago.com.br/checkout/v1/redirect?pref_id=pref-env-bridge-0001",
+                providerReference: null,
+              });
+              expect(calls).toEqual([
+                "https://api.mercadopago.com/checkout/preferences",
+              ]);
+            });
+          });
+          EOF
+
+          pnpm exec prettier --write \
+            services/financial/src/index.ts \
+            services/financial/src/mercado-pago-environment-composition.test.ts
+
+      - name: Validate targeted bridge
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm --filter @touristic/financial-server lint
+          pnpm --filter @touristic/financial-server typecheck
+          pnpm --filter @touristic/financial-server exec vitest run src/mercado-pago-environment-composition.test.ts
+          pnpm --filter @touristic/financial-server build
+
+      - name: Commit clean target branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add services/financial/src/index.ts services/financial/src/mercado-pago-environment-composition.test.ts
+          git diff --cached --check
+          git commit -m "fix(payments): propagate Mercado Pago TEST confirmation"
+          git push origin HEAD:fix/mercado-pago-test-confirmation-bridge-20260822
+
+      - name: Remove one-shot workflow from utility branch
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin ops/patch-mercado-pago-test-confirmation-bridge-20260822
+          git checkout -B utility-cleanup origin/ops/patch-mercado-pago-test-confirmation-bridge-20260822
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm -f .github/workflows/one-shot-patch-mercado-pago-test-confirmation-bridge.yml
+          git commit -m "chore: remove one-shot Mercado Pago env bridge patcher"
+          git push origin HEAD:ops/patch-mercado-pago-test-confirmation-bridge-20260822
