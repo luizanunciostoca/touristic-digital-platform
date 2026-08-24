@@ -21,6 +21,7 @@ export {
   type AffiliatePersistencePorts,
 } from "./mysql-affiliate-persistence.js";
 export * from "./affiliate-application-service.js";
+export * from "./affiliate-commercial-application-service.js";
 export * from "./affiliate-identity-application-service.js";
 export * from "./affiliate-eligibility-gate.js";
 export * from "./affiliate-protected-mutation-service.js";
