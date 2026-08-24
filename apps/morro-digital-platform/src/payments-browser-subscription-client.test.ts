@@ -62,7 +62,7 @@ describe("createPaymentsBrowserSubscriptionClient", () => {
   });
 
   it("uses GET for authoritative read and POST with empty bodies for lifecycle mutations", async () => {
-    const secureFetch = vi.fn<typeof fetch>().mockResolvedValue(okResponse());
+    const secureFetch = vi.fn<typeof fetch>().mockImplementation(async () => okResponse());
     const client = createPaymentsBrowserSubscriptionClient(
       { secureFetch },
       "business_browser_0001",
