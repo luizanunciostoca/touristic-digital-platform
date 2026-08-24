@@ -14,6 +14,8 @@ import type {
 } from "./materialization.js";
 
 export type AffiliateAuthorizationAction =
+  | "affiliate.manage_identity"
+  | "affiliate.manage_membership"
   | "affiliate.record_referral_evidence"
   | "affiliate.establish_attribution"
   | "affiliate.associate_conversion"
