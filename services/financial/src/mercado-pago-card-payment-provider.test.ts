@@ -42,12 +42,23 @@ const environment = Object.freeze({
     "TEST_ACCESS_TOKEN_fixture_123456789012345678901234567890",
 });
 
+function normalizeRequestUrl(input: RequestInfo | URL): string {
+  if (typeof input === "string") return input;
+  if (input instanceof URL) return input.href;
+  return input.url;
+}
+
+function requireStringBody(init: RequestInit | undefined): string {
+  if (typeof init?.body !== "string") throw new Error("TEST_BODY_NOT_STRING");
+  return init.body;
+}
+
 describe("Mercado Pago direct card provider", () => {
   it("creates a TEST payment through the official payments endpoint", async () => {
     let capturedUrl: string | null = null;
     let capturedInit: RequestInit | undefined;
     const fetchMock: typeof fetch = async (input, init) => {
-      capturedUrl = String(input);
+      capturedUrl = normalizeRequestUrl(input);
       capturedInit = init;
       return new Response(
         JSON.stringify({ id: 1234567890, status: "approved" }),
@@ -76,7 +87,7 @@ describe("Mercado Pago direct card provider", () => {
       `Bearer ${environment.MERCADO_PAGO_ACCESS_TOKEN}`,
     );
 
-    const body = JSON.parse(String(capturedInit?.body)) as Record<
+    const body = JSON.parse(requireStringBody(capturedInit)) as Record<
       string,
       unknown
     >;
