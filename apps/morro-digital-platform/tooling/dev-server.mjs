@@ -7,7 +7,7 @@ import { createAssistantApi } from "./assistant-api.mjs";
 import { createAuthApi } from "./auth-api.mjs";
 import { createBusinessApi } from "./business-api.mjs";
 import { createCrmApi } from "./crm-api.mjs";
-import { createPaymentsApi } from "./payments-api.mjs";
+import { createPaymentsApi } from "./payments-runtime-api.mjs";
 import { createPlatformOperations } from "./platform-operations.mjs";
 import { rewriteWorkspaceModuleSpecifiers } from "./workspace-browser-modules.mjs";
 
@@ -32,6 +32,7 @@ const runtimeEnvironmentKeys = Object.freeze([
   "VITE_MAPBOX_STYLE",
   "VITE_MAPBOX_CONTAINER_ID",
   "VITE_MAPBOX_INITIAL_ZOOM",
+  "VITE_MERCADO_PAGO_PUBLIC_KEY",
 ]);
 
 let weatherCache = null;
@@ -254,10 +255,11 @@ function applySecurityHeaders(response) {
     "Content-Security-Policy",
     [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' https://unpkg.com https://api.mapbox.com",
+      "script-src 'self' 'unsafe-inline' https://unpkg.com https://api.mapbox.com https://sdk.mercadopago.com",
       "style-src 'self' 'unsafe-inline' https://unpkg.com https://api.mapbox.com https://cdnjs.cloudflare.com https://fonts.googleapis.com",
       "img-src 'self' data: blob: https://*.tile.openstreetmap.org https://unpkg.com https://api.mapbox.com https://*.tiles.mapbox.com",
-      "connect-src 'self' https://api.mapbox.com https://*.tiles.mapbox.com",
+      "connect-src 'self' https://api.mapbox.com https://*.tiles.mapbox.com https://api.mercadopago.com https://*.mercadopago.com https://*.mercadopago.com.br",
+      "frame-src 'self' https://*.mercadopago.com https://*.mercadopago.com.br",
       "worker-src blob:",
       "font-src 'self' data: https://api.mapbox.com https://cdnjs.cloudflare.com https://fonts.gstatic.com",
       "object-src 'none'",
