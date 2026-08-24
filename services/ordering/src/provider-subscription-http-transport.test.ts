@@ -71,9 +71,11 @@ function snapshot(
 function binding(
   providerSnapshot: ProviderSubscriptionSnapshot,
   observedAt = "2026-08-24T03:00:00.000Z",
+  tenantId = "business_test",
 ): ProviderSubscriptionBinding {
   return Object.freeze({
     subscriptionId: providerSnapshot.externalReference,
+    tenantId,
     providerSubscriptionReference:
       providerSnapshot.providerSubscriptionReference,
     status: providerSnapshot.status,
@@ -86,7 +88,10 @@ function binding(
   });
 }
 
-function createFixture(existing: ProviderSubscriptionBinding | null = null) {
+function createFixture(
+  existing: ProviderSubscriptionBinding | null = null,
+  authorizedTenantId = "business_test",
+) {
   let subscription = activeSubscription;
   let storedBinding = existing;
   const createSubscription = vi.fn(async () => snapshot());
@@ -105,8 +110,8 @@ function createFixture(existing: ProviderSubscriptionBinding | null = null) {
     },
     bindings: {
       findBySubscriptionId: async () => storedBinding,
-      saveReadback: async (providerSnapshot, observedAt) => {
-        storedBinding = binding(providerSnapshot, observedAt);
+      saveReadback: async (providerSnapshot, observedAt, tenantId) => {
+        storedBinding = binding(providerSnapshot, observedAt, tenantId);
         return storedBinding;
       },
     },
@@ -122,7 +127,7 @@ function createFixture(existing: ProviderSubscriptionBinding | null = null) {
         allowed: true,
         actorSubject: "user:test",
         actorEmail: "buyer@example.com",
-        tenantId: "business_test",
+        tenantId: authorizedTenantId,
       }),
     },
     audit: { record: async () => undefined },
@@ -181,6 +186,7 @@ describe("ProviderSubscriptionHttpTransport", () => {
     });
     expect(fixture.getBinding()).toMatchObject({
       subscriptionId,
+      tenantId: "business_test",
       providerSubscriptionReference: "preapproval_provider_0001",
       status: "authorized",
     });
@@ -200,6 +206,24 @@ describe("ProviderSubscriptionHttpTransport", () => {
     expect(fixture.readSubscription).toHaveBeenCalledWith(
       "preapproval_provider_0001",
     );
+  });
+
+  it("denies cross-tenant access before any provider side effect", async () => {
+    const current = binding(snapshot(), undefined, "business_owner");
+    const fixture = createFixture(current, "business_attacker");
+
+    const result = await fixture.transport.handle(
+      request(
+        `/api/payments/v1/subscriptions/${subscriptionId}/provider/pause`,
+        "POST",
+        {},
+      ),
+    );
+
+    expect(result.status).toBe(403);
+    expect(result.body).toEqual({ error: "BUSINESS_ACCESS_DENIED" });
+    expect(fixture.pauseSubscription).not.toHaveBeenCalled();
+    expect(fixture.readSubscription).not.toHaveBeenCalled();
   });
 
   it("schedules canonical cancellation before cancelling the provider agreement", async () => {
