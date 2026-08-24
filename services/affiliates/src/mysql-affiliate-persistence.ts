@@ -149,6 +149,12 @@ function conversionFromRow(row: ConversionRow): ConversionAssociation {
 }
 
 function entitlementFromRow(row: EntitlementRow): CommissionEntitlement {
+  if (
+    row.policy_version !== "AFFILIATE-POLICY-V1" ||
+    row.rate_basis_points !== 3000
+  ) {
+    throw new Error("AFFILIATE_POLICY_SNAPSHOT_CONFLICT");
+  }
   return {
     id: row.entitlement_id as CommissionEntitlementId,
     revision: row.revision,
@@ -162,8 +168,8 @@ function entitlementFromRow(row: EntitlementRow): CommissionEntitlement {
     eligibleRevenueMinorUnits: Number(row.eligible_revenue_minor),
     commissionMinorUnits: Number(row.commission_minor),
     currency: row.currency,
-    rateBasisPoints: 3000,
-    policyVersion: row.policy_version as CommissionEntitlement["policyVersion"],
+    rateBasisPoints: row.rate_basis_points,
+    policyVersion: row.policy_version,
     maturityAt: iso(row.maturity_at),
     createdAt: iso(row.created_at),
     updatedAt: iso(row.updated_at),

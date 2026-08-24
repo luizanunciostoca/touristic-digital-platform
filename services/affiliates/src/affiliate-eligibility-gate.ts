@@ -14,6 +14,13 @@ interface EligibilityRow extends RowDataPacket {
   fraud_blocked: number;
   financial_onboarding_status: string;
   program_status: string;
+  destination_id: string;
+}
+
+export interface LockedAffiliateEligibility {
+  readonly snapshot: AffiliateEligibilitySnapshot;
+  readonly programStatus: "active" | "inactive";
+  readonly destinationId: string;
 }
 
 function membershipStatus(value: string): AffiliateMembershipStatus {
@@ -40,6 +47,60 @@ function financialStatus(value: string): FinancialOnboardingStatus {
   throw new Error("AFFILIATE_ELIGIBILITY_CONTEXT_INVALID");
 }
 
+function programStatus(value: string): "active" | "inactive" {
+  if (value === "active" || value === "inactive") return value;
+  throw new Error("AFFILIATE_ELIGIBILITY_CONTEXT_INVALID");
+}
+
+/**
+ * Locks the account/membership/program tuple used by eligibility and suspension
+ * mutations. Callers that must preserve historical evidence during suspension
+ * can inspect the returned snapshot without incorrectly rejecting it.
+ */
+export async function lockAffiliateEligibilitySnapshot(
+  connection: PoolConnection,
+  affiliateId: string,
+  programId: string,
+): Promise<LockedAffiliateEligibility> {
+  if (!affiliateId || !programId) {
+    throw new Error("AFFILIATE_AUTHORIZATION_CONTEXT_INCOMPLETE");
+  }
+  const [rows] = await connection.execute<EligibilityRow[]>(
+    `SELECT
+       a.identity_verified,
+       a.contact_verified,
+       a.fraud_blocked,
+       m.accepted_terms_version,
+       m.status AS membership_status,
+       m.financial_onboarding_status,
+       p.status AS program_status,
+       p.destination_id
+     FROM affiliate_accounts a
+     JOIN affiliate_memberships m ON m.affiliate_id = a.affiliate_id
+     JOIN affiliate_programs p ON p.program_id = m.program_id
+     WHERE a.affiliate_id = ? AND m.program_id = ?
+     LIMIT 1 FOR UPDATE`,
+    [affiliateId, programId],
+  );
+  const row = rows[0];
+  if (!row) throw new Error("AFFILIATE_ELIGIBILITY_CONTEXT_MISSING");
+
+  return {
+    snapshot: {
+      identityVerified: row.identity_verified === 1,
+      contactVerified: row.contact_verified === 1,
+      acceptedTermsVersion: row.accepted_terms_version,
+      membershipStatus: membershipStatus(row.membership_status),
+      fraudBlocked: row.fraud_blocked === 1,
+      financialOnboardingStatus: financialStatus(
+        row.financial_onboarding_status,
+      ),
+    },
+    programStatus: programStatus(row.program_status),
+    destinationId: row.destination_id,
+  };
+}
+
 /**
  * Locks the same account/membership/program rows used by suspension changes.
  * This closes the check/use race: a suspension that commits first is observed
@@ -51,38 +112,20 @@ export async function lockAndAssertAffiliateAttributionEligibility(
   programId: string,
   destinationId: string,
 ): Promise<AffiliateEligibilitySnapshot> {
-  if (!affiliateId || !programId || !destinationId)
+  if (!destinationId) {
     throw new Error("AFFILIATE_AUTHORIZATION_CONTEXT_INCOMPLETE");
-  const [rows] = await connection.execute<EligibilityRow[]>(
-    `SELECT
-       a.identity_verified,
-       a.contact_verified,
-       a.fraud_blocked,
-       m.accepted_terms_version,
-       m.status AS membership_status,
-       m.financial_onboarding_status,
-       p.status AS program_status
-     FROM affiliate_accounts a
-     JOIN affiliate_memberships m ON m.affiliate_id = a.affiliate_id
-     JOIN affiliate_programs p ON p.program_id = m.program_id
-     WHERE a.affiliate_id = ? AND m.program_id = ? AND p.destination_id = ?
-     LIMIT 1 FOR UPDATE`,
-    [affiliateId, programId, destinationId],
+  }
+  const locked = await lockAffiliateEligibilitySnapshot(
+    connection,
+    affiliateId,
+    programId,
   );
-  const row = rows[0];
-  if (!row) throw new Error("AFFILIATE_ELIGIBILITY_CONTEXT_MISSING");
-  if (row.program_status !== "active")
+  if (
+    locked.destinationId !== destinationId ||
+    locked.programStatus !== "active" ||
+    !isActiveForAttribution(locked.snapshot)
+  ) {
     throw new Error("AFFILIATE_NOT_ELIGIBLE");
-
-  const snapshot: AffiliateEligibilitySnapshot = {
-    identityVerified: row.identity_verified === 1,
-    contactVerified: row.contact_verified === 1,
-    acceptedTermsVersion: row.accepted_terms_version,
-    membershipStatus: membershipStatus(row.membership_status),
-    fraudBlocked: row.fraud_blocked === 1,
-    financialOnboardingStatus: financialStatus(row.financial_onboarding_status),
-  };
-  if (!isActiveForAttribution(snapshot))
-    throw new Error("AFFILIATE_NOT_ELIGIBLE");
-  return snapshot;
+  }
+  return locked.snapshot;
 }
