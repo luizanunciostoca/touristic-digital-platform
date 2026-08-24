@@ -49,11 +49,14 @@ describe("direct card payment contract", () => {
     ).toBeNull();
   });
 
-  it.each([0, -1, 49, 1.5])("rejects invalid installments %s", (installments) => {
-    expect(
-      createCardPaymentProviderRequest({ ...validRequest, installments }),
-    ).toBeNull();
-  });
+  it.each([0, -1, 49, 1.5])(
+    "rejects invalid installments %s",
+    (installments) => {
+      expect(
+        createCardPaymentProviderRequest({ ...validRequest, installments }),
+      ).toBeNull();
+    },
+  );
 
   it("rejects insecure webhook URLs", () => {
     expect(
@@ -82,19 +85,22 @@ describe("direct card payment contract", () => {
     ).toBeNull();
   });
 
-  it("normalizes accepted provider receipts without provider payload leakage", () => {
-    expect(
-      normalizeCardPaymentProviderReceipt({
-        providerPaymentReference: "1234567890",
-        status: "paid",
-      }),
-    ).toEqual({ providerPaymentReference: "1234567890", status: "paid" });
+  it(
+    "normalizes accepted provider receipts without provider payload leakage",
+    () => {
+      expect(
+        normalizeCardPaymentProviderReceipt({
+          providerPaymentReference: "1234567890",
+          status: "paid",
+        }),
+      ).toEqual({ providerPaymentReference: "1234567890", status: "paid" });
 
-    expect(
-      normalizeCardPaymentProviderReceipt({
-        providerPaymentReference: "1234567890",
-        status: "unknown",
-      }),
-    ).toBeNull();
-  });
+      expect(
+        normalizeCardPaymentProviderReceipt({
+          providerPaymentReference: "1234567890",
+          status: "unknown",
+        }),
+      ).toBeNull();
+    },
+  );
 });
