@@ -70,11 +70,32 @@ jobs:
 
               await page.goto(`${base}/business-onboarding.html`, { waitUntil: 'domcontentloaded' });
               const runtimeSummary = await page.evaluate(() => {
-                const raw = String(window.__MORRO_RUNTIME_ENV__?.VITE_MERCADO_PAGO_PUBLIC_KEY || '').trim();
+                const env = window.__MORRO_RUNTIME_ENV__ || {};
+                const summarize = (name) => {
+                  const raw = String(env[name] || '').trim();
+                  return {
+                    present: raw.length > 0,
+                    length: raw.length,
+                    prefix:
+                      name === 'VITE_MERCADO_PAGO_PUBLIC_KEY'
+                        ? raw.startsWith('TEST-')
+                          ? 'TEST'
+                          : raw.startsWith('APP_USR-')
+                            ? 'APP_USR'
+                            : raw
+                              ? 'OTHER'
+                              : 'NONE'
+                        : raw
+                          ? 'SET'
+                          : 'NONE',
+                  };
+                };
                 return {
-                  present: raw.length > 0,
-                  length: raw.length,
-                  prefix: raw.startsWith('TEST-') ? 'TEST' : raw.startsWith('APP_USR-') ? 'APP_USR' : raw ? 'OTHER' : 'NONE',
+                  mercadoPagoPublicKey: summarize('VITE_MERCADO_PAGO_PUBLIC_KEY'),
+                  mapboxAccessToken: summarize('VITE_MAPBOX_ACCESS_TOKEN'),
+                  mapboxStyle: summarize('VITE_MAPBOX_STYLE'),
+                  mapboxContainerId: summarize('VITE_MAPBOX_CONTAINER_ID'),
+                  mapboxInitialZoom: summarize('VITE_MAPBOX_INITIAL_ZOOM'),
                 };
               });
 
@@ -148,7 +169,7 @@ jobs:
               const result = {
                 status: brickBootstrap.overlay && !brickBootstrap.error ? 'PASS' : 'FAIL',
                 releaseSha: expectedSha,
-                runtimeKey: runtimeSummary,
+                runtime: runtimeSummary,
                 planId,
                 amount: data.plan.amount,
                 brick: { available: brickBootstrap.available, overlay: brickBootstrap.overlay, error: sanitize(brickBootstrap.error) || null },
