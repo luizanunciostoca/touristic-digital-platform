@@ -30,6 +30,13 @@ function boundedString(value: unknown, maxLength: number): string {
   return normalized && normalized.length <= maxLength ? normalized : "";
 }
 
+function boundedIdentifier(value: unknown, maxLength: number): string {
+  if (typeof value === "number") {
+    return Number.isSafeInteger(value) && value >= 0 ? String(value) : "";
+  }
+  return boundedString(value, maxLength);
+}
+
 function accessToken(environment: MercadoPagoProviderEnvironment): string {
   const token = boundedString(
     environment.MERCADO_PAGO_ACCESS_TOKEN ??
@@ -144,12 +151,39 @@ function majorUnits(minorUnits: number): number {
   return value;
 }
 
+function amountMatches(value: unknown, expectedMinorUnits: number): boolean {
+  const parsed =
+    typeof value === "number"
+      ? value
+      : typeof value === "string" && value.trim()
+        ? Number(value)
+        : Number.NaN;
+  if (!Number.isFinite(parsed) || parsed <= 0) return false;
+  const minor = Math.round(parsed * 100);
+  return (
+    Number.isSafeInteger(minor) &&
+    Math.abs(minor / 100 - parsed) < 0.000001 &&
+    minor === expectedMinorUnits
+  );
+}
+
 function unavailable(error: unknown): never {
   if (error instanceof MercadoPagoProviderError) throw error;
   if (error instanceof ProviderRequestUnavailableError) {
     throw new MercadoPagoProviderError("MERCADO_PAGO_UNAVAILABLE");
   }
   throw new MercadoPagoProviderError("MERCADO_PAGO_UNAVAILABLE");
+}
+
+function paymentUrl(providerPaymentReference: string): URL {
+  const reference = boundedIdentifier(providerPaymentReference, 160);
+  if (!reference || !/^[A-Za-z0-9._:-]+$/u.test(reference)) {
+    throw new MercadoPagoProviderError("MERCADO_PAGO_INVALID_RESPONSE");
+  }
+  return new URL(
+    `v1/payments/${encodeURIComponent(reference)}`,
+    "https://api.mercadopago.com/",
+  );
 }
 
 export function createMercadoPagoCardPaymentProviderFromEnvironment(
@@ -169,6 +203,36 @@ export function createMercadoPagoCardPaymentProviderFromEnvironment(
   const timeout = timeoutMs(environment.PAYMENTS_PROVIDER_TIMEOUT_MS);
   const retryPolicy = createProviderRetryPolicyFromEnvironment(environment);
 
+  async function requestJson(
+    url: URL,
+    init: RequestInit,
+  ): Promise<Record<string, unknown>> {
+    try {
+      if (mode === "test") requireTestCredentialsConfirmation(environment);
+      const headers = new Headers(init.headers);
+      headers.set("Accept", "application/json");
+      headers.set("Authorization", `Bearer ${token}`);
+      if (init.body) headers.set("Content-Type", "application/json");
+      const response = await executeBoundedProviderRequest({
+        fetch: fetchImpl,
+        url,
+        timeoutMs: timeout,
+        policy: retryPolicy,
+        init: { ...init, headers },
+      });
+      if (!response.ok) {
+        throw new MercadoPagoProviderError(
+          response.status >= 400 && response.status < 500
+            ? "MERCADO_PAGO_REJECTED"
+            : "MERCADO_PAGO_UNAVAILABLE",
+        );
+      }
+      return await boundedJson(response);
+    } catch (error) {
+      return unavailable(error);
+    }
+  }
+
   return Object.freeze({
     async createCardPayment(
       input: CardPaymentProviderRequest,
@@ -178,60 +242,55 @@ export function createMercadoPagoCardPaymentProviderFromEnvironment(
         throw new MercadoPagoProviderError("MERCADO_PAGO_INVALID_REQUEST");
       }
 
-      try {
-        if (mode === "test") requireTestCredentialsConfirmation(environment);
+      const created = await requestJson(mercadoPagoPaymentsEndpoint, {
+        method: "POST",
+        headers: {
+          "Idempotency-Key": request.idempotencyKey,
+          "X-Idempotency-Key": request.idempotencyKey,
+        },
+        body: JSON.stringify({
+          transaction_amount: majorUnits(request.amount.minorUnits),
+          token: request.token,
+          description: request.description,
+          installments: request.installments,
+          payment_method_id: request.paymentMethodId,
+          ...(request.issuerId ? { issuer_id: request.issuerId } : {}),
+          payer: { email: request.customer.email },
+          external_reference: request.paymentId,
+          notification_url: request.webhookUrl,
+          metadata: request.metadata,
+        }),
+      });
 
-        const response = await executeBoundedProviderRequest({
-          fetch: fetchImpl,
-          url: mercadoPagoPaymentsEndpoint,
-          timeoutMs: timeout,
-          policy: retryPolicy,
-          init: {
-            method: "POST",
-            headers: {
-              Accept: "application/json",
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-              "Idempotency-Key": request.idempotencyKey,
-              "X-Idempotency-Key": request.idempotencyKey,
-            },
-            body: JSON.stringify({
-              transaction_amount: majorUnits(request.amount.minorUnits),
-              token: request.token,
-              description: request.description,
-              installments: request.installments,
-              payment_method_id: request.paymentMethodId,
-              ...(request.issuerId ? { issuer_id: request.issuerId } : {}),
-              payer: { email: request.customer.email },
-              external_reference: request.paymentId,
-              notification_url: request.webhookUrl,
-              metadata: request.metadata,
-            }),
-          },
-        });
-
-        if (!response.ok) {
-          throw new MercadoPagoProviderError(
-            response.status >= 400 && response.status < 500
-              ? "MERCADO_PAGO_REJECTED"
-              : "MERCADO_PAGO_UNAVAILABLE",
-          );
-        }
-
-        const payload = await boundedJson(response);
-        const status = providerStatus(payload.status);
-        const receipt = normalizeCardPaymentProviderReceipt({
-          providerPaymentReference:
-            typeof payload.id === "number" ? String(payload.id) : payload.id,
-          status,
-        });
-        if (!receipt) {
-          throw new MercadoPagoProviderError("MERCADO_PAGO_INVALID_RESPONSE");
-        }
-        return receipt;
-      } catch (error) {
-        return unavailable(error);
+      const providerPaymentReference = boundedIdentifier(created.id, 160);
+      if (!providerPaymentReference) {
+        throw new MercadoPagoProviderError("MERCADO_PAGO_INVALID_RESPONSE");
       }
+      const readback = await requestJson(paymentUrl(providerPaymentReference), {
+        method: "GET",
+      });
+      const readbackReference = boundedIdentifier(readback.id, 160);
+      const status = providerStatus(readback.status);
+      const externalReference = boundedString(readback.external_reference, 120);
+      const currency = boundedString(readback.currency_id, 3).toUpperCase();
+      if (
+        readbackReference !== providerPaymentReference ||
+        externalReference !== request.paymentId ||
+        currency !== request.amount.currency ||
+        !amountMatches(readback.transaction_amount, request.amount.minorUnits) ||
+        !status
+      ) {
+        throw new MercadoPagoProviderError("MERCADO_PAGO_INVALID_RESPONSE");
+      }
+
+      const receipt = normalizeCardPaymentProviderReceipt({
+        providerPaymentReference,
+        status,
+      });
+      if (!receipt) {
+        throw new MercadoPagoProviderError("MERCADO_PAGO_INVALID_RESPONSE");
+      }
+      return receipt;
     },
   });
 }

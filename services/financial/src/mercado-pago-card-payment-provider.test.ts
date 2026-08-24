@@ -53,20 +53,31 @@ function requireStringBody(init: RequestInit | undefined): string {
   return init.body;
 }
 
+function paymentReadback(status = "approved") {
+  return {
+    id: 1234567890,
+    status,
+    external_reference: paymentId,
+    transaction_amount: "1.00",
+    currency_id: "BRL",
+  };
+}
+
 describe("Mercado Pago direct card provider", () => {
-  it("creates a TEST payment through the official payments endpoint", async () => {
-    let capturedUrl: string | null = null;
-    let capturedInit: RequestInit | undefined;
+  it("creates a TEST payment then verifies it through authoritative GET", async () => {
+    const requests: Array<{ url: string; init: RequestInit | undefined }> = [];
     const fetchMock: typeof fetch = async (input, init) => {
-      capturedUrl = normalizeRequestUrl(input);
-      capturedInit = init;
-      return new Response(
-        JSON.stringify({ id: 1234567890, status: "approved" }),
-        {
-          status: 201,
-          headers: { "content-type": "application/json" },
-        },
-      );
+      const url = normalizeRequestUrl(input);
+      requests.push({ url, init });
+      return requests.length === 1
+        ? new Response(JSON.stringify({ id: 1234567890, status: "approved" }), {
+            status: 201,
+            headers: { "content-type": "application/json" },
+          })
+        : new Response(JSON.stringify(paymentReadback()), {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          });
     };
     const provider = createMercadoPagoCardPaymentProviderFromEnvironment(
       environment,
@@ -78,16 +89,22 @@ describe("Mercado Pago direct card provider", () => {
       status: "paid",
     });
 
-    expect(capturedUrl).toBe("https://api.mercadopago.com/v1/payments");
-    expect(capturedInit?.method).toBe("POST");
-    const headers = new Headers(capturedInit?.headers);
+    expect(requests).toHaveLength(2);
+    expect(requests[0]?.url).toBe("https://api.mercadopago.com/v1/payments");
+    expect(requests[0]?.init?.method).toBe("POST");
+    expect(requests[1]?.url).toBe(
+      "https://api.mercadopago.com/v1/payments/1234567890",
+    );
+    expect(requests[1]?.init?.method).toBe("GET");
+
+    const headers = new Headers(requests[0]?.init?.headers);
     expect(headers.get("X-Idempotency-Key")).toBe(idempotencyKey);
     expect(headers.get("Idempotency-Key")).toBe(idempotencyKey);
     expect(headers.get("Authorization")).toBe(
       `Bearer ${environment.MERCADO_PAGO_ACCESS_TOKEN}`,
     );
 
-    const body = JSON.parse(requireStringBody(capturedInit)) as Record<
+    const body = JSON.parse(requireStringBody(requests[0]?.init)) as Record<
       string,
       unknown
     >;
@@ -111,16 +128,23 @@ describe("Mercado Pago direct card provider", () => {
     ["cancelled", "cancelled"],
     ["refunded", "refunded"],
   ] as const)(
-    "maps provider status %s to %s",
+    "maps authoritative provider status %s to %s",
     async (providerStatus, expected) => {
-      const fetchMock: typeof fetch = async () =>
-        new Response(
-          JSON.stringify({
-            id: "provider-payment-0001",
-            status: providerStatus,
-          }),
-          { status: 200 },
-        );
+      let call = 0;
+      const fetchMock: typeof fetch = async () => {
+        call += 1;
+        return call === 1
+          ? new Response(JSON.stringify({ id: "provider-payment-0001" }), {
+              status: 201,
+            })
+          : new Response(
+              JSON.stringify({
+                ...paymentReadback(providerStatus),
+                id: "provider-payment-0001",
+              }),
+              { status: 200 },
+            );
+      };
       const provider = createMercadoPagoCardPaymentProviderFromEnvironment(
         environment,
         { fetch: fetchMock },
@@ -132,6 +156,30 @@ describe("Mercado Pago direct card provider", () => {
       });
     },
   );
+
+  it("rejects a mismatched authoritative readback", async () => {
+    let call = 0;
+    const fetchMock: typeof fetch = async () => {
+      call += 1;
+      return call === 1
+        ? new Response(JSON.stringify({ id: 1234567890 }), { status: 201 })
+        : new Response(
+            JSON.stringify({
+              ...paymentReadback(),
+              external_reference: "pay_other_payment_0001",
+            }),
+            { status: 200 },
+          );
+    };
+    const provider = createMercadoPagoCardPaymentProviderFromEnvironment(
+      environment,
+      { fetch: fetchMock },
+    );
+
+    await expect(provider.createCardPayment(request)).rejects.toMatchObject({
+      code: "MERCADO_PAGO_INVALID_RESPONSE",
+    });
+  });
 
   it("fails closed in TEST mode without explicit TEST credential confirmation", async () => {
     const fetchMock: typeof fetch = async () =>
