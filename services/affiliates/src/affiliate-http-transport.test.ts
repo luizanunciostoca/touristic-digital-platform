@@ -3,6 +3,8 @@ import {
   normalizeAffiliateId,
   normalizeAffiliateProgramId,
   normalizeAttributionId,
+  normalizeCommissionEntitlementId,
+  normalizeConversionAssociationId,
   normalizeReferralEvidenceId,
   type Attribution,
 } from "@touristic/affiliates";
@@ -63,11 +65,14 @@ function dependencies(
       })),
     },
     application: {
-      recordReferralAndEstablishAttribution: vi.fn(async () => ({
-        attribution: mockAttribution,
-        replayed: false,
-        idempotencyKey: "affiliate:v1:test",
-      })),
+      recordReferralAndEstablishAttribution: vi.fn(async (input: unknown) => {
+        void input;
+        return {
+          attribution: mockAttribution,
+          replayed: false,
+          idempotencyKey: "affiliate:v1:test",
+        };
+      }),
     },
   };
 }
