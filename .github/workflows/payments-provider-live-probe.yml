@@ -11,7 +11,7 @@ permissions:
 
 env:
   STAGING_URL: https://morro-digital-v2-staging.onrender.com
-  EXPECTED_SHA: cf20f97b7180b8d7d893716cd7528f070f3f07cc
+  EXPECTED_SHA: 0d5e4478ded981a1d4841f46fba95de17205f832
 
 jobs:
   probe:
