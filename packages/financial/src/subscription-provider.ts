@@ -44,6 +44,28 @@ export interface ProviderSubscriptionSnapshot {
   readonly payerEmail: string;
 }
 
+export interface ProviderSubscriptionBinding {
+  readonly subscriptionId: string;
+  readonly providerSubscriptionReference: string;
+  readonly status: ProviderSubscriptionStatus;
+  readonly amount: Money;
+  readonly frequency: 1;
+  readonly frequencyType: "months";
+  readonly payerEmail: string;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+
+export interface ProviderSubscriptionBindingRepositoryPort {
+  findBySubscriptionId(
+    subscriptionId: string,
+  ): Promise<ProviderSubscriptionBinding | null>;
+  saveReadback(
+    snapshot: ProviderSubscriptionSnapshot,
+    observedAt: string,
+  ): Promise<ProviderSubscriptionBinding>;
+}
+
 export interface FinancialSubscriptionProviderPort {
   createSubscription(
     input: ProviderSubscriptionRequest,
