@@ -45,7 +45,7 @@ jobs:
               });
 
               const base = process.env.STAGING_URL;
-              const response = await page.goto(`${base}/business-onboarding.html`, {
+              const response = await page.goto(`${base}/apps/morro-digital-platform/public/business-onboarding.html`, {
                 waitUntil: 'domcontentloaded',
                 timeout: 60_000,
               });
