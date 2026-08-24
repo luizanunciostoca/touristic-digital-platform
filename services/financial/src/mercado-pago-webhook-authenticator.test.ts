@@ -22,19 +22,22 @@ function signedEnvelope(
     readonly manifestDataId?: string;
     readonly envelopeDataId?: string | null;
     readonly ts?: string;
+    readonly requestId?: string | null;
   } = {},
 ): string {
   const manifestDataId = options.manifestDataId ?? dataId;
   const envelopeDataId =
     options.envelopeDataId === undefined ? dataId : options.envelopeDataId;
+  const manifestRequestId =
+    options.requestId === undefined ? requestId : (options.requestId ?? "");
   const ts = options.ts ?? timestamp;
-  const manifest = `id:${manifestDataId};request-id:${requestId};ts:${ts};`;
+  const manifest = `id:${manifestDataId};request-id:${manifestRequestId};ts:${ts};`;
   const digest = createHmac("sha256", webhookSecret)
     .update(manifest)
     .digest("hex");
   return JSON.stringify({
     signature: `ts=${ts},v1=${digest}`,
-    requestId,
+    ...(options.requestId === null ? {} : { requestId: manifestRequestId }),
     ...(envelopeDataId === null ? {} : { dataId: envelopeDataId }),
   });
 }
@@ -56,36 +59,71 @@ describe("Mercado Pago authenticating webhook verifier", () => {
     await expect(
       verifier().verifyAuthenticity(rawBody(), signedEnvelope()),
     ).resolves.toBe(true);
-  });
-
-  it("rejects a notification when the provider query dataId is missing", async () => {
     await expect(
-      verifier().verifyAuthenticity(
-        rawBody(),
-        signedEnvelope({ envelopeDataId: null }),
-      ),
-    ).resolves.toBe(false);
+      verifier().diagnoseAuthenticity(rawBody(), signedEnvelope()),
+    ).resolves.toBeNull();
   });
 
-  it("rejects a conflicting provider query dataId before HMAC acceptance", async () => {
+  it("diagnoses a notification when the provider query dataId is missing", async () => {
+    const envelope = signedEnvelope({ envelopeDataId: null });
     await expect(
-      verifier().verifyAuthenticity(
-        rawBody(),
-        signedEnvelope({ envelopeDataId: "987654321" }),
-      ),
+      verifier().verifyAuthenticity(rawBody(), envelope),
     ).resolves.toBe(false);
+    await expect(
+      verifier().diagnoseAuthenticity(rawBody(), envelope),
+    ).resolves.toBe("missing_query_data_id");
   });
 
-  it("rejects body dataId tampering even when the query signature is valid", async () => {
+  it("diagnoses a missing provider request id without exposing its value", async () => {
+    const envelope = signedEnvelope({ requestId: null });
+    await expect(
+      verifier().verifyAuthenticity(rawBody(), envelope),
+    ).resolves.toBe(false);
+    await expect(
+      verifier().diagnoseAuthenticity(rawBody(), envelope),
+    ).resolves.toBe("missing_request_id");
+  });
+
+  it("diagnoses a conflicting provider query dataId before HMAC acceptance", async () => {
+    const envelope = signedEnvelope({ envelopeDataId: "987654321" });
+    await expect(
+      verifier().verifyAuthenticity(rawBody(), envelope),
+    ).resolves.toBe(false);
+    await expect(
+      verifier().diagnoseAuthenticity(rawBody(), envelope),
+    ).resolves.toBe("data_id_mismatch");
+  });
+
+  it("diagnoses body dataId tampering even when the query signature is valid", async () => {
     await expect(
       verifier().verifyAuthenticity(rawBody("987654321"), signedEnvelope()),
     ).resolves.toBe(false);
+    await expect(
+      verifier().diagnoseAuthenticity(
+        rawBody("987654321"),
+        signedEnvelope(),
+      ),
+    ).resolves.toBe("data_id_mismatch");
   });
 
-  it("rejects signatures outside the configured timestamp tolerance", async () => {
+  it("diagnoses signatures outside the configured timestamp tolerance", async () => {
     const staleTs = String(Number(timestamp) - 301);
+    const envelope = signedEnvelope({ ts: staleTs });
     await expect(
-      verifier().verifyAuthenticity(rawBody(), signedEnvelope({ ts: staleTs })),
+      verifier().verifyAuthenticity(rawBody(), envelope),
     ).resolves.toBe(false);
+    await expect(
+      verifier().diagnoseAuthenticity(rawBody(), envelope),
+    ).resolves.toBe("timestamp_invalid");
+  });
+
+  it("diagnoses an HMAC key or manifest mismatch without exposing inputs", async () => {
+    const envelope = signedEnvelope({ manifestDataId: "987654321" });
+    await expect(
+      verifier().verifyAuthenticity(rawBody(), envelope),
+    ).resolves.toBe(false);
+    await expect(
+      verifier().diagnoseAuthenticity(rawBody(), envelope),
+    ).resolves.toBe("hmac_mismatch");
   });
 });
