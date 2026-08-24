@@ -1,0 +1,167 @@
+name: Payments Provider Card Field Probe
+
+on:
+  push:
+    branches:
+      - ops/payments-provider-test-acceptance-20260824
+
+permissions:
+  contents: read
+  statuses: write
+
+env:
+  STAGING_URL: https://morro-digital-v2-staging.onrender.com
+  EXPECTED_SHA: 0d5e4478ded981a1d4841f46fba95de17205f832
+  ONBOARDING_PATH: /apps/morro-digital-platform/public/business-onboarding.html
+
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Publish pending status
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
+            -f state=pending -f context='Payments Provider Card Field Probe' \
+            -f description='Inspecting TEST Card Brick fields' \
+            -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" >/dev/null
+
+      - name: Install Playwright Chromium
+        run: |
+          set -euo pipefail
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium >/dev/null
+
+      - name: Inspect Brick fields without entering card data
+        shell: bash
+        run: |
+          set +e
+          node <<'NODE'
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+          const base = process.env.STAGING_URL;
+          const expectedSha = process.env.EXPECTED_SHA;
+          const onboardingPath = process.env.ONBOARDING_PATH;
+          const planId = 'provider_acceptance_test';
+          const clean = value => typeof value === 'string' ? value.slice(0, 160) : value;
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            try {
+              const page = await browser.newPage();
+              const ready = await page.request.get(`${base}/readyz`);
+              if (!ready.ok() || ready.headers()['x-release-sha'] !== expectedSha) throw new Error('staging-not-exact-ready');
+              const nav = await page.goto(`${base}${onboardingPath}`, { waitUntil: 'domcontentloaded' });
+              if (!nav?.ok()) throw new Error(`onboarding-http:${nav?.status()}`);
+
+              const runtime = await page.evaluate(() => String(window.__MORRO_RUNTIME_ENV__?.VITE_MERCADO_PAGO_PUBLIC_KEY || '').startsWith('TEST-'));
+              if (!runtime) throw new Error('test-public-key-unavailable');
+
+              const sessionId = `field_probe_${Date.now()}`;
+              const handoff = {
+                sessionId,
+                planId,
+                contractor: { name: 'Morro Provider Test', email: 'morro-provider-test@example.com', phone: '75999999999', document: '12345678909' },
+                businessDraft: { demoBusinessId: `demo_${sessionId}`, displayName: 'Morro Provider TEST', categoryId: 'events', specialty: 'Provider acceptance', environment: 'sandbox', publishable: false },
+                acceptedTerms: [
+                  { type: 'terms', version: 'business-partner-terms-2026-08', acceptedAt: new Date().toISOString() },
+                  { type: 'privacy', version: 'privacy-policy-2026-08', acceptedAt: new Date().toISOString() }
+                ],
+                returnUrl: `${base}${onboardingPath}`,
+                tutorial: false,
+                requiresPaymentsCapability: true
+              };
+
+              const bootstrap = await page.evaluate(async ({ handoff, sessionId, planId }) => {
+                const authority = await fetch('/api/payments/v1/checkout-authority', {
+                  method: 'POST', credentials: 'same-origin', cache: 'no-store',
+                  headers: { 'content-type': 'application/json', accept: 'application/json' },
+                  body: JSON.stringify(handoff)
+                });
+                const a = await authority.json();
+                if (!authority.ok) return { status: authority.status, error: a?.error };
+                const checkout = await fetch('/api/payments/v1/checkouts', {
+                  method: 'POST', credentials: 'same-origin', cache: 'no-store',
+                  headers: {
+                    'content-type': 'application/json', accept: 'application/json',
+                    'x-checkout-handoff-token': a.data.handoffToken,
+                    'idempotency-key': `business:${sessionId}:${planId}`
+                  },
+                  body: JSON.stringify(handoff)
+                });
+                return { status: checkout.status, payload: await checkout.json() };
+              }, { handoff, sessionId, planId });
+              if (bootstrap.status < 200 || bootstrap.status >= 300) throw new Error(`checkout-bootstrap:${bootstrap.status}:${bootstrap.error || bootstrap.payload?.error}`);
+              const data = bootstrap.payload.data;
+
+              await page.evaluate(async ({ data, email }) => {
+                const module = await import('/apps/morro-digital-platform/dist/mercado-pago-card-payment-brick.js');
+                const adapter = module.createMercadoPagoCardPaymentBrick(window, document, window.fetch.bind(window));
+                window.__FIELD_PROBE__ = { available: adapter.available, error: null };
+                adapter.present({ checkoutId: data.checkoutId, statusToken: data.statusToken, plan: data.plan, payerEmail: email })
+                  .catch(error => { window.__FIELD_PROBE__.error = String(error?.message || error); });
+              }, { data, email: handoff.contractor.email });
+
+              await page.waitForSelector('[data-morro-payments-brick="card"]', { timeout: 20000 });
+              await page.waitForTimeout(8000);
+
+              const frames = [];
+              for (let i = 0; i < page.frames().length; i += 1) {
+                const frame = page.frames()[i];
+                let origin = '';
+                try { origin = new URL(frame.url()).origin; } catch {}
+                let controls = [];
+                try {
+                  controls = await frame.locator('input, select, button').evaluateAll(nodes => nodes.map(node => ({
+                    tag: node.tagName.toLowerCase(),
+                    id: node.id || null,
+                    name: node.getAttribute('name'),
+                    type: node.getAttribute('type'),
+                    autocomplete: node.getAttribute('autocomplete'),
+                    placeholder: node.getAttribute('placeholder'),
+                    ariaLabel: node.getAttribute('aria-label'),
+                    title: node.getAttribute('title'),
+                    text: node.tagName === 'BUTTON' ? node.textContent?.trim().slice(0, 80) : null,
+                  })));
+                } catch (error) {
+                  controls = [{ error: clean(error?.message || error) }];
+                }
+                frames.push({ index: i, origin, name: frame.name(), controls });
+              }
+
+              const probeState = await page.evaluate(() => ({
+                adapterAvailable: Boolean(window.__FIELD_PROBE__?.available),
+                adapterError: window.__FIELD_PROBE__?.error || null,
+                overlay: Boolean(document.querySelector('[data-morro-payments-brick="card"]')),
+                iframeCount: document.querySelectorAll('iframe').length,
+              }));
+
+              console.log(JSON.stringify({
+                status: probeState.adapterAvailable && probeState.overlay && !probeState.adapterError ? 'PASS' : 'FAIL',
+                releaseSha: expectedSha,
+                probeState,
+                frames,
+              }));
+              if (!probeState.adapterAvailable || !probeState.overlay || probeState.adapterError) process.exitCode = 1;
+            } finally {
+              await browser.close();
+            }
+          })().catch(error => {
+            console.error(JSON.stringify({ status: 'FAIL', error: clean(error?.message || error) }));
+            process.exit(1);
+          });
+          NODE
+          exit $?
+
+      - name: Publish final status
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          if [ "$JOB_STATUS" = success ]; then state=success; description='TEST Card Brick field probe passed'; else state=failure; description='TEST Card Brick field probe failed'; fi
+          gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
+            -f state="$state" -f context='Payments Provider Card Field Probe' \
+            -f description="$description" \
+            -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" >/dev/null
