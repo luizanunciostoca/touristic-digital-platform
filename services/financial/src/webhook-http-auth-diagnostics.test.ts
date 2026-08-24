@@ -4,7 +4,7 @@ import type { FinancialWebhookAuditEvent } from "./webhook-http-transport.js";
 import { FinancialWebhookHttpTransport } from "./webhook-http-transport.js";
 
 describe("Mercado Pago webhook authentication diagnostics", () => {
-  it("audits only the sanitized authentication failure stage", async () => {
+  it("audits only the sanitized authentication failure stage and header context", async () => {
     const audits: FinancialWebhookAuditEvent[] = [];
     const verifier = Object.freeze({
       verify: () => Promise.resolve(null),
@@ -45,6 +45,7 @@ describe("Mercado Pago webhook authentication diagnostics", () => {
         "x-signature": `ts=1787612400,v1=${"a".repeat(64)}`,
         "x-request-id": "request-secret-value-not-for-audit",
         "x-morro-provider-data-id": "123456789",
+        "rndr-id": "render-trace-value-not-for-audit",
       },
       rawBody,
       correlationId: "corr_webhook_diag_0001",
@@ -60,9 +61,17 @@ describe("Mercado Pago webhook authentication diagnostics", () => {
       result: "denied",
       reason: "signature_or_payload_invalid",
       authenticityFailure: "hmac_mismatch",
+      authenticityContext: {
+        signaturePresent: true,
+        requestIdPresent: true,
+        providerDataIdPresent: true,
+        renderTracePresent: true,
+        requestIdMatchesRenderTrace: false,
+      },
     });
     const serializedAudit = JSON.stringify(audits[0]);
     expect(serializedAudit).not.toContain("request-secret-value-not-for-audit");
+    expect(serializedAudit).not.toContain("render-trace-value-not-for-audit");
     expect(serializedAudit).not.toContain("123456789");
     expect(serializedAudit).not.toContain("a".repeat(64));
   });
