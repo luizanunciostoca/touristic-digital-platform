@@ -43,70 +43,61 @@ jobs:
             throw new Error(`VISIBLE_FIELD_TIMEOUT:${selector}`);
           }
 
+          async function typeSecure(locator, value) {
+            await locator.click();
+            await locator.press('ControlOrMeta+A').catch(() => undefined);
+            await locator.press('Backspace').catch(() => undefined);
+            await locator.pressSequentially(value, { delay: 55 });
+          }
+
           (async () => {
             const browser = await chromium.launch({ headless: true });
             try {
               const page = await browser.newPage();
+              const providerTraffic = [];
+              page.on('response', response => {
+                try {
+                  const url = new URL(response.url());
+                  if (url.hostname.endsWith('mercadopago.com') || url.hostname.endsWith('mercadopago.com.br') || url.hostname.endsWith('mlstatic.com')) {
+                    providerTraffic.push({ method: response.request().method(), origin: url.origin, path: url.pathname, status: response.status() });
+                  }
+                } catch {}
+              });
+
               const base = process.env.STAGING_URL;
               const pageUrl = `${base}${pagePath}`;
-
               const response = await page.goto(pageUrl, { waitUntil: 'load', timeout: 60_000 });
-              if (!response || response.status() !== 200) {
-                throw new Error(`STAGING_PAGE_HTTP_${response?.status() ?? 'NO_RESPONSE'}`);
-              }
+              if (!response || response.status() !== 200) throw new Error(`STAGING_PAGE_HTTP_${response?.status() ?? 'NO_RESPONSE'}`);
 
               await page.waitForFunction(() => Boolean(globalThis.__MORRO_RUNTIME_ENV__), null, { timeout: 20_000 });
-              const runtime = await page.evaluate(() => ({
-                hasPublicKey: Boolean(globalThis.__MORRO_RUNTIME_ENV__?.VITE_MERCADO_PAGO_PUBLIC_KEY),
-              }));
+              const runtime = await page.evaluate(() => ({ hasPublicKey: Boolean(globalThis.__MORRO_RUNTIME_ENV__?.VITE_MERCADO_PAGO_PUBLIC_KEY) }));
               if (!runtime.hasPublicKey) throw new Error('TEST_PUBLIC_KEY_NOT_AVAILABLE');
 
               await page.evaluate(() => {
                 globalThis.__MORRO_PROVIDER_E2E__ = { verified: null, failed: null };
-                addEventListener('businessPaymentVerified', event => {
-                  globalThis.__MORRO_PROVIDER_E2E__.verified = event.detail;
-                });
-                addEventListener('businessPaymentVerificationFailed', event => {
-                  globalThis.__MORRO_PROVIDER_E2E__.failed = event.detail;
-                });
+                addEventListener('businessPaymentVerified', event => { globalThis.__MORRO_PROVIDER_E2E__.verified = event.detail; });
+                addEventListener('businessPaymentVerificationFailed', event => { globalThis.__MORRO_PROVIDER_E2E__.failed = event.detail; });
               });
 
               await page.waitForTimeout(1_500);
               const sessionId = `provider_acceptance_${Date.now()}`;
               const acceptedAt = new Date().toISOString();
-              const checkoutResponsePromise = page.waitForResponse(res => {
-                const url = new URL(res.url());
-                return res.request().method() === 'POST' && url.pathname === checkoutPath;
-              }, { timeout: 30_000 });
+              const checkoutResponsePromise = page.waitForResponse(res => new URL(res.url()).pathname === checkoutPath && res.request().method() === 'POST', { timeout: 30_000 });
 
               await page.evaluate(({ sessionId, acceptedAt, returnUrl }) => {
-                dispatchEvent(new CustomEvent('businessCheckoutRequested', {
-                  detail: {
-                    sessionId,
-                    planId: 'provider_acceptance_test',
-                    contractor: {
-                      name: 'Morro Digital Provider Acceptance',
-                      email: 'payments.acceptance.20260824@example.com',
-                      phone: '+55 75 99999-0000',
-                      document: '12345678909',
-                    },
-                    businessDraft: {
-                      demoBusinessId: 'provider-acceptance',
-                      displayName: 'Morro Digital Provider Acceptance',
-                      categoryId: 'restaurant',
-                      specialty: 'Provider TEST',
-                      environment: 'sandbox',
-                      publishable: false,
-                    },
-                    acceptedTerms: [
-                      { type: 'terms', version: 'terms_v1', acceptedAt },
-                      { type: 'privacy', version: 'privacy_v1', acceptedAt },
-                    ],
-                    returnUrl,
-                    tutorial: false,
-                    requiresPaymentsCapability: true,
-                  },
-                }));
+                dispatchEvent(new CustomEvent('businessCheckoutRequested', { detail: {
+                  sessionId,
+                  planId: 'provider_acceptance_test',
+                  contractor: { name: 'Morro Digital Provider Acceptance', email: 'payments.acceptance.20260824@gmail.com', phone: '+55 75 99999-0000', document: '12345678909' },
+                  businessDraft: { demoBusinessId: 'provider-acceptance', displayName: 'Morro Digital Provider Acceptance', categoryId: 'restaurant', specialty: 'Provider TEST', environment: 'sandbox', publishable: false },
+                  acceptedTerms: [
+                    { type: 'terms', version: 'terms_v1', acceptedAt },
+                    { type: 'privacy', version: 'privacy_v1', acceptedAt },
+                  ],
+                  returnUrl,
+                  tutorial: false,
+                  requiresPaymentsCapability: true,
+                }}));
               }, { sessionId, acceptedAt, returnUrl: pageUrl });
 
               const checkoutResponse = await checkoutResponsePromise;
@@ -117,55 +108,75 @@ jobs:
               }
 
               await page.locator('[data-morro-payments-brick="card"]').waitFor({ state: 'visible', timeout: 30_000 });
+
               const cardNumber = await visibleField(page, 'input[name="cardNumber"]');
-              await cardNumber.fill('5480832801033311');
-              await page.waitForTimeout(750);
+              await typeSecure(cardNumber, '5480832801033311');
+              await page.waitForTimeout(1_500);
 
               const expirationDate = await visibleField(page, 'input[name="expirationDate"]');
-              await expirationDate.fill('1130');
+              await typeSecure(expirationDate, '1130');
               const securityCode = await visibleField(page, 'input[name="securityCode"]');
-              await securityCode.fill('123');
+              await typeSecure(securityCode, '123');
 
               const holder = page.locator('[data-morro-payments-brick="card"] input[name="HOLDER_NAME"]').first();
               await holder.fill('APRO');
-
               const documentField = page.locator('[data-morro-payments-brick="card"] input[name="DOCUMENT"]').first();
               await documentField.fill('12345678909');
+              await page.waitForTimeout(750);
 
               const selects = page.locator('[data-morro-payments-brick="card"] select');
+              const selectEvidence = [];
               for (let i = 0; i < await selects.count(); i += 1) {
                 const select = selects.nth(i);
                 if (!(await select.isVisible())) continue;
-                const options = await select.locator('option').allTextContents();
-                const cpfIndex = options.findIndex(text => /CPF/i.test(text));
-                if (cpfIndex >= 0) {
-                  const values = await select.locator('option').evaluateAll(nodes => nodes.map(node => node.value));
-                  if (values[cpfIndex]) await select.selectOption(values[cpfIndex]);
+                const options = await select.locator('option').evaluateAll(nodes => nodes.map(node => ({ value: node.value, text: (node.textContent || '').trim() })));
+                let selected = await select.inputValue();
+                const cpf = options.find(option => /CPF/i.test(option.text) && option.value);
+                if (cpf && selected !== cpf.value) {
+                  await select.selectOption(cpf.value);
+                  selected = await select.inputValue();
+                } else if (!selected) {
+                  const first = options.find(option => option.value);
+                  if (first) {
+                    await select.selectOption(first.value);
+                    selected = await select.inputValue();
+                  }
                 }
+                selectEvidence.push({ options: options.map(option => option.text).slice(0, 10), selected: Boolean(selected) });
               }
 
+              await page.waitForTimeout(1_000);
+              const submit = page.locator('[data-morro-payments-brick="card"] button[type="submit"]').first();
+              const buttonState = { disabled: await submit.isDisabled(), text: (await submit.textContent() || '').trim() };
               const cardResponsePromise = page.waitForResponse(res => {
                 const url = new URL(res.url());
                 return res.request().method() === 'POST' && /\/api\/payments\/v1\/checkouts\/ord_[^/]+\/card$/u.test(url.pathname);
               }, { timeout: 45_000 });
 
-              await page.locator('[data-morro-payments-brick="card"] button[type="submit"]').click();
-              const cardResponse = await cardResponsePromise;
+              await submit.click();
+              let cardResponse;
+              try {
+                cardResponse = await cardResponsePromise;
+              } catch (error) {
+                const overlayText = (await page.locator('[data-morro-payments-brick="card"]').textContent() || '').replace(/\s+/g, ' ').trim().slice(0, 1000);
+                const secureState = [];
+                for (const frame of page.frames()) {
+                  try {
+                    const fields = await frame.locator('input[name="cardNumber"], input[name="expirationDate"], input[name="securityCode"]').evaluateAll(nodes => nodes.map(node => ({ name: node.getAttribute('name'), valueLength: String(node.value || '').length, ariaInvalid: node.getAttribute('aria-invalid') })));
+                    if (fields.length) secureState.push(fields);
+                  } catch {}
+                }
+                console.log('PROVIDER_TEST_BRICK_DIAGNOSTIC=' + JSON.stringify({ checkoutId, buttonState, selectEvidence, overlayText, secureState, providerTraffic: providerTraffic.slice(-30) }));
+                throw error;
+              }
+
               const cardPayload = await cardResponse.json();
               const cardStatus = cardPayload?.data?.status ?? null;
-              if (!cardResponse.ok()) {
-                throw new Error(`CARD_SUBMIT_FAILED:${cardResponse.status()}:${clean(cardPayload?.error)}`);
-              }
+              if (!cardResponse.ok()) throw new Error(`CARD_SUBMIT_FAILED:${cardResponse.status()}:${clean(cardPayload?.error)}`);
 
-              await page.waitForFunction(() => {
-                const state = globalThis.__MORRO_PROVIDER_E2E__;
-                return Boolean(state?.verified || state?.failed);
-              }, null, { timeout: 120_000 });
-
+              await page.waitForFunction(() => Boolean(globalThis.__MORRO_PROVIDER_E2E__?.verified || globalThis.__MORRO_PROVIDER_E2E__?.failed), null, { timeout: 120_000 });
               const outcome = await page.evaluate(() => globalThis.__MORRO_PROVIDER_E2E__);
-              if (outcome?.failed) {
-                throw new Error(`PAYMENT_VERIFICATION_FAILED:${clean(outcome.failed.code)}`);
-              }
+              if (outcome?.failed) throw new Error(`PAYMENT_VERIFICATION_FAILED:${clean(outcome.failed.code)}`);
               if (!outcome?.verified?.verified) throw new Error('PAYMENT_NOT_VERIFIED');
 
               console.log('PROVIDER_TEST_CARD_E2E=' + JSON.stringify({
