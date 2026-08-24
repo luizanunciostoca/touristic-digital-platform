@@ -17,11 +17,13 @@ function rawBody(id = dataId): Uint8Array {
   );
 }
 
-function signedEnvelope(options: {
-  readonly manifestDataId?: string;
-  readonly envelopeDataId?: string | null;
-  readonly ts?: string;
-} = {}): string {
+function signedEnvelope(
+  options: {
+    readonly manifestDataId?: string;
+    readonly envelopeDataId?: string | null;
+    readonly ts?: string;
+  } = {},
+): string {
   const manifestDataId = options.manifestDataId ?? dataId;
   const ts = options.ts ?? timestamp;
   const manifest = `id:${manifestDataId};request-id:${requestId};ts:${ts};`;
