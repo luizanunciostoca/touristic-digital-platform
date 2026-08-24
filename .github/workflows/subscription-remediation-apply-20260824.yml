@@ -1,0 +1,114 @@
+name: Subscription Remediation Apply 2026-08-24
+
+on:
+  push:
+    branches: [ops/provider-e2e-77b2b097-20260824]
+    paths:
+      - .github/scripts/subscription-remediation-20260824.cjs
+      - .github/scripts/run-subscription-remediation-20260824.cjs
+      - .github/workflows/subscription-remediation-apply-20260824.yml
+
+permissions:
+  contents: write
+
+jobs:
+  remediate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout ops harness
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          path: ops
+      - name: Checkout exact Payments PR branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: fix/mercado-pago-bricks-subscriptions-20260823
+          path: target
+          fetch-depth: 0
+      - name: Require expected target head
+        working-directory: target
+        run: test "$(git rev-parse HEAD)" = "77b2b097174b1c871c757705c21c1f92d323be43"
+      - name: Validate remediation executor syntax
+        run: |
+          node --check ops/.github/scripts/subscription-remediation-20260824.cjs
+          node --check ops/.github/scripts/run-subscription-remediation-20260824.cjs
+      - name: Apply guarded remediation
+        run: node ops/.github/scripts/run-subscription-remediation-20260824.cjs target
+      - name: Install dependencies
+        working-directory: target
+        run: corepack pnpm install --frozen-lockfile
+      - name: Canonical formatting
+        working-directory: target
+        run: |
+          corepack pnpm exec prettier --write \
+            packages/ordering/package.json \
+            packages/ordering/src/subscription-activation.ts \
+            packages/ordering/src/subscription-activation.test.ts \
+            packages/financial/src/subscription-provider.ts \
+            services/ordering/src/provider-subscription-http-transport.ts \
+            services/ordering/src/provider-subscription-http-transport.test.ts \
+            services/financial/src/mercado-pago-subscription-provider.ts \
+            services/financial/src/mercado-pago-subscription-provider.test.ts \
+            apps/morro-digital-platform/tooling/payments-subscription-api.mjs \
+            apps/morro-digital-platform/src/payments-browser-subscription-client.ts \
+            apps/morro-digital-platform/src/payments-browser-subscription-client.test.ts
+      - name: Validate changed-file boundary
+        working-directory: target
+        run: |
+          git diff --check
+          git diff --name-only | sort > /tmp/changed.txt
+          cat > /tmp/allowed.txt <<'EOF'
+          apps/morro-digital-platform/src/payments-browser-subscription-client.test.ts
+          apps/morro-digital-platform/src/payments-browser-subscription-client.ts
+          apps/morro-digital-platform/tooling/payments-subscription-api.mjs
+          packages/financial/src/subscription-provider.ts
+          packages/ordering/package.json
+          packages/ordering/src/subscription-activation.test.ts
+          packages/ordering/src/subscription-activation.ts
+          services/financial/src/mercado-pago-subscription-provider.test.ts
+          services/financial/src/mercado-pago-subscription-provider.ts
+          services/ordering/src/provider-subscription-http-transport.test.ts
+          services/ordering/src/provider-subscription-http-transport.ts
+          EOF
+          diff -u /tmp/allowed.txt /tmp/changed.txt
+      - name: Focused subscription contracts
+        working-directory: target
+        run: |
+          corepack pnpm --filter @touristic/ordering test -- subscription-activation.test.ts subscription.test.ts
+          corepack pnpm --filter @touristic/financial-server test -- mercado-pago-subscription-provider.test.ts
+          corepack pnpm --filter @touristic/ordering-server test -- provider-subscription-http-transport.test.ts
+          corepack pnpm --filter @touristic/morro-digital-platform test -- payments-browser-subscription-client.test.ts
+      - name: Affected typechecks and builds
+        working-directory: target
+        run: |
+          corepack pnpm --filter @touristic/financial typecheck
+          corepack pnpm --filter @touristic/ordering typecheck
+          corepack pnpm --filter @touristic/financial-server typecheck
+          corepack pnpm --filter @touristic/ordering-server typecheck
+          corepack pnpm --filter @touristic/morro-digital-platform typecheck
+          node --check apps/morro-digital-platform/tooling/payments-subscription-api.mjs
+          corepack pnpm --filter @touristic/financial build
+          corepack pnpm --filter @touristic/ordering build
+          corepack pnpm --filter @touristic/financial-server build
+          corepack pnpm --filter @touristic/ordering-server build
+          corepack pnpm --filter @touristic/morro-digital-platform build
+      - name: Commit only after validation
+        working-directory: target
+        run: |
+          git config user.name "Morro Digital Acceptance"
+          git config user.email "actions@users.noreply.github.com"
+          git add \
+            packages/ordering/package.json \
+            packages/ordering/src/subscription-activation.ts \
+            packages/ordering/src/subscription-activation.test.ts \
+            packages/financial/src/subscription-provider.ts \
+            services/ordering/src/provider-subscription-http-transport.ts \
+            services/ordering/src/provider-subscription-http-transport.test.ts \
+            services/financial/src/mercado-pago-subscription-provider.ts \
+            services/financial/src/mercado-pago-subscription-provider.test.ts \
+            apps/morro-digital-platform/tooling/payments-subscription-api.mjs \
+            apps/morro-digital-platform/src/payments-browser-subscription-client.ts \
+            apps/morro-digital-platform/src/payments-browser-subscription-client.test.ts
+          git commit -m "fix(payments): materialize subscriptions before provider recurrence"
+          git push origin HEAD:fix/mercado-pago-bricks-subscriptions-20260823
