@@ -5,6 +5,11 @@ import {
   submitCardPaymentBrickForm,
 } from "./mercado-pago-card-payment-brick.js";
 
+function requireStringBody(init: RequestInit | undefined): string {
+  if (typeof init?.body !== "string") throw new Error("TEST_BODY_NOT_STRING");
+  return init.body;
+}
+
 describe("Mercado Pago Card Payment Brick adapter", () => {
   it("keeps only tokenized card artifacts and removes browser monetary fields", () => {
     expect(
@@ -35,7 +40,7 @@ describe("Mercado Pago Card Payment Brick adapter", () => {
       expect(new Headers(init?.headers).get("x-checkout-token")).toBe(
         "cst_v1_abcdefghijklmnop",
       );
-      expect(JSON.parse(String(init?.body))).toEqual({
+      expect(JSON.parse(requireStringBody(init))).toEqual({
         token: "card_token_browser_0001",
         installments: 1,
         payment_method_id: "master",

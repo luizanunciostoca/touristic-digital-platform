@@ -95,10 +95,12 @@ function createUnavailableBrick(error: unknown): MercadoPagoCardPaymentBrick {
       : new Error("PAYMENTS_BRICK_CONFIGURATION_INVALID");
   return Object.freeze({
     available: true,
-    async present(): Promise<void> {
-      throw failure;
+    present(): Promise<void> {
+      return Promise.reject(failure);
     },
-    async destroy(): Promise<void> {},
+    destroy(): Promise<void> {
+      return Promise.resolve();
+    },
   });
 }
 

@@ -314,10 +314,12 @@ export function createMercadoPagoCardPaymentBrick(
   if (!rawPublicKey) {
     return Object.freeze({
       available: false,
-      async present(): Promise<void> {
-        throw new Error("PAYMENTS_BRICK_NOT_CONFIGURED");
+      present(): Promise<void> {
+        return Promise.reject(new Error("PAYMENTS_BRICK_NOT_CONFIGURED"));
       },
-      async destroy(): Promise<void> {},
+      destroy(): Promise<void> {
+        return Promise.resolve();
+      },
     });
   }
 
@@ -377,9 +379,13 @@ export function createMercadoPagoCardPaymentBrick(
                   resolve();
                   await destroy();
                 } catch (error) {
-                  reject(error);
+                  const failure =
+                    error instanceof Error
+                      ? error
+                      : new Error("PAYMENTS_BRICK_PROVIDER_UI_FAILURE");
+                  reject(failure);
                   await destroy();
-                  throw error;
+                  throw failure;
                 }
               },
               onError: (error: unknown) => {
@@ -394,7 +400,13 @@ export function createMercadoPagoCardPaymentBrick(
           .then((createdController) => {
             controller = createdController;
           })
-          .catch(reject);
+          .catch((error: unknown) => {
+            reject(
+              error instanceof Error
+                ? error
+                : new Error("PAYMENTS_BRICK_PROVIDER_UI_FAILURE"),
+            );
+          });
       });
 
       return submission;

@@ -25,6 +25,11 @@ function okResponse(data = projection): Response {
   });
 }
 
+function requireStringBody(init: RequestInit | undefined): string {
+  if (typeof init?.body !== "string") throw new Error("TEST_BODY_NOT_STRING");
+  return init.body;
+}
+
 describe("createPaymentsBrowserSubscriptionClient", () => {
   it("sends only provider card token on creation and keeps business context in a header", async () => {
     const secureFetch = vi.fn<typeof fetch>().mockResolvedValue(okResponse());
@@ -52,17 +57,20 @@ describe("createPaymentsBrowserSubscriptionClient", () => {
         "X-Business-ID": "business_browser_0001",
       },
     });
-    expect(JSON.parse(String(init?.body))).toEqual({
+    const requestBody = requireStringBody(init);
+    expect(JSON.parse(requestBody)).toEqual({
       cardToken: "card_token_browser_0001",
     });
-    expect(String(init?.body)).not.toContain("amount");
-    expect(String(init?.body)).not.toContain("currency");
-    expect(String(init?.body)).not.toContain("frequency");
-    expect(String(init?.body)).not.toContain("payerEmail");
+    expect(requestBody).not.toContain("amount");
+    expect(requestBody).not.toContain("currency");
+    expect(requestBody).not.toContain("frequency");
+    expect(requestBody).not.toContain("payerEmail");
   });
 
   it("uses GET for authoritative read and POST with empty bodies for lifecycle mutations", async () => {
-    const secureFetch = vi.fn<typeof fetch>().mockImplementation(async () => okResponse());
+    const secureFetch = vi
+      .fn<typeof fetch>()
+      .mockImplementation(async () => okResponse());
     const client = createPaymentsBrowserSubscriptionClient(
       { secureFetch },
       "business_browser_0001",
