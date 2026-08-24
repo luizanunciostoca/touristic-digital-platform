@@ -1,0 +1,83 @@
+name: Provider Final2 Card E2E 2026-08-24
+on:
+  push:
+    branches: [ops/provider-e2e-final2-e0d35bb-20260824]
+permissions:
+  contents: read
+jobs:
+  provider-card:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Install Chromium
+        run: |
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+      - name: Run TEST card end-to-end
+        env:
+          STAGING_URL: https://morro-digital-v2-staging.onrender.com
+        run: |
+          node <<'NODE'
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+          const candidate='e0d35bb2ec8d65861a4f64ceb3959617390c1071';
+          const pagePath='/apps/morro-digital-platform/public/business-onboarding.html';
+          const clean=v=>String(v??'').replace(/[\r\n]/g,' ').slice(0,400);
+          async function secure(page,name){for(let i=0;i<120;i++){for(const f of page.frames()){const x=f.locator(`input[name="${name}"]`).first();try{if(await x.count()&&await x.isVisible())return x}catch{}}await page.waitForTimeout(250)}throw new Error(`SECURE_FIELD_MISSING:${name}`)}
+          async function typeSecure(page,name,value){const x=await secure(page,name);await x.click();await x.pressSequentially(value,{delay:45});await x.press('Tab').catch(()=>{})}
+          (async()=>{
+            const browser=await chromium.launch({headless:true});
+            try{
+              const page=await browser.newPage();
+              const pageUrl=`${process.env.STAGING_URL}${pagePath}`;
+              const r=await page.goto(pageUrl,{waitUntil:'load',timeout:60000});
+              if(!r||r.status()!==200)throw new Error(`STAGING_HTTP_${r?.status()??0}`);
+              await page.waitForFunction(()=>Boolean(globalThis.__MORRO_RUNTIME_ENV__),null,{timeout:20000});
+              if(!await page.evaluate(()=>Boolean(globalThis.__MORRO_RUNTIME_ENV__?.VITE_MERCADO_PAGO_PUBLIC_KEY)))throw new Error('TEST_PUBLIC_KEY_NOT_AVAILABLE');
+              await page.evaluate(()=>{
+                globalThis.__FINAL2={verified:null,failed:null};
+                addEventListener('businessPaymentVerified',e=>{globalThis.__FINAL2.verified=e.detail});
+                addEventListener('businessPaymentVerificationFailed',e=>{globalThis.__FINAL2.failed=e.detail});
+              });
+              await page.waitForTimeout(2200);
+              const acceptedAt=new Date().toISOString();
+              const sessionId=`provider_final2_${Date.now()}`;
+              const checkoutPromise=page.waitForResponse(x=>x.request().method()==='POST'&&new URL(x.url()).pathname==='/api/payments/v1/checkouts',{timeout:30000});
+              await page.evaluate(({sessionId,acceptedAt,returnUrl})=>dispatchEvent(new CustomEvent('businessCheckoutRequested',{detail:{
+                sessionId,planId:'provider_acceptance_test',
+                contractor:{name:'Morro Digital Provider Acceptance',email:'payments.acceptance.20260824@example.com',phone:'+55 75 99999-0000',document:'12345678909'},
+                businessDraft:{demoBusinessId:'provider-final2',displayName:'Morro Digital Provider Acceptance',categoryId:'restaurant',specialty:'Provider TEST',environment:'sandbox',publishable:false},
+                acceptedTerms:[{type:'terms',version:'terms_v1',acceptedAt},{type:'privacy',version:'privacy_v1',acceptedAt}],
+                returnUrl,tutorial:false,requiresPaymentsCapability:true
+              }}})),{sessionId,acceptedAt,returnUrl:pageUrl});
+              const checkoutResponse=await checkoutPromise;
+              const checkoutBody=await checkoutResponse.json();
+              const checkoutId=checkoutBody?.data?.checkoutId;
+              if(checkoutResponse.status()!==201||!String(checkoutId||'').startsWith('ord_'))throw new Error(`CHECKOUT_FAILED:${checkoutResponse.status()}:${clean(checkoutBody?.error)}`);
+              const overlay=page.locator('[data-morro-payments-brick="card"]');
+              await overlay.waitFor({state:'visible',timeout:30000});
+              await typeSecure(page,'cardNumber',['5480','8328','0103','3311'].join(''));
+              await page.waitForTimeout(1200);
+              await typeSecure(page,'expirationDate','1130');
+              await typeSecure(page,'securityCode','123');
+              const holder=overlay.locator('input[name="HOLDER_NAME"]').first();await holder.fill('APRO');await holder.press('Tab');
+              const docSelect=overlay.locator('select').first();
+              if(await docSelect.count()){const opts=await docSelect.locator('option').evaluateAll(ns=>ns.map(n=>({v:n.value,t:(n.textContent||'').trim()})));const cpf=opts.find(o=>/CPF/iu.test(o.t)&&o.v);if(cpf)await docSelect.selectOption(cpf.v)}
+              const doc=overlay.locator('input[name="DOCUMENT"]').first();await doc.fill(['123','456','789','09'].join(''));await doc.press('Tab');
+              await overlay.getByText('Selecione o número de parcelas',{exact:false}).waitFor({state:'visible',timeout:20000});
+              const one=overlay.locator('label').filter({hasText:/^1x\s+R\$\s*10,00\s+À Vista$/iu}).first();
+              if(!await one.count())throw new Error('INSTALLMENT_LABEL_NOT_FOUND');
+              await one.click();
+              await page.waitForFunction(()=>{const t=(document.querySelector('[data-morro-payments-brick="card"]')?.textContent||'').replace(/\s+/g,' ');return !/Escolha uma opção para avançar/iu.test(t)&&!/Preencha todos os dados para continuar/iu.test(t)},null,{timeout:10000});
+              const cardPromise=page.waitForResponse(x=>x.request().method()==='POST'&&/\/api\/payments\/v1\/checkouts\/ord_[^/]+\/card$/u.test(new URL(x.url()).pathname),{timeout:45000});
+              await overlay.locator('button[type="submit"]').first().click();
+              const cardResponse=await cardPromise;
+              const cardBody=await cardResponse.json();
+              if(!cardResponse.ok())throw new Error(`CARD_FAILED:${cardResponse.status()}:${clean(cardBody?.error)}`);
+              await page.waitForFunction(()=>Boolean(globalThis.__FINAL2?.verified||globalThis.__FINAL2?.failed),null,{timeout:120000});
+              const out=await page.evaluate(()=>globalThis.__FINAL2);
+              if(out?.failed)throw new Error(`VERIFICATION_FAILED:${clean(out.failed.code)}`);
+              if(!out?.verified?.verified)throw new Error('VERIFICATION_NOT_CONFIRMED');
+              console.log('PROVIDER_FINAL2_CARD_E2E='+JSON.stringify({candidate,staging:true,realMoney:false,realCard:false,checkoutId,checkoutHttp:checkoutResponse.status(),cardHttp:cardResponse.status(),cardStatus:cardBody?.data?.status??null,verified:true,reference:out.verified.reference??null,activationStatus:out.verified.activationStatus??null}));
+            }finally{await browser.close()}
+          })().catch(e=>{console.error('PROVIDER_FINAL2_CARD_E2E_FAILED='+(e?.stack||e));process.exit(1)});
+          NODE
