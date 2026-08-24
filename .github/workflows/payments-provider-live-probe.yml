@@ -37,7 +37,6 @@ jobs:
           /tmp/pw/node_modules/.bin/playwright install --with-deps chromium >/dev/null
 
       - name: Probe exact live Brick without card submission
-        id: live_probe
         shell: bash
         run: |
           set +e
@@ -47,12 +46,20 @@ jobs:
           const base = process.env.STAGING_URL;
           const expectedSha = process.env.EXPECTED_SHA;
           const planId = 'provider_acceptance_test';
-          const sanitizeError = error => String(error?.message || error || 'unknown').replace(/[A-Za-z0-9_-]{40,}/g, '[redacted]');
+          const sanitize = value => String(value || '').replace(/[A-Za-z0-9_-]{40,}/g, '[redacted]');
 
           (async () => {
             const browser = await chromium.launch({ headless: true });
             try {
               const page = await browser.newPage();
+              const providerRequestFailures = [];
+              page.on('requestfailed', request => {
+                if (!request.url().includes('mercadopago')) return;
+                let origin = 'unknown';
+                try { origin = new URL(request.url()).origin; } catch {}
+                providerRequestFailures.push({ origin, error: sanitize(request.failure()?.errorText || 'request_failed') });
+              });
+
               const health = await page.request.get(`${base}/healthz`);
               const ready = await page.request.get(`${base}/readyz`);
               if (!health.ok() || !ready.ok()) throw new Error(`staging-not-ready:${health.status()}:${ready.status()}`);
@@ -62,9 +69,17 @@ jobs:
               }
 
               await page.goto(`${base}/business-onboarding.html`, { waitUntil: 'domcontentloaded' });
+              const runtimeSummary = await page.evaluate(() => {
+                const raw = String(window.__MORRO_RUNTIME_ENV__?.VITE_MERCADO_PAGO_PUBLIC_KEY || '').trim();
+                return {
+                  present: raw.length > 0,
+                  length: raw.length,
+                  prefix: raw.startsWith('TEST-') ? 'TEST' : raw.startsWith('APP_USR-') ? 'APP_USR' : raw ? 'OTHER' : 'NONE',
+                };
+              });
+
               const runtime = await page.request.get(`${base}/runtime-config.js`);
               const runtimeText = await runtime.text();
-              if (!runtimeText.includes('VITE_MERCADO_PAGO_PUBLIC_KEY')) throw new Error('public-key-not-exposed');
               for (const forbidden of ['MERCADO_PAGO_ACCESS_TOKEN','MERCADO_PAGO_WEBHOOK_SECRET','ORDERING_DATABASE_URL','FINANCIAL_DATABASE_URL']) {
                 if (runtimeText.includes(forbidden)) throw new Error(`secret-name-exposed:${forbidden}`);
               }
@@ -103,42 +118,55 @@ jobs:
               if (!data?.checkoutId || !data?.statusToken || !data?.plan?.amount) throw new Error('invalid-checkout-bootstrap');
               if (data.plan.id !== planId || data.plan.amount.minorUnits !== 1000 || data.plan.amount.currency !== 'BRL') throw new Error('acceptance-plan-authority-mismatch');
 
-              await page.evaluate(async ({ data, email }) => {
-                const module = await import('/apps/morro-digital-platform/dist/mercado-pago-card-payment-brick.js');
-                const brick = module.createMercadoPagoCardPaymentBrick(window, document, window.fetch.bind(window));
-                window.__MORRO_PROVIDER_PROBE__ = { brick, settled: false, error: null };
-                brick.present({ checkoutId: data.checkoutId, statusToken: data.statusToken, plan: data.plan, payerEmail: email })
-                  .then(() => { window.__MORRO_PROVIDER_PROBE__.settled = true; })
-                  .catch(error => { window.__MORRO_PROVIDER_PROBE__.error = String(error?.message || error); });
+              const brickBootstrap = await page.evaluate(async ({ data, email }) => {
+                try {
+                  const module = await import('/apps/morro-digital-platform/dist/mercado-pago-card-payment-brick.js');
+                  const brick = module.createMercadoPagoCardPaymentBrick(window, document, window.fetch.bind(window));
+                  window.__MORRO_PROVIDER_PROBE__ = { settled: false, error: null };
+                  brick.present({ checkoutId: data.checkoutId, statusToken: data.statusToken, plan: data.plan, payerEmail: email })
+                    .then(() => { window.__MORRO_PROVIDER_PROBE__.settled = true; })
+                    .catch(error => { window.__MORRO_PROVIDER_PROBE__.error = String(error?.message || error); });
+                  const deadline = Date.now() + 18000;
+                  while (Date.now() < deadline) {
+                    const overlay = Boolean(document.querySelector('[data-morro-payments-brick="card"]'));
+                    const error = window.__MORRO_PROVIDER_PROBE__.error;
+                    if (overlay || error) return { available: brick.available, overlay, error };
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                  }
+                  return { available: brick.available, overlay: false, error: 'BRICK_BOOTSTRAP_TIMEOUT' };
+                } catch (error) {
+                  return { available: null, overlay: false, error: String(error?.message || error) };
+                }
               }, { data, email: handoff.contractor.email });
 
-              await page.waitForSelector('[data-morro-payments-brick="card"]', { timeout: 20000 });
-              await page.waitForTimeout(3000);
-              const frames = page.frames().map((frame, index) => ({ index, name: frame.name(), origin: (() => { try { return new URL(frame.url()).origin; } catch { return ''; } })() }));
-              const fields = [];
-              for (let index = 0; index < page.frames().length; index += 1) {
-                const frame = page.frames()[index];
-                const inputs = await frame.locator('input, select, button').evaluateAll(nodes => nodes.map(node => ({
-                  tag: node.tagName.toLowerCase(), name: node.getAttribute('name'), id: node.id || null,
-                  type: node.getAttribute('type'), placeholder: node.getAttribute('placeholder'),
-                  ariaLabel: node.getAttribute('aria-label'), text: node.tagName === 'BUTTON' ? node.textContent?.trim() : null
-                })));
-                if (inputs.length) fields.push({ frame: index, inputs });
-              }
-              const result = { status: 'PASS', releaseSha: expectedSha, planId, checkoutId: data.checkoutId, amount: data.plan.amount, frames, fields };
+              const frames = brickBootstrap.overlay ? page.frames().map((frame, index) => ({
+                index,
+                name: frame.name(),
+                origin: (() => { try { return new URL(frame.url()).origin; } catch { return ''; } })()
+              })) : [];
+
+              const result = {
+                status: brickBootstrap.overlay && !brickBootstrap.error ? 'PASS' : 'FAIL',
+                releaseSha: expectedSha,
+                runtimeKey: runtimeSummary,
+                planId,
+                amount: data.plan.amount,
+                brick: { available: brickBootstrap.available, overlay: brickBootstrap.overlay, error: sanitize(brickBootstrap.error) || null },
+                providerRequestFailures,
+                frames,
+              };
               writeFileSync('/tmp/provider-live-probe.json', JSON.stringify(result, null, 2));
               console.log(JSON.stringify(result));
+              if (result.status !== 'PASS') process.exitCode = 1;
             } finally { await browser.close(); }
           })().catch(error => {
-            const result = { status: 'FAIL', releaseSha: expectedSha, error: sanitizeError(error) };
+            const result = { status: 'FAIL', releaseSha: expectedSha, error: sanitize(error?.message || error) };
             writeFileSync('/tmp/provider-live-probe.json', JSON.stringify(result, null, 2));
             console.error(JSON.stringify(result));
             process.exit(1);
           });
           NODE
-          exit_code=$?
-          echo "exit_code=$exit_code" >> "$GITHUB_OUTPUT"
-          exit "$exit_code"
+          exit $?
 
       - name: Publish sanitized evidence
         if: always()
