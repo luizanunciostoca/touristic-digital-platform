@@ -136,23 +136,36 @@ export function createPaymentsBrowserSubscriptionClient(
     return projection(payload.data);
   }
 
-  return Object.freeze({
-    async create(subscriptionId, cardTokenInput) {
+  const client: PaymentsBrowserSubscriptionClient = {
+    async create(
+      subscriptionId: unknown,
+      cardTokenInput: unknown,
+    ): Promise<BrowserProviderSubscriptionProjection> {
       const cardToken = normalizeCardToken(cardTokenInput);
       if (!cardToken) throw new Error("INVALID_CARD_TOKEN");
       return request(subscriptionId, "POST", undefined, { cardToken });
     },
-    async read(subscriptionId) {
+    async read(
+      subscriptionId: unknown,
+    ): Promise<BrowserProviderSubscriptionProjection> {
       return request(subscriptionId, "GET");
     },
-    async pause(subscriptionId) {
+    async pause(
+      subscriptionId: unknown,
+    ): Promise<BrowserProviderSubscriptionProjection> {
       return request(subscriptionId, "POST", "pause");
     },
-    async resume(subscriptionId) {
+    async resume(
+      subscriptionId: unknown,
+    ): Promise<BrowserProviderSubscriptionProjection> {
       return request(subscriptionId, "POST", "resume");
     },
-    async cancel(subscriptionId) {
+    async cancel(
+      subscriptionId: unknown,
+    ): Promise<BrowserProviderSubscriptionProjection> {
       return request(subscriptionId, "POST", "cancel");
     },
-  });
+  };
+
+  return Object.freeze(client);
 }
