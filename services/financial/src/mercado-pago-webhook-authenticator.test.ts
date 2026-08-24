@@ -2,7 +2,9 @@ import { createHmac } from "node:crypto";
 
 import { describe, expect, it } from "vitest";
 
-import { createMercadoPagoAuthenticatingWebhookVerifierFromEnvironment } from "./mercado-pago-webhook-authenticator.js";
+import {
+  createMercadoPagoAuthenticatingWebhookVerifierFromEnvironment,
+} from "./mercado-pago-webhook-authenticator.js";
 
 const webhookSecret = "webhook_secret_test_12345678901234567890";
 const accessToken = "TEST_ACCESS_TOKEN_123456789012345678901234567890";
