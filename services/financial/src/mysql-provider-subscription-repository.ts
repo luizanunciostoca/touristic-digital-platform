@@ -1,6 +1,7 @@
 import type { Pool, PoolConnection, RowDataPacket } from "mysql2/promise";
 
 import {
+  createMoney,
   normalizeFinancialTimestamp,
   type Money,
 } from "@touristic/financial";
@@ -36,7 +37,14 @@ interface ProviderSubscriptionRow extends RowDataPacket {
 }
 
 function timestamp(value: unknown): string {
-  const normalized = normalizeFinancialTimestamp(value);
+  if (value instanceof Date) {
+    return Number.isFinite(value.getTime()) ? value.toISOString() : "";
+  }
+  if (typeof value !== "string") return "";
+  const candidate = value.includes("T")
+    ? value
+    : `${value.trim().replace(" ", "T")}Z`;
+  const normalized = normalizeFinancialTimestamp(candidate);
   return normalized ? new Date(normalized).toISOString() : "";
 }
 
@@ -51,14 +59,12 @@ function minorUnits(value: unknown): number | null {
 
 function toBinding(row: ProviderSubscriptionRow): ProviderSubscriptionBinding {
   const amountMinor = minorUnits(row.amount_minor);
+  const amount = amountMinor === null ? null : createMoney(amountMinor, row.currency);
   const snapshot = normalizeProviderSubscriptionSnapshot({
     providerSubscriptionReference: row.provider_reference,
     externalReference: row.subscription_id,
     status: row.status,
-    amount:
-      amountMinor === null
-        ? null
-        : { minorUnits: amountMinor, currency: row.currency },
+    amount,
     frequency: row.frequency,
     frequencyType: row.frequency_type,
     payerEmail: row.payer_email,
@@ -78,8 +84,8 @@ function toBinding(row: ProviderSubscriptionRow): ProviderSubscriptionBinding {
     providerSubscriptionReference: snapshot.providerSubscriptionReference,
     status: snapshot.status,
     amount: snapshot.amount,
-    frequency: snapshot.frequency,
-    frequencyType: snapshot.frequencyType,
+    frequency: 1 as const,
+    frequencyType: "months" as const,
     payerEmail: snapshot.payerEmail,
     createdAt,
     updatedAt,
