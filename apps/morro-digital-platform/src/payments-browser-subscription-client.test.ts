@@ -27,7 +27,7 @@ function okResponse(data = projection): Response {
 
 describe("createPaymentsBrowserSubscriptionClient", () => {
   it("sends only provider card token on creation and keeps business context in a header", async () => {
-    const secureFetch = vi.fn(async () => okResponse());
+    const secureFetch = vi.fn<typeof fetch>().mockResolvedValue(okResponse());
     const client = createPaymentsBrowserSubscriptionClient(
       { secureFetch },
       "business_browser_0001",
@@ -62,7 +62,7 @@ describe("createPaymentsBrowserSubscriptionClient", () => {
   });
 
   it("uses GET for authoritative read and POST with empty bodies for lifecycle mutations", async () => {
-    const secureFetch = vi.fn(async () => okResponse());
+    const secureFetch = vi.fn<typeof fetch>().mockResolvedValue(okResponse());
     const client = createPaymentsBrowserSubscriptionClient(
       { secureFetch },
       "business_browser_0001",
@@ -73,7 +73,9 @@ describe("createPaymentsBrowserSubscriptionClient", () => {
     await client.resume("sub_browser_subscription_0001");
     await client.cancel("sub_browser_subscription_0001");
 
-    expect(secureFetch.mock.calls.map(([url, init]) => [url, init?.method])).toEqual([
+    expect(
+      secureFetch.mock.calls.map(([url, init]) => [url, init?.method]),
+    ).toEqual([
       [
         "/api/payments/v1/subscriptions/sub_browser_subscription_0001/provider",
         "GET",
@@ -97,15 +99,15 @@ describe("createPaymentsBrowserSubscriptionClient", () => {
   });
 
   it("rejects invalid identities and card tokens before network access", async () => {
-    const secureFetch = vi.fn(async () => okResponse());
+    const secureFetch = vi.fn<typeof fetch>().mockResolvedValue(okResponse());
     const client = createPaymentsBrowserSubscriptionClient(
       { secureFetch },
       "business_browser_0001",
     );
 
-    await expect(client.create("invalid", "card_token_browser_0001")).rejects.toThrow(
-      "INVALID_SUBSCRIPTION_ID",
-    );
+    await expect(
+      client.create("invalid", "card_token_browser_0001"),
+    ).rejects.toThrow("INVALID_SUBSCRIPTION_ID");
     await expect(
       client.create("sub_browser_subscription_0001", "<pan>"),
     ).rejects.toThrow("INVALID_CARD_TOKEN");
