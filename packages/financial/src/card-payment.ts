@@ -6,7 +6,7 @@ import {
   type PaymentId,
 } from "./index.js";
 
-const CARD_PAYMENT_TEXT = /^[^\u0000-\u001F\u007F<>]+$/u;
+const CARD_PAYMENT_TEXT = /^[^<>]+$/u;
 const CARD_PAYMENT_METHOD = /^[A-Za-z0-9_-]{1,80}$/u;
 const CARD_PAYMENT_REFERENCE = /^[A-Za-z0-9._:-]{4,160}$/u;
 const CARD_PAYMENT_METADATA_KEY = /^[A-Za-z0-9_.:-]{1,80}$/u;
@@ -57,12 +57,23 @@ export interface FinancialCardPaymentProviderPort {
   ): Promise<CardPaymentProviderReceipt>;
 }
 
+function hasControlCharacter(value: string): boolean {
+  for (const character of value) {
+    const codePoint = character.codePointAt(0);
+    if (codePoint !== undefined && (codePoint < 32 || codePoint === 127)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 function normalizeText(value: unknown, maxLength: number): string {
   if (typeof value !== "string") return "";
   const normalized = value.trim();
   return normalized &&
     normalized.length <= maxLength &&
-    CARD_PAYMENT_TEXT.test(normalized)
+    CARD_PAYMENT_TEXT.test(normalized) &&
+    !hasControlCharacter(normalized)
     ? normalized
     : "";
 }
