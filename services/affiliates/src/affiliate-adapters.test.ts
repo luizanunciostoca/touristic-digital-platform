@@ -99,7 +99,10 @@ function financialDouble(
 ) {
   return {
     requestMaterialization: vi.fn(async () => result),
-    readMaterialization: vi.fn(async () => null),
+    readMaterialization: vi.fn(
+      async (): Promise<AffiliateFinancialMaterializationResultV1 | null> =>
+        null,
+    ),
   };
 }
 
