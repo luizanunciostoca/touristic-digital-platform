@@ -41,7 +41,9 @@ function requirePublicKey(environment: MercadoPagoRuntimeEnvironment): string {
     );
   }
   if (!publicKeyPattern.test(value)) {
-    throw new Error(`${publicKeyEnvironmentKey} has an invalid public-key format.`);
+    throw new Error(
+      `${publicKeyEnvironmentKey} has an invalid public-key format.`,
+    );
   }
   return value;
 }
