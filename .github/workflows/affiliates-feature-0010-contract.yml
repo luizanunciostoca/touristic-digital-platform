@@ -13,6 +13,7 @@ on:
       - "docs/product-architecture/AFFILIATES-THREAT-MODEL.md"
       - "docs/migration/AFFILIATES-MIGRATION-MATRIX.md"
       - "docs/qa/AFFILIATES-FEATURE-0010-DISCOVERY-EVIDENCE.md"
+      - "docs/qa/AFFILIATES-FEATURE-0010-EQUIVALENCE-EVIDENCE.md"
       - "docs/qa/AFFILIATES-FEATURE-0010-TEST-PLAN.md"
       - "docs/operations/AFFILIATES-ROLLOUT-ROLLBACK.md"
       - "docs/product-architecture/CAPABILITY-MATRIX.md"
@@ -101,6 +102,7 @@ jobs:
           test -f docs/product-architecture/AFFILIATES-THREAT-MODEL.md
           test -f docs/migration/AFFILIATES-MIGRATION-MATRIX.md
           test -f docs/qa/AFFILIATES-FEATURE-0010-DISCOVERY-EVIDENCE.md
+          test -f docs/qa/AFFILIATES-FEATURE-0010-EQUIVALENCE-EVIDENCE.md
           test -f docs/qa/AFFILIATES-FEATURE-0010-TEST-PLAN.md
           test -f docs/operations/AFFILIATES-ROLLOUT-ROLLBACK.md
 
@@ -203,15 +205,38 @@ jobs:
           const registry = require('./docs/features/registry.json');
           const feature = registry.features.find((entry) => entry.id === 'FEATURE-0010');
           if (!feature) throw new Error('FEATURE-0010 is missing from the feature registry.');
-          if (feature.domain !== 'affiliates' || feature.status !== 'migrating') {
-            throw new Error(`FEATURE-0010 registry state diverged: ${feature.domain}/${feature.status}`);
+          if (feature.domain !== 'affiliates') {
+            throw new Error(`FEATURE-0010 domain diverged: ${feature.domain}`);
           }
-          if (feature.equivalence.behavior || feature.equivalence.visual || feature.equivalence.api) {
-            throw new Error('FEATURE-0010 was promoted without complete equivalence evidence.');
+          if (!['migrating', 'equivalent'].includes(feature.status)) {
+            throw new Error(`FEATURE-0010 registry state diverged: ${feature.status}`);
+          }
+          const flags = feature.equivalence ?? {};
+          if (feature.status === 'migrating') {
+            if (flags.behavior || flags.visual || flags.api) {
+              throw new Error('FEATURE-0010 migrating state cannot claim complete equivalence.');
+            }
+          } else {
+            if (!flags.behavior || !flags.visual || !flags.api) {
+              throw new Error('FEATURE-0010 equivalent state requires all registry equivalence flags true.');
+            }
+            if (feature.verification?.provider !== 'NOT_APPLICABLE') {
+              throw new Error('Affiliate provider verification must remain NOT_APPLICABLE.');
+            }
           }
           NODE
 
-          if ! grep -Eq 'MIG-0011.*FEATURE-0010.*(migrating|discovered)' docs/migration/MASTER-MIGRATION-TRACKER.md; then
+          if ! grep -Eq 'MIG-0011.*FEATURE-0010.*(migrating|equivalent)' docs/migration/MASTER-MIGRATION-TRACKER.md; then
             echo 'MIG-0011 is missing or has an invalid state in the master migration tracker.' >&2
             exit 1
+          fi
+
+          if grep -Fq '| MIG-0011 ' docs/migration/MASTER-MIGRATION-TRACKER.md && \
+             grep -Eq 'MIG-0011.*FEATURE-0010.*equivalent' docs/migration/MASTER-MIGRATION-TRACKER.md; then
+            require_fixed 'PASS       25' docs/migration/AFFILIATES-MIGRATION-MATRIX.md
+            require_fixed 'PARTIAL     0' docs/migration/AFFILIATES-MIGRATION-MATRIX.md
+            require_fixed 'GAP         0' docs/migration/AFFILIATES-MIGRATION-MATRIX.md
+            require_fixed 'N/A         2' docs/migration/AFFILIATES-MIGRATION-MATRIX.md
+            require_fixed 'FEATURE-0010' docs/qa/AFFILIATES-FEATURE-0010-EQUIVALENCE-EVIDENCE.md
+            require_fixed 'Financial remains sole authority' docs/qa/AFFILIATES-FEATURE-0010-EQUIVALENCE-EVIDENCE.md
           fi
