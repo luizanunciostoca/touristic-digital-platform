@@ -85,22 +85,19 @@ describe("direct card payment contract", () => {
     ).toBeNull();
   });
 
-  it(
-    "normalizes accepted provider receipts without provider payload leakage",
-    () => {
-      expect(
-        normalizeCardPaymentProviderReceipt({
-          providerPaymentReference: "1234567890",
-          status: "paid",
-        }),
-      ).toEqual({ providerPaymentReference: "1234567890", status: "paid" });
+  it("normalizes accepted provider receipts without provider payload leakage", () => {
+    expect(
+      normalizeCardPaymentProviderReceipt({
+        providerPaymentReference: "1234567890",
+        status: "paid",
+      }),
+    ).toEqual({ providerPaymentReference: "1234567890", status: "paid" });
 
-      expect(
-        normalizeCardPaymentProviderReceipt({
-          providerPaymentReference: "1234567890",
-          status: "unknown",
-        }),
-      ).toBeNull();
-    },
-  );
+    expect(
+      normalizeCardPaymentProviderReceipt({
+        providerPaymentReference: "1234567890",
+        status: "unknown",
+      }),
+    ).toBeNull();
+  });
 });

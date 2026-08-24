@@ -18,19 +18,16 @@ describe("loadMorroMercadoPagoRuntimeConfig", () => {
     expect(Object.isFrozen(config)).toBe(true);
   });
 
-  it(
-    "classifies an APP_USR public key as production without exposing server credentials",
-    () => {
-      expect(
-        loadMorroMercadoPagoRuntimeConfig({
-          VITE_MERCADO_PAGO_PUBLIC_KEY: productionPublicKey,
-        }),
-      ).toEqual({
-        publicKey: productionPublicKey,
-        credentialMode: "production",
-      });
-    },
-  );
+  it("classifies an APP_USR public key as production without exposing server credentials", () => {
+    expect(
+      loadMorroMercadoPagoRuntimeConfig({
+        VITE_MERCADO_PAGO_PUBLIC_KEY: productionPublicKey,
+      }),
+    ).toEqual({
+      publicKey: productionPublicKey,
+      credentialMode: "production",
+    });
+  });
 
   it("rejects a missing public key without leaking values", () => {
     expect(() => loadMorroMercadoPagoRuntimeConfig({})).toThrow(

@@ -34,7 +34,7 @@
     "affiliates:check": "pnpm affiliates:lint && pnpm affiliates:typecheck && pnpm affiliates:test && pnpm affiliates:build && pnpm affiliates:server:lint && pnpm affiliates:server:typecheck && pnpm affiliates:server:test && pnpm affiliates:server:build",
     "check": "pnpm format:check && pnpm architecture:check && pnpm features:check && pnpm environment:check && pnpm ci:governance:check && pnpm ci:supply-chain:strict && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm affiliates:check",
     "format": "prettier --write .",
-    "format:check": "prettier --write apps/morro-digital-platform/src/config/mercado-pago-runtime.test.ts packages/financial/src/card-payment.test.ts packages/financial/src/card-payment.ts services/financial/src/mercado-pago-card-payment-provider.test.ts && git diff --no-ext-diff -- apps/morro-digital-platform/src/config/mercado-pago-runtime.test.ts packages/financial/src/card-payment.test.ts packages/financial/src/card-payment.ts services/financial/src/mercado-pago-card-payment-provider.test.ts && exit 1",
+    "format:check": "prettier --check .",
     "release:gates": "node tooling/quality/run-local-release-gates.mjs",
     "ticketing:browser:smoke": "node --test tooling/ticketing/browser-contract.test.mjs"
   },

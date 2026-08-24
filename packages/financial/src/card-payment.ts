@@ -95,7 +95,9 @@ function normalizeCardPaymentIdempotencyKey(
   const normalized = normalizeText(value, 220);
   const prefix = "card-payment:v1:";
   if (!normalized.startsWith(prefix)) return null;
-  const expected = createCardPaymentIdempotencyKey(normalized.slice(prefix.length));
+  const expected = createCardPaymentIdempotencyKey(
+    normalized.slice(prefix.length),
+  );
   return expected === normalized ? expected : null;
 }
 
@@ -115,7 +117,9 @@ export function createCardPaymentProviderRequest(
   }>,
 ): CardPaymentProviderRequest | null {
   const paymentId = normalizePaymentId(input.paymentId);
-  const idempotencyKey = normalizeCardPaymentIdempotencyKey(input.idempotencyKey);
+  const idempotencyKey = normalizeCardPaymentIdempotencyKey(
+    input.idempotencyKey,
+  );
   const amountInput = input.amount as Partial<Money> | null | undefined;
   const amount = createMoney(amountInput?.minorUnits, amountInput?.currency);
   const description = normalizeText(input.description, 240);

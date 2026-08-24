@@ -45,11 +45,12 @@ const environment = Object.freeze({
 
 describe("Mercado Pago direct card provider", () => {
   it("creates a TEST payment through the official payments endpoint", async () => {
-    const fetchMock = vi.fn(async () =>
-      new Response(JSON.stringify({ id: 1234567890, status: "approved" }), {
-        status: 201,
-        headers: { "content-type": "application/json" },
-      }),
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ id: 1234567890, status: "approved" }), {
+          status: 201,
+          headers: { "content-type": "application/json" },
+        }),
     );
     const provider = createMercadoPagoCardPaymentProviderFromEnvironment(
       environment,
@@ -116,26 +117,23 @@ describe("Mercado Pago direct card provider", () => {
     },
   );
 
-  it(
-    "fails closed in TEST mode without explicit TEST credential confirmation",
-    async () => {
-      const provider = createMercadoPagoCardPaymentProviderFromEnvironment(
-        {
-          ...environment,
-          MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED: "false",
-        },
-        {
-          fetch: vi.fn(
-            async () => new Response("{}", { status: 200 }),
-          ) as unknown as typeof fetch,
-        },
-      );
+  it("fails closed in TEST mode without explicit TEST credential confirmation", async () => {
+    const provider = createMercadoPagoCardPaymentProviderFromEnvironment(
+      {
+        ...environment,
+        MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED: "false",
+      },
+      {
+        fetch: vi.fn(
+          async () => new Response("{}", { status: 200 }),
+        ) as unknown as typeof fetch,
+      },
+    );
 
-      await expect(provider.createCardPayment(request)).rejects.toMatchObject<
-        Partial<MercadoPagoProviderError>
-      >({ code: "MERCADO_PAGO_TEST_ACCOUNT_REQUIRED" });
-    },
-  );
+    await expect(provider.createCardPayment(request)).rejects.toMatchObject<
+      Partial<MercadoPagoProviderError>
+    >({ code: "MERCADO_PAGO_TEST_ACCOUNT_REQUIRED" });
+  });
 
   it("rejects non-BRL requests before the provider call", async () => {
     const usd = createMoney(100, "USD");
