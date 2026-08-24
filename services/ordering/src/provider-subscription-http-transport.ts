@@ -41,13 +41,20 @@ export type ProviderSubscriptionAuthorizationReason =
   | "missing_context"
   | "business_access_denied";
 
+export interface ProviderSubscriptionAuthorizedContext {
+  readonly allowed: true;
+  readonly actorSubject: string;
+  readonly actorEmail: string;
+  readonly tenantId: string;
+}
+
 export interface ProviderSubscriptionAuthorizationPort {
   authorize(
     request: ProviderSubscriptionHttpRequest,
     subscription: Subscription,
     mutation: boolean,
   ): Promise<
-    | Readonly<{ allowed: true; actorSubject: string; tenantId: string }>
+    | ProviderSubscriptionAuthorizedContext
     | Readonly<{
         allowed: false;
         reason: ProviderSubscriptionAuthorizationReason;
@@ -210,21 +217,16 @@ function recordBody(value: unknown): Record<string, unknown> | null {
     : null;
 }
 
-function createInput(value: unknown): Readonly<{
-  cardToken: string;
-  payerEmail: string;
-}> | null {
+function createCardToken(value: unknown): string {
   const body = recordBody(value);
-  if (!body) return null;
+  if (!body) return "";
   const cardToken = text(body.cardToken ?? body.card_token_id, 512);
-  const payerEmail = text(body.payerEmail ?? body.payer_email, 200).toLowerCase();
-  if (
-    !/^[A-Za-z0-9._:-]{4,512}$/u.test(cardToken) ||
-    !/^\S+@\S+\.\S+$/u.test(payerEmail)
-  ) {
-    return null;
-  }
-  return Object.freeze({ cardToken, payerEmail });
+  return /^[A-Za-z0-9._:-]{4,512}$/u.test(cardToken) ? cardToken : "";
+}
+
+function canonicalActorEmail(value: unknown): string {
+  const normalized = text(value, 200).toLowerCase();
+  return /^\S+@\S+\.\S+$/u.test(normalized) ? normalized : "";
 }
 
 function snapshotMatchesSubscription(
@@ -369,11 +371,7 @@ export class ProviderSubscriptionHttpTransport {
   private async create(
     request: ProviderSubscriptionHttpRequest,
     subscription: Subscription,
-    authorization: Readonly<{
-      allowed: true;
-      actorSubject: string;
-      tenantId: string;
-    }>,
+    authorization: ProviderSubscriptionAuthorizedContext,
     correlation: string,
   ): Promise<ProviderSubscriptionHttpResponse> {
     const now = canonicalNow(this.dependencies.clock);
@@ -416,9 +414,14 @@ export class ProviderSubscriptionHttpTransport {
     if (subscription.status !== "active") {
       return errorResponse(409, "SUBSCRIPTION_NOT_ACTIVE", correlation);
     }
-    const input = createInput(request.body);
-    if (!input) {
-      return errorResponse(400, "INVALID_SUBSCRIPTION_PROVIDER_REQUEST", correlation);
+    const cardToken = createCardToken(request.body);
+    const payerEmail = canonicalActorEmail(authorization.actorEmail);
+    if (!cardToken || !payerEmail) {
+      return errorResponse(
+        400,
+        "INVALID_SUBSCRIPTION_PROVIDER_REQUEST",
+        correlation,
+      );
     }
     const idempotencyKey = createSubscriptionProviderIdempotencyKey(
       subscription.id,
@@ -430,8 +433,8 @@ export class ProviderSubscriptionHttpTransport {
       frequency: 1,
       frequencyType: "months",
       reason: subscription.currentPeriod.pricing.planName,
-      payerEmail: input.payerEmail,
-      cardToken: input.cardToken,
+      payerEmail,
+      cardToken,
       backUrl: this.backUrl,
       metadata: {
         subscriptionId: subscription.id,
@@ -440,7 +443,11 @@ export class ProviderSubscriptionHttpTransport {
       },
     });
     if (!providerRequest) {
-      return errorResponse(400, "INVALID_SUBSCRIPTION_PROVIDER_REQUEST", correlation);
+      return errorResponse(
+        400,
+        "INVALID_SUBSCRIPTION_PROVIDER_REQUEST",
+        correlation,
+      );
     }
     const providerSnapshot = normalizeProviderSubscriptionSnapshot(
       await this.dependencies.provider.createSubscription(providerRequest),
@@ -474,11 +481,7 @@ export class ProviderSubscriptionHttpTransport {
 
   private async read(
     subscription: Subscription,
-    authorization: Readonly<{
-      allowed: true;
-      actorSubject: string;
-      tenantId: string;
-    }>,
+    authorization: ProviderSubscriptionAuthorizedContext,
     correlation: string,
   ): Promise<ProviderSubscriptionHttpResponse> {
     const existing = await this.dependencies.bindings.findBySubscriptionId(
@@ -522,11 +525,7 @@ export class ProviderSubscriptionHttpTransport {
   private async transition(
     action: "pause" | "resume" | "cancel",
     subscription: Subscription,
-    authorization: Readonly<{
-      allowed: true;
-      actorSubject: string;
-      tenantId: string;
-    }>,
+    authorization: ProviderSubscriptionAuthorizedContext,
     correlation: string,
   ): Promise<ProviderSubscriptionHttpResponse> {
     const existing = await this.dependencies.bindings.findBySubscriptionId(
@@ -542,7 +541,11 @@ export class ProviderSubscriptionHttpTransport {
       return errorResponse(409, "SUBSCRIPTION_NOT_ACTIVE", correlation);
     }
     if (action === "cancel" && subscription.status === "past_due") {
-      return errorResponse(409, "SUBSCRIPTION_CANCELLATION_CONFLICT", correlation);
+      return errorResponse(
+        409,
+        "SUBSCRIPTION_CANCELLATION_CONFLICT",
+        correlation,
+      );
     }
 
     const now = canonicalNow(this.dependencies.clock);
