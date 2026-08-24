@@ -14,12 +14,14 @@ import type {
   ResultSetHeader,
   RowDataPacket,
 } from "mysql2/promise";
+import { lockAndAssertAffiliateAttributionEligibility } from "./affiliate-eligibility-gate.js";
 
 export interface AffiliateReferralMutationInput {
   readonly evidenceId: string;
   readonly attributionId: string;
   readonly affiliateId: string;
   readonly programId: string;
+  readonly destinationId?: string;
   readonly subjectId: string;
   readonly source:
     "platform_link" | "platform_qr" | "checkout_code" | "server_referral";
@@ -80,6 +82,9 @@ export class AffiliateApplicationService {
   public async recordReferralAndEstablishAttribution(
     input: AffiliateReferralMutationInput,
   ): Promise<AffiliateReferralMutationResult> {
+    if (!input.destinationId) {
+      throw new Error("AFFILIATE_AUTHORIZATION_CONTEXT_INCOMPLETE");
+    }
     const authorized = await this.authorization.authorize(
       "affiliate.establish_attribution",
       {
@@ -90,7 +95,12 @@ export class AffiliateApplicationService {
         correlationId: input.correlationId,
       },
     );
-    if (!authorized.allowed) throw new Error("AFFILIATE_AUTHORIZATION_DENIED");
+    if (!authorized.allowed) {
+      throw new Error("AFFILIATE_AUTHORIZATION_DENIED");
+    }
+    if (!authorized.decisionReference) {
+      throw new Error("AFFILIATE_AUTHORIZATION_CONTEXT_INCOMPLETE");
+    }
 
     const evidence = createReferralEvidence({
       id: input.evidenceId as never,
@@ -103,12 +113,15 @@ export class AffiliateApplicationService {
       receivedAt: input.receivedAt,
       validatedByServer: true,
     });
-    if (!evidence) throw new Error("AFFILIATE_REFERRAL_EVIDENCE_INVALID");
+    if (!evidence) {
+      throw new Error("AFFILIATE_REFERRAL_EVIDENCE_INVALID");
+    }
     const idempotencyKey = await createAffiliateIdempotencyKey(
       "establish_attribution",
       {
         affiliateId: input.affiliateId,
         programId: input.programId,
+        destinationId: input.destinationId,
         subjectId: input.subjectId,
         evidenceFingerprint: input.evidenceFingerprint,
       },
@@ -124,7 +137,9 @@ export class AffiliateApplicationService {
       );
       if (replay) {
         const existing = await this.lockSubject(connection, input.subjectId);
-        if (!existing) throw new Error("AFFILIATE_IDEMPOTENCY_RESULT_MISSING");
+        if (!existing) {
+          throw new Error("AFFILIATE_IDEMPOTENCY_RESULT_MISSING");
+        }
         await connection.commit();
         return {
           attribution: attributionFromRow(existing),
@@ -132,6 +147,12 @@ export class AffiliateApplicationService {
           idempotencyKey,
         };
       }
+      await lockAndAssertAffiliateAttributionEligibility(
+        connection,
+        input.affiliateId,
+        input.programId,
+        input.destinationId,
+      );
       await this.insertEvidence(connection, evidence);
       const existing = await this.lockSubject(connection, input.subjectId);
       const candidate = createAttribution(
@@ -139,14 +160,18 @@ export class AffiliateApplicationService {
         evidence,
         input.serverObservedAt,
       );
-      if (!candidate) throw new Error("AFFILIATE_ATTRIBUTION_INVALID");
+      if (!candidate) {
+        throw new Error("AFFILIATE_ATTRIBUTION_INVALID");
+      }
       const selected = chooseAttribution(
         existing ? attributionFromRow(existing) : null,
         candidate,
         existing?.order_id ? "locked" : "open",
         input.serverObservedAt,
       );
-      if (!selected) throw new Error("AFFILIATE_ATTRIBUTION_NOT_SELECTED");
+      if (!selected) {
+        throw new Error("AFFILIATE_ATTRIBUTION_NOT_SELECTED");
+      }
       if (!existing || selected.id !== existing.attribution_id) {
         await this.insertAttribution(connection, selected);
         await this.insertOutbox(connection, selected);
@@ -181,8 +206,9 @@ export class AffiliateApplicationService {
          WHERE subject_id = ? AND order_id IS NULL AND expires_at > ?`,
         [orderId, date(occurredAt), subjectId, date(occurredAt)],
       );
-      if (result.affectedRows !== 1)
+      if (result.affectedRows !== 1) {
         throw new Error("AFFILIATE_ORDER_ATTRIBUTION_LOCK_CONFLICT");
+      }
       await connection.commit();
     } catch (error) {
       await connection.rollback();
@@ -210,8 +236,9 @@ export class AffiliateApplicationService {
     if (
       typeof storedDigest !== "string" ||
       storedDigest.toLowerCase() !== semanticDigest.toLowerCase()
-    )
+    ) {
       throw new Error("AFFILIATE_IDEMPOTENCY_CONFLICT");
+    }
     return true;
   }
 
