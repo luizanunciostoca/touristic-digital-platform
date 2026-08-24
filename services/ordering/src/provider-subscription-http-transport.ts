@@ -95,7 +95,10 @@ function text(value: unknown, maxLength: number): string {
     : "";
 }
 
-function header(request: ProviderSubscriptionHttpRequest, name: string): string {
+function header(
+  request: ProviderSubscriptionHttpRequest,
+  name: string,
+): string {
   const target = name.toLowerCase();
   for (const [key, raw] of Object.entries(request.headers ?? {})) {
     if (key.toLowerCase() !== target) continue;
@@ -200,12 +203,7 @@ function canonicalNow(clock: ProviderSubscriptionClockPort): string {
 function httpsUrl(value: string): string {
   try {
     const url = new URL(value);
-    if (
-      url.protocol !== "https:" ||
-      url.username ||
-      url.password ||
-      url.hash
-    ) {
+    if (url.protocol !== "https:" || url.username || url.password || url.hash) {
       return "";
     }
     return url.toString();
@@ -326,7 +324,9 @@ export class ProviderSubscriptionHttpTransport {
 
     const method = request.method.trim().toUpperCase();
     if (
-      (matched.action === "provider" && method !== "GET" && method !== "POST") ||
+      (matched.action === "provider" &&
+        method !== "GET" &&
+        method !== "POST") ||
       (matched.action !== "provider" && method !== "POST")
     ) {
       return errorResponse(405, "METHOD_NOT_ALLOWED", correlation);
@@ -376,7 +376,11 @@ export class ProviderSubscriptionHttpTransport {
         correlation,
       );
     } catch {
-      return errorResponse(503, "SUBSCRIPTION_PROVIDER_UNAVAILABLE", correlation);
+      return errorResponse(
+        503,
+        "SUBSCRIPTION_PROVIDER_UNAVAILABLE",
+        correlation,
+      );
     }
   }
 
@@ -583,7 +587,8 @@ export class ProviderSubscriptionHttpTransport {
       if (!scheduled) {
         throw new Error("SUBSCRIPTION_CANCELLATION_INVALID");
       }
-      canonicalSubscription = await this.dependencies.subscriptions.save(scheduled);
+      canonicalSubscription =
+        await this.dependencies.subscriptions.save(scheduled);
     }
 
     const rawSnapshot = await this.executeTransition(

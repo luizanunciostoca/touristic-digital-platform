@@ -5,7 +5,9 @@ import { describe, expect, it, vi } from "vitest";
 import { createPaymentsSubscriptionApi } from "./payments-subscription-api.mjs";
 
 function request({ method = "GET", body, headers = {} } = {}) {
-  const stream = Readable.from(body === undefined ? [] : [JSON.stringify(body)]);
+  const stream = Readable.from(
+    body === undefined ? [] : [JSON.stringify(body)],
+  );
   stream.method = method;
   stream.headers = headers;
   stream.socket = { remoteAddress: "127.0.0.1" };
@@ -34,8 +36,7 @@ function response() {
   };
 }
 
-const pathname =
-  "/api/payments/v1/subscriptions/sub_runtime_api_0001/provider";
+const pathname = "/api/payments/v1/subscriptions/sub_runtime_api_0001/provider";
 
 describe("createPaymentsSubscriptionApi", () => {
   it("routes a bounded JSON mutation into the canonical subscription transport", async () => {

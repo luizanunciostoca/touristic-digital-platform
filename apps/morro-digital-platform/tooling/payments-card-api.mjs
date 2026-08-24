@@ -152,7 +152,8 @@ async function readJsonBody(request) {
         : rawChunk instanceof Uint8Array
           ? Buffer.from(rawChunk)
           : null;
-    if (!chunk) throw new CardApiInputError(400, "INVALID_CARD_PAYMENT_REQUEST");
+    if (!chunk)
+      throw new CardApiInputError(400, "INVALID_CARD_PAYMENT_REQUEST");
     total += chunk.length;
     if (total > maxBodyBytes) {
       throw new CardApiInputError(413, "CARD_PAYMENT_REQUEST_TOO_LARGE");
@@ -217,7 +218,8 @@ export function createPaymentsCardApi({
 
       const orderingPool = createOrderingMySqlPoolFromEnvironment(environment);
       pools.push(orderingPool);
-      const financialPool = createFinancialMySqlPoolFromEnvironment(environment);
+      const financialPool =
+        createFinancialMySqlPoolFromEnvironment(environment);
       pools.push(financialPool);
       await Promise.all([
         applyOrderingM151Schema(orderingPool),
@@ -233,9 +235,8 @@ export function createPaymentsCardApi({
         access: new MySqlCheckoutAccessRepository(orderingPool),
         statusCapabilities,
         rateLimits: createInMemoryCheckoutRateLimitPort(),
-        provider: createMercadoPagoCardPaymentProviderFromEnvironment(
-          environment,
-        ),
+        provider:
+          createMercadoPagoCardPaymentProviderFromEnvironment(environment),
         audit: {
           record(event) {
             runtimeAudit(audit, event);
@@ -302,12 +303,7 @@ export function createPaymentsCardApi({
       }
       const method = String(request.method || "GET").toUpperCase();
       if (method !== "POST") {
-        sendJson(
-          response,
-          405,
-          { error: "METHOD_NOT_ALLOWED" },
-          correlationId,
-        );
+        sendJson(response, 405, { error: "METHOD_NOT_ALLOWED" }, correlationId);
         return;
       }
       if (!browserOriginAllowed(request, runtime.origins, runtime.production)) {

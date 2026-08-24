@@ -22,7 +22,10 @@ interface MercadoPagoInstance {
 }
 
 interface MercadoPagoConstructor {
-  new (publicKey: string, options?: Readonly<Record<string, unknown>>): MercadoPagoInstance;
+  new (
+    publicKey: string,
+    options?: Readonly<Record<string, unknown>>,
+  ): MercadoPagoInstance;
 }
 
 interface MercadoPagoWindow extends Window {
@@ -110,7 +113,9 @@ export function normalizeCardPaymentBrickSubmission(
     !Number.isSafeInteger(installments) ||
     installments < 1 ||
     installments > 48 ||
-    ((issuerRaw !== null && issuerRaw !== undefined && issuerRaw !== "") &&
+    (issuerRaw !== null &&
+      issuerRaw !== undefined &&
+      issuerRaw !== "" &&
       !issuerId)
   ) {
     return null;
@@ -125,7 +130,9 @@ export function normalizeCardPaymentBrickSubmission(
   });
 }
 
-async function boundedJson(response: Response): Promise<Record<string, unknown>> {
+async function boundedJson(
+  response: Response,
+): Promise<Record<string, unknown>> {
   const body = await response.text();
   if (new TextEncoder().encode(body).byteLength > maxResponseBytes) {
     throw new Error("PAYMENTS_BRICK_RESPONSE_TOO_LARGE");
@@ -200,7 +207,9 @@ function createCorrelationId(view: Window): string {
   return `brick:${view.crypto.randomUUID()}`;
 }
 
-function resolveMercadoPagoConstructor(view: MercadoPagoWindow): MercadoPagoConstructor | null {
+function resolveMercadoPagoConstructor(
+  view: MercadoPagoWindow,
+): MercadoPagoConstructor | null {
   return typeof view.MercadoPago === "function" ? view.MercadoPago : null;
 }
 
@@ -213,7 +222,10 @@ function loadMercadoPagoSdk(
 
   return new Promise((resolve, reject) => {
     let settled = false;
-    const finish = (constructor: MercadoPagoConstructor | null, error?: Error) => {
+    const finish = (
+      constructor: MercadoPagoConstructor | null,
+      error?: Error,
+    ) => {
       if (settled) return;
       settled = true;
       view.clearTimeout(timeoutId);
@@ -226,7 +238,8 @@ function loadMercadoPagoSdk(
         resolveMercadoPagoConstructor(view),
         new Error("PAYMENTS_BRICK_SDK_INVALID"),
       );
-    const onError = () => finish(null, new Error("PAYMENTS_BRICK_SDK_UNAVAILABLE"));
+    const onError = () =>
+      finish(null, new Error("PAYMENTS_BRICK_SDK_UNAVAILABLE"));
     const selector = `script[${sdkMarker}="v2"]`;
     const existingScript = document.querySelector<HTMLScriptElement>(selector);
     const script = existingScript ?? document.createElement("script");
@@ -296,7 +309,8 @@ export function createMercadoPagoCardPaymentBrick(
 ): MercadoPagoCardPaymentBrick {
   const view = viewInput as MercadoPagoWindow;
   const runtimeEnvironment = view.__MORRO_RUNTIME_ENV__ ?? {};
-  const rawPublicKey = runtimeEnvironment.VITE_MERCADO_PAGO_PUBLIC_KEY?.trim() ?? "";
+  const rawPublicKey =
+    runtimeEnvironment.VITE_MERCADO_PAGO_PUBLIC_KEY?.trim() ?? "";
   if (!rawPublicKey) {
     return Object.freeze({
       available: false,
@@ -336,7 +350,9 @@ export function createMercadoPagoCardPaymentBrick(
       }
 
       const Constructor = await loadMercadoPagoSdk(view, document);
-      const mercadoPago = new Constructor(config.publicKey, { locale: "pt-BR" });
+      const mercadoPago = new Constructor(config.publicKey, {
+        locale: "pt-BR",
+      });
       const surface = createSurface(document);
       overlay = surface.overlay;
 

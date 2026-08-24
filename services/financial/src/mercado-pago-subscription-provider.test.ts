@@ -137,7 +137,8 @@ describe("Mercado Pago subscription provider", () => {
   ] as const)(
     "%s writes the provider state then verifies it by GET",
     async (operation, writtenStatus, readStatus) => {
-      const requests: Array<{ url: string; init: RequestInit | undefined }> = [];
+      const requests: Array<{ url: string; init: RequestInit | undefined }> =
+        [];
       const fetchMock: typeof fetch = async (input, init) => {
         requests.push({ url: normalizeRequestUrl(input), init });
         if (init?.method === "PUT") {

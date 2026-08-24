@@ -107,12 +107,7 @@ function httpsUrl(value: unknown): string {
   if (!normalized) return "";
   try {
     const url = new URL(normalized);
-    if (
-      url.protocol !== "https:" ||
-      url.username ||
-      url.password ||
-      url.hash
-    ) {
+    if (url.protocol !== "https:" || url.username || url.password || url.hash) {
       return "";
     }
     return url.toString();
@@ -165,10 +160,7 @@ export function normalizeProviderSubscriptionRequest(
   const expectedIdempotencyKey =
     createSubscriptionProviderIdempotencyKey(subscriptionId);
   const idempotencyKey = text(input.idempotencyKey, 180);
-  const amount = createMoney(
-    input.amount?.minorUnits,
-    input.amount?.currency,
-  );
+  const amount = createMoney(input.amount?.minorUnits, input.amount?.currency);
   const reason = text(input.reason, 160);
   const payerEmail = text(input.payerEmail, 200).toLowerCase();
   const cardToken = text(input.cardToken, 512);
@@ -222,10 +214,7 @@ export function normalizeProviderSubscriptionSnapshot(
     180,
   );
   const externalReference = text(input.externalReference, 120);
-  const amount = createMoney(
-    input.amount?.minorUnits,
-    input.amount?.currency,
-  );
+  const amount = createMoney(input.amount?.minorUnits, input.amount?.currency);
   const payerEmail = text(input.payerEmail, 200).toLowerCase();
   const status =
     typeof input.status === "string" &&

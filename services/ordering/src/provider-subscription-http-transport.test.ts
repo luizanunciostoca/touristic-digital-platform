@@ -111,13 +111,16 @@ function createFixture(
   let capturedCreateRequest: ProviderSubscriptionRequest | null = null;
 
   const createSubscription = vi.fn(
-    async (input: ProviderSubscriptionRequest): Promise<ProviderSubscriptionSnapshot> => {
+    async (
+      input: ProviderSubscriptionRequest,
+    ): Promise<ProviderSubscriptionSnapshot> => {
       capturedCreateRequest = input;
       return snapshot();
     },
   );
   const readSubscription = vi.fn(
-    async (_reference: string): Promise<ProviderSubscriptionSnapshot> => snapshot(),
+    async (_reference: string): Promise<ProviderSubscriptionSnapshot> =>
+      snapshot(),
   );
   const pauseSubscription = vi.fn(
     async (_reference: string): Promise<ProviderSubscriptionSnapshot> =>

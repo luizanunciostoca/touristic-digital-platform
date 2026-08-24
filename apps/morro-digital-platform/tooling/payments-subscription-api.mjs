@@ -99,7 +99,10 @@ async function readJsonBody(request) {
     }
     total += chunk.length;
     if (total > maxBodyBytes) {
-      throw new SubscriptionApiInputError(413, "SUBSCRIPTION_REQUEST_TOO_LARGE");
+      throw new SubscriptionApiInputError(
+        413,
+        "SUBSCRIPTION_REQUEST_TOO_LARGE",
+      );
     }
     chunks.push(chunk);
   }
@@ -229,7 +232,8 @@ export function createPaymentsSubscriptionApi({
 
       const orderingPool = createOrderingMySqlPoolFromEnvironment(environment);
       pools.push(orderingPool);
-      const financialPool = createFinancialMySqlPoolFromEnvironment(environment);
+      const financialPool =
+        createFinancialMySqlPoolFromEnvironment(environment);
       pools.push(financialPool);
       await Promise.all([
         applyOrderingM151Schema(orderingPool),
@@ -240,9 +244,8 @@ export function createPaymentsSubscriptionApi({
       const transport = new ProviderSubscriptionHttpTransport({
         subscriptions: new MySqlSubscriptionRepository(orderingPool),
         bindings: new MySqlProviderSubscriptionRepository(financialPool),
-        provider: createMercadoPagoSubscriptionProviderFromEnvironment(
-          environment,
-        ),
+        provider:
+          createMercadoPagoSubscriptionProviderFromEnvironment(environment),
         authorization: authorizationPort({ authApi, access }),
         audit: {
           record(event) {

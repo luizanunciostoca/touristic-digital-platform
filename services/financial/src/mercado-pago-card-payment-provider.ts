@@ -277,7 +277,10 @@ export function createMercadoPagoCardPaymentProviderFromEnvironment(
         readbackReference !== providerPaymentReference ||
         externalReference !== request.paymentId ||
         currency !== request.amount.currency ||
-        !amountMatches(readback.transaction_amount, request.amount.minorUnits) ||
+        !amountMatches(
+          readback.transaction_amount,
+          request.amount.minorUnits,
+        ) ||
         !status
       ) {
         throw new MercadoPagoProviderError("MERCADO_PAGO_INVALID_RESPONSE");

@@ -335,19 +335,27 @@ export class CardPaymentHttpTransport {
           orderId,
           paymentId: payment.id,
         });
-        return response(200, {
-          data: Object.freeze({
-            checkoutId: order.id,
-            paymentId: payment.id,
-            status: localStatus(payment, order),
-            submitted: true,
-            replayed: true,
-          }),
-        }, correlationId);
+        return response(
+          200,
+          {
+            data: Object.freeze({
+              checkoutId: order.id,
+              paymentId: payment.id,
+              status: localStatus(payment, order),
+              submitted: true,
+              replayed: true,
+            }),
+          },
+          correlationId,
+        );
       }
 
       if (payment.status !== "pending" || order.status !== "pending_payment") {
-        return errorResponse(409, "CARD_PAYMENT_NOT_SUBMITTABLE", correlationId);
+        return errorResponse(
+          409,
+          "CARD_PAYMENT_NOT_SUBMITTABLE",
+          correlationId,
+        );
       }
 
       const idempotencyKey = createCardPaymentIdempotencyKey(payment.id);
@@ -370,12 +378,15 @@ export class CardPaymentHttpTransport {
         },
       });
       if (!providerRequest) {
-        return errorResponse(400, "INVALID_CARD_PAYMENT_REQUEST", correlationId);
+        return errorResponse(
+          400,
+          "INVALID_CARD_PAYMENT_REQUEST",
+          correlationId,
+        );
       }
 
-      const receipt = await this.dependencies.provider.createCardPayment(
-        providerRequest,
-      );
+      const receipt =
+        await this.dependencies.provider.createCardPayment(providerRequest);
       const persisted = await this.dependencies.payments.save(
         Object.freeze({
           ...payment,
@@ -398,15 +409,19 @@ export class CardPaymentHttpTransport {
         orderId,
         paymentId: persisted.id,
       });
-      return response(202, {
-        data: Object.freeze({
-          checkoutId: order.id,
-          paymentId: persisted.id,
-          status: localStatus(persisted, order),
-          submitted: true,
-          replayed: false,
-        }),
-      }, correlationId);
+      return response(
+        202,
+        {
+          data: Object.freeze({
+            checkoutId: order.id,
+            paymentId: persisted.id,
+            status: localStatus(persisted, order),
+            submitted: true,
+            replayed: false,
+          }),
+        },
+        correlationId,
+      );
     } catch {
       await this.dependencies.audit.record({
         action: "checkout.card_submit",

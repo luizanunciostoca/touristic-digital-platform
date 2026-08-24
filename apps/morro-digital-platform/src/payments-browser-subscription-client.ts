@@ -3,20 +3,14 @@ import { normalizeBusinessId } from "@touristic/business";
 import { normalizeSubscriptionId } from "@touristic/ordering/subscription";
 
 export type BrowserProviderSubscriptionStatus =
-  | "pending"
-  | "authorized"
-  | "paused"
-  | "cancelled";
+  "pending" | "authorized" | "paused" | "cancelled";
 
 export interface BrowserProviderSubscriptionProjection {
   readonly subscriptionId: string;
   readonly providerSubscriptionReference: string;
   readonly providerStatus: BrowserProviderSubscriptionStatus;
   readonly subscriptionStatus:
-    | "active"
-    | "cancel_at_period_end"
-    | "past_due"
-    | "cancelled";
+    "active" | "cancel_at_period_end" | "past_due" | "cancelled";
   readonly plan: Readonly<{
     id: string;
     name: string;
@@ -34,9 +28,15 @@ export interface PaymentsBrowserSubscriptionClient {
     cardToken: unknown,
   ): Promise<BrowserProviderSubscriptionProjection>;
   read(subscriptionId: unknown): Promise<BrowserProviderSubscriptionProjection>;
-  pause(subscriptionId: unknown): Promise<BrowserProviderSubscriptionProjection>;
-  resume(subscriptionId: unknown): Promise<BrowserProviderSubscriptionProjection>;
-  cancel(subscriptionId: unknown): Promise<BrowserProviderSubscriptionProjection>;
+  pause(
+    subscriptionId: unknown,
+  ): Promise<BrowserProviderSubscriptionProjection>;
+  resume(
+    subscriptionId: unknown,
+  ): Promise<BrowserProviderSubscriptionProjection>;
+  cancel(
+    subscriptionId: unknown,
+  ): Promise<BrowserProviderSubscriptionProjection>;
 }
 
 type SecureFetchPort = Pick<DashboardAuthClient, "secureFetch">;

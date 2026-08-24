@@ -52,7 +52,8 @@ function tenantId(value: unknown): string {
 
 function toBinding(row: ProviderSubscriptionRow): ProviderSubscriptionBinding {
   const amountMinor = minorUnits(row.amount_minor);
-  const amount = amountMinor === null ? null : createMoney(amountMinor, row.currency);
+  const amount =
+    amountMinor === null ? null : createMoney(amountMinor, row.currency);
   const tenant = tenantId(row.tenant_id);
   const snapshot = normalizeProviderSubscriptionSnapshot({
     providerSubscriptionReference: row.provider_reference,
@@ -122,9 +123,7 @@ async function selectLocked(
   return rows.map(toBinding);
 }
 
-export class MySqlProviderSubscriptionRepository
-  implements ProviderSubscriptionBindingRepositoryPort
-{
+export class MySqlProviderSubscriptionRepository implements ProviderSubscriptionBindingRepositoryPort {
   constructor(private readonly pool: Pool) {}
 
   async findBySubscriptionId(
@@ -214,7 +213,11 @@ export class MySqlProviderSubscriptionRepository
            FROM financial_provider_subscriptions
           WHERE subscription_id = ? AND provider_reference = ? AND tenant_id = ?
           LIMIT 1`,
-        [snapshot.externalReference, snapshot.providerSubscriptionReference, tenant],
+        [
+          snapshot.externalReference,
+          snapshot.providerSubscriptionReference,
+          tenant,
+        ],
       );
       const persisted = rows[0] ? toBinding(rows[0]) : null;
       if (!persisted || !immutableMatches(persisted, snapshot, tenant)) {

@@ -53,7 +53,9 @@ function checkoutBrickBootstrap(value: unknown): CheckoutBrickBootstrap | null {
     typeof data.statusToken === "string" ? data.statusToken.trim() : "";
   const minorUnits = amount.minorUnits;
   const currency =
-    typeof amount.currency === "string" ? amount.currency.trim().toUpperCase() : "";
+    typeof amount.currency === "string"
+      ? amount.currency.trim().toUpperCase()
+      : "";
 
   if (
     !checkoutId.startsWith("ord_") ||
@@ -77,7 +79,8 @@ function checkoutBrickBootstrap(value: unknown): CheckoutBrickBootstrap | null {
 
 function requestPath(input: RequestInfo | URL, view: Window): string {
   try {
-    if (typeof input === "string") return new URL(input, view.location.href).pathname;
+    if (typeof input === "string")
+      return new URL(input, view.location.href).pathname;
     if (input instanceof URL) return input.pathname;
     return new URL(input.url, view.location.href).pathname;
   } catch {
@@ -114,7 +117,9 @@ export function installBusinessPaymentsCheckoutComposition(
   const bootstraps = new Map<string, CheckoutBrickBootstrap>();
   const checkoutFetch: typeof fetch = async (input, init) => {
     const response = await fetchFn(input, init);
-    const method = String(init?.method ?? (input instanceof Request ? input.method : "GET"))
+    const method = String(
+      init?.method ?? (input instanceof Request ? input.method : "GET"),
+    )
       .trim()
       .toUpperCase();
     if (

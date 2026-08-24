@@ -22,7 +22,10 @@ import { createCheckoutStatusCapability } from "./checkout-security.js";
 const createdAt = "2026-08-23T22:00:00.000Z";
 const orderId = normalizeOrderId("ord_card_http_0001");
 const paymentId = normalizePaymentId("pay_card_http_0001");
-const requestKey = createBusinessOrderRequestKey("session_card_http_0001", "growth");
+const requestKey = createBusinessOrderRequestKey(
+  "session_card_http_0001",
+  "growth",
+);
 const source = normalizeOrderSourceReference(
   "session_card_http_0001",
   "business_onboarding",
