@@ -7,6 +7,7 @@ import type {
   AffiliateFinancialMaterializationResultV1,
   AffiliateOrderingEvidencePort,
   AffiliateEligibilitySnapshot,
+  AffiliateReferralEvidenceVerificationPort,
 } from "@touristic/affiliates";
 import type {
   AffiliateMaterializationRequestRecord,
@@ -58,6 +59,18 @@ export class AuthorizationAdapter implements AffiliateAuthorizationPort {
     ...args: Parameters<AffiliateAuthorizationPort["authorize"]>
   ): ReturnType<AffiliateAuthorizationPort["authorize"]> {
     return this.authorizeFn(...args);
+  }
+}
+
+export class ReferralEvidenceVerificationAdapter implements AffiliateReferralEvidenceVerificationPort {
+  public constructor(
+    private readonly verifyFn: AffiliateReferralEvidenceVerificationPort["verify"],
+  ) {}
+
+  public verify(
+    ...args: Parameters<AffiliateReferralEvidenceVerificationPort["verify"]>
+  ): ReturnType<AffiliateReferralEvidenceVerificationPort["verify"]> {
+    return this.verifyFn(...args);
   }
 }
 
