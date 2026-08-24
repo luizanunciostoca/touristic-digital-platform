@@ -21,6 +21,14 @@
       "types": "./src/mercado-pago-subscription-provider.ts",
       "default": "./dist/mercado-pago-subscription-provider.js"
     },
+    "./provider-subscription-repository": {
+      "types": "./src/mysql-provider-subscription-repository.ts",
+      "default": "./dist/mysql-provider-subscription-repository.js"
+    },
+    "./provider-subscription-schema": {
+      "types": "./src/provider-subscription-schema.ts",
+      "default": "./dist/provider-subscription-schema.js"
+    },
     "./settlement": {
       "types": "./src/settlement.ts",
       "default": "./dist/settlement.js"
