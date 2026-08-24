@@ -1,195 +1,186 @@
 # Affiliates Canonical Scope — FEATURE-0010
 
-## Status and checkpoint
+## Status and final checkpoint
 
-`FEATURE-0010 — Programa de Afiliados` remains `planned` and `MIG-0011` remains `discovered`.
+`FEATURE-0010 — Programa de Afiliados` and `MIG-0011` have completed the executable migration acceptance defined by `AFFILIATE-POLICY-V1`.
 
-Revalidated source-of-truth checkpoint:
+Final integrated runtime checkpoint before this documentation reconciliation:
 
 ```text
-main = ec4f51e0198cdeed51b37fabe5ed94ebb2e3ecb6
-PR #264 base = ec4f51e0198cdeed51b37fabe5ed94ebb2e3ecb6
+main = a2a1f10420c1d452e9426c75549864c76d57f22c
+certified PR head = 851740d2429c41d18f81f0e476fc2fb67a6a0c3b
+certified tree = f1ef9038de983a69737c94a2d218eec57e179efb
+main tree = f1ef9038de983a69737c94a2d218eec57e179efb
 ```
 
-The PR is policy-neutral. It deliberately contains no Affiliate runtime, persistence, API, UI, commission calculation or money movement.
+The certified PR head and merged `main` have the same Git tree. On that exact tree:
+
+- Quality Gate #242: PASS, including format, architecture, registry, governance, supply-chain, lint, typecheck, tests, build and canonical MySQL matrix;
+- Affiliates FEATURE-0010 Contract #102: PASS, including runtime, real MySQL persistence and authority/policy contract;
+- Render Staging Blueprint Contract #66: PASS;
+- no real Mercado Pago call, real money or production execution was used for Affiliate acceptance.
+
+The final documentation PR may promote FEATURE-0010/MIG-0011 to `equivalent` only while these ownership and evidence invariants remain intact.
 
 ## Sources reconciled
 
 - `docs/features/registry.json`;
 - `docs/migration/MASTER-MIGRATION-TRACKER.md`;
 - `docs/migration/AFFILIATES-MIGRATION-MATRIX.md`;
+- `docs/product-architecture/AFFILIATES-DECISION-SHEET.md`;
 - `docs/product-architecture/DOMAIN-MAP.md`;
 - `docs/product-architecture/MODULE-CONTRACTS.md`;
-- `docs/product-architecture/CAPABILITY-MATRIX.md`;
-- `docs/product-architecture/PRODUCT-ROADMAP.md`;
-- `docs/product-architecture/FEATURE-LIFECYCLE.md`;
-- `packages/ordering/src/index.ts`;
-- `packages/financial/src/settlement.ts`;
-- `services/financial/src/settlement-application-service.ts`;
-- existing Payments M146/M150/M151/M152/M153 evidence in `main`.
+- `docs/product-architecture/AFFILIATES-TECHNICAL-CONTRACT.md`;
+- `docs/product-architecture/AFFILIATES-THREAT-MODEL.md`;
+- `docs/qa/AFFILIATES-FEATURE-0010-TEST-PLAN.md`;
+- `docs/operations/AFFILIATES-ROLLOUT-ROLLBACK.md`;
+- executable `packages/affiliates` and `services/affiliates` runtime/tests.
 
 ## Canonical ownership
 
 ### Affiliate
 
-Affiliate owns only non-monetary program/commercial semantics:
+Affiliate owns only non-monetary program/commercial semantics and evidence:
 
-- platform affiliate identity/program state under approved policy;
-- referral evidence intake and validation;
-- attribution association;
-- conversion association to canonical commerce evidence;
-- commercial commission entitlement evidence under an approved versioned policy;
-- Affiliate-owned audit/idempotency metadata.
+- global Affiliate identity/program membership state tied to canonical Identity;
+- eligibility and suspension;
+- referral evidence intake, validation and minimized/pseudonymous storage;
+- attribution association, precedence, 30-day window and Order lock;
+- conversion association to canonical Ordering/Financial evidence;
+- commercial commission-entitlement evidence under an approved versioned policy;
+- Affiliate audit, idempotency and outbox metadata;
+- durable request/readback state for the versioned Affiliate → Financial materialization boundary.
 
 Affiliate is not a seller/tenant subsystem and does not inherit Business authority.
 
 ### Ordering
 
-Ordering is the canonical source for order identity and order state. Affiliate consumes public versioned records/events only. It cannot mutate Ordering and cannot infer a conversion from click/redirect/browser state.
+Ordering is the canonical source for Order identity and Order state. Affiliate consumes only public/versioned evidence. It cannot mutate Ordering and cannot infer a qualifying conversion from click, redirect, browser state or analytics.
 
 ### Financial
 
 Financial remains the only monetary source of truth and owns:
 
 - Payment and verified payment outcomes;
-- ledger;
-- allocation and amount conservation;
-- payable;
-- wallet/financial position;
+- eligible platform revenue;
+- ledger and allocation;
+- payable/wallet/financial position;
 - settlement;
 - provider transfer/payout;
 - reconciliation;
-- monetary reversals.
+- FX;
+- monetary refunds/reversals.
 
-Affiliate may request materialization of an approved entitlement only through a versioned Financial-owned port. Financial independently authorizes, resolves and validates the authoritative evidence before any monetary mutation.
+Affiliate may request materialization of an eligible earned entitlement only through the versioned Financial boundary. Financial independently authorizes and validates authoritative evidence before monetary mutation.
 
-Affiliate never creates Payment, ledger entries, allocation, payable, wallet, settlement, payout or direct Financial database writes.
-
-### Business
-
-Business does not administer Affiliates and cannot grant or calculate Affiliate commission authority.
-
-## Policy-neutral technical foundation completed
-
-This PR defines without commercial assumptions:
-
-- conceptual schema boundaries for Affiliate identity, referral evidence, attribution, conversion association and commission entitlement;
-- read-only Ordering/Financial evidence ports;
-- Affiliate → Financial materialization request/result boundary without browser-controlled amount/rate/payout instructions;
-- required canonical event family and ownership;
-- durable idempotency strategy and replay/divergence semantics;
-- immutable audit contract;
-- authorization/trust boundaries;
-- privacy/LGPD engineering requirements with configurable retention;
-- threat model;
-- unit/integration/security/privacy/concurrency/E2E test plan;
-- phased migration plan;
-- staged rollout, kill switches and rollback preserving Financial history.
-
-Detailed contracts:
-
-- `docs/product-architecture/AFFILIATES-TECHNICAL-CONTRACT.md`;
-- `docs/product-architecture/AFFILIATES-THREAT-MODEL.md`;
-- `docs/qa/AFFILIATES-FEATURE-0010-TEST-PLAN.md`;
-- `docs/operations/AFFILIATES-ROLLOUT-ROLLBACK.md`.
-
-## Runtime deliberately not implemented
-
-The following remain blocked until all Decision Sheet items are approved:
-
-- `packages/affiliates`;
-- `services/affiliates`;
-- Affiliate database migrations;
-- executable Affiliate event schemas/producers/consumers;
-- attribution/commission application services;
-- commission amount calculation;
-- Financial materialization implementation;
-- Affiliate/admin APIs;
-- browser/portal/admin UI.
+Affiliate never creates Payment, ledger entries, allocation, payable, wallet, settlement, payout, provider instruction or direct Financial database writes.
 
 No Affiliate-owned payout, wallet or payment runtime is ever authorized.
 
-## Canonical event direction
+### Business
 
-Required future Affiliate-owned event family:
+Business does not administer Affiliates and cannot grant, calculate or materialize Affiliate commission authority. Tenant membership alone grants no Affiliate capability.
 
-- `AffiliateReferralEvidenceRecorded`;
-- `AffiliateAttributionEstablished`;
-- `AffiliateConversionAssociated`;
-- `AffiliateCommissionEntitlementChanged`;
-- `AffiliateFinancialMaterializationRequested`.
+## Approved runtime policy
 
-Required Financial-owned handoff responses:
+`AFFILIATE-POLICY-V1` is the sole approved policy and is executable in `packages/affiliates`/`services/affiliates`:
 
-- `AffiliateFinancialMaterializationAccepted`;
-- `AffiliateFinancialMaterializationRejected`.
+- verified identity/contact, current terms, approved membership and no suspension/fraud for new attribution;
+- Financial eligibility additionally gates new materialization;
+- suspension blocks new attribution/materialization but preserves history and conversion evidence; affected new entitlement is frozen/disputed;
+- accepted evidence sources: platform link/deep-link, platform QR, explicit checkout code and authenticated/versioned server referral;
+- server-owned pseudonymous `AcquisitionSubjectId`;
+- precedence: checkout code > authenticated S2S > validated link/QR, latest valid evidence within a tier;
+- direct/organic traffic does not erase valid Affiliate intent;
+- 30-calendar-day server-clock attribution window;
+- attribution lock at canonical Order `pending_payment`;
+- conversion requires Ordering `payment_confirmed` and verified Financial eligible-revenue evidence;
+- renewals are noncommissionable in V1;
+- 3000 bps over Financial-authoritative eligible platform revenue, integer minor units, final half-up rounding, no Affiliate FX;
+- lifecycle `pending`, `earned`, `cancelled`, `reversed`, `disputed`;
+- maturity at least seven calendar days after verified payment and not before canonical service/performance date when present;
+- refund/cancellation/chargeback consequences preserve immutable revisions and Financial monetary authority;
+- raw referral retention max 90 days, pseudonymous attribution/conversion 24 months, commercial/audit/reconciliation evidence five years after final closure/settlement, with legal hold/jurisdiction controls.
 
-These names reserve domain ownership only. No producer may emit them until payload schemas are approved, registered and tested with `PLATFORM-EVENT-ENVELOPE`.
+## Executable runtime
 
-Historical `CustomerAttributedToAffiliate` and `AffiliateCommissionAccrued` labels remain non-executable architecture concepts and must not be revived as implicit contracts.
+Current `main` contains:
+
+```text
+packages/affiliates                         PRESENT
+services/affiliates                         PRESENT
+Affiliate MySQL schemas/repositories         PRESENT
+Identity/membership application service      PRESENT
+Eligibility/suspension enforcement           PRESENT
+Referral/attribution application service     PRESENT
+Conversion/commission application service    PRESENT
+Privacy/LGPD service                         PRESENT
+Authenticated HTTP transport                 PRESENT
+Idempotency/audit/outbox                     PRESENT
+Financial materialization adapter/readback   PRESENT
+Browser monetary-authority guards             PRESENT
+```
+
+Runtime is server-authoritative. Browser/admin surfaces remain intentionally non-authoritative and are not required to establish Affiliate equivalence.
+
+## Acceptance evidence
+
+The integrated suite proves, among other cases:
+
+- Identity persistence, membership lifecycle, authorization and tenant/destination isolation;
+- suspension blocks new attribution while exact historical replay remains valid;
+- divergent replay fails closed;
+- server-owned identifiers, SHA-256 evidence fingerprinting, precedence, 30-day window and Order lock;
+- per-subject serialization and concurrent attribution safety;
+- one canonical conversion per Order and canonical Ordering/Financial evidence checks;
+- 3000-bps half-up formula and immutable policy snapshot;
+- maturity, dispute, partial/full refund and post-earned reversal consequences;
+- `maturity × refund` and `partial refund × full refund` serialization;
+- materialization exact replay, uncertain-delivery readback, retry and conflicting Financial outcome rejection;
+- DSR, retention, anonymization/pseudonymization and legal hold;
+- durable audit/outbox and restart-safe persistence.
 
 ## Affiliate → Financial boundary
 
-The policy-neutral request binds:
+The request binds identity/evidence only:
 
 - request ID;
 - entitlement ID and immutable revision;
-- affiliate ID;
+- Affiliate ID;
 - conversion-association ID;
 - policy version;
 - entitlement digest;
 - correlation ID.
 
-It deliberately does not carry browser-controlled rate, amount, payout destination, ledger posting, payable state or settlement state.
+It does not carry browser-controlled rate, amount, payout destination, ledger posting, payable state, settlement state or provider credential.
 
-Financial returns a durable accepted/rejected/replayed result. `accepted` means request acceptance only; it never means payout, transfer or settlement completion.
+Financial returns durable accepted/rejected/replayed readback. `accepted` means request acceptance only; it never means payout, transfer or settlement completion.
 
-The exact materialization timing and decision-gated entitlement fields remain product decisions.
+## Idempotency, audit and privacy
 
-## Idempotency and audit
+Every authoritative Affiliate mutation is server-side, explicitly authorized, durable-idempotent and audited. Exact replay converges on the original persisted outcome; semantic divergence fails closed.
 
-Every authoritative Affiliate mutation must:
+Audit/observability exclude secrets, raw referral tokens/URLs and copied identity documents. Identity remains owner of canonical PII; Affiliate retains only required references/evidence under the approved retention windows and legal-hold rules.
 
-- claim a durable deterministic idempotency key before mutation;
-- converge on exact replay;
-- fail closed on divergent replay;
-- use server-normalized immutable IDs/digests plus relevant policy/contract versions;
-- append immutable audit with actor, authorization, policy, before/after digest, idempotency, correlation/causation, outcome and reason;
-- exclude secrets, raw referral tokens/URLs and copied identity documents from audit/observability.
+## Rollout and rollback
 
-## Authorization and privacy
+The runtime is additive and rollback-safe:
 
-- browser/public input is untrusted evidence only;
-- authoritative mutations are server-side;
-- Business tenant roles do not inherit Affiliate authority;
-- Affiliate self-service reads require canonical Identity ownership once that identity model is approved;
-- admin actions require explicit platform authorization and audit;
-- Financial handoff is authenticated service-to-service and Financial reauthorizes/revalidates it;
-- raw referral/identity data is minimized and separated;
-- retention is policy-configured, not hard-coded;
-- data-subject and legal/audit-hold behavior must preserve mandatory Financial/compliance history.
+1. disable new Affiliate → Financial materialization;
+2. disable entitlement mutation if integrity is at risk;
+3. disable conversion/attribution writers if required;
+4. preserve readback, reconciliation, audit and historical evidence;
+5. roll application code back without destructive Affiliate/Financial data deletion.
 
-## Decision gate
-
-Exactly the remaining product decisions are captured in `docs/product-architecture/AFFILIATES-DECISION-SHEET.md`. No additional commercial rule is introduced by this PR.
-
-Implementation cannot start until all 19 items are approved and versioned.
-
-## Migration and rollout
-
-After approval, implementation follows expand-only domain foundation → evidence/association → entitlement → disabled Financial handoff → controlled materialization → authenticated reads → browser/admin surfaces. UI is last.
-
-Rollback disables Financial handoff first, preserves reconciliation/readback and immutable history, then disables Affiliate writers. No destructive down migration or Financial-history deletion is part of normal rollback.
+No rollback transfers monetary authority from Financial to Affiliate.
 
 ## Completion condition
 
-FEATURE-0010 can only become equivalent/release-ready when:
+FEATURE-0010 is eligible for `equivalent` when the reconciliation PR itself passes the permanent repository Quality Gate and Affiliates Contract on one exact head, while:
 
-- the Decision Sheet is fully approved/versioned;
-- all required matrix rows are PASS/N/A with justified evidence;
-- server-side attribution/conversion/entitlement are durable, authorized, audited and idempotent;
-- qualifying conversion comes only from approved canonical Ordering/Financial evidence;
-- Financial exclusively owns all monetary mutation/payout authority;
-- security/LGPD/threat-model tests pass;
-- rollout/rollback/observability are verified;
-- permanent Quality/integration/security gates pass on one exact release-candidate head.
+- all required migration-matrix rows are PASS/N/A;
+- `AFFILIATE-POLICY-V1` remains unchanged;
+- Financial remains the sole monetary authority;
+- Ordering remains the sole Order authority;
+- browser/admin input cannot create monetary authority;
+- no required temporary workflow or diagnostic artifact exists in the final diff.

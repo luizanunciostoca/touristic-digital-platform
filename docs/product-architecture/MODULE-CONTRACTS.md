@@ -77,20 +77,22 @@ Não pode: armazenar saldo ou liquidar pagamento.
 ### Ordering
 
 Pode consumir: Core, Catalog, Booking e Financial por contratos.
-Expõe: pedidos, itens, estados e totais consolidados.
+Expõe: pedidos, itens, estados e totais consolidados; é a autoridade canônica de `Order`.
 Não pode: recalcular ledger ou administrar afiliados.
 
 ### Financial
 
 Pode consumir: Core, Destination, Tenancy e ports de providers.
-Expõe: Payment, Ledger, Split, Refund, Transfer, Reconciliation e Wallet.
+Expõe: Payment, eligible revenue, Ledger, Split/Allocation, Refund monetário, Payable/Wallet, Transfer/Payout, Settlement, Reconciliation e FX.
 Não pode: depender de UI, Marketplace, Admin CRM ou SDK específico em regras de domínio.
 
 ### Affiliate
 
-Pode consumir: Core, Identity, Destination e eventos de Ordering/Financial.
-Expõe: afiliado, atribuição, comissão, carteira e payout.
-Não pode: pertencer a seller, tenant ou Business Portal.
+Pode consumir: Core, Identity, Destination e contratos públicos/versionados de Ordering e Financial.
+Expõe: AffiliateAccount/program membership, eligibility/suspension, referral evidence, attribution, conversion association, commission-entitlement evidence, audit/idempotency e a solicitação/readback versionada `Affiliate -> Financial`.
+Não pode: pertencer a seller, tenant ou Business Portal; criar/mutar Payment, eligible revenue, Ledger, Payable/Wallet, Transfer/Payout, Settlement, Reconciliation, FX ou reversões monetárias; confiar em browser para valor/rate/comissão; acessar provider de pagamento.
+
+`accepted` no handoff Affiliate → Financial significa somente que Financial aceitou a solicitação de materialização. Não significa `paid`, `settled`, `transferred` ou `payout_completed`.
 
 ### Business
 

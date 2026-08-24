@@ -2,135 +2,162 @@
 
 ## Status
 
-`AFFILIATE-POLICY-V1` is approved and the first executable domain foundation now exists in `packages/affiliates`.
+`AFFILIATE-POLICY-V1` is approved and fully represented by the executable Affiliate domain/runtime on `main`.
 
-Canonical integration checkpoint remains `main@ec4f51e0198cdeed51b37fabe5ed94ebb2e3ecb6`. `FEATURE-0010` remains `planned` and `MIG-0011` remains `discovered` until persistence, adapters, application behavior, security/integration evidence and final release gates justify promotion.
+Integrated runtime checkpoint before this reconciliation:
 
-This contract authorizes only the behavior explicitly frozen by `docs/product-architecture/AFFILIATES-DECISION-SHEET.md`. It does not authorize Affiliate-owned Payment, ledger, payable, wallet, settlement, transfer, payout, provider access or browser monetary authority.
+```text
+main = a2a1f10420c1d452e9426c75549864c76d57f22c
+certified PR head = 851740d2429c41d18f81f0e476fc2fb67a6a0c3b
+certified tree = f1ef9038de983a69737c94a2d218eec57e179efb
+main tree = f1ef9038de983a69737c94a2d218eec57e179efb
+```
+
+On that exact tree, Quality Gate #242, Affiliates FEATURE-0010 Contract #102 and Render Staging Blueprint Contract #66 passed. The documentation reconciliation may promote FEATURE-0010/MIG-0011 only if its own exact head preserves these invariants and passes the permanent gates.
+
+This contract never authorizes Affiliate-owned Payment, ledger, payable/wallet, settlement, transfer/payout, provider access, FX, monetary reversal or browser monetary authority.
 
 ## Canonical ownership
 
 1. Affiliate is a platform domain separate from Business, Ordering and Financial.
-2. Affiliate owns affiliate account/program semantics, referral evidence, attribution, conversion association and commercial commission-entitlement evidence.
-3. Ordering remains authoritative for canonical Order identity and state.
-4. Financial remains authoritative for Payment, eligible platform revenue, ledger, allocation, payable, wallet/position, settlement, transfer/payout, reconciliation, FX and monetary reversals.
+2. Affiliate owns Affiliate account/program semantics, eligibility/suspension, referral evidence, attribution, conversion association and commercial commission-entitlement evidence.
+3. Ordering is authoritative for canonical Order identity/state.
+4. Financial is authoritative for Payment, eligible platform revenue, ledger, allocation, payable/wallet, settlement, transfer/payout, reconciliation, FX and monetary reversals.
 5. Affiliate never writes Financial persistence directly.
 6. Browser state, redirects, query strings, cookies and local storage are untrusted evidence/transport only.
 7. Business/tenant membership does not confer Affiliate authority.
 8. Cross-domain interaction uses versioned ports/events and explicit authorization.
 9. Exact idempotent replay converges; divergent replay fails closed.
-10. Historical policy/evidence is immutable; later policy versions never silently rewrite prior rights.
+10. Historical policy/evidence is immutable; later policy versions cannot silently rewrite prior rights.
 
 ## Approved runtime policy
 
 `packages/affiliates/src/policy.ts` freezes `AFFILIATE-POLICY-V1`:
 
 - global Affiliate account linked to canonical Identity and program memberships;
-- two eligibility levels: attribution and Financial materialization;
-- suspension blocks new attribution/materialization and freezes affected entitlement review;
-- accepted V1 evidence: platform link/deep-link, platform QR, explicit checkout code and authenticated/versioned server referral;
+- verified identity/contact, current terms, approved membership and no suspension/fraud for new attribution;
+- additional Financial eligibility for new materialization;
+- suspension blocks new attribution/materialization, preserves history and conversion evidence, and freezes affected new entitlement as disputed;
+- accepted evidence: platform link/deep-link, platform QR, explicit checkout code and authenticated/versioned server referral;
 - pseudonymous server-owned `AcquisitionSubjectId`;
-- precedence: checkout code > authenticated server referral > platform link/QR, latest valid evidence inside the same tier;
+- precedence: checkout code > authenticated server referral > validated link/QR, latest valid evidence within a tier;
+- direct/organic input does not erase valid Affiliate intent;
 - 30-day server-clock attribution window;
 - Order attribution locks at `pending_payment`;
 - qualifying conversion requires Ordering `payment_confirmed` plus verified Financial evidence;
 - subscription renewals are not commissionable in V1;
 - commission base is Financial-authoritative net eligible platform revenue;
 - percentage model only, 3000 basis points, integer minor units, final half-up rounding;
-- no commercial cap/minimum in V1;
 - entitlement currency equals the Financial eligible-revenue currency; Affiliate performs no FX;
-- policy snapshot freezes when authoritative attribution is established;
-- entitlement lifecycle is `pending`, `earned`, `cancelled`, `reversed`, `disputed`;
+- lifecycle is `pending`, `earned`, `cancelled`, `reversed`, `disputed`;
 - maturity is at least seven calendar days after verified payment and not before service/performance when a canonical service date exists;
-- refund/cancellation/chargeback behavior follows the approved Decision Sheet while Financial retains monetary reversal authority;
+- refund/cancellation/chargeback behavior follows the Decision Sheet while Financial retains monetary reversal authority;
 - Financial materialization is allowed only for `earned` entitlement plus Financial-eligible beneficiary;
-- default engineering retention is 90 days raw referral evidence, 24 months pseudonymous attribution/conversion metadata and five years commercial/audit evidence, subject to jurisdictional/legal hold.
+- raw referral evidence retention max 90 days, pseudonymous attribution/conversion 24 months and commercial/audit/reconciliation evidence five years after final closure/settlement, subject to jurisdiction/legal hold.
 
-## Executable domain foundation
+## Executable components
 
-`packages/affiliates` contains no external runtime dependency and is split by responsibility:
+### Domain package
 
-- `ids.ts`: branded server identifiers and bounded timestamp/digest/currency validators;
-- `eligibility.ts`: Affiliate account/program membership and attribution/materialization eligibility invariants;
-- `attribution.ts`: server-validated referral evidence, expiry and deterministic precedence/lock resolution;
-- `conversion.ts`: canonical Ordering/Financial evidence boundary and one initial-purchase conversion shape;
-- `commission.ts`: integer commission calculation, maturity, lifecycle, dispute and refund/reversal consequences;
-- `materialization.ts`: Financial request/result contract without amount/rate/currency/payout/settlement instructions;
-- `ports.ts`: authorization, evidence, repositories, durable idempotency, audit and Financial handoff ports;
-- `events.ts`: versioned TypeScript event payload/envelope types owned by Affiliate;
-- `index.test.ts`: executable policy/invariant tests.
+`packages/affiliates` includes:
 
-No `services/affiliates`, Affiliate database migration, HTTP API, browser/admin UI or monetary provider adapter exists yet.
+- `ids.ts`: branded/bounded identifiers and digest/timestamp validation;
+- `eligibility.ts`: account/program membership, suspension and materialization eligibility invariants;
+- `attribution.ts`: referral evidence, precedence, expiry and lock semantics;
+- `conversion.ts`: Ordering/Financial evidence boundary and conversion association;
+- `commission.ts`: integer commission calculation, maturity, lifecycle and refund/reversal consequences;
+- `materialization.ts`: Affiliate → Financial request/result/readback contract;
+- `ports.ts`: authorization, evidence, persistence, idempotency, audit and Financial ports;
+- `events.ts`: versioned Affiliate event family;
+- acceptance/unit tests for policy, attribution and commission invariants.
+
+### Server/runtime
+
+`services/affiliates` includes:
+
+- authenticated Affiliate HTTP transport;
+- Identity/membership application service and durable MySQL schema;
+- eligibility/suspension gate with row locking;
+- referral/attribution application service with server-owned identifiers, semantic idempotency and per-subject serialization;
+- conversion/commission application service with transactional entitlement revisions;
+- durable materialization adapter/readback/retry behavior;
+- Privacy/LGPD service and integration acceptance;
+- MySQL repositories for identity, referral, attribution, conversion, entitlement, materialization, idempotency, audit and outbox;
+- browser monetary-authority guards;
+- real MySQL integration tests for Privacy, Identity/Suspension, Attribution and Commercial behavior.
 
 ## Domain records
 
 ### Affiliate account and membership
 
-Canonical runtime types use opaque `AffiliateId`, `AffiliateProgramId` and `AffiliateMembershipId`. Affiliate stores canonical Identity references rather than copying credentials/PII. Membership state controls program participation independently from Business roles.
+Affiliate stores opaque Affiliate IDs plus canonical Identity references rather than duplicating credentials or identity documents. Membership is program-scoped and independent from Business roles. Lifecycle and invalid transitions are enforced server-side and audited.
 
 ### Referral evidence and attribution
 
-Only server-validated evidence can become `ReferralEvidence`. Evidence requires a SHA-256 fingerprint and server timestamps. Attribution uses a server-owned `AcquisitionSubjectId`, evidence reference/fingerprint, source, policy version, establishment timestamp and 30-day expiry. Order lock prevents later referral input from hijacking an already locked Order attribution.
+Only accepted/validated evidence may establish attribution. Authoritative IDs, fingerprint and timestamps are server-owned. Evidence uses SHA-256 digesting and a pseudonymous `AcquisitionSubjectId`.
+
+Attribution applies policy precedence and 30-day server-clock expiry. A canonical Order lock at `pending_payment` prevents later referral evidence from hijacking an already locked attribution. Subject mutation is serialized to prevent concurrent precedence races.
 
 ### Conversion association
 
-A conversion association requires public canonical Ordering evidence with status `payment_confirmed` and verified Financial evidence containing the authoritative eligible-revenue basis, currency, evidence digest and contract version. Browser callbacks and subscription renewals cannot qualify in V1.
+A conversion requires a previously locked valid attribution, canonical Ordering evidence with status `payment_confirmed`, verified Financial evidence and an initial-purchase conversion kind. Browser callback/analytics state cannot qualify a conversion.
 
-Repository/persistence must enforce one canonical conversion association per Order; the domain type alone is not treated as sufficient concurrency proof.
+Persistence enforces one canonical conversion per Order and fails closed on divergent replay or conflicting evidence.
 
 ### Commission entitlement
 
-The entitlement stores Affiliate/program/conversion/attribution identity, policy version, revision, commercial status, eligible revenue snapshot, calculated commission minor units, currency, 3000-bps policy snapshot and maturity timestamp.
+Entitlement stores Affiliate/program/conversion/attribution identity, policy version, immutable revision history, commercial status, eligible-revenue snapshot, commission minor units, currency, 3000-bps policy snapshot and maturity timestamp.
 
-Calculation uses `BigInt` integer arithmetic and half-up rounding. No JavaScript floating-point percentage calculation is allowed.
+Calculation uses integer/`BigInt` arithmetic with final half-up rounding. Floating-point percentage authority is prohibited.
 
-Partial refund before `earned` reprices the pending right using authoritative Financial basis. Refund after `earned` creates an explicit reversal consequence; it does not mutate Financial state or silently rewrite monetary history.
+Pending partial refund reprices the commercial entitlement from authoritative Financial evidence. Post-earned refund produces an audited reversal consequence/revision while Financial remains responsible for monetary reversal. Concurrent maturity/refund/reversal paths serialize on the entitlement row.
 
 ## Public port boundaries
 
-`AffiliateOrderingEvidencePort` reads canonical Order state only.
+`AffiliateOrderingEvidencePort` reads canonical Order evidence only.
 
 `AffiliateFinancialEvidencePort` reads verified payment/conversion and eligible-revenue evidence only.
 
-`AffiliateFinancialMaterializationPort` receives `AffiliateFinancialMaterializationRequestV1` containing only:
+`AffiliateFinancialMaterializationPort` receives `AffiliateFinancialMaterializationRequestV1` with only:
 
 - request ID;
-- entitlement ID and revision;
+- entitlement ID/revision;
 - Affiliate ID;
 - conversion-association ID;
 - policy version;
 - entitlement digest;
 - correlation ID.
 
-The request deliberately contains no amount, rate, currency, payout destination, provider credential, ledger posting or settlement instruction. Financial independently resolves/validates its monetary consequence. `accepted` means request accepted by Financial, never paid/settled/transferred.
+It deliberately contains no browser-controlled amount, rate, currency, payout destination, provider credential, ledger posting, payable/wallet or settlement instruction.
 
-The port also defines durable materialization readback so uncertain delivery can be resolved before retry.
+Financial independently resolves and validates monetary consequence. `accepted` means request acceptance only, never payment/payout/settlement/transfer completion. Durable readback resolves uncertain delivery before retry; conflicting readback fails closed.
 
-## Idempotency and audit
+## Idempotency and concurrency
 
-Mutation identities use:
+Mutation identity follows canonical immutable semantic inputs. The durable key format is `affiliate:v1:<operation>:<sha256(canonical immutable inputs)>`; durable claims are acquired atomically.
 
-```text
-affiliate:v1:<operation>:<sha256(canonical immutable inputs)>
-```
-
-The canonical input serializer sorts object keys recursively. Durable implementations must claim the key atomically. Exact replay returns the original semantic outcome; a reused key with divergent semantic digest is a conflict and fails closed.
-
-Every authoritative state-changing application operation must append immutable audit containing actor, authorization decision, Affiliate/subject references, policy/contract version, before/after digest where applicable, idempotency digest, correlation/causation, server time, outcome and machine-readable reason. Secrets, raw referral tokens, full URLs, provider credentials and copied identity documents are forbidden.
+- exact replay returns the original persisted semantic outcome;
+- a reused key/request identity with divergent semantic digest fails closed;
+- referral/attribution uses per-subject serialization plus DB locking;
+- eligibility is re-read under lock for authoritative mutations;
+- one Order cannot create multiple authoritative conversions;
+- entitlement maturity/refund/reversal mutations serialize by entitlement row/revision;
+- materialization retry consults durable local and Financial readback before a new request.
 
 ## Authorization
 
-- public/browser callers can submit only untrusted evidence through an authenticated/validated server boundary;
-- authoritative attribution, conversion, entitlement and materialization changes are server-side operations;
-- Affiliate self-service must prove canonical Identity ownership;
-- admin operations require explicit platform/admin capability; tenant membership is insufficient;
-- Affiliate service-to-Financial handoff uses an authenticated Affiliate service principal;
-- Financial independently authorizes and validates the request;
-- cross-affiliate and cross-destination access fails closed unless explicitly authorized.
+- public/browser callers cannot perform authoritative monetary/commercial mutations;
+- Affiliate self-service requires canonical Identity ownership;
+- platform admin operations require explicit Affiliate capability;
+- Business/tenant roles do not inherit Affiliate administration;
+- destination/program mismatch fails closed;
+- Affiliate → Financial calls use authenticated service authority and Financial independently reauthorizes/validates the request.
 
-## Events
+## Audit and events
 
-TypeScript event types now exist for:
+Authoritative mutations append immutable audit containing actor, authorization decision reference, Affiliate/subject, policy/contract version, before/after or semantic digest, idempotency, correlation/causation, server time, outcome and reason.
+
+Durable outbox/event evidence covers:
 
 - `AffiliateReferralEvidenceRecorded`;
 - `AffiliateAttributionEstablished`;
@@ -138,63 +165,52 @@ TypeScript event types now exist for:
 - `AffiliateCommissionEntitlementChanged`;
 - `AffiliateFinancialMaterializationRequested`.
 
-They conform structurally to `PLATFORM-EVENT-ENVELOPE` v1. These are not yet registered as externally executable contracts in `docs/contracts/registry.json`: registration requires a real producer/consumer, canonical JSON schema, compatibility tests and evidence on the exact implementation head.
-
-Historical labels `CustomerAttributedToAffiliate` and `AffiliateCommissionAccrued` remain non-executable and must not be emitted by new runtime.
+Historical labels such as `CustomerAttributedToAffiliate` and `AffiliateCommissionAccrued` are not authoritative executable contracts.
 
 ## Privacy/LGPD
 
-Identity remains owner of canonical PII. Affiliate persists stable references and minimized evidence/digests. Raw referral evidence is retained only when necessary and follows the approved 90-day maximum default. Pseudonymous and commercial/audit retention follows the approved policy, with jurisdictional configuration and lawful holds. Analytics/logs/traces must not contain raw referral tokens, unnecessary direct identifiers or credentials.
+Identity remains owner of canonical PII. Affiliate persists stable references and minimized evidence/digests.
 
-## Implementation sequence
+The executable privacy service proves:
 
-### Phase 0 — complete
+- retention windows and idempotent execution;
+- DSR subject lookup with isolation;
+- anonymization/pseudonymization;
+- legal hold preservation;
+- audit and restart-safe execution.
 
-Canonical ownership, Decision Sheet, threat model, test plan, migration matrix and rollout/rollback contract.
+Secrets, raw referral tokens/full URLs, copied identity documents and provider credentials are forbidden in audit/observability.
 
-### Phase 1 — complete
+## Acceptance evidence
 
-`AFFILIATE-POLICY-V1` approved and frozen in documentation/code.
+The integrated certified tree proves:
 
-### Phase 2A — complete on this PR head
-
-Pure `@touristic/affiliates` domain types/invariants, ports, TypeScript events and unit/invariant tests. No database or external side effect.
-
-The package manifest exists, but the package is temporarily excluded from pnpm workspace linking until the pinned pnpm version can regenerate `pnpm-lock.yaml` reproducibly. Root `affiliates:*` commands explicitly lint/typecheck/test/build it, so the source remains inside repository quality gates during this transition.
-
-### Phase 2B — next
-
-Add application services, durable persistence, unique/idempotency claims and immutable audit using additive migrations. Keep external Financial materialization disabled.
-
-### Phase 3
-
-Add read-only Ordering/Financial adapters and event consumers; validate durable attribution/conversion/entitlement behavior and concurrency.
-
-### Phase 4
-
-Implement Financial-owned materialization adapter disabled/dark first, with accepted/rejected/readback/replay evidence and no Affiliate monetary persistence.
-
-### Phase 5
-
-Authenticated read APIs/projections after authorization/privacy tests.
-
-### Phase 6
-
-Browser/admin surfaces last. Browser remains presentation/input only.
+- domain policy tests: PASS;
+- authenticated server tests: PASS;
+- real MySQL Privacy, Identity/Suspension, Attribution and Commercial suites: PASS;
+- exact/divergent replay behavior: PASS;
+- suspension/referral behavior and historical replay: PASS;
+- concurrent attribution serialization: PASS;
+- `maturity × refund` race: PASS;
+- `partial refund × full refund` race: PASS;
+- materialization restart/readback/retry/conflict behavior: PASS;
+- browser monetary-authority rejection: PASS;
+- canonical Quality Gate and MySQL matrix: PASS;
+- Render staging blueprint contract: PASS.
 
 ## Release invariants
 
-1. Affiliate source must not import Business/Ordering/Financial implementations, service internals or apps.
+1. Affiliate source does not import Business/Ordering/Financial implementations or service internals.
 2. Browser-controlled monetary values cannot create entitlement/Financial state.
 3. Every authoritative mutation is authorized, durable-idempotent and audited.
-4. Ordering/Financial evidence crosses public ports only.
+4. Ordering/Financial evidence crosses public/versioned ports only.
 5. One Order cannot create multiple authoritative Affiliate conversions.
 6. Financial may reject materialization without Affiliate mutating monetary state.
 7. Materialization `accepted` is not payout/settlement.
 8. Refund/reversal is explicit and audit-preserving.
-9. Suspended/ineligible operations fail closed.
+9. Suspended/ineligible operations fail closed while required history is preserved.
 10. Rollback never deletes Financial history or transfers monetary authority to Affiliate.
 
 ## Promotion gate
 
-Policy approval unblocks implementation; it does not establish equivalence. `FEATURE-0010` must remain `planned` and `MIG-0011` must remain `discovered` until the required runtime/persistence/integration/security/privacy/E2E evidence exists and the exact final head passes all official repository and Affiliate gates.
+The implementation is eligible for `equivalent` because the required executable evidence exists on a tree identical to integrated `main`. The final documentation reconciliation itself must still pass Quality Gate and Affiliates FEATURE-0010 Contract on one exact head before merge.

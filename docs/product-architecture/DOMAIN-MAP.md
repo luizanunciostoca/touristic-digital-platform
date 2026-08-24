@@ -58,13 +58,13 @@ Responsável pela experiência B2C de descoberta, favoritos, comparação, carri
 Responsável por disponibilidade, reservas, políticas, confirmação, cancelamento, no-show e reconciliação operacional.
 
 ### Ordering
-Responsável por pedidos, itens, estados, preços consolidados, descontos e relação entre pedido, reserva e pagamento.
+Responsável por pedidos, itens, estados, preços consolidados, descontos e relação entre pedido, reserva e pagamento. É a autoridade canônica de `Order`.
 
 ### Financial
-Responsável por dinheiro, ledger, cobrança, split, estorno, repasse, reconciliação, carteira e liquidação. É a única fonte de verdade financeira.
+Responsável por dinheiro, Payment, eligible revenue, ledger, cobrança, split/allocation, refund monetário, payable/wallet, transferência/payout, settlement, reconciliação, FX e reversões monetárias. É a única fonte de verdade financeira.
 
 ### Affiliate
-Responsável por afiliados da plataforma, atribuição, conversão, comissão, carteira e payout. Não pertence a sellers ou tenants.
+Responsável pela identidade/programa de afiliados da plataforma, eligibility/suspension, referral evidence, attribution, conversion association e evidência comercial de commission entitlement sob política versionada. Pode solicitar materialização ao Financial por port versionado, mas não possui Payment, ledger, payable/wallet, payout, settlement, FX ou reversão monetária.
 
 ### Business
 Responsável pelas capacidades do Business Portal e operações permitidas ao tenant sobre seus próprios dados.
@@ -95,7 +95,7 @@ Responsável por logs, métricas, traces, alertas, correlação e saúde operaci
 - Booking pode consumir Catalog e contratos financeiros, mas não SDKs de pagamento.
 - Ordering pode consumir Catalog, Booking e Financial por ports.
 - Financial não depende de Marketplace, Business ou Admin.
-- Affiliate pode consumir eventos de Identity, Ordering e Financial.
+- Affiliate pode consumir contratos públicos/versionados de Identity, Ordering e Financial e solicitar materialização somente pelo port Financial autorizado.
 - Business consome APIs públicas de Catalog, Booking, Ordering e Analytics.
 - Admin consome APIs administrativas versionadas; não acessa bancos de outros domínios diretamente.
 - Assistant consome APIs públicas e ferramentas autorizadas; não importa implementações internas.
@@ -105,7 +105,7 @@ Responsável por logs, métricas, traces, alertas, correlação e saúde operaci
 - Pacotes de domínio não dependem de aplicações.
 - Frontends não acessam persistência, filas ou provedores externos diretamente.
 - Financial não depende de UI.
-- Affiliate não depende de sellers ou regras privadas de um tenant.
+- Affiliate não depende de sellers, não herda autoridade de Business/tenant e não escreve persistência monetária do Financial.
 - Search não é fonte de verdade.
 - Analytics não altera estados de negócio.
 - Admin CRM não compartilha banco diretamente com o Platform Core.
@@ -124,14 +124,17 @@ Responsável por logs, métricas, traces, alertas, correlação e saúde operaci
 - `PaymentApproved`
 - `PaymentRefunded`
 - `LedgerEntryPosted`
-- `CustomerAttributedToAffiliate`
-- `AffiliateCommissionAccrued`
+- `AffiliateReferralEvidenceRecorded`
+- `AffiliateAttributionEstablished`
+- `AffiliateConversionAssociated`
+- `AffiliateCommissionEntitlementChanged`
+- `AffiliateFinancialMaterializationRequested`
 - `PayoutCompleted`
 - `NotificationRequested`
 
 ## 7. Ownership de dados
 
-Cada domínio possui suas tabelas e invariantes. Leituras cross-domain usam APIs, eventos ou projeções. Escritas cross-domain diretas são proibidas.
+Cada domínio possui suas tabelas e invariantes. Leituras cross-domain usam APIs, eventos ou projeções. Escritas cross-domain diretas são proibidas. Em especial, Affiliate nunca escreve Payment, ledger, wallet/payable, payout, settlement, FX ou reversão monetária.
 
 ## 8. Contexto obrigatório
 

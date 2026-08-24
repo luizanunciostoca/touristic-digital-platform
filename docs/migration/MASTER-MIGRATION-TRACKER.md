@@ -43,7 +43,7 @@ Este PR é somente documental e, quando mergeado, criará um novo SHA de `main`;
 | MIG-0008 | `luizidebook/morro-digital-crm@1915d026` | CRM | FEATURE-0006 | `@touristic/crm` + `@touristic/crm-server` + `apps/admin-crm` | 7 | equivalent | Lead Detail + Follow-ups validados em 390×844, 768×1024 e 1280×900, com teclado/foco/semântica, estilo CRM canônico e hidden-state correto; M155 adiciona Settings genéricos e adapters filesystem/S3-compatible | 25 contratos: 24 PASS / 0 PARTIAL / 0 GAP / 1 N/A; Settings genéricos, schema `crm_settings`, object storage metadata e adapters M155 adicionados; clearing opcional, Lead Detail/activity, Follow-up sent/responded e AI CRM-owned fechados | `CRM-V1-BASELINE.md`; `CRM-MIGRATION-MATRIX.md`; `docs/qa/CRM-M141-EQUIVALENCE-EVIDENCE.md`; M155; PRs #260/#266 e gates permanentes | alto |
 | MIG-0009 | autenticação e sessão | Auth | FEATURE-0008 | `packages/auth` + `packages/auth-browser` + Auth surfaces in `dashboard/` | 6 | equivalent | login V1-equivalent and canonical dashboard return proven in Chromium | 20/20 Auth contracts PASS: login/session/cookie/CSRF/origin/roles/tenant/audit/revocation | `AUTH-MIGRATION-MATRIX.md`; M47–M48 + M50–M52 + M66 evidence; PR #129 Quality + Auth/Business browser contracts | crítico |
 | MIG-0010 | pagamentos/assinaturas | Ordering / Financial | FEATURE-0009 | `@touristic/ordering` + `@touristic/ordering-server` + `@touristic/financial` + `@touristic/financial-server` + runtime HTTP/browser no Morro Digital | 8 | migrating | Payments browser/contracts e composição Business → Payments passam no candidate tree; staging V2 está LIVE no mesmo código executável | 34 contratos: 30 PASS / 3 PARTIAL / 0 GAP / 1 N/A; Financial 99/99 e Ordering 41/41 na matriz MySQL; Mercado Pago está CONFIGURED em test mode, mas o provider E2E real checkout→webhook→readback→reconciliation→refund continua pendente | `PAYMENTS-MIGRATION-MATRIX.md`; Quality/Payments contracts; MySQL 339/339; Render deploy `dep-da4mqnbtqb8s738bel70`; `PAYMENTS-RELEASE-ROLLBACK.md` | crítico |
-| MIG-0011 | afiliados | Affiliates | FEATURE-0010 | `packages/affiliates` + `services/affiliates` | 9 | migrating | runtime durável, schema/repositories/transações/materialization/API autenticada estão em `main` | 15 PASS / 10 PARTIAL / 0 GAP / 2 N/A; Affiliates 4/4 na matriz MySQL e permanent `Affiliates FEATURE-0010 Contract` PASS no candidate tree; retenção/DSR e demais acceptance PARTIAL permanecem | `AFFILIATES-MIGRATION-MATRIX.md`; MySQL 339/339; permanent Affiliates contract; `AFFILIATES-ROLLOUT-ROLLBACK.md` | crítico |
+| MIG-0011 | afiliados | Affiliates | FEATURE-0010 | `packages/affiliates` + `services/affiliates` | 9 | equivalent | N/A deliberado: a feature é server-authoritative e não exige superfície browser/admin autoritativa; qualquer UI futura permanece apresentação/input somente | 25 PASS / 0 PARTIAL / 0 GAP / 2 N/A; Identity/Suspension, Privacy/LGPD, Attribution, Conversion/Commission/Refund, replay, concorrência e Affiliate → Financial readback estão aceitos | `AFFILIATES-MIGRATION-MATRIX.md`; Quality #242; Affiliates Contract #102; Render Staging Blueprint #66; MySQL integrado; tree `f1ef9038de983a69737c94a2d218eec57e179efb` | crítico |
 | MIG-0017 | venda de ingressos/passeios e check-in operacional | Ticketing | FEATURE-0011 | `packages/ticketing` + `services/ticketing` | 10 | equivalent | emissão, QR HMAC, check-in persistente, offline sync e integração local com Ordering/Financial comprovados; 31/31 testes do Ticketing server passaram com MySQL real | emissão pós-pagamento, QR assinado, check-in persistente, transaction lifecycle, reservation binding e sincronização offline comprovados; browser específico de ticketing/provider E2E ainda não separado | `docs/qa/TICKETING-M147-EVIDENCE.md`; Ticketing MySQL 31/31; Ordering binding 2/2; workflows `ticketing-m147-contract.yml` e `ticketing-m148-transaction-contract.yml` | alto |
 | MIG-0012 | `js/map*` + bootstrap V1 | Geospatial | FEATURE-0001 | `packages/geospatial` + `apps/morro-digital-platform/src/bootstrap/geospatial.ts` | 4 | equivalent | Mapbox Visual Contract validado nos três viewports, normal e `forced-colors` | Runtime, adapter, Mapbox real, fallback, rollback e lifecycle comprovados | PR #17 head final `2d84629b`; runs `31237633579`, `31237633601`, `31237633577` verdes | crítico |
 | MIG-0013 | Home / seletor de roteiros V1 | Core UI / Tours | FEATURE-0007 | `apps/morro-digital-platform/src/browser-entry.ts` | 4 | equivalent | matriz Home v4: loading, map-ready, teclado, contraste e texto ampliado comprovados | troca 8→5→5→8, falhas e offline/provider indisponível comprovados | PRs #19/#17/#20 incorporados; Quality Gate final da matriz `31237787144` verde | alto |
@@ -85,6 +85,38 @@ M65 closes the final Business-owned parity contract. The canonical matrix is `19
 ## Auth equivalente — MIG-0009
 
 M66 closes the four consumer-dependent Auth parity rows intentionally left partial in M48. The canonical matrix is `20 PASS / 0 PARTIAL / 0 GAP / 0 N/A`. The feature is `equivalent`, not `released`. Permanent evidence includes the Auth Integration Contract, Auth Login Browser Contract and Business dashboard/security regressions on PR #129.
+
+## Affiliates equivalente — MIG-0011
+
+A Wave 9 foi concluída sobre o runtime integrado de Privacy/LGPD, Identity/Eligibility/Suspension, Attribution e Commercial. O checkpoint executável imediatamente anterior a esta reconciliação documental é:
+
+```text
+main = a2a1f10420c1d452e9426c75549864c76d57f22c
+certified PR head = 851740d2429c41d18f81f0e476fc2fb67a6a0c3b
+certified tree = f1ef9038de983a69737c94a2d218eec57e179efb
+main tree = f1ef9038de983a69737c94a2d218eec57e179efb
+Quality Gate #242 = PASS
+Affiliates FEATURE-0010 Contract #102 = PASS
+Render Staging Blueprint Contract #66 = PASS
+```
+
+A árvore certificada e a árvore integrada em `main` são idênticas. A matriz canônica final é:
+
+```text
+PASS       25
+PARTIAL     0
+GAP         0
+N/A         2
+TOTAL      27
+```
+
+Os dois N/A são deliberados: browser/admin não é requisito para a feature server-authoritative e nunca pode virar autoridade monetária; Affiliate-owned payment/ledger/wallet/payout é proibido. Financial permanece a única autoridade sobre Payment, eligible revenue, ledger, payable/wallet, settlement, payout, reconciliation, FX e reversões monetárias; Ordering permanece a autoridade de Order.
+
+A aceitação integrada cobre MySQL real para Privacy, Identity/Suspension, Attribution e Commercial; replay exato/divergente; concorrência e locks; retenção/DSR/anonymization/pseudonymization/legal hold; commission 3000 bps com integer minor units/half-up; lifecycle/refunds/reversals; e materialization request/readback/retry sem instrução monetária controlada pelo Affiliate/browser. Nenhum Mercado Pago real, dinheiro real ou produção foi executado nesta campanha.
+
+O staging V2 conectado é isolado e possui MySQL privado próprio, porém o web service permanece vinculado a uma branch histórica de Payments com auto-deploy desligado. O conector Render disponível consegue disparar deploy, mas não retargetar a branch de um serviço existente; por isso nenhum deploy da branch errada foi executado. O contrato permanente Render Staging Blueprint #66 é PASS na árvore certificada.
+
+`MIG-0011` e `FEATURE-0010` passam a `equivalent`, não `released`. Rollout para tráfego/produção continua separado e preserva rollback application-first, durable readback/audit e toda autoridade monetária no Financial.
 
 ## Payments em migração — MIG-0010
 
