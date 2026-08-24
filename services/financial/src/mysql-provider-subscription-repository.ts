@@ -1,27 +1,13 @@
 import type { Pool, PoolConnection, RowDataPacket } from "mysql2/promise";
 
-import {
-  createMoney,
-  normalizeFinancialTimestamp,
-  type Money,
-} from "@touristic/financial";
+import { createMoney, normalizeFinancialTimestamp } from "@touristic/financial";
 import {
   normalizeProviderSubscriptionSnapshot,
+  type ProviderSubscriptionBinding,
+  type ProviderSubscriptionBindingRepositoryPort,
   type ProviderSubscriptionSnapshot,
   type ProviderSubscriptionStatus,
 } from "@touristic/financial/subscription-provider";
-
-export interface ProviderSubscriptionBinding {
-  readonly subscriptionId: string;
-  readonly providerSubscriptionReference: string;
-  readonly status: ProviderSubscriptionStatus;
-  readonly amount: Money;
-  readonly frequency: 1;
-  readonly frequencyType: "months";
-  readonly payerEmail: string;
-  readonly createdAt: string;
-  readonly updatedAt: string;
-}
 
 interface ProviderSubscriptionRow extends RowDataPacket {
   subscription_id: string;
@@ -124,7 +110,9 @@ async function selectLocked(
   return rows.map(toBinding);
 }
 
-export class MySqlProviderSubscriptionRepository {
+export class MySqlProviderSubscriptionRepository
+  implements ProviderSubscriptionBindingRepositoryPort
+{
   constructor(private readonly pool: Pool) {}
 
   async findBySubscriptionId(
@@ -143,7 +131,7 @@ export class MySqlProviderSubscriptionRepository {
 
   async saveReadback(
     input: ProviderSubscriptionSnapshot,
-    observedAtInput: unknown,
+    observedAtInput: string,
   ): Promise<ProviderSubscriptionBinding> {
     const snapshot = normalizeProviderSubscriptionSnapshot(input);
     const observedAt = timestamp(observedAtInput);
