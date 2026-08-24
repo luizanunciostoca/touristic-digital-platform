@@ -1,0 +1,193 @@
+name: Provider TEST E2E 2026-08-24
+
+on:
+  push:
+    branches:
+      - ops/provider-e2e-e0d35bb-20260824
+
+permissions:
+  contents: read
+
+jobs:
+  card-test-e2e:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Install deterministic Chromium
+        run: |
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+
+      - name: Execute Mercado Pago TEST Card Brick acceptance
+        env:
+          STAGING_URL: https://morro-digital-v2-staging.onrender.com
+        run: |
+          node <<'NODE'
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+
+          const pagePath = '/apps/morro-digital-platform/public/business-onboarding.html';
+          const checkoutPath = '/api/payments/v1/checkouts';
+          const clean = value => String(value ?? '').replace(/[\r\n]/g, ' ').slice(0, 300);
+
+          async function visibleField(page, selector, timeoutMs = 30_000) {
+            const deadline = Date.now() + timeoutMs;
+            while (Date.now() < deadline) {
+              for (const frame of page.frames()) {
+                try {
+                  const locator = frame.locator(selector).first();
+                  if ((await locator.count()) > 0 && (await locator.isVisible())) return locator;
+                } catch {}
+              }
+              await page.waitForTimeout(250);
+            }
+            throw new Error(`VISIBLE_FIELD_TIMEOUT:${selector}`);
+          }
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            try {
+              const page = await browser.newPage();
+              const base = process.env.STAGING_URL;
+              const pageUrl = `${base}${pagePath}`;
+
+              const response = await page.goto(pageUrl, { waitUntil: 'load', timeout: 60_000 });
+              if (!response || response.status() !== 200) {
+                throw new Error(`STAGING_PAGE_HTTP_${response?.status() ?? 'NO_RESPONSE'}`);
+              }
+
+              await page.waitForFunction(() => Boolean(globalThis.__MORRO_RUNTIME_ENV__), null, { timeout: 20_000 });
+              const runtime = await page.evaluate(() => ({
+                hasPublicKey: Boolean(globalThis.__MORRO_RUNTIME_ENV__?.VITE_MERCADO_PAGO_PUBLIC_KEY),
+              }));
+              if (!runtime.hasPublicKey) throw new Error('TEST_PUBLIC_KEY_NOT_AVAILABLE');
+
+              await page.evaluate(() => {
+                globalThis.__MORRO_PROVIDER_E2E__ = { verified: null, failed: null };
+                addEventListener('businessPaymentVerified', event => {
+                  globalThis.__MORRO_PROVIDER_E2E__.verified = event.detail;
+                });
+                addEventListener('businessPaymentVerificationFailed', event => {
+                  globalThis.__MORRO_PROVIDER_E2E__.failed = event.detail;
+                });
+              });
+
+              await page.waitForTimeout(1_500);
+              const sessionId = `provider_acceptance_${Date.now()}`;
+              const acceptedAt = new Date().toISOString();
+              const checkoutResponsePromise = page.waitForResponse(res => {
+                const url = new URL(res.url());
+                return res.request().method() === 'POST' && url.pathname === checkoutPath;
+              }, { timeout: 30_000 });
+
+              await page.evaluate(({ sessionId, acceptedAt, returnUrl }) => {
+                dispatchEvent(new CustomEvent('businessCheckoutRequested', {
+                  detail: {
+                    sessionId,
+                    planId: 'provider_acceptance_test',
+                    contractor: {
+                      name: 'Morro Digital Provider Acceptance',
+                      email: 'payments.acceptance.20260824@example.com',
+                      phone: '+55 75 99999-0000',
+                      document: '12345678909',
+                    },
+                    businessDraft: {
+                      demoBusinessId: 'provider-acceptance',
+                      displayName: 'Morro Digital Provider Acceptance',
+                      categoryId: 'restaurant',
+                      specialty: 'Provider TEST',
+                      environment: 'sandbox',
+                      publishable: false,
+                    },
+                    acceptedTerms: [
+                      { type: 'terms', version: 'terms_v1', acceptedAt },
+                      { type: 'privacy', version: 'privacy_v1', acceptedAt },
+                    ],
+                    returnUrl,
+                    tutorial: false,
+                    requiresPaymentsCapability: true,
+                  },
+                }));
+              }, { sessionId, acceptedAt, returnUrl: pageUrl });
+
+              const checkoutResponse = await checkoutResponsePromise;
+              const checkoutPayload = await checkoutResponse.json();
+              const checkoutId = checkoutPayload?.data?.checkoutId;
+              if (checkoutResponse.status() !== 201 || typeof checkoutId !== 'string' || !checkoutId.startsWith('ord_')) {
+                throw new Error(`CHECKOUT_CREATE_FAILED:${checkoutResponse.status()}:${clean(checkoutPayload?.error)}`);
+              }
+
+              await page.locator('[data-morro-payments-brick="card"]').waitFor({ state: 'visible', timeout: 30_000 });
+              const cardNumber = await visibleField(page, 'input[name="cardNumber"]');
+              await cardNumber.fill('5480832801033311');
+              await page.waitForTimeout(750);
+
+              const expirationDate = await visibleField(page, 'input[name="expirationDate"]');
+              await expirationDate.fill('1130');
+              const securityCode = await visibleField(page, 'input[name="securityCode"]');
+              await securityCode.fill('123');
+
+              const holder = page.locator('[data-morro-payments-brick="card"] input[name="HOLDER_NAME"]').first();
+              await holder.fill('APRO');
+
+              const documentField = page.locator('[data-morro-payments-brick="card"] input[name="DOCUMENT"]').first();
+              await documentField.fill('12345678909');
+
+              const selects = page.locator('[data-morro-payments-brick="card"] select');
+              for (let i = 0; i < await selects.count(); i += 1) {
+                const select = selects.nth(i);
+                if (!(await select.isVisible())) continue;
+                const options = await select.locator('option').allTextContents();
+                const cpfIndex = options.findIndex(text => /CPF/i.test(text));
+                if (cpfIndex >= 0) {
+                  const values = await select.locator('option').evaluateAll(nodes => nodes.map(node => node.value));
+                  if (values[cpfIndex]) await select.selectOption(values[cpfIndex]);
+                }
+              }
+
+              const cardResponsePromise = page.waitForResponse(res => {
+                const url = new URL(res.url());
+                return res.request().method() === 'POST' && /\/api\/payments\/v1\/checkouts\/ord_[^/]+\/card$/u.test(url.pathname);
+              }, { timeout: 45_000 });
+
+              await page.locator('[data-morro-payments-brick="card"] button[type="submit"]').click();
+              const cardResponse = await cardResponsePromise;
+              const cardPayload = await cardResponse.json();
+              const cardStatus = cardPayload?.data?.status ?? null;
+              if (!cardResponse.ok()) {
+                throw new Error(`CARD_SUBMIT_FAILED:${cardResponse.status()}:${clean(cardPayload?.error)}`);
+              }
+
+              await page.waitForFunction(() => {
+                const state = globalThis.__MORRO_PROVIDER_E2E__;
+                return Boolean(state?.verified || state?.failed);
+              }, null, { timeout: 120_000 });
+
+              const outcome = await page.evaluate(() => globalThis.__MORRO_PROVIDER_E2E__);
+              if (outcome?.failed) {
+                throw new Error(`PAYMENT_VERIFICATION_FAILED:${clean(outcome.failed.code)}`);
+              }
+              if (!outcome?.verified?.verified) throw new Error('PAYMENT_NOT_VERIFIED');
+
+              console.log('PROVIDER_TEST_CARD_E2E=' + JSON.stringify({
+                candidate: 'e0d35bb2ec8d65861a4f64ceb3959617390c1071',
+                staging: true,
+                realMoney: false,
+                realCard: false,
+                publicKeyPresent: runtime.hasPublicKey,
+                checkoutHttp: checkoutResponse.status(),
+                checkoutId,
+                cardSubmitHttp: cardResponse.status(),
+                cardStatus,
+                verified: true,
+                reference: outcome.verified.reference,
+                definitiveBusinessId: outcome.verified.definitiveBusinessId ?? null,
+                activationStatus: outcome.verified.activationStatus ?? null,
+              }));
+            } finally {
+              await browser.close();
+            }
+          })().catch(error => {
+            console.error('PROVIDER_TEST_CARD_E2E_FAILED=' + (error?.stack || error));
+            process.exit(1);
+          });
+          NODE
