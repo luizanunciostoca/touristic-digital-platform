@@ -27,7 +27,7 @@ jobs:
           gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
             -f state=pending \
             -f context='Payments Provider Post-CSP Probe' \
-            -f description='Exact staging Card Brick render probe running' \
+            -f description='Settled TEST Card Brick probe running' \
             -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" >/dev/null
 
       - name: Install Playwright Chromium
@@ -37,7 +37,7 @@ jobs:
           npm install --prefix /tmp/pw --no-save playwright@1.54.2
           /tmp/pw/node_modules/.bin/playwright install --with-deps chromium >/dev/null
 
-      - name: Prove real Card Payment Brick render
+      - name: Prove settled Card Payment Brick controls
         shell: bash
         run: |
           set -euo pipefail
@@ -63,20 +63,17 @@ jobs:
               const failedRequests = [];
               const providerResponses = [];
               const pageErrors = [];
-
               page.on('requestfailed', request => {
-                const url = request.url();
-                if (!/mercadopago|mercadolibre|mlstatic/iu.test(url)) return;
+                if (!/mercadopago|mercadolibre|mlstatic/iu.test(request.url())) return;
                 failedRequests.push({
                   type: request.resourceType(),
-                  location: safeLocation(url),
+                  location: safeLocation(request.url()),
                   error: String(request.failure()?.errorText || 'request_failed').slice(0, 100),
                 });
               });
               page.on('response', response => {
-                const url = response.url();
-                if (!/mercadopago|mercadolibre|mlstatic/iu.test(url)) return;
-                providerResponses.push({ status: response.status(), location: safeLocation(url) });
+                if (!/mercadopago|mercadolibre|mlstatic/iu.test(response.url())) return;
+                providerResponses.push({ status: response.status(), location: safeLocation(response.url()) });
               });
               page.on('pageerror', error => pageErrors.push(String(error.message || error).slice(0, 180)));
 
@@ -89,10 +86,7 @@ jobs:
                     blocked = `${url.origin}${url.pathname}`;
                   } catch {}
                   if (/mercadopago|mercadolibre|mlstatic/iu.test(blocked)) {
-                    window.__PAYMENTS_CSP_VIOLATIONS__.push({
-                      directive: event.effectiveDirective,
-                      blocked: blocked.slice(0, 240),
-                    });
+                    window.__PAYMENTS_CSP_VIOLATIONS__.push({ directive: event.effectiveDirective, blocked: blocked.slice(0, 240) });
                   }
                 });
               });
@@ -100,56 +94,34 @@ jobs:
               for (const path of ['/healthz', '/readyz']) {
                 const response = await page.request.get(`${base}${path}`);
                 if (!response.ok()) throw new Error(`${path}-http-${response.status()}`);
-                const sha = response.headers()['x-release-sha'];
-                if (sha !== expectedSha) throw new Error(`${path}-release-sha-${sha || 'missing'}`);
+                if (response.headers()['x-release-sha'] !== expectedSha) throw new Error(`${path}-release-sha-mismatch`);
               }
 
               const nav = await page.goto(`${base}${onboardingPath}`, { waitUntil: 'domcontentloaded' });
               if (!nav?.ok()) throw new Error(`onboarding-http-${nav?.status() || 'missing'}`);
-
               const runtime = await page.evaluate(() => {
                 const env = window.__MORRO_RUNTIME_ENV__ || {};
                 const key = String(env.VITE_MERCADO_PAGO_PUBLIC_KEY || '').trim();
                 return {
                   keyPresent: key.length > 0,
-                  keyPrefix: key.startsWith('TEST-') ? 'TEST' : key.startsWith('APP_USR-') ? 'APP_USR' : key ? 'OTHER' : 'NONE',
+                  keyPrefix: key.startsWith('TEST-') ? 'TEST' : key ? 'OTHER' : 'NONE',
                   keyLength: key.length,
                   runtimeScriptCount: document.querySelectorAll('script[src="/runtime-config.js"]').length,
                 };
               });
-              if (!runtime.keyPresent || runtime.keyPrefix !== 'TEST' || runtime.runtimeScriptCount !== 1) {
-                throw new Error(`runtime-public-key-invalid:${JSON.stringify(runtime)}`);
-              }
+              if (!runtime.keyPresent || runtime.keyPrefix !== 'TEST' || runtime.runtimeScriptCount !== 1) throw new Error('test-runtime-key-invalid');
 
-              const runtimeResponse = await page.request.get(`${base}/runtime-config.js`);
-              const runtimeText = await runtimeResponse.text();
-              for (const forbidden of [
-                'MERCADO_PAGO_ACCESS_TOKEN',
-                'MERCADO_PAGO_WEBHOOK_SECRET',
-                'ORDERING_DATABASE_URL',
-                'FINANCIAL_DATABASE_URL',
-              ]) {
+              const runtimeText = await (await page.request.get(`${base}/runtime-config.js`)).text();
+              for (const forbidden of ['MERCADO_PAGO_ACCESS_TOKEN','MERCADO_PAGO_WEBHOOK_SECRET','ORDERING_DATABASE_URL','FINANCIAL_DATABASE_URL']) {
                 if (runtimeText.includes(forbidden)) throw new Error(`runtime-secret-name-exposed:${forbidden}`);
               }
 
-              const sessionId = `post_csp_${Date.now()}`;
+              const sessionId = `settled_brick_${Date.now()}`;
               const handoff = {
                 sessionId,
                 planId,
-                contractor: {
-                  name: 'Morro Provider Test',
-                  email: 'morro-provider-test@example.com',
-                  phone: '75999999999',
-                  document: '12345678909',
-                },
-                businessDraft: {
-                  demoBusinessId: `demo_${sessionId}`,
-                  displayName: 'Morro Provider TEST',
-                  categoryId: 'events',
-                  specialty: 'Provider acceptance',
-                  environment: 'sandbox',
-                  publishable: false,
-                },
+                contractor: { name: 'Morro Provider Test', email: 'morro-provider-test@example.com', phone: '75999999999', document: '12345678909' },
+                businessDraft: { demoBusinessId: `demo_${sessionId}`, displayName: 'Morro Provider TEST', categoryId: 'events', specialty: 'Provider acceptance', environment: 'sandbox', publishable: false },
                 acceptedTerms: [
                   { type: 'terms', version: 'business-partner-terms-2026-08', acceptedAt: new Date().toISOString() },
                   { type: 'privacy', version: 'privacy-policy-2026-08', acceptedAt: new Date().toISOString() },
@@ -161,109 +133,119 @@ jobs:
 
               const bootstrap = await page.evaluate(async ({ handoff, sessionId, planId }) => {
                 const authority = await fetch('/api/payments/v1/checkout-authority', {
-                  method: 'POST',
-                  credentials: 'same-origin',
-                  cache: 'no-store',
-                  headers: { 'content-type': 'application/json', accept: 'application/json' },
-                  body: JSON.stringify(handoff),
+                  method: 'POST', credentials: 'same-origin', cache: 'no-store',
+                  headers: { 'content-type': 'application/json', accept: 'application/json' }, body: JSON.stringify(handoff),
                 });
-                const authorityPayload = await authority.json();
-                if (!authority.ok) return { stage: 'authority', status: authority.status, error: authorityPayload?.error || 'unknown' };
+                const a = await authority.json();
+                if (!authority.ok) return { stage: 'authority', status: authority.status, error: a?.error || 'unknown' };
                 const checkout = await fetch('/api/payments/v1/checkouts', {
-                  method: 'POST',
-                  credentials: 'same-origin',
-                  cache: 'no-store',
+                  method: 'POST', credentials: 'same-origin', cache: 'no-store',
                   headers: {
-                    'content-type': 'application/json',
-                    accept: 'application/json',
-                    'x-checkout-handoff-token': authorityPayload.data.handoffToken,
+                    'content-type': 'application/json', accept: 'application/json',
+                    'x-checkout-handoff-token': a.data.handoffToken,
                     'idempotency-key': `business:${sessionId}:${planId}`,
-                  },
-                  body: JSON.stringify(handoff),
+                  }, body: JSON.stringify(handoff),
                 });
                 return { stage: 'checkout', status: checkout.status, payload: await checkout.json() };
               }, { handoff, sessionId, planId });
-
-              if (bootstrap.status < 200 || bootstrap.status >= 300) {
-                throw new Error(`bootstrap-${bootstrap.stage}-${bootstrap.status}-${bootstrap.error || bootstrap.payload?.error || 'unknown'}`);
-              }
+              if (bootstrap.status < 200 || bootstrap.status >= 300) throw new Error(`bootstrap-${bootstrap.stage}-${bootstrap.status}`);
               const data = bootstrap.payload?.data;
-              if (!data?.checkoutId || !data?.statusToken || !data?.plan?.amount) throw new Error('checkout-bootstrap-invalid');
-              if (data.plan.id !== planId || data.plan.amount.minorUnits !== 1000 || data.plan.amount.currency !== 'BRL') {
-                throw new Error(`server-plan-authority-diverged:${JSON.stringify(data.plan)}`);
+              if (!data?.checkoutId || !data?.statusToken || data.plan?.id !== planId || data.plan?.amount?.minorUnits !== 1000 || data.plan?.amount?.currency !== 'BRL') {
+                throw new Error('server-plan-authority-invalid');
               }
 
               await page.evaluate(async ({ data, email }) => {
                 const module = await import('/apps/morro-digital-platform/dist/mercado-pago-card-payment-brick.js');
                 const adapter = module.createMercadoPagoCardPaymentBrick(window, document, window.fetch.bind(window));
-                window.__POST_CSP_BRICK__ = { available: adapter.available, error: null };
-                adapter.present({
-                  checkoutId: data.checkoutId,
-                  statusToken: data.statusToken,
-                  plan: data.plan,
-                  payerEmail: email,
-                }).catch(error => {
-                  window.__POST_CSP_BRICK__.error = String(error?.message || error).slice(0, 180);
-                });
+                window.__SETTLED_BRICK__ = { available: adapter.available, error: null };
+                adapter.present({ checkoutId: data.checkoutId, statusToken: data.statusToken, plan: data.plan, payerEmail: email })
+                  .catch(error => { window.__SETTLED_BRICK__.error = String(error?.message || error).slice(0, 180); });
               }, { data, email: handoff.contractor.email });
 
               await page.waitForSelector('[data-morro-payments-brick="card"]', { timeout: 20000 });
+              await page.waitForTimeout(10000);
 
-              const deadline = Date.now() + 20000;
-              let rendered = null;
-              while (Date.now() < deadline) {
-                rendered = await page.evaluate(() => {
-                  const overlay = document.querySelector('[data-morro-payments-brick="card"]');
-                  const container = overlay?.querySelector('[id^="morro-mercado-pago-card-"]');
-                  const controls = container ? Array.from(container.querySelectorAll('input, select, button')).map(node => ({
-                    tag: node.tagName.toLowerCase(),
-                    id: node.id || null,
-                    name: node.getAttribute('name'),
-                    type: node.getAttribute('type'),
-                    placeholder: node.getAttribute('placeholder'),
-                    ariaLabel: node.getAttribute('aria-label'),
-                    text: node.tagName === 'BUTTON' ? String(node.textContent || '').trim().slice(0, 80) : null,
-                  })) : [];
-                  return {
-                    overlay: Boolean(overlay),
-                    container: Boolean(container),
-                    childCount: container?.childElementCount ?? 0,
-                    textLength: container?.textContent?.length ?? 0,
-                    controls,
-                    iframeCount: container?.querySelectorAll('iframe').length ?? 0,
-                    providerIframes: Array.from(document.querySelectorAll('iframe')).map(frame => {
-                      try { return new URL(frame.src).origin; } catch { return ''; }
-                    }).filter(origin => /mercadopago|mercadolibre|mlstatic/iu.test(origin)),
-                    adapterAvailable: Boolean(window.__POST_CSP_BRICK__?.available),
-                    adapterError: window.__POST_CSP_BRICK__?.error || null,
-                    cspViolations: window.__PAYMENTS_CSP_VIOLATIONS__ || [],
-                  };
+              const state = await page.evaluate(() => {
+                const overlay = document.querySelector('[data-morro-payments-brick="card"]');
+                const container = overlay?.querySelector('[id^="morro-mercado-pago-card-"]');
+                const describe = node => ({
+                  tag: node.tagName?.toLowerCase?.() || '',
+                  id: node.id || null,
+                  className: typeof node.className === 'string' ? node.className.slice(0, 120) : null,
+                  name: node.getAttribute?.('name'),
+                  type: node.getAttribute?.('type'),
+                  placeholder: node.getAttribute?.('placeholder'),
+                  ariaLabel: node.getAttribute?.('aria-label'),
+                  role: node.getAttribute?.('role'),
+                  text: ['BUTTON','LABEL','SPAN','DIV'].includes(node.tagName) ? String(node.textContent || '').trim().slice(0, 100) : null,
                 });
-                if (rendered.adapterError) break;
-                if (rendered.childCount > 0 || rendered.controls.length > 0 || rendered.iframeCount > 0 || rendered.providerIframes.length > 0) break;
-                await page.waitForTimeout(100);
+                const deep = [];
+                const controls = [];
+                const walk = root => {
+                  for (const node of root.querySelectorAll?.('*') || []) {
+                    if (deep.length < 80) deep.push(describe(node));
+                    if (['INPUT','SELECT','BUTTON'].includes(node.tagName)) controls.push(describe(node));
+                    if (node.shadowRoot) walk(node.shadowRoot);
+                  }
+                };
+                if (container) walk(container);
+                const frames = Array.from(document.querySelectorAll('iframe')).map(frame => ({
+                  srcOrigin: (() => { try { return new URL(frame.src).origin; } catch { return ''; } })(),
+                  title: frame.getAttribute('title'),
+                  name: frame.getAttribute('name'),
+                }));
+                return {
+                  adapterAvailable: Boolean(window.__SETTLED_BRICK__?.available),
+                  adapterError: window.__SETTLED_BRICK__?.error || null,
+                  overlayPresent: Boolean(overlay),
+                  containerPresent: Boolean(container),
+                  childCount: container?.childElementCount ?? 0,
+                  text: String(container?.textContent || '').trim().slice(0, 240),
+                  controls,
+                  deep,
+                  frames,
+                  cspViolations: window.__PAYMENTS_CSP_VIOLATIONS__ || [],
+                };
+              });
+
+              const frameControls = [];
+              for (let index = 0; index < page.frames().length; index += 1) {
+                const frame = page.frames()[index];
+                let origin = '';
+                try { origin = new URL(frame.url()).origin; } catch {}
+                let controls = [];
+                try {
+                  controls = await frame.locator('input,select,button').evaluateAll(nodes => nodes.map(node => ({
+                    tag: node.tagName.toLowerCase(), id: node.id || null, name: node.getAttribute('name'),
+                    type: node.getAttribute('type'), placeholder: node.getAttribute('placeholder'),
+                    ariaLabel: node.getAttribute('aria-label'), text: node.tagName === 'BUTTON' ? String(node.textContent || '').trim().slice(0, 80) : null,
+                  })));
+                } catch {}
+                frameControls.push({ index, origin, controls });
               }
 
-              if (!rendered) throw new Error('brick-render-state-missing');
-              const providerCspViolations = rendered.cspViolations || [];
-              const realRendered = rendered.childCount > 0 || rendered.controls.length > 0 || rendered.iframeCount > 0 || rendered.providerIframes.length > 0;
+              const providerFailures = failedRequests.filter(item => /mercadopago|mercadolibre|mlstatic/iu.test(item.location));
+              const providerCsp = state.cspViolations || [];
+              const controlCount = state.controls.length + frameControls.reduce((sum, frame) => sum + frame.controls.length, 0);
+              const settled = state.adapterAvailable && state.overlayPresent && state.containerPresent && !state.adapterError && state.childCount > 0 && controlCount > 0;
               const result = {
-                status: rendered.adapterAvailable && rendered.overlay && rendered.container && realRendered && !rendered.adapterError && providerCspViolations.length === 0 && failedRequests.length === 0 ? 'PASS' : 'FAIL',
+                status: settled && providerFailures.length === 0 && providerCsp.length === 0 ? 'PASS' : 'FAIL',
                 releaseSha: expectedSha,
                 runtime,
                 plan: data.plan,
-                brick: rendered,
-                failedRequests,
+                state,
+                frameControls,
+                providerFailures,
                 providerResponses: providerResponses.slice(-80),
                 pageErrors,
               };
               console.log(JSON.stringify(result));
-              if (result.status !== 'PASS') throw new Error(`post-csp-brick-render-failed:${JSON.stringify(result)}`);
+              if (result.status !== 'PASS') throw new Error(`settled-card-brick-not-proven:${JSON.stringify(result).slice(0, 5000)}`);
             } finally {
               await browser.close();
             }
           })().catch(error => {
-            console.error(JSON.stringify({ status: 'FAIL', error: String(error?.message || error).slice(0, 1200) }));
+            console.error(JSON.stringify({ status: 'FAIL', error: String(error?.message || error).slice(0, 5500) }));
             process.exit(1);
           });
           NODE
@@ -275,15 +257,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           JOB_STATUS: ${{ job.status }}
         run: |
-          if [ "$JOB_STATUS" = success ]; then
-            state=success
-            description='Exact staging Card Brick rendered'
-          else
-            state=failure
-            description='Exact staging Card Brick render failed'
-          fi
+          if [ "$JOB_STATUS" = success ]; then state=success; description='Settled TEST Card Brick controls proven'; else state=failure; description='Settled TEST Card Brick controls not proven'; fi
           gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
-            -f state="$state" \
-            -f context='Payments Provider Post-CSP Probe' \
-            -f description="$description" \
+            -f state="$state" -f context='Payments Provider Post-CSP Probe' -f description="$description" \
             -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" >/dev/null
