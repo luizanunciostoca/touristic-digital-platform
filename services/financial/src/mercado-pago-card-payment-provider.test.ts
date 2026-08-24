@@ -92,44 +92,58 @@ describe("Mercado Pago direct card provider", () => {
     ["rejected", "failed"],
     ["cancelled", "cancelled"],
     ["refunded", "refunded"],
-  ] as const)("maps provider status %s to %s", async (providerStatus, expected) => {
-    const provider = createMercadoPagoCardPaymentProviderFromEnvironment(
-      environment,
-      {
-        fetch: (async () =>
-          new Response(
-            JSON.stringify({ id: "provider-payment-0001", status: providerStatus }),
-            { status: 200 },
-          )) as typeof fetch,
-      },
-    );
+  ] as const)(
+    "maps provider status %s to %s",
+    async (providerStatus, expected) => {
+      const provider = createMercadoPagoCardPaymentProviderFromEnvironment(
+        environment,
+        {
+          fetch: (async () =>
+            new Response(
+              JSON.stringify({
+                id: "provider-payment-0001",
+                status: providerStatus,
+              }),
+              { status: 200 },
+            )) as typeof fetch,
+        },
+      );
 
-    await expect(provider.createCardPayment(request)).resolves.toEqual({
-      providerPaymentReference: "provider-payment-0001",
-      status: expected,
-    });
-  });
+      await expect(provider.createCardPayment(request)).resolves.toEqual({
+        providerPaymentReference: "provider-payment-0001",
+        status: expected,
+      });
+    },
+  );
 
-  it("fails closed in TEST mode without explicit TEST credential confirmation", async () => {
-    const provider = createMercadoPagoCardPaymentProviderFromEnvironment(
-      {
-        ...environment,
-        MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED: "false",
-      },
-      {
-        fetch: vi.fn(async () => new Response("{}", { status: 200 })) as unknown as typeof fetch,
-      },
-    );
+  it(
+    "fails closed in TEST mode without explicit TEST credential confirmation",
+    async () => {
+      const provider = createMercadoPagoCardPaymentProviderFromEnvironment(
+        {
+          ...environment,
+          MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED: "false",
+        },
+        {
+          fetch: vi.fn(
+            async () => new Response("{}", { status: 200 }),
+          ) as unknown as typeof fetch,
+        },
+      );
 
-    await expect(provider.createCardPayment(request)).rejects.toMatchObject<
-      Partial<MercadoPagoProviderError>
-    >({ code: "MERCADO_PAGO_TEST_ACCOUNT_REQUIRED" });
-  });
+      await expect(provider.createCardPayment(request)).rejects.toMatchObject<
+        Partial<MercadoPagoProviderError>
+      >({ code: "MERCADO_PAGO_TEST_ACCOUNT_REQUIRED" });
+    },
+  );
 
   it("rejects non-BRL requests before the provider call", async () => {
     const usd = createMoney(100, "USD");
     if (!usd) throw new Error("TEST_USD_AMOUNT_INVALID");
-    const usdRequest = createCardPaymentProviderRequest({ ...request, amount: usd });
+    const usdRequest = createCardPaymentProviderRequest({
+      ...request,
+      amount: usd,
+    });
     if (!usdRequest) throw new Error("TEST_USD_REQUEST_INVALID");
     const fetchMock = vi.fn();
     const provider = createMercadoPagoCardPaymentProviderFromEnvironment(
