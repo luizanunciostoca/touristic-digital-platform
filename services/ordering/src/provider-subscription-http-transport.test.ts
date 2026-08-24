@@ -121,6 +121,7 @@ function createFixture(existing: ProviderSubscriptionBinding | null = null) {
       authorize: async () => ({
         allowed: true,
         actorSubject: "user:test",
+        actorEmail: "buyer@example.com",
         tenantId: "business_test",
       }),
     },
@@ -146,7 +147,7 @@ function request(
   method = "POST",
   body: unknown = {
     cardToken: "card_token_subscription_0001",
-    payerEmail: "buyer@example.com",
+    payerEmail: "attacker@example.com",
     amount: 1,
     currency: "USD",
     frequency: 99,
@@ -162,7 +163,7 @@ function request(
 }
 
 describe("ProviderSubscriptionHttpTransport", () => {
-  it("creates the provider agreement from the canonical server subscription snapshot", async () => {
+  it("creates the provider agreement from server-owned subscription and auth snapshots", async () => {
     const fixture = createFixture();
 
     const result = await fixture.transport.handle(
