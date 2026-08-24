@@ -3,6 +3,7 @@ import mysql, { type Pool } from "mysql2/promise";
 export * from "./schema.js";
 export * from "./mysql-affiliate-persistence.js";
 export * from "./affiliate-application-service.js";
+export * from "./affiliate-commercial-application-service.js";
 export * from "./affiliate-http-transport.js";
 export * from "./affiliate-adapters.js";
 
