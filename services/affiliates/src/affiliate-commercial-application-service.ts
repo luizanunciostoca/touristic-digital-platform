@@ -226,13 +226,23 @@ function entitlementFromRow(row: EntitlementRow): CommissionEntitlement {
 }
 
 function stable(value: unknown): string {
-  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (value === null) return "null";
+  if (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
+    return JSON.stringify(value);
+  }
   if (Array.isArray(value)) return `[${value.map(stable).join(",")}]`;
-  const object = value as Readonly<Record<string, unknown>>;
-  return `{${Object.keys(object)
-    .sort()
-    .map((key) => `${JSON.stringify(key)}:${stable(object[key])}`)
-    .join(",")}}`;
+  if (typeof value === "object") {
+    const object = value as Readonly<Record<string, unknown>>;
+    return `{${Object.keys(object)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${stable(object[key])}`)
+      .join(",")}}`;
+  }
+  throw new Error("AFFILIATE_CANONICAL_INPUT_UNSUPPORTED");
 }
 
 function parsedOutcome<T>(value: unknown): T | null {
@@ -411,7 +421,7 @@ export class AffiliateCommercialApplicationService {
     const snapshot = await this.readEntitlement(input.entitlementId);
     if (!snapshot) throw new Error("AFFILIATE_ENTITLEMENT_NOT_FOUND");
     const authorized = await this.dependencies.authorization.authorize(
-      "affiliate.transition_commission",
+      "affiliate.change_entitlement",
       {
         actorKind: "service",
         actorReference: input.actorReference,
@@ -480,7 +490,7 @@ export class AffiliateCommercialApplicationService {
         stable(next),
       );
       await this.audit(connection, {
-        operation: "affiliate.transition_commission",
+        operation: "affiliate.change_entitlement",
         actorReference: input.actorReference,
         authorizationDecisionReference: authorized.decisionReference,
         affiliateId: next.affiliateId,
@@ -545,7 +555,7 @@ export class AffiliateCommercialApplicationService {
       throw new Error("AFFILIATE_FINANCIAL_ADJUSTMENT_ORDER_MISMATCH");
 
     const authorized = await this.dependencies.authorization.authorize(
-      "affiliate.apply_financial_adjustment",
+      "affiliate.change_entitlement",
       {
         actorKind: "service",
         actorReference: input.actorReference,
@@ -652,7 +662,7 @@ export class AffiliateCommercialApplicationService {
       }
 
       await this.audit(connection, {
-        operation: "affiliate.apply_financial_adjustment",
+        operation: "affiliate.change_entitlement",
         actorReference: input.actorReference,
         authorizationDecisionReference: authorized.decisionReference,
         affiliateId: current.affiliateId,
