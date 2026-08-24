@@ -25,6 +25,7 @@ import type {
   ResultSetHeader,
   RowDataPacket,
 } from "mysql2/promise";
+import { lockAffiliateEligibilitySnapshot } from "./affiliate-eligibility-gate.js";
 
 export interface AffiliateFinancialAdjustmentEvidenceV1 {
   readonly contractVersion: 1;
@@ -48,6 +49,11 @@ export interface AffiliateCommercialDependencies {
   readonly ordering: AffiliateOrderingEvidencePort;
   readonly financial: AffiliateFinancialEvidencePort;
   readonly financialAdjustments: AffiliateFinancialAdjustmentEvidencePort;
+  /**
+   * Retained for the versioned public dependency contract. Mutating commercial
+   * decisions use the transactional MySQL eligibility lock instead of this
+   * potentially stale reader.
+   */
   readonly eligibility: AffiliateEligibilityPort;
 }
 
@@ -69,7 +75,11 @@ export interface AssociateConversionResult {
 }
 
 export type EntitlementTransitionAction =
-  "earn" | "dispute" | "restore" | "cancel_dispute" | "reverse_dispute";
+  | "earn"
+  | "dispute"
+  | "restore"
+  | "cancel_dispute"
+  | "reverse_dispute";
 
 export interface TransitionEntitlementInput {
   readonly entitlementId: string;
@@ -101,6 +111,7 @@ export type ApplyFinancialAdjustmentResult =
   | Readonly<{
       kind: "earned_reversal_required";
       reversal: EarnedReversal;
+      entitlement: CommissionEntitlement;
       replayed: boolean;
     }>;
 
@@ -161,6 +172,32 @@ interface IdempotencyRow extends RowDataPacket {
 
 function date(value: string): Date {
   return new Date(value);
+}
+
+function stable(value: unknown): string {
+  if (value === null) return "null";
+  if (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
+    return JSON.stringify(value);
+  }
+  if (Array.isArray(value)) return `[${value.map(stable).join(",")}]`;
+  if (typeof value === "object") {
+    const object = value as Readonly<Record<string, unknown>>;
+    return `{${Object.keys(object)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${stable(object[key])}`)
+      .join(",")}}`;
+  }
+  throw new Error("AFFILIATE_CANONICAL_INPUT_UNSUPPORTED");
+}
+
+function parsedOutcome<T>(value: unknown): T | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value === "string") return JSON.parse(value) as T;
+  return value as T;
 }
 
 function attributionFromRow(row: AttributionRow): Attribution {
@@ -225,32 +262,6 @@ function entitlementFromRow(row: EntitlementRow): CommissionEntitlement {
   };
 }
 
-function stable(value: unknown): string {
-  if (value === null) return "null";
-  if (
-    typeof value === "string" ||
-    typeof value === "number" ||
-    typeof value === "boolean"
-  ) {
-    return JSON.stringify(value);
-  }
-  if (Array.isArray(value)) return `[${value.map(stable).join(",")}]`;
-  if (typeof value === "object") {
-    const object = value as Readonly<Record<string, unknown>>;
-    return `{${Object.keys(object)
-      .sort()
-      .map((key) => `${JSON.stringify(key)}:${stable(object[key])}`)
-      .join(",")}}`;
-  }
-  throw new Error("AFFILIATE_CANONICAL_INPUT_UNSUPPORTED");
-}
-
-function parsedOutcome<T>(value: unknown): T | null {
-  if (value === null || value === undefined) return null;
-  if (typeof value === "string") return JSON.parse(value) as T;
-  return value as T;
-}
-
 export class AffiliateCommercialApplicationService {
   public constructor(
     private readonly pool: Pool,
@@ -262,69 +273,40 @@ export class AffiliateCommercialApplicationService {
   ): Promise<AssociateConversionResult> {
     const conversionId = normalizeConversionAssociationId(input.conversionId);
     const entitlementId = normalizeCommissionEntitlementId(input.entitlementId);
-    if (!conversionId || !entitlementId)
+    if (!conversionId || !entitlementId) {
       throw new Error("AFFILIATE_CONVERSION_ID_INVALID");
+    }
 
     const [attributionRows] = await this.pool.execute<AttributionRow[]>(
       "SELECT * FROM affiliate_attributions WHERE attribution_id = ? LIMIT 1",
       [input.attributionId],
     );
-    const attributionRow = attributionRows[0];
-    if (!attributionRow || attributionRow.order_id !== input.orderId)
+    const snapshotRow = attributionRows[0];
+    if (!snapshotRow || snapshotRow.order_id !== input.orderId) {
       throw new Error("AFFILIATE_ATTRIBUTION_ORDER_MISMATCH");
-    const attribution = attributionFromRow(attributionRow);
-
+    }
+    const snapshot = attributionFromRow(snapshotRow);
     const authorized = await this.dependencies.authorization.authorize(
       "affiliate.associate_conversion",
       {
         actorKind: "service",
         actorReference: input.actorReference,
-        affiliateId: attribution.affiliateId,
-        programId: attribution.programId,
+        affiliateId: snapshot.affiliateId,
+        programId: snapshot.programId,
         correlationId: input.correlationId,
       },
     );
-    if (!authorized.allowed) throw new Error("AFFILIATE_AUTHORIZATION_DENIED");
+    this.assertAuthorized(authorized);
 
-    const [ordering, financial, eligibility] = await Promise.all([
-      this.dependencies.ordering.getOrderEvidence(input.orderId),
-      this.dependencies.financial.getConversionEvidence(input.orderId),
-      this.dependencies.eligibility.resolveEligibility(
-        attribution.affiliateId,
-        attribution.programId,
-      ),
-    ]);
-    if (!ordering) throw new Error("AFFILIATE_ORDER_NOT_FOUND");
-    if (ordering.orderId !== input.orderId)
-      throw new Error("AFFILIATE_ORDER_EVIDENCE_MISMATCH");
-    if (!financial) throw new Error("AFFILIATE_FINANCIAL_EVIDENCE_MISSING");
-    if (!eligibility) throw new Error("AFFILIATE_ELIGIBILITY_MISSING");
-
-    const conversion = createConversionAssociation({
-      id: conversionId,
-      attribution,
-      ordering,
-      financial,
-      conversionKind: "initial_purchase",
-      serviceOccurredAt: input.serviceOccurredAt,
-      createdAt: input.occurredAt,
+    const semanticDigest = await this.digest({
+      operation: "associate_conversion",
+      conversionId,
+      entitlementId,
+      attributionId: input.attributionId,
+      orderId: input.orderId,
+      serviceOccurredAt: input.serviceOccurredAt ?? null,
+      occurredAt: input.occurredAt,
     });
-    if (!conversion) throw new Error("AFFILIATE_CONVERSION_NOT_ELIGIBLE");
-    const entitlement = createCommissionEntitlement({
-      id: entitlementId,
-      conversion,
-      affiliateSuspendedAtConversion: !isActiveForAttribution(eligibility),
-      createdAt: input.occurredAt,
-    });
-    if (!entitlement) throw new Error("AFFILIATE_COMMISSION_NOT_ELIGIBLE");
-
-    const semanticDigest = await this.dependencies.digest.sha256(
-      stable({
-        operation: "associate_conversion",
-        conversion,
-        entitlement,
-      }),
-    );
     const key = `affiliate:conversion:${input.orderId}`;
     const connection = await this.pool.getConnection();
     try {
@@ -339,13 +321,52 @@ export class AffiliateCommercialApplicationService {
         return { ...replay, replayed: true };
       }
 
-      const [lockedAttributions] = await connection.execute<AttributionRow[]>(
+      const [lockedRows] = await connection.execute<AttributionRow[]>(
         "SELECT * FROM affiliate_attributions WHERE attribution_id = ? AND order_id = ? FOR UPDATE",
         [input.attributionId, input.orderId],
       );
-      const locked = lockedAttributions[0];
-      if (!locked || stable(attributionFromRow(locked)) !== stable(attribution))
+      const lockedRow = lockedRows[0];
+      if (!lockedRow || stable(attributionFromRow(lockedRow)) !== stable(snapshot)) {
         throw new Error("AFFILIATE_ATTRIBUTION_CHANGED");
+      }
+      const lockedEligibility = await lockAffiliateEligibilitySnapshot(
+        connection,
+        snapshot.affiliateId,
+        snapshot.programId,
+      );
+      const [ordering, financial] = await Promise.all([
+        this.dependencies.ordering.getOrderEvidence(input.orderId),
+        this.dependencies.financial.getConversionEvidence(input.orderId),
+      ]);
+      if (!ordering) throw new Error("AFFILIATE_ORDER_NOT_FOUND");
+      if (ordering.orderId !== input.orderId) {
+        throw new Error("AFFILIATE_ORDER_EVIDENCE_MISMATCH");
+      }
+      if (!financial) {
+        throw new Error("AFFILIATE_FINANCIAL_EVIDENCE_MISSING");
+      }
+
+      const conversion = createConversionAssociation({
+        id: conversionId,
+        attribution: snapshot,
+        ordering,
+        financial,
+        conversionKind: "initial_purchase",
+        ...(input.serviceOccurredAt
+          ? { serviceOccurredAt: input.serviceOccurredAt }
+          : {}),
+        createdAt: input.occurredAt,
+      });
+      if (!conversion) throw new Error("AFFILIATE_CONVERSION_NOT_ELIGIBLE");
+      const entitlement = createCommissionEntitlement({
+        id: entitlementId,
+        conversion,
+        affiliateSuspendedAtConversion:
+          lockedEligibility.programStatus !== "active" ||
+          !isActiveForAttribution(lockedEligibility.snapshot),
+        createdAt: input.occurredAt,
+      });
+      if (!entitlement) throw new Error("AFFILIATE_COMMISSION_NOT_ELIGIBLE");
 
       await this.insertConversion(connection, conversion);
       await this.insertEntitlement(
@@ -353,9 +374,7 @@ export class AffiliateCommercialApplicationService {
         entitlement,
         "conversion_associated",
       );
-      const entitlementDigest = await this.dependencies.digest.sha256(
-        stable(entitlement),
-      );
+      const entitlementDigest = await this.digest(entitlement);
       await this.audit(connection, {
         operation: "affiliate.associate_conversion",
         actorReference: input.actorReference,
@@ -383,22 +402,13 @@ export class AffiliateCommercialApplicationService {
         },
         occurredAt: input.occurredAt,
       });
-      await this.outbox(connection, {
-        eventId: `affiliate-entitlement-${semanticDigest.slice(0, 48)}`,
-        eventType: "AffiliateCommissionEntitlementChanged",
-        aggregateType: "commission_entitlement_revision",
-        aggregateId: entitlementDigest,
-        payload: {
-          entitlementId: entitlement.id,
-          revision: entitlement.revision,
-          affiliateId: entitlement.affiliateId,
-          conversionAssociationId: entitlement.conversionAssociationId,
-          status: entitlement.status,
-          policyVersion: entitlement.policyVersion,
-          entitlementDigest,
-        },
-        occurredAt: input.occurredAt,
-      });
+      await this.emitEntitlementChanged(
+        connection,
+        entitlement,
+        entitlementDigest,
+        semanticDigest,
+        input.occurredAt,
+      );
       const outcome: AssociateConversionResult = {
         conversion,
         entitlement,
@@ -430,22 +440,14 @@ export class AffiliateCommercialApplicationService {
         correlationId: input.correlationId,
       },
     );
-    if (!authorized.allowed) throw new Error("AFFILIATE_AUTHORIZATION_DENIED");
-    const eligibility = await this.dependencies.eligibility.resolveEligibility(
-      snapshot.affiliateId,
-      snapshot.programId,
-    );
-    if (!eligibility) throw new Error("AFFILIATE_ELIGIBILITY_MISSING");
-
-    const semanticDigest = await this.dependencies.digest.sha256(
-      stable({
-        operation: "transition_commission",
-        entitlementId: input.entitlementId,
-        operationId: input.operationId,
-        action: input.action,
-        occurredAt: input.occurredAt,
-      }),
-    );
+    this.assertAuthorized(authorized);
+    const semanticDigest = await this.digest({
+      operation: "transition_commission",
+      entitlementId: input.entitlementId,
+      operationId: input.operationId,
+      action: input.action,
+      occurredAt: input.occurredAt,
+    });
     const key = `affiliate:entitlement:${input.entitlementId}:${input.operationId}`;
     const connection = await this.pool.getConnection();
     try {
@@ -459,14 +461,27 @@ export class AffiliateCommercialApplicationService {
         await connection.commit();
         return { ...replay, replayed: true };
       }
+      const lockedEligibility = await lockAffiliateEligibilitySnapshot(
+        connection,
+        snapshot.affiliateId,
+        snapshot.programId,
+      );
       const current = await this.lockEntitlement(
         connection,
         input.entitlementId,
       );
       if (!current) throw new Error("AFFILIATE_ENTITLEMENT_NOT_FOUND");
+
+      const canBecomeActive = lockedEligibility.programStatus === "active";
       const next =
         input.action === "earn"
-          ? markEntitlementEarned(current, eligibility, input.occurredAt)
+          ? canBecomeActive
+            ? markEntitlementEarned(
+                current,
+                lockedEligibility.snapshot,
+                input.occurredAt,
+              )
+            : null
           : input.action === "dispute"
             ? disputeEntitlement(current, input.occurredAt)
             : resolveEntitlementDispute(
@@ -476,7 +491,12 @@ export class AffiliateCommercialApplicationService {
                   : input.action === "cancel_dispute"
                     ? "cancel"
                     : "reverse",
-                eligibility,
+                canBecomeActive
+                  ? lockedEligibility.snapshot
+                  : {
+                      ...lockedEligibility.snapshot,
+                      membershipStatus: "suspended",
+                    },
                 input.occurredAt,
               );
       if (!next) throw new Error("AFFILIATE_ENTITLEMENT_TRANSITION_INVALID");
@@ -486,9 +506,7 @@ export class AffiliateCommercialApplicationService {
         next,
         `lifecycle_${input.action}`,
       );
-      const entitlementDigest = await this.dependencies.digest.sha256(
-        stable(next),
-      );
+      const entitlementDigest = await this.digest(next);
       await this.audit(connection, {
         operation: "affiliate.change_entitlement",
         actorReference: input.actorReference,
@@ -502,22 +520,13 @@ export class AffiliateCommercialApplicationService {
         occurredAt: input.occurredAt,
         reason: `commission_${input.action}`,
       });
-      await this.outbox(connection, {
-        eventId: `affiliate-entitlement-${semanticDigest.slice(0, 48)}`,
-        eventType: "AffiliateCommissionEntitlementChanged",
-        aggregateType: "commission_entitlement_revision",
-        aggregateId: entitlementDigest,
-        payload: {
-          entitlementId: next.id,
-          revision: next.revision,
-          affiliateId: next.affiliateId,
-          conversionAssociationId: next.conversionAssociationId,
-          status: next.status,
-          policyVersion: next.policyVersion,
-          entitlementDigest,
-        },
-        occurredAt: input.occurredAt,
-      });
+      await this.emitEntitlementChanged(
+        connection,
+        next,
+        entitlementDigest,
+        semanticDigest,
+        input.occurredAt,
+      );
       const outcome: TransitionEntitlementResult = {
         entitlement: next,
         replayed: false,
@@ -549,11 +558,12 @@ export class AffiliateCommercialApplicationService {
       await this.dependencies.financialAdjustments.getAdjustmentEvidence(
         input.adjustmentReference,
       );
-    if (!evidence || evidence.contractVersion !== 1)
+    if (!evidence || evidence.contractVersion !== 1) {
       throw new Error("AFFILIATE_FINANCIAL_ADJUSTMENT_MISSING");
-    if (evidence.orderId !== conversion.orderId)
+    }
+    if (evidence.orderId !== conversion.orderId) {
       throw new Error("AFFILIATE_FINANCIAL_ADJUSTMENT_ORDER_MISMATCH");
-
+    }
     const authorized = await this.dependencies.authorization.authorize(
       "affiliate.change_entitlement",
       {
@@ -564,15 +574,13 @@ export class AffiliateCommercialApplicationService {
         correlationId: input.correlationId,
       },
     );
-    if (!authorized.allowed) throw new Error("AFFILIATE_AUTHORIZATION_DENIED");
+    this.assertAuthorized(authorized);
 
-    const semanticDigest = await this.dependencies.digest.sha256(
-      stable({
-        operation: "apply_financial_adjustment",
-        entitlementId: input.entitlementId,
-        evidence,
-      }),
-    );
+    const semanticDigest = await this.digest({
+      operation: "apply_financial_adjustment",
+      entitlementId: input.entitlementId,
+      evidence,
+    });
     const key = `affiliate:adjustment:${input.entitlementId}:${input.adjustmentReference}`;
     const connection = await this.pool.getConnection();
     try {
@@ -598,43 +606,47 @@ export class AffiliateCommercialApplicationService {
         refundEvidenceDigest: evidence.evidenceDigest,
         occurredAt: evidence.occurredAt,
       });
-      if (!consequence)
+      if (!consequence) {
         throw new Error("AFFILIATE_FINANCIAL_ADJUSTMENT_INVALID");
+      }
 
       let outcome: ApplyFinancialAdjustmentResult;
+      let durableEntitlement: CommissionEntitlement;
       if (consequence.kind === "pending_reprice") {
+        durableEntitlement = consequence.entitlement;
         await this.updateEntitlement(
           connection,
           current,
-          consequence.entitlement,
+          durableEntitlement,
           evidence.kind,
         );
-        const entitlementDigest = await this.dependencies.digest.sha256(
-          stable(consequence.entitlement),
-        );
-        await this.outbox(connection, {
-          eventId: `affiliate-entitlement-${semanticDigest.slice(0, 48)}`,
-          eventType: "AffiliateCommissionEntitlementChanged",
-          aggregateType: "commission_entitlement_revision",
-          aggregateId: entitlementDigest,
-          payload: {
-            entitlementId: consequence.entitlement.id,
-            revision: consequence.entitlement.revision,
-            affiliateId: consequence.entitlement.affiliateId,
-            conversionAssociationId:
-              consequence.entitlement.conversionAssociationId,
-            status: consequence.entitlement.status,
-            policyVersion: consequence.entitlement.policyVersion,
-            entitlementDigest,
-          },
-          occurredAt: evidence.occurredAt,
-        });
         outcome = {
           kind: "pending_reprice",
-          entitlement: consequence.entitlement,
+          entitlement: durableEntitlement,
           replayed: false,
         };
       } else {
+        durableEntitlement = Object.freeze({
+          ...current,
+          revision: current.revision + 1,
+          status: consequence.full
+            ? "reversed"
+            : current.status === "disputed"
+              ? "disputed"
+              : "earned",
+          disputedFrom:
+            consequence.full || current.status !== "disputed" ? null : "earned",
+          eligibleRevenueMinorUnits:
+            evidence.updatedEligibleRevenueMinorUnits,
+          commissionMinorUnits: consequence.remainingCommissionMinorUnits,
+          updatedAt: evidence.occurredAt,
+        });
+        await this.updateEntitlement(
+          connection,
+          current,
+          durableEntitlement,
+          `${evidence.kind}_earned_reversal`,
+        );
         await this.outbox(connection, {
           eventId: `affiliate-reversal-${semanticDigest.slice(0, 48)}`,
           eventType: "AffiliateFinancialReconciliationRequired",
@@ -642,13 +654,13 @@ export class AffiliateCommercialApplicationService {
           aggregateId: semanticDigest,
           payload: {
             contractVersion: 1,
-            entitlementId: current.id,
-            entitlementRevision: current.revision,
-            conversionAssociationId: current.conversionAssociationId,
+            entitlementId: durableEntitlement.id,
+            entitlementRevision: durableEntitlement.revision,
+            conversionAssociationId: durableEntitlement.conversionAssociationId,
             orderId: conversion.orderId,
             financialAdjustmentReference: evidence.adjustmentReference,
             financialEvidenceDigest: evidence.evidenceDigest,
-            policyVersion: current.policyVersion,
+            policyVersion: durableEntitlement.policyVersion,
             full: consequence.full,
             correlationId: input.correlationId,
           },
@@ -657,17 +669,26 @@ export class AffiliateCommercialApplicationService {
         outcome = {
           kind: "earned_reversal_required",
           reversal: consequence,
+          entitlement: durableEntitlement,
           replayed: false,
         };
       }
 
+      const entitlementDigest = await this.digest(durableEntitlement);
+      await this.emitEntitlementChanged(
+        connection,
+        durableEntitlement,
+        entitlementDigest,
+        semanticDigest,
+        evidence.occurredAt,
+      );
       await this.audit(connection, {
         operation: "affiliate.change_entitlement",
         actorReference: input.actorReference,
         authorizationDecisionReference: authorized.decisionReference,
-        affiliateId: current.affiliateId,
-        subjectReference: current.id,
-        policyVersion: current.policyVersion,
+        affiliateId: durableEntitlement.affiliateId,
+        subjectReference: durableEntitlement.id,
+        policyVersion: durableEntitlement.policyVersion,
         idempotencyDigest: semanticDigest,
         correlationId: input.correlationId,
         causationId: evidence.adjustmentReference,
@@ -698,6 +719,23 @@ export class AffiliateCommercialApplicationService {
     return rows[0] ? entitlementFromRow(rows[0]) : null;
   }
 
+  private assertAuthorized(
+    value: Readonly<{ allowed: boolean; decisionReference: string }>,
+  ): void {
+    if (!value.allowed) throw new Error("AFFILIATE_AUTHORIZATION_DENIED");
+    if (!value.decisionReference) {
+      throw new Error("AFFILIATE_AUTHORIZATION_CONTEXT_INCOMPLETE");
+    }
+  }
+
+  private async digest(value: unknown): Promise<string> {
+    const digest = await this.dependencies.digest.sha256(stable(value));
+    if (!/^[a-f0-9]{64}$/u.test(digest)) {
+      throw new Error("AFFILIATE_IDEMPOTENCY_DIGEST_INVALID");
+    }
+    return digest;
+  }
+
   private async claim<T>(
     connection: PoolConnection,
     key: string,
@@ -717,8 +755,9 @@ export class AffiliateCommercialApplicationService {
     );
     const row = rows[0];
     if (!row) throw new Error("AFFILIATE_IDEMPOTENCY_CLAIM_MISSING");
-    if (row.semantic_digest.toString("hex") !== semanticDigest)
+    if (row.semantic_digest.toString("hex") !== semanticDigest) {
       throw new Error("AFFILIATE_IDEMPOTENCY_CONFLICT");
+    }
     const outcome = parsedOutcome<T>(row.outcome_json);
     if (!outcome) throw new Error("AFFILIATE_IDEMPOTENCY_RESULT_MISSING");
     return outcome;
@@ -734,8 +773,9 @@ export class AffiliateCommercialApplicationService {
        WHERE idempotency_key = ? AND outcome_json IS NULL`,
       [JSON.stringify(outcome), key],
     );
-    if (result.affectedRows !== 1)
+    if (result.affectedRows !== 1) {
       throw new Error("AFFILIATE_IDEMPOTENCY_OUTCOME_CONFLICT");
+    }
   }
 
   private async lockEntitlement(
@@ -843,8 +883,9 @@ export class AffiliateCommercialApplicationService {
         current.revision,
       ],
     );
-    if (result.affectedRows !== 1)
+    if (result.affectedRows !== 1) {
       throw new Error("AFFILIATE_ENTITLEMENT_REVISION_CONFLICT");
+    }
     await this.insertRevision(connection, next, reason);
   }
 
@@ -869,6 +910,31 @@ export class AffiliateCommercialApplicationService {
         date(entitlement.updatedAt),
       ],
     );
+  }
+
+  private async emitEntitlementChanged(
+    connection: PoolConnection,
+    entitlement: CommissionEntitlement,
+    entitlementDigest: string,
+    semanticDigest: string,
+    occurredAt: string,
+  ): Promise<void> {
+    await this.outbox(connection, {
+      eventId: `affiliate-entitlement-${semanticDigest.slice(0, 48)}`,
+      eventType: "AffiliateCommissionEntitlementChanged",
+      aggregateType: "commission_entitlement_revision",
+      aggregateId: entitlementDigest,
+      payload: {
+        entitlementId: entitlement.id,
+        revision: entitlement.revision,
+        affiliateId: entitlement.affiliateId,
+        conversionAssociationId: entitlement.conversionAssociationId,
+        status: entitlement.status,
+        policyVersion: entitlement.policyVersion,
+        entitlementDigest,
+      },
+      occurredAt,
+    });
   }
 
   private async audit(
