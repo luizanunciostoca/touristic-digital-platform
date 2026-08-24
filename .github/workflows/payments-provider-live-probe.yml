@@ -7,7 +7,6 @@ on:
 
 permissions:
   contents: read
-  issues: write
   statuses: write
 
 env:
@@ -27,7 +26,7 @@ jobs:
           gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
             -f state=pending \
             -f context='Payments Provider Live Probe' \
-            -f description='Non-monetary TEST Brick probe running' \
+            -f description='TEST Brick bootstrap probe running' \
             -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" >/dev/null
 
       - name: Install Playwright Chromium
@@ -47,6 +46,7 @@ jobs:
           const { writeFileSync } = require('node:fs');
           const base = process.env.STAGING_URL;
           const expectedSha = process.env.EXPECTED_SHA;
+          const planId = 'provider_acceptance_test';
           const sanitizeError = error => String(error?.message || error || 'unknown').replace(/[A-Za-z0-9_-]{40,}/g, '[redacted]');
 
           (async () => {
@@ -72,7 +72,7 @@ jobs:
               const sessionId = `provider_probe_${Date.now()}`;
               const handoff = {
                 sessionId,
-                planId: 'essential',
+                planId,
                 contractor: { name: 'Morro Provider Test', email: 'morro-provider-test@example.com', phone: '75999999999', document: '12345678909' },
                 businessDraft: { demoBusinessId: `demo_${sessionId}`, displayName: 'Morro Provider TEST', categoryId: 'events', specialty: 'Provider acceptance', environment: 'sandbox', publishable: false },
                 acceptedTerms: [
@@ -82,7 +82,7 @@ jobs:
                 returnUrl: `${base}/business-onboarding.html`, tutorial: false, requiresPaymentsCapability: true
               };
 
-              const bootstrap = await page.evaluate(async ({ handoff, sessionId }) => {
+              const bootstrap = await page.evaluate(async ({ handoff, sessionId, planId }) => {
                 const authority = await fetch('/api/payments/v1/checkout-authority', {
                   method: 'POST', credentials: 'same-origin', cache: 'no-store',
                   headers: { 'content-type': 'application/json', accept: 'application/json' }, body: JSON.stringify(handoff)
@@ -91,16 +91,17 @@ jobs:
                 if (!authority.ok) return { stage: 'authority', status: authority.status, error: authorityPayload?.error || 'unknown' };
                 const checkout = await fetch('/api/payments/v1/checkouts', {
                   method: 'POST', credentials: 'same-origin', cache: 'no-store',
-                  headers: { 'content-type': 'application/json', accept: 'application/json', 'x-checkout-handoff-token': authorityPayload.data.handoffToken, 'idempotency-key': `business:${sessionId}:essential` },
+                  headers: { 'content-type': 'application/json', accept: 'application/json', 'x-checkout-handoff-token': authorityPayload.data.handoffToken, 'idempotency-key': `business:${sessionId}:${planId}` },
                   body: JSON.stringify(handoff)
                 });
                 const payload = await checkout.json();
                 return { stage: 'checkout', status: checkout.status, payload };
-              }, { handoff, sessionId });
+              }, { handoff, sessionId, planId });
 
               if (bootstrap.status < 200 || bootstrap.status >= 300) throw new Error(`bootstrap-failed:${bootstrap.stage}:${bootstrap.status}:${bootstrap.error || bootstrap.payload?.error || 'unknown'}`);
               const data = bootstrap.payload?.data;
               if (!data?.checkoutId || !data?.statusToken || !data?.plan?.amount) throw new Error('invalid-checkout-bootstrap');
+              if (data.plan.id !== planId || data.plan.amount.minorUnits !== 1000 || data.plan.amount.currency !== 'BRL') throw new Error('acceptance-plan-authority-mismatch');
 
               await page.evaluate(async ({ data, email }) => {
                 const module = await import('/apps/morro-digital-platform/dist/mercado-pago-card-payment-brick.js');
@@ -124,7 +125,7 @@ jobs:
                 })));
                 if (inputs.length) fields.push({ frame: index, inputs });
               }
-              const result = { status: 'PASS', releaseSha: expectedSha, checkoutId: data.checkoutId, amount: data.plan.amount, frames, fields };
+              const result = { status: 'PASS', releaseSha: expectedSha, planId, checkoutId: data.checkoutId, amount: data.plan.amount, frames, fields };
               writeFileSync('/tmp/provider-live-probe.json', JSON.stringify(result, null, 2));
               console.log(JSON.stringify(result));
             } finally { await browser.close(); }
@@ -147,17 +148,10 @@ jobs:
           JOB_STATUS: ${{ job.status }}
         run: |
           set -euo pipefail
-          if [ -f /tmp/provider-live-probe.json ]; then
-            result="$(cat /tmp/provider-live-probe.json)"
-          else
-            result='{"status":"FAIL","error":"probe-result-missing"}'
-          fi
           case "$JOB_STATUS" in
-            success) state=success; description='Non-monetary TEST Brick probe passed' ;;
-            *) state=failure; description='Non-monetary TEST Brick probe failed' ;;
+            success) state=success; description='TEST Brick bootstrap probe passed' ;;
+            *) state=failure; description='TEST Brick bootstrap probe failed' ;;
           esac
           gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
             -f state="$state" -f context='Payments Provider Live Probe' -f description="$description" \
             -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" >/dev/null
-          body="$(printf '### Payments Provider Live Probe\n\nOperational branch only; PR candidate remains `%s`. No card was submitted and no server secret was exported.\n\n```json\n%s\n```\n\nRun: %s/%s/actions/runs/%s' "$EXPECTED_SHA" "$result" "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID")"
-          gh api --method POST "repos/$GITHUB_REPOSITORY/issues/25/comments" -f body="$body" >/dev/null
