@@ -1,0 +1,152 @@
+name: Payments Runtime Env Trace Status
+
+on:
+  push:
+    branches:
+      - ops/payments-provider-test-acceptance-20260824
+
+permissions:
+  contents: read
+  statuses: write
+
+env:
+  STAGING_URL: https://morro-digital-v2-staging.onrender.com
+  EXPECTED_SHA: 0d5e4478ded981a1d4841f46fba95de17205f832
+
+jobs:
+  trace:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Publish pending status
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
+            -f state=pending -f context='Payments Runtime Env Trace' \
+            -f description='Tracing browser runtime env lifecycle' \
+            -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" >/dev/null
+
+      - name: Install Playwright Chromium
+        run: |
+          set -euo pipefail
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium >/dev/null
+
+      - name: Trace runtime env lifecycle
+        id: trace
+        shell: bash
+        run: |
+          set +e
+          node <<'NODE'
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+          const base = process.env.STAGING_URL;
+          const expectedSha = process.env.EXPECTED_SHA;
+          const sanitize = value => String(value || '').replace(/[A-Za-z0-9_-]{32,}/g, '[redacted]');
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            try {
+              const page = await browser.newPage();
+              const network = [];
+              const errors = [];
+
+              page.on('request', request => {
+                if (new URL(request.url()).pathname === '/runtime-config.js') network.push({ phase: 'request', method: request.method() });
+              });
+              page.on('response', response => {
+                if (new URL(response.url()).pathname === '/runtime-config.js') network.push({ phase: 'response', status: response.status(), contentType: response.headers()['content-type'] || '' });
+              });
+              page.on('requestfailed', request => {
+                if (new URL(request.url()).pathname === '/runtime-config.js') network.push({ phase: 'failed', error: sanitize(request.failure()?.errorText || '') });
+              });
+              page.on('pageerror', error => errors.push({ type: 'pageerror', text: sanitize(error.message) }));
+              page.on('console', message => {
+                if (['error','warning'].includes(message.type())) errors.push({ type: `console:${message.type()}`, text: sanitize(message.text()) });
+              });
+
+              await page.addInitScript(() => {
+                const trace = [];
+                let current;
+                const summarize = value => {
+                  const object = value && typeof value === 'object' ? value : null;
+                  return {
+                    kind: object ? 'object' : value === undefined ? 'undefined' : typeof value,
+                    keys: object ? Object.keys(object).sort() : [],
+                    hasMercadoPago: Boolean(object?.VITE_MERCADO_PAGO_PUBLIC_KEY),
+                    hasMapboxStyle: Boolean(object?.VITE_MAPBOX_STYLE),
+                  };
+                };
+                Object.defineProperty(window, '__MORRO_RUNTIME_ENV_TRACE__', { value: trace, configurable: false });
+                Object.defineProperty(window, '__MORRO_RUNTIME_ENV__', {
+                  configurable: true,
+                  enumerable: true,
+                  get() { return current; },
+                  set(value) {
+                    current = value;
+                    trace.push({ event: 'set', summary: summarize(value) });
+                  },
+                });
+              });
+
+              const ready = await page.request.get(`${base}/readyz`);
+              if (!ready.ok()) throw new Error(`ready:${ready.status()}`);
+              if (ready.headers()['x-release-sha'] !== expectedSha) throw new Error('release-sha-mismatch');
+
+              const response = await page.goto(`${base}/business-onboarding.html`, { waitUntil: 'domcontentloaded' });
+              await page.waitForTimeout(3000);
+
+              const state = await page.evaluate(() => {
+                const current = window.__MORRO_RUNTIME_ENV__;
+                const object = current && typeof current === 'object' ? current : null;
+                const descriptor = Object.getOwnPropertyDescriptor(window, '__MORRO_RUNTIME_ENV__');
+                return {
+                  documentStatus: document.readyState,
+                  trace: window.__MORRO_RUNTIME_ENV_TRACE__ || [],
+                  current: {
+                    kind: object ? 'object' : current === undefined ? 'undefined' : typeof current,
+                    keys: object ? Object.keys(object).sort() : [],
+                    hasMercadoPago: Boolean(object?.VITE_MERCADO_PAGO_PUBLIC_KEY),
+                    hasMapboxStyle: Boolean(object?.VITE_MAPBOX_STYLE),
+                  },
+                  descriptor: descriptor ? {
+                    configurable: Boolean(descriptor.configurable),
+                    hasGetter: typeof descriptor.get === 'function',
+                    hasSetter: typeof descriptor.set === 'function',
+                    hasValue: Object.prototype.hasOwnProperty.call(descriptor, 'value'),
+                  } : null,
+                  runtimeScriptCount: document.querySelectorAll('script[src="/runtime-config.js"]').length,
+                };
+              });
+
+              console.log(JSON.stringify({
+                status: 'TRACE',
+                pageStatus: response?.status() || null,
+                releaseSha: expectedSha,
+                network,
+                state,
+                errors,
+              }));
+            } finally {
+              await browser.close();
+            }
+          })().catch(error => {
+            console.error(JSON.stringify({ status: 'FAIL', error: sanitize(error?.message || error) }));
+            process.exit(1);
+          });
+          NODE
+          code=$?
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          exit "$code"
+
+      - name: Publish final status
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          if [ "$JOB_STATUS" = success ]; then state=success; description='Runtime env trace completed'; else state=failure; description='Runtime env trace failed'; fi
+          gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
+            -f state="$state" -f context='Payments Runtime Env Trace' \
+            -f description="$description" \
+            -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" >/dev/null
