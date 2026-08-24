@@ -9,8 +9,8 @@ This matrix is reconciled with the executable `@touristic/affiliates` domain/run
 ## Current result
 
 ```text
-PASS       15
-PARTIAL    10
+PASS       16
+PARTIAL     9
 GAP         0
 N/A         2
 TOTAL      27
@@ -18,7 +18,7 @@ TOTAL      27
 
 `FEATURE-0010` and `MIG-0011` remain `migrating`. The former statement that FEATURE-0010 was only `planned` and M154 existed only on a branch is superseded: durable Affiliates code is on `main`.
 
-`AFFILIATE-POLICY-V1` remains the only approved policy. The current score remains conservative because required lifecycle/privacy/integration evidence is still PARTIAL even though durable MySQL persistence and the server boundary are implemented and tested.
+`AFFILIATE-POLICY-V1` remains the only approved policy. The current score remains conservative because required lifecycle/integration evidence is still PARTIAL even though durable MySQL persistence and the server boundary are implemented and tested.
 
 ## Release-candidate reconciliation — 2026-08-22
 
@@ -54,7 +54,7 @@ Evidence available before this documentation-only reconciliation:
 | Idempotency strategy                    | PASS    | deterministic keys, durable idempotency table/repository and exact/divergent replay contract                                    | none at contract/persistence layer                                             |
 | Audit contract                          | PASS    | immutable audit fields and durable audit/outbox primitives are present                                                          | none at contract/persistence layer                                             |
 | Authorization boundaries                | PASS    | explicit authorization port, authenticated HTTP boundary and no tenant inheritance                                              | none at contract layer                                                         |
-| Privacy/LGPD controls                   | PARTIAL | policy fixes retention windows and pseudonymization requirements                                                                | retention jobs, DSR/anonymization/legal-hold execution evidence                |
+| Privacy/LGPD controls                   | PASS    | executable 90d/24m/5y retention, DSR, anonymization/pseudonymization, lawful holds, audit, replay/restart and isolation evidence | none                                                                           |
 | Affiliate → Financial port              | PASS    | versioned materialization request/result/readback boundary carries no browser-controlled monetary/payout/provider instruction   | final integration acceptance remains separate from ownership correctness       |
 | Test and invariants plan                | PASS    | executable tests plus `AFFILIATES-FEATURE-0010-TEST-PLAN.md`; permanent candidate contract green                                | none at plan/contract layer                                                    |
 | Threat model                            | PASS    | `AFFILIATES-THREAT-MODEL.md`                                                                                                    | none                                                                           |
@@ -92,9 +92,8 @@ The former statement that the MySQL integration test was skipped without `AFFILI
 
 1. complete final Ordering/Financial cross-domain acceptance for remaining PARTIAL rows;
 2. prove lifecycle concurrency/replay in final staging acceptance where applicable;
-3. execute privacy retention/DSR/anonymization/legal-hold evidence;
-4. keep any browser/admin surface non-authoritative and add it only if required by approved product scope;
-5. reconcile this matrix only after new evidence; do not infer equivalence from CI alone.
+3. keep any browser/admin surface non-authoritative and add it only if required by approved product scope;
+4. reconcile this matrix only after new evidence; do not infer equivalence from CI alone.
 
 ## Completion gate
 
