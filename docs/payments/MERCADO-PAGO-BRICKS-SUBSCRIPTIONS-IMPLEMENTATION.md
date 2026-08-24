@@ -32,6 +32,7 @@ The backend MUST:
 10. continue using verified webhooks + authoritative provider readback for final state.
 
 Official provider reference used for this contract:
+
 - https://www.mercadopago.com.br/developers/pt/docs/checkout-bricks/card-payment-brick/payment-submission
 - https://www.mercadopago.com.br/developers/pt/docs/checkout-bricks/payment-brick/payment-submission/cards
 
@@ -51,6 +52,7 @@ The following values are NEVER browser configuration and MUST remain server-only
 Bricks initialization uses the public key only. Missing/invalid browser key must fail closed with a user-safe unavailable state rather than falling back to a real credential or another environment.
 
 Official initialization reference:
+
 - https://www.mercadopago.com.br/developers/pt/docs/checkout-bricks/common-initialization
 
 ## Subscription contract
@@ -65,6 +67,7 @@ The provider authority is Mercado Pago Subscriptions:
 - optional reusable plan authority: `/preapproval_plan`.
 
 Official references:
+
 - https://www.mercadopago.com.br/developers/pt/reference/online-payments/subscriptions/overview
 - https://www.mercadopago.com.br/developers/pt/reference/online-payments/subscriptions/create-preapproval/post
 
