@@ -19,6 +19,10 @@ export type AffiliateAuthorizationAction =
   | "affiliate.associate_conversion"
   | "affiliate.change_entitlement"
   | "affiliate.request_financial_materialization"
+  | "affiliate.request_privacy_data"
+  | "affiliate.anonymize_privacy_data"
+  | "affiliate.execute_retention"
+  | "affiliate.manage_legal_hold"
   | "affiliate.administer";
 
 export interface AffiliateAuthorizationContext {
