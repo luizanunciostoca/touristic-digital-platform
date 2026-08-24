@@ -1,0 +1,144 @@
+name: Payments Provider Live Probe
+
+on:
+  push:
+    branches:
+      - ops/payments-provider-test-acceptance-20260824
+
+permissions:
+  contents: read
+
+env:
+  STAGING_URL: https://morro-digital-v2-staging.onrender.com
+  EXPECTED_SHA: cf20f97b7180b8d7d893716cd7528f070f3f07cc
+
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Install Playwright Chromium
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium >/dev/null
+
+      - name: Probe exact live Brick without card submission
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+          const base = process.env.STAGING_URL;
+          const expectedSha = process.env.EXPECTED_SHA;
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            try {
+              const page = await browser.newPage();
+              const health = await page.request.get(`${base}/healthz`);
+              const ready = await page.request.get(`${base}/readyz`);
+              if (!health.ok() || !ready.ok()) throw new Error(`staging-not-ready:${health.status()}:${ready.status()}`);
+              for (const response of [health, ready]) {
+                const sha = response.headers()['x-release-sha'];
+                if (sha !== expectedSha) throw new Error(`release-sha-mismatch:${sha || 'missing'}`);
+              }
+
+              await page.goto(`${base}/business-onboarding.html`, { waitUntil: 'domcontentloaded' });
+              const runtime = await page.request.get(`${base}/runtime-config.js`);
+              const runtimeText = await runtime.text();
+              if (!runtimeText.includes('VITE_MERCADO_PAGO_PUBLIC_KEY')) throw new Error('public-key-not-exposed');
+              for (const forbidden of ['MERCADO_PAGO_ACCESS_TOKEN','MERCADO_PAGO_WEBHOOK_SECRET','ORDERING_DATABASE_URL','FINANCIAL_DATABASE_URL']) {
+                if (runtimeText.includes(forbidden)) throw new Error(`secret-name-exposed:${forbidden}`);
+              }
+
+              const sessionId = `provider_probe_${Date.now()}`;
+              const handoff = {
+                sessionId,
+                planId: 'growth',
+                contractor: {
+                  name: 'Morro Provider Test',
+                  email: 'morro-provider-test@example.com',
+                  phone: '75999999999',
+                  document: '12345678909'
+                },
+                businessDraft: {
+                  demoBusinessId: `demo_${sessionId}`,
+                  displayName: 'Morro Provider TEST',
+                  categoryId: 'events',
+                  specialty: 'Provider acceptance',
+                  environment: 'sandbox',
+                  publishable: false
+                },
+                acceptedTerms: [
+                  { type: 'terms', version: 'business-partner-terms-2026-08', acceptedAt: new Date().toISOString() },
+                  { type: 'privacy', version: 'privacy-policy-2026-08', acceptedAt: new Date().toISOString() }
+                ],
+                returnUrl: `${base}/business-onboarding.html`,
+                tutorial: false,
+                requiresPaymentsCapability: true
+              };
+
+              const bootstrap = await page.evaluate(async ({ handoff, sessionId }) => {
+                const authority = await fetch('/api/payments/v1/checkout-authority', {
+                  method: 'POST', credentials: 'same-origin', cache: 'no-store',
+                  headers: { 'content-type': 'application/json', accept: 'application/json' },
+                  body: JSON.stringify(handoff)
+                });
+                const authorityPayload = await authority.json();
+                if (!authority.ok) return { stage: 'authority', status: authority.status, payload: authorityPayload };
+                const token = authorityPayload?.data?.handoffToken;
+                const checkout = await fetch('/api/payments/v1/checkouts', {
+                  method: 'POST', credentials: 'same-origin', cache: 'no-store',
+                  headers: {
+                    'content-type': 'application/json', accept: 'application/json',
+                    'x-checkout-handoff-token': token,
+                    'idempotency-key': `business:${sessionId}:growth`
+                  },
+                  body: JSON.stringify(handoff)
+                });
+                const payload = await checkout.json();
+                return { stage: 'checkout', status: checkout.status, payload };
+              }, { handoff, sessionId });
+
+              if (bootstrap.status < 200 || bootstrap.status >= 300) throw new Error(`bootstrap-failed:${JSON.stringify(bootstrap)}`);
+              const data = bootstrap.payload?.data;
+              if (!data?.checkoutId || !data?.statusToken || !data?.plan?.amount) throw new Error(`invalid-checkout-bootstrap:${JSON.stringify(bootstrap)}`);
+
+              await page.evaluate(async ({ data, email }) => {
+                const module = await import('/apps/morro-digital-platform/dist/mercado-pago-card-payment-brick.js');
+                const brick = module.createMercadoPagoCardPaymentBrick(window, document, window.fetch.bind(window));
+                window.__MORRO_PROVIDER_PROBE__ = { brick, settled: false, error: null };
+                brick.present({
+                  checkoutId: data.checkoutId,
+                  statusToken: data.statusToken,
+                  plan: data.plan,
+                  payerEmail: email
+                }).then(() => { window.__MORRO_PROVIDER_PROBE__.settled = true; })
+                  .catch(error => { window.__MORRO_PROVIDER_PROBE__.error = String(error?.message || error); });
+              }, { data, email: handoff.contractor.email });
+
+              await page.waitForSelector('[data-morro-payments-brick="card"]', { timeout: 20000 });
+              await page.waitForTimeout(3000);
+              const frames = page.frames().map(frame => ({ name: frame.name(), url: frame.url() }));
+              const fields = [];
+              for (let index = 0; index < page.frames().length; index += 1) {
+                const frame = page.frames()[index];
+                const inputs = await frame.locator('input, select, button').evaluateAll((nodes) => nodes.map(node => ({
+                  tag: node.tagName.toLowerCase(),
+                  name: node.getAttribute('name'),
+                  id: node.id || null,
+                  type: node.getAttribute('type'),
+                  placeholder: node.getAttribute('placeholder'),
+                  ariaLabel: node.getAttribute('aria-label'),
+                  text: node.tagName === 'BUTTON' ? node.textContent?.trim() : null
+                })));
+                if (inputs.length) fields.push({ frame: index, url: frame.url(), inputs });
+              }
+              console.log(JSON.stringify({ status: 'PASS', releaseSha: expectedSha, checkoutId: data.checkoutId, amount: data.plan.amount, frames, fields }, null, 2));
+            } finally {
+              await browser.close();
+            }
+          })().catch(error => { console.error(error); process.exit(1); });
+          NODE
