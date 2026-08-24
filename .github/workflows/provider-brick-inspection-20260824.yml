@@ -1,0 +1,131 @@
+name: Provider Brick Inspection 2026-08-24
+
+on:
+  push:
+    branches:
+      - ops/provider-brick-inspection-7629402-20260824
+
+permissions:
+  contents: read
+
+jobs:
+  inspect-card-brick:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Install deterministic Chromium
+        run: |
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+
+      - name: Inspect staging Card Brick without submitting payment
+        env:
+          STAGING_URL: https://morro-digital-v2-staging.onrender.com
+        run: |
+          node <<'NODE'
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+
+          const cleanUrl = value => {
+            try {
+              const url = new URL(value);
+              return `${url.origin}${url.pathname}`;
+            } catch {
+              return String(value || '').slice(0, 200);
+            }
+          };
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            try {
+              const page = await browser.newPage();
+              const consoleErrors = [];
+              page.on('pageerror', error => consoleErrors.push(error.message));
+              page.on('console', message => {
+                if (message.type() === 'error') consoleErrors.push(message.text());
+              });
+
+              const base = process.env.STAGING_URL;
+              const response = await page.goto(`${base}/business-onboarding.html`, {
+                waitUntil: 'domcontentloaded',
+                timeout: 60_000,
+              });
+              if (!response || response.status() !== 200) {
+                throw new Error(`STAGING_PAGE_HTTP_${response?.status() ?? 'NO_RESPONSE'}`);
+              }
+
+              await page.waitForFunction(() => Boolean(globalThis.__MORRO_RUNTIME_ENV__), null, {
+                timeout: 20_000,
+              });
+
+              const runtime = await page.evaluate(() => ({
+                hasPublicKey: Boolean(globalThis.__MORRO_RUNTIME_ENV__?.VITE_MERCADO_PAGO_PUBLIC_KEY),
+              }));
+              if (!runtime.hasPublicKey) throw new Error('TEST_PUBLIC_KEY_NOT_AVAILABLE');
+
+              await page.evaluate(async () => {
+                const module = await import('/apps/morro-digital-platform/dist/mercado-pago-card-payment-brick.js');
+                const brick = module.createMercadoPagoCardPaymentBrick(window, document, window.fetch.bind(window));
+                if (!brick.available) throw new Error('CARD_BRICK_NOT_AVAILABLE');
+                globalThis.__MORRO_INSPECTION_BRICK__ = brick;
+                void brick.present({
+                  checkoutId: 'ord_inspection0001',
+                  statusToken: `cst_v1_${'a'.repeat(32)}`,
+                  plan: { amount: { minorUnits: 100, currency: 'BRL' } },
+                  payerEmail: 'brick.acceptance@example.com',
+                }).catch(() => undefined);
+              });
+
+              await page.locator('[data-morro-payments-brick="card"]').waitFor({
+                state: 'visible',
+                timeout: 30_000,
+              });
+              await page.waitForTimeout(4_000);
+
+              const frameEvidence = [];
+              for (const frame of page.frames()) {
+                let controls = [];
+                try {
+                  controls = await frame.evaluate(() => Array.from(
+                    document.querySelectorAll('input, select, button'),
+                    element => ({
+                      tag: element.tagName.toLowerCase(),
+                      type: element.getAttribute('type') || '',
+                      name: element.getAttribute('name') || '',
+                      id: element.id || '',
+                      placeholder: element.getAttribute('placeholder') || '',
+                      ariaLabel: element.getAttribute('aria-label') || '',
+                      autocomplete: element.getAttribute('autocomplete') || '',
+                      text: element.tagName === 'BUTTON' ? (element.textContent || '').trim().slice(0, 120) : '',
+                    }),
+                  ));
+                } catch {
+                  controls = [{ inaccessible: true }];
+                }
+                frameEvidence.push({
+                  url: cleanUrl(frame.url()),
+                  controls,
+                });
+              }
+
+              const overlay = await page.locator('[data-morro-payments-brick="card"]').evaluate(element => ({
+                role: element.getAttribute('role'),
+                ariaLabel: element.getAttribute('aria-label'),
+                text: (element.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 500),
+                iframeCount: element.querySelectorAll('iframe').length,
+              }));
+
+              console.log('PROVIDER_BRICK_INSPECTION=' + JSON.stringify({
+                stagingPage: cleanUrl(page.url()),
+                runtime,
+                overlay,
+                frames: frameEvidence,
+                consoleErrors: consoleErrors.slice(0, 20),
+              }));
+            } finally {
+              await browser.close();
+            }
+          })().catch(error => {
+            console.error('PROVIDER_BRICK_INSPECTION_FAILED=' + (error?.stack || error));
+            process.exit(1);
+          });
+          NODE
