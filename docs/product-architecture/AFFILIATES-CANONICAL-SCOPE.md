@@ -75,6 +75,8 @@ Affiliate may request materialization of an eligible earned entitlement only thr
 
 Affiliate never creates Payment, ledger entries, allocation, payable, wallet, settlement, payout, provider instruction or direct Financial database writes.
 
+No Affiliate-owned payout, wallet or payment runtime is ever authorized.
+
 ### Business
 
 Business does not administer Affiliates and cannot grant, calculate or materialize Affiliate commission authority. Tenant membership alone grants no Affiliate capability.
