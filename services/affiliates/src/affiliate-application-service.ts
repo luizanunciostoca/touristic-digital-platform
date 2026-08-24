@@ -145,13 +145,13 @@ function isReferralSource(value: unknown): value is ReferralEvidenceSource {
 function isBoundedReference(value: string, max = 180): boolean {
   return (
     /^[A-Za-z0-9][A-Za-z0-9._:-]*$/u.test(value) &&
-    value.length >= 8 &&
+    value.length > 0 &&
     value.length <= max
   );
 }
 
 function isRequestId(value: string): boolean {
-  return isBoundedReference(value, 120);
+  return value.length >= 8 && isBoundedReference(value, 120);
 }
 
 function parseStoredAttribution(value: unknown): Attribution | null {
