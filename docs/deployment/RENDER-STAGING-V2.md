@@ -75,7 +75,9 @@ Revise antes de confirmar:
 - `autoDeploy: false`;
 - health check: `/readyz`;
 - MySQL disk: `/var/lib/mysql`;
-- Mercado Pago: `MERCADO_PAGO_CHECKOUT_MODE=test`.
+- Mercado Pago: `MERCADO_PAGO_CHECKOUT_MODE=test`;
+- subscriptions de acceptance: `PAYMENTS_SUBSCRIPTIONS_ENABLED=true`;
+- callback de subscription: `https://morro-digital-v2-staging.onrender.com/`.
 
 Se qualquer item divergir, **não sincronize**.
 
@@ -97,21 +99,26 @@ Preencha no fluxo seguro do Render, sem copiá-los para PRs, issues ou chat:
 ### Payments / Mercado Pago
 
 - `PAYMENTS_RETURN_URL_ORIGINS`: origin HTTPS exata do staging;
-- `MERCADO_PAGO_ACCESS_TOKEN`: Access Token exibido em **Testes > Credenciais de teste** da aplicação Checkout Pro aprovada;
+- `MERCADO_PAGO_ACCESS_TOKEN`: Access Token exibido em **Testes > Credenciais de teste** da aplicação aprovada;
 - `MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED`: `true` somente após essa origem TEST ter sido conferida pelo operador;
 - `MERCADO_PAGO_WEBHOOK_SECRET`: segredo oficial do webhook da mesma aplicação;
-- `PAYMENTS_WEBHOOK_URL`: `https://<host-staging>/api/payments/v1/webhooks/sandbox`.
+- `PAYMENTS_WEBHOOK_URL`: `https://<host-staging>/api/payments/v1/webhooks/sandbox`;
+- `VITE_MERCADO_PAGO_PUBLIC_KEY`: Public Key das **credenciais de teste** da mesma aplicação. Ela é browser-visible por definição, mas deve continuar separada do Access Token e do webhook secret.
 
 O Blueprint fixa:
 
 ```text
 PAYMENTS_PROVIDER_MODE=mercado_pago
 MERCADO_PAGO_CHECKOUT_MODE=test
+PAYMENTS_SUBSCRIPTIONS_ENABLED=true
+PAYMENTS_SUBSCRIPTION_BACK_URL=https://morro-digital-v2-staging.onrender.com/
 MERCADO_PAGO_CHECKOUT_ORIGINS=https://www.mercadopago.com,https://www.mercadopago.com.br
 V1_PAYMENT_PROVIDER_API_URL=https://api.mercadopago.com
 ```
 
-Em `MERCADO_PAGO_CHECKOUT_MODE=test`, o adapter exige `MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED=true` antes de qualquer chamada de criação de preferência. Essa confirmação registra que o operador conferiu o Access Token diretamente em **Testes > Credenciais de teste**. O fluxo atual do Checkout Pro emite essas credenciais automaticamente; portanto o runtime não infere mais TEST pela tag de `/users/me`. Depois desse guard, somente o `init_point` em uma das origins oficiais acima é aceito.
+Em `MERCADO_PAGO_CHECKOUT_MODE=test`, os adapters exigem `MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED=true` antes de chamadas reais ao provider. Essa confirmação registra que o operador conferiu o Access Token diretamente em **Testes > Credenciais de teste**. O runtime não infere TEST por heurística de conta. Depois desse guard, somente endpoints/origins oficiais do Mercado Pago são aceitos.
+
+O Card Payment Brick recebe somente `VITE_MERCADO_PAGO_PUBLIC_KEY`. Access Token, webhook secret, amount, currency e recurrence permanecem autoridade server-side. O runtime de subscriptions só inicia quando `PAYMENTS_SUBSCRIPTIONS_ENABLED=true` e exige `PAYMENTS_SUBSCRIPTION_BACK_URL` HTTPS válido.
 
 ### Mapbox
 
@@ -126,16 +133,17 @@ Em `MERCADO_PAGO_CHECKOUT_MODE=test`, o adapter exige `MERCADO_PAGO_TEST_CREDENT
 
 `autoDeploy` permanece desligado. Depois de o Blueprint existir e todos os valores obrigatórios estarem configurados:
 
-1. confirme que `main` ainda é o candidate SHA congelado;
+1. confirme que o ref selecionado ainda resolve para o candidate SHA congelado;
 2. confirme que o MySQL private service está live e com disco persistente;
-3. confirme que o web service está ligado ao repositório/branch canônicos;
+3. confirme que o web service está ligado ao repositório e ao ref aprovados para a campanha;
 4. dispare o deploy manual do web service;
 5. o build deve concluir;
 6. o pre-deploy executa `payments-migrate.mjs` através do wrapper de MySQL;
 7. só prossiga se aparecer `PAYMENTS-PREDEPLOY` v2 com `status: pass`;
-8. aguarde `/readyz` ficar ready antes de executar acceptance.
+8. o runtime de subscriptions aplica M146 antes de marcar Payments ready e deve falhar fechado se schema/configuração estiver indisponível;
+9. aguarde `/readyz` ficar ready antes de executar acceptance.
 
-O pre-deploy aplica Ordering M151 + ticketing reservation e Financial M145. Uma falha aborta o novo deploy antes de trocar tráfego.
+O pre-deploy aplica Ordering M151 + ticketing reservation e Financial M145. A evolução aditiva M146 do provider-subscription binding é aplicada pelo runtime de subscriptions antes de readiness. Qualquer falha aborta a promoção do novo deploy e mantém o último deploy saudável recebendo tráfego.
 
 ## Release identity e smoke
 
@@ -161,15 +169,19 @@ O `x-release-sha` deve ser exatamente o candidate congelado. Divergência é **N
 Somente depois de health/readiness/release identity passarem:
 
 1. executar `pnpm payments:mercado-pago:preflight` com usuário/valor de teste aprovados;
-2. confirmar checkout sandbox e origin exata;
-3. concluir pagamento de teste;
+2. confirmar Card Payment Brick carregado com a Public Key TEST e sem credencial server-side no browser;
+3. concluir pagamento com cartão de teste, sem cartão/comprador/dinheiro real;
 4. receber webhook com assinatura válida;
 5. executar authoritative readback do Payment;
 6. comprovar reconciliation de estado, identidade, valor e moeda;
 7. comprovar persistência do verified result antes do ledger;
 8. comprovar replay idempotente;
-9. executar refund controlado;
-10. repetir readback/reconciliation após refund.
+9. executar refund TEST controlado;
+10. repetir readback/reconciliation após refund;
+11. criar subscription TEST via `/preapproval` usando somente token de cartão no browser;
+12. comprovar readback autoritativo e binding M146;
+13. executar pause, resume e cancel com readback após cada transição;
+14. quando a campanha gerar `subscription_authorized_payment`, correlacionar o authorized payment ao renewal intent canônico sem reinterpretar `sub_*` como `PaymentId` genérico.
 
 Nenhum passo autoriza produção.
 
@@ -177,19 +189,20 @@ Nenhum passo autoriza produção.
 
 Interrompa a certificação se ocorrer qualquer um destes pontos:
 
-- origem Git/branch diferente do repositório canônico e `main`;
+- origem Git/ref diferente do candidate aprovado;
 - candidate SHA diferente do aprovado;
 - qualquer tentativa de reutilizar o Postgres legado como MySQL;
 - private MySQL indisponível ou sem persistência;
 - collision entre schemas de Auth/Ordering/Financial/Affiliates;
-- pre-deploy de migration falhar;
+- pre-deploy ou M146 falhar;
 - `/readyz` diferente de 200/ready;
 - release identity ausente ou divergente;
 - Mercado Pago fora de `test`;
 - segredo em log/browser/evidência;
 - webhook não verificável;
 - reconciliation divergente;
-- refund não idempotente.
+- refund não idempotente;
+- subscription readback divergente do snapshot canônico de Ordering.
 
 ## Rollback
 
