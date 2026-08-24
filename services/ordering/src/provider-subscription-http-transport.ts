@@ -21,7 +21,9 @@ export const providerSubscriptionHttpPrefix =
 export interface ProviderSubscriptionHttpRequest {
   readonly method: string;
   readonly pathname: string;
-  readonly headers?: Readonly<Record<string, string | readonly string[] | undefined>>;
+  readonly headers?: Readonly<
+    Record<string, string | readonly string[] | undefined>
+  >;
   readonly body?: unknown;
   readonly correlationId?: string;
   readonly clientIp?: string;
@@ -149,8 +151,10 @@ function route(pathname: string): ProviderSubscriptionRoute | null {
   ) {
     return null;
   }
+
   const subscriptionId = normalizeSubscriptionId(segments[4]);
   if (!subscriptionId) return null;
+
   const action = segments[6] ?? "provider";
   if (
     action !== "provider" &&
@@ -160,6 +164,7 @@ function route(pathname: string): ProviderSubscriptionRoute | null {
   ) {
     return null;
   }
+
   return Object.freeze({ subscriptionId, action });
 }
 
@@ -167,22 +172,20 @@ function authorizationError(
   reason: ProviderSubscriptionAuthorizationReason,
   correlation: string,
 ): ProviderSubscriptionHttpResponse {
-  if (reason === "authentication_required") {
-    return errorResponse(401, "AUTH_REQUIRED", correlation);
+  switch (reason) {
+    case "authentication_required":
+      return errorResponse(401, "AUTH_REQUIRED", correlation);
+    case "missing_context":
+      return errorResponse(400, "SUBSCRIPTION_CONTEXT_REQUIRED", correlation);
+    case "invalid_csrf":
+      return errorResponse(403, "INVALID_CSRF", correlation);
+    case "cross_origin_request":
+      return errorResponse(403, "ORIGIN_DENIED", correlation);
+    case "read_only_role":
+      return errorResponse(403, "READ_ONLY_ROLE", correlation);
+    case "business_access_denied":
+      return errorResponse(403, "BUSINESS_ACCESS_DENIED", correlation);
   }
-  if (reason === "missing_context") {
-    return errorResponse(400, "SUBSCRIPTION_CONTEXT_REQUIRED", correlation);
-  }
-  if (reason === "invalid_csrf") {
-    return errorResponse(403, "INVALID_CSRF", correlation);
-  }
-  if (reason === "cross_origin_request") {
-    return errorResponse(403, "ORIGIN_DENIED", correlation);
-  }
-  if (reason === "read_only_role") {
-    return errorResponse(403, "READ_ONLY_ROLE", correlation);
-  }
-  return errorResponse(403, "BUSINESS_ACCESS_DENIED", correlation);
 }
 
 function canonicalNow(clock: ProviderSubscriptionClockPort): string {
@@ -217,14 +220,14 @@ function recordBody(value: unknown): Record<string, unknown> | null {
     : null;
 }
 
-function createCardToken(value: unknown): string {
+function cardToken(value: unknown): string {
   const body = recordBody(value);
   if (!body) return "";
-  const cardToken = text(body.cardToken ?? body.card_token_id, 512);
-  return /^[A-Za-z0-9._:-]{4,512}$/u.test(cardToken) ? cardToken : "";
+  const normalized = text(body.cardToken ?? body.card_token_id, 512);
+  return /^[A-Za-z0-9._:-]{4,512}$/u.test(normalized) ? normalized : "";
 }
 
-function canonicalActorEmail(value: unknown): string {
+function actorEmail(value: unknown): string {
   const normalized = text(value, 200).toLowerCase();
   return /^\S+@\S+\.\S+$/u.test(normalized) ? normalized : "";
 }
@@ -317,10 +320,11 @@ export class ProviderSubscriptionHttpTransport {
     if (correlation === "corr_invalid") {
       return errorResponse(400, "CORRELATION_ID_REQUIRED", correlation);
     }
+
     const matched = route(request.pathname);
     if (!matched) return errorResponse(404, "NOT_FOUND", correlation);
+
     const method = request.method.trim().toUpperCase();
-    const mutation = method !== "GET";
     if (
       (matched.action === "provider" && method !== "GET" && method !== "POST") ||
       (matched.action !== "provider" && method !== "POST")
@@ -335,10 +339,11 @@ export class ProviderSubscriptionHttpTransport {
       if (!subscription) {
         return errorResponse(404, "SUBSCRIPTION_NOT_FOUND", correlation);
       }
+
       const authorization = await this.dependencies.authorization.authorize(
         request,
         subscription,
-        mutation,
+        method !== "GET",
       );
       if (!authorization.allowed) {
         await audit(this.dependencies.audit, {
@@ -385,6 +390,7 @@ export class ProviderSubscriptionHttpTransport {
     const existing = await this.dependencies.bindings.findBySubscriptionId(
       subscription.id,
     );
+
     if (existing) {
       if (!bindingOwnedBy(existing, authorization)) {
         return errorResponse(403, "BUSINESS_ACCESS_DENIED", correlation);
@@ -406,15 +412,13 @@ export class ProviderSubscriptionHttpTransport {
         now,
         authorization.tenantId,
       );
-      await audit(this.dependencies.audit, {
-        action: "subscription.provider.create",
-        result: "success",
-        reason: "replayed",
-        correlationId: correlation,
-        subscriptionId: subscription.id,
-        actorSubject: authorization.actorSubject,
-        tenantId: authorization.tenantId,
-      });
+      await this.recordSuccess(
+        "create",
+        "replayed",
+        subscription,
+        authorization,
+        correlation,
+      );
       return response(
         200,
         { data: projection(persisted, subscription, true) },
@@ -425,15 +429,17 @@ export class ProviderSubscriptionHttpTransport {
     if (subscription.status !== "active") {
       return errorResponse(409, "SUBSCRIPTION_NOT_ACTIVE", correlation);
     }
-    const cardToken = createCardToken(request.body);
-    const payerEmail = canonicalActorEmail(authorization.actorEmail);
-    if (!cardToken || !payerEmail) {
+
+    const providerCardToken = cardToken(request.body);
+    const payerEmail = actorEmail(authorization.actorEmail);
+    if (!providerCardToken || !payerEmail) {
       return errorResponse(
         400,
         "INVALID_SUBSCRIPTION_PROVIDER_REQUEST",
         correlation,
       );
     }
+
     const idempotencyKey = createSubscriptionProviderIdempotencyKey(
       subscription.id,
     );
@@ -445,7 +451,7 @@ export class ProviderSubscriptionHttpTransport {
       frequencyType: "months",
       reason: subscription.currentPeriod.pricing.planName,
       payerEmail,
-      cardToken,
+      cardToken: providerCardToken,
       backUrl: this.backUrl,
       metadata: {
         subscriptionId: subscription.id,
@@ -460,6 +466,7 @@ export class ProviderSubscriptionHttpTransport {
         correlation,
       );
     }
+
     const providerSnapshot = normalizeProviderSubscriptionSnapshot(
       await this.dependencies.provider.createSubscription(providerRequest),
     );
@@ -470,20 +477,19 @@ export class ProviderSubscriptionHttpTransport {
     ) {
       throw new Error("SUBSCRIPTION_PROVIDER_READBACK_MISMATCH");
     }
+
     const persisted = await this.dependencies.bindings.saveReadback(
       providerSnapshot,
       now,
       authorization.tenantId,
     );
-    await audit(this.dependencies.audit, {
-      action: "subscription.provider.create",
-      result: "success",
-      reason: "created",
-      correlationId: correlation,
-      subscriptionId: subscription.id,
-      actorSubject: authorization.actorSubject,
-      tenantId: authorization.tenantId,
-    });
+    await this.recordSuccess(
+      "create",
+      "created",
+      subscription,
+      authorization,
+      correlation,
+    );
     return response(
       201,
       { data: projection(persisted, subscription, false) },
@@ -505,6 +511,7 @@ export class ProviderSubscriptionHttpTransport {
     if (!bindingOwnedBy(existing, authorization)) {
       return errorResponse(403, "BUSINESS_ACCESS_DENIED", correlation);
     }
+
     const snapshot = normalizeProviderSubscriptionSnapshot(
       await this.dependencies.provider.readSubscription(
         existing.providerSubscriptionReference,
@@ -517,20 +524,19 @@ export class ProviderSubscriptionHttpTransport {
     ) {
       throw new Error("SUBSCRIPTION_PROVIDER_READBACK_MISMATCH");
     }
+
     const persisted = await this.dependencies.bindings.saveReadback(
       snapshot,
       canonicalNow(this.dependencies.clock),
       authorization.tenantId,
     );
-    await audit(this.dependencies.audit, {
-      action: "subscription.provider.read",
-      result: "success",
-      reason: "authoritative_readback",
-      correlationId: correlation,
-      subscriptionId: subscription.id,
-      actorSubject: authorization.actorSubject,
-      tenantId: authorization.tenantId,
-    });
+    await this.recordSuccess(
+      "read",
+      "authoritative_readback",
+      subscription,
+      authorization,
+      correlation,
+    );
     return response(
       200,
       { data: projection(persisted, subscription, true) },
@@ -570,25 +576,20 @@ export class ProviderSubscriptionHttpTransport {
     const now = canonicalNow(this.dependencies.clock);
     let canonicalSubscription = subscription;
     if (action === "cancel" && subscription.status === "active") {
-      const scheduled = scheduleSubscriptionCancellation(subscription, now);
+      const scheduled = scheduleSubscriptionCancellation({
+        subscription,
+        requestedAt: now,
+      });
       if (!scheduled) {
         throw new Error("SUBSCRIPTION_CANCELLATION_INVALID");
       }
       canonicalSubscription = await this.dependencies.subscriptions.save(scheduled);
     }
 
-    const rawSnapshot =
-      action === "pause"
-        ? await this.dependencies.provider.pauseSubscription(
-            existing.providerSubscriptionReference,
-          )
-        : action === "resume"
-          ? await this.dependencies.provider.resumeSubscription(
-              existing.providerSubscriptionReference,
-            )
-          : await this.dependencies.provider.cancelSubscription(
-              existing.providerSubscriptionReference,
-            );
+    const rawSnapshot = await this.executeTransition(
+      action,
+      existing.providerSubscriptionReference,
+    );
     const snapshot = normalizeProviderSubscriptionSnapshot(rawSnapshot);
     if (
       !snapshot ||
@@ -597,31 +598,65 @@ export class ProviderSubscriptionHttpTransport {
     ) {
       throw new Error("SUBSCRIPTION_PROVIDER_READBACK_MISMATCH");
     }
-    if (
-      (action === "pause" && snapshot.status !== "paused") ||
-      (action === "resume" && snapshot.status !== "authorized") ||
-      (action === "cancel" && snapshot.status !== "cancelled")
-    ) {
+
+    const expectedStatus =
+      action === "pause"
+        ? "paused"
+        : action === "resume"
+          ? "authorized"
+          : "cancelled";
+    if (snapshot.status !== expectedStatus) {
       throw new Error("SUBSCRIPTION_PROVIDER_STATUS_MISMATCH");
     }
+
     const persisted = await this.dependencies.bindings.saveReadback(
       snapshot,
       now,
       authorization.tenantId,
     );
-    await audit(this.dependencies.audit, {
-      action: `subscription.provider.${action}`,
-      result: "success",
-      reason: snapshot.status,
-      correlationId: correlation,
-      subscriptionId: canonicalSubscription.id,
-      actorSubject: authorization.actorSubject,
-      tenantId: authorization.tenantId,
-    });
+    await this.recordSuccess(
+      action,
+      "authoritative_readback",
+      canonicalSubscription,
+      authorization,
+      correlation,
+    );
     return response(
       200,
       { data: projection(persisted, canonicalSubscription, false) },
       correlation,
     );
+  }
+
+  private async executeTransition(
+    action: "pause" | "resume" | "cancel",
+    reference: string,
+  ): Promise<ProviderSubscriptionSnapshot> {
+    switch (action) {
+      case "pause":
+        return this.dependencies.provider.pauseSubscription(reference);
+      case "resume":
+        return this.dependencies.provider.resumeSubscription(reference);
+      case "cancel":
+        return this.dependencies.provider.cancelSubscription(reference);
+    }
+  }
+
+  private async recordSuccess(
+    action: "create" | "read" | "pause" | "resume" | "cancel",
+    reason: string,
+    subscription: Subscription,
+    authorization: ProviderSubscriptionAuthorizedContext,
+    correlation: string,
+  ): Promise<void> {
+    await audit(this.dependencies.audit, {
+      action: `subscription.provider.${action}`,
+      result: "success",
+      reason,
+      correlationId: correlation,
+      subscriptionId: subscription.id,
+      actorSubject: authorization.actorSubject,
+      tenantId: authorization.tenantId,
+    });
   }
 }
