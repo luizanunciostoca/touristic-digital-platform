@@ -92,9 +92,7 @@ function parseEnvelope(value: string): {
   const signature = boundedString(envelope.signature, 240);
   const requestId = boundedString(envelope.requestId, 180);
   const dataId = boundedIdentifier(envelope.dataId, 180);
-  return signature && requestId && dataId
-    ? { signature, requestId, dataId }
-    : null;
+  return signature && requestId ? { signature, requestId, dataId } : null;
 }
 
 function secret(environment: MercadoPagoProviderEnvironment): string {
@@ -144,8 +142,15 @@ export function createMercadoPagoAuthenticatingWebhookVerifierFromEnvironment(
     if (!envelope) return Promise.resolve(false);
     const signature = parseSignature(envelope.signature);
     const bodyDataId = webhookBodyDataId(rawBody);
-    if (!signature || !bodyDataId || bodyDataId !== envelope.dataId)
+    const manifestDataId = envelope.dataId || bodyDataId;
+    if (
+      !signature ||
+      !bodyDataId ||
+      !manifestDataId ||
+      (envelope.dataId && bodyDataId !== envelope.dataId)
+    ) {
       return Promise.resolve(false);
+    }
 
     const timestamp = Number(signature.timestamp);
     const timestampSeconds =
@@ -162,7 +167,11 @@ export function createMercadoPagoAuthenticatingWebhookVerifierFromEnvironment(
       return Promise.resolve(false);
     }
 
-    const manifest = `id:${envelope.dataId};request-id:${envelope.requestId};ts:${signature.timestamp};`;
+    // Mercado Pago signs the provider data id in the HMAC manifest. The HTTP
+    // transport may not carry the provider query parameter into the internal
+    // envelope, so a missing internal dataId can safely fall back to body.data.id:
+    // any tampering changes the manifest and therefore fails HMAC verification.
+    const manifest = `id:${manifestDataId};request-id:${envelope.requestId};ts:${signature.timestamp};`;
     const expected = createHmac("sha256", webhookSecret)
       .update(manifest)
       .digest();
