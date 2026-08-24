@@ -25,6 +25,8 @@ function signedEnvelope(
   } = {},
 ): string {
   const manifestDataId = options.manifestDataId ?? dataId;
+  const envelopeDataId =
+    options.envelopeDataId === undefined ? dataId : options.envelopeDataId;
   const ts = options.ts ?? timestamp;
   const manifest = `id:${manifestDataId};request-id:${requestId};ts:${ts};`;
   const digest = createHmac("sha256", webhookSecret)
@@ -33,9 +35,7 @@ function signedEnvelope(
   return JSON.stringify({
     signature: `ts=${ts},v1=${digest}`,
     requestId,
-    ...(options.envelopeDataId === undefined
-      ? {}
-      : { dataId: options.envelopeDataId }),
+    ...(envelopeDataId === null ? {} : { dataId: envelopeDataId }),
   });
 }
 
@@ -52,22 +52,22 @@ function verifier() {
 }
 
 describe("Mercado Pago authenticating webhook verifier", () => {
-  it("accepts the official HMAC when the internal transport does not supply provider dataId", async () => {
+  it("accepts the official HMAC using the provider query dataId", async () => {
     await expect(
       verifier().verifyAuthenticity(rawBody(), signedEnvelope()),
     ).resolves.toBe(true);
   });
 
-  it("accepts a matching explicit internal dataId", async () => {
+  it("rejects a notification when the provider query dataId is missing", async () => {
     await expect(
       verifier().verifyAuthenticity(
         rawBody(),
-        signedEnvelope({ envelopeDataId: dataId }),
+        signedEnvelope({ envelopeDataId: null }),
       ),
-    ).resolves.toBe(true);
+    ).resolves.toBe(false);
   });
 
-  it("rejects a conflicting explicit internal dataId before HMAC acceptance", async () => {
+  it("rejects a conflicting provider query dataId before HMAC acceptance", async () => {
     await expect(
       verifier().verifyAuthenticity(
         rawBody(),
@@ -76,7 +76,7 @@ describe("Mercado Pago authenticating webhook verifier", () => {
     ).resolves.toBe(false);
   });
 
-  it("rejects body dataId tampering even when the captured signature was valid", async () => {
+  it("rejects body dataId tampering even when the query signature is valid", async () => {
     await expect(
       verifier().verifyAuthenticity(rawBody("987654321"), signedEnvelope()),
     ).resolves.toBe(false);
