@@ -88,6 +88,16 @@ jobs:
             throw new Error('INSTALLMENT_SELECTION_FAILED');
           }
 
+          async function waitForPaymentOutcome(page, timeoutMs = 120_000) {
+            const deadline = Date.now() + timeoutMs;
+            while (Date.now() < deadline) {
+              const outcome = await page.evaluate(() => globalThis.__MORRO_PROVIDER_E2E__);
+              if (outcome?.verified || outcome?.failed) return outcome;
+              await page.waitForTimeout(1_000);
+            }
+            throw new Error('PAYMENT_VERIFICATION_TIMEOUT');
+          }
+
           (async () => {
             const browser = await chromium.launch({ headless: true });
             try {
@@ -205,13 +215,12 @@ jobs:
               const cardStatus = cardPayload?.data?.status ?? null;
               if (!cardResponse.ok()) throw new Error(`CARD_SUBMIT_FAILED:${cardResponse.status()}:${clean(cardPayload?.error)}`);
 
-              await page.waitForFunction(() => Boolean(globalThis.__MORRO_PROVIDER_E2E__?.verified || globalThis.__MORRO_PROVIDER_E2E__?.failed), null, { timeout: 120_000 });
-              const outcome = await page.evaluate(() => globalThis.__MORRO_PROVIDER_E2E__);
+              const outcome = await waitForPaymentOutcome(page);
               if (outcome?.failed) throw new Error(`PAYMENT_VERIFICATION_FAILED:${clean(outcome.failed.code)}`);
               if (!outcome?.verified?.verified) throw new Error('PAYMENT_NOT_VERIFIED');
 
               console.log('PROVIDER_TEST_CARD_E2E=' + JSON.stringify({
-                candidate: 'e0d35bb2ec8d65861a4f64ceb3959617390c1071',
+                candidate: 'd5905a375853622a5ae073de57b73f08f1f61a84',
                 staging: true,
                 realMoney: false,
                 realCard: false,
