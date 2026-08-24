@@ -72,7 +72,8 @@ describe.skipIf(!databaseUrl)("Affiliates commercial MySQL acceptance", () => {
     authorization,
     digest,
     ordering: {
-      getOrderEvidence: async (orderId) => orderingEvidence.get(orderId) ?? null,
+      getOrderEvidence: async (orderId) =>
+        orderingEvidence.get(orderId) ?? null,
     },
     financial: {
       getConversionEvidence: async (orderId) =>
@@ -110,7 +111,11 @@ describe.skipIf(!databaseUrl)("Affiliates commercial MySQL acceptance", () => {
     suffix: string,
     orderId: string,
     revenue = 1_000,
-  ): Promise<{ attributionId: string; conversionId: string; entitlementId: string }> {
+  ): Promise<{
+    attributionId: string;
+    conversionId: string;
+    entitlementId: string;
+  }> {
     const attributionId = `att_commercial_${suffix}`;
     const affiliateId = `aff_commercial_${suffix}`;
     const programId = `prog_commercial_${suffix}`;
@@ -186,13 +191,7 @@ describe.skipIf(!databaseUrl)("Affiliates commercial MySQL acceptance", () => {
        (SELECT COUNT(*) FROM affiliate_entitlement_revisions WHERE entitlement_id = ?) revision_count,
        (SELECT COUNT(*) FROM affiliate_audit_events WHERE operation = 'affiliate.associate_conversion' AND subject_reference = ?) audit_count,
        (SELECT COUNT(*) FROM affiliate_outbox_events WHERE payload_json->>'$.conversionAssociationId' = ?) outbox_count`,
-      [
-        orderId,
-        ids.conversionId,
-        ids.entitlementId,
-        orderId,
-        ids.conversionId,
-      ],
+      [orderId, ids.conversionId, ids.entitlementId, orderId, ids.conversionId],
     );
     const counts = rows[0];
     if (!counts) throw new Error("COMMERCIAL_COUNTS_MISSING");
@@ -311,9 +310,9 @@ describe.skipIf(!databaseUrl)("Affiliates commercial MySQL acceptance", () => {
       },
       eligibility: { resolveEligibility: async () => activeEligibility },
     });
-    expect((await afterRestart.readEntitlement(ids.entitlementId))?.status).toBe(
-      "earned",
-    );
+    expect(
+      (await afterRestart.readEntitlement(ids.entitlementId))?.status,
+    ).toBe("earned");
   });
 
   it("reprices/cancels pending from Financial evidence and never accepts caller monetary input", async () => {
@@ -423,7 +422,8 @@ describe.skipIf(!databaseUrl)("Affiliates commercial MySQL acceptance", () => {
       ["adj_partial_earned_0001"],
     );
     expect(events).toHaveLength(1);
-    const payload = events[0]?.payload_json as Record<string, unknown> | undefined;
+    const payload = events[0]?.payload_json as
+      Record<string, unknown> | undefined;
     expect(payload).toBeDefined();
     expect(payload).not.toHaveProperty("commissionMinorUnits");
     expect(payload).not.toHaveProperty("eligibleRevenueMinorUnits");

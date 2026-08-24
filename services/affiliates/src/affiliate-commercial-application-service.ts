@@ -69,11 +69,7 @@ export interface AssociateConversionResult {
 }
 
 export type EntitlementTransitionAction =
-  | "earn"
-  | "dispute"
-  | "restore"
-  | "cancel_dispute"
-  | "reverse_dispute";
+  "earn" | "dispute" | "restore" | "cancel_dispute" | "reverse_dispute";
 
 export interface TransitionEntitlementInput {
   readonly entitlementId: string;
@@ -342,7 +338,11 @@ export class AffiliateCommercialApplicationService {
         throw new Error("AFFILIATE_ATTRIBUTION_CHANGED");
 
       await this.insertConversion(connection, conversion);
-      await this.insertEntitlement(connection, entitlement, "conversion_associated");
+      await this.insertEntitlement(
+        connection,
+        entitlement,
+        "conversion_associated",
+      );
       const entitlementDigest = await this.dependencies.digest.sha256(
         stable(entitlement),
       );
@@ -449,7 +449,10 @@ export class AffiliateCommercialApplicationService {
         await connection.commit();
         return { ...replay, replayed: true };
       }
-      const current = await this.lockEntitlement(connection, input.entitlementId);
+      const current = await this.lockEntitlement(
+        connection,
+        input.entitlementId,
+      );
       if (!current) throw new Error("AFFILIATE_ENTITLEMENT_NOT_FOUND");
       const next =
         input.action === "earn"
@@ -473,7 +476,9 @@ export class AffiliateCommercialApplicationService {
         next,
         `lifecycle_${input.action}`,
       );
-      const entitlementDigest = await this.dependencies.digest.sha256(stable(next));
+      const entitlementDigest = await this.dependencies.digest.sha256(
+        stable(next),
+      );
       await this.audit(connection, {
         operation: "affiliate.transition_commission",
         actorReference: input.actorReference,
@@ -530,9 +535,10 @@ export class AffiliateCommercialApplicationService {
     const conversionRow = conversionRows[0];
     if (!conversionRow) throw new Error("AFFILIATE_CONVERSION_NOT_FOUND");
     const conversion = conversionFromRow(conversionRow);
-    const evidence = await this.dependencies.financialAdjustments.getAdjustmentEvidence(
-      input.adjustmentReference,
-    );
+    const evidence =
+      await this.dependencies.financialAdjustments.getAdjustmentEvidence(
+        input.adjustmentReference,
+      );
     if (!evidence || evidence.contractVersion !== 1)
       throw new Error("AFFILIATE_FINANCIAL_ADJUSTMENT_MISSING");
     if (evidence.orderId !== conversion.orderId)
@@ -570,15 +576,20 @@ export class AffiliateCommercialApplicationService {
         await connection.commit();
         return { ...replay, replayed: true };
       }
-      const current = await this.lockEntitlement(connection, input.entitlementId);
+      const current = await this.lockEntitlement(
+        connection,
+        input.entitlementId,
+      );
       if (!current) throw new Error("AFFILIATE_ENTITLEMENT_NOT_FOUND");
       const consequence = applyRefundConsequence({
         entitlement: current,
-        updatedEligibleRevenueMinorUnits: evidence.updatedEligibleRevenueMinorUnits,
+        updatedEligibleRevenueMinorUnits:
+          evidence.updatedEligibleRevenueMinorUnits,
         refundEvidenceDigest: evidence.evidenceDigest,
         occurredAt: evidence.occurredAt,
       });
-      if (!consequence) throw new Error("AFFILIATE_FINANCIAL_ADJUSTMENT_INVALID");
+      if (!consequence)
+        throw new Error("AFFILIATE_FINANCIAL_ADJUSTMENT_INVALID");
 
       let outcome: ApplyFinancialAdjustmentResult;
       if (consequence.kind === "pending_reprice") {
@@ -749,7 +760,9 @@ export class AffiliateCommercialApplicationService {
         conversion.eligibleRevenueMinorUnits,
         conversion.currency,
         date(conversion.paymentConfirmedAt),
-        conversion.serviceOccurredAt ? date(conversion.serviceOccurredAt) : null,
+        conversion.serviceOccurredAt
+          ? date(conversion.serviceOccurredAt)
+          : null,
         conversion.conversionKind,
         conversion.policyVersion,
         date(conversion.createdAt),

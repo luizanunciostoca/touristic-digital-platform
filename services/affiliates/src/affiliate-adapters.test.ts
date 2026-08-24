@@ -26,9 +26,7 @@ function request(
 ): AffiliateFinancialMaterializationRequestV1 {
   return {
     requestId: required(normalizeMaterializationRequestId("amreq_12345678")),
-    entitlementId: required(
-      normalizeCommissionEntitlementId("aent_12345678"),
-    ),
+    entitlementId: required(normalizeCommissionEntitlementId("aent_12345678")),
     entitlementRevision: 2,
     affiliateId: required(normalizeAffiliateId("aff_12345678")),
     conversionAssociationId: required(
@@ -48,17 +46,19 @@ function memoryRepository() {
     readMaterialization: vi.fn(async (requestId: string) => {
       return records.get(requestId) ?? null;
     }),
-    createPending: vi.fn(async (record: AffiliateMaterializationRequestRecord) => {
-      const entitlementCollision = Array.from(records.values()).find(
-        (candidate) =>
-          candidate.entitlementId === record.entitlementId &&
-          candidate.entitlementRevision === record.entitlementRevision,
-      );
-      if (!records.has(record.requestId) && !entitlementCollision) {
-        records.set(record.requestId, record);
-      }
-      return record;
-    }),
+    createPending: vi.fn(
+      async (record: AffiliateMaterializationRequestRecord) => {
+        const entitlementCollision = Array.from(records.values()).find(
+          (candidate) =>
+            candidate.entitlementId === record.entitlementId &&
+            candidate.entitlementRevision === record.entitlementRevision,
+        );
+        if (!records.has(record.requestId) && !entitlementCollision) {
+          records.set(record.requestId, record);
+        }
+        return record;
+      },
+    ),
     recordResult: vi.fn(
       async (input: {
         requestId: string;
@@ -87,7 +87,8 @@ function memoryRepository() {
 
   return {
     records,
-    repository: repository as unknown as MySqlAffiliateMaterializationRepository,
+    repository:
+      repository as unknown as MySqlAffiliateMaterializationRepository,
   };
 }
 
@@ -154,9 +155,7 @@ describe("Durable Affiliate -> Financial materialization acceptance", () => {
     await adapter.requestMaterialization(request());
 
     await expect(
-      adapter.requestMaterialization(
-        request({ entitlementDigest: SHA_B }),
-      ),
+      adapter.requestMaterialization(request({ entitlementDigest: SHA_B })),
     ).rejects.toThrow("AFFILIATE_MATERIALIZATION_CONFLICT");
     expect(financial.requestMaterialization).toHaveBeenCalledTimes(1);
   });

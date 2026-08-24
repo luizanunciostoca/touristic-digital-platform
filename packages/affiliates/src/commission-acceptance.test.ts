@@ -133,15 +133,15 @@ describe("AFFILIATE-POLICY-V1 commission formula acceptance", () => {
     expect(calculateCommissionMinorUnits(102)).toBe(31);
 
     const large = Number.MAX_SAFE_INTEGER;
-    const expectedLarge = Number(
-      (BigInt(large) * 3000n + 5000n) / 10_000n,
-    );
+    const expectedLarge = Number((BigInt(large) * 3000n + 5000n) / 10_000n);
     expect(calculateCommissionMinorUnits(large)).toBe(expectedLarge);
     expect(calculateCommissionMinorUnits(large)).toBe(expectedLarge);
 
     expect(calculateCommissionMinorUnits(-1)).toBeNull();
     expect(calculateCommissionMinorUnits(10.5)).toBeNull();
-    expect(calculateCommissionMinorUnits(Number.MAX_SAFE_INTEGER + 1)).toBeNull();
+    expect(
+      calculateCommissionMinorUnits(Number.MAX_SAFE_INTEGER + 1),
+    ).toBeNull();
   });
 
   it("uses the immutable entitlement snapshot even if a hypothetical future rate differs", () => {
@@ -229,18 +229,11 @@ describe("conversion association acceptance", () => {
 
 describe("commission lifecycle and refund acceptance", () => {
   it("enforces maturity and all approved dispute transition families", () => {
-    const pending = pendingEntitlement(
-      1_000,
-      "2026-08-30T18:00:00.000Z",
-    );
+    const pending = pendingEntitlement(1_000, "2026-08-30T18:00:00.000Z");
     expect(pending.status).toBe("pending");
     expect(pending.maturityAt).toBe("2026-08-30T18:00:00.000Z");
     expect(
-      markEntitlementEarned(
-        pending,
-        eligibility(),
-        "2026-08-30T17:59:59.999Z",
-      ),
+      markEntitlementEarned(pending, eligibility(), "2026-08-30T17:59:59.999Z"),
     ).toBeNull();
     expect(
       markEntitlementEarned(
@@ -251,19 +244,11 @@ describe("commission lifecycle and refund acceptance", () => {
     ).toBeNull();
 
     const earned = required(
-      markEntitlementEarned(
-        pending,
-        eligibility(),
-        "2026-08-30T18:00:00.000Z",
-      ),
+      markEntitlementEarned(pending, eligibility(), "2026-08-30T18:00:00.000Z"),
     );
     expect(earned.status).toBe("earned");
     expect(
-      markEntitlementEarned(
-        earned,
-        eligibility(),
-        "2026-08-31T18:00:00.000Z",
-      ),
+      markEntitlementEarned(earned, eligibility(), "2026-08-31T18:00:00.000Z"),
     ).toBeNull();
 
     const pendingDispute = required(
@@ -372,11 +357,7 @@ describe("commission lifecycle and refund acceptance", () => {
     }
 
     const earned = required(
-      markEntitlementEarned(
-        pending,
-        eligibility(),
-        "2026-08-24T12:00:00.000Z",
-      ),
+      markEntitlementEarned(pending, eligibility(), "2026-08-24T12:00:00.000Z"),
     );
     const partialAfter = required(
       applyRefundConsequence({
