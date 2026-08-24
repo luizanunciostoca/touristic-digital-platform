@@ -9,6 +9,11 @@
       "node": "./dist/index.js",
       "default": "./src/index.ts"
     },
+    "./card-payment": {
+      "types": "./src/card-payment.ts",
+      "node": "./dist/card-payment.js",
+      "default": "./src/card-payment.ts"
+    },
     "./settlement": {
       "types": "./src/settlement.ts",
       "node": "./dist/settlement.js",
