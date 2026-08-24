@@ -59,14 +59,14 @@ export interface AffiliateHttpDependencies {
     AffiliateApplicationService,
     "recordReferralAndEstablishAttribution"
   >;
-  readonly clock: { now(): string };
 }
 
 function header(request: AffiliateHttpRequest, name: string): string {
   const target = name.toLowerCase();
   for (const [key, value] of Object.entries(request.headers ?? {})) {
-    if (key.toLowerCase() === target && typeof value === "string")
+    if (key.toLowerCase() === target && typeof value === "string") {
       return value.trim();
+    }
   }
   return "";
 }
@@ -75,7 +75,10 @@ function correlationId(request: AffiliateHttpRequest): string {
   const candidate =
     request.correlationId ?? header(request, "x-correlation-id");
   if (/^[A-Za-z0-9][A-Za-z0-9._:-]{7,119}$/u.test(candidate)) return candidate;
-  return `acr_${createHash("sha256").update(`${request.method}:${request.pathname}`).digest("hex").slice(0, 24)}`;
+  return `acr_${createHash("sha256")
+    .update(`${request.method}:${request.pathname}`)
+    .digest("hex")
+    .slice(0, 24)}`;
 }
 
 function response(
@@ -92,15 +95,21 @@ function response(
 
 function authFailure(
   reason:
-    "authentication_required" | "invalid_csrf" | "origin_denied" | "forbidden",
+    | "authentication_required"
+    | "invalid_csrf"
+    | "origin_denied"
+    | "forbidden",
   correlation: string,
 ): AffiliateHttpResponse {
-  if (reason === "authentication_required")
+  if (reason === "authentication_required") {
     return response(401, { error: "AUTH_REQUIRED" }, correlation);
-  if (reason === "invalid_csrf")
+  }
+  if (reason === "invalid_csrf") {
     return response(403, { error: "INVALID_CSRF" }, correlation);
-  if (reason === "origin_denied")
+  }
+  if (reason === "origin_denied") {
     return response(403, { error: "ORIGIN_DENIED" }, correlation);
+  }
   return response(403, { error: "FORBIDDEN" }, correlation);
 }
 
@@ -124,12 +133,38 @@ const browserMonetaryAuthorityFields = new Set([
   "providerToken",
 ]);
 
+const browserAttributionAuthorityFields = new Set([
+  "evidenceId",
+  "attributionId",
+  "evidenceFingerprint",
+  "serverObservedAt",
+  "receivedAt",
+  "establishedAt",
+  "expiresAt",
+  "policyVersion",
+]);
+
+function containsAny(
+  body: Readonly<Record<string, unknown>>,
+  forbidden: ReadonlySet<string>,
+): boolean {
+  return Object.keys(body).some((key) => forbidden.has(key));
+}
+
 function hasBrowserMonetaryAuthority(
   body: Readonly<Record<string, unknown>>,
 ): boolean {
-  return Object.keys(body).some((key) =>
-    browserMonetaryAuthorityFields.has(key),
-  );
+  return containsAny(body, browserMonetaryAuthorityFields);
+}
+
+function validUntrustedEvidence(value: unknown): boolean {
+  const evidence = bodyRecord(value);
+  if (!evidence || Object.keys(evidence).length === 0) return false;
+  try {
+    return JSON.stringify(evidence).length <= 4096;
+  } catch {
+    return false;
+  }
 }
 
 export async function handleAffiliateHttpRequest(
@@ -139,8 +174,9 @@ export async function handleAffiliateHttpRequest(
   const correlation = correlationId(request);
   const destinationId =
     request.destinationId ?? header(request, "x-destination-id");
-  if (!bounded(destinationId, 80))
+  if (!bounded(destinationId, 80)) {
     return response(400, { error: "DESTINATION_REQUIRED" }, correlation);
+  }
 
   const mutation = request.method !== "GET";
   const admin = request.pathname.includes("/admin/");
@@ -161,8 +197,9 @@ export async function handleAffiliateHttpRequest(
     request.method === "GET" &&
     request.pathname === `${affiliatesHttpPrefix}/me`
   ) {
-    if (!decision.actor.affiliateId)
+    if (!decision.actor.affiliateId) {
       return response(403, { error: "FORBIDDEN" }, correlation);
+    }
     const projection = await dependencies.reads.readAffiliate({
       affiliateId: decision.actor.affiliateId,
       destinationId,
@@ -177,16 +214,25 @@ export async function handleAffiliateHttpRequest(
     request.pathname === `${affiliatesHttpPrefix}/referrals`
   ) {
     const body = bodyRecord(request.body);
-    if (!body)
+    if (!body) {
       return response(400, { error: "INVALID_REFERRAL_REQUEST" }, correlation);
-    if (!decision.actor.affiliateId)
+    }
+    if (!decision.actor.affiliateId) {
       return response(403, { error: "FORBIDDEN" }, correlation);
+    }
     if (
       (body.affiliateId !== undefined &&
         body.affiliateId !== decision.actor.affiliateId) ||
       (body.destinationId !== undefined && body.destinationId !== destinationId)
     ) {
       return response(403, { error: "FORBIDDEN" }, correlation);
+    }
+    if (body.affiliateId !== undefined) {
+      return response(
+        400,
+        { error: "ATTRIBUTION_AUTHORITY_FORBIDDEN" },
+        correlation,
+      );
     }
     if (hasBrowserMonetaryAuthority(body)) {
       return response(
@@ -195,6 +241,14 @@ export async function handleAffiliateHttpRequest(
         correlation,
       );
     }
+    if (containsAny(body, browserAttributionAuthorityFields)) {
+      return response(
+        400,
+        { error: "ATTRIBUTION_AUTHORITY_FORBIDDEN" },
+        correlation,
+      );
+    }
+
     const source = body.source;
     if (
       source !== "platform_link" &&
@@ -204,19 +258,28 @@ export async function handleAffiliateHttpRequest(
     ) {
       return response(400, { error: "INVALID_REFERRAL_SOURCE" }, correlation);
     }
+    if (source === "server_referral" && decision.actor.role !== "service") {
+      return response(403, { error: "SERVER_REFERRAL_FORBIDDEN" }, correlation);
+    }
+    if (
+      !bounded(body.requestId, 120) ||
+      !bounded(body.programId, 120) ||
+      !bounded(body.subjectId, 180) ||
+      !validUntrustedEvidence(body.evidence)
+    ) {
+      return response(400, { error: "INVALID_REFERRAL_REQUEST" }, correlation);
+    }
+
     try {
       const result =
         await dependencies.application.recordReferralAndEstablishAttribution({
-          evidenceId: field(body.evidenceId),
-          attributionId: field(body.attributionId),
+          requestId: field(body.requestId, 120),
           affiliateId: decision.actor.affiliateId,
-          programId: field(body.programId),
+          programId: field(body.programId, 120),
           destinationId,
-          subjectId: field(body.subjectId),
+          subjectId: field(body.subjectId, 180),
           source,
-          evidenceFingerprint: field(body.evidenceFingerprint, 64),
-          serverObservedAt: dependencies.clock.now(),
-          receivedAt: dependencies.clock.now(),
+          evidence: body.evidence,
           actorReference: decision.actor.subject,
           correlationId: correlation,
         });
