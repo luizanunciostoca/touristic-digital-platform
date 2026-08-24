@@ -13,6 +13,7 @@ import {
   normalizeReferralEvidenceId,
   type AffiliateAuthorizationPort,
   type AffiliateDigestPort,
+  type AffiliateOrderingEvidencePort,
   type AffiliateProgramId,
   type AffiliateReferralEvidenceVerificationPort,
   type Attribution,
@@ -195,6 +196,7 @@ export class AffiliateApplicationService {
     private readonly clock: { now(): string } = {
       now: () => new Date().toISOString(),
     },
+    private readonly orderingEvidence?: AffiliateOrderingEvidencePort,
   ) {}
 
   public async recordReferralAndEstablishAttribution(
@@ -407,6 +409,19 @@ export class AffiliateApplicationService {
     const subjectId = normalizeAcquisitionSubjectId(subjectIdValue);
     if (!subjectId || !isBoundedReference(orderId, 120)) {
       throw new Error("AFFILIATE_ORDER_ATTRIBUTION_LOCK_INPUT_INVALID");
+    }
+    if (!this.orderingEvidence) {
+      throw new Error("AFFILIATE_ORDER_EVIDENCE_REQUIRED");
+    }
+    const orderEvidence = await this.orderingEvidence.getOrderEvidence(orderId);
+    if (
+      !orderEvidence ||
+      orderEvidence.orderId !== orderId ||
+      orderEvidence.status !== "pending_payment" ||
+      !Number.isInteger(orderEvidence.contractVersion) ||
+      orderEvidence.contractVersion < 1
+    ) {
+      throw new Error("AFFILIATE_ORDER_NOT_PENDING_PAYMENT");
     }
     const serverOccurredAt = this.serverNow();
     const connection = await this.pool.getConnection();
