@@ -46,6 +46,7 @@ export interface ProviderSubscriptionSnapshot {
 
 export interface ProviderSubscriptionBinding {
   readonly subscriptionId: string;
+  readonly tenantId: string;
   readonly providerSubscriptionReference: string;
   readonly status: ProviderSubscriptionStatus;
   readonly amount: Money;
@@ -63,6 +64,7 @@ export interface ProviderSubscriptionBindingRepositoryPort {
   saveReadback(
     snapshot: ProviderSubscriptionSnapshot,
     observedAt: string,
+    tenantId: string,
   ): Promise<ProviderSubscriptionBinding>;
 }
 
