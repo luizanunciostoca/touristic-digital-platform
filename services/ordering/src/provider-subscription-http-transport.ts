@@ -260,6 +260,13 @@ function snapshotMatchesBinding(
   );
 }
 
+function bindingOwnedBy(
+  binding: ProviderSubscriptionBinding,
+  authorization: ProviderSubscriptionAuthorizedContext,
+): boolean {
+  return binding.tenantId === authorization.tenantId;
+}
+
 function projection(
   binding: ProviderSubscriptionBinding,
   subscription: Subscription,
@@ -379,6 +386,9 @@ export class ProviderSubscriptionHttpTransport {
       subscription.id,
     );
     if (existing) {
+      if (!bindingOwnedBy(existing, authorization)) {
+        return errorResponse(403, "BUSINESS_ACCESS_DENIED", correlation);
+      }
       const providerSnapshot = normalizeProviderSubscriptionSnapshot(
         await this.dependencies.provider.readSubscription(
           existing.providerSubscriptionReference,
@@ -394,6 +404,7 @@ export class ProviderSubscriptionHttpTransport {
       const persisted = await this.dependencies.bindings.saveReadback(
         providerSnapshot,
         now,
+        authorization.tenantId,
       );
       await audit(this.dependencies.audit, {
         action: "subscription.provider.create",
@@ -462,6 +473,7 @@ export class ProviderSubscriptionHttpTransport {
     const persisted = await this.dependencies.bindings.saveReadback(
       providerSnapshot,
       now,
+      authorization.tenantId,
     );
     await audit(this.dependencies.audit, {
       action: "subscription.provider.create",
@@ -490,6 +502,9 @@ export class ProviderSubscriptionHttpTransport {
     if (!existing) {
       return errorResponse(404, "SUBSCRIPTION_PROVIDER_NOT_FOUND", correlation);
     }
+    if (!bindingOwnedBy(existing, authorization)) {
+      return errorResponse(403, "BUSINESS_ACCESS_DENIED", correlation);
+    }
     const snapshot = normalizeProviderSubscriptionSnapshot(
       await this.dependencies.provider.readSubscription(
         existing.providerSubscriptionReference,
@@ -505,6 +520,7 @@ export class ProviderSubscriptionHttpTransport {
     const persisted = await this.dependencies.bindings.saveReadback(
       snapshot,
       canonicalNow(this.dependencies.clock),
+      authorization.tenantId,
     );
     await audit(this.dependencies.audit, {
       action: "subscription.provider.read",
@@ -533,6 +549,9 @@ export class ProviderSubscriptionHttpTransport {
     );
     if (!existing) {
       return errorResponse(404, "SUBSCRIPTION_PROVIDER_NOT_FOUND", correlation);
+    }
+    if (!bindingOwnedBy(existing, authorization)) {
+      return errorResponse(403, "BUSINESS_ACCESS_DENIED", correlation);
     }
     if (
       (action === "pause" || action === "resume") &&
@@ -585,7 +604,11 @@ export class ProviderSubscriptionHttpTransport {
     ) {
       throw new Error("SUBSCRIPTION_PROVIDER_STATUS_MISMATCH");
     }
-    const persisted = await this.dependencies.bindings.saveReadback(snapshot, now);
+    const persisted = await this.dependencies.bindings.saveReadback(
+      snapshot,
+      now,
+      authorization.tenantId,
+    );
     await audit(this.dependencies.audit, {
       action: `subscription.provider.${action}`,
       result: "success",
