@@ -255,10 +255,10 @@ function applySecurityHeaders(response) {
     "Content-Security-Policy",
     [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' https://unpkg.com https://api.mapbox.com https://sdk.mercadopago.com",
+      "script-src 'self' 'unsafe-inline' https://unpkg.com https://api.mapbox.com https://sdk.mercadopago.com https://http2.mlstatic.com",
       "style-src 'self' 'unsafe-inline' https://unpkg.com https://api.mapbox.com https://cdnjs.cloudflare.com https://fonts.googleapis.com",
       "img-src 'self' data: blob: https://*.tile.openstreetmap.org https://unpkg.com https://api.mapbox.com https://*.tiles.mapbox.com",
-      "connect-src 'self' https://api.mapbox.com https://*.tiles.mapbox.com https://api.mercadopago.com https://*.mercadopago.com https://*.mercadopago.com.br",
+      "connect-src 'self' https://api.mapbox.com https://*.tiles.mapbox.com https://api.mercadopago.com https://*.mercadopago.com https://*.mercadopago.com.br https://http2.mlstatic.com https://api.mercadolibre.com",
       "frame-src 'self' https://*.mercadopago.com https://*.mercadopago.com.br",
       "worker-src blob:",
       "font-src 'self' data: https://api.mapbox.com https://cdnjs.cloudflare.com https://fonts.gstatic.com",
