@@ -1,0 +1,326 @@
+name: Payments Provider Card TEST E2E
+
+on:
+  push:
+    branches:
+      - ops/payments-provider-post-csp-20260824
+    paths:
+      - ".github/workflows/payments-provider-card-test-e2e.yml"
+
+permissions:
+  contents: read
+  statuses: write
+
+env:
+  STAGING_URL: https://morro-digital-v2-staging.onrender.com
+  EXPECTED_SHA: 4252facad94e004b08019cee24a6aca1e1baa001
+  ONBOARDING_PATH: /apps/morro-digital-platform/public/business-onboarding.html
+
+jobs:
+  card-test-e2e:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Publish pending status
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
+            -f state=pending \
+            -f context='Payments Provider Card TEST E2E' \
+            -f description='Mercado Pago TEST card submission running' \
+            -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" >/dev/null
+
+      - name: Install Playwright Chromium
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium >/dev/null
+
+      - name: Submit official Mercado Pago TEST card and read back canonical status
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+
+          const base = process.env.STAGING_URL;
+          const expectedSha = process.env.EXPECTED_SHA;
+          const onboardingPath = process.env.ONBOARDING_PATH;
+          const planId = 'provider_acceptance_test';
+          const testCard = Object.freeze({
+            number: '4235647728025682',
+            expiration: '11/30',
+            cvv: '123',
+            holder: 'APRO',
+            document: '12345678909',
+          });
+          const payerEmail = 'morro-provider-test@example.com';
+          const safeText = value => String(value ?? '').slice(0, 180);
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            try {
+              const page = await browser.newPage();
+              const pageErrors = [];
+              const providerBrowserFailures = [];
+              page.on('pageerror', error => pageErrors.push(safeText(error.message)));
+              page.on('requestfailed', request => {
+                if (!/mercadopago|mercadolibre|mlstatic/iu.test(request.url())) return;
+                let origin = '';
+                try { origin = new URL(request.url()).origin; } catch {}
+                providerBrowserFailures.push({ origin, error: safeText(request.failure()?.errorText || 'request_failed') });
+              });
+
+              for (const path of ['/healthz', '/readyz']) {
+                const response = await page.request.get(`${base}${path}`);
+                if (!response.ok()) throw new Error(`${path}-http-${response.status()}`);
+                if (response.headers()['x-release-sha'] !== expectedSha) throw new Error(`${path}-release-sha-mismatch`);
+              }
+
+              const nav = await page.goto(`${base}${onboardingPath}`, { waitUntil: 'domcontentloaded' });
+              if (!nav?.ok()) throw new Error(`onboarding-http-${nav?.status() || 'missing'}`);
+              const runtimeOk = await page.evaluate(() => {
+                const key = String(window.__MORRO_RUNTIME_ENV__?.VITE_MERCADO_PAGO_PUBLIC_KEY || '').trim();
+                return key.startsWith('TEST-') && key.length > 0;
+              });
+              if (!runtimeOk) throw new Error('mercado-pago-test-public-key-not-active');
+
+              const sessionId = `card_test_${Date.now()}`;
+              const handoff = {
+                sessionId,
+                planId,
+                contractor: {
+                  name: 'Morro Provider Test',
+                  email: payerEmail,
+                  phone: '75999999999',
+                  document: testCard.document,
+                },
+                businessDraft: {
+                  demoBusinessId: `demo_${sessionId}`,
+                  displayName: 'Morro Provider TEST',
+                  categoryId: 'events',
+                  specialty: 'Provider acceptance',
+                  environment: 'sandbox',
+                  publishable: false,
+                },
+                acceptedTerms: [
+                  { type: 'terms', version: 'business-partner-terms-2026-08', acceptedAt: new Date().toISOString() },
+                  { type: 'privacy', version: 'privacy-policy-2026-08', acceptedAt: new Date().toISOString() },
+                ],
+                returnUrl: `${base}${onboardingPath}`,
+                tutorial: false,
+                requiresPaymentsCapability: true,
+              };
+
+              const bootstrap = await page.evaluate(async ({ handoff, sessionId, planId }) => {
+                const authority = await fetch('/api/payments/v1/checkout-authority', {
+                  method: 'POST', credentials: 'same-origin', cache: 'no-store',
+                  headers: { 'content-type': 'application/json', accept: 'application/json' },
+                  body: JSON.stringify(handoff),
+                });
+                const authorityPayload = await authority.json();
+                if (!authority.ok) return { stage: 'authority', status: authority.status, error: authorityPayload?.error || 'unknown' };
+                const checkout = await fetch('/api/payments/v1/checkouts', {
+                  method: 'POST', credentials: 'same-origin', cache: 'no-store',
+                  headers: {
+                    'content-type': 'application/json', accept: 'application/json',
+                    'x-checkout-handoff-token': authorityPayload.data.handoffToken,
+                    'idempotency-key': `business:${sessionId}:${planId}`,
+                  },
+                  body: JSON.stringify(handoff),
+                });
+                return { stage: 'checkout', status: checkout.status, payload: await checkout.json() };
+              }, { handoff, sessionId, planId });
+
+              if (bootstrap.status < 200 || bootstrap.status >= 300) {
+                throw new Error(`bootstrap-${bootstrap.stage}-${bootstrap.status}-${safeText(bootstrap.error || bootstrap.payload?.error || 'unknown')}`);
+              }
+              const data = bootstrap.payload?.data;
+              if (!data?.checkoutId || !data?.paymentId || !data?.statusToken) throw new Error('checkout-bootstrap-identities-missing');
+              if (data.plan?.id !== planId || data.plan?.amount?.minorUnits !== 1000 || data.plan?.amount?.currency !== 'BRL') {
+                throw new Error('checkout-server-plan-authority-diverged');
+              }
+
+              await page.evaluate(async ({ data, payerEmail }) => {
+                const module = await import('/apps/morro-digital-platform/dist/mercado-pago-card-payment-brick.js');
+                const adapter = module.createMercadoPagoCardPaymentBrick(window, document, window.fetch.bind(window));
+                window.__CARD_TEST_E2E__ = { available: adapter.available, error: null, settled: false };
+                adapter.present({
+                  checkoutId: data.checkoutId,
+                  statusToken: data.statusToken,
+                  plan: data.plan,
+                  payerEmail,
+                }).then(() => {
+                  window.__CARD_TEST_E2E__.settled = true;
+                }).catch(error => {
+                  window.__CARD_TEST_E2E__.error = String(error?.message || error).slice(0, 180);
+                });
+              }, { data, payerEmail });
+
+              await page.waitForSelector('[data-morro-payments-brick="card"]', { timeout: 20000 });
+              await page.frameLocator('iframe[name="cardNumber"]').locator('input#cardNumber').waitFor({ state: 'visible', timeout: 20000 });
+              await page.frameLocator('iframe[name="cardNumber"]').locator('input#cardNumber').fill(testCard.number);
+              await page.waitForTimeout(1500);
+              await page.frameLocator('iframe[name="expirationDate"]').locator('input#expirationDate').fill(testCard.expiration);
+              await page.frameLocator('iframe[name="securityCode"]').locator('input#securityCode').fill(testCard.cvv);
+
+              const overlay = page.locator('[data-morro-payments-brick="card"]');
+              await overlay.locator('input[name="HOLDER_NAME"]').fill(testCard.holder);
+
+              const documentSelect = overlay.locator('select').filter({ has: overlay.locator('option') }).first();
+              const optionSnapshot = await documentSelect.locator('option').evaluateAll(options => options.map(option => ({
+                value: option.value,
+                text: String(option.textContent || '').trim(),
+              })));
+              const cpfOption = optionSnapshot.find(option => option.text.toUpperCase() === 'CPF' || option.value.toUpperCase() === 'CPF');
+              if (!cpfOption) throw new Error(`cpf-option-missing:${JSON.stringify(optionSnapshot)}`);
+              await documentSelect.selectOption(cpfOption.value);
+              await overlay.locator('input[name="DOCUMENT"]').fill(testCard.document);
+
+              const additionalSelects = overlay.locator('select');
+              const selectCount = await additionalSelects.count();
+              for (let index = 0; index < selectCount; index += 1) {
+                const select = additionalSelects.nth(index);
+                const options = await select.locator('option').evaluateAll(nodes => nodes.map(node => ({
+                  value: node.value,
+                  text: String(node.textContent || '').trim(),
+                })));
+                if (!options.some(option => /parcela|installment/iu.test(option.text))) continue;
+                const candidate = options.find(option => option.value && !/selecione|select/iu.test(option.text));
+                if (candidate) await select.selectOption(candidate.value);
+              }
+
+              const submit = overlay.locator('button[type="submit"]', { hasText: 'Pagar' });
+              await submit.waitFor({ state: 'visible', timeout: 10000 });
+              const disabled = await submit.isDisabled();
+              if (disabled) throw new Error('mercado-pago-test-submit-disabled');
+
+              const cardPath = `/api/payments/v1/checkouts/${encodeURIComponent(data.checkoutId)}/card`;
+              const cardResponsePromise = page.waitForResponse(response => {
+                try {
+                  return new URL(response.url()).pathname === cardPath && response.request().method() === 'POST';
+                } catch {
+                  return false;
+                }
+              }, { timeout: 45000 });
+
+              await submit.click();
+              const cardResponse = await cardResponsePromise;
+              let cardPayload = null;
+              try { cardPayload = await cardResponse.json(); } catch {}
+              const cardSummary = {
+                httpStatus: cardResponse.status(),
+                ok: cardResponse.ok(),
+                error: safeText(cardPayload?.error || ''),
+                data: cardPayload?.data ? {
+                  checkoutIdMatches: cardPayload.data.checkoutId === data.checkoutId,
+                  paymentIdMatches: cardPayload.data.paymentId === data.paymentId,
+                  status: safeText(cardPayload.data.status),
+                  submitted: cardPayload.data.submitted === true,
+                  replayed: cardPayload.data.replayed === true,
+                } : null,
+              };
+
+              if (!cardResponse.ok()) {
+                throw new Error(`card-submit-http-${cardSummary.httpStatus}-${cardSummary.error || 'unknown'}`);
+              }
+              if (!cardSummary.data?.checkoutIdMatches || !cardSummary.data?.paymentIdMatches || !cardSummary.data?.submitted) {
+                throw new Error(`card-submit-projection-invalid:${JSON.stringify(cardSummary)}`);
+              }
+
+              const statusHistory = [];
+              let terminal = null;
+              for (let attempt = 0; attempt < 30; attempt += 1) {
+                if (attempt > 0) await page.waitForTimeout(2000);
+                const readback = await page.evaluate(async ({ checkoutId, statusToken, attempt }) => {
+                  const response = await fetch(`/api/payments/v1/checkouts/${encodeURIComponent(checkoutId)}`, {
+                    method: 'GET', credentials: 'same-origin', cache: 'no-store',
+                    headers: {
+                      accept: 'application/json',
+                      'x-checkout-token': statusToken,
+                      'x-correlation-id': `provider-test-readback:${attempt}:${crypto.randomUUID()}`,
+                    },
+                  });
+                  let payload = null;
+                  try { payload = await response.json(); } catch {}
+                  return { httpStatus: response.status, ok: response.ok, payload };
+                }, { checkoutId: data.checkoutId, statusToken: data.statusToken, attempt });
+
+                const projection = readback.payload?.data;
+                const summary = {
+                  attempt,
+                  httpStatus: readback.httpStatus,
+                  ok: readback.ok,
+                  error: safeText(readback.payload?.error || ''),
+                  checkoutIdMatches: projection?.checkoutId === data.checkoutId,
+                  sessionIdMatches: projection?.sessionId === sessionId,
+                  status: safeText(projection?.status || ''),
+                  verifiedPayment: projection?.verifiedPayment ? {
+                    verified: projection.verifiedPayment.verified === true,
+                    sessionIdMatches: projection.verifiedPayment.sessionId === sessionId,
+                    hasReference: typeof projection.verifiedPayment.reference === 'string' && projection.verifiedPayment.reference.length > 0,
+                    definitiveBusinessIdPresent: typeof projection.verifiedPayment.definitiveBusinessId === 'string' && projection.verifiedPayment.definitiveBusinessId.length > 0,
+                    activationStatus: safeText(projection.verifiedPayment.activationStatus || ''),
+                  } : null,
+                  verifiedFailure: projection?.verifiedFailure ? {
+                    verified: projection.verifiedFailure.verified === true,
+                    sessionIdMatches: projection.verifiedFailure.sessionId === sessionId,
+                    reason: safeText(projection.verifiedFailure.reason || ''),
+                    hasResultId: typeof projection.verifiedFailure.resultId === 'string' && projection.verifiedFailure.resultId.length > 0,
+                  } : null,
+                };
+                statusHistory.push(summary);
+                if (!readback.ok) break;
+                if (['CONFIRMED','FAILED','CANCELLED','EXPIRED','REFUNDED'].includes(summary.status)) {
+                  terminal = summary;
+                  if (summary.verifiedPayment || summary.verifiedFailure) break;
+                }
+              }
+
+              const adapterState = await page.evaluate(() => ({
+                settled: Boolean(window.__CARD_TEST_E2E__?.settled),
+                error: window.__CARD_TEST_E2E__?.error || null,
+              }));
+
+              const result = {
+                status: 'PASS',
+                releaseSha: expectedSha,
+                providerMode: 'TEST',
+                plan: { id: data.plan.id, amount: data.plan.amount, pricingVersion: data.plan.pricingVersion },
+                checkout: {
+                  checkoutIdPresent: true,
+                  paymentIdPresent: true,
+                  initialStatus: safeText(data.status || ''),
+                },
+                cardSubmission: cardSummary,
+                terminal,
+                latestReadback: statusHistory.at(-1) || null,
+                statusHistory,
+                adapterState,
+                providerBrowserFailures,
+                pageErrors,
+              };
+              console.log(JSON.stringify(result));
+            } finally {
+              await browser.close();
+            }
+          })().catch(error => {
+            console.error(JSON.stringify({ status: 'FAIL', error: safeText(error?.message || error) }));
+            process.exit(1);
+          });
+          NODE
+
+      - name: Publish final status
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          if [ "$JOB_STATUS" = success ]; then state=success; description='Mercado Pago TEST card submitted and read back'; else state=failure; description='Mercado Pago TEST card E2E failed'; fi
+          gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
+            -f state="$state" -f context='Payments Provider Card TEST E2E' -f description="$description" \
+            -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" >/dev/null
