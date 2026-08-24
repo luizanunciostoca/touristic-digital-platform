@@ -1,10 +1,12 @@
 # Mercado Pago — Bricks + Subscriptions implementation contract
 
-Status: IMPLEMENTATION COMPLETE CANDIDATE — EXACT-HEAD ACCEPTANCE PENDING
+Status: CODE COMPLETE — FINAL EXACT-HEAD + PROVIDER TEST ACCEPTANCE REQUIRED
 
-Current integration base: `main@50102c331460a96e7180acb70f47f119cbbb53dc`
+Canonical integration base at the final synchronization point: `main@a2a1f10420c1d452e9426c75549864c76d57f22c`
 
 Scope: Morro Digital V2 only. Production and legacy staging remain out of scope.
+
+The exact final candidate SHA is intentionally recorded in the PR/evidence pack rather than hardcoded in this versioned document. This avoids making the acceptance document stale every time the document itself is corrected.
 
 ## Why this change exists
 
@@ -29,7 +31,7 @@ The implementation enforces the following contract:
 9. provider payment reference is persisted before acceptance;
 10. verified webhook/readback, reconciliation and refund flows remain the terminal authority.
 
-The browser composition now mounts Card Payment Brick when a valid browser Public Key is configured. Checkout Pro redirect remains the compatibility path only when the Brick is not configured.
+The browser composition mounts Card Payment Brick when a valid browser Public Key is configured. Checkout Pro redirect remains the compatibility path only when the Brick is not configured.
 
 Official provider references used for this contract:
 
@@ -114,7 +116,7 @@ Official references used for this boundary:
 - https://www.mercadopago.com.br/developers/pt/docs/subscriptions/additional-content/your-integrations/notifications/webhooks
 - https://www.mercadopago.com.br/developers/en/reference/subscriptions/_authorized_payments_id/get
 
-## Runtime composition
+## Runtime and staging composition
 
 The provider subscription transport is composed inside the existing Payments runtime, not as a parallel server:
 
@@ -126,16 +128,24 @@ The provider subscription transport is composed inside the existing Payments run
 6. startup rollback closes already-created resources when a later Payments component cannot start;
 7. shutdown closes core/card/subscription resources together.
 
-## Acceptance evidence required for the frozen head
+The canonical V2 staging Blueprint also declares the new runtime requirements:
 
-Before this candidate may be called `CODE_COMPLETE` or `ACCEPTANCE_READY`, the exact same final HEAD must prove:
+- `VITE_MERCADO_PAGO_PUBLIC_KEY` as externally supplied browser-safe TEST configuration;
+- `PAYMENTS_SUBSCRIPTIONS_ENABLED=true` for the controlled provider acceptance environment;
+- `PAYMENTS_SUBSCRIPTION_BACK_URL` pointing to the V2 staging host.
+
+Server credentials remain external secrets and are never committed to the Blueprint.
+
+## Exact-head code acceptance
+
+For the final frozen HEAD, the acceptance pack must prove on the same SHA:
 
 1. canonical Prettier check;
 2. architecture boundaries;
-3. lint;
-4. typecheck;
-5. unit tests;
-6. build;
+3. feature/environment/governance contracts;
+4. workflow supply-chain validation;
+5. lint;
+6. typecheck;
 7. Payments Sandbox Provider contract;
 8. Payments Persistence Integration including M146;
 9. Payments M149 Browser Checkout contract;
@@ -146,21 +156,36 @@ Before this candidate may be called `CODE_COMPLETE` or `ACCEPTANCE_READY`, the e
 14. Payments Operational Ledger contract;
 15. Payments Settlement contract;
 16. Payments Subscription Recurrence contract;
-17. affected Auth/Business/browser regressions.
+17. Render Staging Blueprint contract;
+18. affected Auth/Business/browser regressions.
 
-No merge is authorized by this document.
+The PR/evidence pack owns the exact candidate SHA and CI run identifiers. No merge is authorized by this document alone.
 
-## Provider TEST rollout after code acceptance
+## Provider TEST acceptance
 
-Provider verification remains a separate controlled stage:
+Provider verification is a separate controlled stage and must run against the exact accepted SHA deployed to V2 TEST staging:
 
-1. configure `VITE_MERCADO_PAGO_PUBLIC_KEY` only in V2 TEST staging;
-2. keep Access Token and webhook secret server-only;
-3. deploy the exact accepted SHA;
-4. execute one-time TEST Brick payment -> provider -> verified webhook -> readback -> reconciliation -> replay/idempotency -> TEST refund -> refund readback;
-5. execute provider subscription TEST create -> readback -> pause/resume -> cancel -> final readback;
-6. observe a `subscription_authorized_payment` event/readback where the test contract generates one and validate its correlation with the canonical recurrence/payment lifecycle;
-7. only then promote provider evidence to `PROVIDER_VERIFIED`.
+1. verify release identity and readiness;
+2. confirm Public Key is browser-visible while Access Token/webhook/database secrets are not;
+3. execute one-time TEST Brick payment -> provider create -> authoritative payment readback;
+4. prove verified webhook -> authoritative readback -> canonical payment outcome;
+5. prove reconciliation and replay/idempotency;
+6. execute TEST refund -> authoritative refund/payment readback -> canonical reversal state;
+7. execute subscription TEST create -> authoritative readback -> pause -> readback -> resume -> readback -> cancel -> final readback;
+8. prove tenant/auth/CSRF/browser-authority negative cases;
+9. observe `subscription_authorized_payment` and `/authorized_payments/{id}` when the TEST contract generates one, then validate its correlation with the canonical recurrence/payment lifecycle;
+10. record a redacted evidence pack and only then set `PROVIDER_VERIFIED=YES`.
+
+## Merge and post-merge acceptance
+
+After provider acceptance and independent review PASS:
+
+1. mark the PR Ready for Review;
+2. merge only with the accepted expected-head SHA;
+3. record the resulting canonical `main` SHA;
+4. rerun the required post-merge Quality/Payments regressions on that canonical state;
+5. redeploy/smoke V2 staging from canonical `main` as required by coordination;
+6. close the front only when code, provider, merge and post-merge evidence all agree.
 
 ## Non-negotiable safety rules
 
