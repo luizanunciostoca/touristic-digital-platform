@@ -3,6 +3,7 @@ import mysql, { type RowDataPacket } from "mysql2/promise";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   canonicalizeAffiliateInput,
+  type AffiliateOrderingEvidencePort,
   type ReferralEvidenceSource,
 } from "@touristic/affiliates";
 import { ReferralEvidenceVerificationAdapter } from "./affiliate-adapters.js";
@@ -79,6 +80,16 @@ describe.skipIf(!databaseUrl)(
       timezone: "Z",
     });
     const now = { value: "2026-08-01T00:00:00.000Z" };
+    const orderStatuses = new Map<
+      string,
+      "draft" | "pending_payment" | "payment_confirmed" | "cancelled"
+    >();
+    const orderingEvidence: AffiliateOrderingEvidencePort = {
+      getOrderEvidence: async (orderId) => {
+        const status = orderStatuses.get(orderId);
+        return status ? { orderId, status, contractVersion: 1 } : null;
+      },
+    };
     const verification = new ReferralEvidenceVerificationAdapter(
       async ({ source, evidence }) => {
         const canonical = canonicalEvidence(source, evidence);
@@ -96,6 +107,7 @@ describe.skipIf(!databaseUrl)(
       digest,
       verification,
       { now: () => now.value },
+      orderingEvidence,
     );
 
     beforeAll(async () => {
@@ -105,6 +117,7 @@ describe.skipIf(!databaseUrl)(
 
     beforeEach(async () => {
       now.value = "2026-08-01T00:00:00.000Z";
+      orderStatuses.clear();
       await pool.query("DELETE FROM affiliate_materialization_requests");
       await pool.query("DELETE FROM affiliate_outbox_events");
       await pool.query("DELETE FROM affiliate_audit_events");
@@ -268,7 +281,10 @@ describe.skipIf(!databaseUrl)(
             outcome: "accepted",
             reason: "attribution_established",
           }),
-          expect.objectContaining({ outcome: "replayed", reason: "exact_replay" }),
+          expect.objectContaining({
+            outcome: "replayed",
+            reason: "exact_replay",
+          }),
         ]),
       );
     });
@@ -364,13 +380,14 @@ describe.skipIf(!databaseUrl)(
 
       const reverseSubject = "shared-reverse-subject";
       now.value = "2026-08-01T00:00:01.000Z";
-      const reverseCheckout = await service.recordReferralAndEstablishAttribution(
-        input("rev-code", {
-          subjectId: reverseSubject,
-          source: "checkout_code",
-          evidence: { token: "checkout-reverse" },
-        }),
-      );
+      const reverseCheckout =
+        await service.recordReferralAndEstablishAttribution(
+          input("rev-code", {
+            subjectId: reverseSubject,
+            source: "checkout_code",
+            evidence: { token: "checkout-reverse" },
+          }),
+        );
       now.value = "2026-08-01T00:00:01.001Z";
       await service.recordReferralAndEstablishAttribution(
         input("rev-link", {
@@ -379,9 +396,9 @@ describe.skipIf(!databaseUrl)(
           evidence: { token: "link-reverse" },
         }),
       );
-      expect((await readAttribution(reverseCheckout.attribution.subjectId)).source).toBe(
-        "checkout_code",
-      );
+      expect(
+        (await readAttribution(reverseCheckout.attribution.subjectId)).source,
+      ).toBe("checkout_code");
 
       const sameTierSubject = "shared-same-tier-subject";
       now.value = "2026-08-01T00:01:00.000Z";
@@ -405,6 +422,33 @@ describe.skipIf(!databaseUrl)(
       expect(sameTier.attribution_id).not.toBe(older.attribution.id);
     });
 
+    it("fails closed unless Ordering authoritatively reports pending_payment", async () => {
+      const first = await service.recordReferralAndEstablishAttribution(
+        input("lock-state", {
+          subjectId: "order-state-guard-subject",
+          source: "platform_link",
+          evidence: { token: "lock-state-guard" },
+        }),
+      );
+
+      const invalidCases = [
+        ["order-missing-0001", null],
+        ["order-draft-000001", "draft"],
+        ["order-confirmed-001", "payment_confirmed"],
+        ["order-cancelled-001", "cancelled"],
+      ] as const;
+      for (const [orderId, status] of invalidCases) {
+        if (status) orderStatuses.set(orderId, status);
+        await expect(
+          service.lockAttributionToOrder(first.attribution.subjectId, orderId),
+        ).rejects.toThrow("AFFILIATE_ORDER_NOT_PENDING_PAYMENT");
+      }
+
+      const persisted = await readAttribution(first.attribution.subjectId);
+      expect(persisted.order_id).toBeNull();
+      expect(persisted.order_locked_at).toBeNull();
+    });
+
     it("locks attribution using server time and never lets later evidence replace a pending-payment order attribution", async () => {
       const first = await service.recordReferralAndEstablishAttribution(
         input("lock-link", {
@@ -414,6 +458,7 @@ describe.skipIf(!databaseUrl)(
         }),
       );
       now.value = "2026-08-01T00:05:00.000Z";
+      orderStatuses.set("order-attribution-0001", "pending_payment");
       await service.lockAttributionToOrder(
         first.attribution.subjectId,
         "order-attribution-0001",
@@ -448,12 +493,15 @@ describe.skipIf(!databaseUrl)(
       expect(first.attribution.expiresAt).toBe("2026-08-31T00:00:00.000Z");
 
       now.value = "2026-08-30T23:59:59.999Z";
-      const beforeBoundary = await service.recordReferralAndEstablishAttribution({
-        ...request,
-        requestId: "request:window-before-boundary",
-        correlationId: "corr:window-before-boundary",
-      });
-      expect(beforeBoundary.attribution.expiresAt).toBe(first.attribution.expiresAt);
+      const beforeBoundary =
+        await service.recordReferralAndEstablishAttribution({
+          ...request,
+          requestId: "request:window-before-boundary",
+          correlationId: "corr:window-before-boundary",
+        });
+      expect(beforeBoundary.attribution.expiresAt).toBe(
+        first.attribution.expiresAt,
+      );
 
       now.value = "2026-08-31T00:00:00.000Z";
       await expect(
@@ -473,7 +521,9 @@ describe.skipIf(!databaseUrl)(
         }),
       ).rejects.toThrow("AFFILIATE_ATTRIBUTION_INVALID");
 
-      const exactReplay = await service.recordReferralAndEstablishAttribution(request);
+      const exactReplay = await service.recordReferralAndEstablishAttribution(
+        request,
+      );
       expect(exactReplay.replayed).toBe(true);
       expect(exactReplay.attribution).toEqual(first.attribution);
     });
