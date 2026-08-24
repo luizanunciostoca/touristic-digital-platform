@@ -134,7 +134,7 @@ Financial independently resolves and validates monetary consequence. `accepted` 
 
 ## Idempotency and concurrency
 
-Mutation identity follows canonical immutable semantic inputs. Durable claims are acquired atomically.
+Mutation identity follows canonical immutable semantic inputs. The durable key format is `affiliate:v1:<operation>:<sha256(canonical immutable inputs)>`; durable claims are acquired atomically.
 
 - exact replay returns the original persisted semantic outcome;
 - a reused key/request identity with divergent semantic digest fails closed;
