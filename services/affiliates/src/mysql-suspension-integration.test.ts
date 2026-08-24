@@ -55,10 +55,7 @@ interface EligibilityRow extends RowDataPacket {
   membership_status: "pending" | "approved" | "suspended" | "closed";
   fraud_blocked: number;
   financial_onboarding_status:
-    | "not_started"
-    | "pending"
-    | "eligible"
-    | "blocked";
+    "not_started" | "pending" | "eligible" | "blocked";
 }
 
 interface CountRow extends RowDataPacket {
