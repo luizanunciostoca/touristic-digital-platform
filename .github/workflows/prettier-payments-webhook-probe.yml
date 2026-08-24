@@ -1,0 +1,32 @@
+name: TEMP Prettier Payments Webhook Probe
+
+on:
+  push:
+    branches:
+      - ops/prettier-payments-webhook-20260824
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prettier-probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Print canonical Prettier diff
+        run: |
+          pnpm exec prettier --write services/financial/src/mercado-pago-webhook-authenticator.test.ts
+          echo '--- PRETTIER_CANONICAL_DIFF_BEGIN ---'
+          git diff --no-ext-diff -- services/financial/src/mercado-pago-webhook-authenticator.test.ts
+          echo '--- PRETTIER_CANONICAL_DIFF_END ---'
+          pnpm exec prettier --check services/financial/src/mercado-pago-webhook-authenticator.test.ts
