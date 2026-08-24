@@ -3,6 +3,7 @@ import type { CommissionEntitlement } from "./commission.js";
 import type { ConversionAssociation } from "./conversion.js";
 import type { AffiliateEligibilitySnapshot } from "./eligibility.js";
 import type {
+  AcquisitionSubjectId,
   AffiliateId,
   AffiliateProgramId,
   CommissionEntitlementId,
@@ -12,6 +13,7 @@ import type {
   AffiliateFinancialMaterializationRequestV1,
   AffiliateFinancialMaterializationResultV1,
 } from "./materialization.js";
+import type { ReferralEvidenceSource } from "./policy.js";
 
 export type AffiliateAuthorizationAction =
   | "affiliate.manage_identity"
@@ -79,6 +81,28 @@ export interface AffiliateFinancialMaterializationPort {
   ): Promise<AffiliateFinancialMaterializationResultV1 | null>;
 }
 
+export type AffiliateReferralEvidenceVerificationResult =
+  | Readonly<{
+      accepted: true;
+      canonicalEvidence: Readonly<Record<string, unknown>>;
+    }>
+  | Readonly<{
+      accepted: false;
+      code: string;
+    }>;
+
+export interface AffiliateReferralEvidenceVerificationPort {
+  verify(
+    input: Readonly<{
+      source: ReferralEvidenceSource;
+      affiliateId: AffiliateId;
+      programId: AffiliateProgramId;
+      subjectId: AcquisitionSubjectId;
+      evidence: unknown;
+    }>,
+  ): Promise<AffiliateReferralEvidenceVerificationResult>;
+}
+
 export interface ReferralEvidenceRepositoryPort {
   findByFingerprint(fingerprint: string): Promise<ReferralEvidence | null>;
   save(evidence: ReferralEvidence): Promise<ReferralEvidence>;
@@ -144,23 +168,37 @@ export interface AffiliateAuditPort {
   append(entry: AffiliateAuditEntry): Promise<void>;
 }
 
-function canonicalize(value: unknown): string {
+export function canonicalizeAffiliateInput(value: unknown): string {
   if (value === null) return "null";
   if (typeof value === "string") return JSON.stringify(value);
   if (typeof value === "number" || typeof value === "boolean") {
     return JSON.stringify(value);
   }
   if (Array.isArray(value)) {
-    return `[${value.map((item) => canonicalize(item)).join(",")}]`;
+    return `[${value.map((item) => canonicalizeAffiliateInput(item)).join(",")}]`;
   }
   if (typeof value === "object") {
     const record = value as Record<string, unknown>;
     const keys = Object.keys(record).sort();
     return `{${keys
-      .map((key) => `${JSON.stringify(key)}:${canonicalize(record[key])}`)
+      .map(
+        (key) =>
+          `${JSON.stringify(key)}:${canonicalizeAffiliateInput(record[key])}`,
+      )
       .join(",")}}`;
   }
   throw new Error("AFFILIATE_CANONICAL_INPUT_UNSUPPORTED");
+}
+
+export async function createAffiliateCanonicalDigest(
+  immutableInputs: unknown,
+  digest: AffiliateDigestPort,
+): Promise<string> {
+  const hex = await digest.sha256(canonicalizeAffiliateInput(immutableInputs));
+  if (!/^[a-f0-9]{64}$/.test(hex)) {
+    throw new Error("AFFILIATE_IDEMPOTENCY_DIGEST_INVALID");
+  }
+  return hex;
 }
 
 export async function createAffiliateIdempotencyKey(
@@ -171,9 +209,6 @@ export async function createAffiliateIdempotencyKey(
   if (!/^[a-z0-9_:-]{1,80}$/.test(operation)) {
     throw new Error("AFFILIATE_IDEMPOTENCY_OPERATION_INVALID");
   }
-  const hex = await digest.sha256(canonicalize(immutableInputs));
-  if (!/^[a-f0-9]{64}$/.test(hex)) {
-    throw new Error("AFFILIATE_IDEMPOTENCY_DIGEST_INVALID");
-  }
+  const hex = await createAffiliateCanonicalDigest(immutableInputs, digest);
   return `affiliate:v1:${operation}:${hex}`;
 }
