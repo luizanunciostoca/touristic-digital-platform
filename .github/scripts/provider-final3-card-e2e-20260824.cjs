@@ -1,19 +1,34 @@
 const { chromium } = require('/tmp/pw/node_modules/playwright');
 const candidate = 'e0d35bb2ec8d65861a4f64ceb3959617390c1071';
 const pagePath = '/apps/morro-digital-platform/public/business-onboarding.html';
-const clean = v => String(v ?? '').replace(/[\r\n]/g, ' ').slice(0, 400);
+const clean = v => String(v ?? '').replace(/[\r\n]/g, ' ').slice(0, 500);
+
+async function poll({ attempts, delayMs, read, accept, error }) {
+  let last;
+  for (let i = 0; i < attempts; i += 1) {
+    last = await read();
+    if (accept(last)) return last;
+    await new Promise(resolve => setTimeout(resolve, delayMs));
+  }
+  throw new Error(`${error}:${clean(typeof last === 'string' ? last : JSON.stringify(last))}`);
+}
 
 async function secure(page, name) {
-  for (let i = 0; i < 120; i += 1) {
-    for (const frame of page.frames()) {
-      const locator = frame.locator(`input[name="${name}"]`).first();
-      try {
-        if ((await locator.count()) && (await locator.isVisible())) return locator;
-      } catch {}
-    }
-    await page.waitForTimeout(250);
-  }
-  throw new Error(`SECURE_FIELD_MISSING:${name}`);
+  return poll({
+    attempts: 120,
+    delayMs: 250,
+    error: `SECURE_FIELD_MISSING:${name}`,
+    read: async () => {
+      for (const frame of page.frames()) {
+        const locator = frame.locator(`input[name="${name}"]`).first();
+        try {
+          if ((await locator.count()) && (await locator.isVisible())) return locator;
+        } catch {}
+      }
+      return null;
+    },
+    accept: value => Boolean(value),
+  });
 }
 
 async function typeSecure(page, name, value) {
@@ -31,7 +46,13 @@ async function typeSecure(page, name, value) {
     const initial = await page.goto(pageUrl, { waitUntil: 'load', timeout: 60_000 });
     if (!initial || initial.status() !== 200) throw new Error(`STAGING_HTTP_${initial?.status() ?? 0}`);
 
-    await page.waitForFunction(() => Boolean(globalThis.__MORRO_RUNTIME_ENV__), null, { timeout: 20_000 });
+    await poll({
+      attempts: 80,
+      delayMs: 250,
+      error: 'RUNTIME_ENV_TIMEOUT',
+      read: () => page.evaluate(() => Boolean(globalThis.__MORRO_RUNTIME_ENV__)),
+      accept: Boolean,
+    });
     const hasPublicKey = await page.evaluate(() => Boolean(globalThis.__MORRO_RUNTIME_ENV__?.VITE_MERCADO_PAGO_PUBLIC_KEY));
     if (!hasPublicKey) throw new Error('TEST_PUBLIC_KEY_NOT_AVAILABLE');
 
@@ -116,10 +137,14 @@ async function typeSecure(page, name, value) {
       return { clicked: true, text };
     });
     if (!installmentClick.clicked) throw new Error(`INSTALLMENT_LABEL_NOT_FOUND:${JSON.stringify(installmentClick.labels)}`);
-    await page.waitForFunction(() => {
-      const text = (document.querySelector('[data-morro-payments-brick="card"]')?.textContent || '').replace(/\s+/g, ' ');
-      return !/Escolha uma opção para avançar/iu.test(text) && !/Preencha todos os dados para continuar/iu.test(text);
-    }, null, { timeout: 10_000 });
+
+    await poll({
+      attempts: 40,
+      delayMs: 250,
+      error: 'INSTALLMENT_NOT_ACCEPTED',
+      read: async () => (await overlay.textContent() || '').replace(/\s+/g, ' '),
+      accept: text => !/Escolha uma opção para avançar/iu.test(text) && !/Preencha todos os dados para continuar/iu.test(text),
+    });
 
     const cardPromise = page.waitForResponse(response => {
       const pathname = new URL(response.url()).pathname;
@@ -130,8 +155,13 @@ async function typeSecure(page, name, value) {
     const cardBody = await cardResponse.json();
     if (!cardResponse.ok()) throw new Error(`CARD_FAILED:${cardResponse.status()}:${clean(cardBody?.error)}`);
 
-    await page.waitForFunction(() => Boolean(globalThis.__FINAL3?.verified || globalThis.__FINAL3?.failed), null, { timeout: 120_000 });
-    const outcome = await page.evaluate(() => globalThis.__FINAL3);
+    const outcome = await poll({
+      attempts: 60,
+      delayMs: 2000,
+      error: 'VERIFICATION_TIMEOUT',
+      read: () => page.evaluate(() => globalThis.__FINAL3),
+      accept: state => Boolean(state?.verified || state?.failed),
+    });
     if (outcome?.failed) throw new Error(`VERIFICATION_FAILED:${clean(outcome.failed.code)}`);
     if (!outcome?.verified?.verified) throw new Error('VERIFICATION_NOT_CONFIRMED');
 
