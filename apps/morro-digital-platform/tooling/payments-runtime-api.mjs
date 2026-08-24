@@ -2,6 +2,27 @@ import { createPaymentsApi as createCorePaymentsApi } from "./payments-api.mjs";
 import { createPaymentsCardApi } from "./payments-card-api.mjs";
 import { createPaymentsSubscriptionApi } from "./payments-subscription-api.mjs";
 
+const mercadoPagoWebhookPath = "/api/payments/v1/webhooks/sandbox";
+const providerDataIdHeader = "x-morro-provider-data-id";
+const maxProviderDataIdLength = 180;
+
+function providerDataIdFromQuery(requestUrl) {
+  const values = requestUrl.searchParams.getAll("data.id");
+  if (values.length !== 1) return "";
+  const value = values[0]?.trim() ?? "";
+  return value && value.length <= maxProviderDataIdLength ? value : "";
+}
+
+export function bindMercadoPagoWebhookQueryContext(request, requestUrl) {
+  if (requestUrl.pathname !== mercadoPagoWebhookPath) return request;
+
+  request.headers = {
+    ...(request.headers ?? {}),
+    [providerDataIdHeader]: providerDataIdFromQuery(requestUrl),
+  };
+  return request;
+}
+
 export function createPaymentsApi(options = {}) {
   const core = createCorePaymentsApi(options);
   const card = createPaymentsCardApi(options);
@@ -66,6 +87,7 @@ export function createPaymentsApi(options = {}) {
         await card.handle(request, response, requestUrl);
         return;
       }
+      bindMercadoPagoWebhookQueryContext(request, requestUrl);
       await core.handle(request, response, requestUrl);
     },
   });
