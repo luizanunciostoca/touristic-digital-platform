@@ -12,6 +12,6 @@
     "lint": "eslint src",
     "test": "pnpm --filter @touristic/affiliates build && pnpm build && vitest run --passWithNoTests",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test:integration": "pnpm --filter @touristic/affiliates build && pnpm build && vitest run src/mysql-integration.test.ts"
+    "test:integration": "pnpm --filter @touristic/affiliates build && pnpm build && vitest run src/mysql-integration.test.ts src/commercial-mysql-integration.test.ts"
   }
 }
