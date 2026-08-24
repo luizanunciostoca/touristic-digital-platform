@@ -50,6 +50,60 @@ jobs:
             await locator.pressSequentially(value, { delay: 55 });
           }
 
+          async function chooseFirstInstallment(page) {
+            const overlay = page.locator('[data-morro-payments-brick="card"]');
+            const before = (await overlay.textContent() || '').replace(/\s+/g, ' ').trim();
+            if (!/Escolha uma opção para avançar/i.test(before)) return;
+
+            const triggers = [
+              overlay.getByText('Selecione o número de parcelas', { exact: false }).first(),
+              overlay.getByRole('combobox').last(),
+              overlay.locator('[aria-haspopup="listbox"]').last(),
+            ];
+            let opened = false;
+            for (const trigger of triggers) {
+              try {
+                if ((await trigger.count()) > 0 && (await trigger.isVisible())) {
+                  await trigger.click();
+                  opened = true;
+                  await page.waitForTimeout(350);
+                  break;
+                }
+              } catch {}
+            }
+
+            const optionCandidates = [
+              page.getByText(/1x\s+R\$\s*10,00/i).last(),
+              page.getByRole('option', { name: /1x.*10,00/i }).first(),
+              overlay.getByText(/1x\s+R\$\s*10,00/i).last(),
+            ];
+            for (const option of optionCandidates) {
+              try {
+                if ((await option.count()) > 0 && (await option.isVisible())) {
+                  await option.click();
+                  await page.waitForTimeout(600);
+                  const after = (await overlay.textContent() || '').replace(/\s+/g, ' ').trim();
+                  if (!/Escolha uma opção para avançar/i.test(after)) return;
+                }
+              } catch {}
+            }
+
+            if (opened) {
+              for (const trigger of triggers) {
+                try {
+                  if ((await trigger.count()) > 0 && (await trigger.isVisible())) {
+                    await trigger.press('ArrowDown');
+                    await trigger.press('Enter');
+                    await page.waitForTimeout(600);
+                    const after = (await overlay.textContent() || '').replace(/\s+/g, ' ').trim();
+                    if (!/Escolha uma opção para avançar/i.test(after)) return;
+                  }
+                } catch {}
+              }
+            }
+            throw new Error('INSTALLMENT_SELECTION_FAILED');
+          }
+
           (async () => {
             const browser = await chromium.launch({ headless: true });
             try {
@@ -108,65 +162,44 @@ jobs:
               }
 
               await page.locator('[data-morro-payments-brick="card"]').waitFor({ state: 'visible', timeout: 30_000 });
-
               const cardNumber = await visibleField(page, 'input[name="cardNumber"]');
               await typeSecure(cardNumber, '5480832801033311');
               await page.waitForTimeout(1_500);
-
               const expirationDate = await visibleField(page, 'input[name="expirationDate"]');
               await typeSecure(expirationDate, '1130');
               const securityCode = await visibleField(page, 'input[name="securityCode"]');
               await typeSecure(securityCode, '123');
 
-              const holder = page.locator('[data-morro-payments-brick="card"] input[name="HOLDER_NAME"]').first();
-              await holder.fill('APRO');
-              const documentField = page.locator('[data-morro-payments-brick="card"] input[name="DOCUMENT"]').first();
-              await documentField.fill('12345678909');
+              await page.locator('[data-morro-payments-brick="card"] input[name="HOLDER_NAME"]').first().fill('APRO');
+              await page.locator('[data-morro-payments-brick="card"] input[name="DOCUMENT"]').first().fill('12345678909');
               await page.waitForTimeout(750);
 
               const selects = page.locator('[data-morro-payments-brick="card"] select');
-              const selectEvidence = [];
               for (let i = 0; i < await selects.count(); i += 1) {
                 const select = selects.nth(i);
                 if (!(await select.isVisible())) continue;
                 const options = await select.locator('option').evaluateAll(nodes => nodes.map(node => ({ value: node.value, text: (node.textContent || '').trim() })));
-                let selected = await select.inputValue();
                 const cpf = options.find(option => /CPF/i.test(option.text) && option.value);
-                if (cpf && selected !== cpf.value) {
-                  await select.selectOption(cpf.value);
-                  selected = await select.inputValue();
-                } else if (!selected) {
-                  const first = options.find(option => option.value);
-                  if (first) {
-                    await select.selectOption(first.value);
-                    selected = await select.inputValue();
-                  }
-                }
-                selectEvidence.push({ options: options.map(option => option.text).slice(0, 10), selected: Boolean(selected) });
+                if (cpf) await select.selectOption(cpf.value);
               }
 
-              await page.waitForTimeout(1_000);
+              await chooseFirstInstallment(page);
+              await page.waitForTimeout(800);
+
               const submit = page.locator('[data-morro-payments-brick="card"] button[type="submit"]').first();
-              const buttonState = { disabled: await submit.isDisabled(), text: (await submit.textContent() || '').trim() };
               const cardResponsePromise = page.waitForResponse(res => {
                 const url = new URL(res.url());
                 return res.request().method() === 'POST' && /\/api\/payments\/v1\/checkouts\/ord_[^/]+\/card$/u.test(url.pathname);
               }, { timeout: 45_000 });
-
               await submit.click();
+
               let cardResponse;
               try {
                 cardResponse = await cardResponsePromise;
               } catch (error) {
                 const overlayText = (await page.locator('[data-morro-payments-brick="card"]').textContent() || '').replace(/\s+/g, ' ').trim().slice(0, 1000);
-                const secureState = [];
-                for (const frame of page.frames()) {
-                  try {
-                    const fields = await frame.locator('input[name="cardNumber"], input[name="expirationDate"], input[name="securityCode"]').evaluateAll(nodes => nodes.map(node => ({ name: node.getAttribute('name'), valueLength: String(node.value || '').length, ariaInvalid: node.getAttribute('aria-invalid') })));
-                    if (fields.length) secureState.push(fields);
-                  } catch {}
-                }
-                console.log('PROVIDER_TEST_BRICK_DIAGNOSTIC=' + JSON.stringify({ checkoutId, buttonState, selectEvidence, overlayText, secureState, providerTraffic: providerTraffic.slice(-30) }));
+                const interactive = await page.locator('[data-morro-payments-brick="card"] button, [data-morro-payments-brick="card"] [role="combobox"], [data-morro-payments-brick="card"] [role="option"], [data-morro-payments-brick="card"] [aria-haspopup]').evaluateAll(nodes => nodes.map(node => ({ tag: node.tagName, role: node.getAttribute('role'), text: (node.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 160), expanded: node.getAttribute('aria-expanded') })).slice(0, 30));
+                console.log('PROVIDER_TEST_BRICK_DIAGNOSTIC=' + JSON.stringify({ checkoutId, overlayText, interactive, providerTraffic: providerTraffic.slice(-30) }));
                 throw error;
               }
 
@@ -180,19 +213,10 @@ jobs:
               if (!outcome?.verified?.verified) throw new Error('PAYMENT_NOT_VERIFIED');
 
               console.log('PROVIDER_TEST_CARD_E2E=' + JSON.stringify({
-                candidate: 'e0d35bb2ec8d65861a4f64ceb3959617390c1071',
-                staging: true,
-                realMoney: false,
-                realCard: false,
-                publicKeyPresent: runtime.hasPublicKey,
-                checkoutHttp: checkoutResponse.status(),
-                checkoutId,
-                cardSubmitHttp: cardResponse.status(),
-                cardStatus,
-                verified: true,
-                reference: outcome.verified.reference,
-                definitiveBusinessId: outcome.verified.definitiveBusinessId ?? null,
-                activationStatus: outcome.verified.activationStatus ?? null,
+                candidate: 'e0d35bb2ec8d65861a4f64ceb3959617390c1071', staging: true, realMoney: false, realCard: false,
+                publicKeyPresent: runtime.hasPublicKey, checkoutHttp: checkoutResponse.status(), checkoutId,
+                cardSubmitHttp: cardResponse.status(), cardStatus, verified: true, reference: outcome.verified.reference,
+                definitiveBusinessId: outcome.verified.definitiveBusinessId ?? null, activationStatus: outcome.verified.activationStatus ?? null,
               }));
             } finally {
               await browser.close();
