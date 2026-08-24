@@ -122,6 +122,11 @@ const browserMonetaryAuthorityFields = new Set([
   "currency",
   "payout",
   "providerToken",
+  "rate",
+  "rateBasisPoints",
+  "commissionRate",
+  "commissionMinorUnits",
+  "eligibleRevenueMinorUnits",
 ]);
 
 function hasBrowserMonetaryAuthority(
