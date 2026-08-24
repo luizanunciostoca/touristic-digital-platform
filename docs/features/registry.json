@@ -148,22 +148,22 @@
       "name": "Programa de Afiliados",
       "domain": "affiliates",
       "wave": 9,
-      "status": "migrating",
+      "status": "equivalent",
       "legacySources": [],
       "targetPackages": [
         "@touristic/affiliates",
         "@touristic/affiliates-server"
       ],
       "equivalence": {
-        "behavior": false,
-        "visual": false,
-        "api": false
+        "behavior": true,
+        "visual": true,
+        "api": true
       },
       "verification": {
         "local": "LOCAL_VERIFIED",
         "mysql": "CONTAINER_VERIFIED",
         "provider": "NOT_APPLICABLE",
-        "note": "Durable Affiliates runtime is on main. On the 2026-08-22 release-candidate tree the permanent Affiliates FEATURE-0010 Contract passed and the canonical MySQL matrix included Affiliates 4/4 within 339/339 total. Remaining PARTIAL lifecycle/privacy/browser-E2E work still prevents equivalence; no equivalence promotion is justified."
+        "note": "FEATURE-0010 equivalent evidence finalized on 2026-08-24. Integrated main a2a1f10420c1d452e9426c75549864c76d57f22c and certified PR head 851740d2429c41d18f81f0e476fc2fb67a6a0c3b share tree f1ef9038de983a69737c94a2d218eec57e179efb. Quality Gate #242 PASS, Affiliates FEATURE-0010 Contract #102 PASS with real MySQL Privacy/Identity-Suspension/Attribution/Commercial acceptance, and Render Staging Blueprint Contract #66 PASS. Migration matrix is 25 PASS / 0 PARTIAL / 0 GAP / 2 N/A. visual=true means the registry equivalence criterion is satisfied by deliberate N/A: browser/admin surfaces are not required for the server-authoritative Affiliate feature and remain non-authoritative if added later. Financial remains sole monetary/provider authority; Affiliate owns no payment, ledger, wallet, payout, settlement, FX or monetary reversal."
       }
     },
     {
