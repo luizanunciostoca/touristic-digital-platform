@@ -48,6 +48,14 @@ export interface FinancialWebhookHttpResponse {
   readonly body: Readonly<Record<string, unknown>>;
 }
 
+export interface FinancialWebhookAuthenticityContext {
+  readonly signaturePresent: boolean;
+  readonly requestIdPresent: boolean;
+  readonly providerDataIdPresent: boolean;
+  readonly renderTracePresent: boolean;
+  readonly requestIdMatchesRenderTrace: boolean | null;
+}
+
 export interface FinancialWebhookAuditEvent {
   readonly action: "webhook.receive";
   readonly result: "success" | "denied" | "failure";
@@ -60,6 +68,7 @@ export interface FinancialWebhookAuditEvent {
   readonly outcome: VerifiedPaymentOutcomeDisposition | null;
   readonly accounting: VerifiedPaymentAccountingDisposition | null;
   readonly authenticityFailure?: string | null;
+  readonly authenticityContext?: FinancialWebhookAuthenticityContext;
 }
 
 export interface FinancialWebhookAuditPort {
@@ -102,6 +111,23 @@ function isMercadoPagoWebhook(
   return Boolean(
     header(headers, "x-signature") && header(headers, "x-request-id"),
   );
+}
+
+function webhookAuthenticityContext(
+  headers: Readonly<Record<string, unknown>>,
+): FinancialWebhookAuthenticityContext {
+  const signature = header(headers, "x-signature");
+  const requestId = header(headers, "x-request-id");
+  const providerDataId = header(headers, "x-morro-provider-data-id");
+  const renderTrace = header(headers, "rndr-id");
+  return Object.freeze({
+    signaturePresent: Boolean(signature),
+    requestIdPresent: Boolean(requestId),
+    providerDataIdPresent: Boolean(providerDataId),
+    renderTracePresent: Boolean(renderTrace),
+    requestIdMatchesRenderTrace:
+      requestId && renderTrace ? requestId === renderTrace : null,
+  });
 }
 
 function verifierSignature(headers: Readonly<Record<string, unknown>>): string {
@@ -175,6 +201,7 @@ export class FinancialWebhookHttpTransport {
     }
 
     const mercadoPago = isMercadoPagoWebhook(request.headers);
+    const authenticityContext = webhookAuthenticityContext(request.headers);
     const signature = verifierSignature(request.headers);
     let event: VerifiedProviderPaymentEvent | null;
     try {
@@ -274,6 +301,7 @@ export class FinancialWebhookHttpTransport {
         outcome: null,
         accounting: null,
         authenticityFailure,
+        authenticityContext,
       });
       return response(401, { error: "WEBHOOK_UNAUTHORIZED" }, correlationId);
     }
