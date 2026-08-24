@@ -99,10 +99,7 @@ describe("Mercado Pago authenticating webhook verifier", () => {
       verifier().verifyAuthenticity(rawBody("987654321"), signedEnvelope()),
     ).resolves.toBe(false);
     await expect(
-      verifier().diagnoseAuthenticity(
-        rawBody("987654321"),
-        signedEnvelope(),
-      ),
+      verifier().diagnoseAuthenticity(rawBody("987654321"), signedEnvelope()),
     ).resolves.toBe("data_id_mismatch");
   });
 
