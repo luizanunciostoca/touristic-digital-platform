@@ -63,7 +63,7 @@ function dependencies(
       })),
     },
     application: {
-      recordReferralAndEstablishAttribution: vi.fn(async (_input: unknown) => ({
+      recordReferralAndEstablishAttribution: vi.fn(async () => ({
         attribution: mockAttribution,
         replayed: false,
         idempotencyKey: "affiliate:v1:test",
