@@ -5,6 +5,7 @@ export * from "./mysql-affiliate-persistence.js";
 export * from "./affiliate-application-service.js";
 export * from "./affiliate-http-transport.js";
 export * from "./affiliate-adapters.js";
+export * from "./affiliate-privacy-service.js";
 
 export function createAffiliatePool(
   databaseUrl = process.env.AFFILIATES_DATABASE_URL,
