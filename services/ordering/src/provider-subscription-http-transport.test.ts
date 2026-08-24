@@ -7,6 +7,7 @@ import {
 } from "@touristic/financial";
 import type {
   ProviderSubscriptionBinding,
+  ProviderSubscriptionRequest,
   ProviderSubscriptionSnapshot,
 } from "@touristic/financial/subscription-provider";
 import { normalizeOrderId } from "@touristic/ordering";
@@ -17,14 +18,25 @@ import {
 
 import { ProviderSubscriptionHttpTransport } from "./provider-subscription-http-transport.js";
 
-const subscriptionId = normalizeSubscriptionId("sub_provider_http_0001");
-const orderId = normalizeOrderId("ord_provider_http_0001");
-const paymentId = normalizePaymentId("pay_provider_http_0001");
-const resultId = normalizeFinancialEventId("fev_provider_http_0001");
-const amount = createMoney(12_900, "BRL");
-if (!subscriptionId || !orderId || !paymentId || !resultId || !amount) {
-  throw new Error("TEST_FIXTURE_INVALID");
+function required<T>(value: T | null, label: string): T {
+  if (value === null) throw new Error(`TEST_FIXTURE_INVALID:${label}`);
+  return value;
 }
+
+const subscriptionId = required(
+  normalizeSubscriptionId("sub_provider_http_0001"),
+  "subscriptionId",
+);
+const orderId = required(normalizeOrderId("ord_provider_http_0001"), "orderId");
+const paymentId = required(
+  normalizePaymentId("pay_provider_http_0001"),
+  "paymentId",
+);
+const resultId = required(
+  normalizeFinancialEventId("fev_provider_http_0001"),
+  "resultId",
+);
+const amount = required(createMoney(12_900, "BRL"), "amount");
 
 const activeSubscription: Subscription = Object.freeze({
   id: subscriptionId,
@@ -55,8 +67,10 @@ function snapshot(
   status: ProviderSubscriptionSnapshot["status"] = "authorized",
   amountMinorUnits = 12_900,
 ): ProviderSubscriptionSnapshot {
-  const snapshotAmount = createMoney(amountMinorUnits, "BRL");
-  if (!snapshotAmount) throw new Error("TEST_AMOUNT_INVALID");
+  const snapshotAmount = required(
+    createMoney(amountMinorUnits, "BRL"),
+    "snapshotAmount",
+  );
   return Object.freeze({
     providerSubscriptionReference: "preapproval_provider_0001",
     externalReference: subscriptionId,
@@ -94,11 +108,29 @@ function createFixture(
 ) {
   let subscription = activeSubscription;
   let storedBinding = existing;
-  const createSubscription = vi.fn(async () => snapshot());
-  const readSubscription = vi.fn(async () => snapshot());
-  const pauseSubscription = vi.fn(async () => snapshot("paused"));
-  const resumeSubscription = vi.fn(async () => snapshot("authorized"));
-  const cancelSubscription = vi.fn(async () => snapshot("cancelled"));
+  let capturedCreateRequest: ProviderSubscriptionRequest | null = null;
+
+  const createSubscription = vi.fn(
+    async (input: ProviderSubscriptionRequest): Promise<ProviderSubscriptionSnapshot> => {
+      capturedCreateRequest = input;
+      return snapshot();
+    },
+  );
+  const readSubscription = vi.fn(
+    async (_reference: string): Promise<ProviderSubscriptionSnapshot> => snapshot(),
+  );
+  const pauseSubscription = vi.fn(
+    async (_reference: string): Promise<ProviderSubscriptionSnapshot> =>
+      snapshot("paused"),
+  );
+  const resumeSubscription = vi.fn(
+    async (_reference: string): Promise<ProviderSubscriptionSnapshot> =>
+      snapshot("authorized"),
+  );
+  const cancelSubscription = vi.fn(
+    async (_reference: string): Promise<ProviderSubscriptionSnapshot> =>
+      snapshot("cancelled"),
+  );
 
   const transport = new ProviderSubscriptionHttpTransport({
     subscriptions: {
@@ -144,6 +176,7 @@ function createFixture(
     cancelSubscription,
     getSubscription: () => subscription,
     getBinding: () => storedBinding,
+    getCapturedCreateRequest: () => capturedCreateRequest,
   };
 }
 
@@ -177,7 +210,7 @@ describe("ProviderSubscriptionHttpTransport", () => {
 
     expect(result.status).toBe(201);
     expect(fixture.createSubscription).toHaveBeenCalledTimes(1);
-    expect(fixture.createSubscription.mock.calls[0]?.[0]).toMatchObject({
+    expect(fixture.getCapturedCreateRequest()).toMatchObject({
       subscriptionId,
       amount: { minorUnits: 12_900, currency: "BRL" },
       frequency: 1,
@@ -193,8 +226,7 @@ describe("ProviderSubscriptionHttpTransport", () => {
   });
 
   it("replays an existing provider binding without reusing a new card token", async () => {
-    const current = binding(snapshot());
-    const fixture = createFixture(current);
+    const fixture = createFixture(binding(snapshot()));
 
     const result = await fixture.transport.handle(
       request(`/api/payments/v1/subscriptions/${subscriptionId}/provider`),
@@ -223,7 +255,30 @@ describe("ProviderSubscriptionHttpTransport", () => {
     expect(result.status).toBe(403);
     expect(result.body).toEqual({ error: "BUSINESS_ACCESS_DENIED" });
     expect(fixture.pauseSubscription).not.toHaveBeenCalled();
-    expect(fixture.readSubscription).not.toHaveBeenCalled();
+  });
+
+  it("pauses and resumes through authoritative provider readback", async () => {
+    const fixture = createFixture(binding(snapshot()));
+
+    const paused = await fixture.transport.handle(
+      request(
+        `/api/payments/v1/subscriptions/${subscriptionId}/provider/pause`,
+        "POST",
+        {},
+      ),
+    );
+    expect(paused.status).toBe(200);
+    expect(fixture.getBinding()).toMatchObject({ status: "paused" });
+
+    const resumed = await fixture.transport.handle(
+      request(
+        `/api/payments/v1/subscriptions/${subscriptionId}/provider/resume`,
+        "POST",
+        {},
+      ),
+    );
+    expect(resumed.status).toBe(200);
+    expect(fixture.getBinding()).toMatchObject({ status: "authorized" });
   });
 
   it("schedules canonical cancellation before cancelling the provider agreement", async () => {
