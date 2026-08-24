@@ -102,7 +102,7 @@ function header(
   const target = name.toLowerCase();
   for (const [key, raw] of Object.entries(request.headers ?? {})) {
     if (key.toLowerCase() !== target) continue;
-    const value = Array.isArray(raw) ? raw[0] : raw;
+    const value = typeof raw === "string" ? raw : raw?.[0];
     return text(value, 2_048);
   }
   return "";

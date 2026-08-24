@@ -119,20 +119,16 @@ function createFixture(
     },
   );
   const readSubscription = vi.fn(
-    async (_reference: string): Promise<ProviderSubscriptionSnapshot> =>
-      snapshot(),
+    async (): Promise<ProviderSubscriptionSnapshot> => snapshot(),
   );
   const pauseSubscription = vi.fn(
-    async (_reference: string): Promise<ProviderSubscriptionSnapshot> =>
-      snapshot("paused"),
+    async (): Promise<ProviderSubscriptionSnapshot> => snapshot("paused"),
   );
   const resumeSubscription = vi.fn(
-    async (_reference: string): Promise<ProviderSubscriptionSnapshot> =>
-      snapshot("authorized"),
+    async (): Promise<ProviderSubscriptionSnapshot> => snapshot("authorized"),
   );
   const cancelSubscription = vi.fn(
-    async (_reference: string): Promise<ProviderSubscriptionSnapshot> =>
-      snapshot("cancelled"),
+    async (): Promise<ProviderSubscriptionSnapshot> => snapshot("cancelled"),
   );
 
   const transport = new ProviderSubscriptionHttpTransport({
