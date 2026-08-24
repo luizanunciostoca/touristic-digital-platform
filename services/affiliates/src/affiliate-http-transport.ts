@@ -75,10 +75,7 @@ function correlationId(request: AffiliateHttpRequest): string {
   const candidate =
     request.correlationId ?? header(request, "x-correlation-id");
   if (/^[A-Za-z0-9][A-Za-z0-9._:-]{7,119}$/u.test(candidate)) return candidate;
-  return `acr_${createHash("sha256")
-    .update(`${request.method}:${request.pathname}`)
-    .digest("hex")
-    .slice(0, 24)}`;
+  return `acr_${createHash("sha256").update(`${request.method}:${request.pathname}`).digest("hex").slice(0, 24)}`;
 }
 
 function response(
@@ -95,10 +92,7 @@ function response(
 
 function authFailure(
   reason:
-    | "authentication_required"
-    | "invalid_csrf"
-    | "origin_denied"
-    | "forbidden",
+    "authentication_required" | "invalid_csrf" | "origin_denied" | "forbidden",
   correlation: string,
 ): AffiliateHttpResponse {
   if (reason === "authentication_required") {
