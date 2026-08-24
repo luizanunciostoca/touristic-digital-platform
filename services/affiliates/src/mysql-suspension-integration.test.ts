@@ -55,7 +55,10 @@ interface EligibilityRow extends RowDataPacket {
   membership_status: "pending" | "approved" | "suspended" | "closed";
   fraud_blocked: number;
   financial_onboarding_status:
-    "not_started" | "pending" | "eligible" | "blocked";
+    | "not_started"
+    | "pending"
+    | "eligible"
+    | "blocked";
 }
 
 interface CountRow extends RowDataPacket {
@@ -379,7 +382,7 @@ describe.skipIf(!databaseUrl)(
             "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
           correlationId: "corr:suspension:wrong-destination",
         }),
-      ).rejects.toThrow("AFFILIATE_ELIGIBILITY_CONTEXT_MISSING");
+      ).rejects.toThrow("AFFILIATE_NOT_ELIGIBLE");
 
       const [evidenceRows] = await pool.query<CountRow[]>(
         "SELECT COUNT(*) AS count FROM affiliate_referral_evidence",
