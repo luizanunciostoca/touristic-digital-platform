@@ -218,7 +218,8 @@ describe.skipIf(!databaseUrl)(
         source: "checkout_code",
         evidence: { token: "canonical-checkout", ignored: "noise" },
       });
-      const first = await service.recordReferralAndEstablishAttribution(request);
+      const first =
+        await service.recordReferralAndEstablishAttribution(request);
 
       const expectedSubjectDigest = createHash("sha256")
         .update(
@@ -256,7 +257,8 @@ describe.skipIf(!databaseUrl)(
       );
 
       now.value = "2026-09-15T00:00:00.000Z";
-      const replay = await service.recordReferralAndEstablishAttribution(request);
+      const replay =
+        await service.recordReferralAndEstablishAttribution(request);
       expect(replay.replayed).toBe(true);
       expect(replay.attribution).toEqual(first.attribution);
 
@@ -489,7 +491,8 @@ describe.skipIf(!databaseUrl)(
         source: "platform_link",
         evidence: { token: "fixed-window-evidence" },
       });
-      const first = await service.recordReferralAndEstablishAttribution(request);
+      const first =
+        await service.recordReferralAndEstablishAttribution(request);
       expect(first.attribution.expiresAt).toBe("2026-08-31T00:00:00.000Z");
 
       now.value = "2026-08-30T23:59:59.999Z";
@@ -521,9 +524,8 @@ describe.skipIf(!databaseUrl)(
         }),
       ).rejects.toThrow("AFFILIATE_ATTRIBUTION_INVALID");
 
-      const exactReplay = await service.recordReferralAndEstablishAttribution(
-        request,
-      );
+      const exactReplay =
+        await service.recordReferralAndEstablishAttribution(request);
       expect(exactReplay.replayed).toBe(true);
       expect(exactReplay.attribution).toEqual(first.attribution);
     });
@@ -558,18 +560,16 @@ describe.skipIf(!databaseUrl)(
         source: "checkout_code",
         evidence: { token: "accepted-before-suspension" },
       });
-      const accepted = await service.recordReferralAndEstablishAttribution(
-        acceptedInput,
-      );
+      const accepted =
+        await service.recordReferralAndEstablishAttribution(acceptedInput);
       await pool.execute(
         `UPDATE affiliate_memberships
          SET status = 'suspended', updated_at = UTC_TIMESTAMP(3)
          WHERE affiliate_id = 'aff_attr_0001' AND program_id = 'prog_attr_0001'`,
       );
 
-      const replay = await service.recordReferralAndEstablishAttribution(
-        acceptedInput,
-      );
+      const replay =
+        await service.recordReferralAndEstablishAttribution(acceptedInput);
       expect(replay.replayed).toBe(true);
       expect(replay.attribution.id).toBe(accepted.attribution.id);
 
