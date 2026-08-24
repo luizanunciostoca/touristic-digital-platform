@@ -478,7 +478,9 @@ export class AffiliateApplicationService {
     // Backward-compatible trusted internal ingress only. Browser HTTP rejects
     // evidenceFingerprint, evidenceId, attributionId and timestamps before here.
     if (!input.evidenceFingerprint || !isSha256(input.evidenceFingerprint)) {
-      throw new Error("AFFILIATE_REFERRAL_EVIDENCE_REJECTED:LEGACY_EVIDENCE_INVALID");
+      throw new Error(
+        "AFFILIATE_REFERRAL_EVIDENCE_REJECTED:LEGACY_EVIDENCE_INVALID",
+      );
     }
     return { legacyEvidenceFingerprint: input.evidenceFingerprint };
   }
