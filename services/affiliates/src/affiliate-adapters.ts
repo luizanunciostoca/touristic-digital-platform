@@ -114,6 +114,36 @@ function requestFromRecord(
   };
 }
 
+function requestMatchesRecord(
+  request: AffiliateFinancialMaterializationRequestV1,
+  record: AffiliateMaterializationRequestRecord,
+): boolean {
+  return (
+    request.requestId === record.requestId &&
+    request.entitlementId === record.entitlementId &&
+    request.entitlementRevision === record.entitlementRevision &&
+    request.affiliateId === record.affiliateId &&
+    request.conversionAssociationId === record.conversionId &&
+    request.policyVersion === record.policyVersion &&
+    request.entitlementDigest === record.entitlementDigest &&
+    request.correlationId === record.correlationId
+  );
+}
+
+function sameMaterializationResult(
+  left: AffiliateFinancialMaterializationResultV1,
+  right: AffiliateFinancialMaterializationResultV1,
+): boolean {
+  if (left.accepted !== right.accepted) return false;
+  if (left.accepted && right.accepted) {
+    return left.financialReference === right.financialReference;
+  }
+  if (!left.accepted && !right.accepted) {
+    return left.code === right.code && left.retryable === right.retryable;
+  }
+  return false;
+}
+
 export class DurableFinancialMaterializationAdapter implements AffiliateFinancialMaterializationPort {
   public constructor(
     private readonly repository: MySqlAffiliateMaterializationRepository,
@@ -127,6 +157,9 @@ export class DurableFinancialMaterializationAdapter implements AffiliateFinancia
     const existing = await this.repository.readMaterialization(
       request.requestId,
     );
+    if (existing && !requestMatchesRecord(request, existing)) {
+      throw new Error("AFFILIATE_MATERIALIZATION_CONFLICT");
+    }
     const existingResult = existing ? resultFromRecord(existing) : null;
     if (existingResult) return existingResult;
 
@@ -153,53 +186,22 @@ export class DurableFinancialMaterializationAdapter implements AffiliateFinancia
     const localAfterClaim = await this.repository.readMaterialization(
       request.requestId,
     );
-    const localResult = localAfterClaim
-      ? resultFromRecord(localAfterClaim)
-      : null;
+    if (!localAfterClaim || !requestMatchesRecord(request, localAfterClaim)) {
+      throw new Error("AFFILIATE_MATERIALIZATION_CONFLICT");
+    }
+    const localResult = resultFromRecord(localAfterClaim);
     if (localResult) return localResult;
 
     const readback = await this.financial.readMaterialization(
       request.requestId,
     );
     if (readback) {
-      await this.repository.recordResult(
-        readback.accepted
-          ? {
-              requestId: request.requestId,
-              accepted: true,
-              financialReference: readback.financialReference,
-              retryable: false,
-              occurredAt: this.clock.now(),
-            }
-          : {
-              requestId: request.requestId,
-              accepted: false,
-              code: readback.code,
-              retryable: readback.retryable,
-              occurredAt: this.clock.now(),
-            },
-      );
+      await this.persistAndVerifyResult(request.requestId, readback);
       return readback;
     }
 
     const result = await this.financial.requestMaterialization(request);
-    await this.repository.recordResult(
-      result.accepted
-        ? {
-            requestId: request.requestId,
-            accepted: true,
-            financialReference: result.financialReference,
-            retryable: false,
-            occurredAt: this.clock.now(),
-          }
-        : {
-            requestId: request.requestId,
-            accepted: false,
-            code: result.code,
-            retryable: result.retryable,
-            occurredAt: this.clock.now(),
-          },
-    );
+    await this.persistAndVerifyResult(request.requestId, result);
     return result;
   }
 
@@ -225,6 +227,34 @@ export class DurableFinancialMaterializationAdapter implements AffiliateFinancia
     const localResult = local ? resultFromRecord(local) : null;
     if (localResult) return localResult;
     return this.financial.readMaterialization(requestId);
+  }
+
+  private async persistAndVerifyResult(
+    requestId: string,
+    result: AffiliateFinancialMaterializationResultV1,
+  ): Promise<void> {
+    await this.repository.recordResult(
+      result.accepted
+        ? {
+            requestId,
+            accepted: true,
+            financialReference: result.financialReference,
+            retryable: false,
+            occurredAt: this.clock.now(),
+          }
+        : {
+            requestId,
+            accepted: false,
+            code: result.code,
+            retryable: result.retryable,
+            occurredAt: this.clock.now(),
+          },
+    );
+    const durable = await this.repository.readMaterialization(requestId);
+    const durableResult = durable ? resultFromRecord(durable) : null;
+    if (!durableResult || !sameMaterializationResult(durableResult, result)) {
+      throw new Error("AFFILIATE_MATERIALIZATION_RESULT_CONFLICT");
+    }
   }
 }
 
