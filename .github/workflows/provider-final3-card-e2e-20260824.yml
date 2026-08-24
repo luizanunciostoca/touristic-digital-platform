@@ -1,0 +1,22 @@
+name: Provider Final3 Card E2E 2026-08-24
+on:
+  push:
+    branches: [ops/provider-e2e-final3-e0d35bb-20260824]
+permissions:
+  contents: read
+jobs:
+  provider-card:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Validate executor syntax
+        run: node --check .github/scripts/provider-final3-card-e2e-20260824.cjs
+      - name: Install Chromium
+        run: |
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+      - name: Run TEST card end-to-end
+        env:
+          STAGING_URL: https://morro-digital-v2-staging.onrender.com
+        run: node .github/scripts/provider-final3-card-e2e-20260824.cjs
