@@ -244,9 +244,11 @@ describe.skipIf(!databaseUrl)("Affiliates commercial MySQL acceptance", () => {
   function associateInput(
     ids: Awaited<ReturnType<typeof seedAttribution>>,
     orderId: string,
-    overrides: Partial<Parameters<
-      AffiliateCommercialApplicationService["associateConversion"]
-    >[0]> = {},
+    overrides: Partial<
+      Parameters<
+        AffiliateCommercialApplicationService["associateConversion"]
+      >[0]
+    > = {},
   ) {
     return {
       conversionId: ids.conversionId,
@@ -296,7 +298,12 @@ describe.skipIf(!databaseUrl)("Affiliates commercial MySQL acceptance", () => {
 
   it("reaches OrderingEvidence=null only after a valid locked attribution and fails closed", async () => {
     const orderId = "ord_com_missing_order_0001";
-    const ids = await seedAttribution("missing_order_0001", orderId, 1_000, false);
+    const ids = await seedAttribution(
+      "missing_order_0001",
+      orderId,
+      1_000,
+      false,
+    );
 
     await expect(
       commercialService.associateConversion(associateInput(ids, orderId)),
@@ -324,9 +331,9 @@ describe.skipIf(!databaseUrl)("Affiliates commercial MySQL acceptance", () => {
     expect(result.entitlement.status).toBe("disputed");
     expect(result.entitlement.disputedFrom).toBe("pending");
 
-    await expect(earn(ids.entitlementId, "earn_suspended_0001")).rejects.toThrow(
-      "AFFILIATE_ENTITLEMENT_TRANSITION_INVALID",
-    );
+    await expect(
+      earn(ids.entitlementId, "earn_suspended_0001"),
+    ).rejects.toThrow("AFFILIATE_ENTITLEMENT_TRANSITION_INVALID");
   });
 
   it("serializes maturity x partial refund and converges on one earned 150-minor entitlement", async () => {
@@ -413,7 +420,11 @@ describe.skipIf(!databaseUrl)("Affiliates commercial MySQL acceptance", () => {
     const reversalTotal = rows.reduce((sum, row) => {
       const outcome = parseOutcome(row.outcome_json);
       const reversal = outcome?.reversal;
-      if (!reversal || typeof reversal !== "object" || Array.isArray(reversal)) {
+      if (
+        !reversal ||
+        typeof reversal !== "object" ||
+        Array.isArray(reversal)
+      ) {
         return sum;
       }
       const value = (reversal as Record<string, unknown>).reversalMinorUnits;

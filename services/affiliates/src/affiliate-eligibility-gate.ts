@@ -92,7 +92,9 @@ export async function lockAffiliateEligibilitySnapshot(
       acceptedTermsVersion: row.accepted_terms_version,
       membershipStatus: membershipStatus(row.membership_status),
       fraudBlocked: row.fraud_blocked === 1,
-      financialOnboardingStatus: financialStatus(row.financial_onboarding_status),
+      financialOnboardingStatus: financialStatus(
+        row.financial_onboarding_status,
+      ),
     },
     programStatus: programStatus(row.program_status),
     destinationId: row.destination_id,
