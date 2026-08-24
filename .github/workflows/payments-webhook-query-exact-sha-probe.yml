@@ -1,0 +1,63 @@
+name: TEMP Payments Webhook Query Exact SHA Probe
+
+on:
+  push:
+    branches:
+      - ops/payments-webhook-query-acceptance-20260824
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  exact-sha-webhook:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: m141-webhook
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -pm141-webhook"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    env:
+      MYSQL_ADMIN_DATABASE_URL: mysql://root:m141-webhook@127.0.0.1:3306/mysql
+      FINANCIAL_DATABASE_URL: mysql://root:m141-webhook@127.0.0.1:3306/financial_m137_test
+      EXPECTED_SHA: d5905a375853622a5ae073de57b73f08f1f61a84
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: d5905a375853622a5ae073de57b73f08f1f61a84
+      - name: Assert exact candidate
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Raw-body verifier and transport unit contracts
+        run: pnpm --filter @touristic/financial-server test
+      - name: Durable provider-event replay contract
+        run: pnpm --filter @touristic/financial-server test:integration
+      - name: Build Node runtime package entrypoints
+        run: |
+          pnpm --filter @touristic/auth build
+          pnpm --filter @touristic/financial build
+          pnpm --filter @touristic/ordering build
+          pnpm --filter @touristic/financial-server build
+          pnpm --filter @touristic/ordering-server build
+      - name: Node runtime raw-body and provider-query preservation
+        run: >-
+          pnpm exec vitest run
+          apps/morro-digital-platform/tooling/payments-api.test.mjs
+          apps/morro-digital-platform/tooling/payments-runtime-api.test.mjs
