@@ -100,10 +100,45 @@ jobs:
               });
 
               const runtime = await page.request.get(`${base}/runtime-config.js`);
+              const runtimeStatus = runtime.status();
               const runtimeText = await runtime.text();
               for (const forbidden of ['MERCADO_PAGO_ACCESS_TOKEN','MERCADO_PAGO_WEBHOOK_SECRET','ORDERING_DATABASE_URL','FINANCIAL_DATABASE_URL']) {
                 if (runtimeText.includes(forbidden)) throw new Error(`secret-name-exposed:${forbidden}`);
               }
+              const runtimeResponseSummary = (() => {
+                const match = /Object\.freeze\((\{.*\})\);/u.exec(runtimeText);
+                if (!match) return { status: runtimeStatus, parsed: false };
+                let parsed;
+                try { parsed = JSON.parse(match[1]); } catch { return { status: runtimeStatus, parsed: false }; }
+                const summarize = (name) => {
+                  const raw = String(parsed[name] || '').trim();
+                  return {
+                    present: raw.length > 0,
+                    length: raw.length,
+                    prefix:
+                      name === 'VITE_MERCADO_PAGO_PUBLIC_KEY'
+                        ? raw.startsWith('TEST-')
+                          ? 'TEST'
+                          : raw.startsWith('APP_USR-')
+                            ? 'APP_USR'
+                            : raw
+                              ? 'OTHER'
+                              : 'NONE'
+                        : raw
+                          ? 'SET'
+                          : 'NONE',
+                  };
+                };
+                return {
+                  status: runtimeStatus,
+                  parsed: true,
+                  mercadoPagoPublicKey: summarize('VITE_MERCADO_PAGO_PUBLIC_KEY'),
+                  mapboxAccessToken: summarize('VITE_MAPBOX_ACCESS_TOKEN'),
+                  mapboxStyle: summarize('VITE_MAPBOX_STYLE'),
+                  mapboxContainerId: summarize('VITE_MAPBOX_CONTAINER_ID'),
+                  mapboxInitialZoom: summarize('VITE_MAPBOX_INITIAL_ZOOM'),
+                };
+              })();
 
               const sessionId = `provider_probe_${Date.now()}`;
               const handoff = {
@@ -169,7 +204,8 @@ jobs:
               const result = {
                 status: brickBootstrap.overlay && !brickBootstrap.error ? 'PASS' : 'FAIL',
                 releaseSha: expectedSha,
-                runtime: runtimeSummary,
+                runtimePage: runtimeSummary,
+                runtimeResponse: runtimeResponseSummary,
                 planId,
                 amount: data.plan.amount,
                 brick: { available: brickBootstrap.available, overlay: brickBootstrap.overlay, error: sanitize(brickBootstrap.error) || null },
