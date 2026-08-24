@@ -2,9 +2,7 @@ import { createHmac } from "node:crypto";
 
 import { describe, expect, it } from "vitest";
 
-import {
-  createMercadoPagoAuthenticatingWebhookVerifierFromEnvironment,
-} from "./mercado-pago-webhook-authenticator.js";
+import { createMercadoPagoAuthenticatingWebhookVerifierFromEnvironment } from "./mercado-pago-webhook-authenticator.js";
 
 const webhookSecret = "webhook_secret_test_12345678901234567890";
 const accessToken = "TEST_ACCESS_TOKEN_123456789012345678901234567890";
@@ -87,10 +85,7 @@ describe("Mercado Pago authenticating webhook verifier", () => {
   it("rejects signatures outside the configured timestamp tolerance", async () => {
     const staleTs = String(Number(timestamp) - 301);
     await expect(
-      verifier().verifyAuthenticity(
-        rawBody(),
-        signedEnvelope({ ts: staleTs }),
-      ),
+      verifier().verifyAuthenticity(rawBody(), signedEnvelope({ ts: staleTs })),
     ).resolves.toBe(false);
   });
 });
