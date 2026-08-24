@@ -25,7 +25,7 @@
     "payments:render:smoke": "node tooling/payments/render-v2-smoke.mjs",
     "affiliates:lint": "eslint packages/affiliates/src",
     "affiliates:typecheck": "tsc -p packages/affiliates/tsconfig.json --noEmit",
-    "affiliates:test": "vitest run packages/affiliates/src/index.test.ts packages/affiliates/src/attribution.acceptance.test.ts",
+    "affiliates:test": "vitest run packages/affiliates/src/index.test.ts packages/affiliates/src/attribution.acceptance.test.ts packages/affiliates/src/commission-acceptance.test.ts",
     "affiliates:build": "tsc -p packages/affiliates/tsconfig.json",
     "affiliates:server:lint": "pnpm --filter @touristic/affiliates-server lint",
     "affiliates:server:typecheck": "pnpm --filter @touristic/affiliates-server typecheck",
