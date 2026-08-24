@@ -7,6 +7,8 @@ on:
 
 permissions:
   contents: read
+  issues: write
+  statuses: write
 
 env:
   STAGING_URL: https://morro-digital-v2-staging.onrender.com
@@ -17,6 +19,17 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
+      - name: Publish pending status
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
+            -f state=pending \
+            -f context='Payments Provider Live Probe' \
+            -f description='Non-monetary TEST Brick probe running' \
+            -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" >/dev/null
+
       - name: Install Playwright Chromium
         shell: bash
         run: |
@@ -25,13 +38,16 @@ jobs:
           /tmp/pw/node_modules/.bin/playwright install --with-deps chromium >/dev/null
 
       - name: Probe exact live Brick without card submission
+        id: live_probe
         shell: bash
         run: |
-          set -euo pipefail
+          set +e
           node <<'NODE'
           const { chromium } = require('/tmp/pw/node_modules/playwright');
+          const { writeFileSync } = require('node:fs');
           const base = process.env.STAGING_URL;
           const expectedSha = process.env.EXPECTED_SHA;
+          const sanitizeError = error => String(error?.message || error || 'unknown').replace(/[A-Za-z0-9_-]{40,}/g, '[redacted]');
 
           (async () => {
             const browser = await chromium.launch({ headless: true });
@@ -57,88 +73,91 @@ jobs:
               const handoff = {
                 sessionId,
                 planId: 'growth',
-                contractor: {
-                  name: 'Morro Provider Test',
-                  email: 'morro-provider-test@example.com',
-                  phone: '75999999999',
-                  document: '12345678909'
-                },
-                businessDraft: {
-                  demoBusinessId: `demo_${sessionId}`,
-                  displayName: 'Morro Provider TEST',
-                  categoryId: 'events',
-                  specialty: 'Provider acceptance',
-                  environment: 'sandbox',
-                  publishable: false
-                },
+                contractor: { name: 'Morro Provider Test', email: 'morro-provider-test@example.com', phone: '75999999999', document: '12345678909' },
+                businessDraft: { demoBusinessId: `demo_${sessionId}`, displayName: 'Morro Provider TEST', categoryId: 'events', specialty: 'Provider acceptance', environment: 'sandbox', publishable: false },
                 acceptedTerms: [
                   { type: 'terms', version: 'business-partner-terms-2026-08', acceptedAt: new Date().toISOString() },
                   { type: 'privacy', version: 'privacy-policy-2026-08', acceptedAt: new Date().toISOString() }
                 ],
-                returnUrl: `${base}/business-onboarding.html`,
-                tutorial: false,
-                requiresPaymentsCapability: true
+                returnUrl: `${base}/business-onboarding.html`, tutorial: false, requiresPaymentsCapability: true
               };
 
               const bootstrap = await page.evaluate(async ({ handoff, sessionId }) => {
                 const authority = await fetch('/api/payments/v1/checkout-authority', {
                   method: 'POST', credentials: 'same-origin', cache: 'no-store',
-                  headers: { 'content-type': 'application/json', accept: 'application/json' },
-                  body: JSON.stringify(handoff)
+                  headers: { 'content-type': 'application/json', accept: 'application/json' }, body: JSON.stringify(handoff)
                 });
                 const authorityPayload = await authority.json();
-                if (!authority.ok) return { stage: 'authority', status: authority.status, payload: authorityPayload };
-                const token = authorityPayload?.data?.handoffToken;
+                if (!authority.ok) return { stage: 'authority', status: authority.status, error: authorityPayload?.error || 'unknown' };
                 const checkout = await fetch('/api/payments/v1/checkouts', {
                   method: 'POST', credentials: 'same-origin', cache: 'no-store',
-                  headers: {
-                    'content-type': 'application/json', accept: 'application/json',
-                    'x-checkout-handoff-token': token,
-                    'idempotency-key': `business:${sessionId}:growth`
-                  },
+                  headers: { 'content-type': 'application/json', accept: 'application/json', 'x-checkout-handoff-token': authorityPayload.data.handoffToken, 'idempotency-key': `business:${sessionId}:growth` },
                   body: JSON.stringify(handoff)
                 });
                 const payload = await checkout.json();
                 return { stage: 'checkout', status: checkout.status, payload };
               }, { handoff, sessionId });
 
-              if (bootstrap.status < 200 || bootstrap.status >= 300) throw new Error(`bootstrap-failed:${JSON.stringify(bootstrap)}`);
+              if (bootstrap.status < 200 || bootstrap.status >= 300) throw new Error(`bootstrap-failed:${bootstrap.stage}:${bootstrap.status}:${bootstrap.error || bootstrap.payload?.error || 'unknown'}`);
               const data = bootstrap.payload?.data;
-              if (!data?.checkoutId || !data?.statusToken || !data?.plan?.amount) throw new Error(`invalid-checkout-bootstrap:${JSON.stringify(bootstrap)}`);
+              if (!data?.checkoutId || !data?.statusToken || !data?.plan?.amount) throw new Error('invalid-checkout-bootstrap');
 
               await page.evaluate(async ({ data, email }) => {
                 const module = await import('/apps/morro-digital-platform/dist/mercado-pago-card-payment-brick.js');
                 const brick = module.createMercadoPagoCardPaymentBrick(window, document, window.fetch.bind(window));
                 window.__MORRO_PROVIDER_PROBE__ = { brick, settled: false, error: null };
-                brick.present({
-                  checkoutId: data.checkoutId,
-                  statusToken: data.statusToken,
-                  plan: data.plan,
-                  payerEmail: email
-                }).then(() => { window.__MORRO_PROVIDER_PROBE__.settled = true; })
+                brick.present({ checkoutId: data.checkoutId, statusToken: data.statusToken, plan: data.plan, payerEmail: email })
+                  .then(() => { window.__MORRO_PROVIDER_PROBE__.settled = true; })
                   .catch(error => { window.__MORRO_PROVIDER_PROBE__.error = String(error?.message || error); });
               }, { data, email: handoff.contractor.email });
 
               await page.waitForSelector('[data-morro-payments-brick="card"]', { timeout: 20000 });
               await page.waitForTimeout(3000);
-              const frames = page.frames().map(frame => ({ name: frame.name(), url: frame.url() }));
+              const frames = page.frames().map((frame, index) => ({ index, name: frame.name(), origin: (() => { try { return new URL(frame.url()).origin; } catch { return ''; } })() }));
               const fields = [];
               for (let index = 0; index < page.frames().length; index += 1) {
                 const frame = page.frames()[index];
-                const inputs = await frame.locator('input, select, button').evaluateAll((nodes) => nodes.map(node => ({
-                  tag: node.tagName.toLowerCase(),
-                  name: node.getAttribute('name'),
-                  id: node.id || null,
-                  type: node.getAttribute('type'),
-                  placeholder: node.getAttribute('placeholder'),
-                  ariaLabel: node.getAttribute('aria-label'),
-                  text: node.tagName === 'BUTTON' ? node.textContent?.trim() : null
+                const inputs = await frame.locator('input, select, button').evaluateAll(nodes => nodes.map(node => ({
+                  tag: node.tagName.toLowerCase(), name: node.getAttribute('name'), id: node.id || null,
+                  type: node.getAttribute('type'), placeholder: node.getAttribute('placeholder'),
+                  ariaLabel: node.getAttribute('aria-label'), text: node.tagName === 'BUTTON' ? node.textContent?.trim() : null
                 })));
-                if (inputs.length) fields.push({ frame: index, url: frame.url(), inputs });
+                if (inputs.length) fields.push({ frame: index, inputs });
               }
-              console.log(JSON.stringify({ status: 'PASS', releaseSha: expectedSha, checkoutId: data.checkoutId, amount: data.plan.amount, frames, fields }, null, 2));
-            } finally {
-              await browser.close();
-            }
-          })().catch(error => { console.error(error); process.exit(1); });
+              const result = { status: 'PASS', releaseSha: expectedSha, checkoutId: data.checkoutId, amount: data.plan.amount, frames, fields };
+              writeFileSync('/tmp/provider-live-probe.json', JSON.stringify(result, null, 2));
+              console.log(JSON.stringify(result));
+            } finally { await browser.close(); }
+          })().catch(error => {
+            const result = { status: 'FAIL', releaseSha: expectedSha, error: sanitizeError(error) };
+            writeFileSync('/tmp/provider-live-probe.json', JSON.stringify(result, null, 2));
+            console.error(JSON.stringify(result));
+            process.exit(1);
+          });
           NODE
+          exit_code=$?
+          echo "exit_code=$exit_code" >> "$GITHUB_OUTPUT"
+          exit "$exit_code"
+
+      - name: Publish sanitized evidence
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          set -euo pipefail
+          if [ -f /tmp/provider-live-probe.json ]; then
+            result="$(cat /tmp/provider-live-probe.json)"
+          else
+            result='{"status":"FAIL","error":"probe-result-missing"}'
+          fi
+          case "$JOB_STATUS" in
+            success) state=success; description='Non-monetary TEST Brick probe passed' ;;
+            *) state=failure; description='Non-monetary TEST Brick probe failed' ;;
+          esac
+          gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
+            -f state="$state" -f context='Payments Provider Live Probe' -f description="$description" \
+            -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" >/dev/null
+          body="$(printf '### Payments Provider Live Probe\n\nOperational branch only; PR candidate remains `%s`. No card was submitted and no server secret was exported.\n\n```json\n%s\n```\n\nRun: %s/%s/actions/runs/%s' "$EXPECTED_SHA" "$result" "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID")"
+          gh api --method POST "repos/$GITHUB_REPOSITORY/issues/25/comments" -f body="$body" >/dev/null
