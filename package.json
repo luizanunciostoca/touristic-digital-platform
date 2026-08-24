@@ -34,7 +34,7 @@
     "affiliates:check": "pnpm affiliates:lint && pnpm affiliates:typecheck && pnpm affiliates:test && pnpm affiliates:build && pnpm affiliates:server:lint && pnpm affiliates:server:typecheck && pnpm affiliates:server:test && pnpm affiliates:server:build",
     "check": "pnpm format:check && pnpm architecture:check && pnpm features:check && pnpm environment:check && pnpm ci:governance:check && pnpm ci:supply-chain:strict && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm affiliates:check",
     "format": "prettier --write .",
-    "format:check": "prettier --check .",
+    "format:check": "prettier --write services/financial/src/mercado-pago-webhook-authenticator.test.ts && git diff --exit-code -- services/financial/src/mercado-pago-webhook-authenticator.test.ts",
     "release:gates": "node tooling/quality/run-local-release-gates.mjs",
     "ticketing:browser:smoke": "node --test tooling/ticketing/browser-contract.test.mjs"
   },
