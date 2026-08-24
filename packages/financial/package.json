@@ -14,6 +14,11 @@
       "node": "./dist/card-payment.js",
       "default": "./src/card-payment.ts"
     },
+    "./subscription-provider": {
+      "types": "./src/subscription-provider.ts",
+      "node": "./dist/subscription-provider.js",
+      "default": "./src/subscription-provider.ts"
+    },
     "./settlement": {
       "types": "./src/settlement.ts",
       "node": "./dist/settlement.js",

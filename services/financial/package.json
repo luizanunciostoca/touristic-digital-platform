@@ -17,6 +17,10 @@
       "types": "./src/mercado-pago-card-payment-provider.ts",
       "default": "./dist/mercado-pago-card-payment-provider.js"
     },
+    "./mercado-pago-subscription": {
+      "types": "./src/mercado-pago-subscription-provider.ts",
+      "default": "./dist/mercado-pago-subscription-provider.js"
+    },
     "./settlement": {
       "types": "./src/settlement.ts",
       "default": "./dist/settlement.js"
