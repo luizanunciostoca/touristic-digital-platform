@@ -1,0 +1,114 @@
+name: Payments CSP Fix Helper
+
+on:
+  push:
+    branches:
+      - ops/payments-provider-test-acceptance-20260824
+    paths:
+      - ".github/workflows/payments-csp-fix-helper.yml"
+
+permissions:
+  contents: write
+  statuses: write
+
+env:
+  TARGET_BRANCH: fix/mercado-pago-bricks-subscriptions-20260823
+  EXPECTED_HEAD: 0d5e4478ded981a1d4841f46fba95de17205f832
+  EXPECTED_MAIN: 4847072584a8b6cef409cdce5d08d9ba579b2b98
+
+jobs:
+  patch:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Publish pending status
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
+            -f state=pending -f context='Payments CSP Patch Helper' \
+            -f description='Applying exact-head Mercado Pago CSP fix' \
+            -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" >/dev/null
+
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          token: ${{ github.token }}
+
+      - name: Verify exact target and canonical main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin "$TARGET_BRANCH" main
+          target_sha="$(git rev-parse "origin/$TARGET_BRANCH")"
+          main_sha="$(git rev-parse origin/main)"
+          test "$target_sha" = "$EXPECTED_HEAD" || { echo "Target moved: $target_sha" >&2; exit 1; }
+          test "$main_sha" = "$EXPECTED_MAIN" || { echo "Main moved: $main_sha" >&2; exit 1; }
+          git checkout -B "$TARGET_BRANCH" "origin/$TARGET_BRANCH"
+
+      - name: Apply least-privilege CSP fix and regression test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          from pathlib import Path
+
+          dev_server = Path("apps/morro-digital-platform/tooling/dev-server.mjs")
+          source = dev_server.read_text()
+
+          old_script = '      "script-src \'self\' \'unsafe-inline\' https://unpkg.com https://api.mapbox.com https://sdk.mercadopago.com",'
+          new_script = '      "script-src \'self\' \'unsafe-inline\' https://unpkg.com https://api.mapbox.com https://sdk.mercadopago.com https://http2.mlstatic.com",'
+          old_connect = '      "connect-src \'self\' https://api.mapbox.com https://*.tiles.mapbox.com https://api.mercadopago.com https://*.mercadopago.com https://*.mercadopago.com.br",'
+          new_connect = '      "connect-src \'self\' https://api.mapbox.com https://*.tiles.mapbox.com https://api.mercadopago.com https://*.mercadopago.com https://*.mercadopago.com.br https://http2.mlstatic.com https://api.mercadolibre.com",'
+
+          for old, new, label in (
+              (old_script, new_script, "script-src"),
+              (old_connect, new_connect, "connect-src"),
+          ):
+              count = source.count(old)
+              if count != 1:
+                  raise SystemExit(f"Expected exactly one {label} source line, found {count}")
+              source = source.replace(old, new, 1)
+
+          dev_server.write_text(source)
+
+          test_file = Path("apps/morro-digital-platform/src/mercado-pago-csp.test.ts")
+          test_file.write_text('''import { readFile } from "node:fs/promises";\n\nimport { describe, expect, it } from "vitest";\n\ndescribe("Mercado Pago Card Brick CSP", () => {\n  it("allows only the observed official Brick component and API origins", async () => {\n    const source = await readFile(\n      new URL("../tooling/dev-server.mjs", import.meta.url),\n      "utf8",\n    );\n\n    expect(source).toContain(\n      "script-src 'self' 'unsafe-inline' https://unpkg.com https://api.mapbox.com https://sdk.mercadopago.com https://http2.mlstatic.com",\n    );\n    expect(source).toContain(\n      "connect-src 'self' https://api.mapbox.com https://*.tiles.mapbox.com https://api.mercadopago.com https://*.mercadopago.com https://*.mercadopago.com.br https://http2.mlstatic.com https://api.mercadolibre.com",\n    );\n    expect(source).not.toContain("script-src *");\n    expect(source).not.toContain("connect-src *");\n  });\n});\n''')
+          PY
+
+      - name: Validate focused change
+        shell: bash
+        run: |
+          set -euo pipefail
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm exec prettier --check \
+            apps/morro-digital-platform/tooling/dev-server.mjs \
+            apps/morro-digital-platform/src/mercado-pago-csp.test.ts
+          pnpm --filter @touristic/morro-digital-platform test -- mercado-pago-csp.test.ts
+
+      - name: Commit and push target branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "Morro Digital Ops"
+          git config user.email "actions@users.noreply.github.com"
+          git add \
+            apps/morro-digital-platform/tooling/dev-server.mjs \
+            apps/morro-digital-platform/src/mercado-pago-csp.test.ts
+          git diff --cached --check
+          git commit -m "fix(payments): allow Mercado Pago Brick runtime assets"
+          git push origin "HEAD:$TARGET_BRANCH"
+          echo "NEW_HEAD=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+
+      - name: Publish final status
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          if [ "$JOB_STATUS" = success ]; then state=success; description='Mercado Pago CSP fix pushed'; else state=failure; description='Mercado Pago CSP fix failed'; fi
+          gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
+            -f state="$state" -f context='Payments CSP Patch Helper' \
+            -f description="$description" \
+            -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" >/dev/null
