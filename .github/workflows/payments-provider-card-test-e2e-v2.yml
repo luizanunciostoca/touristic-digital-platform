@@ -13,7 +13,7 @@ permissions:
 
 env:
   STAGING_URL: https://morro-digital-v2-staging.onrender.com
-  EXPECTED_SHA: 4252facad94e004b08019cee24a6aca1e1baa001
+  EXPECTED_SHA: e0d35bb2ec8d65861a4f64ceb3959617390c1071
   ONBOARDING_PATH: /apps/morro-digital-platform/public/business-onboarding.html
 
 jobs:
