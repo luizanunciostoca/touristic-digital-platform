@@ -54,6 +54,7 @@ const initialPayment = createPendingPayment({
   createdAt,
 });
 if (!order || !initialPayment) throw new Error("TEST_DOMAIN_FIXTURE_INVALID");
+const canonicalPayment: Payment = initialPayment;
 
 const capabilities = createCheckoutStatusCapability(
   "test-status-secret-123456789012345678901234567890",
@@ -76,7 +77,7 @@ const access = createCheckoutAccessRecord({
 });
 if (!access) throw new Error("TEST_ACCESS_INVALID");
 
-function createFixture(paymentInput: Payment = initialPayment) {
+function createFixture(paymentInput: Payment = canonicalPayment) {
   let payment = paymentInput;
   let providerRequest: CardPaymentProviderRequest | null = null;
   const providerCall = vi.fn(async (input: CardPaymentProviderRequest) => {
@@ -189,7 +190,7 @@ describe("CardPaymentHttpTransport", () => {
 
   it("replays an already persisted provider binding without reusing the card token", async () => {
     const existing = Object.freeze({
-      ...initialPayment,
+      ...canonicalPayment,
       providerReference: "provider_payment_0001",
       updatedAt: "2026-08-23T22:00:01.000Z",
     });
