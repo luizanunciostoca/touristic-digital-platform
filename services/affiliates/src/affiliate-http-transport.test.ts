@@ -51,6 +51,11 @@ describe("Affiliates authenticated HTTP boundary", () => {
       { currency: "BRL" },
       { payout: { destination: "forbidden" } },
       { providerToken: "forbidden-provider-token" },
+      { rate: 0.3 },
+      { rateBasisPoints: 3000 },
+      { commissionRate: "30%" },
+      { commissionMinorUnits: 300 },
+      { eligibleRevenueMinorUnits: 1000 },
     ]) {
       const result = await handleAffiliateHttpRequest(
         {
