@@ -28,6 +28,10 @@ interface AuthenticatingFinancialWebhookVerifierPort extends FinancialWebhookVer
     rawBody: Uint8Array,
     signature: string,
   ) => Promise<boolean>;
+  readonly diagnoseAuthenticity?: (
+    rawBody: Uint8Array,
+    signature: string,
+  ) => Promise<string | null>;
 }
 
 export interface FinancialWebhookHttpRequest {
@@ -55,6 +59,7 @@ export interface FinancialWebhookAuditEvent {
   readonly replayed: boolean | null;
   readonly outcome: VerifiedPaymentOutcomeDisposition | null;
   readonly accounting: VerifiedPaymentAccountingDisposition | null;
+  readonly authenticityFailure?: string | null;
 }
 
 export interface FinancialWebhookAuditPort {
@@ -194,6 +199,7 @@ export class FinancialWebhookHttpTransport {
     if (!event) {
       const authenticatingVerifier = this.dependencies
         .verifier as AuthenticatingFinancialWebhookVerifierPort;
+      let authenticityFailure: string | null = null;
       if (
         mercadoPago &&
         signature &&
@@ -205,6 +211,16 @@ export class FinancialWebhookHttpTransport {
             request.rawBody,
             signature,
           );
+          if (
+            !authentic &&
+            typeof authenticatingVerifier.diagnoseAuthenticity === "function"
+          ) {
+            authenticityFailure =
+              await authenticatingVerifier.diagnoseAuthenticity(
+                request.rawBody,
+                signature,
+              );
+          }
         } catch {
           await audit(this.dependencies.audit, {
             action: "webhook.receive",
@@ -257,6 +273,7 @@ export class FinancialWebhookHttpTransport {
         replayed: null,
         outcome: null,
         accounting: null,
+        authenticityFailure,
       });
       return response(401, { error: "WEBHOOK_UNAUTHORIZED" }, correlationId);
     }
