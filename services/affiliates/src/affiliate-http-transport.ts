@@ -150,13 +150,19 @@ export async function handleAffiliateHttpRequest(
     destinationId,
   });
   if (!decision.allowed) return authFailure(decision.reason, correlation);
+  if (
+    !bounded(decision.actor.subject) ||
+    decision.actor.destinationId !== destinationId
+  ) {
+    return response(403, { error: "FORBIDDEN" }, correlation);
+  }
 
   if (
     request.method === "GET" &&
     request.pathname === `${affiliatesHttpPrefix}/me`
   ) {
     if (!decision.actor.affiliateId)
-      return response(404, { error: "AFFILIATE_NOT_FOUND" }, correlation);
+      return response(403, { error: "FORBIDDEN" }, correlation);
     const projection = await dependencies.reads.readAffiliate({
       affiliateId: decision.actor.affiliateId,
       destinationId,
@@ -171,8 +177,17 @@ export async function handleAffiliateHttpRequest(
     request.pathname === `${affiliatesHttpPrefix}/referrals`
   ) {
     const body = bodyRecord(request.body);
-    if (!body || !decision.actor.affiliateId)
+    if (!body)
       return response(400, { error: "INVALID_REFERRAL_REQUEST" }, correlation);
+    if (!decision.actor.affiliateId)
+      return response(403, { error: "FORBIDDEN" }, correlation);
+    if (
+      (body.affiliateId !== undefined &&
+        body.affiliateId !== decision.actor.affiliateId) ||
+      (body.destinationId !== undefined && body.destinationId !== destinationId)
+    ) {
+      return response(403, { error: "FORBIDDEN" }, correlation);
+    }
     if (hasBrowserMonetaryAuthority(body)) {
       return response(
         400,
@@ -194,11 +209,10 @@ export async function handleAffiliateHttpRequest(
         await dependencies.application.recordReferralAndEstablishAttribution({
           evidenceId: field(body.evidenceId),
           attributionId: field(body.attributionId),
-
           affiliateId: decision.actor.affiliateId,
           programId: field(body.programId),
+          destinationId,
           subjectId: field(body.subjectId),
-
           source,
           evidenceFingerprint: field(body.evidenceFingerprint, 64),
           serverObservedAt: dependencies.clock.now(),
