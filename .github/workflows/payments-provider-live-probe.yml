@@ -72,7 +72,7 @@ jobs:
               const sessionId = `provider_probe_${Date.now()}`;
               const handoff = {
                 sessionId,
-                planId: 'growth',
+                planId: 'essential',
                 contractor: { name: 'Morro Provider Test', email: 'morro-provider-test@example.com', phone: '75999999999', document: '12345678909' },
                 businessDraft: { demoBusinessId: `demo_${sessionId}`, displayName: 'Morro Provider TEST', categoryId: 'events', specialty: 'Provider acceptance', environment: 'sandbox', publishable: false },
                 acceptedTerms: [
@@ -91,7 +91,7 @@ jobs:
                 if (!authority.ok) return { stage: 'authority', status: authority.status, error: authorityPayload?.error || 'unknown' };
                 const checkout = await fetch('/api/payments/v1/checkouts', {
                   method: 'POST', credentials: 'same-origin', cache: 'no-store',
-                  headers: { 'content-type': 'application/json', accept: 'application/json', 'x-checkout-handoff-token': authorityPayload.data.handoffToken, 'idempotency-key': `business:${sessionId}:growth` },
+                  headers: { 'content-type': 'application/json', accept: 'application/json', 'x-checkout-handoff-token': authorityPayload.data.handoffToken, 'idempotency-key': `business:${sessionId}:essential` },
                   body: JSON.stringify(handoff)
                 });
                 const payload = await checkout.json();
