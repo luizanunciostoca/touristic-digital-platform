@@ -102,10 +102,7 @@ export interface AffiliateLegalHoldReleaseInput {
 
 type PrivacyRequestKind = "dsr" | "anonymization" | "retention_purge";
 type PrivacyRequestStatus =
-  | "requested"
-  | "completed"
-  | "blocked_legal_hold"
-  | "rejected";
+  "requested" | "completed" | "blocked_legal_hold" | "rejected";
 
 interface AccountRow extends RowDataPacket {
   affiliate_id: string;
@@ -230,7 +227,10 @@ function assertReason(value: string): void {
 }
 
 function assertActor(actor: AffiliatePrivacyActor): void {
-  if (actor.actorReference.trim().length === 0 || actor.actorReference.length > 180) {
+  if (
+    actor.actorReference.trim().length === 0 ||
+    actor.actorReference.length > 180
+  ) {
     throw new Error("AFFILIATE_PRIVACY_CONTEXT_INCOMPLETE");
   }
   if (!/^[A-Za-z0-9][A-Za-z0-9._:-]{7,179}$/u.test(actor.correlationId)) {
@@ -281,10 +281,12 @@ function isPseudonymizedSubject(subjectId: string): boolean {
 
 function retentionPolicy(): AffiliateRetentionResult["policy"] {
   return {
-    rawReferralEvidenceDays: AFFILIATE_POLICY_V1.retention.rawReferralEvidenceDays,
+    rawReferralEvidenceDays:
+      AFFILIATE_POLICY_V1.retention.rawReferralEvidenceDays,
     pseudonymousAttributionMonths:
       AFFILIATE_POLICY_V1.retention.pseudonymousAttributionMonths,
-    commercialEvidenceYears: AFFILIATE_POLICY_V1.retention.commercialEvidenceYears,
+    commercialEvidenceYears:
+      AFFILIATE_POLICY_V1.retention.commercialEvidenceYears,
   };
 }
 
@@ -323,7 +325,10 @@ export class AffiliatePrivacyService {
         },
       );
       if (idempotency.outcome) {
-        const replay = { ...idempotency.outcome, replayed: true } as AffiliateDsrResult;
+        const replay = {
+          ...idempotency.outcome,
+          replayed: true,
+        } as AffiliateDsrResult;
         await this.insertAudit(connection, {
           operation: "affiliate.request_privacy_data",
           stableId: input.requestId,
@@ -341,12 +346,7 @@ export class AffiliatePrivacyService {
         return replay;
       }
 
-      await this.claimPrivacyRequest(
-        connection,
-        input,
-        "dsr",
-        now,
-      );
+      await this.claimPrivacyRequest(connection, input, "dsr", now);
       const inventory = await this.readInventory(
         connection,
         input.affiliateId,
@@ -399,18 +399,19 @@ export class AffiliatePrivacyService {
     try {
       await connection.beginTransaction();
       const account = await this.lockAccount(connection, input.affiliateId);
-      const idempotency = await this.claimIdempotency<AffiliateAnonymizationResult>(
-        connection,
-        "privacy_anonymize",
-        input.requestId,
-        {
-          affiliateId: input.affiliateId,
-          requestId: input.requestId,
-          reason: input.reason,
-          actorKind: input.actor.actorKind,
-          actorReference: input.actor.actorReference,
-        },
-      );
+      const idempotency =
+        await this.claimIdempotency<AffiliateAnonymizationResult>(
+          connection,
+          "privacy_anonymize",
+          input.requestId,
+          {
+            affiliateId: input.affiliateId,
+            requestId: input.requestId,
+            reason: input.reason,
+            actorKind: input.actor.actorKind,
+            actorReference: input.actor.actorReference,
+          },
+        );
       if (idempotency.outcome) {
         const replay = {
           ...idempotency.outcome,
@@ -433,12 +434,7 @@ export class AffiliatePrivacyService {
         return replay;
       }
 
-      await this.claimPrivacyRequest(
-        connection,
-        input,
-        "anonymization",
-        now,
-      );
+      await this.claimPrivacyRequest(connection, input, "anonymization", now);
       if (await this.hasActiveLegalHold(connection, input.affiliateId)) {
         const result: AffiliateAnonymizationResult = {
           requestId: input.requestId,
@@ -474,7 +470,9 @@ export class AffiliatePrivacyService {
       const beforeDigest = sha256(
         canonicalize({
           status: account.status,
-          identityReferenceState: account.identity_reference.startsWith("anon:identity:")
+          identityReferenceState: account.identity_reference.startsWith(
+            "anon:identity:",
+          )
             ? "anonymized"
             : "linked",
         }),
@@ -593,12 +591,7 @@ export class AffiliatePrivacyService {
         return replay;
       }
 
-      await this.claimPrivacyRequest(
-        connection,
-        input,
-        "retention_purge",
-        now,
-      );
+      await this.claimPrivacyRequest(connection, input, "retention_purge", now);
       const emptyStats: AffiliateRetentionStats = {
         rawReferralEvidenceDeleted: 0,
         rawReferralEvidencePseudonymized: 0,
@@ -682,7 +675,10 @@ export class AffiliatePrivacyService {
     input: AffiliateLegalHoldInput,
   ): Promise<AffiliateLegalHoldResult> {
     assertIdentifier(input.holdId, "AFFILIATE_LEGAL_HOLD_ID_INVALID");
-    assertIdentifier(input.affiliateId, "AFFILIATE_PRIVACY_AFFILIATE_ID_INVALID");
+    assertIdentifier(
+      input.affiliateId,
+      "AFFILIATE_PRIVACY_AFFILIATE_ID_INVALID",
+    );
     assertReason(input.reason);
     assertActor(input.actor);
     const decisionReference = await this.authorize(
@@ -787,7 +783,10 @@ export class AffiliatePrivacyService {
     input: AffiliateLegalHoldReleaseInput,
   ): Promise<AffiliateLegalHoldResult> {
     assertIdentifier(input.holdId, "AFFILIATE_LEGAL_HOLD_ID_INVALID");
-    assertIdentifier(input.affiliateId, "AFFILIATE_PRIVACY_AFFILIATE_ID_INVALID");
+    assertIdentifier(
+      input.affiliateId,
+      "AFFILIATE_PRIVACY_AFFILIATE_ID_INVALID",
+    );
     assertActor(input.actor);
     const decisionReference = await this.authorize(
       "affiliate.manage_legal_hold",
@@ -880,7 +879,10 @@ export class AffiliatePrivacyService {
 
   private validatePrivacyRequest(input: AffiliatePrivacyRequestInput): void {
     assertIdentifier(input.requestId, "AFFILIATE_PRIVACY_REQUEST_ID_INVALID");
-    assertIdentifier(input.affiliateId, "AFFILIATE_PRIVACY_AFFILIATE_ID_INVALID");
+    assertIdentifier(
+      input.affiliateId,
+      "AFFILIATE_PRIVACY_AFFILIATE_ID_INVALID",
+    );
     assertReason(input.reason);
     assertActor(input.actor);
   }
@@ -1032,10 +1034,11 @@ export class AffiliatePrivacyService {
     if (!row) throw new Error("AFFILIATE_PRIVACY_INVENTORY_MISSING");
     return {
       affiliateId,
-      identityReferenceState:
-        account.identity_reference.startsWith("anon:identity:")
-          ? "anonymized"
-          : "linked",
+      identityReferenceState: account.identity_reference.startsWith(
+        "anon:identity:",
+      )
+        ? "anonymized"
+        : "linked",
       accounts: numberValue(row.accounts),
       memberships: numberValue(row.memberships),
       referralEvidence: numberValue(row.referral_evidence),
@@ -1097,7 +1100,8 @@ export class AffiliatePrivacyService {
          WHERE affiliate_id = ? AND subject_id = ?`,
         [replacement, affiliateId, row.subject_id],
       );
-      if (evidenceResult.affectedRows + attributionResult.affectedRows > 0) changed += 1;
+      if (evidenceResult.affectedRows + attributionResult.affectedRows > 0)
+        changed += 1;
     }
     return changed;
   }
@@ -1134,7 +1138,11 @@ export class AffiliatePrivacyService {
         connection,
         attribution.attribution_id,
       );
-      if (!lastActivity || lastActivity.getTime() >= attributionCutoff.getTime()) continue;
+      if (
+        !lastActivity ||
+        lastActivity.getTime() >= attributionCutoff.getTime()
+      )
+        continue;
       const hasCommercial =
         (await this.countConversionsForAttribution(
           connection,
