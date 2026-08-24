@@ -348,8 +348,8 @@ describe.skipIf(!databaseUrl)(
       if (!counts) throw new Error("AFFILIATE_COUNTS_MISSING");
       expect(Number(counts.evidence_count)).toBe(1);
       expect(Number(counts.attribution_count)).toBe(1);
-      expect(Number(counts.audit_count)).toBe(1);
-      expect(Number(counts.outbox_count)).toBe(1);
+      expect(Number(counts.audit_count)).toBe(2);
+      expect(Number(counts.outbox_count)).toBe(2);
     });
 
     it("serializes a concurrent suspension ahead of protected referral persistence", async () => {

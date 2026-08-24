@@ -31,7 +31,7 @@ const mockAttribution: Attribution = {
   ),
   evidenceFingerprint:
     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-  source: "server_referral",
+  source: "checkout_code",
   establishedAt: "2026-08-23T22:00:00.000Z",
   expiresAt: "2026-09-22T22:00:00.000Z",
   policyVersion: "AFFILIATE-POLICY-V1",
@@ -63,13 +63,31 @@ function dependencies(
       })),
     },
     application: {
-      recordReferralAndEstablishAttribution: vi.fn(async () => ({
-        attribution: mockAttribution,
-        replayed: false,
-        idempotencyKey: "affiliate:v1:test",
-      })),
+      recordReferralAndEstablishAttribution: vi.fn(async (input: unknown) => {
+        void input;
+        return {
+          attribution: mockAttribution,
+          replayed: false,
+          idempotencyKey: "affiliate:v1:test",
+        };
+      }),
     },
-    clock: { now: () => "2026-08-23T22:00:00.000Z" },
+  };
+}
+
+function validReferralBody(
+  source:
+    | "platform_link"
+    | "platform_qr"
+    | "checkout_code"
+    | "server_referral" = "checkout_code",
+) {
+  return {
+    requestId: "request-http-0001",
+    programId: "prog_morro_0001",
+    subjectId: "browser-subject-reference-0001",
+    source,
+    evidence: { token: "opaque-referral-evidence" },
   };
 }
 
@@ -98,7 +116,7 @@ describe("Affiliates authenticated HTTP boundary", () => {
         method: "POST",
         pathname: "/api/affiliates/v1/referrals",
         destinationId: "morro",
-        body: { source: "checkout_code" },
+        body: validReferralBody(),
       },
       deps,
     );
@@ -109,7 +127,7 @@ describe("Affiliates authenticated HTTP boundary", () => {
     ).not.toHaveBeenCalled();
   });
 
-  it("denies a tenant mismatch even if an upstream authorization adapter returns allowed", async () => {
+  it("denies a tenant mismatch even if upstream authorization returns allowed", async () => {
     const deps = dependencies({
       allowed: true,
       actor: { ...allowedDecision.actor, destinationId: "other" },
@@ -126,7 +144,7 @@ describe("Affiliates authenticated HTTP boundary", () => {
     expect(deps.reads.readAffiliate).not.toHaveBeenCalled();
   });
 
-  it("fails closed when the authenticated affiliate context is incomplete", async () => {
+  it("fails closed when authenticated affiliate context is incomplete", async () => {
     const deps = dependencies({
       allowed: true,
       actor: {
@@ -140,7 +158,7 @@ describe("Affiliates authenticated HTTP boundary", () => {
         method: "POST",
         pathname: "/api/affiliates/v1/referrals",
         destinationId: "morro",
-        body: { source: "checkout_code" },
+        body: validReferralBody(),
       },
       deps,
     );
@@ -151,22 +169,42 @@ describe("Affiliates authenticated HTTP boundary", () => {
     ).not.toHaveBeenCalled();
   });
 
-  it("denies an affiliate mismatch supplied by the browser", async () => {
+  it("denies affiliate or destination mismatch supplied by the browser", async () => {
+    for (const body of [
+      { ...validReferralBody(), affiliateId: "aff_other0001" },
+      { ...validReferralBody(), destinationId: "other" },
+    ]) {
+      const deps = dependencies();
+      const result = await handleAffiliateHttpRequest(
+        {
+          method: "POST",
+          pathname: "/api/affiliates/v1/referrals",
+          destinationId: "morro",
+          body,
+        },
+        deps,
+      );
+      expect(result.status).toBe(403);
+      expect(result.body).toEqual({ error: "FORBIDDEN" });
+      expect(
+        deps.application.recordReferralAndEstablishAttribution,
+      ).not.toHaveBeenCalled();
+    }
+  });
+
+  it("does not let the browser assert affiliate identity even when it matches the actor", async () => {
     const deps = dependencies();
     const result = await handleAffiliateHttpRequest(
       {
         method: "POST",
         pathname: "/api/affiliates/v1/referrals",
         destinationId: "morro",
-        body: {
-          affiliateId: "aff_other",
-          source: "checkout_code",
-        },
+        body: { ...validReferralBody(), affiliateId: "aff_00000001" },
       },
       deps,
     );
-    expect(result.status).toBe(403);
-    expect(result.body).toEqual({ error: "FORBIDDEN" });
+    expect(result.status).toBe(400);
+    expect(result.body).toEqual({ error: "ATTRIBUTION_AUTHORITY_FORBIDDEN" });
     expect(
       deps.application.recordReferralAndEstablishAttribution,
     ).not.toHaveBeenCalled();
@@ -185,7 +223,7 @@ describe("Affiliates authenticated HTTP boundary", () => {
           method: "POST",
           pathname: "/api/affiliates/v1/referrals",
           destinationId: "morro",
-          body: { source: "checkout_code", ...monetaryInput },
+          body: { ...validReferralBody(), ...monetaryInput },
         },
         deps,
       );
@@ -195,6 +233,152 @@ describe("Affiliates authenticated HTTP boundary", () => {
     expect(
       deps.application.recordReferralAndEstablishAttribution,
     ).not.toHaveBeenCalled();
+  });
+
+  it("rejects browser attempts to supply authoritative attribution fields", async () => {
+    const deps = dependencies();
+    for (const authoritativeInput of [
+      { evidenceId: "afev_attacker01" },
+      { attributionId: "attr_attacker01" },
+      { evidenceFingerprint: "f".repeat(64) },
+      { serverObservedAt: "2099-01-01T00:00:00.000Z" },
+      { receivedAt: "2099-01-01T00:00:00.000Z" },
+      { establishedAt: "2099-01-01T00:00:00.000Z" },
+      { expiresAt: "2099-12-31T00:00:00.000Z" },
+      { policyVersion: "ATTACKER-POLICY" },
+    ]) {
+      const result = await handleAffiliateHttpRequest(
+        {
+          method: "POST",
+          pathname: "/api/affiliates/v1/referrals",
+          destinationId: "morro",
+          body: { ...validReferralBody(), ...authoritativeInput },
+        },
+        deps,
+      );
+      expect(result.status).toBe(400);
+      expect(result.body).toEqual({ error: "ATTRIBUTION_AUTHORITY_FORBIDDEN" });
+    }
+    expect(
+      deps.application.recordReferralAndEstablishAttribution,
+    ).not.toHaveBeenCalled();
+  });
+
+  it("rejects unknown sources and malformed or missing evidence", async () => {
+    const deps = dependencies();
+    const unknown = await handleAffiliateHttpRequest(
+      {
+        method: "POST",
+        pathname: "/api/affiliates/v1/referrals",
+        destinationId: "morro",
+        body: { ...validReferralBody(), source: "unknown_source" },
+      },
+      deps,
+    );
+    expect(unknown.status).toBe(400);
+    expect(unknown.body).toEqual({ error: "INVALID_REFERRAL_SOURCE" });
+
+    for (const malformed of [
+      { ...validReferralBody(), evidence: null },
+      { ...validReferralBody(), evidence: {} },
+      { ...validReferralBody(), evidence: "raw-token" },
+      { ...validReferralBody(), requestId: "" },
+      { ...validReferralBody(), programId: "" },
+      { ...validReferralBody(), subjectId: "" },
+    ]) {
+      const result = await handleAffiliateHttpRequest(
+        {
+          method: "POST",
+          pathname: "/api/affiliates/v1/referrals",
+          destinationId: "morro",
+          body: malformed,
+        },
+        deps,
+      );
+      expect(result.status).toBe(400);
+      expect(result.body).toEqual({ error: "INVALID_REFERRAL_REQUEST" });
+    }
+    expect(
+      deps.application.recordReferralAndEstablishAttribution,
+    ).not.toHaveBeenCalled();
+  });
+
+  it("accepts browser link, QR and checkout evidence as untrusted input", async () => {
+    for (const source of [
+      "platform_link",
+      "platform_qr",
+      "checkout_code",
+    ] as const) {
+      const deps = dependencies();
+      const result = await handleAffiliateHttpRequest(
+        {
+          method: "POST",
+          pathname: "/api/affiliates/v1/referrals",
+          destinationId: "morro",
+          body: validReferralBody(source),
+        },
+        deps,
+      );
+      expect(result.status).toBe(200);
+      expect(
+        deps.application.recordReferralAndEstablishAttribution,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          requestId: "request-http-0001",
+          affiliateId: "aff_00000001",
+          destinationId: "morro",
+          subjectId: "browser-subject-reference-0001",
+          source,
+          evidence: { token: "opaque-referral-evidence" },
+          actorReference: "affiliate-user",
+        }),
+      );
+      const call = deps.application.recordReferralAndEstablishAttribution.mock
+        .calls[0]?.[0] as Record<string, unknown> | undefined;
+      expect(call).not.toHaveProperty("evidenceId");
+      expect(call).not.toHaveProperty("attributionId");
+      expect(call).not.toHaveProperty("evidenceFingerprint");
+      expect(call).not.toHaveProperty("serverObservedAt");
+      expect(call).not.toHaveProperty("receivedAt");
+    }
+  });
+
+  it("allows server_referral only from an authenticated service principal", async () => {
+    const deniedDeps = dependencies();
+    const denied = await handleAffiliateHttpRequest(
+      {
+        method: "POST",
+        pathname: "/api/affiliates/v1/referrals",
+        destinationId: "morro",
+        body: validReferralBody("server_referral"),
+      },
+      deniedDeps,
+    );
+    expect(denied.status).toBe(403);
+    expect(denied.body).toEqual({ error: "SERVER_REFERRAL_FORBIDDEN" });
+
+    const serviceDeps = dependencies({
+      allowed: true,
+      actor: {
+        subject: "affiliate-ingress-service",
+        role: "service",
+        affiliateId: "aff_00000001",
+        destinationId: "morro",
+      },
+    });
+    const accepted = await handleAffiliateHttpRequest(
+      {
+        method: "POST",
+        pathname: "/api/affiliates/v1/referrals",
+        destinationId: "morro",
+        body: validReferralBody("server_referral"),
+      },
+      serviceDeps,
+    );
+    expect(accepted.status).toBe(200);
+    expect(
+      serviceDeps.application.recordReferralAndEstablishAttribution,
+    ).toHaveBeenCalledTimes(1);
   });
 
   it("returns a scoped read projection for the authenticated affiliate", async () => {
@@ -215,38 +399,5 @@ describe("Affiliates authenticated HTTP boundary", () => {
       affiliateId: "aff_00000001",
       destinationId: "morro",
     });
-  });
-
-  it("passes only authoritative actor/tenant identity to the application service", async () => {
-    const deps = dependencies();
-    const result = await handleAffiliateHttpRequest(
-      {
-        method: "POST",
-        pathname: "/api/affiliates/v1/referrals",
-        destinationId: "morro",
-        correlationId: "corr:http:referral:0001",
-        body: {
-          evidenceId: "ref_http_0001",
-          attributionId: "att_http_0001",
-          programId: "program_morro",
-          subjectId: "subject_http_0001",
-          source: "server_referral",
-          evidenceFingerprint:
-            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-        },
-      },
-      deps,
-    );
-    expect(result.status).toBe(200);
-    expect(
-      deps.application.recordReferralAndEstablishAttribution,
-    ).toHaveBeenCalledWith(
-      expect.objectContaining({
-        affiliateId: "aff_00000001",
-        destinationId: "morro",
-        actorReference: "affiliate-user",
-        programId: "program_morro",
-      }),
-    );
   });
 });
