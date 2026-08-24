@@ -85,7 +85,7 @@ jobs:
           pnpm exec prettier --check \
             apps/morro-digital-platform/tooling/dev-server.mjs \
             apps/morro-digital-platform/src/mercado-pago-csp.test.ts
-          pnpm --filter @touristic/morro-digital-platform test -- mercado-pago-csp.test.ts
+          pnpm --filter @touristic/morro-digital-platform exec vitest run src/mercado-pago-csp.test.ts
 
       - name: Commit and push target branch
         shell: bash
