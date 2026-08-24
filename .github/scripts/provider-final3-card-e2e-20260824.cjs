@@ -106,9 +106,16 @@ async function typeSecure(page, name, value) {
     await documentField.press('Tab');
 
     await overlay.getByText('Selecione o número de parcelas', { exact: false }).waitFor({ state: 'visible', timeout: 20_000 });
-    const oneInstallment = overlay.locator('label').filter({ hasText: /^1x\s+R\$\s*10,00\s+À Vista$/iu }).first();
-    if (!(await oneInstallment.count())) throw new Error('INSTALLMENT_LABEL_NOT_FOUND');
-    await oneInstallment.click();
+    const installmentClick = await overlay.evaluate(root => {
+      const labels = Array.from(root.querySelectorAll('label'));
+      const normalize = value => String(value || '').replace(/\s+/g, ' ').trim();
+      const target = labels.find(label => /^1x\b/iu.test(normalize(label.textContent)));
+      if (!target) return { clicked: false, labels: labels.map(label => normalize(label.textContent)).filter(Boolean).slice(0, 20) };
+      const text = normalize(target.textContent);
+      target.click();
+      return { clicked: true, text };
+    });
+    if (!installmentClick.clicked) throw new Error(`INSTALLMENT_LABEL_NOT_FOUND:${JSON.stringify(installmentClick.labels)}`);
     await page.waitForFunction(() => {
       const text = (document.querySelector('[data-morro-payments-brick="card"]')?.textContent || '').replace(/\s+/g, ' ');
       return !/Escolha uma opção para avançar/iu.test(text) && !/Preencha todos os dados para continuar/iu.test(text);
