@@ -75,11 +75,7 @@ export interface AssociateConversionResult {
 }
 
 export type EntitlementTransitionAction =
-  | "earn"
-  | "dispute"
-  | "restore"
-  | "cancel_dispute"
-  | "reverse_dispute";
+  "earn" | "dispute" | "restore" | "cancel_dispute" | "reverse_dispute";
 
 export interface TransitionEntitlementInput {
   readonly entitlementId: string;
@@ -326,7 +322,10 @@ export class AffiliateCommercialApplicationService {
         [input.attributionId, input.orderId],
       );
       const lockedRow = lockedRows[0];
-      if (!lockedRow || stable(attributionFromRow(lockedRow)) !== stable(snapshot)) {
+      if (
+        !lockedRow ||
+        stable(attributionFromRow(lockedRow)) !== stable(snapshot)
+      ) {
         throw new Error("AFFILIATE_ATTRIBUTION_CHANGED");
       }
       const lockedEligibility = await lockAffiliateEligibilitySnapshot(
@@ -636,8 +635,7 @@ export class AffiliateCommercialApplicationService {
               : "earned",
           disputedFrom:
             consequence.full || current.status !== "disputed" ? null : "earned",
-          eligibleRevenueMinorUnits:
-            evidence.updatedEligibleRevenueMinorUnits,
+          eligibleRevenueMinorUnits: evidence.updatedEligibleRevenueMinorUnits,
           commissionMinorUnits: consequence.remainingCommissionMinorUnits,
           updatedAt: evidence.occurredAt,
         });
