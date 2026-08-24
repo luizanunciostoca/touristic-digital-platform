@@ -1,8 +1,7 @@
 name: Provider 77B Card E2E 2026-08-24
 
 on:
-  push:
-    branches: [ops/provider-e2e-77b2b097-20260824]
+  workflow_dispatch:
 
 permissions:
   contents: read
