@@ -99,19 +99,21 @@ function normalizeCardPaymentIdempotencyKey(
   return expected === normalized ? expected : null;
 }
 
-export function createCardPaymentProviderRequest(input: Readonly<{
-  paymentId?: unknown;
-  idempotencyKey?: unknown;
-  amount?: unknown;
-  description?: unknown;
-  token?: unknown;
-  installments?: unknown;
-  paymentMethodId?: unknown;
-  issuerId?: unknown;
-  webhookUrl?: unknown;
-  customer?: unknown;
-  metadata?: unknown;
-}>): CardPaymentProviderRequest | null {
+export function createCardPaymentProviderRequest(
+  input: Readonly<{
+    paymentId?: unknown;
+    idempotencyKey?: unknown;
+    amount?: unknown;
+    description?: unknown;
+    token?: unknown;
+    installments?: unknown;
+    paymentMethodId?: unknown;
+    issuerId?: unknown;
+    webhookUrl?: unknown;
+    customer?: unknown;
+    metadata?: unknown;
+  }>,
+): CardPaymentProviderRequest | null {
   const paymentId = normalizePaymentId(input.paymentId);
   const idempotencyKey = normalizeCardPaymentIdempotencyKey(input.idempotencyKey);
   const amountInput = input.amount as Partial<Money> | null | undefined;
@@ -120,7 +122,9 @@ export function createCardPaymentProviderRequest(input: Readonly<{
   const token = normalizeText(input.token, 1_024);
   const paymentMethodId = normalizeText(input.paymentMethodId, 80);
   const issuerId =
-    input.issuerId === undefined || input.issuerId === null || input.issuerId === ""
+    input.issuerId === undefined ||
+    input.issuerId === null ||
+    input.issuerId === ""
       ? null
       : normalizeText(input.issuerId, 80);
   const webhookUrl = normalizeHttpsUrl(input.webhookUrl);
@@ -191,17 +195,21 @@ export function createCardPaymentProviderRequest(input: Readonly<{
   });
 }
 
-export function normalizeCardPaymentProviderReceipt(input: Readonly<{
-  providerPaymentReference?: unknown;
-  status?: unknown;
-}>): CardPaymentProviderReceipt | null {
+export function normalizeCardPaymentProviderReceipt(
+  input: Readonly<{
+    providerPaymentReference?: unknown;
+    status?: unknown;
+  }>,
+): CardPaymentProviderReceipt | null {
   const providerPaymentReference = normalizeText(
     input.providerPaymentReference,
     160,
   );
   const status =
     typeof input.status === "string" &&
-    cardPaymentProviderStatuses.includes(input.status as CardPaymentProviderStatus)
+    cardPaymentProviderStatuses.includes(
+      input.status as CardPaymentProviderStatus,
+    )
       ? (input.status as CardPaymentProviderStatus)
       : null;
 
