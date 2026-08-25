@@ -1,0 +1,155 @@
+name: Ops Payments Lint Safe Metadata
+
+on:
+  push:
+    branches:
+      - ops/payments-lint-safe-metadata-ef639e5-20260824
+
+permissions:
+  contents: write
+
+jobs:
+  validate-and-apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      EXPECTED_HEAD: ef639e5c1ba2ea49588627e231a16d1cb45bd8b9
+      TARGET_BRANCH: fix/mercado-pago-bricks-subscriptions-20260823
+    steps:
+      - name: Checkout operational branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+
+      - name: Guard exact head and apply lint-safe sanitizer
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin "$TARGET_BRANCH"
+          actual="$(git rev-parse "origin/$TARGET_BRANCH")"
+          test "$actual" = "$EXPECTED_HEAD" || { echo "EXPECTED_HEAD_MISMATCH actual=$actual"; exit 1; }
+          git checkout -B "$TARGET_BRANCH" "origin/$TARGET_BRANCH"
+
+          python - <<'PY'
+          from pathlib import Path
+
+          retry_path = Path('services/financial/src/provider-retry.ts')
+          retry = retry_path.read_text()
+          old = '''function boundedResponseMetadataValue(
+            value: string | null | undefined,
+            maxLength: number,
+          ): string | null {
+            if (typeof value !== "string") return null;
+            const normalized = value.trim();
+            if (
+              !normalized ||
+              normalized.length > maxLength ||
+              /[\\u0000-\\u001f\\u007f]/u.test(normalized)
+            ) {
+              return null;
+            }
+            return normalized;
+          }
+          '''
+          new = '''function containsDisallowedControlCharacter(value: string): boolean {
+            for (const character of value) {
+              const codePoint = character.codePointAt(0);
+              if (
+                codePoint !== undefined &&
+                (codePoint <= 0x1f || codePoint === 0x7f)
+              ) {
+                return true;
+              }
+            }
+            return false;
+          }
+
+          function boundedResponseMetadataValue(
+            value: string | null | undefined,
+            maxLength: number,
+          ): string | null {
+            if (typeof value !== "string") return null;
+            const normalized = value.trim();
+            if (
+              !normalized ||
+              normalized.length > maxLength ||
+              containsDisallowedControlCharacter(normalized)
+            ) {
+              return null;
+            }
+            return normalized;
+          }
+          '''
+          if retry.count(old) != 1:
+              raise SystemExit(f'SANITIZER_ANCHOR_COUNT={retry.count(old)}')
+          retry_path.write_text(retry.replace(old, new, 1))
+
+          test_path = Path('services/financial/src/provider-transient-metadata.test.ts')
+          test = test_path.read_text()
+          anchor = '''  it("emits allowlisted metadata without logging body or arbitrary headers", async () => {
+          '''
+          regression = '''  it("rejects control characters from provider response metadata", () => {
+            const error = new ProviderRequestUnavailableError(503, {
+              providerRequestId: "safe\\u0007unsafe",
+              retryAfter: "2\\u007f",
+              contentType: "application/json",
+            });
+
+            expect(error.providerRequestId).toBeNull();
+            expect(error.retryAfter).toBeNull();
+            expect(error.contentType).toBe("application/json");
+          });
+
+          '''
+          if test.count(anchor) != 1:
+              raise SystemExit(f'TEST_ANCHOR_COUNT={test.count(anchor)}')
+          test_path.write_text(test.replace(anchor, regression + anchor, 1))
+          PY
+
+      - name: Install dependencies
+        run: corepack pnpm install --frozen-lockfile
+
+      - name: Format changed files
+        run: |
+          corepack pnpm exec prettier --write \
+            services/financial/src/provider-retry.ts \
+            services/financial/src/provider-transient-metadata.test.ts
+
+      - name: Build package dependencies
+        run: |
+          corepack pnpm --filter @touristic/core build
+          corepack pnpm --filter @touristic/financial build
+
+      - name: Lint financial server
+        run: corepack pnpm --filter @touristic/financial-server lint
+
+      - name: Typecheck financial server
+        run: corepack pnpm --filter @touristic/financial-server typecheck
+
+      - name: Run affected tests
+        run: |
+          corepack pnpm --filter @touristic/financial-server exec vitest run \
+            src/provider-transient-metadata.test.ts \
+            src/provider-retry.test.ts \
+            src/mercado-pago-subscription-provider.test.ts \
+            src/sandbox-settlement-provider.test.ts
+
+      - name: Build financial server
+        run: corepack pnpm --filter @touristic/financial-server build
+
+      - name: Validate diff and push only after green checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          git diff --exit-code -- . \
+            ':!services/financial/src/provider-retry.ts' \
+            ':!services/financial/src/provider-transient-metadata.test.ts'
+          test -n "$(git status --porcelain)" || { echo NO_CHANGES; exit 1; }
+          git config user.name "Idebook Digital"
+          git config user.email "luizanunciostoca@gmail.com"
+          git add \
+            services/financial/src/provider-retry.ts \
+            services/financial/src/provider-transient-metadata.test.ts
+          git commit -m "fix(payments): make transient metadata sanitizer lint-safe"
+          git push origin "HEAD:$TARGET_BRANCH"
