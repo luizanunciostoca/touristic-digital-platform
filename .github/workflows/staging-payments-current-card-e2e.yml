@@ -15,7 +15,7 @@ jobs:
     env:
       STAGING_URL: https://morro-digital-v2-staging.onrender.com
       ACCEPTANCE_PASSWORD: ${{ secrets.STAGING_PAYMENTS_ACCEPTANCE_PASSWORD }}
-      EXPECTED_RELEASE_SHA: 5f4ada617ff78faf2ac133db0f3873685992eb75
+      EXPECTED_RELEASE_SHA: cf2accb89ab8f0e316a0c4b9e13c783cdd776810
     steps:
       - name: Checkout pinned operational harness
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
