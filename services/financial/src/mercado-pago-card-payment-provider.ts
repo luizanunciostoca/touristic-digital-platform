@@ -245,7 +245,6 @@ export function createMercadoPagoCardPaymentProviderFromEnvironment(
       const created = await requestJson(mercadoPagoPaymentsEndpoint, {
         method: "POST",
         headers: {
-          "Idempotency-Key": request.idempotencyKey,
           "X-Idempotency-Key": request.idempotencyKey,
         },
         body: JSON.stringify({

@@ -32,7 +32,7 @@ describe("safe transient provider response metadata", () => {
         url: new URL("https://api.mercadopago.com/preapproval"),
         init: {
           method: "POST",
-          headers: { "Idempotency-Key": "safe-idempotency-key" },
+          headers: { "X-Idempotency-Key": "safe-idempotency-key" },
         },
         timeoutMs: 8000,
         policy: { maxAttempts: 1, baseDelayMs: 0 },

@@ -230,6 +230,7 @@ describe("Mercado Pago payment provider adapter", () => {
     expect(headers.get("X-Idempotency-Key")).toBe(
       "refund:v1:pay_mercado_pago_refund_0001",
     );
+    expect(headers.get("Idempotency-Key")).toBeNull();
     if (typeof capturedInit?.body !== "string") {
       throw new Error("CAPTURED_REFUND_BODY_INVALID");
     }

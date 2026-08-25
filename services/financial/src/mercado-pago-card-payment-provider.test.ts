@@ -99,7 +99,7 @@ describe("Mercado Pago direct card provider", () => {
 
     const headers = new Headers(requests[0]?.init?.headers);
     expect(headers.get("X-Idempotency-Key")).toBe(idempotencyKey);
-    expect(headers.get("Idempotency-Key")).toBe(idempotencyKey);
+    expect(headers.get("Idempotency-Key")).toBeNull();
     expect(headers.get("Authorization")).toBe(
       `Bearer ${environment.MERCADO_PAGO_ACCESS_TOKEN}`,
     );
