@@ -1,0 +1,76 @@
+name: Ops Payments Preserve Transient Status
+
+on:
+  push:
+    branches:
+      - ops/payments-preserve-transient-status-cf2acc-20260824
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-validate:
+    if: github.event.head_commit.message != 'ops(payments): materialize transient status diagnostic patch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Apply minimal diagnostic patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          retry = Path('services/financial/src/provider-retry.ts')
+          text = retry.read_text()
+          old = '''export class ProviderRequestUnavailableError extends Error {\n  constructor() {\n    super("PROVIDER_REQUEST_UNAVAILABLE");\n    this.name = "ProviderRequestUnavailableError";\n  }\n}'''
+          new = '''export class ProviderRequestUnavailableError extends Error {\n  readonly httpStatus: number | null;\n\n  constructor(httpStatus?: number) {\n    super("PROVIDER_REQUEST_UNAVAILABLE");\n    this.name = "ProviderRequestUnavailableError";\n    this.httpStatus =\n      Number.isInteger(httpStatus) && httpStatus >= 100 && httpStatus <= 599\n        ? httpStatus\n        : null;\n  }\n}'''
+          if text.count(old) != 1:
+              raise SystemExit('RETRY_CLASS_PATTERN_MISMATCH')
+          text = text.replace(old, new)
+          old_throw = 'if (attempt >= attempts) throw new ProviderRequestUnavailableError();\n    const delay = retryDelayMs(input.policy.baseDelayMs, attempt, random);'
+          new_throw = 'if (attempt >= attempts) {\n      throw new ProviderRequestUnavailableError(response.status);\n    }\n    const delay = retryDelayMs(input.policy.baseDelayMs, attempt, random);'
+          if text.count(old_throw) != 1:
+              raise SystemExit('RETRY_STATUS_PATTERN_MISMATCH')
+          retry.write_text(text.replace(old_throw, new_throw))
+
+          subscription = Path('services/financial/src/mercado-pago-subscription-provider.ts')
+          text = subscription.read_text()
+          old_catch = '''    } catch (error) {\n      return unavailable(error);\n    }'''
+          new_catch = '''    } catch (error) {\n      if (error instanceof ProviderRequestUnavailableError) {\n        emitProviderDiagnostic({\n          method: init.method ?? "GET",\n          pathname: url.pathname,\n          reason: "PROVIDER_REQUEST_UNAVAILABLE",\n          ...(error.httpStatus === null ? {} : { httpStatus: error.httpStatus }),\n        });\n      } else if (\n        error instanceof MercadoPagoProviderError &&\n        error.code === "MERCADO_PAGO_TEST_ACCOUNT_REQUIRED"\n      ) {\n        emitProviderDiagnostic({\n          method: init.method ?? "GET",\n          pathname: url.pathname,\n          reason: error.code,\n        });\n      }\n      return unavailable(error);\n    }'''
+          if text.count(old_catch) != 1:
+              raise SystemExit('SUBSCRIPTION_CATCH_PATTERN_MISMATCH')
+          subscription.write_text(text.replace(old_catch, new_catch))
+
+          test = Path('services/financial/src/provider-retry.test.ts')
+          text = test.read_text()
+          old_assert = ''').rejects.toEqual(new ProviderRequestUnavailableError());\n    expect(calls).toBe(1);'''
+          new_assert = ''').rejects.toMatchObject({\n      message: "PROVIDER_REQUEST_UNAVAILABLE",\n      httpStatus: 503,\n    });\n    expect(calls).toBe(1);'''
+          if text.count(old_assert) != 1:
+              raise SystemExit('RETRY_TEST_PATTERN_MISMATCH')
+          test.write_text(text.replace(old_assert, new_assert))
+          PY
+      - name: Format changed files
+        run: pnpm exec prettier --write services/financial/src/provider-retry.ts services/financial/src/provider-retry.test.ts services/financial/src/mercado-pago-subscription-provider.ts
+      - name: Run focused tests
+        run: pnpm exec vitest run services/financial/src/provider-retry.test.ts services/financial/src/mercado-pago-subscription-provider.test.ts
+      - name: Build Financial server
+        run: pnpm --filter @touristic/financial-server build
+      - name: Validate diff
+        run: git diff --check
+      - name: Materialize validated patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'Idebook Digital'
+          git config user.email 'luizanunciostoca@gmail.com'
+          git add services/financial/src/provider-retry.ts services/financial/src/provider-retry.test.ts services/financial/src/mercado-pago-subscription-provider.ts
+          git commit -m 'ops(payments): materialize transient status diagnostic patch'
+          git push origin HEAD:ops/payments-preserve-transient-status-cf2acc-20260824
