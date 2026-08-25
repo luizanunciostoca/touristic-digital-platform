@@ -4,6 +4,7 @@ import { authorizeBusinessAccess } from "@touristic/auth";
 import {
   createProviderNeutralCheckoutApplicationService,
   normalizeBusinessCheckoutHandoff,
+  normalizeOrderId,
 } from "@touristic/ordering";
 import { createTicketingCheckoutApplicationService } from "@touristic/ordering/ticketing-checkout";
 import {
@@ -675,6 +676,94 @@ const safeCheckoutProviderFailureReasons = Object.freeze({
   MERCADO_PAGO_INVALID_REQUEST: "provider_invalid_request",
 });
 
+export function createOrderConfirmingVerifiedPaymentOutcomeService({
+  outcomes,
+  orders,
+  clock = systemCheckoutClock,
+}) {
+  if (!outcomes || typeof outcomes.apply !== "function") {
+    throw new Error("PAYMENTS_VERIFIED_OUTCOME_SERVICE_REQUIRED");
+  }
+  if (
+    !orders ||
+    typeof orders.findById !== "function" ||
+    typeof orders.save !== "function"
+  ) {
+    throw new Error("PAYMENTS_ORDER_REPOSITORY_REQUIRED");
+  }
+  if (!clock || typeof clock.now !== "function") {
+    throw new Error("PAYMENTS_ORDER_CONFIRMATION_CLOCK_REQUIRED");
+  }
+
+  return Object.freeze({
+    async apply(event) {
+      const outcome = await outcomes.apply(event);
+      const payment = outcome?.payment;
+      const result = outcome?.result;
+      if (
+        !payment ||
+        !result ||
+        payment.subject?.kind !== "order" ||
+        payment.status !== "confirmed" ||
+        result.kind !== "approved" ||
+        result.paymentStatus !== "confirmed"
+      ) {
+        return outcome;
+      }
+
+      const orderId = normalizeOrderId(payment.subject.reference);
+      if (
+        !orderId ||
+        result.orderReference !== orderId ||
+        result.paymentId !== payment.id
+      ) {
+        throw new Error("PAYMENTS_VERIFIED_ORDER_REFERENCE_MISMATCH");
+      }
+
+      const order = await orders.findById(orderId);
+      if (!order) {
+        throw new Error("PAYMENTS_VERIFIED_ORDER_NOT_FOUND");
+      }
+      if (order.status === "payment_confirmed") {
+        return outcome;
+      }
+      if (order.status !== "pending_payment") {
+        throw new Error("PAYMENTS_VERIFIED_ORDER_STATUS_CONFLICT");
+      }
+
+      const currentMs = Date.parse(order.updatedAt);
+      const recordedMs = Date.parse(result.recordedAt);
+      const clockMs = Date.parse(clock.now());
+      if (
+        !Number.isFinite(currentMs) ||
+        !Number.isFinite(recordedMs) ||
+        !Number.isFinite(clockMs)
+      ) {
+        throw new Error("PAYMENTS_VERIFIED_ORDER_CLOCK_INVALID");
+      }
+      const updatedAt = new Date(
+        Math.max(currentMs + 1, recordedMs, clockMs),
+      ).toISOString();
+      const confirmedOrder = Object.freeze({
+        ...order,
+        status: "payment_confirmed",
+        updatedAt,
+      });
+
+      try {
+        await orders.save(confirmedOrder);
+      } catch (error) {
+        const latest = await orders.findById(orderId);
+        if (latest?.status === "payment_confirmed") {
+          return outcome;
+        }
+        throw error;
+      }
+      return outcome;
+    },
+  });
+}
+
 export function createAuditedCheckoutProvider(provider, audit = () => {}) {
   if (!provider || typeof provider.createCheckout !== "function") {
     throw new Error("PAYMENTS_CHECKOUT_PROVIDER_REQUIRED");
@@ -783,9 +872,14 @@ export function createPaymentsApi({
       const paymentIdempotency = new MySqlPaymentIdempotencyPort(financialPool);
       const identities = createNodeCheckoutIdentityPort();
       const rateLimits = createInMemoryCheckoutRateLimitPort();
-      const outcomes = createVerifiedPaymentOutcomeService({
+      const financialOutcomes = createVerifiedPaymentOutcomeService({
         payments,
         results: paymentResults,
+        clock: systemCheckoutClock,
+      });
+      const outcomes = createOrderConfirmingVerifiedPaymentOutcomeService({
+        outcomes: financialOutcomes,
+        orders,
         clock: systemCheckoutClock,
       });
       const accounting = createVerifiedPaymentAccountingService({
