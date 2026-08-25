@@ -1,0 +1,313 @@
+name: Ops Payments Transient Response Metadata
+
+on:
+  push:
+    branches:
+      - ops/payments-transient-response-metadata-998e5f0-20260824
+
+permissions:
+  contents: write
+
+jobs:
+  validate-and-apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      EXPECTED_HEAD: 998e5f0b6c63143faee9d05e50420f51a55dba54
+      TARGET_BRANCH: fix/mercado-pago-bricks-subscriptions-20260823
+    steps:
+      - name: Checkout operational branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+
+      - name: Guard exact head and apply observability patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin "$TARGET_BRANCH"
+          actual="$(git rev-parse "origin/$TARGET_BRANCH")"
+          test "$actual" = "$EXPECTED_HEAD" || { echo "EXPECTED_HEAD_MISMATCH actual=$actual"; exit 1; }
+          git checkout -B "$TARGET_BRANCH" "origin/$TARGET_BRANCH"
+
+          python - <<'PY'
+          from pathlib import Path
+
+          retry_path = Path('services/financial/src/provider-retry.ts')
+          retry = retry_path.read_text()
+          old_class = '''export class ProviderRequestUnavailableError extends Error {
+            readonly httpStatus: number | null;
+
+            constructor(httpStatus?: number) {
+              super("PROVIDER_REQUEST_UNAVAILABLE");
+              this.name = "ProviderRequestUnavailableError";
+              this.httpStatus =
+                typeof httpStatus === "number" &&
+                Number.isInteger(httpStatus) &&
+                httpStatus >= 100 &&
+                httpStatus <= 599
+                  ? httpStatus
+                  : null;
+            }
+          }
+          '''
+          new_class = '''export interface ProviderUnavailableResponseMetadata {
+            readonly providerRequestId?: string | null;
+            readonly retryAfter?: string | null;
+            readonly contentType?: string | null;
+          }
+
+          function boundedResponseMetadataValue(
+            value: string | null | undefined,
+            maxLength: number,
+          ): string | null {
+            if (typeof value !== "string") return null;
+            const normalized = value.trim();
+            if (
+              !normalized ||
+              normalized.length > maxLength ||
+              /[\\u0000-\\u001f\\u007f]/u.test(normalized)
+            ) {
+              return null;
+            }
+            return normalized;
+          }
+
+          export class ProviderRequestUnavailableError extends Error {
+            readonly httpStatus: number | null;
+            readonly providerRequestId: string | null;
+            readonly retryAfter: string | null;
+            readonly contentType: string | null;
+
+            constructor(
+              httpStatus?: number,
+              metadata: ProviderUnavailableResponseMetadata = {},
+            ) {
+              super("PROVIDER_REQUEST_UNAVAILABLE");
+              this.name = "ProviderRequestUnavailableError";
+              this.httpStatus =
+                typeof httpStatus === "number" &&
+                Number.isInteger(httpStatus) &&
+                httpStatus >= 100 &&
+                httpStatus <= 599
+                  ? httpStatus
+                  : null;
+              this.providerRequestId = boundedResponseMetadataValue(
+                metadata.providerRequestId,
+                120,
+              );
+              this.retryAfter = boundedResponseMetadataValue(metadata.retryAfter, 120);
+              this.contentType = boundedResponseMetadataValue(metadata.contentType, 120);
+            }
+          }
+          '''
+          if retry.count(old_class) != 1:
+              raise SystemExit(f'RETRY_CLASS_ANCHOR_COUNT={retry.count(old_class)}')
+          retry = retry.replace(old_class, new_class, 1)
+          old_throw = '''    await discardResponse(response);
+              if (attempt >= attempts) {
+                throw new ProviderRequestUnavailableError(response.status);
+              }
+          '''
+          new_throw = '''    await discardResponse(response);
+              if (attempt >= attempts) {
+                throw new ProviderRequestUnavailableError(response.status, {
+                  providerRequestId: response.headers.get("x-request-id"),
+                  retryAfter: response.headers.get("retry-after"),
+                  contentType: response.headers.get("content-type"),
+                });
+              }
+          '''
+          if retry.count(old_throw) != 1:
+              raise SystemExit(f'RETRY_THROW_ANCHOR_COUNT={retry.count(old_throw)}')
+          retry_path.write_text(retry.replace(old_throw, new_throw, 1))
+
+          retry_test_path = Path('services/financial/src/provider-retry.test.ts')
+          retry_test = retry_test_path.read_text()
+          old_response = '''      return new Response(null, { status: 503 });
+          '''
+          new_response = '''      return new Response("provider detail must not escape", {
+                status: 503,
+                headers: {
+                  "x-request-id": "mp-request-safe-503",
+                  "retry-after": "2",
+                  "content-type": "application/json",
+                  "x-provider-secret": "must-never-be-captured",
+                },
+              });
+          '''
+          if retry_test.count(old_response) != 1:
+              raise SystemExit(f'RETRY_TEST_RESPONSE_ANCHOR_COUNT={retry_test.count(old_response)}')
+          retry_test = retry_test.replace(old_response, new_response, 1)
+          old_expect = '''      httpStatus: 503,
+              });
+              expect(calls).toBe(1);
+          '''
+          new_expect = '''      httpStatus: 503,
+                providerRequestId: "mp-request-safe-503",
+                retryAfter: "2",
+                contentType: "application/json",
+              });
+              expect(calls).toBe(1);
+          '''
+          if retry_test.count(old_expect) != 1:
+              raise SystemExit(f'RETRY_TEST_EXPECT_ANCHOR_COUNT={retry_test.count(old_expect)}')
+          retry_test_path.write_text(retry_test.replace(old_expect, new_expect, 1))
+
+          subscription_path = Path('services/financial/src/mercado-pago-subscription-provider.ts')
+          subscription = subscription_path.read_text()
+          old_event_type = '''    reason: string;
+              httpStatus?: number;
+            }>,
+          '''
+          new_event_type = '''    reason: string;
+              httpStatus?: number;
+              providerRequestId?: string;
+              retryAfter?: string;
+              contentType?: string;
+            }>,
+          '''
+          if subscription.count(old_event_type) != 1:
+              raise SystemExit(f'SUB_EVENT_TYPE_ANCHOR_COUNT={subscription.count(old_event_type)}')
+          subscription = subscription.replace(old_event_type, new_event_type, 1)
+          old_json = '''        ...(Number.isInteger(event.httpStatus)
+                  ? { httpStatus: event.httpStatus }
+                  : {}),
+              })}`,
+          '''
+          new_json = '''        ...(Number.isInteger(event.httpStatus)
+                  ? { httpStatus: event.httpStatus }
+                  : {}),
+                ...(boundedString(event.providerRequestId, 120)
+                  ? { providerRequestId: boundedString(event.providerRequestId, 120) }
+                  : {}),
+                ...(boundedString(event.retryAfter, 120)
+                  ? { retryAfter: boundedString(event.retryAfter, 120) }
+                  : {}),
+                ...(boundedString(event.contentType, 120)
+                  ? { contentType: boundedString(event.contentType, 120) }
+                  : {}),
+              })}`,
+          '''
+          if subscription.count(old_json) != 1:
+              raise SystemExit(f'SUB_JSON_ANCHOR_COUNT={subscription.count(old_json)}')
+          subscription = subscription.replace(old_json, new_json, 1)
+          old_catch = '''          ...(error.httpStatus === null
+                    ? {}
+                    : { httpStatus: error.httpStatus }),
+                });
+          '''
+          new_catch = '''          ...(error.httpStatus === null
+                    ? {}
+                    : { httpStatus: error.httpStatus }),
+                  ...(error.providerRequestId === null
+                    ? {}
+                    : { providerRequestId: error.providerRequestId }),
+                  ...(error.retryAfter === null
+                    ? {}
+                    : { retryAfter: error.retryAfter }),
+                  ...(error.contentType === null
+                    ? {}
+                    : { contentType: error.contentType }),
+                });
+          '''
+          if subscription.count(old_catch) != 1:
+              raise SystemExit(f'SUB_CATCH_ANCHOR_COUNT={subscription.count(old_catch)}')
+          subscription_path.write_text(subscription.replace(old_catch, new_catch, 1))
+
+          sub_test_path = Path('services/financial/src/mercado-pago-subscription-provider.test.ts')
+          sub_test = sub_test_path.read_text()
+          old_import = 'import { describe, expect, it } from "vitest";\n'
+          new_import = 'import { describe, expect, it, vi } from "vitest";\n'
+          if sub_test.count(old_import) != 1:
+              raise SystemExit(f'SUB_TEST_IMPORT_ANCHOR_COUNT={sub_test.count(old_import)}')
+          sub_test = sub_test.replace(old_import, new_import, 1)
+          insertion_anchor = '''  it("fails closed in TEST mode without explicit credential confirmation", async () => {
+          '''
+          diagnostic_test = '''  it("emits only allowlisted metadata for a final transient provider response", async () => {
+            const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+            try {
+              const fetchMock: typeof fetch = async () =>
+                new Response("sensitive provider body must not be logged", {
+                  status: 503,
+                  headers: {
+                    "x-request-id": "mp-subscription-request-503",
+                    "retry-after": "3",
+                    "content-type": "application/json",
+                    "x-provider-secret": "must-never-be-logged",
+                  },
+                });
+              const provider = createMercadoPagoSubscriptionProviderFromEnvironment(
+                environment,
+                { fetch: fetchMock },
+              );
+
+              await expect(provider.createSubscription(request)).rejects.toMatchObject({
+                code: "MERCADO_PAGO_UNAVAILABLE",
+              });
+
+              const messages = warn.mock.calls.flat().map(String);
+              const transient = messages.find((message) =>
+                message.includes('"reason":"PROVIDER_REQUEST_UNAVAILABLE"'),
+              );
+              expect(transient).toContain('"httpStatus":503');
+              expect(transient).toContain(
+                '"providerRequestId":"mp-subscription-request-503"',
+              );
+              expect(transient).toContain('"retryAfter":"3"');
+              expect(transient).toContain('"contentType":"application/json"');
+              expect(messages.join("\n")).not.toContain("sensitive provider body");
+              expect(messages.join("\n")).not.toContain("must-never-be-logged");
+            } finally {
+              warn.mockRestore();
+            }
+          });
+
+          '''
+          if sub_test.count(insertion_anchor) != 1:
+              raise SystemExit(f'SUB_TEST_INSERT_ANCHOR_COUNT={sub_test.count(insertion_anchor)}')
+          sub_test_path.write_text(sub_test.replace(insertion_anchor, diagnostic_test + insertion_anchor, 1))
+          PY
+
+      - name: Install dependencies
+        run: corepack pnpm install --frozen-lockfile
+
+      - name: Format changed files
+        run: |
+          corepack pnpm exec prettier --write \
+            services/financial/src/provider-retry.ts \
+            services/financial/src/provider-retry.test.ts \
+            services/financial/src/mercado-pago-subscription-provider.ts \
+            services/financial/src/mercado-pago-subscription-provider.test.ts
+
+      - name: Run focused financial tests
+        run: |
+          corepack pnpm --filter @touristic/core build
+          corepack pnpm --filter @touristic/financial build
+          corepack pnpm --filter @touristic/financial-server exec vitest run \
+            src/provider-retry.test.ts \
+            src/mercado-pago-subscription-provider.test.ts
+
+      - name: Build financial server
+        run: corepack pnpm --filter @touristic/financial-server build
+
+      - name: Validate diff and push only after green checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          git diff --exit-code -- . \
+            ':!services/financial/src/provider-retry.ts' \
+            ':!services/financial/src/provider-retry.test.ts' \
+            ':!services/financial/src/mercado-pago-subscription-provider.ts' \
+            ':!services/financial/src/mercado-pago-subscription-provider.test.ts'
+          test -n "$(git status --porcelain)" || { echo NO_CHANGES; exit 1; }
+          git config user.name "Idebook Digital"
+          git config user.email "luizanunciostoca@gmail.com"
+          git add \
+            services/financial/src/provider-retry.ts \
+            services/financial/src/provider-retry.test.ts \
+            services/financial/src/mercado-pago-subscription-provider.ts \
+            services/financial/src/mercado-pago-subscription-provider.test.ts
+          git commit -m "chore(payments): preserve safe transient provider metadata"
+          git push origin "HEAD:$TARGET_BRANCH"
