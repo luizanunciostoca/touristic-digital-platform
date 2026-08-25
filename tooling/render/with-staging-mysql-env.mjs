@@ -292,8 +292,7 @@ if (isDirectInvocation()) {
           process.stdout.write(
             `${JSON.stringify({
               contract: "PAYMENTS-PROVIDER-ACCEPTANCE-RUNNER",
-              status:
-                signal || (code !== null && code !== 0) ? "fail" : "pass",
+              status: signal || (code !== null && code !== 0) ? "fail" : "pass",
               ...(signal ? { signal } : { exitCode: code ?? 1 }),
             })}\n`,
           );

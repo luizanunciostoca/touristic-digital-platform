@@ -38,8 +38,10 @@ function required(environment, name, maxLength = 2_048) {
 
 function enabled(environment) {
   return (
-    text(environment.STAGING_PAYMENTS_PROVIDER_ACCEPTANCE_AUTORUN, 16)
-      .toLowerCase() === "true"
+    text(
+      environment.STAGING_PAYMENTS_PROVIDER_ACCEPTANCE_AUTORUN,
+      16,
+    ).toLowerCase() === "true"
   );
 }
 
@@ -71,8 +73,10 @@ export function createStagingPaymentsProviderAcceptanceConfiguration(
   }
   if (
     text(environment.MERCADO_PAGO_CHECKOUT_MODE, 20).toLowerCase() !== "test" ||
-    text(environment.MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED, 16).toLowerCase() !==
-      "true"
+    text(
+      environment.MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED,
+      16,
+    ).toLowerCase() !== "true"
   ) {
     throw new Error("STAGING_PROVIDER_ACCEPTANCE_TEST_MODE_REQUIRED");
   }
@@ -380,7 +384,13 @@ async function completeSubscriptionLifecycle(fetchImpl, config, owner) {
     current = await transition(fetchImpl, config, owner, "pause", "paused");
   }
   if (current.providerStatus === "paused") {
-    current = await transition(fetchImpl, config, owner, "resume", "authorized");
+    current = await transition(
+      fetchImpl,
+      config,
+      owner,
+      "resume",
+      "authorized",
+    );
   }
   if (current.providerStatus !== "authorized") {
     throw new Error("STAGING_PROVIDER_ACCEPTANCE_LIFECYCLE_STATE_INVALID");

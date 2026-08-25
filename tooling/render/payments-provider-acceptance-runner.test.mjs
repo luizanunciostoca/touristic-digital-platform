@@ -20,8 +20,7 @@ function fixture(overrides = {}) {
     RENDER_GIT_COMMIT: sha,
     STAGING_PAYMENTS_PROVIDER_ACCEPTANCE_SUBSCRIPTION_ID: subscriptionId,
     STAGING_PAYMENTS_PROVIDER_ACCEPTANCE_PAYMENT_ID: paymentId,
-    STAGING_PAYMENTS_ACCEPTANCE_PASSWORD:
-      "temporary acceptance password 2026",
+    STAGING_PAYMENTS_ACCEPTANCE_PASSWORD: "temporary acceptance password 2026",
     VITE_MERCADO_PAGO_PUBLIC_KEY: "TEST-public-key-value-for-contract-only",
     DASHBOARD_AUTH_ORIGIN: "https://morro-digital-v2-staging.onrender.com",
     PORT: "10000",
@@ -61,10 +60,9 @@ function providerProjection(providerStatus) {
 }
 
 test("is disabled unless explicitly enabled", () => {
-  assert.deepEqual(
-    createStagingPaymentsProviderAcceptanceConfiguration({}),
-    { enabled: false },
-  );
+  assert.deepEqual(createStagingPaymentsProviderAcceptanceConfiguration({}), {
+    enabled: false,
+  });
 });
 
 test("fails closed outside the dedicated staging service and exact SHA", () => {
@@ -125,7 +123,9 @@ test("executes the full provider acceptance lifecycle without a new checkout", a
           authenticated: true,
           csrfToken: `csrf_${loginCount}_1234567890`,
         },
-        { "Set-Cookie": `morro_session=session_${loginCount}; Path=/; HttpOnly` },
+        {
+          "Set-Cookie": `morro_session=session_${loginCount}; Path=/; HttpOnly`,
+        },
       );
     }
     if (
@@ -223,9 +223,8 @@ test("executes the full provider acceptance lifecycle without a new checkout", a
     0,
   );
   assert.equal(
-    calls.filter(
-      (call) => new URL(call.url).pathname === "/v1/card_tokens",
-    ).length,
+    calls.filter((call) => new URL(call.url).pathname === "/v1/card_tokens")
+      .length,
     1,
   );
 });
