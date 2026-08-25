@@ -4,7 +4,9 @@ const serviceName = "morro-digital-v2-staging";
 const businessId = "biz_payments_acceptance";
 const ownerEmail = "test@testuser.com";
 const adminEmail = "payments-acceptance-admin@morro.invalid";
+// Public Mercado Pago TEST fixture only. Never replace this with real card data.
 const testCard = Object.freeze({
+  site_id: "MLB",
   card_number: "5480832801033311",
   expiration_month: 11,
   expiration_year: 2030,
@@ -16,9 +18,9 @@ const testCard = Object.freeze({
 });
 const maxResponseBytes = 64 * 1024;
 const readinessAttempts = 40;
-const lifecyclePollAttempts = 20;
+const lifecyclePollAttempts = 4;
 const readinessDelayMs = 1_500;
-const lifecycleDelayMs = 3_000;
+const lifecycleDelayMs = 12_000;
 
 function text(value, maxLength = 512) {
   if (typeof value !== "string") return "";
@@ -257,7 +259,9 @@ async function tokenize(fetchImpl, config) {
   const payload = await boundedJson(response);
   const token = text(payload.id, 512);
   if (!response.ok || !token || payload.live_mode === true) {
-    throw new Error(`STAGING_PROVIDER_ACCEPTANCE_TOKENIZATION_HTTP_${response.status}`);
+    throw new Error(
+      `STAGING_PROVIDER_ACCEPTANCE_TOKENIZATION_HTTP_${response.status}`,
+    );
   }
   log("tokenize", "pass", { provider: "mercado_pago", liveMode: false });
   return token;
@@ -451,7 +455,8 @@ export async function runStagingPaymentsProviderAcceptance({
   environment = process.env,
   fetchImpl = globalThis.fetch,
 } = {}) {
-  const config = createStagingPaymentsProviderAcceptanceConfiguration(environment);
+  const config =
+    createStagingPaymentsProviderAcceptanceConfiguration(environment);
   if (!config.enabled) return Object.freeze({ status: "disabled" });
   if (typeof fetchImpl !== "function") {
     throw new Error("STAGING_PROVIDER_ACCEPTANCE_FETCH_UNAVAILABLE");
@@ -488,8 +493,12 @@ export async function runStagingPaymentsProviderAcceptance({
 }
 
 function isDirectInvocation() {
-  const invoked = process.argv[1] ? new URL(`file://${process.argv[1]}`).pathname : "";
-  return invoked.endsWith("/tooling/render/payments-provider-acceptance-runner.mjs");
+  const invoked = process.argv[1]
+    ? new URL(`file://${process.argv[1]}`).pathname
+    : "";
+  return invoked.endsWith(
+    "/tooling/render/payments-provider-acceptance-runner.mjs",
+  );
 }
 
 if (isDirectInvocation()) {
@@ -499,7 +508,10 @@ if (isDirectInvocation()) {
     })
     .catch((error) => {
       log("complete", "fail", {
-        reason: error instanceof Error ? error.message.slice(0, 160) : "UNKNOWN_ERROR",
+        reason:
+          error instanceof Error
+            ? error.message.slice(0, 160)
+            : "UNKNOWN_ERROR",
       });
       process.exitCode = 1;
     });
