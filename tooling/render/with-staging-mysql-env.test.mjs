@@ -27,7 +27,8 @@ function fixture(overrides = {}) {
 }
 
 function assertPasswordHash(password, encoded) {
-  const [scheme, encodedSalt, encodedHash, ...rest] = String(encoded).split("$");
+  const [scheme, encodedSalt, encodedHash, ...rest] =
+    String(encoded).split("$");
   assert.equal(scheme, "scrypt");
   assert.equal(rest.length, 0);
   const salt = Buffer.from(encodedSalt, "base64url");

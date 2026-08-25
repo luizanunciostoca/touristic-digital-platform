@@ -135,7 +135,11 @@ export function buildStagingPaymentsAcceptanceAuthEnvironment(
       user &&
       typeof user === "object" &&
       (acceptanceIds.has(String(user.id ?? "")) ||
-        acceptanceEmails.has(String(user.email ?? "").trim().toLowerCase())),
+        acceptanceEmails.has(
+          String(user.email ?? "")
+            .trim()
+            .toLowerCase(),
+        )),
   );
   if (collision) {
     throw new Error("STAGING_PAYMENTS_ACCEPTANCE_USER_COLLISION");
@@ -198,7 +202,9 @@ if (isDirectInvocation()) {
     let acceptanceAuth;
     try {
       derived = buildStagingDatabaseEnvironment(process.env);
-      acceptanceAuth = buildStagingPaymentsAcceptanceAuthEnvironment(process.env);
+      acceptanceAuth = buildStagingPaymentsAcceptanceAuthEnvironment(
+        process.env,
+      );
     } catch (error) {
       process.stderr.write(
         `${JSON.stringify({
