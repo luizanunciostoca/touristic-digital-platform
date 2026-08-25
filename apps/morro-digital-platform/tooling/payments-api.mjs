@@ -1033,6 +1033,7 @@ export function createPaymentsApi({
     } catch {
       await Promise.allSettled(pools.map((pool) => pool.end()));
       runtime = null;
+      startAttempted = false;
       runtimeAudit(audit, {
         action: "checkout.runtime",
         result: "failure",

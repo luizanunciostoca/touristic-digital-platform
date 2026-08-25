@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { bindMercadoPagoWebhookQueryContext } from "./payments-runtime-api.mjs";
+import {
+  bindMercadoPagoWebhookQueryContext,
+  startPaymentsCoreWithRetry,
+} from "./payments-runtime-api.mjs";
 
 const webhookUrl = (query = "") =>
   new URL(`http://localhost/api/payments/v1/webhooks/sandbox${query}`);
@@ -51,5 +54,51 @@ describe("Payments runtime Mercado Pago webhook query context", () => {
     );
 
     expect(request.headers).toBe(headers);
+  });
+});
+
+describe("Payments runtime bounded core startup retry", () => {
+  it("recovers after one transient core bootstrap failure", async () => {
+    let attempts = 0;
+    const delays = [];
+    const ready = await startPaymentsCoreWithRetry(
+      async () => {
+        attempts += 1;
+        return attempts === 2;
+      },
+      {
+        attempts: 3,
+        baseDelayMs: 25,
+        sleep: async (delayMs) => {
+          delays.push(delayMs);
+        },
+      },
+    );
+
+    expect(ready).toBe(true);
+    expect(attempts).toBe(2);
+    expect(delays).toEqual([25]);
+  });
+
+  it("stays fail-closed after the bounded attempt budget is exhausted", async () => {
+    let attempts = 0;
+    const delays = [];
+    const ready = await startPaymentsCoreWithRetry(
+      async () => {
+        attempts += 1;
+        return false;
+      },
+      {
+        attempts: 3,
+        baseDelayMs: 25,
+        sleep: async (delayMs) => {
+          delays.push(delayMs);
+        },
+      },
+    );
+
+    expect(ready).toBe(false);
+    expect(attempts).toBe(3);
+    expect(delays).toEqual([25, 50]);
   });
 });
