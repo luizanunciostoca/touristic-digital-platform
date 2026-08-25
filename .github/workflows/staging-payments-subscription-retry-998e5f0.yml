@@ -1,0 +1,155 @@
+name: Staging Payments Subscription Retry 998e5f0
+
+on:
+  push:
+    branches:
+      - ops/payments-subscription-retry-998e5f0-20260824
+
+permissions:
+  contents: read
+
+jobs:
+  subscription-provider-retry:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      STAGING_URL: https://morro-digital-v2-staging.onrender.com
+      ACCEPTANCE_PASSWORD: ${{ secrets.STAGING_PAYMENTS_ACCEPTANCE_PASSWORD }}
+      EXPECTED_RELEASE_SHA: 998e5f0b6c63143faee9d05e50420f51a55dba54
+      SUBSCRIPTION_ID: sub_a9bcdbc9-4880-42c0-a41f-83a59c98ac66
+    steps:
+      - name: Retry existing TEST subscription provider lifecycle
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const { randomUUID } = require('node:crypto');
+
+          const base = process.env.STAGING_URL;
+          const password = process.env.ACCEPTANCE_PASSWORD || '';
+          const expectedSha = process.env.EXPECTED_RELEASE_SHA;
+          const subscriptionId = process.env.SUBSCRIPTION_ID;
+          const ownerEmail = 'test_payer@testuser.com';
+          const businessId = 'biz_payments_acceptance';
+          const origin = base;
+          const referer = `${base}/business-onboarding.html`;
+
+          function assert(ok, code) { if (!ok) throw new Error(code); }
+          async function payload(response) {
+            const text = await response.text();
+            try { return text ? JSON.parse(text) : {}; }
+            catch { throw new Error(`NON_JSON_${response.status}`); }
+          }
+          function errorCode(value) {
+            return String(value?.error || value?.message || 'UNKNOWN').slice(0, 180);
+          }
+          function cookie(response) {
+            const values = typeof response.headers.getSetCookie === 'function'
+              ? response.headers.getSetCookie()
+              : [response.headers.get('set-cookie')].filter(Boolean);
+            return String(values[0] || '').split(';', 1)[0];
+          }
+          async function login() {
+            const response = await fetch(`${base}/api/dashboard/auth/login`, {
+              method: 'POST',
+              headers: { Accept: 'application/json', 'Content-Type': 'application/json', Origin: origin, Referer: referer },
+              body: JSON.stringify({ email: ownerEmail, password }),
+            });
+            const data = await payload(response);
+            assert(response.status === 200, `LOGIN_${response.status}_${errorCode(data)}`);
+            const sessionCookie = cookie(response);
+            assert(sessionCookie.includes('='), 'COOKIE_MISSING');
+            assert(typeof data.csrfToken === 'string' && data.csrfToken.length > 10, 'CSRF_MISSING');
+            return { cookie: sessionCookie, csrf: data.csrfToken };
+          }
+          function ownerHeaders(session, mutation = true) {
+            return {
+              Accept: 'application/json', Origin: origin, Referer: referer, Cookie: session.cookie,
+              'X-Business-ID': businessId,
+              'X-Correlation-ID': `subretry_${randomUUID()}`,
+              ...(mutation ? { 'X-CSRF-Token': session.csrf, 'Content-Type': 'application/json' } : {}),
+            };
+          }
+          async function tokenize(publicKey) {
+            const url = new URL('https://api.mercadopago.com/v1/card_tokens');
+            url.searchParams.set('public_key', publicKey);
+            const response = await fetch(url, {
+              method: 'POST',
+              headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                card_number: '5031433215406351',
+                expiration_month: 11,
+                expiration_year: 2030,
+                security_code: '123',
+                cardholder: { name: 'APRO', identification: { type: 'CPF', number: '12345678909' } },
+              }),
+            });
+            const data = await payload(response);
+            assert(response.ok && typeof data.id === 'string', `TOKEN_${response.status}_${errorCode(data)}`);
+            return data.id;
+          }
+          async function providerRead(path, session) {
+            const response = await fetch(path, { method: 'GET', headers: ownerHeaders(session, false), cache: 'no-store' });
+            const data = await payload(response);
+            assert(response.status === 200, `PROVIDER_READ_${response.status}_${errorCode(data)}`);
+            return data.data || {};
+          }
+          async function transition(path, action, expected, session) {
+            const response = await fetch(`${path}/${action}`, {
+              method: 'POST', headers: ownerHeaders(session, true), body: JSON.stringify({}),
+            });
+            const data = await payload(response);
+            assert(response.status === 200, `PROVIDER_${action.toUpperCase()}_${response.status}_${errorCode(data)}`);
+            assert(data.data?.providerStatus === expected, `PROVIDER_${action.toUpperCase()}_STATUS_${data.data?.providerStatus}`);
+            const readback = await providerRead(path, session);
+            assert(readback.providerStatus === expected, `PROVIDER_${action.toUpperCase()}_READBACK_${readback.providerStatus}`);
+            console.log(`SUBSCRIPTION_${action.toUpperCase()}_READBACK=PASS status=${expected}`);
+          }
+
+          (async () => {
+            assert(base === 'https://morro-digital-v2-staging.onrender.com', 'TARGET_DENIED');
+            assert(password.length >= 20, 'SECRET_MISSING');
+            assert(/^sub_[A-Za-z0-9_-]{8,116}$/.test(subscriptionId), 'SUBSCRIPTION_ID_INVALID');
+
+            const ready = await fetch(`${base}/readyz`, { cache: 'no-store' });
+            assert(ready.status === 200, `READY_${ready.status}`);
+            assert(ready.headers.get('x-release-sha') === expectedSha, 'SHA_MISMATCH');
+            console.log('STAGING_EXACT_RELEASE=PASS');
+
+            const runtimeResponse = await fetch(`${base}/runtime-config.js`, { cache: 'no-store' });
+            assert(runtimeResponse.ok, `RUNTIME_CONFIG_${runtimeResponse.status}`);
+            const runtimeText = await runtimeResponse.text();
+            const match = runtimeText.match(/Object\.freeze\((\{.*\})\);/su);
+            assert(match, 'RUNTIME_CONFIG_PARSE');
+            const publicKey = String(JSON.parse(match[1]).VITE_MERCADO_PAGO_PUBLIC_KEY || '');
+            assert(publicKey.length > 20, 'PUBLIC_KEY_MISSING');
+
+            const owner = await login();
+            console.log('AUTH_OWNER=PASS');
+
+            const cardToken = await tokenize(publicKey);
+            const providerPath = `${base}/api/payments/v1/subscriptions/${encodeURIComponent(subscriptionId)}/provider`;
+            const response = await fetch(providerPath, {
+              method: 'POST', headers: ownerHeaders(owner, true), body: JSON.stringify({ cardToken }),
+            });
+            const data = await payload(response);
+            assert(response.status === 200 || response.status === 201, `PREAPPROVAL_${response.status}_${errorCode(data)}`);
+            assert(data.data?.providerStatus === 'authorized', `PREAPPROVAL_STATUS_${data.data?.providerStatus}`);
+            const reference = String(data.data?.providerSubscriptionReference || '');
+            assert(reference.length > 4, 'PROVIDER_SUBSCRIPTION_REFERENCE_MISSING');
+            console.log(`PREAPPROVAL_RETRY=PASS status=${data.data.providerStatus} replayed=${Boolean(data.data.replayed)} reference=${reference}`);
+
+            const readback = await providerRead(providerPath, owner);
+            assert(readback.providerStatus === 'authorized', `PREAPPROVAL_READBACK_${readback.providerStatus}`);
+            assert(readback.providerSubscriptionReference === reference, 'PREAPPROVAL_REFERENCE_MISMATCH');
+            console.log('PREAPPROVAL_READBACK=PASS status=authorized');
+
+            await transition(providerPath, 'pause', 'paused', owner);
+            await transition(providerPath, 'resume', 'authorized', owner);
+            await transition(providerPath, 'cancel', 'cancelled', owner);
+            console.log('SUBSCRIPTION_PROVIDER_LIFECYCLE=PASS');
+          })().catch(error => {
+            console.error(`SUBSCRIPTION_RETRY=FAIL reason=${String(error?.message || error).slice(0, 200)}`);
+            process.exitCode = 1;
+          });
+          NODE
