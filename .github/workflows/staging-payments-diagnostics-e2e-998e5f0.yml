@@ -1,0 +1,43 @@
+name: Staging Payments Diagnostics E2E 998e5f0
+
+on:
+  push:
+    branches:
+      - ops/payments-diagnostics-e2e-998e5f0-20260824
+
+permissions:
+  contents: read
+
+jobs:
+  diagnostics-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      STAGING_URL: https://morro-digital-v2-staging.onrender.com
+      ACCEPTANCE_PASSWORD: ${{ secrets.STAGING_PAYMENTS_ACCEPTANCE_PASSWORD }}
+      EXPECTED_RELEASE_SHA: 998e5f0b6c63143faee9d05e50420f51a55dba54
+    steps:
+      - name: Checkout operational harness
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Run provider lifecycle on exact diagnostic candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin ops/payments-diagnostics-e2e-cf2accb-20260824 --depth=1
+          git show FETCH_HEAD:.github/workflows/staging-payments-full-provider-e2e.yml > /tmp/staging-payments-full-provider-e2e.yml
+          python - <<'PY'
+          from pathlib import Path
+
+          source = Path('/tmp/staging-payments-full-provider-e2e.yml').read_text()
+          marker = "          node <<'NODE'"
+          start = source.index(marker)
+          end_marker = "\n          NODE"
+          end = source.index(end_marker, start) + len(end_marker)
+          block = source[start:end]
+          block = "\n".join(
+              line[10:] if line.startswith("          ") else line
+              for line in block.splitlines()
+          )
+          Path('/tmp/run-provider-e2e.sh').write_text(block + '\n')
+          PY
+          bash /tmp/run-provider-e2e.sh
