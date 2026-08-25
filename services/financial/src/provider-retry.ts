@@ -326,11 +326,7 @@ export async function executeBoundedProviderRequest(input: {
       );
     }
 
-    const localDelay = retryDelayMs(
-      input.policy.baseDelayMs,
-      attempt,
-      random,
-    );
+    const localDelay = retryDelayMs(input.policy.baseDelayMs, attempt, random);
     const retryAfter = retryAfterDecision(response.headers.get("retry-after"));
     if (retryAfter.kind === "exceeds_bound") {
       const responseMetadata = await readProviderResponseMetadata(response);
