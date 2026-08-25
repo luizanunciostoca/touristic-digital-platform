@@ -151,6 +151,31 @@ async function boundedJson(
   }
 }
 
+function emitProviderDiagnostic(
+  event: Readonly<{
+    method: string;
+    pathname: string;
+    reason: string;
+    httpStatus?: number;
+  }>,
+): void {
+  try {
+    process.stderr.write(
+      `[payments-subscription-provider] ${JSON.stringify({
+        method: boundedString(event.method, 8).toUpperCase(),
+        pathname: boundedString(event.pathname, 240),
+        result: "failure",
+        reason: boundedString(event.reason, 80),
+        ...(Number.isInteger(event.httpStatus)
+          ? { httpStatus: event.httpStatus }
+          : {}),
+      })}\n`,
+    );
+  } catch {
+    // Diagnostics must never become provider authority.
+  }
+}
+
 function unavailable(error: unknown): never {
   if (error instanceof MercadoPagoProviderError) throw error;
   if (error instanceof ProviderRequestUnavailableError) {
@@ -240,11 +265,17 @@ export function createMercadoPagoSubscriptionProviderFromEnvironment(
         init: { ...init, headers },
       });
       if (!response.ok) {
-        throw new MercadoPagoProviderError(
+        const reason =
           response.status >= 400 && response.status < 500
             ? "MERCADO_PAGO_REJECTED"
-            : "MERCADO_PAGO_UNAVAILABLE",
-        );
+            : "MERCADO_PAGO_UNAVAILABLE";
+        emitProviderDiagnostic({
+          method: init.method ?? "GET",
+          pathname: url.pathname,
+          reason,
+          httpStatus: response.status,
+        });
+        throw new MercadoPagoProviderError(reason);
       }
       return await boundedJson(response);
     } catch (error) {
@@ -255,14 +286,29 @@ export function createMercadoPagoSubscriptionProviderFromEnvironment(
   async function authoritativeReadback(
     reference: string,
   ): Promise<ProviderSubscriptionSnapshot> {
-    const payload = await requestJson(subscriptionUrl(reference), {
-      method: "GET",
-    });
-    const snapshot = snapshotFromPayload(payload);
-    if (snapshot.providerSubscriptionReference !== reference) {
-      throw new MercadoPagoProviderError("MERCADO_PAGO_INVALID_RESPONSE");
+    const url = subscriptionUrl(reference);
+    try {
+      const payload = await requestJson(url, {
+        method: "GET",
+      });
+      const snapshot = snapshotFromPayload(payload);
+      if (snapshot.providerSubscriptionReference !== reference) {
+        throw new MercadoPagoProviderError("MERCADO_PAGO_INVALID_RESPONSE");
+      }
+      return snapshot;
+    } catch (error) {
+      if (
+        error instanceof MercadoPagoProviderError &&
+        error.code === "MERCADO_PAGO_INVALID_RESPONSE"
+      ) {
+        emitProviderDiagnostic({
+          method: "GET",
+          pathname: url.pathname,
+          reason: "MERCADO_PAGO_INVALID_RESPONSE",
+        });
+      }
+      throw error;
     }
-    return snapshot;
   }
 
   async function updateStatus(
@@ -276,6 +322,11 @@ export function createMercadoPagoSubscriptionProviderFromEnvironment(
     const snapshot = await authoritativeReadback(reference);
     const expected = status === "canceled" ? "cancelled" : status;
     if (snapshot.status !== expected) {
+      emitProviderDiagnostic({
+        method: "GET",
+        pathname: subscriptionUrl(reference).pathname,
+        reason: "MERCADO_PAGO_STATUS_READBACK_MISMATCH",
+      });
       throw new MercadoPagoProviderError("MERCADO_PAGO_INVALID_RESPONSE");
     }
     return snapshot;
@@ -313,6 +364,11 @@ export function createMercadoPagoSubscriptionProviderFromEnvironment(
       });
       const reference = providerReference(created.id);
       if (!reference) {
+        emitProviderDiagnostic({
+          method: "POST",
+          pathname: mercadoPagoPreapprovalEndpoint.pathname,
+          reason: "MERCADO_PAGO_CREATE_REFERENCE_MISSING",
+        });
         throw new MercadoPagoProviderError("MERCADO_PAGO_INVALID_RESPONSE");
       }
       const snapshot = await authoritativeReadback(reference);
@@ -325,6 +381,11 @@ export function createMercadoPagoSubscriptionProviderFromEnvironment(
         snapshot.frequencyType !== request.frequencyType ||
         snapshot.payerEmail !== request.payerEmail
       ) {
+        emitProviderDiagnostic({
+          method: "GET",
+          pathname: subscriptionUrl(reference).pathname,
+          reason: "MERCADO_PAGO_CREATE_READBACK_MISMATCH",
+        });
         throw new MercadoPagoProviderError("MERCADO_PAGO_INVALID_RESPONSE");
       }
       return snapshot;
