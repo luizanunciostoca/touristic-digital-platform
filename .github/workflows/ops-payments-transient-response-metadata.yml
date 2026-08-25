@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      EXPECTED_HEAD: 998e5f0b6c63143faee9d05e50420f51a55dba54
+      EXPECTED_HEAD: ec021bb18dc09ecf88e9b753ee723c919d9dceed
       TARGET_BRANCH: fix/mercado-pago-bricks-subscriptions-20260823
     steps:
       - name: Checkout operational branch
