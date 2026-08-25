@@ -1,9 +1,29 @@
 import type { DashboardAuthClient } from "@touristic/auth-browser";
 import { normalizeBusinessId } from "@touristic/business";
+import { normalizeOrderId } from "@touristic/ordering";
 import { normalizeSubscriptionId } from "@touristic/ordering/subscription";
 
 export type BrowserProviderSubscriptionStatus =
   "pending" | "authorized" | "paused" | "cancelled";
+
+export interface BrowserMaterializedSubscriptionProjection {
+  readonly subscriptionId: string;
+  readonly subscriptionStatus:
+    "active" | "cancel_at_period_end" | "past_due" | "cancelled";
+  readonly orderId: string;
+  readonly plan: Readonly<{
+    id: string;
+    name: string;
+    amount: Readonly<{ minorUnits: number; currency: string }>;
+    pricingVersion: string;
+  }>;
+  readonly period: Readonly<{
+    number: 1;
+    startAt: string;
+    endAt: string;
+  }>;
+  readonly replayed: boolean;
+}
 
 export interface BrowserProviderSubscriptionProjection {
   readonly subscriptionId: string;
@@ -23,6 +43,7 @@ export interface BrowserProviderSubscriptionProjection {
 }
 
 export interface PaymentsBrowserSubscriptionClient {
+  materialize(orderId: unknown): Promise<BrowserMaterializedSubscriptionProjection>;
   create(
     subscriptionId: unknown,
     cardToken: unknown,
@@ -64,6 +85,20 @@ async function errorCode(response: Response): Promise<string> {
     : `HTTP_${response.status}`;
 }
 
+function validPlan(value: unknown): value is BrowserProviderSubscriptionProjection["plan"] {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const plan = value as BrowserProviderSubscriptionProjection["plan"];
+  return Boolean(
+    typeof plan.id === "string" &&
+      typeof plan.name === "string" &&
+      plan.amount &&
+      Number.isSafeInteger(plan.amount.minorUnits) &&
+      plan.amount.minorUnits > 0 &&
+      typeof plan.amount.currency === "string" &&
+      typeof plan.pricingVersion === "string",
+  );
+}
+
 function projection(value: unknown): BrowserProviderSubscriptionProjection {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw new Error("INVALID_SUBSCRIPTION_PROVIDER_RESPONSE");
@@ -80,14 +115,7 @@ function projection(value: unknown): BrowserProviderSubscriptionProjection {
     !["active", "cancel_at_period_end", "past_due", "cancelled"].includes(
       String(data.subscriptionStatus),
     ) ||
-    !plan ||
-    typeof plan.id !== "string" ||
-    typeof plan.name !== "string" ||
-    !plan.amount ||
-    !Number.isSafeInteger(plan.amount.minorUnits) ||
-    plan.amount.minorUnits <= 0 ||
-    typeof plan.amount.currency !== "string" ||
-    typeof plan.pricingVersion !== "string" ||
+    !validPlan(plan) ||
     data.frequency !== 1 ||
     data.frequencyType !== "months" ||
     typeof data.replayed !== "boolean"
@@ -97,6 +125,41 @@ function projection(value: unknown): BrowserProviderSubscriptionProjection {
   return Object.freeze({
     ...(data as BrowserProviderSubscriptionProjection),
     subscriptionId,
+  });
+}
+
+function materializedProjection(
+  value: unknown,
+): BrowserMaterializedSubscriptionProjection {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("INVALID_SUBSCRIPTION_ACTIVATION_RESPONSE");
+  }
+  const data = value as Partial<BrowserMaterializedSubscriptionProjection>;
+  const subscriptionId = normalizeSubscriptionId(data.subscriptionId);
+  const orderId = normalizeOrderId(data.orderId);
+  const period = data.period;
+  if (
+    !subscriptionId ||
+    !orderId ||
+    !["active", "cancel_at_period_end", "past_due", "cancelled"].includes(
+      String(data.subscriptionStatus),
+    ) ||
+    !validPlan(data.plan) ||
+    !period ||
+    period.number !== 1 ||
+    typeof period.startAt !== "string" ||
+    !Number.isFinite(Date.parse(period.startAt)) ||
+    typeof period.endAt !== "string" ||
+    !Number.isFinite(Date.parse(period.endAt)) ||
+    Date.parse(period.endAt) <= Date.parse(period.startAt) ||
+    typeof data.replayed !== "boolean"
+  ) {
+    throw new Error("INVALID_SUBSCRIPTION_ACTIVATION_RESPONSE");
+  }
+  return Object.freeze({
+    ...(data as BrowserMaterializedSubscriptionProjection),
+    subscriptionId,
+    orderId,
   });
 }
 
@@ -137,6 +200,28 @@ export function createPaymentsBrowserSubscriptionClient(
   }
 
   const client: PaymentsBrowserSubscriptionClient = {
+    async materialize(
+      orderIdInput: unknown,
+    ): Promise<BrowserMaterializedSubscriptionProjection> {
+      const orderId = normalizeOrderId(orderIdInput);
+      if (!orderId) throw new Error("INVALID_ORDER_ID");
+      const response = await authClient.secureFetch(
+        "/api/payments/v1/subscriptions",
+        {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+            "X-Business-ID": businessId,
+          },
+          body: JSON.stringify({ orderId }),
+          cache: "no-store",
+        },
+      );
+      if (!response.ok) throw new Error(await errorCode(response));
+      const payload = (await response.json()) as { data?: unknown };
+      return materializedProjection(payload.data);
+    },
     async create(
       subscriptionId: unknown,
       cardTokenInput: unknown,

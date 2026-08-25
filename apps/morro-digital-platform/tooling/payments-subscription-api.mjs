@@ -1,19 +1,29 @@
 import { randomUUID } from "node:crypto";
 
 import { authorizeBusinessAccess } from "@touristic/auth";
-import { createFinancialMySqlPoolFromEnvironment } from "@touristic/financial-server";
+import {
+  MySqlVerifiedPaymentResultRepository,
+  createFinancialMySqlPoolFromEnvironment,
+} from "@touristic/financial-server";
 import { createMercadoPagoSubscriptionProviderFromEnvironment } from "@touristic/financial-server/mercado-pago-subscription";
 import { MySqlProviderSubscriptionRepository } from "@touristic/financial-server/provider-subscription-repository";
 import { applyFinancialM146Schema } from "@touristic/financial-server/provider-subscription-schema";
+import { normalizeOrderId } from "@touristic/ordering";
+import {
+  SubscriptionActivationError,
+  createSubscriptionActivationApplicationService,
+} from "@touristic/ordering/subscription-activation-application";
 import {
   MySqlCheckoutAccessRepository,
+  MySqlOrderRepository,
   MySqlSubscriptionRepository,
   ProviderSubscriptionHttpTransport,
   applyOrderingM151Schema,
   createOrderingMySqlPoolFromEnvironment,
 } from "@touristic/ordering-server";
 
-const subscriptionPath =
+const subscriptionCollectionPath = "/api/payments/v1/subscriptions";
+const subscriptionProviderPath =
   /^\/api\/payments\/v1\/subscriptions\/sub_[A-Za-z0-9_-]{8,116}\/provider(?:\/(?:pause|resume|cancel))?$/u;
 const maxBodyBytes = 64 * 1024;
 
@@ -133,6 +143,30 @@ function runtimeAudit(audit, event) {
   }
 }
 
+function mutationAuthorization(authApi, request, session, action) {
+  const decision = authApi.authorizeMutation(request, session, action);
+  if (decision.allowed) return null;
+  return decision.reason === "cross_origin_request"
+    ? Object.freeze({ status: 403, error: "ORIGIN_DENIED" })
+    : Object.freeze({ status: 403, error: "INVALID_CSRF" });
+}
+
+function businessAuthorization(session, request, mutation = true) {
+  const businessId = header(request, "x-business-id");
+  if (!businessId) {
+    return Object.freeze({ allowed: false, status: 400, error: "SUBSCRIPTION_CONTEXT_REQUIRED" });
+  }
+  const decision = authorizeBusinessAccess(session, businessId, { mutation });
+  if (!decision.allowed || !decision.businessId) {
+    return Object.freeze({
+      allowed: false,
+      status: 403,
+      error: decision.reason === "read_only_role" ? "READ_ONLY_ROLE" : "BUSINESS_ACCESS_DENIED",
+    });
+  }
+  return Object.freeze({ allowed: true, businessId: decision.businessId });
+}
+
 function authorizationPort({ authApi, access }) {
   return Object.freeze({
     async authorize(request, subscription, mutation) {
@@ -201,6 +235,45 @@ function authorizationPort({ authApi, access }) {
   });
 }
 
+function materializationProjection(result) {
+  const subscription = result.subscription;
+  return Object.freeze({
+    subscriptionId: subscription.id,
+    subscriptionStatus: subscription.status,
+    orderId: subscription.currentPeriod.orderId,
+    plan: Object.freeze({
+      id: subscription.currentPeriod.pricing.planId,
+      name: subscription.currentPeriod.pricing.planName,
+      amount: subscription.currentPeriod.pricing.amount,
+      pricingVersion: subscription.currentPeriod.pricing.pricingVersion,
+    }),
+    period: Object.freeze({
+      number: subscription.currentPeriod.number,
+      startAt: subscription.currentPeriod.startAt,
+      endAt: subscription.currentPeriod.endAt,
+    }),
+    replayed: result.disposition === "replayed",
+  });
+}
+
+function activationErrorResponse(error) {
+  if (!(error instanceof SubscriptionActivationError)) return null;
+  switch (error.code) {
+    case "SUBSCRIPTION_ACTIVATION_INVALID_ORDER_ID":
+    case "SUBSCRIPTION_ACTIVATION_INVALID_PAYMENT_ID":
+      return Object.freeze({ status: 400, error: "INVALID_SUBSCRIPTION_ACTIVATION_REQUEST" });
+    case "SUBSCRIPTION_ACTIVATION_ORDER_NOT_FOUND":
+      return Object.freeze({ status: 404, error: "ORDER_NOT_FOUND" });
+    case "SUBSCRIPTION_ACTIVATION_ORDER_NOT_ELIGIBLE":
+      return Object.freeze({ status: 409, error: "SUBSCRIPTION_ORDER_NOT_ELIGIBLE" });
+    case "SUBSCRIPTION_ACTIVATION_PAYMENT_NOT_VERIFIED":
+      return Object.freeze({ status: 409, error: "SUBSCRIPTION_PAYMENT_NOT_VERIFIED" });
+    case "SUBSCRIPTION_ACTIVATION_INVALID_CLOCK":
+    case "SUBSCRIPTION_ACTIVATION_INVALID_STATE":
+      return Object.freeze({ status: 503, error: "SUBSCRIPTION_ACTIVATION_UNAVAILABLE" });
+  }
+}
+
 export function createPaymentsSubscriptionApi({
   authApi,
   getEnvironmentValue = (key) => process.env[key] ?? "",
@@ -209,7 +282,13 @@ export function createPaymentsSubscriptionApi({
   transport: injectedTransport,
 } = {}) {
   let runtime = injectedTransport
-    ? Object.freeze({ transport: injectedTransport, pools: [], enabled: true })
+    ? Object.freeze({
+        transport: injectedTransport,
+        materializer: null,
+        access: null,
+        pools: [],
+        enabled: true,
+      })
     : null;
   let startAttempted = Boolean(injectedTransport);
   let started = Boolean(injectedTransport);
@@ -224,7 +303,13 @@ export function createPaymentsSubscriptionApi({
         environment.PAYMENTS_PROVIDER_MODE !== "mercado_pago" ||
         !enabled(environment)
       ) {
-        runtime = Object.freeze({ transport: null, pools: [], enabled: false });
+        runtime = Object.freeze({
+          transport: null,
+          materializer: null,
+          access: null,
+          pools: [],
+          enabled: false,
+        });
         started = true;
         return true;
       }
@@ -241,8 +326,15 @@ export function createPaymentsSubscriptionApi({
       ]);
 
       const access = new MySqlCheckoutAccessRepository(orderingPool);
+      const subscriptions = new MySqlSubscriptionRepository(orderingPool);
+      const materializer = createSubscriptionActivationApplicationService({
+        orders: new MySqlOrderRepository(orderingPool),
+        subscriptions,
+        verifiedPayments: new MySqlVerifiedPaymentResultRepository(financialPool),
+        clock: { now: () => new Date().toISOString() },
+      });
       const transport = new ProviderSubscriptionHttpTransport({
-        subscriptions: new MySqlSubscriptionRepository(orderingPool),
+        subscriptions,
         bindings: new MySqlProviderSubscriptionRepository(financialPool),
         provider:
           createMercadoPagoSubscriptionProviderFromEnvironment(environment),
@@ -257,7 +349,13 @@ export function createPaymentsSubscriptionApi({
         backUrl: environment.PAYMENTS_SUBSCRIPTION_BACK_URL,
       });
 
-      runtime = Object.freeze({ transport, pools, enabled: true });
+      runtime = Object.freeze({
+        transport,
+        materializer,
+        access,
+        pools,
+        enabled: true,
+      });
       started = true;
       runtimeAudit(audit, {
         action: "subscription.provider_runtime",
@@ -284,9 +382,108 @@ export function createPaymentsSubscriptionApi({
     await Promise.allSettled(pools.map((pool) => pool.end()));
   }
 
+  async function handleMaterialization(request, response, body, correlationId) {
+    if (!runtime?.materializer || !runtime.access || !authApi) {
+      sendJson(
+        response,
+        503,
+        { error: "SUBSCRIPTION_ACTIVATION_UNAVAILABLE" },
+        correlationId,
+      );
+      return;
+    }
+
+    const keys = Object.keys(body);
+    if (keys.length !== 1 || keys[0] !== "orderId") {
+      sendJson(
+        response,
+        400,
+        { error: "INVALID_SUBSCRIPTION_ACTIVATION_REQUEST" },
+        correlationId,
+      );
+      return;
+    }
+    const orderId = normalizeOrderId(body.orderId);
+    if (!orderId) {
+      sendJson(
+        response,
+        400,
+        { error: "INVALID_SUBSCRIPTION_ACTIVATION_REQUEST" },
+        correlationId,
+      );
+      return;
+    }
+
+    const session = await authApi.resolveSession(request);
+    if (!session) {
+      sendJson(response, 401, { error: "AUTH_REQUIRED" }, correlationId);
+      return;
+    }
+    const deniedMutation = mutationAuthorization(
+      authApi,
+      request,
+      session,
+      "subscription.activate",
+    );
+    if (deniedMutation) {
+      sendJson(response, deniedMutation.status, { error: deniedMutation.error }, correlationId);
+      return;
+    }
+    const business = businessAuthorization(session, request, true);
+    if (!business.allowed) {
+      sendJson(response, business.status, { error: business.error }, correlationId);
+      return;
+    }
+
+    const checkoutAccess = await runtime.access.findByOrderId(orderId);
+    if (
+      !checkoutAccess?.tenantId ||
+      checkoutAccess.tenantId !== business.businessId
+    ) {
+      runtimeAudit(audit, {
+        action: "subscription.activate",
+        result: "denied",
+        reason: "business_access_denied",
+        correlationId,
+        orderId,
+        actorSubject: session.subject,
+        tenantId: business.businessId,
+      });
+      sendJson(response, 403, { error: "BUSINESS_ACCESS_DENIED" }, correlationId);
+      return;
+    }
+
+    try {
+      const result = await runtime.materializer.activate({
+        orderId,
+        paymentId: checkoutAccess.paymentId,
+      });
+      runtimeAudit(audit, {
+        action: "subscription.activate",
+        result: "success",
+        reason: result.disposition,
+        correlationId,
+        orderId,
+        subscriptionId: result.subscription.id,
+        actorSubject: session.subject,
+        tenantId: business.businessId,
+      });
+      sendJson(
+        response,
+        result.disposition === "created" ? 201 : 200,
+        { data: materializationProjection(result) },
+        correlationId,
+      );
+    } catch (error) {
+      const mapped = activationErrorResponse(error);
+      if (!mapped) throw error;
+      sendJson(response, mapped.status, { error: mapped.error }, correlationId);
+    }
+  }
+
   return Object.freeze({
     matches(pathname) {
-      return subscriptionPath.test(pathname);
+      return pathname === subscriptionCollectionPath || subscriptionProviderPath.test(pathname);
     },
     start,
     stop,
@@ -296,7 +493,7 @@ export function createPaymentsSubscriptionApi({
         header(request, "x-correlation-id") ||
         `corr_${randomUUID()}`;
 
-      if (!runtime || !runtime.enabled || !runtime.transport) {
+      if (!runtime || !runtime.enabled) {
         sendJson(
           response,
           503,
@@ -307,6 +504,11 @@ export function createPaymentsSubscriptionApi({
       }
 
       const method = String(request.method || "GET").toUpperCase();
+      if (requestUrl.pathname === subscriptionCollectionPath && method !== "POST") {
+        sendJson(response, 405, { error: "METHOD_NOT_ALLOWED" }, correlationId);
+        return;
+      }
+
       let body;
       if (method !== "GET") {
         const contentType = header(request, "content-type")
@@ -341,6 +543,41 @@ export function createPaymentsSubscriptionApi({
           );
           return;
         }
+      }
+
+      if (requestUrl.pathname === subscriptionCollectionPath) {
+        try {
+          await handleMaterialization(
+            request,
+            response,
+            body ?? {},
+            correlationId,
+          );
+        } catch {
+          runtimeAudit(audit, {
+            action: "subscription.activate",
+            result: "failure",
+            reason: "unhandled_activation_failure",
+            correlationId,
+          });
+          sendJson(
+            response,
+            503,
+            { error: "SUBSCRIPTION_ACTIVATION_UNAVAILABLE" },
+            correlationId,
+          );
+        }
+        return;
+      }
+
+      if (!runtime.transport) {
+        sendJson(
+          response,
+          503,
+          { error: "SUBSCRIPTION_PROVIDER_UNAVAILABLE" },
+          correlationId,
+        );
+        return;
       }
 
       try {

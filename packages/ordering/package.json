@@ -22,6 +22,11 @@
       "node": "./dist/subscription-application.js",
       "default": "./src/subscription-application.ts"
     },
+    "./subscription-activation-application": {
+      "types": "./src/subscription-activation-application.ts",
+      "node": "./dist/subscription-activation-application.js",
+      "default": "./src/subscription-activation-application.ts"
+    },
     "./ticketing-reservation": {
       "types": "./src/ticketing-reservation.ts",
       "node": "./dist/ticketing-reservation.js",

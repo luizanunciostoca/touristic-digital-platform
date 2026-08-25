@@ -18,6 +18,24 @@ const projection = Object.freeze({
   replayed: false,
 });
 
+const materializedProjection = Object.freeze({
+  subscriptionId: "sub_browser_subscription_0001",
+  subscriptionStatus: "active",
+  orderId: "ord_browser_subscription_0001",
+  plan: Object.freeze({
+    id: "growth",
+    name: "Plano Growth",
+    amount: Object.freeze({ minorUnits: 12_900, currency: "BRL" }),
+    pricingVersion: "pricing_v1",
+  }),
+  period: Object.freeze({
+    number: 1,
+    startAt: "2026-08-24T23:00:00.000Z",
+    endAt: "2026-09-24T23:00:00.000Z",
+  }),
+  replayed: false,
+});
+
 function okResponse(data = projection): Response {
   return new Response(JSON.stringify({ data }), {
     status: 200,
@@ -31,6 +49,40 @@ function requireStringBody(init: RequestInit | undefined): string {
 }
 
 describe("createPaymentsBrowserSubscriptionClient", () => {
+  it("materializes only by canonical order identity and business context", async () => {
+    const secureFetch = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(okResponse(materializedProjection));
+    const client = createPaymentsBrowserSubscriptionClient(
+      { secureFetch },
+      "business_browser_0001",
+    );
+
+    const result = await client.materialize("ord_browser_subscription_0001");
+
+    expect(result.subscriptionId).toBe("sub_browser_subscription_0001");
+    const [url, init] = secureFetch.mock.calls[0] ?? [];
+    expect(url).toBe("/api/payments/v1/subscriptions");
+    expect(init).toMatchObject({
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        "X-Business-ID": "business_browser_0001",
+      },
+    });
+    const requestBody = requireStringBody(init);
+    expect(JSON.parse(requestBody)).toEqual({
+      orderId: "ord_browser_subscription_0001",
+    });
+    expect(requestBody).not.toContain("amount");
+    expect(requestBody).not.toContain("currency");
+    expect(requestBody).not.toContain("frequency");
+    expect(requestBody).not.toContain("payerEmail");
+    expect(requestBody).not.toContain("periodStartAt");
+    expect(requestBody).not.toContain("periodEndAt");
+  });
+
   it("sends only provider card token on creation and keeps business context in a header", async () => {
     const secureFetch = vi.fn<typeof fetch>().mockResolvedValue(okResponse());
     const client = createPaymentsBrowserSubscriptionClient(
@@ -113,6 +165,9 @@ describe("createPaymentsBrowserSubscriptionClient", () => {
       "business_browser_0001",
     );
 
+    await expect(client.materialize("invalid")).rejects.toThrow(
+      "INVALID_ORDER_ID",
+    );
     await expect(
       client.create("invalid", "card_token_browser_0001"),
     ).rejects.toThrow("INVALID_SUBSCRIPTION_ID");
