@@ -9,6 +9,8 @@ on:
       - tooling/render/mysql-staging/**
       - tooling/render/with-staging-mysql-env.mjs
       - tooling/render/with-staging-mysql-env.test.mjs
+      - tooling/render/payments-provider-acceptance-runner.mjs
+      - tooling/render/payments-provider-acceptance-runner.test.mjs
       - tooling/quality/check-render-staging-blueprint.mjs
       - package.json
       - .github/workflows/render-staging-blueprint-contract.yml
@@ -29,6 +31,8 @@ jobs:
         run: node tooling/quality/check-render-staging-blueprint.mjs
       - name: Validate staging MySQL URL derivation
         run: node --test tooling/render/with-staging-mysql-env.test.mjs
+      - name: Validate staging provider acceptance runner
+        run: node --test tooling/render/payments-provider-acceptance-runner.test.mjs
       - name: Validate MySQL init shell syntax
         run: sh -n tooling/render/mysql-staging/01-init-databases.sh
       - name: Reject committed secret-like staging values
