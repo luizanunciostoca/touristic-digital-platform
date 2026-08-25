@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   buildStagingDatabaseEnvironment,
   buildStagingPaymentsAcceptanceAuthEnvironment,
+  shouldStartStagingPaymentsProviderAcceptance,
   stagingPaymentsAcceptanceIdentity,
 } from "./with-staging-mysql-env.mjs";
 
@@ -129,6 +130,7 @@ test("adds isolated owner and admin acceptance identities without replacing exis
   const owner = users.find(
     (user) => user.id === stagingPaymentsAcceptanceIdentity.owner.id,
   );
+  assert.equal(owner.email, "test@testuser.com");
   assert.equal(owner.email, stagingPaymentsAcceptanceIdentity.owner.email);
   assert.equal(owner.role, "owner");
   assert.deepEqual(owner.businessIds, [
@@ -184,5 +186,40 @@ test("rejects weak acceptance credentials and identity collisions", () => {
         ]),
       }),
     /STAGING_PAYMENTS_ACCEPTANCE_USER_COLLISION/u,
+  );
+});
+
+test("starts provider acceptance only for the V2 staging runtime command", () => {
+  const environment = {
+    RENDER_SERVICE_NAME: stagingPaymentsAcceptanceIdentity.serviceName,
+    STAGING_PAYMENTS_PROVIDER_ACCEPTANCE_AUTORUN: "true",
+  };
+  assert.equal(
+    shouldStartStagingPaymentsProviderAcceptance(environment, "node", [
+      "apps/morro-digital-platform/tooling/dev-server.mjs",
+    ]),
+    true,
+  );
+  assert.equal(
+    shouldStartStagingPaymentsProviderAcceptance(environment, "node", [
+      "apps/morro-digital-platform/tooling/payments-migrate.mjs",
+    ]),
+    false,
+  );
+  assert.equal(
+    shouldStartStagingPaymentsProviderAcceptance(
+      { ...environment, RENDER_SERVICE_NAME: "morro-digital-production" },
+      "node",
+      ["apps/morro-digital-platform/tooling/dev-server.mjs"],
+    ),
+    false,
+  );
+  assert.equal(
+    shouldStartStagingPaymentsProviderAcceptance(
+      { ...environment, STAGING_PAYMENTS_PROVIDER_ACCEPTANCE_AUTORUN: "false" },
+      "node",
+      ["apps/morro-digital-platform/tooling/dev-server.mjs"],
+    ),
+    false,
   );
 });
