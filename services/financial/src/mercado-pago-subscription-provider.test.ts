@@ -109,6 +109,7 @@ describe("Mercado Pago subscription provider", () => {
     const headers = new Headers(requests[0]?.init?.headers);
     expect(headers.get("Idempotency-Key")).toBe(idempotencyKey);
     expect(headers.get("X-Idempotency-Key")).toBe(idempotencyKey);
+    expect(headers.get("X-scope")).toBe("stage");
     const body = JSON.parse(requireStringBody(requests[0]?.init)) as Record<
       string,
       unknown
@@ -128,6 +129,36 @@ describe("Mercado Pago subscription provider", () => {
       },
     });
     expect(body).not.toHaveProperty("amount_from_browser");
+  });
+
+  it("never sends the staging scope in production mode", async () => {
+    const requests: Array<{ url: string; init: RequestInit | undefined }> = [];
+    const fetchMock: typeof fetch = async (input, init) => {
+      requests.push({ url: normalizeRequestUrl(input), init });
+      if (requests.length === 1) {
+        return new Response(
+          JSON.stringify({ id: "preapproval_00000001", status: "authorized" }),
+          { status: 201 },
+        );
+      }
+      return new Response(JSON.stringify(providerPayload("authorized")), {
+        status: 200,
+      });
+    };
+    const provider = createMercadoPagoSubscriptionProviderFromEnvironment(
+      {
+        ...environment,
+        MERCADO_PAGO_CHECKOUT_MODE: "production",
+      },
+      { fetch: fetchMock },
+    );
+
+    await expect(provider.createSubscription(request)).resolves.toMatchObject({
+      status: "authorized",
+    });
+    expect(requests).toHaveLength(2);
+    expect(new Headers(requests[0]?.init?.headers).get("X-scope")).toBeNull();
+    expect(new Headers(requests[1]?.init?.headers).get("X-scope")).toBeNull();
   });
 
   it.each([
