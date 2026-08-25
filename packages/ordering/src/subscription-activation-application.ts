@@ -5,10 +5,7 @@ import {
   type VerifiedPaymentResultRepositoryPort,
 } from "@touristic/financial";
 
-import {
-  normalizeOrderId,
-  type OrderRepositoryPort,
-} from "./index.js";
+import { normalizeOrderId, type OrderRepositoryPort } from "./index.js";
 import {
   createActiveSubscription,
   normalizeSubscriptionId,

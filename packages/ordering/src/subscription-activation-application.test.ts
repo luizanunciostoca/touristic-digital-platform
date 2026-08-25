@@ -157,7 +157,9 @@ describe("subscription initial activation", () => {
   it("rejects an order that is not payment_confirmed", async () => {
     const { service } = fixture(order("pending_payment"));
 
-    await expect(service.activate({ orderId, paymentId })).rejects.toMatchObject({
+    await expect(
+      service.activate({ orderId, paymentId }),
+    ).rejects.toMatchObject({
       code: "SUBSCRIPTION_ACTIVATION_ORDER_NOT_ELIGIBLE",
     } satisfies Partial<SubscriptionActivationError>);
   });
@@ -178,7 +180,9 @@ describe("subscription initial activation", () => {
     );
     const { service } = fixture(ticketingOrder);
 
-    await expect(service.activate({ orderId, paymentId })).rejects.toMatchObject({
+    await expect(
+      service.activate({ orderId, paymentId }),
+    ).rejects.toMatchObject({
       code: "SUBSCRIPTION_ACTIVATION_ORDER_NOT_ELIGIBLE",
     });
   });
@@ -186,7 +190,9 @@ describe("subscription initial activation", () => {
   it("fails closed when the confirmed verified payment is absent", async () => {
     const { service } = fixture(order(), null);
 
-    await expect(service.activate({ orderId, paymentId })).rejects.toMatchObject({
+    await expect(
+      service.activate({ orderId, paymentId }),
+    ).rejects.toMatchObject({
       code: "SUBSCRIPTION_ACTIVATION_PAYMENT_NOT_VERIFIED",
     });
   });
