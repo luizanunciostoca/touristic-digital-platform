@@ -243,6 +243,29 @@ function transientStatus(status: number): boolean {
   return status === 408 || status === 429 || (status >= 500 && status <= 599);
 }
 
+const maxProviderRetryAfterMs = 30_000;
+
+type RetryAfterDecision =
+  | Readonly<{ kind: "absent_or_invalid" }>
+  | Readonly<{ kind: "delay"; delayMs: number }>
+  | Readonly<{ kind: "exceeds_bound" }>;
+
+function retryAfterDecision(value: string | null): RetryAfterDecision {
+  if (typeof value !== "string") return { kind: "absent_or_invalid" };
+  const normalized = value.trim();
+  if (!/^[0-9]{1,6}$/u.test(normalized)) {
+    return { kind: "absent_or_invalid" };
+  }
+  const seconds = Number(normalized);
+  if (!Number.isSafeInteger(seconds) || seconds < 0) {
+    return { kind: "absent_or_invalid" };
+  }
+  const delayMs = seconds * 1_000;
+  return delayMs <= maxProviderRetryAfterMs
+    ? { kind: "delay", delayMs }
+    : { kind: "exceeds_bound" };
+}
+
 function retryDelayMs(
   baseDelayMs: number,
   failedAttempt: number,
@@ -302,8 +325,26 @@ export async function executeBoundedProviderRequest(input: {
         responseMetadata,
       );
     }
+
+    const localDelay = retryDelayMs(
+      input.policy.baseDelayMs,
+      attempt,
+      random,
+    );
+    const retryAfter = retryAfterDecision(response.headers.get("retry-after"));
+    if (retryAfter.kind === "exceeds_bound") {
+      const responseMetadata = await readProviderResponseMetadata(response);
+      await discardResponse(response);
+      throw new ProviderRequestUnavailableError(
+        response.status,
+        responseMetadata,
+      );
+    }
     await discardResponse(response);
-    const delay = retryDelayMs(input.policy.baseDelayMs, attempt, random);
+    const delay =
+      retryAfter.kind === "delay"
+        ? Math.max(localDelay, retryAfter.delayMs)
+        : localDelay;
     if (delay > 0) await sleep(delay);
   }
 
