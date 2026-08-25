@@ -1,0 +1,31 @@
+name: Provider 9ACDF Card E2E 2026-08-24
+
+on:
+  push:
+    branches:
+      - ops/provider-e2e-9acdfcb4-20260824
+
+permissions:
+  contents: read
+
+jobs:
+  provider-card:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Materialize pinned provider harness
+        run: |
+          curl --fail --silent --show-error \
+            https://raw.githubusercontent.com/luizanunciostoca/touristic-digital-platform/91d65b0eca23cde641c8a6456bf66c52893ad8c3/.github/scripts/provider-77b-card-e2e-20260824.cjs \
+            --output /tmp/provider-card-e2e.cjs
+          sed -i 's/77b2b097174b1c871c757705c21c1f92d323be43/9acdfcb4a51fcf6381bb3e11afb2ce1410c408a4/g' /tmp/provider-card-e2e.cjs
+          node --check /tmp/provider-card-e2e.cjs
+      - name: Install Chromium
+        run: |
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+      - name: Run official TEST card end-to-end
+        env:
+          STAGING_URL: https://morro-digital-v2-staging.onrender.com
+        run: node /tmp/provider-card-e2e.cjs
