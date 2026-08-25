@@ -1,0 +1,94 @@
+name: Ops Payments Preapproval Idempotency Header Fix
+
+on:
+  push:
+    branches:
+      - ops/payments-preapproval-idempotency-header-fix-4f78d526-20260825
+
+permissions:
+  contents: write
+
+jobs:
+  validate-and-transfer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      EXPECTED_HEAD: 4f78d526292d2aa16a85cceafce3f933b5decd61
+      TARGET_BRANCH: fix/mercado-pago-bricks-subscriptions-20260823
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_HEAD }}
+          fetch-depth: 0
+      - name: Guard exact target head
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual="$(git ls-remote origin "refs/heads/${TARGET_BRANCH}" | awk '{print $1}')"
+          test "$actual" = "$EXPECTED_HEAD"
+      - name: Apply canonical header patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          python <<'PY'
+          from pathlib import Path
+
+          retry = Path('services/financial/src/provider-retry.ts')
+          text = retry.read_text()
+          old = '''  const idempotencyKey = new Headers(init.headers)\n    .get("Idempotency-Key")\n    ?.trim();\n  return Boolean(idempotencyKey && idempotencyKey.length <= 220);\n'''
+          new = '''  const headers = new Headers(init.headers);\n  const idempotencyKey = (\n    headers.get("X-Idempotency-Key") ?? headers.get("Idempotency-Key")\n  )?.trim();\n  return Boolean(idempotencyKey && idempotencyKey.length <= 220);\n'''
+          assert text.count(old) == 1, 'RETRY_HEADER_ANCHOR'
+          retry.write_text(text.replace(old, new))
+
+          provider = Path('services/financial/src/mercado-pago-subscription-provider.ts')
+          text = provider.read_text()
+          old = '''          headers: {\n            "Idempotency-Key": request.idempotencyKey,\n            "X-Idempotency-Key": request.idempotencyKey,\n          },\n'''
+          new = '''          headers: {\n            "X-Idempotency-Key": request.idempotencyKey,\n          },\n'''
+          assert text.count(old) == 1, 'PROVIDER_HEADER_ANCHOR'
+          provider.write_text(text.replace(old, new))
+
+          provider_test = Path('services/financial/src/mercado-pago-subscription-provider.test.ts')
+          text = provider_test.read_text()
+          old = '''    expect(headers.get("Idempotency-Key")).toBe(idempotencyKey);\n    expect(headers.get("X-Idempotency-Key")).toBe(idempotencyKey);\n'''
+          new = '''    expect(headers.get("Idempotency-Key")).toBeNull();\n    expect(headers.get("X-Idempotency-Key")).toBe(idempotencyKey);\n'''
+          assert text.count(old) == 1, 'PROVIDER_TEST_HEADER_ANCHOR'
+          provider_test.write_text(text.replace(old, new))
+
+          retry_test = Path('services/financial/src/provider-retry.test.ts')
+          text = retry_test.read_text()
+          old = '''        key: new Headers(init?.headers).get("Idempotency-Key"),\n'''
+          new = '''        key: new Headers(init?.headers).get("X-Idempotency-Key"),\n'''
+          assert text.count(old) == 1, 'RETRY_TEST_CAPTURE_ANCHOR'
+          text = text.replace(old, new)
+          old = '''      headers: { "Idempotency-Key": "payment:v1:ord_retry_12345678" },\n      body: JSON.stringify({ externalReference: "pay_retry_12345678" }),\n'''
+          new = '''      headers: {\n        "X-Idempotency-Key": "payment:v1:ord_retry_12345678",\n      },\n      body: JSON.stringify({ externalReference: "pay_retry_12345678" }),\n'''
+          assert text.count(old) == 1, 'RETRY_TEST_INIT_ANCHOR'
+          retry_test.write_text(text.replace(old, new))
+          PY
+      - name: Install
+        run: corepack pnpm install --frozen-lockfile
+      - name: Build domain dependency
+        run: corepack pnpm --filter @touristic/financial build
+      - name: Format
+        run: corepack pnpm exec prettier --write services/financial/src/provider-retry.ts services/financial/src/mercado-pago-subscription-provider.ts services/financial/src/provider-retry.test.ts services/financial/src/mercado-pago-subscription-provider.test.ts
+      - name: Focused tests
+        run: corepack pnpm --filter @touristic/financial-server exec vitest run src/provider-retry.test.ts src/provider-transient-metadata.test.ts src/mercado-pago-subscription-provider.test.ts
+      - name: Lint
+        run: corepack pnpm --filter @touristic/financial-server lint
+      - name: Typecheck
+        run: corepack pnpm --filter @touristic/financial-server typecheck
+      - name: Build
+        run: corepack pnpm --filter @touristic/financial-server build
+      - name: Validate diff
+        run: git diff --check
+      - name: Transfer validated patch to PR branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual="$(git ls-remote origin "refs/heads/${TARGET_BRANCH}" | awk '{print $1}')"
+          test "$actual" = "$EXPECTED_HEAD"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add services/financial/src/provider-retry.ts services/financial/src/mercado-pago-subscription-provider.ts services/financial/src/provider-retry.test.ts services/financial/src/mercado-pago-subscription-provider.test.ts
+          git commit -m "fix(payments): use canonical subscription idempotency header"
+          git push origin "HEAD:${TARGET_BRANCH}"
