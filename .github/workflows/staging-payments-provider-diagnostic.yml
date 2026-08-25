@@ -1,0 +1,45 @@
+name: Staging Payments Provider Diagnostic
+
+on:
+  push:
+    branches:
+      - ops/payments-provider-diagnostic-cf2accb-20260824
+
+permissions:
+  contents: read
+
+jobs:
+  provider-diagnostic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      STAGING_URL: https://morro-digital-v2-staging.onrender.com
+      ACCEPTANCE_PASSWORD: ${{ secrets.STAGING_PAYMENTS_ACCEPTANCE_PASSWORD }}
+      EXPECTED_RELEASE_SHA: cf2accb89ab8f0e316a0c4b9e13c783cdd776810
+      PINNED_HARNESS_COMMIT: bb2e2f970673307dfdfbf9796ccb5ac64eeb5c2c
+    steps:
+      - name: Run pinned authenticated TEST provider probe
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "${#ACCEPTANCE_PASSWORD}" -ge 20
+          curl --fail --silent --show-error --location \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github.raw+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/.github/workflows/staging-payments-full-provider-e2e.yml?ref=${PINNED_HARNESS_COMMIT}" \
+            --output /tmp/pinned-provider-e2e.yml
+          python3 <<'PY'
+          from pathlib import Path
+          from textwrap import dedent
+
+          source = Path('/tmp/pinned-provider-e2e.yml').read_text(encoding='utf-8')
+          start = "          node <<'NODE'\n"
+          end = "\n          NODE"
+          if source.count(start) != 1 or source.count(end) != 1:
+              raise SystemExit('PINNED_HARNESS_MARKERS_INVALID')
+          script = dedent(source.split(start, 1)[1].split(end, 1)[0])
+          Path('/tmp/provider-diagnostic.js').write_text(script, encoding='utf-8')
+          PY
+          node /tmp/provider-diagnostic.js
