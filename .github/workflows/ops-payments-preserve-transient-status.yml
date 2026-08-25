@@ -30,7 +30,7 @@ jobs:
           retry = Path('services/financial/src/provider-retry.ts')
           text = retry.read_text()
           old = '''export class ProviderRequestUnavailableError extends Error {\n  constructor() {\n    super("PROVIDER_REQUEST_UNAVAILABLE");\n    this.name = "ProviderRequestUnavailableError";\n  }\n}'''
-          new = '''export class ProviderRequestUnavailableError extends Error {\n  readonly httpStatus: number | null;\n\n  constructor(httpStatus?: number) {\n    super("PROVIDER_REQUEST_UNAVAILABLE");\n    this.name = "ProviderRequestUnavailableError";\n    this.httpStatus =\n      Number.isInteger(httpStatus) && httpStatus >= 100 && httpStatus <= 599\n        ? httpStatus\n        : null;\n  }\n}'''
+          new = '''export class ProviderRequestUnavailableError extends Error {\n  readonly httpStatus: number | null;\n\n  constructor(httpStatus?: number) {\n    super("PROVIDER_REQUEST_UNAVAILABLE");\n    this.name = "ProviderRequestUnavailableError";\n    this.httpStatus =\n      typeof httpStatus === "number" &&\n      Number.isInteger(httpStatus) &&\n      httpStatus >= 100 &&\n      httpStatus <= 599\n        ? httpStatus\n        : null;\n  }\n}'''
           if text.count(old) != 1:
               raise SystemExit('RETRY_CLASS_PATTERN_MISMATCH')
           text = text.replace(old, new)
