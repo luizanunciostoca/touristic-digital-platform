@@ -160,7 +160,7 @@ function emitProviderDiagnostic(
   }>,
 ): void {
   try {
-    process.stderr.write(
+    console.warn(
       `[payments-subscription-provider] ${JSON.stringify({
         method: boundedString(event.method, 8).toUpperCase(),
         pathname: boundedString(event.pathname, 240),
@@ -169,7 +169,7 @@ function emitProviderDiagnostic(
         ...(Number.isInteger(event.httpStatus)
           ? { httpStatus: event.httpStatus }
           : {}),
-      })}\n`,
+      })}`,
     );
   } catch {
     // Diagnostics must never become provider authority.
@@ -336,59 +336,71 @@ export function createMercadoPagoSubscriptionProviderFromEnvironment(
     async createSubscription(
       input: ProviderSubscriptionRequest,
     ): Promise<ProviderSubscriptionSnapshot> {
-      const request = normalizeProviderSubscriptionRequest(input);
-      if (!request || request.amount.currency !== "BRL") {
-        throw new MercadoPagoProviderError("MERCADO_PAGO_INVALID_REQUEST");
-      }
+      try {
+        const request = normalizeProviderSubscriptionRequest(input);
+        if (!request || request.amount.currency !== "BRL") {
+          throw new MercadoPagoProviderError("MERCADO_PAGO_INVALID_REQUEST");
+        }
 
-      const created = await requestJson(mercadoPagoPreapprovalEndpoint, {
-        method: "POST",
-        headers: {
-          "Idempotency-Key": request.idempotencyKey,
-          "X-Idempotency-Key": request.idempotencyKey,
-        },
-        body: JSON.stringify({
-          reason: request.reason,
-          external_reference: request.subscriptionId,
-          payer_email: request.payerEmail,
-          card_token_id: request.cardToken,
-          auto_recurring: {
-            frequency: request.frequency,
-            frequency_type: request.frequencyType,
-            transaction_amount: majorUnits(request.amount.minorUnits),
-            currency_id: request.amount.currency,
+        const created = await requestJson(mercadoPagoPreapprovalEndpoint, {
+          method: "POST",
+          headers: {
+            "Idempotency-Key": request.idempotencyKey,
+            "X-Idempotency-Key": request.idempotencyKey,
           },
-          back_url: request.backUrl,
-          status: "authorized",
-        }),
-      });
-      const reference = providerReference(created.id);
-      if (!reference) {
+          body: JSON.stringify({
+            reason: request.reason,
+            external_reference: request.subscriptionId,
+            payer_email: request.payerEmail,
+            card_token_id: request.cardToken,
+            auto_recurring: {
+              frequency: request.frequency,
+              frequency_type: request.frequencyType,
+              transaction_amount: majorUnits(request.amount.minorUnits),
+              currency_id: request.amount.currency,
+            },
+            back_url: request.backUrl,
+            status: "authorized",
+          }),
+        });
+        const reference = providerReference(created.id);
+        if (!reference) {
+          emitProviderDiagnostic({
+            method: "POST",
+            pathname: mercadoPagoPreapprovalEndpoint.pathname,
+            reason: "MERCADO_PAGO_CREATE_REFERENCE_MISSING",
+          });
+          throw new MercadoPagoProviderError("MERCADO_PAGO_INVALID_RESPONSE");
+        }
+        const snapshot = await authoritativeReadback(reference);
+        if (
+          snapshot.externalReference !== request.subscriptionId ||
+          snapshot.status !== "authorized" ||
+          snapshot.amount.minorUnits !== request.amount.minorUnits ||
+          snapshot.amount.currency !== request.amount.currency ||
+          snapshot.frequency !== request.frequency ||
+          snapshot.frequencyType !== request.frequencyType ||
+          snapshot.payerEmail !== request.payerEmail
+        ) {
+          emitProviderDiagnostic({
+            method: "GET",
+            pathname: subscriptionUrl(reference).pathname,
+            reason: "MERCADO_PAGO_CREATE_READBACK_MISMATCH",
+          });
+          throw new MercadoPagoProviderError("MERCADO_PAGO_INVALID_RESPONSE");
+        }
+        return snapshot;
+      } catch (error) {
         emitProviderDiagnostic({
           method: "POST",
           pathname: mercadoPagoPreapprovalEndpoint.pathname,
-          reason: "MERCADO_PAGO_CREATE_REFERENCE_MISSING",
+          reason:
+            error instanceof MercadoPagoProviderError
+              ? error.code
+              : "MERCADO_PAGO_UNAVAILABLE",
         });
-        throw new MercadoPagoProviderError("MERCADO_PAGO_INVALID_RESPONSE");
+        throw error;
       }
-      const snapshot = await authoritativeReadback(reference);
-      if (
-        snapshot.externalReference !== request.subscriptionId ||
-        snapshot.status !== "authorized" ||
-        snapshot.amount.minorUnits !== request.amount.minorUnits ||
-        snapshot.amount.currency !== request.amount.currency ||
-        snapshot.frequency !== request.frequency ||
-        snapshot.frequencyType !== request.frequencyType ||
-        snapshot.payerEmail !== request.payerEmail
-      ) {
-        emitProviderDiagnostic({
-          method: "GET",
-          pathname: subscriptionUrl(reference).pathname,
-          reason: "MERCADO_PAGO_CREATE_READBACK_MISMATCH",
-        });
-        throw new MercadoPagoProviderError("MERCADO_PAGO_INVALID_RESPONSE");
-      }
-      return snapshot;
     },
 
     readSubscription(reference: string): Promise<ProviderSubscriptionSnapshot> {
