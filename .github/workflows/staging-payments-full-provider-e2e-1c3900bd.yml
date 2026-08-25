@@ -1,0 +1,307 @@
+name: Staging Payments Full Provider E2E Exact Head 1c3900bd
+
+on:
+  push:
+    branches:
+      - ops/payments-full-provider-e2e-1c3900bd-20260825
+
+permissions:
+  contents: read
+
+jobs:
+  full-provider-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      STAGING_URL: https://morro-digital-v2-staging.onrender.com
+      ACCEPTANCE_PASSWORD: ${{ secrets.STAGING_PAYMENTS_ACCEPTANCE_PASSWORD }}
+      EXPECTED_RELEASE_SHA: 1c3900bd7062e6ef8723a187a86a542e33518a3e
+    steps:
+      - name: Run authenticated TEST provider lifecycle
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const { randomUUID } = require('node:crypto');
+
+          const base = process.env.STAGING_URL;
+          const password = process.env.ACCEPTANCE_PASSWORD || '';
+          const expectedSha = process.env.EXPECTED_RELEASE_SHA;
+          const ownerEmail = 'test_payer@testuser.com';
+          const adminEmail = 'payments-acceptance-admin@morro.invalid';
+          const businessId = 'biz_payments_acceptance';
+          const cardPayerEmail = 'payments.acceptance@example.com';
+          const origin = base;
+          const referer = `${base}/business-onboarding.html`;
+
+          function assert(ok, code) { if (!ok) throw new Error(code); }
+          async function payload(response) {
+            const text = await response.text();
+            try { return text ? JSON.parse(text) : {}; }
+            catch { throw new Error(`NON_JSON_${response.status}`); }
+          }
+          function errorCode(value) {
+            return String(value?.error || value?.message || 'UNKNOWN').slice(0, 180);
+          }
+          function cookie(response) {
+            const values = typeof response.headers.getSetCookie === 'function'
+              ? response.headers.getSetCookie()
+              : [response.headers.get('set-cookie')].filter(Boolean);
+            return String(values[0] || '').split(';', 1)[0];
+          }
+
+          async function login(email) {
+            const response = await fetch(`${base}/api/dashboard/auth/login`, {
+              method: 'POST',
+              headers: { Accept: 'application/json', 'Content-Type': 'application/json', Origin: origin, Referer: referer },
+              body: JSON.stringify({ email, password }),
+            });
+            const data = await payload(response);
+            assert(response.status === 200, `LOGIN_${response.status}_${errorCode(data)}`);
+            const sessionCookie = cookie(response);
+            assert(sessionCookie.includes('='), 'COOKIE_MISSING');
+            assert(typeof data.csrfToken === 'string' && data.csrfToken.length > 10, 'CSRF_MISSING');
+            return { cookie: sessionCookie, csrf: data.csrfToken };
+          }
+
+          function ownerHeaders(session, mutation = true) {
+            return {
+              Accept: 'application/json', Origin: origin, Referer: referer, Cookie: session.cookie,
+              'X-Business-ID': businessId,
+              'X-Correlation-ID': `e2e_${randomUUID()}`,
+              ...(mutation ? { 'X-CSRF-Token': session.csrf, 'Content-Type': 'application/json' } : {}),
+            };
+          }
+          function adminHeaders(session, mutation = true) {
+            return {
+              Accept: 'application/json', Origin: origin, Referer: referer, Cookie: session.cookie,
+              'X-Correlation-ID': `e2e_${randomUUID()}`,
+              ...(mutation ? { 'X-CSRF-Token': session.csrf, 'Content-Type': 'application/json' } : {}),
+            };
+          }
+
+          async function tokenize(publicKey) {
+            const url = new URL('https://api.mercadopago.com/v1/card_tokens');
+            url.searchParams.set('public_key', publicKey);
+            const response = await fetch(url, {
+              method: 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                card_number: '5031433215406351', expiration_month: 11, expiration_year: 2030,
+                security_code: '123',
+                cardholder: { name: 'APRO', identification: { type: 'CPF', number: '12345678909' } },
+              }),
+            });
+            const data = await payload(response);
+            assert(response.ok && typeof data.id === 'string', `TOKEN_${response.status}_${errorCode(data)}`);
+            return data.id;
+          }
+
+          async function checkoutStatus(checkout) {
+            const response = await fetch(`${base}/api/payments/v1/checkouts/${encodeURIComponent(checkout.checkoutId)}`, {
+              headers: { Accept: 'application/json', 'X-Checkout-Token': checkout.statusToken, 'X-Correlation-ID': `status_${randomUUID()}` },
+              cache: 'no-store',
+            });
+            const data = await payload(response);
+            assert(response.ok, `STATUS_${response.status}_${errorCode(data)}`);
+            return data.data || {};
+          }
+          async function waitForCheckout(checkout, target, attempts = 90) {
+            for (let index = 0; index < attempts; index += 1) {
+              const state = await checkoutStatus(checkout);
+              if (state.status === target) return state;
+              if (target === 'CONFIRMED' && ['FAILED','CANCELLED','EXPIRED','REFUNDED'].includes(state.status)) {
+                throw new Error(`CHECKOUT_TERMINAL_${state.status}`);
+              }
+              await new Promise(resolve => setTimeout(resolve, 2000));
+            }
+            throw new Error(`CHECKOUT_${target}_TIMEOUT`);
+          }
+
+          async function providerRead(path, session) {
+            const response = await fetch(path, { method: 'GET', headers: ownerHeaders(session, false), cache: 'no-store' });
+            const data = await payload(response);
+            assert(response.status === 200, `PROVIDER_READ_${response.status}_${errorCode(data)}`);
+            return data.data || {};
+          }
+          async function providerTransition(path, action, expectedStatus, session) {
+            const response = await fetch(`${path}/${action}`, {
+              method: 'POST', headers: ownerHeaders(session, true), body: JSON.stringify({}),
+            });
+            const data = await payload(response);
+            assert(response.status === 200, `PROVIDER_${action.toUpperCase()}_${response.status}_${errorCode(data)}`);
+            assert(data.data?.providerStatus === expectedStatus, `PROVIDER_${action.toUpperCase()}_STATUS_${data.data?.providerStatus}`);
+            const readback = await providerRead(path, session);
+            assert(readback.providerStatus === expectedStatus, `PROVIDER_${action.toUpperCase()}_READBACK_${readback.providerStatus}`);
+            console.log(`SUBSCRIPTION_${action.toUpperCase()}_READBACK=PASS status=${expectedStatus}`);
+          }
+
+          (async () => {
+            assert(base === 'https://morro-digital-v2-staging.onrender.com', 'TARGET_DENIED');
+            assert(password.length >= 20, 'SECRET_MISSING');
+
+            const ready = await fetch(`${base}/readyz`, { cache: 'no-store' });
+            assert(ready.status === 200, `READY_${ready.status}`);
+            assert(ready.headers.get('x-release-sha') === expectedSha, 'SHA_MISMATCH');
+            console.log('STAGING_EXACT_RELEASE=PASS');
+
+            const runtimeResponse = await fetch(`${base}/runtime-config.js`, { cache: 'no-store' });
+            assert(runtimeResponse.ok, `RUNTIME_CONFIG_${runtimeResponse.status}`);
+            const runtimeText = await runtimeResponse.text();
+            const match = runtimeText.match(/Object\.freeze\((\{.*\})\);/su);
+            assert(match, 'RUNTIME_CONFIG_PARSE');
+            const publicKey = String(JSON.parse(match[1]).VITE_MERCADO_PAGO_PUBLIC_KEY || '');
+            assert(publicKey.length > 20, 'PUBLIC_KEY_MISSING');
+
+            const owner = await login(ownerEmail);
+            const admin = await login(adminEmail);
+            console.log('AUTH_OWNER_ADMIN=PASS');
+
+            const suffix = `${Date.now()}_${randomUUID().slice(0,8)}`;
+            const acceptedAt = new Date().toISOString();
+            const handoff = {
+              sessionId: `business_acceptance_${suffix}`,
+              planId: 'provider_acceptance_test',
+              contractor: { name: 'Payments Acceptance', email: ownerEmail, phone: '75999999999', document: '12345678900' },
+              businessDraft: { demoBusinessId: `demo_${suffix}`, displayName: 'Payments Acceptance TEST', categoryId: 'events', specialty: 'Provider TEST', environment: 'sandbox', publishable: false },
+              acceptedTerms: [
+                { type: 'terms', version: 'business-partner-terms-2026-08', acceptedAt },
+                { type: 'privacy', version: 'privacy-policy-2026-08', acceptedAt },
+              ],
+              returnUrl: `${base}/business-onboarding.html`, tutorial: false, requiresPaymentsCapability: true,
+            };
+            const checkoutKey = `business:${handoff.sessionId}:${handoff.planId}`;
+            async function createCheckout() {
+              const response = await fetch(`${base}/api/payments/v1/checkouts`, {
+                method: 'POST', headers: { ...ownerHeaders(owner, true), 'Idempotency-Key': checkoutKey },
+                body: JSON.stringify(handoff),
+              });
+              const data = await payload(response);
+              assert(response.ok, `CHECKOUT_CREATE_${response.status}_${errorCode(data)}`);
+              return data.data;
+            }
+            const checkout = await createCheckout();
+            assert(checkout?.plan?.amount?.minorUnits === 1000, 'SERVER_AMOUNT_MISMATCH');
+            assert(checkout?.plan?.amount?.currency === 'BRL', 'SERVER_CURRENCY_MISMATCH');
+            const checkoutReplay = await createCheckout();
+            assert(checkoutReplay.checkoutId === checkout.checkoutId, 'CHECKOUT_REPLAY_ORDER_MISMATCH');
+            assert(checkoutReplay.paymentId === checkout.paymentId, 'CHECKOUT_REPLAY_PAYMENT_MISMATCH');
+            console.log(`CHECKOUT_IDEMPOTENCY=PASS order=${checkout.checkoutId} payment=${checkout.paymentId}`);
+
+            const cardToken = await tokenize(publicKey);
+            const card = await fetch(`${base}/api/payments/v1/checkouts/${encodeURIComponent(checkout.checkoutId)}/card`, {
+              method: 'POST',
+              headers: { Accept: 'application/json', 'Content-Type': 'application/json', Origin: origin, Referer: referer, 'X-Checkout-Token': checkout.statusToken, 'X-Correlation-ID': `brick_${randomUUID()}` },
+              body: JSON.stringify({ token: cardToken, installments: 1, payment_method_id: 'master', payer: { email: cardPayerEmail } }),
+            });
+            const cardData = await payload(card);
+            assert(card.ok, `CARD_${card.status}_${errorCode(cardData)}`);
+            console.log('CARD_PROVIDER_TEST=PASS');
+
+            const confirmed = await waitForCheckout(checkout, 'CONFIRMED');
+            assert(confirmed.verifiedPayment?.verified === true, 'VERIFIED_PAYMENT_MISSING');
+            console.log('WEBHOOK_CONFIRMED=PASS');
+
+            async function materialize() {
+              const response = await fetch(`${base}/api/payments/v1/subscriptions`, {
+                method: 'POST', headers: ownerHeaders(owner, true), body: JSON.stringify({ orderId: checkout.checkoutId }),
+              });
+              const data = await payload(response);
+              assert(response.status === 200 || response.status === 201, `MATERIALIZE_${response.status}_${errorCode(data)}`);
+              return { status: response.status, data: data.data || {} };
+            }
+            const materialized = await materialize();
+            const subscriptionId = String(materialized.data.subscriptionId || '');
+            assert(subscriptionId.startsWith('sub_'), 'SUBSCRIPTION_ID_INVALID');
+            const materializedReplay = await materialize();
+            assert(materializedReplay.status === 200, 'SUBSCRIPTION_REPLAY_STATUS');
+            assert(materializedReplay.data.subscriptionId === subscriptionId, 'SUBSCRIPTION_REPLAY_MISMATCH');
+            console.log(`SUBSCRIPTION_MATERIALIZATION_IDEMPOTENCY=PASS subscription=${subscriptionId}`);
+
+            const subscriptionToken = await tokenize(publicKey);
+            const providerPath = `${base}/api/payments/v1/subscriptions/${encodeURIComponent(subscriptionId)}/provider`;
+            const preapproval = await fetch(providerPath, {
+              method: 'POST', headers: ownerHeaders(owner, true), body: JSON.stringify({ cardToken: subscriptionToken }),
+            });
+            const preapprovalData = await payload(preapproval);
+            assert(preapproval.status === 201, `PREAPPROVAL_${preapproval.status}_${errorCode(preapprovalData)}`);
+            assert(preapprovalData.data?.providerStatus === 'authorized', `PREAPPROVAL_STATUS_${preapprovalData.data?.providerStatus}`);
+            const providerReference = String(preapprovalData.data?.providerSubscriptionReference || '');
+            assert(providerReference.length > 4, 'PROVIDER_SUBSCRIPTION_REFERENCE_MISSING');
+            console.log(`PREAPPROVAL_CREATE=PASS status=authorized reference=${providerReference}`);
+
+            const preapprovalReplay = await fetch(providerPath, {
+              method: 'POST', headers: ownerHeaders(owner, true), body: JSON.stringify({ cardToken: subscriptionToken }),
+            });
+            const preapprovalReplayData = await payload(preapprovalReplay);
+            assert(preapprovalReplay.status === 200, `PREAPPROVAL_REPLAY_${preapprovalReplay.status}_${errorCode(preapprovalReplayData)}`);
+            assert(preapprovalReplayData.data?.replayed === true, 'PREAPPROVAL_REPLAY_FLAG');
+            assert(preapprovalReplayData.data?.providerSubscriptionReference === providerReference, 'PREAPPROVAL_REPLAY_REFERENCE');
+            console.log('PREAPPROVAL_IDEMPOTENCY=PASS');
+
+            const initialRead = await providerRead(providerPath, owner);
+            assert(initialRead.providerStatus === 'authorized', `PREAPPROVAL_READ_${initialRead.providerStatus}`);
+            console.log('PREAPPROVAL_READBACK=PASS status=authorized');
+            await providerTransition(providerPath, 'pause', 'paused', owner);
+            await providerTransition(providerPath, 'resume', 'authorized', owner);
+            await providerTransition(providerPath, 'cancel', 'cancelled', owner);
+
+            const refundPath = `${base}/api/payments/v1/payments/${encodeURIComponent(checkout.paymentId)}/refunds`;
+            const refundKey = `refund:v1:${checkout.paymentId}`;
+            async function refund() {
+              const response = await fetch(refundPath, {
+                method: 'POST', headers: { ...ownerHeaders(owner, true), 'Idempotency-Key': refundKey },
+                body: JSON.stringify({ reason: 'requested_by_business' }),
+              });
+              const data = await payload(response);
+              assert(response.status === 200 || response.status === 202, `REFUND_${response.status}_${errorCode(data)}`);
+              return { status: response.status, data: data.data || {} };
+            }
+            const firstRefund = await refund();
+            assert(firstRefund.data.paymentId === checkout.paymentId, 'REFUND_PAYMENT_MISMATCH');
+            const refundReplay = await refund();
+            assert(refundReplay.data.refundId === firstRefund.data.refundId, 'REFUND_REPLAY_ID_MISMATCH');
+            assert(refundReplay.data.replayed === true, 'REFUND_REPLAY_FLAG');
+            console.log(`REFUND_COMMAND_IDEMPOTENCY=PASS status=${firstRefund.data.status}`);
+
+            const refunded = await waitForCheckout(checkout, 'REFUNDED', 120);
+            assert(refunded.status === 'REFUNDED', 'REFUND_VERIFIED_STATUS');
+            console.log('REFUND_VERIFIED_WEBHOOK=PASS status=REFUNDED');
+
+            const runId = `rrn_${randomUUID().replaceAll('-', '')}`;
+            const reconciliationPath = `${base}/api/payments/v1/reconciliation/payments/${encodeURIComponent(checkout.paymentId)}/runs`;
+            async function reconcile() {
+              const response = await fetch(reconciliationPath, {
+                method: 'POST', headers: { ...adminHeaders(admin, true), 'Idempotency-Key': `reconciliation:v1:${runId}` },
+                body: JSON.stringify({ runId }),
+              });
+              const data = await payload(response);
+              assert(response.status === 200 || response.status === 201, `RECONCILIATION_${response.status}_${errorCode(data)}`);
+              return { status: response.status, data: data.data || {} };
+            }
+            const reconciliation = await reconcile();
+            assert(reconciliation.status === 201, 'RECONCILIATION_FIRST_STATUS');
+            assert(reconciliation.data.replayed === false, 'RECONCILIATION_FIRST_REPLAY');
+            assert(reconciliation.data.findingCount === 0, `RECONCILIATION_FINDINGS_${reconciliation.data.findingCount}`);
+            const reconciliationReplay = await reconcile();
+            assert(reconciliationReplay.status === 200, 'RECONCILIATION_REPLAY_STATUS');
+            assert(reconciliationReplay.data.replayed === true, 'RECONCILIATION_REPLAY_FLAG');
+
+            const findingsResponse = await fetch(`${base}/api/payments/v1/reconciliation/payments/${encodeURIComponent(checkout.paymentId)}/findings`, {
+              method: 'GET', headers: adminHeaders(admin, false), cache: 'no-store',
+            });
+            const findingsData = await payload(findingsResponse);
+            assert(findingsResponse.status === 200, `RECONCILIATION_READ_${findingsResponse.status}_${errorCode(findingsData)}`);
+            assert(Array.isArray(findingsData.data?.findings), 'RECONCILIATION_FINDINGS_INVALID');
+            assert(findingsData.data.findings.length === 0, `RECONCILIATION_OPEN_FINDINGS_${findingsData.data.findings.length}`);
+            console.log('RECONCILIATION_REPLAY_READBACK=PASS findings=0');
+
+            console.log('FULL_PROVIDER_E2E=PASS');
+            console.log('REAL_CARD_USED=NO');
+            console.log('REAL_MONEY_USED=NO');
+            console.log('PRODUCTION_TOUCHED=NO');
+            console.log('LEGACY_STAGING_TOUCHED=NO');
+          })().catch(error => {
+            console.error(`FULL_PROVIDER_E2E=FAIL reason=${String(error?.message || error).slice(0,320)}`);
+            process.exitCode = 1;
+          });
+          NODE
