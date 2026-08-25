@@ -230,6 +230,7 @@ export function createMercadoPagoSubscriptionProviderFromEnvironment(
       const headers = new Headers(init.headers);
       headers.set("Accept", "application/json");
       headers.set("Authorization", `Bearer ${token}`);
+      if (mode === "test") headers.set("X-scope", "stage");
       if (init.body) headers.set("Content-Type", "application/json");
       const response = await executeBoundedProviderRequest({
         fetch: fetchImpl,
