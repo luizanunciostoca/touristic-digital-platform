@@ -1,0 +1,40 @@
+name: Ops Format Subscription 9cf796
+
+on:
+  push:
+    branches:
+      - ops/format-subscription-9cf796-20260824
+
+permissions:
+  contents: read
+
+jobs:
+  format-diff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Print canonical Prettier diff
+        run: |
+          pnpm exec prettier --write \
+            apps/morro-digital-platform/src/payments-browser-subscription-client.ts \
+            apps/morro-digital-platform/src/payments-browser-subscription-client.test.ts \
+            apps/morro-digital-platform/tooling/payments-subscription-api.mjs \
+            packages/ordering/src/subscription-activation-application.ts \
+            packages/ordering/src/subscription-activation-application.test.ts
+          echo "FORMAT_DIFF_BEGIN"
+          git diff -- \
+            apps/morro-digital-platform/src/payments-browser-subscription-client.ts \
+            apps/morro-digital-platform/src/payments-browser-subscription-client.test.ts \
+            apps/morro-digital-platform/tooling/payments-subscription-api.mjs \
+            packages/ordering/src/subscription-activation-application.ts \
+            packages/ordering/src/subscription-activation-application.test.ts
+          echo "FORMAT_DIFF_END"
+          git diff --check
