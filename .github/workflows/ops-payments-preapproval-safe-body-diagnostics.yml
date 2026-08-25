@@ -1,0 +1,104 @@
+name: Ops Payments Preapproval Safe Body Diagnostics
+
+on:
+  push:
+    branches:
+      - ops/payments-preapproval-safe-body-diagnostics-59ebf566-20260825
+
+permissions:
+  contents: write
+
+jobs:
+  validate-and-transfer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      EXPECTED_HEAD: 59ebf5667ea25fadb4647c75237356b123a5d119
+      TARGET_BRANCH: fix/mercado-pago-bricks-subscriptions-20260823
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_HEAD }}
+          fetch-depth: 0
+      - name: Guard exact target head
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual="$(git ls-remote origin "refs/heads/${TARGET_BRANCH}" | awk '{print $1}')"
+          test "$actual" = "$EXPECTED_HEAD"
+      - name: Apply safe diagnostic patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          python <<'PY'
+          from pathlib import Path
+
+          retry = Path('services/financial/src/provider-retry.ts')
+          text = retry.read_text()
+          old='''export interface ProviderUnavailableResponseMetadata {\n  readonly providerRequestId?: string | null;\n  readonly retryAfter?: string | null;\n  readonly contentType?: string | null;\n}\n'''
+          new='''export interface ProviderUnavailableResponseMetadata {\n  readonly providerRequestId?: string | null;\n  readonly retryAfter?: string | null;\n  readonly contentType?: string | null;\n  readonly providerErrorCode?: string | null;\n  readonly providerBodyStatus?: number | null;\n  readonly providerCauseCodes?: readonly string[] | null;\n}\n'''
+          assert text.count(old)==1
+          text=text.replace(old,new)
+          old='''export class ProviderRequestUnavailableError extends Error {\n  readonly httpStatus: number | null;\n  readonly providerRequestId: string | null;\n  readonly retryAfter: string | null;\n  readonly contentType: string | null;\n'''
+          new='''export class ProviderRequestUnavailableError extends Error {\n  readonly httpStatus: number | null;\n  readonly providerRequestId: string | null;\n  readonly retryAfter: string | null;\n  readonly contentType: string | null;\n  readonly providerErrorCode: string | null;\n  readonly providerBodyStatus: number | null;\n  readonly providerCauseCodes: readonly string[];\n'''
+          assert text.count(old)==1
+          text=text.replace(old,new)
+          old='''    this.retryAfter = boundedResponseMetadataValue(metadata.retryAfter, 120);\n    this.contentType = boundedResponseMetadataValue(metadata.contentType, 120);\n  }\n}\n'''
+          new='''    this.retryAfter = boundedResponseMetadataValue(metadata.retryAfter, 120);\n    this.contentType = boundedResponseMetadataValue(metadata.contentType, 120);\n    this.providerErrorCode = boundedProviderErrorCode(metadata.providerErrorCode);\n    this.providerBodyStatus =\n      typeof metadata.providerBodyStatus === "number" &&\n      Number.isInteger(metadata.providerBodyStatus) &&\n      metadata.providerBodyStatus >= 100 &&\n      metadata.providerBodyStatus <= 599\n        ? metadata.providerBodyStatus\n        : null;\n    this.providerCauseCodes = Object.freeze(\n      (metadata.providerCauseCodes ?? [])\n        .map((value) => boundedProviderErrorCode(value))\n        .filter((value): value is string => value !== null)\n        .slice(0, 5),\n    );\n  }\n}\n'''
+          assert text.count(old)==1
+          text=text.replace(old,new)
+          anchor='''function boundedInteger(\n'''
+          insert='''const safeProviderErrorCode = /^[A-Za-z0-9_.:-]{1,80}$/u;\n\nfunction boundedProviderErrorCode(value: unknown): string | null {\n  const normalized =\n    typeof value === "number" && Number.isSafeInteger(value)\n      ? String(value)\n      : boundedResponseMetadataValue(\n          typeof value === "string" ? value : null,\n          80,\n        );\n  return normalized && safeProviderErrorCode.test(normalized)\n    ? normalized\n    : null;\n}\n\nfunction record(value: unknown): Record<string, unknown> | null {\n  return value !== null && typeof value === "object" && !Array.isArray(value)\n    ? (value as Record<string, unknown>)\n    : null;\n}\n\nasync function boundedResponseText(\n  response: Response,\n  maxBytes = 8 * 1024,\n): Promise<string | null> {\n  const declaredLength = Number(response.headers.get("content-length") ?? "0");\n  if (Number.isFinite(declaredLength) && declaredLength > maxBytes) return null;\n  if (!response.body) return null;\n  const reader = response.body.getReader();\n  const decoder = new TextDecoder();\n  let received = 0;\n  let text = "";\n  try {\n    while (true) {\n      const chunk = await reader.read();\n      if (chunk.done) break;\n      received += chunk.value.byteLength;\n      if (received > maxBytes) {\n        await reader.cancel();\n        return null;\n      }\n      text += decoder.decode(chunk.value, { stream: true });\n    }\n    text += decoder.decode();\n    return text;\n  } finally {\n    reader.releaseLock();\n  }\n}\n\nasync function transientResponseMetadata(\n  response: Response,\n): Promise<ProviderUnavailableResponseMetadata> {\n  const contentType = boundedResponseMetadataValue(\n    response.headers.get("content-type"),\n    120,\n  );\n  const base: ProviderUnavailableResponseMetadata = {\n    providerRequestId: response.headers.get("x-request-id"),\n    retryAfter: response.headers.get("retry-after"),\n    contentType,\n  };\n  if (!contentType?.toLowerCase().includes("application/json")) return base;\n  try {\n    const raw = await boundedResponseText(response.clone());\n    if (!raw) return base;\n    const payload = record(JSON.parse(raw));\n    if (!payload) return base;\n    const cause = Array.isArray(payload.cause) ? payload.cause.slice(0, 5) : [];\n    const providerCauseCodes = cause\n      .map((item) => boundedProviderErrorCode(record(item)?.code))\n      .filter((value): value is string => value !== null);\n    return {\n      ...base,\n      providerErrorCode: boundedProviderErrorCode(payload.error),\n      providerBodyStatus:\n        typeof payload.status === "number" && Number.isInteger(payload.status)\n          ? payload.status\n          : null,\n      providerCauseCodes,\n    };\n  } catch {\n    return base;\n  }\n}\n\n'''
+          assert text.count(anchor)==1
+          text=text.replace(anchor,insert+anchor)
+          old='''    const transientMetadata = {\n      providerRequestId: response.headers.get("x-request-id"),\n      retryAfter: response.headers.get("retry-after"),\n      contentType: response.headers.get("content-type"),\n    };\n    await discardResponse(response);\n    if (attempt >= attempts) {\n      throw new ProviderRequestUnavailableError(\n        response.status,\n        transientMetadata,\n      );\n    }\n'''
+          new='''    if (attempt >= attempts) {\n      const transientMetadata = await transientResponseMetadata(response);\n      await discardResponse(response);\n      throw new ProviderRequestUnavailableError(\n        response.status,\n        transientMetadata,\n      );\n    }\n    await discardResponse(response);\n'''
+          assert text.count(old)==1
+          text=text.replace(old,new)
+          retry.write_text(text)
+
+          provider=Path('services/financial/src/mercado-pago-subscription-provider.ts')
+          text=provider.read_text()
+          old='''    providerRequestId?: string;\n    retryAfter?: string;\n    contentType?: string;\n  }>,\n'''
+          new='''    providerRequestId?: string;\n    retryAfter?: string;\n    contentType?: string;\n    providerErrorCode?: string;\n    providerBodyStatus?: number;\n    providerCauseCodes?: readonly string[];\n    credentialClass?: string;\n  }>,\n'''
+          assert text.count(old)==1
+          text=text.replace(old,new)
+          old='''        ...(boundedString(event.contentType, 120)\n          ? { contentType: boundedString(event.contentType, 120) }\n          : {}),\n      })}`,\n'''
+          new='''        ...(boundedString(event.contentType, 120)\n          ? { contentType: boundedString(event.contentType, 120) }\n          : {}),\n        ...(boundedString(event.providerErrorCode, 80)\n          ? { providerErrorCode: boundedString(event.providerErrorCode, 80) }\n          : {}),\n        ...(Number.isInteger(event.providerBodyStatus)\n          ? { providerBodyStatus: event.providerBodyStatus }\n          : {}),\n        ...(event.providerCauseCodes?.length\n          ? { providerCauseCodes: event.providerCauseCodes.slice(0, 5) }\n          : {}),\n        ...(boundedString(event.credentialClass, 20)\n          ? { credentialClass: boundedString(event.credentialClass, 20) }\n          : {}),\n      })}`,\n'''
+          assert text.count(old)==1
+          text=text.replace(old,new)
+          anchor='''function unavailable(error: unknown): never {\n'''
+          insert='''function credentialClass(token: string): "TEST" | "APP_USR" | "OTHER" {\n  if (token.startsWith("TEST-")) return "TEST";\n  if (token.startsWith("APP_USR-")) return "APP_USR";\n  return "OTHER";\n}\n\n'''
+          assert text.count(anchor)==1
+          text=text.replace(anchor,insert+anchor)
+          old='''          ...(error.contentType === null\n            ? {}\n            : { contentType: error.contentType }),\n        });\n'''
+          new='''          ...(error.contentType === null\n            ? {}\n            : { contentType: error.contentType }),\n          ...(error.providerErrorCode === null\n            ? {}\n            : { providerErrorCode: error.providerErrorCode }),\n          ...(error.providerBodyStatus === null\n            ? {}\n            : { providerBodyStatus: error.providerBodyStatus }),\n          ...(error.providerCauseCodes.length === 0\n            ? {}\n            : { providerCauseCodes: error.providerCauseCodes }),\n          credentialClass: credentialClass(token),\n        });\n'''
+          assert text.count(old)==1
+          text=text.replace(old,new)
+          provider.write_text(text)
+          PY
+      - name: Install
+        run: corepack pnpm install --frozen-lockfile
+      - name: Format
+        run: corepack pnpm exec prettier --write services/financial/src/provider-retry.ts services/financial/src/mercado-pago-subscription-provider.ts
+      - name: Focused tests
+        run: corepack pnpm --filter @touristic/financial-server exec vitest run src/provider-retry.test.ts src/provider-transient-metadata.test.ts src/mercado-pago-subscription-provider.test.ts
+      - name: Lint
+        run: corepack pnpm --filter @touristic/financial-server lint
+      - name: Typecheck
+        run: corepack pnpm --filter @touristic/financial-server typecheck
+      - name: Build
+        run: corepack pnpm --filter @touristic/financial-server build
+      - name: Validate diff
+        run: git diff --check
+      - name: Transfer validated patch to PR branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual="$(git ls-remote origin "refs/heads/${TARGET_BRANCH}" | awk '{print $1}')"
+          test "$actual" = "$EXPECTED_HEAD"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add services/financial/src/provider-retry.ts services/financial/src/mercado-pago-subscription-provider.ts
+          git commit -m "chore(payments): expose safe provider error codes"
+          git push origin "HEAD:${TARGET_BRANCH}"
