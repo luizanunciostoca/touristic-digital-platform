@@ -29,7 +29,7 @@ describe("M152 bounded financial provider retry", () => {
     let attempt = 0;
     const fetchMock: typeof fetch = async (_input, init) => {
       captured.push({
-        key: new Headers(init?.headers).get("Idempotency-Key"),
+        key: new Headers(init?.headers).get("X-Idempotency-Key"),
         body: init?.body,
       });
       attempt += 1;
@@ -39,7 +39,9 @@ describe("M152 bounded financial provider retry", () => {
     const retryRuntime = runtime();
     const init: RequestInit = {
       method: "POST",
-      headers: { "Idempotency-Key": "payment:v1:ord_retry_12345678" },
+      headers: {
+        "X-Idempotency-Key": "payment:v1:ord_retry_12345678",
+      },
       body: JSON.stringify({ externalReference: "pay_retry_12345678" }),
     };
 

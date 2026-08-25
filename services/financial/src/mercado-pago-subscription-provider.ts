@@ -417,7 +417,6 @@ export function createMercadoPagoSubscriptionProviderFromEnvironment(
         const created = await requestJson(mercadoPagoPreapprovalEndpoint, {
           method: "POST",
           headers: {
-            "Idempotency-Key": request.idempotencyKey,
             "X-Idempotency-Key": request.idempotencyKey,
           },
           body: JSON.stringify({

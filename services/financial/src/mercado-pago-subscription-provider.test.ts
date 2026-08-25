@@ -107,7 +107,7 @@ describe("Mercado Pago subscription provider", () => {
     expect(requests[1]?.init?.method).toBe("GET");
 
     const headers = new Headers(requests[0]?.init?.headers);
-    expect(headers.get("Idempotency-Key")).toBe(idempotencyKey);
+    expect(headers.get("Idempotency-Key")).toBeNull();
     expect(headers.get("X-Idempotency-Key")).toBe(idempotencyKey);
     expect(headers.get("X-scope")).toBe("stage");
     const body = JSON.parse(requireStringBody(requests[0]?.init)) as Record<
