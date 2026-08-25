@@ -33,12 +33,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          git show "$GITHUB_SHA:tooling/ops-apply-order-confirmation-projection.py" > /tmp/apply-order-projection.py
           git fetch origin "$TARGET_BRANCH"
           actual="$(git rev-parse "origin/$TARGET_BRANCH")"
           test "$actual" = "$EXPECTED_HEAD" || { echo "EXPECTED_HEAD_MISMATCH actual=$actual"; exit 1; }
           git checkout -B "$TARGET_BRANCH" "origin/$TARGET_BRANCH"
       - name: Apply minimal projection patch
-        run: python "$GITHUB_WORKSPACE/tooling/ops-apply-order-confirmation-projection.py"
+        run: python /tmp/apply-order-projection.py
       - name: Install dependencies
         run: corepack pnpm install --frozen-lockfile
       - name: Build workspace entrypoints
