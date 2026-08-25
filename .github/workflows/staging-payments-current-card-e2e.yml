@@ -1,0 +1,46 @@
+name: Staging Payments Current Card E2E
+
+on:
+  push:
+    branches:
+      - ops/payments-full-provider-e2e-current-card-5f4ada6-20260824
+
+permissions:
+  contents: read
+
+jobs:
+  current-card-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      STAGING_URL: https://morro-digital-v2-staging.onrender.com
+      ACCEPTANCE_PASSWORD: ${{ secrets.STAGING_PAYMENTS_ACCEPTANCE_PASSWORD }}
+      EXPECTED_RELEASE_SHA: 5f4ada617ff78faf2ac133db0f3873685992eb75
+    steps:
+      - name: Checkout pinned operational harness
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Run lifecycle with current official TEST Mastercard
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          source = Path('.github/workflows/staging-payments-full-provider-e2e.yml').read_text()
+          marker = "          node <<'NODE'"
+          start = source.index(marker)
+          end_marker = "\n          NODE"
+          end = source.index(end_marker, start) + len(end_marker)
+          block = source[start:end]
+          block = "\n".join(
+              line[10:] if line.startswith("          ") else line
+              for line in block.splitlines()
+          )
+          block = block.replace('5031433215406351', '5480832801033311')
+          if '5031433215406351' in block:
+              raise SystemExit('OLD_TEST_CARD_STILL_PRESENT')
+          if '5480832801033311' not in block:
+              raise SystemExit('CURRENT_TEST_CARD_MISSING')
+          Path('/tmp/run-current-card.sh').write_text(block + '\n')
+          PY
+          bash /tmp/run-current-card.sh
