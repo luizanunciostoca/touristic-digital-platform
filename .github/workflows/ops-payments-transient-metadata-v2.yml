@@ -32,6 +32,7 @@ jobs:
 
           python - <<'PY'
           from pathlib import Path
+          import re
 
           retry_path = Path('services/financial/src/provider-retry.ts')
           retry = retry_path.read_text()
@@ -104,6 +105,7 @@ jobs:
           if retry.count(old_class) != 1:
               raise SystemExit(f'RETRY_CLASS_ANCHOR_COUNT={retry.count(old_class)}')
           retry = retry.replace(old_class, new_class, 1)
+
           old_final = '''    await discardResponse(response);
               if (attempt >= attempts) {
                 throw new ProviderRequestUnavailableError(response.status);
@@ -128,26 +130,23 @@ jobs:
 
           sub_path = Path('services/financial/src/mercado-pago-subscription-provider.ts')
           sub = sub_path.read_text()
-          old_type = '''    reason: string;
-              httpStatus?: number;
-            }>,
-          '''
-          new_type = '''    reason: string;
-              httpStatus?: number;
-              providerRequestId?: string;
-              retryAfter?: string;
-              contentType?: string;
-            }>,
-          '''
-          if sub.count(old_type) != 1:
-              raise SystemExit(f'SUB_TYPE_ANCHOR_COUNT={sub.count(old_type)}')
-          sub = sub.replace(old_type, new_type, 1)
+          type_token = '    httpStatus?: number;\n'
+          if sub.count(type_token) != 1:
+              raise SystemExit(f'SUB_TYPE_ANCHOR_COUNT={sub.count(type_token)}')
+          sub = sub.replace(
+              type_token,
+              '    httpStatus?: number;\n    providerRequestId?: string;\n    retryAfter?: string;\n    contentType?: string;\n',
+              1,
+          )
 
-          status_block = '''        ...(Number.isInteger(event.httpStatus)
-                  ? { httpStatus: event.httpStatus }
-                  : {}),
-          '''
-          metadata_block = '''        ...(Number.isInteger(event.httpStatus)
+          status_pattern = re.compile(
+              r'\.\.\.\(Number\.isInteger\(event\.httpStatus\)\s*'
+              r'\?\s*\{\s*httpStatus:\s*event\.httpStatus\s*\}\s*'
+              r':\s*\{\s*\}\s*\),'
+          )
+          if len(status_pattern.findall(sub)) != 1:
+              raise SystemExit(f'SUB_STATUS_ANCHOR_COUNT={len(status_pattern.findall(sub))}')
+          status_replacement = '''...(Number.isInteger(event.httpStatus)
                   ? { httpStatus: event.httpStatus }
                   : {}),
                 ...(boundedString(event.providerRequestId, 120)
@@ -158,18 +157,17 @@ jobs:
                   : {}),
                 ...(boundedString(event.contentType, 120)
                   ? { contentType: boundedString(event.contentType, 120) }
-                  : {}),
-          '''
-          if sub.count(status_block) != 1:
-              raise SystemExit(f'SUB_STATUS_ANCHOR_COUNT={sub.count(status_block)}')
-          sub = sub.replace(status_block, metadata_block, 1)
+                  : {}),'''
+          sub = status_pattern.sub(status_replacement, sub, count=1)
 
-          catch_block = '''          ...(error.httpStatus === null
-                    ? {}
-                    : { httpStatus: error.httpStatus }),
-                });
-          '''
-          catch_replacement = '''          ...(error.httpStatus === null
+          catch_pattern = re.compile(
+              r'\.\.\.\(error\.httpStatus === null\s*'
+              r'\?\s*\{\s*\}\s*'
+              r':\s*\{\s*httpStatus:\s*error\.httpStatus\s*\}\s*\),'
+          )
+          if len(catch_pattern.findall(sub)) != 1:
+              raise SystemExit(f'SUB_CATCH_ANCHOR_COUNT={len(catch_pattern.findall(sub))}')
+          catch_replacement = '''...(error.httpStatus === null
                     ? {}
                     : { httpStatus: error.httpStatus }),
                   ...(error.providerRequestId === null
@@ -180,12 +178,8 @@ jobs:
                     : { retryAfter: error.retryAfter }),
                   ...(error.contentType === null
                     ? {}
-                    : { contentType: error.contentType }),
-                });
-          '''
-          if sub.count(catch_block) != 1:
-              raise SystemExit(f'SUB_CATCH_ANCHOR_COUNT={sub.count(catch_block)}')
-          sub_path.write_text(sub.replace(catch_block, catch_replacement, 1))
+                    : { contentType: error.contentType }),'''
+          sub_path.write_text(catch_pattern.sub(catch_replacement, sub, count=1))
           PY
 
           cat > services/financial/src/provider-transient-metadata.test.ts <<'TEST'
@@ -244,7 +238,7 @@ jobs:
               expect(captured).not.toHaveProperty("x-provider-secret");
             });
 
-            it("emits the allowlisted metadata without logging body or arbitrary headers", async () => {
+            it("emits allowlisted metadata without logging body or arbitrary headers", async () => {
               const amount = createMoney(12_900, "BRL");
               if (!amount) throw new Error("TEST_AMOUNT_INVALID");
               const subscriptionId = "sub_metadata_0001";
