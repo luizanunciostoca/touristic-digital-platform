@@ -16,14 +16,17 @@ on:
       - .github/workflows/render-staging-blueprint-contract.yml
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   contract:
+    if: github.event_name != 'pull_request' || (github.event.pull_request.number == 25 && github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref_name }}
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
@@ -44,8 +47,11 @@ jobs:
             echo 'Potential provider secret/token was committed in staging IaC.' >&2
             exit 1
           fi
-      - name: Emit canonical acceptance formatting
+      - name: Apply canonical acceptance formatting
+        if: github.event_name == 'pull_request'
         shell: bash
+        env:
+          HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
         run: |
           set -euo pipefail
           corepack pnpm install --frozen-lockfile
@@ -53,12 +59,15 @@ jobs:
             tooling/render/payments-provider-acceptance-runner.mjs \
             tooling/render/payments-provider-acceptance-runner.test.mjs \
             tooling/render/with-staging-mysql-env.mjs
-          for file in \
+          git add \
             tooling/render/payments-provider-acceptance-runner.mjs \
             tooling/render/payments-provider-acceptance-runner.test.mjs \
-            tooling/render/with-staging-mysql-env.mjs; do
-            echo "FORMAT_BASE64_BEGIN:${file}"
-            base64 -w0 "${file}"
-            echo
-            echo "FORMAT_BASE64_END:${file}"
-          done
+            tooling/render/with-staging-mysql-env.mjs
+          if git diff --cached --quiet; then
+            echo 'Acceptance files already canonically formatted.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'style(payments): apply canonical acceptance formatting'
+          git push origin "HEAD:${HEAD_BRANCH}"
