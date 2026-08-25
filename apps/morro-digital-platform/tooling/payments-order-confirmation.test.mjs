@@ -3,6 +3,7 @@ import test from "node:test";
 
 import { createOrderConfirmingVerifiedPaymentOutcomeService } from "./payments-api.mjs";
 
+// Exact-head regression for the verified Financial outcome -> Ordering transition.
 const orderId = "ord_12345678";
 const paymentId = "pay_12345678";
 
