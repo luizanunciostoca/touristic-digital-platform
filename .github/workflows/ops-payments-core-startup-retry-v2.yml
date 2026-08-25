@@ -1,0 +1,200 @@
+name: Ops Payments Core Startup Retry V2
+
+on:
+  push:
+    branches:
+      - ops/payments-core-startup-retry-v2-998e5f0-20260824
+
+permissions:
+  contents: write
+
+jobs:
+  validate-and-apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout ops branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+
+      - name: Guard candidate and apply minimal retry fix
+        shell: bash
+        env:
+          EXPECTED_HEAD: 998e5f0b6c63143faee9d05e50420f51a55dba54
+          TARGET_BRANCH: fix/mercado-pago-bricks-subscriptions-20260823
+        run: |
+          set -euo pipefail
+          git fetch origin "$TARGET_BRANCH"
+          actual="$(git rev-parse "origin/$TARGET_BRANCH")"
+          test "$actual" = "$EXPECTED_HEAD" || { echo "EXPECTED_HEAD_MISMATCH actual=$actual"; exit 1; }
+          git checkout -B "$TARGET_BRANCH" "origin/$TARGET_BRANCH"
+
+          python - <<'PY'
+          from pathlib import Path
+
+          core_path = Path('apps/morro-digital-platform/tooling/payments-api.mjs')
+          core = core_path.read_text()
+          old = '      runtime = null;\n      runtimeAudit(audit, {\n        action: "checkout.runtime",'
+          new = '      runtime = null;\n      startAttempted = false;\n      runtimeAudit(audit, {\n        action: "checkout.runtime",'
+          if core.count(old) != 1:
+              raise SystemExit(f'CORE_RETRY_PATCH_ANCHOR_COUNT={core.count(old)}')
+          core_path.write_text(core.replace(old, new, 1))
+
+          runtime_path = Path('apps/morro-digital-platform/tooling/payments-runtime-api.mjs')
+          runtime = runtime_path.read_text()
+          anchor = 'const maxProviderDataIdLength = 180;\n'
+          helper = '''const maxProviderDataIdLength = 180;
+          const paymentsCoreStartupAttempts = 3;
+          const paymentsCoreStartupRetryBaseMs = 500;
+
+          const defaultSleep = (delayMs) =>
+            new Promise((resolve) => {
+              setTimeout(resolve, delayMs);
+            });
+
+          export async function startPaymentsCoreWithRetry(
+            startAttempt,
+            {
+              attempts = paymentsCoreStartupAttempts,
+              baseDelayMs = paymentsCoreStartupRetryBaseMs,
+              sleep = defaultSleep,
+            } = {},
+          ) {
+            if (typeof startAttempt !== "function") {
+              throw new TypeError("PAYMENTS_CORE_START_ATTEMPT_REQUIRED");
+            }
+            if (!Number.isInteger(attempts) || attempts < 1 || attempts > 5) {
+              throw new TypeError("PAYMENTS_CORE_START_ATTEMPTS_INVALID");
+            }
+            if (
+              !Number.isInteger(baseDelayMs) ||
+              baseDelayMs < 0 ||
+              baseDelayMs > 5_000
+            ) {
+              throw new TypeError("PAYMENTS_CORE_START_RETRY_DELAY_INVALID");
+            }
+            if (typeof sleep !== "function") {
+              throw new TypeError("PAYMENTS_CORE_START_SLEEP_REQUIRED");
+            }
+
+            for (let attempt = 1; attempt <= attempts; attempt += 1) {
+              if (await startAttempt()) return true;
+              if (attempt < attempts) {
+                await sleep(baseDelayMs * attempt);
+              }
+            }
+            return false;
+          }
+          '''
+          if runtime.count(anchor) != 1:
+              raise SystemExit(f'RUNTIME_HELPER_ANCHOR_COUNT={runtime.count(anchor)}')
+          runtime = runtime.replace(anchor, helper, 1)
+          old_start = '      const coreReady = await core.start();\n'
+          new_start = '      const coreReady = await startPaymentsCoreWithRetry(() => core.start());\n'
+          if runtime.count(old_start) != 1:
+              raise SystemExit(f'RUNTIME_START_ANCHOR_COUNT={runtime.count(old_start)}')
+          runtime_path.write_text(runtime.replace(old_start, new_start, 1))
+
+          test_path = Path('apps/morro-digital-platform/tooling/payments-runtime-api.test.mjs')
+          test = test_path.read_text()
+          old_import = 'import { bindMercadoPagoWebhookQueryContext } from "./payments-runtime-api.mjs";\n'
+          new_import = '''import {
+            bindMercadoPagoWebhookQueryContext,
+            startPaymentsCoreWithRetry,
+          } from "./payments-runtime-api.mjs";
+          '''
+          if test.count(old_import) != 1:
+              raise SystemExit(f'TEST_IMPORT_ANCHOR_COUNT={test.count(old_import)}')
+          test = test.replace(old_import, new_import, 1)
+          test += '''
+
+          describe("Payments runtime bounded core startup retry", () => {
+            it("recovers after one transient core bootstrap failure", async () => {
+              let attempts = 0;
+              const delays = [];
+              const ready = await startPaymentsCoreWithRetry(
+                async () => {
+                  attempts += 1;
+                  return attempts === 2;
+                },
+                {
+                  attempts: 3,
+                  baseDelayMs: 25,
+                  sleep: async (delayMs) => {
+                    delays.push(delayMs);
+                  },
+                },
+              );
+
+              expect(ready).toBe(true);
+              expect(attempts).toBe(2);
+              expect(delays).toEqual([25]);
+            });
+
+            it("stays fail-closed after the bounded attempt budget is exhausted", async () => {
+              let attempts = 0;
+              const delays = [];
+              const ready = await startPaymentsCoreWithRetry(
+                async () => {
+                  attempts += 1;
+                  return false;
+                },
+                {
+                  attempts: 3,
+                  baseDelayMs: 25,
+                  sleep: async (delayMs) => {
+                    delays.push(delayMs);
+                  },
+                },
+              );
+
+              expect(ready).toBe(false);
+              expect(attempts).toBe(3);
+              expect(delays).toEqual([25, 50]);
+            });
+          });
+          '''
+          test_path.write_text(test)
+          PY
+
+      - name: Install dependencies
+        run: corepack pnpm install --frozen-lockfile
+
+      - name: Format changed files
+        run: |
+          corepack pnpm exec prettier --write \
+            apps/morro-digital-platform/tooling/payments-api.mjs \
+            apps/morro-digital-platform/tooling/payments-runtime-api.mjs \
+            apps/morro-digital-platform/tooling/payments-runtime-api.test.mjs
+
+      - name: Run focused Payments runtime tests
+        run: |
+          corepack pnpm --filter @touristic/morro-digital-platform exec vitest run \
+            tooling/payments-runtime-api.test.mjs \
+            tooling/payments-api.test.mjs
+
+      - name: Build workspace
+        run: corepack pnpm build
+
+      - name: Validate and push only after green checks
+        shell: bash
+        env:
+          TARGET_BRANCH: fix/mercado-pago-bricks-subscriptions-20260823
+        run: |
+          set -euo pipefail
+          git diff --check
+          changed="$(git diff --name-only)"
+          printf '%s\n' "$changed"
+          test "$changed" = "$(printf '%s\n' \
+            apps/morro-digital-platform/tooling/payments-api.mjs \
+            apps/morro-digital-platform/tooling/payments-runtime-api.mjs \
+            apps/morro-digital-platform/tooling/payments-runtime-api.test.mjs)" || { echo UNEXPECTED_CHANGED_FILES; exit 1; }
+          git config user.name "Idebook Digital"
+          git config user.email "luizanunciostoca@gmail.com"
+          git add \
+            apps/morro-digital-platform/tooling/payments-api.mjs \
+            apps/morro-digital-platform/tooling/payments-runtime-api.mjs \
+            apps/morro-digital-platform/tooling/payments-runtime-api.test.mjs
+          git commit -m "fix(payments): retry transient core runtime startup"
+          git push origin "HEAD:$TARGET_BRANCH"
