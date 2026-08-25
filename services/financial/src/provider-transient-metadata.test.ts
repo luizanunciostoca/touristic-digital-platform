@@ -53,6 +53,18 @@ describe("safe transient provider response metadata", () => {
     expect(captured).not.toHaveProperty("x-provider-secret");
   });
 
+  it("rejects control characters from provider response metadata", () => {
+    const error = new ProviderRequestUnavailableError(503, {
+      providerRequestId: "safe\u0007unsafe",
+      retryAfter: "2\u007f",
+      contentType: "application/json",
+    });
+
+    expect(error.providerRequestId).toBeNull();
+    expect(error.retryAfter).toBeNull();
+    expect(error.contentType).toBe("application/json");
+  });
+
   it("emits allowlisted metadata without logging body or arbitrary headers", async () => {
     const amount = createMoney(12_900, "BRL");
     if (!amount) throw new Error("TEST_AMOUNT_INVALID");

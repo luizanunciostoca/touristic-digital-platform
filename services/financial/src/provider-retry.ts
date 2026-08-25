@@ -19,6 +19,16 @@ export interface ProviderUnavailableResponseMetadata {
   readonly contentType?: string | null;
 }
 
+function containsDisallowedControlCharacter(value: string): boolean {
+  for (const character of value) {
+    const codePoint = character.codePointAt(0);
+    if (codePoint !== undefined && (codePoint <= 0x1f || codePoint === 0x7f)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 function boundedResponseMetadataValue(
   value: string | null | undefined,
   maxLength: number,
@@ -28,7 +38,7 @@ function boundedResponseMetadataValue(
   if (
     !normalized ||
     normalized.length > maxLength ||
-    /[\u0000-\u001f\u007f]/u.test(normalized)
+    containsDisallowedControlCharacter(normalized)
   ) {
     return null;
   }
