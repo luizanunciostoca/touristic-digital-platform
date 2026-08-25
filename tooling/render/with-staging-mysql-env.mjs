@@ -15,7 +15,7 @@ export const stagingPaymentsAcceptanceIdentity = Object.freeze({
   businessId: "biz_payments_acceptance",
   owner: Object.freeze({
     id: "staging-payments-acceptance-owner",
-    email: "payments-acceptance-owner@morro.invalid",
+    email: "test@testuser.com",
     role: "owner",
   }),
   admin: Object.freeze({
