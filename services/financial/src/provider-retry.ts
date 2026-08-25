@@ -13,10 +13,38 @@ export interface ProviderRetryRuntime {
   readonly random?: () => number;
 }
 
+export interface ProviderUnavailableResponseMetadata {
+  readonly providerRequestId?: string | null;
+  readonly retryAfter?: string | null;
+  readonly contentType?: string | null;
+}
+
+function boundedResponseMetadataValue(
+  value: string | null | undefined,
+  maxLength: number,
+): string | null {
+  if (typeof value !== "string") return null;
+  const normalized = value.trim();
+  if (
+    !normalized ||
+    normalized.length > maxLength ||
+    /[\u0000-\u001f\u007f]/u.test(normalized)
+  ) {
+    return null;
+  }
+  return normalized;
+}
+
 export class ProviderRequestUnavailableError extends Error {
   readonly httpStatus: number | null;
+  readonly providerRequestId: string | null;
+  readonly retryAfter: string | null;
+  readonly contentType: string | null;
 
-  constructor(httpStatus?: number) {
+  constructor(
+    httpStatus?: number,
+    metadata: ProviderUnavailableResponseMetadata = {},
+  ) {
     super("PROVIDER_REQUEST_UNAVAILABLE");
     this.name = "ProviderRequestUnavailableError";
     this.httpStatus =
@@ -26,6 +54,12 @@ export class ProviderRequestUnavailableError extends Error {
       httpStatus <= 599
         ? httpStatus
         : null;
+    this.providerRequestId = boundedResponseMetadataValue(
+      metadata.providerRequestId,
+      120,
+    );
+    this.retryAfter = boundedResponseMetadataValue(metadata.retryAfter, 120);
+    this.contentType = boundedResponseMetadataValue(metadata.contentType, 120);
   }
 }
 
@@ -139,9 +173,17 @@ export async function executeBoundedProviderRequest(input: {
 
     if (!transientStatus(response.status)) return response;
 
+    const transientMetadata = {
+      providerRequestId: response.headers.get("x-request-id"),
+      retryAfter: response.headers.get("retry-after"),
+      contentType: response.headers.get("content-type"),
+    };
     await discardResponse(response);
     if (attempt >= attempts) {
-      throw new ProviderRequestUnavailableError(response.status);
+      throw new ProviderRequestUnavailableError(
+        response.status,
+        transientMetadata,
+      );
     }
     const delay = retryDelayMs(input.policy.baseDelayMs, attempt, random);
     if (delay > 0) await sleep(delay);

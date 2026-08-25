@@ -157,6 +157,9 @@ function emitProviderDiagnostic(
     pathname: string;
     reason: string;
     httpStatus?: number;
+    providerRequestId?: string;
+    retryAfter?: string;
+    contentType?: string;
   }>,
 ): void {
   try {
@@ -168,6 +171,15 @@ function emitProviderDiagnostic(
         reason: boundedString(event.reason, 80),
         ...(Number.isInteger(event.httpStatus)
           ? { httpStatus: event.httpStatus }
+          : {}),
+        ...(boundedString(event.providerRequestId, 120)
+          ? { providerRequestId: boundedString(event.providerRequestId, 120) }
+          : {}),
+        ...(boundedString(event.retryAfter, 120)
+          ? { retryAfter: boundedString(event.retryAfter, 120) }
+          : {}),
+        ...(boundedString(event.contentType, 120)
+          ? { contentType: boundedString(event.contentType, 120) }
           : {}),
       })}`,
     );
@@ -287,6 +299,15 @@ export function createMercadoPagoSubscriptionProviderFromEnvironment(
           ...(error.httpStatus === null
             ? {}
             : { httpStatus: error.httpStatus }),
+          ...(error.providerRequestId === null
+            ? {}
+            : { providerRequestId: error.providerRequestId }),
+          ...(error.retryAfter === null
+            ? {}
+            : { retryAfter: error.retryAfter }),
+          ...(error.contentType === null
+            ? {}
+            : { contentType: error.contentType }),
         });
       } else if (
         error instanceof MercadoPagoProviderError &&
