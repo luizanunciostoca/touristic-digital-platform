@@ -1,0 +1,633 @@
+name: Ops Payments Preapproval Recovery
+
+on:
+  push:
+    branches:
+      - ops/payments-preapproval-recovery-59ebf566-20260825
+
+permissions:
+  contents: write
+
+jobs:
+  validate-and-apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      EXPECTED_HEAD: 59ebf5667ea25fadb4647c75237356b123a5d119
+      TARGET_BRANCH: fix/mercado-pago-bricks-subscriptions-20260823
+    steps:
+      - name: Checkout operational branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+
+      - name: Guard exact head and apply recovery patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin "$TARGET_BRANCH"
+          actual="$(git rev-parse "origin/$TARGET_BRANCH")"
+          test "$actual" = "$EXPECTED_HEAD" || { echo "EXPECTED_HEAD_MISMATCH actual=$actual"; exit 1; }
+          git checkout -B "$TARGET_BRANCH" "origin/$TARGET_BRANCH"
+
+          python - <<'PY'
+          from pathlib import Path
+
+          provider_path = Path('services/financial/src/mercado-pago-subscription-provider.ts')
+          text = provider_path.read_text()
+
+          old_import = '''import {
+            ProviderRequestUnavailableError,
+            createProviderRetryPolicyFromEnvironment,
+            executeBoundedProviderRequest,
+          } from "./provider-retry.js";
+          '''
+          new_import = '''import {
+            ProviderRequestUnavailableError,
+            createProviderRetryPolicyFromEnvironment,
+            executeBoundedProviderRequest,
+            type ProviderRetryPolicy,
+          } from "./provider-retry.js";
+          '''
+          if text.count(old_import) != 1:
+              raise SystemExit(f'IMPORT_ANCHOR_COUNT={text.count(old_import)}')
+          text = text.replace(old_import, new_import, 1)
+
+          old_endpoint = '''const mercadoPagoPreapprovalEndpoint = new URL(
+            "preapproval",
+            "https://api.mercadopago.com/",
+          );
+          const maxResponseBytes = 64 * 1024;
+          '''
+          new_endpoint = '''const mercadoPagoPreapprovalEndpoint = new URL(
+            "preapproval",
+            "https://api.mercadopago.com/",
+          );
+          const mercadoPagoPreapprovalSearchEndpoint = new URL(
+            "preapproval/search",
+            "https://api.mercadopago.com/",
+          );
+          const singleAttemptProviderRetryPolicy: ProviderRetryPolicy = Object.freeze({
+            maxAttempts: 1,
+            baseDelayMs: 0,
+          });
+          const maxResponseBytes = 64 * 1024;
+          '''
+          if text.count(old_endpoint) != 1:
+              raise SystemExit(f'ENDPOINT_ANCHOR_COUNT={text.count(old_endpoint)}')
+          text = text.replace(old_endpoint, new_endpoint, 1)
+
+          old_request_signature = '''  async function requestJson(
+              url: URL,
+              init: RequestInit,
+            ): Promise<Record<string, unknown>> {
+          '''
+          new_request_signature = '''  async function requestJson(
+              url: URL,
+              init: RequestInit,
+              policy: ProviderRetryPolicy = retryPolicy,
+            ): Promise<Record<string, unknown>> {
+          '''
+          if text.count(old_request_signature) != 1:
+              raise SystemExit(f'REQUEST_SIGNATURE_COUNT={text.count(old_request_signature)}')
+          text = text.replace(old_request_signature, new_request_signature, 1)
+
+          old_policy = '''        policy: retryPolicy,
+          '''
+          if text.count(old_policy) != 1:
+              raise SystemExit(f'POLICY_ANCHOR_COUNT={text.count(old_policy)}')
+          text = text.replace(old_policy, '''        policy,
+          ''', 1)
+
+          anchor = '''  async function updateStatus(
+          '''
+          if text.count(anchor) != 1:
+              raise SystemExit(f'UPDATE_STATUS_ANCHOR_COUNT={text.count(anchor)}')
+          helpers = '''  function snapshotMatchesRequest(
+              snapshot: ProviderSubscriptionSnapshot,
+              request: ProviderSubscriptionRequest,
+            ): boolean {
+              return (
+                snapshot.externalReference === request.subscriptionId &&
+                snapshot.status === "authorized" &&
+                snapshot.amount.minorUnits === request.amount.minorUnits &&
+                snapshot.amount.currency === request.amount.currency &&
+                snapshot.frequency === request.frequency &&
+                snapshot.frequencyType === request.frequencyType &&
+                snapshot.payerEmail === request.payerEmail
+              );
+            }
+
+            function preapprovalSearchUrl(payerEmail: string): URL {
+              const url = new URL(mercadoPagoPreapprovalSearchEndpoint.href);
+              url.searchParams.set("payer_email", payerEmail);
+              return url;
+            }
+
+            async function findExistingProviderSubscription(
+              request: ProviderSubscriptionRequest,
+            ): Promise<ProviderSubscriptionSnapshot | null> {
+              const payload = await requestJson(preapprovalSearchUrl(request.payerEmail), {
+                method: "GET",
+              });
+              const paging = record(payload.paging);
+              const results = Array.isArray(payload.results) ? payload.results : null;
+              const total = paging?.total;
+              const offset = paging?.offset;
+              if (
+                !results ||
+                typeof total !== "number" ||
+                !Number.isSafeInteger(total) ||
+                total < 0 ||
+                offset !== 0 ||
+                total !== results.length
+              ) {
+                throw new MercadoPagoProviderError("MERCADO_PAGO_INVALID_RESPONSE");
+              }
+
+              let matches = 0;
+              let reference = "";
+              for (const value of results) {
+                const item = record(value);
+                if (!item || item.external_reference !== request.subscriptionId) continue;
+                matches += 1;
+                const candidate = providerReference(item.id);
+                if (!candidate) {
+                  throw new MercadoPagoProviderError("MERCADO_PAGO_INVALID_RESPONSE");
+                }
+                reference = candidate;
+              }
+
+              if (matches === 0) return null;
+              if (matches !== 1 || !reference) {
+                throw new MercadoPagoProviderError("MERCADO_PAGO_INVALID_RESPONSE");
+              }
+
+              const snapshot = await authoritativeReadback(reference);
+              if (!snapshotMatchesRequest(snapshot, request)) {
+                throw new MercadoPagoProviderError("MERCADO_PAGO_INVALID_RESPONSE");
+              }
+              return snapshot;
+            }
+
+          '''
+          text = text.replace(anchor, helpers + anchor, 1)
+
+          old_create = '''        const created = await requestJson(mercadoPagoPreapprovalEndpoint, {
+                  method: "POST",
+                  headers: {
+                    "Idempotency-Key": request.idempotencyKey,
+                    "X-Idempotency-Key": request.idempotencyKey,
+                  },
+                  body: JSON.stringify({
+                    reason: request.reason,
+                    external_reference: request.subscriptionId,
+                    payer_email: request.payerEmail,
+                    card_token_id: request.cardToken,
+                    auto_recurring: {
+                      frequency: request.frequency,
+                      frequency_type: request.frequencyType,
+                      transaction_amount: majorUnits(request.amount.minorUnits),
+                      currency_id: request.amount.currency,
+                    },
+                    back_url: request.backUrl,
+                    status: "authorized",
+                  }),
+                });
+                const reference = providerReference(created.id);
+                if (!reference) {
+                  emitProviderDiagnostic({
+                    method: "POST",
+                    pathname: mercadoPagoPreapprovalEndpoint.pathname,
+                    reason: "MERCADO_PAGO_CREATE_REFERENCE_MISSING",
+                  });
+                  throw new MercadoPagoProviderError("MERCADO_PAGO_INVALID_RESPONSE");
+                }
+                const snapshot = await authoritativeReadback(reference);
+                if (
+                  snapshot.externalReference !== request.subscriptionId ||
+                  snapshot.status !== "authorized" ||
+                  snapshot.amount.minorUnits !== request.amount.minorUnits ||
+                  snapshot.amount.currency !== request.amount.currency ||
+                  snapshot.frequency !== request.frequency ||
+                  snapshot.frequencyType !== request.frequencyType ||
+                  snapshot.payerEmail !== request.payerEmail
+                ) {
+                  emitProviderDiagnostic({
+                    method: "GET",
+                    pathname: subscriptionUrl(reference).pathname,
+                    reason: "MERCADO_PAGO_CREATE_READBACK_MISMATCH",
+                  });
+                  throw new MercadoPagoProviderError("MERCADO_PAGO_INVALID_RESPONSE");
+                }
+                return snapshot;
+          '''
+          new_create = '''        const existing = await findExistingProviderSubscription(request);
+                if (existing) return existing;
+
+                let created: Record<string, unknown>;
+                try {
+                  created = await requestJson(
+                    mercadoPagoPreapprovalEndpoint,
+                    {
+                      method: "POST",
+                      headers: {
+                        "Idempotency-Key": request.idempotencyKey,
+                        "X-Idempotency-Key": request.idempotencyKey,
+                      },
+                      body: JSON.stringify({
+                        reason: request.reason,
+                        external_reference: request.subscriptionId,
+                        payer_email: request.payerEmail,
+                        card_token_id: request.cardToken,
+                        auto_recurring: {
+                          frequency: request.frequency,
+                          frequency_type: request.frequencyType,
+                          transaction_amount: majorUnits(request.amount.minorUnits),
+                          currency_id: request.amount.currency,
+                        },
+                        back_url: request.backUrl,
+                        status: "authorized",
+                      }),
+                    },
+                    singleAttemptProviderRetryPolicy,
+                  );
+                } catch (error) {
+                  if (
+                    error instanceof MercadoPagoProviderError &&
+                    error.code === "MERCADO_PAGO_UNAVAILABLE"
+                  ) {
+                    const recovered = await findExistingProviderSubscription(request);
+                    if (recovered) return recovered;
+                  }
+                  throw error;
+                }
+
+                const reference = providerReference(created.id);
+                if (!reference) {
+                  emitProviderDiagnostic({
+                    method: "POST",
+                    pathname: mercadoPagoPreapprovalEndpoint.pathname,
+                    reason: "MERCADO_PAGO_CREATE_REFERENCE_MISSING",
+                  });
+                  throw new MercadoPagoProviderError("MERCADO_PAGO_INVALID_RESPONSE");
+                }
+                const snapshot = await authoritativeReadback(reference);
+                if (!snapshotMatchesRequest(snapshot, request)) {
+                  emitProviderDiagnostic({
+                    method: "GET",
+                    pathname: subscriptionUrl(reference).pathname,
+                    reason: "MERCADO_PAGO_CREATE_READBACK_MISMATCH",
+                  });
+                  throw new MercadoPagoProviderError("MERCADO_PAGO_INVALID_RESPONSE");
+                }
+                return snapshot;
+          '''
+          if text.count(old_create) != 1:
+              raise SystemExit(f'CREATE_ANCHOR_COUNT={text.count(old_create)}')
+          text = text.replace(old_create, new_create, 1)
+          provider_path.write_text(text)
+
+          test_path = Path('services/financial/src/mercado-pago-subscription-provider.test.ts')
+          tests = test_path.read_text()
+
+          provider_payload_anchor = '''function providerPayload(status: string, externalReference = subscriptionId) {
+            return {
+          '''
+          if tests.count(provider_payload_anchor) != 1:
+              raise SystemExit(f'PAYLOAD_HELPER_COUNT={tests.count(provider_payload_anchor)}')
+          search_helper = '''function emptySearchPayload() {
+            return {
+              paging: { offset: 0, limit: 20, total: 0 },
+              results: [],
+            };
+          }
+
+          function searchPayload(
+            results: ReadonlyArray<Record<string, unknown>>,
+            total = results.length,
+          ) {
+            return {
+              paging: { offset: 0, limit: 20, total },
+              results,
+            };
+          }
+
+          '''
+          tests = tests.replace(provider_payload_anchor, search_helper + provider_payload_anchor, 1)
+
+          old_first_mock = '''      if (requests.length === 1) {
+                return new Response(
+                  JSON.stringify({ id: "preapproval_00000001", status: "authorized" }),
+                  { status: 201 },
+                );
+              }
+              return new Response(JSON.stringify(providerPayload("authorized")), {
+                status: 200,
+              });
+          '''
+          new_first_mock = '''      if (url.includes("/preapproval/search")) {
+                return new Response(JSON.stringify(emptySearchPayload()), { status: 200 });
+              }
+              if (init?.method === "POST") {
+                return new Response(
+                  JSON.stringify({ id: "preapproval_00000001", status: "authorized" }),
+                  { status: 201 },
+                );
+              }
+              return new Response(JSON.stringify(providerPayload("authorized")), {
+                status: 200,
+              });
+          '''
+          if tests.count(old_first_mock) != 2:
+              raise SystemExit(f'CREATE_MOCK_COUNT={tests.count(old_first_mock)}')
+          tests = tests.replace(old_first_mock, new_first_mock, 2)
+
+          tests = tests.replace('''    expect(requests).toHaveLength(2);
+              expect(requests[0]?.url).toBe("https://api.mercadopago.com/preapproval");
+              expect(requests[0]?.init?.method).toBe("POST");
+              expect(requests[1]?.url).toBe(
+                "https://api.mercadopago.com/preapproval/preapproval_00000001",
+              );
+              expect(requests[1]?.init?.method).toBe("GET");
+
+              const headers = new Headers(requests[0]?.init?.headers);
+          ''', '''    expect(requests).toHaveLength(3);
+              expect(requests[0]?.url).toBe(
+                "https://api.mercadopago.com/preapproval/search?payer_email=buyer%40example.com",
+              );
+              expect(requests[0]?.init?.method).toBe("GET");
+              expect(requests[1]?.url).toBe("https://api.mercadopago.com/preapproval");
+              expect(requests[1]?.init?.method).toBe("POST");
+              expect(requests[2]?.url).toBe(
+                "https://api.mercadopago.com/preapproval/preapproval_00000001",
+              );
+              expect(requests[2]?.init?.method).toBe("GET");
+
+              const headers = new Headers(requests[1]?.init?.headers);
+          ''', 1)
+          tests = tests.replace('''    const body = JSON.parse(requireStringBody(requests[0]?.init)) as Record<
+          ''', '''    const body = JSON.parse(requireStringBody(requests[1]?.init)) as Record<
+          ''', 1)
+
+          tests = tests.replace('''    expect(requests).toHaveLength(2);
+              expect(new Headers(requests[0]?.init?.headers).get("X-scope")).toBeNull();
+              expect(new Headers(requests[1]?.init?.headers).get("X-scope")).toBeNull();
+          ''', '''    expect(requests).toHaveLength(3);
+              expect(new Headers(requests[0]?.init?.headers).get("X-scope")).toBeNull();
+              expect(new Headers(requests[1]?.init?.headers).get("X-scope")).toBeNull();
+              expect(new Headers(requests[2]?.init?.headers).get("X-scope")).toBeNull();
+          ''', 1)
+
+          old_mismatch = '''    let call = 0;
+              const fetchMock: typeof fetch = async () => {
+                call += 1;
+                return call === 1
+                  ? new Response(JSON.stringify({ id: "preapproval_00000001" }), {
+                      status: 201,
+                    })
+                  : new Response(
+                      JSON.stringify(providerPayload("authorized", "sub_other_00000001")),
+                      { status: 200 },
+                    );
+              };
+          '''
+          new_mismatch = '''    const fetchMock: typeof fetch = async (input, init) => {
+                const url = normalizeRequestUrl(input);
+                if (url.includes("/preapproval/search")) {
+                  return new Response(JSON.stringify(emptySearchPayload()), { status: 200 });
+                }
+                if (init?.method === "POST") {
+                  return new Response(JSON.stringify({ id: "preapproval_00000001" }), {
+                    status: 201,
+                  });
+                }
+                return new Response(
+                  JSON.stringify(providerPayload("authorized", "sub_other_00000001")),
+                  { status: 200 },
+                );
+              };
+          '''
+          if tests.count(old_mismatch) != 1:
+              raise SystemExit(f'MISMATCH_MOCK_COUNT={tests.count(old_mismatch)}')
+          tests = tests.replace(old_mismatch, new_mismatch, 1)
+
+          insertion = '''
+            it("reuses an exact preflight match without issuing a create", async () => {
+              const requests: Array<{ url: string; init: RequestInit | undefined }> = [];
+              const fetchMock: typeof fetch = async (input, init) => {
+                const url = normalizeRequestUrl(input);
+                requests.push({ url, init });
+                if (url.includes("/preapproval/search")) {
+                  return new Response(
+                    JSON.stringify(
+                      searchPayload([
+                        {
+                          id: "preapproval_00000001",
+                          external_reference: subscriptionId,
+                        },
+                      ]),
+                    ),
+                    { status: 200 },
+                  );
+                }
+                if (init?.method === "POST") throw new Error("CREATE_MUST_NOT_RUN");
+                return new Response(JSON.stringify(providerPayload("authorized")), {
+                  status: 200,
+                });
+              };
+              const provider = createMercadoPagoSubscriptionProviderFromEnvironment(
+                environment,
+                { fetch: fetchMock },
+              );
+
+              await expect(provider.createSubscription(request)).resolves.toMatchObject({
+                providerSubscriptionReference: "preapproval_00000001",
+                status: "authorized",
+              });
+              expect(requests.map((item) => item.init?.method)).toEqual(["GET", "GET"]);
+            });
+
+            it("recovers an indeterminate 503 create through post-create search", async () => {
+              const requests: Array<{ url: string; init: RequestInit | undefined }> = [];
+              let searchCount = 0;
+              const fetchMock: typeof fetch = async (input, init) => {
+                const url = normalizeRequestUrl(input);
+                requests.push({ url, init });
+                if (url.includes("/preapproval/search")) {
+                  searchCount += 1;
+                  return new Response(
+                    JSON.stringify(
+                      searchCount === 1
+                        ? emptySearchPayload()
+                        : searchPayload([
+                            {
+                              id: "preapproval_00000001",
+                              external_reference: subscriptionId,
+                            },
+                          ]),
+                    ),
+                    { status: 200 },
+                  );
+                }
+                if (init?.method === "POST") {
+                  return new Response(null, {
+                    status: 503,
+                    headers: { "x-request-id": "provider-503-recovery" },
+                  });
+                }
+                return new Response(JSON.stringify(providerPayload("authorized")), {
+                  status: 200,
+                });
+              };
+              const provider = createMercadoPagoSubscriptionProviderFromEnvironment(
+                environment,
+                { fetch: fetchMock },
+              );
+
+              await expect(provider.createSubscription(request)).resolves.toMatchObject({
+                providerSubscriptionReference: "preapproval_00000001",
+                status: "authorized",
+              });
+              expect(
+                requests.filter((item) => item.init?.method === "POST"),
+              ).toHaveLength(1);
+              expect(searchCount).toBe(2);
+            });
+
+            it("preserves unavailable when a 503 create has no recoverable match", async () => {
+              let postCount = 0;
+              const fetchMock: typeof fetch = async (input, init) => {
+                const url = normalizeRequestUrl(input);
+                if (url.includes("/preapproval/search")) {
+                  return new Response(JSON.stringify(emptySearchPayload()), { status: 200 });
+                }
+                if (init?.method === "POST") {
+                  postCount += 1;
+                  return new Response(null, { status: 503 });
+                }
+                throw new Error("UNEXPECTED_READBACK");
+              };
+              const provider = createMercadoPagoSubscriptionProviderFromEnvironment(
+                environment,
+                { fetch: fetchMock },
+              );
+
+              await expect(provider.createSubscription(request)).rejects.toMatchObject({
+                code: "MERCADO_PAGO_UNAVAILABLE",
+              });
+              expect(postCount).toBe(1);
+            });
+
+            it("fails closed on duplicate exact preapproval search matches", async () => {
+              let postCount = 0;
+              const fetchMock: typeof fetch = async (input, init) => {
+                const url = normalizeRequestUrl(input);
+                if (url.includes("/preapproval/search")) {
+                  return new Response(
+                    JSON.stringify(
+                      searchPayload([
+                        { id: "preapproval_00000001", external_reference: subscriptionId },
+                        { id: "preapproval_00000002", external_reference: subscriptionId },
+                      ]),
+                    ),
+                    { status: 200 },
+                  );
+                }
+                if (init?.method === "POST") postCount += 1;
+                throw new Error("UNEXPECTED_PROVIDER_CALL");
+              };
+              const provider = createMercadoPagoSubscriptionProviderFromEnvironment(
+                environment,
+                { fetch: fetchMock },
+              );
+
+              await expect(provider.createSubscription(request)).rejects.toMatchObject({
+                code: "MERCADO_PAGO_INVALID_RESPONSE",
+              });
+              expect(postCount).toBe(0);
+            });
+
+            it("fails closed when preapproval search pagination is incomplete", async () => {
+              let postCount = 0;
+              const fetchMock: typeof fetch = async (input, init) => {
+                const url = normalizeRequestUrl(input);
+                if (url.includes("/preapproval/search")) {
+                  return new Response(
+                    JSON.stringify(
+                      searchPayload(
+                        [{ id: "preapproval_other", external_reference: "sub_other_00000001" }],
+                        2,
+                      ),
+                    ),
+                    { status: 200 },
+                  );
+                }
+                if (init?.method === "POST") postCount += 1;
+                throw new Error("UNEXPECTED_PROVIDER_CALL");
+              };
+              const provider = createMercadoPagoSubscriptionProviderFromEnvironment(
+                environment,
+                { fetch: fetchMock },
+              );
+
+              await expect(provider.createSubscription(request)).rejects.toMatchObject({
+                code: "MERCADO_PAGO_INVALID_RESPONSE",
+              });
+              expect(postCount).toBe(0);
+            });
+          '''
+          closing = '''  it("fails closed in TEST mode without explicit credential confirmation", async () => {
+          '''
+          if tests.count(closing) != 1:
+              raise SystemExit(f'CLOSING_TEST_ANCHOR_COUNT={tests.count(closing)}')
+          tests = tests.replace(closing, insertion + '\n' + closing, 1)
+          test_path.write_text(tests)
+          PY
+
+      - name: Install dependencies
+        run: corepack pnpm install --frozen-lockfile
+
+      - name: Format changed files
+        run: |
+          corepack pnpm exec prettier --write \
+            services/financial/src/mercado-pago-subscription-provider.ts \
+            services/financial/src/mercado-pago-subscription-provider.test.ts
+          corepack pnpm exec prettier --check \
+            services/financial/src/mercado-pago-subscription-provider.ts \
+            services/financial/src/mercado-pago-subscription-provider.test.ts
+
+      - name: Build Financial dependency
+        run: corepack pnpm --filter @touristic/financial build
+
+      - name: Lint and typecheck financial server
+        run: |
+          corepack pnpm --filter @touristic/financial-server lint
+          corepack pnpm --filter @touristic/financial-server typecheck
+
+      - name: Run focused provider tests
+        run: |
+          corepack pnpm --filter @touristic/financial-server exec vitest run \
+            src/mercado-pago-subscription-provider.test.ts \
+            src/provider-transient-metadata.test.ts \
+            src/provider-retry.test.ts
+
+      - name: Build financial server
+        run: corepack pnpm --filter @touristic/financial-server build
+
+      - name: Validate diff and push only after green checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          git diff --exit-code -- . \
+            ':!services/financial/src/mercado-pago-subscription-provider.ts' \
+            ':!services/financial/src/mercado-pago-subscription-provider.test.ts'
+          test -n "$(git status --porcelain)" || { echo NO_CHANGES; exit 1; }
+          git config user.name "Idebook Digital"
+          git config user.email "luizanunciostoca@gmail.com"
+          git add \
+            services/financial/src/mercado-pago-subscription-provider.ts \
+            services/financial/src/mercado-pago-subscription-provider.test.ts
+          git commit -m "fix(payments): recover indeterminate subscription creates"
+          git push origin "HEAD:$TARGET_BRANCH"
