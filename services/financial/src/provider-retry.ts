@@ -14,9 +14,18 @@ export interface ProviderRetryRuntime {
 }
 
 export class ProviderRequestUnavailableError extends Error {
-  constructor() {
+  readonly httpStatus: number | null;
+
+  constructor(httpStatus?: number) {
     super("PROVIDER_REQUEST_UNAVAILABLE");
     this.name = "ProviderRequestUnavailableError";
+    this.httpStatus =
+      typeof httpStatus === "number" &&
+      Number.isInteger(httpStatus) &&
+      httpStatus >= 100 &&
+      httpStatus <= 599
+        ? httpStatus
+        : null;
   }
 }
 
@@ -131,7 +140,9 @@ export async function executeBoundedProviderRequest(input: {
     if (!transientStatus(response.status)) return response;
 
     await discardResponse(response);
-    if (attempt >= attempts) throw new ProviderRequestUnavailableError();
+    if (attempt >= attempts) {
+      throw new ProviderRequestUnavailableError(response.status);
+    }
     const delay = retryDelayMs(input.policy.baseDelayMs, attempt, random);
     if (delay > 0) await sleep(delay);
   }

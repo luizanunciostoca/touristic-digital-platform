@@ -123,7 +123,10 @@ describe("M152 bounded financial provider retry", () => {
         policy: policy(),
         runtime: runtime(),
       }),
-    ).rejects.toEqual(new ProviderRequestUnavailableError());
+    ).rejects.toMatchObject({
+      message: "PROVIDER_REQUEST_UNAVAILABLE",
+      httpStatus: 503,
+    });
     expect(calls).toBe(1);
   });
 

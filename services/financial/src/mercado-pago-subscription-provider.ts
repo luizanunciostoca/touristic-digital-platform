@@ -279,6 +279,25 @@ export function createMercadoPagoSubscriptionProviderFromEnvironment(
       }
       return await boundedJson(response);
     } catch (error) {
+      if (error instanceof ProviderRequestUnavailableError) {
+        emitProviderDiagnostic({
+          method: init.method ?? "GET",
+          pathname: url.pathname,
+          reason: "PROVIDER_REQUEST_UNAVAILABLE",
+          ...(error.httpStatus === null
+            ? {}
+            : { httpStatus: error.httpStatus }),
+        });
+      } else if (
+        error instanceof MercadoPagoProviderError &&
+        error.code === "MERCADO_PAGO_TEST_ACCOUNT_REQUIRED"
+      ) {
+        emitProviderDiagnostic({
+          method: init.method ?? "GET",
+          pathname: url.pathname,
+          reason: error.code,
+        });
+      }
       return unavailable(error);
     }
   }
