@@ -1,0 +1,380 @@
+name: Staging Payments Authenticated Provider E2E
+
+on:
+  push:
+    branches:
+      - ops/payments-authenticated-provider-e2e-v2-7ce8d69-20260824
+
+permissions:
+  contents: read
+
+concurrency:
+  group: staging-payments-authenticated-provider-e2e-v2
+  cancel-in-progress: false
+
+jobs:
+  authenticated-provider-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      STAGING_URL: https://morro-digital-v2-staging.onrender.com
+      ACCEPTANCE_PASSWORD: ${{ secrets.STAGING_PAYMENTS_ACCEPTANCE_PASSWORD }}
+      EXPECTED_RELEASE_SHA: 7ce8d69d1efc945ab39b254fc7df2fd6b455c598
+    steps:
+      - name: Run authenticated TEST provider lifecycle
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const { randomUUID } = require('node:crypto');
+
+          const base = String(process.env.STAGING_URL || '').replace(/\/$/u, '');
+          const password = String(process.env.ACCEPTANCE_PASSWORD || '');
+          const expectedSha = String(process.env.EXPECTED_RELEASE_SHA || '');
+          const ownerEmail = 'payments-acceptance-owner@morro.invalid';
+          const adminEmail = 'payments-acceptance-admin@morro.invalid';
+          const businessId = 'biz_payments_acceptance';
+          const planId = 'provider_acceptance_test';
+          const origin = base;
+          const referer = `${base}/business-onboarding.html`;
+
+          function assert(condition, code) {
+            if (!condition) throw new Error(code);
+          }
+
+          function safeError(payload) {
+            if (!payload || typeof payload !== 'object') return 'UNKNOWN';
+            const code = typeof payload.error === 'string' ? payload.error : '';
+            const message = typeof payload.message === 'string' ? payload.message : '';
+            return [code, message].filter(Boolean).join(':').slice(0, 240) || 'UNKNOWN';
+          }
+
+          async function json(response) {
+            const text = await response.text();
+            try {
+              return text ? JSON.parse(text) : {};
+            } catch {
+              throw new Error(`NON_JSON_RESPONSE_${response.status}`);
+            }
+          }
+
+          function cookieFrom(response) {
+            const list = typeof response.headers.getSetCookie === 'function'
+              ? response.headers.getSetCookie()
+              : [response.headers.get('set-cookie')].filter(Boolean);
+            const first = list[0] || '';
+            return first.split(';', 1)[0].trim();
+          }
+
+          function sessionHeaders(session, { mutation = true, business = false, jsonBody = false } = {}) {
+            const headers = {
+              Accept: 'application/json',
+              Origin: origin,
+              Referer: referer,
+              Cookie: session.cookie,
+            };
+            if (mutation) headers['X-CSRF-Token'] = session.csrfToken;
+            if (business) headers['X-Business-ID'] = businessId;
+            if (jsonBody) headers['Content-Type'] = 'application/json';
+            return headers;
+          }
+
+          async function login(email) {
+            const response = await fetch(`${base}/api/dashboard/auth/login`, {
+              method: 'POST',
+              headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                Origin: origin,
+                Referer: referer,
+              },
+              body: JSON.stringify({ email, password }),
+            });
+            const payload = await json(response);
+            assert(response.status === 200, `LOGIN_${response.status}_${safeError(payload)}`);
+            const cookie = cookieFrom(response);
+            assert(cookie && cookie.includes('='), 'LOGIN_COOKIE_MISSING');
+            assert(typeof payload.csrfToken === 'string' && payload.csrfToken.length > 10, 'LOGIN_CSRF_MISSING');
+            assert(payload.user?.email === email, 'LOGIN_IDENTITY_MISMATCH');
+            return { cookie, csrfToken: payload.csrfToken };
+          }
+
+          async function tokenize(publicKey) {
+            const url = new URL('https://api.mercadopago.com/v1/card_tokens');
+            url.searchParams.set('public_key', publicKey);
+            const response = await fetch(url, {
+              method: 'POST',
+              headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                card_number: '5031433215406351',
+                expiration_month: 11,
+                expiration_year: 2030,
+                security_code: '123',
+                cardholder: {
+                  name: 'APRO',
+                  identification: { type: 'CPF', number: '12345678909' },
+                },
+              }),
+            });
+            const payload = await json(response);
+            assert(response.ok, `TOKENIZATION_${response.status}_${safeError(payload)}`);
+            assert(typeof payload.id === 'string' && payload.id.length > 10, 'TOKENIZATION_TOKEN_MISSING');
+            return payload.id;
+          }
+
+          async function createCheckout(owner, handoff, correlationId) {
+            const response = await fetch(`${base}/api/payments/v1/checkouts`, {
+              method: 'POST',
+              headers: {
+                ...sessionHeaders(owner, { mutation: true, business: true, jsonBody: true }),
+                'Idempotency-Key': `business:${handoff.sessionId}:${handoff.planId}`,
+                'X-Correlation-ID': correlationId,
+              },
+              body: JSON.stringify(handoff),
+            });
+            const payload = await json(response);
+            assert(response.ok, `CHECKOUT_CREATE_${response.status}_${safeError(payload)}`);
+            assert(typeof payload.data?.checkoutId === 'string' && payload.data.checkoutId.startsWith('ord_'), 'CHECKOUT_ID_INVALID');
+            assert(typeof payload.data?.paymentId === 'string' && payload.data.paymentId.startsWith('pay_'), 'PAYMENT_ID_INVALID');
+            assert(typeof payload.data?.statusToken === 'string' && payload.data.statusToken.startsWith('cst_v1_'), 'STATUS_TOKEN_INVALID');
+            return payload.data;
+          }
+
+          async function checkoutStatus(checkout, correlationId) {
+            const response = await fetch(`${base}/api/payments/v1/checkouts/${encodeURIComponent(checkout.checkoutId)}`, {
+              method: 'GET',
+              headers: {
+                Accept: 'application/json',
+                'X-Checkout-Token': checkout.statusToken,
+                'X-Correlation-ID': correlationId,
+              },
+              cache: 'no-store',
+            });
+            const payload = await json(response);
+            assert(response.ok, `CHECKOUT_STATUS_${response.status}_${safeError(payload)}`);
+            return payload.data || {};
+          }
+
+          async function waitForConfirmed(checkout, sessionId) {
+            for (let attempt = 0; attempt < 90; attempt += 1) {
+              const state = await checkoutStatus(checkout, `browser:${randomUUID()}`);
+              if (state.status === 'CONFIRMED' && state.verifiedPayment?.verified === true) {
+                assert(state.sessionId === sessionId, 'CONFIRMED_SESSION_MISMATCH');
+                assert(state.verifiedPayment.sessionId === sessionId, 'VERIFIED_PAYMENT_SESSION_MISMATCH');
+                return state;
+              }
+              if (['FAILED', 'CANCELLED', 'EXPIRED', 'REFUNDED'].includes(state.status)) {
+                throw new Error(`CHECKOUT_TERMINAL_${state.status}`);
+              }
+              await new Promise((resolve) => setTimeout(resolve, 2000));
+            }
+            throw new Error('CHECKOUT_CONFIRMATION_TIMEOUT');
+          }
+
+          async function subscriptionRequest(owner, path, method, body) {
+            const response = await fetch(`${base}${path}`, {
+              method,
+              headers: sessionHeaders(owner, {
+                mutation: method !== 'GET',
+                business: true,
+                jsonBody: method !== 'GET',
+              }),
+              ...(method !== 'GET' ? { body: JSON.stringify(body ?? {}) } : {}),
+              cache: 'no-store',
+            });
+            const payload = await json(response);
+            assert(response.ok, `SUBSCRIPTION_${method}_${response.status}_${safeError(payload)}`);
+            return { status: response.status, data: payload.data || {} };
+          }
+
+          async function refund(owner, paymentId) {
+            const response = await fetch(`${base}/api/payments/v1/payments/${encodeURIComponent(paymentId)}/refunds`, {
+              method: 'POST',
+              headers: {
+                ...sessionHeaders(owner, { mutation: true, business: true, jsonBody: true }),
+                'Idempotency-Key': `refund:v1:${paymentId}`,
+                'X-Correlation-ID': `corr_refund_${randomUUID()}`,
+              },
+              body: JSON.stringify({ reason: 'requested_by_business' }),
+            });
+            const payload = await json(response);
+            assert(response.ok, `REFUND_${response.status}_${safeError(payload)}`);
+            return { status: response.status, data: payload.data || {} };
+          }
+
+          async function reconciliation(admin, paymentId, runId) {
+            const response = await fetch(`${base}/api/payments/v1/reconciliation/payments/${encodeURIComponent(paymentId)}/runs`, {
+              method: 'POST',
+              headers: {
+                ...sessionHeaders(admin, { mutation: true, business: false, jsonBody: true }),
+                'Idempotency-Key': `reconciliation:v1:${runId}`,
+                'X-Correlation-ID': `corr_recon_${randomUUID()}`,
+              },
+              body: JSON.stringify({ runId }),
+            });
+            const payload = await json(response);
+            assert(response.ok, `RECONCILIATION_${response.status}_${safeError(payload)}`);
+            return { status: response.status, data: payload.data || {} };
+          }
+
+          (async () => {
+            assert(base === 'https://morro-digital-v2-staging.onrender.com', 'STAGING_TARGET_DENIED');
+            assert(password.length >= 20, 'ACCEPTANCE_SECRET_MISSING_OR_INVALID');
+            assert(expectedSha === '7ce8d69d1efc945ab39b254fc7df2fd6b455c598', 'EXPECTED_SHA_INVALID');
+
+            const readyResponse = await fetch(`${base}/readyz`, { headers: { Accept: 'application/json' }, cache: 'no-store' });
+            const ready = await json(readyResponse);
+            assert(readyResponse.status === 200 && ready.readiness === 'ready', `READINESS_${readyResponse.status}`);
+            const releaseSha = String(readyResponse.headers.get('x-release-sha') || '');
+            assert(releaseSha === expectedSha, `RELEASE_SHA_MISMATCH_${releaseSha || 'missing'}`);
+            console.log('STAGING_RELEASE_IDENTITY=PASS');
+
+            const runtimeResponse = await fetch(`${base}/runtime-config.js`, { cache: 'no-store' });
+            const runtimeText = await runtimeResponse.text();
+            assert(runtimeResponse.ok, `RUNTIME_CONFIG_${runtimeResponse.status}`);
+            const match = runtimeText.match(/Object\.freeze\((\{.*\})\);/su);
+            assert(match, 'RUNTIME_CONFIG_PARSE_FAILED');
+            const runtime = JSON.parse(match[1]);
+            const publicKey = String(runtime.VITE_MERCADO_PAGO_PUBLIC_KEY || '').trim();
+            assert(publicKey.length > 20, 'PUBLIC_KEY_MISSING');
+            assert(!runtime.MERCADO_PAGO_ACCESS_TOKEN && !runtime.MERCADO_PAGO_WEBHOOK_SECRET, 'SERVER_SECRET_EXPOSED_TO_BROWSER');
+            console.log('BROWSER_SECRET_BOUNDARY=PASS');
+
+            const owner = await login(ownerEmail);
+            const admin = await login(adminEmail);
+            console.log('AUTH_OWNER_ADMIN=PASS');
+
+            const suffix = `${Date.now()}_${randomUUID().slice(0, 8)}`;
+            const sessionId = `business_acceptance_${suffix}`;
+            const handoff = {
+              sessionId,
+              planId,
+              contractor: {
+                name: 'Payments Acceptance',
+                email: ownerEmail,
+                phone: '75999999999',
+                document: '12345678900',
+              },
+              businessDraft: {
+                demoBusinessId: `demo_payments_${suffix}`,
+                displayName: 'Payments Acceptance TEST',
+                categoryId: 'events',
+                specialty: 'Provider TEST',
+                environment: 'sandbox',
+                publishable: false,
+              },
+              acceptedTerms: [
+                { type: 'terms', version: 'business-partner-terms-2026-08', acceptedAt: new Date().toISOString() },
+                { type: 'privacy', version: 'privacy-policy-2026-08', acceptedAt: new Date().toISOString() },
+              ],
+              returnUrl: `${base}/business-onboarding.html`,
+              tutorial: false,
+              requiresPaymentsCapability: true,
+            };
+
+            const checkout = await createCheckout(owner, handoff, `browser:${randomUUID()}`);
+            assert(checkout.plan?.amount?.minorUnits === 1000, 'SERVER_PRICE_NOT_TEST_1000');
+            assert(checkout.plan?.amount?.currency === 'BRL', 'SERVER_CURRENCY_NOT_BRL');
+            const checkoutReplay = await createCheckout(owner, handoff, `browser:${randomUUID()}`);
+            assert(checkoutReplay.checkoutId === checkout.checkoutId && checkoutReplay.paymentId === checkout.paymentId, 'CHECKOUT_REPLAY_IDENTITY_MISMATCH');
+            assert(checkoutReplay.replayed === true, 'CHECKOUT_REPLAY_NOT_MARKED');
+            console.log(`AUTHENTICATED_BUSINESS_CHECKOUT=PASS checkout=${checkout.checkoutId} payment=${checkout.paymentId}`);
+            console.log('CHECKOUT_IDEMPOTENCY=PASS');
+
+            const cardToken = await tokenize(publicKey);
+            const cardResponse = await fetch(`${base}/api/payments/v1/checkouts/${encodeURIComponent(checkout.checkoutId)}/card`, {
+              method: 'POST',
+              headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                Origin: origin,
+                Referer: referer,
+                'X-Checkout-Token': checkout.statusToken,
+                'X-Correlation-ID': `brick:${randomUUID()}`,
+              },
+              body: JSON.stringify({
+                token: cardToken,
+                installments: 1,
+                payment_method_id: 'master',
+                payer: { email: ownerEmail },
+              }),
+            });
+            const cardPayload = await json(cardResponse);
+            assert(cardResponse.ok, `CARD_SUBMIT_${cardResponse.status}_${safeError(cardPayload)}`);
+            assert(cardPayload.data?.paymentId === checkout.paymentId, 'CARD_PAYMENT_ID_MISMATCH');
+            console.log('CARD_BRICK_TEST_SUBMIT=PASS');
+
+            await waitForConfirmed(checkout, sessionId);
+            console.log('VERIFIED_WEBHOOK_CONFIRMED=PASS');
+
+            const materialized = await subscriptionRequest(owner, '/api/payments/v1/subscriptions', 'POST', { orderId: checkout.checkoutId });
+            assert(materialized.status === 201 || materialized.status === 200, 'SUBSCRIPTION_MATERIALIZATION_STATUS_INVALID');
+            const subscriptionId = String(materialized.data.subscriptionId || '');
+            assert(subscriptionId.startsWith('sub_'), 'SUBSCRIPTION_ID_INVALID');
+            assert(materialized.data.plan?.amount?.minorUnits === 1000 && materialized.data.plan?.amount?.currency === 'BRL', 'SUBSCRIPTION_PRICE_MISMATCH');
+            const materializedReplay = await subscriptionRequest(owner, '/api/payments/v1/subscriptions', 'POST', { orderId: checkout.checkoutId });
+            assert(materializedReplay.data.subscriptionId === subscriptionId && materializedReplay.data.replayed === true, 'SUBSCRIPTION_MATERIALIZATION_REPLAY_FAILED');
+            console.log(`SUBSCRIPTION_MATERIALIZATION=PASS subscription=${subscriptionId}`);
+            console.log('SUBSCRIPTION_MATERIALIZATION_IDEMPOTENCY=PASS');
+
+            const subscriptionToken = await tokenize(publicKey);
+            const providerPath = `/api/payments/v1/subscriptions/${encodeURIComponent(subscriptionId)}/provider`;
+            const providerCreated = await subscriptionRequest(owner, providerPath, 'POST', { cardToken: subscriptionToken });
+            assert(providerCreated.status === 201 || providerCreated.status === 200, 'PREAPPROVAL_CREATE_STATUS_INVALID');
+            assert(providerCreated.data.providerStatus === 'authorized', `PREAPPROVAL_CREATE_STATUS_${providerCreated.data.providerStatus}`);
+            const providerReplay = await subscriptionRequest(owner, providerPath, 'POST', { cardToken: 'unused-on-replay' });
+            assert(providerReplay.data.replayed === true, 'PREAPPROVAL_REPLAY_FAILED');
+            const providerRead = await subscriptionRequest(owner, providerPath, 'GET');
+            assert(providerRead.data.providerStatus === 'authorized', 'PREAPPROVAL_READ_STATUS_INVALID');
+            console.log('PREAPPROVAL_CREATE_READ=PASS');
+            console.log('PREAPPROVAL_IDEMPOTENCY=PASS');
+
+            const paused = await subscriptionRequest(owner, `${providerPath}/pause`, 'POST', {});
+            assert(paused.data.providerStatus === 'paused', `PREAPPROVAL_PAUSE_STATUS_${paused.data.providerStatus}`);
+            const pausedRead = await subscriptionRequest(owner, providerPath, 'GET');
+            assert(pausedRead.data.providerStatus === 'paused', 'PREAPPROVAL_PAUSE_READBACK_INVALID');
+            console.log('PREAPPROVAL_PAUSE_READBACK=PASS');
+
+            const resumed = await subscriptionRequest(owner, `${providerPath}/resume`, 'POST', {});
+            assert(resumed.data.providerStatus === 'authorized', `PREAPPROVAL_RESUME_STATUS_${resumed.data.providerStatus}`);
+            const resumedRead = await subscriptionRequest(owner, providerPath, 'GET');
+            assert(resumedRead.data.providerStatus === 'authorized', 'PREAPPROVAL_RESUME_READBACK_INVALID');
+            console.log('PREAPPROVAL_RESUME_READBACK=PASS');
+
+            const cancelled = await subscriptionRequest(owner, `${providerPath}/cancel`, 'POST', {});
+            assert(cancelled.data.providerStatus === 'cancelled', `PREAPPROVAL_CANCEL_STATUS_${cancelled.data.providerStatus}`);
+            assert(cancelled.data.subscriptionStatus === 'cancel_at_period_end', `CANONICAL_CANCEL_STATUS_${cancelled.data.subscriptionStatus}`);
+            const cancelledRead = await subscriptionRequest(owner, providerPath, 'GET');
+            assert(cancelledRead.data.providerStatus === 'cancelled', 'PREAPPROVAL_CANCEL_READBACK_INVALID');
+            console.log('PREAPPROVAL_CANCEL_READBACK=PASS');
+
+            const refundFirst = await refund(owner, checkout.paymentId);
+            assert(['AWAITING_VERIFIED_EVENT', 'COMPLETED'].includes(refundFirst.data.status), `REFUND_STATUS_${refundFirst.data.status}`);
+            const refundReplay = await refund(owner, checkout.paymentId);
+            assert(refundReplay.data.refundId === refundFirst.data.refundId, 'REFUND_REPLAY_IDENTITY_MISMATCH');
+            assert(refundReplay.data.replayed === true || refundReplay.data.status === 'COMPLETED', 'REFUND_REPLAY_NOT_CONFIRMED');
+            console.log('REFUND_TEST=PASS');
+            console.log('REFUND_IDEMPOTENCY=PASS');
+
+            const runId = `rrn_payments_acceptance_${Date.now()}`;
+            const reconFirst = await reconciliation(admin, checkout.paymentId, runId);
+            assert(reconFirst.data.runId === runId, 'RECONCILIATION_RUN_ID_MISMATCH');
+            const reconReplay = await reconciliation(admin, checkout.paymentId, runId);
+            assert(reconReplay.data.runId === runId && reconReplay.data.replayed === true, 'RECONCILIATION_REPLAY_FAILED');
+            console.log(`RECONCILIATION=PASS findings=${Number(reconFirst.data.findingCount || 0)}`);
+            console.log('RECONCILIATION_IDEMPOTENCY=PASS');
+
+            console.log('AUTHENTICATED_PROVIDER_E2E=PASS');
+            console.log('REAL_CARD_USED=NO');
+            console.log('REAL_MONEY_USED=NO');
+            console.log('PRODUCTION_TOUCHED=NO');
+            console.log('LEGACY_STAGING_TOUCHED=NO');
+          })().catch((error) => {
+            const message = error instanceof Error ? error.message : 'UNKNOWN_FAILURE';
+            console.error(`AUTHENTICATED_PROVIDER_E2E=FAIL reason=${message.slice(0, 300)}`);
+            process.exitCode = 1;
+          });
+          NODE
