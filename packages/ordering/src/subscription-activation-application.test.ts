@@ -16,8 +16,8 @@ import {
 } from "./index.js";
 import { normalizeSubscriptionId, type Subscription } from "./subscription.js";
 import {
-  SubscriptionActivationError,
   createSubscriptionActivationApplicationService,
+  type SubscriptionActivationError,
 } from "./subscription-activation-application.js";
 
 function required<T>(value: T | null, label: string): T {
