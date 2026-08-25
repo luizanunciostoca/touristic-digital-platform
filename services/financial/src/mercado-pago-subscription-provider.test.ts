@@ -221,7 +221,9 @@ describe("Mercado Pago subscription provider", () => {
   });
 
   it("logs only sanitized provider metadata for a permanent rejection", async () => {
-    const warning = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const warning = vi
+      .spyOn(console, "warn")
+      .mockImplementation(() => undefined);
     try {
       const fetchMock: typeof fetch = async () =>
         new Response(
@@ -256,7 +258,7 @@ describe("Mercado Pago subscription provider", () => {
       expect(diagnostics).toContain(
         '"providerCauseCodes":["subscription_not_allowed"]',
       );
-      expect(diagnostics).toContain('"credentialClass":"TEST"');
+      expect(diagnostics).toContain('"credentialClass":"OTHER"');
       expect(diagnostics).not.toContain("sensitive provider explanation");
     } finally {
       warning.mockRestore();
