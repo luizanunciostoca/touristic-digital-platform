@@ -1,0 +1,58 @@
+name: Format Payments Subscription Fix
+
+on:
+  push:
+    branches:
+      - fix/mercado-pago-bricks-subscriptions-20260823
+    paths:
+      - .github/workflows/format-payments-subscription-fix-20260824.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: fix/mercado-pago-bricks-subscriptions-20260823
+          fetch-depth: 0
+      - name: Setup pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1
+        with:
+          version: 10.15.0
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Format exact changed files
+        run: >-
+          pnpm exec prettier --write
+          apps/morro-digital-platform/src/payments-browser-subscription-client.ts
+          apps/morro-digital-platform/tooling/payments-subscription-api.mjs
+          packages/ordering/src/subscription-activation-application.test.ts
+          packages/ordering/src/subscription-activation-application.ts
+      - name: Verify repository formatting
+        run: pnpm format:check
+      - name: Commit canonical formatting
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            apps/morro-digital-platform/src/payments-browser-subscription-client.ts \
+            apps/morro-digital-platform/tooling/payments-subscription-api.mjs \
+            packages/ordering/src/subscription-activation-application.test.ts \
+            packages/ordering/src/subscription-activation-application.ts
+          if git diff --cached --quiet; then
+            echo "FORMAT_CHANGES=none"
+            exit 0
+          fi
+          git commit -m "style(payments): apply canonical subscription formatting"
+          git push origin HEAD:fix/mercado-pago-bricks-subscriptions-20260823
