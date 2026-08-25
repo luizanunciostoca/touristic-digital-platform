@@ -29,7 +29,7 @@ jobs:
           const expectedSha = process.env.EXPECTED_RELEASE_SHA;
           const password = process.env.ACCEPTANCE_PASSWORD || '';
           const subscriptionId = process.env.SUBSCRIPTION_ID;
-          const ownerEmail = 'payments-acceptance-owner@morro.invalid';
+          const ownerEmail = 'test_payer@testuser.com';
           const businessId = 'biz_payments_acceptance';
           const origin = base;
           const referer = `${base}/business-onboarding.html`;
