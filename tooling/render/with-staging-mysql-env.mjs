@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { randomBytes, scryptSync } from "node:crypto";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -8,6 +9,21 @@ const databaseDomains = Object.freeze([
   ["FINANCIAL", "FINANCIAL_DATABASE_URL"],
   ["AFFILIATES", "AFFILIATES_DATABASE_URL"],
 ]);
+
+export const stagingPaymentsAcceptanceIdentity = Object.freeze({
+  serviceName: "morro-digital-v2-staging",
+  businessId: "biz_payments_acceptance",
+  owner: Object.freeze({
+    id: "staging-payments-acceptance-owner",
+    email: "payments-acceptance-owner@morro.invalid",
+    role: "owner",
+  }),
+  admin: Object.freeze({
+    id: "staging-payments-acceptance-admin",
+    email: "payments-acceptance-admin@morro.invalid",
+    role: "admin",
+  }),
+});
 
 function required(environment, name) {
   const value = String(environment[name] ?? "").trim();
@@ -49,6 +65,103 @@ function databaseUrl(environment, domain, hostPort) {
   return url.toString();
 }
 
+function normalizeAcceptancePassword(value) {
+  if (typeof value !== "string") return "";
+  return Array.from(value, (character) => {
+    const codePoint = character.codePointAt(0) ?? 0;
+    return codePoint <= 31 || codePoint === 127 ? " " : character;
+  })
+    .join("")
+    .replace(/\s+/gu, " ")
+    .trim()
+    .slice(0, 200);
+}
+
+function hashAcceptancePassword(password) {
+  const salt = randomBytes(16);
+  const derived = scryptSync(password, salt, 64);
+  return `scrypt$${salt.toString("base64url")}$${derived.toString("base64url")}`;
+}
+
+function parseDashboardUsers(environment) {
+  const raw = String(environment.DASHBOARD_USERS_JSON ?? "").trim();
+  if (!raw) return [];
+  let users;
+  try {
+    users = JSON.parse(raw);
+  } catch {
+    throw new Error("STAGING_DASHBOARD_USERS_JSON_INVALID");
+  }
+  if (!Array.isArray(users)) {
+    throw new Error("STAGING_DASHBOARD_USERS_JSON_INVALID");
+  }
+  return users;
+}
+
+export function buildStagingPaymentsAcceptanceAuthEnvironment(
+  environment = process.env,
+) {
+  const enabled =
+    String(environment.STAGING_PAYMENTS_ACCEPTANCE_ENABLED ?? "")
+      .trim()
+      .toLowerCase() === "true";
+  if (!enabled) return Object.freeze({});
+
+  if (
+    String(environment.RENDER_SERVICE_NAME ?? "").trim() !==
+    stagingPaymentsAcceptanceIdentity.serviceName
+  ) {
+    throw new Error("STAGING_PAYMENTS_ACCEPTANCE_SERVICE_DENIED");
+  }
+
+  const password = normalizeAcceptancePassword(
+    environment.STAGING_PAYMENTS_ACCEPTANCE_PASSWORD,
+  );
+  if (password.length < 20) {
+    throw new Error("STAGING_PAYMENTS_ACCEPTANCE_PASSWORD_INVALID");
+  }
+
+  const users = parseDashboardUsers(environment);
+  const acceptanceIds = new Set([
+    stagingPaymentsAcceptanceIdentity.owner.id,
+    stagingPaymentsAcceptanceIdentity.admin.id,
+  ]);
+  const acceptanceEmails = new Set([
+    stagingPaymentsAcceptanceIdentity.owner.email,
+    stagingPaymentsAcceptanceIdentity.admin.email,
+  ]);
+  const collision = users.some(
+    (user) =>
+      user &&
+      typeof user === "object" &&
+      (acceptanceIds.has(String(user.id ?? "")) ||
+        acceptanceEmails.has(String(user.email ?? "").trim().toLowerCase())),
+  );
+  if (collision) {
+    throw new Error("STAGING_PAYMENTS_ACCEPTANCE_USER_COLLISION");
+  }
+
+  const ownerPasswordHash = hashAcceptancePassword(password);
+  const adminPasswordHash = hashAcceptancePassword(password);
+  const acceptanceUsers = [
+    {
+      ...stagingPaymentsAcceptanceIdentity.owner,
+      passwordHash: ownerPasswordHash,
+      businessIds: [stagingPaymentsAcceptanceIdentity.businessId],
+    },
+    {
+      ...stagingPaymentsAcceptanceIdentity.admin,
+      passwordHash: adminPasswordHash,
+      businessIds: [],
+    },
+  ];
+
+  return Object.freeze({
+    DASHBOARD_USERS_JSON: JSON.stringify([...users, ...acceptanceUsers]),
+    DASHBOARD_ADMIN_GLOBAL_BYPASS_CONFIRMED: "true",
+  });
+}
+
 export function buildStagingDatabaseEnvironment(environment = process.env) {
   const hostPort = parseHostPort(environment);
   const derived = {};
@@ -82,8 +195,10 @@ if (isDirectInvocation()) {
     process.exitCode = 64;
   } else {
     let derived;
+    let acceptanceAuth;
     try {
       derived = buildStagingDatabaseEnvironment(process.env);
+      acceptanceAuth = buildStagingPaymentsAcceptanceAuthEnvironment(process.env);
     } catch (error) {
       process.stderr.write(
         `${JSON.stringify({
@@ -95,16 +210,18 @@ if (isDirectInvocation()) {
       process.exitCode = 1;
     }
 
-    if (derived) {
+    if (derived && acceptanceAuth) {
       process.stdout.write(
         `${JSON.stringify({
           contract: "MORRO-STAGING-MYSQL-ENV",
           status: "pass",
           databases: databaseDomains.map(([domain]) => domain.toLowerCase()),
+          paymentsAcceptanceAuth:
+            Object.keys(acceptanceAuth).length > 0 ? "enabled" : "disabled",
         })}\n`,
       );
       const child = spawn(command, args, {
-        env: { ...process.env, ...derived },
+        env: { ...process.env, ...derived, ...acceptanceAuth },
         stdio: "inherit",
       });
 
