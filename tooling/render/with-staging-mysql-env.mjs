@@ -9,13 +9,16 @@ const databaseDomains = Object.freeze([
   ["FINANCIAL", "FINANCIAL_DATABASE_URL"],
   ["AFFILIATES", "AFFILIATES_DATABASE_URL"],
 ]);
+const providerAcceptanceRunner = fileURLToPath(
+  new URL("./payments-provider-acceptance-runner.mjs", import.meta.url),
+);
 
 export const stagingPaymentsAcceptanceIdentity = Object.freeze({
   serviceName: "morro-digital-v2-staging",
   businessId: "biz_payments_acceptance",
   owner: Object.freeze({
     id: "staging-payments-acceptance-owner",
-    email: "test_payer@testuser.com",
+    email: "test@testuser.com",
     role: "owner",
   }),
   admin: Object.freeze({
@@ -185,6 +188,34 @@ export function buildStagingDatabaseEnvironment(environment = process.env) {
   return Object.freeze(derived);
 }
 
+export function shouldStartStagingPaymentsProviderAcceptance(
+  environment,
+  command,
+  args,
+) {
+  const enabled =
+    String(environment.STAGING_PAYMENTS_PROVIDER_ACCEPTANCE_AUTORUN ?? "")
+      .trim()
+      .toLowerCase() === "true";
+  if (!enabled) return false;
+  if (
+    String(environment.RENDER_SERVICE_NAME ?? "").trim() !==
+    stagingPaymentsAcceptanceIdentity.serviceName
+  ) {
+    return false;
+  }
+  const executable = String(command ?? "")
+    .replaceAll("\\", "/")
+    .split("/")
+    .pop();
+  if (executable !== "node") return false;
+  return args.some((argument) =>
+    String(argument)
+      .replaceAll("\\", "/")
+      .endsWith("apps/morro-digital-platform/tooling/dev-server.mjs"),
+  );
+}
+
 function isDirectInvocation() {
   if (!process.argv[1]) return false;
   return resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url));
@@ -217,6 +248,11 @@ if (isDirectInvocation()) {
     }
 
     if (derived && acceptanceAuth) {
+      const childEnvironment = {
+        ...process.env,
+        ...derived,
+        ...acceptanceAuth,
+      };
       process.stdout.write(
         `${JSON.stringify({
           contract: "MORRO-STAGING-MYSQL-ENV",
@@ -227,12 +263,48 @@ if (isDirectInvocation()) {
         })}\n`,
       );
       const child = spawn(command, args, {
-        env: { ...process.env, ...derived, ...acceptanceAuth },
+        env: childEnvironment,
         stdio: "inherit",
       });
+      let acceptanceChild = null;
+
+      if (
+        shouldStartStagingPaymentsProviderAcceptance(
+          childEnvironment,
+          command,
+          args,
+        )
+      ) {
+        acceptanceChild = spawn(process.execPath, [providerAcceptanceRunner], {
+          env: childEnvironment,
+          stdio: "inherit",
+        });
+        acceptanceChild.on("error", (error) => {
+          process.stderr.write(
+            `${JSON.stringify({
+              contract: "PAYMENTS-PROVIDER-ACCEPTANCE-RUNNER",
+              status: "fail",
+              reason: `start_failed:${error.message}`.slice(0, 200),
+            })}\n`,
+          );
+        });
+        acceptanceChild.on("exit", (code, signal) => {
+          process.stdout.write(
+            `${JSON.stringify({
+              contract: "PAYMENTS-PROVIDER-ACCEPTANCE-RUNNER",
+              status:
+                signal || (code !== null && code !== 0) ? "fail" : "pass",
+              ...(signal ? { signal } : { exitCode: code ?? 1 }),
+            })}\n`,
+          );
+        });
+      }
 
       for (const signal of ["SIGINT", "SIGTERM"]) {
         process.on(signal, () => {
+          if (acceptanceChild && !acceptanceChild.killed) {
+            acceptanceChild.kill(signal);
+          }
           if (!child.killed) child.kill(signal);
         });
       }
@@ -244,6 +316,9 @@ if (isDirectInvocation()) {
         process.exitCode = 1;
       });
       child.on("exit", (code, signal) => {
+        if (acceptanceChild && !acceptanceChild.killed) {
+          acceptanceChild.kill("SIGTERM");
+        }
         if (signal) {
           process.kill(process.pid, signal);
           return;
