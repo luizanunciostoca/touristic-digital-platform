@@ -44,3 +44,21 @@ jobs:
             echo 'Potential provider secret/token was committed in staging IaC.' >&2
             exit 1
           fi
+      - name: Emit canonical acceptance formatting
+        shell: bash
+        run: |
+          set -euo pipefail
+          corepack pnpm install --frozen-lockfile
+          corepack pnpm exec prettier --write \
+            tooling/render/payments-provider-acceptance-runner.mjs \
+            tooling/render/payments-provider-acceptance-runner.test.mjs \
+            tooling/render/with-staging-mysql-env.mjs
+          for file in \
+            tooling/render/payments-provider-acceptance-runner.mjs \
+            tooling/render/payments-provider-acceptance-runner.test.mjs \
+            tooling/render/with-staging-mysql-env.mjs; do
+            echo "FORMAT_BASE64_BEGIN:${file}"
+            base64 -w0 "${file}"
+            echo
+            echo "FORMAT_BASE64_END:${file}"
+          done
