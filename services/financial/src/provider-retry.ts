@@ -295,11 +295,11 @@ export async function executeBoundedProviderRequest(input: {
     if (!transientStatus(response.status)) return response;
 
     if (attempt >= attempts) {
-      const transientMetadata = await readProviderResponseMetadata(response);
+      const responseMetadata = await readProviderResponseMetadata(response);
       await discardResponse(response);
       throw new ProviderRequestUnavailableError(
         response.status,
-        transientMetadata,
+        responseMetadata,
       );
     }
     await discardResponse(response);
