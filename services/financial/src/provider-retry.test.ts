@@ -110,6 +110,74 @@ describe("M152 bounded financial provider retry", () => {
     expect(postCalls).toBe(1);
   });
 
+  it("honors a bounded Retry-After delay before retrying a transient provider response", async () => {
+    let calls = 0;
+    const fetchMock: typeof fetch = async () => {
+      calls += 1;
+      return calls === 1
+        ? new Response(null, {
+            status: 503,
+            headers: { "retry-after": "15" },
+          })
+        : new Response("{}", { status: 200 });
+    };
+    const retryRuntime = runtime();
+
+    await expect(
+      executeBoundedProviderRequest({
+        fetch: fetchMock,
+        url: new URL("https://provider.example/v1/preapproval"),
+        init: {
+          method: "POST",
+          headers: {
+            "X-Idempotency-Key": "subscription:v1:sub_retry_12345678",
+          },
+          body: JSON.stringify({ externalReference: "sub_retry_12345678" }),
+        },
+        timeoutMs: 1_000,
+        policy: policy(),
+        runtime: retryRuntime,
+      }),
+    ).resolves.toMatchObject({ status: 200 });
+    expect(calls).toBe(2);
+    expect(retryRuntime.sleep).toHaveBeenCalledTimes(1);
+    expect(retryRuntime.sleep).toHaveBeenCalledWith(15_000);
+  });
+
+  it("fails closed when Retry-After exceeds the bounded request budget", async () => {
+    let calls = 0;
+    const fetchMock: typeof fetch = async () => {
+      calls += 1;
+      return new Response(null, {
+        status: 503,
+        headers: { "retry-after": "120" },
+      });
+    };
+    const retryRuntime = runtime();
+
+    await expect(
+      executeBoundedProviderRequest({
+        fetch: fetchMock,
+        url: new URL("https://provider.example/v1/preapproval"),
+        init: {
+          method: "POST",
+          headers: {
+            "X-Idempotency-Key": "subscription:v1:sub_retry_12345678",
+          },
+        },
+        timeoutMs: 1_000,
+        policy: policy(),
+        runtime: retryRuntime,
+      }),
+    ).rejects.toMatchObject({
+      message: "PROVIDER_REQUEST_UNAVAILABLE",
+      httpStatus: 503,
+      retryAfter: "120",
+    });
+    expect(calls).toBe(1);
+    expect(retryRuntime.sleep).not.toHaveBeenCalled();
+  });
+
   it("does not retry a mutating request without explicit idempotency authority", async () => {
     let calls = 0;
     const fetchMock: typeof fetch = async () => {
