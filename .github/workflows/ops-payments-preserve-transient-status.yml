@@ -58,6 +58,8 @@ jobs:
           PY
       - name: Format changed files
         run: pnpm exec prettier --write services/financial/src/provider-retry.ts services/financial/src/provider-retry.test.ts services/financial/src/mercado-pago-subscription-provider.ts
+      - name: Build Financial domain
+        run: pnpm --filter @touristic/financial build
       - name: Run focused tests
         run: pnpm exec vitest run services/financial/src/provider-retry.test.ts services/financial/src/mercado-pago-subscription-provider.test.ts
       - name: Build Financial server
