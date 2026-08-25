@@ -154,14 +154,21 @@ function mutationAuthorization(authApi, request, session, action) {
 function businessAuthorization(session, request, mutation = true) {
   const businessId = header(request, "x-business-id");
   if (!businessId) {
-    return Object.freeze({ allowed: false, status: 400, error: "SUBSCRIPTION_CONTEXT_REQUIRED" });
+    return Object.freeze({
+      allowed: false,
+      status: 400,
+      error: "SUBSCRIPTION_CONTEXT_REQUIRED",
+    });
   }
   const decision = authorizeBusinessAccess(session, businessId, { mutation });
   if (!decision.allowed || !decision.businessId) {
     return Object.freeze({
       allowed: false,
       status: 403,
-      error: decision.reason === "read_only_role" ? "READ_ONLY_ROLE" : "BUSINESS_ACCESS_DENIED",
+      error:
+        decision.reason === "read_only_role"
+          ? "READ_ONLY_ROLE"
+          : "BUSINESS_ACCESS_DENIED",
     });
   }
   return Object.freeze({ allowed: true, businessId: decision.businessId });
@@ -261,16 +268,28 @@ function activationErrorResponse(error) {
   switch (error.code) {
     case "SUBSCRIPTION_ACTIVATION_INVALID_ORDER_ID":
     case "SUBSCRIPTION_ACTIVATION_INVALID_PAYMENT_ID":
-      return Object.freeze({ status: 400, error: "INVALID_SUBSCRIPTION_ACTIVATION_REQUEST" });
+      return Object.freeze({
+        status: 400,
+        error: "INVALID_SUBSCRIPTION_ACTIVATION_REQUEST",
+      });
     case "SUBSCRIPTION_ACTIVATION_ORDER_NOT_FOUND":
       return Object.freeze({ status: 404, error: "ORDER_NOT_FOUND" });
     case "SUBSCRIPTION_ACTIVATION_ORDER_NOT_ELIGIBLE":
-      return Object.freeze({ status: 409, error: "SUBSCRIPTION_ORDER_NOT_ELIGIBLE" });
+      return Object.freeze({
+        status: 409,
+        error: "SUBSCRIPTION_ORDER_NOT_ELIGIBLE",
+      });
     case "SUBSCRIPTION_ACTIVATION_PAYMENT_NOT_VERIFIED":
-      return Object.freeze({ status: 409, error: "SUBSCRIPTION_PAYMENT_NOT_VERIFIED" });
+      return Object.freeze({
+        status: 409,
+        error: "SUBSCRIPTION_PAYMENT_NOT_VERIFIED",
+      });
     case "SUBSCRIPTION_ACTIVATION_INVALID_CLOCK":
     case "SUBSCRIPTION_ACTIVATION_INVALID_STATE":
-      return Object.freeze({ status: 503, error: "SUBSCRIPTION_ACTIVATION_UNAVAILABLE" });
+      return Object.freeze({
+        status: 503,
+        error: "SUBSCRIPTION_ACTIVATION_UNAVAILABLE",
+      });
   }
 }
 
@@ -330,7 +349,9 @@ export function createPaymentsSubscriptionApi({
       const materializer = createSubscriptionActivationApplicationService({
         orders: new MySqlOrderRepository(orderingPool),
         subscriptions,
-        verifiedPayments: new MySqlVerifiedPaymentResultRepository(financialPool),
+        verifiedPayments: new MySqlVerifiedPaymentResultRepository(
+          financialPool,
+        ),
         clock: { now: () => new Date().toISOString() },
       });
       const transport = new ProviderSubscriptionHttpTransport({
@@ -426,12 +447,22 @@ export function createPaymentsSubscriptionApi({
       "subscription.activate",
     );
     if (deniedMutation) {
-      sendJson(response, deniedMutation.status, { error: deniedMutation.error }, correlationId);
+      sendJson(
+        response,
+        deniedMutation.status,
+        { error: deniedMutation.error },
+        correlationId,
+      );
       return;
     }
     const business = businessAuthorization(session, request, true);
     if (!business.allowed) {
-      sendJson(response, business.status, { error: business.error }, correlationId);
+      sendJson(
+        response,
+        business.status,
+        { error: business.error },
+        correlationId,
+      );
       return;
     }
 
@@ -449,7 +480,12 @@ export function createPaymentsSubscriptionApi({
         actorSubject: session.subject,
         tenantId: business.businessId,
       });
-      sendJson(response, 403, { error: "BUSINESS_ACCESS_DENIED" }, correlationId);
+      sendJson(
+        response,
+        403,
+        { error: "BUSINESS_ACCESS_DENIED" },
+        correlationId,
+      );
       return;
     }
 
@@ -483,7 +519,10 @@ export function createPaymentsSubscriptionApi({
 
   return Object.freeze({
     matches(pathname) {
-      return pathname === subscriptionCollectionPath || subscriptionProviderPath.test(pathname);
+      return (
+        pathname === subscriptionCollectionPath ||
+        subscriptionProviderPath.test(pathname)
+      );
     },
     start,
     stop,
@@ -504,7 +543,10 @@ export function createPaymentsSubscriptionApi({
       }
 
       const method = String(request.method || "GET").toUpperCase();
-      if (requestUrl.pathname === subscriptionCollectionPath && method !== "POST") {
+      if (
+        requestUrl.pathname === subscriptionCollectionPath &&
+        method !== "POST"
+      ) {
         sendJson(response, 405, { error: "METHOD_NOT_ALLOWED" }, correlationId);
         return;
       }

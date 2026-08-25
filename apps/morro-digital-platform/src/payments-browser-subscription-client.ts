@@ -43,7 +43,9 @@ export interface BrowserProviderSubscriptionProjection {
 }
 
 export interface PaymentsBrowserSubscriptionClient {
-  materialize(orderId: unknown): Promise<BrowserMaterializedSubscriptionProjection>;
+  materialize(
+    orderId: unknown,
+  ): Promise<BrowserMaterializedSubscriptionProjection>;
   create(
     subscriptionId: unknown,
     cardToken: unknown,
@@ -85,17 +87,19 @@ async function errorCode(response: Response): Promise<string> {
     : `HTTP_${response.status}`;
 }
 
-function validPlan(value: unknown): value is BrowserProviderSubscriptionProjection["plan"] {
+function validPlan(
+  value: unknown,
+): value is BrowserProviderSubscriptionProjection["plan"] {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const plan = value as BrowserProviderSubscriptionProjection["plan"];
   return Boolean(
     typeof plan.id === "string" &&
-      typeof plan.name === "string" &&
-      plan.amount &&
-      Number.isSafeInteger(plan.amount.minorUnits) &&
-      plan.amount.minorUnits > 0 &&
-      typeof plan.amount.currency === "string" &&
-      typeof plan.pricingVersion === "string",
+    typeof plan.name === "string" &&
+    plan.amount &&
+    Number.isSafeInteger(plan.amount.minorUnits) &&
+    plan.amount.minorUnits > 0 &&
+    typeof plan.amount.currency === "string" &&
+    typeof plan.pricingVersion === "string",
   );
 }
 
