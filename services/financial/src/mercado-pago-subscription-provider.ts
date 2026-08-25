@@ -160,6 +160,10 @@ function emitProviderDiagnostic(
     providerRequestId?: string;
     retryAfter?: string;
     contentType?: string;
+    providerErrorCode?: string;
+    providerBodyStatus?: number;
+    providerCauseCodes?: readonly string[];
+    credentialClass?: string;
   }>,
 ): void {
   try {
@@ -181,11 +185,29 @@ function emitProviderDiagnostic(
         ...(boundedString(event.contentType, 120)
           ? { contentType: boundedString(event.contentType, 120) }
           : {}),
+        ...(boundedString(event.providerErrorCode, 80)
+          ? { providerErrorCode: boundedString(event.providerErrorCode, 80) }
+          : {}),
+        ...(Number.isInteger(event.providerBodyStatus)
+          ? { providerBodyStatus: event.providerBodyStatus }
+          : {}),
+        ...(event.providerCauseCodes?.length
+          ? { providerCauseCodes: event.providerCauseCodes.slice(0, 5) }
+          : {}),
+        ...(boundedString(event.credentialClass, 20)
+          ? { credentialClass: boundedString(event.credentialClass, 20) }
+          : {}),
       })}`,
     );
   } catch {
     // Diagnostics must never become provider authority.
   }
+}
+
+function credentialClass(token: string): "TEST" | "APP_USR" | "OTHER" {
+  if (token.startsWith("TEST-")) return "TEST";
+  if (token.startsWith("APP_USR-")) return "APP_USR";
+  return "OTHER";
 }
 
 function unavailable(error: unknown): never {
@@ -308,6 +330,16 @@ export function createMercadoPagoSubscriptionProviderFromEnvironment(
           ...(error.contentType === null
             ? {}
             : { contentType: error.contentType }),
+          ...(error.providerErrorCode === null
+            ? {}
+            : { providerErrorCode: error.providerErrorCode }),
+          ...(error.providerBodyStatus === null
+            ? {}
+            : { providerBodyStatus: error.providerBodyStatus }),
+          ...(error.providerCauseCodes.length === 0
+            ? {}
+            : { providerCauseCodes: error.providerCauseCodes }),
+          credentialClass: credentialClass(token),
         });
       } else if (
         error instanceof MercadoPagoProviderError &&
