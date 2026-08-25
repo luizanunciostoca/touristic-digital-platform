@@ -10,7 +10,6 @@ permissions:
 
 jobs:
   format-fix:
-    if: github.event.head_commit.message != 'chore(ops): canonical subscription fix blobs'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -31,8 +30,9 @@ jobs:
           const path = 'apps/morro-digital-platform/src/payments-browser-subscription-client.test.ts';
           const before = fs.readFileSync(path, 'utf8');
           const needle = 'function okResponse(data = projection): Response {';
-          if (!before.includes(needle)) throw new Error('TYPE_FIX_TARGET_NOT_FOUND');
-          fs.writeFileSync(path, before.replace(needle, 'function okResponse(data: unknown = projection): Response {'));
+          if (before.includes(needle)) {
+            fs.writeFileSync(path, before.replace(needle, 'function okResponse(data: unknown = projection): Response {'));
+          }
           NODE
           pnpm exec prettier --write \
             apps/morro-digital-platform/src/payments-browser-subscription-client.ts \
@@ -54,5 +54,9 @@ jobs:
             packages/ordering/src/subscription-activation-application.ts \
             packages/ordering/src/subscription-activation-application.test.ts
           git diff --cached --check
+          if git diff --cached --quiet; then
+            echo "OPS_CANONICAL_BLOBS_ALREADY_CURRENT=YES"
+            exit 0
+          fi
           git commit -m "chore(ops): canonical subscription fix blobs"
           git push origin HEAD:ops/format-subscription-9cf796-20260824
