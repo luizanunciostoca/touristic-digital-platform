@@ -145,7 +145,7 @@ async function boundedResponseText(
   }
 }
 
-async function transientResponseMetadata(
+export async function readProviderResponseMetadata(
   response: Response,
 ): Promise<ProviderUnavailableResponseMetadata> {
   const contentType = boundedResponseMetadataValue(
@@ -169,7 +169,9 @@ async function transientResponseMetadata(
       .filter((value): value is string => value !== null);
     return {
       ...base,
-      providerErrorCode: boundedProviderErrorCode(payload.error),
+      providerErrorCode:
+        boundedProviderErrorCode(payload.error) ??
+        boundedProviderErrorCode(payload.message),
       providerBodyStatus:
         typeof payload.status === "number" && Number.isInteger(payload.status)
           ? payload.status
@@ -293,7 +295,7 @@ export async function executeBoundedProviderRequest(input: {
     if (!transientStatus(response.status)) return response;
 
     if (attempt >= attempts) {
-      const transientMetadata = await transientResponseMetadata(response);
+      const transientMetadata = await readProviderResponseMetadata(response);
       await discardResponse(response);
       throw new ProviderRequestUnavailableError(
         response.status,

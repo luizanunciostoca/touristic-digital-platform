@@ -17,6 +17,7 @@ import {
   ProviderRequestUnavailableError,
   createProviderRetryPolicyFromEnvironment,
   executeBoundedProviderRequest,
+  readProviderResponseMetadata,
 } from "./provider-retry.js";
 
 const mercadoPagoPreapprovalEndpoint = new URL(
@@ -303,12 +304,37 @@ export function createMercadoPagoSubscriptionProviderFromEnvironment(
           response.status >= 400 && response.status < 500
             ? "MERCADO_PAGO_REJECTED"
             : "MERCADO_PAGO_UNAVAILABLE";
+        const metadata = await readProviderResponseMetadata(response);
         emitProviderDiagnostic({
           method: init.method ?? "GET",
           pathname: url.pathname,
           reason,
           httpStatus: response.status,
+          ...(metadata.providerRequestId == null
+            ? {}
+            : { providerRequestId: metadata.providerRequestId }),
+          ...(metadata.retryAfter == null
+            ? {}
+            : { retryAfter: metadata.retryAfter }),
+          ...(metadata.contentType == null
+            ? {}
+            : { contentType: metadata.contentType }),
+          ...(metadata.providerErrorCode == null
+            ? {}
+            : { providerErrorCode: metadata.providerErrorCode }),
+          ...(metadata.providerBodyStatus == null
+            ? {}
+            : { providerBodyStatus: metadata.providerBodyStatus }),
+          ...(metadata.providerCauseCodes?.length
+            ? { providerCauseCodes: metadata.providerCauseCodes }
+            : {}),
+          credentialClass: credentialClass(token),
         });
+        try {
+          await response.body?.cancel();
+        } catch {
+          // Best effort only: diagnostics must not alter provider authority.
+        }
         throw new MercadoPagoProviderError(reason);
       }
       return await boundedJson(response);

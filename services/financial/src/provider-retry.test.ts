@@ -4,6 +4,7 @@ import {
   ProviderRequestUnavailableError,
   createProviderRetryPolicyFromEnvironment,
   executeBoundedProviderRequest,
+  readProviderResponseMetadata,
 } from "./provider-retry.js";
 
 function policy() {
@@ -130,6 +131,36 @@ describe("M152 bounded financial provider retry", () => {
       httpStatus: 503,
     });
     expect(calls).toBe(1);
+  });
+
+  it("extracts only bounded provider diagnostics from a permanent rejection", async () => {
+    const response = new Response(
+      JSON.stringify({
+        message: "PA_UNAUTHORIZED_RESULT_FROM_POLICIES",
+        status: 403,
+        cause: [
+          { code: "subscription_not_allowed" },
+          { code: "unsafe code with spaces" },
+        ],
+        access_token: "must-never-be-observed",
+      }),
+      {
+        status: 403,
+        headers: {
+          "content-type": "application/json",
+          "x-request-id": "provider-request-403",
+        },
+      },
+    );
+
+    await expect(readProviderResponseMetadata(response)).resolves.toEqual({
+      providerRequestId: "provider-request-403",
+      retryAfter: null,
+      contentType: "application/json",
+      providerErrorCode: "PA_UNAUTHORIZED_RESULT_FROM_POLICIES",
+      providerBodyStatus: 403,
+      providerCauseCodes: ["subscription_not_allowed"],
+    });
   });
 
   it("stops at the bounded attempt limit and never leaks the transport error", async () => {

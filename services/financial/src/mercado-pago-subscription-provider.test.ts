@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { createMoney } from "@touristic/financial";
 import {
@@ -218,6 +218,49 @@ describe("Mercado Pago subscription provider", () => {
     await expect(provider.createSubscription(request)).rejects.toMatchObject({
       code: "MERCADO_PAGO_INVALID_RESPONSE",
     });
+  });
+
+  it("logs only sanitized provider metadata for a permanent rejection", async () => {
+    const warning = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    try {
+      const fetchMock: typeof fetch = async () =>
+        new Response(
+          JSON.stringify({
+            error: "PA_UNAUTHORIZED_RESULT_FROM_POLICIES",
+            status: 403,
+            cause: [{ code: "subscription_not_allowed" }],
+            message: "sensitive provider explanation must not be logged",
+          }),
+          {
+            status: 403,
+            headers: {
+              "content-type": "application/json",
+              "x-request-id": "provider-request-403",
+            },
+          },
+        );
+      const provider = createMercadoPagoSubscriptionProviderFromEnvironment(
+        environment,
+        { fetch: fetchMock },
+      );
+
+      await expect(provider.createSubscription(request)).rejects.toMatchObject({
+        code: "MERCADO_PAGO_REJECTED",
+      });
+
+      const diagnostics = warning.mock.calls.flat().join("\n");
+      expect(diagnostics).toContain('"httpStatus":403');
+      expect(diagnostics).toContain(
+        '"providerErrorCode":"PA_UNAUTHORIZED_RESULT_FROM_POLICIES"',
+      );
+      expect(diagnostics).toContain(
+        '"providerCauseCodes":["subscription_not_allowed"]',
+      );
+      expect(diagnostics).toContain('"credentialClass":"TEST"');
+      expect(diagnostics).not.toContain("sensitive provider explanation");
+    } finally {
+      warning.mockRestore();
+    }
   });
 
   it("fails closed in TEST mode without explicit credential confirmation", async () => {
