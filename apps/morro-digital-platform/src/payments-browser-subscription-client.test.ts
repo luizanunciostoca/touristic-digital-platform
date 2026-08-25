@@ -36,7 +36,7 @@ const materializedProjection = Object.freeze({
   replayed: false,
 });
 
-function okResponse(data = projection): Response {
+function okResponse(data: unknown = projection): Response {
   return new Response(JSON.stringify({ data }), {
     status: 200,
     headers: { "Content-Type": "application/json" },
