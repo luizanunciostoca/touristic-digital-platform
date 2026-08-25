@@ -79,6 +79,8 @@ jobs:
           PY
       - name: Install
         run: corepack pnpm install --frozen-lockfile
+      - name: Build domain dependency
+        run: corepack pnpm --filter @touristic/financial build
       - name: Format
         run: corepack pnpm exec prettier --write services/financial/src/provider-retry.ts services/financial/src/mercado-pago-subscription-provider.ts
       - name: Focused tests
