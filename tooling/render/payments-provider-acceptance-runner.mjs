@@ -2,7 +2,7 @@ import { setTimeout as delay } from "node:timers/promises";
 
 const serviceName = "morro-digital-v2-staging";
 const businessId = "biz_payments_acceptance";
-const ownerEmail = "test@testuser.com";
+const ownerEmail = "test_payer@testuser.com";
 const adminEmail = "payments-acceptance-admin@morro.invalid";
 // Public Mercado Pago TEST fixture only. Never replace this with real card data.
 const testCard = Object.freeze({

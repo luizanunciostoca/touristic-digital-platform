@@ -18,7 +18,7 @@ export const stagingPaymentsAcceptanceIdentity = Object.freeze({
   businessId: "biz_payments_acceptance",
   owner: Object.freeze({
     id: "staging-payments-acceptance-owner",
-    email: "test@testuser.com",
+    email: "test_payer@testuser.com",
     role: "owner",
   }),
   admin: Object.freeze({

@@ -130,7 +130,7 @@ test("adds isolated owner and admin acceptance identities without replacing exis
   const owner = users.find(
     (user) => user.id === stagingPaymentsAcceptanceIdentity.owner.id,
   );
-  assert.equal(owner.email, "test@testuser.com");
+  assert.equal(owner.email, "test_payer@testuser.com");
   assert.equal(owner.email, stagingPaymentsAcceptanceIdentity.owner.email);
   assert.equal(owner.role, "owner");
   assert.deepEqual(owner.businessIds, [
