@@ -123,7 +123,7 @@
       "name": "Pagamentos e Assinaturas",
       "domain": "financial",
       "wave": 8,
-      "status": "migrating",
+      "status": "equivalent",
       "legacySources": ["v1:checkout"],
       "targetPackages": [
         "@touristic/ordering",
@@ -132,15 +132,15 @@
         "@touristic/financial-server"
       ],
       "equivalence": {
-        "behavior": false,
-        "visual": false,
-        "api": false
+        "behavior": true,
+        "visual": true,
+        "api": true
       },
       "verification": {
         "local": "LOCAL_VERIFIED",
         "mysql": "CONTAINER_VERIFIED",
-        "provider": "CONFIGURED",
-        "note": "Release-candidate evidence on 2026-08-22 supersedes the former external-blocked note: the candidate tree passed Quality and Payments contracts, the canonical MySQL matrix passed 339/339, and isolated Render V2 staging deployed the canonical main candidate with PAYMENTS-PREDEPLOY PASS and Mercado Pago direct-official-api configured in test mode. The real provider acceptance chain (test checkout/payment, signed webhook, authoritative readback, Ordering/Financial reconciliation, replay/idempotency and test refund/readback) is still pending; provider is CONFIGURED, not PROVIDER_VERIFIED, and no equivalence promotion is justified."
+        "provider": "PROVIDER_VERIFIED",
+        "note": "FEATURE-0009 equivalence finalized on 2026-08-26. PR #25 certified head 22b6c127ad8d276cb249b403d7813500312ef452 passed 37/37 pull-request workflows and independent review, then merged by expected-head protection to main 1aed2827d7ec322e92e38162dec944ec7740254c. Controlled Mercado Pago TEST acceptance passed authoritative seller/application identity, Subscription readback/cancel, verified webhook, refund/replay and reconciliation with zero findings; no real card or money was used. Exact-main Render V2 staging deploy dep-da7mp12jnfac7395nbng is LIVE with PAYMENTS-PREDEPLOY PASS and acceptance auth disabled. Final Release Acceptance run 33020687735 passed the complete 22/22 deterministic matrix, exact-SHA staging smoke and main-stability re-proof. The canonical Payments matrix is 33 PASS / 0 PARTIAL / 0 GAP / 1 N/A. visual=true is supported by the V1-equivalent browser checkout/confirmation and Business-to-Payments interaction contracts; financial/provider authority remains server-side. This state is equivalent, not released, and does not authorize production."
       }
     },
     {
