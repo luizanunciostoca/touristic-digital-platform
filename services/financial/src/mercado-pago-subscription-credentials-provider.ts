@@ -8,6 +8,9 @@ import type {
 
 interface MercadoPagoSubscriptionsEnvironment extends MercadoPagoProviderEnvironment {
   readonly MERCADO_PAGO_SUBSCRIPTIONS_ACCESS_TOKEN?: string;
+  readonly MERCADO_PAGO_SUBSCRIPTIONS_CREDENTIAL_ORIGIN?: string;
+  readonly MERCADO_PAGO_SUBSCRIPTIONS_TEST_SELLER_USER_ID?: string;
+  readonly MERCADO_PAGO_SUBSCRIPTIONS_TEST_SELLER_APPLICATION_ID?: string;
   readonly RENDER_SERVICE_NAME?: string;
   readonly STAGING_PAYMENTS_PROVIDER_ACCEPTANCE_AUTORUN?: string;
   readonly STAGING_PAYMENTS_PROVIDER_ACCEPTANCE_SCOPE_HEADER?: string;
@@ -31,6 +34,71 @@ function dedicatedSubscriptionsAccessToken(
     throw new Error("MERCADO_PAGO_SUBSCRIPTIONS_ACCESS_TOKEN is required");
   }
   return configured;
+}
+
+function configuredEnvironmentValue(
+  environment: MercadoPagoSubscriptionsEnvironment,
+  name:
+    | "MERCADO_PAGO_CHECKOUT_MODE"
+    | "MERCADO_PAGO_SUBSCRIPTIONS_CREDENTIAL_ORIGIN"
+    | "MERCADO_PAGO_SUBSCRIPTIONS_TEST_SELLER_USER_ID"
+    | "MERCADO_PAGO_SUBSCRIPTIONS_TEST_SELLER_APPLICATION_ID"
+    | "RENDER_SERVICE_NAME",
+  maxLength: number,
+): string {
+  return boundedString(environment[name] ?? process.env[name], maxLength);
+}
+
+function numericProviderIdentifier(value: string): string {
+  return /^[1-9][0-9]{5,19}$/u.test(value) ? value : "";
+}
+
+function assertTestSellerAppCredentialProvenance(
+  environment: MercadoPagoSubscriptionsEnvironment,
+  token: string,
+): void {
+  const checkoutMode = configuredEnvironmentValue(
+    environment,
+    "MERCADO_PAGO_CHECKOUT_MODE",
+    20,
+  ).toLowerCase();
+  if (checkoutMode !== "test" || !token.startsWith("APP_USR-")) return;
+
+  const serviceName = configuredEnvironmentValue(
+    environment,
+    "RENDER_SERVICE_NAME",
+    160,
+  );
+  const credentialOrigin = configuredEnvironmentValue(
+    environment,
+    "MERCADO_PAGO_SUBSCRIPTIONS_CREDENTIAL_ORIGIN",
+    64,
+  ).toLowerCase();
+  const sellerUserId = numericProviderIdentifier(
+    configuredEnvironmentValue(
+      environment,
+      "MERCADO_PAGO_SUBSCRIPTIONS_TEST_SELLER_USER_ID",
+      32,
+    ),
+  );
+  const applicationId = numericProviderIdentifier(
+    configuredEnvironmentValue(
+      environment,
+      "MERCADO_PAGO_SUBSCRIPTIONS_TEST_SELLER_APPLICATION_ID",
+      32,
+    ),
+  );
+
+  if (
+    serviceName !== "morro-digital-v2-staging" ||
+    credentialOrigin !== "test_seller_account" ||
+    !sellerUserId ||
+    !applicationId
+  ) {
+    throw new Error(
+      "MERCADO_PAGO_SUBSCRIPTIONS_TEST_SELLER_APP_PROVENANCE_REQUIRED",
+    );
+  }
 }
 
 function subscriptionTestScopeHeaderMode(
@@ -98,6 +166,7 @@ export function createMercadoPagoSubscriptionProviderFromEnvironment(
   options: MercadoPagoProviderOptions = {},
 ): FinancialSubscriptionProviderPort {
   const token = dedicatedSubscriptionsAccessToken(environment);
+  assertTestSellerAppCredentialProvenance(environment, token);
   return createBaseMercadoPagoSubscriptionProviderFromEnvironment(
     Object.freeze({
       ...environment,
