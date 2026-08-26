@@ -9,6 +9,7 @@ import {
 const sha = "a".repeat(40);
 const subscriptionId = "sub_12345678-abcd-4567-8901-123456789abc";
 const paymentId = "pay_12345678-abcd-4567-8901-123456789abc";
+const payerEmail = "test_payer_1234567890@testuser.com";
 
 function fixture(overrides = {}) {
   return {
@@ -20,6 +21,7 @@ function fixture(overrides = {}) {
     RENDER_GIT_COMMIT: sha,
     STAGING_PAYMENTS_PROVIDER_ACCEPTANCE_SUBSCRIPTION_ID: subscriptionId,
     STAGING_PAYMENTS_PROVIDER_ACCEPTANCE_PAYMENT_ID: paymentId,
+    STAGING_PAYMENTS_PROVIDER_ACCEPTANCE_PAYER_EMAIL: payerEmail,
     STAGING_PAYMENTS_ACCEPTANCE_PASSWORD: "temporary acceptance password 2026",
     MERCADO_PAGO_SUBSCRIPTIONS_PUBLIC_KEY:
       "TEST-public-key-value-for-contract-only",
@@ -83,7 +85,7 @@ test("fails closed outside the dedicated staging service and exact SHA", () => {
   );
 });
 
-test("rejects non-test provider mode and invalid resources", () => {
+test("rejects non-test provider mode, invalid resources, and invalid payer email", () => {
   assert.throws(
     () =>
       createStagingPaymentsProviderAcceptanceConfiguration(
@@ -98,10 +100,28 @@ test("rejects non-test provider mode and invalid resources", () => {
       ),
     /STAGING_PROVIDER_ACCEPTANCE_RESOURCE_INVALID/u,
   );
+  assert.throws(
+    () =>
+      createStagingPaymentsProviderAcceptanceConfiguration(
+        fixture({ STAGING_PAYMENTS_PROVIDER_ACCEPTANCE_PAYER_EMAIL: "" }),
+      ),
+    /STAGING_PROVIDER_ACCEPTANCE_PAYER_EMAIL_INVALID/u,
+  );
+  assert.throws(
+    () =>
+      createStagingPaymentsProviderAcceptanceConfiguration(
+        fixture({
+          STAGING_PAYMENTS_PROVIDER_ACCEPTANCE_PAYER_EMAIL:
+            "buyer@example.com",
+        }),
+      ),
+    /STAGING_PROVIDER_ACCEPTANCE_PAYER_EMAIL_INVALID/u,
+  );
 });
 
 test("executes the full provider acceptance lifecycle without a new checkout", async () => {
   const calls = [];
+  const loginEmails = [];
   let providerReadCount = 0;
   let loginCount = 0;
   const fetchImpl = async (input, init = {}) => {
@@ -118,6 +138,8 @@ test("executes the full provider acceptance lifecycle without a new checkout", a
     }
     if (url.pathname === "/api/dashboard/auth/login") {
       loginCount += 1;
+      const body = JSON.parse(String(init.body ?? "{}"));
+      loginEmails.push(body.email);
       return jsonResponse(
         200,
         {
@@ -215,6 +237,10 @@ test("executes the full provider acceptance lifecycle without a new checkout", a
     reconciliationFindingCount: 0,
   });
   assert.equal(loginCount, 2);
+  assert.deepEqual(loginEmails, [
+    payerEmail,
+    "payments-acceptance-admin@morro.invalid",
+  ]);
   assert.equal(
     calls.filter(
       (call) =>

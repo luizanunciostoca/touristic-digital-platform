@@ -8,6 +8,8 @@ import {
   stagingPaymentsAcceptanceIdentity,
 } from "./with-staging-mysql-env.mjs";
 
+const acceptancePayerEmail = "test_payer_1234567890@testuser.com";
+
 function fixture(overrides = {}) {
   return {
     STAGING_MYSQL_HOSTPORT: "morro-digital-v2-staging-mysql:3306",
@@ -119,6 +121,7 @@ test("adds isolated owner and admin acceptance identities without replacing exis
     RENDER_SERVICE_NAME: stagingPaymentsAcceptanceIdentity.serviceName,
     STAGING_PAYMENTS_ACCEPTANCE_ENABLED: "true",
     STAGING_PAYMENTS_ACCEPTANCE_PASSWORD: password,
+    STAGING_PAYMENTS_PROVIDER_ACCEPTANCE_PAYER_EMAIL: acceptancePayerEmail,
     DASHBOARD_USERS_JSON: JSON.stringify([existingUser]),
   });
 
@@ -130,8 +133,7 @@ test("adds isolated owner and admin acceptance identities without replacing exis
   const owner = users.find(
     (user) => user.id === stagingPaymentsAcceptanceIdentity.owner.id,
   );
-  assert.equal(owner.email, "test_payer@testuser.com");
-  assert.equal(owner.email, stagingPaymentsAcceptanceIdentity.owner.email);
+  assert.equal(owner.email, acceptancePayerEmail);
   assert.equal(owner.role, "owner");
   assert.deepEqual(owner.businessIds, [
     stagingPaymentsAcceptanceIdentity.businessId,
@@ -155,18 +157,20 @@ test("rejects acceptance identities outside the dedicated V2 staging service", (
         STAGING_PAYMENTS_ACCEPTANCE_ENABLED: "true",
         STAGING_PAYMENTS_ACCEPTANCE_PASSWORD:
           "temporary acceptance password 2026",
+        STAGING_PAYMENTS_PROVIDER_ACCEPTANCE_PAYER_EMAIL: acceptancePayerEmail,
       }),
     /STAGING_PAYMENTS_ACCEPTANCE_SERVICE_DENIED/u,
   );
 });
 
-test("rejects weak acceptance credentials and identity collisions", () => {
+test("rejects weak credentials, invalid payer email, and identity collisions", () => {
   assert.throws(
     () =>
       buildStagingPaymentsAcceptanceAuthEnvironment({
         RENDER_SERVICE_NAME: stagingPaymentsAcceptanceIdentity.serviceName,
         STAGING_PAYMENTS_ACCEPTANCE_ENABLED: "true",
         STAGING_PAYMENTS_ACCEPTANCE_PASSWORD: "too-short",
+        STAGING_PAYMENTS_PROVIDER_ACCEPTANCE_PAYER_EMAIL: acceptancePayerEmail,
       }),
     /STAGING_PAYMENTS_ACCEPTANCE_PASSWORD_INVALID/u,
   );
@@ -178,10 +182,35 @@ test("rejects weak acceptance credentials and identity collisions", () => {
         STAGING_PAYMENTS_ACCEPTANCE_ENABLED: "true",
         STAGING_PAYMENTS_ACCEPTANCE_PASSWORD:
           "temporary acceptance password 2026",
+      }),
+    /STAGING_PAYMENTS_ACCEPTANCE_PAYER_EMAIL_INVALID/u,
+  );
+
+  assert.throws(
+    () =>
+      buildStagingPaymentsAcceptanceAuthEnvironment({
+        RENDER_SERVICE_NAME: stagingPaymentsAcceptanceIdentity.serviceName,
+        STAGING_PAYMENTS_ACCEPTANCE_ENABLED: "true",
+        STAGING_PAYMENTS_ACCEPTANCE_PASSWORD:
+          "temporary acceptance password 2026",
+        STAGING_PAYMENTS_PROVIDER_ACCEPTANCE_PAYER_EMAIL:
+          "buyer@example.com",
+      }),
+    /STAGING_PAYMENTS_ACCEPTANCE_PAYER_EMAIL_INVALID/u,
+  );
+
+  assert.throws(
+    () =>
+      buildStagingPaymentsAcceptanceAuthEnvironment({
+        RENDER_SERVICE_NAME: stagingPaymentsAcceptanceIdentity.serviceName,
+        STAGING_PAYMENTS_ACCEPTANCE_ENABLED: "true",
+        STAGING_PAYMENTS_ACCEPTANCE_PASSWORD:
+          "temporary acceptance password 2026",
+        STAGING_PAYMENTS_PROVIDER_ACCEPTANCE_PAYER_EMAIL: acceptancePayerEmail,
         DASHBOARD_USERS_JSON: JSON.stringify([
           {
             id: "different-id",
-            email: stagingPaymentsAcceptanceIdentity.owner.email,
+            email: acceptancePayerEmail,
           },
         ]),
       }),

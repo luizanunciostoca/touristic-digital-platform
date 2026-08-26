@@ -18,7 +18,6 @@ export const stagingPaymentsAcceptanceIdentity = Object.freeze({
   businessId: "biz_payments_acceptance",
   owner: Object.freeze({
     id: "staging-payments-acceptance-owner",
-    email: "test_payer@testuser.com",
     role: "owner",
   }),
   admin: Object.freeze({
@@ -80,6 +79,16 @@ function normalizeAcceptancePassword(value) {
     .slice(0, 200);
 }
 
+function normalizeAcceptancePayerEmail(value) {
+  const normalized = String(value ?? "")
+    .trim()
+    .toLowerCase();
+  if (!normalized || normalized.length > 200) return "";
+  return /^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@testuser\.com$/u.test(normalized)
+    ? normalized
+    : "";
+}
+
 function hashAcceptancePassword(password) {
   const salt = randomBytes(16);
   const derived = scryptSync(password, salt, 64);
@@ -124,13 +133,20 @@ export function buildStagingPaymentsAcceptanceAuthEnvironment(
     throw new Error("STAGING_PAYMENTS_ACCEPTANCE_PASSWORD_INVALID");
   }
 
+  const payerEmail = normalizeAcceptancePayerEmail(
+    environment.STAGING_PAYMENTS_PROVIDER_ACCEPTANCE_PAYER_EMAIL,
+  );
+  if (!payerEmail) {
+    throw new Error("STAGING_PAYMENTS_ACCEPTANCE_PAYER_EMAIL_INVALID");
+  }
+
   const users = parseDashboardUsers(environment);
   const acceptanceIds = new Set([
     stagingPaymentsAcceptanceIdentity.owner.id,
     stagingPaymentsAcceptanceIdentity.admin.id,
   ]);
   const acceptanceEmails = new Set([
-    stagingPaymentsAcceptanceIdentity.owner.email,
+    payerEmail,
     stagingPaymentsAcceptanceIdentity.admin.email,
   ]);
   const collision = users.some(
@@ -153,6 +169,7 @@ export function buildStagingPaymentsAcceptanceAuthEnvironment(
   const acceptanceUsers = [
     {
       ...stagingPaymentsAcceptanceIdentity.owner,
+      email: payerEmail,
       passwordHash: ownerPasswordHash,
       businessIds: [stagingPaymentsAcceptanceIdentity.businessId],
     },

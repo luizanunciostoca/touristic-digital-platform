@@ -2,7 +2,6 @@ import { setTimeout as delay } from "node:timers/promises";
 
 const serviceName = "morro-digital-v2-staging";
 const businessId = "biz_payments_acceptance";
-const ownerEmail = "test_payer@testuser.com";
 const adminEmail = "payments-acceptance-admin@morro.invalid";
 // Public Mercado Pago TEST fixture only. Never replace this with real card data.
 const testCard = Object.freeze({
@@ -48,6 +47,14 @@ function enabled(environment) {
 function normalizeId(value, prefix) {
   const normalized = text(value, 160);
   return normalized.startsWith(prefix) && /^[A-Za-z0-9_-]+$/u.test(normalized)
+    ? normalized
+    : "";
+}
+
+function normalizeTestPayerEmail(value) {
+  const normalized = text(value, 200).toLowerCase();
+  if (!normalized) return "";
+  return /^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@testuser\.com$/u.test(normalized)
     ? normalized
     : "";
 }
@@ -115,6 +122,13 @@ export function createStagingPaymentsProviderAcceptanceConfiguration(
     throw new Error("STAGING_PROVIDER_ACCEPTANCE_PASSWORD_INVALID");
   }
 
+  const payerEmail = normalizeTestPayerEmail(
+    environment.STAGING_PAYMENTS_PROVIDER_ACCEPTANCE_PAYER_EMAIL,
+  );
+  if (!payerEmail) {
+    throw new Error("STAGING_PROVIDER_ACCEPTANCE_PAYER_EMAIL_INVALID");
+  }
+
   const publicKey = required(
     environment,
     "MERCADO_PAGO_SUBSCRIPTIONS_PUBLIC_KEY",
@@ -139,6 +153,7 @@ export function createStagingPaymentsProviderAcceptanceConfiguration(
     subscriptionId,
     paymentId,
     password,
+    payerEmail,
     publicKey,
     origin,
     baseUrl: `http://127.0.0.1:${port}`,
@@ -482,7 +497,7 @@ export async function runStagingPaymentsProviderAcceptance({
     paymentId: config.paymentId,
   });
   await waitForReadiness(fetchImpl, config);
-  const owner = await login(fetchImpl, config, ownerEmail);
+  const owner = await login(fetchImpl, config, config.payerEmail);
   log("owner_auth", "pass");
   const subscription = await completeSubscriptionLifecycle(
     fetchImpl,
