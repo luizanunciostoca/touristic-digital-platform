@@ -193,8 +193,7 @@ test("rejects weak credentials, invalid payer email, and identity collisions", (
         STAGING_PAYMENTS_ACCEPTANCE_ENABLED: "true",
         STAGING_PAYMENTS_ACCEPTANCE_PASSWORD:
           "temporary acceptance password 2026",
-        STAGING_PAYMENTS_PROVIDER_ACCEPTANCE_PAYER_EMAIL:
-          "buyer@example.com",
+        STAGING_PAYMENTS_PROVIDER_ACCEPTANCE_PAYER_EMAIL: "buyer@example.com",
       }),
     /STAGING_PAYMENTS_ACCEPTANCE_PAYER_EMAIL_INVALID/u,
   );
