@@ -485,6 +485,19 @@ async function completeSubscriptionLifecycle(fetchImpl, config, owner) {
   if (current.providerStatus === "pending") {
     throw new Error("STAGING_PROVIDER_ACCEPTANCE_SUBSCRIPTION_PENDING");
   }
+  if (current.subscriptionStatus === "cancel_at_period_end") {
+    if (current.providerStatus !== "authorized") {
+      throw new Error(
+        "STAGING_PROVIDER_ACCEPTANCE_CANCEL_RECOVERY_STATE_INVALID",
+      );
+    }
+    current = await transition(fetchImpl, config, owner, "cancel", "cancelled");
+    log("subscription_lifecycle", "pass", {
+      providerStatus: "cancelled",
+      disposition: "recovered_cancel_at_period_end",
+    });
+    return current;
+  }
   if (current.providerStatus === "authorized") {
     current = await transition(fetchImpl, config, owner, "pause", "paused");
   }

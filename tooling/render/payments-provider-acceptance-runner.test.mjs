@@ -48,14 +48,15 @@ function jsonResponse(status, body, headers = {}) {
   });
 }
 
-function providerProjection(providerStatus) {
+function providerProjection(providerStatus, subscriptionStatus) {
   return {
     data: {
       subscriptionId,
       providerSubscriptionReference: "preapproval_test_123",
       providerStatus,
       subscriptionStatus:
-        providerStatus === "cancelled" ? "cancel_at_period_end" : "active",
+        subscriptionStatus ??
+        (providerStatus === "cancelled" ? "cancel_at_period_end" : "active"),
       plan: {
         id: "provider_acceptance_test",
         name: "Provider Acceptance Test",
@@ -328,4 +329,113 @@ test("executes the full provider acceptance lifecycle for a verified TEST seller
   );
   assert.ok(sellerIdentityIndex >= 0);
   assert.ok(tokenizationIndex > sellerIdentityIndex);
+});
+
+test("recovers a legacy cancel-at-period-end fixture by cancelling the authorized provider directly", async () => {
+  const calls = [];
+  let loginCount = 0;
+  let providerReadCount = 0;
+  const fetchImpl = async (input, init = {}) => {
+    const url = new URL(input);
+    const method = String(init.method ?? "GET").toUpperCase();
+    calls.push({ method, pathname: url.pathname });
+
+    if (url.pathname === "/readyz") {
+      return jsonResponse(
+        200,
+        { readiness: "ready" },
+        { "X-Release-SHA": sha },
+      );
+    }
+    if (
+      url.hostname === "api.mercadolibre.com" &&
+      url.pathname === "/users/me"
+    ) {
+      return jsonResponse(200, {
+        id: Number(sellerUserId),
+        tags: ["test_user"],
+        site_id: "MLB",
+      });
+    }
+    if (url.pathname === "/api/dashboard/auth/login") {
+      loginCount += 1;
+      return jsonResponse(
+        200,
+        {
+          authenticated: true,
+          csrfToken: `csrf_recovery_${loginCount}_1234567890`,
+        },
+        {
+          "Set-Cookie": `morro_session=recovery_${loginCount}; Path=/; HttpOnly`,
+        },
+      );
+    }
+    if (
+      url.pathname ===
+        `/api/payments/v1/subscriptions/${subscriptionId}/provider` &&
+      method === "GET"
+    ) {
+      providerReadCount += 1;
+      return jsonResponse(
+        200,
+        providerProjection(
+          providerReadCount === 1 ? "authorized" : "cancelled",
+          "cancel_at_period_end",
+        ),
+      );
+    }
+    if (url.pathname.endsWith("/provider/cancel")) {
+      return jsonResponse(
+        200,
+        providerProjection("cancelled", "cancel_at_period_end"),
+      );
+    }
+    if (
+      url.pathname === `/api/payments/v1/payments/${paymentId}/refunds` &&
+      method === "POST"
+    ) {
+      return jsonResponse(200, {
+        data: {
+          refundId: "rfd_recovery_12345678",
+          paymentId,
+          status: "COMPLETED",
+          replayed: true,
+        },
+      });
+    }
+    if (
+      url.pathname ===
+        `/api/payments/v1/reconciliation/payments/${paymentId}/runs` &&
+      method === "POST"
+    ) {
+      return jsonResponse(201, {
+        data: {
+          runId: "rrn_recovery_123456",
+          paymentId,
+          findingCount: 0,
+        },
+      });
+    }
+    throw new Error(`unexpected request ${method} ${url}`);
+  };
+
+  const result = await runStagingPaymentsProviderAcceptance({
+    environment: fixture(),
+    fetchImpl,
+  });
+
+  assert.equal(result.status, "pass");
+  assert.equal(result.providerStatus, "cancelled");
+  assert.equal(
+    calls.filter(({ pathname }) => pathname.endsWith("/provider/pause")).length,
+    0,
+  );
+  assert.equal(
+    calls.filter(({ pathname }) => pathname.endsWith("/provider/resume")).length,
+    0,
+  );
+  assert.equal(
+    calls.filter(({ pathname }) => pathname.endsWith("/provider/cancel")).length,
+    1,
+  );
 });

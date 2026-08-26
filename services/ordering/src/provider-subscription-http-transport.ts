@@ -578,19 +578,6 @@ export class ProviderSubscriptionHttpTransport {
     }
 
     const now = canonicalNow(this.dependencies.clock);
-    let canonicalSubscription = subscription;
-    if (action === "cancel" && subscription.status === "active") {
-      const scheduled = scheduleSubscriptionCancellation({
-        subscription,
-        requestedAt: now,
-      });
-      if (!scheduled) {
-        throw new Error("SUBSCRIPTION_CANCELLATION_INVALID");
-      }
-      canonicalSubscription =
-        await this.dependencies.subscriptions.save(scheduled);
-    }
-
     const rawSnapshot = await this.executeTransition(
       action,
       existing.providerSubscriptionReference,
@@ -598,7 +585,7 @@ export class ProviderSubscriptionHttpTransport {
     const snapshot = normalizeProviderSubscriptionSnapshot(rawSnapshot);
     if (
       !snapshot ||
-      !snapshotMatchesSubscription(snapshot, canonicalSubscription) ||
+      !snapshotMatchesSubscription(snapshot, subscription) ||
       !snapshotMatchesBinding(snapshot, existing)
     ) {
       throw new Error("SUBSCRIPTION_PROVIDER_READBACK_MISMATCH");
@@ -612,6 +599,19 @@ export class ProviderSubscriptionHttpTransport {
           : "cancelled";
     if (snapshot.status !== expectedStatus) {
       throw new Error("SUBSCRIPTION_PROVIDER_STATUS_MISMATCH");
+    }
+
+    let canonicalSubscription = subscription;
+    if (action === "cancel" && subscription.status === "active") {
+      const scheduled = scheduleSubscriptionCancellation({
+        subscription,
+        requestedAt: now,
+      });
+      if (!scheduled) {
+        throw new Error("SUBSCRIPTION_CANCELLATION_INVALID");
+      }
+      canonicalSubscription =
+        await this.dependencies.subscriptions.save(scheduled);
     }
 
     const persisted = await this.dependencies.bindings.saveReadback(

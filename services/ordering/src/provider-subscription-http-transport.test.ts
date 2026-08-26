@@ -280,7 +280,7 @@ describe("ProviderSubscriptionHttpTransport", () => {
     expect(fixture.getBinding()).toMatchObject({ status: "authorized" });
   });
 
-  it("schedules canonical cancellation before cancelling the provider agreement", async () => {
+  it("persists canonical cancellation only after provider cancellation succeeds", async () => {
     const fixture = createFixture(binding(snapshot()));
 
     const result = await fixture.transport.handle(
@@ -292,11 +292,32 @@ describe("ProviderSubscriptionHttpTransport", () => {
     );
 
     expect(result.status).toBe(200);
+    expect(fixture.cancelSubscription).toHaveBeenCalledTimes(1);
     expect(fixture.getSubscription().status).toBe("cancel_at_period_end");
     expect(fixture.getSubscription().cancellationRequestedAt).toBe(
       "2026-08-24T03:00:00.000Z",
     );
-    expect(fixture.cancelSubscription).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not advance canonical cancellation when provider cancellation fails", async () => {
+    const fixture = createFixture(binding(snapshot()));
+    fixture.cancelSubscription.mockRejectedValueOnce(
+      new Error("provider cancellation rejected"),
+    );
+
+    const result = await fixture.transport.handle(
+      request(
+        `/api/payments/v1/subscriptions/${subscriptionId}/provider/cancel`,
+        "POST",
+        {},
+      ),
+    );
+
+    expect(result.status).toBe(503);
+    expect(result.body).toEqual({ error: "SUBSCRIPTION_PROVIDER_UNAVAILABLE" });
+    expect(fixture.getSubscription().status).toBe("active");
+    expect(fixture.getSubscription().cancellationRequestedAt).toBeNull();
+    expect(fixture.getBinding()).toMatchObject({ status: "authorized" });
   });
 
   it("fails closed when authoritative provider money differs from Ordering", async () => {
