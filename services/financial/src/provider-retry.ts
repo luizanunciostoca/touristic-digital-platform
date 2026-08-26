@@ -110,6 +110,23 @@ function boundedProviderErrorCode(value: unknown): string | null {
     : null;
 }
 
+function boundedProviderMessageCode(value: unknown): string | null {
+  const message = boundedResponseMetadataValue(
+    typeof value === "string" ? value : null,
+    240,
+  );
+  if (!message) return null;
+  const normalized = message
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/gu, "")
+    .replace(/[^A-Za-z0-9_.:-]+/gu, "_")
+    .replace(/^_+|_+$/gu, "")
+    .slice(0, 80);
+  return normalized && safeProviderErrorCode.test(normalized)
+    ? normalized
+    : null;
+}
+
 function record(value: unknown): Record<string, unknown> | null {
   return value !== null && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -171,7 +188,8 @@ export async function readProviderResponseMetadata(
       ...base,
       providerErrorCode:
         boundedProviderErrorCode(payload.error) ??
-        boundedProviderErrorCode(payload.message),
+        boundedProviderErrorCode(payload.message) ??
+        boundedProviderMessageCode(payload.message),
       providerBodyStatus:
         typeof payload.status === "number" && Number.isInteger(payload.status)
           ? payload.status
