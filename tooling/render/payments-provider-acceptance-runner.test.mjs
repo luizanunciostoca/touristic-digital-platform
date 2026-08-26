@@ -111,8 +111,7 @@ test("rejects non-test provider mode, invalid resources, and invalid payer email
     () =>
       createStagingPaymentsProviderAcceptanceConfiguration(
         fixture({
-          STAGING_PAYMENTS_PROVIDER_ACCEPTANCE_PAYER_EMAIL:
-            "buyer@example.com",
+          STAGING_PAYMENTS_PROVIDER_ACCEPTANCE_PAYER_EMAIL: "buyer@example.com",
         }),
       ),
     /STAGING_PROVIDER_ACCEPTANCE_PAYER_EMAIL_INVALID/u,
