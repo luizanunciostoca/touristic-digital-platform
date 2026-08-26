@@ -231,9 +231,7 @@ function rememberPayerEmail(
   payerEmailByReference.delete(reference);
   payerEmailByReference.set(reference, payerEmail);
   while (payerEmailByReference.size > maxRememberedPayers) {
-    const oldest = payerEmailByReference.keys().next().value as
-      | string
-      | undefined;
+    const oldest = payerEmailByReference.keys().next().value;
     if (!oldest) break;
     payerEmailByReference.delete(oldest);
   }
@@ -282,7 +280,11 @@ async function normalizeSuccessfulPreapprovalResponse(
     !(typeof payload.payer_email === "string" && !payload.payer_email.trim());
 
   if (providerPayerEmail) {
-    rememberPayerEmail(payerEmailByReference, reference, providerPayerEmail);
+    rememberPayerEmail(
+      payerEmailByReference,
+      reference,
+      providerPayerEmail,
+    );
   } else if (!providerPayerFieldPresent) {
     let payerEmail = requestPayerEmail(url, init);
     if (!payerEmail && reference) {
