@@ -1,8 +1,6 @@
 import type { FinancialSubscriptionProviderPort } from "@touristic/financial/subscription-provider";
 
-import {
-  createMercadoPagoSubscriptionProviderFromEnvironment as createBaseMercadoPagoSubscriptionProviderFromEnvironment,
-} from "./mercado-pago-subscription-provider.js";
+import { createMercadoPagoSubscriptionProviderFromEnvironment as createBaseMercadoPagoSubscriptionProviderFromEnvironment } from "./mercado-pago-subscription-provider.js";
 import type {
   MercadoPagoProviderEnvironment,
   MercadoPagoProviderOptions,
@@ -12,8 +10,6 @@ interface MercadoPagoSubscriptionsEnvironment extends MercadoPagoProviderEnviron
   readonly MERCADO_PAGO_SUBSCRIPTIONS_ACCESS_TOKEN?: string;
   readonly RENDER_SERVICE_NAME?: string;
 }
-
-const v2StagingServiceName = "morro-digital-v2-staging";
 
 function boundedString(value: unknown, maxLength: number): string {
   if (typeof value !== "string") return "";
@@ -29,26 +25,10 @@ function dedicatedSubscriptionsAccessToken(
       process.env.MERCADO_PAGO_SUBSCRIPTIONS_ACCESS_TOKEN,
     2_048,
   );
-  const serviceName = boundedString(
-    environment.RENDER_SERVICE_NAME ?? process.env.RENDER_SERVICE_NAME,
-    160,
-  );
-
-  if (serviceName === v2StagingServiceName && configured.length < 32) {
+  if (configured.length < 32) {
     throw new Error("MERCADO_PAGO_SUBSCRIPTIONS_ACCESS_TOKEN is required");
   }
-
-  if (configured.length >= 32) return configured;
-
-  const legacy = boundedString(
-    environment.MERCADO_PAGO_ACCESS_TOKEN ??
-      environment.BUSINESS_PAYMENT_API_TOKEN,
-    2_048,
-  );
-  if (legacy.length < 32) {
-    throw new Error("MERCADO_PAGO_SUBSCRIPTIONS_ACCESS_TOKEN is required");
-  }
-  return legacy;
+  return configured;
 }
 
 export function createMercadoPagoSubscriptionProviderFromEnvironment(
@@ -60,7 +40,7 @@ export function createMercadoPagoSubscriptionProviderFromEnvironment(
     Object.freeze({
       ...environment,
       MERCADO_PAGO_ACCESS_TOKEN: token,
-      BUSINESS_PAYMENT_API_TOKEN: undefined,
+      BUSINESS_PAYMENT_API_TOKEN: "",
     }),
     options,
   );
