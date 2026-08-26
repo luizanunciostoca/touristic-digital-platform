@@ -5,8 +5,8 @@ import { createPaymentsSubscriptionApi } from "./payments-subscription-api.mjs";
 const mercadoPagoWebhookPath = "/api/payments/v1/webhooks/sandbox";
 const providerDataIdHeader = "x-morro-provider-data-id";
 const maxProviderDataIdLength = 180;
-const paymentsCoreStartupAttempts = 3;
-const paymentsCoreStartupRetryBaseMs = 500;
+const paymentsCoreStartupAttempts = 5;
+const paymentsCoreStartupRetryBaseMs = 1_000;
 
 const defaultSleep = (delayMs) =>
   new Promise((resolve) => {

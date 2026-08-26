@@ -80,6 +80,26 @@ describe("Payments runtime bounded core startup retry", () => {
     expect(delays).toEqual([25]);
   });
 
+  it("uses the default bounded retry budget to tolerate a longer transient bootstrap outage", async () => {
+    let attempts = 0;
+    const delays = [];
+    const ready = await startPaymentsCoreWithRetry(
+      async () => {
+        attempts += 1;
+        return attempts === 5;
+      },
+      {
+        sleep: async (delayMs) => {
+          delays.push(delayMs);
+        },
+      },
+    );
+
+    expect(ready).toBe(true);
+    expect(attempts).toBe(5);
+    expect(delays).toEqual([1_000, 2_000, 3_000, 4_000]);
+  });
+
   it("stays fail-closed after the bounded attempt budget is exhausted", async () => {
     let attempts = 0;
     const delays = [];
