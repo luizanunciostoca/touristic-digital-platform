@@ -29,6 +29,28 @@ Checkpoint de código imediatamente anterior a este PR documental:
 
 Este PR é somente documental e, quando mergeado, criará um novo SHA de `main`; esse SHA deverá ser recertificado/redeployado como candidate final antes de qualquer promoção operacional.
 
+## FEATURE-0009 equivalence reconciliation — 2026-08-26
+
+A evidência anterior de Payments foi superada pela conclusão técnica e pela aceitação do provider TEST no PR #25.
+
+Checkpoint certificado:
+
+```text
+certified PR head = 22b6c127ad8d276cb249b403d7813500312ef452
+exact-head PR workflows = 37/37 PASS
+independent reviewer = luizidebook / APPROVED
+protected merge main = 1aed2827d7ec322e92e38162dec944ec7740254c
+exact-main Render deploy = dep-da7mp12jnfac7395nbng / LIVE
+Final Release Acceptance = run 33020687735 / PASS
+release matrix = 22/22 PASS
+```
+
+A acceptance controlada do Mercado Pago TEST comprovou identidade seller/application, readback autoritativo de Subscription, cancelamento autoritativo `cancelled`, webhook verificado, refund, replay/idempotência, accounting posted e reconciliação final com zero findings. Nenhum cartão real, dinheiro real ou produção foi usado. Após a janela de teste, acceptance auth/autorun foram desabilitados e a credencial temporária foi removida.
+
+Os três antigos `PARTIAL` de Payments foram fechados: observabilidade operacional passa por evidência staged e audit/reconciliation duráveis; provider E2E passa pela acceptance TEST completa; rate limiting passa no contrato de equivalência porque os buckets bounded actor/IP satisfazem o baseline da aplicação e um limiter distribuído é requisito de topologia de release apenas se uma futura produção for horizontalmente escalada.
+
+A matriz canônica passa a `33 PASS / 0 PARTIAL / 0 GAP / 1 N/A`. `FEATURE-0009` e `MIG-0010` passam a `equivalent`, não `released`. Release Promotion Gate e tráfego de produção continuam exigindo autorização separada.
+
 ## Tracker inicial
 
 | ID | Origem V1 | Domínio | Feature | Destino V2 | Wave | Estado | Visual | Comportamental | Testes | Risco |
@@ -42,7 +64,7 @@ Este PR é somente documental e, quando mergeado, criará um novo SHA de `main`;
 | MIG-0007 | Business Portal | Business | FEATURE-0005 | `packages/business` + Business surfaces/adapters in `apps/morro-digital-platform` | 6 | equivalent | dashboard, 28-step onboarding, production profile and browser lifecycle contracts evidenced | 19/19 Business-owned contracts PASS; checkout execution remains Payments-owned N/A | `BUSINESS-MIGRATION-MATRIX.md`; M54–M65 evidence; PR #128 Quality + Business browser contracts | alto |
 | MIG-0008 | `luizidebook/morro-digital-crm@1915d026` | CRM | FEATURE-0006 | `@touristic/crm` + `@touristic/crm-server` + `apps/admin-crm` | 7 | equivalent | Lead Detail + Follow-ups validados em 390×844, 768×1024 e 1280×900, com teclado/foco/semântica, estilo CRM canônico e hidden-state correto; M155 adiciona Settings genéricos e adapters filesystem/S3-compatible | 25 contratos: 24 PASS / 0 PARTIAL / 0 GAP / 1 N/A; Settings genéricos, schema `crm_settings`, object storage metadata e adapters M155 adicionados; clearing opcional, Lead Detail/activity, Follow-up sent/responded e AI CRM-owned fechados | `CRM-V1-BASELINE.md`; `CRM-MIGRATION-MATRIX.md`; `docs/qa/CRM-M141-EQUIVALENCE-EVIDENCE.md`; M155; PRs #260/#266 e gates permanentes | alto |
 | MIG-0009 | autenticação e sessão | Auth | FEATURE-0008 | `packages/auth` + `packages/auth-browser` + Auth surfaces in `dashboard/` | 6 | equivalent | login V1-equivalent and canonical dashboard return proven in Chromium | 20/20 Auth contracts PASS: login/session/cookie/CSRF/origin/roles/tenant/audit/revocation | `AUTH-MIGRATION-MATRIX.md`; M47–M48 + M50–M52 + M66 evidence; PR #129 Quality + Auth/Business browser contracts | crítico |
-| MIG-0010 | pagamentos/assinaturas | Ordering / Financial | FEATURE-0009 | `@touristic/ordering` + `@touristic/ordering-server` + `@touristic/financial` + `@touristic/financial-server` + runtime HTTP/browser no Morro Digital | 8 | migrating | Payments browser/contracts e composição Business → Payments passam no candidate tree; staging V2 está LIVE no mesmo código executável | 34 contratos: 30 PASS / 3 PARTIAL / 0 GAP / 1 N/A; Financial 99/99 e Ordering 41/41 na matriz MySQL; Mercado Pago está CONFIGURED em test mode, mas o provider E2E real checkout→webhook→readback→reconciliation→refund continua pendente | `PAYMENTS-MIGRATION-MATRIX.md`; Quality/Payments contracts; MySQL 339/339; Render deploy `dep-da4mqnbtqb8s738bel70`; `PAYMENTS-RELEASE-ROLLBACK.md` | crítico |
+| MIG-0010 | pagamentos/assinaturas | Ordering / Financial | FEATURE-0009 | `@touristic/ordering` + `@touristic/ordering-server` + `@touristic/financial` + `@touristic/financial-server` + runtime HTTP/browser no Morro Digital | 8 | equivalent | browser launch/confirmation e composição Business → Payments preservam a interação V1 aplicável; exact-main staging e release smoke PASS | 34 contratos: 33 PASS / 0 PARTIAL / 0 GAP / 1 N/A; Mercado Pago TEST PROVIDER_VERIFIED; Subscription cancel/readback, webhook, refund/replay, accounting e reconciliation zero findings PASS | `PAYMENTS-MIGRATION-MATRIX.md`; `docs/qa/PAYMENTS-FEATURE-0009-EQUIVALENCE-EVIDENCE.md`; PR #25; 37/37 exact-head; Final Release 33020687735; Render `dep-da7mp12jnfac7395nbng` | crítico |
 | MIG-0011 | afiliados | Affiliates | FEATURE-0010 | `packages/affiliates` + `services/affiliates` | 9 | equivalent | N/A deliberado: a feature é server-authoritative e não exige superfície browser/admin autoritativa; qualquer UI futura permanece apresentação/input somente | 25 PASS / 0 PARTIAL / 0 GAP / 2 N/A; Identity/Suspension, Privacy/LGPD, Attribution, Conversion/Commission/Refund, replay, concorrência e Affiliate → Financial readback estão aceitos | `AFFILIATES-MIGRATION-MATRIX.md`; Quality #242; Affiliates Contract #102; Render Staging Blueprint #66; MySQL integrado; tree `f1ef9038de983a69737c94a2d218eec57e179efb` | crítico |
 | MIG-0017 | venda de ingressos/passeios e check-in operacional | Ticketing | FEATURE-0011 | `packages/ticketing` + `services/ticketing` | 10 | equivalent | emissão, QR HMAC, check-in persistente, offline sync e integração local com Ordering/Financial comprovados; 31/31 testes do Ticketing server passaram com MySQL real | emissão pós-pagamento, QR assinado, check-in persistente, transaction lifecycle, reservation binding e sincronização offline comprovados; browser específico de ticketing/provider E2E ainda não separado | `docs/qa/TICKETING-M147-EVIDENCE.md`; Ticketing MySQL 31/31; Ordering binding 2/2; workflows `ticketing-m147-contract.yml` e `ticketing-m148-transaction-contract.yml` | alto |
 | MIG-0012 | `js/map*` + bootstrap V1 | Geospatial | FEATURE-0001 | `packages/geospatial` + `apps/morro-digital-platform/src/bootstrap/geospatial.ts` | 4 | equivalent | Mapbox Visual Contract validado nos três viewports, normal e `forced-colors` | Runtime, adapter, Mapbox real, fallback, rollback e lifecycle comprovados | PR #17 head final `2d84629b`; runs `31237633579`, `31237633601`, `31237633577` verdes | crítico |
@@ -118,7 +140,7 @@ O staging V2 conectado é isolado e possui MySQL privado próprio, porém o web 
 
 `MIG-0011` e `FEATURE-0010` passam a `equivalent`, não `released`. Rollout para tráfego/produção continua separado e preserva rollback application-first, durable readback/audit e toda autoridade monetária no Financial.
 
-## Payments em migração — MIG-0010
+## Payments equivalente — MIG-0010
 
 M135 congelou a Wave 8 a partir da V1 `luizidebook/morro-de-sao-paulo-digital@60746fd7fed97b805758b37adfdbe3bad2582bfe` e separou Business, Ordering e Financial sem habilitar money movement. M136–M146 materializaram domínio, persistência, checkout server-authoritative, HTTP/Auth, sandbox provider, webhook verificado, resultado persistido, ledger double-entry, refund, reconciliation e split/repasse/settlement com read-back autoritativo. M149 acrescentou o adapter Payments-owned de browser launch/confirmation, mantendo a autoridade M139 fora do browser.
 
@@ -128,17 +150,23 @@ M150 e M151 já estão incorporados e alteram a verdade documental anterior:
 - M151 / PR #258 foi mergeado como `e96fe6d5e025a2084437aa51a8691b65edfc9eec` e adiciona persistência MySQL durável para Subscription e renewal-intent claims com CAS, replay exato e unicidade por Subscription/período/Order;
 - Financial M152 (`8d07e4db0e3c619d520f1a3fc36dc4b14a6a65a2`) adiciona retries transitórios limitados para comandos de provider existentes sem transformar command acceptance em confirmação financeira nem autorizar recarga cega de uma recorrência terminalmente falha.
 
-M153 fecha os resíduos aprovados de composição/application que permaneciam após M150/M151/M152: o bootstrap público Business → Payments é server-issued e fail-closed; o executor provider-neutral de Subscription usa claims duráveis, replay determinístico e somente `VerifiedPaymentResult`; e o runbook de release/rollback preserva toda a história Financial. A matriz candidata permanece:
+M153 fechou os resíduos aprovados de composição/application: o bootstrap público Business → Payments é server-issued e fail-closed; o executor provider-neutral de Subscription usa claims duráveis, replay determinístico e somente `VerifiedPaymentResult`; e o runbook de release/rollback preserva toda a história Financial.
+
+PR #25 fechou o provider e o runtime real de TEST: Checkout Bricks/card server-side, Subscription provider adapter/persistence, authoritative readbacks, verified webhook, refund/replay, reconciliation, cancellation compatibility bounded para a resposta TEST conhecida e retry de startup limitado/fail-closed. O head `22b6c127...` passou 37/37 workflows, recebeu aprovação independente e foi mergeado com `expected_head_sha`. O `main@1aed2827...` foi implantado no V2 staging e o Final Release Acceptance `33020687735` terminou PASS com matriz 22/22, exact-SHA staging smoke e stability re-proof.
+
+A matriz canônica final é:
 
 ```text
-PASS      30
-PARTIAL    3
+PASS      33
+PARTIAL    0
 GAP        0
 N/A        1
 TOTAL     34
 ```
 
-`MIG-0010` e `FEATURE-0009` permanecem `migrating`; equivalence behavior/visual/API continua `false`. A evidência de 2026-08-22 substitui o antigo blocker de credenciais: o provider está configurado no staging V2, o pre-deploy passa e o runtime está ready. O blocker atual é a ausência de provider evidence real em TEST mode: pagamento por conta de comprador TEST, webhook assinado, authoritative readback, reconciliação Ordering/Financial, replay/idempotência e refund/readback. Observabilidade e rate-limit topology continuam PARTIAL conforme `PAYMENTS-MIGRATION-MATRIX.md`.
+A evidência provider TEST é `PROVIDER_VERIFIED`: seller/application identity, Subscription authoritative readback/cancel `cancelled`, verified webhook, refund/replay, accounting posted e reconciliation com zero findings. Observabilidade deixou de ser PARTIAL pela evidência staged e audit/reconciliation duráveis. Rate limiting deixa de ser PARTIAL para equivalência: os buckets bounded actor/IP satisfazem o baseline aplicativo; um limiter distribuído é gate de release somente se a futura topologia de produção for horizontalmente escalada.
+
+`MIG-0010` e `FEATURE-0009` estão `equivalent`, não `released`. Produção permanece não autorizada; Release Promotion Gate depende de autorização separada. A evidência permanente está em `docs/qa/PAYMENTS-FEATURE-0009-EQUIVALENCE-EVIDENCE.md`.
 
 ## Evidência consolidada — checkpoint Home + Runtime + Geospatial
 
