@@ -110,7 +110,9 @@ describe("Mercado Pago subscription credential isolation", () => {
     ]);
     expect(captured.scopeHeaders).toEqual(["stage", "stage"]);
     expect(
-      captured.authorizationHeaders.some((value) => value.includes(bricksToken)),
+      captured.authorizationHeaders.some((value) =>
+        value.includes(bricksToken),
+      ),
     ).toBe(false);
   });
 
