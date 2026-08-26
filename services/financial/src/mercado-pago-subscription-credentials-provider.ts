@@ -16,8 +16,7 @@ interface MercadoPagoSubscriptionsEnvironment extends MercadoPagoProviderEnviron
   readonly STAGING_PAYMENTS_PROVIDER_ACCEPTANCE_SCOPE_HEADER?: string;
 }
 
-export interface MercadoPagoSubscriptionProviderOptions
-  extends MercadoPagoProviderOptions {
+export interface MercadoPagoSubscriptionProviderOptions extends MercadoPagoProviderOptions {
   readonly resolvePayerEmail?: (
     externalReference: string,
   ) => Promise<string | null> | string | null;
@@ -240,9 +239,9 @@ function rememberPayerEmail(
 function isPreapprovalResponse(url: URL | null): boolean {
   return Boolean(
     url &&
-      url.hostname === "api.mercadopago.com" &&
-      (url.pathname === "/preapproval" ||
-        url.pathname.startsWith("/preapproval/")),
+    url.hostname === "api.mercadopago.com" &&
+    (url.pathname === "/preapproval" ||
+      url.pathname.startsWith("/preapproval/")),
   );
 }
 
