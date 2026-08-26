@@ -39,16 +39,18 @@ jobs:
           set -euo pipefail
           runner='tooling/render/payments-provider-acceptance-runner.mjs'
           wrapper='tooling/render/with-staging-mysql-env.mjs'
+          wrapper_test='tooling/render/with-staging-mysql-env.test.mjs'
           test "$(grep -o 'test@testuser.com' "$runner" | wc -l)" -eq 1
           test "$(grep -o 'test@testuser.com' "$wrapper" | wc -l)" -eq 1
-          sed -i 's/test@testuser.com/test_payer@testuser.com/g' "$runner" "$wrapper"
+          test "$(grep -o 'test@testuser.com' "$wrapper_test" | wc -l)" -eq 1
+          sed -i 's/test@testuser.com/test_payer@testuser.com/g' "$runner" "$wrapper" "$wrapper_test"
           corepack pnpm install --frozen-lockfile
-          corepack pnpm exec prettier --write "$runner" "$wrapper"
+          corepack pnpm exec prettier --write "$runner" "$wrapper" "$wrapper_test"
           node --test tooling/render/with-staging-mysql-env.test.mjs
           node --test tooling/render/payments-provider-acceptance-runner.test.mjs
           git diff --check
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add "$runner" "$wrapper"
+          git add "$runner" "$wrapper" "$wrapper_test"
           git commit -m 'fix(payments): align authorized subscription test payer'
           git push origin HEAD:fix/mercado-pago-bricks-subscriptions-20260823
