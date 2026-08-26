@@ -122,3 +122,5 @@ describe("Payments runtime bounded core startup retry", () => {
     expect(delays).toEqual([25, 50]);
   });
 });
+
+// CI trigger only; removed by the next commit.
