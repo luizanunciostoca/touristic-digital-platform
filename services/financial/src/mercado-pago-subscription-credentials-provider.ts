@@ -1,10 +1,9 @@
 import type { FinancialSubscriptionProviderPort } from "@touristic/financial/subscription-provider";
 
 import { createMercadoPagoSubscriptionProviderFromEnvironment as createBaseMercadoPagoSubscriptionProviderFromEnvironment } from "./mercado-pago-subscription-provider.js";
-import {
-  MercadoPagoProviderError,
-  type MercadoPagoProviderEnvironment,
-  type MercadoPagoProviderOptions,
+import type {
+  MercadoPagoProviderEnvironment,
+  MercadoPagoProviderOptions,
 } from "./mercado-pago-provider.js";
 
 interface MercadoPagoSubscriptionsEnvironment extends MercadoPagoProviderEnvironment {
@@ -259,12 +258,12 @@ function isPreapprovalResponse(url: URL | null): boolean {
   );
 }
 
-function assertAuthoritativeProviderIdentity(
+function authoritativeProviderIdentityMatches(
   payload: Record<string, unknown>,
   url: URL | null,
   init: RequestInit | undefined,
   expectedIdentity: TestSellerProviderIdentity | null,
-): void {
+): boolean {
   if (
     !expectedIdentity ||
     !url ||
@@ -272,16 +271,14 @@ function assertAuthoritativeProviderIdentity(
     !url.pathname.startsWith("/preapproval/") ||
     String(init?.method ?? "GET").toUpperCase() !== "GET"
   ) {
-    return;
+    return true;
   }
-  const applicationId = numericProviderIdentifier(payload.application_id);
-  const collectorId = numericProviderIdentifier(payload.collector_id);
-  if (
-    applicationId !== expectedIdentity.applicationId ||
-    collectorId !== expectedIdentity.collectorId
-  ) {
-    throw new MercadoPagoProviderError("MERCADO_PAGO_INVALID_RESPONSE");
-  }
+  return (
+    numericProviderIdentifier(payload.application_id) ===
+      expectedIdentity.applicationId &&
+    numericProviderIdentifier(payload.collector_id) ===
+      expectedIdentity.collectorId
+  );
 }
 
 async function normalizeSuccessfulPreapprovalResponse(
@@ -295,12 +292,23 @@ async function normalizeSuccessfulPreapprovalResponse(
   if (!response.ok || !isPreapprovalResponse(url)) return response;
   const payload = await responsePayload(response);
   if (!payload) return response;
-  assertAuthoritativeProviderIdentity(
-    payload,
-    url,
-    init,
-    expectedProviderIdentity,
-  );
+  if (
+    !authoritativeProviderIdentityMatches(
+      payload,
+      url,
+      init,
+      expectedProviderIdentity,
+    )
+  ) {
+    const headers = new Headers(response.headers);
+    headers.delete("content-length");
+    headers.delete("content-encoding");
+    return new Response("{}", {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    });
+  }
 
   const normalizedPayload: Record<string, unknown> = { ...payload };
   let changed = false;
