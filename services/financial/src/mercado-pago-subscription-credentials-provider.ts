@@ -280,11 +280,7 @@ async function normalizeSuccessfulPreapprovalResponse(
     !(typeof payload.payer_email === "string" && !payload.payer_email.trim());
 
   if (providerPayerEmail) {
-    rememberPayerEmail(
-      payerEmailByReference,
-      reference,
-      providerPayerEmail,
-    );
+    rememberPayerEmail(payerEmailByReference, reference, providerPayerEmail);
   } else if (!providerPayerFieldPresent) {
     let payerEmail = requestPayerEmail(url, init);
     if (!payerEmail && reference) {
