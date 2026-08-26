@@ -33,9 +33,15 @@ const dedicatedToken =
   "TEST_SUBSCRIPTIONS_ACCESS_TOKEN_fixture_123456789012345678901234567890";
 const bricksToken =
   "TEST_BRICKS_ACCESS_TOKEN_fixture_123456789012345678901234567890";
+const testSellerToken =
+  "APP_USR-test-seller-contract-token-123456789012345678901234567890";
+const testSellerUserId = "9999999999";
+const testSellerApplicationId = "8888888888888888";
 
 function providerPayload(
   options: Readonly<{
+    applicationId?: number | string;
+    collectorId?: number | string;
     includePayerEmail?: boolean;
     transactionAmount?: number | string;
   }> = {},
@@ -51,6 +57,12 @@ function providerPayload(
       currency_id: "BRL",
     },
   };
+  if (options.applicationId !== undefined) {
+    payload.application_id = options.applicationId;
+  }
+  if (options.collectorId !== undefined) {
+    payload.collector_id = options.collectorId;
+  }
   if (options.includePayerEmail !== false) {
     payload.payer_email = "buyer@example.com";
   }
@@ -65,6 +77,17 @@ function baseEnvironment() {
     MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED: "true",
     MERCADO_PAGO_SUBSCRIPTIONS_ACCESS_TOKEN: dedicatedToken,
     RENDER_SERVICE_NAME: "morro-digital-v2-staging",
+  } as const;
+}
+
+function testSellerEnvironment() {
+  return {
+    ...baseEnvironment(),
+    MERCADO_PAGO_SUBSCRIPTIONS_ACCESS_TOKEN: testSellerToken,
+    MERCADO_PAGO_SUBSCRIPTIONS_CREDENTIAL_ORIGIN: "test_seller_account",
+    MERCADO_PAGO_SUBSCRIPTIONS_TEST_SELLER_USER_ID: testSellerUserId,
+    MERCADO_PAGO_SUBSCRIPTIONS_TEST_SELLER_APPLICATION_ID:
+      testSellerApplicationId,
   } as const;
 }
 
@@ -239,6 +262,58 @@ describe("Mercado Pago subscription credential isolation", () => {
       payerEmail: "buyer@example.com",
     });
     expect(resolvedReferences).toEqual([subscriptionId]);
+  });
+
+  it("accepts authoritative readback only for the configured TEST seller application and collector", async () => {
+    const fetchMock: typeof fetch = async () =>
+      new Response(
+        JSON.stringify(
+          providerPayload({
+            applicationId: testSellerApplicationId,
+            collectorId: Number(testSellerUserId),
+          }),
+        ),
+        { status: 200 },
+      );
+    const provider = createMercadoPagoSubscriptionProviderFromEnvironment(
+      testSellerEnvironment(),
+      { fetch: fetchMock },
+    );
+
+    await expect(
+      provider.readSubscription("preapproval_credentials_0001"),
+    ).resolves.toMatchObject({
+      providerSubscriptionReference: "preapproval_credentials_0001",
+      externalReference: subscriptionId,
+      status: "authorized",
+    });
+  });
+
+  it("rejects authoritative readback for a different application or collector", async () => {
+    const payloads = [
+      providerPayload({
+        applicationId: "7777777777777777",
+        collectorId: testSellerUserId,
+      }),
+      providerPayload({
+        applicationId: testSellerApplicationId,
+        collectorId: "7777777777",
+      }),
+      providerPayload(),
+    ];
+
+    for (const payload of payloads) {
+      const fetchMock: typeof fetch = async () =>
+        new Response(JSON.stringify(payload), { status: 200 });
+      const provider = createMercadoPagoSubscriptionProviderFromEnvironment(
+        testSellerEnvironment(),
+        { fetch: fetchMock },
+      );
+
+      await expect(
+        provider.readSubscription("preapproval_credentials_0001"),
+      ).rejects.toMatchObject({ code: "MERCADO_PAGO_INVALID_RESPONSE" });
+    }
   });
 
   it("does not coerce a non-decimal provider amount", async () => {

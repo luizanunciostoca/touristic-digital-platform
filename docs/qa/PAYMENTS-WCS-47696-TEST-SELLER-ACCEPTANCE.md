@@ -13,7 +13,7 @@ Mercado Pago support, ticket `WCS-47696`, clarified two points:
 1. `payer_email` must be the exact email registered in the TEST buyer profile. It must be obtained by logging in as that TEST buyer and reading its profile; documentation sample emails must not be substituted.
 2. For this Subscriptions acceptance, the seller credential must come from an application created or accessed while logged in as the TEST seller account. In that TEST-seller application, the credentials shown under **production credentials** belong to the TEST user and are used as TEST credentials for `/preapproval`.
 
-Current public Mercado Pago documentation independently describes this TEST-seller pattern: create/login as a TEST seller, create an application while authenticated as that seller, then obtain that TEST user's Public Key and Access Token from the application's production-credentials section.
+Current public Mercado Pago documentation independently describes this TEST-seller pattern: [TEST accounts have the same capabilities as real accounts and must use seller, buyer, and official test-card fixtures](https://www.mercadopago.com.br/developers/pt/docs/your-integrations/test/accounts). Mercado Pago also documents that a TEST seller Access Token may begin with `APP_USR`, and that some sandbox flows use production credentials belonging to TEST users. Consequently, `live_mode` is recorded as evidence but is never treated in isolation as proof of real or TEST identity; the authoritative proof is the verified TEST seller plus the application and collector IDs returned by provider readback.
 
 ## Credential pairing invariant
 
@@ -43,6 +43,15 @@ MERCADO_PAGO_SUBSCRIPTIONS_TEST_SELLER_APP_PROVENANCE_REQUIRED
 ```
 
 This metadata is not a credential. It documents operator intent and prevents an `APP_USR` copied from the real account from being accepted accidentally in TEST-mode staging.
+
+Every successful authoritative `GET /preapproval/{id}` in this mode must also return:
+
+```text
+application_id == MERCADO_PAGO_SUBSCRIPTIONS_TEST_SELLER_APPLICATION_ID
+collector_id == MERCADO_PAGO_SUBSCRIPTIONS_TEST_SELLER_USER_ID
+```
+
+Missing or mismatched provider identity fails closed as `MERCADO_PAGO_INVALID_RESPONSE` before the response can become local authority. A successful acceptance records only the expected non-secret IDs and never records credentials.
 
 ## Buyer invariant
 
@@ -104,7 +113,9 @@ Configure secrets only through the provider/Render secure UI.
 - [ ] exact-head staging deploy live with acceptance disabled;
 - [ ] one bounded acceptance window armed;
 - [ ] `X-scope` omitted for this support-prescribed comparison;
-- [ ] card tokenization proves `live_mode=false` before `/preapproval`;
+- [ ] card tokenization succeeds with the official TEST card after `/users/me` proves the expected TEST seller;
+- [ ] `live_mode` and credential mode are recorded as sanitized evidence, without treating either field in isolation as seller identity;
+- [ ] authoritative `GET /preapproval/{id}` proves the configured TEST-seller `application_id` and `collector_id`;
 - [ ] no real card, real money, real buyer, or real-account production Access Token used.
 
 Only after these checks may a single controlled `POST /preapproval` be reproduced for ticket `WCS-47696`.

@@ -360,7 +360,14 @@ async function tokenize(fetchImpl, config) {
       `STAGING_PROVIDER_ACCEPTANCE_TOKENIZATION_HTTP_${response.status}`,
     );
   }
-  log("tokenize", "pass", { provider: "mercado_pago", liveMode });
+  log("tokenize", "pass", {
+    provider: "mercado_pago",
+    environment: "test_seller",
+    credentialMode: liveMode ? "production_credentials" : "test_credentials",
+    liveMode,
+    officialTestCard: true,
+    realCard: false,
+  });
   return token;
 }
 
@@ -466,6 +473,11 @@ async function transition(fetchImpl, config, owner, action, expectedStatus) {
 
 async function completeSubscriptionLifecycle(fetchImpl, config, owner) {
   let current = await ensureProviderBinding(fetchImpl, config, owner);
+  log("subscription_provider_identity", "pass", {
+    applicationId: config.sellerApplicationId,
+    collectorId: config.sellerUserId,
+    authority: "mercado_pago_authoritative_readback",
+  });
   if (current.providerStatus === "cancelled") {
     log("subscription_lifecycle", "pass", { disposition: "already_cancelled" });
     return current;
@@ -588,6 +600,7 @@ export async function runStagingPaymentsProviderAcceptance({
     releaseSha: config.expectedSha,
     subscriptionId: config.subscriptionId,
     providerStatus: subscription.providerStatus,
+    providerIdentityVerified: true,
     paymentId: config.paymentId,
     refundStatus: refund.status,
     reconciliationFindingCount: reconciliation.findingCount,

@@ -1,9 +1,10 @@
 import type { FinancialSubscriptionProviderPort } from "@touristic/financial/subscription-provider";
 
 import { createMercadoPagoSubscriptionProviderFromEnvironment as createBaseMercadoPagoSubscriptionProviderFromEnvironment } from "./mercado-pago-subscription-provider.js";
-import type {
-  MercadoPagoProviderEnvironment,
-  MercadoPagoProviderOptions,
+import {
+  MercadoPagoProviderError,
+  type MercadoPagoProviderEnvironment,
+  type MercadoPagoProviderOptions,
 } from "./mercado-pago-provider.js";
 
 interface MercadoPagoSubscriptionsEnvironment extends MercadoPagoProviderEnvironment {
@@ -20,6 +21,11 @@ export interface MercadoPagoSubscriptionProviderOptions extends MercadoPagoProvi
   readonly resolvePayerEmail?: (
     externalReference: string,
   ) => Promise<string | null> | string | null;
+}
+
+interface TestSellerProviderIdentity {
+  readonly applicationId: string;
+  readonly collectorId: string;
 }
 
 const maxProviderResponseBytes = 64 * 1024;
@@ -63,20 +69,24 @@ function configuredEnvironmentValue(
   return boundedString(environment[name] ?? process.env[name], maxLength);
 }
 
-function numericProviderIdentifier(value: string): string {
-  return /^[1-9][0-9]{5,19}$/u.test(value) ? value : "";
+function numericProviderIdentifier(value: unknown): string {
+  const normalized =
+    typeof value === "number" && Number.isSafeInteger(value) && value > 0
+      ? String(value)
+      : boundedString(value, 32);
+  return /^[1-9][0-9]{5,19}$/u.test(normalized) ? normalized : "";
 }
 
 function assertTestSellerAppCredentialProvenance(
   environment: MercadoPagoSubscriptionsEnvironment,
   token: string,
-): void {
+): TestSellerProviderIdentity | null {
   const checkoutMode = configuredEnvironmentValue(
     environment,
     "MERCADO_PAGO_CHECKOUT_MODE",
     20,
   ).toLowerCase();
-  if (checkoutMode !== "test" || !token.startsWith("APP_USR-")) return;
+  if (checkoutMode !== "test" || !token.startsWith("APP_USR-")) return null;
 
   const serviceName = configuredEnvironmentValue(
     environment,
@@ -113,6 +123,10 @@ function assertTestSellerAppCredentialProvenance(
       "MERCADO_PAGO_SUBSCRIPTIONS_TEST_SELLER_APP_PROVENANCE_REQUIRED",
     );
   }
+  return Object.freeze({
+    applicationId,
+    collectorId: sellerUserId,
+  });
 }
 
 function subscriptionTestScopeHeaderMode(
@@ -245,16 +259,48 @@ function isPreapprovalResponse(url: URL | null): boolean {
   );
 }
 
+function assertAuthoritativeProviderIdentity(
+  payload: Record<string, unknown>,
+  url: URL | null,
+  init: RequestInit | undefined,
+  expectedIdentity: TestSellerProviderIdentity | null,
+): void {
+  if (
+    !expectedIdentity ||
+    !url ||
+    url.hostname !== "api.mercadopago.com" ||
+    !url.pathname.startsWith("/preapproval/") ||
+    String(init?.method ?? "GET").toUpperCase() !== "GET"
+  ) {
+    return;
+  }
+  const applicationId = numericProviderIdentifier(payload.application_id);
+  const collectorId = numericProviderIdentifier(payload.collector_id);
+  if (
+    applicationId !== expectedIdentity.applicationId ||
+    collectorId !== expectedIdentity.collectorId
+  ) {
+    throw new MercadoPagoProviderError("MERCADO_PAGO_INVALID_RESPONSE");
+  }
+}
+
 async function normalizeSuccessfulPreapprovalResponse(
   response: Response,
   url: URL | null,
   init: RequestInit | undefined,
   options: MercadoPagoSubscriptionProviderOptions,
+  expectedProviderIdentity: TestSellerProviderIdentity | null,
   payerEmailByReference: Map<string, string>,
 ): Promise<Response> {
   if (!response.ok || !isPreapprovalResponse(url)) return response;
   const payload = await responsePayload(response);
   if (!payload) return response;
+  assertAuthoritativeProviderIdentity(
+    payload,
+    url,
+    init,
+    expectedProviderIdentity,
+  );
 
   const normalizedPayload: Record<string, unknown> = { ...payload };
   let changed = false;
@@ -311,6 +357,7 @@ async function normalizeSuccessfulPreapprovalResponse(
 function subscriptionProviderOptions(
   environment: MercadoPagoSubscriptionsEnvironment,
   options: MercadoPagoSubscriptionProviderOptions,
+  expectedProviderIdentity: TestSellerProviderIdentity | null,
 ): MercadoPagoSubscriptionProviderOptions {
   const scopeMode = subscriptionTestScopeHeaderMode(environment);
   const fetchImpl = options.fetch ?? globalThis.fetch;
@@ -328,6 +375,7 @@ function subscriptionProviderOptions(
       requestUrl(input),
       requestInit,
       options,
+      expectedProviderIdentity,
       payerEmailByReference,
     );
   };
@@ -339,13 +387,20 @@ export function createMercadoPagoSubscriptionProviderFromEnvironment(
   options: MercadoPagoSubscriptionProviderOptions = {},
 ): FinancialSubscriptionProviderPort {
   const token = dedicatedSubscriptionsAccessToken(environment);
-  assertTestSellerAppCredentialProvenance(environment, token);
+  const expectedProviderIdentity = assertTestSellerAppCredentialProvenance(
+    environment,
+    token,
+  );
   return createBaseMercadoPagoSubscriptionProviderFromEnvironment(
     Object.freeze({
       ...environment,
       MERCADO_PAGO_ACCESS_TOKEN: token,
       BUSINESS_PAYMENT_API_TOKEN: "",
     }),
-    subscriptionProviderOptions(environment, options),
+    subscriptionProviderOptions(
+      environment,
+      options,
+      expectedProviderIdentity,
+    ),
   );
 }

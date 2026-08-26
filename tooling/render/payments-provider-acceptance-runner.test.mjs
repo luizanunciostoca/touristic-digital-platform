@@ -287,6 +287,7 @@ test("executes the full provider acceptance lifecycle for a verified TEST seller
     releaseSha: sha,
     subscriptionId,
     providerStatus: "cancelled",
+    providerIdentityVerified: true,
     paymentId,
     refundStatus: "COMPLETED",
     reconciliationFindingCount: 0,
@@ -317,4 +318,14 @@ test("executes the full provider acceptance lifecycle for a verified TEST seller
       .length,
     1,
   );
+  const sellerIdentityIndex = calls.findIndex(
+    (call) =>
+      new URL(call.url).hostname === "api.mercadolibre.com" &&
+      new URL(call.url).pathname === "/users/me",
+  );
+  const tokenizationIndex = calls.findIndex(
+    (call) => new URL(call.url).pathname === "/v1/card_tokens",
+  );
+  assert.ok(sellerIdentityIndex >= 0);
+  assert.ok(tokenizationIndex > sellerIdentityIndex);
 });
