@@ -354,11 +354,21 @@ export function createPaymentsSubscriptionApi({
         ),
         clock: { now: () => new Date().toISOString() },
       });
+      const bindings = new MySqlProviderSubscriptionRepository(financialPool);
+      const provider = createMercadoPagoSubscriptionProviderFromEnvironment(
+        environment,
+        {
+          async resolvePayerEmail(externalReference) {
+            const binding =
+              await bindings.findBySubscriptionId(externalReference);
+            return binding?.payerEmail ?? null;
+          },
+        },
+      );
       const transport = new ProviderSubscriptionHttpTransport({
         subscriptions,
-        bindings: new MySqlProviderSubscriptionRepository(financialPool),
-        provider:
-          createMercadoPagoSubscriptionProviderFromEnvironment(environment),
+        bindings,
+        provider,
         authorization: authorizationPort({ authApi, access }),
         audit: {
           record(event) {

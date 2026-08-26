@@ -16,10 +16,25 @@ interface MercadoPagoSubscriptionsEnvironment extends MercadoPagoProviderEnviron
   readonly STAGING_PAYMENTS_PROVIDER_ACCEPTANCE_SCOPE_HEADER?: string;
 }
 
+export interface MercadoPagoSubscriptionProviderOptions
+  extends MercadoPagoProviderOptions {
+  readonly resolvePayerEmail?: (
+    externalReference: string,
+  ) => Promise<string | null> | string | null;
+}
+
+const maxProviderResponseBytes = 64 * 1024;
+const maxRememberedPayers = 32;
+
 function boundedString(value: unknown, maxLength: number): string {
   if (typeof value !== "string") return "";
   const normalized = value.trim();
   return normalized && normalized.length <= maxLength ? normalized : "";
+}
+
+function normalizedPayerEmail(value: unknown): string {
+  const normalized = boundedString(value, 200).toLowerCase();
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(normalized) ? normalized : "";
 }
 
 function dedicatedSubscriptionsAccessToken(
@@ -142,28 +157,193 @@ function subscriptionTestScopeHeaderMode(
   return "omit";
 }
 
+function requestUrl(input: RequestInfo | URL): URL | null {
+  try {
+    if (input instanceof URL) return input;
+    if (typeof input === "string") return new URL(input);
+    return new URL(input.url);
+  } catch {
+    return null;
+  }
+}
+
+function record(value: unknown): Record<string, unknown> | null {
+  return value !== null && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function strictDecimalAmount(value: unknown): number | null {
+  if (typeof value !== "string") return null;
+  const normalized = value.trim();
+  if (!/^(?:0|[1-9][0-9]*)(?:\.[0-9]{1,6})?$/u.test(normalized)) {
+    return null;
+  }
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+function requestPayerEmail(
+  url: URL | null,
+  init: RequestInit | undefined,
+): string {
+  if (
+    !url ||
+    url.hostname !== "api.mercadopago.com" ||
+    url.pathname !== "/preapproval" ||
+    String(init?.method ?? "GET").toUpperCase() !== "POST" ||
+    typeof init?.body !== "string"
+  ) {
+    return "";
+  }
+  try {
+    return normalizedPayerEmail(record(JSON.parse(init.body))?.payer_email);
+  } catch {
+    return "";
+  }
+}
+
+async function responsePayload(
+  response: Response,
+): Promise<Record<string, unknown> | null> {
+  const declaredLength = Number(response.headers.get("content-length") ?? "0");
+  if (
+    Number.isFinite(declaredLength) &&
+    declaredLength > maxProviderResponseBytes
+  ) {
+    return null;
+  }
+  try {
+    const body = await response.clone().text();
+    if (Buffer.byteLength(body, "utf8") > maxProviderResponseBytes) return null;
+    return record(JSON.parse(body));
+  } catch {
+    return null;
+  }
+}
+
+function rememberPayerEmail(
+  payerEmailByReference: Map<string, string>,
+  reference: string,
+  payerEmail: string,
+): void {
+  if (!reference || !payerEmail) return;
+  payerEmailByReference.delete(reference);
+  payerEmailByReference.set(reference, payerEmail);
+  while (payerEmailByReference.size > maxRememberedPayers) {
+    const oldest = payerEmailByReference.keys().next().value as
+      | string
+      | undefined;
+    if (!oldest) break;
+    payerEmailByReference.delete(oldest);
+  }
+}
+
+function isPreapprovalResponse(url: URL | null): boolean {
+  return Boolean(
+    url &&
+      url.hostname === "api.mercadopago.com" &&
+      (url.pathname === "/preapproval" ||
+        url.pathname.startsWith("/preapproval/")),
+  );
+}
+
+async function normalizeSuccessfulPreapprovalResponse(
+  response: Response,
+  url: URL | null,
+  init: RequestInit | undefined,
+  options: MercadoPagoSubscriptionProviderOptions,
+  payerEmailByReference: Map<string, string>,
+): Promise<Response> {
+  if (!response.ok || !isPreapprovalResponse(url)) return response;
+  const payload = await responsePayload(response);
+  if (!payload) return response;
+
+  const normalizedPayload: Record<string, unknown> = { ...payload };
+  let changed = false;
+  const recurring = record(payload.auto_recurring);
+  if (recurring && typeof recurring.transaction_amount === "string") {
+    const normalizedAmount = strictDecimalAmount(recurring.transaction_amount);
+    if (normalizedAmount !== null) {
+      normalizedPayload.auto_recurring = {
+        ...recurring,
+        transaction_amount: normalizedAmount,
+      };
+      changed = true;
+    }
+  }
+
+  const reference = boundedString(payload.id, 180);
+  const externalReference = boundedString(payload.external_reference, 120);
+  const providerPayerEmail = normalizedPayerEmail(payload.payer_email);
+  const providerPayerFieldPresent =
+    payload.payer_email !== undefined &&
+    payload.payer_email !== null &&
+    !(typeof payload.payer_email === "string" && !payload.payer_email.trim());
+
+  if (providerPayerEmail) {
+    rememberPayerEmail(
+      payerEmailByReference,
+      reference,
+      providerPayerEmail,
+    );
+  } else if (!providerPayerFieldPresent) {
+    let payerEmail = requestPayerEmail(url, init);
+    if (!payerEmail && reference) {
+      payerEmail = payerEmailByReference.get(reference) ?? "";
+    }
+    if (!payerEmail && externalReference && options.resolvePayerEmail) {
+      payerEmail = normalizedPayerEmail(
+        await options.resolvePayerEmail(externalReference),
+      );
+    }
+    if (payerEmail) {
+      normalizedPayload.payer_email = payerEmail;
+      rememberPayerEmail(payerEmailByReference, reference, payerEmail);
+      changed = true;
+    }
+  }
+
+  if (!changed) return response;
+  const headers = new Headers(response.headers);
+  headers.delete("content-length");
+  headers.delete("content-encoding");
+  return new Response(JSON.stringify(normalizedPayload), {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
 function subscriptionProviderOptions(
   environment: MercadoPagoSubscriptionsEnvironment,
-  options: MercadoPagoProviderOptions,
-): MercadoPagoProviderOptions {
-  if (subscriptionTestScopeHeaderMode(environment) === "stage") {
-    return options;
-  }
+  options: MercadoPagoSubscriptionProviderOptions,
+): MercadoPagoSubscriptionProviderOptions {
+  const scopeMode = subscriptionTestScopeHeaderMode(environment);
   const fetchImpl = options.fetch ?? globalThis.fetch;
   if (typeof fetchImpl !== "function") {
     throw new Error("MERCADO_PAGO_FETCH_UNAVAILABLE");
   }
-  const fetchWithoutStageScope: typeof fetch = async (input, init) => {
+  const payerEmailByReference = new Map<string, string>();
+  const fetchForSubscriptions: typeof fetch = async (input, init) => {
     const headers = new Headers(init?.headers);
-    headers.delete("X-scope");
-    return fetchImpl(input, { ...init, headers });
+    if (scopeMode === "omit") headers.delete("X-scope");
+    const requestInit = { ...init, headers };
+    const response = await fetchImpl(input, requestInit);
+    return normalizeSuccessfulPreapprovalResponse(
+      response,
+      requestUrl(input),
+      requestInit,
+      options,
+      payerEmailByReference,
+    );
   };
-  return Object.freeze({ ...options, fetch: fetchWithoutStageScope });
+  return Object.freeze({ ...options, fetch: fetchForSubscriptions });
 }
 
 export function createMercadoPagoSubscriptionProviderFromEnvironment(
   environment: MercadoPagoSubscriptionsEnvironment,
-  options: MercadoPagoProviderOptions = {},
+  options: MercadoPagoSubscriptionProviderOptions = {},
 ): FinancialSubscriptionProviderPort {
   const token = dedicatedSubscriptionsAccessToken(environment);
   assertTestSellerAppCredentialProvenance(environment, token);

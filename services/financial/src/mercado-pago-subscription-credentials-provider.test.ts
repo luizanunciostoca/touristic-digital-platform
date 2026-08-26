@@ -34,19 +34,38 @@ const dedicatedToken =
 const bricksToken =
   "TEST_BRICKS_ACCESS_TOKEN_fixture_123456789012345678901234567890";
 
-function providerPayload() {
-  return {
+function providerPayload(
+  options: Readonly<{
+    includePayerEmail?: boolean;
+    transactionAmount?: number | string;
+  }> = {},
+): Record<string, unknown> {
+  const payload: Record<string, unknown> = {
     id: "preapproval_credentials_0001",
     external_reference: subscriptionId,
     status: "authorized",
-    payer_email: "buyer@example.com",
     auto_recurring: {
       frequency: 1,
       frequency_type: "months",
-      transaction_amount: 129,
+      transaction_amount: options.transactionAmount ?? 129,
       currency_id: "BRL",
     },
   };
+  if (options.includePayerEmail !== false) {
+    payload.payer_email = "buyer@example.com";
+  }
+  return payload;
+}
+
+function baseEnvironment() {
+  return {
+    PAYMENTS_PROVIDER_MODE: "mercado_pago",
+    PAYMENTS_PROVIDER_MAX_ATTEMPTS: "1",
+    MERCADO_PAGO_CHECKOUT_MODE: "test",
+    MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED: "true",
+    MERCADO_PAGO_SUBSCRIPTIONS_ACCESS_TOKEN: dedicatedToken,
+    RENDER_SERVICE_NAME: "morro-digital-v2-staging",
+  } as const;
 }
 
 function successfulProviderFetch(captured: {
@@ -89,13 +108,8 @@ describe("Mercado Pago subscription credential isolation", () => {
     };
     const provider = createMercadoPagoSubscriptionProviderFromEnvironment(
       {
-        PAYMENTS_PROVIDER_MODE: "mercado_pago",
-        PAYMENTS_PROVIDER_MAX_ATTEMPTS: "1",
-        MERCADO_PAGO_CHECKOUT_MODE: "test",
-        MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED: "true",
+        ...baseEnvironment(),
         MERCADO_PAGO_ACCESS_TOKEN: bricksToken,
-        MERCADO_PAGO_SUBSCRIPTIONS_ACCESS_TOKEN: dedicatedToken,
-        RENDER_SERVICE_NAME: "morro-digital-v2-staging",
       },
       { fetch: successfulProviderFetch(captured) },
     );
@@ -123,12 +137,7 @@ describe("Mercado Pago subscription credential isolation", () => {
     };
     const provider = createMercadoPagoSubscriptionProviderFromEnvironment(
       {
-        PAYMENTS_PROVIDER_MODE: "mercado_pago",
-        PAYMENTS_PROVIDER_MAX_ATTEMPTS: "1",
-        MERCADO_PAGO_CHECKOUT_MODE: "test",
-        MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED: "true",
-        MERCADO_PAGO_SUBSCRIPTIONS_ACCESS_TOKEN: dedicatedToken,
-        RENDER_SERVICE_NAME: "morro-digital-v2-staging",
+        ...baseEnvironment(),
         STAGING_PAYMENTS_PROVIDER_ACCEPTANCE_AUTORUN: "true",
         STAGING_PAYMENTS_PROVIDER_ACCEPTANCE_SCOPE_HEADER: "omit",
       },
@@ -146,25 +155,124 @@ describe("Mercado Pago subscription credential isolation", () => {
     expect(captured.scopeHeaders).toEqual(["", ""]);
   });
 
+  it("normalizes the documented preapproval shape without weakening readback", async () => {
+    let call = 0;
+    const fetchMock: typeof fetch = async () => {
+      call += 1;
+      if (call === 1) {
+        return new Response(
+          JSON.stringify({
+            id: "preapproval_credentials_0001",
+            external_reference: subscriptionId,
+            status: "authorized",
+            auto_recurring: {
+              frequency: 1,
+              frequency_type: "months",
+              transaction_amount: "129.00",
+              currency_id: "BRL",
+            },
+          }),
+          { status: 201 },
+        );
+      }
+      return new Response(
+        JSON.stringify(
+          providerPayload({
+            includePayerEmail: false,
+            transactionAmount: "129.00",
+          }),
+        ),
+        { status: 200 },
+      );
+    };
+    const provider = createMercadoPagoSubscriptionProviderFromEnvironment(
+      baseEnvironment(),
+      { fetch: fetchMock },
+    );
+
+    await expect(provider.createSubscription(request)).resolves.toEqual({
+      providerSubscriptionReference: "preapproval_credentials_0001",
+      externalReference: subscriptionId,
+      status: "authorized",
+      amount,
+      frequency: 1,
+      frequencyType: "months",
+      payerEmail: "buyer@example.com",
+    });
+    expect(call).toBe(2);
+  });
+
+  it("resolves an omitted payer email from the persisted binding context", async () => {
+    const resolvedReferences: string[] = [];
+    const fetchMock: typeof fetch = async () =>
+      new Response(
+        JSON.stringify(
+          providerPayload({
+            includePayerEmail: false,
+            transactionAmount: "129.00",
+          }),
+        ),
+        { status: 200 },
+      );
+    const provider = createMercadoPagoSubscriptionProviderFromEnvironment(
+      baseEnvironment(),
+      {
+        fetch: fetchMock,
+        resolvePayerEmail(externalReference) {
+          resolvedReferences.push(externalReference);
+          return externalReference === subscriptionId
+            ? "buyer@example.com"
+            : null;
+        },
+      },
+    );
+
+    await expect(
+      provider.readSubscription("preapproval_credentials_0001"),
+    ).resolves.toEqual({
+      providerSubscriptionReference: "preapproval_credentials_0001",
+      externalReference: subscriptionId,
+      status: "authorized",
+      amount,
+      frequency: 1,
+      frequencyType: "months",
+      payerEmail: "buyer@example.com",
+    });
+    expect(resolvedReferences).toEqual([subscriptionId]);
+  });
+
+  it("does not coerce a non-decimal provider amount", async () => {
+    const fetchMock: typeof fetch = async () =>
+      new Response(
+        JSON.stringify(
+          providerPayload({
+            transactionAmount: "1.29e2",
+          }),
+        ),
+        { status: 200 },
+      );
+    const provider = createMercadoPagoSubscriptionProviderFromEnvironment(
+      baseEnvironment(),
+      { fetch: fetchMock },
+    );
+
+    await expect(
+      provider.readSubscription("preapproval_credentials_0001"),
+    ).rejects.toMatchObject({ code: "MERCADO_PAGO_INVALID_RESPONSE" });
+  });
+
   it("denies scope omission outside the controlled V2 TEST acceptance window", () => {
     expect(() =>
       createMercadoPagoSubscriptionProviderFromEnvironment({
-        PAYMENTS_PROVIDER_MODE: "mercado_pago",
-        MERCADO_PAGO_CHECKOUT_MODE: "test",
-        MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED: "true",
-        MERCADO_PAGO_SUBSCRIPTIONS_ACCESS_TOKEN: dedicatedToken,
-        RENDER_SERVICE_NAME: "morro-digital-v2-staging",
+        ...baseEnvironment(),
         STAGING_PAYMENTS_PROVIDER_ACCEPTANCE_SCOPE_HEADER: "omit",
       }),
     ).toThrow("STAGING_PAYMENTS_PROVIDER_ACCEPTANCE_SCOPE_HEADER_OMIT_DENIED");
 
     expect(() =>
       createMercadoPagoSubscriptionProviderFromEnvironment({
-        PAYMENTS_PROVIDER_MODE: "mercado_pago",
+        ...baseEnvironment(),
         MERCADO_PAGO_CHECKOUT_MODE: "production",
-        MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED: "true",
-        MERCADO_PAGO_SUBSCRIPTIONS_ACCESS_TOKEN: dedicatedToken,
-        RENDER_SERVICE_NAME: "morro-digital-v2-staging",
         STAGING_PAYMENTS_PROVIDER_ACCEPTANCE_AUTORUN: "true",
         STAGING_PAYMENTS_PROVIDER_ACCEPTANCE_SCOPE_HEADER: "omit",
       }),
