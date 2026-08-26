@@ -4,6 +4,8 @@ import { createMercadoPagoSubscriptionProviderFromEnvironment } from "./mercado-
 
 const testSellerToken =
   "APP_USR-test-seller-app-token-fixture-123456789012345678901234567890";
+const testSellerUserId = "9999999999";
+const testSellerApplicationId = "8888888888888888";
 
 function environment(overrides: Record<string, string> = {}) {
   return {
@@ -28,8 +30,9 @@ describe("Mercado Pago TEST seller application credential provenance", () => {
       createMercadoPagoSubscriptionProviderFromEnvironment(
         environment({
           MERCADO_PAGO_SUBSCRIPTIONS_CREDENTIAL_ORIGIN: "test_seller_account",
-          MERCADO_PAGO_SUBSCRIPTIONS_TEST_SELLER_USER_ID: "3589393515",
-          MERCADO_PAGO_SUBSCRIPTIONS_TEST_SELLER_APPLICATION_ID: "3226503835657400",
+          MERCADO_PAGO_SUBSCRIPTIONS_TEST_SELLER_USER_ID: testSellerUserId,
+          MERCADO_PAGO_SUBSCRIPTIONS_TEST_SELLER_APPLICATION_ID:
+            testSellerApplicationId,
           RENDER_SERVICE_NAME: "morro-digital-production",
         }),
       ),
@@ -41,8 +44,9 @@ describe("Mercado Pago TEST seller application credential provenance", () => {
       createMercadoPagoSubscriptionProviderFromEnvironment(
         environment({
           MERCADO_PAGO_SUBSCRIPTIONS_CREDENTIAL_ORIGIN: "test_seller_account",
-          MERCADO_PAGO_SUBSCRIPTIONS_TEST_SELLER_USER_ID: "3589393515",
-          MERCADO_PAGO_SUBSCRIPTIONS_TEST_SELLER_APPLICATION_ID: "3226503835657400",
+          MERCADO_PAGO_SUBSCRIPTIONS_TEST_SELLER_USER_ID: testSellerUserId,
+          MERCADO_PAGO_SUBSCRIPTIONS_TEST_SELLER_APPLICATION_ID:
+            testSellerApplicationId,
         }),
       ),
     ).not.toThrow();
