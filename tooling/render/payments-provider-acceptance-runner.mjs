@@ -3,6 +3,9 @@ import { setTimeout as delay } from "node:timers/promises";
 const serviceName = "morro-digital-v2-staging";
 const businessId = "biz_payments_acceptance";
 const adminEmail = "payments-acceptance-admin@morro.invalid";
+const testSellerIdentityEndpoint = new URL(
+  "https://api.mercadolibre.com/users/me",
+);
 // Public Mercado Pago TEST fixture only. Never replace this with real card data.
 const testCard = Object.freeze({
   site_id: "MLB",
@@ -57,6 +60,14 @@ function normalizeTestPayerEmail(value) {
   return /^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@testuser\.com$/u.test(normalized)
     ? normalized
     : "";
+}
+
+function numericProviderIdentifier(value) {
+  const normalized =
+    typeof value === "number" && Number.isSafeInteger(value) && value > 0
+      ? String(value)
+      : text(value, 32);
+  return /^[1-9][0-9]{5,19}$/u.test(normalized) ? normalized : "";
 }
 
 function safeOrigin(value) {
@@ -137,6 +148,33 @@ export function createStagingPaymentsProviderAcceptanceConfiguration(
   if (publicKey.length < 20) {
     throw new Error("STAGING_PROVIDER_ACCEPTANCE_PUBLIC_KEY_INVALID");
   }
+
+  const sellerAccessToken = required(
+    environment,
+    "MERCADO_PAGO_SUBSCRIPTIONS_ACCESS_TOKEN",
+    2_048,
+  );
+  const sellerUserId = numericProviderIdentifier(
+    environment.MERCADO_PAGO_SUBSCRIPTIONS_TEST_SELLER_USER_ID,
+  );
+  const sellerApplicationId = numericProviderIdentifier(
+    environment.MERCADO_PAGO_SUBSCRIPTIONS_TEST_SELLER_APPLICATION_ID,
+  );
+  const credentialOrigin = text(
+    environment.MERCADO_PAGO_SUBSCRIPTIONS_CREDENTIAL_ORIGIN,
+    64,
+  ).toLowerCase();
+  if (
+    !sellerAccessToken.startsWith("APP_USR-") ||
+    !sellerUserId ||
+    !sellerApplicationId ||
+    credentialOrigin !== "test_seller_account"
+  ) {
+    throw new Error(
+      "STAGING_PROVIDER_ACCEPTANCE_TEST_SELLER_PROVENANCE_INVALID",
+    );
+  }
+
   const origin = safeOrigin(
     required(environment, "DASHBOARD_AUTH_ORIGIN", 2_048),
   );
@@ -155,6 +193,9 @@ export function createStagingPaymentsProviderAcceptanceConfiguration(
     password,
     payerEmail,
     publicKey,
+    sellerAccessToken,
+    sellerUserId,
+    sellerApplicationId,
     origin,
     baseUrl: `http://127.0.0.1:${port}`,
   });
@@ -245,6 +286,40 @@ async function waitForReadiness(fetchImpl, config) {
   throw new Error("STAGING_PROVIDER_ACCEPTANCE_READINESS_TIMEOUT");
 }
 
+async function verifyTestSellerCredential(fetchImpl, config) {
+  const response = await fetchImpl(testSellerIdentityEndpoint, {
+    method: "GET",
+    headers: {
+      Accept: "application/json",
+      Authorization: `Bearer ${config.sellerAccessToken}`,
+    },
+  });
+  const payload = await boundedJson(response);
+  const userId = numericProviderIdentifier(payload.id);
+  const tags = Array.isArray(payload.tags)
+    ? payload.tags
+        .map((tag) => text(tag, 80).toLowerCase())
+        .filter(Boolean)
+    : [];
+  const siteId = text(payload.site_id, 16).toUpperCase();
+  if (
+    !response.ok ||
+    userId !== config.sellerUserId ||
+    !tags.includes("test_user") ||
+    siteId !== testCard.site_id
+  ) {
+    throw new Error(
+      `STAGING_PROVIDER_ACCEPTANCE_TEST_SELLER_IDENTITY_HTTP_${response.status}`,
+    );
+  }
+  log("seller_identity", "pass", {
+    sellerUserId: config.sellerUserId,
+    sellerApplicationId: config.sellerApplicationId,
+    testUser: true,
+    siteId,
+  });
+}
+
 async function login(fetchImpl, config, email) {
   const response = await fetchImpl(
     new URL("/api/dashboard/auth/login", config.baseUrl),
@@ -281,12 +356,13 @@ async function tokenize(fetchImpl, config) {
   });
   const payload = await boundedJson(response);
   const token = text(payload.id, 512);
-  if (!response.ok || !token || payload.live_mode === true) {
+  const liveMode = payload.live_mode;
+  if (!response.ok || !token || typeof liveMode !== "boolean") {
     throw new Error(
       `STAGING_PROVIDER_ACCEPTANCE_TOKENIZATION_HTTP_${response.status}`,
     );
   }
-  log("tokenize", "pass", { provider: "mercado_pago", liveMode: false });
+  log("tokenize", "pass", { provider: "mercado_pago", liveMode });
   return token;
 }
 
@@ -497,6 +573,7 @@ export async function runStagingPaymentsProviderAcceptance({
     paymentId: config.paymentId,
   });
   await waitForReadiness(fetchImpl, config);
+  await verifyTestSellerCredential(fetchImpl, config);
   const owner = await login(fetchImpl, config, config.payerEmail);
   log("owner_auth", "pass");
   const subscription = await completeSubscriptionLifecycle(
