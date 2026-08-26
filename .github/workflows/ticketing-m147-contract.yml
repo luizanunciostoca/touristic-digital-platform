@@ -94,7 +94,7 @@ jobs:
             --name "$mysql_container" \
             --env MYSQL_ROOT_PASSWORD=m147-ticketing \
             --publish 3306:3306 \
-            --health-cmd="mysqladmin ping -h localhost -pm147-ticketing" \
+            --health-cmd="mysqladmin ping --protocol=TCP -h 127.0.0.1 -P 3306 -pm147-ticketing" \
             --health-interval=5s \
             --health-timeout=5s \
             --health-retries=20 \
@@ -120,6 +120,24 @@ jobs:
             sleep .25
           done
           if [[ "$mysql_health" != "healthy" ]]; then
+            exit 1
+          fi
+
+          mysql_ready_streak=0
+          for _ in $(seq 1 20); do
+            if docker exec -e MYSQL_PWD=m147-ticketing "$mysql_container" \
+              mysql --protocol=TCP -h 127.0.0.1 -P 3306 -uroot \
+              --silent --skip-column-names -e "SELECT 1" | grep -qx "1"; then
+              mysql_ready_streak=$((mysql_ready_streak + 1))
+              if (( mysql_ready_streak >= 3 )); then
+                break
+              fi
+            else
+              mysql_ready_streak=0
+            fi
+            sleep .5
+          done
+          if (( mysql_ready_streak < 3 )); then
             exit 1
           fi
 

@@ -397,7 +397,6 @@ export function createMercadoPagoRefundProviderFromEnvironment(
               Accept: "application/json",
               Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
-              "Idempotency-Key": request.idempotencyKey,
               "X-Idempotency-Key": request.idempotencyKey,
             },
             body: JSON.stringify({

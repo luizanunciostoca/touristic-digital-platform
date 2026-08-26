@@ -6,6 +6,7 @@ const protectedPrefixes = Object.freeze([
   "/api/business",
   "/api/crm",
   "/api/ticketing",
+  "/api/payments/v1/subscriptions",
 ]);
 const safeMethods = new Set(["GET", "HEAD", "OPTIONS"]);
 const csrfStorageKey = "md_dashboard_csrf";

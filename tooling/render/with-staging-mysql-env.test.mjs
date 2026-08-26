@@ -1,6 +1,14 @@
 import assert from "node:assert/strict";
+import { scryptSync } from "node:crypto";
 import test from "node:test";
-import { buildStagingDatabaseEnvironment } from "./with-staging-mysql-env.mjs";
+import {
+  buildStagingDatabaseEnvironment,
+  buildStagingPaymentsAcceptanceAuthEnvironment,
+  shouldStartStagingPaymentsProviderAcceptance,
+  stagingPaymentsAcceptanceIdentity,
+} from "./with-staging-mysql-env.mjs";
+
+const acceptancePayerEmail = "test_payer_1234567890@testuser.com";
 
 function fixture(overrides = {}) {
   return {
@@ -19,6 +27,17 @@ function fixture(overrides = {}) {
     STAGING_AFFILIATES_DATABASE_PASSWORD: "affiliates+/=safe-password",
     ...overrides,
   };
+}
+
+function assertPasswordHash(password, encoded) {
+  const [scheme, encodedSalt, encodedHash, ...rest] =
+    String(encoded).split("$");
+  assert.equal(scheme, "scrypt");
+  assert.equal(rest.length, 0);
+  const salt = Buffer.from(encodedSalt, "base64url");
+  const expected = Buffer.from(encodedHash, "base64url");
+  const actual = scryptSync(password, salt, expected.length);
+  assert.deepEqual(actual, expected);
 }
 
 test("derives four isolated MySQL URLs and URL-encodes credentials", () => {
@@ -77,5 +96,158 @@ test("rejects ownership collisions between domain schemas", () => {
         }),
       ),
     /STAGING_DATABASE_OWNERSHIP_COLLISION/u,
+  );
+});
+
+test("leaves dashboard users untouched unless payments acceptance is explicitly enabled", () => {
+  assert.deepEqual(
+    buildStagingPaymentsAcceptanceAuthEnvironment({
+      DASHBOARD_USERS_JSON: JSON.stringify([{ id: "existing" }]),
+    }),
+    {},
+  );
+});
+
+test("adds isolated owner and admin acceptance identities without replacing existing users", () => {
+  const password = "temporary acceptance password 2026";
+  const existingUser = {
+    id: "existing-owner",
+    email: "existing-owner@morro.invalid",
+    passwordHash: "existing-hash",
+    role: "owner",
+    businessIds: ["biz_existing"],
+  };
+  const derived = buildStagingPaymentsAcceptanceAuthEnvironment({
+    RENDER_SERVICE_NAME: stagingPaymentsAcceptanceIdentity.serviceName,
+    STAGING_PAYMENTS_ACCEPTANCE_ENABLED: "true",
+    STAGING_PAYMENTS_ACCEPTANCE_PASSWORD: password,
+    STAGING_PAYMENTS_PROVIDER_ACCEPTANCE_PAYER_EMAIL: acceptancePayerEmail,
+    DASHBOARD_USERS_JSON: JSON.stringify([existingUser]),
+  });
+
+  assert.equal(derived.DASHBOARD_ADMIN_GLOBAL_BYPASS_CONFIRMED, "true");
+  const users = JSON.parse(derived.DASHBOARD_USERS_JSON);
+  assert.equal(users.length, 3);
+  assert.deepEqual(users[0], existingUser);
+
+  const owner = users.find(
+    (user) => user.id === stagingPaymentsAcceptanceIdentity.owner.id,
+  );
+  assert.equal(owner.email, acceptancePayerEmail);
+  assert.equal(owner.role, "owner");
+  assert.deepEqual(owner.businessIds, [
+    stagingPaymentsAcceptanceIdentity.businessId,
+  ]);
+  assertPasswordHash(password, owner.passwordHash);
+
+  const admin = users.find(
+    (user) => user.id === stagingPaymentsAcceptanceIdentity.admin.id,
+  );
+  assert.equal(admin.email, stagingPaymentsAcceptanceIdentity.admin.email);
+  assert.equal(admin.role, "admin");
+  assert.deepEqual(admin.businessIds, []);
+  assertPasswordHash(password, admin.passwordHash);
+});
+
+test("rejects acceptance identities outside the dedicated V2 staging service", () => {
+  assert.throws(
+    () =>
+      buildStagingPaymentsAcceptanceAuthEnvironment({
+        RENDER_SERVICE_NAME: "morro-digital-production",
+        STAGING_PAYMENTS_ACCEPTANCE_ENABLED: "true",
+        STAGING_PAYMENTS_ACCEPTANCE_PASSWORD:
+          "temporary acceptance password 2026",
+        STAGING_PAYMENTS_PROVIDER_ACCEPTANCE_PAYER_EMAIL: acceptancePayerEmail,
+      }),
+    /STAGING_PAYMENTS_ACCEPTANCE_SERVICE_DENIED/u,
+  );
+});
+
+test("rejects weak credentials, invalid payer email, and identity collisions", () => {
+  assert.throws(
+    () =>
+      buildStagingPaymentsAcceptanceAuthEnvironment({
+        RENDER_SERVICE_NAME: stagingPaymentsAcceptanceIdentity.serviceName,
+        STAGING_PAYMENTS_ACCEPTANCE_ENABLED: "true",
+        STAGING_PAYMENTS_ACCEPTANCE_PASSWORD: "too-short",
+        STAGING_PAYMENTS_PROVIDER_ACCEPTANCE_PAYER_EMAIL: acceptancePayerEmail,
+      }),
+    /STAGING_PAYMENTS_ACCEPTANCE_PASSWORD_INVALID/u,
+  );
+
+  assert.throws(
+    () =>
+      buildStagingPaymentsAcceptanceAuthEnvironment({
+        RENDER_SERVICE_NAME: stagingPaymentsAcceptanceIdentity.serviceName,
+        STAGING_PAYMENTS_ACCEPTANCE_ENABLED: "true",
+        STAGING_PAYMENTS_ACCEPTANCE_PASSWORD:
+          "temporary acceptance password 2026",
+      }),
+    /STAGING_PAYMENTS_ACCEPTANCE_PAYER_EMAIL_INVALID/u,
+  );
+
+  assert.throws(
+    () =>
+      buildStagingPaymentsAcceptanceAuthEnvironment({
+        RENDER_SERVICE_NAME: stagingPaymentsAcceptanceIdentity.serviceName,
+        STAGING_PAYMENTS_ACCEPTANCE_ENABLED: "true",
+        STAGING_PAYMENTS_ACCEPTANCE_PASSWORD:
+          "temporary acceptance password 2026",
+        STAGING_PAYMENTS_PROVIDER_ACCEPTANCE_PAYER_EMAIL: "buyer@example.com",
+      }),
+    /STAGING_PAYMENTS_ACCEPTANCE_PAYER_EMAIL_INVALID/u,
+  );
+
+  assert.throws(
+    () =>
+      buildStagingPaymentsAcceptanceAuthEnvironment({
+        RENDER_SERVICE_NAME: stagingPaymentsAcceptanceIdentity.serviceName,
+        STAGING_PAYMENTS_ACCEPTANCE_ENABLED: "true",
+        STAGING_PAYMENTS_ACCEPTANCE_PASSWORD:
+          "temporary acceptance password 2026",
+        STAGING_PAYMENTS_PROVIDER_ACCEPTANCE_PAYER_EMAIL: acceptancePayerEmail,
+        DASHBOARD_USERS_JSON: JSON.stringify([
+          {
+            id: "different-id",
+            email: acceptancePayerEmail,
+          },
+        ]),
+      }),
+    /STAGING_PAYMENTS_ACCEPTANCE_USER_COLLISION/u,
+  );
+});
+
+test("starts provider acceptance only for the V2 staging runtime command", () => {
+  const environment = {
+    RENDER_SERVICE_NAME: stagingPaymentsAcceptanceIdentity.serviceName,
+    STAGING_PAYMENTS_PROVIDER_ACCEPTANCE_AUTORUN: "true",
+  };
+  assert.equal(
+    shouldStartStagingPaymentsProviderAcceptance(environment, "node", [
+      "apps/morro-digital-platform/tooling/dev-server.mjs",
+    ]),
+    true,
+  );
+  assert.equal(
+    shouldStartStagingPaymentsProviderAcceptance(environment, "node", [
+      "apps/morro-digital-platform/tooling/payments-migrate.mjs",
+    ]),
+    false,
+  );
+  assert.equal(
+    shouldStartStagingPaymentsProviderAcceptance(
+      { ...environment, RENDER_SERVICE_NAME: "morro-digital-production" },
+      "node",
+      ["apps/morro-digital-platform/tooling/dev-server.mjs"],
+    ),
+    false,
+  );
+  assert.equal(
+    shouldStartStagingPaymentsProviderAcceptance(
+      { ...environment, STAGING_PAYMENTS_PROVIDER_ACCEPTANCE_AUTORUN: "false" },
+      "node",
+      ["apps/morro-digital-platform/tooling/dev-server.mjs"],
+    ),
+    false,
   );
 });

@@ -12,6 +12,8 @@ on:
       - "services/ordering/**"
       - "apps/morro-digital-platform/tooling/payments-api.mjs"
       - "apps/morro-digital-platform/tooling/payments-api.test.mjs"
+      - "apps/morro-digital-platform/tooling/payments-runtime-api.mjs"
+      - "apps/morro-digital-platform/tooling/payments-runtime-api.test.mjs"
       - ".github/workflows/payments-verified-webhook-contract.yml"
       - "package.json"
       - "pnpm-lock.yaml"
@@ -24,6 +26,8 @@ on:
       - "services/ordering/**"
       - "apps/morro-digital-platform/tooling/payments-api.mjs"
       - "apps/morro-digital-platform/tooling/payments-api.test.mjs"
+      - "apps/morro-digital-platform/tooling/payments-runtime-api.mjs"
+      - "apps/morro-digital-platform/tooling/payments-runtime-api.test.mjs"
       - ".github/workflows/payments-verified-webhook-contract.yml"
       - "package.json"
       - "pnpm-lock.yaml"
@@ -76,5 +80,8 @@ jobs:
           pnpm --filter @touristic/ordering build
           pnpm --filter @touristic/financial-server build
           pnpm --filter @touristic/ordering-server build
-      - name: Node runtime raw-body preservation
-        run: pnpm exec vitest run apps/morro-digital-platform/tooling/payments-api.test.mjs
+      - name: Node runtime raw-body and provider-query preservation
+        run: >-
+          pnpm exec vitest run
+          apps/morro-digital-platform/tooling/payments-api.test.mjs
+          apps/morro-digital-platform/tooling/payments-runtime-api.test.mjs

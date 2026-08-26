@@ -4,6 +4,7 @@ import {
   ProviderRequestUnavailableError,
   createProviderRetryPolicyFromEnvironment,
   executeBoundedProviderRequest,
+  readProviderResponseMetadata,
 } from "./provider-retry.js";
 
 function policy() {
@@ -29,7 +30,7 @@ describe("M152 bounded financial provider retry", () => {
     let attempt = 0;
     const fetchMock: typeof fetch = async (_input, init) => {
       captured.push({
-        key: new Headers(init?.headers).get("Idempotency-Key"),
+        key: new Headers(init?.headers).get("X-Idempotency-Key"),
         body: init?.body,
       });
       attempt += 1;
@@ -39,7 +40,9 @@ describe("M152 bounded financial provider retry", () => {
     const retryRuntime = runtime();
     const init: RequestInit = {
       method: "POST",
-      headers: { "Idempotency-Key": "payment:v1:ord_retry_12345678" },
+      headers: {
+        "X-Idempotency-Key": "payment:v1:ord_retry_12345678",
+      },
       body: JSON.stringify({ externalReference: "pay_retry_12345678" }),
     };
 
@@ -107,6 +110,74 @@ describe("M152 bounded financial provider retry", () => {
     expect(postCalls).toBe(1);
   });
 
+  it("honors a bounded Retry-After delay before retrying a transient provider response", async () => {
+    let calls = 0;
+    const fetchMock: typeof fetch = async () => {
+      calls += 1;
+      return calls === 1
+        ? new Response(null, {
+            status: 503,
+            headers: { "retry-after": "15" },
+          })
+        : new Response("{}", { status: 200 });
+    };
+    const retryRuntime = runtime();
+
+    await expect(
+      executeBoundedProviderRequest({
+        fetch: fetchMock,
+        url: new URL("https://provider.example/v1/preapproval"),
+        init: {
+          method: "POST",
+          headers: {
+            "X-Idempotency-Key": "subscription:v1:sub_retry_12345678",
+          },
+          body: JSON.stringify({ externalReference: "sub_retry_12345678" }),
+        },
+        timeoutMs: 1_000,
+        policy: policy(),
+        runtime: retryRuntime,
+      }),
+    ).resolves.toMatchObject({ status: 200 });
+    expect(calls).toBe(2);
+    expect(retryRuntime.sleep).toHaveBeenCalledTimes(1);
+    expect(retryRuntime.sleep).toHaveBeenCalledWith(15_000);
+  });
+
+  it("fails closed when Retry-After exceeds the bounded request budget", async () => {
+    let calls = 0;
+    const fetchMock: typeof fetch = async () => {
+      calls += 1;
+      return new Response(null, {
+        status: 503,
+        headers: { "retry-after": "120" },
+      });
+    };
+    const retryRuntime = runtime();
+
+    await expect(
+      executeBoundedProviderRequest({
+        fetch: fetchMock,
+        url: new URL("https://provider.example/v1/preapproval"),
+        init: {
+          method: "POST",
+          headers: {
+            "X-Idempotency-Key": "subscription:v1:sub_retry_12345678",
+          },
+        },
+        timeoutMs: 1_000,
+        policy: policy(),
+        runtime: retryRuntime,
+      }),
+    ).rejects.toMatchObject({
+      message: "PROVIDER_REQUEST_UNAVAILABLE",
+      httpStatus: 503,
+      retryAfter: "120",
+    });
+    expect(calls).toBe(1);
+    expect(retryRuntime.sleep).not.toHaveBeenCalled();
+  });
+
   it("does not retry a mutating request without explicit idempotency authority", async () => {
     let calls = 0;
     const fetchMock: typeof fetch = async () => {
@@ -123,8 +194,41 @@ describe("M152 bounded financial provider retry", () => {
         policy: policy(),
         runtime: runtime(),
       }),
-    ).rejects.toEqual(new ProviderRequestUnavailableError());
+    ).rejects.toMatchObject({
+      message: "PROVIDER_REQUEST_UNAVAILABLE",
+      httpStatus: 503,
+    });
     expect(calls).toBe(1);
+  });
+
+  it("extracts only bounded provider diagnostics from a permanent rejection", async () => {
+    const response = new Response(
+      JSON.stringify({
+        message: "PA_UNAUTHORIZED_RESULT_FROM_POLICIES",
+        status: 403,
+        cause: [
+          { code: "subscription_not_allowed" },
+          { code: "unsafe code with spaces" },
+        ],
+        access_token: "must-never-be-observed",
+      }),
+      {
+        status: 403,
+        headers: {
+          "content-type": "application/json",
+          "x-request-id": "provider-request-403",
+        },
+      },
+    );
+
+    await expect(readProviderResponseMetadata(response)).resolves.toEqual({
+      providerRequestId: "provider-request-403",
+      retryAfter: null,
+      contentType: "application/json",
+      providerErrorCode: "PA_UNAUTHORIZED_RESULT_FROM_POLICIES",
+      providerBodyStatus: 403,
+      providerCauseCodes: ["subscription_not_allowed"],
+    });
   });
 
   it("stops at the bounded attempt limit and never leaks the transport error", async () => {

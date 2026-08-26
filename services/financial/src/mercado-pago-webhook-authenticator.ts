@@ -11,11 +11,30 @@ import {
   type MercadoPagoProviderOptions,
 } from "./mercado-pago-provider.js";
 
+export const mercadoPagoWebhookAuthenticityFailureReasons = Object.freeze([
+  "invalid_envelope",
+  "missing_signature",
+  "missing_request_id",
+  "missing_query_data_id",
+  "invalid_signature",
+  "invalid_body_data_id",
+  "data_id_mismatch",
+  "timestamp_invalid",
+  "hmac_mismatch",
+] as const);
+
+export type MercadoPagoWebhookAuthenticityFailureReason =
+  (typeof mercadoPagoWebhookAuthenticityFailureReasons)[number];
+
 export interface AuthenticatingFinancialWebhookVerifierPort extends FinancialWebhookVerifierPort {
   verifyAuthenticity(
     rawBody: Uint8Array,
     signatureEnvelope: string,
   ): Promise<boolean>;
+  diagnoseAuthenticity(
+    rawBody: Uint8Array,
+    signatureEnvelope: string,
+  ): Promise<MercadoPagoWebhookAuthenticityFailureReason | null>;
 }
 
 const maxBodyBytes = 64 * 1024;
@@ -89,12 +108,11 @@ function parseEnvelope(value: string): {
   } catch {
     return null;
   }
-  const signature = boundedString(envelope.signature, 240);
-  const requestId = boundedString(envelope.requestId, 180);
-  const dataId = boundedIdentifier(envelope.dataId, 180);
-  return signature && requestId && dataId
-    ? { signature, requestId, dataId }
-    : null;
+  return {
+    signature: boundedString(envelope.signature, 240),
+    requestId: boundedString(envelope.requestId, 180),
+    dataId: boundedIdentifier(envelope.dataId, 180),
+  };
 }
 
 function secret(environment: MercadoPagoProviderEnvironment): string {
@@ -136,16 +154,22 @@ export function createMercadoPagoAuthenticatingWebhookVerifierFromEnvironment(
   );
   const now = options.now ?? Date.now;
 
-  function verifyAuthenticity(
+  function authenticityFailure(
     rawBody: Uint8Array,
     signatureEnvelope: string,
-  ): Promise<boolean> {
+  ): MercadoPagoWebhookAuthenticityFailureReason | null {
     const envelope = parseEnvelope(signatureEnvelope);
-    if (!envelope) return Promise.resolve(false);
+    if (!envelope) return "invalid_envelope";
+    if (!envelope.signature) return "missing_signature";
+    if (!envelope.requestId) return "missing_request_id";
+    if (!envelope.dataId) return "missing_query_data_id";
+
     const signature = parseSignature(envelope.signature);
+    if (!signature) return "invalid_signature";
+
     const bodyDataId = webhookBodyDataId(rawBody);
-    if (!signature || !bodyDataId || bodyDataId !== envelope.dataId)
-      return Promise.resolve(false);
+    if (!bodyDataId) return "invalid_body_data_id";
+    if (bodyDataId !== envelope.dataId) return "data_id_mismatch";
 
     const timestamp = Number(signature.timestamp);
     const timestampSeconds =
@@ -159,17 +183,40 @@ export function createMercadoPagoAuthenticatingWebhookVerifierFromEnvironment(
       Math.abs(Math.floor(nowMilliseconds / 1000) - timestampSeconds) >
         tolerance
     ) {
-      return Promise.resolve(false);
+      return "timestamp_invalid";
     }
 
+    // Mercado Pago signs the data.id query parameter. The HTTP runtime binds
+    // that value into this internal envelope and overrides any caller-supplied
+    // marker. The body id is checked above only as an additional consistency
+    // guard before the provider query id becomes HMAC authority.
     const manifest = `id:${envelope.dataId};request-id:${envelope.requestId};ts:${signature.timestamp};`;
     const expected = createHmac("sha256", webhookSecret)
       .update(manifest)
       .digest();
     const provided = Buffer.from(signature.digest, "hex");
+    if (
+      provided.byteLength !== expected.byteLength ||
+      !timingSafeEqual(provided, expected)
+    ) {
+      return "hmac_mismatch";
+    }
+    return null;
+  }
+
+  function diagnoseAuthenticity(
+    rawBody: Uint8Array,
+    signatureEnvelope: string,
+  ): Promise<MercadoPagoWebhookAuthenticityFailureReason | null> {
+    return Promise.resolve(authenticityFailure(rawBody, signatureEnvelope));
+  }
+
+  function verifyAuthenticity(
+    rawBody: Uint8Array,
+    signatureEnvelope: string,
+  ): Promise<boolean> {
     return Promise.resolve(
-      provided.byteLength === expected.byteLength &&
-        timingSafeEqual(provided, expected),
+      authenticityFailure(rawBody, signatureEnvelope) === null,
     );
   }
 
@@ -181,5 +228,9 @@ export function createMercadoPagoAuthenticatingWebhookVerifierFromEnvironment(
     return terminalVerifier.verify(rawBody, signatureEnvelope);
   }
 
-  return Object.freeze({ verify, verifyAuthenticity });
+  return Object.freeze({
+    verify,
+    verifyAuthenticity,
+    diagnoseAuthenticity,
+  });
 }

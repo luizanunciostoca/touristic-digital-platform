@@ -179,11 +179,17 @@ services:
         value: test
       - key: MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED
         sync: false
+      - key: PAYMENTS_SUBSCRIPTIONS_ENABLED
+        value: "true"
+      - key: PAYMENTS_SUBSCRIPTION_BACK_URL
+        value: https://morro-digital-v2-staging.onrender.com/
       - key: MERCADO_PAGO_CHECKOUT_ORIGINS
         value: https://www.mercadopago.com,https://www.mercadopago.com.br
       - key: V1_PAYMENT_PROVIDER_API_URL
         value: https://api.mercadopago.com
       - key: MERCADO_PAGO_ACCESS_TOKEN
+        sync: false
+      - key: MERCADO_PAGO_SUBSCRIPTIONS_ACCESS_TOKEN
         sync: false
       - key: MERCADO_PAGO_WEBHOOK_SECRET
         sync: false
@@ -202,8 +208,12 @@ services:
       - key: PAYMENTS_RATE_LIMIT_DISTRIBUTED_STORE_CONFIGURED
         value: "false"
 
-      # Public browser provider configuration. The public token is supplied in
+      # Public browser provider configuration. Public keys are supplied in
       # Render rather than copied from GitHub Actions.
+      - key: VITE_MERCADO_PAGO_PUBLIC_KEY
+        sync: false
+      - key: MERCADO_PAGO_SUBSCRIPTIONS_PUBLIC_KEY
+        sync: false
       - key: VITE_MAPBOX_ACCESS_TOKEN
         sync: false
       - key: VITE_MAPBOX_STYLE

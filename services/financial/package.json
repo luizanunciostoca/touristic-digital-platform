@@ -13,6 +13,22 @@
       "types": "./src/index.ts",
       "default": "./dist/index.js"
     },
+    "./mercado-pago-card-payment": {
+      "types": "./src/mercado-pago-card-payment-provider.ts",
+      "default": "./dist/mercado-pago-card-payment-provider.js"
+    },
+    "./mercado-pago-subscription": {
+      "types": "./src/mercado-pago-subscription-credentials-provider.ts",
+      "default": "./dist/mercado-pago-subscription-credentials-provider.js"
+    },
+    "./provider-subscription-repository": {
+      "types": "./src/mysql-provider-subscription-repository.ts",
+      "default": "./dist/mysql-provider-subscription-repository.js"
+    },
+    "./provider-subscription-schema": {
+      "types": "./src/provider-subscription-schema.ts",
+      "default": "./dist/provider-subscription-schema.js"
+    },
     "./settlement": {
       "types": "./src/settlement.ts",
       "default": "./dist/settlement.js"
@@ -23,7 +39,7 @@
     "lint": "eslint src",
     "test": "pnpm --filter @touristic/core build && pnpm --filter @touristic/financial build && vitest run --passWithNoTests",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test:integration": "pnpm --filter @touristic/core build && pnpm --filter @touristic/financial build && vitest run src/mysql-integration.test.ts",
+    "test:integration": "pnpm --filter @touristic/core build && pnpm --filter @touristic/financial build && vitest run src/mysql-integration.test.ts && vitest run src/provider-subscription-mysql-integration.test.ts",
     "test:settlement-integration": "pnpm --filter @touristic/core build && pnpm --filter @touristic/financial build && vitest run src/settlement-mysql-integration.test.ts"
   }
 }

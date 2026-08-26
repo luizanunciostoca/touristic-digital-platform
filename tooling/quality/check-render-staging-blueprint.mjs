@@ -137,6 +137,7 @@ for (const key of [
   "MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED",
   "MERCADO_PAGO_WEBHOOK_SECRET",
   "PAYMENTS_WEBHOOK_URL",
+  "VITE_MERCADO_PAGO_PUBLIC_KEY",
   "VITE_MAPBOX_ACCESS_TOKEN",
   "OPENAI_API_KEY",
 ]) {
@@ -167,6 +168,11 @@ requireDirective("STAGING_MYSQL_HOSTPORT", "property: hostport");
 for (const [key, expected] of [
   ["PAYMENTS_PROVIDER_MODE", "value: mercado_pago"],
   ["MERCADO_PAGO_CHECKOUT_MODE", "value: test"],
+  ["PAYMENTS_SUBSCRIPTIONS_ENABLED", 'value: "true"'],
+  [
+    "PAYMENTS_SUBSCRIPTION_BACK_URL",
+    "value: https://morro-digital-v2-staging.onrender.com/",
+  ],
   ["PAYMENTS_RUNTIME_REPLICA_COUNT", 'value: "1"'],
   ["PAYMENTS_RATE_LIMIT_DISTRIBUTED_STORE_CONFIGURED", 'value: "false"'],
   ["DASHBOARD_ADMIN_GLOBAL_BYPASS_CONFIRMED", 'value: "false"'],
@@ -193,10 +199,12 @@ for (const required of [
   "fa7bedb5896f8c3327589e737ef51f879bfe59d8",
   "CI_VERIFIED / STAGING_INFRA_PREPARED / STAGING_VERIFICATION_REQUIRED",
   "MERCADO_PAGO_CHECKOUT_MODE=test",
+  "PAYMENTS_SUBSCRIPTIONS_ENABLED=true",
+  "VITE_MERCADO_PAGO_PUBLIC_KEY",
 ]) {
   requireText(runbook, required);
 }
 
 console.log(
-  "Render staging Blueprint contract valid: canonical repo/main, isolated MySQL 8.4, autoDeploy off, explicit Mercado Pago automatic TEST credential confirmation, legacy staging preserved.",
+  "Render staging Blueprint contract valid: canonical repo/main, isolated MySQL 8.4, autoDeploy off, explicit Mercado Pago TEST Bricks/subscriptions configuration, legacy staging preserved.",
 );
