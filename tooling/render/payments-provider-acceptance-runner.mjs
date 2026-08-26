@@ -297,9 +297,7 @@ async function verifyTestSellerCredential(fetchImpl, config) {
   const payload = await boundedJson(response);
   const userId = numericProviderIdentifier(payload.id);
   const tags = Array.isArray(payload.tags)
-    ? payload.tags
-        .map((tag) => text(tag, 80).toLowerCase())
-        .filter(Boolean)
+    ? payload.tags.map((tag) => text(tag, 80).toLowerCase()).filter(Boolean)
     : [];
   const siteId = text(payload.site_id, 16).toUpperCase();
   if (
