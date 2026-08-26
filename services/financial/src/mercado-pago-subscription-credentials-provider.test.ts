@@ -6,7 +6,9 @@ import {
   normalizeProviderSubscriptionRequest,
 } from "@touristic/financial/subscription-provider";
 
-import { createMercadoPagoSubscriptionProviderFromEnvironment } from "./mercado-pago-subscription-credentials-provider.js";
+import {
+  createMercadoPagoSubscriptionProviderFromEnvironment,
+} from "./mercado-pago-subscription-credentials-provider.js";
 
 const subscriptionId = "sub_credentials_isolation_0001";
 const idempotencyKey = createSubscriptionProviderIdempotencyKey(subscriptionId);
@@ -100,8 +102,8 @@ describe("Mercado Pago subscription credential isolation", () => {
       `Bearer ${dedicatedToken}`,
       `Bearer ${dedicatedToken}`,
     ]);
-    expect(authorizationHeaders.some((value) => value.includes(bricksToken))).toBe(
-      false,
-    );
+    expect(
+      authorizationHeaders.some((value) => value.includes(bricksToken)),
+    ).toBe(false);
   });
 });
