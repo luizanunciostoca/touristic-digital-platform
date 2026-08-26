@@ -10,6 +10,8 @@ const sha = "a".repeat(40);
 const subscriptionId = "sub_12345678-abcd-4567-8901-123456789abc";
 const paymentId = "pay_12345678-abcd-4567-8901-123456789abc";
 const payerEmail = "test_payer_1234567890@testuser.com";
+const sellerUserId = "9999999999";
+const sellerApplicationId = "8888888888888888";
 
 function fixture(overrides = {}) {
   return {
@@ -25,6 +27,11 @@ function fixture(overrides = {}) {
     STAGING_PAYMENTS_ACCEPTANCE_PASSWORD: "temporary acceptance password 2026",
     MERCADO_PAGO_SUBSCRIPTIONS_PUBLIC_KEY:
       "TEST-public-key-value-for-contract-only",
+    MERCADO_PAGO_SUBSCRIPTIONS_ACCESS_TOKEN:
+      "APP_USR-test-seller-contract-token-12345678901234567890",
+    MERCADO_PAGO_SUBSCRIPTIONS_CREDENTIAL_ORIGIN: "test_seller_account",
+    MERCADO_PAGO_SUBSCRIPTIONS_TEST_SELLER_USER_ID: sellerUserId,
+    MERCADO_PAGO_SUBSCRIPTIONS_TEST_SELLER_APPLICATION_ID: sellerApplicationId,
     DASHBOARD_AUTH_ORIGIN: "https://morro-digital-v2-staging.onrender.com",
     PORT: "10000",
     ...overrides,
@@ -85,7 +92,7 @@ test("fails closed outside the dedicated staging service and exact SHA", () => {
   );
 });
 
-test("rejects non-test provider mode, invalid resources, and invalid payer email", () => {
+test("rejects non-test mode, invalid resources, payer, and seller provenance", () => {
   assert.throws(
     () =>
       createStagingPaymentsProviderAcceptanceConfiguration(
@@ -116,9 +123,48 @@ test("rejects non-test provider mode, invalid resources, and invalid payer email
       ),
     /STAGING_PROVIDER_ACCEPTANCE_PAYER_EMAIL_INVALID/u,
   );
+  assert.throws(
+    () =>
+      createStagingPaymentsProviderAcceptanceConfiguration(
+        fixture({ MERCADO_PAGO_SUBSCRIPTIONS_ACCESS_TOKEN: "TEST-invalid" }),
+      ),
+    /STAGING_PROVIDER_ACCEPTANCE_TEST_SELLER_PROVENANCE_INVALID/u,
+  );
 });
 
-test("executes the full provider acceptance lifecycle without a new checkout", async () => {
+test("fails closed when APP_USR does not resolve to the expected TEST seller", async () => {
+  const fetchImpl = async (input) => {
+    const url = new URL(input);
+    if (url.pathname === "/readyz") {
+      return jsonResponse(
+        200,
+        { readiness: "ready" },
+        { "X-Release-SHA": sha },
+      );
+    }
+    if (
+      url.hostname === "api.mercadolibre.com" &&
+      url.pathname === "/users/me"
+    ) {
+      return jsonResponse(200, {
+        id: Number(sellerUserId) + 1,
+        tags: ["normal", "test_user"],
+        site_id: "MLB",
+      });
+    }
+    throw new Error(`unexpected request ${url}`);
+  };
+
+  await assert.rejects(
+    runStagingPaymentsProviderAcceptance({
+      environment: fixture(),
+      fetchImpl,
+    }),
+    /STAGING_PROVIDER_ACCEPTANCE_TEST_SELLER_IDENTITY_HTTP_200/u,
+  );
+});
+
+test("executes the full provider acceptance lifecycle for a verified TEST seller", async () => {
   const calls = [];
   const loginEmails = [];
   let providerReadCount = 0;
@@ -134,6 +180,16 @@ test("executes the full provider acceptance lifecycle without a new checkout", a
         { readiness: "ready" },
         { "X-Release-SHA": sha },
       );
+    }
+    if (
+      url.hostname === "api.mercadolibre.com" &&
+      url.pathname === "/users/me"
+    ) {
+      return jsonResponse(200, {
+        id: Number(sellerUserId),
+        tags: ["normal", "test_user"],
+        site_id: "MLB",
+      });
     }
     if (url.pathname === "/api/dashboard/auth/login") {
       loginCount += 1;
@@ -156,7 +212,7 @@ test("executes the full provider acceptance lifecycle without a new checkout", a
     ) {
       return jsonResponse(201, {
         id: "card_token_test_1234567890",
-        live_mode: false,
+        live_mode: true,
       });
     }
     if (
@@ -240,6 +296,14 @@ test("executes the full provider acceptance lifecycle without a new checkout", a
     payerEmail,
     "payments-acceptance-admin@morro.invalid",
   ]);
+  assert.equal(
+    calls.filter(
+      (call) =>
+        new URL(call.url).hostname === "api.mercadolibre.com" &&
+        new URL(call.url).pathname === "/users/me",
+    ).length,
+    1,
+  );
   assert.equal(
     calls.filter(
       (call) =>
