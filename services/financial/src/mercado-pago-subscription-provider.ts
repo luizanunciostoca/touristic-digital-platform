@@ -26,6 +26,18 @@ const mercadoPagoPreapprovalEndpoint = new URL(
 );
 const maxResponseBytes = 64 * 1024;
 
+class MercadoPagoProviderRejectedError extends MercadoPagoProviderError {
+  readonly httpStatus: number;
+  readonly providerErrorCode: string | null;
+
+  constructor(httpStatus: number, providerErrorCode: string | null) {
+    super("MERCADO_PAGO_REJECTED");
+    this.name = "MercadoPagoProviderRejectedError";
+    this.httpStatus = httpStatus;
+    this.providerErrorCode = providerErrorCode;
+  }
+}
+
 function boundedString(value: unknown, maxLength: number): string {
   if (typeof value !== "string") return "";
   const normalized = value.trim();
@@ -335,6 +347,12 @@ export function createMercadoPagoSubscriptionProviderFromEnvironment(
         } catch {
           // Best effort only: diagnostics must not alter provider authority.
         }
+        if (reason === "MERCADO_PAGO_REJECTED") {
+          throw new MercadoPagoProviderRejectedError(
+            response.status,
+            metadata.providerErrorCode ?? null,
+          );
+        }
         throw new MercadoPagoProviderError(reason);
       }
       return await boundedJson(response);
@@ -413,16 +431,36 @@ export function createMercadoPagoSubscriptionProviderFromEnvironment(
     reference: string,
     status: "paused" | "authorized" | "canceled",
   ): Promise<ProviderSubscriptionSnapshot> {
-    await requestJson(subscriptionUrl(reference), {
-      method: "PUT",
-      body: JSON.stringify({ status }),
-    });
+    const url = subscriptionUrl(reference);
+    const writeStatus = async (
+      providerStatusValue: "paused" | "authorized" | "canceled" | "cancelled",
+    ): Promise<void> => {
+      await requestJson(url, {
+        method: "PUT",
+        body: JSON.stringify({ status: providerStatusValue }),
+      });
+    };
+
+    try {
+      await writeStatus(status);
+    } catch (error) {
+      const shouldUseTestCancelCompatibility =
+        mode === "test" &&
+        status === "canceled" &&
+        error instanceof MercadoPagoProviderRejectedError &&
+        error.httpStatus === 400 &&
+        error.providerErrorCode ===
+          "Invalid_preapproval_status_param:_canceled";
+      if (!shouldUseTestCancelCompatibility) throw error;
+      await writeStatus("cancelled");
+    }
+
     const snapshot = await authoritativeReadback(reference);
     const expected = status === "canceled" ? "cancelled" : status;
     if (snapshot.status !== expected) {
       emitProviderDiagnostic({
         method: "GET",
-        pathname: subscriptionUrl(reference).pathname,
+        pathname: url.pathname,
         reason: "MERCADO_PAGO_STATUS_READBACK_MISMATCH",
       });
       throw new MercadoPagoProviderError("MERCADO_PAGO_INVALID_RESPONSE");
