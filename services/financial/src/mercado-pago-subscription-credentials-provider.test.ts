@@ -6,9 +6,7 @@ import {
   normalizeProviderSubscriptionRequest,
 } from "@touristic/financial/subscription-provider";
 
-import {
-  createMercadoPagoSubscriptionProviderFromEnvironment,
-} from "./mercado-pago-subscription-credentials-provider.js";
+import { createMercadoPagoSubscriptionProviderFromEnvironment } from "./mercado-pago-subscription-credentials-provider.js";
 
 const subscriptionId = "sub_credentials_isolation_0001";
 const idempotencyKey = createSubscriptionProviderIdempotencyKey(subscriptionId);

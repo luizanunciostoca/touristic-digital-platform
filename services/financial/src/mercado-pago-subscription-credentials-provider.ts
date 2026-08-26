@@ -1,8 +1,6 @@
 import type { FinancialSubscriptionProviderPort } from "@touristic/financial/subscription-provider";
 
-import {
-  createMercadoPagoSubscriptionProviderFromEnvironment as createBaseMercadoPagoSubscriptionProviderFromEnvironment,
-} from "./mercado-pago-subscription-provider.js";
+import { createMercadoPagoSubscriptionProviderFromEnvironment as createBaseMercadoPagoSubscriptionProviderFromEnvironment } from "./mercado-pago-subscription-provider.js";
 import type {
   MercadoPagoProviderEnvironment,
   MercadoPagoProviderOptions,
