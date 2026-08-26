@@ -107,5 +107,3 @@ Rollback remains application-first and disable-first, preserving immutable Finan
 - legacy staging touched: NO;
 - temporary acceptance authentication: DISABLED;
 - secrets/TEST passwords/tokens are not recorded in this evidence file.
-
-<!-- CI trigger only; removed by next commit -->
