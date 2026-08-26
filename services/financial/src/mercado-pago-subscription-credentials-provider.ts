@@ -405,10 +405,6 @@ export function createMercadoPagoSubscriptionProviderFromEnvironment(
       MERCADO_PAGO_ACCESS_TOKEN: token,
       BUSINESS_PAYMENT_API_TOKEN: "",
     }),
-    subscriptionProviderOptions(
-      environment,
-      options,
-      expectedProviderIdentity,
-    ),
+    subscriptionProviderOptions(environment, options, expectedProviderIdentity),
   );
 }
