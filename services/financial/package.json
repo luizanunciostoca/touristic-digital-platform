@@ -18,8 +18,8 @@
       "default": "./dist/mercado-pago-card-payment-provider.js"
     },
     "./mercado-pago-subscription": {
-      "types": "./src/mercado-pago-subscription-provider.ts",
-      "default": "./dist/mercado-pago-subscription-provider.js"
+      "types": "./src/mercado-pago-subscription-credentials-provider.ts",
+      "default": "./dist/mercado-pago-subscription-credentials-provider.js"
     },
     "./provider-subscription-repository": {
       "types": "./src/mysql-provider-subscription-repository.ts",
