@@ -21,7 +21,8 @@ function fixture(overrides = {}) {
     STAGING_PAYMENTS_PROVIDER_ACCEPTANCE_SUBSCRIPTION_ID: subscriptionId,
     STAGING_PAYMENTS_PROVIDER_ACCEPTANCE_PAYMENT_ID: paymentId,
     STAGING_PAYMENTS_ACCEPTANCE_PASSWORD: "temporary acceptance password 2026",
-    VITE_MERCADO_PAGO_PUBLIC_KEY: "TEST-public-key-value-for-contract-only",
+    MERCADO_PAGO_SUBSCRIPTIONS_PUBLIC_KEY:
+      "TEST-public-key-value-for-contract-only",
     DASHBOARD_AUTH_ORIGIN: "https://morro-digital-v2-staging.onrender.com",
     PORT: "10000",
     ...overrides,

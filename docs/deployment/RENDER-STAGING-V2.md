@@ -100,10 +100,12 @@ Preencha no fluxo seguro do Render, sem copiá-los para PRs, issues ou chat:
 
 - `PAYMENTS_RETURN_URL_ORIGINS`: origin HTTPS exata do staging;
 - `MERCADO_PAGO_ACCESS_TOKEN`: Access Token exibido em **Testes > Credenciais de teste** da aplicação aprovada;
+- `MERCADO_PAGO_SUBSCRIPTIONS_ACCESS_TOKEN`: Access Token exibido em **Testes > Credenciais de teste** da aplicação específica de Assinaturas; nunca reutilize aqui o token do Checkout Bricks;
 - `MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED`: `true` somente após essa origem TEST ter sido conferida pelo operador;
 - `MERCADO_PAGO_WEBHOOK_SECRET`: segredo oficial do webhook da mesma aplicação;
 - `PAYMENTS_WEBHOOK_URL`: `https://<host-staging>/api/payments/v1/webhooks/sandbox`;
 - `VITE_MERCADO_PAGO_PUBLIC_KEY`: Public Key das **credenciais de teste** da mesma aplicação. Ela é browser-visible por definição, mas deve continuar separada do Access Token e do webhook secret.
+- `MERCADO_PAGO_SUBSCRIPTIONS_PUBLIC_KEY`: Public Key TEST da aplicação específica de Assinaturas, usada somente para tokenizar o cartão no acceptance de `/preapproval`; não substitui a Public Key do Bricks.
 
 O Blueprint fixa:
 
@@ -118,7 +120,7 @@ V1_PAYMENT_PROVIDER_API_URL=https://api.mercadopago.com
 
 Em `MERCADO_PAGO_CHECKOUT_MODE=test`, os adapters exigem `MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED=true` antes de chamadas reais ao provider. Essa confirmação registra que o operador conferiu o Access Token diretamente em **Testes > Credenciais de teste**. O runtime não infere TEST por heurística de conta. Depois desse guard, somente endpoints/origins oficiais do Mercado Pago são aceitos.
 
-O Card Payment Brick recebe somente `VITE_MERCADO_PAGO_PUBLIC_KEY`. Access Token, webhook secret, amount, currency e recurrence permanecem autoridade server-side. O runtime de subscriptions só inicia quando `PAYMENTS_SUBSCRIPTIONS_ENABLED=true` e exige `PAYMENTS_SUBSCRIPTION_BACK_URL` HTTPS válido.
+O Card Payment Brick recebe somente `VITE_MERCADO_PAGO_PUBLIC_KEY`. O adapter de Subscriptions exige separadamente `MERCADO_PAGO_SUBSCRIPTIONS_ACCESS_TOKEN`, e o acceptance runner tokeniza o cartão TEST com `MERCADO_PAGO_SUBSCRIPTIONS_PUBLIC_KEY`. Não existe fallback silencioso das credenciais de Assinaturas para as credenciais do Bricks. Access Token, webhook secret, amount, currency e recurrence permanecem autoridade server-side. O runtime de subscriptions só inicia quando `PAYMENTS_SUBSCRIPTIONS_ENABLED=true` e exige `PAYMENTS_SUBSCRIPTION_BACK_URL` HTTPS válido.
 
 ### Mapbox
 

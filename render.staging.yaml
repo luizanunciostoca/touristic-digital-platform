@@ -189,6 +189,8 @@ services:
         value: https://api.mercadopago.com
       - key: MERCADO_PAGO_ACCESS_TOKEN
         sync: false
+      - key: MERCADO_PAGO_SUBSCRIPTIONS_ACCESS_TOKEN
+        sync: false
       - key: MERCADO_PAGO_WEBHOOK_SECRET
         sync: false
       - key: PAYMENTS_WEBHOOK_URL
@@ -209,6 +211,8 @@ services:
       # Public browser provider configuration. Public keys are supplied in
       # Render rather than copied from GitHub Actions.
       - key: VITE_MERCADO_PAGO_PUBLIC_KEY
+        sync: false
+      - key: MERCADO_PAGO_SUBSCRIPTIONS_PUBLIC_KEY
         sync: false
       - key: VITE_MAPBOX_ACCESS_TOKEN
         sync: false

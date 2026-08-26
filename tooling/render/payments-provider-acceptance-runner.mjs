@@ -115,7 +115,11 @@ export function createStagingPaymentsProviderAcceptanceConfiguration(
     throw new Error("STAGING_PROVIDER_ACCEPTANCE_PASSWORD_INVALID");
   }
 
-  const publicKey = required(environment, "VITE_MERCADO_PAGO_PUBLIC_KEY", 512);
+  const publicKey = required(
+    environment,
+    "MERCADO_PAGO_SUBSCRIPTIONS_PUBLIC_KEY",
+    512,
+  );
   if (publicKey.length < 20) {
     throw new Error("STAGING_PROVIDER_ACCEPTANCE_PUBLIC_KEY_INVALID");
   }
