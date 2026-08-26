@@ -16,7 +16,7 @@ on:
       - .github/workflows/render-staging-blueprint-contract.yml
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   contract:
@@ -24,35 +24,9 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          ref: ${{ github.event.pull_request.head.ref }}
-      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
-          cache: pnpm
-      - name: Apply canonical formatting to subscription credential isolation
-        if: github.event_name == 'pull_request'
-        shell: bash
-        run: |
-          set -euo pipefail
-          pnpm install --frozen-lockfile
-          pnpm exec prettier --write \
-            services/financial/src/mercado-pago-subscription-credentials-provider.ts \
-            services/financial/src/mercado-pago-subscription-credentials-provider.test.ts
-          if git diff --quiet -- \
-            services/financial/src/mercado-pago-subscription-credentials-provider.ts \
-            services/financial/src/mercado-pago-subscription-credentials-provider.test.ts; then
-            echo 'SUBSCRIPTION_CREDENTIAL_FORMAT=already_canonical'
-            exit 0
-          fi
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add \
-            services/financial/src/mercado-pago-subscription-credentials-provider.ts \
-            services/financial/src/mercado-pago-subscription-credentials-provider.test.ts
-          git commit -m 'style(payments): apply canonical subscription credential formatting'
-          git push origin HEAD:${{ github.event.pull_request.head.ref }}
       - name: Validate staging Blueprint invariants
         run: node tooling/quality/check-render-staging-blueprint.mjs
       - name: Validate staging MySQL URL derivation
