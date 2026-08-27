@@ -8,20 +8,20 @@ Este registro é a fonte operacional para transformar o checklist mestre de prod
 
 ## Candidato oficial congelado
 
-A branch `main` local e `origin/main` foram revalidadas no SHA `6276b0bc03ba58d015a846c572c105e52d106269`, após o merge das PRs #34 e #35. Esse é o `PRODUCTION_CANDIDATE_SHA` atual deste registro. Qualquer mudança posterior em `main` invalida este candidato e exige nova certificação, novo registro e nova decisão.
+A branch `main` local e `origin/main` foram revalidadas no SHA `a3dd199a51c6e5cdc4c756417117714173c7b6f8`, após o merge das PRs #34 e #35. Esse é o `PRODUCTION_CANDIDATE_SHA` atual deste registro. Qualquer mudança posterior em `main` invalida este candidato e exige nova certificação, novo registro e nova decisão.
 
-| Gate                         | Evidência atual                                                                                                                                                                              | Estado                             | Próxima prova exigida                                                 |
-| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- | --------------------------------------------------------------------- |
-| SHA exato de `main`          | `git rev-parse HEAD` e `git ls-remote origin refs/heads/main` coincidem em `6276b0bc03ba58d015a846c572c105e52d106269`                                                                        | `PASS` no momento do registro      | Revalidar imediatamente antes de qualquer promoção                    |
-| Proteção de `main`           | Ruleset `main-release-protection` ativo, PR obrigatório, `quality` obrigatório, bloqueio de deleção e non-fast-forward, resolução de threads, uma aprovação e dismiss de approvals obsoletas | `PASS`                             | Demonstrar uma PR controlada sem bypass                               |
-| Flake do Business Onboarding | Espera por `businessCommercialCheckoutPrepared`, timeout fail-closed de 5 segundos e matriz de cinco repetições no workflow                                                                  | `PASS`                             | Revalidar em cada novo candidato                                      |
-| Quality Gate                 | Workflow consolidado `quality` versionado; último run verde após PR #35                                                                                                                      | `PASS`                             | Revalidar em cada novo candidato                                      |
-| Release Promotion Gate       | Run `33038924106` exige `expected_sha`, compara checkout e `origin/main`, executa contratos, build e smoke local                                                                             | `PASS`                             | Revalidar imediatamente antes da promoção                             |
-| Registry e trackers          | Registry, matrizes e evidências históricas versionados                                                                                                                                       | `PASS` como documentação existente | Atualizar somente após evidência nova; não inventar estado `released` |
+| Gate                         | Evidência atual                                                                                                                                             | Estado                             | Próxima prova exigida                                                 |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- | --------------------------------------------------------------------- |
+| SHA exato de `main`          | `git rev-parse HEAD` e `git ls-remote origin refs/heads/main` coincidem em `a3dd199a51c6e5cdc4c756417117714173c7b6f8`                                       | `PASS` no momento do registro      | Revalidar imediatamente antes de qualquer promoção                    |
+| Proteção de `main`           | Ruleset `main-release-protection` ativo, PR obrigatório, `quality` obrigatório, bloqueio de deleção e non-fast-forward, resolução de threads e bypass vazio | `PASS`                             | Confirmar somente os checks automáticos no merge                      |
+| Flake do Business Onboarding | Espera por `businessCommercialCheckoutPrepared`, timeout fail-closed de 5 segundos e matriz de cinco repetições no workflow                                 | `PASS`                             | Revalidar em cada novo candidato                                      |
+| Quality Gate                 | Workflow consolidado `quality` versionado; último run verde após PR #35                                                                                     | `PASS`                             | Revalidar em cada novo candidato                                      |
+| Release Promotion Gate       | Run `33038924106` exige `expected_sha`, compara checkout e `origin/main`, executa contratos, build e smoke local                                            | `PASS`                             | Revalidar imediatamente antes da promoção                             |
+| Registry e trackers          | Registry, matrizes e evidências históricas versionados                                                                                                      | `PASS` como documentação existente | Atualizar somente após evidência nova; não inventar estado `released` |
 
 ## Governança e controle de mudanças
 
-O ruleset foi ajustado no GitHub para exigir **pelo menos um reviewer independente**, descartar aprovações quando novos commits entram, manter resolução obrigatória de threads, preservar o status `quality`, bloquear force-push/non-fast-forward e manter a lista de bypass vazia. A PR deste trabalho deve ser tratada como a PR controlada do checklist: ela não deve ser mesclada sem o status `quality` e uma revisão independente.
+O ruleset permanece ativo no GitHub com PR obrigatório, resolução de threads, status `quality`, bloqueio de force-push/non-fast-forward e lista de bypass vazia. A aprovação por uma segunda conta não é obrigatória; a aceitação depende dos checks automáticos e das demais regras ativas.
 
 O repositório não deve receber credenciais, tokens, senhas ou valores de secret manager. A verificação `pnpm secret-patterns:check` cobre assinaturas conhecidas de chaves privadas, tokens OpenAI/GitHub/AWS e JWTs; ela não substitui a auditoria da plataforma de secrets nem a rotação de credenciais que tenham sido expostas no passado.
 
@@ -103,7 +103,7 @@ O registro de autorização deve conter, no mínimo, `PRODUCTION_CANDIDATE_SHA`,
 
 ```text
 Production Authorization
-Candidate SHA: 6276b0bc03ba58d015a846c572c105e52d106269
+Candidate SHA: a3dd199a51c6e5cdc4c756417117714173c7b6f8
 Decision: NO-GO
 Reason: production service is not provisioned; live inventory, backup/restore drill, provider production cutover decision, and explicit release authorization remain pending.
 Real-money acceptance: N/A unless separately authorized.

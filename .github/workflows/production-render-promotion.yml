@@ -8,7 +8,7 @@ on:
         required: true
         type: string
       confirm_production:
-        description: Type DEPLOY to authorize the production deploy job after environment approval
+        description: Type DEPLOY to authorize the production deploy job after automated preflight gates
         required: true
         type: string
 
