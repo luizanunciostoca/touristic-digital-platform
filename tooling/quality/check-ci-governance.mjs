@@ -262,6 +262,36 @@ if (/^\s{2}(pull_request|push):/m.test(productionRollback)) {
   );
 }
 
+const stagingPromotion = workflowSources.get("staging-render-promotion.yml");
+if (!stagingPromotion) {
+  fail("staging-render-promotion.yml is missing");
+}
+requireIncludes(
+  stagingPromotion,
+  ".github/workflows/staging-render-promotion.yml",
+  [
+    "workflow_dispatch:",
+    "expected_sha:",
+    "confirm_staging:",
+    "name: staging / preflight",
+    "git ls-remote origin refs/heads/main",
+    "pnpm platform:contracts:check",
+    "pnpm migration:dry-run",
+    "pnpm release:readiness:check",
+    "pnpm secret-patterns:check",
+    "pnpm ci:governance:check",
+    "pnpm ci:supply-chain:strict",
+    "name: main - morro-digital-v2-staging",
+    "RENDER_STAGING_DEPLOY_HOOK_URL",
+    "ref=${EXPECTED_SHA}",
+    "pnpm --silent payments:render:smoke",
+    "staging-deployment-evidence.txt",
+  ],
+);
+if (/^\s{2}(pull_request|push):/m.test(stagingPromotion)) {
+  fail("staging Render promotion must remain explicit workflow_dispatch only");
+}
+
 const codeowners = await text(".github/CODEOWNERS");
 requireIncludes(codeowners, ".github/CODEOWNERS", [
   "* @luizanunciostoca",
