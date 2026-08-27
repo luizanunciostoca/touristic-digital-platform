@@ -17,6 +17,7 @@ const commands = [
     ["tooling/quality/check-secret-patterns.mjs"],
   ],
   ["secret-pattern-scan", "pnpm", ["run", "secret-patterns:check"]],
+  ["release-readiness", "pnpm", ["run", "release:readiness:check"]],
   ["auth-smoke", "pnpm", ["run", "auth:smoke"]],
   ["platform-readiness-smoke", "pnpm", ["run", "platform:smoke"]],
   ["payments-predeploy", "pnpm", ["run", "payments:predeploy"]],

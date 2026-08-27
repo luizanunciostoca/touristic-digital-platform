@@ -47,12 +47,18 @@ for (const scriptName of [
   "architecture:check",
   "features:check",
   "environment:check",
+  "release:readiness:check",
+  "secret-patterns:check",
   "lint",
   "typecheck",
   "test",
   "build",
   "platform:contracts:check",
   "ci:governance:check",
+  "migration:dry-run",
+  "release:identity:smoke",
+  "auth:smoke",
+  "platform:smoke",
   "check",
 ]) {
   if (typeof packageJson.scripts?.[scriptName] !== "string") {
@@ -73,6 +79,8 @@ requireIncludes(quality, ".github/workflows/quality.yml", [
   "pnpm architecture:check",
   "pnpm features:check",
   "pnpm environment:check",
+  "pnpm release:readiness:check",
+  "pnpm secret-patterns:check",
   "pnpm ci:governance:check",
   "pnpm lint",
   "pnpm typecheck",
@@ -189,6 +197,69 @@ requireIncludes(releaseGate, ".github/workflows/release-promotion-gate.yml", [
 ]);
 if (/^\s{2}(pull_request|push):/m.test(releaseGate)) {
   fail("release promotion gate must remain explicit workflow_dispatch only");
+}
+
+const productionPromotion = workflowSources.get(
+  "production-render-promotion.yml",
+);
+if (!productionPromotion) {
+  fail("production-render-promotion.yml is missing");
+}
+requireIncludes(
+  productionPromotion,
+  ".github/workflows/production-render-promotion.yml",
+  [
+    "workflow_dispatch:",
+    "expected_sha:",
+    "confirm_production:",
+    "name: production / preflight",
+    "git ls-remote origin refs/heads/main",
+    "pnpm platform:contracts:check",
+    "pnpm migration:dry-run",
+    "pnpm release:readiness:check",
+    "pnpm secret-patterns:check",
+    "pnpm ci:governance:check",
+    "pnpm ci:supply-chain:strict",
+    "name: production",
+    "RENDER_PRODUCTION_DEPLOY_HOOK_URL",
+    "ref=${EXPECTED_SHA}",
+    "pnpm --silent release:identity:smoke",
+    "production-deployment-evidence.txt",
+  ],
+);
+if (/^\s{2}(pull_request|push):/m.test(productionPromotion)) {
+  fail(
+    "production Render promotion must remain explicit workflow_dispatch only",
+  );
+}
+
+const productionRollback = workflowSources.get(
+  "production-render-rollback.yml",
+);
+if (!productionRollback) {
+  fail("production-render-rollback.yml is missing");
+}
+requireIncludes(
+  productionRollback,
+  ".github/workflows/production-render-rollback.yml",
+  [
+    "workflow_dispatch:",
+    "expected_sha:",
+    "target_deploy_id:",
+    "confirm_rollback:",
+    "name: production / rollback",
+    "name: production",
+    "RENDER_PRODUCTION_API_KEY",
+    "RENDER_PRODUCTION_SERVICE_ID",
+    "autoDeploy == false",
+    "/rollback",
+    "pnpm --silent release:identity:smoke",
+  ],
+);
+if (/^\s{2}(pull_request|push):/m.test(productionRollback)) {
+  fail(
+    "production Render rollback must remain explicit workflow_dispatch only",
+  );
 }
 
 const codeowners = await text(".github/CODEOWNERS");

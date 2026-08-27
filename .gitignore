@@ -125,6 +125,9 @@ dist
 # Stores VSCode versions used for testing VSCode extensions
 .vscode-test
 
+# Turbo local cache
+.turbo
+
 # pnpm
 .pnpm-store
 

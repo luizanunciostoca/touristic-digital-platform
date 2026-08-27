@@ -2,64 +2,36 @@
 
 ## Current status
 
-Branch protection for `main` is **not enabled**. The GitHub API returns HTTP 403:
+A proteção de `main` está ativa por meio do ruleset `main-release-protection` no repositório `luizanunciostoca/touristic-digital-platform`. O ruleset aplica-se à branch padrão e atualmente bloqueia deleção e non-fast-forward, exige pull request, exige o status `quality`, exige resolução de threads e exige uma aprovação independente. Aprovações obsoletas são descartadas quando novos commits entram. A lista de bypass está vazia.
 
-> Upgrade to GitHub Pro or make this repository public to enable this feature.
+O estado verificável em 26 de agosto de 2026 é:
 
-This is a **billing/account limitation**, not a code or configuration issue. The repository is private and the account is on the free tier.
+| Regra                            | Estado                                                                              |
+| -------------------------------- | ----------------------------------------------------------------------------------- |
+| Pull request antes do merge      | Ativo                                                                               |
+| Aprovação independente           | 1 reviewer                                                                          |
+| Dismiss de approval obsoleta     | Ativo                                                                               |
+| Resolução de threads             | Ativo                                                                               |
+| Status obrigatório               | `quality`                                                                           |
+| Branch atualizada antes do merge | Política de status estrita ativa; confirmar regra equivalente na UI caso necessário |
+| Force-push/non-fast-forward      | Bloqueado                                                                           |
+| Deleção da branch                | Bloqueada                                                                           |
+| Bypass actors                    | Nenhum                                                                              |
+| Método de merge                  | `merge`                                                                             |
 
-## Recommended configuration (when available)
-
-When the repository is upgraded to GitHub Pro or made public, apply the following branch protection rules to `main`:
-
-| Setting                               | Value                                                                        |
-| ------------------------------------- | ---------------------------------------------------------------------------- |
-| Require a pull request before merging | Yes                                                                          |
-| Required approvals                    | 1                                                                            |
-| Dismiss stale reviews                 | Yes                                                                          |
-| Require status checks to pass         | Yes                                                                          |
-| Required status checks                | `Quality Gate`, `Payments Contracts`, `Ticketing Contracts`, `CRM Contracts` |
-| Require branches to be up to date     | Yes                                                                          |
-| Require conversation resolution       | Yes                                                                          |
-| Require signed commits                | Recommended                                                                  |
-| Include administrators                | Yes                                                                          |
-| Allow force pushes                    | No                                                                           |
-| Allow deletions                       | No                                                                           |
-
-## API command (for when Pro is available)
+## Comando de inspeção
 
 ```bash
-gh api repos/luizidebook/touristic-digital-platform/branches/main/protection \
-  --method PUT \
-  --input - <<'EOF'
-{
-  "required_status_checks": {
-    "strict": true,
-    "contexts": [
-      "Quality Gate",
-      "Payments Contracts",
-      "Ticketing Contracts",
-      "CRM Contracts"
-    ]
-  },
-  "enforce_admins": true,
-  "required_pull_request_reviews": {
-    "required_approving_review_count": 1,
-    "dismiss_stale_reviews": true
-  },
-  "restrictions": null,
-  "allow_force_pushes": false,
-  "allow_deletions": false
-}
-EOF
+gh api repos/luizanunciostoca/touristic-digital-platform/rulesets/21205682 \
+  --jq '{name,target,enforcement,conditions,rules,bypass_actors}'
 ```
 
-## Interim governance
+O ID do ruleset pode mudar se a administração o recriar. Nesse caso, localize o ruleset pelo nome antes de editar e preserve as mesmas invariantes.
 
-Until branch protection is available, the following manual governance applies:
+## Teste controlado obrigatório
 
-1. **All changes go through PRs** — no direct pushes to `main`.
-2. **Quality Gate must pass locally** before requesting merge (`pnpm check`).
-3. **Squash merge** is the default merge strategy to keep history clean.
-4. **No force pushes** to `main` under any circumstances.
-5. **Release promotion** requires explicit evidence documentation.
+A PR de hardening deste ciclo é a PR controlada. Ela deve produzir o job `Quality Gate / quality`, permanecer em um SHA explícito e exigir a aprovação de um reviewer independente. Não se deve testar a proteção com push direto, force-push, bypass ou merge administrativo. Se o teste revelar que o ruleset não bloqueia a operação esperada, pare a promoção e corrija a configuração administrativa antes de aceitar qualquer release.
+
+## Governança de emergência
+
+Uma exceção emergencial só pode ser temporária, nomeada, documentada e autorizada pelo owner do serviço. Depois da mitigação, remova a exceção, reexecute o Quality Gate no SHA final e registre o evento na evidência de release. O padrão permanente continua sendo PR obrigatório, uma revisão independente, status `quality` verde, threads resolvidas, sem bypass e sem force-push.
