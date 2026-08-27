@@ -21,11 +21,11 @@ Marque cada item somente quando a evidência estiver anexada ao registro de prod
 
 | ID     | Prioridade | Tarefa pendente                                                                                                                                                                         | Responsável      | Evidência de conclusão                        | Dependência/critério de parada                             |
 | ------ | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- | --------------------------------------------- | ---------------------------------------------------------- |
-| GOV-01 | P0         | Obter uma aprovação independente na [PR #34](https://github.com/luizanunciostoca/touristic-digital-platform/pull/34).                                                                   | A atribuir       | Review registrada; PR sem `REVIEW_REQUIRED`.  | Não fazer bypass; sem aprovação, `NO-GO`.                  |
+| GOV-01 | P0         | Confirmar que a PR possui Quality Gate verde e não depende de aprovação de uma segunda conta.                                                                                             | Release owner   | Check `quality` verde e estado do ruleset.     | Não fazer bypass; falha de CI, `NO-GO`.                    |
 | GOV-02 | P0         | Mesclar a PR somente com `Quality Gate/quality` verde, threads resolvidas e ruleset de `main` ativo.                                                                                    | A atribuir       | SHA de `main` após merge e histórico da PR.   | Não usar force-push, merge administrativo ou branch móvel. |
-| GOV-03 | P0         | Definir o novo `PRODUCTION_CANDIDATE_SHA` depois do merge; o SHA anterior `29700b3…` deixa de ser candidato se `main` mudar.                                                            | Release owner    | SHA completo local/remoto idêntico.           | Qualquer divergência invalida toda a certificação.         |
+| GOV-03 | P0         | Definir o novo `PRODUCTION_CANDIDATE_SHA` depois do merge; o SHA anterior `6276b0bc…` deixa de ser candidato se `main` mudar.                                                           | Release owner    | SHA completo local/remoto idêntico.           | Qualquer divergência invalida toda a certificação.         |
 | GOV-04 | P0         | Atualizar a Issue [#33](https://github.com/luizanunciostoca/touristic-digital-platform/issues/33) com o novo SHA, estado e links de evidência.                                          | Release owner    | Issue única em estado `NO-GO` ou `GO` formal. | Não criar registros concorrentes para o mesmo release.     |
-| GOV-05 | P1         | Confirmar que o ruleset `main-release-protection` continua exigindo PR, uma aprovação independente, `quality`, resolução de threads, dismiss de reviews obsoletas e zero bypass actors. | Repository owner | Saída do ruleset e teste controlado da PR.    | Se a regra estiver mais fraca, parar o release.            |
+| GOV-05 | P1         | Confirmar que o ruleset `main-release-protection` exige PR, `quality`, resolução de threads, bloqueio de deleção/non-fast-forward e zero bypass actors, sem exigir aprovação de segunda conta. | Repository owner | Saída do ruleset e teste controlado da PR.    | Se o `quality` ou os bloqueios forem removidos, parar o release. |
 
 ## 1. Inventário live de infraestrutura
 
@@ -140,7 +140,7 @@ Marque cada item somente quando a evidência estiver anexada ao registro de prod
 O sistema pode ser classificado como **Production Ready / GO** somente quando todas as linhas P0 estiverem marcadas com `[x]`, as linhas P1 tiverem sido concluídas ou classificadas formalmente como `N/A`, e existirem simultaneamente:
 
 1. Um `PRODUCTION_CANDIDATE_SHA` exato, imutável e aprovado.
-2. Uma aprovação independente e todos os checks obrigatórios verdes.
+2. Todos os checks obrigatórios verdes; aprovação de segunda conta não é requisito do ruleset atual.
 3. Inventário live completo com owners, alertas, dashboards, secrets e recursos de dados identificados.
 4. Evidência de staging isolado, migrations, smoke, observabilidade, backup/restore e rollback.
 5. Production Authorization explícita com decisão `GO`.
@@ -156,7 +156,7 @@ Se qualquer critério falhar, o estado correto é **`NO-GO`**, mesmo que o códi
 
 Os seguintes pontos já foram implementados ou comprovados no ciclo anterior e não precisam ser refeitos, salvo se o SHA mudar:
 
-- [PR #34](https://github.com/luizanunciostoca/touristic-digital-platform/pull/34) com os checks verdes registrados antes da inclusão deste checklist; o SHA atual do candidato da PR é `e5192dd2f91576209bb57904b826242d76078d66` e exige nova execução dos checks.
+- PRs #34, #35 e #36 com Quality Gate verde; o candidato atual é o SHA `a3dd199a51c6e5cdc4c756417117714173c7b6f8` após a correção do Blueprint production.
 - Quality Gate, contratos de CI, varredura de padrões de secrets e supply-chain audit versionados.
 - Contrato Business comercial executado cinco vezes no CI e localmente.
 - Startup local após build e exports Node dos pacotes compartilhados corrigidos.

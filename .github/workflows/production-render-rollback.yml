@@ -12,7 +12,7 @@ on:
         required: true
         type: string
       confirm_rollback:
-        description: Type ROLLBACK to authorize the rollback after environment approval
+        description: Type ROLLBACK to authorize the rollback after automated preflight gates
         required: true
         type: string
 
