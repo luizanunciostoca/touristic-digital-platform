@@ -7,15 +7,51 @@
     "@touristic/auth": "workspace:*"
   },
   "exports": {
-    ".": "./src/index.ts",
-    "./onboarding": "./src/onboarding.ts",
-    "./onboarding-host": "./src/onboarding-host.ts",
-    "./onboarding-steps": "./src/onboarding-steps.ts",
-    "./onboarding-presentation": "./src/onboarding-presentation.ts",
-    "./onboarding-recommendation": "./src/onboarding-recommendation.ts",
-    "./onboarding-profile": "./src/onboarding-profile.ts",
-    "./onboarding-workspace": "./src/onboarding-workspace.ts",
-    "./onboarding-commercial-conversion": "./src/onboarding-commercial-conversion.ts"
+    ".": {
+      "types": "./src/index.ts",
+      "node": "./dist/index.js",
+      "default": "./src/index.ts"
+    },
+    "./onboarding": {
+      "types": "./src/onboarding.ts",
+      "node": "./dist/onboarding.js",
+      "default": "./src/onboarding.ts"
+    },
+    "./onboarding-host": {
+      "types": "./src/onboarding-host.ts",
+      "node": "./dist/onboarding-host.js",
+      "default": "./src/onboarding-host.ts"
+    },
+    "./onboarding-steps": {
+      "types": "./src/onboarding-steps.ts",
+      "node": "./dist/onboarding-steps.js",
+      "default": "./src/onboarding-steps.ts"
+    },
+    "./onboarding-presentation": {
+      "types": "./src/onboarding-presentation.ts",
+      "node": "./dist/onboarding-presentation.js",
+      "default": "./src/onboarding-presentation.ts"
+    },
+    "./onboarding-recommendation": {
+      "types": "./src/onboarding-recommendation.ts",
+      "node": "./dist/onboarding-recommendation.js",
+      "default": "./src/onboarding-recommendation.ts"
+    },
+    "./onboarding-profile": {
+      "types": "./src/onboarding-profile.ts",
+      "node": "./dist/onboarding-profile.js",
+      "default": "./src/onboarding-profile.ts"
+    },
+    "./onboarding-workspace": {
+      "types": "./src/onboarding-workspace.ts",
+      "node": "./dist/onboarding-workspace.js",
+      "default": "./src/onboarding-workspace.ts"
+    },
+    "./onboarding-commercial-conversion": {
+      "types": "./src/onboarding-commercial-conversion.ts",
+      "node": "./dist/onboarding-commercial-conversion.js",
+      "default": "./src/onboarding-commercial-conversion.ts"
+    }
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",

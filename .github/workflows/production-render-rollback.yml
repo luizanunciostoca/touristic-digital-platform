@@ -1,0 +1,135 @@
+name: Production Render Rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Exact SHA expected after rollback
+        required: true
+        type: string
+      target_deploy_id:
+        description: Previously successful Render deploy ID to restore
+        required: true
+        type: string
+      confirm_rollback:
+        description: Type ROLLBACK to authorize the rollback after environment approval
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "22"
+  PNPM_VERSION: "10.15.0"
+  TURBO_TELEMETRY_DISABLED: "1"
+  PRODUCTION_URL: https://morro-digital-v2.onrender.com
+
+jobs:
+  rollback:
+    name: production / rollback
+    if: github.ref == 'refs/heads/main' && inputs.confirm_rollback == 'ROLLBACK'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment:
+      name: production
+      url: ${{ env.PRODUCTION_URL }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Validate rollback inputs
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          TARGET_DEPLOY_ID: ${{ inputs.target_deploy_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$EXPECTED_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$TARGET_DEPLOY_ID" =~ ^[A-Za-z0-9_-]{1,160}$ ]]
+
+      - name: Require protected Render API credentials
+        env:
+          RENDER_PRODUCTION_API_KEY: ${{ secrets.RENDER_PRODUCTION_API_KEY }}
+          RENDER_PRODUCTION_SERVICE_ID: ${{ secrets.RENDER_PRODUCTION_SERVICE_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$RENDER_PRODUCTION_API_KEY"
+          test -n "$RENDER_PRODUCTION_SERVICE_ID"
+
+      - name: Prove automatic deploy is disabled before rollback
+        env:
+          RENDER_PRODUCTION_API_KEY: ${{ secrets.RENDER_PRODUCTION_API_KEY }}
+          RENDER_PRODUCTION_SERVICE_ID: ${{ secrets.RENDER_PRODUCTION_SERVICE_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error \
+            --header "Authorization: Bearer $RENDER_PRODUCTION_API_KEY" \
+            --header "Accept: application/json" \
+            "https://api.render.com/v1/services/$RENDER_PRODUCTION_SERVICE_ID" \
+            > /tmp/render-service.json
+          jq -e '.autoDeploy == false' /tmp/render-service.json >/dev/null
+          echo "Render automatic deploy is disabled; rollback cannot be immediately superseded by a branch deploy."
+
+      - name: Trigger Render rollback
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          TARGET_DEPLOY_ID: ${{ inputs.target_deploy_id }}
+          RENDER_PRODUCTION_API_KEY: ${{ secrets.RENDER_PRODUCTION_API_KEY }}
+          RENDER_PRODUCTION_SERVICE_ID: ${{ secrets.RENDER_PRODUCTION_SERVICE_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error \
+            --request POST \
+            --header "Authorization: Bearer $RENDER_PRODUCTION_API_KEY" \
+            --header "Accept: application/json" \
+            --header "Content-Type: application/json" \
+            --data "$(jq -cn --arg deployId "$TARGET_DEPLOY_ID" '{deployId:$deployId}')" \
+            "https://api.render.com/v1/services/$RENDER_PRODUCTION_SERVICE_ID/rollback" \
+            > /tmp/render-rollback.json
+          jq -e '.' /tmp/render-rollback.json >/dev/null
+          echo "Render rollback accepted for target deploy $TARGET_DEPLOY_ID; expected runtime SHA $EXPECTED_SHA"
+
+      - name: Wait for exact-SHA production health and identity
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          MORRO_V2_BASE_URL: ${{ env.PRODUCTION_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          last_output=''
+          for _ in $(seq 1 90); do
+            if output="$(pnpm --silent release:identity:smoke 2>&1)"; then
+              release_sha="$(printf '%s\n' "$output" | tail -n 1 | jq -r '.releaseSha // empty' 2>/dev/null || true)"
+              if [ "$release_sha" = "$EXPECTED_SHA" ]; then
+                printf '%s\n' "$output"
+                echo "Exact-SHA production rollback smoke PASS: $release_sha"
+                exit 0
+              fi
+              last_output="$output"
+              echo "Production release is ${release_sha:-unknown}; waiting for rollback SHA $EXPECTED_SHA"
+            else
+              last_output="$output"
+              echo "Production rollback smoke not ready yet; retrying"
+            fi
+            sleep 10
+          done
+          printf '%s\n' "$last_output" >&2
+          echo "Exact-SHA production rollback smoke timed out for $EXPECTED_SHA" >&2
+          exit 1

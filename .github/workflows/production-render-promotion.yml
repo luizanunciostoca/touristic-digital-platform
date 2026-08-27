@@ -1,0 +1,205 @@
+name: Production Render Promotion
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Exact main SHA approved for production promotion
+        required: true
+        type: string
+      confirm_production:
+        description: Type DEPLOY to authorize the production deploy job after environment approval
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+  deployments: write
+
+concurrency:
+  group: production-render-promotion
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: "22"
+  PNPM_VERSION: "10.15.0"
+  TURBO_TELEMETRY_DISABLED: "1"
+  PRODUCTION_URL: https://morro-digital-v2.onrender.com
+
+jobs:
+  preflight:
+    name: production / preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ inputs.expected_sha }}
+          fetch-depth: 0
+
+      - name: Prove exact SHA is current main
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          remote_main_sha="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
+          test "$remote_main_sha" = "$EXPECTED_SHA"
+          echo "Exact production candidate SHA: $EXPECTED_SHA"
+
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Re-prove mandatory upstream GitHub Actions gates
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for workflow in final-release-acceptance.yml release-promotion-gate.yml; do
+            run_id="$(gh run list \
+              --workflow "$workflow" \
+              --branch main \
+              --commit "$EXPECTED_SHA" \
+              --status success \
+              --limit 1 \
+              --json databaseId \
+              --jq '.[0].databaseId // empty')"
+            test -n "$run_id"
+            echo "PASS: $workflow run $run_id @ $EXPECTED_SHA"
+          done
+
+      - name: Run local production preflight contracts
+        run: |
+          pnpm platform:contracts:check
+          pnpm migration:dry-run
+          pnpm release:readiness:check
+          pnpm secret-patterns:check
+          pnpm ci:governance:check
+          pnpm ci:supply-chain:strict
+          pnpm build
+
+  deploy:
+    name: production / deploy
+    needs: preflight
+    if: github.ref == 'refs/heads/main' && inputs.confirm_production == 'DEPLOY'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    environment:
+      name: production
+      url: ${{ env.PRODUCTION_URL }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ inputs.expected_sha }}
+          fetch-depth: 1
+
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Require protected Render deploy hook
+        env:
+          RENDER_PRODUCTION_DEPLOY_HOOK_URL: ${{ secrets.RENDER_PRODUCTION_DEPLOY_HOOK_URL }}
+        shell: bash
+        run: test -n "$RENDER_PRODUCTION_DEPLOY_HOOK_URL"
+
+      - name: Trigger exact-SHA Render deploy
+        id: render-deploy
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          RENDER_PRODUCTION_DEPLOY_HOOK_URL: ${{ secrets.RENDER_PRODUCTION_DEPLOY_HOOK_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          separator='?'
+          if [[ "$RENDER_PRODUCTION_DEPLOY_HOOK_URL" == *\?* ]]; then
+            separator='&'
+          fi
+          deploy_url="${RENDER_PRODUCTION_DEPLOY_HOOK_URL}${separator}ref=${EXPECTED_SHA}"
+          http_status="$(curl --request POST --silent --show-error \
+            --output /tmp/render-deploy-response.json \
+            --write-out '%{http_code}' \
+            "$deploy_url")"
+          case "$http_status" in
+            200|202) ;;
+            *)
+              echo "Render deploy hook failed with HTTP $http_status" >&2
+              cat /tmp/render-deploy-response.json >&2
+              exit 1
+              ;;
+          esac
+          deploy_id="$(jq -r '.deploy.id // .id // empty' /tmp/render-deploy-response.json 2>/dev/null || true)"
+          echo "deploy_id=${deploy_id:-unknown}" >> "$GITHUB_OUTPUT"
+          echo "Render deploy accepted for exact SHA $EXPECTED_SHA"
+
+      - name: Wait for exact-SHA production health and identity
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          MORRO_V2_BASE_URL: ${{ env.PRODUCTION_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          last_output=''
+          for _ in $(seq 1 90); do
+            if output="$(pnpm --silent release:identity:smoke 2>&1)"; then
+              release_sha="$(printf '%s\n' "$output" | tail -n 1 | jq -r '.releaseSha // empty' 2>/dev/null || true)"
+              if [ "$release_sha" = "$EXPECTED_SHA" ]; then
+                printf '%s\n' "$output"
+                echo "Exact-SHA production smoke PASS: $release_sha"
+                exit 0
+              fi
+              last_output="$output"
+              echo "Production release is ${release_sha:-unknown}; waiting for $EXPECTED_SHA"
+            else
+              last_output="$output"
+              echo "Production smoke not ready yet; retrying"
+            fi
+            sleep 10
+          done
+          printf '%s\n' "$last_output" >&2
+          echo "Exact-SHA production smoke timed out for $EXPECTED_SHA" >&2
+          exit 1
+
+      - name: Publish deployment evidence
+        if: always()
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          DEPLOY_ID: ${{ steps.render-deploy.outputs.deploy_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo "expected_sha=$EXPECTED_SHA"
+            echo "render_deploy_id=${DEPLOY_ID:-unknown}"
+            echo "production_url=$PRODUCTION_URL"
+            echo "workflow_run=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          } > production-deployment-evidence.txt
+          cat production-deployment-evidence.txt
+
+      - name: Upload deployment evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: production-deployment-evidence-${{ github.run_id }}
+          path: production-deployment-evidence.txt
+          if-no-files-found: error
+          retention-days: 30
