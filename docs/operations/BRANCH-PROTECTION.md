@@ -6,19 +6,19 @@ A proteção de `main` está ativa por meio do ruleset `main-release-protection`
 
 O estado verificável em 27 de agosto de 2026 é:
 
-| Regra                            | Estado                                                                              |
-| -------------------------------- | ----------------------------------------------------------------------------------- |
-| Pull request antes do merge      | Ativo                                                                               |
-| Aprovação independente           | Não exigida                                                                         |
-| Dismiss de approval obsoleta     | Não aplicável sem approval obrigatória                                               |
+| Regra                        | Estado                                 |
+| ---------------------------- | -------------------------------------- |
+| Pull request antes do merge  | Ativo                                  |
+| Aprovação independente       | Não exigida                            |
+| Dismiss de approval obsoleta | Não aplicável sem approval obrigatória |
 
-| Resolução de threads             | Ativo                                                                               |
-| Status obrigatório               | `quality`                                                                           |
+| Resolução de threads | Ativo |
+| Status obrigatório | `quality` |
 | Branch atualizada antes do merge | Política de status estrita ativa; confirmar regra equivalente na UI caso necessário |
-| Force-push/non-fast-forward      | Bloqueado                                                                           |
-| Deleção da branch                | Bloqueada                                                                           |
-| Bypass actors                    | Nenhum                                                                              |
-| Método de merge                  | `merge`                                                                             |
+| Force-push/non-fast-forward | Bloqueado |
+| Deleção da branch | Bloqueada |
+| Bypass actors | Nenhum |
+| Método de merge | `merge` |
 
 ## Comando de inspeção
 
