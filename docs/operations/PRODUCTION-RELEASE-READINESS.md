@@ -1,6 +1,6 @@
 # Morro Digital V2 — Production Release Readiness Register
 
-**Data do registro:** 26 de agosto de 2026. **Repositório:** `luizanunciostoca/touristic-digital-platform`. **Status:** `NO-GO` para produção até que os gates externos e a autorização formal sejam concluídos.
+**Data do registro:** 27 de agosto de 2026. **Repositório:** `luizanunciostoca/touristic-digital-platform`. **Status:** `NO-GO` para produção até que o serviço production seja provisionado, os gates externos e a autorização formal sejam concluídos.
 
 Este registro é a fonte operacional para transformar o checklist mestre de produção em evidência verificável. Ele distingue deliberadamente **evidência de código**, **evidência de CI**, **evidência de staging** e **evidência de produção**. Passar em testes locais não autoriza deploy, não prova disponibilidade de infraestrutura e não autoriza uma transação financeira real.
 
@@ -8,15 +8,15 @@ Este registro é a fonte operacional para transformar o checklist mestre de prod
 
 ## Candidato oficial congelado
 
-A branch `main` local e `origin/main` foram revalidadas no SHA `29700b349c8087e423c50794039ed80719b5fe91`. Esse é o único `PRODUCTION_CANDIDATE_SHA` deste registro. Qualquer mudança posterior em `main` invalida este candidato e exige nova certificação, novo registro e nova decisão.
+A branch `main` local e `origin/main` foram revalidadas no SHA `6276b0bc03ba58d015a846c572c105e52d106269`, após o merge das PRs #34 e #35. Esse é o `PRODUCTION_CANDIDATE_SHA` atual deste registro. Qualquer mudança posterior em `main` invalida este candidato e exige nova certificação, novo registro e nova decisão.
 
 | Gate                         | Evidência atual                                                                                                                                                                              | Estado                             | Próxima prova exigida                                                 |
 | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- | --------------------------------------------------------------------- |
-| SHA exato de `main`          | `git rev-parse HEAD` e `git ls-remote origin refs/heads/main` coincidem em `29700b349c8087e423c50794039ed80719b5fe91`                                                                        | `PASS` no momento do registro      | Revalidar imediatamente antes de qualquer promoção                    |
+| SHA exato de `main`          | `git rev-parse HEAD` e `git ls-remote origin refs/heads/main` coincidem em `6276b0bc03ba58d015a846c572c105e52d106269`                                                                        | `PASS` no momento do registro      | Revalidar imediatamente antes de qualquer promoção                    |
 | Proteção de `main`           | Ruleset `main-release-protection` ativo, PR obrigatório, `quality` obrigatório, bloqueio de deleção e non-fast-forward, resolução de threads, uma aprovação e dismiss de approvals obsoletas | `PASS`                             | Demonstrar uma PR controlada sem bypass                               |
-| Flake do Business Onboarding | Espera por `businessCommercialCheckoutPrepared`, timeout fail-closed de 5 segundos e matriz de cinco repetições no workflow                                                                  | `IMPLEMENTADO; CI PENDENTE`        | Cinco execuções verdes no mesmo SHA e novo Quality Gate               |
-| Quality Gate                 | Workflow consolidado `quality` versionado                                                                                                                                                    | `IMPLEMENTADO; EVIDÊNCIA PENDENTE` | Run verde no SHA final, com Test, Build e matriz MySQL completos      |
-| Release Promotion Gate       | Workflow manual exige `expected_sha`, compara checkout e `origin/main`, executa contratos, build e smoke local                                                                               | `IMPLEMENTADO; NÃO EXECUTADO`      | Executar somente para o SHA explicitamente aprovado                   |
+| Flake do Business Onboarding | Espera por `businessCommercialCheckoutPrepared`, timeout fail-closed de 5 segundos e matriz de cinco repetições no workflow                                                                  | `PASS`                             | Revalidar em cada novo candidato                                      |
+| Quality Gate                 | Workflow consolidado `quality` versionado; último run verde após PR #35                                                                                                                      | `PASS`                             | Revalidar em cada novo candidato                                      |
+| Release Promotion Gate       | Run `33038924106` exige `expected_sha`, compara checkout e `origin/main`, executa contratos, build e smoke local                                                                             | `PASS`                             | Revalidar imediatamente antes da promoção                             |
 | Registry e trackers          | Registry, matrizes e evidências históricas versionados                                                                                                                                       | `PASS` como documentação existente | Atualizar somente após evidência nova; não inventar estado `released` |
 
 ## Governança e controle de mudanças
@@ -27,17 +27,17 @@ O repositório não deve receber credenciais, tokens, senhas ou valores de secre
 
 ## Separação staging × production
 
-A separação está materializada em dois blueprints distintos. Staging usa um serviço web e um MySQL privado próprios, `autoDeploy: false`, credenciais TEST fornecidas fora do Git e callbacks de staging. Produção usa o serviço `morro-digital-v2`, bancos fornecidos fora do Git, secrets gerados ou sincronizados pela plataforma e réplica única enquanto o limiter distribuído não existir.
+A separação está materializada em dois blueprints distintos. Staging usa um serviço web e um MySQL privado próprios, `autoDeploy: false`, credenciais TEST fornecidas fora do Git e callbacks de staging. Produção pretende usar o serviço `morro-digital-v2`, bancos fornecidos fora do Git, secrets gerados ou sincronizados pela plataforma e réplica única enquanto o limiter distribuído não existir. O serviço ainda não foi provisionado no workspace Render; a criação está bloqueada até que o `render.yaml` corrigido seja aceito.
 
-| Superfície    | Staging                                                          | Produção no repositório                                            | Prova live ainda necessária                                                                         |
-| ------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------- |
-| Serviço web   | `morro-digital-v2-staging`                                       | `morro-digital-v2`                                                 | Confirmar contas, projetos e serviços Render distintos                                              |
-| Banco         | `morro-digital-v2-staging-mysql`, quatro nomes de banco isolados | URLs MySQL fornecidas via secret manager                           | Confirmar host, schema, TLS, firewall, pool e usuário de menor privilégio                           |
-| Payments      | Mercado Pago `test`, confirmação explícita de credenciais TEST   | Também permanece em `test` até cutover autorizado                  | Criar/confirmar aplicação de produção, seller, chaves pareadas, webhook HTTPS e política de retries |
-| Auth          | Usuários e origem fornecidos fora do Git; bypass global falso    | Usuários e origem fornecidos fora do Git; bypass exige confirmação | Confirmar identidade administrativa, TTL, cookies, logout, RBAC e ausência de usuário temporário    |
-| OpenAI        | Chave externa, hard limit fechado                                | Chave externa                                                      | Confirmar orçamento, limites, owner e ausência de PII indevida em logs                              |
-| Rate limiting | Uma réplica, limiter distribuído falso                           | Uma réplica, limiter distribuído falso                             | Se houver escala horizontal, configurar e testar store distribuído atômico                          |
-| Domínio e TLS | Host de staging                                                  | Host oficial ainda não confirmado neste registro                   | Confirmar DNS, certificado, redirect HTTPS, CORS, OAuth, Mapbox e webhook                           |
+| Superfície    | Staging                                                          | Produção no repositório                                             | Prova live ainda necessária                                                                         |
+| ------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Serviço web   | `morro-digital-v2-staging`                                       | Não provisionado; definido como `morro-digital-v2` no `render.yaml` | Criar e confirmar contas, projetos e serviços Render distintos                                      |
+| Banco         | `morro-digital-v2-staging-mysql`, quatro nomes de banco isolados | URLs MySQL fornecidas via secret manager                            | Confirmar host, schema, TLS, firewall, pool e usuário de menor privilégio                           |
+| Payments      | Mercado Pago `test`, confirmação explícita de credenciais TEST   | Também permanece em `test` até cutover autorizado                   | Criar/confirmar aplicação de produção, seller, chaves pareadas, webhook HTTPS e política de retries |
+| Auth          | Usuários e origem fornecidos fora do Git; bypass global falso    | Usuários e origem fornecidos fora do Git; bypass exige confirmação  | Confirmar identidade administrativa, TTL, cookies, logout, RBAC e ausência de usuário temporário    |
+| OpenAI        | Chave externa, hard limit fechado                                | Chave externa                                                       | Confirmar orçamento, limites, owner e ausência de PII indevida em logs                              |
+| Rate limiting | Uma réplica, limiter distribuído falso                           | Uma réplica, limiter distribuído falso                              | Se houver escala horizontal, configurar e testar store distribuído atômico                          |
+| Domínio e TLS | `https://morro-digital-v2-staging.onrender.com`                  | Host production ainda não existe                                    | Criar domínio, confirmar DNS, certificado, redirect HTTPS, CORS, OAuth, Mapbox e webhook            |
 
 A configuração de produção continua deliberadamente em `MERCADO_PAGO_CHECKOUT_MODE=test` e com o endpoint compatível com o contrato atual de webhook sandbox. Isso é um **guardrail de segurança**, não uma certificação de produção. O cutover real exige alteração revisada do contrato de endpoint/configuração, credenciais de produção correspondentes e autorização financeira separada.
 
@@ -47,7 +47,7 @@ O código informa o nome do serviço, o runtime Node, o health check `/readyz`, 
 
 | Recurso                    | Conhecido pelo repositório                                                               | Estado do inventário operacional                         |
 | -------------------------- | ---------------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| Serviço de produção        | `morro-digital-v2`, Node, Virginia, plano Starter                                        | Confirmar projeto/conta e revision live                  |
+| Serviço de produção        | Definido no `render.yaml` como `morro-digital-v2`, Node, Virginia, plano Starter         | **Bloqueado: serviço não existe no workspace Render**    |
 | Banco de produção          | URLs `AUTH_DATABASE_URL`, `ORDERING_DATABASE_URL` e `FINANCIAL_DATABASE_URL` fora do Git | Confirmar host/schema/versão/collation/timezone/TLS/pool |
 | Domínio oficial            | Return origins são externos ao blueprint                                                 | Confirmar DNS, domínio canônico, TLS e CORS              |
 | CDN/proxy                  | Não especificado                                                                         | Confirmar ou registrar `N/A`                             |
@@ -103,15 +103,15 @@ O registro de autorização deve conter, no mínimo, `PRODUCTION_CANDIDATE_SHA`,
 
 ```text
 Production Authorization
-Candidate SHA: 29700b349c8087e423c50794039ed80719b5fe91
+Candidate SHA: 6276b0bc03ba58d015a846c572c105e52d106269
 Decision: NO-GO
-Reason: pending live inventory, staging evidence, backup/restore drill, provider production cutover decision, and explicit release authorization.
+Reason: production service is not provisioned; live inventory, backup/restore drill, provider production cutover decision, and explicit release authorization remain pending.
 Real-money acceptance: N/A unless separately authorized.
 Approver: pending
 Date/time: pending
 ```
 
-Até que o bloco acima seja substituído por uma decisão assinada `GO` e todas as evidências obrigatórias existam no SHA exato, o estado objetivo do projeto é **engenharia com guardrails e pronta para completar CI/staging; não released e não production-ready**.
+Até que o serviço production exista, o bloco acima seja substituído por uma decisão assinada `GO` e todas as evidências obrigatórias existam no SHA exato, o estado objetivo do projeto é **engenharia com guardrails e staging validado; não released e não production-ready**.
 
 ## Referências internas
 

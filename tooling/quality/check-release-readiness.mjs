@@ -101,16 +101,23 @@ for (const [key, directive] of [
 }
 requireDirective(
   production,
+  "V1_PAYMENT_PROVIDER_API_URL",
+  "value: https://api.mercadopago.com",
+  "production blueprint",
+);
+requireDirective(
+  production,
   "MERCADO_PAGO_ACCESS_TOKEN",
-  "fromService:",
+  "sync: false",
   "production blueprint",
 );
 requireDirective(
   production,
   "MERCADO_PAGO_WEBHOOK_SECRET",
-  "fromService:",
+  "sync: false",
   "production blueprint",
 );
+forbidText(production, "production blueprint", "fromService:");
 forbidText(
   production,
   "production blueprint",

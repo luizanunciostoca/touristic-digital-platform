@@ -4,6 +4,8 @@ services:
     runtime: node
     region: virginia
     plan: starter
+    branch: main
+    autoDeploy: false
     buildCommand: corepack enable && corepack prepare pnpm@10.15.0 --activate && pnpm install --frozen-lockfile && pnpm build
     preDeployCommand: node apps/morro-digital-platform/tooling/payments-migrate.mjs
     startCommand: node apps/morro-digital-platform/tooling/dev-server.mjs
@@ -70,25 +72,15 @@ services:
       - key: MERCADO_PAGO_CHECKOUT_ORIGINS
         value: https://sandbox.mercadopago.com
 
-      # Approved no-rotation migration: reuse the exact provider configuration
-      # already present on the V1 Render service. The pre-deploy gate verifies
-      # that BUSINESS_PAYMENT_API_URL is the official Mercado Pago API before
-      # allowing either inherited secret to be used by the V2 runtime.
+      # Production provider configuration is entered directly in this
+      # service's Render environment. No secret is inherited from a legacy
+      # service, so a fresh production Blueprint is self-contained.
       - key: V1_PAYMENT_PROVIDER_API_URL
-        fromService:
-          type: web
-          name: morro-digital
-          envVarKey: BUSINESS_PAYMENT_API_URL
+        value: https://api.mercadopago.com
       - key: MERCADO_PAGO_ACCESS_TOKEN
-        fromService:
-          type: web
-          name: morro-digital
-          envVarKey: BUSINESS_PAYMENT_API_TOKEN
+        sync: false
       - key: MERCADO_PAGO_WEBHOOK_SECRET
-        fromService:
-          type: web
-          name: morro-digital
-          envVarKey: BUSINESS_PAYMENT_WEBHOOK_SECRET
+        sync: false
 
       - key: PAYMENTS_WEBHOOK_URL
         sync: false
