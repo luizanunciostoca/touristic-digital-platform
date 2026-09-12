@@ -21,6 +21,7 @@ interface CameraMap extends MapboxGlMapLike {
     readonly duration?: number;
     readonly essential?: boolean;
   }): void;
+  setZoom?(zoom: number): void;
 }
 
 const GLOBAL_CENTER: [number, number] = [-38.9167, 5];
@@ -39,8 +40,18 @@ export function installGlobalViewControl({
   let destroyed = false;
   let isGlobal = button?.classList.contains("active") ?? false;
 
+  const canTransition = Boolean(
+    cameraMap.easeTo || (cameraMap.fitBounds && cameraMap.setZoom),
+  );
+
+  const setButtonAvailability = (enabled: boolean): void => {
+    if (!button) return;
+    button.setAttribute("aria-disabled", String(!enabled));
+    if (button instanceof HTMLButtonElement) button.disabled = !enabled;
+  };
+
   const applyCamera = (): void => {
-    if (destroyed) return;
+    if (destroyed || !canTransition) return;
     if (cameraMap.easeTo) {
       cameraMap.easeTo({
         center: isGlobal ? GLOBAL_CENTER : [...homeCenter],
@@ -66,21 +77,27 @@ export function installGlobalViewControl({
       );
     } else {
       cameraMap.setCenter([...homeCenter]);
+      cameraMap.setZoom?.(homeZoom);
     }
     mapElement?.setAttribute("data-global-view", String(isGlobal));
   };
 
   const onClick = (): void => {
-    if (!button || destroyed) return;
+    if (!button || destroyed || !canTransition) return;
     // browser-entry preserves the V1 visual active-state listener; this handler
-    // turns that state into a real camera transition.
+    // converts that state into the corresponding camera transition.
     isGlobal = button.classList.contains("active");
     applyCamera();
   };
 
   button?.setAttribute("aria-pressed", String(isGlobal));
   mapElement?.setAttribute("data-global-view", String(isGlobal));
+  setButtonAvailability(canTransition);
   button?.addEventListener("click", onClick);
+
+  // If the V1 shell was interacted with before the real map finished mounting,
+  // honor the already-active visual state as soon as the camera becomes ready.
+  if (isGlobal && canTransition) applyCamera();
 
   return Object.freeze({
     get isGlobal(): boolean {
@@ -90,6 +107,7 @@ export function installGlobalViewControl({
       if (destroyed) return;
       destroyed = true;
       button?.removeEventListener("click", onClick);
+      setButtonAvailability(false);
     },
   });
 }
