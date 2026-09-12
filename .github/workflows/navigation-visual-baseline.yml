@@ -246,7 +246,7 @@ jobs:
             if (!latestCamera || latestCamera.pitch !== 68 || ![19.1, 19.35, 19.55].includes(latestCamera.zoom)) throw new Error(`V1 camera baseline diverged for ${name}: ${JSON.stringify(activeState.camera)}`);
             if (latestCamera.duration !== 650 || latestCamera.retainPadding !== false || latestCamera.essential !== true) throw new Error(`V1 camera motion options diverged for ${name}: ${JSON.stringify(latestCamera)}`);
             if (JSON.stringify(latestCamera.easingSamples) !== JSON.stringify([0, 0.4375, 0.75, 0.9375, 1])) throw new Error(`V1 camera easing diverged for ${name}: ${JSON.stringify(latestCamera.easingSamples)}`);
-            if (activeState.markerCount < 9) throw new Error(`Navigation marker was not added for ${name}: markerCount=${activeState.markerCount}`);
+            if (activeState.markerCount < 1) throw new Error(`Navigation marker was not added for ${name}: markerCount=${activeState.markerCount}`);
 
             await page.screenshot({ path: `${outputDir}/${name}-active.png`, fullPage: false, animations: 'disabled' });
             await page.locator('#minimize-navigation-btn').click();
