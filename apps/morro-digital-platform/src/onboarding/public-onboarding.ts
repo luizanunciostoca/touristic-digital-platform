@@ -175,15 +175,10 @@ export function installPublicOnboarding(
     complete();
   };
 
-  const onDocumentSkip = (): void => {
-    skip();
-  };
-
   options.document.addEventListener(
     PUBLIC_ONBOARDING_COMPLETE_EVENT,
     onDocumentComplete,
   );
-  options.document.addEventListener(PUBLIC_ONBOARDING_SKIP_EVENT, onDocumentSkip);
 
   return Object.freeze({
     get state(): PublicOnboardingState {
@@ -228,10 +223,6 @@ export function installPublicOnboarding(
       options.document.removeEventListener(
         PUBLIC_ONBOARDING_COMPLETE_EVENT,
         onDocumentComplete,
-      );
-      options.document.removeEventListener(
-        PUBLIC_ONBOARDING_SKIP_EVENT,
-        onDocumentSkip,
       );
     },
   });
