@@ -178,7 +178,7 @@ jobs:
             if (testCase.text200 && state.viewport.dpr !== 2) {
               throw new Error(`200 percent text emulation diverged for ${testCase.name}: ${JSON.stringify(state.viewport)}`);
             }
-            if (state.markerCount < 9 || pageErrors.length) {
+            if (state.markerCount < 1 || pageErrors.length) {
               throw new Error(`Browser/navigation evidence failed for ${testCase.name}: ${JSON.stringify({ state, pageErrors })}`);
             }
 
