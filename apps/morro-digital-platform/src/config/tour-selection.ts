@@ -73,7 +73,7 @@ export function createMorroTourSelectionController(
   options: MorroTourSelectionControllerOptions,
 ): MorroTourSelectionController {
   const initialTour = options.initialTourId
-    ? getMorroTourById(options.initialTourId)
+    ? (getMorroTourById(options.initialTourId) ?? null)
     : null;
   if (options.initialTourId && !initialTour) {
     throw new Error(`Unknown Morro tour: ${options.initialTourId}.`);
