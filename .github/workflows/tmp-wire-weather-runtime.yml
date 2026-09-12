@@ -1,5 +1,6 @@
 name: Temporary Wire Weather Provider Runtime
 
+# One-shot maintenance workflow. Delete after the runtime wiring commit is verified.
 on:
   push:
     branches:
