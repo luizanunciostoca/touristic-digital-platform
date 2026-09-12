@@ -3,13 +3,14 @@ import type {
   MapboxGlModuleLike,
 } from "@touristic/geospatial";
 
+import { installAssistantShellUi } from "./assistant/assistant-shell-ui.js";
 import { startMorroDigitalBrowser } from "./browser.js";
+import { morroDeSaoPauloDestination } from "./config/destination.js";
 import type { RuntimeEnvironment } from "./config/mapbox-runtime.js";
 import {
   getMorroTourById,
   type TourRouteContract,
 } from "./config/tour-catalog.js";
-import { createMorroTourMarkers } from "./config/tour-markers.js";
 import { createMorroTourSelectionController } from "./config/tour-selection.js";
 import {
   createLeafletCompatibilitySdk,
@@ -17,11 +18,11 @@ import {
 } from "./development/leaflet-compatibility-sdk.js";
 import { createDevelopmentMapboxSdk } from "./development/mapbox-sdk.js";
 import { bootstrapMorroDigitalApplication } from "./main.js";
-import { installAssistantShellUi } from "./assistant/assistant-shell-ui.js";
 import {
   installBrowserNavigationRuntime,
   type BrowserNavigationRuntimeInstall,
 } from "./navigation/browser-navigation-runtime-install.js";
+import { installPublicOnboarding } from "./onboarding/public-onboarding.js";
 import { loadMapboxGlSdk } from "./runtime/mapbox-sdk-loader.js";
 import { initializeWeatherWidget } from "./weather/weather-widget.js";
 
@@ -45,6 +46,8 @@ const TOUR_ROUTE_LAYER = "tour-route-layer";
 const TOUR_ROUTE_OUTLINE = "tour-route-outline";
 const TOUR_CAMERA_DURATION_MS = 2000;
 const TOUR_CAMERA_TIMEOUT_MS = 3500;
+const SPLASH_VISIBLE_MS = 800;
+const SPLASH_FADE_MS = 550;
 
 bootstrapMorroDigitalApplication(document);
 initializeWeatherWidget({ document });
@@ -73,6 +76,7 @@ function setupV1ShellInteractions(): void {
 }
 
 setupV1ShellInteractions();
+const publicOnboarding = installPublicOnboarding({ document });
 
 function setV1MapboxCompatibilityAliases(
   map: MapboxGlMapLike | undefined,
@@ -83,11 +87,32 @@ function setV1MapboxCompatibilityAliases(
   compatibilityGlobal.mapbox3dInstance = map;
 }
 
-window.addEventListener("load", () => {
+let pageLoadSettled = false;
+let homeRuntimeReady = false;
+let onboardingRevealScheduled = false;
+
+function maybeRevealPublicOnboarding(): void {
+  if (!pageLoadSettled || !homeRuntimeReady || onboardingRevealScheduled)
+    return;
+  onboardingRevealScheduled = true;
+  window.setTimeout(() => {
+    publicOnboarding.showIfNeeded();
+  }, SPLASH_FADE_MS);
+}
+
+function settlePageLoad(): void {
   window.setTimeout(() => {
     document.getElementById("loading-overlay")?.classList.add("fade-out");
-  }, 800);
-});
+    pageLoadSettled = true;
+    maybeRevealPublicOnboarding();
+  }, SPLASH_VISIBLE_MS);
+}
+
+if (document.readyState === "complete") {
+  settlePageLoad();
+} else {
+  window.addEventListener("load", settlePageLoad, { once: true });
+}
 
 const developmentEnvironment = Object.freeze({
   VITE_MAPBOX_ACCESS_TOKEN: "development-only-token",
@@ -96,11 +121,9 @@ const developmentEnvironment = Object.freeze({
   VITE_MAPBOX_INITIAL_ZOOM: "13.5",
 });
 
-const initialTourId = "volta-a-ilha";
 const status = document.getElementById("runtime-status");
 const mapContainer = document.getElementById("map");
 const tourSelect = document.getElementById("tour-select");
-const initialTourMarkers = createMorroTourMarkers(initialTourId);
 let activeRealMap: MapboxGlMapLike | undefined;
 let activeNavigationRuntimeInstall: BrowserNavigationRuntimeInstall | undefined;
 
@@ -296,7 +319,10 @@ function createFallbackMapProvider(): ResolvedMapProvider {
   if (hasLeafletCompatibilitySdk(window)) {
     return Object.freeze({
       sdk: createLeafletCompatibilitySdk(window, {
-        initialCenter: [-38.9159969, -13.4],
+        initialCenter: [
+          morroDeSaoPauloDestination.center.longitude,
+          morroDeSaoPauloDestination.center.latitude,
+        ],
         initialZoom: 13.5,
       }),
       environment: developmentEnvironment,
@@ -381,7 +407,6 @@ async function startBrowserWithProvider(provider: ResolvedMapProvider) {
       sdk: provider.sdk,
       environment: provider.environment,
       document,
-      initialMarkers: initialTourMarkers,
       createMarkerElement: createTourMarkerElement,
       ...(provider.mode === "real"
         ? {
@@ -416,7 +441,6 @@ async function startBrowserWithProvider(provider: ResolvedMapProvider) {
       sdk: fallbackProvider.sdk,
       environment: fallbackProvider.environment,
       document,
-      initialMarkers: initialTourMarkers,
       createMarkerElement: createTourMarkerElement,
     });
   }
@@ -426,13 +450,16 @@ async function start(): Promise<void> {
   const provider = await resolveMapProvider();
   const result = await startBrowserWithProvider(provider);
 
-  if (provider.mode === "real") {
-    await presentTourOnRealMap(initialTourId);
-  }
-
+  mapContainer?.removeAttribute("data-active-tour");
+  mapContainer?.setAttribute("data-tour-state", "idle");
+  mapContainer?.setAttribute("data-home-state", "ready");
+  mapContainer?.setAttribute("data-map-marker-count", "0");
   updateStatus(
-    `Runtime ativo: ${result.startedModules.join(", ")} — provider ${result.geospatialEngine?.providerId ?? "indisponível"} — ${formatTourStatus(initialTourId, result.loadedMarkerCount)}`,
+    `Runtime ativo: ${result.startedModules.join(", ")} — provider ${result.geospatialEngine?.providerId ?? "indisponível"} — Home pronta para explorar.`,
   );
+
+  homeRuntimeReady = true;
+  maybeRevealPublicOnboarding();
 
   if (!(tourSelect instanceof HTMLSelectElement) || !result.geospatialEngine) {
     return;
@@ -441,14 +468,19 @@ async function start(): Promise<void> {
   const controller = createMorroTourSelectionController({
     engine: result.geospatialEngine,
     events: result.runtime.events,
-    initialTourId,
+    initialTourId: null,
   });
-  mapContainer?.setAttribute("data-active-tour", controller.activeTourId);
-  mapContainer?.setAttribute("data-tour-state", "ready");
+
+  tourSelect.selectedIndex = -1;
   tourSelect.disabled = false;
 
   tourSelect.addEventListener("change", () => {
     const requestedTourId = tourSelect.value;
+    if (!requestedTourId || !getMorroTourById(requestedTourId)) {
+      tourSelect.selectedIndex = -1;
+      return;
+    }
+
     tourSelect.disabled = true;
     mapContainer?.setAttribute("aria-busy", "true");
     mapContainer?.setAttribute("data-tour-state", "switching");
@@ -457,9 +489,7 @@ async function start(): Promise<void> {
     void controller
       .selectTour(requestedTourId)
       .then(async (selection) => {
-        if (provider.mode === "real") {
-          await presentTourOnRealMap(selection.activeTourId);
-        }
+        await presentTourOnRealMap(selection.activeTourId);
         mapContainer?.setAttribute(
           "data-map-marker-count",
           String(selection.markerCount),
@@ -471,8 +501,15 @@ async function start(): Promise<void> {
         );
       })
       .catch((error: unknown) => {
-        tourSelect.value = controller.activeTourId;
-        mapContainer?.setAttribute("data-active-tour", controller.activeTourId);
+        const activeTourId = controller.activeTourId;
+        if (activeTourId) {
+          tourSelect.value = activeTourId;
+          mapContainer?.setAttribute("data-active-tour", activeTourId);
+        } else {
+          tourSelect.selectedIndex = -1;
+          mapContainer?.removeAttribute("data-active-tour");
+          mapContainer?.setAttribute("data-map-marker-count", "0");
+        }
         mapContainer?.setAttribute("data-tour-state", "error");
         const message =
           error instanceof Error

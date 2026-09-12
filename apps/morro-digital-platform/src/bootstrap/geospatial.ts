@@ -24,11 +24,6 @@ export interface MorroGeospatialBootstrapResult {
   readonly providerId: string;
 }
 
-const V1_MAPBOX_INITIAL_CENTER = Object.freeze({
-  latitude: -13.4,
-  longitude: -38.9159969,
-});
-
 const V1_MAPBOX_VISUAL_OPTIONS = Object.freeze({
   pitch: 0,
   bearing: 0,
@@ -106,7 +101,7 @@ export async function initializeMorroGeospatial(
   try {
     await engine.initialize({
       containerId: options.containerId,
-      center: V1_MAPBOX_INITIAL_CENTER,
+      center: morroDeSaoPauloDestination.center,
       zoom: options.zoom,
     });
 
