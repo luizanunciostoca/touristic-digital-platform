@@ -265,26 +265,22 @@ export function installPublicInteractiveTour(
         </div>
       </div>
     `;
-    tooltip.querySelector<HTMLButtonElement>(".tour-skip-btn")?.addEventListener(
-      "click",
-      () => finish("skip"),
-      { once: true },
-    );
-    tooltip.querySelector<HTMLButtonElement>(".tour-btn-back")?.addEventListener(
-      "click",
-      () => renderStep(stepIndex - 1),
-      { once: true },
-    );
-    tooltip.querySelector<HTMLButtonElement>(".tour-btn-next")?.addEventListener(
-      "click",
-      () => renderStep(stepIndex + 1),
-      { once: true },
-    );
-    tooltip.querySelector<HTMLButtonElement>(".tour-btn-finish")?.addEventListener(
-      "click",
-      () => finish("complete"),
-      { once: true },
-    );
+    tooltip
+      .querySelector<HTMLButtonElement>(".tour-skip-btn")
+      ?.addEventListener("click", () => finish("skip"), { once: true });
+    tooltip
+      .querySelector<HTMLButtonElement>(".tour-btn-back")
+      ?.addEventListener("click", () => renderStep(stepIndex - 1), {
+        once: true,
+      });
+    tooltip
+      .querySelector<HTMLButtonElement>(".tour-btn-next")
+      ?.addEventListener("click", () => renderStep(stepIndex + 1), {
+        once: true,
+      });
+    tooltip
+      .querySelector<HTMLButtonElement>(".tour-btn-finish")
+      ?.addEventListener("click", () => finish("complete"), { once: true });
   };
 
   function renderStep(nextIndex: number): void {
@@ -308,9 +304,11 @@ export function installPublicInteractiveTour(
     );
     renderTooltip(step);
     positionStep();
-    tooltip?.querySelector<HTMLElement>(
-      nextIndex === STEPS.length - 1 ? ".tour-btn-finish" : ".tour-btn-next",
-    )?.focus();
+    tooltip
+      ?.querySelector<HTMLElement>(
+        nextIndex === STEPS.length - 1 ? ".tour-btn-finish" : ".tour-btn-next",
+      )
+      ?.focus();
   }
 
   return Object.freeze({
