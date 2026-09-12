@@ -11,7 +11,10 @@ export const PUBLIC_ONBOARDING_COMPLETE_EVENT =
 export const PUBLIC_ONBOARDING_SKIP_EVENT = "morro:public-onboarding-skip";
 
 export type PublicOnboardingState =
-  "not_started" | "in_progress" | "skipped" | "completed";
+  | "not_started"
+  | "in_progress"
+  | "skipped"
+  | "completed";
 
 export interface PublicOnboardingStorage {
   getItem(key: string): string | null;
@@ -245,6 +248,8 @@ export function installPublicOnboarding(
 
     if (event.key === "Escape") {
       event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
       skip();
       return;
     }
