@@ -92,7 +92,8 @@ let homeRuntimeReady = false;
 let onboardingRevealScheduled = false;
 
 function maybeRevealPublicOnboarding(): void {
-  if (!pageLoadSettled || !homeRuntimeReady || onboardingRevealScheduled) return;
+  if (!pageLoadSettled || !homeRuntimeReady || onboardingRevealScheduled)
+    return;
   onboardingRevealScheduled = true;
   window.setTimeout(() => {
     publicOnboarding.showIfNeeded();
