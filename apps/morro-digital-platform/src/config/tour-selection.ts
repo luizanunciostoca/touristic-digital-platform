@@ -11,7 +11,7 @@ export interface TourSelectionResult {
 }
 
 export interface MorroTourSelectionController {
-  readonly activeTourId: string;
+  readonly activeTourId: string | null;
   selectTour(tourId: string): Promise<TourSelectionResult>;
   selectByKeyword(keyword: string): Promise<TourSelectionResult>;
 }
@@ -19,11 +19,15 @@ export interface MorroTourSelectionController {
 export interface MorroTourSelectionControllerOptions {
   readonly engine: GeospatialEngine;
   readonly events: EventBus;
-  readonly initialTourId: string;
+  readonly initialTourId?: string | null;
 }
 
 type TourSelectionFailurePhase =
-  "lookup" | "start" | "replace" | "center" | "publish";
+  | "lookup"
+  | "start"
+  | "replace"
+  | "center"
+  | "publish";
 
 function describeSelectionError(error: unknown): string {
   return error instanceof Error
@@ -52,7 +56,7 @@ async function publishSelectionFailure(
   events: EventBus,
   payload: Readonly<{
     requestedTourId: string;
-    activeTourId: string;
+    activeTourId: string | null;
     phase: TourSelectionFailurePhase;
     rollbackSucceeded?: boolean;
     reason: string;
@@ -72,20 +76,24 @@ function markerIds(markers: readonly MapMarker[]): readonly string[] {
 export function createMorroTourSelectionController(
   options: MorroTourSelectionControllerOptions,
 ): MorroTourSelectionController {
-  const initialTour = getMorroTourById(options.initialTourId);
-  if (!initialTour) {
+  const initialTour = options.initialTourId
+    ? getMorroTourById(options.initialTourId)
+    : null;
+  if (options.initialTourId && !initialTour) {
     throw new Error(`Unknown Morro tour: ${options.initialTourId}.`);
   }
 
-  let activeTour = initialTour;
+  let activeTour: TourRouteContract | null = initialTour;
 
   async function rollbackTo(
-    previousTour: TourRouteContract,
+    previousTour: TourRouteContract | null,
     previousMarkers: readonly MapMarker[],
   ): Promise<boolean> {
     try {
       await options.engine.replaceMarkers(previousMarkers);
-      await options.engine.setCenter(previousTour.startPoint);
+      await options.engine.setCenter(
+        previousTour?.startPoint ?? morroDeSaoPauloDestination.center,
+      );
       activeTour = previousTour;
       return true;
     } catch {
@@ -97,12 +105,14 @@ export function createMorroTourSelectionController(
     nextTour: TourRouteContract,
     query: string,
   ): Promise<TourSelectionResult> {
-    if (nextTour.id === activeTour.id) {
+    if (nextTour.id === activeTour?.id) {
       return createSelectionResult(activeTour.id, nextTour.stops.length);
     }
 
     const previousTour = activeTour;
-    const previousMarkers = createMorroTourMarkers(previousTour.id);
+    const previousMarkers = previousTour
+      ? createMorroTourMarkers(previousTour.id)
+      : Object.freeze([] as MapMarker[]);
     const nextMarkers = createMorroTourMarkers(nextTour.id);
 
     try {
@@ -112,7 +122,7 @@ export function createMorroTourSelectionController(
         Object.freeze({
           query,
           tourId: nextTour.id,
-          previousTourId: previousTour.id,
+          previousTourId: previousTour?.id ?? null,
           markerCount: nextMarkers.length,
         }),
       );
@@ -121,7 +131,7 @@ export function createMorroTourSelectionController(
         options.events,
         Object.freeze({
           requestedTourId: nextTour.id,
-          activeTourId: activeTour.id,
+          activeTourId: activeTour?.id ?? null,
           phase: "start" as const,
           reason: describeSelectionError(error),
         }),
@@ -136,7 +146,7 @@ export function createMorroTourSelectionController(
         options.events,
         Object.freeze({
           requestedTourId: nextTour.id,
-          activeTourId: activeTour.id,
+          activeTourId: activeTour?.id ?? null,
           phase: "replace" as const,
           reason: describeSelectionError(error),
         }),
@@ -152,7 +162,7 @@ export function createMorroTourSelectionController(
         options.events,
         Object.freeze({
           requestedTourId: nextTour.id,
-          activeTourId: activeTour.id,
+          activeTourId: activeTour?.id ?? null,
           phase: "center" as const,
           rollbackSucceeded,
           reason: describeSelectionError(error),
@@ -169,7 +179,7 @@ export function createMorroTourSelectionController(
         "TourSelected",
         Object.freeze({
           tourId: nextTour.id,
-          previousTourId: previousTour.id,
+          previousTourId: previousTour?.id ?? null,
           markerCount: nextMarkers.length,
           markerIds: markerIds(nextMarkers),
           startPoint: Object.freeze({ ...nextTour.startPoint }),
@@ -183,7 +193,7 @@ export function createMorroTourSelectionController(
         options.events,
         Object.freeze({
           requestedTourId: nextTour.id,
-          activeTourId: activeTour.id,
+          activeTourId: activeTour?.id ?? null,
           phase: "publish" as const,
           rollbackSucceeded,
           reason: describeSelectionError(error),
@@ -192,7 +202,7 @@ export function createMorroTourSelectionController(
       throw error;
     }
 
-    return createSelectionResult(activeTour.id, nextMarkers.length);
+    return createSelectionResult(nextTour.id, nextMarkers.length);
   }
 
   async function rejectUnknownTour(
@@ -202,7 +212,7 @@ export function createMorroTourSelectionController(
       options.events,
       Object.freeze({
         requestedTourId: query,
-        activeTourId: activeTour.id,
+        activeTourId: activeTour?.id ?? null,
         phase: "lookup" as const,
         reason: `Unknown Morro tour: ${query}.`,
       }),
@@ -211,8 +221,8 @@ export function createMorroTourSelectionController(
   }
 
   return Object.freeze({
-    get activeTourId(): string {
-      return activeTour.id;
+    get activeTourId(): string | null {
+      return activeTour?.id ?? null;
     },
 
     async selectTour(tourId: string): Promise<TourSelectionResult> {
