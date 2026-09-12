@@ -9,6 +9,7 @@ on:
       - .github/workflows/home-first-run-browser-regression.yml
       - apps/morro-digital-platform/src/browser-entry.ts
       - apps/morro-digital-platform/src/onboarding/public-onboarding.ts
+      - apps/morro-digital-platform/src/onboarding/public-interactive-tour.ts
       - apps/morro-digital-platform/src/bootstrap/geospatial.ts
       - apps/morro-digital-platform/src/layouts/app-shell.ts
       - apps/morro-digital-platform/public/**
@@ -20,6 +21,7 @@ on:
       - .github/workflows/home-first-run-browser-regression.yml
       - apps/morro-digital-platform/src/browser-entry.ts
       - apps/morro-digital-platform/src/onboarding/public-onboarding.ts
+      - apps/morro-digital-platform/src/onboarding/public-interactive-tour.ts
       - apps/morro-digital-platform/src/bootstrap/geospatial.ts
       - apps/morro-digital-platform/src/layouts/app-shell.ts
       - apps/morro-digital-platform/public/**
@@ -60,12 +62,11 @@ jobs:
           done
           cat /tmp/home-first-run.log
           exit 1
-      - name: Validate first-run Home and onboarding lifecycle
+      - name: Validate V1 first-run tutorial and assistant welcome lifecycle
         run: |
           node <<'NODE'
           const { writeFileSync } = require('node:fs');
           const { chromium } = require('/tmp/pw/node_modules/playwright');
-
           const outputDir = '/tmp/home-first-run-evidence';
 
           async function waitForHome(page) {
@@ -75,36 +76,27 @@ jobs:
             });
           }
 
-          async function readFirstRunState(page) {
+          async function readState(page) {
             return page.evaluate(() => {
-              const overlay = document.getElementById('onboarding-overlay');
-              const map = document.getElementById('map');
               const assistant = document.getElementById('assistant-messages');
-              const background = Array.from(document.body.children).filter((element) => element !== overlay && element instanceof HTMLElement);
+              const welcome = assistant?.querySelector('.message.assistant');
               return {
-                overlayPresent: Boolean(overlay),
-                overlayPointerEvents: overlay ? getComputedStyle(overlay).pointerEvents : null,
-                backgroundAllInert: background.length > 0 && background.every((element) => element.inert),
-                mapState: map?.getAttribute('data-map-state') ?? null,
-                homeState: map?.getAttribute('data-home-state') ?? null,
-                tourState: map?.getAttribute('data-tour-state') ?? null,
-                activeTour: map?.getAttribute('data-active-tour') ?? null,
-                markerCount: map?.getAttribute('data-map-marker-count') ?? null,
-                assistantHidden: Boolean(assistant?.classList.contains('hidden')),
                 onboarded: localStorage.getItem('morro-digital-onboarded'),
+                onboardingVisible: Boolean(document.querySelector('#onboarding-overlay')),
+                tourActive: document.body.classList.contains('tour-active'),
+                tourBackdrop: Boolean(document.getElementById('tour-backdrop')),
+                tourHighlight: Boolean(document.getElementById('tour-highlight')),
+                tourTooltip: Boolean(document.getElementById('tour-tooltip')),
+                tourLabel: document.querySelector('.tour-step-label')?.textContent?.trim() ?? null,
+                assistantVisible: Boolean(
+                  assistant &&
+                  !assistant.classList.contains('hidden') &&
+                  assistant.getAttribute('aria-hidden') !== 'true'
+                ),
+                welcomeVisible: Boolean(welcome),
+                welcomeText: welcome?.textContent?.replace(/\s+/g, ' ').trim() ?? '',
               };
             });
-          }
-
-          async function assertFocusContained(page, steps = 8) {
-            for (let index = 0; index < steps; index += 1) {
-              await page.keyboard.press(index % 2 === 0 ? 'Tab' : 'Shift+Tab');
-              const contained = await page.evaluate(() => {
-                const overlay = document.getElementById('onboarding-overlay');
-                return Boolean(overlay && overlay.contains(document.activeElement));
-              });
-              if (!contained) throw new Error(`Onboarding focus escaped at keyboard step ${index + 1}.`);
-            }
           }
 
           (async () => {
@@ -113,75 +105,92 @@ jobs:
 
             const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
             const page = await context.newPage();
-            const pageErrors = [];
-            page.on('pageerror', (error) => pageErrors.push(error.message));
-
+            const errors = [];
+            page.on('pageerror', error => errors.push(error.message));
             await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded', timeout: 30000 });
             await waitForHome(page);
             await page.locator('#onboarding-overlay').waitFor({ state: 'visible', timeout: 5000 });
 
-            const initial = await readFirstRunState(page);
-            if (!initial.overlayPresent || initial.overlayPointerEvents === 'none' || !initial.backgroundAllInert) {
-              throw new Error(`First-run modal isolation failed: ${JSON.stringify(initial)}`);
-            }
-            if (initial.activeTour !== null || initial.markerCount !== '0' || initial.tourState !== 'idle' || initial.onboarded !== null) {
-              throw new Error(`First-run Home was not clean and idle: ${JSON.stringify(initial)}`);
-            }
-            if (!initial.assistantHidden) {
-              throw new Error(`Assistant must remain hidden on first-run Home: ${JSON.stringify(initial)}`);
+            const initial = await readState(page);
+            if (initial.onboarded !== null || !initial.onboardingVisible || initial.tourActive) {
+              throw new Error(`Invalid fresh first-run state: ${JSON.stringify(initial)}`);
             }
 
-            await assertFocusContained(page);
             await page.locator('[data-public-onboarding-action="start"]').click();
-            await page.locator('[data-public-onboarding-step="tutorial"]:not([hidden])').waitFor({ state: 'visible', timeout: 3000 });
-            const afterStart = await readFirstRunState(page);
-            if (afterStart.onboarded !== null) {
-              throw new Error(`Starting the tutorial must not persist completion: ${JSON.stringify(afterStart)}`);
+            await page.locator('body.tour-active').waitFor({ state: 'attached', timeout: 3000 });
+            await page.locator('#tour-tooltip').waitFor({ state: 'visible', timeout: 3000 });
+            const started = await readState(page);
+            if (
+              started.onboarded !== null ||
+              !started.tourActive ||
+              !started.tourBackdrop ||
+              !started.tourHighlight ||
+              !started.tourTooltip ||
+              started.tourLabel !== 'Passo 1 de 7' ||
+              !started.assistantVisible ||
+              !started.welcomeVisible
+            ) {
+              throw new Error(`V1 interactive tutorial did not start: ${JSON.stringify(started)}`);
             }
-            await assertFocusContained(page);
 
-            await page.locator('#public-onboarding-finish').click();
-            await page.locator('#onboarding-overlay').waitFor({ state: 'detached', timeout: 3000 });
-            const completed = await readFirstRunState(page);
-            if (completed.onboarded !== '1' || !completed.assistantHidden) {
-              throw new Error(`Explicit onboarding completion failed: ${JSON.stringify(completed)}`);
+            for (let step = 2; step <= 7; step += 1) {
+              await page.locator('.tour-btn-next').click();
+              await page.locator('.tour-step-label').filter({ hasText: `Passo ${step} de 7` }).waitFor({ state: 'visible', timeout: 3000 });
+            }
+            await page.locator('.tour-btn-finish').click();
+            await page.locator('#tour-tooltip').waitFor({ state: 'detached', timeout: 3000 });
+            const completed = await readState(page);
+            if (
+              completed.onboarded !== '1' ||
+              completed.tourActive ||
+              completed.tourTooltip ||
+              !completed.assistantVisible ||
+              !completed.welcomeVisible ||
+              !completed.welcomeText.includes('Welcome to Morro Digital')
+            ) {
+              throw new Error(`Tutorial completion did not restore V1 assistant state: ${JSON.stringify(completed)}`);
             }
 
             await page.reload({ waitUntil: 'domcontentloaded' });
             await waitForHome(page);
             await page.waitForTimeout(1600);
-            const reloaded = await readFirstRunState(page);
-            if (reloaded.overlayPresent || reloaded.onboarded !== '1' || reloaded.activeTour !== null || reloaded.markerCount !== '0') {
-              throw new Error(`Completed onboarding was not respected after reload: ${JSON.stringify(reloaded)}`);
+            const reloaded = await readState(page);
+            if (
+              reloaded.onboardingVisible ||
+              reloaded.onboarded !== '1' ||
+              !reloaded.assistantVisible ||
+              !reloaded.welcomeVisible
+            ) {
+              throw new Error(`V1 assistant welcome was not preserved after reload: ${JSON.stringify(reloaded)}`);
             }
-
-            evidence.complete = { initial, afterStart, completed, reloaded, pageErrors };
-            await page.screenshot({ path: `${outputDir}/completed-home.png`, fullPage: false });
+            evidence.complete = { initial, started, completed, reloaded, errors };
+            await page.screenshot({ path: `${outputDir}/completed-v1-home.png`, fullPage: false });
             await context.close();
 
             const skipContext = await browser.newContext({ viewport: { width: 768, height: 1024 } });
             const skipPage = await skipContext.newPage();
             const skipErrors = [];
-            skipPage.on('pageerror', (error) => skipErrors.push(error.message));
+            skipPage.on('pageerror', error => skipErrors.push(error.message));
             await skipPage.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded', timeout: 30000 });
             await waitForHome(skipPage);
             await skipPage.locator('#onboarding-overlay').waitFor({ state: 'visible', timeout: 5000 });
-            await skipPage.keyboard.press('Escape');
-            await skipPage.locator('#onboarding-overlay').waitFor({ state: 'detached', timeout: 3000 });
-            const skipped = await readFirstRunState(skipPage);
-            if (skipped.onboarded !== '1') {
-              throw new Error(`Escape skip did not persist explicit skip: ${JSON.stringify(skipped)}`);
+            await skipPage.locator('[data-public-onboarding-action="start"]').click();
+            await skipPage.locator('#tour-tooltip').waitFor({ state: 'visible', timeout: 3000 });
+            await skipPage.locator('.tour-skip-btn').click();
+            await skipPage.locator('#tour-tooltip').waitFor({ state: 'detached', timeout: 3000 });
+            const skipped = await readState(skipPage);
+            if (skipped.onboarded !== '1' || skipped.tourActive || !skipped.assistantVisible || !skipped.welcomeVisible) {
+              throw new Error(`Tutorial skip did not restore V1 assistant state: ${JSON.stringify(skipped)}`);
             }
-            evidence.skip = { skipped, pageErrors: skipErrors };
+            evidence.skip = { skipped, errors: skipErrors };
             await skipContext.close();
 
-            if (pageErrors.length || skipErrors.length) {
-              throw new Error(`Browser errors detected: ${JSON.stringify({ pageErrors, skipErrors })}`);
+            if (errors.length || skipErrors.length) {
+              throw new Error(`Browser errors detected: ${JSON.stringify({ errors, skipErrors })}`);
             }
-
             writeFileSync(`${outputDir}/evidence.json`, JSON.stringify({ status: 'validated', evidence }, null, 2));
             await browser.close();
-          })().catch((error) => {
+          })().catch(error => {
             writeFileSync(`${outputDir}/failure.txt`, String(error?.stack || error));
             console.error(error);
             process.exit(1);
