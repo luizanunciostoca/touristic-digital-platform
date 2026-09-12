@@ -5,16 +5,13 @@ import type {
 
 import { installAssistantShellUi } from "./assistant/assistant-shell-ui.js";
 import { startMorroDigitalBrowser } from "./browser.js";
+import { morroDeSaoPauloDestination } from "./config/destination.js";
 import type { RuntimeEnvironment } from "./config/mapbox-runtime.js";
 import {
   getMorroTourById,
   type TourRouteContract,
 } from "./config/tour-catalog.js";
-import { createMorroTourMarkers } from "./config/tour-markers.js";
-import {
-  createMorroTourSelectionController,
-  type MorroTourSelectionController,
-} from "./config/tour-selection.js";
+import { createMorroTourSelectionController } from "./config/tour-selection.js";
 import {
   createLeafletCompatibilitySdk,
   hasLeafletCompatibilitySdk,
@@ -25,10 +22,7 @@ import {
   installBrowserNavigationRuntime,
   type BrowserNavigationRuntimeInstall,
 } from "./navigation/browser-navigation-runtime-install.js";
-import {
-  installPublicOnboarding,
-  PUBLIC_ONBOARDING_START_EVENT,
-} from "./onboarding/public-onboarding.js";
+import { installPublicOnboarding } from "./onboarding/public-onboarding.js";
 import { loadMapboxGlSdk } from "./runtime/mapbox-sdk-loader.js";
 import { initializeWeatherWidget } from "./weather/weather-widget.js";
 
@@ -47,11 +41,6 @@ interface ResolvedMapProvider {
   readonly mode: "real" | "leaflet" | "development";
 }
 
-interface BrowserTourSelection {
-  readonly activeTourId: string;
-  readonly markerCount: number;
-}
-
 const TOUR_ROUTE_SOURCE = "tour-route-source";
 const TOUR_ROUTE_LAYER = "tour-route-layer";
 const TOUR_ROUTE_OUTLINE = "tour-route-outline";
@@ -63,8 +52,8 @@ const SPLASH_FADE_MS = 550;
 bootstrapMorroDigitalApplication(document);
 initializeWeatherWidget({ document });
 
-function setupV1ShellInteractions() {
-  const assistantShellUi = installAssistantShellUi({ document });
+function setupV1ShellInteractions(): void {
+  installAssistantShellUi({ document });
 
   const globeButton = document.getElementById("toggle-globe-view");
   globeButton?.addEventListener("click", () => {
@@ -84,16 +73,10 @@ function setupV1ShellInteractions() {
         );
       });
     });
-
-  return assistantShellUi;
 }
 
-const assistantShellUi = setupV1ShellInteractions();
+setupV1ShellInteractions();
 const publicOnboarding = installPublicOnboarding({ document });
-
-document.addEventListener(PUBLIC_ONBOARDING_START_EVENT, () => {
-  assistantShellUi.show();
-});
 
 function setV1MapboxCompatibilityAliases(
   map: MapboxGlMapLike | undefined,
@@ -335,7 +318,10 @@ function createFallbackMapProvider(): ResolvedMapProvider {
   if (hasLeafletCompatibilitySdk(window)) {
     return Object.freeze({
       sdk: createLeafletCompatibilitySdk(window, {
-        initialCenter: [-38.9159969, -13.4],
+        initialCenter: [
+          morroDeSaoPauloDestination.center.longitude,
+          morroDeSaoPauloDestination.center.latitude,
+        ],
         initialZoom: 13.5,
       }),
       environment: developmentEnvironment,
@@ -459,43 +445,6 @@ async function startBrowserWithProvider(provider: ResolvedMapProvider) {
   }
 }
 
-async function activateFirstTour(
-  result: Awaited<ReturnType<typeof startMorroDigitalBrowser>>,
-  requestedTourId: string,
-): Promise<Readonly<{ selection: BrowserTourSelection; controller: MorroTourSelectionController }>> {
-  const tour = getMorroTourById(requestedTourId);
-  if (!tour || !result.geospatialEngine) {
-    throw new Error(`Unknown Morro tour: ${requestedTourId}.`);
-  }
-
-  const markers = createMorroTourMarkers(requestedTourId);
-  try {
-    await result.geospatialEngine.replaceMarkers(markers);
-    await result.geospatialEngine.setCenter(tour.startPoint);
-  } catch (error) {
-    try {
-      await result.geospatialEngine.replaceMarkers([]);
-    } catch {
-      // Preserve the original selection failure.
-    }
-    throw error;
-  }
-
-  const controller = createMorroTourSelectionController({
-    engine: result.geospatialEngine,
-    events: result.runtime.events,
-    initialTourId: requestedTourId,
-  });
-
-  return Object.freeze({
-    selection: Object.freeze({
-      activeTourId: requestedTourId,
-      markerCount: markers.length,
-    }),
-    controller,
-  });
-}
-
 async function start(): Promise<void> {
   const provider = await resolveMapProvider();
   const result = await startBrowserWithProvider(provider);
@@ -503,7 +452,7 @@ async function start(): Promise<void> {
   mapContainer?.removeAttribute("data-active-tour");
   mapContainer?.setAttribute("data-tour-state", "idle");
   mapContainer?.setAttribute("data-home-state", "ready");
-  mapContainer?.setAttribute("data-map-marker-count", String(result.loadedMarkerCount));
+  mapContainer?.setAttribute("data-map-marker-count", "0");
   updateStatus(
     `Runtime ativo: ${result.startedModules.join(", ")} — provider ${result.geospatialEngine?.providerId ?? "indisponível"} — Home pronta para explorar.`,
   );
@@ -515,7 +464,12 @@ async function start(): Promise<void> {
     return;
   }
 
-  let controller: MorroTourSelectionController | undefined;
+  const controller = createMorroTourSelectionController({
+    engine: result.geospatialEngine,
+    events: result.runtime.events,
+    initialTourId: null,
+  });
+
   tourSelect.selectedIndex = -1;
   tourSelect.disabled = false;
 
@@ -531,14 +485,8 @@ async function start(): Promise<void> {
     mapContainer?.setAttribute("data-tour-state", "switching");
     updateStatus("Atualizando o roteiro exibido no mapa…");
 
-    const selectionPromise: Promise<BrowserTourSelection> = controller
-      ? controller.selectTour(requestedTourId)
-      : activateFirstTour(result, requestedTourId).then((activation) => {
-          controller = activation.controller;
-          return activation.selection;
-        });
-
-    void selectionPromise
+    void controller
+      .selectTour(requestedTourId)
       .then(async (selection) => {
         await presentTourOnRealMap(selection.activeTourId);
         mapContainer?.setAttribute(
@@ -552,9 +500,10 @@ async function start(): Promise<void> {
         );
       })
       .catch((error: unknown) => {
-        if (controller) {
-          tourSelect.value = controller.activeTourId;
-          mapContainer?.setAttribute("data-active-tour", controller.activeTourId);
+        const activeTourId = controller.activeTourId;
+        if (activeTourId) {
+          tourSelect.value = activeTourId;
+          mapContainer?.setAttribute("data-active-tour", activeTourId);
         } else {
           tourSelect.selectedIndex = -1;
           mapContainer?.removeAttribute("data-active-tour");
