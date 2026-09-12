@@ -22,6 +22,15 @@ interface TutorialStep {
   readonly hint: string;
 }
 
+const TOUR_FOCUSABLE_SELECTOR = [
+  "button:not([disabled])",
+  "[href]",
+  "input:not([disabled])",
+  "select:not([disabled])",
+  "textarea:not([disabled])",
+  '[tabindex]:not([tabindex="-1"])',
+].join(",");
+
 const STEPS: readonly TutorialStep[] = Object.freeze([
   {
     selectors: ["#map-container", "#map"],
@@ -112,19 +121,27 @@ export function installPublicInteractiveTour(
   let active = false;
   let stepIndex = 0;
   let target: HTMLElement | null = null;
+  let targetInlinePosition = "";
   let backdrop: HTMLElement | null = null;
   let blocker: HTMLElement | null = null;
   let highlight: HTMLElement | null = null;
   let proxy: HTMLElement | null = null;
   let tooltip: HTMLElement | null = null;
   let resizeFrame = 0;
+  let previouslyFocusedElement: HTMLElement | null = null;
 
   const clearTarget = (): void => {
-    target?.classList.remove("tour-target-active", "tour-pulse");
+    if (target) {
+      target.classList.remove("tour-target-active", "tour-pulse");
+      target.style.position = targetInlinePosition;
+    }
     target = null;
+    targetInlinePosition = "";
+    if (backdrop) backdrop.style.clipPath = "";
   };
 
   const removeTourNodes = (): void => {
+    if (backdrop) backdrop.style.clipPath = "";
     backdrop?.remove();
     blocker?.remove();
     highlight?.remove();
@@ -135,6 +152,13 @@ export function installPublicInteractiveTour(
     highlight = null;
     proxy = null;
     tooltip = null;
+  };
+
+  const restoreFocus = (): void => {
+    if (previouslyFocusedElement?.isConnected) {
+      previouslyFocusedElement.focus();
+    }
+    previouslyFocusedElement = null;
   };
 
   const cleanup = (): void => {
@@ -160,6 +184,7 @@ export function installPublicInteractiveTour(
     if (!active) return;
     cleanup();
     revealAssistantWelcome(options.document);
+    restoreFocus();
     if (result === "complete") {
       const toast = options.document.createElement("div");
       toast.id = "tour-finish-toast";
@@ -174,6 +199,17 @@ export function installPublicInteractiveTour(
     }
   };
 
+  const updateBackdropCutout = (rect: DOMRect, margin: number): void => {
+    if (!backdrop) return;
+    const viewportWidth = view?.innerWidth ?? options.document.documentElement.clientWidth;
+    const viewportHeight = view?.innerHeight ?? options.document.documentElement.clientHeight;
+    const left = Math.max(0, rect.left - margin);
+    const top = Math.max(0, rect.top - margin);
+    const right = Math.min(viewportWidth, rect.right + margin);
+    const bottom = Math.min(viewportHeight, rect.bottom + margin);
+    backdrop.style.clipPath = `polygon(evenodd, 0 0, 100% 0, 100% 100%, 0 100%, 0 0, ${left}px ${top}px, ${left}px ${bottom}px, ${right}px ${bottom}px, ${right}px ${top}px, ${left}px ${top}px)`;
+  };
+
   const positionStep = (): void => {
     if (!active || !target || !highlight || !tooltip) return;
     const rect = target.getBoundingClientRect();
@@ -182,11 +218,16 @@ export function installPublicInteractiveTour(
     highlight.style.left = `${Math.max(4, rect.left - margin)}px`;
     highlight.style.width = `${Math.max(28, rect.width + margin * 2)}px`;
     highlight.style.height = `${Math.max(28, rect.height + margin * 2)}px`;
+    updateBackdropCutout(rect, margin);
 
     const viewportWidth = view?.innerWidth ?? 390;
     const viewportHeight = view?.innerHeight ?? 844;
-    const tooltipWidth = Math.min(340, viewportWidth - 24);
     const tooltipRect = tooltip.getBoundingClientRect();
+    const fallbackTooltipWidth = Math.min(340, viewportWidth - 24);
+    const tooltipWidth = Math.min(
+      tooltipRect.width || fallbackTooltipWidth,
+      viewportWidth - 24,
+    );
     let left = rect.left + rect.width / 2 - tooltipWidth / 2;
     left = Math.max(12, Math.min(left, viewportWidth - tooltipWidth - 12));
     const estimatedHeight = Math.max(190, tooltipRect.height || 190);
@@ -207,17 +248,47 @@ export function installPublicInteractiveTour(
 
   function onKeyDown(event: KeyboardEvent): void {
     if (!active) return;
+
     if (event.key === "Escape") {
       event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
       finish("skip");
       return;
     }
+
+    if (event.key === "Tab" && tooltip) {
+      const focusable = Array.from(
+        tooltip.querySelectorAll<HTMLElement>(TOUR_FOCUSABLE_SELECTOR),
+      );
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const focused = options.document.activeElement;
+      if (!first || !last) {
+        event.preventDefault();
+        tooltip.focus();
+        return;
+      }
+      if (event.shiftKey && (focused === first || !tooltip.contains(focused))) {
+        event.preventDefault();
+        last.focus();
+        return;
+      }
+      if (!event.shiftKey && (focused === last || !tooltip.contains(focused))) {
+        event.preventDefault();
+        first.focus();
+        return;
+      }
+    }
+
     if (event.key === "ArrowRight" && stepIndex < STEPS.length - 1) {
       event.preventDefault();
+      event.stopPropagation();
       renderStep(stepIndex + 1);
     }
     if (event.key === "ArrowLeft" && stepIndex > 0) {
       event.preventDefault();
+      event.stopPropagation();
       renderStep(stepIndex - 1);
     }
   }
@@ -233,6 +304,7 @@ export function installPublicInteractiveTour(
     proxy.id = "tour-target-proxy";
     tooltip = options.document.createElement("section");
     tooltip.id = "tour-tooltip";
+    tooltip.tabIndex = -1;
     tooltip.setAttribute("role", "dialog");
     tooltip.setAttribute("aria-modal", "true");
     tooltip.setAttribute("aria-live", "polite");
@@ -296,7 +368,11 @@ export function installPublicInteractiveTour(
       return;
     }
 
+    const computedPosition = view?.getComputedStyle(target).position ?? "static";
+    targetInlinePosition = target.style.position;
     target.classList.add("tour-target-active", "tour-pulse");
+    if (computedPosition !== "static") target.style.position = computedPosition;
+
     const assistantStep = nextIndex >= 3 && nextIndex <= 5;
     options.document.body.classList.toggle(
       "tour-show-assistant-modal-step",
@@ -322,6 +398,10 @@ export function installPublicInteractiveTour(
       if (active) return false;
       active = true;
       stepIndex = 0;
+      previouslyFocusedElement =
+        options.document.activeElement instanceof HTMLElement
+          ? options.document.activeElement
+          : null;
       revealAssistantWelcome(options.document);
       options.document.body.classList.add("tour-active");
       if (view) {
@@ -336,6 +416,7 @@ export function installPublicInteractiveTour(
     },
     destroy(): void {
       cleanup();
+      restoreFocus();
     },
   });
 }
