@@ -365,15 +365,17 @@ async function fetchVisualCrossingWeather(apiKey) {
         ) {
           return [];
         }
-        return [{
-          date: day.datetime,
-          temperatureMaxCelsius: day.tempmax,
-          temperatureMinCelsius: day.tempmin,
-          humidityPercent: day.humidity,
-          windSpeedKph: day.windspeed,
-          rainChancePercent: day.precipprob,
-          weatherCode: conditionToWeatherCode(day?.conditions || day?.icon),
-        }];
+        return [
+          {
+            date: day.datetime,
+            temperatureMaxCelsius: day.tempmax,
+            temperatureMinCelsius: day.tempmin,
+            humidityPercent: day.humidity,
+            windSpeedKph: day.windspeed,
+            rainChancePercent: day.precipprob,
+            weatherCode: conditionToWeatherCode(day?.conditions || day?.icon),
+          },
+        ];
       })
     : [];
 
@@ -448,15 +450,17 @@ async function fetchOpenMeteoWeather() {
         ) {
           return [];
         }
-        return [{
-          date,
-          temperatureMaxCelsius: temperatureMax,
-          temperatureMinCelsius: temperatureMin,
-          humidityPercent: humidity,
-          windSpeedKph: windSpeed,
-          rainChancePercent: rainChance,
-          weatherCode,
-        }];
+        return [
+          {
+            date,
+            temperatureMaxCelsius: temperatureMax,
+            temperatureMinCelsius: temperatureMin,
+            humidityPercent: humidity,
+            windSpeedKph: windSpeed,
+            rainChancePercent: rainChance,
+            weatherCode,
+          },
+        ];
       })
     : [];
 
