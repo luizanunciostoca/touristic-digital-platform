@@ -10,6 +10,7 @@ on:
       - apps/morro-digital-platform/src/bootstrap/geospatial.ts
       - apps/morro-digital-platform/src/browser-entry.ts
       - apps/morro-digital-platform/src/layouts/app-shell.ts
+      - apps/morro-digital-platform/src/onboarding/public-onboarding.ts
       - apps/morro-digital-platform/public/styles.css
       - apps/morro-digital-platform/tooling/dev-server.mjs
       - packages/geospatial/src/infrastructure/mapbox-gl-driver.ts
@@ -21,6 +22,7 @@ on:
       - apps/morro-digital-platform/src/bootstrap/geospatial.ts
       - apps/morro-digital-platform/src/browser-entry.ts
       - apps/morro-digital-platform/src/layouts/app-shell.ts
+      - apps/morro-digital-platform/src/onboarding/public-onboarding.ts
       - apps/morro-digital-platform/public/styles.css
       - apps/morro-digital-platform/tooling/dev-server.mjs
       - packages/geospatial/src/infrastructure/mapbox-gl-driver.ts
@@ -67,7 +69,7 @@ jobs:
           done
           cat /tmp/mapbox-visual-contract.log
           exit 1
-      - name: Validate V1 Mapbox visual contract
+      - name: Validate Home and explicit V1 Mapbox route contract
         run: |
           node <<'NODE'
           const { mkdirSync, writeFileSync } = require('node:fs');
@@ -82,14 +84,52 @@ jobs:
             ['desktop', 1440, 900],
           ];
 
-          async function waitReady(page) {
-            await page.locator('#map[data-map-state="ready"][data-map-mode="real"][data-map-provider="mapbox"][data-active-tour="volta-a-ilha"][data-map-marker-count="8"]').waitFor({ state: 'attached', timeout: 30000 });
+          async function waitHome(page) {
+            await page.locator('#map[data-map-state="ready"][data-home-state="ready"][data-tour-state="idle"][data-map-mode="real"][data-map-provider="mapbox"][data-map-marker-count="0"]').waitFor({ state: 'attached', timeout: 30000 });
             await page.locator('#map .mapboxgl-canvas').waitFor({ state: 'visible', timeout: 30000 });
+            await page.locator('#tour-select:not([disabled])').waitFor({ state: 'attached', timeout: 30000 });
 
             const deadline = Date.now() + 30000;
-            let ready = false;
             while (Date.now() < deadline) {
-              ready = await page.evaluate(() => {
+              const state = await page.evaluate(() => {
+                const map = globalThis.mapboxPrimaryInstance;
+                return {
+                  styleLoaded: Boolean(map?.isStyleLoaded?.()),
+                  activeTour: document.getElementById('map')?.getAttribute('data-active-tour') ?? null,
+                  routeSource: Boolean(map?.getSource?.('tour-route-source')),
+                  routeLayer: Boolean(map?.getLayer?.('tour-route-layer')),
+                  outline: Boolean(map?.getLayer?.('tour-route-outline')),
+                  assistantVisible: Boolean(document.querySelector('#assistant-messages:not(.hidden)')),
+                };
+              });
+              if (
+                state.styleLoaded &&
+                state.activeTour === null &&
+                !state.routeSource &&
+                !state.routeLayer &&
+                !state.outline &&
+                !state.assistantVisible
+              ) {
+                return state;
+              }
+              await page.waitForTimeout(100);
+            }
+            throw new Error('Mapbox Home did not reach clean idle state before timeout.');
+          }
+
+          async function dispatchTour(page, tourId) {
+            await page.locator('#tour-select').evaluate((element, value) => {
+              if (!(element instanceof HTMLSelectElement)) throw new Error('Tour selector is not a select element.');
+              element.value = value;
+              element.dispatchEvent(new Event('change', { bubbles: true }));
+            }, tourId);
+          }
+
+          async function waitTourReady(page) {
+            await page.locator('#map[data-map-state="ready"][data-tour-state="ready"][data-active-tour="volta-a-ilha"][data-map-marker-count="8"]').waitFor({ state: 'attached', timeout: 30000 });
+            const deadline = Date.now() + 30000;
+            while (Date.now() < deadline) {
+              const ready = await page.evaluate(() => {
                 const map = globalThis.mapboxPrimaryInstance;
                 return Boolean(
                   map &&
@@ -101,13 +141,10 @@ jobs:
                   document.querySelectorAll('#map .tour-stop-marker').length === 8
                 );
               });
-              if (ready) break;
+              if (ready) return;
               await page.waitForTimeout(100);
             }
-            if (!ready) {
-              throw new Error('Mapbox visual contract did not reach ready state before timeout.');
-            }
-            await page.waitForTimeout(350);
+            throw new Error('Explicit Mapbox tour did not reach ready state before timeout.');
           }
 
           async function readContract(page) {
@@ -121,6 +158,8 @@ jobs:
                 provider: element.getAttribute('data-map-provider'),
                 mode: element.getAttribute('data-map-mode'),
                 mapState: element.getAttribute('data-map-state'),
+                homeState: element.getAttribute('data-home-state'),
+                tourState: element.getAttribute('data-tour-state'),
                 activeTour: element.getAttribute('data-active-tour'),
                 markerCount: document.querySelectorAll('#map .tour-stop-marker').length,
                 canvasVisible: Boolean(element.querySelector('.mapboxgl-canvas')),
@@ -161,8 +200,8 @@ jobs:
             if (state.sdkVersion !== '3.12.0' || state.provider !== 'mapbox' || state.mode !== 'real' || state.mapState !== 'ready') {
               throw new Error(`Invalid Mapbox runtime for ${viewportName}: ${JSON.stringify(state)}`);
             }
-            if (state.activeTour !== 'volta-a-ilha' || state.markerCount !== 8 || !state.canvasVisible || !state.styleLoaded || !state.routeSource) {
-              throw new Error(`Invalid route state for ${viewportName}: ${JSON.stringify(state)}`);
+            if (state.homeState !== 'ready' || state.tourState !== 'ready' || state.activeTour !== 'volta-a-ilha' || state.markerCount !== 8 || !state.canvasVisible || !state.styleLoaded || !state.routeSource) {
+              throw new Error(`Invalid explicit route state for ${viewportName}: ${JSON.stringify(state)}`);
             }
             if (!state.mapboxLogoPresent || !state.mapboxLogoHref?.includes('mapbox.com')) {
               throw new Error(`Required Mapbox vendor logo is missing for ${viewportName}: ${JSON.stringify(state)}`);
@@ -199,14 +238,10 @@ jobs:
             });
 
             await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded', timeout: 30000 });
-            await waitReady(page);
+            const home = await waitHome(page);
 
-            const initialAssistantVisible = await page.evaluate(() =>
-              Boolean(document.querySelector('#assistant-messages:not(.hidden)')),
-            );
-            if (initialAssistantVisible) {
-              throw new Error(`Assistant must start hidden like audited V1 for ${name}.`);
-            }
+            await dispatchTour(page, 'volta-a-ilha');
+            await waitTourReady(page);
 
             await page.locator('.quick-actions .action-button.primary').click();
             await page.locator('#assistant-messages:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
@@ -230,7 +265,7 @@ jobs:
 
             const suffix = forcedColors ? 'forced-colors' : 'normal';
             await page.screenshot({ path: `${outputDir}/${name}-${suffix}.png`, fullPage: false, animations: 'disabled' });
-            const result = { state, focusOrder, pageErrors, mapboxHttpErrors };
+            const result = { home, state, focusOrder, pageErrors, mapboxHttpErrors };
             writeFileSync(`${outputDir}/${name}-${suffix}.json`, JSON.stringify(result, null, 2));
 
             assertContract(state, name, forcedColors);
@@ -267,6 +302,7 @@ jobs:
               v1Commit: '60746fd7fed97b805758b37adfdbe3bad2582bfe',
               mapboxGlJs: '3.12.0',
               style: 'mapbox://styles/mapbox/streets-v12',
+              homeLifecycle: 'Home starts centered and idle with zero tour markers; a route appears only after explicit selection.',
               assistantLifecycle: 'The audited V1 starts hidden; the contract opens the Assistant before validating its modal focus order.',
               evidence,
             }, null, 2));
