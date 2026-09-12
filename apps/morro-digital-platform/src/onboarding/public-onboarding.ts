@@ -5,10 +5,7 @@ export const PUBLIC_ONBOARDING_COMPLETE_EVENT =
 export const PUBLIC_ONBOARDING_SKIP_EVENT = "morro:public-onboarding-skip";
 
 export type PublicOnboardingState =
-  | "not_started"
-  | "in_progress"
-  | "skipped"
-  | "completed";
+  "not_started" | "in_progress" | "skipped" | "completed";
 
 export interface PublicOnboardingStorage {
   getItem(key: string): string | null;
@@ -306,13 +303,19 @@ export function installPublicOnboarding(
     const active = options.document.activeElement;
     if (!first || !last) return;
 
-    if (event.shiftKey && (active === first || !currentOverlay.contains(active))) {
+    if (
+      event.shiftKey &&
+      (active === first || !currentOverlay.contains(active))
+    ) {
       event.preventDefault();
       last.focus();
       return;
     }
 
-    if (!event.shiftKey && (active === last || !currentOverlay.contains(active))) {
+    if (
+      !event.shiftKey &&
+      (active === last || !currentOverlay.contains(active))
+    ) {
       event.preventDefault();
       first.focus();
     }
@@ -345,7 +348,8 @@ export function installPublicOnboarding(
           ? options.document.activeElement
           : null;
       previousBodyOverflow = options.document.body.style.overflow;
-      previousDocumentOverflow = options.document.documentElement.style.overflow;
+      previousDocumentOverflow =
+        options.document.documentElement.style.overflow;
       backgroundInertState = new Map();
       for (const child of Array.from(options.document.body.children)) {
         if (child instanceof HTMLElement) {
@@ -367,7 +371,9 @@ export function installPublicOnboarding(
         .querySelector<HTMLElement>('[data-public-onboarding-action="skip"]')
         ?.addEventListener("click", skip, { once: true });
       overlay
-        .querySelector<HTMLElement>('[data-public-onboarding-action="complete"]')
+        .querySelector<HTMLElement>(
+          '[data-public-onboarding-action="complete"]',
+        )
         ?.addEventListener("click", complete, { once: true });
       overlay
         .querySelector<HTMLElement>('[data-public-onboarding-action="back"]')
