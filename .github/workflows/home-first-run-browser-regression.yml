@@ -80,14 +80,22 @@ jobs:
             return page.evaluate(() => {
               const assistant = document.getElementById('assistant-messages');
               const welcome = assistant?.querySelector('.message.assistant');
+              const map = document.getElementById('map');
+              const backdrop = document.getElementById('tour-backdrop');
+              const tooltip = document.getElementById('tour-tooltip');
+              const tooltipRect = tooltip?.getBoundingClientRect();
               return {
                 onboarded: localStorage.getItem('morro-digital-onboarded'),
                 onboardingVisible: Boolean(document.querySelector('#onboarding-overlay')),
                 tourActive: document.body.classList.contains('tour-active'),
-                tourBackdrop: Boolean(document.getElementById('tour-backdrop')),
+                tourBackdrop: Boolean(backdrop),
+                backdropClipPath: backdrop?.style.clipPath ?? '',
                 tourHighlight: Boolean(document.getElementById('tour-highlight')),
-                tourTooltip: Boolean(document.getElementById('tour-tooltip')),
+                tourTooltip: Boolean(tooltip),
                 tourLabel: document.querySelector('.tour-step-label')?.textContent?.trim() ?? null,
+                mapTourState: map?.getAttribute('data-tour-state') ?? null,
+                activeMapTour: map?.getAttribute('data-active-tour') ?? null,
+                markerCount: map?.getAttribute('data-map-marker-count') ?? null,
                 assistantVisible: Boolean(
                   assistant &&
                   !assistant.classList.contains('hidden') &&
@@ -95,8 +103,16 @@ jobs:
                 ),
                 welcomeVisible: Boolean(welcome),
                 welcomeText: welcome?.textContent?.replace(/\s+/g, ' ').trim() ?? '',
+                tooltipRight: tooltipRect?.right ?? null,
+                viewportWidth: window.innerWidth,
               };
             });
+          }
+
+          function assertIdleMap(state, label) {
+            if (state.mapTourState !== 'idle' || state.activeMapTour !== null || state.markerCount !== '0') {
+              throw new Error(`${label} activated a map tour unexpectedly: ${JSON.stringify(state)}`);
+            }
           }
 
           (async () => {
@@ -112,6 +128,7 @@ jobs:
             await page.locator('#onboarding-overlay').waitFor({ state: 'visible', timeout: 5000 });
 
             const initial = await readState(page);
+            assertIdleMap(initial, 'Fresh Home');
             if (initial.onboarded !== null || !initial.onboardingVisible || initial.tourActive) {
               throw new Error(`Invalid fresh first-run state: ${JSON.stringify(initial)}`);
             }
@@ -120,26 +137,44 @@ jobs:
             await page.locator('body.tour-active').waitFor({ state: 'attached', timeout: 3000 });
             await page.locator('#tour-tooltip').waitFor({ state: 'visible', timeout: 3000 });
             const started = await readState(page);
+            assertIdleMap(started, 'Interactive tutorial');
             if (
               started.onboarded !== null ||
               !started.tourActive ||
               !started.tourBackdrop ||
+              !started.backdropClipPath.includes('evenodd') ||
               !started.tourHighlight ||
               !started.tourTooltip ||
               started.tourLabel !== 'Passo 1 de 7' ||
               !started.assistantVisible ||
-              !started.welcomeVisible
+              !started.welcomeVisible ||
+              started.tooltipRight === null ||
+              started.tooltipRight > started.viewportWidth + 1
             ) {
-              throw new Error(`V1 interactive tutorial did not start: ${JSON.stringify(started)}`);
+              throw new Error(`V1 interactive tutorial did not start correctly: ${JSON.stringify(started)}`);
             }
+
+            await page.locator('#toggle-globe-view').focus();
+            await page.keyboard.press('Tab');
+            const focusTrapped = await page.evaluate(() => {
+              const tooltip = document.getElementById('tour-tooltip');
+              return Boolean(tooltip && tooltip.contains(document.activeElement));
+            });
+            if (!focusTrapped) throw new Error('Tutorial modal did not trap keyboard focus.');
 
             for (let step = 2; step <= 7; step += 1) {
               await page.locator('.tour-btn-next').click();
               await page.locator('.tour-step-label').filter({ hasText: `Passo ${step} de 7` }).waitFor({ state: 'visible', timeout: 3000 });
+              const stepState = await readState(page);
+              assertIdleMap(stepState, `Tutorial step ${step}`);
+              if (stepState.tooltipRight !== null && stepState.tooltipRight > stepState.viewportWidth + 1) {
+                throw new Error(`Tutorial tooltip overflowed viewport at step ${step}: ${JSON.stringify(stepState)}`);
+              }
             }
             await page.locator('.tour-btn-finish').click();
             await page.locator('#tour-tooltip').waitFor({ state: 'detached', timeout: 3000 });
             const completed = await readState(page);
+            assertIdleMap(completed, 'Completed tutorial');
             if (
               completed.onboarded !== '1' ||
               completed.tourActive ||
@@ -155,6 +190,7 @@ jobs:
             await waitForHome(page);
             await page.waitForTimeout(1600);
             const reloaded = await readState(page);
+            assertIdleMap(reloaded, 'Reloaded Home');
             if (
               reloaded.onboardingVisible ||
               reloaded.onboarded !== '1' ||
@@ -176,14 +212,30 @@ jobs:
             await skipPage.locator('#onboarding-overlay').waitFor({ state: 'visible', timeout: 5000 });
             await skipPage.locator('[data-public-onboarding-action="start"]').click();
             await skipPage.locator('#tour-tooltip').waitFor({ state: 'visible', timeout: 3000 });
-            await skipPage.locator('.tour-skip-btn').click();
+            await skipPage.keyboard.press('Escape');
             await skipPage.locator('#tour-tooltip').waitFor({ state: 'detached', timeout: 3000 });
             const skipped = await readState(skipPage);
+            assertIdleMap(skipped, 'Escape-skipped tutorial');
             if (skipped.onboarded !== '1' || skipped.tourActive || !skipped.assistantVisible || !skipped.welcomeVisible) {
-              throw new Error(`Tutorial skip did not restore V1 assistant state: ${JSON.stringify(skipped)}`);
+              throw new Error(`Tutorial Escape skip did not restore V1 assistant state: ${JSON.stringify(skipped)}`);
             }
             evidence.skip = { skipped, errors: skipErrors };
             await skipContext.close();
+
+            const overlaySkipContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
+            const overlaySkipPage = await overlaySkipContext.newPage();
+            await overlaySkipPage.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded', timeout: 30000 });
+            await waitForHome(overlaySkipPage);
+            await overlaySkipPage.locator('#onboarding-overlay').waitFor({ state: 'visible', timeout: 5000 });
+            await overlaySkipPage.keyboard.press('Escape');
+            await overlaySkipPage.locator('#onboarding-overlay').waitFor({ state: 'detached', timeout: 3000 });
+            const overlaySkipped = await readState(overlaySkipPage);
+            assertIdleMap(overlaySkipped, 'Escape-skipped onboarding');
+            if (overlaySkipped.onboarded !== '1' || !overlaySkipped.assistantVisible || !overlaySkipped.welcomeVisible) {
+              throw new Error(`Onboarding Escape skip did not restore V1 assistant state: ${JSON.stringify(overlaySkipped)}`);
+            }
+            evidence.overlaySkip = overlaySkipped;
+            await overlaySkipContext.close();
 
             if (errors.length || skipErrors.length) {
               throw new Error(`Browser errors detected: ${JSON.stringify({ errors, skipErrors })}`);
