@@ -1,3 +1,9 @@
+import {
+  ensureV1AssistantWelcomeVisible,
+  installPublicInteractiveTour,
+  type PublicInteractiveTourController,
+} from "./public-interactive-tour.js";
+
 export const PUBLIC_ONBOARDING_STORAGE_KEY = "morro-digital-onboarded";
 export const PUBLIC_ONBOARDING_START_EVENT = "morro:public-onboarding-start";
 export const PUBLIC_ONBOARDING_COMPLETE_EVENT =
@@ -89,22 +95,22 @@ function createOnboardingMarkup(document: Document): HTMLElement {
         </div>
       </div>
 
-      <section data-public-onboarding-step="intro" class="onboarding-profile-section">
+      <section class="onboarding-profile-section">
         <h2 class="profile-section-title">Pronto para explorar?</h2>
         <p class="profile-section-subtitle">
-          Conheça rapidamente os principais recursos ou vá direto para o mapa.
+          Faça o tour interativo da V1 ou vá direto para o aplicativo.
         </p>
         <div class="profile-cards profile-cards--single">
           <button
             id="ob-profile-tourist"
-            class="profile-card profile-card-single"
+            class="profile-card profile-card-single profile-card-tutorial"
             type="button"
             data-public-onboarding-action="start"
           >
             <span class="profile-card-icon" aria-hidden="true">🌴</span>
             <span class="profile-card-title">Conhecer o App</span>
             <span class="profile-card-desc">
-              Veja como usar o mapa, o assistente e a navegação.
+              Conheça o mapa, o clima, o assistente e os principais controles passo a passo.
             </span>
           </button>
         </div>
@@ -116,57 +122,10 @@ function createOnboardingMarkup(document: Document): HTMLElement {
           Pular por agora
         </button>
       </section>
-
-      <section
-        data-public-onboarding-step="tutorial"
-        class="onboarding-profile-section"
-        hidden
-      >
-        <h2 class="profile-section-title">Tudo em um só lugar</h2>
-        <p class="profile-section-subtitle">
-          Explore Morro de São Paulo no seu ritmo. Nenhum roteiro é iniciado automaticamente.
-        </p>
-        <div class="profile-cards">
-          <div class="profile-card" aria-label="Mapa interativo">
-            <span class="profile-card-icon" aria-hidden="true">🗺️</span>
-            <span class="profile-card-title">Mapa</span>
-            <span class="profile-card-desc">Descubra lugares e escolha o que quer explorar.</span>
-          </div>
-          <div class="profile-card" aria-label="Assistente digital">
-            <span class="profile-card-icon" aria-hidden="true">✨</span>
-            <span class="profile-card-title">Assistente</span>
-            <span class="profile-card-desc">Peça sugestões quando quiser, sem bloquear o mapa.</span>
-          </div>
-          <div class="profile-card" aria-label="Rotas e navegação">
-            <span class="profile-card-icon" aria-hidden="true">🧭</span>
-            <span class="profile-card-title">Rotas</span>
-            <span class="profile-card-desc">Inicie navegação e roteiros somente quando escolher.</span>
-          </div>
-        </div>
-        <button
-          id="public-onboarding-finish"
-          class="profile-card profile-card-single"
-          type="button"
-          data-public-onboarding-action="complete"
-        >
-          <span class="profile-card-title">Começar a explorar</span>
-        </button>
-        <button
-          class="biz-setup-back"
-          type="button"
-          data-public-onboarding-action="back"
-        >
-          Voltar
-        </button>
-      </section>
     </div>
   `;
 
   return overlay;
-}
-
-function isFocusableInActiveStep(element: HTMLElement): boolean {
-  return !element.closest<HTMLElement>("[hidden]") && !element.hidden;
 }
 
 export function installPublicOnboarding(
@@ -182,6 +141,16 @@ export function installPublicOnboarding(
   let previouslyFocusedElement: HTMLElement | null = null;
   let backgroundInertState = new Map<HTMLElement, boolean>();
   let destroyed = false;
+  let interactiveTour: PublicInteractiveTourController | null = null;
+
+  const dispatch = (name: string): void => {
+    options.document.dispatchEvent(
+      new CustomEvent(name, {
+        bubbles: false,
+        detail: Object.freeze({ state }),
+      }),
+    );
+  };
 
   const restoreBackground = (): void => {
     options.document.body.classList.remove("public-onboarding-open");
@@ -210,7 +179,7 @@ export function installPublicOnboarding(
     if (!overlay) return;
     const currentOverlay = overlay;
     overlay = null;
-    options.document.removeEventListener("keydown", onKeyDown, true);
+    options.document.removeEventListener("keydown", onOverlayKeyDown, true);
 
     if (!animate) {
       finishOverlayRemoval(currentOverlay);
@@ -224,74 +193,68 @@ export function installPublicOnboarding(
     );
   };
 
-  const dispatch = (name: string): void => {
-    options.document.dispatchEvent(
-      new CustomEvent(name, {
-        bubbles: false,
-        detail: Object.freeze({ state }),
-      }),
-    );
+  const persistCompletedState = (nextState: "completed" | "skipped"): void => {
+    state = nextState;
+    persistPublicOnboardingCompletion(storage);
+    ensureV1AssistantWelcomeVisible(options.document);
   };
+
+  const completeFromTour = (): void => {
+    if (destroyed) return;
+    persistCompletedState("completed");
+  };
+
+  const skipFromTour = (): void => {
+    if (destroyed) return;
+    persistCompletedState("skipped");
+    dispatch(PUBLIC_ONBOARDING_SKIP_EVENT);
+  };
+
+  interactiveTour = installPublicInteractiveTour({
+    document: options.document,
+    onComplete: completeFromTour,
+    onSkip: skipFromTour,
+  });
 
   const complete = (): void => {
     if (destroyed) return;
-    state = "completed";
-    persistPublicOnboardingCompletion(storage);
+    interactiveTour?.destroy();
     removeOverlay();
+    persistCompletedState("completed");
   };
 
   const skip = (): void => {
     if (destroyed) return;
-    state = "skipped";
-    persistPublicOnboardingCompletion(storage);
+    interactiveTour?.destroy();
     removeOverlay();
+    persistCompletedState("skipped");
     dispatch(PUBLIC_ONBOARDING_SKIP_EVENT);
-  };
-
-  const setStep = (step: "intro" | "tutorial"): void => {
-    if (!overlay) return;
-    overlay
-      .querySelectorAll<HTMLElement>("[data-public-onboarding-step]")
-      .forEach((element) => {
-        element.hidden = element.dataset.publicOnboardingStep !== step;
-      });
-    overlay
-      .querySelector<HTMLElement>(
-        step === "intro"
-          ? '[data-public-onboarding-action="start"]'
-          : '[data-public-onboarding-action="complete"]',
-      )
-      ?.focus();
   };
 
   const start = (): void => {
     if (destroyed || !overlay) return;
     state = "in_progress";
-    setStep("tutorial");
+    removeOverlay(false);
     dispatch(PUBLIC_ONBOARDING_START_EVENT);
+    interactiveTour?.start();
   };
 
-  const back = (): void => {
-    if (destroyed || !overlay) return;
-    state = "not_started";
-    setStep("intro");
-  };
-
-  function onKeyDown(event: KeyboardEvent): void {
+  function onOverlayKeyDown(event: KeyboardEvent): void {
     const currentOverlay = overlay;
     if (!currentOverlay) return;
 
     if (event.key === "Escape") {
       event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
       skip();
       return;
     }
 
     if (event.key !== "Tab") return;
-
     const focusable = Array.from(
       currentOverlay.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR),
-    ).filter(isFocusableInActiveStep);
+    );
     if (focusable.length === 0) {
       event.preventDefault();
       currentOverlay.focus();
@@ -300,21 +263,18 @@ export function installPublicOnboarding(
 
     const first = focusable[0];
     const last = focusable[focusable.length - 1];
-    const active = options.document.activeElement;
+    const activeElement = options.document.activeElement;
     if (!first || !last) return;
 
     if (
       event.shiftKey &&
-      (active === first || !currentOverlay.contains(active))
+      (activeElement === first || !currentOverlay.contains(activeElement))
     ) {
       event.preventDefault();
       last.focus();
-      return;
-    }
-
-    if (
+    } else if (
       !event.shiftKey &&
-      (active === last || !currentOverlay.contains(active))
+      (activeElement === last || !currentOverlay.contains(activeElement))
     ) {
       event.preventDefault();
       first.focus();
@@ -336,11 +296,13 @@ export function installPublicOnboarding(
     },
 
     showIfNeeded(): boolean {
-      if (destroyed || state !== "not_started" || overlay) return false;
+      if (destroyed || overlay || interactiveTour?.active) return false;
       if (hasCompletedPublicOnboarding(storage)) {
         state = "completed";
+        ensureV1AssistantWelcomeVisible(options.document);
         return false;
       }
+      if (state !== "not_started") return false;
 
       overlay = createOnboardingMarkup(options.document);
       previouslyFocusedElement =
@@ -362,24 +324,17 @@ export function installPublicOnboarding(
       options.document.body.style.overflow = "hidden";
       options.document.documentElement.style.overflow = "hidden";
       options.document.body.appendChild(overlay);
-      options.document.addEventListener("keydown", onKeyDown, true);
+      options.document.addEventListener("keydown", onOverlayKeyDown, true);
 
       overlay
         .querySelector<HTMLElement>('[data-public-onboarding-action="start"]')
-        ?.addEventListener("click", start);
+        ?.addEventListener("click", start, { once: true });
       overlay
         .querySelector<HTMLElement>('[data-public-onboarding-action="skip"]')
         ?.addEventListener("click", skip, { once: true });
       overlay
-        .querySelector<HTMLElement>(
-          '[data-public-onboarding-action="complete"]',
-        )
-        ?.addEventListener("click", complete, { once: true });
-      overlay
-        .querySelector<HTMLElement>('[data-public-onboarding-action="back"]')
-        ?.addEventListener("click", back);
-
-      setStep("intro");
+        .querySelector<HTMLElement>('[data-public-onboarding-action="start"]')
+        ?.focus();
       return true;
     },
 
@@ -389,6 +344,7 @@ export function installPublicOnboarding(
     destroy(): void {
       if (destroyed) return;
       destroyed = true;
+      interactiveTour?.destroy();
       removeOverlay(false);
       options.document.removeEventListener(
         PUBLIC_ONBOARDING_COMPLETE_EVENT,

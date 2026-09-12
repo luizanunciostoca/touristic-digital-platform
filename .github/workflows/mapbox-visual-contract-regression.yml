@@ -11,6 +11,7 @@ on:
       - apps/morro-digital-platform/src/browser-entry.ts
       - apps/morro-digital-platform/src/layouts/app-shell.ts
       - apps/morro-digital-platform/src/onboarding/public-onboarding.ts
+      - apps/morro-digital-platform/src/onboarding/public-interactive-tour.ts
       - apps/morro-digital-platform/public/styles.css
       - apps/morro-digital-platform/tooling/dev-server.mjs
       - packages/geospatial/src/infrastructure/mapbox-gl-driver.ts
@@ -23,6 +24,7 @@ on:
       - apps/morro-digital-platform/src/browser-entry.ts
       - apps/morro-digital-platform/src/layouts/app-shell.ts
       - apps/morro-digital-platform/src/onboarding/public-onboarding.ts
+      - apps/morro-digital-platform/src/onboarding/public-interactive-tour.ts
       - apps/morro-digital-platform/public/styles.css
       - apps/morro-digital-platform/tooling/dev-server.mjs
       - packages/geospatial/src/infrastructure/mapbox-gl-driver.ts
@@ -108,13 +110,13 @@ jobs:
                 !state.routeSource &&
                 !state.routeLayer &&
                 !state.outline &&
-                !state.assistantVisible
+                state.assistantVisible
               ) {
                 return state;
               }
               await page.waitForTimeout(100);
             }
-            throw new Error('Mapbox Home did not reach clean idle state before timeout.');
+            throw new Error('Mapbox Home did not reach V1 idle + visible assistant state before timeout.');
           }
 
           async function dispatchTour(page, tourId) {
@@ -243,15 +245,14 @@ jobs:
             await dispatchTour(page, 'volta-a-ilha');
             await waitTourReady(page);
 
-            await page.locator('.quick-actions .action-button.primary').click();
             await page.locator('#assistant-messages:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
             const state = await readContract(page);
 
             let focusOrder = null;
             if (!forcedColors) {
-              await page.evaluate(() => document.activeElement?.blur?.());
-              focusOrder = [];
-              for (let i = 0; i < 5; i += 1) {
+              await page.locator('#assistant-messages .minimize-button').focus();
+              focusOrder = ['minimize-button'];
+              for (let i = 0; i < 4; i += 1) {
                 await page.keyboard.press('Tab');
                 focusOrder.push(await page.evaluate(() => {
                   const element = document.activeElement;
@@ -303,7 +304,7 @@ jobs:
               mapboxGlJs: '3.12.0',
               style: 'mapbox://styles/mapbox/streets-v12',
               homeLifecycle: 'Home starts centered and idle with zero tour markers; a route appears only after explicit selection.',
-              assistantLifecycle: 'The audited V1 starts hidden; the contract opens the Assistant before validating its modal focus order.',
+              assistantLifecycle: 'The audited V1 starts with the Assistant welcome visible; the contract preserves that state while validating its modal focus order.',
               evidence,
             }, null, 2));
           })().catch((error) => {
