@@ -19,6 +19,7 @@ const FOCUSABLE_SELECTOR = [
   "textarea:not([disabled])",
   '[tabindex]:not([tabindex="-1"])',
 ].join(",");
+const ISO_DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/u;
 
 function weatherEmoji(weatherCode: number, isDay = true): string {
   if (weatherCode === 0) return isDay ? "☀️" : "🌙";
@@ -44,14 +45,31 @@ function conditionLabel(weatherCode: number): string {
   return "Condições atuais";
 }
 
+function parseDateOnly(date: string): Date | undefined {
+  const match = ISO_DATE_PATTERN.exec(date);
+  if (!match) return undefined;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+  if (
+    parsed.getUTCFullYear() !== year ||
+    parsed.getUTCMonth() !== month - 1 ||
+    parsed.getUTCDate() !== day
+  ) {
+    return undefined;
+  }
+  return parsed;
+}
+
 function dateLabel(date: string, format: "short" | "long"): string {
-  const parsed = new Date(`${date}T12:00:00`);
-  if (Number.isNaN(parsed.getTime())) return date;
+  const parsed = parseDateOnly(date);
+  if (!parsed) return "Data indisponível";
   return new Intl.DateTimeFormat("pt-BR", {
     ...(format === "short"
       ? { weekday: "short", day: "2-digit" }
       : { weekday: "long", day: "2-digit", month: "long" }),
-    timeZone: "America/Bahia",
+    timeZone: "UTC",
   }).format(parsed);
 }
 
@@ -134,6 +152,7 @@ export function openWeatherForecastModal({
       ? document.activeElement
       : null;
   let selectedIndex = 0;
+  let closed = false;
 
   const modal = document.createElement("section");
   modal.className = "weather-forecast-modal";
@@ -159,13 +178,13 @@ export function openWeatherForecastModal({
         </div>
         <p class="day-full-date">${dateLabel(days[0]?.date ?? "", "long")}</p>
       </div>
-      <div class="day-selector" role="tablist" aria-label="Dias da previsão">
+      <div class="day-selector" aria-label="Dias da previsão">
         ${days
           .map(
             (
               day,
               index,
-            ) => `<button type="button" class="day-option${index === 0 ? " active" : ""}" role="tab" aria-selected="${index === 0}" data-day-index="${index}">
+            ) => `<button type="button" class="day-option${index === 0 ? " active" : ""}" aria-pressed="${index === 0}" data-day-index="${index}">
               <span class="day-name">${dateLabel(day.date, "short")}</span>
               <span class="day-emoji" aria-hidden="true">${weatherEmoji(day.weatherCode)}</span>
               <span class="day-temp">${day.temperatureMaxCelsius}° / ${day.temperatureMinCelsius}°</span>
@@ -195,11 +214,13 @@ export function openWeatherForecastModal({
       .forEach((button, index) => {
         const active = index === selectedIndex;
         button.classList.toggle("active", active);
-        button.setAttribute("aria-selected", String(active));
+        button.setAttribute("aria-pressed", String(active));
       });
   };
 
   const close = (): void => {
+    if (closed) return;
+    closed = true;
     document.removeEventListener("keydown", onKeyDown, true);
     modal.remove();
     onClose?.();
