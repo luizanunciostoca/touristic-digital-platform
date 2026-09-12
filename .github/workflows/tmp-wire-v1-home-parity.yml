@@ -1,0 +1,56 @@
+name: Temporary V1 Home Parity Wiring
+
+on:
+  push:
+    branches:
+      - fix/v1-home-parity-weather-globe-20260912
+    paths:
+      - .github/workflows/tmp-wire-v1-home-parity.yml
+
+permissions:
+  contents: write
+
+jobs:
+  wire:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: fix/v1-home-parity-weather-globe-20260912
+      - name: Wire global view control
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          path = Path('apps/morro-digital-platform/src/browser-entry.ts')
+          text = path.read_text()
+          needle = 'import { installPublicOnboarding } from "./onboarding/public-onboarding.js";\n'
+          replacement = needle + 'import {\n  installGlobalViewControl,\n  type GlobalViewControl,\n} from "./map/global-view-control.js";\n'
+          if 'installGlobalViewControl' not in text:
+              text = text.replace(needle, replacement)
+
+          needle = 'let activeRealMap: MapboxGlMapLike | undefined;\nlet activeNavigationRuntimeInstall: BrowserNavigationRuntimeInstall | undefined;\n'
+          replacement = 'let activeRealMap: MapboxGlMapLike | undefined;\nlet activeNavigationRuntimeInstall: BrowserNavigationRuntimeInstall | undefined;\nlet activeGlobalViewControl: GlobalViewControl | undefined;\n'
+          text = text.replace(needle, replacement)
+
+          needle = 'function clearBrowserNavigationRuntime(): void {\n  activeNavigationRuntimeInstall?.destroy();\n  activeNavigationRuntimeInstall = undefined;\n}\n'
+          replacement = 'function clearBrowserNavigationRuntime(): void {\n  activeGlobalViewControl?.destroy();\n  activeGlobalViewControl = undefined;\n  activeNavigationRuntimeInstall?.destroy();\n  activeNavigationRuntimeInstall = undefined;\n}\n'
+          text = text.replace(needle, replacement)
+
+          needle = '              setV1MapboxCompatibilityAliases(map);\n              activeNavigationRuntimeInstall = installBrowserNavigationRuntime({\n'
+          replacement = '''              setV1MapboxCompatibilityAliases(map);\n              activeGlobalViewControl = installGlobalViewControl({\n                document,\n                map,\n                homeCenter: [\n                  morroDeSaoPauloDestination.center.longitude,\n                  morroDeSaoPauloDestination.center.latitude,\n                ],\n                homeZoom: Number(\n                  provider.environment.VITE_MAPBOX_INITIAL_ZOOM || "13.5",\n                ),\n              });\n              activeNavigationRuntimeInstall = installBrowserNavigationRuntime({\n'''
+          text = text.replace(needle, replacement)
+          path.write_text(text)
+          PY
+          git diff --check
+          git diff -- apps/morro-digital-platform/src/browser-entry.ts
+      - name: Commit wiring
+        run: |
+          if git diff --quiet; then
+            echo 'No wiring changes needed.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add apps/morro-digital-platform/src/browser-entry.ts
+          git commit -m 'feat(home): wire functional V1 global map view'
+          git push origin HEAD:fix/v1-home-parity-weather-globe-20260912
