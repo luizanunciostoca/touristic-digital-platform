@@ -16,6 +16,73 @@ function createEngine(): GeospatialEngine {
 }
 
 describe("createMorroTourSelectionController", () => {
+  it("publishes the full lifecycle when the first tour is selected from idle Home", async () => {
+    const engine = createEngine();
+    const events = new EventBus();
+    const started = vi.fn();
+    const selected = vi.fn();
+    events.subscribe("TourSelectionStarted", started);
+    events.subscribe("TourSelected", selected);
+    const controller = createMorroTourSelectionController({
+      engine,
+      events,
+      initialTourId: null,
+    });
+
+    expect(controller.activeTourId).toBeNull();
+
+    const result = await controller.selectTour("volta-a-ilha");
+
+    expect(result).toEqual({ activeTourId: "volta-a-ilha", markerCount: 8 });
+    expect(controller.activeTourId).toBe("volta-a-ilha");
+    expect(engine.replaceMarkers).toHaveBeenCalledOnce();
+    expect(vi.mocked(engine.replaceMarkers).mock.calls[0]?.[0]).toHaveLength(8);
+    expect(started.mock.calls[0]?.[0].payload).toMatchObject({
+      tourId: "volta-a-ilha",
+      previousTourId: null,
+      markerCount: 8,
+    });
+    expect(selected.mock.calls[0]?.[0].payload).toMatchObject({
+      tourId: "volta-a-ilha",
+      previousTourId: null,
+      markerCount: 8,
+    });
+  });
+
+  it("rolls the first selection back to the canonical idle Home when publish fails", async () => {
+    const engine = createEngine();
+    const events = new EventBus();
+    events.subscribe("TourSelected", () => {
+      throw new Error("First tour observer failed.");
+    });
+    const failed = vi.fn();
+    events.subscribe("TourSelectionFailed", failed);
+    const controller = createMorroTourSelectionController({
+      engine,
+      events,
+      initialTourId: null,
+    });
+
+    await expect(controller.selectTour("volta-a-ilha")).rejects.toThrow(
+      "First tour observer failed.",
+    );
+
+    expect(engine.replaceMarkers).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(engine.replaceMarkers).mock.calls[0]?.[0]).toHaveLength(8);
+    expect(vi.mocked(engine.replaceMarkers).mock.calls[1]?.[0]).toHaveLength(0);
+    expect(engine.setCenter).toHaveBeenLastCalledWith({
+      latitude: -13.3833,
+      longitude: -38.9167,
+    });
+    expect(controller.activeTourId).toBeNull();
+    expect(failed.mock.calls[0]?.[0].payload).toMatchObject({
+      requestedTourId: "volta-a-ilha",
+      activeTourId: null,
+      phase: "publish",
+      rollbackSucceeded: true,
+    });
+  });
+
   it("replaces markers, centers the map and publishes the selected tour", async () => {
     const engine = createEngine();
     const events = new EventBus();
