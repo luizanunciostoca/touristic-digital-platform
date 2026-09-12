@@ -201,8 +201,10 @@ export function installPublicInteractiveTour(
 
   const updateBackdropCutout = (rect: DOMRect, margin: number): void => {
     if (!backdrop) return;
-    const viewportWidth = view?.innerWidth ?? options.document.documentElement.clientWidth;
-    const viewportHeight = view?.innerHeight ?? options.document.documentElement.clientHeight;
+    const viewportWidth =
+      view?.innerWidth ?? options.document.documentElement.clientWidth;
+    const viewportHeight =
+      view?.innerHeight ?? options.document.documentElement.clientHeight;
     const left = Math.max(0, rect.left - margin);
     const top = Math.max(0, rect.top - margin);
     const right = Math.min(viewportWidth, rect.right + margin);
@@ -368,7 +370,8 @@ export function installPublicInteractiveTour(
       return;
     }
 
-    const computedPosition = view?.getComputedStyle(target).position ?? "static";
+    const computedPosition =
+      view?.getComputedStyle(target).position ?? "static";
     targetInlinePosition = target.style.position;
     target.classList.add("tour-target-active", "tour-pulse");
     if (computedPosition !== "static") target.style.position = computedPosition;
