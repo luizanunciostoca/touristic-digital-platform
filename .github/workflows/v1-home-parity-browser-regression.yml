@@ -96,6 +96,17 @@ jobs:
             });
           }
 
+          async function waitForCamera(page, description, predicate, timeoutMs = 5000) {
+            const deadline = Date.now() + timeoutMs;
+            let lastState = null;
+            while (Date.now() < deadline) {
+              lastState = await camera(page);
+              if (predicate(lastState)) return lastState;
+              await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            throw new Error(`${description} timed out: ${JSON.stringify(lastState)}`);
+          }
+
           (async () => {
             const browser = await chromium.launch({ headless: true });
             const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
@@ -157,16 +168,29 @@ jobs:
             }
             await page.locator('#toggle-globe-view').click();
             await page.locator('#map[data-global-view="true"]').waitFor({ state: 'attached', timeout: 5000 });
-            await page.waitForFunction(() => (globalThis.mapboxPrimaryInstance?.getZoom?.() ?? 20) < 3, null, { timeout: 5000 });
-            const global = await camera(page);
+            const global = await waitForCamera(
+              page,
+              'Global view camera',
+              state => state.globalView === 'true' && typeof state.zoom === 'number' && state.zoom < 3,
+            );
             if (global.globalView !== 'true' || typeof global.zoom !== 'number' || global.zoom >= 3) {
               throw new Error(`Global view did not change the real map camera: ${JSON.stringify(global)}`);
             }
 
             await page.locator('#toggle-globe-view').click();
             await page.locator('#map[data-global-view="false"]').waitFor({ state: 'attached', timeout: 5000 });
-            await page.waitForFunction(() => Math.abs((globalThis.mapboxPrimaryInstance?.getZoom?.() ?? 0) - 13.5) < 0.25, null, { timeout: 5000 });
-            const restored = await camera(page);
+            const restored = await waitForCamera(
+              page,
+              'Morro Home camera restoration',
+              state =>
+                state.globalView === 'false' &&
+                typeof state.zoom === 'number' &&
+                Math.abs(state.zoom - 13.5) < 0.25 &&
+                typeof state.lng === 'number' &&
+                Math.abs(state.lng - (-38.9167)) <= 0.03 &&
+                typeof state.lat === 'number' &&
+                Math.abs(state.lat - (-13.3833)) <= 0.03,
+            );
             if (
               restored.activeTour !== null ||
               restored.markerCount !== '0' ||
