@@ -30,6 +30,7 @@ export interface WeatherWidgetOptions {
 
 const DEFAULT_REFRESH_INTERVAL_MS = 10 * 60 * 1000;
 const WEATHER_ENDPOINT = "/api/weather";
+const ISO_DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/u;
 
 function weatherEmoji(weatherCode: number, isDay: boolean): string {
   if (weatherCode === 0) return isDay ? "☀️" : "🌙";
@@ -49,12 +50,32 @@ function readFiniteNumber(value: unknown): number | undefined {
     : undefined;
 }
 
+function normalizeForecastDate(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const match = ISO_DATE_PATTERN.exec(value);
+  if (!match) return undefined;
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+  if (
+    parsed.getUTCFullYear() !== year ||
+    parsed.getUTCMonth() !== month - 1 ||
+    parsed.getUTCDate() !== day
+  ) {
+    return undefined;
+  }
+
+  return value;
+}
+
 function parseForecast(payload: unknown): readonly WeatherForecastDay[] {
   if (!Array.isArray(payload)) return Object.freeze([]);
 
   const forecast = payload.flatMap<WeatherForecastDay>((candidate) => {
     if (!candidate || typeof candidate !== "object") return [];
-    const date: unknown = Reflect.get(candidate, "date");
+    const date = normalizeForecastDate(Reflect.get(candidate, "date"));
     const temperatureMax = readFiniteNumber(
       Reflect.get(candidate, "temperatureMaxCelsius"),
     );
@@ -70,8 +91,7 @@ function parseForecast(payload: unknown): readonly WeatherForecastDay[] {
     );
     const weatherCode = readFiniteNumber(Reflect.get(candidate, "weatherCode"));
     if (
-      typeof date !== "string" ||
-      !date.trim() ||
+      !date ||
       temperatureMax === undefined ||
       temperatureMin === undefined ||
       humidity === undefined ||
