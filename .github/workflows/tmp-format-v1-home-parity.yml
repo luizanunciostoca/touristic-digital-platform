@@ -1,0 +1,36 @@
+name: Temporary Format V1 Home Parity
+
+on:
+  push:
+    branches:
+      - fix/v1-home-parity-weather-globe-20260912
+    paths:
+      - .github/workflows/tmp-format-v1-home-parity.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: fix/v1-home-parity-weather-globe-20260912
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec prettier --write apps/morro-digital-platform/src/weather/weather-widget.test.ts apps/morro-digital-platform/tooling/dev-server.mjs
+      - run: git diff --check
+      - name: Commit formatter output
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add apps/morro-digital-platform/src/weather/weather-widget.test.ts apps/morro-digital-platform/tooling/dev-server.mjs
+          git commit -m 'style(home): format V1 parity files'
+          git push origin HEAD:fix/v1-home-parity-weather-globe-20260912
