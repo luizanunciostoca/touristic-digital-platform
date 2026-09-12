@@ -3,6 +3,7 @@ import type { WeatherForecastDay, WeatherReading } from "./weather-widget.js";
 export interface WeatherForecastModalOptions {
   readonly document: Document;
   readonly reading: WeatherReading;
+  readonly onClose?: () => void;
 }
 
 export interface WeatherForecastModalController {
@@ -71,8 +72,12 @@ function todayFallback(reading: WeatherReading): WeatherForecastDay {
   });
 }
 
-function normalizedForecast(reading: WeatherReading): readonly WeatherForecastDay[] {
-  return reading.forecast.length > 0 ? reading.forecast : [todayFallback(reading)];
+function normalizedForecast(
+  reading: WeatherReading,
+): readonly WeatherForecastDay[] {
+  return reading.forecast && reading.forecast.length > 0
+    ? reading.forecast
+    : [todayFallback(reading)];
 }
 
 function chartSvg(days: readonly WeatherForecastDay[]): string {
@@ -120,11 +125,14 @@ function detailsMarkup(day: WeatherForecastDay): string {
 export function openWeatherForecastModal({
   document,
   reading,
+  onClose,
 }: WeatherForecastModalOptions): WeatherForecastModalController {
   document.querySelector(".weather-forecast-modal")?.remove();
   const days = normalizedForecast(reading);
   const previouslyFocused =
-    document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
   let selectedIndex = 0;
 
   const modal = document.createElement("section");
@@ -154,7 +162,10 @@ export function openWeatherForecastModal({
       <div class="day-selector" role="tablist" aria-label="Dias da previsão">
         ${days
           .map(
-            (day, index) => `<button type="button" class="day-option${index === 0 ? " active" : ""}" role="tab" aria-selected="${index === 0}" data-day-index="${index}">
+            (
+              day,
+              index,
+            ) => `<button type="button" class="day-option${index === 0 ? " active" : ""}" role="tab" aria-selected="${index === 0}" data-day-index="${index}">
               <span class="day-name">${dateLabel(day.date, "short")}</span>
               <span class="day-emoji" aria-hidden="true">${weatherEmoji(day.weatherCode)}</span>
               <span class="day-temp">${day.temperatureMaxCelsius}° / ${day.temperatureMinCelsius}°</span>
@@ -191,6 +202,7 @@ export function openWeatherForecastModal({
   const close = (): void => {
     document.removeEventListener("keydown", onKeyDown, true);
     modal.remove();
+    onClose?.();
     previouslyFocused?.focus();
   };
 
@@ -216,7 +228,10 @@ export function openWeatherForecastModal({
     if (event.shiftKey && (focused === first || !modal.contains(focused))) {
       event.preventDefault();
       last.focus();
-    } else if (!event.shiftKey && (focused === last || !modal.contains(focused))) {
+    } else if (
+      !event.shiftKey &&
+      (focused === last || !modal.contains(focused))
+    ) {
       event.preventDefault();
       first.focus();
     }

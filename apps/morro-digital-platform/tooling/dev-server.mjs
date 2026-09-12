@@ -353,6 +353,30 @@ async function fetchVisualCrossingWeather(apiKey) {
     throw new Error("Visual Crossing returned incomplete weather details.");
   }
 
+  const forecast = Array.isArray(payload?.days)
+    ? payload.days.slice(0, 7).flatMap((day) => {
+        if (
+          typeof day?.datetime !== "string" ||
+          typeof day?.tempmax !== "number" ||
+          typeof day?.tempmin !== "number" ||
+          typeof day?.humidity !== "number" ||
+          typeof day?.windspeed !== "number" ||
+          typeof day?.precipprob !== "number"
+        ) {
+          return [];
+        }
+        return [{
+          date: day.datetime,
+          temperatureMaxCelsius: day.tempmax,
+          temperatureMinCelsius: day.tempmin,
+          humidityPercent: day.humidity,
+          windSpeedKph: day.windspeed,
+          rainChancePercent: day.precipprob,
+          weatherCode: conditionToWeatherCode(day?.conditions || day?.icon),
+        }];
+      })
+    : [];
+
   return {
     temperatureCelsius,
     temperatureMaxCelsius: today.tempmax,
@@ -362,6 +386,7 @@ async function fetchVisualCrossingWeather(apiKey) {
     rainChancePercent: today.precipprob,
     weatherCode: conditionToWeatherCode(current?.conditions || icon),
     isDay: !icon.includes("night"),
+    forecast,
     provider: "visual-crossing",
   };
 }
@@ -376,7 +401,7 @@ async function fetchOpenMeteoWeather() {
   );
   url.searchParams.set(
     "daily",
-    "temperature_2m_max,temperature_2m_min,precipitation_probability_max",
+    "temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code,relative_humidity_2m_max,wind_speed_10m_max",
   );
   url.searchParams.set("timezone", "America/Bahia");
 
@@ -404,6 +429,37 @@ async function fetchOpenMeteoWeather() {
     throw new Error("Open-Meteo returned incomplete current conditions.");
   }
 
+  const forecast = Array.isArray(daily?.time)
+    ? daily.time.slice(0, 7).flatMap((date, index) => {
+        const temperatureMax = daily?.temperature_2m_max?.[index];
+        const temperatureMin = daily?.temperature_2m_min?.[index];
+        const rainChance = daily?.precipitation_probability_max?.[index];
+        const weatherCode = daily?.weather_code?.[index];
+        const humidity = daily?.relative_humidity_2m_max?.[index];
+        const windSpeed = daily?.wind_speed_10m_max?.[index];
+        if (
+          typeof date !== "string" ||
+          typeof temperatureMax !== "number" ||
+          typeof temperatureMin !== "number" ||
+          typeof rainChance !== "number" ||
+          typeof weatherCode !== "number" ||
+          typeof humidity !== "number" ||
+          typeof windSpeed !== "number"
+        ) {
+          return [];
+        }
+        return [{
+          date,
+          temperatureMaxCelsius: temperatureMax,
+          temperatureMinCelsius: temperatureMin,
+          humidityPercent: humidity,
+          windSpeedKph: windSpeed,
+          rainChancePercent: rainChance,
+          weatherCode,
+        }];
+      })
+    : [];
+
   return {
     temperatureCelsius: current.temperature_2m,
     temperatureMaxCelsius: daily.temperature_2m_max[0],
@@ -413,6 +469,7 @@ async function fetchOpenMeteoWeather() {
     rainChancePercent: daily.precipitation_probability_max[0],
     weatherCode: current.weather_code,
     isDay: current.is_day === 1,
+    forecast,
     provider: "open-meteo",
   };
 }

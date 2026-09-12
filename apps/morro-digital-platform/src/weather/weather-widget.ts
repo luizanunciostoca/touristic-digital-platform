@@ -19,7 +19,7 @@ export interface WeatherReading {
   readonly rainChancePercent: number;
   readonly weatherCode: number;
   readonly isDay: boolean;
-  readonly forecast: readonly WeatherForecastDay[];
+  readonly forecast?: readonly WeatherForecastDay[];
 }
 
 export interface WeatherWidgetOptions {
@@ -61,7 +61,9 @@ function parseForecast(payload: unknown): readonly WeatherForecastDay[] {
     const temperatureMin = readFiniteNumber(
       Reflect.get(candidate, "temperatureMinCelsius"),
     );
-    const humidity = readFiniteNumber(Reflect.get(candidate, "humidityPercent"));
+    const humidity = readFiniteNumber(
+      Reflect.get(candidate, "humidityPercent"),
+    );
     const windSpeed = readFiniteNumber(Reflect.get(candidate, "windSpeedKph"));
     const rainChance = readFiniteNumber(
       Reflect.get(candidate, "rainChancePercent"),
@@ -200,18 +202,15 @@ export function initializeWeatherWidget({
   const openForecast = (): void => {
     if (!latestReading || disposed) return;
     activeModal?.close();
-    activeModal = openWeatherForecastModal({ document, reading: latestReading });
-    widget.setAttribute("aria-expanded", "true");
-
-    const close = activeModal.close;
-    activeModal = Object.freeze({
-      element: activeModal.element,
-      close(): void {
-        close();
+    activeModal = openWeatherForecastModal({
+      document,
+      reading: latestReading,
+      onClose: () => {
         widget.setAttribute("aria-expanded", "false");
         activeModal = undefined;
       },
     });
+    widget.setAttribute("aria-expanded", "true");
   };
 
   const onWidgetClick = (): void => openForecast();
