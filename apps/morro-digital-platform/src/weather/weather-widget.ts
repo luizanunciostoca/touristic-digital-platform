@@ -54,7 +54,7 @@ function parseForecast(payload: unknown): readonly WeatherForecastDay[] {
 
   const forecast = payload.flatMap<WeatherForecastDay>((candidate) => {
     if (!candidate || typeof candidate !== "object") return [];
-    const date = Reflect.get(candidate, "date");
+    const date: unknown = Reflect.get(candidate, "date");
     const temperatureMax = readFiniteNumber(
       Reflect.get(candidate, "temperatureMaxCelsius"),
     );
