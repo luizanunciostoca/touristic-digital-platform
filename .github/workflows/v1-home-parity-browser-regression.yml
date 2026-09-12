@@ -10,6 +10,8 @@ on:
       - apps/morro-digital-platform/src/weather/weather-widget.ts
       - apps/morro-digital-platform/src/weather/weather-forecast-modal.ts
       - apps/morro-digital-platform/tooling/dev-server.mjs
+      - apps/morro-digital-platform/tooling/weather-provider-mappers.mjs
+      - apps/morro-digital-platform/tooling/weather-provider-mappers.test.mjs
       - apps/morro-digital-platform/public/legacy/css/components/weather.css
       - apps/morro-digital-platform/public/legacy/css/components/map/map-controls.css
       - package.json
