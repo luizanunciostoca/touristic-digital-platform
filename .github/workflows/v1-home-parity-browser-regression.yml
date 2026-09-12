@@ -1,0 +1,202 @@
+name: V1 Home Parity Browser Regression
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/v1-home-parity-browser-regression.yml
+      - apps/morro-digital-platform/src/browser-entry.ts
+      - apps/morro-digital-platform/src/map/global-view-control.ts
+      - apps/morro-digital-platform/src/weather/weather-widget.ts
+      - apps/morro-digital-platform/src/weather/weather-forecast-modal.ts
+      - apps/morro-digital-platform/tooling/dev-server.mjs
+      - apps/morro-digital-platform/public/legacy/css/components/weather.css
+      - apps/morro-digital-platform/public/legacy/css/components/map/map-controls.css
+      - package.json
+      - pnpm-lock.yaml
+
+permissions:
+  contents: read
+
+jobs:
+  v1-home-parity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install deterministic Chromium
+        run: |
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+          mkdir -p /tmp/v1-home-parity
+      - name: Build workspace
+        run: pnpm -w build
+      - name: Start authenticated Mapbox runtime
+        env:
+          MAPBOX_PUBLIC_TOKEN_CI: ${{ secrets.MAPBOX_PUBLIC_TOKEN_CI }}
+        run: |
+          test -n "${MAPBOX_PUBLIC_TOKEN_CI:-}" || { echo 'MAPBOX_PUBLIC_TOKEN_CI missing'; exit 1; }
+          VITE_MAPBOX_ACCESS_TOKEN="$MAPBOX_PUBLIC_TOKEN_CI" \
+          VITE_MAPBOX_STYLE=mapbox://styles/mapbox/streets-v12 \
+          VITE_MAPBOX_CONTAINER_ID=map \
+          VITE_MAPBOX_INITIAL_ZOOM=13.5 \
+          node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/v1-home-parity/server.log 2>&1 &
+          echo $! >/tmp/v1-home-parity/server.pid
+          for i in $(seq 1 90); do
+            if curl -fsS http://127.0.0.1:4173/runtime-config.js >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/v1-home-parity/server.log
+          exit 1
+      - name: Validate V1 weather forecast and global view
+        run: |
+          node <<'NODE'
+          const { writeFileSync } = require('node:fs');
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+
+          const weather = {
+            temperatureCelsius: 28,
+            temperatureMaxCelsius: 31,
+            temperatureMinCelsius: 24,
+            humidityPercent: 78,
+            windSpeedKph: 18,
+            rainChancePercent: 42,
+            weatherCode: 1,
+            isDay: true,
+            forecast: Array.from({ length: 7 }, (_, index) => ({
+              date: `2026-09-${String(12 + index).padStart(2, '0')}`,
+              temperatureMaxCelsius: 31 + index,
+              temperatureMinCelsius: 24 + index,
+              humidityPercent: 78 - index,
+              windSpeedKph: 18 + index,
+              rainChancePercent: 42 - index,
+              weatherCode: index % 2 === 0 ? 1 : 61,
+            })),
+          };
+
+          async function camera(page) {
+            return await page.evaluate(() => {
+              const map = globalThis.mapboxPrimaryInstance;
+              const center = map?.getCenter?.();
+              return {
+                zoom: map?.getZoom?.() ?? null,
+                lng: center?.lng ?? null,
+                lat: center?.lat ?? null,
+                globalView: document.getElementById('map')?.getAttribute('data-global-view'),
+                activeTour: document.getElementById('map')?.getAttribute('data-active-tour'),
+                markerCount: document.getElementById('map')?.getAttribute('data-map-marker-count'),
+              };
+            });
+          }
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+            await context.addInitScript(() => {
+              localStorage.setItem('morro-digital-onboarded', '1');
+              localStorage.setItem('voice-enabled', 'false');
+            });
+            const page = await context.newPage();
+            const pageErrors = [];
+            const mapboxHttpErrors = [];
+            page.on('pageerror', error => pageErrors.push(error.message));
+            page.on('response', response => {
+              if (response.url().includes('mapbox.com') && response.status() >= 400) {
+                mapboxHttpErrors.push({
+                  status: response.status(),
+                  url: response.url().replace(/access_token=[^&]+/u, 'access_token=[redacted]'),
+                });
+              }
+            });
+            await page.route('**/api/weather', async route => {
+              await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify(weather),
+              });
+            });
+
+            await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded', timeout: 30000 });
+            await page.locator('#map[data-map-state="ready"][data-home-state="ready"][data-tour-state="idle"][data-map-mode="real"][data-map-marker-count="0"]').waitFor({ state: 'attached', timeout: 30000 });
+            await page.locator('#weather-widget[data-weather-state="ready"]').waitFor({ state: 'visible', timeout: 10000 });
+
+            await page.locator('#weather-widget').click();
+            await page.locator('.weather-forecast-modal').waitFor({ state: 'visible', timeout: 5000 });
+            const weatherState = await page.evaluate(() => ({
+              expanded: document.getElementById('weather-widget')?.getAttribute('aria-expanded'),
+              dayCount: document.querySelectorAll('.day-option').length,
+              currentTemp: document.querySelector('.current-temp')?.textContent?.trim(),
+              detailCount: document.querySelectorAll('.forecast-detail-item').length,
+              chart: Boolean(document.querySelector('.temp-chart-container svg')),
+              focusedClose: document.activeElement?.classList.contains('forecast-close-btn') ?? false,
+            }));
+            if (weatherState.expanded !== 'true' || weatherState.dayCount !== 7 || weatherState.currentTemp !== '28°C' || weatherState.detailCount !== 5 || !weatherState.chart || !weatherState.focusedClose) {
+              throw new Error(`V1 weather modal contract diverged: ${JSON.stringify(weatherState)}`);
+            }
+            await page.locator('.day-option').nth(2).click();
+            await page.keyboard.press('Escape');
+            await page.locator('.weather-forecast-modal').waitFor({ state: 'detached', timeout: 5000 });
+            const weatherClosed = await page.evaluate(() => ({
+              expanded: document.getElementById('weather-widget')?.getAttribute('aria-expanded'),
+              focusRestored: document.activeElement?.id === 'weather-widget',
+            }));
+            if (weatherClosed.expanded !== 'false' || !weatherClosed.focusRestored) {
+              throw new Error(`Weather modal did not close accessibly: ${JSON.stringify(weatherClosed)}`);
+            }
+
+            const before = await camera(page);
+            if (before.activeTour !== null || before.markerCount !== '0' || before.globalView !== 'false') {
+              throw new Error(`Home was not idle before Global view: ${JSON.stringify(before)}`);
+            }
+            await page.locator('#toggle-globe-view').click();
+            await page.locator('#map[data-global-view="true"]').waitFor({ state: 'attached', timeout: 5000 });
+            await page.waitForFunction(() => (globalThis.mapboxPrimaryInstance?.getZoom?.() ?? 20) < 3, null, { timeout: 5000 });
+            const global = await camera(page);
+            if (global.globalView !== 'true' || typeof global.zoom !== 'number' || global.zoom >= 3) {
+              throw new Error(`Global view did not change the real map camera: ${JSON.stringify(global)}`);
+            }
+
+            await page.locator('#toggle-globe-view').click();
+            await page.locator('#map[data-global-view="false"]').waitFor({ state: 'attached', timeout: 5000 });
+            await page.waitForFunction(() => Math.abs((globalThis.mapboxPrimaryInstance?.getZoom?.() ?? 0) - 13.5) < 0.25, null, { timeout: 5000 });
+            const restored = await camera(page);
+            if (
+              restored.activeTour !== null ||
+              restored.markerCount !== '0' ||
+              restored.globalView !== 'false' ||
+              Math.abs((restored.lng ?? 0) - (-38.9167)) > 0.03 ||
+              Math.abs((restored.lat ?? 0) - (-13.3833)) > 0.03
+            ) {
+              throw new Error(`Global view did not restore the Morro Home camera: ${JSON.stringify(restored)}`);
+            }
+
+            if (pageErrors.length || mapboxHttpErrors.length) {
+              throw new Error(`Browser/provider errors: ${JSON.stringify({ pageErrors, mapboxHttpErrors })}`);
+            }
+
+            await page.screenshot({ path: '/tmp/v1-home-parity/home-parity-mobile.png', fullPage: false, animations: 'disabled' });
+            writeFileSync('/tmp/v1-home-parity/evidence.json', JSON.stringify({ weatherState, weatherClosed, before, global, restored, pageErrors, mapboxHttpErrors }, null, 2));
+            await browser.close();
+          })().catch(error => {
+            writeFileSync('/tmp/v1-home-parity/failure.txt', String(error?.stack || error));
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+      - name: Show server diagnostics
+        if: failure()
+        run: cat /tmp/v1-home-parity/server.log || true
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: v1-home-parity-evidence
+          path: /tmp/v1-home-parity
+          retention-days: 7
+          if-no-files-found: error
