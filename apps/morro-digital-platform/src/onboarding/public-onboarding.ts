@@ -28,6 +28,16 @@ export interface InstallPublicOnboardingOptions {
   readonly storage?: PublicOnboardingStorage | null;
 }
 
+const ONBOARDING_EXIT_MS = 620;
+const FOCUSABLE_SELECTOR = [
+  "button:not([disabled])",
+  "[href]",
+  "input:not([disabled])",
+  "select:not([disabled])",
+  "textarea:not([disabled])",
+  '[tabindex]:not([tabindex="-1"])',
+].join(",");
+
 export function hasCompletedPublicOnboarding(
   storage: PublicOnboardingStorage | null | undefined,
 ): boolean {
@@ -63,6 +73,7 @@ function createOnboardingMarkup(document: Document): HTMLElement {
   const overlay = document.createElement("section");
   overlay.id = "onboarding-overlay";
   overlay.className = "onboarding-overlay";
+  overlay.style.pointerEvents = "auto";
   overlay.setAttribute("role", "dialog");
   overlay.setAttribute("aria-modal", "true");
   overlay.setAttribute("aria-labelledby", "public-onboarding-title");
@@ -80,10 +91,11 @@ function createOnboardingMarkup(document: Document): HTMLElement {
           </p>
         </div>
       </div>
-      <div class="onboarding-profile-section">
+
+      <section data-public-onboarding-step="intro" class="onboarding-profile-section">
         <h2 class="profile-section-title">Pronto para explorar?</h2>
         <p class="profile-section-subtitle">
-          Conheça rapidamente o aplicativo ou vá direto para o mapa.
+          Conheça rapidamente os principais recursos ou vá direto para o mapa.
         </p>
         <div class="profile-cards profile-cards--single">
           <button
@@ -95,7 +107,7 @@ function createOnboardingMarkup(document: Document): HTMLElement {
             <span class="profile-card-icon" aria-hidden="true">🌴</span>
             <span class="profile-card-title">Conhecer o App</span>
             <span class="profile-card-desc">
-              Veja como usar o mapa, o assistente e os principais recursos.
+              Veja como usar o mapa, o assistente e a navegação.
             </span>
           </button>
         </div>
@@ -106,11 +118,58 @@ function createOnboardingMarkup(document: Document): HTMLElement {
         >
           Pular por agora
         </button>
-      </div>
+      </section>
+
+      <section
+        data-public-onboarding-step="tutorial"
+        class="onboarding-profile-section"
+        hidden
+      >
+        <h2 class="profile-section-title">Tudo em um só lugar</h2>
+        <p class="profile-section-subtitle">
+          Explore Morro de São Paulo no seu ritmo. Nenhum roteiro é iniciado automaticamente.
+        </p>
+        <div class="profile-cards">
+          <div class="profile-card" aria-label="Mapa interativo">
+            <span class="profile-card-icon" aria-hidden="true">🗺️</span>
+            <span class="profile-card-title">Mapa</span>
+            <span class="profile-card-desc">Descubra lugares e escolha o que quer explorar.</span>
+          </div>
+          <div class="profile-card" aria-label="Assistente digital">
+            <span class="profile-card-icon" aria-hidden="true">✨</span>
+            <span class="profile-card-title">Assistente</span>
+            <span class="profile-card-desc">Peça sugestões quando quiser, sem bloquear o mapa.</span>
+          </div>
+          <div class="profile-card" aria-label="Rotas e navegação">
+            <span class="profile-card-icon" aria-hidden="true">🧭</span>
+            <span class="profile-card-title">Rotas</span>
+            <span class="profile-card-desc">Inicie navegação e roteiros somente quando escolher.</span>
+          </div>
+        </div>
+        <button
+          id="public-onboarding-finish"
+          class="profile-card profile-card-single"
+          type="button"
+          data-public-onboarding-action="complete"
+        >
+          <span class="profile-card-title">Começar a explorar</span>
+        </button>
+        <button
+          class="biz-setup-back"
+          type="button"
+          data-public-onboarding-action="back"
+        >
+          Voltar
+        </button>
+      </section>
     </div>
   `;
 
   return overlay;
+}
+
+function isFocusableInActiveStep(element: HTMLElement): boolean {
+  return !element.closest<HTMLElement>("[hidden]") && !element.hidden;
 }
 
 export function installPublicOnboarding(
@@ -123,21 +182,49 @@ export function installPublicOnboarding(
   let overlay: HTMLElement | null = null;
   let previousBodyOverflow = "";
   let previousDocumentOverflow = "";
+  let previouslyFocusedElement: HTMLElement | null = null;
+  let backgroundInertState = new Map<HTMLElement, boolean>();
   let destroyed = false;
 
-  const unlockBackground = (): void => {
+  const restoreBackground = (): void => {
     options.document.body.classList.remove("public-onboarding-open");
     options.document.body.style.overflow = previousBodyOverflow;
     options.document.documentElement.style.overflow = previousDocumentOverflow;
+    for (const [element, wasInert] of backgroundInertState) {
+      element.inert = wasInert;
+    }
+    backgroundInertState = new Map();
   };
 
-  const removeOverlay = (): void => {
+  const restoreFocus = (): void => {
+    if (previouslyFocusedElement?.isConnected) {
+      previouslyFocusedElement.focus();
+    }
+    previouslyFocusedElement = null;
+  };
+
+  const finishOverlayRemoval = (currentOverlay: HTMLElement): void => {
+    currentOverlay.remove();
+    restoreBackground();
+    restoreFocus();
+  };
+
+  const removeOverlay = (animate = true): void => {
     if (!overlay) return;
     const currentOverlay = overlay;
     overlay = null;
+    options.document.removeEventListener("keydown", onKeyDown, true);
+
+    if (!animate) {
+      finishOverlayRemoval(currentOverlay);
+      return;
+    }
+
     currentOverlay.classList.add("onboarding-exit");
-    options.document.defaultView?.setTimeout(() => currentOverlay.remove(), 620);
-    unlockBackground();
+    options.document.defaultView?.setTimeout(
+      () => finishOverlayRemoval(currentOverlay),
+      ONBOARDING_EXIT_MS,
+    );
   };
 
   const dispatch = (name: string): void => {
@@ -164,12 +251,72 @@ export function installPublicOnboarding(
     dispatch(PUBLIC_ONBOARDING_SKIP_EVENT);
   };
 
+  const setStep = (step: "intro" | "tutorial"): void => {
+    if (!overlay) return;
+    overlay
+      .querySelectorAll<HTMLElement>("[data-public-onboarding-step]")
+      .forEach((element) => {
+        element.hidden = element.dataset.publicOnboardingStep !== step;
+      });
+    overlay
+      .querySelector<HTMLElement>(
+        step === "intro"
+          ? '[data-public-onboarding-action="start"]'
+          : '[data-public-onboarding-action="complete"]',
+      )
+      ?.focus();
+  };
+
   const start = (): void => {
-    if (destroyed) return;
+    if (destroyed || !overlay) return;
     state = "in_progress";
-    removeOverlay();
+    setStep("tutorial");
     dispatch(PUBLIC_ONBOARDING_START_EVENT);
   };
+
+  const back = (): void => {
+    if (destroyed || !overlay) return;
+    state = "not_started";
+    setStep("intro");
+  };
+
+  function onKeyDown(event: KeyboardEvent): void {
+    const currentOverlay = overlay;
+    if (!currentOverlay) return;
+
+    if (event.key === "Escape") {
+      event.preventDefault();
+      skip();
+      return;
+    }
+
+    if (event.key !== "Tab") return;
+
+    const focusable = Array.from(
+      currentOverlay.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR),
+    ).filter(isFocusableInActiveStep);
+    if (focusable.length === 0) {
+      event.preventDefault();
+      currentOverlay.focus();
+      return;
+    }
+
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    const active = options.document.activeElement;
+    if (!first || !last) return;
+
+    if (event.shiftKey && (active === first || !currentOverlay.contains(active))) {
+      event.preventDefault();
+      last.focus();
+      return;
+    }
+
+    if (!event.shiftKey && (active === last || !currentOverlay.contains(active))) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
 
   const onDocumentComplete = (): void => {
     complete();
@@ -193,23 +340,40 @@ export function installPublicOnboarding(
       }
 
       overlay = createOnboardingMarkup(options.document);
+      previouslyFocusedElement =
+        options.document.activeElement instanceof HTMLElement
+          ? options.document.activeElement
+          : null;
       previousBodyOverflow = options.document.body.style.overflow;
       previousDocumentOverflow = options.document.documentElement.style.overflow;
+      backgroundInertState = new Map();
+      for (const child of Array.from(options.document.body.children)) {
+        if (child instanceof HTMLElement) {
+          backgroundInertState.set(child, child.inert);
+          child.inert = true;
+        }
+      }
+
       options.document.body.classList.add("public-onboarding-open");
       options.document.body.style.overflow = "hidden";
       options.document.documentElement.style.overflow = "hidden";
       options.document.body.appendChild(overlay);
+      options.document.addEventListener("keydown", onKeyDown, true);
 
       overlay
         .querySelector<HTMLElement>('[data-public-onboarding-action="start"]')
-        ?.addEventListener("click", start, { once: true });
+        ?.addEventListener("click", start);
       overlay
         .querySelector<HTMLElement>('[data-public-onboarding-action="skip"]')
         ?.addEventListener("click", skip, { once: true });
-
       overlay
-        .querySelector<HTMLElement>('[data-public-onboarding-action="start"]')
-        ?.focus();
+        .querySelector<HTMLElement>('[data-public-onboarding-action="complete"]')
+        ?.addEventListener("click", complete, { once: true });
+      overlay
+        .querySelector<HTMLElement>('[data-public-onboarding-action="back"]')
+        ?.addEventListener("click", back);
+
+      setStep("intro");
       return true;
     },
 
@@ -219,7 +383,7 @@ export function installPublicOnboarding(
     destroy(): void {
       if (destroyed) return;
       destroyed = true;
-      removeOverlay();
+      removeOverlay(false);
       options.document.removeEventListener(
         PUBLIC_ONBOARDING_COMPLETE_EVENT,
         onDocumentComplete,
