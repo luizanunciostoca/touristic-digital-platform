@@ -80,6 +80,67 @@ describe("fetchMorroWeather", () => {
     });
   });
 
+  it("drops malformed or unsafe provider dates before they reach the modal", async () => {
+    const fetchImplementation = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            temperatureCelsius: 28,
+            temperatureMaxCelsius: 31,
+            temperatureMinCelsius: 24,
+            humidityPercent: 78,
+            windSpeedKph: 18,
+            rainChancePercent: 42,
+            weatherCode: 1,
+            isDay: true,
+            forecast: [
+              {
+                date: '<img src=x onerror="globalThis.__weatherInjected=true">',
+                temperatureMaxCelsius: 31,
+                temperatureMinCelsius: 24,
+                humidityPercent: 78,
+                windSpeedKph: 18,
+                rainChancePercent: 42,
+                weatherCode: 1,
+              },
+              {
+                date: "2026-02-30",
+                temperatureMaxCelsius: 31,
+                temperatureMinCelsius: 24,
+                humidityPercent: 78,
+                windSpeedKph: 18,
+                rainChancePercent: 42,
+                weatherCode: 1,
+              },
+              {
+                date: "2026-09-13",
+                temperatureMaxCelsius: 30,
+                temperatureMinCelsius: 23,
+                humidityPercent: 77,
+                windSpeedKph: 17,
+                rainChancePercent: 35,
+                weatherCode: 2,
+              },
+            ],
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+    );
+
+    const result = await fetchMorroWeather(fetchImplementation);
+    expect(result.forecast).toEqual([
+      {
+        date: "2026-09-13",
+        temperatureMaxCelsius: 30,
+        temperatureMinCelsius: 23,
+        humidityPercent: 77,
+        windSpeedKph: 17,
+        rainChancePercent: 35,
+        weatherCode: 2,
+      },
+    ]);
+  });
+
   it("rejects runtime HTTP failures", async () => {
     const fetchImplementation = vi.fn(
       async () => new Response("", { status: 503 }),
