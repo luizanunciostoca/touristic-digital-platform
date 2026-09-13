@@ -199,7 +199,11 @@ describe("route recalculation core", () => {
       ({ signal }: { signal: AbortSignal }) =>
         new Promise<RouteFeatureCollection>((resolve) => {
           observedSignal = signal;
-          signal.addEventListener("abort", () => resolve(ROUTE), { once: true });
+          signal.addEventListener(
+            "abort",
+            () => resolve(ROUTE),
+            { once: true },
+          );
         }),
     );
     const onRouteAvailable = vi.fn();
