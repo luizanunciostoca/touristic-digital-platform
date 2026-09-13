@@ -56,7 +56,7 @@ export interface NavigationSessionBootstrapOptions {
     location: BrowserLocation,
     context: NavigationSessionEventContext,
   ) => void;
-  readonly onArrival?: () => void;
+  readonly onArrival?: (context: NavigationSessionEventContext) => void;
   readonly onAutoEnd?: () => void;
   readonly onRecalculation?: (route: RouteFeatureCollection) => void;
 }
@@ -246,7 +246,19 @@ export function createNavigationSessionBootstrap(
                   options.onLocation?.(location, eventContext),
               }
             : {}),
-          ...(options.onArrival ? { onArrival: options.onArrival } : {}),
+          ...(options.onArrival
+            ? {
+                onArrival: () => {
+                  if (
+                    activeSession?.id !== session.id ||
+                    !session.isActive()
+                  ) {
+                    return;
+                  }
+                  options.onArrival?.(eventContext);
+                },
+              }
+            : {}),
           ...(options.onAutoEnd ? { onAutoEnd: options.onAutoEnd } : {}),
           ...(options.onRecalculation
             ? { onRecalculation: options.onRecalculation }
