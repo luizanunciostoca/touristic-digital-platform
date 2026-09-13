@@ -32,6 +32,16 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Emit canonical formatting patch
+        run: |
+          pnpm exec prettier --write \
+            apps/morro-digital-platform/public/explore-locations.css \
+            apps/morro-digital-platform/src/map/explore-locations-control.ts \
+            apps/morro-digital-platform/src/map/explore-locations-control.test.ts
+          git diff -- \
+            apps/morro-digital-platform/public/explore-locations.css \
+            apps/morro-digital-platform/src/map/explore-locations-control.ts \
+            apps/morro-digital-platform/src/map/explore-locations-control.test.ts
       - name: Install deterministic Chromium
         run: |
           npm install --prefix /tmp/pw --no-save playwright@1.54.2
@@ -108,6 +118,12 @@ jobs:
             throw new Error(`Explore selection did not recenter the map: ${JSON.stringify(last)}`);
           }
 
+          async function waitForLoadingOverlay(page) {
+            await page.waitForFunction(() =>
+              document.getElementById('loading-overlay')?.classList.contains('fade-out') ?? true,
+            );
+          }
+
           (async () => {
             const browser = await chromium.launch({ headless: true });
             const evidence = {};
@@ -146,6 +162,7 @@ jobs:
                 state: 'attached',
                 timeout: 30000,
               });
+              await waitForLoadingOverlay(page);
 
               const categoryButtons = page.locator('#buttonGroup .control-button');
               if (await categoryButtons.count() !== 9) {
@@ -273,6 +290,7 @@ jobs:
             });
             await forcedColorsPage.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded', timeout: 30000 });
             await forcedColorsPage.locator('#map[data-map-state="ready"]').waitFor({ state: 'attached', timeout: 30000 });
+            await waitForLoadingOverlay(forcedColorsPage);
             await forcedColorsPage.locator('[data-explore-category="beaches"]').click();
             await forcedColorsPage.locator('#submenu[aria-hidden="false"]').waitFor({ state: 'visible' });
             if (!(await forcedColorsPage.locator('[data-location-name="Primeira Praia"]').isVisible())) {
