@@ -74,7 +74,11 @@ function openMeteoDailyHumidityMaximums(payload) {
   const humidityByDate = new Map();
   if (!Array.isArray(times) || !Array.isArray(values)) return humidityByDate;
 
-  for (let index = 0; index < Math.min(times.length, values.length); index += 1) {
+  for (
+    let index = 0;
+    index < Math.min(times.length, values.length);
+    index += 1
+  ) {
     const time = times[index];
     const humidity = values[index];
     if (
