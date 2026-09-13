@@ -23,7 +23,12 @@ function routeData(): RouteFeatureCollection {
   };
 }
 
-function setup(options: { failStart?: boolean } = {}) {
+function setup(
+  options: {
+    failStart?: boolean;
+    start?: NavigationSessionBootstrap["start"];
+  } = {},
+) {
   const records: Array<{ type: string; detail: unknown }> = [];
   const bridge: NavigationDomEventBridge = {
     started(detail) {
@@ -59,11 +64,13 @@ function setup(options: { failStart?: boolean } = {}) {
   };
 
   const bootstrap: NavigationSessionBootstrap = {
-    start: options.failStart
-      ? vi.fn(async () => {
-          throw new Error("route failed");
-        })
-      : vi.fn(async () => routeData()),
+    start:
+      options.start ??
+      (options.failStart
+        ? vi.fn(async () => {
+            throw new Error("route failed");
+          })
+        : vi.fn(async () => routeData())),
     stop: vi.fn(),
     isActive: () => false,
     getActiveSessionId: () => 7,
@@ -159,5 +166,23 @@ describe("navigation V1 event/state snapshot", () => {
         sessionId: null,
       },
     ]);
+  });
+
+  it("does not publish failed state from a bootstrap rejected after stop", async () => {
+    let rejectStart!: (reason: Error) => void;
+    const pendingStart = new Promise<RouteFeatureCollection>((_resolve, reject) => {
+      rejectStart = reject;
+    });
+    const context = setup({ start: vi.fn(() => pendingStart) });
+
+    const startPromise = context.lifecycle.start({
+      longitude: -38.916,
+      latitude: -13.375,
+    });
+    context.lifecycle.stop("cancelled");
+    rejectStart(new Error("late route failed"));
+
+    await expect(startPromise).rejects.toThrow("late route failed");
+    expect(compact(context.records)).toEqual([]);
   });
 });
