@@ -7,6 +7,7 @@ on:
       - .github/workflows/v1-explore-locations-browser-regression.yml
       - apps/morro-digital-platform/src/main.ts
       - apps/morro-digital-platform/src/browser-entry.ts
+      - apps/morro-digital-platform/src/assistant/assistant-shell-ui.ts
       - apps/morro-digital-platform/src/map/explore-locations-control.ts
       - apps/morro-digital-platform/src/map/explore-locations-control.test.ts
       - apps/morro-digital-platform/src/layouts/app-shell.ts
@@ -125,10 +126,25 @@ jobs:
 
           async function openAssistant(page) {
             const assistant = page.locator('#assistant-messages');
+            const quickAction = page.locator('.mood-button[data-assistant-shell-ready="true"]');
+            await quickAction.waitFor({ state: 'visible', timeout: 5000 });
             if (!(await assistant.isVisible())) {
-              await page.locator('.mood-button').click();
+              await quickAction.click();
             }
-            await assistant.waitFor({ state: 'visible', timeout: 5000 });
+            try {
+              await assistant.waitFor({ state: 'visible', timeout: 5000 });
+            } catch (error) {
+              const diagnostics = await page.evaluate(() => ({
+                assistantClass: document.getElementById('assistant-messages')?.className,
+                assistantAriaHidden: document.getElementById('assistant-messages')?.getAttribute('aria-hidden'),
+                quickActionReady: document.querySelector('.mood-button')?.getAttribute('data-assistant-shell-ready'),
+                quickActionExpanded: document.querySelector('.mood-button')?.getAttribute('aria-expanded'),
+                bodyClass: document.body.className,
+                onboardingVisible: Boolean(document.getElementById('onboarding-overlay')),
+                tourActive: document.body.classList.contains('tour-active'),
+              }));
+              throw new Error(`Assistant did not open after shell readiness: ${JSON.stringify(diagnostics)}; ${String(error)}`);
+            }
             if ((await assistant.getAttribute('aria-hidden')) !== 'false') {
               throw new Error('Visible assistant must expose aria-hidden="false"');
             }
