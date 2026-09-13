@@ -125,6 +125,9 @@ export function createPlatformOperations({
 
   function bindResponse(response, correlationId) {
     bindApprovedImportMapHashes(response);
+    if (production) {
+      response.setHeader("Strict-Transport-Security", "max-age=31536000");
+    }
     response.setHeader("X-Correlation-ID", correlationId);
     response.setHeader("X-Release-SHA", release.sha);
     response.setHeader("X-Release-Version", release.version);
