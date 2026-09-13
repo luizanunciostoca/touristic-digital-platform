@@ -51,11 +51,20 @@ interface StorageRow extends RowDataPacket {
 const BUCKET_MAX_LENGTH = 120;
 const OBJECT_KEY_MAX_LENGTH = 500;
 const bucketPattern = /^[A-Za-z0-9][A-Za-z0-9._-]*$/u;
-const controlCharacterPattern = /[\u0000-\u001f\u007f]/u;
 
 interface ValidStorageLocation {
   readonly bucket: string;
   readonly objectKey: string;
+}
+
+function containsControlCharacter(value: string): boolean {
+  for (const character of value) {
+    const codePoint = character.codePointAt(0);
+    if (codePoint !== undefined && (codePoint <= 0x1f || codePoint === 0x7f)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 function validateStorageLocation(
@@ -69,7 +78,7 @@ function validateStorageLocation(
     !bucketPattern.test(bucket) ||
     bucket === "." ||
     bucket === ".." ||
-    controlCharacterPattern.test(bucket)
+    containsControlCharacter(bucket)
   ) {
     throw new Error("CRM_STORAGE_BUCKET_INVALID");
   }
@@ -80,7 +89,7 @@ function validateStorageLocation(
     objectKey.length > OBJECT_KEY_MAX_LENGTH ||
     objectKey.startsWith("/") ||
     objectKey.includes("\\") ||
-    controlCharacterPattern.test(objectKey)
+    containsControlCharacter(objectKey)
   ) {
     throw new Error("CRM_STORAGE_OBJECT_KEY_INVALID");
   }
