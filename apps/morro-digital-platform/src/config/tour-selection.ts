@@ -12,6 +12,7 @@ export interface TourSelectionResult {
 
 export interface MorroTourSelectionController {
   readonly activeTourId: string | null;
+  reset(): void;
   selectTour(tourId: string): Promise<TourSelectionResult>;
   selectByKeyword(keyword: string): Promise<TourSelectionResult>;
 }
@@ -219,6 +220,10 @@ export function createMorroTourSelectionController(
   return Object.freeze({
     get activeTourId(): string | null {
       return activeTour?.id ?? null;
+    },
+
+    reset(): void {
+      activeTour = null;
     },
 
     async selectTour(tourId: string): Promise<TourSelectionResult> {
