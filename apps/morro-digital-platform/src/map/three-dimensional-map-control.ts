@@ -1,5 +1,7 @@
 import type { MapboxGlMapLike } from "@touristic/geospatial";
 
+export const MAP_CAMERA_FLATTENED_EVENT = "morro:map-camera-flattened";
+
 export interface ThreeDimensionalMapControlOptions {
   readonly document: Document;
   readonly resolveMap?: () => MapboxGlMapLike | undefined;
@@ -90,6 +92,12 @@ export function installThreeDimensionalMapControl({
     setAvailability(!knownFallback);
   };
 
+  const deactivate = (): void => {
+    if (destroyed || !active) return;
+    active = false;
+    renderState();
+  };
+
   const onClick = (): void => {
     if (!button || destroyed) return;
     const perspectiveMap = resolveMap() as PerspectiveMap | undefined;
@@ -121,6 +129,7 @@ export function installThreeDimensionalMapControl({
   renderState();
   refreshAvailability();
   button?.addEventListener("click", onClick);
+  document.addEventListener(MAP_CAMERA_FLATTENED_EVENT, deactivate);
 
   return Object.freeze({
     get active(): boolean {
@@ -131,6 +140,7 @@ export function installThreeDimensionalMapControl({
       destroyed = true;
       observer?.disconnect();
       button?.removeEventListener("click", onClick);
+      document.removeEventListener(MAP_CAMERA_FLATTENED_EVENT, deactivate);
       active = false;
       renderState();
       setAvailability(false);
