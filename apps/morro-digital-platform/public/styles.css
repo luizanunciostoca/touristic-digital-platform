@@ -283,6 +283,8 @@ header h1 {
   bottom: calc(var(--assistant-input-bottom) + var(--assistant-bar-height) + 0.6rem);
   z-index: 2100;
   display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .globe-map-control .map-control-button svg {
