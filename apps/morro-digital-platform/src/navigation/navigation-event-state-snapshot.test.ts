@@ -170,9 +170,11 @@ describe("navigation V1 event/state snapshot", () => {
 
   it("does not publish failed state from a bootstrap rejected after stop", async () => {
     let rejectStart!: (reason: Error) => void;
-    const pendingStart = new Promise<RouteFeatureCollection>((_resolve, reject) => {
-      rejectStart = reject;
-    });
+    const pendingStart = new Promise<RouteFeatureCollection>(
+      (_resolve, reject) => {
+        rejectStart = reject;
+      },
+    );
     const context = setup({ start: vi.fn(() => pendingStart) });
 
     const startPromise = context.lifecycle.start({
