@@ -87,24 +87,30 @@ jobs:
           }
 
           async function assertRestored(page, exitMode) {
-            const restored = await state(page);
-            const settled = await page.locator('body').getAttribute('data-public-onboarding-settled');
-            const persisted = await page.evaluate(() => localStorage.getItem('morro-digital-onboarded'));
-            if (
-              !restored.exists ||
-              restored.display === null ||
-              restored.visibility === null ||
-              restored.opacity === null ||
-              restored.display === 'none' ||
-              restored.visibility === 'hidden' ||
-              restored.opacity === '0' ||
-              restored.ariaHidden !== 'false' ||
-              settled !== 'true' ||
-              persisted !== '1'
-            ) {
-              throw new Error(`Assistant was not restored after ${exitMode}: ${JSON.stringify({ restored, settled, persisted })}`);
+            const deadline = Date.now() + 1500;
+            let snapshot = null;
+            while (Date.now() < deadline) {
+              const restored = await state(page);
+              const settled = await page.locator('body').getAttribute('data-public-onboarding-settled');
+              const persisted = await page.evaluate(() => localStorage.getItem('morro-digital-onboarded'));
+              snapshot = { restored, settled, persisted };
+              if (
+                restored.exists &&
+                restored.display !== null &&
+                restored.visibility !== null &&
+                restored.opacity !== null &&
+                restored.display !== 'none' &&
+                restored.visibility !== 'hidden' &&
+                restored.opacity === '1' &&
+                restored.ariaHidden === 'false' &&
+                settled === 'true' &&
+                persisted === '1'
+              ) {
+                return { ...restored, settled, persisted };
+              }
+              await new Promise(resolve => setTimeout(resolve, 50));
             }
-            return { ...restored, settled, persisted };
+            throw new Error(`Assistant was not restored after ${exitMode}: ${JSON.stringify(snapshot)}`);
           }
 
           async function resetAndStartTour(page) {
