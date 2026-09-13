@@ -42,52 +42,51 @@ Registrar, de forma explícita e auditável, os comportamentos da navegação V1
 - Quality Gate #476: success
 - cobre resposta de rota obsoleta após novo start e após stop, impedindo criação/ativação de wiring stale.
 
-## Blockers funcionais ainda abertos
-
 ### GAP-NAV-001 — Arrival lifecycle
 
-**Estado:** BLOCKED / NOT MATERIALIZED IN V2
+**Estado:** RESOLVED / MATERIALIZED IN V2
 
-A V1 possui contrato explícito de chegada no `navigationController.js`:
+- PR #43
+- merge `8be41e85b0ae9f02526af7a08496b8d429c9a14b`
+- exact-head aceito `2fc5ee91ecd657b82d1e52618525eb72c8bfb684`
+- Quality Gate #518: success
+- Navigation Visual Baseline #288: success
+- Navigation Accessibility Baseline #234: success
+- cobre sessão ativa, destino vinculado à sessão, fase observável `arrived`, idempotência herdada do lifecycle canônico e supressão explícita de callback stale após stop.
 
-- chegada só pode ser processada por sessão ativa;
-- o destino precisa ser resolvido antes da transição de fase;
-- a fase muda para `arrived` somente depois da validação;
-- a notificação/avanço associado não pode acontecer duas vezes;
-- callbacks tardios de uma sessão encerrada não podem sinalizar chegada.
-
-Fonte de contrato:
-
-- `js/navigation/navigationController/navigationController.js`
-- `js/navigation/navigationState/__tests__/navigation-session-contract.test.js`
-- test blob `4df4fd6fe7924198a0139e3ba44e62540fa8e167`
-
-**Critério de saída:** implementar um lifecycle de chegada V2 com sessão ativa, idempotência, evento/estado observável e testes de sessão stale.
+## Estado dos gaps funcionais
 
 ### GAP-NAV-002 — Route recalculation lifecycle
 
-**Estado:** BLOCKED / NOT MATERIALIZED IN V2
+**Estado:** RESOLVED / MATERIALIZED IN V2 — pending exact-head acceptance of PR #44 before merge
 
-A V1 possui recálculo vinculado à sessão atual:
+A implementação V2 já materializa o contrato V1 em `packages/navigation/src/recalculation.ts` e no bootstrap browser:
 
 - recálculo carrega o session id ativo;
 - request recebe o `AbortSignal` da sessão;
-- retries/esperas são canceláveis pela sessão;
-- apenas o recálculo ainda pertencente à sessão ativa pode publicar resultado;
-- supersession ou stop invalidam o recálculo anterior.
+- política explícita: até 3 tentativas, com esperas canceláveis de 2s e 4s;
+- apenas a sessão ainda ativa pode publicar a nova rota;
+- supersession invalida resposta tardia;
+- stop aborta request em andamento e cancela o backoff antes de nova tentativa.
 
-Fonte de contrato:
+Evidência proposta na PR #44:
+
+- teste determinístico de supersession já existente continua cobrindo resposta stale;
+- teste determinístico de stop comprova abort do request pelo signal da sessão e ausência de publicação stale;
+- teste determinístico de stop durante backoff comprova que nenhuma tentativa adicional é iniciada.
+
+Fonte de contrato V1:
 
 - `js/navigation/navigationController/navigationController.js`
 - `js/navigation/navigationState/__tests__/navigation-session-contract.test.js`
 
-**Critério de saída:** materializar recálculo V2 com request cancelável, política de retry explícita, proteção stale e testes determinísticos de supersession/stop.
+**Critério de saída:** satisfeito funcionalmente; fechamento canônico condicionado aos gates oficiais verdes no exact-head final da PR #44 e ao merge dessa PR.
 
 ## Blockers de baseline ainda abertos
 
 ### GAP-NAV-003 — Event/state snapshot
 
-Ainda falta congelar e comparar a sequência observável dos eventos/estados principais, incluindo pelo menos início, navegação ativa, encerramento, erro e chegada quando GAP-NAV-001 for resolvido.
+Ainda falta congelar e comparar a sequência observável dos eventos/estados principais, incluindo pelo menos início, navegação ativa, encerramento, erro e chegada.
 
 ### GAP-NAV-004 — Visual/camera executable baseline
 
@@ -104,7 +103,7 @@ Ainda falta captura executável V1 × V2 para:
 
 ## Regra de promoção
 
-`MIG-0005` deve permanecer `mapped` enquanto qualquer item `GAP-NAV-001` a `GAP-NAV-004` estiver aberto.
+`MIG-0005` deve permanecer `mapped` enquanto qualquer item `GAP-NAV-001` a `GAP-NAV-004` estiver aberto ou pendente de acceptance.
 
 A promoção para `snapshotted` exige, no mínimo:
 
@@ -117,4 +116,4 @@ A promoção para `snapshotted` exige, no mínimo:
 
 ## Decisão atual
 
-A migração já possui evidência forte de equivalência em geometry, routing, sessão e proteção contra resultados stale, mas isso ainda é **evidência parcial**. Não existe base técnica para promover `MIG-0005` acima de `mapped` neste momento.
+Arrival está materializado e integrado. Recalculation está materializado no runtime e a PR #44 adiciona a última evidência determinística de stop necessária para fechamento do GAP-NAV-002. `GAP-NAV-003` e `GAP-NAV-004` permanecem abertos; portanto `MIG-0005` continua obrigatoriamente em `mapped`.
