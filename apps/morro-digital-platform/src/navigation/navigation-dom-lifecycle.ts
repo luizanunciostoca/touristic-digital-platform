@@ -140,6 +140,16 @@ export function createNavigationDomLifecycle(
       } catch (error) {
         if (startGeneration === generation) {
           applyEndedState("start_failed", false);
+          eventBridge?.status({
+            phase: "failed",
+            hasRoute: false,
+            hasInstructions: false,
+            hasUserLocation: false,
+            isActive: false,
+            navigationSessionId: null,
+            destination: destinationLabel(destination),
+            timestamp: Date.now(),
+          });
         }
         throw error;
       }
