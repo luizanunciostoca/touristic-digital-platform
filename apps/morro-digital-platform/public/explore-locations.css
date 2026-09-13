@@ -1,0 +1,162 @@
+#controls {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--assistant-input-bottom) + var(--assistant-bar-height));
+  z-index: 2050;
+  width: 100%;
+  padding: 0 var(--spacing-md);
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.42) 0%, rgba(0, 0, 0, 0) 100%);
+  pointer-events: none;
+}
+
+#buttonGroup {
+  display: flex;
+  justify-content: flex-start;
+  gap: var(--spacing-sm);
+  overflow-x: auto;
+  padding: var(--spacing-sm) 0;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  pointer-events: auto;
+}
+
+#buttonGroup::-webkit-scrollbar {
+  display: none;
+}
+
+.control-button {
+  flex: 0 0 auto;
+  min-height: 2.75rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: var(--gray-800);
+  box-shadow: var(--shadow);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.control-button:hover,
+.control-button:focus-visible {
+  background: white;
+  box-shadow: var(--shadow-lg);
+}
+
+.control-button[aria-pressed="true"] {
+  background: var(--accent);
+  border-color: var(--accent-dark);
+  color: white;
+}
+
+#submenu {
+  z-index: 2150;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+}
+
+.submenu-title {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  margin: 0;
+}
+
+.close-button {
+  flex: 0 0 auto;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--gray-800);
+  font: inherit;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+.close-button:hover,
+.close-button:focus-visible {
+  background: var(--gray-100);
+}
+
+.submenu-location-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.submenu-item {
+  width: 100%;
+  padding: var(--spacing-md);
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--gray-800);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  align-items: center;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.submenu-item:hover,
+.submenu-item:focus-visible {
+  background: white;
+  transform: translateY(-0.125rem);
+  box-shadow: var(--shadow-lg);
+}
+
+.submenu-item-content {
+  min-width: 0;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+
+.submenu-item-title {
+  font-weight: 500;
+}
+
+.submenu-item-description {
+  margin-top: var(--spacing-xs);
+  color: #64748b;
+  font-size: var(--font-size-xs);
+  text-transform: capitalize;
+}
+
+@media (max-width: 480px) {
+  #controls {
+    padding-inline: var(--spacing-sm);
+  }
+
+  .control-button {
+    min-height: 2.625rem;
+    padding-inline: 0.8rem;
+  }
+
+  .submenu-item {
+    padding: var(--spacing-sm);
+  }
+}
+
+@media (forced-colors: active) {
+  .control-button,
+  .submenu-item,
+  .close-button {
+    border: 1px solid ButtonText;
+  }
+
+  .control-button[aria-pressed="true"] {
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
+  }
+}
