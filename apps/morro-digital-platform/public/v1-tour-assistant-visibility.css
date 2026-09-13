@@ -1,0 +1,13 @@
+/*
+ * V1 interactive-tour display contract.
+ *
+ * The V2 controller already marks the three assistant-focused tutorial steps
+ * with `tour-show-assistant-modal-step`. Keep the canonical assistant DOM and
+ * its measurable geometry available to the target resolver while hiding the
+ * message surface during the other active tutorial steps.
+ */
+body.tour-active:not(.tour-show-assistant-modal-step) #assistant-messages {
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
