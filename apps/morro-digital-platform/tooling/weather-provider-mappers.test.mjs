@@ -53,7 +53,7 @@ describe("weather provider mapping", () => {
     });
   });
 
-  it("maps Open-Meteo daily forecast arrays", () => {
+  it("maps Open-Meteo daily fields and derives daily humidity from hourly data", () => {
     const result = mapOpenMeteoWeatherPayload({
       current: {
         temperature_2m: 27.5,
@@ -62,13 +62,21 @@ describe("weather provider mapping", () => {
         weather_code: 2,
         is_day: 1,
       },
+      hourly: {
+        time: [
+          "2026-09-12T00:00",
+          "2026-09-12T12:00",
+          "2026-09-13T00:00",
+          "2026-09-13T12:00",
+        ],
+        relative_humidity_2m: [76, 80, 81, 84],
+      },
       daily: {
         time: ["2026-09-12", "2026-09-13"],
         temperature_2m_max: [31, 30],
         temperature_2m_min: [24, 23],
         precipitation_probability_max: [30, 60],
         weather_code: [2, 61],
-        relative_humidity_2m_max: [80, 84],
         wind_speed_10m_max: [18, 21],
       },
     });
@@ -84,6 +92,7 @@ describe("weather provider mapping", () => {
       rainChancePercent: 30,
       weatherCode: 2,
     });
+    expect(result.forecast[1]?.humidityPercent).toBe(84);
   });
 
   it("falls back from Visual Crossing to Open-Meteo", async () => {
