@@ -1,0 +1,139 @@
+name: V1 Tour Assistant Visibility Browser Regression
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/v1-tour-assistant-visibility-browser-regression.yml
+      - apps/morro-digital-platform/public/index.html
+      - apps/morro-digital-platform/public/v1-tour-assistant-visibility.css
+      - apps/morro-digital-platform/public/legacy/css/components/interactive-tour.css
+      - apps/morro-digital-platform/src/onboarding/public-onboarding.ts
+      - apps/morro-digital-platform/src/onboarding/public-interactive-tour.ts
+      - apps/morro-digital-platform/src/layouts/app-shell.ts
+      - apps/morro-digital-platform/tooling/dev-server.mjs
+      - package.json
+      - pnpm-lock.yaml
+
+permissions:
+  contents: read
+
+jobs:
+  v1-tour-assistant-visibility:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install deterministic Chromium
+        run: |
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+          mkdir -p /tmp/v1-tour-assistant-visibility
+      - name: Build workspace
+        run: pnpm -w build
+      - name: Start fallback runtime
+        run: |
+          node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/v1-tour-assistant-visibility/server.log 2>&1 &
+          echo $! >/tmp/v1-tour-assistant-visibility/server.pid
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:4173/runtime-config.js >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/v1-tour-assistant-visibility/server.log
+          exit 1
+      - name: Validate V1 assistant display sequence
+        run: |
+          node <<'NODE'
+          const { writeFileSync } = require('node:fs');
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+          const outputDir = '/tmp/v1-tour-assistant-visibility';
+
+          async function state(page) {
+            return page.evaluate(() => {
+              const assistant = document.getElementById('assistant-messages');
+              const style = assistant ? getComputedStyle(assistant) : null;
+              return {
+                label: document.querySelector('.tour-step-label')?.textContent?.trim() ?? null,
+                display: style?.display ?? null,
+                visibility: style?.visibility ?? null,
+                opacity: style?.opacity ?? null,
+                target: document.querySelector('.tour-target-active')?.id ||
+                  document.querySelector('.tour-target-active')?.className || null,
+              };
+            });
+          }
+
+          async function assertVisibility(page, step, visible) {
+            await page.locator('.tour-step-label').filter({ hasText: `Passo ${step} de 7` }).waitFor({ state: 'visible' });
+            const current = await state(page);
+            const actuallyVisible = current.display !== 'none' && current.visibility !== 'hidden' && current.opacity !== '0';
+            if (actuallyVisible !== visible) {
+              throw new Error(`Step ${step} assistant visibility diverged: ${JSON.stringify(current)}`);
+            }
+            return current;
+          }
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+            const page = await context.newPage();
+            const errors = [];
+            page.on('pageerror', error => errors.push(error.message));
+
+            await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded', timeout: 30000 });
+            await page.locator('#map[data-map-state="ready"][data-home-state="ready"]').waitFor({ state: 'attached', timeout: 20000 });
+            await page.locator('#onboarding-overlay').waitFor({ state: 'visible', timeout: 5000 });
+            await page.locator('[data-public-onboarding-action="start"]').click();
+            await page.locator('#tour-tooltip').waitFor({ state: 'visible', timeout: 3000 });
+
+            const evidence = [];
+            evidence.push(await assertVisibility(page, 1, false));
+            for (let step = 2; step <= 7; step += 1) {
+              await page.locator('.tour-btn-next').click();
+              evidence.push(await assertVisibility(page, step, step >= 4 && step <= 6));
+            }
+
+            await page.locator('.tour-btn-finish').click();
+            await page.locator('#tour-tooltip').waitFor({ state: 'detached', timeout: 3000 });
+            const finished = await page.evaluate(() => {
+              const assistant = document.getElementById('assistant-messages');
+              const style = assistant ? getComputedStyle(assistant) : null;
+              return {
+                display: style?.display ?? null,
+                visibility: style?.visibility ?? null,
+                ariaHidden: assistant?.getAttribute('aria-hidden') ?? null,
+              };
+            });
+            if (finished.display === 'none' || finished.visibility === 'hidden' || finished.ariaHidden !== 'false') {
+              throw new Error(`Assistant was not restored after tutorial: ${JSON.stringify(finished)}`);
+            }
+            if (errors.length) throw new Error(`Browser errors: ${JSON.stringify(errors)}`);
+
+            await page.screenshot({ path: `${outputDir}/final-assistant-restored.png`, fullPage: false, animations: 'disabled' });
+            writeFileSync(`${outputDir}/evidence.json`, JSON.stringify({ evidence, finished, errors }, null, 2));
+            await browser.close();
+          })().catch(error => {
+            writeFileSync(`${outputDir}/failure.txt`, String(error?.stack || error));
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+      - name: Show diagnostics
+        if: failure()
+        run: |
+          cat /tmp/v1-tour-assistant-visibility/server.log || true
+          cat /tmp/v1-tour-assistant-visibility/failure.txt || true
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: v1-tour-assistant-visibility-evidence
+          path: /tmp/v1-tour-assistant-visibility
+          retention-days: 7
+          if-no-files-found: error
