@@ -6,6 +6,7 @@ on:
     paths:
       - .github/workflows/v1-explore-locations-browser-regression.yml
       - apps/morro-digital-platform/src/main.ts
+      - apps/morro-digital-platform/src/browser-entry.ts
       - apps/morro-digital-platform/src/map/explore-locations-control.ts
       - apps/morro-digital-platform/src/map/explore-locations-control.test.ts
       - apps/morro-digital-platform/src/layouts/app-shell.ts
@@ -56,7 +57,7 @@ jobs:
           done
           cat /tmp/v1-explore-locations/server.log
           exit 1
-      - name: Validate V1 controls, submenu, selection and accessibility
+      - name: Validate assistant categories, POI markers, selection and accessibility
         run: |
           node <<'NODE'
           const { writeFileSync } = require('node:fs');
@@ -115,6 +116,24 @@ jobs:
             });
           }
 
+          async function waitForMarkerCount(page, count) {
+            await page.locator(`#map[data-map-marker-count="${count}"]`).waitFor({
+              state: 'attached',
+              timeout: 5000,
+            });
+          }
+
+          async function openAssistant(page) {
+            const assistant = page.locator('#assistant-messages');
+            if (await assistant.getAttribute('aria-hidden') === 'true') {
+              await page.locator('.mood-button').click();
+            }
+            await page.locator('#assistant-messages[aria-hidden="false"]').waitFor({
+              state: 'visible',
+              timeout: 5000,
+            });
+          }
+
           (async () => {
             const browser = await chromium.launch({ headless: true });
             const evidence = {};
@@ -154,30 +173,40 @@ jobs:
                 timeout: 30000,
               });
               await waitForLoadingOverlay(page);
+              await openAssistant(page);
 
-              const categoryButtons = page.locator('#buttonGroup .control-button');
+              if (await page.locator('#controls').count() !== 0) {
+                throw new Error(`Duplicate external category rail still exists in ${viewport.id}`);
+              }
+
+              const categoryButtons = page.locator('.assistant-options .assistant-option-btn[data-explore-category]');
               if (await categoryButtons.count() !== 9) {
-                throw new Error(`Expected 9 V1 location categories in ${viewport.id}`);
+                throw new Error(`Expected 9 assistant-owned location categories in ${viewport.id}`);
               }
 
               for (const [category, count] of Object.entries(expectedCounts)) {
-                const trigger = page.locator(`[data-explore-category="${category}"]`);
+                const trigger = page.locator(`#assistant-category-${category}`);
+                if (await trigger.count() !== 1) {
+                  throw new Error(`${viewport.id}/${category}: assistant category id is missing or duplicated`);
+                }
                 await trigger.click();
                 await page.locator('#submenu[aria-hidden="false"]').waitFor({ state: 'visible' });
                 const actual = await page.locator(`#submenuContainer [data-location-category="${category}"]`).count();
                 if (actual !== count) {
                   throw new Error(`${viewport.id}/${category}: expected ${count}, received ${actual}`);
                 }
+                await waitForMarkerCount(page, count);
                 await page.keyboard.press('Escape');
               }
 
-              const beaches = page.locator('[data-explore-category="beaches"]');
+              const beaches = page.locator('#assistant-category-beaches');
               await beaches.focus();
               await page.keyboard.press('Enter');
               await page.locator('#submenu[aria-hidden="false"]').waitFor({ state: 'visible' });
+              await waitForMarkerCount(page, 8);
               const keyboardState = await page.evaluate(() => ({
-                expanded: document.querySelector('[data-explore-category="beaches"]')?.getAttribute('aria-expanded'),
-                pressed: document.querySelector('[data-explore-category="beaches"]')?.getAttribute('aria-pressed'),
+                expanded: document.getElementById('assistant-category-beaches')?.getAttribute('aria-expanded'),
+                pressed: document.getElementById('assistant-category-beaches')?.getAttribute('aria-pressed'),
                 itemCount: document.querySelectorAll('#submenuContainer [data-location-category="beaches"]').length,
                 firstItemFocused: document.activeElement?.getAttribute('data-location-name') === 'Primeira Praia',
               }));
@@ -192,7 +221,7 @@ jobs:
               await page.keyboard.press('Escape');
               const escapeState = await page.evaluate(() => ({
                 hidden: document.getElementById('submenu')?.getAttribute('aria-hidden'),
-                focusReturned: document.activeElement?.getAttribute('data-explore-category') === 'beaches',
+                focusReturned: document.activeElement?.id === 'assistant-category-beaches',
               }));
               if (escapeState.hidden !== 'true' || !escapeState.focusReturned) {
                 throw new Error(`Escape/focus-return contract diverged in ${viewport.id}: ${JSON.stringify(escapeState)}`);
@@ -250,7 +279,7 @@ jobs:
                 !selectionState.assistantVisible ||
                 !selectionState.selectedValues.includes('Fale sobre Primeira Praia') ||
                 selectionState.activeTour !== null ||
-                selectionState.markerCount !== '0'
+                selectionState.markerCount !== '8'
               ) {
                 throw new Error(`Location selection contract diverged in ${viewport.id}: ${JSON.stringify(selectionState)}`);
               }
@@ -291,7 +320,8 @@ jobs:
             await forcedColorsPage.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded', timeout: 30000 });
             await forcedColorsPage.locator('#map[data-map-state="ready"]').waitFor({ state: 'attached', timeout: 30000 });
             await waitForLoadingOverlay(forcedColorsPage);
-            await forcedColorsPage.locator('[data-explore-category="beaches"]').click();
+            await openAssistant(forcedColorsPage);
+            await forcedColorsPage.locator('#assistant-category-beaches').click();
             await forcedColorsPage.locator('#submenu[aria-hidden="false"]').waitFor({ state: 'visible' });
             if (!(await forcedColorsPage.locator('[data-location-name="Primeira Praia"]').isVisible())) {
               throw new Error('Forced-colors explore surface is not visible');
