@@ -168,21 +168,26 @@ describe("navigation V1 event/state snapshot", () => {
     ]);
   });
 
-  it("does not publish failed state from a bootstrap rejected after stop", async () => {
-    let rejectStart!: (reason: Error) => void;
-    const pendingStart = new Promise<RouteFeatureCollection>((_resolve, reject) => {
-      rejectStart = reject;
-    });
-    const context = setup({ start: vi.fn(() => pendingStart) });
+  it(
+    "does not publish failed state from a bootstrap rejected after stop",
+    async () => {
+      let rejectStart!: (reason: Error) => void;
+      const pendingStart = new Promise<RouteFeatureCollection>(
+        (_resolve, reject) => {
+          rejectStart = reject;
+        },
+      );
+      const context = setup({ start: vi.fn(() => pendingStart) });
 
-    const startPromise = context.lifecycle.start({
-      longitude: -38.916,
-      latitude: -13.375,
-    });
-    context.lifecycle.stop("cancelled");
-    rejectStart(new Error("late route failed"));
+      const startPromise = context.lifecycle.start({
+        longitude: -38.916,
+        latitude: -13.375,
+      });
+      context.lifecycle.stop("cancelled");
+      rejectStart(new Error("late route failed"));
 
-    await expect(startPromise).rejects.toThrow("late route failed");
-    expect(compact(context.records)).toEqual([]);
-  });
+      await expect(startPromise).rejects.toThrow("late route failed");
+      expect(compact(context.records)).toEqual([]);
+    },
+  );
 });
