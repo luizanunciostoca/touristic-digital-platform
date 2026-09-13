@@ -53,7 +53,7 @@ const TOUR_CAMERA_TIMEOUT_MS = 3500;
 const SPLASH_VISIBLE_MS = 800;
 const SPLASH_FADE_MS = 550;
 
-bootstrapMorroDigitalApplication(document);
+const application = bootstrapMorroDigitalApplication(document);
 initializeWeatherWidget({ document });
 
 function setupV1ShellInteractions(): void {
@@ -467,6 +467,7 @@ async function startBrowserWithProvider(provider: ResolvedMapProvider) {
 async function start(): Promise<void> {
   const provider = await resolveMapProvider();
   const result = await startBrowserWithProvider(provider);
+  application.exploreLocations.setGeospatialEngine(result.geospatialEngine);
 
   mapContainer?.removeAttribute("data-active-tour");
   mapContainer?.setAttribute("data-tour-state", "idle");
@@ -543,6 +544,7 @@ async function start(): Promise<void> {
 }
 
 void start().catch((error: unknown) => {
+  application.exploreLocations.setGeospatialEngine(undefined);
   const message =
     error instanceof Error ? error.message : "Falha desconhecida no runtime.";
   updateStatus(`Falha ao iniciar o Morro Digital: ${message}`);
