@@ -108,10 +108,16 @@ jobs:
               return {
                 display: style?.display ?? null,
                 visibility: style?.visibility ?? null,
+                opacity: style?.opacity ?? null,
                 ariaHidden: assistant?.getAttribute('aria-hidden') ?? null,
               };
             });
-            if (finished.display === 'none' || finished.visibility === 'hidden' || finished.ariaHidden !== 'false') {
+            if (
+              finished.display === 'none' ||
+              finished.visibility === 'hidden' ||
+              finished.opacity === '0' ||
+              finished.ariaHidden !== 'false'
+            ) {
               throw new Error(`Assistant was not restored after tutorial: ${JSON.stringify(finished)}`);
             }
             if (errors.length) throw new Error(`Browser errors: ${JSON.stringify(errors)}`);
