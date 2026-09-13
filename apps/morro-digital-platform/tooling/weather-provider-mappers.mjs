@@ -68,6 +68,33 @@ export function mapVisualCrossingWeatherPayload(payload) {
   };
 }
 
+function openMeteoDailyHumidityMaximums(payload) {
+  const times = payload?.hourly?.time;
+  const values = payload?.hourly?.relative_humidity_2m;
+  const humidityByDate = new Map();
+  if (!Array.isArray(times) || !Array.isArray(values)) return humidityByDate;
+
+  for (let index = 0; index < Math.min(times.length, values.length); index += 1) {
+    const time = times[index];
+    const humidity = values[index];
+    if (
+      typeof time !== "string" ||
+      typeof humidity !== "number" ||
+      !Number.isFinite(humidity)
+    ) {
+      continue;
+    }
+    const date = time.slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/u.test(date)) continue;
+    const previous = humidityByDate.get(date);
+    if (typeof previous !== "number" || humidity > previous) {
+      humidityByDate.set(date, humidity);
+    }
+  }
+
+  return humidityByDate;
+}
+
 export function mapOpenMeteoWeatherPayload(payload) {
   const current = payload?.current;
   const daily = payload?.daily;
@@ -84,13 +111,15 @@ export function mapOpenMeteoWeatherPayload(payload) {
     throw new Error("Open-Meteo returned incomplete current conditions.");
   }
 
+  const humidityByDate = openMeteoDailyHumidityMaximums(payload);
   const forecast = Array.isArray(daily?.time)
     ? daily.time.slice(0, 7).flatMap((date, index) => {
         const temperatureMax = daily?.temperature_2m_max?.[index];
         const temperatureMin = daily?.temperature_2m_min?.[index];
         const rainChance = daily?.precipitation_probability_max?.[index];
         const weatherCode = daily?.weather_code?.[index];
-        const humidity = daily?.relative_humidity_2m_max?.[index];
+        const humidity =
+          typeof date === "string" ? humidityByDate.get(date) : undefined;
         const windSpeed = daily?.wind_speed_10m_max?.[index];
         if (
           typeof date !== "string" ||
