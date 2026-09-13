@@ -54,39 +54,45 @@ Registrar, de forma explícita e auditável, os comportamentos da navegação V1
 - Navigation Accessibility Baseline #234: success
 - cobre sessão ativa, destino vinculado à sessão, fase observável `arrived`, idempotência herdada do lifecycle canônico e supressão explícita de callback stale após stop.
 
-## Estado dos gaps funcionais
-
 ### GAP-NAV-002 — Route recalculation lifecycle
 
-**Estado:** RESOLVED / MATERIALIZED IN V2 — pending exact-head acceptance of PR #44 before merge
+**Estado:** RESOLVED / MATERIALIZED IN V2
 
-A implementação V2 já materializa o contrato V1 em `packages/navigation/src/recalculation.ts` e no bootstrap browser:
+- PR #44
+- merge `ed0f93a18d9137dedd444f85e49752a467ef8e47`
+- exact-head aceito `87fbe2ee201c8c66923d9275b5bad01d8b7d1e0d`
+- Quality Gate #534: success
+- Navigation Visual Baseline #304: success
+- Navigation Accessibility Baseline #250: success
+- Business Onboarding Profile Browser Contract #340: success
+- Business Onboarding Adapter Browser Contract #340: success
+- Business Onboarding Route Browser Contract #340: success
+- cobre request com `AbortSignal` da sessão, política 3 tentativas/2s/4s, supressão de rota stale, abort no stop e cancelamento de backoff sem nova tentativa.
 
-- recálculo carrega o session id ativo;
-- request recebe o `AbortSignal` da sessão;
-- política explícita: até 3 tentativas, com esperas canceláveis de 2s e 4s;
-- apenas a sessão ainda ativa pode publicar a nova rota;
-- supersession invalida resposta tardia;
-- stop aborta request em andamento e cancela o backoff antes de nova tentativa.
-
-Evidência proposta na PR #44:
-
-- teste determinístico de supersession já existente continua cobrindo resposta stale;
-- teste determinístico de stop comprova abort do request pelo signal da sessão e ausência de publicação stale;
-- teste determinístico de stop durante backoff comprova que nenhuma tentativa adicional é iniciada.
-
-Fonte de contrato V1:
-
-- `js/navigation/navigationController/navigationController.js`
-- `js/navigation/navigationState/__tests__/navigation-session-contract.test.js`
-
-**Critério de saída:** satisfeito funcionalmente; fechamento canônico condicionado aos gates oficiais verdes no exact-head final da PR #44 e ao merge dessa PR.
-
-## Blockers de baseline ainda abertos
+## Estado dos gaps funcionais
 
 ### GAP-NAV-003 — Event/state snapshot
 
-Ainda falta congelar e comparar a sequência observável dos eventos/estados principais, incluindo pelo menos início, navegação ativa, encerramento, erro e chegada.
+**Estado:** MATERIALIZED IN CANDIDATE — pending exact-head acceptance before merge
+
+A auditoria identificou um gap funcional real: a V2 já publicava início/estado ativo, encerramento e chegada, mas uma falha de bootstrap não produzia o estado observável `failed` exigido pelo contrato de snapshot.
+
+O candidate `fix/v1-navigation-event-state-snapshot-20260913` materializa e congela:
+
+- `navigationStarted` seguido de `navigationStatusChanged(active)`;
+- `navigationEnded(cancelled)` seguido de `navigationStatusChanged(ended)`;
+- `navigationEnded(arrived)` seguido de `navigationStatusChanged(arrived)`;
+- falha de bootstrap publicada como `navigationStatusChanged(failed)`, sem ativar sessão, rota ou UI;
+- session id presente somente enquanto a navegação está ativa e removido nos estados terminais.
+
+Evidência executável:
+
+- `apps/morro-digital-platform/src/navigation/navigation-event-state-snapshot.test.ts`;
+- `apps/morro-digital-platform/src/navigation/navigation-dom-lifecycle.ts` publica agora o snapshot `failed` apenas quando a geração de start ainda é a geração corrente, preservando a proteção contra callback stale/superseded.
+
+**Critério de saída:** Quality Gate e baselines aplicáveis verdes no exact-head final, seguido de merge.
+
+## Blockers de baseline ainda abertos
 
 ### GAP-NAV-004 — Visual/camera executable baseline
 
@@ -116,4 +122,4 @@ A promoção para `snapshotted` exige, no mínimo:
 
 ## Decisão atual
 
-Arrival está materializado e integrado. Recalculation está materializado no runtime e a PR #44 adiciona a última evidência determinística de stop necessária para fechamento do GAP-NAV-002. `GAP-NAV-003` e `GAP-NAV-004` permanecem abertos; portanto `MIG-0005` continua obrigatoriamente em `mapped`.
+Arrival e recalculation estão materializados e integrados. O GAP-NAV-003 está materializado em candidate e aguarda acceptance do exact-head. O GAP-NAV-004 permanece aberto; portanto `MIG-0005` continua obrigatoriamente em `mapped`.
