@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { installThreeDimensionalMapControl } from "./three-dimensional-map-control.js";
+import {
+  installThreeDimensionalMapControl,
+  MAP_CAMERA_FLATTENED_EVENT,
+} from "./three-dimensional-map-control.js";
 
 function createClassList() {
   const values = new Set<string>();
@@ -57,6 +60,7 @@ const elements = new Map<string, ReturnType<typeof createElement>>();
 
 function fixture(provider: "mapbox" | "leaflet") {
   elements.clear();
+  const documentListeners = new Map<string, EventListener>();
   const body = createElement("BODY");
   const mapElement = createElement();
   mapElement.id = "map";
@@ -74,6 +78,16 @@ function fixture(provider: "mapbox" | "leaflet") {
     },
     createElement(tagName: string) {
       return createElement(tagName.toUpperCase());
+    },
+    addEventListener(type: string, listener: EventListener) {
+      documentListeners.set(type, listener);
+    },
+    removeEventListener(type: string) {
+      documentListeners.delete(type);
+    },
+    dispatchEvent(event: Event) {
+      documentListeners.get(event.type)?.(event);
+      return true;
     },
   } as unknown as Document;
 
@@ -118,6 +132,27 @@ describe("installThreeDimensionalMapControl", () => {
       duration: 10,
       essential: true,
     });
+  });
+
+  it("clears 3D state when another map control flattens the camera", () => {
+    const view = fixture("mapbox");
+    const control = installThreeDimensionalMapControl({
+      document: view.document,
+      resolveMap: () => ({ setCenter: vi.fn(), remove: vi.fn(), easeTo: vi.fn() }),
+    });
+    const button = view.document.getElementById(
+      "toggle-3d-mode",
+    ) as HTMLButtonElement;
+
+    button.click();
+    view.document.dispatchEvent({ type: MAP_CAMERA_FLATTENED_EVENT } as Event);
+
+    expect(control.active).toBe(false);
+    expect(button.getAttribute("aria-pressed")).toBe("false");
+    expect(button.classList.contains("active")).toBe(false);
+    expect(view.mapElement.getAttribute("data-3d-view")).toBe("false");
+    expect(view.body.classList.contains("map-3d-mode")).toBe(false);
+    expect(view.body.classList.contains("navigation-3d-active")).toBe(false);
   });
 
   it("fails closed for a known non-Mapbox fallback provider", () => {
