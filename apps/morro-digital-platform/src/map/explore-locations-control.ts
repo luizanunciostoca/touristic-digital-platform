@@ -1,5 +1,9 @@
 import { getAssistantMainMenu } from "@touristic/assistant";
-import type { GeospatialEngine, MapboxGlMapLike, MapMarker } from "@touristic/geospatial";
+import type {
+  GeospatialEngine,
+  MapboxGlMapLike,
+  MapMarker,
+} from "@touristic/geospatial";
 import {
   morroV1SearchCatalog,
   type MorroV1SearchCatalogItem,
