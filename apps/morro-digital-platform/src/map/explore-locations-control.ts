@@ -76,9 +76,15 @@ function currentMap(): MapboxGlMapLike | undefined {
 
 function clearTourPresentation(document: Document): void {
   const map = currentMap();
-  if (map?.getLayer?.(TOUR_ROUTE_LAYER)) map.removeLayer?.(TOUR_ROUTE_LAYER);
-  if (map?.getLayer?.(TOUR_ROUTE_OUTLINE)) map.removeLayer?.(TOUR_ROUTE_OUTLINE);
-  if (map?.getSource?.(TOUR_ROUTE_SOURCE)) map.removeSource?.(TOUR_ROUTE_SOURCE);
+  if (map?.getLayer?.(TOUR_ROUTE_LAYER)) {
+    map.removeLayer?.(TOUR_ROUTE_LAYER);
+  }
+  if (map?.getLayer?.(TOUR_ROUTE_OUTLINE)) {
+    map.removeLayer?.(TOUR_ROUTE_OUTLINE);
+  }
+  if (map?.getSource?.(TOUR_ROUTE_SOURCE)) {
+    map.removeSource?.(TOUR_ROUTE_SOURCE);
+  }
 
   const tourSelect = document.getElementById("tour-select");
   if (tourSelect instanceof HTMLSelectElement) tourSelect.selectedIndex = -1;
