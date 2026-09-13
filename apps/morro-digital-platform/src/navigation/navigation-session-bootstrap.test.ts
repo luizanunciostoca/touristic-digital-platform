@@ -15,7 +15,10 @@ import type {
   BrowserNavigationWiring,
   BrowserNavigationWiringOptions,
 } from "./browser-navigation-wiring.js";
-import { createNavigationSessionBootstrap } from "./navigation-session-bootstrap.js";
+import {
+  createNavigationSessionBootstrap,
+  type NavigationSessionEventContext,
+} from "./navigation-session-bootstrap.js";
 
 function routeData(): RouteFeatureCollection {
   return {
@@ -35,7 +38,7 @@ function routeData(): RouteFeatureCollection {
   };
 }
 
-function setup() {
+function setup(onArrival?: (context: NavigationSessionEventContext) => void) {
   const map: MapboxGlMapLike = { setCenter: vi.fn(), remove: vi.fn() };
   const sdk = {
     accessToken: "token",
@@ -72,6 +75,7 @@ function setup() {
     resolveStartCoordinate,
     requestRouteImpl,
     createWiring,
+    ...(onArrival ? { onArrival } : {}),
   });
 
   return {
@@ -159,6 +163,19 @@ describe("navigation session bootstrap", () => {
 
     expect(context.wiringStop).toHaveBeenCalledTimes(1);
     expect(context.bootstrap.isActive()).toBe(false);
+  });
+
+  it("suppresses an arrival callback after its session is stopped", async () => {
+    const onArrival = vi.fn<(context: NavigationSessionEventContext) => void>();
+    const context = setup(onArrival);
+    await context.bootstrap.start({ longitude: -38.916, latitude: -13.375 });
+    const staleOnArrival = context.createWiring.mock.calls[0]?.[0].onArrival;
+
+    expect(staleOnArrival).toBeTypeOf("function");
+    context.bootstrap.stop();
+    staleOnArrival?.();
+
+    expect(onArrival).not.toHaveBeenCalled();
   });
 
   it("cancels an in-flight start when a newer session begins", async () => {
