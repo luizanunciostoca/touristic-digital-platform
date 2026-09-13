@@ -43,9 +43,10 @@ export function clearAssistantDomOptions(document: Document): void {
   const area = getMessagesArea(document);
   if (!area) return;
 
-  for (const container of area.querySelectorAll<HTMLElement>(
-    ".assistant-options",
-  )) {
+  const containers = Array.from(
+    area.querySelectorAll<HTMLElement>(".assistant-options"),
+  );
+  for (const container of containers) {
     // The initial category buttons are a persistent shell-owned navigation
     // surface. Dynamic response options may be replaced, but this surface must
     // survive Search-to-Details responses so users can choose another category.
