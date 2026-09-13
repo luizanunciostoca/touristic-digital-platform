@@ -40,9 +40,11 @@ export function installGlobalViewControl({
   let destroyed = false;
   let isGlobal = button?.classList.contains("active") ?? false;
 
-  const canTransition = Boolean(
-    cameraMap.easeTo || (cameraMap.fitBounds && cameraMap.setZoom),
-  );
+  const canEaseTo = typeof Reflect.get(cameraMap, "easeTo") === "function";
+  const canFallbackTransition =
+    typeof Reflect.get(cameraMap, "fitBounds") === "function" &&
+    typeof Reflect.get(cameraMap, "setZoom") === "function";
+  const canTransition = canEaseTo || canFallbackTransition;
 
   const setButtonAvailability = (enabled: boolean): void => {
     if (!button) return;
