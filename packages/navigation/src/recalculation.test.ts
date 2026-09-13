@@ -199,7 +199,11 @@ describe("route recalculation core", () => {
       ({ signal }: { signal: AbortSignal }) =>
         new Promise<RouteFeatureCollection>((resolve) => {
           observedSignal = signal;
-          signal.addEventListener("abort", () => resolve(ROUTE), { once: true });
+          signal.addEventListener(
+            "abort",
+            () => resolve(ROUTE),
+            { once: true },
+          );
         }),
     );
     const onRouteAvailable = vi.fn();
@@ -244,7 +248,6 @@ describe("route recalculation core", () => {
     expect(requestRoute).toHaveBeenCalledTimes(1);
 
     session.cancel("stopped");
-    await vi.runAllTimersAsync();
 
     await expect(pending).resolves.toMatchObject({
       success: false,
@@ -253,5 +256,6 @@ describe("route recalculation core", () => {
       attempts: 1,
     });
     expect(requestRoute).toHaveBeenCalledTimes(1);
+    expect(vi.getTimerCount()).toBe(0);
   });
 });
