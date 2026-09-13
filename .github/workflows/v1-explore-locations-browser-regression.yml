@@ -125,13 +125,13 @@ jobs:
 
           async function openAssistant(page) {
             const assistant = page.locator('#assistant-messages');
-            if (await assistant.getAttribute('aria-hidden') === 'true') {
+            if (!(await assistant.isVisible())) {
               await page.locator('.mood-button').click();
             }
-            await page.locator('#assistant-messages[aria-hidden="false"]').waitFor({
-              state: 'visible',
-              timeout: 5000,
-            });
+            await assistant.waitFor({ state: 'visible', timeout: 5000 });
+            if ((await assistant.getAttribute('aria-hidden')) !== 'false') {
+              throw new Error('Visible assistant must expose aria-hidden="false"');
+            }
           }
 
           (async () => {
