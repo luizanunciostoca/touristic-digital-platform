@@ -285,6 +285,7 @@ export function installExploreLocationsControl({
   const onKeyDown = (event: KeyboardEvent): void => {
     if (event.key !== "Escape" || submenu.classList.contains("hidden")) return;
     event.preventDefault();
+    event.stopImmediatePropagation();
     close();
   };
 
