@@ -161,8 +161,8 @@ describe("assistant shell UI", () => {
 
     shell.destroy();
 
-    expect(
-      view.quickAction.attributes.has("data-assistant-shell-ready"),
-    ).toBe(false);
+    expect(view.quickAction.attributes.has("data-assistant-shell-ready")).toBe(
+      false,
+    );
   });
 });
