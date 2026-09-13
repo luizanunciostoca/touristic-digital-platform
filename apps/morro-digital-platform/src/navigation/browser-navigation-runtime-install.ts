@@ -4,6 +4,7 @@ import {
   type MapboxGlModuleLike,
 } from "@touristic/geospatial";
 import type {
+  NavigationPhase,
   NavigationRuntimeSnapshot,
   RoutingProvider,
 } from "@touristic/navigation";
@@ -102,12 +103,15 @@ export function installBrowserNavigationRuntime(
   );
 
   let hasActiveRoute = false;
+  let arrivedSessionId: number | null = null;
   const onNavigationStarted = (): void => {
     hasActiveRoute = true;
+    arrivedSessionId = null;
     guidanceUi.start();
   };
   const onNavigationEnded = (): void => {
     hasActiveRoute = false;
+    arrivedSessionId = null;
     guidanceUi.stop();
   };
   eventTarget?.addEventListener("navigationStarted", onNavigationStarted);
@@ -118,10 +122,15 @@ export function installBrowserNavigationRuntime(
   let latestSnapshot: NavigationRuntimeSnapshot | null = null;
   let recalculations = 0;
 
-  function publishStatus(context: NavigationSessionEventContext): void {
+  function publishStatus(
+    context: NavigationSessionEventContext,
+    requestedPhase: NavigationPhase = "active",
+  ): void {
     const snapshot = latestSnapshot;
+    const phase =
+      arrivedSessionId === context.sessionId ? "arrived" : requestedPhase;
     eventBridge.status({
-      phase: "active",
+      phase,
       hasRoute: hasActiveRoute || snapshot !== null,
       hasInstructions: (snapshot?.guidance.totalSteps ?? 0) > 0,
       hasUserLocation: latestLocation !== null,
@@ -176,6 +185,10 @@ export function installBrowserNavigationRuntime(
       });
       publishStatus(context);
     },
+    onArrival: (context) => {
+      arrivedSessionId = context.sessionId;
+      publishStatus(context, "arrived");
+    },
     onRecalculation: () => {
       recalculations += 1;
     },
@@ -218,6 +231,7 @@ export function installBrowserNavigationRuntime(
       guidanceUi.destroy();
       lifecycle = null;
       hasActiveRoute = false;
+      arrivedSessionId = null;
       latestLocation = null;
       latestSnapshot = null;
       recalculations = 0;

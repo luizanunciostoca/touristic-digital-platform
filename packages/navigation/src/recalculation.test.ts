@@ -191,4 +191,69 @@ describe("route recalculation core", () => {
     });
     expect(onRouteAvailable).not.toHaveBeenCalled();
   });
+
+  it("aborts an in-flight route request and rejects a successful stale route after stop", async () => {
+    const session = beginNavigationSession();
+    let observedSignal: AbortSignal | undefined;
+    const requestRoute = vi.fn(
+      ({ signal }: { signal: AbortSignal }) =>
+        new Promise<RouteFeatureCollection>((resolve) => {
+          observedSignal = signal;
+          signal.addEventListener("abort", () => resolve(ROUTE), {
+            once: true,
+          });
+        }),
+    );
+    const onRouteAvailable = vi.fn();
+    const controller = createRouteRecalculationController({
+      sessionId: session.id,
+      requestRoute,
+      onRouteAvailable,
+    });
+
+    const pending = controller.recalculate({
+      start: [-38.91, -13.38],
+      end: [-38.92, -13.39],
+    });
+    expect(observedSignal).toBe(session.signal);
+
+    session.cancel("stopped");
+
+    await expect(pending).resolves.toMatchObject({
+      success: false,
+      reason: "inactive-session",
+      route: null,
+      attempts: 1,
+    });
+    expect(observedSignal?.aborted).toBe(true);
+    expect(onRouteAvailable).not.toHaveBeenCalled();
+  });
+
+  it("cancels retry backoff when the owning session stops", async () => {
+    vi.useFakeTimers();
+    const session = beginNavigationSession();
+    const requestRoute = vi.fn().mockResolvedValue(null);
+    const controller = createRouteRecalculationController({
+      sessionId: session.id,
+      requestRoute,
+    });
+
+    const pending = controller.recalculate({
+      start: [-38.91, -13.38],
+      end: [-38.92, -13.39],
+    });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(requestRoute).toHaveBeenCalledTimes(1);
+
+    session.cancel("stopped");
+
+    await expect(pending).resolves.toMatchObject({
+      success: false,
+      reason: "inactive-session",
+      route: null,
+      attempts: 1,
+    });
+    expect(requestRoute).toHaveBeenCalledTimes(1);
+    expect(vi.getTimerCount()).toBe(0);
+  });
 });
