@@ -111,6 +111,7 @@ export function installAssistantShellUi(
   assistant?.setAttribute("aria-hidden", String(!initiallyVisible));
   setQuickActionState(quickAction, initiallyVisible);
   quickAction?.addEventListener("click", onQuickActionClick);
+  quickAction?.setAttribute("data-assistant-shell-ready", "true");
   minimizeButton?.addEventListener("click", onMinimizeClick);
   options.document.addEventListener("keydown", onKeyDown);
 
@@ -123,6 +124,7 @@ export function installAssistantShellUi(
       if (destroyed) return;
       destroyed = true;
       quickAction?.removeEventListener("click", onQuickActionClick);
+      quickAction?.removeAttribute("data-assistant-shell-ready");
       minimizeButton?.removeEventListener("click", onMinimizeClick);
       options.document.removeEventListener("keydown", onKeyDown);
     },
