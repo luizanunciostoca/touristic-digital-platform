@@ -11,6 +11,9 @@ import {
 
 const DETAILS_COMMAND_PREFIX = "Fale sobre ";
 const ASSISTANT_CATEGORY_ID_PREFIX = "assistant-category-";
+const TOUR_ROUTE_SOURCE = "tour-route-source";
+const TOUR_ROUTE_LAYER = "tour-route-layer";
+const TOUR_ROUTE_OUTLINE = "tour-route-outline";
 
 export interface ExploreLocationsCategory {
   readonly value: string;
@@ -25,7 +28,6 @@ export interface ExploreLocationsControlOptions {
 export interface ExploreLocationsControl {
   close(): void;
   setGeospatialEngine(engine: GeospatialEngine | undefined): void;
-  setCategoryActivationHandler(handler: (() => void) | undefined): void;
   destroy(): void;
 }
 
@@ -70,6 +72,16 @@ export function getAssistantCategoryButtonId(category: string): string {
 function currentMap(): MapboxGlMapLike | undefined {
   return (globalThis as typeof globalThis & MapboxCompatibilityGlobal)
     .mapboxPrimaryInstance;
+}
+
+function clearTourPresentation(document: Document): void {
+  const map = currentMap();
+  if (map?.getLayer?.(TOUR_ROUTE_LAYER)) map.removeLayer?.(TOUR_ROUTE_LAYER);
+  if (map?.getLayer?.(TOUR_ROUTE_OUTLINE)) map.removeLayer?.(TOUR_ROUTE_OUTLINE);
+  if (map?.getSource?.(TOUR_ROUTE_SOURCE)) map.removeSource?.(TOUR_ROUTE_SOURCE);
+
+  const tourSelect = document.getElementById("tour-select");
+  if (tourSelect instanceof HTMLSelectElement) tourSelect.selectedIndex = -1;
 }
 
 function locationDescription(
@@ -148,7 +160,6 @@ export function installExploreLocationsControl({
     return Object.freeze({
       close() {},
       setGeospatialEngine() {},
-      setCategoryActivationHandler() {},
       destroy() {},
     });
   }
@@ -158,7 +169,6 @@ export function installExploreLocationsControl({
   submenuTitle.id = "explore-locations-title";
 
   let geospatialEngine: GeospatialEngine | undefined;
-  let categoryActivationHandler: (() => void) | undefined;
   let activeCategoryButton: HTMLButtonElement | undefined;
   let activeCategory: string | undefined;
   const categoryListeners = new Map<HTMLButtonElement, EventListener>();
@@ -252,7 +262,7 @@ export function installExploreLocationsControl({
       activeCategoryButton.setAttribute("aria-pressed", "false");
     }
 
-    categoryActivationHandler?.();
+    clearTourPresentation(document);
     activeCategory = category.value;
     activeCategoryButton = trigger;
     trigger.setAttribute("aria-expanded", "true");
@@ -327,9 +337,6 @@ export function installExploreLocationsControl({
       geospatialEngine = engine;
       if (activeCategory) void renderCategoryMarkers(activeCategory);
     },
-    setCategoryActivationHandler(handler: (() => void) | undefined) {
-      categoryActivationHandler = handler;
-    },
     destroy() {
       closeButton.removeEventListener("click", onCloseClick);
       document.removeEventListener("keydown", onKeyDown);
@@ -346,7 +353,6 @@ export function installExploreLocationsControl({
       submenu.classList.add("hidden");
       submenu.setAttribute("aria-hidden", "true");
       geospatialEngine = undefined;
-      categoryActivationHandler = undefined;
     },
   });
 }
