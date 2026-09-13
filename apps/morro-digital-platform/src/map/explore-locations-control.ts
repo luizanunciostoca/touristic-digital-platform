@@ -61,7 +61,9 @@ function currentMap(): MapboxGlMapLike | undefined {
     .mapboxPrimaryInstance;
 }
 
-function locationDescription(location: MorroV1SearchCatalogItem): string | null {
+function locationDescription(
+  location: MorroV1SearchCatalogItem,
+): string | null {
   if (location.area?.trim()) return location.area.trim();
   const firstTag = location.tags?.find((tag) => tag.trim().length > 0);
   return firstTag?.trim() ?? null;
@@ -106,9 +108,16 @@ export function installExploreLocationsControl({
   const submenu = document.getElementById("submenu");
   const submenuContainer = document.getElementById("submenuContainer");
   const submenuTitle = submenu?.querySelector<HTMLElement>(".submenu-title");
-  const closeButton = submenu?.querySelector<HTMLButtonElement>(".close-button");
+  const closeButton =
+    submenu?.querySelector<HTMLButtonElement>(".close-button");
 
-  if (!shell || !submenu || !submenuContainer || !submenuTitle || !closeButton) {
+  if (
+    !shell ||
+    !submenu ||
+    !submenuContainer ||
+    !submenuTitle ||
+    !closeButton
+  ) {
     return Object.freeze({
       close() {},
       destroy() {},
@@ -149,9 +158,11 @@ export function installExploreLocationsControl({
 
   const selectLocation = (location: MorroV1SearchCatalogItem): void => {
     currentMap()?.setCenter([location.longitude, location.latitude]);
-    document.getElementById("runtime-status")?.replaceChildren(
-      document.createTextNode(`${location.name} selecionado.`),
-    );
+    document
+      .getElementById("runtime-status")
+      ?.replaceChildren(
+        document.createTextNode(`${location.name} selecionado.`),
+      );
 
     close(false);
 
@@ -187,7 +198,9 @@ export function installExploreLocationsControl({
     list.dataset.category = category.value;
 
     for (const location of getExploreLocationsForCategory(category.value)) {
-      list.appendChild(createLocationButton(document, location, selectLocation));
+      list.appendChild(
+        createLocationButton(document, location, selectLocation),
+      );
     }
 
     submenuContainer.replaceChildren(list);
