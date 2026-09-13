@@ -35,7 +35,7 @@ function defaultResolveMap(): MapboxGlMapLike | undefined {
 
 function ensureControlButton(document: Document): HTMLButtonElement | undefined {
   const existing = document.getElementById("toggle-3d-mode");
-  if (existing instanceof document.defaultView!.HTMLButtonElement) return existing;
+  if (existing?.tagName === "BUTTON") return existing as HTMLButtonElement;
 
   const container = document.getElementById("globe-map-control");
   if (!container) return undefined;
