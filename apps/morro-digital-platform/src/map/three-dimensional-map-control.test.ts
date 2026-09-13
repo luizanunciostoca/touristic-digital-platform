@@ -138,7 +138,11 @@ describe("installThreeDimensionalMapControl", () => {
     const view = fixture("mapbox");
     const control = installThreeDimensionalMapControl({
       document: view.document,
-      resolveMap: () => ({ setCenter: vi.fn(), remove: vi.fn(), easeTo: vi.fn() }),
+      resolveMap: () => ({
+        setCenter: vi.fn(),
+        remove: vi.fn(),
+        easeTo: vi.fn(),
+      }),
     });
     const button = view.document.getElementById(
       "toggle-3d-mode",
