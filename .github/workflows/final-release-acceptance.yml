@@ -51,6 +51,10 @@ jobs:
             business-production-profile-browser-contract.yml
             crm-equivalence-browser-contract.yml
             crm-lead-detail-browser-contract.yml
+            home-first-run-browser-regression.yml
+            v1-home-parity-browser-regression.yml
+            v1-explore-locations-browser-regression.yml
+            v1-tour-assistant-visibility-browser-regression.yml
             map-provider-regression.yml
             map-tour-browser-regression.yml
             mapbox-visual-contract-regression.yml
@@ -129,6 +133,10 @@ jobs:
             business-production-profile-browser-contract.yml
             crm-equivalence-browser-contract.yml
             crm-lead-detail-browser-contract.yml
+            home-first-run-browser-regression.yml
+            v1-home-parity-browser-regression.yml
+            v1-explore-locations-browser-regression.yml
+            v1-tour-assistant-visibility-browser-regression.yml
             map-provider-regression.yml
             map-tour-browser-regression.yml
             mapbox-visual-contract-regression.yml
