@@ -293,7 +293,7 @@ export function installExploreLocationsControl({
 
   return Object.freeze({
     close: () => close(),
-    setGeospatialEngine(engine) {
+    setGeospatialEngine(engine: GeospatialEngine | undefined) {
       geospatialEngine = engine;
       if (activeCategory) void renderCategoryMarkers(activeCategory);
     },
