@@ -6,8 +6,9 @@ on:
     paths:
       - .github/workflows/v1-tour-assistant-visibility-browser-regression.yml
       - apps/morro-digital-platform/public/index.html
+      - apps/morro-digital-platform/public/styles.css
       - apps/morro-digital-platform/public/v1-tour-assistant-visibility.css
-      - apps/morro-digital-platform/public/legacy/css/components/interactive-tour.css
+      - apps/morro-digital-platform/public/legacy/**
       - apps/morro-digital-platform/src/onboarding/public-onboarding.ts
       - apps/morro-digital-platform/src/onboarding/public-interactive-tour.ts
       - apps/morro-digital-platform/src/layouts/app-shell.ts
@@ -48,7 +49,7 @@ jobs:
           done
           cat /tmp/v1-tour-assistant-visibility/server.log
           exit 1
-      - name: Validate V1 assistant display sequence
+      - name: Validate V1 assistant display sequence and exit restoration
         run: |
           node <<'NODE'
           const { writeFileSync } = require('node:fs');
@@ -60,10 +61,12 @@ jobs:
               const assistant = document.getElementById('assistant-messages');
               const style = assistant ? getComputedStyle(assistant) : null;
               return {
+                exists: Boolean(assistant),
                 label: document.querySelector('.tour-step-label')?.textContent?.trim() ?? null,
                 display: style?.display ?? null,
                 visibility: style?.visibility ?? null,
                 opacity: style?.opacity ?? null,
+                ariaHidden: assistant?.getAttribute('aria-hidden') ?? null,
                 target: document.querySelector('.tour-target-active')?.id ||
                   document.querySelector('.tour-target-active')?.className || null,
               };
@@ -73,11 +76,50 @@ jobs:
           async function assertVisibility(page, step, visible) {
             await page.locator('.tour-step-label').filter({ hasText: `Passo ${step} de 7` }).waitFor({ state: 'visible' });
             const current = await state(page);
+            if (!current.exists || current.display === null || current.visibility === null || current.opacity === null) {
+              throw new Error(`Step ${step} canonical assistant DOM/style is unavailable: ${JSON.stringify(current)}`);
+            }
             const actuallyVisible = current.display !== 'none' && current.visibility !== 'hidden' && current.opacity !== '0';
             if (actuallyVisible !== visible) {
               throw new Error(`Step ${step} assistant visibility diverged: ${JSON.stringify(current)}`);
             }
             return current;
+          }
+
+          async function assertRestored(page, exitMode) {
+            const deadline = Date.now() + 1500;
+            let snapshot = null;
+            while (Date.now() < deadline) {
+              const restored = await state(page);
+              const settled = await page.locator('body').getAttribute('data-public-onboarding-settled');
+              const persisted = await page.evaluate(() => localStorage.getItem('morro-digital-onboarded'));
+              snapshot = { restored, settled, persisted };
+              if (
+                restored.exists &&
+                restored.display !== null &&
+                restored.visibility !== null &&
+                restored.opacity !== null &&
+                restored.display !== 'none' &&
+                restored.visibility !== 'hidden' &&
+                restored.opacity === '1' &&
+                restored.ariaHidden === 'false' &&
+                settled === 'true' &&
+                persisted === '1'
+              ) {
+                return { ...restored, settled, persisted };
+              }
+              await new Promise(resolve => setTimeout(resolve, 50));
+            }
+            throw new Error(`Assistant was not restored after ${exitMode}: ${JSON.stringify(snapshot)}`);
+          }
+
+          async function resetAndStartTour(page) {
+            await page.evaluate(() => localStorage.removeItem('morro-digital-onboarded'));
+            await page.reload({ waitUntil: 'domcontentloaded', timeout: 30000 });
+            await page.locator('#map[data-map-state="ready"][data-home-state="ready"]').waitFor({ state: 'attached', timeout: 20000 });
+            await page.locator('#onboarding-overlay').waitFor({ state: 'visible', timeout: 5000 });
+            await page.locator('[data-public-onboarding-action="start"]').click();
+            await page.locator('#tour-tooltip').waitFor({ state: 'visible', timeout: 3000 });
           }
 
           (async () => {
@@ -102,28 +144,28 @@ jobs:
 
             await page.locator('.tour-btn-finish').click();
             await page.locator('#tour-tooltip').waitFor({ state: 'detached', timeout: 3000 });
-            const finished = await page.evaluate(() => {
-              const assistant = document.getElementById('assistant-messages');
-              const style = assistant ? getComputedStyle(assistant) : null;
-              return {
-                display: style?.display ?? null,
-                visibility: style?.visibility ?? null,
-                opacity: style?.opacity ?? null,
-                ariaHidden: assistant?.getAttribute('aria-hidden') ?? null,
-              };
-            });
-            if (
-              finished.display === 'none' ||
-              finished.visibility === 'hidden' ||
-              finished.opacity === '0' ||
-              finished.ariaHidden !== 'false'
-            ) {
-              throw new Error(`Assistant was not restored after tutorial: ${JSON.stringify(finished)}`);
-            }
+            const finished = await assertRestored(page, 'tutorial completion');
+
+            await resetAndStartTour(page);
+            await assertVisibility(page, 1, false);
+            await page.locator('.tour-skip-btn').click();
+            await page.locator('#tour-tooltip').waitFor({ state: 'detached', timeout: 3000 });
+            const skippedByButton = await assertRestored(page, 'skip button');
+
+            await resetAndStartTour(page);
+            await page.locator('.tour-btn-next').click();
+            await assertVisibility(page, 2, false);
+            await page.keyboard.press('Escape');
+            await page.locator('#tour-tooltip').waitFor({ state: 'detached', timeout: 3000 });
+            const skippedByEscape = await assertRestored(page, 'Escape');
+
             if (errors.length) throw new Error(`Browser errors: ${JSON.stringify(errors)}`);
 
             await page.screenshot({ path: `${outputDir}/final-assistant-restored.png`, fullPage: false, animations: 'disabled' });
-            writeFileSync(`${outputDir}/evidence.json`, JSON.stringify({ evidence, finished, errors }, null, 2));
+            writeFileSync(
+              `${outputDir}/evidence.json`,
+              JSON.stringify({ evidence, finished, skippedByButton, skippedByEscape, errors }, null, 2),
+            );
             await browser.close();
           })().catch(error => {
             writeFileSync(`${outputDir}/failure.txt`, String(error?.stack || error));
