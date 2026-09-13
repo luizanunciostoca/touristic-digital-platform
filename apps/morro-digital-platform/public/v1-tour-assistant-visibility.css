@@ -1,0 +1,20 @@
+/*
+ * V1 interactive-tour display contract.
+ *
+ * The preserved V1 tour stylesheet exposes the assistant only while the
+ * tutorial is actually teaching the assistant surface. The V2 controller
+ * already marks the active tutorial target with `.tour-target-active`, so
+ * keep the canonical assistant DOM and hide only its message surface while
+ * the active target belongs to the non-assistant steps.
+ */
+body.tour-active:has(#map-container.tour-target-active) #assistant-messages,
+body.tour-active:has(#map.tour-target-active) #assistant-messages,
+body.tour-active:has(#weather-widget.tour-target-active) #assistant-messages,
+body.tour-active:has(.quick-actions .mood-button.tour-target-active) #assistant-messages,
+body.tour-active:has(#globe-map-control.tour-target-active) #assistant-messages,
+body.tour-active:has(#toggle-globe-view.tour-target-active) #assistant-messages {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
