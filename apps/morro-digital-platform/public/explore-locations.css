@@ -5,8 +5,17 @@
   bottom: calc(var(--assistant-input-bottom) + var(--assistant-bar-height));
   z-index: 2050;
   width: 100%;
-  padding: 0 var(--spacing-md);
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.42) 0%, rgba(0, 0, 0, 0) 100%);
+  padding-right: var(--spacing-md);
+  padding-left: calc(
+    var(--assistant-horizontal-edge) + var(--assistant-side-button-size) +
+      var(--assistant-cluster-gap) + var(--assistant-secondary-button-size) +
+      var(--spacing-sm)
+  );
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.42) 0%,
+    rgba(0, 0, 0, 0) 100%
+  );
   pointer-events: none;
 }
 
@@ -135,7 +144,7 @@
 
 @media (max-width: 480px) {
   #controls {
-    padding-inline: var(--spacing-sm);
+    padding-right: var(--spacing-sm);
   }
 
   .control-button {
