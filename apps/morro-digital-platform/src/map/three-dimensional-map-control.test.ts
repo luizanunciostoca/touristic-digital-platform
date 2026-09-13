@@ -45,7 +45,9 @@ function createElement(tagName = "DIV") {
       listeners.get("click")?.({} as Event);
     },
     prepend(child: { id?: string }) {
-      if (child.id) elements.set(child.id, child);
+      if (child.id) {
+        elements.set(child.id, child as ReturnType<typeof createElement>);
+      }
     },
   };
   return element;
