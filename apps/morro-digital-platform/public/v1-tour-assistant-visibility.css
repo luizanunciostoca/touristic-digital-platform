@@ -7,12 +7,17 @@
  * keep the canonical assistant DOM and hide only its message surface while
  * the active target belongs to the non-assistant steps.
  */
-body.tour-active:has(#map-container.tour-target-active) #assistant-messages,
-body.tour-active:has(#map.tour-target-active) #assistant-messages,
-body.tour-active:has(#weather-widget.tour-target-active) #assistant-messages,
-body.tour-active:has(.quick-actions .mood-button.tour-target-active) #assistant-messages,
-body.tour-active:has(#globe-map-control.tour-target-active) #assistant-messages,
-body.tour-active:has(#toggle-globe-view.tour-target-active) #assistant-messages {
+body.tour-active:has(
+  :is(
+      #map-container,
+      #map,
+      #weather-widget,
+      .quick-actions .mood-button,
+      #globe-map-control,
+      #toggle-globe-view
+    ).tour-target-active
+  )
+  #assistant-messages {
   display: none !important;
   visibility: hidden !important;
   opacity: 0 !important;
