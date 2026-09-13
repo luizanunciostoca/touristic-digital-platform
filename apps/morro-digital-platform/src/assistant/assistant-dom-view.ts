@@ -40,9 +40,18 @@ function scrollToLatest(area: HTMLElement): void {
 }
 
 export function clearAssistantDomOptions(document: Document): void {
-  getMessagesArea(document)
-    ?.querySelector<HTMLElement>(".assistant-options")
-    ?.remove();
+  const area = getMessagesArea(document);
+  if (!area) return;
+
+  for (const container of area.querySelectorAll<HTMLElement>(
+    ".assistant-options",
+  )) {
+    // The initial category buttons are a persistent shell-owned navigation
+    // surface. Dynamic response options may be replaced, but this surface must
+    // survive Search-to-Details responses so users can choose another category.
+    if (container.querySelector("[data-explore-category]")) continue;
+    container.remove();
+  }
 }
 
 export function appendAssistantDomMessage(
