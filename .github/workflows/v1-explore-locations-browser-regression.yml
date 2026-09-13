@@ -32,16 +32,6 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Emit canonical formatting patch
-        run: |
-          pnpm exec prettier --write \
-            apps/morro-digital-platform/public/explore-locations.css \
-            apps/morro-digital-platform/src/map/explore-locations-control.ts \
-            apps/morro-digital-platform/src/map/explore-locations-control.test.ts
-          git diff -- \
-            apps/morro-digital-platform/public/explore-locations.css \
-            apps/morro-digital-platform/src/map/explore-locations-control.ts \
-            apps/morro-digital-platform/src/map/explore-locations-control.test.ts
       - name: Install deterministic Chromium
         run: |
           npm install --prefix /tmp/pw --no-save playwright@1.54.2
@@ -119,9 +109,10 @@ jobs:
           }
 
           async function waitForLoadingOverlay(page) {
-            await page.waitForFunction(() =>
-              document.getElementById('loading-overlay')?.classList.contains('fade-out') ?? true,
-            );
+            await page.locator('#loading-overlay.fade-out').waitFor({
+              state: 'attached',
+              timeout: 5000,
+            });
           }
 
           (async () => {
@@ -207,6 +198,14 @@ jobs:
                 throw new Error(`Escape/focus-return contract diverged in ${viewport.id}: ${JSON.stringify(escapeState)}`);
               }
 
+              await beaches.focus();
+              await page.keyboard.press('Space');
+              await page.locator('#submenu[aria-hidden="false"]').waitFor({ state: 'visible' });
+              if ((await beaches.getAttribute('aria-expanded')) !== 'true') {
+                throw new Error(`Space keyboard contract diverged in ${viewport.id}`);
+              }
+              await page.keyboard.press('Escape');
+
               await page.evaluate(() => {
                 document.documentElement.style.fontSize = '200%';
               });
@@ -235,9 +234,10 @@ jobs:
               await beaches.click();
               await page.locator('[data-location-name="Primeira Praia"]').click();
               const center = await waitForMapCenter(page, -38.9142193, -13.3776181);
-              await page.waitForFunction(() =>
-                document.getElementById('assistant-messages')?.textContent?.includes('Primeira Praia') ?? false,
-              );
+              await page.locator('#assistant-messages').filter({ hasText: 'Primeira Praia' }).waitFor({
+                state: 'visible',
+                timeout: 5000,
+              });
               const selectionState = await page.evaluate(() => ({
                 submenuHidden: document.getElementById('submenu')?.getAttribute('aria-hidden'),
                 assistantVisible: !document.getElementById('assistant-messages')?.classList.contains('hidden'),
