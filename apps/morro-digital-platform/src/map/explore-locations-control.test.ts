@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   createExploreLocationDetailsCommand,
+  getAssistantCategoryButtonId,
   getExploreLocationsCategories,
   getExploreLocationsForCategory,
 } from "./explore-locations-control.js";
@@ -70,6 +71,15 @@ describe("V1 explore locations control", () => {
           Number.isFinite(longitude),
       ),
     ).toBe(true);
+  });
+
+  it("binds categories to stable ids on the existing assistant buttons", () => {
+    expect(getAssistantCategoryButtonId("beaches")).toBe(
+      "assistant-category-beaches",
+    );
+    expect(getAssistantCategoryButtonId("restaurants")).toBe(
+      "assistant-category-restaurants",
+    );
   });
 
   it("reuses the localized Search-to-Details command contract", () => {

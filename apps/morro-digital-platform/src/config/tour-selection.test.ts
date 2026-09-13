@@ -137,7 +137,7 @@ describe("createMorroTourSelectionController", () => {
     expect(engine.replaceMarkers).toHaveBeenCalledOnce();
   });
 
-  it("does not replace markers when the requested tour is already active", async () => {
+  it("rebuilds an already-active tour so external map modes cannot leave stale markers", async () => {
     const engine = createEngine();
     const controller = createMorroTourSelectionController({
       engine,
@@ -148,8 +148,9 @@ describe("createMorroTourSelectionController", () => {
     const result = await controller.selectTour("volta-a-ilha");
 
     expect(result.markerCount).toBe(8);
-    expect(engine.replaceMarkers).not.toHaveBeenCalled();
-    expect(engine.setCenter).not.toHaveBeenCalled();
+    expect(engine.replaceMarkers).toHaveBeenCalledOnce();
+    expect(vi.mocked(engine.replaceMarkers).mock.calls[0]?.[0]).toHaveLength(8);
+    expect(engine.setCenter).toHaveBeenCalledOnce();
   });
 
   it("publishes lookup failure before rejecting an unknown tour", async () => {

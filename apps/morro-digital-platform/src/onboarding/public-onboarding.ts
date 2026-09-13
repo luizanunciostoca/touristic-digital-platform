@@ -72,6 +72,14 @@ function resolveStorage(document: Document): PublicOnboardingStorage | null {
   }
 }
 
+function setOnboardingSettled(document: Document, settled: boolean): void {
+  if (settled) {
+    document.body.setAttribute("data-public-onboarding-settled", "true");
+  } else {
+    document.body.removeAttribute("data-public-onboarding-settled");
+  }
+}
+
 function createOnboardingMarkup(document: Document): HTMLElement {
   const overlay = document.createElement("section");
   overlay.id = "onboarding-overlay";
@@ -143,6 +151,8 @@ export function installPublicOnboarding(
   let destroyed = false;
   let interactiveTour: PublicInteractiveTourController | null = null;
 
+  setOnboardingSettled(options.document, false);
+
   const dispatch = (name: string): void => {
     options.document.dispatchEvent(
       new CustomEvent(name, {
@@ -197,6 +207,7 @@ export function installPublicOnboarding(
     state = nextState;
     persistPublicOnboardingCompletion(storage);
     ensureV1AssistantWelcomeVisible(options.document);
+    setOnboardingSettled(options.document, true);
   };
 
   const completeFromTour = (): void => {
@@ -234,6 +245,7 @@ export function installPublicOnboarding(
   const start = (): void => {
     if (destroyed || !overlay) return;
     state = "in_progress";
+    setOnboardingSettled(options.document, false);
     removeOverlay(false);
     dispatch(PUBLIC_ONBOARDING_START_EVENT);
     interactiveTour?.start();
@@ -300,6 +312,7 @@ export function installPublicOnboarding(
       if (hasCompletedPublicOnboarding(storage)) {
         state = "completed";
         ensureV1AssistantWelcomeVisible(options.document);
+        setOnboardingSettled(options.document, true);
         return false;
       }
       if (state !== "not_started") return false;
@@ -346,6 +359,7 @@ export function installPublicOnboarding(
       destroyed = true;
       interactiveTour?.destroy();
       removeOverlay(false);
+      setOnboardingSettled(options.document, false);
       options.document.removeEventListener(
         PUBLIC_ONBOARDING_COMPLETE_EVENT,
         onDocumentComplete,

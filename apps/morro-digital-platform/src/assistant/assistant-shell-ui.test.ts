@@ -32,6 +32,9 @@ function createElement(initialClasses: string[] = []) {
     setAttribute(name: string, value: string) {
       attributes.set(name, value);
     },
+    removeAttribute(name: string) {
+      attributes.delete(name);
+    },
     addEventListener(type: string, listener: EventListener) {
       listeners.set(type, listener);
     },
@@ -96,7 +99,7 @@ function fixture() {
 }
 
 describe("assistant shell UI", () => {
-  it("starts hidden and synchronizes the quick-action accessibility state", () => {
+  it("starts hidden and exposes shell readiness with synchronized accessibility state", () => {
     const view = fixture();
     const shell = installAssistantShellUi({ document: view.document });
 
@@ -106,6 +109,9 @@ describe("assistant shell UI", () => {
       "assistant-messages",
     );
     expect(view.quickAction.attributes.get("aria-expanded")).toBe("false");
+    expect(view.quickAction.attributes.get("data-assistant-shell-ready")).toBe(
+      "true",
+    );
   });
 
   it("shows and hides the modal with V1 body, button and associated-content states", () => {
@@ -147,5 +153,16 @@ describe("assistant shell UI", () => {
     view.dispatchKeydown("Escape");
 
     expect(shell.isVisible()).toBe(false);
+  });
+
+  it("removes the readiness marker when destroyed", () => {
+    const view = fixture();
+    const shell = installAssistantShellUi({ document: view.document });
+
+    shell.destroy();
+
+    expect(view.quickAction.attributes.has("data-assistant-shell-ready")).toBe(
+      false,
+    );
   });
 });

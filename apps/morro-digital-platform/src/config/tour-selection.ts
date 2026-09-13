@@ -101,10 +101,6 @@ export function createMorroTourSelectionController(
     nextTour: TourRouteContract,
     query: string,
   ): Promise<TourSelectionResult> {
-    if (nextTour.id === activeTour?.id) {
-      return createSelectionResult(activeTour.id, nextTour.stops.length);
-    }
-
     const previousTour = activeTour;
     const previousMarkers = previousTour
       ? createMorroTourMarkers(previousTour.id)
