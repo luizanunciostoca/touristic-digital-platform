@@ -127,6 +127,10 @@ jobs:
           async function openAssistant(page) {
             const assistant = page.locator('#assistant-messages');
             const quickAction = page.locator('.mood-button[data-assistant-shell-ready="true"]');
+            await page.locator('body[data-public-onboarding-settled="true"]').waitFor({
+              state: 'attached',
+              timeout: 5000,
+            });
             await quickAction.waitFor({ state: 'visible', timeout: 5000 });
             if (!(await assistant.isVisible())) {
               await quickAction.click();
