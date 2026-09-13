@@ -38,12 +38,21 @@ function requireHeader(headers, name) {
   return value;
 }
 
+function requireHsts(headers) {
+  const value = requireHeader(headers, "strict-transport-security");
+  if (value !== "max-age=31536000") {
+    throw new Error("STRICT_TRANSPORT_SECURITY_INVALID");
+  }
+  return value;
+}
+
 const health = await request("/healthz");
 if (health.response.status !== 200 || health.body?.status !== "live") {
   throw new Error(`HEALTHZ_FAILED_${health.response.status}`);
 }
 const healthRelease = requireHeader(health.response.headers, "x-release-sha");
 requireHeader(health.response.headers, "x-correlation-id");
+const healthHsts = requireHsts(health.response.headers);
 
 const ready = await request("/readyz");
 if (ready.response.status !== 200 || ready.body?.readiness !== "ready") {
@@ -61,15 +70,18 @@ const readyRelease = requireHeader(ready.response.headers, "x-release-sha");
 requireHeader(ready.response.headers, "x-release-version");
 requireHeader(ready.response.headers, "x-deployment-id");
 requireHeader(ready.response.headers, "x-correlation-id");
+const readyHsts = requireHsts(ready.response.headers);
 if (readyRelease !== healthRelease) throw new Error("RELEASE_IDENTITY_DRIFT");
+if (readyHsts !== healthHsts) throw new Error("HSTS_HEADER_DRIFT");
 
 process.stdout.write(
   `${JSON.stringify({
     contract: "MORRO-DIGITAL-V2-RENDER-SMOKE",
-    contractVersion: 1,
+    contractVersion: 2,
     status: "pass",
     releaseSha: readyRelease,
     readiness: ready.body.readiness,
+    securityHeaders: { strictTransportSecurity: readyHsts },
     checks: ready.body.checks,
   })}\n`,
 );
