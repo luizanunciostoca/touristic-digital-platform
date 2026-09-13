@@ -339,10 +339,12 @@ async function fetchOpenMeteoWeather() {
     "current",
     "temperature_2m,relative_humidity_2m,weather_code,is_day,wind_speed_10m",
   );
+  url.searchParams.set("hourly", "relative_humidity_2m");
   url.searchParams.set(
     "daily",
-    "temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code,relative_humidity_2m_max,wind_speed_10m_max",
+    "temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code,wind_speed_10m_max",
   );
+  url.searchParams.set("forecast_days", "7");
   url.searchParams.set("timezone", "America/Bahia");
 
   const response = await fetch(url, {
