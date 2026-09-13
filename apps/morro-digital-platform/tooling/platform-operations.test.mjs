@@ -172,9 +172,10 @@ describe("Platform production operations", () => {
     expect(generated).toMatch(/^corr_[0-9a-f-]{36}$/u);
   });
 
-  it("binds immutable release identity and hardened CSP controls", () => {
+  it("binds immutable release identity, production HSTS and hardened CSP controls", () => {
     const operations = createPlatformOperations({
       getEnvironmentValue: environment({
+        NODE_ENV: "production",
         MORRO_RELEASE_SHA: "abc123",
         MORRO_RELEASE_VERSION: "2.0.0",
         MORRO_DEPLOYMENT_ID: "deploy-42",
@@ -188,6 +189,9 @@ describe("Platform production operations", () => {
 
     operations.bindResponse(response, "corr_release");
 
+    expect(response.header("strict-transport-security")).toBe(
+      "max-age=31536000",
+    );
     expect(response.header("x-correlation-id")).toBe("corr_release");
     expect(response.header("x-release-sha")).toBe("abc123");
     expect(response.header("x-release-version")).toBe("2.0.0");
@@ -195,6 +199,15 @@ describe("Platform production operations", () => {
     const csp = response.header("content-security-policy");
     expect(csp.match(/'sha256-[^']+'/gu)).toHaveLength(3);
     expect(csp).toContain("script-src-attr 'none'");
+  });
+
+  it("does not emit HSTS outside production", () => {
+    const operations = createPlatformOperations({ sink: () => undefined });
+    const response = responseCapture();
+
+    operations.bindResponse(response, "corr_local");
+
+    expect(response.header("strict-transport-security")).toBeUndefined();
   });
 
   it("emits explicit rollback identity when a rollback deployment starts", () => {
