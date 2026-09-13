@@ -11,3 +11,15 @@ body.tour-active:not(.tour-show-assistant-modal-step) #assistant-messages {
   opacity: 0 !important;
   pointer-events: none !important;
 }
+
+/*
+ * Leaving the V1 tour returns the existing assistant shell to its normal open
+ * state. Make that restoration explicit so a transient tour/legacy hiding
+ * state cannot leave the canonical modal rendered at zero opacity after Skip
+ * or Escape.
+ */
+body:not(.tour-active).assistant-modal-open #assistant-messages:not(.hidden) {
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
