@@ -2,7 +2,7 @@
 
 ## Objetivo
 
-Registrar, de forma explícita e auditável, os comportamentos da navegação V1 que ainda não possuem equivalência materializada na V2. Este documento complementa `NAVIGATION-V1-BASELINE.md` e impede que evidências parciais sejam confundidas com conclusão da migração.
+Registrar, de forma explícita e auditável, os comportamentos da navegação V1 e sua equivalência materializada na V2. Este documento complementa `NAVIGATION-V1-BASELINE.md` e deve permanecer consistente com `NAVIGATION-MIG-0005-EQUIVALENCE-MATRIX.md` e `NAVIGATION-MIG-0005-INTEGRATION-GATE.md`.
 
 ## Fonte congelada
 
@@ -10,9 +10,9 @@ Registrar, de forma explícita e auditável, os comportamentos da navegação V1
 - Commit: `60746fd7fed97b805758b37adfdbe3bad2582bfe`
 - Feature: `FEATURE-0003`
 - Migration item: `MIG-0005`
-- Estado permitido enquanto houver blocker crítico abaixo: `mapped`
+- Estado atual: `equivalent`
 
-## Evidências executáveis já concluídas
+## Evidências executáveis concluídas
 
 ### NAV-15 — geometry baseline
 
@@ -69,57 +69,54 @@ Registrar, de forma explícita e auditável, os comportamentos da navegação V1
 - Business Onboarding Route Browser Contract #340: success
 - cobre request com `AbortSignal` da sessão, política 3 tentativas/2s/4s, supressão de rota stale, abort no stop e cancelamento de backoff sem nova tentativa.
 
-## Estado dos gaps funcionais
-
 ### GAP-NAV-003 — Event/state snapshot
 
-**Estado:** MATERIALIZED IN CANDIDATE — pending exact-head acceptance before merge
+**Estado:** RESOLVED / MATERIALIZED IN V2
 
-A auditoria identificou um gap funcional real: a V2 já publicava início/estado ativo, encerramento e chegada, mas uma falha de bootstrap não produzia o estado observável `failed` exigido pelo contrato de snapshot.
-
-O candidate `fix/v1-navigation-event-state-snapshot-20260913` materializa e congela:
-
-- `navigationStarted` seguido de `navigationStatusChanged(active)`;
-- `navigationEnded(cancelled)` seguido de `navigationStatusChanged(ended)`;
-- `navigationEnded(arrived)` seguido de `navigationStatusChanged(arrived)`;
-- falha de bootstrap publicada como `navigationStatusChanged(failed)`, sem ativar sessão, rota ou UI;
-- session id presente somente enquanto a navegação está ativa e removido nos estados terminais.
-
-Evidência executável:
-
-- `apps/morro-digital-platform/src/navigation/navigation-event-state-snapshot.test.ts`;
-- `apps/morro-digital-platform/src/navigation/navigation-dom-lifecycle.ts` publica agora o snapshot `failed` apenas quando a geração de start ainda é a geração corrente, preservando a proteção contra callback stale/superseded.
-
-**Critério de saída:** Quality Gate e baselines aplicáveis verdes no exact-head final, seguido de merge.
-
-## Blockers de baseline ainda abertos
+- PR #45
+- merge `73b0d828c888d16b03b3e405d1b97a2cdf20e49a`
+- exact-head aceito `d3b535530745968d9b6e2cb0911053d7a81faa4f`
+- Quality Gate: success
+- Navigation Visual Baseline: success
+- Navigation Accessibility Baseline: success
+- congela as sequências `navigationStarted -> active`, `navigationEnded(cancelled) -> ended`, `navigationEnded(arrived) -> arrived` e falha de bootstrap -> `failed`;
+- protege contra publicação de `failed` stale após `stop()`/supersession.
 
 ### GAP-NAV-004 — Visual/camera executable baseline
 
-Ainda falta captura executável V1 × V2 para:
+**Estado:** RESOLVED / EXECUTABLE BASELINE MATERIALIZED
 
-- banner/instruction UI;
-- botão Encerrar;
-- progresso, distância e tempo;
-- first-person camera;
-- ownership da câmera;
-- estados dinâmicos durante deslocamento;
-- matriz mobile/tablet/desktop;
-- acessibilidade/forced-colors/text enlargement quando aplicável.
+Evidência executável consolidada:
 
-## Regra de promoção
+- `Navigation Visual Baseline` valida banner/instruction UI, botão Encerrar, progresso, distância, tempo, first-person camera, camera motion/easing, ownership de sessão, estados dinâmicos, minimize/expand e teardown em mobile/tablet/desktop;
+- `Navigation Accessibility Baseline` valida `forced-colors: active` e texto a 200% em mobile/tablet/desktop;
+- `NAVIGATION-MIG-0005-EQUIVALENCE-MATRIX.md` registra 24/24 cenários obrigatórios em `PASS`;
+- PR #42 restaura o contrato V1 de perspectiva 3D sem segunda instância de mapa e sincroniza a câmera global com o estado 3D;
+- PR #42 exact-head aceito `c8704e5468d59263972be3919184bfb592ee3439`;
+- merge da PR #42: `5b5b438b31922da05751f7d4c42e50e23f615d34`;
+- Quality Gate #544: success;
+- Mapbox Visual Contract Regression #367: success;
+- Navigation Visual Baseline #314: success;
+- Navigation Accessibility Baseline #260: success;
+- V1 Home Parity Browser Regression #34: success;
+- V1 Explore Locations Browser Regression #25: success;
+- Home First Run Browser Regression #76: success.
 
-`MIG-0005` deve permanecer `mapped` enquanto qualquer item `GAP-NAV-001` a `GAP-NAV-004` estiver aberto ou pendente de acceptance.
+## Estado consolidado de MIG-0005
 
-A promoção para `snapshotted` exige, no mínimo:
+Todos os gaps `GAP-NAV-001` a `GAP-NAV-004` estão resolvidos/materializados e a matriz executável oficial registra:
 
-1. contratos comportamentais V1 executáveis para os fluxos críticos;
-2. arrival e recalculation materializados ou formalmente substituídos por decisão arquitetural aprovada e equivalente;
-3. sequência de eventos/state congelada;
-4. baseline visual/câmera executável com matriz responsiva;
-5. Quality Gate completo no mesmo head final;
-6. ausência de workflows temporários no head final.
+```text
+PASS     24
+PARTIAL   0
+GAP       0
+TOTAL    24
+```
+
+Assim, `MIG-0005` está em estado `equivalent`, em conformidade com `NAVIGATION-MIG-0005-EQUIVALENCE-MATRIX.md` e `NAVIGATION-MIG-0005-INTEGRATION-GATE.md`.
+
+`equivalent` não significa `released`: qualquer rollout, promoção para produção ou Release Promotion Gate permanece separado e exige autorização e evidência próprias.
 
 ## Decisão atual
 
-Arrival e recalculation estão materializados e integrados. O GAP-NAV-003 está materializado em candidate e aguarda acceptance do exact-head. O GAP-NAV-004 permanece aberto; portanto `MIG-0005` continua obrigatoriamente em `mapped`.
+A paridade de navegação V1 → V2 não possui gap funcional conhecido no registro canônico. Novas divergências reais devem ser registradas como novos gaps com evidência reproduzível, sem reabrir checkpoints aceitos por memória ou suposição.
