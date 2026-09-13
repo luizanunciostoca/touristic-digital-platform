@@ -1,5 +1,7 @@
 import type { MapboxGlMapLike } from "@touristic/geospatial";
 
+import { MAP_CAMERA_FLATTENED_EVENT } from "./three-dimensional-map-control.js";
+
 export interface GlobalViewControlOptions {
   readonly document: Document;
   readonly map: MapboxGlMapLike;
@@ -52,6 +54,12 @@ export function installGlobalViewControl({
     if (button instanceof HTMLButtonElement) button.disabled = !enabled;
   };
 
+  const publishCameraFlattened = (): void => {
+    const EventCtor = document.defaultView?.Event;
+    if (!EventCtor) return;
+    document.dispatchEvent(new EventCtor(MAP_CAMERA_FLATTENED_EVENT));
+  };
+
   const applyCamera = (): void => {
     if (destroyed || !canTransition) return;
     if (cameraMap.easeTo) {
@@ -82,6 +90,7 @@ export function installGlobalViewControl({
       cameraMap.setZoom?.(homeZoom);
     }
     mapElement?.setAttribute("data-global-view", String(isGlobal));
+    publishCameraFlattened();
   };
 
   const onClick = (): void => {
