@@ -192,18 +192,14 @@ describe("route recalculation core", () => {
     expect(onRouteAvailable).not.toHaveBeenCalled();
   });
 
-  it("aborts an in-flight route request when the owning session stops", async () => {
+  it("aborts an in-flight route request and rejects a successful stale route after stop", async () => {
     const session = beginNavigationSession();
     let observedSignal: AbortSignal | undefined;
     const requestRoute = vi.fn(
       ({ signal }: { signal: AbortSignal }) =>
-        new Promise<RouteFeatureCollection>((_resolve, reject) => {
+        new Promise<RouteFeatureCollection>((resolve) => {
           observedSignal = signal;
-          signal.addEventListener(
-            "abort",
-            () => reject(new DOMException("cancelled", "AbortError")),
-            { once: true },
-          );
+          signal.addEventListener("abort", () => resolve(ROUTE), { once: true });
         }),
     );
     const onRouteAvailable = vi.fn();
