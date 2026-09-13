@@ -164,6 +164,30 @@ jobs:
               throw new Error(`Weather modal did not close accessibly: ${JSON.stringify(weatherClosed)}`);
             }
 
+            await page.keyboard.press('Enter');
+            await page.locator('.weather-forecast-modal').waitFor({ state: 'visible', timeout: 5000 });
+            const keyboardEnterOpened = await page.evaluate(() => ({
+              expanded: document.getElementById('weather-widget')?.getAttribute('aria-expanded'),
+              focusedClose: document.activeElement?.classList.contains('forecast-close-btn') ?? false,
+            }));
+            if (keyboardEnterOpened.expanded !== 'true' || !keyboardEnterOpened.focusedClose) {
+              throw new Error(`Enter did not open weather modal accessibly: ${JSON.stringify(keyboardEnterOpened)}`);
+            }
+            await page.keyboard.press('Escape');
+            await page.locator('.weather-forecast-modal').waitFor({ state: 'detached', timeout: 5000 });
+
+            await page.keyboard.press(' ');
+            await page.locator('.weather-forecast-modal').waitFor({ state: 'visible', timeout: 5000 });
+            const keyboardSpaceOpened = await page.evaluate(() => ({
+              expanded: document.getElementById('weather-widget')?.getAttribute('aria-expanded'),
+              focusedClose: document.activeElement?.classList.contains('forecast-close-btn') ?? false,
+            }));
+            if (keyboardSpaceOpened.expanded !== 'true' || !keyboardSpaceOpened.focusedClose) {
+              throw new Error(`Space did not open weather modal accessibly: ${JSON.stringify(keyboardSpaceOpened)}`);
+            }
+            await page.keyboard.press('Escape');
+            await page.locator('.weather-forecast-modal').waitFor({ state: 'detached', timeout: 5000 });
+
             const before = await camera(page);
             if (before.activeTour !== null || before.markerCount !== '0' || before.globalView !== 'false') {
               throw new Error(`Home was not idle before Global view: ${JSON.stringify(before)}`);
@@ -208,7 +232,7 @@ jobs:
             }
 
             await page.screenshot({ path: '/tmp/v1-home-parity/home-parity-mobile.png', fullPage: false, animations: 'disabled' });
-            writeFileSync('/tmp/v1-home-parity/evidence.json', JSON.stringify({ weatherState, weatherClosed, before, global, restored, pageErrors, mapboxHttpErrors }, null, 2));
+            writeFileSync('/tmp/v1-home-parity/evidence.json', JSON.stringify({ weatherState, weatherClosed, keyboardEnterOpened, keyboardSpaceOpened, before, global, restored, pageErrors, mapboxHttpErrors }, null, 2));
             await browser.close();
           })().catch(error => {
             writeFileSync('/tmp/v1-home-parity/failure.txt', String(error?.stack || error));
