@@ -23,6 +23,10 @@ import {
   type BrowserNavigationRuntimeInstall,
 } from "./navigation/browser-navigation-runtime-install.js";
 import { installPublicOnboarding } from "./onboarding/public-onboarding.js";
+import {
+  installGlobalViewControl,
+  type GlobalViewControl,
+} from "./map/global-view-control.js";
 import { loadMapboxGlSdk } from "./runtime/mapbox-sdk-loader.js";
 import { initializeWeatherWidget } from "./weather/weather-widget.js";
 
@@ -126,8 +130,11 @@ const mapContainer = document.getElementById("map");
 const tourSelect = document.getElementById("tour-select");
 let activeRealMap: MapboxGlMapLike | undefined;
 let activeNavigationRuntimeInstall: BrowserNavigationRuntimeInstall | undefined;
+let activeGlobalViewControl: GlobalViewControl | undefined;
 
 function clearBrowserNavigationRuntime(): void {
+  activeGlobalViewControl?.destroy();
+  activeGlobalViewControl = undefined;
   activeNavigationRuntimeInstall?.destroy();
   activeNavigationRuntimeInstall = undefined;
 }
@@ -414,6 +421,17 @@ async function startBrowserWithProvider(provider: ResolvedMapProvider) {
               clearBrowserNavigationRuntime();
               activeRealMap = map;
               setV1MapboxCompatibilityAliases(map);
+              activeGlobalViewControl = installGlobalViewControl({
+                document,
+                map,
+                homeCenter: [
+                  morroDeSaoPauloDestination.center.longitude,
+                  morroDeSaoPauloDestination.center.latitude,
+                ],
+                homeZoom: Number(
+                  provider.environment.VITE_MAPBOX_INITIAL_ZOOM || "13.5",
+                ),
+              });
               activeNavigationRuntimeInstall = installBrowserNavigationRuntime({
                 map,
                 sdk: provider.sdk,

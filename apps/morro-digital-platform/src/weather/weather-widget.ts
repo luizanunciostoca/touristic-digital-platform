@@ -1,3 +1,15 @@
+import { openWeatherForecastModal } from "./weather-forecast-modal.js";
+
+export interface WeatherForecastDay {
+  readonly date: string;
+  readonly temperatureMaxCelsius: number;
+  readonly temperatureMinCelsius: number;
+  readonly humidityPercent: number;
+  readonly windSpeedKph: number;
+  readonly rainChancePercent: number;
+  readonly weatherCode: number;
+}
+
 export interface WeatherReading {
   readonly temperatureCelsius: number;
   readonly temperatureMaxCelsius: number;
@@ -7,6 +19,7 @@ export interface WeatherReading {
   readonly rainChancePercent: number;
   readonly weatherCode: number;
   readonly isDay: boolean;
+  readonly forecast?: readonly WeatherForecastDay[];
 }
 
 export interface WeatherWidgetOptions {
@@ -17,6 +30,7 @@ export interface WeatherWidgetOptions {
 
 const DEFAULT_REFRESH_INTERVAL_MS = 10 * 60 * 1000;
 const WEATHER_ENDPOINT = "/api/weather";
+const ISO_DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/u;
 
 function weatherEmoji(weatherCode: number, isDay: boolean): string {
   if (weatherCode === 0) return isDay ? "☀️" : "🌙";
@@ -28,6 +42,79 @@ function weatherEmoji(weatherCode: number, isDay: boolean): string {
   if ([71, 73, 75, 77, 85, 86].includes(weatherCode)) return "🌨️";
   if ([95, 96, 99].includes(weatherCode)) return "⛈️";
   return isDay ? "☀️" : "🌙";
+}
+
+function readFiniteNumber(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value)
+    ? value
+    : undefined;
+}
+
+function normalizeForecastDate(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const match = ISO_DATE_PATTERN.exec(value);
+  if (!match) return undefined;
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+  if (
+    parsed.getUTCFullYear() !== year ||
+    parsed.getUTCMonth() !== month - 1 ||
+    parsed.getUTCDate() !== day
+  ) {
+    return undefined;
+  }
+
+  return value;
+}
+
+function parseForecast(payload: unknown): readonly WeatherForecastDay[] {
+  if (!Array.isArray(payload)) return Object.freeze([]);
+
+  const forecast = payload.flatMap<WeatherForecastDay>((candidate) => {
+    if (!candidate || typeof candidate !== "object") return [];
+    const date = normalizeForecastDate(Reflect.get(candidate, "date"));
+    const temperatureMax = readFiniteNumber(
+      Reflect.get(candidate, "temperatureMaxCelsius"),
+    );
+    const temperatureMin = readFiniteNumber(
+      Reflect.get(candidate, "temperatureMinCelsius"),
+    );
+    const humidity = readFiniteNumber(
+      Reflect.get(candidate, "humidityPercent"),
+    );
+    const windSpeed = readFiniteNumber(Reflect.get(candidate, "windSpeedKph"));
+    const rainChance = readFiniteNumber(
+      Reflect.get(candidate, "rainChancePercent"),
+    );
+    const weatherCode = readFiniteNumber(Reflect.get(candidate, "weatherCode"));
+    if (
+      !date ||
+      temperatureMax === undefined ||
+      temperatureMin === undefined ||
+      humidity === undefined ||
+      windSpeed === undefined ||
+      rainChance === undefined ||
+      weatherCode === undefined
+    ) {
+      return [];
+    }
+    return [
+      Object.freeze({
+        date,
+        temperatureMaxCelsius: Math.round(temperatureMax),
+        temperatureMinCelsius: Math.round(temperatureMin),
+        humidityPercent: Math.round(humidity),
+        windSpeedKph: Math.round(windSpeed),
+        rainChancePercent: Math.round(rainChance),
+        weatherCode,
+      }),
+    ];
+  });
+
+  return Object.freeze(forecast.slice(0, 7));
 }
 
 function parseWeatherPayload(payload: unknown): WeatherReading {
@@ -64,7 +151,7 @@ function parseWeatherPayload(payload: unknown): WeatherReading {
     throw new Error("Weather runtime returned incomplete current conditions.");
   }
 
-  return {
+  return Object.freeze({
     temperatureCelsius: Math.round(temperature),
     temperatureMaxCelsius: Math.round(temperatureMax),
     temperatureMinCelsius: Math.round(temperatureMin),
@@ -73,7 +160,8 @@ function parseWeatherPayload(payload: unknown): WeatherReading {
     rainChancePercent: Math.round(rainChance),
     weatherCode,
     isDay,
-  };
+    forecast: parseForecast(Reflect.get(payload, "forecast")),
+  });
 }
 
 export async function fetchMorroWeather(
@@ -123,6 +211,36 @@ export function initializeWeatherWidget({
 
   let disposed = false;
   let requestInFlight = false;
+  let latestReading: WeatherReading | undefined;
+  let activeModal: ReturnType<typeof openWeatherForecastModal> | undefined;
+
+  widget.setAttribute("role", "button");
+  widget.tabIndex = 0;
+  widget.setAttribute("aria-label", "Abrir previsão do tempo");
+  widget.setAttribute("aria-expanded", "false");
+
+  const openForecast = (): void => {
+    if (!latestReading || disposed) return;
+    activeModal?.close();
+    activeModal = openWeatherForecastModal({
+      document,
+      reading: latestReading,
+      onClose: () => {
+        widget.setAttribute("aria-expanded", "false");
+        activeModal = undefined;
+      },
+    });
+    widget.setAttribute("aria-expanded", "true");
+  };
+
+  const onWidgetClick = (): void => openForecast();
+  const onWidgetKeyDown = (event: KeyboardEvent): void => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    openForecast();
+  };
+  widget.addEventListener("click", onWidgetClick);
+  widget.addEventListener("keydown", onWidgetKeyDown);
 
   const refresh = async (): Promise<void> => {
     if (disposed || requestInFlight) return;
@@ -132,7 +250,10 @@ export function initializeWeatherWidget({
 
     try {
       const reading = await fetchMorroWeather(fetchImplementation);
-      if (!disposed) renderReading(widget, reading);
+      if (!disposed) {
+        latestReading = reading;
+        renderReading(widget, reading);
+      }
     } catch {
       if (!disposed) renderError(widget);
     } finally {
@@ -148,6 +269,10 @@ export function initializeWeatherWidget({
 
   return () => {
     disposed = true;
+    activeModal?.close();
+    activeModal = undefined;
+    widget.removeEventListener("click", onWidgetClick);
+    widget.removeEventListener("keydown", onWidgetKeyDown);
     globalThis.clearInterval(intervalId);
   };
 }

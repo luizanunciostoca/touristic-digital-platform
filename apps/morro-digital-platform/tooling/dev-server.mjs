@@ -9,6 +9,11 @@ import { createBusinessApi } from "./business-api.mjs";
 import { createCrmApi } from "./crm-api.mjs";
 import { createPaymentsApi } from "./payments-runtime-api.mjs";
 import { createPlatformOperations } from "./platform-operations.mjs";
+import {
+  fetchWeatherWithFallback,
+  mapOpenMeteoWeatherPayload,
+  mapVisualCrossingWeatherPayload,
+} from "./weather-provider-mappers.mjs";
 import { rewriteWorkspaceModuleSpecifiers } from "./workspace-browser-modules.mjs";
 
 const repositoryRoot = resolve(
@@ -305,17 +310,6 @@ function serveReadiness(response, correlationId) {
   response.end(JSON.stringify(snapshot));
 }
 
-function conditionToWeatherCode(condition) {
-  const value = String(condition || "").toLowerCase();
-  if (value.includes("thunder")) return 95;
-  if (value.includes("snow") || value.includes("sleet")) return 71;
-  if (value.includes("rain") || value.includes("drizzle")) return 61;
-  if (value.includes("fog") || value.includes("mist")) return 45;
-  if (value.includes("overcast")) return 3;
-  if (value.includes("cloud") || value.includes("partially")) return 2;
-  return 0;
-}
-
 async function fetchVisualCrossingWeather(apiKey) {
   const location = `${morroLatitude},${morroLongitude}`;
   const url = new URL(
@@ -334,36 +328,7 @@ async function fetchVisualCrossingWeather(apiKey) {
     throw new Error(`Visual Crossing returned HTTP ${response.status}.`);
   }
 
-  const payload = await response.json();
-  const current = payload?.currentConditions;
-  const today = payload?.days?.[0];
-  const temperatureCelsius = current?.temp;
-  if (typeof temperatureCelsius !== "number") {
-    throw new Error("Visual Crossing returned incomplete current conditions.");
-  }
-
-  const icon = String(current?.icon || "");
-  if (
-    typeof today?.tempmax !== "number" ||
-    typeof today?.tempmin !== "number" ||
-    typeof current?.humidity !== "number" ||
-    typeof current?.windspeed !== "number" ||
-    typeof today?.precipprob !== "number"
-  ) {
-    throw new Error("Visual Crossing returned incomplete weather details.");
-  }
-
-  return {
-    temperatureCelsius,
-    temperatureMaxCelsius: today.tempmax,
-    temperatureMinCelsius: today.tempmin,
-    humidityPercent: current.humidity,
-    windSpeedKph: current.windspeed,
-    rainChancePercent: today.precipprob,
-    weatherCode: conditionToWeatherCode(current?.conditions || icon),
-    isDay: !icon.includes("night"),
-    provider: "visual-crossing",
-  };
+  return mapVisualCrossingWeatherPayload(await response.json());
 }
 
 async function fetchOpenMeteoWeather() {
@@ -374,10 +339,12 @@ async function fetchOpenMeteoWeather() {
     "current",
     "temperature_2m,relative_humidity_2m,weather_code,is_day,wind_speed_10m",
   );
+  url.searchParams.set("hourly", "relative_humidity_2m");
   url.searchParams.set(
     "daily",
-    "temperature_2m_max,temperature_2m_min,precipitation_probability_max",
+    "temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code,wind_speed_10m_max",
   );
+  url.searchParams.set("forecast_days", "7");
   url.searchParams.set("timezone", "America/Bahia");
 
   const response = await fetch(url, {
@@ -388,33 +355,7 @@ async function fetchOpenMeteoWeather() {
     throw new Error(`Open-Meteo returned HTTP ${response.status}.`);
   }
 
-  const payload = await response.json();
-  const current = payload?.current;
-  const daily = payload?.daily;
-  if (
-    typeof current?.temperature_2m !== "number" ||
-    typeof current?.relative_humidity_2m !== "number" ||
-    typeof current?.wind_speed_10m !== "number" ||
-    typeof daily?.temperature_2m_max?.[0] !== "number" ||
-    typeof daily?.temperature_2m_min?.[0] !== "number" ||
-    typeof daily?.precipitation_probability_max?.[0] !== "number" ||
-    typeof current?.weather_code !== "number" ||
-    (current?.is_day !== 0 && current?.is_day !== 1)
-  ) {
-    throw new Error("Open-Meteo returned incomplete current conditions.");
-  }
-
-  return {
-    temperatureCelsius: current.temperature_2m,
-    temperatureMaxCelsius: daily.temperature_2m_max[0],
-    temperatureMinCelsius: daily.temperature_2m_min[0],
-    humidityPercent: current.relative_humidity_2m,
-    windSpeedKph: current.wind_speed_10m,
-    rainChancePercent: daily.precipitation_probability_max[0],
-    weatherCode: current.weather_code,
-    isDay: current.is_day === 1,
-    provider: "open-meteo",
-  };
+  return mapOpenMeteoWeatherPayload(await response.json());
 }
 
 function safeProviderError(error) {
@@ -425,34 +366,22 @@ async function fetchWeatherFromProviders(correlationId) {
   const visualCrossingKey = getEnvironmentValue(
     "VISUAL_CROSSING_API_KEY",
   ).trim();
-  if (visualCrossingKey) {
-    try {
-      const weather = await fetchVisualCrossingWeather(visualCrossingKey);
-      platformOperations.providerRecovered(
-        "weather-visual-crossing",
-        correlationId,
-      );
-      return weather;
-    } catch (error) {
+
+  return fetchWeatherWithFallback({
+    visualCrossingKey,
+    fetchVisualCrossing: fetchVisualCrossingWeather,
+    fetchOpenMeteo: fetchOpenMeteoWeather,
+    onRecovered(provider) {
+      platformOperations.providerRecovered(provider, correlationId);
+    },
+    onDegraded(provider, error) {
       platformOperations.providerDegraded(
-        "weather-visual-crossing",
+        provider,
         safeProviderError(error),
         correlationId,
       );
-    }
-  }
-  try {
-    const weather = await fetchOpenMeteoWeather();
-    platformOperations.providerRecovered("weather-open-meteo", correlationId);
-    return weather;
-  } catch (error) {
-    platformOperations.providerDegraded(
-      "weather-open-meteo",
-      safeProviderError(error),
-      correlationId,
-    );
-    throw error;
-  }
+    },
+  });
 }
 
 function cacheAgeMs(now = Date.now()) {
