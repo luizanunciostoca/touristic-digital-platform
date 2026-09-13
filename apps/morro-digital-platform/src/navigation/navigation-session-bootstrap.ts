@@ -249,10 +249,7 @@ export function createNavigationSessionBootstrap(
           ...(options.onArrival
             ? {
                 onArrival: () => {
-                  if (
-                    activeSession?.id !== session.id ||
-                    !session.isActive()
-                  ) {
+                  if (activeSession?.id !== session.id || !session.isActive()) {
                     return;
                   }
                   options.onArrival?.(eventContext);
