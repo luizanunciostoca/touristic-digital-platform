@@ -50,9 +50,7 @@ describe("V1 explore locations control", () => {
     const categories = getExploreLocationsCategories();
 
     expect(
-      Object.fromEntries(
-        categories.map(({ value, count }) => [value, count]),
-      ),
+      Object.fromEntries(categories.map(({ value, count }) => [value, count])),
     ).toEqual(EXPECTED_CATEGORY_COUNTS);
 
     const total = categories.reduce((sum, category) => sum + category.count, 0);
