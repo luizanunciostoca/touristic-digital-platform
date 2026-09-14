@@ -25,21 +25,21 @@ describe("CRM storage path hardening", () => {
     const pool = fakePool();
     const adapter = new FilesystemCrmStorageAdapter(pool, "/tmp/crm-storage");
 
-    await expect(adapter.download("crm-files", "../outside.pdf")).rejects.toThrow(
-      "CRM_STORAGE_OBJECT_KEY_INVALID",
-    );
-    await expect(adapter.download("crm-files", "/absolute.pdf")).rejects.toThrow(
-      "CRM_STORAGE_OBJECT_KEY_INVALID",
-    );
+    await expect(
+      adapter.download("crm-files", "../outside.pdf"),
+    ).rejects.toThrow("CRM_STORAGE_OBJECT_KEY_INVALID");
+    await expect(
+      adapter.download("crm-files", "/absolute.pdf"),
+    ).rejects.toThrow("CRM_STORAGE_OBJECT_KEY_INVALID");
     await expect(
       adapter.download("crm-files", "folder\\windows-path.pdf"),
     ).rejects.toThrow("CRM_STORAGE_OBJECT_KEY_INVALID");
-    await expect(adapter.download("../bucket", "file.pdf")).rejects.toThrow(
-      "CRM_STORAGE_BUCKET_INVALID",
-    );
-    await expect(adapter.download("crm-files", "folder//file.pdf")).rejects.toThrow(
-      "CRM_STORAGE_OBJECT_KEY_INVALID",
-    );
+    await expect(
+      adapter.download("../bucket", "file.pdf"),
+    ).rejects.toThrow("CRM_STORAGE_BUCKET_INVALID");
+    await expect(
+      adapter.download("crm-files", "folder//file.pdf"),
+    ).rejects.toThrow("CRM_STORAGE_OBJECT_KEY_INVALID");
 
     expect(pool.execute).not.toHaveBeenCalled();
   });
@@ -52,10 +52,7 @@ describe("CRM storage path hardening", () => {
 
     try {
       const adapter = new FilesystemCrmStorageAdapter(fakePool(), root);
-      const data = await adapter.download(
-        "crm-files",
-        "lead-7/contract.pdf",
-      );
+      const data = await adapter.download("crm-files", "lead-7/contract.pdf");
       expect(data?.toString("utf8")).toBe("contract-body");
     } finally {
       await rm(root, { recursive: true, force: true });
@@ -80,7 +77,9 @@ describe("CRM storage path hardening", () => {
   });
 
   it("encodes every S3 path segment instead of concatenating raw object keys", async () => {
-    const fetchMock = vi.fn(async () => new Response("payload", { status: 200 }));
+    const fetchMock = vi.fn(
+      async () => new Response("payload", { status: 200 }),
+    );
     vi.stubGlobal("fetch", fetchMock);
     const adapter = new S3CrmStorageAdapter(
       fakePool(),
@@ -89,10 +88,7 @@ describe("CRM storage path hardening", () => {
       "test-secret-key",
     );
 
-    const data = await adapter.download(
-      "crm-files",
-      "folder/a b?#.pdf",
-    );
+    const data = await adapter.download("crm-files", "folder/a b?#.pdf");
 
     expect(data?.toString("utf8")).toBe("payload");
     expect(fetchMock).toHaveBeenCalledWith(
