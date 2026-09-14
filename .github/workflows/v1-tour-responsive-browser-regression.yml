@@ -1,0 +1,169 @@
+name: V1 Tour Responsive Browser Regression
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/v1-tour-responsive-browser-regression.yml
+      - apps/morro-digital-platform/public/index.html
+      - apps/morro-digital-platform/public/styles.css
+      - apps/morro-digital-platform/public/v1-tour-assistant-visibility.css
+      - apps/morro-digital-platform/public/legacy/**
+      - apps/morro-digital-platform/src/onboarding/public-onboarding.ts
+      - apps/morro-digital-platform/src/onboarding/public-interactive-tour.ts
+      - apps/morro-digital-platform/src/layouts/app-shell.ts
+      - apps/morro-digital-platform/tooling/dev-server.mjs
+
+permissions:
+  contents: read
+
+jobs:
+  v1-tour-responsive:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install deterministic Chromium
+        run: |
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+          mkdir -p /tmp/v1-tour-responsive
+      - run: pnpm -w build
+      - name: Start browser runtime
+        run: |
+          node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/v1-tour-responsive/server.log 2>&1 &
+          for i in $(seq 1 60); do
+            curl -fsS http://127.0.0.1:4173/runtime-config.js >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/v1-tour-responsive/server.log
+          exit 1
+      - name: Prove settled V1 tutorial contract across viewports
+        run: |
+          node <<'NODE'
+          const { writeFileSync } = require('node:fs');
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+          const viewports = [
+            { name: 'mobile', width: 390, height: 844 },
+            { name: 'tablet', width: 768, height: 1024 },
+            { name: 'desktop', width: 1280, height: 800 },
+          ];
+          const out = '/tmp/v1-tour-responsive';
+          const approx = (a, b, t = 2) => Number.isFinite(a) && Math.abs(a - b) <= t;
+          const inside = (r, v, t = 2) => r && r.width > 0 && r.height > 0 && r.left >= -t && r.top >= -t && r.right <= v.width + t && r.bottom <= v.height + t;
+          const expectedHighlight = target => ({
+            left: Math.max(4, target.left - 7),
+            top: Math.max(4, target.top - 7),
+            width: Math.max(28, target.width + 14),
+            height: Math.max(28, target.height + 14),
+          });
+          const matchesHighlight = s => {
+            if (!s.highlight || !s.target) return false;
+            const e = expectedHighlight(s.target);
+            return approx(s.highlight.left, e.left) && approx(s.highlight.top, e.top) && approx(s.highlight.width, e.width) && approx(s.highlight.height, e.height);
+          };
+          async function snapshot(page) {
+            return page.evaluate(() => {
+              const rect = node => {
+                if (!(node instanceof Element)) return null;
+                const r = node.getBoundingClientRect();
+                return { left:r.left, top:r.top, right:r.right, bottom:r.bottom, width:r.width, height:r.height };
+              };
+              const assistant = document.getElementById('assistant-messages');
+              const style = assistant ? getComputedStyle(assistant) : null;
+              return {
+                label: document.querySelector('.tour-step-label')?.textContent?.trim() ?? null,
+                targetIdentity: document.querySelector('.tour-target-active')?.id || document.querySelector('.tour-target-active')?.className || null,
+                target: rect(document.querySelector('.tour-target-active')),
+                highlight: rect(document.getElementById('tour-highlight')),
+                tooltip: rect(document.getElementById('tour-tooltip')),
+                assistantVisible: style ? style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0' : null,
+                scrollWidth: document.documentElement.scrollWidth,
+                clientWidth: document.documentElement.clientWidth,
+              };
+            });
+          }
+          async function settledSnapshot(page, viewport, step) {
+            const deadline = Date.now() + 1500;
+            let latest = null;
+            while (Date.now() < deadline) {
+              latest = await snapshot(page);
+              if (latest.label === `Passo ${step} de 7` && latest.target && matchesHighlight(latest)) return latest;
+              await page.waitForTimeout(50);
+            }
+            throw new Error(`${viewport.name} step ${step} geometry did not settle: ${JSON.stringify(latest)}`);
+          }
+          async function runViewport(browser, viewport) {
+            const context = await browser.newContext({ viewport });
+            const page = await context.newPage();
+            const pageErrors = [];
+            page.on('pageerror', error => pageErrors.push(error.message));
+            await page.addInitScript(() => {
+              localStorage.removeItem('morro-digital-onboarded');
+              localStorage.setItem('voice-enabled', 'false');
+            });
+            await page.goto('http://127.0.0.1:4173/', { waitUntil:'domcontentloaded', timeout:30000 });
+            await page.locator('#map[data-map-state="ready"][data-home-state="ready"]').waitFor({ state:'attached', timeout:20000 });
+            await page.locator('#onboarding-overlay').waitFor({ state:'visible', timeout:5000 });
+            await page.locator('[data-public-onboarding-action="start"]').click();
+            const steps = [];
+            for (let step = 1; step <= 7; step += 1) {
+              await page.locator('.tour-step-label').filter({ hasText:`Passo ${step} de 7` }).waitFor({ state:'visible' });
+              const s = await settledSnapshot(page, viewport, step);
+              if (!inside(s.tooltip, viewport)) throw new Error(`${viewport.name} step ${step} tooltip escaped: ${JSON.stringify(s)}`);
+              if (!s.target || s.target.width <= 0 || s.target.height <= 0) throw new Error(`${viewport.name} step ${step} target missing: ${JSON.stringify(s)}`);
+              if (s.assistantVisible !== (step >= 4 && step <= 6)) throw new Error(`${viewport.name} step ${step} assistant visibility diverged: ${JSON.stringify(s)}`);
+              if (s.scrollWidth > s.clientWidth + 2) throw new Error(`${viewport.name} step ${step} horizontal overflow: ${JSON.stringify(s)}`);
+              steps.push(s);
+              if (step < 7) await page.locator('.tour-btn-next').click();
+            }
+            await page.locator('.tour-btn-finish').click();
+            await page.locator('#tour-tooltip').waitFor({ state:'detached', timeout:3000 });
+            const restored = await page.evaluate(() => {
+              const node = document.getElementById('assistant-messages');
+              const style = node ? getComputedStyle(node) : null;
+              return {
+                onboarded: localStorage.getItem('morro-digital-onboarded'),
+                settled: document.body.getAttribute('data-public-onboarding-settled'),
+                ariaHidden: node?.getAttribute('aria-hidden') ?? null,
+                visible: style ? style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0' : false,
+              };
+            });
+            if (restored.onboarded !== '1' || restored.settled !== 'true' || restored.ariaHidden !== 'false' || !restored.visible) throw new Error(`${viewport.name} restoration diverged: ${JSON.stringify(restored)}`);
+            if (pageErrors.length) throw new Error(`${viewport.name} browser errors: ${JSON.stringify(pageErrors)}`);
+            await page.screenshot({ path:`${out}/${viewport.name}-restored.png`, animations:'disabled' });
+            await context.close();
+            return { viewport, steps, restored };
+          }
+          (async () => {
+            const browser = await chromium.launch({ headless:true });
+            try {
+              const evidence = [];
+              for (const viewport of viewports) evidence.push(await runViewport(browser, viewport));
+              writeFileSync(`${out}/evidence.json`, JSON.stringify(evidence, null, 2));
+            } finally { await browser.close(); }
+          })().catch(error => {
+            writeFileSync(`${out}/failure.txt`, String(error?.stack || error));
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+      - name: Show diagnostics
+        if: failure()
+        run: |
+          cat /tmp/v1-tour-responsive/server.log || true
+          cat /tmp/v1-tour-responsive/failure.txt || true
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: v1-tour-responsive-evidence
+          path: /tmp/v1-tour-responsive
+          retention-days: 7
+          if-no-files-found: error
