@@ -48,6 +48,80 @@ interface StorageRow extends RowDataPacket {
   created_at: string;
 }
 
+const BUCKET_MAX_LENGTH = 120;
+const OBJECT_KEY_MAX_LENGTH = 500;
+const bucketPattern = /^[A-Za-z0-9][A-Za-z0-9._-]*$/u;
+const windowsDriveAbsolutePattern = /^[A-Za-z]:\//u;
+
+interface ValidStorageLocation {
+  readonly bucket: string;
+  readonly objectKey: string;
+}
+
+function containsControlCharacter(value: string): boolean {
+  for (const character of value) {
+    const codePoint = character.codePointAt(0);
+    if (codePoint !== undefined && (codePoint <= 0x1f || codePoint === 0x7f)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function isMissingFilesystemPath(error: unknown): boolean {
+  if (typeof error !== "object" || error === null || !("code" in error)) {
+    return false;
+  }
+  const code = (error as { readonly code?: unknown }).code;
+  return code === "ENOENT" || code === "ENOTDIR";
+}
+
+function isPathWithinRoot(
+  root: string,
+  candidate: string,
+  separator: string,
+): boolean {
+  return candidate === root || candidate.startsWith(`${root}${separator}`);
+}
+
+function validateStorageLocation(
+  bucket: string,
+  objectKey: string,
+): ValidStorageLocation {
+  if (
+    !bucket ||
+    bucket !== bucket.trim() ||
+    bucket.length > BUCKET_MAX_LENGTH ||
+    !bucketPattern.test(bucket) ||
+    bucket === "." ||
+    bucket === ".." ||
+    containsControlCharacter(bucket)
+  ) {
+    throw new Error("CRM_STORAGE_BUCKET_INVALID");
+  }
+
+  if (
+    !objectKey ||
+    objectKey !== objectKey.trim() ||
+    objectKey.length > OBJECT_KEY_MAX_LENGTH ||
+    objectKey.startsWith("/") ||
+    windowsDriveAbsolutePattern.test(objectKey) ||
+    objectKey.includes("\\") ||
+    containsControlCharacter(objectKey)
+  ) {
+    throw new Error("CRM_STORAGE_OBJECT_KEY_INVALID");
+  }
+
+  const segments = objectKey.split("/");
+  if (
+    segments.some((segment) => !segment || segment === "." || segment === "..")
+  ) {
+    throw new Error("CRM_STORAGE_OBJECT_KEY_INVALID");
+  }
+
+  return Object.freeze({ bucket, objectKey });
+}
+
 function rowToStorageObject(row: StorageRow): CrmStorageObject {
   const parsedMetadata: Record<string, unknown> | null = row.metadata
     ? (JSON.parse(row.metadata) as Record<string, unknown>)
@@ -97,6 +171,19 @@ function buildUpsertParams(
   ];
 }
 
+function buildS3ObjectUrl(
+  endpoint: string,
+  bucket: string,
+  objectKey: string,
+): string {
+  const location = validateStorageLocation(bucket, objectKey);
+  const endpointWithSlash = endpoint.endsWith("/") ? endpoint : `${endpoint}/`;
+  const encodedPath = [location.bucket, ...location.objectKey.split("/")]
+    .map((segment) => encodeURIComponent(segment))
+    .join("/");
+  return new URL(encodedPath, endpointWithSlash).toString();
+}
+
 export class FilesystemCrmStorageAdapter implements CrmStorageAdapterPort {
   readonly #pool: Pool;
   readonly #basePath: string;
@@ -106,13 +193,92 @@ export class FilesystemCrmStorageAdapter implements CrmStorageAdapterPort {
     this.#basePath = basePath;
   }
 
-  upload = async (input: CrmStorageUploadInput): Promise<CrmStorageObject> => {
+  #resolvePath = async (
+    bucket: string,
+    objectKey: string,
+    ensureParent = false,
+  ): Promise<string> => {
     const fs = await import("node:fs/promises");
     const path = await import("node:path");
+    const location = validateStorageLocation(bucket, objectKey);
+    const baseRoot = path.resolve(this.#basePath);
+    const bucketRoot = path.resolve(baseRoot, location.bucket);
+    const fullPath = path.resolve(bucketRoot, ...location.objectKey.split("/"));
+    if (!isPathWithinRoot(bucketRoot, fullPath, path.sep)) {
+      throw new Error("CRM_STORAGE_PATH_ESCAPE_REJECTED");
+    }
 
+    if (ensureParent) {
+      await fs.mkdir(baseRoot, { recursive: true });
+    }
+
+    let realBaseRoot: string;
+    try {
+      realBaseRoot = await fs.realpath(baseRoot);
+    } catch (error) {
+      if (!ensureParent && isMissingFilesystemPath(error)) {
+        return fullPath;
+      }
+      throw error;
+    }
+
+    const parentPath = path.dirname(fullPath);
+    let ancestorPath = parentPath;
+    let realExistingAncestor: string | null = null;
+    while (isPathWithinRoot(baseRoot, ancestorPath, path.sep)) {
+      try {
+        realExistingAncestor = await fs.realpath(ancestorPath);
+        break;
+      } catch (error) {
+        if (!isMissingFilesystemPath(error)) {
+          throw error;
+        }
+        if (ancestorPath === baseRoot) {
+          break;
+        }
+        ancestorPath = path.dirname(ancestorPath);
+      }
+    }
+
+    if (
+      realExistingAncestor !== null &&
+      !isPathWithinRoot(realBaseRoot, realExistingAncestor, path.sep)
+    ) {
+      throw new Error("CRM_STORAGE_PATH_ESCAPE_REJECTED");
+    }
+
+    if (ensureParent) {
+      await fs.mkdir(parentPath, { recursive: true });
+      const realParentPath = await fs.realpath(parentPath);
+      if (!isPathWithinRoot(realBaseRoot, realParentPath, path.sep)) {
+        throw new Error("CRM_STORAGE_PATH_ESCAPE_REJECTED");
+      }
+    }
+
+    try {
+      const targetStats = await fs.lstat(fullPath);
+      if (targetStats.isSymbolicLink()) {
+        throw new Error("CRM_STORAGE_PATH_ESCAPE_REJECTED");
+      }
+    } catch (error) {
+      if (!isMissingFilesystemPath(error)) {
+        throw error;
+      }
+    }
+
+    return fullPath;
+  };
+
+  upload = async (input: CrmStorageUploadInput): Promise<CrmStorageObject> => {
+    const fs = await import("node:fs/promises");
+
+    validateStorageLocation(input.bucket, input.objectKey);
     const checksum = computeChecksum(input.data);
-    const fullPath = path.join(this.#basePath, input.bucket, input.objectKey);
-    await fs.mkdir(path.dirname(fullPath), { recursive: true });
+    const fullPath = await this.#resolvePath(
+      input.bucket,
+      input.objectKey,
+      true,
+    );
     await fs.writeFile(fullPath, input.data);
 
     await this.#pool.execute<ResultSetHeader>(
@@ -130,10 +296,10 @@ export class FilesystemCrmStorageAdapter implements CrmStorageAdapterPort {
     objectKey: string,
   ): Promise<Buffer | null> => {
     const fs = await import("node:fs/promises");
-    const path = await import("node:path");
+    const fullPath = await this.#resolvePath(bucket, objectKey);
 
     try {
-      return await fs.readFile(path.join(this.#basePath, bucket, objectKey));
+      return await fs.readFile(fullPath);
     } catch {
       return null;
     }
@@ -141,17 +307,18 @@ export class FilesystemCrmStorageAdapter implements CrmStorageAdapterPort {
 
   delete = async (bucket: string, objectKey: string): Promise<boolean> => {
     const fs = await import("node:fs/promises");
-    const path = await import("node:path");
+    const fullPath = await this.#resolvePath(bucket, objectKey);
+    const location = validateStorageLocation(bucket, objectKey);
 
     try {
-      await fs.unlink(path.join(this.#basePath, bucket, objectKey));
+      await fs.unlink(fullPath);
     } catch {
       // File may not exist; still remove metadata
     }
 
     const [result] = await this.#pool.execute<ResultSetHeader>(
       "DELETE FROM crm_storage_objects WHERE bucket = ? AND object_key = ?",
-      [bucket, objectKey],
+      [location.bucket, location.objectKey],
     );
     return result.affectedRows > 0;
   };
@@ -160,9 +327,10 @@ export class FilesystemCrmStorageAdapter implements CrmStorageAdapterPort {
     bucket: string,
     objectKey: string,
   ): Promise<CrmStorageObject | null> => {
+    const location = validateStorageLocation(bucket, objectKey);
     const [rows] = await this.#pool.execute<StorageRow[]>(
       "SELECT * FROM crm_storage_objects WHERE bucket = ? AND object_key = ? LIMIT 1",
-      [bucket, objectKey],
+      [location.bucket, location.objectKey],
     );
     return rows.length > 0 ? rowToStorageObject(rows[0]!) : null;
   };
@@ -193,8 +361,13 @@ export class S3CrmStorageAdapter implements CrmStorageAdapterPort {
   }
 
   upload = async (input: CrmStorageUploadInput): Promise<CrmStorageObject> => {
+    validateStorageLocation(input.bucket, input.objectKey);
     const checksum = computeChecksum(input.data);
-    const url = `${this.#s3Endpoint}/${input.bucket}/${input.objectKey}`;
+    const url = buildS3ObjectUrl(
+      this.#s3Endpoint,
+      input.bucket,
+      input.objectKey,
+    );
 
     const response = await fetch(url, {
       method: "PUT",
@@ -226,19 +399,24 @@ export class S3CrmStorageAdapter implements CrmStorageAdapterPort {
     bucket: string,
     objectKey: string,
   ): Promise<Buffer | null> => {
-    const url = `${this.#s3Endpoint}/${bucket}/${objectKey}`;
+    const url = buildS3ObjectUrl(this.#s3Endpoint, bucket, objectKey);
     const response = await fetch(url);
     if (!response.ok) return null;
     return Buffer.from(await response.arrayBuffer());
   };
 
   delete = async (bucket: string, objectKey: string): Promise<boolean> => {
-    const url = `${this.#s3Endpoint}/${bucket}/${objectKey}`;
+    const location = validateStorageLocation(bucket, objectKey);
+    const url = buildS3ObjectUrl(
+      this.#s3Endpoint,
+      location.bucket,
+      location.objectKey,
+    );
     const response = await fetch(url, { method: "DELETE" });
 
     const [result] = await this.#pool.execute<ResultSetHeader>(
       "DELETE FROM crm_storage_objects WHERE bucket = ? AND object_key = ?",
-      [bucket, objectKey],
+      [location.bucket, location.objectKey],
     );
     return response.ok && result.affectedRows > 0;
   };
@@ -247,9 +425,10 @@ export class S3CrmStorageAdapter implements CrmStorageAdapterPort {
     bucket: string,
     objectKey: string,
   ): Promise<CrmStorageObject | null> => {
+    const location = validateStorageLocation(bucket, objectKey);
     const [rows] = await this.#pool.execute<StorageRow[]>(
       "SELECT * FROM crm_storage_objects WHERE bucket = ? AND object_key = ? LIMIT 1",
-      [bucket, objectKey],
+      [location.bucket, location.objectKey],
     );
     return rows.length > 0 ? rowToStorageObject(rows[0]!) : null;
   };
