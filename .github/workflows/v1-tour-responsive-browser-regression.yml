@@ -81,12 +81,23 @@ jobs:
               rect.top < viewport.height;
           }
 
-          function highlightCoversTarget(highlight, target, tolerance = 2) {
-            return highlight && target &&
-              highlight.left <= target.left + tolerance &&
-              highlight.top <= target.top + tolerance &&
-              highlight.right >= target.right - tolerance &&
-              highlight.bottom >= target.bottom - tolerance;
+          function approximatelyEqual(actual, expected, tolerance = 2) {
+            return Number.isFinite(actual) && Math.abs(actual - expected) <= tolerance;
+          }
+
+          function highlightMatchesV1Contract(highlight, target, tolerance = 2) {
+            if (!highlight || !target) return false;
+            const margin = 7;
+            const expected = {
+              left: Math.max(4, target.left - margin),
+              top: Math.max(4, target.top - margin),
+              width: Math.max(28, target.width + margin * 2),
+              height: Math.max(28, target.height + margin * 2),
+            };
+            return approximatelyEqual(highlight.left, expected.left, tolerance) &&
+              approximatelyEqual(highlight.top, expected.top, tolerance) &&
+              approximatelyEqual(highlight.width, expected.width, tolerance) &&
+              approximatelyEqual(highlight.height, expected.height, tolerance);
           }
 
           async function snapshot(page) {
@@ -154,8 +165,8 @@ jobs:
               if (!current.target || current.target.width <= 0 || current.target.height <= 0) {
                 throw new Error(`${viewport.name} step ${step} target is not measurable: ${JSON.stringify(current)}`);
               }
-              if (!rectIntersectsViewport(current.highlight, viewport) || !highlightCoversTarget(current.highlight, current.target)) {
-                throw new Error(`${viewport.name} step ${step} highlight lost target geometry: ${JSON.stringify(current)}`);
+              if (!rectIntersectsViewport(current.highlight, viewport) || !highlightMatchesV1Contract(current.highlight, current.target)) {
+                throw new Error(`${viewport.name} step ${step} highlight diverged from V1 geometry: ${JSON.stringify(current)}`);
               }
               const expectedAssistantVisible = step >= 4 && step <= 6;
               if (current.assistantVisible !== expectedAssistantVisible) {
