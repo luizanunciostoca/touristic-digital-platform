@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -32,6 +32,9 @@ describe("CRM storage path hardening", () => {
       adapter.download("crm-files", "/absolute.pdf"),
     ).rejects.toThrow("CRM_STORAGE_OBJECT_KEY_INVALID");
     await expect(
+      adapter.download("crm-files", "C:/absolute.pdf"),
+    ).rejects.toThrow("CRM_STORAGE_OBJECT_KEY_INVALID");
+    await expect(
       adapter.download("crm-files", "folder\\windows-path.pdf"),
     ).rejects.toThrow("CRM_STORAGE_OBJECT_KEY_INVALID");
     await expect(
@@ -56,6 +59,46 @@ describe("CRM storage path hardening", () => {
       expect(data?.toString("utf8")).toBe("contract-body");
     } finally {
       await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects pre-existing symlink escapes before filesystem IO", async () => {
+    const root = await mkdtemp(join(tmpdir(), "crm-storage-root-"));
+    const outside = await mkdtemp(join(tmpdir(), "crm-storage-outside-"));
+    const bucketDirectory = join(root, "crm-files");
+    await mkdir(bucketDirectory, { recursive: true });
+    await writeFile(join(outside, "secret.txt"), "outside-secret");
+    await symlink(outside, join(bucketDirectory, "escape"), "dir");
+    await symlink(
+      join(outside, "secret.txt"),
+      join(bucketDirectory, "secret-link.txt"),
+      "file",
+    );
+
+    const pool = fakePool();
+    const adapter = new FilesystemCrmStorageAdapter(pool, root);
+
+    try {
+      await expect(
+        adapter.download("crm-files", "escape/secret.txt"),
+      ).rejects.toThrow("CRM_STORAGE_PATH_ESCAPE_REJECTED");
+      await expect(
+        adapter.download("crm-files", "secret-link.txt"),
+      ).rejects.toThrow("CRM_STORAGE_PATH_ESCAPE_REJECTED");
+      await expect(
+        adapter.upload({
+          bucket: "crm-files",
+          objectKey: "escape/new.txt",
+          contentType: "text/plain",
+          data: Buffer.from("blocked"),
+          uploadedBySubject: "subject-1",
+        }),
+      ).rejects.toThrow("CRM_STORAGE_PATH_ESCAPE_REJECTED");
+
+      expect(pool.execute).not.toHaveBeenCalled();
+    } finally {
+      await rm(root, { recursive: true, force: true });
+      await rm(outside, { recursive: true, force: true });
     }
   });
 
@@ -96,7 +139,7 @@ describe("CRM storage path hardening", () => {
     );
   });
 
-  it("rejects traversal before issuing an S3 request", async () => {
+  it("rejects traversal and drive-qualified keys before issuing an S3 request", async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
     const adapter = new S3CrmStorageAdapter(
@@ -108,6 +151,9 @@ describe("CRM storage path hardening", () => {
 
     await expect(
       adapter.download("crm-files", "folder/../escape.pdf"),
+    ).rejects.toThrow("CRM_STORAGE_OBJECT_KEY_INVALID");
+    await expect(
+      adapter.download("crm-files", "C:/absolute.pdf"),
     ).rejects.toThrow("CRM_STORAGE_OBJECT_KEY_INVALID");
     expect(fetchMock).not.toHaveBeenCalled();
   });
