@@ -53,6 +53,7 @@ jobs:
             crm-lead-detail-browser-contract.yml
             home-first-run-browser-regression.yml
             v1-home-parity-browser-regression.yml
+            v1-home-responsive-browser-regression.yml
             v1-explore-locations-browser-regression.yml
             v1-tour-assistant-visibility-browser-regression.yml
             v1-tour-responsive-browser-regression.yml
@@ -136,6 +137,7 @@ jobs:
             crm-lead-detail-browser-contract.yml
             home-first-run-browser-regression.yml
             v1-home-parity-browser-regression.yml
+            v1-home-responsive-browser-regression.yml
             v1-explore-locations-browser-regression.yml
             v1-tour-assistant-visibility-browser-regression.yml
             v1-tour-responsive-browser-regression.yml

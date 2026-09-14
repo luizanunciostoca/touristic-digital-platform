@@ -1,0 +1,257 @@
+name: V1 Home Responsive Browser Regression
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/v1-home-responsive-browser-regression.yml
+      - apps/morro-digital-platform/src/browser-entry.ts
+      - apps/morro-digital-platform/src/layouts/app-shell.ts
+      - apps/morro-digital-platform/src/map/global-view-control.ts
+      - apps/morro-digital-platform/src/weather/weather-widget.ts
+      - apps/morro-digital-platform/src/weather/weather-forecast-modal.ts
+      - apps/morro-digital-platform/public/index.html
+      - apps/morro-digital-platform/public/styles.css
+      - apps/morro-digital-platform/public/legacy/**
+      - apps/morro-digital-platform/tooling/dev-server.mjs
+      - package.json
+      - pnpm-lock.yaml
+
+permissions:
+  contents: read
+
+jobs:
+  v1-home-responsive:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install deterministic Chromium
+        run: |
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+          mkdir -p /tmp/v1-home-responsive
+      - name: Build workspace
+        run: pnpm -w build
+      - name: Start authenticated Mapbox runtime
+        env:
+          MAPBOX_PUBLIC_TOKEN_CI: ${{ secrets.MAPBOX_PUBLIC_TOKEN_CI }}
+        run: |
+          test -n "${MAPBOX_PUBLIC_TOKEN_CI:-}" || { echo 'MAPBOX_PUBLIC_TOKEN_CI missing'; exit 1; }
+          VITE_MAPBOX_ACCESS_TOKEN="$MAPBOX_PUBLIC_TOKEN_CI" \
+          VITE_MAPBOX_STYLE=mapbox://styles/mapbox/streets-v12 \
+          VITE_MAPBOX_CONTAINER_ID=map \
+          VITE_MAPBOX_INITIAL_ZOOM=13.5 \
+          node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/v1-home-responsive/server.log 2>&1 &
+          for i in $(seq 1 90); do
+            if curl -fsS http://127.0.0.1:4173/runtime-config.js >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/v1-home-responsive/server.log
+          exit 1
+      - name: Validate V1 Home responsive contract
+        run: |
+          node <<'NODE'
+          const { writeFileSync } = require('node:fs');
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+
+          const viewports = [
+            { name: 'mobile', width: 390, height: 844 },
+            { name: 'tablet', width: 768, height: 1024 },
+            { name: 'desktop', width: 1440, height: 900 },
+          ];
+
+          const weather = {
+            temperatureCelsius: 28,
+            temperatureMaxCelsius: 31,
+            temperatureMinCelsius: 24,
+            humidityPercent: 78,
+            windSpeedKph: 18,
+            rainChancePercent: 42,
+            weatherCode: 1,
+            isDay: true,
+            forecast: Array.from({ length: 7 }, (_, index) => ({
+              date: `2026-09-${String(14 + index).padStart(2, '0')}`,
+              temperatureMaxCelsius: 31 + index,
+              temperatureMinCelsius: 24 + index,
+              humidityPercent: 78 - index,
+              windSpeedKph: 18 + index,
+              rainChancePercent: 42 - index,
+              weatherCode: index % 2 === 0 ? 1 : 61,
+            })),
+          };
+
+          function assertRectInside(rect, viewport, label, tolerance = 1) {
+            if (!rect) throw new Error(`${label} missing`);
+            if (
+              rect.left < -tolerance ||
+              rect.top < -tolerance ||
+              rect.right > viewport.width + tolerance ||
+              rect.bottom > viewport.height + tolerance
+            ) {
+              throw new Error(`${label} escaped ${viewport.name} viewport: ${JSON.stringify({ rect, viewport })}`);
+            }
+          }
+
+          async function camera(page) {
+            return page.evaluate(() => {
+              const map = globalThis.mapboxPrimaryInstance;
+              const center = map?.getCenter?.();
+              return {
+                zoom: map?.getZoom?.() ?? null,
+                lng: center?.lng ?? null,
+                lat: center?.lat ?? null,
+                globalView: document.getElementById('map')?.getAttribute('data-global-view'),
+              };
+            });
+          }
+
+          async function waitForCamera(page, predicate, timeoutMs = 7000) {
+            const deadline = Date.now() + timeoutMs;
+            let state = null;
+            while (Date.now() < deadline) {
+              state = await camera(page);
+              if (predicate(state)) return state;
+              await page.waitForTimeout(100);
+            }
+            throw new Error(`camera did not settle: ${JSON.stringify(state)}`);
+          }
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            const evidence = [];
+            try {
+              for (const viewport of viewports) {
+                const context = await browser.newContext({ viewport: { width: viewport.width, height: viewport.height } });
+                await context.addInitScript(() => {
+                  localStorage.setItem('morro-digital-onboarded', '1');
+                  localStorage.setItem('voice-enabled', 'false');
+                });
+                const page = await context.newPage();
+                const pageErrors = [];
+                const mapboxHttpErrors = [];
+                page.on('pageerror', error => pageErrors.push(error.message));
+                page.on('response', response => {
+                  if (response.url().includes('mapbox.com') && response.status() >= 400) {
+                    mapboxHttpErrors.push({
+                      status: response.status(),
+                      url: response.url().replace(/access_token=[^&]+/u, 'access_token=[redacted]'),
+                    });
+                  }
+                });
+                await page.route('**/api/weather', route => route.fulfill({
+                  status: 200,
+                  contentType: 'application/json',
+                  body: JSON.stringify(weather),
+                }));
+
+                await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded', timeout: 30000 });
+                await page.locator('#map[data-map-state="ready"][data-home-state="ready"][data-tour-state="idle"][data-map-mode="real"]').waitFor({ state: 'attached', timeout: 30000 });
+                await page.locator('#weather-widget[data-weather-state="ready"]').waitFor({ state: 'visible', timeout: 10000 });
+                await page.locator('#toggle-globe-view').waitFor({ state: 'visible', timeout: 10000 });
+
+                const shell = await page.evaluate(() => {
+                  const rect = selector => {
+                    const node = document.querySelector(selector);
+                    if (!node) return null;
+                    const r = node.getBoundingClientRect();
+                    return { left: r.left, top: r.top, right: r.right, bottom: r.bottom, width: r.width, height: r.height };
+                  };
+                  return {
+                    weather: rect('#weather-widget'),
+                    globe: rect('#toggle-globe-view'),
+                    bodyWidth: document.body.scrollWidth,
+                    rootWidth: document.documentElement.scrollWidth,
+                    innerWidth: window.innerWidth,
+                  };
+                });
+                assertRectInside(shell.weather, viewport, 'weather widget');
+                assertRectInside(shell.globe, viewport, 'global-view control');
+                if (shell.bodyWidth > viewport.width + 1 || shell.rootWidth > viewport.width + 1) {
+                  throw new Error(`Home horizontal overflow on ${viewport.name}: ${JSON.stringify(shell)}`);
+                }
+
+                await page.locator('#weather-widget').click();
+                await page.locator('.weather-forecast-modal').waitFor({ state: 'visible', timeout: 5000 });
+                const modal = await page.evaluate(() => {
+                  const node = document.querySelector('.weather-forecast-modal');
+                  const rect = node?.getBoundingClientRect();
+                  return {
+                    rect: rect ? { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom, width: rect.width, height: rect.height } : null,
+                    expanded: document.getElementById('weather-widget')?.getAttribute('aria-expanded'),
+                    dayCount: document.querySelectorAll('.day-option').length,
+                    currentTemp: document.querySelector('.current-temp')?.textContent?.trim(),
+                    closeFocused: document.activeElement?.classList.contains('forecast-close-btn') ?? false,
+                    bodyWidth: document.body.scrollWidth,
+                    rootWidth: document.documentElement.scrollWidth,
+                  };
+                });
+                assertRectInside(modal.rect, viewport, 'weather forecast modal', 2);
+                if (modal.expanded !== 'true' || modal.dayCount !== 7 || modal.currentTemp !== '28°C' || !modal.closeFocused) {
+                  throw new Error(`Weather contract diverged on ${viewport.name}: ${JSON.stringify(modal)}`);
+                }
+                if (modal.bodyWidth > viewport.width + 1 || modal.rootWidth > viewport.width + 1) {
+                  throw new Error(`Weather modal caused horizontal overflow on ${viewport.name}: ${JSON.stringify(modal)}`);
+                }
+                await page.keyboard.press('Escape');
+                await page.locator('.weather-forecast-modal').waitFor({ state: 'detached', timeout: 5000 });
+                const weatherRestored = await page.evaluate(() => ({
+                  expanded: document.getElementById('weather-widget')?.getAttribute('aria-expanded'),
+                  focusRestored: document.activeElement?.id === 'weather-widget',
+                }));
+                if (weatherRestored.expanded !== 'false' || !weatherRestored.focusRestored) {
+                  throw new Error(`Weather close contract was not restored on ${viewport.name}: ${JSON.stringify(weatherRestored)}`);
+                }
+
+                const before = await camera(page);
+                await page.locator('#toggle-globe-view').click();
+                const global = await waitForCamera(page, state => state.globalView === 'true' && typeof state.zoom === 'number' && state.zoom < 3);
+                await page.locator('#toggle-globe-view').click();
+                const restored = await waitForCamera(page, state =>
+                  state.globalView === 'false' &&
+                  typeof state.zoom === 'number' && Math.abs(state.zoom - 13.5) < 0.25 &&
+                  typeof state.lng === 'number' && Math.abs(state.lng - (-38.9167)) <= 0.03 &&
+                  typeof state.lat === 'number' && Math.abs(state.lat - (-13.3833)) <= 0.03
+                );
+
+                if (pageErrors.length || mapboxHttpErrors.length) {
+                  throw new Error(`Browser/provider errors on ${viewport.name}: ${JSON.stringify({ pageErrors, mapboxHttpErrors })}`);
+                }
+
+                await page.screenshot({
+                  path: `/tmp/v1-home-responsive/home-${viewport.name}.png`,
+                  fullPage: false,
+                  animations: 'disabled',
+                });
+                evidence.push({ viewport, shell, modal, weatherRestored, before, global, restored, pageErrors, mapboxHttpErrors });
+                await context.close();
+              }
+              writeFileSync('/tmp/v1-home-responsive/evidence.json', JSON.stringify(evidence, null, 2));
+            } finally {
+              await browser.close();
+            }
+          })().catch(error => {
+            writeFileSync('/tmp/v1-home-responsive/failure.txt', String(error?.stack || error));
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+      - name: Show server diagnostics
+        if: failure()
+        run: cat /tmp/v1-home-responsive/server.log || true
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: v1-home-responsive-evidence
+          path: /tmp/v1-home-responsive
+          retention-days: 7
+          if-no-files-found: error
