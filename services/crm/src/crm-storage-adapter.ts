@@ -181,10 +181,7 @@ export class FilesystemCrmStorageAdapter implements CrmStorageAdapterPort {
     const path = await import("node:path");
     const location = validateStorageLocation(bucket, objectKey);
     const bucketRoot = path.resolve(this.#basePath, location.bucket);
-    const fullPath = path.resolve(
-      bucketRoot,
-      ...location.objectKey.split("/"),
-    );
+    const fullPath = path.resolve(bucketRoot, ...location.objectKey.split("/"));
     if (!fullPath.startsWith(`${bucketRoot}${path.sep}`)) {
       throw new Error("CRM_STORAGE_PATH_ESCAPE_REJECTED");
     }
