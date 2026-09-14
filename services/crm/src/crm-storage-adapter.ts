@@ -206,16 +206,13 @@ export class FilesystemCrmStorageAdapter implements CrmStorageAdapterPort {
       throw new Error("CRM_STORAGE_PATH_ESCAPE_REJECTED");
     }
 
-    const parentPath = path.dirname(fullPath);
     if (ensureParent) {
-      await fs.mkdir(parentPath, { recursive: true });
+      await fs.mkdir(baseRoot, { recursive: true });
     }
 
     let realBaseRoot: string;
-    let realParentPath: string;
     try {
       realBaseRoot = await fs.realpath(baseRoot);
-      realParentPath = await fs.realpath(parentPath);
     } catch (error) {
       if (!ensureParent && isMissingFilesystemPath(error)) {
         return fullPath;
@@ -223,8 +220,37 @@ export class FilesystemCrmStorageAdapter implements CrmStorageAdapterPort {
       throw error;
     }
 
-    if (!isPathWithinRoot(realBaseRoot, realParentPath, path.sep)) {
+    const parentPath = path.dirname(fullPath);
+    let ancestorPath = parentPath;
+    let realExistingAncestor: string | null = null;
+    while (isPathWithinRoot(baseRoot, ancestorPath, path.sep)) {
+      try {
+        realExistingAncestor = await fs.realpath(ancestorPath);
+        break;
+      } catch (error) {
+        if (!isMissingFilesystemPath(error)) {
+          throw error;
+        }
+        if (ancestorPath === baseRoot) {
+          break;
+        }
+        ancestorPath = path.dirname(ancestorPath);
+      }
+    }
+
+    if (
+      realExistingAncestor !== null &&
+      !isPathWithinRoot(realBaseRoot, realExistingAncestor, path.sep)
+    ) {
       throw new Error("CRM_STORAGE_PATH_ESCAPE_REJECTED");
+    }
+
+    if (ensureParent) {
+      await fs.mkdir(parentPath, { recursive: true });
+      const realParentPath = await fs.realpath(parentPath);
+      if (!isPathWithinRoot(realBaseRoot, realParentPath, path.sep)) {
+        throw new Error("CRM_STORAGE_PATH_ESCAPE_REJECTED");
+      }
     }
 
     try {
