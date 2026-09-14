@@ -6,11 +6,13 @@ on:
     paths:
       - .github/workflows/v1-home-responsive-browser-regression.yml
       - apps/morro-digital-platform/src/browser-entry.ts
+      - apps/morro-digital-platform/src/layouts/app-shell.ts
       - apps/morro-digital-platform/src/map/global-view-control.ts
       - apps/morro-digital-platform/src/weather/weather-widget.ts
       - apps/morro-digital-platform/src/weather/weather-forecast-modal.ts
-      - apps/morro-digital-platform/public/legacy/css/components/weather.css
-      - apps/morro-digital-platform/public/legacy/css/components/map/map-controls.css
+      - apps/morro-digital-platform/public/index.html
+      - apps/morro-digital-platform/public/styles.css
+      - apps/morro-digital-platform/public/legacy/**
       - apps/morro-digital-platform/tooling/dev-server.mjs
       - package.json
       - pnpm-lock.yaml
@@ -23,6 +25,8 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           version: 10.15.0
@@ -200,8 +204,12 @@ jobs:
                 }
                 await page.keyboard.press('Escape');
                 await page.locator('.weather-forecast-modal').waitFor({ state: 'detached', timeout: 5000 });
-                if ((await page.locator('#weather-widget').getAttribute('aria-expanded')) !== 'false') {
-                  throw new Error(`Weather aria-expanded was not restored on ${viewport.name}`);
+                const weatherRestored = await page.evaluate(() => ({
+                  expanded: document.getElementById('weather-widget')?.getAttribute('aria-expanded'),
+                  focusRestored: document.activeElement?.id === 'weather-widget',
+                }));
+                if (weatherRestored.expanded !== 'false' || !weatherRestored.focusRestored) {
+                  throw new Error(`Weather close contract was not restored on ${viewport.name}: ${JSON.stringify(weatherRestored)}`);
                 }
 
                 const before = await camera(page);
@@ -224,7 +232,7 @@ jobs:
                   fullPage: false,
                   animations: 'disabled',
                 });
-                evidence.push({ viewport, shell, modal, before, global, restored, pageErrors, mapboxHttpErrors });
+                evidence.push({ viewport, shell, modal, weatherRestored, before, global, restored, pageErrors, mapboxHttpErrors });
                 await context.close();
               }
               writeFileSync('/tmp/v1-home-responsive/evidence.json', JSON.stringify(evidence, null, 2));
