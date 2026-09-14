@@ -76,7 +76,11 @@ function isMissingFilesystemPath(error: unknown): boolean {
   return code === "ENOENT" || code === "ENOTDIR";
 }
 
-function isPathWithinRoot(root: string, candidate: string, separator: string): boolean {
+function isPathWithinRoot(
+  root: string,
+  candidate: string,
+  separator: string,
+): boolean {
   return candidate === root || candidate.startsWith(`${root}${separator}`);
 }
 
@@ -110,9 +114,7 @@ function validateStorageLocation(
 
   const segments = objectKey.split("/");
   if (
-    segments.some(
-      (segment) => !segment || segment === "." || segment === "..",
-    )
+    segments.some((segment) => !segment || segment === "." || segment === "..")
   ) {
     throw new Error("CRM_STORAGE_OBJECT_KEY_INVALID");
   }
@@ -272,7 +274,11 @@ export class FilesystemCrmStorageAdapter implements CrmStorageAdapterPort {
 
     validateStorageLocation(input.bucket, input.objectKey);
     const checksum = computeChecksum(input.data);
-    const fullPath = await this.#resolvePath(input.bucket, input.objectKey, true);
+    const fullPath = await this.#resolvePath(
+      input.bucket,
+      input.objectKey,
+      true,
+    );
     await fs.writeFile(fullPath, input.data);
 
     await this.#pool.execute<ResultSetHeader>(
