@@ -51,6 +51,7 @@ interface StorageRow extends RowDataPacket {
 const BUCKET_MAX_LENGTH = 120;
 const OBJECT_KEY_MAX_LENGTH = 500;
 const bucketPattern = /^[A-Za-z0-9][A-Za-z0-9._-]*$/u;
+const windowsDriveAbsolutePattern = /^[A-Za-z]:\//u;
 
 interface ValidStorageLocation {
   readonly bucket: string;
@@ -65,6 +66,18 @@ function containsControlCharacter(value: string): boolean {
     }
   }
   return false;
+}
+
+function isMissingFilesystemPath(error: unknown): boolean {
+  if (typeof error !== "object" || error === null || !("code" in error)) {
+    return false;
+  }
+  const code = (error as { readonly code?: unknown }).code;
+  return code === "ENOENT" || code === "ENOTDIR";
+}
+
+function isPathWithinRoot(root: string, candidate: string, separator: string): boolean {
+  return candidate === root || candidate.startsWith(`${root}${separator}`);
 }
 
 function validateStorageLocation(
@@ -88,6 +101,7 @@ function validateStorageLocation(
     objectKey !== objectKey.trim() ||
     objectKey.length > OBJECT_KEY_MAX_LENGTH ||
     objectKey.startsWith("/") ||
+    windowsDriveAbsolutePattern.test(objectKey) ||
     objectKey.includes("\\") ||
     containsControlCharacter(objectKey)
   ) {
@@ -177,25 +191,62 @@ export class FilesystemCrmStorageAdapter implements CrmStorageAdapterPort {
     this.#basePath = basePath;
   }
 
-  #resolvePath = async (bucket: string, objectKey: string): Promise<string> => {
+  #resolvePath = async (
+    bucket: string,
+    objectKey: string,
+    ensureParent = false,
+  ): Promise<string> => {
+    const fs = await import("node:fs/promises");
     const path = await import("node:path");
     const location = validateStorageLocation(bucket, objectKey);
-    const bucketRoot = path.resolve(this.#basePath, location.bucket);
+    const baseRoot = path.resolve(this.#basePath);
+    const bucketRoot = path.resolve(baseRoot, location.bucket);
     const fullPath = path.resolve(bucketRoot, ...location.objectKey.split("/"));
-    if (!fullPath.startsWith(`${bucketRoot}${path.sep}`)) {
+    if (!isPathWithinRoot(bucketRoot, fullPath, path.sep)) {
       throw new Error("CRM_STORAGE_PATH_ESCAPE_REJECTED");
     }
+
+    const parentPath = path.dirname(fullPath);
+    if (ensureParent) {
+      await fs.mkdir(parentPath, { recursive: true });
+    }
+
+    let realBaseRoot: string;
+    let realParentPath: string;
+    try {
+      realBaseRoot = await fs.realpath(baseRoot);
+      realParentPath = await fs.realpath(parentPath);
+    } catch (error) {
+      if (!ensureParent && isMissingFilesystemPath(error)) {
+        return fullPath;
+      }
+      throw error;
+    }
+
+    if (!isPathWithinRoot(realBaseRoot, realParentPath, path.sep)) {
+      throw new Error("CRM_STORAGE_PATH_ESCAPE_REJECTED");
+    }
+
+    try {
+      const targetStats = await fs.lstat(fullPath);
+      if (targetStats.isSymbolicLink()) {
+        throw new Error("CRM_STORAGE_PATH_ESCAPE_REJECTED");
+      }
+    } catch (error) {
+      if (!isMissingFilesystemPath(error)) {
+        throw error;
+      }
+    }
+
     return fullPath;
   };
 
   upload = async (input: CrmStorageUploadInput): Promise<CrmStorageObject> => {
     const fs = await import("node:fs/promises");
-    const path = await import("node:path");
 
     validateStorageLocation(input.bucket, input.objectKey);
     const checksum = computeChecksum(input.data);
-    const fullPath = await this.#resolvePath(input.bucket, input.objectKey);
-    await fs.mkdir(path.dirname(fullPath), { recursive: true });
+    const fullPath = await this.#resolvePath(input.bucket, input.objectKey, true);
     await fs.writeFile(fullPath, input.data);
 
     await this.#pool.execute<ResultSetHeader>(
