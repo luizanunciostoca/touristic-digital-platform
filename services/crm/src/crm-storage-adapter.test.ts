@@ -37,9 +37,9 @@ describe("CRM storage path hardening", () => {
     await expect(
       adapter.download("crm-files", "folder\\windows-path.pdf"),
     ).rejects.toThrow("CRM_STORAGE_OBJECT_KEY_INVALID");
-    await expect(
-      adapter.download("../bucket", "file.pdf"),
-    ).rejects.toThrow("CRM_STORAGE_BUCKET_INVALID");
+    await expect(adapter.download("../bucket", "file.pdf")).rejects.toThrow(
+      "CRM_STORAGE_BUCKET_INVALID",
+    );
     await expect(
       adapter.download("crm-files", "folder//file.pdf"),
     ).rejects.toThrow("CRM_STORAGE_OBJECT_KEY_INVALID");
