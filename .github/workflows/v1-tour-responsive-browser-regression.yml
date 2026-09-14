@@ -71,6 +71,24 @@ jobs:
               rect.bottom <= viewport.height + tolerance;
           }
 
+          function rectIntersectsViewport(rect, viewport) {
+            return rect &&
+              rect.width > 0 &&
+              rect.height > 0 &&
+              rect.right > 0 &&
+              rect.bottom > 0 &&
+              rect.left < viewport.width &&
+              rect.top < viewport.height;
+          }
+
+          function highlightCoversTarget(highlight, target, tolerance = 2) {
+            return highlight && target &&
+              highlight.left <= target.left + tolerance &&
+              highlight.top <= target.top + tolerance &&
+              highlight.right >= target.right - tolerance &&
+              highlight.bottom >= target.bottom - tolerance;
+          }
+
           async function snapshot(page) {
             return page.evaluate(() => {
               const tooltip = document.getElementById('tour-tooltip');
@@ -108,7 +126,7 @@ jobs:
           }
 
           async function startTour(page) {
-            await page.evaluate(() => {
+            await page.addInitScript(() => {
               localStorage.removeItem('morro-digital-onboarded');
               localStorage.setItem('voice-enabled', 'false');
             });
@@ -133,11 +151,11 @@ jobs:
               if (!rectInsideViewport(current.tooltip, viewport)) {
                 throw new Error(`${viewport.name} step ${step} tooltip escaped viewport: ${JSON.stringify(current)}`);
               }
-              if (!rectInsideViewport(current.highlight, viewport)) {
-                throw new Error(`${viewport.name} step ${step} highlight escaped viewport: ${JSON.stringify(current)}`);
-              }
               if (!current.target || current.target.width <= 0 || current.target.height <= 0) {
                 throw new Error(`${viewport.name} step ${step} target is not measurable: ${JSON.stringify(current)}`);
+              }
+              if (!rectIntersectsViewport(current.highlight, viewport) || !highlightCoversTarget(current.highlight, current.target)) {
+                throw new Error(`${viewport.name} step ${step} highlight lost target geometry: ${JSON.stringify(current)}`);
               }
               const expectedAssistantVisible = step >= 4 && step <= 6;
               if (current.assistantVisible !== expectedAssistantVisible) {
