@@ -92,7 +92,8 @@ function clearTourPresentation(document: Document): void {
   if (map?.getLayer?.(TOUR_ROUTE_OUTLINE)) {
     map.removeLayer?.(TOUR_ROUTE_OUTLINE);
   }
-  if (map?.getSource?.(TOUR_ROUTE_SOURCE)) map.removeSource?.(TOUR_ROUTE_SOURCE);
+  if (map?.getSource?.(TOUR_ROUTE_SOURCE))
+    map.removeSource?.(TOUR_ROUTE_SOURCE);
 
   const tourSelect = document.getElementById("tour-select");
   if (tourSelect instanceof HTMLSelectElement) tourSelect.selectedIndex = -1;
@@ -311,16 +312,18 @@ export function installExploreLocationsControl({
     mainMenuContainer.setAttribute("aria-hidden", "false");
   };
 
-  const renderFlow = (
-    text: string,
-    options: readonly Readonly<{
+  const renderFlow = <
+    T extends Readonly<{
       label: string;
       value: string;
       action?: string;
       location?: MorroV1SearchCatalogItem;
       tourId?: string;
-    }>[],
-    onSelect: (option: (typeof options)[number]) => void,
+    }>,
+  >(
+    text: string,
+    options: readonly T[],
+    onSelect: (option: T) => void,
   ): HTMLButtonElement | null => {
     ensureAssistantVisible(document);
     const area = assistantMessagesArea(document);
@@ -384,9 +387,7 @@ export function installExploreLocationsControl({
     visibleLocations = Object.freeze([]);
     showMainMenu();
     updateMapState(
-      Number(
-        document.getElementById("map")?.dataset.mapMarkerCount ?? "0",
-      ),
+      Number(document.getElementById("map")?.dataset.mapMarkerCount ?? "0"),
       undefined,
     );
     if (restoreFocus) {
@@ -420,17 +421,22 @@ export function installExploreLocationsControl({
   ): void => {
     if (!activeCategory) return;
     activeStage = "places";
-    const options = [
+    const options: readonly Readonly<{
+      label: string;
+      value: string;
+      action: "location" | "back-filters";
+      location?: MorroV1SearchCatalogItem;
+    }>[] = [
       ...locations.map((location) => ({
         label: location.name,
         value: createExploreLocationDetailsCommand(location.name),
-        action: "location",
+        action: "location" as const,
         location,
       })),
       {
         label: "🔙 Voltar aos filtros",
         value: "voltar_filtros",
-        action: "back-filters",
+        action: "back-filters" as const,
       },
     ];
 

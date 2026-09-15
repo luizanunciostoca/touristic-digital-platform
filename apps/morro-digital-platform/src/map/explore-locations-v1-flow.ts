@@ -33,7 +33,7 @@ const SEE_ALL: V1ExploreOption = Object.freeze({
 
 const SUBCATEGORY_OPTIONS: Readonly<
   Record<string, readonly V1ExploreOption[]>
-> = Object.freeze({
+> = {
   restaurants: Object.freeze([
     { label: "🌊 Na praia", value: "na praia", action: "filter" },
     { label: "🏘️ Na vila", value: "na vila", action: "filter" },
@@ -220,7 +220,7 @@ const SUBCATEGORY_OPTIONS: Readonly<
     SEE_ALL,
     BACK_MENU,
   ]),
-});
+};
 
 export function getV1ExploreSubcategoryOptions(
   category: string,
