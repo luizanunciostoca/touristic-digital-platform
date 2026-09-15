@@ -56,9 +56,11 @@ describe("V1 source-exact semantic navigation presentation", () => {
     expect(simplifyNavigationInstructionText("raw", 9, "pt")).toBe(
       "Mantenha-se à esquerda",
     );
-    expect(simplifyNavigationInstructionText("raw", 10, "pt")).toBe(
-      "Você chegou ao destino!",
-    );
+    for (const arrivalType of [10, 11, 12]) {
+      expect(
+        simplifyNavigationInstructionText("raw", arrivalType, "pt"),
+      ).toBe("Você chegou ao destino!");
+    }
   });
 
   it("supports the V1 compatible string maneuver names", () => {
