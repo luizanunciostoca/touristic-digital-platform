@@ -35,7 +35,7 @@ export interface NavigationInstructionInput {
 export interface NavigationGuidanceSnapshot {
   readonly instruction: string;
   readonly original: string;
-  readonly language: NavigationInstructionLanguage;
+  readonly language?: NavigationInstructionLanguage;
   readonly maneuverType?: string | number;
   readonly streetName?: string;
   readonly formattedDistance: string;
