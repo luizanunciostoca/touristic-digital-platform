@@ -139,9 +139,9 @@ describe("navigation contextual suggestions", () => {
     });
     session.start(BASE_TIME);
 
-    expect(session.observe(location(-13.38, -38.91), BASE_TIME + 1)?.placeName).toBe(
-      "A",
-    );
+    expect(
+      session.observe(location(-13.38, -38.91), BASE_TIME + 1)?.placeName,
+    ).toBe("A");
     expect(
       session.observe(location(-13.3801, -38.91), BASE_TIME + 2),
     ).toBeNull();
@@ -166,9 +166,15 @@ describe("navigation contextual suggestions", () => {
     });
     session.start(BASE_TIME);
 
-    expect(session.observe(location(-13.38, -38.91), BASE_TIME + 1)).not.toBeNull();
-    expect(session.observe(location(-13.38, -38.91), BASE_TIME + 59_999)).toBeNull();
-    expect(session.observe(location(-13.38, -38.91), BASE_TIME + 60_001)).not.toBeNull();
+    expect(
+      session.observe(location(-13.38, -38.91), BASE_TIME + 1),
+    ).not.toBeNull();
+    expect(
+      session.observe(location(-13.38, -38.91), BASE_TIME + 59_999),
+    ).toBeNull();
+    expect(
+      session.observe(location(-13.38, -38.91), BASE_TIME + 60_001),
+    ).not.toBeNull();
   });
 
   it("uses V1 enabled categories and category-specific radii", () => {
@@ -183,9 +189,9 @@ describe("navigation contextual suggestions", () => {
 
     // Beaches are not in V1 enabledCategories. Shop is outside its 150m radius,
     // while the attraction remains inside the canonical 300m radius.
-    expect(session.observe(location(-13.38, -38.91), BASE_TIME + 1)?.placeName).toBe(
-      "Atração",
-    );
+    expect(
+      session.observe(location(-13.38, -38.91), BASE_TIME + 1)?.placeName,
+    ).toBe("Atração");
   });
 
   it("ranks lower V1 priority first, then the nearest place", () => {
@@ -199,9 +205,9 @@ describe("navigation contextual suggestions", () => {
     });
     session.start(BASE_TIME);
 
-    expect(session.observe(location(-13.38, -38.91), BASE_TIME + 1)?.placeName).toBe(
-      "Restaurante",
-    );
+    expect(
+      session.observe(location(-13.38, -38.91), BASE_TIME + 1)?.placeName,
+    ).toBe("Restaurante");
   });
 
   it("places V1 sponsors before organic candidates using sponsor radius/priority", () => {
@@ -210,17 +216,12 @@ describe("navigation contextual suggestions", () => {
     const session = createNavigationSuggestionSession({
       catalog: [restaurant, sponsor],
       policy: policy({
-        sponsors: new Map([
-          ["Parceiro", { priority: 1, radiusMeters: 300 }],
-        ]),
+        sponsors: new Map([["Parceiro", { priority: 1, radiusMeters: 300 }]]),
       }),
     });
     session.start(BASE_TIME);
 
-    const selected = session.observe(
-      location(-13.38, -38.91),
-      BASE_TIME + 1,
-    );
+    const selected = session.observe(location(-13.38, -38.91), BASE_TIME + 1);
     expect(selected?.placeName).toBe("Parceiro");
     expect(selected?.sponsored).toBe(true);
   });
@@ -236,9 +237,15 @@ describe("navigation contextual suggestions", () => {
     });
     session.start(BASE_TIME);
 
-    expect(session.observe(location(-13.38, -38.91), BASE_TIME + 1)).not.toBeNull();
-    expect(session.observe(location(-13.38, -38.91), BASE_TIME + 299_999)).toBeNull();
-    expect(session.observe(location(-13.38, -38.91), BASE_TIME + 300_001)).not.toBeNull();
+    expect(
+      session.observe(location(-13.38, -38.91), BASE_TIME + 1),
+    ).not.toBeNull();
+    expect(
+      session.observe(location(-13.38, -38.91), BASE_TIME + 299_999),
+    ).toBeNull();
+    expect(
+      session.observe(location(-13.38, -38.91), BASE_TIME + 300_001),
+    ).not.toBeNull();
   });
 
   it("enforces the exact ten suggestion session maximum", () => {
@@ -288,7 +295,13 @@ describe("navigation contextual suggestions", () => {
       navigationSuggestionMessage("en", "Shop", 75, "shops", () => 0),
     ).toContain("75m away");
     expect(
-      navigationSuggestionMessage("es", "Atracción", 42, "attractions", () => 0),
+      navigationSuggestionMessage(
+        "es",
+        "Atracción",
+        42,
+        "attractions",
+        () => 0,
+      ),
     ).toContain("aquí cerca");
     expect(
       navigationSuggestionMessage("he", "מלון", 1_250, "hotels", () => 0),

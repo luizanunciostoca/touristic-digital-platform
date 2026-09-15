@@ -35,19 +35,19 @@
       "name": "Navegação e Rotas",
       "domain": "geospatial",
       "wave": 4,
-      "status": "migrating",
+      "status": "equivalent",
       "legacySources": ["v1:navigation", "v1:routing"],
       "targetPackages": ["@touristic/geospatial", "@touristic/navigation"],
       "equivalence": {
-        "behavior": false,
-        "visual": false,
-        "api": false
+        "behavior": true,
+        "visual": true,
+        "api": true
       },
       "verification": {
         "local": "LOCAL_VERIFIED",
         "mysql": "NOT_APPLICABLE",
         "provider": "PROVIDER_VERIFIED",
-        "note": "FEATURE-0003 equivalence certification was reopened on 2026-09-15 after an audit of the canonical ZIP snapshot reporting sourceCommit 55acb639c1112a3c9a646dd103b01ad9cf5dd106 found product-journey obligations not covered by the historical 24-scenario matrix frozen against 60746fd7fed97b805758b37adfdbe3bad2582bfe. PR #60 functionally remediates automatic maneuver progression, turn-by-turn speech, GPS retry/reuse, 15s route timeout, recalculation suppression, arrival/Assistant feedback, safe PT/EN/ES/HE instruction processing, contextual route suggestions and guided navigation under degraded map providers. Functional verification completed on checkpoint b98e7bfe5d9e262035701831bade7bb36787b2be: Quality Gate, Navigation Turn-by-Turn Parity, Navigation Visual Baseline, Navigation Accessibility Baseline, Map Provider Regression, V1 Explore Locations Browser Regression and Map Tour Browser Regression all passed. The remaining PARTIAL classification is source-exactness only: the live connection cannot read the canonical ZIP bytes, so the exact historical semantic simplifier, suggestion policy constants/ranking and fallback details are not claimed identical. Promotion back to equivalent requires direct reconciliation against ZIP 55ac... or formal acceptance of the documented differences; until then status stays migrating and equivalence flags remain false."
+        "note": "FEATURE-0003 source re-certification completed on 2026-09-15 against the directly inspected canonical ZIP reporting sourceCommit 55acb639c1112a3c9a646dd103b01ad9cf5dd106 (archive SHA-256 d438109fc6a76ddc11f7f90d7f02c98d4b95fe456f78f34b66eae5cbeb5eaf97). PR #60 restores the V1 product journey and reconciles NAV-PJ-09 semantic multilingual banner guidance/details, NAV-PJ-10 exact contextual-suggestion policy/ranking/templates/lifecycle and NAV-PJ-11 ORS same-origin routing + Mapbox fallback / degraded map-provider behavior. Canonical matrices are 24 PASS / 0 PARTIAL / 0 GAP and NAV-PJ 11 PASS / 0 PARTIAL / 0 GAP, subject to same-head PR gates. equivalent is not released and does not authorize production."
       }
     },
     {

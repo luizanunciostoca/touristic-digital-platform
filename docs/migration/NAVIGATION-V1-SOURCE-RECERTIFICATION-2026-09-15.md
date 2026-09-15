@@ -24,13 +24,13 @@ d438109fc6a76ddc11f7f90d7f02c98d4b95fe456f78f34b66eae5cbeb5eaf97
 
 Hashes dos módulos críticos usados nesta reconciliação:
 
-| Fonte V1 | SHA-256 |
-| --- | --- |
-| `js/navigation/navigationInstructions/translateInstruction.js` | `32d9187a6eda6bf4aeeaf484e133149708f38406c15ea344128c107223cabf8c` |
+| Fonte V1                                                        | SHA-256                                                            |
+| --------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `js/navigation/navigationInstructions/translateInstruction.js`  | `32d9187a6eda6bf4aeeaf484e133149708f38406c15ea344128c107223cabf8c` |
 | `js/navigation/navigationSuggestions/navigation-suggestions.js` | `6a99811b861f21485c31e75e192dce88e3a1f0ef443202160532c2bfccc4a0c4` |
-| `js/navigation/navigationSuggestions/navigation-sponsors.js` | `a9749a82f54263522f62773a66227d89fcdc2e897b0f257b365ff0ed5946cb1d` |
-| `js/navigation/navigationServices/mapboxDirectionsService.js` | `44275abcaeb4022bb361612c18d71ca8be1db65389d3a5afe2cc8227649efb7b` |
-| `js/navigation/navigationServices/routing-client.js` | `3c564b3c8d23a148db038413be1e93d83a9c769690f37482b349ccea6d1248cb` |
+| `js/navigation/navigationSuggestions/navigation-sponsors.js`    | `a9749a82f54263522f62773a66227d89fcdc2e897b0f257b365ff0ed5946cb1d` |
+| `js/navigation/navigationServices/mapboxDirectionsService.js`   | `44275abcaeb4022bb361612c18d71ca8be1db65389d3a5afe2cc8227649efb7b` |
+| `js/navigation/navigationServices/routing-client.js`            | `3c564b3c8d23a148db038413be1e93d83a9c769690f37482b349ccea6d1248cb` |
 
 O ZIP não é incorporado ao repositório V2. A rastreabilidade é feita por `sourceCommit`, SHA-256 do arquivo e SHA-256 dos módulos críticos.
 
@@ -38,14 +38,14 @@ O ZIP não é incorporado ao repositório V2. A rastreabilidade é feita por `so
 
 A jornada ativa da V1 usa `js/navigation/navigationUi/bannerUI.js` para transformar a instrução de provider em uma ação curta apresentada no cabeçalho do banner. O contrato observado cobre tipos ORS numéricos `0..12`, nomes string compatíveis (`continue`, `turn-left`, `turn-right`, `turn-slight-*`, `turn-sharp-*`, `keep-*`, `uturn`, `arrive`, `destination`), fallback por análise do texto inglês do provider, ação localizada em PT/EN/ES/HE e preservação da instrução original.
 
-O detalhe do banner é montado como `ação + conector localizado + rua + conector localizado + distância`, com detecção separada de chegada e extração da rua a partir de `streetName`, `name`, ` on ` ou ` onto `.
+O detalhe do banner é montado como `ação + conector localizado + rua + conector localizado + distância`, com detecção separada de chegada e extração da rua a partir de `streetName`, `name`, `on` ou `onto`.
 
 | Idioma | `navigation_on` | `navigation_for` |
-| --- | --- | --- |
-| PT | `na` | `por` |
-| EN | `on` | `for` |
-| ES | `en` | `por` |
-| HE | `על` | `עבור` |
+| ------ | --------------- | ---------------- |
+| PT     | `na`            | `por`            |
+| EN     | `on`            | `for`            |
+| ES     | `en`            | `por`            |
+| HE     | `על`            | `עבור`           |
 
 A fonte contém uma peculiaridade histórica: `navigation_turn_slight_right` não está definido no conjunto genérico carregado e `bannerUI.js` cai no literal `Slight right`. A camada de paridade V2 preserva deliberadamente esse fallback.
 

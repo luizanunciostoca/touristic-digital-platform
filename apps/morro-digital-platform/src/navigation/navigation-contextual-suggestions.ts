@@ -140,7 +140,7 @@ const V1_DISTANCE_COPY: Readonly<
   he: Object.freeze({
     nearby: "כאן בקרבת מקום",
     meters: "{dist}מ' מכאן",
-    kilometers: "{dist}ק\"מ מכאן",
+    kilometers: '{dist}ק"מ מכאן',
   }),
 });
 
@@ -310,10 +310,7 @@ function formatSuggestionDistance(
   if (distanceMeters < 1000) {
     return copy.meters.replace("{dist}", String(Math.round(distanceMeters)));
   }
-  return copy.kilometers.replace(
-    "{dist}",
-    (distanceMeters / 1000).toFixed(1),
-  );
+  return copy.kilometers.replace("{dist}", (distanceMeters / 1000).toFixed(1));
 }
 
 export function navigationSuggestionMessage(
@@ -387,7 +384,8 @@ function selectCandidate(input: {
 
   for (const place of input.catalog) {
     const sponsor = sponsorFor(place, input.policy);
-    if (!sponsor && !input.policy.enabledCategories.has(place.category)) continue;
+    if (!sponsor && !input.policy.enabledCategories.has(place.category))
+      continue;
 
     const lastShownAt = input.cooldownByPlace.get(place.name) ?? 0;
     if (input.now - lastShownAt < input.policy.perPlaceCooldownMs) continue;
@@ -590,9 +588,12 @@ export function createNavigationContextualSuggestions(options: {
       // Preserve the canonical V1 observable event name as a compatibility
       // surface while retaining the typed V2 event introduced by PR #60.
       options.document.defaultView?.dispatchEvent(
-        new CustomEvent<NavigationContextualSuggestion>("navigationSuggestion", {
-          detail: suggestion,
-        }),
+        new CustomEvent<NavigationContextualSuggestion>(
+          "navigationSuggestion",
+          {
+            detail: suggestion,
+          },
+        ),
       );
       return suggestion;
     },

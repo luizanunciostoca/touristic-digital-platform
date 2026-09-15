@@ -63,7 +63,11 @@ describe("V1 source-exact semantic navigation presentation", () => {
 
   it("supports the V1 compatible string maneuver names", () => {
     expect(
-      simplifyNavigationInstructionText("provider text", "turn-sharp-left", "en"),
+      simplifyNavigationInstructionText(
+        "provider text",
+        "turn-sharp-left",
+        "en",
+      ),
     ).toBe("Turn sharp left");
     expect(
       simplifyNavigationInstructionText("provider text", "keep-right", "es"),
@@ -75,10 +79,18 @@ describe("V1 source-exact semantic navigation presentation", () => {
 
   it("uses the same English text fallback order as V1 when type is unknown", () => {
     expect(
-      simplifyNavigationInstructionText("Turn slight left onto Main Street", null, "pt"),
+      simplifyNavigationInstructionText(
+        "Turn slight left onto Main Street",
+        null,
+        "pt",
+      ),
     ).toBe("Faça uma leve curva à esquerda");
     expect(
-      simplifyNavigationInstructionText("Arrive at your destination", null, "es"),
+      simplifyNavigationInstructionText(
+        "Arrive at your destination",
+        null,
+        "es",
+      ),
     ).toBe("¡Has llegado a tu destino!");
   });
 

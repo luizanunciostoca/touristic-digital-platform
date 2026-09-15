@@ -107,7 +107,8 @@ function v1StreetName(guidance: NavigationGuidanceSnapshot): string | null {
  * action + localized connector + street (when available) + maneuver distance.
  */
 function v1DetailsText(guidance: NavigationGuidanceSnapshot): string {
-  const action = guidance.instruction || guidance.original || "Continue pela rota";
+  const action =
+    guidance.instruction || guidance.original || "Continue pela rota";
   if (v1ArrivalInstruction(guidance)) return action;
 
   const language = guidance.language ?? "pt";

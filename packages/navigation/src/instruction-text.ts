@@ -161,7 +161,9 @@ function normalizeManeuverType(value: unknown): string {
   return value.toLowerCase().replace(/[_\s]/gu, "-");
 }
 
-function actionFromManeuverType(value: unknown): NavigationSemanticAction | null {
+function actionFromManeuverType(
+  value: unknown,
+): NavigationSemanticAction | null {
   const normalized = normalizeManeuverType(value);
   if (!normalized) return null;
   for (const [key, action] of Object.entries(V1_TYPE_ACTIONS)) {
