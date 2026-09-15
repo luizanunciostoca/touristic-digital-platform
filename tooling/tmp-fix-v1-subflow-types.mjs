@@ -7,11 +7,11 @@ let flow = await readFile(flowPath, "utf8");
 const flowStart = `const SUBCATEGORY_OPTIONS: Readonly<\n  Record<string, readonly V1ExploreOption[]>\n> = Object.freeze({`;
 if (!flow.includes(flowStart)) throw new Error("subcategory declaration not found");
 flow = flow.replace(flowStart, "const SUBCATEGORY_OPTIONS = Object.freeze({");
-const flowEnd = `  }),\n});\n\nexport function getV1ExploreSubcategoryOptions`;
+const flowEnd = `  ]),\n});\n\nexport function getV1ExploreSubcategoryOptions`;
 if (!flow.includes(flowEnd)) throw new Error("subcategory closing marker not found");
 flow = flow.replace(
   flowEnd,
-  `  }),\n} as const) satisfies Readonly<Record<string, readonly V1ExploreOption[]>>;\n\nexport function getV1ExploreSubcategoryOptions`,
+  `  ]),\n} as const) satisfies Readonly<Record<string, readonly V1ExploreOption[]>>;\n\nexport function getV1ExploreSubcategoryOptions`,
 );
 await writeFile(flowPath, flow);
 
