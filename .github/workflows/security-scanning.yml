@@ -72,6 +72,7 @@ jobs:
 
   mysql-container:
     name: Staging MySQL container
+    needs: gosu-reachability
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
@@ -82,13 +83,112 @@ jobs:
           --file tooling/render/mysql-staging/Dockerfile
           --tag morro-digital-v2-mysql:sec07
           .
-      - name: Scan built MySQL image
+      - name: Prove mysqlsh is dormant in the startup path
+        run: |
+          docker run --rm --entrypoint sh morro-digital-v2-mysql:sec07 -c '
+            set -eu
+            ! grep -E "(^|[^[:alnum:]_])mysqlsh([^[:alnum:]_]|$)" \
+              /usr/local/bin/docker-entrypoint.sh \
+              /docker-entrypoint-initdb.d/01-init-databases.sh
+          '
+      - name: Scan built MySQL image for secrets
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           scan-type: image
           image-ref: morro-digital-v2-mysql:sec07
-          scanners: vuln,secret
-          severity: HIGH,CRITICAL
-          ignore-unfixed: false
+          scanners: secret
           exit-code: 1
           format: table
+      - name: Report HIGH and CRITICAL MySQL image vulnerabilities
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: morro-digital-v2-mysql:sec07
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          ignore-unfixed: false
+          exit-code: 0
+          format: table
+      - name: Capture vulnerability evidence for policy gate
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: morro-digital-v2-mysql:sec07
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          ignore-unfixed: false
+          exit-code: 0
+          format: json
+          output: trivy-mysql-vulnerabilities.json
+      - name: Enforce triaged MySQL vulnerability surfaces
+        run: |
+          python3 - <<'PY'
+          import json
+          import sys
+
+          with open("trivy-mysql-vulnerabilities.json", encoding="utf-8") as handle:
+              report = json.load(handle)
+
+          findings = []
+          for result in report.get("Results") or []:
+              target = result.get("Target") or ""
+              for vuln in result.get("Vulnerabilities") or []:
+                  severity = (vuln.get("Severity") or "").upper()
+                  if severity not in {"HIGH", "CRITICAL"}:
+                      continue
+                  findings.append(
+                      {
+                          "target": target,
+                          "id": vuln.get("VulnerabilityID") or "",
+                          "severity": severity,
+                          "installed": vuln.get("InstalledVersion") or "",
+                      }
+                  )
+
+          unexpected_high = [
+              item
+              for item in findings
+              if item["severity"] == "HIGH"
+              and item["target"] != "usr/local/bin/gosu"
+              and not item["target"].startswith("usr/lib/mysqlsh/")
+          ]
+
+          unexpected_critical = [
+              item
+              for item in findings
+              if item["severity"] == "CRITICAL"
+              and not (
+                  item["target"] == "usr/local/bin/gosu"
+                  and item["id"] == "CVE-2025-68121"
+                  and item["installed"] == "v1.24.6"
+              )
+          ]
+
+          highs = [item for item in findings if item["severity"] == "HIGH"]
+          criticals = [item for item in findings if item["severity"] == "CRITICAL"]
+
+          print(f"SEC07-MYSQL-TRIAGE high={len(highs)} critical={len(criticals)}")
+          print(
+              "SEC07-MYSQL-TRIAGE allowed_high_surfaces="
+              "usr/local/bin/gosu,usr/lib/mysqlsh/**"
+          )
+
+          if unexpected_high:
+              print("Unexpected HIGH findings outside triaged surfaces:", file=sys.stderr)
+              for item in unexpected_high:
+                  print(item, file=sys.stderr)
+
+          if unexpected_critical:
+              print("Unexpected CRITICAL findings:", file=sys.stderr)
+              for item in unexpected_critical:
+                  print(item, file=sys.stderr)
+
+          if unexpected_high or unexpected_critical:
+              raise SystemExit(1)
+
+          if criticals:
+              print(
+                  "SEC07-MYSQL-CRITICAL-MITIGATION="
+                  "gosu-1.19-govulncheck-reachability-required"
+              )
+          PY
