@@ -62,7 +62,6 @@ export async function startMorroDigitalBrowser(
 
   container.setAttribute("aria-busy", "true");
   container.setAttribute("data-map-state", "initializing");
-  let degradedNavigation: BrowserNavigationRuntimeInstall | null = null;
 
   try {
     const domDocument = asDomDocument(options.document);
@@ -71,12 +70,12 @@ export async function startMorroDigitalBrowser(
       (domDocument
         ? (map: MapboxGlMapLike) => {
             degradedNavigationByDocument.get(domDocument)?.destroy();
-            degradedNavigation = installBrowserNavigationRuntime({
+            const installed = installBrowserNavigationRuntime({
               map,
               sdk: options.sdk,
               document: domDocument,
             });
-            degradedNavigationByDocument.set(domDocument, degradedNavigation);
+            degradedNavigationByDocument.set(domDocument, installed);
           }
         : undefined);
 
@@ -105,12 +104,9 @@ export async function startMorroDigitalBrowser(
     container.setAttribute("data-map-state", "ready");
     return result;
   } catch (error) {
-    degradedNavigation?.destroy();
     const domDocument = asDomDocument(options.document);
-    if (
-      domDocument &&
-      degradedNavigationByDocument.get(domDocument) === degradedNavigation
-    ) {
+    if (domDocument) {
+      degradedNavigationByDocument.get(domDocument)?.destroy();
       degradedNavigationByDocument.delete(domDocument);
     }
     container.setAttribute("data-map-state", "error");
