@@ -190,7 +190,7 @@ export function createNavigationAppComposition(
       location: runtimeLocationFromBrowser(location),
       instructions,
       stepIndex,
-      language: options.language ?? "pt",
+      ...(options.language ? { language: options.language } : {}),
     });
   }
 
