@@ -1,0 +1,66 @@
+name: Temporary Apply V1 Post Detail And Popup
+
+on:
+  push:
+    branches:
+      - fix/v1-assistant-category-subflows-20260915
+    paths:
+      - .github/workflows/tmp-apply-v1-postdetail-popup.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: fix/v1-assistant-category-subflows-20260915
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Apply deterministic V1 parity patch
+        run: node tooling/tmp-apply-v1-postdetail-popup.mjs
+      - name: Format changed product files
+        run: |
+          pnpm exec prettier --write \
+            packages/geospatial/src/provider.ts \
+            packages/geospatial/src/adapters/mapbox.ts \
+            packages/geospatial/src/infrastructure/mapbox-gl-driver.ts \
+            apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts \
+            apps/morro-digital-platform/src/map/explore-locations-control.ts \
+            apps/morro-digital-platform/src/map/explore-location-actions-v1.ts \
+            apps/morro-digital-platform/src/map/explore-location-actions-v1.test.ts \
+            .github/workflows/v1-explore-locations-browser-regression.yml
+          git diff --check
+      - name: Validate affected workspaces
+        run: |
+          pnpm --filter @touristic/geospatial lint
+          pnpm --filter @touristic/geospatial typecheck
+          pnpm --filter @touristic/geospatial test
+          pnpm --filter @touristic/geospatial build
+          pnpm --filter @touristic/morro-digital-platform lint
+          pnpm --filter @touristic/morro-digital-platform typecheck
+          pnpm --filter @touristic/morro-digital-platform test
+          pnpm --filter @touristic/morro-digital-platform build
+      - name: Commit validated product patch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            packages/geospatial/src/provider.ts \
+            packages/geospatial/src/adapters/mapbox.ts \
+            packages/geospatial/src/infrastructure/mapbox-gl-driver.ts \
+            apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts \
+            apps/morro-digital-platform/src/map/explore-locations-control.ts \
+            apps/morro-digital-platform/src/map/explore-location-actions-v1.ts \
+            apps/morro-digital-platform/src/map/explore-location-actions-v1.test.ts \
+            .github/workflows/v1-explore-locations-browser-regression.yml
+          git commit -m 'fix(assistant): restore V1 detail actions and marker popup parity'
+          git push origin HEAD:fix/v1-assistant-category-subflows-20260915
