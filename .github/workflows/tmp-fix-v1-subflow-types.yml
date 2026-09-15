@@ -1,0 +1,97 @@
+name: Temporary Fix V1 Subflow Types
+
+on:
+  push:
+    branches:
+      - fix/v1-assistant-category-subflows-20260915
+    paths:
+      - .github/workflows/tmp-fix-v1-subflow-types.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: fix/v1-assistant-category-subflows-20260915
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Patch exact V1 option types
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+
+          flow = Path('apps/morro-digital-platform/src/map/explore-locations-v1-flow.ts')
+          text = flow.read_text()
+          old = '''const SUBCATEGORY_OPTIONS: Readonly<
+  Record<string, readonly V1ExploreOption[]>
+> = Object.freeze({'''
+          new = '''const SUBCATEGORY_OPTIONS = Object.freeze({'''
+          if old not in text:
+              raise SystemExit('subcategory declaration not found')
+          text = text.replace(old, new, 1)
+          marker = '''  }),
+});
+
+export function getV1ExploreSubcategoryOptions'''
+          replacement = '''  }),
+} as const) satisfies Readonly<Record<string, readonly V1ExploreOption[]>>;
+
+export function getV1ExploreSubcategoryOptions'''
+          if marker not in text:
+              raise SystemExit('subcategory closing marker not found')
+          flow.write_text(text.replace(marker, replacement, 1))
+
+          control = Path('apps/morro-digital-platform/src/map/explore-locations-control.ts')
+          text = control.read_text()
+          old = '''  const renderFlow = (
+    text: string,
+    options: readonly Readonly<{
+      label: string;
+      value: string;
+      action?: string;
+      location?: MorroV1SearchCatalogItem;
+      tourId?: string;
+    }>[],
+    onSelect: (option: (typeof options)[number]) => void,
+  ): HTMLButtonElement | null => {'''
+          new = '''  const renderFlow = <
+    T extends Readonly<{
+      label: string;
+      value: string;
+      action?: string;
+      location?: MorroV1SearchCatalogItem;
+      tourId?: string;
+    }>,
+  >(
+    text: string,
+    options: readonly T[],
+    onSelect: (option: T) => void,
+  ): HTMLButtonElement | null => {'''
+          if old not in text:
+              raise SystemExit('renderFlow declaration not found')
+          control.write_text(text.replace(old, new, 1))
+          PY
+          pnpm exec prettier --write \
+            apps/morro-digital-platform/src/map/explore-locations-v1-flow.ts \
+            apps/morro-digital-platform/src/map/explore-locations-control.ts
+          git diff --check
+          pnpm --filter @touristic/morro-digital-platform lint
+          pnpm --filter @touristic/morro-digital-platform build
+      - name: Commit safe typing fix
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add apps/morro-digital-platform/src/map/explore-locations-v1-flow.ts \
+                  apps/morro-digital-platform/src/map/explore-locations-control.ts
+          git commit -m 'fix(assistant): preserve V1 subflow literal types'
+          git push origin HEAD:fix/v1-assistant-category-subflows-20260915
