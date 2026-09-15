@@ -24,51 +24,53 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Apply minimal typed GPS mock patch
+      - name: Apply structurally bounded typed GPS mock patch
         run: |
           python3 - <<'PY'
           from pathlib import Path
+
           path = Path('apps/morro-digital-platform/src/navigation/navigation-session-bootstrap.test.ts')
           text = path.read_text()
-          old = '''  const geolocationDriver = {
-            watchPosition: vi.fn(),
-            getCurrentPosition: vi.fn(),
-            clearWatch: vi.fn(),
-          } as unknown as BrowserGeolocationDriver;'''.replace('          ', '')
-          new = '''  const getCurrentPosition = vi.fn<
+
+          fn_start = text.index('function setupBrowserAcquisition() {')
+          driver_start = text.index('  const geolocationDriver = {', fn_start)
+          driver_end = text.index('  const wiring:', driver_start)
+          old_driver = text[driver_start:driver_end]
+          assert 'getCurrentPosition: vi.fn()' in old_driver
+          assert 'as unknown as BrowserGeolocationDriver' in old_driver
+          new_driver = '''  const getCurrentPosition = vi.fn<
             BrowserGeolocationDriver["getCurrentPosition"]
           >();
           const geolocationDriver: BrowserGeolocationDriver = {
             watchPosition: vi.fn<BrowserGeolocationDriver["watchPosition"]>(() => 1),
             getCurrentPosition,
             clearWatch: vi.fn<BrowserGeolocationDriver["clearWatch"]>(),
-          };'''.replace('          ', '')
-          index = text.rfind(old)
-          assert index >= 0, 'typed-driver target not found'
-          text = text[:index] + new + text[index + len(old):]
-          text = text.replace('''    geolocationDriver,
-            requestRouteImpl,
-            createWiring,
-          };'''.replace('          ', ''), '''    geolocationDriver,
-            getCurrentPosition,
-            requestRouteImpl,
-            createWiring,
-          };'''.replace('          ', ''), 1)
-          old_test = '''    context.geolocationDriver.getCurrentPosition = vi.fn(
-            (success, error, options) => {
-              attempt += 1;
-              if (attempt < 3) {
-                error({
-                  code: 2,
-                  message: "temporarily unavailable",
-                });
-                return;
-              }
-              success(browserPosition());
-              void options;
-            },
-          );'''.replace('          ', '')
-          new_test = '''    context.getCurrentPosition.mockImplementation((success, error, options) => {
+          };
+          '''
+          text = text[:driver_start] + new_driver + text[driver_end:]
+
+          fn_start = text.index('function setupBrowserAcquisition() {')
+          return_start = text.index('  return {', fn_start)
+          return_end = text.index('  };', return_start)
+          return_block = text[return_start:return_end]
+          assert '    geolocationDriver,\n' in return_block
+          assert '    getCurrentPosition,\n' not in return_block
+          return_block = return_block.replace(
+              '    geolocationDriver,\n',
+              '    geolocationDriver,\n    getCurrentPosition,\n',
+              1,
+          )
+          text = text[:return_start] + return_block + text[return_end:]
+
+          test_start = text.index('  it("retries initial GPS acquisition')
+          assign_start = text.index(
+              '    context.geolocationDriver.getCurrentPosition = vi.fn(',
+              test_start,
+          )
+          assign_end = text.index('\n\n    await expect(', assign_start)
+          old_assign = text[assign_start:assign_end]
+          assert 'success(browserPosition())' in old_assign
+          new_assign = '''    context.getCurrentPosition.mockImplementation((success, error, options) => {
             attempt += 1;
             if (attempt < 3) {
               error({
@@ -79,17 +81,41 @@ jobs:
             }
             success(browserPosition());
             void options;
-          });'''.replace('          ', '')
-          assert old_test in text, 'retry mock target not found'
-          text = text.replace(old_test, new_test, 1)
-          text = text.replace('context.geolocationDriver.getCurrentPosition).toHaveBeenCalledTimes(', 'context.getCurrentPosition).toHaveBeenCalledTimes(', 1)
-          text = text.replace('''vi
-                .mocked(context.geolocationDriver.getCurrentPosition)
-                .mock.calls.map'''.replace('              ', ''), 'context.getCurrentPosition.mock.calls.map', 1)
-          text = text.replace('context.geolocationDriver.getCurrentPosition).not.toHaveBeenCalled()', 'context.getCurrentPosition).not.toHaveBeenCalled()', 1)
+          });'''
+          text = text[:assign_start] + new_assign + text[assign_end:]
+
+          old_count = 'context.geolocationDriver.getCurrentPosition).toHaveBeenCalledTimes('
+          assert old_count in text
+          text = text.replace(
+              old_count,
+              'context.getCurrentPosition).toHaveBeenCalledTimes(',
+              1,
+          )
+
+          old_calls = '''    expect(
+            vi
+              .mocked(context.geolocationDriver.getCurrentPosition)
+              .mock.calls.map((call) => call[2]?.timeout),
+          ).toEqual([...NAVIGATION_BOOTSTRAP_ATTEMPT_TIMEOUTS_MS]);'''
+          assert old_calls in text
+          new_calls = '''    expect(
+            context.getCurrentPosition.mock.calls.map((call) => call[2]?.timeout),
+          ).toEqual([...NAVIGATION_BOOTSTRAP_ATTEMPT_TIMEOUTS_MS]);'''
+          text = text.replace(old_calls, new_calls, 1)
+
+          old_recent = 'context.geolocationDriver.getCurrentPosition).not.toHaveBeenCalled()'
+          assert old_recent in text
+          text = text.replace(
+              old_recent,
+              'context.getCurrentPosition).not.toHaveBeenCalled()',
+              1,
+          )
+
           path.write_text(text)
           PY
-          pnpm exec prettier --write apps/morro-digital-platform/src/navigation/navigation-session-bootstrap.test.ts apps/morro-digital-platform/src/browser.ts
+          pnpm exec prettier --write \
+            apps/morro-digital-platform/src/navigation/navigation-session-bootstrap.test.ts \
+            apps/morro-digital-platform/src/browser.ts
           pnpm --filter @touristic/morro-digital-platform lint
           pnpm --filter @touristic/morro-digital-platform build
       - name: Commit validated type fixes
@@ -100,6 +126,8 @@ jobs:
           fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -- apps/morro-digital-platform/src/navigation/navigation-session-bootstrap.test.ts apps/morro-digital-platform/src/browser.ts
+          git add -- \
+            apps/morro-digital-platform/src/navigation/navigation-session-bootstrap.test.ts \
+            apps/morro-digital-platform/src/browser.ts
           git commit -m 'fix(navigation): validate type-safe parity remediation'
           git push origin HEAD:fix/navigation-v1-product-parity-20260915
