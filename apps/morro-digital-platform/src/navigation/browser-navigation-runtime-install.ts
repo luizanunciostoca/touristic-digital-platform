@@ -19,6 +19,10 @@ import {
 } from "../assistant/assistant-navigation-feedback.js";
 import type { BrowserLocation } from "./browser-geolocation.js";
 import {
+  createNavigationContextualSuggestions,
+  type NavigationContextualSuggestions,
+} from "./navigation-contextual-suggestions.js";
+import {
   createNavigationDomEventBridge,
   type NavigationDomEventBridge,
 } from "./navigation-dom-events.js";
@@ -62,6 +66,7 @@ export interface BrowserNavigationRuntimeInstallOptions {
   readonly createEventBridge?: typeof createNavigationDomEventBridge;
   readonly createGuidanceUi?: typeof createNavigationGuidanceUi;
   readonly createSpeech?: typeof createNavigationSpeech;
+  readonly createContextualSuggestions?: typeof createNavigationContextualSuggestions;
   readonly installAssistant?: typeof installBrowserAssistantRuntime;
   readonly installAssistantFeedback?: typeof installAssistantNavigationFeedback;
 }
@@ -107,6 +112,8 @@ export function installBrowserNavigationRuntime(
   const createGuidanceUi =
     options.createGuidanceUi ?? createNavigationGuidanceUi;
   const createSpeech = options.createSpeech ?? createNavigationSpeech;
+  const createContextualSuggestions =
+    options.createContextualSuggestions ?? createNavigationContextualSuggestions;
   const installAssistant =
     options.installAssistant ?? installBrowserAssistantRuntime;
   const installAssistantFeedback =
@@ -114,6 +121,13 @@ export function installBrowserNavigationRuntime(
   const eventBridge = createEventBridge(options.document);
   const guidanceUi = createGuidanceUi(options.document);
   const speech = createSpeech(options.document);
+  const contextualSuggestions: NavigationContextualSuggestions | null =
+    options.document.defaultView
+      ? createContextualSuggestions({
+          document: options.document,
+          speech,
+        })
+      : null;
   const eventTarget = options.document.defaultView;
   const routingFallbackProvider = resolveRoutingFallbackProvider(
     options.routingFallbackProvider,
@@ -128,6 +142,7 @@ export function installBrowserNavigationRuntime(
     arrivedSessionId = null;
     approachingSessionId = null;
     lastSpokenStepKey = null;
+    contextualSuggestions?.start();
     guidanceUi.start();
   };
   const onNavigationEnded = (): void => {
@@ -135,6 +150,7 @@ export function installBrowserNavigationRuntime(
     arrivedSessionId = null;
     approachingSessionId = null;
     lastSpokenStepKey = null;
+    contextualSuggestions?.stop();
     guidanceUi.stop();
   };
   eventTarget?.addEventListener("navigationStarted", onNavigationStarted);
@@ -178,6 +194,7 @@ export function installBrowserNavigationRuntime(
     onLocation: (location, context) => {
       hasActiveRoute = true;
       latestLocation = location;
+      contextualSuggestions?.observe(location);
       eventBridge.location({
         latitude: location.latitude,
         longitude: location.longitude,
@@ -279,6 +296,7 @@ export function installBrowserNavigationRuntime(
         onNavigationStarted,
       );
       eventTarget?.removeEventListener("navigationEnded", onNavigationEnded);
+      contextualSuggestions?.destroy();
       assistantFeedback.destroy();
       assistant.destroy();
       requestPort.destroy();
