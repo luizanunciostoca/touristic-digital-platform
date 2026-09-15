@@ -34,13 +34,19 @@ export interface NavigationContextualSuggestion
 
 export interface NavigationSuggestionSession {
   start(startedAt?: number): void;
-  observe(location: BrowserLocation, now?: number): NavigationSuggestionSelection | null;
+  observe(
+    location: BrowserLocation,
+    now?: number,
+  ): NavigationSuggestionSelection | null;
   stop(): void;
 }
 
 export interface NavigationContextualSuggestions {
   start(startedAt?: number): void;
-  observe(location: BrowserLocation, now?: number): NavigationContextualSuggestion | null;
+  observe(
+    location: BrowserLocation,
+    now?: number,
+  ): NavigationContextualSuggestion | null;
   stop(): void;
   destroy(): void;
 }
@@ -162,13 +168,16 @@ export function createNavigationSuggestionSession(options: {
   let emitted = 0;
 
   return Object.freeze({
-    start(value = Date.now()): void {
+    start(value: number = Date.now()): void {
       startedAt = value;
       lastEvaluationLocation = null;
       emitted = 0;
       cooldownByPlace.clear();
     },
-    observe(location, now = Date.now()): NavigationSuggestionSelection | null {
+    observe(
+      location: BrowserLocation,
+      now: number = Date.now(),
+    ): NavigationSuggestionSelection | null {
       if (
         startedAt === null ||
         emitted >= policy.sessionMaximum ||
@@ -237,12 +246,15 @@ export function createNavigationContextualSuggestions(options: {
   }
 
   return Object.freeze({
-    start(value = Date.now()): void {
+    start(value: number = Date.now()): void {
       if (destroyed) return;
       clearMessage();
       session.start(value);
     },
-    observe(location, now = Date.now()): NavigationContextualSuggestion | null {
+    observe(
+      location: BrowserLocation,
+      now: number = Date.now(),
+    ): NavigationContextualSuggestion | null {
       if (destroyed) return null;
       const selected = session.observe(location, now);
       if (!selected) return null;
@@ -252,7 +264,10 @@ export function createNavigationContextualSuggestions(options: {
         selected.placeName,
         selected.distanceMeters,
       );
-      const suggestion = Object.freeze({ ...selected, message });
+      const suggestion: NavigationContextualSuggestion = Object.freeze({
+        ...selected,
+        message,
+      });
 
       clearMessage();
       messages.append({
@@ -268,9 +283,12 @@ export function createNavigationContextualSuggestions(options: {
       messageVisible = true;
       options.speech.speak(message);
       options.document.defaultView?.dispatchEvent(
-        new CustomEvent("navigationContextualSuggestion", {
-          detail: suggestion,
-        }),
+        new CustomEvent<NavigationContextualSuggestion>(
+          "navigationContextualSuggestion",
+          {
+            detail: suggestion,
+          },
+        ),
       );
       return suggestion;
     },
