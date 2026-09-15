@@ -225,14 +225,13 @@ describe("navigation contextual suggestions", () => {
     expect(selected?.sponsored).toBe(true);
   });
 
-  it("enforces five minute per-place cooldown and ten suggestion session maximum", () => {
+  it("enforces the exact five minute per-place cooldown", () => {
     const nearby = place("Ponto", "restaurants", -13.38, -38.91);
     const session = createNavigationSuggestionSession({
       catalog: [nearby],
       policy: policy({
         movementThresholdMeters: 0,
         perPlaceCooldownMs: 300_000,
-        sessionMaximum: 10,
       }),
     });
     session.start(BASE_TIME);
@@ -240,6 +239,24 @@ describe("navigation contextual suggestions", () => {
     expect(session.observe(location(-13.38, -38.91), BASE_TIME + 1)).not.toBeNull();
     expect(session.observe(location(-13.38, -38.91), BASE_TIME + 299_999)).toBeNull();
     expect(session.observe(location(-13.38, -38.91), BASE_TIME + 300_001)).not.toBeNull();
+  });
+
+  it("enforces the exact ten suggestion session maximum", () => {
+    const current = location(-13.38, -38.91);
+    const session = createNavigationSuggestionSession({
+      catalog: [place("Ponto", "restaurants", -13.38, -38.91)],
+      policy: policy({
+        movementThresholdMeters: 0,
+        perPlaceCooldownMs: 0,
+        sessionMaximum: 10,
+      }),
+    });
+    session.start(BASE_TIME);
+
+    for (let index = 1; index <= 10; index += 1) {
+      expect(session.observe(current, BASE_TIME + index)).not.toBeNull();
+    }
+    expect(session.observe(current, BASE_TIME + 11)).toBeNull();
   });
 
   it("resets cooldown and counters for a new navigation session", () => {
@@ -261,16 +278,20 @@ describe("navigation contextual suggestions", () => {
     expect(session.observe(current, BASE_TIME + 10_001)).not.toBeNull();
   });
 
-  it("provides localized PT/EN/ES/HE copy", () => {
-    expect(navigationSuggestionMessage("pt", "Praia", 42)).toContain(
-      "42 metros",
+  it("reproduces localized V1 category templates and distance labels", () => {
+    expect(
+      navigationSuggestionMessage("pt", "Basílico", 75, "restaurants", () => 0),
+    ).toBe(
+      "🍽️ Você está passando por <b>Basílico</b> (a 75m)! Que tal uma parada para comer?",
     );
-    expect(navigationSuggestionMessage("en", "Beach", 42)).toContain(
-      "42 meters",
-    );
-    expect(navigationSuggestionMessage("es", "Playa", 42)).toContain(
-      "42 metros",
-    );
-    expect(navigationSuggestionMessage("he", "חוף", 42)).toContain("42");
+    expect(
+      navigationSuggestionMessage("en", "Shop", 75, "shops", () => 0),
+    ).toContain("75m away");
+    expect(
+      navigationSuggestionMessage("es", "Atracción", 42, "attractions", () => 0),
+    ).toContain("aquí cerca");
+    expect(
+      navigationSuggestionMessage("he", "מלון", 1_250, "hotels", () => 0),
+    ).toContain('1.3ק"מ מכאן');
   });
 });
