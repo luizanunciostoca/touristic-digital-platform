@@ -11,6 +11,8 @@ import {
 
 const DETAILS_COMMAND_PREFIX = "Fale sobre ";
 const ASSISTANT_CATEGORY_ID_PREFIX = "assistant-category-";
+const ASSISTANT_CATEGORY_RESULTS_ID = "assistant-category-results";
+const ASSISTANT_CATEGORY_MESSAGE_ID = "assistant-category-results-message";
 const TOUR_ROUTE_SOURCE = "tour-route-source";
 const TOUR_ROUTE_LAYER = "tour-route-layer";
 const TOUR_ROUTE_OUTLINE = "tour-route-outline";
@@ -90,46 +92,6 @@ function clearTourPresentation(document: Document): void {
   if (tourSelect instanceof HTMLSelectElement) tourSelect.selectedIndex = -1;
 }
 
-function locationDescription(
-  location: MorroV1SearchCatalogItem,
-): string | null {
-  if (location.area?.trim()) return location.area.trim();
-  const firstTag = location.tags?.find((tag) => tag.trim().length > 0);
-  return firstTag?.trim() ?? null;
-}
-
-function createLocationButton(
-  document: Document,
-  location: MorroV1SearchCatalogItem,
-  onSelect: (location: MorroV1SearchCatalogItem) => void,
-): HTMLButtonElement {
-  const button = document.createElement("button");
-  button.type = "button";
-  button.className = "submenu-item";
-  button.dataset.locationName = location.name;
-  button.dataset.locationCategory = location.category;
-
-  const content = document.createElement("span");
-  content.className = "submenu-item-content";
-
-  const title = document.createElement("span");
-  title.className = "submenu-item-title";
-  title.textContent = location.name;
-  content.appendChild(title);
-
-  const description = locationDescription(location);
-  if (description) {
-    const descriptionElement = document.createElement("span");
-    descriptionElement.className = "submenu-item-description";
-    descriptionElement.textContent = description;
-    content.appendChild(descriptionElement);
-  }
-
-  button.appendChild(content);
-  button.addEventListener("click", () => onSelect(location));
-  return button;
-}
-
 function markerForLocation(
   location: MorroV1SearchCatalogItem,
   index: number,
@@ -150,29 +112,139 @@ function describeExploreError(error: unknown): string {
   return error instanceof Error ? error.message : "Falha desconhecida no mapa.";
 }
 
+function assistantMessagesArea(document: Document): HTMLElement | null {
+  return document.querySelector<HTMLElement>(
+    "#assistant-messages .messages-area",
+  );
+}
+
+function removeAssistantCategoryResults(document: Document): void {
+  document.getElementById(ASSISTANT_CATEGORY_RESULTS_ID)?.remove();
+  document.getElementById(ASSISTANT_CATEGORY_MESSAGE_ID)?.remove();
+}
+
+function ensureAssistantVisible(document: Document): void {
+  const assistant = document.getElementById("assistant-messages");
+  if (!assistant?.classList.contains("hidden")) return;
+  document.querySelector<HTMLButtonElement>(".mood-button")?.click();
+}
+
+function categoryBounds(
+  locations: readonly MorroV1SearchCatalogItem[],
+): [[number, number], [number, number]] | null {
+  if (locations.length === 0) return null;
+  const longitudes = locations.map((location) => location.longitude);
+  const latitudes = locations.map((location) => location.latitude);
+  return [
+    [Math.min(...longitudes), Math.min(...latitudes)],
+    [Math.max(...longitudes), Math.max(...latitudes)],
+  ];
+}
+
+function categoryCenter(
+  locations: readonly MorroV1SearchCatalogItem[],
+): { latitude: number; longitude: number } | null {
+  if (locations.length === 0) return null;
+  const latitude =
+    locations.reduce((total, location) => total + location.latitude, 0) /
+    locations.length;
+  const longitude =
+    locations.reduce((total, location) => total + location.longitude, 0) /
+    locations.length;
+  return { latitude, longitude };
+}
+
+function frameCategoryOnMap(
+  locations: readonly MorroV1SearchCatalogItem[],
+  geospatialEngine: GeospatialEngine | undefined,
+): void {
+  const bounds = categoryBounds(locations);
+  const map = currentMap();
+  if (bounds && locations.length > 1 && map?.fitBounds) {
+    map.fitBounds(bounds, {
+      padding: { top: 120, bottom: 260, left: 56, right: 56 },
+      duration: 650,
+      essential: true,
+    });
+    return;
+  }
+
+  const center = categoryCenter(locations);
+  if (!center) return;
+  if (geospatialEngine?.initialized) {
+    void geospatialEngine.setCenter(center);
+    return;
+  }
+  map?.setCenter([center.longitude, center.latitude]);
+}
+
+function createAssistantLocationButton(
+  document: Document,
+  location: MorroV1SearchCatalogItem,
+  onSelect: (location: MorroV1SearchCatalogItem) => void,
+): HTMLButtonElement {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "assistant-option-btn assistant-location-option";
+  button.textContent = location.name;
+  button.dataset.value = createExploreLocationDetailsCommand(location.name);
+  button.dataset.locationName = location.name;
+  button.dataset.locationCategory = location.category;
+  button.setAttribute("aria-label", location.name);
+  button.addEventListener("click", (event) => {
+    event.stopImmediatePropagation();
+    onSelect(location);
+  });
+  return button;
+}
+
+function renderAssistantCategoryResults(
+  document: Document,
+  category: ExploreLocationsCategory,
+  locations: readonly MorroV1SearchCatalogItem[],
+  onSelect: (location: MorroV1SearchCatalogItem) => void,
+): HTMLButtonElement | null {
+  ensureAssistantVisible(document);
+  const area = assistantMessagesArea(document);
+  if (!area) return null;
+
+  removeAssistantCategoryResults(document);
+
+  const message = document.createElement("div");
+  message.id = ASSISTANT_CATEGORY_MESSAGE_ID;
+  message.className = "message assistant";
+  message.dataset.messageType = "category-results";
+  message.dataset.category = category.value;
+  message.textContent = `${category.label}: encontrei ${locations.length} opções. Escolha um local para ver os detalhes.`;
+
+  const options = document.createElement("div");
+  options.id = ASSISTANT_CATEGORY_RESULTS_ID;
+  options.className = "assistant-options assistant-category-results";
+  options.dataset.category = category.value;
+  options.setAttribute("role", "group");
+  options.setAttribute("aria-label", `Opções de ${category.label}`);
+
+  for (const location of locations) {
+    options.appendChild(
+      createAssistantLocationButton(document, location, onSelect),
+    );
+  }
+
+  area.append(message, options);
+  area.scrollTop = area.scrollHeight;
+  return options.querySelector<HTMLButtonElement>(".assistant-location-option");
+}
+
 export function installExploreLocationsControl({
   document,
 }: ExploreLocationsControlOptions): ExploreLocationsControl {
   const submenu = document.getElementById("submenu");
   const submenuContainer = document.getElementById("submenuContainer");
-  const submenuTitle = submenu?.querySelector<HTMLElement>(".submenu-title");
-  const closeButton =
-    submenu?.querySelector<HTMLButtonElement>(".close-button");
 
-  // Remove the obsolete duplicate category rail if a stale shell injected it.
   document.getElementById("controls")?.remove();
-
-  if (!submenu || !submenuContainer || !submenuTitle || !closeButton) {
-    return Object.freeze({
-      close() {},
-      setGeospatialEngine() {},
-      destroy() {},
-    });
-  }
-
-  submenu.setAttribute("aria-hidden", "true");
-  submenu.setAttribute("aria-labelledby", "explore-locations-title");
-  submenuTitle.id = "explore-locations-title";
+  submenu?.classList.add("hidden");
+  submenu?.setAttribute("aria-hidden", "true");
+  submenuContainer?.replaceChildren();
 
   let geospatialEngine: GeospatialEngine | undefined;
   let activeCategoryButton: HTMLButtonElement | undefined;
@@ -180,11 +252,16 @@ export function installExploreLocationsControl({
   const categoryListeners = new Map<HTMLButtonElement, EventListener>();
   const categories = getExploreLocationsCategories();
 
-  const updateMarkerCount = (count: number): void => {
+  const updateMarkerCount = (count: number, category?: string): void => {
     const mapElement = document.getElementById("map");
     mapElement?.setAttribute("data-map-marker-count", String(count));
     mapElement?.removeAttribute("data-active-tour");
     mapElement?.setAttribute("data-tour-state", "idle");
+    if (category) {
+      mapElement?.setAttribute("data-explore-category", category);
+    } else {
+      mapElement?.removeAttribute("data-explore-category");
+    }
   };
 
   const renderCategoryMarkers = async (category: string): Promise<void> => {
@@ -197,7 +274,8 @@ export function installExploreLocationsControl({
       await geospatialEngine.replaceMarkers(
         locations.map((location, index) => markerForLocation(location, index)),
       );
-      updateMarkerCount(locations.length);
+      updateMarkerCount(locations.length, category);
+      frameCategoryOnMap(locations, geospatialEngine);
       mapElement?.setAttribute("data-explore-state", "ready");
     } catch (error) {
       mapElement?.setAttribute("data-explore-state", "error");
@@ -205,8 +283,7 @@ export function installExploreLocationsControl({
         await geospatialEngine.replaceMarkers([]);
         updateMarkerCount(0);
       } catch {
-        // Keep the previous marker count untouched when the provider cannot
-        // recover; the error state remains observable for diagnostics.
+        // Preserve the provider error state if marker cleanup also fails.
       }
       document
         .getElementById("runtime-status")
@@ -219,8 +296,10 @@ export function installExploreLocationsControl({
   };
 
   const close = (restoreFocus = true): void => {
-    submenu.classList.add("hidden");
-    submenu.setAttribute("aria-hidden", "true");
+    removeAssistantCategoryResults(document);
+    submenu?.classList.add("hidden");
+    submenu?.setAttribute("aria-hidden", "true");
+    submenuContainer?.replaceChildren();
     if (activeCategoryButton) {
       activeCategoryButton.setAttribute("aria-expanded", "false");
       activeCategoryButton.setAttribute("aria-pressed", "false");
@@ -246,12 +325,7 @@ export function installExploreLocationsControl({
       );
 
     close(false);
-
-    const assistant = document.getElementById("assistant-messages");
-    if (assistant?.classList.contains("hidden")) {
-      document.querySelector<HTMLButtonElement>(".mood-button")?.click();
-    }
-
+    ensureAssistantVisible(document);
     document.dispatchEvent(
       new CustomEvent("morro:assistant-option-selected", {
         detail: { value: createExploreLocationDetailsCommand(location.name) },
@@ -273,22 +347,15 @@ export function installExploreLocationsControl({
     activeCategoryButton = trigger;
     trigger.setAttribute("aria-expanded", "true");
     trigger.setAttribute("aria-pressed", "true");
-    submenuTitle.textContent = `Explorar locais — ${category.label}`;
 
-    const list = document.createElement("div");
-    list.className = "submenu-location-list";
-    list.dataset.category = category.value;
-
-    for (const location of getExploreLocationsForCategory(category.value)) {
-      list.appendChild(
-        createLocationButton(document, location, selectLocation),
-      );
-    }
-
-    submenuContainer.replaceChildren(list);
-    submenu.classList.remove("hidden");
-    submenu.setAttribute("aria-hidden", "false");
-    list.querySelector<HTMLButtonElement>(".submenu-item")?.focus();
+    const locations = getExploreLocationsForCategory(category.value);
+    const firstOption = renderAssistantCategoryResults(
+      document,
+      category,
+      locations,
+      selectLocation,
+    );
+    firstOption?.focus();
     void renderCategoryMarkers(category.value);
   };
 
@@ -300,7 +367,7 @@ export function installExploreLocationsControl({
 
     button.id = getAssistantCategoryButtonId(category.value);
     button.dataset.exploreCategory = category.value;
-    button.setAttribute("aria-controls", "submenu");
+    button.setAttribute("aria-controls", ASSISTANT_CATEGORY_RESULTS_ID);
     button.setAttribute("aria-expanded", "false");
     button.setAttribute("aria-pressed", "false");
     button.setAttribute(
@@ -309,16 +376,7 @@ export function installExploreLocationsControl({
     );
 
     const onCategoryClick: EventListener = (event) => {
-      // The assistant modal category button is the single owner of this action.
-      // Stop the generic assistant-option listener from submitting a duplicate command.
       event.stopImmediatePropagation();
-      if (
-        activeCategory === category.value &&
-        submenu.getAttribute("aria-hidden") === "false"
-      ) {
-        close();
-        return;
-      }
       openCategory(category, button);
     };
 
@@ -326,15 +384,14 @@ export function installExploreLocationsControl({
     categoryListeners.set(button, onCategoryClick);
   }
 
-  const onCloseClick = (): void => close();
   const onKeyDown = (event: KeyboardEvent): void => {
-    if (event.key !== "Escape" || submenu.classList.contains("hidden")) return;
+    if (event.key !== "Escape" || !activeCategory) return;
+    if (!document.getElementById(ASSISTANT_CATEGORY_RESULTS_ID)) return;
     event.preventDefault();
     event.stopImmediatePropagation();
     close();
   };
 
-  closeButton.addEventListener("click", onCloseClick);
   document.addEventListener("keydown", onKeyDown);
 
   return Object.freeze({
@@ -344,7 +401,6 @@ export function installExploreLocationsControl({
       if (activeCategory) void renderCategoryMarkers(activeCategory);
     },
     destroy() {
-      closeButton.removeEventListener("click", onCloseClick);
       document.removeEventListener("keydown", onKeyDown);
       for (const [button, listener] of categoryListeners) {
         button.removeEventListener("click", listener);
@@ -354,11 +410,13 @@ export function installExploreLocationsControl({
         button.removeAttribute("aria-pressed");
       }
       categoryListeners.clear();
-      submenuContainer.replaceChildren();
-      submenuTitle.textContent = "Explorar locais";
-      submenu.classList.add("hidden");
-      submenu.setAttribute("aria-hidden", "true");
+      removeAssistantCategoryResults(document);
+      submenuContainer?.replaceChildren();
+      submenu?.classList.add("hidden");
+      submenu?.setAttribute("aria-hidden", "true");
       geospatialEngine = undefined;
+      activeCategory = undefined;
+      activeCategoryButton = undefined;
     },
   });
 }
