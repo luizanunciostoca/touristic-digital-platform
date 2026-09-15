@@ -33,7 +33,9 @@ describe("V1 assistant category subflows", () => {
 
   it("preserves the three immersive-tour shortcuts before tour filters", () => {
     const options = getV1ExploreSubcategoryOptions("tours");
-    expect(options.slice(0, 3).map(({ value, tourId }) => [value, tourId])).toEqual([
+    expect(
+      options.slice(0, 3).map(({ value, tourId }) => [value, tourId]),
+    ).toEqual([
       ["tour_volta_ilha", "volta-a-ilha"],
       ["tour_trilha_gamboa", "trilha-gamboa"],
       ["tour_quadriciclo", "passeio-quadriciclo"],

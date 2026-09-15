@@ -92,7 +92,8 @@ function clearTourPresentation(document: Document): void {
   if (map?.getLayer?.(TOUR_ROUTE_OUTLINE)) {
     map.removeLayer?.(TOUR_ROUTE_OUTLINE);
   }
-  if (map?.getSource?.(TOUR_ROUTE_SOURCE)) map.removeSource?.(TOUR_ROUTE_SOURCE);
+  if (map?.getSource?.(TOUR_ROUTE_SOURCE))
+    map.removeSource?.(TOUR_ROUTE_SOURCE);
 
   const tourSelect = document.getElementById("tour-select");
   if (tourSelect instanceof HTMLSelectElement) tourSelect.selectedIndex = -1;
@@ -547,7 +548,8 @@ export function installExploreLocationsControl({
       `${category.label}, ${category.count} locais`,
     );
 
-    mainMenuContainer ??= button.closest<HTMLElement>(".assistant-options") ?? undefined;
+    mainMenuContainer ??=
+      button.closest<HTMLElement>(".assistant-options") ?? undefined;
 
     const onCategoryClick: EventListener = (event) => {
       event.stopImmediatePropagation();
