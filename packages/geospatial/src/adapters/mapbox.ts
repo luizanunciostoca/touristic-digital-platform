@@ -26,6 +26,7 @@ export interface MapboxDriver {
   createMarker(input: {
     readonly id: string;
     readonly label?: string;
+    readonly openPopup?: boolean;
   }): MapboxMarkerHandle;
 }
 
@@ -66,6 +67,7 @@ export function createMapboxAdapter(
         const handle = options.driver.createMarker({
           id: marker.id,
           ...(marker.label ? { label: marker.label } : {}),
+          ...(marker.openPopup ? { openPopup: true } : {}),
         });
         created.set(marker.id, handle);
         handle
