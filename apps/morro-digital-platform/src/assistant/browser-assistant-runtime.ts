@@ -115,8 +115,9 @@ function readOptionOverride(
   value: unknown,
 ): readonly AssistantDomOption[] | null {
   if (!Array.isArray(value) || value.length === 0) return null;
+  const options: readonly unknown[] = value;
   const result: AssistantDomOption[] = [];
-  for (const option of value) {
+  for (const option of options) {
     if (
       !option ||
       typeof option !== "object" ||
