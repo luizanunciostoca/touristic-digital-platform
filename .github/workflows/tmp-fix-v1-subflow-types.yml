@@ -44,4 +44,4 @@ jobs:
           git commit -m 'fix(assistant): preserve V1 subflow literal types'
           git push origin HEAD:fix/v1-assistant-category-subflows-20260915
 
-# Retry after correcting the temporary script anchor.
+# Retry with contextual typing for catalog and place options.
