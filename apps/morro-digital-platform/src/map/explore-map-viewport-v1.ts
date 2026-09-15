@@ -162,30 +162,30 @@ export function installExploreMapViewportV1({
   };
 
   const MutationObserverConstructor = document.defaultView?.MutationObserver;
-  const mapObserver =
-    mapElement && MutationObserverConstructor
-      ? new MutationObserverConstructor(scheduleReframe)
-      : null;
-  mapObserver?.observe(mapElement, {
-    attributes: true,
-    attributeFilter: [
-      "data-explore-state",
-      "data-explore-category",
-      "data-explore-stage",
-      "data-map-marker-count",
-    ],
-    childList: true,
-    subtree: true,
-  });
+  let mapObserver: MutationObserver | null = null;
+  if (mapElement && MutationObserverConstructor) {
+    mapObserver = new MutationObserverConstructor(scheduleReframe);
+    mapObserver.observe(mapElement, {
+      attributes: true,
+      attributeFilter: [
+        "data-explore-state",
+        "data-explore-category",
+        "data-explore-stage",
+        "data-map-marker-count",
+      ],
+      childList: true,
+      subtree: true,
+    });
+  }
 
-  const assistantObserver =
-    messagesArea && MutationObserverConstructor
-      ? new MutationObserverConstructor(scheduleReframe)
-      : null;
-  assistantObserver?.observe(messagesArea, {
-    childList: true,
-    subtree: false,
-  });
+  let assistantObserver: MutationObserver | null = null;
+  if (messagesArea && MutationObserverConstructor) {
+    assistantObserver = new MutationObserverConstructor(scheduleReframe);
+    assistantObserver.observe(messagesArea, {
+      childList: true,
+      subtree: false,
+    });
+  }
 
   document.defaultView?.addEventListener("resize", scheduleReframe);
   scheduleReframe();
