@@ -348,15 +348,21 @@ export function installExploreLocationsControl({
     const area = assistantMessagesArea(document);
     if (!area) return null;
 
-    removeAssistantFlowResults(document);
+    document.getElementById(ASSISTANT_FLOW_RESULTS_ID)?.remove();
     hideMainMenu();
 
-    const message = document.createElement("div");
-    message.id = ASSISTANT_FLOW_MESSAGE_ID;
+    let message = document.getElementById(ASSISTANT_FLOW_MESSAGE_ID);
+    if (!(message instanceof HTMLElement)) {
+      message = document.createElement("div");
+      message.id = ASSISTANT_FLOW_MESSAGE_ID;
+      area.appendChild(message);
+    }
     message.className = "message assistant";
     message.dataset.messageType = "category-flow";
     message.dataset.category = activeCategory?.value ?? "";
     message.textContent = text;
+    message.classList.remove("hidden");
+    message.setAttribute("aria-hidden", "false");
 
     const container = document.createElement("div");
     container.id = ASSISTANT_FLOW_RESULTS_ID;
@@ -385,7 +391,7 @@ export function installExploreLocationsControl({
       container.appendChild(button);
     }
 
-    area.append(message, container);
+    area.appendChild(container);
     area.scrollTop = area.scrollHeight;
     return container.querySelector<HTMLButtonElement>(".assistant-flow-option");
   };
