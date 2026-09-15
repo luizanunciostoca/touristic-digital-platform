@@ -2,33 +2,24 @@
 
 ## Objetivo
 
-Registrar de forma explícita e auditável a diferença entre o core de Navigation já comprovado e a jornada integral do ZIP V1 canônico. Este registro supersede a afirmação anterior de que não existia gap funcional conhecido.
+Registrar de forma auditável os gaps descobertos na revisão da jornada V1 e o fechamento contra o snapshot canônico `55acb639c1112a3c9a646dd103b01ad9cf5dd106`.
 
-## Fontes e estado
+## Fonte canônica reconciliada
 
-Baseline histórica:
-
-- repositório: `luizidebook/morro-de-sao-paulo-digital`;
-- commit usado pelos checkpoints anteriores: `60746fd7fed97b805758b37adfdbe3bad2582bfe`.
-
-Snapshot ZIP auditado em 2026-09-15:
-
-- `sourceCommit = 55acb639c1112a3c9a646dd103b01ad9cf5dd106`.
-
-A relação entre esses snapshots não é assumida porque o repositório V1 antigo não está acessível pela conexão GitHub atual e o ZIP disponível na Library não pôde ser materializado como bytes nesta sessão.
-
-Estado após a remediação funcional da PR #60:
+Em 2026-09-15 os bytes de `morro-de-sao-paulo-digital-main.zip` foram disponibilizados diretamente para a re-certificação.
 
 ```text
-Navigation Core             equivalent
-Geometry / Camera           equivalent
-Product Journey             functionally remediated / source-exactness partial
-MIG-0005 / FEATURE-0003     migrating / re-certification
+sourceCommit = 55acb639c1112a3c9a646dd103b01ad9cf5dd106
+ZIP SHA-256 = d438109fc6a76ddc11f7f90d7f02c98d4b95fe456f78f34b66eae5cbeb5eaf97
 ```
+
+A evidência detalhada de provenance, módulos e hashes está em `NAVIGATION-V1-SOURCE-RECERTIFICATION-2026-09-15.md`.
+
+A baseline histórica `60746fd7fed97b805758b37adfdbe3bad2582bfe` continua preservada como evidência dos checkpoints anteriores, mas não é usada para substituir o snapshot canônico nesta recertificação.
 
 ## Checkpoints anteriores preservados
 
-Os checkpoints abaixo continuam válidos para as responsabilidades que realmente provaram:
+Continuam válidos no escopo original:
 
 - NAV-15 — geometry baseline;
 - NAV-16 — routing baseline;
@@ -39,159 +30,161 @@ Os checkpoints abaixo continuam válidos para as responsabilidades que realmente
 - GAP-NAV-003 — event/state snapshot;
 - GAP-NAV-004 — visual/camera executable baseline.
 
-Eles não são descartados. A correção é de **escopo de certificação**: esses checkpoints não provaram sozinhos toda a jornada `55ac...`.
-
 ## Gaps descobertos na auditoria 2026-09-15
 
 ### GAP-NAV-005 — Automatic maneuver progression
 
-**Estado:** REMEDIATED / REQUIRED PR GATE PASS
+**Estado:** REMEDIATED / PASS CANDIDATE
 
-Problema observado na `main` `9e36e3f84bdc7785dafb157931ad12617aa01e4f`:
-
-- `stepIndex` existia;
-- `setStepIndex()` existia;
-- nenhum consumidor de produção avançava automaticamente a instrução conforme o GPS atravessava uma manobra.
-
-Correção:
-
-- threshold de avanço em aproximadamente 20 m;
-- cálculo usa os endpoints geométricos dos steps quando disponíveis;
-- avanço suporta GPS que ultrapassa o waypoint e pode consumir mais de um step obsoleto quando a geometria por step existe;
-- o fallback sem `stepEnds` consome no máximo uma manobra por snapshot, impedindo que a mesma distância seja reutilizada para pular instruções subsequentes;
-- snapshot antigo não é apresentado depois de o step avançar;
-- teste unitário e browser contract percorrem `0 → 1 → 2`.
+- avanço automático ~20 m;
+- usa endpoint geométrico do step quando disponível;
+- suporta ultrapassagem de waypoint;
+- fallback sem `stepEnds` consome no máximo uma manobra por snapshot;
+- browser contract percorre `0 → 1 → 2`.
 
 ### GAP-NAV-006 — Turn-by-turn speech and arrival feedback
 
-**Estado:** REMEDIATED / REQUIRED PR GATE PASS
+**Estado:** REMEDIATED / PASS CANDIDATE
 
-Correção:
-
-- TTS pertence ao runtime de Navigation, não à resposta conversacional do Assistant;
-- cada nova manobra é falada uma única vez por sessão/step;
-- aproximação, chegada e recálculo possuem mensagens faladas;
-- PT/EN/ES/HE possuem locale explícito;
-- chegada possui apresentação própria no banner;
-- Assistant recebe feedback após `navigationEnded` por chegada/cancelamento sem duplicar o motor de Navigation.
+- TTS pertence ao runtime Navigation;
+- nova manobra falada uma vez por sessão/step;
+- aproximação, chegada e recálculo possuem speech;
+- PT/EN/ES/HE;
+- chegada possui estado próprio de UI;
+- Assistant recebe feedback final sem duplicar o motor de navegação.
 
 ### GAP-NAV-007 — Initial GPS acquisition parity
 
-**Estado:** REMEDIATED / REQUIRED PR GATES PASS
+**Estado:** REMEDIATED / PASS CANDIDATE
 
-Correção:
-
-- reutiliza localização recente quando ela ainda é aceitável;
-- quando aquisição é necessária, tenta até três vezes;
-- timeouts por tentativa: 15 s, 20 s e 25 s;
-- permission denied encerra imediatamente;
-- precisão bootstrap permanece limitada a 1500 m;
-- localização aceita passa a alimentar o cache recente.
+- reutilização de localização recente aceitável;
+- até três aquisições: 15 s, 20 s, 25 s;
+- permission denied interrompe imediatamente;
+- limite bootstrap 1500 m;
+- localização aceita alimenta cache recente.
 
 ### GAP-NAV-008 — Effective routing timeout
 
-**Estado:** REMEDIATED / REQUIRED PR GATES PASS
+**Estado:** REMEDIATED / PASS CANDIDATE
 
-Correção:
-
-- o fluxo de Navigation fixa 15 s para route request e recalculation request;
-- o default genérico do cliente continua independente.
+- Navigation fixa 15 s para route request e recalculation request;
+- default genérico do cliente permanece independente.
 
 ### GAP-NAV-009 — Initial recalculation suppression
 
-**Estado:** REMEDIATED / REQUIRED PR GATES PASS
+**Estado:** REMEDIATED / PASS CANDIDATE
 
-Correção:
+- 15 s normal;
+- 120 s tutorial;
+- `tutorial` atravessa request port → DOM lifecycle → bootstrap → composition.
 
-- 15 s na navegação normal;
-- 120 s no fluxo `tutorial`;
-- o contexto `tutorial` agora atravessa request port → DOM lifecycle → session bootstrap → composition;
-- o core existente de `2 × accuracy + 30 m`, velocidade mínima, cooldown e retry/backoff permanece preservado.
+### GAP-NAV-010 — Multilingual semantic instruction presentation
 
-### GAP-NAV-010 — Multilingual instruction processing
+**Estado:** REMEDIATED + SOURCE-RECONCILED / PASS CANDIDATE
 
-**Estado:** FUNCTIONALLY REMEDIATED / ZIP EXACTNESS PARTIAL
+A inspeção direta de `js/navigation/navigationUi/bannerUI.js` confirmou que a V1 possuía simplificador semântico ativo, não apenas limpeza textual.
 
-A PR #60 agora possui processamento sem perda semântica compartilhado por PT/EN/ES/HE em `@touristic/navigation`:
+A PR #60 passa a reproduzir:
 
-- remoção de markup de provider;
-- decoding das entidades HTML comuns;
-- normalização de espaços e pontuação;
-- remoção de controles bidi espúrios preservando o texto hebraico;
-- `guidance.original` continua preservando a instrução original para rastreabilidade;
-- `guidance.instruction` recebe a forma processada usada por banner e TTS;
-- testes explícitos cobrem PT/EN/ES/HE.
+- tipos ORS numéricos `0..12`;
+- tipos string compatíveis;
+- fallback textual histórico;
+- ação localizada PT/EN/ES/HE;
+- peculiaridade V1 `Slight right` quando a chave genérica está ausente;
+- preservação de `guidance.original`;
+- transporte de maneuver type e street/name;
+- `buildDetailsText` V1 com conectores localizados, rua e distância;
+- idioma ativo propagado pelo bootstrap até runtime/banner/TTS.
 
-A **simplificação semântica exata** do ZIP `55ac...` não é inventada. Até os bytes do snapshot ficarem legíveis, este item permanece `PARTIAL` apenas quanto à exatidão textual histórica, não quanto à existência de processamento multilíngue seguro.
+`poiEnricher.js` não foi reintroduzido porque não possui chamada ativa na jornada principal do snapshot canônico.
 
 ### GAP-NAV-011 — Contextual route suggestions
 
-**Estado:** FUNCTIONALLY MATERIALIZED / ZIP POLICY CONSTANTS PARTIAL
+**Estado:** REMEDIATED + SOURCE-RECONCILED / PASS CANDIDATE
 
-A PR #60 materializa o subsistema no runtime de Navigation usando o catálogo canônico compartilhado `morroV1SearchCatalog` e cobre:
-
-- GPS proximity;
-- movement threshold;
-- navigation warmup;
-- category/sponsor priority;
-- per-place cooldown;
-- uma sugestão visível por ciclo;
-- máximo por sessão;
-- lifecycle start/stop por sessão;
-- mensagem na área de Navigation;
-- speech pelo mesmo runtime TTS;
-- evento observável `navigationContextualSuggestion`;
-- testes determinísticos de warmup, movimento, ranking, cooldown, limite de sessão, reset e PT/EN/ES/HE.
-
-Como o ZIP canônico não pode ser materializado nesta sessão, os valores numéricos exatos e o ranking histórico não podem ser afirmados como idênticos. Por isso os defaults funcionais ficam centralizados em `NAVIGATION_SUGGESTION_FUNCTIONAL_POLICY`, atualmente:
+Os valores provisórios da primeira remediação foram substituídos pela política canônica recuperada de `navigation-suggestions.js` e `navigation-sponsors.js`:
 
 ```text
-warmup                  30 s
-movement threshold      20 m
-proximity               80 m
-per-place cooldown      10 min
-session maximum         3
+warmup                        20 s
+movement threshold            30 m
+global suggestion interval    60 s
+per-place cooldown             5 min
+session maximum               10
+simultaneous maximum           1
+default radius               200 m
+display duration               8 s
+monitor interval              15 s
 ```
 
-Esses números são **defaults funcionais de remediação, não constantes V1 certificadas**. A arquitetura permite substituí-los em um único ponto assim que o ZIP `55ac...` puder ser lido.
+Categorias orgânicas: `restaurants`, `shops`, `attractions`, `hotels`, `nightlife`, `tours`.
+
+Prioridade V1 — menor número vence:
+
+```text
+emergencies 0, restaurants 1, attractions 2, shops 3,
+tours 4, hotels 5, nightlife 6
+```
+
+Raios V1:
+
+```text
+emergencies 500, restaurants 200, shops 150, attractions 300,
+hotels 250, nightlife 200, tours 300 (metros)
+```
+
+A V2 também reproduz Haversine, ordenação prioridade→distância, cooldown, reset, máximo por sessão, templates PT/EN/ES/HE, labels de distância, 8 s de exibição e o evento histórico `navigationSuggestion`, preservando em paralelo o evento tipado V2.
+
+O `SPONSORS` canônico não possui entradas ativas; o contrato de prioridade/radius patrocinado permanece suportado para configuração futura.
 
 ### GAP-NAV-012 — Degraded navigation without Mapbox
 
-**Estado:** REMEDIATED FUNCTIONALLY / ZIP EXACTNESS PARTIAL
+**Estado:** REMEDIATED + SOURCE-RECONCILED / PASS CANDIDATE
 
-A `main` anterior destruía o Navigation runtime ao cair para Leaflet/development e só instalava guidance no provider Mapbox real.
+A inspeção direta de `navigationServices/routing-client.js`, `mapboxDirectionsService.js` e do bootstrap visual V1 confirmou:
 
-A PR #60 altera o boundary para:
+- routing primário via `POST /api/routing/directions` same-origin → ORS server-side;
+- fallback Mapbox Directions somente em proxy indisponível, resposta inválida ou HTTP 404/405/501;
+- perfil walking, GeoJSON full overview, steps e metric voice units;
+- Mapbox visual primário com Leaflet como contingência;
+- core de rota/guidance separado da capacidade visual do mapa.
 
-- destruir o runtime Mapbox anterior antes da troca;
-- iniciar o mesmo runtime de Navigation no provider fallback;
-- manter geometry, progress, instructions, TTS, arrival, contextual suggestions e lifecycle;
-- degradar apenas a apresentação da câmera para center/zoom quando pitch/bearing não são suportados pelo provider.
+`packages/navigation/src/routing.ts` e `packages/geospatial/src/adapters/routing-mapbox.ts` já materializavam o contrato de routing. A PR #60 mantém o mesmo Navigation core no provider visual degradado e reduz apenas capacidades de câmera não suportadas.
 
-A equivalência funcional passa a existir, mas o detalhe exato do comportamento do ZIP `55ac...` continua `PARTIAL` até comparação direta do snapshot.
+## Gate obrigatório
 
-## Gate obrigatório e checkpoint executável
-
-`.github/workflows/navigation-turn-by-turn-parity.yml` é evidência obrigatória para qualquer nova promoção de MIG-0005. Ele conduz GPS simulado através de uma rota multi-step no runtime determinístico de Navigation e exige:
+`.github/workflows/navigation-turn-by-turn-parity.yml` conduz a jornada:
 
 ```text
 step 0 → step 1 → step 2 → approaching → arrived → auto-end
 ```
 
-O contrato é deliberadamente independente da disponibilidade externa do SDK Mapbox. A equivalência Mapbox/câmera continua coberta pelos gates de Provider/Visual; este gate prova especificamente a jornada turn-by-turn.
+A promoção exige, no mesmo exact-head:
 
-Também exige atualização do banner, eventos/status, fala de cada nova instrução, fala de aproximação/chegada e feedback final do Assistant.
-
-No checkpoint funcional certificado em 2026-09-15 (`b98e7bfe5d9e262035701831bade7bb36787b2be`), o conjunto aplicável ficou verde: Quality Gate, Navigation Turn-by-Turn Parity, Navigation Visual Baseline, Navigation Accessibility Baseline, Map Provider Regression, V1 Explore Locations Browser Regression, Map Tour Browser Regression e o contrato V1 Assistant Single Message POI Markers. O log do gate P0 registrou `stepIndex` 0, 1 e 2, TTS das três instruções, aproximação, `phase: arrived`, progresso final 1, `navigationEnded(reason="arrived")` e feedback final do Assistant.
+- Quality Gate;
+- Navigation Turn-by-Turn Parity;
+- Navigation Visual Baseline;
+- Navigation Accessibility Baseline;
+- Map Provider Regression;
+- V1 Explore Locations Browser Regression;
+- Map Tour Browser Regression;
+- demais contracts acionados pela PR.
 
 ## Estado consolidado
 
-Os antigos `GAP-NAV-001` a `GAP-NAV-004` continuam resolvidos no escopo original. Os novos gaps refletem a auditoria do snapshot ZIP canônico:
+Após a comparação direta do ZIP, não resta classe conhecida de source-exactness pendente:
 
 ```text
-REMEDIATED / REQUIRED GATES PASS   5  (005, 006, 007, 008, 009)
-FUNCTIONAL / ZIP EXACTNESS PARTIAL 3  (010, 011, 012)
-RUNTIME GAP                        0
+GAP-NAV-005   PASS CANDIDATE
+GAP-NAV-006   PASS CANDIDATE
+GAP-NAV-007   PASS CANDIDATE
+GAP-NAV-008   PASS CANDIDATE
+GAP-NAV-009   PASS CANDIDATE
+GAP-NAV-010   PASS CANDIDATE / SOURCE-RECONCILED
+GAP-NAV-011   PASS CANDIDATE / SOURCE-RECONCILED
+GAP-NAV-012   PASS CANDIDATE / SOURCE-RECONCILED
+
+RUNTIME GAP                  0
+SOURCE-EXACTNESS PARTIAL     0
 ```
 
-`MIG-0005` não deve voltar a `equivalent` enquanto os itens source-dependent `010`, `011` e `012` não forem reconciliados contra o ZIP `55ac...` ou aceitos formalmente como diferenças documentadas. Qualquer head posterior deve preservar os gates obrigatórios verdes.
+`PASS CANDIDATE` torna-se `PASS` quando o exact-head que contém esta reconciliação encerra todos os gates obrigatórios com sucesso. O exact-head e os run IDs finais são registrados na PR #60 e no issue #62 sem exigir alteração posterior deste arquivo.
