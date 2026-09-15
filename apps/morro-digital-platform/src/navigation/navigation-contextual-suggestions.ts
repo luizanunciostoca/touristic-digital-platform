@@ -10,14 +10,23 @@ import type {
   NavigationSpeechLanguage,
 } from "./navigation-speech.js";
 
+export interface NavigationSuggestionSponsorRule {
+  readonly priority: number;
+  readonly radiusMeters: number;
+}
+
 export interface NavigationSuggestionPolicy {
   readonly warmupMs: number;
   readonly movementThresholdMeters: number;
-  readonly proximityMeters: number;
+  readonly defaultRadiusMeters: number;
+  readonly minIntervalBetweenSuggestionsMs: number;
   readonly perPlaceCooldownMs: number;
   readonly sessionMaximum: number;
+  readonly displayDurationMs: number;
+  readonly enabledCategories: ReadonlySet<string>;
   readonly categoryPriority: Readonly<Record<string, number>>;
-  readonly sponsoredNames: ReadonlySet<string>;
+  readonly categoryRadius: Readonly<Record<string, number>>;
+  readonly sponsors: ReadonlyMap<string, NavigationSuggestionSponsorRule>;
 }
 
 export interface NavigationSuggestionSelection {
@@ -53,29 +62,55 @@ export interface NavigationContextualSuggestions {
 const EARTH_RADIUS_METERS = 6_371_000;
 
 /**
- * Functional defaults used while the exact constants from ZIP 55acb639... are
- * unavailable to the live repository connection. They are intentionally
- * centralized so V1 exact values can replace them without changing lifecycle
- * or ranking code.
+ * Source-exact active V1 policy recovered from canonical ZIP sourceCommit
+ * 55acb639c1112a3c9a646dd103b01ad9cf5dd106:
+ * `navigation-suggestions.js` + `navigation-sponsors.js`.
+ *
+ * The canonical SPONSORS array contains no active entries, therefore the
+ * default sponsor map is intentionally empty while retaining V1's sponsor
+ * priority/radius contract for injected policies and future configuration.
  */
-export const NAVIGATION_SUGGESTION_FUNCTIONAL_POLICY: NavigationSuggestionPolicy =
+export const NAVIGATION_SUGGESTION_V1_POLICY: NavigationSuggestionPolicy =
   Object.freeze({
-    warmupMs: 30_000,
-    movementThresholdMeters: 20,
-    proximityMeters: 80,
-    perPlaceCooldownMs: 10 * 60_000,
-    sessionMaximum: 3,
+    warmupMs: 20_000,
+    movementThresholdMeters: 30,
+    defaultRadiusMeters: 200,
+    minIntervalBetweenSuggestionsMs: 60_000,
+    perPlaceCooldownMs: 5 * 60_000,
+    sessionMaximum: 10,
+    displayDurationMs: 8_000,
+    enabledCategories: new Set<string>([
+      "restaurants",
+      "shops",
+      "attractions",
+      "hotels",
+      "nightlife",
+      "tours",
+    ]),
     categoryPriority: Object.freeze({
-      emergencies: 100,
-      attractions: 80,
-      beaches: 70,
-      restaurants: 60,
-      nightlife: 50,
-      hotels: 40,
-      shops: 30,
+      restaurants: 1,
+      attractions: 2,
+      shops: 3,
+      tours: 4,
+      hotels: 5,
+      nightlife: 6,
+      emergencies: 0,
     }),
-    sponsoredNames: new Set<string>(),
+    categoryRadius: Object.freeze({
+      emergencies: 500,
+      restaurants: 200,
+      shops: 150,
+      attractions: 300,
+      hotels: 250,
+      nightlife: 200,
+      tours: 300,
+    }),
+    sponsors: new Map<string, NavigationSuggestionSponsorRule>(),
   });
+
+/** @deprecated Use NAVIGATION_SUGGESTION_V1_POLICY. */
+export const NAVIGATION_SUGGESTION_FUNCTIONAL_POLICY =
+  NAVIGATION_SUGGESTION_V1_POLICY;
 
 function toRadians(value: number): number {
   return (value * Math.PI) / 180;
@@ -94,7 +129,11 @@ export function navigationSuggestionDistanceMeters(
     Math.cos(leftLatitude) *
       Math.cos(rightLatitude) *
       Math.sin(longitudeDelta / 2) ** 2;
-  return 2 * EARTH_RADIUS_METERS * Math.asin(Math.min(1, Math.sqrt(a)));
+  return (
+    EARTH_RADIUS_METERS *
+    2 *
+    Math.atan2(Math.sqrt(a), Math.sqrt(Math.max(0, 1 - a)))
+  );
 }
 
 export function navigationSuggestionMessage(
@@ -115,12 +154,43 @@ export function navigationSuggestionMessage(
   }
 }
 
-function priorityFor(
+function normalizedSponsorName(value: string): string {
+  return value.trim().toLocaleLowerCase("pt-BR");
+}
+
+function sponsorFor(
   place: MorroV1SearchCatalogItem,
   policy: NavigationSuggestionPolicy,
+): NavigationSuggestionSponsorRule | null {
+  const exact = policy.sponsors.get(place.name);
+  if (exact) return exact;
+  const normalized = normalizedSponsorName(place.name);
+  for (const [name, sponsor] of policy.sponsors) {
+    if (normalizedSponsorName(name) === normalized) return sponsor;
+  }
+  return null;
+}
+
+function organicPriority(
+  category: string,
+  policy: NavigationSuggestionPolicy,
 ): number {
-  const sponsored = policy.sponsoredNames.has(place.name) ? 10_000 : 0;
-  return sponsored + (policy.categoryPriority[place.category] ?? 0);
+  // V1 uses `(categoryPriority[category] || 5) + 10`.
+  return (policy.categoryPriority[category] || 5) + 10;
+}
+
+function organicRadius(
+  category: string,
+  policy: NavigationSuggestionPolicy,
+): number {
+  return policy.categoryRadius[category] || policy.defaultRadiusMeters;
+}
+
+interface NavigationSuggestionCandidate {
+  readonly place: MorroV1SearchCatalogItem;
+  readonly distanceMeters: number;
+  readonly priority: number;
+  readonly sponsored: boolean;
 }
 
 function selectCandidate(input: {
@@ -129,29 +199,39 @@ function selectCandidate(input: {
   readonly policy: NavigationSuggestionPolicy;
   readonly cooldownByPlace: ReadonlyMap<string, number>;
   readonly now: number;
-}): { place: MorroV1SearchCatalogItem; distanceMeters: number } | null {
-  const candidates = input.catalog
-    .map((place) => ({
+}): NavigationSuggestionCandidate | null {
+  const candidates: NavigationSuggestionCandidate[] = [];
+
+  for (const place of input.catalog) {
+    const sponsor = sponsorFor(place, input.policy);
+    if (!sponsor && !input.policy.enabledCategories.has(place.category)) continue;
+
+    const lastShownAt = input.cooldownByPlace.get(place.name) ?? 0;
+    if (input.now - lastShownAt < input.policy.perPlaceCooldownMs) continue;
+
+    const distanceMeters = navigationSuggestionDistanceMeters(
+      input.location,
       place,
-      distanceMeters: navigationSuggestionDistanceMeters(input.location, place),
-    }))
-    .filter(({ place, distanceMeters }) => {
-      if (distanceMeters > input.policy.proximityMeters) return false;
-      const lastShownAt = input.cooldownByPlace.get(place.name);
-      return (
-        lastShownAt === undefined ||
-        input.now - lastShownAt >= input.policy.perPlaceCooldownMs
-      );
-    })
-    .sort((left, right) => {
-      const byPriority =
-        priorityFor(right.place, input.policy) -
-        priorityFor(left.place, input.policy);
-      if (byPriority !== 0) return byPriority;
-      const byDistance = left.distanceMeters - right.distanceMeters;
-      if (byDistance !== 0) return byDistance;
-      return left.place.name.localeCompare(right.place.name, "pt-BR");
+    );
+    const radius = sponsor
+      ? sponsor.radiusMeters || input.policy.defaultRadiusMeters
+      : organicRadius(place.category, input.policy);
+    if (distanceMeters > radius) continue;
+
+    candidates.push({
+      place,
+      distanceMeters,
+      priority: sponsor
+        ? sponsor.priority || 1
+        : organicPriority(place.category, input.policy),
+      sponsored: sponsor !== null,
     });
+  }
+
+  candidates.sort((left, right) => {
+    if (left.priority !== right.priority) return left.priority - right.priority;
+    return left.distanceMeters - right.distanceMeters;
+  });
   return candidates[0] ?? null;
 }
 
@@ -162,16 +242,18 @@ export function createNavigationSuggestionSession(
   } = {},
 ): NavigationSuggestionSession {
   const catalog = options.catalog ?? morroV1SearchCatalog;
-  const policy = options.policy ?? NAVIGATION_SUGGESTION_FUNCTIONAL_POLICY;
+  const policy = options.policy ?? NAVIGATION_SUGGESTION_V1_POLICY;
   const cooldownByPlace = new Map<string, number>();
   let startedAt: number | null = null;
   let lastEvaluationLocation: BrowserLocation | null = null;
+  let lastSuggestionAt = 0;
   let emitted = 0;
 
   return Object.freeze({
     start(value: number = Date.now()): void {
       startedAt = value;
       lastEvaluationLocation = null;
+      lastSuggestionAt = 0;
       emitted = 0;
       cooldownByPlace.clear();
     },
@@ -182,7 +264,8 @@ export function createNavigationSuggestionSession(
       if (
         startedAt === null ||
         emitted >= policy.sessionMaximum ||
-        now - startedAt < policy.warmupMs
+        now - startedAt < policy.warmupMs ||
+        now - lastSuggestionAt < policy.minIntervalBetweenSuggestionsMs
       ) {
         return null;
       }
@@ -194,6 +277,7 @@ export function createNavigationSuggestionSession(
       ) {
         return null;
       }
+      // V1 updates the last checked position even when no candidate is found.
       lastEvaluationLocation = location;
 
       const selected = selectCandidate({
@@ -206,17 +290,19 @@ export function createNavigationSuggestionSession(
       if (!selected) return null;
 
       cooldownByPlace.set(selected.place.name, now);
+      lastSuggestionAt = now;
       emitted += 1;
       return Object.freeze({
         placeName: selected.place.name,
         category: selected.place.category,
         distanceMeters: selected.distanceMeters,
-        sponsored: policy.sponsoredNames.has(selected.place.name),
+        sponsored: selected.sponsored,
       });
     },
     stop(): void {
       startedAt = null;
       lastEvaluationLocation = null;
+      lastSuggestionAt = 0;
       emitted = 0;
       cooldownByPlace.clear();
     },
@@ -229,15 +315,25 @@ export function createNavigationContextualSuggestions(options: {
   readonly catalog?: readonly MorroV1SearchCatalogItem[];
   readonly policy?: NavigationSuggestionPolicy;
 }): NavigationContextualSuggestions {
+  const policy = options.policy ?? NAVIGATION_SUGGESTION_V1_POLICY;
   const session = createNavigationSuggestionSession({
     ...(options.catalog ? { catalog: options.catalog } : {}),
-    ...(options.policy ? { policy: options.policy } : {}),
+    policy,
   });
   const messages = createAssistantMessageDom({ document: options.document });
   let messageVisible = false;
+  let clearTimer: number | null = null;
+  let messageVersion = 0;
   let destroyed = false;
 
+  function cancelClearTimer(): void {
+    if (clearTimer === null) return;
+    options.document.defaultView?.clearTimeout(clearTimer);
+    clearTimer = null;
+  }
+
   function clearMessage(): void {
+    cancelClearTimer();
     if (!messageVisible) return;
     messages.clear(
       "navigation",
@@ -246,10 +342,26 @@ export function createNavigationContextualSuggestions(options: {
     messageVisible = false;
   }
 
+  function scheduleClear(version: number): void {
+    cancelClearTimer();
+    const view = options.document.defaultView;
+    if (!view || policy.displayDurationMs <= 0) return;
+    clearTimer = view.setTimeout(() => {
+      clearTimer = null;
+      if (version !== messageVersion) return;
+      messages.clear(
+        "navigation",
+        (message) => message.messageType === "navigation_suggestion",
+      );
+      messageVisible = false;
+    }, policy.displayDurationMs);
+  }
+
   return Object.freeze({
     start(value: number = Date.now()): void {
       if (destroyed) return;
       clearMessage();
+      messageVersion += 1;
       session.start(value);
     },
     observe(
@@ -282,25 +394,34 @@ export function createNavigationContextualSuggestions(options: {
         navigationActive: true,
       });
       messageVisible = true;
+      const version = ++messageVersion;
+      scheduleClear(version);
       options.speech.speak(message);
       options.document.defaultView?.dispatchEvent(
         new CustomEvent<NavigationContextualSuggestion>(
           "navigationContextualSuggestion",
-          {
-            detail: suggestion,
-          },
+          { detail: suggestion },
         ),
+      );
+      // Preserve the canonical V1 observable event name as a compatibility
+      // surface while retaining the typed V2 event introduced by PR #60.
+      options.document.defaultView?.dispatchEvent(
+        new CustomEvent<NavigationContextualSuggestion>("navigationSuggestion", {
+          detail: suggestion,
+        }),
       );
       return suggestion;
     },
     stop(): void {
       session.stop();
+      messageVersion += 1;
       clearMessage();
     },
     destroy(): void {
       if (destroyed) return;
       destroyed = true;
       session.stop();
+      messageVersion += 1;
       clearMessage();
     },
   });
