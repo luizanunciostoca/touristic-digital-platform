@@ -37,8 +37,6 @@ jobs:
         run: pnpm -w build
       - name: Start deterministic navigation runtime
         run: |
-          VITE_MAPBOX_CONTAINER_ID=map \
-          VITE_MAPBOX_INITIAL_ZOOM=13.5 \
           node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/navigation-turn-by-turn.log 2>&1 &
           echo $! >/tmp/navigation-turn-by-turn.pid
           for i in $(seq 1 90); do
@@ -94,8 +92,12 @@ jobs:
             }
             const diagnostics = await page.evaluate(() => ({
               mapState: document.getElementById('map')?.getAttribute('data-map-state') ?? null,
+              homeState: document.getElementById('map')?.getAttribute('data-home-state') ?? null,
+              tourState: document.getElementById('map')?.getAttribute('data-tour-state') ?? null,
               mapMode: document.getElementById('map')?.getAttribute('data-map-mode') ?? null,
               mapProvider: document.getElementById('map')?.getAttribute('data-map-provider') ?? null,
+              mapFallback: document.getElementById('map')?.getAttribute('data-map-fallback') ?? null,
+              runtimeStatus: document.getElementById('runtime-status')?.textContent ?? null,
               banner: document.getElementById('instruction-main')?.textContent ?? null,
               statuses: globalThis.__turnByTurnEvidence?.statuses ?? [],
               speech: globalThis.__turnByTurnEvidence?.speech ?? [],
@@ -119,28 +121,6 @@ jobs:
               addEventListener('navigationStatusChanged', (event) => globalThis.__turnByTurnEvidence.statuses.push(event.detail));
               addEventListener('navigationRouteRuntimeUpdated', (event) => globalThis.__turnByTurnEvidence.runtime.push(event.detail));
               addEventListener('navigationEnded', (event) => globalThis.__turnByTurnEvidence.ended.push(event.detail));
-
-              class TestUtterance {
-                constructor(text) {
-                  this.text = String(text);
-                  this.lang = '';
-                  this.volume = 1;
-                  this.rate = 1;
-                  this.pitch = 1;
-                  this.voice = null;
-                }
-              }
-              Object.defineProperty(globalThis, 'SpeechSynthesisUtterance', { configurable: true, value: TestUtterance });
-              Object.defineProperty(globalThis, 'speechSynthesis', {
-                configurable: true,
-                value: {
-                  cancel() {},
-                  getVoices() { return []; },
-                  speak(utterance) {
-                    globalThis.__turnByTurnEvidence.speech.push({ text: utterance.text, lang: utterance.lang });
-                  },
-                },
-              });
             });
 
             const page = await context.newPage();
@@ -155,7 +135,26 @@ jobs:
             });
 
             await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded', timeout: 30000 });
-            await page.locator('#map[data-map-state="ready"]').waitFor({ state: 'attached', timeout: 30000 });
+            await poll(
+              page,
+              () => Boolean(document.querySelector('#map[data-map-state="ready"][data-home-state="ready"][data-tour-state="idle"][data-map-marker-count="0"]')),
+              'map-ready',
+              20000,
+            );
+
+            await page.evaluate(() => {
+              const synthesis = globalThis.speechSynthesis;
+              if (!synthesis) throw new Error('speechSynthesis unavailable in deterministic browser');
+              synthesis.cancel = () => {};
+              synthesis.getVoices = () => [];
+              synthesis.speak = (utterance) => {
+                globalThis.__turnByTurnEvidence.speech.push({
+                  text: String(utterance.text),
+                  lang: String(utterance.lang || ''),
+                });
+              };
+            });
+
             await page.evaluate((nextDestination) => {
               document.dispatchEvent(new CustomEvent('morro:navigation-requested', { detail: { destination: nextDestination } }));
             }, destination);
