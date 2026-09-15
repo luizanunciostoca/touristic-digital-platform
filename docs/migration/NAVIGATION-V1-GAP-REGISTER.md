@@ -2,121 +2,172 @@
 
 ## Objetivo
 
-Registrar, de forma explícita e auditável, os comportamentos da navegação V1 e sua equivalência materializada na V2. Este documento complementa `NAVIGATION-V1-BASELINE.md` e deve permanecer consistente com `NAVIGATION-MIG-0005-EQUIVALENCE-MATRIX.md` e `NAVIGATION-MIG-0005-INTEGRATION-GATE.md`.
+Registrar de forma explícita e auditável a diferença entre o core de Navigation já comprovado e a jornada integral do ZIP V1 canônico. Este registro supersede a afirmação anterior de que não existia gap funcional conhecido.
 
-## Fonte congelada
+## Fontes e estado
 
-- Repositório V1: `luizidebook/morro-de-sao-paulo-digital`
-- Commit: `60746fd7fed97b805758b37adfdbe3bad2582bfe`
-- Feature: `FEATURE-0003`
-- Migration item: `MIG-0005`
-- Estado atual: `equivalent`
+Baseline histórica:
 
-## Evidências executáveis concluídas
+- repositório: `luizidebook/morro-de-sao-paulo-digital`;
+- commit usado pelos checkpoints anteriores: `60746fd7fed97b805758b37adfdbe3bad2582bfe`.
 
-### NAV-15 — geometry baseline
+Snapshot ZIP auditado em 2026-09-15:
 
-- PR #37
-- head `5e0b41228065c689ab59a966989d16204aa7a314`
-- Quality Gate #470: success
-- cobre métricas derivadas, summary oficial, distância até manobra, bearing local, jitter e formatação V1.
+- `sourceCommit = 55acb639c1112a3c9a646dd103b01ad9cf5dd106`.
 
-### NAV-16 — routing baseline
+A relação entre esses snapshots não é assumida porque o repositório V1 antigo não está acessível pela conexão GitHub atual e o ZIP disponível na Library não pôde ser materializado como bytes nesta sessão.
 
-- PR #38
-- head `fe102ac929dec2c9e3eb0a6f36196052ab9b5d91`
-- Quality Gate #474: success
-- cobre normalização, proxy same-origin, ausência de credenciais, fallback elegível, não mascarar 503 e rejeição pré-rede.
-
-### NAV-17 — session/concurrency baseline
-
-- PR #39
-- head `76efb9e4d954eaf570d46663fe6191d15b3ba9af`
-- Quality Gate #475: success
-- cobre supersession, abort, timers stale, intervals/cleanup, wait cancelável e erro tipado de sessão obsoleta.
-
-### NAV-18 — stale route result baseline
-
-- PR #40
-- head `dfd0ebd50c042085874fd7777979d4764aefc24c`
-- Quality Gate #476: success
-- cobre resposta de rota obsoleta após novo start e após stop, impedindo criação/ativação de wiring stale.
-
-### GAP-NAV-001 — Arrival lifecycle
-
-**Estado:** RESOLVED / MATERIALIZED IN V2
-
-- PR #43
-- merge `8be41e85b0ae9f02526af7a08496b8d429c9a14b`
-- exact-head aceito `2fc5ee91ecd657b82d1e52618525eb72c8bfb684`
-- Quality Gate #518: success
-- Navigation Visual Baseline #288: success
-- Navigation Accessibility Baseline #234: success
-- cobre sessão ativa, destino vinculado à sessão, fase observável `arrived`, idempotência herdada do lifecycle canônico e supressão explícita de callback stale após stop.
-
-### GAP-NAV-002 — Route recalculation lifecycle
-
-**Estado:** RESOLVED / MATERIALIZED IN V2
-
-- PR #44
-- merge `ed0f93a18d9137dedd444f85e49752a467ef8e47`
-- exact-head aceito `87fbe2ee201c8c66923d9275b5bad01d8b7d1e0d`
-- Quality Gate #534: success
-- Navigation Visual Baseline #304: success
-- Navigation Accessibility Baseline #250: success
-- Business Onboarding Profile Browser Contract #340: success
-- Business Onboarding Adapter Browser Contract #340: success
-- Business Onboarding Route Browser Contract #340: success
-- cobre request com `AbortSignal` da sessão, política 3 tentativas/2s/4s, supressão de rota stale, abort no stop e cancelamento de backoff sem nova tentativa.
-
-### GAP-NAV-003 — Event/state snapshot
-
-**Estado:** RESOLVED / MATERIALIZED IN V2
-
-- PR #45
-- merge `73b0d828c888d16b03b3e405d1b97a2cdf20e49a`
-- exact-head aceito `d3b535530745968d9b6e2cb0911053d7a81faa4f`
-- Quality Gate: success
-- Navigation Visual Baseline: success
-- Navigation Accessibility Baseline: success
-- congela as sequências `navigationStarted -> active`, `navigationEnded(cancelled) -> ended`, `navigationEnded(arrived) -> arrived` e falha de bootstrap -> `failed`;
-- protege contra publicação de `failed` stale após `stop()`/supersession.
-
-### GAP-NAV-004 — Visual/camera executable baseline
-
-**Estado:** RESOLVED / EXECUTABLE BASELINE MATERIALIZED
-
-Evidência executável consolidada:
-
-- `Navigation Visual Baseline` valida banner/instruction UI, botão Encerrar, progresso, distância, tempo, first-person camera, camera motion/easing, ownership de sessão, estados dinâmicos, minimize/expand e teardown em mobile/tablet/desktop;
-- `Navigation Accessibility Baseline` valida `forced-colors: active` e texto a 200% em mobile/tablet/desktop;
-- `NAVIGATION-MIG-0005-EQUIVALENCE-MATRIX.md` registra 24/24 cenários obrigatórios em `PASS`;
-- PR #42 restaura o contrato V1 de perspectiva 3D sem segunda instância de mapa e sincroniza a câmera global com o estado 3D;
-- PR #42 exact-head aceito `c8704e5468d59263972be3919184bfb592ee3439`;
-- merge da PR #42: `5b5b438b31922da05751f7d4c42e50e23f615d34`;
-- Quality Gate #544: success;
-- Mapbox Visual Contract Regression #367: success;
-- Navigation Visual Baseline #314: success;
-- Navigation Accessibility Baseline #260: success;
-- V1 Home Parity Browser Regression #34: success;
-- V1 Explore Locations Browser Regression #25: success;
-- Home First Run Browser Regression #76: success.
-
-## Estado consolidado de MIG-0005
-
-Todos os gaps `GAP-NAV-001` a `GAP-NAV-004` estão resolvidos/materializados e a matriz executável oficial registra:
+Estado durante a remediação PR #60:
 
 ```text
-PASS     24
-PARTIAL   0
-GAP       0
-TOTAL    24
+Navigation Core             equivalent
+Geometry / Camera           equivalent
+Product Journey             partial
+MIG-0005 / FEATURE-0003     migrating / re-certification
 ```
 
-Assim, `MIG-0005` está em estado `equivalent`, em conformidade com `NAVIGATION-MIG-0005-EQUIVALENCE-MATRIX.md` e `NAVIGATION-MIG-0005-INTEGRATION-GATE.md`.
+## Checkpoints anteriores preservados
 
-`equivalent` não significa `released`: qualquer rollout, promoção para produção ou Release Promotion Gate permanece separado e exige autorização e evidência próprias.
+Os checkpoints abaixo continuam válidos para as responsabilidades que realmente provaram:
 
-## Decisão atual
+- NAV-15 — geometry baseline;
+- NAV-16 — routing baseline;
+- NAV-17 — session/concurrency baseline;
+- NAV-18 — stale route result baseline;
+- GAP-NAV-001 — arrival lifecycle core;
+- GAP-NAV-002 — route recalculation core;
+- GAP-NAV-003 — event/state snapshot;
+- GAP-NAV-004 — visual/camera executable baseline.
 
-A paridade de navegação V1 → V2 não possui gap funcional conhecido no registro canônico. Novas divergências reais devem ser registradas como novos gaps com evidência reproduzível, sem reabrir checkpoints aceitos por memória ou suposição.
+Eles não são descartados. A correção é de **escopo de certificação**: esses checkpoints não provaram sozinhos toda a jornada `55ac...`.
+
+## Gaps descobertos na auditoria 2026-09-15
+
+### GAP-NAV-005 — Automatic maneuver progression
+
+**Estado:** REMEDIATED IN PR #60 / EXACT-HEAD GATE PENDING
+
+Problema observado na `main` `9e36e3f84bdc7785dafb157931ad12617aa01e4f`:
+
+- `stepIndex` existia;
+- `setStepIndex()` existia;
+- nenhum consumidor de produção avançava automaticamente a instrução conforme o GPS atravessava uma manobra.
+
+Correção:
+
+- threshold de avanço em aproximadamente 20 m;
+- cálculo usa os endpoints geométricos dos steps quando disponíveis;
+- avanço suporta GPS que ultrapassa o waypoint e pode consumir mais de um step obsoleto;
+- snapshot antigo não é apresentado depois de o step avançar;
+- novo teste unitário e browser contract percorrem `0 → 1 → 2`.
+
+### GAP-NAV-006 — Turn-by-turn speech and arrival feedback
+
+**Estado:** REMEDIATED IN PR #60 / EXACT-HEAD GATE PENDING
+
+Correção:
+
+- TTS pertence ao runtime de Navigation, não à resposta conversacional do Assistant;
+- cada nova manobra é falada uma única vez por sessão/step;
+- aproximação, chegada e recálculo possuem mensagens faladas;
+- PT/EN/ES/HE possuem locale explícito;
+- chegada possui apresentação própria no banner;
+- Assistant recebe feedback após `navigationEnded` por chegada/cancelamento sem duplicar o motor de Navigation.
+
+### GAP-NAV-007 — Initial GPS acquisition parity
+
+**Estado:** REMEDIATED IN PR #60 / EXACT-HEAD GATE PENDING
+
+Correção:
+
+- reutiliza localização recente quando ela ainda é aceitável;
+- quando aquisição é necessária, tenta até três vezes;
+- timeouts por tentativa: 15 s, 20 s e 25 s;
+- permission denied encerra imediatamente;
+- precisão bootstrap permanece limitada a 1500 m;
+- localização aceita passa a alimentar o cache recente.
+
+### GAP-NAV-008 — Effective routing timeout
+
+**Estado:** REMEDIATED IN PR #60 / EXACT-HEAD GATE PENDING
+
+Correção:
+
+- o fluxo de Navigation fixa 15 s para route request e recalculation request;
+- o default genérico do cliente continua independente.
+
+### GAP-NAV-009 — Initial recalculation suppression
+
+**Estado:** REMEDIATED IN PR #60 / EXACT-HEAD GATE PENDING
+
+Correção:
+
+- 15 s na navegação normal;
+- 120 s no fluxo `tutorial`;
+- o contexto `tutorial` agora atravessa request port → DOM lifecycle → session bootstrap → composition;
+- o core existente de `2 × accuracy + 30 m`, velocidade mínima, cooldown e retry/backoff permanece preservado.
+
+### GAP-NAV-010 — Multilingual instruction processing
+
+**Estado:** PARTIAL
+
+A PR #60 amplia a apresentação/reconhecimento direcional para PT/EN/ES/HE e o TTS usa locale explícito. Ainda falta prova direta de que a **simplificação textual** aplicada às instruções é idêntica ao ZIP `55ac...`.
+
+Não serão inventadas transformações sem fonte canônica verificável.
+
+### GAP-NAV-011 — Contextual route suggestions
+
+**Estado:** GAP / SOURCE-DEPENDENT
+
+A documentação V2 já reconhece que Navigation é responsável durante a rota por:
+
+- GPS proximity;
+- movement threshold;
+- navigation warmup;
+- category/sponsor priority;
+- per-place cooldown;
+- uma sugestão visível por ciclo;
+- máximo por sessão;
+- message lifecycle;
+- speech.
+
+A implementação de produção equivalente não foi encontrada na `main` auditada.
+
+O ZIP canônico está listado na Library, mas seus bytes não puderam ser materializados nesta sessão. Portanto os thresholds/constantes e regras de ranking exatas ainda não podem ser reproduzidos com integridade. Este gap permanece aberto em vez de receber valores inventados.
+
+### GAP-NAV-012 — Degraded navigation without Mapbox
+
+**Estado:** REMEDIATED FUNCTIONALLY / ZIP EXACTNESS PARTIAL
+
+A `main` anterior destruía o Navigation runtime ao cair para Leaflet/development e só instalava guidance no provider Mapbox real.
+
+A PR #60 altera o boundary para:
+
+- destruir o runtime Mapbox anterior antes da troca;
+- iniciar o mesmo runtime de Navigation no provider fallback;
+- manter geometry, progress, instructions, TTS, arrival e lifecycle;
+- degradar apenas a apresentação da câmera para center/zoom quando pitch/bearing não são suportados pelo provider.
+
+A equivalência funcional passa a existir, mas o detalhe exato do comportamento do ZIP `55ac...` continua `PARTIAL` até comparação direta do snapshot.
+
+## Novo gate obrigatório
+
+`.github/workflows/navigation-turn-by-turn-parity.yml` passa a ser evidência obrigatória para qualquer nova promoção de MIG-0005. Ele conduz GPS real simulado através de uma rota multi-step e exige:
+
+```text
+step 0 → step 1 → step 2 → approaching → arrived → auto-end
+```
+
+Também exige atualização do banner, eventos/status, fala de cada nova instrução, fala de aproximação/chegada e feedback final do Assistant.
+
+## Estado consolidado
+
+Os antigos `GAP-NAV-001` a `GAP-NAV-004` continuam resolvidos no escopo original. Os novos gaps refletem a auditoria do snapshot ZIP canônico:
+
+```text
+REMEDIATED / GATE PENDING  5  (005, 006, 007, 008, 009)
+PARTIAL                    2  (010, 012)
+GAP                        1  (011)
+```
+
+`MIG-0005` não deve voltar a `equivalent` enquanto o exact-head desta remediação não estiver verde e os itens source-dependent não forem reconciliados contra o ZIP `55ac...`.
