@@ -75,7 +75,8 @@ export function createLeafletCompatibilitySdk(
 
   class LeafletCompatibilityMap implements MapboxGlMapLike {
     readonly nativeMap: LeafletMapLike;
-    readonly zoom: number;
+    #center: [number, number];
+    #zoom: number;
 
     constructor(options: {
       readonly container: string;
@@ -87,7 +88,8 @@ export function createLeafletCompatibilitySdk(
         compatibilityOptions.initialCenter ?? options.center;
       const initialZoom = compatibilityOptions.initialZoom ?? options.zoom;
 
-      this.zoom = initialZoom;
+      this.#center = initialCenter;
+      this.#zoom = initialZoom;
       this.nativeMap = leaflet
         .map(options.container, {
           zoomControl: false,
@@ -104,9 +106,30 @@ export function createLeafletCompatibilitySdk(
     }
 
     setCenter(center: [number, number]): void {
-      this.nativeMap.setView(toLeafletCoordinates(center), this.zoom, {
+      this.#center = center;
+      this.nativeMap.setView(toLeafletCoordinates(center), this.#zoom, {
         animate: false,
       });
+    }
+
+    // Navigation keeps one guidance engine across providers. Leaflet cannot
+    // reproduce Mapbox pitch/bearing, so it degrades to animated center/zoom
+    // while preserving route progress, instructions, speech and lifecycle.
+    easeTo(input: {
+      readonly center?: [number, number];
+      readonly zoom?: number;
+      readonly duration?: number;
+    }): void {
+      if (input.center) this.#center = input.center;
+      if (Number.isFinite(Number(input.zoom))) this.#zoom = Number(input.zoom);
+      this.nativeMap.setView(
+        toLeafletCoordinates(this.#center),
+        this.#zoom,
+        {
+          animate: true,
+          duration: Math.max(0, Number(input.duration ?? 0)) / 1000,
+        },
+      );
     }
 
     remove(): void {
