@@ -1,4 +1,7 @@
-import type { NavigationRuntimeSnapshot } from "@touristic/navigation";
+import type {
+  NavigationGuidanceSnapshot,
+  NavigationRuntimeSnapshot,
+} from "@touristic/navigation";
 
 export interface NavigationGuidanceUi {
   start(): void;
@@ -10,6 +13,13 @@ export interface NavigationGuidanceUi {
 }
 
 const STYLE_ID = "navigation-guidance-v2-styles";
+
+const V1_DETAIL_CONNECTORS = Object.freeze({
+  pt: Object.freeze({ on: "na", for: "por" }),
+  en: Object.freeze({ on: "on", for: "for" }),
+  es: Object.freeze({ on: "en", for: "por" }),
+  he: Object.freeze({ on: "על", for: "עבור" }),
+});
 
 function formatDistance(meters: number): string {
   const value = Math.max(0, Number.isFinite(meters) ? meters : 0);
@@ -61,6 +71,51 @@ function directionFor(instruction: string): {
     return { arrow: "→", className: "turn-right" };
   }
   return { arrow: "↑", className: "continue-straight" };
+}
+
+function v1ArrivalInstruction(guidance: NavigationGuidanceSnapshot): boolean {
+  const type = guidance.maneuverType;
+  if (type === 10 || type === 11 || type === 12) return true;
+  if (typeof type === "string") {
+    const normalized = type.toLowerCase();
+    if (normalized.includes("arrive") || normalized.includes("destination")) {
+      return true;
+    }
+  }
+  const original = guidance.original.toLowerCase();
+  return original.includes("arrive") || original.includes("destination");
+}
+
+function v1StreetName(guidance: NavigationGuidanceSnapshot): string | null {
+  const explicit = guidance.streetName?.trim();
+  if (explicit && explicit !== "-") return explicit;
+
+  const original = guidance.original;
+  const lower = original.toLowerCase();
+  if (lower.includes(" on ")) {
+    const extracted = original.split(" on ")[1]?.trim();
+    if (extracted) return extracted;
+  } else if (lower.includes(" onto ")) {
+    const extracted = original.split(" onto ")[1]?.trim();
+    if (extracted) return extracted;
+  }
+  return null;
+}
+
+/**
+ * Reproduces canonical V1 `bannerUI.buildDetailsText`: localized semantic
+ * action + localized connector + street (when available) + maneuver distance.
+ */
+function v1DetailsText(guidance: NavigationGuidanceSnapshot): string {
+  const action = guidance.instruction || guidance.original || "Continue pela rota";
+  if (v1ArrivalInstruction(guidance)) return action;
+
+  const language = guidance.language ?? "pt";
+  const connectors = V1_DETAIL_CONNECTORS[language] ?? V1_DETAIL_CONNECTORS.pt;
+  const street = v1StreetName(guidance);
+  return street
+    ? `${action} ${connectors.on} ${street} ${connectors.for} ${guidance.formattedDistance}`
+    : `${action} ${connectors.for} ${guidance.formattedDistance}`;
 }
 
 function ensureStyles(document: Document): void {
@@ -160,9 +215,7 @@ export function createNavigationGuidanceUi(
       );
 
       if (main) main.textContent = instruction;
-      if (details) {
-        details.textContent = `${guidance.original || instruction} • próxima manobra em ${formatDistance(snapshot.distanceToNextManeuver)}`;
-      }
+      if (details) details.textContent = v1DetailsText(guidance);
       if (arrow) arrow.textContent = direction.arrow;
       if (distance)
         distance.textContent = formatDistance(snapshot.remainingDistance);
