@@ -1,4 +1,4 @@
-import { defineConfig } from "vitest/config";
+import { configDefaults, defineConfig } from "vitest/config";
 
 export default defineConfig({
   resolve: {
@@ -11,5 +11,8 @@ export default defineConfig({
         ).pathname,
       },
     ],
+  },
+  test: {
+    exclude: [...configDefaults.exclude, "dist/**"],
   },
 });
