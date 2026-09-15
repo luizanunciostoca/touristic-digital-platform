@@ -35,6 +35,11 @@ import {
   type NavigationSessionBootstrap,
   type NavigationSessionEventContext,
 } from "./navigation-session-bootstrap.js";
+import {
+  createNavigationSpeech,
+  navigationSpeechMessage,
+  type NavigationSpeech,
+} from "./navigation-speech.js";
 
 interface NavigationRuntimeEnvironmentGlobal {
   readonly __MORRO_RUNTIME_ENV__?: {
@@ -52,6 +57,7 @@ export interface BrowserNavigationRuntimeInstallOptions {
   readonly createRequestPort?: typeof createNavigationRequestPort;
   readonly createEventBridge?: typeof createNavigationDomEventBridge;
   readonly createGuidanceUi?: typeof createNavigationGuidanceUi;
+  readonly createSpeech?: typeof createNavigationSpeech;
   readonly installAssistant?: typeof installBrowserAssistantRuntime;
 }
 
@@ -61,6 +67,7 @@ export interface BrowserNavigationRuntimeInstall {
   readonly requestPort: NavigationRequestPort;
   readonly eventBridge: NavigationDomEventBridge;
   readonly guidanceUi: NavigationGuidanceUi;
+  readonly speech: NavigationSpeech;
   readonly assistant: BrowserAssistantRuntime;
   destroy(): void;
 }
@@ -93,10 +100,12 @@ export function installBrowserNavigationRuntime(
     options.createEventBridge ?? createNavigationDomEventBridge;
   const createGuidanceUi =
     options.createGuidanceUi ?? createNavigationGuidanceUi;
+  const createSpeech = options.createSpeech ?? createNavigationSpeech;
   const installAssistant =
     options.installAssistant ?? installBrowserAssistantRuntime;
   const eventBridge = createEventBridge(options.document);
   const guidanceUi = createGuidanceUi(options.document);
+  const speech = createSpeech(options.document);
   const eventTarget = options.document.defaultView;
   const routingFallbackProvider = resolveRoutingFallbackProvider(
     options.routingFallbackProvider,
@@ -104,14 +113,20 @@ export function installBrowserNavigationRuntime(
 
   let hasActiveRoute = false;
   let arrivedSessionId: number | null = null;
+  let approachingSessionId: number | null = null;
+  let lastSpokenStepKey: string | null = null;
   const onNavigationStarted = (): void => {
     hasActiveRoute = true;
     arrivedSessionId = null;
+    approachingSessionId = null;
+    lastSpokenStepKey = null;
     guidanceUi.start();
   };
   const onNavigationEnded = (): void => {
     hasActiveRoute = false;
     arrivedSessionId = null;
+    approachingSessionId = null;
+    lastSpokenStepKey = null;
     guidanceUi.stop();
   };
   eventTarget?.addEventListener("navigationStarted", onNavigationStarted);
@@ -170,7 +185,24 @@ export function installBrowserNavigationRuntime(
     onSnapshot: (snapshot, context) => {
       hasActiveRoute = true;
       latestSnapshot = snapshot;
-      guidanceUi.update(snapshot);
+      if (arrivedSessionId !== context.sessionId) {
+        guidanceUi.update(snapshot);
+        if (approachingSessionId === context.sessionId) {
+          guidanceUi.approaching?.(
+            navigationSpeechMessage(speech.language(), "approaching"),
+          );
+        }
+      }
+
+      const stepKey = `${context.sessionId}:${snapshot.guidance.stepIndex}:${snapshot.guidance.instruction}`;
+      if (
+        arrivedSessionId !== context.sessionId &&
+        stepKey !== lastSpokenStepKey
+      ) {
+        lastSpokenStepKey = stepKey;
+        speech.speak(snapshot.guidance.instruction);
+      }
+
       eventBridge.runtime({
         sessionId: context.sessionId,
         routeIdentity: snapshot.routeIdentity,
@@ -185,12 +217,25 @@ export function installBrowserNavigationRuntime(
       });
       publishStatus(context);
     },
+    onApproaching: (context) => {
+      approachingSessionId = context.sessionId;
+      const message = navigationSpeechMessage(speech.language(), "approaching");
+      guidanceUi.approaching?.(message);
+      speech.speak(message);
+      publishStatus(context);
+    },
     onArrival: (context) => {
       arrivedSessionId = context.sessionId;
+      const message = navigationSpeechMessage(speech.language(), "arrived");
+      guidanceUi.arrived?.(message);
+      speech.speak(message);
       publishStatus(context, "arrived");
     },
     onRecalculation: () => {
       recalculations += 1;
+      speech.speak(
+        navigationSpeechMessage(speech.language(), "recalculating"),
+      );
     },
     onAutoEnd: () => lifecycle?.stop("arrived"),
   });
@@ -216,6 +261,7 @@ export function installBrowserNavigationRuntime(
     requestPort,
     eventBridge,
     guidanceUi,
+    speech,
     assistant,
     destroy(): void {
       if (destroyed) return;
@@ -229,9 +275,12 @@ export function installBrowserNavigationRuntime(
       requestPort.destroy();
       activeLifecycle.destroy();
       guidanceUi.destroy();
+      speech.destroy();
       lifecycle = null;
       hasActiveRoute = false;
       arrivedSessionId = null;
+      approachingSessionId = null;
+      lastSpokenStepKey = null;
       latestLocation = null;
       latestSnapshot = null;
       recalculations = 0;
