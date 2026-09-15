@@ -11,6 +11,7 @@ import {
   type RouteFeatureCollection,
   type RouteRecalculationController,
   type RouteRecalculationRequest,
+  type RoutingLanguage,
 } from "@touristic/navigation";
 
 import type {
@@ -25,6 +26,7 @@ export interface NavigationAppCompositionOptions {
   readonly geolocation: BrowserGeolocationService;
   readonly presenter: NavigationMapboxPresenter;
   readonly routeData: unknown;
+  readonly language?: RoutingLanguage;
   readonly sessionId?: number;
   readonly destination?: {
     readonly longitude: number;
@@ -188,6 +190,7 @@ export function createNavigationAppComposition(
       location: runtimeLocationFromBrowser(location),
       instructions,
       stepIndex,
+      language: options.language ?? "pt",
     });
   }
 
