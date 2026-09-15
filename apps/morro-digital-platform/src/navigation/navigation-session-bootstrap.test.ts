@@ -127,11 +127,13 @@ function setupBrowserAcquisition() {
     Map: vi.fn(),
     Marker: vi.fn(),
   } as unknown as MapboxGlModuleLike;
-  const geolocationDriver = {
-    watchPosition: vi.fn(),
-    getCurrentPosition: vi.fn(),
-    clearWatch: vi.fn(),
-  } as unknown as BrowserGeolocationDriver;
+  const getCurrentPosition =
+    vi.fn<BrowserGeolocationDriver["getCurrentPosition"]>();
+  const geolocationDriver: BrowserGeolocationDriver = {
+    watchPosition: vi.fn<BrowserGeolocationDriver["watchPosition"]>(() => 1),
+    getCurrentPosition,
+    clearWatch: vi.fn<BrowserGeolocationDriver["clearWatch"]>(),
+  };
   const wiring: BrowserNavigationWiring = {
     composition: {} as BrowserNavigationWiring["composition"],
     start: vi.fn(),
@@ -151,6 +153,7 @@ function setupBrowserAcquisition() {
   return {
     bootstrap,
     geolocationDriver,
+    getCurrentPosition,
     requestRouteImpl,
     createWiring,
   };
@@ -241,32 +244,29 @@ describe("navigation session bootstrap", () => {
   it("retries initial GPS acquisition with the V1 15s/20s/25s policy", async () => {
     const context = setupBrowserAcquisition();
     let attempt = 0;
-    context.geolocationDriver.getCurrentPosition = vi.fn(
-      (success, error, options) => {
-        attempt += 1;
-        if (attempt < 3) {
-          error({
-            code: 2,
-            message: "temporarily unavailable",
-          });
-          return;
-        }
-        success(browserPosition());
-        void options;
-      },
-    );
+    context.getCurrentPosition.mockImplementation((success, error, options) => {
+      attempt += 1;
+      if (attempt < 3) {
+        error({
+          code: 2,
+          message: "temporarily unavailable",
+          PERMISSION_DENIED: 1,
+          POSITION_UNAVAILABLE: 2,
+          TIMEOUT: 3,
+        });
+        return;
+      }
+      success(browserPosition());
+      void options;
+    });
 
     await expect(
       context.bootstrap.start({ longitude: -38.916, latitude: -13.375 }),
     ).resolves.toEqual(routeData());
 
-    expect(context.geolocationDriver.getCurrentPosition).toHaveBeenCalledTimes(
-      3,
-    );
+    expect(context.getCurrentPosition).toHaveBeenCalledTimes(3);
     expect(
-      vi
-        .mocked(context.geolocationDriver.getCurrentPosition)
-        .mock.calls.map((call) => call[2]?.timeout),
+      context.getCurrentPosition.mock.calls.map((call) => call[2]?.timeout),
     ).toEqual([...NAVIGATION_BOOTSTRAP_ATTEMPT_TIMEOUTS_MS]);
   });
 
@@ -285,7 +285,7 @@ describe("navigation session bootstrap", () => {
       context.bootstrap.start({ longitude: -38.916, latitude: -13.375 }),
     ).resolves.toEqual(routeData());
 
-    expect(context.geolocationDriver.getCurrentPosition).not.toHaveBeenCalled();
+    expect(context.getCurrentPosition).not.toHaveBeenCalled();
     expect(context.requestRouteImpl).toHaveBeenCalledWith(
       expect.objectContaining({ start: [-38.917, -13.376] }),
     );
