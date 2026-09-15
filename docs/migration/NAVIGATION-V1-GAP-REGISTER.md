@@ -109,17 +109,25 @@ Correção:
 
 ### GAP-NAV-010 — Multilingual instruction processing
 
-**Estado:** PARTIAL
+**Estado:** FUNCTIONALLY REMEDIATED / ZIP EXACTNESS PARTIAL
 
-A PR #60 amplia a apresentação/reconhecimento direcional para PT/EN/ES/HE e o TTS usa locale explícito. Ainda falta prova direta de que a **simplificação textual** aplicada às instruções é idêntica ao ZIP `55ac...`.
+A PR #60 agora possui processamento sem perda semântica compartilhado por PT/EN/ES/HE em `@touristic/navigation`:
 
-Não serão inventadas transformações sem fonte canônica verificável.
+- remoção de markup de provider;
+- decoding das entidades HTML comuns;
+- normalização de espaços e pontuação;
+- remoção de controles bidi espúrios preservando o texto hebraico;
+- `guidance.original` continua preservando a instrução original para rastreabilidade;
+- `guidance.instruction` recebe a forma processada usada por banner e TTS;
+- testes explícitos cobrem PT/EN/ES/HE.
+
+A **simplificação semântica exata** do ZIP `55ac...` não é inventada. Até os bytes do snapshot ficarem legíveis, este item permanece `PARTIAL` apenas quanto à exatidão textual histórica, não quanto à existência de processamento multilíngue seguro.
 
 ### GAP-NAV-011 — Contextual route suggestions
 
-**Estado:** GAP / SOURCE-DEPENDENT
+**Estado:** FUNCTIONALLY MATERIALIZED / ZIP POLICY CONSTANTS PARTIAL
 
-A documentação V2 já reconhece que Navigation é responsável durante a rota por:
+A PR #60 materializa o subsistema no runtime de Navigation usando o catálogo canônico compartilhado `morroV1SearchCatalog` e cobre:
 
 - GPS proximity;
 - movement threshold;
@@ -128,12 +136,23 @@ A documentação V2 já reconhece que Navigation é responsável durante a rota 
 - per-place cooldown;
 - uma sugestão visível por ciclo;
 - máximo por sessão;
-- message lifecycle;
-- speech.
+- lifecycle start/stop por sessão;
+- mensagem na área de Navigation;
+- speech pelo mesmo runtime TTS;
+- evento observável `navigationContextualSuggestion`;
+- testes determinísticos de warmup, movimento, ranking, cooldown, limite de sessão, reset e PT/EN/ES/HE.
 
-A implementação de produção equivalente não foi encontrada na `main` auditada.
+Como o ZIP canônico não pode ser materializado nesta sessão, os valores numéricos exatos e o ranking histórico não podem ser afirmados como idênticos. Por isso os defaults funcionais ficam centralizados em `NAVIGATION_SUGGESTION_FUNCTIONAL_POLICY`, atualmente:
 
-O ZIP canônico está listado na Library, mas seus bytes não puderam ser materializados nesta sessão. Portanto os thresholds/constantes e regras de ranking exatas ainda não podem ser reproduzidos com integridade. Este gap permanece aberto em vez de receber valores inventados.
+```text
+warmup                  30 s
+movement threshold      20 m
+proximity               80 m
+per-place cooldown      10 min
+session maximum         3
+```
+
+Esses números são **defaults funcionais de remediação, não constantes V1 certificadas**. A arquitetura permite substituí-los em um único ponto assim que o ZIP `55ac...` puder ser lido.
 
 ### GAP-NAV-012 — Degraded navigation without Mapbox
 
@@ -145,18 +164,20 @@ A PR #60 altera o boundary para:
 
 - destruir o runtime Mapbox anterior antes da troca;
 - iniciar o mesmo runtime de Navigation no provider fallback;
-- manter geometry, progress, instructions, TTS, arrival e lifecycle;
+- manter geometry, progress, instructions, TTS, arrival, contextual suggestions e lifecycle;
 - degradar apenas a apresentação da câmera para center/zoom quando pitch/bearing não são suportados pelo provider.
 
 A equivalência funcional passa a existir, mas o detalhe exato do comportamento do ZIP `55ac...` continua `PARTIAL` até comparação direta do snapshot.
 
 ## Novo gate obrigatório
 
-`.github/workflows/navigation-turn-by-turn-parity.yml` passa a ser evidência obrigatória para qualquer nova promoção de MIG-0005. Ele conduz GPS real simulado através de uma rota multi-step e exige:
+`.github/workflows/navigation-turn-by-turn-parity.yml` passa a ser evidência obrigatória para qualquer nova promoção de MIG-0005. Ele conduz GPS simulado através de uma rota multi-step no runtime determinístico de Navigation e exige:
 
 ```text
 step 0 → step 1 → step 2 → approaching → arrived → auto-end
 ```
+
+O contrato é deliberadamente independente da disponibilidade externa do SDK Mapbox. A equivalência Mapbox/câmera continua coberta pelos gates de Provider/Visual; este gate prova especificamente a jornada turn-by-turn.
 
 Também exige atualização do banner, eventos/status, fala de cada nova instrução, fala de aproximação/chegada e feedback final do Assistant.
 
@@ -165,9 +186,9 @@ Também exige atualização do banner, eventos/status, fala de cada nova instru�
 Os antigos `GAP-NAV-001` a `GAP-NAV-004` continuam resolvidos no escopo original. Os novos gaps refletem a auditoria do snapshot ZIP canônico:
 
 ```text
-REMEDIATED / GATE PENDING  5  (005, 006, 007, 008, 009)
-PARTIAL                    2  (010, 012)
-GAP                        1  (011)
+REMEDIATED / GATE PENDING          5  (005, 006, 007, 008, 009)
+FUNCTIONAL / ZIP EXACTNESS PARTIAL 3  (010, 011, 012)
+RUNTIME GAP                        0
 ```
 
 `MIG-0005` não deve voltar a `equivalent` enquanto o exact-head desta remediação não estiver verde e os itens source-dependent não forem reconciliados contra o ZIP `55ac...`.
