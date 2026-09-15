@@ -6,6 +6,7 @@ export interface V1ExplorePlaceActionOption {
   readonly action: V1ExplorePlaceAction;
 }
 
+// Keep ordering and labels aligned with the canonical V1 assistant-dialog flow.
 const command = (label: string, value: string): V1ExplorePlaceActionOption =>
   Object.freeze({ label, value, action: "command" as const });
 
