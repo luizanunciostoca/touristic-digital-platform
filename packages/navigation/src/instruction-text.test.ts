@@ -57,9 +57,9 @@ describe("V1 source-exact semantic navigation presentation", () => {
       "Mantenha-se à esquerda",
     );
     for (const arrivalType of [10, 11, 12]) {
-      expect(
-        simplifyNavigationInstructionText("raw", arrivalType, "pt"),
-      ).toBe("Você chegou ao destino!");
+      expect(simplifyNavigationInstructionText("raw", arrivalType, "pt")).toBe(
+        "Você chegou ao destino!",
+      );
     }
   });
 
