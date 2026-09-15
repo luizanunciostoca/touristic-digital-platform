@@ -31,7 +31,10 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
 
-      - name: Install dependencies from exact lockfile
+      - name: Generate patched lockfile from explicit overrides
+        run: pnpm install --lockfile-only --no-frozen-lockfile
+
+      - name: Install dependencies from generated lockfile
         run: pnpm install --frozen-lockfile
 
       - name: Audit dependencies for high or critical vulnerabilities
@@ -43,11 +46,13 @@ jobs:
           cat dependency-audit.json
           exit "$status"
 
-      - name: Upload dependency audit evidence
+      - name: Upload remediation evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: dependency-security-audit-${{ github.run_id }}
-          path: dependency-audit.json
+          name: dependency-security-remediation-${{ github.run_id }}
+          path: |
+            dependency-audit.json
+            pnpm-lock.yaml
           if-no-files-found: error
           retention-days: 30
