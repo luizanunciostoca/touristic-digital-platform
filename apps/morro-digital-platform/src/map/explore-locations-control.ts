@@ -92,8 +92,7 @@ function clearTourPresentation(document: Document): void {
   if (map?.getLayer?.(TOUR_ROUTE_OUTLINE)) {
     map.removeLayer?.(TOUR_ROUTE_OUTLINE);
   }
-  if (map?.getSource?.(TOUR_ROUTE_SOURCE))
-    map.removeSource?.(TOUR_ROUTE_SOURCE);
+  if (map?.getSource?.(TOUR_ROUTE_SOURCE)) map.removeSource?.(TOUR_ROUTE_SOURCE);
 
   const tourSelect = document.getElementById("tour-select");
   if (tourSelect instanceof HTMLSelectElement) tourSelect.selectedIndex = -1;
@@ -385,7 +384,9 @@ export function installExploreLocationsControl({
     visibleLocations = Object.freeze([]);
     showMainMenu();
     updateMapState(
-      Number(document.getElementById("map")?.dataset.mapMarkerCount ?? "0"),
+      Number(
+        document.getElementById("map")?.dataset.mapMarkerCount ?? "0",
+      ),
       undefined,
     );
     if (restoreFocus) {
@@ -570,10 +571,10 @@ export function installExploreLocationsControl({
 
   const onAssistantOptionSelected = (event: Event): void => {
     if (activeStage === "menu" || !(event instanceof CustomEvent)) return;
-    const value =
-      event.detail && typeof event.detail.value === "string"
-        ? event.detail.value
-        : "";
+    const detail: unknown = event.detail;
+    if (!detail || typeof detail !== "object") return;
+    const candidate: unknown = Reflect.get(detail, "value");
+    const value = typeof candidate === "string" ? candidate : "";
     if (!isBackToMenuValue(value)) return;
     event.stopImmediatePropagation();
     backToMenu(false);
