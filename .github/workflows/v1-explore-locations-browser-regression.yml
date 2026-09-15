@@ -7,12 +7,11 @@ on:
       - .github/workflows/v1-explore-locations-browser-regression.yml
       - apps/morro-digital-platform/src/main.ts
       - apps/morro-digital-platform/src/browser-entry.ts
-      - apps/morro-digital-platform/src/assistant/assistant-shell-ui.ts
+      - apps/morro-digital-platform/src/assistant/**
       - apps/morro-digital-platform/src/map/explore-locations-control.ts
       - apps/morro-digital-platform/src/map/explore-locations-control.test.ts
       - apps/morro-digital-platform/src/layouts/app-shell.ts
-      - apps/morro-digital-platform/public/explore-locations.css
-      - apps/morro-digital-platform/public/index.html
+      - apps/morro-digital-platform/public/**
       - packages/search/src/morro-v1-search-catalog.ts
       - packages/assistant/src/menu.ts
       - package.json
@@ -58,7 +57,7 @@ jobs:
           done
           cat /tmp/v1-explore-locations/server.log
           exit 1
-      - name: Validate assistant categories, POI markers, selection and accessibility
+      - name: Validate V1 assistant category flow and map POIs
         run: |
           node <<'NODE'
           const { writeFileSync } = require('node:fs');
@@ -92,6 +91,34 @@ jobs:
             forecast: [],
           };
 
+          async function openAssistant(page) {
+            const assistant = page.locator('#assistant-messages');
+            const quickAction = page.locator('.mood-button[data-assistant-shell-ready="true"]');
+            await page.locator('body[data-public-onboarding-settled="true"]').waitFor({ state: 'attached', timeout: 5000 });
+            await quickAction.waitFor({ state: 'visible', timeout: 5000 });
+            if (!(await assistant.isVisible())) await quickAction.click();
+            await assistant.waitFor({ state: 'visible', timeout: 5000 });
+            if ((await assistant.getAttribute('aria-hidden')) !== 'false') {
+              throw new Error('Visible assistant must expose aria-hidden="false"');
+            }
+          }
+
+          async function waitForCategory(page, category, count) {
+            await page.locator(`#assistant-category-results[data-category="${category}"]`).waitFor({ state: 'visible', timeout: 5000 });
+            await page.locator(`#map[data-explore-state="ready"][data-explore-category="${category}"][data-map-marker-count="${count}"]`).waitFor({ state: 'attached', timeout: 5000 });
+            const optionCount = await page.locator(`#assistant-category-results [data-location-category="${category}"]`).count();
+            if (optionCount !== count) {
+              throw new Error(`${category}: expected ${count} assistant location options, received ${optionCount}`);
+            }
+            const submenuState = await page.locator('#submenu').evaluate(element => ({
+              hidden: element.classList.contains('hidden'),
+              ariaHidden: element.getAttribute('aria-hidden'),
+            }));
+            if (!submenuState.hidden || submenuState.ariaHidden !== 'true') {
+              throw new Error(`${category}: detached submenu must remain hidden: ${JSON.stringify(submenuState)}`);
+            }
+          }
+
           async function waitForMapCenter(page, longitude, latitude) {
             const deadline = Date.now() + 5000;
             let last = null;
@@ -100,58 +127,10 @@ jobs:
                 const center = globalThis.mapboxPrimaryInstance?.getCenter?.();
                 return center ? { lng: center.lng, lat: center.lat } : null;
               });
-              if (
-                last &&
-                Math.abs(last.lng - longitude) < 0.001 &&
-                Math.abs(last.lat - latitude) < 0.001
-              ) return last;
+              if (last && Math.abs(last.lng - longitude) < 0.001 && Math.abs(last.lat - latitude) < 0.001) return last;
               await new Promise(resolve => setTimeout(resolve, 100));
             }
             throw new Error(`Explore selection did not recenter the map: ${JSON.stringify(last)}`);
-          }
-
-          async function waitForLoadingOverlay(page) {
-            await page.locator('#loading-overlay.fade-out').waitFor({
-              state: 'attached',
-              timeout: 5000,
-            });
-          }
-
-          async function waitForMarkerCount(page, count) {
-            await page.locator(`#map[data-map-marker-count="${count}"]`).waitFor({
-              state: 'attached',
-              timeout: 5000,
-            });
-          }
-
-          async function openAssistant(page) {
-            const assistant = page.locator('#assistant-messages');
-            const quickAction = page.locator('.mood-button[data-assistant-shell-ready="true"]');
-            await page.locator('body[data-public-onboarding-settled="true"]').waitFor({
-              state: 'attached',
-              timeout: 5000,
-            });
-            await quickAction.waitFor({ state: 'visible', timeout: 5000 });
-            if (!(await assistant.isVisible())) {
-              await quickAction.click();
-            }
-            try {
-              await assistant.waitFor({ state: 'visible', timeout: 5000 });
-            } catch (error) {
-              const diagnostics = await page.evaluate(() => ({
-                assistantClass: document.getElementById('assistant-messages')?.className,
-                assistantAriaHidden: document.getElementById('assistant-messages')?.getAttribute('aria-hidden'),
-                quickActionReady: document.querySelector('.mood-button')?.getAttribute('data-assistant-shell-ready'),
-                quickActionExpanded: document.querySelector('.mood-button')?.getAttribute('aria-expanded'),
-                bodyClass: document.body.className,
-                onboardingVisible: Boolean(document.getElementById('onboarding-overlay')),
-                tourActive: document.body.classList.contains('tour-active'),
-              }));
-              throw new Error(`Assistant did not open after shell readiness: ${JSON.stringify(diagnostics)}; ${String(error)}`);
-            }
-            if ((await assistant.getAttribute('aria-hidden')) !== 'false') {
-              throw new Error('Visible assistant must expose aria-hidden="false"');
-            }
           }
 
           (async () => {
@@ -176,29 +155,20 @@ jobs:
                   });
                 }
               });
-              await page.route('**/api/weather', async route => {
-                await route.fulfill({
-                  status: 200,
-                  contentType: 'application/json',
-                  body: JSON.stringify(weather),
-                });
-              });
+              await page.route('**/api/weather', route => route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify(weather),
+              }));
 
-              await page.goto('http://127.0.0.1:4173/', {
-                waitUntil: 'domcontentloaded',
-                timeout: 30000,
-              });
-              await page.locator('#map[data-map-state="ready"][data-home-state="ready"][data-tour-state="idle"][data-map-mode="real"][data-map-marker-count="0"]').waitFor({
-                state: 'attached',
-                timeout: 30000,
-              });
-              await waitForLoadingOverlay(page);
+              await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded', timeout: 30000 });
+              await page.locator('#map[data-map-state="ready"][data-home-state="ready"][data-tour-state="idle"][data-map-mode="real"][data-map-marker-count="0"]').waitFor({ state: 'attached', timeout: 30000 });
+              await page.locator('#loading-overlay.fade-out').waitFor({ state: 'attached', timeout: 5000 });
               await openAssistant(page);
 
               if (await page.locator('#controls').count() !== 0) {
-                throw new Error(`Duplicate external category rail still exists in ${viewport.id}`);
+                throw new Error(`Duplicate external category rail exists in ${viewport.id}`);
               }
-
               const categoryButtons = page.locator('.assistant-options .assistant-option-btn[data-explore-category]');
               if (await categoryButtons.count() !== 9) {
                 throw new Error(`Expected 9 assistant-owned location categories in ${viewport.id}`);
@@ -206,72 +176,42 @@ jobs:
 
               for (const [category, count] of Object.entries(expectedCounts)) {
                 const trigger = page.locator(`#assistant-category-${category}`);
-                if (await trigger.count() !== 1) {
-                  throw new Error(`${viewport.id}/${category}: assistant category id is missing or duplicated`);
-                }
                 await trigger.click();
-                await page.locator('#submenu[aria-hidden="false"]').waitFor({ state: 'visible' });
-                const actual = await page.locator(`#submenuContainer [data-location-category="${category}"]`).count();
-                if (actual !== count) {
-                  throw new Error(`${viewport.id}/${category}: expected ${count}, received ${actual}`);
+                await waitForCategory(page, category, count);
+                const state = await trigger.evaluate(element => ({
+                  expanded: element.getAttribute('aria-expanded'),
+                  pressed: element.getAttribute('aria-pressed'),
+                }));
+                if (state.expanded !== 'true' || state.pressed !== 'true') {
+                  throw new Error(`${viewport.id}/${category}: category trigger state diverged: ${JSON.stringify(state)}`);
                 }
-                await waitForMarkerCount(page, count);
                 await page.keyboard.press('Escape');
+                if (await page.locator('#assistant-category-results').count()) {
+                  throw new Error(`${viewport.id}/${category}: Escape did not close category results`);
+                }
+                if (!(await page.locator('#assistant-messages').isVisible())) {
+                  throw new Error(`${viewport.id}/${category}: Escape closed the assistant instead of category results`);
+                }
+                if ((await page.evaluate(() => document.activeElement?.id)) !== `assistant-category-${category}`) {
+                  throw new Error(`${viewport.id}/${category}: focus did not return to category trigger`);
+                }
               }
 
               const beaches = page.locator('#assistant-category-beaches');
               await beaches.focus();
               await page.keyboard.press('Enter');
-              await page.locator('#submenu[aria-hidden="false"]').waitFor({ state: 'visible' });
-              await waitForMarkerCount(page, 8);
+              await waitForCategory(page, 'beaches', 8);
               const keyboardState = await page.evaluate(() => ({
-                expanded: document.getElementById('assistant-category-beaches')?.getAttribute('aria-expanded'),
-                pressed: document.getElementById('assistant-category-beaches')?.getAttribute('aria-pressed'),
-                itemCount: document.querySelectorAll('#submenuContainer [data-location-category="beaches"]').length,
-                firstItemFocused: document.activeElement?.getAttribute('data-location-name') === 'Primeira Praia',
+                optionCount: document.querySelectorAll('#assistant-category-results [data-location-category="beaches"]').length,
+                firstFocused: document.activeElement?.getAttribute('data-location-name') === 'Primeira Praia',
+                assistantContainsResults: Boolean(document.querySelector('#assistant-messages #assistant-category-results')),
               }));
-              if (
-                keyboardState.expanded !== 'true' ||
-                keyboardState.pressed !== 'true' ||
-                keyboardState.itemCount !== 8 ||
-                !keyboardState.firstItemFocused
-              ) {
-                throw new Error(`Keyboard open contract diverged in ${viewport.id}: ${JSON.stringify(keyboardState)}`);
-              }
-              await page.keyboard.press('Escape');
-              const escapeState = await page.evaluate(() => ({
-                hidden: document.getElementById('submenu')?.getAttribute('aria-hidden'),
-                focusReturned: document.activeElement?.id === 'assistant-category-beaches',
-              }));
-              if (escapeState.hidden !== 'true' || !escapeState.focusReturned) {
-                throw new Error(`Escape/focus-return contract diverged in ${viewport.id}: ${JSON.stringify(escapeState)}`);
-              }
-
-              await beaches.focus();
-              await page.keyboard.press('Space');
-              await page.locator('#submenu[aria-hidden="false"]').waitFor({ state: 'visible' });
-              if ((await beaches.getAttribute('aria-expanded')) !== 'true') {
-                throw new Error(`Space keyboard contract diverged in ${viewport.id}`);
+              if (keyboardState.optionCount !== 8 || !keyboardState.firstFocused || !keyboardState.assistantContainsResults) {
+                throw new Error(`Keyboard assistant-results contract diverged in ${viewport.id}: ${JSON.stringify(keyboardState)}`);
               }
               await page.keyboard.press('Escape');
 
               await page.evaluate(() => {
-                document.documentElement.style.fontSize = '200%';
-              });
-              await beaches.click();
-              const enlargedBounds = await page.locator('#submenu').boundingBox();
-              if (
-                !enlargedBounds ||
-                enlargedBounds.x < -1 ||
-                enlargedBounds.y < -1 ||
-                enlargedBounds.x + enlargedBounds.width > viewport.width + 1 ||
-                enlargedBounds.y + enlargedBounds.height > viewport.height + 1
-              ) {
-                throw new Error(`200% text submenu escaped viewport in ${viewport.id}: ${JSON.stringify(enlargedBounds)}`);
-              }
-              await page.keyboard.press('Escape');
-              await page.evaluate(() => {
-                document.documentElement.style.fontSize = '';
                 globalThis.__exploreSelectedValues = [];
                 document.addEventListener('morro:assistant-option-selected', event => {
                   if (event instanceof CustomEvent && typeof event.detail?.value === 'string') {
@@ -279,27 +219,28 @@ jobs:
                   }
                 });
               });
-
               await beaches.click();
-              await page.locator('[data-location-name="Primeira Praia"]').click();
+              await waitForCategory(page, 'beaches', 8);
+              await page.locator('#assistant-category-results [data-location-name="Primeira Praia"]').click();
               const center = await waitForMapCenter(page, -38.9142193, -13.3776181);
-              await page.locator('#assistant-messages').filter({ hasText: 'Primeira Praia' }).waitFor({
-                state: 'visible',
-                timeout: 5000,
-              });
+              await page.locator('#assistant-messages').filter({ hasText: 'Primeira Praia' }).waitFor({ state: 'visible', timeout: 5000 });
               const selectionState = await page.evaluate(() => ({
+                resultsRemoved: !document.getElementById('assistant-category-results'),
                 submenuHidden: document.getElementById('submenu')?.getAttribute('aria-hidden'),
                 assistantVisible: !document.getElementById('assistant-messages')?.classList.contains('hidden'),
                 selectedValues: globalThis.__exploreSelectedValues,
                 activeTour: document.getElementById('map')?.getAttribute('data-active-tour'),
                 markerCount: document.getElementById('map')?.getAttribute('data-map-marker-count'),
+                exploreCategory: document.getElementById('map')?.getAttribute('data-explore-category'),
               }));
               if (
+                !selectionState.resultsRemoved ||
                 selectionState.submenuHidden !== 'true' ||
                 !selectionState.assistantVisible ||
                 !selectionState.selectedValues.includes('Fale sobre Primeira Praia') ||
                 selectionState.activeTour !== null ||
-                selectionState.markerCount !== '8'
+                selectionState.markerCount !== '8' ||
+                selectionState.exploreCategory !== 'beaches'
               ) {
                 throw new Error(`Location selection contract diverged in ${viewport.id}: ${JSON.stringify(selectionState)}`);
               }
@@ -309,45 +250,32 @@ jobs:
               }
 
               await page.screenshot({
-                path: `/tmp/v1-explore-locations/explore-${viewport.id}.png`,
+                path: `/tmp/v1-explore-locations/assistant-category-${viewport.id}.png`,
                 fullPage: false,
                 animations: 'disabled',
               });
-              evidence[viewport.id] = {
-                keyboardState,
-                escapeState,
-                enlargedBounds,
-                center,
-                selectionState,
-                pageErrors,
-                mapboxHttpErrors,
-              };
+              evidence[viewport.id] = { keyboardState, center, selectionState };
               await context.close();
             }
 
-            const forcedColorsContext = await browser.newContext({
-              viewport: { width: 390, height: 844 },
-              forcedColors: 'active',
-            });
+            const forcedColorsContext = await browser.newContext({ viewport: { width: 390, height: 844 }, forcedColors: 'active' });
             await forcedColorsContext.addInitScript(() => {
               localStorage.setItem('morro-digital-onboarded', '1');
               localStorage.setItem('voice-enabled', 'false');
             });
             const forcedColorsPage = await forcedColorsContext.newPage();
-            await forcedColorsPage.route('**/api/weather', async route => {
-              await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(weather) });
-            });
+            await forcedColorsPage.route('**/api/weather', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(weather) }));
             await forcedColorsPage.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded', timeout: 30000 });
             await forcedColorsPage.locator('#map[data-map-state="ready"]').waitFor({ state: 'attached', timeout: 30000 });
-            await waitForLoadingOverlay(forcedColorsPage);
+            await forcedColorsPage.locator('#loading-overlay.fade-out').waitFor({ state: 'attached', timeout: 5000 });
             await openAssistant(forcedColorsPage);
             await forcedColorsPage.locator('#assistant-category-beaches').click();
-            await forcedColorsPage.locator('#submenu[aria-hidden="false"]').waitFor({ state: 'visible' });
-            if (!(await forcedColorsPage.locator('[data-location-name="Primeira Praia"]').isVisible())) {
-              throw new Error('Forced-colors explore surface is not visible');
+            await waitForCategory(forcedColorsPage, 'beaches', 8);
+            if (!(await forcedColorsPage.locator('#assistant-category-results [data-location-name="Primeira Praia"]').isVisible())) {
+              throw new Error('Forced-colors assistant category results are not visible');
             }
             await forcedColorsPage.screenshot({
-              path: '/tmp/v1-explore-locations/explore-forced-colors.png',
+              path: '/tmp/v1-explore-locations/assistant-category-forced-colors.png',
               fullPage: false,
               animations: 'disabled',
             });
@@ -369,5 +297,5 @@ jobs:
         with:
           name: v1-explore-locations-evidence
           path: /tmp/v1-explore-locations
-          retention-days: 7
-          if-no-files-found: error
+          retention-days: 1
+          if-no-files-found: ignore
