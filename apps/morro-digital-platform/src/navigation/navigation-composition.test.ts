@@ -240,6 +240,44 @@ describe("navigation app composition", () => {
     expect(context.onSnapshot).not.toHaveBeenCalled();
   });
 
+  it("consumes at most one fallback maneuver when runtime update re-enters synchronously", () => {
+    const current = location();
+    const instructions = [
+      { instruction: "Continue em frente" },
+      { instruction: "Vire à direita" },
+      { instruction: "Vire à esquerda" },
+    ];
+    const context = setup(current, instructions);
+    context.composition.start();
+    context.runtimeUpdate.mockClear();
+    context.onSnapshot.mockClear();
+
+    let reentered = false;
+    context.runtimeUpdate.mockImplementation((input) => {
+      if (!reentered && input.stepIndex === 1) {
+        reentered = true;
+        context.emitRuntimeSnapshot(
+          runtimeSnapshot(1, instructions[1]!.instruction, 0),
+        );
+      }
+      return null;
+    });
+
+    context.emitRuntimeSnapshot(
+      runtimeSnapshot(0, instructions[0]!.instruction, 19),
+    );
+
+    expect(
+      context.runtimeUpdate.mock.calls.map(([input]) => input.stepIndex),
+    ).toEqual([1]);
+    expect(context.onSnapshot).toHaveBeenCalledTimes(1);
+    expect(context.onSnapshot).toHaveBeenCalledWith(
+      expect.objectContaining({
+        guidance: expect.objectContaining({ stepIndex: 1 }),
+      }),
+    );
+  });
+
   it("resets runtime/presenter when route changes and reevaluates current location", () => {
     const current = location();
     const context = setup(current);
