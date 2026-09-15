@@ -19,6 +19,7 @@ import type {
 } from "./browser-geolocation.js";
 
 export const NAVIGATION_GUIDANCE_MAX_ACCURACY_METERS = 300;
+export const NAVIGATION_MANEUVER_ADVANCE_METERS = 20;
 
 export interface NavigationAppCompositionOptions {
   readonly geolocation: BrowserGeolocationService;
@@ -31,8 +32,11 @@ export interface NavigationAppCompositionOptions {
   };
   readonly instructions?: readonly NavigationInstructionInput[];
   readonly stepIndex?: number;
+  readonly recalculationSuppressionMs?: number;
+  readonly now?: () => number;
   readonly onSnapshot?: (snapshot: NavigationRuntimeSnapshot) => void;
   readonly onLocation?: (location: BrowserLocation) => void;
+  readonly onApproaching?: () => void;
   readonly onArrival?: () => void;
   readonly onAutoEnd?: () => void;
   readonly onRecalculation?: (route: RouteFeatureCollection) => void;
@@ -59,6 +63,11 @@ export interface NavigationAppComposition {
 function normalizeStepIndex(value: unknown): number {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? Math.max(0, Math.trunc(parsed)) : 0;
+}
+
+function normalizeDelay(value: unknown): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
 }
 
 function runtimeLocationFromBrowser(
@@ -120,6 +129,11 @@ export function createNavigationAppComposition(
   let unsubscribeLocation: (() => void) | null = null;
   let latestLocation: BrowserLocation | null = null;
   let recalculation: RouteRecalculationController | null = null;
+  let recalculationSuppressedUntil = 0;
+  const now = options.now ?? (() => Date.now());
+  const recalculationSuppressionMs = normalizeDelay(
+    options.recalculationSuppressionMs,
+  );
 
   const arrival =
     options.sessionId !== undefined && options.destination
@@ -127,6 +141,9 @@ export function createNavigationAppComposition(
           sessionId: options.sessionId,
           destination: options.destination,
           ports: {
+            ...(options.onApproaching
+              ? { onApproaching: () => options.onApproaching?.() }
+              : {}),
             ...(options.onArrival
               ? { onArrived: () => options.onArrival?.() }
               : {}),
@@ -142,6 +159,7 @@ export function createNavigationAppComposition(
       !started ||
       !recalculation ||
       !latestLocation ||
+      now() < recalculationSuppressedUntil ||
       options.sessionId === undefined ||
       !options.destination
     ) {
@@ -164,8 +182,46 @@ export function createNavigationAppComposition(
     });
   }
 
+  function updateRuntime(location: BrowserLocation): void {
+    runtime.update({
+      routeData,
+      location: runtimeLocationFromBrowser(location),
+      instructions,
+      stepIndex,
+    });
+  }
+
+  function maybeAdvanceStep(snapshot: NavigationRuntimeSnapshot): boolean {
+    if (instructions.length < 2 || stepIndex >= instructions.length - 1) {
+      return false;
+    }
+
+    const stepEnds = runtime.getTracker()?.model.stepEnds ?? [];
+    let nextStepIndex = stepIndex;
+    while (nextStepIndex < instructions.length - 1) {
+      const stepEnd = stepEnds[nextStepIndex];
+      const distanceToManeuver = stepEnd
+        ? stepEnd.alongDistance - snapshot.completedDistance
+        : snapshot.distanceToNextManeuver;
+      if (
+        !Number.isFinite(distanceToManeuver) ||
+        distanceToManeuver > NAVIGATION_MANEUVER_ADVANCE_METERS
+      ) {
+        break;
+      }
+      nextStepIndex += 1;
+    }
+
+    if (nextStepIndex === stepIndex) return false;
+    stepIndex = nextStepIndex;
+    if (!latestLocation) return false;
+    updateRuntime(latestLocation);
+    return true;
+  }
+
   const handleSnapshot = (snapshot: NavigationRuntimeSnapshot): void => {
     if (!started) return;
+    if (maybeAdvanceStep(snapshot)) return;
     options.presenter.update(snapshot);
     options.onSnapshot?.(snapshot);
     maybeRecalculate(snapshot);
@@ -185,12 +241,7 @@ export function createNavigationAppComposition(
       latitude: location.latitude,
       longitude: location.longitude,
     });
-    runtime.update({
-      routeData,
-      location: runtimeLocationFromBrowser(location),
-      instructions,
-      stepIndex,
-    });
+    updateRuntime(location);
   }
 
   function applyRoute(
@@ -227,6 +278,7 @@ export function createNavigationAppComposition(
     start(): void {
       if (started) return;
       started = true;
+      recalculationSuppressedUntil = now() + recalculationSuppressionMs;
       unsubscribeLocation = options.geolocation.subscribe(updateFromLocation);
       options.geolocation.start();
       const current = options.geolocation.getCurrentLocation();
@@ -236,6 +288,7 @@ export function createNavigationAppComposition(
       if (!started) return;
       started = false;
       latestLocation = null;
+      recalculationSuppressedUntil = 0;
       unsubscribeLocation?.();
       unsubscribeLocation = null;
       options.geolocation.stop();
