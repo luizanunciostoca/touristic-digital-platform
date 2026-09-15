@@ -42,6 +42,12 @@
         "behavior": true,
         "visual": true,
         "api": true
+      },
+      "verification": {
+        "local": "LOCAL_VERIFIED",
+        "mysql": "NOT_APPLICABLE",
+        "provider": "PROVIDER_VERIFIED",
+        "note": "FEATURE-0003 source re-certification completed on 2026-09-15 against the directly inspected canonical ZIP reporting sourceCommit 55acb639c1112a3c9a646dd103b01ad9cf5dd106 (archive SHA-256 d438109fc6a76ddc11f7f90d7f02c98d4b95fe456f78f34b66eae5cbeb5eaf97). PR #60 restores the V1 product journey and reconciles NAV-PJ-09 semantic multilingual banner guidance/details, NAV-PJ-10 exact contextual-suggestion policy/ranking/templates/lifecycle and NAV-PJ-11 ORS same-origin routing + Mapbox fallback / degraded map-provider behavior. Canonical matrices are 24 PASS / 0 PARTIAL / 0 GAP and NAV-PJ 11 PASS / 0 PARTIAL / 0 GAP, subject to same-head PR gates. equivalent is not released and does not authorize production."
       }
     },
     {

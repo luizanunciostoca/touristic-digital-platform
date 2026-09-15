@@ -13,6 +13,10 @@ import {
   type RuntimeEnvironment,
 } from "./config/mapbox-runtime.js";
 import { createV1ExploreMarkerElement } from "./map/explore-marker-element.js";
+import {
+  installBrowserNavigationRuntime,
+  type BrowserNavigationRuntimeInstall,
+} from "./navigation/browser-navigation-runtime-install.js";
 
 export interface BrowserMapContainer {
   setAttribute(name: string, value: string): void;
@@ -35,6 +39,18 @@ export interface StartMorroDigitalBrowserOptions {
   readonly onMapCreated?: (map: MapboxGlMapLike) => void;
 }
 
+const degradedNavigationByDocument = new WeakMap<
+  object,
+  BrowserNavigationRuntimeInstall
+>();
+
+function asDomDocument(document: BrowserDocument): Document | null {
+  const candidate = document as BrowserDocument & Partial<Document>;
+  return typeof candidate.createElement === "function" && candidate.body
+    ? (candidate as Document)
+    : null;
+}
+
 export async function startMorroDigitalBrowser(
   options: StartMorroDigitalBrowserOptions,
 ): Promise<BootstrapResult> {
@@ -49,6 +65,21 @@ export async function startMorroDigitalBrowser(
   container.setAttribute("data-map-state", "initializing");
 
   try {
+    const domDocument = asDomDocument(options.document);
+    const onMapCreated =
+      options.onMapCreated ??
+      (domDocument
+        ? (map: MapboxGlMapLike) => {
+            degradedNavigationByDocument.get(domDocument)?.destroy();
+            const installed = installBrowserNavigationRuntime({
+              map,
+              sdk: options.sdk,
+              document: domDocument,
+            });
+            degradedNavigationByDocument.set(domDocument, installed);
+          }
+        : undefined);
+
     const result = await bootstrapMorroDigital({
       initializeGeospatial: createMorroGeospatialInitializer({
         sdk: options.sdk,
@@ -56,7 +87,7 @@ export async function startMorroDigitalBrowser(
         createMarkerElement: (input) =>
           options.createMarkerElement?.(input) ??
           createV1ExploreMarkerElement(input),
-        ...(options.onMapCreated ? { onMapCreated: options.onMapCreated } : {}),
+        ...(onMapCreated ? { onMapCreated } : {}),
       }),
       ...(options.initialMarkers
         ? { initialMarkers: options.initialMarkers }
@@ -74,6 +105,11 @@ export async function startMorroDigitalBrowser(
     container.setAttribute("data-map-state", "ready");
     return result;
   } catch (error) {
+    const domDocument = asDomDocument(options.document);
+    if (domDocument) {
+      degradedNavigationByDocument.get(domDocument)?.destroy();
+      degradedNavigationByDocument.delete(domDocument);
+    }
     container.setAttribute("data-map-state", "error");
     throw error;
   } finally {

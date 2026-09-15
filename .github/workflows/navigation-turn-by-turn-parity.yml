@@ -1,0 +1,210 @@
+name: Navigation Turn-by-Turn Parity
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/navigation-turn-by-turn-parity.yml
+      - apps/morro-digital-platform/src/navigation/**
+      - apps/morro-digital-platform/src/assistant/assistant-navigation-feedback.ts
+      - apps/morro-digital-platform/src/assistant/assistant-message-dom.ts
+      - apps/morro-digital-platform/src/browser-entry.ts
+      - apps/morro-digital-platform/src/layouts/app-shell.ts
+      - packages/geospatial/src/adapters/navigation-mapbox.ts
+      - packages/navigation/src/**
+
+permissions:
+  contents: read
+
+jobs:
+  turn-by-turn-parity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install deterministic Chromium
+        run: |
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+      - name: Build workspace
+        run: pnpm -w build
+      - name: Start deterministic navigation runtime
+        run: |
+          node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/navigation-turn-by-turn.log 2>&1 &
+          echo $! >/tmp/navigation-turn-by-turn.pid
+          for i in $(seq 1 90); do
+            if curl -fsS http://127.0.0.1:4173/runtime-config.js >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/navigation-turn-by-turn.log
+          exit 1
+      - name: Drive GPS through every maneuver and arrival
+        run: |
+          node <<'NODE'
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+
+          const start = { latitude: -13.3762, longitude: -38.9172 };
+          const turn1 = { latitude: -13.37565, longitude: -38.91655 };
+          const turn2 = { latitude: -13.37485, longitude: -38.91575 };
+          const approach = { latitude: -13.37435, longitude: -38.91520 };
+          const destination = { latitude: -13.3740, longitude: -38.9148 };
+          const routeResponse = {
+            type: 'FeatureCollection',
+            features: [{
+              type: 'Feature',
+              properties: {
+                summary: { distance: 390, duration: 290 },
+                segments: [{
+                  distance: 390,
+                  duration: 290,
+                  steps: [
+                    { distance: 92, duration: 68, instruction: 'Continue em frente', name: 'Caminho principal', way_points: [0, 1], maneuver: { instruction: 'Continue em frente', type: 'continue' } },
+                    { distance: 126, duration: 94, instruction: 'Vire à direita', name: 'Rua da Fonte', way_points: [1, 2], maneuver: { instruction: 'Vire à direita', type: 'turn-right' } },
+                    { distance: 172, duration: 128, instruction: 'Vire à esquerda e siga até o destino', name: 'Destino', way_points: [2, 4], maneuver: { instruction: 'Vire à esquerda e siga até o destino', type: 'turn-left' } },
+                  ],
+                }],
+              },
+              geometry: {
+                type: 'LineString',
+                coordinates: [
+                  [start.longitude, start.latitude],
+                  [turn1.longitude, turn1.latitude],
+                  [turn2.longitude, turn2.latitude],
+                  [approach.longitude, approach.latitude],
+                  [destination.longitude, destination.latitude],
+                ],
+              },
+            }],
+          };
+
+          async function poll(page, predicate, label, timeout = 15000) {
+            const deadline = Date.now() + timeout;
+            while (Date.now() < deadline) {
+              if (await page.evaluate(predicate)) return;
+              await page.waitForTimeout(100);
+            }
+            const diagnostics = await page.evaluate(() => ({
+              mapState: document.getElementById('map')?.getAttribute('data-map-state') ?? null,
+              homeState: document.getElementById('map')?.getAttribute('data-home-state') ?? null,
+              tourState: document.getElementById('map')?.getAttribute('data-tour-state') ?? null,
+              mapMode: document.getElementById('map')?.getAttribute('data-map-mode') ?? null,
+              mapProvider: document.getElementById('map')?.getAttribute('data-map-provider') ?? null,
+              mapFallback: document.getElementById('map')?.getAttribute('data-map-fallback') ?? null,
+              runtimeStatus: document.getElementById('runtime-status')?.textContent ?? null,
+              banner: document.getElementById('instruction-main')?.textContent ?? null,
+              statuses: globalThis.__turnByTurnEvidence?.statuses ?? [],
+              speech: globalThis.__turnByTurnEvidence?.speech ?? [],
+              ended: globalThis.__turnByTurnEvidence?.ended ?? [],
+            }));
+            throw new Error(`${label} timed out: ${JSON.stringify(diagnostics)}`);
+          }
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            const context = await browser.newContext({
+              viewport: { width: 390, height: 844 },
+              geolocation: start,
+              permissions: ['geolocation'],
+            });
+            await context.addInitScript(() => {
+              localStorage.setItem('morro-digital-onboarded', '1');
+              localStorage.setItem('voice-enabled', 'true');
+              localStorage.setItem('voice-language', 'pt-BR');
+              globalThis.__turnByTurnEvidence = { statuses: [], runtime: [], speech: [], ended: [] };
+              addEventListener('navigationStatusChanged', (event) => globalThis.__turnByTurnEvidence.statuses.push(event.detail));
+              addEventListener('navigationRouteRuntimeUpdated', (event) => globalThis.__turnByTurnEvidence.runtime.push(event.detail));
+              addEventListener('navigationEnded', (event) => globalThis.__turnByTurnEvidence.ended.push(event.detail));
+            });
+
+            const page = await context.newPage();
+            const pageErrors = [];
+            page.on('pageerror', (error) => pageErrors.push(error.message));
+            await page.route('**/api/routing/directions', async (route) => {
+              await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify(routeResponse),
+              });
+            });
+
+            await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded', timeout: 30000 });
+            await poll(
+              page,
+              () => Boolean(document.querySelector('#map[data-map-state="ready"][data-home-state="ready"][data-tour-state="idle"][data-map-marker-count="0"]')),
+              'map-ready',
+              20000,
+            );
+
+            await page.evaluate(() => {
+              const synthesis = globalThis.speechSynthesis;
+              if (!synthesis) throw new Error('speechSynthesis unavailable in deterministic browser');
+              synthesis.cancel = () => {};
+              synthesis.getVoices = () => [];
+              synthesis.speak = (utterance) => {
+                globalThis.__turnByTurnEvidence.speech.push({
+                  text: String(utterance.text),
+                  lang: String(utterance.lang || ''),
+                });
+              };
+            });
+
+            await page.evaluate((nextDestination) => {
+              document.dispatchEvent(new CustomEvent('morro:navigation-requested', { detail: { destination: nextDestination } }));
+            }, destination);
+
+            await page.locator('#instruction-banner:not(.hidden)').waitFor({ state: 'visible', timeout: 15000 });
+            await poll(page, () => globalThis.__turnByTurnEvidence?.statuses?.some((status) => status.currentStepIndex === 0), 'step-0');
+            await poll(page, () => document.getElementById('instruction-main')?.textContent?.includes('Siga em frente'), 'banner-step-0');
+            await poll(page, () => globalThis.__turnByTurnEvidence?.speech?.some((entry) => entry.text.includes('Siga em frente')), 'speech-step-0');
+
+            await context.setGeolocation(turn1);
+            await poll(page, () => globalThis.__turnByTurnEvidence?.statuses?.some((status) => status.currentStepIndex === 1), 'step-1');
+            await poll(page, () => document.getElementById('instruction-main')?.textContent?.includes('Vire à direita'), 'banner-step-1');
+            await poll(page, () => globalThis.__turnByTurnEvidence?.speech?.some((entry) => entry.text.includes('Vire à direita')), 'speech-step-1');
+
+            await context.setGeolocation(turn2);
+            await poll(page, () => globalThis.__turnByTurnEvidence?.statuses?.some((status) => status.currentStepIndex === 2), 'step-2');
+            await poll(page, () => document.getElementById('instruction-main')?.textContent?.includes('Vire à esquerda'), 'banner-step-2');
+            await poll(page, () => globalThis.__turnByTurnEvidence?.speech?.some((entry) => entry.text.includes('Vire à esquerda')), 'speech-step-2');
+
+            await context.setGeolocation(approach);
+            await poll(page, () => globalThis.__turnByTurnEvidence?.speech?.some((entry) => entry.text.includes('chegando ao destino')), 'approach-speech');
+
+            await context.setGeolocation(destination);
+            await poll(page, () => globalThis.__turnByTurnEvidence?.statuses?.some((status) => status.phase === 'arrived'), 'arrival-status');
+            await poll(page, () => document.getElementById('instruction-main')?.textContent?.includes('chegou ao destino'), 'arrival-banner');
+            await poll(page, () => globalThis.__turnByTurnEvidence?.speech?.some((entry) => entry.text.includes('chegou ao destino')), 'arrival-speech');
+            await poll(page, () => globalThis.__turnByTurnEvidence?.ended?.some((entry) => entry.reason === 'arrived'), 'arrival-auto-end', 8000);
+
+            const result = await page.evaluate(() => ({
+              statuses: globalThis.__turnByTurnEvidence.statuses,
+              speech: globalThis.__turnByTurnEvidence.speech,
+              ended: globalThis.__turnByTurnEvidence.ended,
+              assistantFeedback: Array.from(document.querySelectorAll('#assistant-messages .message.assistant')).map((element) => element.textContent?.trim()).filter(Boolean),
+            }));
+            const observedSteps = [...new Set(result.statuses.map((status) => status.currentStepIndex).filter((value) => Number.isInteger(value)))];
+            if (![0, 1, 2].every((step) => observedSteps.includes(step))) {
+              throw new Error(`Missing full step progression 0->1->2: ${JSON.stringify(observedSteps)}`);
+            }
+            if (!result.assistantFeedback.some((text) => text.includes('chegou ao destino'))) {
+              throw new Error(`Assistant arrival feedback missing: ${JSON.stringify(result.assistantFeedback)}`);
+            }
+            if (pageErrors.length) throw new Error(`Page errors: ${JSON.stringify(pageErrors)}`);
+            console.log(JSON.stringify(result, null, 2));
+            await context.close();
+            await browser.close();
+          })().catch((error) => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+      - name: Dump server log on failure
+        if: failure()
+        run: cat /tmp/navigation-turn-by-turn.log || true

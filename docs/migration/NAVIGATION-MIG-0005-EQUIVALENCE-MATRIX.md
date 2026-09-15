@@ -2,86 +2,62 @@
 
 ## Objetivo
 
-Consolidar os 24 cenários obrigatórios definidos em `NAVIGATION-V1-BASELINE.md` para `MIG-0005 / FEATURE-0003`, sem reabrir checkpoints já comprovados.
+Consolidar a evidência de paridade de `MIG-0005 / FEATURE-0003` contra o ZIP canônico V1 e contra os gates executáveis da V2.
 
-Fonte V1 congelada:
+## Fontes V1
+
+Baseline histórica dos checkpoints anteriores:
 
 ```text
 luizidebook/morro-de-sao-paulo-digital
 60746fd7fed97b805758b37adfdbe3bad2582bfe
 ```
 
-## Checkpoints V2 consolidados
+Snapshot canônico diretamente inspecionado em 2026-09-15:
 
 ```text
-Baseline funcional/visual anterior
-PR #49 / NAV-26
-head fe6da25bab17a1cbecf510de3002b82cf088f4c7
-Quality Gate #542 — success
-Navigation Visual Baseline #19 — success
-
-Accuracy V1
-PR #52
-head 211054cebd4e5e991958e2292e7eb4d3bbecb0f6
-bootstrap max accuracy 1500 m
-guidance max accuracy 300 m
-
-Routing fallback Mapbox Directions
-PR #53
-head 54ee3ca76e46b59fe8e4aa622bd3afae0ab8c835
-Quality Gate #568 — success
-Navigation Visual Baseline #41 — success
-
-Acessibilidade durante navegação ativa
-PR #54
-head 68177abb57f648ac73b0e3d3d999a510badfd5a4
-Quality Gate #569 — success
-Navigation Accessibility Baseline #1 — success
-artifact 9031022524
-sha256 a23b789045ee557d4001cefed8f1a8603f704ef59c1ddc787d05f965ce89d161
-
-Provider fallback durante navegação
-PR #55
-head d2a169b29ec991c9fb42918af593cdbff10fbb05
-Quality Gate #575 — success
+sourceCommit = 55acb639c1112a3c9a646dd103b01ad9cf5dd106
+ZIP SHA-256 = d438109fc6a76ddc11f7f90d7f02c98d4b95fe456f78f34b66eae5cbeb5eaf97
 ```
 
-## Estados da matriz
+A reconciliação byte/source-dependent está registrada em `NAVIGATION-V1-SOURCE-RECERTIFICATION-2026-09-15.md`.
 
-- `PASS`: existe teste executável ou prova browser aplicável e o contrato V1 está materializado na V2.
-- `PARTIAL`: parte do contrato está provada, mas falta uma condição obrigatória.
-- `GAP`: não existe implementação/prova suficiente.
+## Estados
 
-## Matriz obrigatória
+- `PASS`: implementação e prova aplicável existem;
+- `PARTIAL`: implementação existe, mas falta prova necessária;
+- `GAP`: responsabilidade V1 reconhecida sem implementação/prova suficiente.
 
-|   # | Cenário V1 obrigatório                     | Estado | Evidência V2                                                                                                                                                   | Pendência |
-| --: | ------------------------------------------ | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
-|   1 | iniciar navegação com localização válida   | PASS   | NAV-10/NAV-11/NAV-25B + Navigation Visual Baseline                                                                                                             | nenhuma   |
-|   2 | permissão de localização negada            | PASS   | `browser-geolocation.test.ts`: denial, rejeição e cleanup do watcher                                                                                           | nenhuma   |
-|   3 | localização imprecisa                      | PASS   | PR #52: baseline V1 materializado com `1500 m` no bootstrap e `300 m` no guidance                                                                              | nenhuma   |
-|   4 | coordenadas inválidas                      | PASS   | request port + routing parity rejeitam coordenadas inválidas antes de lifecycle/rede                                                                           | nenhuma   |
-|   5 | routing proxy success                      | PASS   | routing parity + browser journey com `POST /api/routing/directions`                                                                                            | nenhuma   |
-|   6 | routing proxy timeout                      | PASS   | timeout tipado/abort; limites e default V1 preservados                                                                                                         | nenhuma   |
-|   7 | routing proxy unavailable                  | PASS   | indisponibilidade same-origin e erro primário distinguidos                                                                                                     | nenhuma   |
-|   8 | fallback elegível                          | PASS   | PR #53: provider Mapbox Directions concreto no boundary geospatial/app, troca primário → fallback e adaptação ao contrato consumido pela navegação             | nenhuma   |
-|   9 | cancelamento durante request               | PASS   | bootstrap cancelável + session `AbortSignal`; stop impede ativação tardia                                                                                      | nenhuma   |
-|  10 | sessão A substituída por sessão B          | PASS   | supersession monotônica + geração/sessão oficial                                                                                                               | nenhuma   |
-|  11 | callback tardio da sessão A                | PASS   | stale work, stale route result e recalculation stale-session                                                                                                   | nenhuma   |
-|  12 | atualização de progresso ao longo da rota  | PASS   | geometry parity + runtime/status browser                                                                                                                       | nenhuma   |
-|  13 | ruído GPS com pequeno movimento para trás  | PASS   | regressão geométrica + visual backward guard                                                                                                                   | nenhuma   |
-|  14 | mudança de bearing                         | PASS   | bearing/tangente + smoothing/dead-band + presenter/câmera                                                                                                      | nenhuma   |
-|  15 | aproximação de manobra e histerese de zoom | PASS   | fixture V1 e fronteiras `65 / 22 / 38 / 90 m`                                                                                                                  | nenhuma   |
-|  16 | polling sem movimento real                 | PASS   | polling sem mudança visual não reinicia `easeTo`                                                                                                               | nenhuma   |
-|  17 | minimizar/maximizar banner                 | PASS   | Navigation Visual Baseline em mobile/tablet/desktop, incluindo `aria-expanded`                                                                                 | nenhuma   |
-|  18 | cancelamento manual                        | PASS   | botão Encerrar → `navigationEnded.reason=cancelled` + teardown                                                                                                 | nenhuma   |
-|  19 | chegada ao destino                         | PASS   | core `100 m / 30 m / auto-end 5 s` + browser integration + reason `arrived`                                                                                    | nenhuma   |
-|  20 | cleanup após `navigationEnded`             | PASS   | lifecycle/installer teardown idempotente + browser proof                                                                                                       | nenhuma   |
-|  21 | fallback de mapa/provider quando aplicável | PASS   | PR #55 + `NAVIGATION-PROVIDER-FALLBACK-V1-CONTRACT.md`: runtime Mapbox é destruído antes do fallback e navegação guiada não é duplicada em Leaflet/development | nenhuma   |
-|  22 | alto contraste                             | PASS   | PR #54 / Navigation Accessibility Baseline #1: navegação ativa em `forced-colors: active` nas três viewports                                                   | nenhuma   |
-|  23 | texto ampliado                             | PASS   | PR #54 / Navigation Accessibility Baseline #1: navegação ativa a 200%, sem clipping/overlap impeditivo e com controles utilizáveis                             | nenhuma   |
-|  24 | mobile/tablet/desktop                      | PASS   | Navigation Visual Baseline + Accessibility Baseline em mobile/tablet/desktop                                                                                   | nenhuma   |
+## Matriz histórica de 24 cenários
 
-## Resultado consolidado
+|   # | Cenário histórico                        | Estado | Evidência / observação                                                                                                                        |
+| --: | ---------------------------------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+|   1 | iniciar navegação com localização válida | PASS   | bootstrap + browser journey                                                                                                                   |
+|   2 | permissão de localização negada          | PASS   | denial + cleanup                                                                                                                              |
+|   3 | localização imprecisa                    | PASS   | 1500 m bootstrap / 300 m guidance                                                                                                             |
+|   4 | coordenadas inválidas                    | PASS   | rejeição pré-rede                                                                                                                             |
+|   5 | routing proxy success                    | PASS   | same-origin routing                                                                                                                           |
+|   6 | routing proxy timeout                    | PASS   | Navigation fixa 15 s                                                                                                                          |
+|   7 | routing proxy unavailable                | PASS   | erro primário distinguível                                                                                                                    |
+|   8 | fallback elegível                        | PASS   | proxy ORS → Mapbox apenas nos erros V1 elegíveis                                                                                              |
+|   9 | cancelamento durante request             | PASS   | AbortSignal da sessão                                                                                                                         |
+|  10 | sessão A substituída por B               | PASS   | supersession monotônica                                                                                                                       |
+|  11 | callback tardio da sessão A              | PASS   | stale protection                                                                                                                              |
+|  12 | progresso ao longo da rota               | PASS   | geometry/runtime                                                                                                                              |
+|  13 | ruído GPS / pequeno retorno              | PASS   | backward guard                                                                                                                                |
+|  14 | bearing                                  | PASS   | tangente + smoothing                                                                                                                          |
+|  15 | aproximação de manobra / zoom            | PASS   | câmera/histerese                                                                                                                              |
+|  16 | polling sem movimento                    | PASS   | sem easeTo redundante                                                                                                                         |
+|  17 | minimizar/maximizar banner               | PASS   | visual baseline                                                                                                                               |
+|  18 | cancelamento manual                      | PASS   | teardown                                                                                                                                      |
+|  19 | chegada ao destino                       | PASS   | aproximação/chegada/auto-end + UI/TTS                                                                                                         |
+|  20 | cleanup após navigationEnded             | PASS   | teardown idempotente                                                                                                                          |
+|  21 | mapa/provider degradado                  | PASS   | ZIP `55ac...` confirma Mapbox visual primário + Leaflet contingência; V2 mantém o mesmo Navigation core e degrada apenas câmera não suportada |
+|  22 | alto contraste                           | PASS   | accessibility baseline                                                                                                                        |
+|  23 | texto ampliado                           | PASS   | accessibility baseline                                                                                                                        |
+|  24 | mobile/tablet/desktop                    | PASS   | visual/accessibility baseline                                                                                                                 |
+
+Resultado:
 
 ```text
 PASS     24
@@ -90,30 +66,53 @@ GAP       0
 TOTAL    24
 ```
 
-## Decisão do cenário 21
+## Obrigações da jornada completa
 
-A V1 congelada não implementa dois motores visuais de navegação concorrentes. Mapbox e Leaflet não devem renderizar a mesma rota guiada em sequência ou simultaneamente. A navegação first-person/câmera/marcador depende do Mapbox real.
+| ID        | Obrigação                                   | Estado | Evidência                                                                                                                                          |
+| --------- | ------------------------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| NAV-PJ-01 | avanço automático `step 0 → 1 → 2`          | PASS   | threshold ~20 m + unit/browser turn-by-turn                                                                                                        |
+| NAV-PJ-02 | voz por nova manobra                        | PASS   | Navigation TTS + browser evidence                                                                                                                  |
+| NAV-PJ-03 | GPS inicial com até 3 tentativas            | PASS   | 15 s / 20 s / 25 s                                                                                                                                 |
+| NAV-PJ-04 | reutilizar localização recente              | PASS   | recent-location cache                                                                                                                              |
+| NAV-PJ-05 | timeout efetivo de rota em 15 s             | PASS   | session bootstrap                                                                                                                                  |
+| NAV-PJ-06 | supressão inicial de recálculo              | PASS   | 15 s normal / 120 s tutorial                                                                                                                       |
+| NAV-PJ-07 | aviso de aproximação e chegada              | PASS   | banner + TTS + auto-end                                                                                                                            |
+| NAV-PJ-08 | feedback do Assistant após término          | PASS   | assistant navigation feedback                                                                                                                      |
+| NAV-PJ-09 | processamento multilíngue de apresentação   | PASS   | ZIP `55ac...` comparado diretamente com `bannerUI.js`; simplificador semântico, tipo, idioma, rua, detalhes e original reconciliados; source tests |
+| NAV-PJ-10 | sugestões contextuais durante rota          | PASS   | ZIP `55ac...` comparado diretamente; política 20 s/30 m/60 s/5 min/10, ranking/raios/templates/evento/lifecycle materializados e testados          |
+| NAV-PJ-11 | navegação quando Mapbox não está disponível | PASS   | `routing-client.js`/Mapbox fallback e Mapbox→Leaflet contingência comparados diretamente; V2 typed routing contract + provider regression          |
 
-Na V2, portanto:
+```text
+NAV-PJ PASS     11
+NAV-PJ PARTIAL   0
+NAV-PJ GAP       0
+```
 
-1. `prepareMapContainerForFallback()` destrói o runtime de navegação Mapbox antes da troca de provider;
-2. aliases Mapbox são limpos antes do fallback;
-3. `installBrowserNavigationRuntime()` é instalado somente quando `provider.mode === "real"`;
-4. Leaflet/development continua sendo fallback cartográfico da Home, sem um motor de navegação guiada inventado fora do contrato V1.
+## Contrato executável obrigatório
 
-Esse contrato está documentado e testado no PR #55.
+`.github/workflows/navigation-turn-by-turn-parity.yml` conduz GPS determinístico por:
 
-## Decisão de estado de MIG-0005
+```text
+step 0 → step 1 → step 2 → approaching → arrived → auto-end
+```
 
-Todos os 24 cenários obrigatórios estão em `PASS`, com evidência comportamental, browser/visual onde aplicável, testes automatizados, boundaries arquiteturais e caminho de teardown/rollback preservados.
+O gate valida progressão de manobra, banner, status observável, TTS de cada nova instrução, aproximação, chegada e feedback final do Assistant. Provider/Visual/Accessibility permanecem cobertos por seus gates próprios.
 
-Assim, `MIG-0005` pode avançar de `mapped` para `equivalent`, condicionado ao Quality Gate verde do checkpoint de consolidação que atualiza esta matriz, o Master Migration Tracker e o Feature Registry no mesmo head.
+O checkpoint funcional anterior `b98e7bfe5d9e262035701831bade7bb36787b2be` já provou a jornada integral antes da recuperação da fonte. A rodada atual adiciona a prova que faltava: comparação direta contra o ZIP `55ac...` e correção das diferenças source-dependent encontradas em NAV-PJ-09/10.
 
-`equivalent` não significa `released`: publicação/rollout continua sendo uma etapa posterior e separada.
+## Decisão de MIG-0005
 
-## Higiene da pilha
+Com a fonte canônica diretamente reconciliada, o estado de conteúdo passa a:
 
-- PR #50 / NAV-27 permanece superseded pelo PR #49.
-- Checkpoints de accuracy, routing fallback, acessibilidade e provider fallback foram mantidos isolados.
-- Workflows temporários usados para diagnóstico/formatação foram removidos antes dos heads finais considerados como evidência.
-- Nenhuma funcionalidade Leaflet de navegação foi criada por inferência.
+```text
+Navigation Core                 EQUIVALENT
+Navigation Geometry/Camera      EQUIVALENT
+Navigation Product Journey      EQUIVALENT
+Runtime GAP                     0
+Source-exactness PARTIAL        0
+MIG-0005 / FEATURE-0003         EQUIVALENT CANDIDATE
+```
+
+A promoção registral para `equivalent` é válida somente no exact-head que contém esta matriz e conclui os gates obrigatórios da PR com sucesso. O resultado final do exact-head fica registrado na PR #60 e no bloqueio #62 sem exigir alteração adicional desta matriz.
+
+`equivalent` continua distinto de `released`.

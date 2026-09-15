@@ -1,13 +1,25 @@
-import type { NavigationRuntimeSnapshot } from "@touristic/navigation";
+import type {
+  NavigationGuidanceSnapshot,
+  NavigationRuntimeSnapshot,
+} from "@touristic/navigation";
 
 export interface NavigationGuidanceUi {
   start(): void;
   update(snapshot: NavigationRuntimeSnapshot): void;
+  approaching?(message: string): void;
+  arrived?(message: string): void;
   stop(): void;
   destroy(): void;
 }
 
 const STYLE_ID = "navigation-guidance-v2-styles";
+
+const V1_DETAIL_CONNECTORS = Object.freeze({
+  pt: Object.freeze({ on: "na", for: "por" }),
+  en: Object.freeze({ on: "on", for: "for" }),
+  es: Object.freeze({ on: "en", for: "por" }),
+  he: Object.freeze({ on: "על", for: "עבור" }),
+});
 
 function formatDistance(meters: number): string {
   const value = Math.max(0, Number.isFinite(meters) ? meters : 0);
@@ -26,28 +38,85 @@ function formatDuration(seconds: number): string {
   return remainder > 0 ? `${hours} h ${remainder} min` : `${hours} h`;
 }
 
+function includesAny(text: string, values: readonly string[]): boolean {
+  return values.some((value) => text.includes(value));
+}
+
 function directionFor(instruction: string): {
   readonly arrow: string;
   readonly className: string;
 } {
   const text = instruction.toLowerCase();
-  if (text.includes("arriv") || text.includes("destination")) {
+  if (
+    includesAny(text, ["arriv", "destination", "destino", "lleg", "הגע", "יעד"])
+  ) {
     return { arrow: "●", className: "arrive" };
   }
   if (
-    text.includes("u-turn") ||
-    text.includes("uturn") ||
-    text.includes("retorno")
+    includesAny(text, [
+      "u-turn",
+      "uturn",
+      "retorno",
+      "media vuelta",
+      "vuelta en u",
+      "פרסה",
+    ])
   ) {
     return { arrow: "↶", className: "turn-uturn" };
   }
-  if (text.includes("left") || text.includes("esquerda")) {
+  if (includesAny(text, ["left", "esquerda", "izquierda", "שמאלה", "שמאל"])) {
     return { arrow: "←", className: "turn-left" };
   }
-  if (text.includes("right") || text.includes("direita")) {
+  if (includesAny(text, ["right", "direita", "derecha", "ימינה", "ימין"])) {
     return { arrow: "→", className: "turn-right" };
   }
   return { arrow: "↑", className: "continue-straight" };
+}
+
+function v1ArrivalInstruction(guidance: NavigationGuidanceSnapshot): boolean {
+  const type = guidance.maneuverType;
+  if (type === 10 || type === 11 || type === 12) return true;
+  if (typeof type === "string") {
+    const normalized = type.toLowerCase();
+    if (normalized.includes("arrive") || normalized.includes("destination")) {
+      return true;
+    }
+  }
+  const original = guidance.original.toLowerCase();
+  return original.includes("arrive") || original.includes("destination");
+}
+
+function v1StreetName(guidance: NavigationGuidanceSnapshot): string | null {
+  const explicit = guidance.streetName?.trim();
+  if (explicit && explicit !== "-") return explicit;
+
+  const original = guidance.original;
+  const lower = original.toLowerCase();
+  if (lower.includes(" on ")) {
+    const extracted = original.split(" on ")[1]?.trim();
+    if (extracted) return extracted;
+  } else if (lower.includes(" onto ")) {
+    const extracted = original.split(" onto ")[1]?.trim();
+    if (extracted) return extracted;
+  }
+  return null;
+}
+
+/**
+ * Reproduces canonical V1 `bannerUI.buildDetailsText`: localized semantic
+ * action + localized connector + street (when available) + maneuver distance.
+ */
+function v1DetailsText(guidance: NavigationGuidanceSnapshot): string {
+  const action =
+    guidance.instruction || guidance.original || "Continue pela rota";
+  if (v1ArrivalInstruction(guidance)) return action;
+
+  const language = guidance.language ?? "pt";
+  const connectors = V1_DETAIL_CONNECTORS[language] ?? V1_DETAIL_CONNECTORS.pt;
+  const street = v1StreetName(guidance);
+  return street
+    ? `${action} ${connectors.on} ${street} ${connectors.for} ${guidance.formattedDistance}`
+    : `${action} ${connectors.for} ${guidance.formattedDistance}`;
 }
 
 function ensureStyles(document: Document): void {
@@ -58,6 +127,7 @@ function ensureStyles(document: Document): void {
 .instruction-banner{--nav-primary:linear-gradient(135deg,#2563eb,#3b82f6);position:fixed!important;left:50%!important;top:0!important;transform:translateX(-50%)!important;width:100%!important;max-width:480px!important;z-index:2300!important;display:flex!important;flex-direction:column!important;border-radius:0 0 16px 16px!important;overflow:hidden!important;background:#fff!important;box-shadow:0 10px 25px rgba(0,0,0,.25),0 5px 12px rgba(0,0,0,.15);transition:transform .3s ease,opacity .3s ease}
 .instruction-banner.hidden{display:flex!important;opacity:0;transform:translateX(-50%) translateY(-110%)!important;pointer-events:none}
 .instruction-primary{display:flex;align-items:center;gap:12px;background:var(--nav-primary);color:#f8fafc;padding:8px 12px}
+.instruction-banner.arrive{--nav-primary:linear-gradient(135deg,#15803d,#22c55e)}
 #instruction-arrow{display:flex;align-items:center;justify-content:center;min-width:48px;height:48px;font-size:1.8rem}
 #instruction-main{font-size:1.25rem;font-weight:600;line-height:1.2;margin:0;flex:1;color:#fff}
 #minimize-navigation-btn{width:30px;height:30px;border:0;border-radius:50%;background:rgba(255,255,255,.18);color:#fff;cursor:pointer;position:relative}
@@ -108,7 +178,7 @@ export function createNavigationGuidanceUi(
     active = false;
     document.body.classList.remove("navigation-active");
     banner?.classList.add("hidden");
-    banner?.classList.remove("minimized");
+    banner?.classList.remove("minimized", "arrive");
     minimizeButton?.setAttribute("aria-expanded", "true");
     endButton?.setAttribute("style", "display:none;");
   };
@@ -119,6 +189,17 @@ export function createNavigationGuidanceUi(
     minimizeButton?.setAttribute("aria-expanded", String(!minimized));
   };
   minimizeButton?.addEventListener("click", toggleMinimized);
+
+  const setDirectionClass = (className: string): void => {
+    banner?.classList.remove(
+      "turn-left",
+      "turn-right",
+      "turn-uturn",
+      "arrive",
+      "continue-straight",
+    );
+    banner?.classList.add(className);
+  };
 
   return Object.freeze({
     start: show,
@@ -135,24 +216,31 @@ export function createNavigationGuidanceUi(
       );
 
       if (main) main.textContent = instruction;
-      if (details) {
-        details.textContent = `${guidance.original || instruction} • próxima manobra em ${formatDistance(snapshot.distanceToNextManeuver)}`;
-      }
+      if (details) details.textContent = v1DetailsText(guidance);
       if (arrow) arrow.textContent = direction.arrow;
       if (distance)
         distance.textContent = formatDistance(snapshot.remainingDistance);
       if (time) time.textContent = formatDuration(snapshot.remainingDuration);
       if (progress) progress.style.width = `${percent}%`;
       if (progressText) progressText.textContent = `${percent}%`;
-
-      banner?.classList.remove(
-        "turn-left",
-        "turn-right",
-        "turn-uturn",
-        "arrive",
-        "continue-straight",
-      );
-      banner?.classList.add(direction.className);
+      setDirectionClass(direction.className);
+    },
+    approaching(message: string): void {
+      if (destroyed) return;
+      if (!active) show();
+      if (details) details.textContent = message;
+    },
+    arrived(message: string): void {
+      if (destroyed) return;
+      if (!active) show();
+      if (main) main.textContent = message;
+      if (details) details.textContent = message;
+      if (arrow) arrow.textContent = "●";
+      if (distance) distance.textContent = "0 m";
+      if (time) time.textContent = "< 1 min";
+      if (progress) progress.style.width = "100%";
+      if (progressText) progressText.textContent = "100%";
+      setDirectionClass("arrive");
     },
     stop: hide,
     destroy(): void {

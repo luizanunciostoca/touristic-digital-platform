@@ -10,6 +10,7 @@ import type {
   NavigationRuntimeSnapshot,
   RouteFeatureCollection,
   RouteRecalculationRequest,
+  RoutingLanguage,
 } from "@touristic/navigation";
 
 import {
@@ -38,6 +39,7 @@ export interface BrowserNavigationWiringOptions {
   readonly map: MapboxGlMapLike;
   readonly sdk: MapboxGlModuleLike;
   readonly routeData: unknown;
+  readonly language?: RoutingLanguage;
   readonly sessionId?: number;
   readonly destination?: {
     readonly longitude: number;
@@ -45,9 +47,11 @@ export interface BrowserNavigationWiringOptions {
   };
   readonly instructions?: readonly NavigationInstructionInput[];
   readonly stepIndex?: number;
+  readonly recalculationSuppressionMs?: number;
   readonly geolocationDriver?: BrowserGeolocationDriver;
   readonly onSnapshot?: (snapshot: NavigationRuntimeSnapshot) => void;
   readonly onLocation?: (location: BrowserLocation) => void;
+  readonly onApproaching?: () => void;
   readonly onArrival?: () => void;
   readonly onAutoEnd?: () => void;
   readonly onRecalculation?: (route: RouteFeatureCollection) => void;
@@ -128,6 +132,7 @@ export function createBrowserNavigationWiring(
     geolocation,
     presenter,
     routeData: options.routeData,
+    ...(options.language ? { language: options.language } : {}),
     ...(options.sessionId !== undefined
       ? { sessionId: options.sessionId }
       : {}),
@@ -136,8 +141,12 @@ export function createBrowserNavigationWiring(
     ...(options.stepIndex !== undefined
       ? { stepIndex: options.stepIndex }
       : {}),
+    ...(options.recalculationSuppressionMs !== undefined
+      ? { recalculationSuppressionMs: options.recalculationSuppressionMs }
+      : {}),
     ...(options.onSnapshot ? { onSnapshot: options.onSnapshot } : {}),
     ...(options.onLocation ? { onLocation: options.onLocation } : {}),
+    ...(options.onApproaching ? { onApproaching: options.onApproaching } : {}),
     ...(options.onArrival ? { onArrival: options.onArrival } : {}),
     ...(options.onAutoEnd ? { onAutoEnd: options.onAutoEnd } : {}),
     ...(options.onRecalculation

@@ -40,13 +40,16 @@ export function createNavigationRequestPort(
     if (destroyed || !(event instanceof CustomEvent)) return;
 
     const detail = event.detail as
-      { readonly destination?: unknown } | undefined;
+      | { readonly destination?: unknown; readonly tutorial?: unknown }
+      | undefined;
     const destination = detail?.destination;
     if (!isNavigationDestinationInput(destination)) return;
 
-    void lifecycle.start(destination).catch((error: unknown) => {
-      onError?.(error);
-    });
+    void lifecycle
+      .start(destination, { tutorial: detail?.tutorial === true })
+      .catch((error: unknown) => {
+        onError?.(error);
+      });
   };
 
   document.addEventListener(NAVIGATION_REQUEST_EVENT, onNavigationRequested);

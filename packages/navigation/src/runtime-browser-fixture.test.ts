@@ -89,7 +89,7 @@ describe("navigation runtime browser fixture", () => {
       totalDistance: 390,
       totalDuration: 290,
       guidance: {
-        instruction: "Continue em frente",
+        instruction: "Siga em frente",
         stepIndex: 0,
         totalSteps: 3,
       },

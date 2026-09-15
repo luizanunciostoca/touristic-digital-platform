@@ -69,6 +69,12 @@ export {
 } from "./stabilizer.js";
 
 export {
+  processNavigationInstructionText,
+  simplifyNavigationInstructionText,
+  type NavigationInstructionLanguage,
+} from "./instruction-text.js";
+
+export {
   createNavigationRuntimeCoordinator,
   type NavigationGuidanceSnapshot,
   type NavigationInstructionInput,

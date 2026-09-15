@@ -25,6 +25,8 @@ export function createDevelopmentMapboxSdk(
     readonly #element: DevelopmentMapElement;
     #markerCount = 0;
     #active = true;
+    #center: [number, number];
+    #zoom: number;
 
     constructor(options: {
       readonly container: string;
@@ -40,13 +42,19 @@ export function createDevelopmentMapboxSdk(
       }
 
       this.#element = element;
+      this.#center = options.center;
+      this.#zoom = options.zoom;
       this.#element.setAttribute("data-development-map", "true");
+      this.#renderCameraState();
+      this.#renderMarkerState();
+    }
+
+    #renderCameraState(): void {
       this.#element.setAttribute(
         "data-development-center",
-        formatCoordinates(options.center),
+        formatCoordinates(this.#center),
       );
-      this.#element.setAttribute("data-development-zoom", String(options.zoom));
-      this.#renderMarkerState();
+      this.#element.setAttribute("data-development-zoom", String(this.#zoom));
     }
 
     #renderMarkerState(): void {
@@ -76,10 +84,17 @@ export function createDevelopmentMapboxSdk(
     }
 
     setCenter(center: [number, number]): void {
-      this.#element.setAttribute(
-        "data-development-center",
-        formatCoordinates(center),
-      );
+      this.#center = center;
+      this.#renderCameraState();
+    }
+
+    easeTo(input: {
+      readonly center?: [number, number];
+      readonly zoom?: number;
+    }): void {
+      if (input.center) this.#center = input.center;
+      if (Number.isFinite(Number(input.zoom))) this.#zoom = Number(input.zoom);
+      this.#renderCameraState();
     }
 
     remove(): void {

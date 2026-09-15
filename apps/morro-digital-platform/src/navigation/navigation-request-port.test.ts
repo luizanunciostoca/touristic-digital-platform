@@ -34,10 +34,38 @@ describe("navigation request port", () => {
     );
     await Promise.resolve();
 
-    expect(lifecycle.start).toHaveBeenCalledWith({
-      longitude: -38.9146,
-      latitude: -13.3769,
-    });
+    expect(lifecycle.start).toHaveBeenCalledWith(
+      {
+        longitude: -38.9146,
+        latitude: -13.3769,
+      },
+      { tutorial: false },
+    );
+    port.destroy();
+  });
+
+  it("propagates tutorial navigation context", async () => {
+    const document = createTestDocument();
+    const lifecycle = createLifecycle();
+    const port = createNavigationRequestPort({ document, lifecycle });
+
+    document.dispatchEvent(
+      new CustomEvent(NAVIGATION_REQUEST_EVENT, {
+        detail: {
+          destination: { longitude: -38.9146, latitude: -13.3769 },
+          tutorial: true,
+        },
+      }),
+    );
+    await Promise.resolve();
+
+    expect(lifecycle.start).toHaveBeenCalledWith(
+      {
+        longitude: -38.9146,
+        latitude: -13.3769,
+      },
+      { tutorial: true },
+    );
     port.destroy();
   });
 
