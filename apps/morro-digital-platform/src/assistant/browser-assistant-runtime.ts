@@ -111,7 +111,9 @@ function appendPhotoCarousel(
   messagesArea.scrollTop = messagesArea.scrollHeight;
 }
 
-function readOptionOverride(value: unknown): readonly AssistantDomOption[] | null {
+function readOptionOverride(
+  value: unknown,
+): readonly AssistantDomOption[] | null {
   if (!Array.isArray(value) || value.length === 0) return null;
   const result: AssistantDomOption[] = [];
   for (const option of value) {
