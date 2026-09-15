@@ -10,6 +10,7 @@ import {
   type MorroV1SearchCatalogItem,
 } from "@touristic/search";
 
+import { getV1ExplorePlaceActionOptions } from "./explore-location-actions-v1.js";
 import {
   filterV1ExploreLocations,
   getV1ExploreSubcategoryOptions,
@@ -45,7 +46,7 @@ interface MapboxCompatibilityGlobal {
   readonly mapboxPrimaryInstance?: MapboxGlMapLike;
 }
 
-type ExploreStage = "menu" | "filters" | "places" | "tour";
+type ExploreStage = "menu" | "filters" | "places" | "detail" | "tour";
 
 const categoryValues = new Set(
   morroV1SearchCatalog.map((location) => location.category),
@@ -92,8 +93,9 @@ function clearTourPresentation(document: Document): void {
   if (map?.getLayer?.(TOUR_ROUTE_OUTLINE)) {
     map.removeLayer?.(TOUR_ROUTE_OUTLINE);
   }
-  if (map?.getSource?.(TOUR_ROUTE_SOURCE))
+  if (map?.getSource?.(TOUR_ROUTE_SOURCE)) {
     map.removeSource?.(TOUR_ROUTE_SOURCE);
+  }
 
   const tourSelect = document.getElementById("tour-select");
   if (tourSelect instanceof HTMLSelectElement) tourSelect.selectedIndex = -1;
@@ -102,6 +104,7 @@ function clearTourPresentation(document: Document): void {
 function markerForLocation(
   location: MorroV1SearchCatalogItem,
   index: number,
+  openPopup = false,
 ): MapMarker {
   return Object.freeze({
     id:
@@ -112,6 +115,7 @@ function markerForLocation(
       longitude: location.longitude,
     }),
     label: location.name,
+    ...(openPopup ? { openPopup: true } : {}),
   });
 }
 
@@ -169,13 +173,21 @@ function frameLocationsOnMap(
   if (locations.length === 1) {
     const location = locations[0];
     if (!location) return;
-    if (geospatialEngine?.initialized) {
+    if (map?.flyTo) {
+      map.flyTo({
+        center: [location.longitude, location.latitude],
+        zoom: 16,
+        duration: 650,
+        essential: true,
+      });
+    } else if (map) {
+      map.setCenter([location.longitude, location.latitude]);
+      map.setZoom?.(16);
+    } else if (geospatialEngine?.initialized) {
       void geospatialEngine.setCenter({
         latitude: location.latitude,
         longitude: location.longitude,
       });
-    } else {
-      map?.setCenter([location.longitude, location.latitude]);
     }
     return;
   }
@@ -272,6 +284,7 @@ export function installExploreLocationsControl({
   const renderLocationsOnMap = async (
     locations: readonly MorroV1SearchCatalogItem[],
     category: string,
+    openSelectedPopup = false,
   ): Promise<void> => {
     visibleLocations = Object.freeze([...locations]);
     if (!geospatialEngine?.initialized) return;
@@ -279,7 +292,13 @@ export function installExploreLocationsControl({
     updateMapState(locations.length, category, "loading");
     try {
       await geospatialEngine.replaceMarkers(
-        locations.map((location, index) => markerForLocation(location, index)),
+        locations.map((location, index) =>
+          markerForLocation(
+            location,
+            index,
+            openSelectedPopup && locations.length === 1,
+          ),
+        ),
       );
       updateMapState(locations.length, category, "ready");
       frameLocationsOnMap(locations, geospatialEngine);
@@ -399,18 +418,24 @@ export function installExploreLocationsControl({
     location: MorroV1SearchCatalogItem,
   ): Promise<void> => {
     if (!activeCategory) return;
-    activeStage = "places";
+    activeStage = "detail";
     removeAssistantFlowResults(document);
-    await renderLocationsOnMap([location], activeCategory.value);
+    await renderLocationsOnMap([location], activeCategory.value, true);
     document
       .getElementById("runtime-status")
       ?.replaceChildren(
         document.createTextNode(`${location.name} selecionado.`),
       );
     ensureAssistantVisible(document);
+    const optionsOverride = getV1ExplorePlaceActionOptions(
+      activeCategory.value,
+    ).map(({ label, value }) => Object.freeze({ label, value }));
     document.dispatchEvent(
       new CustomEvent("morro:assistant-option-selected", {
-        detail: { value: createExploreLocationDetailsCommand(location.name) },
+        detail: {
+          value: createExploreLocationDetailsCommand(location.name),
+          optionsOverride: Object.freeze(optionsOverride),
+        },
       }),
     );
   };
@@ -581,6 +606,21 @@ export function installExploreLocationsControl({
     if (!detail || typeof detail !== "object") return;
     const candidate: unknown = Reflect.get(detail, "value");
     const value = typeof candidate === "string" ? candidate : "";
+
+    if (
+      activeStage === "detail" &&
+      activeCategory &&
+      value === `[sub]${activeCategory.value}`
+    ) {
+      event.stopImmediatePropagation();
+      const allLocations = getExploreLocationsForCategory(activeCategory.value);
+      renderPlaces(
+        allLocations,
+        `${activeCategory.label}: escolha outro local para ver os detalhes.`,
+      );
+      return;
+    }
+
     if (!isBackToMenuValue(value)) return;
     event.stopImmediatePropagation();
     backToMenu(false);
@@ -597,7 +637,11 @@ export function installExploreLocationsControl({
     setGeospatialEngine(engine: GeospatialEngine | undefined) {
       geospatialEngine = engine;
       if (activeCategory && visibleLocations.length > 0) {
-        void renderLocationsOnMap(visibleLocations, activeCategory.value);
+        void renderLocationsOnMap(
+          visibleLocations,
+          activeCategory.value,
+          activeStage === "detail" && visibleLocations.length === 1,
+        );
       }
     },
     destroy() {
