@@ -35,13 +35,19 @@
       "name": "Navegação e Rotas",
       "domain": "geospatial",
       "wave": 4,
-      "status": "equivalent",
+      "status": "migrating",
       "legacySources": ["v1:navigation", "v1:routing"],
       "targetPackages": ["@touristic/geospatial", "@touristic/navigation"],
       "equivalence": {
-        "behavior": true,
-        "visual": true,
-        "api": true
+        "behavior": false,
+        "visual": false,
+        "api": false
+      },
+      "verification": {
+        "local": "REMEDIATION_IN_PROGRESS",
+        "mysql": "NOT_APPLICABLE",
+        "provider": "REVALIDATION_REQUIRED",
+        "note": "FEATURE-0003 equivalence certification was reopened on 2026-09-15 after an audit of the canonical ZIP snapshot reporting sourceCommit 55acb639c1112a3c9a646dd103b01ad9cf5dd106 found product-journey obligations not covered by the historical 24-scenario matrix frozen against 60746fd7fed97b805758b37adfdbe3bad2582bfe. Core geometry, camera, session, routing and arrival evidence remains valid, but the registry intentionally does not claim complete equivalence while PR #60 remediates automatic maneuver progression, turn-by-turn speech, GPS retry/reuse, 15s route timeout, recalculation suppression, arrival feedback and degraded provider navigation. Contextual route suggestions and exact multilingual simplification remain source-dependent until the canonical ZIP bytes can be inspected. Promotion back to equivalent requires exact-head Quality plus the Navigation Turn-by-Turn Parity browser contract and reconciliation of the remaining ZIP-dependent gaps."
       }
     },
     {
