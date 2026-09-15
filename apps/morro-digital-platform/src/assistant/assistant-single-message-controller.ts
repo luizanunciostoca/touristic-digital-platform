@@ -42,7 +42,8 @@ export function installAssistantSingleMessageController({
   }
 
   const shellMessage = directChildrenByClass(area, "message")[0] ?? null;
-  const shellOptions = directChildrenByClass(area, "assistant-options")[0] ?? null;
+  const shellOptions =
+    directChildrenByClass(area, "assistant-options")[0] ?? null;
   let destroyed = false;
   let reconciling = false;
 
