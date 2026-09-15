@@ -74,6 +74,9 @@ jobs:
               error({
                 code: 2,
                 message: "temporarily unavailable",
+                PERMISSION_DENIED: 1,
+                POSITION_UNAVAILABLE: 2,
+                TIMEOUT: 3,
               });
               return;
             }
