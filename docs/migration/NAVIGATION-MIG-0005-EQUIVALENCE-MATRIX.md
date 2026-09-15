@@ -40,7 +40,7 @@ Estados usados abaixo:
 |   3 | localização imprecisa                    | PASS            | 1500 m bootstrap / 300 m guidance                                                                                                                                     |
 |   4 | coordenadas inválidas                    | PASS            | rejeição pré-rede                                                                                                                                                     |
 |   5 | routing proxy success                    | PASS            | same-origin routing                                                                                                                                                   |
-|   6 | routing proxy timeout                    | PASS            | fluxo de navegação agora fixa 15 s                                                                                                                                    |
+|   6 | routing proxy timeout                    | PASS            | fluxo de navegação fixa 15 s                                                                                                                                          |
 |   7 | routing proxy unavailable                | PASS            | erro primário distinguível                                                                                                                                            |
 |   8 | fallback elegível                        | PASS            | same-origin + provider fallback                                                                                                                                       |
 |   9 | cancelamento durante request             | PASS            | AbortSignal da sessão                                                                                                                                                 |
@@ -55,7 +55,7 @@ Estados usados abaixo:
 |  18 | cancelamento manual                      | PASS            | Encerrar + teardown                                                                                                                                                   |
 |  19 | chegada ao destino                       | PASS            | 100 m / 30 m / auto-end 5 s + UI/voz nesta remediação                                                                                                                 |
 |  20 | cleanup após navigationEnded             | PASS            | teardown idempotente                                                                                                                                                  |
-|  21 | mapa/provider degradado                  | PARTIAL         | V2 agora mantém o mesmo runtime de Navigation em Leaflet/development, degradando apenas câmera; equivalência exata ao ZIP `55ac...` ainda requer inspeção do snapshot |
+|  21 | mapa/provider degradado                  | PARTIAL         | mesmo Navigation runtime opera em Leaflet/development; equivalência exata ao ZIP `55ac...` ainda requer inspeção do snapshot                                          |
 |  22 | alto contraste                           | PASS            | accessibility baseline                                                                                                                                                |
 |  23 | texto ampliado                           | PASS            | accessibility baseline                                                                                                                                                |
 |  24 | mobile/tablet/desktop                    | PASS            | visual/accessibility baseline                                                                                                                                         |
@@ -71,23 +71,25 @@ TOTAL    24
 
 ## Obrigações de jornada V1 que a matriz histórica não provava
 
-| ID        | Obrigação de jornada                        | Estado na remediação PR #60   | Evidência nova                                                                                                                              |
-| --------- | ------------------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| NAV-PJ-01 | avanço automático `step 0 → 1 → 2`          | PASS no código; gate pendente | threshold ~20 m no composition + teste unitário + workflow `Navigation Turn-by-Turn Parity`                                                 |
-| NAV-PJ-02 | voz por nova manobra                        | PASS no código; gate pendente | `navigation-speech.ts` + journey browser com speech capturado                                                                               |
-| NAV-PJ-03 | GPS inicial com até 3 tentativas            | PASS no código; gate pendente | 15 s / 20 s / 25 s + teste unitário                                                                                                         |
-| NAV-PJ-04 | reutilizar localização recente              | PASS no código; gate pendente | cache de localização recente + teste unitário                                                                                               |
-| NAV-PJ-05 | timeout efetivo de rota em 15 s             | PASS no código; gate pendente | bootstrap fixa `NAVIGATION_ROUTE_TIMEOUT_MS = 15000`                                                                                        |
-| NAV-PJ-06 | supressão inicial de recálculo              | PASS no código; gate pendente | 15 s normal / 120 s tutorial + propagação do contexto tutorial                                                                              |
-| NAV-PJ-07 | aviso de aproximação e chegada              | PASS no código; gate pendente | banner + TTS PT/EN/ES/HE + auto-end                                                                                                         |
-| NAV-PJ-08 | feedback do Assistant após término          | PASS no código; gate pendente | `assistant-navigation-feedback.ts`                                                                                                          |
-| NAV-PJ-09 | processamento multilíngue de apresentação   | PARTIAL                       | direção/chegada ampliadas para PT/EN/ES/HE; simplificação textual exata do ZIP ainda não comprovada                                         |
-| NAV-PJ-10 | sugestões contextuais durante rota          | GAP                           | responsabilidade reconhecida em `SEARCH-V1-BASELINE.md`; política/constantes exatas do ZIP `55ac...` ainda não materializáveis nesta sessão |
-| NAV-PJ-11 | navegação quando Mapbox não está disponível | PARTIAL                       | mesmo core passa a operar em fallback com câmera degradada; comportamento exato do ZIP ainda precisa de comparação direta                   |
+| ID        | Obrigação de jornada                        | Estado na remediação PR #60                  | Evidência nova                                                                                                                                               |
+| --------- | ------------------------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| NAV-PJ-01 | avanço automático `step 0 → 1 → 2`          | PASS no código; exact-head gate pendente     | threshold ~20 m no composition + teste unitário + workflow `Navigation Turn-by-Turn Parity`                                                                  |
+| NAV-PJ-02 | voz por nova manobra                        | PASS no código; exact-head gate pendente     | `navigation-speech.ts` + journey browser com speech capturado                                                                                                |
+| NAV-PJ-03 | GPS inicial com até 3 tentativas            | PASS no código; exact-head gate pendente     | 15 s / 20 s / 25 s + teste unitário                                                                                                                          |
+| NAV-PJ-04 | reutilizar localização recente              | PASS no código; exact-head gate pendente     | cache de localização recente + teste unitário                                                                                                                |
+| NAV-PJ-05 | timeout efetivo de rota em 15 s             | PASS no código; exact-head gate pendente     | bootstrap fixa `NAVIGATION_ROUTE_TIMEOUT_MS = 15000`                                                                                                         |
+| NAV-PJ-06 | supressão inicial de recálculo              | PASS no código; exact-head gate pendente     | 15 s normal / 120 s tutorial + propagação do contexto tutorial                                                                                               |
+| NAV-PJ-07 | aviso de aproximação e chegada              | PASS no código; exact-head gate pendente     | banner + TTS PT/EN/ES/HE + auto-end                                                                                                                          |
+| NAV-PJ-08 | feedback do Assistant após término          | PASS no código; exact-head gate pendente     | `assistant-navigation-feedback.ts`                                                                                                                           |
+| NAV-PJ-09 | processamento multilíngue de apresentação   | FUNCTIONAL / ZIP exactness PARTIAL           | processor no `@touristic/navigation`: markup/entities/whitespace/punctuation/bidi + testes PT/EN/ES/HE; simplificador semântico exato do ZIP não é presumido |
+| NAV-PJ-10 | sugestões contextuais durante rota          | FUNCTIONAL / ZIP policy constants PARTIAL    | catálogo canônico + proximity/movement/warmup/ranking/cooldown/session max/message lifecycle/TTS + testes determinísticos                                     |
+| NAV-PJ-11 | navegação quando Mapbox não está disponível | FUNCTIONAL / ZIP exactness PARTIAL           | mesmo core opera em fallback com câmera degradada; comportamento exato do ZIP ainda requer comparação direta                                                |
+
+Não existe mais `runtime GAP` conhecido dentro dessas obrigações. Os três `PARTIAL` restantes são deliberadamente **source-exactness**: a implementação está materializada, mas o snapshot `55ac...` indisponível impede afirmar que constantes/texto/fallback histórico são byte/behavior-exact.
 
 ## Novo browser contract obrigatório
 
-A PR #60 adiciona `.github/workflows/navigation-turn-by-turn-parity.yml`. O contrato move a geolocalização por uma rota com três manobras e exige, nesta ordem:
+A PR #60 adiciona `.github/workflows/navigation-turn-by-turn-parity.yml`. O contrato move a geolocalização por uma rota com três manobras no runtime determinístico de Navigation e exige, nesta ordem:
 
 ```text
 step 0
@@ -100,6 +102,8 @@ step 2
 → auto-end
 ```
 
+O gate é independente da disponibilidade externa do SDK Mapbox. Mapbox/câmera continuam cobertos pelos contratos Provider/Visual; este gate prova especificamente a jornada turn-by-turn e o comportamento degradado do mesmo Navigation core.
+
 Também valida banner, status observável, TTS de cada manobra, mensagem de aproximação, chegada e feedback final do Assistant.
 
 A equivalência de jornada não pode voltar a ser promovida sem esse gate verde no exact-head considerado.
@@ -111,7 +115,7 @@ Estado tecnicamente defensável durante a remediação:
 ```text
 Navigation Core                 EQUIVALENT
 Navigation Geometry/Camera      EQUIVALENT
-Navigation Product Journey      PARTIAL
+Navigation Product Journey      FUNCTIONALLY REMEDIATED / SOURCE-EXACTNESS PARTIAL
 MIG-0005 / FEATURE-0003         MIGRATING (re-certification)
 ```
 
@@ -122,7 +126,7 @@ Promoção de volta para `equivalent` exige simultaneamente:
 1. Quality Gate verde no exact-head;
 2. Navigation Visual/Accessibility regressions aplicáveis verdes;
 3. `Navigation Turn-by-Turn Parity` verde no exact-head;
-4. fechamento ou classificação explicitamente justificada de `NAV-PJ-09`, `NAV-PJ-10` e `NAV-PJ-11` contra o ZIP canônico;
+4. comparação direta dos itens source-dependent `NAV-PJ-09`, `NAV-PJ-10` e `NAV-PJ-11` contra o ZIP canônico, ou decisão formal que aceite explicitamente a diferença;
 5. reconciliação do Gap Register, Feature Registry e Master Migration Tracker no mesmo checkpoint documental.
 
 `equivalent` continua distinto de `released`.
