@@ -13,6 +13,7 @@ import {
   clearAssistantDomOptions,
   readAssistantResponseOptions,
   renderAssistantDomOptions,
+  type AssistantDomOption,
 } from "./assistant-dom-view.js";
 import { createAssistantNavigationAppHandlers } from "./assistant-navigation-adapter.js";
 import { createMorroAssistantV1DestinationResolver } from "./assistant-v1-place-resolver.js";
@@ -108,6 +109,21 @@ function appendPhotoCarousel(
   container.appendChild(track);
   messagesArea.appendChild(container);
   messagesArea.scrollTop = messagesArea.scrollHeight;
+}
+
+function readOptionOverride(value: unknown): readonly AssistantDomOption[] | null {
+  if (!Array.isArray(value) || value.length === 0) return null;
+  const result: AssistantDomOption[] = [];
+  for (const option of value) {
+    if (!option || typeof option !== "object") return null;
+    const label = Reflect.get(option, "label");
+    const optionValue = Reflect.get(option, "value");
+    if (typeof label !== "string" || typeof optionValue !== "string") {
+      return null;
+    }
+    result.push(Object.freeze({ label, value: optionValue }));
+  }
+  return Object.freeze(result);
 }
 
 function resolveStorage(
@@ -228,8 +244,9 @@ export function installBrowserAssistantRuntime(
     messages.append({ sender, html: text, messageType: "standard" });
   };
 
-  const process = async (
+  const processInput = async (
     rawInput: string,
+    optionOverride?: readonly AssistantDomOption[],
   ): Promise<AssistantDialogResponse> => {
     const value = rawInput.trim();
     if (!value) return { text: "Como posso ajudar?" };
@@ -237,7 +254,7 @@ export function installBrowserAssistantRuntime(
     appendStandardMessage("user", value);
     const response = await controller.processUserInput(value);
     appendStandardMessage("assistant", response.text);
-    const responseOptions = readAssistantResponseOptions(response);
+    const responseOptions = optionOverride ?? readAssistantResponseOptions(response);
     if (responseOptions.length > 0) {
       renderAssistantDomOptions(options.document, responseOptions);
     }
@@ -253,6 +270,9 @@ export function installBrowserAssistantRuntime(
     }
     return response;
   };
+
+  const process = (rawInput: string): Promise<AssistantDialogResponse> =>
+    processInput(rawInput);
 
   const Recognition = view
     ? resolveAssistantSpeechRecognitionConstructor(view)
@@ -302,9 +322,13 @@ export function installBrowserAssistantRuntime(
   };
   const onOptionSelected = (event: Event): void => {
     if (!(event instanceof CustomEvent)) return;
-    const detail = event.detail as { value?: unknown } | null;
+    const detail = event.detail as
+      | { value?: unknown; optionsOverride?: unknown }
+      | null;
     const value = typeof detail?.value === "string" ? detail.value : "";
-    if (value) void process(value);
+    if (!value) return;
+    const optionOverride = readOptionOverride(detail?.optionsOverride);
+    void processInput(value, optionOverride ?? undefined);
   };
   const onVoiceClick = (): void => {
     if (destroyed) return;
