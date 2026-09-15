@@ -74,18 +74,8 @@ describe("navigation contextual suggestions", () => {
   });
 
   it("ranks sponsor then category and emits at most one place per movement cycle", () => {
-    const sponsored = place(
-      "Parceiro",
-      "beaches",
-      -13.38045,
-      -38.91,
-    );
-    const restaurant = place(
-      "Restaurante",
-      "restaurants",
-      -13.3801,
-      -38.91,
-    );
+    const sponsored = place("Parceiro", "beaches", -13.38045, -38.91);
+    const restaurant = place("Restaurante", "restaurants", -13.3801, -38.91);
     const session = createNavigationSuggestionSession({
       catalog: [restaurant, sponsored],
       policy: policy({
@@ -99,9 +89,9 @@ describe("navigation contextual suggestions", () => {
       "Parceiro",
     );
     expect(session.observe(location(-13.38005, -38.91), 2)).toBeNull();
-    expect(
-      session.observe(location(-13.3803, -38.91), 3)?.placeName,
-    ).toBe("Restaurante");
+    expect(session.observe(location(-13.3803, -38.91), 3)?.placeName).toBe(
+      "Restaurante",
+    );
   });
 
   it("enforces per-place cooldown and session maximums", () => {

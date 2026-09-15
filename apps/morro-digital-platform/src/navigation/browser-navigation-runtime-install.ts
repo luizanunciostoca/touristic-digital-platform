@@ -113,7 +113,8 @@ export function installBrowserNavigationRuntime(
     options.createGuidanceUi ?? createNavigationGuidanceUi;
   const createSpeech = options.createSpeech ?? createNavigationSpeech;
   const createContextualSuggestions =
-    options.createContextualSuggestions ?? createNavigationContextualSuggestions;
+    options.createContextualSuggestions ??
+    createNavigationContextualSuggestions;
   const installAssistant =
     options.installAssistant ?? installBrowserAssistantRuntime;
   const installAssistantFeedback =
@@ -121,13 +122,13 @@ export function installBrowserNavigationRuntime(
   const eventBridge = createEventBridge(options.document);
   const guidanceUi = createGuidanceUi(options.document);
   const speech = createSpeech(options.document);
-  const contextualSuggestions: NavigationContextualSuggestions | null =
-    options.document.defaultView
-      ? createContextualSuggestions({
-          document: options.document,
-          speech,
-        })
-      : null;
+  const contextualSuggestions: NavigationContextualSuggestions | null = options
+    .document.defaultView
+    ? createContextualSuggestions({
+        document: options.document,
+        speech,
+      })
+    : null;
   const eventTarget = options.document.defaultView;
   const routingFallbackProvider = resolveRoutingFallbackProvider(
     options.routingFallbackProvider,

@@ -27,8 +27,7 @@ export interface NavigationSuggestionSelection {
   readonly sponsored: boolean;
 }
 
-export interface NavigationContextualSuggestion
-  extends NavigationSuggestionSelection {
+export interface NavigationContextualSuggestion extends NavigationSuggestionSelection {
   readonly message: string;
 }
 
@@ -156,10 +155,12 @@ function selectCandidate(input: {
   return candidates[0] ?? null;
 }
 
-export function createNavigationSuggestionSession(options: {
-  readonly catalog?: readonly MorroV1SearchCatalogItem[];
-  readonly policy?: NavigationSuggestionPolicy;
-} = {}): NavigationSuggestionSession {
+export function createNavigationSuggestionSession(
+  options: {
+    readonly catalog?: readonly MorroV1SearchCatalogItem[];
+    readonly policy?: NavigationSuggestionPolicy;
+  } = {},
+): NavigationSuggestionSession {
   const catalog = options.catalog ?? morroV1SearchCatalog;
   const policy = options.policy ?? NAVIGATION_SUGGESTION_FUNCTIONAL_POLICY;
   const cooldownByPlace = new Map<string, number>();
