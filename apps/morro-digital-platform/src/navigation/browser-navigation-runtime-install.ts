@@ -151,6 +151,7 @@ export function installBrowserNavigationRuntime(
     arrivedSessionId = null;
     approachingSessionId = null;
     lastSpokenStepKey = null;
+    speech.stop();
     contextualSuggestions?.stop();
     guidanceUi.stop();
   };
@@ -276,7 +277,7 @@ export function installBrowserNavigationRuntime(
   });
   const assistant = installAssistant({
     document: options.document,
-    navigation: bootstrap,
+    navigation: activeLifecycle,
   });
   const assistantFeedback = installAssistantFeedback(options.document);
   let destroyed = false;
