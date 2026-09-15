@@ -198,17 +198,28 @@ export function createNavigationAppComposition(
 
     const stepEnds = runtime.getTracker()?.model.stepEnds ?? [];
     let nextStepIndex = stepIndex;
-    while (nextStepIndex < instructions.length - 1) {
-      const stepEnd = stepEnds[nextStepIndex];
-      const distanceToManeuver = stepEnd
-        ? stepEnd.alongDistance - snapshot.completedDistance
-        : snapshot.distanceToNextManeuver;
-      if (
-        !Number.isFinite(distanceToManeuver) ||
-        distanceToManeuver > NAVIGATION_MANEUVER_ADVANCE_METERS
-      ) {
-        break;
+
+    if (stepEnds.length > 0) {
+      while (nextStepIndex < instructions.length - 1) {
+        const stepEnd = stepEnds[nextStepIndex];
+        if (!stepEnd) break;
+        const distanceToManeuver =
+          stepEnd.alongDistance - snapshot.completedDistance;
+        if (
+          !Number.isFinite(distanceToManeuver) ||
+          distanceToManeuver > NAVIGATION_MANEUVER_ADVANCE_METERS
+        ) {
+          break;
+        }
+        nextStepIndex += 1;
       }
+    } else if (
+      Number.isFinite(snapshot.distanceToNextManeuver) &&
+      snapshot.distanceToNextManeuver <= NAVIGATION_MANEUVER_ADVANCE_METERS
+    ) {
+      // Without per-step geometry the snapshot distance belongs only to the
+      // current maneuver. Consume at most one step so the same measurement is
+      // never reused to skip subsequent instructions.
       nextStepIndex += 1;
     }
 
