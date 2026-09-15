@@ -271,11 +271,8 @@ describe("navigation app composition", () => {
       context.runtimeUpdate.mock.calls.map(([input]) => input.stepIndex),
     ).toEqual([1]);
     expect(context.onSnapshot).toHaveBeenCalledTimes(1);
-    expect(context.onSnapshot).toHaveBeenCalledWith(
-      expect.objectContaining({
-        guidance: expect.objectContaining({ stepIndex: 1 }),
-      }),
-    );
+    const forwardedSnapshot = context.onSnapshot.mock.calls[0]?.[0];
+    expect(forwardedSnapshot?.guidance.stepIndex).toBe(1);
   });
 
   it("resets runtime/presenter when route changes and reevaluates current location", () => {
