@@ -25,6 +25,8 @@ export interface NavigationInstructionInput {
   readonly original?: string;
   readonly instruction?: string;
   readonly text?: string;
+  readonly name?: string;
+  readonly streetName?: string;
   readonly type?: string | number;
   readonly maneuver?: Readonly<Record<string, unknown>>;
   readonly [key: string]: unknown;
@@ -33,7 +35,9 @@ export interface NavigationInstructionInput {
 export interface NavigationGuidanceSnapshot {
   readonly instruction: string;
   readonly original: string;
+  readonly language: NavigationInstructionLanguage;
   readonly maneuverType?: string | number;
+  readonly streetName?: string;
   readonly formattedDistance: string;
   readonly remainingDistance: string;
   readonly estimatedTime: string;
@@ -127,6 +131,20 @@ function instructionManeuverType(
     : undefined;
 }
 
+function instructionStreetName(
+  instruction: NavigationInstructionInput | undefined,
+): string | undefined {
+  if (!instruction) return undefined;
+  const candidates = [instruction.streetName, instruction.name];
+  const value = candidates.find(
+    (candidate): candidate is string =>
+      typeof candidate === "string" &&
+      candidate.trim().length > 0 &&
+      candidate.trim() !== "-",
+  );
+  return value?.trim();
+}
+
 function buildGuidance(
   geometry: RouteGeometrySnapshot,
   instructions: readonly NavigationInstructionInput[],
@@ -137,6 +155,7 @@ function buildGuidance(
   const instruction = instructions[stepIndex];
   const original = instructionText(instruction);
   const maneuverType = instructionManeuverType(instruction);
+  const streetName = instructionStreetName(instruction);
   const text = simplifyNavigationInstructionText(
     original,
     maneuverType,
@@ -150,7 +169,9 @@ function buildGuidance(
   return {
     instruction: text,
     original,
+    language,
     ...(maneuverType !== undefined ? { maneuverType } : {}),
+    ...(streetName ? { streetName } : {}),
     formattedDistance: formatRouteDistance(maneuverDistance),
     remainingDistance: formatRouteDistance(geometry.remainingDistance),
     estimatedTime: formatRouteDuration(geometry.remainingDuration),
