@@ -6,6 +6,7 @@ import {
   type RouteGeometrySnapshot,
   type RouteGeometryTracker,
 } from "./geometry.js";
+import { processNavigationInstructionText } from "./instruction-text.js";
 import {
   createNavigationVisualStabilizer,
   type NavigationVisualStabilizer,
@@ -101,7 +102,7 @@ function instructionText(
       (candidate): candidate is string =>
         typeof candidate === "string" && candidate.trim().length > 0,
     ) ?? "Continue pela rota"
-  );
+  ).trim();
 }
 
 function buildGuidance(
@@ -111,7 +112,8 @@ function buildGuidance(
 ): NavigationGuidanceSnapshot {
   const stepIndex = normalizeStepIndex(requestedStepIndex, instructions.length);
   const instruction = instructions[stepIndex];
-  const text = instructionText(instruction);
+  const original = instructionText(instruction);
+  const text = processNavigationInstructionText(original);
   const maneuverDistance =
     geometry.distanceToNextManeuver > 0
       ? geometry.distanceToNextManeuver
@@ -119,7 +121,7 @@ function buildGuidance(
 
   return {
     instruction: text,
-    original: text,
+    original,
     formattedDistance: formatRouteDistance(maneuverDistance),
     remainingDistance: formatRouteDistance(geometry.remainingDistance),
     estimatedTime: formatRouteDuration(geometry.remainingDuration),
