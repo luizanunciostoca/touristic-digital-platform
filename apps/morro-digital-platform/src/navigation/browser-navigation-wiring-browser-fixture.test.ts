@@ -151,7 +151,7 @@ describe("browser navigation wiring deterministic browser fixture", () => {
     const snapshot = onSnapshot.mock.calls[0]?.[0];
     expect(snapshot?.totalDistance).toBe(390);
     expect(snapshot?.totalDuration).toBe(290);
-    expect(snapshot?.guidance.instruction).toBe("Continue em frente");
+    expect(snapshot?.guidance.instruction).toBe("Siga em frente");
     expect(snapshot?.guidance.totalSteps).toBe(3);
     expect(easeTo).toHaveBeenCalledWith(
       expect.objectContaining({
