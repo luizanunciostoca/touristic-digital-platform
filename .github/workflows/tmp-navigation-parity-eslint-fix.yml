@@ -1,0 +1,47 @@
+name: Temporary Navigation Parity ESLint Fix
+
+on:
+  push:
+    branches:
+      - fix/navigation-v1-product-parity-20260915
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: fix/navigation-v1-product-parity-20260915
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Apply repository ESLint autofixes
+        run: |
+          pnpm --filter @touristic/morro-digital-platform exec eslint \
+            src/navigation/navigation-composition.test.ts \
+            src/navigation/navigation-session-bootstrap.test.ts \
+            src/navigation/navigation-speech.ts \
+            --fix || true
+      - name: Commit autofixes only
+        run: |
+          if git diff --quiet; then
+            echo 'NO_AUTOFIX_CHANGES'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- \
+            apps/morro-digital-platform/src/navigation/navigation-composition.test.ts \
+            apps/morro-digital-platform/src/navigation/navigation-session-bootstrap.test.ts \
+            apps/morro-digital-platform/src/navigation/navigation-speech.ts
+          git commit -m 'style(navigation): apply canonical eslint autofixes'
+          git push origin HEAD:fix/navigation-v1-product-parity-20260915
