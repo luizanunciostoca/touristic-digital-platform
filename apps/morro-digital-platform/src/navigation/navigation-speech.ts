@@ -99,9 +99,7 @@ function parseStoredPreferences(
     const serialized = storage.getItem("voiceAssistant");
     if (!serialized) return {};
     const parsed = JSON.parse(serialized) as unknown;
-    return parsed && typeof parsed === "object"
-      ? (parsed)
-      : {};
+    return parsed && typeof parsed === "object" ? parsed : {};
   } catch {
     return {};
   }
