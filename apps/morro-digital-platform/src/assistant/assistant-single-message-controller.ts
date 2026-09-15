@@ -27,7 +27,9 @@ function setHidden(element: HTMLElement | null, hidden: boolean): void {
 }
 
 function ensureCategoryFlowMessage(area: HTMLElement): HTMLElement | null {
-  const results = area.querySelector<HTMLElement>(`#${CATEGORY_FLOW_RESULTS_ID}`);
+  const results = area.querySelector<HTMLElement>(
+    `#${CATEGORY_FLOW_RESULTS_ID}`,
+  );
   if (!results) return null;
 
   const text = results.getAttribute("aria-label")?.trim() ?? "";
