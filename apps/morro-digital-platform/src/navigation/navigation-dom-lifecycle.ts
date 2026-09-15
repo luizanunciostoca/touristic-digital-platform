@@ -4,6 +4,7 @@ import type { NavigationDomEventBridge } from "./navigation-dom-events.js";
 import type {
   NavigationDestinationInput,
   NavigationSessionBootstrap,
+  NavigationStartOptions,
 } from "./navigation-session-bootstrap.js";
 
 const END_NAVIGATION_BUTTON_ID = "end-navigation-btn";
@@ -18,6 +19,7 @@ export interface NavigationDomLifecycleOptions {
 export interface NavigationDomLifecycle {
   start(
     destination: NavigationDestinationInput,
+    startOptions?: NavigationStartOptions,
   ): Promise<RouteFeatureCollection>;
   stop(reason?: string): void;
   destroy(): void;
@@ -101,6 +103,7 @@ export function createNavigationDomLifecycle(
   return Object.freeze({
     async start(
       destination: NavigationDestinationInput,
+      startOptions: NavigationStartOptions = {},
     ): Promise<RouteFeatureCollection> {
       if (destroyed) {
         throw new Error("NAVIGATION_DOM_LIFECYCLE_DESTROYED");
@@ -109,7 +112,7 @@ export function createNavigationDomLifecycle(
       stop("superseded");
       const startGeneration = generation;
       try {
-        const routeData = await bootstrap.start(destination);
+        const routeData = await bootstrap.start(destination, startOptions);
         if (destroyed || startGeneration !== generation) {
           bootstrap.stop();
           throw new DOMException("Navigation start superseded", "AbortError");
