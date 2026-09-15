@@ -13,6 +13,7 @@ export interface MapMarker {
   readonly id: string;
   readonly position: Coordinates;
   readonly label?: string;
+  readonly openPopup?: boolean;
 }
 
 export interface MapProviderAdapter {
