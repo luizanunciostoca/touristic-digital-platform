@@ -87,9 +87,17 @@ jobs:
         run: |
           docker run --rm --entrypoint sh morro-digital-v2-mysql:sec07 -c '
             set -eu
-            ! grep -E "(^|[^[:alnum:]_])mysqlsh([^[:alnum:]_]|$)" \
+            for script in \
               /usr/local/bin/docker-entrypoint.sh \
               /docker-entrypoint-initdb.d/01-init-databases.sh
+            do
+              if grep -Ev "^[[:space:]]*#" "$script" \
+                | grep -E "(^|[^[:alnum:]_])mysqlsh([^[:alnum:]_]|$)"
+              then
+                echo "mysqlsh is invoked by startup code: $script" >&2
+                exit 1
+              fi
+            done
           '
       - name: Scan built MySQL image for secrets
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
