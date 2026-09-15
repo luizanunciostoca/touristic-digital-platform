@@ -166,8 +166,19 @@ function actionFromManeuverType(
 ): NavigationSemanticAction | null {
   const normalized = normalizeManeuverType(value);
   if (!normalized) return null;
+
+  const exact = V1_TYPE_ACTIONS[normalized];
+  if (exact) return exact;
+
+  // ORS numeric maneuver types are discrete identifiers. Substring matching
+  // would make 10/11/12 collide with 0/1 and silently change arrival into a
+  // forward instruction. Only compatible textual provider types use the V1
+  // substring fallback below.
+  if (/^\d+$/u.test(normalized)) return null;
+
   for (const [key, action] of Object.entries(V1_TYPE_ACTIONS)) {
-    if (normalized === key || normalized.includes(key)) return action;
+    if (/^\d+$/u.test(key)) continue;
+    if (normalized.includes(key)) return action;
   }
   return null;
 }
