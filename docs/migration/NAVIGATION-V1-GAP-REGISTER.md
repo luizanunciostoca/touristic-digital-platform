@@ -34,28 +34,30 @@ Continuam válidos no escopo original:
 
 ### GAP-NAV-005 — Automatic maneuver progression
 
-**Estado:** REMEDIATED / PASS CANDIDATE
+**Estado:** REMEDIATED / PASS
 
 - avanço automático ~20 m;
 - usa endpoint geométrico do step quando disponível;
 - suporta ultrapassagem de waypoint;
 - fallback sem `stepEnds` consome no máximo uma manobra por snapshot;
+- reentrância síncrona do runtime não reutiliza a mesma medição para saltar instruções;
 - browser contract percorre `0 → 1 → 2`.
 
 ### GAP-NAV-006 — Turn-by-turn speech and arrival feedback
 
-**Estado:** REMEDIATED / PASS CANDIDATE
+**Estado:** REMEDIATED / PASS
 
 - TTS pertence ao runtime Navigation;
 - nova manobra falada uma vez por sessão/step;
 - aproximação, chegada e recálculo possuem speech;
 - PT/EN/ES/HE;
 - chegada possui estado próprio de UI;
-- Assistant recebe feedback final sem duplicar o motor de navegação.
+- Assistant usa o mesmo DOM lifecycle da navegação e recebe feedback final;
+- `navigationEnded` cancela qualquer utterance Navigation ainda ativa antes do feedback final.
 
 ### GAP-NAV-007 — Initial GPS acquisition parity
 
-**Estado:** REMEDIATED / PASS CANDIDATE
+**Estado:** REMEDIATED / PASS
 
 - reutilização de localização recente aceitável;
 - até três aquisições: 15 s, 20 s, 25 s;
@@ -65,14 +67,14 @@ Continuam válidos no escopo original:
 
 ### GAP-NAV-008 — Effective routing timeout
 
-**Estado:** REMEDIATED / PASS CANDIDATE
+**Estado:** REMEDIATED / PASS
 
 - Navigation fixa 15 s para route request e recalculation request;
 - default genérico do cliente permanece independente.
 
 ### GAP-NAV-009 — Initial recalculation suppression
 
-**Estado:** REMEDIATED / PASS CANDIDATE
+**Estado:** REMEDIATED / PASS
 
 - 15 s normal;
 - 120 s tutorial;
@@ -80,7 +82,7 @@ Continuam válidos no escopo original:
 
 ### GAP-NAV-010 — Multilingual semantic instruction presentation
 
-**Estado:** REMEDIATED + SOURCE-RECONCILED / PASS CANDIDATE
+**Estado:** REMEDIATED + SOURCE-RECONCILED / PASS
 
 A inspeção direta de `js/navigation/navigationUi/bannerUI.js` confirmou que a V1 possuía simplificador semântico ativo, não apenas limpeza textual.
 
@@ -100,7 +102,7 @@ A PR #60 passa a reproduzir:
 
 ### GAP-NAV-011 — Contextual route suggestions
 
-**Estado:** REMEDIATED + SOURCE-RECONCILED / PASS CANDIDATE
+**Estado:** REMEDIATED + SOURCE-RECONCILED / PASS
 
 Os valores provisórios da primeira remediação foram substituídos pela política canônica recuperada de `navigation-suggestions.js` e `navigation-sponsors.js`:
 
@@ -138,7 +140,7 @@ O `SPONSORS` canônico não possui entradas ativas; o contrato de prioridade/rad
 
 ### GAP-NAV-012 — Degraded navigation without Mapbox
 
-**Estado:** REMEDIATED + SOURCE-RECONCILED / PASS CANDIDATE
+**Estado:** REMEDIATED + SOURCE-RECONCILED / PASS
 
 A inspeção direta de `navigationServices/routing-client.js`, `mapboxDirectionsService.js` e do bootstrap visual V1 confirmou:
 
@@ -169,22 +171,46 @@ A promoção exige, no mesmo exact-head:
 - Map Tour Browser Regression;
 - demais contracts acionados pela PR.
 
-## Estado consolidado
+## Certificação que promoveu os gaps para PASS
 
-Após a comparação direta do ZIP, não resta classe conhecida de source-exactness pendente:
+O exact-head `e5589a45db6eb4985522600fbf32c14e319920e6`, com a PR em Ready for review, encerrou todos os gates aplicáveis com sucesso:
 
 ```text
-GAP-NAV-005   PASS CANDIDATE
-GAP-NAV-006   PASS CANDIDATE
-GAP-NAV-007   PASS CANDIDATE
-GAP-NAV-008   PASS CANDIDATE
-GAP-NAV-009   PASS CANDIDATE
-GAP-NAV-010   PASS CANDIDATE / SOURCE-RECONCILED
-GAP-NAV-011   PASS CANDIDATE / SOURCE-RECONCILED
-GAP-NAV-012   PASS CANDIDATE / SOURCE-RECONCILED
+Quality Gate                               #779  PASS
+Navigation Turn-by-Turn Parity              #72  PASS
+Navigation Visual Baseline                 #443  PASS
+Navigation Accessibility Baseline          #412  PASS
+Map Provider Regression                    #516  PASS
+V1 Explore Locations Browser Regression    #205  PASS
+Map Tour Browser Regression                #505  PASS
+V1 Assistant Single Message POI Markers     #46  PASS
+Business Onboarding Adapter                #442  PASS
+Business Onboarding Profile                #442  PASS
+Business Onboarding Route                  #442  PASS
+Affiliates FEATURE-0010                    #222  PASS
+Ticketing M147                             #372  PASS
+```
+
+No Quality Gate #779, formatting, architecture boundaries, Feature Registry, environment inventory, release-readiness guardrails, secret scan, CI/repository governance, workflow supply chain, lint, typecheck, Test, Build e canonical MySQL matrix passaram sem bypass de draft.
+
+A revisão pós-certificação encontrou hardenings adicionais de reentrância/lifecycle/TTS; esses hardenings devem ser recertificados no novo exact-head antes do merge, mas não reabrem source-exactness nem revertem o status de equivalência já promovido pelos gates acima.
+
+## Estado consolidado
+
+Após a comparação direta do ZIP e a certificação completa acima, não resta classe conhecida de source-exactness pendente:
+
+```text
+GAP-NAV-005   PASS
+GAP-NAV-006   PASS
+GAP-NAV-007   PASS
+GAP-NAV-008   PASS
+GAP-NAV-009   PASS
+GAP-NAV-010   PASS / SOURCE-RECONCILED
+GAP-NAV-011   PASS / SOURCE-RECONCILED
+GAP-NAV-012   PASS / SOURCE-RECONCILED
 
 RUNTIME GAP                  0
 SOURCE-EXACTNESS PARTIAL     0
 ```
 
-`PASS CANDIDATE` torna-se `PASS` quando o exact-head que contém esta reconciliação encerra todos os gates obrigatórios com sucesso. O exact-head e os run IDs finais são registrados na PR #60 e no issue #62 sem exigir alteração posterior deste arquivo.
+A PR #60 e o issue #62 preservam a trilha completa de exact-heads, run IDs e hardenings posteriores até o merge.
