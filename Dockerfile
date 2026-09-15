@@ -41,5 +41,7 @@ COPY --from=build /app/tooling/ tooling/
 
 RUN pnpm install --frozen-lockfile --prod
 
+USER node
+
 EXPOSE 3000
 CMD ["node", "apps/morro-digital-platform/dist/browser-entry.js"]
