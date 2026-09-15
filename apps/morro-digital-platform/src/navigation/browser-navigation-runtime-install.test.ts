@@ -10,7 +10,9 @@ import {
 } from "@touristic/navigation";
 
 import type { BrowserAssistantRuntime } from "../assistant/browser-assistant-runtime.js";
-import type { NavigationContextualSuggestions } from "./navigation-contextual-suggestions.js";
+import type {
+  NavigationContextualSuggestions,
+} from "./navigation-contextual-suggestions.js";
 import type { NavigationDomEventBridge } from "./navigation-dom-events.js";
 import type { NavigationDomLifecycle } from "./navigation-dom-lifecycle.js";
 import type { NavigationGuidanceUi } from "./navigation-guidance-ui.js";
