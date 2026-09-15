@@ -117,9 +117,16 @@ function readOptionOverride(
   if (!Array.isArray(value) || value.length === 0) return null;
   const result: AssistantDomOption[] = [];
   for (const option of value) {
-    if (!option || typeof option !== "object") return null;
-    const label = Reflect.get(option, "label");
-    const optionValue = Reflect.get(option, "value");
+    if (
+      !option ||
+      typeof option !== "object" ||
+      !("label" in option) ||
+      !("value" in option)
+    ) {
+      return null;
+    }
+    const label: unknown = option.label;
+    const optionValue: unknown = option.value;
     if (typeof label !== "string" || typeof optionValue !== "string") {
       return null;
     }
