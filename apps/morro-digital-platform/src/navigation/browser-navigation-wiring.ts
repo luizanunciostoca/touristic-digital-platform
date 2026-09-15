@@ -10,6 +10,7 @@ import type {
   NavigationRuntimeSnapshot,
   RouteFeatureCollection,
   RouteRecalculationRequest,
+  RoutingLanguage,
 } from "@touristic/navigation";
 
 import {
@@ -38,6 +39,7 @@ export interface BrowserNavigationWiringOptions {
   readonly map: MapboxGlMapLike;
   readonly sdk: MapboxGlModuleLike;
   readonly routeData: unknown;
+  readonly language?: RoutingLanguage;
   readonly sessionId?: number;
   readonly destination?: {
     readonly longitude: number;
@@ -130,6 +132,7 @@ export function createBrowserNavigationWiring(
     geolocation,
     presenter,
     routeData: options.routeData,
+    ...(options.language ? { language: options.language } : {}),
     ...(options.sessionId !== undefined
       ? { sessionId: options.sessionId }
       : {}),
