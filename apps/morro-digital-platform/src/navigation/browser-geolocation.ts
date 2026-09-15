@@ -54,6 +54,8 @@ interface PendingRequest {
   phase: "watch" | "fallback" | "settled";
 }
 
+let recentBrowserLocation: BrowserLocation | null = null;
+
 function normalizeNonNegative(value: unknown, fallback: number): number {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
@@ -93,6 +95,23 @@ export function isBrowserLocationFresh(
     DEFAULT_LOCATION_MAX_AGE_MS,
   );
   return getBrowserLocationAge(location, options.now ?? Date.now()) <= maxAge;
+}
+
+export function rememberBrowserLocation(location: BrowserLocation): void {
+  if (!hasValidCoordinates(location)) return;
+  recentBrowserLocation = Object.freeze({ ...location });
+}
+
+export function getRecentBrowserLocation(
+  options: { readonly maxAge?: number; readonly now?: number } = {},
+): BrowserLocation | null {
+  return isBrowserLocationFresh(recentBrowserLocation, options)
+    ? recentBrowserLocation
+    : null;
+}
+
+export function clearRecentBrowserLocation(): void {
+  recentBrowserLocation = null;
 }
 
 export function normalizeBrowserPosition(
@@ -162,6 +181,7 @@ export function createBrowserGeolocationService(
 
   function acceptLocation(location: BrowserLocation): void {
     currentLocation = location;
+    rememberBrowserLocation(location);
     notify(location);
     for (const request of [...pending.values()]) {
       if (
@@ -227,6 +247,7 @@ export function createBrowserGeolocationService(
           return;
         }
         currentLocation = location;
+        rememberBrowserLocation(location);
         notify(location);
         resolveRequest(request, location);
       },
