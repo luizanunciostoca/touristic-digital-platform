@@ -1,0 +1,70 @@
+name: Temporary Navigation Parity Formatter
+
+on:
+  push:
+    branches:
+      - fix/navigation-v1-product-parity-20260915
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: fix/navigation-v1-product-parity-20260915
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Format remediation files with repository Prettier
+        run: |
+          pnpm exec prettier --write \
+            apps/morro-digital-platform/src/browser.ts \
+            apps/morro-digital-platform/src/development/leaflet-compatibility-sdk.ts \
+            apps/morro-digital-platform/src/development/mapbox-sdk.ts \
+            apps/morro-digital-platform/src/legacy/navigation-provider-fallback-contract.test.ts \
+            apps/morro-digital-platform/src/navigation/browser-geolocation.ts \
+            apps/morro-digital-platform/src/navigation/browser-navigation-runtime-install.ts \
+            apps/morro-digital-platform/src/navigation/browser-navigation-wiring.ts \
+            apps/morro-digital-platform/src/navigation/navigation-composition.ts \
+            apps/morro-digital-platform/src/navigation/navigation-composition.test.ts \
+            apps/morro-digital-platform/src/navigation/navigation-dom-lifecycle.ts \
+            apps/morro-digital-platform/src/navigation/navigation-guidance-ui.ts \
+            apps/morro-digital-platform/src/navigation/navigation-request-port.ts \
+            apps/morro-digital-platform/src/navigation/navigation-session-bootstrap.ts \
+            apps/morro-digital-platform/src/navigation/navigation-session-bootstrap.test.ts \
+            apps/morro-digital-platform/src/navigation/navigation-speech.ts \
+            apps/morro-digital-platform/src/assistant/assistant-navigation-feedback.ts \
+            .github/workflows/navigation-turn-by-turn-parity.yml \
+            docs/features/registry.json \
+            docs/migration/NAVIGATION-MIG-0005-EQUIVALENCE-MATRIX.md \
+            docs/migration/NAVIGATION-V1-GAP-REGISTER.md
+      - name: Commit formatting only
+        run: |
+          if git diff --quiet; then
+            echo 'FORMAT_ALREADY_CANONICAL'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- \
+            apps/morro-digital-platform/src/browser.ts \
+            apps/morro-digital-platform/src/development/leaflet-compatibility-sdk.ts \
+            apps/morro-digital-platform/src/development/mapbox-sdk.ts \
+            apps/morro-digital-platform/src/legacy/navigation-provider-fallback-contract.test.ts \
+            apps/morro-digital-platform/src/navigation \
+            apps/morro-digital-platform/src/assistant/assistant-navigation-feedback.ts \
+            .github/workflows/navigation-turn-by-turn-parity.yml \
+            docs/features/registry.json \
+            docs/migration/NAVIGATION-MIG-0005-EQUIVALENCE-MATRIX.md \
+            docs/migration/NAVIGATION-V1-GAP-REGISTER.md
+          git commit -m 'style(navigation): apply canonical prettier formatting'
+          git push origin HEAD:fix/navigation-v1-product-parity-20260915
