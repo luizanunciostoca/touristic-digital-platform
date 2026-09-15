@@ -6,6 +6,15 @@ import type {
 
 export interface MapboxGlMapLike {
   setCenter(center: [number, number]): void;
+  setZoom?(zoom: number): void;
+  getZoom?(): number;
+  getCenter?(): Readonly<{ lng: number; lat: number }>;
+  flyTo?(options: {
+    readonly center: [number, number];
+    readonly zoom?: number;
+    readonly duration?: number;
+    readonly essential?: boolean;
+  }): void;
   remove(): void;
   isStyleLoaded?(): boolean;
   once?(event: string, listener: () => void): void;
@@ -34,8 +43,14 @@ export interface MapboxGlMapLike {
   ): void;
 }
 
+export interface MapboxGlPopupLike {
+  setText(text: string): MapboxGlPopupLike;
+}
+
 export interface MapboxGlMarkerLike {
   setLngLat(coordinates: [number, number]): MapboxGlMarkerLike;
+  setPopup?(popup: MapboxGlPopupLike): MapboxGlMarkerLike;
+  togglePopup?(): MapboxGlMarkerLike;
   addTo(map: MapboxGlMapLike): MapboxGlMarkerLike;
   remove(): void;
 }
@@ -70,6 +85,9 @@ export interface MapboxGlModuleLike {
     readonly element?: HTMLElement;
     readonly anchor?: string;
   }) => MapboxGlMarkerLike;
+  Popup?: new (options?: {
+    readonly closeButton?: boolean;
+  }) => MapboxGlPopupLike;
 }
 
 export interface MapboxGlDriverOptions {
@@ -131,6 +149,11 @@ export function createMapboxGlDriver(
         element ? { element, anchor: "bottom" } : undefined,
       );
 
+      if (input.label && options.sdk.Popup && marker.setPopup) {
+        const popup = new options.sdk.Popup({ closeButton: false });
+        marker.setPopup(popup.setText(input.label));
+      }
+
       const handle: MapboxMarkerHandle = Object.freeze({
         setLngLat(position: [number, number]): MapboxMarkerHandle {
           marker.setLngLat(position);
@@ -140,6 +163,7 @@ export function createMapboxGlDriver(
           const nativeMap = nativeMaps.get(mapHandle);
           if (!nativeMap) throw new Error("Unknown Mapbox map handle.");
           marker.addTo(nativeMap);
+          if (input.openPopup) marker.togglePopup?.();
           return handle;
         },
         remove(): void {
