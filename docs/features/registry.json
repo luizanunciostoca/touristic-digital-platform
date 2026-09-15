@@ -44,10 +44,10 @@
         "api": false
       },
       "verification": {
-        "local": "REMEDIATION_IN_PROGRESS",
+        "local": "LOCAL_VERIFIED",
         "mysql": "NOT_APPLICABLE",
-        "provider": "REVALIDATION_REQUIRED",
-        "note": "FEATURE-0003 equivalence certification was reopened on 2026-09-15 after an audit of the canonical ZIP snapshot reporting sourceCommit 55acb639c1112a3c9a646dd103b01ad9cf5dd106 found product-journey obligations not covered by the historical 24-scenario matrix frozen against 60746fd7fed97b805758b37adfdbe3bad2582bfe. PR #60 functionally remediates automatic maneuver progression, turn-by-turn speech, GPS retry/reuse, 15s route timeout, recalculation suppression, arrival/Assistant feedback, safe PT/EN/ES/HE instruction processing, contextual route suggestions and guided navigation under degraded map providers. The remaining PARTIAL classification is source-exactness only: the live connection cannot read the canonical ZIP bytes, so the exact historical semantic simplifier, suggestion policy constants/ranking and fallback details are not claimed identical. Promotion back to equivalent requires exact-head Quality plus Navigation Turn-by-Turn Parity and direct reconciliation against ZIP 55ac... or a formal acceptance of the documented differences."
+        "provider": "PROVIDER_VERIFIED",
+        "note": "FEATURE-0003 equivalence certification was reopened on 2026-09-15 after an audit of the canonical ZIP snapshot reporting sourceCommit 55acb639c1112a3c9a646dd103b01ad9cf5dd106 found product-journey obligations not covered by the historical 24-scenario matrix frozen against 60746fd7fed97b805758b37adfdbe3bad2582bfe. PR #60 functionally remediates automatic maneuver progression, turn-by-turn speech, GPS retry/reuse, 15s route timeout, recalculation suppression, arrival/Assistant feedback, safe PT/EN/ES/HE instruction processing, contextual route suggestions and guided navigation under degraded map providers. Functional verification completed on checkpoint b98e7bfe5d9e262035701831bade7bb36787b2be: Quality Gate, Navigation Turn-by-Turn Parity, Navigation Visual Baseline, Navigation Accessibility Baseline, Map Provider Regression, V1 Explore Locations Browser Regression and Map Tour Browser Regression all passed. The remaining PARTIAL classification is source-exactness only: the live connection cannot read the canonical ZIP bytes, so the exact historical semantic simplifier, suggestion policy constants/ranking and fallback details are not claimed identical. Promotion back to equivalent requires direct reconciliation against ZIP 55ac... or formal acceptance of the documented differences; until then status stays migrating and equivalence flags remain false."
       }
     },
     {
