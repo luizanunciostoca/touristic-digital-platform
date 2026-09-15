@@ -10,12 +10,20 @@ import {
   type RouteFeatureCollection,
 } from "@touristic/navigation";
 
-import type { BrowserGeolocationDriver } from "./browser-geolocation.js";
+import {
+  clearRecentBrowserLocation,
+  rememberBrowserLocation,
+  type BrowserGeolocationDriver,
+} from "./browser-geolocation.js";
 import type {
   BrowserNavigationWiring,
   BrowserNavigationWiringOptions,
 } from "./browser-navigation-wiring.js";
 import {
+  NAVIGATION_BOOTSTRAP_ATTEMPT_TIMEOUTS_MS,
+  NAVIGATION_RECALCULATION_SUPPRESSION_MS,
+  NAVIGATION_ROUTE_TIMEOUT_MS,
+  NAVIGATION_TUTORIAL_RECALCULATION_SUPPRESSION_MS,
   createNavigationSessionBootstrap,
   type NavigationSessionEventContext,
 } from "./navigation-session-bootstrap.js";
@@ -91,7 +99,65 @@ function setup(onArrival?: (context: NavigationSessionEventContext) => void) {
   };
 }
 
+function browserPosition(
+  longitude = -38.917,
+  latitude = -13.376,
+  accuracy = 8,
+): GeolocationPosition {
+  return {
+    coords: {
+      longitude,
+      latitude,
+      accuracy,
+      altitude: null,
+      altitudeAccuracy: null,
+      heading: null,
+      speed: 1,
+      toJSON: () => ({}),
+    },
+    timestamp: Date.now(),
+    toJSON: () => ({}),
+  } as GeolocationPosition;
+}
+
+function setupBrowserAcquisition() {
+  const map: MapboxGlMapLike = { setCenter: vi.fn(), remove: vi.fn() };
+  const sdk = {
+    accessToken: "token",
+    Map: vi.fn(),
+    Marker: vi.fn(),
+  } as unknown as MapboxGlModuleLike;
+  const geolocationDriver = {
+    watchPosition: vi.fn(),
+    getCurrentPosition: vi.fn(),
+    clearWatch: vi.fn(),
+  } as unknown as BrowserGeolocationDriver;
+  const wiring: BrowserNavigationWiring = {
+    composition: {} as BrowserNavigationWiring["composition"],
+    start: vi.fn(),
+    stop: vi.fn(),
+  };
+  const createWiring = vi.fn<
+    (options: BrowserNavigationWiringOptions) => BrowserNavigationWiring
+  >(() => wiring);
+  const requestRouteImpl = vi.fn(async () => routeData());
+  const bootstrap = createNavigationSessionBootstrap({
+    map,
+    sdk,
+    geolocationDriver,
+    requestRouteImpl,
+    createWiring,
+  });
+  return {
+    bootstrap,
+    geolocationDriver,
+    requestRouteImpl,
+    createWiring,
+  };
+}
+
 afterEach(() => {
+  clearRecentBrowserLocation();
   resetNavigationSessionManagerForTests();
 });
 
@@ -110,6 +176,7 @@ describe("navigation session bootstrap", () => {
         start: [-38.917, -13.376],
         end: [-38.916, -13.375],
         language: "pt",
+        timeoutMs: NAVIGATION_ROUTE_TIMEOUT_MS,
       }),
     );
     expect(context.createWiring).toHaveBeenCalledTimes(1);
@@ -123,10 +190,25 @@ describe("navigation session bootstrap", () => {
       longitude: -38.916,
       latitude: -13.375,
     });
+    expect(wiringOptions?.recalculationSuppressionMs).toBe(
+      NAVIGATION_RECALCULATION_SUPPRESSION_MS,
+    );
     expect(typeof wiringOptions?.sessionId).toBe("number");
     expect(typeof wiringOptions?.requestRecalculationRoute).toBe("function");
     expect(context.wiringStart).toHaveBeenCalledTimes(1);
     expect(context.bootstrap.isActive()).toBe(true);
+  });
+
+  it("uses the V1 tutorial recalculation suppression window", async () => {
+    const context = setup();
+    await context.bootstrap.start(
+      { longitude: -38.916, latitude: -13.375 },
+      { tutorial: true },
+    );
+
+    expect(
+      context.createWiring.mock.calls[0]?.[0].recalculationSuppressionMs,
+    ).toBe(NAVIGATION_TUTORIAL_RECALCULATION_SUPPRESSION_MS);
   });
 
   it("reuses the active routing provider for recalculation requests", async () => {
@@ -150,8 +232,57 @@ describe("navigation session bootstrap", () => {
         start: [-38.918, -13.377],
         end: [-38.916, -13.375],
         language: "pt",
+        timeoutMs: NAVIGATION_ROUTE_TIMEOUT_MS,
         signal,
       }),
+    );
+  });
+
+  it("retries initial GPS acquisition with the V1 15s/20s/25s policy", async () => {
+    const context = setupBrowserAcquisition();
+    let attempt = 0;
+    context.geolocationDriver.getCurrentPosition = vi.fn(
+      (success, error, options) => {
+        attempt += 1;
+        if (attempt < 3) {
+          error({ code: 2, message: "temporarily unavailable" } as GeolocationPositionError);
+          return;
+        }
+        success(browserPosition());
+        void options;
+      },
+    );
+
+    await expect(
+      context.bootstrap.start({ longitude: -38.916, latitude: -13.375 }),
+    ).resolves.toEqual(routeData());
+
+    expect(context.geolocationDriver.getCurrentPosition).toHaveBeenCalledTimes(3);
+    expect(
+      vi.mocked(context.geolocationDriver.getCurrentPosition).mock.calls.map(
+        (call) => call[2]?.timeout,
+      ),
+    ).toEqual([...NAVIGATION_BOOTSTRAP_ATTEMPT_TIMEOUTS_MS]);
+  });
+
+  it("reuses a recent acceptable location without repeating GPS acquisition", async () => {
+    rememberBrowserLocation({
+      latitude: -13.376,
+      longitude: -38.917,
+      accuracy: 9,
+      heading: null,
+      speed: 1,
+      timestamp: Date.now(),
+    });
+    const context = setupBrowserAcquisition();
+
+    await expect(
+      context.bootstrap.start({ longitude: -38.916, latitude: -13.375 }),
+    ).resolves.toEqual(routeData());
+
+    expect(context.geolocationDriver.getCurrentPosition).not.toHaveBeenCalled();
+    expect(context.requestRouteImpl).toHaveBeenCalledWith(
+      expect.objectContaining({ start: [-38.917, -13.376] }),
     );
   });
 
