@@ -1,4 +1,4 @@
-name: Temporary Navigation Parity ESLint Fix
+name: Temporary Navigation Parity Type Fix
 
 on:
   push:
@@ -24,24 +24,82 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Apply repository ESLint autofixes
+      - name: Apply minimal typed GPS mock patch
         run: |
-          pnpm --filter @touristic/morro-digital-platform exec eslint \
-            src/navigation/navigation-composition.test.ts \
-            src/navigation/navigation-session-bootstrap.test.ts \
-            src/navigation/navigation-speech.ts \
-            --fix || true
-      - name: Commit autofixes only
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('apps/morro-digital-platform/src/navigation/navigation-session-bootstrap.test.ts')
+          text = path.read_text()
+          old = '''  const geolocationDriver = {
+            watchPosition: vi.fn(),
+            getCurrentPosition: vi.fn(),
+            clearWatch: vi.fn(),
+          } as unknown as BrowserGeolocationDriver;'''.replace('          ', '')
+          new = '''  const getCurrentPosition = vi.fn<
+            BrowserGeolocationDriver["getCurrentPosition"]
+          >();
+          const geolocationDriver: BrowserGeolocationDriver = {
+            watchPosition: vi.fn<BrowserGeolocationDriver["watchPosition"]>(() => 1),
+            getCurrentPosition,
+            clearWatch: vi.fn<BrowserGeolocationDriver["clearWatch"]>(),
+          };'''.replace('          ', '')
+          index = text.rfind(old)
+          assert index >= 0, 'typed-driver target not found'
+          text = text[:index] + new + text[index + len(old):]
+          text = text.replace('''    geolocationDriver,
+            requestRouteImpl,
+            createWiring,
+          };'''.replace('          ', ''), '''    geolocationDriver,
+            getCurrentPosition,
+            requestRouteImpl,
+            createWiring,
+          };'''.replace('          ', ''), 1)
+          old_test = '''    context.geolocationDriver.getCurrentPosition = vi.fn(
+            (success, error, options) => {
+              attempt += 1;
+              if (attempt < 3) {
+                error({
+                  code: 2,
+                  message: "temporarily unavailable",
+                });
+                return;
+              }
+              success(browserPosition());
+              void options;
+            },
+          );'''.replace('          ', '')
+          new_test = '''    context.getCurrentPosition.mockImplementation((success, error, options) => {
+            attempt += 1;
+            if (attempt < 3) {
+              error({
+                code: 2,
+                message: "temporarily unavailable",
+              });
+              return;
+            }
+            success(browserPosition());
+            void options;
+          });'''.replace('          ', '')
+          assert old_test in text, 'retry mock target not found'
+          text = text.replace(old_test, new_test, 1)
+          text = text.replace('context.geolocationDriver.getCurrentPosition).toHaveBeenCalledTimes(', 'context.getCurrentPosition).toHaveBeenCalledTimes(', 1)
+          text = text.replace('''vi
+                .mocked(context.geolocationDriver.getCurrentPosition)
+                .mock.calls.map'''.replace('              ', ''), 'context.getCurrentPosition.mock.calls.map', 1)
+          text = text.replace('context.geolocationDriver.getCurrentPosition).not.toHaveBeenCalled()', 'context.getCurrentPosition).not.toHaveBeenCalled()', 1)
+          path.write_text(text)
+          PY
+          pnpm exec prettier --write apps/morro-digital-platform/src/navigation/navigation-session-bootstrap.test.ts apps/morro-digital-platform/src/browser.ts
+          pnpm --filter @touristic/morro-digital-platform lint
+          pnpm --filter @touristic/morro-digital-platform build
+      - name: Commit validated type fixes
         run: |
           if git diff --quiet; then
-            echo 'NO_AUTOFIX_CHANGES'
+            echo 'NO_TYPE_FIX_CHANGES'
             exit 0
           fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -- \
-            apps/morro-digital-platform/src/navigation/navigation-composition.test.ts \
-            apps/morro-digital-platform/src/navigation/navigation-session-bootstrap.test.ts \
-            apps/morro-digital-platform/src/navigation/navigation-speech.ts
-          git commit -m 'style(navigation): apply canonical eslint autofixes'
+          git add -- apps/morro-digital-platform/src/navigation/navigation-session-bootstrap.test.ts apps/morro-digital-platform/src/browser.ts
+          git commit -m 'fix(navigation): validate type-safe parity remediation'
           git push origin HEAD:fix/navigation-v1-product-parity-20260915
