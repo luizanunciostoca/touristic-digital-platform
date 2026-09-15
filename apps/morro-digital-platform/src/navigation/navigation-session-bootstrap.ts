@@ -259,10 +259,11 @@ export function createNavigationSessionBootstrap(
         const startCoordinate = await resolveStartCoordinate(session.signal);
         session.assertActive();
 
+        const language = options.language ?? "pt";
         const routeData = await requestRouteImpl({
           start: startCoordinate,
           end: destinationCoordinate,
-          language: options.language ?? "pt",
+          language,
           timeoutMs: routeTimeoutMs,
           fallbackProvider: options.routingFallbackProvider ?? null,
           signal: session.signal,
@@ -276,7 +277,7 @@ export function createNavigationSessionBootstrap(
           const recalculated = await requestRouteImpl({
             start: request.start,
             end: request.end,
-            language: options.language ?? "pt",
+            language,
             timeoutMs: routeTimeoutMs,
             fallbackProvider: options.routingFallbackProvider ?? null,
             signal: request.signal,
@@ -289,6 +290,7 @@ export function createNavigationSessionBootstrap(
           map: options.map,
           sdk: options.sdk,
           routeData,
+          language,
           destination: eventContext.destination,
           sessionId: session.id,
           geolocationDriver,
