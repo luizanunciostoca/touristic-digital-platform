@@ -132,6 +132,7 @@ export function createNavigationAppComposition(
   let latestLocation: BrowserLocation | null = null;
   let recalculation: RouteRecalculationController | null = null;
   let recalculationSuppressedUntil = 0;
+  let advancingStep = false;
   const now = options.now ?? (() => Date.now());
   const recalculationSuppressionMs = normalizeDelay(
     options.recalculationSuppressionMs,
@@ -195,7 +196,11 @@ export function createNavigationAppComposition(
   }
 
   function maybeAdvanceStep(snapshot: NavigationRuntimeSnapshot): boolean {
-    if (instructions.length < 2 || stepIndex >= instructions.length - 1) {
+    if (
+      advancingStep ||
+      instructions.length < 2 ||
+      stepIndex >= instructions.length - 1
+    ) {
       return false;
     }
 
@@ -222,14 +227,20 @@ export function createNavigationAppComposition(
     ) {
       // Without per-step geometry the snapshot distance belongs only to the
       // current maneuver. Consume at most one step so the same measurement is
-      // never reused to skip subsequent instructions.
+      // never reused to skip subsequent instructions, including synchronous
+      // runtime callbacks triggered by the step-index update below.
       nextStepIndex += 1;
     }
 
     if (nextStepIndex === stepIndex) return false;
     stepIndex = nextStepIndex;
     if (!latestLocation) return false;
-    updateRuntime(latestLocation);
+    advancingStep = true;
+    try {
+      updateRuntime(latestLocation);
+    } finally {
+      advancingStep = false;
+    }
     return true;
   }
 
@@ -303,6 +314,7 @@ export function createNavigationAppComposition(
       started = false;
       latestLocation = null;
       recalculationSuppressedUntil = 0;
+      advancingStep = false;
       unsubscribeLocation?.();
       unsubscribeLocation = null;
       options.geolocation.stop();
