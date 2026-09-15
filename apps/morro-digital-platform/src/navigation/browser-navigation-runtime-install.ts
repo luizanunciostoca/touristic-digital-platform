@@ -191,6 +191,7 @@ export function installBrowserNavigationRuntime(
   const bootstrap = createBootstrap({
     map: options.map,
     sdk: options.sdk,
+    language: speech.language(),
     routingFallbackProvider,
     onLocation: (location, context) => {
       hasActiveRoute = true;
