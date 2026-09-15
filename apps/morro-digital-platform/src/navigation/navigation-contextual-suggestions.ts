@@ -60,6 +60,7 @@ export interface NavigationContextualSuggestions {
 }
 
 const EARTH_RADIUS_METERS = 6_371_000;
+const HTML_TAG_PATTERN = /<[^>]*>/gu;
 
 /**
  * Source-exact active V1 policy recovered from canonical ZIP sourceCommit
@@ -112,6 +113,170 @@ export const NAVIGATION_SUGGESTION_V1_POLICY: NavigationSuggestionPolicy =
 export const NAVIGATION_SUGGESTION_FUNCTIONAL_POLICY =
   NAVIGATION_SUGGESTION_V1_POLICY;
 
+interface SuggestionDistanceCopy {
+  readonly nearby: string;
+  readonly meters: string;
+  readonly kilometers: string;
+}
+
+const V1_DISTANCE_COPY: Readonly<
+  Record<NavigationSpeechLanguage, SuggestionDistanceCopy>
+> = Object.freeze({
+  pt: Object.freeze({
+    nearby: "aqui perto",
+    meters: "a {dist}m",
+    kilometers: "a {dist}km",
+  }),
+  en: Object.freeze({
+    nearby: "nearby",
+    meters: "{dist}m away",
+    kilometers: "{dist}km away",
+  }),
+  es: Object.freeze({
+    nearby: "aquí cerca",
+    meters: "a {dist}m",
+    kilometers: "a {dist}km",
+  }),
+  he: Object.freeze({
+    nearby: "כאן בקרבת מקום",
+    meters: "{dist}מ' מכאן",
+    kilometers: "{dist}ק\"מ מכאן",
+  }),
+});
+
+const V1_SUGGESTION_TEMPLATES: Readonly<
+  Record<NavigationSpeechLanguage, Readonly<Record<string, readonly string[]>>>
+> = Object.freeze({
+  pt: Object.freeze({
+    restaurants: Object.freeze([
+      "🍽️ Você está passando por <b>{name}</b> ({distance})! Que tal uma parada para comer?",
+      "🍴 <b>{name}</b> está {distance} daqui! Um ótimo lugar para se alimentar.",
+      "😋 Passando por <b>{name}</b> — um dos favoritos dos visitantes!",
+    ]),
+    shops: Object.freeze([
+      "🛍️ <b>{name}</b> está {distance} daqui! Ótima opção para compras e souvenirs.",
+      "🏪 Você está perto de <b>{name}</b> ({distance}). Vale uma visita!",
+    ]),
+    attractions: Object.freeze([
+      "📸 Você está passando por <b>{name}</b> ({distance})! Um ponto turístico imperdível.",
+      "🗺️ <b>{name}</b> está {distance} daqui — não perca essa atração!",
+    ]),
+    hotels: Object.freeze([
+      "🏨 <b>{name}</b> está {distance} daqui! Boa opção de hospedagem na região.",
+    ]),
+    nightlife: Object.freeze([
+      "🎵 <b>{name}</b> está {distance} daqui! Ótima opção para a noite.",
+      "🎶 Passando por <b>{name}</b> — música e diversão te esperam!",
+    ]),
+    tours: Object.freeze([
+      "⛵ <b>{name}</b> está {distance} daqui! Excelente opção de passeio.",
+      "🌊 Você está perto de <b>{name}</b> — um passeio incrível te espera!",
+    ]),
+    beaches: Object.freeze([
+      "🏖️ Você está chegando perto de <b>{name}</b> ({distance})! Prepare-se para curtir a praia.",
+    ]),
+    emergencies: Object.freeze([
+      "🚨 Atenção: <b>{name}</b> está {distance} daqui. Guarde este endereço para emergências.",
+    ]),
+  }),
+  en: Object.freeze({
+    restaurants: Object.freeze([
+      "🍽️ You're passing by <b>{name}</b> ({distance})! How about a food stop?",
+      "🍴 <b>{name}</b> is {distance}! A great place to eat.",
+      "😋 Passing by <b>{name}</b> — one of the visitors' favorites!",
+    ]),
+    shops: Object.freeze([
+      "🛍️ <b>{name}</b> is {distance}! Great option for shopping and souvenirs.",
+      "🏪 You're near <b>{name}</b> ({distance}). Worth a visit!",
+    ]),
+    attractions: Object.freeze([
+      "📸 You're passing by <b>{name}</b> ({distance})! A must-see attraction.",
+      "🗺️ <b>{name}</b> is {distance} — don't miss this attraction!",
+    ]),
+    hotels: Object.freeze([
+      "🏨 <b>{name}</b> is {distance}! Good accommodation option in the area.",
+    ]),
+    nightlife: Object.freeze([
+      "🎵 <b>{name}</b> is {distance}! Great option for the night.",
+      "🎶 Passing by <b>{name}</b> — music and fun await!",
+    ]),
+    tours: Object.freeze([
+      "⛵ <b>{name}</b> is {distance}! Excellent tour option.",
+      "🌊 You're near <b>{name}</b> — an amazing tour awaits!",
+    ]),
+    beaches: Object.freeze([
+      "🏖️ You're getting close to <b>{name}</b> ({distance})! Get ready to enjoy the beach.",
+    ]),
+    emergencies: Object.freeze([
+      "🚨 Attention: <b>{name}</b> is {distance}. Keep this address for emergencies.",
+    ]),
+  }),
+  es: Object.freeze({
+    restaurants: Object.freeze([
+      "🍽️ Estás pasando por <b>{name}</b> ({distance})! ¿Qué tal una parada para comer?",
+      "🍴 <b>{name}</b> está {distance}! Un gran lugar para comer.",
+      "😋 Pasando por <b>{name}</b> — ¡uno de los favoritos de los visitantes!",
+    ]),
+    shops: Object.freeze([
+      "🛍️ <b>{name}</b> está {distance}! Excelente opción para compras y souvenirs.",
+      "🏪 Estás cerca de <b>{name}</b> ({distance}). ¡Vale la pena visitarlo!",
+    ]),
+    attractions: Object.freeze([
+      "📸 Estás pasando por <b>{name}</b> ({distance})! Un atractivo turístico imperdible.",
+      "🗺️ <b>{name}</b> está {distance} — ¡no te pierdas esta atracción!",
+    ]),
+    hotels: Object.freeze([
+      "🏨 <b>{name}</b> está {distance}! Buena opción de alojamiento en la zona.",
+    ]),
+    nightlife: Object.freeze([
+      "🎵 <b>{name}</b> está {distance}! Excelente opción para la noche.",
+      "🎶 Pasando por <b>{name}</b> — ¡música y diversión te esperan!",
+    ]),
+    tours: Object.freeze([
+      "⛵ <b>{name}</b> está {distance}! Excelente opción de paseo.",
+      "🌊 Estás cerca de <b>{name}</b> — ¡un paseo increíble te espera!",
+    ]),
+    beaches: Object.freeze([
+      "🏖️ ¡Estás llegando cerca de <b>{name}</b> ({distance})! Prepárate para disfrutar la playa.",
+    ]),
+    emergencies: Object.freeze([
+      "🚨 Atención: <b>{name}</b> está {distance}. Guarda esta dirección para emergencias.",
+    ]),
+  }),
+  he: Object.freeze({
+    restaurants: Object.freeze([
+      "🍽️ אתה עובר ליד <b>{name}</b> ({distance})! מה דעתך לעצור לאכול?",
+      "🍴 <b>{name}</b> נמצא {distance}! מקום נהדר לאכול.",
+      "😋 עובר ליד <b>{name}</b> — אחד המועדפים של המבקרים!",
+    ]),
+    shops: Object.freeze([
+      "🛍️ <b>{name}</b> נמצא {distance}! אפשרות מצוינת לקניות ומזכרות.",
+      "🏪 אתה קרוב ל-<b>{name}</b> ({distance}). שווה לבקר!",
+    ]),
+    attractions: Object.freeze([
+      "📸 אתה עובר ליד <b>{name}</b> ({distance})! אטרקציה תיירותית שלא כדאי לפספס.",
+      "🗺️ <b>{name}</b> נמצא {distance} — אל תפספס את האטרקציה הזאt!",
+    ]),
+    hotels: Object.freeze([
+      "🏨 <b>{name}</b> נמצא {distance}! אפשרות לינה טובה באזור.",
+    ]),
+    nightlife: Object.freeze([
+      "🎵 <b>{name}</b> נמצא {distance}! אפשרות מצוינת ללילה.",
+      "🎶 עובר ליד <b>{name}</b> — מוסיקה וכיף מחכים לך!",
+    ]),
+    tours: Object.freeze([
+      "⛵ <b>{name}</b> נמצא {distance}! אפשרות סיור מצוינת.",
+      "🌊 אתה קרוב ל-<b>{name}</b> — סיור מדהים מחכה לך!",
+    ]),
+    beaches: Object.freeze([
+      "🏖️ אתה מתקרב ל-<b>{name}</b> ({distance})! התכונן ליהנות מהחוף.",
+    ]),
+    emergencies: Object.freeze([
+      "🚨 שים לב: <b>{name}</b> נמצא {distance}. שמור כתובת זו למקרי חירום.",
+    ]),
+  }),
+});
+
 function toRadians(value: number): number {
   return (value * Math.PI) / 180;
 }
@@ -136,22 +301,40 @@ export function navigationSuggestionDistanceMeters(
   );
 }
 
+function formatSuggestionDistance(
+  language: NavigationSpeechLanguage,
+  distanceMeters: number,
+): string {
+  const copy = V1_DISTANCE_COPY[language];
+  if (distanceMeters < 50) return copy.nearby;
+  if (distanceMeters < 1000) {
+    return copy.meters.replace("{dist}", String(Math.round(distanceMeters)));
+  }
+  return copy.kilometers.replace(
+    "{dist}",
+    (distanceMeters / 1000).toFixed(1),
+  );
+}
+
 export function navigationSuggestionMessage(
   language: NavigationSpeechLanguage,
   placeName: string,
   distanceMeters: number,
+  category = "restaurants",
+  random: () => number = Math.random,
 ): string {
-  const distance = Math.max(1, Math.round(distanceMeters));
-  switch (language) {
-    case "en":
-      return `${placeName} is about ${distance} meters from you.`;
-    case "es":
-      return `${placeName} está a unos ${distance} metros de ti.`;
-    case "he":
-      return `${placeName} נמצא במרחק של כ-${distance} מטר ממך.`;
-    default:
-      return `${placeName} está a cerca de ${distance} metros de você.`;
-  }
+  const languageTemplates = V1_SUGGESTION_TEMPLATES[language];
+  const templates =
+    languageTemplates[category] ?? languageTemplates.restaurants ?? [];
+  const boundedRandom = Math.max(0, Math.min(0.999999999, random()));
+  const template =
+    templates[Math.floor(boundedRandom * templates.length)] ??
+    "<b>{name}</b> ({distance})";
+  const distance = formatSuggestionDistance(language, distanceMeters);
+  return template
+    .replace(/\{name\}/gu, placeName || "local")
+    .replace(/\{distance\}/gu, distance)
+    .replace(/\{description\}/gu, "");
 }
 
 function normalizedSponsorName(value: string): string {
@@ -376,6 +559,7 @@ export function createNavigationContextualSuggestions(options: {
         options.speech.language(),
         selected.placeName,
         selected.distanceMeters,
+        selected.category,
       );
       const suggestion: NavigationContextualSuggestion = Object.freeze({
         ...selected,
@@ -396,7 +580,7 @@ export function createNavigationContextualSuggestions(options: {
       messageVisible = true;
       const version = ++messageVersion;
       scheduleClear(version);
-      options.speech.speak(message);
+      options.speech.speak(message.replace(HTML_TAG_PATTERN, ""));
       options.document.defaultView?.dispatchEvent(
         new CustomEvent<NavigationContextualSuggestion>(
           "navigationContextualSuggestion",
