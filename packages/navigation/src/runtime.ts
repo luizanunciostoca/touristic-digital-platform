@@ -6,7 +6,10 @@ import {
   type RouteGeometrySnapshot,
   type RouteGeometryTracker,
 } from "./geometry.js";
-import { processNavigationInstructionText } from "./instruction-text.js";
+import {
+  simplifyNavigationInstructionText,
+  type NavigationInstructionLanguage,
+} from "./instruction-text.js";
 import {
   createNavigationVisualStabilizer,
   type NavigationVisualStabilizer,
@@ -22,6 +25,7 @@ export interface NavigationInstructionInput {
   readonly original?: string;
   readonly instruction?: string;
   readonly text?: string;
+  readonly type?: string | number;
   readonly maneuver?: Readonly<Record<string, unknown>>;
   readonly [key: string]: unknown;
 }
@@ -29,6 +33,7 @@ export interface NavigationInstructionInput {
 export interface NavigationGuidanceSnapshot {
   readonly instruction: string;
   readonly original: string;
+  readonly maneuverType?: string | number;
   readonly formattedDistance: string;
   readonly remainingDistance: string;
   readonly estimatedTime: string;
@@ -55,6 +60,7 @@ export interface NavigationRuntimeUpdateInput {
   readonly location?: (NavigationPosition & VisualLocationInput) | null;
   readonly instructions?: readonly NavigationInstructionInput[];
   readonly stepIndex?: number;
+  readonly language?: NavigationInstructionLanguage;
 }
 
 export interface NavigationRuntimeCoordinatorPorts {
@@ -105,15 +111,37 @@ function instructionText(
   ).trim();
 }
 
+function instructionManeuverType(
+  instruction: NavigationInstructionInput | undefined,
+): string | number | undefined {
+  if (!instruction) return undefined;
+  if (
+    typeof instruction.type === "string" ||
+    typeof instruction.type === "number"
+  ) {
+    return instruction.type;
+  }
+  const maneuverType = instruction.maneuver?.type;
+  return typeof maneuverType === "string" || typeof maneuverType === "number"
+    ? maneuverType
+    : undefined;
+}
+
 function buildGuidance(
   geometry: RouteGeometrySnapshot,
   instructions: readonly NavigationInstructionInput[],
   requestedStepIndex: unknown,
+  language: NavigationInstructionLanguage,
 ): NavigationGuidanceSnapshot {
   const stepIndex = normalizeStepIndex(requestedStepIndex, instructions.length);
   const instruction = instructions[stepIndex];
   const original = instructionText(instruction);
-  const text = processNavigationInstructionText(original);
+  const maneuverType = instructionManeuverType(instruction);
+  const text = simplifyNavigationInstructionText(
+    original,
+    maneuverType,
+    language,
+  );
   const maneuverDistance =
     geometry.distanceToNextManeuver > 0
       ? geometry.distanceToNextManeuver
@@ -122,6 +150,7 @@ function buildGuidance(
   return {
     instruction: text,
     original,
+    ...(maneuverType !== undefined ? { maneuverType } : {}),
     formattedDistance: formatRouteDistance(maneuverDistance),
     remainingDistance: formatRouteDistance(geometry.remainingDistance),
     estimatedTime: formatRouteDuration(geometry.remainingDuration),
@@ -199,7 +228,12 @@ export function createNavigationRuntimeCoordinator(
       );
       if (!visual) return null;
 
-      const guidance = buildGuidance(geometry, instructions, stepIndex);
+      const guidance = buildGuidance(
+        geometry,
+        instructions,
+        stepIndex,
+        input.language ?? "pt",
+      );
       lastSnapshot = {
         ...geometry,
         bearing: visual.bearing,
