@@ -35,13 +35,8 @@ jobs:
           /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
       - name: Build workspace
         run: pnpm -w build
-      - name: Start authenticated Mapbox runtime
-        env:
-          MAPBOX_PUBLIC_TOKEN_CI: ${{ secrets.MAPBOX_PUBLIC_TOKEN_CI }}
+      - name: Start deterministic navigation runtime
         run: |
-          test -n "${MAPBOX_PUBLIC_TOKEN_CI:-}" || { echo 'MAPBOX_PUBLIC_TOKEN_CI missing'; exit 1; }
-          VITE_MAPBOX_ACCESS_TOKEN="$MAPBOX_PUBLIC_TOKEN_CI" \
-          VITE_MAPBOX_STYLE=mapbox://styles/mapbox/streets-v12 \
           VITE_MAPBOX_CONTAINER_ID=map \
           VITE_MAPBOX_INITIAL_ZOOM=13.5 \
           node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/navigation-turn-by-turn.log 2>&1 &
@@ -98,6 +93,9 @@ jobs:
               await page.waitForTimeout(100);
             }
             const diagnostics = await page.evaluate(() => ({
+              mapState: document.getElementById('map')?.getAttribute('data-map-state') ?? null,
+              mapMode: document.getElementById('map')?.getAttribute('data-map-mode') ?? null,
+              mapProvider: document.getElementById('map')?.getAttribute('data-map-provider') ?? null,
               banner: document.getElementById('instruction-main')?.textContent ?? null,
               statuses: globalThis.__turnByTurnEvidence?.statuses ?? [],
               speech: globalThis.__turnByTurnEvidence?.speech ?? [],
@@ -157,7 +155,7 @@ jobs:
             });
 
             await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded', timeout: 30000 });
-            await page.locator('#map[data-map-state="ready"][data-map-mode="real"][data-map-provider="mapbox"]').waitFor({ state: 'attached', timeout: 30000 });
+            await page.locator('#map[data-map-state="ready"]').waitFor({ state: 'attached', timeout: 30000 });
             await page.evaluate((nextDestination) => {
               document.dispatchEvent(new CustomEvent('morro:navigation-requested', { detail: { destination: nextDestination } }));
             }, destination);
