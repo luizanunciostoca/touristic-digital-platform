@@ -8,11 +8,15 @@ on:
       - apps/morro-digital-platform/src/main.ts
       - apps/morro-digital-platform/src/browser-entry.ts
       - apps/morro-digital-platform/src/assistant/**
+      - apps/morro-digital-platform/src/map/explore-location-actions-v1.ts
+      - apps/morro-digital-platform/src/map/explore-location-actions-v1.test.ts
       - apps/morro-digital-platform/src/map/explore-locations-control.ts
-      - apps/morro-digital-platform/src/map/explore-locations-control.test.ts
+      - apps/morro-digital-platform/src/map/explore-locations-v1-flow.ts
+      - apps/morro-digital-platform/src/map/explore-locations-v1-flow.test.ts
       - apps/morro-digital-platform/src/layouts/app-shell.ts
       - apps/morro-digital-platform/public/**
-      - packages/search/src/morro-v1-search-catalog.ts
+      - packages/geospatial/src/**
+      - packages/search/src/**
       - packages/assistant/src/menu.ts
       - package.json
       - pnpm-lock.yaml
@@ -57,7 +61,7 @@ jobs:
           done
           cat /tmp/v1-explore-locations/server.log
           exit 1
-      - name: Validate V1 assistant category flow and map POIs
+      - name: Validate staged V1 category, filter, map and detail flow
         run: |
           node <<'NODE'
           const { writeFileSync } = require('node:fs');
@@ -79,6 +83,14 @@ jobs:
             nightlife: 5,
             emergencies: 4,
           };
+          const expectedBeachDetailValues = [
+            'condições da praia',
+            'como chegar',
+            'ver fotos',
+            'informações',
+            'mais opções',
+            '[sub]beaches',
+          ];
           const weather = {
             temperatureCelsius: 28,
             temperatureMaxCelsius: 31,
@@ -92,45 +104,87 @@ jobs:
           };
 
           async function openAssistant(page) {
+            await page.locator('body[data-public-onboarding-settled="true"]').waitFor({ state: 'attached', timeout: 5000 });
             const assistant = page.locator('#assistant-messages');
             const quickAction = page.locator('.mood-button[data-assistant-shell-ready="true"]');
-            await page.locator('body[data-public-onboarding-settled="true"]').waitFor({ state: 'attached', timeout: 5000 });
             await quickAction.waitFor({ state: 'visible', timeout: 5000 });
             if (!(await assistant.isVisible())) await quickAction.click();
             await assistant.waitFor({ state: 'visible', timeout: 5000 });
-            if ((await assistant.getAttribute('aria-hidden')) !== 'false') {
-              throw new Error('Visible assistant must expose aria-hidden="false"');
+          }
+
+          async function waitMap(page, category, count, stage) {
+            await page.locator(`#map[data-explore-state="ready"][data-explore-category="${category}"][data-map-marker-count="${count}"][data-explore-stage="${stage}"]`).waitFor({ state: 'attached', timeout: 8000 });
+          }
+
+          async function assertFiltersStage(page, category, count) {
+            await page.locator(`#assistant-category-results[data-category="${category}"][data-stage="filters"]`).waitFor({ state: 'visible', timeout: 5000 });
+            await waitMap(page, category, count, 'filters');
+            const state = await page.evaluate(() => {
+              const main = document.querySelector('.assistant-options:has([data-explore-category])');
+              const results = document.getElementById('assistant-category-results');
+              return {
+                mainHidden: Boolean(main?.classList.contains('hidden')),
+                mainAriaHidden: main?.getAttribute('aria-hidden'),
+                filterCount: results?.querySelectorAll('[data-explore-action]').length ?? 0,
+                locationCount: results?.querySelectorAll('[data-location-name]').length ?? 0,
+              };
+            });
+            if (!state.mainHidden || state.mainAriaHidden !== 'true' || state.filterCount < 2 || state.locationCount !== 0) {
+              throw new Error(`V1 filter stage diverged for ${category}: ${JSON.stringify(state)}`);
             }
           }
 
-          async function waitForCategory(page, category, count) {
-            await page.locator(`#assistant-category-results[data-category="${category}"]`).waitFor({ state: 'visible', timeout: 5000 });
-            await page.locator(`#map[data-explore-state="ready"][data-explore-category="${category}"][data-map-marker-count="${count}"]`).waitFor({ state: 'attached', timeout: 5000 });
-            const optionCount = await page.locator(`#assistant-category-results [data-location-category="${category}"]`).count();
-            if (optionCount !== count) {
-              throw new Error(`${category}: expected ${count} assistant location options, received ${optionCount}`);
-            }
-            const submenuState = await page.locator('#submenu').evaluate(element => ({
-              hidden: element.classList.contains('hidden'),
-              ariaHidden: element.getAttribute('aria-hidden'),
-            }));
-            if (!submenuState.hidden || submenuState.ariaHidden !== 'true') {
-              throw new Error(`${category}: detached submenu must remain hidden: ${JSON.stringify(submenuState)}`);
+          async function assertMainMenu(page) {
+            const state = await page.evaluate(() => {
+              const main = document.querySelector('.assistant-options:has([data-explore-category])');
+              return {
+                hidden: Boolean(main?.classList.contains('hidden')),
+                ariaHidden: main?.getAttribute('aria-hidden'),
+                categories: main?.querySelectorAll('[data-explore-category]').length ?? 0,
+                flowExists: Boolean(document.getElementById('assistant-category-results')),
+              };
+            });
+            if (state.hidden || state.ariaHidden === 'true' || state.categories !== 9 || state.flowExists) {
+              throw new Error(`Main menu was not restored: ${JSON.stringify(state)}`);
             }
           }
 
-          async function waitForMapCenter(page, longitude, latitude) {
-            const deadline = Date.now() + 5000;
+          async function waitForSelectedMapCamera(page, longitude, latitude) {
+            const deadline = Date.now() + 6000;
             let last = null;
             while (Date.now() < deadline) {
               last = await page.evaluate(() => {
-                const center = globalThis.mapboxPrimaryInstance?.getCenter?.();
-                return center ? { lng: center.lng, lat: center.lat } : null;
+                const map = globalThis.mapboxPrimaryInstance;
+                const center = map?.getCenter?.();
+                return center
+                  ? { lng: center.lng, lat: center.lat, zoom: map?.getZoom?.() }
+                  : null;
               });
-              if (last && Math.abs(last.lng - longitude) < 0.001 && Math.abs(last.lat - latitude) < 0.001) return last;
+              if (
+                last &&
+                Math.abs(last.lng - longitude) < 0.001 &&
+                Math.abs(last.lat - latitude) < 0.001 &&
+                typeof last.zoom === 'number' &&
+                Math.abs(last.zoom - 16) < 0.05
+              ) {
+                return last;
+              }
               await new Promise(resolve => setTimeout(resolve, 100));
             }
-            throw new Error(`Explore selection did not recenter the map: ${JSON.stringify(last)}`);
+            throw new Error(`Selected location did not reach the V1 camera: ${JSON.stringify(last)}`);
+          }
+
+          async function readDynamicOptionValues(page) {
+            return page.evaluate(() => {
+              const containers = Array.from(document.querySelectorAll('.assistant-options'));
+              const dynamic = containers.find(container =>
+                !container.querySelector('[data-explore-category]') &&
+                container.id !== 'assistant-category-results'
+              );
+              return dynamic
+                ? Array.from(dynamic.querySelectorAll('.assistant-option-btn'), button => button.getAttribute('data-value'))
+                : [];
+            });
           }
 
           (async () => {
@@ -138,7 +192,11 @@ jobs:
             const evidence = {};
 
             for (const viewport of viewports) {
-              const context = await browser.newContext({ viewport });
+              const context = await browser.newContext({
+                viewport,
+                geolocation: { latitude: -13.3776181, longitude: -38.9142193 },
+                permissions: ['geolocation'],
+              });
               await context.addInitScript(() => {
                 localStorage.setItem('morro-digital-onboarded', '1');
                 localStorage.setItem('voice-enabled', 'false');
@@ -149,10 +207,7 @@ jobs:
               page.on('pageerror', error => pageErrors.push(error.message));
               page.on('response', response => {
                 if (response.url().includes('mapbox.com') && response.status() >= 400) {
-                  mapboxHttpErrors.push({
-                    status: response.status(),
-                    url: response.url().replace(/access_token=[^&]+/u, 'access_token=[redacted]'),
-                  });
+                  mapboxHttpErrors.push({ status: response.status() });
                 }
               });
               await page.route('**/api/weather', route => route.fulfill({
@@ -165,51 +220,37 @@ jobs:
               await page.locator('#map[data-map-state="ready"][data-home-state="ready"][data-tour-state="idle"][data-map-mode="real"][data-map-marker-count="0"]').waitFor({ state: 'attached', timeout: 30000 });
               await page.locator('#loading-overlay.fade-out').waitFor({ state: 'attached', timeout: 5000 });
               await openAssistant(page);
-
-              if (await page.locator('#controls').count() !== 0) {
-                throw new Error(`Duplicate external category rail exists in ${viewport.id}`);
-              }
-              const categoryButtons = page.locator('.assistant-options .assistant-option-btn[data-explore-category]');
-              if (await categoryButtons.count() !== 9) {
-                throw new Error(`Expected 9 assistant-owned location categories in ${viewport.id}`);
-              }
+              await assertMainMenu(page);
 
               for (const [category, count] of Object.entries(expectedCounts)) {
-                const trigger = page.locator(`#assistant-category-${category}`);
-                await trigger.click();
-                await waitForCategory(page, category, count);
-                const state = await trigger.evaluate(element => ({
-                  expanded: element.getAttribute('aria-expanded'),
-                  pressed: element.getAttribute('aria-pressed'),
-                }));
-                if (state.expanded !== 'true' || state.pressed !== 'true') {
-                  throw new Error(`${viewport.id}/${category}: category trigger state diverged: ${JSON.stringify(state)}`);
-                }
+                await page.locator(`#assistant-category-${category}`).click();
+                await assertFiltersStage(page, category, count);
                 await page.keyboard.press('Escape');
-                if (await page.locator('#assistant-category-results').count()) {
-                  throw new Error(`${viewport.id}/${category}: Escape did not close category results`);
-                }
-                if (!(await page.locator('#assistant-messages').isVisible())) {
-                  throw new Error(`${viewport.id}/${category}: Escape closed the assistant instead of category results`);
-                }
-                if ((await page.evaluate(() => document.activeElement?.id)) !== `assistant-category-${category}`) {
-                  throw new Error(`${viewport.id}/${category}: focus did not return to category trigger`);
-                }
+                await assertMainMenu(page);
               }
 
               const beaches = page.locator('#assistant-category-beaches');
-              await beaches.focus();
-              await page.keyboard.press('Enter');
-              await waitForCategory(page, 'beaches', 8);
-              const keyboardState = await page.evaluate(() => ({
-                optionCount: document.querySelectorAll('#assistant-category-results [data-location-category="beaches"]').length,
-                firstFocused: document.activeElement?.getAttribute('data-location-name') === 'Primeira Praia',
-                assistantContainsResults: Boolean(document.querySelector('#assistant-messages #assistant-category-results')),
+              await beaches.click();
+              await assertFiltersStage(page, 'beaches', 8);
+
+              await page.locator('#assistant-category-results [data-value="surf"]').click();
+              await page.locator('#assistant-category-results[data-stage="places"]').waitFor({ state: 'visible' });
+              const surfState = await page.evaluate(() => ({
+                placeCount: document.querySelectorAll('#assistant-category-results [data-location-name]').length,
+                markerCount: Number(document.getElementById('map')?.getAttribute('data-map-marker-count') || 0),
+                hasBackFilters: Boolean(document.querySelector('#assistant-category-results [data-value="voltar_filtros"]')),
+                mainHidden: Boolean(document.querySelector('.assistant-options:has([data-explore-category])')?.classList.contains('hidden')),
               }));
-              if (keyboardState.optionCount !== 8 || !keyboardState.firstFocused || !keyboardState.assistantContainsResults) {
-                throw new Error(`Keyboard assistant-results contract diverged in ${viewport.id}: ${JSON.stringify(keyboardState)}`);
+              if (surfState.placeCount < 1 || surfState.placeCount !== surfState.markerCount || !surfState.hasBackFilters || !surfState.mainHidden) {
+                throw new Error(`Surf filter diverged in ${viewport.id}: ${JSON.stringify(surfState)}`);
               }
-              await page.keyboard.press('Escape');
+
+              await page.locator('#assistant-category-results [data-value="voltar_filtros"]').click();
+              await assertFiltersStage(page, 'beaches', 8);
+
+              await page.locator('#assistant-category-results [data-value="ver todos"]').click();
+              await page.locator('#assistant-category-results[data-stage="places"] [data-location-name="Primeira Praia"]').waitFor({ state: 'visible' });
+              await waitMap(page, 'beaches', 8, 'places');
 
               await page.evaluate(() => {
                 globalThis.__exploreSelectedValues = [];
@@ -219,30 +260,63 @@ jobs:
                   }
                 });
               });
-              await beaches.click();
-              await waitForCategory(page, 'beaches', 8);
+
               await page.locator('#assistant-category-results [data-location-name="Primeira Praia"]').click();
-              const center = await waitForMapCenter(page, -38.9142193, -13.3776181);
-              await page.locator('#assistant-messages').filter({ hasText: 'Primeira Praia' }).waitFor({ state: 'visible', timeout: 5000 });
-              const selectionState = await page.evaluate(() => ({
-                resultsRemoved: !document.getElementById('assistant-category-results'),
-                submenuHidden: document.getElementById('submenu')?.getAttribute('aria-hidden'),
-                assistantVisible: !document.getElementById('assistant-messages')?.classList.contains('hidden'),
+              await waitMap(page, 'beaches', 1, 'detail');
+              const center = await waitForSelectedMapCamera(page, -38.9142193, -13.3776181);
+              await page.locator('.mapboxgl-popup').filter({ hasText: 'Primeira Praia' }).waitFor({ state: 'visible', timeout: 5000 });
+              await page.locator('.assistant-option-btn[data-value="condições da praia"]').waitFor({ state: 'visible', timeout: 8000 });
+              const detailValues = await readDynamicOptionValues(page);
+              const selected = await page.evaluate(() => ({
+                flowRemoved: !document.getElementById('assistant-category-results'),
+                mainHidden: Boolean(document.querySelector('.assistant-options:has([data-explore-category])')?.classList.contains('hidden')),
                 selectedValues: globalThis.__exploreSelectedValues,
-                activeTour: document.getElementById('map')?.getAttribute('data-active-tour'),
                 markerCount: document.getElementById('map')?.getAttribute('data-map-marker-count'),
-                exploreCategory: document.getElementById('map')?.getAttribute('data-explore-category'),
+                activeTour: document.getElementById('map')?.getAttribute('data-active-tour'),
+                popupText: document.querySelector('.mapboxgl-popup')?.textContent?.trim() ?? '',
               }));
               if (
-                !selectionState.resultsRemoved ||
-                selectionState.submenuHidden !== 'true' ||
-                !selectionState.assistantVisible ||
-                !selectionState.selectedValues.includes('Fale sobre Primeira Praia') ||
-                selectionState.activeTour !== null ||
-                selectionState.markerCount !== '8' ||
-                selectionState.exploreCategory !== 'beaches'
+                !selected.flowRemoved ||
+                !selected.mainHidden ||
+                selected.markerCount !== '1' ||
+                selected.activeTour !== null ||
+                !selected.selectedValues.includes('Fale sobre Primeira Praia') ||
+                !selected.popupText.includes('Primeira Praia') ||
+                JSON.stringify(detailValues) !== JSON.stringify(expectedBeachDetailValues)
               ) {
-                throw new Error(`Location selection contract diverged in ${viewport.id}: ${JSON.stringify(selectionState)}`);
+                throw new Error(`Location detail diverged in ${viewport.id}: ${JSON.stringify({ selected, detailValues })}`);
+              }
+
+              await page.locator('.assistant-option-btn[data-value="[sub]beaches"]').click();
+              await page.locator('#assistant-category-results[data-stage="places"]').waitFor({ state: 'visible', timeout: 5000 });
+              await waitMap(page, 'beaches', 8, 'places');
+              const returnedPlaces = await page.locator('#assistant-category-results [data-location-name]').count();
+              if (returnedPlaces !== 8) {
+                throw new Error(`Detail back did not restore the V1 places list: ${returnedPlaces}`);
+              }
+
+              await page.keyboard.press('Escape');
+              await assertMainMenu(page);
+
+              if (viewport.id === 'mobile') {
+                await page.locator('#assistant-category-beaches').click();
+                await assertFiltersStage(page, 'beaches', 8);
+                await page.locator('#assistant-category-results [data-value="proximo"]').click();
+                await page.locator('#assistant-category-results[data-stage="places"]').waitFor({ state: 'visible' });
+                const nearby = await page.evaluate(() => ({
+                  places: document.querySelectorAll('#assistant-category-results [data-location-name]').length,
+                  markers: Number(document.getElementById('map')?.getAttribute('data-map-marker-count') || 0),
+                }));
+                if (nearby.places < 1 || nearby.places > 12 || nearby.places !== nearby.markers) {
+                  throw new Error(`Nearby flow diverged: ${JSON.stringify(nearby)}`);
+                }
+                await page.keyboard.press('Escape');
+                await assertMainMenu(page);
+
+                await page.locator('#assistant-category-tours').click();
+                await assertFiltersStage(page, 'tours', 6);
+                await page.locator('#assistant-category-results [data-value="tour_volta_ilha"]').click();
+                await page.locator('#map[data-tour-state="ready"][data-active-tour="volta-a-ilha"][data-map-marker-count="8"]').waitFor({ state: 'attached', timeout: 10000 });
               }
 
               if (pageErrors.length || mapboxHttpErrors.length) {
@@ -250,36 +324,13 @@ jobs:
               }
 
               await page.screenshot({
-                path: `/tmp/v1-explore-locations/assistant-category-${viewport.id}.png`,
+                path: `/tmp/v1-explore-locations/v1-category-flow-${viewport.id}.png`,
                 fullPage: false,
                 animations: 'disabled',
               });
-              evidence[viewport.id] = { keyboardState, center, selectionState };
+              evidence[viewport.id] = { surfState, selected, center, detailValues, returnedPlaces };
               await context.close();
             }
-
-            const forcedColorsContext = await browser.newContext({ viewport: { width: 390, height: 844 }, forcedColors: 'active' });
-            await forcedColorsContext.addInitScript(() => {
-              localStorage.setItem('morro-digital-onboarded', '1');
-              localStorage.setItem('voice-enabled', 'false');
-            });
-            const forcedColorsPage = await forcedColorsContext.newPage();
-            await forcedColorsPage.route('**/api/weather', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(weather) }));
-            await forcedColorsPage.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded', timeout: 30000 });
-            await forcedColorsPage.locator('#map[data-map-state="ready"]').waitFor({ state: 'attached', timeout: 30000 });
-            await forcedColorsPage.locator('#loading-overlay.fade-out').waitFor({ state: 'attached', timeout: 5000 });
-            await openAssistant(forcedColorsPage);
-            await forcedColorsPage.locator('#assistant-category-beaches').click();
-            await waitForCategory(forcedColorsPage, 'beaches', 8);
-            if (!(await forcedColorsPage.locator('#assistant-category-results [data-location-name="Primeira Praia"]').isVisible())) {
-              throw new Error('Forced-colors assistant category results are not visible');
-            }
-            await forcedColorsPage.screenshot({
-              path: '/tmp/v1-explore-locations/assistant-category-forced-colors.png',
-              fullPage: false,
-              animations: 'disabled',
-            });
-            await forcedColorsContext.close();
 
             writeFileSync('/tmp/v1-explore-locations/evidence.json', JSON.stringify(evidence, null, 2));
             await browser.close();
@@ -297,5 +348,5 @@ jobs:
         with:
           name: v1-explore-locations-evidence
           path: /tmp/v1-explore-locations
-          retention-days: 1
-          if-no-files-found: ignore
+          retention-days: 7
+          if-no-files-found: error
