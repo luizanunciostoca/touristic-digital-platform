@@ -8,11 +8,14 @@ on:
       - apps/morro-digital-platform/src/main.ts
       - apps/morro-digital-platform/src/browser-entry.ts
       - apps/morro-digital-platform/src/assistant/**
+      - apps/morro-digital-platform/src/map/explore-location-actions-v1.ts
+      - apps/morro-digital-platform/src/map/explore-location-actions-v1.test.ts
       - apps/morro-digital-platform/src/map/explore-locations-control.ts
       - apps/morro-digital-platform/src/map/explore-locations-v1-flow.ts
       - apps/morro-digital-platform/src/map/explore-locations-v1-flow.test.ts
       - apps/morro-digital-platform/src/layouts/app-shell.ts
       - apps/morro-digital-platform/public/**
+      - packages/geospatial/src/**
       - packages/search/src/**
       - packages/assistant/src/menu.ts
       - package.json
@@ -80,6 +83,14 @@ jobs:
             nightlife: 5,
             emergencies: 4,
           };
+          const expectedBeachDetailValues = [
+            'condições da praia',
+            'como chegar',
+            'ver fotos',
+            'informações',
+            'mais opções',
+            '[sub]beaches',
+          ];
           const weather = {
             temperatureCelsius: 28,
             temperatureMaxCelsius: 31,
@@ -138,18 +149,42 @@ jobs:
             }
           }
 
-          async function waitForMapCenter(page, longitude, latitude) {
+          async function waitForSelectedMapCamera(page, longitude, latitude) {
             const deadline = Date.now() + 6000;
             let last = null;
             while (Date.now() < deadline) {
               last = await page.evaluate(() => {
-                const center = globalThis.mapboxPrimaryInstance?.getCenter?.();
-                return center ? { lng: center.lng, lat: center.lat } : null;
+                const map = globalThis.mapboxPrimaryInstance;
+                const center = map?.getCenter?.();
+                return center
+                  ? { lng: center.lng, lat: center.lat, zoom: map?.getZoom?.() }
+                  : null;
               });
-              if (last && Math.abs(last.lng - longitude) < 0.001 && Math.abs(last.lat - latitude) < 0.001) return last;
+              if (
+                last &&
+                Math.abs(last.lng - longitude) < 0.001 &&
+                Math.abs(last.lat - latitude) < 0.001 &&
+                typeof last.zoom === 'number' &&
+                Math.abs(last.zoom - 16) < 0.05
+              ) {
+                return last;
+              }
               await new Promise(resolve => setTimeout(resolve, 100));
             }
-            throw new Error(`Selected location did not recenter map: ${JSON.stringify(last)}`);
+            throw new Error(`Selected location did not reach the V1 camera: ${JSON.stringify(last)}`);
+          }
+
+          async function readDynamicOptionValues(page) {
+            return page.evaluate(() => {
+              const containers = Array.from(document.querySelectorAll('.assistant-options'));
+              const dynamic = containers.find(container =>
+                !container.querySelector('[data-explore-category]') &&
+                container.id !== 'assistant-category-results'
+              );
+              return dynamic
+                ? Array.from(dynamic.querySelectorAll('.assistant-option-btn'), button => button.getAttribute('data-value'))
+                : [];
+            });
           }
 
           (async () => {
@@ -225,32 +260,45 @@ jobs:
                   }
                 });
               });
+
               await page.locator('#assistant-category-results [data-location-name="Primeira Praia"]').click();
-              await waitMap(page, 'beaches', 1, 'places');
-              const center = await waitForMapCenter(page, -38.9142193, -13.3776181);
+              await waitMap(page, 'beaches', 1, 'detail');
+              const center = await waitForSelectedMapCamera(page, -38.9142193, -13.3776181);
+              await page.locator('.mapboxgl-popup').filter({ hasText: 'Primeira Praia' }).waitFor({ state: 'visible', timeout: 5000 });
+              await page.locator('.assistant-option-btn[data-value="condições da praia"]').waitFor({ state: 'visible', timeout: 8000 });
+              const detailValues = await readDynamicOptionValues(page);
               const selected = await page.evaluate(() => ({
                 flowRemoved: !document.getElementById('assistant-category-results'),
                 mainHidden: Boolean(document.querySelector('.assistant-options:has([data-explore-category])')?.classList.contains('hidden')),
                 selectedValues: globalThis.__exploreSelectedValues,
                 markerCount: document.getElementById('map')?.getAttribute('data-map-marker-count'),
                 activeTour: document.getElementById('map')?.getAttribute('data-active-tour'),
+                popupText: document.querySelector('.mapboxgl-popup')?.textContent?.trim() ?? '',
               }));
-              if (!selected.flowRemoved || !selected.mainHidden || selected.markerCount !== '1' || selected.activeTour !== null || !selected.selectedValues.includes('Fale sobre Primeira Praia')) {
-                throw new Error(`Location selection diverged in ${viewport.id}: ${JSON.stringify(selected)}`);
+              if (
+                !selected.flowRemoved ||
+                !selected.mainHidden ||
+                selected.markerCount !== '1' ||
+                selected.activeTour !== null ||
+                !selected.selectedValues.includes('Fale sobre Primeira Praia') ||
+                !selected.popupText.includes('Primeira Praia') ||
+                JSON.stringify(detailValues) !== JSON.stringify(expectedBeachDetailValues)
+              ) {
+                throw new Error(`Location detail diverged in ${viewport.id}: ${JSON.stringify({ selected, detailValues })}`);
               }
 
-              const backMain = page.locator('.assistant-options .assistant-option-btn[data-value="voltar ao menu"]');
-              if (await backMain.count()) {
-                await backMain.last().click();
-                await assertMainMenu(page);
-              } else {
-                await page.keyboard.press('Escape');
+              await page.locator('.assistant-option-btn[data-value="[sub]beaches"]').click();
+              await page.locator('#assistant-category-results[data-stage="places"]').waitFor({ state: 'visible', timeout: 5000 });
+              await waitMap(page, 'beaches', 8, 'places');
+              const returnedPlaces = await page.locator('#assistant-category-results [data-location-name]').count();
+              if (returnedPlaces !== 8) {
+                throw new Error(`Detail back did not restore the V1 places list: ${returnedPlaces}`);
               }
+
+              await page.keyboard.press('Escape');
+              await assertMainMenu(page);
 
               if (viewport.id === 'mobile') {
-                if (!(await page.locator('#assistant-category-beaches').isVisible())) {
-                  await page.locator('.mood-button').click();
-                }
                 await page.locator('#assistant-category-beaches').click();
                 await assertFiltersStage(page, 'beaches', 8);
                 await page.locator('#assistant-category-results [data-value="proximo"]').click();
@@ -280,7 +328,7 @@ jobs:
                 fullPage: false,
                 animations: 'disabled',
               });
-              evidence[viewport.id] = { surfState, selected, center };
+              evidence[viewport.id] = { surfState, selected, center, detailValues, returnedPlaces };
               await context.close();
             }
 
