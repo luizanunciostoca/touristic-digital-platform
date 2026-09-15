@@ -1,4 +1,4 @@
-import { defineConfig } from "vitest/config";
+import { configDefaults, defineConfig } from "vitest/config";
 
 const source = (packageName, entry = "index.ts") =>
   new URL(`../../packages/${packageName}/src/${entry}`, import.meta.url)
@@ -138,5 +138,8 @@ export default defineConfig({
       { find: "@touristic/auth-server", replacement: serviceSource("auth") },
       { find: "@touristic/crm-server", replacement: serviceSource("crm") },
     ],
+  },
+  test: {
+    exclude: [...configDefaults.exclude, "dist/**"],
   },
 });
