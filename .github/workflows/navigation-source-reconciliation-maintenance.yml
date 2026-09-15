@@ -1,0 +1,103 @@
+name: Navigation Source Reconciliation Maintenance
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    if: >-
+      github.event.pull_request.number == 60 &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1
+        with:
+          version: 10.15.0
+
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Promote Navigation registry and tracker candidate
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+
+          const registryPath = 'docs/features/registry.json';
+          const registry = JSON.parse(fs.readFileSync(registryPath, 'utf8'));
+          const navigation = registry.features.find((feature) => feature.id === 'FEATURE-0003');
+          if (!navigation) throw new Error('FEATURE-0003 not found');
+          navigation.status = 'equivalent';
+          navigation.equivalence = { behavior: true, visual: true, api: true };
+          navigation.verification = {
+            local: 'LOCAL_VERIFIED',
+            mysql: 'NOT_APPLICABLE',
+            provider: 'PROVIDER_VERIFIED',
+            note: 'FEATURE-0003 source re-certification completed on 2026-09-15 against the directly inspected canonical ZIP reporting sourceCommit 55acb639c1112a3c9a646dd103b01ad9cf5dd106 (archive SHA-256 d438109fc6a76ddc11f7f90d7f02c98d4b95fe456f78f34b66eae5cbeb5eaf97). PR #60 restores the V1 product journey and reconciles NAV-PJ-09 semantic multilingual banner guidance/details, NAV-PJ-10 exact contextual-suggestion policy/ranking/templates/lifecycle and NAV-PJ-11 ORS same-origin routing + Mapbox fallback / degraded map-provider behavior. Canonical matrices are 24 PASS / 0 PARTIAL / 0 GAP and NAV-PJ 11 PASS / 0 PARTIAL / 0 GAP, subject to same-head PR gates. equivalent is not released and does not authorize production.',
+          };
+          fs.writeFileSync(registryPath, `${JSON.stringify(registry, null, 2)}\n`);
+
+          const trackerPath = 'docs/migration/MASTER-MIGRATION-TRACKER.md';
+          const tracker = fs.readFileSync(trackerPath, 'utf8');
+          const replacement = '| MIG-0005 | `js/navigation*` | Navigation | FEATURE-0003 | `packages/navigation` + adapters em `packages/geospatial` + composição no app | 4 | equivalent | baseline visual/câmera e jornada browser preservadas; ZIP canônico `55ac...` reconciliado diretamente | 24/24 cenários históricos PASS e NAV-PJ 11/11 PASS candidate: step progression, TTS, GPS retry/reuse, 15 s routing, recalculation suppression, arrival/Assistant feedback, simplificador semântico PT/EN/ES/HE, sugestões contextuais source-exact e fallback guiado | `NAVIGATION-MIG-0005-EQUIVALENCE-MATRIX.md`; `NAVIGATION-V1-GAP-REGISTER.md`; `NAVIGATION-V1-SOURCE-RECERTIFICATION-2026-09-15.md`; PR #60; same-head Quality + Navigation gates obrigatórios | crítico |';
+          const updated = tracker.replace(/^\| MIG-0005 \|.*$/m, replacement);
+          if (updated === tracker) throw new Error('MIG-0005 tracker row not found');
+          fs.writeFileSync(trackerPath, updated);
+          NODE
+
+      - name: Format source reconciliation files
+        run: >-
+          pnpm exec prettier --write
+          packages/navigation/src/instruction-text.ts
+          packages/navigation/src/instruction-text.test.ts
+          apps/morro-digital-platform/src/navigation/navigation-contextual-suggestions.ts
+          apps/morro-digital-platform/src/navigation/navigation-contextual-suggestions.test.ts
+          apps/morro-digital-platform/src/navigation/navigation-guidance-ui.ts
+          docs/features/registry.json
+          docs/migration/MASTER-MIGRATION-TRACKER.md
+          docs/migration/NAVIGATION-V1-GAP-REGISTER.md
+          docs/migration/NAVIGATION-MIG-0005-EQUIVALENCE-MATRIX.md
+          docs/migration/NAVIGATION-V1-SOURCE-RECERTIFICATION-2026-09-15.md
+
+      - name: Validate formatted tree
+        run: git diff --check
+
+      - name: Commit maintenance changes
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo 'No maintenance changes required.'
+            exit 0
+          fi
+          git config user.name 'morro-digital-ci'
+          git config user.email 'morro-digital-ci@users.noreply.github.com'
+          git add \
+            packages/navigation/src/instruction-text.ts \
+            packages/navigation/src/instruction-text.test.ts \
+            apps/morro-digital-platform/src/navigation/navigation-contextual-suggestions.ts \
+            apps/morro-digital-platform/src/navigation/navigation-contextual-suggestions.test.ts \
+            apps/morro-digital-platform/src/navigation/navigation-guidance-ui.ts \
+            docs/features/registry.json \
+            docs/migration/MASTER-MIGRATION-TRACKER.md \
+            docs/migration/NAVIGATION-V1-GAP-REGISTER.md \
+            docs/migration/NAVIGATION-MIG-0005-EQUIVALENCE-MATRIX.md \
+            docs/migration/NAVIGATION-V1-SOURCE-RECERTIFICATION-2026-09-15.md
+          git commit -m 'chore(navigation): finalize canonical V1 reconciliation'
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
