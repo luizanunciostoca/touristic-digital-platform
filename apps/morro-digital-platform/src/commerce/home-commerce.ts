@@ -12,6 +12,9 @@ interface CommerceOffer {
   readonly availableQuantity: number;
 }
 
+const marketplacePath = "/apps/morro-digital-platform/public/tickets.html";
+const experiencePath = "/apps/morro-digital-platform/public/experience.html";
+
 function money(value: CommerceMoney): string {
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
@@ -59,11 +62,11 @@ function offerCard(document: Document, offer: CommerceOffer): HTMLElement {
   const actions = document.createElement("div");
   actions.className = "home-commerce-card-actions";
   const detail = document.createElement("a");
-  detail.href = `/experience.html?id=${encodeURIComponent(offer.id)}`;
+  detail.href = `${experiencePath}?id=${encodeURIComponent(offer.id)}`;
   detail.textContent = "Detalhes";
   const reserve = document.createElement("a");
   reserve.className = "primary";
-  reserve.href = `/tickets.html?offer=${encodeURIComponent(offer.id)}`;
+  reserve.href = `${marketplacePath}?offer=${encodeURIComponent(offer.id)}`;
   reserve.textContent = offer.availableQuantity > 0 ? "Reservar" : "Ver oferta";
   actions.append(detail, reserve);
 
@@ -96,7 +99,7 @@ export function installHomeCommerce({ document }: { readonly document: Document 
   header.className = "home-commerce-header";
   header.innerHTML = "<div><span>Marketplace Morro Digital</span><h2>Viva Morro</h2></div>";
   const all = document.createElement("a");
-  all.href = "/tickets.html";
+  all.href = marketplacePath;
   all.textContent = "Ver tudo";
   header.append(all);
 
