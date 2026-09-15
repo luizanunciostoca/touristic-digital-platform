@@ -6,13 +6,21 @@ import type {
 } from "@touristic/geospatial";
 import {
   morroV1SearchCatalog,
+  normalizeSearchText,
   type MorroV1SearchCatalogItem,
 } from "@touristic/search";
 
+import {
+  filterV1ExploreLocations,
+  getV1ExploreSubcategoryOptions,
+  sortV1ExploreNearby,
+  type V1ExploreOption,
+} from "./explore-locations-v1-flow.js";
+
 const DETAILS_COMMAND_PREFIX = "Fale sobre ";
 const ASSISTANT_CATEGORY_ID_PREFIX = "assistant-category-";
-const ASSISTANT_CATEGORY_RESULTS_ID = "assistant-category-results";
-const ASSISTANT_CATEGORY_MESSAGE_ID = "assistant-category-results-message";
+const ASSISTANT_FLOW_RESULTS_ID = "assistant-category-results";
+const ASSISTANT_FLOW_MESSAGE_ID = "assistant-category-results-message";
 const TOUR_ROUTE_SOURCE = "tour-route-source";
 const TOUR_ROUTE_LAYER = "tour-route-layer";
 const TOUR_ROUTE_OUTLINE = "tour-route-outline";
@@ -36,6 +44,8 @@ export interface ExploreLocationsControl {
 interface MapboxCompatibilityGlobal {
   readonly mapboxPrimaryInstance?: MapboxGlMapLike;
 }
+
+type ExploreStage = "menu" | "filters" | "places" | "tour";
 
 const categoryValues = new Set(
   morroV1SearchCatalog.map((location) => location.category),
@@ -78,15 +88,11 @@ function currentMap(): MapboxGlMapLike | undefined {
 
 function clearTourPresentation(document: Document): void {
   const map = currentMap();
-  if (map?.getLayer?.(TOUR_ROUTE_LAYER)) {
-    map.removeLayer?.(TOUR_ROUTE_LAYER);
-  }
+  if (map?.getLayer?.(TOUR_ROUTE_LAYER)) map.removeLayer?.(TOUR_ROUTE_LAYER);
   if (map?.getLayer?.(TOUR_ROUTE_OUTLINE)) {
     map.removeLayer?.(TOUR_ROUTE_OUTLINE);
   }
-  if (map?.getSource?.(TOUR_ROUTE_SOURCE)) {
-    map.removeSource?.(TOUR_ROUTE_SOURCE);
-  }
+  if (map?.getSource?.(TOUR_ROUTE_SOURCE)) map.removeSource?.(TOUR_ROUTE_SOURCE);
 
   const tourSelect = document.getElementById("tour-select");
   if (tourSelect instanceof HTMLSelectElement) tourSelect.selectedIndex = -1;
@@ -118,9 +124,9 @@ function assistantMessagesArea(document: Document): HTMLElement | null {
   );
 }
 
-function removeAssistantCategoryResults(document: Document): void {
-  document.getElementById(ASSISTANT_CATEGORY_RESULTS_ID)?.remove();
-  document.getElementById(ASSISTANT_CATEGORY_MESSAGE_ID)?.remove();
+function removeAssistantFlowResults(document: Document): void {
+  document.getElementById(ASSISTANT_FLOW_RESULTS_ID)?.remove();
+  document.getElementById(ASSISTANT_FLOW_MESSAGE_ID)?.remove();
 }
 
 function ensureAssistantVisible(document: Document): void {
@@ -154,13 +160,27 @@ function categoryCenter(
   return { latitude, longitude };
 }
 
-function frameCategoryOnMap(
+function frameLocationsOnMap(
   locations: readonly MorroV1SearchCatalogItem[],
   geospatialEngine: GeospatialEngine | undefined,
 ): void {
-  const bounds = categoryBounds(locations);
   const map = currentMap();
-  if (bounds && locations.length > 1 && map?.fitBounds) {
+  if (locations.length === 1) {
+    const location = locations[0];
+    if (!location) return;
+    if (geospatialEngine?.initialized) {
+      void geospatialEngine.setCenter({
+        latitude: location.latitude,
+        longitude: location.longitude,
+      });
+    } else {
+      map?.setCenter([location.longitude, location.latitude]);
+    }
+    return;
+  }
+
+  const bounds = categoryBounds(locations);
+  if (bounds && map?.fitBounds) {
     map.fitBounds(bounds, {
       padding: { top: 120, bottom: 260, left: 56, right: 56 },
       duration: 650,
@@ -173,66 +193,41 @@ function frameCategoryOnMap(
   if (!center) return;
   if (geospatialEngine?.initialized) {
     void geospatialEngine.setCenter(center);
-    return;
+  } else {
+    map?.setCenter([center.longitude, center.latitude]);
   }
-  map?.setCenter([center.longitude, center.latitude]);
 }
 
-function createAssistantLocationButton(
-  document: Document,
-  location: MorroV1SearchCatalogItem,
-  onSelect: (location: MorroV1SearchCatalogItem) => void,
-): HTMLButtonElement {
-  const button = document.createElement("button");
-  button.type = "button";
-  button.className = "assistant-option-btn assistant-location-option";
-  button.textContent = location.name;
-  button.dataset.value = createExploreLocationDetailsCommand(location.name);
-  button.dataset.locationName = location.name;
-  button.dataset.locationCategory = location.category;
-  button.setAttribute("aria-label", location.name);
-  button.addEventListener("click", (event) => {
-    event.stopImmediatePropagation();
-    onSelect(location);
-  });
-  return button;
+function isBackToMenuValue(value: string): boolean {
+  const normalized = normalizeSearchText(value);
+  return [
+    "voltar ao menu",
+    "voltar ao menu principal",
+    "back to main menu",
+    "volver al menu",
+    "volver al menu principal",
+  ].includes(normalized);
 }
 
-function renderAssistantCategoryResults(
+function getCurrentPosition(
   document: Document,
-  category: ExploreLocationsCategory,
-  locations: readonly MorroV1SearchCatalogItem[],
-  onSelect: (location: MorroV1SearchCatalogItem) => void,
-): HTMLButtonElement | null {
-  ensureAssistantVisible(document);
-  const area = assistantMessagesArea(document);
-  if (!area) return null;
+): Promise<Readonly<{ latitude: number; longitude: number }> | null> {
+  const geolocation = document.defaultView?.navigator.geolocation;
+  if (!geolocation) return Promise.resolve(null);
 
-  removeAssistantCategoryResults(document);
-
-  const message = document.createElement("div");
-  message.id = ASSISTANT_CATEGORY_MESSAGE_ID;
-  message.className = "message assistant";
-  message.dataset.messageType = "category-results";
-  message.dataset.category = category.value;
-  message.textContent = `${category.label}: encontrei ${locations.length} opções. Escolha um local para ver os detalhes.`;
-
-  const options = document.createElement("div");
-  options.id = ASSISTANT_CATEGORY_RESULTS_ID;
-  options.className = "assistant-options assistant-category-results";
-  options.dataset.category = category.value;
-  options.setAttribute("role", "group");
-  options.setAttribute("aria-label", `Opções de ${category.label}`);
-
-  for (const location of locations) {
-    options.appendChild(
-      createAssistantLocationButton(document, location, onSelect),
+  return new Promise((resolve) => {
+    geolocation.getCurrentPosition(
+      (position) =>
+        resolve(
+          Object.freeze({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          }),
+        ),
+      () => resolve(null),
+      { enableHighAccuracy: true, maximumAge: 15_000, timeout: 10_000 },
     );
-  }
-
-  area.append(message, options);
-  area.scrollTop = area.scrollHeight;
-  return options.querySelector<HTMLButtonElement>(".assistant-location-option");
+  });
 }
 
 export function installExploreLocationsControl({
@@ -248,42 +243,51 @@ export function installExploreLocationsControl({
 
   let geospatialEngine: GeospatialEngine | undefined;
   let activeCategoryButton: HTMLButtonElement | undefined;
-  let activeCategory: string | undefined;
+  let activeCategory: ExploreLocationsCategory | undefined;
+  let activeStage: ExploreStage = "menu";
+  let visibleLocations: readonly MorroV1SearchCatalogItem[] = Object.freeze([]);
+  let mainMenuContainer: HTMLElement | undefined;
   const categoryListeners = new Map<HTMLButtonElement, EventListener>();
   const categories = getExploreLocationsCategories();
 
-  const updateMarkerCount = (count: number, category?: string): void => {
+  const updateMapState = (
+    count: number,
+    category?: string,
+    state: "loading" | "ready" | "error" = "ready",
+  ): void => {
     const mapElement = document.getElementById("map");
     mapElement?.setAttribute("data-map-marker-count", String(count));
     mapElement?.removeAttribute("data-active-tour");
     mapElement?.setAttribute("data-tour-state", "idle");
+    mapElement?.setAttribute("data-explore-state", state);
     if (category) {
       mapElement?.setAttribute("data-explore-category", category);
     } else {
       mapElement?.removeAttribute("data-explore-category");
     }
+    mapElement?.setAttribute("data-explore-stage", activeStage);
   };
 
-  const renderCategoryMarkers = async (category: string): Promise<void> => {
-    const locations = getExploreLocationsForCategory(category);
+  const renderLocationsOnMap = async (
+    locations: readonly MorroV1SearchCatalogItem[],
+    category: string,
+  ): Promise<void> => {
+    visibleLocations = Object.freeze([...locations]);
     if (!geospatialEngine?.initialized) return;
 
-    const mapElement = document.getElementById("map");
-    mapElement?.setAttribute("data-explore-state", "loading");
+    updateMapState(locations.length, category, "loading");
     try {
       await geospatialEngine.replaceMarkers(
         locations.map((location, index) => markerForLocation(location, index)),
       );
-      updateMarkerCount(locations.length, category);
-      frameCategoryOnMap(locations, geospatialEngine);
-      mapElement?.setAttribute("data-explore-state", "ready");
+      updateMapState(locations.length, category, "ready");
+      frameLocationsOnMap(locations, geospatialEngine);
     } catch (error) {
-      mapElement?.setAttribute("data-explore-state", "error");
+      updateMapState(0, undefined, "error");
       try {
         await geospatialEngine.replaceMarkers([]);
-        updateMarkerCount(0);
       } catch {
-        // Preserve the provider error state if marker cleanup also fails.
+        // Preserve the first provider failure for diagnostics.
       }
       document
         .getElementById("runtime-status")
@@ -295,36 +299,111 @@ export function installExploreLocationsControl({
     }
   };
 
-  const close = (restoreFocus = true): void => {
-    removeAssistantCategoryResults(document);
-    submenu?.classList.add("hidden");
-    submenu?.setAttribute("aria-hidden", "true");
-    submenuContainer?.replaceChildren();
-    if (activeCategoryButton) {
-      activeCategoryButton.setAttribute("aria-expanded", "false");
-      activeCategoryButton.setAttribute("aria-pressed", "false");
-      if (restoreFocus) activeCategoryButton.focus();
-    }
-    activeCategory = undefined;
+  const hideMainMenu = (): void => {
+    if (!mainMenuContainer) return;
+    mainMenuContainer.classList.add("hidden");
+    mainMenuContainer.setAttribute("aria-hidden", "true");
   };
 
-  const selectLocation = (location: MorroV1SearchCatalogItem): void => {
-    if (geospatialEngine?.initialized) {
-      void geospatialEngine.setCenter({
-        latitude: location.latitude,
-        longitude: location.longitude,
+  const showMainMenu = (): void => {
+    if (!mainMenuContainer) return;
+    mainMenuContainer.classList.remove("hidden");
+    mainMenuContainer.setAttribute("aria-hidden", "false");
+  };
+
+  const renderFlow = (
+    text: string,
+    options: readonly Readonly<{
+      label: string;
+      value: string;
+      action?: string;
+      location?: MorroV1SearchCatalogItem;
+      tourId?: string;
+    }>[],
+    onSelect: (option: (typeof options)[number]) => void,
+  ): HTMLButtonElement | null => {
+    ensureAssistantVisible(document);
+    const area = assistantMessagesArea(document);
+    if (!area) return null;
+
+    removeAssistantFlowResults(document);
+    hideMainMenu();
+
+    const message = document.createElement("div");
+    message.id = ASSISTANT_FLOW_MESSAGE_ID;
+    message.className = "message assistant";
+    message.dataset.messageType = "category-flow";
+    message.dataset.category = activeCategory?.value ?? "";
+    message.textContent = text;
+
+    const container = document.createElement("div");
+    container.id = ASSISTANT_FLOW_RESULTS_ID;
+    container.className = "assistant-options assistant-category-results";
+    container.dataset.category = activeCategory?.value ?? "";
+    container.dataset.stage = activeStage;
+    container.setAttribute("role", "group");
+    container.setAttribute("aria-label", text);
+
+    for (const option of options) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "assistant-option-btn assistant-flow-option";
+      button.textContent = option.label;
+      button.dataset.value = option.value;
+      button.dataset.exploreAction = option.action ?? "location";
+      if (option.location) {
+        button.dataset.locationName = option.location.name;
+        button.dataset.locationCategory = option.location.category;
+      }
+      if (option.tourId) button.dataset.tourId = option.tourId;
+      button.addEventListener("click", (event) => {
+        event.stopImmediatePropagation();
+        onSelect(option);
       });
-    } else {
-      currentMap()?.setCenter([location.longitude, location.latitude]);
+      container.appendChild(button);
     }
 
+    area.append(message, container);
+    area.scrollTop = area.scrollHeight;
+    return container.querySelector<HTMLButtonElement>(".assistant-flow-option");
+  };
+
+  const resetCategoryTriggerState = (): void => {
+    if (!activeCategoryButton) return;
+    activeCategoryButton.setAttribute("aria-expanded", "false");
+    activeCategoryButton.setAttribute("aria-pressed", "false");
+  };
+
+  const backToMenu = (restoreFocus = true): void => {
+    const previousTrigger = activeCategoryButton;
+    removeAssistantFlowResults(document);
+    resetCategoryTriggerState();
+    activeCategory = undefined;
+    activeCategoryButton = undefined;
+    activeStage = "menu";
+    visibleLocations = Object.freeze([]);
+    showMainMenu();
+    updateMapState(
+      Number(document.getElementById("map")?.dataset.mapMarkerCount ?? "0"),
+      undefined,
+    );
+    if (restoreFocus) {
+      previousTrigger?.focus();
+    }
+  };
+
+  const selectLocation = async (
+    location: MorroV1SearchCatalogItem,
+  ): Promise<void> => {
+    if (!activeCategory) return;
+    activeStage = "places";
+    removeAssistantFlowResults(document);
+    await renderLocationsOnMap([location], activeCategory.value);
     document
       .getElementById("runtime-status")
       ?.replaceChildren(
         document.createTextNode(`${location.name} selecionado.`),
       );
-
-    close(false);
     ensureAssistantVisible(document);
     document.dispatchEvent(
       new CustomEvent("morro:assistant-option-selected", {
@@ -332,6 +411,108 @@ export function installExploreLocationsControl({
       }),
     );
   };
+
+  const renderPlaces = (
+    locations: readonly MorroV1SearchCatalogItem[],
+    message: string,
+  ): void => {
+    if (!activeCategory) return;
+    activeStage = "places";
+    const options = [
+      ...locations.map((location) => ({
+        label: location.name,
+        value: createExploreLocationDetailsCommand(location.name),
+        action: "location",
+        location,
+      })),
+      {
+        label: "🔙 Voltar aos filtros",
+        value: "voltar_filtros",
+        action: "back-filters",
+      },
+    ];
+
+    const first = renderFlow(message, options, (option) => {
+      if (option.action === "back-filters") {
+        renderFilters();
+        return;
+      }
+      if (option.location) void selectLocation(option.location);
+    });
+    first?.focus();
+    void renderLocationsOnMap(locations, activeCategory.value);
+  };
+
+  const startImmersiveTour = (tourId: string): void => {
+    const tourSelect = document.getElementById("tour-select");
+    if (!(tourSelect instanceof HTMLSelectElement)) return;
+    activeStage = "tour";
+    removeAssistantFlowResults(document);
+    tourSelect.value = tourId;
+    tourSelect.dispatchEvent(new Event("change", { bubbles: true }));
+  };
+
+  const applyFlowOption = async (option: V1ExploreOption): Promise<void> => {
+    if (!activeCategory) return;
+    const allLocations = getExploreLocationsForCategory(activeCategory.value);
+
+    if (option.action === "back-menu") {
+      backToMenu();
+      return;
+    }
+    if (option.action === "tour" && option.tourId) {
+      startImmersiveTour(option.tourId);
+      return;
+    }
+    if (option.action === "all") {
+      renderPlaces(
+        allLocations,
+        `${activeCategory.label}: encontrei ${allLocations.length} opções. Escolha um local para ver os detalhes.`,
+      );
+      return;
+    }
+    if (option.action === "nearby") {
+      const position = await getCurrentPosition(document);
+      const nearby = position
+        ? sortV1ExploreNearby(allLocations, position, 12)
+        : allLocations;
+      renderPlaces(
+        nearby,
+        position
+          ? `${activeCategory.label}: estes são os ${nearby.length} locais mais próximos de você.`
+          : `Não consegui obter sua localização. Mostrando ${allLocations.length} opções de ${activeCategory.label}.`,
+      );
+      return;
+    }
+
+    const filtered = filterV1ExploreLocations(
+      activeCategory.value,
+      option.value,
+      allLocations,
+    );
+    const displayed = filtered.length > 0 ? filtered : allLocations;
+    renderPlaces(
+      displayed,
+      filtered.length > 0
+        ? `${activeCategory.label}: encontrei ${filtered.length} opção(ões) para ${option.label.replace(/^\S+\s/u, "")}.`
+        : `Não encontrei correspondência exata para ${option.label.replace(/^\S+\s/u, "")}. Mostrando todos os ${allLocations.length} locais.`,
+    );
+  };
+
+  function renderFilters(): void {
+    if (!activeCategory) return;
+    activeStage = "filters";
+    const allLocations = getExploreLocationsForCategory(activeCategory.value);
+    const filters = getV1ExploreSubcategoryOptions(activeCategory.value);
+
+    const first = renderFlow(
+      `${activeCategory.label}: encontrei ${allLocations.length} locais. Como você quer filtrar?`,
+      filters,
+      (option) => void applyFlowOption(option),
+    );
+    first?.focus();
+    void renderLocationsOnMap(allLocations, activeCategory.value);
+  }
 
   const openCategory = (
     category: ExploreLocationsCategory,
@@ -343,20 +524,11 @@ export function installExploreLocationsControl({
     }
 
     clearTourPresentation(document);
-    activeCategory = category.value;
+    activeCategory = category;
     activeCategoryButton = trigger;
     trigger.setAttribute("aria-expanded", "true");
     trigger.setAttribute("aria-pressed", "true");
-
-    const locations = getExploreLocationsForCategory(category.value);
-    const firstOption = renderAssistantCategoryResults(
-      document,
-      category,
-      locations,
-      selectLocation,
-    );
-    firstOption?.focus();
-    void renderCategoryMarkers(category.value);
+    renderFilters();
   };
 
   for (const category of categories) {
@@ -367,13 +539,15 @@ export function installExploreLocationsControl({
 
     button.id = getAssistantCategoryButtonId(category.value);
     button.dataset.exploreCategory = category.value;
-    button.setAttribute("aria-controls", ASSISTANT_CATEGORY_RESULTS_ID);
+    button.setAttribute("aria-controls", ASSISTANT_FLOW_RESULTS_ID);
     button.setAttribute("aria-expanded", "false");
     button.setAttribute("aria-pressed", "false");
     button.setAttribute(
       "aria-label",
       `${category.label}, ${category.count} locais`,
     );
+
+    mainMenuContainer ??= button.closest<HTMLElement>(".assistant-options") ?? undefined;
 
     const onCategoryClick: EventListener = (event) => {
       event.stopImmediatePropagation();
@@ -385,23 +559,44 @@ export function installExploreLocationsControl({
   }
 
   const onKeyDown = (event: KeyboardEvent): void => {
-    if (event.key !== "Escape" || !activeCategory) return;
-    if (!document.getElementById(ASSISTANT_CATEGORY_RESULTS_ID)) return;
+    if (event.key !== "Escape" || activeStage === "menu") return;
+    if (!document.getElementById(ASSISTANT_FLOW_RESULTS_ID)) return;
     event.preventDefault();
     event.stopImmediatePropagation();
-    close();
+    backToMenu();
+  };
+
+  const onAssistantOptionSelected = (event: Event): void => {
+    if (activeStage === "menu" || !(event instanceof CustomEvent)) return;
+    const value =
+      event.detail && typeof event.detail.value === "string"
+        ? event.detail.value
+        : "";
+    if (!isBackToMenuValue(value)) return;
+    event.stopImmediatePropagation();
+    backToMenu(false);
   };
 
   document.addEventListener("keydown", onKeyDown);
+  document.addEventListener(
+    "morro:assistant-option-selected",
+    onAssistantOptionSelected,
+  );
 
   return Object.freeze({
-    close: () => close(),
+    close: () => backToMenu(),
     setGeospatialEngine(engine: GeospatialEngine | undefined) {
       geospatialEngine = engine;
-      if (activeCategory) void renderCategoryMarkers(activeCategory);
+      if (activeCategory && visibleLocations.length > 0) {
+        void renderLocationsOnMap(visibleLocations, activeCategory.value);
+      }
     },
     destroy() {
       document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener(
+        "morro:assistant-option-selected",
+        onAssistantOptionSelected,
+      );
       for (const [button, listener] of categoryListeners) {
         button.removeEventListener("click", listener);
         button.removeAttribute("data-explore-category");
@@ -410,13 +605,16 @@ export function installExploreLocationsControl({
         button.removeAttribute("aria-pressed");
       }
       categoryListeners.clear();
-      removeAssistantCategoryResults(document);
+      removeAssistantFlowResults(document);
+      showMainMenu();
       submenuContainer?.replaceChildren();
       submenu?.classList.add("hidden");
       submenu?.setAttribute("aria-hidden", "true");
       geospatialEngine = undefined;
       activeCategory = undefined;
       activeCategoryButton = undefined;
+      activeStage = "menu";
+      visibleLocations = Object.freeze([]);
     },
   });
 }
