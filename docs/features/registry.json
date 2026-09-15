@@ -1,1 +1,196 @@
-__NOOP__
+{
+  "schemaVersion": 1,
+  "platform": "touristic-digital-platform",
+  "features": [
+    {
+      "id": "FEATURE-0001",
+      "name": "Mapa Interativo",
+      "domain": "geospatial",
+      "wave": 4,
+      "status": "equivalent",
+      "legacySources": ["v1:mapbox", "v1:leaflet"],
+      "targetPackages": ["@touristic/geospatial"],
+      "equivalence": {
+        "behavior": true,
+        "visual": true,
+        "api": true
+      }
+    },
+    {
+      "id": "FEATURE-0002",
+      "name": "Busca e Descoberta",
+      "domain": "marketplace",
+      "wave": 5,
+      "status": "equivalent",
+      "legacySources": ["v1:search", "v1:assistant"],
+      "targetPackages": ["@touristic/search", "@touristic/marketplace"],
+      "equivalence": {
+        "behavior": true,
+        "visual": true,
+        "api": true
+      }
+    },
+    {
+      "id": "FEATURE-0003",
+      "name": "Navegação e Rotas",
+      "domain": "geospatial",
+      "wave": 4,
+      "status": "migrating",
+      "legacySources": ["v1:navigation", "v1:routing"],
+      "targetPackages": ["@touristic/geospatial", "@touristic/navigation"],
+      "equivalence": {
+        "behavior": false,
+        "visual": false,
+        "api": false
+      },
+      "verification": {
+        "local": "LOCAL_VERIFIED",
+        "mysql": "NOT_APPLICABLE",
+        "provider": "PROVIDER_VERIFIED",
+        "note": "FEATURE-0003 equivalence certification was reopened on 2026-09-15 after an audit of the canonical ZIP snapshot reporting sourceCommit 55acb639c1112a3c9a646dd103b01ad9cf5dd106 found product-journey obligations not covered by the historical 24-scenario matrix frozen against 60746fd7fed97b805758b37adfdbe3bad2582bfe. PR #60 functionally remediates automatic maneuver progression, turn-by-turn speech, GPS retry/reuse, 15s route timeout, recalculation suppression, arrival/Assistant feedback, safe PT/EN/ES/HE instruction processing, contextual route suggestions and guided navigation under degraded map providers. Functional verification completed on checkpoint b98e7bfe5d9e262035701831bade7bb36787b2be: Quality Gate, Navigation Turn-by-Turn Parity, Navigation Visual Baseline, Navigation Accessibility Baseline, Map Provider Regression, V1 Explore Locations Browser Regression and Map Tour Browser Regression all passed. The remaining PARTIAL classification is source-exactness only: the live connection cannot read the canonical ZIP bytes, so the exact historical semantic simplifier, suggestion policy constants/ranking and fallback details are not claimed identical. Promotion back to equivalent requires direct reconciliation against ZIP 55ac... or formal acceptance of the documented differences; until then status stays migrating and equivalence flags remain false."
+      }
+    },
+    {
+      "id": "FEATURE-0004",
+      "name": "Assistente Digital",
+      "domain": "assistant",
+      "wave": 11,
+      "status": "equivalent",
+      "legacySources": ["v1:assistant", "v1:tts"],
+      "targetPackages": ["@touristic/assistant", "@touristic/voice"],
+      "equivalence": {
+        "behavior": true,
+        "visual": true,
+        "api": true
+      }
+    },
+    {
+      "id": "FEATURE-0005",
+      "name": "Business Portal",
+      "domain": "business",
+      "wave": 6,
+      "status": "equivalent",
+      "legacySources": ["v1:dashboard", "v1:onboarding"],
+      "targetPackages": ["@touristic/business"],
+      "equivalence": {
+        "behavior": true,
+        "visual": true,
+        "api": true
+      }
+    },
+    {
+      "id": "FEATURE-0006",
+      "name": "CRM Administrativo",
+      "domain": "admin",
+      "wave": 7,
+      "status": "equivalent",
+      "legacySources": ["crm:v1"],
+      "targetPackages": [
+        "@touristic/crm",
+        "@touristic/crm-server",
+        "apps/admin-crm"
+      ],
+      "equivalence": {
+        "behavior": true,
+        "visual": true,
+        "api": true
+      }
+    },
+    {
+      "id": "FEATURE-0007",
+      "name": "Design System",
+      "domain": "experience",
+      "wave": 2,
+      "status": "equivalent",
+      "legacySources": ["v1:css", "v1:assets"],
+      "targetPackages": ["@touristic/design-system"],
+      "equivalence": {
+        "behavior": true,
+        "visual": true,
+        "api": true
+      }
+    },
+    {
+      "id": "FEATURE-0008",
+      "name": "Autenticação e Sessão",
+      "domain": "identity",
+      "wave": 6,
+      "status": "equivalent",
+      "legacySources": ["v1:auth"],
+      "targetPackages": ["@touristic/auth"],
+      "equivalence": {
+        "behavior": true,
+        "visual": true,
+        "api": true
+      }
+    },
+    {
+      "id": "FEATURE-0009",
+      "name": "Pagamentos e Assinaturas",
+      "domain": "financial",
+      "wave": 8,
+      "status": "equivalent",
+      "legacySources": ["v1:checkout"],
+      "targetPackages": [
+        "@touristic/ordering",
+        "@touristic/ordering-server",
+        "@touristic/financial",
+        "@touristic/financial-server"
+      ],
+      "equivalence": {
+        "behavior": true,
+        "visual": true,
+        "api": true
+      },
+      "verification": {
+        "local": "LOCAL_VERIFIED",
+        "mysql": "CONTAINER_VERIFIED",
+        "provider": "PROVIDER_VERIFIED",
+        "note": "FEATURE-0009 equivalence finalized on 2026-08-26. PR #25 certified head 22b6c127ad8d276cb249b403d7813500312ef452 passed 37/37 pull-request workflows and independent review, then merged by expected-head protection to main 1aed2827d7ec322e92e38162dec944ec7740254c. Controlled Mercado Pago TEST acceptance passed authoritative seller/application identity, Subscription readback/cancel, verified webhook, refund/replay and reconciliation with zero findings; no real card or money was used. Exact-main Render V2 staging deploy dep-da7mp12jnfac7395nbng is LIVE with PAYMENTS-PREDEPLOY PASS and acceptance auth disabled. Final Release Acceptance run 33020687735 passed the complete 22/22 deterministic matrix, exact-SHA staging smoke and main-stability re-proof. The canonical Payments matrix is 33 PASS / 0 PARTIAL / 0 GAP / 1 N/A. visual=true is supported by the V1-equivalent browser checkout/confirmation and Business-to-Payments interaction contracts; financial/provider authority remains server-side. This state is equivalent, not released, and does not authorize production."
+      }
+    },
+    {
+      "id": "FEATURE-0010",
+      "name": "Programa de Afiliados",
+      "domain": "affiliates",
+      "wave": 9,
+      "status": "equivalent",
+      "legacySources": [],
+      "targetPackages": [
+        "@touristic/affiliates",
+        "@touristic/affiliates-server"
+      ],
+      "equivalence": {
+        "behavior": true,
+        "visual": true,
+        "api": true
+      },
+      "verification": {
+        "local": "LOCAL_VERIFIED",
+        "mysql": "CONTAINER_VERIFIED",
+        "provider": "NOT_APPLICABLE",
+        "note": "FEATURE-0010 equivalent evidence finalized on 2026-08-24. Integrated main a2a1f10420c1d452e9426c75549864c76d57f22c and certified PR head 851740d2429c41d18f81f0e476fc2fb67a6a0c3b share tree f1ef9038de983a69737c94a2d218eec57e179efb. Quality Gate #242 PASS, Affiliates FEATURE-0010 Contract #102 PASS with real MySQL Privacy/Identity-Suspension/Attribution/Commercial acceptance, and Render Staging Blueprint Contract #66 PASS. Migration matrix is 25 PASS / 0 PARTIAL / 0 GAP / 2 N/A. visual=true means the registry equivalence criterion is satisfied by deliberate N/A: browser/admin surfaces are not required for the server-authoritative Affiliate feature and remain non-authoritative if added later. Financial remains sole monetary/provider authority; Affiliate owns no payment, ledger, wallet, payout, settlement, FX or monetary reversal."
+      }
+    },
+    {
+      "id": "FEATURE-0011",
+      "name": "Ticketing e Check-in",
+      "domain": "ticketing",
+      "wave": 10,
+      "status": "equivalent",
+      "legacySources": [],
+      "targetPackages": ["@touristic/ticketing", "@touristic/ticketing-server"],
+      "equivalence": {
+        "behavior": true,
+        "visual": true,
+        "api": true
+      },
+      "verification": {
+        "local": "LOCAL_VERIFIED",
+        "mysql": "CONTAINER_VERIFIED",
+        "provider": "NOT_APPLICABLE",
+        "note": "Ticketing server passed 31/31 tests with local MySQL, including reservation binding and transaction persistence; the local browser contract smoke also covers authenticated reservation, checkout handoff, confirmation and ticket retrieval paths."
+      }
+    }
+  ]
+}
