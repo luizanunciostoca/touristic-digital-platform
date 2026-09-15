@@ -12,6 +12,7 @@ import {
   loadMorroMapboxRuntimeConfig,
   type RuntimeEnvironment,
 } from "./config/mapbox-runtime.js";
+import { createV1ExploreMarkerElement } from "./map/explore-marker-element.js";
 import {
   installBrowserNavigationRuntime,
   type BrowserNavigationRuntimeInstall,
@@ -83,9 +84,9 @@ export async function startMorroDigitalBrowser(
       initializeGeospatial: createMorroGeospatialInitializer({
         sdk: options.sdk,
         ...config,
-        ...(options.createMarkerElement
-          ? { createMarkerElement: options.createMarkerElement }
-          : {}),
+        createMarkerElement: (input) =>
+          options.createMarkerElement?.(input) ??
+          createV1ExploreMarkerElement(input),
         ...(onMapCreated ? { onMapCreated } : {}),
       }),
       ...(options.initialMarkers

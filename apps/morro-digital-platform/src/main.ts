@@ -1,4 +1,6 @@
+import { installAssistantSingleMessageController } from "./assistant/assistant-single-message-controller.js";
 import { mountAppShell } from "./layouts/app-shell.js";
+import { installExploreMapViewportV1 } from "./map/explore-map-viewport-v1.js";
 import {
   installExploreLocationsControl,
   type ExploreLocationsControl,
@@ -13,6 +15,8 @@ export function bootstrapMorroDigitalApplication(
   document: Document,
 ): MorroDigitalApplicationBootstrap {
   mountAppShell({ document });
+  installAssistantSingleMessageController({ document });
+  installExploreMapViewportV1({ document });
   const exploreLocations = installExploreLocationsControl({ document });
   installThreeDimensionalMapControl({ document });
   return Object.freeze({ exploreLocations });
