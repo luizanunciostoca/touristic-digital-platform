@@ -20,12 +20,22 @@ export interface NavigationSuggestionPolicy {
   readonly sponsoredNames: ReadonlySet<string>;
 }
 
-export interface NavigationContextualSuggestion {
+export interface NavigationSuggestionSelection {
   readonly placeName: string;
   readonly category: string;
   readonly distanceMeters: number;
   readonly sponsored: boolean;
+}
+
+export interface NavigationContextualSuggestion
+  extends NavigationSuggestionSelection {
   readonly message: string;
+}
+
+export interface NavigationSuggestionSession {
+  start(startedAt?: number): void;
+  observe(location: BrowserLocation, now?: number): NavigationSuggestionSelection | null;
+  stop(): void;
 }
 
 export interface NavigationContextualSuggestions {
@@ -82,7 +92,7 @@ export function navigationSuggestionDistanceMeters(
   return 2 * EARTH_RADIUS_METERS * Math.asin(Math.min(1, Math.sqrt(a)));
 }
 
-function localeCopy(
+export function navigationSuggestionMessage(
   language: NavigationSpeechLanguage,
   placeName: string,
   distanceMeters: number,
@@ -140,40 +150,26 @@ function selectCandidate(input: {
   return candidates[0] ?? null;
 }
 
-export function createNavigationContextualSuggestions(options: {
-  readonly document: Document;
-  readonly speech: NavigationSpeech;
+export function createNavigationSuggestionSession(options: {
   readonly catalog?: readonly MorroV1SearchCatalogItem[];
   readonly policy?: NavigationSuggestionPolicy;
-}): NavigationContextualSuggestions {
+} = {}): NavigationSuggestionSession {
   const catalog = options.catalog ?? morroV1SearchCatalog;
   const policy = options.policy ?? NAVIGATION_SUGGESTION_FUNCTIONAL_POLICY;
-  const messages = createAssistantMessageDom({ document: options.document });
   const cooldownByPlace = new Map<string, number>();
   let startedAt: number | null = null;
   let lastEvaluationLocation: BrowserLocation | null = null;
   let emitted = 0;
-  let destroyed = false;
-
-  function clearMessage(): void {
-    messages.clear(
-      "navigation",
-      (message) => message.messageType === "navigation_suggestion",
-    );
-  }
 
   return Object.freeze({
     start(value = Date.now()): void {
-      if (destroyed) return;
       startedAt = value;
       lastEvaluationLocation = null;
       emitted = 0;
       cooldownByPlace.clear();
-      clearMessage();
     },
-    observe(location, now = Date.now()): NavigationContextualSuggestion | null {
+    observe(location, now = Date.now()): NavigationSuggestionSelection | null {
       if (
-        destroyed ||
         startedAt === null ||
         emitted >= policy.sessionMaximum ||
         now - startedAt < policy.warmupMs
@@ -199,22 +195,65 @@ export function createNavigationContextualSuggestions(options: {
       });
       if (!selected) return null;
 
-      const sponsored = policy.sponsoredNames.has(selected.place.name);
-      const message = localeCopy(
-        options.speech.language(),
-        selected.place.name,
-        selected.distanceMeters,
-      );
-      const suggestion = Object.freeze({
+      cooldownByPlace.set(selected.place.name, now);
+      emitted += 1;
+      return Object.freeze({
         placeName: selected.place.name,
         category: selected.place.category,
         distanceMeters: selected.distanceMeters,
-        sponsored,
-        message,
+        sponsored: policy.sponsoredNames.has(selected.place.name),
       });
+    },
+    stop(): void {
+      startedAt = null;
+      lastEvaluationLocation = null;
+      emitted = 0;
+      cooldownByPlace.clear();
+    },
+  });
+}
 
-      cooldownByPlace.set(selected.place.name, now);
-      emitted += 1;
+export function createNavigationContextualSuggestions(options: {
+  readonly document: Document;
+  readonly speech: NavigationSpeech;
+  readonly catalog?: readonly MorroV1SearchCatalogItem[];
+  readonly policy?: NavigationSuggestionPolicy;
+}): NavigationContextualSuggestions {
+  const session = createNavigationSuggestionSession({
+    ...(options.catalog ? { catalog: options.catalog } : {}),
+    ...(options.policy ? { policy: options.policy } : {}),
+  });
+  const messages = createAssistantMessageDom({ document: options.document });
+  let messageVisible = false;
+  let destroyed = false;
+
+  function clearMessage(): void {
+    if (!messageVisible) return;
+    messages.clear(
+      "navigation",
+      (message) => message.messageType === "navigation_suggestion",
+    );
+    messageVisible = false;
+  }
+
+  return Object.freeze({
+    start(value = Date.now()): void {
+      if (destroyed) return;
+      clearMessage();
+      session.start(value);
+    },
+    observe(location, now = Date.now()): NavigationContextualSuggestion | null {
+      if (destroyed) return null;
+      const selected = session.observe(location, now);
+      if (!selected) return null;
+
+      const message = navigationSuggestionMessage(
+        options.speech.language(),
+        selected.placeName,
+        selected.distanceMeters,
+      );
+      const suggestion = Object.freeze({ ...selected, message });
+
       clearMessage();
       messages.append({
         sender: "assistant",
@@ -226,6 +265,7 @@ export function createNavigationContextualSuggestions(options: {
         speak: false,
         navigationActive: true,
       });
+      messageVisible = true;
       options.speech.speak(message);
       options.document.defaultView?.dispatchEvent(
         new CustomEvent("navigationContextualSuggestion", {
@@ -235,19 +275,13 @@ export function createNavigationContextualSuggestions(options: {
       return suggestion;
     },
     stop(): void {
-      startedAt = null;
-      lastEvaluationLocation = null;
-      emitted = 0;
-      cooldownByPlace.clear();
+      session.stop();
       clearMessage();
     },
     destroy(): void {
       if (destroyed) return;
       destroyed = true;
-      startedAt = null;
-      lastEvaluationLocation = null;
-      emitted = 0;
-      cooldownByPlace.clear();
+      session.stop();
       clearMessage();
     },
   });
