@@ -113,7 +113,8 @@ function resolveLanguage(
   return normalizeNavigationSpeechLanguage(
     storage?.getItem("voice-language") ??
       stored.language ??
-      document.documentElement.lang,
+      document.documentElement?.lang ??
+      "pt-BR",
   );
 }
 
