@@ -13,6 +13,10 @@ import {
   installBrowserAssistantRuntime,
   type BrowserAssistantRuntime,
 } from "../assistant/browser-assistant-runtime.js";
+import {
+  installAssistantNavigationFeedback,
+  type AssistantNavigationFeedback,
+} from "../assistant/assistant-navigation-feedback.js";
 import type { BrowserLocation } from "./browser-geolocation.js";
 import {
   createNavigationDomEventBridge,
@@ -59,6 +63,7 @@ export interface BrowserNavigationRuntimeInstallOptions {
   readonly createGuidanceUi?: typeof createNavigationGuidanceUi;
   readonly createSpeech?: typeof createNavigationSpeech;
   readonly installAssistant?: typeof installBrowserAssistantRuntime;
+  readonly installAssistantFeedback?: typeof installAssistantNavigationFeedback;
 }
 
 export interface BrowserNavigationRuntimeInstall {
@@ -69,6 +74,7 @@ export interface BrowserNavigationRuntimeInstall {
   readonly guidanceUi: NavigationGuidanceUi;
   readonly speech: NavigationSpeech;
   readonly assistant: BrowserAssistantRuntime;
+  readonly assistantFeedback: AssistantNavigationFeedback;
   destroy(): void;
 }
 
@@ -103,6 +109,8 @@ export function installBrowserNavigationRuntime(
   const createSpeech = options.createSpeech ?? createNavigationSpeech;
   const installAssistant =
     options.installAssistant ?? installBrowserAssistantRuntime;
+  const installAssistantFeedback =
+    options.installAssistantFeedback ?? installAssistantNavigationFeedback;
   const eventBridge = createEventBridge(options.document);
   const guidanceUi = createGuidanceUi(options.document);
   const speech = createSpeech(options.document);
@@ -253,6 +261,7 @@ export function installBrowserNavigationRuntime(
     document: options.document,
     navigation: bootstrap,
   });
+  const assistantFeedback = installAssistantFeedback(options.document);
   let destroyed = false;
 
   return Object.freeze({
@@ -263,6 +272,7 @@ export function installBrowserNavigationRuntime(
     guidanceUi,
     speech,
     assistant,
+    assistantFeedback,
     destroy(): void {
       if (destroyed) return;
       destroyed = true;
@@ -271,6 +281,7 @@ export function installBrowserNavigationRuntime(
         onNavigationStarted,
       );
       eventTarget?.removeEventListener("navigationEnded", onNavigationEnded);
+      assistantFeedback.destroy();
       assistant.destroy();
       requestPort.destroy();
       activeLifecycle.destroy();
