@@ -241,9 +241,7 @@ export function installBrowserNavigationRuntime(
     },
     onRecalculation: () => {
       recalculations += 1;
-      speech.speak(
-        navigationSpeechMessage(speech.language(), "recalculating"),
-      );
+      speech.speak(navigationSpeechMessage(speech.language(), "recalculating"));
     },
     onAutoEnd: () => lifecycle?.stop("arrived"),
   });

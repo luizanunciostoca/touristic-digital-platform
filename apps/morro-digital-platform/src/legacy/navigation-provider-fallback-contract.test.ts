@@ -3,8 +3,7 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
-const HISTORICAL_V1_SOURCE_COMMIT =
-  "60746fd7fed97b805758b37adfdbe3bad2582bfe";
+const HISTORICAL_V1_SOURCE_COMMIT = "60746fd7fed97b805758b37adfdbe3bad2582bfe";
 const browserEntryPath = fileURLToPath(
   new URL("../browser-entry.ts", import.meta.url),
 );
@@ -48,7 +47,7 @@ describe("V1 navigation provider fallback contract", () => {
     const leafletSource = await readFile(leafletCompatibilityPath, "utf8");
 
     expect(browserSource).toContain(
-      'import {\n  installBrowserNavigationRuntime,',
+      "import {\n  installBrowserNavigationRuntime,",
     );
     expect(browserSource).toContain("options.onMapCreated ??");
     expect(browserSource).toContain("installBrowserNavigationRuntime({");

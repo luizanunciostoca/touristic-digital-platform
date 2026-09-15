@@ -222,14 +222,18 @@ describe("navigation app composition", () => {
     context.composition.start();
     context.runtimeUpdate.mockClear();
 
-    context.emitRuntimeSnapshot(runtimeSnapshot(0, instructions[0]!.instruction!, 19));
+    context.emitRuntimeSnapshot(
+      runtimeSnapshot(0, instructions[0]!.instruction!, 19),
+    );
     expect(context.runtimeUpdate).toHaveBeenLastCalledWith(
       expect.objectContaining({ stepIndex: 1 }),
     );
     expect(context.onSnapshot).not.toHaveBeenCalled();
 
     context.runtimeUpdate.mockClear();
-    context.emitRuntimeSnapshot(runtimeSnapshot(1, instructions[1]!.instruction!, 18));
+    context.emitRuntimeSnapshot(
+      runtimeSnapshot(1, instructions[1]!.instruction!, 18),
+    );
     expect(context.runtimeUpdate).toHaveBeenLastCalledWith(
       expect.objectContaining({ stepIndex: 2 }),
     );

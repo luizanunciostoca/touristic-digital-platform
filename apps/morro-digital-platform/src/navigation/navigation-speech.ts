@@ -8,9 +8,7 @@ export interface NavigationSpeech {
 }
 
 export type NavigationSpeechMessage =
-  | "approaching"
-  | "arrived"
-  | "recalculating";
+  "approaching" | "arrived" | "recalculating";
 
 const LOCALES: Readonly<Record<NavigationSpeechLanguage, string>> =
   Object.freeze({
@@ -93,7 +91,9 @@ function safeStorage(document: Document): Storage | null {
   }
 }
 
-function parseStoredPreferences(storage: Storage | null): StoredVoicePreferences {
+function parseStoredPreferences(
+  storage: Storage | null,
+): StoredVoicePreferences {
   if (!storage) return {};
   try {
     const serialized = storage.getItem("voiceAssistant");

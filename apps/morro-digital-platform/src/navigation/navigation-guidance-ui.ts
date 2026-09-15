@@ -38,14 +38,7 @@ function directionFor(instruction: string): {
 } {
   const text = instruction.toLowerCase();
   if (
-    includesAny(text, [
-      "arriv",
-      "destination",
-      "destino",
-      "lleg",
-      "הגע",
-      "יעד",
-    ])
+    includesAny(text, ["arriv", "destination", "destino", "lleg", "הגע", "יעד"])
   ) {
     return { arrow: "●", className: "arrive" };
   }
@@ -61,14 +54,10 @@ function directionFor(instruction: string): {
   ) {
     return { arrow: "↶", className: "turn-uturn" };
   }
-  if (
-    includesAny(text, ["left", "esquerda", "izquierda", "שמאלה", "שמאל"])
-  ) {
+  if (includesAny(text, ["left", "esquerda", "izquierda", "שמאלה", "שמאל"])) {
     return { arrow: "←", className: "turn-left" };
   }
-  if (
-    includesAny(text, ["right", "direita", "derecha", "ימינה", "ימין"])
-  ) {
+  if (includesAny(text, ["right", "direita", "derecha", "ימינה", "ימין"])) {
     return { arrow: "→", className: "turn-right" };
   }
   return { arrow: "↑", className: "continue-straight" };

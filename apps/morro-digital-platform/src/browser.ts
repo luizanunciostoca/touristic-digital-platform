@@ -76,10 +76,7 @@ export async function startMorroDigitalBrowser(
               sdk: options.sdk,
               document: domDocument,
             });
-            degradedNavigationByDocument.set(
-              domDocument,
-              degradedNavigation,
-            );
+            degradedNavigationByDocument.set(domDocument, degradedNavigation);
           }
         : undefined);
 

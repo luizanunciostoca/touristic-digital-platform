@@ -245,7 +245,10 @@ describe("navigation session bootstrap", () => {
       (success, error, options) => {
         attempt += 1;
         if (attempt < 3) {
-          error({ code: 2, message: "temporarily unavailable" } as GeolocationPositionError);
+          error({
+            code: 2,
+            message: "temporarily unavailable",
+          } as GeolocationPositionError);
           return;
         }
         success(browserPosition());
@@ -257,11 +260,13 @@ describe("navigation session bootstrap", () => {
       context.bootstrap.start({ longitude: -38.916, latitude: -13.375 }),
     ).resolves.toEqual(routeData());
 
-    expect(context.geolocationDriver.getCurrentPosition).toHaveBeenCalledTimes(3);
+    expect(context.geolocationDriver.getCurrentPosition).toHaveBeenCalledTimes(
+      3,
+    );
     expect(
-      vi.mocked(context.geolocationDriver.getCurrentPosition).mock.calls.map(
-        (call) => call[2]?.timeout,
-      ),
+      vi
+        .mocked(context.geolocationDriver.getCurrentPosition)
+        .mock.calls.map((call) => call[2]?.timeout),
     ).toEqual([...NAVIGATION_BOOTSTRAP_ATTEMPT_TIMEOUTS_MS]);
   });
 

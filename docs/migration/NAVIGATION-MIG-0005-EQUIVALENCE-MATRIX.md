@@ -33,32 +33,32 @@ Estados usados abaixo:
 
 ## Matriz histórica de 24 cenários
 
-| # | Cenário histórico | Estado revisado | Evidência / observação |
-|---:|---|---|---|
-| 1 | iniciar navegação com localização válida | PASS | bootstrap e browser journey |
-| 2 | permissão de localização negada | PASS | geolocation denial + cleanup |
-| 3 | localização imprecisa | PASS | 1500 m bootstrap / 300 m guidance |
-| 4 | coordenadas inválidas | PASS | rejeição pré-rede |
-| 5 | routing proxy success | PASS | same-origin routing |
-| 6 | routing proxy timeout | PASS | fluxo de navegação agora fixa 15 s |
-| 7 | routing proxy unavailable | PASS | erro primário distinguível |
-| 8 | fallback elegível | PASS | same-origin + provider fallback |
-| 9 | cancelamento durante request | PASS | AbortSignal da sessão |
-| 10 | sessão A substituída por B | PASS | supersession monotônica |
-| 11 | callback tardio da sessão A | PASS | stale protection |
-| 12 | progresso ao longo da rota | PASS | geometry/runtime |
-| 13 | ruído GPS / pequeno retorno | PASS | backward guard |
-| 14 | bearing | PASS | tangente + smoothing |
-| 15 | aproximação de manobra / zoom | PASS | câmera/histerese |
-| 16 | polling sem movimento | PASS | sem easeTo redundante |
-| 17 | minimizar/maximizar banner | PASS | baseline visual |
-| 18 | cancelamento manual | PASS | Encerrar + teardown |
-| 19 | chegada ao destino | PASS | 100 m / 30 m / auto-end 5 s + UI/voz nesta remediação |
-| 20 | cleanup após navigationEnded | PASS | teardown idempotente |
-| 21 | mapa/provider degradado | PARTIAL | V2 agora mantém o mesmo runtime de Navigation em Leaflet/development, degradando apenas câmera; equivalência exata ao ZIP `55ac...` ainda requer inspeção do snapshot |
-| 22 | alto contraste | PASS | accessibility baseline |
-| 23 | texto ampliado | PASS | accessibility baseline |
-| 24 | mobile/tablet/desktop | PASS | visual/accessibility baseline |
+|   # | Cenário histórico                        | Estado revisado | Evidência / observação                                                                                                                                                |
+| --: | ---------------------------------------- | --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|   1 | iniciar navegação com localização válida | PASS            | bootstrap e browser journey                                                                                                                                           |
+|   2 | permissão de localização negada          | PASS            | geolocation denial + cleanup                                                                                                                                          |
+|   3 | localização imprecisa                    | PASS            | 1500 m bootstrap / 300 m guidance                                                                                                                                     |
+|   4 | coordenadas inválidas                    | PASS            | rejeição pré-rede                                                                                                                                                     |
+|   5 | routing proxy success                    | PASS            | same-origin routing                                                                                                                                                   |
+|   6 | routing proxy timeout                    | PASS            | fluxo de navegação agora fixa 15 s                                                                                                                                    |
+|   7 | routing proxy unavailable                | PASS            | erro primário distinguível                                                                                                                                            |
+|   8 | fallback elegível                        | PASS            | same-origin + provider fallback                                                                                                                                       |
+|   9 | cancelamento durante request             | PASS            | AbortSignal da sessão                                                                                                                                                 |
+|  10 | sessão A substituída por B               | PASS            | supersession monotônica                                                                                                                                               |
+|  11 | callback tardio da sessão A              | PASS            | stale protection                                                                                                                                                      |
+|  12 | progresso ao longo da rota               | PASS            | geometry/runtime                                                                                                                                                      |
+|  13 | ruído GPS / pequeno retorno              | PASS            | backward guard                                                                                                                                                        |
+|  14 | bearing                                  | PASS            | tangente + smoothing                                                                                                                                                  |
+|  15 | aproximação de manobra / zoom            | PASS            | câmera/histerese                                                                                                                                                      |
+|  16 | polling sem movimento                    | PASS            | sem easeTo redundante                                                                                                                                                 |
+|  17 | minimizar/maximizar banner               | PASS            | baseline visual                                                                                                                                                       |
+|  18 | cancelamento manual                      | PASS            | Encerrar + teardown                                                                                                                                                   |
+|  19 | chegada ao destino                       | PASS            | 100 m / 30 m / auto-end 5 s + UI/voz nesta remediação                                                                                                                 |
+|  20 | cleanup após navigationEnded             | PASS            | teardown idempotente                                                                                                                                                  |
+|  21 | mapa/provider degradado                  | PARTIAL         | V2 agora mantém o mesmo runtime de Navigation em Leaflet/development, degradando apenas câmera; equivalência exata ao ZIP `55ac...` ainda requer inspeção do snapshot |
+|  22 | alto contraste                           | PASS            | accessibility baseline                                                                                                                                                |
+|  23 | texto ampliado                           | PASS            | accessibility baseline                                                                                                                                                |
+|  24 | mobile/tablet/desktop                    | PASS            | visual/accessibility baseline                                                                                                                                         |
 
 Resultado desta matriz histórica após a reconciliação de fonte:
 
@@ -71,19 +71,19 @@ TOTAL    24
 
 ## Obrigações de jornada V1 que a matriz histórica não provava
 
-| ID | Obrigação de jornada | Estado na remediação PR #60 | Evidência nova |
-|---|---|---|---|
-| NAV-PJ-01 | avanço automático `step 0 → 1 → 2` | PASS no código; gate pendente | threshold ~20 m no composition + teste unitário + workflow `Navigation Turn-by-Turn Parity` |
-| NAV-PJ-02 | voz por nova manobra | PASS no código; gate pendente | `navigation-speech.ts` + journey browser com speech capturado |
-| NAV-PJ-03 | GPS inicial com até 3 tentativas | PASS no código; gate pendente | 15 s / 20 s / 25 s + teste unitário |
-| NAV-PJ-04 | reutilizar localização recente | PASS no código; gate pendente | cache de localização recente + teste unitário |
-| NAV-PJ-05 | timeout efetivo de rota em 15 s | PASS no código; gate pendente | bootstrap fixa `NAVIGATION_ROUTE_TIMEOUT_MS = 15000` |
-| NAV-PJ-06 | supressão inicial de recálculo | PASS no código; gate pendente | 15 s normal / 120 s tutorial + propagação do contexto tutorial |
-| NAV-PJ-07 | aviso de aproximação e chegada | PASS no código; gate pendente | banner + TTS PT/EN/ES/HE + auto-end |
-| NAV-PJ-08 | feedback do Assistant após término | PASS no código; gate pendente | `assistant-navigation-feedback.ts` |
-| NAV-PJ-09 | processamento multilíngue de apresentação | PARTIAL | direção/chegada ampliadas para PT/EN/ES/HE; simplificação textual exata do ZIP ainda não comprovada |
-| NAV-PJ-10 | sugestões contextuais durante rota | GAP | responsabilidade reconhecida em `SEARCH-V1-BASELINE.md`; política/constantes exatas do ZIP `55ac...` ainda não materializáveis nesta sessão |
-| NAV-PJ-11 | navegação quando Mapbox não está disponível | PARTIAL | mesmo core passa a operar em fallback com câmera degradada; comportamento exato do ZIP ainda precisa de comparação direta |
+| ID        | Obrigação de jornada                        | Estado na remediação PR #60   | Evidência nova                                                                                                                              |
+| --------- | ------------------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| NAV-PJ-01 | avanço automático `step 0 → 1 → 2`          | PASS no código; gate pendente | threshold ~20 m no composition + teste unitário + workflow `Navigation Turn-by-Turn Parity`                                                 |
+| NAV-PJ-02 | voz por nova manobra                        | PASS no código; gate pendente | `navigation-speech.ts` + journey browser com speech capturado                                                                               |
+| NAV-PJ-03 | GPS inicial com até 3 tentativas            | PASS no código; gate pendente | 15 s / 20 s / 25 s + teste unitário                                                                                                         |
+| NAV-PJ-04 | reutilizar localização recente              | PASS no código; gate pendente | cache de localização recente + teste unitário                                                                                               |
+| NAV-PJ-05 | timeout efetivo de rota em 15 s             | PASS no código; gate pendente | bootstrap fixa `NAVIGATION_ROUTE_TIMEOUT_MS = 15000`                                                                                        |
+| NAV-PJ-06 | supressão inicial de recálculo              | PASS no código; gate pendente | 15 s normal / 120 s tutorial + propagação do contexto tutorial                                                                              |
+| NAV-PJ-07 | aviso de aproximação e chegada              | PASS no código; gate pendente | banner + TTS PT/EN/ES/HE + auto-end                                                                                                         |
+| NAV-PJ-08 | feedback do Assistant após término          | PASS no código; gate pendente | `assistant-navigation-feedback.ts`                                                                                                          |
+| NAV-PJ-09 | processamento multilíngue de apresentação   | PARTIAL                       | direção/chegada ampliadas para PT/EN/ES/HE; simplificação textual exata do ZIP ainda não comprovada                                         |
+| NAV-PJ-10 | sugestões contextuais durante rota          | GAP                           | responsabilidade reconhecida em `SEARCH-V1-BASELINE.md`; política/constantes exatas do ZIP `55ac...` ainda não materializáveis nesta sessão |
+| NAV-PJ-11 | navegação quando Mapbox não está disponível | PARTIAL                       | mesmo core passa a operar em fallback com câmera degradada; comportamento exato do ZIP ainda precisa de comparação direta                   |
 
 ## Novo browser contract obrigatório
 

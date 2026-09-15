@@ -122,14 +122,10 @@ export function createLeafletCompatibilitySdk(
     }): void {
       if (input.center) this.#center = input.center;
       if (Number.isFinite(Number(input.zoom))) this.#zoom = Number(input.zoom);
-      this.nativeMap.setView(
-        toLeafletCoordinates(this.#center),
-        this.#zoom,
-        {
-          animate: true,
-          duration: Math.max(0, Number(input.duration ?? 0)) / 1000,
-        },
-      );
+      this.nativeMap.setView(toLeafletCoordinates(this.#center), this.#zoom, {
+        animate: true,
+        duration: Math.max(0, Number(input.duration ?? 0)) / 1000,
+      });
     }
 
     remove(): void {
