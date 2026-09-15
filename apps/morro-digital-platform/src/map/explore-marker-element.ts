@@ -29,7 +29,9 @@ export function getExploreCategoryFromMarkerId(id: string): string | null {
   return category?.trim() || null;
 }
 
-export function getV1ExploreMarkerVisual(category: string): ExploreMarkerVisual {
+export function getV1ExploreMarkerVisual(
+  category: string,
+): ExploreMarkerVisual {
   return V1_CATEGORY_VISUALS[category] ?? FALLBACK_VISUAL;
 }
 
@@ -63,7 +65,8 @@ export function createV1ExploreMarkerElement(
 
   const visual = getV1ExploreMarkerVisual(category);
   const root = document.createElement("div");
-  root.className = "mapbox-poi-marker mapbox-category-marker morro-explore-marker";
+  root.className =
+    "mapbox-poi-marker mapbox-category-marker morro-explore-marker";
   root.dataset.morroExploreMarker = "true";
   root.dataset.exploreCategory = category;
   root.dataset.markerId = input.id;
