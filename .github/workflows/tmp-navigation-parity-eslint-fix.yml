@@ -54,7 +54,6 @@ jobs:
           return_end = text.index('  };', return_start)
           return_block = text[return_start:return_end]
           assert '    geolocationDriver,\n' in return_block
-          assert '    getCurrentPosition,\n' not in return_block
           return_block = return_block.replace(
               '    geolocationDriver,\n',
               '    geolocationDriver,\n    getCurrentPosition,\n',
@@ -68,8 +67,7 @@ jobs:
               test_start,
           )
           assign_end = text.index('\n\n    await expect(', assign_start)
-          old_assign = text[assign_start:assign_end]
-          assert 'success(browserPosition())' in old_assign
+          assert 'success(browserPosition())' in text[assign_start:assign_end]
           new_assign = '''    context.getCurrentPosition.mockImplementation((success, error, options) => {
             attempt += 1;
             if (attempt < 3) {
@@ -92,16 +90,16 @@ jobs:
               1,
           )
 
-          old_calls = '''    expect(
-            vi
-              .mocked(context.geolocationDriver.getCurrentPosition)
-              .mock.calls.map((call) => call[2]?.timeout),
-          ).toEqual([...NAVIGATION_BOOTSTRAP_ATTEMPT_TIMEOUTS_MS]);'''
-          assert old_calls in text
+          mocked_marker = '.mocked(context.geolocationDriver.getCurrentPosition)'
+          marker_index = text.index(mocked_marker, test_start)
+          expect_start = text.rfind('    expect(', test_start, marker_index)
+          expect_end_marker = '    ).toEqual([...NAVIGATION_BOOTSTRAP_ATTEMPT_TIMEOUTS_MS]);'
+          expect_end = text.index(expect_end_marker, marker_index) + len(expect_end_marker)
+          assert expect_start >= test_start
           new_calls = '''    expect(
             context.getCurrentPosition.mock.calls.map((call) => call[2]?.timeout),
           ).toEqual([...NAVIGATION_BOOTSTRAP_ATTEMPT_TIMEOUTS_MS]);'''
-          text = text.replace(old_calls, new_calls, 1)
+          text = text[:expect_start] + new_calls + text[expect_end:]
 
           old_recent = 'context.geolocationDriver.getCurrentPosition).not.toHaveBeenCalled()'
           assert old_recent in text
@@ -111,6 +109,8 @@ jobs:
               1,
           )
 
+          assert 'context.geolocationDriver.getCurrentPosition = vi.fn(' not in text
+          assert mocked_marker not in text
           path.write_text(text)
           PY
           pnpm exec prettier --write \
