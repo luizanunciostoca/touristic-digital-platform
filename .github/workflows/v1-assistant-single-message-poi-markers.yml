@@ -55,6 +55,7 @@ jobs:
           cat /tmp/v1-single-message-poi.log
           exit 1
       - name: Validate V1 replacement semantics and visible category POIs
+        timeout-minutes: 3
         run: |
           node <<'NODE'
           const { chromium } = require('/tmp/pw/node_modules/playwright');
@@ -103,11 +104,12 @@ jobs:
                   centerY: rect.top + rect.height / 2,
                 };
               });
+              const menu = document.querySelector('.assistant-options:has([data-explore-category])');
               return {
                 visibleMessageCount: messages.filter(visible).length,
                 visibleUserMessageCount: messages.filter((message) => message.classList.contains('user') && visible(message)).length,
                 visibleAssistantMessages: messages.filter((message) => message.classList.contains('assistant') && visible(message)).map((message) => message.textContent?.trim() ?? ''),
-                mainMenuVisible: Boolean(document.querySelector('.assistant-options:has([data-explore-category])') && visible(document.querySelector('.assistant-options:has([data-explore-category])'))),
+                mainMenuVisible: Boolean(menu && visible(menu)),
                 markerCountAttribute: Number(document.getElementById('map')?.getAttribute('data-map-marker-count') || 0),
                 markerState,
                 assistantTop: assistantRect?.top ?? null,
@@ -117,69 +119,77 @@ jobs:
 
           (async () => {
             const browser = await chromium.launch({ headless: true });
-            const context = await browser.newContext({
-              viewport: { width: 390, height: 844 },
-              geolocation: { latitude: -13.3776181, longitude: -38.9142193 },
-              permissions: ['geolocation'],
-            });
-            await context.addInitScript(() => {
-              localStorage.setItem('morro-digital-onboarded', '1');
-              localStorage.setItem('voice-enabled', 'false');
-            });
-            const page = await context.newPage();
-            const pageErrors = [];
-            page.on('pageerror', error => pageErrors.push(error.message));
-            await page.route('**/api/weather', route => route.fulfill({
-              status: 200,
-              contentType: 'application/json',
-              body: JSON.stringify(weather),
-            }));
+            let context = null;
+            try {
+              context = await browser.newContext({
+                viewport: { width: 390, height: 844 },
+                geolocation: { latitude: -13.3776181, longitude: -38.9142193 },
+                permissions: ['geolocation'],
+              });
+              await context.addInitScript(() => {
+                localStorage.setItem('morro-digital-onboarded', '1');
+                localStorage.setItem('voice-enabled', 'false');
+              });
+              const page = await context.newPage();
+              const pageErrors = [];
+              page.on('pageerror', error => pageErrors.push(error.message));
+              await page.route('**/api/weather', route => route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify(weather),
+              }));
 
-            await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded', timeout: 30000 });
-            await page.locator('#map[data-map-state="ready"][data-map-mode="real"]').waitFor({ state: 'attached', timeout: 30000 });
-            await page.locator('body[data-public-onboarding-settled="true"]').waitFor({ state: 'attached', timeout: 5000 });
-            const assistant = page.locator('#assistant-messages');
-            if (!(await assistant.isVisible())) await page.locator('.mood-button').click();
-            await assistant.waitFor({ state: 'visible', timeout: 5000 });
+              await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded', timeout: 30000 });
+              await page.locator('#map[data-map-state="ready"][data-map-mode="real"]').waitFor({ state: 'attached', timeout: 30000 });
+              await page.locator('body[data-public-onboarding-settled="true"]').waitFor({ state: 'attached', timeout: 5000 });
+              const assistant = page.locator('#assistant-messages');
+              if (!(await assistant.isVisible())) await page.locator('.mood-button').click();
+              await assistant.waitFor({ state: 'visible', timeout: 5000 });
 
-            await page.locator('#assistant-category-beaches').click();
-            await page.locator('#assistant-category-results[data-category="beaches"][data-stage="filters"]').waitFor({ state: 'visible', timeout: 5000 });
-            await page.locator('#map[data-explore-state="ready"][data-explore-category="beaches"][data-map-marker-count="8"]').waitFor({ state: 'attached', timeout: 8000 });
-            await poll(page, () => document.querySelectorAll('.morro-explore-marker[data-explore-category="beaches"]').length === 8, 'eight beach markers');
-            await page.waitForTimeout(2300);
+              await page.locator('#assistant-category-beaches').click();
+              await page.locator('#assistant-category-results[data-category="beaches"][data-stage="filters"]').waitFor({ state: 'visible', timeout: 5000 });
+              await page.locator('#map[data-explore-state="ready"][data-explore-category="beaches"][data-map-marker-count="8"]').waitFor({ state: 'attached', timeout: 8000 });
+              await poll(page, () => document.querySelectorAll('.morro-explore-marker[data-explore-category="beaches"]').length === 8, 'eight beach markers');
+              await page.waitForTimeout(2300);
 
-            const filtersState = await readState(page);
-            if (filtersState.visibleMessageCount !== 1 || filtersState.visibleUserMessageCount !== 0) {
-              throw new Error(`V1 single-message contract diverged: ${JSON.stringify(filtersState)}`);
+              const filtersState = await readState(page);
+              if (filtersState.visibleMessageCount !== 1 || filtersState.visibleUserMessageCount !== 0) {
+                throw new Error(`V1 single-message contract diverged: ${JSON.stringify(filtersState)}`);
+              }
+              if (filtersState.mainMenuVisible) {
+                throw new Error(`Main categories remained visible with Beaches flow: ${JSON.stringify(filtersState)}`);
+              }
+              if (filtersState.markerCountAttribute !== 8 || filtersState.markerState.length !== 8 || filtersState.markerState.some(marker => !marker.visible || marker.width < 30 || marker.height < 30 || marker.category !== 'beaches')) {
+                throw new Error(`Beach POI marker presentation diverged: ${JSON.stringify(filtersState)}`);
+              }
+              if (typeof filtersState.assistantTop === 'number' && filtersState.markerState.some(marker => marker.centerY >= filtersState.assistantTop)) {
+                throw new Error(`Beach markers are framed behind the assistant: ${JSON.stringify(filtersState)}`);
+              }
+
+              await page.locator('#assistant-category-results [data-value="ver todos"]').click();
+              await page.locator('#assistant-category-results[data-stage="places"]').waitFor({ state: 'visible', timeout: 5000 });
+              await poll(page, () => document.querySelectorAll('.morro-explore-marker[data-explore-category="beaches"]').length === 8, 'beach place markers');
+              const placesState = await readState(page);
+              if (placesState.visibleMessageCount !== 1 || placesState.visibleUserMessageCount !== 0 || placesState.mainMenuVisible) {
+                throw new Error(`Places stage stacked assistant content: ${JSON.stringify(placesState)}`);
+              }
+
+              await page.keyboard.press('Escape');
+              await poll(page, () => {
+                const menu = document.querySelector('.assistant-options:has([data-explore-category])');
+                const visibleMessages = Array.from(document.querySelectorAll('#assistant-messages .messages-area > .message')).filter(element => {
+                  const style = getComputedStyle(element);
+                  const rect = element.getBoundingClientRect();
+                  return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0;
+                });
+                return Boolean(menu && getComputedStyle(menu).display !== 'none' && visibleMessages.length === 1);
+              }, 'main menu restore');
+
+              if (pageErrors.length) throw new Error(`Browser errors: ${JSON.stringify(pageErrors)}`);
+            } finally {
+              await context?.close().catch(() => undefined);
+              await browser.close().catch(() => undefined);
             }
-            if (filtersState.mainMenuVisible) {
-              throw new Error(`Main categories remained visible with Beaches flow: ${JSON.stringify(filtersState)}`);
-            }
-            if (filtersState.markerCountAttribute !== 8 || filtersState.markerState.length !== 8 || filtersState.markerState.some(marker => !marker.visible || marker.width < 30 || marker.height < 30 || marker.category !== 'beaches')) {
-              throw new Error(`Beach POI marker presentation diverged: ${JSON.stringify(filtersState)}`);
-            }
-            if (typeof filtersState.assistantTop === 'number' && filtersState.markerState.some(marker => marker.centerY >= filtersState.assistantTop)) {
-              throw new Error(`Beach markers are framed behind the assistant: ${JSON.stringify(filtersState)}`);
-            }
-
-            await page.locator('#assistant-category-results [data-value="ver todos"]').click();
-            await page.locator('#assistant-category-results[data-stage="places"]').waitFor({ state: 'visible', timeout: 5000 });
-            await poll(page, () => document.querySelectorAll('.morro-explore-marker[data-explore-category="beaches"]').length === 8, 'beach place markers');
-            const placesState = await readState(page);
-            if (placesState.visibleMessageCount !== 1 || placesState.visibleUserMessageCount !== 0 || placesState.mainMenuVisible) {
-              throw new Error(`Places stage stacked assistant content: ${JSON.stringify(placesState)}`);
-            }
-
-            await page.keyboard.press('Escape');
-            await poll(page, () => {
-              const menu = document.querySelector('.assistant-options:has([data-explore-category])');
-              const visibleMessages = Array.from(document.querySelectorAll('#assistant-messages .messages-area > .message')).filter(element => getComputedStyle(element).display !== 'none');
-              return Boolean(menu && getComputedStyle(menu).display !== 'none' && visibleMessages.length === 1);
-            }, 'main menu restore');
-
-            if (pageErrors.length) throw new Error(`Browser errors: ${JSON.stringify(pageErrors)}`);
-            await context.close();
-            await browser.close();
           })().catch(error => {
             console.error(error);
             process.exitCode = 1;
