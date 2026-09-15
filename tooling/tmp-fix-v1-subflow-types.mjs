@@ -31,4 +31,16 @@ control = control.replace(
   placeOptionsStart,
   `    const options: readonly Readonly<{\n      label: string;\n      value: string;\n      action: "location" | "back-filters";\n      location?: MorroV1SearchCatalogItem;\n    }>[] = [\n      ...locations.map((location) => ({`,
 );
+const locationAction = `        action: "location",\n        location,`;
+if (!control.includes(locationAction)) throw new Error("location action not found");
+control = control.replace(
+  locationAction,
+  `        action: "location" as const,\n        location,`,
+);
+const backAction = `        action: "back-filters",\n      },`;
+if (!control.includes(backAction)) throw new Error("back-filters action not found");
+control = control.replace(
+  backAction,
+  `        action: "back-filters" as const,\n      },`,
+);
 await writeFile(controlPath, control);
