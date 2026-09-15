@@ -1,3 +1,4 @@
+import { installHomeCommerce } from "./commerce/home-commerce.js";
 import { mountAppShell } from "./layouts/app-shell.js";
 import {
   installExploreLocationsControl,
@@ -13,6 +14,7 @@ export function bootstrapMorroDigitalApplication(
   document: Document,
 ): MorroDigitalApplicationBootstrap {
   mountAppShell({ document });
+  installHomeCommerce({ document });
   const exploreLocations = installExploreLocationsControl({ document });
   installThreeDimensionalMapControl({ document });
   return Object.freeze({ exploreLocations });
