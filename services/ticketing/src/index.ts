@@ -1,5 +1,6 @@
 import mysql, { type Pool, type PoolOptions } from "mysql2/promise";
 
+import { TicketingCommerceHttpTransport as TicketingPublicHttpTransport } from "./commerce-public-http-transport.js";
 import {
   ticketingFinancialBridgeRollbackSql,
   ticketingFinancialBridgeSchemaSql,
@@ -21,7 +22,6 @@ import {
   ticketingPublicApiSchemaSql,
 } from "./public-api-schema.js";
 import {
-  TicketingPublicHttpTransport,
   ticketingHttpPrefix,
   type TicketingHttpActor,
   type TicketingHttpAuditPort,
