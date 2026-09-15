@@ -82,7 +82,7 @@ function speechStub(stop: () => void = vi.fn()): NavigationSpeech {
   return {
     speak: vi.fn(() => true),
     stop,
-    language: vi.fn(() => "pt"),
+    language: () => "pt",
     destroy: vi.fn(),
   };
 }
