@@ -43,3 +43,5 @@ jobs:
                   apps/morro-digital-platform/src/map/explore-locations-control.ts
           git commit -m 'fix(assistant): preserve V1 subflow literal types'
           git push origin HEAD:fix/v1-assistant-category-subflows-20260915
+
+# Retry after correcting the temporary script anchor.
