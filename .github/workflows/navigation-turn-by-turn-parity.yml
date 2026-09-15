@@ -161,7 +161,8 @@ jobs:
 
             await page.locator('#instruction-banner:not(.hidden)').waitFor({ state: 'visible', timeout: 15000 });
             await poll(page, () => globalThis.__turnByTurnEvidence?.statuses?.some((status) => status.currentStepIndex === 0), 'step-0');
-            await poll(page, () => globalThis.__turnByTurnEvidence?.speech?.some((entry) => entry.text.includes('Continue em frente')), 'speech-step-0');
+            await poll(page, () => document.getElementById('instruction-main')?.textContent?.includes('Siga em frente'), 'banner-step-0');
+            await poll(page, () => globalThis.__turnByTurnEvidence?.speech?.some((entry) => entry.text.includes('Siga em frente')), 'speech-step-0');
 
             await context.setGeolocation(turn1);
             await poll(page, () => globalThis.__turnByTurnEvidence?.statuses?.some((status) => status.currentStepIndex === 1), 'step-1');
