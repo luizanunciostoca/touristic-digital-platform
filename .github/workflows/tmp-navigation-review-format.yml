@@ -1,0 +1,39 @@
+name: TEMP Navigation Review Format
+
+on:
+  push:
+    branches:
+      - fix/navigation-v1-product-parity-20260915
+    paths:
+      - .github/workflows/tmp-navigation-review-format.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: fix/navigation-v1-product-parity-20260915
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec prettier --write apps/morro-digital-platform/src/navigation/browser-navigation-runtime-install.test.ts
+      - name: Commit formatted fixture when needed
+        run: |
+          if git diff --quiet; then
+            echo "No formatting changes required."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/morro-digital-platform/src/navigation/browser-navigation-runtime-install.test.ts
+          git commit -m "style(navigation): apply canonical prettier output"
+          git push origin HEAD:fix/navigation-v1-product-parity-20260915
