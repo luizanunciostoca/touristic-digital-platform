@@ -256,7 +256,8 @@ export function installBrowserAssistantRuntime(
     appendStandardMessage("user", value);
     const response = await controller.processUserInput(value);
     appendStandardMessage("assistant", response.text);
-    const responseOptions = optionOverride ?? readAssistantResponseOptions(response);
+    const responseOptions =
+      optionOverride ?? readAssistantResponseOptions(response);
     if (responseOptions.length > 0) {
       renderAssistantDomOptions(options.document, responseOptions);
     }
@@ -324,9 +325,10 @@ export function installBrowserAssistantRuntime(
   };
   const onOptionSelected = (event: Event): void => {
     if (!(event instanceof CustomEvent)) return;
-    const detail = event.detail as
-      | { value?: unknown; optionsOverride?: unknown }
-      | null;
+    const detail = event.detail as {
+      value?: unknown;
+      optionsOverride?: unknown;
+    } | null;
     const value = typeof detail?.value === "string" ? detail.value : "";
     if (!value) return;
     const optionOverride = readOptionOverride(detail?.optionsOverride);
