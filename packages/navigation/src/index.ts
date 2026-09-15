@@ -68,6 +68,8 @@ export {
   type VisualSnapshotInput,
 } from "./stabilizer.js";
 
+export { processNavigationInstructionText } from "./instruction-text.js";
+
 export {
   createNavigationRuntimeCoordinator,
   type NavigationGuidanceSnapshot,
