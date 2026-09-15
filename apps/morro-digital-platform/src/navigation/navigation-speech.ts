@@ -100,7 +100,7 @@ function parseStoredPreferences(
     if (!serialized) return {};
     const parsed = JSON.parse(serialized) as unknown;
     return parsed && typeof parsed === "object"
-      ? (parsed as StoredVoicePreferences)
+      ? (parsed)
       : {};
   } catch {
     return {};

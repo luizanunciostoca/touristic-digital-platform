@@ -223,7 +223,7 @@ describe("navigation app composition", () => {
     context.runtimeUpdate.mockClear();
 
     context.emitRuntimeSnapshot(
-      runtimeSnapshot(0, instructions[0]!.instruction!, 19),
+      runtimeSnapshot(0, instructions[0]!.instruction, 19),
     );
     expect(context.runtimeUpdate).toHaveBeenLastCalledWith(
       expect.objectContaining({ stepIndex: 1 }),
@@ -232,7 +232,7 @@ describe("navigation app composition", () => {
 
     context.runtimeUpdate.mockClear();
     context.emitRuntimeSnapshot(
-      runtimeSnapshot(1, instructions[1]!.instruction!, 18),
+      runtimeSnapshot(1, instructions[1]!.instruction, 18),
     );
     expect(context.runtimeUpdate).toHaveBeenLastCalledWith(
       expect.objectContaining({ stepIndex: 2 }),

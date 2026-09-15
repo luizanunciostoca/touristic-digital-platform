@@ -117,7 +117,7 @@ function browserPosition(
     },
     timestamp: Date.now(),
     toJSON: () => ({}),
-  } as GeolocationPosition;
+  };
 }
 
 function setupBrowserAcquisition() {
@@ -248,7 +248,7 @@ describe("navigation session bootstrap", () => {
           error({
             code: 2,
             message: "temporarily unavailable",
-          } as GeolocationPositionError);
+          });
           return;
         }
         success(browserPosition());
