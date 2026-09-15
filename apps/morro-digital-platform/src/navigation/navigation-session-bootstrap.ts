@@ -15,9 +15,11 @@ import {
   type RoutingProvider,
 } from "@touristic/navigation";
 
-import type {
-  BrowserGeolocationDriver,
-  BrowserLocation,
+import {
+  getRecentBrowserLocation,
+  rememberBrowserLocation,
+  type BrowserGeolocationDriver,
+  type BrowserLocation,
 } from "./browser-geolocation.js";
 import {
   createBrowserNavigationWiring,
@@ -25,10 +27,21 @@ import {
 } from "./browser-navigation-wiring.js";
 
 export const NAVIGATION_BOOTSTRAP_MAX_ACCURACY_METERS = 1_500;
+export const NAVIGATION_ROUTE_TIMEOUT_MS = 15_000;
+export const NAVIGATION_RECALCULATION_SUPPRESSION_MS = 15_000;
+export const NAVIGATION_TUTORIAL_RECALCULATION_SUPPRESSION_MS = 120_000;
+export const NAVIGATION_BOOTSTRAP_ATTEMPT_TIMEOUTS_MS = Object.freeze([
+  15_000, 20_000, 25_000,
+] as const);
+const NAVIGATION_BOOTSTRAP_MAX_AGE_MS = 10_000;
 
 export interface NavigationDestinationInput {
   readonly longitude: number;
   readonly latitude: number;
+}
+
+export interface NavigationStartOptions {
+  readonly tutorial?: boolean;
 }
 
 export interface NavigationSessionEventContext {
@@ -56,6 +69,7 @@ export interface NavigationSessionBootstrapOptions {
     location: BrowserLocation,
     context: NavigationSessionEventContext,
   ) => void;
+  readonly onApproaching?: (context: NavigationSessionEventContext) => void;
   readonly onArrival?: (context: NavigationSessionEventContext) => void;
   readonly onAutoEnd?: () => void;
   readonly onRecalculation?: (route: RouteFeatureCollection) => void;
@@ -64,6 +78,7 @@ export interface NavigationSessionBootstrapOptions {
 export interface NavigationSessionBootstrap {
   start(
     destination: NavigationDestinationInput,
+    startOptions?: NavigationStartOptions,
   ): Promise<RouteFeatureCollection>;
   stop(): void;
   isActive(): boolean;
@@ -88,9 +103,22 @@ function validateDestination(
   return [longitude, latitude];
 }
 
-function resolveBrowserStartCoordinate(
+function isBootstrapAccuracyAcceptable(accuracy: unknown): boolean {
+  const numeric = Number(accuracy);
+  return (
+    !Number.isFinite(numeric) ||
+    numeric <= NAVIGATION_BOOTSTRAP_MAX_ACCURACY_METERS
+  );
+}
+
+function coordinateFromLocation(location: BrowserLocation): RouteCoordinate {
+  return [location.longitude, location.latitude];
+}
+
+function requestBrowserStartCoordinate(
   driver: BrowserGeolocationDriver,
   signal: AbortSignal,
+  timeout: number,
 ): Promise<RouteCoordinate> {
   return new Promise<RouteCoordinate>((resolve, reject) => {
     if (signal.aborted) {
@@ -125,14 +153,21 @@ function resolveBrowserStartCoordinate(
           }
 
           const accuracy = Number(position.coords.accuracy);
-          if (
-            Number.isFinite(accuracy) &&
-            accuracy > NAVIGATION_BOOTSTRAP_MAX_ACCURACY_METERS
-          ) {
+          if (!isBootstrapAccuracyAcceptable(accuracy)) {
             reject(new Error("INACCURATE_START_LOCATION"));
             return;
           }
 
+          rememberBrowserLocation({
+            latitude,
+            longitude,
+            accuracy,
+            heading: position.coords.heading,
+            speed: position.coords.speed,
+            timestamp: Number.isFinite(Number(position.timestamp))
+              ? Number(position.timestamp)
+              : Date.now(),
+          });
           resolve([longitude, latitude]);
         });
       },
@@ -147,11 +182,37 @@ function resolveBrowserStartCoordinate(
       },
       {
         enableHighAccuracy: true,
-        timeout: 15_000,
-        maximumAge: 10_000,
+        timeout,
+        maximumAge: NAVIGATION_BOOTSTRAP_MAX_AGE_MS,
       },
     );
   });
+}
+
+async function resolveBrowserStartCoordinate(
+  driver: BrowserGeolocationDriver,
+  signal: AbortSignal,
+): Promise<RouteCoordinate> {
+  const recent = getRecentBrowserLocation({
+    maxAge: NAVIGATION_BOOTSTRAP_MAX_AGE_MS,
+  });
+  if (recent && isBootstrapAccuracyAcceptable(recent.accuracy)) {
+    return coordinateFromLocation(recent);
+  }
+
+  let lastError: unknown = new Error("LOCATION_UNAVAILABLE");
+  for (const timeout of NAVIGATION_BOOTSTRAP_ATTEMPT_TIMEOUTS_MS) {
+    try {
+      return await requestBrowserStartCoordinate(driver, signal, timeout);
+    } catch (error) {
+      if (signal.aborted || error instanceof DOMException) throw error;
+      if (error instanceof Error && error.message === "PERMISSION_DENIED") {
+        throw error;
+      }
+      lastError = error;
+    }
+  }
+  throw lastError;
 }
 
 export function createNavigationSessionBootstrap(
@@ -160,6 +221,7 @@ export function createNavigationSessionBootstrap(
   const geolocationDriver = options.geolocationDriver ?? navigator.geolocation;
   const requestRouteImpl = options.requestRouteImpl ?? requestRoute;
   const createWiring = options.createWiring ?? createBrowserNavigationWiring;
+  const routeTimeoutMs = options.routeTimeoutMs ?? NAVIGATION_ROUTE_TIMEOUT_MS;
   const resolveStartCoordinate =
     options.resolveStartCoordinate ??
     ((signal: AbortSignal) =>
@@ -179,6 +241,7 @@ export function createNavigationSessionBootstrap(
   return Object.freeze({
     async start(
       destination: NavigationDestinationInput,
+      startOptions: NavigationStartOptions = {},
     ): Promise<RouteFeatureCollection> {
       stop();
       const destinationCoordinate = validateDestination(destination);
@@ -200,9 +263,7 @@ export function createNavigationSessionBootstrap(
           start: startCoordinate,
           end: destinationCoordinate,
           language: options.language ?? "pt",
-          ...(options.routeTimeoutMs !== undefined
-            ? { timeoutMs: options.routeTimeoutMs }
-            : {}),
+          timeoutMs: routeTimeoutMs,
           fallbackProvider: options.routingFallbackProvider ?? null,
           signal: session.signal,
         });
@@ -216,9 +277,7 @@ export function createNavigationSessionBootstrap(
             start: request.start,
             end: request.end,
             language: options.language ?? "pt",
-            ...(options.routeTimeoutMs !== undefined
-              ? { timeoutMs: options.routeTimeoutMs }
-              : {}),
+            timeoutMs: routeTimeoutMs,
             fallbackProvider: options.routingFallbackProvider ?? null,
             signal: request.signal,
           });
@@ -234,6 +293,9 @@ export function createNavigationSessionBootstrap(
           sessionId: session.id,
           geolocationDriver,
           requestRecalculationRoute,
+          recalculationSuppressionMs: startOptions.tutorial
+            ? NAVIGATION_TUTORIAL_RECALCULATION_SUPPRESSION_MS
+            : NAVIGATION_RECALCULATION_SUPPRESSION_MS,
           ...(options.onSnapshot
             ? {
                 onSnapshot: (snapshot) =>
@@ -244,6 +306,16 @@ export function createNavigationSessionBootstrap(
             ? {
                 onLocation: (location) =>
                   options.onLocation?.(location, eventContext),
+              }
+            : {}),
+          ...(options.onApproaching
+            ? {
+                onApproaching: () => {
+                  if (activeSession?.id !== session.id || !session.isActive()) {
+                    return;
+                  }
+                  options.onApproaching?.(eventContext);
+                },
               }
             : {}),
           ...(options.onArrival
