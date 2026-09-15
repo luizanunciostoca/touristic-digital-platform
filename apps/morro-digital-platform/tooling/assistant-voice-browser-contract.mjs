@@ -443,9 +443,8 @@ async function runContract(browser) {
     page,
     () =>
       page.evaluate((messageEventStart) => {
-        const events = globalThis.__voiceContract.domMessages.slice(
-          messageEventStart,
-        );
+        const events =
+          globalThis.__voiceContract.domMessages.slice(messageEventStart);
         return (
           events.some(
             (event) => event.sender === "user" && event.text === "help",
