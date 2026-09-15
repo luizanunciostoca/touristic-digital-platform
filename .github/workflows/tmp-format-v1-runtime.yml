@@ -1,0 +1,40 @@
+name: Temporary Format V1 Runtime
+
+on:
+  push:
+    branches:
+      - fix/v1-assistant-category-subflows-20260915
+    paths:
+      - .github/workflows/tmp-format-v1-runtime.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format-runtime:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: fix/v1-assistant-category-subflows-20260915
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Format only the blocked runtime file
+        run: |
+          pnpm exec prettier --write apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts
+          pnpm exec prettier --check apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts
+          git diff --check
+      - name: Commit formatted runtime and remove this temporary workflow
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          rm .github/workflows/tmp-format-v1-runtime.yml
+          git add apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts .github/workflows/tmp-format-v1-runtime.yml
+          git commit -m 'style(assistant): apply canonical Prettier formatting'
+          git push origin HEAD:fix/v1-assistant-category-subflows-20260915
