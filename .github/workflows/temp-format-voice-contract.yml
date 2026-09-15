@@ -1,0 +1,38 @@
+name: Temporary Voice Contract Formatter
+
+on:
+  push:
+    branches:
+      - fix/voice-contract-single-message-20260915
+    paths:
+      - .github/workflows/temp-format-voice-contract.yml
+      - apps/morro-digital-platform/tooling/assistant-voice-browser-contract.mjs
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: fix/voice-contract-single-message-20260915
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22
+      - name: Apply canonical Prettier 3.9.6
+        run: npx --yes prettier@3.9.6 --write apps/morro-digital-platform/tooling/assistant-voice-browser-contract.mjs
+      - name: Commit formatted file
+        run: |
+          git diff --check
+          if git diff --quiet; then
+            echo 'Already formatted.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add apps/morro-digital-platform/tooling/assistant-voice-browser-contract.mjs
+          git commit -m 'style(assistant): apply canonical Prettier formatting'
+          git push origin HEAD:fix/voice-contract-single-message-20260915
