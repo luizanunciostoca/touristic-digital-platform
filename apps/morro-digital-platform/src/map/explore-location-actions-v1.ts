@@ -9,9 +9,7 @@ export interface V1ExplorePlaceActionOption {
 const command = (label: string, value: string): V1ExplorePlaceActionOption =>
   Object.freeze({ label, value, action: "command" as const });
 
-const backToPlaces = (
-  category: string,
-): V1ExplorePlaceActionOption =>
+const backToPlaces = (category: string): V1ExplorePlaceActionOption =>
   Object.freeze({
     label: "⬅️ Voltar",
     value: `[sub]${category}`,
