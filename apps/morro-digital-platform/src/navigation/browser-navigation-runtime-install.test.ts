@@ -10,6 +10,7 @@ import {
 } from "@touristic/navigation";
 
 import type { BrowserAssistantRuntime } from "../assistant/browser-assistant-runtime.js";
+import type { NavigationContextualSuggestions } from "./navigation-contextual-suggestions.js";
 import type { NavigationDomEventBridge } from "./navigation-dom-events.js";
 import type { NavigationDomLifecycle } from "./navigation-dom-lifecycle.js";
 import type { NavigationGuidanceUi } from "./navigation-guidance-ui.js";
@@ -18,6 +19,7 @@ import type {
   NavigationSessionBootstrap,
   NavigationSessionBootstrapOptions,
 } from "./navigation-session-bootstrap.js";
+import type { NavigationSpeech } from "./navigation-speech.js";
 import { installBrowserNavigationRuntime } from "./browser-navigation-runtime-install.js";
 
 function eventBridge(): NavigationDomEventBridge {
@@ -71,6 +73,24 @@ function assistantStub(destroy: () => void = vi.fn()): BrowserAssistantRuntime {
   return {
     process: vi.fn(async () => ({ text: "ok" })),
     destroy,
+  };
+}
+
+function speechStub(stop: () => void = vi.fn()): NavigationSpeech {
+  return {
+    speak: vi.fn(() => true),
+    stop,
+    language: vi.fn(() => "pt"),
+    destroy: vi.fn(),
+  };
+}
+
+function contextualSuggestionsStub(): NavigationContextualSuggestions {
+  return {
+    start: vi.fn(),
+    observe: vi.fn(() => null),
+    stop: vi.fn(),
+    destroy: vi.fn(),
   };
 }
 
@@ -171,7 +191,7 @@ describe("browser navigation runtime install", () => {
     expect(createRequestPort).toHaveBeenCalledWith({ document, lifecycle });
     expect(installAssistant).toHaveBeenCalledWith({
       document,
-      navigation: bootstrap,
+      navigation: lifecycle,
     });
     expect(installed.bootstrap).toBe(bootstrap);
     expect(installed.lifecycle).toBe(lifecycle);
@@ -242,6 +262,36 @@ describe("browser navigation runtime install", () => {
         routeProgress: 0.2,
       }),
     );
+  });
+
+  it("cancels navigation speech when navigation ends", () => {
+    const view = new EventTarget();
+    const document = { defaultView: view } as unknown as Document;
+    const stopSpeech = vi.fn<() => void>();
+    const speech = speechStub(stopSpeech);
+
+    installBrowserNavigationRuntime({
+      map: { setCenter: vi.fn(), remove: vi.fn() },
+      sdk: {
+        accessToken: "token",
+        Map: vi.fn(),
+        Marker: vi.fn(),
+      },
+      document,
+      createBootstrap: vi.fn(() => bootstrapStub()),
+      createLifecycle: vi.fn(() => lifecycleStub()),
+      createRequestPort: vi.fn(() => requestPortStub()),
+      createEventBridge: vi.fn(() => eventBridge()),
+      createGuidanceUi: vi.fn(() => guidanceUiStub()),
+      createSpeech: vi.fn(() => speech),
+      createContextualSuggestions: vi.fn(() => contextualSuggestionsStub()),
+      installAssistant: vi.fn(() => assistantStub()),
+      installAssistantFeedback: vi.fn(() => ({ destroy: vi.fn() })),
+    });
+
+    view.dispatchEvent(new Event("navigationEnded"));
+
+    expect(stopSpeech).toHaveBeenCalledTimes(1);
   });
 
   it("destroys assistant, request port, lifecycle and guidance UI exactly once", () => {
