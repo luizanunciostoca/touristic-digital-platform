@@ -191,7 +191,10 @@ async function runContract(browser) {
     if (!area) throw new Error("Assistant messages area missing");
 
     const recordMessage = (node) => {
-      if (!(node instanceof HTMLElement) || !node.classList.contains("message")) {
+      if (
+        !(node instanceof HTMLElement) ||
+        !node.classList.contains("message")
+      ) {
         return;
       }
       globalThis.__voiceContract.domMessages.push({
@@ -334,7 +337,8 @@ async function runContract(browser) {
     page,
     () =>
       page.evaluate(({ messageEvents, spoken }) => {
-        const events = globalThis.__voiceContract.domMessages.slice(messageEvents);
+        const events =
+          globalThis.__voiceContract.domMessages.slice(messageEvents);
         const recognition = globalThis.__voiceContract.recognitions.at(-1);
         return (
           recognition?.started === true &&
@@ -455,11 +459,14 @@ async function runContract(browser) {
     10000,
   );
   await page.waitForTimeout(250);
-  const disabled = await page.evaluate((messageEventStart) => ({
-    enabled: localStorage.getItem("voice-enabled"),
-    spoken: globalThis.__voiceContract.spoken.length,
-    events: globalThis.__voiceContract.domMessages.slice(messageEventStart),
-  }), disabledBaseline.messageEvents);
+  const disabled = await page.evaluate(
+    (messageEventStart) => ({
+      enabled: localStorage.getItem("voice-enabled"),
+      spoken: globalThis.__voiceContract.spoken.length,
+      events: globalThis.__voiceContract.domMessages.slice(messageEventStart),
+    }),
+    disabledBaseline.messageEvents,
+  );
   assert(
     disabled.enabled === "false",
     "Disabling voice did not persist",
