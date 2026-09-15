@@ -25,69 +25,17 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Patch exact V1 option types
+      - name: Apply type-safe repair
+        run: node tooling/tmp-fix-v1-subflow-types.mjs
+      - name: Format and validate app
         run: |
-          python3 <<'PY'
-          from pathlib import Path
-
-          flow = Path('apps/morro-digital-platform/src/map/explore-locations-v1-flow.ts')
-          text = flow.read_text()
-          old = '''const SUBCATEGORY_OPTIONS: Readonly<
-  Record<string, readonly V1ExploreOption[]>
-> = Object.freeze({'''
-          new = '''const SUBCATEGORY_OPTIONS = Object.freeze({'''
-          if old not in text:
-              raise SystemExit('subcategory declaration not found')
-          text = text.replace(old, new, 1)
-          marker = '''  }),
-});
-
-export function getV1ExploreSubcategoryOptions'''
-          replacement = '''  }),
-} as const) satisfies Readonly<Record<string, readonly V1ExploreOption[]>>;
-
-export function getV1ExploreSubcategoryOptions'''
-          if marker not in text:
-              raise SystemExit('subcategory closing marker not found')
-          flow.write_text(text.replace(marker, replacement, 1))
-
-          control = Path('apps/morro-digital-platform/src/map/explore-locations-control.ts')
-          text = control.read_text()
-          old = '''  const renderFlow = (
-    text: string,
-    options: readonly Readonly<{
-      label: string;
-      value: string;
-      action?: string;
-      location?: MorroV1SearchCatalogItem;
-      tourId?: string;
-    }>[],
-    onSelect: (option: (typeof options)[number]) => void,
-  ): HTMLButtonElement | null => {'''
-          new = '''  const renderFlow = <
-    T extends Readonly<{
-      label: string;
-      value: string;
-      action?: string;
-      location?: MorroV1SearchCatalogItem;
-      tourId?: string;
-    }>,
-  >(
-    text: string,
-    options: readonly T[],
-    onSelect: (option: T) => void,
-  ): HTMLButtonElement | null => {'''
-          if old not in text:
-              raise SystemExit('renderFlow declaration not found')
-          control.write_text(text.replace(old, new, 1))
-          PY
           pnpm exec prettier --write \
             apps/morro-digital-platform/src/map/explore-locations-v1-flow.ts \
             apps/morro-digital-platform/src/map/explore-locations-control.ts
           git diff --check
           pnpm --filter @touristic/morro-digital-platform lint
           pnpm --filter @touristic/morro-digital-platform build
-      - name: Commit safe typing fix
+      - name: Commit type-safe repair
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
