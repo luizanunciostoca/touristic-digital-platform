@@ -71,6 +71,7 @@ async function installSpeechMocks(context) {
       spoken: [],
       cancelled: 0,
       recognitions: [],
+      domMessages: [],
     };
 
     const listeners = new Map();
@@ -185,6 +186,35 @@ async function runContract(browser) {
 
   await page.goto(BASE_URL, { waitUntil: "domcontentloaded", timeout: 30000 });
   await waitForAssistant(page);
+  await page.evaluate(() => {
+    const area = document.querySelector("#assistant-messages .messages-area");
+    if (!area) throw new Error("Assistant messages area missing");
+
+    const recordMessage = (node) => {
+      if (
+        !(node instanceof HTMLElement) ||
+        !node.classList.contains("message")
+      ) {
+        return;
+      }
+      globalThis.__voiceContract.domMessages.push({
+        sender: node.classList.contains("user")
+          ? "user"
+          : node.classList.contains("assistant")
+            ? "assistant"
+            : "unknown",
+        text: node.textContent?.trim() ?? "",
+      });
+    };
+
+    const observer = new MutationObserver((records) => {
+      for (const record of records) {
+        for (const node of record.addedNodes) recordMessage(node);
+      }
+    });
+    observer.observe(area, { childList: true });
+    globalThis.__voiceContract.messageObserver = observer;
+  });
 
   await page.locator("#configButton").click();
   await page
@@ -297,30 +327,34 @@ async function runContract(browser) {
   );
 
   await page.locator("#assistantVoiceSettingsClose").click();
-  const userBefore = await page
-    .locator("#assistant-messages .message.user")
-    .count();
-  const assistantBefore = await page
-    .locator("#assistant-messages .message.assistant")
-    .count();
+  const microphoneBaseline = await page.evaluate(() => ({
+    messageEvents: globalThis.__voiceContract.domMessages.length,
+    spoken: globalThis.__voiceContract.spoken.length,
+  }));
   await page.locator("#voiceButton").click();
 
   await poll(
     page,
     () =>
-      page.evaluate(
-        ({ userBefore, assistantBefore }) =>
-          document.querySelectorAll("#assistant-messages .message.user")
-            .length > userBefore &&
-          document.querySelectorAll("#assistant-messages .message.assistant")
-            .length > assistantBefore &&
-          globalThis.__voiceContract.spoken.length > 0,
-        { userBefore, assistantBefore },
-      ),
+      page.evaluate(({ messageEvents, spoken }) => {
+        const events =
+          globalThis.__voiceContract.domMessages.slice(messageEvents);
+        const recognition = globalThis.__voiceContract.recognitions.at(-1);
+        return (
+          recognition?.started === true &&
+          events.some(
+            (event) => event.sender === "user" && event.text === "help",
+          ) &&
+          events.some(
+            (event) => event.sender === "assistant" && event.text.length > 0,
+          ) &&
+          globalThis.__voiceContract.spoken.length > spoken
+        );
+      }, microphoneBaseline),
     "microphone process path",
   );
 
-  const microphone = await page.evaluate(() => {
+  const microphone = await page.evaluate((messageEventStart) => {
     const recognition = globalThis.__voiceContract.recognitions.at(-1);
     const spoken = globalThis.__voiceContract.spoken.at(-1);
     return {
@@ -333,14 +367,12 @@ async function runContract(browser) {
           }
         : null,
       spoken,
-      users: Array.from(
-        document.querySelectorAll("#assistant-messages .message.user"),
-      ).map((node) => node.textContent?.trim()),
+      events: globalThis.__voiceContract.domMessages.slice(messageEventStart),
       ariaPressed: document
         .getElementById("voiceButton")
         ?.getAttribute("aria-pressed"),
     };
-  });
+  }, microphoneBaseline.messageEvents);
 
   assert(
     microphone.recognition?.lang === "he-IL",
@@ -363,8 +395,18 @@ async function runContract(browser) {
     microphone,
   );
   assert(
-    microphone.users.includes("help"),
+    microphone.events.some(
+      (event) => event.sender === "user" && event.text === "help",
+    ),
     "Transcript did not traverse shared process()",
+    microphone,
+  );
+  assert(
+    microphone.events.some(
+      (event) =>
+        event.sender === "assistant" && event.text === microphone.spoken?.text,
+    ),
+    "Assistant response and spoken response diverged",
     microphone,
   );
   assert(
@@ -388,41 +430,49 @@ async function runContract(browser) {
     microphone,
   );
 
-  const spokenBeforeDisable = await page.evaluate(
-    () => globalThis.__voiceContract.spoken.length,
-  );
   await page.locator("#configButton").click();
   await page.locator("#assistantVoiceEnabled").uncheck();
   await page.locator("#assistantVoiceSettingsClose").click();
-  const usersBeforeText = await page
-    .locator("#assistant-messages .message.user")
-    .count();
+  const disabledBaseline = await page.evaluate(() => ({
+    messageEvents: globalThis.__voiceContract.domMessages.length,
+    spoken: globalThis.__voiceContract.spoken.length,
+  }));
   await page.locator("#assistantInput").fill("help");
   await page.locator("#sendButton").click();
   await poll(
     page,
     () =>
-      page.evaluate(
-        (count) =>
-          document.querySelectorAll("#assistant-messages .message.user")
-            .length > count,
-        usersBeforeText,
-      ),
+      page.evaluate((messageEventStart) => {
+        const events =
+          globalThis.__voiceContract.domMessages.slice(messageEventStart);
+        return (
+          events.some(
+            (event) => event.sender === "user" && event.text === "help",
+          ) &&
+          events.some(
+            (event) => event.sender === "assistant" && event.text.length > 0,
+          )
+        );
+      }, disabledBaseline.messageEvents),
     "disabled voice text process",
     10000,
   );
   await page.waitForTimeout(250);
-  const disabled = await page.evaluate(() => ({
-    enabled: localStorage.getItem("voice-enabled"),
-    spoken: globalThis.__voiceContract.spoken.length,
-  }));
+  const disabled = await page.evaluate(
+    (messageEventStart) => ({
+      enabled: localStorage.getItem("voice-enabled"),
+      spoken: globalThis.__voiceContract.spoken.length,
+      events: globalThis.__voiceContract.domMessages.slice(messageEventStart),
+    }),
+    disabledBaseline.messageEvents,
+  );
   assert(
     disabled.enabled === "false",
     "Disabling voice did not persist",
     disabled,
   );
   assert(
-    disabled.spoken === spokenBeforeDisable,
+    disabled.spoken === disabledBaseline.spoken,
     "Synthesis ran while disabled",
     disabled,
   );
