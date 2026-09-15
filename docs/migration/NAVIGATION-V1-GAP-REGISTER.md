@@ -17,12 +17,12 @@ Snapshot ZIP auditado em 2026-09-15:
 
 A relação entre esses snapshots não é assumida porque o repositório V1 antigo não está acessível pela conexão GitHub atual e o ZIP disponível na Library não pôde ser materializado como bytes nesta sessão.
 
-Estado durante a remediação PR #60:
+Estado após a remediação funcional da PR #60:
 
 ```text
 Navigation Core             equivalent
 Geometry / Camera           equivalent
-Product Journey             partial
+Product Journey             functionally remediated / source-exactness partial
 MIG-0005 / FEATURE-0003     migrating / re-certification
 ```
 
@@ -45,7 +45,7 @@ Eles não são descartados. A correção é de **escopo de certificação**: ess
 
 ### GAP-NAV-005 — Automatic maneuver progression
 
-**Estado:** REMEDIATED IN PR #60 / EXACT-HEAD GATE PENDING
+**Estado:** REMEDIATED / REQUIRED PR GATE PASS
 
 Problema observado na `main` `9e36e3f84bdc7785dafb157931ad12617aa01e4f`:
 
@@ -57,13 +57,14 @@ Correção:
 
 - threshold de avanço em aproximadamente 20 m;
 - cálculo usa os endpoints geométricos dos steps quando disponíveis;
-- avanço suporta GPS que ultrapassa o waypoint e pode consumir mais de um step obsoleto;
+- avanço suporta GPS que ultrapassa o waypoint e pode consumir mais de um step obsoleto quando a geometria por step existe;
+- o fallback sem `stepEnds` consome no máximo uma manobra por snapshot, impedindo que a mesma distância seja reutilizada para pular instruções subsequentes;
 - snapshot antigo não é apresentado depois de o step avançar;
-- novo teste unitário e browser contract percorrem `0 → 1 → 2`.
+- teste unitário e browser contract percorrem `0 → 1 → 2`.
 
 ### GAP-NAV-006 — Turn-by-turn speech and arrival feedback
 
-**Estado:** REMEDIATED IN PR #60 / EXACT-HEAD GATE PENDING
+**Estado:** REMEDIATED / REQUIRED PR GATE PASS
 
 Correção:
 
@@ -76,7 +77,7 @@ Correção:
 
 ### GAP-NAV-007 — Initial GPS acquisition parity
 
-**Estado:** REMEDIATED IN PR #60 / EXACT-HEAD GATE PENDING
+**Estado:** REMEDIATED / REQUIRED PR GATES PASS
 
 Correção:
 
@@ -89,7 +90,7 @@ Correção:
 
 ### GAP-NAV-008 — Effective routing timeout
 
-**Estado:** REMEDIATED IN PR #60 / EXACT-HEAD GATE PENDING
+**Estado:** REMEDIATED / REQUIRED PR GATES PASS
 
 Correção:
 
@@ -98,7 +99,7 @@ Correção:
 
 ### GAP-NAV-009 — Initial recalculation suppression
 
-**Estado:** REMEDIATED IN PR #60 / EXACT-HEAD GATE PENDING
+**Estado:** REMEDIATED / REQUIRED PR GATES PASS
 
 Correção:
 
@@ -169,9 +170,9 @@ A PR #60 altera o boundary para:
 
 A equivalência funcional passa a existir, mas o detalhe exato do comportamento do ZIP `55ac...` continua `PARTIAL` até comparação direta do snapshot.
 
-## Novo gate obrigatório
+## Gate obrigatório e checkpoint executável
 
-`.github/workflows/navigation-turn-by-turn-parity.yml` passa a ser evidência obrigatória para qualquer nova promoção de MIG-0005. Ele conduz GPS simulado através de uma rota multi-step no runtime determinístico de Navigation e exige:
+`.github/workflows/navigation-turn-by-turn-parity.yml` é evidência obrigatória para qualquer nova promoção de MIG-0005. Ele conduz GPS simulado através de uma rota multi-step no runtime determinístico de Navigation e exige:
 
 ```text
 step 0 → step 1 → step 2 → approaching → arrived → auto-end
@@ -181,14 +182,16 @@ O contrato é deliberadamente independente da disponibilidade externa do SDK Map
 
 Também exige atualização do banner, eventos/status, fala de cada nova instrução, fala de aproximação/chegada e feedback final do Assistant.
 
+No checkpoint funcional certificado em 2026-09-15 (`b98e7bfe5d9e262035701831bade7bb36787b2be`), o conjunto aplicável ficou verde: Quality Gate, Navigation Turn-by-Turn Parity, Navigation Visual Baseline, Navigation Accessibility Baseline, Map Provider Regression, V1 Explore Locations Browser Regression, Map Tour Browser Regression e o contrato V1 Assistant Single Message POI Markers. O log do gate P0 registrou `stepIndex` 0, 1 e 2, TTS das três instruções, aproximação, `phase: arrived`, progresso final 1, `navigationEnded(reason="arrived")` e feedback final do Assistant.
+
 ## Estado consolidado
 
 Os antigos `GAP-NAV-001` a `GAP-NAV-004` continuam resolvidos no escopo original. Os novos gaps refletem a auditoria do snapshot ZIP canônico:
 
 ```text
-REMEDIATED / GATE PENDING          5  (005, 006, 007, 008, 009)
+REMEDIATED / REQUIRED GATES PASS   5  (005, 006, 007, 008, 009)
 FUNCTIONAL / ZIP EXACTNESS PARTIAL 3  (010, 011, 012)
 RUNTIME GAP                        0
 ```
 
-`MIG-0005` não deve voltar a `equivalent` enquanto o exact-head desta remediação não estiver verde e os itens source-dependent não forem reconciliados contra o ZIP `55ac...`.
+`MIG-0005` não deve voltar a `equivalent` enquanto os itens source-dependent `010`, `011` e `012` não forem reconciliados contra o ZIP `55ac...` ou aceitos formalmente como diferenças documentadas. Qualquer head posterior deve preservar os gates obrigatórios verdes.
