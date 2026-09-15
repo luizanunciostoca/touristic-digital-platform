@@ -1,0 +1,187 @@
+name: V1 Assistant Single Message POI Markers
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/v1-assistant-single-message-poi-markers.yml
+      - apps/morro-digital-platform/src/main.ts
+      - apps/morro-digital-platform/src/browser.ts
+      - apps/morro-digital-platform/src/assistant/assistant-single-message-controller.ts
+      - apps/morro-digital-platform/src/map/explore-marker-element.ts
+      - apps/morro-digital-platform/src/map/explore-marker-element.test.ts
+      - apps/morro-digital-platform/src/map/explore-map-viewport-v1.ts
+      - apps/morro-digital-platform/src/map/explore-locations-control.ts
+      - packages/geospatial/src/**
+      - packages/search/src/**
+
+permissions:
+  contents: read
+
+jobs:
+  v1-single-message-poi-markers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install deterministic Chromium
+        run: |
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+      - name: Build workspace
+        run: pnpm -w build
+      - name: Start authenticated Mapbox runtime
+        env:
+          MAPBOX_PUBLIC_TOKEN_CI: ${{ secrets.MAPBOX_PUBLIC_TOKEN_CI }}
+        run: |
+          test -n "${MAPBOX_PUBLIC_TOKEN_CI:-}" || { echo 'MAPBOX_PUBLIC_TOKEN_CI missing'; exit 1; }
+          VITE_MAPBOX_ACCESS_TOKEN="$MAPBOX_PUBLIC_TOKEN_CI" \
+          VITE_MAPBOX_STYLE=mapbox://styles/mapbox/streets-v12 \
+          VITE_MAPBOX_CONTAINER_ID=map \
+          VITE_MAPBOX_INITIAL_ZOOM=13.5 \
+          node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/v1-single-message-poi.log 2>&1 &
+          echo $! >/tmp/v1-single-message-poi.pid
+          for i in $(seq 1 90); do
+            if curl -fsS http://127.0.0.1:4173/runtime-config.js >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/v1-single-message-poi.log
+          exit 1
+      - name: Validate V1 replacement semantics and visible category POIs
+        run: |
+          node <<'NODE'
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+
+          const weather = {
+            temperatureCelsius: 28,
+            temperatureMaxCelsius: 31,
+            temperatureMinCelsius: 24,
+            humidityPercent: 78,
+            windSpeedKph: 18,
+            rainChancePercent: 42,
+            weatherCode: 1,
+            isDay: true,
+            forecast: [],
+          };
+
+          async function poll(page, predicate, label, timeout = 10000) {
+            const deadline = Date.now() + timeout;
+            while (Date.now() < deadline) {
+              if (await page.evaluate(predicate)) return;
+              await page.waitForTimeout(100);
+            }
+            throw new Error(`${label} did not become ready`);
+          }
+
+          async function readState(page) {
+            return page.evaluate(() => {
+              const visible = (element) => {
+                const style = getComputedStyle(element);
+                const rect = element.getBoundingClientRect();
+                return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0' && rect.width > 0 && rect.height > 0;
+              };
+              const area = document.querySelector('#assistant-messages .messages-area');
+              const assistant = document.getElementById('assistant-messages');
+              const assistantRect = assistant?.getBoundingClientRect() ?? null;
+              const messages = area ? Array.from(area.children).filter((element) => element.classList.contains('message')) : [];
+              const markers = Array.from(document.querySelectorAll('.morro-explore-marker[data-morro-explore-marker="true"]'));
+              const markerState = markers.map((marker) => {
+                const rect = marker.getBoundingClientRect();
+                return {
+                  category: marker.getAttribute('data-explore-category'),
+                  name: marker.getAttribute('data-location-name'),
+                  visible: visible(marker),
+                  width: rect.width,
+                  height: rect.height,
+                  centerY: rect.top + rect.height / 2,
+                };
+              });
+              return {
+                visibleMessageCount: messages.filter(visible).length,
+                visibleUserMessageCount: messages.filter((message) => message.classList.contains('user') && visible(message)).length,
+                visibleAssistantMessages: messages.filter((message) => message.classList.contains('assistant') && visible(message)).map((message) => message.textContent?.trim() ?? ''),
+                mainMenuVisible: Boolean(document.querySelector('.assistant-options:has([data-explore-category])') && visible(document.querySelector('.assistant-options:has([data-explore-category])'))),
+                markerCountAttribute: Number(document.getElementById('map')?.getAttribute('data-map-marker-count') || 0),
+                markerState,
+                assistantTop: assistantRect?.top ?? null,
+              };
+            });
+          }
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            const context = await browser.newContext({
+              viewport: { width: 390, height: 844 },
+              geolocation: { latitude: -13.3776181, longitude: -38.9142193 },
+              permissions: ['geolocation'],
+            });
+            await context.addInitScript(() => {
+              localStorage.setItem('morro-digital-onboarded', '1');
+              localStorage.setItem('voice-enabled', 'false');
+            });
+            const page = await context.newPage();
+            const pageErrors = [];
+            page.on('pageerror', error => pageErrors.push(error.message));
+            await page.route('**/api/weather', route => route.fulfill({
+              status: 200,
+              contentType: 'application/json',
+              body: JSON.stringify(weather),
+            }));
+
+            await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded', timeout: 30000 });
+            await page.locator('#map[data-map-state="ready"][data-map-mode="real"]').waitFor({ state: 'attached', timeout: 30000 });
+            await page.locator('body[data-public-onboarding-settled="true"]').waitFor({ state: 'attached', timeout: 5000 });
+            const assistant = page.locator('#assistant-messages');
+            if (!(await assistant.isVisible())) await page.locator('.mood-button').click();
+            await assistant.waitFor({ state: 'visible', timeout: 5000 });
+
+            await page.locator('#assistant-category-beaches').click();
+            await page.locator('#assistant-category-results[data-category="beaches"][data-stage="filters"]').waitFor({ state: 'visible', timeout: 5000 });
+            await page.locator('#map[data-explore-state="ready"][data-explore-category="beaches"][data-map-marker-count="8"]').waitFor({ state: 'attached', timeout: 8000 });
+            await poll(page, () => document.querySelectorAll('.morro-explore-marker[data-explore-category="beaches"]').length === 8, 'eight beach markers');
+            await page.waitForTimeout(2300);
+
+            const filtersState = await readState(page);
+            if (filtersState.visibleMessageCount !== 1 || filtersState.visibleUserMessageCount !== 0) {
+              throw new Error(`V1 single-message contract diverged: ${JSON.stringify(filtersState)}`);
+            }
+            if (filtersState.mainMenuVisible) {
+              throw new Error(`Main categories remained visible with Beaches flow: ${JSON.stringify(filtersState)}`);
+            }
+            if (filtersState.markerCountAttribute !== 8 || filtersState.markerState.length !== 8 || filtersState.markerState.some(marker => !marker.visible || marker.width < 30 || marker.height < 30 || marker.category !== 'beaches')) {
+              throw new Error(`Beach POI marker presentation diverged: ${JSON.stringify(filtersState)}`);
+            }
+            if (typeof filtersState.assistantTop === 'number' && filtersState.markerState.some(marker => marker.centerY >= filtersState.assistantTop)) {
+              throw new Error(`Beach markers are framed behind the assistant: ${JSON.stringify(filtersState)}`);
+            }
+
+            await page.locator('#assistant-category-results [data-value="ver todos"]').click();
+            await page.locator('#assistant-category-results[data-stage="places"]').waitFor({ state: 'visible', timeout: 5000 });
+            await poll(page, () => document.querySelectorAll('.morro-explore-marker[data-explore-category="beaches"]').length === 8, 'beach place markers');
+            const placesState = await readState(page);
+            if (placesState.visibleMessageCount !== 1 || placesState.visibleUserMessageCount !== 0 || placesState.mainMenuVisible) {
+              throw new Error(`Places stage stacked assistant content: ${JSON.stringify(placesState)}`);
+            }
+
+            await page.keyboard.press('Escape');
+            await poll(page, () => {
+              const menu = document.querySelector('.assistant-options:has([data-explore-category])');
+              const visibleMessages = Array.from(document.querySelectorAll('#assistant-messages .messages-area > .message')).filter(element => getComputedStyle(element).display !== 'none');
+              return Boolean(menu && getComputedStyle(menu).display !== 'none' && visibleMessages.length === 1);
+            }, 'main menu restore');
+
+            if (pageErrors.length) throw new Error(`Browser errors: ${JSON.stringify(pageErrors)}`);
+            await context.close();
+            await browser.close();
+          })().catch(error => {
+            console.error(error);
+            process.exitCode = 1;
+          });
+          NODE
