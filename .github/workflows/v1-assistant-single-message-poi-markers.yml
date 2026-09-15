@@ -88,6 +88,23 @@ jobs:
                 const rect = element.getBoundingClientRect();
                 return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0' && rect.width > 0 && rect.height > 0;
               };
+              const describeElement = (element) => {
+                const style = getComputedStyle(element);
+                const rect = element.getBoundingClientRect();
+                return {
+                  tagName: element.tagName,
+                  id: element.id,
+                  className: element.className,
+                  ariaHidden: element.getAttribute('aria-hidden'),
+                  hiddenClass: element.classList.contains('hidden'),
+                  display: style.display,
+                  visibility: style.visibility,
+                  opacity: style.opacity,
+                  width: rect.width,
+                  height: rect.height,
+                  text: element.textContent?.trim() ?? '',
+                };
+              };
               const area = document.querySelector('#assistant-messages .messages-area');
               const assistant = document.getElementById('assistant-messages');
               const assistantRect = assistant?.getBoundingClientRect() ?? null;
@@ -105,10 +122,16 @@ jobs:
                 };
               });
               const menu = document.querySelector('.assistant-options:has([data-explore-category])');
+              const flowMessage = document.getElementById('assistant-category-results-message');
+              const flowResults = document.getElementById('assistant-category-results');
               return {
                 visibleMessageCount: messages.filter(visible).length,
                 visibleUserMessageCount: messages.filter((message) => message.classList.contains('user') && visible(message)).length,
                 visibleAssistantMessages: messages.filter((message) => message.classList.contains('assistant') && visible(message)).map((message) => message.textContent?.trim() ?? ''),
+                allMessages: messages.map(describeElement),
+                areaChildren: area ? Array.from(area.children).map(describeElement) : [],
+                flowMessage: flowMessage ? describeElement(flowMessage) : null,
+                flowResults: flowResults ? describeElement(flowResults) : null,
                 mainMenuVisible: Boolean(menu && visible(menu)),
                 markerCountAttribute: Number(document.getElementById('map')?.getAttribute('data-map-marker-count') || 0),
                 markerState,
