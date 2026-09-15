@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { NavigationMapboxPresenter } from "@touristic/geospatial";
 import type {
+  NavigationInstructionInput,
   NavigationRuntimeCoordinator,
   NavigationRuntimeSnapshot,
   NavigationRuntimeUpdateInput,
@@ -36,7 +37,11 @@ function runtimeLocation(
   };
 }
 
-function runtimeSnapshot(): NavigationRuntimeSnapshot {
+function runtimeSnapshot(
+  stepIndex = 0,
+  instruction = "Continue pela rota",
+  distanceToNextManeuver = 30,
+): NavigationRuntimeSnapshot {
   return {
     routeIdentity: "route-a",
     projectedCoordinate: [-38.917, -13.376],
@@ -51,7 +56,7 @@ function runtimeSnapshot(): NavigationRuntimeSnapshot {
     progressPercent: 20,
     rawBearing: 90,
     bearing: 90,
-    distanceToNextManeuver: 30,
+    distanceToNextManeuver,
     visualLocation: { latitude: -13.376, longitude: -38.917 },
     visualDeadZoneMeters: 2,
     visualHeldByDeadZone: false,
@@ -59,18 +64,24 @@ function runtimeSnapshot(): NavigationRuntimeSnapshot {
     visualRouteSnapped: true,
     visualIgnoredStaleUpdate: false,
     guidance: {
-      instruction: "Continue pela rota",
-      original: "Continue pela rota",
-      formattedDistance: "30 m",
+      instruction,
+      original: instruction,
+      formattedDistance: `${distanceToNextManeuver} m`,
       remainingDistance: "80 m",
       estimatedTime: "1 min",
       progress: 20,
-      stepIndex: 0,
+      stepIndex,
+      totalSteps: 3,
     },
   };
 }
 
-function setup(current: BrowserLocation | null = null) {
+function setup(
+  current: BrowserLocation | null = null,
+  instructions: readonly NavigationInstructionInput[] = [
+    { instruction: "Siga em frente" },
+  ],
+) {
   let locationSubscriber: ((value: BrowserLocation) => void) | null = null;
   const geolocationStart = vi.fn<() => void>();
   const geolocationStop = vi.fn<() => void>();
@@ -127,7 +138,7 @@ function setup(current: BrowserLocation | null = null) {
     geolocation,
     presenter,
     routeData: { route: "A" },
-    instructions: [{ instruction: "Siga em frente" }],
+    instructions,
     createRuntime,
     onSnapshot,
   });
@@ -198,6 +209,31 @@ describe("navigation app composition", () => {
     context.emitRuntimeSnapshot(snapshot);
     expect(context.presenterUpdate).toHaveBeenCalledTimes(1);
     expect(context.onSnapshot).toHaveBeenCalledTimes(1);
+  });
+
+  it("automatically advances through consecutive maneuver thresholds", () => {
+    const current = location();
+    const instructions = [
+      { instruction: "Continue em frente" },
+      { instruction: "Vire à direita" },
+      { instruction: "Vire à esquerda" },
+    ];
+    const context = setup(current, instructions);
+    context.composition.start();
+    context.runtimeUpdate.mockClear();
+
+    context.emitRuntimeSnapshot(runtimeSnapshot(0, instructions[0]!.instruction!, 19));
+    expect(context.runtimeUpdate).toHaveBeenLastCalledWith(
+      expect.objectContaining({ stepIndex: 1 }),
+    );
+    expect(context.onSnapshot).not.toHaveBeenCalled();
+
+    context.runtimeUpdate.mockClear();
+    context.emitRuntimeSnapshot(runtimeSnapshot(1, instructions[1]!.instruction!, 18));
+    expect(context.runtimeUpdate).toHaveBeenLastCalledWith(
+      expect.objectContaining({ stepIndex: 2 }),
+    );
+    expect(context.onSnapshot).not.toHaveBeenCalled();
   });
 
   it("resets runtime/presenter when route changes and reevaluates current location", () => {
