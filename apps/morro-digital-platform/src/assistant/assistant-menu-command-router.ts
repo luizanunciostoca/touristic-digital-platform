@@ -1,5 +1,7 @@
 import { morroV1SearchCatalog } from "@touristic/search";
 
+import type { ExploreLocationsCommand } from "../map/explore-locations-control.js";
+
 const CATEGORY_ALIASES = Object.freeze({
   beaches: [
     "praia",
@@ -13,6 +15,8 @@ const CATEGORY_ALIASES = Object.freeze({
     "litoral",
     "orla",
     "costa",
+    "חופים",
+    "חוף",
   ],
   restaurants: [
     "restaurante",
@@ -23,6 +27,8 @@ const CATEGORY_ALIASES = Object.freeze({
     "food",
     "onde comer",
     "lugar para comer",
+    "מסעדות",
+    "מסעדה",
   ],
   hotels: [
     "pousada",
@@ -34,6 +40,8 @@ const CATEGORY_ALIASES = Object.freeze({
     "acomodacao",
     "accommodation",
     "lodging",
+    "מלונות",
+    "לינה",
   ],
   shops: [
     "loja",
@@ -46,6 +54,8 @@ const CATEGORY_ALIASES = Object.freeze({
     "stores",
     "artesanato",
     "souvenir",
+    "חנויות",
+    "חנות",
   ],
   transport: [
     "transporte",
@@ -54,6 +64,7 @@ const CATEGORY_ALIASES = Object.freeze({
     "transfer",
     "transfers",
     "como me locomover",
+    "תחבורה",
   ],
   attractions: [
     "atracao",
@@ -65,6 +76,8 @@ const CATEGORY_ALIASES = Object.freeze({
     "turismo",
     "o que visitar",
     "sightseeing",
+    "אטרקציות",
+    "אטרקציה",
   ],
   tours: [
     "passeio",
@@ -75,6 +88,8 @@ const CATEGORY_ALIASES = Object.freeze({
     "excursoes",
     "paseo",
     "paseos",
+    "סיורים",
+    "סיור",
   ],
   nightlife: [
     "vida noturna",
@@ -85,6 +100,7 @@ const CATEGORY_ALIASES = Object.freeze({
     "festas",
     "bares",
     "clubs",
+    "חיי לילה",
   ],
   emergencies: [
     "emergencia",
@@ -96,13 +112,21 @@ const CATEGORY_ALIASES = Object.freeze({
     "policia",
     "bombeiros",
     "urgencia",
+    "חירום",
+    "מקרי חירום",
   ],
 });
 
 const OPTION_ALIASES = Object.freeze({
   surf: ["surf", "ondas", "ondas para surf", "praia com ondas"],
-  mergulho: ["mergulho", "snorkel", "snorkeling", "mergulhar"],
-  "por do sol": ["por do sol", "pôr do sol", "sunset", "entardecer"],
+  mergulho: ["mergulho", "snorkel", "snorkeling", "mergulhar", "צלילה"],
+  "por do sol": [
+    "por do sol",
+    "pôr do sol",
+    "sunset",
+    "entardecer",
+    "שקיעה",
+  ],
   familiar: [
     "familiar",
     "familia",
@@ -111,6 +135,9 @@ const OPTION_ALIASES = Object.freeze({
     "tranquilo",
     "para criancas",
     "para crianças",
+    "family",
+    "kids",
+    "משפחה",
   ],
   estrutura: [
     "estrutura",
@@ -128,6 +155,8 @@ const OPTION_ALIASES = Object.freeze({
     "mais perto",
     "nearby",
     "close to me",
+    "cerca de mi",
+    "קרוב אליי",
   ],
   "ver todos": [
     "ver todos",
@@ -137,12 +166,17 @@ const OPTION_ALIASES = Object.freeze({
     "show all",
     "todos",
     "todas",
+    "ver todo",
+    "mostrar todo",
+    "הצג הכל",
   ],
   "voltar filtros": [
     "voltar filtros",
     "voltar aos filtros",
     "filtros",
     "back to filters",
+    "volver a filtros",
+    "חזרה למסננים",
   ],
   "voltar menu": [
     "voltar menu",
@@ -150,6 +184,8 @@ const OPTION_ALIASES = Object.freeze({
     "voltar ao menu principal",
     "menu principal",
     "back to main menu",
+    "volver al menu principal",
+    "חזרה לתפריט הראשי",
   ],
   "condicoes da praia": [
     "condicoes da praia",
@@ -167,6 +203,8 @@ const OPTION_ALIASES = Object.freeze({
     "route",
     "me leve",
     "navegar",
+    "como llegar",
+    "איך להגיע",
   ],
   "ver fotos": [
     "fotos",
@@ -177,6 +215,8 @@ const OPTION_ALIASES = Object.freeze({
     "photo",
     "imagens",
     "galeria",
+    "fotos",
+    "תמונות",
   ],
   informacoes: [
     "informacoes",
@@ -186,6 +226,10 @@ const OPTION_ALIASES = Object.freeze({
     "info",
     "detalhes",
     "details",
+    "informacion",
+    "información",
+    "מידע",
+    "פרטים",
   ],
   "mais opcoes": [
     "mais opcoes",
@@ -193,6 +237,9 @@ const OPTION_ALIASES = Object.freeze({
     "outras opcoes",
     "outras opções",
     "more options",
+    "mas opciones",
+    "más opciones",
+    "אפשרויות נוספות",
   ],
 });
 
@@ -458,11 +505,117 @@ function tryOpenPlace(document: Document, name: string): boolean {
   return true;
 }
 
+function commandForButton(
+  button: HTMLButtonElement,
+): ExploreLocationsCommand | null {
+  const place = button.dataset.locationName?.trim();
+  if (place) return Object.freeze({ type: "select_place", place });
+
+  const action = button.dataset.exploreAction;
+  if (action === "all") return Object.freeze({ type: "show_all" });
+  if (action === "nearby") return Object.freeze({ type: "show_nearby" });
+  if (action === "back-filters") {
+    return Object.freeze({ type: "back_to_filters" });
+  }
+  if (action === "back-menu") {
+    return Object.freeze({ type: "back_to_menu" });
+  }
+
+  const value = button.dataset.value?.trim();
+  if (!value) return null;
+  if (value.startsWith("[sub]")) {
+    return Object.freeze({ type: "show_all" });
+  }
+  return Object.freeze({ type: "apply_option", value });
+}
+
+function commandForVisibleOption(
+  document: Document,
+  message: string,
+): ExploreLocationsCommand | null {
+  const buttons = activeFlowButtons(document);
+  if (buttons.length === 0) return null;
+
+  const normalizedMessage = normalizeAssistantMenuCommand(message);
+  if (/^\d+$/u.test(normalizedMessage)) {
+    const selected = buttons[Number(normalizedMessage) - 1];
+    return selected ? commandForButton(selected) : null;
+  }
+
+  if (
+    normalizedMessage === "voltar" ||
+    normalizedMessage === "back" ||
+    normalizedMessage === "volver"
+  ) {
+    const backButton = buttons.find((button) => {
+      const value = normalizeAssistantMenuCommand(button.dataset.value || "");
+      const label = normalizeAssistantMenuCommand(button.textContent || "");
+      return (
+        value.startsWith("[sub]") ||
+        value === "voltar filtros" ||
+        value === "voltar menu" ||
+        label.includes("voltar") ||
+        label.includes("back") ||
+        label.includes("volver")
+      );
+    });
+    return backButton ? commandForButton(backButton) : null;
+  }
+
+  let bestButton: HTMLButtonElement | null = null;
+  let bestScore = 0;
+  for (const button of buttons) {
+    const score = semanticButtonScore(message, button);
+    if (score > bestScore) {
+      bestButton = button;
+      bestScore = score;
+    }
+  }
+  return bestButton && bestScore >= 70 ? commandForButton(bestButton) : null;
+}
+
+/** Resolves text, voice, or option input to one typed Explore product command. */
+export function resolveAssistantMenuCommand(
+  document: Document,
+  message: string,
+): ExploreLocationsCommand | null {
+  const visible = commandForVisibleOption(document, message);
+  if (visible) return visible;
+
+  const place = exactCatalogPlace(message);
+  if (place) {
+    return Object.freeze({ type: "select_place", place: place.name });
+  }
+
+  const category = categoryForMessage(message);
+  return category
+    ? Object.freeze({ type: "open_category", category })
+    : null;
+}
+
+/** Converts the strict LLM action vocabulary to the same typed Explore command. */
+export function resolveAssistantRuntimeAction(
+  action: string,
+): ExploreLocationsCommand | null {
+  if (action.startsWith("show_category:")) {
+    const rawCategory = action.slice("show_category:".length);
+    const category = categoryForMessage(rawCategory);
+    return category
+      ? Object.freeze({ type: "open_category", category })
+      : null;
+  }
+  if (action.startsWith("show_place:")) {
+    const place = exactCatalogPlace(action.slice("show_place:".length));
+    return place
+      ? Object.freeze({ type: "select_place", place: place.name })
+      : null;
+  }
+  return null;
+}
+
 /**
- * Routes deterministic assistant commands through the same visible controls
- * used by the V1-compatible menu. Stage-local choices win over global
- * category aliases so "surf" filters an open beach flow instead of reopening
- * the category.
+ * Legacy compatibility fallback. Production runtime uses
+ * resolveAssistantMenuCommand() + ExploreLocationsControl.execute().
  */
 export function routeAssistantMenuCommand(
   document: Document,
@@ -473,7 +626,7 @@ export function routeAssistantMenuCommand(
   return false;
 }
 
-/** Executes the small, sanitized action vocabulary accepted from the LLM. */
+/** Legacy isolated-runtime fallback for the sanitized LLM action vocabulary. */
 export function executeAssistantRuntimeAction(
   document: Document,
   action: string,
