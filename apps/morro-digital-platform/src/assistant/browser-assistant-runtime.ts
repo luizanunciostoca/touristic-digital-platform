@@ -617,20 +617,31 @@ export function installBrowserAssistantRuntime(
 
     const generation = ++requestGeneration;
 
-    const mapResponse = await executeAssistantV1MapCommand({
-      input: value,
-      language: presentationLanguage(),
-      ...(options.map ? { map: options.map } : {}),
-      ...(options.explore
-        ? {
-            explore: {
-              showCategoryOnMap: (category) =>
-                options.explore!.showCategoryOnMap(category),
-              showAllOnMap: () => options.explore!.showAllOnMap(),
-            },
-          }
-        : {}),
-    });
+    // V1 exposes some labels (notably “ver todos”) in both MapCommander and
+    // contextual Explore menus. Preserve the active product flow first so a
+    // visible menu choice is not stolen by the global map command router.
+    const exploreStateBeforeMap = options.explore?.getState();
+    const contextualExploreCommand =
+      exploreStateBeforeMap && exploreStateBeforeMap.stage !== "menu"
+        ? resolveAssistantMenuCommand(options.document, value)
+        : null;
+
+    const mapResponse = contextualExploreCommand
+      ? null
+      : await executeAssistantV1MapCommand({
+          input: value,
+          language: presentationLanguage(),
+          ...(options.map ? { map: options.map } : {}),
+          ...(options.explore
+            ? {
+                explore: {
+                  showCategoryOnMap: (category) =>
+                    options.explore!.showCategoryOnMap(category),
+                  showAllOnMap: () => options.explore!.showAllOnMap(),
+                },
+              }
+            : {}),
+        });
     if (mapResponse) {
       if (destroyed || generation !== requestGeneration)
         return supersededResponse();
