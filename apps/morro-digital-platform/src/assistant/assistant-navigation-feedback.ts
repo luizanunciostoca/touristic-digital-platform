@@ -49,8 +49,10 @@ function resetCategorySurface(document: Document): void {
   document.getElementById(CATEGORY_FLOW_RESULTS_ID)?.remove();
   document.getElementById(CATEGORY_FLOW_MESSAGE_ID)?.remove();
 
-  const categoryButtons = document.querySelectorAll<HTMLElement>(
-    ".assistant-option-btn[data-explore-category]",
+  const categoryButtons = Array.from(
+    document.querySelectorAll<HTMLElement>(
+      ".assistant-option-btn[data-explore-category]",
+    ),
   );
   for (const button of categoryButtons) {
     button.setAttribute("aria-expanded", "false");
