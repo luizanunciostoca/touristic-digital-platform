@@ -25,34 +25,20 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Apply functional integration
-        run: python tooling/tmp-runtime-accessibility-i18n-finalizer.py
+        run: |
+          sed -i '/^workflow_path = Path/,$d' tooling/tmp-runtime-accessibility-i18n-finalizer.py
+          python tooling/tmp-runtime-accessibility-i18n-finalizer.py
       - name: Format changed files
         run: |
           pnpm exec prettier --write \
             apps/morro-digital-platform/src/browser-entry.ts \
             apps/morro-digital-platform/src/runtime/runtime-accessibility-i18n.ts \
             apps/morro-digital-platform/src/runtime/runtime-accessibility-i18n.test.ts \
-            apps/morro-digital-platform/tooling/explore-v1-i18n-browser-parity.mjs \
-            .github/workflows/explore-v1-i18n-browser-parity.yml
+            apps/morro-digital-platform/tooling/explore-v1-i18n-browser-parity.mjs
       - name: App tests
         run: pnpm --filter @touristic/morro-digital-platform test
       - name: App typecheck
-        shell: bash
-        run: |
-          set +e
-          pnpm --filter @touristic/morro-digital-platform typecheck >/tmp/runtime-i18n-typecheck.log 2>&1
-          code=$?
-          set -e
-          cat /tmp/runtime-i18n-typecheck.log
-          if [ "$code" -ne 0 ]; then
-            cp /tmp/runtime-i18n-typecheck.log tooling/tmp-runtime-accessibility-typecheck.log
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add tooling/tmp-runtime-accessibility-typecheck.log
-            git commit -m "chore(i18n): capture typecheck diagnostics [skip ci]"
-            git push origin HEAD:fix/runtime-accessibility-i18n-parity
-            exit "$code"
-          fi
+        run: pnpm --filter @touristic/morro-digital-platform typecheck
       - name: App lint
         run: pnpm --filter @touristic/morro-digital-platform lint
       - name: App build
@@ -67,11 +53,9 @@ jobs:
             .github/workflows/explore-v1-i18n-browser-parity.yml
       - name: Diff check
         run: git diff --check
-      - name: Commit clean functional tree
+      - name: Commit functional tree
         run: |
-          rm .github/workflows/tmp-runtime-accessibility-i18n-finalizer.yml
           rm tooling/tmp-runtime-accessibility-i18n-finalizer.py
-          rm -f tooling/tmp-runtime-accessibility-typecheck.log
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
