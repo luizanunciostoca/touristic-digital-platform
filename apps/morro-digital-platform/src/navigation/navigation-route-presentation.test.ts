@@ -32,9 +32,7 @@ function routeData() {
 function setupMap() {
   const sources = new Set<string>();
   const layers = new Set<string>();
-  const sourceInputs: Array<
-    Readonly<{ id: string; source: unknown }>
-  > = [];
+  const sourceInputs: Array<Readonly<{ id: string; source: unknown }>> = [];
   const addSource = vi.fn((id: string, source: unknown) => {
     sourceInputs.push(Object.freeze({ id, source }));
     sources.add(id);
@@ -74,11 +72,9 @@ describe("navigation route presentation", () => {
     expect(fixture.addSource).toHaveBeenCalledOnce();
 
     const source = fixture.sourceInputs[0]?.source as
-      | Readonly<{ type?: unknown; data?: unknown }>
-      | undefined;
+      Readonly<{ type?: unknown; data?: unknown }> | undefined;
     const data = source?.data as
-      | Readonly<{ type?: unknown; features?: unknown }>
-      | undefined;
+      Readonly<{ type?: unknown; features?: unknown }> | undefined;
 
     expect(source?.type).toBe("geojson");
     expect(data?.type).toBe("FeatureCollection");
