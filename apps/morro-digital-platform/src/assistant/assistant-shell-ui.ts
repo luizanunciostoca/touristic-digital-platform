@@ -41,6 +41,21 @@ function hideAssociatedAssistantContent(document: Document): void {
     ?.classList.add("hidden");
 }
 
+function clearTransientDetailPresentation(document: Document): void {
+  const selectors = [
+    ".assistant-photo-carousel",
+    ".assistant-photo-back-options",
+    '.assistant-options[data-presentation="photo-actions"]',
+  ];
+  for (const selector of selectors) {
+    for (const element of Array.from(
+      document.querySelectorAll<HTMLElement>(selector),
+    )) {
+      element.remove();
+    }
+  }
+}
+
 export function installAssistantShellUi(
   options: AssistantShellUiOptions,
 ): AssistantShellUi {
@@ -106,6 +121,9 @@ export function installAssistantShellUi(
   const onKeyDown = (event: KeyboardEvent): void => {
     if (event.key === "Escape" && isVisible()) hide();
   };
+  const onExploreStateChanged = (): void => {
+    clearTransientDetailPresentation(options.document);
+  };
 
   const initiallyVisible = isVisible();
   assistant?.setAttribute("aria-hidden", String(!initiallyVisible));
@@ -114,6 +132,10 @@ export function installAssistantShellUi(
   quickAction?.setAttribute("data-assistant-shell-ready", "true");
   minimizeButton?.addEventListener("click", onMinimizeClick);
   options.document.addEventListener("keydown", onKeyDown);
+  options.document.addEventListener(
+    "morro:explore-state-changed",
+    onExploreStateChanged,
+  );
 
   return Object.freeze({
     show,
@@ -127,6 +149,10 @@ export function installAssistantShellUi(
       quickAction?.removeAttribute("data-assistant-shell-ready");
       minimizeButton?.removeEventListener("click", onMinimizeClick);
       options.document.removeEventListener("keydown", onKeyDown);
+      options.document.removeEventListener(
+        "morro:explore-state-changed",
+        onExploreStateChanged,
+      );
     },
   });
 }
