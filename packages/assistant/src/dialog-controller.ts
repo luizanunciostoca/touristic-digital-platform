@@ -77,6 +77,7 @@ const PLACE_AWAITING_INTENTS = new Set<AssistantIntentResult["intent"]>([
   "open_now",
   "more_info",
   "navigate",
+  "favorites",
 ]);
 
 const CATEGORY_AWAITING_INTENTS = new Set<AssistantIntentResult["intent"]>([
@@ -204,7 +205,12 @@ function responseAwaitingState(
   if (!metadata) return null;
 
   if (metadata.state === "awaiting_place") {
-    return { type: "awaiting_place", intent: intent.intent };
+    const operation = metadata.operation;
+    return {
+      type: "awaiting_place",
+      intent: intent.intent,
+      ...(operation === "add" || operation === "remove" ? { operation } : {}),
+    };
   }
   if (metadata.state === "awaiting_category") {
     return { type: "awaiting_category", intent: intent.intent };
