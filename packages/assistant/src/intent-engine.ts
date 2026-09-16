@@ -1021,6 +1021,13 @@ export function analyzeAssistantIntent(
 ): AssistantIntentResult {
   const normalized = normalizeAssistantText(input);
   const entities = extractAssistantEntities(input, normalized);
+  const contextualPlace = context.lastPlace?.trim();
+  if (
+    contextualPlace &&
+    includesNormalizedPhrase(normalized, contextualPlace)
+  ) {
+    entities.place = contextualPlace;
+  }
   const modifiers = detectAssistantModifiers(normalized);
 
   if (!input || typeof input !== "string") {

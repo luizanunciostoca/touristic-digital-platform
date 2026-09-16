@@ -19,4 +19,17 @@ describe("assistant category phrase boundaries", () => {
     expect(result.intent).toBe("more_info");
     expect(result.entities.category).toBe("tours");
   });
+
+  it("prefers the exact selected place over a nested generic place name", () => {
+    const result = analyzeAssistantIntent(
+      "Fale sobre Píer de Morro de São Paulo",
+      {
+        lastPlace: "Píer de Morro de São Paulo",
+        lastCategory: "transport",
+      },
+    );
+
+    expect(result.intent).toBe("more_info");
+    expect(result.entities.place).toBe("Píer de Morro de São Paulo");
+  });
 });
