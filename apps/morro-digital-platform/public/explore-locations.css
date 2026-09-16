@@ -106,7 +106,7 @@
   padding: var(--spacing-md);
   border: 1px solid rgba(255, 255, 255, 0.72);
   border-radius: var(--radius);
-  background: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255,255,0.7);
   color: var(--gray-800);
   box-shadow: var(--shadow-sm);
   display: flex;
@@ -158,6 +158,15 @@
   visibility: visible !important;
   opacity: 1 !important;
   pointer-events: auto !important;
+}
+
+/*
+ * Explore location details are rendered by the assistant panel. Suppress the
+ * generic Mapbox label popup in the detail stage so a selected POI has one
+ * authoritative detail surface instead of a duplicated floating name card.
+ */
+#map[data-explore-stage="detail"] .mapboxgl-popup {
+  display: none !important;
 }
 
 @media (max-width: 480px) {
