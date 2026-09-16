@@ -7,7 +7,7 @@ on:
       - .github/workflows/assistant-input-menu-flow-v1-parity.yml
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   assistant-input-menu-flow:
@@ -24,14 +24,20 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Print canonical Prettier diff
+      - name: Apply canonical runtime Prettier formatting
         run: |
-          pnpm exec prettier --write \
-            apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts \
-            .github/workflows/search-browser-contract.yml
-          echo '=== PRETTIER DIFF BEGIN ==='
-          git diff -- \
-            apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts \
-            .github/workflows/search-browser-contract.yml
-          echo '=== PRETTIER DIFF END ==='
+          pnpm exec prettier --write apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts
+          pnpm exec prettier --check apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts
           git diff --check
+      - name: Commit formatted runtime
+        run: |
+          git add apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts
+          git diff --cached --check
+          if git diff --cached --quiet; then
+            echo 'Runtime already formatted.'
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "style(assistant): normalize runtime formatting"
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
