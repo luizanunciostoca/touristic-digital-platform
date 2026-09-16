@@ -9,7 +9,8 @@ type FeedbackLanguage = "pt" | "en" | "es" | "he";
 type FeedbackReason = "arrived" | "cancelled";
 
 const V1_POST_NAVIGATION_MENU_DELAY_MS = 600;
-const MAIN_MENU_REQUEST_EVENT = "morro:assistant-main-menu-requested";
+const CATEGORY_FLOW_RESULTS_ID = "assistant-category-results";
+const CATEGORY_FLOW_MESSAGE_ID = "assistant-category-results-message";
 
 const FEEDBACK = Object.freeze({
   pt: Object.freeze({
@@ -44,6 +45,19 @@ function ensureAssistantVisible(document: Document): void {
   document.querySelector<HTMLButtonElement>(".mood-button")?.click();
 }
 
+function resetCategorySurface(document: Document): void {
+  document.getElementById(CATEGORY_FLOW_RESULTS_ID)?.remove();
+  document.getElementById(CATEGORY_FLOW_MESSAGE_ID)?.remove();
+
+  const categoryButtons = document.querySelectorAll<HTMLElement>(
+    ".assistant-option-btn[data-explore-category]",
+  );
+  for (const button of categoryButtons) {
+    button.setAttribute("aria-expanded", "false");
+    button.setAttribute("aria-pressed", "false");
+  }
+}
+
 function destinationFromDetail(detail: unknown): string {
   if (!detail || typeof detail !== "object") return "";
   const candidate = Reflect.get(detail, "destination");
@@ -59,18 +73,11 @@ function feedbackText(
     return FEEDBACK[languageFor(document)][reason];
   }
 
-  const escapedDestination = destination
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-
   const arrived = {
-    pt: `✅ Você chegou a <b>${escapedDestination}</b>! Como posso ajudar agora?`,
-    en: `✅ You arrived at <b>${escapedDestination}</b>! How can I help now?`,
-    es: `✅ ¡Has llegado a <b>${escapedDestination}</b>! ¿Cómo puedo ayudarte ahora?`,
-    he: `✅ הגעת אל <b>${escapedDestination}</b>! איך אפשר לעזור עכשיו?`,
+    pt: `✅ Você chegou a <b>${destination}</b>! Como posso ajudar agora?`,
+    en: `✅ You arrived at <b>${destination}</b>! How can I help now?`,
+    es: `✅ ¡Has llegado a <b>${destination}</b>! ¿Cómo puedo ayudarte ahora?`,
+    he: `✅ הגעת אל <b>${destination}</b>! איך אפשר לעזור עכשיו?`,
   } as const;
 
   return arrived[languageFor(document)];
@@ -97,7 +104,7 @@ export function installAssistantNavigationFeedback(
     if (destroyed) return;
 
     ensureAssistantVisible(document);
-    document.dispatchEvent(new CustomEvent(MAIN_MENU_REQUEST_EVENT));
+    resetCategorySurface(document);
     clearAssistantDomOptions(document);
 
     messages.append({
