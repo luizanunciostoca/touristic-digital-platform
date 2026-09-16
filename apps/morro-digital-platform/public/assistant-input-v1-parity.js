@@ -79,7 +79,8 @@ if (!globalThis[INSTALLATION_KEY]) {
     "click",
     (event) => {
       const target = event.target;
-      if (!(target instanceof Element) || !target.closest(SEND_SELECTOR)) return;
+      if (!(target instanceof Element) || !target.closest(SEND_SELECTOR))
+        return;
 
       // A valid V1 submission is allowed to continue to the existing V2 runtime,
       // which remains the single owner of assistant processing and input clearing.
@@ -122,7 +123,10 @@ if (!globalThis[INSTALLATION_KEY]) {
 
   document.addEventListener("focusin", (event) => {
     const target = event.target;
-    if (!(target instanceof HTMLInputElement) || !target.matches(INPUT_SELECTOR)) {
+    if (
+      !(target instanceof HTMLInputElement) ||
+      !target.matches(INPUT_SELECTOR)
+    ) {
       return;
     }
 
@@ -140,7 +144,10 @@ if (!globalThis[INSTALLATION_KEY]) {
 
   document.addEventListener("focusout", (event) => {
     const target = event.target;
-    if (!(target instanceof HTMLInputElement) || !target.matches(INPUT_SELECTOR)) {
+    if (
+      !(target instanceof HTMLInputElement) ||
+      !target.matches(INPUT_SELECTOR)
+    ) {
       return;
     }
     setKeyboardVisible(false);
@@ -172,6 +179,9 @@ if (!globalThis[INSTALLATION_KEY]) {
   const observer = new MutationObserver(() => {
     applyInputSafeguards(assistantInput());
   });
-  observer.observe(document.documentElement, { childList: true, subtree: true });
+  observer.observe(document.documentElement, {
+    childList: true,
+    subtree: true,
+  });
   applyInputSafeguards(assistantInput());
 }
