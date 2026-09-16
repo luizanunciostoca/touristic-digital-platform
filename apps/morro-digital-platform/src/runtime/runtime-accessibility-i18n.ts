@@ -4,6 +4,7 @@ import {
   normalizeTourLocale,
   type TourLocale,
 } from "../config/tour-localization.js";
+import { applyV1ShellPresentation } from "./shell-v1-i18n.js";
 
 export type RuntimeAccessibilityLocale = TourLocale;
 
@@ -200,6 +201,8 @@ export function applyRuntimeAccessibilityPresentation(
   document: Document,
   locale = document.documentElement.lang,
 ): void {
+  applyV1ShellPresentation(document, locale);
+
   const resolvedLocale = runtimeAccessibilityLocale(locale);
   const copy = COPY[resolvedLocale];
   const select = document.getElementById("tour-select");
