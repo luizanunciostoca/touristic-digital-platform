@@ -115,8 +115,8 @@ text = replace_once(
 )
 text = replace_once(
     text,
-    '''  dynamic = await readDynamic(page);\n  equal(dynamic.labels, beachDetailHebrew, "he beach detail labels");\n  equal(dynamic.values, beachDetailValues, "he beach canonical values");\n  await page\n    .locator('.assistant-option-btn[data-value="[sub]beaches"]')\n    .click();\n''',
-    '''  dynamic = await readDynamic(page);\n  equal(dynamic.labels, beachDetailHebrew, "he beach detail labels");\n  equal(dynamic.values, beachDetailValues, "he beach canonical values");\n  await waitExploreSelectedStatus(page, "Primeira Praia נבחר.");\n  await setLanguage(page, "en");\n  await waitExploreSelectedStatus(page, "Primeira Praia selected.");\n  await setLanguage(page, "he");\n  await waitExploreSelectedStatus(page, "Primeira Praia נבחר.");\n  await page\n    .locator('.assistant-option-btn[data-value="[sub]beaches"]')\n    .click();\n''',
+    '''  equal(dynamic.values, beachDetailValues, "he beach canonical values");\n  await page\n    .locator('.assistant-option-btn[data-value="[sub]beaches"]')\n    .click();\n''',
+    '''  equal(dynamic.values, beachDetailValues, "he beach canonical values");\n  await waitExploreSelectedStatus(page, "Primeira Praia נבחר.");\n  await setLanguage(page, "en");\n  await waitExploreSelectedStatus(page, "Primeira Praia selected.");\n  await setLanguage(page, "he");\n  await waitExploreSelectedStatus(page, "Primeira Praia נבחר.");\n  await page\n    .locator('.assistant-option-btn[data-value="[sub]beaches"]')\n    .click();\n''',
     "preserve explore status across language changes",
 )
 path.write_text(text)
