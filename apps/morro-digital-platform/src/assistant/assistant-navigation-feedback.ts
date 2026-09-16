@@ -11,6 +11,8 @@ type FeedbackReason = "arrived" | "cancelled";
 const V1_POST_NAVIGATION_MENU_DELAY_MS = 600;
 const CATEGORY_FLOW_RESULTS_ID = "assistant-category-results";
 const CATEGORY_FLOW_MESSAGE_ID = "assistant-category-results-message";
+const COORDINATE_DESTINATION_PATTERN =
+  /^-?\d{1,2}(?:\.\d+)?\s*,\s*-?\d{1,3}(?:\.\d+)?$/u;
 
 const FEEDBACK = Object.freeze({
   pt: Object.freeze({
@@ -84,7 +86,10 @@ function resetCategorySurface(document: Document): void {
 function destinationFromDetail(detail: unknown): string {
   if (!detail || typeof detail !== "object") return "";
   const candidate: unknown = Reflect.get(detail, "destination");
-  return typeof candidate === "string" ? candidate.trim() : "";
+  if (typeof candidate !== "string") return "";
+  const normalized = candidate.trim();
+  if (!normalized || COORDINATE_DESTINATION_PATTERN.test(normalized)) return "";
+  return normalized;
 }
 
 function feedbackText(
