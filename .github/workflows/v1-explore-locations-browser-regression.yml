@@ -264,7 +264,6 @@ jobs:
               await page.locator('#assistant-category-results [data-location-name="Primeira Praia"]').click();
               await waitMap(page, 'beaches', 1, 'detail');
               const center = await waitForSelectedMapCamera(page, -38.9142193, -13.3776181);
-              await page.locator('.mapboxgl-popup').filter({ hasText: 'Primeira Praia' }).waitFor({ state: 'visible', timeout: 5000 });
               await page.locator('.assistant-option-btn[data-value="condições da praia"]').waitFor({ state: 'visible', timeout: 8000 });
               const detailValues = await readDynamicOptionValues(page);
               const selected = await page.evaluate(() => ({
@@ -273,7 +272,11 @@ jobs:
                 selectedValues: globalThis.__exploreSelectedValues,
                 markerCount: document.getElementById('map')?.getAttribute('data-map-marker-count'),
                 activeTour: document.getElementById('map')?.getAttribute('data-active-tour'),
-                popupText: document.querySelector('.mapboxgl-popup')?.textContent?.trim() ?? '',
+                popupVisible: Array.from(document.querySelectorAll('.mapboxgl-popup')).some(popup => {
+                  const style = getComputedStyle(popup);
+                  const rect = popup.getBoundingClientRect();
+                  return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0' && rect.width > 0 && rect.height > 0;
+                }),
               }));
               if (
                 !selected.flowRemoved ||
@@ -281,7 +284,7 @@ jobs:
                 selected.markerCount !== '1' ||
                 selected.activeTour !== null ||
                 !selected.selectedValues.includes('Fale sobre Primeira Praia') ||
-                !selected.popupText.includes('Primeira Praia') ||
+                selected.popupVisible ||
                 JSON.stringify(detailValues) !== JSON.stringify(expectedBeachDetailValues)
               ) {
                 throw new Error(`Location detail diverged in ${viewport.id}: ${JSON.stringify({ selected, detailValues })}`);

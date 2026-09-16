@@ -160,6 +160,15 @@
   pointer-events: auto !important;
 }
 
+/*
+ * Explore location details are rendered by the assistant panel. Suppress the
+ * generic Mapbox label popup in the detail stage so a selected POI has one
+ * authoritative detail surface instead of a duplicated floating name card.
+ */
+#map[data-explore-stage="detail"] .mapboxgl-popup {
+  display: none !important;
+}
+
 @media (max-width: 480px) {
   #controls {
     padding-right: var(--spacing-sm);
