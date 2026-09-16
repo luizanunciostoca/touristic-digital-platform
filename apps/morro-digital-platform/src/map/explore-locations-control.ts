@@ -45,6 +45,8 @@ export type ExploreLocationsCommand =
   | Readonly<{ type: "show_all" }>
   | Readonly<{ type: "show_nearby" }>
   | Readonly<{ type: "select_place"; place: string }>
+  | Readonly<{ type: "map_filter_category"; category: string }>
+  | Readonly<{ type: "show_all_locations" }>
   | Readonly<{ type: "back_to_filters" }>
   | Readonly<{ type: "back_to_menu" }>;
 
@@ -711,6 +713,54 @@ export function installExploreLocationsControl({
     return true;
   };
 
+  const renderMapOnlyLocations = async (
+    locations: readonly MorroV1SearchCatalogItem[],
+    category?: string,
+  ): Promise<boolean> => {
+    if (!geospatialEngine?.initialized) return false;
+    const generation = ++interactionGeneration;
+    clearTourPresentation(document);
+    removeAssistantFlowResults(document);
+    resetCategoryTriggerState();
+    activeCategory = undefined;
+    activeCategoryButton = undefined;
+    activePlace = undefined;
+    activeStage = "menu";
+    visibleLocations = Object.freeze([...locations]);
+    showMainMenu();
+    updateMapState(locations.length, category, "loading");
+
+    try {
+      await geospatialEngine.replaceMarkers(
+        locations.map((location, index) => markerForLocation(location, index)),
+      );
+      if (generation !== interactionGeneration) return false;
+      updateMapState(locations.length, category, "ready");
+      frameLocationsOnMap(locations, geospatialEngine);
+      emitStateChange();
+      return true;
+    } catch (error) {
+      if (generation !== interactionGeneration) return false;
+      updateMapState(0, undefined, "error");
+      try {
+        await geospatialEngine.replaceMarkers([]);
+      } catch {
+        // Preserve the first provider failure for diagnostics.
+      }
+      emitStateChange();
+      document
+        .getElementById("runtime-status")
+        ?.replaceChildren(
+          document.createTextNode(
+            getV1ExploreUiCopy(currentLocale()).mapCategoryError(
+              describeExploreError(error, currentLocale()),
+            ),
+          ),
+        );
+      return false;
+    }
+  };
+
   const execute = async (
     command: ExploreLocationsCommand,
   ): Promise<boolean> => {
@@ -728,6 +778,16 @@ export function installExploreLocationsControl({
       interactionGeneration += 1;
       renderFilters();
       return true;
+    }
+
+    if (command.type === "map_filter_category") {
+      const locations = getExploreLocationsForCategory(command.category);
+      if (locations.length === 0) return false;
+      return renderMapOnlyLocations(locations, command.category);
+    }
+
+    if (command.type === "show_all_locations") {
+      return renderMapOnlyLocations(morroV1SearchCatalog);
     }
 
     if (command.type === "select_place") {

@@ -59,19 +59,44 @@ const MAP_STYLES = Object.freeze({
   outdoor: "mapbox://styles/mapbox/outdoors-v12",
 });
 
-const CATEGORY_ALIASES: Readonly<
-  Record<string, readonly string[]>
-> = Object.freeze({
-  beaches: ["praia", "praias", "beach", "beaches"],
-  restaurants: ["restaurante", "restaurantes", "comida", "restaurant", "restaurants"],
-  hotels: ["pousada", "pousadas", "hotel", "hoteis", "hotels"],
-  shops: ["loja", "lojas", "compra", "compras", "shop", "shops"],
-  attractions: ["atracao", "atracoes", "turismo", "attraction", "attractions"],
-  nightlife: ["noite", "balada", "bar", "nightlife"],
-  tours: ["passeio", "passeios", "tour", "tours"],
-  emergencies: ["emergencia", "emergencias", "hospital", "emergency", "emergencies"],
-  transport: ["transporte", "transfer", "barco", "ferry", "lancha", "buggy", "transport"],
-});
+const CATEGORY_ALIASES: Readonly<Record<string, readonly string[]>> =
+  Object.freeze({
+    beaches: ["praia", "praias", "beach", "beaches"],
+    restaurants: [
+      "restaurante",
+      "restaurantes",
+      "comida",
+      "restaurant",
+      "restaurants",
+    ],
+    hotels: ["pousada", "pousadas", "hotel", "hoteis", "hotels"],
+    shops: ["loja", "lojas", "compra", "compras", "shop", "shops"],
+    attractions: [
+      "atracao",
+      "atracoes",
+      "turismo",
+      "attraction",
+      "attractions",
+    ],
+    nightlife: ["noite", "balada", "bar", "nightlife"],
+    tours: ["passeio", "passeios", "tour", "tours"],
+    emergencies: [
+      "emergencia",
+      "emergencias",
+      "hospital",
+      "emergency",
+      "emergencies",
+    ],
+    transport: [
+      "transporte",
+      "transfer",
+      "barco",
+      "ferry",
+      "lancha",
+      "buggy",
+      "transport",
+    ],
+  });
 
 const MAP_OPTIONS: Readonly<
   Record<AssistantLocale, readonly Readonly<{ label: string; value: string }>[]>
@@ -89,7 +114,10 @@ const MAP_OPTIONS: Readonly<
     Object.freeze({ label: "Overview", value: "overview" }),
   ]),
   es: Object.freeze([
-    Object.freeze({ label: "Mostrar todos", value: "mostrar todos los lugares" }),
+    Object.freeze({
+      label: "Mostrar todos",
+      value: "mostrar todos los lugares",
+    }),
     Object.freeze({ label: "Modo satélite", value: "modo satélite" }),
     Object.freeze({ label: "Modo normal", value: "modo normal" }),
     Object.freeze({ label: "Vista general", value: "vista general" }),
@@ -108,7 +136,7 @@ function normalized(value: string): string {
 
 function includesWholePhrase(input: string, phrase: string): boolean {
   const candidate = normalized(phrase);
-  return (` ${input} `).includes(` ${candidate} `);
+  return ` ${input} `.includes(` ${candidate} `);
 }
 
 function hasAny(input: string, phrases: readonly string[]): boolean {
@@ -130,7 +158,8 @@ function categoryFromFilter(input: string): string | null {
   ]);
   if (!hasFilterPrefix) return null;
   for (const [category, aliases] of Object.entries(CATEGORY_ALIASES)) {
-    if (aliases.some((alias) => includesWholePhrase(input, alias))) return category;
+    if (aliases.some((alias) => includesWholePhrase(input, alias)))
+      return category;
   }
   return null;
 }
@@ -188,7 +217,11 @@ export function resolveAssistantV1ResidualCommand(
     "acesso a",
     "acesso ao",
   ]);
-  if (transportQuestion && !value.includes("filtrar") && !value.includes("mostrar so")) {
+  if (
+    transportQuestion &&
+    !value.includes("filtrar") &&
+    !value.includes("mostrar so")
+  ) {
     return null;
   }
 
@@ -203,7 +236,15 @@ export function resolveAssistantV1ResidualCommand(
   ) {
     return Object.freeze({ type: "map_style", style: "satellite" });
   }
-  if (hasAny(value, ["modo noturno", "mapa escuro", "dark mode", "modo dark", "tema escuro"])) {
+  if (
+    hasAny(value, [
+      "modo noturno",
+      "mapa escuro",
+      "dark mode",
+      "modo dark",
+      "tema escuro",
+    ])
+  ) {
     return Object.freeze({ type: "map_style", style: "dark" });
   }
   if (
@@ -218,7 +259,14 @@ export function resolveAssistantV1ResidualCommand(
   ) {
     return Object.freeze({ type: "map_style", style: "default" });
   }
-  if (hasAny(value, ["modo outdoor", "mapa outdoor", "topografico", "outdoor mode"])) {
+  if (
+    hasAny(value, [
+      "modo outdoor",
+      "mapa outdoor",
+      "topografico",
+      "outdoor mode",
+    ])
+  ) {
     return Object.freeze({ type: "map_style", style: "outdoor" });
   }
 
@@ -238,10 +286,26 @@ export function resolveAssistantV1ResidualCommand(
   ) {
     return Object.freeze({ type: "map_show_all" });
   }
-  if (hasAny(value, ["aproximar", "zoom in", "mais perto", "mais zoom", "aumentar zoom"])) {
+  if (
+    hasAny(value, [
+      "aproximar",
+      "zoom in",
+      "mais perto",
+      "mais zoom",
+      "aumentar zoom",
+    ])
+  ) {
     return Object.freeze({ type: "map_zoom", direction: "in" });
   }
-  if (hasAny(value, ["afastar", "zoom out", "mais longe", "menos zoom", "diminuir zoom"])) {
+  if (
+    hasAny(value, [
+      "afastar",
+      "zoom out",
+      "mais longe",
+      "menos zoom",
+      "diminuir zoom",
+    ])
+  ) {
     return Object.freeze({ type: "map_zoom", direction: "out" });
   }
   if (
@@ -284,7 +348,8 @@ export function formatAssistantV1History(
     es: {
       user: "Tú",
       assistant: "Asistente",
-      empty: "Tu historial está vacío. ¿Te gustaría comenzar una nueva búsqueda?",
+      empty:
+        "Tu historial está vacío. ¿Te gustaría comenzar una nueva búsqueda?",
       recent: "Tu historial reciente:",
       more: "¿Te gustaría saber más sobre alguno de estos lugares?",
     },
@@ -321,7 +386,7 @@ function mapResponse(
 ): AssistantDialogResponse {
   return {
     text,
-    options: mapCommandOptions(language),
+    options: [...mapCommandOptions(language)],
     metadata: {
       domain: "v1_map_command",
       action,
@@ -390,18 +455,49 @@ export async function executeAssistantV1ResidualCommand(
     ).length;
     const categoryLabel = {
       beaches: { pt: "praias", en: "beaches", es: "playas", he: "חופים" },
-      restaurants: { pt: "restaurantes", en: "restaurants", es: "restaurantes", he: "מסעדות" },
-      hotels: { pt: "hotéis e pousadas", en: "hotels", es: "hoteles", he: "מלונות" },
+      restaurants: {
+        pt: "restaurantes",
+        en: "restaurants",
+        es: "restaurantes",
+        he: "מסעדות",
+      },
+      hotels: {
+        pt: "hotéis e pousadas",
+        en: "hotels",
+        es: "hoteles",
+        he: "מלונות",
+      },
       shops: { pt: "lojas", en: "shops", es: "tiendas", he: "חנויות" },
-      attractions: { pt: "atrações", en: "attractions", es: "atracciones", he: "אטרקציות" },
-      nightlife: { pt: "locais de vida noturna", en: "nightlife places", es: "lugares de vida nocturna", he: "מקומות בילוי" },
+      attractions: {
+        pt: "atrações",
+        en: "attractions",
+        es: "atracciones",
+        he: "אטרקציות",
+      },
+      nightlife: {
+        pt: "locais de vida noturna",
+        en: "nightlife places",
+        es: "lugares de vida nocturna",
+        he: "מקומות בילוי",
+      },
       tours: { pt: "passeios", en: "tours", es: "paseos", he: "סיורים" },
-      emergencies: { pt: "locais de emergência", en: "emergency places", es: "lugares de emergencia", he: "מוקדי חירום" },
-      transport: { pt: "opções de transporte", en: "transport options", es: "opciones de transporte", he: "אפשרויות תחבורה" },
+      emergencies: {
+        pt: "locais de emergência",
+        en: "emergency places",
+        es: "lugares de emergencia",
+        he: "מוקדי חירום",
+      },
+      transport: {
+        pt: "opções de transporte",
+        en: "transport options",
+        es: "opciones de transporte",
+        he: "אפשרויות תחבורה",
+      },
     } as const;
     const label =
-      categoryLabel[command.category as keyof typeof categoryLabel]?.[language] ??
-      command.category;
+      categoryLabel[command.category as keyof typeof categoryLabel]?.[
+        language
+      ] ?? command.category;
     const text = success
       ? {
           pt: `📍 Mostrando ${count} ${label} no mapa.`,
@@ -438,12 +534,22 @@ export async function executeAssistantV1ResidualCommand(
   }
 
   if (!map) {
-    return mapResponse(unavailable(language), language, command.type, "unavailable");
+    return mapResponse(
+      unavailable(language),
+      language,
+      command.type,
+      "unavailable",
+    );
   }
 
   if (command.type === "map_style") {
     if (!map.setStyle) {
-      return mapResponse(unavailable(language), language, "map_style", "unavailable");
+      return mapResponse(
+        unavailable(language),
+        language,
+        "map_style",
+        "unavailable",
+      );
     }
     const center = map.getCenter?.();
     const zoom = map.getZoom?.();
@@ -468,7 +574,12 @@ export async function executeAssistantV1ResidualCommand(
     }
     const label = {
       default: { pt: "padrão", en: "standard", es: "normal", he: "רגיל" },
-      satellite: { pt: "satélite", en: "satellite", es: "satélite", he: "לוויין" },
+      satellite: {
+        pt: "satélite",
+        en: "satellite",
+        es: "satélite",
+        he: "לוויין",
+      },
       dark: { pt: "noturno", en: "dark", es: "oscuro", he: "כהה" },
       outdoor: { pt: "outdoor", en: "outdoor", es: "outdoor", he: "שטח" },
     }[command.style][language];
@@ -487,7 +598,12 @@ export async function executeAssistantV1ResidualCommand(
   if (command.type === "map_zoom") {
     const current = map.getZoom?.();
     if (typeof current !== "number") {
-      return mapResponse(unavailable(language), language, "map_zoom", "unavailable");
+      return mapResponse(
+        unavailable(language),
+        language,
+        "map_zoom",
+        "unavailable",
+      );
     }
     const target =
       command.direction === "in"
@@ -498,11 +614,7 @@ export async function executeAssistantV1ResidualCommand(
     } else {
       map.setZoom?.(target);
     }
-    return mapResponse(
-      `🔍 Zoom ${language === "he" ? "" : ""}${target.toFixed(0)}.`,
-      language,
-      "map_zoom",
-    );
+    return mapResponse(`🔍 Zoom ${target.toFixed(0)}.`, language, "map_zoom");
   }
 
   if (command.type === "map_overview") {

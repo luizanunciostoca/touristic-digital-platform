@@ -16,6 +16,11 @@ import { fetchMorroWeather } from "../weather/weather-widget.js";
 import { createAssistantLlmHandler } from "./assistant-llm-adapter.js";
 import { createAssistantV1IntelligenceHandlers } from "./assistant-v1-intelligence-adapter.js";
 import { resolveAssistantV1PlaceAction } from "./assistant-v1-place-action-adapter.js";
+import {
+  executeAssistantV1ResidualCommand,
+  resolveAssistantV1ResidualCommand,
+  type AssistantV1MapCommandMap,
+} from "./assistant-v1-residual-command-adapter.js";
 import { createAssistantBrowserDomainHandlers } from "./assistant-domain-adapter.js";
 import { createAssistantMessageDom } from "./assistant-message-dom.js";
 import {
@@ -43,7 +48,9 @@ import { installAssistantVoiceSettings } from "./assistant-voice-settings.js";
 interface AssistantRuntimeEnvironmentGlobal {
   readonly __MORRO_RUNTIME_ENV__?: {
     readonly VITE_MAPBOX_ACCESS_TOKEN?: string;
+    readonly VITE_MAPBOX_STYLE?: string;
   };
+  readonly mapboxPrimaryInstance?: AssistantV1MapCommandMap;
 }
 
 export interface BrowserAssistantRuntimeOptions {
@@ -466,7 +473,12 @@ export function installBrowserAssistantRuntime(
   });
 
   const view = options.document.defaultView;
+  let navigationActive = false;
+  const onNavigationStarted = (): void => {
+    navigationActive = true;
+  };
   const onNavigationEnded = (event: Event): void => {
+    navigationActive = false;
     const detail = "detail" in event ? event.detail : null;
     if (
       detail &&
@@ -477,6 +489,7 @@ export function installBrowserAssistantRuntime(
       profile.recordSuccessfulNavigation();
     }
   };
+  view?.addEventListener("navigationStarted", onNavigationStarted);
   view?.addEventListener("navigationEnded", onNavigationEnded);
 
   const voice =
@@ -608,6 +621,60 @@ export function installBrowserAssistantRuntime(
     const value = selectedNumericOption?.value.trim() || submittedValue;
 
     const generation = ++requestGeneration;
+
+    const residualCommand = resolveAssistantV1ResidualCommand(value);
+    if (residualCommand) {
+      const residualContext = context.getContext();
+      const runtimeGlobal = globalThis as typeof globalThis &
+        AssistantRuntimeEnvironmentGlobal;
+      const defaultMapStyle =
+        runtimeGlobal.__MORRO_RUNTIME_ENV__?.VITE_MAPBOX_STYLE?.trim();
+      const response = await executeAssistantV1ResidualCommand({
+        command: residualCommand,
+        language: presentationLanguage(),
+        history: residualContext.history,
+        ...(runtimeGlobal.mapboxPrimaryInstance
+          ? { map: runtimeGlobal.mapboxPrimaryInstance }
+          : {}),
+        ...(options.explore ? { explore: options.explore } : {}),
+        ...(defaultMapStyle ? { defaultMapStyle } : {}),
+        navigationActive,
+      });
+      if (destroyed || generation !== requestGeneration) {
+        return supersededResponse();
+      }
+
+      clearAssistantDomOptions(options.document);
+      removePhotoPresentation(options.document);
+      appendStandardMessage("user", submittedValue);
+      appendStandardMessage("assistant", response.text);
+      const responseOptions = readAssistantResponseOptions(response);
+      if (responseOptions.length > 0) {
+        renderAssistantDomOptions(options.document, responseOptions);
+      }
+      currentPresentation = snapshotPresentation(
+        response.text,
+        responseOptions,
+      );
+      context.updateContext({
+        lastIntent:
+          residualCommand.type === "history" ? "history" : "map_command",
+        fallbackCount: 0,
+      });
+      context.addToHistory({ input: submittedValue, response: response.text });
+      options.document.dispatchEvent(
+        new CustomEvent("morro:assistant-residual-command-routed", {
+          detail: {
+            command: residualCommand.type,
+            source,
+            state: response.metadata?.state ?? null,
+          },
+        }),
+      );
+      voice?.speak(response.text, voiceLanguage());
+      return response;
+    }
+
     const placeActionContext = context.getContext();
     const placeAction = resolveAssistantV1PlaceAction({
       input: value,
@@ -988,6 +1055,7 @@ export function installBrowserAssistantRuntime(
       if (destroyed) return;
       destroyed = true;
       requestGeneration += 1;
+      view?.removeEventListener("navigationStarted", onNavigationStarted);
       view?.removeEventListener("navigationEnded", onNavigationEnded);
       sendButton?.removeEventListener("click", onSendClick);
       input?.removeEventListener("keydown", onInputKeyDown);

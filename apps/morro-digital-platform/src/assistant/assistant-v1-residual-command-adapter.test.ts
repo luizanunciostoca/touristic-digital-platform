@@ -7,6 +7,10 @@ import {
   type AssistantV1MapCommandMap,
 } from "./assistant-v1-residual-command-adapter.js";
 
+type FlyToOptions = Parameters<
+  NonNullable<AssistantV1MapCommandMap["flyTo"]>
+>[0];
+
 function fakeMap() {
   let zoom = 13;
   let center = { lng: -38.9145, lat: -13.382 };
@@ -21,9 +25,10 @@ function fakeMap() {
     setCenter: vi.fn((value: [number, number]) => {
       center = { lng: value[0], lat: value[1] };
     }),
-    flyTo: vi.fn((options) => {
+    flyTo: vi.fn((options: FlyToOptions) => {
       if (typeof options.zoom === "number") zoom = options.zoom;
-      if (options.center) center = { lng: options.center[0], lat: options.center[1] };
+      if (options.center)
+        center = { lng: options.center[0], lat: options.center[1] };
     }),
     setStyle: vi.fn(),
     once: vi.fn((_event: string, listener: () => void) => listener()),
@@ -35,7 +40,9 @@ describe("V1 residual assistant commands", () => {
   it.each(["histórico", "historico", "meu histórico"])(
     "resolves the legacy history command %s deterministically",
     (input) => {
-      expect(resolveAssistantV1ResidualCommand(input)).toEqual({ type: "history" });
+      expect(resolveAssistantV1ResidualCommand(input)).toEqual({
+        type: "history",
+      });
     },
   );
 
