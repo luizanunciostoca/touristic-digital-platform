@@ -39,7 +39,7 @@ function installFakeDocument(): void {
     createElementNS(_namespace: string, tagName: string) {
       return new FakeElement(tagName);
     },
-  } as unknown as Document);
+  });
 }
 
 function routeData() {
