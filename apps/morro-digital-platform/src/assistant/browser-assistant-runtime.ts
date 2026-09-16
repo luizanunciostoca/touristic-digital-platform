@@ -66,6 +66,12 @@ type AssistantInputSource =
   | "option"
   | "programmatic";
 
+const CONTROLLER_OWNED_AWAITING_TYPES = new Set([
+  "awaiting_place",
+  "awaiting_category",
+  "awaiting_destination",
+]);
+
 function getMessagesArea(document: Document): HTMLElement | null {
   return document.querySelector<HTMLElement>(
     "#assistant-messages .messages-area",
@@ -390,11 +396,19 @@ export function installBrowserAssistantRuntime(
     const previousPresentation = preservePreviousOptions
       ? currentPresentation
       : null;
+    const awaitingType = context.getContext().awaiting?.type;
+    const controllerOwnsTurn =
+      (typeof awaitingType === "string" &&
+        CONTROLLER_OWNED_AWAITING_TYPES.has(awaitingType)) ||
+      (source === "option" && optionOverride !== undefined);
 
-    // V1 deterministic menu commands execute before standard message
-    // lifecycle mutation. This preserves the persistent category menu on
-    // back-to-menu and prevents nested detail actions from duplicating input.
-    if (routeAssistantMenuCommand(options.document, value)) {
+    // Controller-owned multi-turn states and semantic place-selection events
+    // must resolve before global menu aliases. Other V1 menu commands keep the
+    // deterministic fast path until Explore exposes a direct semantic port.
+    if (
+      !controllerOwnsTurn &&
+      routeAssistantMenuCommand(options.document, value)
+    ) {
       currentPresentation = null;
       queueMicrotask(() => syncExploreContext());
       options.document.dispatchEvent(
