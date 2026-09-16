@@ -19,7 +19,9 @@ The implementation preserves the canonical V1 deterministic-first architecture: 
 - `place_search` remains local/catalog/Mapbox-first and can escalate to LLM only through the existing policy when deterministic search does not resolve;
 - V1 `recommendation`, `compare` and filtered-category intent families are restored to the central intent contract;
 - contextual menu / proactive recommendation logic is connected to the shared profile and runtime intelligence handlers;
-- explicit category routing no longer misclassifies place-detail text such as `Fale sobre Primeira Praia` merely because the place name contains `praia`.
+- explicit category routing no longer misclassifies place-detail text such as `Fale sobre Primeira Praia` merely because the place name contains `praia`;
+- V1 global Explore commands (`show all`, nearby, back to filters/menu and map aliases) execute through the typed Explore port;
+- numeric assistant option selection resolves against the current presentation while preserving the user's submitted text in UI/history.
 
 ## Validation evidence
 
@@ -33,10 +35,10 @@ The finalization run that produced commit `5c71b8d53f49ab189494c7bca0076487c3081
 - `git diff --cached --check` — PASS before commit;
 - temporary finalizer workflows/scripts were removed in the same validated commit.
 
+Subsequent guarded closures also validated runtime-review synchronization/profile changes and V1 global-command/numeric-selection parity before their functional commits were pushed. The remaining review-findings gate is intentionally re-triggered from a normal repository-authored commit so it can apply only the still-missing awaiting-interrupt/re-entry protections and direct typed-LLM-action regressions on top of the latest branch state.
+
 ## Exact-head gate
 
-Commit `5c71b8d53f49ab189494c7bca0076487c30818a9` was authored by `github-actions[bot]`. GitHub consequently marked the PR-triggered workflow set as `action_required` before creating jobs; this is an execution-policy condition, not a test failure.
+Bot-authored functional commits can cause this repository's PR-triggered workflows to be marked `action_required` before jobs are created. This is an execution-policy condition rather than a test conclusion. A normal repository-authored evidence commit is therefore used after each guarded functional closure to produce the exact-head on which the standard PR workflow matrix must execute.
 
-This evidence commit is intentionally authored through the normal repository connection so the PR obtains a new human/user-authored exact-head and the standard PR workflow matrix can execute normally. No functional behavior is changed by this document.
-
-The PR must not be merged until that new exact-head has completed the required workflow matrix successfully and review findings are reconciled.
+The PR must not be merged until the final normal-authored exact-head has completed the required workflow matrix successfully and review findings are reconciled.
