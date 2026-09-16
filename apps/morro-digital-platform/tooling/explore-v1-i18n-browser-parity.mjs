@@ -59,6 +59,29 @@ const filters = {
   },
 };
 
+const runtimeAccessibility = {
+  pt: {
+    selectAria: "Roteiro exibido no mapa",
+    firstTour: "Passeio Volta à Ilha",
+    statusNeedle: "Runtime ativo",
+  },
+  en: {
+    selectAria: "Tour displayed on the map",
+    firstTour: "Island Round Trip",
+    statusNeedle: "Runtime active",
+  },
+  es: {
+    selectAria: "Recorrido mostrado en el mapa",
+    firstTour: "Vuelta a la Isla",
+    statusNeedle: "Runtime activo",
+  },
+  he: {
+    selectAria: "המסלול המוצג במפה",
+    firstTour: "סיבוב האי",
+    statusNeedle: "המערכת פעילה",
+  },
+};
+
 const filterValues = [
   "surf",
   "mergulho",
@@ -122,6 +145,34 @@ async function setLanguage(page, language) {
   await page.evaluate((next) => {
     document.documentElement.lang = next;
   }, language);
+}
+
+async function waitRuntimeAccessibility(page, locale, expected) {
+  const deadline = Date.now() + 5000;
+  let observed = null;
+  while (Date.now() < deadline) {
+    observed = await page.evaluate(() => {
+      const select = document.getElementById("tour-select");
+      const firstOption = select?.querySelector("option");
+      return {
+        selectAria: select?.getAttribute("aria-label") ?? null,
+        firstTour: firstOption?.textContent?.trim() ?? null,
+        status:
+          document.getElementById("runtime-status")?.textContent?.trim() ?? "",
+      };
+    });
+    if (
+      observed.selectAria === expected.selectAria &&
+      observed.firstTour === expected.firstTour &&
+      observed.status.includes(expected.statusNeedle)
+    ) {
+      return;
+    }
+    await page.waitForTimeout(50);
+  }
+  throw new Error(
+    `runtime accessibility ${locale}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(observed)}`,
+  );
 }
 
 async function waitCategory(page, value, text, aria) {
@@ -221,8 +272,10 @@ try {
   await assistant.waitFor({ state: "visible", timeout: 5000 });
 
   await waitCategory(page, "beaches", "Praias", "Praias, 8 locais");
+  await waitRuntimeAccessibility(page, "pt", runtimeAccessibility.pt);
   for (const locale of ["en", "es"]) {
     await setLanguage(page, locale);
+    await waitRuntimeAccessibility(page, locale, runtimeAccessibility[locale]);
     const expected = filters[locale];
     await waitCategory(page, "beaches", expected.category, expected.aria);
     await page.locator("#assistant-category-beaches").click();
@@ -236,6 +289,7 @@ try {
   }
 
   await setLanguage(page, "he");
+  await waitRuntimeAccessibility(page, "he", runtimeAccessibility.he);
   await waitCategory(page, "beaches", filters.he.category, filters.he.aria);
   await page.locator("#assistant-category-beaches").click();
   await page
@@ -270,6 +324,7 @@ try {
   await page.keyboard.press("Escape");
 
   await setLanguage(page, "en-US");
+  await waitRuntimeAccessibility(page, "en-US", runtimeAccessibility.en);
   await waitCategory(
     page,
     "restaurants",
@@ -320,7 +375,58 @@ try {
     "en restaurant secondary canonical values",
   );
 
+  await setLanguage(page, "he");
+  await waitRuntimeAccessibility(page, "he", runtimeAccessibility.he);
+  await page.evaluate(() => {
+    const select = document.getElementById("tour-select");
+    if (!(select instanceof HTMLSelectElement))
+      throw new Error("tour-select missing");
+    select.value = "volta-a-ilha";
+    select.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+  await page
+    .locator('#map[data-tour-state="ready"][data-active-tour="volta-a-ilha"]')
+    .waitFor({ state: "attached", timeout: 10000 });
+  const tourMarker = page
+    .locator(
+      '.tour-stop-marker[data-tour-id="volta-a-ilha"][data-stop-id="stop-1"]',
+    )
+    .first();
+  await tourMarker.waitFor({ state: "attached", timeout: 5000 });
+  equal(
+    await tourMarker.getAttribute("aria-label"),
+    "יציאה: Terceira Praia",
+    "he tour marker aria label",
+  );
+  if (
+    !(await page.locator("#runtime-status").textContent())?.includes(
+      "סיבוב האי",
+    )
+  ) {
+    throw new Error(
+      "he tour runtime status did not localize the active tour title",
+    );
+  }
+
+  await setLanguage(page, "en");
+  await waitRuntimeAccessibility(page, "en", runtimeAccessibility.en);
+  const markerDeadline = Date.now() + 5000;
+  while (Date.now() < markerDeadline) {
+    if (
+      (await tourMarker.getAttribute("aria-label")) ===
+      "Departure: Terceira Praia"
+    )
+      break;
+    await page.waitForTimeout(50);
+  }
+  equal(
+    await tourMarker.getAttribute("aria-label"),
+    "Departure: Terceira Praia",
+    "live language switch tour marker aria label",
+  );
+
   await setLanguage(page, "pt-BR");
+  await waitRuntimeAccessibility(page, "pt-BR", runtimeAccessibility.pt);
   await waitCategory(page, "beaches", "Praias", "Praias, 8 locais");
   if (pageErrors.length || mapboxHttpErrors.length) {
     throw new Error(

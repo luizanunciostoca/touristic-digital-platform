@@ -43,7 +43,9 @@ describe("runtime accessibility i18n", () => {
       markerCount: 8,
     };
 
-    expect(formatRuntimeStatus(state, "pt-BR")).toContain("Passeio Volta à Ilha");
+    expect(formatRuntimeStatus(state, "pt-BR")).toContain(
+      "Passeio Volta à Ilha",
+    );
     expect(formatRuntimeStatus(state, "en")).toContain("Island Round Trip");
     expect(formatRuntimeStatus(state, "es")).toContain("Vuelta a la Isla");
     expect(formatRuntimeStatus(state, "he")).toContain("סיבוב האי");
