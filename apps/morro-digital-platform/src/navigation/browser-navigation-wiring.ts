@@ -143,7 +143,10 @@ function createNavigationUserMarkerElement(): HTMLElement | undefined {
   filter.appendChild(shadow);
   defs.appendChild(filter);
 
-  const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  const circle = document.createElementNS(
+    "http://www.w3.org/2000/svg",
+    "circle",
+  );
   circle.setAttribute("cx", "28");
   circle.setAttribute("cy", "28");
   circle.setAttribute("r", "22");
