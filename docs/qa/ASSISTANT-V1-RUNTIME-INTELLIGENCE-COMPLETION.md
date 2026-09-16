@@ -42,6 +42,8 @@ Subsequent guarded closures validated runtime-review synchronization/profile cha
 - `git diff --cached --check` and validated-result commit — PASS;
 - temporary finalizer workflow/script removed in the validated functional commit.
 
+The first official exact-head matrix then exposed only three Prettier-normalization findings in Assistant tests. The guarded formatting closure passed global `pnpm format:check`, Assistant tests/typecheck and workspace build before producing `5e8fabbeee0cd8508e8721497a0a009332b8a0ed`; it modified only those three test files and removed its temporary workflow.
+
 ## Exact-head gate
 
 Bot-authored functional commits can cause this repository's PR-triggered workflows to be marked `action_required` before jobs are created. This is an execution-policy condition rather than a test conclusion. This normal repository-authored evidence commit exists to produce the final exact-head on which the standard PR workflow matrix must execute.
