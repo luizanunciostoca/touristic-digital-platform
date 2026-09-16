@@ -50,31 +50,35 @@ describe("runtime accessibility i18n", () => {
   });
 
   it("localizes V2-only loading and error wrappers", () => {
-    expect(
-      formatRuntimeStatus({ kind: "tour-switching" }, "en"),
-    ).toBe("Updating the tour displayed on the map…");
+    expect(formatRuntimeStatus({ kind: "tour-switching" }, "en")).toBe(
+      "Updating the tour displayed on the map…",
+    );
     expect(
       formatRuntimeStatus(
         { kind: "map-fallback", mode: "using", detail: "network" },
         "es",
       ),
     ).toBe("Mapbox no disponible; usando el fallback de V1: network");
-    expect(
-      formatRuntimeStatus({ kind: "tour-error" }, "he"),
-    ).toContain("לא ניתן להחליף את המסלול");
-    expect(
-      formatRuntimeStatus({ kind: "runtime-error" }, "en"),
-    ).toContain("Could not start Morro Digital");
+    expect(formatRuntimeStatus({ kind: "tour-error" }, "he")).toContain(
+      "לא ניתן להחליף את המסלול",
+    );
+    expect(formatRuntimeStatus({ kind: "runtime-error" }, "en")).toContain(
+      "Could not start Morro Digital",
+    );
   });
 
   it("returns localized accessible tour-stop labels", () => {
     expect(localizedTourStopLabel("volta-a-ilha", "stop-1", "pt-BR")).toBe(
-      "Piscinas Naturais de Garapuá",
+      "Partida: Terceira Praia",
     );
-    expect(localizedTourStopLabel("volta-a-ilha", "stop-1", "en")).not.toBe(
-      "Piscinas Naturais de Garapuá",
+    expect(localizedTourStopLabel("volta-a-ilha", "stop-1", "en")).toBe(
+      "Departure: Terceira Praia",
     );
-    expect(localizedTourStopLabel("volta-a-ilha", "stop-1", "es")).toBeTruthy();
-    expect(localizedTourStopLabel("volta-a-ilha", "stop-1", "he")).toBeTruthy();
+    expect(localizedTourStopLabel("volta-a-ilha", "stop-1", "es")).toBe(
+      "Salida: Terceira Praia",
+    );
+    expect(localizedTourStopLabel("volta-a-ilha", "stop-1", "he")).toBe(
+      "יציאה: Terceira Praia",
+    );
   });
 });
