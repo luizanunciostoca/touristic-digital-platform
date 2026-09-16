@@ -15,29 +15,25 @@ if (!globalThis[INSTALLATION_KEY]) {
     return input instanceof HTMLInputElement ? input : null;
   }
 
-  function emitSubmission(message, source) {
+  function prepareTypedSubmission(source) {
+    const input = assistantInput();
+    if (!input) return false;
+
+    const message = String(input.value || "").trim();
+    if (!message) return false;
+
     document.dispatchEvent(
       new CustomEvent("morro:assistant-input-submitted", {
         detail: { message, source },
       }),
     );
-    document.dispatchEvent(
-      new CustomEvent("morro:assistant-option-selected", {
-        detail: { value: message, inputSource: source },
-      }),
-    );
+    return true;
   }
 
-  function submitTypedInput(source) {
-    const input = assistantInput();
-    if (!input) return false;
-    const message = String(input.value || "").trim();
-    if (!message) return false;
-
-    // V1 clears valid typed messages immediately, before async processing.
-    input.value = "";
-    emitSubmission(message, source);
-    return true;
+  function applyInputSafeguards(input) {
+    if (!(input instanceof HTMLInputElement)) return;
+    input.dataset.v1InputParity = "true";
+    input.style.fontSize = "16px";
   }
 
   function setKeyboardVisible(visible) {
@@ -85,11 +81,13 @@ if (!globalThis[INSTALLATION_KEY]) {
       const target = event.target;
       if (!(target instanceof Element) || !target.closest(SEND_SELECTOR)) return;
 
-      // The V1 input has exactly one dispatcher. Capture the click before the
-      // V2 runtime handler so one user action can never enqueue twice.
+      // A valid V1 submission is allowed to continue to the existing V2 runtime,
+      // which remains the single owner of assistant processing and input clearing.
+      if (prepareTypedSubmission("button")) return;
+
+      // V1 ignores whitespace-only drafts and keeps them in the field.
       event.preventDefault();
       event.stopImmediatePropagation();
-      submitTypedInput("button");
     },
     true,
   );
@@ -98,20 +96,26 @@ if (!globalThis[INSTALLATION_KEY]) {
     "keydown",
     (event) => {
       const target = event.target;
-      if (!(target instanceof HTMLInputElement) || !target.matches(INPUT_SELECTOR)) {
+      if (
+        !(target instanceof HTMLInputElement) ||
+        !target.matches(INPUT_SELECTOR) ||
+        event.key !== "Enter"
+      ) {
         return;
       }
-      if (event.key !== "Enter") return;
 
-      // V1 deliberately ignores Shift+Enter and IME composition Enter.
+      // V1 deliberately does not submit Shift+Enter or IME composition Enter.
       if (event.shiftKey || event.isComposing) {
         event.stopImmediatePropagation();
         return;
       }
 
+      // Let the existing V2 runtime handle the accepted Enter so processing and
+      // synchronous clearing remain centralized rather than being duplicated.
+      if (prepareTypedSubmission("keyboard")) return;
+
       event.preventDefault();
       event.stopImmediatePropagation();
-      submitTypedInput("keyboard");
     },
     true,
   );
@@ -122,8 +126,7 @@ if (!globalThis[INSTALLATION_KEY]) {
       return;
     }
 
-    // V1 forces 16px on iOS-capable inputs to prevent Safari auto-zoom.
-    target.style.fontSize = "16px";
+    applyInputSafeguards(target);
     setKeyboardVisible(true);
 
     if (IOS_UA.test(navigator.userAgent)) {
@@ -146,7 +149,8 @@ if (!globalThis[INSTALLATION_KEY]) {
 
   if (window.visualViewport) {
     window.visualViewport.addEventListener("resize", () => {
-      const keyboardOpen = window.visualViewport.height < window.innerHeight * 0.75;
+      const keyboardOpen =
+        window.visualViewport.height < window.innerHeight * 0.75;
       setKeyboardVisible(keyboardOpen);
       if (!keyboardOpen) scheduleRestore();
     });
@@ -165,14 +169,9 @@ if (!globalThis[INSTALLATION_KEY]) {
     }
   });
 
-  // The shell is mounted dynamically. Keep the V1 16px input safeguard when
-  // it appears without introducing another submit listener.
   const observer = new MutationObserver(() => {
-    const input = assistantInput();
-    if (input && input.dataset.v1InputParity !== "true") {
-      input.dataset.v1InputParity = "true";
-      input.style.fontSize = "16px";
-    }
+    applyInputSafeguards(assistantInput());
   });
   observer.observe(document.documentElement, { childList: true, subtree: true });
+  applyInputSafeguards(assistantInput());
 }
