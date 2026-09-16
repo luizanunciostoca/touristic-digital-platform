@@ -22,6 +22,10 @@ import {
   createNavigationAppComposition,
   type NavigationAppComposition,
 } from "./navigation-composition.js";
+import {
+  clearNavigationRoute,
+  presentNavigationRoute,
+} from "./navigation-route-presentation.js";
 
 interface NativeNavigationMapboxMap extends MapboxGlMapLike {
   easeTo(input: Parameters<NavigationMapboxMapLike["easeTo"]>[0]): void;
@@ -90,11 +94,49 @@ function createPresenterMap(
   };
 }
 
+function createNavigationUserMarkerElement(): HTMLElement | undefined {
+  if (typeof document === "undefined") return undefined;
+
+  const element = document.createElement("div");
+  element.className =
+    "mapbox-user-marker user-location-arrow navigation-user-location-marker";
+  element.dataset.navigationUserMarker = "true";
+  element.setAttribute("role", "img");
+  element.setAttribute("aria-label", "Sua localização");
+
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 56 56");
+  svg.setAttribute("aria-hidden", "true");
+  svg.setAttribute("focusable", "false");
+
+  const halo = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  halo.setAttribute("cx", "28");
+  halo.setAttribute("cy", "28");
+  halo.setAttribute("r", "22");
+  halo.setAttribute("fill", "#ffffff");
+  halo.setAttribute("stroke", "#0f4c81");
+  halo.setAttribute("stroke-width", "3");
+
+  const arrow = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  arrow.setAttribute("d", "M28 6 L44 46 L28 38 L12 46 Z");
+  arrow.setAttribute("fill", "#06b6d4");
+  arrow.setAttribute("stroke", "#0f4c81");
+  arrow.setAttribute("stroke-width", "2");
+  arrow.setAttribute("stroke-linejoin", "round");
+
+  svg.append(halo, arrow);
+  element.appendChild(svg);
+  return element;
+}
+
 function createPresenterMarker(
   sdk: MapboxGlModuleLike,
   nativeMap: MapboxGlMapLike,
 ): NavigationMapboxMarkerLike {
-  const marker = new sdk.Marker();
+  const element = createNavigationUserMarkerElement();
+  const marker = new sdk.Marker(
+    element ? { element, anchor: "center" } : undefined,
+  );
   const rotatable = marker as typeof marker & RotatableMapboxMarker;
   const wrapper: NavigationMapboxMarkerLike = {
     setLngLat(position) {
@@ -128,6 +170,22 @@ export function createBrowserNavigationWiring(
     map: presenterMap,
     createMarker: () => createPresenterMarker(options.sdk, options.map),
   });
+
+  let routePresentationRevision = 0;
+  const presentRouteWhenReady = (routeData: unknown): void => {
+    const revision = ++routePresentationRevision;
+    const present = (): void => {
+      if (revision !== routePresentationRevision) return;
+      presentNavigationRoute(options.map, routeData);
+    };
+
+    if (options.map.isStyleLoaded?.() === false && options.map.once) {
+      options.map.once("load", present);
+      return;
+    }
+    present();
+  };
+
   const composition = createNavigationAppComposition({
     geolocation,
     presenter,
@@ -149,9 +207,10 @@ export function createBrowserNavigationWiring(
     ...(options.onApproaching ? { onApproaching: options.onApproaching } : {}),
     ...(options.onArrival ? { onArrival: options.onArrival } : {}),
     ...(options.onAutoEnd ? { onAutoEnd: options.onAutoEnd } : {}),
-    ...(options.onRecalculation
-      ? { onRecalculation: options.onRecalculation }
-      : {}),
+    onRecalculation(route) {
+      presentRouteWhenReady(route);
+      options.onRecalculation?.(route);
+    },
     ...(options.requestRecalculationRoute
       ? { requestRecalculationRoute: options.requestRecalculationRoute }
       : {}),
@@ -160,10 +219,13 @@ export function createBrowserNavigationWiring(
   return Object.freeze({
     composition,
     start(): void {
+      presentRouteWhenReady(options.routeData);
       composition.start();
     },
     stop(): void {
+      routePresentationRevision += 1;
       composition.stop();
+      clearNavigationRoute(options.map);
     },
   });
 }
