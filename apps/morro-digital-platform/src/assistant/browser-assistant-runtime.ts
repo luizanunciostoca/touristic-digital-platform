@@ -377,6 +377,7 @@ export function installBrowserAssistantRuntime(
   let destroyed = false;
   let requestGeneration = 0;
   let currentPresentation: AssistantPresentationSnapshot | null = null;
+  let legacyMenuRouting = false;
   let profiledExploreCategory: string | null = null;
   let profiledExplorePlace: string | null = null;
 
@@ -515,7 +516,12 @@ export function installBrowserAssistantRuntime(
           }
         }
       } else {
-        menuRouted = routeAssistantMenuCommand(options.document, value);
+        legacyMenuRouting = true;
+        try {
+          menuRouted = routeAssistantMenuCommand(options.document, value);
+        } finally {
+          legacyMenuRouting = false;
+        }
       }
     }
 
@@ -667,7 +673,7 @@ export function installBrowserAssistantRuntime(
     submitInput("keyboard");
   };
   const onOptionSelected = (event: Event): void => {
-    if (!(event instanceof CustomEvent)) return;
+    if (legacyMenuRouting || !(event instanceof CustomEvent)) return;
     const detail = event.detail as {
       value?: unknown;
       optionsOverride?: unknown;

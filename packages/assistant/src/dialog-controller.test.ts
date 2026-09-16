@@ -178,6 +178,46 @@ describe("assistant V1 dialog controller orchestration", () => {
     expect(context.getContext().awaiting).toBeNull();
   });
 
+  it("lets an explicit domain command interrupt an awaiting place slot", async () => {
+    const photos = vi.fn(() => ({ text: "photos" }));
+    const hours = vi.fn(() => ({ text: "hours" }));
+    const context = createContextPort({
+      awaiting: { type: "awaiting_place", intent: "photos" },
+    });
+    const controller = createAssistantDialogController({
+      context,
+      handlers: { photos, hours },
+    });
+
+    await expect(controller.processUserInput("horário")).resolves.toEqual({
+      text: "hours",
+    });
+    expect(hours).toHaveBeenCalledOnce();
+    expect(photos).not.toHaveBeenCalled();
+  });
+
+  it("does not reinterpret a fresh navigation command as an awaited destination", async () => {
+    let captured: AssistantDialogIntentHandlerContext | undefined;
+    const navigate = vi.fn((request: AssistantDialogIntentHandlerContext) => {
+      captured = request;
+      return {
+        text: "destination?",
+        metadata: { navigation: "awaiting_destination" },
+      };
+    });
+    const context = createContextPort({
+      awaiting: { type: "awaiting_destination", intent: "navigate" },
+    });
+    const controller = createAssistantDialogController({
+      context,
+      handlers: { navigate },
+    });
+
+    await controller.processUserInput("como chegar");
+    expect(captured?.intent.intent).toBe("navigate");
+    expect(captured?.intent.entities.place).toBeUndefined();
+  });
+
   it("updates category context and records the user profile after classification", async () => {
     const recordInteraction = vi.fn();
     const context = createContextPort();
