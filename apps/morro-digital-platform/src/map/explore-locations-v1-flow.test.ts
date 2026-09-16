@@ -42,6 +42,40 @@ describe("V1 assistant category subflows", () => {
     ]);
   });
 
+  it("localizes V1 filter presentation without changing command values", () => {
+    const english = getV1ExploreSubcategoryOptions("restaurants", "en");
+    const spanish = getV1ExploreSubcategoryOptions("beaches", "es");
+    const hebrew = getV1ExploreSubcategoryOptions("hotels", "he");
+    const transport = getV1ExploreSubcategoryOptions("transport", "en");
+
+    expect(english[0]?.label).toBe("🌊 On the beach");
+    expect(english.at(-3)?.label).toBe("📍 Nearby");
+    expect(english.at(-1)?.label).toBe("🔙 Back to menu");
+    expect(spanish[0]?.label).toBe("🏄 Con olas para surf");
+    expect(hebrew[0]?.label).toBe("🌊 מול החוף");
+    expect(transport[0]?.label).toBe("⛵ Speedboat / Catamaran");
+    expect(english.map(({ value }) => value)).toEqual(
+      getV1ExploreSubcategoryOptions("restaurants", "pt").map(
+        ({ value }) => value,
+      ),
+    );
+  });
+
+  it("restores the canonical V1 localized immersive tour titles", () => {
+    expect(getV1ExploreSubcategoryOptions("tours", "pt")[0]?.label).toBe(
+      "🗺️ Passeio Volta à Ilha",
+    );
+    expect(getV1ExploreSubcategoryOptions("tours", "en")[0]?.label).toBe(
+      "🗺️ Island Round Trip",
+    );
+    expect(getV1ExploreSubcategoryOptions("tours", "es")[0]?.label).toBe(
+      "🗺️ Vuelta a la Isla",
+    );
+    expect(getV1ExploreSubcategoryOptions("tours", "he")[0]?.label).toBe(
+      "🗺️ סיבוב האי",
+    );
+  });
+
   it("filters the frozen V1 catalog with its area and tag enrichment", () => {
     const beaches = category("beaches");
     const restaurants = category("restaurants");

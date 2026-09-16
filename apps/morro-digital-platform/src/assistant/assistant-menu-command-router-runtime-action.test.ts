@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { resolveAssistantRuntimeAction } from "./assistant-menu-command-router.js";
+import {
+  resolveAssistantMenuCommand,
+  resolveAssistantRuntimeAction,
+} from "./assistant-menu-command-router.js";
 
 describe("assistant allowlisted runtime action mapping", () => {
   it("maps category and place actions to the typed Explore command contract", () => {
@@ -18,4 +21,18 @@ describe("assistant allowlisted runtime action mapping", () => {
     expect(resolveAssistantRuntimeAction("navigate:Primeira Praia")).toBeNull();
     expect(resolveAssistantRuntimeAction("javascript:alert(1)")).toBeNull();
   });
+
+  it.each(["חזרה לתפריט", "חזורה לתפריט"])(
+    "maps the Hebrew V1 back-menu alias %s through the shared text/voice resolver",
+    (message) => {
+      const document = {
+        getElementById: () => null,
+        querySelectorAll: () => [],
+      } as unknown as Document;
+
+      expect(resolveAssistantMenuCommand(document, message)).toEqual({
+        type: "back_to_menu",
+      });
+    },
+  );
 });

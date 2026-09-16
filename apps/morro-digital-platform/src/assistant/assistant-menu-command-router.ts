@@ -179,6 +179,8 @@ const OPTION_ALIASES = Object.freeze({
     "menu principal",
     "back to main menu",
     "volver al menu principal",
+    "חזרה לתפריט",
+    "חזורה לתפריט",
     "חזרה לתפריט הראשי",
   ],
   "condicoes da praia": [

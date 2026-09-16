@@ -6,6 +6,7 @@ import {
 } from "@touristic/search";
 
 import { getV1ExplorePlaceActionOptions } from "../map/explore-location-actions-v1.js";
+import { getV1ExploreLabel } from "../map/explore-v1-i18n.js";
 
 export type AssistantV1PlaceActionLanguage = "pt" | "en" | "es" | "he";
 
@@ -247,11 +248,16 @@ function resolvePlace(name: string | null): MorroV1SearchCatalogItem | null {
   );
 }
 
-function primaryOptions(category: string) {
-  return getV1ExplorePlaceActionOptions(category).map(({ label, value }) => ({
-    label,
-    value,
-  }));
+function primaryOptions(
+  category: string,
+  language: AssistantV1PlaceActionLanguage,
+) {
+  return getV1ExplorePlaceActionOptions(category, language).map(
+    ({ label, value }) => ({
+      label,
+      value,
+    }),
+  );
 }
 
 function resolved(
@@ -264,7 +270,7 @@ function resolved(
     category: place.category,
     response: {
       text: STATIC_COPY[action][language],
-      options: primaryOptions(place.category),
+      options: primaryOptions(place.category, language),
       metadata: {
         domain: "v1_place_action",
         state: "unavailable",
@@ -306,7 +312,10 @@ function moreOptions(
   place: MorroV1SearchCatalogItem,
   language: AssistantV1PlaceActionLanguage,
 ): AssistantV1PlaceActionResolution | null {
-  const back = { label: "⬅️ Voltar", value: place.name };
+  const back = {
+    label: `⬅️ ${getV1ExploreLabel("back", language)}`,
+    value: place.name,
+  };
   const copy: Partial<Record<string, Copy>> = {
     restaurants: {
       pt: "Outras informações disponíveis:",
@@ -351,15 +360,36 @@ function moreOptions(
   const options =
     place.category === "restaurants"
       ? [
-          { label: "ℹ️ Informações", value: "mais detalhes" },
-          { label: "🕒 Horários", value: "horário de funcionamento" },
-          { label: "💰 Faixa de preço", value: "quanto custa" },
-          { label: "⭐ Avaliações", value: "avaliações" },
-          { label: "❤️ Favoritar", value: "adicionar aos favoritos" },
+          {
+            label: `ℹ️ ${getV1ExploreLabel("information", language)}`,
+            value: "mais detalhes",
+          },
+          {
+            label: `🕒 ${getV1ExploreLabel("hours", language)}`,
+            value: "horário de funcionamento",
+          },
+          {
+            label: `💰 ${getV1ExploreLabel("priceRange", language)}`,
+            value: "quanto custa",
+          },
+          {
+            label: `⭐ ${getV1ExploreLabel("reviews", language)}`,
+            value: "avaliações",
+          },
+          {
+            label: `❤️ ${getV1ExploreLabel("favorite", language)}`,
+            value: "adicionar aos favoritos",
+          },
           back,
         ]
       : place.category === "hotels"
-        ? [{ label: "🔗 Compartilhar", value: "compartilhar" }, back]
+        ? [
+            {
+              label: `🔗 ${getV1ExploreLabel("share", language)}`,
+              value: "compartilhar",
+            },
+            back,
+          ]
         : [back];
   return {
     place,

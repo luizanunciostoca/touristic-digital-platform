@@ -79,6 +79,56 @@ describe("V1 explore post-detail actions", () => {
     },
   );
 
+  it.each([
+    [
+      "en",
+      [
+        "🍴 Menu",
+        "📍 Directions",
+        "📸 View photos",
+        "📞 Contact",
+        "More options",
+        "⬅️ Back",
+      ],
+    ],
+    [
+      "es",
+      [
+        "🍴 Menú",
+        "📍 Cómo llegar",
+        "📸 Ver fotos",
+        "📞 Contacto",
+        "Más opciones",
+        "⬅️ Volver",
+      ],
+    ],
+    [
+      "he",
+      [
+        "🍴 תפריט",
+        "📍 איך להגיע",
+        "📸 צפה תמונות",
+        "📞 יצירת קשר",
+        "אפשרויות נוספות",
+        "⬅️ חזרה",
+      ],
+    ],
+  ] as const)(
+    "localizes restaurant place actions for %s",
+    (locale, expected) => {
+      expect(
+        getV1ExplorePlaceActionOptions("restaurants", locale).map(
+          ({ label }) => label,
+        ),
+      ).toEqual(expected);
+      expect(values("restaurants")).toEqual(
+        getV1ExplorePlaceActionOptions("restaurants", locale).map(
+          ({ value }) => value,
+        ),
+      );
+    },
+  );
+
   it("preserves the exact user-visible restaurant labels", () => {
     expect(
       getV1ExplorePlaceActionOptions("restaurants").map(({ label }) => label),

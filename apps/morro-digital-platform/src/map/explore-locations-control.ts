@@ -1,4 +1,8 @@
-import { getAssistantMainMenu } from "@touristic/assistant";
+import {
+  getAssistantMainMenu,
+  normalizeAssistantVoiceLanguage,
+  type AssistantLocale,
+} from "@touristic/assistant";
 import type {
   GeospatialEngine,
   MapboxGlMapLike,
@@ -11,6 +15,7 @@ import {
 } from "@touristic/search";
 
 import { getV1ExplorePlaceActionOptions } from "./explore-location-actions-v1.js";
+import { getV1ExploreLabel, getV1ExploreUiCopy } from "./explore-v1-i18n.js";
 import {
   filterV1ExploreLocations,
   getV1ExploreSubcategoryOptions,
@@ -70,9 +75,11 @@ const categoryValues = new Set(
   morroV1SearchCatalog.map((location) => location.category),
 );
 
-export function getExploreLocationsCategories(): readonly ExploreLocationsCategory[] {
+export function getExploreLocationsCategories(
+  locale: AssistantLocale = "pt",
+): readonly ExploreLocationsCategory[] {
   return Object.freeze(
-    getAssistantMainMenu("pt")
+    getAssistantMainMenu(locale)
       .filter((item) => categoryValues.has(item.value))
       .map((item) => ({
         value: item.value,
@@ -137,8 +144,10 @@ function markerForLocation(
   });
 }
 
-function describeExploreError(error: unknown): string {
-  return error instanceof Error ? error.message : "Falha desconhecida no mapa.";
+function describeExploreError(error: unknown, locale: AssistantLocale): string {
+  return error instanceof Error
+    ? error.message
+    : getV1ExploreUiCopy(locale).mapUnknown;
 }
 
 function assistantMessagesArea(document: Document): HTMLElement | null {
@@ -237,6 +246,8 @@ function isBackToMenuValue(value: string): boolean {
     "back to main menu",
     "volver al menu",
     "volver al menu principal",
+    "חזרה לתפריט",
+    "חזורה לתפריט",
   ].includes(normalized);
 }
 
@@ -281,7 +292,10 @@ export function installExploreLocationsControl({
   let mainMenuContainer: HTMLElement | undefined;
   let interactionGeneration = 0;
   const categoryListeners = new Map<HTMLButtonElement, EventListener>();
-  const categories = getExploreLocationsCategories();
+  const currentLocale = (): AssistantLocale =>
+    normalizeAssistantVoiceLanguage(document.documentElement.lang);
+  const currentCategories = (): readonly ExploreLocationsCategory[] =>
+    getExploreLocationsCategories(currentLocale());
 
   const stateSnapshot = (): ExploreLocationsStateSnapshot =>
     Object.freeze({
@@ -366,7 +380,9 @@ export function installExploreLocationsControl({
         .getElementById("runtime-status")
         ?.replaceChildren(
           document.createTextNode(
-            `Não foi possível exibir esta categoria: ${describeExploreError(error)}`,
+            getV1ExploreUiCopy(currentLocale()).mapCategoryError(
+              describeExploreError(error, currentLocale()),
+            ),
           ),
         );
     }
@@ -494,12 +510,15 @@ export function installExploreLocationsControl({
     document
       .getElementById("runtime-status")
       ?.replaceChildren(
-        document.createTextNode(`${location.name} selecionado.`),
+        document.createTextNode(
+          getV1ExploreUiCopy(currentLocale()).selected(location.name),
+        ),
       );
     emitStateChange();
     ensureAssistantVisible(document);
     const optionsOverride = getV1ExplorePlaceActionOptions(
       activeCategory.value,
+      currentLocale(),
     ).map(({ label, value }) => Object.freeze({ label, value }));
     document.dispatchEvent(
       new CustomEvent("morro:assistant-option-selected", {
@@ -531,7 +550,7 @@ export function installExploreLocationsControl({
         location,
       })),
       {
-        label: "🔙 Voltar aos filtros",
+        label: `🔙 ${getV1ExploreLabel("backFilters", currentLocale())}`,
         value: "voltar_filtros",
         action: "back-filters" as const,
       },
@@ -579,7 +598,10 @@ export function installExploreLocationsControl({
     if (option.action === "all") {
       renderPlaces(
         allLocations,
-        `${categoryLabel}: encontrei ${allLocations.length} opções. Escolha um local para ver os detalhes.`,
+        getV1ExploreUiCopy(currentLocale()).allPrompt(
+          categoryLabel,
+          allLocations.length,
+        ),
       );
       return;
     }
@@ -597,8 +619,14 @@ export function installExploreLocationsControl({
       renderPlaces(
         nearby,
         position
-          ? `${categoryLabel}: estes são os ${nearby.length} locais mais próximos de você.`
-          : `Não consegui obter sua localização. Mostrando ${allLocations.length} opções de ${categoryLabel}.`,
+          ? getV1ExploreUiCopy(currentLocale()).nearbyPrompt(
+              categoryLabel,
+              nearby.length,
+            )
+          : getV1ExploreUiCopy(currentLocale()).geoFallback(
+              categoryLabel,
+              allLocations.length,
+            ),
       );
       return;
     }
@@ -612,8 +640,15 @@ export function installExploreLocationsControl({
     renderPlaces(
       displayed,
       filtered.length > 0
-        ? `${categoryLabel}: encontrei ${filtered.length} opção(ões) para ${option.label.replace(/^\S+\s/u, "")}.`
-        : `Não encontrei correspondência exata para ${option.label.replace(/^\S+\s/u, "")}. Mostrando todos os ${allLocations.length} locais.`,
+        ? getV1ExploreUiCopy(currentLocale()).filterFound(
+            categoryLabel,
+            filtered.length,
+            option.label.replace(/^\S+\s/u, ""),
+          )
+        : getV1ExploreUiCopy(currentLocale()).filterFallback(
+            allLocations.length,
+            option.label.replace(/^\S+\s/u, ""),
+          ),
     );
   };
 
@@ -622,10 +657,16 @@ export function installExploreLocationsControl({
     activePlace = undefined;
     activeStage = "filters";
     const allLocations = getExploreLocationsForCategory(activeCategory.value);
-    const filters = getV1ExploreSubcategoryOptions(activeCategory.value);
+    const filters = getV1ExploreSubcategoryOptions(
+      activeCategory.value,
+      currentLocale(),
+    );
 
     const first = renderFlow(
-      `${activeCategory.label}: encontrei ${allLocations.length} locais. Como você quer filtrar?`,
+      getV1ExploreUiCopy(currentLocale()).filtersPrompt(
+        activeCategory.label,
+        allLocations.length,
+      ),
       filters,
       (option) => void applyFlowOption(option),
     );
@@ -645,7 +686,11 @@ export function installExploreLocationsControl({
     }
 
     clearTourPresentation(document);
-    activeCategory = category;
+    const localizedCategory =
+      getExploreLocationsCategories(currentLocale()).find(
+        (candidate) => candidate.value === category.value,
+      ) ?? category;
+    activeCategory = localizedCategory;
     activeCategoryButton = trigger;
     trigger.setAttribute("aria-expanded", "true");
     trigger.setAttribute("aria-pressed", "true");
@@ -654,7 +699,7 @@ export function installExploreLocationsControl({
 
   const openCategoryByValue = (categoryValue: string): boolean => {
     const normalized = normalizeSearchText(categoryValue);
-    const category = categories.find(
+    const category = currentCategories().find(
       (candidate) => normalizeSearchText(candidate.value) === normalized,
     );
     if (!category) return false;
@@ -705,12 +750,18 @@ export function installExploreLocationsControl({
       interactionGeneration += 1;
       renderPlaces(
         allLocations,
-        `${activeCategory.label}: encontrei ${allLocations.length} opções. Escolha um local para ver os detalhes.`,
+        getV1ExploreUiCopy(currentLocale()).allPrompt(
+          activeCategory.label,
+          allLocations.length,
+        ),
       );
       return true;
     }
 
-    const flowOptions = getV1ExploreSubcategoryOptions(activeCategory.value);
+    const flowOptions = getV1ExploreSubcategoryOptions(
+      activeCategory.value,
+      currentLocale(),
+    );
     if (command.type === "show_nearby") {
       const nearby = flowOptions.find((option) => option.action === "nearby");
       if (!nearby) return false;
@@ -729,7 +780,26 @@ export function installExploreLocationsControl({
     return true;
   };
 
-  for (const category of categories) {
+  const refreshCategoryPresentation = (): void => {
+    const localized = currentCategories();
+    for (const category of localized) {
+      const button = document.getElementById(
+        getAssistantCategoryButtonId(category.value),
+      );
+      if (!(button instanceof HTMLButtonElement)) continue;
+      button.textContent = category.label;
+      button.setAttribute(
+        "aria-label",
+        getV1ExploreUiCopy(currentLocale()).categoryAria(
+          category.label,
+          category.count,
+        ),
+      );
+      if (activeCategory?.value === category.value) activeCategory = category;
+    }
+  };
+
+  for (const category of currentCategories()) {
     const button = document.querySelector<HTMLButtonElement>(
       `.assistant-options .assistant-option-btn[data-value="${category.value}"]`,
     );
@@ -742,7 +812,10 @@ export function installExploreLocationsControl({
     button.setAttribute("aria-pressed", "false");
     button.setAttribute(
       "aria-label",
-      `${category.label}, ${category.count} locais`,
+      getV1ExploreUiCopy(currentLocale()).categoryAria(
+        category.label,
+        category.count,
+      ),
     );
 
     mainMenuContainer ??=
@@ -756,6 +829,25 @@ export function installExploreLocationsControl({
     button.addEventListener("click", onCategoryClick);
     categoryListeners.set(button, onCategoryClick);
   }
+
+  // The app shell ships English fallback labels while the runtime locale can
+  // already be PT/ES/HE before this control is installed. Reconcile both the
+  // visible labels and accessible names immediately, not only after a later
+  // <html lang> mutation.
+  refreshCategoryPresentation();
+
+  const MutationObserverCtor = document.defaultView?.MutationObserver;
+  const localeObserver = MutationObserverCtor
+    ? new MutationObserverCtor((records) => {
+        if (!records.some((record) => record.attributeName === "lang")) return;
+        refreshCategoryPresentation();
+        if (activeStage === "filters" && activeCategory) renderFilters();
+      })
+    : null;
+  localeObserver?.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ["lang"],
+  });
 
   const onKeyDown = (event: KeyboardEvent): void => {
     if (event.key !== "Escape" || activeStage === "menu") return;
@@ -782,7 +874,7 @@ export function installExploreLocationsControl({
       const allLocations = getExploreLocationsForCategory(activeCategory.value);
       renderPlaces(
         allLocations,
-        `${activeCategory.label}: escolha outro local para ver os detalhes.`,
+        getV1ExploreUiCopy(currentLocale()).chooseOther(activeCategory.label),
       );
       return;
     }
@@ -814,6 +906,7 @@ export function installExploreLocationsControl({
     },
     destroy() {
       interactionGeneration += 1;
+      localeObserver?.disconnect();
       document.removeEventListener("keydown", onKeyDown);
       document.removeEventListener(
         "morro:assistant-option-selected",
