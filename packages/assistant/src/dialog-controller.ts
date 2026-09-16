@@ -1,4 +1,7 @@
-import type { AssistantContext } from "./context-manager.js";
+import type {
+  AssistantAwaitingState,
+  AssistantContext,
+} from "./context-manager.js";
 import { analyzeAssistantIntent } from "./intent-engine.js";
 import type { AssistantIntentResult } from "./intent-engine.js";
 import { assistantRequiresLLM } from "./llm-policy.js";
@@ -67,6 +70,25 @@ const CATEGORY_BY_INTENT: Partial<
   transport: "transport",
 };
 
+const PLACE_AWAITING_INTENTS = new Set<AssistantIntentResult["intent"]>([
+  "photos",
+  "price",
+  "hours",
+  "open_now",
+  "more_info",
+  "navigate",
+]);
+
+const AWAITING_INTERRUPT_INTENTS = new Set<AssistantIntentResult["intent"]>([
+  "cancel_navigation",
+  "deny",
+  "greeting",
+  "thanks",
+  "help",
+  "weather",
+  "my_location",
+]);
+
 function defaultDialogResponse(): AssistantDialogResponse {
   return { text: "Como posso ajudar?" };
 }
@@ -82,6 +104,57 @@ function toIntentContext(context: AssistantContext) {
     lastCategory: context.lastCategory,
     awaiting: context.awaiting,
   };
+}
+
+function requestedAwaitingIntent(
+  awaiting: AssistantAwaitingState | null,
+): AssistantIntentResult["intent"] | null {
+  const candidate = awaiting?.intent;
+  if (typeof candidate !== "string") return null;
+  return PLACE_AWAITING_INTENTS.has(candidate as AssistantIntentResult["intent"])
+    ? (candidate as AssistantIntentResult["intent"])
+    : null;
+}
+
+function resolveIntentForContext(
+  input: string,
+  context: AssistantContext,
+): AssistantIntentResult {
+  const analyzed = analyzeAssistantIntent(input, toIntentContext(context));
+  const awaiting = context.awaiting;
+  if (!awaiting?.type || AWAITING_INTERRUPT_INTENTS.has(analyzed.intent)) {
+    return analyzed;
+  }
+
+  const inputLooksLikeExplicitCategory =
+    analyzed.intent.startsWith("category_") && !analyzed.entities.place;
+
+  if (awaiting.type === "awaiting_destination") {
+    if (inputLooksLikeExplicitCategory) return analyzed;
+    return {
+      ...analyzed,
+      intent: "navigate",
+      confidence: Math.max(analyzed.confidence, 0.95),
+      entities: { ...analyzed.entities, place: input.trim() },
+      requiresLLM: false,
+      contextual: true,
+    };
+  }
+
+  if (awaiting.type === "awaiting_place") {
+    const requested = requestedAwaitingIntent(awaiting);
+    if (!requested || inputLooksLikeExplicitCategory) return analyzed;
+    return {
+      ...analyzed,
+      intent: requested,
+      confidence: Math.max(analyzed.confidence, 0.95),
+      entities: { ...analyzed.entities, place: input.trim() },
+      requiresLLM: false,
+      contextual: true,
+    };
+  }
+
+  return analyzed;
 }
 
 function deriveContextUpdate(
@@ -100,6 +173,25 @@ function deriveContextUpdate(
   return updates;
 }
 
+function responseAwaitingState(
+  response: AssistantDialogResponse,
+  intent: AssistantIntentResult,
+): AssistantAwaitingState | null {
+  const metadata = response.metadata;
+  if (!metadata) return null;
+
+  if (metadata.state === "awaiting_place") {
+    return { type: "awaiting_place", intent: intent.intent };
+  }
+  if (metadata.state === "awaiting_category") {
+    return { type: "awaiting_category", intent: intent.intent };
+  }
+  if (metadata.navigation === "awaiting_destination") {
+    return { type: "awaiting_destination", intent: "navigate" };
+  }
+  return null;
+}
+
 export function createAssistantDialogController(
   options: AssistantDialogControllerOptions,
 ) {
@@ -112,11 +204,14 @@ export function createAssistantDialogController(
 
       try {
         const context = options.context.getContext();
-        const intent = analyzeAssistantIntent(input, toIntentContext(context));
+        const intent = resolveIntentForContext(input, context);
         const category =
           intent.entities.category ?? CATEGORY_BY_INTENT[intent.intent] ?? null;
+        const place = intent.entities.place
+          ? { name: intent.entities.place, category }
+          : null;
 
-        options.profile?.recordInteraction(input, category);
+        options.profile?.recordInteraction(input, category, place);
 
         const request: AssistantDialogIntentHandlerContext = {
           input,
@@ -134,7 +229,15 @@ export function createAssistantDialogController(
 
         if (!response) response = defaultResponse();
 
-        options.context.updateContext(deriveContextUpdate(intent));
+        const awaiting = responseAwaitingState(response, intent);
+        options.context.updateContext({
+          ...deriveContextUpdate(intent),
+          ...(awaiting
+            ? { awaiting }
+            : context.awaiting
+              ? { awaiting: null }
+              : {}),
+        });
         options.context.addToHistory({ input, response: response.text });
 
         return response;
