@@ -25,6 +25,12 @@ a = one(
     '} satisfies Readonly<Record<string, readonly ActionSpec[]>>);\n\nexport function getV1ExplorePlaceActionOptions(',
     "action spec satisfies",
 )
+a = one(
+    a,
+    '  const specs = CATEGORY_PLACE_ACTIONS[category];',
+    '  const specs = (\n    CATEGORY_PLACE_ACTIONS as Readonly<Record<string, readonly ActionSpec[]>>\n  )[category];',
+    "action dynamic lookup",
+)
 actions.write_text(a, encoding="utf-8")
 
 f = flow.read_text(encoding="utf-8")
@@ -39,5 +45,11 @@ f = one(
     '  });\n\nexport function getV1ExploreSubcategoryOptions(',
     '} satisfies Readonly<Record<string, readonly FilterSpec[]>>);\n\nexport function getV1ExploreSubcategoryOptions(',
     "filter spec satisfies",
+)
+f = one(
+    f,
+    '  const specs = SUBCATEGORY_SPECS[category];',
+    '  const specs = (\n    SUBCATEGORY_SPECS as Readonly<Record<string, readonly FilterSpec[]>>\n  )[category];',
+    "filter dynamic lookup",
 )
 flow.write_text(f, encoding="utf-8")
