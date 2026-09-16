@@ -142,6 +142,24 @@
   text-transform: capitalize;
 }
 
+/*
+ * V1 Mapbox category markers are HTML overlays above the map canvas. The
+ * frozen legacy z-index sheet places the Mapbox canvas at layer 1000; keep
+ * Explore POIs at the V1 marker layer (1100) and preserve Mapbox's absolute
+ * positioning contract so coordinate transforms remain correct on mobile.
+ * Do not set transform here: Mapbox owns it for every camera update.
+ */
+#map .mapboxgl-marker.morro-explore-marker {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  z-index: 1100 !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
 @media (max-width: 480px) {
   #controls {
     padding-right: var(--spacing-sm);
