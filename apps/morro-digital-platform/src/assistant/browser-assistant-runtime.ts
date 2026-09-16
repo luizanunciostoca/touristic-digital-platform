@@ -518,6 +518,9 @@ export function installBrowserAssistantRuntime(
     voice?.getPreferences().language ??
     normalizeAssistantVoiceLanguage(options.document.documentElement.lang);
 
+  const presentationLanguage = () =>
+    normalizeAssistantVoiceLanguage(options.document.documentElement.lang);
+
   const readExploreState = () =>
     options.explore?.getState() ?? readAssistantExploreState(options.document);
 
@@ -610,7 +613,7 @@ export function installBrowserAssistantRuntime(
       input: value,
       lastPlace: placeActionContext.lastPlace,
       lastCategory: placeActionContext.lastCategory,
-      language: voiceLanguage(),
+      language: presentationLanguage(),
     });
 
     if (placeAction) {
