@@ -1,0 +1,45 @@
+name: Temporary Assistant Map Context Precedence Finalizer
+
+on:
+  push:
+    paths:
+      - .github/workflows/tmp-assistant-map-context-precedence-finalizer.yml
+      - tooling/tmp-assistant-map-context-precedence-fix.py
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: fix/assistant-v1-history-map-parity
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Apply contextual precedence fix
+        run: python tooling/tmp-assistant-map-context-precedence-fix.py
+      - name: Format runtime
+        run: pnpm exec prettier --write apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts
+      - name: Validate platform
+        run: |
+          pnpm --filter @touristic/morro-digital-platform test
+          pnpm --filter @touristic/morro-digital-platform typecheck
+          pnpm --filter @touristic/morro-digital-platform lint
+          pnpm exec prettier --check apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts
+          git diff --check
+      - name: Commit validated fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts
+          git diff --cached --quiet && exit 1
+          git commit -m "fix(assistant): preserve contextual Explore choices before map commands"
+          git push origin HEAD:fix/assistant-v1-history-map-parity
