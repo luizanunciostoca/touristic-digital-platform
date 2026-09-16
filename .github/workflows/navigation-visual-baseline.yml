@@ -9,6 +9,7 @@ on:
       - apps/morro-digital-platform/src/browser-entry.ts
       - apps/morro-digital-platform/src/layouts/app-shell.ts
       - apps/morro-digital-platform/public/styles.css
+      - apps/morro-digital-platform/public/navigation-map.css
       - apps/morro-digital-platform/tooling/dev-server.mjs
       - packages/geospatial/src/adapters/navigation-mapbox.ts
       - packages/navigation/src/**
@@ -110,6 +111,9 @@ jobs:
               bannerText: document.getElementById('instruction-main')?.textContent ?? null,
               endDisplay: document.getElementById('end-navigation-btn') ? getComputedStyle(document.getElementById('end-navigation-btn')).display : null,
               markerCount: document.querySelectorAll('#map .mapboxgl-marker').length,
+              navigationMarker: Boolean(document.querySelector('#map .mapboxgl-marker.navigation-user-location-marker')),
+              routeSource: Boolean(globalThis.mapboxPrimaryInstance?.getSource?.('navigation-route-source')),
+              routeLayer: Boolean(globalThis.mapboxPrimaryInstance?.getLayer?.('navigation-route-layer')),
             }));
             throw new Error(`${label} did not become ready: ${JSON.stringify(diagnostics)}`);
           }
@@ -199,7 +203,10 @@ jobs:
                 return Boolean(
                   evidence?.events?.some((event) => event.type === 'navigationRouteRuntimeUpdated') &&
                   evidence?.events?.some((event) => event.type === 'userLocationUpdated') &&
-                  evidence.camera.length > 0
+                  evidence.camera.length > 0 &&
+                  globalThis.mapboxPrimaryInstance?.getSource?.('navigation-route-source') &&
+                  globalThis.mapboxPrimaryInstance?.getLayer?.('navigation-route-layer') &&
+                  document.querySelector('#map .mapboxgl-marker.navigation-user-location-marker')
                 );
               },
               'navigation-runtime',
@@ -211,6 +218,14 @@ jobs:
               const banner = document.getElementById('instruction-banner');
               const end = document.getElementById('end-navigation-btn');
               const events = globalThis.__navigationEvidence.events;
+              const navigationMarker = document.querySelector('#map .mapboxgl-marker.navigation-user-location-marker');
+              const canvas = document.querySelector('#map .mapboxgl-canvas');
+              const markerStyle = navigationMarker ? getComputedStyle(navigationMarker) : null;
+              const canvasStyle = canvas ? getComputedStyle(canvas) : null;
+              const markerRect = navigationMarker?.getBoundingClientRect();
+              const styleLayers = map.getStyle?.().layers ?? [];
+              const outlineIndex = styleLayers.findIndex((layer) => layer.id === 'navigation-route-outline');
+              const routeIndex = styleLayers.findIndex((layer) => layer.id === 'navigation-route-layer');
               return {
                 bannerVisible: Boolean(banner && !banner.classList.contains('hidden')),
                 instruction: document.getElementById('instruction-main')?.textContent?.trim() ?? '',
@@ -222,6 +237,35 @@ jobs:
                 endVisible: Boolean(end && getComputedStyle(end).display !== 'none'),
                 bodyNavigationActive: document.body.classList.contains('navigation-active'),
                 markerCount: document.querySelectorAll('#map .mapboxgl-marker').length,
+                navigationMarker: navigationMarker ? {
+                  display: markerStyle?.display ?? null,
+                  visibility: markerStyle?.visibility ?? null,
+                  opacity: markerStyle?.opacity ?? null,
+                  zIndex: Number.parseInt(markerStyle?.zIndex ?? '0', 10) || 0,
+                  canvasZIndex: Number.parseInt(canvasStyle?.zIndex ?? '0', 10) || 0,
+                  width: markerRect?.width ?? 0,
+                  height: markerRect?.height ?? 0,
+                } : null,
+                routePresentation: {
+                  source: Boolean(map.getSource?.('navigation-route-source')),
+                  outline: Boolean(map.getLayer?.('navigation-route-outline')),
+                  route: Boolean(map.getLayer?.('navigation-route-layer')),
+                  outlineIndex,
+                  routeIndex,
+                  layerCount: styleLayers.length,
+                  outlinePaint: {
+                    color: map.getPaintProperty?.('navigation-route-outline', 'line-color'),
+                    width: map.getPaintProperty?.('navigation-route-outline', 'line-width'),
+                    opacity: map.getPaintProperty?.('navigation-route-outline', 'line-opacity'),
+                    dash: map.getPaintProperty?.('navigation-route-outline', 'line-dasharray'),
+                  },
+                  routePaint: {
+                    color: map.getPaintProperty?.('navigation-route-layer', 'line-color'),
+                    width: map.getPaintProperty?.('navigation-route-layer', 'line-width'),
+                    opacity: map.getPaintProperty?.('navigation-route-layer', 'line-opacity'),
+                    dash: map.getPaintProperty?.('navigation-route-layer', 'line-dasharray'),
+                  },
+                },
                 camera: globalThis.__navigationEvidence.camera,
                 routing: globalThis.__navigationEvidence.routing,
                 mapCamera: {
@@ -248,6 +292,21 @@ jobs:
             if (JSON.stringify(latestCamera.easingSamples) !== JSON.stringify([0, 0.4375, 0.75, 0.9375, 1])) throw new Error(`V1 camera easing diverged for ${name}: ${JSON.stringify(latestCamera.easingSamples)}`);
             if (activeState.markerCount < 1) throw new Error(`Navigation marker was not added for ${name}: markerCount=${activeState.markerCount}`);
 
+            const marker = activeState.navigationMarker;
+            if (!marker || marker.display === 'none' || marker.visibility === 'hidden' || marker.opacity === '0' || marker.width < 50 || marker.height < 50 || marker.zIndex <= marker.canvasZIndex) {
+              throw new Error(`Navigation user arrow is not visibly stacked above the canvas for ${name}: ${JSON.stringify(marker)}`);
+            }
+
+            const route = activeState.routePresentation;
+            const expectedOutline = { color: '#0f4c81', width: 9, opacity: 0.35, dash: [2, 2] };
+            const expectedRoute = { color: '#06b6d4', width: 5, opacity: 0.9, dash: [2, 1.5] };
+            if (!route.source || !route.outline || !route.route || route.routeIndex !== route.layerCount - 1 || route.outlineIndex !== route.layerCount - 2) {
+              throw new Error(`Navigation route layers are not topmost for ${name}: ${JSON.stringify(route)}`);
+            }
+            if (JSON.stringify(route.outlinePaint) !== JSON.stringify(expectedOutline) || JSON.stringify(route.routePaint) !== JSON.stringify(expectedRoute)) {
+              throw new Error(`Navigation route paint diverged from the V1 map contract for ${name}: ${JSON.stringify(route)}`);
+            }
+
             await page.screenshot({ path: `${outputDir}/${name}-active.png`, fullPage: false, animations: 'disabled' });
             await page.locator('#minimize-navigation-btn').click();
             const minimized = await page.locator('#instruction-banner').evaluate((element) => ({
@@ -266,6 +325,7 @@ jobs:
               5000,
             );
             const endedState = await page.evaluate(() => {
+              const map = globalThis.mapboxPrimaryInstance;
               const banner = document.getElementById('instruction-banner');
               const end = document.getElementById('end-navigation-btn');
               return {
@@ -273,10 +333,14 @@ jobs:
                 bannerHidden: Boolean(banner?.classList.contains('hidden')),
                 endHidden: Boolean(end && getComputedStyle(end).display === 'none'),
                 bodyNavigationActive: document.body.classList.contains('navigation-active'),
+                navigationMarkerPresent: Boolean(document.querySelector('#map .mapboxgl-marker.navigation-user-location-marker')),
+                routeSourcePresent: Boolean(map.getSource?.('navigation-route-source')),
+                routeOutlinePresent: Boolean(map.getLayer?.('navigation-route-outline')),
+                routeLayerPresent: Boolean(map.getLayer?.('navigation-route-layer')),
                 events: globalThis.__navigationEvidence.events,
               };
             });
-            if (endedState.ended?.reason !== 'cancelled' || !endedState.bannerHidden || !endedState.endHidden || endedState.bodyNavigationActive) throw new Error(`Navigation teardown diverged for ${name}: ${JSON.stringify(endedState)}`);
+            if (endedState.ended?.reason !== 'cancelled' || !endedState.bannerHidden || !endedState.endHidden || endedState.bodyNavigationActive || endedState.navigationMarkerPresent || endedState.routeSourcePresent || endedState.routeOutlinePresent || endedState.routeLayerPresent) throw new Error(`Navigation teardown diverged for ${name}: ${JSON.stringify(endedState)}`);
             if (pageErrors.length || httpErrors.length) throw new Error(`Browser errors for ${name}: ${JSON.stringify({ pageErrors, httpErrors })}`);
 
             const result = { activeState, minimized, endedState, pageErrors, httpErrors };
@@ -318,4 +382,3 @@ jobs:
           name: navigation-visual-baseline-evidence
           path: /tmp/navigation-visual-baseline
           retention-days: 14
-          if-no-files-found: error
