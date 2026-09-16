@@ -118,14 +118,17 @@ residual_block = r'''
       const residualContext = context.getContext();
       const runtimeGlobal = globalThis as typeof globalThis &
         AssistantRuntimeEnvironmentGlobal;
+      const defaultMapStyle =
+        runtimeGlobal.__MORRO_RUNTIME_ENV__?.VITE_MAPBOX_STYLE?.trim();
       const response = await executeAssistantV1ResidualCommand({
         command: residualCommand,
         language: presentationLanguage(),
         history: residualContext.history,
-        map: runtimeGlobal.mapboxPrimaryInstance,
-        explore: options.explore,
-        defaultMapStyle:
-          runtimeGlobal.__MORRO_RUNTIME_ENV__?.VITE_MAPBOX_STYLE,
+        ...(runtimeGlobal.mapboxPrimaryInstance
+          ? { map: runtimeGlobal.mapboxPrimaryInstance }
+          : {}),
+        ...(options.explore ? { explore: options.explore } : {}),
+        ...(defaultMapStyle ? { defaultMapStyle } : {}),
         navigationActive,
       });
       if (destroyed || generation !== requestGeneration) {
@@ -179,6 +182,12 @@ r = once(
 runtime.write_text(r, encoding="utf-8")
 
 a = adapter.read_text(encoding="utf-8")
+a = once(
+    a,
+    '    options: mapCommandOptions(language),',
+    '    options: [...mapCommandOptions(language)],',
+    "dialog options mutability",
+)
 a = once(
     a,
     '`🔍 Zoom ${language === "he" ? "" : ""}${target.toFixed(0)}.`,',
