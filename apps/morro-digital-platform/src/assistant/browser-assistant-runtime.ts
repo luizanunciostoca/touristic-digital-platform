@@ -320,6 +320,19 @@ export function installBrowserAssistantRuntime(
   });
 
   const view = options.document.defaultView;
+  const onNavigationEnded = (event: Event): void => {
+    const detail = "detail" in event ? event.detail : null;
+    if (
+      detail &&
+      typeof detail === "object" &&
+      "reason" in detail &&
+      detail.reason === "arrived"
+    ) {
+      profile.recordSuccessfulNavigation();
+    }
+  };
+  view?.addEventListener("navigationEnded", onNavigationEnded);
+
   const voice =
     view?.speechSynthesis && typeof view.SpeechSynthesisUtterance === "function"
       ? createAssistantBrowserVoice({
@@ -646,6 +659,7 @@ export function installBrowserAssistantRuntime(
       if (destroyed) return;
       destroyed = true;
       requestGeneration += 1;
+      view?.removeEventListener("navigationEnded", onNavigationEnded);
       sendButton?.removeEventListener("click", onSendClick);
       input?.removeEventListener("keydown", onInputKeyDown);
       voiceButton?.removeEventListener("click", onVoiceClick);
