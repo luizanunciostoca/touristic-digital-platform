@@ -131,11 +131,10 @@ describe("assistant V1 dialog controller orchestration", () => {
       controller.processUserInput("Primeira Praia"),
     ).resolves.toEqual({ text: "photos:Primeira Praia" });
     expect(photos).toHaveBeenCalledTimes(2);
-    expect(photos.mock.calls[1]?.[0].intent).toMatchObject({
-      intent: "photos",
-      contextual: true,
-      entities: expect.objectContaining({ place: "Primeira Praia" }),
-    });
+    const secondPhotoRequest = photos.mock.calls[1]?.[0];
+    expect(secondPhotoRequest?.intent.intent).toBe("photos");
+    expect(secondPhotoRequest?.intent.contextual).toBe(true);
+    expect(secondPhotoRequest?.intent.entities.place).toBe("Primeira Praia");
     expect(context.getContext().lastPlace).toBe("Primeira Praia");
     expect(context.getContext().awaiting).toBeNull();
   });
@@ -170,11 +169,10 @@ describe("assistant V1 dialog controller orchestration", () => {
     await expect(
       controller.processUserInput("Farol do Morro"),
     ).resolves.toEqual({ text: "navigate:Farol do Morro" });
-    expect(navigate.mock.calls[1]?.[0].intent).toMatchObject({
-      intent: "navigate",
-      contextual: true,
-      entities: expect.objectContaining({ place: "Farol do Morro" }),
-    });
+    const secondNavigateRequest = navigate.mock.calls[1]?.[0];
+    expect(secondNavigateRequest?.intent.intent).toBe("navigate");
+    expect(secondNavigateRequest?.intent.contextual).toBe(true);
+    expect(secondNavigateRequest?.intent.entities.place).toBe("Farol do Morro");
     expect(context.getContext().awaiting).toBeNull();
   });
 
