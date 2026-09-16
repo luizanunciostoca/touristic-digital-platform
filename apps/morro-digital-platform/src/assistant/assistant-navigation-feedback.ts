@@ -62,7 +62,7 @@ function resetCategorySurface(document: Document): void {
 
 function destinationFromDetail(detail: unknown): string {
   if (!detail || typeof detail !== "object") return "";
-  const candidate = Reflect.get(detail, "destination");
+  const candidate: unknown = Reflect.get(detail, "destination");
   return typeof candidate === "string" ? candidate.trim() : "";
 }
 
