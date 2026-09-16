@@ -1,0 +1,41 @@
+name: Temporary PR74 Finalizer Repair
+
+on:
+  push:
+    paths:
+      - .github/workflows/tmp-pr74-finalizer-repair.yml
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: fix/assistant-v1-place-action-parity
+      - name: Repair exact two-stage context guard
+        run: |
+          python <<'PY'
+          from pathlib import Path
+          path = Path('.github/workflows/tmp-pr74-suppressed-review-finalizer.yml')
+          text = path.read_text()
+          old = '''          r = one(r, context_pair, context_pair_fixed, 'clear place in filters')
+          r = one(r, context_pair, context_pair_fixed, 'clear place in places')'''
+          new = '''          context_count = r.count(context_pair)
+          if context_count != 2:
+              raise SystemExit(f'clear stale place context: expected two matches, found {context_count}')
+          r = r.replace(context_pair, context_pair_fixed, 2)'''
+          if text.count(old) != 1:
+              raise SystemExit('expected finalizer guard block not found exactly once')
+          path.write_text(text.replace(old, new, 1))
+          PY
+      - name: Commit repaired finalizer
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .github/workflows/tmp-pr74-suppressed-review-finalizer.yml
+          git diff --cached --quiet && { echo 'No repair'; exit 1; }
+          git commit -m 'chore(assistant): repair review finalizer context guard'
+          git push origin HEAD:fix/assistant-v1-place-action-parity
