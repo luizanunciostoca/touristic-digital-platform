@@ -143,7 +143,9 @@ async function waitCategory(page, value, text, aria) {
 async function readOptions(page, selector) {
   const options = page.locator(`${selector} .assistant-option-btn`);
   return {
-    labels: await options.allTextContents().then((items) => items.map((item) => item.trim())),
+    labels: await options
+      .allTextContents()
+      .then((items) => items.map((item) => item.trim())),
     values: await options.evaluateAll((buttons) =>
       buttons.map((button) => button.getAttribute("data-value")),
     ),
@@ -160,7 +162,10 @@ async function readDynamic(page) {
   );
   const count = await containers.count();
   return count > 0
-    ? readOptions(page, `.assistant-options:not(#assistant-category-results):not(:has([data-explore-category])):nth-of-type(${count})`)
+    ? readOptions(
+        page,
+        `.assistant-options:not(#assistant-category-results):not(:has([data-explore-category])):nth-of-type(${count})`,
+      )
     : { labels: [], values: [] };
 }
 
@@ -199,9 +204,13 @@ try {
   await page
     .locator('#map[data-map-state="ready"][data-map-mode="real"]')
     .waitFor({ state: "attached", timeout: 30000 });
-  await page.locator("#loading-overlay.fade-out").waitFor({ state: "attached", timeout: 5000 });
+  await page
+    .locator("#loading-overlay.fade-out")
+    .waitFor({ state: "attached", timeout: 5000 });
   const assistant = page.locator("#assistant-messages");
-  const quickAction = page.locator('.mood-button[data-assistant-shell-ready="true"]');
+  const quickAction = page.locator(
+    '.mood-button[data-assistant-shell-ready="true"]',
+  );
   await quickAction.waitFor({ state: "visible", timeout: 5000 });
   if (!(await assistant.isVisible())) await quickAction.click();
   await assistant.waitFor({ state: "visible", timeout: 5000 });
@@ -212,7 +221,9 @@ try {
     const expected = filters[locale];
     await waitCategory(page, "beaches", expected.category, expected.aria);
     await page.locator("#assistant-category-beaches").click();
-    await page.locator('#assistant-category-results[data-stage="filters"]').waitFor({ state: "visible" });
+    await page
+      .locator('#assistant-category-results[data-stage="filters"]')
+      .waitFor({ state: "visible" });
     const flow = await readFlow(page);
     equal(flow.labels, expected.labels, `${locale} filter labels`);
     equal(flow.values, filterValues, `${locale} canonical filter values`);
@@ -222,38 +233,87 @@ try {
   await setLanguage(page, "he");
   await waitCategory(page, "beaches", filters.he.category, filters.he.aria);
   await page.locator("#assistant-category-beaches").click();
-  await page.locator('#assistant-category-results[data-stage="filters"]').waitFor({ state: "visible" });
-  equal((await readFlow(page)).labels, filters.he.labels, "he filter labels");
-  await page.locator('#assistant-category-results [data-value="ver todos"]').click();
   await page
-    .locator('#assistant-category-results[data-stage="places"] [data-location-name="Primeira Praia"]')
+    .locator('#assistant-category-results[data-stage="filters"]')
     .waitFor({ state: "visible" });
-  await page.locator('#assistant-category-results [data-location-name="Primeira Praia"]').click();
-  await page.locator('.assistant-option-btn[data-value="condições da praia"]').waitFor({ state: "visible" });
+  equal((await readFlow(page)).labels, filters.he.labels, "he filter labels");
+  await page
+    .locator('#assistant-category-results [data-value="ver todos"]')
+    .click();
+  await page
+    .locator(
+      '#assistant-category-results[data-stage="places"] [data-location-name="Primeira Praia"]',
+    )
+    .waitFor({ state: "visible" });
+  await page
+    .locator(
+      '#assistant-category-results [data-location-name="Primeira Praia"]',
+    )
+    .click();
+  await page
+    .locator('.assistant-option-btn[data-value="condições da praia"]')
+    .waitFor({ state: "visible" });
   let dynamic = await readDynamic(page);
   equal(dynamic.labels, beachDetailHebrew, "he beach detail labels");
   equal(dynamic.values, beachDetailValues, "he beach canonical values");
-  await page.locator('.assistant-option-btn[data-value="[sub]beaches"]').click();
-  await page.locator('#assistant-category-results[data-stage="places"]').waitFor({ state: "visible" });
+  await page
+    .locator('.assistant-option-btn[data-value="[sub]beaches"]')
+    .click();
+  await page
+    .locator('#assistant-category-results[data-stage="places"]')
+    .waitFor({ state: "visible" });
   await page.keyboard.press("Escape");
 
   await setLanguage(page, "en-US");
-  await waitCategory(page, "restaurants", "Restaurants", "Restaurants, 45 places");
+  await waitCategory(
+    page,
+    "restaurants",
+    "Restaurants",
+    "Restaurants, 45 places",
+  );
   await page.locator("#assistant-category-restaurants").click();
-  await page.locator('#assistant-category-results[data-stage="filters"]').waitFor({ state: "visible" });
-  await page.locator('#assistant-category-results [data-value="ver todos"]').click();
   await page
-    .locator('#assistant-category-results[data-stage="places"] [data-location-name="Morena Bela"]')
+    .locator('#assistant-category-results[data-stage="filters"]')
     .waitFor({ state: "visible" });
-  await page.locator('#assistant-category-results [data-location-name="Morena Bela"]').click();
-  await page.locator('.assistant-option-btn[data-value="cardápio"]').waitFor({ state: "visible" });
+  await page
+    .locator('#assistant-category-results [data-value="ver todos"]')
+    .click();
+  await page
+    .locator(
+      '#assistant-category-results[data-stage="places"] [data-location-name="Morena Bela"]',
+    )
+    .waitFor({ state: "visible" });
+  await page
+    .locator('#assistant-category-results [data-location-name="Morena Bela"]')
+    .click();
+  await page
+    .locator('.assistant-option-btn[data-value="cardápio"]')
+    .waitFor({ state: "visible" });
   dynamic = await readDynamic(page);
-  equal(dynamic.labels, restaurantPrimaryEnglish, "en restaurant primary labels");
-  await page.locator('.assistant-option-btn[data-value="mais opções"]').last().click();
-  await page.locator('.assistant-option-btn[data-value="avaliações"]').last().waitFor({ state: "visible" });
+  equal(
+    dynamic.labels,
+    restaurantPrimaryEnglish,
+    "en restaurant primary labels",
+  );
+  await page
+    .locator('.assistant-option-btn[data-value="mais opções"]')
+    .last()
+    .click();
+  await page
+    .locator('.assistant-option-btn[data-value="avaliações"]')
+    .last()
+    .waitFor({ state: "visible" });
   dynamic = await readDynamic(page);
-  equal(dynamic.labels, restaurantSecondaryEnglish, "en restaurant secondary labels");
-  equal(dynamic.values, restaurantSecondaryValues, "en restaurant secondary canonical values");
+  equal(
+    dynamic.labels,
+    restaurantSecondaryEnglish,
+    "en restaurant secondary labels",
+  );
+  equal(
+    dynamic.values,
+    restaurantSecondaryValues,
+    "en restaurant secondary canonical values",
+  );
 
   await setLanguage(page, "pt-BR");
   await waitCategory(page, "beaches", "Praias", "Praias, 8 locais");
