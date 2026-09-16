@@ -5,18 +5,27 @@ on:
   pull_request:
     paths:
       - .github/workflows/assistant-input-menu-flow-v1-parity.yml
+      - apps/morro-digital-platform/public/index.html
+      - apps/morro-digital-platform/public/assistant-input-v1-parity.js
+      - apps/morro-digital-platform/src/main.ts
+      - apps/morro-digital-platform/src/browser-entry.ts
+      - apps/morro-digital-platform/src/layouts/app-shell.ts
       - apps/morro-digital-platform/src/assistant/**
+      - apps/morro-digital-platform/src/navigation/**
+      - apps/morro-digital-platform/src/map/explore-locations-control.ts
+      - apps/morro-digital-platform/src/map/explore-locations-v1-flow.ts
+      - packages/assistant/src/**
+      - packages/search/src/**
+      - packages/geospatial/src/**
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   assistant-input-menu-flow:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          ref: ${{ github.event.pull_request.head.ref }}
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           version: 10.15.0
@@ -25,139 +34,12 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Apply exact-head source fixes
-        run: |
-          node <<'NODE'
-          const fs = require('node:fs');
-
-          function read(path) {
-            return fs.readFileSync(path, 'utf8');
-          }
-          function write(path, source) {
-            fs.writeFileSync(path, source);
-          }
-          function replaceOnce(source, oldText, newText, marker, path) {
-            if (source.includes(oldText)) return source.replace(oldText, newText);
-            if (source.includes(marker)) return source;
-            throw new Error(`Expected source fragment or marker not found in ${path}`);
-          }
-
-          {
-            const path = 'apps/morro-digital-platform/src/assistant/assistant-menu-command-router.ts';
-            let source = read(path);
-            source = replaceOnce(
-              source,
-              '.replace(/[^\\p{L}\\p{N}\\s\\[\\]_]/gu, " ")',
-              '.replace(/[^\\p{L}\\p{N}\\s[\\]_]/gu, " ")',
-              '.replace(/[^\\p{L}\\p{N}\\s[\\]_]/gu, " ")',
-              path,
-            );
-            write(path, source);
-          }
-
-          {
-            const path = 'apps/morro-digital-platform/src/assistant/assistant-v1-intelligence-adapter.ts';
-            let source = read(path);
-            source = replaceOnce(
-              source,
-              '  createAssistantUserProfileManager,\n',
-              '  type createAssistantUserProfileManager,\n',
-              '  type createAssistantUserProfileManager,\n',
-              path,
-            );
-            write(path, source);
-          }
-
-          {
-            const path = 'apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts';
-            let source = read(path);
-            source = replaceOnce(
-              source,
-`  const metadata = response.metadata;
-  if (
-    !metadata ||
-    typeof metadata !== "object" ||
-    metadata.deterministic !== true ||
-    metadata.fromLLM === true ||
-    !Array.isArray(metadata.exploreCommands)
-  ) {
-    return [];
-  }
-
-  const commands: ExploreLocationsCommand[] = [];
-  for (const raw of metadata.exploreCommands) {`,
-`  const metadata = response.metadata;
-  const rawCommands: unknown =
-    metadata && typeof metadata === "object"
-      ? metadata.exploreCommands
-      : undefined;
-  if (
-    !metadata ||
-    typeof metadata !== "object" ||
-    metadata.deterministic !== true ||
-    metadata.fromLLM === true ||
-    !Array.isArray(rawCommands)
-  ) {
-    return [];
-  }
-
-  const commands: ExploreLocationsCommand[] = [];
-  const commandCandidates: readonly unknown[] = rawCommands;
-  for (const raw of commandCandidates) {`,
-              'const commandCandidates: readonly unknown[] = rawCommands;',
-              path,
-            );
-
-            if (!source.includes('function readVisiblePresentation(')) {
-              const anchor = `function readOptionOverride(\n  value: unknown,\n): readonly AssistantDomOption[] | null {`;
-              if (!source.includes(anchor)) throw new Error(`Presentation anchor missing in ${path}`);
-              const helper = `function readVisiblePresentation(\n  document: Document,\n): AssistantPresentationSnapshot | null {\n  const flow = document.getElementById("assistant-category-results");\n  const flowButtons = flow\n    ? Array.from(\n        flow.querySelectorAll<HTMLButtonElement>(".assistant-option-btn"),\n      )\n    : [];\n  const dynamicContainers = Array.from(\n    document.querySelectorAll<HTMLElement>(\n      "#assistant-messages .assistant-options",\n    ),\n  ).filter((container) => !container.querySelector("[data-explore-category]"));\n  const dynamicButtons = Array.from(\n    dynamicContainers\n      .at(-1)\n      ?.querySelectorAll<HTMLButtonElement>(".assistant-option-btn") ?? [],\n  );\n  const buttons = flowButtons.length > 0 ? flowButtons : dynamicButtons;\n  const visibleOptions = buttons.flatMap((button) => {\n    const label = button.textContent?.trim();\n    const value = button.dataset.value?.trim();\n    return label && value ? [{ label, value }] : [];\n  });\n  if (visibleOptions.length === 0) return null;\n\n  const text =\n    document\n      .getElementById("assistant-category-results-message")\n      ?.textContent?.trim() ??\n    Array.from(\n      document.querySelectorAll<HTMLElement>(\n        "#assistant-messages .message.assistant",\n      ),\n    )\n      .at(-1)\n      ?.textContent?.trim() ??\n    "";\n  return snapshotPresentation(text, visibleOptions);\n}\n\n`;
-              source = source.replace(anchor, helper + anchor);
-            }
-
-            source = replaceOnce(
-              source,
-`    const previousPresentation = preservePreviousOptions
-      ? currentPresentation
-      : null;`,
-`    const visiblePresentation = readVisiblePresentation(options.document);
-    const previousPresentation = preservePreviousOptions
-      ? currentPresentation ?? visiblePresentation
-      : visiblePresentation ?? currentPresentation;`,
-              'const visiblePresentation = readVisiblePresentation(options.document);',
-              path,
-            );
-
-            source = replaceOnce(
-              source,
-`      currentPresentation = null;
-      syncExploreContext();`,
-`      syncExploreContext();
-      currentPresentation = readVisiblePresentation(options.document);`,
-              'currentPresentation = readVisiblePresentation(options.document);',
-              path,
-            );
-            write(path, source);
-          }
-          NODE
-          pnpm exec prettier --write \
-            apps/morro-digital-platform/src/assistant/assistant-menu-command-router.ts \
-            apps/morro-digital-platform/src/assistant/assistant-v1-intelligence-adapter.ts \
-            apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts
-      - name: Validate source closure
-        run: |
-          pnpm format:check
-          pnpm lint
-          pnpm --filter @touristic/assistant test
-          pnpm --filter @touristic/assistant typecheck
-          pnpm --filter @touristic/morro-digital-platform test
-          pnpm --filter @touristic/morro-digital-platform typecheck
-          pnpm -w build
-          git diff --check
       - name: Install deterministic Chromium
         run: |
           npm install --prefix /tmp/pw --no-save playwright@1.54.2
           /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+      - name: Build workspace
+        run: pnpm -w build
       - name: Start authenticated Mapbox runtime
         env:
           MAPBOX_PUBLIC_TOKEN_CI: ${{ secrets.MAPBOX_PUBLIC_TOKEN_CI }}
@@ -167,17 +49,19 @@ jobs:
           VITE_MAPBOX_STYLE=mapbox://styles/mapbox/streets-v12 \
           VITE_MAPBOX_CONTAINER_ID=map \
           VITE_MAPBOX_INITIAL_ZOOM=13.5 \
-          node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/pr73-source-finalizer.log 2>&1 &
+          node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/assistant-input-menu-flow.log 2>&1 &
+          echo $! >/tmp/assistant-input-menu-flow.pid
           for i in $(seq 1 90); do
             if curl -fsS http://127.0.0.1:4173/runtime-config.js >/dev/null; then exit 0; fi
             sleep 1
           done
-          cat /tmp/pr73-source-finalizer.log
+          cat /tmp/assistant-input-menu-flow.log
           exit 1
-      - name: Validate typed photo continuity
+      - name: Verify typed input drives the same V1 assistant and map flow
         run: |
           node <<'NODE'
           const { chromium } = require('/tmp/pw/node_modules/playwright');
+
           (async () => {
             const browser = await chromium.launch({ headless: true });
             try {
@@ -189,53 +73,200 @@ jobs:
               await context.addInitScript(() => {
                 localStorage.setItem('morro-digital-onboarded', '1');
                 localStorage.setItem('voice-enabled', 'false');
+                globalThis.__typedMenuRoutes = [];
+                document.addEventListener('morro:assistant-menu-command-routed', event => {
+                  globalThis.__typedMenuRoutes.push(event.detail);
+                });
               });
+
               const page = await context.newPage();
+              const pageErrors = [];
+              page.on('pageerror', error => pageErrors.push(error.message));
               await page.route('**/api/weather', route => route.fulfill({
                 status: 200,
                 contentType: 'application/json',
-                body: JSON.stringify({ temperatureCelsius: 28, temperatureMaxCelsius: 31, temperatureMinCelsius: 24, humidityPercent: 78, windSpeedKph: 18, rainChancePercent: 42, weatherCode: 1, isDay: true, forecast: [] }),
+                body: JSON.stringify({
+                  temperatureCelsius: 28,
+                  temperatureMaxCelsius: 31,
+                  temperatureMinCelsius: 24,
+                  humidityPercent: 78,
+                  windSpeedKph: 18,
+                  rainChancePercent: 42,
+                  weatherCode: 1,
+                  isDay: true,
+                  forecast: [],
+                }),
               }));
-              await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded', timeout: 30000 });
-              await page.locator('#map[data-map-state="ready"][data-map-mode="real"]').waitFor({ state: 'attached', timeout: 30000 });
-              const quick = page.locator('.mood-button[data-assistant-shell-ready="true"]');
-              await quick.waitFor({ state: 'visible', timeout: 5000 });
-              if (!(await page.locator('#assistant-messages').isVisible())) await quick.click();
+
+              await page.goto('http://127.0.0.1:4173/', {
+                waitUntil: 'domcontentloaded',
+                timeout: 30000,
+              });
+              await page.locator('#map[data-map-state="ready"][data-map-mode="real"]').waitFor({
+                state: 'attached',
+                timeout: 30000,
+              });
+              await page.locator('body[data-public-onboarding-settled="true"]').waitFor({
+                state: 'attached',
+                timeout: 5000,
+              });
+
+              const assistant = page.locator('#assistant-messages');
+              const quickAction = page.locator('.mood-button[data-assistant-shell-ready="true"]');
+              await quickAction.waitFor({ state: 'visible', timeout: 5000 });
+              if (!(await assistant.isVisible())) await quickAction.click();
+
               const input = page.locator('#assistantInput');
               const send = page.locator('#sendButton');
-              async function submit(text) {
+              await input.waitFor({ state: 'visible', timeout: 5000 });
+
+              async function submit(text, keyboard = false) {
                 await input.fill(text);
-                await send.click();
+                if (keyboard) await input.press('Enter');
+                else await send.click();
+                if ((await input.inputValue()) !== '') {
+                  throw new Error(`Handled menu command did not clear input: ${text}`);
+                }
               }
+
+              async function waitStage(category, stage, count) {
+                await page.locator(
+                  `#map[data-explore-category="${category}"][data-explore-stage="${stage}"][data-map-marker-count="${count}"]`,
+                ).waitFor({ state: 'attached', timeout: 8000 });
+              }
+
+              const categoryCases = [
+                { message: 'beachs', category: 'beaches', count: 8 },
+                { message: 'restaurants', category: 'restaurants', count: 45 },
+                { message: 'hotels', category: 'hotels', count: 35 },
+                { message: 'shops', category: 'shops', count: 12 },
+                { message: 'transport', category: 'transport', count: 8 },
+                { message: 'attractions', category: 'attractions', count: 8 },
+                { message: 'tours', category: 'tours', count: 6 },
+                { message: 'nightlife', category: 'nightlife', count: 5 },
+                { message: 'emergencies', category: 'emergencies', count: 4 },
+              ];
+
+              for (const [index, item] of categoryCases.entries()) {
+                await submit(item.message, index % 2 === 1);
+                await page.locator(
+                  `#assistant-category-results[data-category="${item.category}"][data-stage="filters"]`,
+                ).waitFor({ state: 'visible', timeout: 8000 });
+                await waitStage(item.category, 'filters', item.count);
+              }
+
+              await submit('back to main menu');
+              await page.locator('.assistant-options [data-explore-category="beaches"]').waitFor({
+                state: 'visible',
+                timeout: 5000,
+              });
+              if (await page.locator('#assistant-category-results').count()) {
+                throw new Error('Typed back-to-main-menu left the category flow visible');
+              }
+
+              await submit('quero uma praia tranquila para crianças');
+              await page.locator('#assistant-category-results[data-category="beaches"][data-stage="places"]').waitFor({ state: 'visible', timeout: 8000 });
+              const familyState = await page.evaluate(() => ({
+                places: document.querySelectorAll('#assistant-category-results [data-location-name]').length,
+                markers: Number(document.getElementById('map')?.dataset.mapMarkerCount || 0),
+              }));
+              if (familyState.places < 1 || familyState.places >= 8 || familyState.places !== familyState.markers) {
+                throw new Error(`Compound V1 family filter did not execute semantically: ${JSON.stringify(familyState)}`);
+              }
+
+              await submit('back to main menu');
+              await page.locator('.assistant-options [data-explore-category="beaches"]').waitFor({ state: 'visible', timeout: 5000 });
+
               await submit('praias');
-              await page.locator('#assistant-category-results[data-category="beaches"][data-stage="filters"]').waitFor({ state: 'visible', timeout: 8000 });
-              await submit('ver todas');
-              await page.locator('#assistant-category-results[data-stage="places"] [data-location-name="Primeira Praia"]').waitFor({ state: 'visible', timeout: 8000 });
+              await page.locator('#assistant-category-results[data-category="beaches"][data-stage="filters"]').waitFor({ state: 'visible' });
+              await waitStage('beaches', 'filters', 8);
+              const filtersText = await page.locator('#assistant-category-results-message').innerText();
+              if (!filtersText.includes('Praias') || !filtersText.includes('8')) {
+                throw new Error(`Typed beaches did not open the V1 filter response: ${filtersText}`);
+              }
+
+              await submit('surf', true);
+              await page.locator('#assistant-category-results[data-category="beaches"][data-stage="places"]').waitFor({ state: 'visible' });
+              const surfState = await page.evaluate(() => ({
+                places: document.querySelectorAll('#assistant-category-results [data-location-name]').length,
+                markers: Number(document.getElementById('map')?.dataset.mapMarkerCount || 0),
+              }));
+              if (surfState.places < 1 || surfState.places !== surfState.markers) {
+                throw new Error(`Typed surf filter diverged: ${JSON.stringify(surfState)}`);
+              }
+
+              await submit('back to filters');
+              await page.locator('#assistant-category-results[data-stage="filters"]').waitFor({ state: 'visible' });
+              await waitStage('beaches', 'filters', 8);
+
+              await submit('ver todas', true);
+              await page.locator('#assistant-category-results[data-stage="places"] [data-location-name="Primeira Praia"]').waitFor({ state: 'visible' });
+              await waitStage('beaches', 'places', 8);
+
               await submit('Primeira Praia');
-              await page.locator('#map[data-explore-category="beaches"][data-explore-stage="detail"][data-map-marker-count="1"]').waitFor({ state: 'attached', timeout: 8000 });
+              await waitStage('beaches', 'detail', 1);
               await page.locator('.assistant-option-btn[data-value="ver fotos"]').waitFor({ state: 'visible', timeout: 8000 });
+
+              await submit('fotos', true);
+              await page.locator('.assistant-photo-carousel').waitFor({ state: 'visible', timeout: 8000 });
+              const detailButtons = await page.locator('.assistant-option-btn[data-value="ver fotos"]').count();
+              if (detailButtons < 1) {
+                throw new Error('Typed photos did not preserve the V1 detail actions');
+              }
+
+              await submit('voltar');
+              await page.locator('#assistant-category-results[data-stage="places"] [data-location-name="Primeira Praia"]').waitFor({ state: 'visible', timeout: 8000 });
+              await waitStage('beaches', 'places', 8);
+
+              await submit('Primeira Praia');
+              await waitStage('beaches', 'detail', 1);
               await submit('fotos');
               await page.locator('.assistant-photo-carousel').waitFor({ state: 'visible', timeout: 8000 });
-              const preserved = await page.locator('.assistant-options[data-presentation="photo-actions"] .assistant-option-btn[data-value="ver fotos"]').count();
-              if (preserved < 1) throw new Error('Typed photo actions were not preserved');
+
+              await submit('restaurantes', true);
+              await page.locator('#assistant-category-results[data-category="restaurants"][data-stage="filters"]').waitFor({ state: 'visible' });
+              await waitStage('restaurants', 'filters', 45);
+              const cleanupState = await page.evaluate(() => ({
+                photos: document.querySelectorAll('.assistant-photo-carousel').length,
+                stalePhotoButtons: Array.from(
+                  document.querySelectorAll('.assistant-options:not(#assistant-category-results) .assistant-option-btn'),
+                ).filter(button => button.getAttribute('data-value') === 'ver fotos').length,
+              }));
+              if (cleanupState.photos !== 0 || cleanupState.stalePhotoButtons !== 0) {
+                throw new Error(`Typed category transition left stale detail UI: ${JSON.stringify(cleanupState)}`);
+              }
+
+              const routed = await page.evaluate(() => globalThis.__typedMenuRoutes);
+              const routedMessages = routed.map(item => item.message);
+              for (const expected of [
+                ...categoryCases.map(item => item.message),
+                'back to main menu',
+                'praias',
+                'surf',
+                'back to filters',
+                'ver todas',
+                'Primeira Praia',
+                'fotos',
+                'voltar',
+                'restaurantes',
+              ]) {
+                if (!routedMessages.includes(expected)) {
+                  throw new Error(`Missing typed menu route for ${expected}: ${JSON.stringify(routedMessages)}`);
+                }
+              }
+
+              if (pageErrors.length) {
+                throw new Error(`Browser errors: ${JSON.stringify(pageErrors)}`);
+              }
               await context.close();
             } finally {
               await browser.close();
             }
-          })().catch(error => { console.error(error); process.exit(1); });
+          })().catch(error => {
+            console.error(error);
+            process.exit(1);
+          });
           NODE
-      - name: Commit validated source fixes
-        run: |
-          git add \
-            apps/morro-digital-platform/src/assistant/assistant-menu-command-router.ts \
-            apps/morro-digital-platform/src/assistant/assistant-v1-intelligence-adapter.ts \
-            apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts
-          git diff --cached --check
-          if git diff --cached --quiet; then
-            echo 'Validated source fixes already present.'
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "fix(assistant): close exact-head CI regressions"
-          git push origin HEAD:${{ github.event.pull_request.head.ref }}
+      - name: Show diagnostics
+        if: failure()
+        run: cat /tmp/assistant-input-menu-flow.log || true
