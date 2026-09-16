@@ -298,6 +298,9 @@ try {
   await page
     .locator("#loading-overlay.fade-out")
     .waitFor({ state: "attached", timeout: 5000 });
+  await page
+    .locator('body[data-public-onboarding-settled="true"]')
+    .waitFor({ state: "attached", timeout: 5000 });
   const assistant = page.locator("#assistant-messages");
   const quickAction = page.locator(
     '.mood-button[data-assistant-shell-ready="true"]',
