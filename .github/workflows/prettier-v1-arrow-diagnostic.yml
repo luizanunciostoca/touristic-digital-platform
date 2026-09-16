@@ -1,9 +1,7 @@
 name: Prettier V1 Arrow Diagnostic
 
 on:
-  push:
-    branches:
-      - fix/navigation-user-arrow-v1-parity
+  pull_request:
     paths:
       - .github/workflows/prettier-v1-arrow-diagnostic.yml
       - apps/morro-digital-platform/src/navigation/browser-navigation-wiring.ts
