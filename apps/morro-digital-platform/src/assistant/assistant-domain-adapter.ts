@@ -234,26 +234,34 @@ function conversationResponse(
 ): AssistantDialogResponse {
   const text = {
     pt: {
-      greeting: "Olá! Posso te ajudar a explorar Morro de São Paulo. O que você quer descobrir?",
-      thanks: "Por nada! Se quiser, posso continuar te ajudando com lugares, clima, fotos ou rotas.",
+      greeting:
+        "Olá! Posso te ajudar a explorar Morro de São Paulo. O que você quer descobrir?",
+      thanks:
+        "Por nada! Se quiser, posso continuar te ajudando com lugares, clima, fotos ou rotas.",
       confirm: "Certo. Como posso continuar te ajudando?",
       deny: "Tudo bem. O que você gostaria de fazer agora?",
     },
     en: {
-      greeting: "Hi! I can help you explore Morro de São Paulo. What would you like to discover?",
-      thanks: "You're welcome! I can keep helping with places, weather, photos or routes.",
+      greeting:
+        "Hi! I can help you explore Morro de São Paulo. What would you like to discover?",
+      thanks:
+        "You're welcome! I can keep helping with places, weather, photos or routes.",
       confirm: "Sure. How can I keep helping?",
       deny: "No problem. What would you like to do now?",
     },
     es: {
-      greeting: "¡Hola! Puedo ayudarte a explorar Morro de São Paulo. ¿Qué quieres descubrir?",
-      thanks: "¡De nada! Puedo seguir ayudándote con lugares, clima, fotos o rutas.",
+      greeting:
+        "¡Hola! Puedo ayudarte a explorar Morro de São Paulo. ¿Qué quieres descubrir?",
+      thanks:
+        "¡De nada! Puedo seguir ayudándote con lugares, clima, fotos o rutas.",
       confirm: "Perfecto. ¿Cómo puedo seguir ayudándote?",
       deny: "Está bien. ¿Qué te gustaría hacer ahora?",
     },
     he: {
-      greeting: "שלום! אני יכול לעזור לך לחקור את מורו דה סאו פאולו. מה תרצה לגלות?",
-      thanks: "בשמחה! אני יכול להמשיך לעזור עם מקומות, מזג אוויר, תמונות או מסלולים.",
+      greeting:
+        "שלום! אני יכול לעזור לך לחקור את מורו דה סאו פאולו. מה תרצה לגלות?",
+      thanks:
+        "בשמחה! אני יכול להמשיך לעזור עם מקומות, מזג אוויר, תמונות או מסלולים.",
       confirm: "בסדר. איך אוכל להמשיך לעזור?",
       deny: "אין בעיה. מה תרצה לעשות עכשיו?",
     },
@@ -350,10 +358,12 @@ export function createAssistantBrowserDomainHandlers(
     },
   });
 
-  const conversational = (
-    kind: "greeting" | "thanks" | "confirm" | "deny",
-  ): AssistantDialogIntentHandler => (request) =>
-    conversationResponse(request.intent.entities.language ?? "pt", kind);
+  const conversational =
+    (
+      kind: "greeting" | "thanks" | "confirm" | "deny",
+    ): AssistantDialogIntentHandler =>
+    (request) =>
+      conversationResponse(request.intent.entities.language ?? "pt", kind);
 
   return {
     ...domainHandlers,
