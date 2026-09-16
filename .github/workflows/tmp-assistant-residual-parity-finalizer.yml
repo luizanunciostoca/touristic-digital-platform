@@ -24,7 +24,9 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Apply residual parity source patch
-        run: python tooling/tmp-assistant-residual-parity-finalizer.py
+        run: |
+          python tooling/tmp-assistant-residual-parity-finalizer.py
+          python tooling/tmp-assistant-residual-test-lint-fix.py
       - name: Format residual parity source
         run: |
           pnpm exec prettier --write \
