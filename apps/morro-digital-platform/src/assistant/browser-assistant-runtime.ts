@@ -59,7 +59,12 @@ interface AssistantPresentationSnapshot {
   readonly options: readonly AssistantDomOption[];
 }
 
-type AssistantInputSource = "button" | "keyboard" | "voice" | "option" | "programmatic";
+type AssistantInputSource =
+  | "button"
+  | "keyboard"
+  | "voice"
+  | "option"
+  | "programmatic";
 
 function getMessagesArea(document: Document): HTMLElement | null {
   return document.querySelector<HTMLElement>(
@@ -245,7 +250,7 @@ function voiceInputMessage(
       unsupported:
         "Sorry, your browser does not support voice recognition. Please type your question.",
       error:
-        "Sorry, I couldn't understand. Please try again or type your question?",
+        "Sorry, I couldn't understand. Please try again or type your question.",
     },
     es: {
       listening: "Estoy escuchando...",
@@ -386,8 +391,9 @@ export function installBrowserAssistantRuntime(
       ? currentPresentation
       : null;
 
-    appendStandardMessage("user", value);
-
+    // V1 deterministic menu commands execute before standard message
+    // lifecycle mutation. This preserves the persistent category menu on
+    // back-to-menu and prevents nested detail actions from duplicating input.
     if (routeAssistantMenuCommand(options.document, value)) {
       currentPresentation = null;
       queueMicrotask(() => syncExploreContext());
@@ -414,6 +420,7 @@ export function installBrowserAssistantRuntime(
 
     clearAssistantDomOptions(options.document);
     removePhotoPresentation(options.document);
+    appendStandardMessage("user", value);
     const response = await controller.processUserInput(value);
     if (destroyed || generation !== requestGeneration) return response;
 
