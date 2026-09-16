@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   getExploreCategoryFromMarkerId,
   getV1ExploreMarkerVisual,
+  V1_EXPLORE_MARKER_ROOT_STYLE,
 } from "./explore-marker-element.js";
 
 describe("V1 Explore marker presentation", () => {
@@ -33,6 +34,17 @@ describe("V1 Explore marker presentation", () => {
       icon: "🚕",
       color: "#3b82f6",
     });
+  });
+
+  it("keeps Explore markers in the Mapbox overlay layer above the V1 canvas", () => {
+    expect(V1_EXPLORE_MARKER_ROOT_STYLE).toMatchObject({
+      position: "absolute",
+      top: "0px",
+      left: "0px",
+      width: "36px",
+      height: "36px",
+    });
+    expect(Number(V1_EXPLORE_MARKER_ROOT_STYLE.zIndex)).toBeGreaterThan(1000);
   });
 
   it("uses a visible generic POI fallback for unknown categories", () => {

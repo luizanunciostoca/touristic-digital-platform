@@ -8,6 +8,15 @@ export interface ExploreMarkerVisual {
   readonly color: string;
 }
 
+export const V1_EXPLORE_MARKER_ROOT_STYLE = Object.freeze({
+  position: "absolute",
+  top: "0px",
+  left: "0px",
+  width: "36px",
+  height: "36px",
+  zIndex: "1100",
+});
+
 const V1_CATEGORY_VISUALS: Readonly<Record<string, ExploreMarkerVisual>> =
   Object.freeze({
     beaches: Object.freeze({ icon: "🏖️", color: "#0ea5e9" }),
@@ -56,6 +65,11 @@ function labelLayout(totalHint = 0): {
  * App-owned category marker presentation matching the audited V1 visual
  * semantics. Returns undefined for non-Explore marker IDs so existing tour
  * marker factories keep ownership of their own presentation.
+ *
+ * Important: Mapbox owns the marker transform. Keep the marker root absolutely
+ * positioned at the canvas origin and above the frozen V1 canvas z-index; a
+ * relative marker root makes Mapbox coordinate transforms resolve from DOM flow
+ * and can leave POIs behind the map canvas, especially on mobile Safari.
  */
 export function createV1ExploreMarkerElement(
   input: ExploreMarkerElementInput,
@@ -73,11 +87,18 @@ export function createV1ExploreMarkerElement(
   if (input.label) root.dataset.locationName = input.label;
   root.setAttribute("role", "img");
   root.setAttribute("aria-label", input.label ?? `POI ${category}`);
-  root.style.position = "relative";
-  root.style.width = "36px";
-  root.style.height = "36px";
+  root.style.position = V1_EXPLORE_MARKER_ROOT_STYLE.position;
+  root.style.top = V1_EXPLORE_MARKER_ROOT_STYLE.top;
+  root.style.left = V1_EXPLORE_MARKER_ROOT_STYLE.left;
+  root.style.width = V1_EXPLORE_MARKER_ROOT_STYLE.width;
+  root.style.height = V1_EXPLORE_MARKER_ROOT_STYLE.height;
+  root.style.display = "block";
+  root.style.visibility = "visible";
+  root.style.opacity = "1";
+  root.style.pointerEvents = "auto";
   root.style.cursor = "pointer";
-  root.style.zIndex = "10";
+  root.style.zIndex = V1_EXPLORE_MARKER_ROOT_STYLE.zIndex;
+  root.style.willChange = "transform";
 
   const pin = document.createElement("div");
   pin.className = "morro-explore-marker-icon";
