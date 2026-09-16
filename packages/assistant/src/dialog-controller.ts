@@ -111,7 +111,9 @@ function requestedAwaitingIntent(
 ): AssistantIntentResult["intent"] | null {
   const candidate = awaiting?.intent;
   if (typeof candidate !== "string") return null;
-  return PLACE_AWAITING_INTENTS.has(candidate as AssistantIntentResult["intent"])
+  return PLACE_AWAITING_INTENTS.has(
+    candidate as AssistantIntentResult["intent"],
+  )
     ? (candidate as AssistantIntentResult["intent"])
     : null;
 }
