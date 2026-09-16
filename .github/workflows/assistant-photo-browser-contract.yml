@@ -50,7 +50,7 @@ jobs:
           done
           cat /tmp/photo-browser-contract.log
           exit 1
-      - name: Validate physical bytes, MIME, carousel and back flow
+      - name: Validate physical bytes, carousel and persistent place actions
         run: |
           node <<'NODE'
           const { createHash } = require('node:crypto');
@@ -84,6 +84,20 @@ jobs:
             }
           }
 
+          async function waitForMap(page) {
+            await page.locator('#map[data-map-state="ready"][data-map-mode="real"][data-map-provider="mapbox"]').waitFor({
+              state: 'attached',
+              timeout: 30000,
+            });
+          }
+
+          async function openAssistant(page) {
+            const trigger = page.locator('.quick-actions .action-button.primary');
+            await trigger.waitFor({ state: 'visible', timeout: 10000 });
+            await trigger.click();
+            await page.locator('#assistant-messages:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
+          }
+
           (async () => {
             for (const [path, hash] of expectedAssets) {
               await validateStaticAsset(path, hash);
@@ -91,7 +105,11 @@ jobs:
 
             const browser = await chromium.launch({ headless: true });
             try {
-              const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+              const context = await browser.newContext({
+                viewport: { width: 390, height: 844 },
+                geolocation: { latitude: -13.3776181, longitude: -38.9142193 },
+                permissions: ['geolocation'],
+              });
               await context.addInitScript(() => {
                 localStorage.setItem('morro-digital-onboarded', '1');
                 localStorage.setItem('voice-enabled', 'false');
@@ -101,9 +119,8 @@ jobs:
               page.on('pageerror', (error) => pageErrors.push(error.message));
 
               await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded', timeout: 30000 });
-              await page.locator('#map[data-map-state="ready"][data-map-mode="real"][data-map-provider="mapbox"]').waitFor({ state: 'attached', timeout: 30000 });
-              await page.locator('.quick-actions .action-button.primary').click();
-              await page.locator('#assistant-messages:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
+              await waitForMap(page);
+              await openAssistant(page);
               await page.locator('#assistantInput').fill('Fotos de Toca do Morcego');
               await page.locator('#sendButton').click();
 
@@ -126,22 +143,31 @@ jobs:
                 return image instanceof HTMLImageElement && image.complete && image.naturalWidth > 0;
               }, { timeout: 10000 });
 
-              await page.evaluate((optionsOverride) => {
-                document.dispatchEvent(new CustomEvent('morro:assistant-option-selected', {
-                  detail: {
-                    value: 'Fale sobre Primeira Praia',
-                    optionsOverride,
-                  },
-                }));
-              }, expectedBeachDetailOptions);
+              await page.reload({ waitUntil: 'domcontentloaded', timeout: 30000 });
+              await waitForMap(page);
+              await openAssistant(page);
 
-              await page.locator('.assistant-option-btn[data-value="ver fotos"]').waitFor({ state: 'visible', timeout: 10000 });
+              await page.locator('#assistant-category-beaches').click();
+              await page.locator('#assistant-category-results[data-category="beaches"][data-stage="filters"]').waitFor({
+                state: 'visible',
+                timeout: 5000,
+              });
+              await page.locator('#assistant-category-results [data-value="ver todos"]').click();
+              await page.locator('#assistant-category-results[data-stage="places"] [data-location-name="Primeira Praia"]').waitFor({
+                state: 'visible',
+                timeout: 5000,
+              });
+              await page.locator('#assistant-category-results [data-location-name="Primeira Praia"]').click();
+              await page.locator('.assistant-option-btn[data-value="ver fotos"]').waitFor({
+                state: 'visible',
+                timeout: 10000,
+              });
               await page.locator('.assistant-option-btn[data-value="ver fotos"]').click();
 
               const primeiraPraiaCarousel = page.locator('.assistant-photo-carousel');
               await primeiraPraiaCarousel.waitFor({ state: 'visible', timeout: 10000 });
-              const backButton = page.locator('.assistant-photo-back-btn[data-value="photo-back"]');
-              await backButton.waitFor({ state: 'visible', timeout: 5000 });
+              const photoActions = page.locator('.assistant-options[data-presentation="photo-actions"]');
+              await photoActions.waitFor({ state: 'visible', timeout: 5000 });
 
               const photoState = await page.evaluate(() => {
                 const area = document.querySelector('#assistant-messages .messages-area');
@@ -152,65 +178,43 @@ jobs:
                   return !element.classList.contains('hidden') && style.display !== 'none' && style.visibility !== 'hidden';
                 });
                 const carousel = area?.querySelector('.assistant-photo-carousel') ?? null;
-                const back = area?.querySelector('.assistant-photo-back-options') ?? null;
+                const actions = area?.querySelector('.assistant-options[data-presentation="photo-actions"]') ?? null;
                 return {
                   messageText: visibleMessage?.textContent?.trim() ?? '',
                   messageIndex: visibleMessage ? children.indexOf(visibleMessage) : -1,
                   carouselIndex: carousel ? children.indexOf(carousel) : -1,
-                  backIndex: back ? children.indexOf(back) : -1,
-                  backText: back?.textContent?.trim() ?? '',
-                  backButtons: back?.querySelectorAll('.assistant-photo-back-btn').length ?? 0,
-                };
-              });
-
-              if (
-                !photoState.messageText.includes('Primeira Praia') ||
-                photoState.messageIndex < 0 ||
-                photoState.carouselIndex <= photoState.messageIndex ||
-                photoState.backIndex <= photoState.carouselIndex ||
-                photoState.backText !== '⬅️ Voltar' ||
-                photoState.backButtons !== 1
-              ) {
-                throw new Error(`Photo modal order/back contract diverged: ${JSON.stringify(photoState)}`);
-              }
-
-              await backButton.click();
-              await page.locator('.assistant-option-btn[data-value="condições da praia"]').waitFor({ state: 'visible', timeout: 5000 });
-              await page.waitForFunction(() =>
-                !document.querySelector('.assistant-photo-carousel') &&
-                !document.querySelector('.assistant-photo-back-options'),
-              { timeout: 5000 });
-
-              const restored = await page.evaluate(() => {
-                const area = document.querySelector('#assistant-messages .messages-area');
-                const dynamic = Array.from(area?.querySelectorAll('.assistant-options') ?? []).find((container) =>
-                  !container.querySelector('[data-explore-category]') &&
-                  !container.classList.contains('assistant-photo-back-options') &&
-                  container.id !== 'assistant-category-results'
-                );
-                const message = Array.from(area?.querySelectorAll('.message') ?? []).find((element) => {
-                  if (!(element instanceof HTMLElement)) return false;
-                  const style = getComputedStyle(element);
-                  return !element.classList.contains('hidden') && style.display !== 'none' && style.visibility !== 'hidden';
-                });
-                const children = area ? Array.from(area.children) : [];
-                return {
-                  messageText: message?.textContent?.trim() ?? '',
-                  messageIndex: message ? children.indexOf(message) : -1,
-                  optionsIndex: dynamic ? children.indexOf(dynamic) : -1,
-                  values: dynamic
-                    ? Array.from(dynamic.querySelectorAll('.assistant-option-btn'), (button) => button.getAttribute('data-value'))
+                  actionsIndex: actions ? children.indexOf(actions) : -1,
+                  values: actions
+                    ? Array.from(actions.querySelectorAll('.assistant-option-btn'), (button) => button.getAttribute('data-value'))
                     : [],
+                  legacyBackCount: area?.querySelectorAll('.assistant-photo-back-options').length ?? 0,
                 };
               });
               const expectedValues = expectedBeachDetailOptions.map((option) => option.value);
               if (
-                !restored.messageText.includes('Primeira Praia') ||
-                restored.messageIndex < 0 ||
-                restored.optionsIndex <= restored.messageIndex ||
-                JSON.stringify(restored.values) !== JSON.stringify(expectedValues)
+                !photoState.messageText.includes('Primeira Praia') ||
+                photoState.messageIndex < 0 ||
+                photoState.carouselIndex <= photoState.messageIndex ||
+                photoState.actionsIndex <= photoState.carouselIndex ||
+                JSON.stringify(photoState.values) !== JSON.stringify(expectedValues) ||
+                photoState.legacyBackCount !== 0
               ) {
-                throw new Error(`Previous options were not restored after photos: ${JSON.stringify(restored)}`);
+                throw new Error(`Photo action continuity diverged: ${JSON.stringify(photoState)}`);
+              }
+
+              await photoActions.locator('.assistant-option-btn[data-value="[sub]beaches"]').click();
+              await page.locator('#assistant-category-results[data-category="beaches"][data-stage="places"]').waitFor({
+                state: 'visible',
+                timeout: 5000,
+              });
+              await page.waitForFunction(() =>
+                !document.querySelector('.assistant-photo-carousel') &&
+                !document.querySelector('.assistant-options[data-presentation="photo-actions"]'),
+              { timeout: 5000 });
+
+              const returnedPlaces = await page.locator('#assistant-category-results [data-location-name]').count();
+              if (returnedPlaces !== 8) {
+                throw new Error(`Photo back action did not restore the beach list: ${returnedPlaces}`);
               }
 
               if (pageErrors.length) {
