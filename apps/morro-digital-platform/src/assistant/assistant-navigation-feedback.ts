@@ -45,6 +45,27 @@ function ensureAssistantVisible(document: Document): void {
   document.querySelector<HTMLButtonElement>(".mood-button")?.click();
 }
 
+function mainCategoryMenu(document: Document): HTMLElement | null {
+  const containers = Array.from(
+    document.querySelectorAll<HTMLElement>(
+      "#assistant-messages .messages-area > .assistant-options",
+    ),
+  );
+  return (
+    containers.find((container) =>
+      container.querySelector("[data-explore-category]"),
+    ) ?? null
+  );
+}
+
+function showMainCategoryMenu(document: Document): void {
+  const menu = mainCategoryMenu(document);
+  if (!menu) return;
+  delete menu.dataset.singleMessageHidden;
+  menu.classList.remove("hidden");
+  menu.setAttribute("aria-hidden", "false");
+}
+
 function resetCategorySurface(document: Document): void {
   document.getElementById(CATEGORY_FLOW_RESULTS_ID)?.remove();
   document.getElementById(CATEGORY_FLOW_MESSAGE_ID)?.remove();
@@ -105,26 +126,10 @@ export function installAssistantNavigationFeedback(
     clearAssistantDomOptions(document);
   };
 
-  const showNavigationFeedback = (
-    reason: FeedbackReason,
-    destination: string,
-    messageType: "navigation-status" | "navigation-feedback",
-  ): void => {
-    messages.append({
-      sender: "assistant",
-      html: feedbackText(document, reason, destination),
-      messageType,
-    });
-  };
-
-  const restoreMainMenu = (
-    reason: FeedbackReason,
-    destination: string,
-  ): void => {
+  const restoreMainMenuSurface = (): void => {
     if (destroyed) return;
-
     preparePostNavigationSurface();
-    showNavigationFeedback(reason, destination, "navigation-feedback");
+    showMainCategoryMenu(document);
   };
 
   const onNavigationStarted = (): void => {
@@ -140,21 +145,28 @@ export function installAssistantNavigationFeedback(
     clearRestoreTimer();
     const destination = destinationFromDetail(event.detail);
 
-    // Preserve V2's immediate completion feedback while matching V1's delayed
-    // menu restoration. This also clears any stale detail/category surface
-    // before the final main menu is exposed again.
+    // V1 restores the category menu after navigation teardown. V2 also needs
+    // the completion copy synchronously because existing arrival/cancellation
+    // consumers read it as soon as `navigationEnded` fires. Show the canonical
+    // feedback immediately, then reassert the menu after V1's 600 ms teardown
+    // window in case another navigation surface changes the DOM meanwhile.
     preparePostNavigationSurface();
-    showNavigationFeedback(reason, destination, "navigation-status");
+    messages.append({
+      sender: "assistant",
+      html: feedbackText(document, reason, destination),
+      messageType: "navigation-feedback",
+    });
+    showMainCategoryMenu(document);
 
     if (view) {
       restoreTimer = view.setTimeout(() => {
         restoreTimer = undefined;
-        restoreMainMenu(reason, destination);
+        restoreMainMenuSurface();
       }, V1_POST_NAVIGATION_MENU_DELAY_MS);
       return;
     }
 
-    restoreMainMenu(reason, destination);
+    restoreMainMenuSurface();
   };
 
   view?.addEventListener("navigationStarted", onNavigationStarted);
