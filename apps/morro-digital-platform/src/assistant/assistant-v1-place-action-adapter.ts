@@ -277,6 +277,31 @@ function resolved(
   };
 }
 
+function transportNavigationConfirmation(
+  placeName: string,
+  language: AssistantV1PlaceActionLanguage,
+) {
+  const copy = {
+    pt: {
+      text: `Deseja iniciar a navegação até ${placeName}?`,
+      yes: "Sim",
+      no: "Não",
+    },
+    en: {
+      text: `Would you like to start navigation to ${placeName}?`,
+      yes: "Yes",
+      no: "No",
+    },
+    es: {
+      text: `¿Deseas iniciar la navegación hasta ${placeName}?`,
+      yes: "Sí",
+      no: "No",
+    },
+    he: { text: `האם תרצה להתחיל ניווט אל ${placeName}?`, yes: "כן", no: "לא" },
+  } as const;
+  return copy[language];
+}
+
 function moreOptions(
   place: MorroV1SearchCatalogItem,
   language: AssistantV1PlaceActionLanguage,
@@ -363,13 +388,21 @@ export function resolveAssistantV1PlaceAction(
 
   const language = request.language ?? "pt";
   const normalized = normalizeSearchText(request.input);
-  if (["mais opcoes", "more options"].includes(normalized)) {
+  if (
+    [
+      "mais opcoes",
+      "outras opcoes",
+      "more options",
+      "mas opciones",
+      "אפשרויות נוספות",
+    ].includes(normalized)
+  ) {
     return moreOptions(place, language);
   }
 
   if (
     place.category === "transport" &&
-    ["localizacao", "location", "ubicacion"].includes(normalized)
+    ["localizacao", "location", "ubicacion", "מיקום"].includes(normalized)
   ) {
     const destination = Object.freeze({
       name: place.name,
@@ -377,15 +410,16 @@ export function resolveAssistantV1PlaceAction(
       longitude: place.longitude,
       category: place.category,
     });
+    const confirmation = transportNavigationConfirmation(place.name, language);
     return {
       place,
       category: place.category,
       navigationDestination: destination,
       response: {
-        text: `Deseja iniciar a navegação até ${place.name}?`,
+        text: confirmation.text,
         options: [
-          { label: "Sim", value: "sim" },
-          { label: "Não", value: "não" },
+          { label: confirmation.yes, value: "sim" },
+          { label: confirmation.no, value: "não" },
         ],
         metadata: {
           domain: "v1_place_action",

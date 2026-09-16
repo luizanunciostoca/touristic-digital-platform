@@ -106,6 +106,69 @@ describe("assistant V1 place action parity", () => {
     });
   });
 
+  it.each([
+    ["mais opções", "pt"],
+    ["outras opções", "pt"],
+    ["more options", "en"],
+    ["más opciones", "es"],
+    ["אפשרויות נוספות", "he"],
+  ] as const)(
+    "routes the %s secondary-menu alias deterministically",
+    (input, language) => {
+      expect(
+        resolve(input, "Morena Bela", "restaurants", language)?.response
+          .metadata,
+      ).toMatchObject({
+        action: "restaurant_more_options",
+        deterministic: true,
+      });
+    },
+  );
+
+  it.each([
+    [
+      "location",
+      "en",
+      "Would you like to start navigation to Píer de Morro de São Paulo?",
+      "Yes",
+      "No",
+    ],
+    [
+      "ubicación",
+      "es",
+      "¿Deseas iniciar la navegación hasta Píer de Morro de São Paulo?",
+      "Sí",
+      "No",
+    ],
+    [
+      "מיקום",
+      "he",
+      "האם תרצה להתחיל ניווט אל Píer de Morro de São Paulo?",
+      "כן",
+      "לא",
+    ],
+  ] as const)(
+    "localizes transport confirmation for %s",
+    (input, language, text, yes, no) => {
+      const result = resolve(
+        input,
+        "Píer de Morro de São Paulo",
+        "transport",
+        language,
+      );
+      expect(result?.response.text).toBe(text);
+      expect(result?.response.options).toEqual([
+        { label: yes, value: "sim" },
+        { label: no, value: "não" },
+      ]);
+      expect(result?.response.metadata).toMatchObject({
+        action: "transport_location",
+        navigation: "awaiting_confirmation",
+        deterministic: true,
+      });
+    },
+  );
+
   it("keeps unavailable transport secondary information explicit", () => {
     const result = resolve(
       "mais opções",

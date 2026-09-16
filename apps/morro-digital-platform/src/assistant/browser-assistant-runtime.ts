@@ -542,6 +542,7 @@ export function installBrowserAssistantRuntime(
     if (state.stage === "filters" && state.category) {
       context.updateContext({
         lastCategory: state.category,
+        lastPlace: null,
         lastIntent: "categoria",
         awaiting: {
           type: "selecionar_subcategoria",
@@ -553,6 +554,7 @@ export function installBrowserAssistantRuntime(
     if (state.stage === "places" && state.category) {
       context.updateContext({
         lastCategory: state.category,
+        lastPlace: null,
         lastIntent: "categoria",
         awaiting: {
           type: "selecionar_local",
@@ -642,6 +644,7 @@ export function installBrowserAssistantRuntime(
           lastIntent: "navigate",
           lastPlace: placeAction.place.name,
           lastCategory: placeAction.category,
+          fallbackCount: 0,
           awaiting: { type: "confirmar_navegacao", intent: "navigate" },
           pendingRoute: placeAction.navigationDestination,
           selectedDestination: placeAction.navigationDestination,
@@ -651,6 +654,7 @@ export function installBrowserAssistantRuntime(
           lastIntent: "place_action",
           lastPlace: placeAction.place.name,
           lastCategory: placeAction.category,
+          fallbackCount: 0,
           awaiting: null,
           ...(placeActionContext.awaiting?.type === "confirmar_navegacao"
             ? { pendingRoute: null, selectedDestination: null }
