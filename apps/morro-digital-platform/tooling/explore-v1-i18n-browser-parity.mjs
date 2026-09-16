@@ -59,25 +59,38 @@ const filters = {
   },
 };
 
+const tourValues = ["volta-a-ilha", "trilha-gamboa", "passeio-quadriciclo"];
 const runtimeAccessibility = {
   pt: {
     selectAria: "Roteiro exibido no mapa",
-    firstTour: "Passeio Volta à Ilha",
+    tourLabels: [
+      "Passeio Volta à Ilha",
+      "Trilha Ecológica para a Gamboa",
+      "Expedição de Quadriciclo",
+    ],
     statusNeedle: "Runtime ativo",
   },
   en: {
     selectAria: "Tour displayed on the map",
-    firstTour: "Island Round Trip",
+    tourLabels: [
+      "Island Round Trip",
+      "Ecological Trail to Gamboa",
+      "ATV Expedition",
+    ],
     statusNeedle: "Runtime active",
   },
   es: {
     selectAria: "Recorrido mostrado en el mapa",
-    firstTour: "Vuelta a la Isla",
+    tourLabels: [
+      "Vuelta a la Isla",
+      "Sendero Ecológico a Gamboa",
+      "Expedición en Cuadriciclo",
+    ],
     statusNeedle: "Runtime activo",
   },
   he: {
     selectAria: "המסלול המוצג במפה",
-    firstTour: "סיבוב האי",
+    tourLabels: ["סיבוב האי", "שביל אקולוגי לגמבואה", "מסע קוואדריציקל"],
     statusNeedle: "המערכת פעילה",
   },
 };
@@ -153,17 +166,20 @@ async function waitRuntimeAccessibility(page, locale, expected) {
   while (Date.now() < deadline) {
     observed = await page.evaluate(() => {
       const select = document.getElementById("tour-select");
-      const firstOption = select?.querySelector("option");
+      const options = Array.from(select?.querySelectorAll("option") ?? []);
       return {
         selectAria: select?.getAttribute("aria-label") ?? null,
-        firstTour: firstOption?.textContent?.trim() ?? null,
+        tourLabels: options.map((option) => option.textContent?.trim() ?? ""),
+        tourValues: options.map((option) => option.value),
         status:
           document.getElementById("runtime-status")?.textContent?.trim() ?? "",
       };
     });
     if (
       observed.selectAria === expected.selectAria &&
-      observed.firstTour === expected.firstTour &&
+      JSON.stringify(observed.tourLabels) ===
+        JSON.stringify(expected.tourLabels) &&
+      JSON.stringify(observed.tourValues) === JSON.stringify(tourValues) &&
       observed.status.includes(expected.statusNeedle)
     ) {
       return;
@@ -172,6 +188,25 @@ async function waitRuntimeAccessibility(page, locale, expected) {
   }
   throw new Error(
     `runtime accessibility ${locale}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(observed)}`,
+  );
+}
+
+async function waitExploreSelectedStatus(page, expectedText) {
+  const deadline = Date.now() + 5000;
+  let observed = null;
+  while (Date.now() < deadline) {
+    observed = await page.evaluate(() => {
+      const status = document.getElementById("runtime-status");
+      return {
+        owner: status?.getAttribute("data-status-owner") ?? null,
+        text: status?.textContent?.trim() ?? "",
+      };
+    });
+    if (observed.owner === "explore" && observed.text === expectedText) return;
+    await page.waitForTimeout(50);
+  }
+  throw new Error(
+    `explore status: expected ${JSON.stringify({ owner: "explore", text: expectedText })}, got ${JSON.stringify(observed)}`,
   );
 }
 
@@ -315,6 +350,11 @@ try {
   let dynamic = await readDynamic(page);
   equal(dynamic.labels, beachDetailHebrew, "he beach detail labels");
   equal(dynamic.values, beachDetailValues, "he beach canonical values");
+  await waitExploreSelectedStatus(page, "Primeira Praia נבחר.");
+  await setLanguage(page, "en");
+  await waitExploreSelectedStatus(page, "Primeira Praia selected.");
+  await setLanguage(page, "he");
+  await waitExploreSelectedStatus(page, "Primeira Praia נבחר.");
   await page
     .locator('.assistant-option-btn[data-value="[sub]beaches"]')
     .click();

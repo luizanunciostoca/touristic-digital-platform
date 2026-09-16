@@ -151,7 +151,9 @@ let runtimeStatusDescriptor: RuntimeStatusDescriptor = Object.freeze({
 
 function renderRuntimeAccessibility(): void {
   applyRuntimeAccessibilityPresentation(document);
+  if (status?.dataset.statusOwner === "explore") return;
   if (status) {
+    status.dataset.statusOwner = "runtime";
     status.textContent = formatRuntimeStatus(
       runtimeStatusDescriptor,
       document.documentElement.lang,
@@ -161,8 +163,18 @@ function renderRuntimeAccessibility(): void {
 
 function updateStatus(descriptor: RuntimeStatusDescriptor): void {
   runtimeStatusDescriptor = Object.freeze(descriptor);
+  if (status) status.dataset.statusOwner = "runtime";
   renderRuntimeAccessibility();
 }
+
+const onRuntimeStatusRefresh = (): void => {
+  if (status) status.dataset.statusOwner = "runtime";
+  renderRuntimeAccessibility();
+};
+document.addEventListener(
+  "morro:runtime-status-refresh",
+  onRuntimeStatusRefresh,
+);
 
 const runtimeAccessibilityLocaleObserver = new MutationObserver(() => {
   renderRuntimeAccessibility();
