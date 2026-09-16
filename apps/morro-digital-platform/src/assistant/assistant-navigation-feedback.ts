@@ -70,11 +70,19 @@ function showMainCategoryMenu(document: Document): void {
   menu.setAttribute("aria-hidden", "false");
 }
 
+function dispatchExploreReset(document: Document): void {
+  if (typeof document.dispatchEvent !== "function") return;
+  const CustomEventConstructor =
+    document.defaultView?.CustomEvent ?? globalThis.CustomEvent;
+  if (typeof CustomEventConstructor !== "function") return;
+  document.dispatchEvent(new CustomEventConstructor(EXPLORE_RESET_REQUEST_EVENT));
+}
+
 function resetCategorySurface(document: Document): void {
   // Route the reset through the owning Explore controller rather than through
   // the assistant option pipeline. This invalidates pending async Explore work
   // without creating an artificial user command or fallback assistant reply.
-  document.dispatchEvent(new CustomEvent(EXPLORE_RESET_REQUEST_EVENT));
+  dispatchExploreReset(document);
   document.getElementById(CATEGORY_FLOW_RESULTS_ID)?.remove();
   document.getElementById(CATEGORY_FLOW_MESSAGE_ID)?.remove();
 
@@ -122,6 +130,9 @@ export function installAssistantNavigationFeedback(
 ): AssistantNavigationFeedback {
   const view = document.defaultView;
   const messages = createAssistantMessageDom({ document });
+  const canListenToNavigationRequests =
+    typeof document.addEventListener === "function" &&
+    typeof document.removeEventListener === "function";
   let destroyed = false;
   let restoreTimer: number | undefined;
 
@@ -181,7 +192,9 @@ export function installAssistantNavigationFeedback(
     restoreMainMenuSurface();
   };
 
-  document.addEventListener(NAVIGATION_REQUEST_EVENT, onNavigationStarting);
+  if (canListenToNavigationRequests) {
+    document.addEventListener(NAVIGATION_REQUEST_EVENT, onNavigationStarting);
+  }
   view?.addEventListener("navigationStarted", onNavigationStarting);
   view?.addEventListener("navigationEnded", onNavigationEnded);
 
@@ -190,10 +203,12 @@ export function installAssistantNavigationFeedback(
       if (destroyed) return;
       destroyed = true;
       clearRestoreTimer();
-      document.removeEventListener(
-        NAVIGATION_REQUEST_EVENT,
-        onNavigationStarting,
-      );
+      if (canListenToNavigationRequests) {
+        document.removeEventListener(
+          NAVIGATION_REQUEST_EVENT,
+          onNavigationStarting,
+        );
+      }
       view?.removeEventListener("navigationStarted", onNavigationStarting);
       view?.removeEventListener("navigationEnded", onNavigationEnded);
     },
