@@ -101,6 +101,8 @@ const NAVIGATION_TERMINAL_STATES = new Set([
   "destination_not_found",
 ]);
 
+const FALLBACK_ESCALATION_THRESHOLD = 3;
+
 function defaultDialogResponse(): AssistantDialogResponse {
   return { text: "Como posso ajudar?" };
 }
@@ -186,6 +188,13 @@ function resolveIntentForContext(
   }
 
   return analyzed;
+}
+
+function preservePlaceCasingFromInput(input: string, place: string): string {
+  const source = input.toLocaleLowerCase();
+  const target = place.toLocaleLowerCase();
+  const index = source.indexOf(target);
+  return index >= 0 ? input.slice(index, index + place.length) : place;
 }
 
 function deriveContextUpdate(
@@ -282,6 +291,48 @@ function deriveResponseContextUpdate(
   return updates;
 }
 
+function guidedFallbackResponse(
+  intent: AssistantIntentResult,
+): AssistantDialogResponse {
+  const language = intent.entities.language ?? "pt";
+  const copy = {
+    pt: {
+      text: "Estou tendo dificuldade para entender. Posso mostrar a ajuda ou algumas opções principais.",
+      help: "Ajuda",
+      beaches: "Praias",
+      restaurants: "Restaurantes",
+    },
+    en: {
+      text: "I'm having trouble understanding. I can show help or some main options.",
+      help: "Help",
+      beaches: "Beaches",
+      restaurants: "Restaurants",
+    },
+    es: {
+      text: "Estoy teniendo dificultad para entender. Puedo mostrar ayuda o algunas opciones principales.",
+      help: "Ayuda",
+      beaches: "Playas",
+      restaurants: "Restaurantes",
+    },
+    he: {
+      text: "אני מתקשה להבין. אפשר לפתוח עזרה או כמה אפשרויות עיקריות.",
+      help: "עזרה",
+      beaches: "חופים",
+      restaurants: "מסעדות",
+    },
+  } as const;
+  const localized = copy[language];
+  return {
+    text: localized.text,
+    options: [
+      { label: localized.help, value: localized.help },
+      { label: localized.beaches, value: localized.beaches },
+      { label: localized.restaurants, value: localized.restaurants },
+    ],
+    metadata: { domain: "fallback", state: "escalated" },
+  };
+}
+
 export function createAssistantDialogController(
   options: AssistantDialogControllerOptions,
 ) {
@@ -298,7 +349,10 @@ export function createAssistantDialogController(
         const category =
           intent.entities.category ?? CATEGORY_BY_INTENT[intent.intent] ?? null;
         const place = intent.entities.place
-          ? { name: intent.entities.place, category }
+          ? {
+              name: preservePlaceCasingFromInput(input, intent.entities.place),
+              category,
+            }
           : null;
 
         if (place) {
@@ -321,11 +375,25 @@ export function createAssistantDialogController(
           response = await options.llm(request);
         }
 
-        if (!response) response = defaultResponse();
+        let fallbackCount = 0;
+        if (!response) {
+          if (intent.intent === "unknown") {
+            if (context.fallbackCount >= FALLBACK_ESCALATION_THRESHOLD) {
+              response = guidedFallbackResponse(intent);
+              fallbackCount = 0;
+            } else {
+              response = defaultResponse();
+              fallbackCount = context.fallbackCount + 1;
+            }
+          } else {
+            response = defaultResponse();
+          }
+        }
 
-        options.context.updateContext(
-          deriveResponseContextUpdate(response, intent, context),
-        );
+        options.context.updateContext({
+          ...deriveResponseContextUpdate(response, intent, context),
+          fallbackCount,
+        });
         options.context.addToHistory({ input, response: response.text });
 
         return response;
