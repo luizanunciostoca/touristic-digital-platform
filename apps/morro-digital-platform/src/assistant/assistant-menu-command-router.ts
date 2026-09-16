@@ -555,6 +555,36 @@ function commandForButton(
   return Object.freeze({ type: "apply_option", value });
 }
 
+function globalExploreCommandForMessage(
+  message: string,
+): ExploreLocationsCommand | null {
+  const normalized = normalizeAssistantMenuCommand(message);
+  const matches = (value: keyof typeof OPTION_ALIASES): boolean => {
+    const canonical = normalizeAssistantMenuCommand(value);
+    return (
+      normalized === canonical ||
+      (NORMALIZED_OPTION_ALIASES[canonical] ?? []).includes(normalized)
+    );
+  };
+
+  if (
+    matches("ver todos") ||
+    ["mapa", "ver no mapa", "show map", "mostrar mapa", "מפה"].includes(
+      normalized,
+    )
+  ) {
+    return Object.freeze({ type: "show_all" });
+  }
+  if (matches("proximo")) return Object.freeze({ type: "show_nearby" });
+  if (matches("voltar filtros")) {
+    return Object.freeze({ type: "back_to_filters" });
+  }
+  if (matches("voltar menu")) {
+    return Object.freeze({ type: "back_to_menu" });
+  }
+  return null;
+}
+
 function commandForVisibleOption(
   document: Document,
   message: string,
@@ -607,6 +637,9 @@ export function resolveAssistantMenuCommand(
 ): ExploreLocationsCommand | null {
   const visible = commandForVisibleOption(document, message);
   if (visible) return visible;
+
+  const globalCommand = globalExploreCommandForMessage(message);
+  if (globalCommand) return globalCommand;
 
   const place = exactCatalogPlace(message);
   if (place) {

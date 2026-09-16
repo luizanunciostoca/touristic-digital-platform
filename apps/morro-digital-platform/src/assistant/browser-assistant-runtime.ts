@@ -464,8 +464,16 @@ export function installBrowserAssistantRuntime(
     preservePreviousOptions = false,
     source: AssistantInputSource = "programmatic",
   ): Promise<AssistantDialogResponse> => {
-    const value = rawInput.trim();
-    if (!value) return { text: "Como posso ajudar?" };
+    const submittedValue = rawInput.trim();
+    if (!submittedValue) return { text: "Como posso ajudar?" };
+    const numericIndex = /^\d+$/u.test(submittedValue)
+      ? Number(submittedValue) - 1
+      : -1;
+    const selectedNumericOption =
+      numericIndex >= 0
+        ? currentPresentation?.options[numericIndex]
+        : undefined;
+    const value = selectedNumericOption?.value.trim() || submittedValue;
 
     const generation = ++requestGeneration;
     const previousPresentation = preservePreviousOptions
@@ -489,6 +497,23 @@ export function installBrowserAssistantRuntime(
         menuRouted = menuCommand
           ? await options.explore.execute(menuCommand)
           : false;
+        if (
+          !menuRouted &&
+          menuCommand &&
+          (menuCommand.type === "show_all" ||
+            menuCommand.type === "show_nearby")
+        ) {
+          const lastCategory = context.getContext().lastCategory;
+          if (lastCategory) {
+            const opened = await options.explore.execute({
+              type: "open_category",
+              category: lastCategory,
+            });
+            menuRouted = opened
+              ? await options.explore.execute(menuCommand)
+              : false;
+          }
+        }
       } else {
         menuRouted = routeAssistantMenuCommand(options.document, value);
       }
@@ -506,14 +531,14 @@ export function installBrowserAssistantRuntime(
       syncExploreContext();
       options.document.dispatchEvent(
         new CustomEvent("morro:assistant-menu-command-routed", {
-          detail: { message: value, source },
+          detail: { message: submittedValue, semanticValue: value, source },
         }),
       );
       const routedText =
         options.document
           .getElementById("assistant-category-results-message")
           ?.textContent?.trim() ?? "";
-      context.addToHistory({ input: value, response: routedText });
+      context.addToHistory({ input: submittedValue, response: routedText });
       if (routedText) voice?.speak(routedText, voiceLanguage());
       return {
         text: routedText,
@@ -528,7 +553,7 @@ export function installBrowserAssistantRuntime(
 
     clearAssistantDomOptions(options.document);
     removePhotoPresentation(options.document);
-    appendStandardMessage("user", value);
+    appendStandardMessage("user", submittedValue);
     const response = await controller.processUserInput(value);
     if (destroyed || generation !== requestGeneration) return response;
 
