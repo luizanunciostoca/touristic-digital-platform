@@ -56,12 +56,15 @@ jobs:
                 localStorage.setItem('morro-digital-onboarded', '1');
                 localStorage.setItem('voice-enabled', 'false');
                 globalThis.__v1InputSubmissions = [];
+                globalThis.__v1InputOptionSelections = [];
                 document.addEventListener('morro:assistant-input-submitted', (event) => {
                   globalThis.__v1InputSubmissions.push(event.detail);
                 });
                 document.addEventListener('morro:assistant-option-selected', (event) => {
-                  if (event.detail?.inputSource) event.stopImmediatePropagation();
-                }, true);
+                  if (typeof event.detail?.value === 'string') {
+                    globalThis.__v1InputOptionSelections.push(event.detail.value);
+                  }
+                });
               });
 
               const page = await context.newPage();
@@ -78,9 +81,15 @@ jobs:
 
               const initial = await input.evaluate((element) => ({
                 marker: element.dataset.v1InputParity,
-                fontSize: getComputedStyle(element).fontSize,
+                inlineFontSize: element.style.fontSize,
+                computedFontSize: Number.parseFloat(getComputedStyle(element).fontSize),
               }));
-              if (initial.marker !== 'true' || initial.fontSize !== '16px') {
+              if (
+                initial.marker !== 'true' ||
+                initial.inlineFontSize !== '16px' ||
+                !Number.isFinite(initial.computedFontSize) ||
+                initial.computedFontSize < 16
+              ) {
                 throw new Error(`V1 input bootstrap diverged: ${JSON.stringify(initial)}`);
               }
 
@@ -90,7 +99,9 @@ jobs:
                 throw new Error('Valid button submission did not clear input immediately');
               }
 
-              await input.evaluate((element) => { element.value = '   '; });
+              await input.evaluate((element) => {
+                element.value = '   ';
+              });
               await send.click();
               if ((await input.inputValue()) !== '   ') {
                 throw new Error('Whitespace-only input must be preserved and ignored');
@@ -117,25 +128,37 @@ jobs:
               await input.fill('rascunho ime');
               await page.evaluate(() => {
                 const element = document.querySelector('#assistantInput');
-                element?.dispatchEvent(new KeyboardEvent('keydown', {
-                  key: 'Enter',
-                  code: 'Enter',
-                  bubbles: true,
-                  cancelable: true,
-                  isComposing: true,
-                }));
+                element?.dispatchEvent(
+                  new KeyboardEvent('keydown', {
+                    key: 'Enter',
+                    code: 'Enter',
+                    bubbles: true,
+                    cancelable: true,
+                    isComposing: true,
+                  }),
+                );
               });
               if ((await input.inputValue()) !== 'rascunho ime') {
                 throw new Error('IME composition Enter must not submit or clear the draft');
               }
 
-              const submissions = await page.evaluate(() => globalThis.__v1InputSubmissions);
+              const dispatchState = await page.evaluate(() => ({
+                submissions: globalThis.__v1InputSubmissions,
+                optionSelections: globalThis.__v1InputOptionSelections,
+              }));
               const expected = [
                 { message: 'praias', source: 'button' },
                 { message: 'restaurantes', source: 'keyboard' },
               ];
-              if (JSON.stringify(submissions) !== JSON.stringify(expected)) {
-                throw new Error(`Single-dispatch/source contract diverged: ${JSON.stringify(submissions)}`);
+              if (JSON.stringify(dispatchState.submissions) !== JSON.stringify(expected)) {
+                throw new Error(
+                  `Single-dispatch/source contract diverged: ${JSON.stringify(dispatchState)}`,
+                );
+              }
+              if (dispatchState.optionSelections.length !== 0) {
+                throw new Error(
+                  `Typed input polluted option-selection events: ${JSON.stringify(dispatchState)}`,
+                );
               }
 
               await input.focus();
@@ -144,7 +167,9 @@ jobs:
                 html: document.documentElement.classList.contains('keyboard-visible'),
               }));
               if (!focused.body || !focused.html) {
-                throw new Error(`Keyboard-visible focus contract diverged: ${JSON.stringify(focused)}`);
+                throw new Error(
+                  `Keyboard-visible focus contract diverged: ${JSON.stringify(focused)}`,
+                );
               }
 
               await input.evaluate((element) => element.blur());
@@ -156,7 +181,9 @@ jobs:
                 y: window.scrollY,
               }));
               if (blurred.body || blurred.html || blurred.x !== 0 || blurred.y !== 0) {
-                throw new Error(`Keyboard blur/restore contract diverged: ${JSON.stringify(blurred)}`);
+                throw new Error(
+                  `Keyboard blur/restore contract diverged: ${JSON.stringify(blurred)}`,
+                );
               }
 
               if (pageErrors.length) {
