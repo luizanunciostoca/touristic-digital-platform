@@ -141,31 +141,70 @@ const STATIC_COPY: Readonly<Record<StaticActionKey, Copy>> = Object.freeze({
 });
 
 const STATIC_ACTIONS: Readonly<
-  Record<string, readonly Readonly<{ aliases: readonly string[]; action: StaticActionKey }>[]> 
+  Record<
+    string,
+    readonly Readonly<{ aliases: readonly string[]; action: StaticActionKey }>[]
+  >
 > = Object.freeze({
   restaurants: [
     { aliases: ["cardapio", "menu"], action: "restaurant_menu" },
-    { aliases: ["contato", "contact", "contacto"], action: "restaurant_contact" },
+    {
+      aliases: ["contato", "contact", "contacto"],
+      action: "restaurant_contact",
+    },
   ],
   hotels: [
-    { aliases: ["ver quartos", "quartos", "rooms"], action: "accommodation_rooms" },
-    { aliases: ["reservar", "reserva", "book", "booking"], action: "accommodation_booking" },
+    {
+      aliases: ["ver quartos", "quartos", "rooms"],
+      action: "accommodation_rooms",
+    },
+    {
+      aliases: ["reservar", "reserva", "book", "booking"],
+      action: "accommodation_booking",
+    },
   ],
   tours: [
-    { aliases: ["reservar passeio", "reservar", "reserva", "book tour", "booking"], action: "tour_booking" },
-    { aliases: ["ponto de encontro", "meeting point", "local de encontro"], action: "tour_meeting_point" },
+    {
+      aliases: [
+        "reservar passeio",
+        "reservar",
+        "reserva",
+        "book tour",
+        "booking",
+      ],
+      action: "tour_booking",
+    },
+    {
+      aliases: ["ponto de encontro", "meeting point", "local de encontro"],
+      action: "tour_meeting_point",
+    },
     { aliases: ["contato", "contact", "contacto"], action: "tour_contact" },
   ],
   beaches: [
-    { aliases: ["condicoes da praia", "condicoes", "beach conditions"], action: "beach_conditions" },
+    {
+      aliases: ["condicoes da praia", "condicoes", "beach conditions"],
+      action: "beach_conditions",
+    },
   ],
   transport: [
-    { aliases: ["solicitar transporte", "solicitar", "request transport"], action: "transport_request" },
-    { aliases: ["tarifas", "tarifa", "fares", "fare"], action: "transport_fares" },
-    { aliases: ["contato", "contact", "contacto"], action: "transport_contact" },
+    {
+      aliases: ["solicitar transporte", "solicitar", "request transport"],
+      action: "transport_request",
+    },
+    {
+      aliases: ["tarifas", "tarifa", "fares", "fare"],
+      action: "transport_fares",
+    },
+    {
+      aliases: ["contato", "contact", "contacto"],
+      action: "transport_contact",
+    },
     { aliases: ["horarios", "schedules"], action: "transport_schedules" },
     { aliases: ["pontos", "stops", "points"], action: "transport_points" },
-    { aliases: ["area atendida", "service area"], action: "transport_service_area" },
+    {
+      aliases: ["area atendida", "service area"],
+      action: "transport_service_area",
+    },
     { aliases: ["avaliacoes", "reviews"], action: "transport_reviews" },
   ],
 });

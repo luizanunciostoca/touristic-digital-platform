@@ -15,6 +15,7 @@ import type { NavigationSessionBootstrap } from "../navigation/navigation-sessio
 import { fetchMorroWeather } from "../weather/weather-widget.js";
 import { createAssistantLlmHandler } from "./assistant-llm-adapter.js";
 import { createAssistantV1IntelligenceHandlers } from "./assistant-v1-intelligence-adapter.js";
+import { resolveAssistantV1PlaceAction } from "./assistant-v1-place-action-adapter.js";
 import { createAssistantBrowserDomainHandlers } from "./assistant-domain-adapter.js";
 import { createAssistantMessageDom } from "./assistant-message-dom.js";
 import {
@@ -602,6 +603,75 @@ export function installBrowserAssistantRuntime(
     const value = selectedNumericOption?.value.trim() || submittedValue;
 
     const generation = ++requestGeneration;
+    const placeActionContext = context.getContext();
+    const placeAction = resolveAssistantV1PlaceAction({
+      input: value,
+      lastPlace: placeActionContext.lastPlace,
+      lastCategory: placeActionContext.lastCategory,
+      language: voiceLanguage(),
+    });
+
+    if (placeAction) {
+      if (destroyed || generation !== requestGeneration) {
+        return supersededResponse();
+      }
+
+      clearAssistantDomOptions(options.document);
+      removePhotoPresentation(options.document);
+      appendStandardMessage("user", submittedValue);
+
+      const response = placeAction.response;
+      appendStandardMessage("assistant", response.text);
+      const responseOptions = readAssistantResponseOptions(response);
+      if (responseOptions.length > 0) {
+        renderAssistantDomOptions(options.document, responseOptions);
+      }
+      currentPresentation = snapshotPresentation(
+        response.text,
+        responseOptions,
+      );
+
+      const interestCategory = toProfileInterestCategory(placeAction.category);
+      profile.recordInteraction(submittedValue, interestCategory, {
+        name: placeAction.place.name,
+        category: placeAction.category,
+      });
+
+      if (placeAction.navigationDestination) {
+        context.updateContext({
+          lastIntent: "navigate",
+          lastPlace: placeAction.place.name,
+          lastCategory: placeAction.category,
+          awaiting: { type: "confirmar_navegacao", intent: "navigate" },
+          pendingRoute: placeAction.navigationDestination,
+          selectedDestination: placeAction.navigationDestination,
+        });
+      } else {
+        context.updateContext({
+          lastIntent: "place_action",
+          lastPlace: placeAction.place.name,
+          lastCategory: placeAction.category,
+          awaiting: null,
+          ...(placeActionContext.awaiting?.type === "confirmar_navegacao"
+            ? { pendingRoute: null, selectedDestination: null }
+            : {}),
+        });
+      }
+      context.addToHistory({ input: submittedValue, response: response.text });
+
+      options.document.dispatchEvent(
+        new CustomEvent("morro:assistant-place-action-routed", {
+          detail: {
+            action: response.metadata?.action ?? null,
+            place: placeAction.place.name,
+            category: placeAction.category,
+            source,
+          },
+        }),
+      );
+      voice?.speak(response.text, voiceLanguage());
+      return response;
+    }
     const visiblePresentation = readVisiblePresentation(options.document);
     const previousPresentation = preservePreviousOptions
       ? (currentPresentation ?? visiblePresentation)

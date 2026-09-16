@@ -22,17 +22,47 @@ describe("assistant V1 place action parity", () => {
     ["contato", "Morena Bela", "restaurants", "restaurant_contact"],
     ["ver quartos", "Pousada Natureza", "hotels", "accommodation_rooms"],
     ["reservar", "Pousada Natureza", "hotels", "accommodation_booking"],
-    ["reservar passeio", "Passeio de Barco Volta à Ilha", "tours", "tour_booking"],
-    ["ponto de encontro", "Passeio de Barco Volta à Ilha", "tours", "tour_meeting_point"],
+    [
+      "reservar passeio",
+      "Passeio de Barco Volta à Ilha",
+      "tours",
+      "tour_booking",
+    ],
+    [
+      "ponto de encontro",
+      "Passeio de Barco Volta à Ilha",
+      "tours",
+      "tour_meeting_point",
+    ],
     ["contato", "Passeio de Barco Volta à Ilha", "tours", "tour_contact"],
     ["condições da praia", "Primeira Praia", "beaches", "beach_conditions"],
-    ["solicitar transporte", "Píer de Morro de São Paulo", "transport", "transport_request"],
+    [
+      "solicitar transporte",
+      "Píer de Morro de São Paulo",
+      "transport",
+      "transport_request",
+    ],
     ["tarifas", "Píer de Morro de São Paulo", "transport", "transport_fares"],
     ["contato", "Píer de Morro de São Paulo", "transport", "transport_contact"],
-    ["horários", "Píer de Morro de São Paulo", "transport", "transport_schedules"],
+    [
+      "horários",
+      "Píer de Morro de São Paulo",
+      "transport",
+      "transport_schedules",
+    ],
     ["pontos", "Píer de Morro de São Paulo", "transport", "transport_points"],
-    ["área atendida", "Píer de Morro de São Paulo", "transport", "transport_service_area"],
-    ["avaliações", "Píer de Morro de São Paulo", "transport", "transport_reviews"],
+    [
+      "área atendida",
+      "Píer de Morro de São Paulo",
+      "transport",
+      "transport_service_area",
+    ],
+    [
+      "avaliações",
+      "Píer de Morro de São Paulo",
+      "transport",
+      "transport_reviews",
+    ],
   ])("routes %s deterministically for %s", (input, place, category, action) => {
     const result = resolve(input, place, category);
     expect(result).not.toBeNull();
@@ -109,7 +139,8 @@ describe("assistant V1 place action parity", () => {
 
   it("preserves the V1 multilingual unavailable copy", () => {
     expect(
-      resolve("beach conditions", "Primeira Praia", "beaches", "en")?.response.text,
+      resolve("beach conditions", "Primeira Praia", "beaches", "en")?.response
+        .text,
     ).toBe(
       "There are no reliable beach conditions registered yet. Check weather, tide and local warnings before swimming.",
     );
