@@ -75,7 +75,9 @@ function dispatchExploreReset(document: Document): void {
   const CustomEventConstructor =
     document.defaultView?.CustomEvent ?? globalThis.CustomEvent;
   if (typeof CustomEventConstructor !== "function") return;
-  document.dispatchEvent(new CustomEventConstructor(EXPLORE_RESET_REQUEST_EVENT));
+  document.dispatchEvent(
+    new CustomEventConstructor(EXPLORE_RESET_REQUEST_EVENT),
+  );
 }
 
 function resetCategorySurface(document: Document): void {
