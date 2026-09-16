@@ -1,6 +1,6 @@
 import {
   createAssistantProactiveSuggestionEngine,
-  createAssistantUserProfileManager,
+  type createAssistantUserProfileManager,
   getAssistantContextualMenu,
   getAssistantMainMenu,
   getAssistantSmartRecommendation,
