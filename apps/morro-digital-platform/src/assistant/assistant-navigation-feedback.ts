@@ -65,6 +65,14 @@ function mainCategoryMenu(document: Document): HTMLElement | null {
 function showMainCategoryMenu(document: Document): void {
   const menu = mainCategoryMenu(document);
   if (!menu) return;
+
+  // Keep the V1 modal reading order deterministic: the active assistant text
+  // is always the first surface, followed by the available action/category
+  // options. Re-appending the persistent shell menu moves it below the latest
+  // feedback without recreating listeners or changing button identity/state.
+  const area = menu.parentElement;
+  if (area?.classList.contains("messages-area")) area.appendChild(menu);
+
   delete menu.dataset.singleMessageHidden;
   menu.classList.remove("hidden");
   menu.setAttribute("aria-hidden", "false");
