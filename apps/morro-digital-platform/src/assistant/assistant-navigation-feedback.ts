@@ -12,8 +12,7 @@ const V1_POST_NAVIGATION_MENU_DELAY_MS = 600;
 const CATEGORY_FLOW_RESULTS_ID = "assistant-category-results";
 const CATEGORY_FLOW_MESSAGE_ID = "assistant-category-results-message";
 const NAVIGATION_REQUEST_EVENT = "morro:navigation-requested";
-const ASSISTANT_OPTION_SELECTED_EVENT = "morro:assistant-option-selected";
-const BACK_TO_MAIN_MENU_VALUE = "voltar ao menu principal";
+const EXPLORE_RESET_REQUEST_EVENT = "morro:explore-reset-requested";
 const COORDINATE_DESTINATION_PATTERN =
   /^-?\d{1,2}(?:\.\d+)?\s*,\s*-?\d{1,3}(?:\.\d+)?$/u;
 
@@ -72,14 +71,10 @@ function showMainCategoryMenu(document: Document): void {
 }
 
 function resetCategorySurface(document: Document): void {
-  // Reuse Explore's canonical back-to-menu ingress instead of only deleting
-  // rendered nodes. This clears the controller's active category/stage so an
-  // async nearby lookup cannot recreate stale results after navigation ends.
-  document.dispatchEvent(
-    new CustomEvent(ASSISTANT_OPTION_SELECTED_EVENT, {
-      detail: { value: BACK_TO_MAIN_MENU_VALUE },
-    }),
-  );
+  // Route the reset through the owning Explore controller rather than through
+  // the assistant option pipeline. This invalidates pending async Explore work
+  // without creating an artificial user command or fallback assistant reply.
+  document.dispatchEvent(new CustomEvent(EXPLORE_RESET_REQUEST_EVENT));
   document.getElementById(CATEGORY_FLOW_RESULTS_ID)?.remove();
   document.getElementById(CATEGORY_FLOW_MESSAGE_ID)?.remove();
 
