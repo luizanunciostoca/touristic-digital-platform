@@ -8,10 +8,12 @@ on:
       - apps/morro-digital-platform/public/index.html
       - apps/morro-digital-platform/src/assistant/assistant-search-adapter.ts
       - apps/morro-digital-platform/src/assistant/assistant-domain-adapter.ts
+      - apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts
       - apps/morro-digital-platform/src/layouts/app-shell.ts
       - apps/morro-digital-platform/src/assistant/assistant-shell-ui.ts
       - packages/assistant/src/intent-engine.ts
       - packages/assistant/src/intent-engine.more-info-i18n.test.ts
+      - packages/assistant/src/navigation-handlers.ts
       - packages/search/src/**
       - docs/qa/SEARCH-M42-EVIDENCE.md
       - docs/migration/SEARCH-MIGRATION-MATRIX.md
@@ -45,7 +47,7 @@ jobs:
           done
           cat /tmp/search-browser-contract.log
           exit 1
-      - name: Validate query to details to navigation port
+      - name: Validate query to details to confirmed navigation port
         run: |
           node <<'NODE'
           const { writeFileSync } = require('node:fs');
@@ -63,6 +65,7 @@ jobs:
           async function snapshot(page) {
             return page.evaluate(() => ({
               selectedValues: globalThis.__searchContract?.selectedValues ?? [],
+              starts: globalThis.__searchContract?.starts ?? [],
               messages: Array.from(document.querySelectorAll('#assistant-messages .message')).map(node => ({
                 role: node.className,
                 text: node.textContent,
@@ -167,10 +170,27 @@ jobs:
               }
 
               await navigate.click();
+              const confirmation = page.locator('#assistant-messages .message.assistant').last();
+              await confirmation.waitFor({ state: 'visible', timeout: 10000 });
+              await poll(
+                page,
+                async () => (await confirmation.textContent())?.includes('Deseja iniciar a navegação até Toca do Morcego?') === true,
+                'navigation confirmation message',
+                10000,
+              );
+
+              const beforeConfirmation = await page.evaluate(() => globalThis.__searchContract);
+              if (beforeConfirmation.starts.length !== 0) {
+                throw new Error(`Navigation started before explicit confirmation: ${JSON.stringify(beforeConfirmation)}`);
+              }
+
+              const confirm = page.locator('.assistant-options .assistant-option-btn[data-value="sim"]').last();
+              await confirm.waitFor({ state: 'visible', timeout: 10000 });
+              await confirm.click();
               await poll(
                 page,
                 () => page.evaluate(() => globalThis.__searchContract?.starts?.length === 1),
-                'navigation port',
+                'confirmed navigation port',
                 10000,
               );
 
@@ -186,6 +206,7 @@ jobs:
                 searchText,
                 selectedValue,
                 detailText,
+                confirmationText: await confirmation.textContent(),
                 navigation,
                 pageErrors,
               };
