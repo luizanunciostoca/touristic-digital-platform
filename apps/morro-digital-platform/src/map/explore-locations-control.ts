@@ -26,10 +26,27 @@ const TOUR_ROUTE_SOURCE = "tour-route-source";
 const TOUR_ROUTE_LAYER = "tour-route-layer";
 const TOUR_ROUTE_OUTLINE = "tour-route-outline";
 
+type ExploreStage = "menu" | "filters" | "places" | "detail" | "tour";
+
 export interface ExploreLocationsCategory {
   readonly value: string;
   readonly label: string;
   readonly count: number;
+}
+
+export type ExploreLocationsCommand =
+  | Readonly<{ type: "open_category"; category: string }>
+  | Readonly<{ type: "apply_option"; value: string }>
+  | Readonly<{ type: "show_all" }>
+  | Readonly<{ type: "show_nearby" }>
+  | Readonly<{ type: "select_place"; place: string }>
+  | Readonly<{ type: "back_to_filters" }>
+  | Readonly<{ type: "back_to_menu" }>;
+
+export interface ExploreLocationsStateSnapshot {
+  readonly category: string | null;
+  readonly stage: ExploreStage;
+  readonly markerCount: number;
 }
 
 export interface ExploreLocationsControlOptions {
@@ -37,6 +54,8 @@ export interface ExploreLocationsControlOptions {
 }
 
 export interface ExploreLocationsControl {
+  execute(command: ExploreLocationsCommand): Promise<boolean>;
+  getState(): ExploreLocationsStateSnapshot;
   close(): void;
   setGeospatialEngine(engine: GeospatialEngine | undefined): void;
   destroy(): void;
@@ -45,8 +64,6 @@ export interface ExploreLocationsControl {
 interface MapboxCompatibilityGlobal {
   readonly mapboxPrimaryInstance?: MapboxGlMapLike;
 }
-
-type ExploreStage = "menu" | "filters" | "places" | "detail" | "tour";
 
 const categoryValues = new Set(
   morroV1SearchCatalog.map((location) => location.category),
@@ -570,6 +587,79 @@ export function installExploreLocationsControl({
     renderFilters();
   };
 
+  const openCategoryByValue = (categoryValue: string): boolean => {
+    const normalized = normalizeSearchText(categoryValue);
+    const category = categories.find(
+      (candidate) => normalizeSearchText(candidate.value) === normalized,
+    );
+    if (!category) return false;
+    const trigger = document.getElementById(
+      getAssistantCategoryButtonId(category.value),
+    );
+    if (!(trigger instanceof HTMLButtonElement)) return false;
+    openCategory(category, trigger);
+    return true;
+  };
+
+  const execute = async (command: ExploreLocationsCommand): Promise<boolean> => {
+    if (command.type === "open_category") {
+      return openCategoryByValue(command.category);
+    }
+
+    if (command.type === "back_to_menu") {
+      backToMenu();
+      return true;
+    }
+
+    if (command.type === "back_to_filters") {
+      if (!activeCategory) return false;
+      renderFilters();
+      return true;
+    }
+
+    if (command.type === "select_place") {
+      const normalized = normalizeSearchText(command.place);
+      const location = morroV1SearchCatalog.find(
+        (candidate) => normalizeSearchText(candidate.name) === normalized,
+      );
+      if (!location) return false;
+      if (activeCategory?.value !== location.category) {
+        if (!openCategoryByValue(location.category)) return false;
+      }
+      await selectLocation(location);
+      return true;
+    }
+
+    if (!activeCategory) return false;
+    const allLocations = getExploreLocationsForCategory(activeCategory.value);
+
+    if (command.type === "show_all") {
+      renderPlaces(
+        allLocations,
+        `${activeCategory.label}: encontrei ${allLocations.length} opções. Escolha um local para ver os detalhes.`,
+      );
+      return true;
+    }
+
+    const flowOptions = getV1ExploreSubcategoryOptions(activeCategory.value);
+    if (command.type === "show_nearby") {
+      const nearby = flowOptions.find((option) => option.action === "nearby");
+      if (!nearby) return false;
+      await applyFlowOption(nearby);
+      return true;
+    }
+
+    const normalized = normalizeSearchText(command.value);
+    const option = flowOptions.find(
+      (candidate) =>
+        normalizeSearchText(candidate.value) === normalized ||
+        normalizeSearchText(candidate.label) === normalized,
+    );
+    if (!option) return false;
+    await applyFlowOption(option);
+    return true;
+  };
+
   for (const category of categories) {
     const button = document.querySelector<HTMLButtonElement>(
       `.assistant-options .assistant-option-btn[data-value="${category.value}"]`,
@@ -639,6 +729,15 @@ export function installExploreLocationsControl({
   );
 
   return Object.freeze({
+    execute,
+    getState: () =>
+      Object.freeze({
+        category: activeCategory?.value ?? null,
+        stage: activeStage,
+        markerCount: Number(
+          document.getElementById("map")?.dataset.mapMarkerCount ?? "0",
+        ),
+      }),
     close: () => backToMenu(),
     setGeospatialEngine(engine: GeospatialEngine | undefined) {
       geospatialEngine = engine;
