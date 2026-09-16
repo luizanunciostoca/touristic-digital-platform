@@ -55,17 +55,19 @@ const COPY: Readonly<Record<RuntimeAccessibilityLocale, RuntimeAccessibilityCopy
       unknownMapboxStartError: "Falha desconhecida ao inicializar o Mapbox.",
       unknownTourError: "Falha desconhecida ao trocar o roteiro.",
       unknownRuntimeError: "Falha desconhecida no runtime.",
-      runtimeReady: (modules, provider) =>
+      runtimeReady: (modules: string, provider: string) =>
         `Runtime ativo: ${modules} — provider ${provider} — Home pronta para explorar.`,
-      mapFallbackUsing: (detail) =>
+      mapFallbackUsing: (detail: string) =>
         `Mapbox indisponível; usando fallback da V1: ${detail}`,
-      mapFallbackRestoring: (detail) =>
+      mapFallbackRestoring: (detail: string) =>
         `Mapbox indisponível; restaurando fallback da V1: ${detail}`,
       tourSwitching: "Atualizando o roteiro exibido no mapa…",
-      tourReady: (count, tourTitle) =>
+      tourReady: (count: number, tourTitle: string) =>
         `Runtime ativo — ${count} ${count === 1 ? "parada" : "paradas"} de ${tourTitle} ${count === 1 ? "carregada" : "carregadas"}.`,
-      tourError: (detail) => `Não foi possível trocar o roteiro: ${detail}`,
-      runtimeError: (detail) => `Falha ao iniciar o Morro Digital: ${detail}`,
+      tourError: (detail: string) =>
+        `Não foi possível trocar o roteiro: ${detail}`,
+      runtimeError: (detail: string) =>
+        `Falha ao iniciar o Morro Digital: ${detail}`,
     }),
     en: Object.freeze({
       tourSelectLabel: "Tour displayed on the map",
@@ -75,17 +77,18 @@ const COPY: Readonly<Record<RuntimeAccessibilityLocale, RuntimeAccessibilityCopy
       unknownMapboxStartError: "Unknown failure while starting Mapbox.",
       unknownTourError: "Unknown failure while changing the tour.",
       unknownRuntimeError: "Unknown runtime failure.",
-      runtimeReady: (modules, provider) =>
+      runtimeReady: (modules: string, provider: string) =>
         `Runtime active: ${modules} — provider ${provider} — Home is ready to explore.`,
-      mapFallbackUsing: (detail) =>
+      mapFallbackUsing: (detail: string) =>
         `Mapbox unavailable; using the V1 fallback: ${detail}`,
-      mapFallbackRestoring: (detail) =>
+      mapFallbackRestoring: (detail: string) =>
         `Mapbox unavailable; restoring the V1 fallback: ${detail}`,
       tourSwitching: "Updating the tour displayed on the map…",
-      tourReady: (count, tourTitle) =>
-        `Runtime active — ${count} ${count === 1 ? "stop" : "stops"} from ${tourTitle} ${count === 1 ? "loaded" : "loaded"}.`,
-      tourError: (detail) => `Could not change the tour: ${detail}`,
-      runtimeError: (detail) => `Could not start Morro Digital: ${detail}`,
+      tourReady: (count: number, tourTitle: string) =>
+        `Runtime active — ${count} ${count === 1 ? "stop" : "stops"} from ${tourTitle} loaded.`,
+      tourError: (detail: string) => `Could not change the tour: ${detail}`,
+      runtimeError: (detail: string) =>
+        `Could not start Morro Digital: ${detail}`,
     }),
     es: Object.freeze({
       tourSelectLabel: "Recorrido mostrado en el mapa",
@@ -95,17 +98,19 @@ const COPY: Readonly<Record<RuntimeAccessibilityLocale, RuntimeAccessibilityCopy
       unknownMapboxStartError: "Fallo desconocido al iniciar Mapbox.",
       unknownTourError: "Fallo desconocido al cambiar el recorrido.",
       unknownRuntimeError: "Fallo desconocido del runtime.",
-      runtimeReady: (modules, provider) =>
+      runtimeReady: (modules: string, provider: string) =>
         `Runtime activo: ${modules} — proveedor ${provider} — Inicio listo para explorar.`,
-      mapFallbackUsing: (detail) =>
+      mapFallbackUsing: (detail: string) =>
         `Mapbox no disponible; usando el fallback de V1: ${detail}`,
-      mapFallbackRestoring: (detail) =>
+      mapFallbackRestoring: (detail: string) =>
         `Mapbox no disponible; restaurando el fallback de V1: ${detail}`,
       tourSwitching: "Actualizando el recorrido mostrado en el mapa…",
-      tourReady: (count, tourTitle) =>
+      tourReady: (count: number, tourTitle: string) =>
         `Runtime activo — ${count} ${count === 1 ? "parada" : "paradas"} de ${tourTitle} ${count === 1 ? "cargada" : "cargadas"}.`,
-      tourError: (detail) => `No se pudo cambiar el recorrido: ${detail}`,
-      runtimeError: (detail) => `No se pudo iniciar Morro Digital: ${detail}`,
+      tourError: (detail: string) =>
+        `No se pudo cambiar el recorrido: ${detail}`,
+      runtimeError: (detail: string) =>
+        `No se pudo iniciar Morro Digital: ${detail}`,
     }),
     he: Object.freeze({
       tourSelectLabel: "המסלול המוצג במפה",
@@ -115,23 +120,27 @@ const COPY: Readonly<Record<RuntimeAccessibilityLocale, RuntimeAccessibilityCopy
       unknownMapboxStartError: "תקלה לא ידועה בהפעלת Mapbox.",
       unknownTourError: "תקלה לא ידועה בהחלפת המסלול.",
       unknownRuntimeError: "תקלה לא ידועה במערכת.",
-      runtimeReady: (modules, provider) =>
+      runtimeReady: (modules: string, provider: string) =>
         `המערכת פעילה: ${modules} — ספק ${provider} — דף הבית מוכן לחקירה.`,
-      mapFallbackUsing: (detail) =>
+      mapFallbackUsing: (detail: string) =>
         `Mapbox אינו זמין; משתמש בפתרון הגיבוי של V1: ${detail}`,
-      mapFallbackRestoring: (detail) =>
+      mapFallbackRestoring: (detail: string) =>
         `Mapbox אינו זמין; משחזר את פתרון הגיבוי של V1: ${detail}`,
       tourSwitching: "מעדכן את המסלול המוצג במפה…",
-      tourReady: (count, tourTitle) =>
+      tourReady: (count: number, tourTitle: string) =>
         count === 1
           ? `המערכת פעילה — תחנה אחת מתוך ${tourTitle} נטענה.`
           : `המערכת פעילה — ${count} תחנות מתוך ${tourTitle} נטענו.`,
-      tourError: (detail) => `לא ניתן להחליף את המסלול: ${detail}`,
-      runtimeError: (detail) => `לא ניתן להפעיל את Morro Digital: ${detail}`,
+      tourError: (detail: string) =>
+        `לא ניתן להחליף את המסלול: ${detail}`,
+      runtimeError: (detail: string) =>
+        `לא ניתן להפעיל את Morro Digital: ${detail}`,
     }),
   });
 
-export function runtimeAccessibilityLocale(locale?: string | null): RuntimeAccessibilityLocale {
+export function runtimeAccessibilityLocale(
+  locale?: string | null,
+): RuntimeAccessibilityLocale {
   return normalizeTourLocale(locale);
 }
 
