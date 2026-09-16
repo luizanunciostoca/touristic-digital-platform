@@ -320,6 +320,7 @@ export function installBrowserAssistantRuntime(
   const sendButton = options.document.getElementById("sendButton");
   const voiceButton = options.document.getElementById("voiceButton");
   let destroyed = false;
+  let requestGeneration = 0;
   let currentPresentation: AssistantPresentationSnapshot | null = null;
 
   const appendStandardMessage = (
@@ -354,11 +355,14 @@ export function installBrowserAssistantRuntime(
     const value = rawInput.trim();
     if (!value) return { text: "Como posso ajudar?" };
 
+    const generation = ++requestGeneration;
     const previousPresentation = currentPresentation;
     clearAssistantDomOptions(options.document);
     removePhotoPresentation(options.document);
     appendStandardMessage("user", value);
     const response = await controller.processUserInput(value);
+    if (destroyed || generation !== requestGeneration) return response;
+
     appendStandardMessage("assistant", response.text);
     const responseOptions =
       optionOverride ?? readAssistantResponseOptions(response);
@@ -494,6 +498,7 @@ export function installBrowserAssistantRuntime(
     destroy(): void {
       if (destroyed) return;
       destroyed = true;
+      requestGeneration += 1;
       sendButton?.removeEventListener("click", onSendClick);
       input?.removeEventListener("keydown", onInputKeyDown);
       voiceButton?.removeEventListener("click", onVoiceClick);
