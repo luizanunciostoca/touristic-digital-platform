@@ -39,6 +39,13 @@ interface RotatableMapboxMarker {
   setRotation?(bearing: number): unknown;
 }
 
+interface V1NavigationMarkerOptions {
+  readonly element: HTMLElement;
+  readonly anchor: "center";
+  readonly rotationAlignment: "map";
+  readonly pitchAlignment: "viewport";
+}
+
 export interface BrowserNavigationWiringOptions {
   readonly map: MapboxGlMapLike;
   readonly sdk: MapboxGlModuleLike;
@@ -104,28 +111,61 @@ function createNavigationUserMarkerElement(): HTMLElement | undefined {
   element.setAttribute("role", "img");
   element.setAttribute("aria-label", "Sua localização");
 
+  const dot = document.createElement("div");
+  dot.className = "user-marker-dot";
+
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   svg.setAttribute("viewBox", "0 0 56 56");
+  svg.setAttribute("width", "56");
+  svg.setAttribute("height", "56");
   svg.setAttribute("aria-hidden", "true");
   svg.setAttribute("focusable", "false");
 
-  const halo = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-  halo.setAttribute("cx", "28");
-  halo.setAttribute("cy", "28");
-  halo.setAttribute("r", "22");
-  halo.setAttribute("fill", "#ffffff");
-  halo.setAttribute("stroke", "#0f4c81");
-  halo.setAttribute("stroke-width", "3");
+  const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+  const filter = document.createElementNS(
+    "http://www.w3.org/2000/svg",
+    "filter",
+  );
+  filter.setAttribute("id", "navigation-user-shadow");
+  filter.setAttribute("x", "-30%");
+  filter.setAttribute("y", "-30%");
+  filter.setAttribute("width", "160%");
+  filter.setAttribute("height", "160%");
 
-  const arrow = document.createElementNS("http://www.w3.org/2000/svg", "path");
-  arrow.setAttribute("d", "M28 6 L44 46 L28 38 L12 46 Z");
-  arrow.setAttribute("fill", "#06b6d4");
-  arrow.setAttribute("stroke", "#0f4c81");
-  arrow.setAttribute("stroke-width", "2");
-  arrow.setAttribute("stroke-linejoin", "round");
+  const shadow = document.createElementNS(
+    "http://www.w3.org/2000/svg",
+    "feDropShadow",
+  );
+  shadow.setAttribute("dx", "0");
+  shadow.setAttribute("dy", "2");
+  shadow.setAttribute("stdDeviation", "3");
+  shadow.setAttribute("flood-color", "rgba(0,0,0,0.5)");
+  filter.appendChild(shadow);
+  defs.appendChild(filter);
 
-  svg.append(halo, arrow);
-  element.appendChild(svg);
+  const circle = document.createElementNS(
+    "http://www.w3.org/2000/svg",
+    "circle",
+  );
+  circle.setAttribute("cx", "28");
+  circle.setAttribute("cy", "28");
+  circle.setAttribute("r", "22");
+  circle.setAttribute("fill", "#e53e3e");
+  circle.setAttribute("stroke", "#ffffff");
+  circle.setAttribute("stroke-width", "3.5");
+  circle.setAttribute("filter", "url(#navigation-user-shadow)");
+
+  const arrow = document.createElementNS(
+    "http://www.w3.org/2000/svg",
+    "polygon",
+  );
+  arrow.setAttribute("points", "28,6 38,34 28,27 18,34");
+  arrow.setAttribute("fill", "#ffffff");
+  arrow.setAttribute("stroke", "none");
+
+  svg.append(defs, circle, arrow);
+  dot.appendChild(svg);
+  element.appendChild(dot);
   return element;
 }
 
@@ -134,9 +174,15 @@ function createPresenterMarker(
   nativeMap: MapboxGlMapLike,
 ): NavigationMapboxMarkerLike {
   const element = createNavigationUserMarkerElement();
-  const marker = new sdk.Marker(
-    element ? { element, anchor: "center" } : undefined,
-  );
+  const markerOptions: V1NavigationMarkerOptions | undefined = element
+    ? {
+        element,
+        anchor: "center",
+        rotationAlignment: "map",
+        pitchAlignment: "viewport",
+      }
+    : undefined;
+  const marker = new sdk.Marker(markerOptions);
   const rotatable = marker as typeof marker & RotatableMapboxMarker;
   const wrapper: NavigationMapboxMarkerLike = {
     setLngLat(position) {

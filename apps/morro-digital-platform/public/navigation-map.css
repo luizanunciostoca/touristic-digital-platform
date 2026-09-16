@@ -1,8 +1,9 @@
 /*
- * Active navigation marker uses the V1 Mapbox user-marker contract. The frozen
- * legacy z-index sheet can promote the map canvas above ordinary Mapbox HTML
- * markers, so keep this specific first-person arrow in the marker overlay.
- * Mapbox owns transform/rotation; never set transform on this root.
+ * V1 first-person user marker contract.
+ *
+ * Mapbox owns the root transform because it contains both projected position and
+ * marker rotation. We only transition that transform so position/bearing changes
+ * glide instead of jumping, matching the V1 behavior.
  */
 #map .mapboxgl-marker.mapbox-user-marker.navigation-user-location-marker {
   position: absolute !important;
@@ -14,12 +15,79 @@
   display: block !important;
   visibility: visible !important;
   opacity: 1 !important;
-  pointer-events: none !important;
+  cursor: default;
+  pointer-events: auto !important;
+  transform-origin: center center;
+  transition: transform 0.3s ease-out;
+  will-change: transform;
+  filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.5));
 }
 
-#map .navigation-user-location-marker > svg {
+#map .navigation-user-location-marker .user-marker-dot {
+  position: relative;
+  display: flex;
+  width: 56px;
+  height: 56px;
+  align-items: center;
+  justify-content: center;
+}
+
+#map .navigation-user-location-marker .user-marker-dot > svg {
   display: block !important;
   width: 56px !important;
   height: 56px !important;
   overflow: visible;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+}
+
+/* V1 pulse around the user marker. */
+#map .mapbox-user-marker.navigation-user-location-marker::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(229, 62, 62, 0.35);
+  transform: translate(-50%, -50%);
+  animation: navigation-user-pulse 2s ease-out infinite;
+  pointer-events: none;
+}
+
+/*
+ * V1 disables the expanding pulse during first-person navigation so the arrow
+ * stays visually stable while the map rotates underneath it. V2 uses
+ * `navigation-active` as the canonical equivalent of V1's
+ * `mapbox-first-person-active` body state.
+ */
+body.navigation-active
+  #map
+  .mapbox-user-marker.navigation-user-location-marker::before {
+  animation: none !important;
+  opacity: 0.12 !important;
+  transform: translate(-50%, -50%) scale(1.15) !important;
+}
+
+@keyframes navigation-user-pulse {
+  0% {
+    transform: translate(-50%, -50%) scale(0.8);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(2.2);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #map .mapboxgl-marker.mapbox-user-marker.navigation-user-location-marker {
+    transition: none;
+  }
+
+  #map .mapbox-user-marker.navigation-user-location-marker::before {
+    animation: none;
+    opacity: 0.12;
+    transform: translate(-50%, -50%) scale(1.15);
+  }
 }
