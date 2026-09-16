@@ -17,6 +17,7 @@ import {
   installAssistantNavigationFeedback,
   type AssistantNavigationFeedback,
 } from "../assistant/assistant-navigation-feedback.js";
+import { getMorroDigitalApplication } from "../main.js";
 import type { BrowserLocation } from "./browser-geolocation.js";
 import {
   createNavigationContextualSuggestions,
@@ -278,6 +279,7 @@ export function installBrowserNavigationRuntime(
   const assistant = installAssistant({
     document: options.document,
     navigation: activeLifecycle,
+    explore: getMorroDigitalApplication(options.document)?.exploreLocations,
   });
   const assistantFeedback = installAssistantFeedback(options.document);
   let destroyed = false;
