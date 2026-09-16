@@ -60,6 +60,7 @@ jobs:
               page.on('pageerror', (error) => pageErrors.push(error.message));
 
               await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded', timeout: 30000 });
+              await page.locator('#map[data-map-state="ready"]').waitFor({ state: 'attached', timeout: 20000 });
               const trigger = page.locator('.mood-button[data-assistant-shell-ready="true"]');
               await trigger.waitFor({ state: 'visible', timeout: 15000 });
               await trigger.click();
