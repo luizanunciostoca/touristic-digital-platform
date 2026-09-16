@@ -112,13 +112,28 @@ jobs:
               const send = page.locator('#sendButton');
               await input.waitFor({ state: 'visible', timeout: 5000 });
 
+              async function waitUntil(check, label, timeout = 8000) {
+                const deadline = Date.now() + timeout;
+                let lastError = null;
+                while (Date.now() < deadline) {
+                  try {
+                    if (await check()) return;
+                  } catch (error) {
+                    lastError = error;
+                  }
+                  await page.waitForTimeout(100);
+                }
+                const suffix = lastError instanceof Error ? `: ${lastError.message}` : '';
+                throw new Error(`${label} timed out${suffix}`);
+              }
+
               async function submit(text) {
                 await input.fill(text);
                 await send.click();
-                await page.waitForFunction(() => {
-                  const node = document.getElementById('assistantInput');
-                  return node instanceof HTMLInputElement && node.value === '';
-                });
+                await waitUntil(
+                  async () => (await input.inputValue()) === '',
+                  `input reset after ${text}`,
+                );
               }
 
               async function openPlace(category, place) {
@@ -139,23 +154,18 @@ jobs:
               async function expectAction(inputText, action, expectedText) {
                 const before = await page.evaluate(() => globalThis.__placeActionRoutes.length);
                 await submit(inputText);
-                await page.waitForFunction(
-                  ({ expectedText }) => {
-                    const messages = Array.from(
-                      document.querySelectorAll('#assistant-messages .message.assistant'),
-                    );
-                    return messages.at(-1)?.textContent?.includes(expectedText) === true;
-                  },
-                  { expectedText },
-                  { timeout: 8000 },
-                );
-                await page.waitForFunction(
-                  ({ before, action }) => {
-                    const routes = globalThis.__placeActionRoutes || [];
-                    return routes.length > before && routes.at(-1)?.action === action;
-                  },
-                  { before, action },
-                  { timeout: 8000 },
+                await page.locator('#assistant-messages .message.assistant', {
+                  hasText: expectedText,
+                }).last().waitFor({ state: 'visible', timeout: 8000 });
+                await waitUntil(
+                  () => page.evaluate(
+                    ({ before, action }) => {
+                      const routes = globalThis.__placeActionRoutes || [];
+                      return routes.length > before && routes.at(-1)?.action === action;
+                    },
+                    { before, action },
+                  ),
+                  `deterministic route ${action}`,
                 );
               }
 
