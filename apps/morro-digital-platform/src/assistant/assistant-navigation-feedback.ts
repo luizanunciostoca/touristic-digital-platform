@@ -99,21 +99,32 @@ export function installAssistantNavigationFeedback(
     restoreTimer = undefined;
   };
 
+  const preparePostNavigationSurface = (): void => {
+    ensureAssistantVisible(document);
+    resetCategorySurface(document);
+    clearAssistantDomOptions(document);
+  };
+
+  const showNavigationFeedback = (
+    reason: FeedbackReason,
+    destination: string,
+    messageType: "navigation-status" | "navigation-feedback",
+  ): void => {
+    messages.append({
+      sender: "assistant",
+      html: feedbackText(document, reason, destination),
+      messageType,
+    });
+  };
+
   const restoreMainMenu = (
     reason: FeedbackReason,
     destination: string,
   ): void => {
     if (destroyed) return;
 
-    ensureAssistantVisible(document);
-    resetCategorySurface(document);
-    clearAssistantDomOptions(document);
-
-    messages.append({
-      sender: "assistant",
-      html: feedbackText(document, reason, destination),
-      messageType: "navigation-feedback",
-    });
+    preparePostNavigationSurface();
+    showNavigationFeedback(reason, destination, "navigation-feedback");
   };
 
   const onNavigationStarted = (): void => {
@@ -128,6 +139,13 @@ export function installAssistantNavigationFeedback(
 
     clearRestoreTimer();
     const destination = destinationFromDetail(event.detail);
+
+    // Preserve V2's immediate completion feedback while matching V1's delayed
+    // menu restoration. This also clears any stale detail/category surface
+    // before the final main menu is exposed again.
+    preparePostNavigationSurface();
+    showNavigationFeedback(reason, destination, "navigation-status");
+
     if (view) {
       restoreTimer = view.setTimeout(() => {
         restoreTimer = undefined;
