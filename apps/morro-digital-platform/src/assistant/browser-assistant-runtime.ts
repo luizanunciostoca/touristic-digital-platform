@@ -7,8 +7,12 @@ import {
   type AssistantInterestCategory,
 } from "@touristic/assistant";
 
-import type { ExploreLocationsControl } from "../map/explore-locations-control.js";
+import type {
+  ExploreLocationsCommand,
+  ExploreLocationsControl,
+} from "../map/explore-locations-control.js";
 import type { NavigationSessionBootstrap } from "../navigation/navigation-session-bootstrap.js";
+import { fetchMorroWeather } from "../weather/weather-widget.js";
 import { createAssistantLlmHandler } from "./assistant-llm-adapter.js";
 import { createAssistantV1IntelligenceHandlers } from "./assistant-v1-intelligence-adapter.js";
 import { createAssistantBrowserDomainHandlers } from "./assistant-domain-adapter.js";
@@ -140,6 +144,62 @@ function readRuntimeAction(response: AssistantDialogResponse): string | null {
   const metadata = response.metadata;
   if (!metadata || typeof metadata !== "object") return null;
   return typeof metadata.action === "string" ? metadata.action : null;
+}
+
+function readDeterministicExploreCommands(
+  response: AssistantDialogResponse,
+): readonly ExploreLocationsCommand[] {
+  const metadata = response.metadata;
+  if (
+    !metadata ||
+    typeof metadata !== "object" ||
+    metadata.deterministic !== true ||
+    metadata.fromLLM === true ||
+    !Array.isArray(metadata.exploreCommands)
+  ) {
+    return [];
+  }
+
+  const commands: ExploreLocationsCommand[] = [];
+  for (const raw of metadata.exploreCommands) {
+    if (!raw || typeof raw !== "object" || !("type" in raw)) return [];
+    const type = raw.type;
+    if (
+      type === "open_category" &&
+      "category" in raw &&
+      typeof raw.category === "string"
+    ) {
+      commands.push({ type, category: raw.category });
+      continue;
+    }
+    if (
+      type === "apply_option" &&
+      "value" in raw &&
+      typeof raw.value === "string"
+    ) {
+      commands.push({ type, value: raw.value });
+      continue;
+    }
+    if (
+      type === "show_all" ||
+      type === "show_nearby" ||
+      type === "back_to_filters" ||
+      type === "back_to_menu"
+    ) {
+      commands.push({ type });
+      continue;
+    }
+    if (
+      type === "select_place" &&
+      "place" in raw &&
+      typeof raw.place === "string"
+    ) {
+      commands.push({ type, place: raw.place });
+      continue;
+    }
+    return [];
+  }
+  return Object.freeze(commands);
 }
 
 function appendPhotoCarousel(
@@ -325,6 +385,20 @@ export function installBrowserAssistantRuntime(
   });
   const intelligenceHandlers = createAssistantV1IntelligenceHandlers({
     profile,
+    getWeather: async () => {
+      try {
+        const reading = await fetchMorroWeather(
+          options.fetch ?? globalThis.fetch,
+        );
+        return {
+          temp: reading.temperatureCelsius,
+          precipprob: reading.rainChancePercent,
+          condition: String(reading.weatherCode),
+        };
+      } catch {
+        return null;
+      }
+    },
   });
   const controller = createAssistantDialogController({
     context,
@@ -594,8 +668,21 @@ export function installBrowserAssistantRuntime(
     }
 
     const runtimeAction = readRuntimeAction(response);
+    const deterministicCommands = readDeterministicExploreCommands(response);
     let actionExecuted = false;
-    if (runtimeAction) {
+    if (deterministicCommands.length > 0 && options.explore) {
+      actionExecuted = true;
+      for (const command of deterministicCommands) {
+        const executed = await options.explore.execute(command);
+        if (destroyed || generation !== requestGeneration) {
+          return supersededResponse();
+        }
+        if (!executed) {
+          actionExecuted = false;
+          break;
+        }
+      }
+    } else if (runtimeAction) {
       if (options.explore) {
         const command = resolveAssistantRuntimeAction(runtimeAction);
         actionExecuted = command
@@ -612,7 +699,16 @@ export function installBrowserAssistantRuntime(
       syncExploreContext();
       options.document.dispatchEvent(
         new CustomEvent("morro:assistant-action-executed", {
-          detail: { action: runtimeAction, source: "llm" },
+          detail:
+            deterministicCommands.length > 0
+              ? { commands: deterministicCommands, source: "deterministic" }
+              : {
+                  action: runtimeAction,
+                  source:
+                    response.metadata?.fromLLM === true
+                      ? "llm"
+                      : "deterministic",
+                },
         }),
       );
     }
