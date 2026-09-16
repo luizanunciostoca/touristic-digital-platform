@@ -79,6 +79,10 @@ const PLACE_AWAITING_INTENTS = new Set<AssistantIntentResult["intent"]>([
   "navigate",
 ]);
 
+const CATEGORY_AWAITING_INTENTS = new Set<AssistantIntentResult["intent"]>([
+  "nearby",
+]);
+
 const AWAITING_INTERRUPT_INTENTS = new Set<AssistantIntentResult["intent"]>([
   "cancel_navigation",
   "deny",
@@ -108,12 +112,11 @@ function toIntentContext(context: AssistantContext) {
 
 function requestedAwaitingIntent(
   awaiting: AssistantAwaitingState | null,
+  allowed: ReadonlySet<AssistantIntentResult["intent"]>,
 ): AssistantIntentResult["intent"] | null {
   const candidate = awaiting?.intent;
   if (typeof candidate !== "string") return null;
-  return PLACE_AWAITING_INTENTS.has(
-    candidate as AssistantIntentResult["intent"],
-  )
+  return allowed.has(candidate as AssistantIntentResult["intent"])
     ? (candidate as AssistantIntentResult["intent"])
     : null;
 }
@@ -144,13 +147,31 @@ function resolveIntentForContext(
   }
 
   if (awaiting.type === "awaiting_place") {
-    const requested = requestedAwaitingIntent(awaiting);
+    const requested = requestedAwaitingIntent(awaiting, PLACE_AWAITING_INTENTS);
     if (!requested || inputLooksLikeExplicitCategory) return analyzed;
     return {
       ...analyzed,
       intent: requested,
       confidence: Math.max(analyzed.confidence, 0.95),
       entities: { ...analyzed.entities, place: input.trim() },
+      requiresLLM: false,
+      contextual: true,
+    };
+  }
+
+  if (awaiting.type === "awaiting_category") {
+    const requested = requestedAwaitingIntent(
+      awaiting,
+      CATEGORY_AWAITING_INTENTS,
+    );
+    const category =
+      analyzed.entities.category ?? CATEGORY_BY_INTENT[analyzed.intent] ?? null;
+    if (!requested || !category) return analyzed;
+    return {
+      ...analyzed,
+      intent: requested,
+      confidence: Math.max(analyzed.confidence, 0.95),
+      entities: { ...analyzed.entities, category },
       requiresLLM: false,
       contextual: true,
     };
