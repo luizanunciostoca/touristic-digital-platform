@@ -110,7 +110,10 @@ describe("V1 navigation user marker parity", () => {
 
     let markerOptions: unknown;
     class Marker implements MapboxGlMarkerLike {
-      constructor(options?: { readonly element?: HTMLElement; readonly anchor?: string }) {
+      constructor(options?: {
+        readonly element?: HTMLElement;
+        readonly anchor?: string;
+      }) {
         markerOptions = options;
       }
       setLngLat(): MapboxGlMarkerLike {
