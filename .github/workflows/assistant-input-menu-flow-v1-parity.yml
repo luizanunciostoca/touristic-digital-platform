@@ -164,6 +164,19 @@ jobs:
                 throw new Error('Typed back-to-main-menu left the category flow visible');
               }
 
+              await submit('quero uma praia tranquila para crianças');
+              await page.locator('#assistant-category-results[data-category="beaches"][data-stage="places"]').waitFor({ state: 'visible', timeout: 8000 });
+              const familyState = await page.evaluate(() => ({
+                places: document.querySelectorAll('#assistant-category-results [data-location-name]').length,
+                markers: Number(document.getElementById('map')?.dataset.mapMarkerCount || 0),
+              }));
+              if (familyState.places < 1 || familyState.places >= 8 || familyState.places !== familyState.markers) {
+                throw new Error(`Compound V1 family filter did not execute semantically: ${JSON.stringify(familyState)}`);
+              }
+
+              await submit('back to main menu');
+              await page.locator('.assistant-options [data-explore-category="beaches"]').waitFor({ state: 'visible', timeout: 5000 });
+
               await submit('praias');
               await page.locator('#assistant-category-results[data-category="beaches"][data-stage="filters"]').waitFor({ state: 'visible' });
               await waitStage('beaches', 'filters', 8);
