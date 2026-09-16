@@ -11,8 +11,9 @@ type FeedbackReason = "arrived" | "cancelled";
 const V1_POST_NAVIGATION_MENU_DELAY_MS = 600;
 const CATEGORY_FLOW_RESULTS_ID = "assistant-category-results";
 const CATEGORY_FLOW_MESSAGE_ID = "assistant-category-results-message";
-const MAIN_MENU_REQUEST_EVENT = "morro:assistant-main-menu-requested";
 const NAVIGATION_REQUEST_EVENT = "morro:navigation-requested";
+const ASSISTANT_OPTION_SELECTED_EVENT = "morro:assistant-option-selected";
+const BACK_TO_MAIN_MENU_VALUE = "voltar ao menu principal";
 const COORDINATE_DESTINATION_PATTERN =
   /^-?\d{1,2}(?:\.\d+)?\s*,\s*-?\d{1,3}(?:\.\d+)?$/u;
 
@@ -71,7 +72,14 @@ function showMainCategoryMenu(document: Document): void {
 }
 
 function resetCategorySurface(document: Document): void {
-  document.dispatchEvent(new CustomEvent(MAIN_MENU_REQUEST_EVENT));
+  // Reuse Explore's canonical back-to-menu ingress instead of only deleting
+  // rendered nodes. This clears the controller's active category/stage so an
+  // async nearby lookup cannot recreate stale results after navigation ends.
+  document.dispatchEvent(
+    new CustomEvent(ASSISTANT_OPTION_SELECTED_EVENT, {
+      detail: { value: BACK_TO_MAIN_MENU_VALUE },
+    }),
+  );
   document.getElementById(CATEGORY_FLOW_RESULTS_ID)?.remove();
   document.getElementById(CATEGORY_FLOW_MESSAGE_ID)?.remove();
 
