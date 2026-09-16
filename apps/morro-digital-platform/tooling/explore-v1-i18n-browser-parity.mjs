@@ -415,6 +415,23 @@ try {
     "en restaurant secondary canonical values",
   );
 
+  // Leave the active Explore detail before asserting the generic runtime status.
+  // While a place is selected, Explore intentionally owns #runtime-status and
+  // must survive language changes; that contract is verified above with
+  // Primeira Praia. Re-enter the category flow and Escape back to the main menu
+  // so the runtime owns the status again for the HE accessibility assertion.
+  await page.evaluate(() => {
+    const category = document.getElementById("assistant-category-restaurants");
+    if (!(category instanceof HTMLButtonElement)) {
+      throw new Error("restaurants category button missing");
+    }
+    category.click();
+  });
+  await page
+    .locator('#assistant-category-results[data-stage="filters"]')
+    .waitFor({ state: "visible" });
+  await page.keyboard.press("Escape");
+
   await setLanguage(page, "he");
   await waitRuntimeAccessibility(page, "he", runtimeAccessibility.he);
   await page.evaluate(() => {
