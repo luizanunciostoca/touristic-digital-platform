@@ -37,8 +37,13 @@ export interface AssistantGeolocationPort {
   ): void;
 }
 
+type AssistantProfileManager = ReturnType<
+  typeof createAssistantUserProfileManager
+>;
+
 export interface AssistantBrowserDomainAdapterOptions {
   readonly storage?: AssistantProfileStorage;
+  readonly profile?: AssistantProfileManager;
   readonly geolocation?: AssistantGeolocationPort;
   readonly fetch?: typeof globalThis.fetch;
   readonly mapboxAccessToken?: string;
@@ -223,18 +228,61 @@ async function getPlaceHours(
   };
 }
 
+function conversationResponse(
+  language: AssistantDomainLanguage,
+  kind: "greeting" | "thanks" | "confirm" | "deny",
+): AssistantDialogResponse {
+  const text = {
+    pt: {
+      greeting: "Olá! Posso te ajudar a explorar Morro de São Paulo. O que você quer descobrir?",
+      thanks: "Por nada! Se quiser, posso continuar te ajudando com lugares, clima, fotos ou rotas.",
+      confirm: "Certo. Como posso continuar te ajudando?",
+      deny: "Tudo bem. O que você gostaria de fazer agora?",
+    },
+    en: {
+      greeting: "Hi! I can help you explore Morro de São Paulo. What would you like to discover?",
+      thanks: "You're welcome! I can keep helping with places, weather, photos or routes.",
+      confirm: "Sure. How can I keep helping?",
+      deny: "No problem. What would you like to do now?",
+    },
+    es: {
+      greeting: "¡Hola! Puedo ayudarte a explorar Morro de São Paulo. ¿Qué quieres descubrir?",
+      thanks: "¡De nada! Puedo seguir ayudándote con lugares, clima, fotos o rutas.",
+      confirm: "Perfecto. ¿Cómo puedo seguir ayudándote?",
+      deny: "Está bien. ¿Qué te gustaría hacer ahora?",
+    },
+    he: {
+      greeting: "שלום! אני יכול לעזור לך לחקור את מורו דה סאו פאולו. מה תרצה לגלות?",
+      thanks: "בשמחה! אני יכול להמשיך לעזור עם מקומות, מזג אוויר, תמונות או מסלולים.",
+      confirm: "בסדר. איך אוכל להמשיך לעזור?",
+      deny: "אין בעיה. מה תרצה לעשות עכשיו?",
+    },
+  } as const;
+  const help = helpResponse(language);
+  return {
+    text: text[language][kind],
+    options: [...help.options],
+    metadata: { domain: "conversation", state: kind },
+  };
+}
+
 export function createAssistantBrowserDomainHandlers(
   options: AssistantBrowserDomainAdapterOptions = {},
 ): Partial<Record<string, AssistantDialogIntentHandler>> {
-  const profile = createAssistantUserProfileManager(
-    options.storage ? { storage: options.storage } : {},
-  );
+  const profile =
+    options.profile ??
+    createAssistantUserProfileManager(
+      options.storage ? { storage: options.storage } : {},
+    );
   const fetchImplementation = options.fetch ?? globalThis.fetch;
 
   const domainHandlers = createAssistantDomainHandlers({
     copy: {
       askPlace: (intent, request) => ({
-        text: askPlaceCopy(request.intent.entities.language ?? "pt", intent),
+        text: askPlaceCopy(
+          request.intent.entities.language ?? "pt",
+          intent === "open_now" ? "hours" : intent,
+        ),
         metadata: { domain: intent, state: "awaiting_place" },
       }),
     },
@@ -302,8 +350,17 @@ export function createAssistantBrowserDomainHandlers(
     },
   });
 
+  const conversational = (
+    kind: "greeting" | "thanks" | "confirm" | "deny",
+  ): AssistantDialogIntentHandler => (request) =>
+    conversationResponse(request.intent.entities.language ?? "pt", kind);
+
   return {
     ...domainHandlers,
+    greeting: conversational("greeting"),
+    thanks: conversational("thanks"),
+    confirm: conversational("confirm"),
+    deny: conversational("deny"),
     place_search: createAssistantSearchHandler({
       ...(options.fetch ? { fetch: options.fetch } : {}),
       ...(options.mapboxAccessToken
