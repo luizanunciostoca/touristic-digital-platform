@@ -162,13 +162,16 @@ async function readDynamic(page) {
   const containers = page.locator(
     ".assistant-options:not(#assistant-category-results):not(:has([data-explore-category]))",
   );
-  const count = await containers.count();
-  return count > 0
-    ? readOptions(
-        page,
-        `.assistant-options:not(#assistant-category-results):not(:has([data-explore-category])):nth-of-type(${count})`,
-      )
-    : { labels: [], values: [] };
+  if ((await containers.count()) === 0) return { labels: [], values: [] };
+  const options = containers.last().locator(".assistant-option-btn");
+  return {
+    labels: await options
+      .allTextContents()
+      .then((items) => items.map((item) => item.trim())),
+    values: await options.evaluateAll((buttons) =>
+      buttons.map((button) => button.getAttribute("data-value")),
+    ),
+  };
 }
 
 const browser = await chromium.launch({ headless: true });
