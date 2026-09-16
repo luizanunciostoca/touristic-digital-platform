@@ -48,6 +48,11 @@ interface AssistantPhotoPresentation {
   readonly images: readonly string[];
 }
 
+interface AssistantPresentationSnapshot {
+  readonly text: string;
+  readonly options: readonly AssistantDomOption[];
+}
+
 function getMessagesArea(document: Document): HTMLElement | null {
   return document.querySelector<HTMLElement>(
     "#assistant-messages .messages-area",
@@ -76,6 +81,13 @@ function readPhotoPresentation(
     : [];
   if (images.length === 0) return null;
   return { place: metadata.place, images };
+}
+
+function isPhotoResponse(response: AssistantDialogResponse): boolean {
+  const metadata = response.metadata;
+  return Boolean(
+    metadata && typeof metadata === "object" && metadata.domain === "photos",
+  );
 }
 
 function appendPhotoCarousel(
@@ -109,6 +121,68 @@ function appendPhotoCarousel(
   container.appendChild(track);
   messagesArea.appendChild(container);
   messagesArea.scrollTop = messagesArea.scrollHeight;
+}
+
+function removePhotoPresentation(document: Document): void {
+  const area = getMessagesArea(document);
+  if (!area) return;
+  for (const element of Array.from(
+    area.querySelectorAll<HTMLElement>(
+      ".assistant-photo-carousel, .assistant-photo-back-options",
+    ),
+  )) {
+    element.remove();
+  }
+}
+
+function photoBackLabel(document: Document): string {
+  const language = normalizeAssistantVoiceLanguage(
+    document.documentElement.lang,
+  );
+  return {
+    pt: "⬅️ Voltar",
+    en: "⬅️ Back",
+    es: "⬅️ Volver",
+    he: "⬅️ חזרה",
+  }[language];
+}
+
+function appendPhotoBackOption(document: Document, onBack: () => void): void {
+  const area = getMessagesArea(document);
+  if (!area) return;
+
+  const container = document.createElement("div");
+  container.className = "assistant-options assistant-photo-back-options";
+  container.dataset.presentation = "photo-back";
+  container.setAttribute("role", "group");
+  container.setAttribute("aria-label", photoBackLabel(document));
+
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "assistant-option-btn assistant-photo-back-btn";
+  button.dataset.value = "photo-back";
+  button.textContent = photoBackLabel(document);
+  button.addEventListener("click", () => {
+    container.remove();
+    button.blur();
+    onBack();
+  });
+
+  container.appendChild(button);
+  area.appendChild(container);
+  area.scrollTop = area.scrollHeight;
+}
+
+function snapshotPresentation(
+  text: string,
+  options: readonly AssistantDomOption[],
+): AssistantPresentationSnapshot {
+  return Object.freeze({
+    text,
+    options: Object.freeze(
+      options.map(({ label, value }) => Object.freeze({ label, value })),
+    ),
+  });
 }
 
 function readOptionOverride(
@@ -246,6 +320,8 @@ export function installBrowserAssistantRuntime(
   const sendButton = options.document.getElementById("sendButton");
   const voiceButton = options.document.getElementById("voiceButton");
   let destroyed = false;
+  let requestGeneration = 0;
+  let currentPresentation: AssistantPresentationSnapshot | null = null;
 
   const appendStandardMessage = (
     sender: "user" | "assistant",
@@ -254,31 +330,72 @@ export function installBrowserAssistantRuntime(
     messages.append({ sender, html: text, messageType: "standard" });
   };
 
+  const restorePresentation = (
+    presentation: AssistantPresentationSnapshot,
+  ): void => {
+    if (destroyed) return;
+    clearAssistantDomOptions(options.document);
+    removePhotoPresentation(options.document);
+    messages.append({
+      sender: "assistant",
+      html: presentation.text,
+      messageType: "standard",
+      priority: "high",
+    });
+    if (presentation.options.length > 0) {
+      renderAssistantDomOptions(options.document, presentation.options);
+    }
+    currentPresentation = presentation;
+  };
+
   const processInput = async (
     rawInput: string,
     optionOverride?: readonly AssistantDomOption[],
   ): Promise<AssistantDialogResponse> => {
     const value = rawInput.trim();
     if (!value) return { text: "Como posso ajudar?" };
+
+    const generation = ++requestGeneration;
+    const previousPresentation = currentPresentation;
     clearAssistantDomOptions(options.document);
+    removePhotoPresentation(options.document);
     appendStandardMessage("user", value);
     const response = await controller.processUserInput(value);
+    if (destroyed || generation !== requestGeneration) return response;
+
     appendStandardMessage("assistant", response.text);
     const responseOptions =
       optionOverride ?? readAssistantResponseOptions(response);
-    if (responseOptions.length > 0) {
-      renderAssistantDomOptions(options.document, responseOptions);
+    const photoPresentation = readPhotoPresentation(response);
+    const photoResponse = isPhotoResponse(response);
+
+    if (photoPresentation) {
+      appendPhotoCarousel(options.document, photoPresentation);
     }
+
+    if (photoResponse) {
+      if (previousPresentation && previousPresentation.options.length > 0) {
+        appendPhotoBackOption(options.document, () => {
+          restorePresentation(previousPresentation);
+        });
+      }
+      currentPresentation = snapshotPresentation(response.text, []);
+    } else {
+      if (responseOptions.length > 0) {
+        renderAssistantDomOptions(options.document, responseOptions);
+      }
+      currentPresentation = snapshotPresentation(
+        response.text,
+        responseOptions,
+      );
+    }
+
     const voicePreferences = voice?.getPreferences();
     voice?.speak(
       response.text,
       voicePreferences?.language ??
         normalizeAssistantVoiceLanguage(options.document.documentElement.lang),
     );
-    const photoPresentation = readPhotoPresentation(response);
-    if (photoPresentation) {
-      appendPhotoCarousel(options.document, photoPresentation);
-    }
     return response;
   };
 
@@ -381,6 +498,7 @@ export function installBrowserAssistantRuntime(
     destroy(): void {
       if (destroyed) return;
       destroyed = true;
+      requestGeneration += 1;
       sendButton?.removeEventListener("click", onSendClick);
       input?.removeEventListener("keydown", onInputKeyDown);
       voiceButton?.removeEventListener("click", onVoiceClick);
