@@ -94,6 +94,13 @@ const AWAITING_INTERRUPT_INTENTS = new Set<AssistantIntentResult["intent"]>([
   "my_location",
 ]);
 
+const NAVIGATION_TERMINAL_STATES = new Set([
+  "started",
+  "declined",
+  "cancelled",
+  "destination_not_found",
+]);
+
 function defaultDialogResponse(): AssistantDialogResponse {
   return { text: "Como posso ajudar?" };
 }
@@ -218,7 +225,61 @@ function responseAwaitingState(
   if (metadata.navigation === "awaiting_destination") {
     return { type: "awaiting_destination", intent: "navigate" };
   }
+  if (metadata.navigation === "awaiting_confirmation") {
+    return { type: "confirmar_navegacao", intent: "navigate" };
+  }
   return null;
+}
+
+function isPendingRoute(value: unknown): boolean {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Record<string, unknown>;
+  return (
+    typeof candidate.name === "string" &&
+    candidate.name.trim().length > 0 &&
+    typeof candidate.latitude === "number" &&
+    Number.isFinite(candidate.latitude) &&
+    candidate.latitude >= -90 &&
+    candidate.latitude <= 90 &&
+    typeof candidate.longitude === "number" &&
+    Number.isFinite(candidate.longitude) &&
+    candidate.longitude >= -180 &&
+    candidate.longitude <= 180
+  );
+}
+
+function deriveResponseContextUpdate(
+  response: AssistantDialogResponse,
+  intent: AssistantIntentResult,
+  context: AssistantContext,
+): Partial<AssistantContext> {
+  const updates = deriveContextUpdate(intent);
+  const awaiting = responseAwaitingState(response, intent);
+  const metadata = response.metadata;
+
+  if (awaiting) {
+    updates.awaiting = awaiting;
+  } else if (context.awaiting) {
+    updates.awaiting = null;
+  }
+
+  if (
+    metadata?.navigation === "awaiting_confirmation" &&
+    isPendingRoute(metadata.pendingRoute)
+  ) {
+    updates.pendingRoute = metadata.pendingRoute;
+    updates.selectedDestination = metadata.pendingRoute;
+  } else if (
+    typeof metadata?.navigation === "string" &&
+    NAVIGATION_TERMINAL_STATES.has(metadata.navigation)
+  ) {
+    updates.pendingRoute = null;
+    if (metadata.navigation !== "started") {
+      updates.selectedDestination = null;
+    }
+  }
+
+  return updates;
 }
 
 export function createAssistantDialogController(
@@ -262,15 +323,9 @@ export function createAssistantDialogController(
 
         if (!response) response = defaultResponse();
 
-        const awaiting = responseAwaitingState(response, intent);
-        options.context.updateContext({
-          ...deriveContextUpdate(intent),
-          ...(awaiting
-            ? { awaiting }
-            : context.awaiting
-              ? { awaiting: null }
-              : {}),
-        });
+        options.context.updateContext(
+          deriveResponseContextUpdate(response, intent, context),
+        );
         options.context.addToHistory({ input, response: response.text });
 
         return response;
