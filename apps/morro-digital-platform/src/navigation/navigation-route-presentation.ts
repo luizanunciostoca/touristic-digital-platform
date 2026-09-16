@@ -23,8 +23,8 @@ function hasRouteFeatures(routeData: unknown): routeData is Readonly<{
   features: readonly unknown[];
 }> {
   if (!routeData || typeof routeData !== "object") return false;
-  const features = Reflect.get(routeData, "features");
-  return Array.isArray(features) && features.length > 0;
+  const candidate = routeData as Readonly<{ features?: unknown }>;
+  return Array.isArray(candidate.features) && candidate.features.length > 0;
 }
 
 export function clearNavigationRoute(map: MapboxGlMapLike): void {
