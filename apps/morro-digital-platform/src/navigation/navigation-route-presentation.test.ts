@@ -34,7 +34,7 @@ function setupMap() {
   const layers = new Set<string>();
   const addSource = vi.fn((id: string) => sources.add(id));
   const addLayer = vi.fn((layer: unknown) => {
-    const id = Reflect.get(layer as object, "id");
+    const id = (layer as Readonly<{ id?: unknown }>).id;
     if (typeof id === "string") layers.add(id);
   });
   const removeSource = vi.fn((id: string) => sources.delete(id));
@@ -62,8 +62,8 @@ describe("navigation route presentation", () => {
       expect.objectContaining({ type: "geojson" }),
     );
     expect(
-      fixture.addLayer.mock.calls.map(([layer]) =>
-        Reflect.get(layer as object, "id"),
+      fixture.addLayer.mock.calls.map(
+        ([layer]) => (layer as Readonly<{ id?: unknown }>).id,
       ),
     ).toEqual([NAVIGATION_ROUTE_OUTLINE, NAVIGATION_ROUTE_LAYER]);
   });
