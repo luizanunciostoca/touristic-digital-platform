@@ -102,7 +102,12 @@ describe("assistant V1 dialog controller orchestration", () => {
 
   it("persists awaiting_place and routes the next turn to the requested intent", async () => {
     const photos = vi
-      .fn<(request: AssistantDialogIntentHandlerContext) => { text: string; metadata?: Record<string, unknown> }>()
+      .fn<
+        (request: AssistantDialogIntentHandlerContext) => {
+          text: string;
+          metadata?: Record<string, unknown>;
+        }
+      >()
       .mockImplementationOnce(() => ({
         text: "De qual local você quer ver fotos?",
         metadata: { domain: "photos", state: "awaiting_place" },
@@ -137,7 +142,12 @@ describe("assistant V1 dialog controller orchestration", () => {
 
   it("persists an awaiting destination and treats the next free-text turn as the destination", async () => {
     const navigate = vi
-      .fn<(request: AssistantDialogIntentHandlerContext) => { text: string; metadata?: Record<string, unknown> }>()
+      .fn<
+        (request: AssistantDialogIntentHandlerContext) => {
+          text: string;
+          metadata?: Record<string, unknown>;
+        }
+      >()
       .mockImplementationOnce(() => ({
         text: "Para onde você quer ir?",
         metadata: { navigation: "awaiting_destination" },
