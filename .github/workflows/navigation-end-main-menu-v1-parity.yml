@@ -1,0 +1,228 @@
+name: Navigation End Main Menu V1 Parity
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/navigation-end-main-menu-v1-parity.yml
+      - apps/morro-digital-platform/src/assistant/assistant-navigation-feedback.ts
+      - apps/morro-digital-platform/src/assistant/assistant-single-message-controller.ts
+      - apps/morro-digital-platform/src/assistant/assistant-dom-view.ts
+      - apps/morro-digital-platform/src/map/explore-locations-control.ts
+      - apps/morro-digital-platform/src/navigation/**
+      - apps/morro-digital-platform/src/layouts/app-shell.ts
+      - apps/morro-digital-platform/src/main.ts
+
+permissions:
+  contents: read
+
+jobs:
+  post-navigation-menu:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install deterministic Chromium
+        run: |
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+      - name: Build workspace
+        run: pnpm -w build
+      - name: Start deterministic runtime
+        run: |
+          node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/navigation-end-menu.log 2>&1 &
+          echo $! >/tmp/navigation-end-menu.pid
+          for i in $(seq 1 90); do
+            if curl -fsS http://127.0.0.1:4173/runtime-config.js >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/navigation-end-menu.log
+          exit 1
+      - name: Verify cancelled navigation restores V1 main menu
+        run: |
+          node <<'NODE'
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+
+          const start = { latitude: -13.3762, longitude: -38.9172 };
+          const destination = { latitude: -13.3740, longitude: -38.9148 };
+          const routeResponse = {
+            type: 'FeatureCollection',
+            features: [{
+              type: 'Feature',
+              properties: {
+                summary: { distance: 390, duration: 290 },
+                segments: [{
+                  distance: 390,
+                  duration: 290,
+                  steps: [{
+                    distance: 390,
+                    duration: 290,
+                    instruction: 'Continue em frente',
+                    name: 'Caminho principal',
+                    way_points: [0, 1],
+                    maneuver: { instruction: 'Continue em frente', type: 'continue' },
+                  }],
+                }],
+              },
+              geometry: {
+                type: 'LineString',
+                coordinates: [
+                  [start.longitude, start.latitude],
+                  [destination.longitude, destination.latitude],
+                ],
+              },
+            }],
+          };
+
+          async function poll(page, predicate, label, timeout = 15000) {
+            const deadline = Date.now() + timeout;
+            while (Date.now() < deadline) {
+              if (await page.evaluate(predicate)) return;
+              await page.waitForTimeout(100);
+            }
+            const diagnostics = await page.evaluate(() => ({
+              mapState: document.getElementById('map')?.getAttribute('data-map-state') ?? null,
+              assistantClass: document.getElementById('assistant-messages')?.className ?? null,
+              messages: Array.from(document.querySelectorAll('#assistant-messages .message')).map((element) => ({
+                text: element.textContent?.trim() ?? '',
+                type: element.getAttribute('data-message-type'),
+                hidden: element.classList.contains('hidden'),
+              })),
+              menus: Array.from(document.querySelectorAll('#assistant-messages .assistant-options')).map((element) => ({
+                id: element.id,
+                hidden: element.classList.contains('hidden'),
+                ariaHidden: element.getAttribute('aria-hidden'),
+                options: element.querySelectorAll('.assistant-option-btn').length,
+                exploreOptions: element.querySelectorAll('[data-explore-category]').length,
+              })),
+              ended: globalThis.__postNavigationEvidence?.ended ?? [],
+            }));
+            throw new Error(`${label} timed out: ${JSON.stringify(diagnostics)}`);
+          }
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            const context = await browser.newContext({
+              viewport: { width: 390, height: 844 },
+              geolocation: start,
+              permissions: ['geolocation'],
+            });
+            await context.addInitScript(() => {
+              localStorage.setItem('morro-digital-onboarded', '1');
+              localStorage.setItem('voice-enabled', 'false');
+              globalThis.__postNavigationEvidence = { ended: [] };
+              addEventListener('navigationEnded', (event) => {
+                globalThis.__postNavigationEvidence.ended.push(event.detail ?? null);
+              });
+            });
+
+            const page = await context.newPage();
+            const pageErrors = [];
+            page.on('pageerror', (error) => pageErrors.push(error.message));
+            await page.route('**/api/routing/directions', async (route) => {
+              await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify(routeResponse),
+              });
+            });
+
+            await page.goto('http://127.0.0.1:4173/', {
+              waitUntil: 'domcontentloaded',
+              timeout: 30000,
+            });
+            await page.locator('.mood-button[data-assistant-shell-ready="true"]').waitFor({
+              state: 'visible',
+              timeout: 15000,
+            });
+            await poll(
+              page,
+              () => document.getElementById('map')?.getAttribute('data-map-state') === 'ready',
+              'runtime-map-ready',
+              20000,
+            );
+
+            await page.evaluate((nextDestination) => {
+              document.dispatchEvent(new CustomEvent('morro:navigation-requested', {
+                detail: { destination: nextDestination },
+              }));
+            }, destination);
+
+            await page.locator('#end-navigation-btn').waitFor({ state: 'visible', timeout: 15000 });
+            await page.locator('#end-navigation-btn').click();
+            await poll(
+              page,
+              () => globalThis.__postNavigationEvidence?.ended?.some((entry) => entry?.reason === 'cancelled'),
+              'navigation-ended-cancelled',
+              5000,
+            );
+
+            await poll(
+              page,
+              () => {
+                const assistant = document.getElementById('assistant-messages');
+                const feedback = document.querySelector('#assistant-messages .message[data-message-type="navigation-feedback"]');
+                const menu = document.querySelector('#assistant-messages .messages-area > .assistant-options:has([data-explore-category])');
+                return Boolean(
+                  assistant &&
+                  !assistant.classList.contains('hidden') &&
+                  feedback &&
+                  !feedback.classList.contains('hidden') &&
+                  feedback.textContent?.includes('Navegação encerrada. Como posso ajudar?') &&
+                  menu &&
+                  !menu.classList.contains('hidden') &&
+                  menu.getAttribute('aria-hidden') !== 'true' &&
+                  menu.querySelectorAll('.assistant-option-btn').length === 10 &&
+                  menu.querySelectorAll('[data-explore-category]').length === 9 &&
+                  !document.getElementById('assistant-category-results') &&
+                  !document.getElementById('assistant-category-results-message')
+                );
+              },
+              'v1-post-navigation-main-menu',
+              5000,
+            );
+
+            const state = await page.evaluate(() => {
+              const menu = document.querySelector('#assistant-messages .messages-area > .assistant-options:has([data-explore-category])');
+              const feedback = document.querySelector('#assistant-messages .message[data-message-type="navigation-feedback"]');
+              return {
+                feedback: feedback?.textContent?.trim() ?? null,
+                menuVisible: Boolean(menu && !menu.classList.contains('hidden')),
+                menuAriaHidden: menu?.getAttribute('aria-hidden') ?? null,
+                optionCount: menu?.querySelectorAll('.assistant-option-btn').length ?? 0,
+                exploreOptionCount: menu?.querySelectorAll('[data-explore-category]').length ?? 0,
+                pressed: Array.from(menu?.querySelectorAll('[data-explore-category]') ?? []).map((button) => button.getAttribute('aria-pressed')),
+              };
+            });
+
+            if (state.pressed.some((value) => value !== 'false')) {
+              throw new Error(`Category buttons were not reset after navigation: ${JSON.stringify(state)}`);
+            }
+
+            await page.locator('#assistant-category-beaches').click();
+            await page.locator('#assistant-category-results[data-category="beaches"][data-stage="filters"]').waitFor({
+              state: 'visible',
+              timeout: 5000,
+            });
+
+            if (pageErrors.length > 0) {
+              throw new Error(`Page errors: ${JSON.stringify(pageErrors)}`);
+            }
+            console.log(JSON.stringify(state, null, 2));
+            await context.close();
+            await browser.close();
+          })().catch((error) => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+      - name: Dump server log on failure
+        if: failure()
+        run: cat /tmp/navigation-end-menu.log || true

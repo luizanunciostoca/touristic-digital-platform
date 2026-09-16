@@ -9,6 +9,7 @@ export interface AssistantSingleMessageController {
 
 const CATEGORY_FLOW_RESULTS_ID = "assistant-category-results";
 const CATEGORY_FLOW_MESSAGE_ID = "assistant-category-results-message";
+const NAVIGATION_FEEDBACK_MESSAGE_TYPE = "navigation-feedback";
 
 function directChildrenByClass(
   container: HTMLElement,
@@ -93,6 +94,15 @@ export function installAssistantSingleMessageController({
       if (latestDynamicMessage) {
         setHidden(shellMessage, true);
         setHidden(latestDynamicMessage, false);
+
+        const navigationFeedback =
+          latestDynamicMessage.dataset.messageType ===
+          NAVIGATION_FEEDBACK_MESSAGE_TYPE;
+        if (navigationFeedback) {
+          delete shellOptions?.dataset.singleMessageHidden;
+          setHidden(shellOptions, false);
+          return;
+        }
 
         if (categoryFlowMessage) {
           delete shellOptions?.dataset.singleMessageHidden;
