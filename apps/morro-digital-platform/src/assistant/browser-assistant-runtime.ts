@@ -1,6 +1,7 @@
 import {
   createAssistantContextManager,
   createAssistantDialogController,
+  createAssistantUserProfileManager,
   normalizeAssistantVoiceLanguage,
   type AssistantDialogResponse,
 } from "@touristic/assistant";
@@ -15,6 +16,11 @@ import {
   renderAssistantDomOptions,
   type AssistantDomOption,
 } from "./assistant-dom-view.js";
+import {
+  executeAssistantRuntimeAction,
+  readAssistantExploreState,
+  routeAssistantMenuCommand,
+} from "./assistant-menu-command-router.js";
 import { createAssistantNavigationAppHandlers } from "./assistant-navigation-adapter.js";
 import { createMorroAssistantV1DestinationResolver } from "./assistant-v1-place-resolver.js";
 import { createAssistantBrowserVoice } from "./assistant-voice-adapter.js";
@@ -53,6 +59,8 @@ interface AssistantPresentationSnapshot {
   readonly options: readonly AssistantDomOption[];
 }
 
+type AssistantInputSource = "button" | "keyboard" | "voice" | "option" | "programmatic";
+
 function getMessagesArea(document: Document): HTMLElement | null {
   return document.querySelector<HTMLElement>(
     "#assistant-messages .messages-area",
@@ -88,6 +96,12 @@ function isPhotoResponse(response: AssistantDialogResponse): boolean {
   return Boolean(
     metadata && typeof metadata === "object" && metadata.domain === "photos",
   );
+}
+
+function readRuntimeAction(response: AssistantDialogResponse): string | null {
+  const metadata = response.metadata;
+  if (!metadata || typeof metadata !== "object") return null;
+  return typeof metadata.action === "string" ? metadata.action : null;
 }
 
 function appendPhotoCarousel(
@@ -231,7 +245,7 @@ function voiceInputMessage(
       unsupported:
         "Sorry, your browser does not support voice recognition. Please type your question.",
       error:
-        "Sorry, I couldn't understand. Please try again or type your question.",
+        "Sorry, I couldn't understand. Please try again or type your question?",
     },
     es: {
       listening: "Estoy escuchando...",
@@ -256,12 +270,14 @@ export function installBrowserAssistantRuntime(
   const storage = resolveStorage(options.document, options.storage);
   const mapboxAccessToken = resolveMapboxAccessToken(options.mapboxAccessToken);
   const context = createAssistantContextManager(storage ? { storage } : {});
+  const profile = createAssistantUserProfileManager(storage ? { storage } : {});
   const messages = createAssistantMessageDom({ document: options.document });
   const navigationHandlers = createAssistantNavigationAppHandlers({
     navigation: options.navigation,
     resolver: createMorroAssistantV1DestinationResolver(),
   });
   const domainHandlers = createAssistantBrowserDomainHandlers({
+    profile,
     ...(storage ? { storage } : {}),
     ...(options.document.defaultView?.navigator.geolocation
       ? { geolocation: options.document.defaultView.navigator.geolocation }
@@ -271,6 +287,7 @@ export function installBrowserAssistantRuntime(
   });
   const controller = createAssistantDialogController({
     context,
+    profile,
     handlers: {
       ...domainHandlers,
       ...navigationHandlers,
@@ -313,10 +330,53 @@ export function installBrowserAssistantRuntime(
     messages.append({ sender, html: text, messageType: "standard" });
   };
 
+  const voiceLanguage = () =>
+    voice?.getPreferences().language ??
+    normalizeAssistantVoiceLanguage(options.document.documentElement.lang);
+
+  const syncExploreContext = (placeHint?: string): void => {
+    const state = readAssistantExploreState(options.document);
+    if (state.stage === "filters" && state.category) {
+      context.updateContext({
+        lastCategory: state.category,
+        lastIntent: "categoria",
+        awaiting: {
+          type: "selecionar_subcategoria",
+          category: state.category,
+        },
+      });
+      return;
+    }
+    if (state.stage === "places" && state.category) {
+      context.updateContext({
+        lastCategory: state.category,
+        lastIntent: "categoria",
+        awaiting: {
+          type: "selecionar_local",
+          category: state.category,
+        },
+      });
+      return;
+    }
+    if (state.stage === "detail" && state.category) {
+      context.updateContext({
+        lastCategory: state.category,
+        lastIntent: "detalhes",
+        awaiting: null,
+        ...(placeHint ? { lastPlace: placeHint } : {}),
+      });
+      return;
+    }
+    if (state.stage === "menu") {
+      context.updateContext({ awaiting: null });
+    }
+  };
+
   const processInput = async (
     rawInput: string,
     optionOverride?: readonly AssistantDomOption[],
     preservePreviousOptions = false,
+    source: AssistantInputSource = "programmatic",
   ): Promise<AssistantDialogResponse> => {
     const value = rawInput.trim();
     if (!value) return { text: "Como posso ajudar?" };
@@ -325,9 +385,35 @@ export function installBrowserAssistantRuntime(
     const previousPresentation = preservePreviousOptions
       ? currentPresentation
       : null;
+
+    appendStandardMessage("user", value);
+
+    if (routeAssistantMenuCommand(options.document, value)) {
+      currentPresentation = null;
+      queueMicrotask(() => syncExploreContext());
+      options.document.dispatchEvent(
+        new CustomEvent("morro:assistant-menu-command-routed", {
+          detail: { message: value, source },
+        }),
+      );
+      const routedText =
+        options.document
+          .getElementById("assistant-category-results-message")
+          ?.textContent?.trim() ?? "";
+      if (routedText) voice?.speak(routedText, voiceLanguage());
+      return {
+        text: routedText,
+        metadata: {
+          domain: "menu_command",
+          state: "routed",
+          source,
+          explore: readAssistantExploreState(options.document),
+        },
+      };
+    }
+
     clearAssistantDomOptions(options.document);
     removePhotoPresentation(options.document);
-    appendStandardMessage("user", value);
     const response = await controller.processUserInput(value);
     if (destroyed || generation !== requestGeneration) return response;
 
@@ -361,17 +447,25 @@ export function installBrowserAssistantRuntime(
       );
     }
 
-    const voicePreferences = voice?.getPreferences();
-    voice?.speak(
-      response.text,
-      voicePreferences?.language ??
-        normalizeAssistantVoiceLanguage(options.document.documentElement.lang),
-    );
+    const runtimeAction = readRuntimeAction(response);
+    if (
+      runtimeAction &&
+      executeAssistantRuntimeAction(options.document, runtimeAction)
+    ) {
+      queueMicrotask(() => syncExploreContext());
+      options.document.dispatchEvent(
+        new CustomEvent("morro:assistant-action-executed", {
+          detail: { action: runtimeAction, source: "llm" },
+        }),
+      );
+    }
+
+    voice?.speak(response.text, voiceLanguage());
     return response;
   };
 
   const process = (rawInput: string): Promise<AssistantDialogResponse> =>
-    processInput(rawInput);
+    processInput(rawInput, undefined, false, "programmatic");
 
   const Recognition = view
     ? resolveAssistantSpeechRecognitionConstructor(view)
@@ -383,7 +477,7 @@ export function installBrowserAssistantRuntime(
           options.document.documentElement.lang,
         ),
         onResult: (transcript) => {
-          void process(transcript);
+          void processInput(transcript, undefined, false, "voice");
         },
         onError: () => {
           appendStandardMessage(
@@ -406,18 +500,20 @@ export function installBrowserAssistantRuntime(
       })
     : null;
 
-  const submitInput = (): void => {
+  const submitInput = (source: "button" | "keyboard"): void => {
     if (destroyed || !(input instanceof HTMLInputElement)) return;
     const value = input.value;
+    if (!value.trim()) return;
     input.value = "";
-    void process(value);
+    void processInput(value, undefined, false, source);
   };
 
-  const onSendClick = (): void => submitInput();
+  const onSendClick = (): void => submitInput("button");
   const onInputKeyDown = (event: Event): void => {
     if (!(event instanceof KeyboardEvent) || event.key !== "Enter") return;
+    if (event.shiftKey || event.isComposing) return;
     event.preventDefault();
-    submitInput();
+    submitInput("keyboard");
   };
   const onOptionSelected = (event: Event): void => {
     if (!(event instanceof CustomEvent)) return;
@@ -432,13 +528,12 @@ export function installBrowserAssistantRuntime(
       value,
       optionOverride ?? undefined,
       value.trim().toLowerCase() === "ver fotos",
+      "option",
     );
   };
   const onVoiceClick = (): void => {
     if (destroyed) return;
-    const language =
-      voice?.getPreferences().language ??
-      normalizeAssistantVoiceLanguage(options.document.documentElement.lang);
+    const language = voiceLanguage();
     if (!voiceInput) {
       appendStandardMessage(
         "assistant",
@@ -459,10 +554,35 @@ export function installBrowserAssistantRuntime(
     }
   };
 
+  const scheduleExploreContextSync = (event: Event): void => {
+    const target = event.target;
+    const button =
+      target instanceof Element
+        ? target.closest<HTMLButtonElement>(
+            "[data-explore-category], .assistant-flow-option",
+          )
+        : null;
+    const placeHint = button?.dataset.locationName;
+    if (!button && event.type !== "morro:assistant-option-selected") return;
+    queueMicrotask(() => syncExploreContext(placeHint));
+  };
+
+  const onExploreEscape = (event: Event): void => {
+    if (!(event instanceof KeyboardEvent) || event.key !== "Escape") return;
+    queueMicrotask(() => syncExploreContext());
+  };
+
   sendButton?.addEventListener("click", onSendClick);
   input?.addEventListener("keydown", onInputKeyDown);
   voiceButton?.setAttribute("aria-pressed", "false");
   voiceButton?.addEventListener("click", onVoiceClick);
+  options.document.addEventListener(
+    "morro:assistant-option-selected",
+    scheduleExploreContextSync,
+    true,
+  );
+  options.document.addEventListener("click", scheduleExploreContextSync, true);
+  options.document.addEventListener("keydown", onExploreEscape, true);
   options.document.addEventListener(
     "morro:assistant-option-selected",
     onOptionSelected,
@@ -477,6 +597,17 @@ export function installBrowserAssistantRuntime(
       sendButton?.removeEventListener("click", onSendClick);
       input?.removeEventListener("keydown", onInputKeyDown);
       voiceButton?.removeEventListener("click", onVoiceClick);
+      options.document.removeEventListener(
+        "morro:assistant-option-selected",
+        scheduleExploreContextSync,
+        true,
+      );
+      options.document.removeEventListener(
+        "click",
+        scheduleExploreContextSync,
+        true,
+      );
+      options.document.removeEventListener("keydown", onExploreEscape, true);
       options.document.removeEventListener(
         "morro:assistant-option-selected",
         onOptionSelected,
