@@ -169,6 +169,32 @@ describe("assistant V1 place action parity", () => {
     },
   );
 
+  it("keeps deterministic place-action options in the active locale", () => {
+    const result = resolve("menu", "Morena Bela", "restaurants", "en");
+    expect(result?.response.options?.map(({ label }) => label)).toEqual([
+      "🍴 Menu",
+      "📍 Directions",
+      "📸 View photos",
+      "📞 Contact",
+      "More options",
+      "⬅️ Back",
+    ]);
+  });
+
+  it("localizes secondary place-action presentation without changing values", () => {
+    const result = resolve("more options", "Morena Bela", "restaurants", "en");
+    expect(
+      result?.response.options?.map(({ label, value }) => ({ label, value })),
+    ).toEqual([
+      { label: "ℹ️ Information", value: "mais detalhes" },
+      { label: "🕒 Hours", value: "horário de funcionamento" },
+      { label: "💰 Price range", value: "quanto custa" },
+      { label: "⭐ Reviews", value: "avaliações" },
+      { label: "❤️ Favorite", value: "adicionar aos favoritos" },
+      { label: "⬅️ Back", value: "Morena Bela" },
+    ]);
+  });
+
   it("keeps unavailable transport secondary information explicit", () => {
     const result = resolve(
       "mais opções",

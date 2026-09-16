@@ -1,3 +1,10 @@
+import type { AssistantLocale } from "@touristic/assistant";
+
+import {
+  getV1ExploreLabel,
+  type V1ExploreLabelKey,
+} from "./explore-v1-i18n.js";
+
 export type V1ExplorePlaceAction = "command" | "back-places";
 
 export interface V1ExplorePlaceActionOption {
@@ -6,71 +13,93 @@ export interface V1ExplorePlaceActionOption {
   readonly action: V1ExplorePlaceAction;
 }
 
-// Keep ordering and labels aligned with the canonical V1 assistant-dialog flow.
-const command = (label: string, value: string): V1ExplorePlaceActionOption =>
-  Object.freeze({ label, value, action: "command" as const });
+type ActionSpec = Readonly<{
+  icon: string;
+  key: V1ExploreLabelKey;
+  value: string;
+}>;
 
-const backToPlaces = (category: string): V1ExplorePlaceActionOption =>
+const command = (
+  spec: ActionSpec,
+  locale: AssistantLocale,
+): V1ExplorePlaceActionOption =>
   Object.freeze({
-    label: "⬅️ Voltar",
+    label: spec.icon
+      ? `${spec.icon} ${getV1ExploreLabel(spec.key, locale)}`
+      : getV1ExploreLabel(spec.key, locale),
+    value: spec.value,
+    action: "command" as const,
+  });
+
+const backToPlaces = (
+  category: string,
+  locale: AssistantLocale,
+): V1ExplorePlaceActionOption =>
+  Object.freeze({
+    label: `⬅️ ${getV1ExploreLabel("back", locale)}`,
     value: `[sub]${category}`,
     action: "back-places" as const,
   });
 
-const GENERIC_PLACE_ACTIONS = Object.freeze([
-  command("📍 Como chegar", "como chegar"),
-  command("📸 Ver fotos", "ver fotos"),
-  command("ℹ️ Mais informações", "mais detalhes"),
-  command("❤️ Favoritar", "adicionar aos favoritos"),
+const GENERIC_PLACE_ACTIONS: readonly ActionSpec[] = Object.freeze([
+  { icon: "📍", key: "directions", value: "como chegar" },
+  { icon: "📸", key: "photos", value: "ver fotos" },
+  { icon: "ℹ️", key: "moreInformation", value: "mais detalhes" },
+  { icon: "❤️", key: "favorite", value: "adicionar aos favoritos" },
 ]);
 
-const CATEGORY_PLACE_ACTIONS: Readonly<
-  Record<string, readonly V1ExplorePlaceActionOption[]>
-> = Object.freeze({
+const CATEGORY_PLACE_ACTIONS = Object.freeze({
   restaurants: Object.freeze([
-    command("🍴 Cardápio", "cardápio"),
-    command("📍 Como chegar", "como chegar"),
-    command("📸 Ver fotos", "ver fotos"),
-    command("📞 Contato", "contato"),
-    command("Mais opções", "mais opções"),
-    backToPlaces("restaurants"),
+    { icon: "🍴", key: "menu", value: "cardápio" },
+    { icon: "📍", key: "directions", value: "como chegar" },
+    { icon: "📸", key: "photos", value: "ver fotos" },
+    { icon: "📞", key: "contact", value: "contato" },
+    { icon: "", key: "more", value: "mais opções" },
   ]),
   hotels: Object.freeze([
-    command("🛏️ Ver quartos", "ver quartos"),
-    command("📅 Reservar", "reservar"),
-    command("📍 Como chegar", "como chegar"),
-    command("📸 Fotos", "ver fotos"),
-    command("Mais opções", "mais opções"),
-    backToPlaces("hotels"),
+    { icon: "🛏️", key: "rooms", value: "ver quartos" },
+    { icon: "📅", key: "book", value: "reservar" },
+    { icon: "📍", key: "directions", value: "como chegar" },
+    { icon: "📸", key: "photos", value: "ver fotos" },
+    { icon: "", key: "more", value: "mais opções" },
   ]),
   beaches: Object.freeze([
-    command("🌊 Condições da praia", "condições da praia"),
-    command("📍 Como chegar", "como chegar"),
-    command("📸 Fotos", "ver fotos"),
-    command("ℹ️ Informações", "informações"),
-    command("Mais opções", "mais opções"),
-    backToPlaces("beaches"),
+    { icon: "🌊", key: "beachConditions", value: "condições da praia" },
+    { icon: "📍", key: "directions", value: "como chegar" },
+    { icon: "📸", key: "photos", value: "ver fotos" },
+    { icon: "ℹ️", key: "information", value: "informações" },
+    { icon: "", key: "more", value: "mais opções" },
   ]),
   tours: Object.freeze([
-    command("🎟️ Reservar passeio", "reservar passeio"),
-    command("📍 Ponto de encontro", "ponto de encontro"),
-    command("📸 Fotos", "ver fotos"),
-    command("📞 Contato", "contato"),
-    command("Mais opções", "mais opções"),
-    backToPlaces("tours"),
+    { icon: "🎟️", key: "bookTour", value: "reservar passeio" },
+    { icon: "📍", key: "meetingPoint", value: "ponto de encontro" },
+    { icon: "📸", key: "photos", value: "ver fotos" },
+    { icon: "📞", key: "contact", value: "contato" },
+    { icon: "", key: "more", value: "mais opções" },
   ]),
   transport: Object.freeze([
-    command("🚕 Solicitar", "solicitar transporte"),
-    command("📍 Localização", "localização"),
-    command("💰 Tarifas", "tarifas"),
-    command("📞 Contato", "contato"),
-    command("Mais opções", "mais opções"),
-    backToPlaces("transport"),
+    { icon: "🚕", key: "requestTransport", value: "solicitar transporte" },
+    { icon: "📍", key: "location", value: "localização" },
+    { icon: "💰", key: "fares", value: "tarifas" },
+    { icon: "📞", key: "contact", value: "contato" },
+    { icon: "", key: "more", value: "mais opções" },
   ]),
-});
+} satisfies Readonly<Record<string, readonly ActionSpec[]>>);
 
 export function getV1ExplorePlaceActionOptions(
   category: string,
+  locale: AssistantLocale = "pt",
 ): readonly V1ExplorePlaceActionOption[] {
-  return CATEGORY_PLACE_ACTIONS[category] ?? GENERIC_PLACE_ACTIONS;
+  const specs = (
+    CATEGORY_PLACE_ACTIONS as Readonly<Record<string, readonly ActionSpec[]>>
+  )[category];
+  if (!specs) {
+    return Object.freeze(
+      GENERIC_PLACE_ACTIONS.map((spec) => command(spec, locale)),
+    );
+  }
+  return Object.freeze([
+    ...specs.map((spec) => command(spec, locale)),
+    backToPlaces(category, locale),
+  ]);
 }

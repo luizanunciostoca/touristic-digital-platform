@@ -1,7 +1,14 @@
+import type { AssistantLocale } from "@touristic/assistant";
+
 import {
   normalizeSearchText,
   type MorroV1SearchCatalogItem,
 } from "@touristic/search";
+
+import {
+  getV1ExploreLabel,
+  type V1ExploreLabelKey,
+} from "./explore-v1-i18n.js";
 
 export type V1ExploreAction =
   "filter" | "nearby" | "all" | "back-menu" | "back-filters" | "tour";
@@ -13,219 +20,233 @@ export interface V1ExploreOption {
   readonly tourId?: string;
 }
 
-const BACK_MENU: V1ExploreOption = Object.freeze({
-  label: "🔙 Voltar ao menu",
-  value: "voltar_menu",
-  action: "back-menu",
-});
+type FilterSpec = Readonly<{
+  icon: string;
+  key: V1ExploreLabelKey;
+  value: string;
+  action: V1ExploreAction;
+  tourId?: string;
+}>;
 
-const NEARBY: V1ExploreOption = Object.freeze({
-  label: "📍 Próximos a mim",
-  value: "proximo",
-  action: "nearby",
-});
+const optionFromSpec = (
+  spec: FilterSpec,
+  locale: AssistantLocale,
+): V1ExploreOption =>
+  Object.freeze({
+    label: spec.icon
+      ? `${spec.icon} ${getV1ExploreLabel(spec.key, locale)}`
+      : getV1ExploreLabel(spec.key, locale),
+    value: spec.value,
+    action: spec.action,
+    ...(spec.tourId ? { tourId: spec.tourId } : {}),
+  });
 
-const SEE_ALL: V1ExploreOption = Object.freeze({
-  label: "🗺️ Ver todos",
-  value: "ver todos",
-  action: "all",
-});
+const shared = (
+  key: "nearby" | "seeAll" | "backMenu",
+  action: V1ExploreAction,
+  value: string,
+  icon: string,
+  locale: AssistantLocale,
+): V1ExploreOption => optionFromSpec({ icon, key, value, action }, locale);
 
-const SUBCATEGORY_OPTIONS: Readonly<
-  Record<string, readonly V1ExploreOption[]>
-> = {
+const SUBCATEGORY_SPECS = Object.freeze({
   restaurants: Object.freeze([
-    { label: "🌊 Na praia", value: "na praia", action: "filter" },
-    { label: "🏘️ Na vila", value: "na vila", action: "filter" },
-    { label: "🌴 Em Garapuá", value: "garapua", action: "filter" },
-    { label: "🍕 Pizzaria / Italiana", value: "pizza", action: "filter" },
     {
-      label: "🐟 Frutos do mar",
+      icon: "🌊",
+      key: "restaurantsBeach",
+      value: "na praia",
+      action: "filter",
+    },
+    {
+      icon: "🏘️",
+      key: "restaurantsVillage",
+      value: "na vila",
+      action: "filter",
+    },
+    {
+      icon: "🌴",
+      key: "restaurantsGarapua",
+      value: "garapua",
+      action: "filter",
+    },
+    { icon: "🍕", key: "restaurantsPizza", value: "pizza", action: "filter" },
+    {
+      icon: "🐟",
+      key: "restaurantsSeafood",
       value: "frutos do mar",
       action: "filter",
     },
     {
-      label: "🥗 Vegetariano / Vegano",
+      icon: "🥗",
+      key: "restaurantsVegetarian",
       value: "vegetariano",
       action: "filter",
     },
-    { label: "🍺 Bar / Petiscos", value: "bar", action: "filter" },
-    NEARBY,
-    SEE_ALL,
-    BACK_MENU,
+    { icon: "🍺", key: "restaurantsBar", value: "bar", action: "filter" },
   ]),
   beaches: Object.freeze([
-    { label: "🏄 Com ondas para surf", value: "surf", action: "filter" },
+    { icon: "🏄", key: "beachesSurf", value: "surf", action: "filter" },
+    { icon: "🤿", key: "beachesDiving", value: "mergulho", action: "filter" },
+    { icon: "🌅", key: "beachesSunset", value: "por do sol", action: "filter" },
+    { icon: "👨‍👩‍👧", key: "beachesFamily", value: "familiar", action: "filter" },
     {
-      label: "🤿 Para mergulho / snorkel",
-      value: "mergulho",
-      action: "filter",
-    },
-    {
-      label: "🌅 Para pôr do sol",
-      value: "por do sol",
-      action: "filter",
-    },
-    {
-      label: "👨‍👩‍👧 Familiar / tranquila",
-      value: "familiar",
-      action: "filter",
-    },
-    {
-      label: "🎵 Com estrutura / bares",
+      icon: "🎵",
+      key: "beachesStructure",
       value: "estrutura",
       action: "filter",
     },
-    NEARBY,
-    { ...SEE_ALL, label: "🗺️ Ver todas" },
-    BACK_MENU,
   ]),
   hotels: Object.freeze([
     {
-      label: "🌊 Frente à praia",
+      icon: "🌊",
+      key: "hotelsBeachfront",
       value: "frente a praia",
       action: "filter",
     },
-    { label: "🏘️ Na vila", value: "na vila", action: "filter" },
-    { label: "💰 Econômico", value: "economico", action: "filter" },
-    { label: "⭐ Luxo / Conforto", value: "luxo", action: "filter" },
-    {
-      label: "🏕️ Pousada charmosa",
-      value: "pousada",
-      action: "filter",
-    },
-    NEARBY,
-    SEE_ALL,
-    BACK_MENU,
+    { icon: "🏘️", key: "hotelsVillage", value: "na vila", action: "filter" },
+    { icon: "💰", key: "hotelsBudget", value: "economico", action: "filter" },
+    { icon: "⭐", key: "hotelsLuxury", value: "luxo", action: "filter" },
+    { icon: "🏕️", key: "hotelsCharming", value: "pousada", action: "filter" },
   ]),
   shops: Object.freeze([
-    { label: "🛍️ Roupas e moda", value: "roupa", action: "filter" },
-    { label: "🛒 Supermercado", value: "supermercado", action: "filter" },
+    { icon: "🛍️", key: "shopsFashion", value: "roupa", action: "filter" },
     {
-      label: "🎁 Artesanato / Souvenirs",
-      value: "artesanato",
+      icon: "🛒",
+      key: "shopsSupermarket",
+      value: "supermercado",
       action: "filter",
     },
+    { icon: "🎁", key: "shopsCrafts", value: "artesanato", action: "filter" },
     {
-      label: "💎 Bijuteria / Acessórios",
+      icon: "💎",
+      key: "shopsAccessories",
       value: "bijuteria",
       action: "filter",
     },
-    { label: "💊 Farmácia", value: "farmacia", action: "filter" },
-    NEARBY,
-    SEE_ALL,
-    BACK_MENU,
+    { icon: "💊", key: "shopsPharmacy", value: "farmacia", action: "filter" },
   ]),
   attractions: Object.freeze([
     {
-      label: "🏖️ Praias e natureza",
+      icon: "🏖️",
+      key: "attractionsNature",
       value: "natureza",
       action: "filter",
     },
     {
-      label: "🏛️ Histórico / Cultural",
+      icon: "🏛️",
+      key: "attractionsHistoric",
       value: "historico",
       action: "filter",
     },
-    { label: "🌅 Pôr do sol", value: "por do sol", action: "filter" },
     {
-      label: "🦇 Vida noturna",
+      icon: "🌅",
+      key: "attractionsSunset",
+      value: "por do sol",
+      action: "filter",
+    },
+    {
+      icon: "🦇",
+      key: "attractionsNightlife",
       value: "vida noturna",
       action: "filter",
     },
     {
-      label: "🤿 Mergulho / Snorkel",
+      icon: "🤿",
+      key: "attractionsDiving",
       value: "mergulho",
       action: "filter",
     },
-    NEARBY,
-    SEE_ALL,
-    BACK_MENU,
   ]),
   nightlife: Object.freeze([
     {
-      label: "🎵 Música ao vivo",
+      icon: "🎵",
+      key: "nightlifeLiveMusic",
       value: "musica ao vivo",
       action: "filter",
     },
-    { label: "🍹 Bar / Drinks", value: "bar", action: "filter" },
-    { label: "💃 Balada / Dança", value: "balada", action: "filter" },
-    { label: "🌅 Sunset bar", value: "sunset", action: "filter" },
-    NEARBY,
-    SEE_ALL,
-    BACK_MENU,
+    { icon: "🍹", key: "nightlifeBar", value: "bar", action: "filter" },
+    { icon: "💃", key: "nightlifeClub", value: "balada", action: "filter" },
+    { icon: "🌅", key: "nightlifeSunset", value: "sunset", action: "filter" },
   ]),
   tours: Object.freeze([
     {
-      label: "🗺️ Tour Imersivo: Volta à Ilha",
+      icon: "🗺️",
+      key: "tourIsland",
       value: "tour_volta_ilha",
       action: "tour",
       tourId: "volta-a-ilha",
     },
     {
-      label: "🥾 Tour Imersivo: Trilha Gamboa",
+      icon: "🥾",
+      key: "tourGamboa",
       value: "tour_trilha_gamboa",
       action: "tour",
       tourId: "trilha-gamboa",
     },
     {
-      label: "🚤 Tour Imersivo: Quadriciclo",
+      icon: "🚤",
+      key: "tourAtv",
       value: "tour_quadriciclo",
       action: "tour",
       tourId: "passeio-quadriciclo",
     },
-    { label: "⛵ Passeio de barco", value: "barco", action: "filter" },
-    {
-      label: "🤿 Mergulho / Snorkel",
-      value: "mergulho",
-      action: "filter",
-    },
-    {
-      label: "🚵 Aventura / Trilha",
-      value: "aventura",
-      action: "filter",
-    },
-    {
-      label: "🐠 Observação de fauna",
-      value: "fauna",
-      action: "filter",
-    },
-    NEARBY,
-    SEE_ALL,
-    BACK_MENU,
+    { icon: "⛵", key: "tourBoat", value: "barco", action: "filter" },
+    { icon: "🤿", key: "tourDiving", value: "mergulho", action: "filter" },
+    { icon: "🚵", key: "tourAdventure", value: "aventura", action: "filter" },
+    { icon: "🐠", key: "tourWildlife", value: "fauna", action: "filter" },
   ]),
   emergencies: Object.freeze([
     {
-      label: "🏥 Hospital / Saúde",
+      icon: "🏥",
+      key: "emergenciesHospital",
       value: "hospital",
       action: "filter",
     },
-    { label: "👮 Polícia", value: "policia", action: "filter" },
-    { label: "🚒 Bombeiros", value: "bombeiro", action: "filter" },
-    { label: "💊 Farmácia", value: "farmacia", action: "filter" },
-    SEE_ALL,
-    BACK_MENU,
-  ]),
-  transport: Object.freeze([
-    { label: "⛵ Lancha / Catamarã", value: "lancha", action: "filter" },
-    { label: "🚌 Buggy / Transfer", value: "buggy", action: "filter" },
-    { label: "🚶 A pé / Trilha", value: "a pe", action: "filter" },
-    { label: "⚓ Porto / Cais", value: "porto", action: "filter" },
     {
-      label: "🔎 Agência de Viagem",
-      value: "agencia",
+      icon: "👮",
+      key: "emergenciesPolice",
+      value: "policia",
       action: "filter",
     },
-    NEARBY,
-    SEE_ALL,
-    BACK_MENU,
+    {
+      icon: "🚒",
+      key: "emergenciesFirefighters",
+      value: "bombeiro",
+      action: "filter",
+    },
+    {
+      icon: "💊",
+      key: "emergenciesPharmacy",
+      value: "farmacia",
+      action: "filter",
+    },
   ]),
-};
+  transport: Object.freeze([
+    { icon: "⛵", key: "transportBoat", value: "lancha", action: "filter" },
+    { icon: "🚌", key: "transportBuggy", value: "buggy", action: "filter" },
+    { icon: "🚶", key: "transportWalking", value: "a pe", action: "filter" },
+    { icon: "⚓", key: "transportPier", value: "porto", action: "filter" },
+    { icon: "🔎", key: "transportAgency", value: "agencia", action: "filter" },
+  ]),
+} satisfies Readonly<Record<string, readonly FilterSpec[]>>);
 
 export function getV1ExploreSubcategoryOptions(
   category: string,
+  locale: AssistantLocale = "pt",
 ): readonly V1ExploreOption[] {
-  return SUBCATEGORY_OPTIONS[category] ?? Object.freeze([]);
+  const specs = (
+    SUBCATEGORY_SPECS as Readonly<Record<string, readonly FilterSpec[]>>
+  )[category];
+  if (!specs) return Object.freeze([]);
+  const options: V1ExploreOption[] = specs.map((spec) =>
+    optionFromSpec(spec, locale),
+  );
+  if (category !== "emergencies") {
+    options.push(shared("nearby", "nearby", "proximo", "📍", locale));
+  }
+  options.push(shared("seeAll", "all", "ver todos", "🗺️", locale));
+  options.push(shared("backMenu", "back-menu", "voltar_menu", "🔙", locale));
+  return Object.freeze(options);
 }
 
 function normalizedTags(location: MorroV1SearchCatalogItem): readonly string[] {
