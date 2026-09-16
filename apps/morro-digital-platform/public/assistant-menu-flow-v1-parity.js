@@ -294,6 +294,27 @@ function activeFlowButtons() {
   );
 }
 
+function clearPriorDynamicPresentation() {
+  const area = document.querySelector("#assistant-messages .messages-area");
+  if (!(area instanceof HTMLElement)) return;
+
+  for (const container of Array.from(
+    area.querySelectorAll(".assistant-options"),
+  )) {
+    if (!(container instanceof HTMLElement)) continue;
+    if (container.querySelector("[data-explore-category]")) continue;
+    container.remove();
+  }
+
+  for (const presentation of Array.from(
+    area.querySelectorAll(
+      ".assistant-photo-carousel, .assistant-photo-back-options",
+    ),
+  )) {
+    presentation.remove();
+  }
+}
+
 function tryClickVisibleOption(message) {
   const buttons = activeFlowButtons();
   if (buttons.length === 0) return false;
@@ -365,6 +386,7 @@ function tryOpenCategory(message) {
   if (!category) return false;
   const button = document.getElementById(`assistant-category-${category}`);
   if (!(button instanceof HTMLButtonElement)) return false;
+  clearPriorDynamicPresentation();
   button.click();
   return true;
 }
