@@ -120,15 +120,3 @@ text = replace_once(
     "preserve explore status across language changes",
 )
 path.write_text(text)
-
-
-# 4) Workflow path coverage: watch all transitive tour localization inputs.
-path = Path(".github/workflows/explore-v1-i18n-browser-parity.yml")
-text = path.read_text()
-text = replace_once(
-    text,
-    '      - apps/morro-digital-platform/src/config/tour-localization.ts\n',
-    '      - apps/morro-digital-platform/src/config/**\n',
-    "tour config workflow coverage",
-)
-path.write_text(text)
