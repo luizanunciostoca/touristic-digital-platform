@@ -5,6 +5,7 @@ on:
     paths:
       - .github/workflows/tmp-assistant-history-map-finalizer.yml
       - tooling/tmp-assistant-history-map-finalizer.py
+      - tooling/tmp-assistant-history-map-contract-fix.py
 
 permissions:
   contents: write
@@ -25,7 +26,9 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Apply history and map parity patch
-        run: python tooling/tmp-assistant-history-map-finalizer.py
+        run: |
+          python tooling/tmp-assistant-history-map-finalizer.py
+          python tooling/tmp-assistant-history-map-contract-fix.py
       - name: Format changed source
         run: |
           pnpm exec prettier --write \
@@ -36,6 +39,7 @@ jobs:
             apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts \
             apps/morro-digital-platform/src/map/explore-locations-control.ts \
             apps/morro-digital-platform/src/navigation/browser-navigation-runtime-install.ts \
+            apps/morro-digital-platform/src/navigation/browser-navigation-runtime-install.test.ts \
             packages/geospatial/src/infrastructure/mapbox-gl-driver.ts
       - name: Validate history and map parity
         run: |
@@ -53,6 +57,7 @@ jobs:
             apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts \
             apps/morro-digital-platform/src/map/explore-locations-control.ts \
             apps/morro-digital-platform/src/navigation/browser-navigation-runtime-install.ts \
+            apps/morro-digital-platform/src/navigation/browser-navigation-runtime-install.test.ts \
             packages/geospatial/src/infrastructure/mapbox-gl-driver.ts
           git diff --check
       - name: Commit validated source
@@ -67,6 +72,7 @@ jobs:
             apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts \
             apps/morro-digital-platform/src/map/explore-locations-control.ts \
             apps/morro-digital-platform/src/navigation/browser-navigation-runtime-install.ts \
+            apps/morro-digital-platform/src/navigation/browser-navigation-runtime-install.test.ts \
             packages/geospatial/src/infrastructure/mapbox-gl-driver.ts
           git diff --cached --quiet && exit 1
           git commit -m "fix(assistant): restore V1 history and map command parity"
