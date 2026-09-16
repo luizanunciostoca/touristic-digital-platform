@@ -41,11 +41,7 @@ jobs:
               p.write_text(text.replace(old, new, 1))
 
           intent = "packages/assistant/src/intent-engine.ts"
-          replace_once(
-              intent,
-              '  | "thanks"\n  | "category_beaches"',
-              '  | "thanks"\n  | "recommendation"\n  | "compare"\n  | "category_beaches"',
-          )
+          replace_once(intent, '  | "thanks"\n  | "category_beaches"', '  | "thanks"\n  | "recommendation"\n  | "compare"\n  | "category_beaches"')
           marker = '\n];\n\nconst PLACE_NAMES = ['
           patterns = r'''
             {
@@ -79,23 +75,18 @@ jobs:
             },'''
           replace_once(intent, marker, patterns + marker)
 
-          llm_policy = "packages/assistant/src/llm-policy.ts"
           replace_once(
-              llm_policy,
+              "packages/assistant/src/llm-policy.ts",
               '  "accessibility",\n  "unknown",',
               '  "accessibility",\n  "place_search",\n  "unknown",',
           )
-
-          controller = "packages/assistant/src/dialog-controller.ts"
           replace_once(
-              controller,
+              "packages/assistant/src/dialog-controller.ts",
               '          if (intent.intent === "unknown") {',
               '          if (intent.intent === "unknown" || intent.intent === "place_search") {',
           )
-
-          domain_test = "apps/morro-digital-platform/src/assistant/assistant-domain-adapter.test.ts"
           replace_once(
-              domain_test,
+              "apps/morro-digital-platform/src/assistant/assistant-domain-adapter.test.ts",
               '  input = intent,\n): AssistantDialogIntentHandlerContext {',
               '  input: string = intent,\n): AssistantDialogIntentHandlerContext {',
           )
@@ -105,17 +96,8 @@ jobs:
           router_helper = r'''
 
           const DIRECT_CATEGORY_PREFIXES = Object.freeze([
-            "ver ",
-            "mostrar ",
-            "abrir ",
-            "explorar ",
-            "quero ",
-            "quero ver ",
-            "show ",
-            "open ",
-            "explore ",
-            "quiero ",
-            "quiero ver ",
+            "ver ", "mostrar ", "abrir ", "explorar ", "quero ", "quero ver ",
+            "show ", "open ", "explore ", "quiero ", "quiero ver ",
           ]);
 
           function directCategoryForMessage(message: string): string | null {
@@ -144,16 +126,8 @@ jobs:
           p.write_text(text.replace(needle, "const category = directCategoryForMessage(message);"))
 
           runtime = "apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts"
-          replace_once(
-              runtime,
-              '  type AssistantDialogResponse,\n} from "@touristic/assistant";',
-              '  type AssistantDialogResponse,\n  type AssistantInterestCategory,\n} from "@touristic/assistant";',
-          )
-          replace_once(
-              runtime,
-              'import { createAssistantLlmHandler } from "./assistant-llm-adapter.js";',
-              'import { createAssistantLlmHandler } from "./assistant-llm-adapter.js";\nimport { createAssistantSearchHandler } from "./assistant-search-adapter.js";\nimport { createAssistantV1IntelligenceHandlers } from "./assistant-v1-intelligence-adapter.js";',
-          )
+          replace_once(runtime, '  type AssistantDialogResponse,\n} from "@touristic/assistant";', '  type AssistantDialogResponse,\n  type AssistantInterestCategory,\n} from "@touristic/assistant";')
+          replace_once(runtime, 'import { createAssistantLlmHandler } from "./assistant-llm-adapter.js";', 'import { createAssistantLlmHandler } from "./assistant-llm-adapter.js";\nimport { createAssistantV1IntelligenceHandlers } from "./assistant-v1-intelligence-adapter.js";')
           awaiting = '''const CONTROLLER_OWNED_AWAITING_TYPES = new Set([
             "awaiting_place",
             "awaiting_category",
@@ -179,27 +153,12 @@ jobs:
             }
           }'''
           replace_once(runtime, awaiting, interest)
-          replace_once(
-              runtime,
-              '  const controller = createAssistantDialogController({',
-              '''  const intelligenceHandlers = createAssistantV1IntelligenceHandlers({
+          replace_once(runtime, '  const controller = createAssistantDialogController({', '''  const intelligenceHandlers = createAssistantV1IntelligenceHandlers({
             profile,
           });
-          const searchHandler = createAssistantSearchHandler({
-            ...(options.fetch ? { fetch: options.fetch } : {}),
-            ...(mapboxAccessToken ? { mapboxAccessToken } : {}),
-          });
-          const controller = createAssistantDialogController({''',
-          )
-          replace_once(
-              runtime,
-              '      ...domainHandlers,\n      ...navigationHandlers,',
-              '      ...domainHandlers,\n      ...intelligenceHandlers,\n      place_search: searchHandler,\n      ...navigationHandlers,',
-          )
-          replace_once(
-              runtime,
-              '    if (menuRouted) {\n      currentPresentation = null;',
-              '''    if (menuRouted) {
+          const controller = createAssistantDialogController({''')
+          replace_once(runtime, '      ...domainHandlers,\n      ...navigationHandlers,', '      ...domainHandlers,\n      ...intelligenceHandlers,\n      ...navigationHandlers,')
+          replace_once(runtime, '    if (menuRouted) {\n      currentPresentation = null;', '''    if (menuRouted) {
             const routedState = readExploreState();
             profile.recordInteraction(
               value,
@@ -208,32 +167,20 @@ jobs:
             if (context.getContext().awaiting?.type === "confirmar_navegacao") {
               context.updateContext({ awaiting: null, pendingRoute: null });
             }
-            currentPresentation = null;''',
-          )
+            currentPresentation = null;''')
 
           intelligence = "apps/morro-digital-platform/src/assistant/assistant-v1-intelligence-adapter.ts"
-          replace_once(
-              intelligence,
-              '''  createAssistantUserProfileManager,
+          replace_once(intelligence, '''  createAssistantUserProfileManager,
             getAssistantMainMenu,
-            getAssistantSmartRecommendation,''',
-              '''  createAssistantProactiveSuggestionEngine,
+            getAssistantSmartRecommendation,''', '''  createAssistantProactiveSuggestionEngine,
             createAssistantUserProfileManager,
             getAssistantContextualMenu,
             getAssistantMainMenu,
-            getAssistantSmartRecommendation,''',
-          )
-          replace_once(
-              intelligence,
-              '    "getUserProfile" | "getRecentPlaces"\n',
-              '    "getUserProfile" | "getRecentPlaces" | "getTopInterests"\n',
-          )
-          replace_once(
-              intelligence,
-              '''  const [first, second] = candidates;
+            getAssistantSmartRecommendation,''')
+          replace_once(intelligence, '    "getUserProfile" | "getRecentPlaces"\n', '    "getUserProfile" | "getRecentPlaces" | "getTopInterests"\n')
+          replace_once(intelligence, '''  const [first, second] = candidates;
             const firstFacts = factualPlaceSummary(first, locale);
-            const secondFacts = factualPlaceSummary(second, locale);''',
-              '''  const first = candidates[0];
+            const secondFacts = factualPlaceSummary(second, locale);''', '''  const first = candidates[0];
             const second = candidates[1];
             if (!first || !second) {
               return {
@@ -242,11 +189,8 @@ jobs:
               };
             }
             const firstFacts = factualPlaceSummary(first, locale);
-            const secondFacts = factualPlaceSummary(second, locale);''',
-          )
-          replace_once(
-              intelligence,
-              '''  const recentPlaces = options.profile.getRecentPlaces(5);
+            const secondFacts = factualPlaceSummary(second, locale);''')
+          replace_once(intelligence, '''  const recentPlaces = options.profile.getRecentPlaces(5);
             const now = options.now?.() ?? Date.now();
             const result = getAssistantSmartRecommendation({
               locale: languageFor(request),
@@ -256,8 +200,7 @@ jobs:
             });
             return {
               text: result.text,
-              options: [...result.options],''',
-              '''  const recentPlaces = options.profile
+              options: [...result.options],''', '''  const recentPlaces = options.profile
               .getRecentPlaces(5)
               .filter(
                 (place): place is typeof place & { timestamp: number } =>
@@ -277,8 +220,7 @@ jobs:
             });
             return {
               text: result.text,
-              options: result.options.map((value) => ({ label: value, value })),''',
-          )
+              options: result.options.map((value) => ({ label: value, value })),''')
           fn = '''export function createAssistantV1IntelligenceHandlers(
             options: AssistantV1IntelligenceAdapterOptions,
           ): Partial<Record<string, AssistantDialogIntentHandler>> {
@@ -340,16 +282,101 @@ jobs:
           replace_once(intelligence, fn, fn_new)
 
           nav_install = "apps/morro-digital-platform/src/navigation/browser-navigation-runtime-install.ts"
-          replace_once(
-              nav_install,
-              '  const assistant = installAssistant({',
-              '  const explore = getMorroDigitalApplication(options.document)?.exploreLocations;\n  const assistant = installAssistant({',
-          )
-          replace_once(
-              nav_install,
-              '    explore: getMorroDigitalApplication(options.document)?.exploreLocations,',
-              '    ...(explore ? { explore } : {}),',
-          )
+          replace_once(nav_install, '  const assistant = installAssistant({', '  const explore = getMorroDigitalApplication(options.document)?.exploreLocations;\n  const assistant = installAssistant({')
+          replace_once(nav_install, '    explore: getMorroDigitalApplication(options.document)?.exploreLocations,', '    ...(explore ? { explore } : {}),')
+
+          nav_test = "apps/morro-digital-platform/src/assistant/assistant-navigation-adapter.test.ts"
+          old_test = '''  it("starts the real navigation boundary with normalized destination coordinates", async () => {
+            const start = vi.fn(async () => ({
+              type: "FeatureCollection",
+              features: [],
+            }));
+            const handlers = createAssistantNavigationAppHandlers({
+              navigation: { start, stop: vi.fn() },
+              resolver: {
+                resolveDestination: vi.fn(() => ({
+                  name: "Farol do Morro",
+                  latitude: -13.376,
+                  longitude: -38.913,
+                })),
+              },
+            });
+            const intent: AssistantIntentResult = {
+              intent: "navigate",
+              confidence: 0.95,
+              entities: { place: "Farol do Morro" },
+              normalized: "ir para farol do morro",
+              modifiers: [],
+            };
+
+            const response = await handlers.navigate(request(intent));
+
+            expect(start).toHaveBeenCalledWith({
+              longitude: -38.913,
+              latitude: -13.376,
+            });
+            expect(response).toMatchObject({
+              metadata: { navigation: "started", destination: "Farol do Morro" },
+            });
+          });'''
+          new_test = '''  it("confirms before starting the real navigation boundary with normalized coordinates", async () => {
+            const start = vi.fn(async () => ({
+              type: "FeatureCollection",
+              features: [],
+            }));
+            const destination = {
+              name: "Farol do Morro",
+              latitude: -13.376,
+              longitude: -38.913,
+            };
+            const handlers = createAssistantNavigationAppHandlers({
+              navigation: { start, stop: vi.fn() },
+              resolver: { resolveDestination: vi.fn(() => destination) },
+            });
+            const navigateIntent: AssistantIntentResult = {
+              intent: "navigate",
+              confidence: 0.95,
+              entities: { place: "Farol do Morro" },
+              normalized: "ir para farol do morro",
+              modifiers: [],
+            };
+
+            const pending = await handlers.navigate(request(navigateIntent));
+            expect(start).not.toHaveBeenCalled();
+            expect(pending).toMatchObject({
+              metadata: {
+                navigation: "awaiting_confirmation",
+                destination: "Farol do Morro",
+                pendingRoute: destination,
+              },
+            });
+
+            const context = createDefaultAssistantContext(() => 1000);
+            context.awaiting = { type: "confirmar_navegacao", intent: "navigate" };
+            context.pendingRoute = destination;
+            const confirmIntent: AssistantIntentResult = {
+              intent: "confirm",
+              confidence: 1,
+              entities: {},
+              normalized: "sim",
+              modifiers: [],
+              contextual: true,
+            };
+            const confirmed = await handlers.confirm({
+              input: "sim",
+              intent: confirmIntent,
+              context,
+            });
+
+            expect(start).toHaveBeenCalledWith({
+              longitude: -38.913,
+              latitude: -13.376,
+            });
+            expect(confirmed).toMatchObject({
+              metadata: { navigation: "started", destination: "Farol do Morro" },
+            });
+          });'''
+          replace_once(nav_test, old_test, new_test)
           PY
 
       - name: Format affected files
@@ -365,6 +392,7 @@ jobs:
             apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts \
             apps/morro-digital-platform/src/assistant/assistant-v1-intelligence-adapter.ts \
             apps/morro-digital-platform/src/assistant/assistant-v1-intelligence-adapter.test.ts \
+            apps/morro-digital-platform/src/assistant/assistant-navigation-adapter.test.ts \
             apps/morro-digital-platform/src/navigation/browser-navigation-runtime-install.ts
 
       - name: Validate focused packages
