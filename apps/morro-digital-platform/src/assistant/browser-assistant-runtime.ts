@@ -604,8 +604,8 @@ export function installBrowserAssistantRuntime(
     const generation = ++requestGeneration;
     const visiblePresentation = readVisiblePresentation(options.document);
     const previousPresentation = preservePreviousOptions
-      ? currentPresentation ?? visiblePresentation
-      : visiblePresentation ?? currentPresentation;
+      ? (currentPresentation ?? visiblePresentation)
+      : (visiblePresentation ?? currentPresentation);
     const awaitingType = context.getContext().awaiting?.type;
     const menuCommand = resolveAssistantMenuCommand(options.document, value);
     const explicitCategoryInterrupt =
