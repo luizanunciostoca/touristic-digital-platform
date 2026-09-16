@@ -377,6 +377,8 @@ export function installBrowserAssistantRuntime(
   let destroyed = false;
   let requestGeneration = 0;
   let currentPresentation: AssistantPresentationSnapshot | null = null;
+  let profiledExploreCategory: string | null = null;
+  let profiledExplorePlace: string | null = null;
 
   const appendStandardMessage = (
     sender: "user" | "assistant",
@@ -394,6 +396,22 @@ export function installBrowserAssistantRuntime(
 
   const syncExploreContext = (placeHint?: string): void => {
     const state = readExploreState();
+    const interestCategory = toProfileInterestCategory(state.category);
+    if (interestCategory && state.category !== profiledExploreCategory) {
+      profile.recordInteraction(
+        state.category ?? interestCategory,
+        interestCategory,
+      );
+      profiledExploreCategory = state.category;
+    }
+    const selectedPlace = placeHint ?? state.place;
+    if (selectedPlace && selectedPlace !== profiledExplorePlace) {
+      profile.recordInteraction(selectedPlace, interestCategory, {
+        name: selectedPlace,
+        category: interestCategory,
+      });
+      profiledExplorePlace = selectedPlace;
+    }
     if (state.stage === "filters" && state.category) {
       context.updateContext({
         lastCategory: state.category,
@@ -421,11 +439,21 @@ export function installBrowserAssistantRuntime(
         lastCategory: state.category,
         lastIntent: "detalhes",
         awaiting: null,
-        ...(placeHint ? { lastPlace: placeHint } : {}),
+        ...(selectedPlace ? { lastPlace: selectedPlace } : {}),
+      });
+      return;
+    }
+    if (state.stage === "tour" && state.category) {
+      context.updateContext({
+        lastCategory: state.category,
+        lastIntent: "tour",
+        awaiting: null,
       });
       return;
     }
     if (state.stage === "menu") {
+      profiledExploreCategory = null;
+      profiledExplorePlace = null;
       context.updateContext({ awaiting: null });
     }
   };
@@ -444,16 +472,23 @@ export function installBrowserAssistantRuntime(
       ? currentPresentation
       : null;
     const awaitingType = context.getContext().awaiting?.type;
+    const menuCommand = resolveAssistantMenuCommand(options.document, value);
+    const explicitCategoryInterrupt =
+      (awaitingType === "awaiting_place" ||
+        awaitingType === "awaiting_destination") &&
+      menuCommand?.type === "open_category";
     const controllerOwnsTurn =
       (typeof awaitingType === "string" &&
-        CONTROLLER_OWNED_AWAITING_TYPES.has(awaitingType)) ||
+        CONTROLLER_OWNED_AWAITING_TYPES.has(awaitingType) &&
+        !explicitCategoryInterrupt) ||
       (source === "option" && optionOverride !== undefined);
 
     let menuRouted = false;
     if (!controllerOwnsTurn) {
       if (options.explore) {
-        const command = resolveAssistantMenuCommand(options.document, value);
-        menuRouted = command ? await options.explore.execute(command) : false;
+        menuRouted = menuCommand
+          ? await options.explore.execute(menuCommand)
+          : false;
       } else {
         menuRouted = routeAssistantMenuCommand(options.document, value);
       }
@@ -464,16 +499,11 @@ export function installBrowserAssistantRuntime(
     }
 
     if (menuRouted) {
-      const routedState = readExploreState();
-      profile.recordInteraction(
-        value,
-        toProfileInterestCategory(routedState.category),
-      );
       if (context.getContext().awaiting?.type === "confirmar_navegacao") {
         context.updateContext({ awaiting: null, pendingRoute: null });
       }
       currentPresentation = null;
-      queueMicrotask(() => syncExploreContext());
+      syncExploreContext();
       options.document.dispatchEvent(
         new CustomEvent("morro:assistant-menu-command-routed", {
           detail: { message: value, source },
@@ -483,6 +513,7 @@ export function installBrowserAssistantRuntime(
         options.document
           .getElementById("assistant-category-results-message")
           ?.textContent?.trim() ?? "";
+      context.addToHistory({ input: value, response: routedText });
       if (routedText) voice?.speak(routedText, voiceLanguage());
       return {
         text: routedText,
@@ -547,7 +578,7 @@ export function installBrowserAssistantRuntime(
       }
     }
     if (actionExecuted && generation === requestGeneration) {
-      queueMicrotask(() => syncExploreContext());
+      syncExploreContext();
       options.document.dispatchEvent(
         new CustomEvent("morro:assistant-action-executed", {
           detail: { action: runtimeAction, source: "llm" },
@@ -666,18 +697,30 @@ export function installBrowserAssistantRuntime(
     if (!(event instanceof KeyboardEvent) || event.key !== "Escape") return;
     queueMicrotask(() => syncExploreContext());
   };
+  const onExploreStateChanged = (): void => syncExploreContext();
 
   sendButton?.addEventListener("click", onSendClick);
   input?.addEventListener("keydown", onInputKeyDown);
   voiceButton?.setAttribute("aria-pressed", "false");
   voiceButton?.addEventListener("click", onVoiceClick);
-  options.document.addEventListener(
-    "morro:assistant-option-selected",
-    scheduleExploreContextSync,
-    true,
-  );
-  options.document.addEventListener("click", scheduleExploreContextSync, true);
-  options.document.addEventListener("keydown", onExploreEscape, true);
+  if (options.explore) {
+    options.document.addEventListener(
+      "morro:explore-state-changed",
+      onExploreStateChanged,
+    );
+  } else {
+    options.document.addEventListener(
+      "morro:assistant-option-selected",
+      scheduleExploreContextSync,
+      true,
+    );
+    options.document.addEventListener(
+      "click",
+      scheduleExploreContextSync,
+      true,
+    );
+    options.document.addEventListener("keydown", onExploreEscape, true);
+  }
   options.document.addEventListener(
     "morro:assistant-option-selected",
     onOptionSelected,
@@ -693,17 +736,24 @@ export function installBrowserAssistantRuntime(
       sendButton?.removeEventListener("click", onSendClick);
       input?.removeEventListener("keydown", onInputKeyDown);
       voiceButton?.removeEventListener("click", onVoiceClick);
-      options.document.removeEventListener(
-        "morro:assistant-option-selected",
-        scheduleExploreContextSync,
-        true,
-      );
-      options.document.removeEventListener(
-        "click",
-        scheduleExploreContextSync,
-        true,
-      );
-      options.document.removeEventListener("keydown", onExploreEscape, true);
+      if (options.explore) {
+        options.document.removeEventListener(
+          "morro:explore-state-changed",
+          onExploreStateChanged,
+        );
+      } else {
+        options.document.removeEventListener(
+          "morro:assistant-option-selected",
+          scheduleExploreContextSync,
+          true,
+        );
+        options.document.removeEventListener(
+          "click",
+          scheduleExploreContextSync,
+          true,
+        );
+        options.document.removeEventListener("keydown", onExploreEscape, true);
+      }
       options.document.removeEventListener(
         "morro:assistant-option-selected",
         onOptionSelected,

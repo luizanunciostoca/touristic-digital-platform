@@ -239,6 +239,7 @@ const OPTION_ALIASES = Object.freeze({
 
 export interface AssistantExploreStateSnapshot {
   readonly category: string | null;
+  readonly place: string | null;
   readonly stage: string | null;
   readonly markerCount: number;
 }
@@ -667,6 +668,7 @@ export function readAssistantExploreState(
   const map = document.getElementById("map");
   return Object.freeze({
     category: map?.getAttribute("data-explore-category") ?? null,
+    place: map?.getAttribute("data-explore-place") ?? null,
     stage: map?.getAttribute("data-explore-stage") ?? null,
     markerCount: Number(map?.getAttribute("data-map-marker-count") ?? "0"),
   });
