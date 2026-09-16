@@ -112,6 +112,14 @@ jobs:
               const send = page.locator('#sendButton');
               await input.waitFor({ state: 'visible', timeout: 5000 });
 
+              const detailActionValues = {
+                beaches: 'condições da praia',
+                restaurants: 'cardápio',
+                hotels: 'ver quartos',
+                tours: 'ponto de encontro',
+                transport: 'tarifas',
+              };
+
               async function waitUntil(check, label, timeout = 8000) {
                 const deadline = Date.now() + timeout;
                 let lastError = null;
@@ -149,6 +157,11 @@ jobs:
                 await page.locator(
                   `#map[data-explore-category="${category}"][data-explore-stage="detail"][data-map-marker-count="1"]`,
                 ).waitFor({ state: 'attached', timeout: 8000 });
+                const detailAction = detailActionValues[category];
+                if (!detailAction) throw new Error(`Missing detail action for ${category}`);
+                await page.locator(
+                  `.assistant-option-btn[data-value="${detailAction}"]`,
+                ).last().waitFor({ state: 'visible', timeout: 8000 });
               }
 
               async function expectAction(inputText, action, expectedText) {
