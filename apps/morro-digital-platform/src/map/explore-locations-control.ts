@@ -830,6 +830,12 @@ export function installExploreLocationsControl({
     categoryListeners.set(button, onCategoryClick);
   }
 
+  // The app shell ships English fallback labels while the runtime locale can
+  // already be PT/ES/HE before this control is installed. Reconcile both the
+  // visible labels and accessible names immediately, not only after a later
+  // <html lang> mutation.
+  refreshCategoryPresentation();
+
   const MutationObserverCtor = document.defaultView?.MutationObserver;
   const localeObserver = MutationObserverCtor
     ? new MutationObserverCtor((records) => {
