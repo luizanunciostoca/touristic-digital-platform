@@ -33,8 +33,10 @@ type Copy = Readonly<Record<AssistantV1PlaceActionLanguage, string>>;
 type StaticActionKey =
   | "restaurant_menu"
   | "restaurant_contact"
+  | "restaurant_reviews"
   | "accommodation_rooms"
   | "accommodation_booking"
+  | "accommodation_share"
   | "tour_booking"
   | "tour_meeting_point"
   | "tour_contact"
@@ -60,6 +62,12 @@ const STATIC_COPY: Readonly<Record<StaticActionKey, Copy>> = Object.freeze({
     es: "Este restaurante aún no tiene canales de contacto.",
     he: "למסעדה עדיין אין ערוצי קשר.",
   },
+  restaurant_reviews: {
+    pt: "Ainda não há avaliações cadastradas para este restaurante.",
+    en: "No reviews are registered for this restaurant yet.",
+    es: "Aún no hay reseñas registradas para este restaurante.",
+    he: "עדיין אין ביקורות רשומות למסעדה זו.",
+  },
   accommodation_rooms: {
     pt: "Esta hospedagem ainda não possui quartos cadastrados. Consulte disponibilidade e valores pelo contato disponível.",
     en: "This accommodation does not have registered rooms yet. Check availability and rates through the available contact channel.",
@@ -71,6 +79,12 @@ const STATIC_COPY: Readonly<Record<StaticActionKey, Copy>> = Object.freeze({
     en: "This accommodation does not have a booking channel registered yet.",
     es: "Este alojamiento aún no tiene un canal de reserva registrado.",
     he: "למקום האירוח עדיין אין ערוץ הזמנה רשום.",
+  },
+  accommodation_share: {
+    pt: "O compartilhamento desta hospedagem ainda não está disponível no assistente.",
+    en: "Sharing this accommodation is not available in the assistant yet.",
+    es: "Compartir este alojamiento aún no está disponible en el asistente.",
+    he: "שיתוף מקום האירוח הזה עדיין אינו זמין בעוזר.",
   },
   tour_booking: {
     pt: "Este passeio ainda não possui canal de reserva cadastrado.",
@@ -152,6 +166,10 @@ const STATIC_ACTIONS: Readonly<
       aliases: ["contato", "contact", "contacto"],
       action: "restaurant_contact",
     },
+    {
+      aliases: ["avaliacoes", "reviews"],
+      action: "restaurant_reviews",
+    },
   ],
   hotels: [
     {
@@ -161,6 +179,10 @@ const STATIC_ACTIONS: Readonly<
     {
       aliases: ["reservar", "reserva", "book", "booking"],
       action: "accommodation_booking",
+    },
+    {
+      aliases: ["compartilhar", "share"],
+      action: "accommodation_share",
     },
   ],
   tours: [

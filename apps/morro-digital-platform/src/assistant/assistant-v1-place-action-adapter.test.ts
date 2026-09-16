@@ -20,8 +20,10 @@ describe("assistant V1 place action parity", () => {
   it.each([
     ["cardápio", "Morena Bela", "restaurants", "restaurant_menu"],
     ["contato", "Morena Bela", "restaurants", "restaurant_contact"],
+    ["avaliações", "Morena Bela", "restaurants", "restaurant_reviews"],
     ["ver quartos", "Pousada Natureza", "hotels", "accommodation_rooms"],
     ["reservar", "Pousada Natureza", "hotels", "accommodation_booking"],
+    ["compartilhar", "Pousada Natureza", "hotels", "accommodation_share"],
     [
       "reservar passeio",
       "Passeio de Barco Volta à Ilha",
@@ -87,6 +89,21 @@ describe("assistant V1 place action parity", () => {
       "adicionar aos favoritos",
       "Morena Bela",
     ]);
+  });
+
+  it("keeps review/share secondary actions deterministic and localized", () => {
+    expect(
+      resolve("reviews", "Morena Bela", "restaurants", "en")?.response,
+    ).toMatchObject({
+      text: "No reviews are registered for this restaurant yet.",
+      metadata: { action: "restaurant_reviews", deterministic: true },
+    });
+    expect(
+      resolve("share", "Pousada Natureza", "hotels", "en")?.response,
+    ).toMatchObject({
+      text: "Sharing this accommodation is not available in the assistant yet.",
+      metadata: { action: "accommodation_share", deterministic: true },
+    });
   });
 
   it("keeps unavailable transport secondary information explicit", () => {
