@@ -7,7 +7,6 @@ on:
       - .github/workflows/assistant-input-menu-flow-v1-parity.yml
       - apps/morro-digital-platform/public/index.html
       - apps/morro-digital-platform/public/assistant-input-v1-parity.js
-      - apps/morro-digital-platform/public/assistant-menu-flow-v1-parity.js
       - apps/morro-digital-platform/src/main.ts
       - apps/morro-digital-platform/src/browser-entry.ts
       - apps/morro-digital-platform/src/layouts/app-shell.ts
