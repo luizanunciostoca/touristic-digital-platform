@@ -52,7 +52,9 @@ jobs:
             apps/morro-digital-platform/tooling/explore-v1-i18n-browser-parity.mjs \
             .github/workflows/explore-v1-i18n-browser-parity.yml
       - name: Diff check
-        run: git diff --check
+        run: |
+          git checkout -- tooling/tmp-runtime-accessibility-i18n-finalizer.py
+          git diff --check
       - name: Commit functional tree
         run: |
           rm tooling/tmp-runtime-accessibility-i18n-finalizer.py
