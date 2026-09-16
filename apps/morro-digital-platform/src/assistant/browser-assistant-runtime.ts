@@ -6,6 +6,7 @@ import {
   type AssistantDialogResponse,
 } from "@touristic/assistant";
 
+import type { ExploreLocationsControl } from "../map/explore-locations-control.js";
 import type { NavigationSessionBootstrap } from "../navigation/navigation-session-bootstrap.js";
 import { createAssistantLlmHandler } from "./assistant-llm-adapter.js";
 import { createAssistantBrowserDomainHandlers } from "./assistant-domain-adapter.js";
@@ -19,6 +20,8 @@ import {
 import {
   executeAssistantRuntimeAction,
   readAssistantExploreState,
+  resolveAssistantMenuCommand,
+  resolveAssistantRuntimeAction,
   routeAssistantMenuCommand,
 } from "./assistant-menu-command-router.js";
 import { createAssistantNavigationAppHandlers } from "./assistant-navigation-adapter.js";
@@ -39,6 +42,7 @@ interface AssistantRuntimeEnvironmentGlobal {
 export interface BrowserAssistantRuntimeOptions {
   readonly document: Document;
   readonly navigation: Pick<NavigationSessionBootstrap, "start" | "stop">;
+  readonly explore?: Pick<ExploreLocationsControl, "execute" | "getState">;
   readonly storage?: Storage;
   readonly fetch?: typeof globalThis.fetch;
   readonly mapboxAccessToken?: string;
@@ -345,8 +349,11 @@ export function installBrowserAssistantRuntime(
     voice?.getPreferences().language ??
     normalizeAssistantVoiceLanguage(options.document.documentElement.lang);
 
+  const readExploreState = () =>
+    options.explore?.getState() ?? readAssistantExploreState(options.document);
+
   const syncExploreContext = (placeHint?: string): void => {
-    const state = readAssistantExploreState(options.document);
+    const state = readExploreState();
     if (state.stage === "filters" && state.category) {
       context.updateContext({
         lastCategory: state.category,
@@ -402,13 +409,17 @@ export function installBrowserAssistantRuntime(
         CONTROLLER_OWNED_AWAITING_TYPES.has(awaitingType)) ||
       (source === "option" && optionOverride !== undefined);
 
-    // Controller-owned multi-turn states and semantic place-selection events
-    // must resolve before global menu aliases. Other V1 menu commands keep the
-    // deterministic fast path until Explore exposes a direct semantic port.
-    if (
-      !controllerOwnsTurn &&
-      routeAssistantMenuCommand(options.document, value)
-    ) {
+    let menuRouted = false;
+    if (!controllerOwnsTurn) {
+      if (options.explore) {
+        const command = resolveAssistantMenuCommand(options.document, value);
+        menuRouted = command ? await options.explore.execute(command) : false;
+      } else {
+        menuRouted = routeAssistantMenuCommand(options.document, value);
+      }
+    }
+
+    if (menuRouted) {
       currentPresentation = null;
       queueMicrotask(() => syncExploreContext());
       options.document.dispatchEvent(
@@ -427,7 +438,7 @@ export function installBrowserAssistantRuntime(
           domain: "menu_command",
           state: "routed",
           source,
-          explore: readAssistantExploreState(options.document),
+          explore: readExploreState(),
         },
       };
     }
@@ -469,10 +480,19 @@ export function installBrowserAssistantRuntime(
     }
 
     const runtimeAction = readRuntimeAction(response);
-    if (
-      runtimeAction &&
-      executeAssistantRuntimeAction(options.document, runtimeAction)
-    ) {
+    let actionExecuted = false;
+    if (runtimeAction) {
+      if (options.explore) {
+        const command = resolveAssistantRuntimeAction(runtimeAction);
+        actionExecuted = command ? await options.explore.execute(command) : false;
+      } else {
+        actionExecuted = executeAssistantRuntimeAction(
+          options.document,
+          runtimeAction,
+        );
+      }
+    }
+    if (actionExecuted && generation === requestGeneration) {
       queueMicrotask(() => syncExploreContext());
       options.document.dispatchEvent(
         new CustomEvent("morro:assistant-action-executed", {
