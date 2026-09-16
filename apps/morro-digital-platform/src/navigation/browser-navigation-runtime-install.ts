@@ -282,6 +282,7 @@ export function installBrowserNavigationRuntime(
   const assistant = installAssistant({
     document: options.document,
     navigation: activeLifecycle,
+    map: options.map,
     ...(explore ? { explore } : {}),
   });
   const assistantFeedback = installAssistantFeedback(options.document);

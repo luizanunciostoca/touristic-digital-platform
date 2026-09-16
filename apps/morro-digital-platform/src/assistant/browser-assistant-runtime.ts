@@ -1,3 +1,5 @@
+import type { MapboxGlMapLike } from "@touristic/geospatial";
+
 import {
   createAssistantContextManager,
   createAssistantDialogController,
@@ -15,6 +17,8 @@ import type { NavigationSessionBootstrap } from "../navigation/navigation-sessio
 import { fetchMorroWeather } from "../weather/weather-widget.js";
 import { createAssistantLlmHandler } from "./assistant-llm-adapter.js";
 import { createAssistantV1IntelligenceHandlers } from "./assistant-v1-intelligence-adapter.js";
+import { resolveAssistantV1History } from "./assistant-v1-history-adapter.js";
+import { executeAssistantV1MapCommand } from "./assistant-v1-map-command-adapter.js";
 import { resolveAssistantV1PlaceAction } from "./assistant-v1-place-action-adapter.js";
 import { createAssistantBrowserDomainHandlers } from "./assistant-domain-adapter.js";
 import { createAssistantMessageDom } from "./assistant-message-dom.js";
@@ -49,7 +53,11 @@ interface AssistantRuntimeEnvironmentGlobal {
 export interface BrowserAssistantRuntimeOptions {
   readonly document: Document;
   readonly navigation: Pick<NavigationSessionBootstrap, "start" | "stop">;
-  readonly explore?: Pick<ExploreLocationsControl, "execute" | "getState">;
+  readonly explore?: Pick<
+    ExploreLocationsControl,
+    "execute" | "getState" | "showCategoryOnMap" | "showAllOnMap"
+  >;
+  readonly map?: MapboxGlMapLike;
   readonly storage?: Storage;
   readonly fetch?: typeof globalThis.fetch;
   readonly mapboxAccessToken?: string;
@@ -608,6 +616,83 @@ export function installBrowserAssistantRuntime(
     const value = selectedNumericOption?.value.trim() || submittedValue;
 
     const generation = ++requestGeneration;
+
+    const mapResponse = await executeAssistantV1MapCommand({
+      input: value,
+      language: presentationLanguage(),
+      ...(options.map ? { map: options.map } : {}),
+      ...(options.explore
+        ? {
+            explore: {
+              showCategoryOnMap: (category) =>
+                options.explore!.showCategoryOnMap(category),
+              showAllOnMap: () => options.explore!.showAllOnMap(),
+            },
+          }
+        : {}),
+    });
+    if (mapResponse) {
+      if (destroyed || generation !== requestGeneration)
+        return supersededResponse();
+      clearAssistantDomOptions(options.document);
+      removePhotoPresentation(options.document);
+      appendStandardMessage("user", submittedValue);
+      appendStandardMessage("assistant", mapResponse.text);
+      const mapOptions = readAssistantResponseOptions(mapResponse);
+      if (mapOptions.length > 0)
+        renderAssistantDomOptions(options.document, mapOptions);
+      currentPresentation = snapshotPresentation(mapResponse.text, mapOptions);
+      context.updateContext({
+        lastIntent: "map_command",
+        fallbackCount: 0,
+        awaiting: null,
+      });
+      context.addToHistory({
+        input: submittedValue,
+        response: mapResponse.text,
+      });
+      options.document.dispatchEvent(
+        new CustomEvent("morro:assistant-map-command-routed", {
+          detail: { command: mapResponse.metadata?.command ?? null, source },
+        }),
+      );
+      voice?.speak(mapResponse.text, voiceLanguage());
+      return mapResponse;
+    }
+
+    const historySnapshot = context.getContext();
+    const historyResponse = resolveAssistantV1History(
+      value,
+      historySnapshot.history,
+      presentationLanguage(),
+    );
+    if (historyResponse) {
+      if (destroyed || generation !== requestGeneration)
+        return supersededResponse();
+      clearAssistantDomOptions(options.document);
+      removePhotoPresentation(options.document);
+      appendStandardMessage("user", submittedValue);
+      appendStandardMessage("assistant", historyResponse.text);
+      currentPresentation = snapshotPresentation(historyResponse.text, []);
+      context.updateContext({
+        lastIntent: "history",
+        fallbackCount: 0,
+        awaiting: null,
+      });
+      // Match V1 semantics: format the previous history first, then record this turn.
+      context.addToHistory({
+        input: submittedValue,
+        response: historyResponse.text,
+      });
+      options.document.dispatchEvent(
+        new CustomEvent("morro:assistant-history-routed", {
+          detail: { source },
+        }),
+      );
+      voice?.speak(historyResponse.text, voiceLanguage());
+      return historyResponse;
+    }
+
     const placeActionContext = context.getContext();
     const placeAction = resolveAssistantV1PlaceAction({
       input: value,

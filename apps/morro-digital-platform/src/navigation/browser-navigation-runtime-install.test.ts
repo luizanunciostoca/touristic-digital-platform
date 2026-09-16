@@ -192,6 +192,7 @@ describe("browser navigation runtime install", () => {
     expect(installAssistant).toHaveBeenCalledWith({
       document,
       navigation: lifecycle,
+      map,
     });
     expect(installed.bootstrap).toBe(bootstrap);
     expect(installed.lifecycle).toBe(lifecycle);

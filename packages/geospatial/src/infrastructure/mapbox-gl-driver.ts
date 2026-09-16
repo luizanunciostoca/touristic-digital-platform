@@ -10,11 +10,16 @@ export interface MapboxGlMapLike {
   getZoom?(): number;
   getCenter?(): Readonly<{ lng: number; lat: number }>;
   flyTo?(options: {
-    readonly center: [number, number];
+    readonly center?: [number, number];
     readonly zoom?: number;
+    readonly pitch?: number;
+    readonly bearing?: number;
     readonly duration?: number;
     readonly essential?: boolean;
   }): void;
+  setStyle?(style: string): void;
+  getPitch?(): number;
+  getBearing?(): number;
   remove(): void;
   isStyleLoaded?(): boolean;
   once?(event: string, listener: () => void): void;

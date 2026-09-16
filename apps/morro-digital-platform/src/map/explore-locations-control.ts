@@ -62,6 +62,8 @@ export interface ExploreLocationsControlOptions {
 export interface ExploreLocationsControl {
   execute(command: ExploreLocationsCommand): Promise<boolean>;
   getState(): ExploreLocationsStateSnapshot;
+  showCategoryOnMap(category: string): Promise<number | null>;
+  showAllOnMap(): Promise<number | null>;
   close(): void;
   setGeospatialEngine(engine: GeospatialEngine | undefined): void;
   destroy(): void;
@@ -387,6 +389,39 @@ export function installExploreLocationsControl({
         );
     }
   };
+
+  const renderMapCommandLocations = async (
+    locations: readonly MorroV1SearchCatalogItem[],
+    filter: string,
+  ): Promise<number | null> => {
+    if (!geospatialEngine?.initialized) return null;
+    try {
+      await geospatialEngine.replaceMarkers(
+        locations.map((location, index) => markerForLocation(location, index)),
+      );
+      frameLocationsOnMap(locations, geospatialEngine);
+      const mapElement = document.getElementById("map");
+      mapElement?.setAttribute(
+        "data-map-marker-count",
+        String(locations.length),
+      );
+      mapElement?.setAttribute("data-map-command-filter", filter);
+      return locations.length;
+    } catch {
+      return null;
+    }
+  };
+
+  const showCategoryOnMap = async (
+    category: string,
+  ): Promise<number | null> => {
+    const locations = getExploreLocationsForCategory(category);
+    if (locations.length === 0) return 0;
+    return renderMapCommandLocations(locations, category);
+  };
+
+  const showAllOnMap = async (): Promise<number | null> =>
+    renderMapCommandLocations(morroV1SearchCatalog, "all");
 
   const hideMainMenu = (): void => {
     if (!mainMenuContainer) return;
@@ -893,6 +928,8 @@ export function installExploreLocationsControl({
   return Object.freeze({
     execute,
     getState: stateSnapshot,
+    showCategoryOnMap,
+    showAllOnMap,
     close: () => backToMenu(),
     setGeospatialEngine(engine: GeospatialEngine | undefined) {
       geospatialEngine = engine;
