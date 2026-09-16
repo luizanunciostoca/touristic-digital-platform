@@ -44,14 +44,14 @@ jobs:
           pnpm --filter @touristic/morro-digital-platform typecheck
           pnpm -w build
           git diff --check
-      - name: Commit validated parity closure
+      - name: Commit validated source closure
         run: |
-          rm -f .github/scripts/finalize_assistant_v1_runtime_parity.py
-          rm -f .github/scripts/fix_assistant_v1_parity_types.py
-          rm -f .github/workflows/assistant-v1-runtime-parity-finalize-once.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
+          git add \
+            apps/morro-digital-platform/src/assistant/assistant-v1-intelligence-adapter.ts \
+            apps/morro-digital-platform/src/assistant/assistant-v1-intelligence-adapter.test.ts \
+            apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts
           git diff --cached --check
           git commit -m "fix(assistant): close audited V1 runtime parity gaps"
           git push origin HEAD:fix/assistant-v1-runtime-intelligence-completion
