@@ -11,6 +11,7 @@ on:
       - apps/morro-digital-platform/src/map/explore-locations-control.ts
       - apps/morro-digital-platform/src/navigation/**
       - apps/morro-digital-platform/src/layouts/app-shell.ts
+      - apps/morro-digital-platform/src/main.ts
 
 permissions:
   contents: read
