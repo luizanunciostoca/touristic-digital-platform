@@ -11,6 +11,8 @@ export interface MorroDigitalApplicationBootstrap {
   readonly exploreLocations: ExploreLocationsControl;
 }
 
+const EXPLORE_RESET_REQUEST_EVENT = "morro:explore-reset-requested";
+
 export function bootstrapMorroDigitalApplication(
   document: Document,
 ): MorroDigitalApplicationBootstrap {
@@ -18,6 +20,9 @@ export function bootstrapMorroDigitalApplication(
   installAssistantSingleMessageController({ document });
   installExploreMapViewportV1({ document });
   const exploreLocations = installExploreLocationsControl({ document });
+  document.addEventListener(EXPLORE_RESET_REQUEST_EVENT, () => {
+    exploreLocations.close();
+  });
   installThreeDimensionalMapControl({ document });
   return Object.freeze({ exploreLocations });
 }
