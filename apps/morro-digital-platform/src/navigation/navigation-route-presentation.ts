@@ -19,12 +19,20 @@ export const NAVIGATION_ROUTE_PAINT = Object.freeze({
 });
 
 function hasRouteFeatures(routeData: unknown): routeData is Readonly<{
-  type?: string;
   features: readonly unknown[];
 }> {
   if (!routeData || typeof routeData !== "object") return false;
   const candidate = routeData as Readonly<{ features?: unknown }>;
   return Array.isArray(candidate.features) && candidate.features.length > 0;
+}
+
+function toMapboxFeatureCollection(
+  routeData: Readonly<{ features: readonly unknown[] }>,
+): Readonly<{ type: "FeatureCollection"; features: readonly unknown[] }> {
+  return Object.freeze({
+    type: "FeatureCollection" as const,
+    features: routeData.features,
+  });
 }
 
 export function clearNavigationRoute(map: MapboxGlMapLike): void {
@@ -52,7 +60,7 @@ export function presentNavigationRoute(
   try {
     map.addSource(NAVIGATION_ROUTE_SOURCE, {
       type: "geojson",
-      data: routeData,
+      data: toMapboxFeatureCollection(routeData),
     });
     map.addLayer({
       id: NAVIGATION_ROUTE_OUTLINE,
