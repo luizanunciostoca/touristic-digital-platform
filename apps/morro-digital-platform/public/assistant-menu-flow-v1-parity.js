@@ -205,6 +205,15 @@ export function normalizeAssistantMenuCommand(value) {
     .trim();
 }
 
+const NORMALIZED_OPTION_ALIASES = Object.freeze(
+  Object.fromEntries(
+    Object.entries(OPTION_ALIASES).map(([value, aliases]) => [
+      normalizeAssistantMenuCommand(value),
+      aliases,
+    ]),
+  ),
+);
+
 function isElementVisible(element) {
   if (!(element instanceof HTMLElement)) return false;
   if (element.classList.contains("hidden")) return false;
@@ -227,7 +236,9 @@ function buttonTexts(button) {
 
 function buttonAliases(button) {
   const value = normalizeAssistantMenuCommand(button.dataset.value || "");
-  return (OPTION_ALIASES[value] || []).map(normalizeAssistantMenuCommand);
+  return (NORMALIZED_OPTION_ALIASES[value] || []).map(
+    normalizeAssistantMenuCommand,
+  );
 }
 
 function semanticButtonScore(message, button) {
@@ -293,7 +304,7 @@ function tryClickVisibleOption(message) {
       const value = normalizeAssistantMenuCommand(button.dataset.value || "");
       const label = normalizeAssistantMenuCommand(button.textContent || "");
       return (
-        value.startsWith("[sub] ") ||
+        value.startsWith("[sub]") ||
         value === "voltar filtros" ||
         value === "voltar menu" ||
         label.includes("voltar") ||
