@@ -87,6 +87,7 @@ jobs:
               await page.waitForTimeout(100);
             }
             const diagnostics = await page.evaluate(() => ({
+              mapState: document.getElementById('map')?.getAttribute('data-map-state') ?? null,
               assistantClass: document.getElementById('assistant-messages')?.className ?? null,
               messages: Array.from(document.querySelectorAll('#assistant-messages .message')).map((element) => ({
                 text: element.textContent?.trim() ?? '',
@@ -140,6 +141,12 @@ jobs:
               state: 'visible',
               timeout: 15000,
             });
+            await poll(
+              page,
+              () => document.getElementById('map')?.getAttribute('data-map-state') === 'ready',
+              'runtime-map-ready',
+              20000,
+            );
 
             await page.evaluate((nextDestination) => {
               document.dispatchEvent(new CustomEvent('morro:navigation-requested', {
