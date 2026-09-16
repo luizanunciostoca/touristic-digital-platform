@@ -249,7 +249,7 @@ export function normalizeAssistantMenuCommand(value: string): string {
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^\p{L}\p{N}\s\[\]_]/gu, " ")
+    .replace(/[^\p{L}\p{N}\s[\]_]/gu, " ")
     .replace(/_/g, " ")
     .replace(/\s+/g, " ")
     .trim();
