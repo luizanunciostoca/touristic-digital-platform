@@ -342,17 +342,13 @@ jobs:
           nav_install = "apps/morro-digital-platform/src/navigation/browser-navigation-runtime-install.ts"
           replace_once(
               nav_install,
-              '''  const assistant = installAssistant({
-            document: options.document,
-            navigation: activeLifecycle,
-            explore: getMorroDigitalApplication(options.document)?.exploreLocations,
-          });''',
-              '''  const explore = getMorroDigitalApplication(options.document)?.exploreLocations;
-          const assistant = installAssistant({
-            document: options.document,
-            navigation: activeLifecycle,
-            ...(explore ? { explore } : {}),
-          });''',
+              '  const assistant = installAssistant({',
+              '  const explore = getMorroDigitalApplication(options.document)?.exploreLocations;\n  const assistant = installAssistant({',
+          )
+          replace_once(
+              nav_install,
+              '    explore: getMorroDigitalApplication(options.document)?.exploreLocations,',
+              '    ...(explore ? { explore } : {}),',
           )
           PY
 
