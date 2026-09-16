@@ -118,6 +118,15 @@ export function normalizeAssistantText(text: string): string {
     .trim();
 }
 
+function includesNormalizedPhrase(
+  normalized: string,
+  candidate: string,
+): boolean {
+  const phrase = normalizeAssistantText(candidate);
+  if (!phrase) return false;
+  return ` ${normalized} `.includes(` ${phrase} `);
+}
+
 const SYNONYMS = {
   praia: [
     "praia",
@@ -751,9 +760,7 @@ export function extractAssistantEntities(
 
   for (const [category, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
     if (
-      keywords.some((keyword) =>
-        normalized.includes(normalizeAssistantText(keyword)),
-      )
+      keywords.some((keyword) => includesNormalizedPhrase(normalized, keyword))
     ) {
       entities.category = category;
       break;
