@@ -147,10 +147,7 @@ function photoBackLabel(document: Document): string {
   }[language];
 }
 
-function appendPhotoBackOption(
-  document: Document,
-  onBack: () => void,
-): void {
+function appendPhotoBackOption(document: Document, onBack: () => void): void {
   const area = getMessagesArea(document);
   if (!area) return;
 
@@ -383,7 +380,10 @@ export function installBrowserAssistantRuntime(
       if (responseOptions.length > 0) {
         renderAssistantDomOptions(options.document, responseOptions);
       }
-      currentPresentation = snapshotPresentation(response.text, responseOptions);
+      currentPresentation = snapshotPresentation(
+        response.text,
+        responseOptions,
+      );
     }
 
     const voicePreferences = voice?.getPreferences();
