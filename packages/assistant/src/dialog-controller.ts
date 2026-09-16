@@ -211,7 +211,11 @@ export function createAssistantDialogController(
           ? { name: intent.entities.place, category }
           : null;
 
-        options.profile?.recordInteraction(input, category, place);
+        if (place) {
+          options.profile?.recordInteraction(input, category, place);
+        } else {
+          options.profile?.recordInteraction(input, category);
+        }
 
         const request: AssistantDialogIntentHandlerContext = {
           input,
