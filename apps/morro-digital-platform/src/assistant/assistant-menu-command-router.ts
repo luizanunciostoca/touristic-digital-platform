@@ -237,7 +237,10 @@ function buttonTexts(button: HTMLButtonElement): readonly string[] {
     button.textContent,
     button.getAttribute("aria-label"),
   ]
-    .filter((value): value is string => typeof value === "string" && Boolean(value.trim()))
+    .filter(
+      (value): value is string =>
+        typeof value === "string" && Boolean(value.trim()),
+    )
     .map(normalizeAssistantMenuCommand)
     .filter(Boolean);
 }
@@ -247,7 +250,10 @@ function buttonAliases(button: HTMLButtonElement): readonly string[] {
   return NORMALIZED_OPTION_ALIASES[value] ?? [];
 }
 
-function semanticButtonScore(message: string, button: HTMLButtonElement): number {
+function semanticButtonScore(
+  message: string,
+  button: HTMLButtonElement,
+): number {
   const normalizedMessage = normalizeAssistantMenuCommand(message);
   if (!normalizedMessage) return 0;
 
@@ -257,7 +263,8 @@ function semanticButtonScore(message: string, button: HTMLButtonElement): number
     if (
       candidate.length >= 4 &&
       normalizedMessage.length >= 4 &&
-      (normalizedMessage.includes(candidate) || candidate.includes(normalizedMessage))
+      (normalizedMessage.includes(candidate) ||
+        candidate.includes(normalizedMessage))
     ) {
       score = Math.max(score, 80);
     }
@@ -279,7 +286,9 @@ function semanticButtonScore(message: string, button: HTMLButtonElement): number
 function activeFlowButtons(document: Document): readonly HTMLButtonElement[] {
   const flow = document.getElementById("assistant-category-results");
   if (flow && isElementVisible(flow)) {
-    return Array.from(flow.querySelectorAll<HTMLButtonElement>(".assistant-option-btn"));
+    return Array.from(
+      flow.querySelectorAll<HTMLButtonElement>(".assistant-option-btn"),
+    );
   }
 
   const containers = Array.from(
@@ -292,14 +301,18 @@ function activeFlowButtons(document: Document): readonly HTMLButtonElement[] {
   );
   const current = containers.at(-1);
   if (!current) return [];
-  return Array.from(current.querySelectorAll<HTMLButtonElement>(".assistant-option-btn"));
+  return Array.from(
+    current.querySelectorAll<HTMLButtonElement>(".assistant-option-btn"),
+  );
 }
 
 function clearPriorDynamicPresentation(document: Document): void {
   const area = document.querySelector("#assistant-messages .messages-area");
   if (!(area instanceof HTMLElement)) return;
 
-  for (const container of Array.from(area.querySelectorAll(".assistant-options"))) {
+  for (const container of Array.from(
+    area.querySelectorAll(".assistant-options"),
+  )) {
     if (!(container instanceof HTMLElement)) continue;
     if (container.querySelector("[data-explore-category]")) continue;
     container.remove();
@@ -319,6 +332,15 @@ function tryClickVisibleOption(document: Document, message: string): boolean {
   if (buttons.length === 0) return false;
 
   const normalizedMessage = normalizeAssistantMenuCommand(message);
+  if (/^\d+$/u.test(normalizedMessage)) {
+    const oneBasedIndex = Number(normalizedMessage);
+    const selected = buttons[oneBasedIndex - 1];
+    if (selected) {
+      selected.click();
+      return true;
+    }
+  }
+
   if (normalizedMessage === "voltar" || normalizedMessage === "back") {
     const backButton = buttons.find((button) => {
       const value = normalizeAssistantMenuCommand(button.dataset.value || "");
@@ -416,7 +438,9 @@ function tryOpenPlace(document: Document, name: string): boolean {
   ).find(
     (button) =>
       button.dataset.exploreAction === "all" ||
-      normalizeAssistantMenuCommand(button.dataset.value || "").includes("ver todos"),
+      normalizeAssistantMenuCommand(button.dataset.value || "").includes(
+        "ver todos",
+      ),
   );
   allButton?.click();
 
