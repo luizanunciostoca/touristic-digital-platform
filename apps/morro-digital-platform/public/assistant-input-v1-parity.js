@@ -1,3 +1,5 @@
+import { routeTypedAssistantCommand } from "./assistant-menu-flow-v1-parity.js";
+
 const INSTALLATION_KEY = "__MORRO_ASSISTANT_INPUT_V1_PARITY__";
 
 if (!globalThis[INSTALLATION_KEY]) {
@@ -17,17 +19,26 @@ if (!globalThis[INSTALLATION_KEY]) {
 
   function prepareTypedSubmission(source) {
     const input = assistantInput();
-    if (!input) return false;
+    if (!input) return "empty";
 
     const message = String(input.value || "").trim();
-    if (!message) return false;
+    if (!message) return "empty";
 
     document.dispatchEvent(
       new CustomEvent("morro:assistant-input-submitted", {
         detail: { message, source },
       }),
     );
-    return true;
+
+    if (!routeTypedAssistantCommand(message)) return "passthrough";
+
+    input.value = "";
+    document.dispatchEvent(
+      new CustomEvent("morro:assistant-menu-command-routed", {
+        detail: { message, source },
+      }),
+    );
+    return "handled";
   }
 
   function applyInputSafeguards(input) {
@@ -82,11 +93,9 @@ if (!globalThis[INSTALLATION_KEY]) {
       if (!(target instanceof Element) || !target.closest(SEND_SELECTOR))
         return;
 
-      // A valid V1 submission is allowed to continue to the existing V2 runtime,
-      // which remains the single owner of assistant processing and input clearing.
-      if (prepareTypedSubmission("button")) return;
+      const submission = prepareTypedSubmission("button");
+      if (submission === "passthrough") return;
 
-      // V1 ignores whitespace-only drafts and keeps them in the field.
       event.preventDefault();
       event.stopImmediatePropagation();
     },
@@ -111,9 +120,8 @@ if (!globalThis[INSTALLATION_KEY]) {
         return;
       }
 
-      // Let the existing V2 runtime handle the accepted Enter so processing and
-      // synchronous clearing remain centralized rather than being duplicated.
-      if (prepareTypedSubmission("keyboard")) return;
+      const submission = prepareTypedSubmission("keyboard");
+      if (submission === "passthrough") return;
 
       event.preventDefault();
       event.stopImmediatePropagation();
