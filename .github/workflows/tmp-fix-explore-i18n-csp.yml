@@ -1,0 +1,29 @@
+name: Temporary Explore I18n CSP Fix
+
+on:
+  push:
+    paths:
+      - .github/workflows/tmp-fix-explore-i18n-csp.yml
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: fix/explore-v1-i18n-parity
+      - name: Apply CSP-safe browser wait
+        run: python tooling/tmp-fix-explore-i18n-csp.py
+      - name: Commit clean patch
+        run: |
+          rm .github/workflows/tmp-fix-explore-i18n-csp.yml
+          rm tooling/tmp-fix-explore-i18n-csp.py
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/workflows/explore-v1-i18n-browser-parity.yml .github/workflows/tmp-fix-explore-i18n-csp.yml tooling/tmp-fix-explore-i18n-csp.py
+          git diff --cached --check
+          git commit -m "test(explore): make i18n browser parity CSP-safe"
+          git push origin HEAD:fix/explore-v1-i18n-parity
