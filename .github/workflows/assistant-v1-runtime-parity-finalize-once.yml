@@ -26,7 +26,9 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Apply audited V1 runtime parity patch
-        run: python .github/scripts/finalize_assistant_v1_runtime_parity.py
+        run: |
+          python .github/scripts/finalize_assistant_v1_runtime_parity.py
+          python .github/scripts/fix_assistant_v1_parity_types.py
       - name: Format affected sources
         run: |
           pnpm exec prettier --write \
@@ -45,6 +47,7 @@ jobs:
       - name: Commit validated parity closure
         run: |
           rm -f .github/scripts/finalize_assistant_v1_runtime_parity.py
+          rm -f .github/scripts/fix_assistant_v1_parity_types.py
           rm -f .github/workflows/assistant-v1-runtime-parity-finalize-once.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
