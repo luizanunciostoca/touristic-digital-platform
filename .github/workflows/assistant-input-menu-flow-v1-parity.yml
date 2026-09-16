@@ -5,9 +5,14 @@ on:
   pull_request:
     paths:
       - .github/workflows/assistant-input-menu-flow-v1-parity.yml
+      - apps/morro-digital-platform/public/index.html
       - apps/morro-digital-platform/public/assistant-input-v1-parity.js
       - apps/morro-digital-platform/public/assistant-menu-flow-v1-parity.js
+      - apps/morro-digital-platform/src/main.ts
+      - apps/morro-digital-platform/src/browser-entry.ts
+      - apps/morro-digital-platform/src/layouts/app-shell.ts
       - apps/morro-digital-platform/src/assistant/**
+      - apps/morro-digital-platform/src/navigation/**
       - apps/morro-digital-platform/src/map/explore-locations-control.ts
       - apps/morro-digital-platform/src/map/explore-locations-v1-flow.ts
       - packages/assistant/src/**
@@ -131,6 +136,35 @@ jobs:
                 ).waitFor({ state: 'attached', timeout: 8000 });
               }
 
+              const categoryCases = [
+                { message: 'beachs', category: 'beaches', count: 8 },
+                { message: 'restaurants', category: 'restaurants', count: 45 },
+                { message: 'hotels', category: 'hotels', count: 35 },
+                { message: 'shops', category: 'shops', count: 12 },
+                { message: 'transport', category: 'transport', count: 8 },
+                { message: 'attractions', category: 'attractions', count: 8 },
+                { message: 'tours', category: 'tours', count: 6 },
+                { message: 'nightlife', category: 'nightlife', count: 5 },
+                { message: 'emergencies', category: 'emergencies', count: 4 },
+              ];
+
+              for (const [index, item] of categoryCases.entries()) {
+                await submit(item.message, index % 2 === 1);
+                await page.locator(
+                  `#assistant-category-results[data-category="${item.category}"][data-stage="filters"]`,
+                ).waitFor({ state: 'visible', timeout: 8000 });
+                await waitStage(item.category, 'filters', item.count);
+              }
+
+              await submit('back to main menu');
+              await page.locator('.assistant-options [data-explore-category="beaches"]').waitFor({
+                state: 'visible',
+                timeout: 5000,
+              });
+              if (await page.locator('#assistant-category-results').count()) {
+                throw new Error('Typed back-to-main-menu left the category flow visible');
+              }
+
               await submit('praias');
               await page.locator('#assistant-category-results[data-category="beaches"][data-stage="filters"]').waitFor({ state: 'visible' });
               await waitStage('beaches', 'filters', 8);
@@ -149,7 +183,7 @@ jobs:
                 throw new Error(`Typed surf filter diverged: ${JSON.stringify(surfState)}`);
               }
 
-              await submit('voltar aos filtros');
+              await submit('back to filters');
               await page.locator('#assistant-category-results[data-stage="filters"]').waitFor({ state: 'visible' });
               await waitStage('beaches', 'filters', 8);
 
@@ -172,25 +206,36 @@ jobs:
               await page.locator('#assistant-category-results[data-stage="places"] [data-location-name="Primeira Praia"]').waitFor({ state: 'visible', timeout: 8000 });
               await waitStage('beaches', 'places', 8);
 
-              await submit('beachs');
-              await page.locator('#assistant-category-results[data-category="beaches"][data-stage="filters"]').waitFor({ state: 'visible' });
-              await waitStage('beaches', 'filters', 8);
+              await submit('Primeira Praia');
+              await waitStage('beaches', 'detail', 1);
+              await submit('fotos');
+              await page.locator('.assistant-photo-carousel').waitFor({ state: 'visible', timeout: 8000 });
 
               await submit('restaurantes', true);
               await page.locator('#assistant-category-results[data-category="restaurants"][data-stage="filters"]').waitFor({ state: 'visible' });
               await waitStage('restaurants', 'filters', 45);
+              const cleanupState = await page.evaluate(() => ({
+                photos: document.querySelectorAll('.assistant-photo-carousel').length,
+                stalePhotoButtons: Array.from(
+                  document.querySelectorAll('.assistant-options:not(#assistant-category-results) .assistant-option-btn'),
+                ).filter(button => button.getAttribute('data-value') === 'ver fotos').length,
+              }));
+              if (cleanupState.photos !== 0 || cleanupState.stalePhotoButtons !== 0) {
+                throw new Error(`Typed category transition left stale detail UI: ${JSON.stringify(cleanupState)}`);
+              }
 
               const routed = await page.evaluate(() => globalThis.__typedMenuRoutes);
               const routedMessages = routed.map(item => item.message);
               for (const expected of [
+                ...categoryCases.map(item => item.message),
+                'back to main menu',
                 'praias',
                 'surf',
-                'voltar aos filtros',
+                'back to filters',
                 'ver todas',
                 'Primeira Praia',
                 'fotos',
                 'voltar',
-                'beachs',
                 'restaurantes',
               ]) {
                 if (!routedMessages.includes(expected)) {
