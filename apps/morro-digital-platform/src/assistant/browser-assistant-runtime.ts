@@ -135,42 +135,25 @@ function removePhotoPresentation(document: Document): void {
   }
 }
 
-function photoBackLabel(document: Document): string {
-  const language = normalizeAssistantVoiceLanguage(
-    document.documentElement.lang,
+function renderPhotoActionOptions(
+  document: Document,
+  options: readonly AssistantDomOption[],
+): HTMLElement | null {
+  const container = renderAssistantDomOptions(document, options);
+  if (!container) return null;
+
+  container.dataset.presentation = "photo-actions";
+  container.addEventListener(
+    "click",
+    (event) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      if (!target.closest(".assistant-option-btn")) return;
+      removePhotoPresentation(document);
+    },
+    { capture: true },
   );
-  return {
-    pt: "⬅️ Voltar",
-    en: "⬅️ Back",
-    es: "⬅️ Volver",
-    he: "⬅️ חזרה",
-  }[language];
-}
-
-function appendPhotoBackOption(document: Document, onBack: () => void): void {
-  const area = getMessagesArea(document);
-  if (!area) return;
-
-  const container = document.createElement("div");
-  container.className = "assistant-options assistant-photo-back-options";
-  container.dataset.presentation = "photo-back";
-  container.setAttribute("role", "group");
-  container.setAttribute("aria-label", photoBackLabel(document));
-
-  const button = document.createElement("button");
-  button.type = "button";
-  button.className = "assistant-option-btn assistant-photo-back-btn";
-  button.dataset.value = "photo-back";
-  button.textContent = photoBackLabel(document);
-  button.addEventListener("click", () => {
-    container.remove();
-    button.blur();
-    onBack();
-  });
-
-  container.appendChild(button);
-  area.appendChild(container);
-  area.scrollTop = area.scrollHeight;
+  return container;
 }
 
 function snapshotPresentation(
@@ -330,33 +313,18 @@ export function installBrowserAssistantRuntime(
     messages.append({ sender, html: text, messageType: "standard" });
   };
 
-  const restorePresentation = (
-    presentation: AssistantPresentationSnapshot,
-  ): void => {
-    if (destroyed) return;
-    clearAssistantDomOptions(options.document);
-    removePhotoPresentation(options.document);
-    messages.append({
-      sender: "assistant",
-      html: presentation.text,
-      messageType: "standard",
-      priority: "high",
-    });
-    if (presentation.options.length > 0) {
-      renderAssistantDomOptions(options.document, presentation.options);
-    }
-    currentPresentation = presentation;
-  };
-
   const processInput = async (
     rawInput: string,
     optionOverride?: readonly AssistantDomOption[],
+    preservePreviousOptions = false,
   ): Promise<AssistantDialogResponse> => {
     const value = rawInput.trim();
     if (!value) return { text: "Como posso ajudar?" };
 
     const generation = ++requestGeneration;
-    const previousPresentation = currentPresentation;
+    const previousPresentation = preservePreviousOptions
+      ? currentPresentation
+      : null;
     clearAssistantDomOptions(options.document);
     removePhotoPresentation(options.document);
     appendStandardMessage("user", value);
@@ -375,11 +343,14 @@ export function installBrowserAssistantRuntime(
 
     if (photoResponse) {
       if (previousPresentation && previousPresentation.options.length > 0) {
-        appendPhotoBackOption(options.document, () => {
-          restorePresentation(previousPresentation);
-        });
+        renderPhotoActionOptions(
+          options.document,
+          previousPresentation.options,
+        );
+        currentPresentation = previousPresentation;
+      } else {
+        currentPresentation = snapshotPresentation(response.text, []);
       }
-      currentPresentation = snapshotPresentation(response.text, []);
     } else {
       if (responseOptions.length > 0) {
         renderAssistantDomOptions(options.document, responseOptions);
@@ -457,7 +428,11 @@ export function installBrowserAssistantRuntime(
     const value = typeof detail?.value === "string" ? detail.value : "";
     if (!value) return;
     const optionOverride = readOptionOverride(detail?.optionsOverride);
-    void processInput(value, optionOverride ?? undefined);
+    void processInput(
+      value,
+      optionOverride ?? undefined,
+      value.trim().toLowerCase() === "ver fotos",
+    );
   };
   const onVoiceClick = (): void => {
     if (destroyed) return;
