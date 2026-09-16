@@ -61,10 +61,11 @@ describe("navigation route presentation", () => {
       NAVIGATION_ROUTE_SOURCE,
       expect.objectContaining({ type: "geojson" }),
     );
-    expect(fixture.addLayer.mock.calls.map(([layer]) => Reflect.get(layer, "id"))).toEqual([
-      NAVIGATION_ROUTE_OUTLINE,
-      NAVIGATION_ROUTE_LAYER,
-    ]);
+    expect(
+      fixture.addLayer.mock.calls.map(([layer]) =>
+        Reflect.get(layer as object, "id"),
+      ),
+    ).toEqual([NAVIGATION_ROUTE_OUTLINE, NAVIGATION_ROUTE_LAYER]);
   });
 
   it("removes active route layers and source during navigation teardown", () => {
