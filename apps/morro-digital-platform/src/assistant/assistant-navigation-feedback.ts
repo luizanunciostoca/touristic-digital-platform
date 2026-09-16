@@ -195,7 +195,10 @@ export function installAssistantNavigationFeedback(
       if (destroyed) return;
       destroyed = true;
       clearRestoreTimer();
-      document.removeEventListener(NAVIGATION_REQUEST_EVENT, onNavigationStarting);
+      document.removeEventListener(
+        NAVIGATION_REQUEST_EVENT,
+        onNavigationStarting,
+      );
       view?.removeEventListener("navigationStarted", onNavigationStarting);
       view?.removeEventListener("navigationEnded", onNavigationEnded);
     },
