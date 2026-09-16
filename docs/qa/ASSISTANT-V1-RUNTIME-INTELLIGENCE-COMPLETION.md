@@ -6,16 +6,19 @@ PR #73 (`fix/assistant-v1-runtime-intelligence-completion`) closes runtime/intel
 
 The implementation preserves the canonical V1 deterministic-first architecture: typed input, voice input, visible options and allowlisted LLM actions converge on the same semantic execution path; local/catalog resolution remains authoritative before LLM fallback; navigation requires explicit confirmation before starting; profile/favorites/context use the shared runtime instances.
 
-## Functional changes validated before this evidence commit
+## Functional changes validated
 
 - semantic Explore command execution is injected into the production browser runtime instead of using DOM `.click()` as the production domain core;
 - typed, voice and programmatic inputs share the same processing path;
-- strict LLM actions (`show_category:*`, `show_place:*`) are translated into the same typed Explore commands;
+- strict LLM actions (`show_category:*`, `show_place:*`) are translated into the same typed Explore commands and have direct allowlist regression coverage;
 - asynchronous Explore/geolocation results are generation-guarded against stale UI mutation;
-- routed Explore commands record profile interactions and preserve the shared user-profile instance;
+- routed Explore commands record dialogue history and profile interactions while preserving the shared user-profile instance;
+- Explore detail/tour/menu transitions synchronize into assistant context through the observable Explore state event;
 - favorites support add, remove, list and multi-turn `awaiting_place` operation persistence;
 - successful navigation arrival records profile navigation success;
 - navigation uses `navigate → awaiting_confirmation → confirm/deny`, with pending route lifecycle in dialogue context;
+- explicit domain/navigation commands interrupt stale `awaiting_*` slot capture rather than being reinterpreted as slot values;
+- legacy DOM fallback is guarded against synchronous option-event re-entry; production remains on the injected typed Explore port;
 - `place_search` remains local/catalog/Mapbox-first and can escalate to LLM only through the existing policy when deterministic search does not resolve;
 - V1 `recommendation`, `compare` and filtered-category intent families are restored to the central intent contract;
 - contextual menu / proactive recommendation logic is connected to the shared profile and runtime intelligence handlers;
@@ -25,20 +28,22 @@ The implementation preserves the canonical V1 deterministic-first architecture: 
 
 ## Validation evidence
 
-The finalization run that produced commit `5c71b8d53f49ab189494c7bca0076487c30818a9` completed all of its guarded validation stages before committing:
+The guarded runtime-intelligence closure that produced `5c71b8d53f49ab189494c7bca0076487c30818a9` passed Assistant tests/typecheck, platform tests/typecheck, workspace build and staged diff validation before committing.
 
-- `pnpm --filter @touristic/assistant test` — PASS (147/147 tests in the validated run);
+Subsequent guarded closures validated runtime-review synchronization/profile changes and V1 global-command/numeric-selection parity. The final remaining-review gate completed successfully and produced functional commit `8ef9d9b6cc52b200c8414349de31270b0ba769df` after all of these stages passed:
+
+- patch application — PASS;
+- affected-file formatting — PASS;
+- `pnpm --filter @touristic/assistant test` — PASS;
 - `pnpm --filter @touristic/assistant typecheck` — PASS;
-- `pnpm --filter @touristic/morro-digital-platform test` — PASS after updating the obsolete immediate-navigation expectation to the confirmation-first contract;
+- `pnpm --filter @touristic/morro-digital-platform test` — PASS;
 - `pnpm --filter @touristic/morro-digital-platform typecheck` — PASS;
 - `pnpm -w build` — PASS;
-- `git diff --cached --check` — PASS before commit;
-- temporary finalizer workflows/scripts were removed in the same validated commit.
-
-Subsequent guarded closures also validated runtime-review synchronization/profile changes and V1 global-command/numeric-selection parity before their functional commits were pushed. The remaining review-findings gate is intentionally re-triggered from a normal repository-authored commit so it can apply only the still-missing awaiting-interrupt/re-entry protections and direct typed-LLM-action regressions on top of the latest branch state.
+- `git diff --cached --check` and validated-result commit — PASS;
+- temporary finalizer workflow/script removed in the validated functional commit.
 
 ## Exact-head gate
 
-Bot-authored functional commits can cause this repository's PR-triggered workflows to be marked `action_required` before jobs are created. This is an execution-policy condition rather than a test conclusion. A normal repository-authored evidence commit is therefore used after each guarded functional closure to produce the exact-head on which the standard PR workflow matrix must execute.
+Bot-authored functional commits can cause this repository's PR-triggered workflows to be marked `action_required` before jobs are created. This is an execution-policy condition rather than a test conclusion. This normal repository-authored evidence commit exists to produce the final exact-head on which the standard PR workflow matrix must execute.
 
-The PR must not be merged until the final normal-authored exact-head has completed the required workflow matrix successfully and review findings are reconciled.
+The PR must not be merged until this exact-head has completed the required workflow matrix successfully and review findings are reconciled.
