@@ -92,6 +92,13 @@ describe("assistant domain handlers", () => {
       handlers.hours(request("hours", { lastPlace: "Basílico" })),
     ).resolves.toEqual({ text: "hours:Basílico" });
     await expect(
+      handlers.open_now(request("open_now", { lastPlace: "Basílico" })),
+    ).resolves.toEqual({ text: "hours:Basílico" });
+    expect(ports.hours).toHaveBeenLastCalledWith(
+      "Basílico",
+      expect.objectContaining({ input: "open_now" }),
+    );
+    await expect(
       handlers.more_info(request("more_info", { lastPlace: "Farol do Morro" })),
     ).resolves.toEqual({ text: "info:Farol do Morro" });
   });
@@ -107,6 +114,12 @@ describe("assistant domain handlers", () => {
       metadata: { domain: "photos", state: "awaiting_place" },
     });
     expect(ports.photos).not.toHaveBeenCalled();
+
+    await expect(handlers.open_now(request("open_now"))).resolves.toEqual({
+      text: "De qual local você quer saber o horário?",
+      metadata: { domain: "open_now", state: "awaiting_place" },
+    });
+    expect(ports.hours).not.toHaveBeenCalled();
   });
 
   it("allows product-specific copy to replace the default prompt", async () => {
