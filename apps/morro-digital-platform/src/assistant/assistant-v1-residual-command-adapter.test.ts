@@ -78,11 +78,17 @@ describe("V1 residual assistant commands", () => {
 
   it.each([
     ["modo satélite", { type: "map_style", style: "satellite" }],
+    ["satélite", { type: "map_style", style: "satellite" }],
     ["mapa escuro", { type: "map_style", style: "dark" }],
     ["modo normal", { type: "map_style", style: "default" }],
     ["mapa outdoor", { type: "map_style", style: "outdoor" }],
+    ["trilhas", { type: "map_style", style: "outdoor" }],
     ["mostrar só praias", { type: "map_filter_category", category: "beaches" }],
     ["mostrar todos os locais", { type: "map_show_all" }],
+    ["mostrar todos", { type: "map_show_all" }],
+    ["ver todos", { type: "map_show_all" }],
+    ["show all", { type: "map_show_all" }],
+    ["restaurar", { type: "map_show_all" }],
     ["aproximar", { type: "map_zoom", direction: "in" }],
     ["afastar", { type: "map_zoom", direction: "out" }],
     ["visão geral", { type: "map_overview" }],
@@ -105,6 +111,10 @@ describe("V1 residual assistant commands", () => {
     ).toBeNull();
     expect(
       resolveAssistantV1ResidualCommand("como ir de barco para Valença"),
+    ).toBeNull();
+    expect(resolveAssistantV1ResidualCommand("lancha para Valença")).toBeNull();
+    expect(
+      resolveAssistantV1ResidualCommand("transfer para Salvador"),
     ).toBeNull();
   });
 
@@ -182,6 +192,13 @@ describe("V1 residual assistant commands", () => {
       map,
     });
     expect(map.getZoom?.()).toBe(15);
+    const zoomResponse = await executeAssistantV1ResidualCommand({
+      command: { type: "map_zoom", direction: "out" },
+      language: "pt",
+      history: [],
+      map,
+    });
+    expect(zoomResponse.text).toBe("🔍 Zoom ajustado para 13.");
 
     await executeAssistantV1ResidualCommand({
       command: { type: "map_overview" },

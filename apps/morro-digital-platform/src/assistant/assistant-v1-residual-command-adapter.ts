@@ -213,7 +213,16 @@ export function resolveAssistantV1ResidualCommand(
     "como vir",
     "como voltar",
     "transporte",
+    "lancha",
+    "catamarao",
+    "catamara",
+    "ferry",
     "barco para",
+    "aviao",
+    "onibus",
+    "uber",
+    "taxi",
+    "transfer",
     "acesso a",
     "acesso ao",
   ]);
@@ -229,6 +238,7 @@ export function resolveAssistantV1ResidualCommand(
     hasAny(value, [
       "modo satelite",
       "visao satelite",
+      "satelite",
       "satellite",
       "satellite mode",
       "vista aerea",
@@ -263,6 +273,7 @@ export function resolveAssistantV1ResidualCommand(
     hasAny(value, [
       "modo outdoor",
       "mapa outdoor",
+      "trilhas",
       "topografico",
       "outdoor mode",
     ])
@@ -276,9 +287,13 @@ export function resolveAssistantV1ResidualCommand(
   if (
     hasAny(value, [
       "mostrar todos os locais",
+      "mostrar todos",
+      "ver todos",
       "todos os locais",
       "remover filtro",
       "limpar filtro",
+      "restaurar",
+      "show all",
       "show all locations",
       "mostrar todos los lugares",
       "הצג את כל המקומות",
@@ -614,7 +629,11 @@ export async function executeAssistantV1ResidualCommand(
     } else {
       map.setZoom?.(target);
     }
-    return mapResponse(`🔍 Zoom ${target.toFixed(0)}.`, language, "map_zoom");
+    return mapResponse(
+      `🔍 Zoom ajustado para ${target.toFixed(0)}.`,
+      language,
+      "map_zoom",
+    );
   }
 
   if (command.type === "map_overview") {
