@@ -11,6 +11,7 @@ export type AssistantDomainIntent =
   | "photos"
   | "price"
   | "hours"
+  | "open_now"
   | "more_info"
   | "nearby"
   | "favorites"
@@ -54,7 +55,7 @@ export interface AssistantDomainHandlerCopy {
   askPlace(
     intent: Extract<
       AssistantDomainIntent,
-      "photos" | "price" | "hours" | "more_info"
+      "photos" | "price" | "hours" | "open_now" | "more_info"
     >,
     request: AssistantDialogIntentHandlerContext,
   ): AssistantDialogResponse;
@@ -72,7 +73,7 @@ const DEFAULT_COPY: AssistantDomainHandlerCopy = {
         ? "De qual local você quer ver fotos?"
         : intent === "price"
           ? "De qual local você quer saber o preço?"
-          : intent === "hours"
+          : intent === "hours" || intent === "open_now"
             ? "De qual local você quer saber o horário?"
             : "Sobre qual local você quer mais informações?",
     metadata: { domain: intent, state: "awaiting_place" },
@@ -88,7 +89,7 @@ function resolvePlace(
 function createPlaceHandler(
   intent: Extract<
     AssistantDomainIntent,
-    "photos" | "price" | "hours" | "more_info"
+    "photos" | "price" | "hours" | "open_now" | "more_info"
   >,
   copy: AssistantDomainHandlerCopy,
   port: (
@@ -121,6 +122,9 @@ export function createAssistantDomainHandlers(
       options.ports.price(place, request),
     ),
     hours: createPlaceHandler("hours", copy, (place, request) =>
+      options.ports.hours(place, request),
+    ),
+    open_now: createPlaceHandler("open_now", copy, (place, request) =>
       options.ports.hours(place, request),
     ),
     more_info: createPlaceHandler("more_info", copy, (place, request) =>
