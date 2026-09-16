@@ -1,0 +1,202 @@
+name: Security Scanning
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-scanning-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  filesystem:
+    name: Dependencies and repository secrets
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Scan dependencies and tracked repository content
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,secret
+          severity: HIGH,CRITICAL
+          ignore-unfixed: false
+          exit-code: 1
+          format: table
+
+  configuration:
+    name: Platform configuration
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Scan Dockerfile and platform configuration
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: config
+          scan-ref: .
+          severity: HIGH,CRITICAL
+          trivyignores: .trivyignore.yaml
+          exit-code: 1
+          format: table
+
+  gosu-reachability:
+    name: gosu 1.19 vulnerability reachability
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact upstream gosu 1.19 source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: tianon/gosu
+          ref: 6456aaa0f3c854d199d0f037f068eb97515b7513
+      - name: Set up Go 1.24.6
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: 1.24.6
+          cache: false
+      - name: Install upstream-pinned govulncheck
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@v1.1.4
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+      - name: Run upstream gosu reachability policy
+        run: ./govulncheck-with-excludes.sh ./...
+
+  mysql-container:
+    name: Staging MySQL container
+    needs: gosu-reachability
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Build current staging MySQL image
+        run: >-
+          docker build --pull
+          --file tooling/render/mysql-staging/Dockerfile
+          --tag morro-digital-v2-mysql:sec07
+          .
+      - name: Prove mysqlsh is dormant in the startup path
+        run: |
+          docker run --rm --entrypoint sh morro-digital-v2-mysql:sec07 -c '
+            set -eu
+            for script in \
+              /usr/local/bin/docker-entrypoint.sh \
+              /docker-entrypoint-initdb.d/01-init-databases.sh
+            do
+              if grep -Ev "^[[:space:]]*#" "$script" \
+                | grep -E "(^|[^[:alnum:]_])mysqlsh([^[:alnum:]_]|$)"
+              then
+                echo "mysqlsh is invoked by startup code: $script" >&2
+                exit 1
+              fi
+            done
+          '
+      - name: Scan built MySQL image for secrets
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: morro-digital-v2-mysql:sec07
+          scanners: secret
+          exit-code: 1
+          format: table
+      - name: Report HIGH and CRITICAL MySQL image vulnerabilities
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: morro-digital-v2-mysql:sec07
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          ignore-unfixed: false
+          exit-code: 0
+          format: table
+      - name: Capture vulnerability evidence for policy gate
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: morro-digital-v2-mysql:sec07
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          ignore-unfixed: false
+          exit-code: 0
+          format: json
+          output: trivy-mysql-vulnerabilities.json
+      - name: Enforce triaged MySQL vulnerability surfaces
+        run: |
+          python3 - <<'PY'
+          import json
+          import sys
+
+          with open("trivy-mysql-vulnerabilities.json", encoding="utf-8") as handle:
+              report = json.load(handle)
+
+          findings = []
+          for result in report.get("Results") or []:
+              target = result.get("Target") or ""
+              for vuln in result.get("Vulnerabilities") or []:
+                  severity = (vuln.get("Severity") or "").upper()
+                  if severity not in {"HIGH", "CRITICAL"}:
+                      continue
+                  findings.append(
+                      {
+                          "target": target,
+                          "id": vuln.get("VulnerabilityID") or "",
+                          "severity": severity,
+                          "installed": vuln.get("InstalledVersion") or "",
+                      }
+                  )
+
+          unexpected_high = [
+              item
+              for item in findings
+              if item["severity"] == "HIGH"
+              and item["target"] != "usr/local/bin/gosu"
+              and not item["target"].startswith("usr/lib/mysqlsh/")
+          ]
+
+          unexpected_critical = [
+              item
+              for item in findings
+              if item["severity"] == "CRITICAL"
+              and not (
+                  item["target"] == "usr/local/bin/gosu"
+                  and item["id"] == "CVE-2025-68121"
+                  and item["installed"] == "v1.24.6"
+              )
+          ]
+
+          highs = [item for item in findings if item["severity"] == "HIGH"]
+          criticals = [item for item in findings if item["severity"] == "CRITICAL"]
+
+          print(f"SEC07-MYSQL-TRIAGE high={len(highs)} critical={len(criticals)}")
+          print(
+              "SEC07-MYSQL-TRIAGE allowed_high_surfaces="
+              "usr/local/bin/gosu,usr/lib/mysqlsh/**"
+          )
+
+          if unexpected_high:
+              print("Unexpected HIGH findings outside triaged surfaces:", file=sys.stderr)
+              for item in unexpected_high:
+                  print(item, file=sys.stderr)
+
+          if unexpected_critical:
+              print("Unexpected CRITICAL findings:", file=sys.stderr)
+              for item in unexpected_critical:
+                  print(item, file=sys.stderr)
+
+          if unexpected_high or unexpected_critical:
+              raise SystemExit(1)
+
+          if criticals:
+              print(
+                  "SEC07-MYSQL-CRITICAL-MITIGATION="
+                  "gosu-1.19-govulncheck-reachability-required"
+              )
+          PY
