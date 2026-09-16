@@ -1,4 +1,6 @@
-import { chromium } from "/tmp/pw/node_modules/playwright/index.js";
+import playwright from "/tmp/pw/node_modules/playwright/index.js";
+
+const { chromium } = playwright;
 
 const weather = {
   temperatureCelsius: 28,
