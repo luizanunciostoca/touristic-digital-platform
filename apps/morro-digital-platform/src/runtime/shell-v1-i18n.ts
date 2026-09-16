@@ -203,9 +203,16 @@ function setLeadingText(element: Element | null, text: string): void {
   else element.prepend(`${text} `);
 }
 
+function isRuntimeOwnedNavigationText(element: HTMLElement): boolean {
+  if (element.id !== "instruction-main") return false;
+  const banner = element.closest("#instruction-banner");
+  return banner instanceof HTMLElement && !banner.classList.contains("hidden");
+}
+
 /**
  * Restores the V1 generic presentation-i18n contract for the shell while
- * preserving all canonical action values, IDs and event wiring.
+ * preserving all canonical action values, IDs and event wiring. Dynamic
+ * navigation guidance keeps ownership of its active instruction text.
  */
 export function applyV1ShellPresentation(
   document: Document,
@@ -214,6 +221,7 @@ export function applyV1ShellPresentation(
   const copy = getShellPresentationCopy(locale);
 
   document.querySelectorAll<HTMLElement>("[data-i18n]").forEach((element) => {
+    if (isRuntimeOwnedNavigationText(element)) return;
     const text = legacyText(copy, element.getAttribute("data-i18n"));
     if (text) element.textContent = text;
   });
@@ -230,25 +238,31 @@ export function applyV1ShellPresentation(
       if (text) element.placeholder = text;
     });
 
-  document.querySelectorAll<HTMLElement>("[data-i18n-title]").forEach((element) => {
-    const text = legacyText(copy, element.getAttribute("data-i18n-title"));
-    if (text) element.title = text;
-  });
+  document
+    .querySelectorAll<HTMLElement>("[data-i18n-title]")
+    .forEach((element) => {
+      const text = legacyText(copy, element.getAttribute("data-i18n-title"));
+      if (text) element.title = text;
+    });
 
-  document.querySelectorAll<HTMLElement>("[data-i18n-aria]").forEach((element) => {
-    const text = legacyText(copy, element.getAttribute("data-i18n-aria"));
-    if (text) element.setAttribute("aria-label", text);
-  });
+  document
+    .querySelectorAll<HTMLElement>("[data-i18n-aria]")
+    .forEach((element) => {
+      const text = legacyText(copy, element.getAttribute("data-i18n-aria"));
+      if (text) element.setAttribute("aria-label", text);
+    });
 
-  document.getElementById("map")?.setAttribute("aria-label", copy.mapRegionLabel);
+  document
+    .getElementById("map")
+    ?.setAttribute("aria-label", copy.mapRegionLabel);
 
   const globeButton = document.getElementById("toggle-globe-view");
   const globalViewLabel = copy.legacy.map_globe_toggle_title;
   if (globeButton) {
     globeButton.setAttribute("title", globalViewLabel);
     globeButton.setAttribute("aria-label", globalViewLabel);
-    globeButton.querySelector<HTMLElement>(".control-tooltip")!.textContent =
-      globalViewLabel;
+    const tooltip = globeButton.querySelector<HTMLElement>(".control-tooltip");
+    if (tooltip) tooltip.textContent = globalViewLabel;
   }
 
   const voiceTitle = document.getElementById("assistantVoiceSettingsTitle");
