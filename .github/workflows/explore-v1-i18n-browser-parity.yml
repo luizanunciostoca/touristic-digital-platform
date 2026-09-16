@@ -12,6 +12,9 @@ on:
       - apps/morro-digital-platform/src/map/explore-locations-control.ts
       - apps/morro-digital-platform/src/map/explore-locations-v1-flow.ts
       - apps/morro-digital-platform/src/layouts/app-shell.ts
+      - apps/morro-digital-platform/src/browser-entry.ts
+      - apps/morro-digital-platform/src/runtime/runtime-accessibility-i18n.ts
+      - apps/morro-digital-platform/src/config/**
       - apps/morro-digital-platform/public/**
       - packages/assistant/src/**
       - packages/geospatial/src/**

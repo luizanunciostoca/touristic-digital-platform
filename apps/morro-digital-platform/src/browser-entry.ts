@@ -28,6 +28,12 @@ import {
   type GlobalViewControl,
 } from "./map/global-view-control.js";
 import { loadMapboxGlSdk } from "./runtime/mapbox-sdk-loader.js";
+import {
+  applyRuntimeAccessibilityPresentation,
+  formatRuntimeStatus,
+  localizedTourStopLabel,
+  type RuntimeStatusDescriptor,
+} from "./runtime/runtime-accessibility-i18n.js";
 import { initializeWeatherWidget } from "./weather/weather-widget.js";
 
 interface MorroRuntimeGlobal {
@@ -139,15 +145,45 @@ function clearBrowserNavigationRuntime(): void {
   activeNavigationRuntimeInstall = undefined;
 }
 
-function updateStatus(message: string): void {
-  if (status) status.textContent = message;
+let runtimeStatusDescriptor: RuntimeStatusDescriptor = Object.freeze({
+  kind: "initializing",
+});
+
+function renderRuntimeAccessibility(): void {
+  applyRuntimeAccessibilityPresentation(document);
+  if (status?.dataset.statusOwner === "explore") return;
+  if (status) {
+    status.dataset.statusOwner = "runtime";
+    status.textContent = formatRuntimeStatus(
+      runtimeStatusDescriptor,
+      document.documentElement.lang,
+    );
+  }
 }
 
-function formatTourStatus(tourId: string, markerCount: number): string {
-  const tour = getMorroTourById(tourId);
-  const pointLabel = markerCount === 1 ? "parada" : "paradas";
-  return `${markerCount} ${pointLabel} de ${tour?.title ?? tourId} carregadas.`;
+function updateStatus(descriptor: RuntimeStatusDescriptor): void {
+  runtimeStatusDescriptor = Object.freeze(descriptor);
+  if (status) status.dataset.statusOwner = "runtime";
+  renderRuntimeAccessibility();
 }
+
+const onRuntimeStatusRefresh = (): void => {
+  if (status) status.dataset.statusOwner = "runtime";
+  renderRuntimeAccessibility();
+};
+document.addEventListener(
+  "morro:runtime-status-refresh",
+  onRuntimeStatusRefresh,
+);
+
+const runtimeAccessibilityLocaleObserver = new MutationObserver(() => {
+  renderRuntimeAccessibility();
+});
+runtimeAccessibilityLocaleObserver.observe(document.documentElement, {
+  attributes: true,
+  attributeFilter: ["lang"],
+});
+renderRuntimeAccessibility();
 
 function createTourMarkerElement(input: {
   readonly id: string;
@@ -171,7 +207,13 @@ function createTourMarkerElement(input: {
   element.className = "tour-stop-marker";
   element.dataset.stopIndex = String(stopIndex);
   element.dataset.tourId = tourId;
-  element.setAttribute("aria-label", input.label ?? stop.title);
+  element.dataset.stopId = stopId;
+  element.setAttribute(
+    "aria-label",
+    localizedTourStopLabel(tourId, stopId, document.documentElement.lang) ??
+      input.label ??
+      stop.title,
+  );
   element.style.cursor = "pointer";
   element.style.zIndex = "10";
 
@@ -382,9 +424,12 @@ async function resolveMapProvider(): Promise<ResolvedMapProvider> {
       mode: "real" as const,
     });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Falha desconhecida no SDK.";
-    updateStatus(`Mapbox indisponível; usando fallback da V1: ${message}`);
+    const detail = error instanceof Error ? error.message : undefined;
+    updateStatus({
+      kind: "map-fallback",
+      mode: "using",
+      ...(detail ? { detail } : {}),
+    });
     mapContainer?.setAttribute("data-map-fallback", "leaflet");
     return createFallbackMapProvider();
   }
@@ -444,11 +489,12 @@ async function startBrowserWithProvider(provider: ResolvedMapProvider) {
   } catch (error) {
     if (provider.mode !== "real") throw error;
 
-    const message =
-      error instanceof Error
-        ? error.message
-        : "Falha desconhecida ao inicializar o Mapbox.";
-    updateStatus(`Mapbox indisponível; restaurando fallback da V1: ${message}`);
+    const detail = error instanceof Error ? error.message : undefined;
+    updateStatus({
+      kind: "map-fallback",
+      mode: "restoring",
+      ...(detail ? { detail } : {}),
+    });
     prepareMapContainerForFallback();
 
     const fallbackProvider = createFallbackMapProvider();
@@ -473,9 +519,12 @@ async function start(): Promise<void> {
   mapContainer?.setAttribute("data-tour-state", "idle");
   mapContainer?.setAttribute("data-home-state", "ready");
   mapContainer?.setAttribute("data-map-marker-count", "0");
-  updateStatus(
-    `Runtime ativo: ${result.startedModules.join(", ")} — provider ${result.geospatialEngine?.providerId ?? "indisponível"} — Home pronta para explorar.`,
-  );
+  const providerId = result.geospatialEngine?.providerId;
+  updateStatus({
+    kind: "runtime-ready",
+    modules: result.startedModules,
+    ...(providerId ? { providerId } : {}),
+  });
 
   homeRuntimeReady = true;
   maybeRevealPublicOnboarding();
@@ -503,7 +552,7 @@ async function start(): Promise<void> {
     tourSelect.disabled = true;
     mapContainer?.setAttribute("aria-busy", "true");
     mapContainer?.setAttribute("data-tour-state", "switching");
-    updateStatus("Atualizando o roteiro exibido no mapa…");
+    updateStatus({ kind: "tour-switching" });
 
     void controller
       .selectTour(requestedTourId)
@@ -515,9 +564,11 @@ async function start(): Promise<void> {
         );
         mapContainer?.setAttribute("data-active-tour", selection.activeTourId);
         mapContainer?.setAttribute("data-tour-state", "ready");
-        updateStatus(
-          `Runtime ativo — ${formatTourStatus(selection.activeTourId, selection.markerCount)}`,
-        );
+        updateStatus({
+          kind: "tour-ready",
+          tourId: selection.activeTourId,
+          markerCount: selection.markerCount,
+        });
       })
       .catch((error: unknown) => {
         const activeTourId = controller.activeTourId;
@@ -530,11 +581,11 @@ async function start(): Promise<void> {
           mapContainer?.setAttribute("data-map-marker-count", "0");
         }
         mapContainer?.setAttribute("data-tour-state", "error");
-        const message =
-          error instanceof Error
-            ? error.message
-            : "Falha desconhecida ao trocar o roteiro.";
-        updateStatus(`Não foi possível trocar o roteiro: ${message}`);
+        const detail = error instanceof Error ? error.message : undefined;
+        updateStatus({
+          kind: "tour-error",
+          ...(detail ? { detail } : {}),
+        });
       })
       .finally(() => {
         tourSelect.disabled = false;
@@ -545,8 +596,10 @@ async function start(): Promise<void> {
 
 void start().catch((error: unknown) => {
   application.exploreLocations.setGeospatialEngine(undefined);
-  const message =
-    error instanceof Error ? error.message : "Falha desconhecida no runtime.";
-  updateStatus(`Falha ao iniciar o Morro Digital: ${message}`);
+  const detail = error instanceof Error ? error.message : undefined;
+  updateStatus({
+    kind: "runtime-error",
+    ...(detail ? { detail } : {}),
+  });
   mapContainer?.setAttribute("data-map-state", "error");
 });

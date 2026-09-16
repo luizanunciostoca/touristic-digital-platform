@@ -33,6 +33,10 @@ const TOUR_ROUTE_OUTLINE = "tour-route-outline";
 
 type ExploreStage = "menu" | "filters" | "places" | "detail" | "tour";
 
+type ExploreRuntimeStatusDescriptor =
+  | Readonly<{ kind: "selected"; place: string }>
+  | Readonly<{ kind: "map-error"; error: unknown }>;
+
 export interface ExploreLocationsCategory {
   readonly value: string;
   readonly label: string;
@@ -296,6 +300,41 @@ export function installExploreLocationsControl({
     normalizeAssistantVoiceLanguage(document.documentElement.lang);
   const currentCategories = (): readonly ExploreLocationsCategory[] =>
     getExploreLocationsCategories(currentLocale());
+  let exploreRuntimeStatusDescriptor:
+    ExploreRuntimeStatusDescriptor | undefined;
+
+  const renderExploreRuntimeStatus = (): void => {
+    const descriptor = exploreRuntimeStatusDescriptor;
+    const statusElement = document.getElementById("runtime-status");
+    if (!descriptor || !statusElement) return;
+
+    const copy = getV1ExploreUiCopy(currentLocale());
+    statusElement.dataset.statusOwner = "explore";
+    statusElement.replaceChildren(
+      document.createTextNode(
+        descriptor.kind === "selected"
+          ? copy.selected(descriptor.place)
+          : copy.mapCategoryError(
+              describeExploreError(descriptor.error, currentLocale()),
+            ),
+      ),
+    );
+  };
+
+  const setExploreRuntimeStatus = (
+    descriptor: ExploreRuntimeStatusDescriptor,
+  ): void => {
+    exploreRuntimeStatusDescriptor = Object.freeze(descriptor);
+    renderExploreRuntimeStatus();
+  };
+
+  const clearExploreRuntimeStatus = (): void => {
+    exploreRuntimeStatusDescriptor = undefined;
+    const statusElement = document.getElementById("runtime-status");
+    if (statusElement?.dataset.statusOwner !== "explore") return;
+    delete statusElement.dataset.statusOwner;
+    document.dispatchEvent(new CustomEvent("morro:runtime-status-refresh"));
+  };
 
   const stateSnapshot = (): ExploreLocationsStateSnapshot =>
     Object.freeze({
@@ -376,15 +415,7 @@ export function installExploreLocationsControl({
         // Preserve the first provider failure for diagnostics.
       }
       emitStateChange();
-      document
-        .getElementById("runtime-status")
-        ?.replaceChildren(
-          document.createTextNode(
-            getV1ExploreUiCopy(currentLocale()).mapCategoryError(
-              describeExploreError(error, currentLocale()),
-            ),
-          ),
-        );
+      setExploreRuntimeStatus({ kind: "map-error", error });
     }
   };
 
@@ -481,6 +512,7 @@ export function installExploreLocationsControl({
     activePlace = undefined;
     activeStage = "menu";
     visibleLocations = Object.freeze([]);
+    clearExploreRuntimeStatus();
     showMainMenu();
     updateMapState(
       Number(document.getElementById("map")?.dataset.mapMarkerCount ?? "0"),
@@ -507,13 +539,7 @@ export function installExploreLocationsControl({
     ) {
       return;
     }
-    document
-      .getElementById("runtime-status")
-      ?.replaceChildren(
-        document.createTextNode(
-          getV1ExploreUiCopy(currentLocale()).selected(location.name),
-        ),
-      );
+    setExploreRuntimeStatus({ kind: "selected", place: location.name });
     emitStateChange();
     ensureAssistantVisible(document);
     const optionsOverride = getV1ExplorePlaceActionOptions(
@@ -537,6 +563,7 @@ export function installExploreLocationsControl({
     if (!activeCategory) return;
     activePlace = undefined;
     activeStage = "places";
+    clearExploreRuntimeStatus();
     const options: readonly Readonly<{
       label: string;
       value: string;
@@ -574,6 +601,7 @@ export function installExploreLocationsControl({
     if (!(tourSelect instanceof HTMLSelectElement)) return;
     activePlace = undefined;
     activeStage = "tour";
+    clearExploreRuntimeStatus();
     removeAssistantFlowResults(document);
     tourSelect.value = tourId;
     tourSelect.dispatchEvent(new Event("change", { bubbles: true }));
@@ -656,6 +684,7 @@ export function installExploreLocationsControl({
     if (!activeCategory) return;
     activePlace = undefined;
     activeStage = "filters";
+    clearExploreRuntimeStatus();
     const allLocations = getExploreLocationsForCategory(activeCategory.value);
     const filters = getV1ExploreSubcategoryOptions(
       activeCategory.value,
@@ -841,6 +870,7 @@ export function installExploreLocationsControl({
     ? new MutationObserverCtor((records) => {
         if (!records.some((record) => record.attributeName === "lang")) return;
         refreshCategoryPresentation();
+        if (exploreRuntimeStatusDescriptor) renderExploreRuntimeStatus();
         if (activeStage === "filters" && activeCategory) renderFilters();
       })
     : null;
@@ -907,6 +937,7 @@ export function installExploreLocationsControl({
     destroy() {
       interactionGeneration += 1;
       localeObserver?.disconnect();
+      clearExploreRuntimeStatus();
       document.removeEventListener("keydown", onKeyDown);
       document.removeEventListener(
         "morro:assistant-option-selected",
