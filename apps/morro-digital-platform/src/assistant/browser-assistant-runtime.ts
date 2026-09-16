@@ -146,22 +146,30 @@ function readRuntimeAction(response: AssistantDialogResponse): string | null {
   return typeof metadata.action === "string" ? metadata.action : null;
 }
 
+function isUnknownArray(value: unknown): value is readonly unknown[] {
+  return Array.isArray(value);
+}
+
 function readDeterministicExploreCommands(
   response: AssistantDialogResponse,
 ): readonly ExploreLocationsCommand[] {
   const metadata = response.metadata;
+  const rawCommands: unknown =
+    metadata && typeof metadata === "object"
+      ? metadata.exploreCommands
+      : undefined;
   if (
     !metadata ||
     typeof metadata !== "object" ||
     metadata.deterministic !== true ||
     metadata.fromLLM === true ||
-    !Array.isArray(metadata.exploreCommands)
+    !isUnknownArray(rawCommands)
   ) {
     return [];
   }
 
   const commands: ExploreLocationsCommand[] = [];
-  for (const raw of metadata.exploreCommands) {
+  for (const raw of rawCommands) {
     if (!raw || typeof raw !== "object" || !("type" in raw)) return [];
     const type = raw.type;
     if (
@@ -278,6 +286,49 @@ function snapshotPresentation(
       options.map(({ label, value }) => Object.freeze({ label, value })),
     ),
   });
+}
+
+function readVisiblePresentation(
+  document: Document,
+): AssistantPresentationSnapshot | null {
+  const flow = document.getElementById("assistant-category-results");
+  const flowButtons =
+    flow && !flow.classList.contains("hidden")
+      ? Array.from(
+          flow.querySelectorAll<HTMLButtonElement>(".assistant-option-btn"),
+        )
+      : [];
+  const dynamicContainers = Array.from(
+    document.querySelectorAll<HTMLElement>(
+      "#assistant-messages .assistant-options",
+    ),
+  ).filter((container) => !container.querySelector("[data-explore-category]"));
+  const dynamicButtons = Array.from(
+    dynamicContainers
+      .at(-1)
+      ?.querySelectorAll<HTMLButtonElement>(".assistant-option-btn") ?? [],
+  );
+  const buttons = flowButtons.length > 0 ? flowButtons : dynamicButtons;
+  const visibleOptions = buttons.flatMap((button) => {
+    const label = button.textContent?.trim();
+    const value = button.dataset.value?.trim();
+    return label && value ? [{ label, value }] : [];
+  });
+  if (visibleOptions.length === 0) return null;
+
+  const text =
+    document
+      .getElementById("assistant-category-results-message")
+      ?.textContent?.trim() ??
+    Array.from(
+      document.querySelectorAll<HTMLElement>(
+        "#assistant-messages .message.assistant",
+      ),
+    )
+      .at(-1)
+      ?.textContent?.trim() ??
+    "";
+  return snapshotPresentation(text, visibleOptions);
 }
 
 function readOptionOverride(
@@ -551,9 +602,10 @@ export function installBrowserAssistantRuntime(
     const value = selectedNumericOption?.value.trim() || submittedValue;
 
     const generation = ++requestGeneration;
+    const visiblePresentation = readVisiblePresentation(options.document);
     const previousPresentation = preservePreviousOptions
-      ? currentPresentation
-      : null;
+      ? currentPresentation ?? visiblePresentation
+      : visiblePresentation ?? currentPresentation;
     const awaitingType = context.getContext().awaiting?.type;
     const menuCommand = resolveAssistantMenuCommand(options.document, value);
     const explicitCategoryInterrupt =
@@ -607,8 +659,8 @@ export function installBrowserAssistantRuntime(
       if (context.getContext().awaiting?.type === "confirmar_navegacao") {
         context.updateContext({ awaiting: null, pendingRoute: null });
       }
-      currentPresentation = null;
       syncExploreContext();
+      currentPresentation = readVisiblePresentation(options.document);
       options.document.dispatchEvent(
         new CustomEvent("morro:assistant-menu-command-routed", {
           detail: { message: submittedValue, semanticValue: value, source },
