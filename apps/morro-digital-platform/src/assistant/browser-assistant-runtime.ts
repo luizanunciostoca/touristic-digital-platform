@@ -64,11 +64,7 @@ interface AssistantPresentationSnapshot {
 }
 
 type AssistantInputSource =
-  | "button"
-  | "keyboard"
-  | "voice"
-  | "option"
-  | "programmatic";
+  "button" | "keyboard" | "voice" | "option" | "programmatic";
 
 const CONTROLLER_OWNED_AWAITING_TYPES = new Set([
   "awaiting_place",
@@ -508,7 +504,9 @@ export function installBrowserAssistantRuntime(
     if (runtimeAction) {
       if (options.explore) {
         const command = resolveAssistantRuntimeAction(runtimeAction);
-        actionExecuted = command ? await options.explore.execute(command) : false;
+        actionExecuted = command
+          ? await options.explore.execute(command)
+          : false;
       } else {
         actionExecuted = executeAssistantRuntimeAction(
           options.document,

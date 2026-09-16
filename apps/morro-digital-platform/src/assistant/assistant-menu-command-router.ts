@@ -120,13 +120,7 @@ const CATEGORY_ALIASES = Object.freeze({
 const OPTION_ALIASES = Object.freeze({
   surf: ["surf", "ondas", "ondas para surf", "praia com ondas"],
   mergulho: ["mergulho", "snorkel", "snorkeling", "mergulhar", "צלילה"],
-  "por do sol": [
-    "por do sol",
-    "pôr do sol",
-    "sunset",
-    "entardecer",
-    "שקיעה",
-  ],
+  "por do sol": ["por do sol", "pôr do sol", "sunset", "entardecer", "שקיעה"],
   familiar: [
     "familiar",
     "familia",
@@ -588,9 +582,7 @@ export function resolveAssistantMenuCommand(
   }
 
   const category = categoryForMessage(message);
-  return category
-    ? Object.freeze({ type: "open_category", category })
-    : null;
+  return category ? Object.freeze({ type: "open_category", category }) : null;
 }
 
 /** Converts the strict LLM action vocabulary to the same typed Explore command. */
@@ -600,9 +592,7 @@ export function resolveAssistantRuntimeAction(
   if (action.startsWith("show_category:")) {
     const rawCategory = action.slice("show_category:".length);
     const category = categoryForMessage(rawCategory);
-    return category
-      ? Object.freeze({ type: "open_category", category })
-      : null;
+    return category ? Object.freeze({ type: "open_category", category }) : null;
   }
   if (action.startsWith("show_place:")) {
     const place = exactCatalogPlace(action.slice("show_place:".length));

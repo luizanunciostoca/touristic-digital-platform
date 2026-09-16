@@ -629,7 +629,9 @@ export function installExploreLocationsControl({
     return true;
   };
 
-  const execute = async (command: ExploreLocationsCommand): Promise<boolean> => {
+  const execute = async (
+    command: ExploreLocationsCommand,
+  ): Promise<boolean> => {
     if (command.type === "open_category") {
       return openCategoryByValue(command.category);
     }

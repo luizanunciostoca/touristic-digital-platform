@@ -46,7 +46,9 @@ describe("assistant contextual navigation confirmation", () => {
     });
     const controller = createAssistantDialogController({ context, handlers });
 
-    const requested = await controller.processUserInput("me leve para Primeira Praia");
+    const requested = await controller.processUserInput(
+      "me leve para Primeira Praia",
+    );
 
     expect(startNavigation).not.toHaveBeenCalled();
     expect(requested.metadata).toMatchObject({

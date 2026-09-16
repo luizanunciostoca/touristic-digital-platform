@@ -299,10 +299,7 @@ function favoriteOperationFromInput(input: string): FavoriteOperation | null {
 function pendingFavoriteOperation(
   awaiting: Record<string, unknown> | null,
 ): FavoriteOperation | null {
-  if (
-    awaiting?.type !== "awaiting_place" ||
-    awaiting.intent !== "favorites"
-  ) {
+  if (awaiting?.type !== "awaiting_place" || awaiting.intent !== "favorites") {
     return null;
   }
   return awaiting.operation === "add" || awaiting.operation === "remove"
@@ -420,7 +417,8 @@ export function createAssistantBrowserDomainHandlers(
         const operation =
           favoriteOperationFromInput(request.input) ??
           pendingFavoriteOperation(request.context.awaiting);
-        const rawPlace = request.intent.entities.place ?? request.context.lastPlace;
+        const rawPlace =
+          request.intent.entities.place ?? request.context.lastPlace;
 
         if (operation && !rawPlace) {
           return {

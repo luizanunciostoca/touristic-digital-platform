@@ -95,11 +95,7 @@ describe("assistant browser domain adapter", () => {
     const handlers = createAssistantBrowserDomainHandlers({ storage });
 
     const added = await handlers.favorites?.(
-      request(
-        "favorites",
-        "primeira praia",
-        "adicionar aos favoritos",
-      ),
+      request("favorites", "primeira praia", "adicionar aos favoritos"),
     );
     expect(added).toEqual({
       text: "Salvei Primeira Praia nos favoritos.",
