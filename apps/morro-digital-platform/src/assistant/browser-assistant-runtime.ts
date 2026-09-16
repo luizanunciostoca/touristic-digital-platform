@@ -76,6 +76,13 @@ const CONTROLLER_OWNED_AWAITING_TYPES = new Set([
   "awaiting_destination",
 ]);
 
+function supersededResponse(): AssistantDialogResponse {
+  return {
+    text: "",
+    metadata: { domain: "runtime", state: "superseded" },
+  };
+}
+
 function getMessagesArea(document: Document): HTMLElement | null {
   return document.querySelector<HTMLElement>(
     "#assistant-messages .messages-area",
@@ -417,6 +424,10 @@ export function installBrowserAssistantRuntime(
       } else {
         menuRouted = routeAssistantMenuCommand(options.document, value);
       }
+    }
+
+    if (destroyed || generation !== requestGeneration) {
+      return supersededResponse();
     }
 
     if (menuRouted) {
