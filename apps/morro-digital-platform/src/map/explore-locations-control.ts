@@ -294,7 +294,8 @@ export function installExploreLocationsControl({
   const categoryListeners = new Map<HTMLButtonElement, EventListener>();
   const currentLocale = (): AssistantLocale =>
     normalizeAssistantVoiceLanguage(document.documentElement.lang);
-  const categories = getExploreLocationsCategories(currentLocale());
+  const currentCategories = (): readonly ExploreLocationsCategory[] =>
+    getExploreLocationsCategories(currentLocale());
 
   const stateSnapshot = (): ExploreLocationsStateSnapshot =>
     Object.freeze({
@@ -698,7 +699,7 @@ export function installExploreLocationsControl({
 
   const openCategoryByValue = (categoryValue: string): boolean => {
     const normalized = normalizeSearchText(categoryValue);
-    const category = categories.find(
+    const category = currentCategories().find(
       (candidate) => normalizeSearchText(candidate.value) === normalized,
     );
     if (!category) return false;
@@ -779,7 +780,26 @@ export function installExploreLocationsControl({
     return true;
   };
 
-  for (const category of categories) {
+  const refreshCategoryPresentation = (): void => {
+    const localized = currentCategories();
+    for (const category of localized) {
+      const button = document.getElementById(
+        getAssistantCategoryButtonId(category.value),
+      );
+      if (!(button instanceof HTMLButtonElement)) continue;
+      button.textContent = category.label;
+      button.setAttribute(
+        "aria-label",
+        getV1ExploreUiCopy(currentLocale()).categoryAria(
+          category.label,
+          category.count,
+        ),
+      );
+      if (activeCategory?.value === category.value) activeCategory = category;
+    }
+  };
+
+  for (const category of currentCategories()) {
     const button = document.querySelector<HTMLButtonElement>(
       `.assistant-options .assistant-option-btn[data-value="${category.value}"]`,
     );
@@ -809,6 +829,19 @@ export function installExploreLocationsControl({
     button.addEventListener("click", onCategoryClick);
     categoryListeners.set(button, onCategoryClick);
   }
+
+  const MutationObserverCtor = document.defaultView?.MutationObserver;
+  const localeObserver = MutationObserverCtor
+    ? new MutationObserverCtor((records) => {
+        if (!records.some((record) => record.attributeName === "lang")) return;
+        refreshCategoryPresentation();
+        if (activeStage === "filters" && activeCategory) renderFilters();
+      })
+    : null;
+  localeObserver?.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ["lang"],
+  });
 
   const onKeyDown = (event: KeyboardEvent): void => {
     if (event.key !== "Escape" || activeStage === "menu") return;
@@ -867,6 +900,7 @@ export function installExploreLocationsControl({
     },
     destroy() {
       interactionGeneration += 1;
+      localeObserver?.disconnect();
       document.removeEventListener("keydown", onKeyDown);
       document.removeEventListener(
         "morro:assistant-option-selected",
