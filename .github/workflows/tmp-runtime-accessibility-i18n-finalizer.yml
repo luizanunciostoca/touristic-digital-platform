@@ -34,19 +34,24 @@ jobs:
             apps/morro-digital-platform/src/runtime/runtime-accessibility-i18n.test.ts \
             apps/morro-digital-platform/tooling/explore-v1-i18n-browser-parity.mjs \
             .github/workflows/explore-v1-i18n-browser-parity.yml
-      - name: Validate clean functional tree
+      - name: App tests
+        run: pnpm --filter @touristic/morro-digital-platform test
+      - name: App typecheck
+        run: pnpm --filter @touristic/morro-digital-platform typecheck
+      - name: App lint
+        run: pnpm --filter @touristic/morro-digital-platform lint
+      - name: App build
+        run: pnpm --filter @touristic/morro-digital-platform build
+      - name: Prettier check
         run: |
-          pnpm --filter @touristic/morro-digital-platform test
-          pnpm --filter @touristic/morro-digital-platform typecheck
-          pnpm --filter @touristic/morro-digital-platform lint
-          pnpm --filter @touristic/morro-digital-platform build
           pnpm exec prettier --check \
             apps/morro-digital-platform/src/browser-entry.ts \
             apps/morro-digital-platform/src/runtime/runtime-accessibility-i18n.ts \
             apps/morro-digital-platform/src/runtime/runtime-accessibility-i18n.test.ts \
             apps/morro-digital-platform/tooling/explore-v1-i18n-browser-parity.mjs \
             .github/workflows/explore-v1-i18n-browser-parity.yml
-          git diff --check
+      - name: Diff check
+        run: git diff --check
       - name: Commit clean functional tree
         run: |
           rm .github/workflows/tmp-runtime-accessibility-i18n-finalizer.yml
