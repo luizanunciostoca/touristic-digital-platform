@@ -24,7 +24,9 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Apply V1 Explore localization parity
-        run: python tooling/tmp-explore-i18n-finalizer.py
+        run: |
+          python tooling/tmp-explore-i18n-finalizer.py
+          python tooling/tmp-explore-i18n-typefix.py
       - name: Format localization source
         run: |
           pnpm exec prettier --write \
