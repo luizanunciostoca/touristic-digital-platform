@@ -176,7 +176,7 @@ const OPTION_ALIASES = Object.freeze({
     "imagens",
     "galeria",
   ],
-  "informações": [
+  informações: [
     "informacoes",
     "informações",
     "informacao",
