@@ -118,6 +118,15 @@ export function normalizeAssistantText(text: string): string {
     .trim();
 }
 
+function includesNormalizedPhrase(
+  normalized: string,
+  candidate: string,
+): boolean {
+  const phrase = normalizeAssistantText(candidate);
+  if (!phrase) return false;
+  return ` ${normalized} `.includes(` ${phrase} `);
+}
+
 const SYNONYMS = {
   praia: [
     "praia",
@@ -751,9 +760,7 @@ export function extractAssistantEntities(
 
   for (const [category, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
     if (
-      keywords.some((keyword) =>
-        normalized.includes(normalizeAssistantText(keyword)),
-      )
+      keywords.some((keyword) => includesNormalizedPhrase(normalized, keyword))
     ) {
       entities.category = category;
       break;
@@ -1014,6 +1021,13 @@ export function analyzeAssistantIntent(
 ): AssistantIntentResult {
   const normalized = normalizeAssistantText(input);
   const entities = extractAssistantEntities(input, normalized);
+  const contextualPlace = context.lastPlace?.trim();
+  if (
+    contextualPlace &&
+    includesNormalizedPhrase(normalized, contextualPlace)
+  ) {
+    entities.place = contextualPlace;
+  }
   const modifiers = detectAssistantModifiers(normalized);
 
   if (!input || typeof input !== "string") {
