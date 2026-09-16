@@ -45,8 +45,8 @@ describe("V1 proactive weather behavior", () => {
 
     expect(result.recommendations.length).toBeGreaterThan(0);
     expect(result.recommendations.length).toBeLessThanOrEqual(4);
-    expect(result.recommendations.some((item) => /chuva|chuv/i.test(item))).toBe(
-      true,
-    );
+    expect(
+      result.recommendations.some((item) => /chuva|chuv/i.test(item)),
+    ).toBe(true);
   });
 });

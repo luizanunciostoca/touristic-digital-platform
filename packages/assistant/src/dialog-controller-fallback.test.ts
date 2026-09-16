@@ -37,7 +37,9 @@ describe("assistant V1 fallback recovery lifecycle", () => {
       defaultResponse: () => ({ text: "Não entendi." }),
     });
 
-    const response = await controller.processUserInput("xyz qwerty incompreensivel");
+    const response = await controller.processUserInput(
+      "xyz qwerty incompreensivel",
+    );
 
     expect(response.text).toBe("Não entendi.");
     expect(llm).toHaveBeenCalledOnce();
@@ -52,7 +54,9 @@ describe("assistant V1 fallback recovery lifecycle", () => {
       defaultResponse: () => ({ text: "Não entendi." }),
     });
 
-    const response = await controller.processUserInput("outra mensagem desconhecida");
+    const response = await controller.processUserInput(
+      "outra mensagem desconhecida",
+    );
 
     expect(response.metadata).toEqual({
       domain: "fallback",

@@ -36,7 +36,10 @@ describe("V1 recommendation and comparison intent parity", () => {
     ["compare Primera Playa versus Segunda Playa", "compare"],
     ["מה אתה ממליץ על חופים", "recommendation"],
     ["להשוות חוף ראשון מול חוף שני", "compare"],
-  ])("keeps recommendation/compare semantics multilingual: %s", (input, intent) => {
-    expect(analyzeAssistantIntent(input).intent).toBe(intent);
-  });
+  ])(
+    "keeps recommendation/compare semantics multilingual: %s",
+    (input, intent) => {
+      expect(analyzeAssistantIntent(input).intent).toBe(intent);
+    },
+  );
 });
