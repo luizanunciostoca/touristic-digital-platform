@@ -81,12 +81,16 @@ describe("assistant V1 place action parity", () => {
       "Píer de Morro de São Paulo",
       "transport",
     );
-    expect(result?.navigationDestination).toEqual({
+    expect(result?.navigationDestination).toMatchObject({
       name: "Píer de Morro de São Paulo",
-      latitude: expect.any(Number),
-      longitude: expect.any(Number),
       category: "transport",
     });
+    expect(
+      Number.isFinite(result?.navigationDestination?.latitude ?? Number.NaN),
+    ).toBe(true);
+    expect(
+      Number.isFinite(result?.navigationDestination?.longitude ?? Number.NaN),
+    ).toBe(true);
     expect(result?.response).toMatchObject({
       text: "Deseja iniciar a navegação até Píer de Morro de São Paulo?",
       options: [
@@ -96,14 +100,11 @@ describe("assistant V1 place action parity", () => {
       metadata: {
         navigation: "awaiting_confirmation",
         action: "transport_location",
-        pendingRoute: {
-          name: "Píer de Morro de São Paulo",
-          latitude: expect.any(Number),
-          longitude: expect.any(Number),
-          category: "transport",
-        },
       },
     });
+    expect(result?.response.metadata?.pendingRoute).toEqual(
+      result?.navigationDestination,
+    );
   });
 
   it("preserves the V1 multilingual unavailable copy", () => {
