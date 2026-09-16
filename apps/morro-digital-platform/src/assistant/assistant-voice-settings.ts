@@ -6,6 +6,7 @@ import {
   type AssistantVoicePreferences,
 } from "@touristic/assistant";
 
+import { getShellPresentationCopy } from "../runtime/shell-v1-i18n.js";
 import type { AssistantBrowserVoice } from "./assistant-voice-adapter.js";
 
 export interface AssistantVoiceSettingsOptions {
@@ -106,18 +107,21 @@ export function installAssistantVoiceSettings(
 
   const renderVoices = (preferences: AssistantVoicePreferences): void => {
     const voices = readVoices();
+    const presentation = getShellPresentationCopy(
+      options.document.documentElement.lang,
+    );
     voiceSelect.replaceChildren();
 
     const automatic = options.document.createElement("option");
     automatic.value = "";
-    automatic.textContent = "Automática";
+    automatic.textContent = presentation.voiceAutomatic;
     voiceSelect.appendChild(automatic);
 
     for (const voice of voices) {
       const option = options.document.createElement("option");
       option.value = voice.name;
       option.textContent = `${voice.name} (${voice.lang})${
-        voice.default ? " • padrão" : ""
+        voice.default ? ` • ${presentation.voiceDefaultSuffix}` : ""
       }`;
       voiceSelect.appendChild(option);
     }
