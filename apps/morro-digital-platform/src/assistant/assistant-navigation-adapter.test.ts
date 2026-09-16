@@ -19,22 +19,21 @@ function request(
 }
 
 describe("assistant navigation app adapter", () => {
-  it("starts the real navigation boundary with normalized destination coordinates", async () => {
+  it("confirms before starting the real navigation boundary with normalized destination coordinates", async () => {
     const start = vi.fn(async () => ({
       type: "FeatureCollection",
       features: [],
     }));
+    const destination = {
+      name: "Farol do Morro",
+      latitude: -13.376,
+      longitude: -38.913,
+    };
     const handlers = createAssistantNavigationAppHandlers({
       navigation: { start, stop: vi.fn() },
-      resolver: {
-        resolveDestination: vi.fn(() => ({
-          name: "Farol do Morro",
-          latitude: -13.376,
-          longitude: -38.913,
-        })),
-      },
+      resolver: { resolveDestination: vi.fn(() => destination) },
     });
-    const intent: AssistantIntentResult = {
+    const navigateIntent: AssistantIntentResult = {
       intent: "navigate",
       confidence: 0.95,
       entities: { place: "Farol do Morro" },
@@ -42,13 +41,36 @@ describe("assistant navigation app adapter", () => {
       modifiers: [],
     };
 
-    const response = await handlers.navigate(request(intent));
+    const pending = await handlers.navigate(request(navigateIntent));
+    expect(start).not.toHaveBeenCalled();
+    expect(pending).toMatchObject({
+      metadata: {
+        navigation: "awaiting_confirmation",
+        pendingRoute: destination,
+      },
+    });
+
+    const context = createDefaultAssistantContext(() => 1000);
+    context.awaiting = { type: "confirmar_navegacao", intent: "navigate" };
+    context.pendingRoute = destination;
+    const confirmed = await handlers.confirm({
+      input: "sim",
+      intent: {
+        intent: "confirm",
+        confidence: 1,
+        entities: {},
+        normalized: "sim",
+        modifiers: [],
+        contextual: true,
+      },
+      context,
+    });
 
     expect(start).toHaveBeenCalledWith({
       longitude: -38.913,
       latitude: -13.376,
     });
-    expect(response).toMatchObject({
+    expect(confirmed).toMatchObject({
       metadata: { navigation: "started", destination: "Farol do Morro" },
     });
   });

@@ -12,6 +12,13 @@ export interface MorroDigitalApplicationBootstrap {
 }
 
 const EXPLORE_RESET_REQUEST_EVENT = "morro:explore-reset-requested";
+const applications = new WeakMap<Document, MorroDigitalApplicationBootstrap>();
+
+export function getMorroDigitalApplication(
+  document: Document,
+): MorroDigitalApplicationBootstrap | undefined {
+  return applications.get(document);
+}
 
 export function bootstrapMorroDigitalApplication(
   document: Document,
@@ -24,5 +31,7 @@ export function bootstrapMorroDigitalApplication(
     exploreLocations.close();
   });
   installThreeDimensionalMapControl({ document });
-  return Object.freeze({ exploreLocations });
+  const application = Object.freeze({ exploreLocations });
+  applications.set(document, application);
+  return application;
 }

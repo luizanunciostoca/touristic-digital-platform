@@ -1,5 +1,3 @@
-import { routeTypedAssistantCommand } from "./assistant-menu-flow-v1-parity.js";
-
 const INSTALLATION_KEY = "__MORRO_ASSISTANT_INPUT_V1_PARITY__";
 
 if (!globalThis[INSTALLATION_KEY]) {
@@ -30,15 +28,10 @@ if (!globalThis[INSTALLATION_KEY]) {
       }),
     );
 
-    if (!routeTypedAssistantCommand(message)) return "passthrough";
-
-    input.value = "";
-    document.dispatchEvent(
-      new CustomEvent("morro:assistant-menu-command-routed", {
-        detail: { message, source },
-      }),
-    );
-    return "handled";
+    // Semantic execution now belongs to the canonical browser runtime so
+    // keyboard, send-button, voice, programmatic input and LLM actions share
+    // one routing path. This shim only preserves the V1 input/keyboard rules.
+    return "passthrough";
   }
 
   function applyInputSafeguards(input) {
@@ -93,9 +86,9 @@ if (!globalThis[INSTALLATION_KEY]) {
       if (!(target instanceof Element) || !target.closest(SEND_SELECTOR))
         return;
 
-      const submission = prepareTypedSubmission("button");
-      if (submission === "passthrough") return;
+      if (prepareTypedSubmission("button") === "passthrough") return;
 
+      // V1 keeps whitespace-only input untouched and does not submit it.
       event.preventDefault();
       event.stopImmediatePropagation();
     },
@@ -120,9 +113,9 @@ if (!globalThis[INSTALLATION_KEY]) {
         return;
       }
 
-      const submission = prepareTypedSubmission("keyboard");
-      if (submission === "passthrough") return;
+      if (prepareTypedSubmission("keyboard") === "passthrough") return;
 
+      // V1 keeps whitespace-only input untouched and does not submit it.
       event.preventDefault();
       event.stopImmediatePropagation();
     },

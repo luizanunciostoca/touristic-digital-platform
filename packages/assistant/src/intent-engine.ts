@@ -17,6 +17,8 @@ export type AssistantIntent =
   | "deny"
   | "greeting"
   | "thanks"
+  | "recommendation"
+  | "compare"
   | "category_beaches"
   | "category_restaurants"
   | "category_hotels"
@@ -488,6 +490,35 @@ const INTENT_PATTERNS: ReadonlyArray<{
     confidence: 1,
     patterns: [
       /^(obrigado|obrigada|valeu|thanks|thank you|gracias|merci|danke|muito obrigado|muito obrigada)[\s!]*$/i,
+    ],
+  },
+  {
+    intent: "recommendation",
+    confidence: 0.9,
+    patterns: [
+      /(me recomend|recomend|sugest|o que voce indica|o que você indica|o que e bom|o que é bom|o melhor|o mais famoso|o mais popular|what do you recommend|suggest|best place|recomiend|suger|mejor lugar|ממליץ|ממליצה|ממליצים|המלצה)/i,
+    ],
+  },
+  {
+    intent: "compare",
+    confidence: 0.85,
+    patterns: [
+      /(comparar|compare|diferenca entre|diferença entre|qual e melhor|qual é melhor|versus|vs\.?|diferencia entre|cu[aá]l es mejor|להשוות|מול)/i,
+      /(?:praia|pousada|hotel|restaurante|bar|toca|farol|forte|mirante).{0,50}\bou\b.{0,50}(?:praia|pousada|hotel|restaurante|bar|toca|farol|forte|mirante)/i,
+    ],
+  },
+  {
+    intent: "category_filtered",
+    confidence: 0.9,
+    patterns: [
+      /(barato|economico|econômico|em conta|budget|cheap).*(restaurante|pousada|hotel|comida)/i,
+      /(luxo|luxury|premium|top|melhor).*(restaurante|pousada|hotel)/i,
+      /(romantico|romântico|casal|couple).*(restaurante|pousada)/i,
+      /(familia|família|crianca|criança|kids).*(praia|restaurante|atracao)/i,
+      /(frente|beira|perto).*(praia|mar|beach).*(pousada|hotel|restaurante)/i,
+      /(restaurante|comida|comer).*(praia|vila|segunda|terceira|quarta)/i,
+      /(pousada|hotel).*(praia|vila|segunda|terceira|quarta)/i,
+      /(praia).*(calma|tranquila|familia|crianca|snorkel|mergulho)/i,
     ],
   },
 ];

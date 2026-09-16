@@ -9,6 +9,7 @@ const ALWAYS_LLM_INTENTS = new Set<AssistantIntentResult["intent"]>([
   "practical_tips",
   "transport",
   "accessibility",
+  "place_search",
   "unknown",
 ]);
 

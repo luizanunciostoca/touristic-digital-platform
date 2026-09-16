@@ -26,10 +26,28 @@ const TOUR_ROUTE_SOURCE = "tour-route-source";
 const TOUR_ROUTE_LAYER = "tour-route-layer";
 const TOUR_ROUTE_OUTLINE = "tour-route-outline";
 
+type ExploreStage = "menu" | "filters" | "places" | "detail" | "tour";
+
 export interface ExploreLocationsCategory {
   readonly value: string;
   readonly label: string;
   readonly count: number;
+}
+
+export type ExploreLocationsCommand =
+  | Readonly<{ type: "open_category"; category: string }>
+  | Readonly<{ type: "apply_option"; value: string }>
+  | Readonly<{ type: "show_all" }>
+  | Readonly<{ type: "show_nearby" }>
+  | Readonly<{ type: "select_place"; place: string }>
+  | Readonly<{ type: "back_to_filters" }>
+  | Readonly<{ type: "back_to_menu" }>;
+
+export interface ExploreLocationsStateSnapshot {
+  readonly category: string | null;
+  readonly place: string | null;
+  readonly stage: ExploreStage;
+  readonly markerCount: number;
 }
 
 export interface ExploreLocationsControlOptions {
@@ -37,6 +55,8 @@ export interface ExploreLocationsControlOptions {
 }
 
 export interface ExploreLocationsControl {
+  execute(command: ExploreLocationsCommand): Promise<boolean>;
+  getState(): ExploreLocationsStateSnapshot;
   close(): void;
   setGeospatialEngine(engine: GeospatialEngine | undefined): void;
   destroy(): void;
@@ -45,8 +65,6 @@ export interface ExploreLocationsControl {
 interface MapboxCompatibilityGlobal {
   readonly mapboxPrimaryInstance?: MapboxGlMapLike;
 }
-
-type ExploreStage = "menu" | "filters" | "places" | "detail" | "tour";
 
 const categoryValues = new Set(
   morroV1SearchCatalog.map((location) => location.category),
@@ -257,11 +275,31 @@ export function installExploreLocationsControl({
   let geospatialEngine: GeospatialEngine | undefined;
   let activeCategoryButton: HTMLButtonElement | undefined;
   let activeCategory: ExploreLocationsCategory | undefined;
+  let activePlace: string | undefined;
   let activeStage: ExploreStage = "menu";
   let visibleLocations: readonly MorroV1SearchCatalogItem[] = Object.freeze([]);
   let mainMenuContainer: HTMLElement | undefined;
+  let interactionGeneration = 0;
   const categoryListeners = new Map<HTMLButtonElement, EventListener>();
   const categories = getExploreLocationsCategories();
+
+  const stateSnapshot = (): ExploreLocationsStateSnapshot =>
+    Object.freeze({
+      category: activeCategory?.value ?? null,
+      place: activeStage === "detail" ? (activePlace ?? null) : null,
+      stage: activeStage,
+      markerCount: Number(
+        document.getElementById("map")?.dataset.mapMarkerCount ?? "0",
+      ),
+    });
+
+  const emitStateChange = (): void => {
+    document.dispatchEvent(
+      new CustomEvent("morro:explore-state-changed", {
+        detail: stateSnapshot(),
+      }),
+    );
+  };
 
   const updateMapState = (
     count: number,
@@ -279,6 +317,11 @@ export function installExploreLocationsControl({
       mapElement?.removeAttribute("data-explore-category");
     }
     mapElement?.setAttribute("data-explore-stage", activeStage);
+    if (activeStage === "detail" && activePlace) {
+      mapElement?.setAttribute("data-explore-place", activePlace);
+    } else {
+      mapElement?.removeAttribute("data-explore-place");
+    }
   };
 
   const renderLocationsOnMap = async (
@@ -286,6 +329,7 @@ export function installExploreLocationsControl({
     category: string,
     openSelectedPopup = false,
   ): Promise<void> => {
+    const generation = interactionGeneration;
     visibleLocations = Object.freeze([...locations]);
     if (!geospatialEngine?.initialized) return;
 
@@ -300,15 +344,24 @@ export function installExploreLocationsControl({
           ),
         ),
       );
+      if (
+        generation !== interactionGeneration ||
+        activeCategory?.value !== category
+      ) {
+        return;
+      }
       updateMapState(locations.length, category, "ready");
       frameLocationsOnMap(locations, geospatialEngine);
+      emitStateChange();
     } catch (error) {
+      if (generation !== interactionGeneration) return;
       updateMapState(0, undefined, "error");
       try {
         await geospatialEngine.replaceMarkers([]);
       } catch {
         // Preserve the first provider failure for diagnostics.
       }
+      emitStateChange();
       document
         .getElementById("runtime-status")
         ?.replaceChildren(
@@ -403,11 +456,13 @@ export function installExploreLocationsControl({
   };
 
   const backToMenu = (restoreFocus = true): void => {
+    interactionGeneration += 1;
     const previousTrigger = activeCategoryButton;
     removeAssistantFlowResults(document);
     resetCategoryTriggerState();
     activeCategory = undefined;
     activeCategoryButton = undefined;
+    activePlace = undefined;
     activeStage = "menu";
     visibleLocations = Object.freeze([]);
     showMainMenu();
@@ -415,6 +470,7 @@ export function installExploreLocationsControl({
       Number(document.getElementById("map")?.dataset.mapMarkerCount ?? "0"),
       undefined,
     );
+    emitStateChange();
     if (restoreFocus) {
       previousTrigger?.focus();
     }
@@ -424,14 +480,23 @@ export function installExploreLocationsControl({
     location: MorroV1SearchCatalogItem,
   ): Promise<void> => {
     if (!activeCategory) return;
+    const generation = ++interactionGeneration;
+    activePlace = location.name;
     activeStage = "detail";
     removeAssistantFlowResults(document);
     await renderLocationsOnMap([location], activeCategory.value, true);
+    if (
+      generation !== interactionGeneration ||
+      activeCategory?.value !== location.category
+    ) {
+      return;
+    }
     document
       .getElementById("runtime-status")
       ?.replaceChildren(
         document.createTextNode(`${location.name} selecionado.`),
       );
+    emitStateChange();
     ensureAssistantVisible(document);
     const optionsOverride = getV1ExplorePlaceActionOptions(
       activeCategory.value,
@@ -451,6 +516,7 @@ export function installExploreLocationsControl({
     message: string,
   ): void => {
     if (!activeCategory) return;
+    activePlace = undefined;
     activeStage = "places";
     const options: readonly Readonly<{
       label: string;
@@ -473,27 +539,34 @@ export function installExploreLocationsControl({
 
     const first = renderFlow(message, options, (option) => {
       if (option.action === "back-filters") {
+        interactionGeneration += 1;
         renderFilters();
         return;
       }
       if (option.location) void selectLocation(option.location);
     });
     first?.focus();
+    emitStateChange();
     void renderLocationsOnMap(locations, activeCategory.value);
   };
 
   const startImmersiveTour = (tourId: string): void => {
     const tourSelect = document.getElementById("tour-select");
     if (!(tourSelect instanceof HTMLSelectElement)) return;
+    activePlace = undefined;
     activeStage = "tour";
     removeAssistantFlowResults(document);
     tourSelect.value = tourId;
     tourSelect.dispatchEvent(new Event("change", { bubbles: true }));
+    emitStateChange();
   };
 
   const applyFlowOption = async (option: V1ExploreOption): Promise<void> => {
     if (!activeCategory) return;
-    const allLocations = getExploreLocationsForCategory(activeCategory.value);
+    const generation = ++interactionGeneration;
+    const categoryValue = activeCategory.value;
+    const categoryLabel = activeCategory.label;
+    const allLocations = getExploreLocationsForCategory(categoryValue);
 
     if (option.action === "back-menu") {
       backToMenu();
@@ -506,26 +579,32 @@ export function installExploreLocationsControl({
     if (option.action === "all") {
       renderPlaces(
         allLocations,
-        `${activeCategory.label}: encontrei ${allLocations.length} opções. Escolha um local para ver os detalhes.`,
+        `${categoryLabel}: encontrei ${allLocations.length} opções. Escolha um local para ver os detalhes.`,
       );
       return;
     }
     if (option.action === "nearby") {
       const position = await getCurrentPosition(document);
+      if (
+        generation !== interactionGeneration ||
+        activeCategory?.value !== categoryValue
+      ) {
+        return;
+      }
       const nearby = position
         ? sortV1ExploreNearby(allLocations, position, 12)
         : allLocations;
       renderPlaces(
         nearby,
         position
-          ? `${activeCategory.label}: estes são os ${nearby.length} locais mais próximos de você.`
-          : `Não consegui obter sua localização. Mostrando ${allLocations.length} opções de ${activeCategory.label}.`,
+          ? `${categoryLabel}: estes são os ${nearby.length} locais mais próximos de você.`
+          : `Não consegui obter sua localização. Mostrando ${allLocations.length} opções de ${categoryLabel}.`,
       );
       return;
     }
 
     const filtered = filterV1ExploreLocations(
-      activeCategory.value,
+      categoryValue,
       option.value,
       allLocations,
     );
@@ -533,13 +612,14 @@ export function installExploreLocationsControl({
     renderPlaces(
       displayed,
       filtered.length > 0
-        ? `${activeCategory.label}: encontrei ${filtered.length} opção(ões) para ${option.label.replace(/^\S+\s/u, "")}.`
+        ? `${categoryLabel}: encontrei ${filtered.length} opção(ões) para ${option.label.replace(/^\S+\s/u, "")}.`
         : `Não encontrei correspondência exata para ${option.label.replace(/^\S+\s/u, "")}. Mostrando todos os ${allLocations.length} locais.`,
     );
   };
 
   function renderFilters(): void {
     if (!activeCategory) return;
+    activePlace = undefined;
     activeStage = "filters";
     const allLocations = getExploreLocationsForCategory(activeCategory.value);
     const filters = getV1ExploreSubcategoryOptions(activeCategory.value);
@@ -550,6 +630,7 @@ export function installExploreLocationsControl({
       (option) => void applyFlowOption(option),
     );
     first?.focus();
+    emitStateChange();
     void renderLocationsOnMap(allLocations, activeCategory.value);
   }
 
@@ -557,6 +638,7 @@ export function installExploreLocationsControl({
     category: ExploreLocationsCategory,
     trigger: HTMLButtonElement,
   ): void => {
+    interactionGeneration += 1;
     if (activeCategoryButton && activeCategoryButton !== trigger) {
       activeCategoryButton.setAttribute("aria-expanded", "false");
       activeCategoryButton.setAttribute("aria-pressed", "false");
@@ -568,6 +650,83 @@ export function installExploreLocationsControl({
     trigger.setAttribute("aria-expanded", "true");
     trigger.setAttribute("aria-pressed", "true");
     renderFilters();
+  };
+
+  const openCategoryByValue = (categoryValue: string): boolean => {
+    const normalized = normalizeSearchText(categoryValue);
+    const category = categories.find(
+      (candidate) => normalizeSearchText(candidate.value) === normalized,
+    );
+    if (!category) return false;
+    const trigger = document.getElementById(
+      getAssistantCategoryButtonId(category.value),
+    );
+    if (!(trigger instanceof HTMLButtonElement)) return false;
+    openCategory(category, trigger);
+    return true;
+  };
+
+  const execute = async (
+    command: ExploreLocationsCommand,
+  ): Promise<boolean> => {
+    if (command.type === "open_category") {
+      return openCategoryByValue(command.category);
+    }
+
+    if (command.type === "back_to_menu") {
+      backToMenu();
+      return true;
+    }
+
+    if (command.type === "back_to_filters") {
+      if (!activeCategory) return false;
+      interactionGeneration += 1;
+      renderFilters();
+      return true;
+    }
+
+    if (command.type === "select_place") {
+      const normalized = normalizeSearchText(command.place);
+      const location = morroV1SearchCatalog.find(
+        (candidate) => normalizeSearchText(candidate.name) === normalized,
+      );
+      if (!location) return false;
+      if (activeCategory?.value !== location.category) {
+        if (!openCategoryByValue(location.category)) return false;
+      }
+      await selectLocation(location);
+      return true;
+    }
+
+    if (!activeCategory) return false;
+    const allLocations = getExploreLocationsForCategory(activeCategory.value);
+
+    if (command.type === "show_all") {
+      interactionGeneration += 1;
+      renderPlaces(
+        allLocations,
+        `${activeCategory.label}: encontrei ${allLocations.length} opções. Escolha um local para ver os detalhes.`,
+      );
+      return true;
+    }
+
+    const flowOptions = getV1ExploreSubcategoryOptions(activeCategory.value);
+    if (command.type === "show_nearby") {
+      const nearby = flowOptions.find((option) => option.action === "nearby");
+      if (!nearby) return false;
+      await applyFlowOption(nearby);
+      return true;
+    }
+
+    const normalized = normalizeSearchText(command.value);
+    const option = flowOptions.find(
+      (candidate) =>
+        normalizeSearchText(candidate.value) === normalized ||
+        normalizeSearchText(candidate.label) === normalized,
+    );
+    if (!option) return false;
+    await applyFlowOption(option);
+    return true;
   };
 
   for (const category of categories) {
@@ -619,6 +778,7 @@ export function installExploreLocationsControl({
       value === `[sub]${activeCategory.value}`
     ) {
       event.stopImmediatePropagation();
+      interactionGeneration += 1;
       const allLocations = getExploreLocationsForCategory(activeCategory.value);
       renderPlaces(
         allLocations,
@@ -639,6 +799,8 @@ export function installExploreLocationsControl({
   );
 
   return Object.freeze({
+    execute,
+    getState: stateSnapshot,
     close: () => backToMenu(),
     setGeospatialEngine(engine: GeospatialEngine | undefined) {
       geospatialEngine = engine;
@@ -651,6 +813,7 @@ export function installExploreLocationsControl({
       }
     },
     destroy() {
+      interactionGeneration += 1;
       document.removeEventListener("keydown", onKeyDown);
       document.removeEventListener(
         "morro:assistant-option-selected",
@@ -672,6 +835,7 @@ export function installExploreLocationsControl({
       geospatialEngine = undefined;
       activeCategory = undefined;
       activeCategoryButton = undefined;
+      activePlace = undefined;
       activeStage = "menu";
       visibleLocations = Object.freeze([]);
     },

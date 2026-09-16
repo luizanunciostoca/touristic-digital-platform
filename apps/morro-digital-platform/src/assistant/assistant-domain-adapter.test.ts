@@ -10,14 +10,15 @@ import { createAssistantBrowserDomainHandlers } from "./assistant-domain-adapter
 function request(
   intent: AssistantDialogIntentHandlerContext["intent"]["intent"],
   place?: string,
+  input: string = intent,
 ): AssistantDialogIntentHandlerContext {
   return {
-    input: intent,
+    input,
     intent: {
       intent,
       confidence: 1,
       entities: place ? { place } : {},
-      normalized: intent,
+      normalized: input,
       modifiers: [],
     },
     context: createDefaultAssistantContext(() => 1),
@@ -82,6 +83,94 @@ describe("assistant browser domain adapter", () => {
         { label: "Segunda Praia", value: "Segunda Praia" },
       ],
       metadata: { domain: "favorites", count: 2 },
+    });
+  });
+
+  it("adds, lists and removes a favorite through the same profile instance", async () => {
+    const store = new Map<string, string>();
+    const storage = {
+      getItem: (key: string) => store.get(key) ?? null,
+      setItem: (key: string, value: string) => void store.set(key, value),
+    };
+    const handlers = createAssistantBrowserDomainHandlers({ storage });
+
+    const added = await handlers.favorites?.(
+      request("favorites", "primeira praia", "adicionar aos favoritos"),
+    );
+    expect(added).toEqual({
+      text: "Salvei Primeira Praia nos favoritos.",
+      options: [{ label: "Primeira Praia", value: "Primeira Praia" }],
+      metadata: {
+        domain: "favorites",
+        state: "added",
+        place: "Primeira Praia",
+        count: 1,
+      },
+    });
+
+    expect(await handlers.favorites?.(request("favorites"))).toEqual({
+      text: "Seus favoritos: Primeira Praia.",
+      options: [{ label: "Primeira Praia", value: "Primeira Praia" }],
+      metadata: { domain: "favorites", count: 1 },
+    });
+
+    const removed = await handlers.favorites?.(
+      request("favorites", "Primeira Praia", "remover dos favoritos"),
+    );
+    expect(removed).toEqual({
+      text: "Removi Primeira Praia dos favoritos.",
+      metadata: {
+        domain: "favorites",
+        state: "removed",
+        place: "Primeira Praia",
+        count: 0,
+      },
+    });
+    expect(await handlers.favorites?.(request("favorites"))).toEqual({
+      text: "Você ainda não adicionou lugares aos favoritos.",
+      metadata: { domain: "favorites", count: 0 },
+    });
+  });
+
+  it("asks for a place before mutating favorites when context has none", async () => {
+    const handlers = createAssistantBrowserDomainHandlers();
+    expect(
+      await handlers.favorites?.(
+        request("favorites", undefined, "adicionar aos favoritos"),
+      ),
+    ).toEqual({
+      text: "Qual local você quer adicionar aos favoritos?",
+      metadata: {
+        domain: "favorites",
+        state: "awaiting_place",
+        operation: "add",
+      },
+    });
+  });
+
+  it("resumes a pending favorite operation with the next place-only turn", async () => {
+    const store = new Map<string, string>();
+    const storage = {
+      getItem: (key: string) => store.get(key) ?? null,
+      setItem: (key: string, value: string) => void store.set(key, value),
+    };
+    const handlers = createAssistantBrowserDomainHandlers({ storage });
+    const followUp = request("favorites", "Primeira Praia", "Primeira Praia");
+    followUp.context.awaiting = {
+      type: "awaiting_place",
+      intent: "favorites",
+      operation: "add",
+    };
+
+    expect(await handlers.favorites?.(followUp)).toEqual({
+      text: "Salvei Primeira Praia nos favoritos.",
+      options: [{ label: "Primeira Praia", value: "Primeira Praia" }],
+      metadata: {
+        domain: "favorites",
+        state: "added",
+        place: "Primeira Praia",
+        count: 1,
+      },
     });
   });
 
@@ -348,6 +437,7 @@ describe("assistant browser domain adapter", () => {
       },
     });
   });
+
   it("preserves the audited V1 price guidance for a contextual place", async () => {
     const handlers = createAssistantBrowserDomainHandlers();
     const response = await handlers.price?.(request("price", "Segunda Praia"));
