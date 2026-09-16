@@ -277,6 +277,7 @@ export function installExploreLocationsControl({
   let activeStage: ExploreStage = "menu";
   let visibleLocations: readonly MorroV1SearchCatalogItem[] = Object.freeze([]);
   let mainMenuContainer: HTMLElement | undefined;
+  let interactionGeneration = 0;
   const categoryListeners = new Map<HTMLButtonElement, EventListener>();
   const categories = getExploreLocationsCategories();
 
@@ -303,6 +304,7 @@ export function installExploreLocationsControl({
     category: string,
     openSelectedPopup = false,
   ): Promise<void> => {
+    const generation = interactionGeneration;
     visibleLocations = Object.freeze([...locations]);
     if (!geospatialEngine?.initialized) return;
 
@@ -317,9 +319,16 @@ export function installExploreLocationsControl({
           ),
         ),
       );
+      if (
+        generation !== interactionGeneration ||
+        activeCategory?.value !== category
+      ) {
+        return;
+      }
       updateMapState(locations.length, category, "ready");
       frameLocationsOnMap(locations, geospatialEngine);
     } catch (error) {
+      if (generation !== interactionGeneration) return;
       updateMapState(0, undefined, "error");
       try {
         await geospatialEngine.replaceMarkers([]);
@@ -420,6 +429,7 @@ export function installExploreLocationsControl({
   };
 
   const backToMenu = (restoreFocus = true): void => {
+    interactionGeneration += 1;
     const previousTrigger = activeCategoryButton;
     removeAssistantFlowResults(document);
     resetCategoryTriggerState();
@@ -441,9 +451,16 @@ export function installExploreLocationsControl({
     location: MorroV1SearchCatalogItem,
   ): Promise<void> => {
     if (!activeCategory) return;
+    const generation = ++interactionGeneration;
     activeStage = "detail";
     removeAssistantFlowResults(document);
     await renderLocationsOnMap([location], activeCategory.value, true);
+    if (
+      generation !== interactionGeneration ||
+      activeCategory?.value !== location.category
+    ) {
+      return;
+    }
     document
       .getElementById("runtime-status")
       ?.replaceChildren(
@@ -490,6 +507,7 @@ export function installExploreLocationsControl({
 
     const first = renderFlow(message, options, (option) => {
       if (option.action === "back-filters") {
+        interactionGeneration += 1;
         renderFilters();
         return;
       }
@@ -510,7 +528,10 @@ export function installExploreLocationsControl({
 
   const applyFlowOption = async (option: V1ExploreOption): Promise<void> => {
     if (!activeCategory) return;
-    const allLocations = getExploreLocationsForCategory(activeCategory.value);
+    const generation = ++interactionGeneration;
+    const categoryValue = activeCategory.value;
+    const categoryLabel = activeCategory.label;
+    const allLocations = getExploreLocationsForCategory(categoryValue);
 
     if (option.action === "back-menu") {
       backToMenu();
@@ -523,26 +544,32 @@ export function installExploreLocationsControl({
     if (option.action === "all") {
       renderPlaces(
         allLocations,
-        `${activeCategory.label}: encontrei ${allLocations.length} opções. Escolha um local para ver os detalhes.`,
+        `${categoryLabel}: encontrei ${allLocations.length} opções. Escolha um local para ver os detalhes.`,
       );
       return;
     }
     if (option.action === "nearby") {
       const position = await getCurrentPosition(document);
+      if (
+        generation !== interactionGeneration ||
+        activeCategory?.value !== categoryValue
+      ) {
+        return;
+      }
       const nearby = position
         ? sortV1ExploreNearby(allLocations, position, 12)
         : allLocations;
       renderPlaces(
         nearby,
         position
-          ? `${activeCategory.label}: estes são os ${nearby.length} locais mais próximos de você.`
-          : `Não consegui obter sua localização. Mostrando ${allLocations.length} opções de ${activeCategory.label}.`,
+          ? `${categoryLabel}: estes são os ${nearby.length} locais mais próximos de você.`
+          : `Não consegui obter sua localização. Mostrando ${allLocations.length} opções de ${categoryLabel}.`,
       );
       return;
     }
 
     const filtered = filterV1ExploreLocations(
-      activeCategory.value,
+      categoryValue,
       option.value,
       allLocations,
     );
@@ -550,7 +577,7 @@ export function installExploreLocationsControl({
     renderPlaces(
       displayed,
       filtered.length > 0
-        ? `${activeCategory.label}: encontrei ${filtered.length} opção(ões) para ${option.label.replace(/^\S+\s/u, "")}.`
+        ? `${categoryLabel}: encontrei ${filtered.length} opção(ões) para ${option.label.replace(/^\S+\s/u, "")}.`
         : `Não encontrei correspondência exata para ${option.label.replace(/^\S+\s/u, "")}. Mostrando todos os ${allLocations.length} locais.`,
     );
   };
@@ -574,6 +601,7 @@ export function installExploreLocationsControl({
     category: ExploreLocationsCategory,
     trigger: HTMLButtonElement,
   ): void => {
+    interactionGeneration += 1;
     if (activeCategoryButton && activeCategoryButton !== trigger) {
       activeCategoryButton.setAttribute("aria-expanded", "false");
       activeCategoryButton.setAttribute("aria-pressed", "false");
@@ -613,6 +641,7 @@ export function installExploreLocationsControl({
 
     if (command.type === "back_to_filters") {
       if (!activeCategory) return false;
+      interactionGeneration += 1;
       renderFilters();
       return true;
     }
@@ -634,6 +663,7 @@ export function installExploreLocationsControl({
     const allLocations = getExploreLocationsForCategory(activeCategory.value);
 
     if (command.type === "show_all") {
+      interactionGeneration += 1;
       renderPlaces(
         allLocations,
         `${activeCategory.label}: encontrei ${allLocations.length} opções. Escolha um local para ver os detalhes.`,
@@ -709,6 +739,7 @@ export function installExploreLocationsControl({
       value === `[sub]${activeCategory.value}`
     ) {
       event.stopImmediatePropagation();
+      interactionGeneration += 1;
       const allLocations = getExploreLocationsForCategory(activeCategory.value);
       renderPlaces(
         allLocations,
@@ -750,6 +781,7 @@ export function installExploreLocationsControl({
       }
     },
     destroy() {
+      interactionGeneration += 1;
       document.removeEventListener("keydown", onKeyDown);
       document.removeEventListener(
         "morro:assistant-option-selected",
