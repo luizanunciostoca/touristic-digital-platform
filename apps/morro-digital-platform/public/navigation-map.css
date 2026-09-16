@@ -1,0 +1,25 @@
+/*
+ * Active navigation marker uses the V1 Mapbox user-marker contract. The frozen
+ * legacy z-index sheet can promote the map canvas above ordinary Mapbox HTML
+ * markers, so keep this specific first-person arrow in the marker overlay.
+ * Mapbox owns transform/rotation; never set transform on this root.
+ */
+#map .mapboxgl-marker.mapbox-user-marker.navigation-user-location-marker {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  z-index: 9999 !important;
+  width: 56px !important;
+  height: 56px !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: none !important;
+}
+
+#map .navigation-user-location-marker > svg {
+  display: block !important;
+  width: 56px !important;
+  height: 56px !important;
+  overflow: visible;
+}
