@@ -276,10 +276,13 @@ export function installBrowserNavigationRuntime(
     document: options.document,
     lifecycle: activeLifecycle,
   });
+  const explore = getMorroDigitalApplication(
+    options.document,
+  )?.exploreLocations;
   const assistant = installAssistant({
     document: options.document,
     navigation: activeLifecycle,
-    explore: getMorroDigitalApplication(options.document)?.exploreLocations,
+    ...(explore ? { explore } : {}),
   });
   const assistantFeedback = installAssistantFeedback(options.document);
   let destroyed = false;

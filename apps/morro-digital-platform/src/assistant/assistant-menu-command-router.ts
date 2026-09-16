@@ -443,8 +443,39 @@ function categoryForMessage(message: string): string | null {
   return match;
 }
 
+const DIRECT_CATEGORY_PREFIXES = Object.freeze([
+  "ver ",
+  "mostrar ",
+  "abrir ",
+  "explorar ",
+  "quero ",
+  "quero ver ",
+  "show ",
+  "open ",
+  "explore ",
+  "quiero ",
+  "quiero ver ",
+]);
+
+function directCategoryForMessage(message: string): string | null {
+  const normalizedMessage = normalizeAssistantMenuCommand(message);
+  if (!normalizedMessage) return null;
+  const candidates = new Set<string>([normalizedMessage]);
+  for (const prefix of DIRECT_CATEGORY_PREFIXES) {
+    if (!normalizedMessage.startsWith(prefix)) continue;
+    const remainder = normalizedMessage.slice(prefix.length).trim();
+    if (remainder) candidates.add(remainder);
+  }
+  for (const [category, aliases] of Object.entries(CATEGORY_ALIASES)) {
+    for (const rawAlias of aliases) {
+      const alias = normalizeAssistantMenuCommand(rawAlias);
+      if (alias && candidates.has(alias)) return category;
+    }
+  }
+  return null;
+}
 function tryOpenCategory(document: Document, message: string): boolean {
-  const category = categoryForMessage(message);
+  const category = directCategoryForMessage(message);
   if (!category) return false;
   const button = document.getElementById(`assistant-category-${category}`);
   if (!(button instanceof HTMLButtonElement)) return false;
@@ -581,7 +612,7 @@ export function resolveAssistantMenuCommand(
     return Object.freeze({ type: "select_place", place: place.name });
   }
 
-  const category = categoryForMessage(message);
+  const category = directCategoryForMessage(message);
   return category ? Object.freeze({ type: "open_category", category }) : null;
 }
 

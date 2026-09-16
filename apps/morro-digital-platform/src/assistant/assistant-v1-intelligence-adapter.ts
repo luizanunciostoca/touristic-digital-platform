@@ -1,5 +1,7 @@
 import {
+  createAssistantProactiveSuggestionEngine,
   createAssistantUserProfileManager,
+  getAssistantContextualMenu,
   getAssistantMainMenu,
   getAssistantSmartRecommendation,
   type AssistantDialogIntentHandler,
@@ -20,7 +22,7 @@ type AssistantProfileManager = ReturnType<
 export interface AssistantV1IntelligenceAdapterOptions {
   readonly profile: Pick<
     AssistantProfileManager,
-    "getUserProfile" | "getRecentPlaces"
+    "getUserProfile" | "getRecentPlaces" | "getTopInterests"
   >;
   readonly now?: () => number;
 }
@@ -43,7 +45,10 @@ function languageFor(
   return request.intent.entities.language ?? "pt";
 }
 
-function localizedCategoryLabel(category: string, locale: AssistantLocale): string {
+function localizedCategoryLabel(
+  category: string,
+  locale: AssistantLocale,
+): string {
   const menuItem = getAssistantMainMenu(locale).find(
     (item) => item.value === category,
   );
@@ -72,7 +77,10 @@ function scorePlace(
   const modifiers = request.intent.modifiers;
   let score = 0;
 
-  if (entities.area === "praia" && /praia|beira mar|frente ao mar/.test(haystack)) {
+  if (
+    entities.area === "praia" &&
+    /praia|beira mar|frente ao mar/.test(haystack)
+  ) {
     score += 5;
   }
   if (entities.area === "vila" && /vila|centro/.test(haystack)) score += 5;
@@ -88,10 +96,16 @@ function scorePlace(
   ) {
     score += 6;
   }
-  if (entities.mealType === "breakfast" && /cafe|breakfast|manha/.test(haystack)) {
+  if (
+    entities.mealType === "breakfast" &&
+    /cafe|breakfast|manha/.test(haystack)
+  ) {
     score += 5;
   }
-  if (entities.mealType === "lunch" && /almoco|lunch|refeicao|prato/.test(haystack)) {
+  if (
+    entities.mealType === "lunch" &&
+    /almoco|lunch|refeicao|prato/.test(haystack)
+  ) {
     score += 5;
   }
   if (
@@ -100,38 +114,104 @@ function scorePlace(
   ) {
     score += 5;
   }
-  if (entities.timeQualifier === "night" && /noite|night|bar|balada|drinks|sunset/.test(haystack)) {
+  if (
+    entities.timeQualifier === "night" &&
+    /noite|night|bar|balada|drinks|sunset/.test(haystack)
+  ) {
     score += 4;
   }
-  if (entities.distanceQualifier === "near" && /vila|centro|primeira|segunda praia/.test(haystack)) {
+  if (
+    entities.distanceQualifier === "near" &&
+    /vila|centro|primeira|segunda praia/.test(haystack)
+  ) {
     score += 2;
   }
 
-  if (/romant|casal|honeymoon|lua de mel/.test(query) && /romant|sunset|vista|especial/.test(haystack)) {
+  if (
+    /romant|casal|honeymoon|lua de mel/.test(query) &&
+    /romant|sunset|vista|especial/.test(haystack)
+  ) {
     score += 5;
   }
-  if (/famil|crianc|kids|children/.test(query) && /famil|calma|tranquil|segura/.test(haystack)) {
+  if (
+    /famil|crianc|kids|children/.test(query) &&
+    /famil|calma|tranquil|segura/.test(haystack)
+  ) {
     score += 5;
   }
-  if (/aventur|trilha|mergulho|snorkel|caiaque/.test(query) && /aventur|trilha|mergulho|snorkel|caiaque/.test(haystack)) {
+  if (
+    /aventur|trilha|mergulho|snorkel|caiaque/.test(query) &&
+    /aventur|trilha|mergulho|snorkel|caiaque/.test(haystack)
+  ) {
     score += 5;
   }
-  if (/por do sol|sunset/.test(query) && /sunset|por do sol|vista/.test(haystack)) {
+  if (
+    /por do sol|sunset/.test(query) &&
+    /sunset|por do sol|vista/.test(haystack)
+  ) {
     score += 5;
   }
 
-  if (modifiers.includes("cheap") && /econom|barat|acessiv|budget|em conta|popular/.test(haystack)) score += 7;
-  if (modifiers.includes("luxury") && /lux|premium|sofistic|exclusiv|confort|requint/.test(haystack)) score += 7;
-  if (modifiers.includes("nearby") && /vila|centro|primeira|segunda praia|principal/.test(haystack)) score += 5;
-  if (modifiers.includes("romantic") && /romant|sunset|vista|especial|casal|lua de mel/.test(haystack)) score += 8;
-  if (modifiers.includes("family") && /famil|calma|tranquil|segura|crianca|kids/.test(haystack)) score += 8;
-  if (modifiers.includes("beachside") && /praia|beira mar|frente ao mar|orla/.test(haystack)) score += 7;
-  if (modifiers.includes("village_center") && /vila|centro|principal|rua/.test(haystack)) score += 6;
-  if (modifiers.includes("vegetarian") && /vegetar|vegano|natural|saudavel|organico/.test(haystack)) score += 9;
-  if (modifiers.includes("scenic_view") && /vista|panoram|sunset|por do sol|mirante|farol/.test(haystack)) score += 7;
-  if (modifiers.includes("open_now") && /24h|aberto|sempre|noite/.test(haystack)) score += 4;
-  if (modifiers.includes("cheap") && /lux|premium|exclusiv|sofistic/.test(haystack)) score -= 5;
-  if (modifiers.includes("luxury") && /econom|barat|acessiv|popular/.test(haystack)) score -= 5;
+  if (
+    modifiers.includes("cheap") &&
+    /econom|barat|acessiv|budget|em conta|popular/.test(haystack)
+  )
+    score += 7;
+  if (
+    modifiers.includes("luxury") &&
+    /lux|premium|sofistic|exclusiv|confort|requint/.test(haystack)
+  )
+    score += 7;
+  if (
+    modifiers.includes("nearby") &&
+    /vila|centro|primeira|segunda praia|principal/.test(haystack)
+  )
+    score += 5;
+  if (
+    modifiers.includes("romantic") &&
+    /romant|sunset|vista|especial|casal|lua de mel/.test(haystack)
+  )
+    score += 8;
+  if (
+    modifiers.includes("family") &&
+    /famil|calma|tranquil|segura|crianca|kids/.test(haystack)
+  )
+    score += 8;
+  if (
+    modifiers.includes("beachside") &&
+    /praia|beira mar|frente ao mar|orla/.test(haystack)
+  )
+    score += 7;
+  if (
+    modifiers.includes("village_center") &&
+    /vila|centro|principal|rua/.test(haystack)
+  )
+    score += 6;
+  if (
+    modifiers.includes("vegetarian") &&
+    /vegetar|vegano|natural|saudavel|organico/.test(haystack)
+  )
+    score += 9;
+  if (
+    modifiers.includes("scenic_view") &&
+    /vista|panoram|sunset|por do sol|mirante|farol/.test(haystack)
+  )
+    score += 7;
+  if (
+    modifiers.includes("open_now") &&
+    /24h|aberto|sempre|noite/.test(haystack)
+  )
+    score += 4;
+  if (
+    modifiers.includes("cheap") &&
+    /lux|premium|exclusiv|sofistic/.test(haystack)
+  )
+    score -= 5;
+  if (
+    modifiers.includes("luxury") &&
+    /econom|barat|acessiv|popular/.test(haystack)
+  )
+    score -= 5;
 
   return score;
 }
@@ -159,7 +239,9 @@ function rankedPlaces(
 function inferCategory(
   request: AssistantDialogIntentHandlerContext,
 ): string | null {
-  return request.intent.entities.category ?? request.context.lastCategory ?? null;
+  return (
+    request.intent.entities.category ?? request.context.lastCategory ?? null
+  );
 }
 
 function recommendationCopy(
@@ -167,7 +249,9 @@ function recommendationCopy(
   categoryLabel: string,
   places: readonly MorroV1SearchCatalogItem[],
 ): string {
-  const names = places.map((place, index) => `${index + 1}. ${place.name}`).join("\n");
+  const names = places
+    .map((place, index) => `${index + 1}. ${place.name}`)
+    .join("\n");
   const copy = {
     pt: `Com base no que você pediu, estas são as sugestões de ${categoryLabel} com melhor correspondência nos dados disponíveis:\n\n${names}\n\nEscolha um local para continuar.`,
     en: `Based on your request, these ${categoryLabel} options are the closest matches in the available data:\n\n${names}\n\nChoose a place to continue.`,
@@ -193,7 +277,17 @@ function catalogRecommendation(
     ),
     options: [
       ...topPlaces.map((place) => ({ label: place.name, value: place.name })),
-      { label: locale === "en" ? "Show all" : locale === "es" ? "Ver todos" : locale === "he" ? "הצג הכל" : "Ver todos", value: "ver todos" },
+      {
+        label:
+          locale === "en"
+            ? "Show all"
+            : locale === "es"
+              ? "Ver todos"
+              : locale === "he"
+                ? "הצג הכל"
+                : "Ver todos",
+        value: "ver todos",
+      },
     ],
     metadata: {
       domain: "recommendation",
@@ -277,7 +371,14 @@ function comparisonResponse(
     };
   }
 
-  const [first, second] = candidates;
+  const first = candidates[0];
+  const second = candidates[1];
+  if (!first || !second) {
+    return {
+      text: comparisonPrompt(locale),
+      metadata: { domain: "compare", state: "awaiting_places" },
+    };
+  }
   const firstFacts = factualPlaceSummary(first, locale);
   const secondFacts = factualPlaceSummary(second, locale);
   const text = {
@@ -289,7 +390,10 @@ function comparisonResponse(
 
   return {
     text,
-    options: candidates.map((place) => ({ label: place.name, value: place.name })),
+    options: candidates.map((place) => ({
+      label: place.name,
+      value: place.name,
+    })),
     metadata: {
       domain: "compare",
       state: "resolved",
@@ -307,7 +411,17 @@ function smartRecommendation(
   options: AssistantV1IntelligenceAdapterOptions,
 ): AssistantDialogResponse {
   const profile = options.profile.getUserProfile();
-  const recentPlaces = options.profile.getRecentPlaces(5);
+  const recentPlaces = options.profile
+    .getRecentPlaces(5)
+    .filter(
+      (place): place is typeof place & { timestamp: number } =>
+        typeof place.timestamp === "number",
+    )
+    .map((place) => ({
+      name: place.name,
+      ...(place.category !== undefined ? { category: place.category } : {}),
+      timestamp: place.timestamp,
+    }));
   const now = options.now?.() ?? Date.now();
   const result = getAssistantSmartRecommendation({
     locale: languageFor(request),
@@ -317,7 +431,7 @@ function smartRecommendation(
   });
   return {
     text: result.text,
-    options: [...result.options],
+    options: result.options.map((value) => ({ label: value, value })),
     metadata: {
       domain: "recommendation",
       state: "contextual",
@@ -330,7 +444,57 @@ function smartRecommendation(
 export function createAssistantV1IntelligenceHandlers(
   options: AssistantV1IntelligenceAdapterOptions,
 ): Partial<Record<string, AssistantDialogIntentHandler>> {
+  const proactiveEngine = createAssistantProactiveSuggestionEngine({
+    ...(options.now ? { now: options.now } : {}),
+  });
+  const greeting: AssistantDialogIntentHandler = (request) => {
+    const now = options.now?.() ?? Date.now();
+    const profile = options.profile.getUserProfile();
+    const recentPlaces = options.profile
+      .getRecentPlaces(5)
+      .filter(
+        (place): place is typeof place & { timestamp: number } =>
+          typeof place.timestamp === "number",
+      )
+      .map((place) => ({
+        name: place.name,
+        ...(place.category !== undefined ? { category: place.category } : {}),
+        timestamp: place.timestamp,
+      }));
+    const hour = new Date(now).getHours();
+    const locale = languageFor(request);
+    const menu = getAssistantContextualMenu({
+      locale,
+      hour,
+      profile,
+      topInterests: options.profile.getTopInterests(3),
+      recentPlaces,
+    });
+    const suggestion = proactiveEngine.getSuggestion({
+      hour,
+      profile,
+      recentPlaces,
+      now,
+    });
+    return {
+      text: menu.intro,
+      options: menu.buttons.map((button) => ({
+        label: button.label,
+        value: button.value.startsWith("[place]")
+          ? button.value.slice("[place]".length)
+          : button.value,
+      })),
+      metadata: {
+        domain: "proactive",
+        state: "contextual_menu",
+        suggestion: suggestion?.type ?? null,
+        priority: suggestion?.priority ?? null,
+      },
+    };
+  };
+
   return {
+    greeting,
     recommendation: (request) =>
       catalogRecommendation(request) ?? smartRecommendation(request, options),
     category_filtered: (request) =>

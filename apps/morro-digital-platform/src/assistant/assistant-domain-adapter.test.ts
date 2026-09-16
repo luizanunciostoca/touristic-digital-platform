@@ -10,7 +10,7 @@ import { createAssistantBrowserDomainHandlers } from "./assistant-domain-adapter
 function request(
   intent: AssistantDialogIntentHandlerContext["intent"]["intent"],
   place?: string,
-  input = intent,
+  input: string = intent,
 ): AssistantDialogIntentHandlerContext {
   return {
     input,

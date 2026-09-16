@@ -4,11 +4,13 @@ import {
   createAssistantUserProfileManager,
   normalizeAssistantVoiceLanguage,
   type AssistantDialogResponse,
+  type AssistantInterestCategory,
 } from "@touristic/assistant";
 
 import type { ExploreLocationsControl } from "../map/explore-locations-control.js";
 import type { NavigationSessionBootstrap } from "../navigation/navigation-session-bootstrap.js";
 import { createAssistantLlmHandler } from "./assistant-llm-adapter.js";
+import { createAssistantV1IntelligenceHandlers } from "./assistant-v1-intelligence-adapter.js";
 import { createAssistantBrowserDomainHandlers } from "./assistant-domain-adapter.js";
 import { createAssistantMessageDom } from "./assistant-message-dom.js";
 import {
@@ -71,6 +73,24 @@ const CONTROLLER_OWNED_AWAITING_TYPES = new Set([
   "awaiting_category",
   "awaiting_destination",
 ]);
+
+function toProfileInterestCategory(
+  value: string | null,
+): AssistantInterestCategory | null {
+  switch (value) {
+    case "beaches":
+    case "restaurants":
+    case "hotels":
+    case "shops":
+    case "attractions":
+    case "nightlife":
+    case "tours":
+    case "emergencies":
+      return value;
+    default:
+      return null;
+  }
+}
 
 function supersededResponse(): AssistantDialogResponse {
   return {
@@ -303,11 +323,15 @@ export function installBrowserAssistantRuntime(
     ...(options.fetch ? { fetch: options.fetch } : {}),
     ...(mapboxAccessToken ? { mapboxAccessToken } : {}),
   });
+  const intelligenceHandlers = createAssistantV1IntelligenceHandlers({
+    profile,
+  });
   const controller = createAssistantDialogController({
     context,
     profile,
     handlers: {
       ...domainHandlers,
+      ...intelligenceHandlers,
       ...navigationHandlers,
     },
     llm: createAssistantLlmHandler({
@@ -440,6 +464,14 @@ export function installBrowserAssistantRuntime(
     }
 
     if (menuRouted) {
+      const routedState = readExploreState();
+      profile.recordInteraction(
+        value,
+        toProfileInterestCategory(routedState.category),
+      );
+      if (context.getContext().awaiting?.type === "confirmar_navegacao") {
+        context.updateContext({ awaiting: null, pendingRoute: null });
+      }
       currentPresentation = null;
       queueMicrotask(() => syncExploreContext());
       options.document.dispatchEvent(

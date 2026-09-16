@@ -377,7 +377,7 @@ export function createAssistantDialogController(
 
         let fallbackCount = 0;
         if (!response) {
-          if (intent.intent === "unknown") {
+          if (intent.intent === "unknown" || intent.intent === "place_search") {
             if (context.fallbackCount >= FALLBACK_ESCALATION_THRESHOLD) {
               response = guidedFallbackResponse(intent);
               fallbackCount = 0;
