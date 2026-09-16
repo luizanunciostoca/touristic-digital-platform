@@ -11,6 +11,8 @@ type FeedbackReason = "arrived" | "cancelled";
 const V1_POST_NAVIGATION_MENU_DELAY_MS = 600;
 const CATEGORY_FLOW_RESULTS_ID = "assistant-category-results";
 const CATEGORY_FLOW_MESSAGE_ID = "assistant-category-results-message";
+const MAIN_MENU_REQUEST_EVENT = "morro:assistant-main-menu-requested";
+const NAVIGATION_REQUEST_EVENT = "morro:navigation-requested";
 const COORDINATE_DESTINATION_PATTERN =
   /^-?\d{1,2}(?:\.\d+)?\s*,\s*-?\d{1,3}(?:\.\d+)?$/u;
 
@@ -69,6 +71,7 @@ function showMainCategoryMenu(document: Document): void {
 }
 
 function resetCategorySurface(document: Document): void {
+  document.dispatchEvent(new CustomEvent(MAIN_MENU_REQUEST_EVENT));
   document.getElementById(CATEGORY_FLOW_RESULTS_ID)?.remove();
   document.getElementById(CATEGORY_FLOW_MESSAGE_ID)?.remove();
 
@@ -137,7 +140,7 @@ export function installAssistantNavigationFeedback(
     showMainCategoryMenu(document);
   };
 
-  const onNavigationStarted = (): void => {
+  const onNavigationStarting = (): void => {
     clearRestoreTimer();
   };
 
@@ -151,15 +154,16 @@ export function installAssistantNavigationFeedback(
     const destination = destinationFromDetail(event.detail);
 
     // V1 restores the category menu after navigation teardown. V2 also needs
-    // the completion copy synchronously because existing arrival/cancellation
-    // consumers read it as soon as `navigationEnded` fires. Show the canonical
-    // feedback immediately, then reassert the menu after V1's 600 ms teardown
-    // window in case another navigation surface changes the DOM meanwhile.
+    // completion feedback synchronously because existing arrival/cancellation
+    // consumers read it as soon as `navigationEnded` fires. High priority
+    // bypasses duplicate suppression so every completed navigation can restore
+    // the canonical assistant surface.
     preparePostNavigationSurface();
     messages.append({
       sender: "assistant",
       html: feedbackText(document, reason, destination),
       messageType: "navigation-feedback",
+      priority: "high",
     });
     showMainCategoryMenu(document);
 
@@ -174,7 +178,8 @@ export function installAssistantNavigationFeedback(
     restoreMainMenuSurface();
   };
 
-  view?.addEventListener("navigationStarted", onNavigationStarted);
+  document.addEventListener(NAVIGATION_REQUEST_EVENT, onNavigationStarting);
+  view?.addEventListener("navigationStarted", onNavigationStarting);
   view?.addEventListener("navigationEnded", onNavigationEnded);
 
   return Object.freeze({
@@ -182,7 +187,8 @@ export function installAssistantNavigationFeedback(
       if (destroyed) return;
       destroyed = true;
       clearRestoreTimer();
-      view?.removeEventListener("navigationStarted", onNavigationStarted);
+      document.removeEventListener(NAVIGATION_REQUEST_EVENT, onNavigationStarting);
+      view?.removeEventListener("navigationStarted", onNavigationStarting);
       view?.removeEventListener("navigationEnded", onNavigationEnded);
     },
   });
