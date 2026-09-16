@@ -171,9 +171,15 @@ async function readShell(page) {
       navigationMain: text("#instruction-main"),
       navigationMinimize: attr("#minimize-navigation-btn", "aria-label"),
       distance: text("#instruction-distance")
-        ? text("#instruction-distance").replace(text("#instruction-distance"), "")
+        ? text("#instruction-distance").replace(
+            text("#instruction-distance"),
+            "",
+          )
         : "",
-      distanceLabel: text("#instruction-distance") === "" ? "" : text("#instruction-distance"),
+      distanceLabel:
+        text("#instruction-distance") === ""
+          ? ""
+          : text("#instruction-distance"),
       metricLabels: Array.from(
         document.querySelectorAll("#instruction-banner .metric-label"),
       ).map((element) => element.textContent?.trim() ?? ""),
@@ -183,15 +189,15 @@ async function readShell(page) {
       carouselClose: attr("#carousel-modal-close", "aria-label"),
       voiceTitle: text("#assistantVoiceSettingsTitle"),
       voiceClose: attr("#assistantVoiceSettingsClose", "aria-label"),
-      voiceSpeed: text('label[for="assistantVoiceSpeed"] > span').replace(
-        text("#assistantVoiceSpeedValue"),
-        "",
-      ).trim(),
+      voiceSpeed: text('label[for="assistantVoiceSpeed"] > span')
+        .replace(text("#assistantVoiceSpeedValue"), "")
+        .trim(),
       voiceLanguage: text('label[for="assistantVoiceLanguage"] > span'),
       voiceSupport: text(".assistant-voice-settings-support"),
       voiceAutomatic:
-        document.querySelector("#assistantVoiceSelect option")?.textContent?.trim() ??
-        "",
+        document
+          .querySelector("#assistantVoiceSelect option")
+          ?.textContent?.trim() ?? "",
       categoryValues: Array.from(
         document.querySelectorAll(".assistant-options .assistant-option-btn"),
       ).map((button) => button.getAttribute("data-value")),
@@ -286,22 +292,42 @@ try {
       expected[locale].submenuClose,
       `${locale} submenu close`,
     );
-    equal(observed.inputAria, expected[locale].inputAria, `${locale} input aria`);
+    equal(
+      observed.inputAria,
+      expected[locale].inputAria,
+      `${locale} input aria`,
+    );
     equal(observed.sendAria, expected[locale].sendAria, `${locale} send aria`);
-    equal(observed.voiceAria, expected[locale].voiceAria, `${locale} voice aria`);
+    equal(
+      observed.voiceAria,
+      expected[locale].voiceAria,
+      `${locale} voice aria`,
+    );
     equal(
       observed.settingsAria,
       expected[locale].settingsAria,
       `${locale} settings aria`,
     );
-    equal(observed.globalTitle, expected[locale].globalView, `${locale} global title`);
-    equal(observed.globalTooltip, expected[locale].globalView, `${locale} global tooltip`);
+    equal(
+      observed.globalTitle,
+      expected[locale].globalView,
+      `${locale} global title`,
+    );
+    equal(
+      observed.globalTooltip,
+      expected[locale].globalView,
+      `${locale} global tooltip`,
+    );
     equal(
       observed.navigationMinimize,
       expected[locale].navigationMinimize,
       `${locale} navigation minimize`,
     );
-    equal(observed.metricLabels[0], expected[locale].distance, `${locale} distance`);
+    equal(
+      observed.metricLabels[0],
+      expected[locale].distance,
+      `${locale} distance`,
+    );
     equal(observed.metricLabels[1], expected[locale].time, `${locale} time`);
     equal(observed.loading, expected[locale].loading, `${locale} loading`);
     equal(observed.stopText, expected[locale].stop, `${locale} stop text`);
@@ -311,9 +337,21 @@ try {
       expected[locale].carouselClose,
       `${locale} carousel close`,
     );
-    equal(observed.voiceTitle, expected[locale].voiceTitle, `${locale} voice title`);
-    equal(observed.voiceClose, expected[locale].voiceClose, `${locale} voice close`);
-    equal(observed.voiceSpeed, expected[locale].voiceSpeed, `${locale} voice speed`);
+    equal(
+      observed.voiceTitle,
+      expected[locale].voiceTitle,
+      `${locale} voice title`,
+    );
+    equal(
+      observed.voiceClose,
+      expected[locale].voiceClose,
+      `${locale} voice close`,
+    );
+    equal(
+      observed.voiceSpeed,
+      expected[locale].voiceSpeed,
+      `${locale} voice speed`,
+    );
     equal(
       observed.voiceLanguage,
       expected[locale].voiceLanguage,
