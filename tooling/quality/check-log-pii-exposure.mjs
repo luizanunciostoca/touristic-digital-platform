@@ -21,20 +21,21 @@ const rules = [
   {
     name: "raw-error-object",
     pattern:
-      /console\.(?:log|info|warn|error|debug)\s*\(\s*error(?:\s*[,)]|\s*$)/u,
+      /(?:console\.(?:log|info|warn|error|debug)|process\.(?:stdout|stderr)\.write)\s*\(\s*error(?:\s*[,)]|\s*$)/u,
   },
   {
     name: "request-sensitive-surface",
     pattern: /\b(?:request|req)\.(?:headers|body|url)\b/u,
   },
   {
-    name: "credential-or-session-field",
+    name: "credential-or-session-member",
     pattern:
-      /\b(?:authorization|cookie|set-cookie|password|clientsecret|access[_-]?token|refresh[_-]?token|session[_-]?id|x-signature|security[_-]?code|card[_-]?number)\b/iu,
+      /(?:\.|\[\s*["'])(?:authorization|cookie|set-cookie|password|clientsecret|access[_-]?token|refresh[_-]?token|session[_-]?id|x-signature|security[_-]?code|card[_-]?number)(?:["']\s*\])?/iu,
   },
   {
-    name: "personal-or-prompt-field",
-    pattern: /\b(?:cpf|document[_-]?number|prompt)\b/iu,
+    name: "personal-or-prompt-member",
+    pattern:
+      /(?:\.|\[\s*["'])(?:cpf|document[_-]?number|email|phone|prompt)(?:["']\s*\])?/iu,
   },
 ];
 
@@ -47,10 +48,11 @@ for (const relativePath of candidates) {
     continue;
   }
 
-  const sinkPattern = /console\.(?:log|info|warn|error|debug)\s*\(/gu;
+  const sinkPattern =
+    /(?:console\.(?:log|info|warn|error|debug)|process\.(?:stdout|stderr)\.write)\s*\(/gu;
   for (const match of source.matchAll(sinkPattern)) {
     const start = match.index ?? 0;
-    const window = source.slice(start, start + 1200);
+    const window = source.slice(start, start + 3000);
     const line = source.slice(0, start).split(/\r?\n/u).length;
     for (const rule of rules) {
       if (rule.pattern.test(window)) {
@@ -69,5 +71,5 @@ if (findings.length > 0) {
 }
 
 console.log(
-  `Runtime log/PII contract passed: ${candidates.length} production-source files inspected.`,
+  `Runtime log/PII contract passed: ${candidates.length} production-source files inspected across console/stdout/stderr sinks.`,
 );
