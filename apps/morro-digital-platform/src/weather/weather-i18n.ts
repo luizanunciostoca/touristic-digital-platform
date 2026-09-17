@@ -129,7 +129,7 @@ const COPY: Readonly<Record<WeatherLocale, WeatherPresentationCopy>> = {
     rain: "גשם",
     humidity: "לחות",
     wind: "רוח",
-    windUnit: "קמ\"ש",
+    windUnit: 'קמ"ש',
     conditions: {
       clear: "שמיים בהירים",
       partlyCloudy: "מעונן חלקית",

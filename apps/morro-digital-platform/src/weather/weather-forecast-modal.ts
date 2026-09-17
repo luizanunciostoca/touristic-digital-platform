@@ -132,10 +132,7 @@ function chartSvg(
   return `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${ariaLabel}" style="width:100%;height:100%;overflow:visible"><polyline points="${points}" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></polyline>${labels}</svg>`;
 }
 
-function detailsMarkup(
-  day: WeatherForecastDay,
-  locale: WeatherLocale,
-): string {
+function detailsMarkup(day: WeatherForecastDay, locale: WeatherLocale): string {
   const copy = getWeatherPresentationCopy(locale);
   return `
     <div class="current-condition">${weatherConditionLabel(day.weatherCode, locale)}</div>
@@ -190,7 +187,10 @@ export function openWeatherForecastModal({
       <div class="day-selector">
         ${days
           .map(
-            (day, index) => `<button type="button" class="day-option${index === 0 ? " active" : ""}" aria-pressed="${index === 0}" data-day-index="${index}">
+            (
+              day,
+              index,
+            ) => `<button type="button" class="day-option${index === 0 ? " active" : ""}" aria-pressed="${index === 0}" data-day-index="${index}">
               <span class="day-name"></span>
               <span class="day-emoji" aria-hidden="true">${weatherEmoji(day.weatherCode)}</span>
               <span class="day-temp">${day.temperatureMaxCelsius}° / ${day.temperatureMinCelsius}°</span>
@@ -246,16 +246,22 @@ export function openWeatherForecastModal({
       `;
     }
     if (currentDate) {
-      currentDate.textContent = dateLabel(days[0]?.date ?? "", "long", currentLocale);
+      currentDate.textContent = dateLabel(
+        days[0]?.date ?? "",
+        "long",
+        currentLocale,
+      );
     }
-    modal.querySelectorAll<HTMLButtonElement>(".day-option").forEach((button) => {
-      const index = Number(button.dataset.dayIndex ?? 0);
-      const day = days[index];
-      const dayName = button.querySelector<HTMLElement>(".day-name");
-      if (day && dayName) {
-        dayName.textContent = dateLabel(day.date, "short", currentLocale);
-      }
-    });
+    modal
+      .querySelectorAll<HTMLButtonElement>(".day-option")
+      .forEach((button) => {
+        const index = Number(button.dataset.dayIndex ?? 0);
+        const day = days[index];
+        const dayName = button.querySelector<HTMLElement>(".day-name");
+        if (day && dayName) {
+          dayName.textContent = dateLabel(day.date, "short", currentLocale);
+        }
+      });
     if (chart) chart.innerHTML = chartSvg(days, copy.chartLabel);
     renderSelectedDay();
   };

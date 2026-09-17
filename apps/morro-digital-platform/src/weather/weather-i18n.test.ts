@@ -28,9 +28,7 @@ describe("V1 weather presentation i18n", () => {
     expect(weatherConditionLabel(0, "en")).toBe("Clear sky");
     expect(weatherConditionLabel(2, "es")).toBe("Parcialmente nublado");
     expect(weatherConditionLabel(53, "he")).toBe("גשם קל");
-    expect(weatherConditionLabel(95, "pt")).toBe(
-      "Tempestades com trovoadas",
-    );
+    expect(weatherConditionLabel(95, "pt")).toBe("Tempestades com trovoadas");
   });
 
   it("uses locale-specific Intl tags for deterministic date presentation", () => {

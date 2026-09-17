@@ -139,8 +139,8 @@ try {
   });
   await page.waitForFunction(
     () =>
-      document.querySelector("#weather-widget .click-here-text")?.textContent ===
-      "Clique aqui",
+      document.querySelector("#weather-widget .click-here-text")
+        ?.textContent === "Clique aqui",
   );
   await page.locator("#weather-widget").click();
   await page
@@ -161,7 +161,8 @@ try {
     }, expected.lang);
     await page.waitForFunction(
       (title) =>
-        document.querySelector("#weather-forecast-title")?.textContent === title,
+        document.querySelector("#weather-forecast-title")?.textContent ===
+        title,
       expected.title,
     );
 
@@ -187,7 +188,9 @@ try {
         document.querySelector(".weather-selected-day .current-condition")
           ?.textContent ?? "",
       labels: Array.from(
-        document.querySelectorAll(".weather-selected-day .forecast-detail-item .label"),
+        document.querySelectorAll(
+          ".weather-selected-day .forecast-detail-item .label",
+        ),
       ).map((node) => node.textContent ?? ""),
       selectedDate:
         document.querySelector(".weather-selected-day .day-full-date")
@@ -214,7 +217,10 @@ try {
     assert.match(snapshot.currentDetails, new RegExp(expected.humidity));
     assert.match(snapshot.currentDetails, new RegExp(expected.wind));
     assert.match(snapshot.currentDetails, new RegExp(expected.rain));
-    assert.match(snapshot.selectedDate, new RegExp(expected.selectedDateNeedle));
+    assert.match(
+      snapshot.selectedDate,
+      new RegExp(expected.selectedDateNeedle),
+    );
     assert.equal(
       snapshot.selectedIndex,
       "1",
