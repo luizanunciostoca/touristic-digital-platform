@@ -269,8 +269,8 @@ try {
     }, expected.lang);
     await page.waitForFunction(
       (errorText) =>
-        document.querySelector("#weather-widget .weather-error")?.textContent ===
-        errorText,
+        document.querySelector("#weather-widget .weather-error")
+          ?.textContent === errorText,
       expected.error,
     );
     assert.equal(
