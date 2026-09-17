@@ -38,12 +38,18 @@ const required = [
   "PAYMENTS_PROVIDER_RETRY_BASE_MS",
   "PAYMENTS_RUNTIME_REPLICA_COUNT",
   "PAYMENTS_RATE_LIMIT_DISTRIBUTED_STORE_CONFIGURED",
+  "PAYMENTS_SUBSCRIPTIONS_ENABLED",
+  "PAYMENTS_SUBSCRIPTION_BACK_URL",
   "V1_PAYMENT_PROVIDER_API_URL",
   "MERCADO_PAGO_ACCESS_TOKEN",
   "MERCADO_PAGO_WEBHOOK_SECRET",
   "MERCADO_PAGO_CHECKOUT_ORIGINS",
   "MERCADO_PAGO_CHECKOUT_MODE",
   "MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED",
+  "MERCADO_PAGO_PRODUCTION_AUTHORIZATION_ID",
+  "VITE_MERCADO_PAGO_PUBLIC_KEY",
+  "MERCADO_PAGO_SUBSCRIPTIONS_ACCESS_TOKEN",
+  "MERCADO_PAGO_SUBSCRIPTIONS_PUBLIC_KEY",
   "AFFILIATES_DATABASE_URL",
   "AFFILIATES_DATABASE_POOL_SIZE",
 ];
@@ -76,6 +82,10 @@ if (
     "MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED must be true or false",
   );
 }
+const subscriptionsEnabled = values.get("PAYMENTS_SUBSCRIPTIONS_ENABLED");
+if (subscriptionsEnabled !== "true" && subscriptionsEnabled !== "false") {
+  throw new Error("PAYMENTS_SUBSCRIPTIONS_ENABLED must be true or false");
+}
 
 const readinessDelay = Number(
   values.get("PLATFORM_SHUTDOWN_READINESS_DELAY_MS"),
@@ -87,5 +97,5 @@ if (!Number.isSafeInteger(drainTimeout) || drainTimeout < 1000)
   throw new Error("PLATFORM_SHUTDOWN_DRAIN_TIMEOUT_MS must be >= 1000");
 
 console.log(
-  `Environment inventory valid: ${values.size} keys; Payments replicas=${replicas}; distributedRateLimit=${distributed}; MercadoPagoMode=${checkoutMode}`,
+  `Environment inventory valid: ${values.size} keys; Payments replicas=${replicas}; distributedRateLimit=${distributed}; MercadoPagoMode=${checkoutMode}; subscriptions=${subscriptionsEnabled}`,
 );
