@@ -140,4 +140,31 @@ describe("Assistant provider circuit breaker integration", () => {
       events.some((event) => event.type === "provider.circuit.closed"),
     ).toBe(true);
   });
+
+  it("does not count an orphaned non-OK response as a provider failure", async () => {
+    const input = request();
+    input.aborted = false;
+    const output = response();
+    const fetchImplementation = vi.fn(async () => {
+      input.aborted = true;
+      return { ok: false, status: 502 };
+    });
+    const api = createAssistantApi({
+      getEnvironmentValue: environment(),
+      fetchImplementation,
+      governanceStateStore: memoryStateStore(),
+      observeProviderEvent: () => undefined,
+      createRequestId: () => "req-disconnect-race",
+    });
+
+    await api.handle(input, output);
+
+    expect(fetchImplementation).toHaveBeenCalledTimes(1);
+    expect(output.statusCode).toBe(0);
+    expect(output.body).toBe("");
+    expect(api.observabilitySnapshot().circuitBreaker.state).toBe("closed");
+    expect(
+      api.observabilitySnapshot().circuitBreaker.consecutiveFailures,
+    ).toBe(0);
+  });
 });
