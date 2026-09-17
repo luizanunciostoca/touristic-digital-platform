@@ -8,6 +8,7 @@ on:
       - apps/morro-digital-platform/tooling/shell-v1-i18n-browser-parity.mjs
       - apps/morro-digital-platform/tooling/assistant-voice-default-label-browser-parity.mjs
       - apps/morro-digital-platform/src/runtime/shell-v1-i18n.ts
+      - apps/morro-digital-platform/src/runtime/shell-v1-i18n.test.ts
       - apps/morro-digital-platform/src/runtime/runtime-accessibility-i18n.ts
       - apps/morro-digital-platform/src/assistant/assistant-voice-settings.ts
       - apps/morro-digital-platform/src/layouts/app-shell.ts
