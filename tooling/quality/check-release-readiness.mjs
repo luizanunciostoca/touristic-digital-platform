@@ -74,6 +74,12 @@ requireDirective(
 );
 requireDirective(
   production,
+  "MERCADO_PAGO_PRODUCTION_CREDENTIALS_CONFIRMED",
+  'value: "false"',
+  "production blueprint",
+);
+requireDirective(
+  production,
   "PAYMENTS_SUBSCRIPTIONS_ENABLED",
   'value: "false"',
   "production blueprint",
@@ -194,5 +200,5 @@ for (const marker of [
 }
 
 console.log(
-  `Release readiness guardrails valid: ${root}; production remains explicitly locked to TEST checkout and recurring billing remains disabled until an operator-approved financial cutover, while production-only credential slots are represented out-of-band.`,
+  `Release readiness guardrails valid: ${root}; production remains explicitly locked to TEST checkout, production credentials remain unconfirmed and recurring billing remains disabled until an operator-approved financial cutover.`,
 );
