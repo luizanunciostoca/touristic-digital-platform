@@ -54,27 +54,27 @@ const GREETING_CONTINUATION_COPY: Readonly<
   >
 > = Object.freeze({
   pt: Object.freeze({
-    lastPlace: (place) =>
+    lastPlace: (place: string) =>
       `Você estava vendo <b>${place}</b>. Deseja continuar de onde parou?`,
-    lastCategory: (category) =>
+    lastCategory: (category: string) =>
       `Da última vez você explorou <b>${category}</b>. Posso ajudar com mais alguma coisa?`,
   }),
   en: Object.freeze({
-    lastPlace: (place) =>
+    lastPlace: (place: string) =>
       `You were viewing <b>${place}</b>. Want to continue where you left off?`,
-    lastCategory: (category) =>
+    lastCategory: (category: string) =>
       `Last time you explored <b>${category}</b>. Can I help with anything else?`,
   }),
   es: Object.freeze({
-    lastPlace: (place) =>
+    lastPlace: (place: string) =>
       `Estabas viendo <b>${place}</b>. ¿Quieres continuar donde lo dejaste?`,
-    lastCategory: (category) =>
+    lastCategory: (category: string) =>
       `La última vez exploraste <b>${category}</b>. ¿Puedo ayudarte con algo más?`,
   }),
   he: Object.freeze({
-    lastPlace: (place) =>
+    lastPlace: (place: string) =>
       `צפית ב-<b>${place}</b>. רוצה להמשיך מאיפה שעצרת?`,
-    lastCategory: (category) =>
+    lastCategory: (category: string) =>
       `בפעם הקודמת חקרת <b>${category}</b>. אפשר לעזור עם משהו נוסף?`,
   }),
 });
@@ -96,10 +96,13 @@ function greetingContinuation(
 function mergeV1GreetingOptions(
   locale: AssistantLocale,
   contextualButtons: readonly Readonly<{ label: string; value: string }>[],
-): ReadonlyArray<Readonly<{ label: string; value: string }>> {
+): Array<{ label: string; value: string }> {
   const mainMenu = getAssistantMainMenu(locale);
-  const mainMenuByLabel = new Map(
-    mainMenu.map((option) => [option.label, option] as const),
+  const mainMenuByLabel = new Map<string, { label: string; value: string }>(
+    mainMenu.map((option) => [
+      option.label,
+      { label: option.label, value: option.value },
+    ]),
   );
   const merged = contextualButtons.flatMap((button) => {
     const label = button.label.trim();
