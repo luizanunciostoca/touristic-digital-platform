@@ -1,5 +1,4 @@
 const authorizationPattern = /^[A-Za-z0-9][A-Za-z0-9._:/#-]{5,255}$/u;
-const publicKeyPattern = /^APP_USR-[A-Za-z0-9_-]{8,512}$/u;
 
 function value(environment, name) {
   return String(environment[name] ?? "").trim();
@@ -31,17 +30,17 @@ function requireExactHttpsUrl(environment, name) {
   return url;
 }
 
-function requireProductionPublicKey(environment, name) {
+function requirePublicCredential(environment, name) {
   const configured = requireValue(environment, name);
-  if (!publicKeyPattern.test(configured)) {
-    throw new Error(`${name}_PRODUCTION_KEY_REQUIRED`);
+  if (configured.length < 16) {
+    throw new Error(`${name}_INVALID`);
   }
 }
 
 function requireServerCredential(environment, name) {
   const configured = requireValue(environment, name);
-  if (configured.length < 32 || configured.startsWith("TEST-")) {
-    throw new Error(`${name}_PRODUCTION_CREDENTIAL_REQUIRED`);
+  if (configured.length < 32) {
+    throw new Error(`${name}_INVALID`);
   }
 }
 
@@ -53,6 +52,7 @@ export function validateMercadoPagoProductionCutover(
     return Object.freeze({
       mode,
       productionAuthorized: false,
+      productionCredentialsConfirmed: false,
       subscriptionsEnabled:
         value(environment, "PAYMENTS_SUBSCRIPTIONS_ENABLED") === "true",
     });
@@ -82,8 +82,17 @@ export function validateMercadoPagoProductionCutover(
     throw new Error("MERCADO_PAGO_PRODUCTION_REJECTS_TEST_CONFIRMATION");
   }
 
+  if (
+    value(
+      environment,
+      "MERCADO_PAGO_PRODUCTION_CREDENTIALS_CONFIRMED",
+    ).toLowerCase() !== "true"
+  ) {
+    throw new Error("MERCADO_PAGO_PRODUCTION_CREDENTIALS_NOT_CONFIRMED");
+  }
+
   requireServerCredential(environment, "MERCADO_PAGO_ACCESS_TOKEN");
-  requireProductionPublicKey(environment, "VITE_MERCADO_PAGO_PUBLIC_KEY");
+  requirePublicCredential(environment, "VITE_MERCADO_PAGO_PUBLIC_KEY");
 
   const webhook = requireExactHttpsUrl(environment, "PAYMENTS_WEBHOOK_URL");
   if (webhook.pathname !== "/api/payments/v1/webhooks/sandbox") {
@@ -99,7 +108,7 @@ export function validateMercadoPagoProductionCutover(
       environment,
       "MERCADO_PAGO_SUBSCRIPTIONS_ACCESS_TOKEN",
     );
-    requireProductionPublicKey(
+    requirePublicCredential(
       environment,
       "MERCADO_PAGO_SUBSCRIPTIONS_PUBLIC_KEY",
     );
@@ -109,6 +118,7 @@ export function validateMercadoPagoProductionCutover(
   return Object.freeze({
     mode,
     productionAuthorized: true,
+    productionCredentialsConfirmed: true,
     authorizationId,
     subscriptionsEnabled: subscriptions === "true",
   });
