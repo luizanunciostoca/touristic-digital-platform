@@ -126,6 +126,33 @@ describe("assistant V1 user profile", () => {
     expect(manager.getProfileSummaryForLLM()).toContain("Restaurantes");
   });
 
+  it("supports an explicit presentation locale without mutating the stored profile language", () => {
+    const manager = createAssistantUserProfileManager({
+      now: () => new Date("2026-08-09T14:00:00Z").getTime(),
+      getLanguage: () => "pt",
+    });
+
+    expect(manager.getPersonalizedSuggestions("en")).toMatchObject({
+      greeting: expect.stringContaining(
+        "Welcome to Morro de São Paulo! I am your digital guide.",
+      ),
+      suggestions: expect.arrayContaining(["Beaches", "Tours"]),
+    });
+    expect(manager.getPersonalizedSuggestions("es")).toMatchObject({
+      greeting: expect.stringContaining(
+        "Bienvenido a Morro de São Paulo. Soy tu guía digital.",
+      ),
+    });
+    expect(manager.getPersonalizedSuggestions("he")).toMatchObject({
+      greeting: expect.stringContaining("ברוך הבא למורו דה סאו פאולו"),
+    });
+    expect(manager.getPersonalizedSuggestions()).toMatchObject({
+      greeting: expect.stringContaining(
+        "Bem-vindo a Morro de São Paulo! Sou seu guia digital.",
+      ),
+    });
+  });
+
   it("can manually switch between tourist and resident and reset", () => {
     const manager = createAssistantUserProfileManager({ now: () => 5000 });
     manager.setUserType("resident");
