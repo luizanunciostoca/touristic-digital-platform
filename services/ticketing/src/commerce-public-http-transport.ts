@@ -128,22 +128,22 @@ function requestOrigin(request: TicketingHttpRequest): URL | null {
   }
 }
 
+function forwardedProtocol(request: TicketingHttpRequest): string {
+  return (
+    header(request, "x-forwarded-proto").split(",", 1)[0]?.trim().toLowerCase() ?? ""
+  );
+}
+
 function sameOrigin(request: TicketingHttpRequest): boolean {
   const origin = requestOrigin(request);
   const host = header(request, "host").toLowerCase();
   if (!origin || !host || origin.host.toLowerCase() !== host) return false;
-  const forwardedProto = header(request, "x-forwarded-proto")
-    .split(",", 1)[0]
-    .trim()
-    .toLowerCase();
+  const forwardedProto = forwardedProtocol(request);
   return !forwardedProto || `${forwardedProto}:` === origin.protocol;
 }
 
 function secureRequest(request: TicketingHttpRequest): boolean {
-  const forwardedProto = header(request, "x-forwarded-proto")
-    .split(",", 1)[0]
-    .trim()
-    .toLowerCase();
+  const forwardedProto = forwardedProtocol(request);
   if (forwardedProto) return forwardedProto === "https";
   return requestOrigin(request)?.protocol === "https:";
 }
