@@ -61,10 +61,21 @@ requireText(
   "production predeploy",
   'webhookUrl.pathname !== "/api/payments/v1/webhooks/sandbox"',
 );
+requireText(
+  migration,
+  "production predeploy",
+  "validateMercadoPagoProductionCutover(process.env)",
+);
 requireDirective(
   production,
   "MERCADO_PAGO_CHECKOUT_MODE",
   "value: test",
+  "production blueprint",
+);
+requireDirective(
+  production,
+  "PAYMENTS_SUBSCRIPTIONS_ENABLED",
+  'value: "false"',
   "production blueprint",
 );
 requireDirective(
@@ -93,6 +104,11 @@ for (const [key, directive] of [
   ["PAYMENTS_HANDOFF_SECRET", "generateValue: true"],
   ["PAYMENTS_WEBHOOK_URL", "sync: false"],
   ["MERCADO_PAGO_CHECKOUT_ORIGINS", "value: https://sandbox.mercadopago.com"],
+  ["MERCADO_PAGO_PRODUCTION_AUTHORIZATION_ID", "sync: false"],
+  ["VITE_MERCADO_PAGO_PUBLIC_KEY", "sync: false"],
+  ["PAYMENTS_SUBSCRIPTION_BACK_URL", "sync: false"],
+  ["MERCADO_PAGO_SUBSCRIPTIONS_ACCESS_TOKEN", "sync: false"],
+  ["MERCADO_PAGO_SUBSCRIPTIONS_PUBLIC_KEY", "sync: false"],
   ["VITE_MAPBOX_ACCESS_TOKEN", "sync: false"],
   ["VITE_MAPBOX_STYLE", "sync: false"],
   ["OPENAI_API_KEY", "sync: false"],
@@ -178,5 +194,5 @@ for (const marker of [
 }
 
 console.log(
-  `Release readiness guardrails valid: ${root}; production remains explicitly locked to TEST checkout until an operator-approved cutover, staging is isolated, and secret boundaries are represented out-of-band.`,
+  `Release readiness guardrails valid: ${root}; production remains explicitly locked to TEST checkout and recurring billing remains disabled until an operator-approved financial cutover, while production-only credential slots are represented out-of-band.`,
 );
