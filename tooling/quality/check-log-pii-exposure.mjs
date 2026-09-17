@@ -7,11 +7,15 @@ const candidates = execFileSync("git", ["ls-files", "-z"], { cwd: root })
   .toString("utf8")
   .split("\0")
   .filter(Boolean)
-  .filter((file) => /^(apps|services|packages)\//u.test(file))
+  .filter((file) => /^(apps|services|packages|tooling)\//u.test(file))
   .filter((file) => /\.(?:c?js|mjs|ts|tsx)$/u.test(file))
-  .filter((file) => !/(^|\/)(?:test|tests|__tests__)(\/|$)/u.test(file))
-  .filter((file) => !/\.(?:test|spec)\.[^.]+$/u.test(file))
-  .filter((file) => !/(?:^|[-_.])e2e(?:[-_.]|$)/iu.test(file));
+  .filter(
+    (file) =>
+      file.startsWith("tooling/") ||
+      (!/(^|\/)(?:test|tests|__tests__)(\/|$)/u.test(file) &&
+        !/\.(?:test|spec)\.[^.]+$/u.test(file) &&
+        !/(?:^|[-_.])e2e(?:[-_.]|$)/iu.test(file)),
+  );
 
 const rules = [
   {
@@ -140,7 +144,7 @@ for (const relativePath of candidates) {
 }
 
 if (findings.length > 0) {
-  console.error("Unsafe runtime logging patterns detected:");
+  console.error("Unsafe runtime/CI logging patterns detected:");
   for (const finding of [...new Set(findings)].sort()) {
     console.error(`- ${finding}`);
   }
@@ -148,5 +152,5 @@ if (findings.length > 0) {
 }
 
 console.log(
-  `Runtime log/PII contract passed: ${candidates.length} production-source files inspected across console/stdout/stderr call arguments.`,
+  `Runtime/CI log PII contract passed: ${candidates.length} source files inspected across console/stdout/stderr call arguments.`,
 );
