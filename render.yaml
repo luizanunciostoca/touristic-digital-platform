@@ -66,6 +66,8 @@ services:
         value: mercado_pago
       - key: MERCADO_PAGO_CHECKOUT_MODE
         value: test
+      - key: MERCADO_PAGO_PRODUCTION_CREDENTIALS_CONFIRMED
+        value: "false"
       - key: MERCADO_PAGO_PRODUCTION_AUTHORIZATION_ID
         sync: false
       # Checkout Pro's current API reference documents sandbox_init_point on this
