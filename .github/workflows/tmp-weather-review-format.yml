@@ -1,0 +1,49 @@
+name: Temporary Weather Review Formatter
+
+on:
+  push:
+    branches:
+      - fix/weather-v1-i18n-parity
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  format-and-commit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: fix/weather-v1-i18n-parity
+          fetch-depth: 0
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Format review-fix files
+        run: |
+          pnpm exec prettier --write \
+            apps/morro-digital-platform/src/weather/weather-widget.ts \
+            apps/morro-digital-platform/tooling/weather-v1-i18n-browser-parity.mjs
+      - name: Verify formatting and diff
+        run: |
+          pnpm format:check
+          git diff --check
+      - name: Commit formatted files
+        run: |
+          if git diff --quiet; then
+            echo "No formatting changes required."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            apps/morro-digital-platform/src/weather/weather-widget.ts \
+            apps/morro-digital-platform/tooling/weather-v1-i18n-browser-parity.mjs
+          git commit -m "chore(weather): format review fixes"
+          git push origin HEAD:fix/weather-v1-i18n-parity
