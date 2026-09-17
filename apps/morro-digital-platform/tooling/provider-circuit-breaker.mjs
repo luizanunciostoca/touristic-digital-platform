@@ -146,6 +146,14 @@ export function createProviderCircuitBreaker({
       return snapshot();
     }
 
+    if (state === "open") {
+      emit("provider.circuit.failure_ignored", {
+        reason: "circuit_already_open",
+        metadata: safeMetadata(metadata),
+      });
+      return snapshot();
+    }
+
     consecutiveFailures += 1;
     if (consecutiveFailures >= threshold) {
       open(reason, metadata);
