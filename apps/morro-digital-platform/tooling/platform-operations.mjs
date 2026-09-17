@@ -8,6 +8,9 @@ import {
 const service = "morro-digital-platform";
 const destinationId = "morro-de-sao-paulo";
 const correlationPattern = /^[A-Za-z0-9._:-]{1,160}$/u;
+const diagnosticCodePattern = /^[A-Za-z0-9._:-]{1,160}$/u;
+const sensitiveAttributeKeyPattern =
+  /(?:authorization|cookie|password|secret|token|session|signature|card|security.?code|cpf|document|email|phone|prompt|query.?string|access.?key|refresh.?key)/iu;
 const approvedInlineImportMapHashes = Object.freeze([
   "'sha256-m42qLvsHi55hG6DJxpKtlwgH50ivEzS+c7mS4Bsk5CE='",
   "'sha256-8kxcShLx6HFFQPDtnPQPJp+VZhd/lQeB+ir19hB7kTA='",
@@ -30,6 +33,37 @@ function bounded(value, max = 500) {
 function releaseField(value, fallback = "unknown") {
   const normalized = bounded(value, 160);
   return normalized || fallback;
+}
+
+function diagnosticCode(value, fallback) {
+  const normalized = bounded(value, 160);
+  return diagnosticCodePattern.test(normalized) ? normalized : fallback;
+}
+
+function sanitizeObservationValue(key, value, depth = 0) {
+  if (sensitiveAttributeKeyPattern.test(key)) return "[REDACTED]";
+  if (value === null || value === undefined) return value;
+  if (typeof value === "string") return bounded(value, 500);
+  if (typeof value === "number" || typeof value === "boolean") return value;
+  if (depth >= 3) return "[REDACTED_COMPLEX_VALUE]";
+  if (Array.isArray(value)) {
+    return value
+      .slice(0, 20)
+      .map((item) => sanitizeObservationValue(key, item, depth + 1));
+  }
+  if (typeof value === "object") {
+    return Object.freeze(
+      Object.fromEntries(
+        Object.entries(value)
+          .slice(0, 50)
+          .map(([nestedKey, nestedValue]) => [
+            bounded(nestedKey, 160),
+            sanitizeObservationValue(nestedKey, nestedValue, depth + 1),
+          ]),
+      ),
+    );
+  }
+  return bounded(value, 500);
 }
 
 function integerEnvironment(getEnvironmentValue, key, fallback, min, max) {
@@ -144,7 +178,7 @@ export function createPlatformOperations({
     const safeAttributes = Object.fromEntries(
       Object.entries(attributes).map(([key, value]) => [
         bounded(key, 160),
-        typeof value === "string" ? bounded(value, 500) : value,
+        sanitizeObservationValue(key, value),
       ]),
     );
     const observation = createPlatformObservation({
@@ -176,17 +210,21 @@ export function createPlatformOperations({
   }
 
   function fatalFailureMonitor(error, origin) {
+    const rawCode =
+      typeof error === "object" && error !== null && "code" in error
+        ? error.code
+        : "UNCLASSIFIED";
     emit({
       kind: "alert",
       name: "platform.runtime.fatal_failure",
       severity: "critical",
       attributes: {
-        origin: bounded(origin, 80) || "uncaughtException",
-        errorName: error instanceof Error ? error.name : "UnknownError",
-        message:
-          error instanceof Error
-            ? error.message
-            : bounded(error, 500) || "unknown fatal process failure",
+        origin: diagnosticCode(origin, "uncaughtException"),
+        errorName: diagnosticCode(
+          error instanceof Error ? error.name : "UnknownError",
+          "UnknownError",
+        ),
+        errorCode: diagnosticCode(rawCode, "UNCLASSIFIED"),
       },
     });
   }
@@ -218,7 +256,7 @@ export function createPlatformOperations({
 
   function providerDegraded(provider, reason, correlationId) {
     const name = bounded(provider, 120) || "unknown";
-    const detail = bounded(reason, 300) || "degraded";
+    const detail = diagnosticCode(reason, "degraded");
     const previous = degradedProviders.get(name);
     degradedProviders.set(name, detail);
     if (previous === detail) return;
