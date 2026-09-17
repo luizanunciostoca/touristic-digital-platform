@@ -655,7 +655,7 @@ export function createAssistantUserProfileManager(
     getProfileSummaryForLLM(): string {
       const lang = language();
       const copy = COPY[lang];
-      const interests = topInterests(3).map(label);
+      const interests = topInterests(3).map((interest) => label(interest));
       const recent = profile.recentPlaces
         .slice(0, 3)
         .map((place) => place.name);
