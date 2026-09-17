@@ -1,0 +1,12 @@
+misconfigurations:
+  - id: AVD-DS-0002
+    paths:
+      - tooling/render/mysql-staging/Dockerfile
+    expired_at: 2026-12-14
+    statement: >-
+      The official MySQL 8.4 image entrypoint starts with root privileges only to
+      initialize and repair ownership of the persistent data directory, then
+      drops privileges to the mysql user through the upstream entrypoint. Adding
+      USER mysql to this derived staging Dockerfile would bypass that supported
+      bootstrap path. Re-evaluate this narrowly scoped exception on any base-image
+      or entrypoint change and no later than the expiry date.
