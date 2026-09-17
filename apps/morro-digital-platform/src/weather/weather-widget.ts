@@ -1,4 +1,9 @@
 import { openWeatherForecastModal } from "./weather-forecast-modal.js";
+import {
+  getWeatherPresentationCopy,
+  weatherPresentationLocale,
+  type WeatherLocale,
+} from "./weather-i18n.js";
 
 export interface WeatherForecastDay {
   readonly date: string;
@@ -180,13 +185,18 @@ export async function fetchMorroWeather(
   return parseWeatherPayload(await response.json());
 }
 
-function renderReading(widget: HTMLElement, reading: WeatherReading): void {
+function renderReading(
+  widget: HTMLElement,
+  reading: WeatherReading,
+  locale: WeatherLocale,
+): void {
+  const copy = getWeatherPresentationCopy(locale);
   widget.innerHTML = `
     <div class="weather-compact-main">
       <div class="weather-emoji">${weatherEmoji(reading.weatherCode, reading.isDay)}</div>
       <span class="weather-temp">${reading.temperatureCelsius}°C</span>
       <div class="weather-compact-footer">
-        <span class="click-here-text">Clique aqui</span>
+        <span class="click-here-text">${copy.clickHere}</span>
       </div>
     </div>
   `;
@@ -194,9 +204,9 @@ function renderReading(widget: HTMLElement, reading: WeatherReading): void {
   widget.removeAttribute("aria-busy");
 }
 
-function renderError(widget: HTMLElement): void {
-  widget.innerHTML =
-    '<div class="weather-error">Não foi possível atualizar o clima.</div>';
+function renderError(widget: HTMLElement, locale: WeatherLocale): void {
+  const copy = getWeatherPresentationCopy(locale);
+  widget.innerHTML = `<div class="weather-error">${copy.updateError}</div>`;
   widget.dataset.weatherState = "error";
   widget.removeAttribute("aria-busy");
 }
@@ -214,10 +224,33 @@ export function initializeWeatherWidget({
   let latestReading: WeatherReading | undefined;
   let activeModal: ReturnType<typeof openWeatherForecastModal> | undefined;
 
+  const currentLocale = (): WeatherLocale =>
+    weatherPresentationLocale(document.documentElement.lang);
+
+  const updatePresentation = (): void => {
+    const locale = currentLocale();
+    const copy = getWeatherPresentationCopy(locale);
+    widget.setAttribute("aria-label", copy.widgetOpenLabel);
+
+    if (latestReading && widget.dataset.weatherState === "ready") {
+      renderReading(widget, latestReading, locale);
+    } else if (widget.dataset.weatherState === "error") {
+      renderError(widget, locale);
+    } else {
+      const visibleError = widget.querySelector<HTMLElement>(".weather-error");
+      if (visibleError) visibleError.textContent = copy.updateError;
+
+      const clickHere = widget.querySelector<HTMLElement>(".click-here-text");
+      if (clickHere) clickHere.textContent = copy.clickHere;
+    }
+
+    activeModal?.updateLocale(locale);
+  };
+
   widget.setAttribute("role", "button");
   widget.tabIndex = 0;
-  widget.setAttribute("aria-label", "Abrir previsão do tempo");
   widget.setAttribute("aria-expanded", "false");
+  updatePresentation();
 
   const openForecast = (): void => {
     if (!latestReading || disposed) return;
@@ -225,6 +258,7 @@ export function initializeWeatherWidget({
     activeModal = openWeatherForecastModal({
       document,
       reading: latestReading,
+      locale: currentLocale(),
       onClose: () => {
         widget.setAttribute("aria-expanded", "false");
         activeModal = undefined;
@@ -242,6 +276,16 @@ export function initializeWeatherWidget({
   widget.addEventListener("click", onWidgetClick);
   widget.addEventListener("keydown", onWidgetKeyDown);
 
+  const MutationObserverConstructor =
+    document.defaultView?.MutationObserver ?? globalThis.MutationObserver;
+  const languageObserver = MutationObserverConstructor
+    ? new MutationObserverConstructor(updatePresentation)
+    : undefined;
+  languageObserver?.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ["lang"],
+  });
+
   const refresh = async (): Promise<void> => {
     if (disposed || requestInFlight) return;
     requestInFlight = true;
@@ -252,10 +296,10 @@ export function initializeWeatherWidget({
       const reading = await fetchMorroWeather(fetchImplementation);
       if (!disposed) {
         latestReading = reading;
-        renderReading(widget, reading);
+        renderReading(widget, reading, currentLocale());
       }
     } catch {
-      if (!disposed) renderError(widget);
+      if (!disposed) renderError(widget, currentLocale());
     } finally {
       requestInFlight = false;
     }
@@ -269,6 +313,7 @@ export function initializeWeatherWidget({
 
   return () => {
     disposed = true;
+    languageObserver?.disconnect();
     activeModal?.close();
     activeModal = undefined;
     widget.removeEventListener("click", onWidgetClick);

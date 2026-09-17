@@ -65,6 +65,7 @@ jobs:
             payments-browser-checkout-contract.yml
             search-browser-contract.yml
             shell-v1-i18n-browser-parity.yml
+            weather-v1-i18n-browser-parity.yml
           )
           for workflow in "${workflows[@]}"; do
             test -f ".github/workflows/$workflow"
@@ -150,6 +151,7 @@ jobs:
             payments-browser-checkout-contract.yml
             search-browser-contract.yml
             shell-v1-i18n-browser-parity.yml
+            weather-v1-i18n-browser-parity.yml
           )
 
           : > /tmp/final-acceptance-runs.tsv
