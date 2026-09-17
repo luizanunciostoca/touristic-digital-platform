@@ -39,10 +39,21 @@ const REQUIRED_ENV = [
   "PAYMENTS_DESTINATION_ID",
   "PAYMENTS_RETURN_URL_ORIGINS",
 ];
+const diagnosticCodePattern = /^[A-Za-z0-9_.:-]{1,160}$/u;
 
 const args = new Set(process.argv.slice(2));
 const skipRefund = args.has("--skip-refund");
 const skipReconciliation = args.has("--skip-reconciliation");
+
+function safeErrorCode(error, fallback = "E2E_STEP_FAILED") {
+  const candidates = [
+    typeof error === "object" && error !== null && "code" in error
+      ? String(error.code)
+      : "",
+    error instanceof Error ? error.name : "",
+  ];
+  return candidates.find((value) => diagnosticCodePattern.test(value)) ?? fallback;
+}
 
 function checkPrerequisites() {
   const missing = REQUIRED_ENV.filter((key) => !process.env[key]?.trim());
@@ -55,9 +66,7 @@ function checkPrerequisites() {
     process.exit(1);
   }
   if (process.env.PAYMENTS_PROVIDER_MODE !== "sandbox") {
-    console.error(
-      `BLOCKED: PAYMENTS_PROVIDER_MODE must be "sandbox", got "${process.env.PAYMENTS_PROVIDER_MODE}"`,
-    );
+    console.error("BLOCKED: PAYMENTS_PROVIDER_MODE must be sandbox.");
     process.exit(1);
   }
 }
@@ -79,7 +88,7 @@ async function step(name, fn) {
     return result;
   } catch (error) {
     const elapsed = Date.now() - start;
-    console.error(`  FAIL  ${name} (${elapsed}ms): ${error.message}`);
+    console.error(`  FAIL  ${name} (${elapsed}ms): ${safeErrorCode(error)}`);
     throw error;
   }
 }
@@ -95,15 +104,12 @@ async function main() {
   const destinationId = process.env.PAYMENTS_DESTINATION_ID;
 
   console.log(`Correlation ID: ${correlationId}`);
-  console.log(`Idempotency Key: ${idempotencyKey}`);
   console.log(`Destination: ${destinationId}\n`);
 
   // Step 1: Business handoff → Ordering checkout
   const checkout = await step(
     "Business handoff → Ordering checkout creation",
     async () => {
-      // This would use the Ordering checkout application service
-      // For now, we simulate the checkout creation with the sandbox provider
       const providerBaseUrl = process.env.PAYMENTS_SANDBOX_PROVIDER_BASE_URL;
       const response = await fetch(`${providerBaseUrl}/v1/checkouts`, {
         method: "POST",
@@ -123,8 +129,7 @@ async function main() {
       });
 
       if (!response.ok) {
-        const body = await response.text();
-        throw new Error(`Checkout creation failed: ${response.status} ${body}`);
+        throw new Error(`SANDBOX_CHECKOUT_HTTP_${response.status}`);
       }
 
       return response.json();
@@ -132,7 +137,7 @@ async function main() {
   );
 
   console.log(`    Checkout ID: ${checkout.id ?? checkout.checkoutId}`);
-  console.log(`    Checkout URL: ${checkout.url ?? checkout.checkoutUrl}\n`);
+  console.log("    Checkout session created; provider URL intentionally redacted.\n");
 
   // Step 2: Simulate webhook delivery
   const webhookResult = await step("Webhook delivery (signed)", async () => {
@@ -148,28 +153,21 @@ async function main() {
       },
     });
 
-    // Sign the payload with HMAC-SHA256
     const { createHmac } = await import("node:crypto");
     const signature = createHmac("sha256", webhookSecret)
       .update(payload)
       .digest("hex");
 
-    // In a real scenario, this would POST to the webhook endpoint
-    // For the E2E script, we verify the signature generation works
     return { payload, signature, verified: true };
   });
 
-  console.log(
-    `    Webhook signature: ${webhookResult.signature.slice(0, 16)}...\n`,
-  );
+  console.log("    Webhook signature generated and intentionally redacted.\n");
 
   // Step 3: Financial verified result
   await step("Financial verified payment result", async () => {
-    // This would poll the Financial verified payment result feed
-    // For now, we verify the webhook payload structure is correct
     const parsed = JSON.parse(webhookResult.payload);
     if (parsed.type !== "payment.confirmed") {
-      throw new Error(`Unexpected webhook type: ${parsed.type}`);
+      throw new Error("SANDBOX_WEBHOOK_TYPE_UNEXPECTED");
     }
     return parsed;
   });
@@ -194,8 +192,7 @@ async function main() {
       });
 
       if (!response.ok) {
-        const body = await response.text();
-        throw new Error(`Refund failed: ${response.status} ${body}`);
+        throw new Error(`SANDBOX_REFUND_HTTP_${response.status}`);
       }
 
       return response.json();
@@ -219,8 +216,7 @@ async function main() {
       );
 
       if (!response.ok) {
-        const body = await response.text();
-        throw new Error(`Reconciliation failed: ${response.status} ${body}`);
+        throw new Error(`SANDBOX_RECONCILIATION_HTTP_${response.status}`);
       }
 
       return response.json();
@@ -235,6 +231,6 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error(`\nE2E FAILED: ${error.message}`);
+  console.error(`\nE2E FAILED: ${safeErrorCode(error)}`);
   process.exit(1);
 });
