@@ -1,10 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { validateMercadoPagoProductionCutover } from "./payments-production-cutover-guard.mjs";
+import {
+  validateMercadoPagoProductionCutover,
+} from "./payments-production-cutover-guard.mjs";
 
-const productionPublicKeyFixture = `${"APP"}_USR-${"fixture-public-key-1234567890"}`;
-const productionSubscriptionPublicKeyFixture = `${"APP"}_USR-${"fixture-subscription-public-key-1234567890"}`;
+const productionPublicKeyFixture =
+  `${"APP"}_USR-${"fixture-public-key-1234567890"}`;
+const productionSubscriptionPublicKeyFixture =
+  `${"APP"}_USR-${"fixture-subscription-public-key-1234567890"}`;
 
 function productionEnvironment(overrides = {}) {
   return {
@@ -36,68 +40,77 @@ test("keeps TEST mode outside the financial authorization gate", () => {
   );
 });
 
-test("fails closed when production mode lacks explicit financial authorization", () => {
-  assert.throws(
-    () =>
-      validateMercadoPagoProductionCutover(
-        productionEnvironment({
-          MERCADO_PAGO_PRODUCTION_AUTHORIZATION_ID: "",
-        }),
-      ),
-    /MERCADO_PAGO_PRODUCTION_AUTHORIZATION_ID_REQUIRED/u,
-  );
-});
+test(
+  "fails closed when production mode lacks explicit financial authorization",
+  () => {
+    assert.throws(
+      () =>
+        validateMercadoPagoProductionCutover(
+          productionEnvironment({
+            MERCADO_PAGO_PRODUCTION_AUTHORIZATION_ID: "",
+          }),
+        ),
+      /MERCADO_PAGO_PRODUCTION_AUTHORIZATION_ID_REQUIRED/u,
+    );
+  },
+);
 
-test("rejects TEST confirmation and TEST credentials in production mode", () => {
-  assert.throws(
-    () =>
-      validateMercadoPagoProductionCutover(
-        productionEnvironment({
-          MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED: "true",
-        }),
-      ),
-    /MERCADO_PAGO_PRODUCTION_REJECTS_TEST_CONFIRMATION/u,
-  );
+test(
+  "rejects TEST confirmation and TEST credentials in production mode",
+  () => {
+    assert.throws(
+      () =>
+        validateMercadoPagoProductionCutover(
+          productionEnvironment({
+            MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED: "true",
+          }),
+        ),
+      /MERCADO_PAGO_PRODUCTION_REJECTS_TEST_CONFIRMATION/u,
+    );
 
-  assert.throws(
-    () =>
-      validateMercadoPagoProductionCutover(
-        productionEnvironment({
-          MERCADO_PAGO_ACCESS_TOKEN:
-            "TEST-fixture-production-must-never-use-this-credential",
-        }),
-      ),
-    /MERCADO_PAGO_ACCESS_TOKEN_PRODUCTION_CREDENTIAL_REQUIRED/u,
-  );
-});
+    assert.throws(
+      () =>
+        validateMercadoPagoProductionCutover(
+          productionEnvironment({
+            MERCADO_PAGO_ACCESS_TOKEN:
+              "TEST-fixture-production-must-never-use-this-credential",
+          }),
+        ),
+      /MERCADO_PAGO_ACCESS_TOKEN_PRODUCTION_CREDENTIAL_REQUIRED/u,
+    );
+  },
+);
 
-test("requires complete dedicated production subscription configuration when enabled", () => {
-  assert.throws(
-    () =>
+test(
+  "requires complete dedicated production subscription configuration when enabled",
+  () => {
+    assert.throws(
+      () =>
+        validateMercadoPagoProductionCutover(
+          productionEnvironment({
+            PAYMENTS_SUBSCRIPTIONS_ENABLED: "true",
+          }),
+        ),
+      /MERCADO_PAGO_SUBSCRIPTIONS_ACCESS_TOKEN_REQUIRED/u,
+    );
+
+    assert.deepEqual(
       validateMercadoPagoProductionCutover(
         productionEnvironment({
           PAYMENTS_SUBSCRIPTIONS_ENABLED: "true",
+          MERCADO_PAGO_SUBSCRIPTIONS_ACCESS_TOKEN:
+            "fixture-subscriptions-server-credential-value-1234567890",
+          MERCADO_PAGO_SUBSCRIPTIONS_PUBLIC_KEY:
+            productionSubscriptionPublicKeyFixture,
+          PAYMENTS_SUBSCRIPTION_BACK_URL: "https://morro.digital/assinaturas",
         }),
       ),
-    /MERCADO_PAGO_SUBSCRIPTIONS_ACCESS_TOKEN_REQUIRED/u,
-  );
-
-  assert.deepEqual(
-    validateMercadoPagoProductionCutover(
-      productionEnvironment({
-        PAYMENTS_SUBSCRIPTIONS_ENABLED: "true",
-        MERCADO_PAGO_SUBSCRIPTIONS_ACCESS_TOKEN:
-          "fixture-subscriptions-server-credential-value-1234567890",
-        MERCADO_PAGO_SUBSCRIPTIONS_PUBLIC_KEY:
-          productionSubscriptionPublicKeyFixture,
-        PAYMENTS_SUBSCRIPTION_BACK_URL: "https://morro.digital/assinaturas",
-      }),
-    ),
-    {
-      mode: "production",
-      productionAuthorized: true,
-      authorizationId: "FINAUTH-ISSUE-33-20260917",
-      subscriptionsEnabled: true,
-    },
-  );
-});
+      {
+        mode: "production",
+        productionAuthorized: true,
+        authorizationId: "FINAUTH-ISSUE-33-20260917",
+        subscriptionsEnabled: true,
+      },
+    );
+  },
+);
