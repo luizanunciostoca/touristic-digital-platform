@@ -46,6 +46,7 @@ const required = [
   "MERCADO_PAGO_CHECKOUT_ORIGINS",
   "MERCADO_PAGO_CHECKOUT_MODE",
   "MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED",
+  "MERCADO_PAGO_PRODUCTION_CREDENTIALS_CONFIRMED",
   "MERCADO_PAGO_PRODUCTION_AUTHORIZATION_ID",
   "VITE_MERCADO_PAGO_PUBLIC_KEY",
   "MERCADO_PAGO_SUBSCRIPTIONS_ACCESS_TOKEN",
@@ -80,6 +81,17 @@ if (
 ) {
   throw new Error(
     "MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED must be true or false",
+  );
+}
+const productionCredentialsConfirmed = values.get(
+  "MERCADO_PAGO_PRODUCTION_CREDENTIALS_CONFIRMED",
+);
+if (
+  productionCredentialsConfirmed !== "true" &&
+  productionCredentialsConfirmed !== "false"
+) {
+  throw new Error(
+    "MERCADO_PAGO_PRODUCTION_CREDENTIALS_CONFIRMED must be true or false",
   );
 }
 const subscriptionsEnabled = values.get("PAYMENTS_SUBSCRIPTIONS_ENABLED");
