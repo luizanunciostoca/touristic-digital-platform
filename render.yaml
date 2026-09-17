@@ -60,26 +60,42 @@ services:
       - key: PAYMENTS_STATUS_TOKEN_TTL_SECONDS
         value: "86400"
 
-      # Provider selection. Start in Mercado Pago test checkout mode; production
-      # must be enabled only after provider E2E and webhook/readback validation.
+      # Provider selection. Production infrastructure remains deliberately locked
+      # to Mercado Pago TEST until an explicit financial authorization is recorded.
       - key: PAYMENTS_PROVIDER_MODE
         value: mercado_pago
       - key: MERCADO_PAGO_CHECKOUT_MODE
         value: test
+      - key: MERCADO_PAGO_PRODUCTION_AUTHORIZATION_ID
+        sync: false
       # Checkout Pro's current API reference documents sandbox_init_point on this
       # exact HTTPS origin. The adapter rejects every other origin. Revalidate the
-      # actual provider response during preflight before any production cutover.
+      # production provider response during the separately authorized cutover.
       - key: MERCADO_PAGO_CHECKOUT_ORIGINS
         value: https://sandbox.mercadopago.com
 
-      # Production provider configuration is entered directly in this
-      # service's Render environment. No secret is inherited from a legacy
-      # service, so a fresh production Blueprint is self-contained.
+      # Production provider configuration is entered directly in this service's
+      # Render environment. No secret is inherited from staging or legacy V1.
       - key: V1_PAYMENT_PROVIDER_API_URL
         value: https://api.mercadopago.com
       - key: MERCADO_PAGO_ACCESS_TOKEN
         sync: false
       - key: MERCADO_PAGO_WEBHOOK_SECRET
+        sync: false
+      # Browser-safe Public Key only; Access Tokens remain server-side.
+      - key: VITE_MERCADO_PAGO_PUBLIC_KEY
+        sync: false
+
+      # Recurring billing is materialized but remains disabled before financial
+      # authorization. Enabling it requires the dedicated production credentials
+      # and callback to pass the predeploy cutover guard.
+      - key: PAYMENTS_SUBSCRIPTIONS_ENABLED
+        value: "false"
+      - key: PAYMENTS_SUBSCRIPTION_BACK_URL
+        sync: false
+      - key: MERCADO_PAGO_SUBSCRIPTIONS_ACCESS_TOKEN
+        sync: false
+      - key: MERCADO_PAGO_SUBSCRIPTIONS_PUBLIC_KEY
         sync: false
 
       - key: PAYMENTS_WEBHOOK_URL
