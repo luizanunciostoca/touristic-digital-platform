@@ -190,7 +190,7 @@ function legacyText(
   copy: ShellPresentationCopy,
   key: string | null,
 ): string | undefined {
-  if (!key || !(key in copy.legacy)) return undefined;
+  if (!key || !Object.hasOwn(copy.legacy, key)) return undefined;
   return copy.legacy[key as V1ShellTranslationKey];
 }
 

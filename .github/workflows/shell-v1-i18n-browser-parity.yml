@@ -7,7 +7,9 @@ on:
       - .github/workflows/shell-v1-i18n-browser-parity.yml
       - apps/morro-digital-platform/tooling/shell-v1-i18n-browser-parity.mjs
       - apps/morro-digital-platform/tooling/assistant-voice-default-label-browser-parity.mjs
+      - apps/morro-digital-platform/tooling/shell-v1-i18n-unknown-key-browser-parity.mjs
       - apps/morro-digital-platform/src/runtime/shell-v1-i18n.ts
+      - apps/morro-digital-platform/src/runtime/shell-v1-i18n.test.ts
       - apps/morro-digital-platform/src/runtime/runtime-accessibility-i18n.ts
       - apps/morro-digital-platform/src/assistant/assistant-voice-settings.ts
       - apps/morro-digital-platform/src/layouts/app-shell.ts
@@ -64,6 +66,8 @@ jobs:
         run: node apps/morro-digital-platform/tooling/shell-v1-i18n-browser-parity.mjs
       - name: Verify localized default voice labels
         run: node apps/morro-digital-platform/tooling/assistant-voice-default-label-browser-parity.mjs
+      - name: Verify unknown shell i18n keys are ignored
+        run: node apps/morro-digital-platform/tooling/shell-v1-i18n-unknown-key-browser-parity.mjs
       - name: Show diagnostics
         if: failure()
         run: cat /tmp/shell-v1-i18n/server.log || true
