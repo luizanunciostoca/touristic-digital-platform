@@ -45,7 +45,9 @@ function requireServerCredential(environment, name) {
   }
 }
 
-export function validateMercadoPagoProductionCutover(environment = process.env) {
+export function validateMercadoPagoProductionCutover(
+  environment = process.env,
+) {
   const mode = requireValue(environment, "MERCADO_PAGO_CHECKOUT_MODE");
   if (mode === "test") {
     return Object.freeze({
@@ -72,8 +74,10 @@ export function validateMercadoPagoProductionCutover(environment = process.env) 
   }
 
   if (
-    value(environment, "MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED").toLowerCase() ===
-    "true"
+    value(
+      environment,
+      "MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED",
+    ).toLowerCase() === "true"
   ) {
     throw new Error("MERCADO_PAGO_PRODUCTION_REJECTS_TEST_CONFIRMATION");
   }
