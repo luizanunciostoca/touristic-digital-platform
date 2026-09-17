@@ -10,11 +10,17 @@ Production infrastructure must remain configured with:
 
 - `PAYMENTS_PROVIDER_MODE=mercado_pago`;
 - `MERCADO_PAGO_CHECKOUT_MODE=test`;
+- `MERCADO_PAGO_PRODUCTION_CREDENTIALS_CONFIRMED=false`;
 - `PAYMENTS_SUBSCRIPTIONS_ENABLED=false` unless recurring billing is explicitly included in the later authorization;
 - one Payments runtime replica while the rate limiter remains process-local;
 - production secrets stored only in the platform secret manager/environment, never GitHub, logs, artifacts, browser bundles or chat.
 
-The predeploy guard rejects production mode without a non-secret `MERCADO_PAGO_PRODUCTION_AUTHORIZATION_ID`.
+The predeploy guard rejects production mode unless both of these independent controls exist:
+
+1. a non-secret `MERCADO_PAGO_PRODUCTION_AUTHORIZATION_ID` referencing the approved financial authorization;
+2. `MERCADO_PAGO_PRODUCTION_CREDENTIALS_CONFIRMED=true`, set only after an authorized operator verifies in Mercado Pago that the configured Public Key and Access Token came from **Production > Production credentials** for the intended application/seller.
+
+Credential prefixes are not used as production proof. The current Mercado Pago documentation requires activating and replacing test credentials with production credentials, but does not define a universal credential-prefix contract suitable for this security decision.
 
 ## Preconditions before financial authorization
 
@@ -53,15 +59,17 @@ Do not place tokens, secret values, card data or PII in the authorization record
 1. Re-read `main` and freeze the exact candidate SHA.
 2. Confirm the authorization references that exact SHA and scope.
 3. Confirm the production service is not using TEST/staging secrets or URLs.
-4. Configure the production Public Key, Access Token and webhook secret in the secret manager/environment.
-5. Configure the exact production return/callback origins.
-6. Configure `MERCADO_PAGO_PRODUCTION_AUTHORIZATION_ID` with the approved non-secret ledger reference.
-7. Change `MERCADO_PAGO_CHECKOUT_MODE` from `test` to `production` only through the governed production change path.
-8. Enable `PAYMENTS_SUBSCRIPTIONS_ENABLED=true` only when recurring billing is explicitly authorized and the dedicated subscription configuration is complete.
-9. Execute predeploy. It must report `PAYMENTS-PREDEPLOY` contract version 3 with `productionAuthorized=true`.
-10. Validate `/healthz`, `/readyz`, startup and release identity before public traffic.
-11. Validate webhook reachability/signature handling without fabricating provider authority.
-12. Do not create a deliberate real charge unless a separate explicit instruction authorizes that transaction.
+4. In Mercado Pago, verify the intended production application/seller and obtain the active production Public Key and Access Token through the provider's supported credential-management flow.
+5. Configure the production Public Key, Access Token and webhook secret in the secret manager/environment without copying values into GitHub, logs, artifacts or chat.
+6. Set `MERCADO_PAGO_PRODUCTION_CREDENTIALS_CONFIRMED=true` only after the production credential source is verified.
+7. Configure the exact production return/callback origins.
+8. Configure `MERCADO_PAGO_PRODUCTION_AUTHORIZATION_ID` with the approved non-secret ledger reference.
+9. Change `MERCADO_PAGO_CHECKOUT_MODE` from `test` to `production` only through the governed production change path.
+10. Enable `PAYMENTS_SUBSCRIPTIONS_ENABLED=true` only when recurring billing is explicitly authorized and the dedicated subscription configuration is complete.
+11. Execute predeploy. It must report `PAYMENTS-PREDEPLOY` contract version 3 with `productionAuthorized=true` and `productionCredentialsConfirmed=true`.
+12. Validate `/healthz`, `/readyz`, startup and release identity before public traffic.
+13. Validate webhook reachability/signature handling without fabricating provider authority.
+14. Do not create a deliberate real charge unless a separate explicit instruction authorizes that transaction.
 
 ## Webhook and payment authority
 
