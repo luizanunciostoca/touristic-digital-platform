@@ -237,6 +237,10 @@ export function initializeWeatherWidget({
     } else if (widget.dataset.weatherState === "error") {
       renderError(widget, locale);
     } else {
+      const visibleError =
+        widget.querySelector<HTMLElement>(".weather-error");
+      if (visibleError) visibleError.textContent = copy.updateError;
+
       const clickHere = widget.querySelector<HTMLElement>(".click-here-text");
       if (clickHere) clickHere.textContent = copy.clickHere;
     }
