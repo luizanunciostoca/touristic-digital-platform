@@ -86,7 +86,7 @@ describe("Platform production operations", () => {
     expect(processEvents.listenerCount("uncaughtExceptionMonitor")).toBe(0);
   });
 
-  it("observes fatal process failures without replacing the crash semantics", () => {
+  it("observes fatal process failures without logging exception detail", () => {
     const records = [];
     const processEvents = new EventEmitter();
     const operations = createPlatformOperations({
@@ -103,9 +103,11 @@ describe("Platform production operations", () => {
     operations.setListening(true, "corr_started");
     expect(processEvents.listenerCount("uncaughtExceptionMonitor")).toBe(1);
 
+    const failure = new TypeError("Bearer should-never-appear");
+    failure.code = "RUNTIME_FAILURE";
     processEvents.emit(
       "uncaughtExceptionMonitor",
-      new TypeError("fatal runtime failure"),
+      failure,
       "unhandledRejection",
     );
 
@@ -119,11 +121,41 @@ describe("Platform production operations", () => {
       deploymentId: "fatal-deploy",
       origin: "unhandledRejection",
       errorName: "TypeError",
-      message: "fatal runtime failure",
+      errorCode: "RUNTIME_FAILURE",
     });
+    expect(JSON.stringify(fatal)).not.toContain("should-never-appear");
 
     operations.setListening(false, "corr_stopped");
     expect(processEvents.listenerCount("uncaughtExceptionMonitor")).toBe(0);
+  });
+
+  it("redacts sensitive observation attributes recursively before the sink", () => {
+    const records = [];
+    const operations = createPlatformOperations({
+      sink: (record) => records.push(record),
+    });
+
+    operations.emit({
+      kind: "audit",
+      name: "security.redaction.test",
+      attributes: {
+        authorization: "Bearer super-secret",
+        nested: {
+          sessionId: "session-secret",
+          safeCode: "ALLOWED_CODE",
+        },
+      },
+    });
+
+    expect(records[0].observation.attributes).toMatchObject({
+      authorization: "[REDACTED]",
+      nested: {
+        sessionId: "[REDACTED]",
+        safeCode: "ALLOWED_CODE",
+      },
+    });
+    expect(JSON.stringify(records[0])).not.toContain("super-secret");
+    expect(JSON.stringify(records[0])).not.toContain("session-secret");
   });
 
   it("keeps degraded providers visible without making optional providers critical", () => {
@@ -150,6 +182,7 @@ describe("Platform production operations", () => {
     expect(degraded.readiness).toBe("ready");
     expect(records).toHaveLength(1);
     expect(records[0].observation.name).toBe("platform.provider.degraded");
+    expect(records[0].observation.attributes.reason).toBe("degraded");
 
     operations.providerRecovered("weather-open-meteo", "corr_recovered");
     operations.providerRecovered("weather-open-meteo", "corr_duplicate");
