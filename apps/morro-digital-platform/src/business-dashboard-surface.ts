@@ -133,7 +133,9 @@ interface OfferSurface {
 }
 
 function createOfferSurface(document: Document): OfferSurface {
-  const panel = document.querySelector<HTMLElement>('[data-view-panel="offers"]');
+  const panel = document.querySelector<HTMLElement>(
+    '[data-view-panel="offers"]',
+  );
   if (!panel) throw new Error("MISSING_OFFERS_PANEL");
   panel.replaceChildren();
 
@@ -194,12 +196,18 @@ function createOfferSurface(document: Document): OfferSurface {
       document,
       "morro-pro-offer-sales-end",
     ),
-    startsAt: requiredElement<HTMLInputElement>(document, "morro-pro-offer-start"),
+    startsAt: requiredElement<HTMLInputElement>(
+      document,
+      "morro-pro-offer-start",
+    ),
     endsAt: requiredElement<HTMLInputElement>(document, "morro-pro-offer-end"),
   });
 }
 
-function parsePositiveInteger(input: HTMLInputElement, maximum: number): number {
+function parsePositiveInteger(
+  input: HTMLInputElement,
+  maximum: number,
+): number {
   const value = Number(input.value);
   if (!Number.isSafeInteger(value) || value < 1 || value > maximum) {
     throw new Error(`Valor inválido em ${input.id}.`);
@@ -207,7 +215,10 @@ function parsePositiveInteger(input: HTMLInputElement, maximum: number): number 
   return value;
 }
 
-function offerInput(surface: OfferSurface, businessId: string): MorroProOfferInput {
+function offerInput(
+  surface: OfferSurface,
+  businessId: string,
+): MorroProOfferInput {
   const label = surface.label.value.trim();
   const productKind =
     surface.kind.value === "tour" ? "tour" : "business_experience";
@@ -273,7 +284,10 @@ export async function mountBusinessDashboardSurface(
 ): Promise<void> {
   const { document, storage, search, dashboardClient, authClient } = options;
   const entryScreen = requiredElement<HTMLElement>(document, "search-screen");
-  const mainDashboard = requiredElement<HTMLElement>(document, "main-dashboard");
+  const mainDashboard = requiredElement<HTMLElement>(
+    document,
+    "main-dashboard",
+  );
   const entryMessage = requiredElement<HTMLElement>(document, "entry-message");
   const sidebar = requiredElement<HTMLElement>(document, "dashboard-sidebar");
   const overlay = requiredElement<HTMLElement>(document, "mobile-overlay");
@@ -342,7 +356,9 @@ export async function mountBusinessDashboardSurface(
         })
         .catch((error: unknown) => {
           offersSurface.status.textContent =
-            error instanceof Error ? error.message : "Falha ao desativar oferta.";
+            error instanceof Error
+              ? error.message
+              : "Falha ao desativar oferta.";
         });
     });
     offersSurface.status.textContent = "";
@@ -458,7 +474,9 @@ export async function mountBusinessDashboardSurface(
         })
         .catch((error: unknown) => {
           offersSurface.status.textContent =
-            error instanceof Error ? error.message : "Falha ao publicar oferta.";
+            error instanceof Error
+              ? error.message
+              : "Falha ao publicar oferta.";
         });
     } catch (error: unknown) {
       offersSurface.status.textContent =

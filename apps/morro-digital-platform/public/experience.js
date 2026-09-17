@@ -42,7 +42,10 @@ function kindLabel(offer) {
 }
 
 function description(offer) {
-  const reference = String(offer?.product?.reference || "").replaceAll("-", " ");
+  const reference = String(offer?.product?.reference || "").replaceAll(
+    "-",
+    " ",
+  );
   return reference
     ? `${kindLabel(offer)} disponível no Morro Digital. ${reference}. Reserve com disponibilidade e preço confirmados pelo inventário oficial da plataforma.`
     : "Reserve esta experiência pelo inventário oficial do Morro Digital.";
@@ -66,7 +69,8 @@ async function load() {
     headers: { Accept: "application/json" },
   });
   const payload = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(payload?.error || `HTTP_${response.status}`);
+  if (!response.ok)
+    throw new Error(payload?.error || `HTTP_${response.status}`);
   const offers = Array.isArray(payload.data) ? payload.data : [];
   const offer = offers.find((entry) => entry?.id === id);
   if (!offer) {

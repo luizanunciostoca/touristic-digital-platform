@@ -27,7 +27,9 @@ export interface MorroProInventoryOffer {
 }
 
 export interface TicketingBusinessInventoryRepositoryPort {
-  listByBusiness(businessId: string): Promise<readonly MorroProInventoryOffer[]>;
+  listByBusiness(
+    businessId: string,
+  ): Promise<readonly MorroProInventoryOffer[]>;
   createForBusiness(input: {
     readonly businessId: string;
     readonly destinationId: string;
@@ -35,7 +37,10 @@ export interface TicketingBusinessInventoryRepositoryPort {
     readonly actorSubject: string;
     readonly offer: unknown;
     readonly recordedAt: string;
-  }): Promise<{ readonly offer: MorroProInventoryOffer; readonly replayed: boolean }>;
+  }): Promise<{
+    readonly offer: MorroProInventoryOffer;
+    readonly replayed: boolean;
+  }>;
   disableForBusiness(input: {
     readonly businessId: string;
     readonly inventoryId: string;
@@ -65,11 +70,16 @@ interface BusinessInventoryRow extends RowDataPacket {
 
 function iso(value: Date | string): string {
   const date = value instanceof Date ? value : new Date(value);
-  if (!Number.isFinite(date.getTime())) throw new Error("MORRO_PRO_TIMESTAMP_INVALID");
+  if (!Number.isFinite(date.getTime()))
+    throw new Error("MORRO_PRO_TIMESTAMP_INVALID");
   return date.toISOString();
 }
 
-function asSafeInteger(value: unknown, minimum: number, maximum: number): number | null {
+function asSafeInteger(
+  value: unknown,
+  minimum: number,
+  maximum: number,
+): number | null {
   const number = typeof value === "number" ? value : Number.NaN;
   return Number.isSafeInteger(number) && number >= minimum && number <= maximum
     ? number
@@ -84,7 +94,8 @@ function record(value: unknown): Record<string, unknown> | null {
 
 function canonicalBusinessId(value: unknown): string {
   const candidate = typeof value === "string" ? value.trim().toLowerCase() : "";
-  if (!BUSINESS_ID.test(candidate)) throw new Error("MORRO_PRO_BUSINESS_ID_INVALID");
+  if (!BUSINESS_ID.test(candidate))
+    throw new Error("MORRO_PRO_BUSINESS_ID_INVALID");
   return candidate;
 }
 
@@ -107,18 +118,36 @@ function normalizeOffer(
       : null;
   const label = typeof value.label === "string" ? value.label.trim() : "";
   const productReference =
-    typeof value.productReference === "string" ? value.productReference.trim() : "";
-  const currency = typeof value.currency === "string" ? value.currency.trim().toUpperCase() : "";
+    typeof value.productReference === "string"
+      ? value.productReference.trim()
+      : "";
+  const currency =
+    typeof value.currency === "string"
+      ? value.currency.trim().toUpperCase()
+      : "";
   const pricingVersion =
     typeof value.pricingVersion === "string" && value.pricingVersion.trim()
       ? value.pricingVersion.trim().slice(0, 80)
       : "morro-pro-v1";
-  const unitAmountMinor = asSafeInteger(value.unitAmountMinor, 1, Number.MAX_SAFE_INTEGER);
+  const unitAmountMinor = asSafeInteger(
+    value.unitAmountMinor,
+    1,
+    Number.MAX_SAFE_INTEGER,
+  );
   const capacity = asSafeInteger(value.capacity, 1, 100_000);
   const maxPerReservation = asSafeInteger(value.maxPerReservation, 1, 20);
-  const salesStartAt = canonicalTimestamp(value.salesStartAt, "MORRO_PRO_SALES_START_INVALID");
-  const salesEndAt = canonicalTimestamp(value.salesEndAt, "MORRO_PRO_SALES_END_INVALID");
-  const startsAt = canonicalTimestamp(value.startsAt, "MORRO_PRO_START_INVALID");
+  const salesStartAt = canonicalTimestamp(
+    value.salesStartAt,
+    "MORRO_PRO_SALES_START_INVALID",
+  );
+  const salesEndAt = canonicalTimestamp(
+    value.salesEndAt,
+    "MORRO_PRO_SALES_END_INVALID",
+  );
+  const startsAt = canonicalTimestamp(
+    value.startsAt,
+    "MORRO_PRO_START_INVALID",
+  );
   const endsAt = canonicalTimestamp(value.endsAt, "MORRO_PRO_END_INVALID");
 
   if (
@@ -191,12 +220,12 @@ async function ownedById(
   return rows[0] ? fromRow(rows[0]) : null;
 }
 
-export class MySqlTicketingBusinessInventoryRepository
-  implements TicketingBusinessInventoryRepositoryPort
-{
+export class MySqlTicketingBusinessInventoryRepository implements TicketingBusinessInventoryRepositoryPort {
   constructor(private readonly pool: Pool) {}
 
-  async listByBusiness(businessIdInput: string): Promise<readonly MorroProInventoryOffer[]> {
+  async listByBusiness(
+    businessIdInput: string,
+  ): Promise<readonly MorroProInventoryOffer[]> {
     const businessId = canonicalBusinessId(businessIdInput);
     const [rows] = await this.pool.execute<BusinessInventoryRow[]>(
       `${SELECT_OWNED} WHERE o.business_id = ? ORDER BY i.starts_at ASC, i.inventory_id ASC`,
@@ -212,12 +241,19 @@ export class MySqlTicketingBusinessInventoryRepository
     readonly actorSubject: string;
     readonly offer: unknown;
     readonly recordedAt: string;
-  }): Promise<{ readonly offer: MorroProInventoryOffer; readonly replayed: boolean }> {
+  }): Promise<{
+    readonly offer: MorroProInventoryOffer;
+    readonly replayed: boolean;
+  }> {
     const businessId = canonicalBusinessId(input.businessId);
     const destinationId = canonicalBusinessId(input.destinationId);
-    if (!IDEMPOTENCY_KEY.test(input.requestKey)) throw new Error("MORRO_PRO_IDEMPOTENCY_INVALID");
+    if (!IDEMPOTENCY_KEY.test(input.requestKey))
+      throw new Error("MORRO_PRO_IDEMPOTENCY_INVALID");
     if (!input.actorSubject.trim()) throw new Error("MORRO_PRO_ACTOR_INVALID");
-    const recordedAt = canonicalTimestamp(input.recordedAt, "MORRO_PRO_RECORDED_AT_INVALID");
+    const recordedAt = canonicalTimestamp(
+      input.recordedAt,
+      "MORRO_PRO_RECORDED_AT_INVALID",
+    );
     const offer = normalizeOffer(input.offer, destinationId);
     const inventoryId = `mpi_${createHash("sha256")
       .update(`morro-pro:v1:${businessId}:${input.requestKey}`)
@@ -228,7 +264,8 @@ export class MySqlTicketingBusinessInventoryRepository
       await connection.beginTransaction();
       const existing = await ownedById(connection, inventoryId);
       if (existing) {
-        if (existing.businessId !== businessId) throw new Error("MORRO_PRO_OWNERSHIP_CONFLICT");
+        if (existing.businessId !== businessId)
+          throw new Error("MORRO_PRO_OWNERSHIP_CONFLICT");
         await connection.commit();
         return Object.freeze({ offer: existing, replayed: true });
       }
@@ -289,7 +326,10 @@ export class MySqlTicketingBusinessInventoryRepository
   }): Promise<MorroProInventoryOffer | null> {
     const businessId = canonicalBusinessId(input.businessId);
     if (!/^mpi_[a-f0-9]{32}$/u.test(input.inventoryId)) return null;
-    const recordedAt = canonicalTimestamp(input.recordedAt, "MORRO_PRO_RECORDED_AT_INVALID");
+    const recordedAt = canonicalTimestamp(
+      input.recordedAt,
+      "MORRO_PRO_RECORDED_AT_INVALID",
+    );
     const connection = await this.pool.getConnection();
     try {
       await connection.beginTransaction();

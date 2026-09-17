@@ -32,7 +32,8 @@ const elements = {
 };
 
 function correlationId() {
-  if (!globalThis.crypto?.randomUUID) throw new Error("BROWSER_CRYPTO_REQUIRED");
+  if (!globalThis.crypto?.randomUUID)
+    throw new Error("BROWSER_CRYPTO_REQUIRED");
   return `browser:${globalThis.crypto.randomUUID()}`;
 }
 
@@ -41,7 +42,12 @@ function text(value) {
 }
 
 function money(value) {
-  if (!value || typeof value.minorUnits !== "number" || typeof value.currency !== "string") return "—";
+  if (
+    !value ||
+    typeof value.minorUnits !== "number" ||
+    typeof value.currency !== "string"
+  )
+    return "—";
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
     currency: value.currency,
@@ -115,7 +121,10 @@ async function api(path, init = {}, retry = true) {
     return api(path, init, false);
   }
   if (retry && response.status === 403) {
-    const payload = await response.clone().json().catch(() => ({}));
+    const payload = await response
+      .clone()
+      .json()
+      .catch(() => ({}));
     if (payload?.error === "INVALID_CSRF") {
       await session();
       return api(path, init, false);
@@ -133,13 +142,17 @@ function selectOffer(offer, { scroll = false } = {}) {
   state.selectedOffer = offer;
   elements.inventoryId.value = offer.id;
   elements.selectedOffer.value = `${offer.label} · ${money(offer.unitAmount)}`;
-  elements.quantity.max = String(Math.min(offer.maxPerReservation, offer.availableQuantity));
-  if (Number(elements.quantity.value) > Number(elements.quantity.max)) elements.quantity.value = "1";
+  elements.quantity.max = String(
+    Math.min(offer.maxPerReservation, offer.availableQuantity),
+  );
+  if (Number(elements.quantity.value) > Number(elements.quantity.max))
+    elements.quantity.value = "1";
   elements.reserve.disabled = offer.availableQuantity < 1;
   for (const card of elements.offers.querySelectorAll(".offer-card")) {
     card.classList.toggle("is-selected", card.dataset.inventoryId === offer.id);
   }
-  if (scroll) elements.form.scrollIntoView({ behavior: "smooth", block: "start" });
+  if (scroll)
+    elements.form.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function renderOffers() {
@@ -147,7 +160,8 @@ function renderOffers() {
   if (state.offers.length === 0) {
     const empty = document.createElement("p");
     empty.className = "empty";
-    empty.textContent = "Nenhuma experiência está disponível para reserva agora.";
+    empty.textContent =
+      "Nenhuma experiência está disponível para reserva agora.";
     elements.offers.append(empty);
     return;
   }
@@ -183,7 +197,9 @@ function renderOffers() {
     button.className = "button button-primary";
     button.disabled = offer.availableQuantity < 1;
     button.textContent = offer.availableQuantity > 0 ? "Reservar" : "Esgotado";
-    button.addEventListener("click", () => selectOffer(offer, { scroll: true }));
+    button.addEventListener("click", () =>
+      selectOffer(offer, { scroll: true }),
+    );
     actions.append(detail, button);
     card.append(content, actions);
     elements.offers.append(card);
@@ -202,24 +218,31 @@ async function loadOffers() {
 }
 
 function statusLabel(status) {
-  return {
-    held: "Aguardando pagamento",
-    confirmed: "Confirmada",
-    expired: "Expirada",
-    cancelled: "Cancelada",
-  }[status] || status;
+  return (
+    {
+      held: "Aguardando pagamento",
+      confirmed: "Confirmada",
+      expired: "Expirada",
+      cancelled: "Cancelada",
+    }[status] || status
+  );
 }
 
 async function showTicket(reservation) {
-  const payload = await api(`/api/ticketing/v1/reservations/${encodeURIComponent(reservation.id)}/ticket`);
+  const payload = await api(
+    `/api/ticketing/v1/reservations/${encodeURIComponent(reservation.id)}/ticket`,
+  );
   const ticket = payload.data;
-  if (!ticket?.qrSvg || !ticket?.code) throw new Error("TICKET_RESPONSE_INVALID");
-  elements.ticketTitle.textContent = reservation.product?.reference || "Seu ingresso";
+  if (!ticket?.qrSvg || !ticket?.code)
+    throw new Error("TICKET_RESPONSE_INVALID");
+  elements.ticketTitle.textContent =
+    reservation.product?.reference || "Seu ingresso";
   elements.ticketQr.replaceChildren();
   const template = document.createElement("template");
   template.innerHTML = ticket.qrSvg;
   const svg = template.content.querySelector("svg");
-  if (!svg || template.content.children.length !== 1) throw new Error("TICKET_QR_INVALID");
+  if (!svg || template.content.children.length !== 1)
+    throw new Error("TICKET_QR_INVALID");
   elements.ticketQr.append(svg);
   elements.ticketCode.textContent = ticket.code;
   elements.ticketMeta.textContent = `${ticket.quantity} ingresso(s) · ${money(ticket.amount)} · emitido em ${dateTime(ticket.issuedAt)}`;
@@ -228,11 +251,14 @@ async function showTicket(reservation) {
 
 async function cancelReservation(reservation) {
   if (reservation.status !== "held") return;
-  await api(`/api/ticketing/v1/reservations/${encodeURIComponent(reservation.id)}/cancel`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: "{}",
-  });
+  await api(
+    `/api/ticketing/v1/reservations/${encodeURIComponent(reservation.id)}/cancel`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+    },
+  );
   await Promise.all([loadOffers(), loadReservations()]);
 }
 
@@ -250,13 +276,15 @@ function renderReservations(reservations) {
     card.className = "reservation-card";
     const content = document.createElement("div");
     const title = document.createElement("h3");
-    title.textContent = reservation.product?.reference || reservation.inventoryId;
+    title.textContent =
+      reservation.product?.reference || reservation.inventoryId;
     const detail = document.createElement("p");
     detail.textContent = `${reservation.quantity} ingresso(s) · ${money(reservation.unitAmount)} cada`;
     const expiry = document.createElement("p");
-    expiry.textContent = reservation.status === "held"
-      ? `Reserva válida até ${dateTime(reservation.expiresAt)}`
-      : `Criada em ${dateTime(reservation.createdAt)}`;
+    expiry.textContent =
+      reservation.status === "held"
+        ? `Reserva válida até ${dateTime(reservation.expiresAt)}`
+        : `Criada em ${dateTime(reservation.createdAt)}`;
     const status = document.createElement("span");
     status.className = `status status-${reservation.status}`;
     status.textContent = statusLabel(reservation.status);
@@ -269,9 +297,13 @@ function renderReservations(reservations) {
       ticket.type = "button";
       ticket.className = "button button-primary";
       ticket.textContent = "Ver ingresso";
-      ticket.addEventListener("click", () => void showTicket(reservation).catch((error) => {
-        setMessage(error.message || "Ingresso indisponível.", true);
-      }));
+      ticket.addEventListener(
+        "click",
+        () =>
+          void showTicket(reservation).catch((error) => {
+            setMessage(error.message || "Ingresso indisponível.", true);
+          }),
+      );
       actions.append(ticket);
     }
     if (reservation.status === "held") {
@@ -279,9 +311,13 @@ function renderReservations(reservations) {
       cancel.type = "button";
       cancel.className = "button button-secondary";
       cancel.textContent = "Cancelar reserva";
-      cancel.addEventListener("click", () => void cancelReservation(reservation).catch((error) => {
-        setMessage(error.message || "Não foi possível cancelar.", true);
-      }));
+      cancel.addEventListener(
+        "click",
+        () =>
+          void cancelReservation(reservation).catch((error) => {
+            setMessage(error.message || "Não foi possível cancelar.", true);
+          }),
+      );
       actions.append(cancel);
     }
     card.append(content, actions);
@@ -298,8 +334,11 @@ async function loadReservations() {
 
 function checkoutState() {
   try {
-    const value = JSON.parse(sessionStorage.getItem(checkoutStorageKey) || "null");
-    if (!value?.checkoutId || !value?.statusToken || !value?.reservationId) return null;
+    const value = JSON.parse(
+      sessionStorage.getItem(checkoutStorageKey) || "null",
+    );
+    if (!value?.checkoutId || !value?.statusToken || !value?.reservationId)
+      return null;
     return value;
   } catch {
     return null;
@@ -321,7 +360,9 @@ async function wait(milliseconds) {
 async function waitForTicket(reservationId) {
   for (let attempt = 0; attempt < 30; attempt += 1) {
     const reservations = await loadReservations();
-    const reservation = reservations.find((entry) => entry.id === reservationId);
+    const reservation = reservations.find(
+      (entry) => entry.id === reservationId,
+    );
     if (reservation?.status === "confirmed") {
       try {
         await showTicket(reservation);
@@ -332,31 +373,42 @@ async function waitForTicket(reservationId) {
     }
     await wait(500);
   }
-  setMessage("Pagamento confirmado. O ingresso está finalizando a emissão; atualize em instantes.");
+  setMessage(
+    "Pagamento confirmado. O ingresso está finalizando a emissão; atualize em instantes.",
+  );
 }
 
 async function resumeCheckout() {
   const active = checkoutState();
   if (!active) return;
-  if (active.statusExpiresAt && Date.parse(active.statusExpiresAt) <= Date.now()) {
+  if (
+    active.statusExpiresAt &&
+    Date.parse(active.statusExpiresAt) <= Date.now()
+  ) {
     clearCheckout();
     return;
   }
   setMessage("Verificando a confirmação do pagamento…");
   for (let attempt = 0; attempt < 120; attempt += 1) {
-    const response = await fetch(`/api/payments/v1/checkouts/${encodeURIComponent(active.checkoutId)}`, {
-      method: "GET",
-      credentials: "same-origin",
-      cache: "no-store",
-      headers: {
-        Accept: "application/json",
-        "X-Checkout-Token": active.statusToken,
-        "X-Correlation-ID": correlationId(),
+    const response = await fetch(
+      `/api/payments/v1/checkouts/${encodeURIComponent(active.checkoutId)}`,
+      {
+        method: "GET",
+        credentials: "same-origin",
+        cache: "no-store",
+        headers: {
+          Accept: "application/json",
+          "X-Checkout-Token": active.statusToken,
+          "X-Correlation-ID": correlationId(),
+        },
       },
-    });
+    );
     const payload = await json(response);
     const status = payload.data?.status;
-    if (status === "CONFIRMED" && payload.data?.verifiedPayment?.verified === true) {
+    if (
+      status === "CONFIRMED" &&
+      payload.data?.verifiedPayment?.verified === true
+    ) {
       clearCheckout();
       setMessage("Pagamento confirmado. Emitindo seu ingresso…");
       await waitForTicket(active.reservationId);
@@ -364,13 +416,18 @@ async function resumeCheckout() {
     }
     if (["FAILED", "CANCELLED", "EXPIRED", "REFUNDED"].includes(status)) {
       clearCheckout();
-      setMessage("O pagamento não foi concluído. A reserva será atualizada conforme o estado verificado.", true);
+      setMessage(
+        "O pagamento não foi concluído. A reserva será atualizada conforme o estado verificado.",
+        true,
+      );
       await loadReservations();
       return;
     }
     await wait(2_500);
   }
-  setMessage("A confirmação continua pendente. Você pode fechar esta página e voltar depois.");
+  setMessage(
+    "A confirmação continua pendente. Você pode fechar esta página e voltar depois.",
+  );
 }
 
 async function createCheckout(reservationPayload) {
@@ -381,7 +438,8 @@ async function createCheckout(reservationPayload) {
     !descriptor?.handoffToken ||
     !descriptor?.handoff ||
     descriptor.handoff.reservationReference !== descriptor.reservationReference
-  ) throw new Error("CHECKOUT_HANDOFF_INVALID");
+  )
+    throw new Error("CHECKOUT_HANDOFF_INVALID");
 
   const response = await fetch(canonicalCheckoutPath, {
     method: "POST",
@@ -399,7 +457,11 @@ async function createCheckout(reservationPayload) {
   });
   const payload = await json(response);
   const checkout = payload.data;
-  if (!checkout?.checkoutId || !checkout?.statusToken || !checkout?.statusExpiresAt) {
+  if (
+    !checkout?.checkoutId ||
+    !checkout?.statusToken ||
+    !checkout?.statusExpiresAt
+  ) {
     throw new Error("CHECKOUT_RESPONSE_INVALID");
   }
   saveCheckout({
@@ -428,7 +490,12 @@ async function submitReservation(event) {
     document: elements.holderDocument.value.trim() || null,
   };
   const quantity = Number(elements.quantity.value);
-  if (!holder.name || !holder.email || !Number.isSafeInteger(quantity) || quantity < 1) {
+  if (
+    !holder.name ||
+    !holder.email ||
+    !Number.isSafeInteger(quantity) ||
+    quantity < 1
+  ) {
     setMessage("Preencha nome, e-mail e quantidade corretamente.", true);
     return;
   }
@@ -450,7 +517,8 @@ async function submitReservation(event) {
         returnUrl: `${location.origin}/tickets.html`,
       }),
     });
-    if (!payload.data?.reservation || !payload.data?.checkout) throw new Error("RESERVATION_RESPONSE_INVALID");
+    if (!payload.data?.reservation || !payload.data?.checkout)
+      throw new Error("RESERVATION_RESPONSE_INVALID");
     setMessage("Reserva criada. Abrindo o checkout seguro…");
     await createCheckout(payload.data);
   } catch (error) {
@@ -460,7 +528,10 @@ async function submitReservation(event) {
   }
 }
 
-elements.form.addEventListener("submit", (event) => void submitReservation(event));
+elements.form.addEventListener(
+  "submit",
+  (event) => void submitReservation(event),
+);
 elements.refresh.addEventListener("click", () => {
   void Promise.all([loadOffers(), loadReservations()]).catch((error) => {
     setMessage(error.message || "Não foi possível atualizar.", true);

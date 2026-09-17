@@ -93,9 +93,14 @@ describe("TicketingCommerceHttpTransport security boundary", () => {
   it("issues an HttpOnly Strict Secure guest session only for same-origin HTTPS", async () => {
     const transport = new TicketingCommerceHttpTransport(dependencies());
     const result = await transport.handle(
-      request("/api/ticketing/v1/consumer-session", "POST", {
-        origin: "https://morro.example",
-      }, {}),
+      request(
+        "/api/ticketing/v1/consumer-session",
+        "POST",
+        {
+          origin: "https://morro.example",
+        },
+        {},
+      ),
     );
 
     expect(result.status).toBe(201);
@@ -115,9 +120,14 @@ describe("TicketingCommerceHttpTransport security boundary", () => {
   it("rejects cross-origin guest session issuance", async () => {
     const transport = new TicketingCommerceHttpTransport(dependencies());
     const result = await transport.handle(
-      request("/api/ticketing/v1/consumer-session", "POST", {
-        origin: "https://evil.example",
-      }, {}),
+      request(
+        "/api/ticketing/v1/consumer-session",
+        "POST",
+        {
+          origin: "https://evil.example",
+        },
+        {},
+      ),
     );
     expect(result.status).toBe(403);
     expect(result.body.error).toBe("ORIGIN_DENIED");
@@ -126,9 +136,14 @@ describe("TicketingCommerceHttpTransport security boundary", () => {
   it("rejects tampered and expired guest sessions", async () => {
     const transport = new TicketingCommerceHttpTransport(dependencies());
     const issued = await transport.handle(
-      request("/api/ticketing/v1/consumer-session", "POST", {
-        origin: "https://morro.example",
-      }, {}),
+      request(
+        "/api/ticketing/v1/consumer-session",
+        "POST",
+        {
+          origin: "https://morro.example",
+        },
+        {},
+      ),
     );
     const cookie = sessionCookie(String(issued.headers["Set-Cookie"]));
     const tampered = `${cookie.slice(0, -1)}x`;
@@ -152,9 +167,14 @@ describe("TicketingCommerceHttpTransport security boundary", () => {
   it("requires CSRF for guest mutations and never elevates guest to operator routes", async () => {
     const transport = new TicketingCommerceHttpTransport(dependencies());
     const issued = await transport.handle(
-      request("/api/ticketing/v1/consumer-session", "POST", {
-        origin: "https://morro.example",
-      }, {}),
+      request(
+        "/api/ticketing/v1/consumer-session",
+        "POST",
+        {
+          origin: "https://morro.example",
+        },
+        {},
+      ),
     );
     const cookie = sessionCookie(String(issued.headers["Set-Cookie"]));
 
@@ -176,7 +196,9 @@ describe("TicketingCommerceHttpTransport security boundary", () => {
         {
           cookie,
           origin: "https://morro.example",
-          "x-csrf-token": String((issued.body.data as { csrfToken: string }).csrfToken),
+          "x-csrf-token": String(
+            (issued.body.data as { csrfToken: string }).csrfToken,
+          ),
         },
         {},
       ),
@@ -213,7 +235,10 @@ describe("TicketingCommerceHttpTransport security boundary", () => {
       ),
     );
     const result = await transport.handle(
-      request("/api/ticketing/v1/operator/businesses/business-b/inventory", "GET"),
+      request(
+        "/api/ticketing/v1/operator/businesses/business-b/inventory",
+        "GET",
+      ),
     );
     expect(result.status).toBe(404);
     expect(listByBusiness).not.toHaveBeenCalled();
@@ -237,7 +262,10 @@ describe("TicketingCommerceHttpTransport security boundary", () => {
       ),
     );
     const result = await transport.handle(
-      request("/api/ticketing/v1/operator/businesses/business-a/inventory", "GET"),
+      request(
+        "/api/ticketing/v1/operator/businesses/business-a/inventory",
+        "GET",
+      ),
     );
     expect(result.status).toBe(200);
     expect(listByBusiness).toHaveBeenCalledWith("business-a");

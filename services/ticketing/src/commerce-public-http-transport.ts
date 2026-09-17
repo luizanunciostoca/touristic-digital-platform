@@ -1,8 +1,4 @@
-import {
-  createHmac,
-  randomBytes,
-  timingSafeEqual,
-} from "node:crypto";
+import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 
 import type { TicketingBusinessInventoryRepositoryPort } from "./business-inventory-repository.js";
 import {
@@ -40,8 +36,7 @@ interface ScopedTicketingActor extends TicketingHttpActor {
   readonly businessIds?: readonly string[];
 }
 
-export interface TicketingCommerceHttpTransportDependencies
-  extends TicketingPublicHttpTransportDependencies {
+export interface TicketingCommerceHttpTransportDependencies extends TicketingPublicHttpTransportDependencies {
   readonly businessInventory: TicketingBusinessInventoryRepositoryPort;
   readonly destinationId: string;
 }
@@ -97,7 +92,8 @@ function denied(
 
 function correlationId(request: TicketingHttpRequest): string {
   const value = request.correlationId ?? header(request, "x-correlation-id");
-  return typeof value === "string" && /^[A-Za-z0-9][A-Za-z0-9._:-]{7,119}$/u.test(value)
+  return typeof value === "string" &&
+    /^[A-Za-z0-9][A-Za-z0-9._:-]{7,119}$/u.test(value)
     ? value
     : "commerce:request";
 }
@@ -107,7 +103,8 @@ function cookieValue(request: TicketingHttpRequest, name: string): string {
   for (const part of source.split(";")) {
     const index = part.indexOf("=");
     if (index < 1) continue;
-    if (part.slice(0, index).trim() === name) return part.slice(index + 1).trim();
+    if (part.slice(0, index).trim() === name)
+      return part.slice(index + 1).trim();
   }
   return "";
 }
@@ -130,7 +127,10 @@ function requestOrigin(request: TicketingHttpRequest): URL | null {
 
 function forwardedProtocol(request: TicketingHttpRequest): string {
   return (
-    header(request, "x-forwarded-proto").split(",", 1)[0]?.trim().toLowerCase() ?? ""
+    header(request, "x-forwarded-proto")
+      .split(",", 1)[0]
+      ?.trim()
+      .toLowerCase() ?? ""
   );
 }
 
@@ -150,10 +150,14 @@ function secureRequest(request: TicketingHttpRequest): boolean {
 
 function consumerRouteAllowed(pathname: string, method: string): boolean {
   const relative = pathname.slice(ticketingHttpPrefix.length);
-  if (relative === "/reservations") return method === "GET" || method === "POST";
-  if (/^\/reservations\/trv_[A-Za-z0-9_-]+$/u.test(relative)) return method === "GET";
-  if (/^\/reservations\/trv_[A-Za-z0-9_-]+\/ticket$/u.test(relative)) return method === "GET";
-  if (/^\/reservations\/trv_[A-Za-z0-9_-]+\/cancel$/u.test(relative)) return method === "POST";
+  if (relative === "/reservations")
+    return method === "GET" || method === "POST";
+  if (/^\/reservations\/trv_[A-Za-z0-9_-]+$/u.test(relative))
+    return method === "GET";
+  if (/^\/reservations\/trv_[A-Za-z0-9_-]+\/ticket$/u.test(relative))
+    return method === "GET";
+  if (/^\/reservations\/trv_[A-Za-z0-9_-]+\/cancel$/u.test(relative))
+    return method === "POST";
   return false;
 }
 
@@ -161,7 +165,8 @@ class CommerceSessionAuthority {
   private readonly key: Buffer;
 
   constructor(rootSecret: string) {
-    if (rootSecret.length < 32) throw new Error("TICKETING_COMMERCE_SESSION_SECRET_REQUIRED");
+    if (rootSecret.length < 32)
+      throw new Error("TICKETING_COMMERCE_SESSION_SECRET_REQUIRED");
     this.key = createHmac("sha256", rootSecret)
       .update("morro-digital:commerce-session:v1")
       .digest();
@@ -192,9 +197,17 @@ class CommerceSessionAuthority {
 
   resolve(token: string, nowMs = Date.now()): CommerceSession | null {
     const [payload, signature, extra] = token.split(".");
-    if (!payload || !signature || extra || !safeEqual(this.signature(payload), signature)) return null;
+    if (
+      !payload ||
+      !signature ||
+      extra ||
+      !safeEqual(this.signature(payload), signature)
+    )
+      return null;
     try {
-      const parsed = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as Partial<CommerceSessionClaims>;
+      const parsed = JSON.parse(
+        Buffer.from(payload, "base64url").toString("utf8"),
+      ) as Partial<CommerceSessionClaims>;
       const now = Math.floor(nowMs / 1_000);
       if (
         parsed.version !== SESSION_VERSION ||
@@ -204,7 +217,8 @@ class CommerceSessionAuthority {
         !Number.isSafeInteger(parsed.expiresAt) ||
         (parsed.issuedAt as number) > now + 30 ||
         (parsed.expiresAt as number) <= now ||
-        (parsed.expiresAt as number) - (parsed.issuedAt as number) !== SESSION_TTL_SECONDS
+        (parsed.expiresAt as number) - (parsed.issuedAt as number) !==
+          SESSION_TTL_SECONDS
       ) {
         return null;
       }
@@ -243,32 +257,51 @@ class CommerceAwareAuthorization implements TicketingHttpAuthorizationPort {
     input: { readonly mutation: boolean; readonly admin?: boolean },
   ): Promise<TicketingHttpAuthorizationDecision> {
     const method = request.method.toUpperCase();
-    if (request.pathname === `${ticketingHttpPrefix}/inventory` && method === "GET") {
+    if (
+      request.pathname === `${ticketingHttpPrefix}/inventory` &&
+      method === "GET"
+    ) {
       return Object.freeze({
         allowed: true,
-        actor: Object.freeze({ subject: "public:catalog", role: "viewer" as const }),
+        actor: Object.freeze({
+          subject: "public:catalog",
+          role: "viewer" as const,
+        }),
       });
     }
 
     const authenticated = await this.base.authorize(request, input);
-    if (authenticated.allowed || authenticated.reason !== "authentication_required") {
+    if (
+      authenticated.allowed ||
+      authenticated.reason !== "authentication_required"
+    ) {
       return authenticated;
     }
-    if (input.admin || !consumerRouteAllowed(request.pathname, method)) return authenticated;
+    if (input.admin || !consumerRouteAllowed(request.pathname, method))
+      return authenticated;
 
     const session = this.sessions.fromRequest(request);
     if (!session) return authenticated;
     if (input.mutation) {
       if (!sameOrigin(request)) {
-        return Object.freeze({ allowed: false, reason: "cross_origin_request" as const });
+        return Object.freeze({
+          allowed: false,
+          reason: "cross_origin_request" as const,
+        });
       }
       if (!safeEqual(header(request, "x-csrf-token"), session.csrfToken)) {
-        return Object.freeze({ allowed: false, reason: "invalid_csrf" as const });
+        return Object.freeze({
+          allowed: false,
+          reason: "invalid_csrf" as const,
+        });
       }
     }
     return Object.freeze({
       allowed: true,
-      actor: Object.freeze({ subject: session.claims.subject, role: "editor" as const }),
+      actor: Object.freeze({
+        subject: session.claims.subject,
+        role: "editor" as const,
+      }),
     });
   }
 }
@@ -277,8 +310,12 @@ export class TicketingCommerceHttpTransport {
   private readonly sessions: CommerceSessionAuthority;
   private readonly legacy: TicketingPublicHttpTransport;
 
-  constructor(private readonly dependencies: TicketingCommerceHttpTransportDependencies) {
-    this.sessions = new CommerceSessionAuthority(dependencies.offlineProvisioningSecret);
+  constructor(
+    private readonly dependencies: TicketingCommerceHttpTransportDependencies,
+  ) {
+    this.sessions = new CommerceSessionAuthority(
+      dependencies.offlineProvisioningSecret,
+    );
     this.legacy = new TicketingPublicHttpTransport({
       ...dependencies,
       authorization: new CommerceAwareAuthorization(
@@ -313,38 +350,52 @@ export class TicketingCommerceHttpTransport {
 
     try {
       if (!inventoryId && method === "GET") {
-        const offers = await this.dependencies.businessInventory.listByBusiness(businessId);
+        const offers =
+          await this.dependencies.businessInventory.listByBusiness(businessId);
         return response(200, { data: offers }, correlation);
       }
       if (!inventoryId && method === "POST") {
         const requestKey = header(request, "idempotency-key");
         if (!IDEMPOTENCY_KEY.test(requestKey)) {
-          return response(400, { error: "INVALID_IDEMPOTENCY_KEY" }, correlation);
+          return response(
+            400,
+            { error: "INVALID_IDEMPOTENCY_KEY" },
+            correlation,
+          );
         }
-        const created = await this.dependencies.businessInventory.createForBusiness({
-          businessId,
-          destinationId: this.dependencies.destinationId,
-          requestKey,
-          actorSubject: actor.subject,
-          offer: request.body,
-          recordedAt: this.dependencies.clock.now(),
-        });
-        return response(created.replayed ? 200 : 201, { data: created.offer }, correlation);
+        const created =
+          await this.dependencies.businessInventory.createForBusiness({
+            businessId,
+            destinationId: this.dependencies.destinationId,
+            requestKey,
+            actorSubject: actor.subject,
+            offer: request.body,
+            recordedAt: this.dependencies.clock.now(),
+          });
+        return response(
+          created.replayed ? 200 : 201,
+          { data: created.offer },
+          correlation,
+        );
       }
       if (inventoryId && method === "POST") {
-        const disabled = await this.dependencies.businessInventory.disableForBusiness({
-          businessId,
-          inventoryId,
-          actorSubject: actor.subject,
-          recordedAt: this.dependencies.clock.now(),
-        });
+        const disabled =
+          await this.dependencies.businessInventory.disableForBusiness({
+            businessId,
+            inventoryId,
+            actorSubject: actor.subject,
+            recordedAt: this.dependencies.clock.now(),
+          });
         return disabled
           ? response(200, { data: disabled }, correlation)
           : response(404, { error: "NOT_FOUND" }, correlation);
       }
       return response(405, { error: "METHOD_NOT_ALLOWED" }, correlation);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "MORRO_PRO_INVENTORY_UNAVAILABLE";
+      const message =
+        error instanceof Error
+          ? error.message
+          : "MORRO_PRO_INVENTORY_UNAVAILABLE";
       const invalid = message.includes("INVALID");
       return response(
         invalid ? 400 : 503,
@@ -360,7 +411,8 @@ export class TicketingCommerceHttpTransport {
     const relative = request.pathname.slice(ticketingHttpPrefix.length);
 
     if (relative === "/consumer-session" && method === "POST") {
-      if (!sameOrigin(request)) return response(403, { error: "ORIGIN_DENIED" }, correlation);
+      if (!sameOrigin(request))
+        return response(403, { error: "ORIGIN_DENIED" }, correlation);
       const current = this.sessions.fromRequest(request);
       const session = current ?? this.sessions.issue();
       return response(
@@ -389,11 +441,18 @@ export class TicketingCommerceHttpTransport {
       if (inventoryId && !INVENTORY_ID.test(inventoryId)) {
         return response(404, { error: "NOT_FOUND" }, correlation);
       }
-      return this.handleBusinessInventory(request, businessMatch[1], inventoryId);
+      return this.handleBusinessInventory(
+        request,
+        businessMatch[1],
+        inventoryId,
+      );
     }
 
     return this.legacy.handle(request);
   }
 }
 
-export { SESSION_COOKIE as commerceSessionCookieName, SESSION_TTL_SECONDS as commerceSessionTtlSeconds };
+export {
+  SESSION_COOKIE as commerceSessionCookieName,
+  SESSION_TTL_SECONDS as commerceSessionTtlSeconds,
+};
