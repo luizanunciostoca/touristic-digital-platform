@@ -520,18 +520,26 @@ export function createAssistantApi({
           );
 
           if (!upstream.ok) {
-            providerCircuitBreaker.failure("provider_http_error", {
-              ...requestMetadata,
-              statusCode: upstream.status,
-            });
+            const providerRequestOrphaned =
+              clientDisconnected || Boolean(request.aborted);
+            if (providerRequestOrphaned) {
+              providerCircuitBreaker.cancel(requestMetadata);
+            } else {
+              providerCircuitBreaker.failure("provider_http_error", {
+                ...requestMetadata,
+                statusCode: upstream.status,
+              });
+            }
             observeProviderFailure(
-              "provider_http_error",
+              providerRequestOrphaned
+                ? "client_disconnected_after_provider"
+                : "provider_http_error",
               upstream.status,
               requestMetadata,
             );
             costGovernor.settle(reservation, {});
             reservationClosed = true;
-            if (!clientDisconnected) {
+            if (!providerRequestOrphaned) {
               sendJson(response, upstream.status === 429 ? 429 : 502, {
                 error: "assistant_provider_error",
               });
