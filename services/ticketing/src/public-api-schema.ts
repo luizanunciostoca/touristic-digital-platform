@@ -26,9 +26,24 @@ CREATE TABLE IF NOT EXISTS ticketing_offline_devices (
   CHECK (expires_at > issued_at),
   CHECK ((revoked_at IS NULL AND revoked_by IS NULL) OR (revoked_at IS NOT NULL AND revoked_by IS NOT NULL))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS ticketing_inventory_ownership (
+  inventory_id VARCHAR(120) COLLATE utf8mb4_bin PRIMARY KEY,
+  business_id VARCHAR(120) COLLATE utf8mb4_bin NOT NULL,
+  created_by VARCHAR(160) COLLATE utf8mb4_bin NOT NULL,
+  created_at DATETIME(3) NOT NULL,
+  updated_at DATETIME(3) NOT NULL,
+  CONSTRAINT fk_ticketing_inventory_ownership_inventory
+    FOREIGN KEY (inventory_id)
+    REFERENCES ticketing_inventory(inventory_id)
+    ON DELETE RESTRICT
+    ON UPDATE RESTRICT,
+  INDEX idx_ticketing_inventory_ownership_business (business_id, updated_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 `;
 
 export const ticketingPublicApiRollbackSql = `
+DROP TABLE IF EXISTS ticketing_inventory_ownership;
 DROP TABLE IF EXISTS ticketing_offline_devices;
 DROP TABLE IF EXISTS ticketing_holder_profiles;
 `;

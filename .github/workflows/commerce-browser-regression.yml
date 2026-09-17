@@ -1,0 +1,280 @@
+name: Commerce Browser Regression
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/commerce-browser-regression.yml"
+      - ".github/workflows/final-release-acceptance.yml"
+      - "apps/morro-digital-platform/public/commerce.css"
+      - "apps/morro-digital-platform/public/experience.html"
+      - "apps/morro-digital-platform/public/experience.js"
+      - "apps/morro-digital-platform/public/index.html"
+      - "apps/morro-digital-platform/public/ticketing.js"
+      - "apps/morro-digital-platform/public/tickets.html"
+      - "apps/morro-digital-platform/src/business-dashboard-client.ts"
+      - "apps/morro-digital-platform/src/business-dashboard-surface.ts"
+      - "apps/morro-digital-platform/src/commerce/**"
+      - "apps/morro-digital-platform/src/main.ts"
+      - "apps/morro-digital-platform/tooling/ticketing-api.mjs"
+      - "services/ticketing/src/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+
+permissions:
+  contents: read
+
+jobs:
+  commerce-browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Commerce security contracts
+        run: pnpm --filter @touristic/ticketing-server test
+      - name: Ticketing to Payments browser handoff contract
+        run: pnpm ticketing:browser:smoke
+      - name: Build workspace
+        run: pnpm -w build
+      - name: Install deterministic Chromium
+        run: |
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+          mkdir -p /tmp/commerce-browser
+      - name: Start browser runtime
+        env:
+          MAPBOX_PUBLIC_TOKEN_CI: ${{ secrets.MAPBOX_PUBLIC_TOKEN_CI }}
+        run: |
+          test -n "${MAPBOX_PUBLIC_TOKEN_CI:-}" || { echo 'MAPBOX_PUBLIC_TOKEN_CI missing'; exit 1; }
+          VITE_MAPBOX_ACCESS_TOKEN="$MAPBOX_PUBLIC_TOKEN_CI" \
+          VITE_MAPBOX_STYLE=mapbox://styles/mapbox/streets-v12 \
+          VITE_MAPBOX_CONTAINER_ID=map \
+          VITE_MAPBOX_INITIAL_ZOOM=13.5 \
+          node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/commerce-browser/server.log 2>&1 &
+          for i in $(seq 1 90); do
+            curl -fsS http://127.0.0.1:4173/runtime-config.js >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/commerce-browser/server.log
+          exit 1
+      - name: Browser acceptance
+        run: |
+          node <<'NODE'
+          const { writeFileSync } = require('node:fs');
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+          const origin = 'http://127.0.0.1:4173';
+          const offer = {
+            id: 'mpi_0123456789abcdef0123456789abcdef',
+            destinationId: 'morro-de-sao-paulo',
+            product: { kind: 'business_experience', reference: 'morro-pro:business-a:sunset' },
+            label: 'Sunset Morro Pro',
+            unitAmount: { minorUnits: 15900, currency: 'BRL' },
+            pricingVersion: 'morro-pro-v1', capacity: 50, maxPerReservation: 4,
+            availableQuantity: 42,
+            salesStartAt: '2026-09-01T12:00:00.000Z', salesEndAt: '2026-09-20T20:00:00.000Z',
+            startsAt: '2026-09-20T20:30:00.000Z', endsAt: '2026-09-21T01:00:00.000Z',
+          };
+          const reservation = {
+            id: 'trv_browser_0001', inventoryId: offer.id, destinationId: offer.destinationId,
+            product: offer.product, unitAmount: offer.unitAmount, pricingVersion: offer.pricingVersion,
+            holderReference: 'guest:browser', quantity: 2, status: 'confirmed',
+            expiresAt: '2026-09-20T20:00:00.000Z', orderId: 'ord_browser_0001',
+            paymentId: 'pay_browser_0001', createdAt: '2026-09-17T22:00:00.000Z',
+            confirmedAt: '2026-09-17T22:00:05.000Z',
+          };
+          const viewports = [
+            { name: 'mobile', width: 390, height: 844 },
+            { name: 'tablet', width: 768, height: 1024 },
+            { name: 'desktop', width: 1440, height: 900 },
+          ];
+          const evidence = [];
+          const fulfill = (route, body, status = 200, headers = {}) => route.fulfill({
+            status, headers, contentType: 'application/json', body: JSON.stringify(body),
+          });
+
+          async function commerceRoutes(page, state) {
+            await page.route('**/api/weather', route => fulfill(route, {
+              temperatureCelsius: 28, temperatureMaxCelsius: 31, temperatureMinCelsius: 24,
+              humidityPercent: 78, windSpeedKph: 18, rainChancePercent: 20,
+              weatherCode: 1, isDay: true, forecast: [],
+            }));
+            await page.route('**/api/ticketing/v1/inventory', route =>
+              state.inventoryFailure
+                ? fulfill(route, { error: 'TICKETING_UNAVAILABLE' }, 503)
+                : fulfill(route, { data: [offer] }));
+            await page.route('**/api/ticketing/v1/consumer-session', route => fulfill(route, {
+              data: { subject: 'guest:browser', csrfToken: 'csrf_browser_0001', expiresAt: '2026-10-17T22:00:00.000Z' },
+            }, 201, { 'set-cookie': 'morro_commerce_session=browser-token; Path=/; HttpOnly; SameSite=Strict' }));
+            await page.route('**/api/ticketing/v1/reservations', route => {
+              const request = route.request();
+              if (request.method() === 'GET') return fulfill(route, { data: state.paid ? [reservation] : [] });
+              if (request.headers()['x-csrf-token'] !== 'csrf_browser_0001') return fulfill(route, { error: 'INVALID_CSRF' }, 403);
+              const body = request.postDataJSON();
+              if (body.inventoryId !== offer.id || body.quantity !== 2) return fulfill(route, { error: 'INVALID_RESERVATION' }, 400);
+              state.reserved = true;
+              return fulfill(route, { data: {
+                reservation: { ...reservation, status: 'held', orderId: null, paymentId: null, confirmedAt: null },
+                reservationReference: reservation.id,
+                checkout: {
+                  path: '/api/payments/v1/checkouts', reservationReference: reservation.id,
+                  idempotencyKey: 'idem_browser_0001', handoffToken: 'handoff_browser_0001',
+                  handoff: { destinationId: offer.destinationId, reservationReference: reservation.id,
+                    lineItems: [{ reference: offer.product.reference, quantity: 2, unitAmount: offer.unitAmount }] },
+                },
+              } }, 201);
+            });
+            await page.route('**/api/payments/v1/checkouts', route => {
+              if (route.request().method() !== 'POST') return route.fallback();
+              const h = route.request().headers();
+              if (h['x-checkout-handoff-token'] !== 'handoff_browser_0001' || h['idempotency-key'] !== 'idem_browser_0001' || h['x-csrf-token'] !== 'csrf_browser_0001') {
+                return fulfill(route, { error: 'CHECKOUT_HANDOFF_INVALID' }, 400);
+              }
+              state.checkout = true;
+              return fulfill(route, { data: { checkoutId: 'chk_browser_0001', statusToken: 'status_browser_0001', statusExpiresAt: '2026-09-18T22:00:00.000Z', checkoutUrl: null } }, 201);
+            });
+            await page.route('**/api/payments/v1/checkouts/chk_browser_0001', route => {
+              if (route.request().headers()['x-checkout-token'] !== 'status_browser_0001') return fulfill(route, { error: 'CHECKOUT_TOKEN_INVALID' }, 401);
+              state.paid = true;
+              return fulfill(route, { data: { status: 'CONFIRMED', verifiedPayment: { verified: true, paymentId: 'pay_browser_0001' } } });
+            });
+            await page.route('**/api/ticketing/v1/reservations/trv_browser_0001/ticket', route => fulfill(route, { data: {
+              code: 'MORRO-BROWSER-0001', quantity: 2, amount: { minorUnits: 31800, currency: 'BRL' },
+              issuedAt: '2026-09-17T22:00:06.000Z',
+              qrSvg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><rect width="10" height="10"/></svg>',
+            } }));
+            await page.route('**/api/ticketing/v1/operator/check-in', route => fulfill(route, { error: 'AUTH_REQUIRED' }, 401));
+          }
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            try {
+              for (const viewport of viewports) {
+                const context = await browser.newContext({ viewport });
+                await context.addInitScript(() => {
+                  localStorage.setItem('morro-digital-onboarded', '1');
+                  localStorage.setItem('voice-enabled', 'false');
+                });
+                const page = await context.newPage();
+                const state = {};
+                const errors = [];
+                page.on('pageerror', error => errors.push(error.message));
+                await commerceRoutes(page, state);
+                await page.goto(`${origin}/`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+                await page.locator('#assistant-commerce-cta').waitFor({ state: 'attached', timeout: 10000 });
+                const home = await page.evaluate(() => ({
+                  values: [...document.querySelectorAll('.assistant-option-btn')].map(node => node.getAttribute('data-value')),
+                  href: document.getElementById('assistant-commerce-cta')?.getAttribute('href'),
+                  category: document.getElementById('assistant-commerce-cta')?.classList.contains('assistant-option-btn') ?? true,
+                  messages: document.querySelectorAll('#assistant-messages .messages-area > .message').length,
+                }));
+                const expected = ['beaches','restaurants','hotels','shops','transport','attractions','tours','nightlife','emergencies','help'];
+                if (JSON.stringify(home.values) !== JSON.stringify(expected) || home.href !== '/tickets.html' || home.category || home.messages !== 1) {
+                  throw new Error(`V1 Assistant contract drift on ${viewport.name}: ${JSON.stringify(home)}`);
+                }
+                await page.locator('.mood-button').click();
+                await page.locator('#assistant-messages').waitFor({ state: 'visible' });
+                await Promise.all([page.waitForURL('**/tickets.html'), page.locator('#assistant-commerce-cta').click()]);
+                await page.locator('.offer-card').waitFor({ state: 'visible' });
+                await Promise.all([page.waitForURL('**/experience.html?id=*'), page.locator('.offer-card a.button-secondary').click()]);
+                await page.locator('#experience-card').waitFor({ state: 'visible' });
+                if ((await page.locator('#experience-title').textContent())?.trim() !== offer.label) throw new Error(`Detail mismatch on ${viewport.name}`);
+                await page.goBack({ waitUntil: 'domcontentloaded' });
+                await page.locator('.offer-card').waitFor({ state: 'visible' });
+                await Promise.all([page.waitForURL('**/experience.html?id=*'), page.locator('.offer-card a.button-secondary').click()]);
+                await Promise.all([page.waitForURL('**/tickets.html?offer=*'), page.locator('#experience-reserve').click()]);
+                await page.locator('#holder-name').fill('Visitante Teste');
+                await page.locator('#holder-email').fill('visitante@example.test');
+                await page.locator('#quantity').fill('2');
+                await page.locator('#reserve-button').click();
+                await page.locator('#ticket-dialog[open]').waitFor({ state: 'visible', timeout: 10000 });
+                if (!state.reserved || !state.checkout || !state.paid) throw new Error(`Commerce handoff incomplete on ${viewport.name}`);
+                if ((await page.locator('#ticket-code').textContent())?.trim() !== 'MORRO-BROWSER-0001') throw new Error(`Wallet/QR missing on ${viewport.name}`);
+                const privileged = await page.evaluate(async () => {
+                  const response = await fetch('/api/ticketing/v1/operator/check-in', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': 'csrf_browser_0001' }, body: '{}' });
+                  return { status: response.status, body: await response.json() };
+                });
+                if (privileged.status !== 401) throw new Error(`Guest operator escalation on ${viewport.name}`);
+                if (errors.length) throw new Error(`Browser errors on ${viewport.name}: ${JSON.stringify(errors)}`);
+                evidence.push({ viewport: viewport.name, home, privileged, state });
+                await context.close();
+              }
+
+              const authContext = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+              const authPage = await authContext.newPage();
+              let created = false;
+              let offers = [];
+              await authPage.route('**/api/dashboard/auth/session', route => fulfill(route, {
+                authenticated: true, csrfToken: 'dashboard_csrf_0001',
+                user: { id: 'owner-a', email: 'owner@example.test', role: 'editor', businessIds: ['business-a'] },
+              }));
+              await authPage.route('**/api/business/business-a/profile', route => fulfill(route, { profile: {
+                id: 'business-a', name: 'Business A', categoryLabel: 'Experiências', specialty: 'Sunset',
+                description: 'Experiências locais', cta: 'Ver empresa', locationLabel: 'Morro de São Paulo',
+                locationIsExample: false, promotion: null, tutorial: false, excludeFromBusinessMetrics: false,
+              } }));
+              await authPage.route('**/api/ticketing/v1/operator/businesses/business-a/inventory', route => {
+                if (route.request().method() === 'GET') return fulfill(route, { data: offers });
+                if (route.request().headers()['x-csrf-token'] !== 'dashboard_csrf_0001') return fulfill(route, { error: 'INVALID_CSRF' }, 403);
+                const item = { id: 'mpi_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', businessId: 'business-a', destinationId: 'morro-de-sao-paulo', ...route.request().postDataJSON(), enabled: true };
+                offers = [item]; created = true;
+                return fulfill(route, { data: item }, 201);
+              });
+              await authPage.route('**/api/ticketing/v1/operator/businesses/business-b/inventory', route => fulfill(route, { error: 'NOT_FOUND' }, 404));
+              await authPage.goto(`${origin}/apps/morro-digital-platform/public/business-dashboard.html?businessId=business-a`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+              await authPage.locator('#main-dashboard:not([hidden])').waitFor({ state: 'visible', timeout: 10000 });
+              await authPage.locator('[data-dashboard-view="offers"]').click();
+              await authPage.locator('#morro-pro-offer-label').fill('Passeio Morro Pro');
+              await authPage.locator('#morro-pro-offer-price').fill('199.90');
+              await authPage.locator('#morro-pro-offer-sales-start').fill('2026-09-18T09:00');
+              await authPage.locator('#morro-pro-offer-sales-end').fill('2026-09-20T09:00');
+              await authPage.locator('#morro-pro-offer-start').fill('2026-09-20T10:00');
+              await authPage.locator('#morro-pro-offer-end').fill('2026-09-20T14:00');
+              await authPage.locator('#morro-pro-offer-form button[type="submit"]').click();
+              await authPage.locator('#morro-pro-offer-list h3').waitFor({ state: 'visible', timeout: 5000 });
+              if (!created) throw new Error('Authenticated Morro Pro offer not created');
+              const crossTenant = await authPage.evaluate(async () => {
+                const response = await fetch('/api/ticketing/v1/operator/businesses/business-b/inventory', { credentials: 'same-origin' });
+                return response.status;
+              });
+              if (crossTenant !== 404) throw new Error(`Cross-tenant inventory leaked: ${crossTenant}`);
+              evidence.push({ authenticatedMorroPro: true, crossTenant, offerId: offers[0]?.id });
+              await authContext.close();
+
+              const failContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
+              const failPage = await failContext.newPage();
+              await commerceRoutes(failPage, { inventoryFailure: true });
+              await failPage.goto(`${origin}/tickets.html`, { waitUntil: 'domcontentloaded' });
+              await failPage.waitForFunction(() => document.querySelector('#reservation-message')?.textContent?.includes('TICKETING_UNAVAILABLE'));
+              evidence.push({ predictableFailure: 'TICKETING_UNAVAILABLE' });
+              await failContext.close();
+
+              writeFileSync('/tmp/commerce-browser/evidence.json', JSON.stringify(evidence, null, 2));
+            } finally {
+              await browser.close();
+            }
+          })().catch(error => {
+            writeFileSync('/tmp/commerce-browser/failure.txt', String(error?.stack || error));
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+      - name: Show diagnostics
+        if: failure()
+        run: cat /tmp/commerce-browser/server.log || true
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: commerce-browser-evidence
+          path: /tmp/commerce-browser
+          retention-days: 7
+          if-no-files-found: error

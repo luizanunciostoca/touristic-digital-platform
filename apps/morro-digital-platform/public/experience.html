@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Detalhes de passeios, festas e experiências no Morro Digital"
+    />
+    <meta name="color-scheme" content="dark" />
+    <title>Experiência · Morro Digital</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="/apps/morro-digital-platform/public/commerce.css"
+    />
+  </head>
+  <body class="commerce-detail-shell">
+    <main class="commerce-detail-container">
+      <a class="commerce-detail-back" href="/">← Voltar ao Morro Digital</a>
+      <section
+        id="experience-loading"
+        class="commerce-detail-status"
+        role="status"
+      >
+        Carregando experiência…
+      </section>
+      <article id="experience-card" class="commerce-detail-card" hidden>
+        <div>
+          <span id="experience-kind" class="commerce-detail-eyebrow"
+            >Experiência</span
+          >
+          <h1 id="experience-title">—</h1>
+          <p
+            id="experience-description"
+            class="commerce-detail-description"
+          ></p>
+          <div class="commerce-detail-actions">
+            <a id="experience-reserve" class="primary" href="#"
+              >Reservar agora</a
+            >
+            <a class="secondary" href="/tickets.html"
+              >Ver todas as experiências</a
+            >
+          </div>
+        </div>
+        <aside
+          class="commerce-detail-meta"
+          aria-label="Informações da experiência"
+        >
+          <p><span>Quando</span><strong id="experience-start">—</strong></p>
+          <p><span>Até</span><strong id="experience-end">—</strong></p>
+          <p>
+            <span>Valor</span
+            ><strong id="experience-price" class="commerce-detail-price"
+              >—</strong
+            >
+          </p>
+          <p>
+            <span>Disponibilidade</span
+            ><strong id="experience-availability">—</strong>
+          </p>
+          <p>
+            <span>Vendas</span><strong id="experience-sales-window">—</strong>
+          </p>
+        </aside>
+      </article>
+    </main>
+    <script
+      type="module"
+      src="/apps/morro-digital-platform/public/experience.js"
+    ></script>
+  </body>
+</html>

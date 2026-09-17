@@ -1,6 +1,17 @@
 import mysql, { type Pool, type PoolOptions } from "mysql2/promise";
 
 import {
+  MySqlTicketingBusinessInventoryRepository,
+  type MorroProInventoryOffer,
+  type TicketingBusinessInventoryRepositoryPort,
+} from "./business-inventory-repository.js";
+import {
+  TicketingCommerceHttpTransport,
+  commerceSessionCookieName,
+  commerceSessionTtlSeconds,
+  type TicketingCommerceHttpTransportDependencies,
+} from "./commerce-public-http-transport.js";
+import {
   ticketingFinancialBridgeRollbackSql,
   ticketingFinancialBridgeSchemaSql,
 } from "./financial-bridge-schema.js";
@@ -93,11 +104,15 @@ export {
   MySqlTicketCheckInRepository,
   MySqlTicketOfflineEnvelopeRepository,
   MySqlTicketReservationRepository,
+  MySqlTicketingBusinessInventoryRepository,
   MySqlTicketingPublicReadRepository,
   MySqlTicketingTransactionalCommand,
   TicketReservationApplicationError,
   TicketingApplicationError,
+  TicketingCommerceHttpTransport,
   TicketingPublicHttpTransport,
+  commerceSessionCookieName,
+  commerceSessionTtlSeconds,
   createOrderingFinancialReservationConfirmationAuthority,
   createTicketOfflineDeviceSyncService,
   createTicketReservationApplicationService,
@@ -118,6 +133,7 @@ export {
 export type {
   FinancialResultCursor,
   FinancialResultCursorRepositoryPort,
+  MorroProInventoryOffer,
   RefundedReservationCancellationRepositoryPort,
   TicketHolderProfilePort,
   TicketReservationApplicationErrorCode,
@@ -131,7 +147,9 @@ export type {
   TicketingApplicationErrorCode,
   TicketingApplicationService,
   TicketingApplicationServiceDependencies,
+  TicketingBusinessInventoryRepositoryPort,
   TicketingCheckInResult,
+  TicketingCommerceHttpTransportDependencies,
   TicketingHttpActor,
   TicketingHttpAuditPort,
   TicketingHttpAuthorizationDecision,

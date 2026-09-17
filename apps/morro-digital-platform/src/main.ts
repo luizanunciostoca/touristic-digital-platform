@@ -1,4 +1,5 @@
 import { installAssistantSingleMessageController } from "./assistant/assistant-single-message-controller.js";
+import { installHomeCommerce } from "./commerce/home-commerce.js";
 import { mountAppShell } from "./layouts/app-shell.js";
 import { installExploreMapViewportV1 } from "./map/explore-map-viewport-v1.js";
 import {
@@ -25,6 +26,7 @@ export function bootstrapMorroDigitalApplication(
 ): MorroDigitalApplicationBootstrap {
   mountAppShell({ document });
   installAssistantSingleMessageController({ document });
+  installHomeCommerce({ document });
   installExploreMapViewportV1({ document });
   const exploreLocations = installExploreLocationsControl({ document });
   document.addEventListener(EXPLORE_RESET_REQUEST_EVENT, () => {
