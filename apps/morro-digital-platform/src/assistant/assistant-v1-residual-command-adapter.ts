@@ -178,13 +178,6 @@ function categoryFromFilter(input: string): string | null {
   return null;
 }
 
-function categoryFromExactAlias(input: string): string | null {
-  for (const [category, aliases] of Object.entries(CATEGORY_ALIASES)) {
-    if (aliases.some((alias) => normalized(alias) === input)) return category;
-  }
-  return null;
-}
-
 function placeFromFocus(input: string): MorroV1SearchCatalogItem | null {
   const focusPrefix = hasAny(input, [
     "zoom",
@@ -228,8 +221,7 @@ export function resolveAssistantV1ResidualCommand(
     return Object.freeze({ type: "history" });
   }
 
-  const requestedCategory =
-    categoryFromFilter(value) ?? categoryFromExactAlias(value);
+  const requestedCategory = categoryFromFilter(value);
 
   const transportQuestion = hasAny(value, [
     "como chegar",
