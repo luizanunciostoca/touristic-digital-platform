@@ -133,7 +133,8 @@ function createTaskUid() {
 
 function operationalErrorMetadata(error) {
   const rawKind = error instanceof Error ? error.name : "NonError";
-  const kind = rawKind.replace(/[^A-Za-z0-9_.-]/gu, "").slice(0, 64) || "Error";
+  const kind =
+    rawKind.replace(/[^A-Za-z0-9_.-]/gu, "").slice(0, 64) || "Error";
   const rawCode =
     typeof error === "object" && error !== null && "code" in error
       ? String(error.code)
