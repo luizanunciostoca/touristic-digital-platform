@@ -64,6 +64,7 @@ jobs:
             navigation-visual-baseline.yml
             payments-browser-checkout-contract.yml
             search-browser-contract.yml
+            shell-v1-i18n-browser-parity.yml
           )
           for workflow in "${workflows[@]}"; do
             test -f ".github/workflows/$workflow"
@@ -148,6 +149,7 @@ jobs:
             navigation-visual-baseline.yml
             payments-browser-checkout-contract.yml
             search-browser-contract.yml
+            shell-v1-i18n-browser-parity.yml
           )
 
           : > /tmp/final-acceptance-runs.tsv
