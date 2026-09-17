@@ -439,9 +439,16 @@ export function createAssistantUserProfileManager(
     return current in COPY ? current : "pt";
   };
 
-  const label = (category: AssistantInterestCategory): string =>
-    getCategoryLabel?.(category, language()) ??
-    categoryFallback[language()][category];
+  const label = (
+    category: AssistantInterestCategory,
+    languageOverride?: AssistantLanguage,
+  ): string => {
+    const activeLanguage = languageOverride ?? language();
+    return (
+      getCategoryLabel?.(category, activeLanguage) ??
+      categoryFallback[activeLanguage][category]
+    );
+  };
 
   const topInterests = (limit = 3): AssistantInterestCategory[] =>
     (Object.entries(profile.interests) as [AssistantInterestCategory, number][])
@@ -538,8 +545,8 @@ export function createAssistantUserProfileManager(
       return topInterests(limit);
     },
 
-    getPersonalizedSuggestions() {
-      const lang = language();
+    getPersonalizedSuggestions(languageOverride?: AssistantLanguage) {
+      const lang = languageOverride ?? language();
       const copy = COPY[lang];
       const hour = new Date(now()).getHours();
       const suggestions: string[] = [];
@@ -586,7 +593,7 @@ export function createAssistantUserProfileManager(
         context.pricePreference = copy.prices[1];
 
       for (const interest of topInterests(3)) {
-        const interestLabel = label(interest);
+        const interestLabel = label(interest, lang);
         if (!suggestions.includes(interestLabel))
           suggestions.push(interestLabel);
       }
