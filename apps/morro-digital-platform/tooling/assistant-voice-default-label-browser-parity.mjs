@@ -72,7 +72,9 @@ try {
     }, locale);
     await page.locator("#configButton").click();
 
-    const option = page.locator('#assistantVoiceSelect option[value="Morro Default"]');
+    const option = page.locator(
+      '#assistantVoiceSelect option[value="Morro Default"]',
+    );
     await option.waitFor({ state: "attached", timeout: 5000 });
     const actual = (await option.textContent())?.trim() ?? "";
     if (actual !== label) {
