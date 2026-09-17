@@ -12,7 +12,6 @@ A auditoria V1→V2 de 2026-09-17 encontrou um gap residual de composição no g
 
 A frente `fix/assistant-v1-personalized-greeting-parity` corrige esse wiring sem duplicar copy e adiciona prova unitária + browser. A linha de sugestões proativas só permanece `PASS` após o exact-head final dessa frente passar Quality, Assistant Input Menu Flow V1 Parity, review e acceptance pós-merge. Evidência: `docs/qa/ASSISTANT-V1-PERSONALIZED-GREETING-PARITY-RECERTIFICATION.md`.
 
-
 | Contrato V1                           | Evidência V1               | Destino V2                                                                                                      | Estado M29 | Critério de PASS                                                                                                                        |
 | ------------------------------------- | -------------------------- | --------------------------------------------------------------------------------------------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | 10 opções canônicas                   | `assistant-messages.js`    | `src/menu.ts`                                                                                                   | PASS       | ordem, valores e labels PT/EN/ES/HE idênticos                                                                                           |
