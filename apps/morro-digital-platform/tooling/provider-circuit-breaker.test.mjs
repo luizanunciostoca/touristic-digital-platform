@@ -33,6 +33,31 @@ describe("provider circuit breaker", () => {
     ).toBe(true);
   });
 
+  it("does not extend an open cooldown for late in-flight failures", () => {
+    let timestamp = 1_000;
+    const events = [];
+    const breaker = createProviderCircuitBreaker({
+      failureThreshold: 1,
+      cooldownMs: 30_000,
+      now: () => timestamp,
+      onEvent: (event) => events.push(event),
+    });
+
+    breaker.failure("provider_http_error", { correlationId: "req-open" });
+    expect(breaker.snapshot().retryAfterMs).toBe(30_000);
+
+    timestamp += 10_000;
+    breaker.failure("provider_timeout", { correlationId: "req-late" });
+
+    expect(breaker.snapshot().state).toBe("open");
+    expect(breaker.snapshot().retryAfterMs).toBe(20_000);
+    expect(
+      events.some(
+        (event) => event.type === "provider.circuit.failure_ignored",
+      ),
+    ).toBe(true);
+  });
+
   it("allows one half-open probe and closes after recovery", () => {
     let timestamp = 1_000;
     const breaker = createProviderCircuitBreaker({
