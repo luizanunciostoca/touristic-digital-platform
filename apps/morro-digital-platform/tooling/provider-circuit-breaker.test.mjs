@@ -76,7 +76,7 @@ describe("provider circuit breaker", () => {
     expect(breaker.allow().allowed).toBe(false);
   });
 
-  it("does not retain arbitrary prompt-like metadata", () => {
+  it("retains only allowlisted operational metadata", () => {
     const events = [];
     const breaker = createProviderCircuitBreaker({
       failureThreshold: 1,
@@ -86,6 +86,10 @@ describe("provider circuit breaker", () => {
     breaker.failure("provider_error", {
       correlationId: "req-safe",
       model: "test-model",
+      surface: "assistant",
+      statusCode: 502,
+      prompt: "sensitive top-level prompt",
+      history: "sensitive history",
       nested: { prompt: "sensitive" },
       array: ["sensitive"],
     });
@@ -96,6 +100,8 @@ describe("provider circuit breaker", () => {
     expect(opened.metadata).toEqual({
       correlationId: "req-safe",
       model: "test-model",
+      surface: "assistant",
+      statusCode: 502,
     });
   });
 });
