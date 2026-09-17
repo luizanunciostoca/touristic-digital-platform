@@ -102,10 +102,14 @@ describe("TicketingCommerceHttpTransport security boundary", () => {
     expect(result.headers["Set-Cookie"]).toContain("HttpOnly");
     expect(result.headers["Set-Cookie"]).toContain("SameSite=Strict");
     expect(result.headers["Set-Cookie"]).toContain("Secure");
-    expect(result.body.data).toMatchObject({
-      subject: expect.stringMatching(/^guest:[a-f0-9]{32}$/u),
-      csrfToken: expect.any(String),
-    });
+    const data = result.body.data;
+    if (!data || typeof data !== "object" || Array.isArray(data)) {
+      throw new Error("INVALID_COMMERCE_SESSION_RESPONSE");
+    }
+    const session = data as Readonly<Record<string, unknown>>;
+    expect(typeof session.subject).toBe("string");
+    expect(String(session.subject)).toMatch(/^guest:[a-f0-9]{32}$/u);
+    expect(typeof session.csrfToken).toBe("string");
   });
 
   it("rejects cross-origin guest session issuance", async () => {
