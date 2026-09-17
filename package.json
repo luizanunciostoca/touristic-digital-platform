@@ -16,7 +16,7 @@
     "features:check": "node -e \"const r=require('./docs/features/registry.json'); const ids=r.features.map(f=>f.id); if(new Set(ids).size!==ids.length) process.exit(1); if(r.features.some(f=>!/^FEATURE-\\d{4}$/.test(f.id))) process.exit(1); console.log('Feature Registry válido:', ids.length, 'features')\"",
     "platform:contracts:check": "node tooling/quality/check-platform-contracts.mjs",
     "environment:check": "node tooling/quality/check-environment-reconciliation.mjs",
-    "release:readiness:check": "node tooling/quality/check-release-readiness.mjs",
+    "release:readiness:check": "node tooling/quality/check-release-readiness.mjs && node --test apps/morro-digital-platform/tooling/payments-production-cutover-guard.test.mjs",
     "secret-patterns:check": "node tooling/quality/check-secret-patterns.mjs",
     "ci:governance:check": "node tooling/quality/check-ci-governance.mjs",
     "ci:supply-chain": "node tooling/quality/check-workflow-supply-chain.mjs",
