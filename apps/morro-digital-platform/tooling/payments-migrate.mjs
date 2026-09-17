@@ -138,6 +138,7 @@ try {
       providerIdentity: "direct-official-api",
       checkoutMode: cutover.mode,
       productionAuthorized: cutover.productionAuthorized,
+      productionCredentialsConfirmed: cutover.productionCredentialsConfirmed,
       subscriptionsEnabled: cutover.subscriptionsEnabled,
       ordering: "M151+ticketing-reservation",
       financial: "M145",
