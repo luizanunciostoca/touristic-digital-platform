@@ -23,7 +23,10 @@ type AssistantProfileManager = ReturnType<
 export interface AssistantV1IntelligenceAdapterOptions {
   readonly profile: Pick<
     AssistantProfileManager,
-    "getUserProfile" | "getRecentPlaces" | "getTopInterests"
+    | "getUserProfile"
+    | "getRecentPlaces"
+    | "getTopInterests"
+    | "getPersonalizedSuggestions"
   >;
   readonly now?: () => number;
   readonly getWeather?: () => Promise<AssistantProactiveWeather | null>;
@@ -40,6 +43,83 @@ const CATEGORY_LABELS: Readonly<Record<string, string>> = Object.freeze({
   emergencies: "emergências",
   transport: "transporte",
 });
+
+const GREETING_CONTINUATION_COPY: Readonly<
+  Record<
+    AssistantLocale,
+    Readonly<{
+      lastPlace: (place: string) => string;
+      lastCategory: (category: string) => string;
+    }>
+  >
+> = Object.freeze({
+  pt: Object.freeze({
+    lastPlace: (place) =>
+      `Você estava vendo <b>${place}</b>. Deseja continuar de onde parou?`,
+    lastCategory: (category) =>
+      `Da última vez você explorou <b>${category}</b>. Posso ajudar com mais alguma coisa?`,
+  }),
+  en: Object.freeze({
+    lastPlace: (place) =>
+      `You were viewing <b>${place}</b>. Want to continue where you left off?`,
+    lastCategory: (category) =>
+      `Last time you explored <b>${category}</b>. Can I help with anything else?`,
+  }),
+  es: Object.freeze({
+    lastPlace: (place) =>
+      `Estabas viendo <b>${place}</b>. ¿Quieres continuar donde lo dejaste?`,
+    lastCategory: (category) =>
+      `La última vez exploraste <b>${category}</b>. ¿Puedo ayudarte con algo más?`,
+  }),
+  he: Object.freeze({
+    lastPlace: (place) =>
+      `צפית ב-<b>${place}</b>. רוצה להמשיך מאיפה שעצרת?`,
+    lastCategory: (category) =>
+      `בפעם הקודמת חקרת <b>${category}</b>. אפשר לעזור עם משהו נוסף?`,
+  }),
+});
+
+function greetingContinuation(
+  request: AssistantDialogIntentHandlerContext,
+  locale: AssistantLocale,
+): string | null {
+  const copy = GREETING_CONTINUATION_COPY[locale];
+  if (request.context.lastPlace) {
+    return copy.lastPlace(request.context.lastPlace);
+  }
+  if (request.context.lastCategory && request.context.history.length > 0) {
+    return copy.lastCategory(request.context.lastCategory);
+  }
+  return null;
+}
+
+function mergeV1GreetingOptions(
+  locale: AssistantLocale,
+  contextualButtons: readonly Readonly<{ label: string; value: string }>[],
+): ReadonlyArray<Readonly<{ label: string; value: string }>> {
+  const mainMenu = getAssistantMainMenu(locale);
+  const mainMenuByLabel = new Map(
+    mainMenu.map((option) => [option.label, option] as const),
+  );
+  const merged = contextualButtons.flatMap((button) => {
+    const label = button.label.trim();
+    if (!label || label.startsWith("[")) return [];
+    const canonical = mainMenuByLabel.get(label);
+    return [
+      canonical
+        ? { label: canonical.label, value: canonical.value }
+        : { label, value: label },
+    ];
+  });
+
+  for (const option of mainMenu) {
+    if (!merged.some((candidate) => candidate.value === option.value)) {
+      merged.push({ label: option.label, value: option.value });
+    }
+  }
+
+  return merged.length > 0 ? merged : mainMenu;
+}
 
 function languageFor(
   request: AssistantDialogIntentHandlerContext,
@@ -828,14 +908,14 @@ export function createAssistantV1IntelligenceHandlers(
       weather,
       now,
     });
+    const personalized = options.profile.getPersonalizedSuggestions(locale);
+    const continuation = greetingContinuation(request, locale);
+    const greetingText = continuation
+      ? `${personalized.greeting}<br><br>${continuation}`
+      : personalized.greeting;
     return {
-      text: menu.intro,
-      options: menu.buttons.map((button) => ({
-        label: button.label,
-        value: button.value.startsWith("[place]")
-          ? button.value.slice("[place]".length)
-          : button.value,
-      })),
+      text: greetingText || menu.intro,
+      options: mergeV1GreetingOptions(locale, menu.buttons),
       metadata: {
         domain: "proactive",
         state: "contextual_menu",
