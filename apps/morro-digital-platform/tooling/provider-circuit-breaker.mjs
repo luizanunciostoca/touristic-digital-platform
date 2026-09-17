@@ -1,5 +1,6 @@
 const DEFAULT_FAILURE_THRESHOLD = 3;
 const DEFAULT_COOLDOWN_MS = 30_000;
+const SAFE_METADATA_KEYS = ["correlationId", "model", "surface", "statusCode"];
 
 function positiveInteger(value, fallback) {
   const parsed = Number(value);
@@ -8,13 +9,14 @@ function positiveInteger(value, fallback) {
 
 function safeMetadata(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
-  return Object.fromEntries(
-    Object.entries(value).filter(
-      ([key, item]) =>
-        typeof key === "string" &&
-        ["string", "number", "boolean"].includes(typeof item),
-    ),
-  );
+  const metadata = {};
+  for (const key of SAFE_METADATA_KEYS) {
+    const item = value[key];
+    if (["string", "number", "boolean"].includes(typeof item)) {
+      metadata[key] = item;
+    }
+  }
+  return metadata;
 }
 
 export function createProviderCircuitBreaker({
