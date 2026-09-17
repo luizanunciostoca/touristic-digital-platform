@@ -232,16 +232,23 @@ describe("V1 residual assistant commands", () => {
 
 describe("current-main residual command hardening", () => {
   it.each([
-    ["playas", "beaches"],
-    ["חופים", "beaches"],
+    ["mostrar solo playas", "beaches"],
+    ["show only beaches", "beaches"],
     ["mostrar solo transporte", "transport"],
     ["show only transport", "transport"],
-  ])("routes localized category command %s map-only", (input, category) => {
+  ])("routes explicit localized filter %s map-only", (input, category) => {
     expect(resolveAssistantV1ResidualCommand(input)).toEqual({
       type: "map_filter_category",
       category,
     });
   });
+
+  it.each(["praias", "beaches", "playas", "חופים"])(
+    "leaves bare category %s to the canonical staged V1 menu flow",
+    (input) => {
+      expect(resolveAssistantV1ResidualCommand(input)).toBeNull();
+    },
+  );
 
   it.each(["הצג הכל", "הצג הכול"])(
     "routes Hebrew show-all alias %s",
