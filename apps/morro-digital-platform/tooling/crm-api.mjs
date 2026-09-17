@@ -131,6 +131,19 @@ function createTaskUid() {
   return randomBytes(18).toString("base64url");
 }
 
+function operationalErrorMetadata(error) {
+  const rawKind = error instanceof Error ? error.name : "NonError";
+  const kind = rawKind.replace(/[^A-Za-z0-9_.-]/gu, "").slice(0, 64) || "Error";
+  const rawCode =
+    typeof error === "object" && error !== null && "code" in error
+      ? String(error.code)
+      : "UNCLASSIFIED";
+  const code = /^[A-Z0-9_:-]{1,64}$/u.test(rawCode)
+    ? rawCode
+    : "UNCLASSIFIED";
+  return { kind, code };
+}
+
 export function createCrmApi({ authApi, getEnvironmentValue }) {
   if (!authApi?.resolveSession || !authApi?.authorizeMutation) {
     throw new Error("CRM_AUTH_BOUNDARY_REQUIRED");
@@ -200,7 +213,7 @@ export function createCrmApi({ authApi, getEnvironmentValue }) {
     onError(error) {
       console.error(
         "CRM trial scheduler failure.",
-        error instanceof Error ? error.stack || error.message : error,
+        operationalErrorMetadata(error),
       );
     },
   });
