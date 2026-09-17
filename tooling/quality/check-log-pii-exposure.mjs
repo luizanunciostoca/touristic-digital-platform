@@ -20,7 +20,8 @@ const rules = [
   },
   {
     name: "raw-error-object",
-    pattern: /console\.(?:log|info|warn|error|debug)\s*\(\s*error(?:\s*[,)]|\s*$)/u,
+    pattern:
+      /console\.(?:log|info|warn|error|debug)\s*\(\s*error(?:\s*[,)]|\s*$)/u,
   },
   {
     name: "request-sensitive-surface",
