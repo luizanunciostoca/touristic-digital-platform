@@ -1,0 +1,138 @@
+name: Security Scanning
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-scanning-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  repository-secrets:
+    name: Repository secret scanning
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - name: Scan tracked repository content for secrets
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: secret
+          exit-code: 1
+          format: table
+
+  configuration:
+    name: Configuration and IaC scanning
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Scan Dockerfiles workflows and infrastructure configuration
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: config
+          scan-ref: .
+          severity: HIGH,CRITICAL
+          trivyignores: .trivyignore.yaml
+          exit-code: 1
+          format: table
+
+  log-pii-review:
+    name: Runtime log and PII contract
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Reject unsafe runtime logging patterns
+        run: node tooling/quality/check-log-pii-exposure.mjs
+
+  application-container:
+    name: Application container
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Build application image from canonical Dockerfile
+        run: >-
+          docker build --pull
+          --file Dockerfile
+          --tag morro-digital-v2:sec07
+          .
+      - name: Scan application image for embedded secrets
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: morro-digital-v2:sec07
+          scanners: secret
+          exit-code: 1
+          format: table
+      - name: Scan application image for HIGH and CRITICAL vulnerabilities
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: morro-digital-v2:sec07
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          ignore-unfixed: false
+          exit-code: 1
+          format: json
+          output: trivy-application-vulnerabilities.json
+      - name: Upload application vulnerability evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: sec07-application-vulnerabilities-${{ github.run_id }}
+          path: trivy-application-vulnerabilities.json
+          if-no-files-found: warn
+          retention-days: 30
+
+  mysql-container:
+    name: Staging MySQL container
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Build canonical staging MySQL image
+        run: >-
+          docker build --pull
+          --file tooling/render/mysql-staging/Dockerfile
+          --tag morro-digital-v2-mysql:sec07
+          .
+      - name: Scan MySQL image for embedded secrets
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: morro-digital-v2-mysql:sec07
+          scanners: secret
+          exit-code: 1
+          format: table
+      - name: Scan MySQL image for HIGH and CRITICAL vulnerabilities
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: morro-digital-v2-mysql:sec07
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          ignore-unfixed: false
+          exit-code: 1
+          format: json
+          output: trivy-mysql-vulnerabilities.json
+      - name: Upload MySQL vulnerability evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: sec07-mysql-vulnerabilities-${{ github.run_id }}
+          path: trivy-mysql-vulnerabilities.json
+          if-no-files-found: warn
+          retention-days: 30
