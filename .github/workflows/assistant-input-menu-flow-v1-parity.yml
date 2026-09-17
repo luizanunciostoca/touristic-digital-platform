@@ -135,6 +135,61 @@ jobs:
                 ).waitFor({ state: 'attached', timeout: 8000 });
               }
 
+              await submit('olá');
+              await page.waitForFunction(() => {
+                const messages = Array.from(
+                  document.querySelectorAll('#assistant-messages .messages-area .message.assistant'),
+                );
+                return messages.some(message =>
+                  message.textContent?.includes(
+                    'Bem-vindo a Morro de São Paulo! Sou seu guia digital. Como posso ajudar?'
+                  ),
+                );
+              });
+
+              const greetingState = await page.evaluate(() => {
+                const assistantMessages = Array.from(
+                  document.querySelectorAll('#assistant-messages .messages-area .message.assistant'),
+                );
+                const dynamicOptions = Array.from(
+                  document.querySelectorAll('#assistant-messages .messages-area .assistant-options'),
+                ).filter(container => !container.querySelector('[data-explore-category]'));
+                const latestOptions = dynamicOptions.at(-1);
+                return {
+                  text: assistantMessages.at(-1)?.textContent || '',
+                  values: latestOptions
+                    ? Array.from(latestOptions.querySelectorAll('.assistant-option-btn')).map(
+                        button => button.getAttribute('data-value'),
+                      )
+                    : [],
+                };
+              });
+              if (!greetingState.text.includes(
+                'Bem-vindo a Morro de São Paulo! Sou seu guia digital. Como posso ajudar?'
+              )) {
+                throw new Error(
+                  `Greeting did not preserve V1 personalized copy: ${JSON.stringify(greetingState)}`
+                );
+              }
+              for (const expectedValue of [
+                'beaches',
+                'restaurants',
+                'hotels',
+                'shops',
+                'transport',
+                'attractions',
+                'tours',
+                'nightlife',
+                'emergencies',
+                'help',
+              ]) {
+                if (!greetingState.values.includes(expectedValue)) {
+                  throw new Error(
+                    `Greeting did not complete the canonical V1 menu with ${expectedValue}: ${JSON.stringify(greetingState)}`
+                  );
+                }
+              }
+
               const categoryCases = [
                 { message: 'beachs', category: 'beaches', count: 8 },
                 { message: 'restaurants', category: 'restaurants', count: 45 },
