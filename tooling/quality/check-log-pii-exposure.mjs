@@ -20,8 +20,7 @@ const rules = [
   },
   {
     name: "raw-error-object",
-    pattern:
-      /(?:console\.(?:log|info|warn|error|debug)|process\.(?:stdout|stderr)\.write)\s*\(\s*error(?:\s*[,)]|\s*$)/u,
+    pattern: /^\s*error(?:\s*[,)]|\s*$)/u,
   },
   {
     name: "request-sensitive-surface",
@@ -39,6 +38,84 @@ const rules = [
   },
 ];
 
+function callArguments(source, match) {
+  const sinkStart = match.index ?? 0;
+  const openParenthesis = sinkStart + match[0].lastIndexOf("(");
+  let depth = 1;
+  let mode = "code";
+  let escaped = false;
+
+  for (let index = openParenthesis + 1; index < source.length; index += 1) {
+    const char = source[index];
+    const next = source[index + 1];
+
+    if (mode === "line-comment") {
+      if (char === "\n") mode = "code";
+      continue;
+    }
+    if (mode === "block-comment") {
+      if (char === "*" && next === "/") {
+        mode = "code";
+        index += 1;
+      }
+      continue;
+    }
+    if (mode !== "code") {
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+      if (char === "\\") {
+        escaped = true;
+        continue;
+      }
+      if (
+        (mode === "single-quote" && char === "'") ||
+        (mode === "double-quote" && char === '"') ||
+        (mode === "template" && char === "`")
+      ) {
+        mode = "code";
+      }
+      continue;
+    }
+
+    if (char === "/" && next === "/") {
+      mode = "line-comment";
+      index += 1;
+      continue;
+    }
+    if (char === "/" && next === "*") {
+      mode = "block-comment";
+      index += 1;
+      continue;
+    }
+    if (char === "'") {
+      mode = "single-quote";
+      continue;
+    }
+    if (char === '"') {
+      mode = "double-quote";
+      continue;
+    }
+    if (char === "`") {
+      mode = "template";
+      continue;
+    }
+    if (char === "(") {
+      depth += 1;
+      continue;
+    }
+    if (char === ")") {
+      depth -= 1;
+      if (depth === 0) {
+        return source.slice(openParenthesis + 1, index);
+      }
+    }
+  }
+
+  return source.slice(openParenthesis + 1);
+}
+
 const findings = [];
 for (const relativePath of candidates) {
   let source;
@@ -52,10 +129,10 @@ for (const relativePath of candidates) {
     /(?:console\.(?:log|info|warn|error|debug)|process\.(?:stdout|stderr)\.write)\s*\(/gu;
   for (const match of source.matchAll(sinkPattern)) {
     const start = match.index ?? 0;
-    const window = source.slice(start, start + 3000);
+    const argumentsSource = callArguments(source, match);
     const line = source.slice(0, start).split(/\r?\n/u).length;
     for (const rule of rules) {
-      if (rule.pattern.test(window)) {
+      if (rule.pattern.test(argumentsSource)) {
         findings.push(`${relativePath}:${line}:${rule.name}`);
       }
     }
@@ -71,5 +148,5 @@ if (findings.length > 0) {
 }
 
 console.log(
-  `Runtime log/PII contract passed: ${candidates.length} production-source files inspected across console/stdout/stderr sinks.`,
+  `Runtime log/PII contract passed: ${candidates.length} production-source files inspected across console/stdout/stderr call arguments.`,
 );
