@@ -24,7 +24,8 @@ export function createProviderCircuitBreaker({
   now = Date.now,
   onEvent = () => {},
 } = {}) {
-  const normalizedProvider = String(provider || "provider").trim() || "provider";
+  const normalizedProvider =
+    String(provider || "provider").trim() || "provider";
   const threshold = positiveInteger(
     failureThreshold,
     DEFAULT_FAILURE_THRESHOLD,
