@@ -28,6 +28,7 @@ import {
   type GlobalViewControl,
 } from "./map/global-view-control.js";
 import { loadMapboxGlSdk } from "./runtime/mapbox-sdk-loader.js";
+import { waitForMapStyleReady } from "./runtime/map-style-readiness.js";
 import {
   applyRuntimeAccessibilityPresentation,
   formatRuntimeStatus,
@@ -262,12 +263,6 @@ function clearTourRoute(map: MapboxGlMapLike): void {
   if (map.getSource?.(TOUR_ROUTE_SOURCE)) map.removeSource?.(TOUR_ROUTE_SOURCE);
 }
 
-async function waitForMapStyle(map: MapboxGlMapLike): Promise<void> {
-  if (map.isStyleLoaded?.()) return;
-  if (!map.once) return;
-  await new Promise<void>((resolve) => map.once?.("load", resolve));
-}
-
 function routeBounds(
   tour: TourRouteContract,
 ): [[number, number], [number, number]] {
@@ -318,7 +313,7 @@ async function presentTourOnRealMap(tourId: string): Promise<void> {
   if (!map || !tour) return;
   if (!map.addSource || !map.addLayer || !map.fitBounds) return;
 
-  await waitForMapStyle(map);
+  await waitForMapStyleReady(map);
   clearTourRoute(map);
 
   const coordinates = tour.stops.map(
