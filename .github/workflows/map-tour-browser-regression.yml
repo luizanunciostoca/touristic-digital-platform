@@ -12,6 +12,7 @@ on:
       - apps/morro-digital-platform/src/config/tour-catalog.ts
       - apps/morro-digital-platform/src/config/tour-markers.ts
       - apps/morro-digital-platform/src/config/tour-selection.ts
+      - apps/morro-digital-platform/src/runtime/map-style-readiness.ts
       - apps/morro-digital-platform/src/development/leaflet-compatibility-sdk.ts
       - apps/morro-digital-platform/tooling/dev-server.mjs
       - apps/morro-digital-platform/public/index.html
@@ -25,6 +26,7 @@ on:
       - apps/morro-digital-platform/src/config/tour-catalog.ts
       - apps/morro-digital-platform/src/config/tour-markers.ts
       - apps/morro-digital-platform/src/config/tour-selection.ts
+      - apps/morro-digital-platform/src/runtime/map-style-readiness.ts
       - apps/morro-digital-platform/src/development/leaflet-compatibility-sdk.ts
       - apps/morro-digital-platform/tooling/dev-server.mjs
       - apps/morro-digital-platform/public/index.html
