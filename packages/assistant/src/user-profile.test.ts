@@ -132,25 +132,25 @@ describe("assistant V1 user profile", () => {
       getLanguage: () => "pt",
     });
 
-    expect(manager.getPersonalizedSuggestions("en")).toMatchObject({
-      greeting: expect.stringContaining(
-        "Welcome to Morro de São Paulo! I am your digital guide.",
-      ),
-      suggestions: expect.arrayContaining(["Beaches", "Tours"]),
-    });
-    expect(manager.getPersonalizedSuggestions("es")).toMatchObject({
-      greeting: expect.stringContaining(
-        "Bienvenido a Morro de São Paulo. Soy tu guía digital.",
-      ),
-    });
-    expect(manager.getPersonalizedSuggestions("he")).toMatchObject({
-      greeting: expect.stringContaining("ברוך הבא למורו דה סאו פאולו"),
-    });
-    expect(manager.getPersonalizedSuggestions()).toMatchObject({
-      greeting: expect.stringContaining(
-        "Bem-vindo a Morro de São Paulo! Sou seu guia digital.",
-      ),
-    });
+    const english = manager.getPersonalizedSuggestions("en");
+    expect(english.greeting).toContain(
+      "Welcome to Morro de São Paulo! I am your digital guide.",
+    );
+    expect(english.suggestions).toContain("Beaches");
+    expect(english.suggestions).toContain("Tours");
+
+    const spanish = manager.getPersonalizedSuggestions("es");
+    expect(spanish.greeting).toContain(
+      "Bienvenido a Morro de São Paulo. Soy tu guía digital.",
+    );
+
+    const hebrew = manager.getPersonalizedSuggestions("he");
+    expect(hebrew.greeting).toContain("ברוך הבא למורו דה סאו פאולו");
+
+    const portuguese = manager.getPersonalizedSuggestions();
+    expect(portuguese.greeting).toContain(
+      "Bem-vindo a Morro de São Paulo! Sou seu guia digital.",
+    );
   });
 
   it("can manually switch between tourist and resident and reset", () => {
