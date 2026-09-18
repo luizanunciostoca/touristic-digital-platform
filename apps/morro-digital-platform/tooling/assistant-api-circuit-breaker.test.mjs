@@ -163,8 +163,8 @@ describe("Assistant provider circuit breaker integration", () => {
     expect(output.statusCode).toBe(0);
     expect(output.body).toBe("");
     expect(api.observabilitySnapshot().circuitBreaker.state).toBe("closed");
-    expect(
-      api.observabilitySnapshot().circuitBreaker.consecutiveFailures,
-    ).toBe(0);
+    expect(api.observabilitySnapshot().circuitBreaker.consecutiveFailures).toBe(
+      0,
+    );
   });
 });

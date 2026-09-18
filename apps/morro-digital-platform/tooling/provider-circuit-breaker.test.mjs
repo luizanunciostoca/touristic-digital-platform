@@ -52,9 +52,7 @@ describe("provider circuit breaker", () => {
     expect(breaker.snapshot().state).toBe("open");
     expect(breaker.snapshot().retryAfterMs).toBe(20_000);
     expect(
-      events.some(
-        (event) => event.type === "provider.circuit.failure_ignored",
-      ),
+      events.some((event) => event.type === "provider.circuit.failure_ignored"),
     ).toBe(true);
   });
 
