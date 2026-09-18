@@ -230,6 +230,7 @@ describe("V1 residual assistant commands", () => {
   });
 });
 
+// Preserve explicit map filters without stealing the canonical staged bare-category flow.
 describe("current-main residual command hardening", () => {
   it.each([
     ["mostrar solo playas", "beaches"],
