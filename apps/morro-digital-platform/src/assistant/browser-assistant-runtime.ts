@@ -622,7 +622,12 @@ export function installBrowserAssistantRuntime(
 
     const generation = ++requestGeneration;
 
-    const residualCommand = resolveAssistantV1ResidualCommand(value);
+    const residualCandidate = resolveAssistantV1ResidualCommand(value);
+    const exploreState = options.explore?.getState();
+    const residualCommand =
+      residualCandidate?.type === "map_show_all" && exploreState?.category
+        ? null
+        : residualCandidate;
     if (residualCommand) {
       const residualContext = context.getContext();
       const runtimeGlobal = globalThis as typeof globalThis &
