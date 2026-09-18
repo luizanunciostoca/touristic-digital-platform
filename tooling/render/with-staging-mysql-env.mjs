@@ -27,6 +27,11 @@ export const stagingPaymentsAcceptanceIdentity = Object.freeze({
   }),
 });
 
+function safeDiagnosticCode(error, fallback) {
+  const value = error instanceof Error ? String(error.message).trim() : "";
+  return /^[A-Z][A-Z0-9_:-]{2,120}$/u.test(value) ? value : fallback;
+}
+
 function required(environment, name) {
   const value = String(environment[name] ?? "").trim();
   if (!value) throw new Error(`${name}_REQUIRED`);
@@ -254,11 +259,12 @@ if (isDirectInvocation()) {
         process.env,
       );
     } catch (error) {
+      const reason = safeDiagnosticCode(error, "STAGING_ENV_INVALID");
       process.stderr.write(
         `${JSON.stringify({
           contract: "MORRO-STAGING-MYSQL-ENV",
           status: "fail",
-          reason: error instanceof Error ? error.message : "UNKNOWN_ERROR",
+          reason,
         })}\n`,
       );
       process.exitCode = 1;
@@ -297,11 +303,12 @@ if (isDirectInvocation()) {
           stdio: "inherit",
         });
         acceptanceChild.on("error", (error) => {
+          const diagnostic = safeDiagnosticCode(error, "START_FAILED");
           process.stderr.write(
             `${JSON.stringify({
               contract: "PAYMENTS-PROVIDER-ACCEPTANCE-RUNNER",
               status: "fail",
-              reason: `start_failed:${error.message}`.slice(0, 200),
+              reason: `start_failed:${diagnostic}`.slice(0, 200),
             })}\n`,
           );
         });
@@ -325,10 +332,8 @@ if (isDirectInvocation()) {
         });
       }
 
-      child.on("error", (error) => {
-        process.stderr.write(
-          `staging command failed to start: ${error.message}\n`,
-        );
+      child.on("error", () => {
+        process.stderr.write("staging command failed to start\n");
         process.exitCode = 1;
       });
       child.on("exit", (code, signal) => {
