@@ -1,6 +1,7 @@
 # MIG-0006 — Matriz de equivalência do Assistente Digital
 
 <!-- Exact-head parity recertification refresh after deterministic formatting. -->
+
 Baseline V1: `60746fd7fed97b805758b37adfdbe3bad2582bfe`  
 Baseline formal: `docs/qa/ASSISTANT-V1-BASELINE.md`  
 Destino: `packages/assistant`
