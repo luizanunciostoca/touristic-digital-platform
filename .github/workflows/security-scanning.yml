@@ -85,6 +85,7 @@ jobs:
           scanners: vuln
           severity: HIGH,CRITICAL
           ignore-unfixed: false
+          trivyignores: .trivyignore.yaml
           exit-code: 1
           format: json
           output: trivy-application-vulnerabilities.json
@@ -125,6 +126,7 @@ jobs:
           scanners: vuln
           severity: HIGH,CRITICAL
           ignore-unfixed: false
+          trivyignores: .trivyignore.yaml
           exit-code: 1
           format: json
           output: trivy-mysql-vulnerabilities.json
