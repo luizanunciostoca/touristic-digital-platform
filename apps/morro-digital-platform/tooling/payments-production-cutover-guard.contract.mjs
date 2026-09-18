@@ -1,9 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import {
-  validateMercadoPagoProductionCutover,
-} from "./payments-production-cutover-guard.mjs";
+import { validateMercadoPagoProductionCutover } from "./payments-production-cutover-guard.mjs";
 
 function productionEnvironment(overrides = {}) {
   return {
@@ -38,35 +36,29 @@ test("keeps TEST mode outside the financial authorization gate", () => {
   );
 });
 
-test(
-  "fails closed when production mode lacks explicit financial authorization",
-  () => {
-    assert.throws(
-      () =>
-        validateMercadoPagoProductionCutover(
-          productionEnvironment({
-            MERCADO_PAGO_PRODUCTION_AUTHORIZATION_ID: "",
-          }),
-        ),
-      /MERCADO_PAGO_PRODUCTION_AUTHORIZATION_ID_REQUIRED/u,
-    );
-  },
-);
+test("fails closed when production mode lacks explicit financial authorization", () => {
+  assert.throws(
+    () =>
+      validateMercadoPagoProductionCutover(
+        productionEnvironment({
+          MERCADO_PAGO_PRODUCTION_AUTHORIZATION_ID: "",
+        }),
+      ),
+    /MERCADO_PAGO_PRODUCTION_AUTHORIZATION_ID_REQUIRED/u,
+  );
+});
 
-test(
-  "requires explicit confirmation that production credentials were selected",
-  () => {
-    assert.throws(
-      () =>
-        validateMercadoPagoProductionCutover(
-          productionEnvironment({
-            MERCADO_PAGO_PRODUCTION_CREDENTIALS_CONFIRMED: "false",
-          }),
-        ),
-      /MERCADO_PAGO_PRODUCTION_CREDENTIALS_NOT_CONFIRMED/u,
-    );
-  },
-);
+test("requires explicit confirmation that production credentials were selected", () => {
+  assert.throws(
+    () =>
+      validateMercadoPagoProductionCutover(
+        productionEnvironment({
+          MERCADO_PAGO_PRODUCTION_CREDENTIALS_CONFIRMED: "false",
+        }),
+      ),
+    /MERCADO_PAGO_PRODUCTION_CREDENTIALS_NOT_CONFIRMED/u,
+  );
+});
 
 test("rejects TEST credential confirmation in production mode", () => {
   assert.throws(
@@ -80,37 +72,34 @@ test("rejects TEST credential confirmation in production mode", () => {
   );
 });
 
-test(
-  "requires complete dedicated production subscription configuration when enabled",
-  () => {
-    assert.throws(
-      () =>
-        validateMercadoPagoProductionCutover(
-          productionEnvironment({
-            PAYMENTS_SUBSCRIPTIONS_ENABLED: "true",
-          }),
-        ),
-      /MERCADO_PAGO_SUBSCRIPTIONS_ACCESS_TOKEN_REQUIRED/u,
-    );
-
-    assert.deepEqual(
+test("requires complete dedicated production subscription configuration when enabled", () => {
+  assert.throws(
+    () =>
       validateMercadoPagoProductionCutover(
         productionEnvironment({
           PAYMENTS_SUBSCRIPTIONS_ENABLED: "true",
-          MERCADO_PAGO_SUBSCRIPTIONS_ACCESS_TOKEN:
-            "fixture-subscriptions-server-credential-value-1234567890",
-          MERCADO_PAGO_SUBSCRIPTIONS_PUBLIC_KEY:
-            "fixture-subscriptions-public-credential-1234567890",
-          PAYMENTS_SUBSCRIPTION_BACK_URL: "https://morro.digital/assinaturas",
         }),
       ),
-      {
-        mode: "production",
-        productionAuthorized: true,
-        productionCredentialsConfirmed: true,
-        authorizationId: "FINAUTH-ISSUE-33-20260917",
-        subscriptionsEnabled: true,
-      },
-    );
-  },
-);
+    /MERCADO_PAGO_SUBSCRIPTIONS_ACCESS_TOKEN_REQUIRED/u,
+  );
+
+  assert.deepEqual(
+    validateMercadoPagoProductionCutover(
+      productionEnvironment({
+        PAYMENTS_SUBSCRIPTIONS_ENABLED: "true",
+        MERCADO_PAGO_SUBSCRIPTIONS_ACCESS_TOKEN:
+          "fixture-subscriptions-server-credential-value-1234567890",
+        MERCADO_PAGO_SUBSCRIPTIONS_PUBLIC_KEY:
+          "fixture-subscriptions-public-credential-1234567890",
+        PAYMENTS_SUBSCRIPTION_BACK_URL: "https://morro.digital/assinaturas",
+      }),
+    ),
+    {
+      mode: "production",
+      productionAuthorized: true,
+      productionCredentialsConfirmed: true,
+      authorizationId: "FINAUTH-ISSUE-33-20260917",
+      subscriptionsEnabled: true,
+    },
+  );
+});
