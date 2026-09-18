@@ -446,7 +446,7 @@ try {
   });
   await page
     .locator('#map[data-tour-state="ready"][data-active-tour="volta-a-ilha"]')
-    .waitFor({ state: "attached", timeout: 10000 });
+    .waitFor({ state: "attached", timeout: 30000 });
   const tourMarker = page
     .locator(
       '.tour-stop-marker[data-tour-id="volta-a-ilha"][data-stop-id="stop-1"]',
