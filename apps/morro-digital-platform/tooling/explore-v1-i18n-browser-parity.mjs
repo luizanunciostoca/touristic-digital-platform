@@ -191,6 +191,57 @@ async function waitRuntimeAccessibility(page, locale, expected) {
   );
 }
 
+async function selectTourAndWaitReady(page, tourId) {
+  const select = page.locator("#tour-select:not([disabled])");
+  await select.waitFor({ state: "attached", timeout: 10000 });
+  await select.evaluate((element, value) => {
+    if (!(element instanceof HTMLSelectElement)) {
+      throw new Error("tour-select missing");
+    }
+    element.value = value;
+    element.dispatchEvent(new Event("change", { bubbles: true }));
+  }, tourId);
+
+  const deadline = Date.now() + 30000;
+  let observed = null;
+  while (Date.now() < deadline) {
+    observed = await page.evaluate((expectedTourId) => {
+      const map = document.getElementById("map");
+      const tourSelect = document.getElementById("tour-select");
+      return {
+        mapState: map?.getAttribute("data-map-state") ?? null,
+        tourState: map?.getAttribute("data-tour-state") ?? null,
+        activeTour: map?.getAttribute("data-active-tour") ?? null,
+        markerCount: map?.getAttribute("data-map-marker-count") ?? null,
+        selectValue:
+          tourSelect instanceof HTMLSelectElement ? tourSelect.value : null,
+        selectDisabled:
+          tourSelect instanceof HTMLSelectElement ? tourSelect.disabled : null,
+        runtimeStatus:
+          document.getElementById("runtime-status")?.textContent?.trim() ?? "",
+        expectedTourId,
+      };
+    }, tourId);
+
+    if (
+      observed.tourState === "ready" &&
+      observed.activeTour === tourId
+    ) {
+      return observed;
+    }
+    if (observed.tourState === "error") {
+      throw new Error(
+        `tour activation failed: ${JSON.stringify(observed)}`,
+      );
+    }
+    await page.waitForTimeout(100);
+  }
+
+  throw new Error(
+    `tour activation timed out: ${JSON.stringify(observed)}`,
+  );
+}
+
 async function waitExploreSelectedStatus(page, expectedText) {
   const deadline = Date.now() + 5000;
   let observed = null;
@@ -437,16 +488,7 @@ try {
 
   await setLanguage(page, "he");
   await waitRuntimeAccessibility(page, "he", runtimeAccessibility.he);
-  await page.evaluate(() => {
-    const select = document.getElementById("tour-select");
-    if (!(select instanceof HTMLSelectElement))
-      throw new Error("tour-select missing");
-    select.value = "volta-a-ilha";
-    select.dispatchEvent(new Event("change", { bubbles: true }));
-  });
-  await page
-    .locator('#map[data-tour-state="ready"][data-active-tour="volta-a-ilha"]')
-    .waitFor({ state: "attached", timeout: 30000 });
+  await selectTourAndWaitReady(page, "volta-a-ilha");
   const tourMarker = page
     .locator(
       '.tour-stop-marker[data-tour-id="volta-a-ilha"][data-stop-id="stop-1"]',
