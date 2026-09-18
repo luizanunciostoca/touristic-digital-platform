@@ -1,6 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import { waitForMapStyleReady } from "./map-style-readiness.js";
+import {
+  createMapStyleReadinessTracker,
+  waitForMapStyleReady,
+} from "./map-style-readiness.js";
 
 describe("Mapbox style readiness", () => {
   it("returns immediately when the map does not expose style readiness", async () => {
@@ -13,7 +16,7 @@ describe("Mapbox style readiness", () => {
     ).resolves.toBeUndefined();
   });
 
-  it("polls readiness after the initial Mapbox load event has already passed", async () => {
+  it("polls readiness when the initial style has not loaded yet", async () => {
     let clock = 0;
     let polls = 0;
     const map = {
@@ -28,15 +31,16 @@ describe("Mapbox style readiness", () => {
         timeoutMs: 1_000,
         pollIntervalMs: 50,
         now: () => clock,
-        sleep: async (milliseconds) => {
+        sleep: (milliseconds) => {
           clock += milliseconds;
+          return Promise.resolve();
         },
       }),
     ).resolves.toBeUndefined();
     expect(polls).toBe(4);
   });
 
-  it("fails closed instead of hanging when the style never becomes ready", async () => {
+  it("fails closed instead of hanging when the initial style never becomes ready", async () => {
     let clock = 0;
     await expect(
       waitForMapStyleReady(
@@ -45,8 +49,9 @@ describe("Mapbox style readiness", () => {
           timeoutMs: 100,
           pollIntervalMs: 25,
           now: () => clock,
-          sleep: async (milliseconds) => {
+          sleep: (milliseconds) => {
             clock += milliseconds;
+            return Promise.resolve();
           },
         },
       ),
@@ -54,5 +59,26 @@ describe("Mapbox style readiness", () => {
       "Mapbox style did not become ready before tour presentation.",
     );
     expect(clock).toBe(100);
+  });
+
+  it("remembers the first load so later tile loading does not block tour presentation", async () => {
+    let loadListener: (() => void) | undefined;
+    const sleep = vi.fn(() => Promise.resolve());
+    const map = {
+      isStyleLoaded: vi.fn(() => false),
+      once: vi.fn((event: string, listener: () => void) => {
+        if (event === "load") loadListener = listener;
+      }),
+      setCenter: vi.fn(),
+      remove: vi.fn(),
+    };
+    const tracker = createMapStyleReadinessTracker({ sleep });
+
+    tracker.observe(map);
+    expect(map.once).toHaveBeenCalledWith("load", expect.any(Function));
+    loadListener?.();
+
+    await expect(tracker.waitUntilReady(map)).resolves.toBeUndefined();
+    expect(sleep).not.toHaveBeenCalled();
   });
 });
