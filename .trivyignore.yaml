@@ -10,3 +10,28 @@ misconfigurations:
       USER mysql to this derived staging Dockerfile would bypass that supported
       bootstrap path. Re-evaluate this narrowly scoped exception on any base-image
       or entrypoint change and no later than the expiry date.
+vulnerabilities:
+  - id: CVE-2026-76642
+    expired_at: 2026-10-01
+    statement: Debian 13.7 util-linux family HIGH finding has no vendor-fixed version in the 2026-09-17 SEC-07 scan; re-evaluate before expiry.
+  - id: CVE-2026-78408
+    expired_at: 2026-10-01
+    statement: Debian 13.7 util-linux family HIGH finding has no vendor-fixed version in the 2026-09-17 SEC-07 scan; re-evaluate before expiry.
+  - id: CVE-2026-78409
+    expired_at: 2026-10-01
+    statement: Debian 13.7 util-linux family HIGH finding has no vendor-fixed version in the 2026-09-17 SEC-07 scan; re-evaluate before expiry.
+  - id: CVE-2026-78410
+    expired_at: 2026-10-01
+    statement: Debian 13.7 util-linux family HIGH finding has no vendor-fixed version in the 2026-09-17 SEC-07 scan; re-evaluate before expiry.
+  - id: CVE-2026-54369
+    expired_at: 2026-10-01
+    statement: Debian 13.7 libacl1 HIGH finding has no vendor-fixed version in the 2026-09-17 SEC-07 scan; re-evaluate before expiry.
+  - id: CVE-2026-16742
+    expired_at: 2026-10-01
+    statement: Debian 13.7 systemd libraries HIGH finding has no vendor-fixed version in the 2026-09-17 SEC-07 scan; re-evaluate before expiry.
+  - id: CVE-2025-69720
+    expired_at: 2026-10-01
+    statement: Debian 13.7 ncurses HIGH finding has no vendor-fixed version in the 2026-09-17 SEC-07 scan; re-evaluate before expiry.
+  - id: CVE-2026-9538
+    expired_at: 2026-10-01
+    statement: Debian 13.7 perl-base HIGH finding is vendor fix-deferred in the 2026-09-17 SEC-07 scan; re-evaluate before expiry.
