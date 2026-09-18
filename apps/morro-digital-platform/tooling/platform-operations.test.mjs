@@ -147,12 +147,8 @@ describe("Platform production operations", () => {
       },
     });
 
-    expect(records[0].observation.attributes.authorization).toBe(
-      "[REDACTED]",
-    );
-    expect(
-      JSON.parse(records[0].observation.attributes.nested),
-    ).toMatchObject({
+    expect(records[0].observation.attributes.authorization).toBe("[REDACTED]");
+    expect(JSON.parse(records[0].observation.attributes.nested)).toMatchObject({
       sessionId: "[REDACTED]",
       safeCode: "ALLOWED_CODE",
     });
