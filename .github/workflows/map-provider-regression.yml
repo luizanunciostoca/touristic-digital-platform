@@ -11,6 +11,7 @@ on:
       - apps/morro-digital-platform/src/browser.ts
       - apps/morro-digital-platform/src/onboarding/public-onboarding.ts
       - apps/morro-digital-platform/src/runtime/mapbox-sdk-loader.ts
+      - apps/morro-digital-platform/src/runtime/map-style-readiness.ts
       - apps/morro-digital-platform/src/development/leaflet-compatibility-sdk.ts
       - apps/morro-digital-platform/tooling/dev-server.mjs
       - apps/morro-digital-platform/public/index.html
@@ -23,6 +24,7 @@ on:
       - apps/morro-digital-platform/src/browser.ts
       - apps/morro-digital-platform/src/onboarding/public-onboarding.ts
       - apps/morro-digital-platform/src/runtime/mapbox-sdk-loader.ts
+      - apps/morro-digital-platform/src/runtime/map-style-readiness.ts
       - apps/morro-digital-platform/src/development/leaflet-compatibility-sdk.ts
       - apps/morro-digital-platform/tooling/dev-server.mjs
       - apps/morro-digital-platform/public/index.html
