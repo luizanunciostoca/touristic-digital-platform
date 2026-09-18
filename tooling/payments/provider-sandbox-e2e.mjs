@@ -52,7 +52,9 @@ function safeErrorCode(error, fallback = "E2E_STEP_FAILED") {
       : "",
     error instanceof Error ? error.name : "",
   ];
-  return candidates.find((value) => diagnosticCodePattern.test(value)) ?? fallback;
+  return (
+    candidates.find((value) => diagnosticCodePattern.test(value)) ?? fallback
+  );
 }
 
 function checkPrerequisites() {
@@ -137,7 +139,9 @@ async function main() {
   );
 
   console.log(`    Checkout ID: ${checkout.id ?? checkout.checkoutId}`);
-  console.log("    Checkout session created; provider URL intentionally redacted.\n");
+  console.log(
+    "    Checkout session created; provider URL intentionally redacted.\n",
+  );
 
   // Step 2: Simulate webhook delivery
   const webhookResult = await step("Webhook delivery (signed)", async () => {

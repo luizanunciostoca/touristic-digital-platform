@@ -168,7 +168,9 @@ function sanitizeAuditValue(key, value, depth = 0) {
   if (typeof value === "number" || typeof value === "boolean") return value;
   if (depth >= 3) return "[REDACTED_COMPLEX_VALUE]";
   if (Array.isArray(value)) {
-    return value.slice(0, 20).map((item) => sanitizeAuditValue(key, item, depth + 1));
+    return value
+      .slice(0, 20)
+      .map((item) => sanitizeAuditValue(key, item, depth + 1));
   }
   if (typeof value === "object") {
     return Object.freeze(
