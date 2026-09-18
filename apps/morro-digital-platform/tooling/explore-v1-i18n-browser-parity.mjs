@@ -223,23 +223,16 @@ async function selectTourAndWaitReady(page, tourId) {
       };
     }, tourId);
 
-    if (
-      observed.tourState === "ready" &&
-      observed.activeTour === tourId
-    ) {
+    if (observed.tourState === "ready" && observed.activeTour === tourId) {
       return observed;
     }
     if (observed.tourState === "error") {
-      throw new Error(
-        `tour activation failed: ${JSON.stringify(observed)}`,
-      );
+      throw new Error(`tour activation failed: ${JSON.stringify(observed)}`);
     }
     await page.waitForTimeout(100);
   }
 
-  throw new Error(
-    `tour activation timed out: ${JSON.stringify(observed)}`,
-  );
+  throw new Error(`tour activation timed out: ${JSON.stringify(observed)}`);
 }
 
 async function waitExploreSelectedStatus(page, expectedText) {
