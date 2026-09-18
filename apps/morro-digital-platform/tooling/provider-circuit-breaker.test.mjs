@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+// Exact-head regression coverage for circuit state, cooldown and late outcomes.
+
 import { createProviderCircuitBreaker } from "./provider-circuit-breaker.mjs";
 
 describe("provider circuit breaker", () => {
