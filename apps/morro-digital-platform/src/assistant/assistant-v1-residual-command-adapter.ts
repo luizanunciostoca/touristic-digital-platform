@@ -499,12 +499,11 @@ function navigationBlocked(language: AssistantLocale): string {
   }[language];
 }
 
-const cameraCommandGeneration = new WeakMap<object, number>();
+const cameraCommandGeneration = new WeakMap<AssistantV1MapCommandMap, number>();
 
 function bumpCameraGeneration(map: AssistantV1MapCommandMap): number {
-  const key = map as object;
-  const next = (cameraCommandGeneration.get(key) ?? 0) + 1;
-  cameraCommandGeneration.set(key, next);
+  const next = (cameraCommandGeneration.get(map) ?? 0) + 1;
+  cameraCommandGeneration.set(map, next);
   return next;
 }
 
@@ -512,7 +511,7 @@ function isCurrentCameraGeneration(
   map: AssistantV1MapCommandMap,
   generation: number,
 ): boolean {
-  return cameraCommandGeneration.get(map as object) === generation;
+  return cameraCommandGeneration.get(map) === generation;
 }
 
 export async function executeAssistantV1ResidualCommand(
