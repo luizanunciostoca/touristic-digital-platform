@@ -75,7 +75,9 @@ describe("Mapbox style readiness", () => {
     const tracker = createMapStyleReadinessTracker({ sleep });
 
     tracker.observe(map);
-    expect(map.once).toHaveBeenCalledWith("load", expect.any(Function));
+    expect(map.once).toHaveBeenCalledTimes(1);
+    expect(map.once.mock.calls[0]?.[0]).toBe("load");
+    expect(typeof map.once.mock.calls[0]?.[1]).toBe("function");
     loadListener?.();
 
     await expect(tracker.waitUntilReady(map)).resolves.toBeUndefined();
