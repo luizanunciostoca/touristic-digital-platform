@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+
+// Exact-head production-cutover contract remains TEST-safe until explicit financial authorization.
 import test from "node:test";
 
 import { validateMercadoPagoProductionCutover } from "./payments-production-cutover-guard.mjs";
