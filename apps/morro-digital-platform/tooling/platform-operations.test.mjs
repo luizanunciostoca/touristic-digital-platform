@@ -147,12 +147,14 @@ describe("Platform production operations", () => {
       },
     });
 
-    expect(records[0].observation.attributes).toMatchObject({
-      authorization: "[REDACTED]",
-      nested: {
-        sessionId: "[REDACTED]",
-        safeCode: "ALLOWED_CODE",
-      },
+    expect(records[0].observation.attributes.authorization).toBe(
+      "[REDACTED]",
+    );
+    expect(
+      JSON.parse(records[0].observation.attributes.nested),
+    ).toMatchObject({
+      sessionId: "[REDACTED]",
+      safeCode: "ALLOWED_CODE",
     });
     expect(JSON.stringify(records[0])).not.toContain("super-secret");
     expect(JSON.stringify(records[0])).not.toContain("session-secret");
