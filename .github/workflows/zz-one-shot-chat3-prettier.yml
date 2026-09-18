@@ -31,7 +31,7 @@ jobs:
           set -euo pipefail
           pnpm exec prettier --write \
             apps/morro-digital-platform/tooling/assistant-api-circuit-breaker.test.mjs \
-            apps/morro-digital-platform/tooling/provider-circuit-breaker.test.mjs \
+            apps/morro-digital-platform/tooling/provider-circuit-breaker.test.mjs
           git rm .github/workflows/zz-one-shot-chat3-prettier.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
