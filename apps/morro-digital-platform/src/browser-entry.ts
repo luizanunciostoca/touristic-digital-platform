@@ -28,7 +28,7 @@ import {
   type GlobalViewControl,
 } from "./map/global-view-control.js";
 import { loadMapboxGlSdk } from "./runtime/mapbox-sdk-loader.js";
-import { waitForMapStyleReady } from "./runtime/map-style-readiness.js";
+import { createMapStyleReadinessTracker } from "./runtime/map-style-readiness.js";
 import {
   applyRuntimeAccessibilityPresentation,
   formatRuntimeStatus,
@@ -136,6 +136,7 @@ const status = document.getElementById("runtime-status");
 const mapContainer = document.getElementById("map");
 const tourSelect = document.getElementById("tour-select");
 let activeRealMap: MapboxGlMapLike | undefined;
+const mapStyleReadiness = createMapStyleReadinessTracker();
 let activeNavigationRuntimeInstall: BrowserNavigationRuntimeInstall | undefined;
 let activeGlobalViewControl: GlobalViewControl | undefined;
 
@@ -313,7 +314,7 @@ async function presentTourOnRealMap(tourId: string): Promise<void> {
   if (!map || !tour) return;
   if (!map.addSource || !map.addLayer || !map.fitBounds) return;
 
-  await waitForMapStyleReady(map);
+  await mapStyleReadiness.waitUntilReady(map);
   clearTourRoute(map);
 
   const coordinates = tour.stops.map(
@@ -460,6 +461,7 @@ async function startBrowserWithProvider(provider: ResolvedMapProvider) {
             onMapCreated: (map: MapboxGlMapLike) => {
               clearBrowserNavigationRuntime();
               activeRealMap = map;
+              mapStyleReadiness.observe(map);
               setV1MapboxCompatibilityAliases(map);
               activeGlobalViewControl = installGlobalViewControl({
                 document,
