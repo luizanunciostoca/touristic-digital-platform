@@ -176,10 +176,15 @@ export function createPlatformOperations({
     attributes = {},
   }) {
     const safeAttributes = Object.fromEntries(
-      Object.entries(attributes).map(([key, value]) => [
-        bounded(key, 160),
-        sanitizeObservationValue(key, value),
-      ]),
+      Object.entries(attributes).map(([key, value]) => {
+        const safeValue = sanitizeObservationValue(key, value);
+        return [
+          bounded(key, 160),
+          safeValue && typeof safeValue === "object"
+            ? bounded(JSON.stringify(safeValue), 500)
+            : safeValue,
+        ];
+      }),
     );
     const observation = createPlatformObservation({
       kind,
