@@ -312,9 +312,7 @@ describe("current-main residual command hardening", () => {
       history: [],
       map,
     });
-    expect(flyTo).toHaveBeenCalledWith(
-      expect.objectContaining({ zoom: 2 }),
-    );
+    expect(flyTo).toHaveBeenCalledWith(expect.objectContaining({ zoom: 2 }));
   });
 
   it("does not let a stale style-load restore overwrite a newer camera command", async () => {
