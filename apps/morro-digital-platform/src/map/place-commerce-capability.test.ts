@@ -18,6 +18,14 @@ const transport: MorroV1SearchCatalogItem = Object.freeze({
   category: "transport",
 });
 
+const garapuaTour: MorroV1SearchCatalogItem = Object.freeze({
+  name: "Passeio para Garapuá",
+  latitude: -13.4769538,
+  longitude: -38.9165457,
+  category: "tours",
+  aliases: ["garapua tour", "passeio garapua"],
+});
+
 function response(data: unknown) {
   return {
     ok: true,
@@ -104,6 +112,33 @@ describe("place commerce capability", () => {
       disabled: true,
       commerceState: "sold_out",
     });
+  });
+
+  it("matches concise tour labels through the catalog aliases", async () => {
+    const fetch = vi.fn().mockResolvedValue(
+      response([
+        offer({
+          id: "mpi_garapua01",
+          product: {
+            kind: "tour",
+            reference: "tour:garapua",
+          },
+          label: "Garapuá",
+        }),
+      ]),
+    );
+    const action = await resolvePlacePrimaryAction({
+      location: garapuaTour,
+      locale: "pt",
+      fetch,
+      now: () => Date.parse("2026-09-19T22:00:00.000Z"),
+    });
+
+    expect(action).toMatchObject({
+      value: "commerce:offer:mpi_garapua01",
+      commerceState: "sellable",
+    });
+    expect(action?.label).toContain("Comprar ingressos");
   });
 
   it("falls back to the transport request action when no ticketable inventory matches", async () => {
