@@ -61,6 +61,11 @@ export function validateMercadoPagoProductionCutover(
     "PAYMENTS_SUBSCRIPTIONS_ENABLED",
   );
   if (mode === "test") {
+    if (
+      !requireBoolean(environment, "MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED")
+    ) {
+      throw new Error("MERCADO_PAGO_TEST_CREDENTIALS_NOT_CONFIRMED");
+    }
     return Object.freeze({
       mode,
       productionAuthorized: false,
