@@ -1,3 +1,8 @@
+import {
+  getPublicOnboardingCopy,
+  type PublicOnboardingTourStepCopy,
+} from "./public-onboarding-i18n.js";
+
 export interface PublicInteractiveTourController {
   readonly active: boolean;
   readonly stepIndex: number;
@@ -15,11 +20,8 @@ interface TutorialWindow extends Window {
   __tourActive?: boolean;
 }
 
-interface TutorialStep {
+interface TutorialStepTarget {
   readonly selectors: readonly string[];
-  readonly title: string;
-  readonly description: string;
-  readonly hint: string;
 }
 
 const TOUR_FOCUSABLE_SELECTOR = [
@@ -31,56 +33,18 @@ const TOUR_FOCUSABLE_SELECTOR = [
   '[tabindex]:not([tabindex="-1"])',
 ].join(",");
 
-const STEPS: readonly TutorialStep[] = Object.freeze([
-  {
-    selectors: ["#map-container", "#map"],
-    title: "Explore Morro pelo mapa",
-    description:
-      "O mapa interativo é o centro da experiência. Navegue por Morro de São Paulo e descubra lugares próximos.",
-    hint: "Arraste e aproxime o mapa quando quiser.",
-  },
-  {
-    selectors: ["#weather-widget"],
-    title: "Veja o clima antes de sair",
-    description:
-      "O clima acompanha a sua exploração para ajudar a planejar praias, passeios e deslocamentos.",
-    hint: "Toque no clima para consultar os detalhes.",
-  },
-  {
+const STEPS: readonly TutorialStepTarget[] = Object.freeze([
+  Object.freeze({ selectors: ["#map-container", "#map"] }),
+  Object.freeze({ selectors: ["#weather-widget"] }),
+  Object.freeze({
     selectors: [".quick-actions .action-button.primary.mood-button"],
-    title: "Seu assistente está sempre por perto",
-    description:
-      "Este botão abre o guia virtual do Morro Digital sempre que você precisar de ajuda.",
-    hint: "Use o assistente para descobrir o que fazer agora.",
-  },
-  {
-    selectors: ["#assistant-messages"],
-    title: "Bem-vindo ao seu guia virtual",
-    description:
-      "Aqui você recebe sugestões de praias, restaurantes, hospedagens, festas, passeios e serviços.",
-    hint: "A mensagem de boas-vindas fica disponível ao iniciar o aplicativo.",
-  },
-  {
+  }),
+  Object.freeze({ selectors: ["#assistant-messages"] }),
+  Object.freeze({
     selectors: ["#assistant-messages .assistant-options", ".assistant-options"],
-    title: "Escolha um atalho",
-    description:
-      "Use as opções rápidas para explorar categorias sem precisar digitar uma pergunta.",
-    hint: "Você também pode conversar livremente com o assistente.",
-  },
-  {
-    selectors: ["#assistant-input-area"],
-    title: "Pergunte do seu jeito",
-    description:
-      "Digite uma pergunta, envie por voz ou abra as configurações do assistente diretamente nesta área.",
-    hint: "Experimente perguntar o que fazer hoje em Morro de São Paulo.",
-  },
-  {
-    selectors: ["#globe-map-control", "#toggle-globe-view"],
-    title: "Pronto para explorar",
-    description:
-      "Agora você conhece os principais controles. Continue pelo mapa e use o assistente sempre que precisar.",
-    hint: "Você pode rever os recursos enquanto navega pelo aplicativo.",
-  },
+  }),
+  Object.freeze({ selectors: ["#assistant-input-area"] }),
+  Object.freeze({ selectors: ["#globe-map-control", "#toggle-globe-view"] }),
 ]);
 
 function firstVisibleTarget(
@@ -188,8 +152,10 @@ export function installPublicInteractiveTour(
     if (result === "complete") {
       const toast = options.document.createElement("div");
       toast.id = "tour-finish-toast";
-      toast.innerHTML =
-        '<span class="tour-finish-toast-icon" aria-hidden="true">✓</span><span>Pronto! Agora é só explorar o Morro Digital.</span>';
+      const copy = getPublicOnboardingCopy(
+        options.document.documentElement.lang,
+      );
+      toast.innerHTML = `<span class="tour-finish-toast-icon" aria-hidden="true">✓</span><span>${copy.tour.done}</span>`;
       options.document.body.appendChild(toast);
       view?.requestAnimationFrame(() => toast.classList.add("visible"));
       view?.setTimeout(() => toast.remove(), 2600);
@@ -313,15 +279,18 @@ export function installPublicInteractiveTour(
     options.document.body.append(backdrop, blocker, highlight, proxy, tooltip);
   };
 
-  const renderTooltip = (step: TutorialStep): void => {
+  const renderTooltip = (step: PublicOnboardingTourStepCopy): void => {
     if (!tooltip) return;
+    const tourCopy = getPublicOnboardingCopy(
+      options.document.documentElement.lang,
+    ).tour;
     const isLast = stepIndex === STEPS.length - 1;
     const progress = ((stepIndex + 1) / STEPS.length) * 100;
     tooltip.innerHTML = `
       <div class="tour-tooltip-inner">
         <div class="tour-header">
-          <span class="tour-step-label">Passo ${stepIndex + 1} de ${STEPS.length}</span>
-          <button type="button" class="tour-skip-btn">Pular tour</button>
+          <span class="tour-step-label">${tourCopy.step(stepIndex + 1, STEPS.length)}</span>
+          <button type="button" class="tour-skip-btn">${tourCopy.skip}</button>
         </div>
         <div class="tour-progress-bar" aria-hidden="true">
           <div class="tour-progress-fill" style="width:${progress}%"></div>
@@ -330,11 +299,11 @@ export function installPublicInteractiveTour(
         <p class="tour-step-desc">${step.description}</p>
         <div class="tour-action-hint"><span class="tour-hint-arrow">↑</span><span>${step.hint}</span></div>
         <div class="tour-footer">
-          ${stepIndex > 0 ? '<button type="button" class="tour-btn-back">Voltar</button>' : ""}
+          ${stepIndex > 0 ? `<button type="button" class="tour-btn-back">${tourCopy.back}</button>` : ""}
           ${
             isLast
-              ? '<button type="button" class="tour-btn-finish">Começar a explorar</button>'
-              : '<button type="button" class="tour-btn-next">Próximo</button>'
+              ? `<button type="button" class="tour-btn-finish">${tourCopy.finish}</button>`
+              : `<button type="button" class="tour-btn-next">${tourCopy.next}</button>`
           }
         </div>
       </div>
@@ -359,11 +328,14 @@ export function installPublicInteractiveTour(
 
   function renderStep(nextIndex: number): void {
     if (!active) return;
-    const step = STEPS[nextIndex];
-    if (!step) return;
+    const stepTarget = STEPS[nextIndex];
+    const stepCopy = getPublicOnboardingCopy(
+      options.document.documentElement.lang,
+    ).tour.steps[nextIndex];
+    if (!stepTarget || !stepCopy) return;
     clearTarget();
     stepIndex = nextIndex;
-    target = firstVisibleTarget(options.document, step.selectors);
+    target = firstVisibleTarget(options.document, stepTarget.selectors);
     if (!target) {
       if (nextIndex < STEPS.length - 1) renderStep(nextIndex + 1);
       else finish("complete");
@@ -381,7 +353,7 @@ export function installPublicInteractiveTour(
       "tour-show-assistant-modal-step",
       assistantStep,
     );
-    renderTooltip(step);
+    renderTooltip(stepCopy);
     positionStep();
     tooltip
       ?.querySelector<HTMLElement>(
