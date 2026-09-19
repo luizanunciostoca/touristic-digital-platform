@@ -190,10 +190,7 @@ export function installAssistantVoiceSettings(
   };
   const onLanguageChange = (): void => {
     const next = normalizeAssistantVoiceLanguage(language.value);
-    persistMorroLanguageOverride(
-      options.document,
-      assistantVoiceLocale(next),
-    );
+    persistMorroLanguageOverride(options.document, assistantVoiceLocale(next));
     update({ language: next, selectedVoice: null });
   };
   const onKeyDown = (event: KeyboardEvent): void => {
