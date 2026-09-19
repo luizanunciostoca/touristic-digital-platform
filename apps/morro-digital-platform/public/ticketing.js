@@ -448,7 +448,6 @@ async function createCheckout(reservationPayload) {
     headers: {
       Accept: "application/json",
       "Content-Type": "application/json",
-      "X-CSRF-Token": state.csrfToken,
       "X-Correlation-ID": correlationId(),
       "X-Checkout-Handoff-Token": descriptor.handoffToken,
       "Idempotency-Key": descriptor.idempotencyKey,
