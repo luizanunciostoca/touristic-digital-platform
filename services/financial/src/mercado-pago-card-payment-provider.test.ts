@@ -64,6 +64,15 @@ function paymentReadback(status = "approved") {
 }
 
 describe("Mercado Pago direct card provider", () => {
+  it("fails closed when checkout mode is missing", () => {
+    expect(() =>
+      createMercadoPagoCardPaymentProviderFromEnvironment({
+        ...environment,
+        MERCADO_PAGO_CHECKOUT_MODE: undefined,
+      }),
+    ).toThrow("MERCADO_PAGO_CHECKOUT_MODE is invalid");
+  });
+
   it("creates a TEST payment then verifies it through authoritative GET", async () => {
     const requests: Array<{ url: string; init: RequestInit | undefined }> = [];
     const fetchMock: typeof fetch = async (input, init) => {
