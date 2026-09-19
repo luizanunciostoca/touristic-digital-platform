@@ -80,21 +80,22 @@ test("rejects a TEST Public Key in production mode", () => {
 test(
   "binds the subscriptions Public Key to the configured provider mode",
   () => {
-  assert.throws(
-    () =>
-      validateMercadoPagoProductionCutover(
-        testEnvironment({
-          PAYMENTS_SUBSCRIPTIONS_ENABLED: "true",
-          MERCADO_PAGO_SUBSCRIPTIONS_ACCESS_TOKEN:
-            "fixture-test-subscriptions-server-credential-1234567890",
-          MERCADO_PAGO_SUBSCRIPTIONS_PUBLIC_KEY:
-            "APP_USR-fixtureSubscriptionsPublicKey_1234567890",
-          PAYMENTS_SUBSCRIPTION_BACK_URL:
-            "https://morro-digital-v2-staging.onrender.com/",
-        }),
-      ),
-    /MERCADO_PAGO_SUBSCRIPTIONS_PUBLIC_KEY_MODE_MISMATCH/u,
-  );  },
+    assert.throws(
+      () =>
+        validateMercadoPagoProductionCutover(
+          testEnvironment({
+            PAYMENTS_SUBSCRIPTIONS_ENABLED: "true",
+            MERCADO_PAGO_SUBSCRIPTIONS_ACCESS_TOKEN:
+              "fixture-test-subscriptions-server-credential-1234567890",
+            MERCADO_PAGO_SUBSCRIPTIONS_PUBLIC_KEY:
+              "APP_USR-fixtureSubscriptionsPublicKey_1234567890",
+            PAYMENTS_SUBSCRIPTION_BACK_URL:
+              "https://morro-digital-v2-staging.onrender.com/",
+          }),
+        ),
+      /MERCADO_PAGO_SUBSCRIPTIONS_PUBLIC_KEY_MODE_MISMATCH/u,
+    );
+  },
 );
 
 test(
