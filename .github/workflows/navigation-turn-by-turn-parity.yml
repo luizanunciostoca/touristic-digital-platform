@@ -115,6 +115,7 @@ jobs:
             });
             await context.addInitScript(() => {
               localStorage.setItem('morro-digital-onboarded', '1');
+                localStorage.setItem('morro-digital-language', 'pt-BR');
               localStorage.setItem('voice-enabled', 'true');
               localStorage.setItem('voice-language', 'pt-BR');
               globalThis.__turnByTurnEvidence = { statuses: [], runtime: [], speech: [], ended: [] };
