@@ -36,7 +36,10 @@ jobs:
         run: |
           set -euo pipefail
           workflows=(
+            assistant-input-menu-flow-v1-parity.yml
+            assistant-input-v1-parity.yml
             assistant-photo-browser-contract.yml
+            assistant-place-actions-v1-parity.yml
             assistant-voice-browser-contract.yml
             auth-login-browser-contract.yml
             business-dashboard-browser-contract.yml
@@ -49,9 +52,11 @@ jobs:
             business-onboarding-route-browser-contract.yml
             business-onboarding-workspace-browser-contract.yml
             business-production-profile-browser-contract.yml
+            commerce-browser-regression.yml
             crm-equivalence-browser-contract.yml
             crm-lead-detail-browser-contract.yml
             home-first-run-browser-regression.yml
+            v1-assistant-single-message-poi-markers.yml
             v1-home-parity-browser-regression.yml
             v1-home-responsive-browser-regression.yml
             v1-explore-locations-browser-regression.yml
@@ -61,10 +66,14 @@ jobs:
             map-tour-browser-regression.yml
             mapbox-visual-contract-regression.yml
             navigation-accessibility-baseline.yml
+            navigation-end-main-menu-v1-parity.yml
+            navigation-turn-by-turn-parity.yml
             navigation-visual-baseline.yml
             payments-browser-checkout-contract.yml
             search-browser-contract.yml
             shell-v1-i18n-browser-parity.yml
+            ticketing-m147-contract.yml
+            ticketing-m148-transaction-contract.yml
             weather-v1-i18n-browser-parity.yml
           )
           for workflow in "${workflows[@]}"; do
@@ -122,7 +131,10 @@ jobs:
         run: |
           set -euo pipefail
           workflows=(
+            assistant-input-menu-flow-v1-parity.yml
+            assistant-input-v1-parity.yml
             assistant-photo-browser-contract.yml
+            assistant-place-actions-v1-parity.yml
             assistant-voice-browser-contract.yml
             auth-login-browser-contract.yml
             business-dashboard-browser-contract.yml
@@ -135,9 +147,11 @@ jobs:
             business-onboarding-route-browser-contract.yml
             business-onboarding-workspace-browser-contract.yml
             business-production-profile-browser-contract.yml
+            commerce-browser-regression.yml
             crm-equivalence-browser-contract.yml
             crm-lead-detail-browser-contract.yml
             home-first-run-browser-regression.yml
+            v1-assistant-single-message-poi-markers.yml
             v1-home-parity-browser-regression.yml
             v1-home-responsive-browser-regression.yml
             v1-explore-locations-browser-regression.yml
@@ -147,10 +161,14 @@ jobs:
             map-tour-browser-regression.yml
             mapbox-visual-contract-regression.yml
             navigation-accessibility-baseline.yml
+            navigation-end-main-menu-v1-parity.yml
+            navigation-turn-by-turn-parity.yml
             navigation-visual-baseline.yml
             payments-browser-checkout-contract.yml
             search-browser-contract.yml
             shell-v1-i18n-browser-parity.yml
+            ticketing-m147-contract.yml
+            ticketing-m148-transaction-contract.yml
             weather-v1-i18n-browser-parity.yml
           )
 
