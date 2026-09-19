@@ -73,7 +73,7 @@ Status: `BLOCKED_EXTERNAL` until all of the following exist:
 
 1. Render Blueprint sync resolves the three V1 references in the same workspace.
 2. `AUTH_DATABASE_URL`, Ordering DB, Financial DB and canonical pricing catalog are configured.
-3. Pre-deploy returns `PAYMENTS-PREDEPLOY` v2 `pass`.
+3. Pre-deploy returns `PAYMENTS-PREDEPLOY` v3 `pass`.
 4. `/healthz` and `/readyz` return the expected release identity and readiness.
 5. Provider preflight creates a test preference with the inherited/direct credential and returns the allowlisted sandbox origin exactly.
 6. Mercado Pago webhook simulator validates the V2 HTTPS endpoint.

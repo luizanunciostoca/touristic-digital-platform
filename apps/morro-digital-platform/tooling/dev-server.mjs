@@ -19,10 +19,11 @@ import { rewriteWorkspaceModuleSpecifiers } from "./workspace-browser-modules.mj
 const repositoryRoot = resolve(
   fileURLToPath(new URL("../../../", import.meta.url)),
 );
-const defaultDocument = resolve(
+const morroPublicRoot = resolve(
   repositoryRoot,
-  "apps/morro-digital-platform/public/index.html",
+  "apps/morro-digital-platform/public",
 );
+const defaultDocument = resolve(morroPublicRoot, "index.html");
 const envFile = resolve(repositoryRoot, ".env");
 const host = process.env.HOST?.trim() || "127.0.0.1";
 const port = Number(process.env.PORT || "4173");
@@ -69,7 +70,7 @@ const publicCrmDocuments = Object.freeze([
 ]);
 
 const publicStaticRoots = Object.freeze([
-  resolve(repositoryRoot, "apps/morro-digital-platform/public"),
+  morroPublicRoot,
   resolve(repositoryRoot, "apps/morro-digital-platform/dist"),
   resolve(repositoryRoot, "apps/admin-crm/public"),
   resolve(repositoryRoot, "dashboard"),
@@ -234,6 +235,17 @@ function resolveRequestPath(pathname) {
   }
 
   const decoded = decodeURIComponent(pathname);
+  const rootMountedPath =
+    decoded.startsWith("/apps/") ||
+    decoded.startsWith("/dashboard/") ||
+    decoded.startsWith("/images/") ||
+    decoded.startsWith("/packages/")
+      ? null
+      : resolve(morroPublicRoot, `.${decoded}`);
+  if (rootMountedPath && isWithinStaticRoot(rootMountedPath, morroPublicRoot)) {
+    return rootMountedPath;
+  }
+
   const requestedPath = resolve(repositoryRoot, `.${decoded}`);
   const repositoryPrefix = `${repositoryRoot}${sep}`;
 

@@ -1,4 +1,5 @@
 const authorizationPattern = /^[A-Za-z0-9][A-Za-z0-9._:/#-]{5,255}$/u;
+const publicKeyPattern = /^(?:TEST-|APP_USR-)[A-Za-z0-9_-]{8,512}$/u;
 
 function value(environment, name) {
   return String(environment[name] ?? "").trim();
@@ -38,11 +39,16 @@ function requireExactHttpsUrl(environment, name) {
   return url;
 }
 
-function requirePublicCredential(environment, name) {
+function requirePublicCredential(environment, name, mode) {
   const configured = requireValue(environment, name);
-  if (configured.length < 16) {
+  if (!publicKeyPattern.test(configured)) {
     throw new Error(`${name}_INVALID`);
   }
+  const credentialMode = configured.startsWith("TEST-") ? "test" : "production";
+  if (credentialMode !== mode) {
+    throw new Error(`${name}_MODE_MISMATCH`);
+  }
+  return configured;
 }
 
 function requireServerCredential(environment, name) {
@@ -56,13 +62,16 @@ export function validateMercadoPagoProductionCutover(
   environment = process.env,
 ) {
   const mode = requireValue(environment, "MERCADO_PAGO_CHECKOUT_MODE");
+  if (mode !== "test" && mode !== "production") {
+    throw new Error("MERCADO_PAGO_CHECKOUT_MODE_INVALID");
+  }
   const subscriptionsEnabled = requireBoolean(
     environment,
     "PAYMENTS_SUBSCRIPTIONS_ENABLED",
   );
 
   // Browser-safe Bricks configuration is required in every provider mode.
-  requirePublicCredential(environment, "VITE_MERCADO_PAGO_PUBLIC_KEY");
+  requirePublicCredential(environment, "VITE_MERCADO_PAGO_PUBLIC_KEY", mode);
 
   // Recurring billing has its own provider application/credentials and callback.
   // Validate the complete binding before mode-specific authorization checks.
@@ -74,6 +83,7 @@ export function validateMercadoPagoProductionCutover(
     requirePublicCredential(
       environment,
       "MERCADO_PAGO_SUBSCRIPTIONS_PUBLIC_KEY",
+      mode,
     );
     requireExactHttpsUrl(environment, "PAYMENTS_SUBSCRIPTION_BACK_URL");
   }
@@ -91,10 +101,6 @@ export function validateMercadoPagoProductionCutover(
       subscriptionsEnabled,
     });
   }
-  if (mode !== "production") {
-    throw new Error("MERCADO_PAGO_CHECKOUT_MODE_INVALID");
-  }
-
   if (value(environment, "NODE_ENV") !== "production") {
     throw new Error("MERCADO_PAGO_PRODUCTION_REQUIRES_NODE_ENV_PRODUCTION");
   }

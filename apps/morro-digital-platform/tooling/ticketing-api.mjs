@@ -27,8 +27,10 @@ import {
   MySqlTicketOfflineEnvelopeRepository,
   MySqlTicketRepository,
   MySqlTicketReservationRepository,
+  MySqlTicketingBusinessInventoryRepository,
   MySqlTicketingPublicReadRepository,
   MySqlTicketingTransactionalCommand,
+  TicketingCommerceHttpTransport,
   TicketingPublicHttpTransport,
   applyTicketingPublicApiSchema,
   createOrderingFinancialReservationConfirmationAuthority,
@@ -44,6 +46,10 @@ import {
 } from "../../../services/ticketing/dist/index.js";
 
 const maxBodyBytes = 32 * 1024;
+const auditStringMaxLength = 256;
+const auditReasonPattern = /^[A-Za-z0-9_.:-]{1,160}$/u;
+const sensitiveAuditKeyPattern =
+  /(?:authorization|cookie|password|secret|token|session|signature|card|security.?code|cpf|document|email|phone|prompt|query.?string|access.?key|refresh.?key)/iu;
 
 class TicketingHttpInputError extends Error {
   constructor(status, code) {
@@ -147,9 +153,56 @@ function pollInterval(value) {
   return parsed;
 }
 
+function sanitizeAuditValue(key, value, depth = 0) {
+  if (sensitiveAuditKeyPattern.test(key)) return "[REDACTED]";
+  if (value === null || value === undefined) return value;
+  if (typeof value === "string") {
+    const bounded = value
+      .replace(/[\u0000-\u001f\u007f]/gu, " ")
+      .replace(/\s+/gu, " ")
+      .trim()
+      .slice(0, auditStringMaxLength);
+    if (key.toLowerCase() === "reason" && !auditReasonPattern.test(bounded)) {
+      return "redacted_failure_detail";
+    }
+    return bounded;
+  }
+  if (typeof value === "number" || typeof value === "boolean") return value;
+  if (depth >= 3) return "[REDACTED_COMPLEX_VALUE]";
+  if (Array.isArray(value)) {
+    return value
+      .slice(0, 20)
+      .map((item) => sanitizeAuditValue(key, item, depth + 1));
+  }
+  if (typeof value === "object") {
+    return Object.freeze(
+      Object.fromEntries(
+        Object.entries(value)
+          .slice(0, 50)
+          .map(([nestedKey, nestedValue]) => [
+            nestedKey.slice(0, 160),
+            sanitizeAuditValue(nestedKey, nestedValue, depth + 1),
+          ]),
+      ),
+    );
+  }
+  return String(value).slice(0, auditStringMaxLength);
+}
+
+function sanitizeAuditEvent(event) {
+  return Object.freeze(
+    Object.fromEntries(
+      Object.entries(event ?? {}).map(([key, value]) => [
+        key.slice(0, 160),
+        sanitizeAuditValue(key, value),
+      ]),
+    ),
+  );
+}
+
 function auditSafely(audit, event) {
   try {
-    audit(Object.freeze({ ...event }));
+    audit(sanitizeAuditEvent(event));
   } catch {
     // Audit delivery cannot change Ticketing authority.
   }
@@ -189,7 +242,11 @@ export function createTicketingAuthorizationPort({ authApi }) {
       }
       return Object.freeze({
         allowed: true,
-        actor: Object.freeze({ subject: active.subject, role: active.role }),
+        actor: Object.freeze({
+          subject: active.subject,
+          role: active.role,
+          businessIds: Object.freeze([...(active.businessIds ?? [])]),
+        }),
       });
     },
   });
@@ -273,6 +330,9 @@ export function createTicketingApi({
         ticketingPool,
       );
       const reads = new MySqlTicketingPublicReadRepository(ticketingPool);
+      const businessInventory = new MySqlTicketingBusinessInventoryRepository(
+        ticketingPool,
+      );
       const refundReservations =
         new MySqlRefundedReservationCancellationRepository(ticketingPool);
 
@@ -349,13 +409,16 @@ export function createTicketingApi({
             {
               actorSubject: actor.subject,
               destinationId: environment.PAYMENTS_DESTINATION_ID,
+              requesterKind: actor.subject.startsWith("guest:")
+                ? "guest_capability"
+                : "authenticated",
             },
             environment.PAYMENTS_HANDOFF_SECRET,
           );
           return token ? Object.freeze({ ...handoff, token }) : null;
         },
       });
-      const publicTransport = new TicketingPublicHttpTransport({
+      const publicTransport = new TicketingCommerceHttpTransport({
         enabled: true,
         reservations,
         reads,
@@ -377,6 +440,8 @@ export function createTicketingApi({
         offlineProvisioningSecret:
           environment.TICKETING_OFFLINE_PROVISIONING_SECRET,
         clock: systemCheckoutClock,
+        businessInventory,
+        destinationId: environment.PAYMENTS_DESTINATION_ID,
       });
 
       let processing = null;
@@ -384,11 +449,11 @@ export function createTicketingApi({
         if (processing) return processing;
         processing = processor
           .drain(100)
-          .catch((error) => {
+          .catch(() => {
             auditSafely(audit, {
               action: "ticketing.financial_results",
               result: "failure",
-              reason: error instanceof Error ? error.message : "unknown",
+              reason: "processor_failure",
             });
           })
           .finally(() => {
@@ -418,16 +483,13 @@ export function createTicketingApi({
         reason: "ready",
       });
       return true;
-    } catch (error) {
+    } catch {
       await Promise.allSettled(pools.map((pool) => pool.end()));
       runtime = null;
       auditSafely(audit, {
         action: "ticketing.runtime",
         result: "failure",
-        reason:
-          error instanceof Error
-            ? error.message
-            : "configuration_or_persistence_unavailable",
+        reason: "configuration_or_persistence_unavailable",
       });
       return false;
     }

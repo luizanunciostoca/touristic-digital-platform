@@ -12,7 +12,7 @@ function testEnvironment(overrides = {}) {
     MERCADO_PAGO_CHECKOUT_MODE: "test",
     MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED: "true",
     VITE_MERCADO_PAGO_PUBLIC_KEY:
-      "fixture-test-public-credential-1234567890",
+      "TEST-fixturePublicKey_1234567890",
     PAYMENTS_SUBSCRIPTIONS_ENABLED: "false",
     ...overrides,
   };
@@ -27,7 +27,7 @@ function productionEnvironment(overrides = {}) {
     MERCADO_PAGO_ACCESS_TOKEN:
       "fixture-production-server-credential-value-1234567890",
     VITE_MERCADO_PAGO_PUBLIC_KEY:
-      "fixture-production-public-credential-1234567890",
+      "APP_USR-fixturePublicKey_1234567890",
     PAYMENTS_WEBHOOK_URL:
       "https://morro.digital/api/payments/v1/webhooks/sandbox",
     PAYMENTS_SUBSCRIPTIONS_ENABLED: "false",
@@ -52,6 +52,49 @@ test("requires browser Public Key in TEST mode", () => {
         testEnvironment({ VITE_MERCADO_PAGO_PUBLIC_KEY: "" }),
       ),
     /VITE_MERCADO_PAGO_PUBLIC_KEY_REQUIRED/u,
+  );
+});
+
+
+test("rejects a production Public Key in TEST mode", () => {
+  assert.throws(
+    () =>
+      validateMercadoPagoProductionCutover(
+        testEnvironment({
+          VITE_MERCADO_PAGO_PUBLIC_KEY: "APP_USR-fixturePublicKey_1234567890",
+        }),
+      ),
+    /VITE_MERCADO_PAGO_PUBLIC_KEY_MODE_MISMATCH/u,
+  );
+});
+
+test("rejects a TEST Public Key in production mode", () => {
+  assert.throws(
+    () =>
+      validateMercadoPagoProductionCutover(
+        productionEnvironment({
+          VITE_MERCADO_PAGO_PUBLIC_KEY: "TEST-fixturePublicKey_1234567890",
+        }),
+      ),
+    /VITE_MERCADO_PAGO_PUBLIC_KEY_MODE_MISMATCH/u,
+  );
+});
+
+test("binds the subscriptions Public Key to the configured provider mode", () => {
+  assert.throws(
+    () =>
+      validateMercadoPagoProductionCutover(
+        testEnvironment({
+          PAYMENTS_SUBSCRIPTIONS_ENABLED: "true",
+          MERCADO_PAGO_SUBSCRIPTIONS_ACCESS_TOKEN:
+            "fixture-test-subscriptions-server-credential-1234567890",
+          MERCADO_PAGO_SUBSCRIPTIONS_PUBLIC_KEY:
+            "APP_USR-fixtureSubscriptionsPublicKey_1234567890",
+          PAYMENTS_SUBSCRIPTION_BACK_URL:
+            "https://morro-digital-v2-staging.onrender.com/",
+        }),
+      ),
+    /MERCADO_PAGO_SUBSCRIPTIONS_PUBLIC_KEY_MODE_MISMATCH/u,
   );
 });
 
@@ -113,7 +156,7 @@ test(
           MERCADO_PAGO_SUBSCRIPTIONS_ACCESS_TOKEN:
             "fixture-test-subscriptions-server-credential-1234567890",
           MERCADO_PAGO_SUBSCRIPTIONS_PUBLIC_KEY:
-            "fixture-test-subscriptions-public-credential-1234567890",
+            "TEST-fixtureSubscriptionsPublicKey_1234567890",
           PAYMENTS_SUBSCRIPTION_BACK_URL:
             "https://morro-digital-v2-staging.onrender.com/",
         }),
@@ -202,7 +245,7 @@ test(
           MERCADO_PAGO_SUBSCRIPTIONS_ACCESS_TOKEN:
             "fixture-subscriptions-server-credential-value-1234567890",
           MERCADO_PAGO_SUBSCRIPTIONS_PUBLIC_KEY:
-            "fixture-subscriptions-public-credential-1234567890",
+            "APP_USR-fixtureSubscriptionsPublicKey_1234567890",
           PAYMENTS_SUBSCRIPTION_BACK_URL: "https://morro.digital/assinaturas",
         }),
       ),
