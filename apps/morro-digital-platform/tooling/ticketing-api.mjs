@@ -1,5 +1,10 @@
 import { randomUUID } from "node:crypto";
 
+import {
+  MySqlCrmCommerceCustomerRepository,
+  applyCrmCommerceSchema,
+  createCrmMySqlPoolFromEnvironment,
+} from "@touristic/crm-server";
 import { normalizeTicketSigningSecret } from "../../../packages/ticketing/dist/index.js";
 import { normalizeTicketingCheckoutHandoff } from "@touristic/ordering/ticketing-checkout";
 import { createTicketingReservationOrderApplicationService } from "@touristic/ordering/ticketing-reservation";
@@ -28,6 +33,7 @@ import {
   MySqlTicketRepository,
   MySqlTicketReservationRepository,
   MySqlTicketingBusinessInventoryRepository,
+  MySqlTicketingCommerceCrmOutbox,
   MySqlTicketingPublicReadRepository,
   MySqlTicketingTransactionalCommand,
   TicketingCommerceHttpTransport,
@@ -129,6 +135,7 @@ function collectEnvironment(getEnvironmentValue) {
     "FINANCIAL_DATABASE_URL",
     "PAYMENTS_HANDOFF_SECRET",
     "PAYMENTS_DESTINATION_ID",
+    "CRM_DATABASE_URL",
   ];
   return Object.freeze(
     Object.fromEntries(
@@ -206,6 +213,18 @@ function auditSafely(audit, event) {
   } catch {
     // Audit delivery cannot change Ticketing authority.
   }
+}
+
+function syncErrorCode(error) {
+  const raw =
+    typeof error === "object" && error !== null && "code" in error
+      ? String(error.code)
+      : error instanceof Error
+        ? error.name
+        : "CRM_SYNC_FAILED";
+  return /^[A-Za-z0-9_.:-]{1,160}$/u.test(raw)
+    ? raw
+    : "CRM_SYNC_FAILED";
 }
 
 export function createTicketingAuthorizationPort({ authApi }) {
@@ -318,6 +337,26 @@ export function createTicketingApi({
         applyOrderingTicketingReservationSchema(orderingPool),
       ]);
 
+      let crmCommerce = null;
+      if (environment.CRM_DATABASE_URL) {
+        let crmPool = null;
+        try {
+          crmPool = createCrmMySqlPoolFromEnvironment({
+            CRM_DATABASE_URL: environment.CRM_DATABASE_URL,
+          });
+          await applyCrmCommerceSchema(crmPool);
+          pools.push(crmPool);
+          crmCommerce = new MySqlCrmCommerceCustomerRepository(crmPool);
+        } catch (error) {
+          await crmPool?.end().catch(() => {});
+          auditSafely(audit, {
+            action: "ticketing.crm_sync",
+            result: "failure",
+            reason: syncErrorCode(error),
+          });
+        }
+      }
+
       const reservations = new MySqlTicketReservationRepository(ticketingPool);
       const holders = new MySqlTicketHolderProfileRepository(ticketingPool);
       const tickets = new MySqlTicketRepository(ticketingPool);
@@ -331,6 +370,9 @@ export function createTicketingApi({
       );
       const reads = new MySqlTicketingPublicReadRepository(ticketingPool);
       const businessInventory = new MySqlTicketingBusinessInventoryRepository(
+        ticketingPool,
+      );
+      const commerceCrmOutbox = new MySqlTicketingCommerceCrmOutbox(
         ticketingPool,
       );
       const refundReservations =
@@ -376,9 +418,19 @@ export function createTicketingApi({
         ticketing,
         holderProfiles: holders,
       });
-      const fulfillmentHandler = createVerifiedPaymentTicketFulfillmentHandler({
-        bindings,
-        fulfillment,
+      const verifiedPaymentFulfillment =
+        createVerifiedPaymentTicketFulfillmentHandler({
+          bindings,
+          fulfillment,
+        });
+      const fulfillmentHandler = Object.freeze({
+        async handle(result) {
+          const fulfilled = await verifiedPaymentFulfillment.handle(result);
+          if (fulfilled) {
+            await commerceCrmOutbox.enqueueConfirmedPurchase(fulfilled);
+          }
+          return fulfilled;
+        },
       });
       const refundHandler = createVerifiedRefundTicketCancellationHandler({
         bindings,
@@ -444,6 +496,55 @@ export function createTicketingApi({
         destinationId: environment.PAYMENTS_DESTINATION_ID,
       });
 
+      const drainCommerceCrm = async () => {
+        if (!crmCommerce) return;
+        const events = await commerceCrmOutbox.listPending(100);
+        for (const event of events) {
+          try {
+            const holder = await holders.findByHolderReference(
+              event.holderReference,
+            );
+            if (!holder) {
+              await commerceCrmOutbox.markAttempt(
+                event.id,
+                "HOLDER_PROFILE_NOT_FOUND",
+              );
+              continue;
+            }
+            await crmCommerce.recordConfirmedPurchase({
+              eventId: event.id,
+              reservationId: event.reservationId,
+              holderReference: event.holderReference,
+              holderName: holder.holderName,
+              email: holder.email,
+              phone: holder.phone,
+              inventoryId: event.inventoryId,
+              orderId: event.orderId,
+              paymentId: event.paymentId,
+              destinationId: event.destinationId,
+              productKind: event.productKind,
+              productReference: event.productReference,
+              quantity: event.quantity,
+              amountMinor: event.amountMinor,
+              currency: event.currency,
+              purchasedAt: event.occurredAt,
+            });
+            await commerceCrmOutbox.markPublished(
+              event.id,
+              systemCheckoutClock.now(),
+            );
+          } catch (error) {
+            const code = syncErrorCode(error);
+            await commerceCrmOutbox.markAttempt(event.id, code).catch(() => {});
+            auditSafely(audit, {
+              action: "ticketing.crm_sync",
+              result: "failure",
+              reason: code,
+            });
+          }
+        }
+      };
+
       let processing = null;
       const drain = async () => {
         if (processing) return processing;
@@ -455,6 +556,17 @@ export function createTicketingApi({
               result: "failure",
               reason: "processor_failure",
             });
+          })
+          .then(async () => {
+            try {
+              await drainCommerceCrm();
+            } catch (error) {
+              auditSafely(audit, {
+                action: "ticketing.crm_sync",
+                result: "failure",
+                reason: syncErrorCode(error),
+              });
+            }
           })
           .finally(() => {
             processing = null;
