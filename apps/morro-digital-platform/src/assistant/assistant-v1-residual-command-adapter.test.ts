@@ -230,7 +230,8 @@ describe("V1 residual assistant commands", () => {
   });
 });
 
-// Preserve explicit map filters without stealing the canonical staged bare-category flow.
+// Preserve explicit map filters without stealing canonical staged category/show-all flows.
+// In particular, `ver todos` remains contextual after a category is open.
 describe("current-main residual command hardening", () => {
   it.each([
     ["mostrar solo playas", "beaches"],
