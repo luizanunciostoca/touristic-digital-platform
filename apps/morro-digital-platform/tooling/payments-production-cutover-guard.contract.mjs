@@ -5,6 +5,17 @@ import test from "node:test";
 
 import { validateMercadoPagoProductionCutover } from "./payments-production-cutover-guard.mjs";
 
+function testEnvironment(overrides = {}) {
+  return {
+    MERCADO_PAGO_CHECKOUT_MODE: "test",
+    MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED: "true",
+    VITE_MERCADO_PAGO_PUBLIC_KEY:
+      "fixture-test-public-credential-1234567890",
+    PAYMENTS_SUBSCRIPTIONS_ENABLED: "false",
+    ...overrides,
+  };
+}
+
 function productionEnvironment(overrides = {}) {
   return {
     NODE_ENV: "production",
@@ -24,12 +35,39 @@ function productionEnvironment(overrides = {}) {
 }
 
 test("keeps TEST mode outside the financial authorization gate", () => {
+  assert.deepEqual(validateMercadoPagoProductionCutover(testEnvironment()), {
+    mode: "test",
+    productionAuthorized: false,
+    productionCredentialsConfirmed: false,
+    subscriptionsEnabled: false,
+  });
+});
+
+test("requires browser Public Key in TEST mode", () => {
+  assert.throws(
+    () =>
+      validateMercadoPagoProductionCutover(
+        testEnvironment({ VITE_MERCADO_PAGO_PUBLIC_KEY: "" }),
+      ),
+    /VITE_MERCADO_PAGO_PUBLIC_KEY_REQUIRED/u,
+  );
+});
+
+test("fails closed when TEST credentials are not explicitly confirmed", () => {
+  assert.throws(
+    () =>
+      validateMercadoPagoProductionCutover(
+        testEnvironment({ MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED: "false" }),
+      ),
+    /MERCADO_PAGO_TEST_CREDENTIALS_NOT_CONFIRMED/u,
+  );
+});
+
+test("validates and normalizes subscriptions configuration in TEST mode", () => {
   assert.deepEqual(
-    validateMercadoPagoProductionCutover({
-      MERCADO_PAGO_CHECKOUT_MODE: "test",
-      MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED: "true",
-      PAYMENTS_SUBSCRIPTIONS_ENABLED: "false",
-    }),
+    validateMercadoPagoProductionCutover(
+      testEnvironment({ PAYMENTS_SUBSCRIPTIONS_ENABLED: "FALSE" }),
+    ),
     {
       mode: "test",
       productionAuthorized: false,
@@ -37,43 +75,43 @@ test("keeps TEST mode outside the financial authorization gate", () => {
       subscriptionsEnabled: false,
     },
   );
-});
 
-test("fails closed when TEST credentials are not explicitly confirmed", () => {
   assert.throws(
     () =>
-      validateMercadoPagoProductionCutover({
-        MERCADO_PAGO_CHECKOUT_MODE: "test",
-        MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED: "false",
-        PAYMENTS_SUBSCRIPTIONS_ENABLED: "false",
-      }),
-    /MERCADO_PAGO_TEST_CREDENTIALS_NOT_CONFIRMED/u,
+      validateMercadoPagoProductionCutover(
+        testEnvironment({ PAYMENTS_SUBSCRIPTIONS_ENABLED: "yes" }),
+      ),
+    /PAYMENTS_SUBSCRIPTIONS_ENABLED_INVALID/u,
   );
 });
 
-test("validates and normalizes subscriptions configuration in TEST mode", () => {
+test("requires complete dedicated subscription binding in TEST mode when enabled", () => {
+  assert.throws(
+    () =>
+      validateMercadoPagoProductionCutover(
+        testEnvironment({ PAYMENTS_SUBSCRIPTIONS_ENABLED: "true" }),
+      ),
+    /MERCADO_PAGO_SUBSCRIPTIONS_ACCESS_TOKEN_REQUIRED/u,
+  );
+
   assert.deepEqual(
-    validateMercadoPagoProductionCutover({
-      MERCADO_PAGO_CHECKOUT_MODE: "test",
-      MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED: "true",
-      PAYMENTS_SUBSCRIPTIONS_ENABLED: "TRUE",
-    }),
+    validateMercadoPagoProductionCutover(
+      testEnvironment({
+        PAYMENTS_SUBSCRIPTIONS_ENABLED: "true",
+        MERCADO_PAGO_SUBSCRIPTIONS_ACCESS_TOKEN:
+          "fixture-test-subscriptions-server-credential-1234567890",
+        MERCADO_PAGO_SUBSCRIPTIONS_PUBLIC_KEY:
+          "fixture-test-subscriptions-public-credential-1234567890",
+        PAYMENTS_SUBSCRIPTION_BACK_URL:
+          "https://morro-digital-v2-staging.onrender.com/",
+      }),
+    ),
     {
       mode: "test",
       productionAuthorized: false,
       productionCredentialsConfirmed: false,
       subscriptionsEnabled: true,
     },
-  );
-
-  assert.throws(
-    () =>
-      validateMercadoPagoProductionCutover({
-        MERCADO_PAGO_CHECKOUT_MODE: "test",
-        MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED: "true",
-        PAYMENTS_SUBSCRIPTIONS_ENABLED: "yes",
-      }),
-    /PAYMENTS_SUBSCRIPTIONS_ENABLED_INVALID/u,
   );
 });
 
