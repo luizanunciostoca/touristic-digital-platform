@@ -60,6 +60,24 @@ export function validateMercadoPagoProductionCutover(
     environment,
     "PAYMENTS_SUBSCRIPTIONS_ENABLED",
   );
+
+  // Browser-safe Bricks configuration is required in every provider mode.
+  requirePublicCredential(environment, "VITE_MERCADO_PAGO_PUBLIC_KEY");
+
+  // Recurring billing has its own provider application/credentials and callback.
+  // Validate the complete binding before mode-specific authorization checks.
+  if (subscriptionsEnabled) {
+    requireServerCredential(
+      environment,
+      "MERCADO_PAGO_SUBSCRIPTIONS_ACCESS_TOKEN",
+    );
+    requirePublicCredential(
+      environment,
+      "MERCADO_PAGO_SUBSCRIPTIONS_PUBLIC_KEY",
+    );
+    requireExactHttpsUrl(environment, "PAYMENTS_SUBSCRIPTION_BACK_URL");
+  }
+
   if (mode === "test") {
     if (
       !requireBoolean(environment, "MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED")
@@ -103,23 +121,10 @@ export function validateMercadoPagoProductionCutover(
   }
 
   requireServerCredential(environment, "MERCADO_PAGO_ACCESS_TOKEN");
-  requirePublicCredential(environment, "VITE_MERCADO_PAGO_PUBLIC_KEY");
 
   const webhook = requireExactHttpsUrl(environment, "PAYMENTS_WEBHOOK_URL");
   if (webhook.pathname !== "/api/payments/v1/webhooks/sandbox") {
     throw new Error("PAYMENTS_WEBHOOK_URL_INVALID");
-  }
-
-  if (subscriptionsEnabled) {
-    requireServerCredential(
-      environment,
-      "MERCADO_PAGO_SUBSCRIPTIONS_ACCESS_TOKEN",
-    );
-    requirePublicCredential(
-      environment,
-      "MERCADO_PAGO_SUBSCRIPTIONS_PUBLIC_KEY",
-    );
-    requireExactHttpsUrl(environment, "PAYMENTS_SUBSCRIPTION_BACK_URL");
   }
 
   return Object.freeze({
