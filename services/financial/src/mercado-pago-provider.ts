@@ -151,7 +151,7 @@ function checkoutOrigins(value: unknown): ReadonlySet<string> {
 
 function checkoutMode(value: unknown): "production" | "test" {
   const normalized = boundedString(value, 20).toLowerCase();
-  if (!normalized || normalized === "production") return "production";
+  if (normalized === "production") return "production";
   if (normalized === "test") return "test";
   throw new Error("MERCADO_PAGO_CHECKOUT_MODE is invalid");
 }
