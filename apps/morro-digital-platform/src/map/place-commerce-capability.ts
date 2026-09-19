@@ -100,9 +100,7 @@ function validOffer(value: unknown): value is PublicInventoryOffer {
 function categoryAcceptsKind(category: string, kind: string): boolean {
   if (category === "tours") return kind === "tour";
   if (category === "nightlife") return kind === "business_experience";
-  if (category === "transport") {
-    return kind === "transport" || kind === "business_experience";
-  }
+  if (category === "transport") return kind === "transport";
   return false;
 }
 
