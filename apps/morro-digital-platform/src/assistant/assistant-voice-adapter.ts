@@ -20,6 +20,7 @@ export interface AssistantBrowserVoiceOptions {
   >;
   readonly createUtterance: (text: string) => SpeechSynthesisUtterance;
   readonly storage?: AssistantVoiceStorage;
+  readonly initialLanguage?: AssistantVoiceLanguage;
 }
 
 export interface AssistantBrowserVoice {
@@ -48,6 +49,16 @@ export function createAssistantBrowserVoice(
   options: AssistantBrowserVoiceOptions,
 ): AssistantBrowserVoice {
   let preferences = loadAssistantVoicePreferences(options.storage);
+  if (
+    options.initialLanguage &&
+    preferences.language !== options.initialLanguage
+  ) {
+    preferences = Object.freeze({
+      ...preferences,
+      language: options.initialLanguage,
+      selectedVoice: null,
+    });
+  }
   let destroyed = false;
 
   const persist = (): void => {
