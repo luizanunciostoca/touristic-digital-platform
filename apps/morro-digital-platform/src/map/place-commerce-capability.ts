@@ -111,6 +111,8 @@ function offerMatchesLocation(
   if (!categoryAcceptsKind(location.category, offer.product.kind)) return false;
 
   const placeName = normalizeSearchText(location.name);
+  const placeLabels = [placeName, ...(location.aliases ?? []).map(normalizeSearchText)]
+    .filter((value) => value.length >= 5);
   const placeSlug = slug(location.name);
   const destinationSlug = slug(offer.destinationId);
   const referenceSlug = slug(offer.product.reference.replace(/[:._]+/gu, " "));
@@ -138,9 +140,12 @@ function offerMatchesLocation(
   if (businessReference && slug(businessReference) === placeSlug) return true;
 
   if (
-    offerLabel === placeName ||
-    offerLabel.includes(placeName) ||
-    (offerLabel.length >= 8 && placeName.includes(offerLabel))
+    placeLabels.some(
+      (candidate) =>
+        offerLabel === candidate ||
+        offerLabel.includes(candidate) ||
+        (offerLabel.length >= 5 && candidate.includes(offerLabel)),
+    )
   ) {
     return true;
   }
