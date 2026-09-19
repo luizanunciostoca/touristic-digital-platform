@@ -77,6 +77,28 @@ describe("createAssistantBrowserVoice", () => {
     expect(synthesis.speak).not.toHaveBeenCalled();
   });
 
+  it("uses the effective document language as the initial voice language", () => {
+    const synthesis = {
+      cancel: vi.fn(),
+      getVoices: vi.fn(() => [] as SpeechSynthesisVoice[]),
+      speak: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    };
+    const voice = createAssistantBrowserVoice({
+      synthesis,
+      storage: memoryStorage({
+        "voice-language": "pt-BR",
+        "assistant-voice": "Português",
+      }),
+      initialLanguage: "en",
+      createUtterance: (text) => ({ text }) as SpeechSynthesisUtterance,
+    });
+
+    expect(voice.getPreferences().language).toBe("en");
+    expect(voice.getPreferences().selectedVoice).toBeNull();
+  });
+
   it("persists updated language, speed and enabled state", () => {
     const storage = memoryStorage();
     const synthesis = {
