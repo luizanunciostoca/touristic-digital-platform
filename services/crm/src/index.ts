@@ -4,6 +4,10 @@ import mysql, {
   type RowDataPacket,
 } from "mysql2/promise";
 
+import {
+  crmCommerceRollbackSql,
+  crmCommerceSchemaSql,
+} from "./commerce-schema.js";
 import { CrmContractHttpTransport } from "./contracts-http-transport.js";
 import { CrmContractPublicHttpTransport } from "./contracts-public-http-transport.js";
 import { CrmFollowUpHttpTransport } from "./followups-http-transport.js";
@@ -27,6 +31,7 @@ import { MySqlCrmMeetingAuditPort } from "./mysql-meetings-audit-port.js";
 import { MySqlCrmMeetingRepository } from "./mysql-meetings-repository.js";
 import { MySqlCrmMetricsAuditPort } from "./mysql-metrics-audit-port.js";
 import { MySqlCrmMetricsRepository } from "./mysql-metrics-repository.js";
+import { MySqlCrmCommerceCustomerRepository } from "./mysql-commerce-customer-repository.js";
 import { MySqlCrmProposalAuditPort } from "./mysql-proposals-audit-port.js";
 import { MySqlCrmProposalRepository } from "./mysql-proposals-repository.js";
 import { MySqlCrmReferralAuditPort } from "./mysql-referrals-audit-port.js";
@@ -61,6 +66,8 @@ import {
 } from "./trials-schema.js";
 
 export {
+  crmCommerceRollbackSql,
+  crmCommerceSchemaSql,
   CrmContractHttpTransport,
   CrmContractPublicHttpTransport,
   CrmFollowUpHttpTransport,
@@ -76,6 +83,7 @@ export {
   CrmTrialNotificationHost,
   CrmTrialSchedulerHost,
   MySqlCrmContractAuditPort,
+  MySqlCrmCommerceCustomerRepository,
   MySqlCrmContractRepository,
   MySqlCrmFollowUpAuditPort,
   MySqlCrmFollowUpRepository,
@@ -107,6 +115,10 @@ export {
   S3CrmStorageAdapter,
   createCrmStorageAdapterFromEnvironment,
 };
+export type {
+  CrmCommerceCustomerRepositoryPort,
+  CrmCommercePurchaseInput,
+} from "./mysql-commerce-customer-repository.js";
 export type {
   CreateCrmFollowUpSchedulerHostOptions,
   CrmFollowUpSchedulerHostOptions,
@@ -151,6 +163,10 @@ async function applySqlStatements(pool: Pool, sql: string): Promise<void> {
     .filter(Boolean)) {
     await pool.query(statement);
   }
+}
+
+export async function applyCrmCommerceSchema(pool: Pool): Promise<void> {
+  await applySqlStatements(pool, crmCommerceSchemaSql);
 }
 
 export async function applyCrmM71Schema(pool: Pool): Promise<void> {
