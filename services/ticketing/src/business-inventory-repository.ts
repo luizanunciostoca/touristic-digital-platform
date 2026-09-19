@@ -11,7 +11,7 @@ export interface MorroProInventoryOffer {
   readonly id: string;
   readonly businessId: string;
   readonly destinationId: string;
-  readonly productKind: "tour" | "business_experience";
+  readonly productKind: "tour" | "business_experience" | "transport";
   readonly productReference: string;
   readonly label: string;
   readonly unitAmountMinor: number;
@@ -53,7 +53,7 @@ interface BusinessInventoryRow extends RowDataPacket {
   inventory_id: string;
   business_id: string;
   destination_id: string;
-  product_kind: "tour" | "business_experience";
+  product_kind: "tour" | "business_experience" | "transport";
   product_reference: string;
   label: string;
   unit_amount_minor: string | number;
@@ -113,7 +113,9 @@ function normalizeOffer(
   const value = record(input);
   if (!value) throw new Error("MORRO_PRO_OFFER_INVALID");
   const productKind =
-    value.productKind === "tour" || value.productKind === "business_experience"
+    value.productKind === "tour" ||
+    value.productKind === "business_experience" ||
+    value.productKind === "transport"
       ? value.productKind
       : null;
   const label = typeof value.label === "string" ? value.label.trim() : "";
