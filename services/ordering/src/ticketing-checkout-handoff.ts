@@ -8,6 +8,7 @@ import {
 
 import {
   normalizeCheckoutRequestContext,
+  type CheckoutRequesterKind,
   type CheckoutRequestContext,
 } from "./checkout-security.js";
 
@@ -96,6 +97,7 @@ export function createTicketingCheckoutHandoffCapability(
   contextInput: Readonly<{
     actorSubject?: unknown;
     destinationId?: unknown;
+    requesterKind?: CheckoutRequesterKind;
   }>,
   secretInput: unknown,
   options: TicketingCheckoutHandoffCapabilityOptions = {},
@@ -107,6 +109,7 @@ export function createTicketingCheckoutHandoffCapability(
     120,
   ).toLowerCase();
   const secret = normalizedSecret(secretInput);
+  const requesterKind = contextInput.requesterKind ?? "authenticated";
   const nowEpochSeconds = Math.floor(
     options.nowEpochSeconds ?? Date.now() / 1_000,
   );
@@ -116,6 +119,8 @@ export function createTicketingCheckoutHandoffCapability(
     !ACTOR_SUBJECT.test(actorSubject) ||
     !DESTINATION_ID.test(destinationId) ||
     !secret ||
+    (requesterKind !== "authenticated" &&
+      requesterKind !== "guest_capability") ||
     !Number.isSafeInteger(nowEpochSeconds) ||
     nowEpochSeconds < 0 ||
     !Number.isSafeInteger(ttlSeconds) ||
@@ -130,6 +135,7 @@ export function createTicketingCheckoutHandoffCapability(
       fp: ticketingCheckoutHandoffFingerprint(handoff),
       sub: actorSubject,
       did: destinationId,
+      rk: requesterKind,
       rid: handoff.reservationReference,
       iat: nowEpochSeconds,
       exp: nowEpochSeconds + ttlSeconds,
@@ -174,8 +180,14 @@ export function verifyTicketingCheckoutHandoffCapability(
     const expiresAt = payload.exp;
     const actorSubject = boundedText(payload.sub, 160);
     const destinationId = boundedText(payload.did, 120).toLowerCase();
+    const requesterKind: CheckoutRequesterKind | null =
+      payload.rk === undefined || payload.rk === "authenticated"
+        ? "authenticated"
+        : payload.rk === "guest_capability"
+          ? "guest_capability"
+          : null;
     const context = normalizeCheckoutRequestContext({
-      requesterKind: "authenticated",
+      requesterKind: requesterKind ?? undefined,
       actorSubject,
       destinationId,
       tenantId: null,
