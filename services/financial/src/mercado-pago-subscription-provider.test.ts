@@ -70,15 +70,10 @@ function providerPayload(status: string, externalReference = subscriptionId) {
 describe("Mercado Pago subscription provider", () => {
   it("fails closed when checkout mode is missing", () => {
     const missingCheckoutMode = { ...environment };
-    Reflect.deleteProperty(
-      missingCheckoutMode,
-      "MERCADO_PAGO_CHECKOUT_MODE",
-    );
+    Reflect.deleteProperty(missingCheckoutMode, "MERCADO_PAGO_CHECKOUT_MODE");
 
     expect(() =>
-      createMercadoPagoSubscriptionProviderFromEnvironment(
-        missingCheckoutMode,
-      ),
+      createMercadoPagoSubscriptionProviderFromEnvironment(missingCheckoutMode),
     ).toThrow("MERCADO_PAGO_CHECKOUT_MODE is invalid");
   });
 
