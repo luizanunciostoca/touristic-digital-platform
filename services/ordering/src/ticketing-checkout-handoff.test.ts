@@ -62,6 +62,31 @@ describe("Ticketing canonical Payments handoff", () => {
     ).toBeNull();
   });
 
+  it("issues an explicit guest capability without weakening authenticated tokens", () => {
+    const token = createTicketingCheckoutHandoffCapability(
+      request(),
+      {
+        actorSubject: "guest:0123456789abcdef0123456789abcdef",
+        destinationId: "morro",
+        requesterKind: "guest_capability",
+      },
+      secret,
+      { nowEpochSeconds: 1_776_000_000, ttlSeconds: 600 },
+    );
+    expect(token).not.toBeNull();
+
+    expect(
+      verifyTicketingCheckoutHandoffCapability(token, request(), secret, {
+        nowEpochSeconds: 1_776_000_100,
+      }),
+    ).toEqual({
+      requesterKind: "guest_capability",
+      actorSubject: "guest:0123456789abcdef0123456789abcdef",
+      destinationId: "morro",
+      tenantId: null,
+    });
+  });
+
   it("rejects short secrets and invalid actor or destination scopes", () => {
     expect(
       createTicketingCheckoutHandoffCapability(
