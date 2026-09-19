@@ -53,9 +53,16 @@ export function createMapStyleReadinessTracker(
   options: MapStyleReadinessOptions = {},
 ): MapStyleReadinessTracker {
   const initializedMaps = new WeakSet<MapboxGlMapLike>();
+  const observedMaps = new WeakSet<MapboxGlMapLike>();
 
   const markReady = (map: MapboxGlMapLike): void => {
     initializedMaps.add(map);
+  };
+
+  const observeLoad = (map: MapboxGlMapLike): void => {
+    if (observedMaps.has(map)) return;
+    observedMaps.add(map);
+    map.once?.("load", () => markReady(map));
   };
 
   return Object.freeze({
@@ -64,13 +71,40 @@ export function createMapStyleReadinessTracker(
         markReady(map);
         return;
       }
-      map.once?.("load", () => markReady(map));
+      observeLoad(map);
     },
 
     async waitUntilReady(map: MapboxGlMapLike): Promise<void> {
       if (initializedMaps.has(map)) return;
-      await waitForMapStyleReady(map, options);
-      markReady(map);
+
+      if (map.isStyleLoaded) {
+        await waitForMapStyleReady(map, options);
+        markReady(map);
+        return;
+      }
+
+      if (!map.once) return;
+
+      observeLoad(map);
+      const timeoutMs = Math.max(0, options.timeoutMs ?? DEFAULT_TIMEOUT_MS);
+      const pollIntervalMs = Math.max(
+        1,
+        options.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS,
+      );
+      const now = options.now ?? Date.now;
+      const sleep = options.sleep ?? defaultSleep;
+      const deadline = now() + timeoutMs;
+
+      while (now() < deadline) {
+        if (initializedMaps.has(map)) return;
+        const remaining = Math.max(0, deadline - now());
+        await sleep(Math.min(pollIntervalMs, remaining));
+      }
+
+      if (initializedMaps.has(map)) return;
+      throw new Error(
+        "Mapbox load event did not arrive before tour presentation.",
+      );
     },
   });
 }
