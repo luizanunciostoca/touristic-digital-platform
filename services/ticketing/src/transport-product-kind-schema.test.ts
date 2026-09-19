@@ -7,7 +7,7 @@ describe("ticketing transport product kind migration", () => {
     const queries: Array<{ sql: string; values?: readonly unknown[] }> = [];
     const pool = {
       query: async (sql: string, values?: readonly unknown[]) => {
-        queries.push({ sql, values });
+        queries.push(values ? { sql, values } : { sql });
         if (sql.includes("information_schema.COLUMNS")) {
           return [
             [
@@ -34,7 +34,7 @@ describe("ticketing transport product kind migration", () => {
     const queries: Array<{ sql: string; values?: readonly unknown[] }> = [];
     const pool = {
       query: async (sql: string, values?: readonly unknown[]) => {
-        queries.push({ sql, values });
+        queries.push(values ? { sql, values } : { sql });
         if (sql.includes("information_schema.COLUMNS")) {
           return [
             [{ column_type: "enum('tour','business_experience')" }],
