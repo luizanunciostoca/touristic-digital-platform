@@ -152,6 +152,7 @@ function createOfferSurface(document: Document): OfferSurface {
           <select id="morro-pro-offer-kind">
             <option value="business_experience">Experiência</option>
             <option value="tour">Passeio</option>
+            <option value="transport">Transporte / passagem</option>
           </select>
         </label>
         <label>Valor (BRL)<input id="morro-pro-offer-price" type="number" min="0.01" step="0.01" required /></label>
@@ -221,7 +222,9 @@ function offerInput(
 ): MorroProOfferInput {
   const label = surface.label.value.trim();
   const productKind =
-    surface.kind.value === "tour" ? "tour" : "business_experience";
+    surface.kind.value === "tour" || surface.kind.value === "transport"
+      ? surface.kind.value
+      : "business_experience";
   return Object.freeze({
     productKind,
     productReference: offerReference(businessId, label),
