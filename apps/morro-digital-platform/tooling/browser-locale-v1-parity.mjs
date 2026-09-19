@@ -108,7 +108,8 @@ try {
       placeholder:
         document.getElementById("assistantInput")?.getAttribute("placeholder") ??
         "",
-      voiceLanguage: document.getElementById("assistantVoiceLanguage")?.value ?? "",
+      voiceLanguage:
+        document.getElementById("assistantVoiceLanguage")?.value ?? "",
     }));
 
     assertEqual(
