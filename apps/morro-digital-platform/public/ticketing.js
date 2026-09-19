@@ -66,7 +66,28 @@ function dateTime(value) {
 }
 
 function productKindLabel(offer) {
-  return offer?.product?.kind === "tour" ? "Passeio" : "Experiência";
+  if (offer?.product?.kind === "tour") return "Passeio";
+  if (offer?.product?.kind === "transport") return "Transporte";
+  return "Experiência";
+}
+
+const offerIdPattern = /^[A-Za-z0-9_-]{3,120}$/u;
+
+function requestedOfferIds() {
+  const value = new URLSearchParams(location.search).get("offers");
+  if (!value) return [];
+  const ids = value
+    .split(",")
+    .map((id) => id.trim())
+    .filter(Boolean);
+  if (
+    ids.length === 0 ||
+    ids.length > 20 ||
+    ids.some((id) => !offerIdPattern.test(id))
+  ) {
+    return [];
+  }
+  return [...new Set(ids)];
 }
 
 async function json(response) {
@@ -161,7 +182,7 @@ function renderOffers() {
     const empty = document.createElement("p");
     empty.className = "empty";
     empty.textContent =
-      "Nenhuma experiência está disponível para reserva agora.";
+      "Nenhuma oferta está disponível para reserva agora.";
     elements.offers.append(empty);
     return;
   }
@@ -208,10 +229,16 @@ function renderOffers() {
 
 async function loadOffers() {
   const payload = await api("/api/ticketing/v1/inventory");
-  state.offers = Array.isArray(payload.data) ? payload.data : [];
+  const inventory = Array.isArray(payload.data) ? payload.data : [];
+  const requestedOffers = requestedOfferIds();
+  state.offers =
+    requestedOffers.length > 0
+      ? inventory.filter((entry) => requestedOffers.includes(entry.id))
+      : inventory;
   renderOffers();
+
   const requestedOffer = new URLSearchParams(location.search).get("offer");
-  if (requestedOffer) {
+  if (requestedOffer && offerIdPattern.test(requestedOffer)) {
     const offer = state.offers.find((entry) => entry.id === requestedOffer);
     if (offer) selectOffer(offer);
   }
