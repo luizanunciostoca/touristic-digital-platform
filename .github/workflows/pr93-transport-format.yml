@@ -16,6 +16,7 @@ on:
       - "apps/morro-digital-platform/public/experience.js"
       - "apps/morro-digital-platform/src/business-dashboard-client.ts"
       - "apps/morro-digital-platform/src/business-dashboard-surface.ts"
+      - "apps/morro-digital-platform/tooling/crm-api.mjs"
 
 permissions:
   contents: write
@@ -38,12 +39,14 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Format transport commerce changes
         run: |
-          pnpm exec prettier --write             packages/ticketing/src/index.ts             packages/ticketing/src/reservations.test.ts             services/ticketing/src/schema.ts             services/ticketing/src/reservation-schema.ts             services/ticketing/src/business-inventory-repository.ts             services/ticketing/src/index.ts             services/ticketing/src/transport-product-kind-schema.ts             services/ticketing/src/transport-product-kind-schema.test.ts             apps/morro-digital-platform/src/business-dashboard-client.ts             apps/morro-digital-platform/src/business-dashboard-surface.ts
+          pnpm exec prettier --write             packages/ticketing/src/index.ts             packages/ticketing/src/reservations.test.ts             services/ticketing/src/schema.ts             services/ticketing/src/reservation-schema.ts             services/ticketing/src/business-inventory-repository.ts             services/ticketing/src/index.ts             services/ticketing/src/transport-product-kind-schema.ts             services/ticketing/src/transport-product-kind-schema.test.ts             apps/morro-digital-platform/src/business-dashboard-client.ts             apps/morro-digital-platform/src/business-dashboard-surface.ts \
+            apps/morro-digital-platform/tooling/crm-api.mjs
       - name: Commit formatting to PR branch
         env:
           PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
         run: |
-          git add --             packages/ticketing/src/index.ts             packages/ticketing/src/reservations.test.ts             services/ticketing/src/schema.ts             services/ticketing/src/reservation-schema.ts             services/ticketing/src/business-inventory-repository.ts             services/ticketing/src/index.ts             services/ticketing/src/transport-product-kind-schema.ts             services/ticketing/src/transport-product-kind-schema.test.ts             apps/morro-digital-platform/src/business-dashboard-client.ts             apps/morro-digital-platform/src/business-dashboard-surface.ts
+          git add --             packages/ticketing/src/index.ts             packages/ticketing/src/reservations.test.ts             services/ticketing/src/schema.ts             services/ticketing/src/reservation-schema.ts             services/ticketing/src/business-inventory-repository.ts             services/ticketing/src/index.ts             services/ticketing/src/transport-product-kind-schema.ts             services/ticketing/src/transport-product-kind-schema.test.ts             apps/morro-digital-platform/src/business-dashboard-client.ts             apps/morro-digital-platform/src/business-dashboard-surface.ts \
+            apps/morro-digital-platform/tooling/crm-api.mjs
           if git diff --cached --quiet; then
             echo "Formatting already canonical."
             exit 0
