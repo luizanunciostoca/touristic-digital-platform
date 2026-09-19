@@ -107,7 +107,9 @@ export function validateMercadoPagoProductionCutover(
     throw new Error("MERCADO_PAGO_PRODUCTION_AUTHORIZATION_ID_INVALID");
   }
 
-  if (requireBoolean(environment, "MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED")) {
+  if (
+    requireBoolean(environment, "MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED")
+  ) {
     throw new Error("MERCADO_PAGO_PRODUCTION_REJECTS_TEST_CONFIRMATION");
   }
 
