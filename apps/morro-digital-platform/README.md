@@ -89,7 +89,9 @@ Os testes exigem:
 - geometria, ordem e `photoPath` idênticos entre locales;
 - objetos e coleções imutáveis.
 
-A internacionalização visual do shell/seletor de idioma continua separada deste incremento; este checkpoint entrega a fonte editorial tipada e equivalente para os roteiros.
+A internacionalização pública usa o locale efetivo do documento desde o primeiro bootstrap. Em uma visita nova, a precedência é: escolha manual persistida em `morro-digital-language` → primeira preferência suportada de `navigator.languages`/`navigator.language` → fallback inglês quando o navegador informa apenas idiomas não suportados → PT-BR quando o navegador não informa locale. A seleção manual continua tendo prioridade nos carregamentos seguintes.
+
+O mesmo locale alimenta shell, Assistente, voz/reconhecimento, fala de Navigation, Explore, Weather, onboarding inicial e tour interativo. `pt-*`, `en-*`, `es-*`, `he-*` e o alias legado `iw-*` são normalizados; hebraico aplica `dir="rtl"` e os demais idiomas `dir="ltr"`. Contratos Chromium validam a detecção já na primeira carga, a persistência da escolha manual e a apresentação PT/EN/ES/HE, inclusive no primeiro acesso.
 
 ## Marcadores do roteiro inicial
 
