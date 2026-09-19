@@ -36,6 +36,7 @@ jobs:
         run: |
           set -euo pipefail
           workflows=(
+            assistant-v1-residual-command-parity.yml
             assistant-photo-browser-contract.yml
             assistant-voice-browser-contract.yml
             auth-login-browser-contract.yml
@@ -122,6 +123,7 @@ jobs:
         run: |
           set -euo pipefail
           workflows=(
+            assistant-v1-residual-command-parity.yml
             assistant-photo-browser-contract.yml
             assistant-voice-browser-contract.yml
             auth-login-browser-contract.yml
