@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   executeAssistantV1ResidualCommand,
   formatAssistantV1History,
+  invalidateAssistantV1MapCameraRestore,
   resolveAssistantV1ResidualCommand,
   type AssistantV1MapCommandMap,
 } from "./assistant-v1-residual-command-adapter.js";
@@ -314,6 +315,47 @@ describe("current-main residual command hardening", () => {
       map,
     });
     expect(flyTo).toHaveBeenCalledWith(expect.objectContaining({ zoom: 2 }));
+  });
+
+  it.each([
+    ["en", "🔍 Zoom adjusted to 15."],
+    ["es", "🔍 Zoom ajustado a 15."],
+    ["he", "🔍 הזום הותאם ל-15."],
+  ] as const)("localizes zoom feedback for %s", async (language, expected) => {
+    const map = fakeMap();
+    const response = await executeAssistantV1ResidualCommand({
+      command: { type: "map_zoom", direction: "in" },
+      language,
+      history: [],
+      map,
+    });
+    expect(response.text).toBe(expected);
+  });
+
+  it("invalidates a pending style restore when navigation takes camera ownership", async () => {
+    let styleLoad: (() => void) | undefined;
+    const flyTo = vi.fn();
+    const map: AssistantV1MapCommandMap = {
+      getCenter: () => ({ lng: -38.9145, lat: -13.382 }),
+      getZoom: () => 13,
+      getPitch: () => 35,
+      getBearing: () => 0,
+      setStyle: vi.fn(),
+      once: (_event, listener) => {
+        styleLoad = listener;
+      },
+      flyTo,
+    };
+
+    await executeAssistantV1ResidualCommand({
+      command: { type: "map_style", style: "satellite" },
+      language: "pt",
+      history: [],
+      map,
+    });
+    invalidateAssistantV1MapCameraRestore(map);
+    styleLoad?.();
+    expect(flyTo).not.toHaveBeenCalled();
   });
 
   it("does not let a stale style-load restore overwrite a newer camera command", async () => {
