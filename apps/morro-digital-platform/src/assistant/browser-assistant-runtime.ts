@@ -18,6 +18,7 @@ import { createAssistantV1IntelligenceHandlers } from "./assistant-v1-intelligen
 import { resolveAssistantV1PlaceAction } from "./assistant-v1-place-action-adapter.js";
 import {
   executeAssistantV1ResidualCommand,
+  invalidateAssistantV1MapCameraRestore,
   resolveAssistantV1ResidualCommand,
   type AssistantV1MapCommandMap,
 } from "./assistant-v1-residual-command-adapter.js";
@@ -476,6 +477,11 @@ export function installBrowserAssistantRuntime(
   let navigationActive = false;
   const onNavigationStarted = (): void => {
     navigationActive = true;
+    const runtimeGlobal = globalThis as typeof globalThis &
+      AssistantRuntimeEnvironmentGlobal;
+    if (runtimeGlobal.mapboxPrimaryInstance) {
+      invalidateAssistantV1MapCameraRestore(runtimeGlobal.mapboxPrimaryInstance);
+    }
   };
   const onNavigationEnded = (event: Event): void => {
     navigationActive = false;
@@ -622,12 +628,7 @@ export function installBrowserAssistantRuntime(
 
     const generation = ++requestGeneration;
 
-    const residualCandidate = resolveAssistantV1ResidualCommand(value);
-    const exploreState = options.explore?.getState();
-    const residualCommand =
-      residualCandidate?.type === "map_show_all" && exploreState?.category
-        ? null
-        : residualCandidate;
+    const residualCommand = resolveAssistantV1ResidualCommand(value);
     if (residualCommand) {
       const residualContext = context.getContext();
       const runtimeGlobal = globalThis as typeof globalThis &
