@@ -38,6 +38,30 @@ test("keeps TEST mode outside the financial authorization gate", () => {
   );
 });
 
+test("validates and normalizes subscriptions configuration in TEST mode", () => {
+  assert.deepEqual(
+    validateMercadoPagoProductionCutover({
+      MERCADO_PAGO_CHECKOUT_MODE: "test",
+      PAYMENTS_SUBSCRIPTIONS_ENABLED: "TRUE",
+    }),
+    {
+      mode: "test",
+      productionAuthorized: false,
+      productionCredentialsConfirmed: false,
+      subscriptionsEnabled: true,
+    },
+  );
+
+  assert.throws(
+    () =>
+      validateMercadoPagoProductionCutover({
+        MERCADO_PAGO_CHECKOUT_MODE: "test",
+        PAYMENTS_SUBSCRIPTIONS_ENABLED: "yes",
+      }),
+    /PAYMENTS_SUBSCRIPTIONS_ENABLED_INVALID/u,
+  );
+});
+
 test("fails closed when production mode lacks explicit financial authorization", () => {
   assert.throws(
     () =>
@@ -47,6 +71,18 @@ test("fails closed when production mode lacks explicit financial authorization",
         }),
       ),
     /MERCADO_PAGO_PRODUCTION_AUTHORIZATION_ID_REQUIRED/u,
+  );
+});
+
+test("requires NODE_ENV=production for a production cutover", () => {
+  assert.throws(
+    () =>
+      validateMercadoPagoProductionCutover(
+        productionEnvironment({
+          NODE_ENV: "staging",
+        }),
+      ),
+    /MERCADO_PAGO_PRODUCTION_REQUIRES_NODE_ENV_PRODUCTION/u,
   );
 });
 
