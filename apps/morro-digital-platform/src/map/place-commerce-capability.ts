@@ -115,6 +115,10 @@ function offerMatchesLocation(
     placeName,
     ...(location.aliases ?? []).map(normalizeSearchText),
   ].filter((value) => value.length >= 5);
+  const placeSlugs = [
+    slug(location.name),
+    ...(location.aliases ?? []).map(slug),
+  ].filter((value) => value.length >= 5);
   const placeSlug = slug(location.name);
   const destinationSlug = slug(offer.destinationId);
   const referenceSlug = slug(offer.product.reference.replace(/[:._]+/gu, " "));
@@ -136,9 +140,17 @@ function offerMatchesLocation(
     return true;
   }
 
-  const businessReference = /^morro-pro:([^:]+):/u.exec(
+  const morroProReference = /^morro-pro:([^:]+):(?:place-([^:]+):)?/u.exec(
     offer.product.reference,
-  )?.[1];
+  );
+  const businessReference = morroProReference?.[1];
+  const explicitPlaceReference = morroProReference?.[2];
+  if (
+    explicitPlaceReference &&
+    placeSlugs.includes(slug(explicitPlaceReference))
+  ) {
+    return true;
+  }
   if (businessReference && slug(businessReference) === placeSlug) return true;
 
   if (
