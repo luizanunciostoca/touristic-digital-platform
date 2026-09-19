@@ -260,6 +260,16 @@ function requireMercadoPagoTestCredentialsConfirmation(
   }
 }
 
+function requireConfirmedProviderMode(
+  environment: MercadoPagoProviderEnvironment,
+): "production" | "test" {
+  const mode = checkoutMode(environment.MERCADO_PAGO_CHECKOUT_MODE);
+  if (mode === "test") {
+    requireMercadoPagoTestCredentialsConfirmation(environment);
+  }
+  return mode;
+}
+
 export function createMercadoPagoCheckoutProviderFromEnvironment(
   environment: MercadoPagoProviderEnvironment,
   options: MercadoPagoProviderOptions = {},
@@ -368,6 +378,7 @@ export function createMercadoPagoRefundProviderFromEnvironment(
   if (environment.PAYMENTS_PROVIDER_MODE !== "mercado_pago") {
     throw new Error("PAYMENTS_PROVIDER_MODE=mercado_pago is required");
   }
+  requireConfirmedProviderMode(environment);
   const token = accessToken(environment);
   const fetchImpl = fetchProvider(options);
   const timeout = timeoutMs(environment.PAYMENTS_PROVIDER_TIMEOUT_MS);
@@ -466,6 +477,7 @@ export function createMercadoPagoReconciliationProviderFromEnvironment(
   if (environment.PAYMENTS_PROVIDER_MODE !== "mercado_pago") {
     throw new Error("PAYMENTS_PROVIDER_MODE=mercado_pago is required");
   }
+  requireConfirmedProviderMode(environment);
   accessToken(environment);
   return Object.freeze({
     async readPayment(
@@ -581,6 +593,7 @@ export function createMercadoPagoWebhookVerifierFromEnvironment(
   if (environment.PAYMENTS_PROVIDER_MODE !== "mercado_pago") {
     throw new Error("PAYMENTS_PROVIDER_MODE=mercado_pago is required");
   }
+  requireConfirmedProviderMode(environment);
   const secret = webhookSecret(environment);
   accessToken(environment);
   const tolerance = webhookToleranceSeconds(
