@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS ticketing_tickets (
   order_id VARCHAR(120) COLLATE utf8mb4_bin NOT NULL,
   payment_id VARCHAR(120) COLLATE utf8mb4_bin NOT NULL,
   destination_id VARCHAR(120) COLLATE utf8mb4_bin NOT NULL,
-  product_kind ENUM('tour','business_experience') NOT NULL,
+  product_kind ENUM('tour','business_experience','transport') NOT NULL,
   product_reference VARCHAR(120) COLLATE utf8mb4_bin NOT NULL,
   holder_name VARCHAR(160) NOT NULL,
   quantity INT UNSIGNED NOT NULL,
