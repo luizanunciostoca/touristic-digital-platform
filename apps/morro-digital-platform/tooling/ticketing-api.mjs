@@ -358,6 +358,9 @@ export function createTicketingApi({
             {
               actorSubject: actor.subject,
               destinationId: environment.PAYMENTS_DESTINATION_ID,
+              requesterKind: actor.subject.startsWith("guest:")
+                ? "guest_capability"
+                : "authenticated",
             },
             environment.PAYMENTS_HANDOFF_SECRET,
           );
