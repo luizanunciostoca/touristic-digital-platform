@@ -144,7 +144,7 @@ jobs:
                 return fulfill(route, { error: 'CHECKOUT_HANDOFF_INVALID' }, 400);
               }
               state.checkout = true;
-              return fulfill(route, { data: { checkoutId: 'chk_browser_0001', statusToken: 'status_browser_0001', statusExpiresAt: '2026-09-18T22:00:00.000Z', checkoutUrl: null } }, 201);
+              return fulfill(route, { data: { checkoutId: 'chk_browser_0001', statusToken: 'status_browser_0001', statusExpiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(), checkoutUrl: null } }, 201);
             });
             await page.route('**/api/payments/v1/checkouts/chk_browser_0001', route => {
               if (route.request().headers()['x-checkout-token'] !== 'status_browser_0001') return fulfill(route, { error: 'CHECKOUT_TOKEN_INVALID' }, 401);
