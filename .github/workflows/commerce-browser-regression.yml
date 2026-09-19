@@ -324,7 +324,8 @@ jobs:
               await authPage.goto(`${origin}/apps/morro-digital-platform/public/business-dashboard.html?businessId=business-a`, { waitUntil: 'domcontentloaded', timeout: 30000 });
               await authPage.locator('#main-dashboard:not([hidden])').waitFor({ state: 'visible', timeout: 10000 });
               await authPage.locator('.sidebar-nav [data-dashboard-view="offers"]').click();
-              await authPage.locator('#morro-pro-offer-label').fill('Passeio Morro Pro');
+              await authPage.locator('#morro-pro-offer-label').fill('Passagem Catamarã Morro Pro');
+              await authPage.locator('#morro-pro-offer-kind').selectOption('transport');
               await authPage.locator('#morro-pro-offer-price').fill('199.90');
               await authPage.locator('#morro-pro-offer-sales-start').fill('2026-09-18T09:00');
               await authPage.locator('#morro-pro-offer-sales-end').fill('2026-09-20T09:00');
@@ -339,12 +340,13 @@ jobs:
               await authPage.locator('#morro-pro-offer-list h3').waitFor({ state: 'visible', timeout: 5000 });
               if (!created) throw new Error('Authenticated Morro Pro offer not created');
               if (createCalls !== 1) throw new Error(`Concurrent Morro Pro submit created ${createCalls} offers`);
+              if (offers[0]?.productKind !== 'transport') throw new Error(`Transport offer kind was not preserved: ${offers[0]?.productKind}`);
               const crossTenant = await authPage.evaluate(async () => {
                 const response = await fetch('/api/ticketing/v1/operator/businesses/business-b/inventory', { credentials: 'same-origin' });
                 return response.status;
               });
               if (crossTenant !== 404) throw new Error(`Cross-tenant inventory leaked: ${crossTenant}`);
-              evidence.push({ authenticatedMorroPro: true, crossTenant, createCalls, offerId: offers[0]?.id });
+              evidence.push({ authenticatedMorroPro: true, crossTenant, createCalls, offerId: offers[0]?.id, productKind: offers[0]?.productKind });
               await authContext.close();
 
               const failContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
