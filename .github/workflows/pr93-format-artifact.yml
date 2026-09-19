@@ -16,7 +16,7 @@ on:
       - "services/ticketing/src/commerce-crm-outbox.ts"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   format-artifact:
@@ -37,6 +37,19 @@ jobs:
       - name: Format changed implementation files
         run: |
           pnpm exec prettier --write             .github/workflows/commerce-browser-regression.yml             apps/morro-digital-platform/public/commerce.css             apps/morro-digital-platform/public/ticketing.js             apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts             apps/morro-digital-platform/src/map/explore-location-actions-v1.test.ts             apps/morro-digital-platform/src/map/explore-location-actions-v1.ts             apps/morro-digital-platform/src/map/place-commerce-capability.ts             apps/morro-digital-platform/tooling/ticketing-api.mjs             services/crm/src/mysql-commerce-customer-repository.ts             services/ticketing/src/commerce-crm-outbox.ts
+      - name: Commit formatting to PR branch
+        env:
+          PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          git add --             .github/workflows/commerce-browser-regression.yml             apps/morro-digital-platform/public/commerce.css             apps/morro-digital-platform/public/ticketing.js             apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts             apps/morro-digital-platform/src/map/explore-location-actions-v1.test.ts             apps/morro-digital-platform/src/map/explore-location-actions-v1.ts             apps/morro-digital-platform/src/map/place-commerce-capability.ts             apps/morro-digital-platform/tooling/ticketing-api.mjs             services/crm/src/mysql-commerce-customer-repository.ts             services/ticketing/src/commerce-crm-outbox.ts
+          if git diff --cached --quiet; then
+            echo "Formatting already canonical."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "style: format place commerce integration"
+          git push origin "HEAD:${PR_HEAD_REF}"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: pr93-formatted-files
