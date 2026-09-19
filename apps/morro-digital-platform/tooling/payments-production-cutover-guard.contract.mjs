@@ -11,8 +11,7 @@ function testEnvironment(overrides = {}) {
   return {
     MERCADO_PAGO_CHECKOUT_MODE: "test",
     MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED: "true",
-    VITE_MERCADO_PAGO_PUBLIC_KEY:
-      "TEST-fixturePublicKey_1234567890",
+    VITE_MERCADO_PAGO_PUBLIC_KEY: "TEST-fixturePublicKey_1234567890",
     PAYMENTS_SUBSCRIPTIONS_ENABLED: "false",
     ...overrides,
   };
@@ -26,8 +25,7 @@ function productionEnvironment(overrides = {}) {
     MERCADO_PAGO_PRODUCTION_CREDENTIALS_CONFIRMED: "true",
     MERCADO_PAGO_ACCESS_TOKEN:
       "fixture-production-server-credential-value-1234567890",
-    VITE_MERCADO_PAGO_PUBLIC_KEY:
-      "APP_USR-fixturePublicKey_1234567890",
+    VITE_MERCADO_PAGO_PUBLIC_KEY: "APP_USR-fixturePublicKey_1234567890",
     PAYMENTS_WEBHOOK_URL:
       "https://morro.digital/api/payments/v1/webhooks/sandbox",
     PAYMENTS_SUBSCRIPTIONS_ENABLED: "false",
@@ -54,7 +52,6 @@ test("requires browser Public Key in TEST mode", () => {
     /VITE_MERCADO_PAGO_PUBLIC_KEY_REQUIRED/u,
   );
 });
-
 
 test("rejects a production Public Key in TEST mode", () => {
   assert.throws(
