@@ -146,7 +146,8 @@ describe("TicketingCommerceHttpTransport security boundary", () => {
       ),
     );
     const cookie = sessionCookie(String(issued.headers["Set-Cookie"]));
-    const tampered = `${cookie.slice(0, -1)}x`;
+    const lastCharacter = cookie.at(-1);
+    const tampered = `${cookie.slice(0, -1)}${lastCharacter === "A" ? "B" : "A"}`;
     const tamperedResult = await transport.handle(
       request("/api/ticketing/v1/reservations", "GET", { cookie: tampered }),
     );
