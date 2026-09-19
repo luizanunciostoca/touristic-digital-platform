@@ -122,6 +122,34 @@ describe("place commerce capability", () => {
     });
   });
 
+  it("does not reinterpret business experiences as transport tickets", async () => {
+    const fetch = vi.fn().mockResolvedValue(
+      response([
+        offer({
+          id: "mpi_transportlegacy",
+          destinationId: "transport-agencia-de-passagens-do-terminal",
+          product: {
+            kind: "business_experience",
+            reference: "agencia-de-passagens-do-terminal",
+          },
+          label: "Agência de Passagens do Terminal",
+        }),
+      ]),
+    );
+    const action = await resolvePlacePrimaryAction({
+      location: transport,
+      locale: "pt",
+      fetch,
+      now: () => Date.parse("2026-09-19T22:00:00.000Z"),
+    });
+
+    expect(action).toMatchObject({
+      label: "🚕 Solicitar",
+      value: "solicitar transporte",
+      commerceState: "fallback",
+    });
+  });
+
   it("uses the transport-specific purchase copy when a transport offer exists", async () => {
     const fetch = vi.fn().mockResolvedValue(
       response([
