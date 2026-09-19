@@ -457,12 +457,16 @@ export async function mountBusinessDashboardSurface(
       });
   });
 
+  let offerSubmissionPending = false;
   offersSurface.form.addEventListener("submit", (event) => {
     event.preventDefault();
+    if (offerSubmissionPending) return;
     offersSurface.status.textContent = "Publicando oferta…";
     try {
       const input = offerInput(offersSurface, businessId);
       const key = requestKey(document);
+      offerSubmissionPending = true;
+      offersSurface.form.setAttribute("aria-busy", "true");
       void dashboardClient
         .createOffer(businessId, input, key)
         .then(() => reloadOffers())
@@ -477,6 +481,10 @@ export async function mountBusinessDashboardSurface(
             error instanceof Error
               ? error.message
               : "Falha ao publicar oferta.";
+        })
+        .finally(() => {
+          offerSubmissionPending = false;
+          offersSurface.form.removeAttribute("aria-busy");
         });
     } catch (error: unknown) {
       offersSurface.status.textContent =
