@@ -8,6 +8,8 @@ import {
   createOrderingMySqlPoolFromEnvironment,
 } from "@touristic/ordering-server";
 
+const diagnosticCodePattern = /^[A-Z0-9_:-]{1,160}$/u;
+
 function required(name) {
   const value = String(process.env[name] ?? "").trim();
   if (!value) throw new Error(`${name}_REQUIRED`);
@@ -98,6 +100,16 @@ function validateProviderIdentity() {
   }
 }
 
+function safeFailureCode(error) {
+  const message = error instanceof Error ? error.message : "";
+  if (diagnosticCodePattern.test(message)) return message;
+  const code =
+    typeof error === "object" && error !== null && "code" in error
+      ? String(error.code)
+      : "";
+  return diagnosticCodePattern.test(code) ? code : "UNKNOWN_PREDEPLOY_FAILURE";
+}
+
 let orderingPool;
 let financialPool;
 
@@ -142,8 +154,7 @@ try {
       contract: "PAYMENTS-PREDEPLOY",
       contractVersion: 2,
       status: "fail",
-      reason:
-        error instanceof Error ? error.message : "UNKNOWN_PREDEPLOY_FAILURE",
+      reason: safeFailureCode(error),
     })}\n`,
   );
   process.exitCode = 1;

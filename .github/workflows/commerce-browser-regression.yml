@@ -266,7 +266,7 @@ jobs:
               const failPage = await failContext.newPage();
               await commerceRoutes(failPage, { inventoryFailure: true });
               await failPage.goto(`${origin}/tickets.html`, { waitUntil: 'domcontentloaded' });
-              await failPage.waitForFunction(() => document.querySelector('#reservation-message')?.textContent?.includes('TICKETING_UNAVAILABLE'));
+              await failPage.locator('#reservation-message').filter({ hasText: 'TICKETING_UNAVAILABLE' }).waitFor({ state: 'visible', timeout: 10000 });
               evidence.push({ predictableFailure: 'TICKETING_UNAVAILABLE' });
               await failContext.close();
 
