@@ -7,6 +7,7 @@ const state = {
 
 const checkoutStorageKey = "morro_ticketing_checkout_v1";
 const canonicalCheckoutPath = "/api/payments/v1/checkouts";
+const commerceSessionPath = "/api/ticketing/v1/consumer-session";
 const elements = {
   offers: document.querySelector("#offers"),
   reservations: document.querySelector("#reservations"),
@@ -36,14 +37,17 @@ function correlationId() {
   return `browser:${globalThis.crypto.randomUUID()}`;
 }
 
+function text(value) {
+  return typeof value === "string" ? value : "";
+}
+
 function money(value) {
   if (
     !value ||
     typeof value.minorUnits !== "number" ||
     typeof value.currency !== "string"
-  ) {
+  )
     return "—";
-  }
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
     currency: value.currency,
@@ -61,8 +65,8 @@ function dateTime(value) {
     : "—";
 }
 
-function text(value) {
-  return typeof value === "string" ? value : "";
+function productKindLabel(offer) {
+  return offer?.product?.kind === "tour" ? "Passeio" : "Experiência";
 }
 
 async function json(response) {
@@ -76,34 +80,28 @@ async function json(response) {
 }
 
 async function session() {
-  const response = await fetch("/api/dashboard/auth/session", {
-    method: "GET",
+  const response = await fetch(commerceSessionPath, {
+    method: "POST",
     credentials: "same-origin",
     cache: "no-store",
-    headers: { Accept: "application/json" },
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      "X-Correlation-ID": correlationId(),
+    },
+    body: "{}",
   });
-  if (response.status === 401) {
-    location.replace(
-      `/dashboard/login.html?return=${encodeURIComponent("/tickets.html")}`,
-    );
-    return null;
-  }
   const payload = await json(response);
-  if (
-    payload?.authenticated !== true ||
-    !payload.csrfToken ||
-    !payload.user?.id
-  ) {
-    throw new Error("AUTH_SESSION_INVALID");
+  if (!payload?.data?.subject || !payload?.data?.csrfToken) {
+    throw new Error("COMMERCE_SESSION_INVALID");
   }
-  state.session = payload.user;
-  state.csrfToken = payload.csrfToken;
-  elements.holderEmail.value = text(payload.user.email);
-  elements.sessionLabel.textContent = text(payload.user.email);
-  return payload;
+  state.session = payload.data;
+  state.csrfToken = payload.data.csrfToken;
+  elements.sessionLabel.textContent = "Compra segura · visitante";
+  return payload.data;
 }
 
-async function api(path, init = {}) {
+async function api(path, init = {}, retry = true) {
   const method = text(init.method || "GET").toUpperCase();
   const headers = new Headers(init.headers || {});
   headers.set("Accept", "application/json");
@@ -118,29 +116,18 @@ async function api(path, init = {}) {
     credentials: "same-origin",
     cache: "no-store",
   });
-  if (response.status === 401) {
-    location.replace(
-      `/dashboard/login.html?return=${encodeURIComponent("/tickets.html")}`,
-    );
-    throw new Error("AUTH_REQUIRED");
+  if (retry && response.status === 401) {
+    await session();
+    return api(path, init, false);
   }
-  if (response.status === 403) {
+  if (retry && response.status === 403) {
     const payload = await response
       .clone()
       .json()
       .catch(() => ({}));
     if (payload?.error === "INVALID_CSRF") {
       await session();
-      headers.set("X-CSRF-Token", state.csrfToken);
-      return json(
-        await fetch(path, {
-          ...init,
-          method,
-          headers,
-          credentials: "same-origin",
-          cache: "no-store",
-        }),
-      );
+      return api(path, init, false);
     }
   }
   return json(response);
@@ -151,20 +138,21 @@ function setMessage(message, error = false) {
   elements.message.classList.toggle("is-error", error);
 }
 
-function selectOffer(offer) {
+function selectOffer(offer, { scroll = false } = {}) {
   state.selectedOffer = offer;
   elements.inventoryId.value = offer.id;
   elements.selectedOffer.value = `${offer.label} · ${money(offer.unitAmount)}`;
   elements.quantity.max = String(
     Math.min(offer.maxPerReservation, offer.availableQuantity),
   );
-  if (Number(elements.quantity.value) > Number(elements.quantity.max)) {
+  if (Number(elements.quantity.value) > Number(elements.quantity.max))
     elements.quantity.value = "1";
-  }
   elements.reserve.disabled = offer.availableQuantity < 1;
   for (const card of elements.offers.querySelectorAll(".offer-card")) {
     card.classList.toggle("is-selected", card.dataset.inventoryId === offer.id);
   }
+  if (scroll)
+    elements.form.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function renderOffers() {
@@ -181,7 +169,11 @@ function renderOffers() {
     const card = document.createElement("article");
     card.className = "offer-card";
     card.dataset.inventoryId = offer.id;
+
     const content = document.createElement("div");
+    const kind = document.createElement("span");
+    kind.className = "offer-kind";
+    kind.textContent = productKindLabel(offer);
     const title = document.createElement("h3");
     title.textContent = offer.label;
     const when = document.createElement("p");
@@ -192,15 +184,24 @@ function renderOffers() {
     const availability = document.createElement("p");
     availability.className = "availability";
     availability.textContent = `${offer.availableQuantity} disponíveis`;
-    content.append(title, when, price, availability);
+    content.append(kind, title, when, price, availability);
+
+    const actions = document.createElement("div");
+    actions.className = "card-actions";
+    const detail = document.createElement("a");
+    detail.className = "button button-secondary";
+    detail.href = `/experience.html?id=${encodeURIComponent(offer.id)}`;
+    detail.textContent = "Ver detalhes";
     const button = document.createElement("button");
     button.type = "button";
-    button.className = "button button-secondary";
+    button.className = "button button-primary";
     button.disabled = offer.availableQuantity < 1;
-    button.textContent =
-      offer.availableQuantity > 0 ? "Selecionar" : "Esgotado";
-    button.addEventListener("click", () => selectOffer(offer));
-    card.append(content, button);
+    button.textContent = offer.availableQuantity > 0 ? "Reservar" : "Esgotado";
+    button.addEventListener("click", () =>
+      selectOffer(offer, { scroll: true }),
+    );
+    actions.append(detail, button);
+    card.append(content, actions);
     elements.offers.append(card);
   }
 }
@@ -209,6 +210,11 @@ async function loadOffers() {
   const payload = await api("/api/ticketing/v1/inventory");
   state.offers = Array.isArray(payload.data) ? payload.data : [];
   renderOffers();
+  const requestedOffer = new URLSearchParams(location.search).get("offer");
+  if (requestedOffer) {
+    const offer = state.offers.find((entry) => entry.id === requestedOffer);
+    if (offer) selectOffer(offer);
+  }
 }
 
 function statusLabel(status) {
@@ -250,7 +256,7 @@ async function cancelReservation(reservation) {
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({}),
+      body: "{}",
     },
   );
   await Promise.all([loadOffers(), loadReservations()]);
@@ -261,7 +267,7 @@ function renderReservations(reservations) {
   if (reservations.length === 0) {
     const empty = document.createElement("p");
     empty.className = "empty";
-    empty.textContent = "Você ainda não possui reservas.";
+    empty.textContent = "Você ainda não possui reservas neste navegador.";
     elements.reservations.append(empty);
     return;
   }
@@ -283,6 +289,7 @@ function renderReservations(reservations) {
     status.className = `status status-${reservation.status}`;
     status.textContent = statusLabel(reservation.status);
     content.append(title, detail, expiry, status);
+
     const actions = document.createElement("div");
     actions.className = "card-actions";
     if (reservation.status === "confirmed") {
@@ -303,7 +310,7 @@ function renderReservations(reservations) {
       const cancel = document.createElement("button");
       cancel.type = "button";
       cancel.className = "button button-secondary";
-      cancel.textContent = "Cancelar hold";
+      cancel.textContent = "Cancelar reserva";
       cancel.addEventListener(
         "click",
         () =>
@@ -431,9 +438,9 @@ async function createCheckout(reservationPayload) {
     !descriptor?.handoffToken ||
     !descriptor?.handoff ||
     descriptor.handoff.reservationReference !== descriptor.reservationReference
-  ) {
+  )
     throw new Error("CHECKOUT_HANDOFF_INVALID");
-  }
+
   const response = await fetch(canonicalCheckoutPath, {
     method: "POST",
     credentials: "same-origin",
@@ -441,7 +448,6 @@ async function createCheckout(reservationPayload) {
     headers: {
       Accept: "application/json",
       "Content-Type": "application/json",
-      "X-CSRF-Token": state.csrfToken,
       "X-Correlation-ID": correlationId(),
       "X-Checkout-Handoff-Token": descriptor.handoffToken,
       "Idempotency-Key": descriptor.idempotencyKey,
@@ -492,6 +498,7 @@ async function submitReservation(event) {
     setMessage("Preencha nome, e-mail e quantidade corretamente.", true);
     return;
   }
+
   elements.reserve.disabled = true;
   setMessage("Criando uma reserva segura…");
   try {
@@ -509,9 +516,8 @@ async function submitReservation(event) {
         returnUrl: `${location.origin}/tickets.html`,
       }),
     });
-    if (!payload.data?.reservation || !payload.data?.checkout) {
+    if (!payload.data?.reservation || !payload.data?.checkout)
       throw new Error("RESERVATION_RESPONSE_INVALID");
-    }
     setMessage("Reserva criada. Abrindo o checkout seguro…");
     await createCheckout(payload.data);
   } catch (error) {
@@ -534,7 +540,7 @@ elements.dialogClose.addEventListener("click", () => elements.dialog.close());
 
 (async () => {
   try {
-    if (!(await session())) return;
+    await session();
     await Promise.all([loadOffers(), loadReservations()]);
     await resumeCheckout();
   } catch (error) {

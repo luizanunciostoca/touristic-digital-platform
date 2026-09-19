@@ -27,8 +27,10 @@ import {
   MySqlTicketOfflineEnvelopeRepository,
   MySqlTicketRepository,
   MySqlTicketReservationRepository,
+  MySqlTicketingBusinessInventoryRepository,
   MySqlTicketingPublicReadRepository,
   MySqlTicketingTransactionalCommand,
+  TicketingCommerceHttpTransport,
   TicketingPublicHttpTransport,
   applyTicketingPublicApiSchema,
   createOrderingFinancialReservationConfirmationAuthority,
@@ -189,7 +191,11 @@ export function createTicketingAuthorizationPort({ authApi }) {
       }
       return Object.freeze({
         allowed: true,
-        actor: Object.freeze({ subject: active.subject, role: active.role }),
+        actor: Object.freeze({
+          subject: active.subject,
+          role: active.role,
+          businessIds: Object.freeze([...(active.businessIds ?? [])]),
+        }),
       });
     },
   });
@@ -273,6 +279,9 @@ export function createTicketingApi({
         ticketingPool,
       );
       const reads = new MySqlTicketingPublicReadRepository(ticketingPool);
+      const businessInventory = new MySqlTicketingBusinessInventoryRepository(
+        ticketingPool,
+      );
       const refundReservations =
         new MySqlRefundedReservationCancellationRepository(ticketingPool);
 
@@ -349,13 +358,16 @@ export function createTicketingApi({
             {
               actorSubject: actor.subject,
               destinationId: environment.PAYMENTS_DESTINATION_ID,
+              requesterKind: actor.subject.startsWith("guest:")
+                ? "guest_capability"
+                : "authenticated",
             },
             environment.PAYMENTS_HANDOFF_SECRET,
           );
           return token ? Object.freeze({ ...handoff, token }) : null;
         },
       });
-      const publicTransport = new TicketingPublicHttpTransport({
+      const publicTransport = new TicketingCommerceHttpTransport({
         enabled: true,
         reservations,
         reads,
@@ -377,6 +389,8 @@ export function createTicketingApi({
         offlineProvisioningSecret:
           environment.TICKETING_OFFLINE_PROVISIONING_SECRET,
         clock: systemCheckoutClock,
+        businessInventory,
+        destinationId: environment.PAYMENTS_DESTINATION_ID,
       });
 
       let processing = null;

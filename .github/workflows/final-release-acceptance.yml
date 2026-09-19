@@ -68,6 +68,14 @@ jobs:
             search-browser-contract.yml
             shell-v1-i18n-browser-parity.yml
             weather-v1-i18n-browser-parity.yml
+            assistant-input-v1-parity.yml
+            assistant-place-actions-v1-parity.yml
+            commerce-browser-regression.yml
+            v1-assistant-single-message-poi-markers.yml
+            navigation-end-main-menu-v1-parity.yml
+            navigation-turn-by-turn-parity.yml
+            ticketing-m147-contract.yml
+            ticketing-m148-transaction-contract.yml
           )
           for workflow in "${workflows[@]}"; do
             test -f ".github/workflows/$workflow"
@@ -156,6 +164,14 @@ jobs:
             search-browser-contract.yml
             shell-v1-i18n-browser-parity.yml
             weather-v1-i18n-browser-parity.yml
+            assistant-input-v1-parity.yml
+            assistant-place-actions-v1-parity.yml
+            commerce-browser-regression.yml
+            v1-assistant-single-message-poi-markers.yml
+            navigation-end-main-menu-v1-parity.yml
+            navigation-turn-by-turn-parity.yml
+            ticketing-m147-contract.yml
+            ticketing-m148-transaction-contract.yml
           )
 
           : > /tmp/final-acceptance-runs.tsv
