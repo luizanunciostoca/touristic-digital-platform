@@ -30,7 +30,9 @@ export interface InitializeMorroBrowserLocaleOptions {
   readonly storage?: MorroLanguageStorage | null;
 }
 
-function canonicalSupportedLocale(value?: string | null): MorroDocumentLocale | null {
+function canonicalSupportedLocale(
+  value?: string | null,
+): MorroDocumentLocale | null {
   if (!value?.trim()) return null;
 
   const normalized = value.trim().toLowerCase().replaceAll("_", "-");
@@ -71,7 +73,9 @@ export function resolveMorroBrowserLocale(
   input: MorroBrowserLocaleInput,
 ): MorroBrowserLocaleResolution {
   const manual = canonicalSupportedLocale(input.override);
-  if (manual) return Object.freeze({ locale: manual, source: "manual" as const });
+  if (manual) {
+    return Object.freeze({ locale: manual, source: "manual" as const });
+  }
 
   const browserCandidates = nonEmpty([
     ...(input.languages ?? []),
