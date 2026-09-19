@@ -202,7 +202,7 @@ body.dark-theme
 
 @media (max-width: 480px) {
   .assistant-option-btn.assistant-option-btn--primary {
-    min-height: 2.65rem;
+    min-height: 2.75rem;
     padding: 0.54rem 0.68rem;
     font-size: 0.76rem;
   }
