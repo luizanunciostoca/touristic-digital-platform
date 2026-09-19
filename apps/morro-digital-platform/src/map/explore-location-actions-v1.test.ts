@@ -41,33 +41,46 @@ describe("V1 explore post-detail actions", () => {
         "[sub]beaches",
       ],
     ],
+  ])("preserves the non-commerce V1 action sequence for %s", (category, expected) => {
+    expect(values(category)).toEqual(expected);
+  });
+
+  it.each([
     [
       "tours",
       [
-        "reservar passeio",
         "ponto de encontro",
         "ver fotos",
         "contato",
-        "mais opções",
-        "[sub]tours",
+        "adicionar aos favoritos",
+      ],
+    ],
+    [
+      "nightlife",
+      [
+        "como chegar",
+        "ver fotos",
+        "mais detalhes",
+        "adicionar aos favoritos",
       ],
     ],
     [
       "transport",
       [
-        "solicitar transporte",
         "localização",
         "tarifas",
         "contato",
-        "mais opções",
-        "[sub]transport",
+        "adicionar aos favoritos",
       ],
     ],
-  ])("preserves the exact V1 action sequence for %s", (category, expected) => {
-    expect(values(category)).toEqual(expected);
-  });
+  ])(
+    "keeps a four-action 2x2 information grid for commerce category %s",
+    (category, expected) => {
+      expect(values(category)).toEqual(expected);
+    },
+  );
 
-  it.each(["shops", "attractions", "nightlife", "emergencies"])(
+  it.each(["shops", "attractions", "emergencies"])(
     "uses the V1 generic fallback for %s",
     (category) => {
       expect(values(category)).toEqual([
@@ -128,6 +141,23 @@ describe("V1 explore post-detail actions", () => {
       );
     },
   );
+
+  it("localizes the four commerce-grid actions without changing their command values", () => {
+    expect(
+      getV1ExplorePlaceActionOptions("tours", "en").map(({ label }) => label),
+    ).toEqual([
+      "📍 Meeting point",
+      "📸 View photos",
+      "📞 Contact",
+      "❤️ Favorite",
+    ]);
+    expect(values("tours")).toEqual([
+      "ponto de encontro",
+      "ver fotos",
+      "contato",
+      "adicionar aos favoritos",
+    ]);
+  });
 
   it("preserves the exact user-visible restaurant labels", () => {
     expect(
