@@ -266,7 +266,9 @@ async function runContract(browser) {
     await page.locator("#assistantVoiceLanguage").selectOption(language);
     const languageState = await page.evaluate(() => ({
       htmlLang: document.documentElement.lang,
+      htmlDir: document.documentElement.dir,
       stored: localStorage.getItem("voice-language"),
+      siteOverride: localStorage.getItem("morro-digital-language"),
       aggregate: localStorage.getItem("voiceAssistant"),
     }));
     assert(
@@ -277,6 +279,16 @@ async function runContract(browser) {
     assert(
       languageState.stored === locale,
       `voice-language diverged for ${language}`,
+      languageState,
+    );
+    assert(
+      languageState.siteOverride === locale,
+      `site language override diverged for ${language}`,
+      languageState,
+    );
+    assert(
+      languageState.htmlDir === (language === "he" ? "rtl" : "ltr"),
+      `Document direction diverged for ${language}`,
       languageState,
     );
     assert(
