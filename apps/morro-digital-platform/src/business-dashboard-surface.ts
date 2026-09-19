@@ -98,16 +98,29 @@ function priceToMinorUnits(value: string): number {
   return minor;
 }
 
-function offerReference(businessId: string, label: string): string {
-  const slug = label
+function referenceSlug(value: string, maximumLength = 32): string {
+  return value
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/gu, "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/gu, "-")
     .replace(/^-+|-+$/gu, "")
-    .slice(0, 40);
-  if (!slug) throw new Error("Nome da oferta inválido.");
-  return `morro-pro:${businessId.slice(0, 40)}:${slug}`;
+    .slice(0, maximumLength)
+    .replace(/-+$/gu, "");
+}
+
+export function createMorroProOfferReference(
+  businessId: string,
+  placeName: string,
+  label: string,
+): string {
+  const businessReference = referenceSlug(businessId, 32);
+  const placeReference = referenceSlug(placeName, 32);
+  const offerReference = referenceSlug(label, 32);
+  if (!businessReference || !placeReference || !offerReference) {
+    throw new Error("Referência da oferta inválida.");
+  }
+  return `morro-pro:${businessReference}:place-${placeReference}:${offerReference}`;
 }
 
 function offerMoney(offer: MorroProInventoryOffer): string {
@@ -219,6 +232,7 @@ function parsePositiveInteger(
 function offerInput(
   surface: OfferSurface,
   businessId: string,
+  placeName: string,
 ): MorroProOfferInput {
   const label = surface.label.value.trim();
   const productKind =
@@ -227,7 +241,11 @@ function offerInput(
       : "business_experience";
   return Object.freeze({
     productKind,
-    productReference: offerReference(businessId, label),
+    productReference: createMorroProOfferReference(
+      businessId,
+      placeName,
+      label,
+    ),
     label,
     unitAmountMinor: priceToMinorUnits(surface.price.value),
     currency: "BRL",
@@ -466,7 +484,11 @@ export async function mountBusinessDashboardSurface(
     if (offerSubmissionPending) return;
     offersSurface.status.textContent = "Publicando oferta…";
     try {
-      const input = offerInput(offersSurface, businessId);
+      const input = offerInput(
+        offersSurface,
+        businessId,
+        activeProfile?.name ?? nameInput.value,
+      );
       const key = requestKey(document);
       offerSubmissionPending = true;
       offersSurface.form.setAttribute("aria-busy", "true");
