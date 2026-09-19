@@ -61,6 +61,59 @@ describe("Mapbox style readiness", () => {
     expect(clock).toBe(100);
   });
 
+  it("waits for load when isStyleLoaded is unavailable", async () => {
+    let clock = 0;
+    let loadListener: (() => void) | undefined;
+    let sleepCount = 0;
+    const map = {
+      once: vi.fn((event: string, listener: () => void) => {
+        if (event === "load") loadListener = listener;
+      }),
+      setCenter: vi.fn(),
+      remove: vi.fn(),
+    };
+    const tracker = createMapStyleReadinessTracker({
+      timeoutMs: 100,
+      pollIntervalMs: 25,
+      now: () => clock,
+      sleep: (milliseconds) => {
+        sleepCount += 1;
+        clock += milliseconds;
+        if (sleepCount === 2) loadListener?.();
+        return Promise.resolve();
+      },
+    });
+
+    tracker.observe(map);
+    await expect(tracker.waitUntilReady(map)).resolves.toBeUndefined();
+    expect(map.once).toHaveBeenCalledTimes(1);
+    expect(clock).toBe(50);
+  });
+
+  it("fails closed when load never arrives and isStyleLoaded is unavailable", async () => {
+    let clock = 0;
+    const map = {
+      once: vi.fn(),
+      setCenter: vi.fn(),
+      remove: vi.fn(),
+    };
+    const tracker = createMapStyleReadinessTracker({
+      timeoutMs: 100,
+      pollIntervalMs: 25,
+      now: () => clock,
+      sleep: (milliseconds) => {
+        clock += milliseconds;
+        return Promise.resolve();
+      },
+    });
+
+    tracker.observe(map);
+    await expect(tracker.waitUntilReady(map)).rejects.toThrow(
+      "Mapbox load event did not arrive before tour presentation.",
+    );
+    expect(clock).toBe(100);
+  });
+
   it("remembers the first load so later tile loading does not block tour presentation", async () => {
     let loadListener: (() => void) | undefined;
     const sleep = vi.fn(() => Promise.resolve());
