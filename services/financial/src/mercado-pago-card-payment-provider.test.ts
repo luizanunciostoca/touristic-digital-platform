@@ -66,10 +66,7 @@ function paymentReadback(status = "approved") {
 describe("Mercado Pago direct card provider", () => {
   it("fails closed when checkout mode is missing", () => {
     const missingCheckoutMode = { ...environment };
-    Reflect.deleteProperty(
-      missingCheckoutMode,
-      "MERCADO_PAGO_CHECKOUT_MODE",
-    );
+    Reflect.deleteProperty(missingCheckoutMode, "MERCADO_PAGO_CHECKOUT_MODE");
 
     expect(() =>
       createMercadoPagoCardPaymentProviderFromEnvironment(missingCheckoutMode),
