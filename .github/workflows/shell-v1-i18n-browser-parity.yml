@@ -39,6 +39,11 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Diagnostic Prettier diff
+        run: |
+          pnpm exec prettier --write apps/morro-digital-platform/src/runtime/browser-locale.ts apps/morro-digital-platform/tooling/browser-locale-v1-parity.mjs
+          git diff -- apps/morro-digital-platform/src/runtime/browser-locale.ts apps/morro-digital-platform/tooling/browser-locale-v1-parity.mjs
+          exit 1
       - name: Unit coverage
         run: pnpm --filter @touristic/morro-digital-platform test -- shell-v1-i18n.test.ts browser-locale.test.ts assistant-voice-adapter.test.ts
       - name: Install deterministic Chromium
