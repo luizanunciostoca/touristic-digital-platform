@@ -92,11 +92,14 @@ function response(payload: unknown, status = 200): Response {
 
 describe("Mercado Pago payment provider adapter", () => {
   it("fails closed when checkout mode is missing", () => {
+    const missingCheckoutMode = { ...environment() };
+    Reflect.deleteProperty(
+      missingCheckoutMode,
+      "MERCADO_PAGO_CHECKOUT_MODE",
+    );
+
     expect(() =>
-      createMercadoPagoCheckoutProviderFromEnvironment({
-        ...environment(),
-        MERCADO_PAGO_CHECKOUT_MODE: undefined,
-      }),
+      createMercadoPagoCheckoutProviderFromEnvironment(missingCheckoutMode),
     ).toThrow("MERCADO_PAGO_CHECKOUT_MODE is invalid");
   });
 
