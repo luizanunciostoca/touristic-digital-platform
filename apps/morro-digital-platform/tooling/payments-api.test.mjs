@@ -2,7 +2,10 @@ import { Readable } from "node:stream";
 
 import { describe, expect, it } from "vitest";
 
-import { createCheckoutHandoffCapability } from "@touristic/ordering-server";
+import {
+  createCheckoutHandoffCapability,
+  createTicketingCheckoutHandoffCapability,
+} from "@touristic/ordering-server";
 
 import {
   createPaymentsApi,
@@ -33,6 +36,20 @@ function responseCapture() {
     header(name) {
       return headers.get(name.toLowerCase());
     },
+  };
+}
+
+function ticketingCheckoutHandoff() {
+  return {
+    reservationReference: "trv_runtime_guest_0001",
+    customer: {
+      name: "Runtime Guest",
+      email: "runtime@example.com",
+      phone: "+55 75 99999-0000",
+      document: "123.456.789-00",
+    },
+    returnUrl: "https://morro.digital/tickets.html",
+    requiresPaymentsCapability: true,
   };
 }
 
@@ -361,6 +378,158 @@ describe("M139/M141 payments API runtime boundary", () => {
     ).resolves.toEqual({
       allowed: false,
       reason: "invalid_guest_capability",
+    });
+  });
+
+  it("accepts an exact signed guest Ticketing handoff without dashboard auth", async () => {
+    const now = Math.floor(Date.now() / 1_000);
+    const secret = "runtime-handoff-secret-with-thirty-two-characters";
+    const handoff = ticketingCheckoutHandoff();
+    const token = createTicketingCheckoutHandoffCapability(
+      handoff,
+      {
+        actorSubject: "guest:0123456789abcdef0123456789abcdef",
+        destinationId: "morro",
+        requesterKind: "guest_capability",
+      },
+      secret,
+      { nowEpochSeconds: now, ttlSeconds: 300 },
+    );
+    if (!token) throw new Error("TICKETING_GUEST_TOKEN_FIXTURE_INVALID");
+
+    const port = createPaymentsCheckoutAuthorizationPort({
+      authApi: {
+        resolveSession: () => null,
+        authorizeMutation: () => ({ allowed: false }),
+      },
+      destinationId: "morro",
+      handoffSecret: secret,
+      origins: new Set(["https://morro.digital"]),
+      production: true,
+    });
+    const headers = {
+      "x-checkout-handoff-token": token,
+      origin: "https://morro.digital",
+    };
+
+    await expect(
+      port.authorizeTicketingCreate({ headers }, handoff),
+    ).resolves.toEqual({
+      allowed: true,
+      context: {
+        requesterKind: "guest_capability",
+        actorSubject: "guest:0123456789abcdef0123456789abcdef",
+        destinationId: "morro",
+        tenantId: null,
+      },
+    });
+
+    await expect(
+      port.authorizeTicketingCreate(
+        { headers: { ...headers, origin: "https://evil.example" } },
+        handoff,
+      ),
+    ).resolves.toEqual({
+      allowed: false,
+      reason: "cross_origin_request",
+    });
+
+    await expect(
+      port.authorizeTicketingCreate(
+        { headers },
+        {
+          ...handoff,
+          customer: { ...handoff.customer, email: "changed@example.com" },
+        },
+      ),
+    ).resolves.toEqual({
+      allowed: false,
+      reason: "invalid_guest_capability",
+    });
+  });
+
+  it("keeps authenticated Ticketing checkout bound to session and CSRF", async () => {
+    const now = Math.floor(Date.now() / 1_000);
+    const secret = "runtime-handoff-secret-with-thirty-two-characters";
+    const active = Object.freeze({
+      subject: "user-ticketing-runtime",
+      email: "owner@example.com",
+      role: "owner",
+      businessIds: Object.freeze(["business-1"]),
+      issuedAt: now - 60,
+      expiresAt: now + 3_600,
+      sessionId: "session-ticketing-runtime",
+    });
+    const handoff = ticketingCheckoutHandoff();
+    const token = createTicketingCheckoutHandoffCapability(
+      handoff,
+      {
+        actorSubject: active.subject,
+        destinationId: "morro",
+        requesterKind: "authenticated",
+      },
+      secret,
+      { nowEpochSeconds: now, ttlSeconds: 300 },
+    );
+    if (!token) throw new Error("TICKETING_AUTH_TOKEN_FIXTURE_INVALID");
+
+    const port = createPaymentsCheckoutAuthorizationPort({
+      authApi: {
+        resolveSession: () => active,
+        authorizeMutation: () => ({ allowed: true }),
+      },
+      destinationId: "morro",
+      handoffSecret: secret,
+      origins: new Set(["https://morro.digital"]),
+      production: true,
+    });
+
+    await expect(
+      port.authorizeTicketingCreate(
+        {
+          headers: {
+            "x-checkout-handoff-token": token,
+            origin: "https://morro.digital",
+          },
+        },
+        handoff,
+      ),
+    ).resolves.toEqual({
+      allowed: true,
+      context: {
+        requesterKind: "authenticated",
+        actorSubject: active.subject,
+        destinationId: "morro",
+        tenantId: null,
+      },
+    });
+
+    const csrfPort = createPaymentsCheckoutAuthorizationPort({
+      authApi: {
+        resolveSession: () => active,
+        authorizeMutation: () => ({
+          allowed: false,
+          reason: "invalid_csrf",
+        }),
+      },
+      destinationId: "morro",
+      handoffSecret: secret,
+      origins: new Set(["https://morro.digital"]),
+      production: true,
+    });
+    await expect(
+      csrfPort.authorizeTicketingCreate(
+        {
+          headers: {
+            "x-checkout-handoff-token": token,
+            origin: "https://morro.digital",
+          },
+        },
+        handoff,
+      ),
+    ).resolves.toEqual({
+      allowed: false,
+      reason: "invalid_csrf",
     });
   });
 

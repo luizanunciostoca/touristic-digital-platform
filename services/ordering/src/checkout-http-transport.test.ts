@@ -25,6 +25,10 @@ import {
   type OrderRequestKey,
   type ProviderNeutralCheckoutApplicationService,
 } from "@touristic/ordering";
+import {
+  type TicketingCheckoutApplicationRequest,
+  type TicketingCheckoutApplicationService,
+} from "@touristic/ordering/ticketing-checkout";
 
 import {
   sameCheckoutAccessAuthority,
@@ -75,6 +79,20 @@ function handoff(): CheckoutApplicationRequest {
     ],
     returnUrl: "https://morro.digital/checkout/return",
     tutorial: false,
+    requiresPaymentsCapability: true,
+  };
+}
+
+function ticketingHandoff(): TicketingCheckoutApplicationRequest {
+  return {
+    reservationReference: "trv_http_guest_12345678",
+    customer: {
+      name: "Visitante HTTP",
+      email: "visitante@example.com",
+      phone: "+55 75 98888-0000",
+      document: "987.654.321-00",
+    },
+    returnUrl: "https://morro.digital/tickets.html",
     requiresPaymentsCapability: true,
   };
 }
@@ -193,6 +211,7 @@ function harness(
     readonly authorization?: CheckoutHttpAuthorizationPort;
     readonly rateLimits?: CheckoutHttpRateLimitPort;
     readonly application?: ProviderNeutralCheckoutApplicationService;
+    readonly ticketingApplication?: TicketingCheckoutApplicationService;
     readonly provider?: FinancialCheckoutProviderPort;
     readonly payment?: Payment;
     readonly paymentResults?: VerifiedPaymentResultRepositoryPort;
@@ -217,6 +236,9 @@ function harness(
     };
   const transport = new CheckoutHttpTransport({
     application,
+    ...(options.ticketingApplication
+      ? { ticketingApplication: options.ticketingApplication }
+      : {}),
     orders: new MemoryOrders(order),
     payments: new MemoryPayments(payment),
     ...(options.paymentResults
@@ -318,6 +340,81 @@ describe("M139 checkout HTTP/Auth/security transport", () => {
       action: "checkout.create",
       result: "success",
       reason: "created",
+    });
+  });
+
+  it("routes a guest Ticketing checkout through Ticketing authority instead of Business auth", async () => {
+    const fixture = fixtures();
+    const guestContext = normalizeCheckoutRequestContext({
+      requesterKind: "guest_capability",
+      actorSubject: "guest:0123456789abcdef0123456789abcdef",
+      destinationId: "morro",
+      tenantId: null,
+    });
+    if (!guestContext) throw new Error("GUEST_CONTEXT_FIXTURE_INVALID");
+
+    let businessAuthorizationCalls = 0;
+    let ticketingAuthorizationCalls = 0;
+    let ticketingApplicationCalls = 0;
+    const authorization: CheckoutHttpAuthorizationPort = {
+      authorizeCreate: () => {
+        businessAuthorizationCalls += 1;
+        return Promise.resolve({
+          allowed: false,
+          reason: "authentication_required",
+        });
+      },
+      authorizeTicketingCreate: (_request, input) => {
+        ticketingAuthorizationCalls += 1;
+        expect(input).toEqual(ticketingHandoff());
+        return Promise.resolve({ allowed: true, context: guestContext });
+      },
+    };
+    const ticketingApplication: TicketingCheckoutApplicationService = {
+      startCheckout: (input) => {
+        ticketingApplicationCalls += 1;
+        expect(input).toEqual(ticketingHandoff());
+        return Promise.resolve({
+          order: fixture.order,
+          payment: fixture.payment,
+          replayed: false,
+        });
+      },
+    };
+    const { transport, providerRequests, audits } = harness({
+      authorization,
+      ticketingApplication,
+    });
+
+    const result = await transport.handle(
+      createRequest({
+        body: ticketingHandoff(),
+        headers: {
+          "Idempotency-Key": "ticketing:trv_http_guest_12345678",
+          "X-Checkout-Handoff-Token": "signed-guest-capability",
+          Origin: "https://morro.digital",
+        },
+      }),
+    );
+
+    expect(result.status).toBe(201);
+    expect(businessAuthorizationCalls).toBe(0);
+    expect(ticketingAuthorizationCalls).toBe(1);
+    expect(ticketingApplicationCalls).toBe(1);
+    expect(providerRequests).toHaveLength(1);
+    expect(providerRequests[0]?.metadata).toEqual({
+      destinationId: "morro",
+      orderId: fixture.order.id,
+      paymentId: fixture.payment.id,
+      sessionId: "trv_http_guest_12345678",
+    });
+    expect(audits.at(-1)).toMatchObject({
+      action: "checkout.create",
+      result: "success",
+      reason: "ticketing:created",
+      actorSubject: "guest:0123456789abcdef0123456789abcdef",
+      destinationId: "morro",
+      tenantId: null,
     });
   });
 

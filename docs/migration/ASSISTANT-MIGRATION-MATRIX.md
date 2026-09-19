@@ -1,10 +1,18 @@
 # MIG-0006 — Matriz de equivalência do Assistente Digital
 
+<!-- Exact-head parity recertification refresh after deterministic formatting. -->
+
 Baseline V1: `60746fd7fed97b805758b37adfdbe3bad2582bfe`  
 Baseline formal: `docs/qa/ASSISTANT-V1-BASELINE.md`  
 Destino: `packages/assistant`
 
 Esta matriz controla a migração de FEATURE-0004. `PASS` só pode ser usado quando o comportamento observável estiver implementado e coberto por evidência executável. `PARTIAL` significa que existe implementação V2, porém o contrato ainda não está completo. `GAP` significa ausência de implementação equivalente.
+
+## Recertificação pós-equivalência — greeting/menu personalizado
+
+A auditoria V1→V2 de 2026-09-17 encontrou um gap residual de composição no greeting do browser: a V2 reutilizava o intro do menu contextual e expunha somente os até oito botões contextuais, enquanto a V1 usa `getPersonalizedSuggestions().greeting`, acrescenta continuidade por local/categoria e completa os labels contextuais com todo o menu principal canônico.
+
+A frente `fix/assistant-v1-personalized-greeting-parity` corrige esse wiring sem duplicar copy e adiciona prova unitária + browser. A linha de sugestões proativas só permanece `PASS` após o exact-head final dessa frente passar Quality, Assistant Input Menu Flow V1 Parity, review e acceptance pós-merge. Evidência: `docs/qa/ASSISTANT-V1-PERSONALIZED-GREETING-PARITY-RECERTIFICATION.md`.
 
 | Contrato V1                           | Evidência V1               | Destino V2                                                                                                      | Estado M29 | Critério de PASS                                                                                                                        |
 | ------------------------------------- | -------------------------- | --------------------------------------------------------------------------------------------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------- |

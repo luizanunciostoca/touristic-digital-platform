@@ -491,11 +491,35 @@ export function createPaymentsCheckoutAuthorizationPort({
       return Object.freeze({ allowed: true, context });
     },
     async authorizeTicketingCreate(request, handoff) {
+      const token = header(request, "x-checkout-handoff-token");
+      const context = token
+        ? verifyTicketingCheckoutHandoffCapability(
+            token,
+            handoff,
+            handoffSecret,
+          )
+        : null;
+
+      if (
+        context?.requesterKind === "guest_capability" &&
+        context.destinationId === destinationId
+      ) {
+        if (!browserOriginAllowed(request, origins, production)) {
+          return Object.freeze({
+            allowed: false,
+            reason: "cross_origin_request",
+          });
+        }
+        return Object.freeze({ allowed: true, context });
+      }
+
       const active = await authApi.resolveSession(request);
       if (!active) {
         return Object.freeze({
           allowed: false,
-          reason: "authentication_required",
+          reason: token
+            ? "invalid_guest_capability"
+            : "authentication_required",
         });
       }
       if (active.role === "viewer") {
@@ -515,12 +539,6 @@ export function createPaymentsCheckoutAuthorizationPort({
               : "cross_origin_request",
         });
       }
-      const token = header(request, "x-checkout-handoff-token");
-      const context = verifyTicketingCheckoutHandoffCapability(
-        token,
-        handoff,
-        handoffSecret,
-      );
       if (
         !context ||
         context.requesterKind !== "authenticated" ||
