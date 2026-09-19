@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - ".github/workflows/pr93-transport-format.yml"
+      - ".github/workflows/commerce-browser-regression.yml"
       - "packages/ticketing/src/index.ts"
       - "packages/ticketing/src/reservations.test.ts"
       - "services/ticketing/src/schema.ts"
