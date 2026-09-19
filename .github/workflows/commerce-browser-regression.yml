@@ -17,6 +17,10 @@ on:
       - "apps/morro-digital-platform/src/commerce/**"
       - "apps/morro-digital-platform/src/main.ts"
       - "apps/morro-digital-platform/tooling/ticketing-api.mjs"
+      - "apps/morro-digital-platform/tooling/payments-api.mjs"
+      - "apps/morro-digital-platform/tooling/payments-api.test.mjs"
+      - "services/ordering/src/ticketing-checkout-handoff.ts"
+      - "services/ordering/src/ticketing-checkout-handoff.test.ts"
       - "services/ticketing/src/**"
       - "package.json"
       - "pnpm-lock.yaml"
@@ -278,7 +282,9 @@ jobs:
           NODE
       - name: Show diagnostics
         if: failure()
-        run: cat /tmp/commerce-browser/server.log || true
+        run: |
+          cat /tmp/commerce-browser/failure.txt || true
+          cat /tmp/commerce-browser/server.log || true
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
