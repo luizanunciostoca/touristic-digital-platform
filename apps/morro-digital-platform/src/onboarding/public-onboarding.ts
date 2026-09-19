@@ -1,3 +1,4 @@
+import { getPublicOnboardingCopy } from "./public-onboarding-i18n.js";
 import {
   ensureV1AssistantWelcomeVisible,
   installPublicInteractiveTour,
@@ -81,6 +82,7 @@ function setOnboardingSettled(document: Document, settled: boolean): void {
 }
 
 function createOnboardingMarkup(document: Document): HTMLElement {
+  const copy = getPublicOnboardingCopy(document.documentElement.lang);
   const overlay = document.createElement("section");
   overlay.id = "onboarding-overlay";
   overlay.className = "onboarding-overlay";
@@ -96,17 +98,17 @@ function createOnboardingMarkup(document: Document): HTMLElement {
       <div class="onboarding-header">
         <div class="onboarding-logo-overlay" aria-hidden="true"></div>
         <div class="onboarding-title-block">
-          <h1 id="public-onboarding-title" class="onboarding-headline">Bem-vindo ao Morro Digital</h1>
+          <h1 id="public-onboarding-title" class="onboarding-headline">${copy.title}</h1>
           <p id="public-onboarding-description" class="onboarding-subheadline">
-            Seu guia inteligente para descobrir Morro de São Paulo.
+            ${copy.description}
           </p>
         </div>
       </div>
 
       <section class="onboarding-profile-section">
-        <h2 class="profile-section-title">Pronto para explorar?</h2>
+        <h2 class="profile-section-title">${copy.readyTitle}</h2>
         <p class="profile-section-subtitle">
-          Faça o tour interativo da V1 ou vá direto para o aplicativo.
+          ${copy.readyDescription}
         </p>
         <div class="profile-cards profile-cards--single">
           <button
@@ -116,9 +118,9 @@ function createOnboardingMarkup(document: Document): HTMLElement {
             data-public-onboarding-action="start"
           >
             <span class="profile-card-icon" aria-hidden="true">🌴</span>
-            <span class="profile-card-title">Conhecer o App</span>
+            <span class="profile-card-title">${copy.startTitle}</span>
             <span class="profile-card-desc">
-              Conheça o mapa, o clima, o assistente e os principais controles passo a passo.
+              ${copy.startDescription}
             </span>
           </button>
         </div>
@@ -127,7 +129,7 @@ function createOnboardingMarkup(document: Document): HTMLElement {
           type="button"
           data-public-onboarding-action="skip"
         >
-          Pular por agora
+          ${copy.skip}
         </button>
       </section>
     </div>
