@@ -44,17 +44,28 @@ function requireServerCredential(environment, name) {
   }
 }
 
+function requireBooleanFlag(environment, name) {
+  const configured = value(environment, name).toLowerCase();
+  if (configured !== "true" && configured !== "false") {
+    throw new Error(`${name}_INVALID`);
+  }
+  return configured === "true";
+}
+
 export function validateMercadoPagoProductionCutover(
   environment = process.env,
 ) {
   const mode = requireValue(environment, "MERCADO_PAGO_CHECKOUT_MODE");
+  const subscriptionsEnabled = requireBooleanFlag(
+    environment,
+    "PAYMENTS_SUBSCRIPTIONS_ENABLED",
+  );
   if (mode === "test") {
     return Object.freeze({
       mode,
       productionAuthorized: false,
       productionCredentialsConfirmed: false,
-      subscriptionsEnabled:
-        value(environment, "PAYMENTS_SUBSCRIPTIONS_ENABLED") === "true",
+      subscriptionsEnabled,
     });
   }
   if (mode !== "production") {
@@ -99,11 +110,7 @@ export function validateMercadoPagoProductionCutover(
     throw new Error("PAYMENTS_WEBHOOK_URL_INVALID");
   }
 
-  const subscriptions = value(environment, "PAYMENTS_SUBSCRIPTIONS_ENABLED");
-  if (subscriptions !== "true" && subscriptions !== "false") {
-    throw new Error("PAYMENTS_SUBSCRIPTIONS_ENABLED_INVALID");
-  }
-  if (subscriptions === "true") {
+  if (subscriptionsEnabled) {
     requireServerCredential(
       environment,
       "MERCADO_PAGO_SUBSCRIPTIONS_ACCESS_TOKEN",
@@ -120,6 +127,6 @@ export function validateMercadoPagoProductionCutover(
     productionAuthorized: true,
     productionCredentialsConfirmed: true,
     authorizationId,
-    subscriptionsEnabled: subscriptions === "true",
+    subscriptionsEnabled,
   });
 }
