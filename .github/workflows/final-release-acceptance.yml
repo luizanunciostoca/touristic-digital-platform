@@ -38,6 +38,7 @@ jobs:
           workflows=(
             assistant-photo-browser-contract.yml
             assistant-input-menu-flow-v1-parity.yml
+            assistant-v1-residual-command-parity.yml
             assistant-voice-browser-contract.yml
             auth-login-browser-contract.yml
             business-dashboard-browser-contract.yml
@@ -125,6 +126,7 @@ jobs:
           workflows=(
             assistant-photo-browser-contract.yml
             assistant-input-menu-flow-v1-parity.yml
+            assistant-v1-residual-command-parity.yml
             assistant-voice-browser-contract.yml
             auth-login-browser-contract.yml
             business-dashboard-browser-contract.yml
