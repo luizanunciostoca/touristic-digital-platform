@@ -67,7 +67,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for workflow in final-release-acceptance.yml release-promotion-gate.yml; do
+          for workflow in \
+            final-release-acceptance.yml \
+            release-promotion-gate.yml \
+            dependency-security-audit.yml \
+            security-scanning.yml
+          do
             run_id="$(gh run list \
               --workflow "$workflow" \
               --branch main \
