@@ -3,8 +3,10 @@ import { describe, expect, it } from "vitest";
 import {
   createAssistantUserProfileManager,
   createDefaultAssistantContext,
+  getAssistantMainMenu,
   type AssistantDialogIntentHandlerContext,
   type AssistantIntent,
+  type AssistantLocale,
 } from "@touristic/assistant";
 import { morroV1SearchCatalog } from "@touristic/search";
 import { createAssistantV1IntelligenceHandlers } from "./assistant-v1-intelligence-adapter.js";
@@ -163,7 +165,7 @@ describe("V1 deterministic assistant intelligence adapter", () => {
     });
   });
 
-  it("feeds live weather into the proactive greeting when the provider is available", async () => {
+  it("keeps V1 personalized greeting text while weather reprioritizes contextual options", async () => {
     const profile = createAssistantUserProfileManager({ now: () => 1_000 });
     const handlers = createAssistantV1IntelligenceHandlers({
       profile,
@@ -176,10 +178,17 @@ describe("V1 deterministic assistant intelligence adapter", () => {
       domain: "proactive",
       weatherAware: true,
     });
-    expect(response?.text.toLowerCase()).toContain("chuva");
+    expect(response?.text).toContain(
+      "Bem-vindo a Morro de São Paulo! Sou seu guia digital.",
+    );
+    expect(response?.text.toLowerCase()).not.toContain("pode chover");
+    expect(response?.options?.[0]).toEqual({
+      label: "🌧️ Dia de chuva — o que fazer?",
+      value: "🌧️ Dia de chuva — o que fazer?",
+    });
   });
 
-  it("returns a contextual proactive menu on greeting and respects the engine cooldown", async () => {
+  it("merges contextual labels first and completes the full canonical V1 menu", async () => {
     let now = new Date("2026-09-16T16:30:00-03:00").getTime();
     const profile = createAssistantUserProfileManager({ now: () => now });
     const handlers = createAssistantV1IntelligenceHandlers({
@@ -189,10 +198,13 @@ describe("V1 deterministic assistant intelligence adapter", () => {
 
     const first = await handlers.greeting?.(request("greeting", "olá"));
     const second = await handlers.greeting?.(request("greeting", "oi"));
+    const canonical = getAssistantMainMenu("pt");
 
     expect(first?.metadata).toMatchObject({ domain: "proactive" });
-    expect(first?.options?.length).toBeGreaterThan(0);
-    expect(first?.options?.length).toBeLessThanOrEqual(8);
+    expect(first?.options?.length).toBeGreaterThanOrEqual(canonical.length);
+    for (const option of canonical) {
+      expect(first?.options).toContainEqual(option);
+    }
     expect(first?.metadata?.suggestion).not.toBeNull();
     expect(second?.metadata).toMatchObject({
       domain: "proactive",
@@ -204,5 +216,83 @@ describe("V1 deterministic assistant intelligence adapter", () => {
       request("greeting", "boa tarde"),
     );
     expect(afterCooldown?.metadata?.suggestion).not.toBeNull();
+  });
+
+  it("renders the V1 personalized greeting in the request locale even when the profile default is Portuguese", async () => {
+    const now = new Date("2026-09-16T14:00:00-03:00").getTime();
+    const profile = createAssistantUserProfileManager({
+      now: () => now,
+      getLanguage: () => "pt",
+    });
+    const handlers = createAssistantV1IntelligenceHandlers({
+      profile,
+      now: () => now,
+    });
+    const cases: ReadonlyArray<
+      Readonly<{ locale: AssistantLocale; input: string; greeting: string }>
+    > = [
+      {
+        locale: "pt",
+        input: "olá",
+        greeting: "Bem-vindo a Morro de São Paulo! Sou seu guia digital.",
+      },
+      {
+        locale: "en",
+        input: "hello",
+        greeting: "Welcome to Morro de São Paulo! I am your digital guide.",
+      },
+      {
+        locale: "es",
+        input: "hola",
+        greeting: "Bienvenido a Morro de São Paulo. Soy tu guía digital.",
+      },
+      {
+        locale: "he",
+        input: "שלום",
+        greeting: "ברוך הבא למורו דה סאו פאולו",
+      },
+    ];
+
+    for (const item of cases) {
+      const response = await handlers.greeting?.(
+        request("greeting", item.input, {
+          entities: { language: item.locale },
+        }),
+      );
+      expect(response?.text).toContain(item.greeting);
+      for (const option of getAssistantMainMenu(item.locale)) {
+        expect(response?.options).toContainEqual(option);
+      }
+    }
+  });
+
+  it("restores V1 greeting continuation for the last place and recent category", async () => {
+    const now = new Date("2026-09-16T14:00:00-03:00").getTime();
+    const profile = createAssistantUserProfileManager({ now: () => now });
+    const handlers = createAssistantV1IntelligenceHandlers({
+      profile,
+      now: () => now,
+    });
+
+    const placeRequest = request("greeting", "olá");
+    placeRequest.context.lastPlace = "Primeira Praia";
+    const placeResponse = await handlers.greeting?.(placeRequest);
+    expect(placeResponse?.text).toContain(
+      "Você estava vendo <b>Primeira Praia</b>. Deseja continuar de onde parou?",
+    );
+
+    const categoryRequest = request("greeting", "hello", {
+      entities: { language: "en" },
+    });
+    categoryRequest.context.lastCategory = "beaches";
+    categoryRequest.context.history.push({
+      input: "beaches",
+      response: "Beaches",
+      timestamp: now - 1000,
+    });
+    const categoryResponse = await handlers.greeting?.(categoryRequest);
+    expect(categoryResponse?.text).toContain(
+      "Last time you explored <b>beaches</b>. Can I help with anything else?",
+    );
   });
 });
