@@ -10,10 +10,15 @@ Production infrastructure must remain configured with:
 
 - `PAYMENTS_PROVIDER_MODE=mercado_pago`;
 - `MERCADO_PAGO_CHECKOUT_MODE=test`;
+- active Mercado Pago runtime credentials are TEST credentials only;
+- `MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED=true` only after those active credentials are verified in the provider TEST credential flow;
+- production Public Key/Access Token/webhook credentials remain uninjected until the authorized cutover;
 - `MERCADO_PAGO_PRODUCTION_CREDENTIALS_CONFIRMED=false`;
 - `PAYMENTS_SUBSCRIPTIONS_ENABLED=false` unless recurring billing is explicitly included in the later authorization;
 - one Payments runtime replica while the rate limiter remains process-local;
-- production secrets stored only in the platform secret manager/environment, never GitHub, logs, artifacts, browser bundles or chat.
+- all active secrets stay only in the platform secret manager/environment, never GitHub, logs, artifacts, browser bundles or chat.
+
+In TEST mode, predeploy fails closed unless `MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED=true`. This prevents an unverified or production credential from being accidentally used while the runtime claims to be in TEST.
 
 The predeploy guard rejects production mode unless both of these independent controls exist:
 
@@ -29,9 +34,9 @@ Prove, without revealing secret values:
 1. the canonical `morro-digital-v2` production service exists and is distinct from staging;
 2. the production database/storage and canonical HTTPS origin are established;
 3. a Mercado Pago production application exists for the intended seller/account;
-4. the Checkout/Bricks production Public Key exists;
-5. the production Access Token exists only server-side;
-6. the webhook secret is configured only server-side;
+4. the Checkout/Bricks production Public Key exists in the provider account but is not yet active in the runtime;
+5. the production Access Token exists in the provider account/approved secret source but is not yet active in the runtime;
+6. the production webhook secret/configuration source is prepared server-side but is not activated before authorization;
 7. the production callback, success, pending and failure URLs use the canonical HTTPS origin;
 8. the webhook URL is the canonical HTTPS service URL ending in `/api/payments/v1/webhooks/sandbox` (legacy route name retained by the application contract);
 9. the checkout-origin allowlist contains only provider origins actually observed/approved for production;
