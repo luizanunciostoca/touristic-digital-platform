@@ -87,7 +87,6 @@ describe("V1 residual assistant commands", () => {
     ["mostrar só praias", { type: "map_filter_category", category: "beaches" }],
     ["mostrar todos os locais", { type: "map_show_all" }],
     ["mostrar todos", { type: "map_show_all" }],
-    ["ver todos", { type: "map_show_all" }],
     ["show all", { type: "map_show_all" }],
     ["restaurar", { type: "map_show_all" }],
     ["aproximar", { type: "map_zoom", direction: "in" }],
@@ -245,8 +244,8 @@ describe("current-main residual command hardening", () => {
     });
   });
 
-  it.each(["praias", "beaches", "playas", "חופים"])(
-    "leaves bare category %s to the canonical staged V1 menu flow",
+  it.each(["praias", "beaches", "playas", "חופים", "ver todos"])(
+    "leaves staged Explore command %s to the canonical V1 menu flow",
     (input) => {
       expect(resolveAssistantV1ResidualCommand(input)).toBeNull();
     },
