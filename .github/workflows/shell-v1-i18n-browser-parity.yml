@@ -15,6 +15,9 @@ on:
       - apps/morro-digital-platform/src/runtime/shell-v1-i18n.test.ts
       - apps/morro-digital-platform/src/runtime/runtime-accessibility-i18n.ts
       - apps/morro-digital-platform/src/assistant/assistant-voice-settings.ts
+      - apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts
+      - apps/morro-digital-platform/src/assistant/assistant-voice-adapter.ts
+      - apps/morro-digital-platform/src/assistant/assistant-voice-adapter.test.ts
       - apps/morro-digital-platform/src/layouts/app-shell.ts
       - apps/morro-digital-platform/src/browser-entry.ts
       - apps/morro-digital-platform/src/config/tour-localization.ts
