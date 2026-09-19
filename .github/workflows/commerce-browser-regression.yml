@@ -238,7 +238,7 @@ jobs:
               await authPage.route('**/api/ticketing/v1/operator/businesses/business-b/inventory', route => fulfill(route, { error: 'NOT_FOUND' }, 404));
               await authPage.goto(`${origin}/apps/morro-digital-platform/public/business-dashboard.html?businessId=business-a`, { waitUntil: 'domcontentloaded', timeout: 30000 });
               await authPage.locator('#main-dashboard:not([hidden])').waitFor({ state: 'visible', timeout: 10000 });
-              await authPage.locator('[data-dashboard-view="offers"]').click();
+              await authPage.locator('[data-dashboard-view="offers"]:visible').click();
               await authPage.locator('#morro-pro-offer-label').fill('Passeio Morro Pro');
               await authPage.locator('#morro-pro-offer-price').fill('199.90');
               await authPage.locator('#morro-pro-offer-sales-start').fill('2026-09-18T09:00');
