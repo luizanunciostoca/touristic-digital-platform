@@ -273,13 +273,13 @@ jobs:
                 await page.goto(`${origin}/`, { waitUntil: 'domcontentloaded', timeout: 30000 });
                 await page.locator('#assistant-commerce-cta').waitFor({ state: 'attached', timeout: 10000 });
                 await Promise.all([page.waitForURL('**/tickets.html'), page.locator('#assistant-commerce-cta').click()]);
-                await page.locator('.offer-card').waitFor({ state: 'visible' });
-                await Promise.all([page.waitForURL('**/experience.html?id=*'), page.locator('.offer-card a.button-secondary').click()]);
+                await page.locator(`.offer-card[data-inventory-id="${offer.id}"]`).waitFor({ state: 'visible' });
+                await Promise.all([page.waitForURL('**/experience.html?id=*'), page.locator(`.offer-card[data-inventory-id="${offer.id}"] a.button-secondary`).click()]);
                 await page.locator('#experience-card').waitFor({ state: 'visible' });
                 if ((await page.locator('#experience-title').textContent())?.trim() !== offer.label) throw new Error(`Detail mismatch on ${viewport.name}`);
                 await page.goBack({ waitUntil: 'domcontentloaded' });
-                await page.locator('.offer-card').waitFor({ state: 'visible' });
-                await Promise.all([page.waitForURL('**/experience.html?id=*'), page.locator('.offer-card a.button-secondary').click()]);
+                await page.locator(`.offer-card[data-inventory-id="${offer.id}"]`).waitFor({ state: 'visible' });
+                await Promise.all([page.waitForURL('**/experience.html?id=*'), page.locator(`.offer-card[data-inventory-id="${offer.id}"] a.button-secondary`).click()]);
                 await Promise.all([page.waitForURL('**/tickets.html?offer=*'), page.locator('#experience-reserve').click()]);
                 await page.locator('#holder-name').fill('Visitante Teste');
                 await page.locator('#holder-email').fill('visitante@example.test');
