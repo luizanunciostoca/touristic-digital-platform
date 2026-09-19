@@ -41,37 +41,25 @@ describe("V1 explore post-detail actions", () => {
         "[sub]beaches",
       ],
     ],
-  ])("preserves the non-commerce V1 action sequence for %s", (category, expected) => {
-    expect(values(category)).toEqual(expected);
-  });
+  ])(
+    "preserves the non-commerce V1 action sequence for %s",
+    (category, expected) => {
+      expect(values(category)).toEqual(expected);
+    },
+  );
 
   it.each([
     [
       "tours",
-      [
-        "ponto de encontro",
-        "ver fotos",
-        "contato",
-        "adicionar aos favoritos",
-      ],
+      ["ponto de encontro", "ver fotos", "contato", "adicionar aos favoritos"],
     ],
     [
       "nightlife",
-      [
-        "como chegar",
-        "ver fotos",
-        "mais detalhes",
-        "adicionar aos favoritos",
-      ],
+      ["como chegar", "ver fotos", "mais detalhes", "adicionar aos favoritos"],
     ],
     [
       "transport",
-      [
-        "localização",
-        "tarifas",
-        "contato",
-        "adicionar aos favoritos",
-      ],
+      ["localização", "tarifas", "contato", "adicionar aos favoritos"],
     ],
   ])(
     "keeps a four-action 2x2 information grid for commerce category %s",

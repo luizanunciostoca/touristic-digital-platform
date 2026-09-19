@@ -7,11 +7,7 @@ import {
 import { getV1ExploreLabel } from "./explore-v1-i18n.js";
 
 export type PlaceCommerceState =
-  | "sellable"
-  | "multiple"
-  | "sold_out"
-  | "upcoming"
-  | "fallback";
+  "sellable" | "multiple" | "sold_out" | "upcoming" | "fallback";
 
 export interface PlacePrimaryAction {
   readonly label: string;
@@ -81,23 +77,23 @@ function validOffer(value: unknown): value is PublicInventoryOffer {
   const offer = value as Partial<PublicInventoryOffer>;
   return Boolean(
     typeof offer.id === "string" &&
-      OFFER_ID.test(offer.id) &&
-      typeof offer.destinationId === "string" &&
-      offer.product &&
-      typeof offer.product.kind === "string" &&
-      typeof offer.product.reference === "string" &&
-      typeof offer.label === "string" &&
-      offer.unitAmount &&
-      typeof offer.unitAmount.minorUnits === "number" &&
-      Number.isSafeInteger(offer.unitAmount.minorUnits) &&
-      offer.unitAmount.minorUnits > 0 &&
-      typeof offer.unitAmount.currency === "string" &&
-      typeof offer.salesStartAt === "string" &&
-      typeof offer.salesEndAt === "string" &&
-      typeof offer.startsAt === "string" &&
-      typeof offer.availableQuantity === "number" &&
-      Number.isSafeInteger(offer.availableQuantity) &&
-      offer.availableQuantity >= 0,
+    OFFER_ID.test(offer.id) &&
+    typeof offer.destinationId === "string" &&
+    offer.product &&
+    typeof offer.product.kind === "string" &&
+    typeof offer.product.reference === "string" &&
+    typeof offer.label === "string" &&
+    offer.unitAmount &&
+    typeof offer.unitAmount.minorUnits === "number" &&
+    Number.isSafeInteger(offer.unitAmount.minorUnits) &&
+    offer.unitAmount.minorUnits > 0 &&
+    typeof offer.unitAmount.currency === "string" &&
+    typeof offer.salesStartAt === "string" &&
+    typeof offer.salesEndAt === "string" &&
+    typeof offer.startsAt === "string" &&
+    typeof offer.availableQuantity === "number" &&
+    Number.isSafeInteger(offer.availableQuantity) &&
+    offer.availableQuantity >= 0,
   );
 }
 
@@ -154,10 +150,7 @@ function offerMatchesLocation(
   return referenceSlug.includes(placeSlug);
 }
 
-function money(
-  offer: PublicInventoryOffer,
-  locale: AssistantLocale,
-): string {
+function money(offer: PublicInventoryOffer, locale: AssistantLocale): string {
   return new Intl.NumberFormat(localeTag[locale], {
     style: "currency",
     currency: offer.unitAmount.currency,
@@ -179,15 +172,13 @@ function copy(
     pt: transport
       ? {
           single: (price: string) => `🎫 Comprar passagem · ${price}`,
-          multiple: (count: number) =>
-            `🎫 Ver passagens (${count} opções)`,
+          multiple: (count: number) => `🎫 Ver passagens (${count} opções)`,
           soldOut: "🎫 Passagens esgotadas",
           upcoming: "🎫 Vendas em breve",
         }
       : {
           single: (price: string) => `🎟️ Comprar ingressos · ${price}`,
-          multiple: (count: number) =>
-            `🎟️ Ver ingressos (${count} opções)`,
+          multiple: (count: number) => `🎟️ Ver ingressos (${count} opções)`,
           soldOut: "🎟️ Ingressos esgotados",
           upcoming: "🎟️ Vendas em breve",
         },
@@ -207,15 +198,13 @@ function copy(
     es: transport
       ? {
           single: (price: string) => `🎫 Comprar pasaje · ${price}`,
-          multiple: (count: number) =>
-            `🎫 Ver pasajes (${count} opciones)`,
+          multiple: (count: number) => `🎫 Ver pasajes (${count} opciones)`,
           soldOut: "🎫 Pasajes agotados",
           upcoming: "🎫 Ventas próximamente",
         }
       : {
           single: (price: string) => `🎟️ Comprar entradas · ${price}`,
-          multiple: (count: number) =>
-            `🎟️ Ver entradas (${count} opciones)`,
+          multiple: (count: number) => `🎟️ Ver entradas (${count} opciones)`,
           soldOut: "🎟️ Entradas agotadas",
           upcoming: "🎟️ Ventas próximamente",
         },
@@ -267,13 +256,16 @@ export async function resolvePlacePrimaryAction(options: {
 
   const matched = offers
     .filter((offer) => offerMatchesLocation(location, offer))
-    .sort((left, right) => Date.parse(left.startsAt) - Date.parse(right.startsAt));
+    .sort(
+      (left, right) => Date.parse(left.startsAt) - Date.parse(right.startsAt),
+    );
   if (matched.length === 0) return fallback;
 
   const now = (options.now ?? Date.now)();
   const active = matched.filter(
     (offer) =>
-      Date.parse(offer.salesStartAt) <= now && now < Date.parse(offer.salesEndAt),
+      Date.parse(offer.salesStartAt) <= now &&
+      now < Date.parse(offer.salesEndAt),
   );
   const sellable = active.filter((offer) => offer.availableQuantity > 0);
   const labels = copy(location.category, locale);

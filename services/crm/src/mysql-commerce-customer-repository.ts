@@ -1,10 +1,6 @@
 import { createHash } from "node:crypto";
 
-import type {
-  Pool,
-  PoolConnection,
-  RowDataPacket,
-} from "mysql2/promise";
+import type { Pool, PoolConnection, RowDataPacket } from "mysql2/promise";
 
 const ID = /^[A-Za-z0-9_:-]{3,120}$/u;
 const PRODUCT_KIND = /^[a-z][a-z0-9_]{1,39}$/u;
@@ -136,9 +132,7 @@ async function existingPurchase(
   return rows.length > 0;
 }
 
-export class MySqlCrmCommerceCustomerRepository
-  implements CrmCommerceCustomerRepositoryPort
-{
+export class MySqlCrmCommerceCustomerRepository implements CrmCommerceCustomerRepositoryPort {
   constructor(private readonly pool: Pool) {}
 
   async recordConfirmedPurchase(

@@ -377,7 +377,8 @@ function readOptionOverride(
     const optionValue: unknown = option.value;
     const presentation: unknown =
       "presentation" in option ? option.presentation : undefined;
-    const disabled: unknown = "disabled" in option ? option.disabled : undefined;
+    const disabled: unknown =
+      "disabled" in option ? option.disabled : undefined;
     if (
       typeof label !== "string" ||
       typeof optionValue !== "string" ||
@@ -390,7 +391,9 @@ function readOptionOverride(
       Object.freeze({
         label,
         value: optionValue,
-        ...(presentation === "primary" ? { presentation: "primary" as const } : {}),
+        ...(presentation === "primary"
+          ? { presentation: "primary" as const }
+          : {}),
         ...(disabled === true ? { disabled: true } : {}),
       }),
     );

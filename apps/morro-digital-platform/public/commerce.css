@@ -194,7 +194,8 @@ body.dark-theme .assistant-option-btn.assistant-option-btn--primary {
 }
 
 body.dark-theme .assistant-option-btn.assistant-option-btn--primary:hover,
-body.dark-theme .assistant-option-btn.assistant-option-btn--primary:focus-visible {
+body.dark-theme
+  .assistant-option-btn.assistant-option-btn--primary:focus-visible {
   background: linear-gradient(135deg, #0369a1, #075985);
   border-color: rgba(186, 230, 253, 0.56);
 }
@@ -206,4 +207,3 @@ body.dark-theme .assistant-option-btn.assistant-option-btn--primary:focus-visibl
     font-size: 0.76rem;
   }
 }
-

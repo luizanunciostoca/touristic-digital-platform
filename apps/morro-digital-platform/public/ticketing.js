@@ -181,8 +181,7 @@ function renderOffers() {
   if (state.offers.length === 0) {
     const empty = document.createElement("p");
     empty.className = "empty";
-    empty.textContent =
-      "Nenhuma oferta está disponível para reserva agora.";
+    empty.textContent = "Nenhuma oferta está disponível para reserva agora.";
     elements.offers.append(empty);
     return;
   }

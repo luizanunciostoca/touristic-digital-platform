@@ -222,9 +222,7 @@ function syncErrorCode(error) {
       : error instanceof Error
         ? error.name
         : "CRM_SYNC_FAILED";
-  return /^[A-Za-z0-9_.:-]{1,160}$/u.test(raw)
-    ? raw
-    : "CRM_SYNC_FAILED";
+  return /^[A-Za-z0-9_.:-]{1,160}$/u.test(raw) ? raw : "CRM_SYNC_FAILED";
 }
 
 export function createTicketingAuthorizationPort({ authApi }) {

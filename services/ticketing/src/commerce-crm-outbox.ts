@@ -1,10 +1,6 @@
 import { createHash } from "node:crypto";
 
-import type {
-  Pool,
-  ResultSetHeader,
-  RowDataPacket,
-} from "mysql2/promise";
+import type { Pool, ResultSetHeader, RowDataPacket } from "mysql2/promise";
 
 import type { TicketReservationFulfillmentResult } from "./reservation-fulfillment-service.js";
 
@@ -120,9 +116,7 @@ function normalizeErrorCode(value: string): string {
   return ERROR_CODE.test(normalized) ? normalized : "CRM_SYNC_FAILED";
 }
 
-export class MySqlTicketingCommerceCrmOutbox
-  implements TicketingCommerceCrmOutboxPort
-{
+export class MySqlTicketingCommerceCrmOutbox implements TicketingCommerceCrmOutboxPort {
   constructor(private readonly pool: Pool) {}
 
   async enqueueConfirmedPurchase(
@@ -176,7 +170,9 @@ export class MySqlTicketingCommerceCrmOutbox
     return event;
   }
 
-  async listPending(limit = 100): Promise<readonly TicketingCommerceCrmEvent[]> {
+  async listPending(
+    limit = 100,
+  ): Promise<readonly TicketingCommerceCrmEvent[]> {
     const [rows] = await this.pool.execute<EventRow[]>(
       `SELECT
         event_id, event_type, reservation_id, holder_reference, inventory_id,
@@ -191,7 +187,10 @@ export class MySqlTicketingCommerceCrmOutbox
     return Object.freeze(rows.map(fromRow));
   }
 
-  async markPublished(eventIdInput: string, publishedAtInput: string): Promise<void> {
+  async markPublished(
+    eventIdInput: string,
+    publishedAtInput: string,
+  ): Promise<void> {
     const publishedAt = new Date(publishedAtInput);
     if (
       !EVENT_ID.test(eventIdInput) ||
@@ -210,7 +209,10 @@ export class MySqlTicketingCommerceCrmOutbox
     }
   }
 
-  async markAttempt(eventIdInput: string, errorCodeInput: string): Promise<void> {
+  async markAttempt(
+    eventIdInput: string,
+    errorCodeInput: string,
+  ): Promise<void> {
     if (!EVENT_ID.test(eventIdInput)) {
       throw new Error("TICKETING_COMMERCE_CRM_EVENT_ID_INVALID");
     }

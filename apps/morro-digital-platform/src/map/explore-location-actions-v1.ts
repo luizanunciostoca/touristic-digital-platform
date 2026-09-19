@@ -96,9 +96,7 @@ export function getV1ExplorePlaceActionOptions(
     COMMERCE_GRID_ACTIONS as Readonly<Record<string, readonly ActionSpec[]>>
   )[category];
   if (commerceSpecs) {
-    return Object.freeze(
-      commerceSpecs.map((spec) => command(spec, locale)),
-    );
+    return Object.freeze(commerceSpecs.map((spec) => command(spec, locale)));
   }
 
   const specs = (
