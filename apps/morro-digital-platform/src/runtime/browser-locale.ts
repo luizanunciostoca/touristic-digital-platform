@@ -2,10 +2,7 @@ export const MORRO_LANGUAGE_OVERRIDE_KEY = "morro-digital-language";
 
 export type MorroDocumentLocale = "pt-BR" | "en-US" | "es-ES" | "he-IL";
 export type MorroLocaleResolutionSource =
-  | "manual"
-  | "browser"
-  | "browser-fallback"
-  | "document-fallback";
+  "manual" | "browser" | "browser-fallback" | "document-fallback";
 
 export interface MorroBrowserLocaleResolution {
   readonly locale: MorroDocumentLocale;
@@ -138,7 +135,7 @@ export function initializeMorroBrowserLocale(
 ): MorroBrowserLocaleResolution {
   const viewNavigator =
     options.navigator === undefined
-      ? options.document.defaultView?.navigator ?? null
+      ? (options.document.defaultView?.navigator ?? null)
       : options.navigator;
   const storage = resolveStorage(options.document, options.storage);
 
