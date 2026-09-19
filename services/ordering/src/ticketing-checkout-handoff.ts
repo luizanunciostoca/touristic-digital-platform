@@ -186,8 +186,9 @@ export function verifyTicketingCheckoutHandoffCapability(
         : payload.rk === "guest_capability"
           ? "guest_capability"
           : null;
+    if (!requesterKind) return null;
     const context = normalizeCheckoutRequestContext({
-      requesterKind: requesterKind ?? undefined,
+      requesterKind,
       actorSubject,
       destinationId,
       tenantId: null,
