@@ -27,6 +27,7 @@ test("keeps TEST mode outside the financial authorization gate", () => {
   assert.deepEqual(
     validateMercadoPagoProductionCutover({
       MERCADO_PAGO_CHECKOUT_MODE: "test",
+      MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED: "true",
       PAYMENTS_SUBSCRIPTIONS_ENABLED: "false",
     }),
     {
@@ -38,10 +39,23 @@ test("keeps TEST mode outside the financial authorization gate", () => {
   );
 });
 
+test("fails closed when TEST credentials are not explicitly confirmed", () => {
+  assert.throws(
+    () =>
+      validateMercadoPagoProductionCutover({
+        MERCADO_PAGO_CHECKOUT_MODE: "test",
+        MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED: "false",
+        PAYMENTS_SUBSCRIPTIONS_ENABLED: "false",
+      }),
+    /MERCADO_PAGO_TEST_CREDENTIALS_NOT_CONFIRMED/u,
+  );
+});
+
 test("validates and normalizes subscriptions configuration in TEST mode", () => {
   assert.deepEqual(
     validateMercadoPagoProductionCutover({
       MERCADO_PAGO_CHECKOUT_MODE: "test",
+      MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED: "true",
       PAYMENTS_SUBSCRIPTIONS_ENABLED: "TRUE",
     }),
     {
@@ -56,6 +70,7 @@ test("validates and normalizes subscriptions configuration in TEST mode", () => 
     () =>
       validateMercadoPagoProductionCutover({
         MERCADO_PAGO_CHECKOUT_MODE: "test",
+        MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED: "true",
         PAYMENTS_SUBSCRIPTIONS_ENABLED: "yes",
       }),
     /PAYMENTS_SUBSCRIPTIONS_ENABLED_INVALID/u,
