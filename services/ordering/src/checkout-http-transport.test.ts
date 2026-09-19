@@ -30,8 +30,6 @@ import {
   type TicketingCheckoutApplicationService,
 } from "@touristic/ordering/ticketing-checkout";
 
-
-
 import {
   sameCheckoutAccessAuthority,
   type CheckoutAccessRecord,
