@@ -57,6 +57,29 @@ function heldReservation() {
 }
 
 describe("ticket reservation contracts", () => {
+  it("accepts transport as a first-class inventory product kind", () => {
+    const offer = createTicketInventoryOffer({
+      id: "tin_transport_20260919",
+      destinationId: "morro-de-sao-paulo",
+      product: { kind: "transport", reference: "catamaran-transfer" },
+      label: "Catamarã para Morro",
+      unitAmount: { minorUnits: 15000, currency: "BRL" },
+      pricingVersion: "2026.09.19",
+      capacity: 80,
+      maxPerReservation: 8,
+      salesStartAt: "2026-09-19T10:00:00.000Z",
+      salesEndAt: "2026-09-20T10:00:00.000Z",
+      startsAt: "2026-09-20T10:00:00.000Z",
+      endsAt: "2026-09-20T12:30:00.000Z",
+      createdAt: "2026-09-19T09:00:00.000Z",
+    });
+
+    expect(offer?.product).toEqual({
+      kind: "transport",
+      reference: "catamaran-transfer",
+    });
+  });
+
   it("creates a server-authoritative inventory offer and reports availability", () => {
     const offer = inventory();
     expect(offer.capacity).toBe(2);
