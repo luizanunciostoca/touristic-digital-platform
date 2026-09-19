@@ -2,7 +2,7 @@ export const ticketingM150ReservationSchemaSql = `
 CREATE TABLE IF NOT EXISTS ticketing_inventory (
   inventory_id VARCHAR(120) COLLATE utf8mb4_bin PRIMARY KEY,
   destination_id VARCHAR(120) COLLATE utf8mb4_bin NOT NULL,
-  product_kind ENUM('tour','business_experience') NOT NULL,
+  product_kind ENUM('tour','business_experience','transport') NOT NULL,
   product_reference VARCHAR(120) COLLATE utf8mb4_bin NOT NULL,
   label VARCHAR(160) NOT NULL,
   unit_amount_minor BIGINT UNSIGNED NOT NULL,
@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS ticketing_reservations (
   request_key VARCHAR(260) COLLATE utf8mb4_bin NOT NULL UNIQUE,
   inventory_id VARCHAR(120) COLLATE utf8mb4_bin NOT NULL,
   destination_id VARCHAR(120) COLLATE utf8mb4_bin NOT NULL,
-  product_kind ENUM('tour','business_experience') NOT NULL,
+  product_kind ENUM('tour','business_experience','transport') NOT NULL,
   product_reference VARCHAR(120) COLLATE utf8mb4_bin NOT NULL,
   unit_amount_minor BIGINT UNSIGNED NOT NULL,
   currency CHAR(3) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
