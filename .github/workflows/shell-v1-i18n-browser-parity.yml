@@ -13,6 +13,10 @@ on:
       - apps/morro-digital-platform/src/runtime/browser-locale.ts
       - apps/morro-digital-platform/src/runtime/browser-locale.test.ts
       - apps/morro-digital-platform/src/runtime/shell-v1-i18n.test.ts
+      - apps/morro-digital-platform/src/onboarding/public-onboarding.ts
+      - apps/morro-digital-platform/src/onboarding/public-interactive-tour.ts
+      - apps/morro-digital-platform/src/onboarding/public-onboarding-i18n.ts
+      - apps/morro-digital-platform/src/onboarding/public-onboarding-i18n.test.ts
       - apps/morro-digital-platform/src/runtime/runtime-accessibility-i18n.ts
       - apps/morro-digital-platform/src/assistant/assistant-voice-settings.ts
       - apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts
@@ -43,7 +47,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Unit coverage
-        run: pnpm --filter @touristic/morro-digital-platform test -- shell-v1-i18n.test.ts browser-locale.test.ts assistant-voice-adapter.test.ts
+        run: pnpm --filter @touristic/morro-digital-platform test -- shell-v1-i18n.test.ts browser-locale.test.ts public-onboarding-i18n.test.ts assistant-voice-adapter.test.ts
       - name: Install deterministic Chromium
         run: |
           npm install --prefix /tmp/pw --no-save playwright@1.54.2
