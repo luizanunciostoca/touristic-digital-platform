@@ -11,6 +11,9 @@ on:
       - apps/morro-digital-platform/public/legacy/**
       - apps/morro-digital-platform/src/onboarding/public-onboarding.ts
       - apps/morro-digital-platform/src/onboarding/public-interactive-tour.ts
+      - apps/morro-digital-platform/src/onboarding/public-onboarding-i18n.ts
+      - apps/morro-digital-platform/src/browser-entry.ts
+      - apps/morro-digital-platform/src/runtime/browser-locale.ts
       - apps/morro-digital-platform/src/layouts/app-shell.ts
       - apps/morro-digital-platform/tooling/dev-server.mjs
 
@@ -101,7 +104,7 @@ jobs:
             throw new Error(`${viewport.name} step ${step} geometry did not settle: ${JSON.stringify(latest)}`);
           }
           async function runViewport(browser, viewport) {
-            const context = await browser.newContext({ viewport });
+            const context = await browser.newContext({ locale: 'pt-BR', viewport });
             const page = await context.newPage();
             const pageErrors = [];
             page.on('pageerror', error => pageErrors.push(error.message));
