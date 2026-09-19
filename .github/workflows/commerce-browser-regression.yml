@@ -12,6 +12,10 @@ on:
       - "apps/morro-digital-platform/public/index.html"
       - "apps/morro-digital-platform/public/ticketing.js"
       - "apps/morro-digital-platform/public/tickets.html"
+      - "apps/morro-digital-platform/public/legacy/css/components/assistant/assistantModalUI.css"
+      - "apps/morro-digital-platform/src/assistant/assistant-dom-view.ts"
+      - "apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts"
+      - "apps/morro-digital-platform/src/map/**"
       - "apps/morro-digital-platform/src/business-dashboard-client.ts"
       - "apps/morro-digital-platform/src/business-dashboard-surface.ts"
       - "apps/morro-digital-platform/src/commerce/**"
@@ -21,6 +25,8 @@ on:
       - "apps/morro-digital-platform/tooling/payments-api.test.mjs"
       - "services/ordering/src/ticketing-checkout-handoff.ts"
       - "services/ordering/src/ticketing-checkout-handoff.test.ts"
+      - "services/crm/src/commerce-schema.ts"
+      - "services/crm/src/mysql-commerce-customer-repository.ts"
       - "services/ticketing/src/**"
       - "package.json"
       - "pnpm-lock.yaml"
@@ -88,6 +94,17 @@ jobs:
             salesStartAt: '2026-09-01T12:00:00.000Z', salesEndAt: '2026-09-20T20:00:00.000Z',
             startsAt: '2026-09-20T20:30:00.000Z', endsAt: '2026-09-21T01:00:00.000Z',
           };
+          const placeOffer = {
+            id: 'mpi_11111111111111111111111111111111',
+            destinationId: 'morro-de-sao-paulo',
+            product: { kind: 'business_experience', reference: 'morro-pro:toca-do-morcego:the-party' },
+            label: 'Toca do Morcego · The Party',
+            unitAmount: { minorUnits: 8000, currency: 'BRL' },
+            pricingVersion: 'morro-pro-v1', capacity: 200, maxPerReservation: 8,
+            availableQuantity: 37,
+            salesStartAt: '2026-09-01T00:00:00.000Z', salesEndAt: '2026-09-20T23:00:00.000Z',
+            startsAt: '2026-09-21T02:00:00.000Z', endsAt: '2026-09-21T08:00:00.000Z',
+          };
           const reservation = {
             id: 'trv_browser_0001', inventoryId: offer.id, destinationId: offer.destinationId,
             product: offer.product, unitAmount: offer.unitAmount, pricingVersion: offer.pricingVersion,
@@ -115,7 +132,7 @@ jobs:
             await page.route('**/api/ticketing/v1/inventory', route =>
               state.inventoryFailure
                 ? fulfill(route, { error: 'TICKETING_UNAVAILABLE' }, 503)
-                : fulfill(route, { data: [offer] }));
+                : fulfill(route, { data: [offer, placeOffer] }));
             await page.route('**/api/ticketing/v1/consumer-session', route => fulfill(route, {
               data: { subject: 'guest:browser', csrfToken: 'csrf_browser_0001', expiresAt: '2026-10-17T22:00:00.000Z' },
             }, 201, { 'set-cookie': 'morro_commerce_session=browser-token; Path=/; HttpOnly; SameSite=Strict' }));
@@ -191,6 +208,70 @@ jobs:
                 await quickAction.waitFor({ state: 'visible', timeout: 5000 });
                 if (!(await assistant.isVisible())) await quickAction.click();
                 await page.locator('#assistant-messages:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
+                await page.locator('#map[data-map-state="ready"]').waitFor({ state: 'attached', timeout: 30000 });
+
+                await page.locator('#assistant-category-nightlife').click();
+                await page.locator('#assistant-category-results[data-stage="filters"] [data-value="ver todos"]').click();
+                await page.locator('#assistant-category-results[data-stage="places"] [data-location-name="Toca do Morcego"]').click();
+                const placePrimary = page.locator('.assistant-options .assistant-option-btn--primary');
+                await placePrimary.waitFor({ state: 'visible', timeout: 10000 });
+                const placeActions = await page.evaluate(() => {
+                  const containers = Array.from(document.querySelectorAll('#assistant-messages .assistant-options'));
+                  const container = containers.find(node =>
+                    !node.querySelector('[data-explore-category]') &&
+                    node.id !== 'assistant-category-results' &&
+                    node.querySelector('.assistant-option-btn--primary')
+                  );
+                  if (!(container instanceof HTMLElement)) return null;
+                  const buttons = Array.from(container.querySelectorAll('.assistant-option-btn'));
+                  const primary = container.querySelector('.assistant-option-btn--primary');
+                  if (!(primary instanceof HTMLButtonElement)) return null;
+                  const grid = buttons.slice(0, 4);
+                  const containerRect = container.getBoundingClientRect();
+                  const primaryRect = primary.getBoundingClientRect();
+                  const gridBottom = Math.max(...grid.map(button => button.getBoundingClientRect().bottom));
+                  return {
+                    values: buttons.map(button => button.getAttribute('data-value')),
+                    primaryText: primary.textContent?.trim(),
+                    primaryIndex: buttons.indexOf(primary),
+                    primaryWidth: primaryRect.width,
+                    containerWidth: containerRect.width,
+                    primaryTop: primaryRect.top,
+                    gridBottom,
+                    gridColumns: getComputedStyle(container).gridTemplateColumns,
+                  };
+                });
+                const expectedPlaceGrid = [
+                  'como chegar',
+                  'ver fotos',
+                  'mais detalhes',
+                  'adicionar aos favoritos',
+                  `commerce:offer:${placeOffer.id}`,
+                ];
+                if (
+                  !placeActions ||
+                  JSON.stringify(placeActions.values) !== JSON.stringify(expectedPlaceGrid) ||
+                  placeActions.primaryIndex !== 4 ||
+                  !placeActions.primaryText?.includes('Comprar ingressos') ||
+                  placeActions.primaryWidth < placeActions.containerWidth - 18 ||
+                  placeActions.primaryTop < placeActions.gridBottom ||
+                  placeActions.gridColumns.split(' ').length !== 2
+                ) {
+                  throw new Error(`Place commerce CTA layout drift on ${viewport.name}: ${JSON.stringify(placeActions)}`);
+                }
+                await Promise.all([
+                  page.waitForURL(`**/tickets.html?offer=${placeOffer.id}&source=map`),
+                  placePrimary.click(),
+                ]);
+                await page.locator('#selected-offer').waitFor({ state: 'visible', timeout: 10000 });
+                const selectedFromMap = await page.locator('#selected-offer').inputValue();
+                if (!selectedFromMap.includes('Toca do Morcego')) {
+                  throw new Error(`Map commerce handoff did not select place offer on ${viewport.name}: ${selectedFromMap}`);
+                }
+                evidence.push({ viewport: viewport.name, placeActions, selectedFromMap });
+
+                await page.goto(`${origin}/`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+                await page.locator('#assistant-commerce-cta').waitFor({ state: 'attached', timeout: 10000 });
                 await Promise.all([page.waitForURL('**/tickets.html'), page.locator('#assistant-commerce-cta').click()]);
                 await page.locator('.offer-card').waitFor({ state: 'visible' });
                 await Promise.all([page.waitForURL('**/experience.html?id=*'), page.locator('.offer-card a.button-secondary').click()]);
