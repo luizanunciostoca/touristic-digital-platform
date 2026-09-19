@@ -480,7 +480,9 @@ export function installBrowserAssistantRuntime(
     const runtimeGlobal = globalThis as typeof globalThis &
       AssistantRuntimeEnvironmentGlobal;
     if (runtimeGlobal.mapboxPrimaryInstance) {
-      invalidateAssistantV1MapCameraRestore(runtimeGlobal.mapboxPrimaryInstance);
+      invalidateAssistantV1MapCameraRestore(
+        runtimeGlobal.mapboxPrimaryInstance,
+      );
     }
   };
   const onNavigationEnded = (event: Event): void => {
