@@ -756,6 +756,7 @@ export function installExploreLocationsControl({
     activePlace = undefined;
     activeStage = "menu";
     visibleLocations = Object.freeze([...locations]);
+    clearExploreRuntimeStatus();
     showMainMenu();
     updateMapState(locations.length, category, "loading");
 
