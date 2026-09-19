@@ -77,7 +77,9 @@ test("rejects a TEST Public Key in production mode", () => {
   );
 });
 
-test("binds the subscriptions Public Key to the configured provider mode", () => {
+test(
+  "binds the subscriptions Public Key to the configured provider mode",
+  () => {
   assert.throws(
     () =>
       validateMercadoPagoProductionCutover(
@@ -92,8 +94,8 @@ test("binds the subscriptions Public Key to the configured provider mode", () =>
         }),
       ),
     /MERCADO_PAGO_SUBSCRIPTIONS_PUBLIC_KEY_MODE_MISMATCH/u,
-  );
-});
+  );  },
+);
 
 test(
   "fails closed when TEST credentials are not explicitly confirmed",
