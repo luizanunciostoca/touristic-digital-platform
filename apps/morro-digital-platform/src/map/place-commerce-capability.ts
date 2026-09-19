@@ -111,8 +111,10 @@ function offerMatchesLocation(
   if (!categoryAcceptsKind(location.category, offer.product.kind)) return false;
 
   const placeName = normalizeSearchText(location.name);
-  const placeLabels = [placeName, ...(location.aliases ?? []).map(normalizeSearchText)]
-    .filter((value) => value.length >= 5);
+  const placeLabels = [
+    placeName,
+    ...(location.aliases ?? []).map(normalizeSearchText),
+  ].filter((value) => value.length >= 5);
   const placeSlug = slug(location.name);
   const destinationSlug = slug(offer.destinationId);
   const referenceSlug = slug(offer.product.reference.replace(/[:._]+/gu, " "));
