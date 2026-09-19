@@ -71,6 +71,14 @@ function productKindLabel(offer) {
   return "Experiência";
 }
 
+function productUnitLabel(product, quantity = 1) {
+  const plural = Number(quantity) !== 1;
+  if (product?.kind === "transport") {
+    return plural ? "passagens" : "passagem";
+  }
+  return plural ? "ingressos" : "ingresso";
+}
+
 const offerIdPattern = /^[A-Za-z0-9_-]{3,120}$/u;
 
 function requestedOfferIds() {
@@ -200,7 +208,7 @@ function renderOffers() {
     when.textContent = dateTime(offer.startsAt);
     const price = document.createElement("p");
     price.className = "offer-price";
-    price.textContent = `${money(offer.unitAmount)} por ingresso`;
+    price.textContent = `${money(offer.unitAmount)} por ${productUnitLabel(offer.product)}`;
     const availability = document.createElement("p");
     availability.className = "availability";
     availability.textContent = `${offer.availableQuantity} disponíveis`;
@@ -262,7 +270,8 @@ async function showTicket(reservation) {
   if (!ticket?.qrSvg || !ticket?.code)
     throw new Error("TICKET_RESPONSE_INVALID");
   elements.ticketTitle.textContent =
-    reservation.product?.reference || "Seu ingresso";
+    reservation.product?.reference ||
+    `Sua ${productUnitLabel(reservation.product)}`;
   elements.ticketQr.replaceChildren();
   const template = document.createElement("template");
   template.innerHTML = ticket.qrSvg;
@@ -271,7 +280,7 @@ async function showTicket(reservation) {
     throw new Error("TICKET_QR_INVALID");
   elements.ticketQr.append(svg);
   elements.ticketCode.textContent = ticket.code;
-  elements.ticketMeta.textContent = `${ticket.quantity} ingresso(s) · ${money(ticket.amount)} · emitido em ${dateTime(ticket.issuedAt)}`;
+  elements.ticketMeta.textContent = `${ticket.quantity} ${productUnitLabel(reservation.product, ticket.quantity)} · ${money(ticket.amount)} · emitido em ${dateTime(ticket.issuedAt)}`;
   elements.dialog.showModal();
 }
 
@@ -305,7 +314,7 @@ function renderReservations(reservations) {
     title.textContent =
       reservation.product?.reference || reservation.inventoryId;
     const detail = document.createElement("p");
-    detail.textContent = `${reservation.quantity} ingresso(s) · ${money(reservation.unitAmount)} cada`;
+    detail.textContent = `${reservation.quantity} ${productUnitLabel(reservation.product, reservation.quantity)} · ${money(reservation.unitAmount)} cada`;
     const expiry = document.createElement("p");
     expiry.textContent =
       reservation.status === "held"
@@ -322,12 +331,21 @@ function renderReservations(reservations) {
       const ticket = document.createElement("button");
       ticket.type = "button";
       ticket.className = "button button-primary";
-      ticket.textContent = "Ver ingresso";
+      ticket.textContent =
+        reservation.product?.kind === "transport"
+          ? "Ver passagem"
+          : "Ver ingresso";
       ticket.addEventListener(
         "click",
         () =>
           void showTicket(reservation).catch((error) => {
-            setMessage(error.message || "Ingresso indisponível.", true);
+            setMessage(
+              error.message ||
+                (reservation.product?.kind === "transport"
+                  ? "Passagem indisponível."
+                  : "Ingresso indisponível."),
+              true,
+            );
           }),
       );
       actions.append(ticket);
