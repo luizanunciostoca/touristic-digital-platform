@@ -5,6 +5,7 @@ import {
   createJsonFileGovernanceStateStore,
   createProviderCostGovernor,
 } from "./provider-governance.mjs";
+import { createProviderCircuitBreaker } from "./provider-circuit-breaker.mjs";
 
 const ASSISTANT_TIMEOUT_MS = 12_000;
 const ASSISTANT_RATE_WINDOW_MS = 60_000;
@@ -206,6 +207,11 @@ export function createAssistantApi({
     stateStore: resolvedGovernanceStateStore,
     requirePersistentState: true,
   });
+  const providerCircuitBreaker = createProviderCircuitBreaker({
+    provider: "openai",
+    now,
+    onEvent: observeProviderEvent,
+  });
 
   function rateAllowed(request) {
     const timestamp = now();
@@ -246,6 +252,7 @@ export function createAssistantApi({
       runtimeReplicaCount,
       runtimeTopologySafe,
       persistentGovernanceConfigured: Boolean(resolvedGovernanceStateStore),
+      circuitBreaker: providerCircuitBreaker.snapshot(),
       usage: costGovernor.snapshot(),
     });
   }
@@ -438,6 +445,24 @@ export function createAssistantApi({
         }
 
         const reservation = budgetAttempt.reservation;
+        const circuitAttempt = providerCircuitBreaker.allow(requestMetadata);
+        if (!circuitAttempt.allowed) {
+          costGovernor.release(reservation, {
+            reason: circuitAttempt.reason,
+          });
+          sendJson(
+            response,
+            503,
+            { error: "assistant_provider_unavailable" },
+            {
+              "Retry-After": String(
+                Math.max(1, Math.ceil(circuitAttempt.retryAfterMs / 1_000)),
+              ),
+            },
+          );
+          return;
+        }
+
         const controller = new AbortController();
         let abortReason = null;
         abortProviderRequest = (reason) => {
@@ -446,6 +471,7 @@ export function createAssistantApi({
           controller.abort();
         };
         if (clientDisconnected || request.aborted) {
+          providerCircuitBreaker.cancel(requestMetadata);
           costGovernor.release(reservation, {
             reason: "client_disconnected_before_provider",
           });
@@ -494,14 +520,26 @@ export function createAssistantApi({
           );
 
           if (!upstream.ok) {
+            const providerRequestOrphaned =
+              clientDisconnected || Boolean(request.aborted);
+            if (providerRequestOrphaned) {
+              providerCircuitBreaker.cancel(requestMetadata);
+            } else {
+              providerCircuitBreaker.failure("provider_http_error", {
+                ...requestMetadata,
+                statusCode: upstream.status,
+              });
+            }
             observeProviderFailure(
-              "provider_http_error",
+              providerRequestOrphaned
+                ? "client_disconnected_after_provider"
+                : "provider_http_error",
               upstream.status,
               requestMetadata,
             );
             costGovernor.settle(reservation, {});
             reservationClosed = true;
-            if (!clientDisconnected) {
+            if (!providerRequestOrphaned) {
               sendJson(response, upstream.status === 429 ? 429 : 502, {
                 error: "assistant_provider_error",
               });
@@ -530,8 +568,19 @@ export function createAssistantApi({
             parseJsonObject(content),
           );
           if (!normalized.text) throw new Error("assistant_invalid_response");
+          providerCircuitBreaker.success(requestMetadata);
           if (!clientDisconnected) sendJson(response, 200, normalized);
         } catch (error) {
+          if (abortReason === "client_disconnected" || clientDisconnected) {
+            providerCircuitBreaker.cancel(requestMetadata);
+          } else {
+            providerCircuitBreaker.failure(
+              abortReason === "provider_timeout" || error?.name === "AbortError"
+                ? "provider_timeout"
+                : "provider_request_failed",
+              requestMetadata,
+            );
+          }
           if (!reservationClosed) {
             observeProviderFailure(
               abortReason === "client_disconnected"
