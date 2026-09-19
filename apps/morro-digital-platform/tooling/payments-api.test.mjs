@@ -39,7 +39,6 @@ function responseCapture() {
   };
 }
 
-
 function ticketingCheckoutHandoff() {
   return {
     reservationReference: "trv_runtime_guest_0001",
