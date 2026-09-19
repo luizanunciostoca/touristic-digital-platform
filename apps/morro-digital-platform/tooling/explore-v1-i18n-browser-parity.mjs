@@ -312,6 +312,7 @@ const context = await browser.newContext({
 });
 await context.addInitScript(() => {
   localStorage.setItem("morro-digital-onboarded", "1");
+  localStorage.setItem("morro-digital-language", "pt-BR");
   localStorage.setItem("voice-enabled", "false");
 });
 const page = await context.newPage();
