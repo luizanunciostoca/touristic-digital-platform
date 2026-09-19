@@ -8,6 +8,8 @@ import {
   createOrderingMySqlPoolFromEnvironment,
 } from "@touristic/ordering-server";
 
+import { validateMercadoPagoProductionCutover } from "./payments-production-cutover-guard.mjs";
+
 const diagnosticCodePattern = /^[A-Z0-9_:-]{1,160}$/u;
 
 function required(name) {
@@ -98,6 +100,8 @@ function validateProviderIdentity() {
   ) {
     throw new Error("PAYMENTS_WEBHOOK_URL_INVALID");
   }
+
+  return validateMercadoPagoProductionCutover(process.env);
 }
 
 function safeFailureCode(error) {
@@ -114,7 +118,7 @@ let orderingPool;
 let financialPool;
 
 try {
-  validateProviderIdentity();
+  const cutover = validateProviderIdentity();
 
   const environment = Object.freeze({
     ORDERING_DATABASE_URL: required("ORDERING_DATABASE_URL"),
@@ -140,10 +144,14 @@ try {
   process.stdout.write(
     `${JSON.stringify({
       contract: "PAYMENTS-PREDEPLOY",
-      contractVersion: 2,
+      contractVersion: 3,
       status: "pass",
       provider: "mercado_pago",
       providerIdentity: "direct-official-api",
+      checkoutMode: cutover.mode,
+      productionAuthorized: cutover.productionAuthorized,
+      productionCredentialsConfirmed: cutover.productionCredentialsConfirmed,
+      subscriptionsEnabled: cutover.subscriptionsEnabled,
       ordering: "M151+ticketing-reservation",
       financial: "M145",
     })}\n`,
@@ -152,7 +160,7 @@ try {
   process.stderr.write(
     `${JSON.stringify({
       contract: "PAYMENTS-PREDEPLOY",
-      contractVersion: 2,
+      contractVersion: 3,
       status: "fail",
       reason: safeFailureCode(error),
     })}\n`,

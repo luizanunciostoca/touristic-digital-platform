@@ -141,7 +141,7 @@ O Card Payment Brick recebe somente `VITE_MERCADO_PAGO_PUBLIC_KEY`. O adapter de
 4. dispare o deploy manual do web service;
 5. o build deve concluir;
 6. o pre-deploy executa `payments-migrate.mjs` através do wrapper de MySQL;
-7. só prossiga se aparecer `PAYMENTS-PREDEPLOY` v2 com `status: pass`;
+7. só prossiga se aparecer `PAYMENTS-PREDEPLOY` v3 com `status: pass`;
 8. o runtime de subscriptions aplica M146 antes de marcar Payments ready e deve falhar fechado se schema/configuração estiver indisponível;
 9. aguarde `/readyz` ficar ready antes de executar acceptance.
 

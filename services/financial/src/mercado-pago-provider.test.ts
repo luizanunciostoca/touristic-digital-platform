@@ -91,6 +91,32 @@ function response(payload: unknown, status = 200): Response {
 }
 
 describe("Mercado Pago payment provider adapter", () => {
+  it("fails closed when checkout mode is missing", () => {
+    const missingCheckoutMode = { ...environment() };
+    Reflect.deleteProperty(missingCheckoutMode, "MERCADO_PAGO_CHECKOUT_MODE");
+
+    expect(() =>
+      createMercadoPagoCheckoutProviderFromEnvironment(missingCheckoutMode),
+    ).toThrow("MERCADO_PAGO_CHECKOUT_MODE is invalid");
+  });
+
+  it("blocks refund, reconciliation and webhook adapters when TEST credentials are unconfirmed", () => {
+    const unconfirmed = {
+      ...environment(),
+      MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED: "false",
+    };
+
+    expect(() =>
+      createMercadoPagoRefundProviderFromEnvironment(unconfirmed),
+    ).toThrow("MERCADO_PAGO_TEST_ACCOUNT_REQUIRED");
+    expect(() =>
+      createMercadoPagoReconciliationProviderFromEnvironment(unconfirmed),
+    ).toThrow("MERCADO_PAGO_TEST_ACCOUNT_REQUIRED");
+    expect(() =>
+      createMercadoPagoWebhookVerifierFromEnvironment(unconfirmed),
+    ).toThrow("MERCADO_PAGO_TEST_ACCOUNT_REQUIRED");
+  });
+
   it("creates Checkout Pro preference with explicitly confirmed automatic TEST credentials", async () => {
     const calls: Array<{ url: string; init: RequestInit | undefined }> = [];
     const provider = createMercadoPagoCheckoutProviderFromEnvironment(

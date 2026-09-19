@@ -185,8 +185,12 @@ jobs:
                 if (JSON.stringify(home.values) !== JSON.stringify(expected) || home.href !== '/tickets.html' || home.category || home.messages !== 1) {
                   throw new Error(`V1 Assistant contract drift on ${viewport.name}: ${JSON.stringify(home)}`);
                 }
-                await page.locator('.mood-button').click();
-                await page.locator('#assistant-messages').waitFor({ state: 'visible' });
+                await page.locator('body[data-public-onboarding-settled="true"]').waitFor({ state: 'attached', timeout: 5000 });
+                const assistant = page.locator('#assistant-messages');
+                const quickAction = page.locator('.mood-button[data-assistant-shell-ready="true"]');
+                await quickAction.waitFor({ state: 'visible', timeout: 5000 });
+                if (!(await assistant.isVisible())) await quickAction.click();
+                await page.locator('#assistant-messages:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
                 await Promise.all([page.waitForURL('**/tickets.html'), page.locator('#assistant-commerce-cta').click()]);
                 await page.locator('.offer-card').waitFor({ state: 'visible' });
                 await Promise.all([page.waitForURL('**/experience.html?id=*'), page.locator('.offer-card a.button-secondary').click()]);

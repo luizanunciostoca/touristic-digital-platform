@@ -43,9 +43,9 @@ async function waitForSurface(page) {
   await page
     .locator("#businessOnboardingSurface")
     .waitFor({ state: "visible" });
-  await page.waitForFunction(
-    () => document.activeElement?.id === "businessOnboardingTitle",
-  );
+  await page
+    .locator("#businessOnboardingTitle:focus")
+    .waitFor({ state: "attached", timeout: 10000 });
 }
 
 const browser = await chromium.launch({ headless: true });

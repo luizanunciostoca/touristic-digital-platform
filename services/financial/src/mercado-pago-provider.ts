@@ -151,7 +151,7 @@ function checkoutOrigins(value: unknown): ReadonlySet<string> {
 
 function checkoutMode(value: unknown): "production" | "test" {
   const normalized = boundedString(value, 20).toLowerCase();
-  if (!normalized || normalized === "production") return "production";
+  if (normalized === "production") return "production";
   if (normalized === "test") return "test";
   throw new Error("MERCADO_PAGO_CHECKOUT_MODE is invalid");
 }
@@ -258,6 +258,16 @@ function requireMercadoPagoTestCredentialsConfirmation(
   if (confirmed !== "true") {
     throw new MercadoPagoProviderError("MERCADO_PAGO_TEST_ACCOUNT_REQUIRED");
   }
+}
+
+function requireConfirmedProviderMode(
+  environment: MercadoPagoProviderEnvironment,
+): "production" | "test" {
+  const mode = checkoutMode(environment.MERCADO_PAGO_CHECKOUT_MODE);
+  if (mode === "test") {
+    requireMercadoPagoTestCredentialsConfirmation(environment);
+  }
+  return mode;
 }
 
 export function createMercadoPagoCheckoutProviderFromEnvironment(
@@ -368,6 +378,7 @@ export function createMercadoPagoRefundProviderFromEnvironment(
   if (environment.PAYMENTS_PROVIDER_MODE !== "mercado_pago") {
     throw new Error("PAYMENTS_PROVIDER_MODE=mercado_pago is required");
   }
+  requireConfirmedProviderMode(environment);
   const token = accessToken(environment);
   const fetchImpl = fetchProvider(options);
   const timeout = timeoutMs(environment.PAYMENTS_PROVIDER_TIMEOUT_MS);
@@ -466,6 +477,7 @@ export function createMercadoPagoReconciliationProviderFromEnvironment(
   if (environment.PAYMENTS_PROVIDER_MODE !== "mercado_pago") {
     throw new Error("PAYMENTS_PROVIDER_MODE=mercado_pago is required");
   }
+  requireConfirmedProviderMode(environment);
   accessToken(environment);
   return Object.freeze({
     async readPayment(
@@ -581,6 +593,7 @@ export function createMercadoPagoWebhookVerifierFromEnvironment(
   if (environment.PAYMENTS_PROVIDER_MODE !== "mercado_pago") {
     throw new Error("PAYMENTS_PROVIDER_MODE=mercado_pago is required");
   }
+  requireConfirmedProviderMode(environment);
   const secret = webhookSecret(environment);
   accessToken(environment);
   const tolerance = webhookToleranceSeconds(

@@ -162,32 +162,30 @@ try {
   await page.evaluate(() => {
     document.documentElement.lang = "pt-BR";
   });
-  await page.waitForFunction(
-    () =>
-      document.querySelector("#weather-widget .click-here-text")
-        ?.textContent === "Clique aqui",
-  );
+  await page
+    .locator("#weather-widget .click-here-text")
+    .filter({ hasText: "Clique aqui" })
+    .waitFor({ state: "visible", timeout: 10000 });
   await page.locator("#weather-widget").click();
   await page
     .locator(".weather-forecast-modal")
     .waitFor({ state: "visible", timeout: 10000 });
 
   await page.locator('.day-option[data-day-index="1"]').click();
-  await page.waitForFunction(
-    () =>
-      document
-        .querySelector('.day-option[data-day-index="1"]')
-        ?.getAttribute("aria-pressed") === "true",
-  );
+  await page
+    .locator('.day-option[data-day-index="1"][aria-pressed="true"]')
+    .waitFor({ state: "visible", timeout: 10000 });
 
   for (const expected of expectations) {
     await page.evaluate((lang) => {
       document.documentElement.lang = lang;
     }, expected.lang);
-    await page.waitForFunction(
-      (title) =>
-        document.querySelector("#weather-forecast-title")?.textContent ===
-        title,
+    await page
+      .locator("#weather-forecast-title")
+      .filter({ hasText: expected.title })
+      .waitFor({ state: "visible", timeout: 10000 });
+    assert.equal(
+      (await page.locator("#weather-forecast-title").textContent())?.trim(),
       expected.title,
     );
 
@@ -267,10 +265,14 @@ try {
     await page.evaluate((lang) => {
       document.documentElement.lang = lang;
     }, expected.lang);
-    await page.waitForFunction(
-      (errorText) =>
-        document.querySelector("#weather-widget .weather-error")
-          ?.textContent === errorText,
+    await page
+      .locator("#weather-widget .weather-error")
+      .filter({ hasText: expected.error })
+      .waitFor({ state: "visible", timeout: 10000 });
+    assert.equal(
+      (
+        await page.locator("#weather-widget .weather-error").textContent()
+      )?.trim(),
       expected.error,
     );
     assert.equal(
@@ -282,11 +284,10 @@ try {
   await page.evaluate(() => {
     document.documentElement.lang = "pt-BR";
   });
-  await page.waitForFunction(
-    () =>
-      document.querySelector("#weather-widget .weather-error")?.textContent ===
-      "Não foi possível atualizar o clima.",
-  );
+  await page
+    .locator("#weather-widget .weather-error")
+    .filter({ hasText: "Não foi possível atualizar o clima." })
+    .waitFor({ state: "visible", timeout: 10000 });
 
   weatherMode = "pending";
   pendingWeatherRoute = undefined;
@@ -296,13 +297,9 @@ try {
     }
     window.__morroWeatherRefresh();
   });
-  await page.waitForFunction(
-    () =>
-      document.querySelector("#weather-widget")?.getAttribute("aria-busy") ===
-        "true" &&
-      document.querySelector("#weather-widget")?.dataset.weatherState ===
-        "loading",
-  );
+  await page
+    .locator('#weather-widget[aria-busy="true"][data-weather-state="loading"]')
+    .waitFor({ state: "attached", timeout: 10000 });
 
   for (let attempt = 0; attempt < 50 && !pendingWeatherRoute; attempt += 1) {
     await new Promise((resolve) => setTimeout(resolve, 20));
@@ -312,11 +309,10 @@ try {
   await page.evaluate(() => {
     document.documentElement.lang = "en-US";
   });
-  await page.waitForFunction(
-    () =>
-      document.querySelector("#weather-widget .weather-error")?.textContent ===
-      "Could not update the weather.",
-  );
+  await page
+    .locator("#weather-widget .weather-error")
+    .filter({ hasText: "Could not update the weather." })
+    .waitFor({ state: "visible", timeout: 10000 });
   assert.equal(
     await page.locator("#weather-widget").getAttribute("data-weather-state"),
     "loading",
@@ -329,13 +325,10 @@ try {
     body: "weather unavailable",
   });
   pendingWeatherRoute = undefined;
-  await page.waitForFunction(
-    () =>
-      document.querySelector("#weather-widget")?.dataset.weatherState ===
-        "error" &&
-      document.querySelector("#weather-widget .weather-error")?.textContent ===
-        "Could not update the weather.",
-  );
+  await page
+    .locator('#weather-widget[data-weather-state="error"] .weather-error')
+    .filter({ hasText: "Could not update the weather." })
+    .waitFor({ state: "visible", timeout: 10000 });
 
   console.log("WEATHER_V1_I18N_BROWSER_PARITY=PASS");
 } finally {

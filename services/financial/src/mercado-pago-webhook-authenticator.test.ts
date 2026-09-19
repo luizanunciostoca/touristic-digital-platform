@@ -46,6 +46,8 @@ function verifier() {
   return createMercadoPagoAuthenticatingWebhookVerifierFromEnvironment(
     {
       PAYMENTS_PROVIDER_MODE: "mercado_pago",
+      MERCADO_PAGO_CHECKOUT_MODE: "test",
+      MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED: "true",
       MERCADO_PAGO_ACCESS_TOKEN: accessToken,
       MERCADO_PAGO_WEBHOOK_SECRET: webhookSecret,
       PAYMENTS_WEBHOOK_TOLERANCE_SECONDS: "300",
