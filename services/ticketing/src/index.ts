@@ -95,6 +95,12 @@ import {
   type VerifiedPaymentTicketFulfillmentHandler,
 } from "./verified-payment-fulfillment-handler.js";
 
+export { MySqlTicketingCommerceCrmOutbox } from "./commerce-crm-outbox.js";
+export type {
+  TicketingCommerceCrmEvent,
+  TicketingCommerceCrmOutboxPort,
+} from "./commerce-crm-outbox.js";
+
 export {
   MySqlFinancialResultCursorRepository,
   MySqlRefundedReservationCancellationRepository,
