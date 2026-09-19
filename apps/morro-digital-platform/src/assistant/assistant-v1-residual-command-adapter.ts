@@ -507,6 +507,12 @@ function bumpCameraGeneration(map: AssistantV1MapCommandMap): number {
   return next;
 }
 
+export function invalidateAssistantV1MapCameraRestore(
+  map: AssistantV1MapCommandMap,
+): void {
+  bumpCameraGeneration(map);
+}
+
 function isCurrentCameraGeneration(
   map: AssistantV1MapCommandMap,
   generation: number,
@@ -723,11 +729,13 @@ export async function executeAssistantV1ResidualCommand(
     } else {
       map.setZoom?.(target);
     }
-    return mapResponse(
-      `🔍 Zoom ajustado para ${target.toFixed(0)}.`,
-      language,
-      "map_zoom",
-    );
+    const text = {
+      pt: `🔍 Zoom ajustado para ${target.toFixed(0)}.`,
+      en: `🔍 Zoom adjusted to ${target.toFixed(0)}.`,
+      es: `🔍 Zoom ajustado a ${target.toFixed(0)}.`,
+      he: `🔍 הזום הותאם ל-${target.toFixed(0)}.`,
+    }[language];
+    return mapResponse(text, language, "map_zoom");
   }
 
   if (command.type === "map_overview") {
