@@ -70,6 +70,32 @@ describe("place commerce capability", () => {
     expect(action?.label).toContain("80");
   });
 
+  it("matches an explicitly place-bound Morro Pro offer even when its label omits the venue", async () => {
+    const fetch = vi.fn().mockResolvedValue(
+      response([
+        offer({
+          product: {
+            kind: "business_experience",
+            reference:
+              "morro-pro:business-a:place-toca-do-morcego:the-party",
+          },
+          label: "The Party",
+        }),
+      ]),
+    );
+    const action = await resolvePlacePrimaryAction({
+      location: nightlife,
+      locale: "pt",
+      fetch,
+      now: () => Date.parse("2026-09-19T22:00:00.000Z"),
+    });
+
+    expect(action).toMatchObject({
+      value: "commerce:offer:mpi_12345678",
+      commerceState: "sellable",
+    });
+  });
+
   it("uses a filtered multi-offer CTA when the place has more than one sellable offer", async () => {
     const fetch = vi
       .fn()
