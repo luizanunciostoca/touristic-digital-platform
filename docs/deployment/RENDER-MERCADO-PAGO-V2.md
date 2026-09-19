@@ -104,7 +104,8 @@ Ordering and Financial must keep their intended ownership boundaries and durable
 - `MERCADO_PAGO_WEBHOOK_SECRET` — server only;
 - `VITE_MERCADO_PAGO_PUBLIC_KEY` — browser Public Key;
 - `MERCADO_PAGO_CHECKOUT_ORIGINS` — exact HTTPS allowlist;
-- `MERCADO_PAGO_PRODUCTION_CREDENTIALS_CONFIRMED` — operational attestation, initially false;
+- `MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED` — required TEST credential attestation while checkout mode is test;
+- `MERCADO_PAGO_PRODUCTION_CREDENTIALS_CONFIRMED` — operational production attestation, initially false;
 - `MERCADO_PAGO_PRODUCTION_AUTHORIZATION_ID` — financial authorization reference, initially unset.
 
 For subscriptions, when and only when recurring billing is authorized:
@@ -135,11 +136,12 @@ No token or webhook secret is logged.
 
 ## TEST behavior in production infrastructure
 
-Before financial authorization, the service may be materialized and technically deployed with checkout mode `test`, but Payments remains closed to unsafe use:
+Before financial authorization, the service may be materialized and technically deployed with checkout mode `test` only with verified TEST credentials:
 
-- direct Bricks payment requests in test mode require the separate `MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED=true` runtime confirmation before any provider call;
-- the production Blueprint does not set that confirmation;
-- production credential confirmation remains `false`;
+- the active Access Token/Public Key/webhook material must belong to the provider TEST credential flow;
+- the production Blueprint exposes `MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED` as an operator-supplied non-secret attestation;
+- predeploy refuses TEST startup unless that attestation is `true`;
+- production credentials remain uninjected and production credential confirmation remains `false`;
 - subscriptions remain disabled;
 - no deliberate real payment is performed for readiness evidence.
 
