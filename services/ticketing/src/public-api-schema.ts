@@ -40,9 +40,36 @@ CREATE TABLE IF NOT EXISTS ticketing_inventory_ownership (
     ON UPDATE RESTRICT,
   INDEX idx_ticketing_inventory_ownership_business (business_id, updated_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS ticketing_commerce_crm_outbox (
+  event_id VARCHAR(120) COLLATE utf8mb4_bin PRIMARY KEY,
+  event_type VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  reservation_id VARCHAR(120) COLLATE utf8mb4_bin NOT NULL,
+  holder_reference VARCHAR(120) COLLATE utf8mb4_bin NOT NULL,
+  inventory_id VARCHAR(120) COLLATE utf8mb4_bin NOT NULL,
+  order_id VARCHAR(120) COLLATE utf8mb4_bin NOT NULL,
+  payment_id VARCHAR(120) COLLATE utf8mb4_bin NOT NULL,
+  destination_id VARCHAR(120) COLLATE utf8mb4_bin NOT NULL,
+  product_kind VARCHAR(40) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  product_reference VARCHAR(120) COLLATE utf8mb4_bin NOT NULL,
+  quantity INT UNSIGNED NOT NULL,
+  amount_minor BIGINT UNSIGNED NOT NULL,
+  currency CHAR(3) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  occurred_at DATETIME(3) NOT NULL,
+  published_at DATETIME(3) NULL,
+  attempt_count INT UNSIGNED NOT NULL DEFAULT 0,
+  last_error_code VARCHAR(160) CHARACTER SET ascii COLLATE ascii_bin NULL,
+  created_at DATETIME(3) NOT NULL,
+  updated_at DATETIME(3) NOT NULL,
+  UNIQUE KEY uq_ticketing_commerce_crm_reservation (reservation_id, event_type),
+  INDEX idx_ticketing_commerce_crm_pending (published_at, occurred_at, event_id),
+  INDEX idx_ticketing_commerce_crm_holder (holder_reference, occurred_at),
+  CHECK (quantity > 0 AND quantity <= 20),
+  CHECK (amount_minor > 0 AND amount_minor <= 9007199254740991)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 `;
 
-export const ticketingPublicApiRollbackSql = `
+export const ticketingPublicApiRollbackSql = `DROP TABLE IF EXISTS ticketing_commerce_crm_outbox;
 DROP TABLE IF EXISTS ticketing_inventory_ownership;
 DROP TABLE IF EXISTS ticketing_offline_devices;
 DROP TABLE IF EXISTS ticketing_holder_profiles;
