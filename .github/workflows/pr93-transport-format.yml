@@ -12,6 +12,7 @@ on:
       - "services/ticketing/src/index.ts"
       - "services/ticketing/src/transport-product-kind-schema.ts"
       - "services/ticketing/src/transport-product-kind-schema.test.ts"
+      - "apps/morro-digital-platform/public/experience.js"
       - "apps/morro-digital-platform/src/business-dashboard-client.ts"
       - "apps/morro-digital-platform/src/business-dashboard-surface.ts"
 
