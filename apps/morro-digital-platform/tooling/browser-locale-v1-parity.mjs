@@ -46,21 +46,33 @@ function assertEqual(actual, expected, label) {
   }
 }
 
-async function prepareContext(browser, locale, override = null) {
+async function prepareContext(
+  browser,
+  locale,
+  override = null,
+  onboarded = true,
+) {
   const context = await browser.newContext({
     locale,
     viewport: { width: 390, height: 844 },
     geolocation: { latitude: -13.3776181, longitude: -38.9142193 },
     permissions: ["geolocation"],
   });
-  await context.addInitScript((manualOverride) => {
-    localStorage.setItem("morro-digital-onboarded", "1");
-    localStorage.setItem("voice-enabled", "false");
-    localStorage.removeItem("morro-digital-language");
-    if (manualOverride) {
-      localStorage.setItem("morro-digital-language", manualOverride);
-    }
-  }, override);
+  await context.addInitScript(
+    ({ manualOverride, markOnboarded }) => {
+      if (markOnboarded) {
+        localStorage.setItem("morro-digital-onboarded", "1");
+      } else {
+        localStorage.removeItem("morro-digital-onboarded");
+      }
+      localStorage.setItem("voice-enabled", "false");
+      localStorage.removeItem("morro-digital-language");
+      if (manualOverride) {
+        localStorage.setItem("morro-digital-language", manualOverride);
+      }
+    },
+    { manualOverride: override, markOnboarded: onboarded },
+  );
   return context;
 }
 
@@ -144,6 +156,128 @@ try {
       pageErrors.length,
       0,
       `${testCase.browserLocale} browser errors`,
+    );
+    await context.close();
+  }
+
+  const firstRunCases = [
+    {
+      browserLocale: "pt-BR",
+      locale: "pt-BR",
+      dir: "ltr",
+      title: "Bem-vindo ao Morro Digital",
+      start: "Conhecer o App",
+      step: "Passo 1 de 7",
+      stepTitle: "Explore Morro pelo mapa",
+    },
+    {
+      browserLocale: "en-US",
+      locale: "en-US",
+      dir: "ltr",
+      title: "Welcome to Morro Digital",
+      start: "Explore the App",
+      step: "Step 1 of 7",
+      stepTitle: "Explore Morro on the map",
+    },
+    {
+      browserLocale: "es-AR",
+      locale: "es-ES",
+      dir: "ltr",
+      title: "Bienvenido a Morro Digital",
+      start: "Conocer la App",
+      step: "Paso 1 de 7",
+      stepTitle: "Explora Morro en el mapa",
+    },
+    {
+      browserLocale: "he-IL",
+      locale: "he-IL",
+      dir: "rtl",
+      title: "ברוכים הבאים ל-Morro Digital",
+      start: "הכירו את האפליקציה",
+      step: "שלב 1 מתוך 7",
+      stepTitle: "גלו את מורו על המפה",
+    },
+  ];
+
+  for (const testCase of firstRunCases) {
+    const context = await prepareContext(
+      browser,
+      testCase.browserLocale,
+      null,
+      false,
+    );
+    const page = await context.newPage();
+    await page.route("**/api/weather", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          temperatureCelsius: 28,
+          temperatureMaxCelsius: 31,
+          temperatureMinCelsius: 24,
+          humidityPercent: 78,
+          windSpeedKph: 18,
+          rainChancePercent: 42,
+          weatherCode: 1,
+          isDay: true,
+          forecast: [],
+        }),
+      }),
+    );
+    await page.goto(BASE_URL, {
+      waitUntil: "domcontentloaded",
+      timeout: 30000,
+    });
+    await page
+      .locator("#map[data-home-state=\"ready\"]")
+      .waitFor({ state: "attached", timeout: 20000 });
+    await page
+      .locator("#onboarding-overlay")
+      .waitFor({ state: "visible", timeout: 10000 });
+
+    const onboarding = await page.evaluate(() => ({
+      lang: document.documentElement.lang,
+      dir: document.documentElement.dir,
+      title:
+        document.getElementById("public-onboarding-title")?.textContent?.trim() ??
+        "",
+      start:
+        document.querySelector(".profile-card-title")?.textContent?.trim() ?? "",
+    }));
+    assertEqual(
+      onboarding.lang,
+      testCase.locale,
+      `${testCase.browserLocale} first-run locale`,
+    );
+    assertEqual(
+      onboarding.dir,
+      testCase.dir,
+      `${testCase.browserLocale} first-run direction`,
+    );
+    assertEqual(
+      onboarding.title,
+      testCase.title,
+      `${testCase.browserLocale} onboarding title`,
+    );
+    assertEqual(
+      onboarding.start,
+      testCase.start,
+      `${testCase.browserLocale} onboarding action`,
+    );
+
+    await page.locator('[data-public-onboarding-action="start"]').click();
+    await page
+      .locator("#tour-tooltip")
+      .waitFor({ state: "visible", timeout: 10000 });
+    assertEqual(
+      (await page.locator(".tour-step-label").textContent())?.trim() ?? "",
+      testCase.step,
+      `${testCase.browserLocale} tour step label`,
+    );
+    assertEqual(
+      (await page.locator(".tour-step-title").textContent())?.trim() ?? "",
+      testCase.stepTitle,
+      `${testCase.browserLocale} tour step title`,
     );
     await context.close();
   }
