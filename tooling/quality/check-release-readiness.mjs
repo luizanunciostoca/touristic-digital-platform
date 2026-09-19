@@ -74,6 +74,12 @@ requireDirective(
 );
 requireDirective(
   production,
+  "MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED",
+  "sync: false",
+  "production blueprint",
+);
+requireDirective(
+  production,
   "MERCADO_PAGO_PRODUCTION_CREDENTIALS_CONFIRMED",
   'value: "false"',
   "production blueprint",
@@ -140,11 +146,6 @@ requireDirective(
   "production blueprint",
 );
 forbidText(production, "production blueprint", "fromService:");
-forbidText(
-  production,
-  "production blueprint",
-  "MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED",
-);
 forbidText(production, "production blueprint", "STAGING_");
 
 requireText(
