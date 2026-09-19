@@ -270,7 +270,9 @@ try {
       .filter({ hasText: expected.error })
       .waitFor({ state: "visible", timeout: 10000 });
     assert.equal(
-      (await page.locator("#weather-widget .weather-error").textContent())?.trim(),
+      (
+        await page.locator("#weather-widget .weather-error").textContent()
+      )?.trim(),
       expected.error,
     );
     assert.equal(
