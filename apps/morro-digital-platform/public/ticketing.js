@@ -271,7 +271,9 @@ async function showTicket(reservation) {
     throw new Error("TICKET_RESPONSE_INVALID");
   elements.ticketTitle.textContent =
     reservation.product?.reference ||
-    `Sua ${productUnitLabel(reservation.product)}`;
+    (reservation.product?.kind === "transport"
+      ? "Sua passagem"
+      : "Seu ingresso");
   elements.ticketQr.replaceChildren();
   const template = document.createElement("template");
   template.innerHTML = ticket.qrSvg;
