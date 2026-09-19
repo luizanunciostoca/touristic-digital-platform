@@ -68,6 +68,15 @@ function providerPayload(status: string, externalReference = subscriptionId) {
 }
 
 describe("Mercado Pago subscription provider", () => {
+  it("fails closed when checkout mode is missing", () => {
+    expect(() =>
+      createMercadoPagoSubscriptionProviderFromEnvironment({
+        ...environment,
+        MERCADO_PAGO_CHECKOUT_MODE: undefined,
+      }),
+    ).toThrow("MERCADO_PAGO_CHECKOUT_MODE is invalid");
+  });
+
   it("creates an authorized recurring agreement and requires authoritative readback", async () => {
     const requests: Array<{ url: string; init: RequestInit | undefined }> = [];
     const fetchMock: typeof fetch = async (input, init) => {
