@@ -16,6 +16,7 @@ import {
 
 import { getV1ExplorePlaceActionOptions } from "./explore-location-actions-v1.js";
 import { getV1ExploreLabel, getV1ExploreUiCopy } from "./explore-v1-i18n.js";
+import { resolvePlacePrimaryAction } from "./place-commerce-capability.js";
 import {
   filterV1ExploreLocations,
   getV1ExploreSubcategoryOptions,
@@ -531,28 +532,47 @@ export function installExploreLocationsControl({
   ): Promise<void> => {
     if (!activeCategory) return;
     const generation = ++interactionGeneration;
+    const category = activeCategory.value;
+    const locale = currentLocale();
     activePlace = location.name;
     activeStage = "detail";
     removeAssistantFlowResults(document);
-    await renderLocationsOnMap([location], activeCategory.value, true);
+
+    const browserFetch = document.defaultView?.fetch?.bind(
+      document.defaultView,
+    );
+    const primaryActionPromise = resolvePlacePrimaryAction({
+      location,
+      locale,
+      ...(browserFetch ? { fetch: browserFetch } : {}),
+    });
+
+    await renderLocationsOnMap([location], category, true);
+    const primaryAction = await primaryActionPromise;
     if (
       generation !== interactionGeneration ||
       activeCategory?.value !== location.category
     ) {
       return;
     }
+
     setExploreRuntimeStatus({ kind: "selected", place: location.name });
     emitStateChange();
     ensureAssistantVisible(document);
-    const optionsOverride = getV1ExplorePlaceActionOptions(
-      activeCategory.value,
-      currentLocale(),
-    ).map(({ label, value }) => Object.freeze({ label, value }));
+
+    const gridActions = getV1ExplorePlaceActionOptions(category, locale).map(
+      ({ label, value }) => Object.freeze({ label, value }),
+    );
+    const optionsOverride = Object.freeze([
+      ...gridActions,
+      ...(primaryAction ? [primaryAction] : []),
+    ]);
+
     document.dispatchEvent(
       new CustomEvent("morro:assistant-option-selected", {
         detail: {
           value: createExploreLocationDetailsCommand(location.name),
-          optionsOverride: Object.freeze(optionsOverride),
+          optionsOverride,
         },
       }),
     );
