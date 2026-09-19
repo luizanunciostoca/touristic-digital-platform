@@ -221,10 +221,10 @@ export function createCrmApi({ authApi, getEnvironmentValue }) {
   let stopped = false;
 
   async function ensureSchema() {
-    schemaReady ??= Promise.all([
-      applyCrmM99Schema(pool),
-      applyCrmCommerceSchema(pool),
-    ]);
+    schemaReady ??= (async () => {
+      await applyCrmM99Schema(pool);
+      await applyCrmCommerceSchema(pool);
+    })();
     await schemaReady;
   }
 
