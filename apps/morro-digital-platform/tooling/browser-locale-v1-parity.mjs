@@ -72,7 +72,9 @@ async function waitForShell(page) {
   await page
     .locator('body[data-public-onboarding-settled="true"]')
     .waitFor({ state: "attached", timeout: 15000 });
-  await page.locator("header h1").waitFor({ state: "attached", timeout: 10000 });
+  await page
+    .locator("header h1")
+    .waitFor({ state: "attached", timeout: 10000 });
 }
 
 const browser = await chromium.launch({ headless: true });
@@ -106,8 +108,9 @@ try {
       dir: document.documentElement.dir,
       headline: document.querySelector("header h1")?.textContent?.trim() ?? "",
       placeholder:
-        document.getElementById("assistantInput")?.getAttribute("placeholder") ??
-        "",
+        document
+          .getElementById("assistantInput")
+          ?.getAttribute("placeholder") ?? "",
       voiceLanguage:
         document.getElementById("assistantVoiceLanguage")?.value ?? "",
     }));
