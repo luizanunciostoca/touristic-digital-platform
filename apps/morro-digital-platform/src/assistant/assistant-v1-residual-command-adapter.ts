@@ -354,7 +354,6 @@ export function resolveAssistantV1ResidualCommand(
     hasAny(value, [
       "mostrar todos os locais",
       "mostrar todos",
-      "ver todos",
       "todos os locais",
       "remover filtro",
       "limpar filtro",
