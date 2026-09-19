@@ -424,15 +424,8 @@ export function createTicketingApi({
       const fulfillmentHandler = Object.freeze({
         async handle(result) {
           const fulfilled = await verifiedPaymentFulfillment.handle(result);
-          if (!fulfilled) return fulfilled;
-          try {
+          if (fulfilled) {
             await commerceCrmOutbox.enqueueConfirmedPurchase(fulfilled);
-          } catch (error) {
-            auditSafely(audit, {
-              action: "ticketing.crm_outbox",
-              result: "failure",
-              reason: syncErrorCode(error),
-            });
           }
           return fulfilled;
         },
