@@ -482,8 +482,10 @@ export function installExploreLocationsControl({
     message.dataset.messageType = "category-flow";
     message.dataset.category = activeCategory?.value ?? "";
     if (content) {
+      message.dataset.preserveContent = "true";
       message.replaceChildren(content);
     } else {
+      delete message.dataset.preserveContent;
       message.textContent = text;
     }
     message.classList.remove("hidden");
