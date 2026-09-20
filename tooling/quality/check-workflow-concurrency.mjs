@@ -19,7 +19,9 @@ const failures = [];
 for (const file of workflowFiles) {
   const text = readFileSync(resolve(workflowsDir, file), "utf8");
   const lines = text.split(/\r?\n/);
-  const concurrencyIndex = lines.findIndex((line) => /^concurrency:\s*$/.test(line));
+  const concurrencyIndex = lines.findIndex((line) =>
+    /^concurrency:\s*$/.test(line),
+  );
 
   if (concurrencyIndex < 0) {
     failures.push(`${file}: missing top-level concurrency block`);
@@ -37,7 +39,9 @@ for (const file of workflowFiles) {
   }
 
   const hasGroup = block.some((line) => /^\s{2}group:\s*\S/.test(line));
-  const cancelLine = block.find((line) => /^\s{2}cancel-in-progress:\s*/.test(line));
+  const cancelLine = block.find((line) =>
+    /^\s{2}cancel-in-progress:\s*/.test(line),
+  );
 
   if (!hasGroup) {
     failures.push(`${file}: concurrency.group is missing`);
@@ -48,8 +52,13 @@ for (const file of workflowFiles) {
     continue;
   }
 
-  if (nonInterruptible.has(file) && !/^\s{2}cancel-in-progress:\s*false\s*$/.test(cancelLine)) {
-    failures.push(`${file}: operational release/deploy workflow must use cancel-in-progress: false`);
+  if (
+    nonInterruptible.has(file) &&
+    !/^\s{2}cancel-in-progress:\s*false\s*$/.test(cancelLine)
+  ) {
+    failures.push(
+      `${file}: operational release/deploy workflow must use cancel-in-progress: false`,
+    );
   }
 }
 
