@@ -330,7 +330,12 @@ function errorStatus(error: unknown): { status: number; code: string } {
   ) {
     return { status: 400, code: message || "INVALID_REQUEST" };
   }
-  if (message.includes("EXHAUSTED") || message.includes("CONFLICT")) {
+  if (
+    message.includes("EXHAUSTED") ||
+    message.includes("CONFLICT") ||
+    message.includes("ALREADY_USED") ||
+    message.includes("REVOKED")
+  ) {
     return { status: 409, code: message };
   }
   if (message.includes("NOT_FOUND")) return { status: 404, code: "NOT_FOUND" };
