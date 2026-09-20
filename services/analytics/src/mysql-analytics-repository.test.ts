@@ -7,7 +7,7 @@ import { MySqlAnalyticsEventRepository } from "./mysql-analytics-repository.js";
 
 describe("MySqlAnalyticsEventRepository privacy", () => {
   it("persists only the SHA-256 session hash, never the raw session id", async () => {
-    const execute = vi.fn(async () => [
+    const execute = vi.fn(async (_sql: string, _parameters?: unknown[]) => [
       { affectedRows: 1 },
       undefined,
     ]);
@@ -31,7 +31,9 @@ describe("MySqlAnalyticsEventRepository privacy", () => {
       }),
     ).resolves.toBe("stored");
 
-    const parameters = execute.mock.calls[0]?.[1] as unknown[];
+    const parameters = execute.mock.calls[0]?.[1];
+    if (!parameters) throw new Error("Expected SQL parameters.");
+
     const expectedHash = createHash("sha256")
       .update(rawSessionId, "utf8")
       .digest("hex");
