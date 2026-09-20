@@ -103,6 +103,19 @@
   --md-breakpoint-desktop: 64rem;
   --md-breakpoint-wide: 80rem;
 
+  /* Navigation presentation contract */
+  --md-navigation-banner-max-inline-size: 30rem;
+  --md-navigation-primary: var(--md-color-brand);
+  --md-navigation-primary-strong: var(--md-color-brand-strong);
+  --md-navigation-arrival: var(--md-color-success);
+  --md-navigation-surface: var(--md-color-surface-elevated);
+  --md-navigation-text: var(--md-color-text-primary);
+  --md-navigation-text-muted: var(--md-color-text-secondary);
+  --md-navigation-inverse: var(--md-color-text-inverse);
+  --md-navigation-progress: var(--md-color-info);
+  --md-navigation-danger: var(--md-color-danger);
+  --md-navigation-shadow: var(--md-elevation-3);
+
   /* Layer contract */
   --md-layer-map: 0;
   --md-layer-marker: 100;
