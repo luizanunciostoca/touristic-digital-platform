@@ -42,7 +42,12 @@ describe("PWA offline authority boundary", () => {
     expect(worker).toContain('"/healthz"');
     expect(worker).toContain('"/readyz"');
     expect(worker).toContain('if (request.method !== "GET") return;');
-    expect(worker).not.toMatch(/PRECACHE_URLS[\s\S]*?"\/api\//u);
+
+    const precache = worker.slice(
+      worker.indexOf("const PRECACHE_URLS"),
+      worker.indexOf("const NETWORK_ONLY_PATHS"),
+    );
+    expect(precache).not.toContain("/api/");
   });
 
   it("provides a root navigation fallback without hijacking other routes", async () => {
