@@ -9,6 +9,7 @@
 - A branch foi confirmada como idêntica ao `main` antes da primeira alteração.
 - O formatter canônico do workspace foi aplicado no commit `41b2ef588ad4f72012269783d4ebc627295efdf1`; o helper one-shot foi removido no mesmo commit.
 - Os achados de review sobre scroll do bottom sheet, seletor `#controls`, autoridade de TOUR e teste DOM foram corrigidos; o formatter canônico confirmou essas correções em `cec2013f398d735e6a02675dd037a9f5446568b8` e removeu o segundo helper one-shot no mesmo commit.
+- Após a correção final da autoridade do modo TOUR, o formatter canônico foi reexecutado em `1013a8221465651796c396eac5221ae5e539800c`; ele confirmou o teste sem delta adicional e removeu o helper final no mesmo commit.
 - Após a correção final da fronteira entre seleção de passeio e TOUR imersivo, o teste de modo foi normalizado pelo Prettier canônico no commit `1013a8221465651796c396eac5221ae5e539800c`; nenhum helper temporário permanece no diff.
 
 ## Limite de preservação
