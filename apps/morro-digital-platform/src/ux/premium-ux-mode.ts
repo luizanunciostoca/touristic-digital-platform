@@ -23,17 +23,22 @@ export function resolveMorroUxMode(signals: MorroUxModeSignals): MorroUxMode {
   return "discover";
 }
 
+const IMMERSIVE_TOUR_FLOW_STAGES = new Set(["intro", "list", "stop", "finale"]);
+
 function hasActiveImmersiveTour(map: HTMLElement | null): boolean {
   if (!map) return false;
 
   const activeTour = map.dataset.activeTour?.trim() ?? "";
   const tourState = map.dataset.tourState?.trim() ?? "";
+  const flowTourId = map.dataset.tourFlowId?.trim() ?? "";
   const flowStage = map.dataset.tourFlowStage?.trim() ?? "";
 
-  return (
-    Boolean(activeTour && tourState !== "idle") ||
-    Boolean(flowStage && flowStage !== "idle")
+  const hasReadyTourSelection = Boolean(activeTour && tourState === "ready");
+  const hasActiveImmersiveFlow = Boolean(
+    flowTourId && IMMERSIVE_TOUR_FLOW_STAGES.has(flowStage),
   );
+
+  return hasReadyTourSelection || hasActiveImmersiveFlow;
 }
 
 function readSignals(document: Document): MorroUxModeSignals {
@@ -96,6 +101,7 @@ export function installPremiumUxModePresenter(input: {
         "data-active-tour",
         "data-tour-state",
         "data-tour-flow-stage",
+        "data-tour-flow-id",
         "data-explore-stage",
       ],
     });
