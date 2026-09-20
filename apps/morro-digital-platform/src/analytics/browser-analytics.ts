@@ -259,15 +259,19 @@ export function installBrowserAnalyticsInstrumentation(
     const message = safeText(detail.message, 4_000);
     if (!message) return;
 
+    const navigationBanner = options.document.getElementById(
+      "instruction-banner",
+    );
+
     track("assistant_query", {
       queryLength: message.length,
       inputMode: safeText(detail.source, 40) ?? "unknown",
       hasPlaceContext: Boolean(
         options.document.getElementById("map")?.dataset.explorePlace,
       ),
-      hasNavigationContext: !options.document
-        .getElementById("instruction-banner")
-        ?.classList.contains("hidden"),
+      hasNavigationContext: Boolean(
+        navigationBanner && !navigationBanner.classList.contains("hidden"),
+      ),
     });
   });
 
