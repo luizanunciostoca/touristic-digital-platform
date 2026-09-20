@@ -97,7 +97,7 @@ export function installCommercePreviewSheet(input: {
   let state = input.initialState ?? "half";
   let active = false;
   let pointerStartY: number | null = null;
-  let suppressNextClick = false;
+  let suppressClicksUntil = 0;
 
   const syncLabel = (): void => {
     handle.setAttribute("aria-label", buttonLabel(input.document, state));
@@ -140,10 +140,7 @@ export function installCommercePreviewSheet(input: {
   };
 
   const onHandleClick = (): void => {
-    if (suppressNextClick) {
-      suppressNextClick = false;
-      return;
-    }
+    if (Date.now() < suppressClicksUntil) return;
     setState(cycleCommercePreviewSheetState(state));
   };
 
@@ -167,7 +164,7 @@ export function installCommercePreviewSheet(input: {
   const onPointerDown = (event: PointerEvent): void => {
     if (event.pointerType === "mouse") return;
     pointerStartY = event.clientY;
-    suppressNextClick = false;
+    suppressClicksUntil = 0;
     try {
       handle.setPointerCapture(event.pointerId);
     } catch {
@@ -179,7 +176,7 @@ export function installCommercePreviewSheet(input: {
     if (pointerStartY === null) return false;
     const delta = clientY - pointerStartY;
     if (Math.abs(delta) < 36) return false;
-    suppressNextClick = true;
+    suppressClicksUntil = Date.now() + 500;
     setState(
       stepCommercePreviewSheetState(state, delta < 0 ? "expand" : "collapse"),
     );
@@ -202,13 +199,13 @@ export function installCommercePreviewSheet(input: {
   const onPointerCancel = (event: PointerEvent): void => {
     if (event.pointerType === "mouse") return;
     pointerStartY = null;
-    suppressNextClick = false;
+    suppressClicksUntil = 0;
     releasePointerCapture(event);
   };
 
   const onMouseDown = (event: MouseEvent): void => {
     pointerStartY = event.clientY;
-    suppressNextClick = false;
+    suppressClicksUntil = 0;
   };
 
   const onMouseMove = (event: MouseEvent): void => {
