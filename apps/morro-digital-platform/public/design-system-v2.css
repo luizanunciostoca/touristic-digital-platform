@@ -22,6 +22,28 @@
   --md-color-danger: #b91c1c;
   --md-color-info: #0369a1;
 
+  /* Canonical semantic aliases consumed by V2 Tourist UI surfaces. */
+  --md-color-brand: var(--md-color-brand-primary);
+  --md-color-brand-strong: var(--md-color-brand-primary-strong);
+  --md-color-surface-canvas: var(--md-color-surface-subtle);
+  --md-color-surface-card: var(--md-color-surface);
+  --md-color-surface-glass: color-mix(
+    in srgb,
+    var(--md-color-surface-card) 88%,
+    transparent
+  );
+  --md-color-surface-elevated: var(--md-color-surface-card);
+  --md-color-text-primary: var(--md-color-text);
+  --md-color-text-secondary: var(--md-color-text-muted);
+  --md-color-text-inverse: #ffffff;
+  --md-color-interactive-primary: var(--md-color-brand);
+  --md-color-interactive-primary-hover: var(--md-color-brand-strong);
+  --md-color-interactive-secondary: var(--md-color-surface-card);
+  --md-color-interactive-secondary-hover: var(--md-color-surface-subtle);
+  --md-color-overlay: rgb(15 23 42 / 0.62);
+  --md-color-skeleton-base: #e2e8f0;
+  --md-color-skeleton-highlight: #f8fafc;
+
   /* Typography */
   --md-font-family-sans: var(
     --font-sans,
@@ -82,12 +104,24 @@
   --md-breakpoint-wide: 80rem;
 
   /* Layer contract */
-  --md-z-base: 1;
-  --md-z-map-content: 1000;
-  --md-z-controls: 2000;
-  --md-z-popover: 3000;
-  --md-z-modal: 4000;
-  --md-z-toast: 5000;
+  --md-layer-map: 0;
+  --md-layer-marker: 100;
+  --md-layer-map-control: 200;
+  --md-layer-dock: 300;
+  --md-layer-sheet: 400;
+  --md-layer-navigation: 500;
+  --md-layer-dialog: 600;
+  --md-layer-tour: 700;
+  --md-layer-toast: 800;
+  --md-layer-system: 900;
+
+  /* Compatibility aliases for existing V2 consumers. */
+  --md-z-base: var(--md-layer-map);
+  --md-z-map-content: var(--md-layer-marker);
+  --md-z-controls: var(--md-layer-map-control);
+  --md-z-popover: var(--md-layer-sheet);
+  --md-z-modal: var(--md-layer-dialog);
+  --md-z-toast: var(--md-layer-toast);
 
   /* Accessibility + safe areas */
   --md-touch-target-min: 2.75rem;
@@ -98,6 +132,29 @@
   --md-safe-right: env(safe-area-inset-right, 0px);
   --md-safe-bottom: env(safe-area-inset-bottom, 0px);
   --md-safe-left: env(safe-area-inset-left, 0px);
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --md-color-surface: #111827;
+  --md-color-surface-subtle: #0b1220;
+  --md-color-text: #f8fafc;
+  --md-color-text-muted: #cbd5e1;
+  --md-color-border: #475569;
+  --md-color-success: #4ade80;
+  --md-color-warning: #facc15;
+  --md-color-danger: #f87171;
+  --md-color-info: #38bdf8;
+  --md-focus-ring-color: #7dd3fc;
+  --md-color-overlay: rgb(2 6 23 / 0.76);
+  --md-color-skeleton-base: #334155;
+  --md-color-skeleton-highlight: #475569;
+}
+
+[data-destination-theme="morro"] {
+  --md-color-brand: var(--md-color-brand-primary);
+  --md-color-brand-strong: var(--md-color-brand-primary-strong);
+  --md-color-accent: var(--accent, #10b981);
 }
 
 /* Global keyboard focus: use non-zero specificity so legacy :focus resets cannot win. */
@@ -242,8 +299,49 @@ body {
   justify-content: center;
   gap: var(--md-space-2);
   padding: var(--md-space-3) var(--md-space-4);
-  background: var(--md-color-brand-primary);
-  color: #ffffff;
+  background: var(--md-color-interactive-primary);
+  color: var(--md-color-text-inverse);
+  text-decoration: none;
+  transition:
+    background-color var(--md-motion-duration-fast) var(--md-motion-ease-standard),
+    border-color var(--md-motion-duration-fast) var(--md-motion-ease-standard),
+    color var(--md-motion-duration-fast) var(--md-motion-ease-standard),
+    box-shadow var(--md-motion-duration-fast) var(--md-motion-ease-standard),
+    transform var(--md-motion-duration-fast) var(--md-motion-ease-standard);
+}
+
+.md-button--primary {
+  background: var(--md-color-interactive-primary);
+  color: var(--md-color-text-inverse);
+}
+
+.md-button--primary:hover:not(:disabled) {
+  background: var(--md-color-interactive-primary-hover);
+}
+
+.md-button--secondary {
+  border: 1px solid var(--md-color-border);
+  background: var(--md-color-interactive-secondary);
+  color: var(--md-color-text-primary);
+}
+
+.md-button--secondary:hover:not(:disabled) {
+  background: var(--md-color-interactive-secondary-hover);
+}
+
+.md-button--destructive {
+  background: var(--md-color-danger);
+  color: var(--md-color-text-inverse);
+}
+
+.md-button:disabled,
+.md-icon-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
+}
+
+.md-button[aria-busy="true"] {
+  cursor: progress;
 }
 
 .md-icon-button {
@@ -286,8 +384,28 @@ body {
 .md-badge {
   padding: var(--md-space-1) var(--md-space-2);
   background: var(--md-color-surface-subtle);
-  color: var(--md-color-text-muted);
+  color: var(--md-color-text-secondary);
   font-weight: var(--md-font-weight-bold);
+}
+
+.md-badge--success {
+  background: color-mix(in srgb, var(--md-color-success) 14%, transparent);
+  color: var(--md-color-success);
+}
+
+.md-badge--warning {
+  background: color-mix(in srgb, var(--md-color-warning) 16%, transparent);
+  color: var(--md-color-warning);
+}
+
+.md-badge--danger {
+  background: color-mix(in srgb, var(--md-color-danger) 14%, transparent);
+  color: var(--md-color-danger);
+}
+
+.md-badge--info {
+  background: color-mix(in srgb, var(--md-color-info) 14%, transparent);
+  color: var(--md-color-info);
 }
 
 .md-chip {
@@ -349,7 +467,12 @@ body {
 .md-skeleton {
   min-height: 1rem;
   border-radius: var(--md-radius-sm);
-  background: linear-gradient(90deg, #e2e8f0, #f8fafc, #e2e8f0);
+  background: linear-gradient(
+    90deg,
+    var(--md-color-skeleton-base),
+    var(--md-color-skeleton-highlight),
+    var(--md-color-skeleton-base)
+  );
   background-size: 200% 100%;
   animation: md-skeleton 1.2s linear infinite;
 }
