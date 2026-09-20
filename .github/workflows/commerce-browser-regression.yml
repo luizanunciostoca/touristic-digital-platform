@@ -190,7 +190,10 @@ jobs:
             const browser = await chromium.launch({ headless: true });
             try {
               for (const viewport of viewports) {
-                const context = await browser.newContext({ viewport });
+                const context = await browser.newContext({
+                  viewport,
+                  hasTouch: viewport.name === 'mobile',
+                });
                 await context.addInitScript(() => {
                   localStorage.setItem('morro-digital-onboarded', '1');
                   localStorage.setItem('morro-digital-language', 'pt-BR');
@@ -454,34 +457,35 @@ jobs:
                   await page.locator('#experience-preview-sheet[data-sheet-state="full"]').waitFor({ state: 'attached' });
                   await handle.press('ArrowDown');
                   await page.locator('#experience-preview-sheet[data-sheet-state="half"]').waitFor({ state: 'attached' });
-                  const dragResult = await page.evaluate(() => {
-                    const handle = document.querySelector('[data-commerce-sheet-handle="true"]');
-                    const sheet = document.getElementById('experience-preview-sheet');
-                    if (!(handle instanceof HTMLElement) || !(sheet instanceof HTMLElement)) {
-                      return { error: 'MISSING_SHEET_OR_HANDLE' };
-                    }
-                    const rect = handle.getBoundingClientRect();
-                    const startX = rect.x + rect.width / 2;
-                    const startY = rect.y + rect.height / 2;
-                    const endY = Math.max(1, startY - 64);
-                    const pointer = (type, y) =>
-                      new PointerEvent(type, {
-                        pointerId: 17,
-                        pointerType: 'touch',
-                        isPrimary: true,
-                        clientX: startX,
-                        clientY: y,
-                        bubbles: true,
-                        cancelable: true,
-                      });
-                    handle.dispatchEvent(pointer('pointerdown', startY));
-                    document.dispatchEvent(pointer('pointermove', endY));
-                    document.dispatchEvent(pointer('pointerup', endY));
-                    return {
-                      state: sheet.getAttribute('data-sheet-state'),
-                      bodyState: document.body.dataset.commerceSheetState ?? null,
-                    };
+                  const handleBox = await handle.boundingBox();
+                  if (!handleBox) {
+                    throw new Error('Commerce preview sheet handle has no geometry');
+                  }
+                  const touchClient = await context.newCDPSession(page);
+                  const startX = handleBox.x + handleBox.width / 2;
+                  const startY = handleBox.y + handleBox.height / 2;
+                  const endY = Math.max(1, startY - 64);
+                  await touchClient.send('Input.dispatchTouchEvent', {
+                    type: 'touchStart',
+                    touchPoints: [{ x: startX, y: startY }],
                   });
+                  await touchClient.send('Input.dispatchTouchEvent', {
+                    type: 'touchMove',
+                    touchPoints: [{ x: startX, y: endY }],
+                  });
+                  await touchClient.send('Input.dispatchTouchEvent', {
+                    type: 'touchEnd',
+                    touchPoints: [],
+                  });
+                  await page
+                    .locator('#experience-preview-sheet[data-sheet-state="full"]')
+                    .waitFor({ state: 'attached', timeout: 3000 });
+                  const dragResult = await page
+                    .locator('#experience-preview-sheet')
+                    .evaluate(node => ({
+                      state: node.getAttribute('data-sheet-state'),
+                      bodyState: document.body.dataset.commerceSheetState ?? null,
+                    }));
                   if (dragResult.state !== 'full' || dragResult.bodyState !== 'full') {
                     throw new Error(
                       `Commerce preview sheet touch drag did not expand on ${viewport.name}: ${JSON.stringify(dragResult)}`,
