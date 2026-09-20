@@ -556,6 +556,353 @@ async function renderTicketing() {
     </div>`;
 }
 
+function formatMinorUnits(money) {
+  const minor = Number(money?.minorUnits);
+  const currency = String(money?.currency ?? "");
+  if (!Number.isFinite(minor) || !currency) return "—";
+  try {
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency,
+    }).format(minor / 100);
+  } catch {
+    return `${minor} ${currency}`;
+  }
+}
+
+function createReconciliationRunId() {
+  const time = Date.now().toString(36);
+  const suffix = Math.random().toString(36).slice(2, 10);
+  return `rrn_admin_${time}_${suffix}`;
+}
+
+async function renderOrders(orderId) {
+  if (!orderId) {
+    content.innerHTML = `
+      <section class="card section-card">
+        <div class="section-title">
+          <h2>Consultar pedido</h2>
+          <span class="badge">read-only</span>
+        </div>
+        <p style="color:var(--muted)">
+          A consulta usa o repositório owner do domínio Ordering. O Control Center
+          não lê a tabela de pedidos diretamente.
+        </p>
+        <form id="order-lookup-form" class="form-grid">
+          <label>
+            Order ID
+            <input id="order-lookup-id" required autocomplete="off" placeholder="ord_..." />
+          </label>
+          <div><button class="primary-button" type="submit">Consultar pedido</button></div>
+        </form>
+      </section>`;
+    document
+      .querySelector("#order-lookup-form")
+      ?.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const id = document.querySelector("#order-lookup-id")?.value?.trim();
+        if (id) globalThis.location.hash = `#orders:${encodeURIComponent(id)}`;
+      });
+    return;
+  }
+
+  const data = await api(`/orders/${encodeURIComponent(orderId)}`);
+  const order = data.data;
+  content.innerHTML = `
+    <div class="callout">
+      <strong>Ordering owner:</strong> projeção administrativa somente leitura.
+    </div>
+    <div class="grid stats">
+      <article class="card stat">
+        <span class="stat-label">Order ID</span>
+        <strong class="stat-value" style="font-size:16px">${escapeHtml(order.id)}</strong>
+        <small>${escapeHtml(order.source?.kind ?? "—")}</small>
+      </article>
+      <article class="card stat">
+        <span class="stat-label">Status</span>
+        <strong class="stat-value" style="font-size:20px">${escapeHtml(order.status)}</strong>
+        <small>Atualizado ${escapeHtml(order.updatedAt ?? "—")}</small>
+      </article>
+      <article class="card stat">
+        <span class="stat-label">Valor</span>
+        <strong class="stat-value" style="font-size:20px">${escapeHtml(formatMinorUnits(order.pricing?.amount))}</strong>
+        <small>${escapeHtml(order.pricing?.planName ?? "—")}</small>
+      </article>
+      <article class="card stat">
+        <span class="stat-label">Referência</span>
+        <strong class="stat-value" style="font-size:16px">${escapeHtml(order.source?.reference ?? "—")}</strong>
+        <small>Fonte do pedido</small>
+      </article>
+    </div>
+    <div style="margin-top:16px">
+      <a href="#orders">← Consultar outro pedido</a>
+    </div>`;
+}
+
+async function renderFinancial(paymentId) {
+  if (!paymentId) {
+    content.innerHTML = `
+      <div class="grid two-col">
+        <section class="card section-card">
+          <div class="section-title">
+            <h2>Consultar pagamento</h2>
+            <span class="badge">Financial owner</span>
+          </div>
+          <form id="payment-lookup-form" class="form-grid">
+            <label>
+              Payment ID
+              <input id="payment-lookup-id" required autocomplete="off" placeholder="pay_..." />
+            </label>
+            <div><button class="primary-button" type="submit">Abrir pagamento</button></div>
+          </form>
+        </section>
+        <section class="card section-card">
+          <div class="section-title">
+            <h2>Consultar ledger</h2>
+            <span class="badge">read-only</span>
+          </div>
+          <form id="ledger-lookup-form" class="form-grid">
+            <label>
+              External key
+              <input id="ledger-lookup-key" required autocomplete="off" placeholder="payment_approved_..." />
+            </label>
+            <div><button class="secondary-button" type="submit">Consultar lançamento</button></div>
+          </form>
+          <div id="ledger-result" style="margin-top:14px"></div>
+        </section>
+      </div>
+      <div class="callout" style="margin-top:16px">
+        Nenhuma tela do Control Center permite editar saldo, posting ou estado financeiro arbitrariamente.
+      </div>`;
+
+    document
+      .querySelector("#payment-lookup-form")
+      ?.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const id = document.querySelector("#payment-lookup-id")?.value?.trim();
+        if (id) {
+          globalThis.location.hash = `#financial:${encodeURIComponent(id)}`;
+        }
+      });
+
+    document
+      .querySelector("#ledger-lookup-form")
+      ?.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const key = document.querySelector("#ledger-lookup-key")?.value?.trim();
+        const result = document.querySelector("#ledger-result");
+        if (!key || !result) return;
+        result.textContent = "Consultando…";
+        try {
+          const response = await api(
+            `/financial/ledger/${encodeURIComponent(key)}`,
+          );
+          const ledger = response.data;
+          result.innerHTML = `
+            <div class="module-list">
+              <div class="module-row"><span>Transaction ID</span><strong>${escapeHtml(ledger.id)}</strong></div>
+              <div class="module-row"><span>External key</span><span>${escapeHtml(ledger.externalKey)}</span></div>
+              <div class="module-row"><span>Ocorrido em</span><span>${escapeHtml(ledger.occurredAt)}</span></div>
+              <div class="module-row"><span>Postings</span><span>${escapeHtml(ledger.postings?.length ?? 0)}</span></div>
+            </div>`;
+        } catch (error) {
+          result.textContent = error.body?.error || error.message;
+        }
+      });
+    return;
+  }
+
+  const [paymentResponse, findingsResponse] = await Promise.all([
+    api(`/payments/${encodeURIComponent(paymentId)}`),
+    api(
+      `/financial/reconciliation/payments/${encodeURIComponent(paymentId)}/findings`,
+    ).catch((error) => ({ data: { findings: [] }, error })),
+  ]);
+  const payment = paymentResponse.data;
+  const findings = findingsResponse.data?.findings ?? [];
+
+  content.innerHTML = `
+    <div class="grid stats">
+      <article class="card stat">
+        <span class="stat-label">Payment ID</span>
+        <strong class="stat-value" style="font-size:16px">${escapeHtml(payment.id)}</strong>
+        <small>Financial source of truth</small>
+      </article>
+      <article class="card stat">
+        <span class="stat-label">Status</span>
+        <strong class="stat-value" style="font-size:20px">${escapeHtml(payment.status)}</strong>
+        <small>${escapeHtml(payment.updatedAt ?? "—")}</small>
+      </article>
+      <article class="card stat">
+        <span class="stat-label">Valor</span>
+        <strong class="stat-value" style="font-size:20px">${escapeHtml(formatMinorUnits(payment.amount))}</strong>
+        <small>${escapeHtml(payment.subject?.reference ?? "—")}</small>
+      </article>
+      <article class="card stat">
+        <span class="stat-label">Provider reference</span>
+        <strong class="stat-value" style="font-size:15px">${escapeHtml(payment.providerReference ?? "—")}</strong>
+        <small>Somente leitura</small>
+      </article>
+    </div>
+
+    <div class="grid two-col">
+      <section class="card section-card">
+        <div class="section-title">
+          <h2>Reconciliation findings</h2>
+          <span class="badge">${findings.length} aberta(s)</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Finding</th><th>Tipo</th><th>Severidade</th><th>Estado</th><th>Ação</th></tr></thead>
+            <tbody>
+              ${
+                findings
+                  .map(
+                    (finding) =>
+                      `<tr>
+                        <td><code>${escapeHtml(finding.id)}</code></td>
+                        <td>${escapeHtml(finding.kind)}</td>
+                        <td>${escapeHtml(finding.severity)}</td>
+                        <td>${escapeHtml(finding.state)}</td>
+                        <td><button class="secondary-button" type="button" data-ack-finding="${escapeHtml(finding.id)}">Reconhecer</button></td>
+                      </tr>`,
+                  )
+                  .join("") ||
+                '<tr><td colspan="5" class="empty">Nenhum finding aberto.</td></tr>'
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card section-card">
+        <div class="section-title">
+          <h2>Ações críticas</h2>
+          <span class="badge gap">step-up obrigatório</span>
+        </div>
+        <div class="callout">
+          Produção está bloqueada por código. Em staging/dev, cada ação exige reautenticação,
+          motivo, confirmação textual, idempotência e auditoria.
+        </div>
+        <form id="financial-action-form" class="form-grid">
+          <label>
+            Sua senha
+            <input id="financial-password" type="password" autocomplete="current-password" required />
+          </label>
+          <label>
+            Motivo obrigatório
+            <textarea id="financial-reason" minlength="8" maxlength="240" required placeholder="Explique por que esta ação é necessária"></textarea>
+          </label>
+          <label>
+            Confirmação textual
+            <input id="financial-confirmation" autocomplete="off" required placeholder="REFUNDAR, RECONCILIAR ou CONFIRMAR" />
+          </label>
+          <p id="financial-action-status" role="status" style="margin:0;color:var(--muted)"></p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button id="financial-reconcile" class="secondary-button" type="button">Executar reconciliation</button>
+            <button id="financial-refund" class="primary-button" type="button">Solicitar refund total</button>
+          </div>
+        </form>
+      </section>
+    </div>
+    <div style="margin-top:16px"><a href="#financial">← Consultar outro pagamento</a></div>`;
+
+  async function financialStepUp() {
+    const password = document.querySelector("#financial-password")?.value;
+    if (!password) throw new Error("PASSWORD_REQUIRED");
+    await api("/step-up", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password }),
+    });
+  }
+
+  function actionInputs(expectedConfirmation) {
+    const reason = document.querySelector("#financial-reason")?.value?.trim();
+    const confirmation = document
+      .querySelector("#financial-confirmation")
+      ?.value?.trim();
+    if (!reason || reason.length < 8) throw new Error("REASON_REQUIRED");
+    if (confirmation !== expectedConfirmation) {
+      throw new Error(`Digite ${expectedConfirmation} para confirmar.`);
+    }
+    return { reason, confirmation };
+  }
+
+  async function runAction(action) {
+    const status = document.querySelector("#financial-action-status");
+    if (!status) return;
+    status.textContent = "Reautenticando…";
+    try {
+      await financialStepUp();
+      const input = actionInputs(
+        action === "refund" ? "REFUNDAR" : "RECONCILIAR",
+      );
+      status.textContent = "Executando ação governada…";
+      if (action === "refund") {
+        const result = await api(
+          `/financial/refunds/${encodeURIComponent(paymentId)}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(input),
+          },
+        );
+        status.textContent = `Refund aceito pelo domínio: ${result.data?.status ?? "OK"}.`;
+      } else {
+        const result = await api(
+          `/financial/reconciliation/payments/${encodeURIComponent(paymentId)}/runs`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              ...input,
+              runId: createReconciliationRunId(),
+            }),
+          },
+        );
+        status.textContent = `Reconciliation concluída: ${result.data?.findingCount ?? 0} finding(s).`;
+      }
+      await renderFinancial(paymentId);
+    } catch (error) {
+      status.textContent = error.body?.error || error.message;
+    }
+  }
+
+  document
+    .querySelector("#financial-refund")
+    ?.addEventListener("click", () => runAction("refund"));
+  document
+    .querySelector("#financial-reconcile")
+    ?.addEventListener("click", () => runAction("reconcile"));
+
+  content.querySelectorAll("[data-ack-finding]").forEach((button) =>
+    button.addEventListener("click", async () => {
+      const status = document.querySelector("#financial-action-status");
+      if (!status) return;
+      try {
+        const input = actionInputs("CONFIRMAR");
+        await financialStepUp();
+        status.textContent = "Reconhecendo finding…";
+        await api(
+          `/financial/reconciliation/findings/${encodeURIComponent(
+            button.dataset.ackFinding,
+          )}/acknowledge`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(input),
+          },
+        );
+        status.textContent = "Finding reconhecido.";
+        await renderFinancial(paymentId);
+      } catch (error) {
+        status.textContent = error.body?.error || error.message;
+      }
+    }),
+  );
+}
+
 function renderContractGap(view) {
   content.innerHTML = `
     <section class="card empty">
@@ -571,8 +918,9 @@ async function renderAudit() {
   const data = await api("/audit?limit=100");
   content.innerHTML = `
     <div class="callout">
-      A projeção abaixo é append-only durante o runtime atual.
-      Persistência imutável durável permanece um gate aberto e não é apresentada como concluída.
+      <strong>Auditoria append-only:</strong>
+      persistência atual: ${escapeHtml(data.durability)}. O actor real permanece registrado,
+      inclusive quando existe effectiveUser em modo suporte.
     </div>
     <div class="table-wrap">
       <table>
@@ -715,6 +1063,8 @@ async function render(view, detail) {
     else if (view === "businesses") await renderBusinesses(detail);
     else if (view === "crm") await renderCrm();
     else if (view === "ticketing") await renderTicketing();
+    else if (view === "orders") await renderOrders(detail);
+    else if (view === "financial") await renderFinancial(detail);
     else if (view === "audit") await renderAudit();
     else if (view === "system") await renderSystem();
     else if (view === "support") await renderSupport();

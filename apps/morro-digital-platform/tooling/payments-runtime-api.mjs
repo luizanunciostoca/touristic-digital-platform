@@ -119,6 +119,26 @@ export function createPaymentsApi(options = {}) {
       await stopAll();
     },
 
+    adminFindOrder(orderId) {
+      return core.adminFindOrder(orderId);
+    },
+
+    adminFindPayment(paymentId) {
+      return core.adminFindPayment(paymentId);
+    },
+
+    adminResolvePaymentTenant(paymentId) {
+      return core.adminResolvePaymentTenant(paymentId);
+    },
+
+    adminResolveFindingTenant(findingId) {
+      return core.adminResolveFindingTenant(findingId);
+    },
+
+    adminFindLedger(externalKey) {
+      return core.adminFindLedger(externalKey);
+    },
+
     async handle(request, response, requestUrl) {
       if (subscription.matches(requestUrl.pathname)) {
         await subscription.handle(request, response, requestUrl);

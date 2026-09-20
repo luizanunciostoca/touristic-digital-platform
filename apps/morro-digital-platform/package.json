@@ -15,6 +15,7 @@
     "@touristic/core": "workspace:*",
     "@touristic/crm": "workspace:*",
     "@touristic/crm-server": "workspace:*",
+    "@touristic/financial": "workspace:*",
     "@touristic/financial-server": "workspace:*",
     "@touristic/geospatial": "workspace:*",
     "@touristic/navigation": "workspace:*",

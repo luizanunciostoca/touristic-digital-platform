@@ -730,6 +730,238 @@ export function createAdminApi({
     return true;
   }
 
+  async function handleFinancialCriticalAction(request, response, requestUrl) {
+    const refundMatch =
+      /^\/api\/admin\/v1\/financial\/refunds\/([A-Za-z0-9_-]+)$/u.exec(
+        requestUrl.pathname,
+      );
+    const reconciliationRunMatch =
+      /^\/api\/admin\/v1\/financial\/reconciliation\/payments\/([A-Za-z0-9_-]+)\/runs$/u.exec(
+        requestUrl.pathname,
+      );
+    const reconciliationAckMatch =
+      /^\/api\/admin\/v1\/financial\/reconciliation\/findings\/([A-Za-z0-9_-]+)\/acknowledge$/u.exec(
+        requestUrl.pathname,
+      );
+
+    if (!refundMatch && !reconciliationRunMatch && !reconciliationAckMatch) {
+      return false;
+    }
+
+    if (request.method !== "POST") {
+      json(response, 405, { error: "METHOD_NOT_ALLOWED" });
+      return true;
+    }
+
+    const definition = refundMatch
+      ? Object.freeze({
+          capability: "financial.refund",
+          confirmation: "REFUNDAR",
+          action: "financial.refund",
+          entityType: "payment",
+          entityId: refundMatch[1],
+          adapterMethod: "refund",
+        })
+      : reconciliationRunMatch
+        ? Object.freeze({
+            capability: "financial.reconcile",
+            confirmation: "RECONCILIAR",
+            action: "financial.reconciliation.run",
+            entityType: "payment",
+            entityId: reconciliationRunMatch[1],
+            adapterMethod: "reconciliationRun",
+          })
+        : Object.freeze({
+            capability: "financial.reconcile",
+            confirmation: "CONFIRMAR",
+            action: "financial.reconciliation.acknowledge",
+            entityType: "reconciliation_finding",
+            entityId: reconciliationAckMatch[1],
+            adapterMethod: "reconciliationAcknowledge",
+          });
+
+    const actor = await requireCapability(
+      request,
+      response,
+      definition.capability,
+      { mutation: true },
+    );
+    if (!actor) return true;
+
+    if (production) {
+      await audit(request, actor, {
+        action: definition.action,
+        result: "denied",
+        reason: "production_financial_effect_not_authorized",
+        entityType: definition.entityType,
+        entityId: definition.entityId,
+      });
+      json(response, 403, {
+        error: "PRODUCTION_FINANCIAL_EFFECT_NOT_AUTHORIZED",
+      });
+      return true;
+    }
+
+    const requestSecurity = authApi.authorizeMutation(
+      request,
+      actor,
+      `control-center.${definition.action}`,
+    );
+    if (!requestSecurity.allowed) {
+      await audit(request, actor, {
+        action: definition.action,
+        result: "denied",
+        reason: requestSecurity.reason,
+        entityType: definition.entityType,
+        entityId: definition.entityId,
+      });
+      json(response, 403, {
+        error:
+          requestSecurity.reason === "invalid_csrf"
+            ? "INVALID_CSRF"
+            : "ORIGIN_DENIED",
+      });
+      return true;
+    }
+
+    if (!stepUpContext(request, actor)) {
+      await audit(request, actor, {
+        action: definition.action,
+        result: "denied",
+        reason: "step_up_required",
+        entityType: definition.entityType,
+        entityId: definition.entityId,
+      });
+      json(response, 403, { error: "STEP_UP_REQUIRED" });
+      return true;
+    }
+
+    let body;
+    try {
+      body = await readJsonBody(request);
+    } catch {
+      json(response, 400, { error: "INVALID_REQUEST" });
+      return true;
+    }
+
+    const reason = safeReason(body?.reason);
+    if (!reason) {
+      json(response, 400, { error: "REASON_REQUIRED" });
+      return true;
+    }
+    if (body?.confirmation !== definition.confirmation) {
+      await audit(request, actor, {
+        action: definition.action,
+        result: "denied",
+        reason: "text_confirmation_required",
+        entityType: definition.entityType,
+        entityId: definition.entityId,
+      });
+      json(response, 400, {
+        error: "TEXT_CONFIRMATION_REQUIRED",
+        expected: definition.confirmation,
+      });
+      return true;
+    }
+
+    const adapter = domainAdapters.financial;
+    const scopeMethod = reconciliationAckMatch
+      ? "resolveFindingTenant"
+      : "resolvePaymentTenant";
+    if (
+      !adapter ||
+      typeof adapter[definition.adapterMethod] !== "function" ||
+      typeof adapter[scopeMethod] !== "function"
+    ) {
+      json(response, 501, {
+        error: "DOMAIN_ADMIN_CONTRACT_NOT_REGISTERED",
+        domain: "financial",
+        invariant: "NO_DIRECT_TABLE_BYPASS",
+      });
+      return true;
+    }
+
+    const scope = await adapter[scopeMethod](definition.entityId);
+    if (scope?.status === "invalid") {
+      json(response, 400, { error: "INVALID_FINANCIAL_RESOURCE_SCOPE" });
+      return true;
+    }
+    if (scope?.status === "unavailable") {
+      json(response, 503, { error: "FINANCIAL_RESOURCE_SCOPE_UNAVAILABLE" });
+      return true;
+    }
+    if (scope?.status !== "found" || !scope.tenantId) {
+      json(response, 404, { error: "FINANCIAL_RESOURCE_SCOPE_NOT_FOUND" });
+      return true;
+    }
+
+    const support = supportContext(request, actor);
+    if (
+      support &&
+      !(support.effectiveUser?.businessIds ?? []).includes(scope.tenantId)
+    ) {
+      await audit(request, actor, {
+        action: definition.action,
+        result: "denied",
+        reason: "support_scope_mismatch",
+        effectiveUserId: support.effectiveUser?.id ?? null,
+        tenantId: scope.tenantId,
+        entityType: definition.entityType,
+        entityId: definition.entityId,
+      });
+      json(response, 403, { error: "SUPPORT_SCOPE_MISMATCH" });
+      return true;
+    }
+
+    const attemptAudited = await audit(request, actor, {
+      action: `${definition.action}.attempt`,
+      result: "attempt",
+      effectiveUserId: support?.effectiveUser?.id ?? null,
+      tenantId: scope.tenantId,
+      entityType: definition.entityType,
+      entityId: definition.entityId,
+      reason,
+    });
+    if (!attemptAudited) {
+      json(response, 503, { error: "ADMIN_AUDIT_UNAVAILABLE" });
+      return true;
+    }
+
+    const adapterInput = {
+      request,
+      response,
+      requestUrl,
+      actor,
+      reason,
+      ...(refundMatch ? { paymentId: refundMatch[1] } : {}),
+      ...(reconciliationRunMatch
+        ? {
+            paymentId: reconciliationRunMatch[1],
+            runId: body?.runId,
+          }
+        : {}),
+      ...(reconciliationAckMatch
+        ? { findingId: reconciliationAckMatch[1] }
+        : {}),
+    };
+
+    await adapter[definition.adapterMethod](adapterInput);
+
+    await audit(request, actor, {
+      action: `${definition.action}.complete`,
+      result:
+        response.statusCode >= 200 && response.statusCode < 400
+          ? "success"
+          : "failure",
+      effectiveUserId: support?.effectiveUser?.id ?? null,
+      tenantId: scope.tenantId,
+      entityType: definition.entityType,
+      entityId: definition.entityId,
+      reason,
+    });
+    return true;
+  }
+
   async function handleSupport(request, response) {
     const actor = await requireCapability(
       request,
@@ -908,9 +1140,8 @@ export function createAdminApi({
               coverage: domainAdapters.ticketing?.coverage ?? [],
             },
             financial: {
-              state: domainAdapters.financial
-                ? "available"
-                : "contract-required",
+              state: domainAdapters.financial?.state ?? "contract-required",
+              coverage: domainAdapters.financial?.coverage ?? [],
             },
             content: {
               state: domainAdapters.content ? "available" : "contract-required",
@@ -1060,6 +1291,10 @@ export function createAdminApi({
           health: platformOperations.healthSnapshot(request.morroCorrelationId),
           secrets: "redacted",
         });
+        return;
+      }
+
+      if (await handleFinancialCriticalAction(request, response, requestUrl)) {
         return;
       }
 
