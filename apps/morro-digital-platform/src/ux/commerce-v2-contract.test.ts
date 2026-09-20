@@ -53,7 +53,9 @@ describe("Commerce UX Design V2 contract", () => {
     const css = await readPublic("commerce.css");
 
     expect(css).toContain("position: sticky");
-    expect(css).toContain("bottom: max(var(--md-space-3), var(--md-safe-bottom))");
+    expect(css).toContain(
+      "bottom: max(var(--md-space-3), var(--md-safe-bottom))",
+    );
     expect(css).toContain("min-height: 3rem");
   });
 });
