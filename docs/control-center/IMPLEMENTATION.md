@@ -22,27 +22,27 @@
 
 | Area                         | State                                | Evidence                                                                                     |
 | ---------------------------- | ------------------------------------ | -------------------------------------------------------------------------------------------- |
-| Canonical roles              | PASS in code / CI pending            | `packages/auth/src/index.ts`                                                                 |
-| Capability model             | PASS in code / CI pending            | `authorizeCapability`, explicit capability vocabulary                                        |
-| Legacy role compatibility    | PASS in code / CI pending            | `authRoles` preserved and canonical mapping added                                            |
-| Admin API v1 shell           | PASS in code / CI pending            | `tooling/admin-api.mjs`                                                                      |
-| Dedicated Control Center app | PASS in code / browser proof pending | `apps/control-center/public/`                                                                |
+| Canonical roles              | PASS                                 | `packages/auth/src/index.ts`; Quality/Auth contracts green                                    |
+| Capability model             | PASS                                 | `authorizeCapability`; explicit capability vocabulary; negative admin-surface tests           |
+| Legacy role compatibility    | PASS                                 | legacy roles preserved through centralized capability mapping                                 |
+| Admin API v1 shell           | PASS                                 | `tooling/admin-api.mjs`; fail-closed domain adapter orchestration                              |
+| Dedicated Control Center app | PASS                                 | `apps/control-center/public/`; Chromium contract green                                         |
 | Dashboard                    | PARTIAL                              | Auth/health projections live; remaining domain metrics need owner adapters                   |
 | Universal Search             | PARTIAL                              | Identity search live; domain adapters pending                                                |
-| Users                        | PARTIAL                              | Read projection live; session revoke/block/reactivate contracts pending                      |
-| Businesses                   | PARTIAL                              | Identity membership directory live; Business Admin mutation contract pending                 |
-| Support Mode                 | PARTIAL                              | Signed support session implemented; full effective-user propagation into every panel pending |
-| Audit                        | PARTIAL                              | Runtime append-only projection + observability event; durable immutable store pending        |
-| System Health                | PASS in code / browser proof pending | Existing platformOperations reused                                                           |
-| Affiliates                   | GAP                                  | Existing domain retained; admin adapter pending and PR #151 must not be overwritten          |
-| CRM                          | GAP                                  | Existing CRM retained; Admin API adapter pending                                             |
-| Ticketing                    | PARTIAL                              | Runtime authorization converted to capability-aware projection; admin adapter pending        |
-| Financial                    | PARTIAL                              | Reconciliation gate capability-aware; full Admin API adapter/step-up pending                 |
-| Content                      | GAP                                  | Admin adapter pending                                                                        |
-| Destinations                 | GAP                                  | Admin adapter pending                                                                        |
-| Step-up auth                 | GAP                                  | Critical-action contract pending                                                             |
-| Browser E2E                  | GAP                                  | Control Center E2E pending                                                                   |
-| Staging                      | GAP                                  | Not attempted before CI and browser gates                                                    |
+| Users                        | PARTIAL                              | Read projection + Auth-owned hash-only session registry/revoke live; block/reactivate pending |
+| Businesses                   | PARTIAL                              | Membership directory + Business profile owner adapter live; wider business admin contracts pending |
+| Support Mode                 | PARTIAL                              | Signed support session + request-scoped effective-user propagation proven for Business/CRM/Ticketing; remaining panels pending |
+| Audit                        | PASS                                 | Append-only MySQL-backed admin audit with browser persistence proof and fail-closed mutation behavior |
+| System Health                | PASS                                 | Existing platformOperations reused; secret redaction proven in browser                        |
+| Affiliates                   | GAP                                  | Existing equivalent backend + PR #151 runtime retained; Control Center admin adapter pending  |
+| CRM                          | PARTIAL                              | Existing CRM reused through Admin API adapter; full surface orchestration still incomplete    |
+| Ticketing                    | PARTIAL                              | Capability-aware runtime + Admin API adapter for current operator contracts                   |
+| Financial                    | PARTIAL                              | Capability-aware financial gates exist; full Admin API read/critical-action adapter pending   |
+| Content                      | GAP                                  | Admin adapter pending                                                                         |
+| Destinations                 | GAP                                  | Admin adapter pending                                                                         |
+| Step-up auth                 | PASS                                 | Re-auth step-up enforced for session revocation with reason + textual confirmation            |
+| Browser E2E                  | PASS for implemented slice           | Chromium proves login, dashboard, search, Business 360, CRM, support, step-up, audit, system, sessions, desktop/tablet/mobile |
+| Staging                      | GAP                                  | No dedicated Control Center staging certification yet                                         |
 
 ## Security posture of current slice
 
@@ -61,14 +61,12 @@ Implemented:
 
 Still required before completion:
 
-- durable immutable audit;
-- step-up/MFA/re-auth for high-risk mutations;
 - durable platform role/capability persistence and administrative privilege changes;
-- session revoke admin endpoint;
-- exhaustive IDOR/cross-tenant/forged-effective-user/replay tests;
-- rate-limit policy for Admin API;
-- all domain adapters;
-- browser/accessibility proof;
+- account block/reactivate contracts;
+- remaining high-risk actions beyond the proven session-revoke step-up flow;
+- broader replay/rate-limit coverage for Admin API;
+- remaining domain adapters (Affiliates, Financial, Content, Destinations and wider Business/Ticketing coverage);
+- full accessibility certification beyond current keyboard/responsive browser proof;
 - staging proof.
 
 ## Completion rule
