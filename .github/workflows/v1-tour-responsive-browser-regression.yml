@@ -101,7 +101,7 @@ jobs:
             throw new Error(`${viewport.name} step ${step} geometry did not settle: ${JSON.stringify(latest)}`);
           }
           async function runViewport(browser, viewport) {
-            const context = await browser.newContext({ viewport });
+            const context = await browser.newContext({ viewport, locale: 'pt-BR' });
             const page = await context.newPage();
             const pageErrors = [];
             page.on('pageerror', error => pageErrors.push(error.message));
