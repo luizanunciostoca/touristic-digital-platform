@@ -95,6 +95,22 @@ describe("place commerce capability", () => {
     });
   });
 
+  it("keeps a place-specific ticket CTA visible when nightlife inventory has no matching offer", async () => {
+    const fetch = vi.fn().mockResolvedValue(response([]));
+    const action = await resolvePlacePrimaryAction({
+      location: nightlife,
+      locale: "pt",
+      fetch,
+    });
+
+    expect(action).toEqual({
+      label: "🎟️ Comprar ingressos",
+      value: "commerce:place:toca-do-morcego",
+      presentation: "primary",
+      commerceState: "fallback",
+    });
+  });
+
   it("uses a filtered multi-offer CTA when the place has more than one sellable offer", async () => {
     const fetch = vi
       .fn()
