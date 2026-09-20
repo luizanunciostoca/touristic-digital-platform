@@ -301,8 +301,53 @@ function selectOffer(offer, { scroll = false } = {}) {
     elements.form.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
+function createSkeletonLine(size = "medium") {
+  const line = document.createElement("span");
+  line.className = "md-skeleton ticketing-skeleton-line";
+  line.dataset.size = size;
+  line.setAttribute("aria-hidden", "true");
+  return line;
+}
+
+function renderOfferSkeletons() {
+  elements.offers.replaceChildren();
+  elements.offers.setAttribute("aria-busy", "true");
+  for (let index = 0; index < 3; index += 1) {
+    const card = document.createElement("article");
+    card.className = "md-card ticketing-skeleton-card";
+    card.setAttribute("aria-hidden", "true");
+    card.append(
+      createSkeletonLine("short"),
+      createSkeletonLine(),
+      createSkeletonLine("medium"),
+    );
+    const action = document.createElement("span");
+    action.className = "md-skeleton ticketing-skeleton-action";
+    action.setAttribute("aria-hidden", "true");
+    card.append(action);
+    elements.offers.append(card);
+  }
+}
+
+function renderReservationSkeletons() {
+  elements.reservations.replaceChildren();
+  elements.reservations.setAttribute("aria-busy", "true");
+  for (let index = 0; index < 2; index += 1) {
+    const card = document.createElement("article");
+    card.className = "md-card ticketing-skeleton-card";
+    card.setAttribute("aria-hidden", "true");
+    card.append(
+      createSkeletonLine("medium"),
+      createSkeletonLine(),
+      createSkeletonLine("short"),
+    );
+    elements.reservations.append(card);
+  }
+}
+
 function renderOffers() {
   elements.offers.replaceChildren();
+  elements.offers.removeAttribute("aria-busy");
   if (state.offers.length === 0) {
     const empty = document.createElement("p");
     empty.className = "empty";
@@ -312,12 +357,12 @@ function renderOffers() {
   }
   for (const offer of state.offers) {
     const card = document.createElement("article");
-    card.className = "offer-card";
+    card.className = "offer-card md-card";
     card.dataset.inventoryId = offer.id;
 
     const content = document.createElement("div");
     const kind = document.createElement("span");
-    kind.className = "offer-kind";
+    kind.className = "offer-kind md-badge";
     kind.textContent = productKindLabel(offer);
     const title = document.createElement("h3");
     title.textContent = offer.label;
@@ -330,19 +375,19 @@ function renderOffers() {
       productUnitLabel(offer.product),
     );
     const availability = document.createElement("p");
-    availability.className = "availability";
+    availability.className = "availability md-badge md-badge--success";
     availability.textContent = copy.availableCount(offer.availableQuantity);
     content.append(kind, title, when, price, availability);
 
     const actions = document.createElement("div");
     actions.className = "card-actions";
     const detail = document.createElement("a");
-    detail.className = "button button-secondary";
+    detail.className = "button button-secondary md-button md-button--secondary";
     detail.href = `/experience.html?id=${encodeURIComponent(offer.id)}`;
     detail.textContent = copy.details;
     const button = document.createElement("button");
     button.type = "button";
-    button.className = "button button-primary";
+    button.className = "button button-primary md-button md-button--primary";
     button.disabled = offer.availableQuantity < 1;
     button.textContent =
       offer.availableQuantity > 0 ? copy.reserve : copy.soldOut;
@@ -446,6 +491,7 @@ async function cancelReservation(reservation) {
 
 function renderReservations(reservations) {
   elements.reservations.replaceChildren();
+  elements.reservations.removeAttribute("aria-busy");
   if (reservations.length === 0) {
     const empty = document.createElement("p");
     empty.className = "empty";
@@ -455,7 +501,7 @@ function renderReservations(reservations) {
   }
   for (const reservation of reservations) {
     const card = document.createElement("article");
-    card.className = "reservation-card";
+    card.className = "reservation-card md-card";
     const content = document.createElement("div");
     const title = document.createElement("h3");
     title.textContent =
@@ -473,7 +519,7 @@ function renderReservations(reservations) {
           ? copy.validUntil(dateTime(reservation.validUntil))
           : copy.createdAt(dateTime(reservation.createdAt));
     const status = document.createElement("span");
-    status.className = `status status-${reservation.status}`;
+    status.className = `status md-badge status-${reservation.status}`;
     status.textContent = statusLabel(reservation.status);
     content.append(title, detail, expiry, status);
 
@@ -482,7 +528,7 @@ function renderReservations(reservations) {
     if (reservation.status === "confirmed") {
       const ticket = document.createElement("button");
       ticket.type = "button";
-      ticket.className = "button button-primary";
+      ticket.className = "button button-primary md-button md-button--primary";
       ticket.textContent =
         reservation.product?.kind === "transport"
           ? copy.viewPass
@@ -505,7 +551,8 @@ function renderReservations(reservations) {
     if (reservation.status === "held") {
       const cancel = document.createElement("button");
       cancel.type = "button";
-      cancel.className = "button button-secondary";
+      cancel.className =
+        "button button-secondary md-button md-button--secondary";
       cancel.textContent = copy.cancelReservation;
       cancel.addEventListener(
         "click",
@@ -763,6 +810,8 @@ elements.refresh.addEventListener("click", () => {
 elements.dialogClose.addEventListener("click", () => elements.dialog.close());
 
 (async () => {
+  renderOfferSkeletons();
+  renderReservationSkeletons();
   try {
     await session();
     await Promise.all([loadOffers(), loadReservations()]);
