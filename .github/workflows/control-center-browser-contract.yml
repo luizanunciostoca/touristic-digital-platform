@@ -189,6 +189,32 @@ jobs:
               const csrfToken = await page.evaluate(() => sessionStorage.getItem('md_dashboard_csrf'));
               if (!csrfToken) throw new Error('Control Center login did not retain CSRF projection');
 
+              const revocableBusinessContext = await browser.newContext();
+              await apiLogin(revocableBusinessContext, 'business-owner@example.com');
+
+              await page.locator('[data-view="users"]').click();
+              await page.getByRole('heading', { name: 'Usuários' }).waitFor();
+              await page.getByRole('link', { name: 'business-owner@example.com' }).click();
+              await page.getByRole('button', { name: 'Revogar sessão' }).waitFor();
+              await page.locator('#session-step-up-password').fill(password);
+              await page
+                .locator('#session-revoke-reason')
+                .fill('Revogação E2E de sessão administrativa comprometida');
+              await page.locator('#session-revoke-confirmation').fill('REVOGAR');
+              await page.getByRole('button', { name: 'Revogar sessão' }).click();
+              await page.getByText('revogada', { exact: true }).waitFor({ timeout: 15000 });
+
+              const revokedBusinessSession = await revocableBusinessContext.request.get(
+                `${origin}/api/dashboard/auth/session`,
+              );
+              if (revokedBusinessSession.status() !== 401) {
+                throw new Error(
+                  `Revoked business session remained valid: ${revokedBusinessSession.status()} ${await revokedBusinessSession.text()}`,
+                );
+              }
+              evidence.userSessionRevocation = true;
+              await revocableBusinessContext.close();
+
               const seedProfile = await ownerContext.request.put(
                 `${origin}/api/admin/v1/businesses/toca-do-morcego/profile`,
                 {
