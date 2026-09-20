@@ -1144,6 +1144,7 @@ async function render(view, detail) {
     if (view === "overview") renderOverview();
     else if (view === "users") await renderUsers(detail);
     else if (view === "businesses") await renderBusinesses(detail);
+    else if (view === "destinations") await renderDestinations(detail);
     else if (view === "crm") await renderCrm();
     else if (view === "ticketing") await renderTicketing();
     else if (view === "orders") await renderOrders(detail);
