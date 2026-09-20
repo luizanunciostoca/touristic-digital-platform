@@ -10,6 +10,8 @@ import {
   ANALYTICS_CONSENT_CHANGED_EVENT,
   ANALYTICS_SEARCH_SUBMITTED_EVENT,
   ANALYTICS_TRANSACTION_EVENTS,
+  applyBrowserAnalyticsConsentChoice,
+  browserAnalyticsConsentPreferenceCopy,
   installBrowserAnalyticsInstrumentation,
   readBrowserAnalyticsConsent,
   writeBrowserAnalyticsConsent,
@@ -279,5 +281,42 @@ describe("browser analytics instrumentation", () => {
     });
     expect(JSON.stringify(inputs)).not.toContain("4111111111111111");
     expect(JSON.stringify(inputs)).not.toContain("31800");
+  });
+});
+
+
+describe("browser analytics consent preferences", () => {
+  it("commits granted/denied only after an explicit choice", () => {
+    const setConsent = vi.fn();
+    const controller = {
+      getConsent: () => "unknown" as const,
+      setConsent,
+      destroy: vi.fn(),
+    };
+
+    expect(applyBrowserAnalyticsConsentChoice(controller, "later")).toBe(
+      "unknown",
+    );
+    expect(setConsent).not.toHaveBeenCalled();
+
+    expect(applyBrowserAnalyticsConsentChoice(controller, "denied")).toBe(
+      "denied",
+    );
+    expect(setConsent).toHaveBeenNthCalledWith(1, "denied");
+
+    expect(applyBrowserAnalyticsConsentChoice(controller, "granted")).toBe(
+      "granted",
+    );
+    expect(setConsent).toHaveBeenNthCalledWith(2, "granted");
+  });
+
+  it("localizes the end-user privacy choices without changing consent", () => {
+    expect(browserAnalyticsConsentPreferenceCopy("pt-BR").deny).toBe(
+      "Somente necessários",
+    );
+    expect(browserAnalyticsConsentPreferenceCopy("en-US").allow).toBe(
+      "Allow analytics",
+    );
+    expect(browserAnalyticsConsentPreferenceCopy("es").later).toBe("Ahora no");
   });
 });
