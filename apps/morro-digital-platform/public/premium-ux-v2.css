@@ -156,7 +156,11 @@
 }
 
 .quick-actions,
-#globe-map-control {
+#globe-map-control,
+#weather-widget,
+#submenu,
+#assistant-input-area,
+header {
   transition:
     opacity var(--md-motion-duration-fast, 120ms)
       var(--md-motion-ease-standard, ease),
@@ -167,12 +171,43 @@
 
 body[data-md-mode="navigation"] .quick-actions,
 body[data-md-mode="navigation"] #globe-map-control,
-body[data-md-mode="tour"] .quick-actions,
 body[data-md-mode="tour"] #globe-map-control {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
   transform: translateY(0.5rem);
+}
+
+body[data-md-mode="place"] header,
+body[data-md-mode="place"] #weather-widget,
+body[data-md-mode="place"] #globe-map-control,
+body[data-md-mode="assistant"] header,
+body[data-md-mode="assistant"] #weather-widget,
+body[data-md-mode="assistant"] #globe-map-control,
+body[data-md-mode="navigation"] header,
+body[data-md-mode="navigation"] #weather-widget,
+body[data-md-mode="navigation"] #submenu,
+body[data-md-mode="tour"] header,
+body[data-md-mode="tour"] #weather-widget,
+body[data-md-mode="tour"] #submenu {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+body[data-md-mode="tour"] .quick-actions {
+  opacity: 0.92;
+  visibility: visible;
+  pointer-events: auto;
+  transform: scale(0.88);
+  transform-origin: bottom right;
+}
+
+body[data-md-mode="navigation"]:not(.assistant-modal-open) #assistant-input-area,
+body[data-md-mode="tour"]:not(.assistant-modal-open) #assistant-input-area {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
 }
 
 body[data-md-mode="navigation"]
@@ -186,7 +221,11 @@ body[data-md-mode="tour"]
 
 @media (prefers-reduced-motion: reduce) {
   .quick-actions,
-  #globe-map-control {
+  #globe-map-control,
+  #weather-widget,
+  #submenu,
+  #assistant-input-area,
+  header {
     transition-duration: 0.01ms;
     transition-delay: 0ms;
   }
