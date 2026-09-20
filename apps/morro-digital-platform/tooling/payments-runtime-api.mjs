@@ -131,6 +131,10 @@ export function createPaymentsApi(options = {}) {
       return core.adminResolvePaymentTenant(paymentId);
     },
 
+    adminResolveFindingTenant(findingId) {
+      return core.adminResolveFindingTenant(findingId);
+    },
+
     adminFindLedger(externalKey) {
       return core.adminFindLedger(externalKey);
     },
