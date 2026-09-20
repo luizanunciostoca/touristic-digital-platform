@@ -11,6 +11,10 @@ import { parseCookies } from "@touristic/auth-server";
 const adminPrefix = "/api/admin/v1";
 const supportCookieName = "md_control_support";
 const supportTtlSeconds = 30 * 60;
+const stepUpCookieName = "md_control_step_up";
+const stepUpTtlSeconds = 10 * 60;
+const stepUpWindowMs = 15 * 60 * 1000;
+const stepUpAttemptLimit = 5;
 const maxBodyBytes = 32 * 1024;
 
 function json(response, statusCode, payload) {
@@ -118,6 +122,58 @@ function serializeClearedSupportCookie(production) {
     .join("; ");
 }
 
+function createStepUpToken(payload, secret) {
+  const part = encodePayload(payload);
+  return `${part}.${signPayload(part, secret)}`;
+}
+
+function verifyStepUpToken(token, secret) {
+  const [part, signature, ...rest] = String(token || "").split(".");
+  if (!part || !signature || rest.length > 0) return null;
+  if (!safeEqual(signature, signPayload(part, secret))) return null;
+  try {
+    const payload = JSON.parse(Buffer.from(part, "base64url").toString("utf8"));
+    if (
+      typeof payload?.actorSessionId !== "string" ||
+      typeof payload?.stepUpId !== "string" ||
+      typeof payload?.method !== "string" ||
+      typeof payload?.exp !== "number" ||
+      payload.exp <= Math.floor(Date.now() / 1000)
+    ) {
+      return null;
+    }
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
+function serializeStepUpCookie(token, production) {
+  return [
+    `${stepUpCookieName}=${token}`,
+    "Path=/",
+    "HttpOnly",
+    "SameSite=Strict",
+    production ? "Secure" : "",
+    `Max-Age=${stepUpTtlSeconds}`,
+  ]
+    .filter(Boolean)
+    .join("; ");
+}
+
+function serializeClearedStepUpCookie(production) {
+  return [
+    `${stepUpCookieName}=`,
+    "Path=/",
+    "HttpOnly",
+    "SameSite=Strict",
+    production ? "Secure" : "",
+    "Max-Age=0",
+  ]
+    .filter(Boolean)
+    .join("; ");
+}
+
 function userProjection(user) {
   if (!user) return null;
   return Object.freeze({
@@ -193,6 +249,7 @@ export function createAdminApi({
   if (
     !authApi?.resolveSession ||
     !authApi?.authorizeMutation ||
+    !authApi?.reauthenticate ||
     !authApi?.listConfiguredUsers ||
     !authApi?.findConfiguredUser
   ) {
@@ -208,6 +265,12 @@ export function createAdminApi({
       (production ? "" : getEnvironmentValue("DASHBOARD_AUTH_SECRET")) ||
       "",
   ).trim();
+  const stepUpSecret = String(
+    getEnvironmentValue("CONTROL_CENTER_STEP_UP_SECRET") ||
+      (production ? "" : getEnvironmentValue("DASHBOARD_AUTH_SECRET")) ||
+      "",
+  ).trim();
+  const stepUpAttempts = new Map();
 
   function audit(request, actor, event) {
     const entry = Object.freeze({
@@ -269,6 +332,35 @@ export function createAdminApi({
     return actor;
   }
 
+  function stepUpContext(request, actor) {
+    if (!actor || stepUpSecret.length < 32) return null;
+    const cookies = parseCookies(firstHeader(request.headers?.cookie));
+    const payload = verifyStepUpToken(
+      cookies[stepUpCookieName],
+      stepUpSecret,
+    );
+    if (!payload || payload.actorSessionId !== actor.sessionId) return null;
+    return Object.freeze({
+      stepUpId: payload.stepUpId,
+      method: payload.method,
+      issuedAt: payload.issuedAt,
+      expiresAt: payload.exp,
+    });
+  }
+
+  function consumeStepUpAttempt(actorSubject) {
+    const now = Date.now();
+    const existing = stepUpAttempts.get(actorSubject) ?? [];
+    const active = existing.filter((timestamp) => now - timestamp < stepUpWindowMs);
+    if (active.length >= stepUpAttemptLimit) {
+      stepUpAttempts.set(actorSubject, active);
+      return false;
+    }
+    active.push(now);
+    stepUpAttempts.set(actorSubject, active);
+    return true;
+  }
+
   function supportContext(request, actor) {
     if (!actor || supportSecret.length < 32) return null;
     const cookies = parseCookies(firstHeader(request.headers?.cookie));
@@ -283,6 +375,120 @@ export function createAdminApi({
       expiresAt: payload.exp,
       actor: userProjection(actor),
       effectiveUser: userProjection(effectiveUser),
+    });
+  }
+
+  async function handleStepUp(request, response) {
+    const actor = await requireCapability(request, response, "platform.read");
+    if (!actor) return;
+
+    if (request.method === "GET") {
+      json(response, 200, {
+        stepUp: stepUpContext(request, actor),
+        configured: stepUpSecret.length >= 32,
+      });
+      return;
+    }
+
+    const mutation = authApi.authorizeMutation(
+      request,
+      actor,
+      "control-center.step-up",
+    );
+    if (!mutation.allowed) {
+      audit(request, actor, {
+        action: "security.step_up",
+        result: "denied",
+        reason: mutation.reason,
+      });
+      json(response, 403, {
+        error:
+          mutation.reason === "invalid_csrf"
+            ? "INVALID_CSRF"
+            : "ORIGIN_DENIED",
+      });
+      return;
+    }
+
+    if (request.method === "DELETE") {
+      response.setHeader(
+        "Set-Cookie",
+        serializeClearedStepUpCookie(production),
+      );
+      audit(request, actor, {
+        action: "security.step_up.end",
+        result: "success",
+        reason: "operator-ended",
+      });
+      json(response, 200, { success: true });
+      return;
+    }
+
+    if (request.method !== "POST") {
+      json(response, 405, { error: "METHOD_NOT_ALLOWED" });
+      return;
+    }
+    if (stepUpSecret.length < 32) {
+      json(response, 503, { error: "STEP_UP_SECRET_NOT_CONFIGURED" });
+      return;
+    }
+    if (!consumeStepUpAttempt(actor.subject)) {
+      audit(request, actor, {
+        action: "security.step_up",
+        result: "denied",
+        reason: "rate_limited",
+      });
+      json(response, 429, { error: "STEP_UP_RATE_LIMITED" });
+      return;
+    }
+
+    let body;
+    try {
+      body = await readJsonBody(request);
+    } catch {
+      json(response, 400, { error: "INVALID_REQUEST" });
+      return;
+    }
+
+    const password =
+      typeof body?.password === "string" ? body.password : "";
+    if (!authApi.reauthenticate(actor.subject, password)) {
+      audit(request, actor, {
+        action: "security.step_up",
+        result: "denied",
+        reason: "reauthentication_failed",
+      });
+      json(response, 403, { error: "STEP_UP_REAUTHENTICATION_FAILED" });
+      return;
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    const payload = Object.freeze({
+      stepUpId: `stepup_${randomUUID()}`,
+      actorSessionId: actor.sessionId,
+      method: "password",
+      issuedAt: now,
+      exp: Math.min(actor.expiresAt, now + stepUpTtlSeconds),
+    });
+    response.setHeader(
+      "Set-Cookie",
+      serializeStepUpCookie(
+        createStepUpToken(payload, stepUpSecret),
+        production,
+      ),
+    );
+    audit(request, actor, {
+      action: "security.step_up",
+      result: "success",
+      reason: "password_reauthenticated",
+    });
+    json(response, 201, {
+      stepUp: {
+        stepUpId: payload.stepUpId,
+        method: payload.method,
+        issuedAt: payload.issuedAt,
+        expiresAt: payload.exp,
+      },
     });
   }
 
@@ -411,6 +617,7 @@ export function createAdminApi({
         json(response, 200, {
           actor: userProjection(actor),
           support: supportContext(request, actor),
+          stepUp: stepUpContext(request, actor),
         });
         return;
       }
@@ -586,6 +793,11 @@ export function createAdminApi({
 
       if (pathname === `${adminPrefix}/support/session`) {
         await handleSupport(request, response);
+        return;
+      }
+
+      if (pathname === `${adminPrefix}/step-up`) {
+        await handleStepUp(request, response);
         return;
       }
 
