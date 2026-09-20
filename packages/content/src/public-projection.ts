@@ -196,7 +196,9 @@ export function createOfflineContentSnapshot(
     (left, right) =>
       left.kind.localeCompare(right.kind) ||
       left.id.localeCompare(right.id) ||
-      normalizedLocale(left.locale).localeCompare(normalizedLocale(right.locale)),
+      normalizedLocale(left.locale).localeCompare(
+        normalizedLocale(right.locale),
+      ),
   );
 
   return Object.freeze({
