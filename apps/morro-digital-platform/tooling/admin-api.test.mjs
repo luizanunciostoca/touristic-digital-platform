@@ -593,3 +593,166 @@ describe("Control Center Admin API", () => {
     expect(payload.businesses[0].id).toBe("toca-do-morcego");
   });
 });
+
+
+describe("Control Center Affiliates critical actions", () => {
+  it("requires step-up and exact confirmation before suspending an Affiliate membership", async () => {
+    const calls = [];
+    const affiliates = {
+      async changeMembershipStatus(input) {
+        calls.push(input);
+        return {
+          status: "updated",
+          data: {
+            membership: {
+              affiliateId: input.affiliateId,
+              programId: input.programId,
+              status: input.status,
+            },
+          },
+        };
+      },
+    };
+    const { api } = fixture(platformOwner, {
+      domainAdapters: { affiliates },
+    });
+    const path =
+      "/api/admin/v1/affiliates/aff_admin_0001/memberships/prog_admin_0001/suspend";
+
+    const withoutStepUp = responseRecorder();
+    await api.handle(
+      request(path, {
+        method: "POST",
+        body: {
+          reason: "Suspender membership durante investigação administrativa",
+          confirmation: "SUSPENDER",
+        },
+      }),
+      withoutStepUp,
+      new URL("http://localhost" + path),
+    );
+    expect(withoutStepUp.statusCode).toBe(403);
+    expect(JSON.parse(withoutStepUp.body).error).toBe("STEP_UP_REQUIRED");
+    expect(calls).toHaveLength(0);
+
+    const stepUp = responseRecorder();
+    await api.handle(
+      request("/api/admin/v1/step-up", {
+        method: "POST",
+        body: { password: "fixture-secret" },
+      }),
+      stepUp,
+      new URL("http://localhost/api/admin/v1/step-up"),
+    );
+    expect(stepUp.statusCode).toBe(201);
+    const cookie = String(stepUp.headers.get("set-cookie")).split(";", 1)[0];
+
+    const wrongConfirmation = responseRecorder();
+    await api.handle(
+      request(path, {
+        method: "POST",
+        headers: { cookie },
+        body: {
+          reason: "Suspender membership durante investigação administrativa",
+          confirmation: "WRONG",
+        },
+      }),
+      wrongConfirmation,
+      new URL("http://localhost" + path),
+    );
+    expect(wrongConfirmation.statusCode).toBe(400);
+    expect(JSON.parse(wrongConfirmation.body).error).toBe(
+      "TEXT_CONFIRMATION_REQUIRED",
+    );
+    expect(calls).toHaveLength(0);
+
+    const accepted = responseRecorder();
+    await api.handle(
+      request(path, {
+        method: "POST",
+        headers: { cookie },
+        body: {
+          reason: "Suspender membership durante investigação administrativa",
+          confirmation: "SUSPENDER",
+        },
+      }),
+      accepted,
+      new URL("http://localhost" + path),
+    );
+    expect(accepted.statusCode).toBe(200);
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toMatchObject({
+      affiliateId: "aff_admin_0001",
+      programId: "prog_admin_0001",
+      status: "suspended",
+      correlationId: "corr_test",
+    });
+  });
+
+  it("blocks Affiliate critical actions while Support Mode is active", async () => {
+    const calls = [];
+    const affiliates = {
+      async changeMembershipStatus(input) {
+        calls.push(input);
+        return { status: "updated", data: input };
+      },
+    };
+    const { api } = fixture(platformOwner, {
+      domainAdapters: { affiliates },
+    });
+
+    const support = responseRecorder();
+    await api.handle(
+      request("/api/admin/v1/support/session", {
+        method: "POST",
+        body: {
+          effectiveUserId: "business-owner",
+          reason: "Investigar painel empresarial sem assumir autoridade crítica",
+        },
+      }),
+      support,
+      new URL("http://localhost/api/admin/v1/support/session"),
+    );
+    expect(support.statusCode).toBe(201);
+    const supportCookie = String(support.headers.get("set-cookie")).split(
+      ";",
+      1,
+    )[0];
+
+    const stepUp = responseRecorder();
+    await api.handle(
+      request("/api/admin/v1/step-up", {
+        method: "POST",
+        body: { password: "fixture-secret" },
+      }),
+      stepUp,
+      new URL("http://localhost/api/admin/v1/step-up"),
+    );
+    const stepUpCookie = String(stepUp.headers.get("set-cookie")).split(
+      ";",
+      1,
+    )[0];
+
+    const path =
+      "/api/admin/v1/affiliates/aff_admin_0001/memberships/prog_admin_0001/suspend";
+    const response = responseRecorder();
+    await api.handle(
+      request(path, {
+        method: "POST",
+        headers: { cookie: `${supportCookie}; ${stepUpCookie}` },
+        body: {
+          reason: "This critical action must be denied in Support Mode",
+          confirmation: "SUSPENDER",
+        },
+      }),
+      response,
+      new URL("http://localhost" + path),
+    );
+
+    expect(response.statusCode).toBe(403);
+    expect(JSON.parse(response.body).error).toBe(
+      "SUPPORT_MODE_CRITICAL_ACTION_DENIED",
+    );
+    expect(calls).toHaveLength(0);
+  });
+});
