@@ -100,7 +100,12 @@ function fixture(session = platformOwner) {
       authApi,
       platformOperations,
       getEnvironmentValue(key) {
-        if (key === "CONTROL_CENTER_SUPPORT_SECRET") return "x".repeat(64);
+        if (
+          key === "CONTROL_CENTER_SUPPORT_SECRET" ||
+          key === "CONTROL_CENTER_STEP_UP_SECRET"
+        ) {
+          return "x".repeat(64);
+        }
         return "";
       },
     }),
