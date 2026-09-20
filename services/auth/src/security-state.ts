@@ -548,8 +548,7 @@ export function createSqlAuthSecurityState(
       }
 
       const expiresAt = Number(row.expires_at);
-      const alreadyRevoked =
-        row.revoked_at !== null || expiresAt <= now;
+      const alreadyRevoked = row.revoked_at !== null || expiresAt <= now;
       await connection.execute(
         `INSERT INTO auth_session_revocations
           (session_key, expires_at, revoked_at)

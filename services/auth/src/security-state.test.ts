@@ -70,7 +70,9 @@ describe("Auth security state", () => {
       active: true,
     });
     expect(listed[0]?.handle).toMatch(/^[a-f0-9]{64}$/u);
-    expect(JSON.stringify(listed)).not.toContain("raw-session-jti-must-not-leak");
+    expect(JSON.stringify(listed)).not.toContain(
+      "raw-session-jti-must-not-leak",
+    );
 
     const handle = listed[0]?.handle ?? "";
     await expect(

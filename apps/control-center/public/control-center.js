@@ -371,52 +371,50 @@ async function renderUsers(userId) {
       </div>
     </section>`;
 
-  content
-    .querySelectorAll("[data-revoke-session]")
-    .forEach((button) =>
-      button.addEventListener("click", async () => {
-        const password = document.querySelector(
-          "#session-step-up-password",
-        )?.value;
-        const reason = document.querySelector("#session-revoke-reason")?.value;
-        const confirmation = document.querySelector(
-          "#session-revoke-confirmation",
-        )?.value;
-        const status = document.querySelector("#session-revoke-status");
+  content.querySelectorAll("[data-revoke-session]").forEach((button) =>
+    button.addEventListener("click", async () => {
+      const password = document.querySelector(
+        "#session-step-up-password",
+      )?.value;
+      const reason = document.querySelector("#session-revoke-reason")?.value;
+      const confirmation = document.querySelector(
+        "#session-revoke-confirmation",
+      )?.value;
+      const status = document.querySelector("#session-revoke-status");
 
-        if (!password || !reason || confirmation !== "REVOGAR") {
-          status.textContent =
-            "Informe sua senha, um motivo válido e digite REVOGAR.";
-          return;
-        }
+      if (!password || !reason || confirmation !== "REVOGAR") {
+        status.textContent =
+          "Informe sua senha, um motivo válido e digite REVOGAR.";
+        return;
+      }
 
-        button.disabled = true;
-        status.textContent = "Reautenticando e revogando sessão…";
-        try {
-          await api("/step-up", {
+      button.disabled = true;
+      status.textContent = "Reautenticando e revogando sessão…";
+      try {
+        await api("/step-up", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ password }),
+        });
+        await api(
+          `/users/${encodeURIComponent(userId)}/sessions/${encodeURIComponent(
+            button.dataset.revokeSession,
+          )}/revoke`,
+          {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ password }),
-          });
-          await api(
-            `/users/${encodeURIComponent(userId)}/sessions/${encodeURIComponent(
-              button.dataset.revokeSession,
-            )}/revoke`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ reason, confirmation }),
-            },
-          );
-          status.textContent = "Sessão revogada com sucesso.";
-          await renderUsers(userId);
-        } catch (error) {
-          button.disabled = false;
-          status.textContent =
-            error.body?.error || error.message || "Falha ao revogar sessão.";
-        }
-      }),
-    );
+            body: JSON.stringify({ reason, confirmation }),
+          },
+        );
+        status.textContent = "Sessão revogada com sucesso.";
+        await renderUsers(userId);
+      } catch (error) {
+        button.disabled = false;
+        status.textContent =
+          error.body?.error || error.message || "Falha ao revogar sessão.";
+      }
+    }),
+  );
 }
 async function renderBusinesses(businessId) {
   const data = await api("/businesses");
