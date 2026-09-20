@@ -556,7 +556,7 @@ function replaceLeadingLabelText(
   const label = input?.closest("label");
   if (!label) return;
 
-  const textNode = [...label.childNodes].find(
+  const textNode = Array.from(label.childNodes).find(
     (node) =>
       node.nodeType === Node.TEXT_NODE && Boolean(node.textContent?.trim()),
   );
