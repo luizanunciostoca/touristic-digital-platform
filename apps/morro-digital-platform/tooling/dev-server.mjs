@@ -11,6 +11,7 @@ import { createAdminDomainAdapters } from "./admin-domain-adapters.mjs";
 import { createAuthApi } from "./auth-api.mjs";
 import { createBusinessApi } from "./business-api.mjs";
 import { createCrmApi } from "./crm-api.mjs";
+import { createDestinationAdminRuntime } from "./destination-admin-runtime.mjs";
 import { createPaymentsApi } from "./payments-runtime-api.mjs";
 import { createPlatformOperations } from "./platform-operations.mjs";
 import {
@@ -132,6 +133,7 @@ const getEnvironmentValue = (key) =>
 let platformOperations = null;
 let paymentsRuntimeReady = false;
 let ticketingRuntimeReady = false;
+let destinationRuntimeReady = false;
 
 function auditSecurityEvent(request, event) {
   const pathname = (() => {
@@ -180,6 +182,12 @@ platformOperations = createPlatformOperations({
       ...adminAuditRuntime.readinessCheck(),
     },
     {
+      name: "destination-owner",
+      status: destinationRuntimeReady ? "pass" : "fail",
+      critical: false,
+      detail: destinationRuntimeReady ? "destination-owner-ready" : "DESTINATION_OWNER_UNAVAILABLE",
+    },
+    {
       name: "payments-runtime",
       status: paymentsRuntimeReady ? "pass" : "fail",
       critical: true,
@@ -201,6 +209,13 @@ platformOperations = createPlatformOperations({
 await authApi.start();
 await analyticsApi.start();
 await adminAuditRuntime.start();
+
+const destinationRuntime = createDestinationAdminRuntime({
+  DESTINATIONS_DATABASE_URL: getEnvironmentValue("DESTINATIONS_DATABASE_URL"),
+  DESTINATIONS_DATABASE_POOL_SIZE: getEnvironmentValue("DESTINATIONS_DATABASE_POOL_SIZE"),
+});
+await destinationRuntime.start();
+destinationRuntimeReady = (await destinationRuntime.readiness()).ready;
 
 const crmApi = createCrmApi({ authApi, getEnvironmentValue });
 await crmApi.start();
@@ -225,6 +240,7 @@ const adminApi = createAdminApi({
     crmApi,
     ticketingApi,
     paymentsApi,
+    destinationRuntime,
   }),
 });
 
