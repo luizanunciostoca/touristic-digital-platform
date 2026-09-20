@@ -158,6 +158,19 @@ describe("UX P0 + Design System V2 foundations", () => {
       expect(css, `${file} missing svh fallback`).toContain("100svh");
       expect(css, `${file} missing dvh fallback`).toContain("100dvh");
     }
+
+    const foundations = await readPublic("design-system-v2.css");
+    for (const selector of [
+      ".app-shell",
+      "#onboarding-overlay",
+      ".weather-forecast-modal",
+      ".satellite-control-panel",
+      "#assistant-voice-selector",
+    ]) {
+      expect(foundations, `missing post-legacy viewport override ${selector}`).toContain(
+        selector,
+      );
+    }
   });
 
   it("keeps browser evidence for keyboard, 200% zoom, forced colors and overflow", async () => {
