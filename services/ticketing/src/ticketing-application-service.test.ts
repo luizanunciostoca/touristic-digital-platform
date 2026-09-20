@@ -562,7 +562,6 @@ describe("M148 transactional ticketing application", () => {
     });
   });
 
-
   it("preserves exact validation replay but rejects a different second code validation", async () => {
     const { service, fixture, checkIns } = harness();
     const issued = await service.issueTicket(issueInput(fixture));
@@ -636,7 +635,6 @@ describe("M148 transactional ticketing application", () => {
     });
     expect(checkIns.values).toHaveLength(1);
   });
-
 
   it("rejects a check-in timestamp that predates ticket issuance", async () => {
     const { service, fixture, checkIns } = harness();
