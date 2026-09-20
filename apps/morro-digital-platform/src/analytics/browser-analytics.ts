@@ -163,7 +163,10 @@ function commerceAttributes(
     const offerId = safeText(value.slice("commerce:offer:".length), 160);
     if (offerId) attributes.offerId = offerId;
   } else if (value?.startsWith("commerce:place:")) {
-    const explicitPlaceId = safeText(value.slice("commerce:place:".length), 160);
+    const explicitPlaceId = safeText(
+      value.slice("commerce:place:".length),
+      160,
+    );
     if (explicitPlaceId) attributes.placeId = explicitPlaceId;
   }
 
