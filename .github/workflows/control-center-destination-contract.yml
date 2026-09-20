@@ -1,0 +1,130 @@
+name: Control Center Destination Contract
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
+    paths:
+      - ".github/workflows/control-center-destination-contract.yml"
+      - "apps/control-center/**"
+      - "apps/morro-digital-platform/tooling/admin-*.mjs"
+      - "apps/morro-digital-platform/tooling/destination-admin-runtime.mjs"
+      - "apps/morro-digital-platform/tooling/dev-server.mjs"
+      - "packages/destinations/**"
+      - "services/destinations/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/control-center-destination-contract.yml"
+      - "apps/control-center/**"
+      - "apps/morro-digital-platform/tooling/admin-*.mjs"
+      - "apps/morro-digital-platform/tooling/destination-admin-runtime.mjs"
+      - "apps/morro-digital-platform/tooling/dev-server.mjs"
+      - "packages/destinations/**"
+      - "services/destinations/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: control-center-destination-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  destination-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: destination-ci
+          MYSQL_DATABASE: destinations_owner_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -pdestination-ci"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    env:
+      DESTINATIONS_DATABASE_URL: mysql://root:destination-ci@127.0.0.1:3306/destinations_owner_test
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build Destination owner graph
+        run: |
+          pnpm --filter @touristic/destinations build
+          pnpm --filter @touristic/destinations-server build
+      - name: Lint and typecheck Destination owner
+        run: |
+          pnpm --filter @touristic/destinations lint
+          pnpm --filter @touristic/destinations typecheck
+          pnpm --filter @touristic/destinations-server lint
+          pnpm --filter @touristic/destinations-server typecheck
+      - name: Run Destination owner tests
+        run: |
+          pnpm --filter @touristic/destinations test
+          pnpm --filter @touristic/destinations-server test
+      - name: Validate real MySQL bootstrap and optimistic concurrency
+        run: |
+          node --input-type=module <<'NODE'
+          import {
+            createDestinationAdminService,
+            createDestinationsMySqlPool,
+            applyDestinationsSchema,
+            bootstrapMorroDeSaoPauloDestination,
+          } from './services/destinations/dist/index.js';
+
+          const pool = createDestinationsMySqlPool(process.env);
+          try {
+            await applyDestinationsSchema(pool);
+            const service = createDestinationAdminService(pool);
+            const boot = await bootstrapMorroDeSaoPauloDestination(service);
+            if (!['created', 'found'].includes(boot.status)) {
+              throw new Error('DESTINATION_BOOTSTRAP_FAILED:' + JSON.stringify(boot));
+            }
+            const found = await service.read('morro-de-sao-paulo');
+            if (found.status !== 'found') throw new Error('DESTINATION_NOT_FOUND_AFTER_BOOTSTRAP');
+            const before = found.data;
+            const updated = await service.setStatus(
+              before.id,
+              'suspended',
+              before.version,
+            );
+            if (updated.status !== 'updated' || updated.data.version !== before.version + 1) {
+              throw new Error('DESTINATION_CAS_UPDATE_FAILED:' + JSON.stringify(updated));
+            }
+            const stale = await service.setStatus(
+              before.id,
+              'active',
+              before.version,
+            );
+            if (stale.status !== 'conflict') {
+              throw new Error('DESTINATION_STALE_WRITE_NOT_REJECTED:' + JSON.stringify(stale));
+            }
+            const reread = await service.read(before.id);
+            if (reread.status !== 'found' || reread.data.status !== 'suspended') {
+              throw new Error('DESTINATION_DURABILITY_FAILED:' + JSON.stringify(reread));
+            }
+            console.log(JSON.stringify({
+              bootstrap: boot.status,
+              durable: true,
+              optimisticConcurrency: true,
+              version: reread.data.version,
+            }));
+          } finally {
+            await pool.end();
+          }
+          NODE
