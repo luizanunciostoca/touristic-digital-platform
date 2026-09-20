@@ -465,7 +465,7 @@ export function confirmTicketReservation(
   if (!orderId || !paymentId || !confirmedAt) {
     throw new Error("TICKETING_RESERVATION_CONFIRMATION_INVALID");
   }
-  if (Date.parse(confirmedAt) > Date.parse(reservation.expiresAt)) {
+  if (Date.parse(confirmedAt) >= Date.parse(reservation.expiresAt)) {
     throw new Error("TICKETING_RESERVATION_HOLD_EXPIRED");
   }
   const value = createTicketReservation({
