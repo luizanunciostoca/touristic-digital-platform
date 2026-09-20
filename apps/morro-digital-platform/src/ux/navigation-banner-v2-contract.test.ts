@@ -67,9 +67,10 @@ describe("Navigation Banner V2 contract", () => {
     expect(shell).toContain(
       'id="instruction-banner" class="instruction-banner md-navigation-banner hidden"',
     );
-    expect(shell).toContain('role="status"');
-    expect(shell).toContain('aria-live="polite"');
-    expect(shell).toContain('aria-atomic="true"');
+    expect(shell).toContain('aria-labelledby="instruction-main"');
+    expect(shell).toContain(
+      'id="instruction-main" class="instruction-main-text" role="status" aria-live="polite" aria-atomic="true"',
+    );
     expect(shell).toContain('aria-controls="instruction-secondary"');
     expect(shell).toContain(
       'class="end-navigation-btn md-button md-button--destructive"',
