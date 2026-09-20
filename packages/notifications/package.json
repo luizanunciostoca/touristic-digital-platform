@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./event-integration": "./src/event-integration.ts",
     "./browser-permission": "./src/browser-permission.ts"
   },
   "scripts": {
