@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { createAnalyticsApi } from "./analytics-api.mjs";
 import { createAssistantApi } from "./assistant-api.mjs";
 import { createAdminApi } from "./admin-api.mjs";
+import { createAdminAuditRuntime } from "./admin-audit-runtime.mjs";
 import { createAdminDomainAdapters } from "./admin-domain-adapters.mjs";
 import { createAuthApi } from "./auth-api.mjs";
 import { createBusinessApi } from "./business-api.mjs";
@@ -162,6 +163,7 @@ function auditSecurityEvent(request, event) {
 
 const analyticsApi = createAnalyticsApi({ getEnvironmentValue });
 const assistantApi = createAssistantApi({ getEnvironmentValue });
+const adminAuditRuntime = createAdminAuditRuntime({ getEnvironmentValue });
 
 const authApi = createAuthApi({
   getEnvironmentValue,
@@ -173,6 +175,10 @@ platformOperations = createPlatformOperations({
   additionalReadinessChecks: () => [
     { name: "auth-security-state", ...authApi.readinessCheck() },
     { name: "analytics-runtime", ...analyticsApi.readinessCheck() },
+    {
+      name: "control-center-audit",
+      ...adminAuditRuntime.readinessCheck(),
+    },
     {
       name: "payments-runtime",
       status: paymentsRuntimeReady ? "pass" : "fail",
@@ -194,6 +200,7 @@ platformOperations = createPlatformOperations({
 });
 await authApi.start();
 await analyticsApi.start();
+await adminAuditRuntime.start();
 
 const crmApi = createCrmApi({ authApi, getEnvironmentValue });
 await crmApi.start();
@@ -211,6 +218,7 @@ const adminApi = createAdminApi({
   authApi,
   platformOperations,
   getEnvironmentValue,
+  auditStore: adminAuditRuntime,
   domainAdapters: createAdminDomainAdapters({
     businessApi,
     crmApi,
@@ -716,6 +724,7 @@ async function shutdown(signal) {
   const stops = await Promise.allSettled([
     analyticsApi.stop(),
     adminApi.stop(),
+    adminAuditRuntime.stop(),
     authApi.stop(),
     crmApi.stop(),
     paymentsApi.stop(),
