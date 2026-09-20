@@ -247,6 +247,21 @@ describe("M148 transactional ticketing application", () => {
     );
   });
 
+  it("preserves nullable legacy ticket validity on idempotent issuance replay", async () => {
+    const { service, fixture } = harness();
+    const issued = await service.issueTicket(issueInput(fixture));
+    expect(issued.ticket.validUntil).toBeNull();
+
+    const replay = await service.issueTicket({
+      ...issueInput(fixture),
+      validUntil: "2026-08-15T11:00:00Z",
+    });
+
+    expect(replay.replayed).toBe(true);
+    expect(replay.ticket.id).toBe(issued.ticket.id);
+    expect(replay.ticket.validUntil).toBeNull();
+  });
+
   it("rejects caller money divergence", async () => {
     const { service, fixture, tickets } = harness();
     await expect(
