@@ -1,0 +1,59 @@
+name: CI Stale Run Guard
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
+
+permissions:
+  contents: read
+  actions: write
+  pull-requests: read
+
+concurrency:
+  group: stale-run-guard-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  cancel-stale-runs:
+    name: cancel stale Actions runs
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      HEAD_REF: ${{ github.event.pull_request.head.ref }}
+      CURRENT_SHA: ${{ github.event.pull_request.head.sha }}
+    steps:
+      - name: Cancel queued and running jobs from superseded PR commits
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          cancel_status() {
+            local status="$1"
+
+            gh api --paginate --method GET "repos/$REPO/actions/runs" \
+              -f event=pull_request \
+              -f status="$status" \
+              -f branch="$HEAD_REF" \
+              -f per_page=100 |
+              jq -r \
+                --arg sha "$CURRENT_SHA" \
+                --argjson pr "$PR_NUMBER" \
+                '.workflow_runs[]
+                 | select(.head_sha != $sha)
+                 | select(any(.pull_requests[]?; .number == $pr))
+                 | [.id, .head_sha, .name] | @tsv' |
+              while IFS=$'\t' read -r run_id run_sha run_name; do
+                [ -n "$run_id" ] || continue
+                echo "Cancelling stale run $run_id ($run_name, $run_sha)"
+                if ! gh api --method POST "repos/$REPO/actions/runs/$run_id/cancel" >/dev/null 2>&1; then
+                  echo "::warning::Run $run_id finished or became non-cancellable before cleanup."
+                fi
+              done
+          }
+
+          cancel_status queued
+          cancel_status in_progress

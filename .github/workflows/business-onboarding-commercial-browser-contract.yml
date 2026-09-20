@@ -3,6 +3,7 @@ name: Business Onboarding Commercial Browser Contract
 on:
   workflow_dispatch:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
     paths:
       - ".github/workflows/business-onboarding-commercial-browser-contract.yml"
       - "apps/morro-digital-platform/package.json"
@@ -40,8 +41,13 @@ permissions:
 env:
   TURBO_TELEMETRY_DISABLED: "1"
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   onboarding-commercial-browser:
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
     name: onboarding-commercial-browser / repeat ${{ matrix.repeat }}
     strategy:
       fail-fast: false
