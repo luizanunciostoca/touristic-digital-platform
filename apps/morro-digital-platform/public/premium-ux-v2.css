@@ -185,7 +185,7 @@ body[data-md-mode="tour"]
 }
 
 @media (prefers-reduced-motion: reduce) {
-  #controls,
+  .quick-actions,
   #globe-map-control {
     transition-duration: 0.01ms;
     transition-delay: 0ms;
