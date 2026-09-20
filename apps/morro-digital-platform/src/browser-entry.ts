@@ -36,6 +36,7 @@ import {
   localizedTourStopLabel,
   type RuntimeStatusDescriptor,
 } from "./runtime/runtime-accessibility-i18n.js";
+import { installPremiumUxModePresenter } from "./ux/premium-ux-mode.js";
 import { initializeWeatherWidget } from "./weather/weather-widget.js";
 
 interface MorroRuntimeGlobal {
@@ -90,6 +91,7 @@ function setupV1ShellInteractions(): void {
 }
 
 setupV1ShellInteractions();
+installPremiumUxModePresenter({ document });
 const publicOnboarding = installPublicOnboarding({ document });
 
 function setV1MapboxCompatibilityAliases(
