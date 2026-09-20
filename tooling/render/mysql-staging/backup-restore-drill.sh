@@ -28,10 +28,11 @@ environment="${DRILL_ENVIRONMENT:-}"
 [ "${DRILL_CONFIRM:-}" = "BACKUP_RESTORE_STAGING_ONLY" ] ||
   fail "DRILL_CONFIRMATION_REQUIRED"
 
-if [ -n "${RENDER_SERVICE_NAME:-}" ] &&
-  [ "$RENDER_SERVICE_NAME" != "morro-digital-v2-staging-mysql" ]; then
+[ "${RENDER_SERVICE_NAME:-}" = "morro-digital-v2-staging-mysql" ] ||
   fail "DRILL_SERVICE_DENIED"
-fi
+
+[ "${DRILL_SOURCE_QUIESCED_CONFIRMED:-}" = "true" ] ||
+  fail "DRILL_SOURCE_QUIESCED_CONFIRMATION_REQUIRED"
 
 source_database="${DRILL_SOURCE_DATABASE:-}"
 restore_database="${DRILL_RESTORE_DATABASE:-}"
@@ -67,6 +68,7 @@ mysql_user="${DRILL_MYSQL_USER:-root}"
 mysql_password="${DRILL_MYSQL_PASSWORD:-${MYSQL_ROOT_PASSWORD:-}}"
 backup_directory="${DRILL_BACKUP_DIRECTORY:-/tmp/morro-dr}"
 keep_restore="${DRILL_KEEP_RESTORE:-false}"
+keep_backup="${DRILL_KEEP_BACKUP:-false}"
 dry_run="${DRILL_DRY_RUN:-false}"
 
 case "$mysql_port" in
@@ -80,6 +82,10 @@ case "$keep_restore" in
   true|false) ;;
   *) fail "DRILL_KEEP_RESTORE_INVALID" ;;
 esac
+case "$keep_backup" in
+  true|false) ;;
+  *) fail "DRILL_KEEP_BACKUP_INVALID" ;;
+esac
 case "$dry_run" in
   true|false) ;;
   *) fail "DRILL_DRY_RUN_INVALID" ;;
@@ -92,8 +98,8 @@ case "$backup_directory" in
 esac
 
 if [ "$dry_run" = "true" ]; then
-  printf '{"contract":"%s","contractVersion":%s,"status":"planned","environment":"staging","sourceDatabase":"%s","restoreDatabase":"%s","keepRestore":%s}\n' \
-    "$CONTRACT" "$CONTRACT_VERSION" "$source_database" "$restore_database" "$keep_restore"
+  printf '{"contract":"%s","contractVersion":%s,"status":"planned","environment":"staging","sourceDatabase":"%s","restoreDatabase":"%s","sourceQuiescedConfirmed":true,"keepRestore":%s,"keepBackup":%s}\n' \
+    "$CONTRACT" "$CONTRACT_VERSION" "$source_database" "$restore_database" "$keep_restore" "$keep_backup"
   exit 0
 fi
 
@@ -112,6 +118,7 @@ backup_file="$backup_directory/$source_database-$timestamp.sql"
 source_tables_file="$(mktemp)"
 restore_tables_file="$(mktemp)"
 restore_created=false
+backup_created=false
 
 mysql_base() {
   MYSQL_PWD="$mysql_password" mysql \
@@ -126,6 +133,9 @@ mysql_base() {
 
 cleanup() {
   rm -f "$source_tables_file" "$restore_tables_file"
+  if [ "$backup_created" = "true" ] && [ "$keep_backup" != "true" ]; then
+    rm -f "$backup_file"
+  fi
   if [ "$restore_created" = "true" ] && [ "$keep_restore" != "true" ]; then
     MYSQL_PWD="$mysql_password" mysql \
       --protocol=tcp \
@@ -159,6 +169,7 @@ MYSQL_PWD="$mysql_password" mysqldump \
   --hex-blob \
   --set-gtid-purged=OFF \
   "$source_database" >"$backup_file"
+backup_created=true
 backup_completed_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
 [ -s "$backup_file" ] || fail "DRILL_BACKUP_EMPTY"
@@ -197,9 +208,10 @@ done <"$source_tables_file"
 backup_sha256="$(sha256sum "$backup_file" | awk '{print $1}')"
 backup_bytes="$(wc -c <"$backup_file" | awk '{print $1}')"
 table_count="$(wc -l <"$source_tables_file" | awk '{print $1}')"
+[ "$table_count" -gt 0 ] || fail "DRILL_SOURCE_HAS_NO_BASE_TABLES"
 backup_basename="$source_database-$timestamp.sql"
 
-printf '{"contract":"%s","contractVersion":%s,"status":"pass","environment":"staging","sourceDatabase":"%s","restoreDatabase":"%s","backupFile":"%s","backupBytes":%s,"backupSha256":"%s","tableCount":%s,"backupStartedAt":"%s","backupCompletedAt":"%s","restoreStartedAt":"%s","restoreCompletedAt":"%s","keepRestore":%s}\n' \
+printf '{"contract":"%s","contractVersion":%s,"status":"pass","environment":"staging","sourceDatabase":"%s","restoreDatabase":"%s","backupFile":"%s","backupBytes":%s,"backupSha256":"%s","tableCount":%s,"backupStartedAt":"%s","backupCompletedAt":"%s","restoreStartedAt":"%s","restoreCompletedAt":"%s","sourceQuiescedConfirmed":true,"keepRestore":%s,"keepBackup":%s}\n' \
   "$CONTRACT" \
   "$CONTRACT_VERSION" \
   "$source_database" \
@@ -212,4 +224,5 @@ printf '{"contract":"%s","contractVersion":%s,"status":"pass","environment":"sta
   "$backup_completed_at" \
   "$restore_started_at" \
   "$restore_completed_at" \
-  "$keep_restore"
+  "$keep_restore" \
+  "$keep_backup"
