@@ -225,16 +225,22 @@ export function installCommercePreviewSheet(input: {
     releasePointerCapture(event);
   };
 
+  const compatibilityMouseSuppressed = (): boolean =>
+    Date.now() < suppressClicksUntil;
+
   const onMouseDown = (event: MouseEvent): void => {
+    if (compatibilityMouseSuppressed()) return;
     pointerStartY = event.clientY;
     suppressClicksUntil = 0;
   };
 
   const onMouseMove = (event: MouseEvent): void => {
+    if (compatibilityMouseSuppressed()) return;
     applyDragDelta(event.clientY);
   };
 
   const onMouseUp = (event: MouseEvent): void => {
+    if (compatibilityMouseSuppressed()) return;
     applyDragDelta(event.clientY);
     pointerStartY = null;
     scheduleClickSuppressionReset();
