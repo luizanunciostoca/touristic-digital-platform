@@ -95,9 +95,14 @@ export default defineConfig({
         replacement: source("ordering", "subscription.ts"),
       },
       { find: "@touristic/ordering", replacement: source("ordering") },
+      { find: "@touristic/ticketing", replacement: source("ticketing") },
       {
         find: "@touristic/ordering-server",
         replacement: serviceSource("ordering"),
+      },
+      {
+        find: "@touristic/ticketing-server",
+        replacement: serviceSource("ticketing"),
       },
       {
         find: "@touristic/financial-server/mercado-pago-card-payment",
