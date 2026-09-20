@@ -128,7 +128,8 @@ self.addEventListener("activate", (event) => {
       await Promise.all(
         names
           .filter(
-            (name) => name.startsWith(`${CACHE_PREFIX}-`) && name !== STATIC_CACHE,
+            (name) =>
+              name.startsWith(`${CACHE_PREFIX}-`) && name !== STATIC_CACHE,
           )
           .map((name) => caches.delete(name)),
       );
