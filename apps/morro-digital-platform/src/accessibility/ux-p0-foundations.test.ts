@@ -90,7 +90,9 @@ describe("UX P0 + Design System V2 foundations", () => {
     }
   });
 
-  it("centralizes focus, reduced motion and forced-colors behavior", async () => {
+  it(
+    "centralizes focus, reduced motion and forced-colors behavior",
+    async () => {
     const css = await readPublic("design-system-v2.css");
 
     expect(css).toContain(":focus-visible");
@@ -99,9 +101,12 @@ describe("UX P0 + Design System V2 foundations", () => {
     expect(css).toContain("animation-duration: 0.01ms !important");
     expect(css).toContain("@media (forced-colors: active)");
     expect(css).toContain("outline-color: Highlight");
-  });
+    },
+  );
 
-  it("covers critical public controls with the 44px target contract", async () => {
+  it(
+    "covers critical public controls with the 44px target contract",
+    async () => {
     const css = await readPublic("design-system-v2.css");
     const criticalSelectors = [
       ".control-button",
@@ -134,9 +139,12 @@ describe("UX P0 + Design System V2 foundations", () => {
     expect(css).toContain(".biz-demo-back-btn");
     expect(css).toContain(".plans-back-btn");
     expect(css).toContain("#assistant-voice-selector.minimized");
-  });
+    },
+  );
 
-  it("loads foundations after feature CSS on the primary public surfaces", async () => {
+  it(
+    "loads foundations after feature CSS on the primary public surfaces",
+    async () => {
     const surfaces = [
       "index.html",
       "business-dashboard.html",
@@ -163,9 +171,12 @@ describe("UX P0 + Design System V2 foundations", () => {
         `${surface} must load foundations after feature CSS`,
       ).toBe(foundationHref);
     }
-  });
+    },
+  );
 
-  it("uses safe small and dynamic viewport units on primary shells", async () => {
+  it(
+    "uses safe small and dynamic viewport units on primary shells",
+    async () => {
     const files = [
       "styles.css",
       "business-dashboard.css",
@@ -192,9 +203,12 @@ describe("UX P0 + Design System V2 foundations", () => {
         `missing post-legacy viewport override ${selector}`,
       ).toContain(selector);
     }
-  });
+    },
+  );
 
-  it("keeps browser evidence for keyboard, 200% zoom, forced colors and overflow", async () => {
+  it(
+    "keeps browser evidence for keyboard, 200% zoom, forced colors and overflow",
+    async () => {
     const homeFirstRun = await readRepository(
       ".github/workflows/home-first-run-browser-regression.yml",
     );
@@ -213,5 +227,6 @@ describe("UX P0 + Design System V2 foundations", () => {
     expect(navigationAccessibility).toContain("text-200-mobile");
     expect(homeResponsive).toContain("horizontal overflow");
     expect(tourResponsive).toContain("horizontal overflow");
-  });
+    },
+  );
 });
