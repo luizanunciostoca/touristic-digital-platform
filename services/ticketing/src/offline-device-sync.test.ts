@@ -95,7 +95,9 @@ function envelopeFor(
 }
 
 describe("Ticketing offline device sync credential window", () => {
-  it("rejects a signed envelope backdated before the device credential was issued", async () => {
+  it(
+    "rejects a signed envelope backdated before the device credential was issued",
+    async () => {
     const { service, credential, ticketId, ticketing, devices } = harness();
     await expect(
       service.sync({
@@ -110,9 +112,12 @@ describe("Ticketing offline device sync credential window", () => {
     ).rejects.toThrow("TICKETING_OFFLINE_ENVELOPE_CREDENTIAL_WINDOW_INVALID");
     expect(ticketing.syncOfflineEnvelope).not.toHaveBeenCalled();
     expect(devices.recordSync).not.toHaveBeenCalled();
-  });
+    },
+  );
 
-  it("accepts an envelope queued inside the active device credential window", async () => {
+  it(
+    "accepts an envelope queued inside the active device credential window",
+    async () => {
     const { service, credential, ticketId, ticketing, devices } = harness();
     await expect(
       service.sync({
@@ -130,5 +135,6 @@ describe("Ticketing offline device sync credential window", () => {
       credential.claims.deviceId,
       "2026-09-20T11:00:00.000Z",
     );
-  });
+    },
+  );
 });
