@@ -178,10 +178,7 @@ export function installCommercePreviewSheet(input: {
     }
   };
 
-  const beginDrag = (
-    clientY: number,
-    source: "pointer" | "touch",
-  ): void => {
+  const beginDrag = (clientY: number, source: "pointer" | "touch"): void => {
     if (suppressResetTimer !== undefined) {
       input.window.clearTimeout(suppressResetTimer);
       suppressResetTimer = undefined;
