@@ -7,7 +7,7 @@
       name="description"
       content="Detalhes de passeios, festas e experiências no Morro Digital"
     />
-    <meta name="color-scheme" content="dark" />
+    <meta name="color-scheme" content="light dark" />
     <title>Experiência · Morro Digital</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -28,17 +28,29 @@
       href="/apps/morro-digital-platform/public/design-system-v2.css"
     />
   </head>
-  <body class="commerce-detail-shell" data-md-mode="commerce">
+  <body
+    class="commerce-detail-shell"
+    data-md-mode="commerce"
+    data-destination-theme="morro"
+  >
     <main class="commerce-detail-container">
-      <a class="commerce-detail-back" href="/">← Voltar ao Morro Digital</a>
+      <a
+        class="commerce-detail-back md-button md-button--secondary"
+        href="/"
+        >← Voltar ao Morro Digital</a
+      >
       <section
         id="experience-loading"
-        class="commerce-detail-status"
+        class="commerce-detail-status md-banner"
         role="status"
       >
         Carregando experiência…
       </section>
-      <article id="experience-card" class="commerce-detail-card" hidden>
+      <article
+        id="experience-card"
+        class="commerce-detail-card md-card"
+        hidden
+      >
         <div>
           <span id="experience-kind" class="commerce-detail-eyebrow"
             >Experiência</span
@@ -49,16 +61,21 @@
             class="commerce-detail-description"
           ></p>
           <div class="commerce-detail-actions">
-            <a id="experience-reserve" class="primary" href="#"
+            <a
+              id="experience-reserve"
+              class="primary md-button md-button--primary"
+              href="#"
               >Reservar agora</a
             >
-            <a class="secondary" href="/tickets.html"
+            <a
+              class="secondary md-button md-button--secondary"
+              href="/tickets.html"
               >Ver todas as experiências</a
             >
           </div>
         </div>
         <aside
-          class="commerce-detail-meta"
+          class="commerce-detail-meta md-card"
           aria-label="Informações da experiência"
         >
           <p><span>Quando</span><strong id="experience-start">—</strong></p>
