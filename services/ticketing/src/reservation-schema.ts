@@ -47,6 +47,7 @@ CREATE TABLE IF NOT EXISTS ticketing_reservations (
   quantity INT UNSIGNED NOT NULL,
   status ENUM('held','confirmed','expired','cancelled') NOT NULL,
   expires_at DATETIME(3) NOT NULL,
+  valid_until DATETIME(3) NULL,
   order_id VARCHAR(120) COLLATE utf8mb4_bin NULL,
   payment_id VARCHAR(120) COLLATE utf8mb4_bin NULL,
   created_at DATETIME(3) NOT NULL,
