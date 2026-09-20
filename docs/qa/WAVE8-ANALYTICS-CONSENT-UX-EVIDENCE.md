@@ -33,6 +33,12 @@ The CSS uses logical inline positioning for RTL, minimum touch targets, reduced-
 
 This change does not expand the Analytics schema or payload. Existing instrumentation continues to exclude raw search text, Assistant messages, card data, payment amounts and unnecessary personal data.
 
+## Non-blocking presentation
+
+The privacy preference control starts collapsed, including when consent is `unknown`.
+This is intentional: `unknown` already disables Analytics at the collector boundary, so blocking Home, onboarding, map or Assistant interactions is unnecessary.
+The persistent Privacy trigger lets the visitor open the preference surface and explicitly choose `granted` or `denied` at any time.
+
 ## Release boundary
 
 This closes the browser consent UX implementation gap only. Production Analytics activation still requires the production environment/database to be configured and verified by the Wave 8 infrastructure gates.

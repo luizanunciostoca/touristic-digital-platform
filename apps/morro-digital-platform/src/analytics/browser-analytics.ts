@@ -511,7 +511,7 @@ export function installBrowserAnalyticsConsentPreferences(
   root.setAttribute("aria-live", "polite");
   document.body.append(root);
 
-  let expanded = controller.getConsent() === "unknown";
+  let expanded = false;
 
   const localizedCopy = (): AnalyticsConsentPreferenceCopy =>
     browserAnalyticsConsentPreferenceCopy(
