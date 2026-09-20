@@ -1,0 +1,111 @@
+/*
+ * Morro Digital — Assistant Modal V2.
+ *
+ * Loaded after frozen V1 CSS. The single z-layer override is transitional and
+ * exists only because legacy assistant rules still carry !important stacking.
+ */
+
+#assistant-messages.md-assistant-dialog {
+  z-index: var(--md-layer-dialog) !important;
+  border: 1px solid var(--md-color-border);
+  background: var(--md-color-surface-glass);
+  color: var(--md-color-text-primary);
+  box-shadow: var(--md-elevation-3);
+  font-family: var(--md-font-family-sans);
+  backdrop-filter: blur(0.75rem);
+  overscroll-behavior: contain;
+  transition:
+    opacity var(--md-motion-duration-normal) var(--md-motion-ease-standard),
+    transform var(--md-motion-duration-normal) var(--md-motion-ease-standard),
+    box-shadow var(--md-motion-duration-normal) var(--md-motion-ease-standard);
+}
+
+#assistant-messages.md-assistant-dialog[data-assistant-state="loading"] {
+  cursor: progress;
+}
+
+#assistant-messages.md-assistant-dialog .md-assistant-messages {
+  min-height: 0;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+#assistant-messages.md-assistant-dialog .md-assistant-options {
+  gap: var(--md-space-2);
+}
+
+#assistant-messages.md-assistant-dialog .assistant-option-btn {
+  min-height: var(--md-touch-target-min);
+  border-radius: var(--md-radius-md);
+  font-family: var(--md-font-family-sans);
+  transition:
+    background-color var(--md-motion-duration-fast)
+      var(--md-motion-ease-standard),
+    border-color var(--md-motion-duration-fast) var(--md-motion-ease-standard),
+    color var(--md-motion-duration-fast) var(--md-motion-ease-standard),
+    box-shadow var(--md-motion-duration-fast) var(--md-motion-ease-standard),
+    transform var(--md-motion-duration-fast) var(--md-motion-ease-standard);
+}
+
+#assistant-input-area.md-assistant-composer {
+  z-index: var(--md-layer-dock);
+  border: 1px solid var(--md-color-border);
+  background: var(--md-color-surface-glass);
+  color: var(--md-color-text-primary);
+  box-shadow: var(--md-elevation-2);
+  font-family: var(--md-font-family-sans);
+  backdrop-filter: blur(0.75rem);
+}
+
+#assistant-input-area.md-assistant-composer #assistantInput {
+  min-height: var(--md-touch-target-min);
+  color: var(--md-color-text-primary);
+  font-family: var(--md-font-family-sans);
+}
+
+#assistant-input-area.md-assistant-composer
+  :is(#sendButton, #voiceButton, #configButton) {
+  min-width: var(--md-touch-target-min);
+  min-height: var(--md-touch-target-min);
+}
+
+#assistant-input-area.md-assistant-composer #voiceButton[aria-pressed="true"] {
+  outline: var(--md-focus-ring-width) solid var(--md-focus-ring-color);
+  outline-offset: var(--md-focus-ring-offset);
+}
+
+@media (max-width: 45rem) {
+  #assistant-messages.md-assistant-dialog {
+    max-width: calc(100% - var(--md-space-4));
+    max-height: min(64dvh, 36rem);
+    margin-inline: auto;
+    border-radius: var(--md-radius-xl);
+  }
+
+  #assistant-input-area.md-assistant-composer {
+    padding-bottom: max(var(--md-space-2), var(--md-safe-bottom));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #assistant-messages.md-assistant-dialog,
+  #assistant-messages.md-assistant-dialog .assistant-option-btn {
+    transition-duration: 0.01ms;
+    transition-delay: 0ms;
+  }
+}
+
+@media (forced-colors: active) {
+  #assistant-messages.md-assistant-dialog,
+  #assistant-input-area.md-assistant-composer {
+    border-color: CanvasText;
+    background: Canvas;
+    color: CanvasText;
+    box-shadow: none;
+    backdrop-filter: none;
+  }
+
+  #assistant-input-area.md-assistant-composer #voiceButton[aria-pressed="true"] {
+    outline-color: Highlight;
+  }
+}
