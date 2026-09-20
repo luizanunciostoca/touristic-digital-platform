@@ -54,7 +54,11 @@ export type ExploreLocationsCommand =
   | Readonly<{ type: "apply_option"; value: string }>
   | Readonly<{ type: "show_all" }>
   | Readonly<{ type: "show_nearby" }>
-  | Readonly<{ type: "select_place"; place: string }>
+  | Readonly<{
+      type: "select_place";
+      place: string;
+      category?: string;
+    }>
   | Readonly<{ type: "map_filter_category"; category: string }>
   | Readonly<{ type: "show_all_locations" }>
   | Readonly<{ type: "back_to_filters" }>
@@ -911,8 +915,14 @@ export function installExploreLocationsControl({
 
     if (command.type === "select_place") {
       const normalized = normalizeSearchText(command.place);
+      const requestedCategory = command.category
+        ? normalizeSearchText(command.category)
+        : null;
       const location = morroV1SearchCatalog.find(
-        (candidate) => normalizeSearchText(candidate.name) === normalized,
+        (candidate) =>
+          normalizeSearchText(candidate.name) === normalized &&
+          (requestedCategory === null ||
+            normalizeSearchText(candidate.category) === requestedCategory),
       );
       if (!location) return false;
       if (activeCategory?.value !== location.category) {
