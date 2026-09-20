@@ -12,6 +12,17 @@ function request(input = "me explique a história da Segunda Praia") {
     lastPlace: "Segunda Praia",
     lastCategory: "beaches",
     lastIntent: "place_search",
+    activeTour: {
+      tourId: "trilha-gamboa",
+      stage: "stop",
+      currentStopIndex: 2,
+      totalStops: 5,
+    },
+    navigationState: {
+      active: true,
+      destination: "Segunda Praia",
+      phase: "active",
+    },
   });
   manager.addToHistory({ input: "olá", response: "Olá!" });
   const context = manager.getContext();
@@ -43,6 +54,17 @@ describe("createAssistantLlmHandler", () => {
             lastPlace: "Segunda Praia",
             lastCategory: "beaches",
             lastIntent: "place_search",
+            activeTour: {
+              tourId: "trilha-gamboa",
+              stage: "stop",
+              currentStopIndex: 2,
+              totalStops: 5,
+            },
+            navigationState: {
+              active: true,
+              destination: "Segunda Praia",
+              phase: "active",
+            },
           },
         });
         return new Response(
@@ -77,6 +99,53 @@ describe("createAssistantLlmHandler", () => {
         fromLLM: true,
       },
     });
+  });
+
+  it("normalizes impossible runtime context before sending it to the provider", async () => {
+    const manager = createAssistantContextManager();
+    manager.updateContext({
+      activeTour: {
+        tourId: "volta-a-ilha",
+        stage: "stop",
+        currentStopIndex: 1,
+        totalStops: 8,
+      },
+      navigationState: {
+        active: true,
+        destination: "Forte",
+        phase: "ended",
+      },
+    });
+    const context = manager.getContext();
+    const input = "me conte uma curiosidade cultural";
+    const requestContext = {
+      input,
+      intent: analyzeAssistantIntent(input, {
+        lastPlace: context.lastPlace,
+        lastCategory: context.lastCategory,
+        lastIntent: context.lastIntent,
+        awaiting: context.awaiting,
+      }),
+      context,
+    } satisfies AssistantDialogIntentHandlerContext;
+    const fetchImplementation = vi.fn(
+      async (_input: RequestInfo | URL, init?: RequestInit) => {
+        const body = typeof init?.body === "string" ? JSON.parse(init.body) : {};
+        expect(body.context.navigationState).toEqual({
+          active: false,
+          destination: "Forte",
+          phase: "ended",
+        });
+        return new Response(JSON.stringify({ text: "Resposta segura." }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      },
+    );
+
+    const handler = createAssistantLlmHandler({ fetch: fetchImplementation });
+    await handler(requestContext);
+    expect(fetchImplementation).toHaveBeenCalledTimes(1);
   });
 
   it("fails closed when the server-side provider is unavailable", async () => {
