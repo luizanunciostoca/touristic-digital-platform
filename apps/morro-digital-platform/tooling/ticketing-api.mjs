@@ -333,6 +333,12 @@ export function createTicketingApi({
       await Promise.all([
         applyTicketingPublicApiSchema(ticketingPool),
         applyOrderingTicketingReservationSchema(orderingPool),
+        financialPool.execute(
+          "SELECT payment_id FROM financial_payments LIMIT 1",
+        ),
+        financialPool.execute(
+          "SELECT result_id FROM financial_payment_results LIMIT 1",
+        ),
       ]);
 
       let crmCommerce = null;
