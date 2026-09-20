@@ -576,6 +576,86 @@ describe("Control Center Admin API", () => {
     expect(calls).toHaveLength(0);
   });
 
+  it("requires step-up before Destination mutations and persists owner audit metadata", async () => {
+    const calls = [];
+    const destination = {
+      async handle({ response }) {
+        calls.push("mutation");
+        response.statusCode = 200;
+        response.end(JSON.stringify({ status: "updated" }));
+        return {
+          reason: "Manutenção programada",
+          entityType: "destination",
+          entityId: "morro-de-sao-paulo",
+          previousState: { status: "active", version: 1 },
+          newState: { status: "suspended", version: 2 },
+        };
+      },
+    };
+    const { api, events } = fixture(platformOwner, {
+      domainAdapters: { destinations: destination },
+    });
+    const path = "/api/admin/v1/destinations/morro-de-sao-paulo";
+
+    const withoutStepUp = responseRecorder();
+    await api.handle(
+      request(path, {
+        method: "PATCH",
+        body: {
+          status: "suspended",
+          reason: "Manutenção programada",
+        },
+      }),
+      withoutStepUp,
+      new URL("http://localhost" + path),
+    );
+    expect(withoutStepUp.statusCode).toBe(403);
+    expect(JSON.parse(withoutStepUp.body).error).toBe("STEP_UP_REQUIRED");
+    expect(calls).toHaveLength(0);
+
+    const stepUp = responseRecorder();
+    await api.handle(
+      request("/api/admin/v1/step-up", {
+        method: "POST",
+        body: { password: "fixture-secret" },
+      }),
+      stepUp,
+      new URL("http://localhost/api/admin/v1/step-up"),
+    );
+    const cookie = String(stepUp.headers.get("set-cookie")).split(";", 1)[0];
+
+    const accepted = responseRecorder();
+    await api.handle(
+      request(path, {
+        method: "PATCH",
+        headers: { cookie },
+        body: {
+          status: "suspended",
+          reason: "Manutenção programada",
+        },
+      }),
+      accepted,
+      new URL("http://localhost" + path),
+    );
+
+    expect(accepted.statusCode).toBe(200);
+    expect(calls).toEqual(["mutation"]);
+    expect(events).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: "audit",
+          attributes: expect.objectContaining({
+            action: "control-center.destinations.mutation.complete",
+            entityType: "destination",
+            entityId: "morro-de-sao-paulo",
+            reason: "Manutenção programada",
+            result: "success",
+          }),
+        }),
+      ]),
+    );
+  });
+
   it("derives the business directory from identity memberships only", async () => {
     const { api } = fixture();
     const response = responseRecorder();
