@@ -119,6 +119,17 @@ if (subscriptionsEnabled !== "true" && subscriptionsEnabled !== "false") {
   throw new Error("PAYMENTS_SUBSCRIPTIONS_ENABLED must be true or false");
 }
 
+const contentPoolSize = Number(values.get("CONTENT_DATABASE_POOL_SIZE"));
+if (
+  !Number.isSafeInteger(contentPoolSize) ||
+  contentPoolSize < 1 ||
+  contentPoolSize > 64
+) {
+  throw new Error(
+    "CONTENT_DATABASE_POOL_SIZE must be an integer between 1 and 64",
+  );
+}
+
 const ticketingEnabled = values.get("TICKETING_FEATURE_ENABLED");
 if (ticketingEnabled !== "true" && ticketingEnabled !== "false") {
   throw new Error("TICKETING_FEATURE_ENABLED must be true or false");
