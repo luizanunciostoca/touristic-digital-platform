@@ -59,6 +59,9 @@ jobs:
         run: node tooling/quality/check-workflow-concurrency.mjs
       - name: Check formatting
         run: pnpm format:check
+      - name: Print Prettier-normalized Premium UX on format failure
+        if: failure()
+        run: pnpm exec prettier apps/morro-digital-platform/public/premium-ux-v2.css
       - name: Enforce Stylelint V2 CSS governance
         run: pnpm css:stylelint
       - name: Check architecture boundaries
