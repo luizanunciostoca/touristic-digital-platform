@@ -34,7 +34,7 @@ describe("Outdoor and one-hand UX V2 contract", () => {
       'body[data-md-mode="navigation"] .end-navigation-btn',
     );
     expect(css).toContain(
-      "bottom: calc(var(--md-safe-bottom) + var(--md-space-4))",
+      "var(--assistant-bar-height, 5rem) + var(--md-space-3)",
     );
     expect(css).toContain("z-index: var(--md-layer-navigation)");
     expect(css).toContain("min-height: 3rem");
