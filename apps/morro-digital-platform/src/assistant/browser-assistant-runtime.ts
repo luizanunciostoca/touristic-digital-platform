@@ -402,6 +402,7 @@ function readOptionOverride(
 }
 
 const COMMERCE_OPTION_ID = /^[A-Za-z0-9_-]{3,120}$/u;
+const COMMERCE_PLACE_KEY = /^[a-z0-9][a-z0-9-]{2,119}$/u;
 
 function commerceCheckoutUrl(value: string): string | null {
   if (value.startsWith("commerce:offer:")) {
@@ -416,6 +417,13 @@ function commerceCheckoutUrl(value: string): string | null {
     const ids = rawIds.filter((id) => COMMERCE_OPTION_ID.test(id));
     if (ids.length === 0 || ids.length !== rawIds.length) return null;
     return `/tickets.html?offers=${ids.map(encodeURIComponent).join(",")}&source=map`;
+  }
+
+  if (value.startsWith("commerce:place:")) {
+    const placeKey = value.slice("commerce:place:".length);
+    return COMMERCE_PLACE_KEY.test(placeKey)
+      ? `/tickets.html?place=${encodeURIComponent(placeKey)}&source=map`
+      : null;
   }
 
   return null;
