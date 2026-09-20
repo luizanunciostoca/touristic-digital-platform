@@ -25,6 +25,10 @@ env:
   TURBO_TELEMETRY_DISABLED: "1"
   PRODUCTION_URL: https://morro-digital-v2.onrender.com
 
+concurrency:
+  group: production-render-rollback
+  cancel-in-progress: false
+
 jobs:
   rollback:
     name: production / rollback
