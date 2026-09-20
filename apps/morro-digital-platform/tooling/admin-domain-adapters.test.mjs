@@ -64,6 +64,10 @@ function fixture() {
           ? { id, status: "confirmed" }
           : null,
     })),
+    adminResolvePaymentTenant: vi.fn(async (id) => ({
+      status: id === "pay_admin_0001" ? "found" : "not_found",
+      tenantId: id === "pay_admin_0001" ? "business-admin-0001" : null,
+    })),
     adminFindLedger: vi.fn(async (key) => ({
       status: key === "payment_approved_pay_admin_0001" ? "found" : "not_found",
       data:
@@ -158,6 +162,7 @@ describe("Control Center Financial owner adapter", () => {
     expect(delegated.headers["idempotency-key"]).toBe(
       "refund:v1:pay_admin_0001",
     );
+    expect(delegated.headers["x-business-id"]).toBe("business-admin-0001");
     await expect(readBody(delegated)).resolves.toEqual({
       reason: "requested_by_business",
     });
