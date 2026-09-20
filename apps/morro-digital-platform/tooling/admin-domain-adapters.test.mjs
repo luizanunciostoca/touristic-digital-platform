@@ -354,7 +354,6 @@ describe("Control Center Financial owner adapter", () => {
   });
 });
 
-
 describe("Control Center Content owner adapter", () => {
   function bodyRequest(method, body) {
     const chunks = [Buffer.from(JSON.stringify(body), "utf8")];
@@ -457,10 +456,9 @@ describe("Control Center Content owner adapter", () => {
 
     expect(response.statusCode).toBe(200);
     expect(runtime.adminRead).toHaveBeenCalledWith("content-admin-0001");
-    expect(runtime.adminRevise).toHaveBeenCalledWith(
-      "content-admin-0001",
-      { title: "Segunda Praia revisada" },
-    );
+    expect(runtime.adminRevise).toHaveBeenCalledWith("content-admin-0001", {
+      title: "Segunda Praia revisada",
+    });
     expect(outcome.audit).toMatchObject({
       reason: "Correção editorial solicitada",
       entityType: "content_document",
