@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { hasAuthCapability, isReadOnlyAuthRole } from "@touristic/auth";
 
 import {
   MySqlCrmCommerceCustomerRepository,
@@ -210,11 +211,11 @@ export function createTicketingAuthorizationPort({ authApi }) {
           reason: "authentication_required",
         });
       }
-      if (admin && active.role !== "admin") {
+      if (admin && !hasAuthCapability(active.role, "ticketing.manage")) {
         return Object.freeze({ allowed: false, reason: "admin_required" });
       }
       if (mutation) {
-        if (active.role === "viewer") {
+        if (isReadOnlyAuthRole(active.role)) {
           return Object.freeze({ allowed: false, reason: "read_only_role" });
         }
         const decision = authApi.authorizeMutation(
