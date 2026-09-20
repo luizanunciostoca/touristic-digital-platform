@@ -24,10 +24,7 @@ export interface AffiliateAdminMembershipProjection {
   readonly status: "pending" | "approved" | "suspended" | "closed";
   readonly acceptedTermsVersion: string | null;
   readonly financialOnboardingStatus:
-    | "not_started"
-    | "pending"
-    | "eligible"
-    | "blocked";
+    "not_started" | "pending" | "eligible" | "blocked";
   readonly eligibleForAttribution: boolean;
   readonly joinedAt: string;
   readonly endedAt: string | null;
@@ -53,19 +50,12 @@ export interface AffiliateAdminConversionProjection {
   readonly createdAt: string;
   readonly entitlementId: string;
   readonly entitlementStatus:
-    | "pending"
-    | "earned"
-    | "cancelled"
-    | "reversed"
-    | "disputed";
+    "pending" | "earned" | "cancelled" | "reversed" | "disputed";
   readonly commissionMinor: string;
   readonly rateBasisPoints: number;
   readonly maturityAt: string;
   readonly materializationState:
-    | "not_requested"
-    | "pending"
-    | "accepted"
-    | "rejected";
+    "not_requested" | "pending" | "accepted" | "rejected";
   readonly financialReference: string | null;
   readonly rejectionCode: string | null;
 }
@@ -127,10 +117,7 @@ interface MembershipRow extends RowDataPacket {
   status: "pending" | "approved" | "suspended" | "closed";
   accepted_terms_version: string | null;
   financial_onboarding_status:
-    | "not_started"
-    | "pending"
-    | "eligible"
-    | "blocked";
+    "not_started" | "pending" | "eligible" | "blocked";
   joined_at: Date | string;
   ended_at: Date | string | null;
   updated_at: Date | string;
@@ -160,11 +147,7 @@ interface ConversionRow extends RowDataPacket {
   created_at: Date | string;
   entitlement_id: string;
   entitlement_status:
-    | "pending"
-    | "earned"
-    | "cancelled"
-    | "reversed"
-    | "disputed";
+    "pending" | "earned" | "cancelled" | "reversed" | "disputed";
   commission_minor: string;
   rate_basis_points: number | string;
   maturity_at: Date | string;
@@ -250,9 +233,9 @@ function listItem(row: AffiliateListRow): AffiliateAdminListItem {
 export class AffiliateAdminQueryService {
   public constructor(private readonly pool: Pool) {}
 
-  public async list(input: Readonly<{ query?: unknown; limit?: unknown }> = {}): Promise<
-    readonly AffiliateAdminListItem[]
-  > {
+  public async list(
+    input: Readonly<{ query?: unknown; limit?: unknown }> = {},
+  ): Promise<readonly AffiliateAdminListItem[]> {
     const query = boundedSearch(input.query);
     const limit = boundedLimit(input.limit);
     const pattern = `%${query}%`;
@@ -285,7 +268,9 @@ export class AffiliateAdminQueryService {
     return Object.freeze(rows.map(listItem));
   }
 
-  public async read(affiliateIdInput: unknown): Promise<AffiliateAdminDetail | null> {
+  public async read(
+    affiliateIdInput: unknown,
+  ): Promise<AffiliateAdminDetail | null> {
     const id = affiliateId(affiliateIdInput);
     const [accounts] = await this.pool.execute<AffiliateAccountRow[]>(
       `SELECT affiliate_id, identity_reference, account_type, role_category, status,
@@ -298,10 +283,14 @@ export class AffiliateAdminQueryService {
     const account = accounts[0];
     if (!account) return null;
 
-    const [membershipsResult, summariesResult, attributionResult, conversionsResult] =
-      await Promise.all([
-        this.pool.execute<MembershipRow[]>(
-          `SELECT
+    const [
+      membershipsResult,
+      summariesResult,
+      attributionResult,
+      conversionsResult,
+    ] = await Promise.all([
+      this.pool.execute<MembershipRow[]>(
+        `SELECT
              m.membership_id, m.program_id, p.destination_id,
              p.status AS program_status, m.status, m.accepted_terms_version,
              m.financial_onboarding_status, m.joined_at, m.ended_at, m.updated_at
@@ -309,10 +298,10 @@ export class AffiliateAdminQueryService {
            JOIN affiliate_programs p ON p.program_id = m.program_id
            WHERE m.affiliate_id = ?
            ORDER BY m.joined_at ASC, m.membership_id ASC`,
-          [id],
-        ),
-        this.pool.execute<SummaryRow[]>(
-          `SELECT
+        [id],
+      ),
+      this.pool.execute<SummaryRow[]>(
+        `SELECT
              currency,
              COUNT(*) AS entitlement_count,
              CAST(SUM(CASE WHEN status = 'pending' THEN commission_minor ELSE 0 END) AS CHAR) AS pending_minor,
@@ -323,16 +312,16 @@ export class AffiliateAdminQueryService {
            WHERE affiliate_id = ?
            GROUP BY currency
            ORDER BY currency ASC`,
-          [id],
-        ),
-        this.pool.execute<AttributionRow[]>(
-          `SELECT COUNT(*) AS attribution_count, MAX(established_at) AS latest_attribution_at
+        [id],
+      ),
+      this.pool.execute<AttributionRow[]>(
+        `SELECT COUNT(*) AS attribution_count, MAX(established_at) AS latest_attribution_at
              FROM affiliate_attributions
             WHERE affiliate_id = ?`,
-          [id],
-        ),
-        this.pool.execute<ConversionRow[]>(
-          `SELECT
+        [id],
+      ),
+      this.pool.execute<ConversionRow[]>(
+        `SELECT
              c.conversion_id, c.order_id, c.payment_reference, c.currency,
              CAST(c.eligible_revenue_minor AS CHAR) AS eligible_revenue_minor,
              c.payment_confirmed_at, c.created_at,
@@ -349,9 +338,9 @@ export class AffiliateAdminQueryService {
            WHERE c.affiliate_id = ?
            ORDER BY c.created_at DESC
            LIMIT 50`,
-          [id],
-        ),
-      ]);
+        [id],
+      ),
+    ]);
 
     const memberships = membershipsResult[0].map((row) =>
       Object.freeze({

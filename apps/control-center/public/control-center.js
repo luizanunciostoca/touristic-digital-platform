@@ -521,9 +521,10 @@ async function renderAffiliates(affiliateId) {
               <tr><th>Afiliado</th><th>Status</th><th>Perfil</th><th>Memberships</th><th>Conversões</th></tr>
             </thead>
             <tbody id="affiliate-list-body">
-              ${affiliates
-                .map(
-                  (affiliate) => `<tr>
+              ${
+                affiliates
+                  .map(
+                    (affiliate) => `<tr>
                     <td>
                       <a href="#affiliates:${encodeURIComponent(affiliate.affiliateId)}">
                         <strong>${escapeHtml(affiliate.identityReference || affiliate.affiliateId)}</strong>
@@ -535,9 +536,10 @@ async function renderAffiliates(affiliateId) {
                     <td>${escapeHtml(affiliate.approvedMembershipCount)} aprovado(s) · ${escapeHtml(affiliate.suspendedMembershipCount)} suspenso(s)</td>
                     <td>${escapeHtml(affiliate.conversionCount)}</td>
                   </tr>`,
-                )
-                .join("") ||
-              '<tr><td colspan="5" class="empty">Nenhum afiliado encontrado.</td></tr>'}
+                  )
+                  .join("") ||
+                '<tr><td colspan="5" class="empty">Nenhum afiliado encontrado.</td></tr>'
+              }
             </tbody>
           </table>
         </div>
@@ -586,9 +588,7 @@ async function renderAffiliates(affiliateId) {
     return;
   }
 
-  const response = await api(
-    `/affiliates/${encodeURIComponent(affiliateId)}`,
-  );
+  const response = await api(`/affiliates/${encodeURIComponent(affiliateId)}`);
   const detail = response.data;
   const affiliate = detail.affiliate;
   const memberships = detail.memberships ?? [];
@@ -598,14 +598,12 @@ async function renderAffiliates(affiliateId) {
   const actionOptions = memberships
     .filter(
       (membership) =>
-        membership.status === "approved" ||
-        membership.status === "suspended",
+        membership.status === "approved" || membership.status === "suspended",
     )
     .map((membership) => {
       const operation =
         membership.status === "approved" ? "suspend" : "reactivate";
-      const label =
-        operation === "suspend" ? "Suspender" : "Reativar";
+      const label = operation === "suspend" ? "Suspender" : "Reativar";
       return `<option value="${escapeHtml(
         `${membership.programId}:${operation}`,
       )}">${label} — ${escapeHtml(membership.programId)} · ${escapeHtml(
@@ -648,18 +646,20 @@ async function renderAffiliates(affiliateId) {
           <table>
             <thead><tr><th>Programa</th><th>Destino</th><th>Status</th><th>Elegível</th><th>Financial onboarding</th></tr></thead>
             <tbody>
-              ${memberships
-                .map(
-                  (membership) => `<tr>
+              ${
+                memberships
+                  .map(
+                    (membership) => `<tr>
                     <td><strong>${escapeHtml(membership.programId)}</strong></td>
                     <td>${escapeHtml(membership.destinationId)}</td>
                     <td>${escapeHtml(membership.status)}</td>
                     <td>${membership.eligibleForAttribution ? "sim" : "não"}</td>
                     <td>${escapeHtml(membership.financialOnboardingStatus)}</td>
                   </tr>`,
-                )
-                .join("") ||
-              '<tr><td colspan="5" class="empty">Nenhuma membership.</td></tr>'}
+                  )
+                  .join("") ||
+                '<tr><td colspan="5" class="empty">Nenhuma membership.</td></tr>'
+              }
             </tbody>
           </table>
         </div>
@@ -671,15 +671,17 @@ async function renderAffiliates(affiliateId) {
           <span class="badge">read-only</span>
         </div>
         <div class="module-list">
-          ${summaries
-            .map(
-              (summary) => `<div class="module-row">
+          ${
+            summaries
+              .map(
+                (summary) => `<div class="module-row">
                 <span>${escapeHtml(summary.currency)}</span>
                 <span>pendente ${escapeHtml(summary.pendingMinor)} · ganho ${escapeHtml(summary.earnedMinor)} · revertido ${escapeHtml(summary.reversedMinor)} · disputado ${escapeHtml(summary.disputedMinor)}</span>
               </div>`,
-            )
-            .join("") ||
-          '<div class="module-row"><span>Nenhum entitlement</span><span>—</span></div>'}
+              )
+              .join("") ||
+            '<div class="module-row"><span>Nenhum entitlement</span><span>—</span></div>'
+          }
         </div>
         <div class="callout" style="margin-top:14px">
           Payout authority: <strong>${escapeHtml(detail.payoutAuthority?.owner ?? "Financial")}</strong>.
@@ -697,18 +699,20 @@ async function renderAffiliates(affiliateId) {
         <table>
           <thead><tr><th>Conversão</th><th>Pedido</th><th>Receita elegível</th><th>Comissão</th><th>Estado</th></tr></thead>
           <tbody>
-            ${conversions
-              .map(
-                (conversion) => `<tr>
+            ${
+              conversions
+                .map(
+                  (conversion) => `<tr>
                   <td><code>${escapeHtml(conversion.conversionId)}</code></td>
                   <td>${escapeHtml(conversion.orderId)}</td>
                   <td>${escapeHtml(conversion.eligibleRevenueMinor)} ${escapeHtml(conversion.currency)}</td>
                   <td>${escapeHtml(conversion.commissionMinor)} ${escapeHtml(conversion.currency)}</td>
                   <td>${escapeHtml(conversion.entitlementStatus)} / ${escapeHtml(conversion.materializationState)}</td>
                 </tr>`,
-              )
-              .join("") ||
-            '<tr><td colspan="5" class="empty">Nenhuma conversão.</td></tr>'}
+                )
+                .join("") ||
+              '<tr><td colspan="5" class="empty">Nenhuma conversão.</td></tr>'
+            }
           </tbody>
         </table>
       </div>
@@ -773,9 +777,7 @@ async function renderAffiliates(affiliateId) {
           .querySelector("#affiliate-action-confirmation")
           ?.value?.trim();
         if (confirmation !== confirmationExpected) {
-          throw new Error(
-            `Digite ${confirmationExpected} para confirmar.`,
-          );
+          throw new Error(`Digite ${confirmationExpected} para confirmar.`);
         }
         const reason = document
           .querySelector("#affiliate-action-reason")

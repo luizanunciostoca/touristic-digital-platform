@@ -1,7 +1,4 @@
-import {
-  hasAuthCapability,
-  isPlatformWideAuthRole,
-} from "@touristic/auth";
+import { hasAuthCapability, isPlatformWideAuthRole } from "@touristic/auth";
 import {
   AffiliateAdminQueryService,
   AffiliateIdentityApplicationService,
@@ -13,8 +10,8 @@ import {
 function actorAllowed(actor, capability) {
   return Boolean(
     actor &&
-      isPlatformWideAuthRole(actor.role) &&
-      hasAuthCapability(actor.role, capability),
+    isPlatformWideAuthRole(actor.role) &&
+    hasAuthCapability(actor.role, capability),
   );
 }
 

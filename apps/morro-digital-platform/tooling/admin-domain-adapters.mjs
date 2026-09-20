@@ -49,7 +49,11 @@ export function createAffiliateAdminAdapter(affiliateAdminRuntime) {
     throw new Error("AFFILIATE_ADMIN_OWNER_BOUNDARY_REQUIRED");
   }
 
-  async function ownerResult(response, result, notFoundCode = "AFFILIATE_NOT_FOUND") {
+  async function ownerResult(
+    response,
+    result,
+    notFoundCode = "AFFILIATE_NOT_FOUND",
+  ) {
     if (result.status === "denied") {
       sendJson(response, 403, { error: "CAPABILITY_DENIED" });
       return;

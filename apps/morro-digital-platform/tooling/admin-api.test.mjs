@@ -594,7 +594,6 @@ describe("Control Center Admin API", () => {
   });
 });
 
-
 describe("Control Center Affiliates critical actions", () => {
   it("requires step-up and exact confirmation before suspending an Affiliate membership", async () => {
     const calls = [];
@@ -707,7 +706,8 @@ describe("Control Center Affiliates critical actions", () => {
         method: "POST",
         body: {
           effectiveUserId: "business-owner",
-          reason: "Investigar painel empresarial sem assumir autoridade crítica",
+          reason:
+            "Investigar painel empresarial sem assumir autoridade crítica",
         },
       }),
       support,

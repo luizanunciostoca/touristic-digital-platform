@@ -354,7 +354,6 @@ describe("Control Center Financial owner adapter", () => {
   });
 });
 
-
 describe("Control Center Affiliates owner adapter", () => {
   function affiliateFixture() {
     const runtime = {
