@@ -6,6 +6,7 @@ on:
     paths:
       - render.staging.yaml
       - docs/deployment/RENDER-STAGING-V2.md
+      - docs/operations/MYSQL-BACKUP-RESTORE-DRILL.md
       - tooling/render/mysql-staging/**
       - tooling/render/with-staging-mysql-env.mjs
       - tooling/render/with-staging-mysql-env.test.mjs
@@ -39,6 +40,10 @@ jobs:
         run: node --test tooling/render/payments-provider-acceptance-runner.test.mjs
       - name: Validate MySQL init shell syntax
         run: sh -n tooling/render/mysql-staging/01-init-databases.sh
+      - name: Validate MySQL backup/restore shell syntax
+        run: sh -n tooling/render/mysql-staging/backup-restore-drill.sh
+      - name: Validate MySQL backup/restore fail-closed contract
+        run: node tooling/render/mysql-staging/backup-restore-drill.contract.mjs
       - name: Reject committed secret-like staging values
         shell: bash
         run: |
