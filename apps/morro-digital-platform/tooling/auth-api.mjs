@@ -2,6 +2,7 @@ import {
   authorizeBusinessAccess,
   canonicalAuthRole,
   capabilitiesForRole,
+  hasAuthCapability,
   isPlatformWideAuthRole,
   isReadOnlyAuthRole,
 } from "@touristic/auth";
@@ -124,6 +125,7 @@ export function createAuthApi({ getEnvironmentValue, audit = () => {} }) {
   let securityStateHealthy = false;
   let securityStateError = null;
   let stopped = false;
+  const delegatedSessions = new WeakMap();
 
   try {
     users = parseConfiguredUsers(usersJson);
@@ -207,6 +209,8 @@ export function createAuthApi({ getEnvironmentValue, audit = () => {} }) {
 
   async function currentSession(request) {
     if (!configured()) return null;
+    const delegated = delegatedSessions.get(request);
+    if (delegated) return delegated;
     const cookies = parseCookies(firstHeader(request.headers.cookie));
     const verified = verifySessionToken(cookies[sessionCookieName], secret);
     if (!verified) return null;
@@ -618,6 +622,47 @@ export function createAuthApi({ getEnvironmentValue, audit = () => {} }) {
         return false;
       }
       return Boolean(authenticateConfiguredUser(users, user.email, password));
+    },
+    async withDelegatedSession(request, effectiveUserId, operation) {
+      if (
+        !request ||
+        typeof request !== "object" ||
+        typeof operation !== "function" ||
+        delegatedSessions.has(request)
+      ) {
+        throw new Error("AUTH_DELEGATION_CONTEXT_INVALID");
+      }
+
+      const actor = await currentSession(request);
+      if (
+        !actor ||
+        !isPlatformWideAuthRole(actor.role) ||
+        !hasAuthCapability(actor.role, "support.impersonate")
+      ) {
+        throw new Error("AUTH_DELEGATION_NOT_AUTHORIZED");
+      }
+
+      const target = users.find(
+        (candidate) => candidate.id === String(effectiveUserId || "").trim(),
+      );
+      if (!target || isPlatformWideAuthRole(target.role)) {
+        throw new Error("AUTH_DELEGATION_TARGET_INVALID");
+      }
+
+      const delegated = Object.freeze({
+        ...actor,
+        subject: target.id,
+        email: target.email,
+        role: target.role,
+        businessIds: target.businessIds,
+      });
+
+      delegatedSessions.set(request, delegated);
+      try {
+        return await operation(delegated);
+      } finally {
+        delegatedSessions.delete(request);
+      }
     },
     resolveSession: currentSession,
     readinessCheck,
