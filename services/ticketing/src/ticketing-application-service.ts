@@ -278,7 +278,7 @@ export function createTicketingApplicationService(
         code,
         status: "issued",
         issuedAt,
-        validUntil: input.validUntil,
+        validUntil: existing ? existing.validUntil : input.validUntil,
         updatedAt: issuedAt,
       });
       if (!ticket) throw new Error("TICKETING_TICKET_INVALID");
