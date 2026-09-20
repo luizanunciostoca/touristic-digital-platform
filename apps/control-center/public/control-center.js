@@ -494,6 +494,323 @@ async function renderBusinesses(businessId) {
     </div>`;
 }
 
+async function renderAffiliates(affiliateId) {
+  if (!affiliateId) {
+    const response = await api("/affiliates?limit=100");
+    const affiliates = response.data ?? [];
+    content.innerHTML = `
+      <section class="card section-card">
+        <div class="section-title">
+          <h2>Afiliados</h2>
+          <span class="badge">${affiliates.length} registro(s)</span>
+        </div>
+        <p style="color:var(--muted)">
+          Leitura pelo domínio Affiliates. Comissões e materializações são somente leitura;
+          payout e settlement permanecem autoridade exclusiva de Financial.
+        </p>
+        <form id="affiliate-search-form" class="form-grid">
+          <label>
+            Buscar afiliado
+            <input id="affiliate-search-query" autocomplete="off" placeholder="Affiliate ID, identidade ou categoria" />
+          </label>
+          <div><button class="secondary-button" type="submit">Buscar</button></div>
+        </form>
+        <div class="table-wrap" style="margin-top:16px">
+          <table>
+            <thead>
+              <tr><th>Afiliado</th><th>Status</th><th>Perfil</th><th>Memberships</th><th>Conversões</th></tr>
+            </thead>
+            <tbody id="affiliate-list-body">
+              ${affiliates
+                .map(
+                  (affiliate) => `<tr>
+                    <td>
+                      <a href="#affiliates:${encodeURIComponent(affiliate.affiliateId)}">
+                        <strong>${escapeHtml(affiliate.identityReference || affiliate.affiliateId)}</strong>
+                      </a>
+                      <br /><small>${escapeHtml(affiliate.affiliateId)}</small>
+                    </td>
+                    <td>${escapeHtml(affiliate.status)}</td>
+                    <td>${escapeHtml(affiliate.roleCategory)}</td>
+                    <td>${escapeHtml(affiliate.approvedMembershipCount)} aprovado(s) · ${escapeHtml(affiliate.suspendedMembershipCount)} suspenso(s)</td>
+                    <td>${escapeHtml(affiliate.conversionCount)}</td>
+                  </tr>`,
+                )
+                .join("") ||
+              '<tr><td colspan="5" class="empty">Nenhum afiliado encontrado.</td></tr>'}
+            </tbody>
+          </table>
+        </div>
+      </section>`;
+
+    document
+      .querySelector("#affiliate-search-form")
+      ?.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const query = document
+          .querySelector("#affiliate-search-query")
+          ?.value?.trim();
+        const body = document.querySelector("#affiliate-list-body");
+        if (!body) return;
+        body.innerHTML =
+          '<tr><td colspan="5" class="empty">Buscando…</td></tr>';
+        try {
+          const result = await api(
+            `/affiliates?limit=100&query=${encodeURIComponent(query || "")}`,
+          );
+          const rows = result.data ?? [];
+          body.innerHTML =
+            rows
+              .map(
+                (affiliate) => `<tr>
+                  <td>
+                    <a href="#affiliates:${encodeURIComponent(affiliate.affiliateId)}">
+                      <strong>${escapeHtml(affiliate.identityReference || affiliate.affiliateId)}</strong>
+                    </a>
+                    <br /><small>${escapeHtml(affiliate.affiliateId)}</small>
+                  </td>
+                  <td>${escapeHtml(affiliate.status)}</td>
+                  <td>${escapeHtml(affiliate.roleCategory)}</td>
+                  <td>${escapeHtml(affiliate.approvedMembershipCount)} aprovado(s) · ${escapeHtml(affiliate.suspendedMembershipCount)} suspenso(s)</td>
+                  <td>${escapeHtml(affiliate.conversionCount)}</td>
+                </tr>`,
+              )
+              .join("") ||
+            '<tr><td colspan="5" class="empty">Nenhum afiliado encontrado.</td></tr>';
+        } catch (error) {
+          body.innerHTML = `<tr><td colspan="5" class="empty">${escapeHtml(
+            error.body?.error || error.message,
+          )}</td></tr>`;
+        }
+      });
+    return;
+  }
+
+  const response = await api(
+    `/affiliates/${encodeURIComponent(affiliateId)}`,
+  );
+  const detail = response.data;
+  const affiliate = detail.affiliate;
+  const memberships = detail.memberships ?? [];
+  const summaries = detail.summaryByCurrency ?? [];
+  const conversions = detail.conversions ?? [];
+  const supportActive = Boolean(state.adminSession?.support);
+  const actionOptions = memberships
+    .filter(
+      (membership) =>
+        membership.status === "approved" ||
+        membership.status === "suspended",
+    )
+    .map((membership) => {
+      const operation =
+        membership.status === "approved" ? "suspend" : "reactivate";
+      const label =
+        operation === "suspend" ? "Suspender" : "Reativar";
+      return `<option value="${escapeHtml(
+        `${membership.programId}:${operation}`,
+      )}">${label} — ${escapeHtml(membership.programId)} · ${escapeHtml(
+        membership.destinationId,
+      )}</option>`;
+    })
+    .join("");
+
+  content.innerHTML = `
+    <div class="grid stats">
+      <article class="card stat">
+        <span class="stat-label">Afiliado</span>
+        <strong class="stat-value" style="font-size:16px">${escapeHtml(affiliate.identityReference)}</strong>
+        <small>${escapeHtml(affiliate.affiliateId)}</small>
+      </article>
+      <article class="card stat">
+        <span class="stat-label">Status da conta</span>
+        <strong class="stat-value" style="font-size:20px">${escapeHtml(affiliate.status)}</strong>
+        <small>${escapeHtml(affiliate.accountType)} · ${escapeHtml(affiliate.roleCategory)}</small>
+      </article>
+      <article class="card stat">
+        <span class="stat-label">Verificações</span>
+        <strong class="stat-value" style="font-size:18px">${affiliate.identityVerified && affiliate.contactVerified ? "OK" : "Pendente"}</strong>
+        <small>fraud block: ${affiliate.fraudBlocked ? "sim" : "não"}</small>
+      </article>
+      <article class="card stat">
+        <span class="stat-label">Atribuições</span>
+        <strong class="stat-value" style="font-size:20px">${escapeHtml(detail.attribution?.count ?? 0)}</strong>
+        <small>última: ${escapeHtml(detail.attribution?.latestAt ?? "—")}</small>
+      </article>
+    </div>
+
+    <div class="grid two-col">
+      <section class="card section-card">
+        <div class="section-title">
+          <h2>Memberships</h2>
+          <span class="badge">${memberships.length}</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Programa</th><th>Destino</th><th>Status</th><th>Elegível</th><th>Financial onboarding</th></tr></thead>
+            <tbody>
+              ${memberships
+                .map(
+                  (membership) => `<tr>
+                    <td><strong>${escapeHtml(membership.programId)}</strong></td>
+                    <td>${escapeHtml(membership.destinationId)}</td>
+                    <td>${escapeHtml(membership.status)}</td>
+                    <td>${membership.eligibleForAttribution ? "sim" : "não"}</td>
+                    <td>${escapeHtml(membership.financialOnboardingStatus)}</td>
+                  </tr>`,
+                )
+                .join("") ||
+              '<tr><td colspan="5" class="empty">Nenhuma membership.</td></tr>'}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card section-card">
+        <div class="section-title">
+          <h2>Comissões</h2>
+          <span class="badge">read-only</span>
+        </div>
+        <div class="module-list">
+          ${summaries
+            .map(
+              (summary) => `<div class="module-row">
+                <span>${escapeHtml(summary.currency)}</span>
+                <span>pendente ${escapeHtml(summary.pendingMinor)} · ganho ${escapeHtml(summary.earnedMinor)} · revertido ${escapeHtml(summary.reversedMinor)} · disputado ${escapeHtml(summary.disputedMinor)}</span>
+              </div>`,
+            )
+            .join("") ||
+          '<div class="module-row"><span>Nenhum entitlement</span><span>—</span></div>'}
+        </div>
+        <div class="callout" style="margin-top:14px">
+          Payout authority: <strong>${escapeHtml(detail.payoutAuthority?.owner ?? "Financial")}</strong>.
+          O Control Center não cria saldo, wallet, settlement ou payout.
+        </div>
+      </section>
+    </div>
+
+    <section class="card section-card" style="margin-top:16px">
+      <div class="section-title">
+        <h2>Conversões recentes</h2>
+        <span class="badge">${conversions.length}</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Conversão</th><th>Pedido</th><th>Receita elegível</th><th>Comissão</th><th>Estado</th></tr></thead>
+          <tbody>
+            ${conversions
+              .map(
+                (conversion) => `<tr>
+                  <td><code>${escapeHtml(conversion.conversionId)}</code></td>
+                  <td>${escapeHtml(conversion.orderId)}</td>
+                  <td>${escapeHtml(conversion.eligibleRevenueMinor)} ${escapeHtml(conversion.currency)}</td>
+                  <td>${escapeHtml(conversion.commissionMinor)} ${escapeHtml(conversion.currency)}</td>
+                  <td>${escapeHtml(conversion.entitlementStatus)} / ${escapeHtml(conversion.materializationState)}</td>
+                </tr>`,
+              )
+              .join("") ||
+            '<tr><td colspan="5" class="empty">Nenhuma conversão.</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card section-card" style="margin-top:16px">
+      <div class="section-title">
+        <h2>Suspensão / reativação</h2>
+        <span class="badge gap">step-up obrigatório</span>
+      </div>
+      ${
+        supportActive
+          ? '<div class="callout">Ações críticas de afiliados ficam bloqueadas durante Support Mode. Encerre a sessão de suporte para operar como actor real.</div>'
+          : '<div class="callout">A mudança de membership usa o serviço owner de Affiliates, exige capability dedicada, reautenticação, motivo e confirmação textual.</div>'
+      }
+      <form id="affiliate-membership-action-form" class="form-grid">
+        <label>
+          Membership
+          <select id="affiliate-membership-action" ${supportActive ? "disabled" : ""} required>
+            <option value="">Selecione</option>
+            ${actionOptions}
+          </select>
+        </label>
+        <label>
+          Sua senha
+          <input id="affiliate-action-password" type="password" autocomplete="current-password" ${supportActive ? "disabled" : ""} required />
+        </label>
+        <label>
+          Motivo obrigatório
+          <textarea id="affiliate-action-reason" minlength="8" maxlength="240" ${supportActive ? "disabled" : ""} required></textarea>
+        </label>
+        <label>
+          Confirmação textual
+          <input id="affiliate-action-confirmation" autocomplete="off" placeholder="SUSPENDER ou REATIVAR" ${supportActive ? "disabled" : ""} required />
+        </label>
+        <p id="affiliate-action-status" role="status" style="margin:0;color:var(--muted)"></p>
+        <div>
+          <button class="primary-button" type="submit" ${supportActive || !actionOptions ? "disabled" : ""}>
+            Executar ação governada
+          </button>
+        </div>
+      </form>
+    </section>
+    <div style="margin-top:16px"><a href="#affiliates">← Voltar para afiliados</a></div>`;
+
+  document
+    .querySelector("#affiliate-membership-action-form")
+    ?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const status = document.querySelector("#affiliate-action-status");
+      try {
+        const selected = document.querySelector(
+          "#affiliate-membership-action",
+        )?.value;
+        const [programId, operation] = String(selected || "").split(":");
+        if (!programId || !["suspend", "reactivate"].includes(operation)) {
+          throw new Error("MEMBERSHIP_ACTION_REQUIRED");
+        }
+        const confirmationExpected =
+          operation === "suspend" ? "SUSPENDER" : "REATIVAR";
+        const confirmation = document
+          .querySelector("#affiliate-action-confirmation")
+          ?.value?.trim();
+        if (confirmation !== confirmationExpected) {
+          throw new Error(
+            `Digite ${confirmationExpected} para confirmar.`,
+          );
+        }
+        const reason = document
+          .querySelector("#affiliate-action-reason")
+          ?.value?.trim();
+        if (!reason || reason.length < 8) throw new Error("REASON_REQUIRED");
+        const password = document.querySelector(
+          "#affiliate-action-password",
+        )?.value;
+        if (!password) throw new Error("PASSWORD_REQUIRED");
+
+        status.textContent = "Reautenticando…";
+        await api("/step-up", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ password }),
+        });
+        status.textContent = "Executando ação governada…";
+        await api(
+          `/affiliates/${encodeURIComponent(
+            affiliateId,
+          )}/memberships/${encodeURIComponent(programId)}/${operation}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ reason, confirmation }),
+          },
+        );
+        status.textContent = "Membership atualizada.";
+        await renderAffiliates(affiliateId);
+      } catch (error) {
+        status.textContent = error.body?.error || error.message;
+      }
+    });
+}
+
 async function renderCrm() {
   const data = await api("/crm/leads?limit=100");
   const leads = Array.isArray(data.data) ? data.data : [];
@@ -1061,6 +1378,7 @@ async function render(view, detail) {
     if (view === "overview") renderOverview();
     else if (view === "users") await renderUsers(detail);
     else if (view === "businesses") await renderBusinesses(detail);
+    else if (view === "affiliates") await renderAffiliates(detail);
     else if (view === "crm") await renderCrm();
     else if (view === "ticketing") await renderTicketing();
     else if (view === "orders") await renderOrders(detail);
