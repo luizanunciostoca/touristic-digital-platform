@@ -713,8 +713,7 @@ export function createV1ImmersiveTourController(
     destroy(): void {
       stopNarration();
       clearFinaleTimer();
-      state = idleV1ImmersiveTourState;
-      void Promise.resolve(options.deactivateMap()).catch(() => undefined);
+      setState(idleV1ImmersiveTourState);
     },
   });
 }
