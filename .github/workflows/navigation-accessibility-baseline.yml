@@ -145,6 +145,7 @@ jobs:
               const end = document.getElementById('end-navigation-btn');
               const instruction = document.getElementById('instruction-main');
               const bannerRect = banner?.getBoundingClientRect();
+              const minimizeRect = minimize?.getBoundingClientRect();
               const endRect = end?.getBoundingClientRect();
               const minimizeStyle = minimize ? getComputedStyle(minimize) : null;
               return {
@@ -154,6 +155,7 @@ jobs:
                 bodyActive: document.body.classList.contains('navigation-active'),
                 instruction: instruction?.textContent?.trim() ?? '',
                 bannerRect: bannerRect ? { left: bannerRect.left, right: bannerRect.right, top: bannerRect.top, bottom: bannerRect.bottom, width: bannerRect.width, height: bannerRect.height } : null,
+                minimizeRect: minimizeRect ? { width: minimizeRect.width, height: minimizeRect.height } : null,
                 endRect: endRect ? { width: endRect.width, height: endRect.height } : null,
                 minimizeForcedColorAdjust: minimizeStyle?.forcedColorAdjust ?? null,
                 minimizeBorderWidth: minimizeStyle?.borderTopWidth ?? null,
@@ -166,8 +168,16 @@ jobs:
             if (!state.bannerVisible || !state.endVisible || !state.bodyActive || !state.instruction) {
               throw new Error(`Active navigation UI missing for ${testCase.name}: ${JSON.stringify(state)}`);
             }
-            if (!state.bannerRect || state.bannerRect.width <= 0 || state.bannerRect.height <= 0 || !state.endRect || state.endRect.width <= 0 || state.endRect.height <= 0) {
+            if (!state.bannerRect || state.bannerRect.width <= 0 || state.bannerRect.height <= 0 || !state.minimizeRect || !state.endRect) {
               throw new Error(`Navigation controls have invalid geometry for ${testCase.name}: ${JSON.stringify(state)}`);
+            }
+            if (
+              state.minimizeRect.width < 44 ||
+              state.minimizeRect.height < 44 ||
+              state.endRect.width < 44 ||
+              state.endRect.height < 44
+            ) {
+              throw new Error(`Navigation touch target below 44px for ${testCase.name}: ${JSON.stringify(state)}`);
             }
             if (testCase.forcedColors && !state.forcedColors) {
               throw new Error(`Forced colors was not active for ${testCase.name}`);
