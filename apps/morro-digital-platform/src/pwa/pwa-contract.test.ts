@@ -37,7 +37,9 @@ describe("PWA offline authority boundary", () => {
   it("keeps APIs, runtime configuration and health probes network-only", async () => {
     const worker = await readPublicFile("service-worker.js");
 
-    expect(worker).toContain('NETWORK_ONLY_PREFIXES = Object.freeze(["/api/"])');
+    expect(worker).toContain(
+      'NETWORK_ONLY_PREFIXES = Object.freeze(["/api/"])',
+    );
     expect(worker).toContain('"/runtime-config.js"');
     expect(worker).toContain('"/healthz"');
     expect(worker).toContain('"/readyz"');
@@ -82,7 +84,9 @@ describe("PWA HTTP update contract", () => {
     const server = await readFile(serverUrl, "utf8");
 
     expect(server).toContain('requestUrl.pathname === "/service-worker.js"');
-    expect(server).toContain('response.setHeader("Cache-Control", "no-cache")');
+    expect(server).toContain(
+      'response.setHeader("Cache-Control", "no-cache")',
+    );
     expect(server).toContain('"worker-src \'self\' blob:"');
   });
 });
