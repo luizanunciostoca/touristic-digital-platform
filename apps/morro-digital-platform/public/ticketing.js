@@ -1,7 +1,7 @@
 import {
   ANALYTICS_TRANSACTION_EVENTS,
   installMorroBrowserAnalytics,
-} from "/apps/morro-digital-platform/dist/analytics/browser-analytics.js";
+} from "/runtime/browser-analytics.js";
 import { initializeMorroBrowserLocale } from "/runtime/browser-locale.js";
 import {
   applyCommerceDocumentCopy,
