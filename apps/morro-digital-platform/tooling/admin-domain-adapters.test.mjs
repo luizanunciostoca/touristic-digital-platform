@@ -67,6 +67,11 @@ function fixture() {
       status: id === "pay_admin_0001" ? "found" : "not_found",
       tenantId: id === "pay_admin_0001" ? "business-admin-0001" : null,
     })),
+    adminResolveFindingTenant: vi.fn(async (id) => ({
+      status: id === "rcf_admin_00000001" ? "found" : "not_found",
+      tenantId: id === "rcf_admin_00000001" ? "business-admin-0001" : null,
+      paymentId: id === "rcf_admin_00000001" ? "pay_admin_0001" : null,
+    })),
     adminFindLedger: vi.fn(async (key) => ({
       status: key === "payment_approved_pay_admin_0001" ? "found" : "not_found",
       data:
@@ -248,6 +253,31 @@ describe("Control Center Financial owner adapter", () => {
     const [, , delegatedUrl] = handle.mock.calls[0];
     expect(delegatedUrl.pathname).toBe(
       "/api/payments/v1/reconciliation/payments/pay_admin_0001/findings",
+    );
+  });
+
+  it("resolves payment and finding tenant scope only through the Payments owner facade", async () => {
+    const { adapter, paymentsApi } = fixture();
+
+    await expect(
+      adapter.resolvePaymentTenant("pay_admin_0001"),
+    ).resolves.toEqual({
+      status: "found",
+      tenantId: "business-admin-0001",
+    });
+    await expect(
+      adapter.resolveFindingTenant("rcf_admin_00000001"),
+    ).resolves.toEqual({
+      status: "found",
+      tenantId: "business-admin-0001",
+      paymentId: "pay_admin_0001",
+    });
+
+    expect(paymentsApi.adminResolvePaymentTenant).toHaveBeenCalledWith(
+      "pay_admin_0001",
+    );
+    expect(paymentsApi.adminResolveFindingTenant).toHaveBeenCalledWith(
+      "rcf_admin_00000001",
     );
   });
 
