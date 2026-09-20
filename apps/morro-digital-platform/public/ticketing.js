@@ -1,6 +1,4 @@
-import {
-  initializeMorroBrowserLocale,
-} from "/apps/morro-digital-platform/dist/runtime/browser-locale.js";
+import { initializeMorroBrowserLocale } from "/apps/morro-digital-platform/dist/runtime/browser-locale.js";
 import {
   applyCommerceDocumentCopy,
   commerceIntlLocale,
@@ -275,7 +273,8 @@ function renderOffers() {
     button.type = "button";
     button.className = "button button-primary";
     button.disabled = offer.availableQuantity < 1;
-    button.textContent = offer.availableQuantity > 0 ? copy.reserve : copy.soldOut;
+    button.textContent =
+      offer.availableQuantity > 0 ? copy.reserve : copy.soldOut;
     button.addEventListener("click", () =>
       selectOffer(offer, { scroll: true }),
     );
@@ -478,9 +477,7 @@ async function waitForTicket(reservationId) {
     }
     await wait(500);
   }
-  setMessage(
-    copy.paymentConfirmedFinalizing,
-  );
+  setMessage(copy.paymentConfirmedFinalizing);
 }
 
 async function resumeCheckout() {
@@ -521,18 +518,13 @@ async function resumeCheckout() {
     }
     if (["FAILED", "CANCELLED", "EXPIRED", "REFUNDED"].includes(status)) {
       clearCheckout();
-      setMessage(
-        copy.paymentNotCompleted,
-        true,
-      );
+      setMessage(copy.paymentNotCompleted, true);
       await loadReservations();
       return;
     }
     await wait(2_500);
   }
-  setMessage(
-    copy.confirmationPending,
-  );
+  setMessage(copy.confirmationPending);
 }
 
 async function createCheckout(reservationPayload) {
