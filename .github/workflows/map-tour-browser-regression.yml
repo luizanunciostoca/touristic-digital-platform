@@ -192,8 +192,46 @@ jobs:
               throw new Error('Guided tour did not highlight the active V1 stop marker.');
             }
 
+            await page.locator('.tour-narration-btn[aria-pressed="true"]').waitFor({
+              state: 'visible',
+              timeout: 3000,
+            });
+            const autoNarration = await page.evaluate(() => ({
+              ...globalThis.__tourSpeechEvidence,
+              spoken: [...globalThis.__tourSpeechEvidence.spoken],
+            }));
+            if (autoNarration.spoken.length < 1 || autoNarration.spoken[0]?.lang !== 'pt-BR') {
+              throw new Error(`Automatic tour narration did not start in pt-BR: ${JSON.stringify(autoNarration)}`);
+            }
+
+            await page.locator('.tour-narration-btn').click();
+            const stoppedNarration = await page.evaluate(() => ({
+              ...globalThis.__tourSpeechEvidence,
+              spoken: [...globalThis.__tourSpeechEvidence.spoken],
+            }));
+            if (stoppedNarration.cancelled < 1) {
+              throw new Error(`Tour narration stop did not cancel speech: ${JSON.stringify(stoppedNarration)}`);
+            }
+
+            await page.locator('.tour-narration-btn').click();
+            const manualNarration = await page.evaluate(() => ({
+              ...globalThis.__tourSpeechEvidence,
+              spoken: [...globalThis.__tourSpeechEvidence.spoken],
+            }));
+            if (manualNarration.spoken.length < 2) {
+              throw new Error(`Manual tour narration did not restart speech: ${JSON.stringify(manualNarration)}`);
+            }
+
             await page.locator('.tour-stop-marker[data-stop-index="2"]').evaluate(element => element.click());
             const markerJump = await waitForGuidedStage(page, 'stop', 'volta-a-ilha', '2');
+            await page.waitForTimeout(700);
+            const changedStopNarration = await page.evaluate(() => ({
+              ...globalThis.__tourSpeechEvidence,
+              spoken: [...globalThis.__tourSpeechEvidence.spoken],
+            }));
+            if (changedStopNarration.spoken.length < 3 || changedStopNarration.cancelled < 2) {
+              throw new Error(`Tour narration did not transition safely between stops: ${JSON.stringify(changedStopNarration)}`);
+            }
 
             await page.locator('#assistant-category-results [data-value="__tour_next__"]').click();
             const next = await waitForGuidedStage(page, 'stop', 'volta-a-ilha', '3');
@@ -219,7 +257,30 @@ jobs:
             });
             const returnedToTours = await guidedSnapshot(page);
 
-            return { intro, first, markerJump, next, list, directLast, finale, returnedToTours };
+            return {
+              intro,
+              first,
+              autoNarration,
+              stoppedNarration,
+              manualNarration,
+              markerJump,
+              changedStopNarration,
+              next,
+              list,
+              directLast,
+              finale,
+              returnedToTours,
+            };
+          }
+
+          async function validateRefreshReentry(page) {
+            await page.reload({ waitUntil: 'domcontentloaded' });
+            const refreshedHome = await waitForHome(page);
+            const intro = await openGuidedTour(page, 'trilha-gamboa', '5');
+            await page.locator('#assistant-category-results [data-value="__tour_start__"]').click();
+            const first = await waitForGuidedStage(page, 'stop', 'trilha-gamboa', '0');
+            await page.locator('.tour-stop-card').waitFor({ state: 'visible', timeout: 10000 });
+            return { refreshedHome, intro, first };
           }
 
           async function failureEvidence(page, name, phase, pageErrors) {
@@ -254,7 +315,39 @@ jobs:
 
             for (const [name, width, height] of cases) {
               const context = await browser.newContext({ viewport: { width, height } });
-              await context.addInitScript(() => localStorage.setItem('morro-digital-onboarded', '1'));
+              await context.addInitScript(() => {
+                localStorage.setItem('morro-digital-onboarded', '1');
+                globalThis.__tourSpeechEvidence = { spoken: [], cancelled: 0 };
+                globalThis.SpeechSynthesisUtterance = class {
+                  constructor(text) {
+                    this.text = String(text || '');
+                    this.lang = '';
+                    this.rate = 1;
+                    this.pitch = 1;
+                    this.volume = 1;
+                    this.voice = null;
+                    this.onend = null;
+                    this.onerror = null;
+                  }
+                };
+                Object.defineProperty(globalThis, 'speechSynthesis', {
+                  configurable: true,
+                  value: {
+                    cancel() {
+                      globalThis.__tourSpeechEvidence.cancelled += 1;
+                    },
+                    getVoices() {
+                      return [{ name: 'Tour Test Voice', lang: 'pt-BR' }];
+                    },
+                    speak(utterance) {
+                      globalThis.__tourSpeechEvidence.spoken.push({
+                        text: String(utterance?.text || ''),
+                        lang: String(utterance?.lang || ''),
+                      });
+                    },
+                  },
+                });
+              });
               const page = await context.newPage();
               const pageErrors = [];
               page.on('pageerror', error => pageErrors.push(error.message));
@@ -299,8 +392,20 @@ jobs:
                 phase = 'guided-v1-flow';
                 const guided = await validateGuidedV1Flow(page);
 
+                phase = 'refresh-reentry';
+                const refreshReentry = await validateRefreshReentry(page);
+
                 if (pageErrors.length > 0) throw new Error(`Browser errors for ${name}: ${JSON.stringify(pageErrors)}`);
-                evidence[name] = { home, volta, gamboa, quadriciclo, restored, guided, pageErrors };
+                evidence[name] = {
+                  home,
+                  volta,
+                  gamboa,
+                  quadriciclo,
+                  restored,
+                  guided,
+                  refreshReentry,
+                  pageErrors,
+                };
                 writeFileSync(`/tmp/map-tour-evidence/success-${name}.json`, JSON.stringify(evidence[name], null, 2));
                 await page.screenshot({ path: `/tmp/map-tour-evidence/fallback-tour-${name}.png`, fullPage: false });
               } catch (error) {
