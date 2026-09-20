@@ -77,23 +77,6 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Produce deterministic Prettier patch
-        run: |
-          set -euo pipefail
-          files=(
-            apps/control-center/public/control-center.js
-            apps/morro-digital-platform/tooling/admin-api.test.mjs
-            apps/morro-digital-platform/tooling/admin-domain-adapters.mjs
-            apps/morro-digital-platform/tooling/admin-domain-adapters.test.mjs
-            services/content/src/content-admin-service.ts
-            services/content/src/mysql-content-repository.ts
-            services/content/src/mysql-integration.test.ts
-          )
-          pnpm exec prettier --write "${files[@]}"
-          if ! git diff --quiet -- "${files[@]}"; then
-            git diff -- "${files[@]}"
-            exit 1
-          fi
       - name: Build Content owner boundaries
         run: |
           pnpm --filter @touristic/content build
