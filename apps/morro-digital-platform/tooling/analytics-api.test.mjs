@@ -85,7 +85,11 @@ describe("Analytics runtime composition", () => {
     });
 
     const { response } = responseHarness();
-    await api.handle(request(), response, new URL("https://morro.example" + analyticsHttpPath));
+    await api.handle(
+      request(),
+      response,
+      new URL("https://morro.example" + analyticsHttpPath),
+    );
     expect(response.statusCode).toBe(503);
     expect(JSON.parse(response.payload)).toEqual({
       error: "ANALYTICS_FEATURE_DISABLED",
