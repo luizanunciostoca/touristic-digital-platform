@@ -19,6 +19,7 @@ on:
       - package.json
       - pnpm-lock.yaml
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
     paths:
       - .github/workflows/home-first-run-browser-regression.yml
       - apps/morro-digital-platform/src/browser-entry.ts
@@ -42,6 +43,7 @@ concurrency:
 
 jobs:
   first-run-browser:
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
