@@ -41,10 +41,20 @@
       >
       <section
         id="experience-loading"
-        class="commerce-detail-status md-banner"
+        class="commerce-detail-status md-card"
         role="status"
+        aria-live="polite"
       >
-        Carregando experiência…
+        <span class="sr-only commerce-detail-loading-copy"
+          >Carregando experiência…</span
+        >
+        <div class="commerce-detail-skeleton" aria-hidden="true">
+          <span class="md-skeleton commerce-detail-skeleton-line short"></span>
+          <span class="md-skeleton commerce-detail-skeleton-title"></span>
+          <span class="md-skeleton commerce-detail-skeleton-line"></span>
+          <span class="md-skeleton commerce-detail-skeleton-line medium"></span>
+          <span class="md-skeleton commerce-detail-skeleton-action"></span>
+        </div>
       </section>
       <article
         id="experience-card"
