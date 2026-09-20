@@ -1,3 +1,4 @@
+import mysql, { type Pool } from "mysql2/promise";
 import type {
   DestinationDocument,
   DestinationRepository,
@@ -116,4 +117,34 @@ export class MemoryDestinationRepository implements DestinationRepository {
     this.documents.set(next.id, next);
     return true;
   }
+}
+
+export * from "./mysql-destination-repository.js";
+export * from "./schema.js";
+
+import { MySqlDestinationRepository } from "./mysql-destination-repository.js";
+import { destinationsSchemaSql } from "./schema.js";
+
+export function createDestinationsMySqlPool(
+  databaseUrl = process.env.DESTINATIONS_DATABASE_URL,
+): Pool {
+  if (!databaseUrl) throw new Error("DESTINATIONS_DATABASE_URL_REQUIRED");
+  const connectionLimit = Number(process.env.DESTINATIONS_DATABASE_POOL_SIZE ?? 6);
+  if (!Number.isInteger(connectionLimit) || connectionLimit < 1 || connectionLimit > 64) {
+    throw new Error("DESTINATIONS_DATABASE_POOL_SIZE_INVALID");
+  }
+  return mysql.createPool({
+    uri: databaseUrl,
+    connectionLimit,
+    waitForConnections: true,
+    timezone: "Z",
+  });
+}
+
+export async function applyDestinationsSchema(pool: Pool): Promise<void> {
+  await pool.query(destinationsSchemaSql);
+}
+
+export function createDestinationAdminService(pool: Pool): DestinationAdminService {
+  return new DestinationAdminService(new MySqlDestinationRepository(pool));
 }
