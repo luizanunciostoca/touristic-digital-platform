@@ -65,7 +65,6 @@ Production CMS source endpoint/provider: NOT CLAIMED.
 
 Transactional offline authority: PROHIBITED.
 
-
 ## Canonical browser storage
 
 The implementation uses asynchronous Cache Storage under the versioned namespace `morro-digital-content-v1`.
