@@ -138,6 +138,10 @@ describe("M139/M141 payments API runtime boundary", () => {
                 ? {
                     id,
                     status: "confirmed",
+                    subject: {
+                      kind: "order",
+                      reference: "ord_admin_0001",
+                    },
                     amount: { minorUnits: 5000, currency: "BRL" },
                   }
                 : null,
