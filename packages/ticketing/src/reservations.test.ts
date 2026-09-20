@@ -195,5 +195,4 @@ describe("ticket reservation contracts", () => {
       }),
     ).toBeNull();
   });
-
 });
