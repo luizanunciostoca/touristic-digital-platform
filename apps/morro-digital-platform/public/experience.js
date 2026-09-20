@@ -1,6 +1,4 @@
-import {
-  initializeMorroBrowserLocale,
-} from "/apps/morro-digital-platform/dist/runtime/browser-locale.js";
+import { initializeMorroBrowserLocale } from "/apps/morro-digital-platform/dist/runtime/browser-locale.js";
 import {
   applyCommerceDocumentCopy,
   commerceIntlLocale,
@@ -95,7 +93,8 @@ async function load() {
   }
 
   elements.kind.textContent = kindLabel(offer);
-  elements.title.textContent = offer.label || `Morro Digital · ${copy.kindExperience}`;
+  elements.title.textContent =
+    offer.label || `Morro Digital · ${copy.kindExperience}`;
   elements.description.textContent = description(offer);
   elements.start.textContent = dateTime(offer.startsAt);
   elements.end.textContent = dateTime(offer.endsAt);
