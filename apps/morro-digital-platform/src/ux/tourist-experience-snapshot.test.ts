@@ -193,8 +193,8 @@ describe("TouristExperienceSnapshot", () => {
           camera = options;
         },
       },
-      async restorePlace(place) {
-        order.push("place:" + place);
+      async restorePlace(place, category) {
+        order.push("place:" + place + ":" + (category ?? ""));
         return true;
       },
       async restoreCategory(category) {
@@ -205,7 +205,7 @@ describe("TouristExperienceSnapshot", () => {
     });
 
     expect(restored).toBe(true);
-    expect(order[0]).toBe("place:Toca do Morcego");
+    expect(order[0]).toBe("place:Toca do Morcego:nightlife");
     expect(camera).toEqual({
       center: [-38.9172057, -13.3766787],
       zoom: 15.25,
@@ -216,5 +216,8 @@ describe("TouristExperienceSnapshot", () => {
     expect(scrolledTo).toEqual({ top: 144, behavior: "auto" });
     expect(body.dataset.mdContextRestored).toBe("true");
     expect(body.dataset.mdContextRestoredMode).toBe("place");
+    expect(
+      storage.getItem(TOURIST_EXPERIENCE_SNAPSHOT_STORAGE_KEY),
+    ).toBeNull();
   });
 });
