@@ -149,7 +149,7 @@ jobs:
 
           async function openGuidedTour(page, tourId, markerCount) {
             const assistant = page.locator('#assistant-messages');
-            if (await assistant.evaluate(element => element.classList.contains('hidden'))) {
+            if (!(await assistant.isVisible())) {
               await page.locator('.mood-button').click();
             }
             await page.locator('#assistant-category-tours').waitFor({ state: 'visible', timeout: 10000 });
