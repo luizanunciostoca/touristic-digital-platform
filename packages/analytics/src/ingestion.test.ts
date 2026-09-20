@@ -62,7 +62,7 @@ describe("analytics ingestion service", () => {
     const repository: AnalyticsIngestionRepositoryPort = {
       record: vi.fn(async (record) => {
         records.push(record);
-        return "stored";
+        return "stored" as const;
       }),
       purgeExpired: vi.fn(async () => 0),
     };
@@ -85,7 +85,7 @@ describe("analytics ingestion service", () => {
   it("purges only through the repository cutoff owned by the server clock", async () => {
     const purgeExpired = vi.fn(async () => 7);
     const repository: AnalyticsIngestionRepositoryPort = {
-      record: vi.fn(async () => "stored"),
+      record: vi.fn(async () => "stored" as const),
       purgeExpired,
     };
     const service = createAnalyticsIngestionService({
@@ -102,7 +102,7 @@ describe("analytics ingestion service", () => {
 
   it("rejects invalid retention configuration", () => {
     const repository: AnalyticsIngestionRepositoryPort = {
-      record: vi.fn(async () => "stored"),
+      record: vi.fn(async () => "stored" as const),
       purgeExpired: vi.fn(async () => 0),
     };
     expect(() =>
