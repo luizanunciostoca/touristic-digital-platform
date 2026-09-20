@@ -50,6 +50,7 @@ function heldReservation() {
     holderReference: "holder_00000001",
     quantity: 1,
     expiresAt: "2026-08-16T18:10:00.000Z",
+    validUntil: "2026-08-17T01:00:00.000Z",
     createdAt: "2026-08-16T18:00:00.000Z",
   });
   if (!value) throw new Error("fixture reservation invalid");
@@ -128,6 +129,7 @@ describe("ticket reservation contracts", () => {
       currency: "BRL",
     });
     expect(reservation.pricingVersion).toBe("2026.08.16");
+    expect(reservation.validUntil).toBe("2026-08-17T01:00:00.000Z");
   });
 
   it("confirms a live hold only with normalized order and payment authority", () => {
@@ -143,7 +145,7 @@ describe("ticket reservation contracts", () => {
       confirmTicketReservation(heldReservation(), {
         orderId: "ord_ticketing_0001",
         paymentId: "pay_ticketing_0001",
-        confirmedAt: "2026-08-16T18:10:00.001Z",
+        confirmedAt: "2026-08-16T18:10:00.000Z",
       }),
     ).toThrow("TICKETING_RESERVATION_HOLD_EXPIRED");
   });
@@ -181,6 +183,15 @@ describe("ticket reservation contracts", () => {
       createTicketReservation({
         ...heldReservation(),
         inventoryId: "tin_other_inventory",
+      }),
+    ).toBeNull();
+  });
+
+  it("rejects reservation validity that ends at or before the hold expiry", () => {
+    expect(
+      createTicketReservation({
+        ...heldReservation(),
+        validUntil: "2026-08-16T18:10:00.000Z",
       }),
     ).toBeNull();
   });

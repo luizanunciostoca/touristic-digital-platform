@@ -5,7 +5,6 @@ import {
   applyCrmCommerceSchema,
   createCrmMySqlPoolFromEnvironment,
 } from "@touristic/crm-server";
-import { normalizeTicketSigningSecret } from "@touristic/ticketing";
 import { normalizeTicketingCheckoutHandoff } from "@touristic/ordering/ticketing-checkout";
 import { createTicketingReservationOrderApplicationService } from "@touristic/ordering/ticketing-reservation";
 import {
@@ -23,34 +22,8 @@ import {
   MySqlVerifiedPaymentResultRepository,
   createFinancialMySqlPoolFromEnvironment,
 } from "@touristic/financial-server";
-import {
-  MySqlFinancialResultCursorRepository,
-  MySqlRefundedReservationCancellationRepository,
-  MySqlTicketCheckInRepository,
-  MySqlTicketHolderProfileRepository,
-  MySqlTicketOfflineDeviceRegistry,
-  MySqlTicketOfflineEnvelopeRepository,
-  MySqlTicketRepository,
-  MySqlTicketReservationRepository,
-  MySqlTicketingBusinessInventoryRepository,
-  MySqlTicketingCommerceCrmOutbox,
-  MySqlTicketingPublicReadRepository,
-  MySqlTicketingTransactionalCommand,
-  TicketingCommerceHttpTransport,
-  TicketingPublicHttpTransport,
-  applyTicketingPublicApiSchema,
-  createOrderingFinancialReservationConfirmationAuthority,
-  createTicketOfflineDeviceSyncService,
-  createTicketReservationApplicationService,
-  createTicketReservationFulfillmentService,
-  createTicketingApplicationService,
-  createTicketingMySqlPoolFromEnvironment,
-  createVerifiedFinancialResultProcessor,
-  createVerifiedPaymentTicketFulfillmentHandler,
-  createVerifiedRefundTicketCancellationHandler,
-  ticketingHttpPrefix,
-} from "@touristic/ticketing-server";
 
+const ticketingHttpPrefix = "/api/ticketing/v1";
 const maxBodyBytes = 32 * 1024;
 const auditStringMaxLength = 256;
 const auditReasonPattern = /^[A-Za-z0-9_.:-]{1,160}$/u;
@@ -299,7 +272,17 @@ export function createTicketingApi({
       const enabled = featureEnabled(environment.TICKETING_FEATURE_ENABLED);
       if (!enabled) {
         runtime = Object.freeze({
-          publicTransport: new TicketingPublicHttpTransport({ enabled: false }),
+          publicTransport: Object.freeze({
+            async handle({ correlationId }) {
+              return Object.freeze({
+                status: 503,
+                headers: Object.freeze({
+                  "X-Correlation-ID": correlationId,
+                }),
+                body: Object.freeze({ error: "TICKETING_FEATURE_DISABLED" }),
+              });
+            },
+          }),
           pools,
           processorTimer: null,
           processing: null,
@@ -307,6 +290,37 @@ export function createTicketingApi({
         started = true;
         return true;
       }
+
+      const [{ normalizeTicketSigningSecret }, ticketingRuntime] =
+        await Promise.all([
+          import("@touristic/ticketing"),
+          import("@touristic/ticketing-server"),
+        ]);
+      const {
+        MySqlFinancialResultCursorRepository,
+        MySqlRefundedReservationCancellationRepository,
+        MySqlTicketCheckInRepository,
+        MySqlTicketHolderProfileRepository,
+        MySqlTicketOfflineDeviceRegistry,
+        MySqlTicketOfflineEnvelopeRepository,
+        MySqlTicketRepository,
+        MySqlTicketReservationRepository,
+        MySqlTicketingBusinessInventoryRepository,
+        MySqlTicketingCommerceCrmOutbox,
+        MySqlTicketingPublicReadRepository,
+        MySqlTicketingTransactionalCommand,
+        TicketingCommerceHttpTransport,
+        applyTicketingPublicApiSchema,
+        createOrderingFinancialReservationConfirmationAuthority,
+        createTicketOfflineDeviceSyncService,
+        createTicketReservationApplicationService,
+        createTicketReservationFulfillmentService,
+        createTicketingApplicationService,
+        createTicketingMySqlPoolFromEnvironment,
+        createVerifiedFinancialResultProcessor,
+        createVerifiedPaymentTicketFulfillmentHandler,
+        createVerifiedRefundTicketCancellationHandler,
+      } = ticketingRuntime;
 
       const signingSecret = normalizeTicketSigningSecret(
         environment.TICKETING_SIGNING_SECRET,
@@ -335,6 +349,12 @@ export function createTicketingApi({
       await Promise.all([
         applyTicketingPublicApiSchema(ticketingPool),
         applyOrderingTicketingReservationSchema(orderingPool),
+        financialPool.execute(
+          "SELECT payment_id FROM financial_payments LIMIT 1",
+        ),
+        financialPool.execute(
+          "SELECT result_id FROM financial_payment_results LIMIT 1",
+        ),
       ]);
 
       let crmCommerce = null;

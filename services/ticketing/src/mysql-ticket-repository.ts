@@ -25,6 +25,7 @@ interface TicketRow extends RowDataPacket {
   code: string;
   status: string;
   issued_at: Date | string;
+  valid_until: Date | string | null;
   validated_at: Date | string | null;
   used_at: Date | string | null;
   cancelled_at: Date | string | null;
@@ -57,6 +58,7 @@ function fromRow(row: TicketRow): Ticket {
     code: row.code,
     status: row.status,
     issuedAt: timestamp(row.issued_at),
+    validUntil: timestamp(row.valid_until),
     validatedAt: timestamp(row.validated_at),
     usedAt: timestamp(row.used_at),
     cancelledAt: timestamp(row.cancelled_at),
@@ -79,7 +81,8 @@ function sameImmutableTicket(left: Ticket, right: Ticket): boolean {
     left.amount.minorUnits === right.amount.minorUnits &&
     left.amount.currency === right.amount.currency &&
     left.code === right.code &&
-    left.issuedAt === right.issuedAt
+    left.issuedAt === right.issuedAt &&
+    left.validUntil === right.validUntil
   );
 }
 
@@ -103,7 +106,7 @@ export class MySqlTicketRepository implements TicketRepositoryPort {
       `SELECT ticket_id, order_id, payment_id, destination_id,
               product_kind, product_reference, holder_name, quantity,
               amount_minor, currency, code, status,
-              issued_at, validated_at, used_at, cancelled_at, updated_at
+              issued_at, valid_until, validated_at, used_at, cancelled_at, updated_at
        FROM ticketing_tickets
        WHERE ticket_id = ?
        LIMIT 1`,
@@ -119,7 +122,7 @@ export class MySqlTicketRepository implements TicketRepositoryPort {
       `SELECT ticket_id, order_id, payment_id, destination_id,
               product_kind, product_reference, holder_name, quantity,
               amount_minor, currency, code, status,
-              issued_at, validated_at, used_at, cancelled_at, updated_at
+              issued_at, valid_until, validated_at, used_at, cancelled_at, updated_at
        FROM ticketing_tickets
        WHERE code = ?
        LIMIT 1`,
@@ -135,7 +138,7 @@ export class MySqlTicketRepository implements TicketRepositoryPort {
       `SELECT ticket_id, order_id, payment_id, destination_id,
               product_kind, product_reference, holder_name, quantity,
               amount_minor, currency, code, status,
-              issued_at, validated_at, used_at, cancelled_at, updated_at
+              issued_at, valid_until, validated_at, used_at, cancelled_at, updated_at
        FROM ticketing_tickets
        WHERE order_id = ?
        ORDER BY issued_at ASC, ticket_id ASC`,
@@ -153,8 +156,8 @@ export class MySqlTicketRepository implements TicketRepositoryPort {
         ticket_id, order_id, payment_id, destination_id,
         product_kind, product_reference, holder_name, quantity,
         amount_minor, currency, code, status,
-        issued_at, validated_at, used_at, cancelled_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        issued_at, valid_until, validated_at, used_at, cancelled_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         normalized.id,
         normalized.orderId,
@@ -169,6 +172,7 @@ export class MySqlTicketRepository implements TicketRepositoryPort {
         normalized.code,
         normalized.status,
         new Date(normalized.issuedAt),
+        normalized.validUntil ? new Date(normalized.validUntil) : null,
         normalized.validatedAt ? new Date(normalized.validatedAt) : null,
         normalized.usedAt ? new Date(normalized.usedAt) : null,
         normalized.cancelledAt ? new Date(normalized.cancelledAt) : null,

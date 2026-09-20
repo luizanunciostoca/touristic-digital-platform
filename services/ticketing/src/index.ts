@@ -72,6 +72,7 @@ import type {
   TicketingTransactionalCommandResult,
 } from "./mysql-ticketing-transaction.js";
 import { ticketingM147SchemaSql } from "./schema.js";
+import { applyTicketingValiditySchema } from "./ticket-validity-schema.js";
 import { applyTicketingTransportProductKindSchema } from "./transport-product-kind-schema.js";
 import {
   TicketingApplicationError,
@@ -136,6 +137,7 @@ export {
   ticketingPublicApiRollbackSql,
   ticketingPublicApiSchemaSql,
   applyTicketingTransportProductKindSchema,
+  applyTicketingValiditySchema,
 };
 
 export type {
@@ -226,5 +228,6 @@ export async function applyTicketingPublicApiSchema(pool: Pool): Promise<void> {
   await applyTicketingM147Schema(pool);
   await applyTicketingFinancialBridgeSchema(pool);
   await applyTicketingTransportProductKindSchema(pool);
+  await applyTicketingValiditySchema(pool);
   await applySqlStatements(pool, ticketingPublicApiSchemaSql);
 }

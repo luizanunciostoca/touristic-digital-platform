@@ -49,6 +49,7 @@ interface TicketRow extends RowDataPacket {
   code: string;
   status: string;
   issued_at: Date | string;
+  valid_until: Date | string | null;
   validated_at: Date | string | null;
   used_at: Date | string | null;
   cancelled_at: Date | string | null;
@@ -105,6 +106,7 @@ function ticketFromRow(row: TicketRow): Ticket {
     code: row.code,
     status: row.status,
     issuedAt: time(row.issued_at),
+    validUntil: time(row.valid_until),
     validatedAt: time(row.validated_at),
     usedAt: time(row.used_at),
     cancelledAt: time(row.cancelled_at),

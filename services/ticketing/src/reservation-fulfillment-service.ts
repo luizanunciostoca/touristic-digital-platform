@@ -84,6 +84,9 @@ export function createTicketReservationFulfillmentService(dependencies: {
           "TICKETING_RESERVATION_CONFIRMATION_INVALID",
         );
       }
+      if (!reservation.validUntil) {
+        throw new Error("TICKETING_RESERVATION_VALIDITY_MISSING");
+      }
 
       const holderName = await dependencies.holderProfiles.resolveHolderName(
         reservation.holderReference,
@@ -109,6 +112,7 @@ export function createTicketReservationFulfillmentService(dependencies: {
         quantity: reservation.quantity,
         amount,
         issuedAt: reservation.confirmedAt,
+        validUntil: reservation.validUntil,
       });
 
       return Object.freeze({

@@ -39,7 +39,10 @@ import type {
 } from "./mysql-ticket-reservation-repository.js";
 import type { MySqlTicketingPublicReadRepository } from "./mysql-ticketing-public-read-repository.js";
 import type { TicketOfflineDeviceSyncService } from "./offline-device-sync.js";
-import type { TicketingApplicationService } from "./ticketing-application-service.js";
+import {
+  TicketingApplicationError,
+  type TicketingApplicationService,
+} from "./ticketing-application-service.js";
 
 export const ticketingHttpPrefix = "/api/ticketing/v1";
 const HOLD_TTL_MS = 10 * 60 * 1_000;
@@ -245,6 +248,7 @@ function publicReservation(
     quantity: reservation.quantity,
     status: reservation.status,
     expiresAt: reservation.expiresAt,
+    validUntil: reservation.validUntil,
     orderId: reservation.orderId,
     createdAt: reservation.createdAt,
     confirmedAt: reservation.confirmedAt,
@@ -271,6 +275,7 @@ function publicTicket(
     code: ticket.code,
     status: ticket.status,
     issuedAt: ticket.issuedAt,
+    validUntil: ticket.validUntil,
     qrSvg,
   });
 }
@@ -330,7 +335,14 @@ function errorStatus(error: unknown): { status: number; code: string } {
   ) {
     return { status: 400, code: message || "INVALID_REQUEST" };
   }
-  if (message.includes("EXHAUSTED") || message.includes("CONFLICT")) {
+  if (
+    message.includes("EXHAUSTED") ||
+    message.includes("CONFLICT") ||
+    message.includes("ALREADY_USED") ||
+    message.includes("ALREADY_VALIDATED") ||
+    message.includes("REVOKED") ||
+    message.includes("EXPIRED")
+  ) {
     return { status: 409, code: message };
   }
   if (message.includes("NOT_FOUND")) return { status: 404, code: "NOT_FOUND" };
@@ -384,7 +396,19 @@ export class TicketingPublicHttpTransport {
           reservationId: null,
         });
         return response(200, { data: result }, correlation);
-      } catch {
+      } catch (error) {
+        if (error instanceof TicketingApplicationError) {
+          const mapped = errorStatus(error);
+          await this.dependencies.audit.record({
+            action: "ticketing.offline.sync",
+            result: "failure",
+            reason: mapped.code,
+            actorSubject: null,
+            correlationId: correlation,
+            reservationId: null,
+          });
+          return response(mapped.status, { error: mapped.code }, correlation);
+        }
         await this.dependencies.audit.record({
           action: "ticketing.offline.sync",
           result: "denied",

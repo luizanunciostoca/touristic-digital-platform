@@ -29,6 +29,9 @@ describe("commerce canonical i18n", () => {
     const english = getTicketingPresentationCopy("en-US");
     expect(english.availableCount(3)).toBe("3 available");
     expect(english.validUntil("Sep 20, 2026")).toContain("Sep 20, 2026");
+    expect(english.validThrough("Sep 20, 2026")).toBe(
+      "valid until Sep 20, 2026",
+    );
 
     const spanish = getExperiencePresentationCopy("es-ES");
     expect(spanish.availableCount(2)).toBe("2 disponibles");

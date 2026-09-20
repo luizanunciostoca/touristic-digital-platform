@@ -43,6 +43,7 @@ export interface TicketingPresentationCopy {
   issuedAt(formattedDate: string): string;
   each(formattedAmount: string): string;
   validUntil(formattedDate: string): string;
+  validThrough(formattedDate: string): string;
   createdAt(formattedDate: string): string;
 }
 
@@ -153,6 +154,7 @@ const TICKETING_COPY: Readonly<
       issuedAt: (date: string) => `emitido em ${date}`,
       each: (amount: string) => `${amount} cada`,
       validUntil: (date: string) => `Reserva válida até ${date}`,
+      validThrough: (date: string) => `válido até ${date}`,
       createdAt: (date: string) => `Criada em ${date}`,
     }),
     "en-US": Object.freeze({
@@ -227,6 +229,7 @@ const TICKETING_COPY: Readonly<
       issuedAt: (date: string) => `issued on ${date}`,
       each: (amount: string) => `${amount} each`,
       validUntil: (date: string) => `Reservation valid until ${date}`,
+      validThrough: (date: string) => `valid until ${date}`,
       createdAt: (date: string) => `Created on ${date}`,
     }),
     "es-ES": Object.freeze({
@@ -301,6 +304,7 @@ const TICKETING_COPY: Readonly<
       issuedAt: (date: string) => `emitido el ${date}`,
       each: (amount: string) => `${amount} cada uno`,
       validUntil: (date: string) => `Reserva válida hasta ${date}`,
+      validThrough: (date: string) => `válido hasta ${date}`,
       createdAt: (date: string) => `Creada el ${date}`,
     }),
     "he-IL": Object.freeze({
@@ -375,6 +379,7 @@ const TICKETING_COPY: Readonly<
       issuedAt: (date: string) => `הונפק ב-${date}`,
       each: (amount: string) => `${amount} לכל אחד`,
       validUntil: (date: string) => `ההזמנה תקפה עד ${date}`,
+      validThrough: (date: string) => `תקף עד ${date}`,
       createdAt: (date: string) => `נוצרה ב-${date}`,
     }),
   });

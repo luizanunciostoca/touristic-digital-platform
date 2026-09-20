@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS ticketing_tickets (
   code VARCHAR(24) COLLATE utf8mb4_bin NOT NULL UNIQUE,
   status ENUM('issued','validated','used','cancelled') NOT NULL,
   issued_at DATETIME(3) NOT NULL,
+  valid_until DATETIME(3) NULL,
   validated_at DATETIME(3) NULL,
   used_at DATETIME(3) NULL,
   cancelled_at DATETIME(3) NULL,

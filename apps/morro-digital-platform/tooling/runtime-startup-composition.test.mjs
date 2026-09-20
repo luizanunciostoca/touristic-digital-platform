@@ -27,8 +27,8 @@ describe("runtime startup composition", () => {
       "utf8",
     );
 
-    expect(source).toContain('from "@touristic/ticketing";');
-    expect(source).toContain('from "@touristic/ticketing-server";');
+    expect(source).toContain('import("@touristic/ticketing")');
+    expect(source).toContain('import("@touristic/ticketing-server")');
     expect(source).not.toContain("../../../packages/ticketing/dist/");
     expect(source).not.toContain("../../../services/ticketing/dist/");
   });

@@ -334,10 +334,13 @@ async function showTicket(reservation) {
     throw new Error("TICKET_QR_INVALID");
   elements.ticketQr.append(svg);
   elements.ticketCode.textContent = ticket.code;
+  const validity = ticket.validUntil
+    ? ` · ${copy.validThrough(dateTime(ticket.validUntil))}`
+    : "";
   elements.ticketMeta.textContent = `${ticket.quantity} ${productUnitLabel(
     reservation.product,
     ticket.quantity,
-  )} · ${money(ticket.amount)} · ${copy.issuedAt(dateTime(ticket.issuedAt))}`;
+  )} · ${money(ticket.amount)} · ${copy.issuedAt(dateTime(ticket.issuedAt))}${validity}`;
   elements.dialog.showModal();
 }
 
@@ -379,7 +382,9 @@ function renderReservations(reservations) {
     expiry.textContent =
       reservation.status === "held"
         ? copy.validUntil(dateTime(reservation.expiresAt))
-        : copy.createdAt(dateTime(reservation.createdAt));
+        : reservation.status === "confirmed" && reservation.validUntil
+          ? copy.validUntil(dateTime(reservation.validUntil))
+          : copy.createdAt(dateTime(reservation.createdAt));
     const status = document.createElement("span");
     status.className = `status status-${reservation.status}`;
     status.textContent = statusLabel(reservation.status);
