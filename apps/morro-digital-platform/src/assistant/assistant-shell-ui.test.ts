@@ -45,6 +45,11 @@ function createElement(initialClasses: string[] = []) {
       void selector;
       return null as unknown;
     },
+    contains() {
+      return false;
+    },
+    focus() {},
+    textContent: "",
   };
 }
 
@@ -57,15 +62,19 @@ function fixture() {
   const input = createElement();
   const carousel = createElement();
   const followUp = createElement();
+  const status = createElement();
   const body = createElement();
   const documentListeners = new Map<string, EventListener>();
 
   const document = {
     body,
+    documentElement: { lang: "pt-BR" },
+    activeElement: quickAction,
     defaultView: null,
     getElementById(id: string) {
       if (id === "assistant-messages") return assistant;
       if (id === "assistantInput") return input;
+      if (id === "assistant-dialog-status") return status;
       return null;
     },
     querySelector(selector: string) {
@@ -92,8 +101,13 @@ function fixture() {
     carousel,
     followUp,
     body,
+    status,
     dispatchKeydown(key: string) {
-      documentListeners.get("keydown")?.({ key } as unknown as Event);
+      documentListeners.get("keydown")?.({
+        key,
+        preventDefault() {},
+        stopPropagation() {},
+      } as unknown as Event);
     },
   };
 }
@@ -132,6 +146,24 @@ describe("assistant shell UI", () => {
     expect(view.quickAction.attributes.get("aria-expanded")).toBe("false");
     expect(view.carousel.classList.contains("hidden")).toBe(true);
     expect(view.followUp.classList.contains("hidden")).toBe(true);
+  });
+
+  it("publishes loading and error state through the accessible shell contract", () => {
+    const view = fixture();
+    const shell = installAssistantShellUi({ document: view.document });
+
+    shell.setState("loading");
+    expect(view.assistant.attributes.get("data-assistant-state")).toBe(
+      "loading",
+    );
+    expect(view.assistant.attributes.get("aria-busy")).toBe("true");
+    expect(view.status.textContent).toBe("Preparando resposta…");
+
+    shell.setState("error");
+    expect(view.assistant.attributes.get("aria-busy")).toBe("false");
+    expect(view.status.textContent).toBe(
+      "Não foi possível concluir a resposta.",
+    );
   });
 
   it("keeps the assistant visible while the tutorial is active", () => {
