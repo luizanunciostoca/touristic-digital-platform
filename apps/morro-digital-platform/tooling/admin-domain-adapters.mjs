@@ -28,6 +28,17 @@ export function createCrmAdminAdapter(crmApi) {
   ]);
 
   return Object.freeze({
+    state: "partial",
+    coverage: Object.freeze([
+      "contracts",
+      "follow-ups",
+      "leads",
+      "meetings",
+      "metrics",
+      "proposals",
+      "referrals",
+      "trials",
+    ]),
     async handle({ request, response, requestUrl }) {
       const relative = requestUrl.pathname.slice(
         `${adminPrefix}/crm`.length,
@@ -62,6 +73,8 @@ export function createBusinessAdminAdapter(businessApi) {
     /^\/api\/admin\/v1\/businesses\/([a-z0-9][a-z0-9_-]{1,79})\/profile$/u;
 
   return Object.freeze({
+    state: "partial",
+    coverage: Object.freeze(["profile"]),
     async handle({ request, response, requestUrl }) {
       const match = pattern.exec(requestUrl.pathname);
       if (!match?.[1]) {
@@ -88,6 +101,12 @@ export function createTicketingAdminAdapter(ticketingApi) {
   ]);
 
   return Object.freeze({
+    state: "partial",
+    coverage: Object.freeze([
+      "inventory",
+      "operator/check-in",
+      "operator/offline-devices",
+    ]),
     async handle({ request, response, requestUrl }) {
       const relative = requestUrl.pathname.slice(
         `${adminPrefix}/ticketing`.length,
