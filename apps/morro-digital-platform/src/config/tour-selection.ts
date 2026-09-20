@@ -14,6 +14,7 @@ export interface MorroTourSelectionController {
   readonly activeTourId: string | null;
   selectTour(tourId: string): Promise<TourSelectionResult>;
   selectByKeyword(keyword: string): Promise<TourSelectionResult>;
+  resetSelection(): void;
 }
 
 export interface MorroTourSelectionControllerOptions {
@@ -69,6 +70,13 @@ function markerIds(markers: readonly MapMarker[]): readonly string[] {
   return Object.freeze(markers.map((marker) => marker.id));
 }
 
+class TourSelectionCancelledError extends Error {
+  constructor() {
+    super("Tour selection cancelled.");
+    this.name = "TourSelectionCancelledError";
+  }
+}
+
 export function createMorroTourSelectionController(
   options: MorroTourSelectionControllerOptions,
 ): MorroTourSelectionController {
@@ -80,6 +88,13 @@ export function createMorroTourSelectionController(
   }
 
   let activeTour: TourRouteContract | null = initialTour;
+  let resetGeneration = 0;
+
+  const assertSelectionCurrent = (generation: number): void => {
+    if (generation !== resetGeneration) {
+      throw new TourSelectionCancelledError();
+    }
+  };
 
   async function rollbackTo(
     previousTour: TourRouteContract | null,
@@ -101,6 +116,7 @@ export function createMorroTourSelectionController(
     nextTour: TourRouteContract,
     query: string,
   ): Promise<TourSelectionResult> {
+    const selectionResetGeneration = resetGeneration;
     const previousTour = activeTour;
     const previousMarkers = previousTour
       ? createMorroTourMarkers(previousTour.id)
@@ -118,7 +134,9 @@ export function createMorroTourSelectionController(
           markerCount: nextMarkers.length,
         }),
       );
+      assertSelectionCurrent(selectionResetGeneration);
     } catch (error) {
+      if (error instanceof TourSelectionCancelledError) throw error;
       await publishSelectionFailure(
         options.events,
         Object.freeze({
@@ -133,7 +151,9 @@ export function createMorroTourSelectionController(
 
     try {
       await options.engine.replaceMarkers(nextMarkers);
+      assertSelectionCurrent(selectionResetGeneration);
     } catch (error) {
+      if (error instanceof TourSelectionCancelledError) throw error;
       await publishSelectionFailure(
         options.events,
         Object.freeze({
@@ -148,7 +168,9 @@ export function createMorroTourSelectionController(
 
     try {
       await options.engine.setCenter(nextTour.startPoint);
+      assertSelectionCurrent(selectionResetGeneration);
     } catch (error) {
+      if (error instanceof TourSelectionCancelledError) throw error;
       const rollbackSucceeded = await rollbackTo(previousTour, previousMarkers);
       await publishSelectionFailure(
         options.events,
@@ -177,7 +199,9 @@ export function createMorroTourSelectionController(
           startPoint: Object.freeze({ ...nextTour.startPoint }),
         }),
       );
+      assertSelectionCurrent(selectionResetGeneration);
     } catch (error) {
+      if (error instanceof TourSelectionCancelledError) throw error;
       const rollbackSucceeded = await rollbackTo(previousTour, previousMarkers);
       if (!rollbackSucceeded) activeTour = nextTour;
 
@@ -229,6 +253,11 @@ export function createMorroTourSelectionController(
       return nextTour
         ? selectResolvedTour(nextTour, keyword)
         : rejectUnknownTour(keyword);
+    },
+
+    resetSelection(): void {
+      resetGeneration += 1;
+      activeTour = null;
     },
   });
 }

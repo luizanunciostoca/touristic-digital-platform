@@ -44,7 +44,10 @@ function ensureCategoryFlowMessage(area: HTMLElement): HTMLElement | null {
   }
 
   message.dataset.category = results.dataset.category ?? "";
-  if (text && message.textContent !== text) message.textContent = text;
+  const preserveRichContent = message.dataset.preserveContent === "true";
+  if (text && !preserveRichContent && message.textContent !== text) {
+    message.textContent = text;
+  }
   return message;
 }
 

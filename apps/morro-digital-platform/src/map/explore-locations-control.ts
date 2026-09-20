@@ -14,6 +14,10 @@ import {
   type MorroV1SearchCatalogItem,
 } from "@touristic/search";
 
+import {
+  createV1ImmersiveTourController,
+  type V1ImmersiveTourController,
+} from "./immersive-tour-v1-controller.js";
 import { getV1ExplorePlaceActionOptions } from "./explore-location-actions-v1.js";
 import { getV1ExploreLabel, getV1ExploreUiCopy } from "./explore-v1-i18n.js";
 import { resolvePlacePrimaryAction } from "./place-commerce-capability.js";
@@ -31,6 +35,7 @@ const ASSISTANT_FLOW_MESSAGE_ID = "assistant-category-results-message";
 const TOUR_ROUTE_SOURCE = "tour-route-source";
 const TOUR_ROUTE_LAYER = "tour-route-layer";
 const TOUR_ROUTE_OUTLINE = "tour-route-outline";
+const TOUR_ACTIVATION_TIMEOUT_MS = 20_000;
 
 type ExploreStage = "menu" | "filters" | "places" | "detail" | "tour";
 
@@ -77,6 +82,17 @@ export interface ExploreLocationsControl {
 interface MapboxCompatibilityGlobal {
   readonly mapboxPrimaryInstance?: MapboxGlMapLike;
 }
+
+type ImmersiveTourMapLike = Omit<MapboxGlMapLike, "flyTo"> & {
+  flyTo?: (options: {
+    readonly center: [number, number];
+    readonly zoom?: number;
+    readonly pitch?: number;
+    readonly bearing?: number;
+    readonly duration?: number;
+    readonly essential?: boolean;
+  }) => void;
+};
 
 const categoryValues = new Set(
   morroV1SearchCatalog.map((location) => location.category),
@@ -131,6 +147,7 @@ function clearTourPresentation(document: Document): void {
 
   const tourSelect = document.getElementById("tour-select");
   if (tourSelect instanceof HTMLSelectElement) tourSelect.selectedIndex = -1;
+  document.dispatchEvent(new CustomEvent("morro:tour-selection-reset"));
 }
 
 function markerForLocation(
@@ -298,6 +315,7 @@ export function installExploreLocationsControl({
   let visibleLocations: readonly MorroV1SearchCatalogItem[] = Object.freeze([]);
   let mainMenuContainer: HTMLElement | undefined;
   let interactionGeneration = 0;
+  let immersiveTourController: V1ImmersiveTourController | undefined;
   const categoryListeners = new Map<HTMLButtonElement, EventListener>();
   const currentLocale = (): AssistantLocale =>
     normalizeAssistantVoiceLanguage(document.documentElement.lang);
@@ -446,6 +464,7 @@ export function installExploreLocationsControl({
     text: string,
     options: readonly T[],
     onSelect: (option: T) => void,
+    content?: HTMLElement,
   ): HTMLButtonElement | null => {
     ensureAssistantVisible(document);
     const area = assistantMessagesArea(document);
@@ -463,7 +482,13 @@ export function installExploreLocationsControl({
     message.className = "message assistant";
     message.dataset.messageType = "category-flow";
     message.dataset.category = activeCategory?.value ?? "";
-    message.textContent = text;
+    if (content) {
+      message.dataset.preserveContent = "true";
+      message.replaceChildren(content);
+    } else {
+      delete message.dataset.preserveContent;
+      message.textContent = text;
+    }
     message.classList.remove("hidden");
     message.setAttribute("aria-hidden", "false");
 
@@ -508,6 +533,13 @@ export function installExploreLocationsControl({
   const backToMenu = (restoreFocus = true): void => {
     interactionGeneration += 1;
     const previousTrigger = activeCategoryButton;
+    if (activeStage === "tour") {
+      immersiveTourController?.destroy();
+      clearTourPresentation(document);
+      if (geospatialEngine?.initialized) {
+        void geospatialEngine.replaceMarkers([]).catch(() => undefined);
+      }
+    }
     removeAssistantFlowResults(document);
     resetCategoryTriggerState();
     activeCategory = undefined;
@@ -619,14 +651,25 @@ export function installExploreLocationsControl({
   };
 
   const startImmersiveTour = (tourId: string): void => {
-    const tourSelect = document.getElementById("tour-select");
-    if (!(tourSelect instanceof HTMLSelectElement)) return;
     activePlace = undefined;
     activeStage = "tour";
     clearExploreRuntimeStatus();
     removeAssistantFlowResults(document);
-    tourSelect.value = tourId;
-    tourSelect.dispatchEvent(new Event("change", { bubbles: true }));
+
+    if (immersiveTourController) {
+      void immersiveTourController.start(tourId).catch((error: unknown) => {
+        if (activeStage !== "tour") return;
+        renderFilters();
+        setExploreRuntimeStatus({ kind: "map-error", error });
+      });
+    } else {
+      const tourSelect = document.getElementById("tour-select");
+      if (tourSelect instanceof HTMLSelectElement) {
+        tourSelect.value = tourId;
+        tourSelect.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+    }
+
     emitStateChange();
   };
 
@@ -736,6 +779,7 @@ export function installExploreLocationsControl({
       activeCategoryButton.setAttribute("aria-pressed", "false");
     }
 
+    if (activeStage === "tour") immersiveTourController?.destroy();
     clearTourPresentation(document);
     const localizedCategory =
       getExploreLocationsCategories(currentLocale()).find(
@@ -768,6 +812,7 @@ export function installExploreLocationsControl({
   ): Promise<boolean> => {
     if (!geospatialEngine?.initialized) return false;
     const generation = ++interactionGeneration;
+    if (activeStage === "tour") immersiveTourController?.destroy();
     clearTourPresentation(document);
     removeAssistantFlowResults(document);
     resetCategoryTriggerState();
@@ -890,6 +935,164 @@ export function installExploreLocationsControl({
     return true;
   };
 
+  immersiveTourController = createV1ImmersiveTourController({
+    document,
+    render(request) {
+      const flowOptions = request.options.map((option) =>
+        Object.freeze({
+          ...option,
+          action: "tour-control" as const,
+        }),
+      );
+      const first = renderFlow(
+        request.accessibleLabel,
+        flowOptions,
+        (option) => request.onSelect(option.value),
+        request.content,
+      );
+      first?.focus();
+    },
+    activateMap(tourId) {
+      const tourSelect = document.getElementById("tour-select");
+      const mapElement = document.getElementById("map");
+      const MutationObserverCtor = document.defaultView?.MutationObserver;
+      if (
+        !(tourSelect instanceof HTMLSelectElement) ||
+        !mapElement ||
+        !MutationObserverCtor
+      ) {
+        if (tourSelect instanceof HTMLSelectElement) {
+          tourSelect.value = tourId;
+          tourSelect.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+        return;
+      }
+
+      return new Promise<void>((resolve, reject) => {
+        let settled = false;
+        const finish = (error?: Error): void => {
+          if (settled) return;
+          settled = true;
+          observer.disconnect();
+          document.defaultView?.clearTimeout(timeoutId);
+          if (error) reject(error);
+          else resolve();
+        };
+        const inspectState = (): void => {
+          if (
+            mapElement.dataset.tourState === "ready" &&
+            mapElement.dataset.activeTour === tourId
+          ) {
+            finish();
+            return;
+          }
+          if (mapElement.dataset.tourState === "error") {
+            finish(new Error(`Unable to activate tour ${tourId} on the map.`));
+          }
+        };
+        const observer = new MutationObserverCtor(inspectState);
+        const timeoutId = document.defaultView?.setTimeout(
+          () =>
+            finish(
+              new Error(
+                `Timed out activating tour ${tourId} after ${TOUR_ACTIVATION_TIMEOUT_MS}ms.`,
+              ),
+            ),
+          TOUR_ACTIVATION_TIMEOUT_MS,
+        );
+
+        observer.observe(mapElement, {
+          attributes: true,
+          attributeFilter: ["data-tour-state", "data-active-tour"],
+        });
+        tourSelect.value = tourId;
+        tourSelect.dispatchEvent(new Event("change", { bubbles: true }));
+        inspectState();
+      });
+    },
+    async deactivateMap() {
+      clearTourPresentation(document);
+      if (geospatialEngine?.initialized) {
+        try {
+          await geospatialEngine.replaceMarkers([]);
+        } catch (error) {
+          setExploreRuntimeStatus({ kind: "map-error", error });
+        }
+      }
+      const mapElement = document.getElementById("map");
+      mapElement?.setAttribute("data-map-marker-count", "0");
+      mapElement?.removeAttribute("data-active-tour");
+      mapElement?.setAttribute("data-tour-state", "idle");
+    },
+    focusStop(stop) {
+      const map = currentMap() as ImmersiveTourMapLike | undefined;
+      if (map?.flyTo) {
+        map.flyTo({
+          center: [stop.position.longitude, stop.position.latitude],
+          zoom: 15,
+          pitch: 55,
+          bearing: 0,
+          duration: 1800,
+          essential: true,
+        });
+        return;
+      }
+      if (map) {
+        map.setCenter([stop.position.longitude, stop.position.latitude]);
+        map.setZoom?.(15);
+        return;
+      }
+      if (geospatialEngine?.initialized) {
+        void geospatialEngine.setCenter(stop.position);
+      }
+    },
+    highlightStop(index) {
+      document
+        .querySelectorAll<HTMLElement>(".tour-stop-marker")
+        .forEach((marker) => {
+          marker
+            .querySelector<HTMLElement>(".tour-stop-pin")
+            ?.classList.toggle(
+              "tour-stop-active",
+              marker.dataset.stopIndex === String(index),
+            );
+        });
+    },
+    onShowTours() {
+      if (activeCategory?.value === "tours") {
+        renderFilters();
+        return;
+      }
+      openCategoryByValue("tours");
+    },
+    onExploreMap() {
+      void renderMapOnlyLocations(morroV1SearchCatalog);
+    },
+    onMainMenu() {
+      backToMenu();
+    },
+    onStateChange(tourState) {
+      const mapElement = document.getElementById("map");
+      if (tourState.stage === "idle" || !tourState.tourId) {
+        mapElement?.removeAttribute("data-tour-flow-stage");
+        mapElement?.removeAttribute("data-tour-flow-id");
+        mapElement?.removeAttribute("data-tour-stop-index");
+      } else {
+        mapElement?.setAttribute("data-tour-flow-stage", tourState.stage);
+        mapElement?.setAttribute("data-tour-flow-id", tourState.tourId);
+        if (tourState.stage === "stop") {
+          mapElement?.setAttribute(
+            "data-tour-stop-index",
+            String(tourState.currentStopIndex),
+          );
+        } else {
+          mapElement?.removeAttribute("data-tour-stop-index");
+        }
+      }
+      emitStateChange();
+    },
+  });
+
   const refreshCategoryPresentation = (): void => {
     const localized = currentCategories();
     for (const category of localized) {
@@ -953,6 +1156,7 @@ export function installExploreLocationsControl({
         refreshCategoryPresentation();
         if (exploreRuntimeStatusDescriptor) renderExploreRuntimeStatus();
         if (activeStage === "filters" && activeCategory) renderFilters();
+        if (activeStage === "tour") immersiveTourController?.refreshLocale();
       })
     : null;
   localeObserver?.observe(document.documentElement, {
@@ -995,11 +1199,31 @@ export function installExploreLocationsControl({
     backToMenu(false);
   };
 
+  const onTourStopRequested = (event: Event): void => {
+    if (activeStage !== "tour" || !(event instanceof CustomEvent)) return;
+    const detail: unknown = event.detail;
+    if (!detail || typeof detail !== "object") return;
+    const tourIdCandidate: unknown = Reflect.get(detail, "tourId");
+    const stopIdCandidate: unknown = Reflect.get(detail, "stopId");
+    if (
+      typeof tourIdCandidate !== "string" ||
+      typeof stopIdCandidate !== "string"
+    ) {
+      return;
+    }
+    if (
+      immersiveTourController?.goToStopById(tourIdCandidate, stopIdCandidate)
+    ) {
+      event.stopImmediatePropagation();
+    }
+  };
+
   document.addEventListener("keydown", onKeyDown);
   document.addEventListener(
     "morro:assistant-option-selected",
     onAssistantOptionSelected,
   );
+  document.addEventListener("morro:tour-stop-requested", onTourStopRequested);
 
   return Object.freeze({
     execute,
@@ -1024,6 +1248,12 @@ export function installExploreLocationsControl({
         "morro:assistant-option-selected",
         onAssistantOptionSelected,
       );
+      document.removeEventListener(
+        "morro:tour-stop-requested",
+        onTourStopRequested,
+      );
+      immersiveTourController?.destroy();
+      immersiveTourController = undefined;
       for (const [button, listener] of categoryListeners) {
         button.removeEventListener("click", listener);
         button.removeAttribute("data-explore-category");

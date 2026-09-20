@@ -12,6 +12,11 @@ on:
       - apps/morro-digital-platform/src/config/tour-catalog.ts
       - apps/morro-digital-platform/src/config/tour-markers.ts
       - apps/morro-digital-platform/src/config/tour-selection.ts
+      - apps/morro-digital-platform/src/map/explore-locations-control.ts
+      - apps/morro-digital-platform/src/map/explore-locations-v1-flow.ts
+      - apps/morro-digital-platform/src/map/immersive-tour-v1-controller.ts
+      - apps/morro-digital-platform/src/map/immersive-tour-v1-flow.ts
+      - apps/morro-digital-platform/src/map/immersive-tour-v1-i18n.ts
       - apps/morro-digital-platform/src/runtime/map-style-readiness.ts
       - apps/morro-digital-platform/src/development/leaflet-compatibility-sdk.ts
       - apps/morro-digital-platform/tooling/dev-server.mjs
@@ -26,6 +31,11 @@ on:
       - apps/morro-digital-platform/src/config/tour-catalog.ts
       - apps/morro-digital-platform/src/config/tour-markers.ts
       - apps/morro-digital-platform/src/config/tour-selection.ts
+      - apps/morro-digital-platform/src/map/explore-locations-control.ts
+      - apps/morro-digital-platform/src/map/explore-locations-v1-flow.ts
+      - apps/morro-digital-platform/src/map/immersive-tour-v1-controller.ts
+      - apps/morro-digital-platform/src/map/immersive-tour-v1-flow.ts
+      - apps/morro-digital-platform/src/map/immersive-tour-v1-i18n.ts
       - apps/morro-digital-platform/src/runtime/map-style-readiness.ts
       - apps/morro-digital-platform/src/development/leaflet-compatibility-sdk.ts
       - apps/morro-digital-platform/tooling/dev-server.mjs
@@ -66,7 +76,7 @@ jobs:
           done
           cat /tmp/morro-map-tour.log
           exit 1
-      - name: Validate idle home then 8 to 5 to 5 tour switching
+      - name: Validate V1 tour switching and guided immersive flow
         run: |
           node <<'NODE'
           const { writeFileSync } = require('node:fs');
@@ -115,6 +125,90 @@ jobs:
               element.value = value;
               element.dispatchEvent(new Event('change', { bubbles: true }));
             }, tourId);
+          }
+
+          async function guidedSnapshot(page) {
+            return page.locator('#map').evaluate((element) => ({
+              tourState: element.getAttribute('data-tour-state'),
+              activeTour: element.getAttribute('data-active-tour'),
+              flowStage: element.getAttribute('data-tour-flow-stage'),
+              flowTourId: element.getAttribute('data-tour-flow-id'),
+              stopIndex: element.getAttribute('data-tour-stop-index'),
+              exploreStage: element.getAttribute('data-explore-stage'),
+              markerCount: element.getAttribute('data-map-marker-count'),
+            }));
+          }
+
+          async function waitForGuidedStage(page, stage, tourId, stopIndex = null) {
+            const suffix = stopIndex === null ? '' : `[data-tour-stop-index="${stopIndex}"]`;
+            await page.locator(
+              `#map[data-tour-flow-stage="${stage}"][data-tour-flow-id="${tourId}"]${suffix}`,
+            ).waitFor({ state: 'attached', timeout: 20000 });
+            return guidedSnapshot(page);
+          }
+
+          async function openGuidedTour(page, tourId, markerCount) {
+            const assistant = page.locator('#assistant-messages');
+            if (!(await assistant.isVisible())) {
+              await page.locator('.mood-button').click();
+            }
+            await page.locator('#assistant-category-tours').waitFor({ state: 'visible', timeout: 10000 });
+            await page.locator('#assistant-category-tours').click();
+            const shortcut = page.locator(
+              `#assistant-category-results .assistant-flow-option[data-tour-id="${tourId}"]`,
+            );
+            await shortcut.waitFor({ state: 'visible', timeout: 10000 });
+            await shortcut.click();
+            const intro = await waitForGuidedStage(page, 'intro', tourId);
+            await page.locator('.tour-intro-card').waitFor({ state: 'visible', timeout: 10000 });
+            await page.locator('#assistant-category-results [data-value="__tour_start__"]').waitFor({
+              state: 'visible',
+              timeout: 10000,
+            });
+            await page.locator(
+              `#map[data-tour-state="ready"][data-active-tour="${tourId}"][data-map-marker-count="${markerCount}"]`,
+            ).waitFor({ state: 'attached', timeout: 20000 });
+            return intro;
+          }
+
+          async function validateGuidedV1Flow(page) {
+            const intro = await openGuidedTour(page, 'volta-a-ilha', '8');
+
+            await page.locator('#assistant-category-results [data-value="__tour_start__"]').click();
+            const first = await waitForGuidedStage(page, 'stop', 'volta-a-ilha', '0');
+            await page.locator('.tour-stop-card').waitFor({ state: 'visible', timeout: 10000 });
+            if (!(await page.locator('.tour-stop-pin.tour-stop-active').count())) {
+              throw new Error('Guided tour did not highlight the active V1 stop marker.');
+            }
+
+            await page.locator('.tour-stop-marker[data-stop-index="2"]').evaluate(element => element.click());
+            const markerJump = await waitForGuidedStage(page, 'stop', 'volta-a-ilha', '2');
+
+            await page.locator('#assistant-category-results [data-value="__tour_next__"]').click();
+            const next = await waitForGuidedStage(page, 'stop', 'volta-a-ilha', '3');
+
+            await page.locator('#assistant-category-results [data-value="__tour_list__"]').click();
+            const list = await waitForGuidedStage(page, 'list', 'volta-a-ilha');
+            await page.locator('.tour-stop-list-card').waitFor({ state: 'visible', timeout: 10000 });
+            await page.locator('#assistant-category-results [data-value="__tour_stop_7__"]').click();
+            const directLast = await waitForGuidedStage(page, 'stop', 'volta-a-ilha', '7');
+
+            await page.locator('#assistant-category-results [data-value="__tour_finish__"]').click();
+            const finale = await waitForGuidedStage(page, 'finale', 'volta-a-ilha');
+            await page.locator('.tour-finale-card').waitFor({ state: 'visible', timeout: 10000 });
+
+            await page.locator('#assistant-category-results [data-value="__tour_see_tours__"]').click();
+            await page.locator('#map[data-tour-state="idle"]:not([data-active-tour])').waitFor({
+              state: 'attached',
+              timeout: 10000,
+            });
+            await page.locator('#assistant-category-results[data-category="tours"][data-stage="filters"]').waitFor({
+              state: 'attached',
+              timeout: 10000,
+            });
+            const returnedToTours = await guidedSnapshot(page);
+
+            return { intro, first, markerJump, next, list, directLast, finale, returnedToTours };
           }
 
           async function failureEvidence(page, name, phase, pageErrors) {
@@ -185,8 +279,11 @@ jobs:
                   throw new Error(`Return to Volta a Ilha failed for ${name}: ${JSON.stringify(restored)}`);
                 }
 
+                phase = 'guided-v1-flow';
+                const guided = await validateGuidedV1Flow(page);
+
                 if (pageErrors.length > 0) throw new Error(`Browser errors for ${name}: ${JSON.stringify(pageErrors)}`);
-                evidence[name] = { home, volta, gamboa, quadriciclo, restored, pageErrors };
+                evidence[name] = { home, volta, gamboa, quadriciclo, restored, guided, pageErrors };
                 writeFileSync(`/tmp/map-tour-evidence/success-${name}.json`, JSON.stringify(evidence[name], null, 2));
                 await page.screenshot({ path: `/tmp/map-tour-evidence/fallback-tour-${name}.png`, fullPage: false });
               } catch (error) {

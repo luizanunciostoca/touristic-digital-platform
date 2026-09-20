@@ -153,6 +153,21 @@ describe("createMorroTourSelectionController", () => {
     expect(engine.setCenter).toHaveBeenCalledOnce();
   });
 
+  it("resets the active tour state without touching map markers owned by another flow", () => {
+    const engine = createEngine();
+    const controller = createMorroTourSelectionController({
+      engine,
+      events: new EventBus(),
+      initialTourId: "volta-a-ilha",
+    });
+
+    controller.resetSelection();
+
+    expect(controller.activeTourId).toBeNull();
+    expect(engine.replaceMarkers).not.toHaveBeenCalled();
+    expect(engine.setCenter).not.toHaveBeenCalled();
+  });
+
   it("publishes lookup failure before rejecting an unknown tour", async () => {
     const engine = createEngine();
     const events = new EventBus();
@@ -263,5 +278,38 @@ describe("createMorroTourSelectionController", () => {
       phase: "publish",
       rollbackSucceeded: true,
     });
+  });
+
+  it("keeps reset authoritative when an in-flight selection completes late", async () => {
+    const engine = createEngine();
+    let releaseReplace: (() => void) | undefined;
+    let signalReplaceStarted: (() => void) | undefined;
+    const replaceStarted = new Promise<void>((resolve) => {
+      signalReplaceStarted = resolve;
+    });
+
+    vi.mocked(engine.replaceMarkers).mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          releaseReplace = resolve;
+          signalReplaceStarted?.();
+        }),
+    );
+
+    const controller = createMorroTourSelectionController({
+      engine,
+      events: new EventBus(),
+      initialTourId: null,
+    });
+
+    const pendingSelection = controller.selectTour("volta-a-ilha");
+    await replaceStarted;
+
+    controller.resetSelection();
+    releaseReplace?.();
+
+    await expect(pendingSelection).rejects.toThrow("Tour selection cancelled.");
+    expect(controller.activeTourId).toBeNull();
+    expect(engine.setCenter).not.toHaveBeenCalled();
   });
 });
