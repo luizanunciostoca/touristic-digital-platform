@@ -20,6 +20,8 @@ export interface TicketingPresentationCopy {
   readonly noReservations: string;
   readonly viewPass: string;
   readonly viewTicket: string;
+  readonly yourPass: string;
+  readonly yourTicket: string;
   readonly passUnavailable: string;
   readonly ticketUnavailable: string;
   readonly cancelReservation: string;
@@ -122,6 +124,8 @@ const TICKETING_COPY: Readonly<Record<MorroDocumentLocale, TicketingPresentation
       noReservations: "Você ainda não possui reservas neste navegador.",
       viewPass: "Ver passagem",
       viewTicket: "Ver ingresso",
+      yourPass: "Sua passagem",
+      yourTicket: "Seu ingresso",
       passUnavailable: "Passagem indisponível.",
       ticketUnavailable: "Ingresso indisponível.",
       cancelReservation: "Cancelar reserva",
@@ -194,6 +198,8 @@ const TICKETING_COPY: Readonly<Record<MorroDocumentLocale, TicketingPresentation
       noReservations: "You do not have reservations in this browser yet.",
       viewPass: "View pass",
       viewTicket: "View ticket",
+      yourPass: "Your pass",
+      yourTicket: "Your ticket",
       passUnavailable: "Pass unavailable.",
       ticketUnavailable: "Ticket unavailable.",
       cancelReservation: "Cancel reservation",
@@ -266,6 +272,8 @@ const TICKETING_COPY: Readonly<Record<MorroDocumentLocale, TicketingPresentation
       noReservations: "Todavía no tienes reservas en este navegador.",
       viewPass: "Ver pasaje",
       viewTicket: "Ver entrada",
+      yourPass: "Tu pasaje",
+      yourTicket: "Tu entrada",
       passUnavailable: "Pasaje no disponible.",
       ticketUnavailable: "Entrada no disponible.",
       cancelReservation: "Cancelar reserva",
@@ -338,6 +346,8 @@ const TICKETING_COPY: Readonly<Record<MorroDocumentLocale, TicketingPresentation
       noReservations: "עדיין אין הזמנות בדפדפן הזה.",
       viewPass: "הצגת כרטיס נסיעה",
       viewTicket: "הצגת כרטיס",
+      yourPass: "כרטיס הנסיעה שלך",
+      yourTicket: "הכרטיס שלך",
       passUnavailable: "כרטיס הנסיעה אינו זמין.",
       ticketUnavailable: "הכרטיס אינו זמין.",
       cancelReservation: "ביטול הזמנה",
