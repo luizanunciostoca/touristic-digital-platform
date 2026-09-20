@@ -70,3 +70,27 @@ Delivery uses the same-origin transport already defined by `@touristic/analytics
 Transport errors are swallowed by the browser instrumentation so analytics can never break product interaction.
 
 Production ingestion/persistence remains a separate infrastructure acceptance item; this PR does not claim durable Analytics storage.
+
+## Runtime ingestion endpoint
+
+The public browser transport now has a real same-origin receiver at `POST /api/analytics/v1/events`.
+
+The runtime endpoint independently validates:
+
+- schema version;
+- canonical event name;
+- ISO timestamp;
+- bounded identifiers/context;
+- per-event attribute allowlist;
+- primitive attribute values;
+- maximum request size;
+- exact JSON content type;
+- POST-only method contract.
+
+Unknown top-level fields and unknown attributes are rejected rather than silently persisted.
+
+The raw browser `sessionId` is not recorded. The runtime converts the opaque per-tab session identifier to a SHA-256 visitor hash before handing the event to platform observations.
+
+Accepted events are emitted as `analytics.event.recorded` observations using the existing sanitized observability boundary. The endpoint is therefore functional and no longer returns a generic API 404.
+
+This observation sink is not a durable analytics warehouse. Production retention, aggregation, reporting and deletion/retention policy remain infrastructure/data-platform acceptance items and must not be inferred from a `202 Accepted` runtime response.
