@@ -11,6 +11,7 @@
     "@touristic/auth-browser": "workspace:*",
     "@touristic/auth-server": "workspace:*",
     "@touristic/business": "workspace:*",
+    "@touristic/content": "workspace:*",
     "@touristic/core": "workspace:*",
     "@touristic/crm": "workspace:*",
     "@touristic/crm-server": "workspace:*",
