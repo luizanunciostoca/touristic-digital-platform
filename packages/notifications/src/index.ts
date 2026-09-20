@@ -117,6 +117,23 @@ const IDENTIFIER = /^[A-Za-z0-9][A-Za-z0-9:_-]{1,159}$/u;
 const IDEMPOTENCY_KEY = /^[A-Za-z0-9][A-Za-z0-9:._-]{7,199}$/u;
 const LOCALE = /^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$/u;
 const VARIABLE_KEY = /^[A-Za-z][A-Za-z0-9_]{0,63}$/u;
+const FORBIDDEN_VARIABLE_KEYS = Object.freeze([
+  "email",
+  "phone",
+  "telephone",
+  "cpf",
+  "card",
+  "token",
+  "secret",
+  "password",
+]);
+
+function isForbiddenVariableKey(key: string): boolean {
+  const normalized = key.toLowerCase();
+  return FORBIDDEN_VARIABLE_KEYS.some((forbidden) =>
+    normalized.includes(forbidden),
+  );
+}
 
 function isIsoTimestamp(value: string): boolean {
   const parsed = Date.parse(value);
@@ -136,7 +153,13 @@ function sanitizeVariables(
 
   const sanitized: Record<string, NotificationVariable> = {};
   for (const [key, value] of Object.entries(variables)) {
-    if (!VARIABLE_KEY.test(key) || !isSafeVariable(value)) return null;
+    if (
+      !VARIABLE_KEY.test(key) ||
+      isForbiddenVariableKey(key) ||
+      !isSafeVariable(value)
+    ) {
+      return null;
+    }
     sanitized[key] = value;
   }
 
