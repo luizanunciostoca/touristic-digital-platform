@@ -192,6 +192,7 @@ const report = Object.freeze({
   status: failures.length === 0 ? "pass" : "fail",
   webVitalsTargets: budget.webVitals,
   assetBudgets: budget.assets,
+  runtimeBudgets: budget.runtime,
   actual,
   linkedCss: linkedCssFiles.map(relative),
   linkedScripts: linkedScriptFiles.map(relative),
