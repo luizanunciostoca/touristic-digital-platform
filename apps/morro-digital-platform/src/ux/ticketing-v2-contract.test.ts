@@ -63,9 +63,10 @@ describe("Ticketing UX Design V2 contract", () => {
   });
 
   it("renders progressive loading structure without weakening accessibility", async () => {
-    const [css, runtime] = await Promise.all([
+    const [css, runtime, designSystem] = await Promise.all([
       readPublic("ticketing.css"),
       readPublic("ticketing.js"),
+      readPublic("design-system-v2.css"),
     ]);
 
     expect(runtime).toContain("renderOfferSkeletons()");
@@ -74,7 +75,7 @@ describe("Ticketing UX Design V2 contract", () => {
     expect(runtime).toContain('setAttribute("aria-hidden", "true")');
     expect(runtime).toContain('removeAttribute("aria-busy")');
     expect(css).toContain(".ticketing-skeleton-card");
-    expect(css).toContain(".md-skeleton");
+    expect(designSystem).toContain(".md-skeleton");
     expect(css).toContain("@media (prefers-reduced-motion: reduce)");
     expect(css).toContain("@media (forced-colors: active)");
   });
