@@ -179,9 +179,9 @@ describe("offline content snapshot", () => {
     );
     if (!snapshot) throw new Error("Expected valid snapshot.");
 
-    expect(parseOfflineContentSnapshot(JSON.parse(JSON.stringify(snapshot)))).toEqual(
-      snapshot,
-    );
+    expect(
+      parseOfflineContentSnapshot(JSON.parse(JSON.stringify(snapshot))),
+    ).toEqual(snapshot);
 
     expect(
       parseOfflineContentSnapshot({
