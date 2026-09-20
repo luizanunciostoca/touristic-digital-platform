@@ -138,9 +138,24 @@ describe("M48 auth server security primitives", () => {
     );
   });
 
-  it("keeps dashboard return paths local and rejects open redirects", () => {
+  it("allows known local admin surfaces and rejects open redirects", () => {
     expect(safeDashboardReturnPath("/dashboard/metrics.html?x=1")).toBe(
       "/dashboard/metrics.html?x=1",
+    );
+    expect(
+      safeDashboardReturnPath(
+        "/apps/control-center/public/index.html#businesses",
+      ),
+    ).toBe("/apps/control-center/public/index.html#businesses");
+    expect(
+      safeDashboardReturnPath("/apps/admin-crm/public/index.html#leads"),
+    ).toBe("/apps/admin-crm/public/index.html#leads");
+    expect(
+      safeDashboardReturnPath(
+        "/apps/morro-digital-platform/public/business-dashboard.html?businessId=toca-do-morcego",
+      ),
+    ).toBe(
+      "/apps/morro-digital-platform/public/business-dashboard.html?businessId=toca-do-morcego",
     );
     expect(safeDashboardReturnPath("https://evil.example/")).toBe(
       "/dashboard/index-v3-improved.html",
@@ -149,6 +164,14 @@ describe("M48 auth server security primitives", () => {
       "/dashboard/index-v3-improved.html",
     );
     expect(safeDashboardReturnPath("/dashboard/\\evil")).toBe(
+      "/dashboard/index-v3-improved.html",
+    );
+    expect(
+      safeDashboardReturnPath(
+        "/apps/control-center/%2e%2e/admin-crm/public/index.html",
+      ),
+    ).toBe("/dashboard/index-v3-improved.html");
+    expect(safeDashboardReturnPath("/api/admin/v1/system")).toBe(
       "/dashboard/index-v3-improved.html",
     );
   });
