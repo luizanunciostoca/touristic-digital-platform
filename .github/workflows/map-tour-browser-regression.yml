@@ -148,6 +148,11 @@ jobs:
           }
 
           async function openGuidedTour(page, tourId, markerCount) {
+            await page.locator('body[data-public-onboarding-settled="true"]:not(.tour-active)').waitFor({
+              state: 'attached',
+              timeout: 20000,
+            });
+
             const assistant = page.locator('#assistant-messages');
             if (!(await assistant.isVisible())) {
               await page.locator('.mood-button').click();
@@ -225,7 +230,13 @@ jobs:
               }));
             } catch (error) { select = { snapshotError: String(error) }; }
             try { status = await page.locator('#runtime-status').textContent(); } catch (error) { status = String(error); }
-            const evidence = { status: 'failed', viewport: name, phase, map, select, runtimeStatus: status, pageErrors };
+            const shell = await page.locator('body').evaluate((body) => ({
+              className: body.className,
+              onboardingSettled: body.getAttribute('data-public-onboarding-settled'),
+              assistantHidden: document.getElementById('assistant-messages')?.classList.contains('hidden') ?? null,
+              assistantAriaHidden: document.getElementById('assistant-messages')?.getAttribute('aria-hidden') ?? null,
+            })).catch((error) => ({ snapshotError: String(error) }));
+            const evidence = { status: 'failed', viewport: name, phase, map, select, shell, runtimeStatus: status, pageErrors };
             writeFileSync(`/tmp/map-tour-evidence/failure-${name}.json`, JSON.stringify(evidence, null, 2));
             try { await page.screenshot({ path: `/tmp/map-tour-evidence/failure-${name}.png`, fullPage: false }); } catch {}
             return evidence;
