@@ -25,6 +25,8 @@ The domain request carries an opaque `recipientReference`, not an email address 
 
 Template variables are flat primitives only. Nested objects are rejected.
 
+Direct sensitive delivery keys such as email, phone, CPF, card, token, secret and password are rejected by the portable domain contract.
+
 ## Preference boundary
 
 Preferences are evaluated before idempotency is claimed or a provider is called. An opted-out notification is suppressed and no provider delivery occurs.
