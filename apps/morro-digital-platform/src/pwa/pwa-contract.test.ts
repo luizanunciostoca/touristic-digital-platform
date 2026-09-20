@@ -84,9 +84,7 @@ describe("PWA HTTP update contract", () => {
     const server = await readFile(serverUrl, "utf8");
 
     expect(server).toContain('requestUrl.pathname === "/service-worker.js"');
-    expect(server).toContain(
-      'response.setHeader("Cache-Control", "no-cache")',
-    );
-    expect(server).toContain('"worker-src \'self\' blob:"');
+    expect(server).toContain('response.setHeader("Cache-Control", "no-cache")');
+    expect(server).toContain("\"worker-src 'self' blob:\"");
   });
 });
