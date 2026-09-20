@@ -303,7 +303,8 @@ body {
   color: var(--md-color-text-inverse);
   text-decoration: none;
   transition:
-    background-color var(--md-motion-duration-fast) var(--md-motion-ease-standard),
+    background-color var(--md-motion-duration-fast)
+      var(--md-motion-ease-standard),
     border-color var(--md-motion-duration-fast) var(--md-motion-ease-standard),
     color var(--md-motion-duration-fast) var(--md-motion-ease-standard),
     box-shadow var(--md-motion-duration-fast) var(--md-motion-ease-standard),
