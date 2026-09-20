@@ -18,6 +18,7 @@ on:
       - apps/morro-digital-platform/src/map/immersive-tour-v1-flow.ts
       - apps/morro-digital-platform/src/map/immersive-tour-v1-i18n.ts
       - apps/morro-digital-platform/src/runtime/map-style-readiness.ts
+      - apps/morro-digital-platform/src/ux/outdoor-one-hand-v2-contract.test.ts
       - apps/morro-digital-platform/src/development/leaflet-compatibility-sdk.ts
       - apps/morro-digital-platform/tooling/dev-server.mjs
       - apps/morro-digital-platform/public/premium-ux-v2.css
@@ -39,6 +40,7 @@ on:
       - apps/morro-digital-platform/src/map/immersive-tour-v1-flow.ts
       - apps/morro-digital-platform/src/map/immersive-tour-v1-i18n.ts
       - apps/morro-digital-platform/src/runtime/map-style-readiness.ts
+      - apps/morro-digital-platform/src/ux/outdoor-one-hand-v2-contract.test.ts
       - apps/morro-digital-platform/src/development/leaflet-compatibility-sdk.ts
       - apps/morro-digital-platform/tooling/dev-server.mjs
       - apps/morro-digital-platform/public/premium-ux-v2.css
