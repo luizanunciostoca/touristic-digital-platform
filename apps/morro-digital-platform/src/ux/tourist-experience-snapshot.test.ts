@@ -107,9 +107,7 @@ describe("TouristExperienceSnapshot", () => {
         createdAt + TOURIST_EXPERIENCE_SNAPSHOT_TTL_MS + 1,
       ),
     ).toBeNull();
-    expect(
-      storage.getItem(TOURIST_EXPERIENCE_SNAPSHOT_STORAGE_KEY),
-    ).toBeNull();
+    expect(storage.getItem(TOURIST_EXPERIENCE_SNAPSHOT_STORAGE_KEY)).toBeNull();
   });
 
   it("captures place, category, locale and map camera into session storage", () => {
@@ -216,8 +214,6 @@ describe("TouristExperienceSnapshot", () => {
     expect(scrolledTo).toEqual({ top: 144, behavior: "auto" });
     expect(body.dataset.mdContextRestored).toBe("true");
     expect(body.dataset.mdContextRestoredMode).toBe("place");
-    expect(
-      storage.getItem(TOURIST_EXPERIENCE_SNAPSHOT_STORAGE_KEY),
-    ).toBeNull();
+    expect(storage.getItem(TOURIST_EXPERIENCE_SNAPSHOT_STORAGE_KEY)).toBeNull();
   });
 });
