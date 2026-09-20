@@ -1,6 +1,10 @@
 import { randomUUID } from "node:crypto";
 
-import { authorizeBusinessAccess } from "@touristic/auth";
+import {
+  authorizeBusinessAccess,
+  hasAuthCapability,
+  isReadOnlyAuthRole,
+} from "@touristic/auth";
 import {
   createProviderNeutralCheckoutApplicationService,
   normalizeBusinessCheckoutHandoff,
@@ -522,7 +526,7 @@ export function createPaymentsCheckoutAuthorizationPort({
             : "authentication_required",
         });
       }
-      if (active.role === "viewer") {
+      if (isReadOnlyAuthRole(active.role)) {
         return Object.freeze({ allowed: false, reason: "read_only_role" });
       }
       const mutation = authApi.authorizeMutation(
@@ -655,7 +659,7 @@ export function createPaymentsReconciliationAuthorizationPort({ authApi }) {
           reason: "authentication_required",
         });
       }
-      if (active.role !== "admin") {
+      if (!hasAuthCapability(active.role, "financial.reconcile")) {
         return Object.freeze({ allowed: false, reason: "admin_required" });
       }
       if (action !== "reconciliation.read") {
