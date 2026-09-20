@@ -48,6 +48,7 @@ const [
   stagingDrill,
   stagingDrillRunbook,
   stagingMysqlWait,
+  stagingMysqlWrapper,
 ] = await Promise.all([
   text("render.yaml"),
   text("render.staging.yaml"),
@@ -59,6 +60,7 @@ const [
   text("tooling/render/mysql-staging/backup-restore-drill.sh"),
   text("docs/operations/MYSQL-BACKUP-RESTORE-DRILL.md"),
   text("tooling/render/wait-for-staging-mysql.mjs"),
+  text("tooling/render/with-staging-mysql-env.mjs"),
 ]);
 
 requireText(production, "production blueprint", "name: morro-digital-v2");
@@ -198,6 +200,13 @@ for (const marker of [
   "STAGING_MYSQL_WAIT_TIMEOUT",
 ]) {
   requireText(stagingMysqlWait, "staging MySQL wait guard", marker);
+}
+for (const marker of [
+  'from "./wait-for-staging-mysql.mjs"',
+  "await waitForStagingMysql(process.env)",
+  '"MORRO-STAGING-MYSQL-WAIT"',
+]) {
+  requireText(stagingMysqlWrapper, "staging MySQL runtime wrapper", marker);
 }
 requireDirective(
   staging,
