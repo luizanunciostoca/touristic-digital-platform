@@ -19,9 +19,7 @@ export interface PremiumUxModePresenter {
   destroy(): void;
 }
 
-export function resolveMorroUxMode(
-  signals: MorroUxModeSignals,
-): MorroUxMode {
+export function resolveMorroUxMode(signals: MorroUxModeSignals): MorroUxMode {
   if (signals.navigationActive) return "navigation";
   if (signals.immersiveTourActive) return "tour";
   if (signals.placeActive) return "place";
