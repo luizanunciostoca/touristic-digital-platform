@@ -220,6 +220,216 @@ body[data-md-mode="tour"]
   display: none;
 }
 
+/* Navigation Banner V2 — canonical runtime presentation.
+ * Frozen V1 navigation CSS remains evidence only; these post-legacy rules are
+ * the active presentation authority until the legacy runtime bundle is split.
+ * The limited !important declarations intentionally neutralize frozen V1
+ * declarations without editing historical evidence.
+ */
+body[data-md-mode="navigation"] #instruction-banner {
+  --md-navigation-primary-gradient: linear-gradient(
+    135deg,
+    var(--md-navigation-primary-strong),
+    var(--md-navigation-primary)
+  );
+  position: fixed !important;
+  top: 0 !important;
+  left: 50% !important;
+  bottom: auto !important;
+  z-index: var(--md-layer-navigation) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  width: 100% !important;
+  max-width: var(--md-navigation-banner-max-inline-size) !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  transform: translateX(-50%) !important;
+  overflow: hidden !important;
+  border: 1px solid var(--md-color-border);
+  border-top: 0;
+  border-radius: 0 0 var(--md-radius-lg) var(--md-radius-lg) !important;
+  background: var(--md-navigation-surface) !important;
+  color: var(--md-navigation-text);
+  box-shadow: var(--md-navigation-shadow);
+  font-family: var(--md-font-family-sans);
+  backdrop-filter: blur(0.625rem);
+  transition:
+    transform var(--md-motion-duration-normal) var(--md-motion-ease-standard),
+    opacity var(--md-motion-duration-normal) var(--md-motion-ease-standard),
+    box-shadow var(--md-motion-duration-normal) var(--md-motion-ease-standard);
+}
+
+body[data-md-mode="navigation"] #instruction-banner .instruction-primary {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--md-space-3);
+  padding: var(--md-space-2) var(--md-space-3);
+  background: var(--md-navigation-primary-gradient);
+  color: var(--md-navigation-inverse);
+}
+
+body[data-md-mode="navigation"] #instruction-banner.arrive .instruction-primary {
+  background: var(--md-navigation-arrival);
+}
+
+body[data-md-mode="navigation"] #instruction-arrow {
+  display: flex;
+  min-width: 3rem;
+  height: 3rem;
+  margin: 0;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  transform-origin: center;
+}
+
+body[data-md-mode="navigation"] #minimize-navigation-btn {
+  position: relative;
+  display: grid;
+  width: var(--md-touch-target-min);
+  min-width: var(--md-touch-target-min);
+  height: var(--md-touch-target-min);
+  min-height: var(--md-touch-target-min);
+  padding: 0;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, currentColor 35%, transparent);
+  border-radius: var(--md-radius-pill);
+  background: color-mix(in srgb, currentColor 16%, transparent);
+  color: var(--md-navigation-inverse);
+  cursor: pointer;
+  transition:
+    background-color var(--md-motion-duration-fast)
+      var(--md-motion-ease-standard),
+    border-color var(--md-motion-duration-fast) var(--md-motion-ease-standard),
+    transform var(--md-motion-duration-fast) var(--md-motion-ease-standard);
+}
+
+body[data-md-mode="navigation"] #minimize-navigation-btn:hover {
+  background: color-mix(in srgb, currentColor 24%, transparent);
+}
+
+body[data-md-mode="navigation"] #minimize-navigation-btn:active {
+  transform: scale(0.96);
+}
+
+body[data-md-mode="navigation"] #instruction-banner .instruction-secondary {
+  display: block !important;
+  flex-shrink: 0 !important;
+  height: auto !important;
+  max-height: none !important;
+  padding: var(--md-space-3) var(--md-space-4) !important;
+  overflow: visible !important;
+  background: var(--md-navigation-surface) !important;
+  color: var(--md-navigation-text);
+  opacity: 1 !important;
+}
+
+body[data-md-mode="navigation"]
+  #instruction-banner.minimized
+  .instruction-secondary {
+  display: none !important;
+}
+
+body[data-md-mode="navigation"] #instruction-details {
+  margin: 0 0 var(--md-space-3);
+  color: var(--md-navigation-text);
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+body[data-md-mode="navigation"] .progress-container {
+  position: relative;
+  width: 100%;
+  height: 0.25rem;
+  margin: var(--md-space-3) 0 var(--md-space-2);
+  overflow: hidden;
+  border-radius: var(--md-radius-pill);
+  background: color-mix(
+    in srgb,
+    var(--md-navigation-text-muted) 18%,
+    transparent
+  );
+}
+
+body[data-md-mode="navigation"] .progress-indicator-fill {
+  min-width: 0.125rem;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--md-navigation-progress);
+  transition: width var(--md-motion-duration-normal)
+    var(--md-motion-ease-standard);
+}
+
+body[data-md-mode="navigation"] #progress-text {
+  margin: var(--md-space-1) 0;
+  color: var(--md-navigation-text-muted);
+  text-align: center;
+}
+
+body[data-md-mode="navigation"] .metrics-group {
+  display: flex;
+  gap: var(--md-space-2);
+  margin-top: var(--md-space-2);
+}
+
+body[data-md-mode="navigation"] .metric {
+  display: flex;
+  width: 50%;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--md-space-1);
+  border-radius: var(--md-radius-sm);
+  background: color-mix(
+    in srgb,
+    var(--md-navigation-text-muted) 8%,
+    transparent
+  );
+}
+
+body[data-md-mode="navigation"] .metric-label {
+  margin-bottom: var(--md-space-1);
+  color: var(--md-navigation-text-muted);
+}
+
+body[data-md-mode="navigation"] .metric-value {
+  color: var(--md-navigation-text);
+}
+
+body[data-md-mode="navigation"] .end-navigation-btn {
+  position: fixed !important;
+  right: var(--md-space-3) !important;
+  bottom: calc(
+    var(--assistant-input-bottom, var(--md-safe-bottom)) +
+      var(--assistant-bar-height, 5rem) + var(--md-space-3)
+  ) !important;
+  left: auto !important;
+  z-index: calc(var(--md-layer-navigation) + 1) !important;
+  min-width: var(--md-touch-target-min);
+  min-height: var(--md-touch-target-min);
+  padding: var(--md-space-3) var(--md-space-4);
+  transform: none !important;
+  border: 0;
+  border-radius: var(--md-radius-pill);
+  background: var(--md-navigation-danger);
+  color: var(--md-navigation-inverse);
+  box-shadow: var(--md-elevation-2);
+  font: inherit;
+  font-weight: var(--md-font-weight-bold);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+body[data-md-mode="navigation"] .end-navigation-btn:hover {
+  filter: brightness(0.94);
+}
+
+body[data-md-mode="navigation"] .end-navigation-btn:active {
+  transform: scale(0.98) !important;
+}
+
 /* Outdoor readability + one-hand ergonomics for walking-first flows. */
 body[data-md-mode="navigation"] #instruction-banner,
 body[data-md-mode="navigation"] .end-navigation-btn,
