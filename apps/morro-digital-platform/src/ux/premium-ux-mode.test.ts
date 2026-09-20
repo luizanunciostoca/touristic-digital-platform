@@ -239,10 +239,10 @@ describe("Chat 6 CSS modernization + Premium UX foundations", () => {
 
     expect(css).toContain('body[data-md-mode="place"] #weather-widget');
     expect(css).toContain('body[data-md-mode="place"] #globe-map-control');
-    expect(css).toContain(
+    expect(css).not.toContain(
       'body:not(.tour-active)[data-md-mode="assistant"] #weather-widget',
     );
-    expect(css).toContain(
+    expect(css).not.toContain(
       'body:not(.tour-active)[data-md-mode="assistant"] #globe-map-control',
     );
     expect(css).toContain('body[data-md-mode="navigation"] #submenu');
