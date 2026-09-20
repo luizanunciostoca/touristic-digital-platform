@@ -157,6 +157,11 @@ describe("Chat 6 CSS modernization + Premium UX foundations", () => {
 
     view.map.dataset.tourState = "ready";
     view.flush();
+    expect(presenter.mode).toBe("place");
+
+    view.map.dataset.tourFlowId = "volta-a-ilha";
+    view.map.dataset.tourFlowStage = "intro";
+    view.flush();
     expect(presenter.mode).toBe("tour");
 
     view.body.classList.add("navigation-active");
@@ -271,8 +276,9 @@ describe("Chat 6 CSS modernization + Premium UX foundations", () => {
     expect(presenter).toContain('body.classList.contains("navigation-active")');
     expect(presenter).toContain('map?.dataset.exploreStage === "detail"');
     expect(presenter).toContain("hasActiveImmersiveTour(map)");
-    expect(presenter).toContain('tourState === "ready"');
     expect(presenter).toContain("IMMERSIVE_TOUR_FLOW_STAGES");
+    expect(presenter).toContain("flowTourId");
+    expect(presenter).not.toContain('tourState === "ready"');
     expect(presenter).not.toContain('classList.contains("tour-active")');
   });
 
