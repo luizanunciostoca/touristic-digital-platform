@@ -27,4 +27,5 @@ RUN set -eux; \
     microdnf clean all
 
 COPY tooling/render/mysql-staging/01-init-databases.sh /docker-entrypoint-initdb.d/01-init-databases.sh
-RUN chmod 0555 /docker-entrypoint-initdb.d/01-init-databases.sh
+COPY tooling/render/mysql-staging/backup-restore-drill.sh /usr/local/bin/morro-mysql-backup-restore-drill
+RUN chmod 0555 /docker-entrypoint-initdb.d/01-init-databases.sh /usr/local/bin/morro-mysql-backup-restore-drill

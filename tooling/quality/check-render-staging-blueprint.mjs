@@ -12,6 +12,17 @@ const mysqlInit = fs.readFileSync(
   new URL("../render/mysql-staging/01-init-databases.sh", import.meta.url),
   "utf8",
 );
+const mysqlDrill = fs.readFileSync(
+  new URL("../render/mysql-staging/backup-restore-drill.sh", import.meta.url),
+  "utf8",
+);
+const mysqlDrillRunbook = fs.readFileSync(
+  new URL(
+    "../../docs/operations/MYSQL-BACKUP-RESTORE-DRILL.md",
+    import.meta.url,
+  ),
+  "utf8",
+);
 const runbook = fs.readFileSync(
   new URL("../../docs/deployment/RENDER-STAGING-V2.md", import.meta.url),
   "utf8",
@@ -198,6 +209,27 @@ requireText(
   mysqlDockerfile,
   "/docker-entrypoint-initdb.d/01-init-databases.sh",
 );
+requireText(mysqlDockerfile, "/usr/local/bin/morro-mysql-backup-restore-drill");
+
+for (const required of [
+  'CONTRACT="MYSQL-BACKUP-RESTORE-DRILL"',
+  "BACKUP_RESTORE_STAGING_ONLY",
+  "DRILL_BACKUP_TARGET_MUST_NOT_BE_MYSQL_DATA_VOLUME",
+  "DRILL_SOURCE_DATABASE_DENIED",
+  "DRILL_RESTORE_DATABASE_NAME_DENIED",
+  "DRILL_SOURCE_QUIESCED_CONFIRMATION_REQUIRED",
+  "DRILL_KEEP_BACKUP",
+]) {
+  requireText(mysqlDrill, required);
+}
+
+for (const required of [
+  "real staging backup/restore drill: **OPEN until executed",
+  "production RPO/RTO",
+  "must never be reported as a successful live restore",
+]) {
+  requireText(mysqlDrillRunbook, required);
+}
 
 for (const required of [
   "morro-digital-staging",
