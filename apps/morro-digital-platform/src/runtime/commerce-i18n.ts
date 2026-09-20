@@ -540,7 +540,9 @@ function setAriaLabel(
   value?: string,
 ): void {
   if (!value) return;
-  document.querySelector<HTMLElement>(selector)?.setAttribute("aria-label", value);
+  document
+    .querySelector<HTMLElement>(selector)
+    ?.setAttribute("aria-label", value);
 }
 
 function replaceLeadingLabelText(
@@ -555,7 +557,8 @@ function replaceLeadingLabelText(
   if (!label) return;
 
   const textNode = [...label.childNodes].find(
-    (node) => node.nodeType === Node.TEXT_NODE && Boolean(node.textContent?.trim()),
+    (node) =>
+      node.nodeType === Node.TEXT_NODE && Boolean(node.textContent?.trim()),
   );
   if (textNode) textNode.textContent = `\n            ${value}\n            `;
   const optional = label.querySelector<HTMLElement>("span");
@@ -595,7 +598,8 @@ function applyTicketingStaticCopy(
   );
   replaceLeadingLabelText(document, "#quantity", copy.quantity);
 
-  const selectedOffer = document.querySelector<HTMLInputElement>("#selected-offer");
+  const selectedOffer =
+    document.querySelector<HTMLInputElement>("#selected-offer");
   if (selectedOffer && copy.experiencePlaceholder)
     selectedOffer.placeholder = copy.experiencePlaceholder;
 
