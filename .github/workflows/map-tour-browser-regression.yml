@@ -333,12 +333,20 @@ jobs:
                 Object.defineProperty(globalThis, 'speechSynthesis', {
                   configurable: true,
                   value: {
+                    addEventListener() {},
                     cancel() {
                       globalThis.__tourSpeechEvidence.cancelled += 1;
                     },
                     getVoices() {
-                      return [{ name: 'Tour Test Voice', lang: 'pt-BR' }];
+                      return [
+                        {
+                          name: 'Tour Test Voice',
+                          lang: 'pt-BR',
+                          default: true,
+                        },
+                      ];
                     },
+                    removeEventListener() {},
                     speak(utterance) {
                       globalThis.__tourSpeechEvidence.spoken.push({
                         text: String(utterance?.text || ''),
