@@ -71,6 +71,9 @@ importers:
       "@touristic/crm-server":
         specifier: workspace:*
         version: link:../../services/crm
+      "@touristic/financial":
+        specifier: workspace:*
+        version: link:../../packages/financial
       "@touristic/financial-server":
         specifier: workspace:*
         version: link:../../services/financial
