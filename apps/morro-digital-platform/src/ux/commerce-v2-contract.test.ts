@@ -19,7 +19,7 @@ describe("Commerce UX Design V2 contract", () => {
     expect(css).not.toContain("transition: all");
     expect(css).toContain("var(--md-color-surface-canvas)");
     expect(css).toContain("var(--md-color-interactive-primary)");
-    expect(css).toContain("var(--md-layer-dock)");
+    expect(css).toContain("var(--md-layer-sheet)");
   });
 
   it("uses shared card and button primitives in the real Commerce surface", async () => {
