@@ -131,8 +131,8 @@ function normalizeOptionalText(value: string | undefined): string | undefined {
 
 function isForbiddenKey(key: string): boolean {
   const normalized = key.toLowerCase();
-  return FORBIDDEN_ATTRIBUTE_KEYS.some((forbidden) =>
-    normalized.includes(forbidden.toLowerCase()),
+  return FORBIDDEN_ATTRIBUTE_KEYS.some(
+    (forbidden) => normalized === forbidden.toLowerCase(),
   );
 }
 
