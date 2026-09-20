@@ -27,6 +27,8 @@ window.addEventListener("offline", updateNetworkState);
 updateNetworkState();
 
 if ("serviceWorker" in navigator && window.isSecureContext) {
+  let updateRequested = false;
+
   window.addEventListener("load", () => {
     void navigator.serviceWorker
       .register("/service-worker.js", { scope: "/" })
@@ -50,7 +52,9 @@ if ("serviceWorker" in navigator && window.isSecureContext) {
         const controller = Object.freeze({
           registration,
           applyUpdate() {
-            registration.waiting?.postMessage({ type: "SKIP_WAITING" });
+            if (!registration.waiting) return;
+            updateRequested = true;
+            registration.waiting.postMessage({ type: "SKIP_WAITING" });
           },
         });
         window.__MORRO_PWA__ = controller;
@@ -63,7 +67,7 @@ if ("serviceWorker" in navigator && window.isSecureContext) {
 
   let reloading = false;
   navigator.serviceWorker.addEventListener("controllerchange", () => {
-    if (reloading) return;
+    if (!updateRequested || reloading) return;
     reloading = true;
     window.location.reload();
   });
