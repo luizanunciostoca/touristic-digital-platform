@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 
 const publicUrl = new URL("../../public/", import.meta.url);
+const serverUrl = new URL("../../tooling/dev-server.mjs", import.meta.url);
 
 async function readPublicFile(name: string): Promise<string> {
   return readFile(new URL(name, publicUrl), "utf8");
@@ -68,5 +69,15 @@ describe("PWA browser bootstrap", () => {
     expect(registration).toContain("morro:pwa-update-available");
     expect(registration).toContain("morro:network-state-changed");
     expect(registration).toContain("SKIP_WAITING");
+  });
+});
+
+describe("PWA HTTP update contract", () => {
+  it("forces service worker update checks to revalidate", async () => {
+    const server = await readFile(serverUrl, "utf8");
+
+    expect(server).toContain('requestUrl.pathname === "/service-worker.js"');
+    expect(server).toContain('response.setHeader("Cache-Control", "no-cache")');
+    expect(server).toContain('"worker-src \'self\' blob:"');
   });
 });
