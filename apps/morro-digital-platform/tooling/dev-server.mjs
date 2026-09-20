@@ -3,6 +3,7 @@ import { readFile, stat } from "node:fs/promises";
 import { createServer } from "node:http";
 import { extname, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { createAnalyticsApi } from "./analytics-api.mjs";
 import { createAssistantApi } from "./assistant-api.mjs";
 import { createAuthApi } from "./auth-api.mjs";
 import { createBusinessApi } from "./business-api.mjs";
@@ -155,6 +156,7 @@ function auditSecurityEvent(request, event) {
   });
 }
 
+const analyticsApi = createAnalyticsApi({ getEnvironmentValue });
 const assistantApi = createAssistantApi({ getEnvironmentValue });
 
 const authApi = createAuthApi({
@@ -166,6 +168,7 @@ platformOperations = createPlatformOperations({
   getEnvironmentValue,
   additionalReadinessChecks: () => [
     { name: "auth-security-state", ...authApi.readinessCheck() },
+    { name: "analytics-runtime", ...analyticsApi.readinessCheck() },
     {
       name: "payments-runtime",
       status: paymentsRuntimeReady ? "pass" : "fail",
@@ -186,6 +189,7 @@ platformOperations = createPlatformOperations({
   ],
 });
 await authApi.start();
+await analyticsApi.start();
 
 const crmApi = createCrmApi({ authApi, getEnvironmentValue });
 await crmApi.start();
@@ -508,6 +512,10 @@ const server = createServer(async (request, response) => {
       await serveWeather(response, correlationId);
       return;
     }
+    if (analyticsApi.matches(requestUrl.pathname)) {
+      await analyticsApi.handle(request, response, requestUrl);
+      return;
+    }
     if (authApi.matches(requestUrl.pathname)) {
       await authApi.handle(request, response, requestUrl.pathname);
       return;
@@ -671,6 +679,7 @@ async function shutdown(signal) {
   }
 
   const stops = await Promise.allSettled([
+    analyticsApi.stop(),
     authApi.stop(),
     crmApi.stop(),
     paymentsApi.stop(),
