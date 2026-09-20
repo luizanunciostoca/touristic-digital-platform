@@ -80,6 +80,38 @@ function productUnitLabel(product, quantity = 1) {
 }
 
 const offerIdPattern = /^[A-Za-z0-9_-]{3,120}$/u;
+const placeSlugPattern = /^[a-z0-9][a-z0-9-]{2,119}$/u;
+
+function placeSlug(value) {
+  return text(value)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/gu, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/gu, "-")
+    .replace(/^-+|-+$/gu, "");
+}
+
+function requestedPlaceSlug() {
+  const value = new URLSearchParams(location.search).get("place")?.trim() ?? "";
+  return placeSlugPattern.test(value) ? value : "";
+}
+
+function offerMatchesPlace(offer, requestedPlace) {
+  if (!requestedPlace) return true;
+  const candidates = [
+    offer?.label,
+    offer?.destinationId,
+    offer?.product?.reference,
+  ]
+    .map(placeSlug)
+    .filter(Boolean);
+  return candidates.some(
+    (candidate) =>
+      candidate === requestedPlace ||
+      candidate.includes(`place-${requestedPlace}`) ||
+      candidate.includes(requestedPlace),
+  );
+}
 
 function requestedOfferIds() {
   const value = new URLSearchParams(location.search).get("offers");
@@ -238,16 +270,21 @@ async function loadOffers() {
   const payload = await api("/api/ticketing/v1/inventory");
   const inventory = Array.isArray(payload.data) ? payload.data : [];
   const requestedOffers = requestedOfferIds();
+  const requestedPlace = requestedPlaceSlug();
   state.offers =
     requestedOffers.length > 0
       ? inventory.filter((entry) => requestedOffers.includes(entry.id))
-      : inventory;
+      : requestedPlace
+        ? inventory.filter((entry) => offerMatchesPlace(entry, requestedPlace))
+        : inventory;
   renderOffers();
 
   const requestedOffer = new URLSearchParams(location.search).get("offer");
   if (requestedOffer && offerIdPattern.test(requestedOffer)) {
     const offer = state.offers.find((entry) => entry.id === requestedOffer);
     if (offer) selectOffer(offer);
+  } else if (requestedPlace && state.offers.length === 1) {
+    selectOffer(state.offers[0]);
   }
 }
 
