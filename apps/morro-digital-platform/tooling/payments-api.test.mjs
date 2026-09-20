@@ -191,10 +191,12 @@ describe("M139/M141 payments API runtime boundary", () => {
       data: null,
     });
 
-    await expect(api.adminFindPayment("pay_admin_0001")).resolves.toMatchObject({
-      status: "found",
-      data: { id: "pay_admin_0001" },
-    });
+    await expect(api.adminFindPayment("pay_admin_0001")).resolves.toMatchObject(
+      {
+        status: "found",
+        data: { id: "pay_admin_0001" },
+      },
+    );
     await expect(api.adminFindPayment("pay_admin_missing")).resolves.toEqual({
       status: "not_found",
       data: null,

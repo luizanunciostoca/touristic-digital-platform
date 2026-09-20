@@ -246,10 +246,9 @@ export function createFinancialAdminAdapter(paymentsApi) {
     },
 
     async handle({ request, response, requestUrl }) {
-      const orderMatch =
-        /^\/api\/admin\/v1\/orders\/([A-Za-z0-9_-]+)$/u.exec(
-          requestUrl.pathname,
-        );
+      const orderMatch = /^\/api\/admin\/v1\/orders\/([A-Za-z0-9_-]+)$/u.exec(
+        requestUrl.pathname,
+      );
       if (orderMatch?.[1] && request.method === "GET") {
         await ownerRead(
           response,
@@ -319,9 +318,8 @@ export function createFinancialAdminAdapter(paymentsApi) {
         sendJson(response, 400, { error: "INVALID_PAYMENT_ID" });
         return;
       }
-      const tenant = await paymentsApi.adminResolvePaymentTenant(
-        normalizedPaymentId,
-      );
+      const tenant =
+        await paymentsApi.adminResolvePaymentTenant(normalizedPaymentId);
       if (tenant.status === "unavailable") {
         sendJson(response, 503, { error: "FINANCIAL_ADMIN_READ_UNAVAILABLE" });
         return;

@@ -57,17 +57,11 @@ function fixture() {
     handle,
     adminFindOrder: vi.fn(async (id) => ({
       status: id === "ord_admin_0001" ? "found" : "not_found",
-      data:
-        id === "ord_admin_0001"
-          ? { id, status: "pending_payment" }
-          : null,
+      data: id === "ord_admin_0001" ? { id, status: "pending_payment" } : null,
     })),
     adminFindPayment: vi.fn(async (id) => ({
       status: id === "pay_admin_0001" ? "found" : "not_found",
-      data:
-        id === "pay_admin_0001"
-          ? { id, status: "confirmed" }
-          : null,
+      data: id === "pay_admin_0001" ? { id, status: "confirmed" } : null,
     })),
     adminResolvePaymentTenant: vi.fn(async (id) => ({
       status: id === "pay_admin_0001" ? "found" : "not_found",
@@ -136,7 +130,9 @@ describe("Control Center domain support delegation", () => {
       effectiveUser: { id: "business-owner" },
     });
 
-    expect(calls).toEqual([{ request: req, effectiveUserId: "business-owner" }]);
+    expect(calls).toEqual([
+      { request: req, effectiveUserId: "business-owner" },
+    ]);
     expect(handle).toHaveBeenCalledWith(
       req,
       response,

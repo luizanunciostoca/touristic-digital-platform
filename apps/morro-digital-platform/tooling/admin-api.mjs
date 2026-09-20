@@ -730,11 +730,7 @@ export function createAdminApi({
     return true;
   }
 
-  async function handleFinancialCriticalAction(
-    request,
-    response,
-    requestUrl,
-  ) {
+  async function handleFinancialCriticalAction(request, response, requestUrl) {
     const refundMatch =
       /^\/api\/admin\/v1\/financial\/refunds\/([A-Za-z0-9_-]+)$/u.exec(
         requestUrl.pathname,
@@ -748,11 +744,7 @@ export function createAdminApi({
         requestUrl.pathname,
       );
 
-    if (
-      !refundMatch &&
-      !reconciliationRunMatch &&
-      !reconciliationAckMatch
-    ) {
+    if (!refundMatch && !reconciliationRunMatch && !reconciliationAckMatch) {
       return false;
     }
 
@@ -873,10 +865,7 @@ export function createAdminApi({
     }
 
     const adapter = domainAdapters.financial;
-    if (
-      !adapter ||
-      typeof adapter[definition.adapterMethod] !== "function"
-    ) {
+    if (!adapter || typeof adapter[definition.adapterMethod] !== "function") {
       json(response, 501, {
         error: "DOMAIN_ADMIN_CONTRACT_NOT_REGISTERED",
         domain: "financial",
@@ -1268,9 +1257,7 @@ export function createAdminApi({
         return;
       }
 
-      if (
-        await handleFinancialCriticalAction(request, response, requestUrl)
-      ) {
+      if (await handleFinancialCriticalAction(request, response, requestUrl)) {
         return;
       }
 
