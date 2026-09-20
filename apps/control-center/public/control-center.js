@@ -688,7 +688,7 @@ async function bootApp() {
     boot.hidden = true;
     openHash();
   } catch (error) {
-    if (error.status === 401) {
+    if (error?.status === 401 || error?.message === "AUTH_REQUIRED") {
       globalThis.location.replace(
         `/dashboard/login.html?return=${encodeURIComponent("/apps/control-center/public/index.html")}`,
       );
