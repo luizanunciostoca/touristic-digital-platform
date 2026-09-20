@@ -130,8 +130,8 @@ const FORBIDDEN_VARIABLE_KEYS = Object.freeze([
 
 function isForbiddenVariableKey(key: string): boolean {
   const normalized = key.toLowerCase();
-  return FORBIDDEN_VARIABLE_KEYS.some((forbidden) =>
-    normalized.includes(forbidden),
+  return FORBIDDEN_VARIABLE_KEYS.some(
+    (forbidden) => normalized.includes(forbidden),
   );
 }
 
