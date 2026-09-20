@@ -194,6 +194,7 @@ export function installCommercePreviewSheet(input: {
     applyDragDelta(event.clientY);
     pointerStartY = null;
     releasePointerCapture(event);
+    scheduleClickSuppressionReset();
   };
 
   const onPointerCancel = (event: PointerEvent): void => {
@@ -215,6 +216,7 @@ export function installCommercePreviewSheet(input: {
   const onMouseUp = (event: MouseEvent): void => {
     applyDragDelta(event.clientY);
     pointerStartY = null;
+    scheduleClickSuppressionReset();
   };
 
   const onMediaChange = (): void => {
@@ -255,6 +257,9 @@ export function installCommercePreviewSheet(input: {
       input.document.removeEventListener("mousemove", onMouseMove);
       input.document.removeEventListener("mouseup", onMouseUp);
       media.removeEventListener("change", onMediaChange);
+      if (suppressResetTimer !== undefined) {
+        input.window.clearTimeout(suppressResetTimer);
+      }
       deactivate();
       handle.remove();
     },
