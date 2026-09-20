@@ -37,11 +37,7 @@ describe("analytics privacy boundary", () => {
         filterCount: 2,
         unrecognized: "ignored",
       }),
-    ).toEqual({
-      queryLength: 17,
-      resultCount: 4,
-      filterCount: 2,
-    });
+    ).toEqual({ queryLength: 17, resultCount: 4, filterCount: 2 });
   });
 
   it("rejects raw search and assistant text keys", () => {
@@ -75,8 +71,7 @@ describe("analytics privacy boundary", () => {
 
 describe("analytics collector", () => {
   it("does not collect before explicit consent", async () => {
-    const send =
-      vi.fn<(event: AnalyticsEvent) => Promise<void>>();
+    const send = vi.fn<(event: AnalyticsEvent) => Promise<void>>();
     const collector = createAnalyticsCollector({
       transport: { send },
       getConsent: () => "unknown",
@@ -97,9 +92,7 @@ describe("analytics collector", () => {
   it("emits a sanitized versioned event after consent", async () => {
     const sent: AnalyticsEvent[] = [];
     const collector = createAnalyticsCollector({
-      transport: {
-        send: (event) => void sent.push(event),
-      },
+      transport: { send: (event) => void sent.push(event) },
       getConsent: () => "granted",
       createEventId: () => "event-1",
       now: () => new Date("2026-09-20T09:00:00.000Z"),
@@ -153,10 +146,7 @@ describe("analytics envelope", () => {
           context: { sessionId: "   " },
           attributes: { placeId: "place-1" },
         },
-        {
-          eventId: "event-1",
-          occurredAt: "2026-09-20T09:00:00.000Z",
-        },
+        { eventId: "event-1", occurredAt: "2026-09-20T09:00:00.000Z" },
       ),
     ).toBeNull();
   });
