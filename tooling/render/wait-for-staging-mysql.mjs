@@ -170,11 +170,10 @@ if (isDirectInvocation()) {
         contract: "MORRO-STAGING-MYSQL-WAIT",
         contractVersion: 1,
         status: "fail",
-        reason:
-          error instanceof Error && error.message
-            ? error.message
-            : "STAGING_MYSQL_WAIT_FAILED",
-        lastErrorCode: String(error?.lastErrorCode ?? ""),
+        reason: safeErrorCode(error),
+        lastErrorCode: safeErrorCode({
+          code: error?.lastErrorCode ?? "STAGING_MYSQL_UNAVAILABLE",
+        }),
       })}\n`,
     );
     process.exitCode = 1;
