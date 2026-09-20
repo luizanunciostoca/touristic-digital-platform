@@ -12,6 +12,8 @@ export const ANALYTICS_SESSION_STORAGE_KEY = "morro-analytics-session-v1";
 export const ANALYTICS_CONSENT_CHANGED_EVENT =
   "morro:analytics-consent-changed";
 
+export const ANALYTICS_SEARCH_SUBMITTED_EVENT = "morro:search-submitted";
+
 export const ANALYTICS_TRANSACTION_EVENTS = Object.freeze({
   offerSelected: "morro:commerce-offer-selected",
   reservationStarted: "morro:reservation-started",
@@ -254,6 +256,22 @@ export function installBrowserAnalyticsInstrumentation(
   listen(ANALYTICS_CONSENT_CHANGED_EVENT, (event) => {
     const detail = eventDetail(event);
     if (detail?.state === "granted") trackSessionStarted();
+  });
+
+  listen(ANALYTICS_SEARCH_SUBMITTED_EVENT, (event) => {
+    const detail = eventDetail(event);
+    if (!detail) return;
+
+    const queryLength = safeCount(detail.queryLength);
+    const resultCount = safeCount(detail.resultCount);
+    const filterCount = safeCount(detail.filterCount);
+    if (queryLength === undefined) return;
+
+    track("search_submitted", {
+      queryLength,
+      ...(resultCount !== undefined ? { resultCount } : {}),
+      ...(filterCount !== undefined ? { filterCount } : {}),
+    });
   });
 
   listen("morro:assistant-input-submitted", (event) => {
