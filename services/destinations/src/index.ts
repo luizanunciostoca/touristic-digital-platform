@@ -102,30 +102,32 @@ export class DestinationAdminService {
 export class MemoryDestinationRepository implements DestinationRepository {
   private readonly documents = new Map<string, DestinationDocument>();
 
-  public async get(id: string): Promise<DestinationDocument | null> {
-    return this.documents.get(id) ?? null;
+  public get(id: string): Promise<DestinationDocument | null> {
+    return Promise.resolve(this.documents.get(id) ?? null);
   }
 
-  public async list(): Promise<readonly DestinationDocument[]> {
-    return Object.freeze(
-      [...this.documents.values()].sort((a, b) => a.id.localeCompare(b.id)),
+  public list(): Promise<readonly DestinationDocument[]> {
+    return Promise.resolve(
+      Object.freeze(
+        [...this.documents.values()].sort((a, b) => a.id.localeCompare(b.id)),
+      ),
     );
   }
 
-  public async create(document: DestinationDocument): Promise<boolean> {
-    if (this.documents.has(document.id)) return false;
+  public create(document: DestinationDocument): Promise<boolean> {
+    if (this.documents.has(document.id)) return Promise.resolve(false);
     this.documents.set(document.id, document);
-    return true;
+    return Promise.resolve(true);
   }
 
-  public async replace(
+  public replace(
     expected: DestinationDocument,
     next: DestinationDocument,
   ): Promise<boolean> {
     const current = this.documents.get(expected.id);
-    if (!current || current.version !== expected.version) return false;
+    if (!current || current.version !== expected.version) return Promise.resolve(false);
     this.documents.set(next.id, next);
-    return true;
+    return Promise.resolve(true);
   }
 }
 
