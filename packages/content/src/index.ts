@@ -121,9 +121,7 @@ function isSafeFieldValue(value: unknown): value is ContentFieldValue {
   );
 }
 
-function isStringArray(
-  value: ContentFieldValue,
-): value is readonly string[] {
+function isStringArray(value: ContentFieldValue): value is readonly string[] {
   return Array.isArray(value);
 }
 
