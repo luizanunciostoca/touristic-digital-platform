@@ -130,11 +130,18 @@ export function installExploreMapViewportV1({
 
     const assistantHeight =
       document.getElementById("assistant-messages")?.offsetHeight ?? 0;
+    const viewportWidth =
+      document.defaultView?.innerWidth ?? document.documentElement.clientWidth;
+    const viewportHeight =
+      document.defaultView?.innerHeight ??
+      document.documentElement.clientHeight;
     const signature = [
       category,
       mapElement.dataset.exploreStage ?? "",
       expectedCount,
       assistantHeight,
+      viewportWidth,
+      viewportHeight,
       locations.map((location) => location.name).join("|"),
     ].join(":");
     if (signature === lastSignature) return;

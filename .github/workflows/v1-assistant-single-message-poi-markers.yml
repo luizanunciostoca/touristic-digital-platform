@@ -195,6 +195,49 @@ jobs:
                 throw new Error(`Beach markers are framed behind the assistant: ${JSON.stringify(filtersState)}`);
               }
 
+              await page.locator('#assistant-messages').evaluate((element) => {
+                const height = element.getBoundingClientRect().height;
+                element.style.height = `${height}px`;
+                element.style.maxHeight = `${height}px`;
+              });
+              await page.evaluate(() => {
+                const map = globalThis.mapboxPrimaryInstance;
+                if (!map?.fitBounds) throw new Error('Mapbox fitBounds unavailable');
+                globalThis.__exploreViewportFitBoundsCalls = 0;
+                const originalFitBounds = map.fitBounds.bind(map);
+                map.fitBounds = (...args) => {
+                  globalThis.__exploreViewportFitBoundsCalls += 1;
+                  return originalFitBounds(...args);
+                };
+              });
+
+              await page.setViewportSize({ width: 430, height: 844 });
+              await poll(
+                page,
+                () => globalThis.__exploreViewportFitBoundsCalls >= 1,
+                'width-only Explore viewport reframe',
+              );
+              const resizedState = await readState(page);
+              if (resizedState.markerCountAttribute !== 8 || resizedState.markerState.length !== 8) {
+                throw new Error(`Explore resize lost markers: ${JSON.stringify(resizedState)}`);
+              }
+
+              await page.locator('#assistant-messages').evaluate((element) => {
+                element.style.height = '';
+                element.style.maxHeight = '';
+              });
+              await page.setViewportSize({ width: 844, height: 390 });
+              await poll(
+                page,
+                () => globalThis.__exploreViewportFitBoundsCalls >= 2,
+                'landscape Explore viewport reframe',
+              );
+              await page.waitForTimeout(2300);
+              const landscapeState = await readState(page);
+              if (landscapeState.markerCountAttribute !== 8 || landscapeState.markerState.length !== 8) {
+                throw new Error(`Explore rotation lost markers: ${JSON.stringify(landscapeState)}`);
+              }
+
               await page.locator('#assistant-category-results [data-value="ver todos"]').click();
               await page.locator('#assistant-category-results[data-stage="places"]').waitFor({ state: 'visible', timeout: 5000 });
               await poll(page, () => document.querySelectorAll('.morro-explore-marker[data-explore-category="beaches"]').length === 8, 'beach place markers');
