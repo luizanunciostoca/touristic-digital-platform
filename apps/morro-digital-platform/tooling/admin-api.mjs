@@ -1144,12 +1144,12 @@ export function createAdminApi({
               coverage: domainAdapters.financial?.coverage ?? [],
             },
             content: {
-              state: domainAdapters.content ? "available" : "contract-required",
+              state: domainAdapters.content?.state ?? "contract-required",
+              coverage: domainAdapters.content?.coverage ?? [],
             },
             destinations: {
-              state: domainAdapters.destinations
-                ? "available"
-                : "contract-required",
+              state: domainAdapters.destinations?.state ?? "contract-required",
+              coverage: domainAdapters.destinations?.coverage ?? [],
             },
             audit: {
               state:
@@ -1373,7 +1373,7 @@ export function createAdminApi({
           });
           return;
         }
-        await adapter.handle({
+        const adapterOutcome = await adapter.handle({
           request,
           response,
           requestUrl,
@@ -1381,6 +1381,10 @@ export function createAdminApi({
           effectiveUser: support?.effectiveUser ?? null,
         });
         if (mutation) {
+          const auditContext =
+            adapterOutcome?.audit && typeof adapterOutcome.audit === "object"
+              ? adapterOutcome.audit
+              : {};
           await audit(request, actor, {
             action: `control-center.${namespace}.mutation.complete`,
             result:
@@ -1389,8 +1393,12 @@ export function createAdminApi({
                 : "failure",
             effectiveUserId: support?.effectiveUser?.id ?? null,
             tenantId: support?.effectiveUser?.businessIds?.[0] ?? null,
-            entityType: namespace,
-            entityId: bounded(requestUrl.pathname, 160),
+            entityType: auditContext.entityType ?? namespace,
+            entityId:
+              auditContext.entityId ?? bounded(requestUrl.pathname, 160),
+            reason: auditContext.reason ?? null,
+            previousState: auditContext.previousState ?? null,
+            newState: auditContext.newState ?? null,
           });
         }
         return;
