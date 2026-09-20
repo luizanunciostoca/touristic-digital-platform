@@ -144,7 +144,7 @@
 }
 
 #controls,
-#toggle-globe-view {
+#globe-map-control {
   transition:
     opacity var(--md-motion-duration-fast, 120ms)
       var(--md-motion-ease-standard, ease),
@@ -154,9 +154,9 @@
 }
 
 body[data-md-mode="navigation"] #controls,
-body[data-md-mode="navigation"] #toggle-globe-view,
+body[data-md-mode="navigation"] #globe-map-control,
 body[data-md-mode="tour"] #controls,
-body[data-md-mode="tour"] #toggle-globe-view {
+body[data-md-mode="tour"] #globe-map-control {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
@@ -165,7 +165,7 @@ body[data-md-mode="tour"] #toggle-globe-view {
 
 @media (prefers-reduced-motion: reduce) {
   #controls,
-  #toggle-globe-view {
+  #globe-map-control {
     transition-duration: 0.01ms;
     transition-delay: 0ms;
   }
