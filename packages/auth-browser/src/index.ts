@@ -7,6 +7,7 @@ const protectedPrefixes = Object.freeze([
   "/api/crm",
   "/api/ticketing",
   "/api/payments/v1/subscriptions",
+  "/api/affiliates/v1",
 ]);
 const safeMethods = new Set(["GET", "HEAD", "OPTIONS"]);
 const csrfStorageKey = "md_dashboard_csrf";
@@ -89,6 +90,7 @@ function safeLoginUrl(location: BrowserLocationPort): string {
   const returnPath =
     current.startsWith("/dashboard/") ||
     current.startsWith("/apps/admin-crm/") ||
+    current.startsWith("/apps/morro-digital-platform/public/affiliate-portal.html") ||
     current === "/tickets.html"
       ? current
       : "/dashboard/index-v3-improved.html";
