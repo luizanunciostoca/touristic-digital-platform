@@ -297,6 +297,29 @@ jobs:
               }
               evidence.negativeSecurity.push('forged-effective-user-header-rejected');
 
+              const scopedBusiness = await ownerContext.request.get(
+                `${origin}/api/admin/v1/businesses/toca-do-morcego/profile`,
+              );
+              if (scopedBusiness.status() !== 200) {
+                throw new Error(
+                  `Support delegated own-business read failed: ${scopedBusiness.status()} ${await scopedBusiness.text()}`,
+                );
+              }
+
+              const foreignBusiness = await ownerContext.request.get(
+                `${origin}/api/admin/v1/businesses/other-business/profile`,
+              );
+              const foreignBusinessBody = await foreignBusiness.json();
+              if (
+                foreignBusiness.status() !== 403 ||
+                foreignBusinessBody.error !== 'BUSINESS_ACCESS_DENIED'
+              ) {
+                throw new Error(
+                  `Support delegation escaped effective-user tenant scope: ${foreignBusiness.status()} ${JSON.stringify(foreignBusinessBody)}`,
+                );
+              }
+              evidence.negativeSecurity.push('support-effective-user-tenant-scope-enforced');
+
               await page.locator('#support-end').click();
               await page.locator('#support-banner').waitFor({ state: 'hidden' });
               evidence.supportMode = true;
