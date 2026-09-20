@@ -4,10 +4,17 @@ import { describe, expect, it } from "vitest";
 
 describe("runtime startup composition", () => {
   it("eagerly composes Ticketing and exposes it to readiness", async () => {
-    const source = await readFile(new URL("./dev-server.mjs", import.meta.url), "utf8");
+    const source = await readFile(
+      new URL("./dev-server.mjs", import.meta.url),
+      "utf8",
+    );
 
-    expect(source).toContain('import { createTicketingApi } from "./ticketing-api.mjs";');
-    expect(source).toContain("ticketingRuntimeReady = await ticketingApi.start();");
+    expect(source).toContain(
+      'import { createTicketingApi } from "./ticketing-api.mjs";',
+    );
+    expect(source).toContain(
+      "ticketingRuntimeReady = await ticketingApi.start();",
+    );
     expect(source).toContain('name: "ticketing-runtime"');
     expect(source).toContain("ticketingApi.stop()");
     expect(source).not.toContain('import("./ticketing-api.mjs")');
@@ -15,7 +22,10 @@ describe("runtime startup composition", () => {
   });
 
   it("uses canonical workspace package imports for Ticketing runtime dependencies", async () => {
-    const source = await readFile(new URL("./ticketing-api.mjs", import.meta.url), "utf8");
+    const source = await readFile(
+      new URL("./ticketing-api.mjs", import.meta.url),
+      "utf8",
+    );
 
     expect(source).toContain('from "@touristic/ticketing";');
     expect(source).toContain('from "@touristic/ticketing-server";');
@@ -24,7 +34,10 @@ describe("runtime startup composition", () => {
   });
 
   it("includes Assistant provider state in platform readiness", async () => {
-    const source = await readFile(new URL("./dev-server.mjs", import.meta.url), "utf8");
+    const source = await readFile(
+      new URL("./dev-server.mjs", import.meta.url),
+      "utf8",
+    );
 
     expect(source).toContain('name: "assistant-provider"');
     expect(source).toContain("assistantApi.readinessCheck()");
