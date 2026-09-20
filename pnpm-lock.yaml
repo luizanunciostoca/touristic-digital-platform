@@ -56,6 +56,9 @@ importers:
       "@touristic/core":
         specifier: workspace:*
         version: link:../../packages/core
+      "@touristic/content":
+        specifier: workspace:*
+        version: link:../../packages/content
       "@touristic/crm":
         specifier: workspace:*
         version: link:../../packages/crm
