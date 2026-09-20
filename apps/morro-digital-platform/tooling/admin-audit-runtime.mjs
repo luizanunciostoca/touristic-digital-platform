@@ -1,6 +1,18 @@
 const runtimePackage = "@touristic/analytics-server";
 const maxRuntimeEntries = 1_000;
 
+function safeRuntimeError(error) {
+  if (error && typeof error === "object" && typeof error.code === "string") {
+    return error.code.slice(0, 120);
+  }
+  if (error instanceof Error && error.message) {
+    return error.message
+      .replace(/mysql:\/\/[^\s@]+@/giu, "mysql://***@")
+      .slice(0, 120);
+  }
+  return "unknown";
+}
+
 function boundedLimit(value) {
   return Math.max(1, Math.min(250, Math.floor(Number(value) || 100)));
 }
@@ -19,6 +31,7 @@ export function createAdminAuditRuntime({
   let persistentStore = null;
   let started = false;
   let ready = false;
+  let startError = null;
 
   function appendRuntime(entry) {
     runtimeEntries.push(Object.freeze({ ...entry }));
@@ -42,8 +55,10 @@ export function createAdminAuditRuntime({
       await runtime.applyControlCenterAuditSchema(pool);
       persistentStore = new runtime.MySqlControlCenterAuditStore(pool);
       ready = true;
+      startError = null;
       return true;
-    } catch {
+    } catch (error) {
+      startError = safeRuntimeError(error);
       await pool?.end?.().catch(() => undefined);
       pool = null;
       persistentStore = null;
@@ -58,6 +73,7 @@ export function createAdminAuditRuntime({
     persistentStore = null;
     ready = false;
     started = false;
+    startError = null;
     await activePool?.end?.();
   }
 
@@ -86,7 +102,7 @@ export function createAdminAuditRuntime({
         status: "fail",
         critical: production,
         detail: databaseUrl
-          ? "CONTROL_CENTER_AUDIT_DATABASE_UNAVAILABLE"
+          ? `CONTROL_CENTER_AUDIT_DATABASE_UNAVAILABLE:${startError ?? "unknown"}`
           : "CONTROL_CENTER_AUDIT_DATABASE_URL_REQUIRED",
       });
     },
