@@ -4,8 +4,7 @@ import type {
 } from "./index.js";
 
 export type BrowserNotificationPermissionState =
-  | NotificationPermission
-  | "unsupported";
+  NotificationPermission | "unsupported";
 
 export interface BrowserNotificationPermissionApi {
   readonly permission: NotificationPermission;
@@ -26,8 +25,8 @@ function normalizePermission(
   value: unknown,
 ): BrowserNotificationPermissionState {
   return value === "granted" || value === "denied" || value === "default"
-  ? value
-  : "unsupported";
+    ? value
+    : "unsupported";
 }
 
 export function createBrowserNotificationPermissionPort(
