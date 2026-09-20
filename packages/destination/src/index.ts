@@ -298,7 +298,7 @@ export function createDestination(
     domains: input.domains ?? [],
     center: input.center,
     radiusMeters: input.radiusMeters,
-    branding: input.branding,
+    ...(input.branding === undefined ? {} : { branding: input.branding }),
     modules: input.modules ?? {},
     featureFlags: input.featureFlags ?? {},
   });
@@ -349,10 +349,10 @@ export function reviseDestination(
 
 const transitions: Readonly<Record<DestinationStatus, readonly DestinationStatus[]>> =
   Object.freeze({
-    draft: Object.freeze(["active", "archived"]),
-    active: Object.freeze(["suspended", "archived"]),
-    suspended: Object.freeze(["active", "archived"]),
-    archived: Object.freeze([]),
+    draft: Object.freeze<DestinationStatus[]>(["active", "archived"]),
+    active: Object.freeze<DestinationStatus[]>(["suspended", "archived"]),
+    suspended: Object.freeze<DestinationStatus[]>(["active", "archived"]),
+    archived: Object.freeze<DestinationStatus[]>([]),
   });
 
 export function transitionDestination(
