@@ -279,6 +279,7 @@ describe("createMorroTourSelectionController", () => {
       rollbackSucceeded: true,
     });
   });
+
   it("keeps reset authoritative when an in-flight selection completes late", async () => {
     const engine = createEngine();
     let releaseReplace: (() => void) | undefined;
@@ -311,6 +312,4 @@ describe("createMorroTourSelectionController", () => {
     expect(controller.activeTourId).toBeNull();
     expect(engine.setCenter).not.toHaveBeenCalled();
   });
-
-
 });
