@@ -121,7 +121,10 @@ jobs:
               }
             });
             const page = await context.newPage();
-            if (testCase.forcedColors) await page.emulateMedia({ forcedColors: 'active' });
+            await page.emulateMedia({
+              forcedColors: testCase.forcedColors ? 'active' : 'none',
+              reducedMotion: testCase.reducedMotion ? 'reduce' : 'no-preference',
+            });
             const pageErrors = [];
             page.on('pageerror', (error) => pageErrors.push(error.message));
             await page.route('**/api/routing/directions', async (route) => {
@@ -145,19 +148,33 @@ jobs:
               const end = document.getElementById('end-navigation-btn');
               const instruction = document.getElementById('instruction-main');
               const bannerRect = banner?.getBoundingClientRect();
+              const minimizeRect = minimize?.getBoundingClientRect();
               const endRect = end?.getBoundingClientRect();
               const minimizeStyle = minimize ? getComputedStyle(minimize) : null;
+              const toMilliseconds = (durationList) => Math.max(
+                0,
+                ...String(durationList ?? '0s')
+                  .split(',')
+                  .map((value) => value.trim())
+                  .map((value) => value.endsWith('ms') ? Number.parseFloat(value) : Number.parseFloat(value) * 1000)
+                  .filter(Number.isFinite),
+              );
               return {
                 forcedColors: matchMedia('(forced-colors: active)').matches,
+                reducedMotion: matchMedia('(prefers-reduced-motion: reduce)').matches,
                 bannerVisible: Boolean(banner && !banner.classList.contains('hidden') && getComputedStyle(banner).display !== 'none'),
                 endVisible: Boolean(end && getComputedStyle(end).display !== 'none'),
                 bodyActive: document.body.classList.contains('navigation-active'),
                 instruction: instruction?.textContent?.trim() ?? '',
                 bannerRect: bannerRect ? { left: bannerRect.left, right: bannerRect.right, top: bannerRect.top, bottom: bannerRect.bottom, width: bannerRect.width, height: bannerRect.height } : null,
+                minimizeRect: minimizeRect ? { width: minimizeRect.width, height: minimizeRect.height } : null,
                 endRect: endRect ? { width: endRect.width, height: endRect.height } : null,
                 minimizeForcedColorAdjust: minimizeStyle?.forcedColorAdjust ?? null,
                 minimizeBorderWidth: minimizeStyle?.borderTopWidth ?? null,
+                minimizeTransitionMs: toMilliseconds(minimizeStyle?.transitionDuration),
                 viewport: { width: innerWidth, height: innerHeight, dpr: devicePixelRatio },
+                documentWidth: document.documentElement.clientWidth,
+                scrollWidth: document.documentElement.scrollWidth,
                 markerCount: document.querySelectorAll('#map .mapboxgl-marker').length,
                 events: globalThis.__navigationA11yEvidence.events,
               };
@@ -166,8 +183,16 @@ jobs:
             if (!state.bannerVisible || !state.endVisible || !state.bodyActive || !state.instruction) {
               throw new Error(`Active navigation UI missing for ${testCase.name}: ${JSON.stringify(state)}`);
             }
-            if (!state.bannerRect || state.bannerRect.width <= 0 || state.bannerRect.height <= 0 || !state.endRect || state.endRect.width <= 0 || state.endRect.height <= 0) {
+            if (!state.bannerRect || state.bannerRect.width <= 0 || state.bannerRect.height <= 0 || !state.minimizeRect || !state.endRect) {
               throw new Error(`Navigation controls have invalid geometry for ${testCase.name}: ${JSON.stringify(state)}`);
+            }
+            if (
+              state.minimizeRect.width < 44 ||
+              state.minimizeRect.height < 44 ||
+              state.endRect.width < 44 ||
+              state.endRect.height < 44
+            ) {
+              throw new Error(`Navigation touch target below 44px for ${testCase.name}: ${JSON.stringify(state)}`);
             }
             if (testCase.forcedColors && !state.forcedColors) {
               throw new Error(`Forced colors was not active for ${testCase.name}`);
@@ -177,6 +202,12 @@ jobs:
             }
             if (testCase.text200 && state.viewport.dpr !== 2) {
               throw new Error(`200 percent text emulation diverged for ${testCase.name}: ${JSON.stringify(state.viewport)}`);
+            }
+            if (testCase.reducedMotion && (!state.reducedMotion || state.minimizeTransitionMs > 0.02)) {
+              throw new Error(`Reduced-motion contract diverged for ${testCase.name}: ${JSON.stringify(state)}`);
+            }
+            if (state.scrollWidth > state.documentWidth + 1) {
+              throw new Error(`Horizontal overflow detected for ${testCase.name}: ${JSON.stringify(state)}`);
             }
             if (state.markerCount < 1 || pageErrors.length) {
               throw new Error(`Browser/navigation evidence failed for ${testCase.name}: ${JSON.stringify({ state, pageErrors })}`);
@@ -198,6 +229,7 @@ jobs:
               { name: 'text-200-mobile', width: 195, height: 422, deviceScaleFactor: 2, text200: true },
               { name: 'text-200-tablet', width: 384, height: 512, deviceScaleFactor: 2, text200: true },
               { name: 'text-200-desktop', width: 720, height: 450, deviceScaleFactor: 2, text200: true },
+              { name: 'reduced-motion-mobile', width: 390, height: 844, deviceScaleFactor: 1, reducedMotion: true },
             ];
             const evidence = {};
             try {

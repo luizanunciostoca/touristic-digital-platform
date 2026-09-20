@@ -1,0 +1,416 @@
+/*
+ * Morro Digital Design System V2 foundations.
+ *
+ * This file intentionally sits outside public/legacy/** so the audited V1
+ * snapshot remains byte-for-byte frozen. Existing product surfaces opt in by
+ * loading this stylesheet after their feature CSS.
+ */
+
+:root {
+  /* Brand + semantic colors */
+  --md-color-brand-primary: var(--primary, #3b82f6);
+  --md-color-brand-primary-strong: var(--primary-dark, #2563eb);
+  --md-color-accent: var(--accent, #10b981);
+  --md-color-accent-strong: var(--accent-dark, #059669);
+  --md-color-surface: #ffffff;
+  --md-color-surface-subtle: #f8fafc;
+  --md-color-text: #0f172a;
+  --md-color-text-muted: #475569;
+  --md-color-border: #cbd5e1;
+  --md-color-success: #15803d;
+  --md-color-warning: #a16207;
+  --md-color-danger: #b91c1c;
+  --md-color-info: #0369a1;
+
+  /* Typography */
+  --md-font-family-sans: var(
+    --font-sans,
+    "Poppins",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif
+  );
+  --md-font-size-xs: 0.75rem;
+  --md-font-size-sm: 0.875rem;
+  --md-font-size-md: 1rem;
+  --md-font-size-lg: 1.125rem;
+  --md-font-size-xl: 1.25rem;
+  --md-font-weight-regular: 400;
+  --md-font-weight-medium: 600;
+  --md-font-weight-bold: 700;
+  --md-line-height-tight: 1.25;
+  --md-line-height-body: 1.6;
+
+  /* Spacing */
+  --md-space-0: 0;
+  --md-space-1: 0.25rem;
+  --md-space-2: 0.5rem;
+  --md-space-3: 0.75rem;
+  --md-space-4: 1rem;
+  --md-space-5: 1.25rem;
+  --md-space-6: 1.5rem;
+  --md-space-8: 2rem;
+  --md-space-10: 2.5rem;
+  --md-space-12: 3rem;
+
+  /* Radius + elevation */
+  --md-radius-sm: 0.5rem;
+  --md-radius-md: 0.75rem;
+  --md-radius-lg: 1rem;
+  --md-radius-xl: 1.5rem;
+  --md-radius-pill: 999px;
+  --md-elevation-1: 0 1px 3px rgba(15, 23, 42, 0.12);
+  --md-elevation-2: 0 8px 24px rgba(15, 23, 42, 0.14);
+  --md-elevation-3: 0 18px 48px rgba(15, 23, 42, 0.18);
+
+  /* Motion */
+  --md-motion-duration-fast: 120ms;
+  --md-motion-duration-normal: 200ms;
+  --md-motion-duration-slow: 320ms;
+  --md-motion-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --md-motion-ease-emphasized: cubic-bezier(0.2, 0, 0, 1.2);
+
+  /*
+   * Breakpoint values are canonical documentation tokens. Native CSS custom
+   * properties cannot be interpolated into @media conditions.
+   */
+  --md-breakpoint-mobile: 30rem;
+  --md-breakpoint-tablet: 48rem;
+  --md-breakpoint-desktop: 64rem;
+  --md-breakpoint-wide: 80rem;
+
+  /* Layer contract */
+  --md-z-base: 1;
+  --md-z-map-content: 1000;
+  --md-z-controls: 2000;
+  --md-z-popover: 3000;
+  --md-z-modal: 4000;
+  --md-z-toast: 5000;
+
+  /* Accessibility + safe areas */
+  --md-touch-target-min: 2.75rem;
+  --md-focus-ring-width: 0.1875rem;
+  --md-focus-ring-offset: 0.1875rem;
+  --md-focus-ring-color: #0c7bdc;
+  --md-safe-top: env(safe-area-inset-top, 0px);
+  --md-safe-right: env(safe-area-inset-right, 0px);
+  --md-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --md-safe-left: env(safe-area-inset-left, 0px);
+}
+
+/* Global keyboard focus: use non-zero specificity so legacy :focus resets cannot win. */
+:is(
+  a[href],
+  button,
+  input,
+  textarea,
+  select,
+  summary,
+  [role="button"],
+  [role="link"],
+  [tabindex]:not([tabindex="-1"])
+):focus-visible {
+  outline: var(--md-focus-ring-width) solid var(--md-focus-ring-color);
+  outline-offset: var(--md-focus-ring-offset);
+}
+
+/* Critical touch targets across the public tourist and business surfaces. */
+:where(
+  .control-button,
+  .close-button,
+  .map-control-button,
+  .mapbox-3d-control-button,
+  .mapboxgl-ctrl button,
+  .mapboxgl-popup-close-button,
+  .leaflet-control a,
+  #assistant-input-area button,
+  .voice-selector-toggle,
+  .assistant-option-btn,
+  .mood-button,
+  #sendButton,
+  #voiceButton,
+  #configButton,
+  .minimize-button,
+  .tour-popup-btn,
+  .tour-narration-btn,
+  #minimize-navigation-btn,
+  #end-navigation-btn,
+  .dialog-close,
+  .md-business-profile-close,
+  .md-business-profile-promotion button,
+  .md-business-profile-action,
+  .icon-button,
+  .nav-item,
+  .sidebar-action,
+  .button
+) {
+  min-width: var(--md-touch-target-min);
+  min-height: var(--md-touch-target-min);
+}
+
+:where(.back-link, .commerce-detail-back) {
+  display: inline-flex;
+  min-height: var(--md-touch-target-min);
+  align-items: center;
+}
+
+.biz-setup-back,
+.biz-demo-back-btn,
+.plans-back-btn {
+  min-width: var(--md-touch-target-min);
+  min-height: var(--md-touch-target-min);
+}
+
+#assistant-voice-selector.minimized {
+  width: var(--md-touch-target-min);
+  height: var(--md-touch-target-min);
+}
+
+/* Safe viewport strategy: 100vh fallback, then small/dynamic viewport units. */
+html,
+body {
+  min-height: 100vh;
+  min-height: 100svh;
+  min-height: 100dvh;
+}
+
+.app-shell {
+  height: 100vh;
+  height: 100svh;
+  height: 100dvh;
+}
+
+#onboarding-overlay,
+.onboarding-overlay {
+  height: 100vh;
+  height: 100svh;
+  height: 100dvh;
+}
+
+.weather-forecast-modal {
+  max-height: 100vh;
+  max-height: 100svh;
+  max-height: 100dvh;
+}
+
+.satellite-control-panel {
+  max-height: calc(100vh - 100px);
+  max-height: calc(100svh - 100px);
+  max-height: calc(100dvh - 100px);
+}
+
+#assistant-voice-selector {
+  max-height: calc(100vh - 120px);
+  max-height: calc(100svh - 120px);
+  max-height: calc(100dvh - 120px);
+}
+
+:where(
+  .md-viewport-shell,
+  .commerce-detail-shell,
+  .entry-screen,
+  .dashboard-shell,
+  .business-onboarding-surface
+) {
+  min-height: 100vh;
+  min-height: 100svh;
+  min-height: 100dvh;
+}
+
+.sidebar {
+  height: 100vh;
+  height: 100svh;
+  height: 100dvh;
+}
+
+/* Foundation components. These are additive; existing UI is not force-migrated. */
+.md-button,
+.md-icon-button {
+  min-height: var(--md-touch-target-min);
+  border: 0;
+  border-radius: var(--md-radius-md);
+  font: inherit;
+  font-weight: var(--md-font-weight-bold);
+  cursor: pointer;
+}
+
+.md-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--md-space-2);
+  padding: var(--md-space-3) var(--md-space-4);
+  background: var(--md-color-brand-primary);
+  color: #ffffff;
+}
+
+.md-icon-button {
+  display: inline-grid;
+  min-width: var(--md-touch-target-min);
+  place-items: center;
+  padding: 0;
+  background: transparent;
+  color: currentColor;
+}
+
+.md-input,
+.md-textarea,
+.md-select {
+  width: 100%;
+  min-height: var(--md-touch-target-min);
+  border: 1px solid var(--md-color-border);
+  border-radius: var(--md-radius-md);
+  padding: var(--md-space-3);
+  background: var(--md-color-surface);
+  color: var(--md-color-text);
+  font: inherit;
+}
+
+.md-textarea {
+  min-height: 7rem;
+  resize: vertical;
+}
+
+.md-badge,
+.md-chip {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  border-radius: var(--md-radius-pill);
+  font-size: var(--md-font-size-sm);
+  line-height: var(--md-line-height-tight);
+}
+
+.md-badge {
+  padding: var(--md-space-1) var(--md-space-2);
+  background: var(--md-color-surface-subtle);
+  color: var(--md-color-text-muted);
+  font-weight: var(--md-font-weight-bold);
+}
+
+.md-chip {
+  min-height: var(--md-touch-target-min);
+  padding: var(--md-space-2) var(--md-space-3);
+  border: 1px solid var(--md-color-border);
+  background: var(--md-color-surface);
+  color: var(--md-color-text);
+}
+
+.md-card {
+  border: 1px solid var(--md-color-border);
+  border-radius: var(--md-radius-lg);
+  background: var(--md-color-surface);
+  box-shadow: var(--md-elevation-1);
+}
+
+.md-dialog,
+.md-bottom-sheet {
+  border: 0;
+  background: var(--md-color-surface);
+  color: var(--md-color-text);
+  box-shadow: var(--md-elevation-3);
+}
+
+.md-dialog {
+  width: min(42rem, calc(100% - 2rem));
+  border-radius: var(--md-radius-xl);
+}
+
+.md-bottom-sheet {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  max-height: min(90vh, 90dvh);
+  border-radius: var(--md-radius-xl) var(--md-radius-xl) 0 0;
+  padding-bottom: var(--md-safe-bottom);
+}
+
+.md-toast,
+.md-banner {
+  border-radius: var(--md-radius-md);
+  padding: var(--md-space-3) var(--md-space-4);
+  background: var(--md-color-text);
+  color: var(--md-color-surface);
+  box-shadow: var(--md-elevation-2);
+}
+
+.md-spinner {
+  width: 1.5rem;
+  height: 1.5rem;
+  border: 0.1875rem solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: md-spin 700ms linear infinite;
+}
+
+.md-skeleton {
+  min-height: 1rem;
+  border-radius: var(--md-radius-sm);
+  background: linear-gradient(90deg, #e2e8f0, #f8fafc, #e2e8f0);
+  background-size: 200% 100%;
+  animation: md-skeleton 1.2s linear infinite;
+}
+
+@keyframes md-spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+@keyframes md-skeleton {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:focus-within {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+  }
+}
+
+@media (forced-colors: active) {
+  :is(
+    a[href],
+    button,
+    input,
+    textarea,
+    select,
+    summary,
+    [role="button"],
+    [role="link"],
+    [tabindex]:not([tabindex="-1"])
+  ):focus-visible {
+    outline-color: Highlight;
+  }
+
+  :where(
+    .md-button,
+    .md-icon-button,
+    .md-input,
+    .md-textarea,
+    .md-select,
+    .md-chip,
+    .md-card,
+    .md-dialog,
+    .md-bottom-sheet,
+    .md-toast,
+    .md-banner
+  ) {
+    forced-color-adjust: auto;
+    border-color: CanvasText;
+  }
+}
