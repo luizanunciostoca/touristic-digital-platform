@@ -5,6 +5,7 @@ import { extname, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createAnalyticsApi } from "./analytics-api.mjs";
 import { createAssistantApi } from "./assistant-api.mjs";
+import { createAdminApi } from "./admin-api.mjs";
 import { createAuthApi } from "./auth-api.mjs";
 import { createBusinessApi } from "./business-api.mjs";
 import { createCrmApi } from "./crm-api.mjs";
@@ -80,6 +81,7 @@ const publicStaticRoots = Object.freeze([
   morroPublicRoot,
   morroDistRoot,
   resolve(repositoryRoot, "apps/admin-crm/public"),
+  resolve(repositoryRoot, "apps/control-center/public"),
   resolve(repositoryRoot, "dashboard"),
   resolve(repositoryRoot, "images"),
 ]);
@@ -203,6 +205,12 @@ paymentsRuntimeReady = await paymentsApi.start();
 const { createTicketingApi } = await import("./ticketing-api.mjs");
 const ticketingApi = createTicketingApi({ authApi, getEnvironmentValue });
 ticketingRuntimeReady = await ticketingApi.start();
+
+const adminApi = createAdminApi({
+  authApi,
+  platformOperations,
+  getEnvironmentValue,
+});
 
 function createRuntimeEnvironment() {
   return Object.freeze(
@@ -534,6 +542,10 @@ const server = createServer(async (request, response) => {
       await authApi.handle(request, response, requestUrl.pathname);
       return;
     }
+    if (adminApi.matches(requestUrl.pathname)) {
+      await adminApi.handle(request, response, requestUrl);
+      return;
+    }
     if (crmApi.matches(requestUrl.pathname)) {
       await crmApi.handle(request, response, requestUrl);
       return;
@@ -697,6 +709,7 @@ async function shutdown(signal) {
 
   const stops = await Promise.allSettled([
     analyticsApi.stop(),
+    adminApi.stop(),
     authApi.stop(),
     crmApi.stop(),
     paymentsApi.stop(),
