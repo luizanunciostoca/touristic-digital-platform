@@ -16,7 +16,9 @@ on:
       - "apps/morro-digital-platform/public/legacy/css/components/assistant/assistantModalUI.css"
       - "apps/morro-digital-platform/src/assistant/assistant-dom-view.ts"
       - "apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts"
+      - "apps/morro-digital-platform/src/browser-entry.ts"
       - "apps/morro-digital-platform/src/map/**"
+      - "apps/morro-digital-platform/src/ux/tourist-experience-snapshot.ts"
       - "apps/morro-digital-platform/src/business-dashboard-client.ts"
       - "apps/morro-digital-platform/src/business-dashboard-surface.ts"
       - "apps/morro-digital-platform/src/commerce/**"
@@ -264,6 +266,17 @@ jobs:
                 ) {
                   throw new Error(`Place commerce CTA layout drift on ${viewport.name}: ${JSON.stringify(placeActions)}`);
                 }
+                const contextBeforeHandoff = await page.evaluate(() => {
+                  const map = globalThis.mapboxPrimaryInstance;
+                  const center = map?.getCenter?.();
+                  return {
+                    mode: document.body.dataset.mdMode,
+                    category: document.getElementById('map')?.dataset.exploreCategory,
+                    place: document.getElementById('map')?.dataset.explorePlace,
+                    center: center ? [center.lng, center.lat] : null,
+                    zoom: map?.getZoom?.() ?? null,
+                  };
+                });
                 await Promise.all([
                   page.waitForURL(`**/tickets.html?offer=${placeOffer.id}&source=map`),
                   placePrimary.click(),
@@ -278,7 +291,77 @@ jobs:
                 if (!selectedFromMap.includes('Toca do Morcego')) {
                   throw new Error(`Map commerce handoff did not select place offer on ${viewport.name}: ${selectedFromMap}`);
                 }
-                evidence.push({ viewport: viewport.name, placeActions, selectedFromMap });
+                const storedSnapshot = await page.evaluate(() => {
+                  const raw = sessionStorage.getItem('morro_tourist_experience_v1');
+                  return raw ? JSON.parse(raw) : null;
+                });
+                if (
+                  !storedSnapshot ||
+                  storedSnapshot.version !== 1 ||
+                  storedSnapshot.mode !== 'place' ||
+                  storedSnapshot.placeId !== 'Toca do Morcego' ||
+                  storedSnapshot.category !== 'nightlife' ||
+                  !Array.isArray(storedSnapshot.mapCenter) ||
+                  typeof storedSnapshot.mapZoom !== 'number' ||
+                  'statusToken' in storedSnapshot ||
+                  'paymentAuthority' in storedSnapshot ||
+                  'holder' in storedSnapshot
+                ) {
+                  throw new Error(`Tourist context snapshot invalid on ${viewport.name}: ${JSON.stringify(storedSnapshot)}`);
+                }
+
+                await Promise.all([
+                  page.waitForURL(`${origin}/`),
+                  page.locator('.back-link').click(),
+                ]);
+                await page.locator('#map[data-explore-stage="detail"][data-explore-place="Toca do Morcego"]').waitFor({
+                  state: 'attached',
+                  timeout: 10000,
+                });
+                await page.locator('body[data-md-mode="place"][data-md-context-restored="true"]').waitFor({
+                  state: 'attached',
+                  timeout: 10000,
+                });
+                const contextAfterReturn = await page.evaluate(() => {
+                  const map = globalThis.mapboxPrimaryInstance;
+                  const center = map?.getCenter?.();
+                  return {
+                    mode: document.body.dataset.mdMode,
+                    restoredMode: document.body.dataset.mdContextRestoredMode,
+                    category: document.getElementById('map')?.dataset.exploreCategory,
+                    place: document.getElementById('map')?.dataset.explorePlace,
+                    center: center ? [center.lng, center.lat] : null,
+                    zoom: map?.getZoom?.() ?? null,
+                  };
+                });
+                const close = (left, right, tolerance) =>
+                  typeof left === 'number' &&
+                  typeof right === 'number' &&
+                  Math.abs(left - right) <= tolerance;
+                if (
+                  contextBeforeHandoff.mode !== 'place' ||
+                  contextAfterReturn.mode !== 'place' ||
+                  contextAfterReturn.restoredMode !== 'place' ||
+                  contextAfterReturn.category !== 'nightlife' ||
+                  contextAfterReturn.place !== 'Toca do Morcego' ||
+                  !Array.isArray(contextBeforeHandoff.center) ||
+                  !Array.isArray(contextAfterReturn.center) ||
+                  !close(contextBeforeHandoff.center[0], contextAfterReturn.center[0], 0.000001) ||
+                  !close(contextBeforeHandoff.center[1], contextAfterReturn.center[1], 0.000001) ||
+                  !close(contextBeforeHandoff.zoom, contextAfterReturn.zoom, 0.01)
+                ) {
+                  throw new Error(
+                    `Map -> Place -> Ticketing -> Return context drift on ${viewport.name}: ${JSON.stringify({ contextBeforeHandoff, contextAfterReturn })}`,
+                  );
+                }
+                evidence.push({
+                  viewport: viewport.name,
+                  placeActions,
+                  selectedFromMap,
+                  contextBeforeHandoff,
+                  storedSnapshot,
+                  contextAfterReturn,
+                });
 
                 state.inventory = [offer];
                 await page.goto(`${origin}/`, { waitUntil: 'domcontentloaded', timeout: 30000 });
