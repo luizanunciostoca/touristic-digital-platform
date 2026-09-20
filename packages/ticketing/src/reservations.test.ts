@@ -143,7 +143,7 @@ describe("ticket reservation contracts", () => {
       confirmTicketReservation(heldReservation(), {
         orderId: "ord_ticketing_0001",
         paymentId: "pay_ticketing_0001",
-        confirmedAt: "2026-08-16T18:10:00.001Z",
+        confirmedAt: "2026-08-16T18:10:00.000Z",
       }),
     ).toThrow("TICKETING_RESERVATION_HOLD_EXPIRED");
   });
