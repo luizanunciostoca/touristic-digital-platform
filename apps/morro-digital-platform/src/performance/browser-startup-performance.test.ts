@@ -32,9 +32,9 @@ describe("browser startup performance", () => {
       dispatchEvent: vi.fn(),
     } as unknown as Document;
 
-    expect(
-      recordMorroStartupMetric(document, { now: () => -10 }, "map"),
-    ).toBe(0);
+    expect(recordMorroStartupMetric(document, { now: () => -10 }, "map")).toBe(
+      0,
+    );
     expect(document.documentElement.dataset.mapStartupMs).toBe("0");
   });
 });
