@@ -1,3 +1,4 @@
+import { hasAuthCapability } from "@touristic/auth";
 import type {
   DashboardAuthClient,
   DashboardSessionResponse,
@@ -92,7 +93,8 @@ function selectBusinessId(
 
   if (requested) {
     const platformScoped =
-      session.user.capabilities?.includes("platform.read") === true;
+      session.user.capabilities?.includes("platform.read") === true ||
+      hasAuthCapability(session.user.role, "platform.read");
     if (platformScoped || allowed.includes(requested)) {
       return requested;
     }
