@@ -98,6 +98,8 @@ export function installCommercePreviewSheet(input: {
   let active = false;
   let dragStartY: number | null = null;
   let dragStartState: CommercePreviewSheetState | null = null;
+  let dragInput: "pointer" | "touch" | null = null;
+  let dragThresholdCrossed = false;
   let suppressClicksUntil = 0;
   let suppressResetTimer: number | undefined;
 
@@ -174,9 +176,18 @@ export function installCommercePreviewSheet(input: {
     }
   };
 
-  const onPointerDown = (event: PointerEvent): void => {
-    dragStartY = event.clientY;
+  const beginDrag = (
+    clientY: number,
+    source: "pointer" | "touch",
+  ): void => {
+    if (suppressResetTimer !== undefined) {
+      input.window.clearTimeout(suppressResetTimer);
+      suppressResetTimer = undefined;
+    }
+    dragStartY = clientY;
     dragStartState = state;
+    dragInput = source;
+    dragThresholdCrossed = false;
     suppressClicksUntil = 0;
   };
 
@@ -184,6 +195,7 @@ export function installCommercePreviewSheet(input: {
     if (dragStartY === null || dragStartState === null) return false;
     const delta = clientY - dragStartY;
     if (Math.abs(delta) < 36) return false;
+    dragThresholdCrossed = true;
     suppressClicksUntil = Date.now() + 500;
     setState(
       stepCommercePreviewSheetState(
@@ -194,21 +206,57 @@ export function installCommercePreviewSheet(input: {
     return true;
   };
 
+  const finishDrag = (clientY?: number): void => {
+    if (clientY !== undefined) applyDragDelta(clientY);
+    dragStartY = null;
+    dragStartState = null;
+    dragInput = null;
+    if (dragThresholdCrossed) scheduleClickSuppressionReset();
+    else suppressClicksUntil = 0;
+    dragThresholdCrossed = false;
+  };
+
+  const onPointerDown = (event: PointerEvent): void => {
+    beginDrag(event.clientY, "pointer");
+  };
+
   const onPointerMove = (event: PointerEvent): void => {
+    if (dragInput !== "pointer") return;
     applyDragDelta(event.clientY);
   };
 
   const onPointerUp = (event: PointerEvent): void => {
-    applyDragDelta(event.clientY);
-    dragStartY = null;
-    dragStartState = null;
-    scheduleClickSuppressionReset();
+    if (dragInput !== "pointer") return;
+    finishDrag(event.clientY);
   };
 
   const onPointerCancel = (): void => {
-    dragStartY = null;
-    dragStartState = null;
-    scheduleClickSuppressionReset();
+    if (dragInput !== "pointer") return;
+    finishDrag();
+  };
+
+  const onTouchStart = (event: TouchEvent): void => {
+    const touch = event.touches[0] ?? event.changedTouches[0];
+    if (!touch) return;
+    beginDrag(touch.clientY, "touch");
+  };
+
+  const onTouchMove = (event: TouchEvent): void => {
+    if (dragInput !== "touch") return;
+    const touch = event.touches[0] ?? event.changedTouches[0];
+    if (!touch) return;
+    if (applyDragDelta(touch.clientY)) event.preventDefault();
+  };
+
+  const onTouchEnd = (event: TouchEvent): void => {
+    if (dragInput !== "touch") return;
+    const touch = event.changedTouches[0];
+    finishDrag(touch?.clientY);
+  };
+
+  const onTouchCancel = (): void => {
+    if (dragInput !== "touch") return;
+    finishDrag();
   };
 
   const onMediaChange = (): void => {
@@ -219,9 +267,13 @@ export function installCommercePreviewSheet(input: {
   handle.addEventListener("click", onHandleClick);
   handle.addEventListener("keydown", onHandleKeyDown);
   handle.addEventListener("pointerdown", onPointerDown);
+  handle.addEventListener("touchstart", onTouchStart, { passive: true });
   input.document.addEventListener("pointermove", onPointerMove);
   input.document.addEventListener("pointerup", onPointerUp);
   input.document.addEventListener("pointercancel", onPointerCancel);
+  input.document.addEventListener("touchmove", onTouchMove, { passive: false });
+  input.document.addEventListener("touchend", onTouchEnd);
+  input.document.addEventListener("touchcancel", onTouchCancel);
   media.addEventListener("change", onMediaChange);
 
   if (media.matches) activate();
@@ -239,9 +291,13 @@ export function installCommercePreviewSheet(input: {
       handle.removeEventListener("click", onHandleClick);
       handle.removeEventListener("keydown", onHandleKeyDown);
       handle.removeEventListener("pointerdown", onPointerDown);
+      handle.removeEventListener("touchstart", onTouchStart);
       input.document.removeEventListener("pointermove", onPointerMove);
       input.document.removeEventListener("pointerup", onPointerUp);
       input.document.removeEventListener("pointercancel", onPointerCancel);
+      input.document.removeEventListener("touchmove", onTouchMove);
+      input.document.removeEventListener("touchend", onTouchEnd);
+      input.document.removeEventListener("touchcancel", onTouchCancel);
       media.removeEventListener("change", onMediaChange);
       if (suppressResetTimer !== undefined) {
         input.window.clearTimeout(suppressResetTimer);
