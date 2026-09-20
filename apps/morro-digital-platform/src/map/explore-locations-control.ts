@@ -35,6 +35,7 @@ const ASSISTANT_FLOW_MESSAGE_ID = "assistant-category-results-message";
 const TOUR_ROUTE_SOURCE = "tour-route-source";
 const TOUR_ROUTE_LAYER = "tour-route-layer";
 const TOUR_ROUTE_OUTLINE = "tour-route-outline";
+const TOUR_ACTIVATION_TIMEOUT_MS = 20_000;
 
 type ExploreStage = "menu" | "filters" | "places" | "detail" | "tour";
 
@@ -656,7 +657,11 @@ export function installExploreLocationsControl({
     removeAssistantFlowResults(document);
 
     if (immersiveTourController) {
-      void immersiveTourController.start(tourId);
+      void immersiveTourController.start(tourId).catch((error: unknown) => {
+        if (activeStage !== "tour") return;
+        renderFilters();
+        setExploreRuntimeStatus({ kind: "map-error", error });
+      });
     } else {
       const tourSelect = document.getElementById("tour-select");
       if (tourSelect instanceof HTMLSelectElement) {
@@ -949,9 +954,61 @@ export function installExploreLocationsControl({
     },
     activateMap(tourId) {
       const tourSelect = document.getElementById("tour-select");
-      if (!(tourSelect instanceof HTMLSelectElement)) return;
-      tourSelect.value = tourId;
-      tourSelect.dispatchEvent(new Event("change", { bubbles: true }));
+      const mapElement = document.getElementById("map");
+      const MutationObserverCtor = document.defaultView?.MutationObserver;
+      if (
+        !(tourSelect instanceof HTMLSelectElement) ||
+        !mapElement ||
+        !MutationObserverCtor
+      ) {
+        if (tourSelect instanceof HTMLSelectElement) {
+          tourSelect.value = tourId;
+          tourSelect.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+        return;
+      }
+
+      return new Promise<void>((resolve, reject) => {
+        let settled = false;
+        const finish = (error?: Error): void => {
+          if (settled) return;
+          settled = true;
+          observer.disconnect();
+          document.defaultView?.clearTimeout(timeoutId);
+          if (error) reject(error);
+          else resolve();
+        };
+        const inspectState = (): void => {
+          if (
+            mapElement.dataset.tourState === "ready" &&
+            mapElement.dataset.activeTour === tourId
+          ) {
+            finish();
+            return;
+          }
+          if (mapElement.dataset.tourState === "error") {
+            finish(new Error(`Unable to activate tour ${tourId} on the map.`));
+          }
+        };
+        const observer = new MutationObserverCtor(inspectState);
+        const timeoutId = document.defaultView?.setTimeout(
+          () =>
+            finish(
+              new Error(
+                `Timed out activating tour ${tourId} after ${TOUR_ACTIVATION_TIMEOUT_MS}ms.`,
+              ),
+            ),
+          TOUR_ACTIVATION_TIMEOUT_MS,
+        );
+
+        observer.observe(mapElement, {
+          attributes: true,
+          attributeFilter: ["data-tour-state", "data-active-tour"],
+        });
+        tourSelect.value = tourId;
+        tourSelect.dispatchEvent(new Event("change", { bubbles: true }));
+        inspectState();
+      });
     },
     async deactivateMap() {
       clearTourPresentation(document);
