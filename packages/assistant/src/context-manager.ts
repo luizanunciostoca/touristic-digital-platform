@@ -205,7 +205,11 @@ function normalizeNavigationState(
       ? (value.phase as AssistantNavigationRuntimePhase)
       : "idle";
   return {
-    active: value.active === true,
+    active:
+      value.active === true &&
+      phase !== "idle" &&
+      phase !== "failed" &&
+      phase !== "ended",
     destination,
     phase,
   };
