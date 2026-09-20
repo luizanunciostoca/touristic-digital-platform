@@ -309,7 +309,10 @@ body[data-md-mode="assistant"] .assistant-option-btn {
 
 @media (max-width: 45rem) {
   body[data-md-mode="navigation"] .end-navigation-btn {
-    bottom: calc(var(--md-safe-bottom) + var(--md-space-4)) !important;
+    bottom: calc(
+      var(--assistant-input-bottom, var(--md-safe-bottom)) +
+        var(--assistant-bar-height, 5rem) + var(--md-space-3)
+    ) !important;
     z-index: var(--md-layer-navigation) !important;
     min-height: 3rem;
     padding: var(--md-space-3) var(--md-space-5);
