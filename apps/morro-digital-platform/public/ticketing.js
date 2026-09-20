@@ -1,5 +1,6 @@
 import {
   ANALYTICS_TRANSACTION_EVENTS,
+  installBrowserAnalyticsConsentPreferences,
   installMorroBrowserAnalytics,
 } from "/runtime/browser-analytics.js";
 import { initializeMorroBrowserLocale } from "/runtime/browser-locale.js";
@@ -13,7 +14,11 @@ const localeResolution = initializeMorroBrowserLocale({ document });
 const presentationLocale = commerceIntlLocale(localeResolution.locale);
 const copy = getTicketingPresentationCopy(presentationLocale);
 applyCommerceDocumentCopy(document, "ticketing", presentationLocale);
-installMorroBrowserAnalytics({ document, window });
+const browserAnalytics = installMorroBrowserAnalytics({ document, window });
+installBrowserAnalyticsConsentPreferences({
+  document,
+  controller: browserAnalytics,
+});
 
 const state = {
   session: null,
