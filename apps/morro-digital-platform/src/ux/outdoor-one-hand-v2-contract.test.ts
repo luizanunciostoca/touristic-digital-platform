@@ -13,9 +13,7 @@ describe("Outdoor and one-hand UX V2 contract", () => {
   it("keeps navigation operational copy readable outdoors", async () => {
     const css = await readPublic("premium-ux-v2.css");
 
-    expect(css).toContain(
-      'body[data-md-mode="navigation"] #instruction-main',
-    );
+    expect(css).toContain('body[data-md-mode="navigation"] #instruction-main');
     expect(css).toContain("font-size: clamp(1.25rem, 4.5vw, 1.5rem)");
     expect(css).toContain(
       'body[data-md-mode="navigation"] #instruction-details',
