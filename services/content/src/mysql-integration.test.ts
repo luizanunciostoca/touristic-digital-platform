@@ -108,12 +108,14 @@ describe.skipIf(!databaseUrl)("Content owner MySQL acceptance", () => {
     clock = "2026-09-20T20:05:00.000Z";
     await service.revise(created.id, { title: "SEO atualizado" });
 
-    expect(await repository.replace(stale, {
-      ...stale,
-      version: stale.version + 1,
-      fields: { ...stale.fields, title: "Sobrescrita stale" },
-      updatedAt: "2026-09-20T20:06:00.000Z",
-    })).toBe(false);
+    expect(
+      await repository.replace(stale, {
+        ...stale,
+        version: stale.version + 1,
+        fields: { ...stale.fields, title: "Sobrescrita stale" },
+        updatedAt: "2026-09-20T20:06:00.000Z",
+      }),
+    ).toBe(false);
   });
 
   it("preserves Commerce/Financial authority by rejecting offer monetary fields", async () => {
