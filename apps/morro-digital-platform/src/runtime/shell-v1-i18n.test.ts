@@ -30,6 +30,19 @@ describe("V1 shell presentation i18n", () => {
     ).toBe("מפה אינטראקטיבית");
 
     expect(
+      getShellPresentationCopy("pt").legacy.assistant_welcome_message,
+    ).toContain("Bem-vindo ao Morro Digital");
+    expect(
+      getShellPresentationCopy("en").legacy.assistant_welcome_message,
+    ).toContain("Welcome to Morro Digital");
+    expect(
+      getShellPresentationCopy("es").legacy.assistant_welcome_message,
+    ).toContain("Bienvenido a Morro Digital");
+    expect(
+      getShellPresentationCopy("he").legacy.assistant_welcome_message,
+    ).toContain("ברוכים הבאים ל-Morro Digital");
+
+    expect(
       getShellPresentationCopy("en").legacy.assistant_input_placeholder,
     ).toBe("Type your question...");
     expect(getShellPresentationCopy("es").legacy.navigation_stop).toBe(
