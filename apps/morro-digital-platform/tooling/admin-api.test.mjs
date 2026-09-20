@@ -315,6 +315,29 @@ describe("Control Center Admin API", () => {
     );
     const cookie = String(stepUp.headers.get("set-cookie")).split(";", 1)[0];
 
+    const withoutConfirmation = responseRecorder();
+    await api.handle(
+      request(
+        `/api/admin/v1/users/business-owner/sessions/${sessionHandle}/revoke`,
+        {
+          method: "POST",
+          headers: { cookie },
+          body: {
+            reason: "Support investigation requires session revocation",
+            confirmation: "WRONG",
+          },
+        },
+      ),
+      withoutConfirmation,
+      new URL(
+        `http://localhost/api/admin/v1/users/business-owner/sessions/${sessionHandle}/revoke`,
+      ),
+    );
+    expect(withoutConfirmation.statusCode).toBe(400);
+    expect(JSON.parse(withoutConfirmation.body).error).toBe(
+      "TEXT_CONFIRMATION_REQUIRED",
+    );
+
     const revoked = responseRecorder();
     await api.handle(
       request(
