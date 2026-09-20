@@ -38,6 +38,9 @@ importers:
 
   apps/morro-digital-platform:
     dependencies:
+      "@touristic/affiliates-server":
+        specifier: workspace:*
+        version: link:../../services/affiliates
       "@touristic/analytics":
         specifier: workspace:*
         version: link:../../packages/analytics
