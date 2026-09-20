@@ -154,7 +154,6 @@ describe("M147 ticketing domain", () => {
     ).toBeNull();
   });
 
-
   it("rejects persisted validation or use at the ticket validity boundary", () => {
     const { orderId, paymentId, amount } = fixture();
     const base = {
