@@ -165,6 +165,7 @@ export function createFinancialAdminAdapter(paymentsApi) {
     !paymentsApi?.adminFindOrder ||
     !paymentsApi?.adminFindPayment ||
     !paymentsApi?.adminResolvePaymentTenant ||
+    !paymentsApi?.adminResolveFindingTenant ||
     !paymentsApi?.adminFindLedger
   ) {
     throw new Error("FINANCIAL_ADMIN_OWNER_BOUNDARY_REQUIRED");
@@ -309,6 +310,14 @@ export function createFinancialAdminAdapter(paymentsApi) {
       }
 
       notFound(response, "FINANCIAL_ADMIN_ROUTE_NOT_AVAILABLE");
+    },
+
+    async resolvePaymentTenant(paymentId) {
+      return paymentsApi.adminResolvePaymentTenant(paymentId);
+    },
+
+    async resolveFindingTenant(findingId) {
+      return paymentsApi.adminResolveFindingTenant(findingId);
     },
 
     async refund({ request, response, requestUrl, paymentId }) {
