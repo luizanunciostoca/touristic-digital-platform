@@ -141,6 +141,7 @@ export function createFinancialAdminAdapter(paymentsApi) {
     !paymentsApi?.handle ||
     !paymentsApi?.adminFindOrder ||
     !paymentsApi?.adminFindPayment ||
+    !paymentsApi?.adminResolvePaymentTenant ||
     !paymentsApi?.adminFindLedger
   ) {
     throw new Error("FINANCIAL_ADMIN_OWNER_BOUNDARY_REQUIRED");
@@ -295,10 +296,24 @@ export function createFinancialAdminAdapter(paymentsApi) {
         sendJson(response, 400, { error: "INVALID_PAYMENT_ID" });
         return;
       }
+      const tenant = await paymentsApi.adminResolvePaymentTenant(
+        normalizedPaymentId,
+      );
+      if (tenant.status === "unavailable") {
+        sendJson(response, 503, { error: "FINANCIAL_ADMIN_READ_UNAVAILABLE" });
+        return;
+      }
+      if (tenant.status !== "found" || !tenant.tenantId) {
+        sendJson(response, 404, { error: "PAYMENT_TENANT_NOT_FOUND" });
+        return;
+      }
       const delegated = delegatedRequest(
         request,
         { reason: "requested_by_business" },
-        { "idempotency-key": idempotencyKey },
+        {
+          "idempotency-key": idempotencyKey,
+          "x-business-id": tenant.tenantId,
+        },
       );
       await paymentsApi.handle(
         delegated,
