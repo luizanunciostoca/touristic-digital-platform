@@ -416,6 +416,89 @@ async function renderUsers(userId) {
     }),
   );
 }
+async function renderDestinations(destinationId) {
+  const list = await api("/destinations");
+  const destinations = list.destinations ?? [];
+  const selected = destinationId
+    ? (await api(`/destinations/${encodeURIComponent(destinationId)}`)).data
+    : null;
+
+  if (!selected) {
+    content.innerHTML = `
+      <div class="callout">
+        <strong>Destination Owner:</strong> configuração governada pelo domínio
+        da plataforma. O fallback estático público permanece ativo até a
+        qualificação final da projeção dinâmica.
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Destino</th><th>Status</th><th>Locale</th><th>Timezone</th><th>Versão</th></tr></thead>
+          <tbody>
+            ${destinations.map((item) => `<tr>
+              <td><a href="#destinations:${encodeURIComponent(item.id)}"><strong>${escapeHtml(item.branding?.name ?? item.id)}</strong></a><br><small>${escapeHtml(item.id)}</small></td>
+              <td>${statusBadge(item.status)}</td>
+              <td>${escapeHtml(item.locale)}</td>
+              <td>${escapeHtml(item.timezone)}</td>
+              <td>${escapeHtml(item.version)}</td>
+            </tr>`).join("") || '<tr><td colspan="5" class="empty">Nenhum destino governado disponível.</td></tr>'}
+          </tbody>
+        </table>
+      </div>`;
+    return;
+  }
+
+  content.innerHTML = `
+    <section class="card section-card">
+      <div class="section-title">
+        <div><h2>${escapeHtml(selected.branding?.name ?? selected.id)}</h2><small>${escapeHtml(selected.id)}</small></div>
+        ${statusBadge(selected.status)}
+      </div>
+      <div class="module-list">
+        <div class="module-row"><span>Versão</span><strong>${escapeHtml(selected.version)}</strong></div>
+        <div class="module-row"><span>Locale</span><strong>${escapeHtml(selected.locale)}</strong></div>
+        <div class="module-row"><span>Timezone</span><strong>${escapeHtml(selected.timezone)}</strong></div>
+        <div class="module-row"><span>Moeda</span><strong>${escapeHtml(selected.currency)}</strong></div>
+        <div class="module-row"><span>Centro</span><strong>${escapeHtml(selected.center?.lat)}, ${escapeHtml(selected.center?.lng)} · zoom ${escapeHtml(selected.center?.zoom)}</strong></div>
+        <div class="module-row"><span>Módulos</span><strong>${escapeHtml((selected.modules ?? []).join(", "))}</strong></div>
+      </div>
+      <form id="destination-status-form" class="form-grid" style="margin-top:16px">
+        <label>Status
+          <select id="destination-status">
+            <option value="active" ${selected.status === "active" ? "selected" : ""}>active</option>
+            <option value="suspended" ${selected.status === "suspended" ? "selected" : ""}>suspended</option>
+          </select>
+        </label>
+        <label>Motivo obrigatório
+          <textarea id="destination-reason" minlength="8" maxlength="240" required placeholder="Descreva por que esta alteração é necessária"></textarea>
+        </label>
+        <button class="primary-button" type="submit">Aplicar alteração governada</button>
+        <p id="destination-status-result" role="status"></p>
+      </form>
+    </section>`;
+
+  document.querySelector("#destination-status-form")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const result = document.querySelector("#destination-status-result");
+    const status = document.querySelector("#destination-status")?.value;
+    const reason = document.querySelector("#destination-reason")?.value ?? "";
+    if (reason.trim().length < 8) {
+      result.textContent = "Informe um motivo com pelo menos 8 caracteres.";
+      return;
+    }
+    try {
+      await api(`/destinations/${encodeURIComponent(selected.id)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status, reason }),
+      });
+      result.textContent = "Destino atualizado e encaminhado à auditoria administrativa.";
+      await renderDestinations(selected.id);
+    } catch (error) {
+      result.textContent = error.body?.error || error.message;
+    }
+  });
+}
+
 async function renderBusinesses(businessId) {
   const data = await api("/businesses");
   if (businessId) {
