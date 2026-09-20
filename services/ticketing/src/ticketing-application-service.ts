@@ -38,6 +38,7 @@ export type TicketingApplicationErrorCode =
   | "TICKETING_TICKET_CONFLICT"
   | "TICKETING_TICKET_NOT_FOUND"
   | "TICKETING_TICKET_ALREADY_USED"
+  | "TICKETING_TICKET_ALREADY_VALIDATED"
   | "TICKETING_TICKET_REVOKED"
   | "TICKETING_TICKET_EXPIRED"
   | "TICKETING_CHECKIN_INVALID"
@@ -195,6 +196,9 @@ function assertTicketAcceptsNewCheckIn(
 ): void {
   if (ticket.status === "used") {
     throw new TicketingApplicationError("TICKETING_TICKET_ALREADY_USED");
+  }
+  if (ticket.status === "validated" && result === "validated") {
+    throw new TicketingApplicationError("TICKETING_TICKET_ALREADY_VALIDATED");
   }
   if (ticket.status === "cancelled") {
     throw new TicketingApplicationError("TICKETING_TICKET_REVOKED");
