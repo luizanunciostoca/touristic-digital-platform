@@ -157,6 +157,10 @@ jobs:
               const minimizeRect = minimize?.getBoundingClientRect();
               const endRect = end?.getBoundingClientRect();
               const minimizeStyle = minimize ? getComputedStyle(minimize) : null;
+              const mainStyle = instruction ? getComputedStyle(instruction) : null;
+              const detailsElement = document.getElementById('instruction-details');
+              const detailsStyle = detailsElement ? getComputedStyle(detailsElement) : null;
+              const endStyle = end ? getComputedStyle(end) : null;
               const presentation = (selector) => {
                 const element = document.querySelector(selector);
                 if (!(element instanceof HTMLElement)) return null;
@@ -194,6 +198,10 @@ jobs:
                 bannerRect: bannerRect ? { left: bannerRect.left, right: bannerRect.right, top: bannerRect.top, bottom: bannerRect.bottom, width: bannerRect.width, height: bannerRect.height } : null,
                 minimizeRect: minimizeRect ? { width: minimizeRect.width, height: minimizeRect.height } : null,
                 endRect: endRect ? { width: endRect.width, height: endRect.height } : null,
+                mainFontPx: Number.parseFloat(mainStyle?.fontSize ?? '0'),
+                detailsFontPx: Number.parseFloat(detailsStyle?.fontSize ?? '0'),
+                endBottomGap: endRect ? innerHeight - endRect.bottom : null,
+                endTouchAction: endStyle?.touchAction ?? null,
                 minimizeForcedColorAdjust: minimizeStyle?.forcedColorAdjust ?? null,
                 minimizeBorderWidth: minimizeStyle?.borderTopWidth ?? null,
                 minimizeTransitionMs: toMilliseconds(minimizeStyle?.transitionDuration),
@@ -235,6 +243,28 @@ jobs:
               state.endRect.height < 44
             ) {
               throw new Error(`Navigation touch target below 44px for ${testCase.name}: ${JSON.stringify(state)}`);
+            }
+            if (state.mainFontPx < 20 || state.detailsFontPx < 16) {
+              throw new Error(
+                `Navigation outdoor typography too small for ${testCase.name}: ${JSON.stringify({
+                  mainFontPx: state.mainFontPx,
+                  detailsFontPx: state.detailsFontPx,
+                })}`,
+              );
+            }
+            if (
+              state.viewport.width <= 720 &&
+              (state.endBottomGap === null ||
+                state.endBottomGap < 0 ||
+                state.endBottomGap > 80 ||
+                state.endTouchAction !== 'manipulation')
+            ) {
+              throw new Error(
+                `Navigation one-hand action placement drift for ${testCase.name}: ${JSON.stringify({
+                  endBottomGap: state.endBottomGap,
+                  endTouchAction: state.endTouchAction,
+                })}`,
+              );
             }
             if (testCase.forcedColors && !state.forcedColors) {
               throw new Error(`Forced colors was not active for ${testCase.name}`);
