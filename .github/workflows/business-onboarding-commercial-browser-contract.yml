@@ -40,6 +40,10 @@ permissions:
 env:
   TURBO_TELEMETRY_DISABLED: "1"
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   onboarding-commercial-browser:
     name: onboarding-commercial-browser / repeat ${{ matrix.repeat }}
