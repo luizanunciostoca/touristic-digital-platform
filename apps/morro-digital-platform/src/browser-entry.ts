@@ -23,6 +23,7 @@ import {
   type BrowserNavigationRuntimeInstall,
 } from "./navigation/browser-navigation-runtime-install.js";
 import { installPublicOnboarding } from "./onboarding/public-onboarding.js";
+import { recordMorroStartupMetric } from "./performance/browser-startup-performance.js";
 import {
   installGlobalViewControl,
   type GlobalViewControl,
@@ -91,6 +92,7 @@ function setupV1ShellInteractions(): void {
 }
 
 setupV1ShellInteractions();
+recordMorroStartupMetric(document, performance, "assistant");
 installPremiumUxModePresenter({ document });
 const publicOnboarding = installPublicOnboarding({ document });
 
@@ -536,6 +538,7 @@ async function start(): Promise<void> {
   const provider = await resolveMapProvider();
   const result = await startBrowserWithProvider(provider);
   application.exploreLocations.setGeospatialEngine(result.geospatialEngine);
+  recordMorroStartupMetric(document, performance, "map");
 
   mapContainer?.removeAttribute("data-active-tour");
   mapContainer?.setAttribute("data-tour-state", "idle");
