@@ -562,4 +562,79 @@ describe("M148 transactional ticketing application", () => {
     });
   });
 
+
+  it("preserves exact validation replay but rejects a different second code validation", async () => {
+    const { service, fixture, checkIns } = harness();
+    const issued = await service.issueTicket(issueInput(fixture));
+    const firstRequest = {
+      code: issued.ticket.code,
+      result: "validated",
+      operatorReference: "operator_duplicate_code",
+      occurredAt: "2026-08-15T10:20:00Z",
+    } as const;
+
+    const first = await service.checkInByCode(firstRequest);
+    const exactReplay = await service.checkInByCode(firstRequest);
+    expect(first.ticket.status).toBe("validated");
+    expect(exactReplay.replayed).toBe(true);
+
+    await expect(
+      service.checkInByCode({
+        ...firstRequest,
+        occurredAt: "2026-08-15T10:20:01Z",
+      }),
+    ).rejects.toMatchObject({
+      code: "TICKETING_TICKET_ALREADY_VALIDATED",
+    });
+    expect(checkIns.values).toHaveLength(1);
+  });
+
+  it("rejects a different offline validate envelope after validation", async () => {
+    const { service, fixture, checkIns } = harness();
+    const issued = await service.issueTicket(issueInput(fixture));
+
+    const syncValidate = async (id: string, queuedAt: string) => {
+      const signature = createTicketOfflineEnvelopeSignature(
+        {
+          ticketId: issued.ticket.id,
+          operation: "validate",
+          payload: issued.qrPayload,
+          queuedAt,
+        },
+        fixture.secret,
+      );
+      const envelope = createTicketOfflineEnvelope({
+        id,
+        ticketId: issued.ticket.id,
+        operation: "validate",
+        payload: issued.qrPayload,
+        signature,
+        queuedAt,
+      });
+      if (!envelope) throw new Error("ENVELOPE_FIXTURE_INVALID");
+      return service.syncOfflineEnvelope({
+        envelope,
+        operatorReference: "operator_duplicate_offline",
+        recordedAt: queuedAt,
+      });
+    };
+
+    await expect(
+      syncValidate(
+        "toe_ticketing_duplicate_validate_0001",
+        "2026-08-15T10:40:00Z",
+      ),
+    ).resolves.toMatchObject({ ticket: { status: "validated" } });
+
+    await expect(
+      syncValidate(
+        "toe_ticketing_duplicate_validate_0002",
+        "2026-08-15T10:40:01Z",
+      ),
+    ).rejects.toMatchObject({
+      code: "TICKETING_TICKET_ALREADY_VALIDATED",
+    });
+    expect(checkIns.values).toHaveLength(1);
+  });
+
 });
