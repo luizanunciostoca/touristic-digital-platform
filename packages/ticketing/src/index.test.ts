@@ -154,4 +154,41 @@ describe("M147 ticketing domain", () => {
     ).toBeNull();
   });
 
+
+  it("rejects persisted validation or use at the ticket validity boundary", () => {
+    const { orderId, paymentId, amount } = fixture();
+    const base = {
+      id: "tck_ticketing_validity_state_0001",
+      orderId,
+      paymentId,
+      destinationId: "morro-de-sao-paulo",
+      product: { kind: "tour" as const, reference: "volta-a-ilha" },
+      holderName: "Luiz Silva",
+      quantity: 1,
+      amount,
+      code: "VALD-TEST-0001-TCKT",
+      issuedAt: "2026-08-15T10:00:00Z",
+      validUntil: "2026-08-15T11:00:00Z",
+    };
+
+    expect(
+      createTicket({
+        ...base,
+        status: "validated",
+        validatedAt: "2026-08-15T11:00:00Z",
+        updatedAt: "2026-08-15T11:00:00Z",
+      }),
+    ).toBeNull();
+
+    expect(
+      createTicket({
+        ...base,
+        status: "used",
+        validatedAt: "2026-08-15T10:30:00Z",
+        usedAt: "2026-08-15T11:00:00Z",
+        updatedAt: "2026-08-15T11:00:00Z",
+      }),
+    ).toBeNull();
+  });
+
 });
