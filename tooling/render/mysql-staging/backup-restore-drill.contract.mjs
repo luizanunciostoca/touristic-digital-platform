@@ -15,6 +15,7 @@ function run(extraEnvironment = {}) {
       DRILL_CONFIRM: "BACKUP_RESTORE_STAGING_ONLY",
       DRILL_DRY_RUN: "true",
       RENDER_SERVICE_NAME: "morro-digital-v2-staging-mysql",
+      DRILL_SOURCE_QUIESCED_CONFIRMED: "true",
       AUTH_DATABASE_NAME: "morro_auth_staging",
       ORDERING_DATABASE_NAME: "morro_ordering_staging",
       FINANCIAL_DATABASE_NAME: "morro_financial_staging",
@@ -36,6 +37,23 @@ assert.match(planned.stdout, /"contract":"MYSQL-BACKUP-RESTORE-DRILL"/u);
 assert.match(planned.stdout, /"status":"planned"/u);
 assert.doesNotMatch(planned.stdout, /ci-not-a-secret-value/u);
 assert.doesNotMatch(planned.stderr, /ci-not-a-secret-value/u);
+assert.match(planned.stdout, /"sourceQuiescedConfirmed":true/u);
+assert.match(planned.stdout, /"keepBackup":false/u);
+
+const missingService = run({
+  RENDER_SERVICE_NAME: "",
+});
+assert.notEqual(missingService.status, 0);
+assert.match(missingService.stderr, /DRILL_SERVICE_DENIED/u);
+
+const notQuiesced = run({
+  DRILL_SOURCE_QUIESCED_CONFIRMED: "false",
+});
+assert.notEqual(notQuiesced.status, 0);
+assert.match(
+  notQuiesced.stderr,
+  /DRILL_SOURCE_QUIESCED_CONFIRMATION_REQUIRED/u,
+);
 
 const productionService = run({
   RENDER_SERVICE_NAME: "morro-digital-v2",
