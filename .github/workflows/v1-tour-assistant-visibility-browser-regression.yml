@@ -126,7 +126,7 @@ jobs:
 
           (async () => {
             const browser = await chromium.launch({ headless: true });
-            const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+            const context = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'pt-BR' });
             const page = await context.newPage();
             const errors = [];
             page.on('pageerror', error => errors.push(error.message));
