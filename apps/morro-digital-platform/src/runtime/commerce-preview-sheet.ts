@@ -96,7 +96,8 @@ export function installCommercePreviewSheet(input: {
 
   let state = input.initialState ?? "half";
   let active = false;
-  let pointerStartY: number | null = null;
+  let dragStartY: number | null = null;
+  let dragStartState: CommercePreviewSheetState | null = null;
   let suppressClicksUntil = 0;
   let suppressResetTimer: number | undefined;
 
@@ -180,7 +181,8 @@ export function installCommercePreviewSheet(input: {
 
   const onPointerDown = (event: PointerEvent): void => {
     if (event.pointerType === "mouse") return;
-    pointerStartY = event.clientY;
+    dragStartY = event.clientY;
+    dragStartState = state;
     suppressClicksUntil = 0;
     try {
       handle.setPointerCapture(event.pointerId);
@@ -190,14 +192,16 @@ export function installCommercePreviewSheet(input: {
   };
 
   const applyDragDelta = (clientY: number): boolean => {
-    if (pointerStartY === null) return false;
-    const delta = clientY - pointerStartY;
+    if (dragStartY === null || dragStartState === null) return false;
+    const delta = clientY - dragStartY;
     if (Math.abs(delta) < 36) return false;
     suppressClicksUntil = Date.now() + 500;
     setState(
-      stepCommercePreviewSheetState(state, delta < 0 ? "expand" : "collapse"),
+      stepCommercePreviewSheetState(
+        dragStartState,
+        delta < 0 ? "expand" : "collapse",
+      ),
     );
-    pointerStartY = clientY;
     return true;
   };
 
@@ -209,14 +213,16 @@ export function installCommercePreviewSheet(input: {
   const onPointerUp = (event: PointerEvent): void => {
     if (event.pointerType === "mouse") return;
     applyDragDelta(event.clientY);
-    pointerStartY = null;
+    dragStartY = null;
+    dragStartState = null;
     releasePointerCapture(event);
     scheduleClickSuppressionReset();
   };
 
   const onPointerCancel = (event: PointerEvent): void => {
     if (event.pointerType === "mouse") return;
-    pointerStartY = null;
+    dragStartY = null;
+    dragStartState = null;
     suppressClicksUntil = 0;
     if (suppressResetTimer !== undefined) {
       input.window.clearTimeout(suppressResetTimer);
@@ -230,7 +236,8 @@ export function installCommercePreviewSheet(input: {
 
   const onMouseDown = (event: MouseEvent): void => {
     if (compatibilityMouseSuppressed()) return;
-    pointerStartY = event.clientY;
+    dragStartY = event.clientY;
+    dragStartState = state;
     suppressClicksUntil = 0;
   };
 
@@ -242,7 +249,8 @@ export function installCommercePreviewSheet(input: {
   const onMouseUp = (event: MouseEvent): void => {
     if (compatibilityMouseSuppressed()) return;
     applyDragDelta(event.clientY);
-    pointerStartY = null;
+    dragStartY = null;
+    dragStartState = null;
     scheduleClickSuppressionReset();
   };
 
