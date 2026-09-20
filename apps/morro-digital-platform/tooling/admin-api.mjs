@@ -189,10 +189,13 @@ function userProjection(user) {
 function createRuntimeAuditStore() {
   const entries = [];
   return Object.freeze({
-    append(entry) {
+    durability() {
+      return "runtime-projection-only";
+    },
+    async append(entry) {
       entries.push(Object.freeze({ ...entry }));
     },
-    list(limit = 100) {
+    async list(limit = 100) {
       const count = Math.max(1, Math.min(250, Number(limit) || 100));
       return Object.freeze(entries.slice(-count).reverse());
     },
@@ -290,7 +293,7 @@ export function createAdminApi({
   ).trim();
   const stepUpAttempts = new Map();
 
-  function audit(request, actor, event) {
+  async function audit(request, actor, event) {
     const entry = Object.freeze({
       actorUserId: actor?.subject ?? null,
       actorRole: actor?.role ?? null,
@@ -310,7 +313,23 @@ export function createAdminApi({
       timestamp: new Date().toISOString(),
       result: bounded(event.result ?? "unknown", 40),
     });
-    auditStore.append(entry);
+    try {
+      await auditStore.append(entry);
+    } catch {
+      platformOperations.emit({
+        kind: "alert",
+        name: "control_center.audit_write_failed",
+        severity: "error",
+        correlationId: entry.correlationId || undefined,
+        attributes: {
+          actorUserId: entry.actorUserId,
+          action: entry.action,
+          result: entry.result,
+        },
+      });
+      return false;
+    }
+
     platformOperations.emit({
       kind: "audit",
       name: "control_center.admin_action",
@@ -328,6 +347,7 @@ export function createAdminApi({
         reason: entry.reason,
       },
     });
+    return true;
   }
 
   async function requireCapability(
@@ -339,7 +359,7 @@ export function createAdminApi({
     const actor = await authApi.resolveSession(request);
     const decision = authorizeCapability(actor, capability, options);
     if (!decision.allowed) {
-      audit(request, actor, {
+      await audit(request, actor, {
         action: `control-center.authorize.${capability}`,
         result: "denied",
         reason: decision.reason,
@@ -421,7 +441,7 @@ export function createAdminApi({
       "control-center.step-up",
     );
     if (!mutation.allowed) {
-      audit(request, actor, {
+      await audit(request, actor, {
         action: "security.step_up",
         result: "denied",
         reason: mutation.reason,
@@ -438,7 +458,7 @@ export function createAdminApi({
         "Set-Cookie",
         serializeClearedStepUpCookie(production),
       );
-      audit(request, actor, {
+      await audit(request, actor, {
         action: "security.step_up.end",
         result: "success",
         reason: "operator-ended",
@@ -456,7 +476,7 @@ export function createAdminApi({
       return;
     }
     if (!consumeStepUpAttempt(actor.subject)) {
-      audit(request, actor, {
+      await audit(request, actor, {
         action: "security.step_up",
         result: "denied",
         reason: "rate_limited",
@@ -475,7 +495,7 @@ export function createAdminApi({
 
     const password = typeof body?.password === "string" ? body.password : "";
     if (!authApi.reauthenticate(actor.subject, password)) {
-      audit(request, actor, {
+      await audit(request, actor, {
         action: "security.step_up",
         result: "denied",
         reason: "reauthentication_failed",
@@ -499,7 +519,7 @@ export function createAdminApi({
         production,
       ),
     );
-    audit(request, actor, {
+    await audit(request, actor, {
       action: "security.step_up",
       result: "success",
       reason: "password_reauthenticated",
@@ -533,7 +553,7 @@ export function createAdminApi({
       "control-center.support-session",
     );
     if (!mutation.allowed) {
-      audit(request, actor, {
+      await audit(request, actor, {
         action: "support.session.mutate",
         result: "denied",
         reason: mutation.reason,
@@ -551,7 +571,7 @@ export function createAdminApi({
         "Set-Cookie",
         serializeClearedSupportCookie(production),
       );
-      audit(request, actor, {
+      await audit(request, actor, {
         action: "support.session.end",
         result: "success",
         effectiveUserId: previous?.effectiveUser?.id ?? null,
@@ -605,7 +625,7 @@ export function createAdminApi({
         production,
       ),
     );
-    audit(request, actor, {
+    await audit(request, actor, {
       action: "support.session.start",
       result: "success",
       effectiveUserId: effectiveUser.id,
@@ -700,7 +720,13 @@ export function createAdminApi({
                 ? "available"
                 : "contract-required",
             },
-            audit: { state: "runtime-projection", durable: false },
+            audit: {
+              state:
+                auditStore.durability?.() === "mysql-append-only"
+                  ? "available"
+                  : "runtime-projection",
+              durable: auditStore.durability?.() === "mysql-append-only",
+            },
           },
         });
         return;
@@ -814,8 +840,11 @@ export function createAdminApi({
         const actor = await requireCapability(request, response, "audit.read");
         if (!actor) return;
         json(response, 200, {
-          durability: "runtime-projection-only",
-          entries: auditStore.list(requestUrl.searchParams.get("limit")),
+          durability:
+            auditStore.durability?.() ?? "runtime-projection-only",
+          entries: await auditStore.list(
+            requestUrl.searchParams.get("limit"),
+          ),
         });
         return;
       }
@@ -869,7 +898,7 @@ export function createAdminApi({
             `control-center.${namespace}.mutation`,
           );
           if (!requestSecurity.allowed) {
-            audit(request, actor, {
+            await audit(request, actor, {
               action: `control-center.${namespace}.mutation`,
               result: "denied",
               reason: requestSecurity.reason,
