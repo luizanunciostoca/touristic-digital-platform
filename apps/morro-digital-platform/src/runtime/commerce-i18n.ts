@@ -66,15 +66,21 @@ export interface ExperiencePresentationCopy {
 
 function normalizedLocale(locale?: string | null): MorroDocumentLocale {
   const language = locale?.trim().toLowerCase().replaceAll("_", "-") ?? "";
-  if (language === "he" || language === "iw" || language.startsWith("he-") || language.startsWith("iw-"))
+  if (
+    language === "he" ||
+    language === "iw" ||
+    language.startsWith("he-") ||
+    language.startsWith("iw-")
+  )
     return "he-IL";
   if (language === "es" || language.startsWith("es-")) return "es-ES";
   if (language === "en" || language.startsWith("en-")) return "en-US";
   return "pt-BR";
 }
 
-const TICKETING_COPY: Readonly<Record<MorroDocumentLocale, TicketingPresentationCopy>> =
-  Object.freeze({
+const TICKETING_COPY: Readonly<
+  Record<MorroDocumentLocale, TicketingPresentationCopy>
+> = Object.freeze({
     "pt-BR": Object.freeze({
       static: Object.freeze({
         documentTitle: "Ingressos · Morro Digital",
@@ -373,8 +379,9 @@ const TICKETING_COPY: Readonly<Record<MorroDocumentLocale, TicketingPresentation
     }),
   });
 
-const EXPERIENCE_COPY: Readonly<Record<MorroDocumentLocale, ExperiencePresentationCopy>> =
-  Object.freeze({
+const EXPERIENCE_COPY: Readonly<
+  Record<MorroDocumentLocale, ExperiencePresentationCopy>
+> = Object.freeze({
     "pt-BR": Object.freeze({
       static: Object.freeze({
         documentTitle: "Experiência · Morro Digital",
@@ -531,10 +538,12 @@ export function applyCommerceDocumentCopy(
       ? getTicketingPresentationCopy(locale).static
       : getExperiencePresentationCopy(locale).static;
 
-  document.querySelectorAll<HTMLElement>("[data-commerce-i18n]").forEach((element) => {
-    const key = element.dataset.commerceI18n;
-    if (key && copy[key]) element.textContent = copy[key];
-  });
+  document
+    .querySelectorAll<HTMLElement>("[data-commerce-i18n]")
+    .forEach((element) => {
+      const key = element.dataset.commerceI18n;
+      if (key && copy[key]) element.textContent = copy[key];
+    });
   document
     .querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(
       "[data-commerce-i18n-placeholder]",
