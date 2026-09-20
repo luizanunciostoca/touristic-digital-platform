@@ -571,9 +571,24 @@ function applyTicketingStaticCopy(
 ): void {
   setText(document, ".ticketing-header h1", copy.mainTitle);
   setText(document, ".ticketing-header .lead", copy.lead);
+  setText(
+    document,
+    '.panel[aria-labelledby="offers-title"] .eyebrow',
+    copy.availabilityEyebrow,
+  );
   setText(document, "#offers-title", copy.offersTitle);
   setText(document, "#refresh-button", copy.refresh);
+  setText(
+    document,
+    '.panel[aria-labelledby="reservation-title"] .eyebrow',
+    copy.reservationEyebrow,
+  );
   setText(document, "#reservation-title", copy.reservationTitle);
+  setText(
+    document,
+    '.panel[aria-labelledby="my-tickets-title"] .eyebrow',
+    copy.walletEyebrow,
+  );
 
   const secureNotes = document.querySelectorAll<HTMLElement>(".secure-note");
   if (secureNotes[0] && copy.securePayment)
