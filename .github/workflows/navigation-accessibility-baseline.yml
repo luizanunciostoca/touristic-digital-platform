@@ -9,6 +9,7 @@ on:
       - apps/morro-digital-platform/src/navigation/**
       - apps/morro-digital-platform/src/browser-entry.ts
       - apps/morro-digital-platform/src/layouts/app-shell.ts
+      - apps/morro-digital-platform/src/ux/outdoor-one-hand-v2-contract.test.ts
       - apps/morro-digital-platform/public/**
       - packages/geospatial/src/**
       - packages/navigation/src/**
