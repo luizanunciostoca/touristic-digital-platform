@@ -126,9 +126,16 @@ function hashedKey(namespace: string, value: string): string {
   return createHash("sha256").update(`${namespace}:${value}`).digest("hex");
 }
 
+function containsControlCharacter(value: string): boolean {
+  return Array.from(value).some((character) => {
+    const codePoint = character.codePointAt(0);
+    return codePoint !== undefined && (codePoint <= 0x1f || codePoint === 0x7f);
+  });
+}
+
 function normalizedSubject(value: string): string {
   const subject = value.trim();
-  if (!subject || subject.length > 191 || /[\u0000-\u001f\u007f]/u.test(subject)) {
+  if (!subject || subject.length > 191 || containsControlCharacter(subject)) {
     throw new Error("Auth session subject is invalid.");
   }
   return subject;
