@@ -20,6 +20,7 @@ on:
       - apps/morro-digital-platform/src/runtime/map-style-readiness.ts
       - apps/morro-digital-platform/src/development/leaflet-compatibility-sdk.ts
       - apps/morro-digital-platform/tooling/dev-server.mjs
+      - apps/morro-digital-platform/public/premium-ux-v2.css
       - apps/morro-digital-platform/public/index.html
       - package.json
       - pnpm-lock.yaml
@@ -40,6 +41,7 @@ on:
       - apps/morro-digital-platform/src/runtime/map-style-readiness.ts
       - apps/morro-digital-platform/src/development/leaflet-compatibility-sdk.ts
       - apps/morro-digital-platform/tooling/dev-server.mjs
+      - apps/morro-digital-platform/public/premium-ux-v2.css
       - apps/morro-digital-platform/public/index.html
       - package.json
       - pnpm-lock.yaml
@@ -153,6 +155,53 @@ jobs:
             return guidedSnapshot(page);
           }
 
+          async function assertTourModeComposition(page, label) {
+            const state = await page.evaluate(() => {
+              const visibility = (selector) => {
+                const element = document.querySelector(selector);
+                if (!(element instanceof HTMLElement)) return null;
+                const style = getComputedStyle(element);
+                return {
+                  visibility: style.visibility,
+                  pointerEvents: style.pointerEvents,
+                  opacity: Number.parseFloat(style.opacity || '1'),
+                };
+              };
+              return {
+                mode: document.body.dataset.mdMode ?? null,
+                assistantOpen: document.body.classList.contains('assistant-modal-open'),
+                header: visibility('header'),
+                weather: visibility('#weather-widget'),
+                submenu: visibility('#submenu'),
+                globe: visibility('#globe-map-control'),
+                quickAction: visibility('.quick-actions'),
+                assistant: visibility('#assistant-messages'),
+              };
+            });
+            const hidden = (value) =>
+              value &&
+              value.visibility === 'hidden' &&
+              value.pointerEvents === 'none';
+            if (
+              state.mode !== 'tour' ||
+              !hidden(state.header) ||
+              !hidden(state.weather) ||
+              !hidden(state.submenu) ||
+              !hidden(state.globe) ||
+              !state.quickAction ||
+              state.quickAction.visibility === 'hidden' ||
+              state.quickAction.pointerEvents === 'none' ||
+              !state.assistantOpen ||
+              !state.assistant ||
+              state.assistant.visibility === 'hidden'
+            ) {
+              throw new Error(
+                `Tour mode composition drift at ${label}: ${JSON.stringify(state)}`,
+              );
+            }
+            return state;
+          }
+
           async function openGuidedTour(page, tourId, markerCount) {
             await page.locator('body[data-public-onboarding-settled="true"]:not(.tour-active)').waitFor({
               state: 'attached',
@@ -171,6 +220,7 @@ jobs:
             await shortcut.waitFor({ state: 'visible', timeout: 10000 });
             await shortcut.click();
             const intro = await waitForGuidedStage(page, 'intro', tourId);
+            await assertTourModeComposition(page, 'intro');
             await page.locator('.tour-intro-card').waitFor({ state: 'visible', timeout: 10000 });
             await page.locator('#assistant-category-results [data-value="__tour_start__"]').waitFor({
               state: 'visible',
@@ -201,6 +251,7 @@ jobs:
 
             await page.locator('#assistant-category-results [data-value="__tour_start__"]').click();
             const first = await waitForGuidedStage(page, 'stop', 'volta-a-ilha', '0');
+            await assertTourModeComposition(page, 'first-stop');
             await page.locator('.tour-stop-card').waitFor({ state: 'visible', timeout: 10000 });
             if (!(await page.locator('.tour-stop-pin.tour-stop-active').count())) {
               throw new Error('Guided tour did not highlight the active V1 stop marker.');
