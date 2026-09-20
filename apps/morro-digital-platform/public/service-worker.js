@@ -19,6 +19,7 @@ const PRECACHE_URLS = Object.freeze([
   "/apps/morro-digital-platform/public/v1-weather-runtime-parity.css",
   "/apps/morro-digital-platform/public/premium-ux-v2.css",
   "/apps/morro-digital-platform/public/design-system-v2.css",
+  "/apps/morro-digital-platform/public/privacy-preferences.css",
 ]);
 
 const NETWORK_ONLY_PATHS = Object.freeze([
