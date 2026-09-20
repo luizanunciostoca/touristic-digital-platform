@@ -17,6 +17,7 @@
     rgba(0, 0, 0, 0) 100%
   );
   pointer-events: none;
+  font-family: var(--md-font-family-sans);
 }
 
 #buttonGroup {
@@ -51,16 +52,16 @@
   white-space: nowrap;
   cursor: pointer;
   transition:
-    background-color var(--md-motion-duration-normal, 200ms)
-      var(--md-motion-ease-standard, ease),
-    border-color var(--md-motion-duration-normal, 200ms)
-      var(--md-motion-ease-standard, ease),
-    color var(--md-motion-duration-normal, 200ms)
-      var(--md-motion-ease-standard, ease),
-    box-shadow var(--md-motion-duration-normal, 200ms)
-      var(--md-motion-ease-standard, ease),
-    transform var(--md-motion-duration-normal, 200ms)
-      var(--md-motion-ease-standard, ease);
+    background-color var(--md-motion-duration-normal)
+      var(--md-motion-ease-standard),
+    border-color var(--md-motion-duration-normal)
+      var(--md-motion-ease-standard),
+    color var(--md-motion-duration-normal)
+      var(--md-motion-ease-standard),
+    box-shadow var(--md-motion-duration-normal)
+      var(--md-motion-ease-standard),
+    transform var(--md-motion-duration-normal)
+      var(--md-motion-ease-standard);
 }
 
 .control-button:hover,
@@ -125,16 +126,16 @@
   font: inherit;
   cursor: pointer;
   transition:
-    background-color var(--md-motion-duration-normal, 200ms)
-      var(--md-motion-ease-standard, ease),
-    border-color var(--md-motion-duration-normal, 200ms)
-      var(--md-motion-ease-standard, ease),
-    color var(--md-motion-duration-normal, 200ms)
-      var(--md-motion-ease-standard, ease),
-    box-shadow var(--md-motion-duration-normal, 200ms)
-      var(--md-motion-ease-standard, ease),
-    transform var(--md-motion-duration-normal, 200ms)
-      var(--md-motion-ease-standard, ease);
+    background-color var(--md-motion-duration-normal)
+      var(--md-motion-ease-standard),
+    border-color var(--md-motion-duration-normal)
+      var(--md-motion-ease-standard),
+    color var(--md-motion-duration-normal)
+      var(--md-motion-ease-standard),
+    box-shadow var(--md-motion-duration-normal)
+      var(--md-motion-ease-standard),
+    transform var(--md-motion-duration-normal)
+      var(--md-motion-ease-standard);
 }
 
 .submenu-item:hover,
