@@ -1,0 +1,193 @@
+/*
+ * Morro Digital — CSS Modernization / Premium UX bridge.
+ *
+ * The V1 CSS under public/legacy/** is frozen evidence and is intentionally
+ * not edited. New work is organized in cascade layers. A small unlayered
+ * compatibility bridge at the end is intentional: unlayered historical CSS
+ * outranks named layers, so runtime overrides must remain unlayered until the
+ * corresponding legacy surface is migrated.
+ */
+
+@layer reset, vendor, legacy, tokens, base, components, features, utilities, overrides;
+
+@layer tokens {
+  :root {
+    --md-outdoor-surface: rgba(255, 255, 255, 0.96);
+    --md-outdoor-surface-strong: #ffffff;
+    --md-outdoor-text: #0f172a;
+    --md-outdoor-border: rgba(255, 255, 255, 0.78);
+    --md-outdoor-shadow: 0 12px 32px rgba(15, 23, 42, 0.18);
+    --md-sheet-peek-height: min(30dvh, 16rem);
+    --md-sheet-half-height: min(55dvh, 32rem);
+    --md-sheet-full-height: 90dvh;
+  }
+}
+
+@layer base {
+  [data-md-mode] {
+    --md-active-mode: discover;
+  }
+
+  [data-md-mode="place"] {
+    --md-active-mode: place;
+  }
+
+  [data-md-mode="navigation"] {
+    --md-active-mode: navigation;
+  }
+
+  [data-md-mode="tour"] {
+    --md-active-mode: tour;
+  }
+
+  [data-md-mode="commerce"] {
+    --md-active-mode: commerce;
+  }
+
+  [data-md-mode="assistant"] {
+    --md-active-mode: assistant;
+  }
+}
+
+@layer components {
+  .md-bottom-sheet {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
+    transition:
+      height var(--md-motion-duration-normal, 200ms)
+        var(--md-motion-ease-standard, ease),
+      transform var(--md-motion-duration-normal, 200ms)
+        var(--md-motion-ease-standard, ease);
+  }
+
+  .md-bottom-sheet[data-sheet-state="peek"] {
+    height: var(--md-sheet-peek-height);
+  }
+
+  .md-bottom-sheet[data-sheet-state="half"] {
+    height: var(--md-sheet-half-height);
+  }
+
+  .md-bottom-sheet[data-sheet-state="full"] {
+    height: var(--md-sheet-full-height);
+  }
+
+  .md-bottom-sheet-content {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .md-bottom-sheet-handle {
+    width: 2.75rem;
+    height: 0.25rem;
+    margin: var(--md-space-2, 0.5rem) auto;
+    border-radius: var(--md-radius-pill, 999px);
+    background: color-mix(in srgb, currentColor 25%, transparent);
+  }
+}
+
+@layer features {
+  body[data-md-mode="navigation"],
+  body[data-md-mode="tour"] {
+    --md-map-ui-priority: high;
+  }
+
+  body[data-md-mode="place"],
+  body[data-md-mode="assistant"],
+  body[data-md-mode="commerce"] {
+    --md-content-ui-priority: high;
+  }
+}
+
+@layer utilities {
+  .md-outdoor-readable {
+    background: var(--md-outdoor-surface);
+    color: var(--md-outdoor-text);
+    border: 1px solid var(--md-outdoor-border);
+    box-shadow: var(--md-outdoor-shadow);
+  }
+
+  .md-safe-scroll {
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+  }
+}
+
+@layer overrides {
+  @media (prefers-reduced-motion: reduce) {
+    .md-bottom-sheet {
+      transition-duration: 0.01ms;
+    }
+  }
+
+  @media (forced-colors: active) {
+    .md-outdoor-readable {
+      border-color: CanvasText;
+      box-shadow: none;
+    }
+
+    .md-bottom-sheet-handle {
+      background: CanvasText;
+    }
+  }
+}
+
+/*
+ * Compatibility bridge — intentionally unlayered until the matching legacy
+ * selectors are migrated into the layered runtime bundle.
+ */
+
+.control-button,
+.submenu-item {
+  transition-property:
+    background-color, border-color, color, box-shadow, transform;
+}
+
+.assistant-voice-selector {
+  transition-property:
+    opacity, transform, background-color, border-color, box-shadow;
+}
+
+.quick-actions,
+#globe-map-control {
+  transition:
+    opacity var(--md-motion-duration-fast, 120ms)
+      var(--md-motion-ease-standard, ease),
+    transform var(--md-motion-duration-fast, 120ms)
+      var(--md-motion-ease-standard, ease),
+    visibility 0s linear var(--md-motion-duration-fast, 120ms);
+}
+
+body[data-md-mode="navigation"] .quick-actions,
+body[data-md-mode="navigation"] #globe-map-control,
+body[data-md-mode="tour"] .quick-actions,
+body[data-md-mode="tour"] #globe-map-control {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(0.5rem);
+}
+
+body[data-md-mode="navigation"]
+  #assistant-messages
+  .assistant-options:has([data-explore-category]),
+body[data-md-mode="tour"]
+  #assistant-messages
+  .assistant-options:has([data-explore-category]) {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .quick-actions,
+  #globe-map-control {
+    transition-duration: 0.01ms;
+    transition-delay: 0ms;
+  }
+}
