@@ -7,6 +7,7 @@
 - Design System V2 foundations: PR #102, merge `b4437eae59488b040b70e92b78672a936a813f73`
 - Branch: `wave/css-modernization-ux-premium-20260920`
 - A branch foi confirmada como idêntica ao `main` antes da primeira alteração.
+- O formatter canônico do workspace foi aplicado no commit `41b2ef588ad4f72012269783d4ebc627295efdf1`; o helper one-shot foi removido no mesmo commit.
 
 ## Limite de preservação
 
