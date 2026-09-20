@@ -33,7 +33,17 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Emit canonical Prettier diff
         run: |
-          pnpm exec prettier --write tooling/render/wait-for-staging-mysql.mjs
+          pnpm exec prettier --write \
+            docs/deployment/RENDER-STAGING-V2.md \
+            tooling/quality/check-release-readiness.mjs \
+            tooling/quality/check-render-staging-blueprint.mjs \
+            tooling/render/wait-for-staging-mysql.mjs \
+            tooling/render/with-staging-mysql-env.mjs
           echo "--- PRETTIER DIFF START ---"
-          git diff -- tooling/render/wait-for-staging-mysql.mjs
+          git diff -- \
+            docs/deployment/RENDER-STAGING-V2.md \
+            tooling/quality/check-release-readiness.mjs \
+            tooling/quality/check-render-staging-blueprint.mjs \
+            tooling/render/wait-for-staging-mysql.mjs \
+            tooling/render/with-staging-mysql-env.mjs
           echo "--- PRETTIER DIFF END ---"
