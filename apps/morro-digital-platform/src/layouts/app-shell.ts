@@ -135,10 +135,10 @@ function createAppShellMarkup(): string {
         </button>
       </div>
 
-      <div id="instruction-banner" class="instruction-banner md-navigation-banner hidden" role="status" aria-live="polite" aria-atomic="true">
+      <div id="instruction-banner" class="instruction-banner md-navigation-banner hidden" aria-labelledby="instruction-main">
         <div class="instruction-primary">
           <span id="instruction-arrow" class="instruction-icon">↑</span>
-          <h2 id="instruction-main" class="instruction-main-text" data-i18n="navigation_continue_straight">Siga em frente</h2>
+          <h2 id="instruction-main" class="instruction-main-text" role="status" aria-live="polite" aria-atomic="true" data-i18n="navigation_continue_straight">Siga em frente</h2>
           <button id="minimize-navigation-btn" class="minimize-button md-icon-button" type="button" aria-label="Minimizar instruções de navegação" aria-expanded="true" aria-controls="instruction-secondary" data-i18n-aria="navigation_minimize"></button>
         </div>
         <div id="instruction-secondary" class="instruction-secondary">
