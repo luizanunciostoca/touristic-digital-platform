@@ -1051,6 +1051,7 @@ export function createPaymentsApi({
           orders,
           payments,
           ledger,
+          checkoutAccess,
         }),
         pools,
       });
@@ -1121,6 +1122,41 @@ export function createPaymentsApi({
     }
   }
 
+  async function adminResolvePaymentTenant(paymentIdInput) {
+    const paymentId = normalizePaymentId(paymentIdInput);
+    if (!paymentId) {
+      return Object.freeze({ status: "invalid", tenantId: null });
+    }
+    const paymentRepository = runtime?.adminRead?.payments;
+    const accessRepository = runtime?.adminRead?.checkoutAccess;
+    if (!paymentRepository || !accessRepository) {
+      return Object.freeze({ status: "unavailable", tenantId: null });
+    }
+    try {
+      const payment = await paymentRepository.findById(paymentId);
+      if (!payment || payment.subject?.kind !== "order") {
+        return Object.freeze({ status: "not_found", tenantId: null });
+      }
+      const access = await accessRepository.findByOrderId(
+        payment.subject.reference,
+      );
+      if (
+        !access ||
+        access.paymentId !== payment.id ||
+        typeof access.tenantId !== "string" ||
+        !access.tenantId.trim()
+      ) {
+        return Object.freeze({ status: "not_found", tenantId: null });
+      }
+      return Object.freeze({
+        status: "found",
+        tenantId: access.tenantId.trim(),
+      });
+    } catch {
+      return Object.freeze({ status: "unavailable", tenantId: null });
+    }
+  }
+
   async function adminFindLedger(externalKeyInput) {
     const externalKey =
       typeof externalKeyInput === "string" ? externalKeyInput.trim() : "";
@@ -1163,6 +1199,7 @@ export function createPaymentsApi({
     stop,
     adminFindOrder,
     adminFindPayment,
+    adminResolvePaymentTenant,
     adminFindLedger,
     async handle(request, response, requestUrl) {
       const correlationId =
