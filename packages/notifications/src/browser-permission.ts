@@ -26,8 +26,8 @@ function normalizePermission(
   value: unknown,
 ): BrowserNotificationPermissionState {
   return value === "granted" || value === "denied" || value === "default"
-    ? value
-    : "unsupported";
+  ? value
+  : "unsupported";
 }
 
 export function createBrowserNotificationPermissionPort(
