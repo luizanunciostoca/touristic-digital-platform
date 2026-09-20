@@ -1,4 +1,4 @@
-export const ASSISTANT_CONTEXT_VERSION = 2;
+export const ASSISTANT_CONTEXT_VERSION = 3;
 export const ASSISTANT_CONTEXT_MAX_HISTORY = 50;
 export const ASSISTANT_CONTEXT_SESSION_TTL_MS = 4 * 60 * 60 * 1000;
 export const ASSISTANT_CONTEXT_STORAGE_KEY = "assistantContext";
@@ -20,6 +20,32 @@ export interface AssistantAwaitingState {
   [key: string]: unknown;
 }
 
+export type AssistantActiveTourStage = "intro" | "list" | "stop" | "finale";
+
+export interface AssistantActiveTourContext {
+  readonly tourId: string;
+  readonly stage: AssistantActiveTourStage;
+  readonly currentStopIndex: number;
+  readonly totalStops: number;
+}
+
+export type AssistantNavigationRuntimePhase =
+  | "idle"
+  | "initializing"
+  | "route_ready"
+  | "active"
+  | "recalculating"
+  | "ui_ready"
+  | "arrived"
+  | "failed"
+  | "ended";
+
+export interface AssistantNavigationRuntimeContext {
+  readonly active: boolean;
+  readonly destination: string | null;
+  readonly phase: AssistantNavigationRuntimePhase;
+}
+
 export interface AssistantContext {
   _version: number;
   lastPlace: string | null;
@@ -36,6 +62,8 @@ export interface AssistantContext {
   locationTracking: boolean;
   hasSharedLocation: boolean;
   lastPlaceHours: unknown;
+  activeTour: AssistantActiveTourContext | null;
+  navigationState: AssistantNavigationRuntimeContext;
   preferences: Record<string, unknown>;
   sessionStart: number;
 }
@@ -86,6 +114,12 @@ export function createDefaultAssistantContext(
     locationTracking: false,
     hasSharedLocation: false,
     lastPlaceHours: null,
+    activeTour: null,
+    navigationState: {
+      active: false,
+      destination: null,
+      phase: "idle",
+    },
     preferences: {},
     sessionStart: now(),
   };
@@ -109,24 +143,112 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+const ACTIVE_TOUR_STAGES = new Set<AssistantActiveTourStage>([
+  "intro",
+  "list",
+  "stop",
+  "finale",
+]);
+
+const NAVIGATION_RUNTIME_PHASES = new Set<AssistantNavigationRuntimePhase>([
+  "idle",
+  "initializing",
+  "route_ready",
+  "active",
+  "recalculating",
+  "ui_ready",
+  "arrived",
+  "failed",
+  "ended",
+]);
+
+function normalizeActiveTour(
+  value: unknown,
+): AssistantActiveTourContext | null {
+  if (!isRecord(value)) return null;
+  const tourId = typeof value.tourId === "string" ? value.tourId.trim() : "";
+  const stage = value.stage;
+  const currentStopIndex = Number(value.currentStopIndex);
+  const totalStops = Number(value.totalStops);
+  if (
+    !tourId ||
+    tourId.length > 120 ||
+    typeof stage !== "string" ||
+    !ACTIVE_TOUR_STAGES.has(stage as AssistantActiveTourStage) ||
+    !Number.isInteger(currentStopIndex) ||
+    currentStopIndex < 0 ||
+    !Number.isInteger(totalStops) ||
+    totalStops < 1 ||
+    currentStopIndex >= totalStops
+  ) {
+    return null;
+  }
+  return {
+    tourId,
+    stage: stage as AssistantActiveTourStage,
+    currentStopIndex,
+    totalStops,
+  };
+}
+
+function normalizeNavigationState(
+  value: unknown,
+): AssistantNavigationRuntimeContext {
+  if (!isRecord(value)) {
+    return { active: false, destination: null, phase: "idle" };
+  }
+  const destination =
+    typeof value.destination === "string"
+      ? value.destination.trim().slice(0, 160) || null
+      : null;
+  const phase =
+    typeof value.phase === "string" &&
+    NAVIGATION_RUNTIME_PHASES.has(
+      value.phase as AssistantNavigationRuntimePhase,
+    )
+      ? (value.phase as AssistantNavigationRuntimePhase)
+      : "idle";
+  return {
+    active:
+      value.active === true &&
+      phase !== "idle" &&
+      phase !== "failed" &&
+      phase !== "ended",
+    destination,
+    phase,
+  };
+}
+
 function migrateAssistantContext(
   saved: Record<string, unknown>,
 ): Record<string, unknown> {
   const version = typeof saved._version === "number" ? saved._version : 1;
-  if (version >= ASSISTANT_CONTEXT_VERSION) return saved;
+  const v2 =
+    version >= 2
+      ? saved
+      : {
+          ...saved,
+          lastModifiers: Array.isArray(saved.lastModifiers)
+            ? saved.lastModifiers
+            : [],
+          userLocation: saved.userLocation ?? null,
+          pendingRoute: saved.pendingRoute ?? null,
+          selectedDestination: saved.selectedDestination ?? null,
+          locationTracking: saved.locationTracking ?? false,
+          hasSharedLocation: saved.hasSharedLocation ?? false,
+          lastPlaceHours: saved.lastPlaceHours ?? null,
+        };
 
+  if (version >= ASSISTANT_CONTEXT_VERSION) return v2;
   return {
-    ...saved,
+    ...v2,
     _version: ASSISTANT_CONTEXT_VERSION,
-    lastModifiers: Array.isArray(saved.lastModifiers)
-      ? saved.lastModifiers
-      : [],
-    userLocation: saved.userLocation ?? null,
-    pendingRoute: saved.pendingRoute ?? null,
-    selectedDestination: saved.selectedDestination ?? null,
-    locationTracking: saved.locationTracking ?? false,
-    hasSharedLocation: saved.hasSharedLocation ?? false,
-    lastPlaceHours: saved.lastPlaceHours ?? null,
+    activeTour: null,
+    navigationState: {
+      active: false,
+      destination: null,
+      phase: "idle",
+    },
   };
 }
 
@@ -183,6 +305,8 @@ export function createAssistantContextManager(
         ...createDefaultAssistantContext(now),
         ...saved,
         _version: ASSISTANT_CONTEXT_VERSION,
+        activeTour: normalizeActiveTour(saved.activeTour),
+        navigationState: normalizeNavigationState(saved.navigationState),
       };
     } catch {
       context = createDefaultAssistantContext(now);

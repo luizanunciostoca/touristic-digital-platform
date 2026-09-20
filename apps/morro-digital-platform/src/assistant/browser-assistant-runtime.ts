@@ -5,6 +5,7 @@ import {
   normalizeAssistantVoiceLanguage,
   type AssistantDialogResponse,
   type AssistantInterestCategory,
+  type AssistantNavigationRuntimePhase,
 } from "@touristic/assistant";
 
 import type {
@@ -492,6 +493,13 @@ export function installBrowserAssistantRuntime(
   const storage = resolveStorage(options.document, options.storage);
   const mapboxAccessToken = resolveMapboxAccessToken(options.mapboxAccessToken);
   const context = createAssistantContextManager(storage ? { storage } : {});
+  context.updateContext({
+    navigationState: {
+      active: false,
+      destination: null,
+      phase: "idle",
+    },
+  });
   const profile = createAssistantUserProfileManager(storage ? { storage } : {});
   const messages = createAssistantMessageDom({ document: options.document });
   const navigationHandlers = createAssistantNavigationAppHandlers({
@@ -539,8 +547,37 @@ export function installBrowserAssistantRuntime(
 
   const view = options.document.defaultView;
   let navigationActive = false;
-  const onNavigationStarted = (): void => {
+  const navigationPhases = new Set<AssistantNavigationRuntimePhase>([
+    "idle",
+    "initializing",
+    "route_ready",
+    "active",
+    "recalculating",
+    "ui_ready",
+    "arrived",
+    "failed",
+    "ended",
+  ]);
+  const eventDetail = (event: Event): Record<string, unknown> | null => {
+    const detail = "detail" in event ? event.detail : null;
+    return detail && typeof detail === "object"
+      ? (detail as Record<string, unknown>)
+      : null;
+  };
+  const onNavigationStarted = (event: Event): void => {
     navigationActive = true;
+    const detail = eventDetail(event);
+    const destination =
+      typeof detail?.destination === "string"
+        ? detail.destination.trim().slice(0, 160) || null
+        : null;
+    context.updateContext({
+      navigationState: {
+        active: true,
+        destination,
+        phase: "active",
+      },
+    });
     const runtimeGlobal = globalThis as typeof globalThis &
       AssistantRuntimeEnvironmentGlobal;
     if (runtimeGlobal.mapboxPrimaryInstance) {
@@ -549,19 +586,55 @@ export function installBrowserAssistantRuntime(
       );
     }
   };
+  const onNavigationStatusChanged = (event: Event): void => {
+    const detail = eventDetail(event);
+    const phase = detail?.phase;
+    if (
+      typeof phase !== "string" ||
+      !navigationPhases.has(phase as AssistantNavigationRuntimePhase)
+    ) {
+      return;
+    }
+    const destination =
+      typeof detail?.destination === "string"
+        ? detail.destination.trim().slice(0, 160) || null
+        : context.getContext().navigationState.destination;
+    const active =
+      detail?.isActive === true &&
+      phase !== "ended" &&
+      phase !== "failed" &&
+      phase !== "idle";
+    navigationActive = active;
+    context.updateContext({
+      navigationState: {
+        active,
+        destination,
+        phase: phase as AssistantNavigationRuntimePhase,
+      },
+    });
+  };
   const onNavigationEnded = (event: Event): void => {
     navigationActive = false;
-    const detail = "detail" in event ? event.detail : null;
-    if (
-      detail &&
-      typeof detail === "object" &&
-      "reason" in detail &&
-      detail.reason === "arrived"
-    ) {
+    const detail = eventDetail(event);
+    const destination =
+      typeof detail?.destination === "string"
+        ? detail.destination.trim().slice(0, 160) || null
+        : context.getContext().navigationState.destination;
+    const terminalPhase =
+      detail?.reason === "arrived" ? ("arrived" as const) : ("ended" as const);
+    context.updateContext({
+      navigationState: {
+        active: false,
+        destination,
+        phase: terminalPhase,
+      },
+    });
+    if (detail?.reason === "arrived") {
       profile.recordSuccessfulNavigation();
     }
   };
   view?.addEventListener("navigationStarted", onNavigationStarted);
+  view?.addEventListener("navigationStatusChanged", onNavigationStatusChanged);
   view?.addEventListener("navigationEnded", onNavigationEnded);
 
   const voice =
@@ -614,6 +687,9 @@ export function installBrowserAssistantRuntime(
 
   const syncExploreContext = (placeHint?: string): void => {
     const state = readExploreState();
+    context.updateContext({
+      activeTour: state.stage === "tour" ? state.tour : null,
+    });
     const interestCategory = toProfileInterestCategory(state.category);
     if (interestCategory && state.category !== profiledExploreCategory) {
       profile.recordInteraction(
@@ -686,6 +762,7 @@ export function installBrowserAssistantRuntime(
   ): Promise<AssistantDialogResponse> => {
     const submittedValue = rawInput.trim();
     if (!submittedValue) return { text: "Como posso ajudar?" };
+    syncExploreContext();
     const numericIndex = /^\d+$/u.test(submittedValue)
       ? Number(submittedValue) - 1
       : -1;
@@ -1151,6 +1228,7 @@ export function installBrowserAssistantRuntime(
     "morro:assistant-option-selected",
     onOptionSelected,
   );
+  syncExploreContext();
 
   return Object.freeze({
     process,
@@ -1159,6 +1237,10 @@ export function installBrowserAssistantRuntime(
       destroyed = true;
       requestGeneration += 1;
       view?.removeEventListener("navigationStarted", onNavigationStarted);
+      view?.removeEventListener(
+        "navigationStatusChanged",
+        onNavigationStatusChanged,
+      );
       view?.removeEventListener("navigationEnded", onNavigationEnded);
       sendButton?.removeEventListener("click", onSendClick);
       input?.removeEventListener("keydown", onInputKeyDown);

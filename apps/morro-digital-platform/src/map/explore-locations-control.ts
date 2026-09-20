@@ -60,11 +60,19 @@ export type ExploreLocationsCommand =
   | Readonly<{ type: "back_to_filters" }>
   | Readonly<{ type: "back_to_menu" }>;
 
+export interface ExploreActiveTourSnapshot {
+  readonly tourId: string;
+  readonly stage: "intro" | "list" | "stop" | "finale";
+  readonly currentStopIndex: number;
+  readonly totalStops: number;
+}
+
 export interface ExploreLocationsStateSnapshot {
   readonly category: string | null;
   readonly place: string | null;
   readonly stage: ExploreStage;
   readonly markerCount: number;
+  readonly tour: ExploreActiveTourSnapshot | null;
 }
 
 export interface ExploreLocationsControlOptions {
@@ -357,15 +365,31 @@ export function installExploreLocationsControl({
     document.dispatchEvent(new CustomEvent("morro:runtime-status-refresh"));
   };
 
-  const stateSnapshot = (): ExploreLocationsStateSnapshot =>
-    Object.freeze({
+  const stateSnapshot = (): ExploreLocationsStateSnapshot => {
+    const tourState = immersiveTourController?.getState();
+    const tour =
+      activeStage === "tour" &&
+      tourState &&
+      tourState.stage !== "idle" &&
+      tourState.tourId
+        ? Object.freeze({
+            tourId: tourState.tourId,
+            stage: tourState.stage,
+            currentStopIndex: tourState.currentStopIndex,
+            totalStops: tourState.totalStops,
+          })
+        : null;
+
+    return Object.freeze({
       category: activeCategory?.value ?? null,
       place: activeStage === "detail" ? (activePlace ?? null) : null,
       stage: activeStage,
       markerCount: Number(
         document.getElementById("map")?.dataset.mapMarkerCount ?? "0",
       ),
+      tour,
     });
+  };
 
   const emitStateChange = (): void => {
     document.dispatchEvent(
@@ -1077,17 +1101,18 @@ export function installExploreLocationsControl({
         mapElement?.removeAttribute("data-tour-flow-stage");
         mapElement?.removeAttribute("data-tour-flow-id");
         mapElement?.removeAttribute("data-tour-stop-index");
+        mapElement?.removeAttribute("data-tour-total-stops");
       } else {
         mapElement?.setAttribute("data-tour-flow-stage", tourState.stage);
         mapElement?.setAttribute("data-tour-flow-id", tourState.tourId);
-        if (tourState.stage === "stop") {
-          mapElement?.setAttribute(
-            "data-tour-stop-index",
-            String(tourState.currentStopIndex),
-          );
-        } else {
-          mapElement?.removeAttribute("data-tour-stop-index");
-        }
+        mapElement?.setAttribute(
+          "data-tour-stop-index",
+          String(tourState.currentStopIndex),
+        );
+        mapElement?.setAttribute(
+          "data-tour-total-stops",
+          String(tourState.totalStops),
+        );
       }
       emitStateChange();
     },

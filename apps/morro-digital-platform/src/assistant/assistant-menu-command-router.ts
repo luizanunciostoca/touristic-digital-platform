@@ -239,11 +239,19 @@ const OPTION_ALIASES = Object.freeze({
   ],
 });
 
+export interface AssistantExploreActiveTourSnapshot {
+  readonly tourId: string;
+  readonly stage: "intro" | "list" | "stop" | "finale";
+  readonly currentStopIndex: number;
+  readonly totalStops: number;
+}
+
 export interface AssistantExploreStateSnapshot {
   readonly category: string | null;
   readonly place: string | null;
   readonly stage: string | null;
   readonly markerCount: number;
+  readonly tour: AssistantExploreActiveTourSnapshot | null;
 }
 
 export function normalizeAssistantMenuCommand(value: string): string {
@@ -701,10 +709,36 @@ export function readAssistantExploreState(
   document: Document,
 ): AssistantExploreStateSnapshot {
   const map = document.getElementById("map");
+  const markerCount = Number(map?.getAttribute("data-map-marker-count") ?? "0");
+  const tourId = map?.getAttribute("data-tour-flow-id")?.trim() ?? "";
+  const tourStage = map?.getAttribute("data-tour-flow-stage") ?? "";
+  const stopIndex = Number(map?.getAttribute("data-tour-stop-index") ?? "-1");
+  const totalStops = Number(map?.getAttribute("data-tour-total-stops") ?? "0");
+  const validTourStage =
+    tourStage === "intro" ||
+    tourStage === "list" ||
+    tourStage === "stop" ||
+    tourStage === "finale";
+  const tour =
+    tourId &&
+    validTourStage &&
+    Number.isInteger(stopIndex) &&
+    stopIndex >= 0 &&
+    Number.isInteger(totalStops) &&
+    totalStops > stopIndex
+      ? Object.freeze({
+          tourId,
+          stage: tourStage,
+          currentStopIndex: stopIndex,
+          totalStops,
+        })
+      : null;
+
   return Object.freeze({
     category: map?.getAttribute("data-explore-category") ?? null,
     place: map?.getAttribute("data-explore-place") ?? null,
     stage: map?.getAttribute("data-explore-stage") ?? null,
-    markerCount: Number(map?.getAttribute("data-map-marker-count") ?? "0"),
+    markerCount,
+    tour,
   });
 }
