@@ -275,6 +275,52 @@ describe("M148 transactional ticketing application", () => {
     expect(checkIns.values).toHaveLength(1);
   });
 
+  it("consumes a validated QR once and rejects a later replay", async () => {
+    const { service, fixture, checkIns } = harness();
+    const issued = await service.issueTicket(issueInput(fixture));
+    const validated = await service.checkInByQr({
+      qrPayload: issued.qrPayload,
+      operatorReference: "operator_001",
+      occurredAt: "2026-08-15T10:30:00Z",
+    });
+    const used = await service.checkInByQr({
+      qrPayload: issued.qrPayload,
+      operatorReference: "operator_001",
+      occurredAt: "2026-08-15T10:31:00Z",
+    });
+
+    expect(validated.ticket.status).toBe("validated");
+    expect(used.ticket.status).toBe("used");
+    await expect(
+      service.checkInByQr({
+        qrPayload: issued.qrPayload,
+        operatorReference: "operator_001",
+        occurredAt: "2026-08-15T10:32:00Z",
+      }),
+    ).rejects.toMatchObject({ code: "TICKETING_TICKET_ALREADY_USED" });
+    expect(checkIns.values).toHaveLength(2);
+  });
+
+  it("rejects QR check-in after the ticket has been revoked", async () => {
+    const { service, fixture, checkIns } = harness();
+    const issued = await service.issueTicket(issueInput(fixture));
+    await service.checkInByCode({
+      code: issued.ticket.code,
+      result: "cancelled",
+      operatorReference: "operator_001",
+      occurredAt: "2026-08-15T10:30:00Z",
+    });
+
+    await expect(
+      service.checkInByQr({
+        qrPayload: issued.qrPayload,
+        operatorReference: "operator_001",
+        occurredAt: "2026-08-15T10:31:00Z",
+      }),
+    ).rejects.toMatchObject({ code: "TICKETING_TICKET_REVOKED" });
+    expect(checkIns.values).toHaveLength(1);
+  });
+
   it("syncs one offline envelope exactly once", async () => {
     const { service, fixture, checkIns } = harness();
     const issued = await service.issueTicket(issueInput(fixture));
