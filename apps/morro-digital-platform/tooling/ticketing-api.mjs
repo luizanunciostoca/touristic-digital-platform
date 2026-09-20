@@ -5,7 +5,7 @@ import {
   applyCrmCommerceSchema,
   createCrmMySqlPoolFromEnvironment,
 } from "@touristic/crm-server";
-import { normalizeTicketSigningSecret } from "../../../packages/ticketing/dist/index.js";
+import { normalizeTicketSigningSecret } from "@touristic/ticketing";
 import { normalizeTicketingCheckoutHandoff } from "@touristic/ordering/ticketing-checkout";
 import { createTicketingReservationOrderApplicationService } from "@touristic/ordering/ticketing-reservation";
 import {
@@ -49,7 +49,7 @@ import {
   createVerifiedPaymentTicketFulfillmentHandler,
   createVerifiedRefundTicketCancellationHandler,
   ticketingHttpPrefix,
-} from "../../../services/ticketing/dist/index.js";
+} from "@touristic/ticketing-server";
 
 const maxBodyBytes = 32 * 1024;
 const auditStringMaxLength = 256;
