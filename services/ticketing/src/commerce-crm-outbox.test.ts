@@ -75,9 +75,7 @@ describe("MySqlTicketingCommerceCrmOutbox", () => {
     expect(String(execute.mock.calls[0]?.[0])).toContain(
       "FROM ticketing_tickets AS t",
     );
-    expect(String(execute.mock.calls[0]?.[0])).toContain(
-      "NOT EXISTS",
-    );
+    expect(String(execute.mock.calls[0]?.[0])).toContain("NOT EXISTS");
     expect(execute.mock.calls[1]?.[1]).toEqual(
       expect.arrayContaining([
         id,

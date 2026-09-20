@@ -76,8 +76,7 @@ describe("place commerce capability", () => {
         offer({
           product: {
             kind: "business_experience",
-            reference:
-              "morro-pro:business-a:place-toca-do-morcego:the-party",
+            reference: "morro-pro:business-a:place-toca-do-morcego:the-party",
           },
           label: "The Party",
         }),

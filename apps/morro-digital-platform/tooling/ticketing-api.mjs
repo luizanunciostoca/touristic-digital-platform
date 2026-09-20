@@ -360,10 +360,7 @@ export function createTicketingApi({
           crmRetryAttempt = Math.min(crmRetryAttempt + 1, 10);
           crmRetryNotBefore =
             now +
-            Math.min(
-              60_000,
-              1_000 * 2 ** Math.min(crmRetryAttempt - 1, 6),
-            );
+            Math.min(60_000, 1_000 * 2 ** Math.min(crmRetryAttempt - 1, 6));
           auditSafely(audit, {
             action: "ticketing.crm_sync",
             result: "failure",

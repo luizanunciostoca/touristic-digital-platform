@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { applyTicketingTransportProductKindSchema } from "./transport-product-kind-schema.js";
+import {
+  applyTicketingTransportProductKindSchema,
+} from "./transport-product-kind-schema.js";
 
 describe("ticketing transport product kind migration", () => {
   it("does not alter schemas that already accept transport", async () => {
@@ -12,8 +14,7 @@ describe("ticketing transport product kind migration", () => {
           return [
             [
               {
-                column_type:
-                  "enum('tour','business_experience','transport')",
+                column_type: "enum('tour','business_experience','transport')",
               },
             ],
             [],
