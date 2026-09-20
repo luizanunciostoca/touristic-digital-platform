@@ -325,8 +325,8 @@ async function showTicket(reservation) {
   elements.ticketTitle.textContent =
     reservation.product?.reference ||
     (reservation.product?.kind === "transport"
-      ? copy.viewPass
-      : copy.viewTicket);
+      ? copy.yourPass
+      : copy.yourTicket);
   elements.ticketQr.replaceChildren();
   const template = document.createElement("template");
   template.innerHTML = ticket.qrSvg;
