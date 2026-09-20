@@ -35,10 +35,7 @@ describe("ticketing transport product kind migration", () => {
       query: async (sql: string, values?: readonly unknown[]) => {
         queries.push(values ? { sql, values } : { sql });
         if (sql.includes("information_schema.COLUMNS")) {
-          return [
-            [{ column_type: "enum('tour','business_experience')" }],
-            [],
-          ];
+          return [[{ column_type: "enum('tour','business_experience')" }], []];
         }
         return [[], []];
       },
