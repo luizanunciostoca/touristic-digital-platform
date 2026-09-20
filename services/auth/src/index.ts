@@ -266,8 +266,7 @@ export function safeDashboardReturnPath(value: unknown): string {
     pathname.startsWith("/dashboard/") ||
     pathname.startsWith("/apps/control-center/") ||
     pathname.startsWith("/apps/admin-crm/") ||
-    pathname ===
-      "/apps/morro-digital-platform/public/business-dashboard.html";
+    pathname === "/apps/morro-digital-platform/public/business-dashboard.html";
   if (!allowed) return fallback;
 
   return `${pathname}${parsed.search}${parsed.hash}`;
