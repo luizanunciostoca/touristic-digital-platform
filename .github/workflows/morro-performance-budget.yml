@@ -55,6 +55,88 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Build runtime
         run: pnpm -w build
+      - name: Install deterministic Chromium
+        run: |
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+      - name: Start Morro Digital runtime
+        run: |
+          mkdir -p /tmp/morro-performance
+          node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/morro-performance/runtime.log 2>&1 &
+          echo $! >/tmp/morro-performance/runtime.pid
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:4173/runtime-config.js >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/morro-performance/runtime.log
+          exit 1
+      - name: Measure browser startup budgets
+        run: |
+          node <<'NODE' | tee /tmp/morro-performance/runtime-budget.json
+          const { readFileSync } = require('node:fs');
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+          const budget = JSON.parse(
+            readFileSync('tooling/performance/morro-digital-budget.json', 'utf8'),
+          );
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            const context = await browser.newContext({
+              viewport: { width: 390, height: 844 },
+              locale: 'pt-BR',
+            });
+            const page = await context.newPage();
+            const errors = [];
+            page.on('pageerror', error => errors.push(error.message));
+
+            const startedAt = Date.now();
+            await page.goto('http://127.0.0.1:4173/', {
+              waitUntil: 'domcontentloaded',
+              timeout: 30000,
+            });
+            await page.locator('#assistantInput').waitFor({
+              state: 'visible',
+              timeout: budget.runtime.assistantStartupMs + 5000,
+            });
+            const assistantStartupMs = Date.now() - startedAt;
+
+            await page.locator(
+              '#map[data-map-state="ready"][data-home-state="ready"]',
+            ).waitFor({
+              state: 'attached',
+              timeout: budget.runtime.mapStartupMs + 5000,
+            });
+            const mapStartupMs = Date.now() - startedAt;
+
+            const failures = [];
+            if (assistantStartupMs > budget.runtime.assistantStartupMs) {
+              failures.push(
+                `assistantStartupMs exceeded: ${assistantStartupMs}ms > ${budget.runtime.assistantStartupMs}ms`,
+              );
+            }
+            if (mapStartupMs > budget.runtime.mapStartupMs) {
+              failures.push(
+                `mapStartupMs exceeded: ${mapStartupMs}ms > ${budget.runtime.mapStartupMs}ms`,
+              );
+            }
+            if (errors.length) {
+              failures.push(`browser page errors: ${JSON.stringify(errors)}`);
+            }
+
+            const report = {
+              status: failures.length === 0 ? 'pass' : 'fail',
+              budget: budget.runtime,
+              actual: { assistantStartupMs, mapStartupMs },
+              failures,
+            };
+            console.log(JSON.stringify(report, null, 2));
+            await browser.close();
+            if (failures.length) process.exit(1);
+          })().catch(error => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
       - name: Enforce Morro Digital asset budgets
         run: |
           mkdir -p /tmp/morro-performance
