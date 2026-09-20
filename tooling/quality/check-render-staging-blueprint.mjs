@@ -209,10 +209,7 @@ requireText(
   mysqlDockerfile,
   "/docker-entrypoint-initdb.d/01-init-databases.sh",
 );
-requireText(
-  mysqlDockerfile,
-  "/usr/local/bin/morro-mysql-backup-restore-drill",
-);
+requireText(mysqlDockerfile, "/usr/local/bin/morro-mysql-backup-restore-drill");
 
 for (const required of [
   'CONTRACT="MYSQL-BACKUP-RESTORE-DRILL"',
