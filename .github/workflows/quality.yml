@@ -59,6 +59,8 @@ jobs:
         run: node tooling/quality/check-workflow-concurrency.mjs
       - name: Check formatting
         run: pnpm format:check
+      - name: Enforce Stylelint V2 CSS governance
+        run: pnpm css:stylelint
       - name: Check architecture boundaries
         run: pnpm architecture:check
       - name: Validate Feature Registry
