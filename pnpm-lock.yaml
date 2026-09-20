@@ -62,6 +62,9 @@ importers:
       "@touristic/content":
         specifier: workspace:*
         version: link:../../packages/content
+      "@touristic/destinations-server":
+        specifier: workspace:*
+        version: link:../../services/destinations
       "@touristic/core":
         specifier: workspace:*
         version: link:../../packages/core
