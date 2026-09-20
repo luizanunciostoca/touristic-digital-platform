@@ -1,4 +1,10 @@
-import { authorizeBusinessAccess } from "@touristic/auth";
+import {
+  authorizeBusinessAccess,
+  canonicalAuthRole,
+  capabilitiesForRole,
+  isPlatformWideAuthRole,
+  isReadOnlyAuthRole,
+} from "@touristic/auth";
 import {
   authenticateConfiguredUser,
   createInMemoryAuthSecurityState,
@@ -125,7 +131,7 @@ export function createAuthApi({ getEnvironmentValue, audit = () => {} }) {
     configurationError = error;
   }
 
-  const hasGlobalAdmin = users.some((user) => user.role === "admin");
+  const hasGlobalAdmin = users.some((user) => isPlatformWideAuthRole(user.role));
   const productionSecurityConfigured =
     !production ||
     (durableSecurityStateCreated &&
@@ -235,6 +241,8 @@ export function createAuthApi({ getEnvironmentValue, audit = () => {} }) {
         id: session.subject,
         email: session.email,
         role: session.role,
+        canonicalRole: canonicalAuthRole(session.role),
+        capabilities: capabilitiesForRole(session.role),
         businessIds: session.businessIds,
       },
     };
@@ -368,7 +376,7 @@ export function createAuthApi({ getEnvironmentValue, audit = () => {} }) {
       return null;
     }
     if (
-      active.role === "admin" &&
+      isPlatformWideAuthRole(active.role) &&
       !active.businessIds.includes(decision.businessId)
     ) {
       audit(request, {
@@ -516,7 +524,7 @@ export function createAuthApi({ getEnvironmentValue, audit = () => {} }) {
       });
       return;
     }
-    if (active.role === "viewer") {
+    if (isReadOnlyAuthRole(active.role)) {
       audit(request, {
         action: "dashboard.mutation",
         result: "denied",
@@ -571,6 +579,32 @@ export function createAuthApi({ getEnvironmentValue, audit = () => {} }) {
   return Object.freeze({
     authorizeBusinessRequest,
     authorizeMutation,
+    listConfiguredUsers() {
+      return Object.freeze(
+        users.map((user) =>
+          Object.freeze({
+            id: user.id,
+            email: user.email,
+            role: user.role,
+            canonicalRole: canonicalAuthRole(user.role),
+            capabilities: capabilitiesForRole(user.role),
+            businessIds: user.businessIds,
+          }),
+        ),
+      );
+    },
+    findConfiguredUser(userId) {
+      const user = users.find((candidate) => candidate.id === String(userId || "").trim());
+      if (!user) return null;
+      return Object.freeze({
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        canonicalRole: canonicalAuthRole(user.role),
+        capabilities: capabilitiesForRole(user.role),
+        businessIds: user.businessIds,
+      });
+    },
     resolveSession: currentSession,
     readinessCheck,
 
