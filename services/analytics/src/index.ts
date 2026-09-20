@@ -6,6 +6,7 @@ import { AnalyticsHttpTransport } from "./http-transport.js";
 import { MySqlAnalyticsEventRepository } from "./mysql-analytics-repository.js";
 import { analyticsSchemaSql } from "./schema.js";
 
+export * from "./control-center-audit.js";
 export * from "./http-transport.js";
 export * from "./mysql-analytics-repository.js";
 export * from "./schema.js";
