@@ -71,9 +71,7 @@ function requireSubscriptionsPublicCredential(environment, mode) {
     throw new Error(`${name}_INVALID`);
   }
 
-  const credentialMode = configured.startsWith("TEST-")
-    ? "test"
-    : "production";
+  const credentialMode = configured.startsWith("TEST-") ? "test" : "production";
   if (credentialMode === mode) return configured;
 
   if (mode === "test" && credentialMode === "production") {
