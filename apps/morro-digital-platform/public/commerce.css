@@ -212,6 +212,11 @@
     grid-template-columns: 1fr;
   }
 
+  body[data-commerce-preview-sheet="active"] .commerce-detail-card {
+    background: var(--md-color-surface-elevated);
+    backdrop-filter: none;
+  }
+
   body[data-commerce-preview-sheet="active"] .commerce-detail-container {
     padding-bottom: calc(
       var(--md-sheet-half-height) + var(--md-space-6) + var(--md-safe-bottom)
