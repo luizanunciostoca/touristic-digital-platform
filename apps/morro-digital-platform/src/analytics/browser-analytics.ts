@@ -461,7 +461,19 @@ const analyticsConsentPreferenceCopy = Object.freeze({
     denied: "Solo están activos los recursos necesarios.",
     unknown: "Los analytics opcionales siguen desactivados hasta que elijas.",
   }),
-} satisfies Readonly<Record<"pt" | "en" | "es", AnalyticsConsentPreferenceCopy>>);
+  he: Object.freeze({
+    manage: "פרטיות",
+    title: "העדפות פרטיות",
+    description:
+      "ניתוח שימוש אופציונלי עוזר לנו להבין כיצד משתמשים ב-Morro Digital בלי לשלוח את טקסט החיפוש, הודעות העוזר, נתוני תשלום או מידע אישי אחר. אפשר לבחור עכשיו או להמשיך ללא Analytics.",
+    allow: "אפשר Analytics",
+    deny: "הכרחי בלבד",
+    later: "לא עכשיו",
+    granted: "Analytics אופציונלי מאופשר.",
+    denied: "רק תכונות הכרחיות פעילות.",
+    unknown: "Analytics אופציונלי נשאר מושבת עד לבחירה.",
+  }),
+} satisfies Readonly<Record<"pt" | "en" | "es" | "he", AnalyticsConsentPreferenceCopy>>);
 
 export function browserAnalyticsConsentPreferenceCopy(
   locale: string,
@@ -469,6 +481,9 @@ export function browserAnalyticsConsentPreferenceCopy(
   const normalized = locale.trim().toLowerCase();
   if (normalized.startsWith("en")) return analyticsConsentPreferenceCopy.en;
   if (normalized.startsWith("es")) return analyticsConsentPreferenceCopy.es;
+  if (normalized.startsWith("he") || normalized.startsWith("iw")) {
+    return analyticsConsentPreferenceCopy.he;
+  }
   return analyticsConsentPreferenceCopy.pt;
 }
 

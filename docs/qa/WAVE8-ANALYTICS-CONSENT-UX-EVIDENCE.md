@@ -2,43 +2,37 @@
 
 ## Scope
 
-Wave 8 closes the end-user Analytics consent gap without weakening the existing privacy boundary.
+Wave 8 closes the transferred end-user Analytics consent gap without changing the privacy-safe default.
 
-The canonical default remains unknown. The collector still drops events while consent is unknown or denied.
+## Verified contract
 
-## End-user choices
+- consent still defaults to `unknown`;
+- the canonical collector still drops events while consent is `unknown` or `denied`;
+- the preference surface writes only explicit `granted` or `denied`;
+- `later` leaves the existing state unchanged;
+- Home and Ticketing both install the same canonical preference surface;
+- a collapsed Privacy trigger remains available after a choice so the user can revise it;
+- no Push permission or production provider is activated by this work.
 
-The public Home runtime and Ticketing runtime now install the same consent/preferences surface.
+## Localization and accessibility
 
-The surface provides three explicit actions:
+The surface supports the four public browser locales:
 
-- Allow analytics -> calls setConsent("granted");
-- Necessary only -> calls setConsent("denied");
-- Not now -> leaves the state unchanged, therefore unknown remains fail-closed when no earlier choice exists.
+- `pt-BR`;
+- `en-US`;
+- `es-ES`;
+- `he-IL` (including legacy `iw` browser language alias).
 
-No timer, bootstrap routine, page view, onboarding action, or browser notification permission implicitly grants Analytics consent.
+The CSS uses logical inline positioning for RTL, minimum touch targets, reduced-motion handling and forced-colors handling.
 
-After an explicit decision the surface collapses into a privacy control that can reopen the preferences UI.
+## PWA behavior
 
-## Privacy and accessibility
+`privacy-preferences.css` is included in the service-worker precache so the privacy surface remains styled in the offline shell and does not depend on a previous runtime cache fill.
 
-The UI:
+## Data minimization
 
-- never sends search text, Assistant message text, payment data, or other personal data;
-- exposes a dialog role only while the preference panel is expanded;
-- keeps allow and deny as explicit peer choices;
-- supports Portuguese, English, and Spanish based on the document locale;
-- re-renders when the document language changes;
-- keeps a no-decision path that does not change consent;
-- remains usable with forced-colors and reduced-motion preferences.
+This change does not expand the Analytics schema or payload. Existing instrumentation continues to exclude raw search text, Assistant messages, card data, payment amounts and unnecessary personal data.
 
-## Tests
+## Release boundary
 
-The Analytics unit contract verifies that:
-
-- later does not call setConsent;
-- denied calls setConsent("denied");
-- granted calls setConsent("granted");
-- consent preference copy is localized for pt/en/es.
-
-Production Analytics activation still depends on infrastructure/database configuration and is tracked separately from the existence of this consent UX.
+This closes the browser consent UX implementation gap only. Production Analytics activation still requires the production environment/database to be configured and verified by the Wave 8 infrastructure gates.

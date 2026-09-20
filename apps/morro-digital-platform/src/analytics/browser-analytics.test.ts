@@ -318,5 +318,9 @@ describe("browser analytics consent preferences", () => {
       "Allow analytics",
     );
     expect(browserAnalyticsConsentPreferenceCopy("es").later).toBe("Ahora no");
+    expect(browserAnalyticsConsentPreferenceCopy("he-IL").deny).toBe(
+      "הכרחי בלבד",
+    );
+    expect(browserAnalyticsConsentPreferenceCopy("iw").manage).toBe("פרטיות");
   });
 });
