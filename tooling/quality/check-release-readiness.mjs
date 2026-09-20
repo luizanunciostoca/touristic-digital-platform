@@ -37,15 +37,27 @@ function requireDirective(source, key, directive, label) {
   requireText(block, `${label} ${key}`, directive);
 }
 
-const [production, staging, documentation, server, migration, dockerfile] =
-  await Promise.all([
-    text("render.yaml"),
-    text("render.staging.yaml"),
-    text("docs/operations/PRODUCTION-RELEASE-READINESS.md"),
-    text("apps/morro-digital-platform/tooling/dev-server.mjs"),
-    text("apps/morro-digital-platform/tooling/payments-migrate.mjs"),
-    text("Dockerfile"),
-  ]);
+const [
+  production,
+  staging,
+  documentation,
+  server,
+  migration,
+  dockerfile,
+  stagingMysqlDockerfile,
+  stagingDrill,
+  stagingDrillRunbook,
+] = await Promise.all([
+  text("render.yaml"),
+  text("render.staging.yaml"),
+  text("docs/operations/PRODUCTION-RELEASE-READINESS.md"),
+  text("apps/morro-digital-platform/tooling/dev-server.mjs"),
+  text("apps/morro-digital-platform/tooling/payments-migrate.mjs"),
+  text("Dockerfile"),
+  text("tooling/render/mysql-staging/Dockerfile"),
+  text("tooling/render/mysql-staging/backup-restore-drill.sh"),
+  text("docs/operations/MYSQL-BACKUP-RESTORE-DRILL.md"),
+]);
 
 requireText(production, "production blueprint", "name: morro-digital-v2");
 requireText(production, "production blueprint", "runtime: node");
@@ -211,6 +223,25 @@ requireDirective(
   "staging blueprint",
 );
 forbidText(staging, "staging blueprint", "name: morro-digital-v2\n");
+requireText(
+  stagingMysqlDockerfile,
+  "staging MySQL Dockerfile",
+  "/usr/local/bin/morro-mysql-backup-restore-drill",
+);
+for (const marker of [
+  'CONTRACT="MYSQL-BACKUP-RESTORE-DRILL"',
+  "BACKUP_RESTORE_STAGING_ONLY",
+  "DRILL_SOURCE_DATABASE_DENIED",
+  "DRILL_BACKUP_TARGET_MUST_NOT_BE_MYSQL_DATA_VOLUME",
+]) {
+  requireText(stagingDrill, "staging MySQL DR executor", marker);
+}
+for (const marker of [
+  "real staging backup/restore drill: **OPEN until executed",
+  "production DR drill: **OPEN**",
+]) {
+  requireText(stagingDrillRunbook, "staging MySQL DR runbook", marker);
+}
 
 for (const marker of [
   "PRODUCTION_CANDIDATE_SHA",
