@@ -251,7 +251,7 @@ export class AffiliateAdminQueryService {
          a.fraud_blocked,
          a.updated_at,
          COUNT(DISTINCT m.membership_id) AS membership_count,
-         COUNT(DISTINCT CASE WHEN m.status = 'approved' THEN m.membership_id END) AS approved_membership_count,
+         COUNT(DISTINCT CASE WHEN m.status IN ('approved','active') THEN m.membership_id END) AS approved_membership_count,
          COUNT(DISTINCT CASE WHEN m.status = 'suspended' THEN m.membership_id END) AS suspended_membership_count,
          COUNT(DISTINCT c.conversion_id) AS conversion_count
        FROM affiliate_accounts a
@@ -262,8 +262,8 @@ export class AffiliateAdminQueryService {
          a.affiliate_id, a.identity_reference, a.account_type, a.role_category,
          a.status, a.identity_verified, a.contact_verified, a.fraud_blocked, a.updated_at
        ORDER BY a.updated_at DESC, a.affiliate_id ASC
-       LIMIT ?`,
-      [query, pattern, pattern, pattern, limit],
+       LIMIT ${limit}`,
+      [query, pattern, pattern, pattern],
     );
     return Object.freeze(rows.map(listItem));
   }
@@ -292,7 +292,9 @@ export class AffiliateAdminQueryService {
       this.pool.execute<MembershipRow[]>(
         `SELECT
              m.membership_id, m.program_id, p.destination_id,
-             p.status AS program_status, m.status, m.accepted_terms_version,
+             p.status AS program_status,
+             CASE m.status WHEN 'active' THEN 'approved' WHEN 'inactive' THEN 'closed' ELSE m.status END AS status,
+             m.accepted_terms_version,
              m.financial_onboarding_status, m.joined_at, m.ended_at, m.updated_at
            FROM affiliate_memberships m
            JOIN affiliate_programs p ON p.program_id = m.program_id
