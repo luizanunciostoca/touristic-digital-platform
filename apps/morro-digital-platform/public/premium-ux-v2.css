@@ -51,6 +51,9 @@
 
 @layer components {
   .md-bottom-sheet {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
     overscroll-behavior: contain;
     touch-action: pan-y;
     transition:
@@ -70,6 +73,15 @@
 
   .md-bottom-sheet[data-sheet-state="full"] {
     height: var(--md-sheet-full-height);
+  }
+
+  .md-bottom-sheet-content {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    -webkit-overflow-scrolling: touch;
   }
 
   .md-bottom-sheet-handle {
@@ -143,7 +155,7 @@
     opacity, transform, background-color, border-color, box-shadow;
 }
 
-#controls,
+.quick-actions,
 #globe-map-control {
   transition:
     opacity var(--md-motion-duration-fast, 120ms)
@@ -153,14 +165,23 @@
     visibility 0s linear var(--md-motion-duration-fast, 120ms);
 }
 
-body[data-md-mode="navigation"] #controls,
+body[data-md-mode="navigation"] .quick-actions,
 body[data-md-mode="navigation"] #globe-map-control,
-body[data-md-mode="tour"] #controls,
+body[data-md-mode="tour"] .quick-actions,
 body[data-md-mode="tour"] #globe-map-control {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
   transform: translateY(0.5rem);
+}
+
+body[data-md-mode="navigation"]
+  #assistant-messages
+  .assistant-options:has([data-explore-category]),
+body[data-md-mode="tour"]
+  #assistant-messages
+  .assistant-options:has([data-explore-category]) {
+  display: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
