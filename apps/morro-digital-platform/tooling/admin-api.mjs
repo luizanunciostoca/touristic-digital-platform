@@ -1373,7 +1373,23 @@ export function createAdminApi({
           });
           return;
         }
-        await adapter.handle({
+        if (mutation && namespace === "destinations") {
+          const stepUp = stepUpContext(request, actor);
+          if (!stepUp) {
+            await audit(request, actor, {
+              action: "control-center.destinations.mutation",
+              result: "denied",
+              reason: "step_up_required",
+              effectiveUserId: support?.effectiveUser?.id ?? null,
+              entityType: "destination",
+              entityId: bounded(requestUrl.pathname, 160),
+            });
+            json(response, 403, { error: "STEP_UP_REQUIRED" });
+            return;
+          }
+        }
+
+        const adapterAudit = await adapter.handle({
           request,
           response,
           requestUrl,
@@ -1389,8 +1405,12 @@ export function createAdminApi({
                 : "failure",
             effectiveUserId: support?.effectiveUser?.id ?? null,
             tenantId: support?.effectiveUser?.businessIds?.[0] ?? null,
-            entityType: namespace,
-            entityId: bounded(requestUrl.pathname, 160),
+            entityType: adapterAudit?.entityType ?? namespace,
+            entityId:
+              adapterAudit?.entityId ?? bounded(requestUrl.pathname, 160),
+            reason: adapterAudit?.reason ?? null,
+            previousState: adapterAudit?.previousState ?? null,
+            newState: adapterAudit?.newState ?? null,
           });
         }
         return;
