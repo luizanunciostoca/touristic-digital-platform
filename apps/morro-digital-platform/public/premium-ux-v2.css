@@ -220,6 +220,118 @@ body[data-md-mode="tour"]
   display: none;
 }
 
+/* Outdoor readability + one-hand ergonomics for walking-first flows. */
+body[data-md-mode="navigation"] #instruction-banner,
+body[data-md-mode="navigation"] .end-navigation-btn,
+body[data-md-mode="tour"] .tour-stop-card,
+body[data-md-mode="tour"] .tour-intro-card,
+body[data-md-mode="tour"] .tour-stop-list-card,
+body[data-md-mode="tour"] .tour-finale-card {
+  font-family: var(--md-font-family-sans);
+}
+
+body[data-md-mode="navigation"] #instruction-main {
+  font-size: clamp(1.25rem, 4.5vw, 1.5rem);
+  font-weight: var(--md-font-weight-bold);
+  line-height: 1.25;
+}
+
+body[data-md-mode="navigation"] #instruction-details {
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+body[data-md-mode="navigation"] #progress-text,
+body[data-md-mode="navigation"] .metric-label {
+  font-size: 0.875rem;
+  line-height: 1.35;
+}
+
+body[data-md-mode="navigation"] .metric-value {
+  font-size: 1.0625rem;
+  font-weight: var(--md-font-weight-bold);
+}
+
+body[data-md-mode="navigation"] #minimize-navigation-btn {
+  width: var(--md-touch-target-min);
+  min-width: var(--md-touch-target-min);
+  height: var(--md-touch-target-min);
+  min-height: var(--md-touch-target-min);
+}
+
+body[data-md-mode="navigation"] .end-navigation-btn,
+body[data-md-mode="tour"] .tour-narration-btn,
+body[data-md-mode="tour"] .assistant-option-btn,
+body[data-md-mode="place"] .assistant-option-btn,
+body[data-md-mode="assistant"] .assistant-option-btn {
+  min-width: var(--md-touch-target-min);
+  min-height: var(--md-touch-target-min);
+  touch-action: manipulation;
+}
+
+body[data-md-mode="tour"] .tour-stop-title {
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+body[data-md-mode="tour"] .tour-stop-desc,
+body[data-md-mode="tour"] .tour-tips li {
+  font-size: 0.9375rem;
+  line-height: 1.55;
+}
+
+body[data-md-mode="tour"] .tour-stop-progress-text,
+body[data-md-mode="tour"] .tour-tips strong {
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+body[data-md-mode="tour"] .tour-narration-btn {
+  position: static;
+  display: inline-flex;
+  align-self: stretch;
+  align-items: center;
+  justify-content: center;
+  inset-inline-end: auto;
+  right: auto;
+  margin: var(--md-space-2) var(--md-space-3);
+  padding: var(--md-space-2) var(--md-space-3);
+  font-size: 0.9375rem;
+  line-height: 1.2;
+}
+
+body[data-md-mode="tour"] .assistant-option-btn,
+body[data-md-mode="place"] .assistant-option-btn,
+body[data-md-mode="assistant"] .assistant-option-btn {
+  font-size: 1rem;
+  line-height: 1.35;
+}
+
+@media (max-width: 45rem) {
+  body[data-md-mode="navigation"] .end-navigation-btn {
+    bottom: calc(
+      var(--assistant-input-bottom, var(--md-safe-bottom)) +
+        var(--assistant-bar-height, 5rem) + var(--md-space-3)
+    ) !important;
+    z-index: var(--md-layer-navigation) !important;
+    min-height: 3rem;
+    padding: var(--md-space-3) var(--md-space-5);
+  }
+
+  body[data-md-mode="tour"] .assistant-options,
+  body[data-md-mode="place"] .assistant-options,
+  body[data-md-mode="assistant"] .assistant-options {
+    padding-bottom: calc(var(--md-safe-bottom) + var(--md-space-2));
+  }
+
+  body[data-md-mode="tour"] .tour-narration-btn,
+  body[data-md-mode="tour"] .assistant-option-btn,
+  body[data-md-mode="place"] .assistant-option-btn,
+  body[data-md-mode="assistant"] .assistant-option-btn {
+    min-height: 3rem;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .quick-actions,
   #globe-map-control,
