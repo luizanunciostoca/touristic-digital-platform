@@ -298,6 +298,11 @@ jobs:
                   throw new Error(`Place fallback leaked unrelated inventory on ${viewport.name}`);
                 }
                 state.inventory = undefined;
+                await page.goto(`${origin}/tickets.html?place=TOCA-DO-MORCEGO&source=map`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+                await page.locator('#offers .empty').waitFor({ state: 'visible', timeout: 10000 });
+                if ((await page.locator('.offer-card').count()) !== 0) {
+                  throw new Error(`Invalid place filter leaked inventory on ${viewport.name}`);
+                }
 
                 await page.goto(`${origin}/tickets.html`, { waitUntil: 'domcontentloaded', timeout: 30000 });
                 await page.locator(`.offer-card[data-inventory-id="${offer.id}"]`).waitFor({ state: 'visible' });
