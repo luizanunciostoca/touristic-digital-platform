@@ -470,4 +470,96 @@ describe("M148 transactional ticketing application", () => {
       }),
     ).rejects.toMatchObject({ code: "TICKETING_OFFLINE_ENVELOPE_INVALID" });
   });
+
+  it("rejects QR admission at the immutable ticket validity boundary", async () => {
+    const { service, fixture, checkIns } = harness();
+    const issued = await service.issueTicket({
+      ...issueInput(fixture),
+      validUntil: "2026-08-15T11:00:00Z",
+    });
+
+    await expect(
+      service.checkInByQr({
+        qrPayload: issued.qrPayload,
+        operatorReference: "operator_expiry_qr",
+        occurredAt: "2026-08-15T11:00:00Z",
+      }),
+    ).rejects.toMatchObject({ code: "TICKETING_TICKET_EXPIRED" });
+    expect(checkIns.values).toHaveLength(0);
+  });
+
+  it("rejects human-code admission after ticket expiry", async () => {
+    const { service, fixture, checkIns } = harness();
+    const issued = await service.issueTicket({
+      ...issueInput(fixture),
+      validUntil: "2026-08-15T11:00:00Z",
+    });
+
+    await expect(
+      service.checkInByCode({
+        code: issued.ticket.code,
+        result: "validated",
+        operatorReference: "operator_expiry_code",
+        occurredAt: "2026-08-15T11:00:00.001Z",
+      }),
+    ).rejects.toMatchObject({ code: "TICKETING_TICKET_EXPIRED" });
+    expect(checkIns.values).toHaveLength(0);
+  });
+
+  it("rejects an offline admission queued at or after ticket expiry", async () => {
+    const { service, fixture, checkIns } = harness();
+    const issued = await service.issueTicket({
+      ...issueInput(fixture),
+      validUntil: "2026-08-15T11:00:00Z",
+    });
+    const queuedAt = "2026-08-15T11:00:00Z";
+    const signature = createTicketOfflineEnvelopeSignature(
+      {
+        ticketId: issued.ticket.id,
+        operation: "validate",
+        payload: issued.qrPayload,
+        queuedAt,
+      },
+      fixture.secret,
+    );
+    const envelope = createTicketOfflineEnvelope({
+      id: "toe_ticketing_service_expired_0001",
+      ticketId: issued.ticket.id,
+      operation: "validate",
+      payload: issued.qrPayload,
+      signature,
+      queuedAt,
+    });
+    if (!envelope) throw new Error("ENVELOPE_FIXTURE_INVALID");
+
+    await expect(
+      service.syncOfflineEnvelope({
+        envelope,
+        operatorReference: "operator_expiry_offline",
+        recordedAt: "2026-08-15T11:01:00Z",
+      }),
+    ).rejects.toMatchObject({ code: "TICKETING_TICKET_EXPIRED" });
+    expect(checkIns.values).toHaveLength(0);
+  });
+
+  it("still permits authoritative cancellation after validity has ended", async () => {
+    const { service, fixture } = harness();
+    const issued = await service.issueTicket({
+      ...issueInput(fixture),
+      validUntil: "2026-08-15T11:00:00Z",
+    });
+
+    await expect(
+      service.checkInByCode({
+        code: issued.ticket.code,
+        result: "cancelled",
+        operatorReference: "refund_authority",
+        occurredAt: "2026-08-15T11:30:00Z",
+      }),
+    ).resolves.toMatchObject({
+      ticket: { status: "cancelled" },
+      replayed: false,
+    });
+  });
+
 });
