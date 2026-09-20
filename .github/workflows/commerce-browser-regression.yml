@@ -350,14 +350,14 @@ jobs:
                   contextAfterReturn.restoredMode !== 'place' ||
                   contextAfterReturn.category !== 'nightlife' ||
                   contextAfterReturn.place !== 'Toca do Morcego' ||
-                  !Array.isArray(contextBeforeHandoff.center) ||
+                  !Array.isArray(storedSnapshot.mapCenter) ||
                   !Array.isArray(contextAfterReturn.center) ||
-                  !close(contextBeforeHandoff.center[0], contextAfterReturn.center[0], mapCenterTolerance) ||
-                  !close(contextBeforeHandoff.center[1], contextAfterReturn.center[1], mapCenterTolerance) ||
-                  !close(contextBeforeHandoff.zoom, contextAfterReturn.zoom, 0.01)
+                  !close(storedSnapshot.mapCenter[0], contextAfterReturn.center[0], mapCenterTolerance) ||
+                  !close(storedSnapshot.mapCenter[1], contextAfterReturn.center[1], mapCenterTolerance) ||
+                  !close(storedSnapshot.mapZoom, contextAfterReturn.zoom, 0.01)
                 ) {
                   throw new Error(
-                    `Map -> Place -> Ticketing -> Return context drift on ${viewport.name}: ${JSON.stringify({ contextBeforeHandoff, contextAfterReturn })}`,
+                    `Map -> Place -> Ticketing -> Return context drift on ${viewport.name}: ${JSON.stringify({ contextBeforeHandoff, storedSnapshot, contextAfterReturn })}`,
                   );
                 }
                 evidence.push({
