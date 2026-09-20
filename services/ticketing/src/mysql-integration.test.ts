@@ -40,6 +40,7 @@ function ticketFixture() {
     code: "MYSQ-TEST-0001-TCKT",
     status: "issued",
     issuedAt: "2026-08-15T10:00:00Z",
+    validUntil: "2026-08-16T02:00:00Z",
     updatedAt: "2026-08-15T10:00:00Z",
   });
   if (!ticket) throw new Error("FIXTURE_INVALID");
@@ -86,6 +87,7 @@ describeMySql.sequential("M147 Ticketing MySQL integration", () => {
       id: ticket.id,
       status: "issued",
       code: "MYSQ-TEST-0001-TCKT",
+      validUntil: "2026-08-16T02:00:00.000Z",
     });
 
     const validated = createTicket({
