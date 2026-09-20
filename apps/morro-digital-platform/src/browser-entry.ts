@@ -42,6 +42,10 @@ import {
   type RuntimeStatusDescriptor,
 } from "./runtime/runtime-accessibility-i18n.js";
 import { installPremiumUxModePresenter } from "./ux/premium-ux-mode.js";
+import {
+  installTouristExperienceSnapshotCapture,
+  restoreTouristExperienceSnapshot,
+} from "./ux/tourist-experience-snapshot.js";
 import { initializeWeatherWidget } from "./weather/weather-widget.js";
 
 interface MorroRuntimeGlobal {
@@ -155,6 +159,13 @@ let activeRealMap: MapboxGlMapLike | undefined;
 const mapStyleReadiness = createMapStyleReadinessTracker();
 let activeNavigationRuntimeInstall: BrowserNavigationRuntimeInstall | undefined;
 let activeGlobalViewControl: GlobalViewControl | undefined;
+
+installTouristExperienceSnapshotCapture({
+  document,
+  window,
+  getExploreState: () => application.exploreLocations.getState(),
+  getMap: () => activeRealMap,
+});
 
 function clearBrowserNavigationRuntime(): void {
   activeGlobalViewControl?.destroy();
@@ -558,6 +569,20 @@ async function start(): Promise<void> {
     kind: "runtime-ready",
     modules: result.startedModules,
     ...(providerId ? { providerId } : {}),
+  });
+
+  await restoreTouristExperienceSnapshot({
+    document,
+    window,
+    ...(activeRealMap ? { map: activeRealMap } : {}),
+    restorePlace: (place, category) =>
+      application.exploreLocations.execute({
+        type: "select_place",
+        place,
+        ...(category ? { category } : {}),
+      }),
+    restoreCategory: (category) =>
+      application.exploreLocations.execute({ type: "open_category", category }),
   });
 
   homeRuntimeReady = true;
