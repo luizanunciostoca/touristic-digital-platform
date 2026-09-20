@@ -287,8 +287,14 @@ body[data-md-mode="tour"] .tour-tips strong {
 }
 
 body[data-md-mode="tour"] .tour-narration-btn {
-  inset-inline-end: var(--md-space-2);
+  position: static;
+  display: inline-flex;
+  align-self: stretch;
+  align-items: center;
+  justify-content: center;
+  inset-inline-end: auto;
   right: auto;
+  margin: var(--md-space-2) var(--md-space-3);
   padding: var(--md-space-2) var(--md-space-3);
   font-size: 0.9375rem;
   line-height: 1.2;
@@ -317,6 +323,7 @@ body[data-md-mode="assistant"] .assistant-option-btn {
     padding-bottom: calc(var(--md-safe-bottom) + var(--md-space-2));
   }
 
+  body[data-md-mode="tour"] .tour-narration-btn,
   body[data-md-mode="tour"] .assistant-option-btn,
   body[data-md-mode="place"] .assistant-option-btn,
   body[data-md-mode="assistant"] .assistant-option-btn {
