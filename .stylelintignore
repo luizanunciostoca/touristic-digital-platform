@@ -1,0 +1,11 @@
+# Frozen historical/vendor evidence. Never lint-refactor in bulk.
+apps/morro-digital-platform/public/legacy/**
+
+# Transitional runtime bridges are intentionally excluded until their component
+# migration wave freezes browser/visual parity and moves them under V2 authority.
+apps/morro-digital-platform/public/styles.css
+apps/morro-digital-platform/public/explore-locations.css
+apps/morro-digital-platform/public/navigation-map.css
+apps/morro-digital-platform/public/v1-*.css
+apps/morro-digital-platform/public/business-*.css
+apps/morro-digital-platform/public/privacy-preferences.css
