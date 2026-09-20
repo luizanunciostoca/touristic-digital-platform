@@ -231,11 +231,11 @@ Somente após deploy do SHA exato, smoke, migrations, provider test lifecycle e 
 
 The V2 staging web service waits for the private MySQL endpoint before both predeploy migrations and runtime startup.
 
-Canonical guard:
+Canonical guard implementation:
 
-`node tooling/render/wait-for-staging-mysql.mjs`
+`tooling/render/wait-for-staging-mysql.mjs`
 
-The existing Render runtime wrapper `tooling/render/with-staging-mysql-env.mjs` also invokes the same guard before deriving database URLs. This keeps the live staging service protected after an exact-SHA redeploy even before a later Blueprint synchronization updates the explicit Render commands.
+The Render runtime wrapper `tooling/render/with-staging-mysql-env.mjs` invokes this guard before deriving database URLs. Both predeploy migrations and runtime startup already enter through that wrapper, so the currently configured Render commands gain the readiness protection on an exact-SHA redeploy without requiring a separate Blueprint command change.
 
 The guard:
 
