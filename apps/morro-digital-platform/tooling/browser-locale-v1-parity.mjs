@@ -229,7 +229,7 @@ try {
       timeout: 30000,
     });
     await page
-      .locator("#map[data-home-state=\"ready\"]")
+      .locator('#map[data-home-state="ready"]')
       .waitFor({ state: "attached", timeout: 20000 });
     await page
       .locator("#onboarding-overlay")
