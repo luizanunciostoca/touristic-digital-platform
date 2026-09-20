@@ -186,6 +186,9 @@ describe("TouristExperienceSnapshot", () => {
       window,
       storage,
       map: {
+        stop() {
+          order.push("camera:stop");
+        },
         jumpTo(options) {
           order.push("camera");
           camera = options;
@@ -204,6 +207,7 @@ describe("TouristExperienceSnapshot", () => {
 
     expect(restored).toBe(true);
     expect(order[0]).toBe("place:Toca do Morcego:nightlife");
+    expect(order.slice(1, 3)).toEqual(["camera:stop", "camera"]);
     expect(camera).toEqual({
       center: [-38.9172057, -13.3766787],
       zoom: 15.25,
