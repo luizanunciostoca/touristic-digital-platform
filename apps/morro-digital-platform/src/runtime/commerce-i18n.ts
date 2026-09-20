@@ -651,7 +651,7 @@ function applyExperienceStaticCopy(
   copy: Readonly<Record<string, string>>,
 ): void {
   setText(document, ".commerce-detail-back", copy.back);
-  setText(document, "#experience-loading", copy.loading);
+  setText(document, ".commerce-detail-loading-copy", copy.loading);
   setText(document, "#experience-kind", copy.experience);
   setText(document, "#experience-reserve", copy.reserveNow);
   setText(document, ".commerce-detail-actions .secondary", copy.viewAll);
