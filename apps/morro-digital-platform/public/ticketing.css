@@ -200,7 +200,7 @@ h2 {
   color: #18211d;
   outline: none;
 }
-.reservation-form input:focus {
+.reservation-form input:focus-visible {
   border-color: #315f4e;
   box-shadow: 0 0 0 3px rgba(49, 95, 78, 0.12);
 }
@@ -299,8 +299,8 @@ h2 {
   position: absolute;
   top: 12px;
   right: 14px;
-  width: 38px;
-  height: 38px;
+  width: 44px;
+  height: 44px;
   border: 0;
   border-radius: 50%;
   background: #eef1ee;
