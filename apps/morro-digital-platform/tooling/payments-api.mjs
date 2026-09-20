@@ -11,7 +11,10 @@ import {
   normalizeOrderId,
 } from "@touristic/ordering";
 import { createTicketingCheckoutApplicationService } from "@touristic/ordering/ticketing-checkout";
-import { normalizePaymentId } from "@touristic/financial";
+import {
+  normalizePaymentId,
+  normalizeReconciliationFindingId,
+} from "@touristic/financial";
 import {
   FinancialWebhookHttpTransport,
   MySqlFinancialReconciliationRepository,
@@ -970,15 +973,15 @@ export function createPaymentsApi({
         clock: systemCheckoutClock,
         ...(statusTtlSeconds === undefined ? {} : { statusTtlSeconds }),
       });
+      const reconciliationRepository =
+        new MySqlFinancialReconciliationRepository(financialPool);
       const reconciliationApplication = createReconciliationApplicationService({
         payments,
         results: paymentResults,
         ledger,
         provider:
           createSandboxReconciliationProviderFromEnvironment(environment),
-        reconciliation: new MySqlFinancialReconciliationRepository(
-          financialPool,
-        ),
+        reconciliation: reconciliationRepository,
         clock: systemCheckoutClock,
       });
       const reconciliationTransport = new ReconciliationHttpTransport({
@@ -1052,6 +1055,7 @@ export function createPaymentsApi({
           payments,
           ledger,
           checkoutAccess,
+          reconciliation: reconciliationRepository,
         }),
         pools,
       });
@@ -1157,6 +1161,47 @@ export function createPaymentsApi({
     }
   }
 
+  async function adminResolveFindingTenant(findingIdInput) {
+    const findingId = normalizeReconciliationFindingId(findingIdInput);
+    if (!findingId) {
+      return Object.freeze({
+        status: "invalid",
+        tenantId: null,
+        paymentId: null,
+      });
+    }
+    const repository = runtime?.adminRead?.reconciliation;
+    if (!repository || typeof repository.findById !== "function") {
+      return Object.freeze({
+        status: "unavailable",
+        tenantId: null,
+        paymentId: null,
+      });
+    }
+    try {
+      const finding = await repository.findById(findingId);
+      if (!finding) {
+        return Object.freeze({
+          status: "not_found",
+          tenantId: null,
+          paymentId: null,
+        });
+      }
+      const tenant = await adminResolvePaymentTenant(finding.paymentId);
+      return Object.freeze({
+        status: tenant.status,
+        tenantId: tenant.tenantId,
+        paymentId: finding.paymentId,
+      });
+    } catch {
+      return Object.freeze({
+        status: "unavailable",
+        tenantId: null,
+        paymentId: null,
+      });
+    }
+  }
+
   async function adminFindLedger(externalKeyInput) {
     const externalKey =
       typeof externalKeyInput === "string" ? externalKeyInput.trim() : "";
@@ -1200,6 +1245,7 @@ export function createPaymentsApi({
     adminFindOrder,
     adminFindPayment,
     adminResolvePaymentTenant,
+    adminResolveFindingTenant,
     adminFindLedger,
     async handle(request, response, requestUrl) {
       const correlationId =
