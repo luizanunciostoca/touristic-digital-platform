@@ -120,6 +120,7 @@ export default defineConfig({
         find: "@touristic/crm/ai-content-contract",
         replacement: source("crm", "ai-content-contract.ts"),
       },
+      { find: "@touristic/crm", replacement: source("crm") },
       { find: "@touristic/geospatial", replacement: source("geospatial") },
       { find: "@touristic/navigation", replacement: source("navigation") },
       {

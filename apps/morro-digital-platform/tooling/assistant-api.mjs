@@ -311,12 +311,12 @@ export function createAssistantApi({
       (persistence.configured === true && persistence.healthy === true);
     const ready = Boolean(
       apiKeyConfigured &&
-        model &&
-        pricingConfigured &&
-        requestReserveAdequate &&
-        costGovernor.configured &&
-        runtimeTopologySafe &&
-        persistenceReady,
+      model &&
+      pricingConfigured &&
+      requestReserveAdequate &&
+      costGovernor.configured &&
+      runtimeTopologySafe &&
+      persistenceReady,
     );
 
     let detail = "assistant-provider-ready";

@@ -141,9 +141,7 @@ if (
   openAiHardLimitConfirmed !== "true" &&
   openAiHardLimitConfirmed !== "false"
 ) {
-  throw new Error(
-    "OPENAI_PROVIDER_HARD_LIMIT_CONFIRMED must be true or false",
-  );
+  throw new Error("OPENAI_PROVIDER_HARD_LIMIT_CONFIRMED must be true or false");
 }
 const openAiReplicaCount = Number(values.get("OPENAI_RUNTIME_REPLICA_COUNT"));
 if (!Number.isSafeInteger(openAiReplicaCount) || openAiReplicaCount < 1) {
