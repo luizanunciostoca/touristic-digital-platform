@@ -92,7 +92,9 @@ function placeSlug(value) {
 }
 
 function requestedPlaceSlug() {
-  const value = new URLSearchParams(location.search).get("place")?.trim() ?? "";
+  const rawValue = new URLSearchParams(location.search).get("place");
+  if (rawValue === null) return null;
+  const value = rawValue.trim();
   return placeSlugPattern.test(value) ? value : "";
 }
 
@@ -274,9 +276,13 @@ async function loadOffers() {
   state.offers =
     requestedOffers.length > 0
       ? inventory.filter((entry) => requestedOffers.includes(entry.id))
-      : requestedPlace
-        ? inventory.filter((entry) => offerMatchesPlace(entry, requestedPlace))
-        : inventory;
+      : requestedPlace === null
+        ? inventory
+        : requestedPlace
+          ? inventory.filter((entry) =>
+              offerMatchesPlace(entry, requestedPlace),
+            )
+          : [];
   renderOffers();
 
   const requestedOffer = new URLSearchParams(location.search).get("offer");
