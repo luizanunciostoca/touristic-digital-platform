@@ -19,7 +19,7 @@ describe("Commerce UX Design V2 contract", () => {
     expect(css).not.toContain("transition: all");
     expect(css).toContain("var(--md-color-surface-canvas)");
     expect(css).toContain("var(--md-color-interactive-primary)");
-    expect(css).toContain("var(--md-layer-dock)");
+    expect(css).toContain("var(--md-layer-sheet)");
   });
 
   it("uses shared card and button primitives in the real Commerce surface", async () => {
@@ -49,13 +49,30 @@ describe("Commerce UX Design V2 contract", () => {
     expect(css).toContain("@media (forced-colors: active)");
   });
 
-  it("keeps mobile primary actions in the lower thumb-reachable region", async () => {
+  it("uses a real mobile bottom sheet for contextual commerce preview", async () => {
+    const [html, css, runtime] = await Promise.all([
+      readPublic("experience.html"),
+      readPublic("commerce.css"),
+      readPublic("experience.js"),
+    ]);
+
+    expect(html).toContain('id="experience-preview-sheet"');
+    expect(html).toContain("commerce-detail-actions");
+    expect(runtime).toContain("installCommercePreviewSheet");
+    expect(css).toContain(".commerce-preview-sheet.md-bottom-sheet");
+    expect(css).toContain('[data-sheet-state="peek"]');
+    expect(css).toContain('[data-sheet-state="half"]');
+    expect(css).toContain('[data-sheet-state="full"]');
+    expect(css).toContain("var(--md-layer-sheet)");
+    expect(css).toContain("var(--md-safe-bottom)");
+    expect(css).toContain("min-height: var(--md-touch-target-min)");
+  });
+
+  it("keeps mobile commerce actions thumb-reachable inside the sheet", async () => {
     const css = await readPublic("commerce.css");
 
-    expect(css).toContain("position: sticky");
-    expect(css).toContain(
-      "bottom: max(var(--md-space-3), var(--md-safe-bottom))",
-    );
+    expect(css).toContain(".commerce-detail-actions");
+    expect(css).toContain("grid-template-columns: 1fr");
     expect(css).toContain("min-height: 3rem");
   });
 });
