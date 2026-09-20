@@ -321,6 +321,35 @@ describe("M148 transactional ticketing application", () => {
     expect(checkIns.values).toHaveLength(1);
   });
 
+  it("preserves exact code replay but rejects a new attempt after use", async () => {
+    const { service, fixture, checkIns } = harness();
+    const issued = await service.issueTicket(issueInput(fixture));
+    await service.checkInByCode({
+      code: issued.ticket.code,
+      result: "validated",
+      operatorReference: "operator_003",
+      occurredAt: "2026-08-15T10:20:00Z",
+    });
+    const useRequest = {
+      code: issued.ticket.code,
+      result: "used",
+      operatorReference: "operator_003",
+      occurredAt: "2026-08-15T10:21:00Z",
+    };
+    const used = await service.checkInByCode(useRequest);
+    const replay = await service.checkInByCode(useRequest);
+
+    expect(used.ticket.status).toBe("used");
+    expect(replay.replayed).toBe(true);
+    await expect(
+      service.checkInByCode({
+        ...useRequest,
+        occurredAt: "2026-08-15T10:22:00Z",
+      }),
+    ).rejects.toMatchObject({ code: "TICKETING_TICKET_ALREADY_USED" });
+    expect(checkIns.values).toHaveLength(2);
+  });
+
   it("syncs one offline envelope exactly once", async () => {
     const { service, fixture, checkIns } = harness();
     const issued = await service.issueTicket(issueInput(fixture));
@@ -353,6 +382,66 @@ describe("M148 transactional ticketing application", () => {
     expect(first.ticket.status).toBe("validated");
     expect(replay.replayed).toBe(true);
     expect(checkIns.values).toHaveLength(1);
+  });
+
+  it("rejects a new offline use envelope after the ticket is consumed", async () => {
+    const { service, fixture, checkIns } = harness();
+    const issued = await service.issueTicket(issueInput(fixture));
+
+    const sync = async (
+      id: string,
+      operation: "validate" | "use",
+      queuedAt: string,
+      recordedAt: string,
+    ) => {
+      const signature = createTicketOfflineEnvelopeSignature(
+        {
+          ticketId: issued.ticket.id,
+          operation,
+          payload: issued.qrPayload,
+          queuedAt,
+        },
+        fixture.secret,
+      );
+      const envelope = createTicketOfflineEnvelope({
+        id,
+        ticketId: issued.ticket.id,
+        operation,
+        payload: issued.qrPayload,
+        signature,
+        queuedAt,
+      });
+      if (!envelope) throw new Error("ENVELOPE_FIXTURE_INVALID");
+      return service.syncOfflineEnvelope({
+        envelope,
+        operatorReference: "operator_004",
+        recordedAt,
+      });
+    };
+
+    await sync(
+      "toe_ticketing_service_0010",
+      "validate",
+      "2026-08-15T10:40:00Z",
+      "2026-08-15T10:41:00Z",
+    );
+    const used = await sync(
+      "toe_ticketing_service_0011",
+      "use",
+      "2026-08-15T10:42:00Z",
+      "2026-08-15T10:43:00Z",
+    );
+    expect(used.ticket.status).toBe("used");
+
+    await expect(
+      sync(
+        "toe_ticketing_service_0012",
+        "use",
+        "2026-08-15T10:44:00Z",
+        "2026-08-15T10:45:00Z",
+      ),
+    ).rejects.toMatchObject({ code: "TICKETING_TICKET_ALREADY_USED" });
+    expect(checkIns.values).toHaveLength(2);
   });
 
   it("rejects an offline envelope whose nested QR belongs to another ticket", async () => {
