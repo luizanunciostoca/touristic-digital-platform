@@ -40,6 +40,51 @@ function notFound(response, error = "ADMIN_ROUTE_NOT_FOUND") {
   response.end(JSON.stringify({ error }));
 }
 
+async function readAdminJsonBody(request, maxBytes = 32 * 1024) {
+  const chunks = [];
+  let total = 0;
+  for await (const chunk of request) {
+    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    total += buffer.length;
+    if (total > maxBytes) throw new Error("ADMIN_REQUEST_BODY_TOO_LARGE");
+    chunks.push(buffer);
+  }
+  if (chunks.length === 0) return {};
+  return JSON.parse(Buffer.concat(chunks).toString("utf8"));
+}
+
+function adminReason(value) {
+  if (typeof value !== "string") return null;
+  const normalized = value
+    .replace(/[\u0000-\u001f\u007f]/gu, " ")
+    .replace(/\s+/gu, " ")
+    .trim()
+    .slice(0, 240);
+  return normalized.length >= 8 ? normalized : null;
+}
+
+function contentResponse(response, result, successStatus = 200) {
+  if (result?.status === "found" || result?.status === "created" || result?.status === "updated") {
+    sendJson(response, result.status === "created" ? 201 : successStatus, {
+      data: result.data,
+    });
+    return;
+  }
+  if (result?.status === "not_found") {
+    sendJson(response, 404, { error: result.error || "CONTENT_NOT_FOUND" });
+    return;
+  }
+  if (result?.status === "invalid") {
+    sendJson(response, 400, { error: result.error || "CONTENT_INVALID_REQUEST" });
+    return;
+  }
+  if (result?.status === "conflict") {
+    sendJson(response, 409, { error: result.error || "CONTENT_CONFLICT" });
+    return;
+  }
+  sendJson(response, 503, { error: result?.error || "CONTENT_ADMIN_UNAVAILABLE" });
+}
+
 export function createCrmAdminAdapter(crmApi, authApi) {
   if (!crmApi?.handle) throw new Error("CRM_ADMIN_OWNER_BOUNDARY_REQUIRED");
   const delegation = requireDelegationBoundary(authApi);
@@ -155,6 +200,189 @@ export function createTicketingAdminAdapter(ticketingApi, authApi) {
           mappedUrl(requestUrl, `/api/ticketing/v1${relative}`),
         ),
       );
+    },
+  });
+}
+
+export function createContentAdminAdapter(contentRuntime) {
+  if (
+    !contentRuntime?.adminList ||
+    !contentRuntime?.adminRead ||
+    !contentRuntime?.adminCreate ||
+    !contentRuntime?.adminRevise ||
+    !contentRuntime?.adminTransition
+  ) {
+    throw new Error("CONTENT_ADMIN_OWNER_BOUNDARY_REQUIRED");
+  }
+
+  async function bodyWithReason(request, response) {
+    let body;
+    try {
+      body = await readAdminJsonBody(request);
+    } catch {
+      sendJson(response, 400, { error: "INVALID_REQUEST" });
+      return null;
+    }
+    const reason = adminReason(body?.reason);
+    if (!reason) {
+      sendJson(response, 400, { error: "REASON_REQUIRED" });
+      return null;
+    }
+    return Object.freeze({ body, reason });
+  }
+
+  return Object.freeze({
+    state: "partial",
+    coverage: Object.freeze([
+      "list",
+      "search",
+      "detail",
+      "create-draft",
+      "revise-draft-preview",
+      "lifecycle-transition",
+    ]),
+
+    async search({ query }) {
+      const result = await contentRuntime.adminList({ query, limit: 20 });
+      if (result.status !== "found") return [];
+      return Object.freeze(
+        result.data.map((document) =>
+          Object.freeze({
+            type: "content",
+            id: document.id,
+            title:
+              typeof document.fields?.title === "string"
+                ? document.fields.title
+                : document.id,
+            context: `${document.kind} · ${document.status} · ${document.destinationId}`,
+            href: `#content:${encodeURIComponent(document.id)}`,
+          }),
+        ),
+      );
+    },
+
+    async handle({ request, response, requestUrl }) {
+      const root = `${adminPrefix}/content`;
+      const itemMatch = /^\/api\/admin\/v1\/content\/([^/]+)$/u.exec(
+        requestUrl.pathname,
+      );
+      const transitionMatch =
+        /^\/api\/admin\/v1\/content\/([^/]+)\/transition$/u.exec(
+          requestUrl.pathname,
+        );
+
+      if (requestUrl.pathname === root && request.method === "GET") {
+        const limitValue = requestUrl.searchParams.get("limit");
+        const result = await contentRuntime.adminList({
+          query: requestUrl.searchParams.get("q") ?? "",
+          destinationId: requestUrl.searchParams.get("destinationId") ?? "",
+          kind: requestUrl.searchParams.get("kind") ?? "",
+          status: requestUrl.searchParams.get("status") ?? "",
+          ...(limitValue ? { limit: Number(limitValue) } : {}),
+        });
+        contentResponse(response, result);
+        return;
+      }
+
+      if (requestUrl.pathname === root && request.method === "POST") {
+        const parsed = await bodyWithReason(request, response);
+        if (!parsed) return;
+        const result = await contentRuntime.adminCreate({
+          id: parsed.body?.id,
+          destinationId: parsed.body?.destinationId,
+          kind: parsed.body?.kind,
+          locale: parsed.body?.locale,
+          sourceReference: parsed.body?.sourceReference,
+          fields: parsed.body?.fields,
+        });
+        contentResponse(response, result, 201);
+        return Object.freeze({
+          audit: Object.freeze({
+            reason: parsed.reason,
+            entityType: "content_document",
+            entityId: result.data?.id ?? null,
+            previousState: null,
+            newState: result.data ?? null,
+          }),
+        });
+      }
+
+      if (transitionMatch?.[1] && request.method === "POST") {
+        let id;
+        try {
+          id = decodeURIComponent(transitionMatch[1]);
+        } catch {
+          sendJson(response, 400, { error: "CONTENT_INVALID_ID" });
+          return;
+        }
+        const parsed = await bodyWithReason(request, response);
+        if (!parsed) return;
+        const previous = await contentRuntime.adminRead(id);
+        if (previous.status === "not_found") {
+          contentResponse(response, previous);
+          return;
+        }
+        if (previous.status !== "found") {
+          contentResponse(response, previous);
+          return;
+        }
+        const result = await contentRuntime.adminTransition(id, {
+          status: parsed.body?.status,
+          scheduledFor: parsed.body?.scheduledFor,
+        });
+        contentResponse(response, result);
+        return Object.freeze({
+          audit: Object.freeze({
+            reason: parsed.reason,
+            entityType: "content_document",
+            entityId: id,
+            previousState: previous.data,
+            newState: result.data ?? null,
+          }),
+        });
+      }
+
+      if (itemMatch?.[1]) {
+        let id;
+        try {
+          id = decodeURIComponent(itemMatch[1]);
+        } catch {
+          sendJson(response, 400, { error: "CONTENT_INVALID_ID" });
+          return;
+        }
+
+        if (request.method === "GET") {
+          const result = await contentRuntime.adminRead(id);
+          contentResponse(response, result);
+          return;
+        }
+
+        if (request.method === "PATCH") {
+          const parsed = await bodyWithReason(request, response);
+          if (!parsed) return;
+          const previous = await contentRuntime.adminRead(id);
+          if (previous.status !== "found") {
+            contentResponse(response, previous);
+            return;
+          }
+          const result = await contentRuntime.adminRevise(
+            id,
+            parsed.body?.fields,
+          );
+          contentResponse(response, result);
+          return Object.freeze({
+            audit: Object.freeze({
+              reason: parsed.reason,
+              entityType: "content_document",
+              entityId: id,
+              previousState: previous.data,
+              newState: result.data ?? null,
+            }),
+          });
+        }
+      }
+
+      notFound(response, "CONTENT_ADMIN_ROUTE_NOT_ALLOWED");
     },
   });
 }
@@ -419,6 +647,7 @@ export function createAdminDomainAdapters({
   crmApi,
   ticketingApi,
   paymentsApi,
+  contentRuntime,
 } = {}) {
   return Object.freeze({
     ...(businessApi
@@ -434,6 +663,9 @@ export function createAdminDomainAdapters({
           orders: createFinancialAdminAdapter(paymentsApi),
           payments: createFinancialAdminAdapter(paymentsApi),
         }
+      : {}),
+    ...(contentRuntime
+      ? { content: createContentAdminAdapter(contentRuntime) }
       : {}),
   });
 }
