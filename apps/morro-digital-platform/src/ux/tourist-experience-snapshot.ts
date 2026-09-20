@@ -1,8 +1,5 @@
 export type TouristExperienceMode =
-  | "discover"
-  | "place"
-  | "assistant"
-  | "commerce";
+  "discover" | "place" | "assistant" | "commerce";
 
 export type TouristExperienceSheetState = "peek" | "half" | "full";
 
@@ -220,7 +217,10 @@ export function writeTouristExperienceSnapshot(
   snapshot: TouristExperienceSnapshot,
 ): boolean {
   if (!storage) return false;
-  const validated = parseTouristExperienceSnapshot(snapshot, snapshot.createdAt);
+  const validated = parseTouristExperienceSnapshot(
+    snapshot,
+    snapshot.createdAt,
+  );
   if (!validated) return false;
   try {
     storage.setItem(
@@ -247,17 +247,16 @@ function currentSheetState(
 
 function currentAssistantContextId(document: Document): string | undefined {
   return boundedString(
-    document
-      .querySelector<HTMLElement>("[data-assistant-context-id]")
-      ?.dataset.assistantContextId,
+    document.querySelector<HTMLElement>("[data-assistant-context-id]")?.dataset
+      .assistantContextId,
   );
 }
 
 function currentScrollKey(document: Document): string | undefined {
   return boundedString(
-    document
-      .querySelector<HTMLElement>("[data-md-scroll-key][data-md-scroll-active]")
-      ?.dataset.mdScrollKey,
+    document.querySelector<HTMLElement>(
+      "[data-md-scroll-key][data-md-scroll-active]",
+    )?.dataset.mdScrollKey,
   );
 }
 
@@ -346,10 +345,7 @@ export async function restoreTouristExperienceSnapshot(input: {
   readonly window: Window;
   readonly map?: TouristExperienceMapCamera;
   readonly storage?: Storage;
-  readonly restorePlace: (
-    place: string,
-    category?: string,
-  ) => Promise<boolean>;
+  readonly restorePlace: (place: string, category?: string) => Promise<boolean>;
   readonly restoreCategory: (category: string) => Promise<boolean>;
   readonly now?: () => number;
 }): Promise<boolean> {
