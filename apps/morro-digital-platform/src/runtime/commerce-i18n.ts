@@ -528,6 +528,110 @@ export function getExperiencePresentationCopy(
   return EXPERIENCE_COPY[normalizedLocale(locale)];
 }
 
+function setText(document: Document, selector: string, value?: string): void {
+  if (!value) return;
+  const element = document.querySelector<HTMLElement>(selector);
+  if (element) element.textContent = value;
+}
+
+function setAriaLabel(
+  document: Document,
+  selector: string,
+  value?: string,
+): void {
+  if (!value) return;
+  document.querySelector<HTMLElement>(selector)?.setAttribute("aria-label", value);
+}
+
+function replaceLeadingLabelText(
+  document: Document,
+  inputSelector: string,
+  value?: string,
+  optionalValue?: string,
+): void {
+  if (!value) return;
+  const input = document.querySelector<HTMLInputElement>(inputSelector);
+  const label = input?.closest("label");
+  if (!label) return;
+
+  const textNode = [...label.childNodes].find(
+    (node) => node.nodeType === Node.TEXT_NODE && Boolean(node.textContent?.trim()),
+  );
+  if (textNode) textNode.textContent = `\n            ${value}\n            `;
+  const optional = label.querySelector<HTMLElement>("span");
+  if (optional && optionalValue) optional.textContent = optionalValue;
+}
+
+function applyTicketingStaticCopy(
+  document: Document,
+  copy: Readonly<Record<string, string>>,
+): void {
+  setText(document, ".ticketing-header h1", copy.mainTitle);
+  setText(document, ".ticketing-header .lead", copy.lead);
+  setText(document, "#offers-title", copy.offersTitle);
+  setText(document, "#refresh-button", copy.refresh);
+  setText(document, "#reservation-title", copy.reservationTitle);
+
+  const secureNotes = document.querySelectorAll<HTMLElement>(".secure-note");
+  if (secureNotes[0] && copy.securePayment)
+    secureNotes[0].textContent = copy.securePayment;
+  if (secureNotes[1] && copy.qrAfterPayment)
+    secureNotes[1].textContent = copy.qrAfterPayment;
+
+  replaceLeadingLabelText(document, "#selected-offer", copy.experienceLabel);
+  replaceLeadingLabelText(document, "#holder-name", copy.fullName);
+  replaceLeadingLabelText(document, "#holder-email", copy.email);
+  replaceLeadingLabelText(
+    document,
+    "#holder-phone",
+    copy.phone,
+    copy.optional,
+  );
+  replaceLeadingLabelText(
+    document,
+    "#holder-document",
+    copy.document,
+    copy.optional,
+  );
+  replaceLeadingLabelText(document, "#quantity", copy.quantity);
+
+  const selectedOffer = document.querySelector<HTMLInputElement>("#selected-offer");
+  if (selectedOffer && copy.experiencePlaceholder)
+    selectedOffer.placeholder = copy.experiencePlaceholder;
+
+  setText(document, "#reserve-button", copy.reserveAndPay);
+  setText(document, "#my-tickets-title", copy.walletTitle);
+  setAriaLabel(document, "#ticket-close", copy.close);
+  setText(document, ".ticket-dialog .eyebrow", copy.confirmedTicket);
+  setText(document, "#ticket-title", copy.yourTicket);
+  setAriaLabel(document, "#ticket-qr", copy.ticketQrLabel);
+}
+
+function applyExperienceStaticCopy(
+  document: Document,
+  copy: Readonly<Record<string, string>>,
+): void {
+  setText(document, ".commerce-detail-back", copy.back);
+  setText(document, "#experience-loading", copy.loading);
+  setText(document, "#experience-kind", copy.experience);
+  setText(document, "#experience-reserve", copy.reserveNow);
+  setText(document, ".commerce-detail-actions .secondary", copy.viewAll);
+  setAriaLabel(document, ".commerce-detail-meta", copy.infoAria);
+
+  const meta = [
+    ["#experience-start", copy.when],
+    ["#experience-end", copy.until],
+    ["#experience-price", copy.value],
+    ["#experience-availability", copy.availability],
+    ["#experience-sales-window", copy.sales],
+  ] as const;
+  for (const [selector, value] of meta) {
+    const strong = document.querySelector<HTMLElement>(selector);
+    const label = strong?.parentElement?.querySelector<HTMLElement>("span");
+    if (label && value) label.textContent = value;
+  }
+}
+
 export function applyCommerceDocumentCopy(
   document: Document,
   surface: CommerceSurface,
@@ -558,6 +662,9 @@ export function applyCommerceDocumentCopy(
       const key = element.dataset.commerceI18nAria;
       if (key && copy[key]) element.setAttribute("aria-label", copy[key]);
     });
+
+  if (surface === "ticketing") applyTicketingStaticCopy(document, copy);
+  else applyExperienceStaticCopy(document, copy);
 
   if (copy.documentTitle) document.title = copy.documentTitle;
 }
