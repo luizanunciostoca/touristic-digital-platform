@@ -1,0 +1,88 @@
+name: Morro Runtime Startup Performance
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
+    paths:
+      - .github/workflows/morro-runtime-startup-performance.yml
+      - tooling/performance/morro-digital-budget.json
+      - apps/morro-digital-platform/src/browser-entry.ts
+      - apps/morro-digital-platform/src/performance/**
+      - apps/morro-digital-platform/tooling/runtime-startup-performance-browser-contract.mjs
+      - apps/morro-digital-platform/tooling/dev-server.mjs
+      - apps/morro-digital-platform/public/index.html
+      - package.json
+      - pnpm-lock.yaml
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/morro-runtime-startup-performance.yml
+      - tooling/performance/morro-digital-budget.json
+      - apps/morro-digital-platform/src/browser-entry.ts
+      - apps/morro-digital-platform/src/performance/**
+      - apps/morro-digital-platform/tooling/runtime-startup-performance-browser-contract.mjs
+      - apps/morro-digital-platform/tooling/dev-server.mjs
+      - apps/morro-digital-platform/public/index.html
+      - package.json
+      - pnpm-lock.yaml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  runtime-startup-budget:
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install deterministic Chromium
+        run: |
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+      - name: Build workspace
+        run: pnpm -w build
+      - name: Start real-map browser runtime
+        env:
+          MAPBOX_PUBLIC_TOKEN_CI: ${{ secrets.MAPBOX_PUBLIC_TOKEN_CI }}
+        run: |
+          test -n "${MAPBOX_PUBLIC_TOKEN_CI:-}" || {
+            echo "MAPBOX_PUBLIC_TOKEN_CI missing"
+            exit 1
+          }
+          VITE_MAPBOX_ACCESS_TOKEN="$MAPBOX_PUBLIC_TOKEN_CI"           VITE_MAPBOX_STYLE=mapbox://styles/mapbox/streets-v12           VITE_MAPBOX_CONTAINER_ID=map           VITE_MAPBOX_INITIAL_ZOOM=13.5           node apps/morro-digital-platform/tooling/dev-server.mjs             >/tmp/morro-runtime-startup.log 2>&1 &
+          echo $! >/tmp/morro-runtime-startup.pid
+          for i in $(seq 1 90); do
+            if curl -fsS http://127.0.0.1:4173/runtime-config.js >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/morro-runtime-startup.log
+          exit 1
+      - name: Enforce Assistant and map startup budgets
+        run: |
+          node apps/morro-digital-platform/tooling/runtime-startup-performance-browser-contract.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: morro-runtime-startup-performance
+          path: /tmp/morro-runtime-startup-performance.json
+          retention-days: 7
+          if-no-files-found: warn
+      - name: Show diagnostics
+        if: failure()
+        run: cat /tmp/morro-runtime-startup.log || true
