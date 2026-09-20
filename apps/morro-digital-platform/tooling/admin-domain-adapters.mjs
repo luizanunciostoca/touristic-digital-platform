@@ -40,6 +40,120 @@ function notFound(response, error = "ADMIN_ROUTE_NOT_FOUND") {
   response.end(JSON.stringify({ error }));
 }
 
+export function createAffiliateAdminAdapter(affiliateAdminRuntime) {
+  if (
+    !affiliateAdminRuntime?.adminList ||
+    !affiliateAdminRuntime?.adminRead ||
+    !affiliateAdminRuntime?.adminChangeMembershipStatus
+  ) {
+    throw new Error("AFFILIATE_ADMIN_OWNER_BOUNDARY_REQUIRED");
+  }
+
+  async function ownerResult(response, result, notFoundCode = "AFFILIATE_NOT_FOUND") {
+    if (result.status === "denied") {
+      sendJson(response, 403, { error: "CAPABILITY_DENIED" });
+      return;
+    }
+    if (result.status === "invalid") {
+      sendJson(response, 400, { error: "INVALID_AFFILIATE_ADMIN_QUERY" });
+      return;
+    }
+    if (result.status === "unavailable") {
+      sendJson(response, 503, { error: "AFFILIATE_ADMIN_UNAVAILABLE" });
+      return;
+    }
+    if (result.status === "not_found") {
+      sendJson(response, 404, { error: notFoundCode });
+      return;
+    }
+    sendJson(response, 200, { data: result.data });
+  }
+
+  return Object.freeze({
+    state: "partial",
+    coverage: Object.freeze([
+      "list",
+      "detail",
+      "membership-suspend",
+      "membership-reactivate",
+      "commission-readback",
+      "conversion-readback",
+    ]),
+
+    async search({ query, actor }) {
+      const result = await affiliateAdminRuntime.adminList(actor, {
+        query,
+        limit: 10,
+      });
+      if (result.status !== "found") return [];
+      return Object.freeze(
+        result.data.map((affiliate) =>
+          Object.freeze({
+            type: "affiliate",
+            id: affiliate.affiliateId,
+            title: affiliate.identityReference || affiliate.affiliateId,
+            context: `${affiliate.status} · ${affiliate.approvedMembershipCount} programa(s) aprovado(s)`,
+            href: `#affiliates:${encodeURIComponent(affiliate.affiliateId)}`,
+          }),
+        ),
+      );
+    },
+
+    async handle({ request, response, requestUrl, actor }) {
+      const detailMatch =
+        /^\/api\/admin\/v1\/affiliates\/(aff_[A-Za-z0-9._:-]{8,116})$/u.exec(
+          requestUrl.pathname,
+        );
+      if (request.method === "GET" && detailMatch?.[1]) {
+        await ownerResult(
+          response,
+          await affiliateAdminRuntime.adminRead(actor, detailMatch[1]),
+        );
+        return;
+      }
+      if (
+        request.method === "GET" &&
+        requestUrl.pathname === `${adminPrefix}/affiliates`
+      ) {
+        await ownerResult(
+          response,
+          await affiliateAdminRuntime.adminList(actor, {
+            query: requestUrl.searchParams.get("query") ?? "",
+            limit: requestUrl.searchParams.get("limit") ?? 100,
+          }),
+          "AFFILIATE_NOT_FOUND",
+        );
+        return;
+      }
+      notFound(response, "AFFILIATE_ADMIN_ROUTE_NOT_AVAILABLE");
+    },
+
+    async changeMembershipStatus({
+      actor,
+      affiliateId,
+      programId,
+      status,
+      correlationId,
+    }) {
+      const detail = await affiliateAdminRuntime.adminRead(actor, affiliateId);
+      if (detail.status !== "found") return detail;
+      const membership = detail.data.memberships.find(
+        (candidate) => candidate.programId === programId,
+      );
+      if (!membership) {
+        return Object.freeze({ status: "not_found", data: null });
+      }
+      return affiliateAdminRuntime.adminChangeMembershipStatus(actor, {
+        affiliateId,
+        programId,
+        destinationId: membership.destinationId,
+        status,
+        correlationId,
+      });
+    },
+  });
+}
+
 export function createCrmAdminAdapter(crmApi, authApi) {
   if (!crmApi?.handle) throw new Error("CRM_ADMIN_OWNER_BOUNDARY_REQUIRED");
   const delegation = requireDelegationBoundary(authApi);
@@ -419,8 +533,12 @@ export function createAdminDomainAdapters({
   crmApi,
   ticketingApi,
   paymentsApi,
+  affiliateAdminRuntime,
 } = {}) {
   return Object.freeze({
+    ...(affiliateAdminRuntime
+      ? { affiliates: createAffiliateAdminAdapter(affiliateAdminRuntime) }
+      : {}),
     ...(businessApi
       ? { businesses: createBusinessAdminAdapter(businessApi, authApi) }
       : {}),
