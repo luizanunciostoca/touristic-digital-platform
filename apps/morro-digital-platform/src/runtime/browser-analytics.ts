@@ -4,7 +4,6 @@ export {
   ANALYTICS_TRANSACTION_EVENTS,
   installBrowserAnalyticsInstrumentation,
   installMorroBrowserAnalytics,
-  type BrowserAnalyticsController,
   type BrowserAnalyticsInstrumentationOptions,
   type InstallMorroBrowserAnalyticsOptions,
 } from "../analytics/browser-analytics.js";
