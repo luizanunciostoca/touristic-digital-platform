@@ -46,6 +46,7 @@ import {
   resolveAssistantSpeechRecognitionConstructor,
 } from "./assistant-voice-input-adapter.js";
 import { installAssistantVoiceSettings } from "./assistant-voice-settings.js";
+import { dispatchAssistantUiState } from "./assistant-ui-state.js";
 
 interface AssistantRuntimeEnvironmentGlobal {
   readonly __MORRO_RUNTIME_ENV__?: {
@@ -756,7 +757,7 @@ export function installBrowserAssistantRuntime(
     }
   };
 
-  const processInput = async (
+  const processInputTurn = async (
     rawInput: string,
     optionOverride?: readonly AssistantDomOption[],
     preservePreviousOptions = false,
@@ -1093,6 +1094,40 @@ export function installBrowserAssistantRuntime(
 
     voice?.speak(response.text, voiceLanguage());
     return response;
+  };
+
+  const processInput = async (
+    rawInput: string,
+    optionOverride?: readonly AssistantDomOption[],
+    preservePreviousOptions = false,
+    source: AssistantInputSource = "programmatic",
+  ): Promise<AssistantDialogResponse> => {
+    if (!rawInput.trim()) {
+      return processInputTurn(
+        rawInput,
+        optionOverride,
+        preservePreviousOptions,
+        source,
+      );
+    }
+
+    dispatchAssistantUiState(options.document, "loading");
+    try {
+      const response = await processInputTurn(
+        rawInput,
+        optionOverride,
+        preservePreviousOptions,
+        source,
+      );
+      dispatchAssistantUiState(
+        options.document,
+        response.metadata?.state === "superseded" ? "idle" : "success",
+      );
+      return response;
+    } catch (error) {
+      dispatchAssistantUiState(options.document, "error");
+      throw error;
+    }
   };
 
   const process = (rawInput: string): Promise<AssistantDialogResponse> =>
