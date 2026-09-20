@@ -125,7 +125,9 @@ export class MemoryDestinationRepository implements DestinationRepository {
     next: DestinationDocument,
   ): Promise<boolean> {
     const current = this.documents.get(expected.id);
-    if (!current || current.version !== expected.version) return Promise.resolve(false);
+    if (!current || current.version !== expected.version) {
+      return Promise.resolve(false);
+    }
     this.documents.set(next.id, next);
     return Promise.resolve(true);
   }
