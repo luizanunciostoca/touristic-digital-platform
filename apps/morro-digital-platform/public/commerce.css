@@ -164,7 +164,8 @@
   text-align: center;
   box-shadow: var(--md-elevation-1);
   transition:
-    background-color var(--md-motion-duration-fast) var(--md-motion-ease-standard),
+    background-color var(--md-motion-duration-fast)
+      var(--md-motion-ease-standard),
     border-color var(--md-motion-duration-fast) var(--md-motion-ease-standard),
     box-shadow var(--md-motion-duration-fast) var(--md-motion-ease-standard),
     transform var(--md-motion-duration-fast) var(--md-motion-ease-standard);
