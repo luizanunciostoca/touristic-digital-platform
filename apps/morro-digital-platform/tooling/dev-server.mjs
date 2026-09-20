@@ -10,6 +10,7 @@ import { createAdminAuditRuntime } from "./admin-audit-runtime.mjs";
 import { createAdminDomainAdapters } from "./admin-domain-adapters.mjs";
 import { createAuthApi } from "./auth-api.mjs";
 import { createBusinessApi } from "./business-api.mjs";
+import { createContentAdminRuntime } from "./content-admin-runtime.mjs";
 import { createCrmApi } from "./crm-api.mjs";
 import { createPaymentsApi } from "./payments-runtime-api.mjs";
 import { createPlatformOperations } from "./platform-operations.mjs";
@@ -132,6 +133,7 @@ const getEnvironmentValue = (key) =>
 let platformOperations = null;
 let paymentsRuntimeReady = false;
 let ticketingRuntimeReady = false;
+let contentAdminRuntime = null;
 
 function auditSecurityEvent(request, event) {
   const pathname = (() => {
@@ -196,6 +198,14 @@ platformOperations = createPlatformOperations({
         ? "ticketing-runtime-ready"
         : "TICKETING_RUNTIME_UNAVAILABLE",
     },
+    {
+      name: "content-admin-runtime",
+      ...(contentAdminRuntime?.readinessCheck() ?? {
+        status: "fail",
+        critical: false,
+        detail: "CONTENT_ADMIN_NOT_STARTED",
+      }),
+    },
   ],
 });
 await authApi.start();
@@ -214,6 +224,9 @@ const { createTicketingApi } = await import("./ticketing-api.mjs");
 const ticketingApi = createTicketingApi({ authApi, getEnvironmentValue });
 ticketingRuntimeReady = await ticketingApi.start();
 
+contentAdminRuntime = createContentAdminRuntime({ getEnvironmentValue });
+await contentAdminRuntime.start();
+
 const adminApi = createAdminApi({
   authApi,
   platformOperations,
@@ -225,6 +238,7 @@ const adminApi = createAdminApi({
     crmApi,
     ticketingApi,
     paymentsApi,
+    contentRuntime: contentAdminRuntime,
   }),
 });
 
@@ -731,6 +745,7 @@ async function shutdown(signal) {
     crmApi.stop(),
     paymentsApi.stop(),
     ticketingApi.stop(),
+    contentAdminRuntime ? contentAdminRuntime.stop() : Promise.resolve(),
   ]);
   paymentsRuntimeReady = false;
   ticketingRuntimeReady = false;
