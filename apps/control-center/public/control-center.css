@@ -181,6 +181,7 @@ textarea:focus-visible {
 .search-wrap {
   position: relative;
   flex: 1;
+  min-width: 0;
   max-width: 760px;
   display: flex;
   align-items: center;
@@ -307,6 +308,7 @@ h1 {
   box-shadow: 0 5px 20px rgba(16, 24, 39, 0.035);
 }
 .stat {
+  min-width: 0;
   padding: 20px;
 }
 .stat-label {
@@ -315,9 +317,12 @@ h1 {
 }
 .stat-value {
   display: block;
+  min-width: 0;
   margin-top: 8px;
   font-size: 30px;
   letter-spacing: -0.03em;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .stat small {
   color: var(--muted);
@@ -353,9 +358,18 @@ h1 {
   align-items: center;
   justify-content: space-between;
   gap: 14px;
+  min-width: 0;
   padding: 11px 12px;
   border: 1px solid var(--line);
   border-radius: 12px;
+}
+.health-row > span,
+.health-row > small,
+.module-row > span,
+.module-row > small {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .status-dot {
   width: 9px;
@@ -599,6 +613,11 @@ tr:last-child td {
 @media (max-width: 560px) {
   .stats {
     grid-template-columns: 1fr;
+  }
+  .health-row,
+  .module-row {
+    align-items: flex-start;
+    flex-direction: column;
   }
   .page-heading {
     align-items: start;
