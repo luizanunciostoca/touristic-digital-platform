@@ -18,6 +18,7 @@ const indexPath = resolve(appPublicRoot, "index.html");
 
 const runtimePackageRoots = Object.freeze([
   resolve(repositoryRoot, "packages/assistant/dist"),
+  resolve(repositoryRoot, "packages/analytics/dist"),
   resolve(repositoryRoot, "packages/core/dist"),
   resolve(repositoryRoot, "packages/geospatial/dist"),
   resolve(repositoryRoot, "packages/navigation/dist"),

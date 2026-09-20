@@ -11,6 +11,7 @@ on:
       - apps/morro-digital-platform/src/**
       - apps/morro-digital-platform/public/**
       - packages/assistant/src/**
+      - packages/analytics/src/**
       - packages/core/src/**
       - packages/geospatial/src/**
       - packages/navigation/src/**
@@ -25,6 +26,7 @@ on:
       - apps/morro-digital-platform/src/**
       - apps/morro-digital-platform/public/**
       - packages/assistant/src/**
+      - packages/analytics/src/**
       - packages/core/src/**
       - packages/geospatial/src/**
       - packages/navigation/src/**
@@ -146,6 +148,8 @@ jobs:
         if: always()
         with:
           name: morro-performance-budget
-          path: /tmp/morro-performance/report.json
+          path: |
+            /tmp/morro-performance/report.json
+            /tmp/morro-performance/runtime-budget.json
           retention-days: 7
           if-no-files-found: error

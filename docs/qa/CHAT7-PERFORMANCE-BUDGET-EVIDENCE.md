@@ -27,7 +27,7 @@ Initial limits:
 - Home linked CSS: 100,000 bytes
 - Home linked same-origin JavaScript: 500,000 bytes
 - Morro Digital app emitted JavaScript: 3,000,000 bytes
-- Runtime package JavaScript (Assistant/Core/Geospatial/Navigation/Search): 2,000,000 bytes
+- Runtime package JavaScript (Assistant/Analytics/Core/Geospatial/Navigation/Search): 2,000,000 bytes
 - Largest runtime JavaScript file: 350,000 bytes
 
 The baseline visible CSS linked by the current Home is approximately 39 KB, with the largest linked stylesheet approximately 9.4 KB, so the CSS limit has explicit headroom without being unbounded.
@@ -53,7 +53,9 @@ Dynamic `/runtime-config.js` is intentionally excluded from static-file resoluti
 
 `.github/workflows/morro-performance-budget.yml` builds the workspace, runs the checker and uploads the JSON report as evidence.
 
-The workflow is path-scoped to Morro Digital runtime, public assets and the browser runtime packages that can materially change initial application weight.
+The workflow is path-scoped to Morro Digital runtime, public assets and the browser runtime packages that can materially change initial application weight. Because the current browser entry imports Analytics, `packages/analytics/src/**` is an explicit trigger and `packages/analytics/dist` is included in emitted runtime-byte accounting. Content cache and Notifications remain excluded from initial-runtime package accounting because current main does not import those packages from the public bootstrap.
+
+The uploaded CI evidence includes both the asset report (`report.json`) and the synthetic startup measurement (`runtime-budget.json`), so the enforced Assistant/map timings are retained with the run.
 
 ## Boundary
 
