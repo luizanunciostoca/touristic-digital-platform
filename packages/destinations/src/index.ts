@@ -45,7 +45,13 @@ const CURRENCY_PATTERN = /^[A-Z]{3}$/u;
 
 function cleanText(value: unknown, max: number): string | null {
   if (typeof value !== "string") return null;
-  const clean = [...value]\n    .map((character) => {\n      const codePoint = character.codePointAt(0) ?? 0;\n      return codePoint <= 0x1f || codePoint === 0x7f ? " " : character;\n    })\n    .join("")\n    .trim();
+  const clean = [...value]
+    .map((character) => {
+      const codePoint = character.codePointAt(0) ?? 0;
+      return codePoint <= 0x1f || codePoint === 0x7f ? " " : character;
+    })
+    .join("")
+    .trim();
   return clean && clean.length <= max ? clean : null;
 }
 
