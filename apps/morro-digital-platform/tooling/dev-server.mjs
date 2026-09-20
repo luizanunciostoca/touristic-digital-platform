@@ -29,6 +29,7 @@ const morroDistRoot = resolve(
   "apps/morro-digital-platform/dist",
 );
 const morroRuntimeRoot = resolve(morroDistRoot, "runtime");
+const morroAnalyticsRoot = resolve(morroDistRoot, "analytics");
 const defaultDocument = resolve(morroPublicRoot, "index.html");
 const envFile = resolve(repositoryRoot, ".env");
 const host = process.env.HOST?.trim() || "127.0.0.1";
@@ -246,6 +247,17 @@ function resolveRequestPath(pathname) {
       throw new Error("Requested runtime path is outside the runtime root.");
     }
     return runtimePath;
+  }
+
+  if (decoded.startsWith("/analytics/")) {
+    const analyticsPath = resolve(
+      morroAnalyticsRoot,
+      decoded.slice("/analytics/".length),
+    );
+    if (!isWithinStaticRoot(analyticsPath, morroAnalyticsRoot)) {
+      throw new Error("Requested analytics path is outside the analytics root.");
+    }
+    return analyticsPath;
   }
 
   const rootMountedPath =
