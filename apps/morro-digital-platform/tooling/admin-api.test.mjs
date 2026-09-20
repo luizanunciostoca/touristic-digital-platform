@@ -373,6 +373,9 @@ describe("Control Center Admin API", () => {
   it("requires step-up and exact confirmation before delegating a refund", async () => {
     const calls = [];
     const financial = {
+      async resolvePaymentTenant() {
+        return { status: "found", tenantId: "toca-do-morcego" };
+      },
       async refund(input) {
         calls.push(input);
         input.response.statusCode = 202;
@@ -458,6 +461,71 @@ describe("Control Center Admin API", () => {
       paymentId: "pay_admin_0001",
       reason: "Customer requested a verified administrative refund",
     });
+  });
+
+  it("denies financial mutations when Support Mode tenant differs from the resource tenant", async () => {
+    const calls = [];
+    const financial = {
+      async resolvePaymentTenant() {
+        return { status: "found", tenantId: "other-business" };
+      },
+      async refund(input) {
+        calls.push(input);
+      },
+    };
+    const { api } = fixture(platformOwner, {
+      domainAdapters: { financial },
+    });
+
+    const supportResponse = responseRecorder();
+    await api.handle(
+      request("/api/admin/v1/support/session", {
+        method: "POST",
+        body: {
+          effectiveUserId: "business-owner",
+          reason: "Reproduzir problema financeiro reportado pela empresa",
+        },
+      }),
+      supportResponse,
+      new URL("http://localhost/api/admin/v1/support/session"),
+    );
+    expect(supportResponse.statusCode).toBe(201);
+    const supportCookie = String(
+      supportResponse.headers.get("set-cookie"),
+    ).split(";", 1)[0];
+
+    const stepUpResponse = responseRecorder();
+    await api.handle(
+      request("/api/admin/v1/step-up", {
+        method: "POST",
+        body: { password: "fixture-secret" },
+      }),
+      stepUpResponse,
+      new URL("http://localhost/api/admin/v1/step-up"),
+    );
+    expect(stepUpResponse.statusCode).toBe(201);
+    const stepUpCookie = String(
+      stepUpResponse.headers.get("set-cookie"),
+    ).split(";", 1)[0];
+
+    const response = responseRecorder();
+    const path = "/api/admin/v1/financial/refunds/pay_admin_0001";
+    await api.handle(
+      request(path, {
+        method: "POST",
+        headers: { cookie: `${supportCookie}; ${stepUpCookie}` },
+        body: {
+          reason: "Attempt against a different tenant must fail closed",
+          confirmation: "REFUNDAR",
+        },
+      }),
+      response,
+      new URL("http://localhost" + path),
+    );
+
+    expect(response.statusCode).toBe(403);
+    expect(JSON.parse(response.body).error).toBe("SUPPORT_SCOPE_MISMATCH");
+    expect(calls).toHaveLength(0);
   });
 
   it("denies Control Center financial effects in production even after step-up", async () => {
