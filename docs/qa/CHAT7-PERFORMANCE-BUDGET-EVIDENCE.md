@@ -22,6 +22,8 @@ The checker fails when any configured budget is exceeded.
 
 Initial limits:
 
+- Assistant startup (CI Chromium): 5,000 ms
+- Map startup to ready Home state (CI Chromium): 15,000 ms
 - Home linked CSS: 100,000 bytes
 - Home linked same-origin JavaScript: 500,000 bytes
 - Morro Digital app emitted JavaScript: 3,000,000 bytes
@@ -31,6 +33,8 @@ Initial limits:
 The baseline visible CSS linked by the current Home is approximately 39 KB, with the largest linked stylesheet approximately 9.4 KB, so the CSS limit has explicit headroom without being unbounded.
 
 ## Gate behavior
+
+The browser startup gate measures from navigation start to the visible Assistant input and to the canonical ready Home map state. These synthetic limits are regression guards and are intentionally separate from production Web Vitals/RUM.
 
 The checker:
 
