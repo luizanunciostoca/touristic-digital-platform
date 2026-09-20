@@ -1,6 +1,7 @@
 {
   "name": "@touristic/destinations",
   "version": "0.1.0",
+  "description": "Governed destination configuration contracts for Morro Digital",
   "private": true,
   "type": "module",
   "main": "dist/index.js",
