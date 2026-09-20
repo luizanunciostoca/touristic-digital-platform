@@ -55,8 +55,8 @@ services:
     plan: starter
     autoDeploy: false
     buildCommand: corepack pnpm install --frozen-lockfile && corepack pnpm build
-    preDeployCommand: node tooling/render/wait-for-staging-mysql.mjs && node tooling/render/with-staging-mysql-env.mjs node apps/morro-digital-platform/tooling/payments-migrate.mjs
-    startCommand: node tooling/render/wait-for-staging-mysql.mjs && node tooling/render/with-staging-mysql-env.mjs node apps/morro-digital-platform/tooling/dev-server.mjs
+    preDeployCommand: node tooling/render/with-staging-mysql-env.mjs node apps/morro-digital-platform/tooling/payments-migrate.mjs
+    startCommand: node tooling/render/with-staging-mysql-env.mjs node apps/morro-digital-platform/tooling/dev-server.mjs
     healthCheckPath: /readyz
     maxShutdownDelaySeconds: 30
     envVars:
