@@ -47,7 +47,7 @@ const businessOwner = Object.freeze({
   businessIds: Object.freeze(["toca-do-morcego"]),
 });
 
-function fixture(session = platformOwner) {
+function fixture(session = platformOwner, options = {}) {
   const events = [];
   const users = [
     {
@@ -119,6 +119,9 @@ function fixture(session = platformOwner) {
       authApi,
       platformOperations,
       getEnvironmentValue(key) {
+        if (key === "NODE_ENV") {
+          return options.production ? "production" : "development";
+        }
         if (
           key === "CONTROL_CENTER_SUPPORT_SECRET" ||
           key === "CONTROL_CENTER_STEP_UP_SECRET"
@@ -127,6 +130,7 @@ function fixture(session = platformOwner) {
         }
         return "";
       },
+      domainAdapters: options.domainAdapters ?? {},
     }),
     events,
   };
@@ -364,6 +368,143 @@ describe("Control Center Admin API", () => {
       sessionHandle,
       alreadyRevoked: false,
     });
+  });
+
+  it("requires step-up and exact confirmation before delegating a refund", async () => {
+    const calls = [];
+    const financial = {
+      async refund(input) {
+        calls.push(input);
+        input.response.statusCode = 202;
+        input.response.end(
+          JSON.stringify({
+            data: {
+              refundId: "rfd_admin_0001",
+              paymentId: input.paymentId,
+              status: "PENDING",
+              replayed: false,
+            },
+          }),
+        );
+      },
+    };
+    const { api } = fixture(platformOwner, {
+      domainAdapters: { financial },
+    });
+    const path = "/api/admin/v1/financial/refunds/pay_admin_0001";
+
+    const withoutStepUp = responseRecorder();
+    await api.handle(
+      request(path, {
+        method: "POST",
+        body: {
+          reason: "Customer requested a verified administrative refund",
+          confirmation: "REFUNDAR",
+        },
+      }),
+      withoutStepUp,
+      new URL("http://localhost" + path),
+    );
+    expect(withoutStepUp.statusCode).toBe(403);
+    expect(JSON.parse(withoutStepUp.body).error).toBe("STEP_UP_REQUIRED");
+    expect(calls).toHaveLength(0);
+
+    const stepUp = responseRecorder();
+    await api.handle(
+      request("/api/admin/v1/step-up", {
+        method: "POST",
+        body: { password: "fixture-secret" },
+      }),
+      stepUp,
+      new URL("http://localhost/api/admin/v1/step-up"),
+    );
+    const cookie = String(stepUp.headers.get("set-cookie")).split(";", 1)[0];
+
+    const wrongConfirmation = responseRecorder();
+    await api.handle(
+      request(path, {
+        method: "POST",
+        headers: { cookie },
+        body: {
+          reason: "Customer requested a verified administrative refund",
+          confirmation: "WRONG",
+        },
+      }),
+      wrongConfirmation,
+      new URL("http://localhost" + path),
+    );
+    expect(wrongConfirmation.statusCode).toBe(400);
+    expect(JSON.parse(wrongConfirmation.body).error).toBe(
+      "TEXT_CONFIRMATION_REQUIRED",
+    );
+    expect(calls).toHaveLength(0);
+
+    const accepted = responseRecorder();
+    await api.handle(
+      request(path, {
+        method: "POST",
+        headers: { cookie },
+        body: {
+          reason: "Customer requested a verified administrative refund",
+          confirmation: "REFUNDAR",
+        },
+      }),
+      accepted,
+      new URL("http://localhost" + path),
+    );
+    expect(accepted.statusCode).toBe(202);
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toMatchObject({
+      paymentId: "pay_admin_0001",
+      reason: "Customer requested a verified administrative refund",
+    });
+  });
+
+  it("denies Control Center financial effects in production even after step-up", async () => {
+    const calls = [];
+    const { api } = fixture(platformOwner, {
+      production: true,
+      domainAdapters: {
+        financial: {
+          async refund(input) {
+            calls.push(input);
+          },
+        },
+      },
+    });
+
+    const stepUp = responseRecorder();
+    await api.handle(
+      request("/api/admin/v1/step-up", {
+        method: "POST",
+        body: { password: "fixture-secret" },
+      }),
+      stepUp,
+      new URL("http://localhost/api/admin/v1/step-up"),
+    );
+    expect(stepUp.statusCode).toBe(201);
+    const cookie = String(stepUp.headers.get("set-cookie")).split(";", 1)[0];
+
+    const response = responseRecorder();
+    const path = "/api/admin/v1/financial/refunds/pay_admin_0001";
+    await api.handle(
+      request(path, {
+        method: "POST",
+        headers: { cookie },
+        body: {
+          reason: "Production refund must remain explicitly unauthorized",
+          confirmation: "REFUNDAR",
+        },
+      }),
+      response,
+      new URL("http://localhost" + path),
+    );
+
+    expect(response.statusCode).toBe(403);
+    expect(JSON.parse(response.body).error).toBe(
+      "PRODUCTION_FINANCIAL_EFFECT_NOT_AUTHORIZED",
+    );
+    expect(calls).toHaveLength(0);
   });
 
   it("derives the business directory from identity memberships only", async () => {
