@@ -2,6 +2,8 @@ import { createHash } from "node:crypto";
 
 import type { RevocableAuthSession } from "./revocation.js";
 
+const sessionRegistryRetentionSeconds = 30 * 24 * 60 * 60;
+
 export interface AuthLoginRateLimitPolicy {
   readonly windowMs: number;
   readonly limit: number;
@@ -361,11 +363,19 @@ export function createSqlAuthSecurityState(
     if (nowMs - lastCleanupMs < cleanupIntervalMs) return;
     lastCleanupMs = nowMs;
     const nowEpochSeconds = Math.floor(nowMs / 1000);
+    const sessionRegistryCutoff = Math.max(
+      0,
+      nowEpochSeconds - sessionRegistryRetentionSeconds,
+    );
     const rateLimitCutoff = Math.max(0, nowMs - windowMs * 2);
     await Promise.all([
       pool.execute(
         "DELETE FROM auth_session_revocations WHERE expires_at <= ? LIMIT 1000",
         [nowEpochSeconds],
+      ),
+      pool.execute(
+        "DELETE FROM auth_session_registry WHERE expires_at <= ? LIMIT 1000",
+        [sessionRegistryCutoff],
       ),
       pool.execute(
         "DELETE FROM auth_login_rate_limits WHERE updated_at < ? LIMIT 1000",
