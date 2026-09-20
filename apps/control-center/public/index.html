@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <title>Morro Digital — Control Center</title>
+    <link rel="stylesheet" href="/apps/control-center/public/control-center.css" />
+  </head>
+  <body>
+    <div id="app" class="app-shell" hidden>
+      <aside class="sidebar" aria-label="Navegação principal">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true">M</span>
+          <div>
+            <strong>Morro Digital</strong>
+            <small>Control Center</small>
+          </div>
+        </div>
+        <nav id="main-nav"></nav>
+        <div class="sidebar-footer">
+          <div id="actor-card" class="actor-card"></div>
+          <button id="logout-button" class="ghost-button" type="button">Sair</button>
+        </div>
+      </aside>
+
+      <main class="main">
+        <div id="support-banner" class="support-banner" hidden>
+          <div>
+            <strong>MODO SUPORTE ATIVO</strong>
+            <span id="support-context"></span>
+          </div>
+          <button id="support-end" type="button">Encerrar modo suporte</button>
+        </div>
+
+        <header class="topbar">
+          <button id="menu-button" class="icon-button mobile-only" type="button" aria-label="Abrir menu">☰</button>
+          <div class="search-wrap">
+            <span aria-hidden="true">⌕</span>
+            <input
+              id="global-search"
+              type="search"
+              autocomplete="off"
+              placeholder="Pesquisar qualquer coisa no Morro Digital..."
+              aria-label="Busca universal"
+            />
+            <kbd>⌘ K</kbd>
+            <div id="search-results" class="search-results" hidden></div>
+          </div>
+          <div class="top-actions">
+            <span id="release-chip" class="chip">SHA —</span>
+            <span id="health-chip" class="chip">Verificando</span>
+          </div>
+        </header>
+
+        <section class="page">
+          <div class="page-heading">
+            <div>
+              <p id="breadcrumb" class="breadcrumb">Control Center / Visão Geral</p>
+              <h1 id="page-title">Visão Geral</h1>
+              <p id="page-description">
+                Estado operacional e administrativo da plataforma em uma única visão.
+              </p>
+            </div>
+            <div id="page-actions" class="page-actions"></div>
+          </div>
+          <div id="content" aria-live="polite"></div>
+        </section>
+      </main>
+    </div>
+
+    <div id="boot" class="boot">
+      <div class="spinner" aria-hidden="true"></div>
+      <strong>Abrindo Control Center</strong>
+      <span>Validando sessão e capabilities…</span>
+    </div>
+
+    <script type="module" src="/apps/control-center/public/control-center.js"></script>
+  </body>
+</html>
