@@ -1153,10 +1153,7 @@ export function installExploreLocationsControl({
       return;
     }
     if (
-      immersiveTourController?.goToStopById(
-        tourIdCandidate,
-        stopIdCandidate,
-      )
+      immersiveTourController?.goToStopById(tourIdCandidate, stopIdCandidate)
     ) {
       event.stopImmediatePropagation();
     }

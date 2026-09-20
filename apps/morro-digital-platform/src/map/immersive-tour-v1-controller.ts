@@ -82,7 +82,9 @@ function tourLocaleToSpeechLanguage(locale: TourLocale): string {
   }[locale];
 }
 
-function finalOptions(locale?: string | null): readonly V1ImmersiveTourRenderOption[] {
+function finalOptions(
+  locale?: string | null,
+): readonly V1ImmersiveTourRenderOption[] {
   const copy = getV1ImmersiveTourCopy(locale);
   return Object.freeze([
     Object.freeze({ label: copy.seeTours, value: TOUR_SEE_TOURS }),
@@ -148,7 +150,9 @@ export function createV1ImmersiveTourController(
 
   const voiceEnabled = (): boolean => {
     try {
-      return document.defaultView?.localStorage.getItem("voice-enabled") !== "false";
+      return (
+        document.defaultView?.localStorage.getItem("voice-enabled") !== "false"
+      );
     } catch {
       return true;
     }
@@ -180,9 +184,7 @@ export function createV1ImmersiveTourController(
         voice.lang.toLowerCase().startsWith(prefix),
       );
       utterance.voice =
-        matchingVoices.find((voice) =>
-          /female|feminina/iu.test(voice.name),
-        ) ??
+        matchingVoices.find((voice) => /female|feminina/iu.test(voice.name)) ??
         matchingVoices[0] ??
         null;
 
@@ -238,7 +240,9 @@ export function createV1ImmersiveTourController(
     const card = createElement(document, "div", "tour-intro-card");
 
     const header = createElement(document, "div", "tour-intro-header");
-    header.appendChild(createElement(document, "span", "tour-intro-icon", "🗺️"));
+    header.appendChild(
+      createElement(document, "span", "tour-intro-icon", "🗺️"),
+    );
 
     const headerText = document.createElement("div");
     headerText.appendChild(
@@ -261,12 +265,7 @@ export function createV1ImmersiveTourController(
 
     const preview = createElement(document, "div", "tour-stops-preview");
     preview.appendChild(
-      createElement(
-        document,
-        "strong",
-        "",
-        copy.stopsLabel(tour.stops.length),
-      ),
+      createElement(document, "strong", "", copy.stopsLabel(tour.stops.length)),
     );
     const stopList = createElement(document, "div", "tour-stops-list");
     tour.stops.forEach((stop, index) => {
@@ -396,11 +395,7 @@ export function createV1ImmersiveTourController(
     card.appendChild(progressBar);
 
     if (stop.photoPath) {
-      const photoWrap = createElement(
-        document,
-        "div",
-        "tour-stop-photo-wrap",
-      );
+      const photoWrap = createElement(document, "div", "tour-stop-photo-wrap");
       const image = createElement(document, "img", "tour-stop-photo");
       image.src = stop.photoPath;
       image.alt = stop.photoAlt || stop.title;
@@ -414,12 +409,7 @@ export function createV1ImmersiveTourController(
       );
       photoWrap.appendChild(image);
       photoWrap.appendChild(
-        createElement(
-          document,
-          "div",
-          "tour-stop-photo-caption",
-          stop.title,
-        ),
+        createElement(document, "div", "tour-stop-photo-caption", stop.title),
       );
 
       narrationButton = createElement(
@@ -447,12 +437,7 @@ export function createV1ImmersiveTourController(
 
     const header = createElement(document, "div", "tour-stop-header");
     header.appendChild(
-      createElement(
-        document,
-        "span",
-        "tour-stop-num-badge",
-        String(current),
-      ),
+      createElement(document, "span", "tour-stop-num-badge", String(current)),
     );
     header.appendChild(
       createElement(document, "strong", "tour-stop-title", stop.title),
@@ -464,9 +449,7 @@ export function createV1ImmersiveTourController(
 
     if (stop.tips.length > 0) {
       const tips = createElement(document, "div", "tour-tips");
-      tips.appendChild(
-        createElement(document, "strong", "", copy.tipsLabel),
-      );
+      tips.appendChild(createElement(document, "strong", "", copy.tipsLabel));
       const list = document.createElement("ul");
       stop.tips.forEach((tip) => {
         list.appendChild(createElement(document, "li", "", tip));
@@ -497,12 +480,7 @@ export function createV1ImmersiveTourController(
     );
 
     if (autoNarrate && narrationButton) {
-      scheduleNarration(
-        tour,
-        stop,
-        state.currentStopIndex,
-        narrationButton,
-      );
+      scheduleNarration(tour, stop, state.currentStopIndex, narrationButton);
     }
   };
 
@@ -515,9 +493,7 @@ export function createV1ImmersiveTourController(
     stopNarration();
     const copy = getV1ImmersiveTourCopy(tour.locale);
     const card = createElement(document, "div", "tour-finale-card");
-    card.appendChild(
-      createElement(document, "div", "tour-finale-icon", "🎉"),
-    );
+    card.appendChild(createElement(document, "div", "tour-finale-icon", "🎉"));
     card.appendChild(
       createElement(
         document,
@@ -535,12 +511,7 @@ export function createV1ImmersiveTourController(
       ),
     );
     card.appendChild(
-      createElement(
-        document,
-        "p",
-        "tour-finale-cta",
-        copy.completedCta,
-      ),
+      createElement(document, "p", "tour-finale-cta", copy.completedCta),
     );
 
     renderRequest(
@@ -611,9 +582,7 @@ export function createV1ImmersiveTourController(
     }
 
     if (value === TOUR_LIST) {
-      setState(
-        transitionV1ImmersiveTourState(state, { type: "show_list" }),
-      );
+      setState(transitionV1ImmersiveTourState(state, { type: "show_list" }));
       renderStopList();
       return;
     }

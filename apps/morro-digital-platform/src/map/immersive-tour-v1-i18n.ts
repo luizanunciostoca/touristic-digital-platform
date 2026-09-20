@@ -48,7 +48,8 @@ const COPY: Readonly<Record<TourLocale, V1ImmersiveTourCopy>> = Object.freeze({
     completedCta: "Gostou? Compartilhe com seus amigos e volte sempre! 🌊",
     notFound:
       "Desculpe, não encontrei o roteiro para este passeio. Tente novamente ou escolha outro passeio.",
-    stopLabel: (current: number, total: number) => `Parada ${current} de ${total}`,
+    stopLabel: (current: number, total: number) =>
+      `Parada ${current} de ${total}`,
     stopsLabel: (count: number) => `${count} paradas:`,
     stopsOf: (title: string) => `Paradas do ${title}:`,
     endedMessage: (title: string) =>
@@ -75,7 +76,8 @@ const COPY: Readonly<Record<TourLocale, V1ImmersiveTourCopy>> = Object.freeze({
     completedCta: "Liked it? Share with your friends and come back soon! 🌊",
     notFound:
       "Sorry, I couldn't find the itinerary for this tour. Please try again or choose another tour.",
-    stopLabel: (current: number, total: number) => `Stop ${current} of ${total}`,
+    stopLabel: (current: number, total: number) =>
+      `Stop ${current} of ${total}`,
     stopsLabel: (count: number) => `${count} stops:`,
     stopsOf: (title: string) => `Stops of ${title}:`,
     endedMessage: (title: string) =>
@@ -99,11 +101,11 @@ const COPY: Readonly<Record<TourLocale, V1ImmersiveTourCopy>> = Object.freeze({
     viewStop: "📍 Ver esta parada",
     tipsLabel: "💡 Consejos:",
     completedTitle: "¡Tour Completado!",
-    completedCta:
-      "¿Te gustó? ¡Comparte con tus amigos y vuelve pronto! 🌊",
+    completedCta: "¿Te gustó? ¡Comparte con tus amigos y vuelve pronto! 🌊",
     notFound:
       "Lo siento, no encontré el itinerario para este paseo. Por favor, inténtalo de nuevo o elige otro paseo.",
-    stopLabel: (current: number, total: number) => `Parada ${current} de ${total}`,
+    stopLabel: (current: number, total: number) =>
+      `Parada ${current} de ${total}`,
     stopsLabel: (count: number) => `${count} paradas:`,
     stopsOf: (title: string) => `Paradas de ${title}:`,
     endedMessage: (title: string) =>
@@ -130,7 +132,8 @@ const COPY: Readonly<Record<TourLocale, V1ImmersiveTourCopy>> = Object.freeze({
     completedCta: "אהבת? שתף עם חבריך וחזור בקרוב! 🌊",
     notFound:
       "מצטער, לא מצאתי את המסלול לסיור זה. אנא נסה שוב או בחר סיור אחר.",
-    stopLabel: (current: number, total: number) => `עצירה ${current} מתוך ${total}`,
+    stopLabel: (current: number, total: number) =>
+      `עצירה ${current} מתוך ${total}`,
     stopsLabel: (count: number) => `${count} עצירות:`,
     stopsOf: (title: string) => `עצירות של ${title}:`,
     endedMessage: (title: string) =>

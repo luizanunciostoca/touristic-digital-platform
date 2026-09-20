@@ -24,9 +24,12 @@ describe("V1 immersive tour presentation copy", () => {
     ["en-US", "▶️ Start tour", "⛵ See other tours"],
     ["es-AR", "▶️ Iniciar tour", "⛵ Ver otros paseos"],
     ["he-IL", "▶️ התחל סיור", "⛵ ראה סיורים אחרים"],
-  ])("keeps the V1 localized tour controls for %s", (locale, start, seeTours) => {
-    const copy = getV1ImmersiveTourCopy(locale);
-    expect(copy.start).toBe(start);
-    expect(copy.seeTours).toBe(seeTours);
-  });
+  ])(
+    "keeps the V1 localized tour controls for %s",
+    (locale, start, seeTours) => {
+      const copy = getV1ImmersiveTourCopy(locale);
+      expect(copy.start).toBe(start);
+      expect(copy.seeTours).toBe(seeTours);
+    },
+  );
 });

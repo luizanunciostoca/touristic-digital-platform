@@ -61,9 +61,9 @@ describe("V1 immersive tour state machine", () => {
     expect(
       transitionV1ImmersiveTourState(second, { type: "previous" }),
     ).toMatchObject({ stage: "stop", currentStopIndex: 0 });
-    expect(
-      transitionV1ImmersiveTourState(first, { type: "previous" }),
-    ).toBe(first);
+    expect(transitionV1ImmersiveTourState(first, { type: "previous" })).toBe(
+      first,
+    );
   });
 
   it("finishes explicitly and resets completely when the tour is stopped", () => {
@@ -74,9 +74,9 @@ describe("V1 immersive tour state machine", () => {
     const finale = transitionV1ImmersiveTourState(first, { type: "finish" });
 
     expect(finale.stage).toBe("finale");
-    expect(
-      transitionV1ImmersiveTourState(finale, { type: "stop" }),
-    ).toBe(idleV1ImmersiveTourState);
+    expect(transitionV1ImmersiveTourState(finale, { type: "stop" })).toBe(
+      idleV1ImmersiveTourState,
+    );
   });
 
   it("rejects invalid starts instead of creating a corrupt tour state", () => {

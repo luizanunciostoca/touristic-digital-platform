@@ -1,9 +1,5 @@
 export type V1ImmersiveTourStage =
-  | "idle"
-  | "intro"
-  | "list"
-  | "stop"
-  | "finale";
+  "idle" | "intro" | "list" | "stop" | "finale";
 
 export interface V1ImmersiveTourState {
   readonly stage: V1ImmersiveTourStage;
@@ -79,12 +75,7 @@ export function transitionV1ImmersiveTourState(
     ) {
       return state;
     }
-    return freezeState(
-      "stop",
-      state.tourId,
-      action.index,
-      state.totalStops,
-    );
+    return freezeState("stop", state.tourId, action.index, state.totalStops);
   }
 
   if (action.type === "previous") {
