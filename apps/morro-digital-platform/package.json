@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
+    "@touristic/affiliates": "workspace:*",
     "@touristic/affiliates-server": "workspace:*",
     "@touristic/analytics": "workspace:*",
     "@touristic/analytics-server": "workspace:*",
