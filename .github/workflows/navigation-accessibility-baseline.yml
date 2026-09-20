@@ -180,6 +180,7 @@ jobs:
                 bannerVisible: Boolean(banner && !banner.classList.contains('hidden') && getComputedStyle(banner).display !== 'none'),
                 endVisible: Boolean(end && getComputedStyle(end).display !== 'none'),
                 bodyActive: document.body.classList.contains('navigation-active'),
+                assistantOpen: document.body.classList.contains('assistant-modal-open'),
                 mdMode: document.body.dataset.mdMode ?? null,
                 modeComposition: {
                   header: presentation('header'),
@@ -218,7 +219,7 @@ jobs:
               !hidden(state.modeComposition.submenu) ||
               !hidden(state.modeComposition.globe) ||
               !hidden(state.modeComposition.quickActions) ||
-              !hidden(state.modeComposition.assistantInput)
+              (!state.assistantOpen && !hidden(state.modeComposition.assistantInput))
             ) {
               throw new Error(
                 `Navigation mode composition drift for ${testCase.name}: ${JSON.stringify(state.modeComposition)}`,
