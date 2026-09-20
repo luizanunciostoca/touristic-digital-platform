@@ -28,13 +28,13 @@ The table stores:
 - schema version;
 - canonical event name;
 - occurred timestamp;
-- opaque session id;
+- SHA-256 session hash derived server-side from the ephemeral browser session id;
 - optional destination/locale/source;
 - sanitized attributes JSON;
 - server received timestamp;
 - server retention deadline.
 
-No payment amount, card data, email, phone, CPF or raw Assistant/Search text is part of the canonical event model.
+The raw browser session id is never persisted. It is used only to derive a one-way SHA-256 `session_hash` at the repository boundary. No payment amount, card data, email, phone, CPF or raw Assistant/Search text is part of the persisted analytics model.
 
 ## Idempotency
 

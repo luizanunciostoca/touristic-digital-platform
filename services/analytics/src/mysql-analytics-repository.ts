@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import type {
   Pool,
   ResultSetHeader,
@@ -17,11 +19,15 @@ interface AnalyticsEventRow extends RowDataPacket {
   schema_version: string;
   event_name: string;
   occurred_at: Date | string;
-  session_id: string;
+  session_hash: string;
   destination_id: string | null;
   locale: string | null;
   source: string | null;
   attributes_json: unknown;
+}
+
+function hashSessionId(sessionId: string): string {
+  return createHash("sha256").update(sessionId, "utf8").digest("hex");
 }
 
 function timestamp(value: Date | string): string {
@@ -62,7 +68,7 @@ function sameEvent(row: AnalyticsEventRow, event: AnalyticsEvent): boolean {
     row.schema_version === event.schemaVersion &&
     row.event_name === event.name &&
     timestamp(row.occurred_at) === event.occurredAt &&
-    row.session_id === event.sessionId &&
+    row.session_hash === hashSessionId(event.sessionId) &&
     row.destination_id === (event.destinationId ?? null) &&
     row.locale === (event.locale ?? null) &&
     row.source === (event.source ?? null) &&
@@ -79,7 +85,7 @@ export class MySqlAnalyticsEventRepository
   private async findRow(eventId: string): Promise<AnalyticsEventRow | null> {
     const [rows] = await this.pool.execute<AnalyticsEventRow[]>(
       `SELECT
-        event_id, schema_version, event_name, occurred_at, session_id,
+        event_id, schema_version, event_name, occurred_at, session_hash,
         destination_id, locale, source, attributes_json
        FROM analytics_events
        WHERE event_id = ?
@@ -95,7 +101,7 @@ export class MySqlAnalyticsEventRepository
     const { event } = record;
     const [result] = await this.pool.execute<ResultSetHeader>(
       `INSERT IGNORE INTO analytics_events (
-        event_id, schema_version, event_name, occurred_at, session_id,
+        event_id, schema_version, event_name, occurred_at, session_hash,
         destination_id, locale, source, attributes_json, received_at,
         retention_until
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -104,7 +110,7 @@ export class MySqlAnalyticsEventRepository
         event.schemaVersion,
         event.name,
         new Date(event.occurredAt),
-        event.sessionId,
+        hashSessionId(event.sessionId),
         event.destinationId ?? null,
         event.locale ?? null,
         event.source ?? null,
