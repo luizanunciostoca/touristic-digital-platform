@@ -8,8 +8,7 @@
   min-height: 100svh;
   min-height: 100dvh;
   margin: 0;
-  padding:
-    max(var(--md-space-4), var(--md-safe-top))
+  padding: max(var(--md-space-4), var(--md-safe-top))
     max(var(--md-space-4), var(--md-safe-right))
     max(var(--md-space-8), var(--md-safe-bottom))
     max(var(--md-space-4), var(--md-safe-left));
