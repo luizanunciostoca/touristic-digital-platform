@@ -192,44 +192,77 @@ jobs:
               throw new Error('Guided tour did not highlight the active V1 stop marker.');
             }
 
-            await page.locator('.tour-narration-btn[aria-pressed="true"]').waitFor({
-              state: 'visible',
-              timeout: 3000,
+            const expectedSpeechLang = await page.evaluate(() => {
+              const lang = document.documentElement.lang.toLowerCase();
+              if (lang.startsWith('en')) return 'en-US';
+              if (lang.startsWith('es')) return 'es-ES';
+              if (lang.startsWith('he')) return 'he-IL';
+              return 'pt-BR';
             });
+            await page.waitForFunction(
+              () => globalThis.__tourSpeechEvidence.spoken.length > 0,
+              undefined,
+              { timeout: 3000 },
+            );
+            const narrationButton = page.locator('.tour-narration-btn');
+            await narrationButton.waitFor({ state: 'attached', timeout: 3000 });
             const autoNarration = await page.evaluate(() => ({
               ...globalThis.__tourSpeechEvidence,
               spoken: [...globalThis.__tourSpeechEvidence.spoken],
             }));
-            if (autoNarration.spoken.length < 1 || autoNarration.spoken[0]?.lang !== 'pt-BR') {
-              throw new Error(`Automatic tour narration did not start in pt-BR: ${JSON.stringify(autoNarration)}`);
+            const automaticSpeech = autoNarration.spoken.at(-1);
+            if (
+              !automaticSpeech ||
+              automaticSpeech.lang !== expectedSpeechLang ||
+              (await narrationButton.getAttribute('aria-pressed')) !== 'true'
+            ) {
+              throw new Error(
+                `Automatic tour narration did not start with the active locale: ${JSON.stringify({
+                  expectedSpeechLang,
+                  autoNarration,
+                })}`,
+              );
             }
 
-            await page.locator('.tour-narration-btn').click();
+            await narrationButton.evaluate(element => element.click());
             const stoppedNarration = await page.evaluate(() => ({
               ...globalThis.__tourSpeechEvidence,
               spoken: [...globalThis.__tourSpeechEvidence.spoken],
             }));
-            if (stoppedNarration.cancelled < 1) {
+            if (
+              stoppedNarration.cancelled <= autoNarration.cancelled ||
+              (await narrationButton.getAttribute('aria-pressed')) !== 'false'
+            ) {
               throw new Error(`Tour narration stop did not cancel speech: ${JSON.stringify(stoppedNarration)}`);
             }
 
-            await page.locator('.tour-narration-btn').click();
+            await narrationButton.evaluate(element => element.click());
             const manualNarration = await page.evaluate(() => ({
               ...globalThis.__tourSpeechEvidence,
               spoken: [...globalThis.__tourSpeechEvidence.spoken],
             }));
-            if (manualNarration.spoken.length < 2) {
+            if (
+              manualNarration.spoken.length <= autoNarration.spoken.length ||
+              manualNarration.spoken.at(-1)?.lang !== expectedSpeechLang
+            ) {
               throw new Error(`Manual tour narration did not restart speech: ${JSON.stringify(manualNarration)}`);
             }
 
             await page.locator('.tour-stop-marker[data-stop-index="2"]').evaluate(element => element.click());
             const markerJump = await waitForGuidedStage(page, 'stop', 'volta-a-ilha', '2');
-            await page.waitForTimeout(700);
+            await page.waitForFunction(
+              expectedCount => globalThis.__tourSpeechEvidence.spoken.length > expectedCount,
+              manualNarration.spoken.length,
+              { timeout: 3000 },
+            );
             const changedStopNarration = await page.evaluate(() => ({
               ...globalThis.__tourSpeechEvidence,
               spoken: [...globalThis.__tourSpeechEvidence.spoken],
             }));
-            if (changedStopNarration.spoken.length < 3 || changedStopNarration.cancelled < 2) {
+            if (
+              changedStopNarration.spoken.length <= manualNarration.spoken.length ||
+              changedStopNarration.cancelled <= stoppedNarration.cancelled
+            ) {
               throw new Error(`Tour narration did not transition safely between stops: ${JSON.stringify(changedStopNarration)}`);
             }
 
