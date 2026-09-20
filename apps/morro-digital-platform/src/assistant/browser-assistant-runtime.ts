@@ -244,6 +244,8 @@ function appendPhotoCarousel(
     image.alt = `${presentation.place} — foto ${index + 1}`;
     image.loading = index === 0 ? "eager" : "lazy";
     image.decoding = "async";
+    image.fetchPriority = index === 0 ? "high" : "auto";
+    image.sizes = "(max-width: 48rem) calc(100vw - 2rem), 46rem";
     figure.appendChild(image);
     track.appendChild(figure);
   }
