@@ -194,6 +194,9 @@ function assertTicketAcceptsNewCheckIn(
   occurredAt: string,
   result: unknown,
 ): void {
+  if (Date.parse(occurredAt) < Date.parse(ticket.issuedAt)) {
+    throw new TicketingApplicationError("TICKETING_CHECKIN_INVALID");
+  }
   if (ticket.status === "used") {
     throw new TicketingApplicationError("TICKETING_TICKET_ALREADY_USED");
   }
