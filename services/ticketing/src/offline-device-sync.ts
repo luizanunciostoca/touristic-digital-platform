@@ -89,9 +89,7 @@ export function createTicketOfflineDeviceSyncService(dependencies: {
         queuedAtMs < Date.parse(credential.claims.issuedAt) ||
         queuedAtMs >= Date.parse(credential.claims.expiresAt)
       ) {
-        throw new Error(
-          "TICKETING_OFFLINE_ENVELOPE_CREDENTIAL_WINDOW_INVALID",
-        );
+        throw new Error("TICKETING_OFFLINE_ENVELOPE_CREDENTIAL_WINDOW_INVALID");
       }
       const ticket = await dependencies.tickets.findById(envelope.ticketId);
       if (!ticket || ticket.destinationId !== credential.claims.destinationId) {
