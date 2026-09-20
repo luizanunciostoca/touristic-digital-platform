@@ -145,8 +145,13 @@ if (
     "OPENAI_PROVIDER_HARD_LIMIT_CONFIRMED must be true or false",
   );
 }
-const openAiReplicaCount = Number(values.get("OPENAI_RUNTIME_REPLICA_COUNT"));
-if (!Number.isSafeInteger(openAiReplicaCount) || openAiReplicaCount < 1) {
+const openAiReplicaCount = Number(
+  values.get("OPENAI_RUNTIME_REPLICA_COUNT"),
+);
+if (
+  !Number.isSafeInteger(openAiReplicaCount) ||
+  openAiReplicaCount < 1
+) {
   throw new Error("OPENAI_RUNTIME_REPLICA_COUNT must be a positive integer");
 }
 
