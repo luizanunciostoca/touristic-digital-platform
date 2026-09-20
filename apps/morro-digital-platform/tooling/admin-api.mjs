@@ -357,6 +357,20 @@ export function createAdminApi({
     options = {},
   ) {
     const actor = await authApi.resolveSession(request);
+    if (actor && !isPlatformWideAuthRole(actor.role)) {
+      await audit(request, actor, {
+        action: `control-center.authorize.${capability}`,
+        result: "denied",
+        reason: "platform_admin_surface_required",
+      });
+      json(response, 403, {
+        error: "ADMIN_SURFACE_DENIED",
+        capability,
+        reason: "platform_admin_surface_required",
+      });
+      return null;
+    }
+
     const decision = authorizeCapability(actor, capability, options);
     if (!decision.allowed) {
       await audit(request, actor, {
