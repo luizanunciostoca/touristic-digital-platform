@@ -142,12 +142,12 @@ const TICKETING_COPY: Readonly<Record<MorroDocumentLocale, TicketingPresentation
       createReservationFailed: "Não foi possível criar a reserva.",
       updateFailed: "Não foi possível atualizar.",
       ticketingUnavailable: "Ticketing indisponível.",
-      pricePer: (amount, unit) => `${amount} por ${unit}`,
-      availableCount: (count) => `${count} disponíveis`,
-      issuedAt: (date) => `emitido em ${date}`,
-      each: (amount) => `${amount} cada`,
-      validUntil: (date) => `Reserva válida até ${date}`,
-      createdAt: (date) => `Criada em ${date}`,
+      pricePer: (amount: string, unit: string) => `${amount} por ${unit}`,
+      availableCount: (count: number) => `${count} disponíveis`,
+      issuedAt: (date: string) => `emitido em ${date}`,
+      each: (amount: string) => `${amount} cada`,
+      validUntil: (date: string) => `Reserva válida até ${date}`,
+      createdAt: (date: string) => `Criada em ${date}`,
     }),
     "en-US": Object.freeze({
       static: Object.freeze({
@@ -216,12 +216,12 @@ const TICKETING_COPY: Readonly<Record<MorroDocumentLocale, TicketingPresentation
       createReservationFailed: "Could not create the reservation.",
       updateFailed: "Could not refresh the data.",
       ticketingUnavailable: "Ticketing is unavailable.",
-      pricePer: (amount, unit) => `${amount} per ${unit}`,
-      availableCount: (count) => `${count} available`,
-      issuedAt: (date) => `issued on ${date}`,
-      each: (amount) => `${amount} each`,
-      validUntil: (date) => `Reservation valid until ${date}`,
-      createdAt: (date) => `Created on ${date}`,
+      pricePer: (amount: string, unit: string) => `${amount} per ${unit}`,
+      availableCount: (count: number) => `${count} available`,
+      issuedAt: (date: string) => `issued on ${date}`,
+      each: (amount: string) => `${amount} each`,
+      validUntil: (date: string) => `Reservation valid until ${date}`,
+      createdAt: (date: string) => `Created on ${date}`,
     }),
     "es-ES": Object.freeze({
       static: Object.freeze({
@@ -290,12 +290,12 @@ const TICKETING_COPY: Readonly<Record<MorroDocumentLocale, TicketingPresentation
       createReservationFailed: "No se pudo crear la reserva.",
       updateFailed: "No se pudo actualizar.",
       ticketingUnavailable: "Ticketing no está disponible.",
-      pricePer: (amount, unit) => `${amount} por ${unit}`,
-      availableCount: (count) => `${count} disponibles`,
-      issuedAt: (date) => `emitido el ${date}`,
-      each: (amount) => `${amount} cada uno`,
-      validUntil: (date) => `Reserva válida hasta ${date}`,
-      createdAt: (date) => `Creada el ${date}`,
+      pricePer: (amount: string, unit: string) => `${amount} por ${unit}`,
+      availableCount: (count: number) => `${count} disponibles`,
+      issuedAt: (date: string) => `emitido el ${date}`,
+      each: (amount: string) => `${amount} cada uno`,
+      validUntil: (date: string) => `Reserva válida hasta ${date}`,
+      createdAt: (date: string) => `Creada el ${date}`,
     }),
     "he-IL": Object.freeze({
       static: Object.freeze({
@@ -364,12 +364,12 @@ const TICKETING_COPY: Readonly<Record<MorroDocumentLocale, TicketingPresentation
       createReservationFailed: "לא ניתן ליצור את ההזמנה.",
       updateFailed: "לא ניתן לרענן את הנתונים.",
       ticketingUnavailable: "Ticketing אינו זמין.",
-      pricePer: (amount, unit) => `${amount} לכל ${unit}`,
-      availableCount: (count) => `${count} זמינים`,
-      issuedAt: (date) => `הונפק ב-${date}`,
-      each: (amount) => `${amount} לכל אחד`,
-      validUntil: (date) => `ההזמנה תקפה עד ${date}`,
-      createdAt: (date) => `נוצרה ב-${date}`,
+      pricePer: (amount: string, unit: string) => `${amount} לכל ${unit}`,
+      availableCount: (count: number) => `${count} זמינים`,
+      issuedAt: (date: string) => `הונפק ב-${date}`,
+      each: (amount: string) => `${amount} לכל אחד`,
+      validUntil: (date: string) => `ההזמנה תקפה עד ${date}`,
+      createdAt: (date: string) => `נוצרה ב-${date}`,
     }),
   });
 
@@ -399,13 +399,13 @@ const EXPERIENCE_COPY: Readonly<Record<MorroDocumentLocale, ExperiencePresentati
       loadFailed: "Não foi possível carregar esta experiência agora. Tente novamente em instantes.",
       reserveNow: "Reservar agora",
       viewAvailability: "Ver disponibilidade",
-      description: (kind, reference) =>
+      description: (kind: string, reference: string) =>
         `${kind} disponível no Morro Digital. ${reference}. Reserve com disponibilidade e preço confirmados pelo inventário oficial da plataforma.`,
-      fallbackDescription: () =>
+      fallbackDescription: (_kind: string) =>
         "Reserve esta experiência pelo inventário oficial do Morro Digital.",
-      availableCount: (count) => `${count} disponíveis`,
-      salesWindow: (start, end) => `${start} até ${end}`,
-      documentTitle: (label) => `${label} · Morro Digital`,
+      availableCount: (count: number) => `${count} disponíveis`,
+      salesWindow: (start: string, end: string) => `${start} até ${end}`,
+      documentTitle: (label: string) => `${label} · Morro Digital`,
     }),
     "en-US": Object.freeze({
       static: Object.freeze({
@@ -431,13 +431,13 @@ const EXPERIENCE_COPY: Readonly<Record<MorroDocumentLocale, ExperiencePresentati
       loadFailed: "Could not load this experience right now. Please try again shortly.",
       reserveNow: "Reserve now",
       viewAvailability: "View availability",
-      description: (kind, reference) =>
+      description: (kind: string, reference: string) =>
         `${kind} available on Morro Digital. ${reference}. Reserve with availability and pricing confirmed by the platform's official inventory.`,
-      fallbackDescription: () =>
+      fallbackDescription: (_kind: string) =>
         "Reserve this experience through Morro Digital's official inventory.",
-      availableCount: (count) => `${count} available`,
-      salesWindow: (start, end) => `${start} to ${end}`,
-      documentTitle: (label) => `${label} · Morro Digital`,
+      availableCount: (count: number) => `${count} available`,
+      salesWindow: (start: string, end: string) => `${start} to ${end}`,
+      documentTitle: (label: string) => `${label} · Morro Digital`,
     }),
     "es-ES": Object.freeze({
       static: Object.freeze({
@@ -463,13 +463,13 @@ const EXPERIENCE_COPY: Readonly<Record<MorroDocumentLocale, ExperiencePresentati
       loadFailed: "No se pudo cargar esta experiencia ahora. Inténtalo de nuevo en unos instantes.",
       reserveNow: "Reservar ahora",
       viewAvailability: "Ver disponibilidad",
-      description: (kind, reference) =>
+      description: (kind: string, reference: string) =>
         `${kind} disponible en Morro Digital. ${reference}. Reserva con disponibilidad y precio confirmados por el inventario oficial de la plataforma.`,
-      fallbackDescription: () =>
+      fallbackDescription: (_kind: string) =>
         "Reserva esta experiencia mediante el inventario oficial de Morro Digital.",
-      availableCount: (count) => `${count} disponibles`,
-      salesWindow: (start, end) => `${start} hasta ${end}`,
-      documentTitle: (label) => `${label} · Morro Digital`,
+      availableCount: (count: number) => `${count} disponibles`,
+      salesWindow: (start: string, end: string) => `${start} hasta ${end}`,
+      documentTitle: (label: string) => `${label} · Morro Digital`,
     }),
     "he-IL": Object.freeze({
       static: Object.freeze({
@@ -495,13 +495,13 @@ const EXPERIENCE_COPY: Readonly<Record<MorroDocumentLocale, ExperiencePresentati
       loadFailed: "לא ניתן לטעון את החוויה כרגע. נסו שוב בעוד רגע.",
       reserveNow: "הזמנה עכשיו",
       viewAvailability: "בדיקת זמינות",
-      description: (kind, reference) =>
+      description: (kind: string, reference: string) =>
         `${kind} זמין ב-Morro Digital. ${reference}. ההזמנה מתבצעת לפי זמינות ומחיר המאומתים במלאי הרשמי של הפלטפורמה.`,
-      fallbackDescription: () =>
+      fallbackDescription: (_kind: string) =>
         "הזמינו את החוויה דרך המלאי הרשמי של Morro Digital.",
-      availableCount: (count) => `${count} זמינים`,
-      salesWindow: (start, end) => `${start} עד ${end}`,
-      documentTitle: (label) => `${label} · Morro Digital`,
+      availableCount: (count: number) => `${count} זמינים`,
+      salesWindow: (start: string, end: string) => `${start} עד ${end}`,
+      documentTitle: (label: string) => `${label} · Morro Digital`,
     }),
   });
 
