@@ -457,6 +457,42 @@ jobs:
                   await page.locator('#experience-preview-sheet[data-sheet-state="full"]').waitFor({ state: 'attached' });
                   await handle.press('ArrowDown');
                   await page.locator('#experience-preview-sheet[data-sheet-state="half"]').waitFor({ state: 'attached' });
+                  await page.evaluate(() => {
+                    const sheet = document.getElementById('experience-preview-sheet');
+                    globalThis.__commerceSheetGestureTrace = [];
+                    const record = (event) => {
+                      const touch =
+                        event instanceof TouchEvent
+                          ? event.touches[0] ?? event.changedTouches[0]
+                          : null;
+                      globalThis.__commerceSheetGestureTrace.push({
+                        type: event.type,
+                        pointerType: event instanceof PointerEvent ? event.pointerType : null,
+                        clientY:
+                          event instanceof PointerEvent
+                            ? event.clientY
+                            : touch?.clientY ?? null,
+                        target:
+                          event.target instanceof HTMLElement
+                            ? event.target.id || event.target.className
+                            : null,
+                        state: sheet?.getAttribute('data-sheet-state') ?? null,
+                      });
+                    };
+                    for (const type of [
+                      'pointerdown',
+                      'pointermove',
+                      'pointerup',
+                      'pointercancel',
+                      'touchstart',
+                      'touchmove',
+                      'touchend',
+                      'touchcancel',
+                      'click',
+                    ]) {
+                      document.addEventListener(type, record, true);
+                    }
+                  });
                   const handleBox = await handle.boundingBox();
                   if (!handleBox) {
                     throw new Error('Commerce preview sheet handle has no geometry');
@@ -477,14 +513,13 @@ jobs:
                     type: 'touchEnd',
                     touchPoints: [],
                   });
-                  await page
-                    .locator('#experience-preview-sheet[data-sheet-state="full"]')
-                    .waitFor({ state: 'attached', timeout: 3000 });
+                  await page.waitForTimeout(100);
                   const dragResult = await page
                     .locator('#experience-preview-sheet')
                     .evaluate(node => ({
                       state: node.getAttribute('data-sheet-state'),
                       bodyState: document.body.dataset.commerceSheetState ?? null,
+                      trace: globalThis.__commerceSheetGestureTrace ?? [],
                     }));
                   if (dragResult.state !== 'full' || dragResult.bodyState !== 'full') {
                     throw new Error(
