@@ -1,0 +1,2523 @@
+
+/* source: legacy/css/base/variables.css */
+:root {
+  /* Cores */
+  --primary: #3b82f6;
+  --primary-dark: #2563eb;
+  --accent: #10b981;
+  --accent-dark: #059669;
+  --light: #f9fafb;
+  --gray-100: #f3f4f6;
+  --gray-200: #e5e7eb;
+  --gray-300: #d1d5db;
+  --gray-800: #1f2937;
+
+  /* Sombras */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -2px rgba(0, 0, 0, 0.05);
+
+  /* Border radius */
+  --radius-sm: 0.25rem;
+  --radius: 0.5rem;
+  --radius-lg: 0.75rem;
+
+  /* Tipografia */
+  --font-sans: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    sans-serif;
+
+  /* Tamanhos de fonte responsivos */
+  --font-size-xp: clamp(0.65rem, 0.6rem + 0.15vw, 0.675rem);
+  --font-size-xs: clamp(0.75rem, 0.7rem + 0.25vw, 0.875rem);
+  --font-size-xo: clamp(0.8rem, 0.75rem + 0.31vw, 0.925rem);
+  --font-size-sm: clamp(0.875rem, 0.8rem + 0.375vw, 1rem);
+  --font-size-base: clamp(1rem, 0.95rem + 0.25vw, 1.125rem);
+  --font-size-lg: clamp(1.125rem, 1.05rem + 0.375vw, 1.25rem);
+  --font-size-xl: clamp(1.25rem, 1.15rem + 0.5vw, 1.5rem);
+  --font-size-2xl: clamp(1.5rem, 1.4rem + 0.5vw, 1.75rem);
+
+  /* Transições */
+  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Layout */
+  --header-height: 3.75rem; /* Convertido de 60px */
+
+  /* Breakpoints (para uso em media queries) */
+  --bp-mobile: 375px;
+  --bp-tablet: 768px;
+  --bp-desktop: 1024px;
+  --bp-ultrawide: 1280px;
+
+  /* Espaçamentos responsivos */
+  --spacing-xs: clamp(0.25rem, 0.2rem + 0.25vw, 0.5rem);
+  --spacing-sm: clamp(0.5rem, 0.4rem + 0.5vw, 0.75rem);
+  --spacing-md: clamp(0.75rem, 0.65rem + 0.5vw, 1rem);
+  --spacing-lg: clamp(1rem, 0.9rem + 0.5vw, 1.5rem);
+  --spacing-xl: clamp(1.5rem, 1.3rem + 1vw, 2rem);
+
+  /* Z-index layers */
+  --z-base: 1;
+  --z-controls: 10;
+  --z-popup: 100;
+  --z-modal: 1000;
+  --z-overlay: 2000;
+  --z-highest: 9999;
+}
+
+/* source: legacy/css/base/reset.css */
+/* Adiciona box-sizing a todos os elementos, incluindo pseudo-elementos */
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  /* Garante que o corpo ocupe pelo menos a altura total da viewport */
+  min-height: 100vh;
+  font-family: var(--font-sans);
+  background-color: var(--light);
+  color: var(--gray-800);
+  line-height: 1.6;
+  /* Permite rolagem se o conteúdo exceder a viewport */
+  overflow: auto;
+  /* Melhora a renderização de fontes */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Classe utilitária para ocultar elementos */
+.hidden {
+  display: none !important;
+}
+
+
+/* source: legacy/css/base/typography.css */
+
+
+/* source: legacy/css/base/animations.css */
+/* Animações Globais */
+
+/* Fade In e Move Up */
+@keyframes fadeInMoveUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  /* From é implícito como opacity: 0; transform: translateY(valor); */
+}
+
+/* Rotação (Spinner) */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Pulsação */
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Piscar (Cursor) */
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+/* Classe utilitária para aplicar pulsação */
+.pulse {
+  animation: pulse 2s infinite ease-in-out; /* Adicionado ease-in-out para suavidade */
+  /* Nota: A propriedade 'will-change' não está definida neste arquivo. */
+  /* Ela deve ser aplicada com cautela aos elementos que usarão */
+  /* animações complexas ou frequentes, especialmente em mobile. */
+  /* Ex: .elemento-animado { will-change: transform, opacity; } */
+}
+
+
+/* source: legacy/css/layout/app-shell.css */
+/* Refatorado para usar CSS Grid conforme checklist */
+.app-shell {
+  display: grid;
+  grid-template-rows: 0fr 1fr auto; /* Alterado: primeira linha com altura 0 para o header oculto */
+  height: 100vh; /* Ocupa toda a altura da viewport */
+  width: 100%;
+  overflow: hidden;
+  position: relative; /* Mantido para elementos posicionados absolutamente dentro */
+}
+
+/* Loading Overlay */
+#loading-overlay {
+  position: fixed;
+  inset: 0; /* Equivalente a top: 0; left: 0; width: 100%; height: 100%; */
+  background-color: var(--primary);
+  z-index: var(--z-overlay); /* Usando variável z-index */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.5s ease-out, visibility 0.5s ease-out;
+}
+
+#loading-overlay.fade-out {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.loading-content {
+  text-align: center;
+  color: white;
+  padding: 0 var(--spacing-lg); /* Usando variável de espaçamento */
+}
+
+.spinner {
+  width: 3.125rem; /* 50px / 16px */
+  height: 3.125rem; /* 50px / 16px */
+  margin: 0 auto var(--spacing-md); /* Usando variável de espaçamento */
+  border: 0.25rem solid rgba(255, 255, 255, 0.3); /* 4px / 16px */
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 1s ease-in-out infinite;
+}
+
+/* Header com design moderno - Posicionado pelo Grid */
+header {
+  /* position: absolute; top: 0; left: 0; width: 100%; */ /* Removido, gerenciado pelo Grid */
+  /* height: 15%; */ /* Removido, altura definida pelo conteúdo ou grid */
+  grid-row: 1 / 2; /* Coloca o header na primeira linha do grid */
+  grid-column: 1 / -1; /* Ocupa todas as colunas */
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.7) 0%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  padding: var(--spacing-lg) var(--spacing-xl); /* Usando variáveis de espaçamento */
+  z-index: var(--z-controls); /* Acima do mapa, abaixo de popups */
+  display: none; /* Alterado de 'flex' para 'none' para ocultar o header */
+  align-items: center;
+}
+
+.header-content {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+header h1 {
+  font-size: var(--font-size-xl); /* Usando variável de fonte */
+  font-weight: 600;
+  color: white;
+  margin: 0;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.tagline {
+  font-size: var(--font-size-sm); /* Usando variável de fonte */
+  color: rgba(255, 255, 255, 0.9);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* Quick Action Buttons */
+.quick-actions {
+  position: fixed;
+  left: var(--spacing-sm); /* 10px -> ~0.625rem, usando var(--spacing-sm) */
+  bottom: 45rem; /* 85px / 16px */
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  z-index: var(--z-modal); /* Acima da maioria dos elementos */
+  width: auto;
+  max-width: 6.25rem; /* 100px / 16px */
+  margin: 0;
+  gap: var(--spacing-xs); /* 8px -> ~0.5rem, usando var(--spacing-xs) */
+}
+
+/* Submenu flutuante com design moderno */
+#submenu {
+  position: absolute;
+  top: 50%; /* Ajustado para centralizar melhor com transform */
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90%;
+  max-width: 25rem; /* 400px / 16px */
+  max-height: 60vh;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow); /* Usando variável de sombra */
+  z-index: var(--z-popup); /* Usando variável z-index */
+  overflow: hidden;
+}
+
+.submenu-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-md); /* Usando variável */
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.submenu-title {
+  font-size: var(--font-size-base); /* Usando variável */
+  font-weight: 600;
+  margin: 0;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  font-size: 1.5rem; /* Mantido em rem */
+  cursor: pointer;
+  color: var(--gray-800);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem; /* 32px / 16px */
+  height: 2rem; /* 32px / 16px */
+  border-radius: 50%;
+}
+
+.close-button:hover {
+  background-color: var(--gray-100);
+}
+
+#submenuContainer {
+  padding: var(--spacing-sm) var(--spacing-md) var(--spacing-md); /* Usando variáveis */
+  overflow-y: auto;
+  /* Ajuste max-height com base no padding e header */
+  max-height: calc(60vh - 3.5rem); /* Aproximadamente 56px (header) em rem */
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.4) transparent;
+}
+
+#submenuContainer::-webkit-scrollbar {
+  width: 0.5rem; /* 8px / 16px */
+}
+
+#submenuContainer::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#submenuContainer::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.4);
+  border-radius: 0.25rem; /* 4px / 16px */
+}
+
+#submenuContainer ul {
+  list-style: none;
+  padding: 0;
+}
+
+.submenu-item {
+  padding: var(--spacing-md); /* Usando variável */
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  margin-bottom: var(--spacing-md); /* Usando variável */
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  box-shadow: var(--shadow-sm);
+}
+
+.submenu-item:hover {
+  background-color: rgba(255, 255, 255, 0.4);
+  transform: translateY(-0.125rem); /* -2px / 16px */
+  box-shadow: var(--shadow-lg);
+}
+
+.submenu-item-icon {
+  margin-right: var(--spacing-md); /* Usando variável */
+  width: 2rem; /* 32px / 16px */
+  height: 2rem; /* 32px / 16px */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(59, 130, 246, 0.1);
+  color: var(--primary);
+  border-radius: 50%;
+}
+
+.submenu-item-content {
+  flex: 1;
+}
+
+.submenu-item-title {
+  font-weight: 500;
+  margin-bottom: var(--spacing-xs); /* Usando variável */
+}
+
+.submenu-item-description {
+  font-size: var(--font-size-xs); /* Usando variável, era 0.8125rem */
+  color: #64748b;
+}
+
+/* Botões dinâmicos flutuantes - Posicionados pelo Grid? Ou ainda absolutos? */
+/* Considerando que estes controlam o mapa, podem ficar na área principal ou rodapé */
+#controls {
+  /* position: absolute; */ /* Removido - talvez colocar no grid? */
+  /* top: calc(var(--header-height) + 8px); */ /* Removido */
+  /* left: 0; */ /* Removido */
+  grid-row: 3 / 4; /* Coloca os controles na terceira linha (rodapé) */
+  width: 100%;
+  padding: 0 var(--spacing-md); /* Usando variável */
+  z-index: var(--z-controls);
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.5) 0%,
+    rgba(0, 0, 0, 0) 100%
+  ); /* Fundo para melhor visibilidade */
+}
+
+#buttonGroup {
+  display: flex;
+  justify-content: flex-start;
+  gap: var(--spacing-sm); /* Usando variável */
+  overflow-x: auto;
+  padding: var(--spacing-sm) 0; /* Usando variável */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+#buttonGroup::-webkit-scrollbar {
+  display: none;
+}
+
+/* Responsividade - REVISAR com abordagem Mobile-First */
+/* Estas regras podem precisar ser movidas para responsive.css e usar min-width */
+
+/* Estilos base (Mobile First) - Fora de media queries */
+header {
+  padding: var(--spacing-md) var(--spacing-lg); /* Ajuste para mobile */
+  /* height: auto; */ /* Altura definida pelo conteúdo */
+}
+
+header h1 {
+  font-size: var(--font-size-lg); /* Ajuste para mobile */
+}
+
+.tagline {
+  font-size: var(--font-size-xs); /* Ajuste para mobile */
+}
+
+.quick-actions {
+  left: var(--spacing-xs); /* 5px -> ~0.3125rem, usando var(--spacing-xs) */
+  bottom: 4.6875rem; /* 75px / 16px */
+  max-width: 2.8125rem; /* 45px / 16px */
+}
+
+#submenu {
+  width: 95%;
+  max-height: 70vh;
+}
+
+#submenuContainer {
+  max-height: calc(70vh - 3.5rem); /* Aproximadamente 56px (header) em rem */
+}
+
+.submenu-item {
+  padding: var(--spacing-sm); /* Usando variável */
+}
+
+.submenu-item-icon {
+  width: 1.75rem; /* 28px / 16px */
+  height: 1.75rem; /* 28px / 16px */
+}
+
+/* Ajustes para telas muito pequenas (Ex: 320px) */
+@media (max-width: 374px) {
+  /* Abaixo do --bp-mobile */
+  .quick-actions {
+    left: var(--spacing-xs);
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 4.375rem); /* 70px / 16px */
+    max-width: 2.5rem; /* 40px / 16px */
+  }
+}
+
+/* Tablet (min-width) */
+@media (min-width: 768px) {
+  /* --bp-tablet */
+  header {
+    padding: var(--spacing-lg) var(--spacing-xl); /* Retorna ao padding maior */
+  }
+
+  header h1 {
+    font-size: var(--font-size-xl);
+  }
+
+  .tagline {
+    font-size: var(--font-size-sm);
+  }
+
+  .quick-actions {
+    left: var(--spacing-sm);
+    bottom: 5.3125rem; /* 85px / 16px */
+    max-width: 3.4375rem; /* 55px / 16px */
+  }
+
+  #submenu {
+    max-width: 28.125rem; /* 450px / 16px */
+  }
+}
+
+/* Desktop (min-width) */
+@media (min-width: 1024px) {
+  /* --bp-desktop */
+  /* Ajustes específicos para desktop, se necessário */
+}
+
+/* Ajustes para modo paisagem */
+/* Combinar com min-height ou max-height se necessário */
+@media (orientation: landscape) and (max-height: 37.5rem) {
+  /* 600px / 16px */
+  header {
+    padding: var(--spacing-sm) var(--spacing-lg);
+    /* A altura do header em grid é 'auto', não precisa mexer */
+  }
+
+  .quick-actions {
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 3.75rem); /* 60px / 16px */
+    left: var(--spacing-sm);
+  }
+
+  #submenu {
+    /* top: 65%; */ /* Manter centralizado com transform */
+    max-height: 80vh;
+  }
+}
+
+/* Suportes específicos para iPhone X e dispositivos com notch */
+@supports (padding-top: env(safe-area-inset-top)) {
+  header {
+    padding-top: calc(env(safe-area-inset-top) + var(--spacing-md));
+    padding-left: calc(env(safe-area-inset-left) + var(--spacing-xl));
+    padding-right: calc(env(safe-area-inset-right) + var(--spacing-xl));
+  }
+  /* Adicionar padding-bottom aos controles se necessário */
+  #controls {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .quick-actions {
+    /* Ajustar 'bottom' para considerar safe-area-inset-bottom */
+    /* O cálculo já está sendo feito em algumas media queries */
+  }
+}
+
+/* Quando o teclado está visível, manter a posição relativa */
+/* Esta regra pode ser complexa e depender de JS para adicionar a classe */
+.keyboard-visible .quick-actions {
+  /* position: absolute; */ /* Manter fixed? Testar comportamento */
+  bottom: 6.25rem; /* 100px / 16px - Valor fixo pode não ser ideal */
+  transition: bottom 0.2s ease;
+}
+
+/* Assistant dock overrides */
+.quick-actions {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  max-width: none;
+  gap: 0;
+  z-index: 2200;
+}
+
+@media (max-width: 480px) {
+  .quick-actions {
+    left: var(--assistant-dock-inline-gap);
+  }
+}
+
+/* source: legacy/css/layout/map.css */
+/* Seção do mapa - ocupa a linha principal do grid do app-shell */
+#map-section {
+  grid-row: 2 / 3;     /* Linha principal (expansível) do grid */
+  grid-column: 1 / -1; /* Ocupa todas as colunas */
+  width: 100%;
+  height: 100%;
+  min-height: 0;       /* Permite que o flex/grid encolha corretamente */
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Container do mapa - filho do #map-section (flex) */
+#map-container {
+  flex: 1 1 0;         /* Expande para preencher todo o #map-section */
+  width: 100%;
+  height: 100%;
+  min-height: 0;       /* Permite que flex encolha corretamente */
+  overflow: hidden;
+  border: none;
+  z-index: var(--z-base);
+  position: relative;
+}
+
+/* Elemento interno do mapa */
+#map {
+  width: 100%;
+  height: 100%;
+  border: none;
+  overflow: hidden;
+  background-color: var(--gray-200); /* Cor de fundo enquanto o mapa carrega */
+}
+
+/* Estilo para o marcador de localização do usuário */
+.custom-user-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Tamanho mínimo de toque - 44x44px */
+  width: 2.75rem; /* 44px / 16px */
+  height: 2.75rem; /* 44px / 16px */
+  background-color: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+/* Círculo de precisão do GPS */
+.gps-accuracy-circle {
+  fill-opacity: 0.15;
+  stroke-width: 1px; /* Manter 1px para linhas finas ou converter para rem muito pequeno? 0.0625rem */
+  stroke: var(--primary);
+  fill: var(--primary);
+}
+
+/* Ajustes nos controles do Leaflet (exemplo, pode estar em vendor/leaflet-custom.css) */
+.leaflet-control-zoom a {
+  width: 2.125rem !important; /* 34px / 16px */
+  height: 2.125rem !important; /* 34px / 16px */
+  line-height: 2.125rem !important;
+  font-size: 1.375rem !important; /* 22px / 16px */
+}
+
+.leaflet-control-locate a {
+  font-size: 1.25rem !important; /* 20px / 16px */
+  line-height: 2.125rem !important; /* 34px / 16px */
+}
+
+.leaflet-bar a,
+.leaflet-bar a:hover {
+  width: 2.125rem; /* 34px / 16px */
+  height: 2.125rem; /* 34px / 16px */
+  line-height: 2.125rem;
+}
+
+/* Garantir que os controles não sobreponham demais em telas pequenas */
+.leaflet-top.leaflet-left,
+.leaflet-bottom.leaflet-left {
+  margin-left: var(--spacing-sm);
+}
+.leaflet-top.leaflet-right,
+.leaflet-bottom.leaflet-right {
+  margin-right: var(--spacing-sm);
+}
+.leaflet-top {
+  top: var(--spacing-sm);
+}
+.leaflet-bottom {
+  bottom: var(--spacing-sm);
+}
+
+
+/* source: legacy/css/layout/controls.css */
+/* Controles de interface */
+.control-button {
+  padding: 0.5rem 1rem;
+  background-color: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  color: var(--gray-800);
+  border: none;
+  border-radius: var(--radius-lg);
+  font-weight: 500;
+  font-size: 0.875rem;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  white-space: nowrap;
+  transition: var(--transition);
+}
+
+.control-button:hover {
+  background-color: rgba(255, 255, 255, 0.4);
+  box-shadow: var(--shadow-lg);
+}
+
+.control-button.active {
+  background-color: var(--accent);
+  color: white;
+}
+
+/* Navigation instruction banner */
+.instruction-banner {
+  position: fixed;
+  left: 50%;
+  bottom: 15%;
+  transform: translateX(-50%);
+  width: 90%;
+  max-width: 450px;
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  z-index: 1500;
+}
+
+.instruction-primary {
+  display: flex;
+  align-items: center;
+  background-color: var(--primary);
+  color: white;
+  padding: 0.75rem 1rem;
+}
+
+.instruction-arrow {
+  font-size: 1.8rem;
+  margin-right: 0.75rem;
+}
+
+#instruction-main {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.instruction-secondary {
+  background-color: white;
+  padding: 0.75rem 1rem;
+}
+
+#instruction-details {
+  font-size: 1rem;
+  margin: 0 0 0.5rem;
+}
+
+.instruction-extra {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  color: var(--gray-800);
+}
+
+/* source: legacy/css/components/buttons/buttons.css */
+/* Botões dinâmicos e responsivos - Estilos Base */
+
+/* Botão de ação principal */
+.action-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(255, 255, 255, 0.8);
+  border: 0.0625rem solid #4b4d51; /* 1px */
+
+  border: none;
+  border-radius: 50%;
+  /* Garantir tamanho mínimo de toque 44x44px (2.75rem) */
+  width: clamp(2.75rem, 8vw, 3rem); /* Min 44px, Max 48px */
+  height: clamp(2.75rem, 8vw, 3rem); /* Min 44px, Max 48px */
+  min-width: 2.75rem; /* 44px */
+  min-height: 2.75rem; /* 44px */
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  transition: var(--transition);
+  padding: 0; /* Padding pode ser adicionado se necessário para conteúdo interno */
+  color: var(--gray-800);
+  position: relative;
+  -webkit-tap-highlight-color: transparent;
+  margin: var(--spacing-xs); /* Usando variável */
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.action-button i {
+  font-size: 1.7rem; /* Ajustar se necessário com base no novo tamanho */
+}
+
+.action-button span {
+  position: absolute;
+  bottom: -1.25rem; /* -20px / 16px */
+  font-size: var(--font-size-xs); /* Era 0.6rem */
+  font-weight: 500;
+  color: rgb(20, 20, 20);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.action-button:hover {
+  transform: translateY(-0.125rem); /* -2px / 16px */
+  box-shadow: var(--shadow-lg);
+}
+
+/* Keep the general button styling here */
+.action-button.primary {
+  background-color: var(--primary);
+  color: white;
+  width: clamp(2.75rem, 10vw, 3.5rem);
+  height: clamp(2.75rem, 10vw, 3.5rem);
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+}
+
+.action-button.primary:hover {
+  background-color: var(--primary-dark);
+}
+
+.action-button.primary i {
+  font-size: 2rem;
+}
+
+/* Botão de clima */
+.action-button.weather {
+  background-color: rgba(255, 255, 255, 0.9);
+  margin-right: var(--spacing-sm); /* Usando variável */
+}
+
+.action-button.weather .weather-emoji {
+  font-size: 1.8rem;
+  margin-bottom: 0.125rem; /* 2px / 16px */
+}
+
+.action-button.weather .weather-label {
+  position: absolute;
+  font-size: var(--font-size-xs); /* Era 0.6rem */
+  font-weight: 500;
+  color: rgb(20, 20, 20);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* Animação para o emoji de clima */
+@keyframes pulse-weather {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.weather-emoji {
+  animation: pulse-weather 2s infinite ease-in-out;
+  display: inline-block;
+}
+
+/* Botões de envio, voz e config com visual mais tecnológico */
+#sendButton,
+#voiceButton,
+#configButton {
+  width: 2.75rem;
+  height: 2.75rem;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  color: white;
+  border: 0.129rem solid rgba(255, 255, 255, 0.8);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 3px 8px rgba(37, 99, 235, 0.3);
+  -webkit-tap-highlight-color: transparent;
+  margin-left: var(--spacing-xs);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Efeito de brilho nos botões */
+#sendButton::before,
+#voiceButton::before,
+#configButton::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.3) 0%,
+    transparent 70%
+  );
+  transform: scale(0);
+  opacity: 0;
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.5s;
+}
+
+#sendButton:hover::before,
+#voiceButton:hover::before,
+#configButton:hover::before {
+  transform: scale(1);
+  opacity: 1;
+}
+
+#sendButton:hover,
+#voiceButton:hover,
+#configButton:hover {
+  background: linear-gradient(135deg, #1a4db2, #1e56c6);
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 5px 12px rgba(37, 99, 235, 0.4);
+}
+
+#sendButton:active,
+#voiceButton:active,
+#configButton:active {
+  transform: scale(0.95);
+  box-shadow: 0 2px 5px rgba(37, 99, 235, 0.3);
+}
+
+/* Animação para o botão de voz quando ativo */
+@keyframes pulseRecording {
+  0% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+}
+
+#voiceButton.active {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  animation: pulseRecording 1.5s infinite;
+}
+
+/* Estado de escuta ativa do botão de voz */
+@keyframes pulseListening {
+  0% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.8);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
+    transform: scale(1.08);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+    transform: scale(1);
+  }
+}
+
+#voiceButton.listening {
+  background: linear-gradient(135deg, #ef4444, #b91c1c);
+  animation: pulseListening 1.2s ease-in-out infinite;
+  border-color: rgba(255, 255, 255, 0.9);
+  color: white;
+}
+
+#voiceButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Notificação visual de escuta (toast) */
+.voice-notification {
+  position: fixed;
+  bottom: 5rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(1rem);
+  background: rgba(30, 30, 30, 0.92);
+  color: #fff;
+  padding: 0.5rem 1.25rem;
+  border-radius: 2rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  z-index: 9999;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+}
+
+.voice-notification.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* Botão principal para chamar o assistente */
+.action-button.primary {
+  background: linear-gradient(135deg, #004bc7, #1a4db2);
+  color: white;
+  width: clamp(2.75rem, 10vw, 3.5rem);
+  height: clamp(2.75rem, 10vw, 3.5rem);
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  box-shadow: 0 4px 12px rgba(0, 75, 199, 0.3),
+    0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+  position: relative;
+  z-index: 1;
+}
+
+.action-button.primary::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.3) 0%,
+    transparent 70%
+  );
+  transform: scale(0);
+  opacity: 0;
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.5s;
+  z-index: -1;
+}
+
+.action-button.primary:hover::before {
+  transform: scale(1);
+  opacity: 1;
+}
+
+.action-button.primary:hover {
+  transform: translateY(-0.25rem) scale(1.05);
+  box-shadow: 0 8px 15px rgba(0, 75, 199, 0.4),
+    0 0 0 1px rgba(255, 255, 255, 0.2) inset;
+}
+
+.action-button.primary:active {
+  transform: scale(0.95);
+}
+
+/* Tamanho de ícone consistente */
+#sendButton i,
+#voiceButton i,
+#configButton i {
+  font-size: 1.25rem;
+
+  /* Ajustado de 1.2rem ou 18px */
+}
+
+/* Comportamento hover idêntico */
+#sendButton:hover,
+#voiceButton:hover,
+#configButton:hover {
+  background-color: var(--primary-dark);
+  transform: scale(1.05);
+}
+
+/* Estado ativo consistente */
+#sendButton:active,
+#voiceButton:active,
+#configButton:active {
+  transform: scale(0.95);
+}
+
+/* Estado ativo apenas para o botão de voz durante a gravação */
+#voiceButton.active {
+  background-color: var(--accent);
+  animation: pulse 1.5s infinite;
+}
+
+/* Estado ativo do botão de configuração quando o painel está aberto */
+#configButton.active {
+  background-color: var(--primary-dark);
+}
+
+/* Control buttons */
+.control-button {
+  /* Dimensões mínimas de toque 44px (2.75rem) */
+  height: 2.75rem;
+  min-height: 2.75rem;
+  border: 0.0625rem solid #4b4d51; /* 1px */
+
+  /* Padding interno consistente */
+  padding: 0 var(--spacing-md); /* Usando variável */
+
+  /* Aparência */
+  background-color: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  color: var(--gray-800);
+  border: none;
+  border-radius: calc(2.75rem / 2); /* Raio para botão pill */
+
+  /* Tipografia consistente */
+  font-weight: 500;
+  font-size: var(--font-size-sm); /* Era 0.875rem ou 14px */
+  line-height: 2.75rem; /* Alinha texto verticalmente */
+
+  /* Layout */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  /* Comportamento de texto */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border: 0.0625rem solid #4b4d51; /* 1px */
+
+  /* Interatividade */
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  transition: background-color 0.2s, transform 0.2s, box-shadow 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.control-button:hover {
+  background-color: rgba(255, 255, 255, 0.4);
+  box-shadow: var(--shadow-lg);
+}
+
+.control-button.active {
+  background-color: var(--accent);
+  color: white;
+}
+
+/* Botão de minimizar */
+.minimize-button {
+  /* Dimensões mínimas de toque 44x44px (2.75rem) */
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+  background: none; /* Adicionado para clareza */
+  border: none; /* Adicionado para clareza */
+  cursor: pointer; /* Adicionado */
+  color: var(--gray-800); /* Adicionado */
+}
+
+.minimize-button:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.assistant-voice-selector {
+  /* Dimensões mínimas de toque 44px (2.75rem) */
+  height: 2.75rem;
+  width: auto; /* Permitir largura flexível */
+  min-width: 13.75rem; /* 220px / 16px */
+  padding: 0 var(--spacing-md);
+  border: 0.0625rem solid #4b4d51; /* 1px */
+
+  /* Colors and appearance */
+  background-color: #f0f3f5;
+  border: 0.0625rem solid #ccd0d5; /* 1px */
+  border-radius: calc(2.75rem / 2); /* Raio para botão pill */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+  /* Text styling */
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm); /* Era 14px */
+  font-weight: 500;
+  color: #4a4a4a;
+  line-height: 2.75rem; /* Alinha texto */
+  text-align: center;
+
+  /* Hover effects */
+  transition: all 0.2s ease-in-out;
+}
+
+.assistant-voice-selector:hover {
+  background-color: #e4e9ed;
+  box-shadow: 0 3px 5px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+}
+
+.assistant-voice-selector:focus {
+  outline: none;
+  border-color: #0078d4;
+}
+
+/* Icon styling if there's an icon in the button */
+.assistant-voice-selector i,
+.assistant-voice-selector svg {
+  margin-right: var(--spacing-sm); /* Usando variável */
+  vertical-align: middle;
+}
+
+/* Painel de configurações */
+.config-panel {
+  position: absolute;
+  bottom: 25%; /* Manter ou ajustar conforme necessário */
+  right: var(--spacing-md); /* Usando variável */
+  width: clamp(17.5rem, 90%, 25rem); /* 280px, 400px */
+  max-width: 95vw;
+  background: white;
+  border-radius: var(--radius-lg); /* Usando variável */
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  padding: var(--spacing-md); /* Usando variável */
+  z-index: var(--z-highest); /* Era 10000 */
+  display: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  overflow-y: auto;
+  max-height: 70vh;
+  box-sizing: border-box;
+}
+
+.config-panel.visible {
+  display: block;
+  opacity: 1;
+}
+
+/* Estilo para o cabeçalho do painel de configurações */
+.config-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-sm); /* Era 5px */
+  padding-bottom: var(--spacing-xs); /* Era 8px */
+  border-bottom: 0.0625rem solid #eee; /* 1px */
+}
+
+.config-panel h3 {
+  margin-top: 0;
+  margin-bottom: 0; /* Movido para header */
+  font-size: var(--font-size-lg); /* Ajustado */
+  color: #444;
+}
+
+.config-option {
+  margin-bottom: var(--spacing-md); /* Usando variável */
+}
+
+.config-option label {
+  display: block;
+  margin-bottom: var(--spacing-xs); /* Usando variável */
+  font-size: var(--font-size-sm); /* Usando variável */
+  color: #666;
+}
+
+.config-option select,
+.config-option input[type="range"] {
+  width: 100%;
+  padding: var(--spacing-sm); /* Usando variável */
+  border-radius: var(--radius-sm); /* Usando variável */
+  border: 0.0625rem solid #ddd; /* 1px */
+  font-size: var(--font-size-sm); /* Usando variável */
+  background-color: #f9f9f9;
+}
+
+/* Botão de fechar no painel de configurações */
+.close-config-button {
+  background: none;
+  border: none;
+  font-size: 1.5rem; /* Era 24px */
+  line-height: 1;
+  color: var(--primary);
+  font-weight: bold;
+  cursor: pointer;
+  padding: 0;
+  /* Dimensões mínimas de toque 44x44px (2.75rem) */
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.close-config-button:hover {
+  color: var(--primary-dark);
+  background-color: var(--gray-100); /* Feedback visual */
+}
+
+.close-config-button:active {
+  transform: scale(0.95);
+}
+
+/* Estado ativo para os botões de ação rápida */
+.quick-actions .action-button.active {
+  background-color: var(--primary);
+  color: white;
+  transform: scale(1.1);
+  box-shadow: 0 2px 10px rgba(59, 130, 246, 0.5);
+}
+
+.quick-actions .action-button:active {
+  transform: scale(0.95);
+}
+
+/* source: legacy/css/components/buttons/end-navigation-btn.css */
+/* Botão Encerrar Navegação - flutuante, posicionado acima do input do assistente */
+.end-navigation-btn {
+  display: none;
+  position: fixed !important;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 80px) !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  z-index: 100001 !important;
+  pointer-events: auto !important;
+  isolation: isolate;
+  background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
+  color: #fff;
+  border: none;
+  border-radius: 28px;
+  padding: 14px 36px;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  box-shadow: 0 4px 24px rgba(229, 62, 62, 0.5), 0 0 0 3px rgba(255,255,255,0.3);
+  transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
+  outline: none;
+  white-space: nowrap;
+  letter-spacing: 0.03em;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* Mobile: posicionar acima da barra de input (~80px do bottom) */
+@media (max-width: 768px) {
+  .end-navigation-btn {
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 90px) !important;
+    padding: 12px 28px;
+    font-size: 0.95rem;
+  }
+}
+
+.end-navigation-btn:focus,
+.end-navigation-btn:hover {
+  background: linear-gradient(135deg, #c53030 0%, #9b2c2c 100%);
+  box-shadow: 0 6px 28px rgba(229, 62, 62, 0.6), 0 0 0 3px rgba(255,255,255,0.4);
+  transform: translateX(-50%) scale(1.04);
+}
+
+.end-navigation-btn:active {
+  transform: translateX(-50%) scale(0.97);
+}
+
+/* source: legacy/css/components/map/map-controls.css */
+/* Estilos para os controles unificados do mapa */
+
+.unified-map-controls {
+  position: fixed;
+  bottom: 160px;
+  right: 10px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+}
+
+.map-control-button {
+  width: 40px;
+  height: 40px;
+  background: white;
+  border: none;
+  border-radius: 4px;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.map-control-button:hover {
+  background: #f0f0f0;
+}
+
+.map-control-button.active {
+  background: #3b82f6;
+  color: white;
+}
+
+.control-tooltip {
+  position: absolute;
+  right: 50px;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+
+.map-control-button:hover .control-tooltip {
+  opacity: 1;
+}
+
+.location-spinner {
+  border: 2px solid rgba(0, 0, 0, 0.1);
+  border-top: 2px solid #3b82f6;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Estilos para suporte ao modo 3D */
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl {
+  margin: 10px 10px 0 0;
+}
+
+.mapboxgl-ctrl button {
+  width: 30px;
+  height: 30px;
+}
+
+/* Responsividade para dispositivos móveis */
+@media (max-width: 768px) {
+  .unified-map-controls {
+    position: fixed;
+    top: auto;
+    bottom: 160px;
+    right: 10px;
+  }
+
+  .control-tooltip {
+    display: none;
+  }
+}
+
+/* Estilos específicos para painel de satélite */
+.satellite-control-panel {
+  position: absolute;
+  top: 70px;
+  right: 10px;
+  width: 300px;
+  background: white;
+  border-radius: 4px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+  z-index: 999;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif;
+  color: #333;
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
+}
+
+.mapbox-3d-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 399;
+}
+
+/* Ajustes para posição do assistente com mapa 3D */
+body.map-3d-mode .assistant-modal {
+  z-index: 500;
+}
+
+body.map-3d-mode .quick-actions {
+  z-index: 500;
+}
+
+body.map-3d-mode .assistant-input-area {
+  z-index: 500;
+}
+
+/* Estilos aprimorados para os botões de fonte do mapa */
+.source-button {
+  padding: 12px;
+  border: 1px solid #eee;
+  background: #f5f5f5;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+}
+
+.source-button:hover {
+  background: #e0e0e0;
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.source-button.active {
+  background: #3b82f6;
+  color: white;
+  border-color: #2563eb;
+}
+
+.source-label {
+  font-weight: bold;
+  margin-bottom: 4px;
+  font-size: 14px;
+}
+
+.source-description {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+/* Opções 3D */
+.option-sliders {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-top: 10px;
+}
+
+.option-slider {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.option-slider label {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.option-slider input[type="range"] {
+  width: 100%;
+  -webkit-appearance: none;
+  height: 6px;
+  border-radius: 3px;
+  background: #e0e0e0;
+  outline: none;
+}
+
+.option-slider input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #3b82f6;
+  cursor: pointer;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.option-slider input[type="range"]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #3b82f6;
+  cursor: pointer;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* Indicador de carregamento */
+.map-loading-indicator {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 15px 20px;
+  border-radius: 8px;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top: 3px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Melhoria para os botões 3D */
+.mode-3d-buttons {
+  background: white;
+  border-radius: 4px;
+  padding: 5px;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1);
+  margin-top: 5px;
+  margin-bottom: 5px;
+}
+
+.mode-3d-buttons .map-control-button {
+  box-shadow: none;
+  background: #f5f5f5;
+  margin-bottom: 5px;
+}
+
+.mode-3d-buttons .map-control-button:last-child {
+  margin-bottom: 0;
+}
+
+.mode-3d-buttons .map-control-button:hover {
+  background: #e0e0e0;
+}
+
+/* Transição suave para botões 3D */
+.mode-3d-buttons {
+  max-height: 180px;
+  transition: max-height 0.3s ease, opacity 0.3s ease, transform 0.3s ease;
+  opacity: 1;
+  transform: translateY(0);
+  overflow: hidden;
+}
+
+.mode-3d-buttons.hidden {
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(-10px);
+  padding-top: 0;
+  padding-bottom: 0;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+/* Assistant-aligned map control overrides */
+.unified-map-controls {
+  position: fixed;
+  bottom: calc(var(--assistant-input-bottom) + var(--assistant-bar-height) + 0.7rem);
+  right: 1rem;
+  z-index: 2100;
+  gap: 0.5rem;
+}
+
+.map-control-button {
+  width: clamp(2.8rem, 4vw, 3.3rem);
+  height: clamp(2.8rem, 4vw, 3.3rem);
+  border-radius: 0.95rem;
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.16);
+}
+
+@media (max-width: 768px) {
+  .unified-map-controls {
+    right: 0.75rem;
+    bottom: calc(var(--assistant-input-bottom) + var(--assistant-bar-height) + 0.6rem);
+  }
+}
+
+/* source: legacy/css/components/map/map-indicators.css */
+.map-loading-indicator {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 10px 20px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 1000;
+  font-size: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.map-loading-indicator .spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 20px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+.straight-line-tooltip {
+  background: rgba(245, 158, 11, 0.8);
+  border: none;
+  color: white;
+  font-weight: bold;
+  font-size: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.straight-line-tooltip:before {
+  border-color: rgba(245, 158, 11, 0.8) transparent;
+}
+
+.nav-actions {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+}
+
+.nav-start-btn {
+  padding: 8px 16px;
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.nav-start-btn:hover {
+  background-color: #2563eb;
+}
+
+/* source: legacy/css/components/map/map-rotation.css */
+/* Estilos para mapa rotacionado */
+.map-rotated .leaflet-tile-pane {
+  transform: rotate(180deg) scale(-1, -1) !important;
+  transform-origin: center center !important;
+  transition: transform 0.5s ease-out !important;
+}
+
+.map-rotated .leaflet-map-pane {
+  transform-origin: center center !important;
+}
+
+.map-rotated .leaflet-control-container {
+  transform: rotate(-180deg) !important;
+  transform-origin: center center !important;
+}
+
+/* Corrigir orientação de ícones e marcadores */
+.map-rotated .leaflet-marker-icon:not(.user-location-marker) {
+  transform: rotate(-180deg) !important;
+}
+
+/* Corrigir orientação de popups */
+.map-rotated .leaflet-popup-content {
+  transform: rotate(-180deg) !important;
+}
+
+/* Corrigir orientação dos controles de zoom */
+.map-rotated .leaflet-control-zoom a,
+.map-rotated .leaflet-control-attribution {
+  transform: rotate(-180deg) !important;
+}
+
+/* Manter o marcador do usuário com orientação normal mas invertido */
+.map-rotated .user-location-marker {
+  transform: scale(-1, -1) !important;
+}
+
+/* Corrigir a camada de overlays */
+.map-rotated .leaflet-overlay-pane {
+  transform: rotate(180deg) scale(-1, -1) !important;
+  transform-origin: center center !important;
+}
+
+/* Corrigir caminhos e rotas */
+.map-rotated .leaflet-overlay-pane svg path {
+  transform-origin: center center !important;
+}
+
+/* source: legacy/css/components/map/map3d.css */
+/* Estilos para mapa rotacionado */
+.map-rotated .leaflet-tile-pane {
+  transform: rotate(180deg) scale(-1, -1) !important;
+  transform-origin: center center !important;
+  transition: transform 0.5s ease-out !important;
+}
+
+.map-rotated .leaflet-map-pane {
+  transform-origin: center center !important;
+}
+
+.map-rotated .leaflet-control-container {
+  transform: rotate(-180deg) !important;
+  transform-origin: center center !important;
+}
+
+/* Corrigir orientação de ícones e marcadores */
+.map-rotated .leaflet-marker-icon:not(.user-location-marker) {
+  transform: rotate(-180deg) !important;
+}
+
+/* Corrigir orientação de popups */
+.map-rotated .leaflet-popup-content {
+  transform: rotate(-180deg) !important;
+}
+
+/* Corrigir orientação dos controles de zoom */
+.map-rotated .leaflet-control-zoom a,
+.map-rotated .leaflet-control-attribution {
+  transform: rotate(-180deg) !important;
+}
+
+/* Corrigir a camada de overlays */
+.map-rotated .leaflet-overlay-pane {
+  transform: rotate(180deg) scale(-1, -1) !important;
+  transform-origin: center center !important;
+}
+
+/* Corrigir caminhos e rotas */
+.map-rotated .leaflet-overlay-pane svg path {
+  transform-origin: center center !important;
+}
+/* Estilo para o corpo em modo imersivo */
+body.immersive-mode .map-container {
+  perspective: 1000px;
+}
+
+/* Estilo para banner de navegação em modo 3D */
+#navigation-banner.immersive {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+/* Estilo para botão de 3D ativo */
+#toggle-3d-mode.active {
+  background-color: #4285f4;
+}
+
+#mapbox-3d-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  visibility: hidden; /* Inicialmente oculto */
+  opacity: 0;
+  transition: opacity 0.5s ease-in-out;
+}
+
+#mapbox-3d-container.active {
+  visibility: visible;
+  opacity: 0;
+}
+
+body.navigation-3d-active .leaflet-container {
+  opacity: 0; /* Ocultar mapa base quando o 3D estiver ativo */
+}
+
+/* Add or update these styles */
+
+.mapbox-3d-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 399; /* Above map but below controls */
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.5s ease-in-out;
+}
+
+.mapbox-3d-container.active {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* Ensure map container is ready for 3D */
+#map-container {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Add styles for 3D navigation mode */
+body.navigation-3d-active .leaflet-container {
+  opacity: 0.3;
+  transition: opacity 0.5s ease;
+}
+
+body.map-3d-mode .leaflet-control {
+  z-index: 500; /* Ensure controls stay above 3D map */
+}
+
+/* Ensure the banner stays on top */
+#navigation-banner {
+  z-index: 1000;
+}
+
+/* Special styles for 3D mode banner */
+#navigation-banner.mode-3d {
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  backdrop-filter: blur(5px);
+}
+
+/* Update the container styles */
+
+#mapbox-3d-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 399;
+  visibility: visible;
+  opacity: 1;
+  transition: opacity 0.3s ease-in-out;
+  background-color: transparent; /* Ensure background is transparent */
+}
+
+#mapbox-3d-container.active {
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: block !important;
+}
+
+/* Make sure canvas is visible */
+.mapboxgl-canvas {
+  background-color: transparent !important;
+  display: block !important;
+}
+
+/* Ensure proper container sizing */
+.mapboxgl-canvas-container.mapboxgl-interactive {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Make sure canvas is properly sized */
+.mapboxgl-canvas {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Ensure the map base is visible */
+.leaflet-container {
+  background-color: #f0f0f0;
+}
+
+/* Estilos para o mapa 3D integrado Mapbox-OSM */
+
+/* Contêiner do mapa 3D */
+.mapbox-gl-canvas-container {
+  width: 100%;
+  height: 100%;
+}
+
+/* Ajustes para edifícios 3D */
+.mapboxgl-canvas {
+  outline: none;
+}
+
+/* Tooltip para pontos de interesse */
+.mapboxgl-popup {
+  z-index: 500;
+  max-width: 250px;
+}
+
+.mapboxgl-popup-content {
+  padding: 12px;
+  border-radius: 4px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.mapboxgl-popup-content h4 {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  color: #333;
+}
+
+.mapboxgl-popup-content p {
+  margin: 0;
+  font-size: 14px;
+  color: #666;
+}
+
+/* Estilos para controles 3D melhorados */
+.mapbox-3d-controls {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 400;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.mapbox-3d-control-button {
+  background: white;
+  border: none;
+  border-radius: 4px;
+  padding: 6px;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.mapbox-3d-control-button:hover {
+  background: #f0f0f0;
+}
+
+.mapbox-3d-control-button.active {
+  background: #3b82f6;
+  color: white;
+}
+
+/* Estilos para o seletor de estilos de mapa */
+.mapbox-style-picker {
+  background: white;
+  border-radius: 4px;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1);
+  padding: 5px;
+  margin-top: 5px;
+  z-index: 401;
+}
+
+.mapbox-style-option {
+  display: flex;
+  align-items: center;
+  padding: 5px;
+  cursor: pointer;
+  border-radius: 2px;
+}
+
+.mapbox-style-option:hover {
+  background: #f0f0f0;
+}
+
+.mapbox-style-option.active {
+  background: #e0e0e0;
+}
+
+.mapbox-style-preview {
+  width: 20px;
+  height: 20px;
+  margin-right: 5px;
+  border-radius: 2px;
+  border: 1px solid #ccc;
+}
+
+/* Cores dos previews de estilo */
+.mapbox-style-preview.satellite {
+  background: linear-gradient(135deg, #264653, #2a9d8f);
+}
+
+.mapbox-style-preview.streets {
+  background: linear-gradient(135deg, #ddd, #aaa);
+}
+
+.mapbox-style-preview.light {
+  background: #f8f8f8;
+}
+
+.mapbox-style-preview.dark {
+  background: #242424;
+}
+
+/* Estilo para status de carregando */
+.mapbox-loading-indicator {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(255, 255, 255, 0.8);
+  padding: 10px 20px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 500;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.mapbox-loading-indicator::after {
+  content: "Carregando...";
+  margin-left: 10px;
+}
+
+/* Spinner de carregamento */
+.mapbox-loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Estilos para o botão de alternância do modo 3D */
+@media (forced-colors: active) {
+  /* Estilos para modo de alto contraste */
+  .mapbox-3d-container {
+    border: 2px solid currentColor;
+  }
+
+  .user-marker-3d {
+    forced-color-adjust: none;
+  }
+
+  .direction-indicator {
+    background-color: LinkText;
+  }
+}
+
+/* source: legacy/css/components/map/map3d-loading.css */
+/* Map 3D loading styles */
+
+.map3d-loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #004bc7;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  transition: opacity 0.3s ease;
+}
+
+.map3d-loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: map3d-spin 1s ease-in-out infinite;
+  margin-bottom: 10px;
+}
+
+.map3d-loading-text {
+  color: white;
+  font-size: 16px;
+  font-weight: bold;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+}
+
+@keyframes map3d-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Ensure map container is properly sized */
+#mapbox-3d-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 399;
+  opacity: 0;
+  transition: opacity 0.5s ease-in-out;
+}
+
+#mapbox-3d-container.active {
+  opacity: 100;
+}
+
+/* source: legacy/css/components/map/map-3d-fixes.css */
+/* Additional fixes for 3D map */
+
+/* Proper container styling */
+.mapbox-3d-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 399; /* Above base map, below controls */
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.5s ease-in-out;
+  background-color: transparent;
+}
+
+.mapbox-3d-container.active {
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: block !important;
+}
+
+/* Make sure canvas is properly sized */
+.mapboxgl-canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block !important;
+  outline: none;
+}
+
+/* User markers styling for 3D mode */
+.navigation-3d-active .leaflet-marker-icon.user-location-marker {
+  z-index: 1000 !important;
+}
+
+/* Ensure mapbox controls are above leaflet */
+.mapboxgl-ctrl-center-right {
+  z-index: 401 !important;
+}
+
+/* Custom navigation markers in 3D mode */
+.map-marker-user {
+  width: 24px;
+  height: 24px;
+  background-color: #3b82f6;
+  border-radius: 50%;
+  border: 2px solid white;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+}
+
+.map-marker-direction {
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-bottom: 16px solid #3b82f6;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* source: legacy/css/components/map/mapbox-osm-3d.css */
+/* Estilos para o mapa 3D integrado Mapbox-OSM */
+
+/* Contêiner do mapa 3D */
+.mapbox-gl-canvas-container {
+  width: 100%;
+  height: 100%;
+}
+
+/* Ajustes para edifícios 3D */
+.mapboxgl-canvas {
+  outline: none;
+}
+
+/* Tooltip para pontos de interesse */
+.mapboxgl-popup {
+  z-index: 500;
+  max-width: 250px;
+}
+
+.mapboxgl-popup-content {
+  padding: 10px;
+  border-radius: 8px;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+  font-family: "Poppins", sans-serif;
+}
+
+.mapboxgl-popup-content h4 {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  color: #333;
+}
+
+.mapboxgl-popup-content p {
+  margin: 0;
+  font-size: 14px;
+  color: #666;
+}
+
+.mapboxgl-popup-content h3 {
+  margin: 0;
+  padding: 0;
+  color: #111827;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.mapboxgl-popup-close-button {
+  font-size: 18px;
+  padding: 0px;
+}
+
+/* Estilos para controles 3D melhorados */
+.mapbox-3d-controls {
+  position: absolute;
+  top: 40px;
+  right: 10px;
+  z-index: 400;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.mapbox-3d-control-button {
+  background: white;
+  border: none;
+  border-radius: 4px;
+  padding: 6px;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.mapbox-3d-control-button:hover {
+  background: #f0f0f0;
+}
+
+.mapbox-3d-control-button.active {
+  background: #3b82f6;
+  color: white;
+}
+
+/* Estilos para o seletor de estilos de mapa */
+.mapbox-style-picker {
+  background: white;
+  border-radius: 4px;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1);
+  padding: 5px;
+  margin-top: 5px;
+  z-index: 401;
+}
+
+.mapbox-style-option {
+  display: flex;
+  align-items: center;
+  padding: 5px;
+  cursor: pointer;
+  border-radius: 2px;
+}
+
+.mapbox-style-option:hover {
+  background: #f0f0f0;
+}
+
+.mapbox-style-option.active {
+  background: #e0e0e0;
+}
+
+.mapbox-style-preview {
+  width: 20px;
+  height: 20px;
+  margin-right: 5px;
+  border-radius: 2px;
+  border: 1px solid #ccc;
+}
+
+/* Cores dos previews de estilo */
+.mapbox-style-preview.satellite {
+  background: linear-gradient(135deg, #264653, #2a9d8f);
+}
+
+.mapbox-style-preview.streets {
+  background: linear-gradient(135deg, #ddd, #aaa);
+}
+
+.mapbox-style-preview.light {
+  background: #f8f8f8;
+}
+
+.mapbox-style-preview.dark {
+  background: #242424;
+}
+
+/* Estilo para status de carregando */
+.mapbox-loading-indicator {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(255, 255, 255, 0.8);
+  padding: 10px 20px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 500;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.mapbox-loading-indicator::after {
+  content: "Carregando...";
+  margin-left: 10px;
+}
+
+/* Spinner de carregamento */
+.mapbox-loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* source: legacy/css/components/markers.css */
+/* Estilos para marcadores no mapa */
+
+.user-marker-icon {
+  /* Estilos existentes */
+  background: none;
+  border: none;
+
+  /* Centralização conforme checklist - Aplicado ao ícone *interno* se houver */
+  /* A posição do marcador no mapa é controlada pelo Leaflet/JS */
+  /* Se este estilo for para o container do ícone: */
+  /* position: absolute; */ /* Necessário para transform funcionar como esperado no posicionamento */
+  /* left: 50%; */
+  /* top: 50%; */ /* Ou 'bottom: 0;' dependendo do ponto de ancoragem desejado */
+  /* transform: translate(-50%, -100%); */ /* Centraliza horizontalmente, ancora na base */
+
+  /* Nota: A implementação exata depende de como os marcadores são estruturados no HTML/JS. */
+  /* O .custom-user-marker em map.css já define tamanho e usa flex para centralizar conteúdo. */
+  /* Adicionar a regra de transform aqui pode ser redundante ou conflitar sem a estrutura HTML. */
+}
+
+/* Exemplo de como aplicar a marcadores genéricos (se aplicável) */
+.leaflet-marker-icon.custom-poi-marker {
+  /* Exemplo de seletor */
+  /* Usar SVG como background-image ou content é recomendado */
+  /* background-image: url('path/to/marker.svg'); */
+  /* background-size: contain; */
+  /* width: 2rem; */ /* Tamanho desejado */
+  /* height: 2rem; */ /* Tamanho desejado */
+
+  /* Centralização/Ancoragem */
+  position: absolute; /* Geralmente já aplicado pelo Leaflet */
+  left: 50%;
+  bottom: 0; /* Ancorar na base */
+  transform: translateX(-50%); /* Centraliza horizontalmente */
+  /* Ou para ancorar no centro vertical e horizontal: */
+  /* top: 50%; */
+  /* transform: translate(-50%, -50%); */
+  /* Ou para ancorar no topo central: */
+  /* top: 0; */
+  /* transform: translate(-50%, -100%); */ /* Conforme checklist */
+
+  /* Garantir que não haja bordas/backgrounds indesejados */
+  border: none;
+  background-color: transparent;
+}
+
+/* CORRIGIDO: Removida regra que sobrescrevia o posicionamento do Leaflet.
+   O Leaflet gerencia a posição do marcador via setLatLng() automaticamente.
+   Sobrescrever position/top/left/transform faz o marcador ficar fixo no centro
+   da tela em vez de seguir as coordenadas geográficas. */
+.navigation-active .user-location-marker {
+  z-index: 1000 !important;
+}
+
+/* source: legacy/css/components/location-indicator.css */
+.location-loading-indicator {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 10px 20px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 100000000000000000000;
+  font-size: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.location-loading-indicator i {
+  font-size: 16px;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.5;
+    transform: scale(0.9);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+  100% {
+    opacity: 0.5;
+    transform: scale(0.9);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 20px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
