@@ -139,6 +139,7 @@ export function installCommercePreviewSheet(input: {
     active = true;
     sheet.classList.add("md-bottom-sheet", "commerce-preview-sheet");
     sheet.dataset.sheetState = state;
+    sheet.scrollTop = 0;
     handle.hidden = false;
     input.document.body.dataset.commercePreviewSheet = "active";
     input.document.body.dataset.commerceSheetState = state;
@@ -157,6 +158,7 @@ export function installCommercePreviewSheet(input: {
   const setState = (nextState: CommercePreviewSheetState): void => {
     state = nextState;
     syncState();
+    if (active) sheet.scrollTop = 0;
   };
 
   const onHandleClick = (): void => {
