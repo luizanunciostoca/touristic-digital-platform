@@ -862,11 +862,8 @@ export function createAdminApi({
         const actor = await requireCapability(request, response, "audit.read");
         if (!actor) return;
         json(response, 200, {
-          durability:
-            auditStore.durability?.() ?? "runtime-projection-only",
-          entries: await auditStore.list(
-            requestUrl.searchParams.get("limit"),
-          ),
+          durability: auditStore.durability?.() ?? "runtime-projection-only",
+          entries: await auditStore.list(requestUrl.searchParams.get("limit")),
         });
         return;
       }
