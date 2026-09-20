@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  createAffiliateAdminAdapter,
   createBusinessAdminAdapter,
   createCrmAdminAdapter,
   createFinancialAdminAdapter,
@@ -350,5 +351,125 @@ describe("Control Center Financial owner adapter", () => {
       "reconciliation-ack:v1:rcf_admin_00000001",
     );
     await expect(readBody(delegated)).resolves.toEqual({});
+  });
+});
+
+
+describe("Control Center Affiliates owner adapter", () => {
+  function affiliateFixture() {
+    const runtime = {
+      adminList: vi.fn(async (_actor, input) => ({
+        status: "found",
+        data: [
+          {
+            affiliateId: "aff_admin_0001",
+            identityReference: "affiliate-admin@example.com",
+            status: "active",
+            roleCategory: "creator",
+            approvedMembershipCount: 1,
+            suspendedMembershipCount: 0,
+            conversionCount: 2,
+            query: input?.query ?? "",
+          },
+        ],
+      })),
+      adminRead: vi.fn(async (_actor, id) => ({
+        status: id === "aff_admin_0001" ? "found" : "not_found",
+        data:
+          id === "aff_admin_0001"
+            ? {
+                affiliate: {
+                  affiliateId: id,
+                  identityReference: "affiliate-admin@example.com",
+                  status: "active",
+                },
+                memberships: [
+                  {
+                    programId: "prog_admin_0001",
+                    destinationId: "morro-de-sao-paulo",
+                    status: "approved",
+                  },
+                ],
+              }
+            : null,
+      })),
+      adminChangeMembershipStatus: vi.fn(async (_actor, input) => ({
+        status: "updated",
+        data: { membership: input },
+      })),
+    };
+    return {
+      runtime,
+      adapter: createAffiliateAdminAdapter(runtime),
+      actor: {
+        subject: "platform-owner",
+        role: "PLATFORM_OWNER",
+      },
+    };
+  }
+
+  it("lists and searches affiliates only through the Affiliates owner runtime", async () => {
+    const { adapter, runtime, actor } = affiliateFixture();
+    const response = responseCapture();
+    await adapter.handle({
+      request: request(),
+      response,
+      requestUrl: new URL(
+        "http://localhost/api/admin/v1/affiliates?query=creator&limit=10",
+      ),
+      actor,
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(JSON.parse(response.payload).data[0].affiliateId).toBe(
+      "aff_admin_0001",
+    );
+    expect(runtime.adminList).toHaveBeenCalledWith(actor, {
+      query: "creator",
+      limit: "10",
+    });
+
+    const results = await adapter.search({ query: "affiliate-admin", actor });
+    expect(results).toEqual([
+      expect.objectContaining({
+        type: "affiliate",
+        id: "aff_admin_0001",
+        href: "#affiliates:aff_admin_0001",
+      }),
+    ]);
+  });
+
+  it("derives membership destination from owner detail before changing status", async () => {
+    const { adapter, runtime, actor } = affiliateFixture();
+    const result = await adapter.changeMembershipStatus({
+      actor,
+      affiliateId: "aff_admin_0001",
+      programId: "prog_admin_0001",
+      status: "suspended",
+      correlationId: "corr_affiliate_admin_test",
+    });
+
+    expect(result.status).toBe("updated");
+    expect(runtime.adminChangeMembershipStatus).toHaveBeenCalledWith(actor, {
+      affiliateId: "aff_admin_0001",
+      programId: "prog_admin_0001",
+      destinationId: "morro-de-sao-paulo",
+      status: "suspended",
+      correlationId: "corr_affiliate_admin_test",
+    });
+  });
+
+  it("does not call a mutation when the requested membership is not owner-backed", async () => {
+    const { adapter, runtime, actor } = affiliateFixture();
+    const result = await adapter.changeMembershipStatus({
+      actor,
+      affiliateId: "aff_admin_0001",
+      programId: "prog_unknown_0001",
+      status: "suspended",
+      correlationId: "corr_affiliate_admin_test",
+    });
+
+    expect(result.status).toBe("not_found");
+    expect(runtime.adminChangeMembershipStatus).not.toHaveBeenCalled();
   });
 });
