@@ -3,7 +3,10 @@ import type {
   MapboxGlModuleLike,
 } from "@touristic/geospatial";
 
-import { installMorroBrowserAnalytics } from "./analytics/browser-analytics.js";
+import {
+  installBrowserAnalyticsConsentPreferences,
+  installMorroBrowserAnalytics,
+} from "./analytics/browser-analytics.js";
 import { installAssistantShellUi } from "./assistant/assistant-shell-ui.js";
 import { startMorroDigitalBrowser } from "./browser.js";
 import { morroDeSaoPauloDestination } from "./config/destination.js";
@@ -65,7 +68,11 @@ const SPLASH_VISIBLE_MS = 800;
 const SPLASH_FADE_MS = 550;
 
 initializeMorroBrowserLocale({ document });
-installMorroBrowserAnalytics({ document, window });
+const browserAnalytics = installMorroBrowserAnalytics({ document, window });
+installBrowserAnalyticsConsentPreferences({
+  document,
+  controller: browserAnalytics,
+});
 
 const application = bootstrapMorroDigitalApplication(document);
 initializeWeatherWidget({ document });

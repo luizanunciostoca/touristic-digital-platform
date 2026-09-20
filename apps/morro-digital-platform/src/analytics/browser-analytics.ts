@@ -22,7 +22,7 @@ export const ANALYTICS_TRANSACTION_EVENTS = Object.freeze({
   ticketIssued: "morro:ticket-issued",
 } as const);
 
-interface BrowserAnalyticsController {
+export interface BrowserAnalyticsController {
   getConsent(): AnalyticsConsentState;
   setConsent(state: Exclude<AnalyticsConsentState, "unknown">): void;
   destroy(): void;
@@ -393,6 +393,247 @@ export function installBrowserAnalyticsInstrumentation(
       for (const [name, listener] of listeners) {
         options.document.removeEventListener(name, listener);
       }
+    },
+  });
+}
+
+export type BrowserAnalyticsConsentChoice =
+  Exclude<AnalyticsConsentState, "unknown"> | "later";
+
+export interface BrowserAnalyticsConsentPreferencesOptions {
+  readonly document: Document;
+  readonly controller: BrowserAnalyticsController;
+}
+
+export interface BrowserAnalyticsConsentPreferencesController {
+  open(): void;
+  destroy(): void;
+}
+
+interface AnalyticsConsentPreferenceCopy {
+  readonly manage: string;
+  readonly title: string;
+  readonly description: string;
+  readonly allow: string;
+  readonly deny: string;
+  readonly later: string;
+  readonly granted: string;
+  readonly denied: string;
+  readonly unknown: string;
+}
+
+const analyticsConsentPreferenceCopy = Object.freeze({
+  pt: Object.freeze({
+    manage: "Privacidade",
+    title: "Preferências de privacidade",
+    description:
+      "Analytics opcionais ajudam a entender o uso do Morro Digital sem enviar o texto das suas buscas, mensagens do Assistente, dados de pagamento ou outros dados pessoais. Você pode escolher agora ou continuar sem analytics.",
+    allow: "Permitir analytics",
+    deny: "Somente necessários",
+    later: "Agora não",
+    granted: "Analytics opcionais permitidos.",
+    denied: "Somente recursos necessários estão ativos.",
+    unknown: "Analytics opcionais continuam desativados até você escolher.",
+  }),
+  en: Object.freeze({
+    manage: "Privacy",
+    title: "Privacy preferences",
+    description:
+      "Optional analytics help us understand how Morro Digital is used without sending your search text, Assistant messages, payment data, or other personal data. You can choose now or continue without analytics.",
+    allow: "Allow analytics",
+    deny: "Necessary only",
+    later: "Not now",
+    granted: "Optional analytics are allowed.",
+    denied: "Only necessary features are active.",
+    unknown: "Optional analytics remain disabled until you choose.",
+  }),
+  es: Object.freeze({
+    manage: "Privacidad",
+    title: "Preferencias de privacidad",
+    description:
+      "Los analytics opcionales ayudan a entender el uso de Morro Digital sin enviar el texto de tus búsquedas, mensajes del Asistente, datos de pago u otros datos personales. Puedes elegir ahora o continuar sin analytics.",
+    allow: "Permitir analytics",
+    deny: "Solo necesarios",
+    later: "Ahora no",
+    granted: "Los analytics opcionales están permitidos.",
+    denied: "Solo están activos los recursos necesarios.",
+    unknown: "Los analytics opcionales siguen desactivados hasta que elijas.",
+  }),
+  he: Object.freeze({
+    manage: "פרטיות",
+    title: "העדפות פרטיות",
+    description:
+      "ניתוח שימוש אופציונלי עוזר לנו להבין כיצד משתמשים ב-Morro Digital בלי לשלוח את טקסט החיפוש, הודעות העוזר, נתוני תשלום או מידע אישי אחר. אפשר לבחור עכשיו או להמשיך ללא Analytics.",
+    allow: "אפשר Analytics",
+    deny: "הכרחי בלבד",
+    later: "לא עכשיו",
+    granted: "Analytics אופציונלי מאופשר.",
+    denied: "רק תכונות הכרחיות פעילות.",
+    unknown: "Analytics אופציונלי נשאר מושבת עד לבחירה.",
+  }),
+} satisfies Readonly<
+  Record<"pt" | "en" | "es" | "he", AnalyticsConsentPreferenceCopy>
+>);
+
+export function browserAnalyticsConsentPreferenceCopy(
+  locale: string,
+): AnalyticsConsentPreferenceCopy {
+  const normalized = locale.trim().toLowerCase();
+  if (normalized.startsWith("en")) return analyticsConsentPreferenceCopy.en;
+  if (normalized.startsWith("es")) return analyticsConsentPreferenceCopy.es;
+  if (normalized.startsWith("he") || normalized.startsWith("iw")) {
+    return analyticsConsentPreferenceCopy.he;
+  }
+  return analyticsConsentPreferenceCopy.pt;
+}
+
+export function applyBrowserAnalyticsConsentChoice(
+  controller: BrowserAnalyticsController,
+  choice: BrowserAnalyticsConsentChoice,
+): AnalyticsConsentState {
+  if (choice === "later") return controller.getConsent();
+  controller.setConsent(choice);
+  return choice;
+}
+
+export function installBrowserAnalyticsConsentPreferences(
+  options: BrowserAnalyticsConsentPreferencesOptions,
+): BrowserAnalyticsConsentPreferencesController {
+  const { document, controller } = options;
+  document
+    .querySelector<HTMLElement>("[data-morro-analytics-consent-preferences]")
+    ?.remove();
+
+  const root = document.createElement("section");
+  root.className = "analytics-consent-preferences";
+  root.setAttribute("data-morro-analytics-consent-preferences", "true");
+  root.setAttribute("aria-live", "polite");
+  document.body.append(root);
+
+  let expanded = false;
+
+  const localizedCopy = (): AnalyticsConsentPreferenceCopy =>
+    browserAnalyticsConsentPreferenceCopy(
+      document.documentElement.lang || "pt",
+    );
+
+  const createButton = (
+    label: string,
+    variant: "choice" | "later" | "trigger",
+  ): HTMLButtonElement => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "analytics-consent-button analytics-consent-" + variant;
+    button.textContent = label;
+    return button;
+  };
+
+  const render = (): void => {
+    const copy = localizedCopy();
+    const state = controller.getConsent();
+    root.replaceChildren();
+    root.dataset.consentState = state;
+    root.classList.toggle("is-collapsed", !expanded);
+
+    if (!expanded) {
+      root.removeAttribute("role");
+      root.removeAttribute("aria-labelledby");
+      root.removeAttribute("aria-describedby");
+
+      const trigger = createButton(copy.manage, "trigger");
+      trigger.setAttribute("aria-haspopup", "dialog");
+      const status =
+        state === "granted"
+          ? copy.granted
+          : state === "denied"
+            ? copy.denied
+            : copy.unknown;
+      trigger.setAttribute("aria-label", copy.manage + ". " + status);
+      trigger.addEventListener("click", () => {
+        expanded = true;
+        render();
+      });
+      root.append(trigger);
+      return;
+    }
+
+    root.setAttribute("role", "dialog");
+    root.setAttribute("aria-labelledby", "analytics-consent-title");
+    root.setAttribute(
+      "aria-describedby",
+      "analytics-consent-description analytics-consent-status",
+    );
+
+    const title = document.createElement("h2");
+    title.id = "analytics-consent-title";
+    title.textContent = copy.title;
+
+    const description = document.createElement("p");
+    description.id = "analytics-consent-description";
+    description.textContent = copy.description;
+
+    const status = document.createElement("p");
+    status.id = "analytics-consent-status";
+    status.className = "analytics-consent-status";
+    status.textContent =
+      state === "granted"
+        ? copy.granted
+        : state === "denied"
+          ? copy.denied
+          : copy.unknown;
+
+    const actions = document.createElement("div");
+    actions.className = "analytics-consent-actions";
+
+    const deny = createButton(copy.deny, "choice");
+    deny.setAttribute("aria-pressed", String(state === "denied"));
+    deny.addEventListener("click", () => {
+      applyBrowserAnalyticsConsentChoice(controller, "denied");
+    });
+
+    const allow = createButton(copy.allow, "choice");
+    allow.setAttribute("aria-pressed", String(state === "granted"));
+    allow.addEventListener("click", () => {
+      applyBrowserAnalyticsConsentChoice(controller, "granted");
+    });
+
+    const later = createButton(copy.later, "later");
+    later.addEventListener("click", () => {
+      applyBrowserAnalyticsConsentChoice(controller, "later");
+      expanded = false;
+      render();
+    });
+
+    actions.append(deny, allow, later);
+    root.append(title, description, status, actions);
+  };
+
+  const onConsentChanged = (): void => {
+    expanded = false;
+    render();
+  };
+  document.addEventListener(ANALYTICS_CONSENT_CHANGED_EVENT, onConsentChanged);
+
+  const localeObserver = new MutationObserver(render);
+  localeObserver.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ["lang"],
+  });
+
+  render();
+
+  return Object.freeze({
+    open(): void {
+      expanded = true;
+      render();
+    },
+    destroy(): void {
+      localeObserver.disconnect();
+      document.removeEventListener(
+        ANALYTICS_CONSENT_CHANGED_EVENT,
+        onConsentChanged,
+      );
+      root.remove();
     },
   });
 }
