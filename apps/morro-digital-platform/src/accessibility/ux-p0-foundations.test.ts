@@ -109,13 +109,17 @@ describe("UX P0 + Design System V2 foundations", () => {
       ".close-button",
       ".map-control-button",
       ".mapboxgl-ctrl button",
+      ".mapboxgl-popup-close-button",
       "#assistant-input-area button",
+      ".voice-selector-toggle",
       ".assistant-option-btn",
       ".tour-popup-btn",
       ".tour-narration-btn",
       "#minimize-navigation-btn",
       "#end-navigation-btn",
       ".dialog-close",
+      ".md-business-profile-close",
+      ".md-business-profile-action",
       ".icon-button",
       ".nav-item",
       ".button",
@@ -126,6 +130,11 @@ describe("UX P0 + Design System V2 foundations", () => {
         selector,
       );
     }
+
+    expect(css).toContain(".biz-setup-back");
+    expect(css).toContain(".biz-demo-back-btn");
+    expect(css).toContain(".plans-back-btn");
+    expect(css).toContain("#assistant-voice-selector.minimized");
   });
 
   it("loads foundations after feature CSS on the primary public surfaces", async () => {
