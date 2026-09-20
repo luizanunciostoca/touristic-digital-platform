@@ -637,4 +637,19 @@ describe("M148 transactional ticketing application", () => {
     expect(checkIns.values).toHaveLength(1);
   });
 
+
+  it("rejects a check-in timestamp that predates ticket issuance", async () => {
+    const { service, fixture, checkIns } = harness();
+    const issued = await service.issueTicket(issueInput(fixture));
+
+    await expect(
+      service.checkInByQr({
+        qrPayload: issued.qrPayload,
+        operatorReference: "operator_backdated_qr",
+        occurredAt: "2026-08-15T09:59:59.999Z",
+      }),
+    ).rejects.toMatchObject({ code: "TICKETING_CHECKIN_INVALID" });
+    expect(checkIns.values).toHaveLength(0);
+  });
+
 });
