@@ -279,4 +279,38 @@ describe("createMorroTourSelectionController", () => {
       rollbackSucceeded: true,
     });
   });
+  it("keeps reset authoritative when an in-flight selection completes late", async () => {
+    const engine = createEngine();
+    let releaseReplace: (() => void) | undefined;
+    let signalReplaceStarted: (() => void) | undefined;
+    const replaceStarted = new Promise<void>((resolve) => {
+      signalReplaceStarted = resolve;
+    });
+
+    vi.mocked(engine.replaceMarkers).mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          releaseReplace = resolve;
+          signalReplaceStarted?.();
+        }),
+    );
+
+    const controller = createMorroTourSelectionController({
+      engine,
+      events: new EventBus(),
+      initialTourId: null,
+    });
+
+    const pendingSelection = controller.selectTour("volta-a-ilha");
+    await replaceStarted;
+
+    controller.resetSelection();
+    releaseReplace?.();
+
+    await expect(pendingSelection).rejects.toThrow("Tour selection cancelled.");
+    expect(controller.activeTourId).toBeNull();
+    expect(engine.setCenter).not.toHaveBeenCalled();
+  });
+
+
 });
