@@ -169,17 +169,18 @@ function businessesFromUsers(users) {
 }
 
 const namespaceCapabilities = Object.freeze({
-  affiliates: "affiliate.read",
-  crm: "crm.read",
-  products: "business.read",
-  inventory: "business.read",
-  reservations: "ticketing.read",
-  ticketing: "ticketing.read",
-  orders: "financial.read",
-  payments: "financial.read",
-  financial: "financial.read",
-  content: "content.read",
-  destinations: "platform.read",
+  affiliates: Object.freeze({ read: "affiliate.read", mutate: "affiliate.update" }),
+  businesses: Object.freeze({ read: "business.read", mutate: "business.update" }),
+  crm: Object.freeze({ read: "crm.read", mutate: "crm.manage" }),
+  products: Object.freeze({ read: "business.read", mutate: "business.update" }),
+  inventory: Object.freeze({ read: "business.read", mutate: "business.update" }),
+  reservations: Object.freeze({ read: "ticketing.read", mutate: "ticketing.manage" }),
+  ticketing: Object.freeze({ read: "ticketing.read", mutate: "ticketing.manage" }),
+  orders: Object.freeze({ read: "financial.read", mutate: null }),
+  payments: Object.freeze({ read: "financial.read", mutate: null }),
+  financial: Object.freeze({ read: "financial.read", mutate: null }),
+  content: Object.freeze({ read: "content.read", mutate: "content.manage" }),
+  destinations: Object.freeze({ read: "platform.read", mutate: "system.manage" }),
 });
 
 export function createAdminApi({
@@ -498,7 +499,9 @@ export function createAdminApi({
           businesses: businessesFromUsers(authApi.listConfiguredUsers()),
           source: "identity-membership",
           authority: "read-only-directory",
-          mutationContract: "BUSINESS_ADMIN_CONTRACT_REQUIRED",
+          mutationContract: domainAdapters.businesses
+            ? "BUSINESS_ADMIN_CONTRACT_REGISTERED"
+            : "BUSINESS_ADMIN_CONTRACT_REQUIRED",
         });
         return;
       }
@@ -572,10 +575,45 @@ export function createAdminApi({
       const namespace = pathname
         .slice(adminPrefix.length + 1)
         .split("/", 1)[0];
-      const capability = namespaceCapabilities[namespace];
-      if (capability) {
-        const actor = await requireCapability(request, response, capability);
+      const policy = namespaceCapabilities[namespace];
+      if (policy) {
+        const mutation =
+          request.method !== "GET" &&
+          request.method !== "HEAD" &&
+          request.method !== "OPTIONS";
+        if (mutation && !policy.mutate) {
+          json(response, 405, {
+            error: "DOMAIN_MUTATION_NOT_REGISTERED",
+            domain: namespace,
+          });
+          return;
+        }
+        const capability = mutation ? policy.mutate : policy.read;
+        const actor = await requireCapability(request, response, capability, {
+          mutation,
+        });
         if (!actor) return;
+        if (mutation) {
+          const requestSecurity = authApi.authorizeMutation(
+            request,
+            actor,
+            `control-center.${namespace}.mutation`,
+          );
+          if (!requestSecurity.allowed) {
+            audit(request, actor, {
+              action: `control-center.${namespace}.mutation`,
+              result: "denied",
+              reason: requestSecurity.reason,
+            });
+            json(response, 403, {
+              error:
+                requestSecurity.reason === "invalid_csrf"
+                  ? "INVALID_CSRF"
+                  : "ORIGIN_DENIED",
+            });
+            return;
+          }
+        }
         const adapter = domainAdapters[namespace];
         if (!adapter?.handle) {
           json(response, 501, {
