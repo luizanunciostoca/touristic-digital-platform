@@ -120,6 +120,7 @@ const getEnvironmentValue = (key) =>
 
 let platformOperations = null;
 let paymentsRuntimeReady = false;
+let ticketingRuntimeReady = false;
 
 function auditSecurityEvent(request, event) {
   const pathname = (() => {
@@ -168,6 +169,14 @@ platformOperations = createPlatformOperations({
         ? "payments-runtime-ready"
         : "PAYMENTS_RUNTIME_UNAVAILABLE",
     },
+    {
+      name: "ticketing-runtime",
+      status: ticketingRuntimeReady ? "pass" : "fail",
+      critical: true,
+      detail: ticketingRuntimeReady
+        ? "ticketing-runtime-ready"
+        : "TICKETING_RUNTIME_UNAVAILABLE",
+    },
   ],
 });
 await authApi.start();
@@ -180,26 +189,9 @@ const businessApi = createBusinessApi({ authApi });
 const paymentsApi = createPaymentsApi({ authApi, getEnvironmentValue });
 paymentsRuntimeReady = await paymentsApi.start();
 
-let ticketingApi = null;
-let ticketingApiPromise = null;
-
-async function getTicketingApi() {
-  if (ticketingApi) return ticketingApi;
-  if (!ticketingApiPromise) {
-    ticketingApiPromise = import("./ticketing-api.mjs")
-      .then(async ({ createTicketingApi }) => {
-        const api = createTicketingApi({ authApi, getEnvironmentValue });
-        await api.start();
-        ticketingApi = api;
-        return api;
-      })
-      .catch((error) => {
-        ticketingApiPromise = null;
-        throw error;
-      });
-  }
-  return ticketingApiPromise;
-}
+const { createTicketingApi } = await import("./ticketing-api.mjs");
+const ticketingApi = createTicketingApi({ authApi, getEnvironmentValue });
+ticketingRuntimeReady = await ticketingApi.start();
 
 function createRuntimeEnvironment() {
   return Object.freeze(
@@ -519,12 +511,12 @@ const server = createServer(async (request, response) => {
       await paymentsApi.handle(request, response, requestUrl);
       return;
     }
-    if (requestUrl.pathname.startsWith("/api/ticketing")) {
-      const activeTicketingApi = await getTicketingApi();
-      if (activeTicketingApi.matches(requestUrl.pathname)) {
-        await activeTicketingApi.handle(request, response, requestUrl);
-        return;
-      }
+    if (
+      requestUrl.pathname.startsWith("/api/ticketing") &&
+      ticketingApi.matches(requestUrl.pathname)
+    ) {
+      await ticketingApi.handle(request, response, requestUrl);
+      return;
     }
     if (assistantApi.matches(requestUrl.pathname)) {
       await assistantApi.handle(request, response);
@@ -665,7 +657,7 @@ async function shutdown(signal) {
     authApi.stop(),
     crmApi.stop(),
     paymentsApi.stop(),
-    ticketingApi ? ticketingApi.stop() : Promise.resolve(),
+    ticketingApi.stop(),
   ]);
   paymentsRuntimeReady = false;
   const failedStops = stops.filter((result) => result.status === "rejected");

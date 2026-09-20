@@ -43,6 +43,7 @@ interface ReservationRow extends RowDataPacket {
   quantity: number;
   status: string;
   expires_at: Date | string;
+  valid_until: Date | string | null;
   order_id: string | null;
   payment_id: string | null;
   created_at: Date | string;
@@ -101,6 +102,7 @@ function reservationFromRow(row: ReservationRow): TicketReservation {
     quantity: row.quantity,
     status: row.status,
     expiresAt: iso(row.expires_at),
+    validUntil: iso(row.valid_until),
     orderId: row.order_id,
     paymentId: row.payment_id,
     createdAt: iso(row.created_at),

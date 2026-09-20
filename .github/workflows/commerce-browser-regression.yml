@@ -109,9 +109,9 @@ jobs:
             id: 'trv_browser_0001', inventoryId: offer.id, destinationId: offer.destinationId,
             product: offer.product, unitAmount: offer.unitAmount, pricingVersion: offer.pricingVersion,
             holderReference: 'guest:browser', quantity: 2, status: 'confirmed',
-            expiresAt: '2026-09-20T20:00:00.000Z', orderId: 'ord_browser_0001',
-            paymentId: 'pay_browser_0001', createdAt: '2026-09-17T22:00:00.000Z',
-            confirmedAt: '2026-09-17T22:00:05.000Z',
+            expiresAt: '2026-09-20T20:00:00.000Z', validUntil: '2026-09-21T01:00:00.000Z',
+            orderId: 'ord_browser_0001', paymentId: 'pay_browser_0001',
+            createdAt: '2026-09-17T22:00:00.000Z', confirmedAt: '2026-09-17T22:00:05.000Z',
           };
           const viewports = [
             { name: 'mobile', width: 390, height: 844 },
@@ -170,7 +170,7 @@ jobs:
             });
             await page.route('**/api/ticketing/v1/reservations/trv_browser_0001/ticket', route => fulfill(route, { data: {
               code: 'MORRO-BROWSER-0001', quantity: 2, amount: { minorUnits: 31800, currency: 'BRL' },
-              issuedAt: '2026-09-17T22:00:06.000Z',
+              issuedAt: '2026-09-17T22:00:06.000Z', validUntil: '2026-09-21T01:00:00.000Z',
               qrSvg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><rect width="10" height="10"/></svg>',
             } }));
             await page.route('**/api/ticketing/v1/operator/check-in', route => fulfill(route, { error: 'AUTH_REQUIRED' }, 401));
@@ -321,6 +321,8 @@ jobs:
                 await page.locator('#ticket-dialog[open]').waitFor({ state: 'visible', timeout: 10000 });
                 if (!state.reserved || !state.checkout || !state.paid) throw new Error(`Commerce handoff incomplete on ${viewport.name}`);
                 if ((await page.locator('#ticket-code').textContent())?.trim() !== 'MORRO-BROWSER-0001') throw new Error(`Wallet/QR missing on ${viewport.name}`);
+                const ticketMeta = (await page.locator('#ticket-meta').textContent())?.trim() ?? '';
+                if (!ticketMeta.includes('válido até')) throw new Error(`Ticket validity missing on ${viewport.name}: ${ticketMeta}`);
                 const privileged = await page.evaluate(async () => {
                   const response = await fetch('/api/ticketing/v1/operator/check-in', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': 'csrf_browser_0001' }, body: '{}' });
                   return { status: response.status, body: await response.json() };

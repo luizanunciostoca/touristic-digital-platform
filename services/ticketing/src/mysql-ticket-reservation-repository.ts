@@ -59,6 +59,7 @@ interface ReservationRow extends RowDataPacket {
   quantity: number;
   status: string;
   expires_at: Date | string;
+  valid_until: Date | string | null;
   order_id: string | null;
   payment_id: string | null;
   created_at: Date | string;
@@ -195,6 +196,7 @@ function reservationFromRow(row: ReservationRow): TicketReservation {
     quantity: row.quantity,
     status: row.status,
     expiresAt: time(row.expires_at),
+    validUntil: time(row.valid_until),
     orderId: row.order_id,
     paymentId: row.payment_id,
     createdAt: time(row.created_at),
@@ -604,6 +606,7 @@ export class MySqlTicketReservationRepository {
         quantity,
         status: "held",
         expiresAt,
+        validUntil: inventory.endsAt,
         createdAt: heldAt,
         updatedAt: heldAt,
       });
@@ -612,9 +615,9 @@ export class MySqlTicketReservationRepository {
         `INSERT INTO ticketing_reservations (
           reservation_id, request_key, inventory_id, destination_id, product_kind,
           product_reference, unit_amount_minor, currency, pricing_version,
-          holder_reference, quantity, status, expires_at, order_id, payment_id,
-          created_at, confirmed_at, expired_at, cancelled_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, ?, NULL, NULL, NULL, ?)`,
+          holder_reference, quantity, status, expires_at, valid_until, order_id,
+          payment_id, created_at, confirmed_at, expired_at, cancelled_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, ?, NULL, NULL, NULL, ?)`,
         [
           reservation.id,
           reservation.requestKey,
@@ -629,6 +632,7 @@ export class MySqlTicketReservationRepository {
           reservation.quantity,
           reservation.status,
           new Date(reservation.expiresAt),
+          reservation.validUntil ? new Date(reservation.validUntil) : null,
           new Date(reservation.createdAt),
           new Date(reservation.updatedAt),
         ],

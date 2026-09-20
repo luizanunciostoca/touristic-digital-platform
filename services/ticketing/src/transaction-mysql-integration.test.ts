@@ -60,6 +60,7 @@ function fixture() {
     code: "M148-TXNA-0001-TCKT",
     status: "issued",
     issuedAt: "2026-08-15T11:00:00Z",
+    validUntil: "2026-08-16T02:00:00Z",
     updatedAt: "2026-08-15T11:00:00Z",
   });
   if (!ticket) throw new Error("FIXTURE_INVALID");

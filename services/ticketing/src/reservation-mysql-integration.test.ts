@@ -266,6 +266,7 @@ describeMySql.sequential("M150 Ticketing reservation MySQL integration", () => {
     );
     expect(held.reservation.unitAmount.minorUnits).toBe(19_900);
     expect(held.reservation.pricingVersion).toBe("ticket-2026-08-v1");
+    expect(held.reservation.validUntil).toBe(inventory.endsAt);
 
     const service = createTicketReservationApplicationService({
       reservations,

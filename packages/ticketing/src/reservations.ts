@@ -72,6 +72,7 @@ export interface TicketReservation {
   readonly quantity: number;
   readonly status: TicketReservationStatus;
   readonly expiresAt: string;
+  readonly validUntil: string | null;
   readonly orderId: OrderId | null;
   readonly paymentId: PaymentId | null;
   readonly createdAt: string;
@@ -280,6 +281,7 @@ export function createTicketReservation(input: {
   readonly quantity: unknown;
   readonly status?: unknown;
   readonly expiresAt: unknown;
+  readonly validUntil?: unknown;
   readonly orderId?: unknown;
   readonly paymentId?: unknown;
   readonly createdAt: unknown;
@@ -303,6 +305,10 @@ export function createTicketReservation(input: {
       ? (input.status as TicketReservationStatus)
       : "held";
   const expiresAt = normalizedTimestamp(input.expiresAt);
+  const validUntil =
+    input.validUntil === null || input.validUntil === undefined
+      ? null
+      : normalizedTimestamp(input.validUntil);
   const orderId =
     input.orderId === null || input.orderId === undefined
       ? null
@@ -345,6 +351,10 @@ export function createTicketReservation(input: {
     !createdAt ||
     !updatedAt ||
     Date.parse(expiresAt) <= Date.parse(createdAt) ||
+    (input.validUntil !== null &&
+      input.validUntil !== undefined &&
+      !validUntil) ||
+    (validUntil !== null && Date.parse(validUntil) <= Date.parse(expiresAt)) ||
     Date.parse(updatedAt) < Date.parse(createdAt) ||
     (input.orderId !== null && input.orderId !== undefined && !orderId) ||
     (input.paymentId !== null && input.paymentId !== undefined && !paymentId) ||
@@ -389,6 +399,7 @@ export function createTicketReservation(input: {
     quantity,
     status,
     expiresAt,
+    validUntil,
     orderId,
     paymentId,
     createdAt,
@@ -465,7 +476,7 @@ export function confirmTicketReservation(
   if (!orderId || !paymentId || !confirmedAt) {
     throw new Error("TICKETING_RESERVATION_CONFIRMATION_INVALID");
   }
-  if (Date.parse(confirmedAt) > Date.parse(reservation.expiresAt)) {
+  if (Date.parse(confirmedAt) >= Date.parse(reservation.expiresAt)) {
     throw new Error("TICKETING_RESERVATION_HOLD_EXPIRED");
   }
   const value = createTicketReservation({

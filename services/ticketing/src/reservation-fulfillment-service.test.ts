@@ -26,6 +26,7 @@ function confirmedReservation(): TicketReservation {
     quantity: 2,
     status: "confirmed",
     expiresAt: "2026-08-16T18:10:00.000Z",
+    validUntil: "2026-08-17T02:00:00.000Z",
     orderId: "ord_fulfillment_0001",
     paymentId: "pay_fulfillment_0001",
     createdAt: "2026-08-16T18:00:00.000Z",
@@ -79,6 +80,7 @@ describe("Ticketing reservation fulfillment service", () => {
       quantity: 2,
       amount: { minorUnits: 39_800, currency: "BRL" },
       issuedAt: "2026-08-16T18:05:00.000Z",
+      validUntil: "2026-08-17T02:00:00.000Z",
     });
     expect(result.replayed).toBe(true);
   });
