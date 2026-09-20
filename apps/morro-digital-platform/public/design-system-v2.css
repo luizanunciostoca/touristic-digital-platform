@@ -189,6 +189,7 @@ body {
   max-height: calc(100svh - 120px);
   max-height: calc(100dvh - 120px);
 }
+
 :where(
   .md-viewport-shell,
   .commerce-detail-shell,
