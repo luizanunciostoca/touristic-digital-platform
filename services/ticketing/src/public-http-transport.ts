@@ -339,6 +339,7 @@ function errorStatus(error: unknown): { status: number; code: string } {
     message.includes("EXHAUSTED") ||
     message.includes("CONFLICT") ||
     message.includes("ALREADY_USED") ||
+    message.includes("ALREADY_VALIDATED") ||
     message.includes("REVOKED") ||
     message.includes("EXPIRED")
   ) {
