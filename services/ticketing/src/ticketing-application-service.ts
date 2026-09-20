@@ -371,6 +371,11 @@ export function createTicketingApplicationService(
         result,
         occurredAt: canonicalOccurredAt,
       });
+      const recordedAtCandidate = canonicalNow(dependencies.clock);
+      const recordedAt =
+        Date.parse(recordedAtCandidate) < Date.parse(canonicalOccurredAt)
+          ? canonicalOccurredAt
+          : recordedAtCandidate;
       const checkIn = createTicketCheckIn({
         id: checkInId,
         ticketId: ticket.id,
@@ -378,7 +383,7 @@ export function createTicketingApplicationService(
         channel: "online",
         operatorReference: input.operatorReference,
         occurredAt: canonicalOccurredAt,
-        recordedAt: canonicalNow(dependencies.clock),
+        recordedAt,
       });
       if (!checkIn) {
         throw new TicketingApplicationError("TICKETING_CHECKIN_INVALID");
