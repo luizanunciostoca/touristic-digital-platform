@@ -90,7 +90,7 @@ jobs:
           AUTH_SECRET="0123456789abcdef0123456789abcdef"
           SUPPORT_SECRET="support-control-center-ci-0123456789abcdef"
           STEP_UP_SECRET="step-up-control-center-ci-0123456789abcdef"
-          PASSWORD="control center browser fixture"
+          ***
           OWNER_HASH=$(node --input-type=module -e "import('./services/auth/dist/credentials.js').then(m => console.log(m.hashPassword(process.argv[1], Buffer.alloc(16, 21))))" "$PASSWORD")
           BUSINESS_HASH=$(node --input-type=module -e "import('./services/auth/dist/credentials.js').then(m => console.log(m.hashPassword(process.argv[1], Buffer.alloc(16, 22))))" "$PASSWORD")
           SUPPORT_HASH=$(node --input-type=module -e "import('./services/auth/dist/credentials.js').then(m => console.log(m.hashPassword(process.argv[1], Buffer.alloc(16, 23))))" "$PASSWORD")
@@ -101,7 +101,7 @@ jobs:
             {id:"support-1",email:"support@example.com",passwordHash:process.argv[3],role:"SUPPORT",businessIds:[]},
             {id:"auditor-1",email:"auditor@example.com",passwordHash:process.argv[4],role:"AUDITOR",businessIds:[]}
           ]))' "$OWNER_HASH" "$BUSINESS_HASH" "$SUPPORT_HASH" "$AUDITOR_HASH")
-          DB_URL="mysql://root:control-center-ci@127.0.0.1:3306/control_center_ci"
+          DB_URL="***127.0.0.1:3306/control_center_ci"
           DASHBOARD_AUTH_SECRET="$AUTH_SECRET"           DASHBOARD_USERS_JSON="$USERS"           CONTROL_CENTER_SUPPORT_SECRET="$SUPPORT_SECRET"           CONTROL_CENTER_STEP_UP_SECRET="$STEP_UP_SECRET"           CONTROL_CENTER_AUDIT_DATABASE_URL="$DB_URL"           CRM_DATABASE_URL="$DB_URL"           PORT="$PORT" HOST="127.0.0.1"             node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/control-center-server.log 2>&1 &
           echo $! >/tmp/control-center-server.pid
           for _ in $(seq 1 100); do
