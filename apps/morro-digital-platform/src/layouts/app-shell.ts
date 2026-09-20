@@ -37,7 +37,7 @@ function createAppShellMarkup(): string {
 
       <div class="quick-actions">
         <button class="action-button primary mood-button" data-mood="happy" aria-label="Open assistant">
-          <img class="mood-icon" src="/apps/morro-digital-platform/public/assets/emojis/sun_emojis/sun_emoji_1.png" alt="Assistant mood" />
+          <img class="mood-icon" src="/apps/morro-digital-platform/public/assets/emojis/sun_emojis/sun_emoji_1.png" alt="Assistant mood" width="341" height="341" loading="eager" decoding="async" fetchpriority="auto" />
         </button>
       </div>
 
