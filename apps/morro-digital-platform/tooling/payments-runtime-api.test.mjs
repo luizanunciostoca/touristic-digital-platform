@@ -100,6 +100,21 @@ describe("Payments runtime Control Center owner facade", () => {
             );
           },
         },
+        reconciliation: {
+          findById(id) {
+            return Promise.resolve(
+              id === "rcf_runtime_admin_00000001"
+                ? {
+                    id,
+                    paymentId: "pay_runtime_admin_0001",
+                    kind: "provider_amount_mismatch",
+                    severity: "high",
+                    state: "open",
+                  }
+                : null,
+            );
+          },
+        },
         ledger: {
           findByExternalKey(key) {
             return Promise.resolve(
@@ -130,6 +145,14 @@ describe("Payments runtime Control Center owner facade", () => {
       status: "found",
       tenantId: "business-runtime-admin",
     });
+    await expect(
+      api.adminResolveFindingTenant("rcf_runtime_admin_00000001"),
+    ).resolves.toEqual({
+      status: "found",
+      tenantId: "business-runtime-admin",
+      paymentId: "pay_runtime_admin_0001",
+    });
+
     await expect(
       api.adminFindLedger("payment_approved_pay_runtime_admin_0001"),
     ).resolves.toMatchObject({
