@@ -26,7 +26,7 @@ describe("Onboarding V2 modular architecture contract", () => {
     expect(controller).toContain('from "./public-onboarding-storage.js"');
     expect(controller).toContain('from "./public-onboarding-dialog.js"');
     expect(controller).not.toContain("FOCUSABLE_SELECTOR");
-    expect(controller).not.toContain("createElement("section")");
+    expect(controller).not.toContain('createElement("section")');
     expect(controller).not.toContain("localStorage");
 
     expect(storage).toContain("PUBLIC_ONBOARDING_STORAGE_KEY");
