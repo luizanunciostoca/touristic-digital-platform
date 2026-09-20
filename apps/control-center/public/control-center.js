@@ -1,0 +1,592 @@
+import { createDashboardAuthClient } from "@touristic/auth-browser";
+
+const navItems = [
+  ["overview", "Visão Geral", "◫"],
+  ["businesses", "Empresas", "▦"],
+  ["users", "Usuários", "●"],
+  ["affiliates", "Afiliados", "◇"],
+  ["crm", "CRM", "◈"],
+  ["products", "Produtos e Ofertas", "▤"],
+  ["reservations", "Reservas", "▣"],
+  ["ticketing", "Ticketing", "◉"],
+  ["orders", "Pedidos", "≡"],
+  ["financial", "Financeiro", "◐"],
+  ["content", "Conteúdo", "✦"],
+  ["destinations", "Destinos", "⌖"],
+  ["support", "Suporte", "◎"],
+  ["audit", "Auditoria", "⌁"],
+  ["system", "Sistema", "⚙"],
+  ["settings", "Configurações", "⋯"],
+];
+
+const pageCopy = {
+  overview: [
+    "Visão Geral",
+    "Estado operacional e administrativo da plataforma em uma única visão.",
+  ],
+  businesses: [
+    "Empresas",
+    "Diretório administrativo e contexto de tenants sem quebrar o domínio Business.",
+  ],
+  users: [
+    "Usuários",
+    "Identidades, papéis, capabilities e vínculos empresariais.",
+  ],
+  affiliates: [
+    "Afiliados",
+    "Programa de afiliados mantendo Financial como autoridade monetária.",
+  ],
+  crm: [
+    "CRM",
+    "Leads, pipeline, reuniões, propostas, contratos, follow-ups, referrals e trials.",
+  ],
+  products: [
+    "Produtos e Ofertas",
+    "Catálogo administrativo através dos contratos do domínio owner.",
+  ],
+  reservations: [
+    "Reservas",
+    "Reservas, disponibilidade e estados operacionais.",
+  ],
+  ticketing: [
+    "Ticketing",
+    "Tickets, check-in, validação, cancelamentos e histórico.",
+  ],
+  orders: ["Pedidos", "Pedidos e vínculos transacionais com pagamento."],
+  financial: [
+    "Financeiro",
+    "Consulta financeira segura; nenhuma edição arbitrária de saldo.",
+  ],
+  content: ["Conteúdo", "Conteúdo editorial e publicação governada."],
+  destinations: [
+    "Destinos",
+    "Configuração e visão administrativa dos destinos da plataforma.",
+  ],
+  support: [
+    "Suporte",
+    "Sessões de suporte preservando actor e effectiveUser.",
+  ],
+  audit: [
+    "Auditoria",
+    "Trilha administrativa de ações e decisões de autorização.",
+  ],
+  system: [
+    "Sistema",
+    "Health, readiness, providers, versão e identidade do deployment.",
+  ],
+  settings: [
+    "Configurações",
+    "Preferências administrativas sem exposição de secrets.",
+  ],
+};
+
+const app = document.querySelector("#app");
+const boot = document.querySelector("#boot");
+const nav = document.querySelector("#main-nav");
+const content = document.querySelector("#content");
+const title = document.querySelector("#page-title");
+const description = document.querySelector("#page-description");
+const breadcrumb = document.querySelector("#breadcrumb");
+const actorCard = document.querySelector("#actor-card");
+const healthChip = document.querySelector("#health-chip");
+const releaseChip = document.querySelector("#release-chip");
+const searchInput = document.querySelector("#global-search");
+const searchResults = document.querySelector("#search-results");
+const supportBanner = document.querySelector("#support-banner");
+const supportContext = document.querySelector("#support-context");
+const menuButton = document.querySelector("#menu-button");
+
+const auth = createDashboardAuthClient({
+  fetchFn: globalThis.fetch.bind(globalThis),
+  storage: globalThis.sessionStorage,
+  location: globalThis.location,
+});
+
+const state = {
+  session: null,
+  adminSession: null,
+  dashboard: null,
+  view: "overview",
+};
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+async function api(path, init = {}) {
+  const response = await auth.secureFetch(`/api/admin/v1${path}`, {
+    ...init,
+    headers: {
+      Accept: "application/json",
+      ...(init.headers ?? {}),
+    },
+  });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const error = new Error(body.error || "CONTROL_CENTER_REQUEST_FAILED");
+    error.status = response.status;
+    error.body = body;
+    throw error;
+  }
+  return body;
+}
+
+function renderNav() {
+  nav.innerHTML = navItems
+    .map(
+      ([id, label, icon]) =>
+        `<button type="button" class="nav-item ${state.view === id ? "active" : ""}" data-view="${id}">
+          <span class="nav-icon">${icon}</span><span>${label}</span>
+        </button>`,
+    )
+    .join("");
+}
+
+function setHeading(view) {
+  const [label, copy] = pageCopy[view] ?? pageCopy.overview;
+  title.textContent = label;
+  description.textContent = copy;
+  breadcrumb.textContent = `Control Center / ${label}`;
+}
+
+function statusBadge(value) {
+  const normalized =
+    value === "available" || value === "pass" || value === "success"
+      ? "pass"
+      : value === "partial" || value === "runtime-projection"
+        ? "partial"
+        : "gap";
+  return `<span class="badge ${normalized}">${escapeHtml(value)}</span>`;
+}
+
+function renderOverview() {
+  const dashboard = state.dashboard;
+  const health = dashboard.health ?? { checks: [] };
+  const metrics = [
+    [
+      "Empresas",
+      dashboard.summary?.businesses ?? "—",
+      "Memberships conhecidas pelo Identity",
+    ],
+    ["Usuários", dashboard.summary?.users ?? "—", "Identidades configuradas"],
+    ["Alertas", dashboard.summary?.alerts ?? "—", "Checks fora de PASS"],
+    ["Readiness", health.readiness ?? "—", "Saúde agregada da plataforma"],
+  ];
+
+  content.innerHTML = `
+    <div class="grid stats">
+      ${metrics
+        .map(
+          ([label, value, hint]) =>
+            `<article class="card stat">
+              <span class="stat-label">${label}</span>
+              <strong class="stat-value">${escapeHtml(value)}</strong>
+              <small>${hint}</small>
+            </article>`,
+        )
+        .join("")}
+    </div>
+    <div class="grid two-col">
+      <section class="card section-card">
+        <div class="section-title">
+          <h2>Saúde operacional</h2>
+          <span class="chip">${escapeHtml(health.readiness ?? "unknown")}</span>
+        </div>
+        <div class="health-list">
+          ${(health.checks ?? [])
+            .map(
+              (check) =>
+                `<div class="health-row">
+                  <span><i class="status-dot status-${escapeHtml(check.status)}"></i>${escapeHtml(check.name)}</span>
+                  <small>${escapeHtml(check.detail ?? check.status)}</small>
+                </div>`,
+            )
+            .join("") || '<div class="empty">Nenhum check disponível.</div>'}
+        </div>
+      </section>
+      <section class="card section-card">
+        <div class="section-title"><h2>Contratos administrativos</h2></div>
+        <div class="module-list">
+          ${Object.entries(dashboard.modules ?? {})
+            .map(
+              ([name, module]) =>
+                `<div class="module-row"><span>${escapeHtml(name)}</span>${statusBadge(module.state)}</div>`,
+            )
+            .join("")}
+        </div>
+      </section>
+    </div>`;
+}
+
+async function renderUsers(userId) {
+  const data = await api(
+    userId ? `/users/${encodeURIComponent(userId)}` : "/users",
+  );
+  const users = userId ? [data.user] : data.users;
+
+  content.innerHTML = `
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Usuário</th>
+            <th>Papel canônico</th>
+            <th>Role runtime</th>
+            <th>Empresas</th>
+            <th>Capabilities</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${users
+            .map(
+              (user) =>
+                `<tr>
+                  <td><strong>${escapeHtml(user.email)}</strong><br><small>${escapeHtml(user.id)}</small></td>
+                  <td><span class="badge">${escapeHtml(user.canonicalRole)}</span></td>
+                  <td>${escapeHtml(user.role)}</td>
+                  <td>${
+                    (user.businessIds ?? [])
+                      .map(
+                        (businessId) =>
+                          `<span class="badge">${escapeHtml(businessId)}</span>`,
+                      )
+                      .join(" ") || "—"
+                  }</td>
+                  <td>${escapeHtml((user.capabilities ?? []).join(", "))}</td>
+                </tr>`,
+            )
+            .join("")}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+async function renderBusinesses() {
+  const data = await api("/businesses");
+  content.innerHTML = `
+    <div class="callout">
+      <strong>Fronteira preservada:</strong>
+      esta lista vem de memberships do domínio Identity. Alterações de perfil/status
+      só serão habilitadas quando o Business Admin Contract estiver registrado.
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Business ID</th><th>Membros</th><th>Fonte</th><th>Mutação</th></tr></thead>
+        <tbody>
+          ${data.businesses
+            .map(
+              (business) =>
+                `<tr>
+                  <td><strong>${escapeHtml(business.id)}</strong></td>
+                  <td>${business.members.map((member) => escapeHtml(member.email)).join("<br>")}</td>
+                  <td>${escapeHtml(business.source)}</td>
+                  <td><span class="badge partial">contract required</span></td>
+                </tr>`,
+            )
+            .join("")}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+function renderContractGap(view) {
+  content.innerHTML = `
+    <section class="card empty">
+      <strong>Contrato administrativo ainda não registrado</strong>
+      <span>
+        O Control Center não consulta tabelas deste domínio diretamente.
+        A integração de <b>${escapeHtml(view)}</b> será feita pelo adapter oficial do domínio.
+      </span>
+    </section>`;
+}
+
+async function renderAudit() {
+  const data = await api("/audit?limit=100");
+  content.innerHTML = `
+    <div class="callout">
+      A projeção abaixo é append-only durante o runtime atual.
+      Persistência imutável durável permanece um gate aberto e não é apresentada como concluída.
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Quando</th><th>Actor</th><th>Ação</th><th>Entidade</th><th>Resultado</th></tr></thead>
+        <tbody>
+          ${
+            data.entries
+              .map(
+                (entry) =>
+                  `<tr>
+                    <td>${escapeHtml(entry.timestamp)}</td>
+                    <td>${escapeHtml(entry.actorUserId)}<br><small>${escapeHtml(entry.actorRole)}</small></td>
+                    <td>${escapeHtml(entry.action)}</td>
+                    <td>${escapeHtml(entry.entityType ?? "—")} ${escapeHtml(entry.entityId ?? "")}</td>
+                    <td>${statusBadge(entry.result)}</td>
+                  </tr>`,
+              )
+              .join("") ||
+            '<tr><td colspan="5" class="empty">Nenhuma ação administrativa registrada neste runtime.</td></tr>'
+          }
+        </tbody>
+      </table>
+    </div>`;
+}
+
+async function renderSystem() {
+  const data = await api("/system");
+  const checks = data.health?.checks ?? [];
+  content.innerHTML = `
+    <div class="grid stats">
+      <article class="card stat">
+        <span class="stat-label">Release SHA</span>
+        <strong class="stat-value" style="font-size:16px">${escapeHtml(data.release?.sha)}</strong>
+        <small>Identidade do runtime</small>
+      </article>
+      <article class="card stat">
+        <span class="stat-label">Versão</span>
+        <strong class="stat-value" style="font-size:20px">${escapeHtml(data.release?.version)}</strong>
+        <small>Release version</small>
+      </article>
+      <article class="card stat">
+        <span class="stat-label">Deployment</span>
+        <strong class="stat-value" style="font-size:20px">${escapeHtml(data.release?.deploymentId)}</strong>
+        <small>Deployment ID</small>
+      </article>
+      <article class="card stat">
+        <span class="stat-label">Secrets</span>
+        <strong class="stat-value" style="font-size:20px">REDACTED</strong>
+        <small>Nunca expostos pela API</small>
+      </article>
+    </div>
+    <section class="card section-card" style="margin-top:16px">
+      <div class="section-title"><h2>Readiness checks</h2></div>
+      <div class="health-list">
+        ${checks
+          .map(
+            (check) =>
+              `<div class="health-row">
+                <span><i class="status-dot status-${escapeHtml(check.status)}"></i>${escapeHtml(check.name)}</span>
+                <small>${escapeHtml(check.detail)}</small>
+              </div>`,
+          )
+          .join("")}
+      </div>
+    </section>`;
+}
+
+async function renderSupport() {
+  const data = await api("/users");
+  const platformRoles = new Set([
+    "PLATFORM_OWNER",
+    "PLATFORM_ADMIN",
+    "SUPPORT",
+    "AUDITOR",
+  ]);
+  const eligible = data.users.filter(
+    (user) => !platformRoles.has(user.canonicalRole),
+  );
+
+  content.innerHTML = `
+    <section class="card section-card">
+      <div class="section-title">
+        <h2>Iniciar modo suporte</h2>
+        <span class="badge">actor preservado</span>
+      </div>
+      <p style="color:var(--muted)">
+        A sessão não substitui credenciais. O administrador real continua identificado,
+        com effectiveUser separado e motivo obrigatório.
+      </p>
+      <form id="support-form" class="form-grid">
+        <label>
+          Usuário efetivo
+          <select id="support-user" required>
+            ${eligible
+              .map(
+                (user) =>
+                  `<option value="${escapeHtml(user.id)}">${escapeHtml(user.email)} — ${escapeHtml(user.canonicalRole)}</option>`,
+              )
+              .join("")}
+          </select>
+        </label>
+        <label>
+          Motivo obrigatório
+          <textarea id="support-reason" required minlength="8" maxlength="240" placeholder="Ex.: Reproduzir falha reportada no painel da empresa"></textarea>
+        </label>
+        <div><button class="primary-button" type="submit">Entrar em modo suporte</button></div>
+      </form>
+    </section>`;
+
+  document
+    .querySelector("#support-form")
+    ?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      try {
+        const result = await api("/support/session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            effectiveUserId: document.querySelector("#support-user").value,
+            reason: document.querySelector("#support-reason").value,
+          }),
+        });
+        state.adminSession.support = result.support;
+        applySupportBanner();
+      } catch (error) {
+        globalThis.alert(error.body?.error || error.message);
+      }
+    });
+}
+
+async function render(view, detail) {
+  state.view = view;
+  renderNav();
+  setHeading(view);
+  content.innerHTML = '<section class="card empty">Carregando…</section>';
+
+  try {
+    if (view === "overview") renderOverview();
+    else if (view === "users") await renderUsers(detail);
+    else if (view === "businesses") await renderBusinesses();
+    else if (view === "audit") await renderAudit();
+    else if (view === "system") await renderSystem();
+    else if (view === "support") await renderSupport();
+    else renderContractGap(view);
+  } catch (error) {
+    content.innerHTML = `
+      <section class="card empty">
+        <strong>Não foi possível carregar este módulo</strong>
+        <span>${escapeHtml(error.body?.error || error.message)}</span>
+      </section>`;
+  }
+}
+
+function applySupportBanner() {
+  const support = state.adminSession?.support;
+  supportBanner.hidden = !support;
+  if (!support) return;
+
+  supportContext.textContent =
+    `Visualizando como: ${support.effectiveUser.email} · ` +
+    `Empresa: ${support.effectiveUser.businessIds?.[0] ?? "sem tenant"} · ` +
+    `Motivo: ${support.reason}`;
+}
+
+function openHash(hash = globalThis.location.hash) {
+  const raw = hash.replace(/^#/, "") || "overview";
+  const [view, detail] = raw.split(":", 2);
+  void render(pageCopy[view] ? view : "overview", detail);
+}
+
+let searchTimer;
+searchInput.addEventListener("input", () => {
+  clearTimeout(searchTimer);
+  const query = searchInput.value.trim();
+  if (query.length < 2) {
+    searchResults.hidden = true;
+    return;
+  }
+
+  searchTimer = setTimeout(async () => {
+    try {
+      const data = await api(`/search?q=${encodeURIComponent(query)}`);
+      searchResults.innerHTML =
+        data.results
+          .map(
+            (result) =>
+              `<div class="search-result" data-href="${escapeHtml(result.href ?? "")}">
+                <span>
+                  <strong>${escapeHtml(result.title)}</strong><br>
+                  <small>${escapeHtml(result.type)} · ${escapeHtml(result.context ?? result.domain ?? "")}</small>
+                </span>
+                <span aria-hidden="true">↗</span>
+              </div>`,
+          )
+          .join("") || '<div class="empty">Nenhum resultado encontrado.</div>';
+      searchResults.hidden = false;
+    } catch {
+      searchResults.hidden = true;
+    }
+  }, 180);
+});
+
+searchResults.addEventListener("click", (event) => {
+  const item = event.target.closest("[data-href]");
+  if (!item) return;
+  globalThis.location.hash = item.dataset.href || "#overview";
+  searchResults.hidden = true;
+  searchInput.value = "";
+});
+
+document.addEventListener("keydown", (event) => {
+  if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+    event.preventDefault();
+    searchInput.focus();
+  }
+  if (event.key === "Escape") searchResults.hidden = true;
+});
+
+nav.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-view]");
+  if (!button) return;
+  globalThis.location.hash = `#${button.dataset.view}`;
+  app.classList.remove("menu-open");
+});
+
+menuButton?.addEventListener("click", () => app.classList.toggle("menu-open"));
+
+document
+  .querySelector("#logout-button")
+  .addEventListener("click", () => auth.logout());
+
+document
+  .querySelector("#support-end")
+  .addEventListener("click", async () => {
+    await api("/support/session", { method: "DELETE" });
+    state.adminSession.support = null;
+    applySupportBanner();
+  });
+
+globalThis.addEventListener("hashchange", () => openHash());
+
+async function bootApp() {
+  try {
+    state.session = await auth.getSession();
+    state.adminSession = await api("/session");
+    state.dashboard = await api("/dashboard");
+
+    actorCard.innerHTML =
+      `<strong>${escapeHtml(state.adminSession.actor.email)}</strong>` +
+      `<span>${escapeHtml(state.adminSession.actor.canonicalRole)}</span>`;
+
+    const releaseSha =
+      state.dashboard.health?.release?.sha ??
+      state.dashboard.health?.releaseSha ??
+      "—";
+    releaseChip.textContent = `SHA ${String(releaseSha).slice(0, 8)}`;
+
+    const ready = state.dashboard.health?.readiness === "ready";
+    healthChip.textContent = ready ? "Operacional" : "Atenção";
+    healthChip.className = `chip ${ready ? "chip-success" : "chip-warning"}`;
+
+    applySupportBanner();
+    app.hidden = false;
+    boot.hidden = true;
+    openHash();
+  } catch (error) {
+    if (error.status === 401) {
+      globalThis.location.replace(
+        `/dashboard/login.html?return=${encodeURIComponent("/apps/control-center/public/index.html")}`,
+      );
+      return;
+    }
+    boot.innerHTML =
+      `<strong>Acesso ao Control Center indisponível</strong>` +
+      `<span>${escapeHtml(error.body?.error || error.message)}</span>`;
+  }
+}
+
+void bootApp();
