@@ -139,151 +139,145 @@ describe("browser analytics instrumentation", () => {
     expect(JSON.stringify(query)).not.toContain("sushi");
   });
 
-  it(
-    "deduplicates category/place views and tracks tour completion duration",
-    async () => {
-      const { collector, inputs } = collectorHarness();
-      const document = new EventTarget() as unknown as Document;
-      let now = 1_000;
+  it("deduplicates category/place views and tracks tour completion duration", async () => {
+    const { collector, inputs } = collectorHarness();
+    const document = new EventTarget() as unknown as Document;
+    let now = 1_000;
 
-      installBrowserAnalyticsInstrumentation({
-        document,
-        collector,
-        context: { sessionId: "session-2" },
-        now: () => now,
-      });
+    installBrowserAnalyticsInstrumentation({
+      document,
+      collector,
+      context: { sessionId: "session-2" },
+      now: () => now,
+    });
 
-      const base = {
-        category: "beaches",
-        markerCount: 4,
-        tour: null,
-      };
+    const base = {
+      category: "beaches",
+      markerCount: 4,
+      tour: null,
+    };
 
-      dispatch(document, "morro:explore-state-changed", {
-        ...base,
-        stage: "places",
-        place: null,
-      });
-      dispatch(document, "morro:explore-state-changed", {
-        ...base,
-        stage: "detail",
-        place: "Segunda Praia",
-      });
-      dispatch(document, "morro:explore-state-changed", {
-        ...base,
-        stage: "detail",
-        place: "Segunda Praia",
-      });
-      dispatch(document, "morro:explore-state-changed", {
-        category: "tours",
-        stage: "tour",
-        place: null,
-        markerCount: 5,
-        tour: {
-          tourId: "volta-a-ilha",
-          stage: "intro",
-          currentStopIndex: 0,
-          totalStops: 5,
-        },
-      });
-      now = 11_000;
-      dispatch(document, "morro:explore-state-changed", {
-        category: "tours",
-        stage: "tour",
-        place: null,
-        markerCount: 5,
-        tour: {
-          tourId: "volta-a-ilha",
-          stage: "finale",
-          currentStopIndex: 4,
-          totalStops: 5,
-        },
-      });
-
-      await Promise.resolve();
-
-      expect(
-        inputs.filter((input) => input.name === "category_viewed"),
-      ).toHaveLength(2);
-      expect(inputs.filter((input) => input.name === "place_viewed")).toEqual([
-        expect.objectContaining({
-          attributes: {
-            placeId: "segunda-praia",
-            categoryId: "beaches",
-          },
-        }),
-      ]);
-      expect(
-        inputs.find((input) => input.name === "tour_started")?.attributes,
-      ).toEqual({
+    dispatch(document, "morro:explore-state-changed", {
+      ...base,
+      stage: "places",
+      place: null,
+    });
+    dispatch(document, "morro:explore-state-changed", {
+      ...base,
+      stage: "detail",
+      place: "Segunda Praia",
+    });
+    dispatch(document, "morro:explore-state-changed", {
+      ...base,
+      stage: "detail",
+      place: "Segunda Praia",
+    });
+    dispatch(document, "morro:explore-state-changed", {
+      category: "tours",
+      stage: "tour",
+      place: null,
+      markerCount: 5,
+      tour: {
         tourId: "volta-a-ilha",
-        stopCount: 5,
-      });
-      expect(
-        inputs.find((input) => input.name === "tour_completed")?.attributes,
-      ).toEqual({
+        stage: "intro",
+        currentStopIndex: 0,
+        totalStops: 5,
+      },
+    });
+    now = 11_000;
+    dispatch(document, "morro:explore-state-changed", {
+      category: "tours",
+      stage: "tour",
+      place: null,
+      markerCount: 5,
+      tour: {
         tourId: "volta-a-ilha",
-        completedStops: 5,
-        durationSeconds: 10,
-      });
-    },
-  );
+        stage: "finale",
+        currentStopIndex: 4,
+        totalStops: 5,
+      },
+    });
 
-  it(
-    "maps commerce and transaction milestones without payment amounts",
-    async () => {
-      const { collector, inputs } = collectorHarness();
-      const document = new EventTarget() as unknown as Document;
+    await Promise.resolve();
 
-      installBrowserAnalyticsInstrumentation({
-        document,
-        collector,
-        context: { sessionId: "session-3" },
-      });
+    expect(
+      inputs.filter((input) => input.name === "category_viewed"),
+    ).toHaveLength(2);
+    expect(inputs.filter((input) => input.name === "place_viewed")).toEqual([
+      expect.objectContaining({
+        attributes: {
+          placeId: "segunda-praia",
+          categoryId: "beaches",
+        },
+      }),
+    ]);
+    expect(
+      inputs.find((input) => input.name === "tour_started")?.attributes,
+    ).toEqual({
+      tourId: "volta-a-ilha",
+      stopCount: 5,
+    });
+    expect(
+      inputs.find((input) => input.name === "tour_completed")?.attributes,
+    ).toEqual({
+      tourId: "volta-a-ilha",
+      completedStops: 5,
+      durationSeconds: 10,
+    });
+  });
 
-      dispatch(document, "morro:commerce-cta-activated", {
-        value: "commerce:offer:offer-001",
-        place: "Segunda Praia",
-        url: "/tickets.html?offer=offer-001",
-      });
-      dispatch(document, ANALYTICS_TRANSACTION_EVENTS.checkoutStarted, {
-        orderId: "order-001",
-        itemCount: 2,
-        currency: "BRL",
-        amount: 31800,
-      });
-      dispatch(document, ANALYTICS_TRANSACTION_EVENTS.paymentApproved, {
-        orderId: "order-001",
-        paymentMethod: "pix",
-        currency: "BRL",
-        card: "4111111111111111",
-      });
+  it("maps commerce and transaction milestones without payment amounts", async () => {
+    const { collector, inputs } = collectorHarness();
+    const document = new EventTarget() as unknown as Document;
 
-      await Promise.resolve();
+    installBrowserAnalyticsInstrumentation({
+      document,
+      collector,
+      context: { sessionId: "session-3" },
+    });
 
-      expect(
-        inputs.find((input) => input.name === "commerce_clicked")?.attributes,
-      ).toEqual({
-        surface: "assistant",
-        placeId: "segunda-praia",
-        offerId: "offer-001",
-      });
-      expect(
-        inputs.find((input) => input.name === "checkout_started")?.attributes,
-      ).toEqual({
-        orderId: "order-001",
-        itemCount: 2,
-        currency: "BRL",
-      });
-      expect(
-        inputs.find((input) => input.name === "payment_approved")?.attributes,
-      ).toEqual({
-        orderId: "order-001",
-        currency: "BRL",
-        paymentMethod: "pix",
-      });
-      expect(JSON.stringify(inputs)).not.toContain("4111111111111111");
-      expect(JSON.stringify(inputs)).not.toContain("31800");
-    },
-  );
+    dispatch(document, "morro:commerce-cta-activated", {
+      value: "commerce:offer:offer-001",
+      place: "Segunda Praia",
+      url: "/tickets.html?offer=offer-001",
+    });
+    dispatch(document, ANALYTICS_TRANSACTION_EVENTS.checkoutStarted, {
+      orderId: "order-001",
+      itemCount: 2,
+      currency: "BRL",
+      amount: 31800,
+    });
+    dispatch(document, ANALYTICS_TRANSACTION_EVENTS.paymentApproved, {
+      orderId: "order-001",
+      paymentMethod: "pix",
+      currency: "BRL",
+      card: "4111111111111111",
+    });
+
+    await Promise.resolve();
+
+    expect(
+      inputs.find((input) => input.name === "commerce_clicked")?.attributes,
+    ).toEqual({
+      surface: "assistant",
+      placeId: "segunda-praia",
+      offerId: "offer-001",
+    });
+    expect(
+      inputs.find((input) => input.name === "checkout_started")?.attributes,
+    ).toEqual({
+      orderId: "order-001",
+      itemCount: 2,
+      currency: "BRL",
+    });
+    expect(
+      inputs.find((input) => input.name === "payment_approved")?.attributes,
+    ).toEqual({
+      orderId: "order-001",
+      currency: "BRL",
+      paymentMethod: "pix",
+    });
+    expect(JSON.stringify(inputs)).not.toContain("4111111111111111");
+    expect(JSON.stringify(inputs)).not.toContain("31800");
+  });
 });

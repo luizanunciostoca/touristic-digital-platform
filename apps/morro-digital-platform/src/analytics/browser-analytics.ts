@@ -280,9 +280,8 @@ export function installBrowserAnalyticsInstrumentation(
     const message = safeText(detail.message, 4_000);
     if (!message) return;
 
-    const navigationBanner = options.document.getElementById(
-      "instruction-banner",
-    );
+    const navigationBanner =
+      options.document.getElementById("instruction-banner");
 
     track("assistant_query", {
       queryLength: message.length,
@@ -351,11 +350,7 @@ export function installBrowserAnalyticsInstrumentation(
       });
     }
 
-    if (
-      tourId &&
-      tourStage === "finale" &&
-      completedTourId !== tourId
-    ) {
+    if (tourId && tourStage === "finale" && completedTourId !== tourId) {
       completedTourId = tourId;
       const durationSeconds =
         activeTourStartedAt === null
@@ -374,15 +369,14 @@ export function installBrowserAnalyticsInstrumentation(
     }
   });
 
-  const transactionEventMap: Readonly<
-    Record<string, AnalyticsEventName>
-  > = Object.freeze({
-    [ANALYTICS_TRANSACTION_EVENTS.offerSelected]: "offer_selected",
-    [ANALYTICS_TRANSACTION_EVENTS.reservationStarted]: "reservation_started",
-    [ANALYTICS_TRANSACTION_EVENTS.checkoutStarted]: "checkout_started",
-    [ANALYTICS_TRANSACTION_EVENTS.paymentApproved]: "payment_approved",
-    [ANALYTICS_TRANSACTION_EVENTS.ticketIssued]: "ticket_issued",
-  });
+  const transactionEventMap: Readonly<Record<string, AnalyticsEventName>> =
+    Object.freeze({
+      [ANALYTICS_TRANSACTION_EVENTS.offerSelected]: "offer_selected",
+      [ANALYTICS_TRANSACTION_EVENTS.reservationStarted]: "reservation_started",
+      [ANALYTICS_TRANSACTION_EVENTS.checkoutStarted]: "checkout_started",
+      [ANALYTICS_TRANSACTION_EVENTS.paymentApproved]: "payment_approved",
+      [ANALYTICS_TRANSACTION_EVENTS.ticketIssued]: "ticket_issued",
+    });
 
   for (const [eventName, analyticsName] of Object.entries(
     transactionEventMap,
