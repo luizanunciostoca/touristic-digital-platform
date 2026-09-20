@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   DestinationAdminService,
   MemoryDestinationRepository,
+  bootstrapMorroDeSaoPauloDestination,
 } from "./index.js";
 
 const fixture = {
@@ -53,5 +54,16 @@ describe("Destination owner service", () => {
       status: "invalid",
       error: "DESTINATION_INVALID_ID",
     });
+  });
+});
+
+describe("Morro destination bootstrap", () => {
+  it("is idempotent and preserves an existing governed destination", async () => {
+    const service = new DestinationAdminService(new MemoryDestinationRepository());
+    const first = await bootstrapMorroDeSaoPauloDestination(service);
+    const second = await bootstrapMorroDeSaoPauloDestination(service);
+    expect(first.status).toBe("created");
+    expect(second).toMatchObject({ status: "found", data: { version: 1 } });
+    expect(await service.list()).toHaveLength(1);
   });
 });
