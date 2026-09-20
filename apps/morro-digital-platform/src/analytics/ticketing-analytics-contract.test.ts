@@ -41,7 +41,7 @@ describe("ticketing analytics funnel contract", () => {
     const runtime = await readPublic("ticketing.js");
     const analyticsBlocks = [
       ...runtime.matchAll(
-        /emitAnalyticsOnce\([\s\S]*?ANALYTICS_TRANSACTION_EVENTS\.[A-Za-z]+,[\s\S]*?\n\s*\},\n\s*\);/gu,
+        /^\s+emitAnalyticsOnce\([\s\S]*?ANALYTICS_TRANSACTION_EVENTS\.[A-Za-z]+,[\s\S]*?\n\s*\},\n\s*\);/gmu,
       ),
     ].map((match) => match[0]);
 
