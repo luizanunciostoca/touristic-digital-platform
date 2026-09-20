@@ -47,7 +47,9 @@ describe("Destination owner service", () => {
   });
 
   it("rejects duplicate creation and invalid identifiers", async () => {
-    const service = new DestinationAdminService(new MemoryDestinationRepository());
+    const service = new DestinationAdminService(
+      new MemoryDestinationRepository(),
+    );
     expect((await service.create(fixture)).status).toBe("created");
     expect((await service.create(fixture)).status).toBe("conflict");
     expect(await service.read("../root")).toEqual({
@@ -59,7 +61,9 @@ describe("Destination owner service", () => {
 
 describe("Morro destination bootstrap", () => {
   it("is idempotent and preserves an existing governed destination", async () => {
-    const service = new DestinationAdminService(new MemoryDestinationRepository());
+    const service = new DestinationAdminService(
+      new MemoryDestinationRepository(),
+    );
     const first = await bootstrapMorroDeSaoPauloDestination(service);
     const second = await bootstrapMorroDeSaoPauloDestination(service);
     expect(first.status).toBe("created");

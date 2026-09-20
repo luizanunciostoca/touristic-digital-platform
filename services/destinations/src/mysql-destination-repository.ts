@@ -28,7 +28,8 @@ function json(value: unknown): unknown {
 
 function timestamp(value: Date | string): string {
   const date = value instanceof Date ? value : new Date(value);
-  if (!Number.isFinite(date.getTime())) throw new Error("DESTINATION_INVALID_DB_TIMESTAMP");
+  if (!Number.isFinite(date.getTime()))
+    throw new Error("DESTINATION_INVALID_DB_TIMESTAMP");
   return date.toISOString();
 }
 

@@ -185,7 +185,9 @@ platformOperations = createPlatformOperations({
       name: "destination-owner",
       status: destinationRuntimeReady ? "pass" : "fail",
       critical: false,
-      detail: destinationRuntimeReady ? "destination-owner-ready" : "DESTINATION_OWNER_UNAVAILABLE",
+      detail: destinationRuntimeReady
+        ? "destination-owner-ready"
+        : "DESTINATION_OWNER_UNAVAILABLE",
     },
     {
       name: "payments-runtime",
@@ -212,7 +214,9 @@ await adminAuditRuntime.start();
 
 const destinationRuntime = createDestinationAdminRuntime({
   DESTINATIONS_DATABASE_URL: getEnvironmentValue("DESTINATIONS_DATABASE_URL"),
-  DESTINATIONS_DATABASE_POOL_SIZE: getEnvironmentValue("DESTINATIONS_DATABASE_POOL_SIZE"),
+  DESTINATIONS_DATABASE_POOL_SIZE: getEnvironmentValue(
+    "DESTINATIONS_DATABASE_POOL_SIZE",
+  ),
 });
 await destinationRuntime.start();
 destinationRuntimeReady = (await destinationRuntime.readiness()).ready;

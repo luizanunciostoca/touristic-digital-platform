@@ -58,7 +58,9 @@ export function sanitizeDestinationInput(
   value: Readonly<Record<string, unknown>>,
 ): Omit<DestinationDocument, "version" | "createdAt" | "updatedAt"> | null {
   const id = sanitizeDestinationId(value.id);
-  const status = DESTINATION_STATUSES.includes(value.status as DestinationStatus)
+  const status = DESTINATION_STATUSES.includes(
+    value.status as DestinationStatus,
+  )
     ? (value.status as DestinationStatus)
     : null;
   const locale = cleanText(value.locale, 20);
@@ -120,7 +122,10 @@ export function sanitizeDestinationInput(
   const modules = modulesValue
     .map((item) => cleanText(item, 80))
     .filter((item): item is string => Boolean(item));
-  if (modules.length !== modulesValue.length || new Set(modules).size !== modules.length) {
+  if (
+    modules.length !== modulesValue.length ||
+    new Set(modules).size !== modules.length
+  ) {
     return null;
   }
 

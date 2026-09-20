@@ -140,7 +140,9 @@ function locales(
   defaultLocale: string,
 ): readonly string[] | null {
   const normalized = [
-    ...new Set(values.map(locale).filter((value): value is string => Boolean(value))),
+    ...new Set(
+      values.map(locale).filter((value): value is string => Boolean(value)),
+    ),
   ];
   if (normalized.length === 0 || normalized.length > 20) return null;
   if (!normalized.includes(defaultLocale)) return null;
@@ -149,7 +151,9 @@ function locales(
 
 function domains(values: readonly string[] = []): readonly string[] | null {
   const normalized = [
-    ...new Set(values.map((value) => value.trim().toLowerCase()).filter(Boolean)),
+    ...new Set(
+      values.map((value) => value.trim().toLowerCase()).filter(Boolean),
+    ),
   ];
   if (normalized.length > 20) return null;
   if (normalized.some((value) => !hostnamePattern.test(value))) return null;
@@ -192,7 +196,9 @@ function flags(
   ) {
     return null;
   }
-  return Object.freeze(Object.fromEntries(entries.sort(([a], [b]) => a.localeCompare(b))));
+  return Object.freeze(
+    Object.fromEntries(entries.sort(([a], [b]) => a.localeCompare(b))),
+  );
 }
 
 function branding(
@@ -202,7 +208,9 @@ function branding(
   const displayName = boundedText(value?.displayName ?? fallbackName, 2, 120);
   if (!displayName) return null;
   const shortName =
-    value?.shortName === undefined ? undefined : boundedText(value.shortName, 2, 60);
+    value?.shortName === undefined
+      ? undefined
+      : boundedText(value.shortName, 2, 60);
   if (value?.shortName !== undefined && !shortName) return null;
   const logoUrl = value?.logoUrl?.trim();
   if (logoUrl && (logoUrl.length > 500 || !/^https:\/\//u.test(logoUrl))) {
@@ -347,13 +355,14 @@ export function reviseDestination(
   });
 }
 
-const transitions: Readonly<Record<DestinationStatus, readonly DestinationStatus[]>> =
-  Object.freeze({
-    draft: Object.freeze<DestinationStatus[]>(["active", "archived"]),
-    active: Object.freeze<DestinationStatus[]>(["suspended", "archived"]),
-    suspended: Object.freeze<DestinationStatus[]>(["active", "archived"]),
-    archived: Object.freeze<DestinationStatus[]>([]),
-  });
+const transitions: Readonly<
+  Record<DestinationStatus, readonly DestinationStatus[]>
+> = Object.freeze({
+  draft: Object.freeze<DestinationStatus[]>(["active", "archived"]),
+  active: Object.freeze<DestinationStatus[]>(["suspended", "archived"]),
+  suspended: Object.freeze<DestinationStatus[]>(["active", "archived"]),
+  archived: Object.freeze<DestinationStatus[]>([]),
+});
 
 export function transitionDestination(
   current: DestinationRecord,

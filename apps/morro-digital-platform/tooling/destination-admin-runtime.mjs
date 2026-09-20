@@ -6,7 +6,9 @@ import {
 } from "@touristic/destinations-server";
 
 export function createDestinationAdminRuntime(environment = process.env) {
-  const databaseUrl = String(environment.DESTINATIONS_DATABASE_URL ?? "").trim();
+  const databaseUrl = String(
+    environment.DESTINATIONS_DATABASE_URL ?? "",
+  ).trim();
   if (!databaseUrl) {
     return Object.freeze({
       state: "unavailable",
@@ -14,7 +16,10 @@ export function createDestinationAdminRuntime(environment = process.env) {
       async start() {},
       async stop() {},
       async readiness() {
-        return Object.freeze({ ready: false, reason: "DESTINATIONS_DATABASE_URL_REQUIRED" });
+        return Object.freeze({
+          ready: false,
+          reason: "DESTINATIONS_DATABASE_URL_REQUIRED",
+        });
       },
     });
   }
@@ -41,12 +46,19 @@ export function createDestinationAdminRuntime(environment = process.env) {
       started = false;
     },
     async readiness() {
-      if (!started) return Object.freeze({ ready: false, reason: "DESTINATIONS_NOT_STARTED" });
+      if (!started)
+        return Object.freeze({
+          ready: false,
+          reason: "DESTINATIONS_NOT_STARTED",
+        });
       try {
         await service.list();
         return Object.freeze({ ready: true });
       } catch {
-        return Object.freeze({ ready: false, reason: "DESTINATIONS_DATABASE_UNAVAILABLE" });
+        return Object.freeze({
+          ready: false,
+          reason: "DESTINATIONS_DATABASE_UNAVAILABLE",
+        });
       }
     },
   });

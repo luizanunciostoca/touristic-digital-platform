@@ -434,13 +434,20 @@ async function renderDestinations(destinationId) {
         <table>
           <thead><tr><th>Destino</th><th>Status</th><th>Locale</th><th>Timezone</th><th>Versão</th></tr></thead>
           <tbody>
-            ${destinations.map((item) => `<tr>
+            ${
+              destinations
+                .map(
+                  (item) => `<tr>
               <td><a href="#destinations:${encodeURIComponent(item.id)}"><strong>${escapeHtml(item.branding?.name ?? item.id)}</strong></a><br><small>${escapeHtml(item.id)}</small></td>
               <td>${statusBadge(item.status)}</td>
               <td>${escapeHtml(item.locale)}</td>
               <td>${escapeHtml(item.timezone)}</td>
               <td>${escapeHtml(item.version)}</td>
-            </tr>`).join("") || '<tr><td colspan="5" class="empty">Nenhum destino governado disponível.</td></tr>'}
+            </tr>`,
+                )
+                .join("") ||
+              '<tr><td colspan="5" class="empty">Nenhum destino governado disponível.</td></tr>'
+            }
           </tbody>
         </table>
       </div>`;
@@ -476,27 +483,30 @@ async function renderDestinations(destinationId) {
       </form>
     </section>`;
 
-  document.querySelector("#destination-status-form")?.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const result = document.querySelector("#destination-status-result");
-    const status = document.querySelector("#destination-status")?.value;
-    const reason = document.querySelector("#destination-reason")?.value ?? "";
-    if (reason.trim().length < 8) {
-      result.textContent = "Informe um motivo com pelo menos 8 caracteres.";
-      return;
-    }
-    try {
-      await api(`/destinations/${encodeURIComponent(selected.id)}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status, reason }),
-      });
-      result.textContent = "Destino atualizado e encaminhado à auditoria administrativa.";
-      await renderDestinations(selected.id);
-    } catch (error) {
-      result.textContent = error.body?.error || error.message;
-    }
-  });
+  document
+    .querySelector("#destination-status-form")
+    ?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const result = document.querySelector("#destination-status-result");
+      const status = document.querySelector("#destination-status")?.value;
+      const reason = document.querySelector("#destination-reason")?.value ?? "";
+      if (reason.trim().length < 8) {
+        result.textContent = "Informe um motivo com pelo menos 8 caracteres.";
+        return;
+      }
+      try {
+        await api(`/destinations/${encodeURIComponent(selected.id)}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status, reason }),
+        });
+        result.textContent =
+          "Destino atualizado e encaminhado à auditoria administrativa.";
+        await renderDestinations(selected.id);
+      } catch (error) {
+        result.textContent = error.body?.error || error.message;
+      }
+    });
 }
 
 async function renderBusinesses(businessId) {

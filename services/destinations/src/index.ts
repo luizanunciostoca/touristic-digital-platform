@@ -14,7 +14,10 @@ export interface DestinationOwnerClock {
 }
 
 export type DestinationAdminResult =
-  | Readonly<{ status: "found" | "created" | "updated"; data: DestinationDocument }>
+  | Readonly<{
+      status: "found" | "created" | "updated";
+      data: DestinationDocument;
+    }>
   | Readonly<{ status: "not_found" }>
   | Readonly<{ status: "conflict"; error: string }>
   | Readonly<{ status: "invalid"; error: string }>;
@@ -33,16 +36,20 @@ export class DestinationAdminService {
 
   public async read(id: unknown): Promise<DestinationAdminResult> {
     const normalized = sanitizeDestinationId(id);
-    if (!normalized) return { status: "invalid", error: "DESTINATION_INVALID_ID" };
+    if (!normalized)
+      return { status: "invalid", error: "DESTINATION_INVALID_ID" };
     const document = await this.repository.get(normalized);
-    return document ? { status: "found", data: document } : { status: "not_found" };
+    return document
+      ? { status: "found", data: document }
+      : { status: "not_found" };
   }
 
   public async create(
     input: Readonly<Record<string, unknown>>,
   ): Promise<DestinationAdminResult> {
     const clean = sanitizeDestinationInput(input);
-    if (!clean) return { status: "invalid", error: "DESTINATION_INVALID_REQUEST" };
+    if (!clean)
+      return { status: "invalid", error: "DESTINATION_INVALID_REQUEST" };
     const now = this.clock.now();
     const document: DestinationDocument = Object.freeze({
       ...clean,
@@ -60,11 +67,13 @@ export class DestinationAdminService {
     input: Readonly<Record<string, unknown>>,
   ): Promise<DestinationAdminResult> {
     const normalized = sanitizeDestinationId(id);
-    if (!normalized) return { status: "invalid", error: "DESTINATION_INVALID_ID" };
+    if (!normalized)
+      return { status: "invalid", error: "DESTINATION_INVALID_ID" };
     const current = await this.repository.get(normalized);
     if (!current) return { status: "not_found" };
     const clean = sanitizeDestinationInput({ ...input, id: normalized });
-    if (!clean) return { status: "invalid", error: "DESTINATION_INVALID_REQUEST" };
+    if (!clean)
+      return { status: "invalid", error: "DESTINATION_INVALID_REQUEST" };
     const next: DestinationDocument = Object.freeze({
       ...clean,
       id: normalized,
@@ -82,7 +91,8 @@ export class DestinationAdminService {
     status: DestinationStatus,
   ): Promise<DestinationAdminResult> {
     const normalized = sanitizeDestinationId(id);
-    if (!normalized) return { status: "invalid", error: "DESTINATION_INVALID_ID" };
+    if (!normalized)
+      return { status: "invalid", error: "DESTINATION_INVALID_ID" };
     const current = await this.repository.get(normalized);
     if (!current) return { status: "not_found" };
     return this.replace(normalized, { ...current, status });
@@ -129,8 +139,14 @@ export function createDestinationsMySqlPool(
   databaseUrl = process.env.DESTINATIONS_DATABASE_URL,
 ): Pool {
   if (!databaseUrl) throw new Error("DESTINATIONS_DATABASE_URL_REQUIRED");
-  const connectionLimit = Number(process.env.DESTINATIONS_DATABASE_POOL_SIZE ?? 6);
-  if (!Number.isInteger(connectionLimit) || connectionLimit < 1 || connectionLimit > 64) {
+  const connectionLimit = Number(
+    process.env.DESTINATIONS_DATABASE_POOL_SIZE ?? 6,
+  );
+  if (
+    !Number.isInteger(connectionLimit) ||
+    connectionLimit < 1 ||
+    connectionLimit > 64
+  ) {
     throw new Error("DESTINATIONS_DATABASE_POOL_SIZE_INVALID");
   }
   return mysql.createPool({
@@ -145,7 +161,9 @@ export async function applyDestinationsSchema(pool: Pool): Promise<void> {
   await pool.query(destinationsSchemaSql);
 }
 
-export function createDestinationAdminService(pool: Pool): DestinationAdminService {
+export function createDestinationAdminService(
+  pool: Pool,
+): DestinationAdminService {
   return new DestinationAdminService(new MySqlDestinationRepository(pool));
 }
 

@@ -357,16 +357,30 @@ describe("Control Center Financial owner adapter", () => {
 describe("Control Center Destination owner adapter", () => {
   function destinationService() {
     let current = {
-      id: "morro-de-sao-paulo", status: "active", locale: "pt-BR",
-      timezone: "America/Bahia", currency: "BRL",
-      branding: { name: "Morro de São Paulo", shortName: "Morro", tagline: "Descubra Morro" },
+      id: "morro-de-sao-paulo",
+      status: "active",
+      locale: "pt-BR",
+      timezone: "America/Bahia",
+      currency: "BRL",
+      branding: {
+        name: "Morro de São Paulo",
+        shortName: "Morro",
+        tagline: "Descubra Morro",
+      },
       center: { lat: -13.3833, lng: -38.9167, zoom: 13 },
-      modules: ["map"], featureFlags: { map: true },
-      version: 1, createdAt: "2026-09-20T00:00:00.000Z", updatedAt: "2026-09-20T00:00:00.000Z",
+      modules: ["map"],
+      featureFlags: { map: true },
+      version: 1,
+      createdAt: "2026-09-20T00:00:00.000Z",
+      updatedAt: "2026-09-20T00:00:00.000Z",
     };
     return {
       list: vi.fn(async () => [current]),
-      read: vi.fn(async (id) => id === current.id ? { status: "found", data: current } : { status: "not_found" }),
+      read: vi.fn(async (id) =>
+        id === current.id
+          ? { status: "found", data: current }
+          : { status: "not_found" },
+      ),
       create: vi.fn(async (value) => ({ status: "created", data: value })),
       replace: vi.fn(async (_id, value) => {
         current = { ...current, ...value, version: current.version + 1 };
@@ -389,7 +403,9 @@ describe("Control Center Destination owner adapter", () => {
       requestUrl: new URL("http://localhost/api/admin/v1/destinations"),
     });
     expect(response.statusCode).toBe(200);
-    expect(JSON.parse(response.payload).destinations[0].id).toBe("morro-de-sao-paulo");
+    expect(JSON.parse(response.payload).destinations[0].id).toBe(
+      "morro-de-sao-paulo",
+    );
     expect(service.list).toHaveBeenCalledTimes(1);
   });
 
@@ -398,11 +414,18 @@ describe("Control Center Destination owner adapter", () => {
     const adapter = createDestinationAdminAdapter({ service });
     const response = responseCapture();
     const req = Object.assign(request("PATCH"), {
-      async *[Symbol.asyncIterator]() { yield Buffer.from(JSON.stringify({ status: "suspended", reason: "curto" })); },
+      async *[Symbol.asyncIterator]() {
+        yield Buffer.from(
+          JSON.stringify({ status: "suspended", reason: "curto" }),
+        );
+      },
     });
     await adapter.handle({
-      request: req, response,
-      requestUrl: new URL("http://localhost/api/admin/v1/destinations/morro-de-sao-paulo"),
+      request: req,
+      response,
+      requestUrl: new URL(
+        "http://localhost/api/admin/v1/destinations/morro-de-sao-paulo",
+      ),
     });
     expect(response.statusCode).toBe(400);
     expect(JSON.parse(response.payload).error).toBe("REASON_REQUIRED");
@@ -414,11 +437,21 @@ describe("Control Center Destination owner adapter", () => {
     const adapter = createDestinationAdminAdapter({ service });
     const response = responseCapture();
     const req = Object.assign(request("PATCH"), {
-      async *[Symbol.asyncIterator]() { yield Buffer.from(JSON.stringify({ status: "suspended", reason: "Manutenção programada" })); },
+      async *[Symbol.asyncIterator]() {
+        yield Buffer.from(
+          JSON.stringify({
+            status: "suspended",
+            reason: "Manutenção programada",
+          }),
+        );
+      },
     });
     const audit = await adapter.handle({
-      request: req, response,
-      requestUrl: new URL("http://localhost/api/admin/v1/destinations/morro-de-sao-paulo"),
+      request: req,
+      response,
+      requestUrl: new URL(
+        "http://localhost/api/admin/v1/destinations/morro-de-sao-paulo",
+      ),
     });
     expect(response.statusCode).toBe(200);
     expect(audit).toMatchObject({
@@ -435,6 +468,8 @@ describe("Control Center Destination owner adapter", () => {
     const response = responseCapture();
     await adapter.handle({ response });
     expect(response.statusCode).toBe(503);
-    expect(JSON.parse(response.payload).error).toBe("DESTINATION_ADMIN_OWNER_UNAVAILABLE");
+    expect(JSON.parse(response.payload).error).toBe(
+      "DESTINATION_ADMIN_OWNER_UNAVAILABLE",
+    );
   });
 });

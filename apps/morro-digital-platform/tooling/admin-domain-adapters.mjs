@@ -442,7 +442,6 @@ export function createAdminDomainAdapters({
   });
 }
 
-
 export function createDestinationAdminAdapter(destinationRuntime) {
   const service = destinationRuntime?.service;
   if (!service) {
@@ -450,12 +449,15 @@ export function createDestinationAdminAdapter(destinationRuntime) {
       state: "unavailable",
       coverage: Object.freeze([]),
       async handle({ response }) {
-        sendJson(response, 503, { error: "DESTINATION_ADMIN_OWNER_UNAVAILABLE" });
+        sendJson(response, 503, {
+          error: "DESTINATION_ADMIN_OWNER_UNAVAILABLE",
+        });
       },
     });
   }
 
-  const detailPattern = /^\/api\/admin\/v1\/destinations\/([a-z0-9]+(?:-[a-z0-9]+)*)$/u;
+  const detailPattern =
+    /^\/api\/admin\/v1\/destinations\/([a-z0-9]+(?:-[a-z0-9]+)*)$/u;
 
   async function body(request) {
     const chunks = [];
@@ -466,20 +468,25 @@ export function createDestinationAdminAdapter(destinationRuntime) {
       if (total > 32 * 1024) throw new Error("REQUEST_BODY_TOO_LARGE");
       chunks.push(value);
     }
-    return chunks.length ? JSON.parse(Buffer.concat(chunks).toString("utf8")) : {};
+    return chunks.length
+      ? JSON.parse(Buffer.concat(chunks).toString("utf8"))
+      : {};
   }
 
   return Object.freeze({
     state: "ready",
     coverage: Object.freeze(["list", "detail", "create", "replace", "status"]),
     async search({ query }) {
-      const needle = String(query ?? "").trim().toLocaleLowerCase();
+      const needle = String(query ?? "")
+        .trim()
+        .toLocaleLowerCase();
       if (!needle) return [];
       const destinations = await service.list();
       return destinations
         .filter((item) =>
-          [item.id, item.branding.name, item.branding.shortName]
-            .some((value) => value.toLocaleLowerCase().includes(needle)),
+          [item.id, item.branding.name, item.branding.shortName].some((value) =>
+            value.toLocaleLowerCase().includes(needle),
+          ),
         )
         .map((item) => ({
           type: "destination",
@@ -500,7 +507,9 @@ export function createDestinationAdminAdapter(destinationRuntime) {
           return;
         }
         let payload;
-        try { payload = await body(request); } catch {
+        try {
+          payload = await body(request);
+        } catch {
           sendJson(response, 400, { error: "INVALID_REQUEST" });
           return;
         }
@@ -510,9 +519,14 @@ export function createDestinationAdminAdapter(destinationRuntime) {
           return;
         }
         const result = await service.create(payload.destination ?? {});
-        const statusCode = result.status === "created" ? 201 :
-          result.status === "conflict" ? 409 :
-          result.status === "invalid" ? 400 : 500;
+        const statusCode =
+          result.status === "created"
+            ? 201
+            : result.status === "conflict"
+              ? 409
+              : result.status === "invalid"
+                ? 400
+                : 500;
         sendJson(response, statusCode, result);
         return Object.freeze({
           reason,
@@ -531,8 +545,15 @@ export function createDestinationAdminAdapter(destinationRuntime) {
       const id = match[1];
       if (request.method === "GET") {
         const result = await service.read(id);
-        sendJson(response, result.status === "found" ? 200 :
-          result.status === "not_found" ? 404 : 400, result);
+        sendJson(
+          response,
+          result.status === "found"
+            ? 200
+            : result.status === "not_found"
+              ? 404
+              : 400,
+          result,
+        );
         return;
       }
       if (request.method !== "PUT" && request.method !== "PATCH") {
@@ -540,7 +561,9 @@ export function createDestinationAdminAdapter(destinationRuntime) {
         return;
       }
       let payload;
-      try { payload = await body(request); } catch {
+      try {
+        payload = await body(request);
+      } catch {
         sendJson(response, 400, { error: "INVALID_REQUEST" });
         return;
       }
@@ -557,9 +580,14 @@ export function createDestinationAdminAdapter(destinationRuntime) {
       const result = payload.status
         ? await service.setStatus(id, payload.status)
         : await service.replace(id, payload.destination ?? {});
-      const statusCode = result.status === "updated" ? 200 :
-        result.status === "conflict" ? 409 :
-        result.status === "not_found" ? 404 : 400;
+      const statusCode =
+        result.status === "updated"
+          ? 200
+          : result.status === "conflict"
+            ? 409
+            : result.status === "not_found"
+              ? 404
+              : 400;
       sendJson(response, statusCode, result);
       return Object.freeze({
         reason,
