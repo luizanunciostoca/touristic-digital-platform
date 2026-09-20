@@ -13,9 +13,7 @@ export interface AnalyticsIngestionRecord {
 }
 
 export interface AnalyticsIngestionRepositoryPort {
-  record(
-    record: AnalyticsIngestionRecord,
-  ): Promise<"stored" | "replayed">;
+  record(record: AnalyticsIngestionRecord): Promise<"stored" | "replayed">;
   purgeExpired(before: string): Promise<number>;
 }
 

@@ -3,10 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { AnalyticsEvent } from "@touristic/analytics";
 import type { AnalyticsIngestionService } from "@touristic/analytics/ingestion";
 
-import {
-  analyticsHttpPath,
-  AnalyticsHttpTransport,
-} from "./http-transport.js";
+import { analyticsHttpPath, AnalyticsHttpTransport } from "./http-transport.js";
 
 function service(
   status: "stored" | "replayed" = "stored",

@@ -95,9 +95,7 @@ describe("analytics ingestion service", () => {
     });
 
     await expect(service.purgeExpired()).resolves.toBe(7);
-    expect(purgeExpired).toHaveBeenCalledWith(
-      "2026-09-20T12:00:00.000Z",
-    );
+    expect(purgeExpired).toHaveBeenCalledWith("2026-09-20T12:00:00.000Z");
   });
 
   it("rejects invalid retention configuration", () => {

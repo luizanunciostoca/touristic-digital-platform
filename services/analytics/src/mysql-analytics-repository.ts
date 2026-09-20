@@ -1,14 +1,8 @@
 import { createHash } from "node:crypto";
 
-import type {
-  Pool,
-  ResultSetHeader,
-  RowDataPacket,
-} from "mysql2/promise";
+import type { Pool, ResultSetHeader, RowDataPacket } from "mysql2/promise";
 
-import type {
-  AnalyticsEvent,
-} from "@touristic/analytics";
+import type { AnalyticsEvent } from "@touristic/analytics";
 import type {
   AnalyticsIngestionRecord,
   AnalyticsIngestionRepositoryPort,
@@ -77,9 +71,7 @@ function sameEvent(row: AnalyticsEventRow, event: AnalyticsEvent): boolean {
   );
 }
 
-export class MySqlAnalyticsEventRepository
-  implements AnalyticsIngestionRepositoryPort
-{
+export class MySqlAnalyticsEventRepository implements AnalyticsIngestionRepositoryPort {
   constructor(private readonly pool: Pool) {}
 
   private async findRow(eventId: string): Promise<AnalyticsEventRow | null> {
