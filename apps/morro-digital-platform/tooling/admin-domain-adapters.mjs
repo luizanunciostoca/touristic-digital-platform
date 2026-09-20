@@ -437,3 +437,133 @@ export function createAdminDomainAdapters({
       : {}),
   });
 }
+
+
+export function createDestinationAdminAdapter(destinationRuntime) {
+  const service = destinationRuntime?.service;
+  if (!service) {
+    return Object.freeze({
+      state: "unavailable",
+      coverage: Object.freeze([]),
+      async handle({ response }) {
+        sendJson(response, 503, { error: "DESTINATION_ADMIN_OWNER_UNAVAILABLE" });
+      },
+    });
+  }
+
+  const detailPattern = /^\/api\/admin\/v1\/destinations\/([a-z0-9]+(?:-[a-z0-9]+)*)$/u;
+
+  async function body(request) {
+    const chunks = [];
+    let total = 0;
+    for await (const chunk of request) {
+      const value = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+      total += value.length;
+      if (total > 32 * 1024) throw new Error("REQUEST_BODY_TOO_LARGE");
+      chunks.push(value);
+    }
+    return chunks.length ? JSON.parse(Buffer.concat(chunks).toString("utf8")) : {};
+  }
+
+  return Object.freeze({
+    state: "ready",
+    coverage: Object.freeze(["list", "detail", "create", "replace", "status"]),
+    async search({ query }) {
+      const needle = String(query ?? "").trim().toLocaleLowerCase();
+      if (!needle) return [];
+      const destinations = await service.list();
+      return destinations
+        .filter((item) =>
+          [item.id, item.branding.name, item.branding.shortName]
+            .some((value) => value.toLocaleLowerCase().includes(needle)),
+        )
+        .map((item) => ({
+          type: "destination",
+          id: item.id,
+          title: item.branding.name,
+          context: item.status,
+          href: `#destinations:${encodeURIComponent(item.id)}`,
+        }));
+    },
+    async handle({ request, response, requestUrl }) {
+      if (requestUrl.pathname === `${adminPrefix}/destinations`) {
+        if (request.method === "GET") {
+          sendJson(response, 200, { destinations: await service.list() });
+          return;
+        }
+        if (request.method !== "POST") {
+          sendJson(response, 405, { error: "METHOD_NOT_ALLOWED" });
+          return;
+        }
+        let payload;
+        try { payload = await body(request); } catch {
+          sendJson(response, 400, { error: "INVALID_REQUEST" });
+          return;
+        }
+        const reason = String(payload?.reason ?? "").trim();
+        if (reason.length < 8) {
+          sendJson(response, 400, { error: "REASON_REQUIRED" });
+          return;
+        }
+        const result = await service.create(payload.destination ?? {});
+        const statusCode = result.status === "created" ? 201 :
+          result.status === "conflict" ? 409 :
+          result.status === "invalid" ? 400 : 500;
+        sendJson(response, statusCode, result);
+        return Object.freeze({
+          reason,
+          entityType: "destination",
+          entityId: result.data?.id ?? payload.destination?.id ?? null,
+          previousState: null,
+          newState: result.data ?? null,
+        });
+      }
+
+      const match = detailPattern.exec(requestUrl.pathname);
+      if (!match?.[1]) {
+        notFound(response, "DESTINATION_ADMIN_ROUTE_NOT_AVAILABLE");
+        return;
+      }
+      const id = match[1];
+      if (request.method === "GET") {
+        const result = await service.read(id);
+        sendJson(response, result.status === "found" ? 200 :
+          result.status === "not_found" ? 404 : 400, result);
+        return;
+      }
+      if (request.method !== "PUT" && request.method !== "PATCH") {
+        sendJson(response, 405, { error: "METHOD_NOT_ALLOWED" });
+        return;
+      }
+      let payload;
+      try { payload = await body(request); } catch {
+        sendJson(response, 400, { error: "INVALID_REQUEST" });
+        return;
+      }
+      const reason = String(payload?.reason ?? "").trim();
+      if (reason.length < 8) {
+        sendJson(response, 400, { error: "REASON_REQUIRED" });
+        return;
+      }
+      const before = await service.read(id);
+      if (before.status !== "found") {
+        sendJson(response, before.status === "not_found" ? 404 : 400, before);
+        return;
+      }
+      const result = payload.status
+        ? await service.setStatus(id, payload.status)
+        : await service.replace(id, payload.destination ?? {});
+      const statusCode = result.status === "updated" ? 200 :
+        result.status === "conflict" ? 409 :
+        result.status === "not_found" ? 404 : 400;
+      sendJson(response, statusCode, result);
+      return Object.freeze({
+        reason,
+        entityType: "destination",
+        entityId: id,
+        previousState: before.data,
+        newState: result.data ?? null,
+      });
+    },
+  });
+}
