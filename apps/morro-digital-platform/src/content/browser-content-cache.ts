@@ -5,9 +5,9 @@ import {
 } from "@touristic/content/public-projection";
 
 export interface ContentSnapshotStorage {
-  read(destinationId: string): OfflineContentSnapshot | null;
-  write(snapshot: OfflineContentSnapshot): void;
-  clear(destinationId: string): void;
+  read(destinationId: string): Promise<OfflineContentSnapshot | null>;
+  write(snapshot: OfflineContentSnapshot): Promise<void>;
+  clear(destinationId: string): Promise<void>;
 }
 
 export type ContentSnapshotLoadResult =
@@ -30,68 +30,72 @@ export interface LoadContentSnapshotOptions {
   readonly fetchSnapshot: () => Promise<unknown>;
 }
 
-const STORAGE_PREFIX = "morro-content-snapshot-v1:";
+const CACHE_NAME = "morro-digital-content-v1";
+const CACHE_KEY_PREFIX = "/__morro_offline/content/";
 
-function storageKey(destinationId: string): string {
-  return `${STORAGE_PREFIX}${destinationId.trim()}`;
+function normalizedDestinationId(destinationId: string): string {
+  return destinationId.trim();
 }
 
-function safeParse(value: string | null): unknown {
-  if (value === null) return null;
-  try {
-    return JSON.parse(value) as unknown;
-  } catch {
-    return null;
-  }
+function cacheKey(origin: string, destinationId: string): string {
+  return new URL(
+    `${CACHE_KEY_PREFIX}${encodeURIComponent(destinationId)}.json`,
+    origin,
+  ).href;
 }
 
 export function createBrowserContentSnapshotStorage(
-  storage: Storage,
+  caches: CacheStorage,
+  origin: string,
 ): ContentSnapshotStorage {
+  const normalizedOrigin = new URL(origin).origin;
+
   return Object.freeze({
-    read(destinationId: string): OfflineContentSnapshot | null {
-      const normalizedDestinationId = destinationId.trim();
-      if (!normalizedDestinationId) return null;
+    async read(destinationId: string): Promise<OfflineContentSnapshot | null> {
+      const normalized = normalizedDestinationId(destinationId);
+      if (!normalized) return null;
+
+      const cache = await caches.open(CACHE_NAME);
+      const key = cacheKey(normalizedOrigin, normalized);
+      const response = await cache.match(key);
+      if (!response) return null;
 
       try {
-        const parsed = parseOfflineContentSnapshot(
-          safeParse(storage.getItem(storageKey(normalizedDestinationId))),
-        );
-        if (
-          !parsed ||
-          parsed.destinationId !== normalizedDestinationId
-        ) {
+        const parsed = parseOfflineContentSnapshot(await response.json());
+        if (!parsed || parsed.destinationId !== normalized) {
+          await cache.delete(key);
           return null;
         }
         return parsed;
       } catch {
+        await cache.delete(key);
         return null;
       }
     },
 
-    write(snapshot: OfflineContentSnapshot): void {
+    async write(snapshot: OfflineContentSnapshot): Promise<void> {
       const parsed = parseOfflineContentSnapshot(snapshot);
       if (!parsed) return;
 
-      try {
-        storage.setItem(
-          storageKey(parsed.destinationId),
-          JSON.stringify(parsed),
-        );
-      } catch {
-        // Offline content persistence is best-effort and must never break UX.
-      }
+      const cache = await caches.open(CACHE_NAME);
+      await cache.put(
+        cacheKey(normalizedOrigin, parsed.destinationId),
+        new Response(JSON.stringify(parsed), {
+          status: 200,
+          headers: {
+            "content-type": "application/json; charset=utf-8",
+            "cache-control": "no-store",
+          },
+        }),
+      );
     },
 
-    clear(destinationId: string): void {
-      const normalizedDestinationId = destinationId.trim();
-      if (!normalizedDestinationId) return;
+    async clear(destinationId: string): Promise<void> {
+      const normalized = normalizedDestinationId(destinationId);
+      if (!normalized) return;
 
-      try {
-        storage.removeItem(storageKey(normalizedDestinationId));
-      } catch {
-        // Storage cleanup is best-effort.
-      }
+      const cache = await caches.open(CACHE_NAME);
+      await cache.delete(cacheKey(normalizedOrigin, normalized));
     },
   });
 }
@@ -99,12 +103,12 @@ export function createBrowserContentSnapshotStorage(
 export async function loadContentSnapshot(
   options: LoadContentSnapshotOptions,
 ): Promise<ContentSnapshotLoadResult> {
-  const destinationId = options.destinationId.trim();
+  const destinationId = normalizedDestinationId(options.destinationId);
   if (!destinationId) {
     return Object.freeze({ status: "unavailable", stale: true });
   }
 
-  const cached = options.storage.read(destinationId);
+  const cached = await options.storage.read(destinationId);
 
   try {
     const networkValue = await options.fetchSnapshot();
@@ -115,7 +119,7 @@ export async function loadContentSnapshot(
       networkSnapshot.destinationId === destinationId &&
       isOfflineContentSnapshotFresh(networkSnapshot, options.now)
     ) {
-      options.storage.write(networkSnapshot);
+      await options.storage.write(networkSnapshot);
       return Object.freeze({
         status: "network",
         snapshot: networkSnapshot,
