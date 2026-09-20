@@ -156,6 +156,7 @@ jobs:
           }
 
           async function assertTourModeComposition(page, label) {
+            await page.waitForTimeout(250);
             const state = await page.evaluate(() => {
               const visibility = (selector) => {
                 const element = document.querySelector(selector);
