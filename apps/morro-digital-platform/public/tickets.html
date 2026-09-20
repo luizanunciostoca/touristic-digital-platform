@@ -27,7 +27,7 @@
     />
   </head>
   <body data-md-mode="commerce">
-    <main class="ticketing-shell">
+    <main class="ticketing-shell" data-md-surface="ticketing">
       <header class="ticketing-header">
         <a class="back-link" href="/">← Morro Digital</a>
         <div>
@@ -38,10 +38,10 @@
             apresente o QR emitido após a confirmação do pagamento.
           </p>
         </div>
-        <p id="session-label" class="session-label" aria-live="polite"></p>
+        <p id="session-label" class="session-label md-badge" aria-live="polite"></p>
       </header>
 
-      <section class="panel" aria-labelledby="offers-title">
+      <section class="panel md-card" aria-labelledby="offers-title">
         <div class="section-heading">
           <div>
             <p class="eyebrow">Disponibilidade em tempo real</p>
@@ -49,7 +49,7 @@
           </div>
           <button
             id="refresh-button"
-            class="button button-secondary"
+            class="button button-secondary md-button md-button--secondary"
             type="button"
           >
             Atualizar
@@ -58,7 +58,7 @@
         <div id="offers" class="offer-grid" aria-live="polite"></div>
       </section>
 
-      <section class="panel" aria-labelledby="reservation-title">
+      <section class="panel md-card" aria-labelledby="reservation-title">
         <div class="section-heading">
           <div>
             <p class="eyebrow">Reserva</p>
@@ -74,6 +74,7 @@
             Experiência
             <input
               id="selected-offer"
+              class="md-input"
               type="text"
               readonly
               placeholder="Selecione uma experiência acima"
@@ -83,6 +84,7 @@
             Nome completo
             <input
               id="holder-name"
+              class="md-input"
               name="name"
               autocomplete="name"
               maxlength="160"
@@ -93,6 +95,7 @@
             E-mail
             <input
               id="holder-email"
+              class="md-input"
               name="email"
               type="email"
               autocomplete="email"
@@ -104,6 +107,7 @@
             Telefone <span>opcional</span>
             <input
               id="holder-phone"
+              class="md-input"
               name="phone"
               autocomplete="tel"
               maxlength="40"
@@ -113,6 +117,7 @@
             Documento <span>opcional</span>
             <input
               id="holder-document"
+              class="md-input"
               name="document"
               autocomplete="off"
               maxlength="40"
@@ -122,6 +127,7 @@
             Quantidade
             <input
               id="quantity"
+              class="md-input"
               name="quantity"
               type="number"
               inputmode="numeric"
@@ -135,7 +141,7 @@
             <p id="reservation-message" class="message" aria-live="polite"></p>
             <button
               id="reserve-button"
-              class="button button-primary"
+              class="button button-primary md-button md-button--primary"
               type="submit"
               disabled
             >
@@ -145,7 +151,7 @@
         </form>
       </section>
 
-      <section class="panel" aria-labelledby="my-tickets-title">
+      <section class="panel md-card" aria-labelledby="my-tickets-title">
         <div class="section-heading">
           <div>
             <p class="eyebrow">Sua carteira</p>
@@ -163,10 +169,10 @@
       </section>
     </main>
 
-    <dialog id="ticket-dialog" class="ticket-dialog">
+    <dialog id="ticket-dialog" class="ticket-dialog md-dialog" aria-labelledby="ticket-title">
       <button
         id="ticket-close"
-        class="dialog-close"
+        class="dialog-close md-icon-button"
         type="button"
         aria-label="Fechar"
       >
