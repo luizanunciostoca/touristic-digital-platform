@@ -56,6 +56,59 @@ function requireServerCredential(environment, name) {
   if (configured.length < 32) {
     throw new Error(`${name}_INVALID`);
   }
+  return configured;
+}
+
+function numericProviderIdentifier(environment, name) {
+  const configured = value(environment, name);
+  return /^[1-9][0-9]{5,19}$/u.test(configured) ? configured : "";
+}
+
+function requireSubscriptionsPublicCredential(environment, mode) {
+  const name = "MERCADO_PAGO_SUBSCRIPTIONS_PUBLIC_KEY";
+  const configured = requireValue(environment, name);
+  if (!publicKeyPattern.test(configured)) {
+    throw new Error(`${name}_INVALID`);
+  }
+
+  const credentialMode = configured.startsWith("TEST-")
+    ? "test"
+    : "production";
+  if (credentialMode === mode) return configured;
+
+  if (mode === "test" && credentialMode === "production") {
+    const accessToken = requireServerCredential(
+      environment,
+      "MERCADO_PAGO_SUBSCRIPTIONS_ACCESS_TOKEN",
+    );
+    const serviceName = value(environment, "RENDER_SERVICE_NAME");
+    const credentialOrigin = value(
+      environment,
+      "MERCADO_PAGO_SUBSCRIPTIONS_CREDENTIAL_ORIGIN",
+    ).toLowerCase();
+    const sellerUserId = numericProviderIdentifier(
+      environment,
+      "MERCADO_PAGO_SUBSCRIPTIONS_TEST_SELLER_USER_ID",
+    );
+    const sellerApplicationId = numericProviderIdentifier(
+      environment,
+      "MERCADO_PAGO_SUBSCRIPTIONS_TEST_SELLER_APPLICATION_ID",
+    );
+    if (
+      accessToken.startsWith("APP_USR-") &&
+      serviceName === "morro-digital-v2-staging" &&
+      credentialOrigin === "test_seller_account" &&
+      sellerUserId &&
+      sellerApplicationId
+    ) {
+      return configured;
+    }
+    throw new Error(
+      "MERCADO_PAGO_SUBSCRIPTIONS_TEST_SELLER_APP_PROVENANCE_REQUIRED",
+    );
+  }
+
+  throw new Error(`${name}_MODE_MISMATCH`);
 }
 
 export function validateMercadoPagoProductionCutover(
@@ -80,11 +133,7 @@ export function validateMercadoPagoProductionCutover(
       environment,
       "MERCADO_PAGO_SUBSCRIPTIONS_ACCESS_TOKEN",
     );
-    requirePublicCredential(
-      environment,
-      "MERCADO_PAGO_SUBSCRIPTIONS_PUBLIC_KEY",
-      mode,
-    );
+    requireSubscriptionsPublicCredential(environment, mode);
     requireExactHttpsUrl(environment, "PAYMENTS_SUBSCRIPTION_BACK_URL");
   }
 
