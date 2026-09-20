@@ -72,4 +72,25 @@ describe("Ticketing public HTTP offline sync error boundary", () => {
       }),
     );
   });
+
+  it("maps duplicate validation to an idempotency conflict instead of availability failure", async () => {
+    const sync = vi
+      .fn()
+      .mockRejectedValue(
+        new TicketingApplicationError("TICKETING_TICKET_ALREADY_VALIDATED"),
+      );
+    const { transport } = transportWithOfflineSync(sync);
+
+    const result = await transport.handle({
+      method: "POST",
+      pathname: "/api/ticketing/v1/offline-sync",
+      headers: { authorization: "Bearer valid-device-credential" },
+      body: { envelope: {} },
+      correlationId: "ticketing:test:offline:duplicate-validation",
+    });
+
+    expect(result.status).toBe(409);
+    expect(result.body.error).toBe("TICKETING_TICKET_ALREADY_VALIDATED");
+  });
+
 });
