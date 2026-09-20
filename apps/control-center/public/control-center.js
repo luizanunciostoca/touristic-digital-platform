@@ -353,7 +353,7 @@ async function renderUsers(userId) {
                     <td><code>${escapeHtml(session.handle.slice(0, 12))}…</code></td>
                     <td>${escapeHtml(new Date(session.issuedAt * 1000).toLocaleString("pt-BR"))}</td>
                     <td>${escapeHtml(new Date(session.expiresAt * 1000).toLocaleString("pt-BR"))}</td>
-                    <td>${statusBadge(active ? "pass" : status === "revogada" ? "partial" : "gap")}</td>
+                    <td><span class="badge ${active ? "pass" : status === "revogada" ? "partial" : "gap"}">${escapeHtml(status)}</span></td>
                     <td>
                       ${
                         active
