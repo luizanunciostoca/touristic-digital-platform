@@ -4,11 +4,13 @@ import {
   commerceIntlLocale,
   getExperiencePresentationCopy,
 } from "/runtime/commerce-i18n.js";
+import { installCommercePreviewSheet } from "/ux/commerce-preview-sheet.js";
 
 const localeResolution = initializeMorroBrowserLocale({ document });
 const presentationLocale = commerceIntlLocale(localeResolution.locale);
 const copy = getExperiencePresentationCopy(presentationLocale);
 applyCommerceDocumentCopy(document, "experience", presentationLocale);
+installCommercePreviewSheet({ document, window });
 
 const elements = {
   loading: document.querySelector("#experience-loading"),
