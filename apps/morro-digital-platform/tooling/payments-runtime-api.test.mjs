@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   bindMercadoPagoWebhookQueryContext,
+  createPaymentsApi,
   startPaymentsCoreWithRetry,
 } from "./payments-runtime-api.mjs";
 
@@ -54,6 +55,87 @@ describe("Payments runtime Mercado Pago webhook query context", () => {
     );
 
     expect(request.headers).toBe(headers);
+  });
+});
+
+describe("Payments runtime Control Center owner facade", () => {
+  it("passes exact admin read contracts through to the core runtime", async () => {
+    const api = createPaymentsApi({
+      adminRead: {
+        orders: {
+          findById(id) {
+            return Promise.resolve(
+              id === "ord_runtime_admin_0001"
+                ? { id, status: "pending_payment" }
+                : null,
+            );
+          },
+        },
+        payments: {
+          findById(id) {
+            return Promise.resolve(
+              id === "pay_runtime_admin_0001"
+                ? {
+                    id,
+                    status: "confirmed",
+                    subject: {
+                      kind: "order",
+                      reference: "ord_runtime_admin_0001",
+                    },
+                  }
+                : null,
+            );
+          },
+        },
+        checkoutAccess: {
+          findByOrderId(orderId) {
+            return Promise.resolve(
+              orderId === "ord_runtime_admin_0001"
+                ? {
+                    orderId,
+                    paymentId: "pay_runtime_admin_0001",
+                    tenantId: "business-runtime-admin",
+                  }
+                : null,
+            );
+          },
+        },
+        ledger: {
+          findByExternalKey(key) {
+            return Promise.resolve(
+              key === "payment_approved_pay_runtime_admin_0001"
+                ? { id: "ltx_runtime_admin_0001", externalKey: key }
+                : null,
+            );
+          },
+        },
+      },
+    });
+
+    await expect(
+      api.adminFindOrder("ord_runtime_admin_0001"),
+    ).resolves.toMatchObject({
+      status: "found",
+      data: { id: "ord_runtime_admin_0001" },
+    });
+    await expect(
+      api.adminFindPayment("pay_runtime_admin_0001"),
+    ).resolves.toMatchObject({
+      status: "found",
+      data: { id: "pay_runtime_admin_0001" },
+    });
+    await expect(
+      api.adminResolvePaymentTenant("pay_runtime_admin_0001"),
+    ).resolves.toEqual({
+      status: "found",
+      tenantId: "business-runtime-admin",
+    });
+    await expect(
+      api.adminFindLedger("payment_approved_pay_runtime_admin_0001"),
+    ).resolves.toMatchObject({
+      status: "found",
+      data: { id: "ltx_runtime_admin_0001" },
+    });
   });
 });
 
