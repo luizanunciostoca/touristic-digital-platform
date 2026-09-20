@@ -10,6 +10,8 @@ const cases = [
     expectedDir: "ltr",
     headline:
       "👋 Olá! Sou o assistente virtual do Morro Digital. Como posso ajudar você hoje?",
+    assistantWelcome:
+      "🎉 Bem-vindo ao Morro Digital! Sou seu guia virtual oficial em Morro de São Paulo, pronto para ajudar você a explorar com facilidade pontos turísticos, praias, restaurantes, festas, passeios e tudo o que precisar, na palma da sua mão. Como posso ajudar? 😄",
     placeholder: "Digite sua pergunta...",
   },
   {
@@ -18,6 +20,8 @@ const cases = [
     expectedDir: "ltr",
     headline:
       "👋 Hello! I'm the Morro Digital virtual assistant. How can I help you today?",
+    assistantWelcome:
+      "🎉 Welcome to Morro Digital! I am your official virtual guide to Morro de São Paulo, ready to help you easily explore tourist spots, beaches, restaurants, parties, tours, and everything you need at your fingertips. How can I help you? 😄",
     placeholder: "Type your question...",
   },
   {
@@ -26,6 +30,8 @@ const cases = [
     expectedDir: "ltr",
     headline:
       "👋 ¡Hola! Soy el asistente virtual de Morro Digital. ¿Cómo puedo ayudarte hoy?",
+    assistantWelcome:
+      "🎉 ¡Bienvenido a Morro Digital! Soy tu guía virtual oficial de Morro de São Paulo, listo para ayudarte a explorar fácilmente lugares turísticos, playas, restaurantes, fiestas, paseos y todo lo que necesites al alcance de tu mano. ¿Cómo puedo ayudarte? 😄",
     placeholder: "Escribe tu pregunta...",
   },
   {
@@ -34,6 +40,8 @@ const cases = [
     expectedDir: "rtl",
     headline:
       "👋 שלום! אני העוזר הווירטואלי של מורו דיגיטל. איך אוכל לעזור לך היום?",
+    assistantWelcome:
+      "🎉 ברוכים הבאים ל-Morro Digital! אני המדריך הווירטואלי הרשמי שלכם למורו דה סאו פאולו, מוכן לעזור לכם לגלות בקלות אתרי תיירות, חופים, מסעדות, מסיבות, סיורים וכל מה שאתם צריכים — ממש בהישג יד. איך אוכל לעזור? 😄",
     placeholder: "הקלד את שאלתך...",
   },
 ];
@@ -119,6 +127,10 @@ try {
       lang: document.documentElement.lang,
       dir: document.documentElement.dir,
       headline: document.querySelector("header h1")?.textContent?.trim() ?? "",
+      assistantWelcome:
+        document
+          .querySelector("#assistant-messages .message.assistant")
+          ?.textContent?.trim() ?? "",
       placeholder:
         document
           .getElementById("assistantInput")
@@ -141,6 +153,11 @@ try {
       observed.headline,
       testCase.headline,
       `${testCase.browserLocale} shell translation`,
+    );
+    assertEqual(
+      observed.assistantWelcome,
+      testCase.assistantWelcome,
+      `${testCase.browserLocale} assistant initial welcome`,
     );
     assertEqual(
       observed.placeholder,
