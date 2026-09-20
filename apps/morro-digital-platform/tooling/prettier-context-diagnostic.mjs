@@ -8,6 +8,7 @@ const targets = [
   ".github/workflows/commerce-browser-regression.yml",
   "apps/morro-digital-platform/src/browser-entry.ts",
   "apps/morro-digital-platform/src/map/explore-locations-control.ts",
+  "apps/morro-digital-platform/src/map/explore-location-identity.test.ts",
   "apps/morro-digital-platform/src/ux/tourist-experience-snapshot.ts",
   "apps/morro-digital-platform/src/ux/tourist-experience-snapshot.test.ts",
 ];
