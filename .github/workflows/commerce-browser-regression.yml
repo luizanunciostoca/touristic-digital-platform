@@ -19,6 +19,8 @@ on:
       - "apps/morro-digital-platform/src/browser-entry.ts"
       - "apps/morro-digital-platform/src/map/**"
       - "apps/morro-digital-platform/src/ux/tourist-experience-snapshot.ts"
+      - "apps/morro-digital-platform/src/runtime/commerce-preview-sheet.ts"
+      - "apps/morro-digital-platform/src/ux/commerce-preview-sheet.ts"
       - "apps/morro-digital-platform/src/business-dashboard-client.ts"
       - "apps/morro-digital-platform/src/business-dashboard-surface.ts"
       - "apps/morro-digital-platform/src/commerce/**"
@@ -188,7 +190,10 @@ jobs:
             const browser = await chromium.launch({ headless: true });
             try {
               for (const viewport of viewports) {
-                const context = await browser.newContext({ viewport });
+                const context = await browser.newContext({
+                  viewport,
+                  hasTouch: viewport.name === 'mobile',
+                });
                 await context.addInitScript(() => {
                   localStorage.setItem('morro-digital-onboarded', '1');
                   localStorage.setItem('morro-digital-language', 'pt-BR');
@@ -338,20 +343,21 @@ jobs:
                   typeof left === 'number' &&
                   typeof right === 'number' &&
                   Math.abs(left - right) <= tolerance;
+                const mapCenterTolerance = 0.00001;
                 if (
                   contextBeforeHandoff.mode !== 'place' ||
                   contextAfterReturn.mode !== 'place' ||
                   contextAfterReturn.restoredMode !== 'place' ||
                   contextAfterReturn.category !== 'nightlife' ||
                   contextAfterReturn.place !== 'Toca do Morcego' ||
-                  !Array.isArray(contextBeforeHandoff.center) ||
+                  !Array.isArray(storedSnapshot.mapCenter) ||
                   !Array.isArray(contextAfterReturn.center) ||
-                  !close(contextBeforeHandoff.center[0], contextAfterReturn.center[0], 0.000001) ||
-                  !close(contextBeforeHandoff.center[1], contextAfterReturn.center[1], 0.000001) ||
-                  !close(contextBeforeHandoff.zoom, contextAfterReturn.zoom, 0.01)
+                  !close(storedSnapshot.mapCenter[0], contextAfterReturn.center[0], mapCenterTolerance) ||
+                  !close(storedSnapshot.mapCenter[1], contextAfterReturn.center[1], mapCenterTolerance) ||
+                  !close(storedSnapshot.mapZoom, contextAfterReturn.zoom, 0.01)
                 ) {
                   throw new Error(
-                    `Map -> Place -> Ticketing -> Return context drift on ${viewport.name}: ${JSON.stringify({ contextBeforeHandoff, contextAfterReturn })}`,
+                    `Map -> Place -> Ticketing -> Return context drift on ${viewport.name}: ${JSON.stringify({ contextBeforeHandoff, storedSnapshot, contextAfterReturn })}`,
                   );
                 }
                 evidence.push({
@@ -398,8 +404,153 @@ jobs:
                 await page.goto(`${origin}/tickets.html`, { waitUntil: 'domcontentloaded', timeout: 30000 });
                 await page.locator(`.offer-card[data-inventory-id="${offer.id}"]`).waitFor({ state: 'visible' });
                 await Promise.all([page.waitForURL('**/experience.html?id=*'), page.locator(`.offer-card[data-inventory-id="${offer.id}"] a.button-secondary`).click()]);
-                await page.locator('#experience-card').waitFor({ state: 'visible' });
+                try {
+                  await page.locator('#experience-card').waitFor({ state: 'visible', timeout: 10000 });
+                } catch {
+                  const detailDiagnostics = await page.evaluate(async () => {
+                    const moduleResponse = await fetch('/runtime/commerce-preview-sheet.js').catch(() => null);
+                    return {
+                      href: location.href,
+                      loadingText: document.getElementById('experience-loading')?.textContent?.trim() ?? null,
+                      loadingHidden: document.getElementById('experience-loading')?.hidden ?? null,
+                      cardHidden: document.getElementById('experience-card')?.hidden ?? null,
+                      moduleStatus: moduleResponse?.status ?? null,
+                      moduleContentType: moduleResponse?.headers.get('content-type') ?? null,
+                      resources: performance
+                        .getEntriesByType('resource')
+                        .map(entry => entry.name)
+                        .filter(name => name.includes('commerce') || name.includes('experience')),
+                    };
+                  });
+                  throw new Error(
+                    `Experience detail did not resolve on ${viewport.name}: ${JSON.stringify({ detailDiagnostics, errors })}`,
+                  );
+                }
                 if ((await page.locator('#experience-title').textContent())?.trim() !== offer.label) throw new Error(`Detail mismatch on ${viewport.name}`);
+
+                const previewSheet = await page.locator('#experience-preview-sheet').evaluate(node => {
+                  const handle = node.querySelector('[data-commerce-sheet-handle="true"]');
+                  const reserve = node.querySelector('#experience-reserve');
+                  const handleRect = handle instanceof HTMLElement ? handle.getBoundingClientRect() : null;
+                  return {
+                    active: node.classList.contains('md-bottom-sheet'),
+                    state: node.getAttribute('data-sheet-state'),
+                    bodyState: document.body.dataset.commerceSheetState ?? null,
+                    handleHidden: handle instanceof HTMLElement ? handle.hidden : null,
+                    handleHeight: handleRect?.height ?? 0,
+                    reserveInside: reserve instanceof HTMLElement,
+                  };
+                });
+                if (viewport.name === 'mobile') {
+                  if (
+                    !previewSheet.active ||
+                    previewSheet.state !== 'half' ||
+                    previewSheet.bodyState !== 'half' ||
+                    previewSheet.handleHidden ||
+                    previewSheet.handleHeight < 44 ||
+                    !previewSheet.reserveInside
+                  ) {
+                    throw new Error(`Commerce preview sheet initial state drift on ${viewport.name}: ${JSON.stringify(previewSheet)}`);
+                  }
+                  const handle = page.locator('[data-commerce-sheet-handle="true"]');
+                  await handle.press('ArrowUp');
+                  await page.locator('#experience-preview-sheet[data-sheet-state="full"]').waitFor({ state: 'attached' });
+                  await handle.press('ArrowDown');
+                  await page.locator('#experience-preview-sheet[data-sheet-state="half"]').waitFor({ state: 'attached' });
+                  await page.evaluate(() => {
+                    const sheet = document.getElementById('experience-preview-sheet');
+                    globalThis.__commerceSheetGestureTrace = [];
+                    const record = (event) => {
+                      const touch =
+                        event instanceof TouchEvent
+                          ? event.touches[0] ?? event.changedTouches[0]
+                          : null;
+                      globalThis.__commerceSheetGestureTrace.push({
+                        type: event.type,
+                        pointerType: event instanceof PointerEvent ? event.pointerType : null,
+                        clientY:
+                          event instanceof PointerEvent
+                            ? event.clientY
+                            : touch?.clientY ?? null,
+                        target:
+                          event.target instanceof HTMLElement
+                            ? event.target.id || event.target.className
+                            : null,
+                        state: sheet?.getAttribute('data-sheet-state') ?? null,
+                      });
+                    };
+                    for (const type of [
+                      'pointerdown',
+                      'pointermove',
+                      'pointerup',
+                      'pointercancel',
+                      'touchstart',
+                      'touchmove',
+                      'touchend',
+                      'touchcancel',
+                      'click',
+                    ]) {
+                      document.addEventListener(type, record, true);
+                    }
+                  });
+                  const handleBox = await handle.boundingBox();
+                  if (!handleBox) {
+                    throw new Error('Commerce preview sheet handle has no geometry');
+                  }
+                  const touchClient = await context.newCDPSession(page);
+                  const startX = handleBox.x + handleBox.width / 2;
+                  const startY = handleBox.y + handleBox.height / 2;
+                  const endY = Math.max(1, startY - 64);
+                  await touchClient.send('Input.dispatchTouchEvent', {
+                    type: 'touchStart',
+                    touchPoints: [{ x: startX, y: startY }],
+                  });
+                  await touchClient.send('Input.dispatchTouchEvent', {
+                    type: 'touchMove',
+                    touchPoints: [{ x: startX, y: endY }],
+                  });
+                  await touchClient.send('Input.dispatchTouchEvent', {
+                    type: 'touchEnd',
+                    touchPoints: [],
+                  });
+                  await page.waitForTimeout(100);
+                  const dragResult = await page
+                    .locator('#experience-preview-sheet')
+                    .evaluate(node => ({
+                      state: node.getAttribute('data-sheet-state'),
+                      bodyState: document.body.dataset.commerceSheetState ?? null,
+                      trace: globalThis.__commerceSheetGestureTrace ?? [],
+                    }));
+                  if (dragResult.state !== 'full' || dragResult.bodyState !== 'full') {
+                    throw new Error(
+                      `Commerce preview sheet touch drag did not expand on ${viewport.name}: ${JSON.stringify(dragResult)}`,
+                    );
+                  }
+                  const expanded = await page.locator('#experience-preview-sheet').evaluate(node => ({
+                    state: node.getAttribute('data-sheet-state'),
+                    bodyState: document.body.dataset.commerceSheetState ?? null,
+                    reserveVisible: (() => {
+                      const reserve = node.querySelector('#experience-reserve');
+                      if (!(reserve instanceof HTMLElement)) return false;
+                      const rect = reserve.getBoundingClientRect();
+                      return rect.width >= 44 && rect.height >= 44 && rect.top < innerHeight && rect.bottom > 0;
+                    })(),
+                  }));
+                  if (expanded.state !== 'full' || expanded.bodyState !== 'full' || !expanded.reserveVisible) {
+                    throw new Error(`Commerce preview sheet expanded state drift on ${viewport.name}: ${JSON.stringify(expanded)}`);
+                  }
+                  await handle.press('ArrowDown');
+                  await page.locator('#experience-preview-sheet[data-sheet-state="half"]').waitFor({ state: 'attached' });
+                } else if (
+                  previewSheet.active ||
+                  previewSheet.state !== null ||
+                  previewSheet.bodyState !== null ||
+                  previewSheet.handleHidden !== true
+                ) {
+                  throw new Error(`Commerce preview sheet leaked into non-mobile layout on ${viewport.name}: ${JSON.stringify(previewSheet)}`);
+                }
+                evidence.push({ viewport: viewport.name, previewSheet });
+
                 await page.goBack({ waitUntil: 'domcontentloaded' });
                 await page.locator(`.offer-card[data-inventory-id="${offer.id}"]`).waitFor({ state: 'visible' });
                 await Promise.all([page.waitForURL('**/experience.html?id=*'), page.locator(`.offer-card[data-inventory-id="${offer.id}"] a.button-secondary`).click()]);
