@@ -1,0 +1,155 @@
+name: Morro Digital Performance Budget
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/morro-performance-budget.yml
+      - tooling/performance/**
+      - apps/morro-digital-platform/src/**
+      - apps/morro-digital-platform/public/**
+      - packages/assistant/src/**
+      - packages/analytics/src/**
+      - packages/core/src/**
+      - packages/geospatial/src/**
+      - packages/navigation/src/**
+      - packages/search/src/**
+      - package.json
+      - pnpm-lock.yaml
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
+    paths:
+      - .github/workflows/morro-performance-budget.yml
+      - tooling/performance/**
+      - apps/morro-digital-platform/src/**
+      - apps/morro-digital-platform/public/**
+      - packages/assistant/src/**
+      - packages/analytics/src/**
+      - packages/core/src/**
+      - packages/geospatial/src/**
+      - packages/navigation/src/**
+      - packages/search/src/**
+      - package.json
+      - pnpm-lock.yaml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  performance-budget:
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build runtime
+        run: pnpm -w build
+      - name: Install deterministic Chromium
+        run: |
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+      - name: Start Morro Digital runtime
+        run: |
+          mkdir -p /tmp/morro-performance
+          node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/morro-performance/runtime.log 2>&1 &
+          echo $! >/tmp/morro-performance/runtime.pid
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:4173/runtime-config.js >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/morro-performance/runtime.log
+          exit 1
+      - name: Measure browser startup budgets
+        run: |
+          node <<'NODE' | tee /tmp/morro-performance/runtime-budget.json
+          const { readFileSync } = require('node:fs');
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+          const budget = JSON.parse(
+            readFileSync('tooling/performance/morro-digital-budget.json', 'utf8'),
+          );
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            const context = await browser.newContext({
+              viewport: { width: 390, height: 844 },
+              locale: 'pt-BR',
+            });
+            const page = await context.newPage();
+            const errors = [];
+            page.on('pageerror', error => errors.push(error.message));
+
+            const startedAt = Date.now();
+            await page.goto('http://127.0.0.1:4173/', {
+              waitUntil: 'domcontentloaded',
+              timeout: 30000,
+            });
+            await page.locator('#assistantInput').waitFor({
+              state: 'visible',
+              timeout: budget.runtime.assistantStartupMs + 5000,
+            });
+            const assistantStartupMs = Date.now() - startedAt;
+
+            await page.locator(
+              '#map[data-map-state="ready"][data-home-state="ready"]',
+            ).waitFor({
+              state: 'attached',
+              timeout: budget.runtime.mapStartupMs + 5000,
+            });
+            const mapStartupMs = Date.now() - startedAt;
+
+            const failures = [];
+            if (assistantStartupMs > budget.runtime.assistantStartupMs) {
+              failures.push(
+                `assistantStartupMs exceeded: ${assistantStartupMs}ms > ${budget.runtime.assistantStartupMs}ms`,
+              );
+            }
+            if (mapStartupMs > budget.runtime.mapStartupMs) {
+              failures.push(
+                `mapStartupMs exceeded: ${mapStartupMs}ms > ${budget.runtime.mapStartupMs}ms`,
+              );
+            }
+            if (errors.length) {
+              failures.push(`browser page errors: ${JSON.stringify(errors)}`);
+            }
+
+            const report = {
+              status: failures.length === 0 ? 'pass' : 'fail',
+              budget: budget.runtime,
+              actual: { assistantStartupMs, mapStartupMs },
+              failures,
+            };
+            console.log(JSON.stringify(report, null, 2));
+            await browser.close();
+            if (failures.length) process.exit(1);
+          })().catch(error => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+      - name: Enforce Morro Digital asset budgets
+        run: |
+          mkdir -p /tmp/morro-performance
+          node tooling/performance/check-morro-digital-budget.mjs |
+            tee /tmp/morro-performance/report.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: morro-performance-budget
+          path: |
+            /tmp/morro-performance/report.json
+            /tmp/morro-performance/runtime-budget.json
+          retention-days: 7
+          if-no-files-found: error
