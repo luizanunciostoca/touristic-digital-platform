@@ -20,8 +20,7 @@ export interface ControlCenterAuditEntry {
   readonly result: string;
 }
 
-export interface PersistedControlCenterAuditEntry
-  extends ControlCenterAuditEntry {
+export interface PersistedControlCenterAuditEntry extends ControlCenterAuditEntry {
   readonly id: string;
 }
 
@@ -182,7 +181,9 @@ export class MySqlControlCenterAuditStore {
     }
   }
 
-  async list(limit = 100): Promise<readonly PersistedControlCenterAuditEntry[]> {
+  async list(
+    limit = 100,
+  ): Promise<readonly PersistedControlCenterAuditEntry[]> {
     const count = Math.max(1, Math.min(250, Math.floor(Number(limit) || 100)));
     const [rows] = await this.pool.query<ControlCenterAuditRow[]>(
       `SELECT
@@ -213,8 +214,6 @@ export class MySqlControlCenterAuditStore {
   }
 }
 
-export async function applyControlCenterAuditSchema(
-  pool: Pool,
-): Promise<void> {
+export async function applyControlCenterAuditSchema(pool: Pool): Promise<void> {
   await pool.query(controlCenterAuditSchemaSql);
 }
