@@ -152,6 +152,43 @@
 }
 
 /* Safe viewport strategy: 100vh fallback, then small/dynamic viewport units. */
+html,
+body {
+  min-height: 100vh;
+  min-height: 100svh;
+  min-height: 100dvh;
+}
+
+.app-shell {
+  height: 100vh;
+  height: 100svh;
+  height: 100dvh;
+}
+
+#onboarding-overlay,
+.onboarding-overlay {
+  height: 100vh;
+  height: 100svh;
+  height: 100dvh;
+}
+
+.weather-forecast-modal {
+  max-height: 100vh;
+  max-height: 100svh;
+  max-height: 100dvh;
+}
+
+.satellite-control-panel {
+  max-height: calc(100vh - 100px);
+  max-height: calc(100svh - 100px);
+  max-height: calc(100dvh - 100px);
+}
+
+#assistant-voice-selector {
+  max-height: calc(100vh - 120px);
+  max-height: calc(100svh - 120px);
+  max-height: calc(100dvh - 120px);
+}
 :where(
   .md-viewport-shell,
   .commerce-detail-shell,
