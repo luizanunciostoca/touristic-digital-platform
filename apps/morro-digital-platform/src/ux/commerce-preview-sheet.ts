@@ -79,7 +79,9 @@ export function installCommercePreviewSheet(input: {
   const sheet = input.document.getElementById("experience-preview-sheet");
   if (!(sheet instanceof HTMLElement)) return null;
 
-  const media = input.window.matchMedia(input.mediaQuery ?? "(max-width: 45rem)");
+  const media = input.window.matchMedia(
+    input.mediaQuery ?? "(max-width: 45rem)",
+  );
   const handle = input.document.createElement("button");
   handle.type = "button";
   handle.className = "commerce-preview-sheet-handle md-icon-button";
