@@ -13,5 +13,11 @@
     "test": "pnpm --filter @touristic/affiliates build && pnpm build && vitest run --passWithNoTests",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test:integration": "pnpm --filter @touristic/affiliates build && pnpm build && vitest run --maxWorkers=1 src/mysql-integration.test.ts src/mysql-suspension-integration.test.ts src/mysql-attribution-integration.test.ts src/affiliate-privacy-integration.test.ts src/commercial-mysql-integration.test.ts"
+  },
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./dist/index.js"
+    }
   }
 }
