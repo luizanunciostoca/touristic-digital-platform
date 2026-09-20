@@ -1,5 +1,9 @@
 import { randomUUID } from "node:crypto";
-import { hasAuthCapability, isReadOnlyAuthRole } from "@touristic/auth";
+import {
+  hasAuthCapability,
+  isPlatformWideAuthRole,
+  isReadOnlyAuthRole,
+} from "@touristic/auth";
 
 import {
   MySqlCrmCommerceCustomerRepository,
@@ -233,11 +237,18 @@ export function createTicketingAuthorizationPort({ authApi }) {
           });
         }
       }
+      const transportRole =
+        isPlatformWideAuthRole(active.role) &&
+        hasAuthCapability(active.role, "ticketing.manage")
+          ? "admin"
+          : isReadOnlyAuthRole(active.role)
+            ? "viewer"
+            : "editor";
       return Object.freeze({
         allowed: true,
         actor: Object.freeze({
           subject: active.subject,
-          role: active.role,
+          role: transportRole,
           businessIds: Object.freeze([...(active.businessIds ?? [])]),
         }),
       });
