@@ -190,6 +190,48 @@ describe.skipIf(!databaseUrl)(
       expect(await admin.read("aff_missing_0001")).toBeNull();
     });
 
+    it("keeps legacy membership writes compatible while normalizing admin projections", async () => {
+      await createProgram("prog_admin_legacy_0001", "morro");
+      const identity = new AffiliateIdentityApplicationService(
+        pool,
+        allowAllAuthorization,
+      );
+      await identity.createAffiliate({
+        actor: affiliateActor,
+        affiliateId: "aff_admin_legacy_0001",
+        identityReference: "legacy-affiliate",
+        pseudonymousReference: "pseudo-admin-legacy-0001",
+        accountType: "person",
+        roleCategory: "creator",
+        occurredAt: "2026-08-23T22:05:00.000Z",
+      });
+      await pool.execute(
+        `INSERT INTO affiliate_memberships
+         (membership_id, affiliate_id, program_id, status, accepted_terms_version,
+          financial_onboarding_status, joined_at, ended_at, updated_at)
+         VALUES (?, ?, ?, 'active', 'terms-v1', 'eligible', UTC_TIMESTAMP(3), NULL, UTC_TIMESTAMP(3))`,
+        [
+          "mem_admin_legacy_0001",
+          "aff_admin_legacy_0001",
+          "prog_admin_legacy_0001",
+        ],
+      );
+
+      const admin = new AffiliateAdminQueryService(pool);
+      const detail = await admin.read("aff_admin_legacy_0001");
+      expect(detail?.memberships[0]?.status).toBe("approved");
+
+      const list = await admin.list({
+        query: "legacy-affiliate",
+        limit: 10,
+      });
+      expect(list).toHaveLength(1);
+      expect(list[0]).toMatchObject({
+        affiliateId: "aff_admin_legacy_0001",
+        approvedMembershipCount: 1,
+      });
+    });
+
     it("persists identity, allowed profile updates and membership lifecycle across service restart", async () => {
       await createProgram();
       const first = new AffiliateIdentityApplicationService(
