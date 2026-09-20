@@ -31,7 +31,8 @@ function sameImmutableAuthority(left: Ticket, right: Ticket): boolean {
     left.amount.minorUnits === right.amount.minorUnits &&
     left.amount.currency === right.amount.currency &&
     left.code === right.code &&
-    left.issuedAt === right.issuedAt
+    left.issuedAt === right.issuedAt &&
+    left.validUntil === right.validUntil
   );
 }
 
