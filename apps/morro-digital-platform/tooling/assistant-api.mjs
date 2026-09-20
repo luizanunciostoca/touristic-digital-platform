@@ -282,8 +282,53 @@ export function createAssistantApi({
     return "billing_guard_not_configured";
   }
 
+  function readinessCheck() {
+    if (!hardLimitConfirmed) {
+      return Object.freeze({
+        status: "pass",
+        critical: false,
+        detail: "assistant-provider-disabled",
+      });
+    }
+
+    const apiKeyConfigured = Boolean(environment("OPENAI_API_KEY").trim());
+    const persistence = costGovernor.snapshot().persistence;
+    const persistenceReady =
+      !persistence.required ||
+      (persistence.configured === true && persistence.healthy === true);
+    const ready = Boolean(
+      apiKeyConfigured &&
+        model &&
+        pricingConfigured &&
+        requestReserveAdequate &&
+        costGovernor.configured &&
+        runtimeTopologySafe &&
+        persistenceReady,
+    );
+
+    let detail = "assistant-provider-ready";
+    if (!apiKeyConfigured) detail = "OPENAI_API_KEY_REQUIRED";
+    else if (!model) detail = "OPENAI_MODEL_REQUIRED";
+    else if (!pricingConfigured) detail = "OPENAI_PRICING_CONFIGURATION_INVALID";
+    else if (!requestReserveAdequate)
+      detail = "OPENAI_REQUEST_RESERVE_INADEQUATE";
+    else if (!costGovernor.configured)
+      detail = "OPENAI_COST_GOVERNANCE_INVALID";
+    else if (!runtimeTopologySafe)
+      detail = "OPENAI_RUNTIME_TOPOLOGY_UNSAFE";
+    else if (!persistenceReady)
+      detail = "OPENAI_GOVERNANCE_STATE_UNAVAILABLE";
+
+    return Object.freeze({
+      status: ready ? "pass" : "fail",
+      critical: true,
+      detail,
+    });
+  }
+
   return Object.freeze({
     observabilitySnapshot,
+    readinessCheck,
     matches(pathname) {
       return (
         pathname === "/api/ai/assistant/respond" ||
