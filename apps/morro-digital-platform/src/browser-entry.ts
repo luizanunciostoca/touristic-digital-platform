@@ -27,6 +27,7 @@ import {
   installGlobalViewControl,
   type GlobalViewControl,
 } from "./map/global-view-control.js";
+import { initializeMorroBrowserLocale } from "./runtime/browser-locale.js";
 import { loadMapboxGlSdk } from "./runtime/mapbox-sdk-loader.js";
 import { createMapStyleReadinessTracker } from "./runtime/map-style-readiness.js";
 import {
@@ -59,6 +60,8 @@ const TOUR_CAMERA_DURATION_MS = 2000;
 const TOUR_CAMERA_TIMEOUT_MS = 3500;
 const SPLASH_VISIBLE_MS = 800;
 const SPLASH_FADE_MS = 550;
+
+initializeMorroBrowserLocale({ document });
 
 const application = bootstrapMorroDigitalApplication(document);
 initializeWeatherWidget({ document });
