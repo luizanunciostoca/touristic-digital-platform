@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { createAnalyticsApi } from "./analytics-api.mjs";
 import { createAssistantApi } from "./assistant-api.mjs";
 import { createAdminApi } from "./admin-api.mjs";
+import { createAdminDomainAdapters } from "./admin-domain-adapters.mjs";
 import { createAuthApi } from "./auth-api.mjs";
 import { createBusinessApi } from "./business-api.mjs";
 import { createCrmApi } from "./crm-api.mjs";
@@ -210,6 +211,11 @@ const adminApi = createAdminApi({
   authApi,
   platformOperations,
   getEnvironmentValue,
+  domainAdapters: createAdminDomainAdapters({
+    businessApi,
+    crmApi,
+    ticketingApi,
+  }),
 });
 
 function createRuntimeEnvironment() {
