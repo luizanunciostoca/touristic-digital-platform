@@ -114,7 +114,11 @@ function normalizeNavigationContext(
     return fallback;
   }
   return {
-    active: source.active === true,
+    active:
+      source.active === true &&
+      phase !== "idle" &&
+      phase !== "failed" &&
+      phase !== "ended",
     destination: plainText(source.destination, 160) || null,
     phase,
   };
