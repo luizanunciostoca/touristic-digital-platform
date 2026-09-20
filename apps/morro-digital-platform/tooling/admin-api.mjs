@@ -865,7 +865,13 @@ export function createAdminApi({
     }
 
     const adapter = domainAdapters.financial;
-    if (!adapter || typeof adapter[definition.adapterMethod] !== "function") {
+    const scopeMethod =
+      reconciliationAckMatch ? "resolveFindingTenant" : "resolvePaymentTenant";
+    if (
+      !adapter ||
+      typeof adapter[definition.adapterMethod] !== "function" ||
+      typeof adapter[scopeMethod] !== "function"
+    ) {
       json(response, 501, {
         error: "DOMAIN_ADMIN_CONTRACT_NOT_REGISTERED",
         domain: "financial",
@@ -874,12 +880,43 @@ export function createAdminApi({
       return true;
     }
 
+    const scope = await adapter[scopeMethod](definition.entityId);
+    if (scope?.status === "invalid") {
+      json(response, 400, { error: "INVALID_FINANCIAL_RESOURCE_SCOPE" });
+      return true;
+    }
+    if (scope?.status === "unavailable") {
+      json(response, 503, { error: "FINANCIAL_RESOURCE_SCOPE_UNAVAILABLE" });
+      return true;
+    }
+    if (scope?.status !== "found" || !scope.tenantId) {
+      json(response, 404, { error: "FINANCIAL_RESOURCE_SCOPE_NOT_FOUND" });
+      return true;
+    }
+
     const support = supportContext(request, actor);
+    if (
+      support &&
+      !(support.effectiveUser?.businessIds ?? []).includes(scope.tenantId)
+    ) {
+      await audit(request, actor, {
+        action: definition.action,
+        result: "denied",
+        reason: "support_scope_mismatch",
+        effectiveUserId: support.effectiveUser?.id ?? null,
+        tenantId: scope.tenantId,
+        entityType: definition.entityType,
+        entityId: definition.entityId,
+      });
+      json(response, 403, { error: "SUPPORT_SCOPE_MISMATCH" });
+      return true;
+    }
+
     const attemptAudited = await audit(request, actor, {
       action: `${definition.action}.attempt`,
       result: "attempt",
       effectiveUserId: support?.effectiveUser?.id ?? null,
-      tenantId: support?.effectiveUser?.businessIds?.[0] ?? null,
+      tenantId: scope.tenantId,
       entityType: definition.entityType,
       entityId: definition.entityId,
       reason,
@@ -916,7 +953,7 @@ export function createAdminApi({
           ? "success"
           : "failure",
       effectiveUserId: support?.effectiveUser?.id ?? null,
-      tenantId: support?.effectiveUser?.businessIds?.[0] ?? null,
+      tenantId: scope.tenantId,
       entityType: definition.entityType,
       entityId: definition.entityId,
       reason,
