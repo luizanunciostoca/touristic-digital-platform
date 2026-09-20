@@ -50,7 +50,17 @@
   font-weight: 500;
   white-space: nowrap;
   cursor: pointer;
-  transition: var(--transition);
+  transition:
+    background-color var(--md-motion-duration-normal, 200ms)
+      var(--md-motion-ease-standard, ease),
+    border-color var(--md-motion-duration-normal, 200ms)
+      var(--md-motion-ease-standard, ease),
+    color var(--md-motion-duration-normal, 200ms)
+      var(--md-motion-ease-standard, ease),
+    box-shadow var(--md-motion-duration-normal, 200ms)
+      var(--md-motion-ease-standard, ease),
+    transform var(--md-motion-duration-normal, 200ms)
+      var(--md-motion-ease-standard, ease);
 }
 
 .control-button:hover,
@@ -114,7 +124,17 @@
   text-align: left;
   font: inherit;
   cursor: pointer;
-  transition: var(--transition);
+  transition:
+    background-color var(--md-motion-duration-normal, 200ms)
+      var(--md-motion-ease-standard, ease),
+    border-color var(--md-motion-duration-normal, 200ms)
+      var(--md-motion-ease-standard, ease),
+    color var(--md-motion-duration-normal, 200ms)
+      var(--md-motion-ease-standard, ease),
+    box-shadow var(--md-motion-duration-normal, 200ms)
+      var(--md-motion-ease-standard, ease),
+    transform var(--md-motion-duration-normal, 200ms)
+      var(--md-motion-ease-standard, ease);
 }
 
 .submenu-item:hover,
