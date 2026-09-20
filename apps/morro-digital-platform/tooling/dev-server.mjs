@@ -8,6 +8,7 @@ import { createAssistantApi } from "./assistant-api.mjs";
 import { createAdminApi } from "./admin-api.mjs";
 import { createAdminAuditRuntime } from "./admin-audit-runtime.mjs";
 import { createAdminDomainAdapters } from "./admin-domain-adapters.mjs";
+import { createAffiliateAdminRuntime } from "./affiliate-admin-runtime.mjs";
 import { createAuthApi } from "./auth-api.mjs";
 import { createBusinessApi } from "./business-api.mjs";
 import { createCrmApi } from "./crm-api.mjs";
@@ -164,6 +165,9 @@ function auditSecurityEvent(request, event) {
 const analyticsApi = createAnalyticsApi({ getEnvironmentValue });
 const assistantApi = createAssistantApi({ getEnvironmentValue });
 const adminAuditRuntime = createAdminAuditRuntime({ getEnvironmentValue });
+const affiliateAdminRuntime = createAffiliateAdminRuntime({
+  getEnvironmentValue,
+});
 
 const authApi = createAuthApi({
   getEnvironmentValue,
@@ -178,6 +182,10 @@ platformOperations = createPlatformOperations({
     {
       name: "control-center-audit",
       ...adminAuditRuntime.readinessCheck(),
+    },
+    {
+      name: "affiliate-admin",
+      ...affiliateAdminRuntime.readinessCheck(),
     },
     {
       name: "payments-runtime",
@@ -201,6 +209,7 @@ platformOperations = createPlatformOperations({
 await authApi.start();
 await analyticsApi.start();
 await adminAuditRuntime.start();
+await affiliateAdminRuntime.start();
 
 const crmApi = createCrmApi({ authApi, getEnvironmentValue });
 await crmApi.start();
@@ -225,6 +234,7 @@ const adminApi = createAdminApi({
     crmApi,
     ticketingApi,
     paymentsApi,
+    affiliateAdminRuntime,
   }),
 });
 
@@ -730,6 +740,7 @@ async function shutdown(signal) {
     authApi.stop(),
     crmApi.stop(),
     paymentsApi.stop(),
+    affiliateAdminRuntime.stop(),
     ticketingApi.stop(),
   ]);
   paymentsRuntimeReady = false;
