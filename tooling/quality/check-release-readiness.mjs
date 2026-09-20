@@ -187,12 +187,12 @@ requireText(staging, "staging blueprint", "branch: main");
 requireText(
   staging,
   "staging blueprint",
-  "preDeployCommand: node tooling/render/wait-for-staging-mysql.mjs && node tooling/render/with-staging-mysql-env.mjs node apps/morro-digital-platform/tooling/payments-migrate.mjs",
+  "preDeployCommand: node tooling/render/with-staging-mysql-env.mjs node apps/morro-digital-platform/tooling/payments-migrate.mjs",
 );
 requireText(
   staging,
   "staging blueprint",
-  "startCommand: node tooling/render/wait-for-staging-mysql.mjs && node tooling/render/with-staging-mysql-env.mjs node apps/morro-digital-platform/tooling/dev-server.mjs",
+  "startCommand: node tooling/render/with-staging-mysql-env.mjs node apps/morro-digital-platform/tooling/dev-server.mjs",
 );
 for (const marker of [
   "MORRO-STAGING-MYSQL-WAIT",
