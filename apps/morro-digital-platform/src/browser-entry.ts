@@ -575,8 +575,12 @@ async function start(): Promise<void> {
     document,
     window,
     ...(activeRealMap ? { map: activeRealMap } : {}),
-    restorePlace: (place) =>
-      application.exploreLocations.execute({ type: "select_place", place }),
+    restorePlace: (place, category) =>
+      application.exploreLocations.execute({
+        type: "select_place",
+        place,
+        ...(category ? { category } : {}),
+      }),
     restoreCategory: (category) =>
       application.exploreLocations.execute({ type: "open_category", category }),
   });
