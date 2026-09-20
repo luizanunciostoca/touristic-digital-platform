@@ -15,9 +15,17 @@ export function createContentPool(
   databaseUrl = process.env.CONTENT_DATABASE_URL,
 ): Pool {
   if (!databaseUrl) throw new Error("CONTENT_DATABASE_URL_REQUIRED");
+  const connectionLimit = Number(process.env.CONTENT_DATABASE_POOL_SIZE ?? 6);
+  if (
+    !Number.isSafeInteger(connectionLimit) ||
+    connectionLimit < 1 ||
+    connectionLimit > 64
+  ) {
+    throw new Error("CONTENT_DATABASE_POOL_SIZE_INVALID");
+  }
   return mysql.createPool({
     uri: databaseUrl,
-    connectionLimit: Number(process.env.CONTENT_DATABASE_POOL_SIZE ?? 6),
+    connectionLimit,
     waitForConnections: true,
     timezone: "Z",
   });
