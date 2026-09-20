@@ -130,9 +130,19 @@ describe("createAssistantLlmHandler", () => {
     } satisfies AssistantDialogIntentHandlerContext;
     const fetchImplementation = vi.fn(
       async (_input: RequestInfo | URL, init?: RequestInit) => {
-        const body =
+        const parsed: unknown =
           typeof init?.body === "string" ? JSON.parse(init.body) : {};
-        expect(body.context.navigationState).toEqual({
+        if (
+          !parsed ||
+          typeof parsed !== "object" ||
+          !("context" in parsed) ||
+          !parsed.context ||
+          typeof parsed.context !== "object" ||
+          !("navigationState" in parsed.context)
+        ) {
+          throw new Error("expected navigation context payload");
+        }
+        expect(parsed.context.navigationState).toEqual({
           active: false,
           destination: "Forte",
           phase: "ended",
