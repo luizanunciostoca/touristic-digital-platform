@@ -203,7 +203,8 @@ body[data-md-mode="tour"] .quick-actions {
   transform-origin: bottom right;
 }
 
-body[data-md-mode="navigation"]:not(.assistant-modal-open) #assistant-input-area,
+body[data-md-mode="navigation"]:not(.assistant-modal-open)
+  #assistant-input-area,
 body[data-md-mode="tour"]:not(.assistant-modal-open) #assistant-input-area {
   opacity: 0;
   visibility: hidden;
