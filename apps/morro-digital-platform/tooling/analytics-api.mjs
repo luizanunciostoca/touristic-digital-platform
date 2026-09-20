@@ -1,31 +1,13 @@
-import { createHash } from "node:crypto";
+const analyticsHttpPath = "/api/analytics/v1/events";
+const analyticsRuntimePackage = "@touristic/analytics-server";
+const maxBodyBytes = 16 * 1024;
+const rateLimitWindowMs = 60_000;
+const rateLimitMaxRequests = 120;
+const maxRateLimitSubjects = 10_000;
+const defaultRetentionDays = 90;
+const purgeIntervalMs = 60 * 60 * 1_000;
 
-const analyticsPath = "/api/analytics/v1/events";
-const maxBodyBytes = 32 * 1024;
-
-const eventAttributes = Object.freeze({
-  session_started: ["entryPoint", "returningVisitor"],
-  category_viewed: ["categoryId", "resultCount"],
-  place_viewed: ["placeId", "categoryId"],
-  search_submitted: ["queryLength", "resultCount", "filterCount"],
-  assistant_query: [
-    "queryLength",
-    "inputMode",
-    "hasPlaceContext",
-    "hasNavigationContext",
-  ],
-  directions_started: ["placeId", "travelMode"],
-  tour_started: ["tourId", "stopCount"],
-  tour_completed: ["tourId", "completedStops", "durationSeconds"],
-  commerce_clicked: ["placeId", "offerId", "surface"],
-  offer_selected: ["placeId", "offerId", "quantity"],
-  reservation_started: ["placeId", "offerId", "quantity"],
-  checkout_started: ["orderId", "itemCount", "currency"],
-  payment_approved: ["orderId", "paymentMethod", "currency"],
-  ticket_issued: ["orderId", "ticketCount", "ticketType"],
-});
-
-class AnalyticsInputError extends Error {
+class AnalyticsHttpInputError extends Error {
   constructor(status, code) {
     super(code);
     this.status = status;
@@ -46,166 +28,252 @@ function header(request, name) {
   return "";
 }
 
-function boundedText(value, maxLength) {
-  if (typeof value !== "string") return null;
-  const normalized = value.trim();
-  return normalized && normalized.length <= maxLength ? normalized : null;
+function featureEnabled(value) {
+  if (!value || value === "false") return false;
+  if (value === "true") return true;
+  throw new Error("ANALYTICS_FEATURE_ENABLED_INVALID");
 }
 
-function isIsoTimestamp(value) {
-  if (typeof value !== "string") return false;
-  const timestamp = Date.parse(value);
-  return (
-    Number.isFinite(timestamp) && new Date(timestamp).toISOString() === value
-  );
+function retentionDays(value) {
+  if (!value) return defaultRetentionDays;
+  if (!/^[0-9]+$/u.test(value)) {
+    throw new Error("ANALYTICS_RETENTION_DAYS_INVALID");
+  }
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed) || parsed < 1 || parsed > 365) {
+    throw new Error("ANALYTICS_RETENTION_DAYS_INVALID");
+  }
+  return parsed;
 }
 
-function safePrimitive(value) {
-  if (value === null || typeof value === "boolean") return true;
-  if (typeof value === "number") return Number.isFinite(value);
-  return typeof value === "string" && value.length <= 240;
+function clientIp(request) {
+  const forwarded = header(request, "x-forwarded-for");
+  const first = forwarded.split(",", 1)[0]?.trim();
+  return first || request.socket?.remoteAddress || "unknown";
 }
 
-function validateAttributes(eventName, value) {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    throw new AnalyticsInputError(400, "ANALYTICS_INVALID_ATTRIBUTES");
+function sameOrigin(request) {
+  const rawOrigin = header(request, "origin");
+  const host = header(request, "host").toLowerCase();
+  if (!rawOrigin || !host) return false;
+
+  let origin;
+  try {
+    origin = new URL(rawOrigin);
+  } catch {
+    return false;
   }
 
-  const allowed = new Set(eventAttributes[eventName]);
-  const entries = Object.entries(value);
-  if (entries.length > 16) {
-    throw new AnalyticsInputError(400, "ANALYTICS_INVALID_ATTRIBUTES");
-  }
+  if (origin.host.toLowerCase() !== host) return false;
 
-  const sanitized = {};
-  for (const [key, attribute] of entries) {
-    if (!allowed.has(key) || !safePrimitive(attribute)) {
-      throw new AnalyticsInputError(400, "ANALYTICS_INVALID_ATTRIBUTES");
-    }
-    sanitized[key] = attribute;
-  }
-  return Object.freeze(sanitized);
+  const forwardedProtocol = header(request, "x-forwarded-proto")
+    .split(",", 1)[0]
+    ?.trim()
+    .toLowerCase();
+  if (forwardedProtocol) return origin.protocol === `${forwardedProtocol}:`;
+
+  const encrypted = Boolean(request.socket?.encrypted);
+  return origin.protocol === (encrypted ? "https:" : "http:");
 }
 
-function validateEvent(value) {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    throw new AnalyticsInputError(400, "ANALYTICS_INVALID_EVENT");
-  }
-
-  const allowedTopLevel = new Set([
-    "schemaVersion",
-    "eventId",
-    "name",
-    "occurredAt",
-    "sessionId",
-    "destinationId",
-    "locale",
-    "source",
-    "attributes",
-  ]);
-  if (Object.keys(value).some((key) => !allowedTopLevel.has(key))) {
-    throw new AnalyticsInputError(400, "ANALYTICS_INVALID_EVENT");
-  }
-
-  if (value.schemaVersion !== "1") {
-    throw new AnalyticsInputError(400, "ANALYTICS_UNSUPPORTED_SCHEMA");
-  }
-
-  const eventId = boundedText(value.eventId, 160);
-  const sessionId = boundedText(value.sessionId, 160);
-  const eventName = boundedText(value.name, 80);
-  if (!eventId || !sessionId || !eventName || !(eventName in eventAttributes)) {
-    throw new AnalyticsInputError(400, "ANALYTICS_INVALID_EVENT");
-  }
-  if (!isIsoTimestamp(value.occurredAt)) {
-    throw new AnalyticsInputError(400, "ANALYTICS_INVALID_TIMESTAMP");
-  }
-
-  const destinationId =
-    value.destinationId === undefined
-      ? undefined
-      : boundedText(value.destinationId, 160);
-  const locale =
-    value.locale === undefined ? undefined : boundedText(value.locale, 32);
-  const source =
-    value.source === undefined ? undefined : boundedText(value.source, 80);
-
-  if (
-    (value.destinationId !== undefined && !destinationId) ||
-    (value.locale !== undefined && !locale) ||
-    (value.source !== undefined && !source)
-  ) {
-    throw new AnalyticsInputError(400, "ANALYTICS_INVALID_CONTEXT");
-  }
-
-  return Object.freeze({
-    schemaVersion: "1",
-    eventId,
-    name: eventName,
-    occurredAt: value.occurredAt,
-    visitorHash: createHash("sha256").update(sessionId).digest("hex"),
-    ...(destinationId ? { destinationId } : {}),
-    ...(locale ? { locale } : {}),
-    ...(source ? { source } : {}),
-    attributes: validateAttributes(eventName, value.attributes ?? {}),
-  });
-}
-
-async function readJson(request) {
-  const declaredLength = Number(header(request, "content-length") || "0");
-  if (Number.isFinite(declaredLength) && declaredLength > maxBodyBytes) {
-    throw new AnalyticsInputError(413, "ANALYTICS_REQUEST_TOO_LARGE");
+async function readJsonBody(request) {
+  const declared = Number(header(request, "content-length") || "0");
+  if (Number.isFinite(declared) && declared > maxBodyBytes) {
+    throw new AnalyticsHttpInputError(413, "ANALYTICS_REQUEST_TOO_LARGE");
   }
 
   const chunks = [];
   let total = 0;
-  for await (const rawChunk of request) {
+  for await (const raw of request) {
     const chunk =
-      typeof rawChunk === "string"
-        ? Buffer.from(rawChunk)
-        : rawChunk instanceof Uint8Array
-          ? Buffer.from(rawChunk)
+      typeof raw === "string"
+        ? Buffer.from(raw)
+        : raw instanceof Uint8Array
+          ? Buffer.from(raw)
           : null;
-    if (!chunk) throw new AnalyticsInputError(400, "ANALYTICS_INVALID_JSON");
+    if (!chunk) {
+      throw new AnalyticsHttpInputError(400, "ANALYTICS_REQUEST_INVALID");
+    }
     total += chunk.length;
     if (total > maxBodyBytes) {
-      throw new AnalyticsInputError(413, "ANALYTICS_REQUEST_TOO_LARGE");
+      throw new AnalyticsHttpInputError(413, "ANALYTICS_REQUEST_TOO_LARGE");
     }
     chunks.push(chunk);
   }
-  if (total === 0) throw new AnalyticsInputError(400, "ANALYTICS_EMPTY_BODY");
+  if (total === 0) {
+    throw new AnalyticsHttpInputError(400, "ANALYTICS_REQUEST_INVALID");
+  }
 
   try {
-    const decoded = new TextDecoder("utf-8", { fatal: true }).decode(
-      Buffer.concat(chunks),
+    return JSON.parse(
+      new TextDecoder("utf-8", { fatal: true }).decode(Buffer.concat(chunks)),
     );
-    return JSON.parse(decoded);
   } catch {
-    throw new AnalyticsInputError(400, "ANALYTICS_INVALID_JSON");
+    throw new AnalyticsHttpInputError(400, "ANALYTICS_JSON_INVALID");
   }
 }
 
-function sendJson(response, status, payload) {
+function json(response, status, body) {
   response.statusCode = status;
   response.setHeader("Content-Type", "application/json; charset=utf-8");
   response.setHeader("Cache-Control", "no-store");
-  response.end(JSON.stringify(payload));
+  response.setHeader("Vary", "Origin");
+  response.end(JSON.stringify(body));
 }
 
-export function createAnalyticsApi({ record }) {
-  if (typeof record !== "function") {
-    throw new Error("Analytics recorder is required.");
+function createRateLimiter(now = Date.now) {
+  const subjects = new Map();
+
+  return Object.freeze({
+    claim(subject) {
+      const timestamp = now();
+      for (const [key, state] of subjects) {
+        if (timestamp - state.windowStart >= rateLimitWindowMs) {
+          subjects.delete(key);
+        }
+      }
+      if (subjects.size >= maxRateLimitSubjects && !subjects.has(subject)) {
+        const oldest = subjects.keys().next().value;
+        if (oldest !== undefined) subjects.delete(oldest);
+      }
+
+      const current = subjects.get(subject);
+      if (!current || timestamp - current.windowStart >= rateLimitWindowMs) {
+        subjects.set(subject, { windowStart: timestamp, count: 1 });
+        return true;
+      }
+      if (current.count >= rateLimitMaxRequests) return false;
+      current.count += 1;
+      return true;
+    },
+    clear() {
+      subjects.clear();
+    },
+  });
+}
+
+export function createAnalyticsApi({
+  getEnvironmentValue,
+  loadRuntime = () => import(analyticsRuntimePackage),
+  now = Date.now,
+}) {
+  const enabledValue = String(
+    getEnvironmentValue("ANALYTICS_FEATURE_ENABLED") ?? "",
+  ).trim();
+  const databaseUrl = String(
+    getEnvironmentValue("ANALYTICS_DATABASE_URL") ?? "",
+  ).trim();
+  const configuredRetentionDays = String(
+    getEnvironmentValue("ANALYTICS_RETENTION_DAYS") ?? "",
+  ).trim();
+
+  const limiter = createRateLimiter(now);
+  let enabled = false;
+  let ready = false;
+  let started = false;
+  let pool = null;
+  let transport = null;
+  let purgeRepository = null;
+  let purgeTimer = null;
+
+  async function start() {
+    if (started) return ready;
+    started = true;
+
+    try {
+      enabled = featureEnabled(enabledValue);
+      if (!enabled) {
+        ready = true;
+        return true;
+      }
+
+      if (!databaseUrl) throw new Error("ANALYTICS_DATABASE_URL_REQUIRED");
+      const days = retentionDays(configuredRetentionDays);
+      const runtime = await loadRuntime();
+      pool = runtime.createAnalyticsMySqlPool(databaseUrl);
+      await runtime.applyAnalyticsSchema(pool);
+      transport = runtime.createAnalyticsHttpTransport({
+        pool,
+        retentionDays: days,
+      });
+      purgeRepository = new runtime.MySqlAnalyticsEventRepository(pool);
+      await purgeRepository.purgeExpired(new Date(now()).toISOString());
+      purgeTimer = setInterval(() => {
+        void purgeRepository
+          ?.purgeExpired(new Date(now()).toISOString())
+          .catch(() => undefined);
+      }, purgeIntervalMs);
+      purgeTimer.unref?.();
+      ready = true;
+      return true;
+    } catch {
+      ready = false;
+      if (purgeTimer) clearInterval(purgeTimer);
+      purgeTimer = null;
+      await pool?.end?.().catch(() => undefined);
+      pool = null;
+      transport = null;
+      purgeRepository = null;
+      return false;
+    }
+  }
+
+  async function stop() {
+    if (purgeTimer) clearInterval(purgeTimer);
+    purgeTimer = null;
+    limiter.clear();
+    const activePool = pool;
+    pool = null;
+    transport = null;
+    purgeRepository = null;
+    ready = false;
+    started = false;
+    await activePool?.end?.();
   }
 
   return Object.freeze({
     matches(pathname) {
-      return pathname === analyticsPath;
+      return pathname === analyticsHttpPath;
     },
 
-    async handle(request, response) {
-      if (request.method !== "POST") {
-        response.setHeader("Allow", "POST");
-        sendJson(response, 405, { error: "METHOD_NOT_ALLOWED" });
+    readinessCheck() {
+      if (!enabled && started && ready) {
+        return Object.freeze({
+          status: "pass",
+          critical: true,
+          detail: "analytics-disabled",
+        });
+      }
+      return Object.freeze({
+        status: ready ? "pass" : "fail",
+        critical: true,
+        detail: ready ? "analytics-runtime-ready" : "ANALYTICS_UNAVAILABLE",
+      });
+    },
+
+    start,
+    stop,
+
+    async handle(request, response, requestUrl) {
+      if (!enabled) {
+        json(response, 503, { error: "ANALYTICS_FEATURE_DISABLED" });
+        return;
+      }
+      if (!ready || !transport) {
+        json(response, 503, { error: "ANALYTICS_UNAVAILABLE" });
+        return;
+      }
+      if (String(request.method || "GET").toUpperCase() !== "POST") {
+        json(response, 405, { error: "METHOD_NOT_ALLOWED" });
+        return;
+      }
+      if (!sameOrigin(request)) {
+        json(response, 403, { error: "ORIGIN_DENIED" });
+        return;
+      }
+      if (!limiter.claim(clientIp(request))) {
+        response.setHeader("Retry-After", "60");
+        json(response, 429, { error: "RATE_LIMITED" });
         return;
       }
 
@@ -214,25 +282,36 @@ export function createAnalyticsApi({ record }) {
         .trim()
         .toLowerCase();
       if (contentType !== "application/json") {
-        sendJson(response, 415, { error: "ANALYTICS_JSON_REQUIRED" });
+        json(response, 415, { error: "UNSUPPORTED_MEDIA_TYPE" });
         return;
       }
 
+      let body;
       try {
-        const event = validateEvent(await readJson(request));
-        await record(event);
-        sendJson(response, 202, {
-          data: Object.freeze({ accepted: true, eventId: event.eventId }),
-        });
+        body = await readJsonBody(request);
       } catch (error) {
-        if (error instanceof AnalyticsInputError) {
-          sendJson(response, error.status, { error: error.code });
-          return;
-        }
-        sendJson(response, 503, { error: "ANALYTICS_RECORDER_UNAVAILABLE" });
+        const status =
+          error instanceof AnalyticsHttpInputError ? error.status : 400;
+        const code =
+          error instanceof AnalyticsHttpInputError
+            ? error.code
+            : "ANALYTICS_REQUEST_INVALID";
+        json(response, status, { error: code });
+        return;
       }
+
+      const result = await transport.handle({
+        method: "POST",
+        pathname: requestUrl.pathname,
+        body,
+      });
+      json(response, result.status, result.body);
     },
   });
 }
 
-export { analyticsPath };
+export {
+  analyticsHttpPath,
+  maxBodyBytes as analyticsMaxBodyBytes,
+  rateLimitMaxRequests as analyticsRateLimitMaxRequests,
+};
