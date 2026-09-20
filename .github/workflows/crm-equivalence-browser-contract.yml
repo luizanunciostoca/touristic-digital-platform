@@ -3,6 +3,7 @@ name: CRM Equivalence Browser Contract
 on:
   workflow_dispatch:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
     paths:
       - ".github/workflows/crm-equivalence-browser-contract.yml"
       - "apps/admin-crm/public/**"
@@ -57,6 +58,7 @@ concurrency:
 
 jobs:
   browser-equivalence:
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     services:

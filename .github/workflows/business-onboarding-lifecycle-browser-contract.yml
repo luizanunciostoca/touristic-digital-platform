@@ -3,6 +3,7 @@ name: Business Onboarding Lifecycle Browser Contract
 on:
   workflow_dispatch:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
     paths:
       - ".github/workflows/business-onboarding-lifecycle-browser-contract.yml"
       - "apps/morro-digital-platform/package.json"
@@ -44,6 +45,7 @@ concurrency:
 
 jobs:
   lifecycle-browser:
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
