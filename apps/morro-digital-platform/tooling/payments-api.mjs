@@ -11,6 +11,7 @@ import {
   normalizeOrderId,
 } from "@touristic/ordering";
 import { createTicketingCheckoutApplicationService } from "@touristic/ordering/ticketing-checkout";
+import { normalizePaymentId } from "@touristic/financial";
 import {
   FinancialWebhookHttpTransport,
   MySqlFinancialReconciliationRepository,
@@ -839,6 +840,7 @@ export function createPaymentsApi({
         webhookTransport: injectedWebhookTransport ?? null,
         refundTransport: injectedRefundTransport ?? null,
         reconciliationTransport: injectedReconciliationTransport ?? null,
+        adminRead: null,
         pools: [],
       })
     : null;
@@ -1043,6 +1045,11 @@ export function createPaymentsApi({
         webhookTransport,
         refundTransport,
         reconciliationTransport,
+        adminRead: Object.freeze({
+          orders,
+          payments,
+          ledger,
+        }),
         pools,
       });
       started = true;
@@ -1072,6 +1079,73 @@ export function createPaymentsApi({
     await Promise.allSettled(pools.map((pool) => pool.end()));
   }
 
+  async function adminFindOrder(orderIdInput) {
+    const orderId = normalizeOrderId(orderIdInput);
+    if (!orderId) {
+      return Object.freeze({ status: "invalid", data: null });
+    }
+    const repository = runtime?.adminRead?.orders;
+    if (!repository) {
+      return Object.freeze({ status: "unavailable", data: null });
+    }
+    try {
+      const order = await repository.findById(orderId);
+      return Object.freeze({
+        status: order ? "found" : "not_found",
+        data: order,
+      });
+    } catch {
+      return Object.freeze({ status: "unavailable", data: null });
+    }
+  }
+
+  async function adminFindPayment(paymentIdInput) {
+    const paymentId = normalizePaymentId(paymentIdInput);
+    if (!paymentId) {
+      return Object.freeze({ status: "invalid", data: null });
+    }
+    const repository = runtime?.adminRead?.payments;
+    if (!repository) {
+      return Object.freeze({ status: "unavailable", data: null });
+    }
+    try {
+      const payment = await repository.findById(paymentId);
+      return Object.freeze({
+        status: payment ? "found" : "not_found",
+        data: payment,
+      });
+    } catch {
+      return Object.freeze({ status: "unavailable", data: null });
+    }
+  }
+
+  async function adminFindLedger(externalKeyInput) {
+    const externalKey =
+      typeof externalKeyInput === "string" ? externalKeyInput.trim() : "";
+    if (!externalKey || externalKey.length > 160) {
+      return Object.freeze({ status: "invalid", data: null });
+    }
+    const repository = runtime?.adminRead?.ledger;
+    if (!repository) {
+      return Object.freeze({ status: "unavailable", data: null });
+    }
+    try {
+      const transaction = await repository.findByExternalKey(externalKey);
+      return Object.freeze({
+        status: transaction ? "found" : "not_found",
+        data: transaction,
+      });
+    } catch (error) {
+      const invalid =
+        error instanceof Error &&
+        error.message === "FINANCIAL_INVALID_LEDGER_EXTERNAL_KEY";
+      return Object.freeze({
+        status: invalid ? "invalid" : "unavailable",
+        data: null,
+      });
+    }
+  }
+
   return Object.freeze({
     matches(pathname) {
       return (
@@ -1085,6 +1159,9 @@ export function createPaymentsApi({
     },
     start,
     stop,
+    adminFindOrder,
+    adminFindPayment,
+    adminFindLedger,
     async handle(request, response, requestUrl) {
       const correlationId =
         normalizeCheckoutCorrelationId(header(request, "x-correlation-id")) ||
