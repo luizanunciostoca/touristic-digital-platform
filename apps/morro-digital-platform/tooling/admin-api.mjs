@@ -512,6 +512,15 @@ export function createAdminApi({
       issuedAt: now,
       exp: Math.min(actor.expiresAt, now + stepUpTtlSeconds),
     });
+    const stepUpAudited = await audit(request, actor, {
+      action: "security.step_up",
+      result: "success",
+      reason: "password_reauthenticated",
+    });
+    if (!stepUpAudited) {
+      json(response, 503, { error: "ADMIN_AUDIT_UNAVAILABLE" });
+      return;
+    }
     response.setHeader(
       "Set-Cookie",
       serializeStepUpCookie(
@@ -519,11 +528,6 @@ export function createAdminApi({
         production,
       ),
     );
-    await audit(request, actor, {
-      action: "security.step_up",
-      result: "success",
-      reason: "password_reauthenticated",
-    });
     json(response, 201, {
       stepUp: {
         stepUpId: payload.stepUpId,
@@ -618,6 +622,17 @@ export function createAdminApi({
       startedAt: now,
       exp: Math.min(actor.expiresAt, now + supportTtlSeconds),
     });
+    const supportAudited = await audit(request, actor, {
+      action: "support.session.start",
+      result: "success",
+      effectiveUserId: effectiveUser.id,
+      reason,
+      tenantId: effectiveUser.businessIds?.[0] ?? null,
+    });
+    if (!supportAudited) {
+      json(response, 503, { error: "ADMIN_AUDIT_UNAVAILABLE" });
+      return;
+    }
     response.setHeader(
       "Set-Cookie",
       serializeSupportCookie(
@@ -625,13 +640,6 @@ export function createAdminApi({
         production,
       ),
     );
-    await audit(request, actor, {
-      action: "support.session.start",
-      result: "success",
-      effectiveUserId: effectiveUser.id,
-      reason,
-      tenantId: effectiveUser.businessIds?.[0] ?? null,
-    });
     json(response, 201, {
       support: {
         ...payload,
@@ -912,6 +920,22 @@ export function createAdminApi({
             return;
           }
         }
+        const support = supportContext(request, actor);
+        if (mutation) {
+          const attemptAudited = await audit(request, actor, {
+            action: `control-center.${namespace}.mutation.attempt`,
+            result: "attempt",
+            effectiveUserId: support?.effectiveUser?.id ?? null,
+            tenantId: support?.effectiveUser?.businessIds?.[0] ?? null,
+            entityType: namespace,
+            entityId: bounded(requestUrl.pathname, 160),
+          });
+          if (!attemptAudited) {
+            json(response, 503, { error: "ADMIN_AUDIT_UNAVAILABLE" });
+            return;
+          }
+        }
+
         const adapter = domainAdapters[namespace];
         if (!adapter?.handle) {
           json(response, 501, {
@@ -921,7 +945,26 @@ export function createAdminApi({
           });
           return;
         }
-        await adapter.handle({ request, response, requestUrl, actor });
+        await adapter.handle({
+          request,
+          response,
+          requestUrl,
+          actor,
+          effectiveUser: support?.effectiveUser ?? null,
+        });
+        if (mutation) {
+          await audit(request, actor, {
+            action: `control-center.${namespace}.mutation.complete`,
+            result:
+              response.statusCode >= 200 && response.statusCode < 400
+                ? "success"
+                : "failure",
+            effectiveUserId: support?.effectiveUser?.id ?? null,
+            tenantId: support?.effectiveUser?.businessIds?.[0] ?? null,
+            entityType: namespace,
+            entityId: bounded(requestUrl.pathname, 160),
+          });
+        }
         return;
       }
 
