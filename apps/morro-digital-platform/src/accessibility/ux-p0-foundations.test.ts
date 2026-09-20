@@ -162,9 +162,10 @@ describe("UX P0 + Design System V2 foundations", () => {
           ),
         ].map((match) => match[1]);
 
-        expect(stylesheetHrefs, `${surface} does not load foundations`).toContain(
-          foundationHref,
-        );
+        expect(
+          stylesheetHrefs,
+          `${surface} does not load foundations`,
+        ).toContain(foundationHref);
         expect(
           stylesheetHrefs.at(-1),
           `${surface} must load foundations after feature CSS`,
