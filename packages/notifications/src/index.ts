@@ -16,12 +16,7 @@ export const notificationChannels = Object.freeze([
 export type NotificationTemplate = (typeof notificationTemplates)[number];
 export type NotificationChannel = (typeof notificationChannels)[number];
 export type NotificationTopic =
-  | "ticket"
-  | "reservation"
-  | "tour"
-  | "payment"
-  | "cancellation"
-  | "refund";
+  "ticket" | "reservation" | "tour" | "payment" | "cancellation" | "refund";
 export type NotificationVariable = string | number | boolean | null;
 export type NotificationVariables = Readonly<
   Record<string, NotificationVariable>
@@ -130,8 +125,8 @@ const FORBIDDEN_VARIABLE_KEYS = Object.freeze([
 
 function isForbiddenVariableKey(key: string): boolean {
   const normalized = key.toLowerCase();
-  return FORBIDDEN_VARIABLE_KEYS.some(
-    (forbidden) => normalized.includes(forbidden),
+  return FORBIDDEN_VARIABLE_KEYS.some((forbidden) =>
+    normalized.includes(forbidden),
   );
 }
 
