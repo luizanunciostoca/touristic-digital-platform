@@ -1,10 +1,11 @@
-import type {
-  ContentDocument,
-  ContentFieldValue,
-  ContentFields,
-  ContentKind,
-  ContentRepository,
-  ContentStatus,
+import {
+  sanitizeContentFields,
+  type ContentDocument,
+  type ContentFieldValue,
+  type ContentFields,
+  type ContentKind,
+  type ContentRepository,
+  type ContentStatus,
 } from "@touristic/content";
 import type { Pool, ResultSetHeader, RowDataPacket } from "mysql2/promise";
 
@@ -36,7 +37,9 @@ const ID = /^[A-Za-z0-9][A-Za-z0-9:_-]{1,159}$/u;
 
 function iso(value: Date | string): string {
   const date = value instanceof Date ? value : new Date(value);
-  if (!Number.isFinite(date.getTime())) throw new Error("CONTENT_INVALID_TIMESTAMP");
+  if (!Number.isFinite(date.getTime())) {
+    throw new Error("CONTENT_INVALID_TIMESTAMP");
+  }
   return date.toISOString();
 }
 
@@ -45,6 +48,7 @@ function optionalIso(value: Date | string | null): string | undefined {
 }
 
 function parseFields(
+  kind: ContentKind,
   value: string | Record<string, ContentFieldValue>,
 ): ContentFields {
   const parsed: unknown =
@@ -52,7 +56,12 @@ function parseFields(
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
     throw new Error("CONTENT_INVALID_FIELDS");
   }
-  return Object.freeze({ ...(parsed as Record<string, ContentFieldValue>) });
+  const sanitized = sanitizeContentFields(
+    kind,
+    parsed as Readonly<Record<string, unknown>>,
+  );
+  if (!sanitized) throw new Error("CONTENT_INVALID_FIELDS");
+  return sanitized;
 }
 
 function documentFromRow(row: ContentRow): ContentDocument {
@@ -67,7 +76,7 @@ function documentFromRow(row: ContentRow): ContentDocument {
     ...(row.source_reference ? { sourceReference: row.source_reference } : {}),
     status: row.status,
     version: Number(row.version),
-    fields: parseFields(row.fields_json),
+    fields: parseFields(row.kind, row.fields_json),
     createdAt: iso(row.created_at),
     updatedAt: iso(row.updated_at),
     ...(scheduledFor ? { scheduledFor } : {}),
@@ -198,7 +207,9 @@ export class MySqlContentRepository implements ContentRepository {
     input: ContentAdminListInput = {},
   ): Promise<readonly ContentDocument[]> {
     const query = String(input.query ?? "").trim().slice(0, 160);
-    const destinationId = String(input.destinationId ?? "").trim().slice(0, 160);
+    const destinationId = String(input.destinationId ?? "")
+      .trim()
+      .slice(0, 160);
     const kind = input.kind ?? "";
     const status = input.status ?? "";
     const limit = boundedLimit(input.limit);
