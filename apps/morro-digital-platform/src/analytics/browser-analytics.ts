@@ -398,8 +398,7 @@ export function installBrowserAnalyticsInstrumentation(
 }
 
 export type BrowserAnalyticsConsentChoice =
-  | Exclude<AnalyticsConsentState, "unknown">
-  | "later";
+  Exclude<AnalyticsConsentState, "unknown"> | "later";
 
 export interface BrowserAnalyticsConsentPreferencesOptions {
   readonly document: Document;
@@ -524,8 +523,7 @@ export function installBrowserAnalyticsConsentPreferences(
   ): HTMLButtonElement => {
     const button = document.createElement("button");
     button.type = "button";
-    button.className =
-      "analytics-consent-button analytics-consent-" + variant;
+    button.className = "analytics-consent-button analytics-consent-" + variant;
     button.textContent = label;
     return button;
   };
