@@ -8,9 +8,7 @@
       content="Detalhes de passeios, festas e experiências no Morro Digital"
     />
     <meta name="color-scheme" content="dark" />
-    <title data-commerce-i18n="documentTitle">
-      Experiência · Morro Digital
-    </title>
+    <title>Experiência · Morro Digital</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -24,75 +22,51 @@
   </head>
   <body class="commerce-detail-shell">
     <main class="commerce-detail-container">
-      <a class="commerce-detail-back" href="/" data-commerce-i18n="back">
-        ← Voltar ao Morro Digital
-      </a>
+      <a class="commerce-detail-back" href="/">← Voltar ao Morro Digital</a>
       <section
         id="experience-loading"
         class="commerce-detail-status"
         role="status"
-        data-commerce-i18n="loading"
       >
         Carregando experiência…
       </section>
       <article id="experience-card" class="commerce-detail-card" hidden>
         <div>
-          <span
-            id="experience-kind"
-            class="commerce-detail-eyebrow"
-            data-commerce-i18n="experience"
+          <span id="experience-kind" class="commerce-detail-eyebrow"
+            >Experiência</span
           >
-            Experiência
-          </span>
           <h1 id="experience-title">—</h1>
           <p
             id="experience-description"
             class="commerce-detail-description"
           ></p>
           <div class="commerce-detail-actions">
-            <a
-              id="experience-reserve"
-              class="primary"
-              href="#"
-              data-commerce-i18n="reserveNow"
+            <a id="experience-reserve" class="primary" href="#"
+              >Reservar agora</a
             >
-              Reservar agora
-            </a>
-            <a
-              class="secondary"
-              href="/tickets.html"
-              data-commerce-i18n="viewAll"
+            <a class="secondary" href="/tickets.html"
+              >Ver todas as experiências</a
             >
-              Ver todas as experiências
-            </a>
           </div>
         </div>
         <aside
           class="commerce-detail-meta"
           aria-label="Informações da experiência"
-          data-commerce-i18n-aria="infoAria"
         >
+          <p><span>Quando</span><strong id="experience-start">—</strong></p>
+          <p><span>Até</span><strong id="experience-end">—</strong></p>
           <p>
-            <span data-commerce-i18n="when">Quando</span>
-            <strong id="experience-start">—</strong>
+            <span>Valor</span
+            ><strong id="experience-price" class="commerce-detail-price"
+              >—</strong
+            >
           </p>
           <p>
-            <span data-commerce-i18n="until">Até</span>
-            <strong id="experience-end">—</strong>
+            <span>Disponibilidade</span
+            ><strong id="experience-availability">—</strong>
           </p>
           <p>
-            <span data-commerce-i18n="value">Valor</span>
-            <strong id="experience-price" class="commerce-detail-price">
-              —
-            </strong>
-          </p>
-          <p>
-            <span data-commerce-i18n="availability">Disponibilidade</span>
-            <strong id="experience-availability">—</strong>
-          </p>
-          <p>
-            <span data-commerce-i18n="sales">Vendas</span>
-            <strong id="experience-sales-window">—</strong>
+            <span>Vendas</span><strong id="experience-sales-window">—</strong>
           </p>
         </aside>
       </article>
