@@ -12,6 +12,8 @@ on:
       - apps/morro-digital-platform/src/navigation/**
       - apps/morro-digital-platform/src/layouts/app-shell.ts
       - apps/morro-digital-platform/src/main.ts
+      - apps/morro-digital-platform/src/browser-entry.ts
+      - apps/morro-digital-platform/src/runtime/browser-locale.ts
 
 permissions:
   contents: read
