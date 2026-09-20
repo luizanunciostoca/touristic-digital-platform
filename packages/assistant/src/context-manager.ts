@@ -20,7 +20,11 @@ export interface AssistantAwaitingState {
   [key: string]: unknown;
 }
 
-export type AssistantActiveTourStage = "intro" | "list" | "stop" | "finale";
+export type AssistantActiveTourStage =
+  | "intro"
+  | "list"
+  | "stop"
+  | "finale";
 
 export interface AssistantActiveTourContext {
   readonly tourId: string;
@@ -162,7 +166,9 @@ const NAVIGATION_RUNTIME_PHASES = new Set<AssistantNavigationRuntimePhase>([
   "ended",
 ]);
 
-function normalizeActiveTour(value: unknown): AssistantActiveTourContext | null {
+function normalizeActiveTour(
+  value: unknown,
+): AssistantActiveTourContext | null {
   if (!isRecord(value)) return null;
   const tourId = typeof value.tourId === "string" ? value.tourId.trim() : "";
   const stage = value.stage;
@@ -201,7 +207,9 @@ function normalizeNavigationState(
       : null;
   const phase =
     typeof value.phase === "string" &&
-    NAVIGATION_RUNTIME_PHASES.has(value.phase as AssistantNavigationRuntimePhase)
+    NAVIGATION_RUNTIME_PHASES.has(
+      value.phase as AssistantNavigationRuntimePhase,
+    )
       ? (value.phase as AssistantNavigationRuntimePhase)
       : "idle";
   return {
