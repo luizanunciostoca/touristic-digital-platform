@@ -201,7 +201,10 @@ jobs:
                   weatherVisual.display !== 'flex' ||
                   weatherVisual.flexDirection !== 'column' ||
                   weatherVisual.overflow !== 'hidden' ||
-                  weatherVisual.transform === 'none'
+                  ![
+                    'matrix(1, 0, 0, 1, 0, 0)',
+                    'matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)',
+                  ].includes(weatherVisual.transform)
                 ) {
                   throw new Error(`V1 weather widget visual contract diverged on ${viewport.name}: ${JSON.stringify(weatherVisual)}`);
                 }
