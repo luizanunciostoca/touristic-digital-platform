@@ -57,7 +57,8 @@ const COPY: Readonly<Record<PublicOnboardingLocale, PublicOnboardingCopy>> =
         "Conheça o mapa, o clima, o assistente e os principais controles passo a passo.",
       skip: "Pular por agora",
       tour: Object.freeze({
-        step: (current: number, total: number) =>\n          `Passo ${current} de ${total}`,
+        step: (current: number, total: number) =>
+          `Passo ${current} de ${total}`,
         skip: "Pular tour",
         back: "Voltar",
         next: "Próximo",
@@ -246,7 +247,8 @@ const COPY: Readonly<Record<PublicOnboardingLocale, PublicOnboardingCopy>> =
         "הכירו שלב אחר שלב את המפה, מזג האוויר, העוזר והפקדים המרכזיים.",
       skip: "דלגו לעת עתה",
       tour: Object.freeze({
-        step: (current: number, total: number) =>\n          `שלב ${current} מתוך ${total}`,
+        step: (current: number, total: number) =>
+          `שלב ${current} מתוך ${total}`,
         skip: "דלגו על הסיור",
         back: "חזרה",
         next: "הבא",
