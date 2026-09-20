@@ -75,21 +75,71 @@ test("rejects a TEST Public Key in production mode", () => {
   );
 });
 
-test("binds the subscriptions Public Key to the configured provider mode", () => {
+test("rejects APP_USR subscriptions credentials in TEST mode without explicit TEST-seller provenance", () => {
   assert.throws(
     () =>
       validateMercadoPagoProductionCutover(
         testEnvironment({
           PAYMENTS_SUBSCRIPTIONS_ENABLED: "true",
           MERCADO_PAGO_SUBSCRIPTIONS_ACCESS_TOKEN:
-            "fixture-test-subscriptions-server-credential-1234567890",
+            "APP_USR-test-seller-subscriptions-token-12345678901234567890",
           MERCADO_PAGO_SUBSCRIPTIONS_PUBLIC_KEY:
             "APP_USR-fixtureSubscriptionsPublicKey_1234567890",
           PAYMENTS_SUBSCRIPTION_BACK_URL:
             "https://morro-digital-v2-staging.onrender.com/",
         }),
       ),
-    /MERCADO_PAGO_SUBSCRIPTIONS_PUBLIC_KEY_MODE_MISMATCH/u,
+    /MERCADO_PAGO_SUBSCRIPTIONS_TEST_SELLER_APP_PROVENANCE_REQUIRED/u,
+  );
+});
+
+test("accepts APP_USR subscriptions credentials in TEST mode only for explicit V2 TEST-seller provenance", () => {
+  assert.deepEqual(
+    validateMercadoPagoProductionCutover(
+      testEnvironment({
+        PAYMENTS_SUBSCRIPTIONS_ENABLED: "true",
+        MERCADO_PAGO_SUBSCRIPTIONS_ACCESS_TOKEN:
+          "APP_USR-test-seller-subscriptions-token-12345678901234567890",
+        MERCADO_PAGO_SUBSCRIPTIONS_PUBLIC_KEY:
+          "APP_USR-fixtureSubscriptionsPublicKey_1234567890",
+        PAYMENTS_SUBSCRIPTION_BACK_URL:
+          "https://morro-digital-v2-staging.onrender.com/",
+        RENDER_SERVICE_NAME: "morro-digital-v2-staging",
+        MERCADO_PAGO_SUBSCRIPTIONS_CREDENTIAL_ORIGIN: "test_seller_account",
+        MERCADO_PAGO_SUBSCRIPTIONS_TEST_SELLER_USER_ID: "9999999999",
+        MERCADO_PAGO_SUBSCRIPTIONS_TEST_SELLER_APPLICATION_ID:
+          "8888888888888888",
+      }),
+    ),
+    {
+      mode: "test",
+      productionAuthorized: false,
+      productionCredentialsConfirmed: false,
+      subscriptionsEnabled: true,
+    },
+  );
+});
+
+test("rejects APP_USR TEST-seller subscription provenance outside V2 staging", () => {
+  assert.throws(
+    () =>
+      validateMercadoPagoProductionCutover(
+        testEnvironment({
+          PAYMENTS_SUBSCRIPTIONS_ENABLED: "true",
+          MERCADO_PAGO_SUBSCRIPTIONS_ACCESS_TOKEN:
+            "APP_USR-test-seller-subscriptions-token-12345678901234567890",
+          MERCADO_PAGO_SUBSCRIPTIONS_PUBLIC_KEY:
+            "APP_USR-fixtureSubscriptionsPublicKey_1234567890",
+          PAYMENTS_SUBSCRIPTION_BACK_URL:
+            "https://morro-digital-v2-staging.onrender.com/",
+          RENDER_SERVICE_NAME: "morro-digital-v2",
+          MERCADO_PAGO_SUBSCRIPTIONS_CREDENTIAL_ORIGIN: "test_seller_account",
+          MERCADO_PAGO_SUBSCRIPTIONS_TEST_SELLER_USER_ID: "9999999999",
+          MERCADO_PAGO_SUBSCRIPTIONS_TEST_SELLER_APPLICATION_ID:
+            "8888888888888888",
+        }),
+      ),
+    /MERCADO_PAGO_SUBSCRIPTIONS_TEST_SELLER_APP_PROVENANCE_REQUIRED/u,
   );
 });
 
