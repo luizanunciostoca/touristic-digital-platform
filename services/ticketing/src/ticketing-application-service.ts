@@ -186,6 +186,15 @@ async function findCheckInReplay(
   );
 }
 
+function assertTicketAcceptsNewCheckIn(ticket: Ticket): void {
+  if (ticket.status === "used") {
+    throw new TicketingApplicationError("TICKETING_TICKET_ALREADY_USED");
+  }
+  if (ticket.status === "cancelled") {
+    throw new TicketingApplicationError("TICKETING_TICKET_REVOKED");
+  }
+}
+
 export function createTicketingApplicationService(
   dependencies: TicketingApplicationServiceDependencies,
 ): TicketingApplicationService {
@@ -302,12 +311,7 @@ export function createTicketingApplicationService(
       if (replay) {
         return Object.freeze({ ticket, checkIn: replay, replayed: true });
       }
-      if (ticket.status === "used") {
-        throw new TicketingApplicationError("TICKETING_TICKET_ALREADY_USED");
-      }
-      if (ticket.status === "cancelled") {
-        throw new TicketingApplicationError("TICKETING_TICKET_REVOKED");
-      }
+      assertTicketAcceptsNewCheckIn(ticket);
       const result = ticket.status === "issued" ? "validated" : "used";
       const updated = applyTicketCheckIn(ticket, {
         result,
@@ -362,6 +366,7 @@ export function createTicketingApplicationService(
       if (replay) {
         return Object.freeze({ ticket, checkIn: replay, replayed: true });
       }
+      assertTicketAcceptsNewCheckIn(ticket);
       const updated = applyTicketCheckIn(ticket, {
         result,
         occurredAt: canonicalOccurredAt,
@@ -433,6 +438,7 @@ export function createTicketingApplicationService(
         });
       }
 
+      assertTicketAcceptsNewCheckIn(ticket);
       const result =
         envelope.operation === "validate"
           ? "validated"
