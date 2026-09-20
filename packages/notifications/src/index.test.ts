@@ -72,6 +72,21 @@ describe("notification request", () => {
       }),
     ).toBeNull();
   });
+
+  it("rejects direct sensitive delivery data in template variables", () => {
+    expect(
+      createNotificationRequest({
+        ...validRequest,
+        variables: { recipientEmail: "guest@example.com" },
+      }),
+    ).toBeNull();
+    expect(
+      createNotificationRequest({
+        ...validRequest,
+        variables: { paymentToken: "secret-token" },
+      }),
+    ).toBeNull();
+  });
 });
 
 describe("notification dispatcher", () => {
