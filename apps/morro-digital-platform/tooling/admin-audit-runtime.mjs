@@ -92,9 +92,7 @@ export function createAdminAuditRuntime({
     },
 
     durability() {
-      return persistentStore
-        ? "mysql-append-only"
-        : "runtime-projection-only";
+      return persistentStore ? "mysql-append-only" : "runtime-projection-only";
     },
 
     async append(entry) {
