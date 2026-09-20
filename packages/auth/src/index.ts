@@ -183,8 +183,7 @@ export interface AuthAuthorizationDecision {
 }
 
 export type CapabilityAuthorizationReason =
-  | AuthAuthorizationReason
-  | "capability_denied";
+  AuthAuthorizationReason | "capability_denied";
 
 export interface CapabilityAuthorizationDecision {
   readonly allowed: boolean;
@@ -198,8 +197,7 @@ export interface BusinessAuthorizationOptions {
   readonly nowEpochSeconds?: number;
 }
 
-export interface CapabilityAuthorizationOptions
-  extends BusinessAuthorizationOptions {
+export interface CapabilityAuthorizationOptions extends BusinessAuthorizationOptions {
   readonly businessId?: unknown;
 }
 
@@ -241,14 +239,14 @@ export function isAuthCapability(value: unknown): value is AuthCapability {
 }
 
 export function canonicalAuthRole(role: AuthRole): CanonicalAuthRole {
-  return (legacyCanonicalMapping as Partial<Record<AuthRole, CanonicalAuthRole>>)[
-    role
-  ] ?? (role as CanonicalAuthRole);
+  return (
+    (legacyCanonicalMapping as Partial<Record<AuthRole, CanonicalAuthRole>>)[
+      role
+    ] ?? (role as CanonicalAuthRole)
+  );
 }
 
-export function capabilitiesForRole(
-  role: AuthRole,
-): readonly AuthCapability[] {
+export function capabilitiesForRole(role: AuthRole): readonly AuthCapability[] {
   return canonicalRoleCapabilities[canonicalAuthRole(role)];
 }
 

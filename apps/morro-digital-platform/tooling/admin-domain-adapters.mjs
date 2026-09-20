@@ -40,9 +40,7 @@ export function createCrmAdminAdapter(crmApi) {
       "trials",
     ]),
     async handle({ request, response, requestUrl }) {
-      const relative = requestUrl.pathname.slice(
-        `${adminPrefix}/crm`.length,
-      );
+      const relative = requestUrl.pathname.slice(`${adminPrefix}/crm`.length);
       if (!relative || relative === "/") {
         await crmApi.handle(
           request,

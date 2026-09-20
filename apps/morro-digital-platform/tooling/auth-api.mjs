@@ -131,7 +131,9 @@ export function createAuthApi({ getEnvironmentValue, audit = () => {} }) {
     configurationError = error;
   }
 
-  const hasGlobalAdmin = users.some((user) => isPlatformWideAuthRole(user.role));
+  const hasGlobalAdmin = users.some((user) =>
+    isPlatformWideAuthRole(user.role),
+  );
   const productionSecurityConfigured =
     !production ||
     (durableSecurityStateCreated &&
@@ -615,9 +617,7 @@ export function createAuthApi({ getEnvironmentValue, audit = () => {} }) {
         authenticateConfiguredUser(users, "missing@example.invalid", password);
         return false;
       }
-      return Boolean(
-        authenticateConfiguredUser(users, user.email, password),
-      );
+      return Boolean(authenticateConfiguredUser(users, user.email, password));
     },
     resolveSession: currentSession,
     readinessCheck,

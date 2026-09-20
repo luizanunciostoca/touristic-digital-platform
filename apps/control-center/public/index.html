@@ -5,7 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light" />
     <title>Morro Digital — Control Center</title>
-    <link rel="stylesheet" href="/apps/control-center/public/control-center.css" />
+    <link
+      rel="stylesheet"
+      href="/apps/control-center/public/control-center.css"
+    />
   </head>
   <body>
     <div id="app" class="app-shell" hidden>
@@ -20,7 +23,9 @@
         <nav id="main-nav"></nav>
         <div class="sidebar-footer">
           <div id="actor-card" class="actor-card"></div>
-          <button id="logout-button" class="ghost-button" type="button">Sair</button>
+          <button id="logout-button" class="ghost-button" type="button">
+            Sair
+          </button>
         </div>
       </aside>
 
@@ -34,7 +39,14 @@
         </div>
 
         <header class="topbar">
-          <button id="menu-button" class="icon-button mobile-only" type="button" aria-label="Abrir menu">☰</button>
+          <button
+            id="menu-button"
+            class="icon-button mobile-only"
+            type="button"
+            aria-label="Abrir menu"
+          >
+            ☰
+          </button>
           <div class="search-wrap">
             <span aria-hidden="true">⌕</span>
             <input
@@ -56,10 +68,13 @@
         <section class="page">
           <div class="page-heading">
             <div>
-              <p id="breadcrumb" class="breadcrumb">Control Center / Visão Geral</p>
+              <p id="breadcrumb" class="breadcrumb">
+                Control Center / Visão Geral
+              </p>
               <h1 id="page-title">Visão Geral</h1>
               <p id="page-description">
-                Estado operacional e administrativo da plataforma em uma única visão.
+                Estado operacional e administrativo da plataforma em uma única
+                visão.
               </p>
             </div>
             <div id="page-actions" class="page-actions"></div>
@@ -75,6 +90,9 @@
       <span>Validando sessão e capabilities…</span>
     </div>
 
-    <script type="module" src="/apps/control-center/public/control-center.js"></script>
+    <script
+      type="module"
+      src="/apps/control-center/public/control-center.js"
+    ></script>
   </body>
 </html>

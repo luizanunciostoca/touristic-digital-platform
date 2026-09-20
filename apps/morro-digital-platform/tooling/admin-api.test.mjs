@@ -67,7 +67,9 @@ function fixture(session = platformOwner) {
       return { allowed: true };
     },
     reauthenticate(userId, credential) {
-      return userId === platformOwner.subject && credential === "fixture-secret";
+      return (
+        userId === platformOwner.subject && credential === "fixture-secret"
+      );
     },
     listConfiguredUsers() {
       return users;

@@ -225,18 +225,36 @@ function businessesFromUsers(users) {
 }
 
 const namespaceCapabilities = Object.freeze({
-  affiliates: Object.freeze({ read: "affiliate.read", mutate: "affiliate.update" }),
-  businesses: Object.freeze({ read: "business.read", mutate: "business.update" }),
+  affiliates: Object.freeze({
+    read: "affiliate.read",
+    mutate: "affiliate.update",
+  }),
+  businesses: Object.freeze({
+    read: "business.read",
+    mutate: "business.update",
+  }),
   crm: Object.freeze({ read: "crm.read", mutate: "crm.manage" }),
   products: Object.freeze({ read: "business.read", mutate: "business.update" }),
-  inventory: Object.freeze({ read: "business.read", mutate: "business.update" }),
-  reservations: Object.freeze({ read: "ticketing.read", mutate: "ticketing.manage" }),
-  ticketing: Object.freeze({ read: "ticketing.read", mutate: "ticketing.manage" }),
+  inventory: Object.freeze({
+    read: "business.read",
+    mutate: "business.update",
+  }),
+  reservations: Object.freeze({
+    read: "ticketing.read",
+    mutate: "ticketing.manage",
+  }),
+  ticketing: Object.freeze({
+    read: "ticketing.read",
+    mutate: "ticketing.manage",
+  }),
   orders: Object.freeze({ read: "financial.read", mutate: null }),
   payments: Object.freeze({ read: "financial.read", mutate: null }),
   financial: Object.freeze({ read: "financial.read", mutate: null }),
   content: Object.freeze({ read: "content.read", mutate: "content.manage" }),
-  destinations: Object.freeze({ read: "platform.read", mutate: "system.manage" }),
+  destinations: Object.freeze({
+    read: "platform.read",
+    mutate: "system.manage",
+  }),
 });
 
 export function createAdminApi({
@@ -312,7 +330,12 @@ export function createAdminApi({
     });
   }
 
-  async function requireCapability(request, response, capability, options = {}) {
+  async function requireCapability(
+    request,
+    response,
+    capability,
+    options = {},
+  ) {
     const actor = await authApi.resolveSession(request);
     const decision = authorizeCapability(actor, capability, options);
     if (!decision.allowed) {
@@ -335,10 +358,7 @@ export function createAdminApi({
   function stepUpContext(request, actor) {
     if (!actor || stepUpSecret.length < 32) return null;
     const cookies = parseCookies(firstHeader(request.headers?.cookie));
-    const payload = verifyStepUpToken(
-      cookies[stepUpCookieName],
-      stepUpSecret,
-    );
+    const payload = verifyStepUpToken(cookies[stepUpCookieName], stepUpSecret);
     if (!payload || payload.actorSessionId !== actor.sessionId) return null;
     return Object.freeze({
       stepUpId: payload.stepUpId,
@@ -351,7 +371,9 @@ export function createAdminApi({
   function consumeStepUpAttempt(actorSubject) {
     const now = Date.now();
     const existing = stepUpAttempts.get(actorSubject) ?? [];
-    const active = existing.filter((timestamp) => now - timestamp < stepUpWindowMs);
+    const active = existing.filter(
+      (timestamp) => now - timestamp < stepUpWindowMs,
+    );
     if (active.length >= stepUpAttemptLimit) {
       stepUpAttempts.set(actorSubject, active);
       return false;
@@ -364,7 +386,10 @@ export function createAdminApi({
   function supportContext(request, actor) {
     if (!actor || supportSecret.length < 32) return null;
     const cookies = parseCookies(firstHeader(request.headers?.cookie));
-    const payload = verifySupportToken(cookies[supportCookieName], supportSecret);
+    const payload = verifySupportToken(
+      cookies[supportCookieName],
+      supportSecret,
+    );
     if (!payload || payload.actorSessionId !== actor.sessionId) return null;
     const effectiveUser = authApi.findConfiguredUser(payload.effectiveUserId);
     if (!effectiveUser) return null;
@@ -403,9 +428,7 @@ export function createAdminApi({
       });
       json(response, 403, {
         error:
-          mutation.reason === "invalid_csrf"
-            ? "INVALID_CSRF"
-            : "ORIGIN_DENIED",
+          mutation.reason === "invalid_csrf" ? "INVALID_CSRF" : "ORIGIN_DENIED",
       });
       return;
     }
@@ -450,8 +473,7 @@ export function createAdminApi({
       return;
     }
 
-    const password =
-      typeof body?.password === "string" ? body.password : "";
+    const password = typeof body?.password === "string" ? body.password : "";
     if (!authApi.reauthenticate(actor.subject, password)) {
       audit(request, actor, {
         action: "security.step_up",
@@ -518,9 +540,7 @@ export function createAdminApi({
       });
       json(response, 403, {
         error:
-          mutation.reason === "invalid_csrf"
-            ? "INVALID_CSRF"
-            : "ORIGIN_DENIED",
+          mutation.reason === "invalid_csrf" ? "INVALID_CSRF" : "ORIGIN_DENIED",
       });
       return;
     }
@@ -612,7 +632,11 @@ export function createAdminApi({
       const pathname = requestUrl.pathname;
 
       if (pathname === `${adminPrefix}/session`) {
-        const actor = await requireCapability(request, response, "platform.read");
+        const actor = await requireCapability(
+          request,
+          response,
+          "platform.read",
+        );
         if (!actor) return;
         json(response, 200, {
           actor: userProjection(actor),
@@ -623,7 +647,11 @@ export function createAdminApi({
       }
 
       if (pathname === `${adminPrefix}/dashboard`) {
-        const actor = await requireCapability(request, response, "platform.read");
+        const actor = await requireCapability(
+          request,
+          response,
+          "platform.read",
+        );
         if (!actor) return;
         const users = authApi.listConfiguredUsers();
         const businesses = businessesFromUsers(users);
@@ -636,8 +664,8 @@ export function createAdminApi({
             businesses: businesses.length,
             users: users.length,
             alerts:
-              health.checks?.filter((check) => check.status !== "pass").length ??
-              0,
+              health.checks?.filter((check) => check.status !== "pass")
+                .length ?? 0,
           },
           health,
           modules: {
@@ -665,9 +693,7 @@ export function createAdminApi({
                 : "contract-required",
             },
             content: {
-              state: domainAdapters.content
-                ? "available"
-                : "contract-required",
+              state: domainAdapters.content ? "available" : "contract-required",
             },
             destinations: {
               state: domainAdapters.destinations
@@ -680,7 +706,10 @@ export function createAdminApi({
         return;
       }
 
-      if (pathname === `${adminPrefix}/users` || pathname.startsWith(`${adminPrefix}/users/`)) {
+      if (
+        pathname === `${adminPrefix}/users` ||
+        pathname.startsWith(`${adminPrefix}/users/`)
+      ) {
         const actor = await requireCapability(request, response, "users.read");
         if (!actor) return;
         if (pathname === `${adminPrefix}/users`) {
@@ -689,7 +718,9 @@ export function createAdminApi({
           });
           return;
         }
-        const id = decodeURIComponent(pathname.slice(`${adminPrefix}/users/`.length));
+        const id = decodeURIComponent(
+          pathname.slice(`${adminPrefix}/users/`.length),
+        );
         const user = authApi.findConfiguredUser(id);
         if (!user) {
           json(response, 404, { error: "USER_NOT_FOUND" });
@@ -700,7 +731,11 @@ export function createAdminApi({
       }
 
       if (pathname === `${adminPrefix}/businesses`) {
-        const actor = await requireCapability(request, response, "business.read");
+        const actor = await requireCapability(
+          request,
+          response,
+          "business.read",
+        );
         if (!actor) return;
         json(response, 200, {
           businesses: businessesFromUsers(authApi.listConfiguredUsers()),
@@ -714,9 +749,16 @@ export function createAdminApi({
       }
 
       if (pathname === `${adminPrefix}/search`) {
-        const actor = await requireCapability(request, response, "platform.read");
+        const actor = await requireCapability(
+          request,
+          response,
+          "platform.read",
+        );
         if (!actor) return;
-        const query = bounded(requestUrl.searchParams.get("q"), 160).toLowerCase();
+        const query = bounded(
+          requestUrl.searchParams.get("q"),
+          160,
+        ).toLowerCase();
         const results = [];
         if (query.length >= 2) {
           const configuredUsers = authApi.listConfiguredUsers();
@@ -801,9 +843,7 @@ export function createAdminApi({
         return;
       }
 
-      const namespace = pathname
-        .slice(adminPrefix.length + 1)
-        .split("/", 1)[0];
+      const namespace = pathname.slice(adminPrefix.length + 1).split("/", 1)[0];
       const policy = namespaceCapabilities[namespace];
       if (policy) {
         const mutation =

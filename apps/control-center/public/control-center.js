@@ -62,10 +62,7 @@ const pageCopy = {
     "Destinos",
     "Configuração e visão administrativa dos destinos da plataforma.",
   ],
-  support: [
-    "Suporte",
-    "Sessões de suporte preservando actor e effectiveUser.",
-  ],
+  support: ["Suporte", "Sessões de suporte preservando actor e effectiveUser."],
   audit: [
     "Auditoria",
     "Trilha administrativa de ações e decisões de autorização.",
@@ -198,15 +195,17 @@ function renderOverview() {
           <span class="chip">${escapeHtml(health.readiness ?? "unknown")}</span>
         </div>
         <div class="health-list">
-          ${(health.checks ?? [])
-            .map(
-              (check) =>
-                `<div class="health-row">
+          ${
+            (health.checks ?? [])
+              .map(
+                (check) =>
+                  `<div class="health-row">
                   <span><i class="status-dot status-${escapeHtml(check.status)}"></i>${escapeHtml(check.name)}</span>
                   <small>${escapeHtml(check.detail ?? check.status)}</small>
                 </div>`,
-            )
-            .join("") || '<div class="empty">Nenhum check disponível.</div>'}
+              )
+              .join("") || '<div class="empty">Nenhum check disponível.</div>'
+          }
         </div>
       </section>
       <section class="card section-card">
@@ -272,9 +271,9 @@ async function renderBusinesses(businessId) {
     const business = data.businesses.find((entry) => entry.id === businessId);
     let profile = null;
     try {
-      profile = (await api(
-        `/businesses/${encodeURIComponent(businessId)}/profile`,
-      )).profile;
+      profile = (
+        await api(`/businesses/${encodeURIComponent(businessId)}/profile`)
+      ).profile;
     } catch (error) {
       if (error.status !== 404) throw error;
     }
@@ -303,12 +302,15 @@ async function renderBusinesses(businessId) {
         <section class="card section-card">
           <div class="section-title"><h2>Usuários associados</h2></div>
           <div class="module-list">
-            ${(business?.members ?? [])
-              .map(
-                (member) =>
-                  `<div class="module-row"><span>${escapeHtml(member.email)}</span><span class="badge">${escapeHtml(member.canonicalRole)}</span></div>`,
-              )
-              .join("") || '<div class="empty">Nenhum membro encontrado.</div>'}
+            ${
+              (business?.members ?? [])
+                .map(
+                  (member) =>
+                    `<div class="module-row"><span>${escapeHtml(member.email)}</span><span class="badge">${escapeHtml(member.canonicalRole)}</span></div>`,
+                )
+                .join("") ||
+              '<div class="empty">Nenhum membro encontrado.</div>'
+            }
           </div>
         </section>
       </div>`;
@@ -352,18 +354,21 @@ async function renderCrm() {
       <table>
         <thead><tr><th>Empresa</th><th>Contato</th><th>Etapa</th><th>Status</th><th>Valor mensal</th></tr></thead>
         <tbody>
-          ${leads
-            .map(
-              (lead) =>
-                `<tr>
+          ${
+            leads
+              .map(
+                (lead) =>
+                  `<tr>
                   <td><strong>${escapeHtml(lead.companyName ?? "—")}</strong><br><small>#${escapeHtml(lead.id)}</small></td>
                   <td>${escapeHtml(lead.contactName ?? lead.email ?? "—")}</td>
                   <td><span class="badge">${escapeHtml(lead.stage ?? "—")}</span></td>
                   <td>${escapeHtml(lead.status ?? "—")}</td>
                   <td>${escapeHtml(lead.monthlyValue ?? "—")}</td>
                 </tr>`,
-            )
-            .join("") || '<tr><td colspan="5" class="empty">Nenhum lead encontrado ou CRM sem dados.</td></tr>'}
+              )
+              .join("") ||
+            '<tr><td colspan="5" class="empty">Nenhum lead encontrado ou CRM sem dados.</td></tr>'
+          }
         </tbody>
       </table>
     </div>`;
@@ -381,17 +386,20 @@ async function renderTicketing() {
       <table>
         <thead><tr><th>Oferta</th><th>Referência</th><th>Disponibilidade</th><th>Preço</th></tr></thead>
         <tbody>
-          ${inventory
-            .map(
-              (offer) =>
-                `<tr>
+          ${
+            inventory
+              .map(
+                (offer) =>
+                  `<tr>
                   <td><strong>${escapeHtml(offer.label ?? offer.id ?? "—")}</strong></td>
                   <td>${escapeHtml(offer.productReference ?? offer.id ?? "—")}</td>
                   <td>${escapeHtml(offer.available ?? offer.capacity ?? "—")}</td>
                   <td>${escapeHtml(offer.unitAmount?.minorUnits ?? offer.unitAmountMinor ?? "—")} ${escapeHtml(offer.unitAmount?.currency ?? offer.currency ?? "")}</td>
                 </tr>`,
-            )
-            .join("") || '<tr><td colspan="4" class="empty">Inventário indisponível ou vazio.</td></tr>'}
+              )
+              .join("") ||
+            '<tr><td colspan="4" class="empty">Inventário indisponível ou vazio.</td></tr>'
+          }
         </tbody>
       </table>
     </div>`;
@@ -647,13 +655,11 @@ document
   .querySelector("#logout-button")
   .addEventListener("click", () => auth.logout());
 
-document
-  .querySelector("#support-end")
-  .addEventListener("click", async () => {
-    await api("/support/session", { method: "DELETE" });
-    state.adminSession.support = null;
-    applySupportBanner();
-  });
+document.querySelector("#support-end").addEventListener("click", async () => {
+  await api("/support/session", { method: "DELETE" });
+  state.adminSession.support = null;
+  applySupportBanner();
+});
 
 globalThis.addEventListener("hashchange", () => openHash());
 
