@@ -1,4 +1,5 @@
 const analyticsHttpPath = "/api/analytics/v1/events";
+const analyticsRuntimePackage = "@touristic/analytics-server";
 const maxBodyBytes = 16 * 1024;
 const rateLimitWindowMs = 60_000;
 const rateLimitMaxRequests = 120;
@@ -153,7 +154,7 @@ function createRateLimiter(now = Date.now) {
 
 export function createAnalyticsApi({
   getEnvironmentValue,
-  loadRuntime = () => import("@touristic/analytics-server"),
+  loadRuntime = () => import(analyticsRuntimePackage),
   now = Date.now,
 }) {
   const enabledValue = String(
