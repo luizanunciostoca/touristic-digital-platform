@@ -171,6 +171,18 @@ requireDirective(
 );
 requireDirective(
   staging,
+  "MERCADO_PAGO_SUBSCRIPTIONS_CREDENTIAL_ORIGIN",
+  "value: test_seller_account",
+  "staging blueprint",
+);
+for (const key of [
+  "MERCADO_PAGO_SUBSCRIPTIONS_TEST_SELLER_USER_ID",
+  "MERCADO_PAGO_SUBSCRIPTIONS_TEST_SELLER_APPLICATION_ID",
+]) {
+  requireDirective(staging, key, "sync: false", "staging blueprint");
+}
+requireDirective(
+  staging,
   "PAYMENTS_RUNTIME_REPLICA_COUNT",
   'value: "1"',
   "staging blueprint",

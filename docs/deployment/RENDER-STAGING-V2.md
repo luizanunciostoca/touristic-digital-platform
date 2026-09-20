@@ -105,7 +105,8 @@ Preencha no fluxo seguro do Render, sem copiá-los para PRs, issues ou chat:
 - `MERCADO_PAGO_WEBHOOK_SECRET`: segredo oficial do webhook da mesma aplicação;
 - `PAYMENTS_WEBHOOK_URL`: `https://<host-staging>/api/payments/v1/webhooks/sandbox`;
 - `VITE_MERCADO_PAGO_PUBLIC_KEY`: Public Key das **credenciais de teste** da mesma aplicação. Ela é browser-visible por definição, mas deve continuar separada do Access Token e do webhook secret.
-- `MERCADO_PAGO_SUBSCRIPTIONS_PUBLIC_KEY`: Public Key TEST da aplicação específica de Assinaturas, usada somente para tokenizar o cartão no acceptance de `/preapproval`; não substitui a Public Key do Bricks.
+- `MERCADO_PAGO_SUBSCRIPTIONS_PUBLIC_KEY`: Public Key da aplicação específica de Assinaturas usada somente para tokenizar o cartão no acceptance de `/preapproval`; não substitui a Public Key do Bricks. Conforme a evidência WCS-47696, uma aplicação pertencente ao TEST seller pode expor credenciais com prefixo `APP_USR-` mesmo neste fluxo TEST.
+- quando a aplicação do TEST seller usar credenciais `APP_USR-`, configure também `MERCADO_PAGO_SUBSCRIPTIONS_CREDENTIAL_ORIGIN=test_seller_account`, `MERCADO_PAGO_SUBSCRIPTIONS_TEST_SELLER_USER_ID` e `MERCADO_PAGO_SUBSCRIPTIONS_TEST_SELLER_APPLICATION_ID`. Esses IDs são metadados não secretos e o runtime continua exigindo readback autoritativo de `application_id` e `collector_id`.
 
 O Blueprint fixa:
 

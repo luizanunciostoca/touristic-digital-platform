@@ -191,6 +191,14 @@ services:
         sync: false
       - key: MERCADO_PAGO_SUBSCRIPTIONS_ACCESS_TOKEN
         sync: false
+      # Mercado Pago support WCS-47696 permits APP_USR credentials owned by a
+      # TEST seller. The non-secret provenance below is mandatory for that mode.
+      - key: MERCADO_PAGO_SUBSCRIPTIONS_CREDENTIAL_ORIGIN
+        value: test_seller_account
+      - key: MERCADO_PAGO_SUBSCRIPTIONS_TEST_SELLER_USER_ID
+        sync: false
+      - key: MERCADO_PAGO_SUBSCRIPTIONS_TEST_SELLER_APPLICATION_ID
+        sync: false
       - key: MERCADO_PAGO_WEBHOOK_SECRET
         sync: false
       - key: PAYMENTS_WEBHOOK_URL
