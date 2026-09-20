@@ -162,12 +162,30 @@ jobs:
             }
 
             await page.reload({ waitUntil: 'domcontentloaded', timeout: 15000 });
-            await page.locator('h1').filter({ hasText: 'Você está offline' }).waitFor({
-              state: 'visible',
-              timeout: 5000,
+            await page.locator('#app').waitFor({ state: 'attached', timeout: 5000 });
+            const offlineRoot = await page.evaluate(() => ({
+              networkState: document.documentElement.dataset.networkState ?? null,
+              appMounted: Boolean(document.getElementById('app')),
+            }));
+            if (offlineRoot.networkState !== 'offline' || !offlineRoot.appMounted) {
+              throw new Error(
+                `Cached Home did not remain available offline: ${JSON.stringify(offlineRoot)}`,
+              );
+            }
+
+            const offlineFallback = await page.evaluate(async () => {
+              const response = await fetch('/offline.html');
+              return {
+                ok: response.ok,
+                text: await response.text(),
+              };
             });
-            const offlineText = await page.locator('main').innerText();
-            if (!offlineText.includes('operações que exigem autoridade do servidor')) {
+            if (
+              !offlineFallback.ok ||
+              !offlineFallback.text.includes(
+                'operações que exigem autoridade do servidor',
+              )
+            ) {
               throw new Error('Offline fallback did not preserve authority warning.');
             }
 
@@ -184,7 +202,13 @@ jobs:
                 resolved: cssOffline.resolved,
                 ok: cssOffline.ok,
               },
-              offlineText,
+              offlineRoot,
+              offlineFallback: {
+                ok: offlineFallback.ok,
+                authorityWarning: offlineFallback.text.includes(
+                  'operações que exigem autoridade do servidor',
+                ),
+              },
               pageErrors,
             };
 
