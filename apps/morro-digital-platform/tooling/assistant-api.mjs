@@ -328,10 +328,8 @@ export function createAssistantApi({
       detail = "OPENAI_REQUEST_RESERVE_INADEQUATE";
     else if (!costGovernor.configured)
       detail = "OPENAI_COST_GOVERNANCE_INVALID";
-    else if (!runtimeTopologySafe)
-      detail = "OPENAI_RUNTIME_TOPOLOGY_UNSAFE";
-    else if (!persistenceReady)
-      detail = "OPENAI_GOVERNANCE_STATE_UNAVAILABLE";
+    else if (!runtimeTopologySafe) detail = "OPENAI_RUNTIME_TOPOLOGY_UNSAFE";
+    else if (!persistenceReady) detail = "OPENAI_GOVERNANCE_STATE_UNAVAILABLE";
 
     return Object.freeze({
       status: ready ? "pass" : "fail",

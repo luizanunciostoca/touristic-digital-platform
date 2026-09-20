@@ -517,7 +517,9 @@ const EXPERIENCE_COPY: Readonly<
     }),
   });
 
-export function commerceIntlLocale(locale?: string | null): MorroDocumentLocale {
+export function commerceIntlLocale(
+  locale?: string | null,
+): MorroDocumentLocale {
   return normalizedLocale(locale);
 }
 
