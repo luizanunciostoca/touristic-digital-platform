@@ -15,17 +15,23 @@ import {
   loadContentSnapshot,
 } from "./browser-content-cache.js";
 
+function cacheRequestKey(key: RequestInfo | URL): string {
+  if (typeof key === "string") return key;
+  if (key instanceof URL) return key.href;
+  return key.url;
+}
+
 function cacheStorageHarness() {
   const values = new Map<string, Response>();
   const cache = {
     async match(key: RequestInfo | URL) {
-      return values.get(String(key))?.clone();
+      return values.get(cacheRequestKey(key))?.clone();
     },
     async put(key: RequestInfo | URL, response: Response) {
-      values.set(String(key), response.clone());
+      values.set(cacheRequestKey(key), response.clone());
     },
     async delete(key: RequestInfo | URL) {
-      return values.delete(String(key));
+      return values.delete(cacheRequestKey(key));
     },
   };
 
@@ -123,13 +129,18 @@ describe("content snapshot loading", () => {
   it("prefers a fresh validated network snapshot and persists it", async () => {
     const { storage } = storageHarness();
     const value = snapshot();
-    const write = vi.spyOn(storage, "write");
+    const write = vi.fn((next: OfflineContentSnapshot) => storage.write(next));
+    const observedStorage = {
+      read: storage.read,
+      write,
+      clear: storage.clear,
+    };
 
     await expect(
       loadContentSnapshot({
         destinationId: "morro-de-sao-paulo",
         now: "2026-09-20T12:00:00.000Z",
-        storage,
+        storage: observedStorage,
         fetchSnapshot: async () => value,
       }),
     ).resolves.toEqual({
