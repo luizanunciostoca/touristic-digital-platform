@@ -53,6 +53,9 @@ importers:
       "@touristic/business":
         specifier: workspace:*
         version: link:../../packages/business
+      "@touristic/content":
+        specifier: workspace:*
+        version: link:../../packages/content
       "@touristic/core":
         specifier: workspace:*
         version: link:../../packages/core
