@@ -12,6 +12,7 @@ on:
       - apps/morro-digital-platform/src/weather/weather-forecast-modal.ts
       - apps/morro-digital-platform/public/index.html
       - apps/morro-digital-platform/public/styles.css
+      - apps/morro-digital-platform/public/v1-weather-runtime-parity.css
       - apps/morro-digital-platform/public/legacy/**
       - apps/morro-digital-platform/tooling/dev-server.mjs
       - package.json
@@ -159,6 +160,52 @@ jobs:
                 await page.locator('#weather-widget[data-weather-state="ready"]').waitFor({ state: 'visible', timeout: 10000 });
                 await page.locator('#toggle-globe-view').waitFor({ state: 'visible', timeout: 10000 });
 
+                const weatherVisual = await page.evaluate(() => {
+                  const node = document.getElementById('weather-widget');
+                  if (!node) return null;
+                  const style = getComputedStyle(node);
+                  const rect = node.getBoundingClientRect();
+                  return {
+                    position: style.position,
+                    top: style.top,
+                    right: style.right,
+                    zIndex: style.zIndex,
+                    width: style.width,
+                    height: style.height,
+                    borderRadius: style.borderRadius,
+                    backgroundColor: style.backgroundColor,
+                    display: style.display,
+                    flexDirection: style.flexDirection,
+                    overflow: style.overflow,
+                    transform: style.transform,
+                    rect: {
+                      left: rect.left,
+                      top: rect.top,
+                      right: rect.right,
+                      bottom: rect.bottom,
+                      width: rect.width,
+                      height: rect.height,
+                    },
+                  };
+                });
+                if (
+                  !weatherVisual ||
+                  weatherVisual.position !== 'fixed' ||
+                  weatherVisual.top !== '8px' ||
+                  weatherVisual.right !== '8px' ||
+                  weatherVisual.zIndex !== '1000' ||
+                  weatherVisual.width !== '80px' ||
+                  weatherVisual.height !== '110px' ||
+                  weatherVisual.borderRadius !== '12px' ||
+                  weatherVisual.backgroundColor !== 'rgb(255, 255, 255)' ||
+                  weatherVisual.display !== 'flex' ||
+                  weatherVisual.flexDirection !== 'column' ||
+                  weatherVisual.overflow !== 'hidden' ||
+                  weatherVisual.transform === 'none'
+                ) {
+                  throw new Error(`V1 weather widget visual contract diverged on ${viewport.name}: ${JSON.stringify(weatherVisual)}`);
+                }
+
                 const shell = await page.evaluate(() => {
                   const rect = selector => {
                     const node = document.querySelector(selector);
@@ -232,7 +279,7 @@ jobs:
                   fullPage: false,
                   animations: 'disabled',
                 });
-                evidence.push({ viewport, shell, modal, weatherRestored, before, global, restored, pageErrors, mapboxHttpErrors });
+                evidence.push({ viewport, weatherVisual, shell, modal, weatherRestored, before, global, restored, pageErrors, mapboxHttpErrors });
                 await context.close();
               }
               writeFileSync('/tmp/v1-home-responsive/evidence.json', JSON.stringify(evidence, null, 2));
