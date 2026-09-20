@@ -558,9 +558,13 @@ async function start(): Promise<void> {
     events: result.runtime.events,
     initialTourId: null,
   });
+  let tourSelectionGeneration = 0;
 
   document.addEventListener("morro:tour-selection-reset", () => {
+    tourSelectionGeneration += 1;
     controller.resetSelection();
+    tourSelect.disabled = false;
+    mapContainer?.removeAttribute("aria-busy");
   });
 
   tourSelect.selectedIndex = -1;
@@ -573,6 +577,7 @@ async function start(): Promise<void> {
       return;
     }
 
+    const selectionGeneration = ++tourSelectionGeneration;
     tourSelect.disabled = true;
     mapContainer?.setAttribute("aria-busy", "true");
     mapContainer?.setAttribute("data-tour-state", "switching");
@@ -581,7 +586,9 @@ async function start(): Promise<void> {
     void controller
       .selectTour(requestedTourId)
       .then(async (selection) => {
+        if (selectionGeneration !== tourSelectionGeneration) return;
         await presentTourOnRealMap(selection.activeTourId);
+        if (selectionGeneration !== tourSelectionGeneration) return;
         mapContainer?.setAttribute(
           "data-map-marker-count",
           String(selection.markerCount),
@@ -595,6 +602,7 @@ async function start(): Promise<void> {
         });
       })
       .catch((error: unknown) => {
+        if (selectionGeneration !== tourSelectionGeneration) return;
         const activeTourId = controller.activeTourId;
         if (activeTourId) {
           tourSelect.value = activeTourId;
@@ -612,6 +620,7 @@ async function start(): Promise<void> {
         });
       })
       .finally(() => {
+        if (selectionGeneration !== tourSelectionGeneration) return;
         tourSelect.disabled = false;
         mapContainer?.removeAttribute("aria-busy");
       });
