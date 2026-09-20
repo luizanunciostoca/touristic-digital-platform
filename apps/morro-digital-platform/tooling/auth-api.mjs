@@ -594,7 +594,9 @@ export function createAuthApi({ getEnvironmentValue, audit = () => {} }) {
       );
     },
     findConfiguredUser(userId) {
-      const user = users.find((candidate) => candidate.id === String(userId || "").trim());
+      const user = users.find(
+        (candidate) => candidate.id === String(userId || "").trim(),
+      );
       if (!user) return null;
       return Object.freeze({
         id: user.id,
@@ -604,6 +606,18 @@ export function createAuthApi({ getEnvironmentValue, audit = () => {} }) {
         capabilities: capabilitiesForRole(user.role),
         businessIds: user.businessIds,
       });
+    },
+    reauthenticate(userId, password) {
+      const user = users.find(
+        (candidate) => candidate.id === String(userId || "").trim(),
+      );
+      if (!user) {
+        authenticateConfiguredUser(users, "missing@example.invalid", password);
+        return false;
+      }
+      return Boolean(
+        authenticateConfiguredUser(users, user.email, password),
+      );
     },
     resolveSession: currentSession,
     readinessCheck,
