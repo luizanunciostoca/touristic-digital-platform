@@ -9,7 +9,6 @@ import { createBusinessApi } from "./business-api.mjs";
 import { createCrmApi } from "./crm-api.mjs";
 import { createPaymentsApi } from "./payments-runtime-api.mjs";
 import { createPlatformOperations } from "./platform-operations.mjs";
-import { createTicketingApi } from "./ticketing-api.mjs";
 import {
   fetchWeatherWithFallback,
   mapOpenMeteoWeatherPayload,
@@ -191,6 +190,7 @@ const businessApi = createBusinessApi({ authApi });
 const paymentsApi = createPaymentsApi({ authApi, getEnvironmentValue });
 paymentsRuntimeReady = await paymentsApi.start();
 
+const { createTicketingApi } = await import("./ticketing-api.mjs");
 const ticketingApi = createTicketingApi({ authApi, getEnvironmentValue });
 ticketingRuntimeReady = await ticketingApi.start();
 
