@@ -67,7 +67,7 @@ function snapshot(
 ): OfflineContentSnapshot {
   const result = createOfflineContentSnapshot([published()], {
     destinationId: "morro-de-sao-paulo",
-    generatedAt: "2026-09-20T10:00:00.000Z",
+    generatedAt: "2026-09-20T10:10:00.000Z",
     expiresAt,
   });
   if (!result) throw new Error("Expected valid snapshot fixture.");
