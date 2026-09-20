@@ -551,7 +551,8 @@ function renderReservations(reservations) {
     if (reservation.status === "held") {
       const cancel = document.createElement("button");
       cancel.type = "button";
-      cancel.className = "button button-secondary md-button md-button--secondary";
+      cancel.className =
+        "button button-secondary md-button md-button--secondary";
       cancel.textContent = copy.cancelReservation;
       cancel.addEventListener(
         "click",
