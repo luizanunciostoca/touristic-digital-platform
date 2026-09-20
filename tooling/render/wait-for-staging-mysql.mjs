@@ -12,7 +12,9 @@ function required(environment, name) {
 
 export function parseStagingMysqlHostPort(environment = process.env) {
   const value = required(environment, "STAGING_MYSQL_HOSTPORT");
-  const match = /^(?<host>[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?):(?<port>\d{1,5})$/u.exec(value);
+  const match = /^(?<host>[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?):(?<port>\d{1,5})$/u.exec(
+    value,
+  );
   if (!match) throw new Error("STAGING_MYSQL_HOSTPORT_INVALID");
 
   const port = Number(match.groups.port);
