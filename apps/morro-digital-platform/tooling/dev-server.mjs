@@ -286,7 +286,7 @@ function applySecurityHeaders(response) {
       "img-src 'self' data: blob: https://*.tile.openstreetmap.org https://unpkg.com https://api.mapbox.com https://*.tiles.mapbox.com",
       "connect-src 'self' https://api.mapbox.com https://*.tiles.mapbox.com https://api.mercadopago.com https://*.mercadopago.com https://*.mercadopago.com.br https://http2.mlstatic.com https://api.mercadolibre.com",
       "frame-src 'self' https://*.mercadopago.com https://*.mercadopago.com.br",
-      "worker-src blob:",
+      "worker-src 'self' blob:",
       "font-src 'self' data: https://api.mapbox.com https://cdnjs.cloudflare.com https://fonts.gstatic.com",
       "object-src 'none'",
       "base-uri 'self'",
