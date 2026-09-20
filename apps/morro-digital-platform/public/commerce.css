@@ -99,7 +99,37 @@
 
 .commerce-detail-status {
   margin: 0;
+  padding: clamp(var(--md-space-5), 4vw, var(--md-space-10));
   color: var(--md-color-text-primary);
+}
+
+.commerce-detail-skeleton {
+  display: grid;
+  gap: var(--md-space-3);
+}
+
+.commerce-detail-skeleton-line {
+  width: 100%;
+  min-height: 1rem;
+}
+
+.commerce-detail-skeleton-line.short {
+  width: 28%;
+}
+
+.commerce-detail-skeleton-line.medium {
+  width: 72%;
+}
+
+.commerce-detail-skeleton-title {
+  width: min(78%, 30rem);
+  min-height: 3.25rem;
+}
+
+.commerce-detail-skeleton-action {
+  width: min(12rem, 55%);
+  min-height: 3rem;
+  margin-top: var(--md-space-3);
 }
 
 @supports (backdrop-filter: blur(0.75rem)) {
