@@ -51,8 +51,7 @@ function parseFields(
   kind: ContentKind,
   value: string | Record<string, ContentFieldValue>,
 ): ContentFields {
-  const parsed: unknown =
-    typeof value === "string" ? JSON.parse(value) : value;
+  const parsed: unknown = typeof value === "string" ? JSON.parse(value) : value;
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
     throw new Error("CONTENT_INVALID_FIELDS");
   }
@@ -206,7 +205,9 @@ export class MySqlContentRepository implements ContentRepository {
   public async list(
     input: ContentAdminListInput = {},
   ): Promise<readonly ContentDocument[]> {
-    const query = String(input.query ?? "").trim().slice(0, 160);
+    const query = String(input.query ?? "")
+      .trim()
+      .slice(0, 160);
     const destinationId = String(input.destinationId ?? "")
       .trim()
       .slice(0, 160);
