@@ -1,3 +1,10 @@
+import {
+  createRefundIdempotencyKey,
+  normalizePaymentId,
+  normalizeReconciliationFindingId,
+  normalizeReconciliationRunId,
+} from "@touristic/financial";
+
 const adminPrefix = "/api/admin/v1";
 
 function mappedUrl(requestUrl, pathname) {
@@ -5,6 +12,13 @@ function mappedUrl(requestUrl, pathname) {
   target.pathname = pathname;
   target.search = requestUrl.search;
   return target;
+}
+
+function sendJson(response, statusCode, payload) {
+  response.statusCode = statusCode;
+  response.setHeader("Content-Type", "application/json; charset=utf-8");
+  response.setHeader("Cache-Control", "no-store");
+  response.end(JSON.stringify(payload));
 }
 
 function notFound(response, error = "ADMIN_ROUTE_NOT_FOUND") {
@@ -122,10 +136,243 @@ export function createTicketingAdminAdapter(ticketingApi) {
   });
 }
 
+export function createFinancialAdminAdapter(paymentsApi) {
+  if (
+    !paymentsApi?.handle ||
+    !paymentsApi?.adminFindOrder ||
+    !paymentsApi?.adminFindPayment ||
+    !paymentsApi?.adminFindLedger
+  ) {
+    throw new Error("FINANCIAL_ADMIN_OWNER_BOUNDARY_REQUIRED");
+  }
+
+  function delegatedRequest(request, body, extraHeaders = {}) {
+    const payload = Buffer.from(JSON.stringify(body), "utf8");
+    return Object.freeze({
+      method: request.method,
+      headers: Object.freeze({
+        ...(request.headers ?? {}),
+        "content-type": "application/json",
+        "content-length": String(payload.length),
+        ...extraHeaders,
+      }),
+      socket: request.socket,
+      morroCorrelationId: request.morroCorrelationId,
+      async *[Symbol.asyncIterator]() {
+        yield payload;
+      },
+    });
+  }
+
+  async function ownerRead(response, result, notFoundCode) {
+    if (result.status === "invalid") {
+      sendJson(response, 400, { error: "INVALID_ADMIN_QUERY" });
+      return;
+    }
+    if (result.status === "unavailable") {
+      sendJson(response, 503, { error: "FINANCIAL_ADMIN_READ_UNAVAILABLE" });
+      return;
+    }
+    if (result.status === "not_found") {
+      sendJson(response, 404, { error: notFoundCode });
+      return;
+    }
+    sendJson(response, 200, { data: result.data });
+  }
+
+  return Object.freeze({
+    state: "partial",
+    coverage: Object.freeze([
+      "orders-by-id",
+      "payments-by-id",
+      "ledger-by-external-key",
+      "reconciliation-findings",
+      "reconciliation-run",
+      "reconciliation-acknowledge",
+      "refund",
+    ]),
+
+    async search({ query }) {
+      const normalized = String(query || "").trim();
+      if (!normalized) return [];
+      const [order, payment] = await Promise.all([
+        paymentsApi.adminFindOrder(normalized),
+        paymentsApi.adminFindPayment(normalized),
+      ]);
+      const results = [];
+      if (order.status === "found") {
+        results.push({
+          type: "order",
+          id: order.data.id,
+          title: order.data.id,
+          context: `${order.data.status} · ${order.data.pricing.amount.minorUnits} ${order.data.pricing.amount.currency}`,
+          href: `#orders:${encodeURIComponent(order.data.id)}`,
+        });
+      }
+      if (payment.status === "found") {
+        results.push({
+          type: "payment",
+          id: payment.data.id,
+          title: payment.data.id,
+          context: `${payment.data.status} · ${payment.data.amount.minorUnits} ${payment.data.amount.currency}`,
+          href: `#financial:${encodeURIComponent(payment.data.id)}`,
+        });
+      }
+      return Object.freeze(results);
+    },
+
+    async handle({ request, response, requestUrl }) {
+      const orderMatch =
+        /^\/api\/admin\/v1\/orders\/([A-Za-z0-9_-]+)$/u.exec(
+          requestUrl.pathname,
+        );
+      if (orderMatch?.[1] && request.method === "GET") {
+        await ownerRead(
+          response,
+          await paymentsApi.adminFindOrder(orderMatch[1]),
+          "ORDER_NOT_FOUND",
+        );
+        return;
+      }
+
+      const paymentMatch =
+        /^\/api\/admin\/v1\/payments\/([A-Za-z0-9_-]+)$/u.exec(
+          requestUrl.pathname,
+        );
+      if (paymentMatch?.[1] && request.method === "GET") {
+        await ownerRead(
+          response,
+          await paymentsApi.adminFindPayment(paymentMatch[1]),
+          "PAYMENT_NOT_FOUND",
+        );
+        return;
+      }
+
+      const ledgerPrefix = `${adminPrefix}/financial/ledger/`;
+      if (
+        request.method === "GET" &&
+        requestUrl.pathname.startsWith(ledgerPrefix)
+      ) {
+        const externalKey = decodeURIComponent(
+          requestUrl.pathname.slice(ledgerPrefix.length),
+        );
+        await ownerRead(
+          response,
+          await paymentsApi.adminFindLedger(externalKey),
+          "LEDGER_TRANSACTION_NOT_FOUND",
+        );
+        return;
+      }
+
+      const findingsMatch =
+        /^\/api\/admin\/v1\/financial\/reconciliation\/payments\/([A-Za-z0-9_-]+)\/findings$/u.exec(
+          requestUrl.pathname,
+        );
+      if (findingsMatch?.[1] && request.method === "GET") {
+        const paymentId = normalizePaymentId(findingsMatch[1]);
+        if (!paymentId) {
+          sendJson(response, 400, { error: "INVALID_PAYMENT_ID" });
+          return;
+        }
+        await paymentsApi.handle(
+          request,
+          response,
+          mappedUrl(
+            requestUrl,
+            `/api/payments/v1/reconciliation/payments/${paymentId}/findings`,
+          ),
+        );
+        return;
+      }
+
+      notFound(response, "FINANCIAL_ADMIN_ROUTE_NOT_AVAILABLE");
+    },
+
+    async refund({ request, response, requestUrl, paymentId }) {
+      const normalizedPaymentId = normalizePaymentId(paymentId);
+      const idempotencyKey = createRefundIdempotencyKey(normalizedPaymentId);
+      if (!normalizedPaymentId || !idempotencyKey) {
+        sendJson(response, 400, { error: "INVALID_PAYMENT_ID" });
+        return;
+      }
+      const delegated = delegatedRequest(
+        request,
+        { reason: "requested_by_business" },
+        { "idempotency-key": idempotencyKey },
+      );
+      await paymentsApi.handle(
+        delegated,
+        response,
+        mappedUrl(
+          requestUrl,
+          `/api/payments/v1/payments/${normalizedPaymentId}/refunds`,
+        ),
+      );
+    },
+
+    async reconciliationRun({
+      request,
+      response,
+      requestUrl,
+      paymentId,
+      runId,
+    }) {
+      const normalizedPaymentId = normalizePaymentId(paymentId);
+      const normalizedRunId = normalizeReconciliationRunId(runId);
+      if (!normalizedPaymentId || !normalizedRunId) {
+        sendJson(response, 400, { error: "INVALID_RECONCILIATION_RUN" });
+        return;
+      }
+      const delegated = delegatedRequest(
+        request,
+        { runId: normalizedRunId },
+        { "idempotency-key": `reconciliation:v1:${normalizedRunId}` },
+      );
+      await paymentsApi.handle(
+        delegated,
+        response,
+        mappedUrl(
+          requestUrl,
+          `/api/payments/v1/reconciliation/payments/${normalizedPaymentId}/runs`,
+        ),
+      );
+    },
+
+    async reconciliationAcknowledge({
+      request,
+      response,
+      requestUrl,
+      findingId,
+    }) {
+      const normalizedFindingId = normalizeReconciliationFindingId(findingId);
+      if (!normalizedFindingId) {
+        sendJson(response, 400, { error: "INVALID_RECONCILIATION_FINDING" });
+        return;
+      }
+      const delegated = delegatedRequest(
+        request,
+        {},
+        {
+          "idempotency-key": `reconciliation-ack:v1:${normalizedFindingId}`,
+        },
+      );
+      await paymentsApi.handle(
+        delegated,
+        response,
+        mappedUrl(
+          requestUrl,
+          `/api/payments/v1/reconciliation/findings/${normalizedFindingId}/acknowledgements`,
+        ),
+      );
+    },
+  });
+}
+
 export function createAdminDomainAdapters({
   businessApi,
   crmApi,
   ticketingApi,
+  paymentsApi,
 } = {}) {
   return Object.freeze({
     ...(businessApi
@@ -134,6 +381,13 @@ export function createAdminDomainAdapters({
     ...(crmApi ? { crm: createCrmAdminAdapter(crmApi) } : {}),
     ...(ticketingApi
       ? { ticketing: createTicketingAdminAdapter(ticketingApi) }
+      : {}),
+    ...(paymentsApi
+      ? {
+          financial: createFinancialAdminAdapter(paymentsApi),
+          orders: createFinancialAdminAdapter(paymentsApi),
+          payments: createFinancialAdminAdapter(paymentsApi),
+        }
       : {}),
   });
 }
