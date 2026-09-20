@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  ANALYTICS_FUNNEL_STAGES,
+  ANALYTICS_FUNNEL_STAGE_EVENTS,
   ANALYTICS_EVENT_NAMES,
   createAnalyticsCollector,
   createAnalyticsEvent,
@@ -149,5 +151,27 @@ describe("analytics envelope", () => {
         { eventId: "event-1", occurredAt: "2026-09-20T09:00:00.000Z" },
       ),
     ).toBeNull();
+  });
+});
+
+describe("canonical conversion funnel", () => {
+  it("preserves Discover to Ticket stage order and milestone ownership", () => {
+    expect(ANALYTICS_FUNNEL_STAGES).toEqual([
+      "discover",
+      "place",
+      "intent",
+      "checkout",
+      "payment",
+      "ticket",
+    ]);
+    expect(ANALYTICS_FUNNEL_STAGE_EVENTS.checkout).toEqual([
+      "checkout_started",
+    ]);
+    expect(ANALYTICS_FUNNEL_STAGE_EVENTS.payment).toEqual(["payment_approved"]);
+    expect(ANALYTICS_FUNNEL_STAGE_EVENTS.ticket).toEqual(["ticket_issued"]);
+    expect(ANALYTICS_FUNNEL_STAGE_EVENTS.intent).toContain("commerce_clicked");
+    expect(ANALYTICS_FUNNEL_STAGE_EVENTS.intent).toContain(
+      "reservation_started",
+    );
   });
 });
