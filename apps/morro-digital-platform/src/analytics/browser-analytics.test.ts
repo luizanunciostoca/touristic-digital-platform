@@ -8,6 +8,7 @@ import type {
 
 import {
   ANALYTICS_CONSENT_CHANGED_EVENT,
+  ANALYTICS_SEARCH_SUBMITTED_EVENT,
   ANALYTICS_TRANSACTION_EVENTS,
   installBrowserAnalyticsInstrumentation,
   readBrowserAnalyticsConsent,
@@ -80,6 +81,34 @@ describe("browser analytics consent", () => {
 });
 
 describe("browser analytics instrumentation", () => {
+  it("never forwards raw search text", async () => {
+    const { collector, inputs } = collectorHarness();
+    const document = new EventTarget() as unknown as Document;
+
+    installBrowserAnalyticsInstrumentation({
+      document,
+      collector,
+      context: { sessionId: "session-search" },
+    });
+
+    dispatch(document, ANALYTICS_SEARCH_SUBMITTED_EVENT, {
+      query: "praia tranquila",
+      queryLength: 16,
+      resultCount: 4,
+      filterCount: 2,
+    });
+
+    await Promise.resolve();
+
+    const search = inputs.find((input) => input.name === "search_submitted");
+    expect(search?.attributes).toEqual({
+      queryLength: 16,
+      resultCount: 4,
+      filterCount: 2,
+    });
+    expect(JSON.stringify(search)).not.toContain("praia tranquila");
+  });
+
   it("never forwards Assistant message text", async () => {
     const { collector, inputs } = collectorHarness();
     const document = new EventTarget() as unknown as Document;
