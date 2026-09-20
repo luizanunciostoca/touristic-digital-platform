@@ -10,7 +10,7 @@ Every network or cached payload is parsed through `parseOfflineContentSnapshot`.
 
 The browser never trusts raw JSON from:
 
-- localStorage;
+- Cache Storage;
 - an injected network source;
 - a previous browser session.
 
@@ -53,7 +53,7 @@ No CMS URL is hardcoded because the production public-content service/storage co
 
 ## Persistence
 
-Browser persistence uses a destination-scoped, versioned localStorage key.
+Browser persistence uses a destination-scoped, versioned Cache Storage key.
 
 Storage errors are best-effort and cannot break the application runtime.
 
@@ -64,3 +64,12 @@ Browser public/offline content cache adapter: IMPLEMENTED.
 Production CMS source endpoint/provider: NOT CLAIMED.
 
 Transactional offline authority: PROHIBITED.
+
+
+## Canonical browser storage
+
+The implementation uses asynchronous Cache Storage under the versioned namespace `morro-digital-content-v1`.
+
+This avoids synchronous Web Storage quota/latency constraints for destination snapshots. Cached responses are still parsed as untrusted JSON and revalidated through `parseOfflineContentSnapshot` on every read.
+
+The network-first loader preserves an expired snapshot only as an explicit `stale: true` fallback. It never reports stale data as current authority.
