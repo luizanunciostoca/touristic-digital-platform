@@ -23,10 +23,27 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Format and print exact outputs
         run: |
-          pnpm exec prettier apps/morro-digital-platform/src/analytics/browser-analytics.ts apps/morro-digital-platform/src/analytics/browser-analytics.test.ts --write
-          echo '===FILE_0_BEGIN==='
-          cat apps/morro-digital-platform/src/analytics/browser-analytics.ts
-          echo '===FILE_0_END==='
-          echo '===FILE_1_BEGIN==='
-          cat apps/morro-digital-platform/src/analytics/browser-analytics.test.ts
-          echo '===FILE_1_END==='
+          pnpm exec prettier \
+            apps/morro-digital-platform/src/analytics/browser-analytics.ts \
+            apps/morro-digital-platform/src/analytics/browser-analytics.test.ts \
+            apps/morro-digital-platform/tooling/analytics-api.mjs \
+            apps/morro-digital-platform/tooling/analytics-api.test.mjs \
+            apps/morro-digital-platform/tooling/dev-server.mjs \
+            packages/analytics/src/index.ts \
+            packages/analytics/src/index.test.ts \
+            docs/qa/CHAT7-ANALYTICS-INSTRUMENTATION-EVIDENCE.md \
+            --write
+          for file in \
+            apps/morro-digital-platform/src/analytics/browser-analytics.ts \
+            apps/morro-digital-platform/src/analytics/browser-analytics.test.ts \
+            apps/morro-digital-platform/tooling/analytics-api.mjs \
+            apps/morro-digital-platform/tooling/analytics-api.test.mjs \
+            apps/morro-digital-platform/tooling/dev-server.mjs \
+            packages/analytics/src/index.ts \
+            packages/analytics/src/index.test.ts \
+            docs/qa/CHAT7-ANALYTICS-INSTRUMENTATION-EVIDENCE.md
+          do
+            echo "===FILE_BEGIN:${file}==="
+            cat "${file}"
+            echo "===FILE_END:${file}==="
+          done
