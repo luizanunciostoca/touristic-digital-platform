@@ -31,6 +31,7 @@ export interface TouristExperienceMapCamera {
   getZoom?(): number;
   getBearing?(): number;
   getPitch?(): number;
+  stop?(): void;
   setCenter?(center: [number, number]): void;
   setZoom?(zoom: number): void;
   jumpTo?(options: {
@@ -325,6 +326,7 @@ function restoreCamera(
     snapshot.mapCenter[0],
     snapshot.mapCenter[1],
   ];
+  map.stop?.();
   if (map.jumpTo) {
     map.jumpTo({
       center,
