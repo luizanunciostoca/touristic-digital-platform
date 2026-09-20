@@ -90,7 +90,7 @@ function safeLoginUrl(location: BrowserLocationPort): string {
   const returnPath =
     current.startsWith("/dashboard/") ||
     current.startsWith("/apps/admin-crm/") ||
-    current.startsWith("/apps/morro-digital-platform/public/affiliate-portal.html") ||
+    current === "/affiliate-portal.html" ||\n    current.startsWith("/apps/morro-digital-platform/public/affiliate-portal.html") ||
     current === "/tickets.html"
       ? current
       : "/dashboard/index-v3-improved.html";
