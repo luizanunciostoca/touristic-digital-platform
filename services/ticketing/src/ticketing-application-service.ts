@@ -300,6 +300,12 @@ export function createTicketingApplicationService(
       if (replay) {
         return Object.freeze({ ticket, checkIn: replay, replayed: true });
       }
+      if (ticket.status === "used") {
+        throw new TicketingApplicationError("TICKETING_TICKET_ALREADY_USED");
+      }
+      if (ticket.status === "cancelled") {
+        throw new TicketingApplicationError("TICKETING_TICKET_REVOKED");
+      }
       const result = ticket.status === "issued" ? "validated" : "used";
       const updated = applyTicketCheckIn(ticket, {
         result,
