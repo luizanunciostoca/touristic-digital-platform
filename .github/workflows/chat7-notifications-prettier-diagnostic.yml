@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - diag/chat7-notifications-prettier
+  pull_request:
+    branches:
+      - wave/chat7-notifications-foundation
 
 permissions:
   contents: read
