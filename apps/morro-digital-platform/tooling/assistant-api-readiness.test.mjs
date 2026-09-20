@@ -50,6 +50,22 @@ describe("assistant runtime readiness", () => {
     });
   });
 
+  it("fails readiness on an invalid provider enablement flag", () => {
+    const api = createAssistantApi({
+      getEnvironmentValue: environment({
+        OPENAI_PROVIDER_HARD_LIMIT_CONFIRMED: "tru",
+      }),
+      governanceStateStore: memoryStateStore(),
+      observeProviderEvent: () => {},
+    });
+
+    expect(api.readinessCheck()).toEqual({
+      status: "fail",
+      critical: true,
+      detail: "OPENAI_PROVIDER_HARD_LIMIT_CONFIRMED_INVALID",
+    });
+  });
+
   it("fails readiness when the provider is enabled without its server credential", () => {
     const api = createAssistantApi({
       getEnvironmentValue: environment({ OPENAI_API_KEY: "" }),
