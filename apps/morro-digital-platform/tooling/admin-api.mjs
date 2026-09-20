@@ -730,6 +730,179 @@ export function createAdminApi({
     return true;
   }
 
+  async function handleAffiliateCriticalAction(request, response, requestUrl) {
+    const match =
+      /^\/api\/admin\/v1\/affiliates\/(aff_[A-Za-z0-9._:-]{8,116})\/memberships\/([A-Za-z0-9._:-]{2,120})\/(suspend|reactivate)$/u.exec(
+        requestUrl.pathname,
+      );
+    if (!match) return false;
+
+    if (request.method !== "POST") {
+      json(response, 405, { error: "METHOD_NOT_ALLOWED" });
+      return true;
+    }
+
+    const affiliateId = match[1];
+    const programId = match[2];
+    const operation = match[3];
+    const definition =
+      operation === "suspend"
+        ? Object.freeze({
+            status: "suspended",
+            confirmation: "SUSPENDER",
+            action: "affiliate.membership.suspend",
+          })
+        : Object.freeze({
+            status: "approved",
+            confirmation: "REATIVAR",
+            action: "affiliate.membership.reactivate",
+          });
+
+    const actor = await requireCapability(
+      request,
+      response,
+      "affiliate.suspend",
+      { mutation: true },
+    );
+    if (!actor) return true;
+
+    const requestSecurity = authApi.authorizeMutation(
+      request,
+      actor,
+      `control-center.${definition.action}`,
+    );
+    if (!requestSecurity.allowed) {
+      await audit(request, actor, {
+        action: definition.action,
+        result: "denied",
+        reason: requestSecurity.reason,
+        entityType: "affiliate_membership",
+        entityId: `${affiliateId}:${programId}`,
+      });
+      json(response, 403, {
+        error:
+          requestSecurity.reason === "invalid_csrf"
+            ? "INVALID_CSRF"
+            : "ORIGIN_DENIED",
+      });
+      return true;
+    }
+
+    const support = supportContext(request, actor);
+    if (support) {
+      await audit(request, actor, {
+        action: definition.action,
+        result: "denied",
+        reason: "support_mode_critical_action_denied",
+        effectiveUserId: support.effectiveUser?.id ?? null,
+        entityType: "affiliate_membership",
+        entityId: `${affiliateId}:${programId}`,
+      });
+      json(response, 403, { error: "SUPPORT_MODE_CRITICAL_ACTION_DENIED" });
+      return true;
+    }
+
+    if (!stepUpContext(request, actor)) {
+      await audit(request, actor, {
+        action: definition.action,
+        result: "denied",
+        reason: "step_up_required",
+        entityType: "affiliate_membership",
+        entityId: `${affiliateId}:${programId}`,
+      });
+      json(response, 403, { error: "STEP_UP_REQUIRED" });
+      return true;
+    }
+
+    let body;
+    try {
+      body = await readJsonBody(request);
+    } catch {
+      json(response, 400, { error: "INVALID_REQUEST" });
+      return true;
+    }
+
+    const reason = safeReason(body?.reason);
+    if (!reason) {
+      json(response, 400, { error: "REASON_REQUIRED" });
+      return true;
+    }
+    if (body?.confirmation !== definition.confirmation) {
+      await audit(request, actor, {
+        action: definition.action,
+        result: "denied",
+        reason: "text_confirmation_required",
+        entityType: "affiliate_membership",
+        entityId: `${affiliateId}:${programId}`,
+      });
+      json(response, 400, {
+        error: "TEXT_CONFIRMATION_REQUIRED",
+        expected: definition.confirmation,
+      });
+      return true;
+    }
+
+    const adapter = domainAdapters.affiliates;
+    if (!adapter?.changeMembershipStatus) {
+      json(response, 501, {
+        error: "DOMAIN_ADMIN_CONTRACT_NOT_REGISTERED",
+        domain: "affiliates",
+        invariant: "NO_DIRECT_TABLE_BYPASS",
+      });
+      return true;
+    }
+
+    const attemptAudited = await audit(request, actor, {
+      action: `${definition.action}.attempt`,
+      result: "attempt",
+      entityType: "affiliate_membership",
+      entityId: `${affiliateId}:${programId}`,
+      reason,
+    });
+    if (!attemptAudited) {
+      json(response, 503, { error: "ADMIN_AUDIT_UNAVAILABLE" });
+      return true;
+    }
+
+    const result = await adapter.changeMembershipStatus({
+      actor,
+      affiliateId,
+      programId,
+      status: definition.status,
+      correlationId: request.morroCorrelationId,
+    });
+
+    if (result.status === "denied") {
+      json(response, 403, { error: "CAPABILITY_DENIED" });
+    } else if (result.status === "not_found") {
+      json(response, 404, { error: "AFFILIATE_MEMBERSHIP_NOT_FOUND" });
+    } else if (result.status === "conflict") {
+      json(response, 409, {
+        error: result.error || "AFFILIATE_MEMBERSHIP_TRANSITION_INVALID",
+      });
+    } else if (result.status === "unavailable") {
+      json(response, 503, {
+        error: result.error || "AFFILIATE_ADMIN_UNAVAILABLE",
+      });
+    } else if (result.status === "invalid") {
+      json(response, 400, { error: "INVALID_AFFILIATE_ADMIN_MUTATION" });
+    } else {
+      json(response, 200, { data: result.data });
+    }
+
+    await audit(request, actor, {
+      action: `${definition.action}.complete`,
+      result:
+        response.statusCode >= 200 && response.statusCode < 400
+          ? "success"
+          : "failure",
+      entityType: "affiliate_membership",
+      entityId: `${affiliateId}:${programId}`,
+      reason,
+    });
+    return true;
+  }
+
   async function handleFinancialCriticalAction(request, response, requestUrl) {
     const refundMatch =
       /^\/api\/admin\/v1\/financial\/refunds\/([A-Za-z0-9_-]+)$/u.exec(
@@ -1291,6 +1464,10 @@ export function createAdminApi({
           health: platformOperations.healthSnapshot(request.morroCorrelationId),
           secrets: "redacted",
         });
+        return;
+      }
+
+      if (await handleAffiliateCriticalAction(request, response, requestUrl)) {
         return;
       }
 
