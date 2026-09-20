@@ -164,7 +164,9 @@ describe("canonical conversion funnel", () => {
       "payment",
       "ticket",
     ]);
-    expect(ANALYTICS_FUNNEL_STAGE_EVENTS.checkout).toEqual(["checkout_started"]);
+    expect(ANALYTICS_FUNNEL_STAGE_EVENTS.checkout).toEqual([
+      "checkout_started",
+    ]);
     expect(ANALYTICS_FUNNEL_STAGE_EVENTS.payment).toEqual(["payment_approved"]);
     expect(ANALYTICS_FUNNEL_STAGE_EVENTS.ticket).toEqual(["ticket_issued"]);
     expect(ANALYTICS_FUNNEL_STAGE_EVENTS.intent).toContain("commerce_clicked");
