@@ -3,6 +3,7 @@ import { readFile, stat } from "node:fs/promises";
 import { createServer } from "node:http";
 import { extname, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { createAnalyticsApi } from "./analytics-api.mjs";
 import { createAssistantApi } from "./assistant-api.mjs";
 import { createAuthApi } from "./auth-api.mjs";
 import { createBusinessApi } from "./business-api.mjs";
@@ -185,6 +186,27 @@ platformOperations = createPlatformOperations({
     },
   ],
 });
+
+const analyticsApi = createAnalyticsApi({
+  async record(event) {
+    platformOperations.emit({
+      kind: "log",
+      name: "analytics.event.recorded",
+      severity: "info",
+      attributes: {
+        eventId: event.eventId,
+        eventName: event.name,
+        visitorHash: event.visitorHash,
+        occurredAt: event.occurredAt,
+        destinationId: event.destinationId ?? "morro-de-sao-paulo",
+        locale: event.locale ?? "unknown",
+        source: event.source ?? "unknown",
+        analyticsAttributes: event.attributes,
+      },
+    });
+  },
+});
+
 await authApi.start();
 
 const crmApi = createCrmApi({ authApi, getEnvironmentValue });
@@ -506,6 +528,10 @@ const server = createServer(async (request, response) => {
     }
     if (requestUrl.pathname === "/api/weather") {
       await serveWeather(response, correlationId);
+      return;
+    }
+    if (analyticsApi.matches(requestUrl.pathname)) {
+      await analyticsApi.handle(request, response);
       return;
     }
     if (authApi.matches(requestUrl.pathname)) {
