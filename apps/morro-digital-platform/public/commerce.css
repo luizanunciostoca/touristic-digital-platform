@@ -1,5 +1,7 @@
 .commerce-detail-shell {
   min-height: 100vh;
+  min-height: 100svh;
+  min-height: 100dvh;
   margin: 0;
   padding: clamp(1rem, 4vw, 3rem);
   background: linear-gradient(145deg, #07111f 0%, #0f2743 52%, #0c4a6e 100%);
