@@ -299,9 +299,10 @@ export async function resolvePlacePrimaryAction(options: {
   }
 
   if (sellable.length > 1) {
+    const filteredOffers = sellable.slice(0, 20);
     return Object.freeze({
-      label: labels.multiple(sellable.length),
-      value: `commerce:offers:${sellable.map(({ id }) => id).join(",")}`,
+      label: labels.multiple(filteredOffers.length),
+      value: `commerce:offers:${filteredOffers.map(({ id }) => id).join(",")}`,
       presentation: "primary" as const,
       commerceState: "multiple" as const,
     });

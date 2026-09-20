@@ -336,24 +336,43 @@ export function createTicketingApi({
       ]);
 
       let crmCommerce = null;
-      if (environment.CRM_DATABASE_URL) {
-        let crmPool = null;
+      let crmRetryAttempt = 0;
+      let crmRetryNotBefore = 0;
+      const ensureCrmCommerce = async ({ force = false } = {}) => {
+        if (!environment.CRM_DATABASE_URL) return null;
+        if (crmCommerce) return crmCommerce;
+        const now = Date.now();
+        if (!force && now < crmRetryNotBefore) return null;
+
+        let candidatePool = null;
         try {
-          crmPool = createCrmMySqlPoolFromEnvironment({
+          candidatePool = createCrmMySqlPoolFromEnvironment({
             CRM_DATABASE_URL: environment.CRM_DATABASE_URL,
           });
-          await applyCrmCommerceSchema(crmPool);
-          pools.push(crmPool);
-          crmCommerce = new MySqlCrmCommerceCustomerRepository(crmPool);
+          await applyCrmCommerceSchema(candidatePool);
+          pools.push(candidatePool);
+          crmCommerce = new MySqlCrmCommerceCustomerRepository(candidatePool);
+          crmRetryAttempt = 0;
+          crmRetryNotBefore = 0;
+          return crmCommerce;
         } catch (error) {
-          await crmPool?.end().catch(() => {});
+          await candidatePool?.end().catch(() => {});
+          crmRetryAttempt = Math.min(crmRetryAttempt + 1, 10);
+          crmRetryNotBefore =
+            now +
+            Math.min(
+              60_000,
+              1_000 * 2 ** Math.min(crmRetryAttempt - 1, 6),
+            );
           auditSafely(audit, {
             action: "ticketing.crm_sync",
             result: "failure",
             reason: syncErrorCode(error),
           });
+          return null;
         }
-      }
+      };
+      await ensureCrmCommerce({ force: true });
 
       const reservations = new MySqlTicketReservationRepository(ticketingPool);
       const holders = new MySqlTicketHolderProfileRepository(ticketingPool);
@@ -424,8 +443,15 @@ export function createTicketingApi({
       const fulfillmentHandler = Object.freeze({
         async handle(result) {
           const fulfilled = await verifiedPaymentFulfillment.handle(result);
-          if (fulfilled) {
+          if (!fulfilled) return fulfilled;
+          try {
             await commerceCrmOutbox.enqueueConfirmedPurchase(fulfilled);
+          } catch (error) {
+            auditSafely(audit, {
+              action: "ticketing.crm_outbox",
+              result: "failure",
+              reason: syncErrorCode(error),
+            });
           }
           return fulfilled;
         },
@@ -495,7 +521,9 @@ export function createTicketingApi({
       });
 
       const drainCommerceCrm = async () => {
-        if (!crmCommerce) return;
+        await commerceCrmOutbox.reconcileMissingConfirmedPurchases(100);
+        const activeCrmCommerce = await ensureCrmCommerce();
+        if (!activeCrmCommerce) return;
         const events = await commerceCrmOutbox.listPending(100);
         for (const event of events) {
           try {
@@ -509,7 +537,7 @@ export function createTicketingApi({
               );
               continue;
             }
-            await crmCommerce.recordConfirmedPurchase({
+            await activeCrmCommerce.recordConfirmedPurchase({
               eventId: event.id,
               reservationId: event.reservationId,
               holderReference: event.holderReference,

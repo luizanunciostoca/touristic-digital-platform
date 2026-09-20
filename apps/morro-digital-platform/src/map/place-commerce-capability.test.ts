@@ -122,6 +122,31 @@ describe("place commerce capability", () => {
     );
   });
 
+  it("caps multi-offer handoffs at the checkout parser limit", async () => {
+    const inventory = Array.from({ length: 21 }, (_, index) =>
+      offer({
+        id: `mpi_bulk_${String(index).padStart(2, "0")}`,
+        label: `Toca do Morcego · Opção ${index + 1}`,
+        startsAt: new Date(
+          Date.parse("2026-09-20T02:00:00.000Z") + index * 60_000,
+        ).toISOString(),
+      }),
+    );
+    const fetch = vi.fn().mockResolvedValue(response(inventory));
+    const action = await resolvePlacePrimaryAction({
+      location: nightlife,
+      locale: "pt",
+      fetch,
+      now: () => Date.parse("2026-09-19T22:00:00.000Z"),
+    });
+
+    expect(action?.label).toBe("🎟️ Ver ingressos (20 opções)");
+    const ids = action?.value.replace("commerce:offers:", "").split(",");
+    expect(ids).toHaveLength(20);
+    expect(ids).toContain("mpi_bulk_00");
+    expect(ids).not.toContain("mpi_bulk_20");
+  });
+
   it("keeps sold-out inventory visible as a disabled primary CTA", async () => {
     const fetch = vi
       .fn()
