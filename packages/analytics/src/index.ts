@@ -16,6 +16,37 @@ export const ANALYTICS_EVENT_NAMES = Object.freeze([
 ] as const);
 
 export type AnalyticsEventName = (typeof ANALYTICS_EVENT_NAMES)[number];
+
+export const ANALYTICS_FUNNEL_STAGES = Object.freeze([
+  "discover",
+  "place",
+  "intent",
+  "checkout",
+  "payment",
+  "ticket",
+] as const);
+
+export type AnalyticsFunnelStage = (typeof ANALYTICS_FUNNEL_STAGES)[number];
+
+export const ANALYTICS_FUNNEL_STAGE_EVENTS: Readonly<
+  Record<AnalyticsFunnelStage, readonly AnalyticsEventName[]>
+> = Object.freeze({
+  discover: ["session_started", "category_viewed", "search_submitted"],
+  place: ["place_viewed"],
+  intent: [
+    "assistant_query",
+    "directions_started",
+    "tour_started",
+    "tour_completed",
+    "commerce_clicked",
+    "offer_selected",
+    "reservation_started",
+  ],
+  checkout: ["checkout_started"],
+  payment: ["payment_approved"],
+  ticket: ["ticket_issued"],
+});
+
 export type AnalyticsConsentState = "unknown" | "granted" | "denied";
 export type AnalyticsPrimitive = string | number | boolean | null;
 export type AnalyticsAttributes = Readonly<Record<string, AnalyticsPrimitive>>;
