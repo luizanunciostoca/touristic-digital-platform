@@ -35,7 +35,7 @@ Valores: `discover`, `place`, `navigation`, `tour`, `commerce`, `assistant`.
 ### Autoridade dos sinais
 
 - NAVIGATION: `body.navigation-active`
-- TOUR imersivo: `#map[data-active-tour]` / `data-tour-state` / `data-tour-flow-stage`
+- TOUR imersivo: somente `#map[data-tour-flow-id]` + `data-tour-flow-stage` em `intro/list/stop/finale`; uma rota turística apenas carregada no mapa não ativa o modo imersivo
 - PLACE: `#map[data-explore-stage="detail"]`
 - ASSISTANT: `body.assistant-modal-open`
 - COMMERCE: superfícies standalone de Commerce
