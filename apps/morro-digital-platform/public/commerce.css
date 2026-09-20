@@ -1,116 +1,119 @@
+/*
+ * Commerce V2 — contextual Tourist UI.
+ * Semantic visual authority comes from design-system-v2.css.
+ */
+
 .commerce-detail-shell {
   min-height: 100vh;
   min-height: 100svh;
   min-height: 100dvh;
   margin: 0;
-  padding: clamp(1rem, 4vw, 3rem);
-  background: linear-gradient(145deg, #07111f 0%, #0f2743 52%, #0c4a6e 100%);
-  color: #f8fafc;
-  font-family: "Poppins", system-ui, sans-serif;
+  padding:
+    max(var(--md-space-4), var(--md-safe-top))
+    max(var(--md-space-4), var(--md-safe-right))
+    max(var(--md-space-8), var(--md-safe-bottom))
+    max(var(--md-space-4), var(--md-safe-left));
+  background: var(--md-color-surface-canvas);
+  color: var(--md-color-text-primary);
+  font-family: var(--md-font-family-sans);
 }
 
 .commerce-detail-container {
-  width: min(100%, 960px);
-  margin: 0 auto;
+  width: min(100%, 60rem);
+  margin-inline: auto;
 }
 
 .commerce-detail-back {
-  display: inline-flex;
-  margin-bottom: 1.5rem;
-  color: #bae6fd;
-  text-decoration: none;
-  font-weight: 600;
+  width: fit-content;
+  margin-bottom: var(--md-space-6);
 }
 
 .commerce-detail-card {
   display: grid;
-  grid-template-columns: minmax(0, 1.5fr) minmax(240px, 0.8fr);
-  gap: clamp(1rem, 3vw, 2.5rem);
-  padding: clamp(1.25rem, 4vw, 2.5rem);
-  border: 1px solid rgba(186, 230, 253, 0.22);
-  border-radius: 1.5rem;
-  background: rgba(15, 23, 42, 0.84);
-  box-shadow: 0 32px 90px rgba(2, 8, 23, 0.38);
-  backdrop-filter: blur(18px);
+  grid-template-columns: minmax(0, 1.5fr) minmax(15rem, 0.8fr);
+  gap: clamp(var(--md-space-4), 3vw, var(--md-space-10));
+  padding: clamp(var(--md-space-5), 4vw, var(--md-space-10));
+  background: var(--md-color-surface-elevated);
 }
 
 .commerce-detail-eyebrow {
-  color: #7dd3fc;
-  font-size: 0.76rem;
-  font-weight: 700;
+  color: var(--md-color-info);
+  font-size: var(--md-font-size-xs);
+  font-weight: var(--md-font-weight-bold);
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
 .commerce-detail-card h1 {
-  margin: 0.35rem 0 0.8rem;
+  margin: var(--md-space-2) 0 var(--md-space-3);
+  color: var(--md-color-text-primary);
   font-size: clamp(2rem, 6vw, 4rem);
   line-height: 1.02;
 }
 
 .commerce-detail-description,
 .commerce-detail-meta p {
-  color: #cbd5e1;
+  color: var(--md-color-text-secondary);
+}
+
+.commerce-detail-description {
+  line-height: var(--md-line-height-body);
 }
 
 .commerce-detail-meta {
   display: grid;
-  gap: 0.75rem;
-  padding: 1rem;
-  border-radius: 1.1rem;
-  background: rgba(255, 255, 255, 0.06);
+  align-content: start;
+  gap: var(--md-space-3);
+  padding: var(--md-space-4);
+  background: var(--md-color-surface-subtle);
+  box-shadow: none;
+}
+
+.commerce-detail-meta p {
+  margin: 0;
 }
 
 .commerce-detail-meta strong {
   display: block;
-  color: #fff;
-  font-size: 1.15rem;
+  margin-top: var(--md-space-1);
+  color: var(--md-color-text-primary);
+  font-size: var(--md-font-size-lg);
 }
 
 .commerce-detail-price {
-  color: #7dd3fc !important;
-  font-size: 1.65rem !important;
-  font-weight: 700;
+  color: var(--md-color-info);
+  font-size: 1.65rem;
+  font-weight: var(--md-font-weight-bold);
 }
 
 .commerce-detail-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
-  margin-top: 1.25rem;
+  gap: var(--md-space-3);
+  margin-top: var(--md-space-5);
 }
 
-.commerce-detail-actions a {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 48px;
-  padding: 0.75rem 1.1rem;
-  border-radius: 999px;
-  text-decoration: none;
-  font-weight: 700;
-}
-
-.commerce-detail-actions .primary {
-  background: #38bdf8;
-  color: #082f49;
-}
-
-.commerce-detail-actions .secondary {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+.commerce-detail-actions .md-button {
+  min-height: 3rem;
 }
 
 .commerce-detail-status {
-  padding: 1rem;
-  border-radius: 1rem;
-  background: rgba(255, 255, 255, 0.08);
-  color: #e2e8f0;
+  margin: 0;
+  color: var(--md-color-text-primary);
 }
 
-@media (max-width: 720px) {
+@supports (backdrop-filter: blur(0.75rem)) {
   .commerce-detail-card {
-    grid-template-columns: 1fr;
+    background: var(--md-color-surface-glass);
+    backdrop-filter: blur(0.75rem);
+  }
+
+  .commerce-detail-meta {
+    background: color-mix(
+      in srgb,
+      var(--md-color-surface-card) 82%,
+      transparent
+    );
   }
 }
 
@@ -118,41 +121,40 @@
 .assistant-option-btn.assistant-option-btn--primary {
   grid-column: 1 / -1;
   width: 100%;
-  min-height: 2.75rem;
+  min-height: var(--md-touch-target-min);
   justify-content: center;
-  padding: 0.58rem 0.75rem;
-  border-radius: 0.9rem;
-  border-color: rgba(3, 105, 161, 0.3);
-  background: linear-gradient(135deg, #0369a1, #0284c7);
-  color: #ffffff;
-  font-size: 0.8rem;
-  font-weight: 800;
-  line-height: 1.2;
+  padding: var(--md-space-3);
+  border-color: var(--md-color-interactive-primary);
+  border-radius: var(--md-radius-lg);
+  background: var(--md-color-interactive-primary);
+  color: var(--md-color-text-inverse);
+  font-size: var(--md-font-size-sm);
+  font-weight: var(--md-font-weight-bold);
+  line-height: var(--md-line-height-tight);
   text-align: center;
-  box-shadow: 0 9px 20px rgba(3, 105, 161, 0.24);
+  box-shadow: var(--md-elevation-1);
+  transition:
+    background-color var(--md-motion-duration-fast) var(--md-motion-ease-standard),
+    border-color var(--md-motion-duration-fast) var(--md-motion-ease-standard),
+    box-shadow var(--md-motion-duration-fast) var(--md-motion-ease-standard),
+    transform var(--md-motion-duration-fast) var(--md-motion-ease-standard);
 }
 
 .assistant-option-btn.assistant-option-btn--primary::before {
   background: linear-gradient(
     135deg,
-    rgba(255, 255, 255, 0.16),
+    color-mix(in srgb, var(--md-color-text-inverse) 16%, transparent),
     transparent 58%
   );
 }
 
 .assistant-option-btn.assistant-option-btn--primary:hover,
 .assistant-option-btn.assistant-option-btn--primary:focus-visible {
-  border-color: rgba(3, 105, 161, 0.48);
-  background: linear-gradient(135deg, #075985, #0369a1);
-  color: #ffffff;
+  border-color: var(--md-color-interactive-primary-hover);
+  background: var(--md-color-interactive-primary-hover);
+  color: var(--md-color-text-inverse);
   transform: translateY(-1px);
-  box-shadow: 0 12px 24px rgba(3, 105, 161, 0.3);
-}
-
-.assistant-option-btn.assistant-option-btn--primary:focus {
-  background: linear-gradient(135deg, #0369a1, #0284c7);
-  color: #ffffff;
-  border-color: rgba(3, 105, 161, 0.38);
+  box-shadow: var(--md-elevation-2);
 }
 
 .assistant-option-btn.assistant-option-btn--primary:active {
@@ -164,27 +166,49 @@
   opacity: 0.7;
   transform: none;
   filter: saturate(0.7);
-  box-shadow: 0 5px 12px rgba(15, 23, 42, 0.12);
+  box-shadow: none;
 }
 
-body.dark-theme .assistant-option-btn.assistant-option-btn--primary {
-  background: linear-gradient(135deg, #075985, #0c4a6e);
-  color: #f8fafc;
-  border-color: rgba(125, 211, 252, 0.36);
-  box-shadow: 0 10px 22px rgba(2, 6, 23, 0.42);
+@media (max-width: 45rem) {
+  .commerce-detail-card {
+    grid-template-columns: 1fr;
+  }
+
+  .commerce-detail-actions {
+    position: sticky;
+    bottom: max(var(--md-space-3), var(--md-safe-bottom));
+    z-index: var(--md-layer-dock);
+    padding-top: var(--md-space-3);
+    background: linear-gradient(
+      to top,
+      var(--md-color-surface-elevated) 72%,
+      transparent
+    );
+  }
+
+  .commerce-detail-actions .md-button {
+    flex: 1 1 9rem;
+  }
 }
 
-body.dark-theme .assistant-option-btn.assistant-option-btn--primary:hover,
-body.dark-theme
-  .assistant-option-btn.assistant-option-btn--primary:focus-visible {
-  background: linear-gradient(135deg, #0369a1, #075985);
-  border-color: rgba(186, 230, 253, 0.56);
-}
-
-@media (max-width: 480px) {
+@media (prefers-reduced-motion: reduce) {
   .assistant-option-btn.assistant-option-btn--primary {
-    min-height: 2.75rem;
-    padding: 0.54rem 0.68rem;
-    font-size: 0.76rem;
+    transition-duration: 0.01ms;
+  }
+}
+
+@media (forced-colors: active) {
+  .commerce-detail-card,
+  .commerce-detail-meta,
+  .assistant-option-btn.assistant-option-btn--primary {
+    forced-color-adjust: auto;
+    border-color: CanvasText;
+    background: Canvas;
+    color: CanvasText;
+    box-shadow: none;
+  }
+
+  .commerce-detail-price {
+    color: CanvasText;
   }
 }
