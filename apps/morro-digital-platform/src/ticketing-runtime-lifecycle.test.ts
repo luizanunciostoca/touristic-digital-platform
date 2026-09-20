@@ -20,6 +20,25 @@ describe("Ticketing runtime lifecycle", () => {
     expect(source).not.toContain("ticketingApiPromise");
   });
 
+  it("preflights the mandatory Financial authority schema before readiness", async () => {
+    const source = await readFile(
+      new URL("../tooling/ticketing-api.mjs", import.meta.url),
+      "utf8",
+    );
+
+    const paymentsPreflight = source.indexOf(
+      "SELECT payment_id FROM financial_payments LIMIT 1",
+    );
+    const resultsPreflight = source.indexOf(
+      "SELECT result_id FROM financial_payment_results LIMIT 1",
+    );
+    const ready = source.indexOf("started = true;", resultsPreflight);
+
+    expect(paymentsPreflight).toBeGreaterThan(0);
+    expect(resultsPreflight).toBeGreaterThan(paymentsPreflight);
+    expect(ready).toBeGreaterThan(resultsPreflight);
+  });
+
   it("makes Ticketing readiness critical and binds graceful shutdown", async () => {
     const source = await readFile(
       new URL("../tooling/dev-server.mjs", import.meta.url),
