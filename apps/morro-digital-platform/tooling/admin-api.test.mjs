@@ -594,7 +594,6 @@ describe("Control Center Admin API", () => {
   });
 });
 
-
 describe("Control Center generic domain mutation audit", () => {
   it("persists adapter reason and state transition in the append-only audit projection", async () => {
     const contentAdapter = {
@@ -626,9 +625,7 @@ describe("Control Center generic domain mutation audit", () => {
         body: { fields: { title: "Atualizado" } },
       }),
       mutationResponse,
-      new URL(
-        "http://localhost/api/admin/v1/content/content-audit-0001",
-      ),
+      new URL("http://localhost/api/admin/v1/content/content-audit-0001"),
     );
 
     expect(mutationResponse.statusCode).toBe(200);
@@ -640,8 +637,7 @@ describe("Control Center generic domain mutation audit", () => {
       new URL("http://localhost/api/admin/v1/audit"),
     );
     const complete = JSON.parse(auditResponse.body).entries.find(
-      (entry) =>
-        entry.action === "control-center.content.mutation.complete",
+      (entry) => entry.action === "control-center.content.mutation.complete",
     );
     expect(complete).toMatchObject({
       result: "success",
