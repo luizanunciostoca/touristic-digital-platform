@@ -10,15 +10,15 @@ describe("runtime startup composition", () => {
     );
 
     expect(source).toContain(
-      'import { createTicketingApi } from "./ticketing-api.mjs";',
+      'const { createTicketingApi } = await import("./ticketing-api.mjs");',
     );
     expect(source).toContain(
       "ticketingRuntimeReady = await ticketingApi.start();",
     );
     expect(source).toContain('name: "ticketing-runtime"');
     expect(source).toContain("ticketingApi.stop()");
-    expect(source).not.toContain('import("./ticketing-api.mjs")');
     expect(source).not.toContain("getTicketingApi()");
+    expect(source).not.toContain("ticketingApiPromise");
   });
 
   it("uses canonical workspace package imports for Ticketing runtime dependencies", async () => {
