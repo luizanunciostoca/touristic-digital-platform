@@ -23,6 +23,10 @@ const mysqlDrillRunbook = fs.readFileSync(
   ),
   "utf8",
 );
+const mysqlWait = fs.readFileSync(
+  new URL("../render/wait-for-staging-mysql.mjs", import.meta.url),
+  "utf8",
+);
 const runbook = fs.readFileSync(
   new URL("../../docs/deployment/RENDER-STAGING-V2.md", import.meta.url),
   "utf8",
@@ -88,14 +92,23 @@ for (const required of [
   "name: morro-digital-v2-staging",
   "runtime: node",
   "buildCommand: corepack pnpm install --frozen-lockfile && corepack pnpm build",
-  "preDeployCommand: node tooling/render/with-staging-mysql-env.mjs node apps/morro-digital-platform/tooling/payments-migrate.mjs",
-  "startCommand: node tooling/render/with-staging-mysql-env.mjs node apps/morro-digital-platform/tooling/dev-server.mjs",
+  "preDeployCommand: node tooling/render/wait-for-staging-mysql.mjs && node tooling/render/with-staging-mysql-env.mjs node apps/morro-digital-platform/tooling/payments-migrate.mjs",
+  "startCommand: node tooling/render/wait-for-staging-mysql.mjs && node tooling/render/with-staging-mysql-env.mjs node apps/morro-digital-platform/tooling/dev-server.mjs",
   "healthCheckPath: /readyz",
   "value: https://api.mercadopago.com",
   "value: https://www.mercadopago.com,https://www.mercadopago.com.br",
   "value: mapbox://styles/mapbox/streets-v12",
 ]) {
   requireText(blueprint, required);
+}
+
+for (const required of [
+  "MORRO-STAGING-MYSQL-WAIT",
+  "STAGING_MYSQL_WAIT_SERVICE_DENIED",
+  "STAGING_MYSQL_WAIT_TIMEOUT",
+  "300_000",
+]) {
+  requireText(mysqlWait, required);
 }
 
 for (const required of [
