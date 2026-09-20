@@ -39,6 +39,8 @@ The privacy preference control starts collapsed, including when consent is `unkn
 This is intentional: `unknown` already disables Analytics at the collector boundary, so blocking Home, onboarding, map or Assistant interactions is unnecessary.
 The persistent Privacy trigger lets the visitor open the preference surface and explicitly choose `granted` or `denied` at any time.
 
+The collapsed trigger is anchored to the physical top-left safe area at a layer below active navigation guidance, avoiding the established top-right Weather and bottom-right Map controls as well as the bottom Assistant dock.
+
 ## Release boundary
 
 This closes the browser consent UX implementation gap only. Production Analytics activation still requires the production environment/database to be configured and verified by the Wave 8 infrastructure gates.

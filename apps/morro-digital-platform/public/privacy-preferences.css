@@ -72,8 +72,11 @@
 }
 
 .analytics-consent-preferences.is-collapsed {
-  inset-inline-start: auto;
-  inset-inline-end: max(0.75rem, env(safe-area-inset-right, 0px));
+  top: max(0.75rem, env(safe-area-inset-top, 0px));
+  right: auto;
+  bottom: auto;
+  left: max(0.75rem, env(safe-area-inset-left, 0px));
+  z-index: 2150;
   width: auto;
   padding: 0;
   transform: none;
