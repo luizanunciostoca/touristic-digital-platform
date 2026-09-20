@@ -284,7 +284,6 @@ describe("browser analytics instrumentation", () => {
   });
 });
 
-
 describe("browser analytics consent preferences", () => {
   it("commits granted/denied only after an explicit choice", () => {
     const setConsent = vi.fn();

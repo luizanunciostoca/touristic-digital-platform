@@ -397,7 +397,6 @@ export function installBrowserAnalyticsInstrumentation(
   });
 }
 
-
 export type BrowserAnalyticsConsentChoice =
   | Exclude<AnalyticsConsentState, "unknown">
   | "later";
@@ -473,7 +472,9 @@ const analyticsConsentPreferenceCopy = Object.freeze({
     denied: "רק תכונות הכרחיות פעילות.",
     unknown: "Analytics אופציונלי נשאר מושבת עד לבחירה.",
   }),
-} satisfies Readonly<Record<"pt" | "en" | "es" | "he", AnalyticsConsentPreferenceCopy>>);
+} satisfies Readonly<
+  Record<"pt" | "en" | "es" | "he", AnalyticsConsentPreferenceCopy>
+>);
 
 export function browserAnalyticsConsentPreferenceCopy(
   locale: string,
@@ -513,7 +514,9 @@ export function installBrowserAnalyticsConsentPreferences(
   let expanded = controller.getConsent() === "unknown";
 
   const localizedCopy = (): AnalyticsConsentPreferenceCopy =>
-    browserAnalyticsConsentPreferenceCopy(document.documentElement.lang || "pt");
+    browserAnalyticsConsentPreferenceCopy(
+      document.documentElement.lang || "pt",
+    );
 
   const createButton = (
     label: string,
