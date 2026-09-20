@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./public-projection": "./src/public-projection.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
