@@ -68,9 +68,9 @@ describe("MySqlTicketingCommerceCrmOutbox", () => {
     const pool = { execute } as unknown as Pool;
     const outbox = new MySqlTicketingCommerceCrmOutbox(pool);
 
-    await expect(
-      outbox.reconcileMissingConfirmedPurchases(100),
-    ).resolves.toBe(1);
+    await expect(outbox.reconcileMissingConfirmedPurchases(100)).resolves.toBe(
+      1,
+    );
 
     expect(String(execute.mock.calls[0]?.[0])).toContain(
       "FROM ticketing_tickets AS t",
