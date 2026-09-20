@@ -44,7 +44,7 @@ function createAppShellMarkup(): string {
       <div id="assistant-messages" class="assistant-modal auto-size grow-upward hidden" aria-hidden="true">
         <button class="minimize-button" aria-label="Minimize assistant" data-i18n-aria="assistant_minimize">×</button>
         <div class="messages-area">
-          <div class="message assistant" data-message-type="standard">
+          <div class="message assistant" data-message-type="standard" data-i18n="assistant_welcome_message">
             🎉 Welcome to Morro Digital! I am your official virtual guide to Morro de São Paulo, ready to help you easily explore tourist spots, beaches, restaurants, parties, tours, and everything you need at your fingertips. How can I help you? 😄
           </div>
           <div class="assistant-options" aria-label="Explore Morro Digital">
