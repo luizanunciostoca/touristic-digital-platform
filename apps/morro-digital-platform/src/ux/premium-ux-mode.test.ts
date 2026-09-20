@@ -27,9 +27,9 @@ describe("Chat 6 CSS modernization + Premium UX foundations", () => {
     } as const;
 
     expect(resolveMorroUxMode(baseline)).toBe("discover");
-    expect(
-      resolveMorroUxMode({ ...baseline, assistantActive: true }),
-    ).toBe("assistant");
+    expect(resolveMorroUxMode({ ...baseline, assistantActive: true })).toBe(
+      "assistant",
+    );
     expect(resolveMorroUxMode({ ...baseline, commerceActive: true })).toBe(
       "commerce",
     );
@@ -80,7 +80,9 @@ describe("Chat 6 CSS modernization + Premium UX foundations", () => {
     const css = await readPublic("premium-ux-v2.css");
 
     for (const state of ["peek", "half", "full"]) {
-      expect(css).toContain('.md-bottom-sheet[data-sheet-state="' + state + '"]');
+      expect(css).toContain(
+        '.md-bottom-sheet[data-sheet-state="' + state + '"]',
+      );
     }
     expect(css).toContain("overscroll-behavior: contain");
     expect(css).toContain("@media (prefers-reduced-motion: reduce)");
@@ -105,8 +107,7 @@ describe("Chat 6 CSS modernization + Premium UX foundations", () => {
         ),
       ].map((match) => match[1]);
 
-      const premium =
-        "/apps/morro-digital-platform/public/premium-ux-v2.css";
+      const premium = "/apps/morro-digital-platform/public/premium-ux-v2.css";
       const foundations =
         "/apps/morro-digital-platform/public/design-system-v2.css";
 

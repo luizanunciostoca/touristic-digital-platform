@@ -1,10 +1,5 @@
 export type MorroUxMode =
-  | "discover"
-  | "place"
-  | "navigation"
-  | "tour"
-  | "commerce"
-  | "assistant";
+  "discover" | "place" | "navigation" | "tour" | "commerce" | "assistant";
 
 export interface MorroUxModeSignals {
   readonly navigationActive: boolean;
