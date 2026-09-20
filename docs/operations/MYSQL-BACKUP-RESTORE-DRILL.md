@@ -16,12 +16,15 @@ The command fails closed unless all of the following are true:
 
 - `DRILL_ENVIRONMENT=staging`;
 - `DRILL_CONFIRM=BACKUP_RESTORE_STAGING_ONLY`;
-- when Render exposes `RENDER_SERVICE_NAME`, it equals `morro-digital-v2-staging-mysql`;
+- `RENDER_SERVICE_NAME=morro-digital-v2-staging-mysql` is present, so the command cannot run from another Render service;
+- `DRILL_SOURCE_QUIESCED_CONFIRMED=true` explicitly records that writes to the source have been paused for the drill;
 - the source database equals one of the four staging database names already injected into the MySQL private service;
 - the restore database is different from the source and begins with `<source>_restore_drill_`;
 - the backup directory is not the MySQL data volume `/var/lib/mysql`.
 
-The script never changes the source schema. It creates only the isolated restore schema. By default the restore schema is dropped after validation. Set `DRILL_KEEP_RESTORE=true` only when an operator needs to inspect the restored clone and accepts responsibility for later cleanup.
+The script never changes the source schema. It creates only the isolated restore schema. By default the restore schema is dropped after validation and the SQL dump is removed from the temporary backup directory. Set `DRILL_KEEP_RESTORE=true` or `DRILL_KEEP_BACKUP=true` only when an operator explicitly needs to retain those artifacts and accepts responsibility for secure cleanup.
+
+The row-count comparison assumes the staging source stays quiesced from backup start through restore validation. If writes resume during the drill, discard the evidence and run again.
 
 Passwords are supplied through environment variables and are never emitted in the JSON evidence.
 
@@ -33,6 +36,7 @@ A dry-run validates the safety boundary without connecting to MySQL:
 DRILL_ENVIRONMENT=staging \
 DRILL_CONFIRM=BACKUP_RESTORE_STAGING_ONLY \
 DRILL_DRY_RUN=true \
+DRILL_SOURCE_QUIESCED_CONFIRMED=true \
 DRILL_SOURCE_DATABASE="$ORDERING_DATABASE_NAME" \
 DRILL_RESTORE_DATABASE="${ORDERING_DATABASE_NAME}_restore_drill_plan" \
 /usr/local/bin/morro-mysql-backup-restore-drill
@@ -49,13 +53,14 @@ STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 
 DRILL_ENVIRONMENT=staging \
 DRILL_CONFIRM=BACKUP_RESTORE_STAGING_ONLY \
+DRILL_SOURCE_QUIESCED_CONFIRMED=true \
 DRILL_SOURCE_DATABASE="$ORDERING_DATABASE_NAME" \
 DRILL_RESTORE_DATABASE="${ORDERING_DATABASE_NAME}_restore_drill_${STAMP}" \
 DRILL_BACKUP_DIRECTORY=/tmp/morro-dr \
 /usr/local/bin/morro-mysql-backup-restore-drill
 ```
 
-Repeat for Auth, Ordering, Financial and Affiliates when the release gate requires a complete database drill.
+Before the live command, pause or otherwise quiesce the V2 staging web workload so no writes can occur until validation finishes. Repeat for Auth, Ordering, Financial and Affiliates when the release gate requires a complete database drill.
 
 A successful execution returns a single `MYSQL-BACKUP-RESTORE-DRILL` JSON record with:
 
@@ -64,7 +69,7 @@ A successful execution returns a single `MYSQL-BACKUP-RESTORE-DRILL` JSON record
 - table count;
 - UTC backup start/completion timestamps;
 - UTC restore start/completion timestamps;
-- whether the restore schema was retained.
+- whether the restore schema and logical dump were retained.
 
 Store the JSON output in the release evidence ledger. Do not store the SQL dump in Git.
 
