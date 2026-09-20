@@ -227,7 +227,6 @@ CI_VERIFIED / STAGING_INFRA_PREPARED / STAGING_VERIFICATION_REQUIRED
 
 Somente após deploy do SHA exato, smoke, migrations, provider test lifecycle e readbacks é permitido promover para `STAGING_VERIFIED` e `PROVIDER_VERIFIED`.
 
-
 ## MySQL replacement-window readiness guard
 
 The V2 staging web service waits for the private MySQL endpoint before both predeploy migrations and runtime startup.
@@ -237,6 +236,7 @@ Canonical command:
 `node tooling/render/wait-for-staging-mysql.mjs`
 
 The guard:
+
 - runs only when `RENDER_SERVICE_NAME=morro-digital-v2-staging`;
 - validates the private `STAGING_MYSQL_HOSTPORT` shape;
 - probes DNS/TCP only and never reads database credentials;
