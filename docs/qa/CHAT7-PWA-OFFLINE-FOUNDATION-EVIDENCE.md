@@ -75,3 +75,7 @@ PWA install/offline shell foundation: IMPLEMENTED.
 Full offline content product: PARTIAL.
 
 Production PWA certification: OPEN until exact-head browser/device evidence is green.
+
+## Install icon assets
+
+The manifest uses dedicated 192×192 and 512×512 PNG assets committed as binary blobs. They are presentation-only assets and contain no executable content or external dependency.
