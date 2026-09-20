@@ -42,11 +42,10 @@ function contentStatus(value: unknown): ContentStatus | null {
     : null;
 }
 
-function fields(
-  value: unknown,
-): Readonly<Record<string, unknown>> | undefined {
+function fields(value: unknown): Readonly<Record<string, unknown>> | undefined {
   if (value === undefined) return undefined;
-  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  if (!value || typeof value !== "object" || Array.isArray(value))
+    return undefined;
   return value as Readonly<Record<string, unknown>>;
 }
 
