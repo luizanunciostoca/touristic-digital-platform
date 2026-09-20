@@ -419,8 +419,12 @@ export function createAdminDomainAdapters({
   crmApi,
   ticketingApi,
   paymentsApi,
+  destinationRuntime,
 } = {}) {
   return Object.freeze({
+    ...(destinationRuntime
+      ? { destinations: createDestinationAdminAdapter(destinationRuntime) }
+      : {}),
     ...(businessApi
       ? { businesses: createBusinessAdminAdapter(businessApi, authApi) }
       : {}),
