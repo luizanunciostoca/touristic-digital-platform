@@ -1,361 +1,444 @@
-:root {
-  color-scheme: light;
-  font-family:
-    Inter,
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    sans-serif;
-  background: #f4f3ee;
-  color: #18211d;
-}
+/*
+ * Ticketing V2 — Morro Digital Tourist UI.
+ * Feature layout only: visual authority comes from design-system-v2.css.
+ */
 
 * {
   box-sizing: border-box;
 }
+
+html {
+  background: var(--md-color-surface-canvas);
+}
+
 body {
   margin: 0;
-  background: #f4f3ee;
+  background: var(--md-color-surface-canvas);
+  color: var(--md-color-text-primary);
+  font-family: var(--md-font-family-sans);
 }
+
 button,
 input {
   font: inherit;
 }
+
 button {
   cursor: pointer;
 }
 
 .ticketing-shell {
-  width: min(1120px, calc(100% - 32px));
-  margin: 0 auto;
-  padding: 32px 0 80px;
+  width: min(70rem, calc(100% - 2rem));
+  margin-inline: auto;
+  padding-block: var(--md-space-8)
+    calc(var(--md-space-12) + var(--md-safe-bottom));
 }
 
 .ticketing-header {
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 18px 32px;
+  gap: var(--md-space-5) var(--md-space-8);
   align-items: end;
-  padding: 24px 0 30px;
+  padding-block: var(--md-space-6) var(--md-space-8);
 }
 
 .back-link {
   grid-column: 1 / -1;
-  color: #365c4d;
+  gap: var(--md-space-2);
+  color: var(--md-color-brand-strong);
+  font-weight: var(--md-font-weight-bold);
   text-decoration: none;
-  font-weight: 700;
 }
+
+.back-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
 .eyebrow {
-  margin: 0 0 8px;
-  color: #5c756b;
-  font-size: 0.76rem;
-  font-weight: 800;
-  letter-spacing: 0.14em;
+  margin: 0 0 var(--md-space-2);
+  color: var(--md-color-text-secondary);
+  font-size: var(--md-font-size-xs);
+  font-weight: var(--md-font-weight-bold);
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
+
 h1,
 h2,
 p {
   margin-top: 0;
 }
+
 h1 {
-  margin-bottom: 10px;
-  font-size: clamp(2rem, 5vw, 3.7rem);
-  line-height: 0.98;
-  letter-spacing: -0.045em;
+  margin-bottom: var(--md-space-3);
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  line-height: 1;
+  letter-spacing: -0.035em;
 }
+
 h2 {
   margin-bottom: 0;
   font-size: clamp(1.35rem, 3vw, 2rem);
-  letter-spacing: -0.025em;
+  line-height: var(--md-line-height-tight);
+  letter-spacing: -0.02em;
 }
+
 .lead {
-  max-width: 690px;
+  max-width: 43rem;
   margin-bottom: 0;
-  color: #52605a;
-  font-size: 1.02rem;
-  line-height: 1.65;
+  color: var(--md-color-text-secondary);
+  font-size: var(--md-font-size-md);
+  line-height: var(--md-line-height-body);
 }
+
 .session-label,
 .secure-note {
-  color: #61716a;
-  font-size: 0.88rem;
+  color: var(--md-color-text-secondary);
+  font-size: var(--md-font-size-sm);
 }
+
 .session-label {
   margin: 0;
-  padding: 9px 12px;
-  border: 1px solid #d8ddd7;
-  border-radius: 999px;
-  background: #fff;
+  align-self: end;
 }
 
 .panel {
-  margin-top: 20px;
-  padding: clamp(20px, 4vw, 32px);
-  border: 1px solid #dfe2dc;
-  border-radius: 24px;
-  background: rgba(255, 255, 255, 0.88);
-  box-shadow: 0 18px 45px rgba(38, 54, 47, 0.07);
+  margin-top: var(--md-space-5);
+  padding: clamp(var(--md-space-5), 4vw, var(--md-space-8));
 }
+
 .section-heading {
   display: flex;
   justify-content: space-between;
-  gap: 20px;
+  gap: var(--md-space-5);
   align-items: end;
-  margin-bottom: 22px;
+  margin-bottom: var(--md-space-6);
 }
+
 .offer-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(235px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14.75rem), 1fr));
+  gap: var(--md-space-4);
 }
+
 .offer-card {
   display: flex;
-  min-height: 215px;
+  min-height: 13.5rem;
   flex-direction: column;
   justify-content: space-between;
-  gap: 18px;
-  padding: 20px;
-  border: 1px solid #dde3dd;
-  border-radius: 18px;
-  background: #fbfcfa;
+  gap: var(--md-space-5);
+  padding: var(--md-space-5);
+  transition:
+    border-color var(--md-motion-duration-fast) var(--md-motion-ease-standard),
+    box-shadow var(--md-motion-duration-fast) var(--md-motion-ease-standard),
+    transform var(--md-motion-duration-fast) var(--md-motion-ease-standard);
 }
+
 .offer-card.is-selected {
-  border-color: #285846;
-  box-shadow: inset 0 0 0 1px #285846;
+  border-color: var(--md-color-interactive-primary);
+  box-shadow:
+    var(--md-elevation-1),
+    inset 0 0 0 1px var(--md-color-interactive-primary);
 }
+
 .offer-card h3 {
-  margin: 0 0 8px;
-  font-size: 1.15rem;
+  margin: var(--md-space-2) 0;
+  font-size: var(--md-font-size-lg);
+  line-height: var(--md-line-height-tight);
 }
+
 .offer-card p {
-  margin-bottom: 5px;
-  color: #617068;
-  font-size: 0.9rem;
+  margin-bottom: var(--md-space-1);
+  color: var(--md-color-text-secondary);
+  font-size: var(--md-font-size-sm);
 }
+
+.offer-kind {
+  margin-bottom: var(--md-space-2);
+}
+
 .offer-price {
-  color: #193f31 !important;
-  font-size: 1.15rem !important;
-  font-weight: 800;
+  color: var(--md-color-text-primary);
+  font-size: var(--md-font-size-lg);
+  font-weight: var(--md-font-weight-bold);
 }
+
 .availability {
-  display: inline-flex;
-  width: fit-content;
-  padding: 6px 9px;
-  border-radius: 999px;
-  background: #e9f1ed;
-  color: #285846 !important;
-  font-weight: 700;
+  margin-top: var(--md-space-2);
 }
 
 .button {
-  min-height: 44px;
-  border: 0;
-  border-radius: 12px;
-  padding: 10px 15px;
-  font-weight: 800;
-}
-.button:disabled {
-  cursor: not-allowed;
-  opacity: 0.48;
-}
-.button-primary {
-  background: #234f3f;
-  color: #fff;
-}
-.button-primary:hover:not(:disabled) {
-  background: #183f31;
-}
-.button-secondary {
-  border: 1px solid #ccd6d0;
-  background: #fff;
-  color: #2a5042;
+  text-decoration: none;
 }
 
 .reservation-form {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+  gap: var(--md-space-4);
 }
+
 .reservation-form label {
   display: grid;
-  gap: 7px;
-  color: #46564f;
-  font-size: 0.86rem;
-  font-weight: 750;
+  gap: var(--md-space-2);
+  color: var(--md-color-text-primary);
+  font-size: var(--md-font-size-sm);
+  font-weight: var(--md-font-weight-medium);
 }
+
 .reservation-form label span {
-  color: #8a9690;
-  font-weight: 500;
+  color: var(--md-color-text-secondary);
+  font-weight: var(--md-font-weight-regular);
 }
-.reservation-form input {
-  width: 100%;
-  min-height: 46px;
-  border: 1px solid #d6ddd8;
-  border-radius: 12px;
-  padding: 10px 12px;
-  background: #fff;
-  color: #18211d;
-  outline: none;
+
+.reservation-form .md-input {
+  min-height: 2.875rem;
 }
-.reservation-form input:focus-visible {
-  border-color: #315f4e;
-  box-shadow: 0 0 0 3px rgba(49, 95, 78, 0.12);
+
+.reservation-form .md-input:focus-visible {
+  border-color: var(--md-color-interactive-primary);
+  box-shadow: 0 0 0 var(--md-focus-ring-offset)
+    color-mix(in srgb, var(--md-focus-ring-color) 20%, transparent);
 }
-.reservation-form input[readonly] {
-  background: #f3f5f2;
+
+.reservation-form .md-input[readonly] {
+  background: var(--md-color-surface-subtle);
+  color: var(--md-color-text-secondary);
 }
+
 .form-actions {
   grid-column: 1 / -1;
   display: flex;
   justify-content: space-between;
-  gap: 16px;
+  gap: var(--md-space-4);
   align-items: center;
-  padding-top: 4px;
+  padding-top: var(--md-space-1);
 }
+
+#reserve-button {
+  min-height: 3rem;
+}
+
 .message {
   margin: 0;
-  color: #6c7772;
-  font-size: 0.9rem;
+  color: var(--md-color-text-secondary);
+  font-size: var(--md-font-size-sm);
 }
+
 .message.is-error {
-  color: #9a3e36;
+  color: var(--md-color-danger);
+  font-weight: var(--md-font-weight-medium);
 }
 
 .reservation-list {
   display: grid;
-  gap: 12px;
+  gap: var(--md-space-3);
 }
+
 .reservation-card {
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 16px;
+  gap: var(--md-space-4);
   align-items: center;
-  padding: 18px;
-  border: 1px solid #dfe3df;
-  border-radius: 16px;
-  background: #fbfcfb;
+  padding: var(--md-space-5);
 }
+
 .reservation-card h3 {
-  margin: 0 0 6px;
+  margin: 0 0 var(--md-space-2);
 }
+
 .reservation-card p {
   margin: 0;
-  color: #66716c;
-  font-size: 0.88rem;
+  color: var(--md-color-text-secondary);
+  font-size: var(--md-font-size-sm);
 }
+
 .status {
-  display: inline-block;
-  margin-top: 8px;
-  padding: 5px 9px;
-  border-radius: 999px;
-  background: #edf0ed;
-  color: #4e5b55;
-  font-size: 0.75rem;
-  font-weight: 800;
+  margin-top: var(--md-space-2);
   text-transform: uppercase;
 }
+
 .status-confirmed {
-  background: #e1f0e8;
-  color: #215840;
+  background: color-mix(in srgb, var(--md-color-success) 14%, transparent);
+  color: var(--md-color-success);
 }
+
 .status-held {
-  background: #fff0ce;
-  color: #79561c;
+  background: color-mix(in srgb, var(--md-color-warning) 16%, transparent);
+  color: var(--md-color-warning);
 }
+
 .status-cancelled,
 .status-expired {
-  background: #f2e7e5;
-  color: #88443e;
+  background: color-mix(in srgb, var(--md-color-danger) 14%, transparent);
+  color: var(--md-color-danger);
 }
+
 .card-actions {
   display: flex;
-  gap: 8px;
   flex-wrap: wrap;
   justify-content: flex-end;
+  gap: var(--md-space-2);
 }
+
 .empty {
-  padding: 28px 0;
-  color: #718079;
+  padding-block: var(--md-space-8);
+  color: var(--md-color-text-secondary);
   text-align: center;
 }
 
 .ticket-dialog {
-  width: min(440px, calc(100% - 28px));
-  border: 0;
-  border-radius: 24px;
-  padding: 30px;
-  background: #fff;
-  color: #17201c;
-  box-shadow: 0 35px 100px rgba(0, 0, 0, 0.28);
+  position: relative;
+  width: min(27.5rem, calc(100% - 1.75rem));
+  padding: var(--md-space-8);
 }
+
 .ticket-dialog::backdrop {
-  background: rgba(16, 26, 22, 0.62);
-  backdrop-filter: blur(7px);
+  background: var(--md-color-overlay);
 }
+
+@supports (backdrop-filter: blur(0.35rem)) {
+  .ticket-dialog::backdrop {
+    backdrop-filter: blur(0.35rem);
+  }
+}
+
 .dialog-close {
   position: absolute;
-  top: 12px;
-  right: 14px;
-  width: 44px;
-  height: 44px;
-  border: 0;
-  border-radius: 50%;
-  background: #eef1ee;
+  inset-block-start: var(--md-space-3);
+  inset-inline-end: var(--md-space-3);
+  border-radius: var(--md-radius-pill);
+  background: var(--md-color-surface-subtle);
+  color: var(--md-color-text-primary);
   font-size: 1.4rem;
 }
+
 .ticket-qr {
-  width: min(300px, 100%);
-  margin: 24px auto 18px;
+  width: min(18.75rem, 100%);
+  margin: var(--md-space-6) auto var(--md-space-5);
   aspect-ratio: 1;
 }
+
 .ticket-qr svg {
   display: block;
   width: 100%;
   height: 100%;
 }
+
 .ticket-code {
   margin: 0;
   text-align: center;
   font-size: 1.3rem;
   font-weight: 900;
   letter-spacing: 0.08em;
+  overflow-wrap: anywhere;
 }
+
 .ticket-meta {
-  margin: 12px 0 0;
-  color: #65716c;
+  margin: var(--md-space-3) 0 0;
+  color: var(--md-color-text-secondary);
   text-align: center;
   line-height: 1.5;
 }
 
-@media (max-width: 720px) {
+.ticketing-skeleton-card {
+  display: grid;
+  min-height: 13.5rem;
+  gap: var(--md-space-3);
+  padding: var(--md-space-5);
+}
+
+.ticketing-skeleton-line {
+  min-height: 0.9rem;
+}
+
+.ticketing-skeleton-line[data-size="short"] {
+  width: 42%;
+}
+
+.ticketing-skeleton-line[data-size="medium"] {
+  width: 68%;
+}
+
+.ticketing-skeleton-action {
+  width: 7.5rem;
+  min-height: var(--md-touch-target-min);
+  margin-top: auto;
+}
+
+@media (max-width: 45rem) {
   .ticketing-shell {
-    width: min(100% - 20px, 1120px);
-    padding-top: 18px;
+    width: min(100% - 1.25rem, 70rem);
+    padding-top: var(--md-space-4);
   }
+
   .ticketing-header {
     grid-template-columns: 1fr;
+    padding-block-start: var(--md-space-4);
   }
+
   .session-label {
     width: fit-content;
   }
+
   .section-heading {
     align-items: flex-start;
     flex-direction: column;
   }
+
   .reservation-form {
     grid-template-columns: 1fr;
   }
+
   .form-actions {
     align-items: stretch;
     flex-direction: column;
   }
+
+  .form-actions .md-button {
+    width: 100%;
+  }
+
   .reservation-card {
     grid-template-columns: 1fr;
   }
+
   .card-actions {
     justify-content: flex-start;
+  }
+
+  .card-actions .md-button {
+    flex: 1 1 9rem;
+  }
+
+  .ticket-dialog {
+    padding: var(--md-space-6);
+    padding-top: var(--md-space-10);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .offer-card {
+    transition-duration: 0.01ms;
+  }
+}
+
+@media (forced-colors: active) {
+  .offer-card.is-selected {
+    border-color: Highlight;
+    box-shadow: none;
+  }
+
+  .status-confirmed,
+  .status-held,
+  .status-cancelled,
+  .status-expired {
+    background: Canvas;
+    color: CanvasText;
+    border: 1px solid CanvasText;
+  }
+
+  .ticket-dialog::backdrop {
+    background: Canvas;
   }
 }
