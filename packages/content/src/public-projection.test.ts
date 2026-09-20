@@ -131,7 +131,7 @@ describe("offline content snapshot", () => {
 
     const snapshot = createOfflineContentSnapshot(documents, {
       destinationId: "morro-de-sao-paulo",
-      generatedAt: "2026-09-20T10:00:00.000Z",
+      generatedAt: "2026-09-20T10:10:00.000Z",
       expiresAt: "2026-09-21T10:00:00.000Z",
     });
 
@@ -178,7 +178,7 @@ describe("offline content snapshot", () => {
       [published({ id: "place-1", locale: "pt-BR" })],
       {
         destinationId: "morro-de-sao-paulo",
-        generatedAt: "2026-09-20T10:00:00.000Z",
+        generatedAt: "2026-09-20T10:10:00.000Z",
         expiresAt: "2026-09-20T12:00:00.000Z",
       },
     );
@@ -197,7 +197,7 @@ describe("offline content snapshot", () => {
       [published({ id: "place-1", locale: "pt-BR" })],
       {
         destinationId: "morro-de-sao-paulo",
-        generatedAt: "2026-09-20T10:00:00.000Z",
+        generatedAt: "2026-09-20T10:10:00.000Z",
         expiresAt: "2026-09-20T12:00:00.000Z",
       },
     );
