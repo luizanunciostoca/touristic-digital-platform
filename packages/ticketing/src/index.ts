@@ -76,6 +76,7 @@ export interface Ticket {
   readonly code: string;
   readonly status: TicketStatus;
   readonly issuedAt: string;
+  readonly validUntil: string | null;
   readonly validatedAt: string | null;
   readonly usedAt: string | null;
   readonly cancelledAt: string | null;
@@ -101,6 +102,7 @@ export interface TicketIssueRequest {
   readonly quantity: unknown;
   readonly amount: unknown;
   readonly issuedAt: unknown;
+  readonly validUntil?: unknown;
 }
 
 export interface TicketRepositoryPort {
@@ -262,6 +264,7 @@ export function createTicket(input: {
   readonly code: unknown;
   readonly status?: unknown;
   readonly issuedAt: unknown;
+  readonly validUntil?: unknown;
   readonly validatedAt?: unknown;
   readonly usedAt?: unknown;
   readonly cancelledAt?: unknown;
@@ -282,6 +285,10 @@ export function createTicket(input: {
       ? (input.status as TicketStatus)
       : "issued";
   const issuedAt = normalizeFinancialTimestamp(input.issuedAt);
+  const validUntil =
+    input.validUntil === null || input.validUntil === undefined
+      ? null
+      : normalizeFinancialTimestamp(input.validUntil);
   const validatedAt =
     input.validatedAt === null || input.validatedAt === undefined
       ? null
@@ -313,6 +320,11 @@ export function createTicket(input: {
     !code ||
     !issuedAt ||
     !updatedAt ||
+    (input.validUntil !== null &&
+      input.validUntil !== undefined &&
+      !validUntil) ||
+    (validUntil !== null &&
+      Date.parse(validUntil) <= Date.parse(issuedAt)) ||
     Date.parse(updatedAt) < Date.parse(issuedAt) ||
     (validatedAt !== null && Date.parse(validatedAt) < Date.parse(issuedAt)) ||
     (usedAt !== null && Date.parse(usedAt) < Date.parse(issuedAt)) ||
@@ -337,6 +349,8 @@ export function createTicket(input: {
     code,
     status,
     issuedAt: new Date(issuedAt).toISOString(),
+    validUntil:
+      validUntil === null ? null : new Date(validUntil).toISOString(),
     validatedAt:
       validatedAt === null ? null : new Date(validatedAt).toISOString(),
     usedAt: usedAt === null ? null : new Date(usedAt).toISOString(),
