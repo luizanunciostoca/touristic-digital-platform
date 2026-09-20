@@ -191,16 +191,14 @@ jobs:
                 page.on('pageerror', error => errors.push(error.message));
                 await commerceRoutes(page, state);
                 await page.goto(`${origin}/`, { waitUntil: 'domcontentloaded', timeout: 30000 });
-                await page.locator('#assistant-commerce-cta').waitFor({ state: 'attached', timeout: 10000 });
                 const home = await page.evaluate(() => ({
                   values: [...document.querySelectorAll('.assistant-option-btn')].map(node => node.getAttribute('data-value')),
-                  href: document.getElementById('assistant-commerce-cta')?.getAttribute('href'),
-                  category: document.getElementById('assistant-commerce-cta')?.classList.contains('assistant-option-btn') ?? true,
+                  globalCommerceCta: document.getElementById('assistant-commerce-cta') !== null,
                   messages: document.querySelectorAll('#assistant-messages .messages-area > .message').length,
                 }));
                 const expected = ['beaches','restaurants','hotels','shops','transport','attractions','tours','nightlife','emergencies','help'];
-                if (JSON.stringify(home.values) !== JSON.stringify(expected) || home.href !== '/tickets.html' || home.category || home.messages !== 1) {
-                  throw new Error(`V1 Assistant contract drift on ${viewport.name}: ${JSON.stringify(home)}`);
+                if (JSON.stringify(home.values) !== JSON.stringify(expected) || home.globalCommerceCta || home.messages !== 1) {
+                  throw new Error(`V1 Assistant home menu contract drift on ${viewport.name}: ${JSON.stringify(home)}`);
                 }
                 await page.locator('body[data-public-onboarding-settled="true"]').waitFor({ state: 'attached', timeout: 5000 });
                 const assistant = page.locator('#assistant-messages');
@@ -274,9 +272,7 @@ jobs:
                 }
                 evidence.push({ viewport: viewport.name, placeActions, selectedFromMap });
 
-                await page.goto(`${origin}/`, { waitUntil: 'domcontentloaded', timeout: 30000 });
-                await page.locator('#assistant-commerce-cta').waitFor({ state: 'attached', timeout: 10000 });
-                await Promise.all([page.waitForURL('**/tickets.html'), page.locator('#assistant-commerce-cta').click()]);
+                await page.goto(`${origin}/tickets.html`, { waitUntil: 'domcontentloaded', timeout: 30000 });
                 await page.locator(`.offer-card[data-inventory-id="${offer.id}"]`).waitFor({ state: 'visible' });
                 await Promise.all([page.waitForURL('**/experience.html?id=*'), page.locator(`.offer-card[data-inventory-id="${offer.id}"] a.button-secondary`).click()]);
                 await page.locator('#experience-card').waitFor({ state: 'visible' });
