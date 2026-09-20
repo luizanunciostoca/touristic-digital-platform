@@ -228,7 +228,7 @@ async function renderUsers(userId) {
   );
   const users = userId ? [data.user] : data.users;
 
-  content.innerHTML = `
+  const userTable = `
     <div class="table-wrap">
       <table>
         <thead>
@@ -245,7 +245,11 @@ async function renderUsers(userId) {
             .map(
               (user) =>
                 `<tr>
-                  <td><strong>${escapeHtml(user.email)}</strong><br><small>${escapeHtml(user.id)}</small></td>
+                  <td><strong>${
+                    userId
+                      ? escapeHtml(user.email)
+                      : `<a href="#users:${encodeURIComponent(user.id)}">${escapeHtml(user.email)}</a>`
+                  }</strong><br><small>${escapeHtml(user.id)}</small></td>
                   <td><span class="badge">${escapeHtml(user.canonicalRole)}</span></td>
                   <td>${escapeHtml(user.role)}</td>
                   <td>${
@@ -263,8 +267,155 @@ async function renderUsers(userId) {
         </tbody>
       </table>
     </div>`;
-}
 
+  if (!userId) {
+    content.innerHTML = userTable;
+    return;
+  }
+
+  const sessionData = await api(
+    `/users/${encodeURIComponent(userId)}/sessions`,
+  );
+  const now = Math.floor(Date.now() / 1000);
+  const sessions = sessionData.sessions ?? [];
+  const statusForSession = (session) => {
+    if (session.revokedAt) return "revogada";
+    if (session.expiresAt <= now) return "expirada";
+    return "ativa";
+  };
+
+  content.innerHTML = `
+    ${userTable}
+    <section class="card section-card" style="margin-top:16px">
+      <div class="section-title">
+        <div>
+          <h2>Sessões</h2>
+          <small style="color:var(--muted)">
+            Handles opacos do Auth; tokens e JTI brutos nunca são exibidos.
+          </small>
+        </div>
+        <span class="badge">${sessions.length} registrada(s)</span>
+      </div>
+      <div class="callout">
+        Revogar uma sessão é uma ação de alto risco. Confirme sua senha,
+        informe o motivo e digite <strong>REVOGAR</strong>.
+      </div>
+      <form id="session-revoke-form" class="form-grid">
+        <label>
+          Sua senha para step-up
+          <input
+            id="session-step-up-password"
+            type="password"
+            autocomplete="current-password"
+            required
+          />
+        </label>
+        <label>
+          Motivo obrigatório
+          <textarea
+            id="session-revoke-reason"
+            minlength="8"
+            maxlength="240"
+            required
+            placeholder="Ex.: Sessão comprometida reportada pelo usuário"
+          ></textarea>
+        </label>
+        <label>
+          Confirmação textual
+          <input
+            id="session-revoke-confirmation"
+            type="text"
+            autocomplete="off"
+            placeholder="Digite REVOGAR"
+            required
+          />
+        </label>
+        <p id="session-revoke-status" role="status" style="color:var(--muted);margin:0"></p>
+      </form>
+      <div class="table-wrap" style="margin-top:16px">
+        <table>
+          <thead>
+            <tr>
+              <th>Handle</th>
+              <th>Emitida</th>
+              <th>Expira</th>
+              <th>Status</th>
+              <th>Ação</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${
+              sessions
+                .map((session) => {
+                  const status = statusForSession(session);
+                  const active = status === "ativa";
+                  return `<tr>
+                    <td><code>${escapeHtml(session.handle.slice(0, 12))}…</code></td>
+                    <td>${escapeHtml(new Date(session.issuedAt * 1000).toLocaleString("pt-BR"))}</td>
+                    <td>${escapeHtml(new Date(session.expiresAt * 1000).toLocaleString("pt-BR"))}</td>
+                    <td><span class="badge ${active ? "pass" : status === "revogada" ? "partial" : "gap"}">${escapeHtml(status)}</span></td>
+                    <td>
+                      ${
+                        active
+                          ? `<button class="secondary-button" type="button" data-revoke-session="${escapeHtml(session.handle)}">Revogar sessão</button>`
+                          : "—"
+                      }
+                    </td>
+                  </tr>`;
+                })
+                .join("") ||
+              '<tr><td colspan="5" class="empty">Nenhuma sessão registrada para este usuário.</td></tr>'
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>`;
+
+  content.querySelectorAll("[data-revoke-session]").forEach((button) =>
+    button.addEventListener("click", async () => {
+      const password = document.querySelector(
+        "#session-step-up-password",
+      )?.value;
+      const reason = document.querySelector("#session-revoke-reason")?.value;
+      const confirmation = document.querySelector(
+        "#session-revoke-confirmation",
+      )?.value;
+      const status = document.querySelector("#session-revoke-status");
+
+      if (!password || !reason || confirmation !== "REVOGAR") {
+        status.textContent =
+          "Informe sua senha, um motivo válido e digite REVOGAR.";
+        return;
+      }
+
+      button.disabled = true;
+      status.textContent = "Reautenticando e revogando sessão…";
+      try {
+        await api("/step-up", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ password }),
+        });
+        await api(
+          `/users/${encodeURIComponent(userId)}/sessions/${encodeURIComponent(
+            button.dataset.revokeSession,
+          )}/revoke`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ reason, confirmation }),
+          },
+        );
+        status.textContent = "Sessão revogada com sucesso.";
+        await renderUsers(userId);
+      } catch (error) {
+        button.disabled = false;
+        status.textContent =
+          error.body?.error || error.message || "Falha ao revogar sessão.";
+      }
+    }),
+  );
+}
 async function renderBusinesses(businessId) {
   const data = await api("/businesses");
   if (businessId) {
