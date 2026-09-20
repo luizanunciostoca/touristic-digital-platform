@@ -221,6 +221,13 @@ function createTourMarkerElement(input: {
   );
   element.style.cursor = "pointer";
   element.style.zIndex = "10";
+  element.addEventListener("click", () => {
+    document.dispatchEvent(
+      new CustomEvent("morro:tour-stop-requested", {
+        detail: Object.freeze({ tourId, stopId }),
+      }),
+    );
+  });
 
   const pin = document.createElement("div");
   pin.className = `tour-stop-pin${
@@ -537,6 +544,10 @@ async function start(): Promise<void> {
     engine: result.geospatialEngine,
     events: result.runtime.events,
     initialTourId: null,
+  });
+
+  document.addEventListener("morro:tour-selection-reset", () => {
+    controller.resetSelection();
   });
 
   tourSelect.selectedIndex = -1;
