@@ -269,11 +269,12 @@ jobs:
                   placePrimary.click(),
                 ]);
                 await page.locator('#selected-offer').waitFor({ state: 'visible', timeout: 10000 });
-                await page.waitForFunction(() => {
-                  const input = document.querySelector('#selected-offer');
-                  return input instanceof HTMLInputElement && input.value.includes('Toca do Morcego');
-                }, undefined, { timeout: 10000 });
-                const selectedFromMap = await page.locator('#selected-offer').inputValue();
+                let selectedFromMap = '';
+                for (let attempt = 0; attempt < 50; attempt += 1) {
+                  selectedFromMap = await page.locator('#selected-offer').inputValue();
+                  if (selectedFromMap.includes('Toca do Morcego')) break;
+                  await page.waitForTimeout(200);
+                }
                 if (!selectedFromMap.includes('Toca do Morcego')) {
                   throw new Error(`Map commerce handoff did not select place offer on ${viewport.name}: ${selectedFromMap}`);
                 }
