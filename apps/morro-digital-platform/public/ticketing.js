@@ -93,7 +93,8 @@ function rememberAnalyticsReservationContext(reservationId, context) {
 
 function analyticsReservationContext(reservationId) {
   const stored = readSessionJson(analyticsContextStorageKey, {});
-  if (!stored || typeof stored !== "object" || Array.isArray(stored)) return null;
+  if (!stored || typeof stored !== "object" || Array.isArray(stored))
+    return null;
   const value = stored[reservationId];
   return value && typeof value === "object" && !Array.isArray(value)
     ? value
