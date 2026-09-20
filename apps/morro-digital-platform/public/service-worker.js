@@ -11,6 +11,7 @@ const PRECACHE_URLS = Object.freeze([
   "/apps/morro-digital-platform/public/styles.css",
   "/apps/morro-digital-platform/public/commerce.css",
   "/apps/morro-digital-platform/public/assistant-photo-carousel.css",
+  "/apps/morro-digital-platform/public/assistant-v2.css",
   "/apps/morro-digital-platform/public/legacy/checkpoint.css",
   "/apps/morro-digital-platform/public/legacy/index-inline.css",
   "/apps/morro-digital-platform/public/explore-locations.css",
