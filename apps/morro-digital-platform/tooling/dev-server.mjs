@@ -223,6 +223,7 @@ const adminApi = createAdminApi({
     businessApi,
     crmApi,
     ticketingApi,
+    paymentsApi,
   }),
 });
 
