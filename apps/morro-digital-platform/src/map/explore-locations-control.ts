@@ -1101,17 +1101,18 @@ export function installExploreLocationsControl({
         mapElement?.removeAttribute("data-tour-flow-stage");
         mapElement?.removeAttribute("data-tour-flow-id");
         mapElement?.removeAttribute("data-tour-stop-index");
+        mapElement?.removeAttribute("data-tour-total-stops");
       } else {
         mapElement?.setAttribute("data-tour-flow-stage", tourState.stage);
         mapElement?.setAttribute("data-tour-flow-id", tourState.tourId);
-        if (tourState.stage === "stop") {
-          mapElement?.setAttribute(
-            "data-tour-stop-index",
-            String(tourState.currentStopIndex),
-          );
-        } else {
-          mapElement?.removeAttribute("data-tour-stop-index");
-        }
+        mapElement?.setAttribute(
+          "data-tour-stop-index",
+          String(tourState.currentStopIndex),
+        );
+        mapElement?.setAttribute(
+          "data-tour-total-stops",
+          String(tourState.totalStops),
+        );
       }
       emitStateChange();
     },

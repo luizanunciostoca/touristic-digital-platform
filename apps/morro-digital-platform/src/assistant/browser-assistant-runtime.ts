@@ -620,11 +620,13 @@ export function installBrowserAssistantRuntime(
       typeof detail?.destination === "string"
         ? detail.destination.trim().slice(0, 160) || null
         : context.getContext().navigationState.destination;
+    const terminalPhase =
+      detail?.reason === "arrived" ? ("arrived" as const) : ("ended" as const);
     context.updateContext({
       navigationState: {
         active: false,
         destination,
-        phase: "ended",
+        phase: terminalPhase,
       },
     });
     if (detail?.reason === "arrived") {

@@ -21,10 +21,11 @@ describe("assistant Explore tour context snapshot", () => {
       createDocument({
         "data-explore-category": "tours",
         "data-explore-stage": "tour",
-        "data-map-marker-count": "5",
+        "data-map-marker-count": "3",
         "data-tour-flow-id": "trilha-gamboa",
         "data-tour-flow-stage": "stop",
         "data-tour-stop-index": "2",
+        "data-tour-total-stops": "5",
       }),
     );
 
@@ -32,7 +33,7 @@ describe("assistant Explore tour context snapshot", () => {
       category: "tours",
       place: null,
       stage: "tour",
-      markerCount: 5,
+      markerCount: 3,
       tour: {
         tourId: "trilha-gamboa",
         stage: "stop",
@@ -47,10 +48,11 @@ describe("assistant Explore tour context snapshot", () => {
       createDocument({
         "data-explore-category": "tours",
         "data-explore-stage": "tour",
-        "data-map-marker-count": "2",
+        "data-map-marker-count": "8",
         "data-tour-flow-id": "volta-a-ilha",
         "data-tour-flow-stage": "stop",
         "data-tour-stop-index": "7",
+        "data-tour-total-stops": "2",
       }),
     );
 

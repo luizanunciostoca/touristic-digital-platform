@@ -712,7 +712,8 @@ export function readAssistantExploreState(
   const markerCount = Number(map?.getAttribute("data-map-marker-count") ?? "0");
   const tourId = map?.getAttribute("data-tour-flow-id")?.trim() ?? "";
   const tourStage = map?.getAttribute("data-tour-flow-stage") ?? "";
-  const stopIndex = Number(map?.getAttribute("data-tour-stop-index") ?? "0");
+  const stopIndex = Number(map?.getAttribute("data-tour-stop-index") ?? "-1");
+  const totalStops = Number(map?.getAttribute("data-tour-total-stops") ?? "0");
   const validTourStage =
     tourStage === "intro" ||
     tourStage === "list" ||
@@ -723,13 +724,13 @@ export function readAssistantExploreState(
     validTourStage &&
     Number.isInteger(stopIndex) &&
     stopIndex >= 0 &&
-    Number.isInteger(markerCount) &&
-    markerCount > stopIndex
+    Number.isInteger(totalStops) &&
+    totalStops > stopIndex
       ? Object.freeze({
           tourId,
           stage: tourStage,
           currentStopIndex: stopIndex,
-          totalStops: markerCount,
+          totalStops,
         })
       : null;
 
