@@ -239,10 +239,12 @@ try {
       lang: document.documentElement.lang,
       dir: document.documentElement.dir,
       title:
-        document.getElementById("public-onboarding-title")?.textContent?.trim() ??
-        "",
+        document
+          .getElementById("public-onboarding-title")
+          ?.textContent?.trim() ?? "",
       start:
-        document.querySelector(".profile-card-title")?.textContent?.trim() ?? "",
+        document.querySelector(".profile-card-title")?.textContent?.trim() ??
+        "",
     }));
     assertEqual(
       onboarding.lang,
