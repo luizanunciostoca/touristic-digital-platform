@@ -99,19 +99,19 @@ describe("Ticketing offline device sync credential window", () => {
     "rejects a signed envelope backdated before the device credential was issued",
     async () => {
       const { service, credential, ticketId, ticketing, devices } = harness();
-    await expect(
-      service.sync({
-        credentialToken: credential.token,
-        envelope: envelopeFor(
-          credential,
-          ticketId,
-          "2026-09-20T09:59:59.999Z",
-        ),
-        recordedAt: "2026-09-20T11:00:00.000Z",
-      }),
-    ).rejects.toThrow(
-      "TICKETING_OFFLINE_ENVELOPE_CREDENTIAL_WINDOW_INVALID",
-    );
+      await expect(
+        service.sync({
+          credentialToken: credential.token,
+          envelope: envelopeFor(
+            credential,
+            ticketId,
+            "2026-09-20T09:59:59.999Z",
+          ),
+          recordedAt: "2026-09-20T11:00:00.000Z",
+        }),
+      ).rejects.toThrow(
+        "TICKETING_OFFLINE_ENVELOPE_CREDENTIAL_WINDOW_INVALID",
+      );
       expect(ticketing.syncOfflineEnvelope).not.toHaveBeenCalled();
       expect(devices.recordSync).not.toHaveBeenCalled();
     },
@@ -121,18 +121,18 @@ describe("Ticketing offline device sync credential window", () => {
     "accepts an envelope queued inside the active device credential window",
     async () => {
       const { service, credential, ticketId, ticketing, devices } = harness();
-    await expect(
-      service.sync({
-        credentialToken: credential.token,
-        envelope: envelopeFor(
-          credential,
-          ticketId,
-          "2026-09-20T10:30:00.000Z",
-        ),
-        recordedAt: "2026-09-20T11:00:00.000Z",
-      }),
-    ).resolves.toMatchObject({ replayed: false });
-    expect(ticketing.syncOfflineEnvelope).toHaveBeenCalledTimes(1);
+      await expect(
+        service.sync({
+          credentialToken: credential.token,
+          envelope: envelopeFor(
+            credential,
+            ticketId,
+            "2026-09-20T10:30:00.000Z",
+          ),
+          recordedAt: "2026-09-20T11:00:00.000Z",
+        }),
+      ).resolves.toMatchObject({ replayed: false });
+      expect(ticketing.syncOfflineEnvelope).toHaveBeenCalledTimes(1);
       expect(devices.recordSync).toHaveBeenCalledWith(
         credential.claims.deviceId,
         "2026-09-20T11:00:00.000Z",
