@@ -35,13 +35,14 @@ Existing application events are mapped to:
 - `session_started`
 - `category_viewed`
 - `place_viewed`
+- `search_submitted`
 - `assistant_query`
 - `directions_started`
 - `tour_started`
 - `tour_completed`
 - `commerce_clicked`
 
-Assistant text is never forwarded. Only query length, input mode and boolean context flags are used.
+Search and Assistant text are never forwarded. The explicit `morro:search-submitted` application event accepts only query length, result count and filter count; the runtime currently has no dedicated first-class search form producer, so this port remains dormant until such a surface emits sanitized metrics. Assistant instrumentation uses only query length, input mode and boolean context flags.
 
 Place display names are normalized into non-personal slug identifiers before analytics.
 
