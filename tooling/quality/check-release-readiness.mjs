@@ -47,6 +47,8 @@ const [
   stagingMysqlDockerfile,
   stagingDrill,
   stagingDrillRunbook,
+  stagingMysqlWait,
+  stagingMysqlWrapper,
 ] = await Promise.all([
   text("render.yaml"),
   text("render.staging.yaml"),
@@ -57,6 +59,8 @@ const [
   text("tooling/render/mysql-staging/Dockerfile"),
   text("tooling/render/mysql-staging/backup-restore-drill.sh"),
   text("docs/operations/MYSQL-BACKUP-RESTORE-DRILL.md"),
+  text("tooling/render/wait-for-staging-mysql.mjs"),
+  text("tooling/render/with-staging-mysql-env.mjs"),
 ]);
 
 requireText(production, "production blueprint", "name: morro-digital-v2");
@@ -180,6 +184,30 @@ requireText(staging, "staging blueprint", "name: morro-digital-v2-staging");
 requireText(staging, "staging blueprint", "runtime: docker");
 requireText(staging, "staging blueprint", "runtime: node");
 requireText(staging, "staging blueprint", "branch: main");
+requireText(
+  staging,
+  "staging blueprint",
+  "preDeployCommand: node tooling/render/with-staging-mysql-env.mjs node apps/morro-digital-platform/tooling/payments-migrate.mjs",
+);
+requireText(
+  staging,
+  "staging blueprint",
+  "startCommand: node tooling/render/with-staging-mysql-env.mjs node apps/morro-digital-platform/tooling/dev-server.mjs",
+);
+for (const marker of [
+  "MORRO-STAGING-MYSQL-WAIT",
+  "STAGING_MYSQL_WAIT_SERVICE_DENIED",
+  "STAGING_MYSQL_WAIT_TIMEOUT",
+]) {
+  requireText(stagingMysqlWait, "staging MySQL wait guard", marker);
+}
+for (const marker of [
+  'from "./wait-for-staging-mysql.mjs"',
+  "await waitForStagingMysql(process.env)",
+  '"MORRO-STAGING-MYSQL-WAIT"',
+]) {
+  requireText(stagingMysqlWrapper, "staging MySQL runtime wrapper", marker);
+}
 requireDirective(
   staging,
   "MERCADO_PAGO_CHECKOUT_MODE",

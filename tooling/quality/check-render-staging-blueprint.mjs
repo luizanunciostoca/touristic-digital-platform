@@ -23,6 +23,14 @@ const mysqlDrillRunbook = fs.readFileSync(
   ),
   "utf8",
 );
+const mysqlWait = fs.readFileSync(
+  new URL("../render/wait-for-staging-mysql.mjs", import.meta.url),
+  "utf8",
+);
+const stagingMysqlWrapper = fs.readFileSync(
+  new URL("../render/with-staging-mysql-env.mjs", import.meta.url),
+  "utf8",
+);
 const runbook = fs.readFileSync(
   new URL("../../docs/deployment/RENDER-STAGING-V2.md", import.meta.url),
   "utf8",
@@ -96,6 +104,23 @@ for (const required of [
   "value: mapbox://styles/mapbox/streets-v12",
 ]) {
   requireText(blueprint, required);
+}
+
+for (const required of [
+  "MORRO-STAGING-MYSQL-WAIT",
+  "STAGING_MYSQL_WAIT_SERVICE_DENIED",
+  "STAGING_MYSQL_WAIT_TIMEOUT",
+  "300_000",
+]) {
+  requireText(mysqlWait, required);
+}
+
+for (const required of [
+  'from "./wait-for-staging-mysql.mjs"',
+  "await waitForStagingMysql(process.env)",
+  '"MORRO-STAGING-MYSQL-WAIT"',
+]) {
+  requireText(stagingMysqlWrapper, required);
 }
 
 for (const required of [

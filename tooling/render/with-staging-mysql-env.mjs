@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import { randomBytes, scryptSync } from "node:crypto";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { waitForStagingMysql } from "./wait-for-staging-mysql.mjs";
 
 const databaseDomains = Object.freeze([
   ["AUTH", "AUTH_DATABASE_URL"],
@@ -254,6 +255,16 @@ if (isDirectInvocation()) {
     let derived;
     let acceptanceAuth;
     try {
+      const readiness = await waitForStagingMysql(process.env);
+      process.stdout.write(
+        `${JSON.stringify({
+          contract: "MORRO-STAGING-MYSQL-WAIT",
+          contractVersion: 1,
+          status: readiness.status,
+          attempts: readiness.attempts,
+          elapsedMs: readiness.elapsedMs,
+        })}\n`,
+      );
       derived = buildStagingDatabaseEnvironment(process.env);
       acceptanceAuth = buildStagingPaymentsAcceptanceAuthEnvironment(
         process.env,
