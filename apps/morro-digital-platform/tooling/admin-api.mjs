@@ -1102,9 +1102,8 @@ export function createAdminApi({
               coverage: domainAdapters.ticketing?.coverage ?? [],
             },
             financial: {
-              state: domainAdapters.financial
-                ? "available"
-                : "contract-required",
+              state: domainAdapters.financial?.state ?? "contract-required",
+              coverage: domainAdapters.financial?.coverage ?? [],
             },
             content: {
               state: domainAdapters.content ? "available" : "contract-required",
