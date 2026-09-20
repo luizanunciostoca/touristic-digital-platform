@@ -20,12 +20,7 @@ export const contentStatuses = Object.freeze([
 
 export type ContentKind = (typeof contentKinds)[number];
 export type ContentStatus = (typeof contentStatuses)[number];
-export type ContentFieldValue =
-  | string
-  | number
-  | boolean
-  | null
-  | readonly string[];
+export type ContentFieldValue = string | number | boolean | null | readonly string[];
 export type ContentFields = Readonly<Record<string, ContentFieldValue>>;
 
 export interface ContentDocumentInput {
