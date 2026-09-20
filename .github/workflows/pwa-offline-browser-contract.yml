@@ -1,0 +1,225 @@
+name: PWA Offline Browser Contract
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/pwa-offline-browser-contract.yml
+      - apps/morro-digital-platform/public/**
+      - apps/morro-digital-platform/src/pwa/**
+      - apps/morro-digital-platform/tooling/dev-server.mjs
+      - package.json
+      - pnpm-lock.yaml
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
+    paths:
+      - .github/workflows/pwa-offline-browser-contract.yml
+      - apps/morro-digital-platform/public/**
+      - apps/morro-digital-platform/src/pwa/**
+      - apps/morro-digital-platform/tooling/dev-server.mjs
+      - package.json
+      - pnpm-lock.yaml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pwa-offline-browser:
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install deterministic Chromium
+        run: |
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+          mkdir -p /tmp/pwa-offline-evidence
+      - name: Build workspace
+        run: pnpm -w build
+      - name: Start runtime
+        run: |
+          node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/pwa-offline.log 2>&1 &
+          echo $! >/tmp/pwa-offline.pid
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:4173/manifest.json >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/pwa-offline.log
+          exit 1
+      - name: Validate install and offline authority boundary
+        run: |
+          node <<'NODE'
+          const { writeFileSync } = require('node:fs');
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+          const outputDir = '/tmp/pwa-offline-evidence';
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            const context = await browser.newContext({
+              viewport: { width: 390, height: 844 },
+              locale: 'pt-BR',
+              serviceWorkers: 'allow',
+            });
+            const page = await context.newPage();
+            const pageErrors = [];
+            page.on('pageerror', error => pageErrors.push(error.message));
+
+            await page.goto('http://127.0.0.1:4173/', {
+              waitUntil: 'domcontentloaded',
+              timeout: 30000,
+            });
+
+            const manifest = await page.evaluate(async () => {
+              const response = await fetch('/manifest.json');
+              return {
+                status: response.status,
+                body: await response.json(),
+              };
+            });
+            if (manifest.status !== 200) {
+              throw new Error(`Manifest HTTP ${manifest.status}`);
+            }
+            if (
+              manifest.body.start_url !== '/' ||
+              manifest.body.scope !== '/' ||
+              manifest.body.display !== 'standalone' ||
+              manifest.body.icons?.length !== 2
+            ) {
+              throw new Error(`Invalid manifest: ${JSON.stringify(manifest.body)}`);
+            }
+
+            const registration = await page.evaluate(async () => {
+              const ready = await navigator.serviceWorker.ready;
+              return {
+                scope: ready.scope,
+                active: ready.active?.scriptURL ?? null,
+                controller: navigator.serviceWorker.controller?.scriptURL ?? null,
+              };
+            });
+
+            if (!registration.active?.endsWith('/service-worker.js')) {
+              throw new Error(`Service Worker not active: ${JSON.stringify(registration)}`);
+            }
+
+            const cssOnline = await page.evaluate(async () => {
+              const response = await fetch('/apps/morro-digital-platform/public/styles.css');
+              return { ok: response.ok, text: await response.text() };
+            });
+            if (!cssOnline.ok || !cssOnline.text.includes(':root')) {
+              throw new Error('Static shell CSS was not available online.');
+            }
+
+            await context.setOffline(true);
+
+            const apiOffline = await page.evaluate(async () => {
+              try {
+                const response = await fetch('/api/weather', { cache: 'no-store' });
+                return { resolved: true, status: response.status };
+              } catch (error) {
+                return { resolved: false, error: String(error) };
+              }
+            });
+            if (apiOffline.resolved) {
+              throw new Error(
+                `Server-authoritative API unexpectedly resolved offline: ${JSON.stringify(apiOffline)}`,
+              );
+            }
+
+            const cssOffline = await page.evaluate(async () => {
+              try {
+                const response = await fetch('/apps/morro-digital-platform/public/styles.css');
+                return {
+                  resolved: true,
+                  ok: response.ok,
+                  text: await response.text(),
+                };
+              } catch (error) {
+                return { resolved: false, error: String(error) };
+              }
+            });
+            if (
+              !cssOffline.resolved ||
+              !cssOffline.ok ||
+              !cssOffline.text.includes(':root')
+            ) {
+              throw new Error(
+                `Cached static shell unavailable offline: ${JSON.stringify(cssOffline)}`,
+              );
+            }
+
+            await page.reload({ waitUntil: 'domcontentloaded', timeout: 15000 });
+            await page.locator('h1').filter({ hasText: 'Você está offline' }).waitFor({
+              state: 'visible',
+              timeout: 5000,
+            });
+            const offlineText = await page.locator('main').innerText();
+            if (!offlineText.includes('operações que exigem autoridade do servidor')) {
+              throw new Error('Offline fallback did not preserve authority warning.');
+            }
+
+            const evidence = {
+              manifest: {
+                start_url: manifest.body.start_url,
+                scope: manifest.body.scope,
+                display: manifest.body.display,
+                icons: manifest.body.icons,
+              },
+              registration,
+              apiOffline,
+              cssOffline: {
+                resolved: cssOffline.resolved,
+                ok: cssOffline.ok,
+              },
+              offlineText,
+              pageErrors,
+            };
+
+            writeFileSync(
+              `${outputDir}/evidence.json`,
+              JSON.stringify({ status: 'validated', evidence }, null, 2),
+            );
+            await page.screenshot({
+              path: `${outputDir}/offline-shell.png`,
+              fullPage: false,
+            });
+
+            if (pageErrors.length) {
+              throw new Error(`Browser errors detected: ${JSON.stringify(pageErrors)}`);
+            }
+
+            await browser.close();
+          })().catch(error => {
+            writeFileSync(
+              `${outputDir}/failure.txt`,
+              String(error?.stack || error),
+            );
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+      - name: Show diagnostics
+        if: failure()
+        run: |
+          cat /tmp/pwa-offline.log || true
+          cat /tmp/pwa-offline-evidence/failure.txt || true
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: pwa-offline-browser-evidence
+          path: /tmp/pwa-offline-evidence
+          retention-days: 7
+          if-no-files-found: error
