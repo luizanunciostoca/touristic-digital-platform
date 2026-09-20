@@ -559,6 +559,9 @@ const server = createServer(async (request, response) => {
       "Content-Type",
       contentTypes[extname(filePath)] || "application/octet-stream",
     );
+    if (requestUrl.pathname === "/service-worker.js") {
+      response.setHeader("Cache-Control", "no-cache");
+    }
     if (extname(filePath) === ".js") {
       const source = await readFile(filePath, "utf8");
       response.end(rewriteWorkspaceModuleSpecifiers(source));
