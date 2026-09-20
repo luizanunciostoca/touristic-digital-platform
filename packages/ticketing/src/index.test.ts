@@ -43,6 +43,7 @@ describe("M147 ticketing domain", () => {
       amount,
       code: "ABCD-EFGH-JKLM-NPQR",
       issuedAt: "2026-08-15T10:00:00Z",
+      validUntil: "2026-08-16T02:00:00Z",
     });
 
     expect(ticket).toMatchObject({
@@ -50,6 +51,7 @@ describe("M147 ticketing domain", () => {
       status: "issued",
       product: { kind: "tour", reference: "volta-a-ilha" },
       quantity: 2,
+      validUntil: "2026-08-16T02:00:00.000Z",
     });
   });
 
@@ -132,4 +134,24 @@ describe("M147 ticketing domain", () => {
     expect(createTicketCode("abcd-efgh-jklm-npqr")).toBe("ABCD-EFGH-JKLM-NPQR");
     expect(createTicketCode("abcd")).toBeNull();
   });
+
+  it("rejects ticket validity that does not extend beyond issuance", () => {
+    const { orderId, paymentId, amount } = fixture();
+    expect(
+      createTicket({
+        id: "tck_ticketing_invalid_validity_0001",
+        orderId,
+        paymentId,
+        destinationId: "morro-de-sao-paulo",
+        product: { kind: "tour", reference: "volta-a-ilha" },
+        holderName: "Luiz Silva",
+        quantity: 1,
+        amount,
+        code: "ABCD-EFGH-JKLM-NPQR",
+        issuedAt: "2026-08-15T10:00:00Z",
+        validUntil: "2026-08-15T10:00:00Z",
+      }),
+    ).toBeNull();
+  });
+
 });
