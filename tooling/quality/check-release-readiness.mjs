@@ -37,18 +37,29 @@ function requireDirective(source, key, directive, label) {
   requireText(block, `${label} ${key}`, directive);
 }
 
-const [production, staging, documentation, server, migration] =
+const [production, staging, documentation, server, migration, dockerfile] =
   await Promise.all([
     text("render.yaml"),
     text("render.staging.yaml"),
     text("docs/operations/PRODUCTION-RELEASE-READINESS.md"),
     text("apps/morro-digital-platform/tooling/dev-server.mjs"),
     text("apps/morro-digital-platform/tooling/payments-migrate.mjs"),
+    text("Dockerfile"),
   ]);
 
 requireText(production, "production blueprint", "name: morro-digital-v2");
 requireText(production, "production blueprint", "runtime: node");
 requireText(production, "production blueprint", "healthCheckPath: /readyz");
+requireText(
+  dockerfile,
+  "production Dockerfile",
+  'CMD ["node", "apps/morro-digital-platform/tooling/dev-server.mjs"]',
+);
+forbidText(
+  dockerfile,
+  "production Dockerfile",
+  'CMD ["node", "apps/morro-digital-platform/dist/browser-entry.js"]',
+);
 requireText(production, "production blueprint", "value: production");
 requireText(production, "production blueprint", "value: mercado_pago");
 requireText(
