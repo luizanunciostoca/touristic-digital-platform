@@ -346,7 +346,10 @@ export async function restoreTouristExperienceSnapshot(input: {
   readonly window: Window;
   readonly map?: TouristExperienceMapCamera;
   readonly storage?: Storage;
-  readonly restorePlace: (place: string) => Promise<boolean>;
+  readonly restorePlace: (
+    place: string,
+    category?: string,
+  ) => Promise<boolean>;
   readonly restoreCategory: (category: string) => Promise<boolean>;
   readonly now?: () => number;
 }): Promise<boolean> {
@@ -358,7 +361,10 @@ export async function restoreTouristExperienceSnapshot(input: {
 
   let restoredExplore = false;
   if (snapshot.placeId) {
-    restoredExplore = await input.restorePlace(snapshot.placeId);
+    restoredExplore = await input.restorePlace(
+      snapshot.placeId,
+      snapshot.category,
+    );
   }
   if (!restoredExplore && snapshot.category) {
     restoredExplore = await input.restoreCategory(snapshot.category);
@@ -377,7 +383,17 @@ export async function restoreTouristExperienceSnapshot(input: {
 
   input.document.body.dataset.mdContextRestored = "true";
   input.document.body.dataset.mdContextRestoredMode = snapshot.mode;
-  return restoredExplore || Boolean(snapshot.mapCenter);
+  const restored = restoredExplore || Boolean(snapshot.mapCenter);
+  if (restored) {
+    try {
+      storageFromWindow(input.window, input.storage)?.removeItem(
+        TOURIST_EXPERIENCE_SNAPSHOT_STORAGE_KEY,
+      );
+    } catch {
+      // One-shot context consumption is best-effort when browser storage is blocked.
+    }
+  }
+  return restored;
 }
 
 export function installTouristExperienceSnapshotCapture(input: {
@@ -400,13 +416,8 @@ export function installTouristExperienceSnapshotCapture(input: {
     });
   };
 
-  let commerceHandoffCaptured = false;
   const onCommerceHandoff = (): void => {
     capture();
-    commerceHandoffCaptured = true;
-  };
-  const onPageHide = (): void => {
-    if (!commerceHandoffCaptured) capture();
   };
 
   input.document.addEventListener(
@@ -414,7 +425,6 @@ export function installTouristExperienceSnapshotCapture(input: {
     onCommerceHandoff,
     true,
   );
-  input.window.addEventListener("pagehide", onPageHide);
 
   return Object.freeze({
     capture,
@@ -424,7 +434,6 @@ export function installTouristExperienceSnapshotCapture(input: {
         onCommerceHandoff,
         true,
       );
-      input.window.removeEventListener("pagehide", onPageHide);
     },
   });
 }
