@@ -11,5 +11,9 @@
     "appDistJsBytes": 3000000,
     "runtimePackageJsBytes": 2000000,
     "largestRuntimeJsFileBytes": 350000
+  },
+  "runtime": {
+    "assistantStartupMs": 5000,
+    "mapStartupMs": 15000
   }
 }
