@@ -31,9 +31,7 @@ describe("ticketing analytics funnel contract", () => {
       "paymentApproved",
       "ticketIssued",
     ]) {
-      expect(runtime).toContain(
-        `ANALYTICS_TRANSACTION_EVENTS.${milestone}`,
-      );
+      expect(runtime).toContain(`ANALYTICS_TRANSACTION_EVENTS.${milestone}`);
     }
   });
 
