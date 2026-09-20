@@ -121,6 +121,12 @@ function isSafeFieldValue(value: unknown): value is ContentFieldValue {
   );
 }
 
+function isStringArray(
+  value: ContentFieldValue,
+): value is readonly string[] {
+  return Array.isArray(value);
+}
+
 function isOfferAuthorityKey(key: string): boolean {
   const normalized = key.toLowerCase();
   return OFFER_AUTHORITY_KEYS.some((forbidden) =>
@@ -148,9 +154,9 @@ export function sanitizeContentFields(
   for (const [key, value] of Object.entries(fields)) {
     if (!FIELD_KEY.test(key) || !isSafeFieldValue(value)) return null;
     if (kind === "offer_reference" && isOfferAuthorityKey(key)) return null;
-    sanitized[key] = Array.isArray(value)
+    sanitized[key] = isStringArray(value)
       ? Object.freeze([...value])
-      : (value as ContentFieldValue);
+      : value;
   }
 
   return Object.freeze(sanitized);
