@@ -84,9 +84,12 @@ export async function applyAffiliatesIdentityEligibilityM155(
   );
 
   // Expand first so legacy values can be translated without lossy ENUM casts.
+  // Keep legacy values accepted during the compatibility window: older,
+  // still-supported Affiliate writers may explicitly persist active/inactive.
+  // Owner-facing reads normalize those values to approved/closed.
   await pool.query(`
     ALTER TABLE affiliate_memberships
-    MODIFY COLUMN status ENUM('active','inactive','pending','approved','suspended','closed') NOT NULL
+    MODIFY COLUMN status ENUM('active','inactive','pending','approved','suspended','closed') NOT NULL DEFAULT 'pending'
   `);
   await pool.query(`
     UPDATE affiliate_memberships
@@ -96,9 +99,5 @@ export async function applyAffiliatesIdentityEligibilityM155(
       ELSE status
     END
     WHERE status IN ('active', 'inactive')
-  `);
-  await pool.query(`
-    ALTER TABLE affiliate_memberships
-    MODIFY COLUMN status ENUM('pending','approved','suspended','closed') NOT NULL DEFAULT 'pending'
   `);
 }
