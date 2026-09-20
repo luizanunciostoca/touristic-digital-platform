@@ -225,17 +225,14 @@ describe("Chat 6 CSS modernization + Premium UX foundations", () => {
     expect(css).toContain("box-shadow");
   });
 
-  it(
-    "declutters live controls without reintroducing the stale controls selector",
-    async () => {
-      const css = await readPublic("premium-ux-v2.css");
+  it("declutters live controls without reintroducing the stale controls selector", async () => {
+    const css = await readPublic("premium-ux-v2.css");
 
-      expect(css).not.toContain("#controls");
-      expect(css).toContain("#globe-map-control");
-      expect(css).toContain(".quick-actions");
-      expect(css).toContain(":has([data-explore-category])");
-    },
-  );
+    expect(css).not.toContain("#controls");
+    expect(css).toContain("#globe-map-control");
+    expect(css).toContain(".quick-actions");
+    expect(css).toContain(":has([data-explore-category])");
+  });
 
   it("loads the premium bridge after feature/legacy CSS but before Design System V2", async () => {
     for (const surface of ["index.html", "experience.html", "tickets.html"]) {
