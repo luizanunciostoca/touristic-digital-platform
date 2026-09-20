@@ -445,12 +445,12 @@ export function createAdminApi({
                 : "contract-required",
             },
             crm: {
-              state: domainAdapters.crm ? "available" : "contract-required",
+              state: domainAdapters.crm?.state ?? "contract-required",
+              coverage: domainAdapters.crm?.coverage ?? [],
             },
             ticketing: {
-              state: domainAdapters.ticketing
-                ? "available"
-                : "contract-required",
+              state: domainAdapters.ticketing?.state ?? "contract-required",
+              coverage: domainAdapters.ticketing?.coverage ?? [],
             },
             financial: {
               state: domainAdapters.financial
@@ -512,7 +512,8 @@ export function createAdminApi({
         const query = bounded(requestUrl.searchParams.get("q"), 160).toLowerCase();
         const results = [];
         if (query.length >= 2) {
-          for (const user of authApi.listConfiguredUsers()) {
+          const configuredUsers = authApi.listConfiguredUsers();
+          for (const user of configuredUsers) {
             const searchable = [
               user.id,
               user.email,
@@ -529,6 +530,22 @@ export function createAdminApi({
                 title: user.email,
                 context: canonicalAuthRole(user.role),
                 href: `#users:${encodeURIComponent(user.id)}`,
+              });
+            }
+          }
+          for (const business of businessesFromUsers(configuredUsers)) {
+            if (
+              business.id.toLowerCase().includes(query) ||
+              business.members.some((member) =>
+                member.email.toLowerCase().includes(query),
+              )
+            ) {
+              results.push({
+                type: "business",
+                id: business.id,
+                title: business.id,
+                context: `${business.members.length} membro(s)`,
+                href: `#businesses:${encodeURIComponent(business.id)}`,
               });
             }
           }
