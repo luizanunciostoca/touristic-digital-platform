@@ -17,7 +17,7 @@ describe("ticketing analytics funnel contract", () => {
     );
     expect(runtime).toContain("installMorroBrowserAnalytics");
     expect(runtime).toContain(
-      "/apps/morro-digital-platform/dist/analytics/browser-analytics.js",
+      "/runtime/browser-analytics.js",
     );
   });
 
