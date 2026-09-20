@@ -77,6 +77,25 @@ function fixture(session = platformOwner) {
     findConfiguredUser(id) {
       return users.find((user) => user.id === id) ?? null;
     },
+    async listUserSessions(id) {
+      if (id !== businessOwner.id) return [];
+      return [
+        {
+          handle: "a".repeat(64),
+          subject: businessOwner.id,
+          issuedAt: 100,
+          expiresAt: 1_000,
+          revokedAt: null,
+          active: true,
+        },
+      ];
+    },
+    async revokeUserSession(id, handle) {
+      return {
+        found: id === businessOwner.id && handle === "a".repeat(64),
+        alreadyRevoked: false,
+      };
+    },
   };
 
   const platformOperations = {
@@ -242,6 +261,80 @@ describe("Control Center Admin API", () => {
     expect(accepted.statusCode).toBe(201);
     expect(accepted.headers.get("set-cookie")).toContain("md_control_step_up=");
     expect(JSON.parse(accepted.body).stepUp.method).toBe("password");
+  });
+
+  it("lists user sessions without exposing raw session identifiers", async () => {
+    const { api } = fixture();
+    const response = responseRecorder();
+
+    await api.handle(
+      request("/api/admin/v1/users/business-owner/sessions"),
+      response,
+      new URL("http://localhost/api/admin/v1/users/business-owner/sessions"),
+    );
+
+    expect(response.statusCode).toBe(200);
+    const payload = JSON.parse(response.body);
+    expect(payload.sessions).toHaveLength(1);
+    expect(payload.sessions[0].handle).toBe("a".repeat(64));
+    expect(JSON.stringify(payload)).not.toContain("sessionId");
+  });
+
+  it("requires step-up and reason before revoking a user session", async () => {
+    const { api } = fixture();
+    const sessionHandle = "a".repeat(64);
+
+    const withoutStepUp = responseRecorder();
+    await api.handle(
+      request(
+        `/api/admin/v1/users/business-owner/sessions/${sessionHandle}/revoke`,
+        {
+          method: "POST",
+          body: { reason: "Support investigation requires session revocation" },
+        },
+      ),
+      withoutStepUp,
+      new URL(
+        `http://localhost/api/admin/v1/users/business-owner/sessions/${sessionHandle}/revoke`,
+      ),
+    );
+    expect(withoutStepUp.statusCode).toBe(403);
+    expect(JSON.parse(withoutStepUp.body).error).toBe("STEP_UP_REQUIRED");
+
+    const stepUp = responseRecorder();
+    await api.handle(
+      request("/api/admin/v1/step-up", {
+        method: "POST",
+        body: { password: "fixture-secret" },
+      }),
+      stepUp,
+      new URL("http://localhost/api/admin/v1/step-up"),
+    );
+    const cookie = String(stepUp.headers.get("set-cookie")).split(";", 1)[0];
+
+    const revoked = responseRecorder();
+    await api.handle(
+      request(
+        `/api/admin/v1/users/business-owner/sessions/${sessionHandle}/revoke`,
+        {
+          method: "POST",
+          headers: { cookie },
+          body: { reason: "Support investigation requires session revocation" },
+        },
+      ),
+      revoked,
+      new URL(
+        `http://localhost/api/admin/v1/users/business-owner/sessions/${sessionHandle}/revoke`,
+      ),
+    );
+
+    expect(revoked.statusCode).toBe(200);
+    expect(JSON.parse(revoked.body)).toMatchObject({
+      success: true,
+      userId: "business-owner",
+      sessionHandle,
+      alreadyRevoked: false,
+    });
   });
 
   it("derives the business directory from identity memberships only", async () => {
