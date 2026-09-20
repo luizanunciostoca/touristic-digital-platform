@@ -64,6 +64,7 @@ jobs:
               });
               await context.addInitScript(() => {
                 localStorage.setItem('morro-digital-onboarded', '1');
+                  localStorage.setItem('morro-digital-language', 'pt-BR');
                 localStorage.setItem('voice-enabled', 'false');
                 globalThis.__placeActionRoutes = [];
                 document.addEventListener('morro:assistant-place-action-routed', event => {
