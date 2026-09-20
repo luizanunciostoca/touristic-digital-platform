@@ -255,7 +255,9 @@ function resolveRequestPath(pathname) {
       decoded.slice("/analytics/".length),
     );
     if (!isWithinStaticRoot(analyticsPath, morroAnalyticsRoot)) {
-      throw new Error("Requested analytics path is outside the analytics root.");
+      throw new Error(
+        "Requested analytics path is outside the analytics root.",
+      );
     }
     return analyticsPath;
   }
