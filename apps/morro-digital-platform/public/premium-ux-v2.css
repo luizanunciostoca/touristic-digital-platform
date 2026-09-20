@@ -542,6 +542,33 @@ body[data-md-mode="assistant"] .assistant-option-btn {
   }
 }
 
+@media (forced-colors: active) {
+  body[data-md-mode="navigation"] #instruction-banner {
+    border-color: CanvasText;
+    background: Canvas !important;
+    color: CanvasText;
+    box-shadow: none;
+    backdrop-filter: none;
+  }
+
+  body[data-md-mode="navigation"] #instruction-banner .instruction-primary {
+    background: Highlight;
+    color: HighlightText;
+  }
+
+  body[data-md-mode="navigation"] #minimize-navigation-btn,
+  body[data-md-mode="navigation"] .end-navigation-btn {
+    border: 1px solid ButtonText;
+    background: ButtonFace;
+    color: ButtonText;
+    forced-color-adjust: none;
+  }
+
+  body[data-md-mode="navigation"] .progress-indicator-fill {
+    background: Highlight;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .quick-actions,
   #globe-map-control,
