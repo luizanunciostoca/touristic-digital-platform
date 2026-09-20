@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   createBusinessAdminAdapter,
+  createContentAdminAdapter,
   createCrmAdminAdapter,
   createFinancialAdminAdapter,
   createTicketingAdminAdapter,
@@ -350,5 +351,122 @@ describe("Control Center Financial owner adapter", () => {
       "reconciliation-ack:v1:rcf_admin_00000001",
     );
     await expect(readBody(delegated)).resolves.toEqual({});
+  });
+});
+
+
+describe("Control Center Content owner adapter", () => {
+  function bodyRequest(method, body) {
+    const chunks = [Buffer.from(JSON.stringify(body), "utf8")];
+    return {
+      method,
+      headers: {},
+      async *[Symbol.asyncIterator]() {
+        for (const chunk of chunks) yield chunk;
+      },
+    };
+  }
+
+  function contentRuntimeFixture() {
+    const document = Object.freeze({
+      id: "content-admin-0001",
+      destinationId: "morro-de-sao-paulo",
+      kind: "place",
+      locale: "pt-BR",
+      status: "draft",
+      version: 1,
+      fields: Object.freeze({ title: "Segunda Praia" }),
+      createdAt: "2026-09-20T20:00:00.000Z",
+      updatedAt: "2026-09-20T20:00:00.000Z",
+    });
+    return {
+      document,
+      runtime: {
+        adminList: vi.fn(async () => ({ status: "found", data: [document] })),
+        adminRead: vi.fn(async () => ({ status: "found", data: document })),
+        adminCreate: vi.fn(async () => ({ status: "created", data: document })),
+        adminRevise: vi.fn(async () => ({
+          status: "updated",
+          data: { ...document, version: 2 },
+        })),
+        adminTransition: vi.fn(async () => ({
+          status: "updated",
+          data: { ...document, status: "preview" },
+        })),
+      },
+    };
+  }
+
+  it("searches through the Content owner contract", async () => {
+    const { runtime } = contentRuntimeFixture();
+    const adapter = createContentAdminAdapter(runtime);
+    const results = await adapter.search({ query: "Segunda" });
+
+    expect(runtime.adminList).toHaveBeenCalledWith({
+      query: "Segunda",
+      limit: 20,
+    });
+    expect(results).toEqual([
+      expect.objectContaining({
+        type: "content",
+        id: "content-admin-0001",
+        title: "Segunda Praia",
+        href: "#content:content-admin-0001",
+      }),
+    ]);
+  });
+
+  it("requires an administrative reason before owner mutation", async () => {
+    const { runtime } = contentRuntimeFixture();
+    const adapter = createContentAdminAdapter(runtime);
+    const response = responseCapture();
+
+    await adapter.handle({
+      request: bodyRequest("POST", {
+        id: "content-admin-0001",
+        destinationId: "morro-de-sao-paulo",
+        kind: "place",
+        locale: "pt-BR",
+        fields: { title: "Segunda Praia" },
+        reason: "curto",
+      }),
+      response,
+      requestUrl: new URL("http://localhost/api/admin/v1/content"),
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(JSON.parse(response.payload)).toEqual({ error: "REASON_REQUIRED" });
+    expect(runtime.adminCreate).not.toHaveBeenCalled();
+  });
+
+  it("returns immutable-audit context for successful Content mutations", async () => {
+    const { runtime, document } = contentRuntimeFixture();
+    const adapter = createContentAdminAdapter(runtime);
+    const response = responseCapture();
+
+    const outcome = await adapter.handle({
+      request: bodyRequest("PATCH", {
+        fields: { title: "Segunda Praia revisada" },
+        reason: "Correção editorial solicitada",
+      }),
+      response,
+      requestUrl: new URL(
+        "http://localhost/api/admin/v1/content/content-admin-0001",
+      ),
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(runtime.adminRead).toHaveBeenCalledWith("content-admin-0001");
+    expect(runtime.adminRevise).toHaveBeenCalledWith(
+      "content-admin-0001",
+      { title: "Segunda Praia revisada" },
+    );
+    expect(outcome.audit).toMatchObject({
+      reason: "Correção editorial solicitada",
+      entityType: "content_document",
+      entityId: "content-admin-0001",
+      previousState: document,
+    });
+    expect(outcome.audit.newState.version).toBe(2);
   });
 });
