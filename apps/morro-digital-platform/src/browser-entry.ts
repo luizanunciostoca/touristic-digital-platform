@@ -221,13 +221,6 @@ function createTourMarkerElement(input: {
   );
   element.style.cursor = "pointer";
   element.style.zIndex = "10";
-  element.addEventListener("click", () => {
-    document.dispatchEvent(
-      new CustomEvent("morro:tour-stop-requested", {
-        detail: Object.freeze({ tourId, stopId }),
-      }),
-    );
-  });
 
   const pin = document.createElement("div");
   pin.className = `tour-stop-pin${
@@ -267,6 +260,26 @@ function createTourMarkerElement(input: {
   element.appendChild(pin);
   return element;
 }
+
+function onTourMarkerClick(event: MouseEvent): void {
+  const target = event.target;
+  if (!(target instanceof Element)) return;
+
+  const marker = target.closest<HTMLElement>(".tour-stop-marker");
+  if (!marker) return;
+
+  const tourId = marker.dataset.tourId;
+  const stopId = marker.dataset.stopId;
+  if (!tourId || !stopId) return;
+
+  document.dispatchEvent(
+    new CustomEvent("morro:tour-stop-requested", {
+      detail: Object.freeze({ tourId, stopId }),
+    }),
+  );
+}
+
+document.addEventListener("click", onTourMarkerClick);
 
 function clearTourRoute(map: MapboxGlMapLike): void {
   if (map.getLayer?.(TOUR_ROUTE_LAYER)) map.removeLayer?.(TOUR_ROUTE_LAYER);
