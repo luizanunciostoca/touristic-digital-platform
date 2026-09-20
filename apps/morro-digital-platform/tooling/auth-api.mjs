@@ -485,6 +485,25 @@ export function createAuthApi({ getEnvironmentValue, audit = () => {} }) {
       return;
     }
 
+    try {
+      await securityState.registerSession({
+        sessionId: session.sessionId,
+        subject: session.subject,
+        issuedAt: session.issuedAt,
+        expiresAt: session.expiresAt,
+      });
+      markSecurityHealthy();
+    } catch (error) {
+      markSecurityFailure(error);
+      audit(request, {
+        action: "dashboard.session_registry",
+        result: "unavailable",
+        reason: securityStateError,
+      });
+      unavailable(response);
+      return;
+    }
+
     const payload = sessionPayload(session);
     if (!payload) {
       unavailable(response);
@@ -622,6 +641,34 @@ export function createAuthApi({ getEnvironmentValue, audit = () => {} }) {
         return false;
       }
       return Boolean(authenticateConfiguredUser(users, user.email, password));
+    },
+    async listUserSessions(userId) {
+      const user = users.find(
+        (candidate) => candidate.id === String(userId || "").trim(),
+      );
+      if (!user) return null;
+      try {
+        const sessions = await securityState.listSessions(user.id);
+        markSecurityHealthy();
+        return sessions;
+      } catch (error) {
+        markSecurityFailure(error);
+        throw error;
+      }
+    },
+    async revokeUserSession(userId, handle) {
+      const user = users.find(
+        (candidate) => candidate.id === String(userId || "").trim(),
+      );
+      if (!user) return null;
+      try {
+        const result = await securityState.revokeSessionHandle(user.id, handle);
+        markSecurityHealthy();
+        return result;
+      } catch (error) {
+        markSecurityFailure(error);
+        throw error;
+      }
     },
     async withDelegatedSession(request, effectiveUserId, operation) {
       if (
