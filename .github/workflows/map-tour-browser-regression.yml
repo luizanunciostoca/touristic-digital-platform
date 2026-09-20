@@ -203,6 +203,87 @@ jobs:
             return state;
           }
 
+          async function assertTourOutdoorReadability(page, label) {
+            const state = await page.evaluate(() => {
+              const title = document.querySelector('.tour-stop-title');
+              const description = document.querySelector('.tour-stop-desc');
+              const narration = document.querySelector('.tour-narration-btn');
+              const actionButtons = Array.from(
+                document.querySelectorAll('#assistant-category-results .assistant-option-btn'),
+              ).filter((element) => {
+                if (!(element instanceof HTMLElement)) return false;
+                const rect = element.getBoundingClientRect();
+                const style = getComputedStyle(element);
+                return (
+                  rect.width > 0 &&
+                  rect.height > 0 &&
+                  style.visibility !== 'hidden' &&
+                  style.display !== 'none'
+                );
+              });
+              const titleStyle = title instanceof HTMLElement ? getComputedStyle(title) : null;
+              const descriptionStyle =
+                description instanceof HTMLElement ? getComputedStyle(description) : null;
+              const narrationStyle =
+                narration instanceof HTMLElement ? getComputedStyle(narration) : null;
+              const narrationRect =
+                narration instanceof HTMLElement ? narration.getBoundingClientRect() : null;
+              return {
+                titleFontPx: Number.parseFloat(titleStyle?.fontSize ?? '0'),
+                descriptionFontPx: Number.parseFloat(
+                  descriptionStyle?.fontSize ?? '0',
+                ),
+                narration: narrationRect
+                  ? {
+                      width: narrationRect.width,
+                      height: narrationRect.height,
+                      touchAction: narrationStyle?.touchAction ?? null,
+                    }
+                  : null,
+                actions: actionButtons.map((element) => {
+                  const rect = element.getBoundingClientRect();
+                  const style = getComputedStyle(element);
+                  return {
+                    width: rect.width,
+                    height: rect.height,
+                    fontPx: Number.parseFloat(style.fontSize || '0'),
+                    touchAction: style.touchAction,
+                  };
+                }),
+              };
+            });
+
+            if (state.titleFontPx < 16 || state.descriptionFontPx < 15) {
+              throw new Error(
+                `Tour outdoor typography too small at ${label}: ${JSON.stringify(state)}`,
+              );
+            }
+            if (
+              !state.narration ||
+              state.narration.width < 44 ||
+              state.narration.height < 44 ||
+              state.narration.touchAction !== 'manipulation'
+            ) {
+              throw new Error(
+                `Tour narration one-hand target drift at ${label}: ${JSON.stringify(state)}`,
+              );
+            }
+            if (
+              state.actions.length === 0 ||
+              state.actions.some(
+                (action) =>
+                  action.height < 44 ||
+                  action.fontPx < 16 ||
+                  action.touchAction !== 'manipulation',
+              )
+            ) {
+              throw new Error(
+                `Tour action ergonomics drift at ${label}: ${JSON.stringify(state.actions)}`,
+              );
+            }
+            return state;
+          }
+
           async function openGuidedTour(page, tourId, markerCount) {
             await page.locator('body[data-public-onboarding-settled="true"]:not(.tour-active)').waitFor({
               state: 'attached',
@@ -268,6 +349,7 @@ jobs:
             await waitForSpeechCount(page, 0);
             const narrationButton = page.locator('.tour-narration-btn');
             await narrationButton.waitFor({ state: 'attached', timeout: 3000 });
+            await assertTourOutdoorReadability(page, 'first-stop');
             const autoNarration = await page.evaluate(() => ({
               ...globalThis.__tourSpeechEvidence,
               spoken: [...globalThis.__tourSpeechEvidence.spoken],
