@@ -161,6 +161,21 @@ describe("M139/M141 payments API runtime boundary", () => {
             );
           },
         },
+        reconciliation: {
+          findById(id) {
+            return Promise.resolve(
+              id === "rcf_admin_00000001"
+                ? {
+                    id,
+                    paymentId: "pay_admin_0001",
+                    kind: "provider_amount_mismatch",
+                    severity: "high",
+                    state: "open",
+                  }
+                : null,
+            );
+          },
+        },
         ledger: {
           findByExternalKey(key) {
             if (key === "bad key") {
@@ -216,6 +231,21 @@ describe("M139/M141 payments API runtime boundary", () => {
     ).resolves.toEqual({
       status: "not_found",
       tenantId: null,
+    });
+
+    await expect(
+      api.adminResolveFindingTenant("rcf_admin_00000001"),
+    ).resolves.toEqual({
+      status: "found",
+      tenantId: "business-admin-0001",
+      paymentId: "pay_admin_0001",
+    });
+    await expect(
+      api.adminResolveFindingTenant("rcf_admin_missing"),
+    ).resolves.toEqual({
+      status: "not_found",
+      tenantId: null,
+      paymentId: null,
     });
 
     await expect(
