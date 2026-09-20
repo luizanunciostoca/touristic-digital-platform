@@ -58,12 +58,66 @@ function roundUsdUp(value) {
   return Math.ceil(value * 1_000_000) / 1_000_000;
 }
 
+const ASSISTANT_TOUR_STAGES = new Set(["intro", "list", "stop", "finale"]);
+const ASSISTANT_NAVIGATION_PHASES = new Set([
+  "idle",
+  "initializing",
+  "route_ready",
+  "active",
+  "recalculating",
+  "ui_ready",
+  "arrived",
+  "failed",
+  "ended",
+]);
+
+function sanitizeActiveTour(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const tourId = safeString(value.tourId, 120);
+  const stage = safeString(value.stage, 24);
+  const currentStopIndex = Number(value.currentStopIndex);
+  const totalStops = Number(value.totalStops);
+  if (
+    !tourId ||
+    !ASSISTANT_TOUR_STAGES.has(stage) ||
+    !Number.isInteger(currentStopIndex) ||
+    currentStopIndex < 0 ||
+    !Number.isInteger(totalStops) ||
+    totalStops < 1 ||
+    currentStopIndex >= totalStops
+  ) {
+    return null;
+  }
+  return { tourId, stage, currentStopIndex, totalStops };
+}
+
+function sanitizeNavigationState(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return { active: false, destination: null, phase: "idle" };
+  }
+  const phase = safeString(value.phase, 24);
+  const normalizedPhase = ASSISTANT_NAVIGATION_PHASES.has(phase)
+    ? phase
+    : "idle";
+  return {
+    active:
+      value.active === true &&
+      normalizedPhase !== "idle" &&
+      normalizedPhase !== "failed" &&
+      normalizedPhase !== "ended",
+    destination: safeString(value.destination, 160) || null,
+    phase: normalizedPhase,
+  };
+}
+
 function sanitizeContext(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
   return {
     lastPlace: safeString(value.lastPlace, 120) || null,
     lastCategory: safeString(value.lastCategory, 50) || null,
     lastIntent: safeString(value.lastIntent, 50) || null,
+    activeTour: sanitizeActiveTour(value.activeTour),
+    navigationState: sanitizeNavigationState(value.navigationState),
   };
 }
 

@@ -60,7 +60,7 @@ describe("assistant V1 context manager", () => {
     });
   });
 
-  it("migrates legacy schema fields to V2", () => {
+  it("migrates legacy schema fields to V3 runtime context", () => {
     const storage = createMemoryStorage(
       JSON.stringify({
         _version: 1,
@@ -74,7 +74,7 @@ describe("assistant V1 context manager", () => {
     });
 
     expect(manager.getContext()).toMatchObject({
-      _version: 2,
+      _version: 3,
       lastModifiers: [],
       userLocation: null,
       pendingRoute: null,
@@ -82,7 +82,83 @@ describe("assistant V1 context manager", () => {
       locationTracking: false,
       hasSharedLocation: false,
       lastPlaceHours: null,
+      activeTour: null,
+      navigationState: {
+        active: false,
+        destination: null,
+        phase: "idle",
+      },
       preferences: { language: "pt" },
+    });
+  });
+
+  it("normalizes persisted tour and navigation runtime context before reuse", () => {
+    const storage = createMemoryStorage(
+      JSON.stringify({
+        _version: 3,
+        sessionStart: 10_000,
+        activeTour: {
+          tourId: "trilha-gamboa",
+          stage: "stop",
+          currentStopIndex: 2,
+          totalStops: 5,
+        },
+        navigationState: {
+          active: true,
+          destination: " Segunda Praia ",
+          phase: "active",
+        },
+      }),
+    );
+    const manager = createAssistantContextManager({
+      storage,
+      now: () => 10_100,
+    });
+
+    expect(manager.getContext()).toMatchObject({
+      activeTour: {
+        tourId: "trilha-gamboa",
+        stage: "stop",
+        currentStopIndex: 2,
+        totalStops: 5,
+      },
+      navigationState: {
+        active: true,
+        destination: "Segunda Praia",
+        phase: "active",
+      },
+    });
+
+    storage.values.set(
+      ASSISTANT_CONTEXT_STORAGE_KEY,
+      JSON.stringify({
+        _version: 3,
+        sessionStart: 10_000,
+        activeTour: {
+          tourId: "corrupt",
+          stage: "stop",
+          currentStopIndex: 8,
+          totalStops: 2,
+        },
+        navigationState: {
+          active: true,
+          destination: "Forte",
+          phase: "ended",
+        },
+      }),
+    );
+    const recovered = createAssistantContextManager({
+      storage,
+      now: () => 10_100,
+    });
+
+    expect(recovered.getContext()).toMatchObject({
+      activeTour: null,
+      navigationState: {
+        active: false,
+        destination: "Forte",
+        phase: "ended",
+      },
     });
   });
 

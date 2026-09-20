@@ -15,6 +15,26 @@ interface AssistantLlmPayload {
     lastPlace: string | null;
     lastCategory: string | null;
     lastIntent: string | null;
+    activeTour: {
+      tourId: string;
+      stage: "intro" | "list" | "stop" | "finale";
+      currentStopIndex: number;
+      totalStops: number;
+    } | null;
+    navigationState: {
+      active: boolean;
+      destination: string | null;
+      phase:
+        | "idle"
+        | "initializing"
+        | "route_ready"
+        | "active"
+        | "recalculating"
+        | "ui_ready"
+        | "arrived"
+        | "failed"
+        | "ended";
+    };
   };
   history: Array<{ role: "user" | "assistant"; content: string }>;
 }
@@ -41,6 +61,67 @@ function plainText(value: unknown, maxLength: number): string {
 
 function normalizeLanguage(value: unknown): AssistantLlmPayload["lang"] {
   return value === "en" || value === "es" || value === "he" ? value : "pt";
+}
+
+function normalizeTourContext(
+  value: unknown,
+): AssistantLlmPayload["context"]["activeTour"] {
+  if (!value || typeof value !== "object") return null;
+  const source = value as Record<string, unknown>;
+  const tourId = plainText(source.tourId, 120);
+  const stage = source.stage;
+  const currentStopIndex = Number(source.currentStopIndex);
+  const totalStops = Number(source.totalStops);
+  if (
+    !tourId ||
+    (stage !== "intro" &&
+      stage !== "list" &&
+      stage !== "stop" &&
+      stage !== "finale") ||
+    !Number.isInteger(currentStopIndex) ||
+    currentStopIndex < 0 ||
+    !Number.isInteger(totalStops) ||
+    totalStops < 1 ||
+    currentStopIndex >= totalStops
+  ) {
+    return null;
+  }
+  return { tourId, stage, currentStopIndex, totalStops };
+}
+
+function normalizeNavigationContext(
+  value: unknown,
+): AssistantLlmPayload["context"]["navigationState"] {
+  const fallback = {
+    active: false,
+    destination: null,
+    phase: "idle" as const,
+  };
+  if (!value || typeof value !== "object") return fallback;
+  const source = value as Record<string, unknown>;
+  const phase = source.phase;
+  if (
+    phase !== "idle" &&
+    phase !== "initializing" &&
+    phase !== "route_ready" &&
+    phase !== "active" &&
+    phase !== "recalculating" &&
+    phase !== "ui_ready" &&
+    phase !== "arrived" &&
+    phase !== "failed" &&
+    phase !== "ended"
+  ) {
+    return fallback;
+  }
+  return {
+    active:
+      source.active === true &&
+      phase !== "idle" &&
+      phase !== "failed" &&
+      phase !== "ended",
+    destination: plainText(source.destination, 160) || null,
+    phase,
+  };
 }
 
 function normalizeAction(value: unknown): string | null {
@@ -111,6 +192,10 @@ function createPayload(
       lastPlace: plainText(request.context.lastPlace, 120) || null,
       lastCategory: plainText(request.context.lastCategory, 50) || null,
       lastIntent: plainText(request.context.lastIntent, 50) || null,
+      activeTour: normalizeTourContext(request.context.activeTour),
+      navigationState: normalizeNavigationContext(
+        request.context.navigationState,
+      ),
     },
     history,
   };
