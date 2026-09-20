@@ -322,7 +322,8 @@ export function createAssistantApi({
     let detail = "assistant-provider-ready";
     if (!apiKeyConfigured) detail = "OPENAI_API_KEY_REQUIRED";
     else if (!model) detail = "OPENAI_MODEL_REQUIRED";
-    else if (!pricingConfigured) detail = "OPENAI_PRICING_CONFIGURATION_INVALID";
+    else if (!pricingConfigured)
+      detail = "OPENAI_PRICING_CONFIGURATION_INVALID";
     else if (!requestReserveAdequate)
       detail = "OPENAI_REQUEST_RESERVE_INADEQUATE";
     else if (!costGovernor.configured)
