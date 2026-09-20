@@ -189,5 +189,4 @@ describe("M147 ticketing domain", () => {
       }),
     ).toBeNull();
   });
-
 });
