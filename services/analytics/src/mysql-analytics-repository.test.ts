@@ -7,10 +7,12 @@ import { MySqlAnalyticsEventRepository } from "./mysql-analytics-repository.js";
 
 describe("MySqlAnalyticsEventRepository privacy", () => {
   it("persists only the SHA-256 session hash, never the raw session id", async () => {
-    const execute = vi.fn(async (_sql: string, _parameters?: unknown[]) => [
-      { affectedRows: 1 },
-      undefined,
-    ]);
+    type ExecuteHarness = (
+      sql: string,
+      parameters?: unknown[],
+    ) => Promise<[{ affectedRows: number }, undefined]>;
+    const execute = vi.fn<ExecuteHarness>();
+    execute.mockResolvedValue([{ affectedRows: 1 }, undefined]);
     const repository = new MySqlAnalyticsEventRepository({
       execute,
     } as unknown as Pool);
