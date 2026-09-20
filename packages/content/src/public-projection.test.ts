@@ -8,6 +8,7 @@ import {
 import {
   createOfflineContentSnapshot,
   isOfflineContentSnapshotFresh,
+  parseOfflineContentSnapshot,
   projectPublicContent,
   selectLocalizedPublicContent,
 } from "./public-projection.js";
@@ -165,5 +166,47 @@ describe("offline content snapshot", () => {
         "2026-09-20T12:00:00.000Z",
       ),
     ).toBe(false);
+  });
+
+  it("validates cached JSON before it can become an offline snapshot", () => {
+    const snapshot = createOfflineContentSnapshot(
+      [published({ id: "place-1", locale: "pt-BR" })],
+      {
+        destinationId: "morro-de-sao-paulo",
+        generatedAt: "2026-09-20T10:00:00.000Z",
+        expiresAt: "2026-09-20T12:00:00.000Z",
+      },
+    );
+    if (!snapshot) throw new Error("Expected valid snapshot.");
+
+    expect(parseOfflineContentSnapshot(JSON.parse(JSON.stringify(snapshot)))).toEqual(
+      snapshot,
+    );
+
+    expect(
+      parseOfflineContentSnapshot({
+        ...snapshot,
+        documents: [
+          ...snapshot.documents,
+          {
+            ...snapshot.documents[0],
+            id: "offer-unsafe",
+            kind: "offer_reference",
+          },
+        ],
+      }),
+    ).toBeNull();
+
+    expect(
+      parseOfflineContentSnapshot({
+        ...snapshot,
+        documents: [
+          {
+            ...snapshot.documents[0],
+            fields: { unsafe: { nested: true } },
+          },
+        ],
+      }),
+    ).toBeNull();
   });
 });
