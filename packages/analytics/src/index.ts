@@ -121,9 +121,7 @@ function isSafePrimitive(value: unknown): value is AnalyticsPrimitive {
   return false;
 }
 
-function normalizeOptionalText(
-  value: string | undefined,
-): string | undefined {
+function normalizeOptionalText(value: string | undefined): string | undefined {
   if (value === undefined) return undefined;
   const normalized = value.trim();
   return normalized.length > 0 && normalized.length <= 160
@@ -168,10 +166,7 @@ export function createAnalyticsEvent(
     return null;
   }
 
-  const attributes = sanitizeAnalyticsAttributes(
-    input.name,
-    input.attributes,
-  );
+  const attributes = sanitizeAnalyticsAttributes(input.name, input.attributes);
   if (!attributes) return null;
 
   const destinationId = normalizeOptionalText(input.context.destinationId);
@@ -261,9 +256,7 @@ export function createSameOriginAnalyticsTransport(
     async send(event: AnalyticsEvent): Promise<void> {
       const response = await fetcher(endpoint, {
         method: "POST",
-        headers: Object.freeze({
-          "content-type": "application/json",
-        }),
+        headers: Object.freeze({ "content-type": "application/json" }),
         body: JSON.stringify(event),
         credentials: "same-origin",
         keepalive: true,
