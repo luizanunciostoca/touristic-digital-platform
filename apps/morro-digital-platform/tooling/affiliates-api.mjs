@@ -17,7 +17,7 @@ export const affiliatesApiPrefix = "/api/affiliates/v1";
 const maxBodyBytes = 16 * 1024;
 const maxReferralTtlSeconds = 30 * 24 * 60 * 60;
 const minReferralTtlSeconds = 5 * 60;
-const captureActorReference = "affiliate-referral-capture:v1";
+const captureActorReference = "affiliate-referral-capture:v1";\nconst attributionSubjectCookie = "md_aff_subject";
 
 function firstHeader(value) {
   return Array.isArray(value) ? value[0] : value;
@@ -25,6 +25,46 @@ function firstHeader(value) {
 
 function header(request, name) {
   return String(firstHeader(request.headers?.[name.toLowerCase()]) || "").trim();
+}
+
+function cookieValue(request, name) {
+  const raw = header(request, "cookie");
+  for (const part of raw.split(";")) {
+    const separator = part.indexOf("=");
+    if (separator < 1) continue;
+    const key = part.slice(0, separator).trim();
+    if (key !== name) continue;
+    try {
+      return decodeURIComponent(part.slice(separator + 1).trim());
+    } catch {
+      return "";
+    }
+  }
+  return "";
+}
+
+function referralSubjectReference(request) {
+  const existing = cookieValue(request, attributionSubjectCookie);
+  if (
+    safeReference(existing, 180) &&
+    existing.startsWith("visitor_") &&
+    existing.length >= 24
+  ) {
+    return existing;
+  }
+  return `visitor_${randomUUID().replaceAll("-", "")}`;
+}
+
+function serializeAttributionSubjectCookie(value, secure) {
+  const attributes = [
+    `${attributionSubjectCookie}=${encodeURIComponent(value)}`,
+    "Path=/",
+    `Max-Age=${maxReferralTtlSeconds}`,
+    "HttpOnly",
+    "SameSite=Lax",
+  ];
+  if (secure) attributes.push("Secure");
+  return attributes.join("; ");
 }
 
 function json(response, statusCode, payload, correlationId) {
@@ -645,23 +685,29 @@ export function createAffiliatesApi({
       return;
     }
     const payload = verifyAffiliateReferralToken(body?.token, referralSecret);
-    if (!payload || !safeReference(body?.subjectReference, 180)) {
+    if (!payload) {
       json(response, 400, { error: "INVALID_REFERRAL_CAPTURE" }, correlation);
       return;
     }
+    const subjectReference = referralSubjectReference(request);
 
     try {
       const result = await application.recordReferralAndEstablishAttribution({
-        requestId: `capture:${tokenDigest(body.token).slice(0, 40)}:${tokenDigest(body.subjectReference).slice(0, 40)}`,
+        requestId: `capture:${tokenDigest(body.token).slice(0, 40)}:${tokenDigest(subjectReference).slice(0, 40)}`,
         affiliateId: payload.affiliateId,
         programId: payload.programId,
         destinationId: payload.destinationId,
-        subjectId: body.subjectReference,
+        subjectId: subjectReference,
         source: "platform_link",
         evidence: { token: body.token },
         actorReference: captureActorReference,
         correlationId: correlation,
       });
+      response.setHeader(
+        "Set-Cookie",
+        serializeAttributionSubjectCookie(subjectReference, production),
+      );
+      response.setHeader("Vary", "Cookie");
       json(
         response,
         200,
