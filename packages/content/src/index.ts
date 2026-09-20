@@ -131,6 +131,21 @@ function isOfferAuthorityKey(key: string): boolean {
   );
 }
 
+function stripLifecycleState(
+  document: ContentDocument,
+): Omit<ContentDocument, "scheduledFor" | "publishedAt" | "archivedAt"> {
+  const {
+    scheduledFor,
+    publishedAt,
+    archivedAt,
+    ...base
+  } = document;
+  void scheduledFor;
+  void publishedAt;
+  void archivedAt;
+  return base;
+}
+
 export function sanitizeContentFields(
   kind: ContentKind,
   fields: Readonly<Record<string, unknown>> | undefined,
@@ -227,12 +242,10 @@ export function transitionContent(
     }
 
     return Object.freeze({
-      ...document,
+      ...stripLifecycleState(document),
       status: "scheduled",
       scheduledFor: input.scheduledFor,
       updatedAt: input.transitionedAt,
-      publishedAt: undefined,
-      archivedAt: undefined,
     });
   }
 
@@ -246,32 +259,26 @@ export function transitionContent(
     }
 
     return Object.freeze({
-      ...document,
+      ...stripLifecycleState(document),
       status: "published",
       updatedAt: input.transitionedAt,
       publishedAt: input.transitionedAt,
-      scheduledFor: undefined,
-      archivedAt: undefined,
     });
   }
 
   if (input.status === "archived") {
     return Object.freeze({
-      ...document,
+      ...stripLifecycleState(document),
       status: "archived",
       updatedAt: input.transitionedAt,
       archivedAt: input.transitionedAt,
-      scheduledFor: undefined,
     });
   }
 
   return Object.freeze({
-    ...document,
+    ...stripLifecycleState(document),
     status: input.status,
     updatedAt: input.transitionedAt,
-    scheduledFor: undefined,
-    publishedAt: undefined,
-    archivedAt: undefined,
   });
 }
 
