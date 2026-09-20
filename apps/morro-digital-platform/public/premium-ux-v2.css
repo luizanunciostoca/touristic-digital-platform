@@ -268,7 +268,9 @@ body[data-md-mode="navigation"] #instruction-banner .instruction-primary {
   color: var(--md-navigation-inverse);
 }
 
-body[data-md-mode="navigation"] #instruction-banner.arrive .instruction-primary {
+body[data-md-mode="navigation"]
+  #instruction-banner.arrive
+  .instruction-primary {
   background: var(--md-navigation-arrival);
 }
 
