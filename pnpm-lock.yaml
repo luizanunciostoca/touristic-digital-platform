@@ -89,6 +89,8 @@ importers:
 
   packages/affiliates: {}
 
+  packages/analytics: {}
+
   packages/assistant: {}
 
   packages/auth: {}
