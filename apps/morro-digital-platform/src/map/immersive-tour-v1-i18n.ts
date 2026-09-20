@@ -48,12 +48,12 @@ const COPY: Readonly<Record<TourLocale, V1ImmersiveTourCopy>> = Object.freeze({
     completedCta: "Gostou? Compartilhe com seus amigos e volte sempre! 🌊",
     notFound:
       "Desculpe, não encontrei o roteiro para este passeio. Tente novamente ou escolha outro passeio.",
-    stopLabel: (current, total) => `Parada ${current} de ${total}`,
-    stopsLabel: (count) => `${count} paradas:`,
-    stopsOf: (title) => `Paradas do ${title}:`,
-    endedMessage: (title) =>
+    stopLabel: (current: number, total: number) => `Parada ${current} de ${total}`,
+    stopsLabel: (count: number) => `${count} paradas:`,
+    stopsOf: (title: string) => `Paradas do ${title}:`,
+    endedMessage: (title: string) =>
       `🏁 Tour encerrado! Espero que tenha curtido o roteiro do ${title}. Como posso ajudar?`,
-    completedDescription: (count, title) =>
+    completedDescription: (count: number, title: string) =>
       `Você explorou todas as ${count} paradas do ${title}! Esperamos que tenha aproveitado cada momento desta experiência.`,
   }),
   en: Object.freeze({
@@ -75,12 +75,12 @@ const COPY: Readonly<Record<TourLocale, V1ImmersiveTourCopy>> = Object.freeze({
     completedCta: "Liked it? Share with your friends and come back soon! 🌊",
     notFound:
       "Sorry, I couldn't find the itinerary for this tour. Please try again or choose another tour.",
-    stopLabel: (current, total) => `Stop ${current} of ${total}`,
-    stopsLabel: (count) => `${count} stops:`,
-    stopsOf: (title) => `Stops of ${title}:`,
-    endedMessage: (title) =>
+    stopLabel: (current: number, total: number) => `Stop ${current} of ${total}`,
+    stopsLabel: (count: number) => `${count} stops:`,
+    stopsOf: (title: string) => `Stops of ${title}:`,
+    endedMessage: (title: string) =>
       `🏁 Tour ended! Hope you enjoyed the ${title} itinerary. How can I help?`,
-    completedDescription: (count, title) =>
+    completedDescription: (count: number, title: string) =>
       `You explored all ${count} stops of ${title}! We hope you enjoyed every moment of this experience.`,
   }),
   es: Object.freeze({
@@ -103,12 +103,12 @@ const COPY: Readonly<Record<TourLocale, V1ImmersiveTourCopy>> = Object.freeze({
       "¿Te gustó? ¡Comparte con tus amigos y vuelve pronto! 🌊",
     notFound:
       "Lo siento, no encontré el itinerario para este paseo. Por favor, inténtalo de nuevo o elige otro paseo.",
-    stopLabel: (current, total) => `Parada ${current} de ${total}`,
-    stopsLabel: (count) => `${count} paradas:`,
-    stopsOf: (title) => `Paradas de ${title}:`,
-    endedMessage: (title) =>
+    stopLabel: (current: number, total: number) => `Parada ${current} de ${total}`,
+    stopsLabel: (count: number) => `${count} paradas:`,
+    stopsOf: (title: string) => `Paradas de ${title}:`,
+    endedMessage: (title: string) =>
       `🏁 ¡Tour finalizado! Espero que hayas disfrutado el itinerario de ${title}. ¿Cómo puedo ayudarte?`,
-    completedDescription: (count, title) =>
+    completedDescription: (count: number, title: string) =>
       `¡Exploraste las ${count} paradas de ${title}! Esperamos que hayas disfrutado cada momento de esta experiencia.`,
   }),
   he: Object.freeze({
@@ -130,12 +130,12 @@ const COPY: Readonly<Record<TourLocale, V1ImmersiveTourCopy>> = Object.freeze({
     completedCta: "אהבת? שתף עם חבריך וחזור בקרוב! 🌊",
     notFound:
       "מצטער, לא מצאתי את המסלול לסיור זה. אנא נסה שוב או בחר סיור אחר.",
-    stopLabel: (current, total) => `עצירה ${current} מתוך ${total}`,
-    stopsLabel: (count) => `${count} עצירות:`,
-    stopsOf: (title) => `עצירות של ${title}:`,
-    endedMessage: (title) =>
+    stopLabel: (current: number, total: number) => `עצירה ${current} מתוך ${total}`,
+    stopsLabel: (count: number) => `${count} עצירות:`,
+    stopsOf: (title: string) => `עצירות של ${title}:`,
+    endedMessage: (title: string) =>
       `🏁 הסיור הסתיים! מקווה שנהנית מהמסלול של ${title}. איך אני יכול לעזור?`,
-    completedDescription: (count, title) =>
+    completedDescription: (count: number, title: string) =>
       `חקרת את כל ${count} העצירות של ${title}! אנו מקווים שנהנית מכל רגע בחוויה הזו.`,
   }),
 });
