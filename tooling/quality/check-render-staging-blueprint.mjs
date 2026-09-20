@@ -13,10 +13,7 @@ const mysqlInit = fs.readFileSync(
   "utf8",
 );
 const mysqlDrill = fs.readFileSync(
-  new URL(
-    "../render/mysql-staging/backup-restore-drill.sh",
-    import.meta.url,
-  ),
+  new URL("../render/mysql-staging/backup-restore-drill.sh", import.meta.url),
   "utf8",
 );
 const mysqlDrillRunbook = fs.readFileSync(
