@@ -220,6 +220,7 @@ const adminApi = createAdminApi({
   getEnvironmentValue,
   auditStore: adminAuditRuntime,
   domainAdapters: createAdminDomainAdapters({
+    authApi,
     businessApi,
     crmApi,
     ticketingApi,
