@@ -1,127 +1,188 @@
-import { Readable } from "node:stream";
 import { describe, expect, it, vi } from "vitest";
 
-import { createAnalyticsApi } from "./analytics-api.mjs";
+import {
+  analyticsHttpPath,
+  analyticsRateLimitMaxRequests,
+  createAnalyticsApi,
+} from "./analytics-api.mjs";
 
-function request(body, headers = {}) {
-  const stream = Readable.from(body === null ? [] : [JSON.stringify(body)]);
-  stream.method = "POST";
-  stream.headers = {
-    "content-type": "application/json",
-    ...headers,
-  };
-  return stream;
+function environment(values = {}) {
+  return (key) => values[key] ?? "";
 }
 
-function response() {
-  const headers = new Map();
+function responseHarness() {
+  const headers = {};
   return {
-    statusCode: 0,
-    body: "",
-    setHeader(name, value) {
-      headers.set(name.toLowerCase(), value);
-    },
-    getHeader(name) {
-      return headers.get(name.toLowerCase());
-    },
-    end(value = "") {
-      this.body = String(value);
+    headers,
+    response: {
+      statusCode: 0,
+      setHeader(name, value) {
+        headers[name] = value;
+      },
+      end(payload) {
+        this.payload = payload;
+      },
     },
   };
 }
 
-const valid = Object.freeze({
-  schemaVersion: "1",
-  eventId: "event-001",
-  name: "assistant_query",
-  occurredAt: "2026-09-20T10:00:00.000Z",
-  sessionId: "session-random-001",
-  destinationId: "morro-de-sao-paulo",
-  locale: "pt-BR",
-  source: "browser",
-  attributes: {
-    queryLength: 18,
-    inputMode: "keyboard",
-    hasPlaceContext: false,
-    hasNavigationContext: false,
-  },
-});
+function request(body = "{}", overrides = {}) {
+  const chunks = [Buffer.from(body)];
+  return {
+    method: "POST",
+    headers: {
+      host: "morro.example",
+      origin: "https://morro.example",
+      "x-forwarded-proto": "https",
+      "content-type": "application/json",
+      ...overrides.headers,
+    },
+    socket: { remoteAddress: "203.0.113.10" },
+    async *[Symbol.asyncIterator]() {
+      yield* chunks;
+    },
+    ...overrides,
+  };
+}
 
-describe("analytics runtime api", () => {
-  it("accepts a sanitized canonical event without recording the raw session id", async () => {
-    const record = vi.fn(async () => undefined);
-    const api = createAnalyticsApi({ record });
-    const res = response();
+function runtimeHarness() {
+  const purgeExpired = vi.fn(async () => 0);
+  const transportHandle = vi.fn(async () => ({
+    status: 201,
+    body: { data: { eventId: "event-001", status: "stored" } },
+  }));
+  const end = vi.fn(async () => undefined);
+  return {
+    purgeExpired,
+    transportHandle,
+    end,
+    runtime: {
+      createAnalyticsMySqlPool: vi.fn(() => ({ end })),
+      applyAnalyticsSchema: vi.fn(async () => undefined),
+      createAnalyticsHttpTransport: vi.fn(() => ({
+        handle: transportHandle,
+      })),
+      MySqlAnalyticsEventRepository: class {
+        purgeExpired = purgeExpired;
+      },
+    },
+  };
+}
 
-    await api.handle(request(valid), res);
-
-    expect(res.statusCode).toBe(202);
-    expect(JSON.parse(res.body)).toEqual({
-      data: { accepted: true, eventId: "event-001" },
+describe("Analytics runtime composition", () => {
+  it("is healthy but unavailable when the feature is disabled", async () => {
+    const api = createAnalyticsApi({
+      getEnvironmentValue: environment({
+        ANALYTICS_FEATURE_ENABLED: "false",
+      }),
     });
-    expect(record).toHaveBeenCalledOnce();
-    const recorded = record.mock.calls[0]?.[0];
-    expect(recorded.sessionId).toBeUndefined();
-    expect(recorded.visitorHash).toMatch(/^[a-f0-9]{64}$/u);
-    expect(JSON.stringify(recorded)).not.toContain("session-random-001");
+
+    await expect(api.start()).resolves.toBe(true);
+    expect(api.readinessCheck()).toEqual({
+      status: "pass",
+      critical: true,
+      detail: "analytics-disabled",
+    });
+
+    const { response } = responseHarness();
+    await api.handle(
+      request(),
+      response,
+      new URL("https://morro.example" + analyticsHttpPath),
+    );
+    expect(response.statusCode).toBe(503);
+    expect(JSON.parse(response.payload)).toEqual({
+      error: "ANALYTICS_FEATURE_DISABLED",
+    });
   });
 
-  it("rejects raw query text and unknown attributes", async () => {
-    const record = vi.fn(async () => undefined);
-    const api = createAnalyticsApi({ record });
-    const res = response();
+  it("fails readiness when explicitly enabled without durable storage", async () => {
+    const api = createAnalyticsApi({
+      getEnvironmentValue: environment({
+        ANALYTICS_FEATURE_ENABLED: "true",
+      }),
+    });
 
+    await expect(api.start()).resolves.toBe(false);
+    expect(api.readinessCheck()).toEqual({
+      status: "fail",
+      critical: true,
+      detail: "ANALYTICS_UNAVAILABLE",
+    });
+  });
+
+  it("starts schema, purges retention and forwards only same-origin JSON", async () => {
+    const harness = runtimeHarness();
+    const api = createAnalyticsApi({
+      getEnvironmentValue: environment({
+        ANALYTICS_FEATURE_ENABLED: "true",
+        ANALYTICS_DATABASE_URL: "mysql://analytics",
+        ANALYTICS_RETENTION_DAYS: "90",
+      }),
+      loadRuntime: async () => harness.runtime,
+      now: () => Date.parse("2026-09-20T12:00:00.000Z"),
+    });
+
+    await expect(api.start()).resolves.toBe(true);
+    expect(harness.purgeExpired).toHaveBeenCalledWith(
+      "2026-09-20T12:00:00.000Z",
+    );
+
+    const denied = responseHarness();
     await api.handle(
-      request({
-        ...valid,
-        attributes: {
-          ...valid.attributes,
-          query: "onde comer sushi?",
+      request("{}", {
+        headers: {
+          host: "morro.example",
+          origin: "https://evil.example",
+          "x-forwarded-proto": "https",
+          "content-type": "application/json",
         },
       }),
-      res,
+      denied.response,
+      new URL("https://morro.example" + analyticsHttpPath),
     );
+    expect(denied.response.statusCode).toBe(403);
+    expect(harness.transportHandle).not.toHaveBeenCalled();
 
-    expect(res.statusCode).toBe(400);
-    expect(JSON.parse(res.body)).toEqual({
-      error: "ANALYTICS_INVALID_ATTRIBUTES",
-    });
-    expect(record).not.toHaveBeenCalled();
-  });
-
-  it("rejects unknown top-level data and invalid methods", async () => {
-    const record = vi.fn(async () => undefined);
-    const api = createAnalyticsApi({ record });
-
-    const invalid = response();
+    const accepted = responseHarness();
     await api.handle(
-      request({ ...valid, email: "guest@example.com" }),
-      invalid,
+      request('{"schemaVersion":"1"}'),
+      accepted.response,
+      new URL("https://morro.example" + analyticsHttpPath),
     );
-    expect(invalid.statusCode).toBe(400);
-    expect(record).not.toHaveBeenCalled();
+    expect(accepted.response.statusCode).toBe(201);
+    expect(harness.transportHandle).toHaveBeenCalledOnce();
 
-    const getRequest = request(valid);
-    getRequest.method = "GET";
-    const method = response();
-    await api.handle(getRequest, method);
-    expect(method.statusCode).toBe(405);
-    expect(method.getHeader("allow")).toBe("POST");
+    await api.stop();
+    expect(harness.end).toHaveBeenCalledOnce();
   });
 
-  it("fails closed when the recorder is unavailable", async () => {
+  it("rate limits one network subject without persisting its address", async () => {
+    const harness = runtimeHarness();
     const api = createAnalyticsApi({
-      record: vi.fn(async () => {
-        throw new Error("sink unavailable");
+      getEnvironmentValue: environment({
+        ANALYTICS_FEATURE_ENABLED: "true",
+        ANALYTICS_DATABASE_URL: "mysql://analytics",
       }),
+      loadRuntime: async () => harness.runtime,
+      now: () => 1_000,
     });
-    const res = response();
+    await api.start();
 
-    await api.handle(request(valid), res);
+    let last;
+    for (let index = 0; index <= analyticsRateLimitMaxRequests; index += 1) {
+      last = responseHarness();
+      await api.handle(
+        request("{}"),
+        last.response,
+        new URL("https://morro.example" + analyticsHttpPath),
+      );
+    }
 
-    expect(res.statusCode).toBe(503);
-    expect(JSON.parse(res.body)).toEqual({
-      error: "ANALYTICS_RECORDER_UNAVAILABLE",
-    });
+    expect(last.response.statusCode).toBe(429);
+    expect(harness.transportHandle).toHaveBeenCalledTimes(
+      analyticsRateLimitMaxRequests,
+    );
+    await api.stop();
   });
 });

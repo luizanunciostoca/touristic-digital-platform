@@ -41,6 +41,9 @@ importers:
       "@touristic/analytics":
         specifier: workspace:*
         version: link:../../packages/analytics
+      "@touristic/analytics-server":
+        specifier: workspace:*
+        version: link:../../services/analytics
       "@touristic/assistant":
         specifier: workspace:*
         version: link:../../packages/assistant
@@ -157,6 +160,15 @@ importers:
       "@touristic/affiliates":
         specifier: workspace:*
         version: link:../../packages/affiliates
+      mysql2:
+        specifier: ^3.14.5
+        version: 3.23.3(@types/node@24.13.3)
+
+  services/analytics:
+    dependencies:
+      "@touristic/analytics":
+        specifier: workspace:*
+        version: link:../../packages/analytics
       mysql2:
         specifier: ^3.14.5
         version: 3.23.3(@types/node@24.13.3)

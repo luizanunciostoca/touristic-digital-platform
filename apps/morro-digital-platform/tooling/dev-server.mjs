@@ -156,6 +156,7 @@ function auditSecurityEvent(request, event) {
   });
 }
 
+const analyticsApi = createAnalyticsApi({ getEnvironmentValue });
 const assistantApi = createAssistantApi({ getEnvironmentValue });
 
 const authApi = createAuthApi({
@@ -167,6 +168,7 @@ platformOperations = createPlatformOperations({
   getEnvironmentValue,
   additionalReadinessChecks: () => [
     { name: "auth-security-state", ...authApi.readinessCheck() },
+    { name: "analytics-runtime", ...analyticsApi.readinessCheck() },
     {
       name: "payments-runtime",
       status: paymentsRuntimeReady ? "pass" : "fail",
@@ -186,28 +188,8 @@ platformOperations = createPlatformOperations({
     },
   ],
 });
-
-const analyticsApi = createAnalyticsApi({
-  async record(event) {
-    platformOperations.emit({
-      kind: "log",
-      name: "analytics.event.recorded",
-      severity: "info",
-      attributes: {
-        eventId: event.eventId,
-        eventName: event.name,
-        visitorHash: event.visitorHash,
-        occurredAt: event.occurredAt,
-        destinationId: event.destinationId ?? "morro-de-sao-paulo",
-        locale: event.locale ?? "unknown",
-        source: event.source ?? "unknown",
-        analyticsAttributes: event.attributes,
-      },
-    });
-  },
-});
-
 await authApi.start();
+await analyticsApi.start();
 
 const crmApi = createCrmApi({ authApi, getEnvironmentValue });
 await crmApi.start();
@@ -531,7 +513,7 @@ const server = createServer(async (request, response) => {
       return;
     }
     if (analyticsApi.matches(requestUrl.pathname)) {
-      await analyticsApi.handle(request, response);
+      await analyticsApi.handle(request, response, requestUrl);
       return;
     }
     if (authApi.matches(requestUrl.pathname)) {
@@ -697,6 +679,7 @@ async function shutdown(signal) {
   }
 
   const stops = await Promise.allSettled([
+    analyticsApi.stop(),
     authApi.stop(),
     crmApi.stop(),
     paymentsApi.stop(),
