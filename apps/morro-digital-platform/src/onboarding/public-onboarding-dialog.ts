@@ -21,6 +21,7 @@ export function createPublicOnboardingDialog(document: Document): HTMLElement {
   const overlay = document.createElement("section");
   overlay.id = "onboarding-overlay";
   overlay.className = "onboarding-overlay";
+  overlay.tabIndex = -1;
   overlay.style.pointerEvents = "auto";
   overlay.setAttribute("role", "dialog");
   overlay.setAttribute("aria-modal", "true");
