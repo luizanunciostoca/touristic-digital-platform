@@ -128,7 +128,8 @@ try {
       dir: document.documentElement.dir,
       headline: document.querySelector("header h1")?.textContent?.trim() ?? "",
       assistantWelcome:
-        document.querySelector("#assistant-messages .message.assistant")
+        document
+          .querySelector("#assistant-messages .message.assistant")
           ?.textContent?.trim() ?? "",
       placeholder:
         document
