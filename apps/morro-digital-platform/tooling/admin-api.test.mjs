@@ -180,6 +180,37 @@ describe("Control Center Admin API", () => {
     });
   });
 
+  it("requires reauthentication before issuing a step-up session", async () => {
+    const { api } = fixture();
+
+    const denied = responseRecorder();
+    await api.handle(
+      request("/api/admin/v1/step-up", {
+        method: "POST",
+        body: { password: "incorrect-fixture-value" },
+      }),
+      denied,
+      new URL("http://localhost/api/admin/v1/step-up"),
+    );
+    expect(denied.statusCode).toBe(403);
+    expect(JSON.parse(denied.body).error).toBe(
+      "STEP_UP_REAUTHENTICATION_FAILED",
+    );
+
+    const accepted = responseRecorder();
+    await api.handle(
+      request("/api/admin/v1/step-up", {
+        method: "POST",
+        body: { password: "fixture-secret" },
+      }),
+      accepted,
+      new URL("http://localhost/api/admin/v1/step-up"),
+    );
+    expect(accepted.statusCode).toBe(201);
+    expect(accepted.headers.get("set-cookie")).toContain("md_control_step_up=");
+    expect(JSON.parse(accepted.body).stepUp.method).toBe("password");
+  });
+
   it("derives the business directory from identity memberships only", async () => {
     const { api } = fixture();
     const response = responseRecorder();
