@@ -39,6 +39,7 @@ export type TicketingApplicationErrorCode =
   | "TICKETING_TICKET_NOT_FOUND"
   | "TICKETING_TICKET_ALREADY_USED"
   | "TICKETING_TICKET_REVOKED"
+  | "TICKETING_TICKET_EXPIRED"
   | "TICKETING_CHECKIN_INVALID"
   | "TICKETING_OFFLINE_ENVELOPE_INVALID";
 
@@ -170,7 +171,8 @@ function sameTicketAuthority(left: Ticket, right: Ticket): boolean {
     left.amount.minorUnits === right.amount.minorUnits &&
     left.amount.currency === right.amount.currency &&
     left.code === right.code &&
-    left.issuedAt === right.issuedAt
+    left.issuedAt === right.issuedAt &&
+    left.validUntil === right.validUntil
   );
 }
 
@@ -186,12 +188,23 @@ async function findCheckInReplay(
   );
 }
 
-function assertTicketAcceptsNewCheckIn(ticket: Ticket): void {
+function assertTicketAcceptsNewCheckIn(
+  ticket: Ticket,
+  occurredAt: string,
+  result: unknown,
+): void {
   if (ticket.status === "used") {
     throw new TicketingApplicationError("TICKETING_TICKET_ALREADY_USED");
   }
   if (ticket.status === "cancelled") {
     throw new TicketingApplicationError("TICKETING_TICKET_REVOKED");
+  }
+  if (
+    result !== "cancelled" &&
+    ticket.validUntil !== null &&
+    Date.parse(occurredAt) >= Date.parse(ticket.validUntil)
+  ) {
+    throw new TicketingApplicationError("TICKETING_TICKET_EXPIRED");
   }
 }
 
@@ -258,6 +271,7 @@ export function createTicketingApplicationService(
         code,
         status: "issued",
         issuedAt,
+        validUntil: input.validUntil,
         updatedAt: issuedAt,
       });
       if (!ticket) throw new Error("TICKETING_TICKET_INVALID");
@@ -311,8 +325,8 @@ export function createTicketingApplicationService(
       if (replay) {
         return Object.freeze({ ticket, checkIn: replay, replayed: true });
       }
-      assertTicketAcceptsNewCheckIn(ticket);
       const result = ticket.status === "issued" ? "validated" : "used";
+      assertTicketAcceptsNewCheckIn(ticket, canonicalOccurredAt, result);
       const updated = applyTicketCheckIn(ticket, {
         result,
         occurredAt: canonicalOccurredAt,
@@ -366,7 +380,7 @@ export function createTicketingApplicationService(
       if (replay) {
         return Object.freeze({ ticket, checkIn: replay, replayed: true });
       }
-      assertTicketAcceptsNewCheckIn(ticket);
+      assertTicketAcceptsNewCheckIn(ticket, canonicalOccurredAt, result);
       const updated = applyTicketCheckIn(ticket, {
         result,
         occurredAt: canonicalOccurredAt,
@@ -443,13 +457,13 @@ export function createTicketingApplicationService(
         });
       }
 
-      assertTicketAcceptsNewCheckIn(ticket);
       const result =
         envelope.operation === "validate"
           ? "validated"
           : envelope.operation === "use"
             ? "used"
             : "cancelled";
+      assertTicketAcceptsNewCheckIn(ticket, envelope.queuedAt, result);
       const updated = applyTicketCheckIn(ticket, {
         result,
         occurredAt: envelope.queuedAt,
