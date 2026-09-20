@@ -130,6 +130,8 @@ importers:
 
   packages/navigation: {}
 
+  packages/notifications: {}
+
   packages/ordering:
     dependencies:
       "@touristic/financial":
