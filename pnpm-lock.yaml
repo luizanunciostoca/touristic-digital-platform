@@ -107,6 +107,8 @@ importers:
 
   packages/core: {}
 
+  packages/content: {}
+
   packages/crm:
     dependencies:
       "@touristic/auth":
