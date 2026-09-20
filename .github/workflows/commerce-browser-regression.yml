@@ -12,6 +12,10 @@ on:
       - "apps/morro-digital-platform/public/index.html"
       - "apps/morro-digital-platform/public/ticketing.js"
       - "apps/morro-digital-platform/public/tickets.html"
+      - "apps/morro-digital-platform/public/legacy/css/components/assistant/assistantModalUI.css"
+      - "apps/morro-digital-platform/src/assistant/assistant-dom-view.ts"
+      - "apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts"
+      - "apps/morro-digital-platform/src/map/**"
       - "apps/morro-digital-platform/src/business-dashboard-client.ts"
       - "apps/morro-digital-platform/src/business-dashboard-surface.ts"
       - "apps/morro-digital-platform/src/commerce/**"
@@ -21,6 +25,8 @@ on:
       - "apps/morro-digital-platform/tooling/payments-api.test.mjs"
       - "services/ordering/src/ticketing-checkout-handoff.ts"
       - "services/ordering/src/ticketing-checkout-handoff.test.ts"
+      - "services/crm/src/commerce-schema.ts"
+      - "services/crm/src/mysql-commerce-customer-repository.ts"
       - "services/ticketing/src/**"
       - "package.json"
       - "pnpm-lock.yaml"
@@ -88,6 +94,17 @@ jobs:
             salesStartAt: '2026-09-01T12:00:00.000Z', salesEndAt: '2026-09-20T20:00:00.000Z',
             startsAt: '2026-09-20T20:30:00.000Z', endsAt: '2026-09-21T01:00:00.000Z',
           };
+          const placeOffer = {
+            id: 'mpi_11111111111111111111111111111111',
+            destinationId: 'morro-de-sao-paulo',
+            product: { kind: 'business_experience', reference: 'morro-pro:toca-do-morcego:the-party' },
+            label: 'Toca do Morcego · The Party',
+            unitAmount: { minorUnits: 8000, currency: 'BRL' },
+            pricingVersion: 'morro-pro-v1', capacity: 200, maxPerReservation: 8,
+            availableQuantity: 37,
+            salesStartAt: '2026-09-01T00:00:00.000Z', salesEndAt: '2026-09-20T23:00:00.000Z',
+            startsAt: '2026-09-21T02:00:00.000Z', endsAt: '2026-09-21T08:00:00.000Z',
+          };
           const reservation = {
             id: 'trv_browser_0001', inventoryId: offer.id, destinationId: offer.destinationId,
             product: offer.product, unitAmount: offer.unitAmount, pricingVersion: offer.pricingVersion,
@@ -115,7 +132,7 @@ jobs:
             await page.route('**/api/ticketing/v1/inventory', route =>
               state.inventoryFailure
                 ? fulfill(route, { error: 'TICKETING_UNAVAILABLE' }, 503)
-                : fulfill(route, { data: [offer] }));
+                : fulfill(route, { data: state.inventory ?? [offer, placeOffer] }));
             await page.route('**/api/ticketing/v1/consumer-session', route => fulfill(route, {
               data: { subject: 'guest:browser', csrfToken: 'csrf_browser_0001', expiresAt: '2026-10-17T22:00:00.000Z' },
             }, 201, { 'set-cookie': 'morro_commerce_session=browser-token; Path=/; HttpOnly; SameSite=Strict' }));
@@ -166,6 +183,7 @@ jobs:
                 const context = await browser.newContext({ viewport });
                 await context.addInitScript(() => {
                   localStorage.setItem('morro-digital-onboarded', '1');
+                  localStorage.setItem('morro-digital-language', 'pt-BR');
                   localStorage.setItem('voice-enabled', 'false');
                 });
                 const page = await context.newPage();
@@ -174,16 +192,14 @@ jobs:
                 page.on('pageerror', error => errors.push(error.message));
                 await commerceRoutes(page, state);
                 await page.goto(`${origin}/`, { waitUntil: 'domcontentloaded', timeout: 30000 });
-                await page.locator('#assistant-commerce-cta').waitFor({ state: 'attached', timeout: 10000 });
                 const home = await page.evaluate(() => ({
                   values: [...document.querySelectorAll('.assistant-option-btn')].map(node => node.getAttribute('data-value')),
-                  href: document.getElementById('assistant-commerce-cta')?.getAttribute('href'),
-                  category: document.getElementById('assistant-commerce-cta')?.classList.contains('assistant-option-btn') ?? true,
+                  globalCommerceCta: document.getElementById('assistant-commerce-cta') !== null,
                   messages: document.querySelectorAll('#assistant-messages .messages-area > .message').length,
                 }));
                 const expected = ['beaches','restaurants','hotels','shops','transport','attractions','tours','nightlife','emergencies','help'];
-                if (JSON.stringify(home.values) !== JSON.stringify(expected) || home.href !== '/tickets.html' || home.category || home.messages !== 1) {
-                  throw new Error(`V1 Assistant contract drift on ${viewport.name}: ${JSON.stringify(home)}`);
+                if (JSON.stringify(home.values) !== JSON.stringify(expected) || home.globalCommerceCta || home.messages !== 1) {
+                  throw new Error(`V1 Assistant home menu contract drift on ${viewport.name}: ${JSON.stringify(home)}`);
                 }
                 await page.locator('body[data-public-onboarding-settled="true"]').waitFor({ state: 'attached', timeout: 5000 });
                 const assistant = page.locator('#assistant-messages');
@@ -191,14 +207,112 @@ jobs:
                 await quickAction.waitFor({ state: 'visible', timeout: 5000 });
                 if (!(await assistant.isVisible())) await quickAction.click();
                 await page.locator('#assistant-messages:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
-                await Promise.all([page.waitForURL('**/tickets.html'), page.locator('#assistant-commerce-cta').click()]);
-                await page.locator('.offer-card').waitFor({ state: 'visible' });
-                await Promise.all([page.waitForURL('**/experience.html?id=*'), page.locator('.offer-card a.button-secondary').click()]);
+                await page.locator('#map[data-map-state="ready"]').waitFor({ state: 'attached', timeout: 30000 });
+
+                await page.locator('#assistant-category-nightlife').click();
+                await page.locator('#assistant-category-results[data-stage="filters"] [data-value="ver todos"]').click();
+                await page.locator('#assistant-category-results[data-stage="places"] [data-location-name="Toca do Morcego"]').click();
+                const placePrimary = page.locator('.assistant-options .assistant-option-btn--primary');
+                await placePrimary.waitFor({ state: 'visible', timeout: 10000 });
+                const placeActions = await page.evaluate(() => {
+                  const containers = Array.from(document.querySelectorAll('#assistant-messages .assistant-options'));
+                  const container = containers.find(node =>
+                    !node.querySelector('[data-explore-category]') &&
+                    node.id !== 'assistant-category-results' &&
+                    node.querySelector('.assistant-option-btn--primary')
+                  );
+                  if (!(container instanceof HTMLElement)) return null;
+                  const buttons = Array.from(container.querySelectorAll('.assistant-option-btn'));
+                  const primary = container.querySelector('.assistant-option-btn--primary');
+                  if (!(primary instanceof HTMLButtonElement)) return null;
+                  const grid = buttons.slice(0, 4);
+                  const containerRect = container.getBoundingClientRect();
+                  const primaryRect = primary.getBoundingClientRect();
+                  const gridBottom = Math.max(...grid.map(button => button.getBoundingClientRect().bottom));
+                  return {
+                    values: buttons.map(button => button.getAttribute('data-value')),
+                    primaryText: primary.textContent?.trim(),
+                    primaryIndex: buttons.indexOf(primary),
+                    primaryWidth: primaryRect.width,
+                    containerWidth: containerRect.width,
+                    primaryTop: primaryRect.top,
+                    gridBottom,
+                    gridColumns: getComputedStyle(container).gridTemplateColumns,
+                  };
+                });
+                const expectedPlaceGrid = [
+                  'como chegar',
+                  'ver fotos',
+                  'mais detalhes',
+                  'adicionar aos favoritos',
+                  `commerce:offer:${placeOffer.id}`,
+                ];
+                if (
+                  !placeActions ||
+                  JSON.stringify(placeActions.values) !== JSON.stringify(expectedPlaceGrid) ||
+                  placeActions.primaryIndex !== 4 ||
+                  !placeActions.primaryText?.includes('Comprar ingressos') ||
+                  placeActions.primaryWidth < placeActions.containerWidth - 18 ||
+                  placeActions.primaryTop < placeActions.gridBottom ||
+                  placeActions.gridColumns.split(' ').length !== 2
+                ) {
+                  throw new Error(`Place commerce CTA layout drift on ${viewport.name}: ${JSON.stringify(placeActions)}`);
+                }
+                await Promise.all([
+                  page.waitForURL(`**/tickets.html?offer=${placeOffer.id}&source=map`),
+                  placePrimary.click(),
+                ]);
+                await page.locator('#selected-offer').waitFor({ state: 'visible', timeout: 10000 });
+                await page.waitForFunction(() => {
+                  const input = document.querySelector('#selected-offer');
+                  return input instanceof HTMLInputElement && input.value.includes('Toca do Morcego');
+                }, undefined, { timeout: 10000 });
+                const selectedFromMap = await page.locator('#selected-offer').inputValue();
+                if (!selectedFromMap.includes('Toca do Morcego')) {
+                  throw new Error(`Map commerce handoff did not select place offer on ${viewport.name}: ${selectedFromMap}`);
+                }
+                evidence.push({ viewport: viewport.name, placeActions, selectedFromMap });
+
+                state.inventory = [offer];
+                await page.goto(`${origin}/`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+                await page.locator('#assistant-category-nightlife').click();
+                await page.locator('#assistant-category-results[data-stage="filters"] [data-value="ver todos"]').click();
+                await page.locator('#assistant-category-results[data-stage="places"] [data-location-name="Toca do Morcego"]').click();
+                const fallbackPrimary = page.locator('.assistant-options .assistant-option-btn--primary');
+                await fallbackPrimary.waitFor({ state: 'visible', timeout: 10000 });
+                const fallbackAction = await fallbackPrimary.evaluate(node => ({
+                  text: node.textContent?.trim(),
+                  value: node.getAttribute('data-value'),
+                }));
+                if (
+                  fallbackAction.value !== 'commerce:place:toca-do-morcego' ||
+                  !fallbackAction.text?.includes('Comprar ingressos')
+                ) {
+                  throw new Error(`Place fallback CTA drift on ${viewport.name}: ${JSON.stringify(fallbackAction)}`);
+                }
+                await Promise.all([
+                  page.waitForURL('**/tickets.html?place=toca-do-morcego&source=map'),
+                  fallbackPrimary.click(),
+                ]);
+                await page.locator('#offers .empty').waitFor({ state: 'visible', timeout: 10000 });
+                if ((await page.locator('.offer-card').count()) !== 0) {
+                  throw new Error(`Place fallback leaked unrelated inventory on ${viewport.name}`);
+                }
+                state.inventory = undefined;
+                await page.goto(`${origin}/tickets.html?place=TOCA-DO-MORCEGO&source=map`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+                await page.locator('#offers .empty').waitFor({ state: 'visible', timeout: 10000 });
+                if ((await page.locator('.offer-card').count()) !== 0) {
+                  throw new Error(`Invalid place filter leaked inventory on ${viewport.name}`);
+                }
+
+                await page.goto(`${origin}/tickets.html`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+                await page.locator(`.offer-card[data-inventory-id="${offer.id}"]`).waitFor({ state: 'visible' });
+                await Promise.all([page.waitForURL('**/experience.html?id=*'), page.locator(`.offer-card[data-inventory-id="${offer.id}"] a.button-secondary`).click()]);
                 await page.locator('#experience-card').waitFor({ state: 'visible' });
                 if ((await page.locator('#experience-title').textContent())?.trim() !== offer.label) throw new Error(`Detail mismatch on ${viewport.name}`);
                 await page.goBack({ waitUntil: 'domcontentloaded' });
-                await page.locator('.offer-card').waitFor({ state: 'visible' });
-                await Promise.all([page.waitForURL('**/experience.html?id=*'), page.locator('.offer-card a.button-secondary').click()]);
+                await page.locator(`.offer-card[data-inventory-id="${offer.id}"]`).waitFor({ state: 'visible' });
+                await Promise.all([page.waitForURL('**/experience.html?id=*'), page.locator(`.offer-card[data-inventory-id="${offer.id}"] a.button-secondary`).click()]);
                 await Promise.all([page.waitForURL('**/tickets.html?offer=*'), page.locator('#experience-reserve').click()]);
                 await page.locator('#holder-name').fill('Visitante Teste');
                 await page.locator('#holder-email').fill('visitante@example.test');
@@ -243,7 +357,8 @@ jobs:
               await authPage.goto(`${origin}/apps/morro-digital-platform/public/business-dashboard.html?businessId=business-a`, { waitUntil: 'domcontentloaded', timeout: 30000 });
               await authPage.locator('#main-dashboard:not([hidden])').waitFor({ state: 'visible', timeout: 10000 });
               await authPage.locator('.sidebar-nav [data-dashboard-view="offers"]').click();
-              await authPage.locator('#morro-pro-offer-label').fill('Passeio Morro Pro');
+              await authPage.locator('#morro-pro-offer-label').fill('Passagem Catamarã Morro Pro');
+              await authPage.locator('#morro-pro-offer-kind').selectOption('transport');
               await authPage.locator('#morro-pro-offer-price').fill('199.90');
               await authPage.locator('#morro-pro-offer-sales-start').fill('2026-09-18T09:00');
               await authPage.locator('#morro-pro-offer-sales-end').fill('2026-09-20T09:00');
@@ -258,12 +373,13 @@ jobs:
               await authPage.locator('#morro-pro-offer-list h3').waitFor({ state: 'visible', timeout: 5000 });
               if (!created) throw new Error('Authenticated Morro Pro offer not created');
               if (createCalls !== 1) throw new Error(`Concurrent Morro Pro submit created ${createCalls} offers`);
+              if (offers[0]?.productKind !== 'transport') throw new Error(`Transport offer kind was not preserved: ${offers[0]?.productKind}`);
               const crossTenant = await authPage.evaluate(async () => {
                 const response = await fetch('/api/ticketing/v1/operator/businesses/business-b/inventory', { credentials: 'same-origin' });
                 return response.status;
               });
               if (crossTenant !== 404) throw new Error(`Cross-tenant inventory leaked: ${crossTenant}`);
-              evidence.push({ authenticatedMorroPro: true, crossTenant, createCalls, offerId: offers[0]?.id });
+              evidence.push({ authenticatedMorroPro: true, crossTenant, createCalls, offerId: offers[0]?.id, productKind: offers[0]?.productKind });
               await authContext.close();
 
               const failContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
