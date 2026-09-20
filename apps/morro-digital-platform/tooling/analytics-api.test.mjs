@@ -48,26 +48,23 @@ const valid = Object.freeze({
 });
 
 describe("analytics runtime api", () => {
-  it(
-    "accepts a sanitized canonical event without recording the raw session id",
-    async () => {
-      const record = vi.fn(async () => undefined);
-      const api = createAnalyticsApi({ record });
-      const res = response();
+  it("accepts a sanitized canonical event without recording the raw session id", async () => {
+    const record = vi.fn(async () => undefined);
+    const api = createAnalyticsApi({ record });
+    const res = response();
 
-      await api.handle(request(valid), res);
+    await api.handle(request(valid), res);
 
-      expect(res.statusCode).toBe(202);
-      expect(JSON.parse(res.body)).toEqual({
-        data: { accepted: true, eventId: "event-001" },
-      });
-      expect(record).toHaveBeenCalledOnce();
-      const recorded = record.mock.calls[0]?.[0];
-      expect(recorded.sessionId).toBeUndefined();
-      expect(recorded.visitorHash).toMatch(/^[a-f0-9]{64}$/u);
-      expect(JSON.stringify(recorded)).not.toContain("session-random-001");
-    },
-  );
+    expect(res.statusCode).toBe(202);
+    expect(JSON.parse(res.body)).toEqual({
+      data: { accepted: true, eventId: "event-001" },
+    });
+    expect(record).toHaveBeenCalledOnce();
+    const recorded = record.mock.calls[0]?.[0];
+    expect(recorded.sessionId).toBeUndefined();
+    expect(recorded.visitorHash).toMatch(/^[a-f0-9]{64}$/u);
+    expect(JSON.stringify(recorded)).not.toContain("session-random-001");
+  });
 
   it("rejects raw query text and unknown attributes", async () => {
     const record = vi.fn(async () => undefined);
