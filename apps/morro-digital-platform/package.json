@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
+    "@touristic/analytics": "workspace:*",
     "@touristic/assistant": "workspace:*",
     "@touristic/auth": "workspace:*",
     "@touristic/auth-browser": "workspace:*",
