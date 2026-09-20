@@ -20,7 +20,8 @@ export const contentStatuses = Object.freeze([
 
 export type ContentKind = (typeof contentKinds)[number];
 export type ContentStatus = (typeof contentStatuses)[number];
-export type ContentFieldValue = string | number | boolean | null | readonly string[];
+export type ContentFieldValue =
+  string | number | boolean | null | readonly string[];
 export type ContentFields = Readonly<Record<string, ContentFieldValue>>;
 
 export interface ContentDocumentInput {
@@ -122,8 +123,8 @@ function isSafeFieldValue(value: unknown): value is ContentFieldValue {
 
 function isOfferAuthorityKey(key: string): boolean {
   const normalized = key.toLowerCase();
-  return OFFER_AUTHORITY_KEYS.some(
-    (forbidden) => normalized.includes(forbidden),
+  return OFFER_AUTHORITY_KEYS.some((forbidden) =>
+    normalized.includes(forbidden),
   );
 }
 
