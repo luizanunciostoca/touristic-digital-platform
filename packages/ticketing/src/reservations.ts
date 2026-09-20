@@ -354,8 +354,7 @@ export function createTicketReservation(input: {
     (input.validUntil !== null &&
       input.validUntil !== undefined &&
       !validUntil) ||
-    (validUntil !== null &&
-      Date.parse(validUntil) <= Date.parse(expiresAt)) ||
+    (validUntil !== null && Date.parse(validUntil) <= Date.parse(expiresAt)) ||
     Date.parse(updatedAt) < Date.parse(createdAt) ||
     (input.orderId !== null && input.orderId !== undefined && !orderId) ||
     (input.paymentId !== null && input.paymentId !== undefined && !paymentId) ||
