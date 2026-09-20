@@ -127,6 +127,17 @@ jobs:
                 throw new Error(`Assistant loading announcement missing: ${loadingStatus}`);
               }
 
+              const loadingSkeleton = await page.locator(
+                '#assistant-messages .assistant-loading-skeleton[aria-hidden="true"]',
+              ).count();
+              const loadingLines = await page.locator(
+                '#assistant-messages .assistant-loading-skeleton .md-skeleton',
+              ).count();
+              if (loadingSkeleton !== 1 || loadingLines !== 3) {
+                throw new Error('Assistant loading skeleton drifted');
+              }
+
+
               await page.keyboard.press('Escape');
               await page.locator('#assistant-messages.hidden[aria-hidden="true"]').waitFor({
                 state: 'attached',
