@@ -66,6 +66,12 @@ export type AuthCapability = (typeof authCapabilities)[number];
 
 const allCapabilities = Object.freeze([...authCapabilities]);
 
+function capabilitySet(
+  values: readonly AuthCapability[],
+): readonly AuthCapability[] {
+  return Object.freeze([...values]);
+}
+
 const canonicalRoleCapabilities: Readonly<
   Record<CanonicalAuthRole, readonly AuthCapability[]>
 > = Object.freeze({
@@ -76,7 +82,7 @@ const canonicalRoleCapabilities: Readonly<
         capability !== "platform.manage" && capability !== "system.manage",
     ),
   ),
-  SUPPORT: Object.freeze([
+  SUPPORT: capabilitySet([
     "platform.read",
     "business.read",
     "affiliate.read",
@@ -90,7 +96,7 @@ const canonicalRoleCapabilities: Readonly<
     "audit.read",
     "system.read",
   ]),
-  AUDITOR: Object.freeze([
+  AUDITOR: capabilitySet([
     "platform.read",
     "business.read",
     "affiliate.read",
@@ -102,7 +108,7 @@ const canonicalRoleCapabilities: Readonly<
     "audit.read",
     "system.read",
   ]),
-  BUSINESS_OWNER: Object.freeze([
+  BUSINESS_OWNER: capabilitySet([
     "business.read",
     "business.update",
     "crm.read",
@@ -113,7 +119,7 @@ const canonicalRoleCapabilities: Readonly<
     "content.read",
     "content.manage",
   ]),
-  BUSINESS_MANAGER: Object.freeze([
+  BUSINESS_MANAGER: capabilitySet([
     "business.read",
     "business.update",
     "crm.read",
@@ -123,14 +129,14 @@ const canonicalRoleCapabilities: Readonly<
     "financial.read",
     "content.read",
   ]),
-  BUSINESS_VIEWER: Object.freeze([
+  BUSINESS_VIEWER: capabilitySet([
     "business.read",
     "crm.read",
     "ticketing.read",
     "financial.read",
     "content.read",
   ]),
-  AFFILIATE: Object.freeze(["affiliate.read", "affiliate.update"]),
+  AFFILIATE: capabilitySet(["affiliate.read", "affiliate.update"]),
 });
 
 const legacyCanonicalMapping: Readonly<
