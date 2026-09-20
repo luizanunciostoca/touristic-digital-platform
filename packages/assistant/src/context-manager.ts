@@ -20,11 +20,7 @@ export interface AssistantAwaitingState {
   [key: string]: unknown;
 }
 
-export type AssistantActiveTourStage =
-  | "intro"
-  | "list"
-  | "stop"
-  | "finale";
+export type AssistantActiveTourStage = "intro" | "list" | "stop" | "finale";
 
 export interface AssistantActiveTourContext {
   readonly tourId: string;
