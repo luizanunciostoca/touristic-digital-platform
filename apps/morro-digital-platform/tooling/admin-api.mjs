@@ -649,6 +649,18 @@ export function createAdminApi({
       json(response, 400, { error: "REASON_REQUIRED" });
       return true;
     }
+    if (body?.confirmation !== "REVOGAR") {
+      await audit(request, actor, {
+        action: "users.sessions.revoke",
+        result: "denied",
+        reason: "text_confirmation_required",
+        effectiveUserId: userId,
+        entityType: "auth_session",
+        entityId: handle,
+      });
+      json(response, 400, { error: "TEXT_CONFIRMATION_REQUIRED" });
+      return true;
+    }
 
     const attemptAudited = await audit(request, actor, {
       action: "users.sessions.revoke.attempt",
