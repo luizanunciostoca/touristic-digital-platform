@@ -46,13 +46,36 @@ const localeTag: Readonly<Record<AssistantLocale, string>> = Object.freeze({
 });
 
 function slug(value: string): string {
-  return normalizeSearchText(value).replace(/\s+/gu, "-");
+  return normalizeSearchText(value)
+    .replace(/[^a-z0-9]+/gu, "-")
+    .replace(/^-+|-+$/gu, "");
+}
+
+function nightlifeFallbackLabel(locale: AssistantLocale): string {
+  return {
+    pt: "🎟️ Comprar ingressos",
+    en: "🎟️ Buy tickets",
+    es: "🎟️ Comprar entradas",
+    he: "🎟️ רכישת כרטיסים",
+  }[locale];
 }
 
 function fallbackPrimaryAction(
-  category: string,
+  location: MorroV1SearchCatalogItem,
   locale: AssistantLocale,
 ): PlacePrimaryAction | null {
+  const category = location.category;
+  if (category === "nightlife") {
+    const placeKey = slug(location.name);
+    return placeKey
+      ? Object.freeze({
+          label: nightlifeFallbackLabel(locale),
+          value: `commerce:place:${placeKey}`,
+          presentation: "primary" as const,
+          commerceState: "fallback" as const,
+        })
+      : null;
+  }
   if (category === "tours") {
     return Object.freeze({
       label: `🎟️ ${getV1ExploreLabel("bookTour", locale)}`,
@@ -251,7 +274,7 @@ export async function resolvePlacePrimaryAction(options: {
   const { location, locale } = options;
   if (!COMMERCE_CATEGORIES.has(location.category)) return null;
 
-  const fallback = fallbackPrimaryAction(location.category, locale);
+  const fallback = fallbackPrimaryAction(location, locale);
   if (!options.fetch) return fallback;
 
   let offers: readonly PublicInventoryOffer[] = [];
