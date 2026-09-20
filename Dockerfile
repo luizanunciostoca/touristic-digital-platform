@@ -56,4 +56,4 @@ COPY --from=build --chown=node:node /app /app
 USER node
 
 EXPOSE 3000
-CMD ["node", "apps/morro-digital-platform/dist/browser-entry.js"]
+CMD ["node", "apps/morro-digital-platform/tooling/dev-server.mjs"]

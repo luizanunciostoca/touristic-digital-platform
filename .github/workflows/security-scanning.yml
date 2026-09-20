@@ -69,6 +69,59 @@ jobs:
           --file Dockerfile
           --tag morro-digital-v2:sec07
           .
+      - name: Smoke canonical application container runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          container_name="morro-digital-v2-runtime-${GITHUB_RUN_ID}"
+          cleanup() {
+            docker rm --force "$container_name" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+
+          docker run --detach \
+            --name "$container_name" \
+            --publish 127.0.0.1:43173:4173 \
+            --env HOST=0.0.0.0 \
+            --env PORT=4173 \
+            --env NODE_ENV=production \
+            --env MORRO_RELEASE_SHA="$GITHUB_SHA" \
+            --env MORRO_RELEASE_VERSION=security-ci \
+            --env MORRO_DEPLOYMENT_ID="security-${GITHUB_RUN_ID}" \
+            --env ANALYTICS_FEATURE_ENABLED=false \
+            morro-digital-v2:sec07
+
+          for attempt in {1..30}; do
+            if curl --silent --show-error --fail \
+              --header "Accept: application/json" \
+              http://127.0.0.1:43173/healthz \
+              --output /tmp/morro-container-health.json
+            then
+              break
+            fi
+            if ! docker inspect --format '{{.State.Running}}' "$container_name" | grep -qx true; then
+              docker logs "$container_name" >&2 || true
+              exit 1
+            fi
+            sleep 1
+          done
+
+          node --input-type=module <<'NODE'
+          import { readFileSync } from "node:fs";
+          const health = JSON.parse(
+            readFileSync("/tmp/morro-container-health.json", "utf8"),
+          );
+          if (health.status !== "live") {
+            throw new Error(`CONTAINER_HEALTH_NOT_LIVE:${health.status}`);
+          }
+          if (health.release?.sha !== process.env.GITHUB_SHA) {
+            throw new Error(
+              `CONTAINER_RELEASE_SHA_MISMATCH:${health.release?.sha ?? "missing"}`,
+            );
+          }
+          NODE
+
+          docker logs "$container_name" 2>&1 | tail -n 80
       - name: Scan application image for embedded secrets
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
