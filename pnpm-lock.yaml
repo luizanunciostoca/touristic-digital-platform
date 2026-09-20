@@ -123,6 +123,12 @@ importers:
 
   packages/content: {}
 
+  packages/destination:
+    dependencies:
+      "@touristic/core":
+        specifier: workspace:*
+        version: link:../core
+
   packages/destinations:
     devDependencies:
       "@types/node":
