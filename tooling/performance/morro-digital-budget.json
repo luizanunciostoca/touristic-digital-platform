@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "webVitals": {
+    "lcpMs": 2500,
+    "inpMs": 200,
+    "cls": 0.1
+  },
+  "assets": {
+    "homeLinkedCssBytes": 100000,
+    "homeLinkedJsBytes": 500000,
+    "appDistJsBytes": 3000000,
+    "runtimePackageJsBytes": 2000000,
+    "largestRuntimeJsFileBytes": 350000
+  }
+}
