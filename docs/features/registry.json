@@ -8,8 +8,13 @@
       "domain": "geospatial",
       "wave": 4,
       "status": "equivalent",
-      "legacySources": ["v1:mapbox", "v1:leaflet"],
-      "targetPackages": ["@touristic/geospatial"],
+      "legacySources": [
+        "v1:mapbox",
+        "v1:leaflet"
+      ],
+      "targetPackages": [
+        "@touristic/geospatial"
+      ],
       "equivalence": {
         "behavior": true,
         "visual": true,
@@ -22,8 +27,14 @@
       "domain": "marketplace",
       "wave": 5,
       "status": "equivalent",
-      "legacySources": ["v1:search", "v1:assistant"],
-      "targetPackages": ["@touristic/search", "@touristic/marketplace"],
+      "legacySources": [
+        "v1:search",
+        "v1:assistant"
+      ],
+      "targetPackages": [
+        "@touristic/search",
+        "@touristic/marketplace"
+      ],
       "equivalence": {
         "behavior": true,
         "visual": true,
@@ -36,8 +47,14 @@
       "domain": "geospatial",
       "wave": 4,
       "status": "equivalent",
-      "legacySources": ["v1:navigation", "v1:routing"],
-      "targetPackages": ["@touristic/geospatial", "@touristic/navigation"],
+      "legacySources": [
+        "v1:navigation",
+        "v1:routing"
+      ],
+      "targetPackages": [
+        "@touristic/geospatial",
+        "@touristic/navigation"
+      ],
       "equivalence": {
         "behavior": true,
         "visual": true,
@@ -56,8 +73,14 @@
       "domain": "assistant",
       "wave": 11,
       "status": "equivalent",
-      "legacySources": ["v1:assistant", "v1:tts"],
-      "targetPackages": ["@touristic/assistant", "@touristic/voice"],
+      "legacySources": [
+        "v1:assistant",
+        "v1:tts"
+      ],
+      "targetPackages": [
+        "@touristic/assistant",
+        "@touristic/voice"
+      ],
       "equivalence": {
         "behavior": true,
         "visual": true,
@@ -70,8 +93,13 @@
       "domain": "business",
       "wave": 6,
       "status": "equivalent",
-      "legacySources": ["v1:dashboard", "v1:onboarding"],
-      "targetPackages": ["@touristic/business"],
+      "legacySources": [
+        "v1:dashboard",
+        "v1:onboarding"
+      ],
+      "targetPackages": [
+        "@touristic/business"
+      ],
       "equivalence": {
         "behavior": true,
         "visual": true,
@@ -84,7 +112,9 @@
       "domain": "admin",
       "wave": 7,
       "status": "equivalent",
-      "legacySources": ["crm:v1"],
+      "legacySources": [
+        "crm:v1"
+      ],
       "targetPackages": [
         "@touristic/crm",
         "@touristic/crm-server",
@@ -102,8 +132,13 @@
       "domain": "experience",
       "wave": 2,
       "status": "equivalent",
-      "legacySources": ["v1:css", "v1:assets"],
-      "targetPackages": ["@touristic/design-system"],
+      "legacySources": [
+        "v1:css",
+        "v1:assets"
+      ],
+      "targetPackages": [
+        "@touristic/design-system"
+      ],
       "equivalence": {
         "behavior": true,
         "visual": true,
@@ -116,8 +151,12 @@
       "domain": "identity",
       "wave": 6,
       "status": "equivalent",
-      "legacySources": ["v1:auth"],
-      "targetPackages": ["@touristic/auth"],
+      "legacySources": [
+        "v1:auth"
+      ],
+      "targetPackages": [
+        "@touristic/auth"
+      ],
       "equivalence": {
         "behavior": true,
         "visual": true,
@@ -130,7 +169,9 @@
       "domain": "financial",
       "wave": 8,
       "status": "equivalent",
-      "legacySources": ["v1:checkout"],
+      "legacySources": [
+        "v1:checkout"
+      ],
       "targetPackages": [
         "@touristic/ordering",
         "@touristic/ordering-server",
@@ -179,7 +220,10 @@
       "wave": 10,
       "status": "equivalent",
       "legacySources": [],
-      "targetPackages": ["@touristic/ticketing", "@touristic/ticketing-server"],
+      "targetPackages": [
+        "@touristic/ticketing",
+        "@touristic/ticketing-server"
+      ],
       "equivalence": {
         "behavior": true,
         "visual": true,
@@ -214,7 +258,7 @@
         "local": "INTEGRATION_VERIFIED_PARTIAL",
         "mysql": "CONTAINER_VERIFIED",
         "provider": "NOT_APPLICABLE",
-        "note": "Control Center branch has verified canonical platform roles/capabilities, Admin API v1, dedicated UI, durable MySQL append-only administrative audit, Auth-owned hash-only session registry with step-up protected revocation, and signed Support Mode with request-scoped effective-user authorization proven for Business/CRM/Ticketing. Chromium contract proves login, dashboard, universal search, Business 360, CRM navigation, support actor/effective-user separation, forged-header resistance, cross-tenant denial, session revocation, audit durability, system secret redaction, keyboard flow, and desktop/tablet/mobile no-overflow. FEATURE-0012 remains partial because Affiliates, Financial, Content, Destinations, wider Business/Ticketing coverage, account block/reactivate, complete accessibility certification, and dedicated staging verification remain incomplete. No production or real-money authority is granted."
+        "note": "Control Center branch has verified canonical platform roles/capabilities, Admin API v1, dedicated UI, durable MySQL append-only administrative audit, Auth-owned hash-only session registry with step-up protected revocation, signed Support Mode with request-scoped effective-user authorization proven for Business/CRM/Ticketing, and owner-backed Orders/Financial administration. Financial evidence on SHA 2220a7ebf685a48de4916e01cb01bc92a029c17b includes PASS for Control Center Financial Contract, dedicated Financial Chromium E2E, Payments Persistence Integration, Operational Ledger, Refund Command, Reconciliation, Quality Gate, Security Scanning, general Control Center Browser Contract, and Dependency Security Audit. The Financial browser contract proves Order, Payment and Ledger owner projections plus step-up governed refund denial before provider effect. Financial tenant scope is resolved through owner contracts and Support Mode fails closed on resource-tenant mismatch; production and real-money effects remain code-blocked. FEATURE-0012 remains partial because Affiliates, Content, Destinations, wider Business/Ticketing coverage, account block/reactivate, complete accessibility certification, and dedicated staging verification remain incomplete."
       }
     }
   ]
