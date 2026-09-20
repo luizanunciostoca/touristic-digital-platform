@@ -266,17 +266,64 @@ async function renderUsers(userId) {
     </div>`;
 }
 
-async function renderBusinesses() {
+async function renderBusinesses(businessId) {
   const data = await api("/businesses");
+  if (businessId) {
+    const business = data.businesses.find((entry) => entry.id === businessId);
+    let profile = null;
+    try {
+      profile = (await api(
+        `/businesses/${encodeURIComponent(businessId)}/profile`,
+      )).profile;
+    } catch (error) {
+      if (error.status !== 404) throw error;
+    }
+    content.innerHTML = `
+      <div class="callout">
+        <strong>Visão 360º administrativa:</strong>
+        os dados abaixo são compostos por contratos owner; se um domínio ainda
+        não possui adapter administrativo, ele permanece identificado como parcial.
+      </div>
+      <div class="grid two-col">
+        <section class="card section-card">
+          <div class="section-title">
+            <h2>${escapeHtml(profile?.name ?? businessId)}</h2>
+            <span class="badge partial">Business 360º parcial</span>
+          </div>
+          <div class="module-list">
+            <div class="module-row"><span>Business ID</span><strong>${escapeHtml(businessId)}</strong></div>
+            <div class="module-row"><span>Perfil</span>${statusBadge(profile ? "available" : "partial")}</div>
+            <div class="module-row"><span>Produtos e ofertas</span>${statusBadge("contract-required")}</div>
+            <div class="module-row"><span>Reservas</span>${statusBadge("contract-required")}</div>
+            <div class="module-row"><span>Financeiro</span>${statusBadge("contract-required")}</div>
+            <div class="module-row"><span>CRM relacionado</span>${statusBadge("contract-required")}</div>
+            <div class="module-row"><span>Auditoria</span>${statusBadge("partial")}</div>
+          </div>
+        </section>
+        <section class="card section-card">
+          <div class="section-title"><h2>Usuários associados</h2></div>
+          <div class="module-list">
+            ${(business?.members ?? [])
+              .map(
+                (member) =>
+                  `<div class="module-row"><span>${escapeHtml(member.email)}</span><span class="badge">${escapeHtml(member.canonicalRole)}</span></div>`,
+              )
+              .join("") || '<div class="empty">Nenhum membro encontrado.</div>'}
+          </div>
+        </section>
+      </div>`;
+    return;
+  }
+
   content.innerHTML = `
     <div class="callout">
       <strong>Fronteira preservada:</strong>
-      esta lista vem de memberships do domínio Identity. Alterações de perfil/status
-      só serão habilitadas quando o Business Admin Contract estiver registrado.
+      a lista vem de memberships do domínio Identity; o perfil é carregado
+      pelo Business owner contract e os demais módulos serão compostos por adapters próprios.
     </div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Business ID</th><th>Membros</th><th>Fonte</th><th>Mutação</th></tr></thead>
+        <thead><tr><th>Business ID</th><th>Membros</th><th>Fonte</th><th>Visão 360º</th></tr></thead>
         <tbody>
           ${data.businesses
             .map(
@@ -285,10 +332,66 @@ async function renderBusinesses() {
                   <td><strong>${escapeHtml(business.id)}</strong></td>
                   <td>${business.members.map((member) => escapeHtml(member.email)).join("<br>")}</td>
                   <td>${escapeHtml(business.source)}</td>
-                  <td><span class="badge partial">contract required</span></td>
+                  <td><a href="#businesses:${encodeURIComponent(business.id)}">Abrir empresa</a></td>
                 </tr>`,
             )
             .join("")}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+async function renderCrm() {
+  const data = await api("/crm/leads?limit=100");
+  const leads = Array.isArray(data.data) ? data.data : [];
+  content.innerHTML = `
+    <div class="callout">
+      CRM é reutilizado por adapter sobre o domínio existente; nenhuma tabela foi movida para o Control Center.
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Empresa</th><th>Contato</th><th>Etapa</th><th>Status</th><th>Valor mensal</th></tr></thead>
+        <tbody>
+          ${leads
+            .map(
+              (lead) =>
+                `<tr>
+                  <td><strong>${escapeHtml(lead.companyName ?? "—")}</strong><br><small>#${escapeHtml(lead.id)}</small></td>
+                  <td>${escapeHtml(lead.contactName ?? lead.email ?? "—")}</td>
+                  <td><span class="badge">${escapeHtml(lead.stage ?? "—")}</span></td>
+                  <td>${escapeHtml(lead.status ?? "—")}</td>
+                  <td>${escapeHtml(lead.monthlyValue ?? "—")}</td>
+                </tr>`,
+            )
+            .join("") || '<tr><td colspan="5" class="empty">Nenhum lead encontrado ou CRM sem dados.</td></tr>'}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+async function renderTicketing() {
+  const data = await api("/ticketing/inventory");
+  const inventory = Array.isArray(data.data) ? data.data : [];
+  content.innerHTML = `
+    <div class="callout">
+      O contrato owner atual permite inventário e operações específicas de check-in/dispositivos.
+      A listagem administrativa global de reservas ainda não existe e permanece GAP.
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Oferta</th><th>Referência</th><th>Disponibilidade</th><th>Preço</th></tr></thead>
+        <tbody>
+          ${inventory
+            .map(
+              (offer) =>
+                `<tr>
+                  <td><strong>${escapeHtml(offer.label ?? offer.id ?? "—")}</strong></td>
+                  <td>${escapeHtml(offer.productReference ?? offer.id ?? "—")}</td>
+                  <td>${escapeHtml(offer.available ?? offer.capacity ?? "—")}</td>
+                  <td>${escapeHtml(offer.unitAmount?.minorUnits ?? offer.unitAmountMinor ?? "—")} ${escapeHtml(offer.unitAmount?.currency ?? offer.currency ?? "")}</td>
+                </tr>`,
+            )
+            .join("") || '<tr><td colspan="4" class="empty">Inventário indisponível ou vazio.</td></tr>'}
         </tbody>
       </table>
     </div>`;
@@ -450,7 +553,9 @@ async function render(view, detail) {
   try {
     if (view === "overview") renderOverview();
     else if (view === "users") await renderUsers(detail);
-    else if (view === "businesses") await renderBusinesses();
+    else if (view === "businesses") await renderBusinesses(detail);
+    else if (view === "crm") await renderCrm();
+    else if (view === "ticketing") await renderTicketing();
     else if (view === "audit") await renderAudit();
     else if (view === "system") await renderSystem();
     else if (view === "support") await renderSupport();
