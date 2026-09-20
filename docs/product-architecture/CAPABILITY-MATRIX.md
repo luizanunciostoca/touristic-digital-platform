@@ -38,6 +38,12 @@ Relacionar capacidades de produto aos domínios responsáveis, Feature IDs, APIs
 | CAP-0028 | Operar offline parcialmente | FEATURE-0002 | Marketplace/Infrastructure | Marketplace | OfflineModeEntered | Público | Cache, ServiceWorker | offline, reconnect, stale data |
 | CAP-0029 | Trocar idioma | FEATURE-0002 | Destination/Content | Todas as aplicações | LocaleChanged | Público | Locale, Translation | RTL, fallback, persistence |
 | CAP-0030 | Aplicar branding por destino | FEATURE-0007 | Destination/Design System | Todas as aplicações | ThemeResolved | Público | Tokens, Assets, Config | visual regression, fallback |
+| CAP-0031 | Administrar plataforma pelo Control Center | FEATURE-0012 | Platform Admin | Control Center | PlatformAdminActionRecorded | PLATFORM_OWNER / PLATFORM_ADMIN conforme capability | AdminProjection | authorization, audit, negative security |
+| CAP-0032 | Buscar entidades administrativamente | FEATURE-0012 | Platform Admin/Search Orchestration | Control Center | AdminSearchPerformed | platform.read + domínio consultado | SearchProjection | authorization, result redaction, pagination |
+| CAP-0033 | Operar Support Session | FEATURE-0012 | Identity/Platform Admin | Control Center | SupportSessionStarted/Ended | support.impersonate | Actor, EffectiveUser, SupportSession | CSRF, expiry, actor preservation, impersonation escape |
+| CAP-0034 | Consultar saúde operacional | FEATURE-0012 | Observability | Control Center | SystemHealthViewed | system.read | HealthSnapshot, ReleaseIdentity | secret redaction, readiness, degraded providers |
+| CAP-0035 | Consultar usuários administrativos | FEATURE-0012 | Identity | Control Center | AdminUserViewed | users.read | User, Role, Capability, Session | secret exclusion, privilege isolation |
+| CAP-0036 | Autorizar ação por capability e scope | FEATURE-0012 | Identity | Todos os adapters administrativos | CapabilityDecisionRecorded | capability específica + scope | Role, Capability, TenantScope | unit, cross-tenant negative, privilege escalation |
 
 ## 3. Campos obrigatórios para novas capacidades
 
