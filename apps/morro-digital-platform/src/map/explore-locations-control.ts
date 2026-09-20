@@ -82,6 +82,17 @@ interface MapboxCompatibilityGlobal {
   readonly mapboxPrimaryInstance?: MapboxGlMapLike;
 }
 
+type ImmersiveTourMapLike = Omit<MapboxGlMapLike, "flyTo"> & {
+  flyTo?: (options: {
+    readonly center: [number, number];
+    readonly zoom?: number;
+    readonly pitch?: number;
+    readonly bearing?: number;
+    readonly duration?: number;
+    readonly essential?: boolean;
+  }) => void;
+};
+
 const categoryValues = new Set(
   morroV1SearchCatalog.map((location) => location.category),
 );
@@ -955,7 +966,7 @@ export function installExploreLocationsControl({
       mapElement?.setAttribute("data-tour-state", "idle");
     },
     focusStop(stop) {
-      const map = currentMap();
+      const map = currentMap() as ImmersiveTourMapLike | undefined;
       if (map?.flyTo) {
         map.flyTo({
           center: [stop.position.longitude, stop.position.latitude],
