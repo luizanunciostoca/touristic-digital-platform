@@ -56,11 +56,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Check formatting
-        shell: bash
-        run: |
-          pnpm exec prettier apps/morro-digital-platform/src/accessibility/ux-p0-foundations.test.ts --write
-          git diff -- apps/morro-digital-platform/src/accessibility/ux-p0-foundations.test.ts
-          exit 1
+        run: pnpm format:check
       - name: Check architecture boundaries
         run: pnpm architecture:check
       - name: Validate Feature Registry
