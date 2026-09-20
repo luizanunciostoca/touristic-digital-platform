@@ -16,9 +16,7 @@ describe("ticketing analytics funnel contract", () => {
       '"@touristic/analytics": "/packages/analytics/dist/index.js"',
     );
     expect(runtime).toContain("installMorroBrowserAnalytics");
-    expect(runtime).toContain(
-      "/runtime/browser-analytics.js",
-    );
+    expect(runtime).toContain("/runtime/browser-analytics.js");
   });
 
   it("emits all five authoritative commerce milestones", async () => {
