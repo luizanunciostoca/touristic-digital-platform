@@ -123,7 +123,7 @@ export class MySqlContentRepository implements ContentRepository {
         `INSERT INTO content_documents
           (id, destination_id, kind, locale, source_reference, status, version,
            fields_json, created_at, updated_at, scheduled_for, published_at, archived_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, CAST(? AS JSON), ?, ?, ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           document.id,
           document.destinationId,
@@ -167,7 +167,7 @@ export class MySqlContentRepository implements ContentRepository {
               source_reference = ?,
               status = ?,
               version = ?,
-              fields_json = CAST(? AS JSON),
+              fields_json = ?,
               updated_at = ?,
               scheduled_for = ?,
               published_at = ?,
