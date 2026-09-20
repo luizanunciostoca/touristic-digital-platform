@@ -14,6 +14,7 @@ export interface MorroTourSelectionController {
   readonly activeTourId: string | null;
   selectTour(tourId: string): Promise<TourSelectionResult>;
   selectByKeyword(keyword: string): Promise<TourSelectionResult>;
+  resetSelection(): void;
 }
 
 export interface MorroTourSelectionControllerOptions {
@@ -229,6 +230,10 @@ export function createMorroTourSelectionController(
       return nextTour
         ? selectResolvedTour(nextTour, keyword)
         : rejectUnknownTour(keyword);
+    },
+
+    resetSelection(): void {
+      activeTour = null;
     },
   });
 }
