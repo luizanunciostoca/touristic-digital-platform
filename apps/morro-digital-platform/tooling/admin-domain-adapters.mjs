@@ -64,7 +64,11 @@ function adminReason(value) {
 }
 
 function contentResponse(response, result, successStatus = 200) {
-  if (result?.status === "found" || result?.status === "created" || result?.status === "updated") {
+  if (
+    result?.status === "found" ||
+    result?.status === "created" ||
+    result?.status === "updated"
+  ) {
     sendJson(response, result.status === "created" ? 201 : successStatus, {
       data: result.data,
     });
@@ -75,14 +79,18 @@ function contentResponse(response, result, successStatus = 200) {
     return;
   }
   if (result?.status === "invalid") {
-    sendJson(response, 400, { error: result.error || "CONTENT_INVALID_REQUEST" });
+    sendJson(response, 400, {
+      error: result.error || "CONTENT_INVALID_REQUEST",
+    });
     return;
   }
   if (result?.status === "conflict") {
     sendJson(response, 409, { error: result.error || "CONTENT_CONFLICT" });
     return;
   }
-  sendJson(response, 503, { error: result?.error || "CONTENT_ADMIN_UNAVAILABLE" });
+  sendJson(response, 503, {
+    error: result?.error || "CONTENT_ADMIN_UNAVAILABLE",
+  });
 }
 
 export function createCrmAdminAdapter(crmApi, authApi) {
