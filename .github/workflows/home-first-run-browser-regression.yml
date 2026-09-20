@@ -10,6 +10,8 @@ on:
       - apps/morro-digital-platform/src/browser-entry.ts
       - apps/morro-digital-platform/src/onboarding/public-onboarding.ts
       - apps/morro-digital-platform/src/onboarding/public-interactive-tour.ts
+      - apps/morro-digital-platform/src/onboarding/public-onboarding-i18n.ts
+      - apps/morro-digital-platform/src/runtime/browser-locale.ts
       - apps/morro-digital-platform/src/bootstrap/geospatial.ts
       - apps/morro-digital-platform/src/layouts/app-shell.ts
       - apps/morro-digital-platform/public/**
@@ -22,6 +24,8 @@ on:
       - apps/morro-digital-platform/src/browser-entry.ts
       - apps/morro-digital-platform/src/onboarding/public-onboarding.ts
       - apps/morro-digital-platform/src/onboarding/public-interactive-tour.ts
+      - apps/morro-digital-platform/src/onboarding/public-onboarding-i18n.ts
+      - apps/morro-digital-platform/src/runtime/browser-locale.ts
       - apps/morro-digital-platform/src/bootstrap/geospatial.ts
       - apps/morro-digital-platform/src/layouts/app-shell.ts
       - apps/morro-digital-platform/public/**
