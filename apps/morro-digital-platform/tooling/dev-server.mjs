@@ -3,7 +3,7 @@ import { readFile, stat } from "node:fs/promises";
 import { createServer } from "node:http";
 import { extname, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
-import { createAnalyticsApi } from "./analytics-api.mjs";
+import { createAffiliatesApi } from "./affiliates-api.mjs";\nimport { createAnalyticsApi } from "./analytics-api.mjs";
 import { createAssistantApi } from "./assistant-api.mjs";
 import { createAuthApi } from "./auth-api.mjs";
 import { createBusinessApi } from "./business-api.mjs";
@@ -164,12 +164,14 @@ const authApi = createAuthApi({
   getEnvironmentValue,
   audit: auditSecurityEvent,
 });
+const affiliatesApi = createAffiliatesApi({ authApi, getEnvironmentValue });
 
 platformOperations = createPlatformOperations({
   getEnvironmentValue,
   additionalReadinessChecks: () => [
     { name: "auth-security-state", ...authApi.readinessCheck() },
     { name: "analytics-runtime", ...analyticsApi.readinessCheck() },
+    { name: "affiliates-runtime", ...affiliatesApi.readinessCheck() },
     {
       name: "payments-runtime",
       status: paymentsRuntimeReady ? "pass" : "fail",
@@ -191,6 +193,7 @@ platformOperations = createPlatformOperations({
 });
 await authApi.start();
 await analyticsApi.start();
+await affiliatesApi.start();
 
 const crmApi = createCrmApi({ authApi, getEnvironmentValue });
 await crmApi.start();
@@ -534,6 +537,10 @@ const server = createServer(async (request, response) => {
       await authApi.handle(request, response, requestUrl.pathname);
       return;
     }
+    if (affiliatesApi.matches(requestUrl.pathname)) {
+      await affiliatesApi.handle(request, response, requestUrl);
+      return;
+    }
     if (crmApi.matches(requestUrl.pathname)) {
       await crmApi.handle(request, response, requestUrl);
       return;
@@ -697,6 +704,7 @@ async function shutdown(signal) {
 
   const stops = await Promise.allSettled([
     analyticsApi.stop(),
+    affiliatesApi.stop(),
     authApi.stop(),
     crmApi.stop(),
     paymentsApi.stop(),
