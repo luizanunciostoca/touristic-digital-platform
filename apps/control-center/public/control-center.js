@@ -133,6 +133,15 @@ async function api(path, init = {}) {
   return body;
 }
 
+function actorHasCapability(capability) {
+  return (state.adminSession?.actor?.capabilities ?? []).includes(capability);
+}
+
+function contentField(document, key) {
+  const value = document?.fields?.[key];
+  return typeof value === "string" ? value : "";
+}
+
 function renderNav() {
   nav.innerHTML = navItems
     .map(
@@ -903,6 +912,291 @@ async function renderFinancial(paymentId) {
   );
 }
 
+async function renderContent(contentId) {
+  const canManage = actorHasCapability("content.manage");
+
+  if (!contentId) {
+    const data = await api("/content?limit=100");
+    const documents = data.data ?? [];
+    content.innerHTML = `
+      <div class="grid two-col">
+        <section class="card section-card">
+          <div class="section-title">
+            <div>
+              <h2>Biblioteca editorial</h2>
+              <small style="color:var(--muted)">Persistência e lifecycle pertencem ao domínio Content.</small>
+            </div>
+            <span class="badge">${documents.length} item(ns)</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Conteúdo</th><th>Tipo</th><th>Status</th><th>Destino</th><th>Locale</th></tr>
+              </thead>
+              <tbody>
+                ${
+                  documents
+                    .map(
+                      (document) => `<tr>
+                        <td>
+                          <a href="#content:${encodeURIComponent(document.id)}">
+                            <strong>${escapeHtml(contentField(document, "title") || document.id)}</strong>
+                          </a>
+                          <br><small>${escapeHtml(document.id)}</small>
+                        </td>
+                        <td>${escapeHtml(document.kind)}</td>
+                        <td>${statusBadge(document.status)}</td>
+                        <td>${escapeHtml(document.destinationId)}</td>
+                        <td>${escapeHtml(document.locale)}</td>
+                      </tr>`,
+                    )
+                    .join("") ||
+                  '<tr><td colspan="5" class="empty">Nenhum conteúdo cadastrado.</td></tr>'
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="card section-card">
+          <div class="section-title">
+            <div>
+              <h2>Novo rascunho</h2>
+              <small style="color:var(--muted)">Nenhum preço ou estado financeiro pode ser criado por Content.</small>
+            </div>
+            <span class="badge">${canManage ? "content.manage" : "somente leitura"}</span>
+          </div>
+          ${
+            canManage
+              ? `<form id="content-create-form" class="form-grid">
+                  <label>ID do conteúdo
+                    <input id="content-create-id" required maxlength="160" autocomplete="off" placeholder="place-segunda-praia" />
+                  </label>
+                  <label>Destino
+                    <input id="content-create-destination" required value="morro-de-sao-paulo" autocomplete="off" />
+                  </label>
+                  <label>Tipo
+                    <select id="content-create-kind" required>
+                      <option value="destination">Destino</option>
+                      <option value="category">Categoria</option>
+                      <option value="place" selected>Local</option>
+                      <option value="media">Mídia</option>
+                      <option value="tour">Passeio</option>
+                      <option value="event">Evento</option>
+                      <option value="translation">Tradução</option>
+                      <option value="seo">SEO</option>
+                      <option value="offer_reference">Referência de oferta</option>
+                    </select>
+                  </label>
+                  <label>Idioma
+                    <input id="content-create-locale" required value="pt-BR" autocomplete="off" />
+                  </label>
+                  <label>Referência de origem
+                    <input id="content-create-source" maxlength="240" autocomplete="off" placeholder="place:segunda-praia" />
+                  </label>
+                  <label>Título
+                    <input id="content-create-title" maxlength="500" required />
+                  </label>
+                  <label>Resumo
+                    <textarea id="content-create-summary" maxlength="20000"></textarea>
+                  </label>
+                  <label>Motivo administrativo
+                    <textarea id="content-create-reason" minlength="8" maxlength="240" required placeholder="Ex.: Criar conteúdo solicitado pela equipe editorial"></textarea>
+                  </label>
+                  <p id="content-create-status" role="status" style="margin:0;color:var(--muted)"></p>
+                  <div><button class="primary-button" type="submit">Criar rascunho</button></div>
+                </form>`
+              : `<div class="callout">Seu papel pode consultar conteúdo, mas não possui a capability <strong>content.manage</strong>.</div>`
+          }
+        </section>
+      </div>`;
+
+    document
+      .querySelector("#content-create-form")
+      ?.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const status = document.querySelector("#content-create-status");
+        if (status) status.textContent = "Criando…";
+        try {
+          const title = document.querySelector("#content-create-title")?.value?.trim();
+          const summary = document.querySelector("#content-create-summary")?.value?.trim();
+          const sourceReference = document.querySelector("#content-create-source")?.value?.trim();
+          const body = {
+            id: document.querySelector("#content-create-id")?.value?.trim(),
+            destinationId: document.querySelector("#content-create-destination")?.value?.trim(),
+            kind: document.querySelector("#content-create-kind")?.value,
+            locale: document.querySelector("#content-create-locale")?.value?.trim(),
+            ...(sourceReference ? { sourceReference } : {}),
+            fields: {
+              title,
+              ...(summary ? { summary } : {}),
+            },
+            reason: document.querySelector("#content-create-reason")?.value?.trim(),
+          };
+          const result = await api("/content", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+          globalThis.location.hash = `#content:${encodeURIComponent(result.data.id)}`;
+        } catch (error) {
+          if (status) status.textContent = error.body?.error || error.message;
+        }
+      });
+    return;
+  }
+
+  const data = await api(`/content/${encodeURIComponent(contentId)}`);
+  const documentData = data.data;
+  const fieldRows = Object.entries(documentData.fields ?? {})
+    .map(
+      ([key, value]) =>
+        `<div class="module-row"><span>${escapeHtml(key)}</span><strong>${escapeHtml(Array.isArray(value) ? value.join(", ") : value)}</strong></div>`,
+    )
+    .join("");
+
+  content.innerHTML = `
+    <div class="grid stats">
+      <article class="card stat">
+        <span class="stat-label">Status</span>
+        <strong class="stat-value" style="font-size:20px">${escapeHtml(documentData.status)}</strong>
+        <small>v${escapeHtml(documentData.version)}</small>
+      </article>
+      <article class="card stat">
+        <span class="stat-label">Tipo</span>
+        <strong class="stat-value" style="font-size:20px">${escapeHtml(documentData.kind)}</strong>
+        <small>${escapeHtml(documentData.locale)}</small>
+      </article>
+      <article class="card stat">
+        <span class="stat-label">Destino</span>
+        <strong class="stat-value" style="font-size:16px">${escapeHtml(documentData.destinationId)}</strong>
+        <small>${escapeHtml(documentData.sourceReference ?? "sem referência")}</small>
+      </article>
+      <article class="card stat">
+        <span class="stat-label">Atualizado</span>
+        <strong class="stat-value" style="font-size:15px">${escapeHtml(documentData.updatedAt)}</strong>
+        <small>ID: ${escapeHtml(documentData.id)}</small>
+      </article>
+    </div>
+
+    <div class="grid two-col">
+      <section class="card section-card">
+        <div class="section-title"><h2>Campos editoriais</h2><span class="badge">Content owner</span></div>
+        <div class="module-list">${fieldRows || '<div class="empty">Sem campos.</div>'}</div>
+      </section>
+
+      <section class="card section-card">
+        <div class="section-title"><h2>Lifecycle</h2><span class="badge">${canManage ? "governado" : "somente leitura"}</span></div>
+        <div class="module-list">
+          <div class="module-row"><span>Criado</span><strong>${escapeHtml(documentData.createdAt)}</strong></div>
+          <div class="module-row"><span>Agendado</span><strong>${escapeHtml(documentData.scheduledFor ?? "—")}</strong></div>
+          <div class="module-row"><span>Publicado</span><strong>${escapeHtml(documentData.publishedAt ?? "—")}</strong></div>
+          <div class="module-row"><span>Arquivado</span><strong>${escapeHtml(documentData.archivedAt ?? "—")}</strong></div>
+        </div>
+      </section>
+    </div>
+
+    ${
+      canManage
+        ? `<div class="grid two-col" style="margin-top:16px">
+            <section class="card section-card">
+              <div class="section-title"><h2>Revisar rascunho/preview</h2></div>
+              <form id="content-revise-form" class="form-grid">
+                <label>Título
+                  <input id="content-revise-title" maxlength="500" value="${escapeHtml(contentField(documentData, "title"))}" />
+                </label>
+                <label>Resumo
+                  <textarea id="content-revise-summary" maxlength="20000">${escapeHtml(contentField(documentData, "summary"))}</textarea>
+                </label>
+                <label>Motivo administrativo
+                  <textarea id="content-revise-reason" minlength="8" maxlength="240" required></textarea>
+                </label>
+                <p id="content-revise-status" role="status" style="margin:0;color:var(--muted)"></p>
+                <div><button class="secondary-button" type="submit">Salvar revisão</button></div>
+              </form>
+            </section>
+
+            <section class="card section-card">
+              <div class="section-title"><h2>Alterar estado</h2><span class="badge">lifecycle owner</span></div>
+              <form id="content-transition-form" class="form-grid">
+                <label>Novo estado
+                  <select id="content-transition-status" required>
+                    <option value="preview">Preview</option>
+                    <option value="draft">Rascunho</option>
+                    <option value="scheduled">Agendado</option>
+                    <option value="published">Publicado</option>
+                    <option value="archived">Arquivado</option>
+                  </select>
+                </label>
+                <label>Publicar em (somente para agendamento)
+                  <input id="content-scheduled-for" type="datetime-local" />
+                </label>
+                <label>Motivo administrativo
+                  <textarea id="content-transition-reason" minlength="8" maxlength="240" required></textarea>
+                </label>
+                <p id="content-transition-message" role="status" style="margin:0;color:var(--muted)"></p>
+                <div><button class="primary-button" type="submit">Aplicar transição</button></div>
+              </form>
+            </section>
+          </div>`
+        : `<div class="callout" style="margin-top:16px">Modo somente leitura: este actor não possui <strong>content.manage</strong>.</div>`
+    }
+
+    <div style="margin-top:16px"><a href="#content">← Voltar para Conteúdo</a></div>`;
+
+  document
+    .querySelector("#content-revise-form")
+    ?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const status = document.querySelector("#content-revise-status");
+      if (status) status.textContent = "Salvando…";
+      try {
+        await api(`/content/${encodeURIComponent(contentId)}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fields: {
+              title: document.querySelector("#content-revise-title")?.value?.trim(),
+              summary: document.querySelector("#content-revise-summary")?.value?.trim(),
+            },
+            reason: document.querySelector("#content-revise-reason")?.value?.trim(),
+          }),
+        });
+        await renderContent(contentId);
+      } catch (error) {
+        if (status) status.textContent = error.body?.error || error.message;
+      }
+    });
+
+  document
+    .querySelector("#content-transition-form")
+    ?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const status = document.querySelector("#content-transition-message");
+      if (status) status.textContent = "Aplicando…";
+      try {
+        const target = document.querySelector("#content-transition-status")?.value;
+        const localSchedule = document.querySelector("#content-scheduled-for")?.value;
+        const scheduledFor =
+          target === "scheduled" && localSchedule
+            ? new Date(localSchedule).toISOString()
+            : undefined;
+        await api(`/content/${encodeURIComponent(contentId)}/transition`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            status: target,
+            ...(scheduledFor ? { scheduledFor } : {}),
+            reason: document.querySelector("#content-transition-reason")?.value?.trim(),
+          }),
+        });
+        await renderContent(contentId);
+      } catch (error) {
+        if (status) status.textContent = error.body?.error || error.message;
+      }
+    });
+}
+
 function renderContractGap(view) {
   content.innerHTML = `
     <section class="card empty">
@@ -1065,6 +1359,7 @@ async function render(view, detail) {
     else if (view === "ticketing") await renderTicketing();
     else if (view === "orders") await renderOrders(detail);
     else if (view === "financial") await renderFinancial(detail);
+    else if (view === "content") await renderContent(detail);
     else if (view === "audit") await renderAudit();
     else if (view === "system") await renderSystem();
     else if (view === "support") await renderSupport();
