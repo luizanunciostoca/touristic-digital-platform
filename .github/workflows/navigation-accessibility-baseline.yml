@@ -157,6 +157,15 @@ jobs:
               const minimizeRect = minimize?.getBoundingClientRect();
               const endRect = end?.getBoundingClientRect();
               const minimizeStyle = minimize ? getComputedStyle(minimize) : null;
+              const presentation = (selector) => {
+                const element = document.querySelector(selector);
+                if (!(element instanceof HTMLElement)) return null;
+                const style = getComputedStyle(element);
+                return {
+                  visibility: style.visibility,
+                  pointerEvents: style.pointerEvents,
+                };
+              };
               const toMilliseconds = (durationList) => Math.max(
                 0,
                 ...String(durationList ?? '0s')
@@ -171,6 +180,16 @@ jobs:
                 bannerVisible: Boolean(banner && !banner.classList.contains('hidden') && getComputedStyle(banner).display !== 'none'),
                 endVisible: Boolean(end && getComputedStyle(end).display !== 'none'),
                 bodyActive: document.body.classList.contains('navigation-active'),
+                assistantOpen: document.body.classList.contains('assistant-modal-open'),
+                mdMode: document.body.dataset.mdMode ?? null,
+                modeComposition: {
+                  header: presentation('header'),
+                  weather: presentation('#weather-widget'),
+                  submenu: presentation('#submenu'),
+                  globe: presentation('#globe-map-control'),
+                  quickActions: presentation('.quick-actions'),
+                  assistantInput: presentation('#assistant-input-area'),
+                },
                 instruction: instruction?.textContent?.trim() ?? '',
                 bannerRect: bannerRect ? { left: bannerRect.left, right: bannerRect.right, top: bannerRect.top, bottom: bannerRect.bottom, width: bannerRect.width, height: bannerRect.height } : null,
                 minimizeRect: minimizeRect ? { width: minimizeRect.width, height: minimizeRect.height } : null,
@@ -188,6 +207,23 @@ jobs:
 
             if (!state.bannerVisible || !state.endVisible || !state.bodyActive || !state.instruction) {
               throw new Error(`Active navigation UI missing for ${testCase.name}: ${JSON.stringify(state)}`);
+            }
+            const hidden = (value) =>
+              value &&
+              value.visibility === 'hidden' &&
+              value.pointerEvents === 'none';
+            if (
+              state.mdMode !== 'navigation' ||
+              !hidden(state.modeComposition.header) ||
+              !hidden(state.modeComposition.weather) ||
+              !hidden(state.modeComposition.submenu) ||
+              !hidden(state.modeComposition.globe) ||
+              !hidden(state.modeComposition.quickActions) ||
+              (!state.assistantOpen && !hidden(state.modeComposition.assistantInput))
+            ) {
+              throw new Error(
+                `Navigation mode composition drift for ${testCase.name}: ${JSON.stringify(state.modeComposition)}`,
+              );
             }
             if (!state.bannerRect || state.bannerRect.width <= 0 || state.bannerRect.height <= 0 || !state.minimizeRect || !state.endRect) {
               throw new Error(`Navigation controls have invalid geometry for ${testCase.name}: ${JSON.stringify(state)}`);
