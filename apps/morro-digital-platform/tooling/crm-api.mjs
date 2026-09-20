@@ -12,6 +12,7 @@ import { CrmProposalPublicBoundary } from "@touristic/crm/proposals-public-bound
 import { CrmReferralServerBoundary } from "@touristic/crm/referrals-boundary";
 import { CrmTrialServerBoundary } from "@touristic/crm/trials-boundary";
 import {
+  applyCrmCommerceSchema,
   applyCrmM99Schema,
   createCrmMySqlPoolFromEnvironment,
   createCrmTrialSchedulerHost,
@@ -220,8 +221,11 @@ export function createCrmApi({ authApi, getEnvironmentValue }) {
   let stopped = false;
 
   async function ensureSchema() {
-    schemaReady ??= applyCrmM99Schema(pool);
-    return schemaReady;
+    schemaReady ??= (async () => {
+      await applyCrmM99Schema(pool);
+      await applyCrmCommerceSchema(pool);
+    })();
+    await schemaReady;
   }
 
   return Object.freeze({

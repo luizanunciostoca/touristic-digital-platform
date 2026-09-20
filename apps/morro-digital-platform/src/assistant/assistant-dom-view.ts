@@ -3,6 +3,8 @@ import type { AssistantDialogResponse } from "@touristic/assistant";
 export interface AssistantDomOption {
   readonly label: string;
   readonly value: string;
+  readonly presentation?: "default" | "primary";
+  readonly disabled?: boolean;
 }
 
 const ALLOWED_INLINE_TAGS = ["b", "strong", "em"] as const;
@@ -93,9 +95,16 @@ export function renderAssistantDomOptions(
     const button = document.createElement("button");
     button.type = "button";
     button.className = "assistant-option-btn";
+    if (option.presentation === "primary") {
+      button.classList.add("assistant-option-btn--primary");
+      button.dataset.presentation = "primary";
+    }
     button.textContent = option.label;
     button.dataset.value = option.value;
+    button.disabled = option.disabled === true;
+    if (button.disabled) button.setAttribute("aria-disabled", "true");
     button.addEventListener("click", () => {
+      if (button.disabled) return;
       container.remove();
       button.blur();
       document.dispatchEvent(

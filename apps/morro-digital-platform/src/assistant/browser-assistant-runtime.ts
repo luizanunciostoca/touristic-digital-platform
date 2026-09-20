@@ -292,7 +292,14 @@ function snapshotPresentation(
   return Object.freeze({
     text,
     options: Object.freeze(
-      options.map(({ label, value }) => Object.freeze({ label, value })),
+      options.map(({ label, value, presentation, disabled }) =>
+        Object.freeze({
+          label,
+          value,
+          ...(presentation ? { presentation } : {}),
+          ...(disabled === true ? { disabled: true } : {}),
+        }),
+      ),
     ),
   });
 }
@@ -321,7 +328,18 @@ function readVisiblePresentation(
   const visibleOptions = buttons.flatMap((button) => {
     const label = button.textContent?.trim();
     const value = button.dataset.value?.trim();
-    return label && value ? [{ label, value }] : [];
+    return label && value
+      ? [
+          {
+            label,
+            value,
+            ...(button.dataset.presentation === "primary"
+              ? { presentation: "primary" as const }
+              : {}),
+            ...(button.disabled ? { disabled: true } : {}),
+          },
+        ]
+      : [];
   });
   if (visibleOptions.length === 0) return null;
 
@@ -357,12 +375,50 @@ function readOptionOverride(
     }
     const label: unknown = option.label;
     const optionValue: unknown = option.value;
-    if (typeof label !== "string" || typeof optionValue !== "string") {
+    const presentation: unknown =
+      "presentation" in option ? option.presentation : undefined;
+    const disabled: unknown =
+      "disabled" in option ? option.disabled : undefined;
+    if (
+      typeof label !== "string" ||
+      typeof optionValue !== "string" ||
+      (presentation !== undefined && presentation !== "primary") ||
+      (disabled !== undefined && typeof disabled !== "boolean")
+    ) {
       return null;
     }
-    result.push(Object.freeze({ label, value: optionValue }));
+    result.push(
+      Object.freeze({
+        label,
+        value: optionValue,
+        ...(presentation === "primary"
+          ? { presentation: "primary" as const }
+          : {}),
+        ...(disabled === true ? { disabled: true } : {}),
+      }),
+    );
   }
   return Object.freeze(result);
+}
+
+const COMMERCE_OPTION_ID = /^[A-Za-z0-9_-]{3,120}$/u;
+
+function commerceCheckoutUrl(value: string): string | null {
+  if (value.startsWith("commerce:offer:")) {
+    const id = value.slice("commerce:offer:".length);
+    return COMMERCE_OPTION_ID.test(id)
+      ? `/tickets.html?offer=${encodeURIComponent(id)}&source=map`
+      : null;
+  }
+
+  if (value.startsWith("commerce:offers:")) {
+    const rawIds = value.slice("commerce:offers:".length).split(",");
+    const ids = rawIds.filter((id) => COMMERCE_OPTION_ID.test(id));
+    if (ids.length === 0 || ids.length !== rawIds.length) return null;
+    return `/tickets.html?offers=${ids.map(encodeURIComponent).join(",")}&source=map`;
+  }
+
+  return null;
 }
 
 function resolveStorage(
@@ -629,6 +685,34 @@ export function installBrowserAssistantRuntime(
     const value = selectedNumericOption?.value.trim() || submittedValue;
 
     const generation = ++requestGeneration;
+
+    const commerceUrl = commerceCheckoutUrl(value);
+    if (commerceUrl) {
+      clearAssistantDomOptions(options.document);
+      removePhotoPresentation(options.document);
+      currentPresentation = null;
+      options.document.dispatchEvent(
+        new CustomEvent("morro:commerce-cta-activated", {
+          detail: Object.freeze({
+            value,
+            url: commerceUrl,
+            source,
+            place: readExploreState().place,
+            category: readExploreState().category,
+          }),
+        }),
+      );
+      options.document.defaultView?.location.assign(commerceUrl);
+      return {
+        text: "",
+        metadata: {
+          domain: "commerce",
+          state: "redirecting",
+          deterministic: true,
+          action: "open_ticketing_checkout",
+        },
+      };
+    }
 
     const residualCommand = resolveAssistantV1ResidualCommand(value);
     if (residualCommand) {

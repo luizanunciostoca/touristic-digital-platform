@@ -8,7 +8,7 @@ export interface MorroProInventoryOffer {
   readonly id: string;
   readonly businessId: string;
   readonly destinationId: string;
-  readonly productKind: "tour" | "business_experience";
+  readonly productKind: "tour" | "business_experience" | "transport";
   readonly productReference: string;
   readonly label: string;
   readonly unitAmountMinor: number;
@@ -24,7 +24,7 @@ export interface MorroProInventoryOffer {
 }
 
 export interface MorroProOfferInput {
-  readonly productKind: "tour" | "business_experience";
+  readonly productKind: "tour" | "business_experience" | "transport";
   readonly productReference: string;
   readonly label: string;
   readonly unitAmountMinor: number;

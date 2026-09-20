@@ -48,6 +48,22 @@ const GENERIC_PLACE_ACTIONS: readonly ActionSpec[] = Object.freeze([
   { icon: "❤️", key: "favorite", value: "adicionar aos favoritos" },
 ]);
 
+const COMMERCE_GRID_ACTIONS = Object.freeze({
+  tours: Object.freeze([
+    { icon: "📍", key: "meetingPoint", value: "ponto de encontro" },
+    { icon: "📸", key: "photos", value: "ver fotos" },
+    { icon: "📞", key: "contact", value: "contato" },
+    { icon: "❤️", key: "favorite", value: "adicionar aos favoritos" },
+  ]),
+  nightlife: GENERIC_PLACE_ACTIONS,
+  transport: Object.freeze([
+    { icon: "📍", key: "location", value: "localização" },
+    { icon: "💰", key: "fares", value: "tarifas" },
+    { icon: "📞", key: "contact", value: "contato" },
+    { icon: "❤️", key: "favorite", value: "adicionar aos favoritos" },
+  ]),
+} satisfies Readonly<Record<string, readonly ActionSpec[]>>);
+
 const CATEGORY_PLACE_ACTIONS = Object.freeze({
   restaurants: Object.freeze([
     { icon: "🍴", key: "menu", value: "cardápio" },
@@ -70,26 +86,19 @@ const CATEGORY_PLACE_ACTIONS = Object.freeze({
     { icon: "ℹ️", key: "information", value: "informações" },
     { icon: "", key: "more", value: "mais opções" },
   ]),
-  tours: Object.freeze([
-    { icon: "🎟️", key: "bookTour", value: "reservar passeio" },
-    { icon: "📍", key: "meetingPoint", value: "ponto de encontro" },
-    { icon: "📸", key: "photos", value: "ver fotos" },
-    { icon: "📞", key: "contact", value: "contato" },
-    { icon: "", key: "more", value: "mais opções" },
-  ]),
-  transport: Object.freeze([
-    { icon: "🚕", key: "requestTransport", value: "solicitar transporte" },
-    { icon: "📍", key: "location", value: "localização" },
-    { icon: "💰", key: "fares", value: "tarifas" },
-    { icon: "📞", key: "contact", value: "contato" },
-    { icon: "", key: "more", value: "mais opções" },
-  ]),
 } satisfies Readonly<Record<string, readonly ActionSpec[]>>);
 
 export function getV1ExplorePlaceActionOptions(
   category: string,
   locale: AssistantLocale = "pt",
 ): readonly V1ExplorePlaceActionOption[] {
+  const commerceSpecs = (
+    COMMERCE_GRID_ACTIONS as Readonly<Record<string, readonly ActionSpec[]>>
+  )[category];
+  if (commerceSpecs) {
+    return Object.freeze(commerceSpecs.map((spec) => command(spec, locale)));
+  }
+
   const specs = (
     CATEGORY_PLACE_ACTIONS as Readonly<Record<string, readonly ActionSpec[]>>
   )[category];

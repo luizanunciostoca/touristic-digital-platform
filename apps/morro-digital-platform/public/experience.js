@@ -38,7 +38,9 @@ function dateTime(value) {
 }
 
 function kindLabel(offer) {
-  return offer?.product?.kind === "tour" ? "Passeio" : "Experiência";
+  if (offer?.product?.kind === "tour") return "Passeio";
+  if (offer?.product?.kind === "transport") return "Transporte";
+  return "Experiência";
 }
 
 function description(offer) {

@@ -60,7 +60,7 @@ export const ticketOfflineOperations = Object.freeze([
 export type TicketOfflineOperation = (typeof ticketOfflineOperations)[number];
 
 export interface TicketProductReference {
-  readonly kind: "tour" | "business_experience";
+  readonly kind: "tour" | "business_experience" | "transport";
   readonly reference: string;
 }
 
@@ -190,7 +190,9 @@ export function normalizeTicketProductReference(
   }
   const input = value as Record<string, unknown>;
   const kind =
-    input.kind === "tour" || input.kind === "business_experience"
+    input.kind === "tour" ||
+    input.kind === "business_experience" ||
+    input.kind === "transport"
       ? input.kind
       : null;
   const reference = normalizeString(input.reference, 120);
