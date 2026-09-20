@@ -31,10 +31,7 @@ export default {
   },
   overrides: [
     {
-      files: [
-        "**/public/commerce.css",
-        "**/public/ticketing.css",
-      ],
+      files: ["**/public/commerce.css", "**/public/ticketing.css"],
       rules: {
         "color-no-hex": true,
         "declaration-no-important": true,
