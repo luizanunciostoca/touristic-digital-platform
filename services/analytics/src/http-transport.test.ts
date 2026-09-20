@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
+import type { AnalyticsEvent } from "@touristic/analytics";
 import type { AnalyticsIngestionService } from "@touristic/analytics/ingestion";
 
 import {
@@ -10,18 +11,17 @@ import {
 function service(
   status: "stored" | "replayed" = "stored",
 ): AnalyticsIngestionService {
+  const event: AnalyticsEvent = {
+    schemaVersion: "1",
+    eventId: "event-001",
+    name: "session_started",
+    occurredAt: "2026-09-20T10:00:00.000Z",
+    sessionId: "session-001",
+    attributes: {},
+  };
+
   return {
-    ingest: vi.fn(async () => ({
-      status,
-      event: {
-        schemaVersion: "1",
-        eventId: "event-001",
-        name: "session_started",
-        occurredAt: "2026-09-20T10:00:00.000Z",
-        sessionId: "session-001",
-        attributes: {},
-      },
-    })),
+    ingest: vi.fn(async () => ({ status, event })),
     purgeExpired: vi.fn(async () => 0),
   };
 }
