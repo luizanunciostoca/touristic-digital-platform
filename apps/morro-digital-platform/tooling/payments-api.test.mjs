@@ -144,6 +144,19 @@ describe("M139/M141 payments API runtime boundary", () => {
             );
           },
         },
+        checkoutAccess: {
+          findByOrderId(orderId) {
+            return Promise.resolve(
+              orderId === "ord_admin_0001"
+                ? {
+                    orderId,
+                    paymentId: "pay_admin_0001",
+                    tenantId: "business-admin-0001",
+                  }
+                : null,
+            );
+          },
+        },
         ledger: {
           findByExternalKey(key) {
             if (key === "bad key") {
@@ -185,6 +198,18 @@ describe("M139/M141 payments API runtime boundary", () => {
     await expect(api.adminFindPayment("pay_admin_missing")).resolves.toEqual({
       status: "not_found",
       data: null,
+    });
+    await expect(
+      api.adminResolvePaymentTenant("pay_admin_0001"),
+    ).resolves.toEqual({
+      status: "found",
+      tenantId: "business-admin-0001",
+    });
+    await expect(
+      api.adminResolvePaymentTenant("pay_admin_missing"),
+    ).resolves.toEqual({
+      status: "not_found",
+      tenantId: null,
     });
 
     await expect(
