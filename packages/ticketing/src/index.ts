@@ -329,6 +329,12 @@ export function createTicket(input: {
     (validatedAt !== null && Date.parse(validatedAt) < Date.parse(issuedAt)) ||
     (usedAt !== null && Date.parse(usedAt) < Date.parse(issuedAt)) ||
     (cancelledAt !== null && Date.parse(cancelledAt) < Date.parse(issuedAt)) ||
+    (validUntil !== null &&
+      validatedAt !== null &&
+      Date.parse(validatedAt) >= Date.parse(validUntil)) ||
+    (validUntil !== null &&
+      usedAt !== null &&
+      Date.parse(usedAt) >= Date.parse(validUntil)) ||
     (status === "issued" &&
       (validatedAt !== null || usedAt !== null || cancelledAt !== null)) ||
     (status === "validated" && validatedAt === null) ||
