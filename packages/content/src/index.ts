@@ -152,9 +152,7 @@ export function sanitizeContentFields(
   for (const [key, value] of Object.entries(fields)) {
     if (!FIELD_KEY.test(key) || !isSafeFieldValue(value)) return null;
     if (kind === "offer_reference" && isOfferAuthorityKey(key)) return null;
-    sanitized[key] = isStringArray(value)
-      ? Object.freeze([...value])
-      : value;
+    sanitized[key] = isStringArray(value) ? Object.freeze([...value]) : value;
   }
 
   return Object.freeze(sanitized);
