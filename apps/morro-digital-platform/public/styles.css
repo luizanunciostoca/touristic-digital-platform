@@ -52,6 +52,8 @@
 html,
 body {
   min-height: 100vh;
+  min-height: 100svh;
+  min-height: 100dvh;
   font-family: var(--font-sans);
   background-color: var(--light);
   color: var(--gray-800);
@@ -61,15 +63,29 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-.hidden,
-.sr-only {
+.hidden {
   display: none !important;
+}
+
+.sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  clip-path: inset(50%) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
 }
 
 .app-shell {
   display: grid;
   grid-template-rows: 0fr 1fr auto;
   height: 100vh;
+  height: 100svh;
+  height: 100dvh;
   width: 100%;
   overflow: hidden;
   position: relative;
