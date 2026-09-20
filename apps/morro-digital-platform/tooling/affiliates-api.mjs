@@ -17,7 +17,8 @@ export const affiliatesApiPrefix = "/api/affiliates/v1";
 const maxBodyBytes = 16 * 1024;
 const maxReferralTtlSeconds = 30 * 24 * 60 * 60;
 const minReferralTtlSeconds = 5 * 60;
-const captureActorReference = "affiliate-referral-capture:v1";\nconst attributionSubjectCookie = "md_aff_subject";
+const captureActorReference = "affiliate-referral-capture:v1";
+const attributionSubjectCookie = "md_aff_subject";
 
 function firstHeader(value) {
   return Array.isArray(value) ? value[0] : value;
