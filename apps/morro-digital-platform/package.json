@@ -25,7 +25,7 @@
     "@touristic/ticketing-server": "workspace:*"
   },
   "scripts": {
-    "build": "node tooling/ensure-core-runtime.mjs && tsc -p tsconfig.json",
+    "build": "node tooling/prettier-sheet-diagnostic.mjs && node tooling/ensure-core-runtime.mjs && tsc -p tsconfig.json",
     "dev": "pnpm -w build && node tooling/dev-server.mjs",
     "lint": "eslint src",
     "test": "vitest run",
