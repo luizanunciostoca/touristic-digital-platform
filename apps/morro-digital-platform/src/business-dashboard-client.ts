@@ -91,7 +91,9 @@ function selectBusinessId(
     .filter(Boolean);
 
   if (requested) {
-    if (session.user.role === "admin" || allowed.includes(requested)) {
+    const platformScoped =
+      session.user.capabilities?.includes("platform.read") === true;
+    if (platformScoped || allowed.includes(requested)) {
       return requested;
     }
   }
