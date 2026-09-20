@@ -60,7 +60,7 @@ describe("analytics ingestion service", () => {
   it("assigns retention server-side and preserves repository replay result", async () => {
     const records: AnalyticsIngestionRecord[] = [];
     const repository: AnalyticsIngestionRepositoryPort = {
-      record: vi.fn(async (record) => {
+      record: vi.fn(async (record: AnalyticsIngestionRecord) => {
         records.push(record);
         return "stored" as const;
       }),
