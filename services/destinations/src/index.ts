@@ -148,3 +148,49 @@ export async function applyDestinationsSchema(pool: Pool): Promise<void> {
 export function createDestinationAdminService(pool: Pool): DestinationAdminService {
   return new DestinationAdminService(new MySqlDestinationRepository(pool));
 }
+
+export const morroDeSaoPauloDestinationBootstrap = Object.freeze({
+  id: "morro-de-sao-paulo",
+  status: "active",
+  locale: "pt-BR",
+  timezone: "America/Bahia",
+  currency: "BRL",
+  branding: Object.freeze({
+    name: "Morro de São Paulo",
+    shortName: "Morro",
+    tagline: "Descubra Morro de São Paulo",
+  }),
+  center: Object.freeze({
+    lat: -13.3833,
+    lng: -38.9167,
+    zoom: 13,
+  }),
+  modules: Object.freeze([
+    "marketplace",
+    "map",
+    "navigation",
+    "assistant",
+    "businessPortal",
+    "adminCrm",
+  ]),
+  featureFlags: Object.freeze({
+    marketplace: true,
+    map: true,
+    navigation: true,
+    assistant: true,
+    businessPortal: true,
+    adminCrm: true,
+    booking: false,
+    payments: false,
+    affiliates: false,
+  }),
+});
+
+export async function bootstrapMorroDeSaoPauloDestination(
+  service: DestinationAdminService,
+): Promise<DestinationAdminResult> {
+  const current = await service.read(morroDeSaoPauloDestinationBootstrap.id);
+  if (current.status === "found") return current;
+  if (current.status !== "not_found") return current;
+  return service.create(morroDeSaoPauloDestinationBootstrap);
+}
