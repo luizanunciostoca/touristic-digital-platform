@@ -4,11 +4,14 @@ import {
   commerceIntlLocale,
   getExperiencePresentationCopy,
 } from "/runtime/commerce-i18n.js";
+import { installCommercePreviewSheet } from "/runtime/commerce-preview-sheet.js";
 
 const localeResolution = initializeMorroBrowserLocale({ document });
 const presentationLocale = commerceIntlLocale(localeResolution.locale);
 const copy = getExperiencePresentationCopy(presentationLocale);
 applyCommerceDocumentCopy(document, "experience", presentationLocale);
+
+let previewSheet = null;
 
 const elements = {
   loading: document.querySelector("#experience-loading"),
@@ -66,6 +69,8 @@ function description(offer) {
 }
 
 function showError(message) {
+  previewSheet?.destroy();
+  previewSheet = null;
   elements.loading.textContent = message;
   elements.loading.hidden = false;
   elements.card.hidden = true;
@@ -113,6 +118,7 @@ async function load() {
       : copy.viewAvailability;
   elements.loading.hidden = true;
   elements.card.hidden = false;
+  previewSheet ??= installCommercePreviewSheet({ document, window });
   document.title = copy.documentTitle(offer.label || copy.kindExperience);
 }
 
