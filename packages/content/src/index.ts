@@ -119,27 +119,23 @@ function isSafeFieldValue(value: unknown): value is ContentFieldValue {
     Array.isArray(value) &&
     value.length <= 100 &&
     value.every(
-      (item) => typeof item === "string" && item.length > 0 && item.length <= 500,
+      (item) =>
+        typeof item === "string" && item.length > 0 && item.length <= 500,
     )
   );
 }
 
 function isOfferAuthorityKey(key: string): boolean {
   const normalized = key.toLowerCase();
-  return OFFER_AUTHORITY_KEYS.some((forbidden) =>
-    normalized.includes(forbidden),
+  return OFFER_AUTHORITY_KEYS.some(
+    (forbidden) => normalized.includes(forbidden),
   );
 }
 
 function stripLifecycleState(
   document: ContentDocument,
 ): Omit<ContentDocument, "scheduledFor" | "publishedAt" | "archivedAt"> {
-  const {
-    scheduledFor,
-    publishedAt,
-    archivedAt,
-    ...base
-  } = document;
+  const { scheduledFor, publishedAt, archivedAt, ...base } = document;
   void scheduledFor;
   void publishedAt;
   void archivedAt;
