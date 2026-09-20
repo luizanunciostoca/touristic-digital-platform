@@ -1,3 +1,7 @@
+import {
+  ANALYTICS_TRANSACTION_EVENTS,
+  installMorroBrowserAnalytics,
+} from "/apps/morro-digital-platform/dist/analytics/browser-analytics.js";
 import { initializeMorroBrowserLocale } from "/runtime/browser-locale.js";
 import {
   applyCommerceDocumentCopy,
@@ -9,6 +13,7 @@ const localeResolution = initializeMorroBrowserLocale({ document });
 const presentationLocale = commerceIntlLocale(localeResolution.locale);
 const copy = getTicketingPresentationCopy(presentationLocale);
 applyCommerceDocumentCopy(document, "ticketing", presentationLocale);
+installMorroBrowserAnalytics({ document, window });
 
 const state = {
   session: null,
@@ -18,6 +23,8 @@ const state = {
 };
 
 const checkoutStorageKey = "morro_ticketing_checkout_v1";
+const analyticsMilestonesStorageKey = "morro_ticketing_analytics_v1";
+const analyticsContextStorageKey = "morro_ticketing_analytics_context_v1";
 const canonicalCheckoutPath = "/api/payments/v1/checkouts";
 const commerceSessionPath = "/api/ticketing/v1/consumer-session";
 const elements = {
@@ -42,6 +49,56 @@ const elements = {
   ticketCode: document.querySelector("#ticket-code"),
   ticketMeta: document.querySelector("#ticket-meta"),
 };
+
+function readSessionJson(key, fallback) {
+  try {
+    return JSON.parse(sessionStorage.getItem(key) || JSON.stringify(fallback));
+  } catch {
+    return fallback;
+  }
+}
+
+function writeSessionJson(key, value) {
+  try {
+    sessionStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // Analytics context is best-effort and must never block Ticketing.
+  }
+}
+
+function emitAnalyticsOnce(key, eventName, detail = {}) {
+  const sent = readSessionJson(analyticsMilestonesStorageKey, {});
+  if (!sent || typeof sent !== "object" || Array.isArray(sent) || sent[key])
+    return;
+  document.dispatchEvent(
+    new CustomEvent(eventName, {
+      detail: Object.freeze(detail),
+    }),
+  );
+  sent[key] = true;
+  writeSessionJson(analyticsMilestonesStorageKey, sent);
+}
+
+function rememberAnalyticsReservationContext(reservationId, context) {
+  if (!reservationId) return;
+  const stored = readSessionJson(analyticsContextStorageKey, {});
+  if (!stored || typeof stored !== "object" || Array.isArray(stored)) return;
+  stored[reservationId] = Object.freeze({
+    orderId: text(context.orderId),
+    currency: text(context.currency),
+    ticketType: text(context.ticketType),
+  });
+  writeSessionJson(analyticsContextStorageKey, stored);
+}
+
+function analyticsReservationContext(reservationId) {
+  const stored = readSessionJson(analyticsContextStorageKey, {});
+  if (!stored || typeof stored !== "object" || Array.isArray(stored)) return null;
+  const value = stored[reservationId];
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value
+    : null;
+}
 
 function correlationId() {
   if (!globalThis.crypto?.randomUUID)
@@ -215,6 +272,14 @@ function setMessage(message, error = false) {
 
 function selectOffer(offer, { scroll = false } = {}) {
   state.selectedOffer = offer;
+  emitAnalyticsOnce(
+    `offer:${offer.id}`,
+    ANALYTICS_TRANSACTION_EVENTS.offerSelected,
+    {
+      offerId: offer.id,
+      ...(requestedPlaceSlug() ? { placeId: requestedPlaceSlug() } : {}),
+    },
+  );
   elements.inventoryId.value = offer.id;
   elements.selectedOffer.value = `${offer.label} · ${money(offer.unitAmount)}`;
   elements.quantity.max = String(
@@ -341,6 +406,22 @@ async function showTicket(reservation) {
     reservation.product,
     ticket.quantity,
   )} · ${money(ticket.amount)} · ${copy.issuedAt(dateTime(ticket.issuedAt))}${validity}`;
+
+  const analyticsContext = analyticsReservationContext(reservation.id);
+  if (analyticsContext?.orderId) {
+    emitAnalyticsOnce(
+      `ticket:${reservation.id}`,
+      ANALYTICS_TRANSACTION_EVENTS.ticketIssued,
+      {
+        orderId: analyticsContext.orderId,
+        ticketCount: Number(ticket.quantity) || 1,
+        ...(analyticsContext.ticketType
+          ? { ticketType: analyticsContext.ticketType }
+          : {}),
+      },
+    );
+  }
+
   elements.dialog.showModal();
 }
 
@@ -516,6 +597,14 @@ async function resumeCheckout() {
       status === "CONFIRMED" &&
       payload.data?.verifiedPayment?.verified === true
     ) {
+      emitAnalyticsOnce(
+        `payment:${active.checkoutId}`,
+        ANALYTICS_TRANSACTION_EVENTS.paymentApproved,
+        {
+          orderId: active.checkoutId,
+          ...(active.currency ? { currency: active.currency } : {}),
+        },
+      );
       clearCheckout();
       setMessage(copy.paymentConfirmedIssuing);
       await waitForTicket(active.reservationId);
@@ -565,12 +654,30 @@ async function createCheckout(reservationPayload) {
   ) {
     throw new Error("CHECKOUT_RESPONSE_INVALID");
   }
+  const currency = text(checkout.plan?.amount?.currency);
+  const reservation = reservationPayload.reservation;
+  const ticketType = text(reservation?.product?.kind);
   saveCheckout({
     checkoutId: checkout.checkoutId,
     statusToken: checkout.statusToken,
     statusExpiresAt: checkout.statusExpiresAt,
     reservationId: descriptor.reservationReference,
+    currency,
   });
+  rememberAnalyticsReservationContext(descriptor.reservationReference, {
+    orderId: checkout.checkoutId,
+    currency,
+    ticketType,
+  });
+  emitAnalyticsOnce(
+    `checkout:${checkout.checkoutId}`,
+    ANALYTICS_TRANSACTION_EVENTS.checkoutStarted,
+    {
+      orderId: checkout.checkoutId,
+      itemCount: Number(reservation?.quantity) || 1,
+      ...(currency ? { currency } : {}),
+    },
+  );
   if (checkout.checkoutUrl) {
     location.assign(checkout.checkoutUrl);
     return;
@@ -620,6 +727,15 @@ async function submitReservation(event) {
     });
     if (!payload.data?.reservation || !payload.data?.checkout)
       throw new Error("RESERVATION_RESPONSE_INVALID");
+    emitAnalyticsOnce(
+      `reservation:${payload.data.reservation.id}`,
+      ANALYTICS_TRANSACTION_EVENTS.reservationStarted,
+      {
+        offerId: state.selectedOffer.id,
+        quantity,
+        ...(requestedPlaceSlug() ? { placeId: requestedPlaceSlug() } : {}),
+      },
+    );
     setMessage(copy.reservationCreated);
     await createCheckout(payload.data);
   } catch (error) {
