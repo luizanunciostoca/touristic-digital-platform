@@ -6,6 +6,7 @@ import {
   type AssistantVoicePreferences,
 } from "@touristic/assistant";
 
+import { persistMorroLanguageOverride } from "../runtime/browser-locale.js";
 import { getShellPresentationCopy } from "../runtime/shell-v1-i18n.js";
 import type { AssistantBrowserVoice } from "./assistant-voice-adapter.js";
 
@@ -189,7 +190,7 @@ export function installAssistantVoiceSettings(
   };
   const onLanguageChange = (): void => {
     const next = normalizeAssistantVoiceLanguage(language.value);
-    options.document.documentElement.lang = assistantVoiceLocale(next);
+    persistMorroLanguageOverride(options.document, assistantVoiceLocale(next));
     update({ language: next, selectedVoice: null });
   };
   const onKeyDown = (event: KeyboardEvent): void => {
