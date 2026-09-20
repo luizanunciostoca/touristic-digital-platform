@@ -98,6 +98,23 @@ export function installCommercePreviewSheet(input: {
   let active = false;
   let pointerStartY: number | null = null;
   let suppressClicksUntil = 0;
+  let suppressResetTimer: number | undefined;
+
+  const scheduleClickSuppressionReset = (): void => {
+    if (suppressResetTimer !== undefined) {
+      input.window.clearTimeout(suppressResetTimer);
+      suppressResetTimer = undefined;
+    }
+    const remaining = suppressClicksUntil - Date.now();
+    if (remaining <= 0) {
+      suppressClicksUntil = 0;
+      return;
+    }
+    suppressResetTimer = input.window.setTimeout(() => {
+      suppressClicksUntil = 0;
+      suppressResetTimer = undefined;
+    }, remaining);
+  };
 
   const syncLabel = (): void => {
     handle.setAttribute("aria-label", buttonLabel(input.document, state));
@@ -201,6 +218,10 @@ export function installCommercePreviewSheet(input: {
     if (event.pointerType === "mouse") return;
     pointerStartY = null;
     suppressClicksUntil = 0;
+    if (suppressResetTimer !== undefined) {
+      input.window.clearTimeout(suppressResetTimer);
+      suppressResetTimer = undefined;
+    }
     releasePointerCapture(event);
   };
 
