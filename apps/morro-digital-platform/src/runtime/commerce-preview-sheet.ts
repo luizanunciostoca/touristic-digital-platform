@@ -174,21 +174,10 @@ export function installCommercePreviewSheet(input: {
     }
   };
 
-  const releasePointerCapture = (event: PointerEvent): void => {
-    if (!handle.hasPointerCapture(event.pointerId)) return;
-    handle.releasePointerCapture(event.pointerId);
-  };
-
   const onPointerDown = (event: PointerEvent): void => {
-    if (event.pointerType === "mouse") return;
     dragStartY = event.clientY;
     dragStartState = state;
     suppressClicksUntil = 0;
-    try {
-      handle.setPointerCapture(event.pointerId);
-    } catch {
-      // Pointer capture can be rejected by a browser after an interrupted gesture.
-    }
   };
 
   const applyDragDelta = (clientY: number): boolean => {
@@ -206,49 +195,17 @@ export function installCommercePreviewSheet(input: {
   };
 
   const onPointerMove = (event: PointerEvent): void => {
-    if (event.pointerType === "mouse") return;
     applyDragDelta(event.clientY);
   };
 
   const onPointerUp = (event: PointerEvent): void => {
-    if (event.pointerType === "mouse") return;
     applyDragDelta(event.clientY);
     dragStartY = null;
     dragStartState = null;
-    releasePointerCapture(event);
     scheduleClickSuppressionReset();
   };
 
-  const onPointerCancel = (event: PointerEvent): void => {
-    if (event.pointerType === "mouse") return;
-    dragStartY = null;
-    dragStartState = null;
-    suppressClicksUntil = 0;
-    if (suppressResetTimer !== undefined) {
-      input.window.clearTimeout(suppressResetTimer);
-      suppressResetTimer = undefined;
-    }
-    releasePointerCapture(event);
-  };
-
-  const compatibilityMouseSuppressed = (): boolean =>
-    Date.now() < suppressClicksUntil;
-
-  const onMouseDown = (event: MouseEvent): void => {
-    if (compatibilityMouseSuppressed()) return;
-    dragStartY = event.clientY;
-    dragStartState = state;
-    suppressClicksUntil = 0;
-  };
-
-  const onMouseMove = (event: MouseEvent): void => {
-    if (compatibilityMouseSuppressed()) return;
-    applyDragDelta(event.clientY);
-  };
-
-  const onMouseUp = (event: MouseEvent): void => {
-    if (compatibilityMouseSuppressed()) return;
-    applyDragDelta(event.clientY);
+  const onPointerCancel = (): void => {
     dragStartY = null;
     dragStartState = null;
     scheduleClickSuppressionReset();
@@ -262,12 +219,9 @@ export function installCommercePreviewSheet(input: {
   handle.addEventListener("click", onHandleClick);
   handle.addEventListener("keydown", onHandleKeyDown);
   handle.addEventListener("pointerdown", onPointerDown);
-  handle.addEventListener("mousedown", onMouseDown);
   input.document.addEventListener("pointermove", onPointerMove);
   input.document.addEventListener("pointerup", onPointerUp);
   input.document.addEventListener("pointercancel", onPointerCancel);
-  input.document.addEventListener("mousemove", onMouseMove);
-  input.document.addEventListener("mouseup", onMouseUp);
   media.addEventListener("change", onMediaChange);
 
   if (media.matches) activate();
@@ -285,12 +239,9 @@ export function installCommercePreviewSheet(input: {
       handle.removeEventListener("click", onHandleClick);
       handle.removeEventListener("keydown", onHandleKeyDown);
       handle.removeEventListener("pointerdown", onPointerDown);
-      handle.removeEventListener("mousedown", onMouseDown);
       input.document.removeEventListener("pointermove", onPointerMove);
       input.document.removeEventListener("pointerup", onPointerUp);
       input.document.removeEventListener("pointercancel", onPointerCancel);
-      input.document.removeEventListener("mousemove", onMouseMove);
-      input.document.removeEventListener("mouseup", onMouseUp);
       media.removeEventListener("change", onMediaChange);
       if (suppressResetTimer !== undefined) {
         input.window.clearTimeout(suppressResetTimer);
