@@ -593,3 +593,102 @@ describe("Control Center Admin API", () => {
     expect(payload.businesses[0].id).toBe("toca-do-morcego");
   });
 });
+
+
+describe("Control Center generic domain mutation audit", () => {
+  it("persists adapter reason and state transition in the append-only audit projection", async () => {
+    const contentAdapter = {
+      state: "partial",
+      coverage: ["detail", "revise-draft-preview"],
+      async handle({ response }) {
+        response.statusCode = 200;
+        response.setHeader("Content-Type", "application/json");
+        response.end(JSON.stringify({ data: { id: "content-audit-0001" } }));
+        return {
+          audit: {
+            reason: "Correção editorial aprovada",
+            entityType: "content_document",
+            entityId: "content-audit-0001",
+            previousState: { status: "draft", version: 1 },
+            newState: { status: "preview", version: 1 },
+          },
+        };
+      },
+    };
+    const { api } = fixture(platformOwner, {
+      domainAdapters: { content: contentAdapter },
+    });
+    const mutationResponse = responseRecorder();
+
+    await api.handle(
+      request("/api/admin/v1/content/content-audit-0001", {
+        method: "PATCH",
+        body: { fields: { title: "Atualizado" } },
+      }),
+      mutationResponse,
+      new URL(
+        "http://localhost/api/admin/v1/content/content-audit-0001",
+      ),
+    );
+
+    expect(mutationResponse.statusCode).toBe(200);
+
+    const auditResponse = responseRecorder();
+    await api.handle(
+      request("/api/admin/v1/audit"),
+      auditResponse,
+      new URL("http://localhost/api/admin/v1/audit"),
+    );
+    const complete = JSON.parse(auditResponse.body).entries.find(
+      (entry) =>
+        entry.action === "control-center.content.mutation.complete",
+    );
+    expect(complete).toMatchObject({
+      result: "success",
+      reason: "Correção editorial aprovada",
+      entityType: "content_document",
+      entityId: "content-audit-0001",
+      previousState: { status: "draft", version: 1 },
+      newState: { status: "preview", version: 1 },
+    });
+  });
+
+  it("denies SUPPORT Content mutation before invoking the owner adapter", async () => {
+    let called = false;
+    const supportSession = {
+      ...platformOwner,
+      subject: "support-operator",
+      email: "support@morro.invalid",
+      role: "SUPPORT",
+      sessionId: "session-support",
+    };
+    const { api } = fixture(supportSession, {
+      domainAdapters: {
+        content: {
+          async handle() {
+            called = true;
+          },
+        },
+      },
+    });
+    const response = responseRecorder();
+
+    await api.handle(
+      request("/api/admin/v1/content/content-audit-0001", {
+        method: "PATCH",
+        body: { fields: { title: "Bloqueado" } },
+      }),
+      response,
+      new URL(
+        "http://localhost/api/admin/v1/content/content-audit-0001",
+      ),
+    );
+
+    expect(response.statusCode).toBe(403);
+    expect(JSON.parse(response.body)).toMatchObject({
+      error: "CAPABILITY_DENIED",
+      capability: "content.manage",
+    });
+    expect(called).toBe(false);
+  });
+});
