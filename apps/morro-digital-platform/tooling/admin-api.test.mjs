@@ -142,8 +142,34 @@ describe("Control Center Admin API", () => {
 
     expect(response.statusCode).toBe(403);
     expect(JSON.parse(response.body)).toMatchObject({
-      error: "CAPABILITY_DENIED",
+      error: "ADMIN_SURFACE_DENIED",
       capability: "platform.read",
+      reason: "platform_admin_surface_required",
+    });
+  });
+
+  it("blocks business identities from every admin namespace before domain adapters", async () => {
+    const { api } = fixture({
+      ...platformOwner,
+      role: "BUSINESS_OWNER",
+      businessIds: ["toca-do-morcego"],
+    });
+    const response = responseRecorder();
+
+    await api.handle(
+      request("/api/admin/v1/businesses/toca-do-morcego/profile", {
+        method: "PUT",
+      }),
+      response,
+      new URL(
+        "http://localhost/api/admin/v1/businesses/toca-do-morcego/profile",
+      ),
+    );
+
+    expect(response.statusCode).toBe(403);
+    expect(JSON.parse(response.body)).toMatchObject({
+      error: "ADMIN_SURFACE_DENIED",
+      capability: "business.update",
     });
   });
 
