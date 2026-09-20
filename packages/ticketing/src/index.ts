@@ -323,8 +323,7 @@ export function createTicket(input: {
     (input.validUntil !== null &&
       input.validUntil !== undefined &&
       !validUntil) ||
-    (validUntil !== null &&
-      Date.parse(validUntil) <= Date.parse(issuedAt)) ||
+    (validUntil !== null && Date.parse(validUntil) <= Date.parse(issuedAt)) ||
     Date.parse(updatedAt) < Date.parse(issuedAt) ||
     (validatedAt !== null && Date.parse(validatedAt) < Date.parse(issuedAt)) ||
     (usedAt !== null && Date.parse(usedAt) < Date.parse(issuedAt)) ||
@@ -355,8 +354,7 @@ export function createTicket(input: {
     code,
     status,
     issuedAt: new Date(issuedAt).toISOString(),
-    validUntil:
-      validUntil === null ? null : new Date(validUntil).toISOString(),
+    validUntil: validUntil === null ? null : new Date(validUntil).toISOString(),
     validatedAt:
       validatedAt === null ? null : new Date(validatedAt).toISOString(),
     usedAt: usedAt === null ? null : new Date(usedAt).toISOString(),
