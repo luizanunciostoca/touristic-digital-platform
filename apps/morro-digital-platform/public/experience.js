@@ -1,9 +1,9 @@
-import { initializeMorroBrowserLocale } from "/apps/morro-digital-platform/dist/runtime/browser-locale.js";
+import { initializeMorroBrowserLocale } from "/runtime/browser-locale.js";
 import {
   applyCommerceDocumentCopy,
   commerceIntlLocale,
   getExperiencePresentationCopy,
-} from "/apps/morro-digital-platform/dist/runtime/commerce-i18n.js";
+} from "/runtime/commerce-i18n.js";
 
 const localeResolution = initializeMorroBrowserLocale({ document });
 const presentationLocale = commerceIntlLocale(localeResolution.locale);

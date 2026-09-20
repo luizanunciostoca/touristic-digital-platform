@@ -23,6 +23,11 @@ const morroPublicRoot = resolve(
   repositoryRoot,
   "apps/morro-digital-platform/public",
 );
+const morroDistRoot = resolve(
+  repositoryRoot,
+  "apps/morro-digital-platform/dist",
+);
+const morroRuntimeRoot = resolve(morroDistRoot, "runtime");
 const defaultDocument = resolve(morroPublicRoot, "index.html");
 const envFile = resolve(repositoryRoot, ".env");
 const host = process.env.HOST?.trim() || "127.0.0.1";
@@ -71,7 +76,7 @@ const publicCrmDocuments = Object.freeze([
 
 const publicStaticRoots = Object.freeze([
   morroPublicRoot,
-  resolve(repositoryRoot, "apps/morro-digital-platform/dist"),
+  morroDistRoot,
   resolve(repositoryRoot, "apps/admin-crm/public"),
   resolve(repositoryRoot, "dashboard"),
   resolve(repositoryRoot, "images"),
@@ -228,6 +233,17 @@ function resolveRequestPath(pathname) {
   }
 
   const decoded = decodeURIComponent(pathname);
+  if (decoded.startsWith("/runtime/")) {
+    const runtimePath = resolve(
+      morroRuntimeRoot,
+      decoded.slice("/runtime/".length),
+    );
+    if (!isWithinStaticRoot(runtimePath, morroRuntimeRoot)) {
+      throw new Error("Requested runtime path is outside the runtime root.");
+    }
+    return runtimePath;
+  }
+
   const rootMountedPath =
     decoded.startsWith("/apps/") ||
     decoded.startsWith("/dashboard/") ||
