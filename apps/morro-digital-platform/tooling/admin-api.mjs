@@ -272,7 +272,9 @@ export function createAdminApi({
     !authApi?.authorizeMutation ||
     !authApi?.reauthenticate ||
     !authApi?.listConfiguredUsers ||
-    !authApi?.findConfiguredUser
+    !authApi?.findConfiguredUser ||
+    !authApi?.listUserSessions ||
+    !authApi?.revokeUserSession
   ) {
     throw new Error("CONTROL_CENTER_AUTH_BOUNDARY_REQUIRED");
   }
@@ -552,6 +554,170 @@ export function createAdminApi({
     });
   }
 
+  async function handleUserSessions(request, response, requestUrl) {
+    const match =
+      /^\/api\/admin\/v1\/users\/([^/]+)\/sessions(?:\/([a-f0-9]{64})\/revoke)?$/u.exec(
+        requestUrl.pathname,
+      );
+    if (!match) return false;
+
+    let userId;
+    try {
+      userId = decodeURIComponent(match[1]);
+    } catch {
+      json(response, 400, { error: "INVALID_USER_ID" });
+      return true;
+    }
+    const user = authApi.findConfiguredUser(userId);
+    if (!user) {
+      json(response, 404, { error: "USER_NOT_FOUND" });
+      return true;
+    }
+
+    const handle = match[2] ?? null;
+    if (!handle && request.method === "GET") {
+      const actor = await requireCapability(request, response, "users.read");
+      if (!actor) return true;
+      try {
+        const sessions = await authApi.listUserSessions(userId);
+        json(response, 200, {
+          user: userProjection(user),
+          sessions: sessions ?? [],
+        });
+      } catch {
+        json(response, 503, { error: "AUTH_SESSION_REGISTRY_UNAVAILABLE" });
+      }
+      return true;
+    }
+
+    if (!handle || request.method !== "POST") {
+      json(response, 405, { error: "METHOD_NOT_ALLOWED" });
+      return true;
+    }
+
+    const actor = await requireCapability(
+      request,
+      response,
+      "users.sessions.revoke",
+      { mutation: true },
+    );
+    if (!actor) return true;
+
+    const requestSecurity = authApi.authorizeMutation(
+      request,
+      actor,
+      "control-center.users.sessions.revoke",
+    );
+    if (!requestSecurity.allowed) {
+      await audit(request, actor, {
+        action: "users.sessions.revoke",
+        result: "denied",
+        reason: requestSecurity.reason,
+        entityType: "auth_session",
+        entityId: handle,
+      });
+      json(response, 403, {
+        error:
+          requestSecurity.reason === "invalid_csrf"
+            ? "INVALID_CSRF"
+            : "ORIGIN_DENIED",
+      });
+      return true;
+    }
+
+    if (!stepUpContext(request, actor)) {
+      await audit(request, actor, {
+        action: "users.sessions.revoke",
+        result: "denied",
+        reason: "step_up_required",
+        entityType: "auth_session",
+        entityId: handle,
+      });
+      json(response, 403, { error: "STEP_UP_REQUIRED" });
+      return true;
+    }
+
+    let body;
+    try {
+      body = await readJsonBody(request);
+    } catch {
+      json(response, 400, { error: "INVALID_REQUEST" });
+      return true;
+    }
+    const reason = safeReason(body?.reason);
+    if (!reason) {
+      json(response, 400, { error: "REASON_REQUIRED" });
+      return true;
+    }
+
+    const attemptAudited = await audit(request, actor, {
+      action: "users.sessions.revoke.attempt",
+      result: "attempt",
+      effectiveUserId: userId,
+      entityType: "auth_session",
+      entityId: handle,
+      reason,
+    });
+    if (!attemptAudited) {
+      json(response, 503, { error: "ADMIN_AUDIT_UNAVAILABLE" });
+      return true;
+    }
+
+    let result;
+    try {
+      result = await authApi.revokeUserSession(userId, handle);
+    } catch {
+      await audit(request, actor, {
+        action: "users.sessions.revoke.complete",
+        result: "failure",
+        effectiveUserId: userId,
+        entityType: "auth_session",
+        entityId: handle,
+        reason,
+      });
+      json(response, 503, { error: "AUTH_SESSION_REGISTRY_UNAVAILABLE" });
+      return true;
+    }
+
+    if (!result?.found) {
+      await audit(request, actor, {
+        action: "users.sessions.revoke.complete",
+        result: "failure",
+        effectiveUserId: userId,
+        entityType: "auth_session",
+        entityId: handle,
+        reason: "session_not_found",
+      });
+      json(response, 404, { error: "SESSION_NOT_FOUND" });
+      return true;
+    }
+
+    const completed = await audit(request, actor, {
+      action: "users.sessions.revoke.complete",
+      result: "success",
+      effectiveUserId: userId,
+      entityType: "auth_session",
+      entityId: handle,
+      reason,
+      newState: {
+        revoked: true,
+        alreadyRevoked: result.alreadyRevoked,
+      },
+    });
+    if (!completed) {
+      json(response, 503, { error: "ADMIN_AUDIT_UNAVAILABLE" });
+      return true;
+    }
+
+    json(response, 200, {
+      success: true,
+      userId,
+      sessionHandle: handle,
+      alreadyRevoked: result.alreadyRevoked,
+    });
+    return true;
+  }
+
   async function handleSupport(request, response) {
     const actor = await requireCapability(
       request,
@@ -751,6 +917,10 @@ export function createAdminApi({
             },
           },
         });
+        return;
+      }
+
+      if (await handleUserSessions(request, response, requestUrl)) {
         return;
       }
 
