@@ -290,7 +290,10 @@ describe("Control Center Admin API", () => {
         `/api/admin/v1/users/business-owner/sessions/${sessionHandle}/revoke`,
         {
           method: "POST",
-          body: { reason: "Support investigation requires session revocation" },
+          body: {
+            reason: "Support investigation requires session revocation",
+            confirmation: "REVOGAR",
+          },
         },
       ),
       withoutStepUp,
@@ -319,7 +322,10 @@ describe("Control Center Admin API", () => {
         {
           method: "POST",
           headers: { cookie },
-          body: { reason: "Support investigation requires session revocation" },
+          body: {
+            reason: "Support investigation requires session revocation",
+            confirmation: "REVOGAR",
+          },
         },
       ),
       revoked,
