@@ -43,19 +43,12 @@ try {
     timeout: 30_000,
   });
 
-  await page.waitForFunction(
-    () => {
-      const root = document.documentElement;
-      return (
-        root.dataset.assistantStartupMs &&
-        root.dataset.mapStartupMs &&
-        document
-          .getElementById("map")
-          ?.matches('[data-map-state="ready"][data-map-mode="real"]')
-      );
-    },
-    { timeout: 30_000 },
-  );
+  await page
+    .locator("html[data-assistant-startup-ms][data-map-startup-ms]")
+    .waitFor({ state: "attached", timeout: 30_000 });
+  await page
+    .locator('#map[data-map-state="ready"][data-map-mode="real"]')
+    .waitFor({ state: "attached", timeout: 30_000 });
 
   const metrics = await page.evaluate(() => ({
     assistantStartupMs: Number(
