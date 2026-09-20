@@ -824,13 +824,15 @@ export function createPaymentsApi({
   webhookTransport: injectedWebhookTransport,
   refundTransport: injectedRefundTransport,
   reconciliationTransport: injectedReconciliationTransport,
+  adminRead: injectedAdminRead,
 } = {}) {
   const hasInjectedTransport = Boolean(
     injectedTransport ||
     injectedAuthorityBootstrapTransport ||
     injectedWebhookTransport ||
     injectedRefundTransport ||
-    injectedReconciliationTransport,
+    injectedReconciliationTransport ||
+    injectedAdminRead,
   );
   let runtime = hasInjectedTransport
     ? Object.freeze({
@@ -840,7 +842,7 @@ export function createPaymentsApi({
         webhookTransport: injectedWebhookTransport ?? null,
         refundTransport: injectedRefundTransport ?? null,
         reconciliationTransport: injectedReconciliationTransport ?? null,
-        adminRead: null,
+        adminRead: injectedAdminRead ?? null,
         pools: [],
       })
     : null;
