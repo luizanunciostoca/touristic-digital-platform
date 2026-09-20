@@ -134,6 +134,20 @@ export function getExploreLocationsForCategory(
   );
 }
 
+export function resolveExploreLocationByName(
+  place: string,
+  category?: string,
+): MorroV1SearchCatalogItem | undefined {
+  const normalizedPlace = normalizeSearchText(place);
+  const normalizedCategory = category ? normalizeSearchText(category) : null;
+  return morroV1SearchCatalog.find(
+    (candidate) =>
+      normalizeSearchText(candidate.name) === normalizedPlace &&
+      (normalizedCategory === null ||
+        normalizeSearchText(candidate.category) === normalizedCategory),
+  );
+}
+
 export function createExploreLocationDetailsCommand(name: string): string {
   return `${DETAILS_COMMAND_PREFIX}${name}`;
 }
@@ -914,15 +928,9 @@ export function installExploreLocationsControl({
     }
 
     if (command.type === "select_place") {
-      const normalized = normalizeSearchText(command.place);
-      const requestedCategory = command.category
-        ? normalizeSearchText(command.category)
-        : null;
-      const location = morroV1SearchCatalog.find(
-        (candidate) =>
-          normalizeSearchText(candidate.name) === normalized &&
-          (requestedCategory === null ||
-            normalizeSearchText(candidate.category) === requestedCategory),
+      const location = resolveExploreLocationByName(
+        command.place,
+        command.category,
       );
       if (!location) return false;
       if (activeCategory?.value !== location.category) {
