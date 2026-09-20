@@ -11,6 +11,8 @@ on:
       - apps/morro-digital-platform/public/legacy/**
       - apps/morro-digital-platform/src/onboarding/public-onboarding.ts
       - apps/morro-digital-platform/src/onboarding/public-interactive-tour.ts
+      - apps/morro-digital-platform/src/onboarding/public-onboarding-i18n.ts
+      - apps/morro-digital-platform/src/runtime/browser-locale.ts
       - apps/morro-digital-platform/src/layouts/app-shell.ts
       - apps/morro-digital-platform/tooling/dev-server.mjs
       - package.json
@@ -124,7 +126,7 @@ jobs:
 
           (async () => {
             const browser = await chromium.launch({ headless: true });
-            const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+            const context = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'pt-BR' });
             const page = await context.newPage();
             const errors = [];
             page.on('pageerror', error => errors.push(error.message));

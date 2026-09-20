@@ -10,6 +10,8 @@ on:
       - apps/morro-digital-platform/src/browser-entry.ts
       - apps/morro-digital-platform/src/onboarding/public-onboarding.ts
       - apps/morro-digital-platform/src/onboarding/public-interactive-tour.ts
+      - apps/morro-digital-platform/src/onboarding/public-onboarding-i18n.ts
+      - apps/morro-digital-platform/src/runtime/browser-locale.ts
       - apps/morro-digital-platform/src/bootstrap/geospatial.ts
       - apps/morro-digital-platform/src/layouts/app-shell.ts
       - apps/morro-digital-platform/public/**
@@ -22,6 +24,8 @@ on:
       - apps/morro-digital-platform/src/browser-entry.ts
       - apps/morro-digital-platform/src/onboarding/public-onboarding.ts
       - apps/morro-digital-platform/src/onboarding/public-interactive-tour.ts
+      - apps/morro-digital-platform/src/onboarding/public-onboarding-i18n.ts
+      - apps/morro-digital-platform/src/runtime/browser-locale.ts
       - apps/morro-digital-platform/src/bootstrap/geospatial.ts
       - apps/morro-digital-platform/src/layouts/app-shell.ts
       - apps/morro-digital-platform/public/**
@@ -119,7 +123,7 @@ jobs:
             const browser = await chromium.launch({ headless: true });
             const evidence = {};
 
-            const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+            const context = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'en-US' });
             const page = await context.newPage();
             const errors = [];
             page.on('pageerror', error => errors.push(error.message));
@@ -145,7 +149,7 @@ jobs:
               !started.backdropClipPath.includes('evenodd') ||
               !started.tourHighlight ||
               !started.tourTooltip ||
-              started.tourLabel !== 'Passo 1 de 7' ||
+              started.tourLabel !== 'Step 1 of 7' ||
               !started.assistantVisible ||
               !started.welcomeVisible ||
               started.tooltipRight === null ||
@@ -164,7 +168,7 @@ jobs:
 
             for (let step = 2; step <= 7; step += 1) {
               await page.locator('.tour-btn-next').click();
-              await page.locator('.tour-step-label').filter({ hasText: `Passo ${step} de 7` }).waitFor({ state: 'visible', timeout: 3000 });
+              await page.locator('.tour-step-label').filter({ hasText: `Step ${step} of 7` }).waitFor({ state: 'visible', timeout: 3000 });
               const stepState = await readState(page);
               assertIdleMap(stepState, `Tutorial step ${step}`);
               if (stepState.tooltipRight !== null && stepState.tooltipRight > stepState.viewportWidth + 1) {
@@ -203,7 +207,7 @@ jobs:
             await page.screenshot({ path: `${outputDir}/completed-v1-home.png`, fullPage: false });
             await context.close();
 
-            const skipContext = await browser.newContext({ viewport: { width: 768, height: 1024 } });
+            const skipContext = await browser.newContext({ viewport: { width: 768, height: 1024 }, locale: 'en-US' });
             const skipPage = await skipContext.newPage();
             const skipErrors = [];
             skipPage.on('pageerror', error => skipErrors.push(error.message));
@@ -222,7 +226,7 @@ jobs:
             evidence.skip = { skipped, errors: skipErrors };
             await skipContext.close();
 
-            const overlaySkipContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
+            const overlaySkipContext = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'en-US' });
             const overlaySkipPage = await overlaySkipContext.newPage();
             await overlaySkipPage.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded', timeout: 30000 });
             await waitForHome(overlaySkipPage);

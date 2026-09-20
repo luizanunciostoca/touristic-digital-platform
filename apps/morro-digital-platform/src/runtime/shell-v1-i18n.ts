@@ -218,7 +218,9 @@ export function applyV1ShellPresentation(
   document: Document,
   locale = document.documentElement.lang,
 ): void {
-  const copy = getShellPresentationCopy(locale);
+  const resolvedLocale = shellPresentationLocale(locale);
+  const copy = getShellPresentationCopy(resolvedLocale);
+  document.documentElement.dir = resolvedLocale === "he" ? "rtl" : "ltr";
 
   document.querySelectorAll<HTMLElement>("[data-i18n]").forEach((element) => {
     if (isRuntimeOwnedNavigationText(element)) return;

@@ -569,6 +569,9 @@ export function installBrowserAssistantRuntime(
       ? createAssistantBrowserVoice({
           synthesis: view.speechSynthesis,
           createUtterance: (text) => new view.SpeechSynthesisUtterance(text),
+          initialLanguage: normalizeAssistantVoiceLanguage(
+            options.document.documentElement.lang,
+          ),
           ...(storage ? { storage } : {}),
         })
       : null;

@@ -105,16 +105,29 @@ function parseStoredPreferences(
   }
 }
 
+export function resolveNavigationSpeechLanguage(
+  documentLanguage: string | null | undefined,
+  compatibilityLanguage: string | null | undefined,
+  storedLanguage: string | null | undefined,
+): NavigationSpeechLanguage {
+  const effectiveDocumentLanguage = documentLanguage?.trim();
+  return normalizeNavigationSpeechLanguage(
+    effectiveDocumentLanguage ||
+      compatibilityLanguage ||
+      storedLanguage ||
+      "pt-BR",
+  );
+}
+
 function resolveLanguage(
   document: Document,
   storage: Storage | null,
   stored: StoredVoicePreferences,
 ): NavigationSpeechLanguage {
-  return normalizeNavigationSpeechLanguage(
-    storage?.getItem("voice-language") ??
-      stored.language ??
-      document.documentElement?.lang ??
-      "pt-BR",
+  return resolveNavigationSpeechLanguage(
+    document.documentElement?.lang,
+    storage?.getItem("voice-language"),
+    stored.language,
   );
 }
 
