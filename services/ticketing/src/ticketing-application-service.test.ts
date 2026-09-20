@@ -649,5 +649,4 @@ describe("M148 transactional ticketing application", () => {
     ).rejects.toMatchObject({ code: "TICKETING_CHECKIN_INVALID" });
     expect(checkIns.values).toHaveLength(0);
   });
-
 });
