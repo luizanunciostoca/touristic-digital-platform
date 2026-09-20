@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light dark" />
-    <title>Ingressos · Morro Digital</title>
+    <title data-commerce-i18n="documentTitle">Ingressos · Morro Digital</title>
     <link rel="stylesheet" href="/ticketing.css" />
   </head>
   <body>
@@ -13,8 +13,8 @@
         <a class="back-link" href="/">← Morro Digital</a>
         <div>
           <p class="eyebrow">Morro Digital</p>
-          <h1>Ingressos e reservas</h1>
-          <p class="lead">
+          <h1 data-commerce-i18n="mainTitle">Ingressos e reservas</h1>
+          <p class="lead" data-commerce-i18n="lead">
             Reserve com preço congelado, finalize pelo checkout seguro e
             apresente o QR emitido após a confirmação do pagamento.
           </p>
@@ -25,15 +25,15 @@
       <section class="panel" aria-labelledby="offers-title">
         <div class="section-heading">
           <div>
-            <p class="eyebrow">Disponibilidade em tempo real</p>
-            <h2 id="offers-title">Experiências disponíveis</h2>
+            <p class="eyebrow" data-commerce-i18n="availabilityEyebrow">Disponibilidade em tempo real</p>
+            <h2 id="offers-title" data-commerce-i18n="offersTitle">Experiências disponíveis</h2>
           </div>
           <button
             id="refresh-button"
             class="button button-secondary"
             type="button"
           >
-            Atualizar
+            <span data-commerce-i18n="refresh">Atualizar</span>
           </button>
         </div>
         <div id="offers" class="offer-grid" aria-live="polite"></div>
@@ -42,26 +42,27 @@
       <section class="panel" aria-labelledby="reservation-title">
         <div class="section-heading">
           <div>
-            <p class="eyebrow">Reserva</p>
-            <h2 id="reservation-title">Seus dados</h2>
+            <p class="eyebrow" data-commerce-i18n="reservationEyebrow">Reserva</p>
+            <h2 id="reservation-title" data-commerce-i18n="reservationTitle">Seus dados</h2>
           </div>
-          <p class="secure-note">
+          <p class="secure-note" data-commerce-i18n="securePayment">
             Pagamento processado pelo Payments canônico.
           </p>
         </div>
         <form id="reservation-form" class="reservation-form" novalidate>
           <input id="inventory-id" name="inventoryId" type="hidden" />
           <label>
-            Experiência
+            <span data-commerce-i18n="experienceLabel">Experiência</span>
             <input
               id="selected-offer"
               type="text"
               readonly
               placeholder="Selecione uma experiência acima"
+              data-commerce-i18n-placeholder="experiencePlaceholder"
             />
           </label>
           <label>
-            Nome completo
+            <span data-commerce-i18n="fullName">Nome completo</span>
             <input
               id="holder-name"
               name="name"
@@ -71,7 +72,7 @@
             />
           </label>
           <label>
-            E-mail
+            <span data-commerce-i18n="email">E-mail</span>
             <input
               id="holder-email"
               name="email"
@@ -82,7 +83,7 @@
             />
           </label>
           <label>
-            Telefone <span>opcional</span>
+            <span data-commerce-i18n="phone">Telefone</span> <span data-commerce-i18n="optional">opcional</span>
             <input
               id="holder-phone"
               name="phone"
@@ -91,7 +92,7 @@
             />
           </label>
           <label>
-            Documento <span>opcional</span>
+            <span data-commerce-i18n="document">Documento</span> <span data-commerce-i18n="optional">opcional</span>
             <input
               id="holder-document"
               name="document"
@@ -100,7 +101,7 @@
             />
           </label>
           <label>
-            Quantidade
+            <span data-commerce-i18n="quantity">Quantidade</span>
             <input
               id="quantity"
               name="quantity"
@@ -120,7 +121,7 @@
               type="submit"
               disabled
             >
-              Reservar e ir para pagamento
+              <span data-commerce-i18n="reserveAndPay">Reservar e ir para pagamento</span>
             </button>
           </div>
         </form>
@@ -129,10 +130,10 @@
       <section class="panel" aria-labelledby="my-tickets-title">
         <div class="section-heading">
           <div>
-            <p class="eyebrow">Sua carteira</p>
-            <h2 id="my-tickets-title">Reservas e ingressos</h2>
+            <p class="eyebrow" data-commerce-i18n="walletEyebrow">Sua carteira</p>
+            <h2 id="my-tickets-title" data-commerce-i18n="walletTitle">Reservas e ingressos</h2>
           </div>
-          <p class="secure-note">
+          <p class="secure-note" data-commerce-i18n="qrAfterPayment">
             O QR só é emitido após confirmação Financial verificada.
           </p>
         </div>
@@ -150,15 +151,17 @@
         class="dialog-close"
         type="button"
         aria-label="Fechar"
+        data-commerce-i18n-aria="close"
       >
         ×
       </button>
-      <p class="eyebrow">Ingresso confirmado</p>
-      <h2 id="ticket-title">Seu ingresso</h2>
+      <p class="eyebrow" data-commerce-i18n="confirmedTicket">Ingresso confirmado</p>
+      <h2 id="ticket-title" data-commerce-i18n="yourTicket">Seu ingresso</h2>
       <div
         id="ticket-qr"
         class="ticket-qr"
         aria-label="QR code do ingresso"
+        data-commerce-i18n-aria="ticketQrLabel"
       ></div>
       <p id="ticket-code" class="ticket-code"></p>
       <p id="ticket-meta" class="ticket-meta"></p>
