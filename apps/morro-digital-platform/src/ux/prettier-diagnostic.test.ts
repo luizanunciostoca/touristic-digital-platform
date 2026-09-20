@@ -1,10 +1,10 @@
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
-import { format } from "../../../../../node_modules/prettier/index.mjs";
+import { format } from "../../../../node_modules/prettier/index.mjs";
 import { describe, it } from "vitest";
 
-const repositoryRoot = fileURLToPath(new URL("../../../../../", import.meta.url));
+const repositoryRoot = fileURLToPath(new URL("../../../../", import.meta.url));
 
 const targets = [
   "apps/morro-digital-platform/public/design-system-v2.css",
