@@ -62,6 +62,9 @@ importers:
       "@touristic/content":
         specifier: workspace:*
         version: link:../../packages/content
+      "@touristic/content-server":
+        specifier: workspace:*
+        version: link:../../services/content
       "@touristic/core":
         specifier: workspace:*
         version: link:../../packages/core
@@ -188,6 +191,15 @@ importers:
       "@touristic/auth":
         specifier: workspace:*
         version: link:../../packages/auth
+
+  services/content:
+    dependencies:
+      "@touristic/content":
+        specifier: workspace:*
+        version: link:../../packages/content
+      mysql2:
+        specifier: ^3.14.5
+        version: 3.23.3(@types/node@24.13.3)
 
   services/crm:
     dependencies:
