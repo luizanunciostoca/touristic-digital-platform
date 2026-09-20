@@ -15,27 +15,25 @@ import {
   loadContentSnapshot,
 } from "./browser-content-cache.js";
 
-function storage(): Storage {
-  const values = new Map<string, string>();
+function cacheStorageHarness() {
+  const values = new Map<string, Response>();
+  const cache = {
+    async match(key: RequestInfo | URL) {
+      return values.get(String(key))?.clone();
+    },
+    async put(key: RequestInfo | URL, response: Response) {
+      values.set(String(key), response.clone());
+    },
+    async delete(key: RequestInfo | URL) {
+      return values.delete(String(key));
+    },
+  };
+
   return {
-    get length() {
-      return values.size;
-    },
-    clear() {
-      values.clear();
-    },
-    getItem(key) {
-      return values.get(key) ?? null;
-    },
-    key(index) {
-      return [...values.keys()][index] ?? null;
-    },
-    removeItem(key) {
-      values.delete(key);
-    },
-    setItem(key, value) {
-      values.set(key, value);
-    },
+    values,
+    caches: {
+      open: vi.fn(async () => cache),
+    } as unknown as CacheStorage,
   };
 }
 
@@ -58,7 +56,9 @@ function published(kind: ContentDocument["kind"] = "place"): ContentDocument {
   return result;
 }
 
-function snapshot(expiresAt = "2026-09-21T10:00:00.000Z"): OfflineContentSnapshot {
+function snapshot(
+  expiresAt = "2026-09-21T10:00:00.000Z",
+): OfflineContentSnapshot {
   const result = createOfflineContentSnapshot([published()], {
     destinationId: "morro-de-sao-paulo",
     generatedAt: "2026-09-20T10:00:00.000Z",
@@ -68,55 +68,68 @@ function snapshot(expiresAt = "2026-09-21T10:00:00.000Z"): OfflineContentSnapsho
   return result;
 }
 
+function storageHarness() {
+  const harness = cacheStorageHarness();
+  return {
+    ...harness,
+    storage: createBrowserContentSnapshotStorage(
+      harness.caches,
+      "https://morro.example",
+    ),
+  };
+}
+
 describe("browser content snapshot storage", () => {
-  it("round-trips only validated destination-bound snapshots", () => {
-    const local = storage();
-    const cache = createBrowserContentSnapshotStorage(local);
+  it("round-trips only validated destination-bound snapshots", async () => {
+    const { storage } = storageHarness();
     const value = snapshot();
 
-    cache.write(value);
+    await storage.write(value);
 
-    expect(cache.read("morro-de-sao-paulo")).toEqual(value);
-    expect(cache.read("another-destination")).toBeNull();
+    await expect(storage.read("morro-de-sao-paulo")).resolves.toEqual(value);
+    await expect(storage.read("another-destination")).resolves.toBeNull();
   });
 
-  it("rejects malformed or transaction-authoritative cached JSON", () => {
-    const local = storage();
-    local.setItem(
-      "morro-content-snapshot-v1:morro-de-sao-paulo",
-      JSON.stringify({
-        ...snapshot(),
-        documents: [
-          {
-            id: "offer-001",
-            destinationId: "morro-de-sao-paulo",
-            kind: "offer_reference",
-            locale: "pt-BR",
-            version: 1,
-            fields: { label: "Comprar" },
-            publishedAt: "2026-09-20T10:01:00.000Z",
-          },
-        ],
-      }),
+  it("deletes malformed or transaction-authoritative cached JSON", async () => {
+    const { storage, values } = storageHarness();
+    const key =
+      "https://morro.example/__morro_offline/content/morro-de-sao-paulo.json";
+    values.set(
+      key,
+      new Response(
+        JSON.stringify({
+          ...snapshot(),
+          documents: [
+            {
+              id: "offer-001",
+              destinationId: "morro-de-sao-paulo",
+              kind: "offer_reference",
+              locale: "pt-BR",
+              version: 1,
+              fields: { label: "Comprar" },
+              publishedAt: "2026-09-20T10:01:00.000Z",
+            },
+          ],
+        }),
+      ),
     );
 
-    expect(
-      createBrowserContentSnapshotStorage(local).read("morro-de-sao-paulo"),
-    ).toBeNull();
+    await expect(storage.read("morro-de-sao-paulo")).resolves.toBeNull();
+    expect(values.has(key)).toBe(false);
   });
 });
 
 describe("content snapshot loading", () => {
   it("prefers a fresh validated network snapshot and persists it", async () => {
-    const cache = createBrowserContentSnapshotStorage(storage());
+    const { storage } = storageHarness();
     const value = snapshot();
-    const write = vi.spyOn(cache, "write");
+    const write = vi.spyOn(storage, "write");
 
     await expect(
       loadContentSnapshot({
         destinationId: "morro-de-sao-paulo",
         now: "2026-09-20T12:00:00.000Z",
-        storage: cache,
+        storage,
         fetchSnapshot: async () => value,
       }),
     ).resolves.toEqual({
@@ -128,15 +141,15 @@ describe("content snapshot loading", () => {
   });
 
   it("falls back to a fresh cache when network is unavailable", async () => {
-    const cache = createBrowserContentSnapshotStorage(storage());
+    const { storage } = storageHarness();
     const value = snapshot();
-    cache.write(value);
+    await storage.write(value);
 
     await expect(
       loadContentSnapshot({
         destinationId: "morro-de-sao-paulo",
         now: "2026-09-20T12:00:00.000Z",
-        storage: cache,
+        storage,
         fetchSnapshot: async () => {
           throw new Error("offline");
         },
@@ -149,15 +162,15 @@ describe("content snapshot loading", () => {
   });
 
   it("surfaces expired cache as stale instead of fresh authority", async () => {
-    const cache = createBrowserContentSnapshotStorage(storage());
+    const { storage } = storageHarness();
     const value = snapshot("2026-09-20T11:00:00.000Z");
-    cache.write(value);
+    await storage.write(value);
 
     await expect(
       loadContentSnapshot({
         destinationId: "morro-de-sao-paulo",
         now: "2026-09-20T12:00:00.000Z",
-        storage: cache,
+        storage,
         fetchSnapshot: async () => {
           throw new Error("offline");
         },
@@ -170,14 +183,14 @@ describe("content snapshot loading", () => {
   });
 
   it("does not overwrite valid cache with invalid network data", async () => {
-    const cache = createBrowserContentSnapshotStorage(storage());
+    const { storage } = storageHarness();
     const value = snapshot();
-    cache.write(value);
+    await storage.write(value);
 
     const result = await loadContentSnapshot({
       destinationId: "morro-de-sao-paulo",
       now: "2026-09-20T12:00:00.000Z",
-      storage: cache,
+      storage,
       fetchSnapshot: async () => ({
         ...value,
         documents: [{ kind: "offer_reference" }],
@@ -185,6 +198,6 @@ describe("content snapshot loading", () => {
     });
 
     expect(result.status).toBe("cache");
-    expect(cache.read("morro-de-sao-paulo")).toEqual(value);
+    await expect(storage.read("morro-de-sao-paulo")).resolves.toEqual(value);
   });
 });
