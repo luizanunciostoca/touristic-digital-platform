@@ -30,7 +30,8 @@ button {
 .ticketing-shell {
   width: min(70rem, calc(100% - 2rem));
   margin-inline: auto;
-  padding-block: var(--md-space-8) calc(var(--md-space-12) + var(--md-safe-bottom));
+  padding-block: var(--md-space-8)
+    calc(var(--md-space-12) + var(--md-safe-bottom));
 }
 
 .ticketing-header {
