@@ -123,8 +123,10 @@
   .map-control-button,
   .mapbox-3d-control-button,
   .mapboxgl-ctrl button,
+  .mapboxgl-popup-close-button,
   .leaflet-control a,
   #assistant-input-area button,
+  .voice-selector-toggle,
   .assistant-option-btn,
   .mood-button,
   #sendButton,
@@ -136,6 +138,9 @@
   #minimize-navigation-btn,
   #end-navigation-btn,
   .dialog-close,
+  .md-business-profile-close,
+  .md-business-profile-promotion button,
+  .md-business-profile-action,
   .icon-button,
   .nav-item,
   .sidebar-action,
@@ -149,6 +154,18 @@
   display: inline-flex;
   min-height: var(--md-touch-target-min);
   align-items: center;
+}
+
+.biz-setup-back,
+.biz-demo-back-btn,
+.plans-back-btn {
+  min-width: var(--md-touch-target-min);
+  min-height: var(--md-touch-target-min);
+}
+
+#assistant-voice-selector.minimized {
+  width: var(--md-touch-target-min);
+  height: var(--md-touch-target-min);
 }
 
 /* Safe viewport strategy: 100vh fallback, then small/dynamic viewport units. */
