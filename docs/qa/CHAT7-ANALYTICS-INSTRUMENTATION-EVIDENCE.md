@@ -70,28 +70,17 @@ Delivery uses the same-origin transport already defined by `@touristic/analytics
 
 Transport errors are swallowed by the browser instrumentation so analytics can never break product interaction.
 
-Production ingestion/persistence remains a separate infrastructure acceptance item; this PR does not claim durable Analytics storage.
+This PR is stacked on the durable Analytics runtime composition. The browser therefore sends to the same canonical endpoint implemented by the durable service:
 
-## Runtime ingestion endpoint
+- `POST /api/analytics/v1/events`;
+- same-origin only;
+- bounded JSON payload;
+- rate-limited by opaque network subject;
+- server-side retention policy;
+- durable MySQL persistence through `@touristic/analytics-server`.
 
-The public browser transport now has a real same-origin receiver at `POST /api/analytics/v1/events`.
+The browser session id remains ephemeral in `sessionStorage`. The durable repository derives a one-way SHA-256 `session_hash` and never persists the raw session id.
 
-The runtime endpoint independently validates:
+The endpoint validates canonical schema/event names/attributes before persistence. Analytics remains observational only and does not gain authority over Commerce, Financial, Ticketing or CMS.
 
-- schema version;
-- canonical event name;
-- ISO timestamp;
-- bounded identifiers/context;
-- per-event attribute allowlist;
-- primitive attribute values;
-- maximum request size;
-- exact JSON content type;
-- POST-only method contract.
-
-Unknown top-level fields and unknown attributes are rejected rather than silently persisted.
-
-The raw browser `sessionId` is not recorded. The runtime converts the opaque per-tab session identifier to a SHA-256 visitor hash before handing the event to platform observations.
-
-Accepted events are emitted as `analytics.event.recorded` observations using the existing sanitized observability boundary. The endpoint is therefore functional and no longer returns a generic API 404.
-
-This observation sink is not a durable analytics warehouse. Production retention, aggregation, reporting and deletion/retention policy remain infrastructure/data-platform acceptance items and must not be inferred from a `202 Accepted` runtime response.
+Production credentials and production database provisioning are not activated by this wave. Durable implementation and runtime composition are present in code; production deployment/configuration remains a release/infrastructure acceptance item.
