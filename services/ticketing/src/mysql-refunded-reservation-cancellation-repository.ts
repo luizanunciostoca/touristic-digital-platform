@@ -37,6 +37,7 @@ interface ReservationRow extends RowDataPacket {
   quantity: number;
   status: string;
   expires_at: Date | string;
+  valid_until: Date | string | null;
   order_id: string | null;
   payment_id: string | null;
   created_at: Date | string;
@@ -60,6 +61,7 @@ interface TicketRow extends RowDataPacket {
   code: string;
   status: string;
   issued_at: Date | string;
+  valid_until: Date | string | null;
   validated_at: Date | string | null;
   used_at: Date | string | null;
   cancelled_at: Date | string | null;
@@ -91,6 +93,7 @@ function fromRow(row: ReservationRow): TicketReservation {
     quantity: row.quantity,
     status: row.status,
     expiresAt: time(row.expires_at),
+    validUntil: time(row.valid_until),
     orderId: row.order_id,
     paymentId: row.payment_id,
     createdAt: time(row.created_at),
@@ -119,6 +122,7 @@ function ticketFromRow(row: TicketRow): Ticket {
     code: row.code,
     status: row.status,
     issuedAt: time(row.issued_at),
+    validUntil: time(row.valid_until),
     validatedAt: time(row.validated_at),
     usedAt: time(row.used_at),
     cancelledAt: time(row.cancelled_at),
@@ -148,8 +152,8 @@ async function selectTicketsForUpdate(
   const [rows] = await connection.execute<TicketRow[]>(
     `SELECT ticket_id, order_id, payment_id, destination_id,
             product_kind, product_reference, holder_name, quantity,
-            amount_minor, currency, code, status, issued_at, validated_at,
-            used_at, cancelled_at, updated_at
+            amount_minor, currency, code, status, issued_at, valid_until,
+            validated_at, used_at, cancelled_at, updated_at
      FROM ticketing_tickets
      WHERE order_id = ?
      ORDER BY issued_at ASC, ticket_id ASC
