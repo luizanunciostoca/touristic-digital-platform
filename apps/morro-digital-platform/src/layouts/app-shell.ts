@@ -36,18 +36,29 @@ function createAppShellMarkup(): string {
       </section>
 
       <div class="quick-actions">
-        <button class="action-button primary mood-button" data-mood="happy" aria-label="Open assistant">
+        <button class="action-button primary mood-button md-icon-button" type="button" data-mood="happy" aria-label="Open assistant" aria-haspopup="dialog" aria-controls="assistant-messages" aria-expanded="false">
           <img class="mood-icon" src="/apps/morro-digital-platform/public/assets/emojis/sun_emojis/sun_emoji_1.png" alt="Assistant mood" width="341" height="341" loading="eager" decoding="async" fetchpriority="auto" />
         </button>
       </div>
 
-      <div id="assistant-messages" class="assistant-modal auto-size grow-upward hidden" aria-hidden="true">
-        <button class="minimize-button" aria-label="Minimize assistant" data-i18n-aria="assistant_minimize">×</button>
-        <div class="messages-area">
+      <div
+        id="assistant-messages"
+        class="assistant-modal md-assistant-dialog auto-size grow-upward hidden"
+        role="dialog"
+        aria-modal="false"
+        aria-label="Morro Digital assistant"
+        aria-hidden="true"
+        aria-describedby="assistant-dialog-status"
+        tabindex="-1"
+        data-assistant-state="idle"
+      >
+        <button class="minimize-button md-icon-button" type="button" aria-label="Minimize assistant" data-i18n-aria="assistant_minimize">×</button>
+        <p id="assistant-dialog-status" class="sr-only" role="status" aria-live="polite" aria-atomic="true">Assistente pronto.</p>
+        <div class="messages-area md-assistant-messages" role="region" aria-label="Assistant conversation" aria-live="polite" aria-relevant="additions text">
           <div class="message assistant" data-message-type="standard" data-i18n="assistant_welcome_message">
             🎉 Welcome to Morro Digital! I am your official virtual guide to Morro de São Paulo, ready to help you easily explore tourist spots, beaches, restaurants, parties, tours, and everything you need at your fingertips. How can I help you? 😄
           </div>
-          <div class="assistant-options" aria-label="Explore Morro Digital">
+          <div class="assistant-options md-assistant-options" role="group" aria-label="Explore Morro Digital">
             <button type="button" class="assistant-option-btn" data-value="beaches">Beaches</button>
             <button type="button" class="assistant-option-btn" data-value="restaurants">Restaurants</button>
             <button type="button" class="assistant-option-btn" data-value="hotels">Hotels</button>
@@ -60,7 +71,7 @@ function createAppShellMarkup(): string {
             <button type="button" class="assistant-option-btn" data-value="help">Help</button>
           </div>
         </div>
-        <div class="navigation-instruction-area"></div>
+        <div class="navigation-instruction-area" role="status" aria-live="polite"></div>
       </div>
 
       <div id="carousel-modal" class="carousel-modal hidden">
@@ -105,7 +116,7 @@ function createAppShellMarkup(): string {
         <p class="assistant-voice-settings-support" aria-live="polite">As preferências são salvas neste navegador.</p>
       </section>
 
-      <div id="assistant-input-area" class="assistant-input-area">
+      <div id="assistant-input-area" class="assistant-input-area md-assistant-composer" role="group" aria-label="Assistant composer">
         <input
           type="text"
           id="assistantInput"
@@ -114,9 +125,9 @@ function createAppShellMarkup(): string {
           data-i18n-placeholder="assistant_input_placeholder"
           data-i18n-aria="assistant_input_label"
         />
-        <button id="sendButton" aria-label="Send message" data-i18n-aria="assistant_send_label"><i class="fas fa-paper-plane"></i></button>
-        <button id="voiceButton" aria-label="Send voice message" data-i18n-aria="assistant_voice_label"><i class="fas fa-microphone"></i></button>
-        <button id="configButton" aria-label="Assistant settings" data-i18n-aria="assistant_settings_label"><i class="fas fa-cog"></i></button>
+        <button id="sendButton" class="md-icon-button" type="button" aria-label="Send message" data-i18n-aria="assistant_send_label"><i class="fas fa-paper-plane"></i></button>
+        <button id="voiceButton" class="md-icon-button" type="button" aria-label="Send voice message" aria-pressed="false" data-i18n-aria="assistant_voice_label"><i class="fas fa-microphone"></i></button>
+        <button id="configButton" class="md-icon-button" type="button" aria-label="Assistant settings" data-i18n-aria="assistant_settings_label"><i class="fas fa-cog"></i></button>
       </div>
 
       <div id="globe-map-control" class="globe-map-control">
