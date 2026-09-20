@@ -92,5 +92,4 @@ describe("Ticketing public HTTP offline sync error boundary", () => {
     expect(result.status).toBe(409);
     expect(result.body.error).toBe("TICKETING_TICKET_ALREADY_VALIDATED");
   });
-
 });
