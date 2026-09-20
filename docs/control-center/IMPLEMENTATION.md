@@ -20,29 +20,29 @@
 
 ## Current implementation state
 
-| Area                         | State                                | Evidence                                                                                     |
-| ---------------------------- | ------------------------------------ | -------------------------------------------------------------------------------------------- |
-| Canonical roles              | PASS                                 | `packages/auth/src/index.ts`; Quality/Auth contracts green                                    |
-| Capability model             | PASS                                 | `authorizeCapability`; explicit capability vocabulary; negative admin-surface tests           |
-| Legacy role compatibility    | PASS                                 | legacy roles preserved through centralized capability mapping                                 |
-| Admin API v1 shell           | PASS                                 | `tooling/admin-api.mjs`; fail-closed domain adapter orchestration                              |
-| Dedicated Control Center app | PASS                                 | `apps/control-center/public/`; Chromium contract green                                         |
-| Dashboard                    | PARTIAL                              | Auth/health projections live; remaining domain metrics need owner adapters                   |
-| Universal Search             | PARTIAL                              | Identity search live; domain adapters pending                                                |
-| Users                        | PARTIAL                              | Read projection + Auth-owned hash-only session registry/revoke live; block/reactivate pending |
-| Businesses                   | PARTIAL                              | Membership directory + Business profile owner adapter live; wider business admin contracts pending |
-| Support Mode                 | PARTIAL                              | Signed support session + request-scoped effective-user propagation proven for Business/CRM/Ticketing; remaining panels pending |
-| Audit                        | PASS                                 | Append-only MySQL-backed admin audit with browser persistence proof and fail-closed mutation behavior |
-| System Health                | PASS                                 | Existing platformOperations reused; secret redaction proven in browser                        |
-| Affiliates                   | GAP                                  | Existing equivalent backend + PR #151 runtime retained; Control Center admin adapter pending  |
-| CRM                          | PARTIAL                              | Existing CRM reused through Admin API adapter; full surface orchestration still incomplete    |
-| Ticketing                    | PARTIAL                              | Capability-aware runtime + Admin API adapter for current operator contracts                   |
-| Financial                    | PARTIAL                              | Capability-aware financial gates exist; full Admin API read/critical-action adapter pending   |
-| Content                      | GAP                                  | Admin adapter pending                                                                         |
-| Destinations                 | GAP                                  | Admin adapter pending                                                                         |
-| Step-up auth                 | PASS                                 | Re-auth step-up enforced for session revocation with reason + textual confirmation            |
-| Browser E2E                  | PASS for implemented slice           | Chromium proves login, dashboard, search, Business 360, CRM, support, step-up, audit, system, sessions, desktop/tablet/mobile |
-| Staging                      | GAP                                  | No dedicated Control Center staging certification yet                                         |
+| Area                         | State                      | Evidence                                                                                                                       |
+| ---------------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Canonical roles              | PASS                       | `packages/auth/src/index.ts`; Quality/Auth contracts green                                                                     |
+| Capability model             | PASS                       | `authorizeCapability`; explicit capability vocabulary; negative admin-surface tests                                            |
+| Legacy role compatibility    | PASS                       | legacy roles preserved through centralized capability mapping                                                                  |
+| Admin API v1 shell           | PASS                       | `tooling/admin-api.mjs`; fail-closed domain adapter orchestration                                                              |
+| Dedicated Control Center app | PASS                       | `apps/control-center/public/`; Chromium contract green                                                                         |
+| Dashboard                    | PARTIAL                    | Auth/health projections live; remaining domain metrics need owner adapters                                                     |
+| Universal Search             | PARTIAL                    | Identity search live; domain adapters pending                                                                                  |
+| Users                        | PARTIAL                    | Read projection + Auth-owned hash-only session registry/revoke live; block/reactivate pending                                  |
+| Businesses                   | PARTIAL                    | Membership directory + Business profile owner adapter live; wider business admin contracts pending                             |
+| Support Mode                 | PARTIAL                    | Signed support session + request-scoped effective-user propagation proven for Business/CRM/Ticketing; remaining panels pending |
+| Audit                        | PASS                       | Append-only MySQL-backed admin audit with browser persistence proof and fail-closed mutation behavior                          |
+| System Health                | PASS                       | Existing platformOperations reused; secret redaction proven in browser                                                         |
+| Affiliates                   | GAP                        | Existing equivalent backend + PR #151 runtime retained; Control Center admin adapter pending                                   |
+| CRM                          | PARTIAL                    | Existing CRM reused through Admin API adapter; full surface orchestration still incomplete                                     |
+| Ticketing                    | PARTIAL                    | Capability-aware runtime + Admin API adapter for current operator contracts                                                    |
+| Financial                    | PARTIAL                    | Capability-aware financial gates exist; full Admin API read/critical-action adapter pending                                    |
+| Content                      | GAP                        | Admin adapter pending                                                                                                          |
+| Destinations                 | GAP                        | Admin adapter pending                                                                                                          |
+| Step-up auth                 | PASS                       | Re-auth step-up enforced for session revocation with reason + textual confirmation                                             |
+| Browser E2E                  | PASS for implemented slice | Chromium proves login, dashboard, search, Business 360, CRM, support, step-up, audit, system, sessions, desktop/tablet/mobile  |
+| Staging                      | GAP                        | No dedicated Control Center staging certification yet                                                                          |
 
 ## Security posture of current slice
 

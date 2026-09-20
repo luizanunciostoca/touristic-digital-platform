@@ -504,9 +504,10 @@ describe("Control Center Admin API", () => {
       new URL("http://localhost/api/admin/v1/step-up"),
     );
     expect(stepUpResponse.statusCode).toBe(201);
-    const stepUpCookie = String(
-      stepUpResponse.headers.get("set-cookie"),
-    ).split(";", 1)[0];
+    const stepUpCookie = String(stepUpResponse.headers.get("set-cookie")).split(
+      ";",
+      1,
+    )[0];
 
     const response = responseRecorder();
     const path = "/api/admin/v1/financial/refunds/pay_admin_0001";

@@ -865,8 +865,9 @@ export function createAdminApi({
     }
 
     const adapter = domainAdapters.financial;
-    const scopeMethod =
-      reconciliationAckMatch ? "resolveFindingTenant" : "resolvePaymentTenant";
+    const scopeMethod = reconciliationAckMatch
+      ? "resolveFindingTenant"
+      : "resolvePaymentTenant";
     if (
       !adapter ||
       typeof adapter[definition.adapterMethod] !== "function" ||
