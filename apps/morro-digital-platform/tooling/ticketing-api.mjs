@@ -118,7 +118,9 @@ function collectEnvironment(getEnvironmentValue) {
 }
 
 function featureEnabled(value) {
-  return value === "true";
+  if (!value || value === "false") return false;
+  if (value === "true") return true;
+  throw new Error("TICKETING_FEATURE_ENABLED_INVALID");
 }
 
 function pollInterval(value) {
@@ -291,8 +293,8 @@ export function createTicketingApi({
 
       const [{ normalizeTicketSigningSecret }, ticketingRuntime] =
         await Promise.all([
-          import("../../../packages/ticketing/dist/index.js"),
-          import("../../../services/ticketing/dist/index.js"),
+          import("@touristic/ticketing"),
+          import("@touristic/ticketing-server"),
         ]);
       const {
         MySqlFinancialResultCursorRepository,

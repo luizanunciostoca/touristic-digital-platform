@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   MORRO_LANGUAGE_OVERRIDE_KEY,
+  applyMorroDocumentLocale,
   readMorroLanguageOverride,
   resolveMorroBrowserLocale,
 } from "./browser-locale.js";
@@ -52,6 +53,20 @@ describe("V1 browser locale parity", () => {
         fallbackLocale: "pt",
       }),
     ).toEqual({ locale: "pt-BR", source: "document-fallback" });
+  });
+
+  it("applies RTL only for Hebrew and restores LTR for other locales", () => {
+    const document = {
+      documentElement: { lang: "", dir: "" },
+    } as Document;
+
+    applyMorroDocumentLocale(document, "he-IL");
+    expect(document.documentElement.lang).toBe("he-IL");
+    expect(document.documentElement.dir).toBe("rtl");
+
+    applyMorroDocumentLocale(document, "en-US");
+    expect(document.documentElement.lang).toBe("en-US");
+    expect(document.documentElement.dir).toBe("ltr");
   });
 
   it("reads only the dedicated manual language override key", () => {

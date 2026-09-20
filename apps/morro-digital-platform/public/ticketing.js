@@ -1,3 +1,15 @@
+import { initializeMorroBrowserLocale } from "/runtime/browser-locale.js";
+import {
+  applyCommerceDocumentCopy,
+  commerceIntlLocale,
+  getTicketingPresentationCopy,
+} from "/runtime/commerce-i18n.js";
+
+const localeResolution = initializeMorroBrowserLocale({ document });
+const presentationLocale = commerceIntlLocale(localeResolution.locale);
+const copy = getTicketingPresentationCopy(presentationLocale);
+applyCommerceDocumentCopy(document, "ticketing", presentationLocale);
+
 const state = {
   session: null,
   csrfToken: "",
@@ -48,7 +60,7 @@ function money(value) {
     typeof value.currency !== "string"
   )
     return "—";
-  return new Intl.NumberFormat("pt-BR", {
+  return new Intl.NumberFormat(presentationLocale, {
     style: "currency",
     currency: value.currency,
   }).format(value.minorUnits / 100);
@@ -57,7 +69,7 @@ function money(value) {
 function dateTime(value) {
   const date = new Date(value);
   return Number.isFinite(date.getTime())
-    ? new Intl.DateTimeFormat("pt-BR", {
+    ? new Intl.DateTimeFormat(presentationLocale, {
         dateStyle: "medium",
         timeStyle: "short",
         timeZone: "America/Bahia",
@@ -66,17 +78,17 @@ function dateTime(value) {
 }
 
 function productKindLabel(offer) {
-  if (offer?.product?.kind === "tour") return "Passeio";
-  if (offer?.product?.kind === "transport") return "Transporte";
-  return "Experiência";
+  if (offer?.product?.kind === "tour") return copy.kindTour;
+  if (offer?.product?.kind === "transport") return copy.kindTransport;
+  return copy.kindExperience;
 }
 
 function productUnitLabel(product, quantity = 1) {
   const plural = Number(quantity) !== 1;
   if (product?.kind === "transport") {
-    return plural ? "passagens" : "passagem";
+    return plural ? copy.passPlural : copy.passSingular;
   }
-  return plural ? "ingressos" : "ingresso";
+  return plural ? copy.ticketPlural : copy.ticketSingular;
 }
 
 const offerIdPattern = /^[A-Za-z0-9_-]{3,120}$/u;
@@ -160,7 +172,7 @@ async function session() {
   }
   state.session = payload.data;
   state.csrfToken = payload.data.csrfToken;
-  elements.sessionLabel.textContent = "Compra segura · visitante";
+  elements.sessionLabel.textContent = copy.secureGuest;
   return payload.data;
 }
 
@@ -223,7 +235,7 @@ function renderOffers() {
   if (state.offers.length === 0) {
     const empty = document.createElement("p");
     empty.className = "empty";
-    empty.textContent = "Nenhuma oferta está disponível para reserva agora.";
+    empty.textContent = copy.noOffers;
     elements.offers.append(empty);
     return;
   }
@@ -242,10 +254,13 @@ function renderOffers() {
     when.textContent = dateTime(offer.startsAt);
     const price = document.createElement("p");
     price.className = "offer-price";
-    price.textContent = `${money(offer.unitAmount)} por ${productUnitLabel(offer.product)}`;
+    price.textContent = copy.pricePer(
+      money(offer.unitAmount),
+      productUnitLabel(offer.product),
+    );
     const availability = document.createElement("p");
     availability.className = "availability";
-    availability.textContent = `${offer.availableQuantity} disponíveis`;
+    availability.textContent = copy.availableCount(offer.availableQuantity);
     content.append(kind, title, when, price, availability);
 
     const actions = document.createElement("div");
@@ -253,12 +268,13 @@ function renderOffers() {
     const detail = document.createElement("a");
     detail.className = "button button-secondary";
     detail.href = `/experience.html?id=${encodeURIComponent(offer.id)}`;
-    detail.textContent = "Ver detalhes";
+    detail.textContent = copy.details;
     const button = document.createElement("button");
     button.type = "button";
     button.className = "button button-primary";
     button.disabled = offer.availableQuantity < 1;
-    button.textContent = offer.availableQuantity > 0 ? "Reservar" : "Esgotado";
+    button.textContent =
+      offer.availableQuantity > 0 ? copy.reserve : copy.soldOut;
     button.addEventListener("click", () =>
       selectOffer(offer, { scroll: true }),
     );
@@ -295,14 +311,7 @@ async function loadOffers() {
 }
 
 function statusLabel(status) {
-  return (
-    {
-      held: "Aguardando pagamento",
-      confirmed: "Confirmada",
-      expired: "Expirada",
-      cancelled: "Cancelada",
-    }[status] || status
-  );
+  return copy.status[status] || status;
 }
 
 async function showTicket(reservation) {
@@ -315,8 +324,8 @@ async function showTicket(reservation) {
   elements.ticketTitle.textContent =
     reservation.product?.reference ||
     (reservation.product?.kind === "transport"
-      ? "Sua passagem"
-      : "Seu ingresso");
+      ? copy.yourPass
+      : copy.yourTicket);
   elements.ticketQr.replaceChildren();
   const template = document.createElement("template");
   template.innerHTML = ticket.qrSvg;
@@ -326,9 +335,12 @@ async function showTicket(reservation) {
   elements.ticketQr.append(svg);
   elements.ticketCode.textContent = ticket.code;
   const validity = ticket.validUntil
-    ? ` · válido até ${dateTime(ticket.validUntil)}`
+    ? ` · ${copy.validThrough(dateTime(ticket.validUntil))}`
     : "";
-  elements.ticketMeta.textContent = `${ticket.quantity} ${productUnitLabel(reservation.product, ticket.quantity)} · ${money(ticket.amount)} · emitido em ${dateTime(ticket.issuedAt)}${validity}`;
+  elements.ticketMeta.textContent = `${ticket.quantity} ${productUnitLabel(
+    reservation.product,
+    ticket.quantity,
+  )} · ${money(ticket.amount)} · ${copy.issuedAt(dateTime(ticket.issuedAt))}${validity}`;
   elements.dialog.showModal();
 }
 
@@ -350,7 +362,7 @@ function renderReservations(reservations) {
   if (reservations.length === 0) {
     const empty = document.createElement("p");
     empty.className = "empty";
-    empty.textContent = "Você ainda não possui reservas neste navegador.";
+    empty.textContent = copy.noReservations;
     elements.reservations.append(empty);
     return;
   }
@@ -362,14 +374,17 @@ function renderReservations(reservations) {
     title.textContent =
       reservation.product?.reference || reservation.inventoryId;
     const detail = document.createElement("p");
-    detail.textContent = `${reservation.quantity} ${productUnitLabel(reservation.product, reservation.quantity)} · ${money(reservation.unitAmount)} cada`;
+    detail.textContent = `${reservation.quantity} ${productUnitLabel(
+      reservation.product,
+      reservation.quantity,
+    )} · ${copy.each(money(reservation.unitAmount))}`;
     const expiry = document.createElement("p");
     expiry.textContent =
       reservation.status === "held"
-        ? `Reserva válida até ${dateTime(reservation.expiresAt)}`
+        ? copy.validUntil(dateTime(reservation.expiresAt))
         : reservation.status === "confirmed" && reservation.validUntil
-          ? `Válido até ${dateTime(reservation.validUntil)}`
-          : `Criada em ${dateTime(reservation.createdAt)}`;
+          ? copy.validUntil(dateTime(reservation.validUntil))
+          : copy.createdAt(dateTime(reservation.createdAt));
     const status = document.createElement("span");
     status.className = `status status-${reservation.status}`;
     status.textContent = statusLabel(reservation.status);
@@ -383,8 +398,8 @@ function renderReservations(reservations) {
       ticket.className = "button button-primary";
       ticket.textContent =
         reservation.product?.kind === "transport"
-          ? "Ver passagem"
-          : "Ver ingresso";
+          ? copy.viewPass
+          : copy.viewTicket;
       ticket.addEventListener(
         "click",
         () =>
@@ -392,8 +407,8 @@ function renderReservations(reservations) {
             setMessage(
               error.message ||
                 (reservation.product?.kind === "transport"
-                  ? "Passagem indisponível."
-                  : "Ingresso indisponível."),
+                  ? copy.passUnavailable
+                  : copy.ticketUnavailable),
               true,
             );
           }),
@@ -404,12 +419,12 @@ function renderReservations(reservations) {
       const cancel = document.createElement("button");
       cancel.type = "button";
       cancel.className = "button button-secondary";
-      cancel.textContent = "Cancelar reserva";
+      cancel.textContent = copy.cancelReservation;
       cancel.addEventListener(
         "click",
         () =>
           void cancelReservation(reservation).catch((error) => {
-            setMessage(error.message || "Não foi possível cancelar.", true);
+            setMessage(error.message || copy.cancelFailed, true);
           }),
       );
       actions.append(cancel);
@@ -467,9 +482,7 @@ async function waitForTicket(reservationId) {
     }
     await wait(500);
   }
-  setMessage(
-    "Pagamento confirmado. O ingresso está finalizando a emissão; atualize em instantes.",
-  );
+  setMessage(copy.paymentConfirmedFinalizing);
 }
 
 async function resumeCheckout() {
@@ -482,7 +495,7 @@ async function resumeCheckout() {
     clearCheckout();
     return;
   }
-  setMessage("Verificando a confirmação do pagamento…");
+  setMessage(copy.checkingPayment);
   for (let attempt = 0; attempt < 120; attempt += 1) {
     const response = await fetch(
       `/api/payments/v1/checkouts/${encodeURIComponent(active.checkoutId)}`,
@@ -504,24 +517,19 @@ async function resumeCheckout() {
       payload.data?.verifiedPayment?.verified === true
     ) {
       clearCheckout();
-      setMessage("Pagamento confirmado. Emitindo seu ingresso…");
+      setMessage(copy.paymentConfirmedIssuing);
       await waitForTicket(active.reservationId);
       return;
     }
     if (["FAILED", "CANCELLED", "EXPIRED", "REFUNDED"].includes(status)) {
       clearCheckout();
-      setMessage(
-        "O pagamento não foi concluído. A reserva será atualizada conforme o estado verificado.",
-        true,
-      );
+      setMessage(copy.paymentNotCompleted, true);
       await loadReservations();
       return;
     }
     await wait(2_500);
   }
-  setMessage(
-    "A confirmação continua pendente. Você pode fechar esta página e voltar depois.",
-  );
+  setMessage(copy.confirmationPending);
 }
 
 async function createCheckout(reservationPayload) {
@@ -573,7 +581,7 @@ async function createCheckout(reservationPayload) {
 async function submitReservation(event) {
   event.preventDefault();
   if (!state.selectedOffer) {
-    setMessage("Selecione uma experiência antes de reservar.", true);
+    setMessage(copy.selectExperienceFirst, true);
     return;
   }
   const holder = {
@@ -589,12 +597,12 @@ async function submitReservation(event) {
     !Number.isSafeInteger(quantity) ||
     quantity < 1
   ) {
-    setMessage("Preencha nome, e-mail e quantidade corretamente.", true);
+    setMessage(copy.fillFields, true);
     return;
   }
 
   elements.reserve.disabled = true;
-  setMessage("Criando uma reserva segura…");
+  setMessage(copy.creatingReservation);
   try {
     const reference = `web_${crypto.randomUUID().replaceAll("-", "")}`;
     const payload = await api("/api/ticketing/v1/reservations", {
@@ -612,10 +620,10 @@ async function submitReservation(event) {
     });
     if (!payload.data?.reservation || !payload.data?.checkout)
       throw new Error("RESERVATION_RESPONSE_INVALID");
-    setMessage("Reserva criada. Abrindo o checkout seguro…");
+    setMessage(copy.reservationCreated);
     await createCheckout(payload.data);
   } catch (error) {
-    setMessage(error.message || "Não foi possível criar a reserva.", true);
+    setMessage(error.message || copy.createReservationFailed, true);
     elements.reserve.disabled = false;
     await Promise.allSettled([loadOffers(), loadReservations()]);
   }
@@ -627,7 +635,7 @@ elements.form.addEventListener(
 );
 elements.refresh.addEventListener("click", () => {
   void Promise.all([loadOffers(), loadReservations()]).catch((error) => {
-    setMessage(error.message || "Não foi possível atualizar.", true);
+    setMessage(error.message || copy.updateFailed, true);
   });
 });
 elements.dialogClose.addEventListener("click", () => elements.dialog.close());
@@ -638,6 +646,6 @@ elements.dialogClose.addEventListener("click", () => elements.dialog.close());
     await Promise.all([loadOffers(), loadReservations()]);
     await resumeCheckout();
   } catch (error) {
-    setMessage(error.message || "Ticketing indisponível.", true);
+    setMessage(error.message || copy.ticketingUnavailable, true);
   }
 })();

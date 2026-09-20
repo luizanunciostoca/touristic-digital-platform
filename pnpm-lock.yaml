@@ -80,6 +80,12 @@ importers:
       "@touristic/search":
         specifier: workspace:*
         version: link:../../packages/search
+      "@touristic/ticketing":
+        specifier: workspace:*
+        version: link:../../packages/ticketing
+      "@touristic/ticketing-server":
+        specifier: workspace:*
+        version: link:../../services/ticketing
 
   packages/affiliates: {}
 

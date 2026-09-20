@@ -25,6 +25,12 @@ const required = [
   "DASHBOARD_ADMIN_GLOBAL_BYPASS_CONFIRMED",
   "ORDERING_DATABASE_URL",
   "FINANCIAL_DATABASE_URL",
+  "TICKETING_FEATURE_ENABLED",
+  "TICKETING_DATABASE_URL",
+  "TICKETING_SIGNING_SECRET",
+  "TICKETING_OFFLINE_PROVISIONING_SECRET",
+  "TICKETING_FINANCIAL_POLL_INTERVAL_MS",
+  "CRM_DATABASE_URL",
   "ORDERING_PRICING_CATALOG_JSON",
   "PAYMENTS_DESTINATION_ID",
   "PAYMENTS_RETURN_URL_ORIGINS",
@@ -53,6 +59,18 @@ const required = [
   "MERCADO_PAGO_SUBSCRIPTIONS_PUBLIC_KEY",
   "AFFILIATES_DATABASE_URL",
   "AFFILIATES_DATABASE_POOL_SIZE",
+  "OPENAI_API_KEY",
+  "OPENAI_MODEL",
+  "OPENAI_PRICING_MODEL",
+  "OPENAI_PROVIDER_HARD_LIMIT_CONFIRMED",
+  "OPENAI_INPUT_USD_PER_1M_TOKENS",
+  "OPENAI_OUTPUT_USD_PER_1M_TOKENS",
+  "OPENAI_DAILY_COST_LIMIT_USD",
+  "OPENAI_MONTHLY_COST_LIMIT_USD",
+  "OPENAI_REQUEST_RESERVE_USD",
+  "OPENAI_MAX_CONCURRENCY",
+  "OPENAI_RUNTIME_REPLICA_COUNT",
+  "OPENAI_GOVERNANCE_STATE_FILE",
 ];
 const missing = required.filter((key) => !values.has(key));
 if (missing.length > 0)
@@ -99,6 +117,37 @@ if (subscriptionsEnabled !== "true" && subscriptionsEnabled !== "false") {
   throw new Error("PAYMENTS_SUBSCRIPTIONS_ENABLED must be true or false");
 }
 
+const ticketingEnabled = values.get("TICKETING_FEATURE_ENABLED");
+if (ticketingEnabled !== "true" && ticketingEnabled !== "false") {
+  throw new Error("TICKETING_FEATURE_ENABLED must be true or false");
+}
+const ticketingPollInterval = Number(
+  values.get("TICKETING_FINANCIAL_POLL_INTERVAL_MS"),
+);
+if (
+  !Number.isSafeInteger(ticketingPollInterval) ||
+  ticketingPollInterval < 500 ||
+  ticketingPollInterval > 60_000
+) {
+  throw new Error(
+    "TICKETING_FINANCIAL_POLL_INTERVAL_MS must be an integer between 500 and 60000",
+  );
+}
+
+const openAiHardLimitConfirmed = values.get(
+  "OPENAI_PROVIDER_HARD_LIMIT_CONFIRMED",
+);
+if (
+  openAiHardLimitConfirmed !== "true" &&
+  openAiHardLimitConfirmed !== "false"
+) {
+  throw new Error("OPENAI_PROVIDER_HARD_LIMIT_CONFIRMED must be true or false");
+}
+const openAiReplicaCount = Number(values.get("OPENAI_RUNTIME_REPLICA_COUNT"));
+if (!Number.isSafeInteger(openAiReplicaCount) || openAiReplicaCount < 1) {
+  throw new Error("OPENAI_RUNTIME_REPLICA_COUNT must be a positive integer");
+}
+
 const readinessDelay = Number(
   values.get("PLATFORM_SHUTDOWN_READINESS_DELAY_MS"),
 );
@@ -109,5 +158,5 @@ if (!Number.isSafeInteger(drainTimeout) || drainTimeout < 1000)
   throw new Error("PLATFORM_SHUTDOWN_DRAIN_TIMEOUT_MS must be >= 1000");
 
 console.log(
-  `Environment inventory valid: ${values.size} keys; Payments replicas=${replicas}; distributedRateLimit=${distributed}; MercadoPagoMode=${checkoutMode}; subscriptions=${subscriptionsEnabled}`,
+  `Environment inventory valid: ${values.size} keys; Payments replicas=${replicas}; distributedRateLimit=${distributed}; MercadoPagoMode=${checkoutMode}; subscriptions=${subscriptionsEnabled}; Ticketing=${ticketingEnabled}; OpenAIHardLimit=${openAiHardLimitConfirmed}; OpenAIReplicas=${openAiReplicaCount}`,
 );

@@ -1,3 +1,15 @@
+import { initializeMorroBrowserLocale } from "/runtime/browser-locale.js";
+import {
+  applyCommerceDocumentCopy,
+  commerceIntlLocale,
+  getExperiencePresentationCopy,
+} from "/runtime/commerce-i18n.js";
+
+const localeResolution = initializeMorroBrowserLocale({ document });
+const presentationLocale = commerceIntlLocale(localeResolution.locale);
+const copy = getExperiencePresentationCopy(presentationLocale);
+applyCommerceDocumentCopy(document, "experience", presentationLocale);
+
 const elements = {
   loading: document.querySelector("#experience-loading"),
   card: document.querySelector("#experience-card"),
@@ -20,7 +32,7 @@ function money(value) {
   ) {
     return "—";
   }
-  return new Intl.NumberFormat("pt-BR", {
+  return new Intl.NumberFormat(presentationLocale, {
     style: "currency",
     currency: value.currency,
   }).format(value.minorUnits / 100);
@@ -29,18 +41,18 @@ function money(value) {
 function dateTime(value) {
   const date = new Date(value);
   return Number.isFinite(date.getTime())
-    ? new Intl.DateTimeFormat("pt-BR", {
+    ? new Intl.DateTimeFormat(presentationLocale, {
         dateStyle: "long",
         timeStyle: "short",
         timeZone: "America/Bahia",
       }).format(date)
-    : "A confirmar";
+    : copy.confirmLater;
 }
 
 function kindLabel(offer) {
-  if (offer?.product?.kind === "tour") return "Passeio";
-  if (offer?.product?.kind === "transport") return "Transporte";
-  return "Experiência";
+  if (offer?.product?.kind === "tour") return copy.kindTour;
+  if (offer?.product?.kind === "transport") return copy.kindTransport;
+  return copy.kindExperience;
 }
 
 function description(offer) {
@@ -49,8 +61,8 @@ function description(offer) {
     " ",
   );
   return reference
-    ? `${kindLabel(offer)} disponível no Morro Digital. ${reference}. Reserve com disponibilidade e preço confirmados pelo inventário oficial da plataforma.`
-    : "Reserve esta experiência pelo inventário oficial do Morro Digital.";
+    ? copy.description(kindLabel(offer), reference)
+    : copy.fallbackDescription(kindLabel(offer));
 }
 
 function showError(message) {
@@ -62,7 +74,7 @@ function showError(message) {
 async function load() {
   const id = new URLSearchParams(location.search).get("id")?.trim();
   if (!id) {
-    showError("Experiência não informada.");
+    showError(copy.missingExperience);
     return;
   }
   const response = await fetch("/api/ticketing/v1/inventory", {
@@ -76,30 +88,34 @@ async function load() {
   const offers = Array.isArray(payload.data) ? payload.data : [];
   const offer = offers.find((entry) => entry?.id === id);
   if (!offer) {
-    showError("Esta experiência não está disponível no momento.");
+    showError(copy.unavailableNow);
     return;
   }
 
   elements.kind.textContent = kindLabel(offer);
-  elements.title.textContent = offer.label || "Experiência Morro Digital";
+  elements.title.textContent =
+    offer.label || `Morro Digital · ${copy.kindExperience}`;
   elements.description.textContent = description(offer);
   elements.start.textContent = dateTime(offer.startsAt);
   elements.end.textContent = dateTime(offer.endsAt);
   elements.price.textContent = money(offer.unitAmount);
-  elements.availability.textContent = `${Number(offer.availableQuantity || 0)} disponíveis`;
-  elements.salesWindow.textContent = `${dateTime(offer.salesStartAt)} até ${dateTime(offer.salesEndAt)}`;
+  elements.availability.textContent = copy.availableCount(
+    Number(offer.availableQuantity || 0),
+  );
+  elements.salesWindow.textContent = copy.salesWindow(
+    dateTime(offer.salesStartAt),
+    dateTime(offer.salesEndAt),
+  );
   elements.reserve.href = `/tickets.html?offer=${encodeURIComponent(offer.id)}`;
   elements.reserve.textContent =
     Number(offer.availableQuantity || 0) > 0
-      ? "Reservar agora"
-      : "Ver disponibilidade";
+      ? copy.reserveNow
+      : copy.viewAvailability;
   elements.loading.hidden = true;
   elements.card.hidden = false;
-  document.title = `${offer.label || "Experiência"} · Morro Digital`;
+  document.title = copy.documentTitle(offer.label || copy.kindExperience);
 }
 
 void load().catch(() => {
-  showError(
-    "Não foi possível carregar esta experiência agora. Tente novamente em instantes.",
-  );
+  showError(copy.loadFailed);
 });

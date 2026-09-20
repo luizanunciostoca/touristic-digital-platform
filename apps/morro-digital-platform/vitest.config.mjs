@@ -49,13 +49,78 @@ export default defineConfig({
       { find: "@touristic/core", replacement: source("core") },
       { find: "@touristic/shared", replacement: source("shared") },
       {
+        find: "@touristic/crm/authorization",
+        replacement: source("crm", "authorization.ts"),
+      },
+      {
+        find: "@touristic/crm/leads-boundary",
+        replacement: source("crm", "leads-boundary.ts"),
+      },
+      {
         find: "@touristic/crm/lead-detail-contract",
         replacement: source("crm", "lead-detail-contract.ts"),
+      },
+      {
+        find: "@touristic/crm/lead-detail-boundary",
+        replacement: source("crm", "lead-detail-boundary.ts"),
+      },
+      {
+        find: "@touristic/crm/metrics-boundary",
+        replacement: source("crm", "metrics-boundary.ts"),
+      },
+      {
+        find: "@touristic/crm/meetings-boundary",
+        replacement: source("crm", "meetings-boundary.ts"),
+      },
+      {
+        find: "@touristic/crm/proposals-boundary",
+        replacement: source("crm", "proposals-boundary.ts"),
+      },
+      {
+        find: "@touristic/crm/proposals-public-boundary",
+        replacement: source("crm", "proposals-public-boundary.ts"),
+      },
+      {
+        find: "@touristic/crm/contracts-boundary",
+        replacement: source("crm", "contracts-boundary.ts"),
+      },
+      {
+        find: "@touristic/crm/contracts-public-boundary",
+        replacement: source("crm", "contracts-public-boundary.ts"),
+      },
+      {
+        find: "@touristic/crm/followups-boundary",
+        replacement: source("crm", "followups-boundary.ts"),
+      },
+      {
+        find: "@touristic/crm/followups-scheduler",
+        replacement: source("crm", "followups-scheduler.ts"),
+      },
+      {
+        find: "@touristic/crm/trials-boundary",
+        replacement: source("crm", "trials-boundary.ts"),
+      },
+      {
+        find: "@touristic/crm/trials-scheduler",
+        replacement: source("crm", "trials-scheduler.ts"),
+      },
+      {
+        find: "@touristic/crm/trials-notification",
+        replacement: source("crm", "trials-notification.ts"),
+      },
+      {
+        find: "@touristic/crm/referrals-boundary",
+        replacement: source("crm", "referrals-boundary.ts"),
       },
       {
         find: "@touristic/crm/settings-contract",
         replacement: source("crm", "settings-contract.ts"),
       },
+      {
+        find: "@touristic/crm/ai-content-contract",
+        replacement: source("crm", "ai-content-contract.ts"),
+      },
+      { find: "@touristic/crm", replacement: source("crm") },
       { find: "@touristic/geospatial", replacement: source("geospatial") },
       { find: "@touristic/navigation", replacement: source("navigation") },
       {
@@ -95,9 +160,14 @@ export default defineConfig({
         replacement: source("ordering", "subscription.ts"),
       },
       { find: "@touristic/ordering", replacement: source("ordering") },
+      { find: "@touristic/ticketing", replacement: source("ticketing") },
       {
         find: "@touristic/ordering-server",
         replacement: serviceSource("ordering"),
+      },
+      {
+        find: "@touristic/ticketing-server",
+        replacement: serviceSource("ticketing"),
       },
       {
         find: "@touristic/financial-server/mercado-pago-card-payment",
