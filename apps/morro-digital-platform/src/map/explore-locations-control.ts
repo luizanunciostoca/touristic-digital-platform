@@ -54,7 +54,11 @@ export type ExploreLocationsCommand =
   | Readonly<{ type: "apply_option"; value: string }>
   | Readonly<{ type: "show_all" }>
   | Readonly<{ type: "show_nearby" }>
-  | Readonly<{ type: "select_place"; place: string }>
+  | Readonly<{
+      type: "select_place";
+      place: string;
+      category?: string;
+    }>
   | Readonly<{ type: "map_filter_category"; category: string }>
   | Readonly<{ type: "show_all_locations" }>
   | Readonly<{ type: "back_to_filters" }>
@@ -127,6 +131,20 @@ export function getExploreLocationsForCategory(
 ): readonly MorroV1SearchCatalogItem[] {
   return morroV1SearchCatalog.filter(
     (location) => location.category === category,
+  );
+}
+
+export function resolveExploreLocationByName(
+  place: string,
+  category?: string,
+): MorroV1SearchCatalogItem | undefined {
+  const normalizedPlace = normalizeSearchText(place);
+  const normalizedCategory = category ? normalizeSearchText(category) : null;
+  return morroV1SearchCatalog.find(
+    (candidate) =>
+      normalizeSearchText(candidate.name) === normalizedPlace &&
+      (normalizedCategory === null ||
+        normalizeSearchText(candidate.category) === normalizedCategory),
   );
 }
 
@@ -910,9 +928,9 @@ export function installExploreLocationsControl({
     }
 
     if (command.type === "select_place") {
-      const normalized = normalizeSearchText(command.place);
-      const location = morroV1SearchCatalog.find(
-        (candidate) => normalizeSearchText(candidate.name) === normalized,
+      const location = resolveExploreLocationByName(
+        command.place,
+        command.category,
       );
       if (!location) return false;
       if (activeCategory?.value !== location.category) {
