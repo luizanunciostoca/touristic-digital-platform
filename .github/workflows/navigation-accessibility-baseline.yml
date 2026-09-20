@@ -153,10 +153,12 @@ jobs:
               const banner = document.getElementById('instruction-banner');
               const minimize = document.getElementById('minimize-navigation-btn');
               const end = document.getElementById('end-navigation-btn');
+              const assistantInput = document.getElementById('assistant-input-area');
               const instruction = document.getElementById('instruction-main');
               const bannerRect = banner?.getBoundingClientRect();
               const minimizeRect = minimize?.getBoundingClientRect();
               const endRect = end?.getBoundingClientRect();
+              const assistantInputRect = assistantInput?.getBoundingClientRect();
               const minimizeStyle = minimize ? getComputedStyle(minimize) : null;
               const mainStyle = instruction ? getComputedStyle(instruction) : null;
               const detailsElement = document.getElementById('instruction-details');
@@ -198,7 +200,8 @@ jobs:
                 instruction: instruction?.textContent?.trim() ?? '',
                 bannerRect: bannerRect ? { left: bannerRect.left, right: bannerRect.right, top: bannerRect.top, bottom: bannerRect.bottom, width: bannerRect.width, height: bannerRect.height } : null,
                 minimizeRect: minimizeRect ? { width: minimizeRect.width, height: minimizeRect.height } : null,
-                endRect: endRect ? { width: endRect.width, height: endRect.height } : null,
+                endRect: endRect ? { width: endRect.width, height: endRect.height, top: endRect.top, bottom: endRect.bottom } : null,
+                assistantInputRect: assistantInputRect ? { top: assistantInputRect.top, bottom: assistantInputRect.bottom } : null,
                 mainFontPx: Number.parseFloat(mainStyle?.fontSize ?? '0'),
                 detailsFontPx: Number.parseFloat(detailsStyle?.fontSize ?? '0'),
                 endBottomGap: endRect ? innerHeight - endRect.bottom : null,
@@ -257,13 +260,18 @@ jobs:
               state.viewport.width <= 720 &&
               (state.endBottomGap === null ||
                 state.endBottomGap < 0 ||
-                state.endBottomGap > 80 ||
-                state.endTouchAction !== 'manipulation')
+                state.endBottomGap > 120 ||
+                state.endTouchAction !== 'manipulation' ||
+                !state.assistantInputRect ||
+                !state.endRect ||
+                state.endRect.bottom > state.assistantInputRect.top)
             ) {
               throw new Error(
                 `Navigation one-hand action placement drift for ${testCase.name}: ${JSON.stringify({
                   endBottomGap: state.endBottomGap,
                   endTouchAction: state.endTouchAction,
+                  endRect: state.endRect,
+                  assistantInputRect: state.assistantInputRect,
                 })}`,
               );
             }
