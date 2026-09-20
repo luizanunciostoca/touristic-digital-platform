@@ -153,6 +153,21 @@ describe("createMorroTourSelectionController", () => {
     expect(engine.setCenter).toHaveBeenCalledOnce();
   });
 
+  it("resets the active tour state without touching map markers owned by another flow", () => {
+    const engine = createEngine();
+    const controller = createMorroTourSelectionController({
+      engine,
+      events: new EventBus(),
+      initialTourId: "volta-a-ilha",
+    });
+
+    controller.resetSelection();
+
+    expect(controller.activeTourId).toBeNull();
+    expect(engine.replaceMarkers).not.toHaveBeenCalled();
+    expect(engine.setCenter).not.toHaveBeenCalled();
+  });
+
   it("publishes lookup failure before rejecting an unknown tour", async () => {
     const engine = createEngine();
     const events = new EventBus();
