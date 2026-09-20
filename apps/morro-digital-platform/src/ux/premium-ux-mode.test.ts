@@ -234,6 +234,31 @@ describe("Chat 6 CSS modernization + Premium UX foundations", () => {
     expect(css).toContain(":has([data-explore-category])");
   });
 
+  it("composes real controls around place, assistant, navigation and tour priorities", async () => {
+    const css = await readPublic("premium-ux-v2.css");
+
+    expect(css).toContain('body[data-md-mode="place"] #weather-widget');
+    expect(css).toContain('body[data-md-mode="place"] #globe-map-control');
+    expect(css).toContain(
+      'body:not(.tour-active)[data-md-mode="assistant"] #weather-widget',
+    );
+    expect(css).toContain(
+      'body:not(.tour-active)[data-md-mode="assistant"] #globe-map-control',
+    );
+    expect(css).toContain('body[data-md-mode="navigation"] #submenu');
+    expect(css).toContain('body[data-md-mode="tour"] #submenu');
+    expect(css).toMatch(
+      /body\[data-md-mode="navigation"\]:not\(\.assistant-modal-open\)\s+#assistant-input-area/u,
+    );
+    expect(css).toMatch(
+      /body\[data-md-mode="tour"\]:not\(\.assistant-modal-open\)\s+#assistant-input-area/u,
+    );
+    expect(css).toContain('body[data-md-mode="tour"] .quick-actions');
+    expect(css).toContain("visibility: hidden");
+    expect(css).toContain("pointer-events: none");
+    expect(css).not.toContain("transition: all");
+  });
+
   it("loads the premium bridge after feature/legacy CSS but before Design System V2", async () => {
     for (const surface of ["index.html", "experience.html", "tickets.html"]) {
       const html = await readPublic(surface);
