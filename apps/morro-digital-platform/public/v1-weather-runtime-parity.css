@@ -1,0 +1,15 @@
+/*
+ * V1 weather runtime parity.
+ *
+ * The canonical V1 applies this rule dynamically from
+ * js/map/mapbox-primary-init.js after the base weather stylesheet.
+ * Keep it separate from the byte-identical legacy weather.css snapshot.
+ */
+#weather-widget {
+  z-index: 1000 !important;
+  position: fixed !important;
+  top: 8px !important;
+  right: 8px !important;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+}
