@@ -3,6 +3,7 @@ name: Auth Login Browser Contract
 on:
   workflow_dispatch:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
     paths:
       - ".github/workflows/auth-login-browser-contract.yml"
       - "dashboard/**"
@@ -52,6 +53,7 @@ concurrency:
 
 jobs:
   auth-login-browser:
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
