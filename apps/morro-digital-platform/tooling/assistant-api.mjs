@@ -157,9 +157,14 @@ export function createAssistantApi({
   const rateBuckets = new Map();
   const environment =
     getEnvironmentValue ?? ((key) => String(process.env[key] ?? ""));
-  const hardLimitConfirmed =
-    environment("OPENAI_PROVIDER_HARD_LIMIT_CONFIRMED").trim().toLowerCase() ===
-    "true";
+  const hardLimitValue = environment("OPENAI_PROVIDER_HARD_LIMIT_CONFIRMED")
+    .trim()
+    .toLowerCase();
+  const hardLimitSettingValid =
+    hardLimitValue === "" ||
+    hardLimitValue === "false" ||
+    hardLimitValue === "true";
+  const hardLimitConfirmed = hardLimitValue === "true";
   const model = environment("OPENAI_MODEL").trim();
   const pricingModel = environment("OPENAI_PRICING_MODEL").trim();
   const pricingModelMatches = Boolean(model && pricingModel === model);
@@ -239,6 +244,7 @@ export function createAssistantApi({
   function observabilitySnapshot() {
     return Object.freeze({
       hardLimitConfirmed,
+      hardLimitSettingValid,
       model: model || null,
       pricingModel: pricingModel || null,
       pricingConfigured,
@@ -283,6 +289,13 @@ export function createAssistantApi({
   }
 
   function readinessCheck() {
+    if (!hardLimitSettingValid) {
+      return Object.freeze({
+        status: "fail",
+        critical: true,
+        detail: "OPENAI_PROVIDER_HARD_LIMIT_CONFIRMED_INVALID",
+      });
+    }
     if (!hardLimitConfirmed) {
       return Object.freeze({
         status: "pass",
