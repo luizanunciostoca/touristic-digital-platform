@@ -1018,20 +1018,32 @@ async function renderContent(contentId) {
         const status = document.querySelector("#content-create-status");
         if (status) status.textContent = "Criando…";
         try {
-          const title = document.querySelector("#content-create-title")?.value?.trim();
-          const summary = document.querySelector("#content-create-summary")?.value?.trim();
-          const sourceReference = document.querySelector("#content-create-source")?.value?.trim();
+          const title = document
+            .querySelector("#content-create-title")
+            ?.value?.trim();
+          const summary = document
+            .querySelector("#content-create-summary")
+            ?.value?.trim();
+          const sourceReference = document
+            .querySelector("#content-create-source")
+            ?.value?.trim();
           const body = {
             id: document.querySelector("#content-create-id")?.value?.trim(),
-            destinationId: document.querySelector("#content-create-destination")?.value?.trim(),
+            destinationId: document
+              .querySelector("#content-create-destination")
+              ?.value?.trim(),
             kind: document.querySelector("#content-create-kind")?.value,
-            locale: document.querySelector("#content-create-locale")?.value?.trim(),
+            locale: document
+              .querySelector("#content-create-locale")
+              ?.value?.trim(),
             ...(sourceReference ? { sourceReference } : {}),
             fields: {
               title,
               ...(summary ? { summary } : {}),
             },
-            reason: document.querySelector("#content-create-reason")?.value?.trim(),
+            reason: document
+              .querySelector("#content-create-reason")
+              ?.value?.trim(),
           };
           const result = await api("/content", {
             method: "POST",
@@ -1156,10 +1168,16 @@ async function renderContent(contentId) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             fields: {
-              title: document.querySelector("#content-revise-title")?.value?.trim(),
-              summary: document.querySelector("#content-revise-summary")?.value?.trim(),
+              title: document
+                .querySelector("#content-revise-title")
+                ?.value?.trim(),
+              summary: document
+                .querySelector("#content-revise-summary")
+                ?.value?.trim(),
             },
-            reason: document.querySelector("#content-revise-reason")?.value?.trim(),
+            reason: document
+              .querySelector("#content-revise-reason")
+              ?.value?.trim(),
           }),
         });
         await renderContent(contentId);
@@ -1175,8 +1193,12 @@ async function renderContent(contentId) {
       const status = document.querySelector("#content-transition-message");
       if (status) status.textContent = "Aplicando…";
       try {
-        const target = document.querySelector("#content-transition-status")?.value;
-        const localSchedule = document.querySelector("#content-scheduled-for")?.value;
+        const target = document.querySelector(
+          "#content-transition-status",
+        )?.value;
+        const localSchedule = document.querySelector(
+          "#content-scheduled-for",
+        )?.value;
         const scheduledFor =
           target === "scheduled" && localSchedule
             ? new Date(localSchedule).toISOString()
@@ -1187,7 +1209,9 @@ async function renderContent(contentId) {
           body: JSON.stringify({
             status: target,
             ...(scheduledFor ? { scheduledFor } : {}),
-            reason: document.querySelector("#content-transition-reason")?.value?.trim(),
+            reason: document
+              .querySelector("#content-transition-reason")
+              ?.value?.trim(),
           }),
         });
         await renderContent(contentId);
