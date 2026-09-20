@@ -3,7 +3,10 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
-import { resolveMorroUxMode } from "./premium-ux-mode.js";
+import {
+  installPremiumUxModePresenter,
+  resolveMorroUxMode,
+} from "./premium-ux-mode.js";
 
 const publicRoot = fileURLToPath(new URL("../../public/", import.meta.url));
 const repositoryRoot = fileURLToPath(new URL("../../../../", import.meta.url));
@@ -14,6 +17,74 @@ async function readPublic(path: string): Promise<string> {
 
 async function readRepository(path: string): Promise<string> {
   return readFile(repositoryRoot + path, "utf8");
+}
+
+function createClassList() {
+  const values = new Set<string>();
+  return {
+    add(...tokens: string[]) {
+      for (const token of tokens) values.add(token);
+    },
+    remove(...tokens: string[]) {
+      for (const token of tokens) values.delete(token);
+    },
+    contains(token: string) {
+      return values.has(token);
+    },
+  };
+}
+
+class TestMutationObserver {
+  static current: TestMutationObserver | null = null;
+
+  private disconnected = false;
+
+  constructor(private readonly callback: MutationCallback) {
+    TestMutationObserver.current = this;
+  }
+
+  observe() {}
+
+  disconnect() {
+    this.disconnected = true;
+  }
+
+  flush() {
+    if (this.disconnected) return;
+    this.callback([], this as unknown as MutationObserver);
+  }
+}
+
+function modeFixture() {
+  TestMutationObserver.current = null;
+
+  const body = {
+    classList: createClassList(),
+    dataset: {},
+  } as unknown as HTMLElement;
+  const map = {
+    dataset: {},
+  } as unknown as HTMLElement;
+
+  const document = {
+    body,
+    defaultView: { MutationObserver: TestMutationObserver },
+    getElementById(id: string) {
+      return id === "map" ? map : null;
+    },
+    querySelector() {
+      return null;
+    },
+  } as unknown as Document;
+
+  return {
+    document,
+    body,
+    map,
+    flush() {
+      TestMutationObserver.current?.flush();
+    },
+  };
 }
 
 describe("Chat 6 CSS modernization + Premium UX foundations", () => {
@@ -62,6 +133,54 @@ describe("Chat 6 CSS modernization + Premium UX foundations", () => {
     ).toBe("navigation");
   });
 
+  it("synchronizes live DOM mode transitions through MutationObserver", () => {
+    const view = modeFixture();
+    const presenter = installPremiumUxModePresenter({
+      document: view.document,
+    });
+
+    expect(presenter.mode).toBe("discover");
+    expect(view.body.dataset.mdMode).toBe("discover");
+
+    view.body.classList.add("assistant-modal-open");
+    view.flush();
+    expect(presenter.mode).toBe("assistant");
+
+    view.map.dataset.exploreStage = "detail";
+    view.flush();
+    expect(presenter.mode).toBe("place");
+
+    view.map.dataset.activeTour = "volta-a-ilha";
+    view.map.dataset.tourState = "switching";
+    view.flush();
+    expect(presenter.mode).toBe("place");
+
+    view.map.dataset.tourState = "ready";
+    view.flush();
+    expect(presenter.mode).toBe("tour");
+
+    view.body.classList.add("navigation-active");
+    view.flush();
+    expect(presenter.mode).toBe("navigation");
+
+    view.body.classList.remove("navigation-active");
+    delete view.map.dataset.activeTour;
+    view.map.dataset.tourState = "idle";
+    view.map.dataset.tourFlowId = "trilha-gamboa";
+    view.map.dataset.tourFlowStage = "stop";
+    view.flush();
+    expect(presenter.mode).toBe("tour");
+
+    delete view.map.dataset.tourFlowId;
+    view.flush();
+    expect(presenter.mode).toBe("place");
+
+    presenter.destroy();
+    view.map.dataset.exploreStage = "list";
+    view.flush();
+    expect(presenter.mode).toBe("place");
+  });
+
   it("establishes the canonical layered CSS architecture", async () => {
     const css = await readPublic("premium-ux-v2.css");
 
@@ -84,6 +203,9 @@ describe("Chat 6 CSS modernization + Premium UX foundations", () => {
         '.md-bottom-sheet[data-sheet-state="' + state + '"]',
       );
     }
+    expect(css).toContain(".md-bottom-sheet-content");
+    expect(css).toContain("overflow-y: auto");
+    expect(css).toContain("min-height: 0");
     expect(css).toContain("overscroll-behavior: contain");
     expect(css).toContain("@media (prefers-reduced-motion: reduce)");
     expect(css).toContain("@media (forced-colors: active)");
@@ -96,6 +218,10 @@ describe("Chat 6 CSS modernization + Premium UX foundations", () => {
     expect(css).toContain("var(--md-motion-duration-normal");
     expect(css).toContain("background-color");
     expect(css).toContain("box-shadow");
+    expect(css).not.toContain("#controls");
+    expect(css).toContain("#globe-map-control");
+    expect(css).toContain(".quick-actions");
+    expect(css).toContain(":has([data-explore-category])");
   });
 
   it("loads the premium bridge after feature/legacy CSS but before Design System V2", async () => {
@@ -137,6 +263,8 @@ describe("Chat 6 CSS modernization + Premium UX foundations", () => {
     expect(presenter).toContain('body.classList.contains("navigation-active")');
     expect(presenter).toContain('map?.dataset.exploreStage === "detail"');
     expect(presenter).toContain("hasActiveImmersiveTour(map)");
+    expect(presenter).toContain('tourState === "ready"');
+    expect(presenter).toContain("IMMERSIVE_TOUR_FLOW_STAGES");
     expect(presenter).not.toContain('classList.contains("tour-active")');
   });
 
