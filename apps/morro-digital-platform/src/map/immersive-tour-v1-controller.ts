@@ -411,28 +411,7 @@ export function createV1ImmersiveTourController(
       photoWrap.appendChild(
         createElement(document, "div", "tour-stop-photo-caption", stop.title),
       );
-
-      narrationButton = createElement(
-        document,
-        "button",
-        "tour-narration-btn",
-        copy.narration,
-      );
-      narrationButton.type = "button";
-      narrationButton.title = copy.narration;
-      narrationButton.setAttribute("aria-pressed", "false");
-      narrationButton.addEventListener("click", (event) => {
-        event.stopPropagation();
-        if (narrationActive) {
-          stopNarration();
-        } else {
-          narrate(stop.narration, tour.locale, narrationButton);
-        }
-      });
-      photoWrap.appendChild(narrationButton);
       card.appendChild(photoWrap);
-    } else {
-      narrationButton = undefined;
     }
 
     const header = createElement(document, "div", "tour-stop-header");
@@ -456,6 +435,29 @@ export function createV1ImmersiveTourController(
       });
       tips.appendChild(list);
       card.appendChild(tips);
+    }
+
+    if (stop.narration) {
+      narrationButton = createElement(
+        document,
+        "button",
+        "tour-narration-btn",
+        copy.narration,
+      );
+      narrationButton.type = "button";
+      narrationButton.title = copy.narration;
+      narrationButton.setAttribute("aria-pressed", "false");
+      narrationButton.addEventListener("click", (event) => {
+        event.stopPropagation();
+        if (narrationActive) {
+          stopNarration();
+        } else {
+          narrate(stop.narration, tour.locale, narrationButton);
+        }
+      });
+      card.appendChild(narrationButton);
+    } else {
+      narrationButton = undefined;
     }
 
     const navigation: V1ImmersiveTourRenderOption[] = [];
