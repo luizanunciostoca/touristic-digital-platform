@@ -55,7 +55,9 @@ function boundedText(value, maxLength) {
 function isIsoTimestamp(value) {
   if (typeof value !== "string") return false;
   const timestamp = Date.parse(value);
-  return Number.isFinite(timestamp) && new Date(timestamp).toISOString() === value;
+  return (
+    Number.isFinite(timestamp) && new Date(timestamp).toISOString() === value
+  );
 }
 
 function safePrimitive(value) {
