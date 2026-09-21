@@ -1,0 +1,451 @@
+name: Control Center Financial Browser Contract
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
+    paths:
+      - ".github/workflows/control-center-financial-browser-contract.yml"
+      - "apps/control-center/**"
+      - "apps/morro-digital-platform/tooling/admin-api.mjs"
+      - "apps/morro-digital-platform/tooling/admin-domain-adapters.mjs"
+      - "apps/morro-digital-platform/tooling/auth-api.mjs"
+      - "apps/morro-digital-platform/tooling/dev-server.mjs"
+      - "apps/morro-digital-platform/tooling/payments-api.mjs"
+      - "apps/morro-digital-platform/tooling/payments-runtime-api.mjs"
+      - "packages/auth/**"
+      - "packages/financial/**"
+      - "packages/ordering/**"
+      - "services/auth/**"
+      - "services/financial/**"
+      - "services/ordering/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/control-center-financial-browser-contract.yml"
+      - "apps/control-center/**"
+      - "apps/morro-digital-platform/tooling/admin-api.mjs"
+      - "apps/morro-digital-platform/tooling/admin-domain-adapters.mjs"
+      - "apps/morro-digital-platform/tooling/auth-api.mjs"
+      - "apps/morro-digital-platform/tooling/dev-server.mjs"
+      - "apps/morro-digital-platform/tooling/payments-api.mjs"
+      - "apps/morro-digital-platform/tooling/payments-runtime-api.mjs"
+      - "packages/auth/**"
+      - "packages/financial/**"
+      - "packages/ordering/**"
+      - "services/auth/**"
+      - "services/financial/**"
+      - "services/ordering/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: control-center-financial-browser-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  financial-browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: control-center-financial-ci
+          MYSQL_DATABASE: control_center_financial_ci
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -pcontrol-center-financial-ci"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install deterministic Chromium
+        run: |
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+      - name: Build Control Center financial runtime graph
+        run: pnpm -w build
+      - name: Start sandbox financial Control Center runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          PORT=4196
+          ORIGIN="http://127.0.0.1:${PORT}"
+          DB_URL="mysql://root:control-center-financial-ci@127.0.0.1:3306/control_center_financial_ci"
+          PASSWORD="control center financial browser fixture"
+          OWNER_HASH=$(node --input-type=module -e "import('./services/auth/dist/credentials.js').then(m => console.log(m.hashPassword(process.argv[1], Buffer.alloc(16, 31))))" "$PASSWORD")
+          BUSINESS_HASH=$(node --input-type=module -e "import('./services/auth/dist/credentials.js').then(m => console.log(m.hashPassword(process.argv[1], Buffer.alloc(16, 32))))" "$PASSWORD")
+          SUPPORT_HASH=$(node --input-type=module -e "import('./services/auth/dist/credentials.js').then(m => console.log(m.hashPassword(process.argv[1], Buffer.alloc(16, 33))))" "$PASSWORD")
+          USERS=$(node -e 'console.log(JSON.stringify([
+            {id:"platform-owner-financial",email:"platform-owner-financial@example.com",passwordHash:process.argv[1],role:"PLATFORM_OWNER",businessIds:[]},
+            {id:"business-owner-financial",email:"business-owner-financial@example.com",passwordHash:process.argv[2],role:"BUSINESS_OWNER",businessIds:["toca-do-morcego"]},
+            {id:"support-financial",email:"support-financial@example.com",passwordHash:process.argv[3],role:"SUPPORT",businessIds:[]}
+          ]))' "$OWNER_HASH" "$BUSINESS_HASH" "$SUPPORT_HASH")
+          env \
+            NODE_ENV=development \
+            DASHBOARD_AUTH_SECRET="financial-browser-auth-secret-0123456789abcdef" \
+            DASHBOARD_USERS_JSON="$USERS" \
+            CONTROL_CENTER_SUPPORT_SECRET="financial-browser-support-secret-0123456789abcdef" \
+            CONTROL_CENTER_STEP_UP_SECRET="financial-browser-step-up-secret-0123456789abcdef" \
+            CONTROL_CENTER_AUDIT_DATABASE_URL="$DB_URL" \
+            CRM_DATABASE_URL="$DB_URL" \
+            ORDERING_DATABASE_URL="$DB_URL" \
+            FINANCIAL_DATABASE_URL="$DB_URL" \
+            ORDERING_PRICING_CATALOG_JSON='{"version":"cc-financial-v1","plans":[{"id":"growth","name":"Growth","minorUnits":5000,"currency":"BRL"}]}' \
+            PAYMENTS_STATUS_TOKEN_SECRET="financial-browser-status-secret-0123456789abcdef" \
+            PAYMENTS_HANDOFF_SECRET="financial-browser-handoff-secret-0123456789abcdef" \
+            PAYMENTS_RETURN_URL_ORIGINS="$ORIGIN" \
+            PAYMENTS_DESTINATION_ID="morro-de-sao-paulo" \
+            PAYMENTS_PROVIDER_MODE="sandbox" \
+            PAYMENTS_SANDBOX_PROVIDER_BASE_URL="http://127.0.0.1:4299/" \
+            PAYMENTS_SANDBOX_PROVIDER_API_TOKEN="financial-browser-provider-token-0123456789abcdef" \
+            PAYMENTS_SANDBOX_CHECKOUT_ORIGINS="http://127.0.0.1:4299" \
+            PAYMENTS_PROVIDER_TIMEOUT_MS="500" \
+            PAYMENTS_WEBHOOK_URL="$ORIGIN/api/payments/v1/webhooks/sandbox" \
+            PAYMENTS_SANDBOX_WEBHOOK_SECRET="financial-browser-webhook-secret-0123456789abcdef" \
+            PAYMENTS_WEBHOOK_TOLERANCE_SECONDS="300" \
+            PORT="$PORT" \
+            HOST="127.0.0.1" \
+            node apps/morro-digital-platform/tooling/dev-server.mjs \
+              >/tmp/control-center-financial-server.log 2>&1 &
+          echo $! >/tmp/control-center-financial-server.pid
+          for _ in $(seq 1 120); do
+            if curl --fail --silent "$ORIGIN/apps/control-center/public/index.html" >/dev/null; then
+              exit 0
+            fi
+            sleep .25
+          done
+          cat /tmp/control-center-financial-server.log
+          exit 1
+      - name: Seed owner-domain financial fixtures
+        shell: bash
+        env:
+          ORDERING_DATABASE_URL: mysql://root:control-center-financial-ci@127.0.0.1:3306/control_center_financial_ci
+          FINANCIAL_DATABASE_URL: mysql://root:control-center-financial-ci@127.0.0.1:3306/control_center_financial_ci
+        run: |
+          node --input-type=module <<'NODE'
+          import {
+            createBusinessOrderRequestKey,
+            createOrder,
+            createPricingQuote,
+            capturePricingSnapshot,
+          } from "./packages/ordering/dist/index.js";
+          import {
+            createLedgerTransaction,
+            createPaymentIdempotencyKey,
+          } from "./packages/financial/dist/index.js";
+          import {
+            createCheckoutAccessRecord,
+            createOrderingMySqlPoolFromEnvironment,
+            MySqlCheckoutAccessRepository,
+            MySqlOrderRepository,
+          } from "./services/ordering/dist/index.js";
+          import {
+            createFinancialMySqlPoolFromEnvironment,
+            MySqlLedgerTransactionRepository,
+            MySqlPaymentRepository,
+          } from "./services/financial/dist/index.js";
+
+          const orderingPool = createOrderingMySqlPoolFromEnvironment(process.env);
+          const financialPool = createFinancialMySqlPoolFromEnvironment(process.env);
+          const createdAt = "2026-09-20T20:00:00.000Z";
+          const expiresAt = "2027-09-20T20:00:00.000Z";
+          const orderId = "ord_ccfinancial0001";
+          const paymentId = "pay_ccfinancial0001";
+          const externalKey = "ccfinancial_ledger_0001";
+          try {
+            const quote = createPricingQuote({
+              planId: "growth",
+              planName: "Growth",
+              minorUnits: 5000,
+              currency: "BRL",
+              pricingVersion: "cc-financial-v1",
+            });
+            const pricing = quote ? capturePricingSnapshot(quote, createdAt) : null;
+            const requestKey = createBusinessOrderRequestKey(
+              "ccfinancialsession0001",
+              "growth",
+            );
+            const order =
+              pricing && requestKey
+                ? createOrder({
+                    id: orderId,
+                    requestKey,
+                    source: {
+                      kind: "business_onboarding",
+                      reference: "ccfinancialsession0001",
+                    },
+                    status: "pending_payment",
+                    pricing,
+                    createdAt,
+                    updatedAt: createdAt,
+                  })
+                : null;
+            if (!order) throw new Error("FINANCIAL_BROWSER_ORDER_FIXTURE_INVALID");
+
+            const paymentKey = createPaymentIdempotencyKey(orderId);
+            if (!paymentKey) {
+              throw new Error("FINANCIAL_BROWSER_PAYMENT_KEY_FIXTURE_INVALID");
+            }
+
+            const orders = new MySqlOrderRepository(orderingPool);
+            const payments = new MySqlPaymentRepository(financialPool);
+            const access = new MySqlCheckoutAccessRepository(orderingPool);
+            const ledger = new MySqlLedgerTransactionRepository(financialPool);
+
+            await orders.save(order);
+            await payments.save({
+              id: paymentId,
+              idempotencyKey: paymentKey,
+              subject: { kind: "order", reference: orderId },
+              amount: { minorUnits: 5000, currency: "BRL" },
+              status: "pending",
+              providerReference: null,
+              createdAt,
+              updatedAt: createdAt,
+              confirmedAt: null,
+              refundedAt: null,
+            });
+
+            const checkoutAccess = createCheckoutAccessRecord({
+              orderId,
+              paymentId,
+              requestFingerprint: "a".repeat(64),
+              tokenHash: "b".repeat(64),
+              context: {
+                requesterKind: "authenticated",
+                actorSubject: "business-owner-financial",
+                destinationId: "morro-de-sao-paulo",
+                tenantId: "toca-do-morcego",
+              },
+              correlationId: "corr_ccfinancial0001",
+              createdAt,
+              expiresAt,
+            });
+            if (!checkoutAccess) {
+              throw new Error("FINANCIAL_BROWSER_ACCESS_FIXTURE_INVALID");
+            }
+            await access.claim(checkoutAccess);
+
+            await ledger.append(
+              createLedgerTransaction({
+                id: "led_ccfinancial0001",
+                externalKey,
+                occurredAt: createdAt,
+                postings: [
+                  {
+                    accountReference: "asset:provider_clearing",
+                    direction: "debit",
+                    amount: { minorUnits: 5000, currency: "BRL" },
+                  },
+                  {
+                    accountReference: "liability:customer",
+                    direction: "credit",
+                    amount: { minorUnits: 5000, currency: "BRL" },
+                  },
+                ],
+              }),
+            );
+
+            console.log(
+              JSON.stringify({ orderId, paymentId, externalKey }),
+            );
+          } finally {
+            await Promise.all([orderingPool.end(), financialPool.end()]);
+          }
+          NODE
+      - name: Validate Orders and Financial Control Center journeys
+        shell: bash
+        run: |
+          node <<'NODE'
+          const { writeFileSync } = require("node:fs");
+          const { chromium } = require("/tmp/pw/node_modules/playwright");
+
+          const origin = "http://127.0.0.1:4196";
+          const password = "control center financial browser fixture";
+          const orderId = "ord_ccfinancial0001";
+          const paymentId = "pay_ccfinancial0001";
+          const externalKey = "ccfinancial_ledger_0001";
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            const evidence = {
+              errors: [],
+              reads: [],
+              criticalActions: [],
+            };
+            try {
+              const context = await browser.newContext({
+                viewport: { width: 1280, height: 900 },
+              });
+              const page = await context.newPage();
+              page.on("pageerror", (error) => evidence.errors.push(error.message));
+
+              await page.goto(`${origin}/apps/control-center/public/index.html`, {
+                waitUntil: "domcontentloaded",
+                timeout: 30000,
+              });
+              await page.waitForURL(
+                (url) => url.pathname === "/dashboard/login.html",
+                { timeout: 10000 },
+              );
+              await page
+                .locator("#email")
+                .fill("platform-owner-financial@example.com");
+              await page.locator("#password").fill(password);
+              await page.locator("#submit").click();
+              await page.waitForURL(
+                (url) =>
+                  url.pathname === "/apps/control-center/public/index.html",
+                { timeout: 15000 },
+              );
+              await page
+                .locator("#app:not([hidden])")
+                .waitFor({ state: "visible", timeout: 15000 });
+
+              await page.locator('[data-view="orders"]').click();
+              await page.locator("#order-lookup-id").fill(orderId);
+              await page
+                .getByRole("button", { name: "Consultar pedido" })
+                .click();
+              await page.getByText(orderId, { exact: true }).waitFor();
+              const orderText = await page.locator("#content").textContent();
+              if (
+                !orderText?.includes("pending_payment") ||
+                !orderText.includes("R$ 50,00")
+              ) {
+                throw new Error(`Order owner projection diverged: ${orderText}`);
+              }
+              evidence.reads.push("order-owner");
+
+              await page.locator('[data-view="financial"]').click();
+              await page.locator("#payment-lookup-id").fill(paymentId);
+              await page
+                .getByRole("button", { name: "Abrir pagamento" })
+                .click();
+              await page.getByText(paymentId, { exact: true }).waitFor();
+              const paymentText = await page.locator("#content").textContent();
+              if (
+                !paymentText?.includes("pending") ||
+                !paymentText.includes("R$ 50,00")
+              ) {
+                throw new Error(
+                  `Payment owner projection diverged: ${paymentText}`,
+                );
+              }
+              evidence.reads.push("payment-owner");
+
+              await page.locator("#financial-password").fill(password);
+              await page
+                .locator("#financial-reason")
+                .fill("Validar governança de refund sem pagamento elegível");
+              await page
+                .locator("#financial-confirmation")
+                .fill("REFUNDAR");
+              await page
+                .getByRole("button", { name: "Solicitar refund total" })
+                .click();
+              await page
+                .getByText("REFUND_NOT_ALLOWED", { exact: true })
+                .waitFor({ timeout: 15000 });
+              evidence.criticalActions.push(
+                "refund-step-up-domain-denial-no-provider-effect",
+              );
+
+              await page.locator('[data-view="financial"]').click();
+              await page.locator("#ledger-lookup-key").fill(externalKey);
+              await page
+                .getByRole("button", { name: "Consultar lançamento" })
+                .click();
+              await page
+                .getByText("led_ccfinancial0001", { exact: true })
+                .waitFor();
+              const ledgerText = await page
+                .locator("#ledger-result")
+                .textContent();
+              if (
+                !ledgerText?.includes(externalKey) ||
+                !ledgerText.includes("2")
+              ) {
+                throw new Error(
+                  `Ledger owner projection diverged: ${ledgerText}`,
+                );
+              }
+              evidence.reads.push("ledger-owner");
+
+              const csrfToken = await page.evaluate(() =>
+                sessionStorage.getItem("md_dashboard_csrf"),
+              );
+              if (!csrfToken) throw new Error("CSRF projection missing");
+
+              const supportStart = await context.request.post(
+                `${origin}/api/admin/v1/support/session`,
+                {
+                  headers: {
+                    Origin: origin,
+                    "Content-Type": "application/json",
+                    "X-CSRF-Token": csrfToken,
+                  },
+                  data: {
+                    effectiveUserId: "business-owner-financial",
+                    reason:
+                      "Validate financial support scope remains tenant-bound",
+                  },
+                },
+              );
+              if (supportStart.status() !== 201) {
+                throw new Error(
+                  `Support session failed: ${supportStart.status()} ${await supportStart.text()}`,
+                );
+              }
+              evidence.criticalActions.push("support-context-bound");
+
+              if (evidence.errors.length) {
+                throw new Error(
+                  `Browser page errors: ${JSON.stringify(evidence.errors)}`,
+                );
+              }
+
+              evidence.status = "PASS";
+              writeFileSync(
+                "/tmp/control-center-financial-browser-evidence.json",
+                JSON.stringify(evidence, null, 2),
+              );
+              await context.close();
+            } finally {
+              await browser.close();
+            }
+          })().catch((error) => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+      - name: Show financial Control Center diagnostics
+        if: failure()
+        run: cat /tmp/control-center-financial-server.log || true
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: control-center-financial-browser-evidence
+          path: /tmp/control-center-financial-browser-evidence.json
+          retention-days: 1
+          if-no-files-found: ignore
+      - name: Stop financial Control Center runtime
+        if: always()
+        run: kill "$(cat /tmp/control-center-financial-server.pid)" 2>/dev/null || true

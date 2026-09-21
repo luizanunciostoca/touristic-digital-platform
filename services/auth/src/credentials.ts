@@ -9,6 +9,7 @@ import {
   isAuthRole,
   normalizeAuthEmail,
   normalizeBusinessScopes,
+  requiresBusinessScope,
   type AuthRole,
 } from "@touristic/auth";
 
@@ -98,7 +99,7 @@ export function parseConfiguredUsers(
       !email ||
       !passwordHash ||
       !role ||
-      (role !== "admin" && businessIds.length === 0)
+      (requiresBusinessScope(role) && businessIds.length === 0)
     ) {
       throw new Error(
         `Usuário inválido em DASHBOARD_USERS_JSON na posição ${index}.`,

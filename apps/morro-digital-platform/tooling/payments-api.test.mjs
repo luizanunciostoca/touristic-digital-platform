@@ -113,6 +113,153 @@ describe("M139/M141 payments API runtime boundary", () => {
     expect(response.header("x-correlation-id")).toMatch(/^corr_/u);
   });
 
+  it("exposes bounded owner-backed admin reads without transport or SQL access", async () => {
+    const api = createPaymentsApi({
+      adminRead: {
+        orders: {
+          findById(id) {
+            return Promise.resolve(
+              id === "ord_admin_0001"
+                ? {
+                    id,
+                    status: "pending_payment",
+                    pricing: {
+                      amount: { minorUnits: 5000, currency: "BRL" },
+                    },
+                  }
+                : null,
+            );
+          },
+        },
+        payments: {
+          findById(id) {
+            return Promise.resolve(
+              id === "pay_admin_0001"
+                ? {
+                    id,
+                    status: "confirmed",
+                    subject: {
+                      kind: "order",
+                      reference: "ord_admin_0001",
+                    },
+                    amount: { minorUnits: 5000, currency: "BRL" },
+                  }
+                : null,
+            );
+          },
+        },
+        checkoutAccess: {
+          findByOrderId(orderId) {
+            return Promise.resolve(
+              orderId === "ord_admin_0001"
+                ? {
+                    orderId,
+                    paymentId: "pay_admin_0001",
+                    tenantId: "business-admin-0001",
+                  }
+                : null,
+            );
+          },
+        },
+        reconciliation: {
+          findById(id) {
+            return Promise.resolve(
+              id === "rcf_admin_00000001"
+                ? {
+                    id,
+                    paymentId: "pay_admin_0001",
+                    kind: "provider_amount_mismatch",
+                    severity: "high",
+                    state: "open",
+                  }
+                : null,
+            );
+          },
+        },
+        ledger: {
+          findByExternalKey(key) {
+            if (key === "bad key") {
+              throw new Error("FINANCIAL_INVALID_LEDGER_EXTERNAL_KEY");
+            }
+            return Promise.resolve(
+              key === "payment_approved_pay_admin_0001"
+                ? {
+                    id: "ltx_admin_0001",
+                    externalKey: key,
+                    occurredAt: "2026-09-20T12:00:00.000Z",
+                    postings: [],
+                  }
+                : null,
+            );
+          },
+        },
+      },
+      audit: () => undefined,
+    });
+
+    await expect(api.adminFindOrder("ord_admin_0001")).resolves.toMatchObject({
+      status: "found",
+      data: { id: "ord_admin_0001" },
+    });
+    await expect(api.adminFindOrder("ord_admin_missing")).resolves.toEqual({
+      status: "not_found",
+      data: null,
+    });
+    await expect(api.adminFindOrder("!")).resolves.toEqual({
+      status: "invalid",
+      data: null,
+    });
+
+    await expect(api.adminFindPayment("pay_admin_0001")).resolves.toMatchObject(
+      {
+        status: "found",
+        data: { id: "pay_admin_0001" },
+      },
+    );
+    await expect(api.adminFindPayment("pay_admin_missing")).resolves.toEqual({
+      status: "not_found",
+      data: null,
+    });
+    await expect(
+      api.adminResolvePaymentTenant("pay_admin_0001"),
+    ).resolves.toEqual({
+      status: "found",
+      tenantId: "business-admin-0001",
+    });
+    await expect(
+      api.adminResolvePaymentTenant("pay_admin_missing"),
+    ).resolves.toEqual({
+      status: "not_found",
+      tenantId: null,
+    });
+
+    await expect(
+      api.adminResolveFindingTenant("rcf_admin_00000001"),
+    ).resolves.toEqual({
+      status: "found",
+      tenantId: "business-admin-0001",
+      paymentId: "pay_admin_0001",
+    });
+    await expect(
+      api.adminResolveFindingTenant("rcf_admin_missing"),
+    ).resolves.toEqual({
+      status: "not_found",
+      tenantId: null,
+      paymentId: null,
+    });
+
+    await expect(
+      api.adminFindLedger("payment_approved_pay_admin_0001"),
+    ).resolves.toMatchObject({
+      status: "found",
+      data: { id: "ltx_admin_0001" },
+    });
+    await expect(api.adminFindLedger("bad key")).resolves.toEqual({
+      status: "invalid",
+      data: null,
+    });
+  });
+
   it("parses bounded JSON and propagates a server correlation ID", async () => {
     let captured;
     const api = createPaymentsApi({

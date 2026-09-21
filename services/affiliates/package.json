@@ -7,6 +7,12 @@
     "@touristic/affiliates": "workspace:*",
     "mysql2": "^3.14.5"
   },
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./dist/index.js"
+    }
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "lint": "eslint src",

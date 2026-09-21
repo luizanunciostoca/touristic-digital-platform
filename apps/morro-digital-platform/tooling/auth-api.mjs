@@ -1,4 +1,11 @@
-import { authorizeBusinessAccess } from "@touristic/auth";
+import {
+  authorizeBusinessAccess,
+  canonicalAuthRole,
+  capabilitiesForRole,
+  hasAuthCapability,
+  isPlatformWideAuthRole,
+  isReadOnlyAuthRole,
+} from "@touristic/auth";
 import {
   authenticateConfiguredUser,
   createInMemoryAuthSecurityState,
@@ -118,6 +125,7 @@ export function createAuthApi({ getEnvironmentValue, audit = () => {} }) {
   let securityStateHealthy = false;
   let securityStateError = null;
   let stopped = false;
+  const delegatedSessions = new WeakMap();
 
   try {
     users = parseConfiguredUsers(usersJson);
@@ -125,7 +133,9 @@ export function createAuthApi({ getEnvironmentValue, audit = () => {} }) {
     configurationError = error;
   }
 
-  const hasGlobalAdmin = users.some((user) => user.role === "admin");
+  const hasGlobalAdmin = users.some((user) =>
+    isPlatformWideAuthRole(user.role),
+  );
   const productionSecurityConfigured =
     !production ||
     (durableSecurityStateCreated &&
@@ -199,6 +209,8 @@ export function createAuthApi({ getEnvironmentValue, audit = () => {} }) {
 
   async function currentSession(request) {
     if (!configured()) return null;
+    const delegated = delegatedSessions.get(request);
+    if (delegated) return delegated;
     const cookies = parseCookies(firstHeader(request.headers.cookie));
     const verified = verifySessionToken(cookies[sessionCookieName], secret);
     if (!verified) return null;
@@ -235,6 +247,8 @@ export function createAuthApi({ getEnvironmentValue, audit = () => {} }) {
         id: session.subject,
         email: session.email,
         role: session.role,
+        canonicalRole: canonicalAuthRole(session.role),
+        capabilities: capabilitiesForRole(session.role),
         businessIds: session.businessIds,
       },
     };
@@ -368,7 +382,7 @@ export function createAuthApi({ getEnvironmentValue, audit = () => {} }) {
       return null;
     }
     if (
-      active.role === "admin" &&
+      isPlatformWideAuthRole(active.role) &&
       !active.businessIds.includes(decision.businessId)
     ) {
       audit(request, {
@@ -471,6 +485,25 @@ export function createAuthApi({ getEnvironmentValue, audit = () => {} }) {
       return;
     }
 
+    try {
+      await securityState.registerSession({
+        sessionId: session.sessionId,
+        subject: session.subject,
+        issuedAt: session.issuedAt,
+        expiresAt: session.expiresAt,
+      });
+      markSecurityHealthy();
+    } catch (error) {
+      markSecurityFailure(error);
+      audit(request, {
+        action: "dashboard.session_registry",
+        result: "unavailable",
+        reason: securityStateError,
+      });
+      unavailable(response);
+      return;
+    }
+
     const payload = sessionPayload(session);
     if (!payload) {
       unavailable(response);
@@ -516,7 +549,7 @@ export function createAuthApi({ getEnvironmentValue, audit = () => {} }) {
       });
       return;
     }
-    if (active.role === "viewer") {
+    if (isReadOnlyAuthRole(active.role)) {
       audit(request, {
         action: "dashboard.mutation",
         result: "denied",
@@ -571,6 +604,113 @@ export function createAuthApi({ getEnvironmentValue, audit = () => {} }) {
   return Object.freeze({
     authorizeBusinessRequest,
     authorizeMutation,
+    listConfiguredUsers() {
+      return Object.freeze(
+        users.map((user) =>
+          Object.freeze({
+            id: user.id,
+            email: user.email,
+            role: user.role,
+            canonicalRole: canonicalAuthRole(user.role),
+            capabilities: capabilitiesForRole(user.role),
+            businessIds: user.businessIds,
+          }),
+        ),
+      );
+    },
+    findConfiguredUser(userId) {
+      const user = users.find(
+        (candidate) => candidate.id === String(userId || "").trim(),
+      );
+      if (!user) return null;
+      return Object.freeze({
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        canonicalRole: canonicalAuthRole(user.role),
+        capabilities: capabilitiesForRole(user.role),
+        businessIds: user.businessIds,
+      });
+    },
+    reauthenticate(userId, password) {
+      const user = users.find(
+        (candidate) => candidate.id === String(userId || "").trim(),
+      );
+      if (!user) {
+        authenticateConfiguredUser(users, "missing@example.invalid", password);
+        return false;
+      }
+      return Boolean(authenticateConfiguredUser(users, user.email, password));
+    },
+    async listUserSessions(userId) {
+      const user = users.find(
+        (candidate) => candidate.id === String(userId || "").trim(),
+      );
+      if (!user) return null;
+      try {
+        const sessions = await securityState.listSessions(user.id);
+        markSecurityHealthy();
+        return sessions;
+      } catch (error) {
+        markSecurityFailure(error);
+        throw error;
+      }
+    },
+    async revokeUserSession(userId, handle) {
+      const user = users.find(
+        (candidate) => candidate.id === String(userId || "").trim(),
+      );
+      if (!user) return null;
+      try {
+        const result = await securityState.revokeSessionHandle(user.id, handle);
+        markSecurityHealthy();
+        return result;
+      } catch (error) {
+        markSecurityFailure(error);
+        throw error;
+      }
+    },
+    async withDelegatedSession(request, effectiveUserId, operation) {
+      if (
+        !request ||
+        typeof request !== "object" ||
+        typeof operation !== "function" ||
+        delegatedSessions.has(request)
+      ) {
+        throw new Error("AUTH_DELEGATION_CONTEXT_INVALID");
+      }
+
+      const actor = await currentSession(request);
+      if (
+        !actor ||
+        !isPlatformWideAuthRole(actor.role) ||
+        !hasAuthCapability(actor.role, "support.impersonate")
+      ) {
+        throw new Error("AUTH_DELEGATION_NOT_AUTHORIZED");
+      }
+
+      const target = users.find(
+        (candidate) => candidate.id === String(effectiveUserId || "").trim(),
+      );
+      if (!target || isPlatformWideAuthRole(target.role)) {
+        throw new Error("AUTH_DELEGATION_TARGET_INVALID");
+      }
+
+      const delegated = Object.freeze({
+        ...actor,
+        subject: target.id,
+        email: target.email,
+        role: target.role,
+        businessIds: target.businessIds,
+      });
+
+      delegatedSessions.set(request, delegated);
+      try {
+        return await operation(delegated);
+      } finally {
+        delegatedSessions.delete(request);
+      }
+    },
     resolveSession: currentSession,
     readinessCheck,
 

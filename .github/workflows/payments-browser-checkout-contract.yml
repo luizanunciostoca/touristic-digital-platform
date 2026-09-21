@@ -9,6 +9,9 @@ on:
       - "apps/morro-digital-platform/package.json"
       - "apps/morro-digital-platform/src/payments-browser-checkout-client*.ts"
       - "apps/morro-digital-platform/tooling/dev-server.mjs"
+      - "apps/morro-digital-platform/tooling/destination-admin-runtime.mjs"
+      - "packages/destinations/**"
+      - "services/destinations/**"
       - "packages/auth/**"
       - "packages/business/**"
       - "packages/crm/**"
@@ -29,6 +32,9 @@ on:
       - "apps/morro-digital-platform/package.json"
       - "apps/morro-digital-platform/src/payments-browser-checkout-client*.ts"
       - "apps/morro-digital-platform/tooling/dev-server.mjs"
+      - "apps/morro-digital-platform/tooling/destination-admin-runtime.mjs"
+      - "packages/destinations/**"
+      - "services/destinations/**"
       - "packages/auth/**"
       - "packages/business/**"
       - "packages/crm/**"
@@ -71,7 +77,7 @@ jobs:
           /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
       - name: Build workspace
         run: |
-          pnpm turbo run build --filter=@touristic/auth-server --filter=@touristic/business --filter=@touristic/crm-server --filter=@touristic/financial-server --filter=@touristic/ordering-server
+          pnpm turbo run build --filter=@touristic/auth-server --filter=@touristic/business --filter=@touristic/crm-server --filter=@touristic/financial-server --filter=@touristic/ordering-server --filter=@touristic/destinations-server
           pnpm --filter @touristic/morro-digital-platform build
       - name: Validate focused browser client unit contract
         run: pnpm --filter @touristic/morro-digital-platform exec vitest run src/payments-browser-checkout-client.test.ts

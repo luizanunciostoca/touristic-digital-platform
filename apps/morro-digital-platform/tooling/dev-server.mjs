@@ -5,9 +5,16 @@ import { extname, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createAnalyticsApi } from "./analytics-api.mjs";
 import { createAssistantApi } from "./assistant-api.mjs";
+import { createAdminApi } from "./admin-api.mjs";
+import { createAdminAuditRuntime } from "./admin-audit-runtime.mjs";
+import { createAdminDomainAdapters } from "./admin-domain-adapters.mjs";
+import { createAffiliateAdminRuntime } from "./affiliate-admin-runtime.mjs";
 import { createAuthApi } from "./auth-api.mjs";
 import { createBusinessApi } from "./business-api.mjs";
+import { createContentAdminRuntime } from "./content-admin-runtime.mjs";
 import { createCrmApi } from "./crm-api.mjs";
+import { createDestinationAdminRuntime } from "./destination-admin-runtime.mjs";
+import { resolvePublicDestination } from "./destination-public-projection.mjs";
 import { createPaymentsApi } from "./payments-runtime-api.mjs";
 import { createPlatformOperations } from "./platform-operations.mjs";
 import {
@@ -34,6 +41,26 @@ const defaultDocument = resolve(morroPublicRoot, "index.html");
 const envFile = resolve(repositoryRoot, ".env");
 const host = process.env.HOST?.trim() || "127.0.0.1";
 const port = Number(process.env.PORT || "4173");
+const publicDestinationFallback = Object.freeze({
+  id: "morro-de-sao-paulo",
+  name: "Morro de São Paulo",
+  countryCode: "BR",
+  timezone: "America/Bahia",
+  currency: "BRL",
+  center: Object.freeze({ latitude: -13.3833, longitude: -38.9167 }),
+  radiusMeters: 15000,
+  modules: Object.freeze({
+    marketplace: true,
+    map: true,
+    navigation: true,
+    assistant: true,
+    businessPortal: true,
+    adminCrm: true,
+    booking: false,
+    payments: false,
+    affiliates: false,
+  }),
+});
 const morroLatitude = -13.3769;
 const morroLongitude = -38.9146;
 const weatherTimeoutMs = 8_000;
@@ -80,6 +107,7 @@ const publicStaticRoots = Object.freeze([
   morroPublicRoot,
   morroDistRoot,
   resolve(repositoryRoot, "apps/admin-crm/public"),
+  resolve(repositoryRoot, "apps/control-center/public"),
   resolve(repositoryRoot, "dashboard"),
   resolve(repositoryRoot, "images"),
 ]);
@@ -128,6 +156,8 @@ const getEnvironmentValue = (key) =>
 let platformOperations = null;
 let paymentsRuntimeReady = false;
 let ticketingRuntimeReady = false;
+let contentAdminRuntime = null;
+let destinationRuntimeReady = false;
 
 function auditSecurityEvent(request, event) {
   const pathname = (() => {
@@ -159,6 +189,10 @@ function auditSecurityEvent(request, event) {
 
 const analyticsApi = createAnalyticsApi({ getEnvironmentValue });
 const assistantApi = createAssistantApi({ getEnvironmentValue });
+const adminAuditRuntime = createAdminAuditRuntime({ getEnvironmentValue });
+const affiliateAdminRuntime = createAffiliateAdminRuntime({
+  getEnvironmentValue,
+});
 
 const authApi = createAuthApi({
   getEnvironmentValue,
@@ -170,6 +204,22 @@ platformOperations = createPlatformOperations({
   additionalReadinessChecks: () => [
     { name: "auth-security-state", ...authApi.readinessCheck() },
     { name: "analytics-runtime", ...analyticsApi.readinessCheck() },
+    {
+      name: "control-center-audit",
+      ...adminAuditRuntime.readinessCheck(),
+    },
+    {
+      name: "affiliate-admin",
+      ...affiliateAdminRuntime.readinessCheck(),
+    },
+    {
+      name: "destination-owner",
+      status: destinationRuntimeReady ? "pass" : "fail",
+      critical: false,
+      detail: destinationRuntimeReady
+        ? "destination-owner-ready"
+        : "DESTINATION_OWNER_UNAVAILABLE",
+    },
     {
       name: "payments-runtime",
       status: paymentsRuntimeReady ? "pass" : "fail",
@@ -187,10 +237,29 @@ platformOperations = createPlatformOperations({
         ? "ticketing-runtime-ready"
         : "TICKETING_RUNTIME_UNAVAILABLE",
     },
+    {
+      name: "content-admin-runtime",
+      ...(contentAdminRuntime?.readinessCheck() ?? {
+        status: "fail",
+        critical: false,
+        detail: "CONTENT_ADMIN_NOT_STARTED",
+      }),
+    },
   ],
 });
 await authApi.start();
 await analyticsApi.start();
+await adminAuditRuntime.start();
+await affiliateAdminRuntime.start();
+
+const destinationRuntime = createDestinationAdminRuntime({
+  DESTINATIONS_DATABASE_URL: getEnvironmentValue("DESTINATIONS_DATABASE_URL"),
+  DESTINATIONS_DATABASE_POOL_SIZE: getEnvironmentValue(
+    "DESTINATIONS_DATABASE_POOL_SIZE",
+  ),
+});
+await destinationRuntime.start();
+destinationRuntimeReady = (await destinationRuntime.readiness()).ready;
 
 const crmApi = createCrmApi({ authApi, getEnvironmentValue });
 await crmApi.start();
@@ -203,6 +272,26 @@ paymentsRuntimeReady = await paymentsApi.start();
 const { createTicketingApi } = await import("./ticketing-api.mjs");
 const ticketingApi = createTicketingApi({ authApi, getEnvironmentValue });
 ticketingRuntimeReady = await ticketingApi.start();
+
+contentAdminRuntime = createContentAdminRuntime({ getEnvironmentValue });
+await contentAdminRuntime.start();
+
+const adminApi = createAdminApi({
+  authApi,
+  platformOperations,
+  getEnvironmentValue,
+  auditStore: adminAuditRuntime,
+  domainAdapters: createAdminDomainAdapters({
+    authApi,
+    businessApi,
+    crmApi,
+    ticketingApi,
+    paymentsApi,
+    affiliateAdminRuntime,
+    contentRuntime: contentAdminRuntime,
+    destinationRuntime,
+  }),
+});
 
 function createRuntimeEnvironment() {
   return Object.freeze(
@@ -324,6 +413,25 @@ function serveRuntimeConfig(response) {
   response.setHeader("Cache-Control", "no-store");
   response.end(
     `globalThis.__MORRO_RUNTIME_ENV__ = Object.freeze(${serialized});\n`,
+  );
+}
+
+async function servePublicDestination(response) {
+  const destination = await resolvePublicDestination(
+    destinationRuntime,
+    publicDestinationFallback,
+  );
+  response.statusCode = 200;
+  response.setHeader("Content-Type", "application/json; charset=utf-8");
+  response.setHeader("Cache-Control", "no-store");
+  response.end(
+    JSON.stringify({
+      destination,
+      source:
+        destination === publicDestinationFallback
+          ? "static-fallback"
+          : "destination-owner",
+    }),
   );
 }
 
@@ -522,6 +630,10 @@ const server = createServer(async (request, response) => {
       serveRuntimeConfig(response);
       return;
     }
+    if (requestUrl.pathname === "/api/runtime/destination") {
+      await servePublicDestination(response);
+      return;
+    }
     if (requestUrl.pathname === "/api/weather") {
       await serveWeather(response, correlationId);
       return;
@@ -532,6 +644,10 @@ const server = createServer(async (request, response) => {
     }
     if (authApi.matches(requestUrl.pathname)) {
       await authApi.handle(request, response, requestUrl.pathname);
+      return;
+    }
+    if (adminApi.matches(requestUrl.pathname)) {
+      await adminApi.handle(request, response, requestUrl);
       return;
     }
     if (crmApi.matches(requestUrl.pathname)) {
@@ -697,10 +813,15 @@ async function shutdown(signal) {
 
   const stops = await Promise.allSettled([
     analyticsApi.stop(),
+    adminApi.stop(),
+    adminAuditRuntime.stop(),
     authApi.stop(),
     crmApi.stop(),
     paymentsApi.stop(),
+    affiliateAdminRuntime.stop(),
     ticketingApi.stop(),
+    contentAdminRuntime ? contentAdminRuntime.stop() : Promise.resolve(),
+    destinationRuntime.stop(),
   ]);
   paymentsRuntimeReady = false;
   ticketingRuntimeReady = false;

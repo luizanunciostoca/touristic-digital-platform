@@ -2,6 +2,7 @@ import mysql, { type RowDataPacket } from "mysql2/promise";
 import { describe, expect, it, beforeAll, beforeEach, afterAll } from "vitest";
 import { applyAffiliatesM154Schema } from "./mysql-affiliate-persistence.js";
 import { applyAffiliatesIdentityEligibilityM155 } from "./affiliate-identity-schema.js";
+import { AffiliateAdminQueryService } from "./affiliate-admin-query-service.js";
 import { AffiliateApplicationService } from "./affiliate-application-service.js";
 import { AffiliateIdentityApplicationService } from "./affiliate-identity-application-service.js";
 
@@ -140,6 +141,100 @@ describe.skipIf(!databaseUrl)(
         ),
       };
     }
+
+    it("projects Affiliate admin list and detail through the owner query service", async () => {
+      await createApprovedAffiliate();
+      await pool.execute(
+        `UPDATE affiliate_memberships
+         SET financial_onboarding_status = 'eligible', updated_at = UTC_TIMESTAMP(3)
+         WHERE affiliate_id = ? AND program_id = ?`,
+        ["aff_m155_mysql_0001", "prog_m155_mysql_0001"],
+      );
+
+      const admin = new AffiliateAdminQueryService(pool);
+      await expect(
+        admin.list({ query: "affiliate-user", limit: 10 }),
+      ).resolves.toEqual([
+        expect.objectContaining({
+          affiliateId: "aff_m155_mysql_0001",
+          identityReference: "affiliate-user",
+          approvedMembershipCount: 1,
+          suspendedMembershipCount: 0,
+          conversionCount: 0,
+        }),
+      ]);
+
+      const detail = await admin.read("aff_m155_mysql_0001");
+      expect(detail).toMatchObject({
+        affiliate: {
+          affiliateId: "aff_m155_mysql_0001",
+          identityVerified: true,
+          contactVerified: true,
+        },
+        memberships: [
+          expect.objectContaining({
+            programId: "prog_m155_mysql_0001",
+            destinationId: "morro",
+            status: "approved",
+            financialOnboardingStatus: "eligible",
+            eligibleForAttribution: true,
+          }),
+        ],
+        payoutAuthority: {
+          owner: "Financial",
+          affiliateCanInitiatePayout: false,
+        },
+      });
+      expect(detail?.conversions).toEqual([]);
+      expect(detail?.summaryByCurrency).toEqual([]);
+      expect(await admin.read("aff_missing_0001")).toBeNull();
+    });
+
+    it("keeps legacy membership writes compatible while normalizing admin projections", async () => {
+      await createProgram("prog_admin_legacy_0001", "morro");
+      const identity = new AffiliateIdentityApplicationService(
+        pool,
+        allowAllAuthorization,
+      );
+      await identity.createAffiliate({
+        actor: {
+          ...affiliateActor,
+          actorReference: "legacy-affiliate",
+          correlationId: "corr:identity:create:legacy:0001",
+        },
+        affiliateId: "aff_admin_legacy_0001",
+        identityReference: "legacy-affiliate",
+        pseudonymousReference: "pseudo-admin-legacy-0001",
+        accountType: "person",
+        roleCategory: "creator",
+        occurredAt: "2026-08-23T22:05:00.000Z",
+      });
+      await pool.execute(
+        `INSERT INTO affiliate_memberships
+         (membership_id, affiliate_id, program_id, status, accepted_terms_version,
+          financial_onboarding_status, joined_at, ended_at, updated_at)
+         VALUES (?, ?, ?, 'active', 'terms-v1', 'eligible', UTC_TIMESTAMP(3), NULL, UTC_TIMESTAMP(3))`,
+        [
+          "mem_admin_legacy_0001",
+          "aff_admin_legacy_0001",
+          "prog_admin_legacy_0001",
+        ],
+      );
+
+      const admin = new AffiliateAdminQueryService(pool);
+      const detail = await admin.read("aff_admin_legacy_0001");
+      expect(detail?.memberships[0]?.status).toBe("approved");
+
+      const list = await admin.list({
+        query: "legacy-affiliate",
+        limit: 10,
+      });
+      expect(list).toHaveLength(1);
+      expect(list[0]).toMatchObject({
+        affiliateId: "aff_admin_legacy_0001",
+        approvedMembershipCount: 1,
+      });
+    });
 
     it("persists identity, allowed profile updates and membership lifecycle across service restart", async () => {
       await createProgram();

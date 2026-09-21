@@ -97,6 +97,8 @@ jobs:
           ORDERING_DATABASE_URL: mysql://root:canonical-mysql@127.0.0.1:3306/ordering_m137_test
           TICKETING_DATABASE_URL: mysql://root:canonical-mysql@127.0.0.1:3306/ticketing_m147_test
           AFFILIATES_DATABASE_URL: mysql://root:canonical-mysql@127.0.0.1:3306/affiliates_m154_test
+          CONTENT_DATABASE_URL: mysql://root:canonical-mysql@127.0.0.1:3306/affiliates_m154_test
+          DESTINATIONS_DATABASE_URL: mysql://root:canonical-mysql@127.0.0.1:3306/destinations_owner_test
         shell: bash
         run: |
           set -euo pipefail
@@ -116,11 +118,13 @@ jobs:
           run_suite crm @touristic/crm-server
           run_suite ticketing @touristic/ticketing-server
           run_suite affiliates @touristic/affiliates-server
+          run_suite content @touristic/content-server
+          run_suite destinations @touristic/destinations-server
 
           node <<'NODE'
           const { readFileSync } = require('node:fs');
 
-          const domains = ['financial', 'ordering', 'crm', 'ticketing', 'affiliates'];
+          const domains = ['financial', 'ordering', 'crm', 'ticketing', 'affiliates', 'content', 'destinations'];
           let passed = 0;
           let total = 0;
 
