@@ -10,6 +10,7 @@ import {
   getSearchPresentationCopy,
   isLikelyV1PlaceQuery,
   morroV1SearchCatalog,
+  type MapboxSearchOptions,
   type MapboxSearchResult,
   type MorroV1SearchCatalogItem,
   type SearchPresentationItem,
@@ -21,6 +22,19 @@ export interface AssistantSearchAdapterOptions {
 }
 
 type AssistantSearchLanguage = "pt" | "en" | "es" | "he";
+
+function providerUnavailableCopy(language: AssistantSearchLanguage): string {
+  switch (language) {
+    case "en":
+      return "I couldn't search for new places right now. Your current map context was preserved.";
+    case "es":
+      return "No pude buscar nuevos lugares ahora. Se conservó el contexto actual del mapa.";
+    case "he":
+      return "לא ניתן לחפש מקומות חדשים כרגע. ההקשר הנוכחי במפה נשמר.";
+    default:
+      return "Não foi possível buscar novos lugares agora. O contexto atual do mapa foi preservado.";
+  }
+}
 
 function localPresentationItem(
   item: MorroV1SearchCatalogItem,
@@ -67,7 +81,7 @@ export function createAssistantSearchHandler(
     ? {
         async search(
           query: string,
-          searchOptions?: Parameters<typeof mapboxProvider.search>[1],
+          searchOptions?: MapboxSearchOptions,
         ) {
           try {
             return await mapboxProvider.search(query, searchOptions);
@@ -132,12 +146,17 @@ export function createAssistantSearchHandler(
         : exploreResults.length === 0
           ? ("empty" as const)
           : ("ready" as const),
+      ...(providerUnavailable
+        ? { statusText: providerUnavailableCopy(language) }
+        : {}),
       results: Object.freeze(exploreResults),
     });
 
     if (items.length === 0) {
       return {
-        text: copy.empty,
+        text: providerUnavailable
+          ? providerUnavailableCopy(language)
+          : copy.empty,
         metadata: {
           domain: "search",
           state: providerUnavailable ? "provider_unavailable" : "empty",
