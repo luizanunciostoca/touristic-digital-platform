@@ -502,7 +502,7 @@ async function renderHome() {
       '<div class="home-stack"><section class="card section-card"><div class="section-title"><h2>Ações rápidas</h2></div><div class="quick-actions">' +
       (quickActions() || '<div class="empty"><strong>Nenhuma ação disponível</strong><span>As ações respeitam as capabilities do actor.</span></div>') +
       "</div></section>" +
-      '<section class="card section-card affiliate-model-card"><div class="section-title"><h2>Afiliados pertencem à Morro Digital</h2></div><div class="affiliate-model-card__body"><span class="affiliate-model-card__icon" aria-hidden="true">◇</span><p>Os afiliados são da Morro Digital e são organizados por destino, não por empresa. Eles podem promover produtos de várias empresas do mesmo destino, fortalecendo todo o ecossistema.</p></div></section></div></div>";
+      '<section class="card section-card affiliate-model-card"><div class="section-title"><h2>Afiliados pertencem à Morro Digital</h2></div><div class="affiliate-model-card__body"><span class="affiliate-model-card__icon" aria-hidden="true">◇</span><p>Os afiliados são da Morro Digital e são organizados por destino, não por empresa. Eles podem promover produtos de várias empresas do mesmo destino, fortalecendo todo o ecossistema.</p></div></section></div></div>';
 
     contentRoot.querySelectorAll("[data-destination-row]").forEach((row) => {
       const activate = () => {
