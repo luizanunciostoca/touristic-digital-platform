@@ -486,6 +486,10 @@ export function getV1ExploreUiCopy(locale: AssistantLocale = "pt") {
         `Não encontrei correspondência exata para ${filter}. Mostrando todos os ${count} locais.`,
       chooseOther: (label: string) =>
         `${label}: escolha outro local para ver os detalhes.`,
+      searchResults: (query: string, count: number) =>
+        count > 0
+          ? `Busca por “${query}”: ${count} resultado(s). Escolha um local para ver no mapa.`
+          : `Busca por “${query}”: nenhum resultado encontrado.`,
     },
     en: {
       selected: (name: string) => `${name} selected.`,
@@ -508,6 +512,10 @@ export function getV1ExploreUiCopy(locale: AssistantLocale = "pt") {
         `I couldn't find an exact match for ${filter}. Showing all ${count} places.`,
       chooseOther: (label: string) =>
         `${label}: choose another place to see the details.`,
+      searchResults: (query: string, count: number) =>
+        count > 0
+          ? `Search for “${query}”: ${count} result(s). Choose a place to see it on the map.`
+          : `Search for “${query}”: no results found.`,
     },
     es: {
       selected: (name: string) => `${name} seleccionado.`,
@@ -530,6 +538,10 @@ export function getV1ExploreUiCopy(locale: AssistantLocale = "pt") {
         `No encontré una coincidencia exacta para ${filter}. Mostrando los ${count} lugares.`,
       chooseOther: (label: string) =>
         `${label}: elige otro lugar para ver los detalles.`,
+      searchResults: (query: string, count: number) =>
+        count > 0
+          ? `Búsqueda de “${query}”: ${count} resultado(s). Elige un lugar para verlo en el mapa.`
+          : `Búsqueda de “${query}”: no se encontraron resultados.`,
     },
     he: {
       selected: (name: string) => `${name} נבחר.`,
@@ -551,6 +563,10 @@ export function getV1ExploreUiCopy(locale: AssistantLocale = "pt") {
       filterFallback: (count: number, filter: string) =>
         `לא נמצאה התאמה מדויקת עבור ${filter}. מציג את כל ${count} המקומות.`,
       chooseOther: (label: string) => `${label}: בחר מקום אחר כדי לראות פרטים.`,
+      searchResults: (query: string, count: number) =>
+        count > 0
+          ? `חיפוש “${query}”: ${count} תוצאות. בחר מקום כדי לראות אותו במפה.`
+          : `חיפוש “${query}”: לא נמצאו תוצאות.`,
     },
   } as const;
   return copy[locale];
