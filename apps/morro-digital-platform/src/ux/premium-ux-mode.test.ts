@@ -187,17 +187,22 @@ describe("Chat 6 CSS modernization + Premium UX foundations", () => {
   });
 
   it("establishes the canonical layered CSS architecture", async () => {
-    const css = await readPublic("premium-ux-v2.css");
+    const [premium, designSystem] = await Promise.all([
+      readPublic("premium-ux-v2.css"),
+      readPublic("design-system-v2.css"),
+    ]);
 
-    expect(css).toContain(
-      "@layer reset, vendor, legacy, tokens, base, components, features, utilities, overrides;",
-    );
-    expect(css).toContain("@layer tokens");
-    expect(css).toContain("@layer components");
-    expect(css).toContain("@layer features");
-    expect(css).toContain("@layer utilities");
-    expect(css).toContain("@layer overrides");
-    expect(css).not.toContain("transition: all");
+    for (const css of [premium, designSystem]) {
+      expect(css).toContain(
+        "@layer reset, vendor, legacy, tokens, base, components, features, utilities, overrides;",
+      );
+    }
+    expect(designSystem).toContain("@layer tokens");
+    expect(premium).toContain("@layer components");
+    expect(premium).toContain("@layer features");
+    expect(premium).toContain("@layer utilities");
+    expect(premium).toContain("@layer overrides");
+    expect(premium).not.toContain("transition: all");
   });
 
   it("provides reusable peek, half and full bottom-sheet states", async () => {
