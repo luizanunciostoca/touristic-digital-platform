@@ -66,7 +66,7 @@ describe("Control Center real-data financial aggregate", () => {
                   {
                     id: "rcf_morro_open_0001",
                     paymentId: paymentIds[0],
-                    kind: "provider_amount_mismatch",
+                    kind: "amount_mismatch",
                     severity: "critical",
                     state: "open",
                     lastSeenAt: "2026-09-21T12:00:00.000Z",
