@@ -751,6 +751,7 @@ async function shutdown(signal) {
     crmApi.stop(),
     paymentsApi.stop(),
     ticketingApi.stop(),
+    destinationRuntime.stop(),
   ]);
   paymentsRuntimeReady = false;
   ticketingRuntimeReady = false;
