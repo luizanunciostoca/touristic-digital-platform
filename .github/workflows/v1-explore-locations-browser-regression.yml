@@ -138,6 +138,52 @@ jobs:
             if (!state.mainHidden || state.mainAriaHidden !== 'true' || state.filterCount < 2 || state.locationCount !== 0) {
               throw new Error(`V1 filter stage diverged for ${category}: ${JSON.stringify(state)}`);
             }
+            await assertMobileContextSheet(page, 'search', `filters:${category}`);
+          }
+
+          async function assertMobileContextSheet(page, expectedMode, label) {
+            const viewport = page.viewportSize();
+            if (!viewport || viewport.width > 720) return null;
+
+            await page.locator(`body[data-md-mode="${expectedMode}"]`).waitFor({
+              state: 'attached',
+              timeout: 5000,
+            });
+            const sheet = page.locator('#assistant-messages.md-bottom-sheet.md-context-sheet');
+            await sheet.waitFor({ state: 'visible', timeout: 5000 });
+            const before = await sheet.evaluate(node => ({
+              mode: node.getAttribute('data-sheet-mode'),
+              state: node.getAttribute('data-sheet-state'),
+              contentScrollable: node.querySelector('.messages-area')?.classList.contains('md-bottom-sheet-content') ?? false,
+              bodyState: document.body.getAttribute('data-context-sheet-state'),
+              handleVisible: (() => {
+                const handle = node.querySelector('[data-context-sheet-handle="true"]');
+                return handle instanceof HTMLElement && !handle.hidden;
+              })(),
+            }));
+            if (
+              before.mode !== expectedMode ||
+              !['peek', 'half', 'full'].includes(before.state || '') ||
+              before.bodyState !== before.state ||
+              !before.contentScrollable ||
+              !before.handleVisible
+            ) {
+              throw new Error(`Context sheet drift at ${label}: ${JSON.stringify(before)}`);
+            }
+
+            const handle = sheet.locator('[data-context-sheet-handle="true"]');
+            await handle.focus();
+            await page.keyboard.press('End');
+            await page.locator('#assistant-messages[data-sheet-state="full"]').waitFor({
+              state: 'attached',
+              timeout: 3000,
+            });
+            await page.keyboard.press('Home');
+            await page.locator('#assistant-messages[data-sheet-state="peek"]').waitFor({
+              state: 'attached',
+              timeout: 3000,
+            });
+            return before;
           }
 
           async function assertMainMenu(page) {
@@ -257,6 +303,7 @@ jobs:
               await page.locator('#assistant-category-results [data-value="ver todos"]').click();
               await page.locator('#assistant-category-results[data-stage="places"] [data-location-name="Primeira Praia"]').waitFor({ state: 'visible' });
               await waitMap(page, 'beaches', 8, 'places');
+              await assertMobileContextSheet(page, 'search', 'places:beaches');
 
               await page.evaluate(() => {
                 globalThis.__exploreSelectedValues = [];
@@ -271,6 +318,7 @@ jobs:
               await waitMap(page, 'beaches', 1, 'detail');
               const center = await waitForSelectedMapCamera(page, -38.9142193, -13.3776181);
               await page.locator('.assistant-option-btn[data-value="condições da praia"]').waitFor({ state: 'visible', timeout: 8000 });
+              await assertMobileContextSheet(page, 'place', 'detail:Primeira Praia');
               const detailValues = await readDynamicOptionValues(page);
               const selected = await page.evaluate(() => ({
                 flowRemoved: !document.getElementById('assistant-category-results'),
