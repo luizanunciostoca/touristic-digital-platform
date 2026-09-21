@@ -175,7 +175,8 @@ async function getDashboard({
   };
 }
 
-// Availability is authoritative: zero never substitutes for unavailable or unsupported data.\ndescribe("Control Center real-data dashboard contract", () => {
+// Availability is authoritative: zero never substitutes for unavailable or unsupported data.
+describe("Control Center real-data dashboard contract", () => {
   it("projects owner-backed destination revenue and partial attention without turning gaps into zero", async () => {
     const aggregate = vi.fn(async ({ destinationIds }) => ({
       status: "found",
