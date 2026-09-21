@@ -75,8 +75,9 @@ The UX V1 layer renders:
 - “Precisa da sua atenção” queue from real health/module state;
 - “Resumo por destino” drill-down;
 - recent administrative activity from append-only audit;
-- at most four capability-aware quick actions;
 - the canonical Affiliate model explanatory card.
+
+Product override: the approved Control Center does not expose a floating Assistant shortcut or a Quick Actions block. Operational actions remain inside their contextual modules and command/search flows.
 
 Metrics are never fabricated. A missing owner aggregate is rendered as unavailable/partial rather than replaced by demo numbers.
 
