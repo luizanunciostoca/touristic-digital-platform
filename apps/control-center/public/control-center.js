@@ -3060,7 +3060,15 @@ searchInput.addEventListener("input", () => {
 
   searchTimer = setTimeout(async () => {
     try {
-      const data = await api(`/search?q=${encodeURIComponent(query)}`);
+      const destinationId =
+        document.querySelector("#destination-selector")?.value ?? "global";
+      const destinationScope =
+        destinationId && destinationId !== "global"
+          ? `&destinationId=${encodeURIComponent(destinationId)}`
+          : "";
+      const data = await api(
+        `/search?q=${encodeURIComponent(query)}${destinationScope}`,
+      );
       searchResults.innerHTML =
         data.results
           .map(
