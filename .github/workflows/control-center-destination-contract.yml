@@ -77,6 +77,106 @@ jobs:
         run: |
           pnpm --filter @touristic/destinations test
           pnpm --filter @touristic/destinations-server test
+      - name: Install deterministic Chromium
+        run: |
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+      - name: Validate Destination Control Center browser contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          PORT=4196
+          PASSWORD="destination browser fixture"
+          OWNER_HASH=$(node --input-type=module -e "import('./services/auth/dist/credentials.js').then(m => console.log(m.hashPassword(process.argv[1], Buffer.alloc(16, 31))))" "$PASSWORD")
+          BUSINESS_HASH=$(node --input-type=module -e "import('./services/auth/dist/credentials.js').then(m => console.log(m.hashPassword(process.argv[1], Buffer.alloc(16, 32))))" "$PASSWORD")
+          USERS=$(node -e 'console.log(JSON.stringify([
+            {id:"destination-owner",email:"destination-owner@example.com",passwordHash:process.argv[1],role:"PLATFORM_OWNER",businessIds:[]},
+            {id:"destination-business",email:"destination-business@example.com",passwordHash:process.argv[2],role:"BUSINESS_OWNER",businessIds:["fixture-business"]}
+          ]))' "$OWNER_HASH" "$BUSINESS_HASH")
+          DASHBOARD_AUTH_SECRET="destination-auth-secret-0123456789abcdef" \
+          CONTROL_CENTER_STEP_UP_SECRET="destination-step-up-secret-0123456789abcdef" \
+          CONTROL_CENTER_SUPPORT_SECRET="destination-support-secret-0123456789abcdef" \
+          DASHBOARD_USERS_JSON="$USERS" \
+          CONTROL_CENTER_AUDIT_DATABASE_URL="$DESTINATIONS_DATABASE_URL" \
+          DESTINATIONS_DATABASE_URL="$DESTINATIONS_DATABASE_URL" \
+          PORT="$PORT" HOST="127.0.0.1" \
+            node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/destination-browser.log 2>&1 &
+          echo $! >/tmp/destination-browser.pid
+          trap 'kill "$(cat /tmp/destination-browser.pid)" 2>/dev/null || true' EXIT
+          for _ in $(seq 1 100); do
+            curl --fail --silent "http://127.0.0.1:$PORT/apps/control-center/public/index.html" >/dev/null && break
+            sleep 0.25
+          done
+          node <<'NODE'
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+          const origin = 'http://127.0.0.1:4196';
+          const password = 'destination browser fixture';
+          async function login(context, email) {
+            const response = await context.request.post(origin + '/api/dashboard/auth/login', {
+              headers: { Origin: origin, 'Content-Type': 'application/json' },
+              data: { email, password },
+            });
+            if (response.status() !== 200) throw new Error('LOGIN_FAILED:' + await response.text());
+            return response.json();
+          }
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            try {
+              const owner = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+              const auth = await login(owner, 'destination-owner@example.com');
+              const headers = { Origin: origin, 'Content-Type': 'application/json', 'X-CSRF-Token': auth.csrfToken };
+              const denied = await owner.request.patch(origin + '/api/admin/v1/destinations/morro-de-sao-paulo', {
+                headers, data: { status: 'suspended', reason: 'Destination E2E denied before step-up' },
+              });
+              if (denied.status() !== 403 || (await denied.json()).error !== 'STEP_UP_REQUIRED') throw new Error('STEP_UP_NOT_ENFORCED');
+
+              const page = await owner.newPage();
+              await page.goto(origin + '/apps/control-center/public/index.html#destinations');
+              await page.locator('#app:not([hidden])').waitFor({ state: 'visible', timeout: 15000 });
+              await page.locator('[data-view="destinations"]').click();
+              await page.locator('#destination-editor').waitFor();
+              if (!(await page.locator('#content').textContent()).includes('Morro de São Paulo')) throw new Error('DESTINATION_LIST_NOT_RENDERED');
+              await page.locator('input[name="id"]').fill('e2e-destination');
+              await page.locator('input[name="name"]').fill('Destino E2E');
+              await page.locator('input[name="shortName"]').fill('E2E');
+              await page.locator('input[name="tagline"]').fill('Destino governado de teste');
+              await page.locator('input[name="lat"]').fill('-13.38');
+              await page.locator('input[name="lng"]').fill('-38.91');
+              await page.locator('textarea[name="modules"]').fill('map, assistant');
+              await page.locator('textarea[name="featureFlags"]').fill('{"map":true,"assistant":true}');
+              await page.locator('textarea[name="reason"]').fill('Criacao E2E governada do destino');
+              await page.locator('input[name="password"]').fill(password);
+              await page.getByRole('button', { name: 'Criar destino governado' }).click();
+              await page.getByText('Destino E2E', { exact: true }).waitFor({ timeout: 15000 });
+
+              await page.locator('input[name="tagline"]').fill('Destino E2E atualizado');
+              await page.locator('textarea[name="reason"]').fill('Edicao E2E governada do destino');
+              await page.locator('input[name="password"]').fill(password);
+              await page.getByRole('button', { name: 'Salvar configuração governada' }).click();
+              await page.waitForTimeout(300);
+              await page.reload();
+              await page.locator('#app:not([hidden])').waitFor({ state: 'visible', timeout: 15000 });
+              await page.locator('input[name="tagline"]').waitFor();
+              if (await page.locator('input[name="tagline"]').inputValue() !== 'Destino E2E atualizado') throw new Error('DESTINATION_EDIT_NOT_DURABLE');
+
+              for (const viewport of [{width:768,height:1024},{width:390,height:844}]) {
+                await page.setViewportSize(viewport);
+                const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 2);
+                if (overflow) throw new Error('DESTINATION_UI_HORIZONTAL_OVERFLOW:' + viewport.width);
+              }
+
+              const business = await browser.newContext();
+              await login(business, 'destination-business@example.com');
+              const forbidden = await business.request.get(origin + '/api/admin/v1/destinations');
+              if (forbidden.status() !== 403) throw new Error('BUSINESS_OWNER_DESTINATION_ACCESS_NOT_DENIED');
+              await business.close();
+              await owner.close();
+            } finally { await browser.close(); }
+          })().catch(error => { console.error(error); process.exit(1); });
+          NODE
+      - name: Show Destination browser diagnostics
+        if: failure()
+        run: cat /tmp/destination-browser.log || true
       - name: Validate real MySQL bootstrap and optimistic concurrency
         run: |
           node --input-type=module <<'NODE'
