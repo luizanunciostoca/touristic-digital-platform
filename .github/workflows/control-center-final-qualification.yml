@@ -100,8 +100,7 @@ jobs:
               echo "Unable to discover exact-head run for $workflow" >&2
               exit 1
             fi
-            printf '%s	%s
-' "$workflow" "$run_id" >> /tmp/control-center-final-runs.tsv
+            printf '%s\\t%s\\n' "$workflow" "$run_id" >> /tmp/control-center-final-runs.tsv
             echo "$workflow -> run $run_id"
           done
 
