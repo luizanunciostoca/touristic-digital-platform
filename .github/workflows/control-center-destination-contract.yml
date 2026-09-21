@@ -155,7 +155,7 @@ jobs:
               await page.locator('textarea[name="reason"]').fill('Edicao E2E governada do destino');
               await page.locator('input[name="password"]').fill(password);
               await page.getByRole('button', { name: 'Salvar configuração governada' }).click();
-              await page.waitForTimeout(300);
+              await page.locator('#destination-editor-result').getByText('Configuração atualizada com sucesso.').waitFor({ timeout: 15000 });
               await page.reload();
               await page.locator('#app:not([hidden])').waitFor({ state: 'visible', timeout: 15000 });
               await page.locator('input[name="tagline"]').waitFor();
