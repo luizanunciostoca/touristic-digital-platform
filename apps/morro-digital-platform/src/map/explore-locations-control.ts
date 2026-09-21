@@ -684,7 +684,7 @@ export function installExploreLocationsControl({
           backToMenu();
         },
       });
-      if (kind === "explore") {
+      if (kind === "explore" && activeCategory?.value !== "tours") {
         requestAssistantClose(document);
       }
     }
