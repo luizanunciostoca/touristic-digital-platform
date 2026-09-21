@@ -147,7 +147,11 @@ body[data-md-mode] {
 }
 
 .quick-actions {
-  left: max(var(--md-safe-left), var(--md-space-2));
+  left: max(var(--md-safe-left, 0rem), var(--md-space-3, 0.75rem)) !important;
+}
+
+.quick-actions .action-button.primary.mood-button {
+  transform-origin: left center;
 }
 
 .quick-actions,
