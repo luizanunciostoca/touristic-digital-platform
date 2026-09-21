@@ -340,13 +340,15 @@ async function renderUsers(userId) {
         ${statusBadge(selectedUser.status ?? "active")}
       </div>
       <div class="callout">
-        ${bootstrapProtected
-          ? "Este PLATFORM_OWNER bootstrap é protegido contra bloqueio ou rebaixamento."
-          : supportActive
-            ? "Ações críticas de usuário ficam bloqueadas durante Support Mode."
-            : selfTarget
-              ? "Autoproteção ativa: o actor não pode bloquear ou alterar o próprio perfil."
-              : "Bloqueio e alteração de perfil revogam sessões ativas e exigem step-up, motivo e confirmação textual."}
+        ${
+          bootstrapProtected
+            ? "Este PLATFORM_OWNER bootstrap é protegido contra bloqueio ou rebaixamento."
+            : supportActive
+              ? "Ações críticas de usuário ficam bloqueadas durante Support Mode."
+              : selfTarget
+                ? "Autoproteção ativa: o actor não pode bloquear ou alterar o próprio perfil."
+                : "Bloqueio e alteração de perfil revogam sessões ativas e exigem step-up, motivo e confirmação textual."
+        }
       </div>
       <div class="grid two-col">
         <form id="user-status-form" class="form-grid">
@@ -533,7 +535,9 @@ async function renderUsers(userId) {
       const form = event.currentTarget;
       const values = new FormData(form);
       const result = form.querySelector("#user-role-result");
-      if (String(values.get("confirmation") || "").trim() !== "ALTERAR PERFIL") {
+      if (
+        String(values.get("confirmation") || "").trim() !== "ALTERAR PERFIL"
+      ) {
         result.textContent = "Digite ALTERAR PERFIL para confirmar.";
         return;
       }

@@ -323,8 +323,7 @@ describe("Control Center Admin API", () => {
     });
 
     const reactivated = responseRecorder();
-    const reactivatePath =
-      "/api/admin/v1/users/business-owner/reactivate";
+    const reactivatePath = "/api/admin/v1/users/business-owner/reactivate";
     await api.handle(
       request(reactivatePath, {
         method: "POST",

@@ -97,11 +97,7 @@ describe("Auth durable administrative principal policy", () => {
     });
     await expect(api.resolveSession(request)).resolves.toBeNull();
 
-    await api.updateUserStatus(
-      "business-owner",
-      "active",
-      "platform-owner",
-    );
+    await api.updateUserStatus("business-owner", "active", "platform-owner");
     await expect(api.resolveSession(request)).resolves.toMatchObject({
       subject: "business-owner",
       role: "SUPPORT",

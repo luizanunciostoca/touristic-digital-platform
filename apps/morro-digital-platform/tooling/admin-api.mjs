@@ -703,7 +703,9 @@ export function createAdminApi({
             );
     } catch (error) {
       const code =
-        error instanceof Error ? error.message : "AUTH_ADMIN_POLICY_UNAVAILABLE";
+        error instanceof Error
+          ? error.message
+          : "AUTH_ADMIN_POLICY_UNAVAILABLE";
       const statusCode =
         code === "AUTH_PRINCIPAL_ROLE_INVALID" ||
         code === "AUTH_PRINCIPAL_STATUS_INVALID"

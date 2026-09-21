@@ -210,9 +210,8 @@ export function createAuthApi({ getEnvironmentValue, audit = () => {} }) {
 
   function configuredUserById(userId) {
     return (
-      users.find(
-        (candidate) => candidate.id === String(userId || "").trim(),
-      ) ?? null
+      users.find((candidate) => candidate.id === String(userId || "").trim()) ??
+      null
     );
   }
 
@@ -280,7 +279,12 @@ export function createAuthApi({ getEnvironmentValue, audit = () => {} }) {
     return revokedSessions;
   }
 
-  function assertMutableAdminTarget(actorSubject, target, nextRole, nextStatus) {
+  function assertMutableAdminTarget(
+    actorSubject,
+    target,
+    nextRole,
+    nextStatus,
+  ) {
     if (target.id === actorSubject) {
       if (nextStatus === "blocked") {
         throw new Error("AUTH_SELF_BLOCK_DENIED");
@@ -309,8 +313,7 @@ export function createAuthApi({ getEnvironmentValue, audit = () => {} }) {
     await securityState.setPrincipalAdminState({
       subject: target.id,
       status,
-      roleOverride:
-        target.role === target.configuredRole ? null : target.role,
+      roleOverride: target.role === target.configuredRole ? null : target.role,
       updatedBy: actorSubject,
     });
     const revokedSessions = await revokeAllUserSessions(target.id);
