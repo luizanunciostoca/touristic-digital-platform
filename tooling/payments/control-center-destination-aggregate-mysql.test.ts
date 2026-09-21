@@ -118,6 +118,10 @@ describeMySql.sequential(
             now,
           ],
         );
+        const requestFingerprint = Buffer.alloc(32, 1);
+        requestFingerprint.writeUInt32BE(start + offset, 28);
+        const tokenHash = Buffer.alloc(32, 2);
+        tokenHash.writeUInt32BE(start + offset, 28);
         await orderingPool.execute(
           `INSERT INTO ordering_checkout_access (
              order_id, payment_id, request_fingerprint, token_hash,
@@ -127,8 +131,8 @@ describeMySql.sequential(
           [
             orderId,
             paymentId,
-            Buffer.alloc(32, 1),
-            Buffer.alloc(32, 2),
+            requestFingerprint,
+            tokenHash,
             `user:${sequence}`,
             destinationId,
             `tenant-${destinationId}`,
