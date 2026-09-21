@@ -2,6 +2,8 @@ import { describe, expect, it, vi } from "vitest";
 
 import { createAdminApi } from "./admin-api.mjs";
 
+// Exact-head regression coverage for owner-backed Control Center aggregates.
+
 const platformOwner = Object.freeze({
   subject: "platform-owner",
   email: "owner@morro.invalid",
