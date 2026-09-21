@@ -43,6 +43,7 @@ const navGroups = [
     ["CRM", "#crm", "◈", "crm"],
     ["Produtos", "#products", "▤", "products"],
     ["Ofertas", "#products", "◇", "offers"],
+    ["Conteúdo", "#content", "✦", "content"],
   ]],
   ["Reservas", [
     ["Reservas", "#reservations", "▣", "reservations"],
@@ -51,7 +52,7 @@ const navGroups = [
   ]],
   ["Financeiro", [
     ["Pedidos", "#orders", "≡", "orders"],
-    ["Pagamentos", "#financial", "◐", "payments"],
+    ["Pagamentos", "#financial", "◐", "financial"],
     ["Reembolsos", "#financial", "↺", "refunds"],
     ["Comissões", "#affiliates", "%", "commissions"],
   ]],
@@ -61,6 +62,7 @@ const navGroups = [
   ]],
   ["Plataforma", [
     ["Sistema", "#system", "⚙", "system"],
+    ["Destinos", "#destinations", "⌖", "destinations"],
     ["Integrações", "#system", "⌘", "integrations"],
     ["Configurações", "#settings", "⋯", "settings"],
   ]],
@@ -199,10 +201,30 @@ function rebuildNavigation() {
             key === "global"
               ? state.destinationId === "global" && currentHash === "#overview"
               : currentHash === href && !(key === "offers" || key === "checkin" || key === "payments" || key === "refunds" || key === "commissions" || key === "integrations");
+          const canonicalViews = new Set([
+            "overview",
+            "businesses",
+            "users",
+            "affiliates",
+            "crm",
+            "products",
+            "reservations",
+            "ticketing",
+            "orders",
+            "financial",
+            "content",
+            "destinations",
+            "support",
+            "audit",
+            "system",
+            "settings",
+          ]);
           const attrs =
             key === "global"
               ? 'data-ux-global="true"'
-              : 'data-ux-href="' + escapeHtml(href) + '"';
+              : canonicalViews.has(key)
+                ? 'data-view="' + escapeHtml(key) + '" data-ux-href="' + escapeHtml(href) + '"'
+                : 'data-ux-href="' + escapeHtml(href) + '"';
           return (
             '<button type="button" class="nav-item ' +
             (active ? "active" : "") +
