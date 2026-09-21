@@ -8,9 +8,17 @@ const axePath = require.resolve("/tmp/pw/node_modules/axe-core/axe.min.js");
 const origin = "http://127.0.0.1:4194";
 const password = "control center browser fixture";
 
+const evidencePath = "/tmp/control-center-accessibility-evidence.json";
+
+function persistEvidence(evidence) {
+  writeFileSync(evidencePath, JSON.stringify(evidence, null, 2));
+}
+
 async function main() {
   const browser = await chromium.launch({ headless: true });
   const evidence = [];
+  let currentView = "__bootstrap__";
+  let stage = "bootstrap";
   try {
     const context = await browser.newContext({
       viewport: { width: 1280, height: 900 },
@@ -37,6 +45,8 @@ async function main() {
       .evaluateAll((nodes) => nodes.map((node) => node.dataset.view));
 
     for (const view of views) {
+      currentView = view ?? "__unknown__";
+      stage = "navigate";
       await page.evaluate((target) => {
         location.hash = `#${target}`;
       }, view);
@@ -50,6 +60,7 @@ async function main() {
         { timeout: 15_000 },
       );
 
+      stage = "axe";
       const violations = await page.evaluate(async () => {
         const result = await globalThis.axe.run(document, {
           runOnly: {
@@ -65,22 +76,26 @@ async function main() {
         }));
       });
       evidence.push({ view, violations });
+      persistEvidence(evidence);
     }
 
-    writeFileSync(
-      "/tmp/control-center-accessibility-evidence.json",
-      JSON.stringify(evidence, null, 2),
-    );
+    persistEvidence(evidence);
 
     const failures = evidence.filter((entry) => entry.violations.length > 0);
     if (failures.length) {
-      throw new Error(
-        `CONTROL_CENTER_ACCESSIBILITY_FAILED:${JSON.stringify(failures)}`,
-      );
+      throw new Error("ACCESSIBILITY_VIOLATIONS");
     }
 
     console.log(`CONTROL_CENTER_ACCESSIBILITY_PASS:${evidence.length}_ROUTES`);
     await context.close();
+  } catch (error) {
+    evidence.push({
+      view: currentView,
+      stage,
+      runtimeFailure: error instanceof Error ? error.name : "UnknownError",
+    });
+    persistEvidence(evidence);
+    throw error;
   } finally {
     await browser.close();
   }
