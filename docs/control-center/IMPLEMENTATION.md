@@ -1,115 +1,108 @@
-# Morro Digital Control Center — Implementation Ledger
+# Morro Digital Control Center — Implementation State
 
-## Baseline
+This file is the current implementation index. Historical wave notes, old GAP/PASS tables and superseded readiness claims were removed because they are not exact-head release evidence.
 
-- Admission main: `05f7df04eaee94de9bf894f75f6842ba6f0c3731`
-- Canonical main reconciled: `e673ce7d844e96bfecb870c8a427c796dd518b6e`
-- Branch: `wave/platform-control-center-super-admin-20260920`
-- Master issue: #152
-- Production deployment: **not authorized**
-- Real-money actions: **not authorized**
+Canonical current-state ledger:
+docs/control-center/CONTROL-CENTER-LEDGER.md
 
-## Architectural invariants
+Visual authority mapping:
+docs/control-center/UX-DESIGN-V1.md
 
-- No direct cross-domain table mutation from Control Center.
-- No hidden fallback to SQL when an admin contract is absent.
-- PLATFORM_OWNER is not an authorization bypass.
-- Financial remains monetary source of truth.
-- actor and effectiveUser are separate in Support Mode.
-- Secrets never appear in admin projections.
-- Missing integration is represented as PARTIAL/GAP, not as success.
+Deterministic visual regression:
+docs/control-center/VISUAL-REGRESSION.md
 
-## Current implementation state
+## Current implementation boundaries
 
-| Area                         | State                      | Evidence                                                                                                                                                                                                                          |
-| ---------------------------- | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Canonical roles              | PASS                       | `packages/auth/src/index.ts`; Quality/Auth contracts green                                                                                                                                                                        |
-| Capability model             | PASS                       | `authorizeCapability`; explicit capability vocabulary; negative admin-surface tests                                                                                                                                               |
-| Legacy role compatibility    | PASS                       | legacy roles preserved through centralized capability mapping                                                                                                                                                                     |
-| Admin API v1 shell           | PASS                       | `tooling/admin-api.mjs`; fail-closed domain adapter orchestration                                                                                                                                                                 |
-| Dedicated Control Center app | PASS                       | `apps/control-center/public/`; Chromium contract green                                                                                                                                                                            |
-| Dashboard                    | PARTIAL                    | Auth/health projections live; remaining domain metrics need owner adapters                                                                                                                                                        |
-| Universal Search             | PARTIAL                    | Identity search live; domain adapters pending                                                                                                                                                                                     |
-| Users                        | PARTIAL                    | Read projection + Auth-owned hash-only session registry/revoke live; block/reactivate pending                                                                                                                                     |
-| Businesses                   | PARTIAL                    | Membership directory + Business profile owner adapter live; wider business admin contracts pending                                                                                                                                |
-| Support Mode                 | PARTIAL                    | Signed support session + request-scoped effective-user propagation proven for Business/CRM/Ticketing; Financial keeps actor authority and binds support context to the owner-resolved resource tenant                             |
-| Audit                        | PASS                       | Append-only MySQL-backed admin audit with browser persistence proof and fail-closed mutation behavior                                                                                                                             |
-| System Health                | PASS                       | Existing platformOperations reused; secret redaction proven in browser                                                                                                                                                            |
-| Affiliates                   | GAP                        | Existing equivalent backend + PR #151 runtime retained; Control Center admin adapter pending                                                                                                                                      |
-| CRM                          | PARTIAL                    | Existing CRM reused through Admin API adapter; full surface orchestration still incomplete                                                                                                                                        |
-| Ticketing                    | PARTIAL                    | Capability-aware runtime + Admin API adapter for current operator contracts                                                                                                                                                       |
-| Orders                       | PASS                       | Ordering-owner read adapter; Chromium financial contract proves Order lookup without Control Center table access                                                                                                                  |
-| Financial                    | PASS                       | Financial-owner Payment/Ledger/Reconciliation reads plus step-up refund/reconciliation/acknowledge actions; owner-resolved tenant scope; production effects remain code-blocked                                                   |
-| Content                      | GAP                        | Admin adapter pending                                                                                                                                                                                                             |
-| Destinations                 | GAP                        | Admin adapter pending                                                                                                                                                                                                             |
-| Step-up auth                 | PASS                       | Re-auth step-up enforced for session revocation and Financial critical actions with reason + textual confirmation                                                                                                                 |
-| Browser E2E                  | PASS for implemented slice | General Chromium contract plus dedicated Financial Chromium contract prove login, dashboard, search, Business 360, CRM, support, Orders, Payment, Ledger, governed refund denial, audit, system, sessions and responsive behavior |
-| Staging                      | GAP                        | No dedicated Control Center staging certification yet                                                                                                                                                                             |
+The Control Center is an administrative projection over domain-owned capabilities. It does not become the owner of Auth, Business, CRM, Ticketing, Financial, Affiliates, Content or Destination state.
 
-## Security posture of current slice
+Presentation files:
+- apps/control-center/public/index.html
+- apps/control-center/public/control-center.css
+- apps/control-center/public/control-center.js
+- apps/control-center/public/control-center-ux-v1.js
+- apps/control-center/public/control-center-primitives.js
 
-Implemented:
+Administrative boundary:
+- apps/morro-digital-platform/tooling/admin-api.mjs
+- apps/morro-digital-platform/tooling/admin-domain-adapters.mjs
 
-- capability-based platform authorization;
-- tenant-aware capability decision;
-- read-only SUPPORT/AUDITOR semantics;
-- signed short-lived support-session cookie;
-- actor session binding;
-- denial of impersonating platform-wide identities;
-- same-origin/CSRF reuse for support mutations;
-- secrets omitted from user/system projections;
-- fail-closed missing-domain behavior;
-- existing CSP/security headers inherited from platform runtime;
-- Financial resource scope resolved by owner contracts (`Payment → Order → CheckoutAccess` and `Finding → Payment`) before critical actions;
-- Support Mode financial actions fail closed on resource-tenant mismatch;
-- production Financial effects are blocked by code even after successful step-up.
+## Product decisions
 
-Still required before completion:
+The approved Control Center UX manual remains the visual and structural authority with two later product overrides:
+- no Quick Actions;
+- no floating Assistant launcher.
 
-- durable platform role/capability persistence and administrative privilege changes;
-- account block/reactivate contracts;
-- remaining high-risk actions outside the proven session-revoke and Financial step-up flows;
-- broader replay/rate-limit coverage for Admin API;
-- remaining domain adapters (Affiliates, Content, Destinations and wider Business/Ticketing coverage);
-- full accessibility certification beyond current keyboard/responsive browser proof;
-- staging proof.
+Neither absence is a gap.
 
-## Financial slice evidence
+## Ownership invariants
 
-- `Control Center Financial Contract`: PASS on `2220a7ebf685a48de4916e01cb01bc92a029c17b`.
-- `Control Center Financial Browser Contract`: PASS on the same SHA using MySQL real repositories and sandbox-only runtime.
-- `Payments Persistence Integration`, `Payments Operational Ledger Contract`, `Payments Refund Command Contract`, `Payments Reconciliation Contract`: PASS.
-- `Quality Gate`, `Security Scanning`, `Control Center Browser Contract`, `Dependency Security Audit`: PASS.
-- Browser fixture creation uses Ordering/Financial owner repositories; no Control Center SQL path is introduced.
-- The governed refund browser test uses a non-eligible pending payment and proves `REFUND_NOT_ALLOWED` before any provider effect.
+Destination:
+- destinationId must come from an explicit canonical owner relation;
+- destination is never inferred from names, labels, addresses or location text.
 
-## Completion rule
+Affiliates:
+- affiliates belong to Morro Digital;
+- destination assignment is an explicit relationship;
+- businesses do not own affiliates;
+- Financial retains payout, wallet and settlement authority.
 
-No row marked PARTIAL or GAP may be reported as complete. FEATURE-0012 stays `partial` until the full acceptance matrix is proven.
+Support:
+- real actor remains identifiable;
+- effective user is separate;
+- reason is mandatory;
+- support context is visibly distinct;
+- policy-denied critical mutations remain denied.
 
-## UX Design V1 implementation wave
+Security:
+- browser visibility is not authorization;
+- critical actions retain server capability checks and their applicable step-up/reason/confirmation/audit controls;
+- secrets remain server-side.
 
-Branch: `wave/control-center-ux-design-v1-final-20260921`
+## Qualification model
 
-Manual-driven implementation added on top of the owner-backed Control Center completion branch.
+A state is not complete merely because code exists.
 
-| UX area                                             | Current state                                          | Evidence                                                                                                         |
-| --------------------------------------------------- | ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------- |
-| Shell / tokens                                      | PASS in code                                           | `apps/control-center/public/index.html`; `control-center.css`                                                    |
-| Topbar / destination context                        | PASS in code                                           | persistent Global/Destination controls in shell + UX layer                                                       |
-| Sidebar IA                                          | PASS in code                                           | grouped navigation in `control-center-ux-v1.js`                                                                  |
-| Home visual hierarchy                               | PASS in code                                           | KPIs → attention → destinations → activity; Quick Actions intentionally removed by approved product override     |
-| Affiliate ownership rule                            | PASS in code                                           | copy + destination-scoped Affiliates admin list                                                                  |
-| Universal Search keyboard                           | PASS in code                                           | Ctrl/Cmd+K, Escape, arrows, Enter                                                                                |
-| Universal Search destination context                | PASS in code                                           | Admin API forwards `destinationId`; Business, Affiliates and CRM use owner/domain-backed destination projections |
-| Products / Reservations / Content destination lists | PASS in code                                           | selected `destinationId` propagated to owner adapters; product business selector is destination-scoped           |
-| Business destination aggregate                      | PASS in code                                           | `BusinessProfile.destinationId` is canonical, owner-backed, searchable/scoped and editable in Business 360°      |
-| 360 visual pattern                                  | PASS in code                                           | Business/Affiliate/User reusable header/tab pattern                                                              |
-| Support Mode                                        | PASS retained                                          | signed actor/effective-user separation + persistent banner                                                       |
-| Critical actions                                    | PASS retained for implemented actions                  | step-up + reason + textual confirmation + audit                                                                  |
-| Responsive system                                   | PASS in code; browser requalification pending          | manual breakpoints + drawer + responsive tables                                                                  |
-| Accessibility                                       | PASS in code baseline; browser requalification pending | focus, semantics, keyboard, reduced motion                                                                       |
-| Visual regression                                   | IMPLEMENTED; exact-head artifact pending               | browser contract captures 1440/1280/1024/768/390 canonical screenshots and rejects overflow/Quick Actions        |
-| Exact-head CI                                       | PENDING                                                | must be evaluated on the final candidate SHA                                                                     |
+Current evidence must be tied to the exact candidate head and must include the relevant subset of:
+- static contracts;
+- lint/typecheck/build;
+- domain/unit/integration tests;
+- browser contracts;
+- accessibility and responsive contracts;
+- security checks;
+- deterministic visual regression;
+- cross-PR semantic validation.
 
-The UX wave does not bypass domain authority. Business and CRM now expose explicit destination-owned projections; legacy records without a canonical destination remain visibly unassigned and fail closed rather than being inferred from labels.
+Skipped workflows are not PASS evidence.
+
+## Visual regression
+
+The visual system covers 19 surfaces at 6 exact viewports for 114 expected images.
+
+It provides:
+- deterministic fixtures;
+- frozen time/locale/timezone;
+- pinned Chromium;
+- pinned embedded Inter;
+- disabled motion;
+- exact viewport capture;
+- versioned expected baselines;
+- actual, expected, diff and JSON report artifacts;
+- strict pixel-diff tolerance;
+- P0/P1 automated manual-invariant checks.
+
+The definitive policy is in:
+docs/control-center/VISUAL-REGRESSION.md
+
+## Status reporting
+
+Do not copy a historical branch SHA, workflow result or readiness label into this document as if it were current.
+
+For a release or PR decision, read GitHub LIVE and report:
+- current main SHA;
+- current candidate HEAD;
+- stacked/base HEAD when applicable;
+- relevant CI from the same candidate state;
+- unresolved P0/P1 findings;
+- semantic collisions with parallel PRs.
+
+This keeps documentation descriptive and durable while release status remains evidence-driven.
