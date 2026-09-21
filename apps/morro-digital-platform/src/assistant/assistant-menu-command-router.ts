@@ -394,6 +394,17 @@ function tryClickVisibleOption(document: Document, message: string): boolean {
   }
 
   if (normalizedMessage === "voltar" || normalizedMessage === "back") {
+    const visiblePlaceSheet = document.querySelector(
+      '#place-bottom-sheet[aria-hidden="false"]',
+    );
+    const placeClose = visiblePlaceSheet?.querySelector<HTMLButtonElement>(
+      ".place-bottom-sheet-close",
+    );
+    if (placeClose) {
+      placeClose.click();
+      return true;
+    }
+
     const backButton = buttons.find((button) => {
       const value = normalizeAssistantMenuCommand(button.dataset.value || "");
       const label = normalizeAssistantMenuCommand(button.textContent || "");
