@@ -78,11 +78,7 @@
 
 #submenu {
   z-index: var(--md-layer-explore-submenu);
-  background: color-mix(
-    in srgb,
-    var(--md-color-surface-card) 92%,
-    transparent
-  );
+  background: color-mix(in srgb, var(--md-color-surface-card) 92%, transparent);
   border: 1px solid var(--md-color-border);
 }
 
@@ -121,11 +117,7 @@
   padding: var(--md-space-4);
   border: 1px solid var(--md-color-border);
   border-radius: var(--md-radius-md);
-  background: color-mix(
-    in srgb,
-    var(--md-color-surface-card) 70%,
-    transparent
-  );
+  background: color-mix(in srgb, var(--md-color-surface-card) 70%, transparent);
   color: var(--md-color-text-primary);
   box-shadow: var(--md-elevation-1);
   display: flex;
