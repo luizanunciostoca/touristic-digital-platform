@@ -323,6 +323,10 @@ jobs:
               evidence.criticalActions.push("membership-suspend-step-up");
 
               await page
+                .locator(\'[data-entity-tabs="affiliate360"]\')
+                .getByRole("tab", { name: "Settings / Actions" })
+                .click();
+              await page
                 .locator("#affiliate-membership-action")
                 .selectOption("prog_affiliate_browser_0001:reactivate");
               await page
