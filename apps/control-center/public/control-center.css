@@ -594,6 +594,7 @@ kbd {
 
 .page {
   width: 100%;
+  min-width: 0;
   max-width: 1600px;
   margin: 0 auto;
   padding: 24px;
@@ -666,8 +667,18 @@ h1 {
 }
 
 .grid {
+  min-width: 0;
+  max-width: 100%;
   display: grid;
   gap: 16px;
+}
+
+#content,
+.home-stack,
+.section-card,
+.destination-summary {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .stats,
@@ -882,6 +893,7 @@ h1 {
 }
 
 .home-stack {
+  min-width: 0;
   display: grid;
   gap: 16px;
   align-content: start;
@@ -1070,8 +1082,11 @@ h1 {
 }
 
 .table-wrap {
+  width: 100%;
+  min-width: 0;
   max-width: 100%;
-  overflow: auto;
+  overflow-x: auto;
+  overflow-y: hidden;
   border: 1px solid var(--md-border);
   border-radius: var(--md-radius-lg);
   background: var(--md-surface);
@@ -1503,9 +1518,18 @@ html[data-control-density="compact"] .metric-card {
 
   .topbar,
   .control-center__topbar {
+    width: 100%;
+    max-width: 100vw;
     grid-template-columns: auto minmax(0, 1fr) auto;
     gap: 10px;
     padding-inline: 16px;
+  }
+
+  .topbar > *,
+  .control-center__topbar > *,
+  .scope-controls,
+  .top-actions {
+    min-width: 0;
   }
 
   .scope-controls {
@@ -1612,6 +1636,12 @@ html[data-control-density="compact"] .metric-card {
 }
 
 @media (max-width: 520px) {
+  .topbar,
+  .control-center__topbar {
+    gap: 6px;
+    padding-inline: 10px;
+  }
+
   .top-actions {
     gap: 5px;
   }
