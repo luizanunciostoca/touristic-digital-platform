@@ -420,6 +420,22 @@ describe("Control Center Admin API", () => {
         }),
       ]),
     );
+
+    const nextResponse = responseRecorder();
+    const nextUrl = new URL(
+      "http://localhost/api/admin/v1/search?q=alfa&limit=2&offset=2",
+    );
+    await api.handle(
+      request(nextUrl.pathname + nextUrl.search),
+      nextResponse,
+      nextUrl,
+    );
+    expect(JSON.parse(nextResponse.body).results).toEqual([
+      expect.objectContaining({
+        type: "offer",
+        id: "offer-alpha",
+      }),
+    ]);
   });
 
   it("passes explicit destinationId to capable owners and suppresses mismatched or unscoped results", async () => {
@@ -443,6 +459,12 @@ describe("Control Center Admin API", () => {
             title: "Produto Itacaré",
             href: "#products:offer-itacare",
             destinationId: "itacare",
+          },
+          {
+            type: "product",
+            id: "product-unscoped",
+            title: "Produto sem destino",
+            href: "#products:offer-unscoped",
           },
         ];
       },
@@ -519,9 +541,18 @@ describe("Control Center Admin API", () => {
 
     expect(response.statusCode).toBe(200);
     expect(called).toBe(false);
-    expect(JSON.parse(response.body).results).not.toEqual(
+    const payload = JSON.parse(response.body);
+    expect(payload.results).not.toEqual(
       expect.arrayContaining([
         expect.objectContaining({ id: "99" }),
+      ]),
+    );
+    expect(payload.partial).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          domain: "crm",
+          reason: "capability_contract_mismatch",
+        }),
       ]),
     );
   });
