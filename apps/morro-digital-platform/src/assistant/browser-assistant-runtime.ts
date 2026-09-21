@@ -255,9 +255,19 @@ function readDeterministicExploreCommands(
         ];
       });
       if (results.length !== raw.results.length) return [];
+      const status =
+        "status" in raw &&
+        (raw.status === "ready" ||
+          raw.status === "empty" ||
+          raw.status === "error")
+          ? raw.status
+          : results.length === 0
+            ? "empty"
+            : "ready";
       commands.push({
         type,
         query: raw.query,
+        status,
         results: Object.freeze(results),
       });
       continue;
