@@ -1,22 +1,56 @@
 import { createDashboardAuthClient } from "@touristic/auth-browser";
 
-const navItems = [
-  ["overview", "Visão Geral", "◫"],
-  ["businesses", "Empresas", "▦"],
-  ["users", "Usuários", "●"],
-  ["affiliates", "Afiliados", "◇"],
-  ["crm", "CRM", "◈"],
-  ["products", "Produtos e Ofertas", "▤"],
-  ["reservations", "Reservas", "▣"],
-  ["ticketing", "Ticketing", "◉"],
-  ["orders", "Pedidos", "≡"],
-  ["financial", "Financeiro", "◐"],
-  ["content", "Conteúdo", "✦"],
-  ["destinations", "Destinos", "⌖"],
-  ["support", "Suporte", "◎"],
-  ["audit", "Auditoria", "⌁"],
-  ["system", "Sistema", "⚙"],
-  ["settings", "Configurações", "⋯"],
+const navGroups = [
+  ["Principal", [["overview", "Visão Global", "◎"]]],
+  ["Operação", [["overview", "Visão Geral", "◫"]]],
+  [
+    "Relacionamentos",
+    [
+      ["businesses", "Empresas", "▦"],
+      ["users", "Usuários", "●"],
+      ["affiliates", "Afiliados", "◇"],
+    ],
+  ],
+  [
+    "Comercial",
+    [
+      ["crm", "CRM", "◈"],
+      ["products", "Produtos", "▤"],
+      ["products", "Ofertas", "◇"],
+    ],
+  ],
+  [
+    "Reservas",
+    [
+      ["reservations", "Reservas", "▣"],
+      ["ticketing", "Ticketing", "◉"],
+      ["ticketing", "Check-in", "✓"],
+    ],
+  ],
+  [
+    "Financeiro",
+    [
+      ["orders", "Pedidos", "≡"],
+      ["financial", "Pagamentos", "◐"],
+      ["financial", "Reembolsos", "↺"],
+      ["affiliates", "Comissões", "%"],
+    ],
+  ],
+  [
+    "Controle",
+    [
+      ["support", "Suporte", "◎"],
+      ["audit", "Auditoria", "⌁"],
+    ],
+  ],
+  [
+    "Plataforma",
+    [
+      ["system", "Sistema", "⚙"],
+      ["system", "Integrações", "⌘"],
+      ["settings", "Configurações", "⋯"],
+    ],
+  ],
 ];
 
 const pageCopy = {
@@ -199,12 +233,23 @@ function contentField(document, key) {
 }
 
 function renderNav() {
-  nav.innerHTML = navItems
+  nav.innerHTML = navGroups
     .map(
-      ([id, label, icon]) =>
-        `<button type="button" class="nav-item ${state.view === id ? "active" : ""}" data-view="${id}">
-          <span class="nav-icon">${icon}</span><span>${label}</span>
-        </button>`,
+      ([group, items]) => `
+        <section class="nav-group" aria-label="${escapeHtml(group)}">
+          <p class="nav-group-label">${escapeHtml(group)}</p>
+          <div class="nav-group-items">
+            ${items
+              .map(
+                ([id, label, icon]) =>
+                  `<button type="button" class="nav-item ${state.view === id ? "active" : ""}" data-view="${id}">
+                    <span class="nav-icon" aria-hidden="true">${icon}</span>
+                    <span>${escapeHtml(label)}</span>
+                  </button>`,
+              )
+              .join("")}
+          </div>
+        </section>`,
     )
     .join("");
 }
