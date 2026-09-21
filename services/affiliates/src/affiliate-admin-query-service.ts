@@ -177,6 +177,17 @@ function boundedSearch(value: unknown): string {
   return normalized;
 }
 
+function boundedDestinationId(value: unknown): string {
+  if (value === undefined || value === null || value === "") return "";
+  if (
+    typeof value !== "string" ||
+    !/^[a-z0-9][a-z0-9-]{0,118}$/u.test(value.trim())
+  ) {
+    throw new Error("AFFILIATE_ADMIN_INVALID_DESTINATION_ID");
+  }
+  return value.trim();
+}
+
 function boundedLimit(value: unknown): number {
   if (value === undefined || value === null || value === "") return 100;
   const parsed = Number(value);
@@ -234,10 +245,15 @@ export class AffiliateAdminQueryService {
   public constructor(private readonly pool: Pool) {}
 
   public async list(
-    input: Readonly<{ query?: unknown; limit?: unknown }> = {},
+    input: Readonly<{
+      query?: unknown;
+      limit?: unknown;
+      destinationId?: unknown;
+    }> = {},
   ): Promise<readonly AffiliateAdminListItem[]> {
     const query = boundedSearch(input.query);
     const limit = boundedLimit(input.limit);
+    const destinationId = boundedDestinationId(input.destinationId);
     const pattern = `%${query}%`;
     const [rows] = await this.pool.execute<AffiliateListRow[]>(
       `SELECT
@@ -258,12 +274,23 @@ export class AffiliateAdminQueryService {
        LEFT JOIN affiliate_memberships m ON m.affiliate_id = a.affiliate_id
        LEFT JOIN affiliate_conversions c ON c.affiliate_id = a.affiliate_id
        WHERE (? = '' OR a.affiliate_id LIKE ? OR a.identity_reference LIKE ? OR a.role_category LIKE ?)
+         AND (
+           ? = ''
+           OR EXISTS (
+             SELECT 1
+             FROM affiliate_memberships scoped_membership
+             INNER JOIN affiliate_programs scoped_program
+               ON scoped_program.program_id = scoped_membership.program_id
+             WHERE scoped_membership.affiliate_id = a.affiliate_id
+               AND scoped_program.destination_id = ?
+           )
+         )
        GROUP BY
          a.affiliate_id, a.identity_reference, a.account_type, a.role_category,
          a.status, a.identity_verified, a.contact_verified, a.fraud_blocked, a.updated_at
        ORDER BY a.updated_at DESC, a.affiliate_id ASC
        LIMIT ${limit}`,
-      [query, pattern, pattern, pattern],
+      [query, pattern, pattern, pattern, destinationId, destinationId],
     );
     return Object.freeze(rows.map(listItem));
   }
