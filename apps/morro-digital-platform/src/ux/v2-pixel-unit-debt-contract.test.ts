@@ -10,6 +10,7 @@ async function readRepository(path: string): Promise<string> {
 }
 
 const governedCss = [
+  "apps/morro-digital-platform/public/styles.css",
   "apps/morro-digital-platform/public/design-system-v2.css",
   "apps/morro-digital-platform/public/premium-ux-v2.css",
   "apps/morro-digital-platform/public/assistant-v2.css",
