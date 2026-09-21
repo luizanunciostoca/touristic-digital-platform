@@ -216,6 +216,52 @@ function readDeterministicExploreCommands(
       commands.push({ type, place: raw.place });
       continue;
     }
+    if (
+      type === "show_search_results" &&
+      "query" in raw &&
+      typeof raw.query === "string" &&
+      "results" in raw &&
+      Array.isArray(raw.results)
+    ) {
+      const results = raw.results.flatMap((candidate) => {
+        if (!candidate || typeof candidate !== "object") return [];
+        const item = candidate as Record<string, unknown>;
+        if (
+          typeof item.name !== "string" ||
+          typeof item.category !== "string" ||
+          typeof item.latitude !== "number" ||
+          !Number.isFinite(item.latitude) ||
+          typeof item.longitude !== "number" ||
+          !Number.isFinite(item.longitude) ||
+          (item.source !== "local" && item.source !== "mapbox") ||
+          (item.area !== undefined && typeof item.area !== "string") ||
+          (item.description !== undefined &&
+            typeof item.description !== "string")
+        ) {
+          return [];
+        }
+        return [
+          Object.freeze({
+            name: item.name,
+            category: item.category,
+            latitude: item.latitude,
+            longitude: item.longitude,
+            ...(typeof item.area === "string" ? { area: item.area } : {}),
+            ...(typeof item.description === "string"
+              ? { description: item.description }
+              : {}),
+            source: item.source,
+          }),
+        ];
+      });
+      if (results.length !== raw.results.length) return [];
+      commands.push({
+        type,
+        query: raw.query,
+        results: Object.freeze(results),
+      });
+      continue;
+    }
     return [];
   }
   return Object.freeze(commands);
