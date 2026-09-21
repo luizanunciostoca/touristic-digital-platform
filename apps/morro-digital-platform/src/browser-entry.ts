@@ -46,6 +46,7 @@ import {
   installTouristExperienceSnapshotCapture,
   restoreTouristExperienceSnapshot,
 } from "./ux/tourist-experience-snapshot.js";
+import { installTouristSurfaceBottomSheet } from "./ux/tourist-surface-bottom-sheet.js";
 import { initializeWeatherWidget } from "./weather/weather-widget.js";
 
 interface MorroRuntimeGlobal {
@@ -107,6 +108,7 @@ function setupV1ShellInteractions(): void {
 setupV1ShellInteractions();
 recordMorroStartupMetric(document, performance, "assistant");
 installPremiumUxModePresenter({ document });
+installTouristSurfaceBottomSheet({ document, window });
 const publicOnboarding = installPublicOnboarding({ document });
 
 function setV1MapboxCompatibilityAliases(
