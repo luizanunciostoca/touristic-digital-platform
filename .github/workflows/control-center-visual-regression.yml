@@ -35,6 +35,15 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Select exact writable feature head
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -n "$GITHUB_HEAD_REF" ]]; then
+            git fetch origin "$GITHUB_HEAD_REF"
+            git checkout -B "$GITHUB_HEAD_REF" "origin/$GITHUB_HEAD_REF"
+          fi
+
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1
         with:
           version: 10.15.0
@@ -90,8 +99,10 @@ jobs:
           set -euo pipefail
           PENDING=$(node -e "const m=require('./tests/visual-regression/control-center/baselines/manifest.json'); process.stdout.write(String(Boolean(m.bootstrapPending)))")
           echo "pending=$PENDING" >> "$GITHUB_OUTPUT"
-          if [[ "$PENDING" == "true" && "$GITHUB_EVENT_NAME" != "push" ]]; then
-            echo "Baseline bootstrap is allowed only on the dedicated branch push." >&2
+          TARGET_BRANCH="$GITHUB_REF_NAME"
+          if [[ -n "$GITHUB_HEAD_REF" ]]; then TARGET_BRANCH="$GITHUB_HEAD_REF"; fi
+          if [[ "$PENDING" == "true" && "$TARGET_BRANCH" != "wave/control-center-visual-regression-docs-final-20260921" ]]; then
+            echo "Baseline bootstrap denied outside the dedicated feature branch." >&2
             exit 1
           fi
 
@@ -106,6 +117,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          TARGET_BRANCH="$GITHUB_REF_NAME"
+          if [[ -n "$GITHUB_HEAD_REF" ]]; then TARGET_BRANCH="$GITHUB_HEAD_REF"; fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add tests/visual-regression/control-center/baselines
@@ -114,7 +127,7 @@ jobs:
             exit 1
           }
           git commit -m "test(control-center): bootstrap visual regression baselines"
-          git push origin "HEAD:$GITHUB_REF_NAME"
+          git push origin "HEAD:$TARGET_BRANCH"
 
       - name: Compare Control Center against committed baselines
         if: steps.baseline.outputs.pending != 'true'
