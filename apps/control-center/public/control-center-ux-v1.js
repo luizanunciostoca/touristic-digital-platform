@@ -34,38 +34,56 @@ const state = {
 const navGroups = [
   ["Principal", [["Visão Global", "#overview", "◎", "global"]]],
   ["Operação", [["Visão Geral", "#overview", "◫", "overview"]]],
-  ["Relacionamentos", [
-    ["Empresas", "#businesses", "▦", "businesses"],
-    ["Usuários", "#users", "●", "users"],
-    ["Afiliados", "#affiliates", "◇", "affiliates"],
-  ]],
-  ["Comercial", [
-    ["CRM", "#crm", "◈", "crm"],
-    ["Produtos", "#products", "▤", "products"],
-    ["Ofertas", "#products", "◇", "offers"],
-    ["Conteúdo", "#content", "✦", "content"],
-  ]],
-  ["Reservas", [
-    ["Reservas", "#reservations", "▣", "reservations"],
-    ["Ticketing", "#ticketing", "◉", "ticketing"],
-    ["Check-in", "#ticketing", "✓", "checkin"],
-  ]],
-  ["Financeiro", [
-    ["Pedidos", "#orders", "≡", "orders"],
-    ["Pagamentos", "#financial", "◐", "financial"],
-    ["Reembolsos", "#financial", "↺", "refunds"],
-    ["Comissões", "#affiliates", "%", "commissions"],
-  ]],
-  ["Controle", [
-    ["Suporte", "#support", "◎", "support"],
-    ["Auditoria", "#audit", "⌁", "audit"],
-  ]],
-  ["Plataforma", [
-    ["Sistema", "#system", "⚙", "system"],
-    ["Destinos", "#destinations", "⌖", "destinations"],
-    ["Integrações", "#system", "⌘", "integrations"],
-    ["Configurações", "#settings", "⋯", "settings"],
-  ]],
+  [
+    "Relacionamentos",
+    [
+      ["Empresas", "#businesses", "▦", "businesses"],
+      ["Usuários", "#users", "●", "users"],
+      ["Afiliados", "#affiliates", "◇", "affiliates"],
+    ],
+  ],
+  [
+    "Comercial",
+    [
+      ["CRM", "#crm", "◈", "crm"],
+      ["Produtos", "#products", "▤", "products"],
+      ["Ofertas", "#products", "◇", "offers"],
+      ["Conteúdo", "#content", "✦", "content"],
+    ],
+  ],
+  [
+    "Reservas",
+    [
+      ["Reservas", "#reservations", "▣", "reservations"],
+      ["Ticketing", "#ticketing", "◉", "ticketing"],
+      ["Check-in", "#ticketing", "✓", "checkin"],
+    ],
+  ],
+  [
+    "Financeiro",
+    [
+      ["Pedidos", "#orders", "≡", "orders"],
+      ["Pagamentos", "#financial", "◐", "financial"],
+      ["Reembolsos", "#financial", "↺", "refunds"],
+      ["Comissões", "#affiliates", "%", "commissions"],
+    ],
+  ],
+  [
+    "Controle",
+    [
+      ["Suporte", "#support", "◎", "support"],
+      ["Auditoria", "#audit", "⌁", "audit"],
+    ],
+  ],
+  [
+    "Plataforma",
+    [
+      ["Sistema", "#system", "⚙", "system"],
+      ["Destinos", "#destinations", "⌖", "destinations"],
+      ["Integrações", "#system", "⌘", "integrations"],
+      ["Configurações", "#settings", "⋯", "settings"],
+    ],
+  ],
 ];
 
 function escapeHtml(value) {
@@ -104,7 +122,9 @@ function actorName() {
 
 function currentDestination() {
   if (state.destinationId === "global") return null;
-  return state.destinations.find((item) => item.id === state.destinationId) || null;
+  return (
+    state.destinations.find((item) => item.id === state.destinationId) || null
+  );
 }
 
 function currentDestinationName() {
@@ -123,10 +143,12 @@ function destinationMatches(id) {
 
 function sameLocalDay(value, reference = new Date()) {
   const date = new Date(value);
-  return !Number.isNaN(date.getTime()) &&
+  return (
+    !Number.isNaN(date.getTime()) &&
     date.getFullYear() === reference.getFullYear() &&
     date.getMonth() === reference.getMonth() &&
-    date.getDate() === reference.getDate();
+    date.getDate() === reference.getDate()
+  );
 }
 
 function formattedDate() {
@@ -140,12 +162,20 @@ function formattedDate() {
 
 function statusBadge(value) {
   const normalized = String(value || "").toLowerCase();
-  const cls = ["active", "available", "ready", "pass", "success"].includes(normalized)
+  const cls = ["active", "available", "ready", "pass", "success"].includes(
+    normalized,
+  )
     ? "pass"
     : ["warning", "partial", "runtime-projection"].includes(normalized)
       ? "partial"
       : "gap";
-  return '<span class="badge ' + cls + '">' + escapeHtml(value || "indisponível") + "</span>";
+  return (
+    '<span class="badge ' +
+    cls +
+    '">' +
+    escapeHtml(value || "indisponível") +
+    "</span>"
+  );
 }
 
 function formatMoney(money) {
@@ -163,12 +193,17 @@ function formatMoney(money) {
 }
 
 function setDestination(id, rerender = true) {
-  const valid = id === "global" || state.destinations.some((item) => item.id === id);
+  const valid =
+    id === "global" || state.destinations.some((item) => item.id === id);
   state.destinationId = valid ? id : "global";
   globalThis.sessionStorage.setItem(destinationStorageKey, state.destinationId);
   document.documentElement.dataset.destinationId = state.destinationId;
   if (destinationSelector) destinationSelector.value = state.destinationId;
-  if (globalScope) globalScope.setAttribute("aria-pressed", String(state.destinationId === "global"));
+  if (globalScope)
+    globalScope.setAttribute(
+      "aria-pressed",
+      String(state.destinationId === "global"),
+    );
   if (rerender) void upgradeCurrentView();
 }
 
@@ -185,7 +220,8 @@ function populateDestinationSelector() {
     );
   }
   destinationSelector.innerHTML = options.join("");
-  const stored = globalThis.sessionStorage.getItem(destinationStorageKey) || "global";
+  const stored =
+    globalThis.sessionStorage.getItem(destinationStorageKey) || "global";
   setDestination(stored, false);
 }
 
@@ -200,7 +236,15 @@ function rebuildNavigation() {
           const active =
             key === "global"
               ? state.destinationId === "global" && currentHash === "#overview"
-              : currentHash === href && !(key === "offers" || key === "checkin" || key === "payments" || key === "refunds" || key === "commissions" || key === "integrations");
+              : currentHash === href &&
+                !(
+                  key === "offers" ||
+                  key === "checkin" ||
+                  key === "payments" ||
+                  key === "refunds" ||
+                  key === "commissions" ||
+                  key === "integrations"
+                );
           const canonicalViews = new Set([
             "overview",
             "businesses",
@@ -223,7 +267,11 @@ function rebuildNavigation() {
             key === "global"
               ? 'data-ux-global="true"'
               : canonicalViews.has(key)
-                ? 'data-view="' + escapeHtml(key) + '" data-ux-href="' + escapeHtml(href) + '"'
+                ? 'data-view="' +
+                  escapeHtml(key) +
+                  '" data-ux-href="' +
+                  escapeHtml(href) +
+                  '"'
                 : 'data-ux-href="' + escapeHtml(href) + '"';
           return (
             '<button type="button" class="nav-item ' +
@@ -256,7 +304,10 @@ function rebuildNavigation() {
 }
 
 function pageContext(view) {
-  const destination = state.destinationId === "global" ? "Visão Global" : currentDestinationName();
+  const destination =
+    state.destinationId === "global"
+      ? "Visão Global"
+      : currentDestinationName();
   if (view === "overview") {
     if (pageTitle) pageTitle.textContent = "Bom dia, " + actorName();
     if (pageDescription) {
@@ -318,16 +369,17 @@ async function loadHomeData() {
 }
 
 async function revenueForReservations(rows) {
-  if (!Array.isArray(rows)) return { value: "—", meta: "Financial indisponível" };
+  if (!Array.isArray(rows))
+    return { value: "—", meta: "Financial indisponível" };
   const paymentIds = [
     ...new Set(
-      rows
-        .map((item) => item?.reservation?.paymentId)
-        .filter(Boolean),
+      rows.map((item) => item?.reservation?.paymentId).filter(Boolean),
     ),
   ];
-  if (paymentIds.length === 0) return { value: "R$ 0,00", meta: "nenhum pagamento ligado" };
-  if (paymentIds.length > 30) return { value: "—", meta: "agregado diário exige endpoint owner" };
+  if (paymentIds.length === 0)
+    return { value: "R$ 0,00", meta: "nenhum pagamento ligado" };
+  if (paymentIds.length > 30)
+    return { value: "—", meta: "agregado diário exige endpoint owner" };
   const payments = await Promise.all(
     paymentIds.map((id) =>
       api("/payments/" + encodeURIComponent(id))
@@ -336,7 +388,11 @@ async function revenueForReservations(rows) {
     ),
   );
   const approved = payments.filter((payment) => payment?.status === "APPROVED");
-  const currencies = [...new Set(approved.map((payment) => payment?.amount?.currency).filter(Boolean))];
+  const currencies = [
+    ...new Set(
+      approved.map((payment) => payment?.amount?.currency).filter(Boolean),
+    ),
+  ];
   if (currencies.length > 1) return { value: "—", meta: "múltiplas moedas" };
   const currency = currencies[0] || "BRL";
   const total = approved.reduce(
@@ -372,10 +428,14 @@ function attentionItems(dashboard) {
 
 function quickActions() {
   const actions = [];
-  if (actorHas("business.read")) actions.push(['#businesses', "Empresas", "primary", "▦"]);
-  if (actorHas("affiliate.read")) actions.push(['#affiliates', "Afiliados", "positive", "◇"]);
-  if (actorHas("support.impersonate")) actions.push(['#support', "Abrir suporte", "", "◎"]);
-  if (actorHas("audit.read")) actions.push(['#audit', "Ver auditoria", "", "⌁"]);
+  if (actorHas("business.read"))
+    actions.push(["#businesses", "Empresas", "primary", "▦"]);
+  if (actorHas("affiliate.read"))
+    actions.push(["#affiliates", "Afiliados", "positive", "◇"]);
+  if (actorHas("support.impersonate"))
+    actions.push(["#support", "Abrir suporte", "", "◎"]);
+  if (actorHas("audit.read"))
+    actions.push(["#audit", "Ver auditoria", "", "⌁"]);
   return actions
     .slice(0, 4)
     .map(
@@ -403,7 +463,10 @@ function activityHtml(entries) {
       const date = new Date(entry.timestamp);
       const time = Number.isNaN(date.getTime())
         ? "—"
-        : date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+        : date.toLocaleTimeString("pt-BR", {
+            hour: "2-digit",
+            minute: "2-digit",
+          });
       const result = String(entry.result || "").toLowerCase();
       const tone =
         result === "success"
@@ -431,23 +494,29 @@ function activityHtml(entries) {
 function destinationRows(reservations) {
   return state.destinations
     .map((destination) => {
-      const allReservations = Array.isArray(reservations?.data) ? reservations.data : [];
+      const allReservations = Array.isArray(reservations?.data)
+        ? reservations.data
+        : [];
       const today = allReservations.filter(
         (item) =>
           item?.reservation?.destinationId === destination.id &&
           sameLocalDay(item?.reservation?.createdAt),
       ).length;
-      const reservationValue = Array.isArray(reservations?.data) ? String(today) : "—";
+      const reservationValue = Array.isArray(reservations?.data)
+        ? String(today)
+        : "—";
       return (
         '<tr class="destination-row" data-destination-row="' +
         escapeHtml(destination.id) +
         '" tabindex="0"><td><div class="destination-cell"><span class="destination-thumb" aria-hidden="true">⌖</span><div><strong>' +
-        escapeHtml(destination.branding?.name || destination.name || destination.id) +
-        '</strong><br><small>' +
+        escapeHtml(
+          destination.branding?.name || destination.name || destination.id,
+        ) +
+        "</strong><br><small>" +
         escapeHtml(destination.status || "—") +
         "</small></div></div></td><td>—</td><td>—</td><td>" +
         escapeHtml(reservationValue) +
-        ' <small>hoje</small></td><td>—</td><td>' +
+        " <small>hoje</small></td><td>—</td><td>" +
         (destination.status === "active"
           ? '<span class="badge pass">operacional</span>'
           : statusBadge(destination.status || "partial")) +
@@ -463,17 +532,23 @@ async function renderHome() {
   contentRoot.setAttribute("aria-busy", "true");
   contentRoot.innerHTML =
     '<div class="grid kpi-grid" aria-hidden="true">' +
-    Array.from({ length: 5 }, () =>
-      '<div class="skeleton-card"><div class="skeleton skeleton-line" style="width:42%"></div><div class="skeleton skeleton-value"></div><div class="skeleton skeleton-line" style="width:66%"></div></div>',
+    Array.from(
+      { length: 5 },
+      () =>
+        '<div class="skeleton-card"><div class="skeleton skeleton-line" style="width:42%"></div><div class="skeleton skeleton-value"></div><div class="skeleton skeleton-line" style="width:66%"></div></div>',
     ).join("") +
     "</div>";
 
   try {
     const data = await loadHomeData();
     if (generation !== state.generation) return;
-    const reservationRows = Array.isArray(data.reservations.data) ? data.reservations.data : null;
+    const reservationRows = Array.isArray(data.reservations.data)
+      ? data.reservations.data
+      : null;
     const todayRows = reservationRows
-      ? reservationRows.filter((item) => sameLocalDay(item?.reservation?.createdAt))
+      ? reservationRows.filter((item) =>
+          sameLocalDay(item?.reservation?.createdAt),
+        )
       : null;
     const revenue = await revenueForReservations(todayRows);
     if (generation !== state.generation) return;
@@ -518,22 +593,44 @@ async function renderHome() {
     contentRoot.innerHTML =
       '<div class="grid kpi-grid">' +
       metricCard("Empresas", businessValue, businessMeta, "info", "▦") +
-      metricCard("Afiliados", affiliateCount, state.destinationId === "global" ? "cadastros retornados pelo domínio" : "atribuídos ao destino selecionado", "success", "◇") +
-      metricCard("Reservas Hoje", reservationCount, todayRows ? "criadas hoje" : "fonte indisponível", "purple", "▣") +
+      metricCard(
+        "Afiliados",
+        affiliateCount,
+        state.destinationId === "global"
+          ? "cadastros retornados pelo domínio"
+          : "atribuídos ao destino selecionado",
+        "success",
+        "◇",
+      ) +
+      metricCard(
+        "Reservas Hoje",
+        reservationCount,
+        todayRows ? "criadas hoje" : "fonte indisponível",
+        "purple",
+        "▣",
+      ) +
       metricCard("Receita Hoje", revenue.value, revenue.meta, "success", "●") +
-      metricCard("Alertas", String(alertCount), "itens que exigem atenção", alertCount > 0 ? "warning" : "success", "!") +
+      metricCard(
+        "Alertas",
+        String(alertCount),
+        "itens que exigem atenção",
+        alertCount > 0 ? "warning" : "success",
+        "!",
+      ) +
       "</div>" +
       '<section class="card section-card attention-panel"><div class="section-title"><div><h2>Precisa da sua atenção</h2><p>Itens que exigem ação imediata</p></div><a class="section-link" href="#system">Ver todos os alertas</a></div>' +
       attentionHtml +
       "</section>" +
       '<div class="grid home-lower-grid"><div class="home-stack"><section class="card section-card destination-summary"><div class="section-title"><div><h2>Resumo por destino</h2><p>Selecione uma linha para entrar no contexto daquele destino.</p></div><a class="section-link" href="#destinations">Gerenciar destinos</a></div><div class="table-wrap"><table><thead><tr><th>Destino</th><th>Empresas</th><th>Afiliados</th><th>Reservas</th><th>Receita</th><th>Alertas</th></tr></thead><tbody>' +
-      (destinationRows(data.globalReservations) || '<tr><td colspan="6" class="empty">Nenhum destino disponível para este actor.</td></tr>') +
+      (destinationRows(data.globalReservations) ||
+        '<tr><td colspan="6" class="empty">Nenhum destino disponível para este actor.</td></tr>') +
       "</tbody></table></div></section>" +
       '<section class="card section-card"><div class="section-title"><div><h2>Atividade recente</h2><p>Eventos operacionais e administrativos compreensíveis.</p></div><a class="section-link" href="#audit">Ver todos os eventos</a></div><div class="timeline">' +
       activityHtml(data.audit.entries || []) +
       "</div></section></div>" +
       '<div class="home-stack"><section class="card section-card"><div class="section-title"><h2>Ações rápidas</h2></div><div class="quick-actions">' +
-      (quickActions() || '<div class="empty"><strong>Nenhuma ação disponível</strong><span>As ações respeitam as capabilities do actor.</span></div>') +
+      (quickActions() ||
+        '<div class="empty"><strong>Nenhuma ação disponível</strong><span>As ações respeitam as capabilities do actor.</span></div>') +
       "</div></section>" +
       '<section class="card section-card affiliate-model-card"><div class="section-title"><h2>Afiliados pertencem à Morro Digital</h2></div><div class="affiliate-model-card__body"><span class="affiliate-model-card__icon" aria-hidden="true">◇</span><p>Os afiliados são da Morro Digital e são organizados por destino, não por empresa. Eles podem promover produtos de várias empresas do mesmo destino, fortalecendo todo o ecossistema.</p></div></section></div></div>';
 
@@ -560,18 +657,62 @@ async function renderHome() {
     if (generation !== state.generation) return;
     contentRoot.innerHTML =
       '<section class="card state-panel"><strong>Não foi possível carregar a visão operacional</strong><p>Os dados administrativos não estão disponíveis agora. Tente novamente ou consulte Sistema.</p><div class="state-actions"><button id="ux-home-retry" class="secondary-button" type="button">Tentar novamente</button><a class="primary-button" href="#system">Ver sistema</a></div></section>';
-    document.querySelector("#ux-home-retry")?.addEventListener("click", () => void renderHome());
+    document
+      .querySelector("#ux-home-retry")
+      ?.addEventListener("click", () => void renderHome());
   } finally {
     contentRoot.setAttribute("aria-busy", "false");
   }
 }
 
 function entity360Header(view, detail) {
-  if (!detail || !contentRoot || contentRoot.querySelector(".entity-header[data-ux-v1]")) return;
+  if (
+    !detail ||
+    !contentRoot ||
+    contentRoot.querySelector(".entity-header[data-ux-v1]")
+  )
+    return;
   const configs = {
-    businesses: ["Empresa", ["Resumo", "Perfil", "Usuários", "Produtos", "Ofertas", "Reservas", "Financeiro", "CRM", "Histórico", "Auditoria"]],
-    affiliates: ["Afiliado", ["Resumo", "Perfil", "Destinos", "Atribuições", "Conversões", "Comissões", "Histórico", "Auditoria"]],
-    users: ["Usuário", ["Resumo", "Conta", "Permissões", "Empresas", "Sessões", "Histórico", "Auditoria"]],
+    businesses: [
+      "Empresa",
+      [
+        "Resumo",
+        "Perfil",
+        "Usuários",
+        "Produtos",
+        "Ofertas",
+        "Reservas",
+        "Financeiro",
+        "CRM",
+        "Histórico",
+        "Auditoria",
+      ],
+    ],
+    affiliates: [
+      "Afiliado",
+      [
+        "Resumo",
+        "Perfil",
+        "Destinos",
+        "Atribuições",
+        "Conversões",
+        "Comissões",
+        "Histórico",
+        "Auditoria",
+      ],
+    ],
+    users: [
+      "Usuário",
+      [
+        "Resumo",
+        "Conta",
+        "Permissões",
+        "Empresas",
+        "Sessões",
+        "Histórico",
+        "Auditoria",
+      ],
+    ],
   };
   const config = configs[view];
   if (!config) return;
@@ -582,7 +723,11 @@ function entity360Header(view, detail) {
     '<div class="entity-header__top"><div><h2>' +
     escapeHtml(config[0] + " · " + decodeURIComponent(detail)) +
     '</h2><div class="entity-header__meta"><span>' +
-    escapeHtml(state.destinationId === "global" ? "Visão Global" : currentDestinationName()) +
+    escapeHtml(
+      state.destinationId === "global"
+        ? "Visão Global"
+        : currentDestinationName(),
+    ) +
     '</span><span>Visão 360° administrativa</span></div></div></div><nav class="entity-tabs" aria-label="Visão 360°">' +
     config[1]
       .map(
@@ -602,10 +747,13 @@ function responsiveTables() {
   if (!contentRoot) return;
   contentRoot.querySelectorAll(".table-wrap").forEach((wrap) => {
     wrap.classList.add("responsive-cards");
-    const headers = [...wrap.querySelectorAll("thead th")].map((th) => th.textContent.trim());
+    const headers = [...wrap.querySelectorAll("thead th")].map((th) =>
+      th.textContent.trim(),
+    );
     wrap.querySelectorAll("tbody tr").forEach((row) => {
       [...row.children].forEach((cell, index) => {
-        if (cell.tagName === "TD" && headers[index]) cell.dataset.label = headers[index];
+        if (cell.tagName === "TD" && headers[index])
+          cell.dataset.label = headers[index];
       });
     });
   });
@@ -613,7 +761,10 @@ function responsiveTables() {
 
 function failClosedDestinationScope(view) {
   if (!contentRoot || state.destinationId === "global") return;
-  if (["businesses", "affiliates"].includes(view) && !globalThis.location.hash.includes(":")) {
+  if (
+    ["businesses", "affiliates"].includes(view) &&
+    !globalThis.location.hash.includes(":")
+  ) {
     const existing = contentRoot.querySelector("[data-ux-destination-warning]");
     if (existing) return;
     const warning = document.createElement("div");
@@ -626,11 +777,18 @@ function failClosedDestinationScope(view) {
     contentRoot.prepend(warning);
   }
 
-  if (["reservations", "products"].includes(view) && !globalThis.location.hash.includes(":")) {
+  if (
+    ["reservations", "products"].includes(view) &&
+    !globalThis.location.hash.includes(":")
+  ) {
     const table = contentRoot.querySelector("table");
     if (!table) return;
-    const headers = [...table.querySelectorAll("thead th")].map((th) => th.textContent.trim().toLocaleLowerCase());
-    const destinationIndex = headers.findIndex((header) => header.includes("destino"));
+    const headers = [...table.querySelectorAll("thead th")].map((th) =>
+      th.textContent.trim().toLocaleLowerCase(),
+    );
+    const destinationIndex = headers.findIndex((header) =>
+      header.includes("destino"),
+    );
     if (destinationIndex < 0) return;
     table.querySelectorAll("tbody tr").forEach((row) => {
       const cell = row.children[destinationIndex];
@@ -638,7 +796,9 @@ function failClosedDestinationScope(view) {
       const value = String(cell.textContent || "").trim();
       const match =
         value === state.destinationId ||
-        value.toLocaleLowerCase().includes(currentDestinationName().toLocaleLowerCase());
+        value
+          .toLocaleLowerCase()
+          .includes(currentDestinationName().toLocaleLowerCase());
       row.hidden = !match;
     });
   }
@@ -729,9 +889,13 @@ function applyTopbar() {
   if (pageHealth) {
     pageHealth.classList.toggle("is-warning", !ready);
     const text = pageHealth.querySelector("span");
-    if (text) text.textContent = ready ? "Tudo funcionando bem" : "Operação requer atenção";
+    if (text)
+      text.textContent = ready
+        ? "Tudo funcionando bem"
+        : "Operação requer atenção";
     const dot = pageHealth.querySelector(".status-dot");
-    if (dot) dot.className = "status-dot " + (ready ? "status-pass" : "status-warn");
+    if (dot)
+      dot.className = "status-dot " + (ready ? "status-pass" : "status-warn");
   }
 
   const alerts = Number(state.dashboard?.summary?.alerts || 0);

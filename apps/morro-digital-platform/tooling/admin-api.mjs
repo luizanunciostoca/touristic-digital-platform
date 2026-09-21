@@ -2317,9 +2317,7 @@ export function createAdminApi({
         json(response, 200, {
           query,
           destinationId:
-            destinationId && destinationId !== "global"
-              ? destinationId
-              : null,
+            destinationId && destinationId !== "global" ? destinationId : null,
           results: results.slice(0, 50),
         });
         return;

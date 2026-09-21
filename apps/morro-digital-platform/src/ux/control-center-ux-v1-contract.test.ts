@@ -36,9 +36,7 @@ describe("Morro Digital Control Center UX Design V1 contract", () => {
   });
 
   it("keeps destination, universal search, support and account context in the top-level shell", async () => {
-    const html = await readRepository(
-      "apps/control-center/public/index.html",
-    );
+    const html = await readRepository("apps/control-center/public/index.html");
 
     expect(html).toContain('id="destination-selector"');
     expect(html).toContain('id="global-scope"');

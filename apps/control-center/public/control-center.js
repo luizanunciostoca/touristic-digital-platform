@@ -1182,8 +1182,7 @@ async function renderAffiliates(affiliateId) {
   const memberships =
     selectedDestinationId && selectedDestinationId !== "global"
       ? allMemberships.filter(
-          (membership) =>
-            membership.destinationId === selectedDestinationId,
+          (membership) => membership.destinationId === selectedDestinationId,
         )
       : allMemberships;
   const summaries = detail.summaryByCurrency ?? [];
@@ -1728,7 +1727,9 @@ async function renderProducts(productId) {
 
 async function renderReservations(reservationId) {
   if (!reservationId) {
-    const data = await api(`/reservations?limit=100${selectedDestinationQuery()}`);
+    const data = await api(
+      `/reservations?limit=100${selectedDestinationQuery()}`,
+    );
     const reservations = Array.isArray(data.data) ? data.data : [];
     content.innerHTML = `
       <div class="callout">

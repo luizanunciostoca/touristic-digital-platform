@@ -21,20 +21,20 @@ The migration is intentionally incremental. Existing owner-backed domain behavio
 
 The administrative palette follows the manual literally:
 
-| Token | Value |
-| --- | --- |
-| `--md-bg` | `#F4F8FC` |
-| `--md-surface` | `#FFFFFF` |
-| `--md-text` | `#0B2447` |
-| `--md-text-muted` | `#60738F` |
-| `--md-primary` | `#0B63CE` |
+| Token               | Value     |
+| ------------------- | --------- |
+| `--md-bg`           | `#F4F8FC` |
+| `--md-surface`      | `#FFFFFF` |
+| `--md-text`         | `#0B2447` |
+| `--md-text-muted`   | `#60738F` |
+| `--md-primary`      | `#0B63CE` |
 | `--md-primary-soft` | `#EAF3FF` |
-| `--md-success` | `#10A760` |
-| `--md-warning` | `#D97706` |
-| `--md-danger` | `#D92D20` |
-| `--md-purple` | `#6D5CE8` |
-| `--md-border` | `#DCE6F1` |
-| `--md-focus` | `#2E90FA` |
+| `--md-success`      | `#10A760` |
+| `--md-warning`      | `#D97706` |
+| `--md-danger`       | `#D92D20` |
+| `--md-purple`       | `#6D5CE8` |
+| `--md-border`       | `#DCE6F1` |
+| `--md-focus`        | `#2E90FA` |
 
 Base shell measurements are 224 px sidebar, 64 px topbar, 24 px desktop content padding, 12 px card radius and a 4 px spacing base.
 
