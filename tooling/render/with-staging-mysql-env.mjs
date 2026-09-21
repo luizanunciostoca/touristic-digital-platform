@@ -208,6 +208,12 @@ export function buildStagingDatabaseEnvironment(environment = process.env) {
     derived[target] = url;
   }
 
+  // Staging-only composition: keep the Control Center administrative audit
+  // durable on the existing isolated Auth MySQL schema. Production does not
+  // use this wrapper and therefore keeps CONTROL_CENTER_AUDIT_DATABASE_URL as
+  // an explicit fail-closed requirement.
+  derived.CONTROL_CENTER_AUDIT_DATABASE_URL = derived.AUTH_DATABASE_URL;
+
   return Object.freeze(derived);
 }
 
