@@ -153,7 +153,7 @@ function setHeading(view) {
 
 function statusBadge(value) {
   const normalized =
-    value === "available" || value === "pass" || value === "success"
+    value === "available" || value === "pass" || value === "success" || value === "active"
       ? "pass"
       : value === "partial" || value === "runtime-projection"
         ? "partial"
@@ -416,6 +416,96 @@ async function renderUsers(userId) {
     }),
   );
 }
+async function destinationStepUp(password) {
+  if (!password) throw new Error("Informe sua senha para confirmar a alteração.");
+  await api("/step-up", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ password }),
+  });
+}
+
+function destinationPayload(form, id) {
+  const values = new FormData(form);
+  let featureFlags;
+  try {
+    featureFlags = JSON.parse(String(values.get("featureFlags") || "{}"));
+  } catch {
+    throw new Error("Feature flags devem ser um objeto JSON válido.");
+  }
+  if (
+    !featureFlags ||
+    Array.isArray(featureFlags) ||
+    Object.values(featureFlags).some((value) => typeof value !== "boolean")
+  ) {
+    throw new Error("Feature flags aceitam somente valores booleanos.");
+  }
+  const modules = String(values.get("modules") || "")
+    .split(/[\\n,]+/u)
+    .map((value) => value.trim())
+    .filter(Boolean);
+  return {
+    id,
+    status: String(values.get("status") || "active"),
+    locale: String(values.get("locale") || "").trim(),
+    timezone: String(values.get("timezone") || "").trim(),
+    currency: String(values.get("currency") || "").trim().toUpperCase(),
+    branding: {
+      name: String(values.get("name") || "").trim(),
+      shortName: String(values.get("shortName") || "").trim(),
+      tagline: String(values.get("tagline") || "").trim(),
+    },
+    center: {
+      lat: Number(values.get("lat")),
+      lng: Number(values.get("lng")),
+      zoom: Number(values.get("zoom")),
+    },
+    modules: [...new Set(modules)],
+    featureFlags,
+  };
+}
+
+function destinationEditor(destination = {}) {
+  const center = destination.center ?? {};
+  return `
+    <form id="destination-editor" class="form-grid">
+      <label>ID do destino
+        <input name="id" required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" maxlength="80"
+          value="${escapeHtml(destination.id ?? "")}" ${destination.id ? "readonly" : ""}
+          placeholder="novo-destino">
+      </label>
+      <label>Nome <input name="name" required maxlength="160" value="${escapeHtml(destination.branding?.name ?? "")}"></label>
+      <label>Nome curto <input name="shortName" required maxlength="80" value="${escapeHtml(destination.branding?.shortName ?? "")}"></label>
+      <label>Tagline <input name="tagline" maxlength="240" value="${escapeHtml(destination.branding?.tagline ?? "")}"></label>
+      <label>Locale <input name="locale" required value="${escapeHtml(destination.locale ?? "pt-BR")}" placeholder="pt-BR"></label>
+      <label>Timezone <input name="timezone" required value="${escapeHtml(destination.timezone ?? "America/Bahia")}"></label>
+      <label>Moeda <input name="currency" required minlength="3" maxlength="3" value="${escapeHtml(destination.currency ?? "BRL")}"></label>
+      <label>Status
+        <select name="status">
+          <option value="active" ${destination.status !== "suspended" ? "selected" : ""}>active</option>
+          <option value="suspended" ${destination.status === "suspended" ? "selected" : ""}>suspended</option>
+        </select>
+      </label>
+      <label>Latitude <input name="lat" type="number" step="any" min="-90" max="90" required value="${escapeHtml(center.lat ?? "")}"></label>
+      <label>Longitude <input name="lng" type="number" step="any" min="-180" max="180" required value="${escapeHtml(center.lng ?? "")}"></label>
+      <label>Zoom <input name="zoom" type="number" step="any" min="0" max="24" required value="${escapeHtml(center.zoom ?? 13)}"></label>
+      <label>Módulos
+        <textarea name="modules" required placeholder="map, navigation, assistant">${escapeHtml((destination.modules ?? []).join(", "))}</textarea>
+      </label>
+      <label>Feature flags (JSON booleano)
+        <textarea name="featureFlags" required spellcheck="false">${escapeHtml(JSON.stringify(destination.featureFlags ?? {}, null, 2))}</textarea>
+      </label>
+      <label>Motivo obrigatório
+        <textarea name="reason" minlength="8" maxlength="240" required placeholder="Descreva por que esta alteração é necessária"></textarea>
+      </label>
+      <label>Senha para step-up
+        <input name="password" type="password" autocomplete="current-password" required>
+      </label>
+      <button class="primary-button" type="submit">${destination.id ? "Salvar configuração governada" : "Criar destino governado"}</button>
+      <p id="destination-editor-result" role="status" aria-live="polite"></p>
+    </form>`;
+}
+
 async function renderDestinations(destinationId) {
   const list = await api("/destinations");
   const destinations = list.destinations ?? [];
@@ -423,90 +513,61 @@ async function renderDestinations(destinationId) {
     ? (await api(`/destinations/${encodeURIComponent(destinationId)}`)).data
     : null;
 
-  if (!selected) {
-    content.innerHTML = `
-      <div class="callout">
-        <strong>Destination Owner:</strong> configuração governada pelo domínio
-        da plataforma. O fallback estático público permanece ativo até a
-        qualificação final da projeção dinâmica.
-      </div>
+  content.innerHTML = `
+    <div class="callout">
+      <strong>Destination Owner:</strong> configuração governada pelo domínio da plataforma.
+      O fallback estático público permanece ativo até a qualificação final da projeção dinâmica.
+    </div>
+    ${selected ? `
+      <section class="card section-card">
+        <div class="section-title">
+          <div><h2>${escapeHtml(selected.branding?.name ?? selected.id)}</h2><small>${escapeHtml(selected.id)} · versão ${escapeHtml(selected.version)}</small></div>
+          ${statusBadge(selected.status)}
+        </div>
+        ${destinationEditor(selected)}
+      </section>
+    ` : `
+      <section class="card section-card">
+        <div class="section-title"><h2>Novo destino</h2></div>
+        ${destinationEditor()}
+      </section>
       <div class="table-wrap">
         <table>
           <thead><tr><th>Destino</th><th>Status</th><th>Locale</th><th>Timezone</th><th>Versão</th></tr></thead>
-          <tbody>
-            ${
-              destinations
-                .map(
-                  (item) => `<tr>
-              <td><a href="#destinations:${encodeURIComponent(item.id)}"><strong>${escapeHtml(item.branding?.name ?? item.id)}</strong></a><br><small>${escapeHtml(item.id)}</small></td>
-              <td>${statusBadge(item.status)}</td>
-              <td>${escapeHtml(item.locale)}</td>
-              <td>${escapeHtml(item.timezone)}</td>
-              <td>${escapeHtml(item.version)}</td>
-            </tr>`,
-                )
-                .join("") ||
-              '<tr><td colspan="5" class="empty">Nenhum destino governado disponível.</td></tr>'
-            }
-          </tbody>
+          <tbody>${destinations.map((item) => `<tr>
+            <td><a href="#destinations:${encodeURIComponent(item.id)}"><strong>${escapeHtml(item.branding?.name ?? item.id)}</strong></a><br><small>${escapeHtml(item.id)}</small></td>
+            <td>${statusBadge(item.status)}</td><td>${escapeHtml(item.locale)}</td>
+            <td>${escapeHtml(item.timezone)}</td><td>${escapeHtml(item.version)}</td>
+          </tr>`).join("") || '<tr><td colspan="5" class="empty">Nenhum destino governado disponível.</td></tr>'}</tbody>
         </table>
-      </div>`;
-    return;
-  }
-
-  content.innerHTML = `
-    <section class="card section-card">
-      <div class="section-title">
-        <div><h2>${escapeHtml(selected.branding?.name ?? selected.id)}</h2><small>${escapeHtml(selected.id)}</small></div>
-        ${statusBadge(selected.status)}
       </div>
-      <div class="module-list">
-        <div class="module-row"><span>Versão</span><strong>${escapeHtml(selected.version)}</strong></div>
-        <div class="module-row"><span>Locale</span><strong>${escapeHtml(selected.locale)}</strong></div>
-        <div class="module-row"><span>Timezone</span><strong>${escapeHtml(selected.timezone)}</strong></div>
-        <div class="module-row"><span>Moeda</span><strong>${escapeHtml(selected.currency)}</strong></div>
-        <div class="module-row"><span>Centro</span><strong>${escapeHtml(selected.center?.lat)}, ${escapeHtml(selected.center?.lng)} · zoom ${escapeHtml(selected.center?.zoom)}</strong></div>
-        <div class="module-row"><span>Módulos</span><strong>${escapeHtml((selected.modules ?? []).join(", "))}</strong></div>
-      </div>
-      <form id="destination-status-form" class="form-grid" style="margin-top:16px">
-        <label>Status
-          <select id="destination-status">
-            <option value="active" ${selected.status === "active" ? "selected" : ""}>active</option>
-            <option value="suspended" ${selected.status === "suspended" ? "selected" : ""}>suspended</option>
-          </select>
-        </label>
-        <label>Motivo obrigatório
-          <textarea id="destination-reason" minlength="8" maxlength="240" required placeholder="Descreva por que esta alteração é necessária"></textarea>
-        </label>
-        <button class="primary-button" type="submit">Aplicar alteração governada</button>
-        <p id="destination-status-result" role="status"></p>
-      </form>
-    </section>`;
+    `}`;
 
-  document
-    .querySelector("#destination-status-form")
-    ?.addEventListener("submit", async (event) => {
-      event.preventDefault();
-      const result = document.querySelector("#destination-status-result");
-      const status = document.querySelector("#destination-status")?.value;
-      const reason = document.querySelector("#destination-reason")?.value ?? "";
-      if (reason.trim().length < 8) {
-        result.textContent = "Informe um motivo com pelo menos 8 caracteres.";
-        return;
-      }
-      try {
-        await api(`/destinations/${encodeURIComponent(selected.id)}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status, reason }),
-        });
-        result.textContent =
-          "Destino atualizado e encaminhado à auditoria administrativa.";
-        await renderDestinations(selected.id);
-      } catch (error) {
-        result.textContent = error.body?.error || error.message;
-      }
-    });
+  document.querySelector("#destination-editor")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const result = form.querySelector("#destination-editor-result");
+    const submit = form.querySelector('button[type="submit"]');
+    try {
+      const reason = String(new FormData(form).get("reason") ?? "").trim();
+      if (reason.length < 8) throw new Error("Informe um motivo com pelo menos 8 caracteres.");
+      const id = selected?.id ?? String(new FormData(form).get("id") ?? "").trim();
+      const destination = destinationPayload(form, id);
+      submit.disabled = true;
+      result.textContent = "Reautenticando e aplicando alteração…";
+      await destinationStepUp(String(new FormData(form).get("password") ?? ""));
+      await api(selected ? `/destinations/${encodeURIComponent(id)}` : "/destinations", {
+        method: selected ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ destination, reason }),
+      });
+      result.textContent = selected ? "Configuração atualizada com sucesso." : "Destino criado com sucesso.";
+      await renderDestinations(id);
+    } catch (error) {
+      submit.disabled = false;
+      result.textContent = error.body?.error || error.message || "Falha ao atualizar destino.";
+    }
+  });
 }
 
 async function renderBusinesses(businessId) {
