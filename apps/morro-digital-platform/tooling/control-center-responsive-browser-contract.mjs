@@ -180,8 +180,12 @@ async function main() {
     );
     await page.locator("#app:not([hidden])").waitFor({ timeout: 15_000 });
     await page
-      .getByRole("heading", { name: /^Bom dia,/ })
-      .waitFor({ timeout: 15_000 });
+      .locator('#content[data-rendered-view="overview"][aria-busy="false"]')
+      .waitFor({ state: "attached", timeout: 15_000 });
+    await page
+      .locator(".kpi-grid .metric-card")
+      .first()
+      .waitFor({ state: "visible", timeout: 15_000 });
 
     // Support Mode banner is validated with deliberately long text before the
     // regular responsive matrix, then closed so the remaining surfaces run in
@@ -458,6 +462,13 @@ async function main() {
 }
 
 main().catch((error) => {
+  const failure = {
+    fatal: {
+      name: error instanceof Error ? error.name : "UnknownError",
+      message: error instanceof Error ? error.message : String(error),
+    },
+  };
+  persist(failure);
   console.error(
     "CONTROL_CENTER_RESPONSIVE_FAILED",
     error instanceof Error ? error.name : "UnknownError",
