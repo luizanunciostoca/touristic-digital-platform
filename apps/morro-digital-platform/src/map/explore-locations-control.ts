@@ -213,7 +213,7 @@ function markerForLocation(
 ): MapMarker {
   return Object.freeze({
     id:
-      location.id?.trim() ||
+      ("id" in location ? location.id?.trim() : undefined) ||
       `explore:${location.category}:${index}:${location.name}`,
     position: Object.freeze({
       latitude: location.latitude,
@@ -741,9 +741,12 @@ export function installExploreLocationsControl({
     removeAssistantFlowResults(document);
     exploreFlowBottomSheet?.hide();
 
-    const placeActions = getV1ExplorePlaceActionOptions(category, locale).filter(
-      (action) => action.action !== "back-places",
-    );
+    const placeActions =
+      "source" in location && location.source === "mapbox"
+        ? Object.freeze([])
+        : getV1ExplorePlaceActionOptions(category, locale).filter(
+            (action) => action.action !== "back-places",
+          );
     const description =
       "description" in location && typeof location.description === "string"
         ? location.description.trim()
@@ -886,6 +889,21 @@ export function installExploreLocationsControl({
   };
 
   const returnFromPlaceDetail = (): void => {
+    if (placeReturnIsSearch) {
+      renderSearchPlaces(
+        placeReturnLocations.filter(
+          (location): location is ExploreSearchResult =>
+            "source" in location &&
+            (location.source === "local" || location.source === "mapbox"),
+        ),
+        placeReturnMessage ||
+          getV1ExploreUiCopy(currentLocale()).searchResults(
+            activeSearchQuery,
+            placeReturnLocations.length,
+          ),
+      );
+      return;
+    }
     if (!activeCategory) {
       placeBottomSheet?.hide();
       return;
@@ -897,21 +915,10 @@ export function installExploreLocationsControl({
     const message =
       placeReturnMessage ||
       getV1ExploreUiCopy(currentLocale()).chooseOther(activeCategory.label);
-    if (placeReturnIsSearch) {
-      renderSearchPlaces(
-        locations.filter(
-          (location): location is ExploreSearchResult =>
-            "source" in location &&
-            (location.source === "local" || location.source === "mapbox"),
-        ),
-        message,
-      );
-      return;
-    }
     renderPlaces(
       locations.filter(
         (location): location is MorroV1SearchCatalogItem =>
-          !("source" in location) || location.source === "local",
+          !("source" in location),
       ),
       message,
     );
@@ -920,6 +927,29 @@ export function installExploreLocationsControl({
   placeBottomSheet = installPlaceBottomSheet({
     document,
     onAction(value) {
+      const normalized = normalizeSearchText(value);
+      const location = activePlaceLocation;
+      if (
+        location &&
+        ["como chegar", "directions", "localizacao", "location"].includes(
+          normalized,
+        )
+      ) {
+        document.dispatchEvent(
+          new CustomEvent("morro:navigation-requested", {
+            detail: {
+              destination: {
+                name: location.name,
+                latitude: location.latitude,
+                longitude: location.longitude,
+                category: location.category,
+              },
+              source: "place-v2",
+            },
+          }),
+        );
+        return;
+      }
       document.dispatchEvent(
         new CustomEvent("morro:assistant-option-selected", {
           detail: { value },
