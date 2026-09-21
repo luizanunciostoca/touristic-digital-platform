@@ -58,9 +58,7 @@ async function main() {
     for (const view of views) {
       currentView = view ?? "__unknown__";
       stage = "navigate";
-      await page.evaluate((target) => {
-        location.hash = `#${target}`;
-      }, view);
+      await page.locator(`#main-nav [data-view="${view}"]`).click();
       await page.waitForFunction(
         (target) =>
           location.hash === `#${target}` &&
