@@ -199,7 +199,18 @@ jobs:
               await page.locator('[data-view="users"]').click();
               await page.getByRole('heading', { name: 'Usuários' }).waitFor();
               await page.getByRole('link', { name: 'business-owner@example.com' }).click();
+              const user360 = page.locator('[data-entity-tabs="user360"]');
+              await user360.waitFor();
+              for (const label of ['Overview', 'Identity / Profile', 'Relationships', 'Activity', 'Audit', 'Settings / Actions']) {
+                if ((await user360.getByRole('tab', { name: label }).count()) !== 1) {
+                  throw new Error(`User 360 tab missing: ${label}`);
+                }
+              }
+              await user360.getByRole('tab', { name: 'Relationships' }).click();
+              await page.locator('a[href="#businesses:toca-do-morcego"]').waitFor();
+              await user360.getByRole('tab', { name: 'Activity' }).click();
               await page.getByRole('button', { name: 'Revogar sessão' }).waitFor();
+              evidence.user360Tabs = true;
               await page.locator('#session-step-up-password').fill(password);
               await page
                 .locator('#session-revoke-reason')
@@ -245,7 +256,26 @@ jobs:
               await page.locator('[data-view="businesses"]').click();
               await page.locator('a[href="#businesses:toca-do-morcego"]').click();
               await page.getByRole('heading', { name: 'Toca do Morcego' }).waitFor();
+              const business360 = page.locator('[data-entity-tabs="business360"]');
+              await business360.waitFor();
+              for (const label of ['Overview', 'Identity / Profile', 'Relationships', 'Commercial / Financial', 'Activity', 'Audit']) {
+                if ((await business360.getByRole('tab', { name: label }).count()) !== 1) {
+                  throw new Error(`Business 360 tab missing: ${label}`);
+                }
+              }
+              await business360.getByRole('tab', { name: 'Identity / Profile' }).click();
+              await page.locator('[data-destination-relation="unavailable"]').waitFor();
+              if (await page.locator('[data-entity-panel="identity"] a[href^="#destinations:"]').count()) {
+                throw new Error('Business destination was inferred without canonical owner relation');
+              }
+              await business360.getByRole('tab', { name: 'Relationships' }).click();
+              await page.locator('a[href="#users:business-owner-1"]').waitFor();
+              await business360.getByRole('tab', { name: 'Commercial / Financial' }).click();
+              await page.getByRole('heading', { name: 'Commercial / Financial' }).waitFor();
+              await business360.getByRole('tab', { name: 'Audit' }).click();
+              await page.locator('[data-recent-activity]').waitFor();
               evidence.business360 = true;
+              evidence.destinationNoInference = true;
 
               await page.locator('#global-search').fill('business-owner@example.com');
               await page.locator('#search-results:not([hidden])').waitFor({ state: 'visible' });
@@ -301,6 +331,19 @@ jobs:
               }
               evidence.negativeSecurity.push('forged-effective-user-header-rejected');
 
+              await page.locator('[data-view="businesses"]').click();
+              await page.locator('a[href="#businesses:toca-do-morcego"]').click();
+              const supportEntity = page.locator('[data-entity-support-context]');
+              await supportEntity.waitFor();
+              const supportEntityText = await supportEntity.textContent();
+              if (
+                !supportEntityText?.includes('platform-owner@example.com') ||
+                !supportEntityText.includes('business-owner@example.com')
+              ) {
+                throw new Error(`Entity 360 actor/effectiveUser distinction missing: ${supportEntityText}`);
+              }
+              evidence.entity360SupportIdentity = true;
+
               const scopedBusiness = await ownerContext.request.get(
                 `${origin}/api/admin/v1/businesses/toca-do-morcego/profile`,
               );
@@ -327,6 +370,24 @@ jobs:
               await page.locator('#support-end').click();
               await page.locator('#support-banner').waitFor({ state: 'hidden' });
               evidence.supportMode = true;
+
+              await page.locator('[data-view="overview"]').click();
+              await page.getByRole('heading', { name: 'Visão Geral' }).waitFor();
+              await page.getByRole('heading', { name: 'Precisa de atenção' }).waitFor();
+              await page.getByRole('heading', { name: 'Destination Summary' }).waitFor();
+              await page.getByRole('heading', { name: 'Affiliate Summary' }).waitFor();
+              const recentActivity = page.locator('[data-recent-activity]');
+              await recentActivity.waitFor();
+              const recentText = await recentActivity.textContent();
+              if (
+                !recentText?.includes('platform-owner-1') ||
+                !recentText.includes('business-owner-1') ||
+                !recentText.includes('support.session.start')
+              ) {
+                throw new Error(`Recent Activity actor/effectiveUser evidence missing: ${recentText}`);
+              }
+              evidence.dashboardHighInformation = true;
+              evidence.recentActivityActorEffectiveUser = true;
 
               const stepUp = await ownerContext.request.post(
                 `${origin}/api/admin/v1/step-up`,
@@ -452,6 +513,49 @@ jobs:
               }
               evidence.negativeSecurity.push('unauthenticated-admin-api-denied');
               await ordinaryContext.close();
+
+              const partialContext = await browser.newContext({
+                viewport: { width: 1280, height: 900 },
+              });
+              await apiLogin(partialContext, 'platform-owner-users@example.com');
+              const partialPage = await partialContext.newPage();
+              await partialPage.route(
+                url => url.pathname === '/api/admin/v1/destinations',
+                route =>
+                  route.fulfill({
+                    status: 503,
+                    contentType: 'application/json',
+                    body: JSON.stringify({ error: 'DESTINATION_ADMIN_OWNER_UNAVAILABLE' }),
+                  }),
+              );
+              await partialPage.route(
+                url =>
+                  url.pathname === '/api/admin/v1/audit' &&
+                  url.searchParams.get('limit') === '20',
+                route =>
+                  route.fulfill({
+                    status: 200,
+                    contentType: 'application/json',
+                    body: JSON.stringify({ entries: [] }),
+                  }),
+              );
+              await partialPage.goto(
+                `${origin}/apps/control-center/public/index.html#overview`,
+                { waitUntil: 'domcontentloaded', timeout: 30000 },
+              );
+              await partialPage.locator('#app:not([hidden])').waitFor({
+                state: 'visible',
+                timeout: 15000,
+              });
+              await partialPage
+                .locator('[data-owner="destinations"][data-state="unavailable"]')
+                .waitFor();
+              await partialPage
+                .locator('[data-recent-activity][data-state="empty"]')
+                .waitFor();
+              evidence.partialOwner = true;
+              evidence.emptyRecentActivity = true;
+              await partialContext.close();
 
               if (evidence.errors.length) {
                 throw new Error(`Browser page errors: ${JSON.stringify(evidence.errors)}`);
