@@ -505,19 +505,22 @@ export function createTicketingAdminAdapter(ticketingApi, authApi) {
     "/operator/check-in",
     "/operator/offline-devices",
   ]);
+  const offlineDeviceRevoke =
+    /^\/operator\/offline-devices\/tdv_[A-Za-z0-9_-]{8,116}\/revoke$/u;
 
   return Object.freeze({
-    state: "partial",
+    state: "available",
     coverage: Object.freeze([
       "inventory",
       "operator/check-in",
-      "operator/offline-devices",
+      "operator/offline-devices/provision",
+      "operator/offline-devices/revoke",
     ]),
     async handle({ request, response, requestUrl, effectiveUser }) {
       const relative = requestUrl.pathname.slice(
         `${adminPrefix}/ticketing`.length,
       );
-      if (!allowed.includes(relative)) {
+      if (!allowed.includes(relative) && !offlineDeviceRevoke.test(relative)) {
         notFound(response, "TICKETING_ADMIN_ROUTE_NOT_AVAILABLE");
         return;
       }

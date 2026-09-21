@@ -56,6 +56,23 @@ async function readJsonBody(request) {
   return JSON.parse(Buffer.concat(chunks).toString("utf8"));
 }
 
+function replayJsonRequest(request, body) {
+  const payload = Buffer.from(JSON.stringify(body ?? {}), "utf8");
+  return Object.freeze({
+    method: request.method,
+    headers: Object.freeze({
+      ...(request.headers ?? {}),
+      "content-type": "application/json",
+      "content-length": String(payload.length),
+    }),
+    socket: request.socket,
+    morroCorrelationId: request.morroCorrelationId,
+    async *[Symbol.asyncIterator]() {
+      yield payload;
+    },
+  });
+}
+
 function encodePayload(payload) {
   return Buffer.from(JSON.stringify(payload)).toString("base64url");
 }
@@ -925,6 +942,204 @@ export function createAdminApi({
       sessionHandle: handle,
       alreadyRevoked: result.alreadyRevoked,
     });
+    return true;
+  }
+
+  async function handleTicketingCriticalAction(
+    request,
+    response,
+    requestUrl,
+  ) {
+    const checkIn =
+      requestUrl.pathname === `${adminPrefix}/ticketing/operator/check-in`;
+    const provision =
+      requestUrl.pathname ===
+      `${adminPrefix}/ticketing/operator/offline-devices`;
+    const revokeMatch =
+      /^\/api\/admin\/v1\/ticketing\/operator\/offline-devices\/(tdv_[A-Za-z0-9_-]{8,116})\/revoke$/u.exec(
+        requestUrl.pathname,
+      );
+    if (!checkIn && !provision && !revokeMatch) return false;
+    if (request.method !== "POST") {
+      json(response, 405, { error: "METHOD_NOT_ALLOWED" });
+      return true;
+    }
+
+    const operation = checkIn
+      ? "check-in"
+      : provision
+        ? "offline-device-provision"
+        : "offline-device-revoke";
+    const confirmation = checkIn
+      ? "VALIDAR CHECK-IN"
+      : provision
+        ? "PROVISIONAR DISPOSITIVO"
+        : "REVOGAR DISPOSITIVO";
+
+    const actor = await requireCapability(
+      request,
+      response,
+      "ticketing.manage",
+      { mutation: true },
+    );
+    if (!actor) return true;
+
+    const requestSecurity = authApi.authorizeMutation(
+      request,
+      actor,
+      `control-center.ticketing.${operation}`,
+    );
+    if (!requestSecurity.allowed) {
+      await audit(request, actor, {
+        action: `ticketing.${operation}`,
+        result: "denied",
+        reason: requestSecurity.reason,
+        entityType: "ticketing_operation",
+        entityId: revokeMatch?.[1] ?? null,
+      });
+      json(response, 403, {
+        error:
+          requestSecurity.reason === "invalid_csrf"
+            ? "INVALID_CSRF"
+            : "ORIGIN_DENIED",
+      });
+      return true;
+    }
+
+    const support = supportContext(request, actor);
+    if (support) {
+      await audit(request, actor, {
+        action: `ticketing.${operation}`,
+        result: "denied",
+        reason: "support_mode_critical_action_denied",
+        effectiveUserId: support.effectiveUser?.id ?? null,
+        entityType: "ticketing_operation",
+        entityId: revokeMatch?.[1] ?? null,
+      });
+      json(response, 403, { error: "SUPPORT_MODE_CRITICAL_ACTION_DENIED" });
+      return true;
+    }
+
+    if (!stepUpContext(request, actor)) {
+      await audit(request, actor, {
+        action: `ticketing.${operation}`,
+        result: "denied",
+        reason: "step_up_required",
+        entityType: "ticketing_operation",
+        entityId: revokeMatch?.[1] ?? null,
+      });
+      json(response, 403, { error: "STEP_UP_REQUIRED" });
+      return true;
+    }
+
+    let body;
+    try {
+      body = await readJsonBody(request);
+    } catch {
+      json(response, 400, { error: "INVALID_REQUEST" });
+      return true;
+    }
+    const reason = safeReason(body?.reason);
+    if (!reason) {
+      json(response, 400, { error: "REASON_REQUIRED" });
+      return true;
+    }
+    if (body?.confirmation !== confirmation) {
+      json(response, 400, {
+        error: "TEXT_CONFIRMATION_REQUIRED",
+        expected: confirmation,
+      });
+      return true;
+    }
+
+    let ownerBody = {};
+    let entityId = revokeMatch?.[1] ?? null;
+    if (checkIn) {
+      const qrPayload =
+        typeof body?.qrPayload === "string" ? body.qrPayload.trim() : "";
+      if (!qrPayload) {
+        json(response, 400, { error: "QR_PAYLOAD_REQUIRED" });
+        return true;
+      }
+      ownerBody = { qrPayload };
+    } else if (provision) {
+      const deviceId =
+        typeof body?.deviceId === "string" ? body.deviceId.trim() : "";
+      const destinationId =
+        typeof body?.destinationId === "string"
+          ? body.destinationId.trim()
+          : "";
+      const ttlSeconds =
+        body?.ttlSeconds === undefined ? undefined : Number(body.ttlSeconds);
+      if (
+        !/^tdv_[A-Za-z0-9_-]{8,116}$/u.test(deviceId) ||
+        !destinationId ||
+        (ttlSeconds !== undefined &&
+          (!Number.isSafeInteger(ttlSeconds) ||
+            ttlSeconds < 300 ||
+            ttlSeconds > 86400))
+      ) {
+        json(response, 400, { error: "INVALID_DEVICE_REQUEST" });
+        return true;
+      }
+      entityId = deviceId;
+      ownerBody = {
+        deviceId,
+        destinationId,
+        ...(ttlSeconds === undefined ? {} : { ttlSeconds }),
+      };
+    }
+
+    const attemptAudited = await audit(request, actor, {
+      action: `ticketing.${operation}.attempt`,
+      result: "attempt",
+      entityType: checkIn ? "ticket_checkin" : "offline_device",
+      entityId,
+      reason,
+    });
+    if (!attemptAudited) {
+      json(response, 503, { error: "ADMIN_AUDIT_UNAVAILABLE" });
+      return true;
+    }
+
+    const adapter = domainAdapters.ticketing;
+    if (!adapter?.handle) {
+      json(response, 501, {
+        error: "DOMAIN_ADMIN_CONTRACT_NOT_REGISTERED",
+        domain: "ticketing",
+        invariant: "NO_DIRECT_TABLE_BYPASS",
+      });
+      return true;
+    }
+
+    try {
+      await adapter.handle({
+        request: replayJsonRequest(request, ownerBody),
+        response,
+        requestUrl,
+        actor,
+        effectiveUser: null,
+      });
+      await audit(request, actor, {
+        action: `ticketing.${operation}.complete`,
+        result:
+          response.statusCode >= 200 && response.statusCode < 400
+            ? "success"
+            : "failure",
+        entityType: checkIn ? "ticket_checkin" : "offline_device",
+        entityId,
+        reason,
+      });
+    } catch (error) {
+      await audit(request, actor, {
+        action: `ticketing.${operation}.complete`,
+        result: "failure",
+        entityType: checkIn ? "ticket_checkin" : "offline_device",
+        entityId,
+        reason: error instanceof Error ? bounded(error.message) : reason,
+      });
+      json(response, 503, { error: "TICKETING_ADMIN_UNAVAILABLE" });
+    }
     return true;
   }
 
@@ -2061,6 +2276,12 @@ export function createAdminApi({
           health: platformOperations.healthSnapshot(request.morroCorrelationId),
           secrets: "redacted",
         });
+        return;
+      }
+
+      if (
+        await handleTicketingCriticalAction(request, response, requestUrl)
+      ) {
         return;
       }
 

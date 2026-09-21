@@ -365,6 +365,204 @@ describe("Control Center Admin API", () => {
     });
   });
 
+  it("governs Ticketing check-in and offline device lifecycle behind step-up", async () => {
+    const calls = [];
+    const ticketing = {
+      async handle({ request: ownerRequest, response, requestUrl }) {
+        const chunks = [];
+        for await (const chunk of ownerRequest) chunks.push(chunk);
+        const body = chunks.length
+          ? JSON.parse(Buffer.concat(chunks).toString("utf8"))
+          : {};
+        calls.push({ pathname: requestUrl.pathname, body });
+
+        if (requestUrl.pathname.endsWith("/operator/check-in")) {
+          response.statusCode = 200;
+          response.setHeader("Content-Type", "application/json");
+          response.end(JSON.stringify({ data: { status: "checked_in" } }));
+          return;
+        }
+        if (
+          requestUrl.pathname.endsWith("/operator/offline-devices") &&
+          !requestUrl.pathname.endsWith("/revoke")
+        ) {
+          response.statusCode = 201;
+          response.setHeader("Content-Type", "application/json");
+          response.end(
+            JSON.stringify({
+              data: {
+                token: "device-token-one-time",
+                claims: {
+                  deviceId: "tdv_device_0001",
+                  destinationId: "morro-de-sao-paulo",
+                },
+              },
+            }),
+          );
+          return;
+        }
+        response.statusCode = 200;
+        response.setHeader("Content-Type", "application/json");
+        response.end(
+          JSON.stringify({
+            data: {
+              deviceId: "tdv_device_0001",
+              revokedAt: "2026-09-21T12:00:00.000Z",
+            },
+          }),
+        );
+      },
+    };
+    const { api } = fixture(platformOwner, {
+      domainAdapters: { ticketing },
+    });
+
+    const checkInPath = "/api/admin/v1/ticketing/operator/check-in";
+    const withoutStepUp = responseRecorder();
+    await api.handle(
+      request(checkInPath, {
+        method: "POST",
+        body: {
+          qrPayload: "ticketing:qr:fixture",
+          reason: "Validar ticket apresentado na operação",
+          confirmation: "VALIDAR CHECK-IN",
+        },
+      }),
+      withoutStepUp,
+      new URL("http://localhost" + checkInPath),
+    );
+    expect(withoutStepUp.statusCode).toBe(403);
+    expect(JSON.parse(withoutStepUp.body).error).toBe("STEP_UP_REQUIRED");
+    expect(calls).toHaveLength(0);
+
+    const stepUp = responseRecorder();
+    await api.handle(
+      request("/api/admin/v1/step-up", {
+        method: "POST",
+        body: { password: "fixture-secret" },
+      }),
+      stepUp,
+      new URL("http://localhost/api/admin/v1/step-up"),
+    );
+    const stepUpCookie = String(stepUp.headers.get("set-cookie")).split(
+      ";",
+      1,
+    )[0];
+
+    const checkIn = responseRecorder();
+    await api.handle(
+      request(checkInPath, {
+        method: "POST",
+        headers: { cookie: stepUpCookie },
+        body: {
+          qrPayload: "ticketing:qr:fixture",
+          reason: "Validar ticket apresentado na operação",
+          confirmation: "VALIDAR CHECK-IN",
+        },
+      }),
+      checkIn,
+      new URL("http://localhost" + checkInPath),
+    );
+    expect(checkIn.statusCode).toBe(200);
+
+    const provisionPath =
+      "/api/admin/v1/ticketing/operator/offline-devices";
+    const provision = responseRecorder();
+    await api.handle(
+      request(provisionPath, {
+        method: "POST",
+        headers: { cookie: stepUpCookie },
+        body: {
+          deviceId: "tdv_device_0001",
+          destinationId: "morro-de-sao-paulo",
+          ttlSeconds: 3600,
+          reason: "Provisionar dispositivo autorizado para check-in offline",
+          confirmation: "PROVISIONAR DISPOSITIVO",
+        },
+      }),
+      provision,
+      new URL("http://localhost" + provisionPath),
+    );
+    expect(provision.statusCode).toBe(201);
+    expect(JSON.parse(provision.body).data.token).toBe("device-token-one-time");
+
+    const revokePath =
+      "/api/admin/v1/ticketing/operator/offline-devices/tdv_device_0001/revoke";
+    const revoke = responseRecorder();
+    await api.handle(
+      request(revokePath, {
+        method: "POST",
+        headers: { cookie: stepUpCookie },
+        body: {
+          reason: "Revogar dispositivo após encerramento da operação",
+          confirmation: "REVOGAR DISPOSITIVO",
+        },
+      }),
+      revoke,
+      new URL("http://localhost" + revokePath),
+    );
+    expect(revoke.statusCode).toBe(200);
+
+    expect(calls).toEqual([
+      {
+        pathname: checkInPath,
+        body: { qrPayload: "ticketing:qr:fixture" },
+      },
+      {
+        pathname: provisionPath,
+        body: {
+          deviceId: "tdv_device_0001",
+          destinationId: "morro-de-sao-paulo",
+          ttlSeconds: 3600,
+        },
+      },
+      {
+        pathname: revokePath,
+        body: {},
+      },
+    ]);
+
+    const support = responseRecorder();
+    await api.handle(
+      request("/api/admin/v1/support/session", {
+        method: "POST",
+        body: {
+          effectiveUserId: "business-owner",
+          reason: "Investigar operação sem assumir autoridade crítica",
+        },
+      }),
+      support,
+      new URL("http://localhost/api/admin/v1/support/session"),
+    );
+    expect(support.statusCode).toBe(201);
+    const supportCookie = String(support.headers.get("set-cookie")).split(
+      ";",
+      1,
+    )[0];
+
+    const deniedInSupport = responseRecorder();
+    await api.handle(
+      request(checkInPath, {
+        method: "POST",
+        headers: {
+          cookie: `${supportCookie}; ${stepUpCookie}`,
+        },
+        body: {
+          qrPayload: "ticketing:qr:fixture",
+          reason: "Ação crítica deve ser negada durante suporte",
+          confirmation: "VALIDAR CHECK-IN",
+        },
+      }),
+      deniedInSupport,
+      new URL("http://localhost" + checkInPath),
+    );
+    expect(deniedInSupport.statusCode).toBe(403);
+    expect(JSON.parse(deniedInSupport.body).error).toBe(
+      "SUPPORT_MODE_CRITICAL_ACTION_DENIED",
+    );
+    expect(calls).toHaveLength(3);
+  });
+
   it("creates and disables Ticketing offers only through governed owner commands", async () => {
     const calls = [];
     const products = {

@@ -196,6 +196,41 @@ describe("Control Center domain support delegation", () => {
     expect(ticketingHandle).toHaveBeenCalledTimes(1);
   });
 
+  it("allows the full governed Ticketing operator route set including offline revoke", async () => {
+    const req = request("POST");
+    const response = supportResponseRecorder();
+    const { authApi } = supportDelegationBoundary();
+    const handle = vi.fn(async (_request, targetResponse, targetUrl) => {
+      targetResponse.statusCode = 200;
+      targetResponse.end(JSON.stringify({ targetUrl: String(targetUrl) }));
+    });
+    const adapter = createTicketingAdminAdapter({ handle }, authApi);
+
+    for (const pathname of [
+      "/api/admin/v1/ticketing/operator/check-in",
+      "/api/admin/v1/ticketing/operator/offline-devices",
+      "/api/admin/v1/ticketing/operator/offline-devices/tdv_device_0001/revoke",
+    ]) {
+      await adapter.handle({
+        request: req,
+        response,
+        requestUrl: new URL("http://localhost" + pathname),
+        effectiveUser: null,
+      });
+    }
+
+    expect(handle).toHaveBeenCalledTimes(3);
+    expect(
+      handle.mock.calls.map((call) =>
+        String(call[2] instanceof URL ? call[2].pathname : call[2]),
+      ),
+    ).toEqual([
+      "/api/ticketing/v1/operator/check-in",
+      "/api/ticketing/v1/operator/offline-devices",
+      "/api/ticketing/v1/operator/offline-devices/tdv_device_0001/revoke",
+    ]);
+  });
+
   it("fails closed when the internal Auth delegation boundary is absent", () => {
     expect(() =>
       createBusinessAdminAdapter({ handle: async () => undefined }),

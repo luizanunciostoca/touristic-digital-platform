@@ -1850,34 +1850,272 @@ async function renderReservations(reservationId) {
 }
 
 async function renderTicketing() {
-  const data = await api("/ticketing/inventory");
+  const supportActive = Boolean(state.adminSession?.support);
+  const canManage =
+    actorHasCapability("ticketing.manage") && !supportActive;
+  const data = await api("/ticketing/inventory").catch((error) => ({
+    data: [],
+    error,
+  }));
   const inventory = Array.isArray(data.data) ? data.data : [];
+
   content.innerHTML = `
     <div class="callout">
-      Ticketing mantém check-in e dispositivos operacionais. Produtos/inventário e reservas globais
-      agora possuem projeções administrativas owner-backed nas superfícies dedicadas.
+      <strong>Ticketing owner:</strong>
+      validação/check-in e credenciais offline permanecem no domínio Ticketing.
+      Produtos/ofertas e reservas globais usam as superfícies administrativas dedicadas.
     </div>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>Oferta</th><th>Referência</th><th>Disponibilidade</th><th>Preço</th></tr></thead>
-        <tbody>
-          ${
-            inventory
-              .map(
-                (offer) =>
-                  `<tr>
+
+    <div class="grid two-col">
+      <section class="card section-card">
+        <div class="section-title">
+          <h2>Validar check-in</h2>
+          <span class="badge gap">step-up obrigatório</span>
+        </div>
+        <form id="ticketing-checkin-form" class="form-grid">
+          <label>QR payload
+            <textarea name="qrPayload" ${canManage ? "" : "disabled"} required></textarea>
+          </label>
+          <label>Sua senha
+            <input name="password" type="password" autocomplete="current-password" ${canManage ? "" : "disabled"} required />
+          </label>
+          <label>Motivo obrigatório
+            <textarea name="reason" minlength="8" maxlength="240" ${canManage ? "" : "disabled"} required></textarea>
+          </label>
+          <label>Confirmação textual
+            <input name="confirmation" autocomplete="off" placeholder="VALIDAR CHECK-IN" ${canManage ? "" : "disabled"} required />
+          </label>
+          <button class="primary-button" type="submit" ${canManage ? "" : "disabled"}>
+            Validar ticket
+          </button>
+          <p id="ticketing-checkin-result" role="status" aria-live="polite"></p>
+        </form>
+      </section>
+
+      <section class="card section-card">
+        <div class="section-title">
+          <h2>Provisionar dispositivo offline</h2>
+          <span class="badge gap">step-up obrigatório</span>
+        </div>
+        <form id="ticketing-device-provision-form" class="form-grid">
+          <label>Device ID
+            <input name="deviceId" pattern="tdv_[A-Za-z0-9_-]{8,116}" placeholder="tdv_operacao_01" ${canManage ? "" : "disabled"} required />
+          </label>
+          <label>Destino
+            <input name="destinationId" placeholder="morro-de-sao-paulo" ${canManage ? "" : "disabled"} required />
+          </label>
+          <label>TTL em segundos
+            <input name="ttlSeconds" type="number" min="300" max="86400" step="1" value="14400" ${canManage ? "" : "disabled"} required />
+          </label>
+          <label>Sua senha
+            <input name="password" type="password" autocomplete="current-password" ${canManage ? "" : "disabled"} required />
+          </label>
+          <label>Motivo obrigatório
+            <textarea name="reason" minlength="8" maxlength="240" ${canManage ? "" : "disabled"} required></textarea>
+          </label>
+          <label>Confirmação textual
+            <input name="confirmation" autocomplete="off" placeholder="PROVISIONAR DISPOSITIVO" ${canManage ? "" : "disabled"} required />
+          </label>
+          <button class="primary-button" type="submit" ${canManage ? "" : "disabled"}>
+            Provisionar credencial
+          </button>
+          <p id="ticketing-device-provision-result" role="status" aria-live="polite"></p>
+          <label id="ticketing-device-token-wrap" hidden>
+            Credencial emitida — exibida somente nesta resposta
+            <textarea id="ticketing-device-token" readonly></textarea>
+          </label>
+        </form>
+      </section>
+    </div>
+
+    <section class="card section-card" style="margin-top:16px">
+      <div class="section-title">
+        <h2>Revogar dispositivo offline</h2>
+        <span class="badge gap">step-up obrigatório</span>
+      </div>
+      <form id="ticketing-device-revoke-form" class="form-grid">
+        <label>Device ID
+          <input name="deviceId" pattern="tdv_[A-Za-z0-9_-]{8,116}" placeholder="tdv_operacao_01" ${canManage ? "" : "disabled"} required />
+        </label>
+        <label>Sua senha
+          <input name="password" type="password" autocomplete="current-password" ${canManage ? "" : "disabled"} required />
+        </label>
+        <label>Motivo obrigatório
+          <textarea name="reason" minlength="8" maxlength="240" ${canManage ? "" : "disabled"} required></textarea>
+        </label>
+        <label>Confirmação textual
+          <input name="confirmation" autocomplete="off" placeholder="REVOGAR DISPOSITIVO" ${canManage ? "" : "disabled"} required />
+        </label>
+        <button class="primary-button" type="submit" ${canManage ? "" : "disabled"}>
+          Revogar dispositivo
+        </button>
+        <p id="ticketing-device-revoke-result" role="status" aria-live="polite"></p>
+      </form>
+    </section>
+
+    <section class="card section-card" style="margin-top:16px">
+      <div class="section-title">
+        <h2>Inventário operacional</h2>
+        <span class="badge">${inventory.length}</span>
+      </div>
+      ${
+        data.error
+          ? '<div class="callout">Runtime Ticketing indisponível nesta execução; os comandos continuam fail-closed.</div>'
+          : ""
+      }
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Oferta</th><th>Referência</th><th>Disponibilidade</th><th>Preço</th></tr></thead>
+          <tbody>
+            ${
+              inventory
+                .map(
+                  (offer) =>
+                    `<tr>
                   <td><strong>${escapeHtml(offer.label ?? offer.id ?? "—")}</strong></td>
                   <td>${escapeHtml(offer.productReference ?? offer.id ?? "—")}</td>
                   <td>${escapeHtml(offer.available ?? offer.capacity ?? "—")}</td>
                   <td>${escapeHtml(offer.unitAmount?.minorUnits ?? offer.unitAmountMinor ?? "—")} ${escapeHtml(offer.unitAmount?.currency ?? offer.currency ?? "")}</td>
                 </tr>`,
-              )
-              .join("") ||
-            '<tr><td colspan="4" class="empty">Inventário indisponível ou vazio.</td></tr>'
-          }
-        </tbody>
-      </table>
-    </div>`;
+                )
+                .join("") ||
+              '<tr><td colspan="4" class="empty">Inventário indisponível ou vazio.</td></tr>'
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>`;
+
+  const stepUp = async (form) => {
+    const values = new FormData(form);
+    await api("/step-up", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        password: String(values.get("password") || ""),
+      }),
+    });
+    return values;
+  };
+
+  document
+    .querySelector("#ticketing-checkin-form")
+    ?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const form = event.currentTarget;
+      const result = form.querySelector("#ticketing-checkin-result");
+      const preview = new FormData(form);
+      if (
+        String(preview.get("confirmation") || "").trim() !==
+        "VALIDAR CHECK-IN"
+      ) {
+        result.textContent = "Digite VALIDAR CHECK-IN para confirmar.";
+        return;
+      }
+      try {
+        result.textContent = "Reautenticando…";
+        const values = await stepUp(form);
+        const response = await api("/ticketing/operator/check-in", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            qrPayload: String(values.get("qrPayload") || "").trim(),
+            reason: String(values.get("reason") || "").trim(),
+            confirmation: "VALIDAR CHECK-IN",
+          }),
+        });
+        result.textContent = `Check-in validado: ${response.data?.status ?? "OK"}.`;
+      } catch (error) {
+        result.textContent =
+          error.body?.error || error.message || "Falha ao validar check-in.";
+      }
+    });
+
+  document
+    .querySelector("#ticketing-device-provision-form")
+    ?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const form = event.currentTarget;
+      const result = form.querySelector("#ticketing-device-provision-result");
+      const preview = new FormData(form);
+      if (
+        String(preview.get("confirmation") || "").trim() !==
+        "PROVISIONAR DISPOSITIVO"
+      ) {
+        result.textContent = "Digite PROVISIONAR DISPOSITIVO para confirmar.";
+        return;
+      }
+      try {
+        result.textContent = "Reautenticando…";
+        const values = await stepUp(form);
+        const response = await api("/ticketing/operator/offline-devices", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            deviceId: String(values.get("deviceId") || "").trim(),
+            destinationId: String(values.get("destinationId") || "").trim(),
+            ttlSeconds: Number(values.get("ttlSeconds")),
+            reason: String(values.get("reason") || "").trim(),
+            confirmation: "PROVISIONAR DISPOSITIVO",
+          }),
+        });
+        result.textContent =
+          "Credencial provisionada. Armazene-a no dispositivo autorizado.";
+        const wrap = form.querySelector("#ticketing-device-token-wrap");
+        const token = form.querySelector("#ticketing-device-token");
+        if (response.data?.token && wrap && token) {
+          token.value = response.data.token;
+          wrap.hidden = false;
+        }
+      } catch (error) {
+        result.textContent =
+          error.body?.error ||
+          error.message ||
+          "Falha ao provisionar dispositivo.";
+      }
+    });
+
+  document
+    .querySelector("#ticketing-device-revoke-form")
+    ?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const form = event.currentTarget;
+      const result = form.querySelector("#ticketing-device-revoke-result");
+      const preview = new FormData(form);
+      if (
+        String(preview.get("confirmation") || "").trim() !==
+        "REVOGAR DISPOSITIVO"
+      ) {
+        result.textContent = "Digite REVOGAR DISPOSITIVO para confirmar.";
+        return;
+      }
+      try {
+        result.textContent = "Reautenticando…";
+        const values = await stepUp(form);
+        const deviceId = String(values.get("deviceId") || "").trim();
+        const response = await api(
+          `/ticketing/operator/offline-devices/${encodeURIComponent(
+            deviceId,
+          )}/revoke`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              reason: String(values.get("reason") || "").trim(),
+              confirmation: "REVOGAR DISPOSITIVO",
+            }),
+          },
+        );
+        result.textContent = response.data?.revokedAt
+          ? `Dispositivo revogado em ${response.data.revokedAt}.`
+          : "Dispositivo já estava revogado.";
+      } catch (error) {
+        result.textContent =
+          error.body?.error ||
+          error.message ||
+          "Falha ao revogar dispositivo.";
+      }
+    });
 }
 
 function formatMinorUnits(money) {
