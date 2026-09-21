@@ -1732,3 +1732,133 @@ html[data-control-motion="reduced"] *::after {
   animation-iteration-count: 1 !important;
   transition-duration: 0.001ms !important;
 }
+
+
+/* Reusable administrative primitives: progressive enhancement over owner-rendered markup. */
+.section-title__actions {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.state-panel--compact {
+  padding: 18px 16px;
+}
+
+.state-panel--loading {
+  min-height: 112px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+}
+
+.state-panel--error {
+  border-color: #f1c0c3;
+  background: var(--md-danger-soft);
+}
+
+.state-panel--partial {
+  border-color: #ead79e;
+  background: var(--md-warning-soft);
+}
+
+.table-wrap {
+  overscroll-behavior-inline: contain;
+}
+
+.table-wrap:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--md-focus) 38%, transparent);
+  outline-offset: 2px;
+}
+
+.table-wrap th,
+.table-wrap td {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.table-wrap th {
+  white-space: nowrap;
+}
+
+.long-token,
+.table-wrap code {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.table-action {
+  max-width: 100%;
+}
+
+.critical-action-form {
+  border-inline-start: 3px solid var(--md-warning);
+  padding-inline-start: 12px;
+}
+
+@media (max-width: 767px) {
+  .destination-summary .table-wrap.responsive-cards table {
+    min-width: 0;
+  }
+
+  .table-wrap.responsive-cards td {
+    overflow-wrap: anywhere;
+  }
+
+  .table-wrap.responsive-cards .table-action {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+}
+
+@media (pointer: coarse), (max-width: 900px) {
+  button,
+  .nav-item,
+  .scope-button,
+  .destination-control,
+  .icon-button,
+  .profile-button,
+  .primary-button,
+  .secondary-button,
+  .danger-button,
+  .table-action,
+  .section-link {
+    min-height: 44px;
+  }
+
+  .form-grid input,
+  .form-grid select {
+    min-height: 44px;
+  }
+}
+
+@media (max-height: 520px) and (orientation: landscape) and (max-width: 900px) {
+  .page {
+    padding-block: 12px;
+  }
+
+  .page-heading {
+    margin-bottom: 12px;
+  }
+
+  .sidebar,
+  .control-center__sidebar {
+    padding-block: 8px;
+  }
+
+  .brand {
+    min-height: 40px;
+    padding-bottom: 4px;
+  }
+
+  .sidebar-footer {
+    position: sticky;
+    bottom: 0;
+  }
+}
