@@ -72,6 +72,38 @@ function focusElement(element: Element | null | undefined): boolean {
   return true;
 }
 
+function syncAssistantLoadingSkeleton(
+  document: Document,
+  loading: boolean,
+): void {
+  const area = document.querySelector<HTMLElement>(
+    "#assistant-messages .messages-area",
+  );
+  if (!area) return;
+
+  const existing = area.querySelector<HTMLElement>(
+    ".assistant-loading-skeleton",
+  );
+  if (!loading) {
+    existing?.remove();
+    return;
+  }
+  if (existing) return;
+
+  const skeleton = document.createElement("div");
+  skeleton.className = "assistant-loading-skeleton";
+  skeleton.setAttribute("aria-hidden", "true");
+  skeleton.dataset.messageType = "loading-skeleton";
+
+  for (const size of ["short", "long", "medium"] as const) {
+    const line = document.createElement("span");
+    line.className = "md-skeleton assistant-loading-skeleton-line";
+    line.dataset.size = size;
+    skeleton.appendChild(line);
+  }
+  area.appendChild(skeleton);
+}
+
 export function installAssistantShellUi(
   options: AssistantShellUiOptions,
 ): AssistantShellUi {
@@ -94,6 +126,7 @@ export function installAssistantShellUi(
     if (!assistant) return;
     assistant.setAttribute("data-assistant-state", state);
     assistant.setAttribute("aria-busy", String(state === "loading"));
+    syncAssistantLoadingSkeleton(options.document, state === "loading");
     if (status) {
       status.textContent = assistantUiStateStatus(
         state,
