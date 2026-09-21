@@ -749,7 +749,7 @@ async function renderUsers(userId) {
                     (user.businessIds ?? [])
                       .map(
                         (businessId) =>
-                          `<a class="badge" href="#businesses:${encodeURIComponent(businessId)}">${escapeHtml(businessId)}</a>`,
+                          `<span class="badge">${escapeHtml(businessId)}</span>`,
                       )
                       .join(" ") || "—"
                   }</td>
