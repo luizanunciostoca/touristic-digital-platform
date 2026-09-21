@@ -127,6 +127,17 @@ jobs:
                 throw new Error(`Assistant loading announcement missing: ${loadingStatus}`);
               }
 
+              const loadingSkeleton = await page.locator(
+                '#assistant-messages .assistant-loading-skeleton[aria-hidden="true"]',
+              ).count();
+              const loadingLines = await page.locator(
+                '#assistant-messages .assistant-loading-skeleton .md-skeleton',
+              ).count();
+              if (loadingSkeleton !== 1 || loadingLines !== 3) {
+                throw new Error('Assistant loading skeleton drifted');
+              }
+
+
               await page.keyboard.press('Escape');
               await page.locator('#assistant-messages.hidden[aria-hidden="true"]').waitFor({
                 state: 'attached',
@@ -139,9 +150,8 @@ jobs:
                 throw new Error('Assistant Escape did not restore focus to the trigger');
               }
 
-              const assistant = page.locator('#assistant-messages');
-              if (!(await assistant.isVisible())) await trigger.click();
-              await assistant.waitFor({ state: 'visible', timeout: 5000 });
+              await trigger.click();
+              await page.locator('#assistant-messages:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
 
               await page.evaluate(() => {
                 dispatchEvent(new CustomEvent('navigationEnded', {
