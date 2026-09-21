@@ -36,7 +36,7 @@ on:
       - "docs/features/registry.json"
 
 permissions:
-  contents: read
+  contents: write
   actions: write
 
 concurrency:
@@ -68,8 +68,12 @@ jobs:
           test -n "$candidate_ref"
           remote_sha="$(git ls-remote origin "refs/heads/$candidate_ref" | awk '{print $1}')"
           test "$remote_sha" = "$GITHUB_SHA"
+          qualification_ref="cc-qualify-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          git tag "$qualification_ref" "$GITHUB_SHA"
+          git push origin "refs/tags/$qualification_ref"
           echo "CANDIDATE_REF=$candidate_ref" >> "$GITHUB_ENV"
-          echo "Frozen candidate: $candidate_ref@$GITHUB_SHA"
+          echo "QUALIFICATION_REF=$qualification_ref" >> "$GITHUB_ENV"
+          echo "Frozen candidate: $candidate_ref@$GITHUB_SHA via tag $qualification_ref"
 
       - name: Cancel stale mandatory runs from older candidate SHAs
         shell: bash
@@ -130,8 +134,8 @@ jobs:
               gh run list                 --workflow "$workflow"                 --event workflow_dispatch                 --branch "$CANDIDATE_REF"                 --limit 50                 --json databaseId               | jq '[.[].databaseId] | max // 0'
             )"
 
-            echo "Dispatching $workflow on $CANDIDATE_REF@$GITHUB_SHA after run $before_id"
-            gh workflow run "$workflow" --ref "$CANDIDATE_REF"
+            echo "Dispatching $workflow on $QUALIFICATION_REF@$GITHUB_SHA after run $before_id"
+            gh workflow run "$workflow" --ref "$QUALIFICATION_REF"
 
             run_id=""
             for _ in $(seq 1 60); do
@@ -181,5 +185,16 @@ jobs:
         run: |
           set -euo pipefail
           remote_sha="$(git ls-remote origin "refs/heads/$CANDIDATE_REF" | awk '{print $1}')"
+          tag_sha="$(git ls-remote origin "refs/tags/$QUALIFICATION_REF" | awk '{print $1}')"
           test "$remote_sha" = "$GITHUB_SHA"
+          test "$tag_sha" = "$GITHUB_SHA"
           echo "Exact-head qualification remained frozen: $GITHUB_SHA"
+
+      - name: Remove ephemeral qualification tag
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -n "${QUALIFICATION_REF:-}" ]; then
+            git push origin ":refs/tags/$QUALIFICATION_REF" || true
+          fi
