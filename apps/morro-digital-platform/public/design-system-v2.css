@@ -6,225 +6,239 @@
  * loading this stylesheet after their feature CSS.
  */
 
-:root {
-  /* Brand + semantic colors */
-  --md-color-brand-primary: var(--primary, #3b82f6);
-  --md-color-brand-primary-strong: var(--primary-dark, #2563eb);
-  --md-color-accent: var(--accent, #10b981);
-  --md-color-accent-strong: var(--accent-dark, #059669);
-  --md-color-surface: #ffffff;
-  --md-color-surface-subtle: #f8fafc;
-  --md-color-text: #0f172a;
-  --md-color-text-muted: #475569;
-  --md-color-border: #cbd5e1;
-  --md-color-success: #15803d;
-  --md-color-warning: #a16207;
-  --md-color-danger: #b91c1c;
-  --md-color-info: #0369a1;
+@layer reset, vendor, legacy, tokens, base, components, features, utilities, overrides;
 
-  /* Canonical semantic aliases consumed by V2 Tourist UI surfaces. */
-  --md-color-brand: var(--md-color-brand-primary);
-  --md-color-brand-strong: var(--md-color-brand-primary-strong);
-  --md-color-surface-canvas: var(--md-color-surface-subtle);
-  --md-color-surface-card: var(--md-color-surface);
-  --md-color-surface-glass: color-mix(
-    in srgb,
-    var(--md-color-surface-card) 88%,
-    transparent
-  );
-  --md-color-surface-elevated: var(--md-color-surface-card);
-  --md-color-text-primary: var(--md-color-text);
-  --md-color-text-secondary: var(--md-color-text-muted);
-  --md-color-text-inverse: #ffffff;
-  --md-color-interactive-primary: var(--md-color-brand);
-  --md-color-interactive-primary-hover: var(--md-color-brand-strong);
-  --md-color-interactive-secondary: var(--md-color-surface-card);
-  --md-color-interactive-secondary-hover: var(--md-color-surface-subtle);
-  --md-color-overlay: rgb(15 23 42 / 0.62);
-  --md-color-skeleton-base: #e2e8f0;
-  --md-color-skeleton-highlight: #f8fafc;
+@layer tokens {
+  :root {
+    /* Brand + semantic colors */
+    --md-color-brand-primary: var(--primary, #3b82f6);
+    --md-color-brand-primary-strong: var(--primary-dark, #2563eb);
+    --md-color-accent: var(--accent, #10b981);
+    --md-color-accent-strong: var(--accent-dark, #059669);
+    --md-color-surface: #ffffff;
+    --md-color-surface-subtle: #f8fafc;
+    --md-color-text: #0f172a;
+    --md-color-text-muted: #475569;
+    --md-color-border: #cbd5e1;
+    --md-color-success: #15803d;
+    --md-color-warning: #a16207;
+    --md-color-danger: #b91c1c;
+    --md-color-info: #0369a1;
 
-  /* Typography */
-  --md-font-family-sans: var(
-    --font-sans,
-    "Poppins",
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    Roboto,
-    sans-serif
-  );
-  --md-font-size-xs: 0.75rem;
-  --md-font-size-sm: 0.875rem;
-  --md-font-size-md: 1rem;
-  --md-font-size-lg: 1.125rem;
-  --md-font-size-xl: 1.25rem;
-  --md-font-weight-regular: 400;
-  --md-font-weight-medium: 600;
-  --md-font-weight-bold: 700;
-  --md-line-height-tight: 1.25;
-  --md-line-height-body: 1.6;
+    /* Canonical semantic aliases consumed by V2 Tourist UI surfaces. */
+    --md-color-brand: var(--md-color-brand-primary);
+    --md-color-brand-strong: var(--md-color-brand-primary-strong);
+    --md-color-surface-canvas: var(--md-color-surface-subtle);
+    --md-color-surface-card: var(--md-color-surface);
+    --md-color-surface-glass: color-mix(
+      in srgb,
+      var(--md-color-surface-card) 88%,
+      transparent
+    );
+    --md-color-surface-elevated: var(--md-color-surface-card);
+    --md-color-text-primary: var(--md-color-text);
+    --md-color-text-secondary: var(--md-color-text-muted);
+    --md-color-text-inverse: #ffffff;
+    --md-color-interactive-primary: var(--md-color-brand);
+    --md-color-interactive-primary-hover: var(--md-color-brand-strong);
+    --md-color-interactive-secondary: var(--md-color-surface-card);
+    --md-color-interactive-secondary-hover: var(--md-color-surface-subtle);
+    --md-color-overlay: rgb(15 23 42 / 0.62);
+    --md-color-skeleton-base: #e2e8f0;
+    --md-color-skeleton-highlight: #f8fafc;
 
-  /* Spacing */
-  --md-space-0: 0;
-  --md-space-1: 0.25rem;
-  --md-space-2: 0.5rem;
-  --md-space-3: 0.75rem;
-  --md-space-4: 1rem;
-  --md-space-5: 1.25rem;
-  --md-space-6: 1.5rem;
-  --md-space-8: 2rem;
-  --md-space-10: 2.5rem;
-  --md-space-12: 3rem;
+    /* Typography */
+    --md-font-family-sans: var(
+      --font-sans,
+      "Poppins",
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      Roboto,
+      sans-serif
+    );
+    --md-font-size-xs: 0.75rem;
+    --md-font-size-sm: 0.875rem;
+    --md-font-size-md: 1rem;
+    --md-font-size-lg: 1.125rem;
+    --md-font-size-xl: 1.25rem;
+    --md-font-weight-regular: 400;
+    --md-font-weight-medium: 600;
+    --md-font-weight-bold: 700;
+    --md-line-height-tight: 1.25;
+    --md-line-height-body: 1.6;
 
-  /* Radius + elevation */
-  --md-radius-sm: 0.5rem;
-  --md-radius-md: 0.75rem;
-  --md-radius-lg: 1rem;
-  --md-radius-xl: 1.5rem;
-  --md-radius-pill: 999rem;
-  --md-elevation-1: 0 0.0625rem 0.1875rem rgba(15, 23, 42, 0.12);
-  --md-elevation-2: 0 0.5rem 1.5rem rgba(15, 23, 42, 0.14);
-  --md-elevation-3: 0 1.125rem 3rem rgba(15, 23, 42, 0.18);
+    /* Spacing */
+    --md-space-0: 0;
+    --md-space-1: 0.25rem;
+    --md-space-2: 0.5rem;
+    --md-space-3: 0.75rem;
+    --md-space-4: 1rem;
+    --md-space-5: 1.25rem;
+    --md-space-6: 1.5rem;
+    --md-space-8: 2rem;
+    --md-space-10: 2.5rem;
+    --md-space-12: 3rem;
 
-  /* Motion */
-  --md-motion-duration-fast: 120ms;
-  --md-motion-duration-normal: 200ms;
-  --md-motion-duration-slow: 320ms;
-  --md-motion-ease-standard: cubic-bezier(0.2, 0, 0, 1);
-  --md-motion-ease-emphasized: cubic-bezier(0.2, 0, 0, 1.2);
-  --md-motion-ease-decelerate: ease-out;
-  --md-motion-duration-map-marker: 300ms;
-  --md-motion-duration-pulse: 2s;
-  --md-motion-scale-pressed: 0.98;
-  --md-motion-scale-pressed-strong: 0.96;
+    /* Outdoor readability + bottom-sheet component tokens */
+    --md-outdoor-surface: rgb(255 255 255 / 0.96);
+    --md-outdoor-surface-strong: #ffffff;
+    --md-outdoor-text: #0f172a;
+    --md-outdoor-border: rgb(255 255 255 / 0.78);
+    --md-outdoor-shadow: 0 0.75rem 2rem rgb(15 23 42 / 0.18);
+    --md-sheet-peek-height: min(30dvh, 16rem);
+    --md-sheet-half-height: min(55dvh, 32rem);
+    --md-sheet-full-height: 90dvh;
 
-  /* Shared interactive state contract */
-  --md-state-disabled-opacity: 0.52;
-  --md-state-selected-outline-width: 0.125rem;
-  --md-state-selected-outline-offset: 0.125rem;
+    /* Radius + elevation */
+    --md-radius-sm: 0.5rem;
+    --md-radius-md: 0.75rem;
+    --md-radius-lg: 1rem;
+    --md-radius-xl: 1.5rem;
+    --md-radius-pill: 999rem;
+    --md-elevation-1: 0 0.0625rem 0.1875rem rgba(15, 23, 42, 0.12);
+    --md-elevation-2: 0 0.5rem 1.5rem rgba(15, 23, 42, 0.14);
+    --md-elevation-3: 0 1.125rem 3rem rgba(15, 23, 42, 0.18);
 
-  /*
-   * Breakpoint values are canonical documentation tokens. Native CSS custom
-   * properties cannot be interpolated into @media conditions.
-   */
-  --md-breakpoint-mobile: 30rem;
-  --md-breakpoint-tablet: 48rem;
-  --md-breakpoint-desktop: 64rem;
-  --md-breakpoint-wide: 80rem;
+    /* Motion */
+    --md-motion-duration-fast: 120ms;
+    --md-motion-duration-normal: 200ms;
+    --md-motion-duration-slow: 320ms;
+    --md-motion-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+    --md-motion-ease-emphasized: cubic-bezier(0.2, 0, 0, 1.2);
+    --md-motion-ease-decelerate: ease-out;
+    --md-motion-duration-map-marker: 300ms;
+    --md-motion-duration-pulse: 2s;
+    --md-motion-scale-pressed: 0.98;
+    --md-motion-scale-pressed-strong: 0.96;
 
-  /* Navigation presentation contract */
-  --md-navigation-banner-max-inline-size: 30rem;
-  --md-navigation-primary: var(--md-color-brand);
-  --md-navigation-primary-strong: var(--md-color-brand-strong);
-  --md-navigation-arrival: var(--md-color-success);
-  --md-navigation-surface: var(--md-color-surface-elevated);
-  --md-navigation-text: var(--md-color-text-primary);
-  --md-navigation-text-muted: var(--md-color-text-secondary);
-  --md-navigation-inverse: var(--md-color-text-inverse);
-  --md-navigation-progress: var(--md-color-info);
-  --md-navigation-danger: var(--md-color-danger);
-  --md-navigation-shadow: var(--md-elevation-3);
+    /* Shared interactive state contract */
+    --md-state-disabled-opacity: 0.52;
+    --md-state-selected-outline-width: 0.125rem;
+    --md-state-selected-outline-offset: 0.125rem;
 
-  /* Layer contract */
-  --md-layer-map: 0;
-  --md-layer-marker: 100;
-  --md-layer-map-control: 200;
-  --md-layer-dock: 300;
-  --md-layer-sheet: 400;
-  --md-layer-navigation: 500;
-  --md-layer-dialog: 600;
-  --md-layer-tour: 700;
-  --md-layer-toast: 800;
-  --md-layer-system: 900;
+    /*
+     * Breakpoint values are canonical documentation tokens. Native CSS custom
+     * properties cannot be interpolated into @media conditions.
+     */
+    --md-breakpoint-mobile: 30rem;
+    --md-breakpoint-tablet: 48rem;
+    --md-breakpoint-desktop: 64rem;
+    --md-breakpoint-wide: 80rem;
 
-  /*
-   * Runtime compatibility layers for Mapbox/legacy stacking contexts.
-   * These remain semantic tokens so migrated CSS never owns arbitrary values.
-   */
-  --md-layer-explore-marker: 1100;
-  --md-layer-explore-controls: 2050;
-  --md-layer-explore-submenu: 2150;
-  --md-layer-navigation-user: 9999;
+    /* Navigation presentation contract */
+    --md-navigation-banner-max-inline-size: 30rem;
+    --md-navigation-primary: var(--md-color-brand);
+    --md-navigation-primary-strong: var(--md-color-brand-strong);
+    --md-navigation-arrival: var(--md-color-success);
+    --md-navigation-surface: var(--md-color-surface-elevated);
+    --md-navigation-text: var(--md-color-text-primary);
+    --md-navigation-text-muted: var(--md-color-text-secondary);
+    --md-navigation-inverse: var(--md-color-text-inverse);
+    --md-navigation-progress: var(--md-color-info);
+    --md-navigation-danger: var(--md-color-danger);
+    --md-navigation-shadow: var(--md-elevation-3);
 
-  /* Compatibility aliases for existing V2 consumers. */
-  --md-z-base: var(--md-layer-map);
-  --md-z-map-content: var(--md-layer-marker);
-  --md-z-controls: var(--md-layer-map-control);
-  --md-z-popover: var(--md-layer-sheet);
-  --md-z-modal: var(--md-layer-dialog);
-  --md-z-toast: var(--md-layer-toast);
+    /* Layer contract */
+    --md-layer-map: 0;
+    --md-layer-marker: 100;
+    --md-layer-map-control: 200;
+    --md-layer-dock: 300;
+    --md-layer-sheet: 400;
+    --md-layer-navigation: 500;
+    --md-layer-dialog: 600;
+    --md-layer-tour: 700;
+    --md-layer-toast: 800;
+    --md-layer-system: 900;
 
-  /* Accessibility + safe areas */
-  --md-touch-target-min: 2.75rem;
-  --md-focus-ring-width: 0.1875rem;
-  --md-focus-ring-offset: 0.1875rem;
-  --md-focus-ring-color: #0c7bdc;
-  --md-safe-top: env(safe-area-inset-top, 0);
-  --md-safe-right: env(safe-area-inset-right, 0);
-  --md-safe-bottom: env(safe-area-inset-bottom, 0);
-  --md-safe-left: env(safe-area-inset-left, 0);
-}
+    /*
+     * Runtime compatibility layers for Mapbox/legacy stacking contexts.
+     * These remain semantic tokens so migrated CSS never owns arbitrary values.
+     */
+    --md-layer-explore-marker: 1100;
+    --md-layer-explore-controls: 2050;
+    --md-layer-explore-submenu: 2150;
+    --md-layer-navigation-user: 9999;
 
-[data-theme="light"] {
-  color-scheme: light;
-  --md-color-surface: #ffffff;
-  --md-color-surface-subtle: #f8fafc;
-  --md-color-text: #0f172a;
-  --md-color-text-muted: #475569;
-  --md-color-border: #cbd5e1;
-  --md-color-success: #15803d;
-  --md-color-warning: #a16207;
-  --md-color-danger: #b91c1c;
-  --md-color-info: #0369a1;
-  --md-focus-ring-color: #0c7bdc;
-  --md-color-overlay: rgb(15 23 42 / 0.62);
-  --md-color-skeleton-base: #e2e8f0;
-  --md-color-skeleton-highlight: #f8fafc;
-}
+    /* Compatibility aliases for existing V2 consumers. */
+    --md-z-base: var(--md-layer-map);
+    --md-z-map-content: var(--md-layer-marker);
+    --md-z-controls: var(--md-layer-map-control);
+    --md-z-popover: var(--md-layer-sheet);
+    --md-z-modal: var(--md-layer-dialog);
+    --md-z-toast: var(--md-layer-toast);
 
-[data-theme="dark"] {
-  color-scheme: dark;
-  --md-color-surface: #111827;
-  --md-color-surface-subtle: #0b1220;
-  --md-color-text: #f8fafc;
-  --md-color-text-muted: #cbd5e1;
-  --md-color-border: #475569;
-  --md-color-success: #4ade80;
-  --md-color-warning: #facc15;
-  --md-color-danger: #f87171;
-  --md-color-info: #38bdf8;
-  --md-focus-ring-color: #7dd3fc;
-  --md-color-overlay: rgb(2 6 23 / 0.76);
-  --md-color-skeleton-base: #334155;
-  --md-color-skeleton-highlight: #475569;
-}
+    /* Accessibility + safe areas */
+    --md-touch-target-min: 2.75rem;
+    --md-focus-ring-width: 0.1875rem;
+    --md-focus-ring-offset: 0.1875rem;
+    --md-focus-ring-color: #0c7bdc;
+    --md-safe-top: env(safe-area-inset-top, 0);
+    --md-safe-right: env(safe-area-inset-right, 0);
+    --md-safe-bottom: env(safe-area-inset-bottom, 0);
+    --md-safe-left: env(safe-area-inset-left, 0);
+  }
 
-[data-destination-theme="morro"] {
-  --md-color-brand: var(--md-color-brand-primary);
-  --md-color-brand-strong: var(--md-color-brand-primary-strong);
-  --md-color-accent: var(--accent, #10b981);
-}
+  [data-theme="light"] {
+    color-scheme: light;
+    --md-color-surface: #ffffff;
+    --md-color-surface-subtle: #f8fafc;
+    --md-color-text: #0f172a;
+    --md-color-text-muted: #475569;
+    --md-color-border: #cbd5e1;
+    --md-color-success: #15803d;
+    --md-color-warning: #a16207;
+    --md-color-danger: #b91c1c;
+    --md-color-info: #0369a1;
+    --md-focus-ring-color: #0c7bdc;
+    --md-color-overlay: rgb(15 23 42 / 0.62);
+    --md-color-skeleton-base: #e2e8f0;
+    --md-color-skeleton-highlight: #f8fafc;
+  }
 
-[data-theme="high-contrast"] {
-  color-scheme: light;
-  --md-color-surface: Canvas;
-  --md-color-surface-subtle: Canvas;
-  --md-color-text: CanvasText;
-  --md-color-text-muted: CanvasText;
-  --md-color-border: CanvasText;
-  --md-color-brand-primary: LinkText;
-  --md-color-brand-primary-strong: LinkText;
-  --md-color-accent: Highlight;
-  --md-color-accent-strong: Highlight;
-  --md-color-success: CanvasText;
-  --md-color-warning: CanvasText;
-  --md-color-danger: CanvasText;
-  --md-color-info: LinkText;
-  --md-focus-ring-color: Highlight;
-  --md-color-overlay: Canvas;
-  --md-color-skeleton-base: Canvas;
-  --md-color-skeleton-highlight: Highlight;
+  [data-theme="dark"] {
+    color-scheme: dark;
+    --md-color-surface: #111827;
+    --md-color-surface-subtle: #0b1220;
+    --md-color-text: #f8fafc;
+    --md-color-text-muted: #cbd5e1;
+    --md-color-border: #475569;
+    --md-color-success: #4ade80;
+    --md-color-warning: #facc15;
+    --md-color-danger: #f87171;
+    --md-color-info: #38bdf8;
+    --md-focus-ring-color: #7dd3fc;
+    --md-color-overlay: rgb(2 6 23 / 0.76);
+    --md-color-skeleton-base: #334155;
+    --md-color-skeleton-highlight: #475569;
+  }
+
+  [data-destination-theme="morro"] {
+    --md-color-brand: var(--md-color-brand-primary);
+    --md-color-brand-strong: var(--md-color-brand-primary-strong);
+    --md-color-accent: var(--accent, #10b981);
+  }
+
+  [data-theme="high-contrast"] {
+    color-scheme: light;
+    --md-color-surface: Canvas;
+    --md-color-surface-subtle: Canvas;
+    --md-color-text: CanvasText;
+    --md-color-text-muted: CanvasText;
+    --md-color-border: CanvasText;
+    --md-color-brand-primary: LinkText;
+    --md-color-brand-primary-strong: LinkText;
+    --md-color-accent: Highlight;
+    --md-color-accent-strong: Highlight;
+    --md-color-success: CanvasText;
+    --md-color-warning: CanvasText;
+    --md-color-danger: CanvasText;
+    --md-color-info: LinkText;
+    --md-focus-ring-color: Highlight;
+    --md-color-overlay: Canvas;
+    --md-color-skeleton-base: Canvas;
+    --md-color-skeleton-highlight: Highlight;
+  }
 }
 
 /* Global keyboard focus: use non-zero specificity so legacy :focus resets cannot win. */
