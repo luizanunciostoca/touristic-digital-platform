@@ -650,9 +650,6 @@ body[data-md-mode="assistant"] #weather-widget.md-weather-control {
     padding-inline: var(--md-space-2);
   }
 
-  #assistant-input-area.md-assistant-composer #configButton {
-    display: none;
-  }
 }
 
 @media (min-width: 48rem) {
