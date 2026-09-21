@@ -86,11 +86,11 @@ async function buildLegacyBundle() {
     }
     const content = normalizeNewlines(await readFile(absolutePath, "utf8"));
     if (/@import\s/iu.test(content)) {
-      throw new Error(`Nested @import is not allowed in legacy bundle source: ${source}`);
+      throw new Error(
+        `Nested @import is not allowed in legacy bundle source: ${source}`,
+      );
     }
-    sections.push(
-      `/* legacy-source: ${source} */\n${content.trimEnd()}\n`,
-    );
+    sections.push(`/* legacy-source: ${source} */\n${content.trimEnd()}\n`);
   }
 
   const indexInline = normalizeNewlines(
