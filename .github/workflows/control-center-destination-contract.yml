@@ -161,8 +161,9 @@ jobs:
               if (persisted.status() !== 200 || (await persisted.json()).data?.branding?.tagline !== 'Destino E2E atualizado') throw new Error('DESTINATION_EDIT_NOT_DURABLE');
               await page.reload();
               await page.locator('#app:not([hidden])').waitFor({ state: 'visible', timeout: 15000 });
-              await page.locator('[data-view="destinations"]').click();
-              await page.locator('input[name="tagline"]').waitFor();
+              await page.goto(origin + '/apps/control-center/public/index.html#destinations:e2e-destination');
+              await page.locator('#app:not([hidden])').waitFor({ state: 'visible', timeout: 15000 });
+              await page.locator('input[name="tagline"]').waitFor({ timeout: 15000 });
               if (await page.locator('input[name="tagline"]').inputValue() !== 'Destino E2E atualizado') throw new Error('DESTINATION_EDIT_NOT_RENDERED_AFTER_RELOAD');
 
               for (const viewport of [{width:768,height:1024},{width:390,height:844}]) {
