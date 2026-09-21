@@ -265,12 +265,13 @@ jobs:
                   'ver fotos',
                   'mais detalhes',
                   'adicionar aos favoritos',
+                  'compartilhar',
                   `commerce:offer:${placeOffer.id}`,
                 ];
                 if (
                   !placeActions ||
                   JSON.stringify(placeActions.values) !== JSON.stringify(expectedPlaceGrid) ||
-                  placeActions.primaryIndex !== 4 ||
+                  placeActions.primaryIndex !== 5 ||
                   placeActions.sheetState !== 'half' ||
                   !placeActions.primaryText?.includes('Comprar ingressos') ||
                   placeActions.primaryWidth < placeActions.containerWidth - 18 ||
