@@ -183,6 +183,12 @@ function userProjection(user) {
     canonicalRole: canonicalAuthRole(user.role),
     capabilities: capabilitiesForRole(user.role),
     businessIds: user.businessIds ?? [],
+    configuredRole: user.configuredRole ?? user.role,
+    configuredCanonicalRole:
+      user.configuredCanonicalRole ?? canonicalAuthRole(user.role),
+    status: user.status ?? "active",
+    policyUpdatedAt: user.policyUpdatedAt ?? null,
+    policyUpdatedBy: user.policyUpdatedBy ?? null,
   });
 }
 
@@ -273,6 +279,10 @@ export function createAdminApi({
     !authApi?.reauthenticate ||
     !authApi?.listConfiguredUsers ||
     !authApi?.findConfiguredUser ||
+    !authApi?.listAdminUsers ||
+    !authApi?.findAdminUser ||
+    !authApi?.updateUserStatus ||
+    !authApi?.updateUserRole ||
     !authApi?.listUserSessions ||
     !authApi?.revokeUserSession
   ) {
@@ -552,6 +562,192 @@ export function createAdminApi({
         expiresAt: payload.exp,
       },
     });
+  }
+
+  async function handleUserCriticalAction(request, response, requestUrl) {
+    const match =
+      /^\/api\/admin\/v1\/users\/([^/]+)\/(block|reactivate|role)$/u.exec(
+        requestUrl.pathname,
+      );
+    if (!match) return false;
+    if (request.method !== "POST") {
+      json(response, 405, { error: "METHOD_NOT_ALLOWED" });
+      return true;
+    }
+
+    let userId;
+    try {
+      userId = decodeURIComponent(match[1]);
+    } catch {
+      json(response, 400, { error: "INVALID_USER_ID" });
+      return true;
+    }
+    const operation = match[2];
+    const target = await authApi.findAdminUser(userId);
+    if (!target) {
+      json(response, 404, { error: "USER_NOT_FOUND" });
+      return true;
+    }
+
+    const actor = await requireCapability(request, response, "users.manage", {
+      mutation: true,
+    });
+    if (!actor) return true;
+
+    const requestSecurity = authApi.authorizeMutation(
+      request,
+      actor,
+      "control-center.users.manage",
+    );
+    if (!requestSecurity.allowed) {
+      await audit(request, actor, {
+        action: `users.${operation}`,
+        result: "denied",
+        reason: requestSecurity.reason,
+        effectiveUserId: userId,
+        entityType: "auth_principal",
+        entityId: userId,
+      });
+      json(response, 403, {
+        error:
+          requestSecurity.reason === "invalid_csrf"
+            ? "INVALID_CSRF"
+            : "ORIGIN_DENIED",
+      });
+      return true;
+    }
+
+    const support = supportContext(request, actor);
+    if (support) {
+      await audit(request, actor, {
+        action: `users.${operation}`,
+        result: "denied",
+        reason: "support_mode_critical_action_denied",
+        effectiveUserId: support.effectiveUser?.id ?? null,
+        entityType: "auth_principal",
+        entityId: userId,
+      });
+      json(response, 403, { error: "SUPPORT_MODE_CRITICAL_ACTION_DENIED" });
+      return true;
+    }
+
+    if (!stepUpContext(request, actor)) {
+      await audit(request, actor, {
+        action: `users.${operation}`,
+        result: "denied",
+        reason: "step_up_required",
+        entityType: "auth_principal",
+        entityId: userId,
+      });
+      json(response, 403, { error: "STEP_UP_REQUIRED" });
+      return true;
+    }
+
+    let body;
+    try {
+      body = await readJsonBody(request);
+    } catch {
+      json(response, 400, { error: "INVALID_REQUEST" });
+      return true;
+    }
+    const reason = safeReason(body?.reason);
+    if (!reason) {
+      json(response, 400, { error: "REASON_REQUIRED" });
+      return true;
+    }
+
+    const confirmation =
+      operation === "block"
+        ? "BLOQUEAR"
+        : operation === "reactivate"
+          ? "REATIVAR"
+          : "ALTERAR PERFIL";
+    if (body?.confirmation !== confirmation) {
+      await audit(request, actor, {
+        action: `users.${operation}`,
+        result: "denied",
+        reason: "text_confirmation_required",
+        entityType: "auth_principal",
+        entityId: userId,
+      });
+      json(response, 400, {
+        error: "TEXT_CONFIRMATION_REQUIRED",
+        expected: confirmation,
+      });
+      return true;
+    }
+
+    const attemptAudited = await audit(request, actor, {
+      action: `users.${operation}.attempt`,
+      result: "attempt",
+      effectiveUserId: userId,
+      entityType: "auth_principal",
+      entityId: userId,
+      reason,
+      previousState: userProjection(target),
+    });
+    if (!attemptAudited) {
+      json(response, 503, { error: "ADMIN_AUDIT_UNAVAILABLE" });
+      return true;
+    }
+
+    let result;
+    try {
+      result =
+        operation === "role"
+          ? await authApi.updateUserRole(userId, body?.role, actor.subject)
+          : await authApi.updateUserStatus(
+              userId,
+              operation === "block" ? "blocked" : "active",
+              actor.subject,
+            );
+    } catch (error) {
+      const code =
+        error instanceof Error ? error.message : "AUTH_ADMIN_POLICY_UNAVAILABLE";
+      const statusCode =
+        code === "AUTH_PRINCIPAL_ROLE_INVALID" ||
+        code === "AUTH_PRINCIPAL_STATUS_INVALID"
+          ? 400
+          : 409;
+      await audit(request, actor, {
+        action: `users.${operation}.complete`,
+        result: "failure",
+        effectiveUserId: userId,
+        entityType: "auth_principal",
+        entityId: userId,
+        reason: code,
+        previousState: userProjection(target),
+      });
+      json(response, statusCode, { error: code });
+      return true;
+    }
+
+    if (!result?.newState) {
+      json(response, 404, { error: "USER_NOT_FOUND" });
+      return true;
+    }
+
+    const completed = await audit(request, actor, {
+      action: `users.${operation}.complete`,
+      result: "success",
+      effectiveUserId: userId,
+      entityType: "auth_principal",
+      entityId: userId,
+      reason,
+      previousState: userProjection(result.previousState),
+      newState: userProjection(result.newState),
+    });
+    if (!completed) {
+      json(response, 503, { error: "ADMIN_AUDIT_UNAVAILABLE" });
+      return true;
+    }
+
+    json(response, 200, {
+      success: true,
+      user: userProjection(result.newState),
+      revokedSessions: result.revokedSessions,
+    });
+    return true;
   }
 
   async function handleUserSessions(request, response, requestUrl) {
@@ -1278,7 +1474,7 @@ export function createAdminApi({
           "platform.read",
         );
         if (!actor) return;
-        const users = authApi.listConfiguredUsers();
+        const users = await authApi.listAdminUsers();
         const businesses = businessesFromUsers(users);
         const health = platformOperations.healthSnapshot(
           request.morroCorrelationId,
@@ -1336,6 +1532,10 @@ export function createAdminApi({
         return;
       }
 
+      if (await handleUserCriticalAction(request, response, requestUrl)) {
+        return;
+      }
+
       if (await handleUserSessions(request, response, requestUrl)) {
         return;
       }
@@ -1348,14 +1548,14 @@ export function createAdminApi({
         if (!actor) return;
         if (pathname === `${adminPrefix}/users`) {
           json(response, 200, {
-            users: authApi.listConfiguredUsers().map(userProjection),
+            users: (await authApi.listAdminUsers()).map(userProjection),
           });
           return;
         }
         const id = decodeURIComponent(
           pathname.slice(`${adminPrefix}/users/`.length),
         );
-        const user = authApi.findConfiguredUser(id);
+        const user = await authApi.findAdminUser(id);
         if (!user) {
           json(response, 404, { error: "USER_NOT_FOUND" });
           return;
@@ -1372,7 +1572,7 @@ export function createAdminApi({
         );
         if (!actor) return;
         json(response, 200, {
-          businesses: businessesFromUsers(authApi.listConfiguredUsers()),
+          businesses: businessesFromUsers(await authApi.listAdminUsers()),
           source: "identity-membership",
           authority: "read-only-directory",
           mutationContract: domainAdapters.businesses
@@ -1395,7 +1595,7 @@ export function createAdminApi({
         ).toLowerCase();
         const results = [];
         if (query.length >= 2) {
-          const configuredUsers = authApi.listConfiguredUsers();
+          const configuredUsers = await authApi.listAdminUsers();
           for (const user of configuredUsers) {
             const searchable = [
               user.id,

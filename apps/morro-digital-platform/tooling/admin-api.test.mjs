@@ -49,6 +49,7 @@ const businessOwner = Object.freeze({
 
 function fixture(session = platformOwner, options = {}) {
   const events = [];
+  const adminState = new Map();
   const users = [
     {
       id: platformOwner.subject,
@@ -58,6 +59,20 @@ function fixture(session = platformOwner, options = {}) {
     },
     businessOwner,
   ];
+
+  function effectiveUser(user) {
+    const state = adminState.get(user.id) ?? {};
+    const role = state.role ?? user.role;
+    return {
+      ...user,
+      role,
+      configuredRole: user.role,
+      configuredCanonicalRole: user.role,
+      status: state.status ?? "active",
+      policyUpdatedAt: state.updatedAt ?? null,
+      policyUpdatedBy: state.updatedBy ?? null,
+    };
+  }
 
   const authApi = {
     async resolveSession() {
@@ -76,6 +91,45 @@ function fixture(session = platformOwner, options = {}) {
     },
     findConfiguredUser(id) {
       return users.find((user) => user.id === id) ?? null;
+    },
+    async listAdminUsers() {
+      return users.map(effectiveUser);
+    },
+    async findAdminUser(id) {
+      const user = users.find((candidate) => candidate.id === id);
+      return user ? effectiveUser(user) : null;
+    },
+    async updateUserStatus(id, status, actorSubject) {
+      const user = users.find((candidate) => candidate.id === id);
+      if (!user) return null;
+      const previousState = effectiveUser(user);
+      adminState.set(id, {
+        ...(adminState.get(id) ?? {}),
+        status,
+        updatedAt: 100,
+        updatedBy: actorSubject,
+      });
+      return {
+        previousState,
+        newState: effectiveUser(user),
+        revokedSessions: status === "blocked" ? 1 : 0,
+      };
+    },
+    async updateUserRole(id, role, actorSubject) {
+      const user = users.find((candidate) => candidate.id === id);
+      if (!user) return null;
+      const previousState = effectiveUser(user);
+      adminState.set(id, {
+        ...(adminState.get(id) ?? {}),
+        role,
+        updatedAt: 101,
+        updatedBy: actorSubject,
+      });
+      return {
+        previousState,
+        newState: effectiveUser(user),
+        revokedSessions: 1,
+      };
     },
     async listUserSessions(id) {
       if (id !== businessOwner.id) return [];
@@ -216,6 +270,100 @@ describe("Control Center Admin API", () => {
     expect(payload.users).toHaveLength(2);
     expect(JSON.stringify(payload)).not.toContain("password");
     expect(JSON.stringify(payload)).not.toContain("secret");
+  });
+
+  it("governs account block, reactivate and role changes behind step-up", async () => {
+    const { api } = fixture();
+    const path = "/api/admin/v1/users/business-owner/block";
+
+    const withoutStepUp = responseRecorder();
+    await api.handle(
+      request(path, {
+        method: "POST",
+        body: {
+          reason: "Conta comprometida em investigação administrativa",
+          confirmation: "BLOQUEAR",
+        },
+      }),
+      withoutStepUp,
+      new URL("http://localhost" + path),
+    );
+    expect(withoutStepUp.statusCode).toBe(403);
+    expect(JSON.parse(withoutStepUp.body).error).toBe("STEP_UP_REQUIRED");
+
+    const stepUp = responseRecorder();
+    await api.handle(
+      request("/api/admin/v1/step-up", {
+        method: "POST",
+        body: { password: "fixture-secret" },
+      }),
+      stepUp,
+      new URL("http://localhost/api/admin/v1/step-up"),
+    );
+    const cookie = String(stepUp.headers.get("set-cookie")).split(";", 1)[0];
+
+    const blocked = responseRecorder();
+    await api.handle(
+      request(path, {
+        method: "POST",
+        headers: { cookie },
+        body: {
+          reason: "Conta comprometida em investigação administrativa",
+          confirmation: "BLOQUEAR",
+        },
+      }),
+      blocked,
+      new URL("http://localhost" + path),
+    );
+    expect(blocked.statusCode).toBe(200);
+    expect(JSON.parse(blocked.body)).toMatchObject({
+      success: true,
+      user: { id: "business-owner", status: "blocked" },
+      revokedSessions: 1,
+    });
+
+    const reactivated = responseRecorder();
+    const reactivatePath =
+      "/api/admin/v1/users/business-owner/reactivate";
+    await api.handle(
+      request(reactivatePath, {
+        method: "POST",
+        headers: { cookie },
+        body: {
+          reason: "Investigação concluída e acesso liberado",
+          confirmation: "REATIVAR",
+        },
+      }),
+      reactivated,
+      new URL("http://localhost" + reactivatePath),
+    );
+    expect(reactivated.statusCode).toBe(200);
+    expect(JSON.parse(reactivated.body).user.status).toBe("active");
+
+    const roleChanged = responseRecorder();
+    const rolePath = "/api/admin/v1/users/business-owner/role";
+    await api.handle(
+      request(rolePath, {
+        method: "POST",
+        headers: { cookie },
+        body: {
+          role: "BUSINESS_MANAGER",
+          reason: "Ajuste de autoridade solicitado pela operação",
+          confirmation: "ALTERAR PERFIL",
+        },
+      }),
+      roleChanged,
+      new URL("http://localhost" + rolePath),
+    );
+    expect(roleChanged.statusCode).toBe(200);
+    expect(JSON.parse(roleChanged.body)).toMatchObject({
+      user: {
+        id: "business-owner",
+        role: "BUSINESS_MANAGER",
+        configuredRole: "BUSINESS_OWNER",
+      },
+      revokedSessions: 1,
+    });
   });
 
   it("fails closed when a domain admin contract is not registered", async () => {

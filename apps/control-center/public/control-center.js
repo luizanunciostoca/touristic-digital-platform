@@ -246,8 +246,9 @@ async function renderUsers(userId) {
         <thead>
           <tr>
             <th>Usuário</th>
-            <th>Papel canônico</th>
-            <th>Role runtime</th>
+            <th>Estado</th>
+            <th>Papel efetivo</th>
+            <th>Role configurado</th>
             <th>Empresas</th>
             <th>Capabilities</th>
           </tr>
@@ -262,8 +263,15 @@ async function renderUsers(userId) {
                       ? escapeHtml(user.email)
                       : `<a href="#users:${encodeURIComponent(user.id)}">${escapeHtml(user.email)}</a>`
                   }</strong><br><small>${escapeHtml(user.id)}</small></td>
-                  <td><span class="badge">${escapeHtml(user.canonicalRole)}</span></td>
-                  <td>${escapeHtml(user.role)}</td>
+                  <td>${statusBadge(user.status ?? "active")}</td>
+                  <td>
+                    <span class="badge">${escapeHtml(user.canonicalRole)}</span>
+                    <br><small>${escapeHtml(user.role)}</small>
+                  </td>
+                  <td>
+                    ${escapeHtml(user.configuredCanonicalRole ?? user.canonicalRole)}
+                    <br><small>${escapeHtml(user.configuredRole ?? user.role)}</small>
+                  </td>
                   <td>${
                     (user.businessIds ?? [])
                       .map(
@@ -290,6 +298,29 @@ async function renderUsers(userId) {
   );
   const now = Math.floor(Date.now() / 1000);
   const sessions = sessionData.sessions ?? [];
+  const selectedUser = users[0];
+  const canManageUsers = actorHasCapability("users.manage");
+  const supportActive = Boolean(state.adminSession?.support);
+  const bootstrapProtected =
+    selectedUser.configuredCanonicalRole === "PLATFORM_OWNER";
+  const selfTarget = state.adminSession?.actor?.id === selectedUser.id;
+  const criticalActionsDisabled =
+    !canManageUsers || supportActive || bootstrapProtected;
+  const roleOptions = [
+    "PLATFORM_OWNER",
+    "PLATFORM_ADMIN",
+    "SUPPORT",
+    "AUDITOR",
+    "BUSINESS_OWNER",
+    "BUSINESS_MANAGER",
+    "BUSINESS_VIEWER",
+    "AFFILIATE",
+  ]
+    .map(
+      (role) =>
+        `<option value="${role}" ${selectedUser.role === role ? "selected" : ""}>${role}</option>`,
+    )
+    .join("");
   const statusForSession = (session) => {
     if (session.revokedAt) return "revogada";
     if (session.expiresAt <= now) return "expirada";
@@ -298,6 +329,74 @@ async function renderUsers(userId) {
 
   content.innerHTML = `
     ${userTable}
+    <section class="card section-card" style="margin-top:16px">
+      <div class="section-title">
+        <div>
+          <h2>Estado e permissões</h2>
+          <small style="color:var(--muted)">
+            Autoridade efetiva persistida pelo Auth; credenciais permanecem fora desta superfície.
+          </small>
+        </div>
+        ${statusBadge(selectedUser.status ?? "active")}
+      </div>
+      <div class="callout">
+        ${bootstrapProtected
+          ? "Este PLATFORM_OWNER bootstrap é protegido contra bloqueio ou rebaixamento."
+          : supportActive
+            ? "Ações críticas de usuário ficam bloqueadas durante Support Mode."
+            : selfTarget
+              ? "Autoproteção ativa: o actor não pode bloquear ou alterar o próprio perfil."
+              : "Bloqueio e alteração de perfil revogam sessões ativas e exigem step-up, motivo e confirmação textual."}
+      </div>
+      <div class="grid two-col">
+        <form id="user-status-form" class="form-grid">
+          <div class="section-title"><h3>Estado da conta</h3></div>
+          <label>Sua senha
+            <input name="password" type="password" autocomplete="current-password"
+              ${criticalActionsDisabled ? "disabled" : ""} required />
+          </label>
+          <label>Motivo obrigatório
+            <textarea name="reason" minlength="8" maxlength="240"
+              ${criticalActionsDisabled ? "disabled" : ""} required></textarea>
+          </label>
+          <label>Confirmação textual
+            <input name="confirmation" autocomplete="off"
+              placeholder="${selectedUser.status === "blocked" ? "REATIVAR" : "BLOQUEAR"}"
+              ${criticalActionsDisabled ? "disabled" : ""} required />
+          </label>
+          <button class="primary-button" type="submit"
+            ${criticalActionsDisabled ? "disabled" : ""}>
+            ${selectedUser.status === "blocked" ? "Reativar conta" : "Bloquear conta"}
+          </button>
+          <p id="user-status-result" role="status" aria-live="polite"></p>
+        </form>
+
+        <form id="user-role-form" class="form-grid">
+          <div class="section-title"><h3>Perfil efetivo</h3></div>
+          <label>Novo perfil
+            <select name="role" ${criticalActionsDisabled || selfTarget ? "disabled" : ""} required>
+              ${roleOptions}
+            </select>
+          </label>
+          <label>Sua senha
+            <input name="password" type="password" autocomplete="current-password"
+              ${criticalActionsDisabled || selfTarget ? "disabled" : ""} required />
+          </label>
+          <label>Motivo obrigatório
+            <textarea name="reason" minlength="8" maxlength="240"
+              ${criticalActionsDisabled || selfTarget ? "disabled" : ""} required></textarea>
+          </label>
+          <label>Confirmação textual
+            <input name="confirmation" autocomplete="off" placeholder="ALTERAR PERFIL"
+              ${criticalActionsDisabled || selfTarget ? "disabled" : ""} required />
+          </label>
+          <button class="primary-button" type="submit"
+            ${criticalActionsDisabled || selfTarget ? "disabled" : ""}>Alterar perfil</button>
+          <p id="user-role-result" role="status" aria-live="polite"></p>
+        </form>
+      </div>
+    </section>
+
     <section class="card section-card" style="margin-top:16px">
       <div class="section-title">
         <div>
@@ -382,6 +481,87 @@ async function renderUsers(userId) {
         </table>
       </div>
     </section>`;
+
+  document
+    .querySelector("#user-status-form")
+    ?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const form = event.currentTarget;
+      const values = new FormData(form);
+      const result = form.querySelector("#user-status-result");
+      const operation =
+        selectedUser.status === "blocked" ? "reactivate" : "block";
+      const confirmation = operation === "block" ? "BLOQUEAR" : "REATIVAR";
+      if (String(values.get("confirmation") || "").trim() !== confirmation) {
+        result.textContent = `Digite ${confirmation} para confirmar.`;
+        return;
+      }
+      try {
+        result.textContent = "Reautenticando e aplicando política…";
+        await api("/step-up", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            password: String(values.get("password") || ""),
+          }),
+        });
+        await api(`/users/${encodeURIComponent(userId)}/${operation}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            reason: String(values.get("reason") || "").trim(),
+            confirmation,
+          }),
+        });
+        result.textContent =
+          operation === "block"
+            ? "Conta bloqueada e sessões ativas revogadas."
+            : "Conta reativada.";
+        await renderUsers(userId);
+      } catch (error) {
+        result.textContent =
+          error.body?.error ||
+          error.message ||
+          "Falha ao alterar estado da conta.";
+      }
+    });
+
+  document
+    .querySelector("#user-role-form")
+    ?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const form = event.currentTarget;
+      const values = new FormData(form);
+      const result = form.querySelector("#user-role-result");
+      if (String(values.get("confirmation") || "").trim() !== "ALTERAR PERFIL") {
+        result.textContent = "Digite ALTERAR PERFIL para confirmar.";
+        return;
+      }
+      try {
+        result.textContent = "Reautenticando e alterando perfil…";
+        await api("/step-up", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            password: String(values.get("password") || ""),
+          }),
+        });
+        await api(`/users/${encodeURIComponent(userId)}/role`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            role: String(values.get("role") || ""),
+            reason: String(values.get("reason") || "").trim(),
+            confirmation: "ALTERAR PERFIL",
+          }),
+        });
+        result.textContent = "Perfil alterado e sessões ativas revogadas.";
+        await renderUsers(userId);
+      } catch (error) {
+        result.textContent =
+          error.body?.error || error.message || "Falha ao alterar perfil.";
+      }
+    });
 
   content.querySelectorAll("[data-revoke-session]").forEach((button) =>
     button.addEventListener("click", async () => {

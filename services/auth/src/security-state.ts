@@ -52,6 +52,24 @@ export interface AuthSessionRevocationResult {
   readonly alreadyRevoked: boolean;
 }
 
+export type AuthPrincipalStatus = "active" | "blocked";
+
+export interface AuthPrincipalAdminState {
+  readonly subject: string;
+  readonly status: AuthPrincipalStatus;
+  readonly roleOverride: string | null;
+  readonly updatedAt: number;
+  readonly updatedBy: string;
+}
+
+export interface SetAuthPrincipalAdminStateInput {
+  readonly subject: string;
+  readonly status: AuthPrincipalStatus;
+  readonly roleOverride: string | null;
+  readonly updatedAt?: number;
+  readonly updatedBy: string;
+}
+
 export interface AuthSecurityState {
   readonly initialize: () => Promise<void>;
   readonly consumeLoginAttempt: (
@@ -73,6 +91,12 @@ export interface AuthSecurityState {
     handle: string,
     nowEpochSeconds?: number,
   ) => Promise<AuthSessionRevocationResult>;
+  readonly getPrincipalAdminState: (
+    subject: string,
+  ) => Promise<AuthPrincipalAdminState | null>;
+  readonly setPrincipalAdminState: (
+    input: SetAuthPrincipalAdminStateInput,
+  ) => Promise<AuthPrincipalAdminState>;
   readonly revoke: (session: RevocableAuthSession) => Promise<void>;
   readonly close: () => Promise<void>;
 }
@@ -92,6 +116,14 @@ interface SessionRegistryRow {
   readonly issued_at: string | number;
   readonly expires_at: string | number;
   readonly revoked_at: string | number | null;
+}
+
+interface PrincipalAdminStateRow {
+  readonly actor_subject: string;
+  readonly status: string;
+  readonly role_override: string | null;
+  readonly updated_at: string | number;
+  readonly updated_by: string;
 }
 
 export const authSecuritySchemaStatements = Object.freeze([
@@ -116,6 +148,14 @@ export const authSecuritySchemaStatements = Object.freeze([
     revoked_at BIGINT UNSIGNED NULL,
     INDEX idx_auth_session_registry_subject_issued (actor_subject, issued_at),
     INDEX idx_auth_session_registry_expires_at (expires_at)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+  `CREATE TABLE IF NOT EXISTS auth_principal_admin_state (
+    actor_subject VARCHAR(191) NOT NULL PRIMARY KEY,
+    status ENUM('active','blocked') NOT NULL,
+    role_override VARCHAR(64) NULL,
+    updated_at BIGINT UNSIGNED NOT NULL,
+    updated_by VARCHAR(191) NOT NULL,
+    INDEX idx_auth_principal_admin_state_status (status, updated_at)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
 ]);
 
@@ -165,6 +205,51 @@ function sessionRecord(
   });
 }
 
+function principalAdminState(
+  row: PrincipalAdminStateRow,
+): AuthPrincipalAdminState {
+  const status =
+    row.status === "active" || row.status === "blocked" ? row.status : null;
+  const roleOverride =
+    row.role_override === null
+      ? null
+      : /^[A-Z][A-Z0-9_]{1,63}$/u.test(row.role_override)
+        ? row.role_override
+        : null;
+  const updatedAt = Number(row.updated_at);
+  if (
+    !status ||
+    (row.role_override !== null && !roleOverride) ||
+    !Number.isSafeInteger(updatedAt) ||
+    updatedAt < 0
+  ) {
+    throw new Error("AUTH_PRINCIPAL_ADMIN_STATE_INVALID");
+  }
+  return Object.freeze({
+    subject: normalizedSubject(row.actor_subject),
+    status,
+    roleOverride,
+    updatedAt,
+    updatedBy: normalizedSubject(row.updated_by),
+  });
+}
+
+function normalizedPrincipalStatus(value: string): AuthPrincipalStatus {
+  if (value !== "active" && value !== "blocked") {
+    throw new Error("AUTH_PRINCIPAL_STATUS_INVALID");
+  }
+  return value;
+}
+
+function normalizedRoleOverride(value: string | null): string | null {
+  if (value === null) return null;
+  const role = value.trim();
+  if (!/^[A-Z][A-Z0-9_]{1,63}$/u.test(role)) {
+    throw new Error("AUTH_PRINCIPAL_ROLE_OVERRIDE_INVALID");
+  }
+  return role;
+}
+
 function positiveInteger(value: number, field: string): number {
   if (!Number.isSafeInteger(value) || value <= 0) {
     throw new Error(`${field} must be a positive safe integer.`);
@@ -206,6 +291,7 @@ export function createInMemoryAuthSecurityState(): AuthSecurityState {
     { windowStartedAt: number; attempts: number }
   >();
   const revoked = new Map<string, number>();
+  const principalStates = new Map<string, AuthPrincipalAdminState>();
   const sessions = new Map<
     string,
     {
@@ -321,6 +407,28 @@ export function createInMemoryAuthSecurityState(): AuthSecurityState {
     return Promise.resolve(Object.freeze({ found: true, alreadyRevoked }));
   }
 
+  function getPrincipalAdminState(
+    subjectInput: string,
+  ): Promise<AuthPrincipalAdminState | null> {
+    const subject = normalizedSubject(subjectInput);
+    return Promise.resolve(principalStates.get(subject) ?? null);
+  }
+
+  function setPrincipalAdminState(
+    input: SetAuthPrincipalAdminStateInput,
+  ): Promise<AuthPrincipalAdminState> {
+    const subject = normalizedSubject(input.subject);
+    const state = Object.freeze({
+      subject,
+      status: normalizedPrincipalStatus(input.status),
+      roleOverride: normalizedRoleOverride(input.roleOverride),
+      updatedAt: normalizedEpochSeconds(input.updatedAt),
+      updatedBy: normalizedSubject(input.updatedBy),
+    });
+    principalStates.set(subject, state);
+    return Promise.resolve(state);
+  }
+
   function revoke(session: RevocableAuthSession): Promise<void> {
     const now = normalizedEpochSeconds(undefined);
     const handle = hashedKey("session", session.sessionId);
@@ -338,6 +446,7 @@ export function createInMemoryAuthSecurityState(): AuthSecurityState {
   function close(): Promise<void> {
     attempts.clear();
     revoked.clear();
+    principalStates.clear();
     sessions.clear();
     return Promise.resolve();
   }
@@ -349,6 +458,8 @@ export function createInMemoryAuthSecurityState(): AuthSecurityState {
     registerSession,
     listSessions,
     revokeSessionHandle,
+    getPrincipalAdminState,
+    setPrincipalAdminState,
     revoke,
     close,
   });
@@ -574,6 +685,53 @@ export function createSqlAuthSecurityState(
     }
   }
 
+  async function getPrincipalAdminState(
+    subjectInput: string,
+  ): Promise<AuthPrincipalAdminState | null> {
+    await initialize();
+    const subject = normalizedSubject(subjectInput);
+    const [result] = await pool.execute(
+      `SELECT actor_subject, status, role_override, updated_at, updated_by
+         FROM auth_principal_admin_state
+        WHERE actor_subject = ?
+        LIMIT 1`,
+      [subject],
+    );
+    const row = rowsFromResult<PrincipalAdminStateRow>(result)[0];
+    return row ? principalAdminState(row) : null;
+  }
+
+  async function setPrincipalAdminState(
+    input: SetAuthPrincipalAdminStateInput,
+  ): Promise<AuthPrincipalAdminState> {
+    await initialize();
+    const state = Object.freeze({
+      subject: normalizedSubject(input.subject),
+      status: normalizedPrincipalStatus(input.status),
+      roleOverride: normalizedRoleOverride(input.roleOverride),
+      updatedAt: normalizedEpochSeconds(input.updatedAt),
+      updatedBy: normalizedSubject(input.updatedBy),
+    });
+    await pool.execute(
+      `INSERT INTO auth_principal_admin_state
+        (actor_subject, status, role_override, updated_at, updated_by)
+       VALUES (?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE
+         status = VALUES(status),
+         role_override = VALUES(role_override),
+         updated_at = VALUES(updated_at),
+         updated_by = VALUES(updated_by)`,
+      [
+        state.subject,
+        state.status,
+        state.roleOverride,
+        state.updatedAt,
+        state.updatedBy,
+      ],
+    );
+    return state;
+  }
+
   async function revoke(session: RevocableAuthSession): Promise<void> {
     await initialize();
     const now = normalizedEpochSeconds(undefined);
@@ -606,6 +764,8 @@ export function createSqlAuthSecurityState(
     registerSession,
     listSessions,
     revokeSessionHandle,
+    getPrincipalAdminState,
+    setPrincipalAdminState,
     revoke,
     close,
   });
