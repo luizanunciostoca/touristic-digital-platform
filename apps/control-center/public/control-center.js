@@ -1334,6 +1334,11 @@ async function renderReservations(reservationId) {
   const detail = data.data;
   const reservation = detail.reservation;
   const events = detail.events ?? [];
+  const supportActive = Boolean(state.adminSession?.support);
+  const canCancelHeld =
+    reservation.status === "held" &&
+    actorHasCapability("ticketing.manage") &&
+    !supportActive;
   content.innerHTML = `
     <div class="grid stats">
       <article class="card stat"><span class="stat-label">Status</span><strong class="stat-value" style="font-size:20px">${escapeHtml(reservation.status)}</strong><small>${escapeHtml(reservation.id)}</small></article>
@@ -1367,8 +1372,82 @@ async function renderReservations(reservationId) {
     </div>
     <div class="callout" style="margin-top:16px">
       Cancelamento de reserva confirmada não é uma mudança manual de status: exige o fluxo Financial/refund e a propagação owner já existente.
+      Reservas em <strong>held</strong> podem ser canceladas aqui somente pelo comando owner governado.
     </div>
+    ${
+      reservation.status === "held"
+        ? `<section class="card section-card" style="margin-top:16px">
+            <div class="section-title">
+              <h2>Cancelar hold</h2>
+              <span class="badge gap">step-up obrigatório</span>
+            </div>
+            <div class="callout">
+              ${
+                supportActive
+                  ? "Ação crítica bloqueada durante Support Mode."
+                  : "O owner Ticketing revalida o estado de forma transacional antes de liberar o hold."
+              }
+            </div>
+            <form id="reservation-cancel-form" class="form-grid">
+              <label>Sua senha
+                <input name="password" type="password" autocomplete="current-password"
+                  ${canCancelHeld ? "" : "disabled"} required />
+              </label>
+              <label>Motivo obrigatório
+                <textarea name="reason" minlength="8" maxlength="240"
+                  ${canCancelHeld ? "" : "disabled"} required></textarea>
+              </label>
+              <label>Confirmação textual
+                <input name="confirmation" autocomplete="off" placeholder="CANCELAR RESERVA"
+                  ${canCancelHeld ? "" : "disabled"} required />
+              </label>
+              <button class="primary-button" type="submit"
+                ${canCancelHeld ? "" : "disabled"}>Cancelar hold governado</button>
+              <p id="reservation-cancel-result" role="status" aria-live="polite"></p>
+            </form>
+          </section>`
+        : ""
+    }
     <div style="margin-top:16px"><a href="#reservations">← Voltar para Reservas</a></div>`;
+
+  document
+    .querySelector("#reservation-cancel-form")
+    ?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const form = event.currentTarget;
+      const values = new FormData(form);
+      const result = form.querySelector("#reservation-cancel-result");
+      if (
+        String(values.get("confirmation") || "").trim() !== "CANCELAR RESERVA"
+      ) {
+        result.textContent = "Digite CANCELAR RESERVA para confirmar.";
+        return;
+      }
+      try {
+        result.textContent = "Reautenticando…";
+        await api("/step-up", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            password: String(values.get("password") || ""),
+          }),
+        });
+        result.textContent = "Cancelando hold pelo owner Ticketing…";
+        await api(`/reservations/${encodeURIComponent(reservationId)}/cancel`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            reason: String(values.get("reason") || "").trim(),
+            confirmation: "CANCELAR RESERVA",
+          }),
+        });
+        result.textContent = "Hold cancelado com sucesso.";
+        await renderReservations(reservationId);
+      } catch (error) {
+        result.textContent =
+          error.body?.error || error.message || "Falha ao cancelar hold.";
+      }
+    });
 }
 
 async function renderTicketing() {
