@@ -330,7 +330,16 @@ export function createBusinessAdminAdapter(businessApi, authApi) {
 
   return Object.freeze({
     state: "available",
-    coverage: Object.freeze(["profile"]),
+    coverage: Object.freeze([
+      "profile",
+      ...(typeof businessApi.adminReadProfile === "function"
+        ? ["destination-owner-projection"]
+        : []),
+    ]),
+    async readDirectoryProfile(businessId) {
+      if (typeof businessApi.adminReadProfile !== "function") return null;
+      return businessApi.adminReadProfile(businessId);
+    },
     async handle({ request, response, requestUrl, effectiveUser }) {
       const match = pattern.exec(requestUrl.pathname);
       if (!match?.[1]) {
