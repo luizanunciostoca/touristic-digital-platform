@@ -1,6 +1,7 @@
 export const crmM71SchemaSql = `
 CREATE TABLE IF NOT EXISTS crm_leads (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  destination_id VARCHAR(120) NULL,
   company_name VARCHAR(160) NOT NULL,
   segment VARCHAR(120) NULL,
   contact_name VARCHAR(160) NULL,
@@ -22,6 +23,7 @@ CREATE TABLE IF NOT EXISTS crm_leads (
   converted_at TIMESTAMP(3) NULL,
   PRIMARY KEY (id),
   INDEX crm_leads_stage_status_idx (stage, status),
+  INDEX crm_leads_destination_updated_idx (destination_id, updated_at),
   INDEX crm_leads_assigned_subject_idx (assigned_to_subject)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -171,4 +173,11 @@ CREATE TABLE IF NOT EXISTS crm_audit_events (
   INDEX crm_audit_actor_created_idx (actor_subject, created_at),
   INDEX crm_audit_lead_created_idx (lead_id, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+`;
+
+
+export const crmM156DestinationScopeSchemaSql = `
+ALTER TABLE crm_leads
+  ADD COLUMN destination_id VARCHAR(120) NULL AFTER id,
+  ADD INDEX crm_leads_destination_updated_idx (destination_id, updated_at)
 `;
