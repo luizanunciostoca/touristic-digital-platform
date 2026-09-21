@@ -93,6 +93,7 @@ describe("Chat 6 CSS modernization + Premium UX foundations", () => {
       navigationActive: false,
       immersiveTourActive: false,
       placeActive: false,
+      searchActive: false,
       commerceActive: false,
       assistantActive: false,
     } as const;
@@ -103,6 +104,9 @@ describe("Chat 6 CSS modernization + Premium UX foundations", () => {
     );
     expect(resolveMorroUxMode({ ...baseline, commerceActive: true })).toBe(
       "commerce",
+    );
+    expect(resolveMorroUxMode({ ...baseline, searchActive: true })).toBe(
+      "search",
     );
     expect(resolveMorroUxMode({ ...baseline, placeActive: true })).toBe(
       "place",
@@ -145,6 +149,10 @@ describe("Chat 6 CSS modernization + Premium UX foundations", () => {
     view.body.classList.add("assistant-modal-open");
     view.flush();
     expect(presenter.mode).toBe("assistant");
+
+    view.map.dataset.exploreStage = "places";
+    view.flush();
+    expect(presenter.mode).toBe("search");
 
     view.map.dataset.exploreStage = "detail";
     view.flush();
@@ -297,6 +305,8 @@ describe("Chat 6 CSS modernization + Premium UX foundations", () => {
     expect(entry).toContain("installPremiumUxModePresenter");
     expect(presenter).toContain('body.classList.contains("navigation-active")');
     expect(presenter).toContain('map?.dataset.exploreStage === "detail"');
+    expect(presenter).toContain('map?.dataset.exploreStage === "filters"');
+    expect(presenter).toContain('map?.dataset.exploreStage === "places"');
     expect(presenter).toContain("hasActiveImmersiveTour(map)");
     expect(presenter).toContain("IMMERSIVE_TOUR_FLOW_STAGES");
     expect(presenter).toContain("flowTourId");
