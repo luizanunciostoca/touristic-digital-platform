@@ -21,8 +21,10 @@ const governedCss = [
 ] as const;
 
 function nonHairlinePixels(css: string): readonly string[] {
-  return Array.from(css.matchAll(/-?(?:\d*\.)?\d+px\b/gu), (match) => match[0])
-    .filter((value) => value !== "1px" && value !== "-1px");
+  return Array.from(
+    css.matchAll(/-?(?:\d*\.)?\d+px\b/gu),
+    (match) => match[0],
+  ).filter((value) => value !== "1px" && value !== "-1px");
 }
 
 describe("UX Design V2 pixel-unit debt contract", () => {
