@@ -155,9 +155,15 @@ if (!globalThis[INSTALLATION_KEY]) {
     scheduleRestore();
   });
 
+  function isAssistantInputFocused() {
+    const input = assistantInput();
+    return Boolean(input && document.activeElement === input);
+  }
+
   if (window.visualViewport) {
     window.visualViewport.addEventListener("resize", () => {
       const keyboardOpen =
+        isAssistantInputFocused() &&
         window.visualViewport.height < window.innerHeight * 0.75;
       setKeyboardVisible(keyboardOpen);
       if (!keyboardOpen) scheduleRestore();
@@ -166,11 +172,17 @@ if (!globalThis[INSTALLATION_KEY]) {
 
   window.addEventListener("resize", () => {
     const currentHeight = window.innerHeight;
-    if (currentHeight < baselineInnerHeight * 0.75) {
+    if (
+      isAssistantInputFocused() &&
+      currentHeight < baselineInnerHeight * 0.75
+    ) {
       setKeyboardVisible(true);
       return;
     }
-    if (currentHeight >= baselineInnerHeight * 0.9) {
+    if (
+      !isAssistantInputFocused() ||
+      currentHeight >= baselineInnerHeight * 0.9
+    ) {
       setKeyboardVisible(false);
       scheduleRestore();
       baselineInnerHeight = Math.max(baselineInnerHeight, currentHeight);

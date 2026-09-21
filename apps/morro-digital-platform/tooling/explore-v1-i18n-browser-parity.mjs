@@ -347,11 +347,9 @@ try {
     .locator('body[data-public-onboarding-settled="true"]')
     .waitFor({ state: "attached", timeout: 5000 });
   const assistant = page.locator("#assistant-messages");
-  const quickAction = page.locator(
-    '.mood-button[data-assistant-shell-ready="true"]',
-  );
-  await quickAction.waitFor({ state: "visible", timeout: 5000 });
-  if (!(await assistant.isVisible())) await quickAction.click();
+  const input = page.locator("#assistantInput");
+  await input.waitFor({ state: "visible", timeout: 5000 });
+  if (!(await assistant.isVisible())) await input.focus();
   await assistant.waitFor({ state: "visible", timeout: 5000 });
 
   await waitCategory(page, "beaches", "Praias", "Praias, 8 locais");
@@ -393,7 +391,9 @@ try {
     )
     .click();
   await page
-    .locator('.assistant-option-btn[data-value="condições da praia"]')
+    .locator(
+      '#place-bottom-sheet .place-bottom-sheet-action[data-value="condições da praia"]',
+    )
     .waitFor({ state: "visible" });
   let dynamic = await readDynamic(page);
   equal(dynamic.labels, beachDetailHebrew, "he beach detail labels");
@@ -404,7 +404,9 @@ try {
   await setLanguage(page, "he");
   await waitExploreSelectedStatus(page, "Primeira Praia נבחר.");
   await page
-    .locator('.assistant-option-btn[data-value="[sub]beaches"]')
+    .locator(
+      '#place-bottom-sheet .place-bottom-sheet-action[data-value="[sub]beaches"]',
+    )
     .click();
   await page
     .locator('#assistant-category-results[data-stage="places"]')
@@ -435,7 +437,9 @@ try {
     .locator('#assistant-category-results [data-location-name="Morena Bela"]')
     .click();
   await page
-    .locator('.assistant-option-btn[data-value="cardápio"]')
+    .locator(
+      '#place-bottom-sheet .place-bottom-sheet-action[data-value="cardápio"]',
+    )
     .waitFor({ state: "visible" });
   dynamic = await readDynamic(page);
   equal(
@@ -444,8 +448,9 @@ try {
     "en restaurant primary labels",
   );
   await page
-    .locator('.assistant-option-btn[data-value="mais opções"]')
-    .last()
+    .locator(
+      '#place-bottom-sheet .place-bottom-sheet-action[data-value="mais opções"]',
+    )
     .click();
   await page
     .locator('.assistant-option-btn[data-value="avaliações"]')

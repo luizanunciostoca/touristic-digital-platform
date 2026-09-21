@@ -5,6 +5,13 @@ import {
   type AssistantUiStateDetail,
 } from "./assistant-ui-state.js";
 
+export const ASSISTANT_OPEN_REQUEST_EVENT = "morro:assistant-open-request";
+
+export function requestAssistantOpen(document: Document): void {
+  const EventConstructor = document.defaultView?.Event ?? globalThis.Event;
+  document.dispatchEvent(new EventConstructor(ASSISTANT_OPEN_REQUEST_EVENT));
+}
+
 interface AssistantTutorialWindow extends Window {
   readonly __tourActive?: boolean;
 }
@@ -28,17 +35,6 @@ function isTutorialActive(document: Document): boolean {
   return Boolean(
     view?.__tourActive || document.body.classList.contains("tour-active"),
   );
-}
-
-function setQuickActionState(
-  button: HTMLButtonElement | null,
-  visible: boolean,
-): void {
-  if (!button) return;
-  button.classList.toggle("active", visible);
-  button.setAttribute("aria-expanded", String(visible));
-  button.setAttribute("aria-controls", "assistant-messages");
-  button.setAttribute("aria-haspopup", "dialog");
 }
 
 function hideAssociatedAssistantContent(document: Document): void {
@@ -108,9 +104,7 @@ export function installAssistantShellUi(
   options: AssistantShellUiOptions,
 ): AssistantShellUi {
   const assistant = options.document.getElementById("assistant-messages");
-  const quickAction = options.document.querySelector<HTMLButtonElement>(
-    ".quick-actions .action-button.primary",
-  );
+  const composer = options.document.getElementById("assistant-input-area");
   const minimizeButton =
     assistant?.querySelector<HTMLButtonElement>(".minimize-button") ?? null;
   const input = options.document.getElementById("assistantInput");
@@ -118,6 +112,13 @@ export function installAssistantShellUi(
   const focusDelayMs = options.focusDelayMs ?? 100;
   let destroyed = false;
   let previousFocus: Element | null = null;
+  let pendingFocusTimer: number | undefined;
+
+  const cancelPendingFocus = (): void => {
+    if (pendingFocusTimer === undefined) return;
+    options.document.defaultView?.clearTimeout(pendingFocusTimer);
+    pendingFocusTimer = undefined;
+  };
 
   const isVisible = (): boolean =>
     Boolean(assistant && !assistant.classList.contains("hidden"));
@@ -139,28 +140,45 @@ export function installAssistantShellUi(
     const candidate =
       previousFocus && !assistant?.contains(previousFocus)
         ? previousFocus
-        : quickAction;
+        : input;
     previousFocus = null;
-    if (!focusElement(candidate)) focusElement(quickAction);
+    if (!focusElement(candidate)) focusElement(input);
   };
 
   const show = (): boolean => {
     if (destroyed || !assistant) return false;
-    if (!isVisible()) {
-      previousFocus = options.document.activeElement;
+    const activeElement = options.document.activeElement;
+    const openedFromComposer = Boolean(
+      composer && activeElement && composer.contains(activeElement),
+    );
+    const wasVisible = isVisible();
+    if (!wasVisible) {
+      previousFocus = activeElement;
     }
     assistant.classList.remove("hidden");
     assistant.setAttribute("aria-hidden", "false");
     options.document.body.classList.add("assistant-modal-open");
-    setQuickActionState(quickAction, true);
-    options.document.defaultView?.setTimeout(() => {
-      if (!destroyed && isVisible()) focusElement(input);
-    }, focusDelayMs);
+    input?.setAttribute("aria-expanded", "true");
+    if (!wasVisible && !openedFromComposer) {
+      cancelPendingFocus();
+      const focusOrigin = activeElement;
+      pendingFocusTimer = options.document.defaultView?.setTimeout(() => {
+        pendingFocusTimer = undefined;
+        if (
+          !destroyed &&
+          isVisible() &&
+          options.document.activeElement === focusOrigin
+        ) {
+          focusElement(input);
+        }
+      }, focusDelayMs);
+    }
     return true;
   };
 
   const hide = (): boolean => {
     if (destroyed || !assistant) return false;
+    cancelPendingFocus();
     if (isTutorialActive(options.document)) {
       show();
       return false;
@@ -173,7 +191,7 @@ export function installAssistantShellUi(
       "assistant-messages",
       "assistant-active",
     );
-    setQuickActionState(quickAction, false);
+    input?.setAttribute("aria-expanded", "false");
     setState("idle");
     hideAssociatedAssistantContent(options.document);
     restoreFocus();
@@ -189,8 +207,12 @@ export function installAssistantShellUi(
     return isVisible() ? (hide(), false) : (show(), true);
   };
 
-  const onQuickActionClick = (): void => {
-    toggle();
+  const onComposerFocusIn = (): void => {
+    cancelPendingFocus();
+    if (!isVisible()) show();
+  };
+  const onAssistantOpenRequest = (): void => {
+    show();
   };
   const onMinimizeClick = (): void => {
     hide();
@@ -221,11 +243,16 @@ export function installAssistantShellUi(
 
   const initiallyVisible = isVisible();
   assistant?.setAttribute("aria-hidden", String(!initiallyVisible));
-  setQuickActionState(quickAction, initiallyVisible);
+  input?.setAttribute("aria-controls", "assistant-messages");
+  input?.setAttribute("aria-expanded", String(initiallyVisible));
+  composer?.setAttribute("data-assistant-shell-ready", "true");
   setState("idle");
-  quickAction?.addEventListener("click", onQuickActionClick);
-  quickAction?.setAttribute("data-assistant-shell-ready", "true");
+  composer?.addEventListener("focusin", onComposerFocusIn);
   minimizeButton?.addEventListener("click", onMinimizeClick);
+  options.document.addEventListener(
+    ASSISTANT_OPEN_REQUEST_EVENT,
+    onAssistantOpenRequest,
+  );
   options.document.addEventListener("keydown", onKeyDown);
   options.document.addEventListener(
     "morro:explore-state-changed",
@@ -245,9 +272,14 @@ export function installAssistantShellUi(
     destroy(): void {
       if (destroyed) return;
       destroyed = true;
-      quickAction?.removeEventListener("click", onQuickActionClick);
-      quickAction?.removeAttribute("data-assistant-shell-ready");
+      cancelPendingFocus();
+      composer?.removeEventListener("focusin", onComposerFocusIn);
+      composer?.removeAttribute("data-assistant-shell-ready");
       minimizeButton?.removeEventListener("click", onMinimizeClick);
+      options.document.removeEventListener(
+        ASSISTANT_OPEN_REQUEST_EVENT,
+        onAssistantOpenRequest,
+      );
       options.document.removeEventListener("keydown", onKeyDown);
       options.document.removeEventListener(
         "morro:explore-state-changed",

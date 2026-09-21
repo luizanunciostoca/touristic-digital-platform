@@ -3,6 +3,7 @@ import {
   normalizeAssistantVoiceLanguage,
   type AssistantLocale,
 } from "@touristic/assistant";
+import { requestAssistantOpen } from "../assistant/assistant-shell-ui.js";
 import type {
   GeospatialEngine,
   MapboxGlMapLike,
@@ -20,7 +21,15 @@ import {
 } from "./immersive-tour-v1-controller.js";
 import { getV1ExplorePlaceActionOptions } from "./explore-location-actions-v1.js";
 import { getV1ExploreLabel, getV1ExploreUiCopy } from "./explore-v1-i18n.js";
+import {
+  installExploreFlowBottomSheet,
+  type ExploreFlowBottomSheetController,
+} from "./explore-flow-bottom-sheet.js";
 import { resolvePlacePrimaryAction } from "./place-commerce-capability.js";
+import {
+  installPlaceBottomSheet,
+  type PlaceBottomSheetController,
+} from "./place-bottom-sheet.js";
 import {
   filterV1ExploreLocations,
   getV1ExploreSubcategoryOptions,
@@ -214,7 +223,7 @@ function removeAssistantFlowResults(document: Document): void {
 function ensureAssistantVisible(document: Document): void {
   const assistant = document.getElementById("assistant-messages");
   if (!assistant?.classList.contains("hidden")) return;
-  document.querySelector<HTMLButtonElement>(".mood-button")?.click();
+  requestAssistantOpen(document);
 }
 
 function categoryBounds(
@@ -342,6 +351,12 @@ export function installExploreLocationsControl({
   let mainMenuContainer: HTMLElement | undefined;
   let interactionGeneration = 0;
   let immersiveTourController: V1ImmersiveTourController | undefined;
+  let exploreFlowBottomSheet: ExploreFlowBottomSheetController | undefined;
+  let placeBottomSheet: PlaceBottomSheetController | undefined;
+  let placeReturnLocations: readonly MorroV1SearchCatalogItem[] = Object.freeze(
+    [],
+  );
+  let placeReturnMessage = "";
   const categoryListeners = new Map<HTMLButtonElement, EventListener>();
   const currentLocale = (): AssistantLocale =>
     normalizeAssistantVoiceLanguage(document.documentElement.lang);
@@ -563,8 +578,41 @@ export function installExploreLocationsControl({
 
     area.appendChild(container);
     area.scrollTop = area.scrollHeight;
+
+    if (
+      exploreFlowBottomSheet &&
+      (activeStage === "filters" ||
+        activeStage === "places" ||
+        activeStage === "tour")
+    ) {
+      const kind = activeStage === "tour" ? "tour" : "explore";
+      exploreFlowBottomSheet.show({
+        kind,
+        accessibleLabel: text,
+        source: container,
+        messageSource: message,
+        ...(content ? { content } : {}),
+        onDismiss() {
+          if (activeStage === "tour") {
+            const exitOption = options.find(
+              (option) =>
+                option.value === "__tour_exit__" ||
+                option.value === "__tour_cancel__",
+            );
+            if (exitOption) {
+              onSelect(exitOption);
+              return;
+            }
+          }
+          backToMenu();
+        },
+      });
+    }
+
     return container.querySelector<HTMLButtonElement>(".assistant-flow-option");
   };
+
+  exploreFlowBottomSheet = installExploreFlowBottomSheet({ document });
 
   const resetCategoryTriggerState = (): void => {
     if (!activeCategoryButton) return;
@@ -583,12 +631,16 @@ export function installExploreLocationsControl({
       }
     }
     removeAssistantFlowResults(document);
+    exploreFlowBottomSheet?.hide();
+    placeBottomSheet?.hide();
     resetCategoryTriggerState();
     activeCategory = undefined;
     activeCategoryButton = undefined;
     activePlace = undefined;
     activeStage = "menu";
     visibleLocations = Object.freeze([]);
+    placeReturnLocations = Object.freeze([]);
+    placeReturnMessage = "";
     clearExploreRuntimeStatus();
     showMainMenu();
     updateMapState(
@@ -611,6 +663,7 @@ export function installExploreLocationsControl({
     activePlace = location.name;
     activeStage = "detail";
     removeAssistantFlowResults(document);
+    exploreFlowBottomSheet?.hide();
 
     const browserFetch = document.defaultView?.fetch?.bind(
       document.defaultView,
@@ -634,13 +687,22 @@ export function installExploreLocationsControl({
     emitStateChange();
     ensureAssistantVisible(document);
 
-    const gridActions = getV1ExplorePlaceActionOptions(category, locale).map(
-      ({ label, value }) => Object.freeze({ label, value }),
+    const placeActions = getV1ExplorePlaceActionOptions(category, locale);
+    const gridActions = placeActions.map(({ label, value }) =>
+      Object.freeze({ label, value }),
     );
     const optionsOverride = Object.freeze([
       ...gridActions,
       ...(primaryAction ? [primaryAction] : []),
     ]);
+
+    placeBottomSheet?.show({
+      location,
+      categoryLabel: activeCategory.label,
+      locale,
+      actions: placeActions,
+      primaryAction,
+    });
 
     document.dispatchEvent(
       new CustomEvent("morro:assistant-option-selected", {
@@ -657,6 +719,9 @@ export function installExploreLocationsControl({
     message: string,
   ): void => {
     if (!activeCategory) return;
+    placeBottomSheet?.hide();
+    placeReturnLocations = Object.freeze([...locations]);
+    placeReturnMessage = message;
     activePlace = undefined;
     activeStage = "places";
     clearExploreRuntimeStatus();
@@ -692,7 +757,36 @@ export function installExploreLocationsControl({
     void renderLocationsOnMap(locations, activeCategory.value);
   };
 
+  const returnFromPlaceDetail = (): void => {
+    if (!activeCategory) {
+      placeBottomSheet?.hide();
+      return;
+    }
+    const locations =
+      placeReturnLocations.length > 0
+        ? placeReturnLocations
+        : getExploreLocationsForCategory(activeCategory.value);
+    const message =
+      placeReturnMessage ||
+      getV1ExploreUiCopy(currentLocale()).chooseOther(activeCategory.label);
+    renderPlaces(locations, message);
+  };
+
+  placeBottomSheet = installPlaceBottomSheet({
+    document,
+    onAction(value) {
+      document.dispatchEvent(
+        new CustomEvent("morro:assistant-option-selected", {
+          detail: { value },
+        }),
+      );
+    },
+    onDismiss: returnFromPlaceDetail,
+  });
+
   const startImmersiveTour = (tourId: string): void => {
+    exploreFlowBottomSheet?.hide();
+    placeBottomSheet?.hide();
     activePlace = undefined;
     activeStage = "tour";
     clearExploreRuntimeStatus();
@@ -789,6 +883,7 @@ export function installExploreLocationsControl({
 
   function renderFilters(): void {
     if (!activeCategory) return;
+    placeBottomSheet?.hide();
     activePlace = undefined;
     activeStage = "filters";
     clearExploreRuntimeStatus();
@@ -857,6 +952,8 @@ export function installExploreLocationsControl({
     if (activeStage === "tour") immersiveTourController?.destroy();
     clearTourPresentation(document);
     removeAssistantFlowResults(document);
+    exploreFlowBottomSheet?.hide();
+    placeBottomSheet?.hide();
     resetCategoryTriggerState();
     activeCategory = undefined;
     activeCategoryButton = undefined;
@@ -1199,6 +1296,13 @@ export function installExploreLocationsControl({
         refreshCategoryPresentation();
         if (exploreRuntimeStatusDescriptor) renderExploreRuntimeStatus();
         if (activeStage === "filters" && activeCategory) renderFilters();
+        if (activeStage === "detail" && activeCategory && activePlace) {
+          const location = resolveExploreLocationByName(
+            activePlace,
+            activeCategory.value,
+          );
+          if (location) void selectLocation(location);
+        }
         if (activeStage === "tour") immersiveTourController?.refreshLocale();
       })
     : null;
@@ -1209,6 +1313,12 @@ export function installExploreLocationsControl({
 
   const onKeyDown = (event: KeyboardEvent): void => {
     if (event.key !== "Escape" || activeStage === "menu") return;
+    if (activeStage === "detail") {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      returnFromPlaceDetail();
+      return;
+    }
     if (!document.getElementById(ASSISTANT_FLOW_RESULTS_ID)) return;
     event.preventDefault();
     event.stopImmediatePropagation();
@@ -1229,10 +1339,14 @@ export function installExploreLocationsControl({
     ) {
       event.stopImmediatePropagation();
       interactionGeneration += 1;
-      const allLocations = getExploreLocationsForCategory(activeCategory.value);
+      const locations =
+        placeReturnLocations.length > 0
+          ? placeReturnLocations
+          : getExploreLocationsForCategory(activeCategory.value);
       renderPlaces(
-        allLocations,
-        getV1ExploreUiCopy(currentLocale()).chooseOther(activeCategory.label),
+        locations,
+        placeReturnMessage ||
+          getV1ExploreUiCopy(currentLocale()).chooseOther(activeCategory.label),
       );
       return;
     }
@@ -1297,6 +1411,12 @@ export function installExploreLocationsControl({
       );
       immersiveTourController?.destroy();
       immersiveTourController = undefined;
+      exploreFlowBottomSheet?.destroy();
+      exploreFlowBottomSheet = undefined;
+      placeBottomSheet?.destroy();
+      placeBottomSheet = undefined;
+      placeReturnLocations = Object.freeze([]);
+      placeReturnMessage = "";
       for (const [button, listener] of categoryListeners) {
         button.removeEventListener("click", listener);
         button.removeAttribute("data-explore-category");

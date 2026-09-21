@@ -77,12 +77,7 @@ const COPY: Readonly<Record<PublicOnboardingLocale, PublicOnboardingCopy>> =
               "O clima acompanha a sua exploração para ajudar a planejar praias, passeios e deslocamentos.",
             hint: "Toque no clima para consultar os detalhes.",
           }),
-          Object.freeze({
-            title: "Seu assistente está sempre por perto",
-            description:
-              "Este botão abre o guia virtual do Morro Digital sempre que você precisar de ajuda.",
-            hint: "Use o assistente para descobrir o que fazer agora.",
-          }),
+
           Object.freeze({
             title: "Bem-vindo ao seu guia virtual",
             description:
@@ -140,12 +135,7 @@ const COPY: Readonly<Record<PublicOnboardingLocale, PublicOnboardingCopy>> =
               "Weather follows your exploration to help you plan beaches, tours and getting around.",
             hint: "Tap the weather to see the details.",
           }),
-          Object.freeze({
-            title: "Your assistant is always nearby",
-            description:
-              "This button opens the Morro Digital virtual guide whenever you need help.",
-            hint: "Use the assistant to discover what to do now.",
-          }),
+
           Object.freeze({
             title: "Welcome to your virtual guide",
             description:
@@ -203,12 +193,7 @@ const COPY: Readonly<Record<PublicOnboardingLocale, PublicOnboardingCopy>> =
               "El clima acompaña tu exploración para ayudarte a planear playas, paseos y desplazamientos.",
             hint: "Toca el clima para consultar los detalles.",
           }),
-          Object.freeze({
-            title: "Tu asistente siempre está cerca",
-            description:
-              "Este botón abre la guía virtual de Morro Digital siempre que necesites ayuda.",
-            hint: "Usa el asistente para descubrir qué hacer ahora.",
-          }),
+
           Object.freeze({
             title: "Bienvenido a tu guía virtual",
             description:
@@ -267,12 +252,7 @@ const COPY: Readonly<Record<PublicOnboardingLocale, PublicOnboardingCopy>> =
               "מזג האוויר מלווה את החיפוש ועוזר לתכנן חופים, סיורים ודרכי הגעה.",
             hint: "הקישו על מזג האוויר כדי לראות פרטים.",
           }),
-          Object.freeze({
-            title: "העוזר שלכם תמיד קרוב",
-            description:
-              "הכפתור הזה פותח את המדריך הווירטואלי של Morro Digital בכל פעם שצריך עזרה.",
-            hint: "השתמשו בעוזר כדי לגלות מה אפשר לעשות עכשיו.",
-          }),
+
           Object.freeze({
             title: "ברוכים הבאים למדריך הווירטואלי",
             description:

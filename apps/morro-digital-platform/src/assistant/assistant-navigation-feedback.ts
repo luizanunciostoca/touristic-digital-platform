@@ -1,3 +1,4 @@
+import { requestAssistantOpen } from "./assistant-shell-ui.js";
 import { createAssistantMessageDom } from "./assistant-message-dom.js";
 import { clearAssistantDomOptions } from "./assistant-dom-view.js";
 
@@ -46,7 +47,7 @@ function languageFor(document: Document): FeedbackLanguage {
 function ensureAssistantVisible(document: Document): void {
   const assistant = document.getElementById("assistant-messages");
   if (!assistant?.classList.contains("hidden")) return;
-  document.querySelector<HTMLButtonElement>(".mood-button")?.click();
+  requestAssistantOpen(document);
 }
 
 function mainCategoryMenu(document: Document): HTMLElement | null {
