@@ -75,6 +75,15 @@ describe("Home / Discover V2 visual shell", () => {
 
     expect(css).toContain(".app-shell.md-tourist-shell-v2 #map-section");
     expect(css).toContain('body[data-md-mode="discover"] .md-home-header');
+    expect(css).toMatch(
+      /\.md-home-header-inner\s*\{[^}]*flex-direction:\s*row/isu,
+    );
+    expect(css).toMatch(
+      /\.md-home-title-block\s*\{[^}]*flex:\s*1 1 auto[^}]*overflow:\s*hidden/isu,
+    );
+    expect(css).toContain(
+      'body[data-md-mode="discover"] .analytics-consent-preferences.is-collapsed',
+    );
     expect(css).toContain("#weather-widget.md-weather-control");
     expect(css).toContain("#assistant-input-area.md-assistant-composer");
     expect(css).toContain("flex: 1 1 auto");
