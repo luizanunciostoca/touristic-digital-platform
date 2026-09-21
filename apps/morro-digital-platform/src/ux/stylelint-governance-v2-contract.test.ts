@@ -41,8 +41,8 @@ describe("Stylelint governance V2 contract", () => {
 
     expect(ignore).toContain("public/legacy/**");
     expect(ignore).toContain("public/styles.css");
-    expect(ignore).toContain("public/explore-locations.css");
-    expect(ignore).toContain("public/navigation-map.css");
+    expect(ignore).not.toContain("public/explore-locations.css");
+    expect(ignore).not.toContain("public/navigation-map.css");
     expect(ignore).toContain("public/v1-*.css");
   });
 });
