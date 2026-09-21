@@ -230,21 +230,22 @@ jobs:
                 await page.locator('#assistant-category-nightlife').click();
                 await page.locator('#assistant-category-results[data-stage="filters"] [data-value="ver todos"]').click();
                 await page.locator('#assistant-category-results[data-stage="places"] [data-location-name="Toca do Morcego"]').click();
-                const placePrimary = page.locator('.assistant-options .assistant-option-btn--primary');
+                const placePrimary = page.locator('#place-bottom-sheet .place-bottom-sheet-primary-action');
                 await placePrimary.waitFor({ state: 'visible', timeout: 10000 });
                 const placeActions = await page.evaluate(() => {
-                  const containers = Array.from(document.querySelectorAll('#assistant-messages .assistant-options'));
-                  const container = containers.find(node =>
-                    !node.querySelector('[data-explore-category]') &&
-                    node.id !== 'assistant-category-results' &&
-                    node.querySelector('.assistant-option-btn--primary')
-                  );
-                  if (!(container instanceof HTMLElement)) return null;
-                  const buttons = Array.from(container.querySelectorAll('.assistant-option-btn'));
-                  const primary = container.querySelector('.assistant-option-btn--primary');
-                  if (!(primary instanceof HTMLButtonElement)) return null;
-                  const grid = buttons.slice(0, 4);
-                  const containerRect = container.getBoundingClientRect();
+                  const sheet = document.getElementById('place-bottom-sheet');
+                  const actions = sheet?.querySelector('.place-bottom-sheet-actions');
+                  const primary = sheet?.querySelector('.place-bottom-sheet-primary-action');
+                  if (
+                    !(sheet instanceof HTMLElement) ||
+                    !(actions instanceof HTMLElement) ||
+                    !(primary instanceof HTMLButtonElement)
+                  ) {
+                    return null;
+                  }
+                  const grid = Array.from(actions.querySelectorAll('.place-bottom-sheet-action'));
+                  const buttons = [...grid, primary];
+                  const actionsRect = actions.getBoundingClientRect();
                   const primaryRect = primary.getBoundingClientRect();
                   const gridBottom = Math.max(...grid.map(button => button.getBoundingClientRect().bottom));
                   return {
@@ -252,10 +253,11 @@ jobs:
                     primaryText: primary.textContent?.trim(),
                     primaryIndex: buttons.indexOf(primary),
                     primaryWidth: primaryRect.width,
-                    containerWidth: containerRect.width,
+                    containerWidth: actionsRect.width,
                     primaryTop: primaryRect.top,
                     gridBottom,
-                    gridColumns: getComputedStyle(container).gridTemplateColumns,
+                    gridColumns: getComputedStyle(actions).gridTemplateColumns,
+                    sheetState: sheet.dataset.sheetState,
                   };
                 });
                 const expectedPlaceGrid = [
@@ -269,6 +271,7 @@ jobs:
                   !placeActions ||
                   JSON.stringify(placeActions.values) !== JSON.stringify(expectedPlaceGrid) ||
                   placeActions.primaryIndex !== 4 ||
+                  placeActions.sheetState !== 'half' ||
                   !placeActions.primaryText?.includes('Comprar ingressos') ||
                   placeActions.primaryWidth < placeActions.containerWidth - 18 ||
                   placeActions.primaryTop < placeActions.gridBottom ||
@@ -379,7 +382,7 @@ jobs:
                 await page.locator('#assistant-category-nightlife').click();
                 await page.locator('#assistant-category-results[data-stage="filters"] [data-value="ver todos"]').click();
                 await page.locator('#assistant-category-results[data-stage="places"] [data-location-name="Toca do Morcego"]').click();
-                const fallbackPrimary = page.locator('.assistant-options .assistant-option-btn--primary');
+                const fallbackPrimary = page.locator('#place-bottom-sheet .place-bottom-sheet-primary-action');
                 await fallbackPrimary.waitFor({ state: 'visible', timeout: 10000 });
                 const fallbackAction = await fallbackPrimary.evaluate(node => ({
                   text: node.textContent?.trim(),

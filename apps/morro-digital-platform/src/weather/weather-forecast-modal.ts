@@ -278,10 +278,18 @@ export function openWeatherForecastModal({
     if (closed) return;
     closed = true;
     document.removeEventListener("keydown", onKeyDown, true);
+    document.removeEventListener("focusin", onFocusIn, true);
     modal.remove();
     onClose?.();
     previouslyFocused?.focus();
   };
+
+  function onFocusIn(event: FocusEvent): void {
+    if (closed) return;
+    const target = event.target;
+    if (target instanceof Node && modal.contains(target)) return;
+    closeButton?.focus({ preventScroll: true });
+  }
 
   function onKeyDown(event: KeyboardEvent): void {
     if (event.key === "Escape") {
@@ -328,6 +336,7 @@ export function openWeatherForecastModal({
   renderLocale();
   document.body.appendChild(modal);
   document.addEventListener("keydown", onKeyDown, true);
+  document.addEventListener("focusin", onFocusIn, true);
 
   const focusInitialControl = (): void => {
     if (closed || !closeButton || !modal.isConnected) return;

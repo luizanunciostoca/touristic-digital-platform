@@ -6,16 +6,16 @@ This checklist reconciles the manual with the implementation already merged into
 
 ## Visual reference surfaces
 
-| Surface                    | Status                 | Current implementation                                                                                                                                                                        | Remaining work                                                                                                                                                                          |
-| -------------------------- | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Discover / Home            | DONE                   | Map-first shell, Weather, Explore, canonical persistent Assistant composer, responsive matrix and semantic V2 tokens.                                                                         | Final post-merge exact-main revalidation.                                                                                                                                               |
-| Place                      | PARTIAL                | Place selection frames the map, preserves selected POI and exposes contextual actions through the Assistant.                                                                                  | Promote the selected-place presentation to a real `md-bottom-sheet` consumer with peek/half/full, verified place metadata/media and existing actions; do not invent ratings or content. |
-| Navigation                 | DONE                   | Canonical V2 navigation banner, outdoor hierarchy, one-hand end action, turn-by-turn, accessibility and visual contracts.                                                                     | Final post-merge exact-main revalidation.                                                                                                                                               |
-| Tour                       | PARTIAL                | Immersive map flow, stop/progress/narration controls, Assistant context and responsive browser contracts are implemented.                                                                     | Converge the visible stop presentation on the shared sheet/card composition from the manual without changing Tour authority or V1 controller behavior.                                  |
-| Assistant                  | IN FINAL CERTIFICATION | Shared accessible shell, text/voice/photos/place actions, contextual map behavior, loading skeleton, canonical composer-only entry. Floating mood/quick-action trigger is retired in PR #217. | Merge #217 only after exact-head matrix is fully green, then revalidate main.                                                                                                           |
-| Commerce                   | DONE                   | Tourist UI identity, shared cards/buttons, contextual mobile bottom sheet and preserved tourist snapshot/return path.                                                                         | Final post-merge exact-main revalidation.                                                                                                                                               |
-| Ticketing                  | DONE                   | Poppins/semantic Design System V2 convergence, shared components, skeletons, transaction/QR flows and Ticketing contracts.                                                                    | Final exact-head M147/M148 evidence for the certifying SHA.                                                                                                                             |
-| Business/Admin foundations | PARTIAL                | Shared accessibility/design-token foundations exist; business density may remain B2B-specific as allowed by the manual.                                                                       | Continue Control Center visual convergence in its dedicated workstream; do not couple unrelated admin PRs into Tourist UI certification.                                                |
+| Surface                    | Status                              | Current implementation                                                                                                                                                                                              | Remaining work                                                                                                                           |
+| -------------------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Discover / Home            | DONE                                | Map-first shell, Weather, Explore, canonical persistent Assistant composer, responsive matrix and semantic V2 tokens.                                                                                               | Final post-merge exact-main revalidation.                                                                                                |
+| Place                      | IMPLEMENTED / CERTIFICATION PENDING | Selected-place presentation now uses a real `md-bottom-sheet` consumer with peek/half/full, verified local media/metadata, existing semantic actions and Commerce/Ticketing CTA preservation.                       | Exact-head browser/CI certification and physical Android verification.                                                                   |
+| Navigation                 | DONE                                | Canonical V2 navigation banner, outdoor hierarchy, one-hand end action, turn-by-turn, accessibility and visual contracts.                                                                                           | Final post-merge exact-main revalidation.                                                                                                |
+| Tour                       | IMPLEMENTED / CERTIFICATION PENDING | Immersive map flow keeps V1 controller authority while visible intro/list/stop/finale content is projected into the shared V2 Bottom Sheet/Card composition with narration and controls preserved.                  | Exact-head Map Tour/Tour responsive browser certification and physical Android verification.                                             |
+| Assistant                  | DONE / REVALIDATING MAIN            | PR #217 is merged. Shared accessible shell, text/voice/photos/place actions, contextual map behavior, loading skeleton and canonical composer-only entry are active; floating mood/quick-action trigger is retired. | Revalidate exact-main together with the converged Place/Search/Tour surfaces and Weather focus trap.                                     |
+| Commerce                   | DONE                                | Tourist UI identity, shared cards/buttons, contextual mobile bottom sheet and preserved tourist snapshot/return path.                                                                                               | Final post-merge exact-main revalidation.                                                                                                |
+| Ticketing                  | DONE                                | Poppins/semantic Design System V2 convergence, shared components, skeletons, transaction/QR flows and Ticketing contracts.                                                                                          | Final exact-head M147/M148 evidence for the certifying SHA.                                                                              |
+| Business/Admin foundations | PARTIAL                             | Shared accessibility/design-token foundations exist; business density may remain B2B-specific as allowed by the manual.                                                                                             | Continue Control Center visual convergence in its dedicated workstream; do not couple unrelated admin PRs into Tourist UI certification. |
 
 ## Manual master checklist reconciled
 
@@ -50,9 +50,9 @@ This checklist reconciles the manual with the implementation already merged into
 - [x] One-hand placement contracts for operational actions.
 - [x] Progressive skeleton adoption across core tourist surfaces.
 - [x] Commerce mobile Bottom Sheet.
-- [ ] Place Bottom Sheet as a real runtime consumer.
-- [ ] Search/Explore Bottom Sheet as a real runtime consumer.
-- [ ] Tour visible stop surface converged on shared sheet/card composition.
+- [x] Place Bottom Sheet as a real runtime consumer with peek/half/full and no duplicated initial Assistant action set.
+- [x] Search/Explore Bottom Sheet as a real runtime consumer while retaining map-first context and semantic flow authority.
+- [x] Tour visible intro/list/stop/finale surfaces converged on the shared Bottom Sheet/Card composition without changing Tour controller authority.
 - [x] Tourist experience snapshot across Commerce handoff/return.
 - [~] Full end-to-end context restoration is implemented for current snapshot fields; revalidate after Place/Search/Tour sheet adoption.
 - [x] Navigation banner V2.
@@ -75,7 +75,7 @@ This checklist reconciles the manual with the implementation already merged into
 - [x] Ticketing uses shared typography/tokens/components.
 - [x] Ticketing loading skeletons.
 - [x] Reservation, quantity, checkout, QR and transaction behavior preserved.
-- [ ] Exact-head Ticketing M147 and M148 workflow evidence must exist for the final certifying SHA.
+- [x] Exact-head Ticketing M147 and M148 evidence exists for merged PR #217; the final convergence SHA must re-run the affected matrix before certification.
 
 ### Accessibility, responsive and QA
 
@@ -88,7 +88,7 @@ This checklist reconciles the manual with the implementation already merged into
 - [ ] Physical Samsung SM-X820 / Android API 36 certification with real keyboard, orientation, blur/GPU/map and Assistant evidence.
 - [ ] Final exact-main post-merge audit and Issue #33 certification update.
 
-## PR #217 final-certification ledger
+## PR #217 merged baseline ledger
 
 Current product decisions:
 
@@ -105,25 +105,22 @@ Mandatory exact-head gates include the automatically triggered UX/browser/securi
 - Ticketing M148 Transaction Contract;
 - Morro Runtime Startup Performance.
 
-The workflow files above are intentionally included in the PR diff so GitHub creates exact-head runs without relying on stale runs from a previous SHA.
+PR #217 was merged only after its exact-head UX matrix was green. The final Place/Search/Tour convergence still requires a fresh exact-head matrix because evidence from #217 does not certify a newer SHA.
 
 ## Remaining implementation order after PR #217
 
-1. Merge #217 only after every exact-head required gate is green and the branch is 0 behind.
-2. Revalidate the merge commit on `main`.
-3. Implement Place Bottom Sheet first because it is the largest remaining mismatch with the approved visual reference.
-4. Adapt Search/Explore results to shared Bottom Sheet behavior while preserving map-first context.
-5. Converge Tour stop presentation on the same shared sheet/card grammar without weakening existing Tour browser contracts.
-6. Expand component-state visual regression where the manual matrix is not yet explicitly covered.
-7. Execute physical SM-X820/API36 acceptance and record durable evidence.
-8. Update Issue #33 / canonical UX certification record only when blockers are genuinely zero.
+1. Certify the Place/Search/Tour convergence branch on its exact HEAD and merge only at 0-behind with zero unresolved review threads.
+2. Revalidate the resulting merge commit on `main`, including the Weather focus contract.
+3. Expand component-state visual regression where the manual matrix is not yet explicitly covered.
+4. Execute physical SM-X820/API36 acceptance and record durable evidence.
+5. Update Issue #33 / canonical UX certification record only when blockers are genuinely zero.
 
 ## Definition of done
 
 UX Design V2 is not certified merely because foundations exist. Certification requires:
 
-- the remaining Place/Search/Tour presentation gaps closed or formally accepted;
-- PR #217 merged and exact-main verified;
+- Place/Search/Tour presentation gaps closed and exact-head verified;
+- PR #217 merged and the final convergence merge commit exact-main verified;
 - required exact-head CI green;
 - no unresolved review threads;
 - Android physical gate completed;
