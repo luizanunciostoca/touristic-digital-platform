@@ -379,6 +379,9 @@ jobs:
               await matrixPage
                 .locator('#weather-widget[data-weather-state="ready"]')
                 .waitFor({ state: 'attached', timeout: 10000 });
+              await matrixPage
+                .locator('#loading-overlay.fade-out')
+                .waitFor({ state: 'attached', timeout: 5000 });
 
               const matrixEvidence = [];
               for (const viewport of matrix) {
@@ -414,6 +417,11 @@ jobs:
                     viewport: { width: innerWidth, height: innerHeight },
                     rootWidth: document.documentElement.scrollWidth,
                     bodyWidth: document.body.scrollWidth,
+                    header: rect('.md-home-header-inner'),
+                    headerTitle: rect('.md-home-title-block'),
+                    headline: rect('.md-home-header h1'),
+                    tagline: rect('.md-home-header .tagline'),
+                    privacy: rect('.analytics-consent-preferences.is-collapsed'),
                     weather: rect('#weather-widget'),
                     globe: rect('#toggle-globe-view'),
                     composer: rect('#assistant-input-area'),
@@ -439,15 +447,46 @@ jobs:
                     throw new Error(`Device matrix ${label} escaped ${viewport.name}: ${JSON.stringify(value)}`);
                   }
                 };
+                visibleRectInside(state.header, 'home header');
+                visibleRectInside(state.headerTitle, 'home header title block');
+                visibleRectInside(state.headline, 'home headline');
+                visibleRectInside(state.tagline, 'home tagline');
+                visibleRectInside(state.privacy, 'privacy trigger');
                 visibleRectInside(state.weather, 'weather');
                 visibleRectInside(state.globe, 'globe');
                 visibleRectInside(state.composer, 'assistant composer');
 
+                const overlaps = (a, b) => Boolean(
+                  a &&
+                    b &&
+                    a.display !== 'none' &&
+                    b.display !== 'none' &&
+                    a.visibility !== 'hidden' &&
+                    b.visibility !== 'hidden' &&
+                    a.left < b.right &&
+                    a.right > b.left &&
+                    a.top < b.bottom &&
+                    a.bottom > b.top
+                );
+                const contains = (outer, inner) => Boolean(
+                  outer &&
+                    inner &&
+                    inner.left >= outer.left - 1 &&
+                    inner.top >= outer.top - 1 &&
+                    inner.right <= outer.right + 1 &&
+                    inner.bottom <= outer.bottom + 1
+                );
+
                 if (
                   state.rootWidth > viewport.width + 1 ||
-                  state.bodyWidth > viewport.width + 1
+                  state.bodyWidth > viewport.width + 1 ||
+                  !contains(state.header, state.headerTitle) ||
+                  !contains(state.header, state.headline) ||
+                  overlaps(state.header, state.weather) ||
+                  overlaps(state.privacy, state.header) ||
+                  overlaps(state.privacy, state.composer)
                 ) {
-                  throw new Error(`Device matrix horizontal overflow on ${viewport.name}: ${JSON.stringify(state)}`);
+                  throw new Error(`Device matrix Home composition drift on ${viewport.name}: ${JSON.stringify(state)}`);
                 }
                 for (const [label, target] of Object.entries({
                   send: state.sendTarget,
