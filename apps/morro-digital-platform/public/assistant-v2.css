@@ -55,7 +55,6 @@
   width: 72%;
 }
 
-
 #assistant-messages.md-assistant-dialog .assistant-option-btn {
   min-height: var(--md-touch-target-min);
   border-radius: var(--md-radius-md);
@@ -102,6 +101,80 @@
     max-height: min(64dvh, 36rem);
     margin-inline: auto;
     border-radius: var(--md-radius-xl);
+  }
+
+  #assistant-messages.md-assistant-dialog.md-tourist-surface-sheet {
+    left: max(var(--md-safe-left), var(--md-space-2)) !important;
+    right: max(var(--md-safe-right), var(--md-space-2)) !important;
+    bottom: calc(
+      var(--assistant-input-bottom, var(--md-safe-bottom)) +
+        var(--assistant-bar-height, 5rem) + var(--md-space-2)
+    ) !important;
+    width: auto !important;
+    max-width: none;
+    max-height: min(
+      var(--md-sheet-full-height),
+      calc(
+        100dvh - var(--assistant-bar-height, 5rem) - var(--md-safe-top) -
+          var(--md-safe-bottom) - var(--md-space-4)
+      )
+    ) !important;
+    overflow: hidden;
+    border-radius: var(--md-radius-lg) var(--md-radius-lg) var(--md-radius-sm)
+      var(--md-radius-sm);
+  }
+
+  #assistant-messages.md-assistant-dialog.md-tourist-surface-sheet[data-sheet-state="peek"] {
+    height: min(
+      var(--md-sheet-peek-height),
+      calc(
+        100dvh - var(--assistant-bar-height, 5rem) - var(--md-safe-top) -
+          var(--md-safe-bottom) - var(--md-space-4)
+      )
+    ) !important;
+  }
+
+  #assistant-messages.md-assistant-dialog.md-tourist-surface-sheet[data-sheet-state="half"] {
+    height: min(
+      var(--md-sheet-half-height),
+      calc(
+        100dvh - var(--assistant-bar-height, 5rem) - var(--md-safe-top) -
+          var(--md-safe-bottom) - var(--md-space-4)
+      )
+    ) !important;
+  }
+
+  #assistant-messages.md-assistant-dialog.md-tourist-surface-sheet[data-sheet-state="full"] {
+    height: min(
+      var(--md-sheet-full-height),
+      calc(
+        100dvh - var(--assistant-bar-height, 5rem) - var(--md-safe-top) -
+          var(--md-safe-bottom) - var(--md-space-4)
+      )
+    ) !important;
+  }
+
+  #assistant-messages.md-assistant-dialog.md-tourist-surface-sheet
+    .md-tourist-sheet-handle {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    width: 100%;
+    min-height: var(--md-touch-target-min);
+    flex: 0 0 auto;
+    border-radius: 0;
+    background: var(--md-color-surface-glass);
+    color: var(--md-color-text-secondary);
+    touch-action: none;
+  }
+
+  #assistant-messages.md-assistant-dialog.md-tourist-surface-sheet
+    .messages-area {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    padding-bottom: max(var(--md-space-3), var(--md-safe-bottom));
   }
 
   #assistant-input-area.md-assistant-composer {
