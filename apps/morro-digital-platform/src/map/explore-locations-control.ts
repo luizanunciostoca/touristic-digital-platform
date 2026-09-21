@@ -89,6 +89,7 @@ export type ExploreLocationsCommand =
       type: "show_search_results";
       query: string;
       status?: "ready" | "empty" | "error";
+      statusText?: string;
       results: readonly ExploreSearchResult[];
     }>
   | Readonly<{ type: "back_to_filters" }>
@@ -884,6 +885,7 @@ export function installExploreLocationsControl({
     query = activeSearchQuery,
     status: "ready" | "empty" | "error" =
       locations.length === 0 ? "empty" : "ready",
+    statusText?: string,
   ): void => {
     placeBottomSheet?.hide();
     resetCategoryTriggerState();
@@ -916,6 +918,7 @@ export function installExploreLocationsControl({
       },
       undefined,
       status,
+      statusText,
     );
     first?.focus();
     emitStateChange();
@@ -925,7 +928,7 @@ export function installExploreLocationsControl({
         "search",
         "error",
       );
-      exploreFlowBottomSheet?.setStatus("error");
+      exploreFlowBottomSheet?.setStatus("error", statusText);
       emitStateChange();
       return;
     }
@@ -1263,6 +1266,7 @@ export function installExploreLocationsControl({
         command.query,
         command.status ??
           (results.length === 0 ? "empty" : "ready"),
+        command.statusText,
       );
       return true;
     }
