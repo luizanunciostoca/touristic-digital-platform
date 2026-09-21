@@ -136,6 +136,7 @@ const searchResults = document.querySelector("#search-results");
 const supportBanner = document.querySelector("#support-banner");
 const supportContext = document.querySelector("#support-context");
 const menuButton = document.querySelector("#menu-button");
+const sidebarBackdrop = document.querySelector("#sidebar-backdrop");
 
 const auth = createDashboardAuthClient({
   fetchFn: globalThis.fetch.bind(globalThis),
@@ -3334,6 +3335,14 @@ searchResults.addEventListener("click", (event) => {
   searchInput.value = "";
 });
 
+function setMenuOpen(open, { restoreFocus = false } = {}) {
+  const next = Boolean(open);
+  app.classList.toggle("menu-open", next);
+  menuButton?.setAttribute("aria-expanded", String(next));
+  if (sidebarBackdrop) sidebarBackdrop.hidden = !next;
+  if (!next && restoreFocus) menuButton?.focus();
+}
+
 document.addEventListener("keydown", (event) => {
   if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
     event.preventDefault();
@@ -3342,6 +3351,9 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
     searchResults.hidden = true;
     setSearchExpanded(false);
+    if (app.classList.contains("menu-open")) {
+      setMenuOpen(false, { restoreFocus: true });
+    }
   }
 });
 
@@ -3363,7 +3375,7 @@ nav.addEventListener("click", (event) => {
     if (targetView) globalThis.location.hash = `#${targetView}`;
   }
 
-  app.classList.remove("menu-open");
+  setMenuOpen(false);
 });
 
 document
@@ -3376,7 +3388,12 @@ document
     }
   });
 
-menuButton?.addEventListener("click", () => app.classList.toggle("menu-open"));
+menuButton?.addEventListener("click", () =>
+  setMenuOpen(!app.classList.contains("menu-open")),
+);
+sidebarBackdrop?.addEventListener("click", () =>
+  setMenuOpen(false, { restoreFocus: true }),
+);
 
 document
   .querySelector("#logout-button")
