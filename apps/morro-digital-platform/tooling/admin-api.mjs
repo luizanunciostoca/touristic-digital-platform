@@ -2276,10 +2276,6 @@ export function createAdminApi({
         source,
       })),
     );
-    const attentionStatus =
-      summaryItems.length === 0
-        ? "READY"
-        : combineAvailability(allSources.map(({ source }) => source.status));
     const attentionKnownCount = summaryItems.reduce(
       (total, item) => total + item.alerts.knownCount,
       0,
@@ -2339,6 +2335,9 @@ export function createAdminApi({
         ),
       }),
     });
+    const attentionStatus = combineAvailability(
+      Object.values(sources).map((source) => source.status),
+    );
 
     return Object.freeze({
       attention: Object.freeze({
