@@ -43,7 +43,7 @@
     "format:check": "prettier --check .",
     "release:gates": "node tooling/quality/run-local-release-gates.mjs",
     "ticketing:browser:smoke": "node --test tooling/ticketing/browser-contract.test.mjs",
-    "css:stylelint": "pnpm dlx stylelint@17.15.0 \"apps/morro-digital-platform/public/design-system-v2.css\" \"apps/morro-digital-platform/public/premium-ux-v2.css\" \"apps/morro-digital-platform/public/commerce.css\" \"apps/morro-digital-platform/public/ticketing.css\""
+    "css:stylelint": "pnpm dlx stylelint@17.15.0 \"apps/morro-digital-platform/public/design-system-v2.css\" \"apps/morro-digital-platform/public/premium-ux-v2.css\" \"apps/morro-digital-platform/public/commerce.css\" \"apps/morro-digital-platform/public/ticketing.css\" \"apps/morro-digital-platform/public/explore-locations.css\" \"apps/morro-digital-platform/public/navigation-map.css\""
   },
   "pnpm": {
     "overrides": {
