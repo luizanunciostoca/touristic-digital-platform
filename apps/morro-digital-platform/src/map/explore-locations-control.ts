@@ -595,6 +595,7 @@ export function installExploreLocationsControl({
     onSelect: (option: T) => void,
     content?: HTMLElement,
     statusOverride?: "loading" | "ready" | "empty" | "error",
+    statusTextOverride?: string,
   ): HTMLButtonElement | null => {
     const area = assistantMessagesArea(document);
     if (!area) return null;
@@ -665,6 +666,7 @@ export function installExploreLocationsControl({
         messageSource: message,
         status:
           statusOverride ?? (options.length === 0 ? "empty" : "ready"),
+        ...(statusTextOverride ? { statusText: statusTextOverride } : {}),
         ...(content ? { content } : {}),
         onDismiss() {
           if (activeStage === "tour") {
