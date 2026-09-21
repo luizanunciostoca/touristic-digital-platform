@@ -7,11 +7,14 @@
   --md-primary: #0b63ce;
   --md-primary-hover: #0958b8;
   --md-primary-soft: #eaf3ff;
-  --md-success: #087a45;
+  --md-success: #10a760;
+  --md-success-text: #087a45;
   --md-success-soft: #eaf9f1;
-  --md-warning: #9a4d00;
+  --md-warning: #d97706;
+  --md-warning-text: #9a4d00;
   --md-warning-soft: #fff6e8;
-  --md-danger: #cf2a1f;
+  --md-danger: #d92d20;
+  --md-danger-text: #b42318;
   --md-danger-soft: #fff1f2;
   --md-purple: #6d5ce8;
   --md-purple-soft: #f2f0ff;
@@ -44,9 +47,9 @@
   --brand: var(--md-primary);
   --brand-deep: #084a9a;
   --accent: var(--md-warning);
-  --success: var(--md-success);
-  --warning: var(--md-warning);
-  --danger: var(--md-danger);
+  --success: var(--md-success-text);
+  --warning: var(--md-warning-text);
+  --danger: var(--md-danger-text);
   --shadow: var(--md-shadow-float);
   --radius: var(--md-radius-lg);
 }
@@ -671,16 +674,16 @@ h1 {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: var(--md-success);
+  color: var(--md-success-text);
   font-weight: 650;
 }
 
 .overall-status.is-warning {
-  color: var(--md-warning);
+  color: var(--md-warning-text);
 }
 
 .overall-status.is-danger {
-  color: var(--md-danger);
+  color: var(--md-danger-text);
 }
 
 .grid {
@@ -744,7 +747,7 @@ h1 {
 
 .metric-card[data-tone="success"] .metric-card__icon {
   background: var(--md-success-soft);
-  color: var(--md-success);
+  color: var(--md-success-text);
 }
 
 .metric-card[data-tone="purple"] .metric-card__icon {
@@ -754,12 +757,12 @@ h1 {
 
 .metric-card[data-tone="warning"] .metric-card__icon {
   background: var(--md-warning-soft);
-  color: var(--md-warning);
+  color: var(--md-warning-text);
 }
 
 .metric-card[data-tone="danger"] .metric-card__icon {
   background: var(--md-danger-soft);
-  color: var(--md-danger);
+  color: var(--md-danger-text);
 }
 
 .stat-label,
@@ -790,12 +793,12 @@ h1 {
 }
 
 .metric-card__meta.is-positive {
-  color: var(--md-success);
+  color: var(--md-success-text);
   font-weight: 650;
 }
 
 .metric-card__meta.is-warning {
-  color: var(--md-warning);
+  color: var(--md-warning-text);
   font-weight: 650;
 }
 
@@ -877,7 +880,7 @@ h1 {
   place-items: center;
   border-radius: 9px;
   background: var(--md-danger-soft);
-  color: var(--md-danger);
+  color: var(--md-danger-text);
 }
 
 .attention-item__copy strong {
@@ -1163,19 +1166,19 @@ tbody tr:hover td {
 .badge.pass,
 .chip-success {
   background: var(--md-success-soft);
-  color: var(--md-success);
+  color: var(--md-success-text);
 }
 
 .badge.partial,
 .chip-warning {
   background: var(--md-warning-soft);
-  color: var(--md-warning);
+  color: var(--md-warning-text);
 }
 
 .badge.gap,
 .chip-danger {
   background: var(--md-danger-soft);
-  color: var(--md-danger);
+  color: var(--md-danger-text);
 }
 
 .chip-info {
