@@ -22,6 +22,10 @@ describe("deterministic legacy CSS bundle contract", () => {
     expect(tooling).toContain("Legacy checkpoint order drifted");
     expect(tooling).toContain("Nested @import is not allowed");
     expect(tooling).toContain("GENERATED FILE — DO NOT EDIT");
+    expect(tooling).toContain(
+      "@layer reset, vendor, legacy, tokens, base, components, features, utilities, overrides;",
+    );
+    expect(tooling).toContain('"@layer legacy {"');
   });
 
   it("loads the generated bundle instead of browser @import fan-out", async () => {
