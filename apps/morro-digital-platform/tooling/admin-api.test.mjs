@@ -308,11 +308,11 @@ describe("Control Center Admin API", () => {
         received = input;
         return [
           {
-            type: "crm-lead",
+            type: "lead",
             id: "42",
             title: "Toca do Morcego",
             context: "proposal_sent",
-            href: "#crm",
+            href: "/apps/admin-crm/public/lead-detail.html?id=42",
           },
         ];
       },
@@ -339,12 +339,312 @@ describe("Control Center Admin API", () => {
     expect(JSON.parse(response.body).results).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          type: "crm-lead",
+          type: "lead",
           title: "Toca do Morcego",
           domain: "crm",
         }),
       ]),
     );
+  });
+
+  it("groups and paginates owner-backed universal-search results with stable deep links", async () => {
+    const { api } = fixture(platformOwner, {
+      domainAdapters: {
+        affiliates: {
+          searchCapability: "affiliate.read",
+          searchDestinationAware: true,
+          async search() {
+            return [
+              {
+                type: "affiliate",
+                id: "aff_00000001",
+                title: "Afiliado Alfa",
+                context: "active",
+                href: "#affiliates:aff_00000001",
+              },
+            ];
+          },
+        },
+        products: {
+          searchCapability: "business.read",
+          searchDestinationAware: true,
+          async search() {
+            return [
+              {
+                type: "product",
+                id: "tour-alpha",
+                title: "Passeio Alfa",
+                href: "#products:offer-alpha",
+                destinationId: "morro-de-sao-paulo",
+              },
+              {
+                type: "offer",
+                id: "offer-alpha",
+                title: "Oferta Alfa",
+                href: "#products:offer-alpha",
+                destinationId: "morro-de-sao-paulo",
+              },
+            ];
+          },
+        },
+      },
+    });
+    const response = responseRecorder();
+    const url = new URL(
+      "http://localhost/api/admin/v1/search?q=alfa&limit=2&offset=0",
+    );
+
+    await api.handle(request(url.pathname + url.search), response, url);
+
+    expect(response.statusCode).toBe(200);
+    const payload = JSON.parse(response.body);
+    expect(payload.results).toHaveLength(2);
+    expect(payload.pagination).toMatchObject({
+      limit: 2,
+      offset: 0,
+      hasMore: true,
+    });
+    expect(payload.groups.map((group) => group.type)).toEqual([
+      "affiliate",
+      "product",
+    ]);
+    expect(payload.results).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: "affiliate",
+          href: "#affiliates:aff_00000001",
+        }),
+        expect.objectContaining({
+          type: "product",
+          href: "#products:offer-alpha",
+        }),
+      ]),
+    );
+  });
+
+  it("passes explicit destinationId to capable owners and suppresses mismatched or unscoped results", async () => {
+    let received;
+    const products = {
+      searchCapability: "business.read",
+      searchDestinationAware: true,
+      async search(input) {
+        received = input;
+        return [
+          {
+            type: "product",
+            id: "product-morro",
+            title: "Produto Morro",
+            href: "#products:offer-morro",
+            destinationId: "morro-de-sao-paulo",
+          },
+          {
+            type: "product",
+            id: "product-itacare",
+            title: "Produto Itacaré",
+            href: "#products:offer-itacare",
+            destinationId: "itacare",
+          },
+        ];
+      },
+    };
+    const { api } = fixture(platformOwner, {
+      domainAdapters: { products },
+    });
+    const response = responseRecorder();
+    const url = new URL(
+      "http://localhost/api/admin/v1/search?q=produto&destinationId=morro-de-sao-paulo",
+    );
+
+    await api.handle(request(url.pathname + url.search), response, url);
+
+    const payload = JSON.parse(response.body);
+    expect(response.statusCode).toBe(200);
+    expect(received.destinationId).toBe("morro-de-sao-paulo");
+    expect(payload.results).toEqual([
+      expect.objectContaining({
+        id: "product-morro",
+        destinationId: "morro-de-sao-paulo",
+      }),
+    ]);
+    expect(payload.partial).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          domain: "users",
+          reason: "destination_scope_unavailable",
+        }),
+        expect.objectContaining({
+          domain: "businesses",
+          reason: "destination_scope_unavailable",
+        }),
+        expect.objectContaining({
+          domain: "crm",
+          reason: "destination_scope_unavailable",
+        }),
+        expect.objectContaining({
+          domain: "financial",
+          reason: "destination_scope_unavailable",
+        }),
+      ]),
+    );
+  });
+
+  it("suppresses a search owner when its own required capability is not granted", async () => {
+    let called = false;
+    const restricted = {
+      searchCapability: "system.manage",
+      searchDestinationAware: false,
+      async search() {
+        called = true;
+        return [
+          {
+            type: "lead",
+            id: "99",
+            title: "Should never be visible",
+            href: "/apps/admin-crm/public/lead-detail.html?id=99",
+          },
+        ];
+      },
+    };
+    const { api } = fixture(
+      { ...platformOwner, role: "PLATFORM_ADMIN" },
+      { domainAdapters: { crm: restricted } },
+    );
+    const response = responseRecorder();
+
+    await api.handle(
+      request("/api/admin/v1/search?q=never"),
+      response,
+      new URL("http://localhost/api/admin/v1/search?q=never"),
+    );
+
+    expect(response.statusCode).toBe(200);
+    expect(called).toBe(false);
+    expect(JSON.parse(response.body).results).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "99" }),
+      ]),
+    );
+  });
+
+  it("keeps owner failures partial instead of turning the whole search into an API failure", async () => {
+    const { api } = fixture(platformOwner, {
+      domainAdapters: {
+        crm: {
+          searchCapability: "crm.read",
+          searchDestinationAware: false,
+          async search() {
+            throw new Error("CRM_OWNER_DOWN");
+          },
+        },
+      },
+    });
+    const response = responseRecorder();
+
+    await api.handle(
+      request("/api/admin/v1/search?q=owner"),
+      response,
+      new URL("http://localhost/api/admin/v1/search?q=owner"),
+    );
+
+    expect(response.statusCode).toBe(200);
+    const payload = JSON.parse(response.body);
+    expect(payload.state).toBe("partial");
+    expect(payload.results).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ type: "user", title: "owner@morro.invalid" }),
+      ]),
+    );
+    expect(payload.partial).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          domain: "crm",
+          reason: "owner_search_failed",
+        }),
+      ]),
+    );
+  });
+
+  it("treats empty queries as idle and normalizes identity case safely", async () => {
+    let calls = 0;
+    const adapter = {
+      async search() {
+        calls += 1;
+        return [];
+      },
+    };
+    const idleFixture = fixture(platformOwner, {
+      domainAdapters: { crm: adapter },
+    });
+    let response = responseRecorder();
+    await idleFixture.api.handle(
+      request("/api/admin/v1/search?q="),
+      response,
+      new URL("http://localhost/api/admin/v1/search?q="),
+    );
+    expect(JSON.parse(response.body)).toMatchObject({
+      state: "idle",
+      results: [],
+    });
+    expect(calls).toBe(0);
+
+    response = responseRecorder();
+    await idleFixture.api.handle(
+      request("/api/admin/v1/search?q=OWNER%40MORRO.INVALID"),
+      response,
+      new URL(
+        "http://localhost/api/admin/v1/search?q=OWNER%40MORRO.INVALID",
+      ),
+    );
+    expect(JSON.parse(response.body).results).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: "user",
+          title: "owner@morro.invalid",
+        }),
+      ]),
+    );
+  });
+
+  it("preserves special characters as bounded owner input without interpreting them", async () => {
+    let receivedQuery;
+    const crm = {
+      async search({ query }) {
+        receivedQuery = query;
+        return [];
+      },
+    };
+    const { api } = fixture(platformOwner, { domainAdapters: { crm } });
+    const query = "%_'\"><script>";
+    const url = new URL(
+      "http://localhost/api/admin/v1/search?q=" + encodeURIComponent(query),
+    );
+    const response = responseRecorder();
+
+    await api.handle(request(url.pathname + url.search), response, url);
+
+    expect(response.statusCode).toBe(200);
+    expect(receivedQuery).toBe(query);
+  });
+
+  it("rate-limits repeated universal-search floods per actor", async () => {
+    const { api } = fixture();
+    for (let index = 0; index < 40; index += 1) {
+      const response = responseRecorder();
+      await api.handle(
+        request("/api/admin/v1/search?q=flood"),
+        response,
+        new URL("http://localhost/api/admin/v1/search?q=flood"),
+      );
+      expect(response.statusCode).toBe(200);
+    }
+    const limited = responseRecorder();
+    await api.handle(
+      request("/api/admin/v1/search?q=flood"),
+      limited,
+      new URL("http://localhost/api/admin/v1/search?q=flood"),
+    );
+    expect(limited.statusCode).toBe(429);
+    expect(JSON.parse(limited.body).error).toBe("SEARCH_RATE_LIMITED");
   });
 
   it("blocks business identities from every admin namespace before domain adapters", async () => {
