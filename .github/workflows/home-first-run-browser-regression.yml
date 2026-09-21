@@ -72,7 +72,7 @@ jobs:
           done
           cat /tmp/home-first-run.log
           exit 1
-      - name: Validate V1 first-run tutorial and assistant welcome lifecycle
+      - name: Validate V2 first-run tutorial and persistent composer lifecycle
         run: |
           node <<'NODE'
           const { writeFileSync } = require('node:fs');
@@ -110,6 +110,9 @@ jobs:
                   assistant &&
                   !assistant.classList.contains('hidden') &&
                   assistant.getAttribute('aria-hidden') !== 'true'
+                ),
+                composerVisible: Boolean(
+                  document.getElementById('assistant-input-area')?.getBoundingClientRect().width
                 ),
                 welcomeVisible: Boolean(welcome),
                 welcomeText: welcome?.textContent?.replace(/\s+/g, ' ').trim() ?? '',
@@ -155,8 +158,9 @@ jobs:
               !started.backdropClipPath.includes('evenodd') ||
               !started.tourHighlight ||
               !started.tourTooltip ||
-              started.tourLabel !== 'Step 1 of 6' ||
-              !started.assistantVisible ||
+              started.tourLabel !== 'Step 1 of 4' ||
+              started.assistantVisible ||
+              !started.composerVisible ||
               !started.welcomeVisible ||
               started.tooltipRight === null ||
               started.tooltipRight > started.viewportWidth + 1
@@ -172,9 +176,9 @@ jobs:
             });
             if (!focusTrapped) throw new Error('Tutorial modal did not trap keyboard focus.');
 
-            for (let step = 2; step <= 6; step += 1) {
+            for (let step = 2; step <= 4; step += 1) {
               await page.locator('.tour-btn-next').click();
-              await page.locator('.tour-step-label').filter({ hasText: `Step ${step} of 6` }).waitFor({ state: 'visible', timeout: 3000 });
+              await page.locator('.tour-step-label').filter({ hasText: `Step ${step} of 4` }).waitFor({ state: 'visible', timeout: 3000 });
               const stepState = await readState(page);
               assertIdleMap(stepState, `Tutorial step ${step}`);
               if (stepState.tooltipRight !== null && stepState.tooltipRight > stepState.viewportWidth + 1) {
@@ -189,11 +193,12 @@ jobs:
               completed.onboarded !== '1' ||
               completed.tourActive ||
               completed.tourTooltip ||
-              !completed.assistantVisible ||
+              completed.assistantVisible ||
+              !completed.composerVisible ||
               !completed.welcomeVisible ||
               !completed.welcomeText.includes('Welcome to Morro Digital')
             ) {
-              throw new Error(`Tutorial completion did not restore V1 assistant state: ${JSON.stringify(completed)}`);
+              throw new Error(`Tutorial completion did not preserve the V2 persistent composer state: ${JSON.stringify(completed)}`);
             }
 
             await page.reload({ waitUntil: 'domcontentloaded' });
@@ -204,13 +209,14 @@ jobs:
             if (
               reloaded.onboardingVisible ||
               reloaded.onboarded !== '1' ||
-              !reloaded.assistantVisible ||
+              reloaded.assistantVisible ||
+              !reloaded.composerVisible ||
               !reloaded.welcomeVisible
             ) {
-              throw new Error(`V1 assistant welcome was not preserved after reload: ${JSON.stringify(reloaded)}`);
+              throw new Error(`V2 Home composer state was not preserved after reload: ${JSON.stringify(reloaded)}`);
             }
             evidence.complete = { initial, started, completed, reloaded, errors };
-            await page.screenshot({ path: `${outputDir}/completed-v1-home.png`, fullPage: false });
+            await page.screenshot({ path: `${outputDir}/completed-v2-home.png`, fullPage: false });
             await context.close();
 
             const skipContext = await browser.newContext({ viewport: { width: 768, height: 1024 }, locale: 'en-US' });
@@ -226,8 +232,8 @@ jobs:
             await skipPage.locator('#tour-tooltip').waitFor({ state: 'detached', timeout: 3000 });
             const skipped = await readState(skipPage);
             assertIdleMap(skipped, 'Escape-skipped tutorial');
-            if (skipped.onboarded !== '1' || skipped.tourActive || !skipped.assistantVisible || !skipped.welcomeVisible) {
-              throw new Error(`Tutorial Escape skip did not restore V1 assistant state: ${JSON.stringify(skipped)}`);
+            if (skipped.onboarded !== '1' || skipped.tourActive || skipped.assistantVisible || !skipped.composerVisible || !skipped.welcomeVisible) {
+              throw new Error(`Tutorial Escape skip did not preserve the V2 composer state: ${JSON.stringify(skipped)}`);
             }
             evidence.skip = { skipped, errors: skipErrors };
             await skipContext.close();
@@ -241,8 +247,8 @@ jobs:
             await overlaySkipPage.locator('#onboarding-overlay').waitFor({ state: 'detached', timeout: 3000 });
             const overlaySkipped = await readState(overlaySkipPage);
             assertIdleMap(overlaySkipped, 'Escape-skipped onboarding');
-            if (overlaySkipped.onboarded !== '1' || !overlaySkipped.assistantVisible || !overlaySkipped.welcomeVisible) {
-              throw new Error(`Onboarding Escape skip did not restore V1 assistant state: ${JSON.stringify(overlaySkipped)}`);
+            if (overlaySkipped.onboarded !== '1' || overlaySkipped.assistantVisible || !overlaySkipped.composerVisible || !overlaySkipped.welcomeVisible) {
+              throw new Error(`Onboarding Escape skip did not preserve the V2 composer state: ${JSON.stringify(overlaySkipped)}`);
             }
             evidence.overlaySkip = overlaySkipped;
             await overlaySkipContext.close();
