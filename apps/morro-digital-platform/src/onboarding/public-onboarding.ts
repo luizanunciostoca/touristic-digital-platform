@@ -1,5 +1,4 @@
 import {
-  ensureV1AssistantWelcomeVisible,
   installPublicInteractiveTour,
   type PublicInteractiveTourController,
 } from "./public-interactive-tour.js";
@@ -111,7 +110,6 @@ export function installPublicOnboarding(
   const persistCompletedState = (nextState: "completed" | "skipped"): void => {
     state = nextState;
     persistPublicOnboardingCompletion(storage);
-    ensureV1AssistantWelcomeVisible(options.document);
     setOnboardingSettled(options.document, true);
   };
 
@@ -184,7 +182,6 @@ export function installPublicOnboarding(
       if (destroyed || overlay || interactiveTour?.active) return false;
       if (hasCompletedPublicOnboarding(storage)) {
         state = "completed";
-        ensureV1AssistantWelcomeVisible(options.document);
         setOnboardingSettled(options.document, true);
         return false;
       }
