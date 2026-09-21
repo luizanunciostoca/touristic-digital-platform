@@ -221,6 +221,41 @@ function readDeterministicExploreCommands(
   return Object.freeze(commands);
 }
 
+function photoCarouselCopy(
+  document: Document,
+  place: string,
+  index: number,
+  total: number,
+): { region: string; track: string; slide: string } {
+  const language = document.documentElement.lang.toLowerCase();
+  if (language.startsWith("en")) {
+    return {
+      region: `Photos of ${place}`,
+      track: `Scrollable photo gallery of ${place}`,
+      slide: `Photo ${index} of ${total}`,
+    };
+  }
+  if (language.startsWith("es")) {
+    return {
+      region: `Fotos de ${place}`,
+      track: `Galería desplazable de fotos de ${place}`,
+      slide: `Foto ${index} de ${total}`,
+    };
+  }
+  if (language.startsWith("he")) {
+    return {
+      region: `תמונות של ${place}`,
+      track: `גלריית תמונות נגללת של ${place}`,
+      slide: `תמונה ${index} מתוך ${total}`,
+    };
+  }
+  return {
+    region: `Fotos de ${place}`,
+    track: `Galeria rolável de fotos de ${place}`,
+    slide: `Foto ${index} de ${total}`,
+  };
+}
+
 function appendPhotoCarousel(
   document: Document,
   presentation: AssistantPhotoPresentation,
@@ -228,17 +263,30 @@ function appendPhotoCarousel(
   const messagesArea = getMessagesArea(document);
   if (!messagesArea) return;
 
+  const total = presentation.images.length;
+  const copy = photoCarouselCopy(document, presentation.place, 1, total);
   const container = document.createElement("section");
   container.className = "assistant-photo-carousel";
   container.dataset.messageType = "photo-carousel";
-  container.setAttribute("aria-label", `Fotos de ${presentation.place}`);
+  container.setAttribute("role", "region");
+  container.setAttribute("aria-label", copy.region);
 
   const track = document.createElement("div");
   track.className = "assistant-photo-carousel-track";
+  track.tabIndex = 0;
+  track.dataset.activeIndex = "0";
+  track.setAttribute("role", "list");
+  track.setAttribute("aria-label", copy.track);
 
+  const slides: HTMLElement[] = [];
   for (const [index, source] of presentation.images.entries()) {
     const figure = document.createElement("figure");
     figure.className = "assistant-photo-carousel-slide";
+    figure.setAttribute("role", "listitem");
+    figure.setAttribute(
+      "aria-label",
+      photoCarouselCopy(document, presentation.place, index + 1, total).slide,
+    );
 
     const image = document.createElement("img");
     image.src = source;
@@ -248,8 +296,44 @@ function appendPhotoCarousel(
     image.fetchPriority = index === 0 ? "high" : "auto";
     image.sizes = "(max-width: 48rem) calc(100vw - 2rem), 46rem";
     figure.appendChild(image);
+    slides.push(figure);
     track.appendChild(figure);
   }
+
+  track.addEventListener("keydown", (event) => {
+    if (
+      event.key !== "ArrowLeft" &&
+      event.key !== "ArrowRight" &&
+      event.key !== "Home" &&
+      event.key !== "End"
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    const current = Number(track.dataset.activeIndex ?? "0");
+    const rtl = document.documentElement.dir === "rtl";
+    const direction =
+      event.key === "ArrowRight" ? (rtl ? -1 : 1) : rtl ? 1 : -1;
+    const target =
+      event.key === "Home"
+        ? 0
+        : event.key === "End"
+          ? slides.length - 1
+          : Math.min(slides.length - 1, Math.max(0, current + direction));
+    const slide = slides[target];
+    if (!slide) return;
+
+    track.dataset.activeIndex = String(target);
+    const reducedMotion =
+      document.defaultView?.matchMedia?.("(prefers-reduced-motion: reduce)")
+        .matches === true;
+    slide.scrollIntoView({
+      behavior: reducedMotion ? "auto" : "smooth",
+      block: "nearest",
+      inline: "center",
+    });
+  });
 
   container.appendChild(track);
   messagesArea.appendChild(container);
