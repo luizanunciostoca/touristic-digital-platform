@@ -684,7 +684,9 @@ export function installExploreLocationsControl({
           backToMenu();
         },
       });
-      requestAssistantClose(document);
+      if (kind === "explore") {
+        requestAssistantClose(document);
+      }
     }
 
     return container.querySelector<HTMLButtonElement>(".assistant-flow-option");
