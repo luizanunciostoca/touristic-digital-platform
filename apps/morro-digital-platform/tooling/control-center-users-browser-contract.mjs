@@ -27,7 +27,7 @@ async function main() {
     const context = await browser.newContext({
       viewport: { width: 1280, height: 900 },
     });
-    await login(context, "platform-owner@example.com");
+    await login(context, "platform-owner-users@example.com");
     const page = await context.newPage();
 
     await page.goto(`${origin}/apps/control-center/public/index.html#users`, {
