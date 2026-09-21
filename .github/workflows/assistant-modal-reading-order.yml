@@ -8,6 +8,10 @@ on:
       - .github/workflows/assistant-modal-reading-order.yml
       - apps/morro-digital-platform/src/assistant/assistant-navigation-feedback.ts
       - apps/morro-digital-platform/src/assistant/assistant-single-message-controller.ts
+      - apps/morro-digital-platform/src/assistant/assistant-shell-ui.ts
+      - apps/morro-digital-platform/src/assistant/assistant-ui-state.ts
+      - apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts
+      - apps/morro-digital-platform/public/assistant-v2.css
       - apps/morro-digital-platform/src/layouts/app-shell.ts
       - apps/morro-digital-platform/src/main.ts
       - apps/morro-digital-platform/src/browser-entry.ts
@@ -72,14 +76,76 @@ jobs:
               await page.locator('#map[data-map-state="ready"]').waitFor({ state: 'attached', timeout: 20000 });
               const trigger = page.locator('.mood-button[data-assistant-shell-ready="true"]');
               await trigger.waitFor({ state: 'visible', timeout: 15000 });
+              if (await page.locator('#assistant-messages:not(.hidden)').isVisible()) {
+                await page.keyboard.press('Escape');
+                await page.locator('#assistant-messages.hidden').waitFor({ state: 'attached', timeout: 5000 });
+              }
+              await trigger.focus();
               await trigger.click();
               await page.locator('#assistant-messages:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
+              await page.waitForTimeout(150);
 
+              const modalV2 = await page.evaluate(() => {
+                const dialog = document.getElementById('assistant-messages');
+                const status = document.getElementById('assistant-dialog-status');
+                const composer = document.getElementById('assistant-input-area');
+                return {
+                  role: dialog?.getAttribute('role'),
+                  ariaModal: dialog?.getAttribute('aria-modal'),
+                  ariaHidden: dialog?.getAttribute('aria-hidden'),
+                  busy: dialog?.getAttribute('aria-busy'),
+                  state: dialog?.getAttribute('data-assistant-state'),
+                  statusRole: status?.getAttribute('role'),
+                  composerRole: composer?.getAttribute('role'),
+                  focusedInput: document.activeElement?.id === 'assistantInput',
+                };
+              });
+              if (
+                modalV2.role !== 'dialog' ||
+                modalV2.ariaModal !== 'false' ||
+                modalV2.ariaHidden !== 'false' ||
+                modalV2.busy !== 'false' ||
+                modalV2.state !== 'idle' ||
+                modalV2.statusRole !== 'status' ||
+                modalV2.composerRole !== 'group' ||
+                !modalV2.focusedInput
+              ) {
+                throw new Error(`Assistant Modal V2 semantics/focus diverged: ${JSON.stringify(modalV2)}`);
+              }
+
+              await page.evaluate(() => {
+                document.dispatchEvent(new CustomEvent('morro:assistant-ui-state', {
+                  detail: { state: 'loading' },
+                }));
+              });
+              await page.locator('#assistant-messages[aria-busy="true"][data-assistant-state="loading"]').waitFor({
+                state: 'attached',
+                timeout: 5000,
+              });
+              const loadingStatus = (await page.locator('#assistant-dialog-status').textContent())?.trim() ?? '';
+              if (!loadingStatus.includes('Preparando resposta')) {
+                throw new Error(`Assistant loading announcement missing: ${loadingStatus}`);
+              }
+
+              await page.keyboard.press('Escape');
+              await page.locator('#assistant-messages.hidden[aria-hidden="true"]').waitFor({
+                state: 'attached',
+                timeout: 5000,
+              });
+              const focusRestored = await page.evaluate(() =>
+                document.activeElement?.classList.contains('mood-button') ?? false,
+              );
+              if (!focusRestored) {
+                throw new Error('Assistant Escape did not restore focus to the trigger');
+              }
+
+              const assistant = page.locator('#assistant-messages');
               await page.evaluate(() => {
                 dispatchEvent(new CustomEvent('navigationEnded', {
                   detail: { reason: 'cancelled' },
                 }));
               });
+              await assistant.waitFor({ state: 'visible', timeout: 5000 });
               await page.waitForTimeout(750);
 
               const state = await page.evaluate(() => {
