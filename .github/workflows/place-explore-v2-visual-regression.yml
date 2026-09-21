@@ -281,6 +281,106 @@ jobs:
                     `Map-first canvas shrank on ${viewport.id}: ${JSON.stringify(mapGeometry)}`,
                   );
                 }
+                let exploreAccessibility = null;
+                if (viewport.id === 'w390') {
+                  const originalHeading = await explore
+                    .locator('.explore-flow-sheet-title')
+                    .textContent();
+
+                  await page.evaluate(() => {
+                    document.documentElement.dir = 'rtl';
+                    document.documentElement.lang = 'he';
+                    const title = document.querySelector(
+                      '#explore-flow-bottom-sheet .explore-flow-sheet-title',
+                    );
+                    if (title) {
+                      title.textContent =
+                        'תוצאת חיפוש ארוכה במיוחד לבדיקת גלישת טקסט ותצוגת מפה בממשק Morro Digital';
+                    }
+                  });
+                  await page.waitForTimeout(80);
+                  const rtlExplore = await sheetGeometry(
+                    page,
+                    '#explore-flow-bottom-sheet',
+                  );
+                  if (
+                    rtlExplore.direction !== 'rtl' ||
+                    rtlExplore.rootWidth > 391 ||
+                    rtlExplore.bodyWidth > 391
+                  ) {
+                    throw new Error(
+                      `RTL/long-text Explore drift: ${JSON.stringify(rtlExplore)}`,
+                    );
+                  }
+
+                  await page.evaluate(() => {
+                    document.documentElement.dir = 'ltr';
+                    document.documentElement.lang = 'pt-BR';
+                    document.documentElement.style.fontSize = '200%';
+                  });
+                  await page.waitForTimeout(80);
+                  const zoomedExplore = await sheetGeometry(
+                    page,
+                    '#explore-flow-bottom-sheet',
+                  );
+                  assertInside(
+                    zoomedExplore.rect,
+                    { id: 'w390-explore-200pct', width: 390, height: 844 },
+                    'Explore 200% text sheet',
+                  );
+                  if (
+                    zoomedExplore.rootWidth > 391 ||
+                    zoomedExplore.bodyWidth > 391
+                  ) {
+                    throw new Error(
+                      `Explore 200% text overflow: ${JSON.stringify(zoomedExplore)}`,
+                    );
+                  }
+                  await page.evaluate((heading) => {
+                    document.documentElement.style.fontSize = '';
+                    const title = document.querySelector(
+                      '#explore-flow-bottom-sheet .explore-flow-sheet-title',
+                    );
+                    if (title) title.textContent = heading || '';
+                  }, originalHeading);
+
+                  await page.emulateMedia({ forcedColors: 'active' });
+                  const forcedExplore = await explore.evaluate(node => ({
+                    borderStyle: getComputedStyle(node).borderStyle,
+                    borderWidth: getComputedStyle(node).borderWidth,
+                  }));
+                  if (
+                    forcedExplore.borderStyle === 'none' ||
+                    forcedExplore.borderWidth === '0px'
+                  ) {
+                    throw new Error(
+                      `forced-colors removed Explore boundary: ${JSON.stringify(forcedExplore)}`,
+                    );
+                  }
+                  await page.screenshot({
+                    path: '/tmp/place-explore-v2/explore-w390-accessibility.png',
+                    fullPage: false,
+                    animations: 'disabled',
+                  });
+                  await page.emulateMedia({ forcedColors: 'none' });
+
+                  const fullControl = explore.locator(
+                    '[data-sheet-state-target="full"]',
+                  );
+                  await fullControl.focus();
+                  await page.keyboard.press('Enter');
+                  await page.locator(
+                    '#explore-flow-bottom-sheet[data-sheet-state="full"]',
+                  ).waitFor({ state: 'visible', timeout: 3000 });
+
+                  exploreAccessibility = {
+                    rtlExplore,
+                    zoomedExplore,
+                    forcedExplore,
+                    keyboardExpanded: true,
+                  };
+                }
+
                 await page.screenshot({
                   path: `/tmp/place-explore-v2/explore-${viewport.id}.png`,
                   fullPage: false,
@@ -291,7 +391,12 @@ jobs:
                   '#explore-flow-bottom-sheet [data-location-name="Primeira Praia"]',
                 );
                 await result.waitFor({ state: 'visible', timeout: 5000 });
-                await result.click();
+                if (viewport.id === 'w390') {
+                  await result.focus();
+                  await page.keyboard.press('Enter');
+                } else {
+                  await result.click();
+                }
 
                 const place = page.locator(
                   '#place-bottom-sheet[data-place-name="Primeira Praia"][data-place-state="ready"]',
@@ -482,7 +587,7 @@ jobs:
                   const selectedCamera = await camera(page);
                   await page.locator('#place-bottom-sheet .place-bottom-sheet-close').click();
                   await page.locator(
-                    '#explore-flow-bottom-sheet[data-flow-kind="explore"][data-flow-state="ready"] [data-location-name="Primeira Praia"]',
+                    '#explore-flow-bottom-sheet[data-flow-kind="explore"][data-flow-state="ready"][data-sheet-state="full"] [data-location-name="Primeira Praia"]',
                   ).waitFor({ state: 'visible', timeout: 8000 });
                   if (
                     (await page.locator('#map').getAttribute('data-map-marker-count')) !== '1'
@@ -504,6 +609,67 @@ jobs:
                       `return to Discover lost map context: ${JSON.stringify({ selectedCamera, discoverCamera })}`,
                     );
                   }
+
+                  const providerContextBefore = {
+                    camera: await camera(page),
+                    markers: await page.locator('#map').getAttribute(
+                      'data-map-marker-count',
+                    ),
+                  };
+                  await page.unroute('**/search/searchbox/v1/forward**');
+                  await page.route('**/search/searchbox/v1/forward**', route =>
+                    route.fulfill({
+                      status: 503,
+                      contentType: 'application/json',
+                      body: JSON.stringify({ message: 'provider unavailable' }),
+                    }),
+                  );
+                  await submit(page, 'Lugar Indisponivel Abcd');
+                  await page.locator(
+                    '#explore-flow-bottom-sheet[data-flow-kind="explore"][data-flow-state="error"]',
+                  ).waitFor({ state: 'visible', timeout: 10000 });
+                  const providerContextAfter = {
+                    camera: await camera(page),
+                    markers: await page.locator('#map').getAttribute(
+                      'data-map-marker-count',
+                    ),
+                  };
+                  if (
+                    providerContextAfter.markers !== providerContextBefore.markers ||
+                    !closeEnough(
+                      providerContextBefore.camera.lng,
+                      providerContextAfter.camera.lng,
+                      0.00001,
+                    ) ||
+                    !closeEnough(
+                      providerContextBefore.camera.lat,
+                      providerContextAfter.camera.lat,
+                      0.00001,
+                    ) ||
+                    !closeEnough(
+                      providerContextBefore.camera.zoom,
+                      providerContextAfter.camera.zoom,
+                      0.01,
+                    )
+                  ) {
+                    throw new Error(
+                      `Search provider failure destroyed map context: ${JSON.stringify({ providerContextBefore, providerContextAfter })}`,
+                    );
+                  }
+                  await page.screenshot({
+                    path: '/tmp/place-explore-v2/explore-w390-provider-unavailable.png',
+                    fullPage: false,
+                    animations: 'disabled',
+                  });
+                  await page.keyboard.press('Escape');
+                  await page.unroute('**/search/searchbox/v1/forward**');
+                  await page.route('**/search/searchbox/v1/forward**', route =>
+                    route.fulfill({
+                      status: 200,
+                      contentType: 'application/json',
+                      body: JSON.stringify({ features: [] }),
+                    }),
+                  );
 
                   await submit(page, 'Lugar Fantasma Qzxw');
                   await page.locator(
@@ -552,6 +718,7 @@ jobs:
                   });
 
                   special = {
+                    exploreAccessibility,
                     orientationState,
                     beforeResize,
                     afterResize,
@@ -560,6 +727,8 @@ jobs:
                     forcedColors,
                     selectedCamera,
                     discoverCamera,
+                    providerContextBefore,
+                    providerContextAfter,
                     filteredMarkerCount,
                     restoredMarkerCount,
                   };
