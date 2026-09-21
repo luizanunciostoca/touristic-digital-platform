@@ -709,8 +709,15 @@ async function upgradeCurrentView() {
   if (!app || app.hidden) return;
   const raw = (globalThis.location.hash || "#overview").replace(/^#/, "");
   const [view, detail] = raw.split(":", 2);
-  pageContext(view || "overview");
-  if ((view || "overview") === "overview") {
+  const currentView = view || "overview";
+
+  // Invalidate any in-flight home request before a non-home route can be
+  // decorated. Without this guard, a slow overview fetch can overwrite the
+  // DOM after the operator has already navigated to another module.
+  if (currentView !== "overview") state.generation += 1;
+
+  pageContext(currentView);
+  if (currentView === "overview") {
     await renderHome();
     return;
   }
