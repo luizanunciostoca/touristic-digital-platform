@@ -12,6 +12,8 @@ on:
       - apps/morro-digital-platform/src/assistant/assistant-v1-photo-catalog.ts
       - apps/morro-digital-platform/src/assistant/assistant-domain-adapter.ts
       - apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts
+      - apps/morro-digital-platform/public/assistant-photo-carousel.css
+      - apps/morro-digital-platform/public/design-system-v2.css
       - apps/morro-digital-platform/tooling/dev-server.mjs
 
 permissions:
@@ -132,6 +134,50 @@ jobs:
 
               const carousel = page.locator('.assistant-photo-carousel');
               await carousel.waitFor({ state: 'visible', timeout: 10000 });
+              const carouselV2 = await carousel.evaluate((node) => {
+                const track = node.querySelector('.assistant-photo-carousel-track');
+                const slides = Array.from(
+                  node.querySelectorAll('.assistant-photo-carousel-slide'),
+                );
+                return {
+                  role: node.getAttribute('role'),
+                  label: node.getAttribute('aria-label'),
+                  trackRole: track?.getAttribute('role'),
+                  trackTabIndex: track?.getAttribute('tabindex'),
+                  trackLabel: track?.getAttribute('aria-label'),
+                  slideRoles: slides.map((slide) => slide.getAttribute('role')),
+                  slideLabels: slides.map((slide) => slide.getAttribute('aria-label')),
+                };
+              });
+              if (
+                carouselV2.role !== 'region' ||
+                !carouselV2.label?.includes('Toca do Morcego') ||
+                carouselV2.trackRole !== 'list' ||
+                carouselV2.trackTabIndex !== '0' ||
+                !carouselV2.trackLabel?.includes('Toca do Morcego') ||
+                carouselV2.slideRoles.some((role) => role !== 'listitem') ||
+                carouselV2.slideLabels.length !== 3 ||
+                !carouselV2.slideLabels[0]?.includes('1') ||
+                !carouselV2.slideLabels[2]?.includes('3')
+              ) {
+                throw new Error(`Carousel V2 semantics drifted: ${JSON.stringify(carouselV2)}`);
+              }
+
+              const carouselTrack = carousel.locator('.assistant-photo-carousel-track');
+              await carouselTrack.focus();
+              await page.keyboard.press('ArrowRight');
+              await page.waitForFunction(() =>
+                document.querySelector('.assistant-photo-carousel-track')?.getAttribute('data-active-index') === '1',
+              );
+              await page.keyboard.press('End');
+              await page.waitForFunction(() =>
+                document.querySelector('.assistant-photo-carousel-track')?.getAttribute('data-active-index') === '2',
+              );
+              await page.keyboard.press('Home');
+              await page.waitForFunction(() =>
+                document.querySelector('.assistant-photo-carousel-track')?.getAttribute('data-active-index') === '0',
+              );
+
               const sources = await carousel.locator('img').evaluateAll((images) =>
                 images.map((image) => new URL(image.src).pathname),
               );
