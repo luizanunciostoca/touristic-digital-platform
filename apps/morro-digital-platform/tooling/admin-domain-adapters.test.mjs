@@ -509,6 +509,7 @@ describe("Control Center Affiliates owner adapter", () => {
     );
     expect(runtime.adminList).toHaveBeenCalledWith(actor, {
       query: "creator",
+      destinationId: "",
       limit: "10",
     });
 
