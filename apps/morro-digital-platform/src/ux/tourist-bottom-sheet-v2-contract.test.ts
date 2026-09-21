@@ -48,7 +48,9 @@ describe("Tourist Surface Bottom Sheet V2", () => {
     expect(runtime).toContain('if (stage === "tour") return "tour"');
     expect(runtime).toContain('"morro:explore-state-changed"');
     expect(runtime).toContain('input.mediaQuery ?? "(max-width: 45rem)"');
-    expect(entry).toContain("installTouristSurfaceBottomSheet({ document, window })");
+    expect(entry).toContain(
+      "installTouristSurfaceBottomSheet({ document, window })",
+    );
   });
 
   it("supports pointer touch keyboard and accessible handle operation", async () => {
@@ -71,7 +73,9 @@ describe("Tourist Surface Bottom Sheet V2", () => {
     }
   });
 
-  it("keeps mobile sheets safe-area aware scroll-contained and reduced-motion compatible", async () => {
+  it(
+    "keeps mobile sheets safe-area aware scroll-contained and reduced-motion compatible",
+    async () => {
     const [assistantCss, premiumCss] = await Promise.all([
       readPublic("assistant-v2.css"),
       readPublic("premium-ux-v2.css"),
@@ -87,7 +91,22 @@ describe("Tourist Surface Bottom Sheet V2", () => {
     expect(assistantCss).toContain("overscroll-behavior: contain");
     expect(assistantCss).toContain("touch-action: none");
     expect(premiumCss).toContain("@media (prefers-reduced-motion: reduce)");
-    expect(premiumCss).toContain(".md-bottom-sheet");
+      expect(premiumCss).toContain(".md-bottom-sheet");
+    },
+  );
+
+  it("keeps the Explore browser gate authoritative for mobile snap behavior", async () => {
+    const workflow = await readRepository(
+      ".github/workflows/v1-explore-locations-browser-regression.yml",
+    );
+
+    expect(workflow).toContain("assertTouristSheet");
+    expect(workflow).toContain("Tourist Bottom Sheet V2 drifted");
+    expect(workflow).toContain("data-tourist-sheet-handle");
+    expect(workflow).toContain("page.keyboard.press('ArrowUp')");
+    expect(workflow).toContain("page.keyboard.press('Home')");
+    expect(workflow).toContain("page.mouse.down()");
+    expect(workflow).toContain("page.mouse.up()");
   });
 
   it("keeps Commerce on its production bottom-sheet controller", async () => {
