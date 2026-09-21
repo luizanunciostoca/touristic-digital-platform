@@ -24,6 +24,8 @@ async function main() {
     const context = await browser.newContext({
       viewport: { width: 1280, height: 900 },
     });
+    stage = "axe-register";
+    await context.addInitScript({ path: axePath });
     stage = "login";
     const login = await context.request.post(
       `${origin}/api/dashboard/auth/login`,
@@ -43,8 +45,10 @@ async function main() {
     );
     stage = "app-ready";
     await page.locator("#app:not([hidden])").waitFor({ timeout: 15_000 });
-    stage = "axe-inject";
-    await page.addScriptTag({ path: axePath });
+    stage = "axe-ready";
+    await page.waitForFunction(() => Boolean(globalThis.axe), null, {
+      timeout: 10_000,
+    });
 
     stage = "nav-discovery";
     const views = await page
