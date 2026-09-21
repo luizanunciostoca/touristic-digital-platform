@@ -2567,12 +2567,21 @@ export function createAdminApi({
           }
           if (!capabilityAllowed(source.capability)) continue;
 
-          const destinationAware =
-            typeof adapter?.searchDestinationAware === "boolean"
-              ? adapter.searchDestinationAware
-              : source.destinationAware;
+          if (
+            typeof adapter?.searchDestinationAware === "boolean" &&
+            adapter.searchDestinationAware !== source.destinationAware
+          ) {
+            partial.push(
+              Object.freeze({
+                domain: source.domain,
+                types: source.types,
+                reason: "destination_contract_mismatch",
+              }),
+            );
+            continue;
+          }
 
-          if (destinationId && !destinationAware) {
+          if (destinationId && !source.destinationAware) {
             partial.push(
               Object.freeze({
                 domain: source.domain,
@@ -2607,7 +2616,7 @@ export function createAdminApi({
               if (!normalized) continue;
               if (
                 destinationId &&
-                normalized.destinationId &&
+                source.destinationAware &&
                 normalized.destinationId !== destinationId
               ) {
                 continue;
