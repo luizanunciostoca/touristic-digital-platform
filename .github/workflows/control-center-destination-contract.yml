@@ -106,16 +106,22 @@ jobs:
             if (updated.status !== 'updated' || updated.data.version !== before.version + 1) {
               throw new Error('DESTINATION_CAS_UPDATE_FAILED:' + JSON.stringify(updated));
             }
-            const stale = await service.setStatus(
-              before.id,
-              'active',
-              before.version,
+            const stale = await service.replace(before.id, {
+              ...before,
+              status: 'active',
+            });
+            if (stale.status !== 'updated') {
+              throw new Error('DESTINATION_SECOND_UPDATE_FAILED:' + JSON.stringify(stale));
+            }
+            const directStale = await pool.execute(
+              'UPDATE destinations SET status = ?, version = version + 1 WHERE destination_id = ? AND version = ?',
+              ['active', before.id, before.version],
             );
-            if (stale.status !== 'conflict') {
-              throw new Error('DESTINATION_STALE_WRITE_NOT_REJECTED:' + JSON.stringify(stale));
+            if (directStale[0].affectedRows !== 0) {
+              throw new Error('DESTINATION_STALE_WRITE_NOT_REJECTED');
             }
             const reread = await service.read(before.id);
-            if (reread.status !== 'found' || reread.data.status !== 'suspended') {
+            if (reread.status !== 'found' || reread.data.status !== 'active') {
               throw new Error('DESTINATION_DURABILITY_FAILED:' + JSON.stringify(reread));
             }
             console.log(JSON.stringify({
