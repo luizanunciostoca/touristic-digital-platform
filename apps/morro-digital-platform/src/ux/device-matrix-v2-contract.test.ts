@@ -19,9 +19,7 @@ describe("UX Design V2 device matrix contract", () => {
       320, 360, 375, 390, 393, 412, 430, 768, 820, 1024, 1280, 1366, 1440,
       1920,
     ]) {
-      expect(workflow, `missing width ${width}`).toContain(
-        `width: ${width}`,
-      );
+      expect(workflow, `missing width ${width}`).toContain(`width: ${width}`);
     }
     expect(workflow).toContain("mobile-landscape");
     expect(workflow).toContain("mobile-large-landscape");
