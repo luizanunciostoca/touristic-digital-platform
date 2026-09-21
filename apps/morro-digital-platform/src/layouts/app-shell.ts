@@ -134,7 +134,7 @@ function createAppShellMarkup(): string {
         <button
           type="button"
           id="toggle-globe-view"
-          class="map-control-button"
+          class="map-control-button md-icon-button"
           title="Toggle global map view"
           aria-label="Toggle global map view"
         >
