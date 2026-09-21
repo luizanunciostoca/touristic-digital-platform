@@ -58,6 +58,13 @@ describe("UX Design V2 shared component adoption", () => {
     expect(onboarding).toContain('toast.className = "md-toast"');
     expect(onboarding).toContain('toast.setAttribute("role", "status")');
     expect(onboarding).toContain('toast.setAttribute("aria-live", "polite")');
+    const premium = await readRepository(
+      "apps/morro-digital-platform/public/premium-ux-v2.css",
+    );
+    expect(premium).toContain("#tour-finish-toast.md-toast");
+    expect(premium).toContain("var(--md-layer-toast)");
+    expect(premium).toContain("var(--md-motion-duration-slow)");
+    expect(premium).not.toContain("transition: all");
   });
 
   it("uses the same shared icon-button primitive for runtime-created 3D controls", async () => {

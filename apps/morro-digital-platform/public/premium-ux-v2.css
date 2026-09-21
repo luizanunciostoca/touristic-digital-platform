@@ -146,6 +146,42 @@ body[data-md-mode] {
     opacity, transform, background-color, border-color, box-shadow;
 }
 
+.quick-actions {
+  left: max(var(--md-safe-left), var(--md-space-3)) !important;
+}
+
+.quick-actions .action-button.primary.mood-button,
+.quick-actions .mood-button {
+  transform-origin: left center;
+}
+
+/* Onboarding completion toast — V2 authority over frozen V1 evidence. */
+#tour-finish-toast.md-toast {
+  z-index: var(--md-layer-toast);
+  transform: translateX(-50%) translateY(var(--md-space-5));
+  padding: var(--md-space-3) var(--md-space-5);
+  border-radius: var(--md-radius-xl);
+  background: linear-gradient(
+    135deg,
+    var(--md-color-success),
+    color-mix(in srgb, var(--md-color-success) 82%, black)
+  );
+  color: var(--md-color-text-inverse);
+  box-shadow: var(--md-elevation-2);
+  font-family: var(--md-font-family-sans);
+  font-size: var(--md-font-size-sm);
+  font-weight: var(--md-font-weight-bold);
+  gap: var(--md-space-2);
+  max-width: calc(100vw - var(--md-space-6));
+  transition:
+    opacity var(--md-motion-duration-slow) var(--md-motion-ease-emphasized),
+    transform var(--md-motion-duration-slow) var(--md-motion-ease-emphasized);
+}
+
+#tour-finish-toast.md-toast.visible {
+  transform: translateX(-50%) translateY(0);
+}
+
 .quick-actions,
 #globe-map-control,
 #weather-widget,

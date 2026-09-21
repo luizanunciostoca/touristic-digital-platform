@@ -26,6 +26,16 @@ describe("Outdoor and one-hand UX V2 contract", () => {
     expect(css).toContain("min-height: var(--md-touch-target-min)");
   });
 
+  it("keeps the assistant trigger inside the inline safe area across large viewports", async () => {
+    const css = await readPublic("premium-ux-v2.css");
+
+    expect(css).toContain(
+      "left: max(var(--md-safe-left), var(--md-space-3)) !important",
+    );
+    expect(css).toContain(".quick-actions .action-button.primary.mood-button");
+    expect(css).toContain("transform-origin: left center");
+  });
+
   it("keeps critical mobile actions in the lower thumb region", async () => {
     const css = await readPublic("premium-ux-v2.css");
 
