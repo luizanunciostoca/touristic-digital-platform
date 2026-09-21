@@ -32,6 +32,7 @@ button {
   margin-inline: auto;
   padding-block: var(--md-space-8)
     calc(var(--md-space-12) + var(--md-safe-bottom));
+  overflow-wrap: anywhere;
 }
 
 .ticketing-header {
