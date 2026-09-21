@@ -117,7 +117,10 @@ jobs:
             const assistant = page.locator('#assistant-messages');
             const input = page.locator('#assistantInput');
             await input.waitFor({ state: 'visible', timeout: 5000 });
-            if (!(await assistant.isVisible())) await input.focus();
+            if (!(await assistant.isVisible())) {
+              await input.evaluate(node => node.blur());
+              await input.focus();
+            }
             await assistant.waitFor({ state: 'visible', timeout: 5000 });
           }
 
@@ -253,6 +256,7 @@ jobs:
                 await assertMainMenu(page);
               }
 
+              await openAssistant(page);
               const beaches = page.locator('#assistant-category-beaches');
               await beaches.click();
               await assertFiltersStage(page, 'beaches', 8);
