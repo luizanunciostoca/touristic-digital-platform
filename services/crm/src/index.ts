@@ -42,10 +42,7 @@ import { CrmProposalHttpTransport } from "./proposals-http-transport.js";
 import { CrmProposalPublicHttpTransport } from "./proposals-public-http-transport.js";
 import { CrmReferralHttpTransport } from "./referrals-http-transport.js";
 import { crmM99ReferralsSchemaSql } from "./referrals-schema.js";
-import {
-  crmM156DestinationScopeSchemaSql,
-  crmM71SchemaSql,
-} from "./schema.js";
+import { crmM156DestinationScopeSchemaSql, crmM71SchemaSql } from "./schema.js";
 import { crmM155SchemaSql } from "./crm-settings-schema.js";
 import { MySqlCrmSettingsRepository } from "./crm-settings-service.js";
 import {

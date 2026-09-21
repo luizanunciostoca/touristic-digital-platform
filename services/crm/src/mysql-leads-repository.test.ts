@@ -1,10 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { MySqlCrmLeadRepository } from "./mysql-leads-repository.js";
-import {
-  crmM156DestinationScopeSchemaSql,
-  crmM71SchemaSql,
-} from "./schema.js";
+import { crmM156DestinationScopeSchemaSql, crmM71SchemaSql } from "./schema.js";
 
 type Call = { sql: string; values: unknown[] | undefined };
 

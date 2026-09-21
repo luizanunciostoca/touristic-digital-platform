@@ -71,9 +71,7 @@ export function normalizeBusinessId(value: unknown): string {
     .replace(/^-+|-+$/gu, "");
 }
 
-export function normalizeBusinessDestinationId(
-  value: unknown,
-): string | null {
+export function normalizeBusinessDestinationId(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const normalized = value.trim().toLowerCase();
   return /^[a-z0-9]+(?:-[a-z0-9]+)*$/u.test(normalized) &&

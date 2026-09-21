@@ -250,11 +250,7 @@ function businessesFromUsers(users) {
   );
 }
 
-async function businessDirectoryProjection(
-  users,
-  adapter,
-  destinationId = "",
-) {
+async function businessDirectoryProjection(users, adapter, destinationId = "") {
   const directory = businessesFromUsers(users);
   const ownerProjectionAvailable =
     typeof adapter?.readDirectoryProfile === "function";

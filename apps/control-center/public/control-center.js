@@ -1142,18 +1142,21 @@ async function renderBusinesses(businessId) {
       <table>
         <thead><tr><th>Empresa</th><th>Destino</th><th>Membros</th><th>Fonte</th><th>Visão 360º</th></tr></thead>
         <tbody>
-          ${data.businesses
-            .map(
-              (business) =>
-                `<tr>
+          ${
+            data.businesses
+              .map(
+                (business) =>
+                  `<tr>
                   <td><strong>${escapeHtml(business.name ?? business.id)}</strong><br><small>${escapeHtml(business.id)}</small></td>
                   <td>${business.destinationId ? `<span class="badge">${escapeHtml(business.destinationId)}</span>` : statusBadge("partial")}</td>
                   <td>${business.members.map((member) => escapeHtml(member.email)).join("<br>")}</td>
                   <td>${escapeHtml(business.source)}</td>
                   <td><a href="#businesses:${encodeURIComponent(business.id)}">Abrir empresa</a></td>
                 </tr>`,
-            )
-            .join("") || '<tr><td colspan="5" class="empty">Nenhuma empresa no contexto de destino selecionado.</td></tr>'}
+              )
+              .join("") ||
+            '<tr><td colspan="5" class="empty">Nenhuma empresa no contexto de destino selecionado.</td></tr>'
+          }
         </tbody>
       </table>
     </div>`;

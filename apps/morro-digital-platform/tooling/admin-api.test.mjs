@@ -1484,9 +1484,7 @@ describe("Control Center Admin API", () => {
     const response = responseRecorder();
 
     await api.handle(
-      request(
-        "/api/admin/v1/businesses?destinationId=morro-de-sao-paulo",
-      ),
+      request("/api/admin/v1/businesses?destinationId=morro-de-sao-paulo"),
       response,
       new URL(
         "http://localhost/api/admin/v1/businesses?destinationId=morro-de-sao-paulo",
@@ -1498,9 +1496,7 @@ describe("Control Center Admin API", () => {
     expect(payload.authority).toBe("read-only-directory");
     expect(payload.destinationScope).toBe("owner-backed");
     expect(payload.destinationId).toBe("morro-de-sao-paulo");
-    expect(payload.mutationContract).toBe(
-      "BUSINESS_ADMIN_CONTRACT_REGISTERED",
-    );
+    expect(payload.mutationContract).toBe("BUSINESS_ADMIN_CONTRACT_REGISTERED");
     expect(payload.businesses).toEqual([
       expect.objectContaining({
         id: "toca-do-morcego",
@@ -1513,9 +1509,7 @@ describe("Control Center Admin API", () => {
     await api.handle(
       request("/api/admin/v1/businesses?destinationId=itacare"),
       excluded,
-      new URL(
-        "http://localhost/api/admin/v1/businesses?destinationId=itacare",
-      ),
+      new URL("http://localhost/api/admin/v1/businesses?destinationId=itacare"),
     );
     expect(JSON.parse(excluded.body).businesses).toEqual([]);
   });
