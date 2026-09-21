@@ -307,33 +307,6 @@ function attentionItems(dashboard) {
   return [...healthItems, ...moduleItems].slice(0, 4);
 }
 
-function quickActions() {
-  const actions = [];
-  if (actorHas("business.read"))
-    actions.push(["#businesses", "Empresas", "primary", "▦"]);
-  if (actorHas("affiliate.read"))
-    actions.push(["#affiliates", "Afiliados", "positive", "◇"]);
-  if (actorHas("support.impersonate"))
-    actions.push(["#support", "Abrir suporte", "", "◎"]);
-  if (actorHas("audit.read"))
-    actions.push(["#audit", "Ver auditoria", "", "⌁"]);
-  return actions
-    .slice(0, 4)
-    .map(
-      ([href, label, cls, icon]) =>
-        '<a class="quick-action ' +
-        cls +
-        '" href="' +
-        href +
-        '"><span aria-hidden="true">' +
-        icon +
-        "</span>" +
-        escapeHtml(label) +
-        "</a>",
-    )
-    .join("");
-}
-
 function activityHtml(entries) {
   if (!Array.isArray(entries) || entries.length === 0) {
     return '<div class="empty"><strong>Nenhuma atividade recente</strong><span>Eventos administrativos aparecerão aqui quando existirem.</span></div>';
@@ -562,11 +535,7 @@ async function renderHome() {
       '<section class="card section-card"><div class="section-title"><div><h2>Atividade recente</h2><p>Eventos operacionais e administrativos compreensíveis.</p></div><a class="section-link" href="#audit">Ver todos os eventos</a></div><div class="timeline">' +
       activityHtml(data.audit.entries || []) +
       "</div></section></div>" +
-      '<div class="home-stack"><section class="card section-card"><div class="section-title"><h2>Ações rápidas</h2></div><div class="quick-actions">' +
-      (quickActions() ||
-        '<div class="empty"><strong>Nenhuma ação disponível</strong><span>As ações respeitam as capabilities do actor.</span></div>') +
-      "</div></section>" +
-      '<section class="card section-card affiliate-model-card"><div class="section-title"><h2>Afiliados pertencem à Morro Digital</h2></div><div class="affiliate-model-card__body"><span class="affiliate-model-card__icon" aria-hidden="true">◇</span><p>Os afiliados são da Morro Digital e são organizados por destino, não por empresa. Eles podem promover produtos de várias empresas do mesmo destino, fortalecendo todo o ecossistema.</p></div></section></div></div>';
+      '<div class="home-stack"><section class="card section-card affiliate-model-card"><div class="section-title"><h2>Afiliados pertencem à Morro Digital</h2></div><div class="affiliate-model-card__body"><span class="affiliate-model-card__icon" aria-hidden="true">◇</span><p>Os afiliados são da Morro Digital e são organizados por destino, não por empresa. Eles podem promover produtos de várias empresas do mesmo destino, fortalecendo todo o ecossistema.</p></div></section></div></div>';
 
     contentRoot.querySelectorAll("[data-destination-row]").forEach((row) => {
       const activate = () => {
