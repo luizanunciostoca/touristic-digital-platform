@@ -883,8 +883,11 @@ async function renderUsers(userId) {
         <span class="badge">${sessions.length} registrada(s)</span>
       </div>
       <div class="callout">
-        Revogar uma sessão é uma ação de alto risco. Confirme sua senha,
-        informe o motivo e digite <strong>REVOGAR</strong>.
+        ${
+          supportActive
+            ? "Revogação de sessão não é oferecida pela Entity 360 durante Support Mode; o contexto delegado nunca substitui o actor real."
+            : "Revogar uma sessão é uma ação de alto risco. Confirme sua senha, informe o motivo e digite REVOGAR."
+        }
       </div>
       <form id="session-revoke-form" class="form-grid">
         <label>
@@ -942,9 +945,11 @@ async function renderUsers(userId) {
                     <td><span class="badge ${active ? "pass" : status === "revogada" ? "partial" : "gap"}">${escapeHtml(status)}</span></td>
                     <td>
                       ${
-                        active
+                        active && !supportActive
                           ? `<button class="secondary-button" type="button" data-revoke-session="${escapeHtml(session.handle)}">Revogar sessão</button>`
-                          : "—"
+                          : active && supportActive
+                            ? "Indisponível em Support Mode"
+                            : "—"
                       }
                     </td>
                   </tr>`;
