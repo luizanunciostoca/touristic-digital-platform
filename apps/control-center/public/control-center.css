@@ -7,9 +7,9 @@
   --md-primary: #0b63ce;
   --md-primary-hover: #0958b8;
   --md-primary-soft: #eaf3ff;
-  --md-success: #10a760;
+  --md-success: #087a45;
   --md-success-soft: #eaf9f1;
-  --md-warning: #d97706;
+  --md-warning: #9a4d00;
   --md-warning-soft: #fff6e8;
   --md-danger: #d92d20;
   --md-danger-soft: #fff1f2;
@@ -216,7 +216,7 @@ a:focus-visible,
 
 .nav-group-label {
   margin: 0 8px 5px;
-  color: #8190a5;
+  color: #5f6f82;
   font-size: 10px;
   font-weight: 700;
   line-height: 1.4;
