@@ -10,19 +10,6 @@
 
 @layer reset, vendor, legacy, tokens, base, components, features, utilities, overrides;
 
-@layer tokens {
-  :root {
-    --md-outdoor-surface: rgba(255, 255, 255, 0.96);
-    --md-outdoor-surface-strong: #ffffff;
-    --md-outdoor-text: #0f172a;
-    --md-outdoor-border: rgba(255, 255, 255, 0.78);
-    --md-outdoor-shadow: 0 0.75rem 2rem rgba(15, 23, 42, 0.18);
-    --md-sheet-peek-height: min(30dvh, 16rem);
-    --md-sheet-half-height: min(55dvh, 32rem);
-    --md-sheet-full-height: 90dvh;
-  }
-}
-
 @layer base {
   [data-md-mode] {
     --md-active-mode: discover;
