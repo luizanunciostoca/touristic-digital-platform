@@ -285,12 +285,7 @@ function appendPhotoCarousel(
     figure.setAttribute("role", "listitem");
     figure.setAttribute(
       "aria-label",
-      photoCarouselCopy(
-        document,
-        presentation.place,
-        index + 1,
-        total,
-      ).slide,
+      photoCarouselCopy(document, presentation.place, index + 1, total).slide,
     );
 
     const image = document.createElement("img");
@@ -325,10 +320,7 @@ function appendPhotoCarousel(
         ? 0
         : event.key === "End"
           ? slides.length - 1
-          : Math.min(
-              slides.length - 1,
-              Math.max(0, current + direction),
-            );
+          : Math.min(slides.length - 1, Math.max(0, current + direction));
     const slide = slides[target];
     if (!slide) return;
 
