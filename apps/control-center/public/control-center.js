@@ -3009,6 +3009,8 @@ async function render(view, detail) {
   state.view = view;
   renderNav();
   setHeading(view);
+  delete content.dataset.renderedView;
+  content.setAttribute("aria-busy", "true");
   content.innerHTML = '<section class="card empty">Carregando…</section>';
 
   try {
@@ -3035,6 +3037,9 @@ async function render(view, detail) {
         <strong>Não foi possível carregar este módulo</strong>
         <span>${escapeHtml(error.body?.error || error.message)}</span>
       </section>`;
+  } finally {
+    content.dataset.renderedView = view;
+    content.setAttribute("aria-busy", "false");
   }
 }
 
