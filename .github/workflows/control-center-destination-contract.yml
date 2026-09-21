@@ -87,7 +87,7 @@ jobs:
             bootstrapMorroDeSaoPauloDestination,
           } from './services/destinations/dist/index.js';
 
-          const pool = createDestinationsMySqlPool(process.env);
+          const pool = createDestinationsMySqlPool(process.env.DESTINATIONS_DATABASE_URL);
           try {
             await applyDestinationsSchema(pool);
             const service = createDestinationAdminService(pool);
