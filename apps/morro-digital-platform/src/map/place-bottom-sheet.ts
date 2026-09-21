@@ -478,6 +478,7 @@ export function installPlaceBottomSheet(
     shareButton.className =
       "md-button md-button--secondary place-bottom-sheet-action place-bottom-sheet-share";
     shareButton.dataset.placeNativeAction = "share";
+    shareButton.dataset.value = "compartilhar";
     shareButton.textContent = `🔗 ${placeUiCopy[next.locale].share}`;
     shareButton.addEventListener("click", () => {
       const view = document.defaultView;
