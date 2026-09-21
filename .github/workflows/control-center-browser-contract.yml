@@ -78,7 +78,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Install deterministic Chromium
         run: |
-          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2 axe-core@4.10.3
           /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
       - name: Build Control Center runtime graph
         run: pnpm -w build
