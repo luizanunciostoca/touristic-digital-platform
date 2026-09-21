@@ -7,6 +7,13 @@ import {
 
 const adminPrefix = "/api/admin/v1";
 
+function foldSearchText(value) {
+  return String(value ?? "")
+    .normalize("NFKD")
+    .replace(/\p{M}/gu, "")
+    .toLocaleLowerCase("pt-BR");
+}
+
 function mappedUrl(requestUrl, pathname) {
   const target = new URL(requestUrl.toString());
   target.pathname = pathname;
@@ -92,6 +99,8 @@ export function createAffiliateAdminAdapter(affiliateAdminRuntime) {
 
   return Object.freeze({
     state: "available",
+    searchCapability: "affiliate.read",
+    searchDestinationAware: true,
     coverage: Object.freeze([
       "list",
       "detail",
@@ -101,10 +110,11 @@ export function createAffiliateAdminAdapter(affiliateAdminRuntime) {
       "conversion-readback",
     ]),
 
-    async search({ query, actor }) {
+    async search({ query, actor, destinationId, limit }) {
       const result = await affiliateAdminRuntime.adminList(actor, {
         query,
-        limit: 10,
+        destinationId,
+        limit: Math.min(Number(limit) || 10, 50),
       });
       if (result.status !== "found") return [];
       return Object.freeze(
@@ -140,6 +150,7 @@ export function createAffiliateAdminAdapter(affiliateAdminRuntime) {
           response,
           await affiliateAdminRuntime.adminList(actor, {
             query: requestUrl.searchParams.get("query") ?? "",
+            destinationId: requestUrl.searchParams.get("destinationId") ?? "",
             limit: requestUrl.searchParams.get("limit") ?? 100,
           }),
           "AFFILIATE_NOT_FOUND",
@@ -255,40 +266,84 @@ export function createCrmAdminAdapter(crmApi, authApi) {
       "trials",
       "search",
     ]),
-    async search({ query, request, effectiveUser }) {
+    searchCapability: "crm.read",
+    searchDestinationAware: false,
+    async search({ query, request, effectiveUser, limit }) {
       if (!request || !query) return [];
-      const response = jsonCaptureResponse();
-      const requestUrl = new URL("http://localhost/api/crm/leads");
-      requestUrl.searchParams.set("search", query);
-      requestUrl.searchParams.set("limit", "20");
+      const resultLimit = Math.min(Number(limit) || 20, 50);
 
-      await withEffectiveUser(delegation, request, effectiveUser, () =>
-        crmApi.handle(request, response, requestUrl),
-      );
-      if (response.statusCode !== 200) return [];
-
-      let payload;
-      try {
-        payload = JSON.parse(response.body || "{}");
-      } catch {
-        return [];
+      async function ownerList(pathname) {
+        const response = jsonCaptureResponse();
+        const requestUrl = new URL("http://localhost" + pathname);
+        await withEffectiveUser(delegation, request, effectiveUser, () =>
+          crmApi.handle(request, response, requestUrl),
+        );
+        if (response.statusCode !== 200) return [];
+        try {
+          const payload = JSON.parse(response.body || "{}");
+          return Array.isArray(payload.data) ? payload.data : [];
+        } catch {
+          return [];
+        }
       }
-      const leads = Array.isArray(payload.data) ? payload.data : [];
-      return Object.freeze(
-        leads.map((lead) =>
+
+      const leadUrl = new URL("http://localhost/api/crm/leads");
+      leadUrl.searchParams.set("search", query);
+      leadUrl.searchParams.set("limit", String(resultLimit));
+      const leads = await ownerList(
+        leadUrl.pathname + "?" + leadUrl.searchParams.toString(),
+      );
+      const contracts = await ownerList("/api/crm/contracts");
+      const needle = foldSearchText(query);
+      const results = [];
+
+      for (const lead of leads) {
+        results.push(
           Object.freeze({
-            type: "crm-lead",
+            type: "lead",
             id: String(lead.id),
             title: lead.companyName || String(lead.id),
             context:
               [lead.contactName, lead.email, lead.stage, lead.status]
                 .filter(Boolean)
                 .join(" · ") || "CRM",
-            href: "#crm",
+            href:
+              "/apps/admin-crm/public/lead-detail.html?id=" +
+              encodeURIComponent(String(lead.id)),
           }),
-        ),
-      );
+        );
+      }
+
+      for (const contract of contracts) {
+        const searchable = foldSearchText(
+          [
+            contract.id,
+            contract.title,
+            contract.leadId,
+            contract.proposalId,
+            contract.status,
+          ]
+            .filter((value) => value !== undefined && value !== null)
+            .join(" "),
+        );
+        if (!searchable.includes(needle)) continue;
+        results.push(
+          Object.freeze({
+            type: "contract",
+            id: String(contract.id),
+            title: contract.title || String(contract.id),
+            context: [contract.status, contract.leadId && "Lead " + contract.leadId]
+              .filter(Boolean)
+              .join(" · "),
+            href:
+              "/apps/admin-crm/public/contracts.html?id=" +
+              encodeURIComponent(String(contract.id)),
+          }),
+        );
+      }
+      return Object.freeze(results.slice(0, resultLimit));
     },
+
     async handle({ request, response, requestUrl, effectiveUser }) {
       const relative = requestUrl.pathname.slice(`${adminPrefix}/crm`.length);
       if (!relative || relative === "/") {
@@ -394,6 +449,8 @@ export function createProductsAdminAdapter(ticketingApi) {
     /^\/api\/admin\/v1\/products\/([A-Za-z0-9._:-]{2,120})$/u;
   return Object.freeze({
     state: "available",
+    searchCapability: "business.read",
+    searchDestinationAware: true,
     coverage: Object.freeze([
       "list",
       "search",
@@ -423,24 +480,43 @@ export function createProductsAdminAdapter(ticketingApi) {
         inventoryId,
       });
     },
-    async search({ query }) {
+    async search({ query, destinationId, limit }) {
       const result = await ticketingApi.adminListInventory({
         query,
-        limit: 20,
+        destinationId,
+        limit: Math.min(Number(limit) || 20, 50),
       });
       if (result.status !== "found") return [];
       return Object.freeze(
-        result.data.map(({ offer, businessId, availableQuantity }) =>
+        result.data.flatMap(({ offer, businessId, availableQuantity }) => [
           Object.freeze({
             type: "product",
+            id: offer.product?.reference || offer.id,
+            title: offer.product?.reference || offer.label,
+            context: [offer.product?.kind, offer.label, businessId]
+              .filter(Boolean)
+              .join(" · "),
+            href: "#products:" + encodeURIComponent(offer.id),
+            destinationId: offer.destinationId,
+          }),
+          Object.freeze({
+            type: "offer",
             id: offer.id,
             title: offer.label,
-            context: `${offer.product.kind} · ${businessId ?? "sem empresa"} · ${availableQuantity} disponível(is)`,
-            href: `#products:${encodeURIComponent(offer.id)}`,
+            context: [
+              offer.product?.kind,
+              businessId,
+              String(availableQuantity) + " disponível(is)",
+            ]
+              .filter(Boolean)
+              .join(" · "),
+            href: "#products:" + encodeURIComponent(offer.id),
+            destinationId: offer.destinationId,
           }),
-        ),
+        ]),
       );
     },
+
     async handle({ request, response, requestUrl }) {
       if (
         request.method === "GET" &&
@@ -478,6 +554,8 @@ export function createReservationsAdminAdapter(ticketingApi) {
     /^\/api\/admin\/v1\/reservations\/([A-Za-z0-9._:-]{2,120})$/u;
   return Object.freeze({
     state: "available",
+    searchCapability: "ticketing.read",
+    searchDestinationAware: true,
     coverage: Object.freeze([
       "list",
       "search",
@@ -500,10 +578,11 @@ export function createReservationsAdminAdapter(ticketingApi) {
         actorReference,
       });
     },
-    async search({ query }) {
+    async search({ query, destinationId, limit }) {
       const result = await ticketingApi.adminListReservations({
         query,
-        limit: 20,
+        destinationId,
+        limit: Math.min(Number(limit) || 20, 50),
       });
       if (result.status !== "found") return [];
       return Object.freeze(
@@ -512,12 +591,20 @@ export function createReservationsAdminAdapter(ticketingApi) {
             type: "reservation",
             id: reservation.id,
             title: inventoryLabel || reservation.id,
-            context: `${reservation.status} · ${businessId ?? "sem empresa"} · ${reservation.holderReference}`,
-            href: `#reservations:${encodeURIComponent(reservation.id)}`,
+            context: [
+              reservation.status,
+              businessId,
+              reservation.holderReference,
+            ]
+              .filter(Boolean)
+              .join(" · "),
+            href: "#reservations:" + encodeURIComponent(reservation.id),
+            destinationId: reservation.destinationId,
           }),
         ),
       );
     },
+
     async handle({ request, response, requestUrl }) {
       if (
         request.method === "GET" &&
@@ -562,6 +649,8 @@ export function createTicketingAdminAdapter(ticketingApi, authApi) {
 
   return Object.freeze({
     state: "available",
+    searchCapability: "ticketing.read",
+    searchDestinationAware: false,
     coverage: Object.freeze([
       "inventory",
       "operator/check-in",
@@ -616,6 +705,8 @@ export function createContentAdminAdapter(contentRuntime) {
 
   return Object.freeze({
     state: "available",
+    searchCapability: "content.read",
+    searchDestinationAware: true,
     coverage: Object.freeze([
       "list",
       "search",
@@ -625,8 +716,12 @@ export function createContentAdminAdapter(contentRuntime) {
       "lifecycle-transition",
     ]),
 
-    async search({ query }) {
-      const result = await contentRuntime.adminList({ query, limit: 20 });
+    async search({ query, destinationId, limit }) {
+      const result = await contentRuntime.adminList({
+        query,
+        destinationId,
+        limit: Math.min(Number(limit) || 20, 50),
+      });
       if (result.status !== "found") return [];
       return Object.freeze(
         result.data.map((document) =>
@@ -639,6 +734,7 @@ export function createContentAdminAdapter(contentRuntime) {
                 : document.id,
             context: `${document.kind} · ${document.status} · ${document.destinationId}`,
             href: `#content:${encodeURIComponent(document.id)}`,
+            destinationId: document.destinationId,
           }),
         ),
       );
@@ -818,6 +914,8 @@ export function createFinancialAdminAdapter(paymentsApi) {
 
   return Object.freeze({
     state: "available",
+    searchCapability: "financial.read",
+    searchDestinationAware: false,
     coverage: Object.freeze([
       "orders-by-id",
       "payments-by-id",
@@ -1098,18 +1196,20 @@ export function createDestinationAdminAdapter(destinationRuntime) {
 
   return Object.freeze({
     state: "ready",
+    searchCapability: "platform.read",
+    searchDestinationAware: true,
     coverage: Object.freeze(["list", "detail", "create", "replace", "status"]),
-    async search({ query }) {
-      const needle = String(query ?? "")
-        .trim()
-        .toLocaleLowerCase();
+    async search({ query, destinationId }) {
+      const needle = foldSearchText(query);
       if (!needle) return [];
       const destinations = await service.list();
       return destinations
-        .filter((item) =>
-          [item.id, item.branding.name, item.branding.shortName].some((value) =>
-            value.toLocaleLowerCase().includes(needle),
-          ),
+        .filter(
+          (item) =>
+            (!destinationId || item.id === destinationId) &&
+            [item.id, item.branding.name, item.branding.shortName].some(
+              (value) => foldSearchText(value).includes(needle),
+            ),
         )
         .map((item) => ({
           type: "destination",
@@ -1117,6 +1217,7 @@ export function createDestinationAdminAdapter(destinationRuntime) {
           title: item.branding.name,
           context: item.status,
           href: `#destinations:${encodeURIComponent(item.id)}`,
+          destinationId: item.id,
         }));
     },
     async handle({ request, response, requestUrl }) {
