@@ -60,11 +60,14 @@ async function main() {
       stage = "navigate";
       await page.locator(`#main-nav [data-view="${view}"]`).click();
       await page.waitForFunction(
-        (target) =>
-          location.hash === `#${target}` &&
-          !document
-            .querySelector("#content")
-            ?.textContent?.includes("Carregando"),
+        (target) => {
+          const content = document.querySelector("#content");
+          return (
+            location.hash === `#${target}` &&
+            content?.dataset.renderedView === target &&
+            content.getAttribute("aria-busy") === "false"
+          );
+        },
         view,
         { timeout: 30_000 },
       );
