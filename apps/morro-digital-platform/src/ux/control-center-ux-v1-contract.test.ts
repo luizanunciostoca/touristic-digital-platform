@@ -10,7 +10,7 @@ async function readRepository(path: string): Promise<string> {
 }
 
 describe("Morro Digital Control Center UX Design V1 contract", () => {
-  it("uses the canonical administrative design tokens from the manual", async () => {
+  it("preserves canonical manual tokens and AA foreground derivatives", async () => {
     const css = await readRepository(
       "apps/control-center/public/control-center.css",
     );
@@ -23,8 +23,11 @@ describe("Morro Digital Control Center UX Design V1 contract", () => {
       "--md-primary: #0b63ce",
       "--md-primary-soft: #eaf3ff",
       "--md-success: #10a760",
+      "--md-success-text: #087a45",
       "--md-warning: #d97706",
+      "--md-warning-text: #9a4d00",
       "--md-danger: #d92d20",
+      "--md-danger-text: #b42318",
       "--md-purple: #6d5ce8",
       "--md-border: #dce6f1",
       "--md-focus: #2e90fa",
@@ -45,16 +48,23 @@ describe("Morro Digital Control Center UX Design V1 contract", () => {
     );
     expect(html).toContain('id="notification-button"');
     expect(html).toContain('id="profile-button"');
-    expect(html).toContain('id="support-banner"');
+    expect(html).toContain(
+      'id="support-banner" class="support-banner" role="status" aria-live="polite"',
+    );
+    expect(html).toContain(
+      'id="content" role="region" aria-labelledby="page-title" aria-busy="false"',
+    );
+    expect(html).not.toContain('id="content" aria-live=');
     expect(html).toContain("control-center-ux-v1.js");
   });
 
-  it("implements the manual information architecture and platform-owned affiliate rule", async () => {
-    const [core, ux] = await Promise.all([
+  it("implements the manual information architecture and product exclusions", async () => {
+    const [core, ux, html] = await Promise.all([
       readRepository("apps/control-center/public/control-center.js"),
       readRepository("apps/control-center/public/control-center-ux-v1.js"),
+      readRepository("apps/control-center/public/index.html"),
     ]);
-    const source = core + "\n" + ux;
+    const source = core + "\n" + ux + "\n" + html;
 
     for (const label of [
       "Visão Global",
@@ -90,31 +100,92 @@ describe("Morro Digital Control Center UX Design V1 contract", () => {
     expect(source).toContain("Atividade recente");
     expect(source).not.toContain("Ações rápidas");
     expect(source).not.toContain("quick-actions");
+    expect(source).not.toContain("assistant-floating");
+    expect(source).not.toContain("assistant-fab");
   });
 
-  it("preserves reusable 360-degree patterns and destination fail-closed behavior", async () => {
+  it("uses shared primitives for real Control Center surfaces", async () => {
+    const [primitives, core, ux] = await Promise.all([
+      readRepository("apps/control-center/public/control-center-primitives.js"),
+      readRepository("apps/control-center/public/control-center.js"),
+      readRepository("apps/control-center/public/control-center-ux-v1.js"),
+    ]);
+
+    for (const primitive of [
+      "statusBadge",
+      "loadingState",
+      "emptyState",
+      "errorState",
+      "partialState",
+      "sectionHeader",
+      "entityHeader",
+      "enhanceDataTables",
+      "enhanceCriticalActions",
+      "enhanceControlCenterSurface",
+    ]) {
+      expect(primitives).toContain(`function ${primitive}`);
+    }
+
+    expect(core).toContain('from "./control-center-primitives.js"');
+    expect(core).toContain("enhanceControlCenterSurface(content)");
+    expect(core).toContain("loadingState()");
+    expect(core).toContain("errorState(");
+    expect(core).toContain("partialState(");
+    expect(core).toContain("sectionHeader({");
+
+    expect(ux).toContain('from "./control-center-primitives.js"');
+    expect(ux).toContain("entityHeader({");
+    expect(ux).toContain("enhanceDataTables(contentRoot)");
+    expect(ux).toContain("enhanceControlCenterSurface(contentRoot)");
+  });
+
+  it("preserves Business, Affiliate and User 360 patterns without inventing functional tabs", async () => {
     const ux = await readRepository(
       "apps/control-center/public/control-center-ux-v1.js",
     );
+    const primitives = await readRepository(
+      "apps/control-center/public/control-center-primitives.js",
+    );
 
-    expect(ux).toContain("Visão 360° administrativa");
-    expect(ux).toContain(
-      'businesses: ["Empresa", ["Resumo", "Perfil", "Usuários", "Produtos", "Ofertas", "Reservas", "Financeiro", "CRM", "Histórico", "Auditoria"]]',
-    );
-    expect(ux).toContain(
-      'affiliates: ["Afiliado", ["Resumo", "Perfil", "Destinos", "Atribuições", "Conversões", "Comissões", "Histórico", "Auditoria"]]',
-    );
-    expect(ux).toContain(
-      'users: ["Usuário", ["Resumo", "Conta", "Permissões", "Empresas", "Sessões", "Histórico", "Auditoria"]]',
-    );
+    for (const label of [
+      '"Empresa"',
+      '"Afiliado"',
+      '"Usuário"',
+      '"Resumo"',
+      '"Perfil"',
+      '"Usuários"',
+      '"Produtos"',
+      '"Ofertas"',
+      '"Reservas"',
+      '"Financeiro"',
+      '"CRM"',
+      '"Histórico"',
+      '"Auditoria"',
+      '"Destinos"',
+      '"Atribuições"',
+      '"Conversões"',
+      '"Comissões"',
+      '"Conta"',
+      '"Permissões"',
+      '"Sessões"',
+    ]) {
+      expect(ux).toContain(label);
+    }
+    expect(primitives).toContain("Visão 360° administrativa");
+    expect(primitives).toContain('class="entity-tabs"');
+    expect(primitives).toContain('tabindex="0"');
     expect(ux).toContain("Contexto de destino protegido");
     expect(ux).toContain("não atribui registros por inferência");
   });
 
-  it("keeps the required responsive, accessibility and reduced-motion primitives", async () => {
-    const css = await readRepository(
-      "apps/control-center/public/control-center.css",
-    );
+  it("keeps responsive, keyboard, touch and reduced-motion safeguards", async () => {
+    const [css, responsiveContract, workflow] = await Promise.all([
+      readRepository("apps/control-center/public/control-center.css"),
+      readRepository(
+        "apps/morro-digital-platform/tooling/control-center-responsive-browser-contract.mjs",
+      ),
+      readRepository(".github/workflows/control-center-browser-contract.yml"),
+    ]);
 
     for (const breakpoint of [
       "@media (max-width: 1359px)",
@@ -123,13 +194,29 @@ describe("Morro Digital Control Center UX Design V1 contract", () => {
       "@media (max-width: 767px)",
       "@media (max-width: 520px)",
       "@media (max-width: 390px)",
+      "@media (pointer: coarse), (max-width: 900px)",
+      "@media (max-height: 520px) and (orientation: landscape)",
     ]) {
       expect(css).toContain(breakpoint);
+    }
+
+    for (const viewport of [
+      'label: "1440x900"',
+      'label: "1280x800"',
+      'label: "1024x768"',
+      'label: "768x1024"',
+      'label: "430x932"',
+      'label: "390x844"',
+    ]) {
+      expect(responsiveContract).toContain(viewport);
     }
 
     expect(css).toContain(":focus-visible");
     expect(css).toContain("@media (prefers-reduced-motion: reduce)");
     expect(css).toContain(".responsive-cards");
+    expect(css).toContain("min-height: 44px");
     expect(css).toContain("min-height: 100dvh");
+    expect(workflow).toContain("control-center-responsive-browser-contract.mjs");
+    expect(workflow).toContain("/tmp/control-center-visual-*.png");
   });
 });
