@@ -6,10 +6,19 @@ import {
 } from "./assistant-ui-state.js";
 
 export const ASSISTANT_OPEN_REQUEST_EVENT = "morro:assistant-open-request";
+export const ASSISTANT_CLOSE_REQUEST_EVENT = "morro:assistant-close-request";
+
+function dispatchAssistantShellRequest(document: Document, type: string): void {
+  const EventConstructor = document.defaultView?.Event ?? globalThis.Event;
+  document.dispatchEvent(new EventConstructor(type));
+}
 
 export function requestAssistantOpen(document: Document): void {
-  const EventConstructor = document.defaultView?.Event ?? globalThis.Event;
-  document.dispatchEvent(new EventConstructor(ASSISTANT_OPEN_REQUEST_EVENT));
+  dispatchAssistantShellRequest(document, ASSISTANT_OPEN_REQUEST_EVENT);
+}
+
+export function requestAssistantClose(document: Document): void {
+  dispatchAssistantShellRequest(document, ASSISTANT_CLOSE_REQUEST_EVENT);
 }
 
 interface AssistantTutorialWindow extends Window {
@@ -216,6 +225,9 @@ export function installAssistantShellUi(
   const onAssistantOpenRequest = (): void => {
     show();
   };
+  const onAssistantCloseRequest = (): void => {
+    hide();
+  };
   const onMinimizeClick = (): void => {
     hide();
   };
@@ -255,6 +267,10 @@ export function installAssistantShellUi(
     ASSISTANT_OPEN_REQUEST_EVENT,
     onAssistantOpenRequest,
   );
+  options.document.addEventListener(
+    ASSISTANT_CLOSE_REQUEST_EVENT,
+    onAssistantCloseRequest,
+  );
   options.document.addEventListener("keydown", onKeyDown);
   options.document.addEventListener(
     "morro:explore-state-changed",
@@ -281,6 +297,10 @@ export function installAssistantShellUi(
       options.document.removeEventListener(
         ASSISTANT_OPEN_REQUEST_EVENT,
         onAssistantOpenRequest,
+      );
+      options.document.removeEventListener(
+        ASSISTANT_CLOSE_REQUEST_EVENT,
+        onAssistantCloseRequest,
       );
       options.document.removeEventListener("keydown", onKeyDown);
       options.document.removeEventListener(
