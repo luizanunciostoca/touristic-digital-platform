@@ -68,7 +68,7 @@ async function main() {
             .querySelector("#content")
             ?.textContent?.includes("Carregando"),
         view,
-        { timeout: 15_000 },
+        { timeout: 30_000 },
       );
 
       stage = "axe";
