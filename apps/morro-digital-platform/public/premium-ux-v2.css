@@ -32,6 +32,10 @@
     --md-active-mode: place;
   }
 
+  [data-md-mode="search"] {
+    --md-active-mode: search;
+  }
+
   [data-md-mode="navigation"] {
     --md-active-mode: navigation;
   }
@@ -91,6 +95,21 @@
     border-radius: var(--md-radius-pill, 999px);
     background: color-mix(in srgb, currentColor 25%, transparent);
   }
+
+  .md-context-sheet-handle {
+    flex: 0 0 auto;
+    align-self: center;
+    width: 4rem;
+    min-width: var(--md-touch-target-min);
+    min-height: var(--md-touch-target-min);
+    padding: var(--md-space-2);
+    touch-action: none;
+  }
+
+  .md-context-sheet-handle .md-bottom-sheet-handle {
+    margin: 0 auto;
+  }
+
 }
 
 @layer features {
@@ -99,6 +118,7 @@
     --md-map-ui-priority: high;
   }
 
+  body[data-md-mode="search"],
   body[data-md-mode="place"],
   body[data-md-mode="assistant"],
   body[data-md-mode="commerce"] {
@@ -530,6 +550,51 @@ body[data-md-mode="assistant"] .assistant-option-btn {
 }
 
 @media (max-width: 45rem) {
+  body:is(
+      [data-md-mode="search"],
+      [data-md-mode="place"],
+      [data-md-mode="tour"]
+    )
+    #assistant-messages.md-context-sheet {
+    position: fixed !important;
+    top: auto !important;
+    right: max(var(--md-safe-right, 0rem), var(--md-space-2)) !important;
+    bottom: calc(
+      var(--assistant-input-bottom, var(--md-safe-bottom)) +
+        var(--assistant-bar-height, 5rem) + var(--md-space-2)
+    ) !important;
+    left: max(var(--md-safe-left, 0rem), var(--md-space-2)) !important;
+    z-index: var(--md-layer-sheet) !important;
+    width: auto !important;
+    max-width: none !important;
+    max-height: min(var(--md-sheet-full-height), calc(100dvh - 7.5rem));
+    margin: 0 !important;
+    border-radius: var(--md-radius-xl) var(--md-radius-xl) var(--md-radius-lg)
+      var(--md-radius-lg) !important;
+    transform: none !important;
+  }
+
+  body:is(
+      [data-md-mode="search"],
+      [data-md-mode="place"],
+      [data-md-mode="tour"]
+    )
+    #assistant-messages.md-context-sheet
+    .messages-area {
+    min-height: 0;
+    overscroll-behavior: contain;
+  }
+
+  body:is(
+      [data-md-mode="search"],
+      [data-md-mode="place"],
+      [data-md-mode="tour"]
+    )
+    #assistant-messages.md-context-sheet[data-sheet-state="peek"]
+    .messages-area {
+    overflow-y: hidden;
+  }
+
   body[data-md-mode="navigation"] .end-navigation-btn {
     bottom: calc(
       var(--assistant-input-bottom, var(--md-safe-bottom)) +
