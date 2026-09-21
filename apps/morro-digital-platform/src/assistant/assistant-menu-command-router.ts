@@ -380,19 +380,7 @@ function clearPriorDynamicPresentation(document: Document): void {
 }
 
 function tryClickVisibleOption(document: Document, message: string): boolean {
-  const buttons = activeFlowButtons(document);
-  if (buttons.length === 0) return false;
-
   const normalizedMessage = normalizeAssistantMenuCommand(message);
-  if (/^\d+$/u.test(normalizedMessage)) {
-    const oneBasedIndex = Number(normalizedMessage);
-    const selected = buttons[oneBasedIndex - 1];
-    if (selected) {
-      selected.click();
-      return true;
-    }
-  }
-
   if (normalizedMessage === "voltar" || normalizedMessage === "back") {
     const visiblePlaceSheet = document.querySelector(
       '#place-bottom-sheet[aria-hidden="false"]',
@@ -404,7 +392,21 @@ function tryClickVisibleOption(document: Document, message: string): boolean {
       placeClose.click();
       return true;
     }
+  }
 
+  const buttons = activeFlowButtons(document);
+  if (buttons.length === 0) return false;
+
+  if (/^\d+$/u.test(normalizedMessage)) {
+    const oneBasedIndex = Number(normalizedMessage);
+    const selected = buttons[oneBasedIndex - 1];
+    if (selected) {
+      selected.click();
+      return true;
+    }
+  }
+
+  if (normalizedMessage === "voltar" || normalizedMessage === "back") {
     const backButton = buttons.find((button) => {
       const value = normalizeAssistantMenuCommand(button.dataset.value || "");
       const label = normalizeAssistantMenuCommand(button.textContent || "");
