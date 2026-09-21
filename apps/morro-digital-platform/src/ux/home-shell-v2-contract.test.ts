@@ -77,6 +77,8 @@ describe("Home / Discover V2 visual shell", () => {
     expect(css).toContain('body[data-md-mode="discover"] .md-home-header');
     expect(css).toContain("#weather-widget.md-weather-control");
     expect(css).toContain("#assistant-input-area.md-assistant-composer");
+    expect(css).toContain("flex: 1 1 auto");
+    expect(css).not.toMatch(/#configButton\s*\{[^}]*display:\s*none/isu);
     expect(css).toContain("#globe-map-control .md-map-control");
     expect(css).toContain(
       '.app-shell[data-home-visual-state="provider-unavailable"]',
