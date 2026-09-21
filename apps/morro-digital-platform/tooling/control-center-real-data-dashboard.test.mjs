@@ -267,6 +267,59 @@ describe("Control Center real-data dashboard contract", () => {
     ).toBe(false);
   });
 
+  it("preserves a PARTIAL financial owner without manufacturing a complete count", async () => {
+    const domains = {
+      destinations: {
+        async listOwnerDestinations() {
+          return {
+            status: "found",
+            data: [destination("morro-de-sao-paulo", "Morro de São Paulo")],
+          };
+        },
+      },
+      financial: {
+        async aggregateDestinations() {
+          return {
+            status: "found",
+            data: {
+              destinations: [
+                financialDestination("morro-de-sao-paulo", {
+                  revenueStatus: "PARTIAL",
+                  minorUnits: "500000",
+                  paymentCount: 5000,
+                  attentionStatus: "PARTIAL",
+                  attentionCount: 3,
+                }),
+              ],
+            },
+          };
+        },
+      },
+    };
+
+    const { response, payload } = await getDashboard({ domains });
+
+    expect(response.statusCode).toBe(200);
+    expect(payload.summary).toMatchObject({
+      alerts: null,
+      alertsKnownCount: 3,
+      alertsStatus: "PARTIAL",
+    });
+    expect(payload.destinationSummary.status).toBe("PARTIAL");
+    expect(payload.destinationSummary.items[0]).toMatchObject({
+      destinationId: "morro-de-sao-paulo",
+      revenue: {
+        status: "PARTIAL",
+        complete: false,
+      },
+      alerts: {
+        status: "PARTIAL",
+        count: null,
+        knownCount: 3,
+      },
+    });
+  });
+
   it("uses only canonical destination IDs and never infers ownership from labels", async () => {
     const aggregate = vi.fn(async ({ destinationIds }) => ({
       status: "found",
@@ -369,18 +422,34 @@ describe("Control Center real-data dashboard contract", () => {
     });
   });
 
-  it("keeps platform dashboard authorization server-side", async () => {
+  it("denies cross-tenant destination attempts before any owner aggregate executes", async () => {
+    const aggregateDestinations = vi.fn(async () => ({
+      status: "found",
+      data: { destinations: [] },
+    }));
     const denied = {
       ...platformOwner,
       role: "BUSINESS_OWNER",
       businessIds: ["tenant-a"],
     };
-    const { response, payload } = await getDashboard({ session: denied });
+    const { response, payload } = await getDashboard({
+      session: denied,
+      url: "/api/admin/v1/dashboard?destinationId=itacare",
+      domains: {
+        destinations: {
+          async listOwnerDestinations() {
+            throw new Error("AUTHORIZATION_MUST_PRECEDE_OWNER_READ");
+          },
+        },
+        financial: { aggregateDestinations },
+      },
+    });
 
     expect(response.statusCode).toBe(403);
     expect(payload).toMatchObject({
       error: "ADMIN_SURFACE_DENIED",
       capability: "platform.read",
     });
+    expect(aggregateDestinations).not.toHaveBeenCalled();
   });
 });
