@@ -177,6 +177,7 @@ export function installExploreFlowBottomSheet({
   document.body.appendChild(sheet);
 
   let dismissHandler: (() => void) | undefined;
+  let activeKind: ExploreFlowBottomSheetKind | undefined;
   let compatibilityMessageSource: HTMLElement | undefined;
 
   const clearCompatibilityMessageSource = (): void => {
@@ -244,6 +245,7 @@ export function installExploreFlowBottomSheet({
     if (next) setState(next);
   };
   handle.addEventListener("pointerdown", (event) => {
+    if (activeKind !== "explore") return;
     dragStartY = event.clientY;
     dragPointerId = event.pointerId;
     handle.setPointerCapture?.(event.pointerId);
@@ -285,6 +287,7 @@ export function installExploreFlowBottomSheet({
       compatibilityMessageSource.setAttribute("aria-hidden", "true");
     }
     rebuildStateControls();
+    activeKind = presentation.kind;
     sheet.dataset.flowKind = presentation.kind;
     heading.textContent = presentation.accessibleLabel;
     setStatus(
@@ -331,6 +334,7 @@ export function installExploreFlowBottomSheet({
     hide(): void {
       if (destroyed) return;
       dismissHandler = undefined;
+      activeKind = undefined;
       clearCompatibilityMessageSource();
       sheet.classList.add("hidden");
       sheet.setAttribute("aria-hidden", "true");
@@ -346,6 +350,7 @@ export function installExploreFlowBottomSheet({
       clearCompatibilityMessageSource();
       destroyed = true;
       dismissHandler = undefined;
+      activeKind = undefined;
       sheet.remove();
     },
   });
