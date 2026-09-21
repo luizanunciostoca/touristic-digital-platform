@@ -414,6 +414,10 @@ h1 {
   border-radius: 14px;
   background: white;
 }
+.table-wrap:focus-visible {
+  outline: 3px solid rgba(215, 169, 79, 0.42);
+  outline-offset: 2px;
+}
 table {
   border-collapse: collapse;
   width: 100%;
