@@ -291,6 +291,169 @@ jobs:
                 evidence.push({ viewport, weatherVisual, shell, modal, weatherRestored, before, global, restored, pageErrors, mapboxHttpErrors });
                 await context.close();
               }
+
+              const matrix = [
+                { name: 'w320', width: 320, height: 568 },
+                { name: 'w360', width: 360, height: 800 },
+                { name: 'w375', width: 375, height: 812 },
+                { name: 'w390', width: 390, height: 844 },
+                { name: 'w393', width: 393, height: 852 },
+                { name: 'w412', width: 412, height: 915 },
+                { name: 'w430', width: 430, height: 932 },
+                { name: 'w768', width: 768, height: 1024 },
+                { name: 'w820', width: 820, height: 1180 },
+                { name: 'w1024', width: 1024, height: 768 },
+                { name: 'w1280', width: 1280, height: 800 },
+                { name: 'w1366', width: 1366, height: 768 },
+                { name: 'w1440', width: 1440, height: 900 },
+                { name: 'w1920', width: 1920, height: 1080 },
+                { name: 'mobile-landscape', width: 844, height: 390 },
+                { name: 'mobile-large-landscape', width: 915, height: 412 },
+                { name: 'tablet-landscape', width: 1180, height: 820 },
+              ];
+              const matrixContext = await browser.newContext({
+                viewport: { width: 390, height: 844 },
+              });
+              await matrixContext.addInitScript(() => {
+                localStorage.setItem('morro-digital-onboarded', '1');
+                localStorage.setItem('voice-enabled', 'false');
+              });
+              const matrixPage = await matrixContext.newPage();
+              const matrixErrors = [];
+              matrixPage.on('pageerror', error => matrixErrors.push(error.message));
+              await matrixPage.route('**/api/weather', route => route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify(weather),
+              }));
+              await matrixPage.goto('http://127.0.0.1:4173/', {
+                waitUntil: 'domcontentloaded',
+                timeout: 30000,
+              });
+              await matrixPage
+                .locator('#map[data-map-state="ready"][data-home-state="ready"]')
+                .waitFor({ state: 'attached', timeout: 30000 });
+              await matrixPage
+                .locator('#weather-widget[data-weather-state="ready"]')
+                .waitFor({ state: 'attached', timeout: 10000 });
+
+              const matrixEvidence = [];
+              for (const viewport of matrix) {
+                await matrixPage.setViewportSize({
+                  width: viewport.width,
+                  height: viewport.height,
+                });
+                await matrixPage.waitForTimeout(80);
+                const state = await matrixPage.evaluate(() => {
+                  const rect = selector => {
+                    const node = document.querySelector(selector);
+                    if (!(node instanceof HTMLElement)) return null;
+                    const box = node.getBoundingClientRect();
+                    const style = getComputedStyle(node);
+                    return {
+                      left: box.left,
+                      top: box.top,
+                      right: box.right,
+                      bottom: box.bottom,
+                      width: box.width,
+                      height: box.height,
+                      visibility: style.visibility,
+                      display: style.display,
+                    };
+                  };
+                  const target = selector => {
+                    const node = document.querySelector(selector);
+                    if (!(node instanceof HTMLElement)) return null;
+                    const box = node.getBoundingClientRect();
+                    return { width: box.width, height: box.height };
+                  };
+                  return {
+                    viewport: { width: innerWidth, height: innerHeight },
+                    rootWidth: document.documentElement.scrollWidth,
+                    bodyWidth: document.body.scrollWidth,
+                    weather: rect('#weather-widget'),
+                    globe: rect('#toggle-globe-view'),
+                    quickAction: rect('.quick-actions .mood-button'),
+                    composer: rect('#assistant-input-area'),
+                    sendTarget: target('#sendButton'),
+                    voiceTarget: target('#voiceButton'),
+                    configTarget: target('#configButton'),
+                    safeBottom: getComputedStyle(document.documentElement)
+                      .getPropertyValue('--md-safe-bottom')
+                      .trim(),
+                    dvhSupported: CSS.supports('height', '100dvh'),
+                    svhSupported: CSS.supports('height', '100svh'),
+                  };
+                });
+
+                const visibleRectInside = (value, label) => {
+                  if (!value || value.display === 'none' || value.visibility === 'hidden') return;
+                  if (
+                    value.left < -1 ||
+                    value.top < -1 ||
+                    value.right > viewport.width + 1 ||
+                    value.bottom > viewport.height + 1
+                  ) {
+                    throw new Error(`Device matrix ${label} escaped ${viewport.name}: ${JSON.stringify(value)}`);
+                  }
+                };
+                visibleRectInside(state.weather, 'weather');
+                visibleRectInside(state.globe, 'globe');
+                visibleRectInside(state.quickAction, 'assistant trigger');
+                visibleRectInside(state.composer, 'assistant composer');
+
+                if (
+                  state.rootWidth > viewport.width + 1 ||
+                  state.bodyWidth > viewport.width + 1
+                ) {
+                  throw new Error(`Device matrix horizontal overflow on ${viewport.name}: ${JSON.stringify(state)}`);
+                }
+                for (const [label, target] of Object.entries({
+                  send: state.sendTarget,
+                  voice: state.voiceTarget,
+                  config: state.configTarget,
+                })) {
+                  if (target && (target.width < 44 || target.height < 44)) {
+                    throw new Error(`Device matrix touch target below 44px (${label}) on ${viewport.name}: ${JSON.stringify(target)}`);
+                  }
+                }
+                if (!state.dvhSupported || !state.svhSupported) {
+                  throw new Error(`Dynamic viewport units unavailable on ${viewport.name}`);
+                }
+                matrixEvidence.push({ viewport, state });
+              }
+
+              await matrixPage.setViewportSize({ width: 390, height: 520 });
+              await matrixPage.locator('#assistantInput').focus();
+              await matrixPage.waitForTimeout(80);
+              const keyboardLikeViewport = await matrixPage.evaluate(() => {
+                const composer = document.getElementById('assistant-input-area');
+                const box = composer?.getBoundingClientRect();
+                return {
+                  height: innerHeight,
+                  composer: box
+                    ? { top: box.top, bottom: box.bottom, height: box.height }
+                    : null,
+                  rootWidth: document.documentElement.scrollWidth,
+                };
+              });
+              if (
+                !keyboardLikeViewport.composer ||
+                keyboardLikeViewport.composer.bottom > keyboardLikeViewport.height + 1 ||
+                keyboardLikeViewport.rootWidth > 391
+              ) {
+                throw new Error(`Keyboard-like compact viewport drift: ${JSON.stringify(keyboardLikeViewport)}`);
+              }
+              if (matrixErrors.length) {
+                throw new Error(`Device matrix browser errors: ${JSON.stringify(matrixErrors)}`);
+              }
+              evidence.push({
+                deviceMatrix: matrixEvidence,
+                keyboardLikeViewport,
+                matrixErrors,
+              });
+              await matrixContext.close();
+
               writeFileSync('/tmp/v1-home-responsive/evidence.json', JSON.stringify(evidence, null, 2));
             } finally {
               await browser.close();
