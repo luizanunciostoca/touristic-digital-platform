@@ -93,6 +93,16 @@
   --md-motion-duration-slow: 320ms;
   --md-motion-ease-standard: cubic-bezier(0.2, 0, 0, 1);
   --md-motion-ease-emphasized: cubic-bezier(0.2, 0, 0, 1.2);
+  --md-motion-ease-decelerate: ease-out;
+  --md-motion-duration-map-marker: 300ms;
+  --md-motion-duration-pulse: 2s;
+  --md-motion-scale-pressed: 0.98;
+  --md-motion-scale-pressed-strong: 0.96;
+
+  /* Shared interactive state contract */
+  --md-state-disabled-opacity: 0.52;
+  --md-state-selected-outline-width: 0.125rem;
+  --md-state-selected-outline-offset: 0.125rem;
 
   /*
    * Breakpoint values are canonical documentation tokens. Native CSS custom
@@ -127,6 +137,15 @@
   --md-layer-tour: 700;
   --md-layer-toast: 800;
   --md-layer-system: 900;
+
+  /*
+   * Runtime compatibility layers for Mapbox/legacy stacking contexts.
+   * These remain semantic tokens so migrated CSS never owns arbitrary values.
+   */
+  --md-layer-explore-marker: 1100;
+  --md-layer-explore-controls: 2050;
+  --md-layer-explore-submenu: 2150;
+  --md-layer-navigation-user: 9999;
 
   /* Compatibility aliases for existing V2 consumers. */
   --md-z-base: var(--md-layer-map);
@@ -389,11 +408,24 @@ body {
 .md-button:disabled,
 .md-icon-button:disabled {
   cursor: not-allowed;
-  opacity: 0.52;
+  opacity: var(--md-state-disabled-opacity);
 }
 
-.md-button[aria-busy="true"] {
+.md-button[aria-busy="true"],
+.md-icon-button[aria-busy="true"] {
   cursor: progress;
+}
+
+.md-button:not(:disabled):active,
+.md-icon-button:not(:disabled):active {
+  transform: scale(var(--md-motion-scale-pressed));
+}
+
+:is(.md-button, .md-icon-button, .md-chip)[aria-pressed="true"],
+:is(.md-button, .md-icon-button, .md-chip)[aria-selected="true"] {
+  outline: var(--md-state-selected-outline-width) solid
+    var(--md-focus-ring-color);
+  outline-offset: var(--md-state-selected-outline-offset);
 }
 
 .md-icon-button {
@@ -421,6 +453,10 @@ body {
 .md-textarea {
   min-height: 7rem;
   resize: vertical;
+}
+
+:is(.md-input, .md-textarea, .md-select)[aria-invalid="true"] {
+  border-color: var(--md-color-danger);
 }
 
 .md-badge,
