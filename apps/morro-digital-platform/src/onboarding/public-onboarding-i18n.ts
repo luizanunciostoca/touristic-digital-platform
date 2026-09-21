@@ -79,18 +79,6 @@ const COPY: Readonly<Record<PublicOnboardingLocale, PublicOnboardingCopy>> =
           }),
 
           Object.freeze({
-            title: "Bem-vindo ao seu guia virtual",
-            description:
-              "Aqui você recebe sugestões de praias, restaurantes, hospedagens, festas, passeios e serviços.",
-            hint: "A mensagem de boas-vindas fica disponível ao iniciar o aplicativo.",
-          }),
-          Object.freeze({
-            title: "Escolha um atalho",
-            description:
-              "Use as opções rápidas para explorar categorias sem precisar digitar uma pergunta.",
-            hint: "Você também pode conversar livremente com o assistente.",
-          }),
-          Object.freeze({
             title: "Pergunte do seu jeito",
             description:
               "Digite uma pergunta, envie por voz ou abra as configurações do assistente diretamente nesta área.",
@@ -136,18 +124,6 @@ const COPY: Readonly<Record<PublicOnboardingLocale, PublicOnboardingCopy>> =
             hint: "Tap the weather to see the details.",
           }),
 
-          Object.freeze({
-            title: "Welcome to your virtual guide",
-            description:
-              "Here you get suggestions for beaches, restaurants, stays, parties, tours and services.",
-            hint: "The welcome message is available when you start the app.",
-          }),
-          Object.freeze({
-            title: "Choose a shortcut",
-            description:
-              "Use quick options to explore categories without having to type a question.",
-            hint: "You can also chat freely with the assistant.",
-          }),
           Object.freeze({
             title: "Ask in your own way",
             description:
@@ -195,18 +171,6 @@ const COPY: Readonly<Record<PublicOnboardingLocale, PublicOnboardingCopy>> =
           }),
 
           Object.freeze({
-            title: "Bienvenido a tu guía virtual",
-            description:
-              "Aquí recibes sugerencias de playas, restaurantes, alojamientos, fiestas, paseos y servicios.",
-            hint: "El mensaje de bienvenida está disponible al iniciar la aplicación.",
-          }),
-          Object.freeze({
-            title: "Elige un acceso rápido",
-            description:
-              "Usa las opciones rápidas para explorar categorías sin tener que escribir una pregunta.",
-            hint: "También puedes conversar libremente con el asistente.",
-          }),
-          Object.freeze({
             title: "Pregunta a tu manera",
             description:
               "Escribe una pregunta, usa tu voz o abre la configuración del asistente directamente en esta área.",
@@ -253,18 +217,6 @@ const COPY: Readonly<Record<PublicOnboardingLocale, PublicOnboardingCopy>> =
             hint: "הקישו על מזג האוויר כדי לראות פרטים.",
           }),
 
-          Object.freeze({
-            title: "ברוכים הבאים למדריך הווירטואלי",
-            description:
-              "כאן תקבלו הצעות לחופים, מסעדות, מקומות לינה, מסיבות, סיורים ושירותים.",
-            hint: "הודעת קבלת הפנים זמינה עם פתיחת האפליקציה.",
-          }),
-          Object.freeze({
-            title: "בחרו קיצור דרך",
-            description:
-              "השתמשו באפשרויות המהירות כדי לגלות קטגוריות בלי להקליד שאלה.",
-            hint: "אפשר גם לשוחח בחופשיות עם העוזר.",
-          }),
           Object.freeze({
             title: "שאלו בדרך שלכם",
             description:
