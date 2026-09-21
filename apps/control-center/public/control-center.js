@@ -743,7 +743,7 @@ async function renderUsers(userId) {
                     (user.businessIds ?? [])
                       .map(
                         (businessId) =>
-                          `<span class="badge">${escapeHtml(businessId)}</span>`,
+                          `<a class="badge" href="#businesses:${encodeURIComponent(businessId)}">${escapeHtml(businessId)}</a>`,
                       )
                       .join(" ") || "—"
                   }</td>
@@ -765,6 +765,12 @@ async function renderUsers(userId) {
   );
   const now = Math.floor(Date.now() / 1000);
   const sessions = sessionData.sessions ?? [];
+
+  const userAuditResult = await readOwnerProjection("/audit?limit=250", "entries");
+  const userAuditEntries = canonicalEntityAudit(userAuditResult.data, {
+    kind: "user",
+    id: userId,
+  });
   const selectedUser = users[0];
   const canManageUsers = actorHasCapability("users.manage");
   const supportActive = Boolean(state.adminSession?.support);
@@ -950,6 +956,69 @@ async function renderUsers(userId) {
         </table>
       </div>
     </section>`;
+
+  const userRenderedSections = [...content.children];
+  const overviewContent = userRenderedSections[0]?.outerHTML ?? userTable;
+  const actionsContent = userRenderedSections[1]?.outerHTML ?? "";
+  const sessionsContent = userRenderedSections[2]?.outerHTML ?? "";
+  const relationshipsContent = (selectedUser.businessIds ?? []).length
+    ? `<section class="card section-card">
+        <div class="section-title"><h2>Relationships</h2><span class="badge">Auth owner</span></div>
+        <div class="module-list">
+          ${(selectedUser.businessIds ?? [])
+            .map(
+              (businessId) =>
+                `<div class="module-row"><span>Empresa</span><a href="#businesses:${encodeURIComponent(
+                  businessId,
+                )}">${escapeHtml(businessId)}</a></div>`,
+            )
+            .join("")}
+        </div>
+      </section>`
+    : "";
+  const profileContent = `<section class="card section-card">
+      <div class="section-title"><h2>Identity / Profile</h2>${statusBadge(
+        selectedUser.status ?? "active",
+      )}</div>
+      <div class="module-list">
+        <div class="module-row"><span>ID</span><strong>${escapeHtml(
+          selectedUser.id,
+        )}</strong></div>
+        <div class="module-row"><span>E-mail</span><strong>${escapeHtml(
+          selectedUser.email,
+        )}</strong></div>
+        <div class="module-row"><span>Papel efetivo</span><strong>${escapeHtml(
+          selectedUser.canonicalRole,
+        )}</strong></div>
+        <div class="module-row"><span>Role configurado</span><strong>${escapeHtml(
+          selectedUser.configuredCanonicalRole ?? selectedUser.canonicalRole,
+        )}</strong></div>
+      </div>
+    </section>`;
+  const auditContent = userAuditResult.available
+    ? recentActivityMarkup(userAuditEntries, {
+        title: "Audit",
+        emptyMessage: "Nenhum evento autoritativo ligado a este usuário.",
+      })
+    : '<section class="card empty" data-state="unavailable"><strong>Audit indisponível</strong><span>A fonte autoritativa não respondeu.</span></section>';
+
+  content.innerHTML =
+    supportEntityContext() +
+    entityTabs("user360", [
+      { id: "overview", label: "Overview", content: overviewContent },
+      { id: "identity", label: "Identity / Profile", content: profileContent },
+      relationshipsContent
+        ? { id: "relationships", label: "Relationships", content: relationshipsContent }
+        : null,
+      sessionsContent
+        ? { id: "activity", label: "Activity", content: sessionsContent }
+        : null,
+      { id: "audit", label: "Audit", content: auditContent },
+      canManageUsers
+        ? { id: "actions", label: "Settings / Actions", content: actionsContent }
+        : null,
+    ]);
+  bindEntityTabs();
 
   document
     .querySelector("#user-status-form")
@@ -1323,12 +1392,17 @@ async function renderBusinesses(businessId) {
         ),
       ),
     ]);
-    const auditEntries = (auditResult.entries ?? []).filter(
-      (entry) =>
-        entry.tenantId === businessId ||
-        entry.entityId === businessId ||
-        String(entry.entityId ?? "").includes(businessId),
-    );
+    const relatedBusinessEntityIds = [
+      ...products.map(({ offer }) => offer?.id),
+      ...reservations.map(({ reservation }) => reservation?.id),
+      ...paymentIds,
+      ...orderIds,
+    ].filter(Boolean);
+    const auditEntries = canonicalEntityAudit(auditResult.entries ?? [], {
+      kind: "business",
+      id: businessId,
+      relatedEntityIds: relatedBusinessEntityIds,
+    });
     const activeOffers = products.filter(({ offer }) => offer?.enabled).length;
     const activeReservations = reservations.filter(({ reservation }) =>
       ["held", "confirmed"].includes(reservation?.status),
@@ -1395,7 +1469,7 @@ async function renderBusinesses(businessId) {
               (business.members ?? [])
                 .map(
                   (member) =>
-                    `<div class="module-row"><span>${escapeHtml(member.email)}</span><span class="badge">${escapeHtml(member.canonicalRole)}</span></div>`,
+                    `<div class="module-row"><span><a href="#users:${encodeURIComponent(member.id)}">${escapeHtml(member.email)}</a></span><span class="badge">${escapeHtml(member.canonicalRole)}</span></div>`,
                 )
                 .join("") ||
               '<div class="empty">Nenhum membro encontrado.</div>'
@@ -1452,6 +1526,79 @@ async function renderBusinesses(businessId) {
           }
         </div>
       </section>`;
+
+    const businessRenderedSections = [...content.children];
+    const overviewContent = [
+      businessRenderedSections[0]?.outerHTML,
+      businessRenderedSections[1]?.outerHTML,
+      businessRenderedSections[2]?.children?.[0]?.outerHTML,
+    ]
+      .filter(Boolean)
+      .join("");
+    const relationshipsContent =
+      businessRenderedSections[2]?.children?.[1]?.outerHTML ?? "";
+    const activityContent = businessRenderedSections[3]?.outerHTML ?? "";
+    const profileContent = `<section class="card section-card">
+      <div class="section-title"><h2>Identity / Profile</h2><span class="badge">Business owner</span></div>
+      <div class="module-list">
+        <div class="module-row"><span>Business ID</span><strong>${escapeHtml(
+          businessId,
+        )}</strong></div>
+        <div class="module-row"><span>Nome</span><strong>${escapeHtml(
+          profile?.name ?? "perfil owner indisponível",
+        )}</strong></div>
+        <div class="module-row"><span>Destination</span>${
+          profile?.destinationId
+            ? `<a href="#destinations:${encodeURIComponent(
+                profile.destinationId,
+              )}">${escapeHtml(profile.destinationId)}</a>`
+            : '<strong data-destination-relation="unavailable">não atribuído pelo owner; não inferido</strong>'
+        }</div>
+      </div>
+    </section>`;
+    const commercialContent = `<section class="card section-card">
+      <div class="section-title"><h2>Commercial / Financial</h2><span class="badge">read-only composition</span></div>
+      <div class="module-list">
+        <div class="module-row"><span>Ofertas owner-backed</span>${
+          productsResult.available
+            ? `<strong>${escapeHtml(products.length)}</strong>`
+            : statusBadge("unavailable")
+        }</div>
+        <div class="module-row"><span>Reservas owner-backed</span>${
+          reservationsResult.available
+            ? `<strong>${escapeHtml(reservations.length)}</strong>`
+            : statusBadge("unavailable")
+        }</div>
+        <div class="module-row"><span>Pedidos relacionados</span><strong>${escapeHtml(
+          orders.filter(Boolean).length,
+        )}</strong></div>
+        <div class="module-row"><span>Pagamentos relacionados</span><strong>${escapeHtml(
+          payments.filter(Boolean).length,
+        )}</strong></div>
+      </div>
+    </section>`;
+    const auditContent = auditResult.available
+      ? recentActivityMarkup(auditEntries, {
+          title: "Audit",
+          emptyMessage: "Nenhum evento autoritativo relacionado a esta empresa.",
+        })
+      : '<section class="card empty" data-state="unavailable"><strong>Audit indisponível</strong><span>A fonte autoritativa não respondeu.</span></section>';
+
+    content.innerHTML =
+      supportEntityContext() +
+      entityTabs("business360", [
+        { id: "overview", label: "Overview", content: overviewContent },
+        { id: "identity", label: "Identity / Profile", content: profileContent },
+        relationshipsContent
+          ? { id: "relationships", label: "Relationships", content: relationshipsContent }
+          : null,
+        { id: "commercial", label: "Commercial / Financial", content: commercialContent },
+        activityContent
+          ? { id: "activity", label: "Activity", content: activityContent }
+          : null,
+        { id: "audit", label: "Audit", content: auditContent },
+      ]);
+    bindEntityTabs();
     return;
   }
 
@@ -1579,6 +1726,15 @@ async function renderAffiliates(affiliateId) {
   const detail = response.data;
   const affiliate = detail.affiliate;
   const memberships = detail.memberships ?? [];
+  const auditResult = await readOwnerProjection("/audit?limit=250", "entries");
+  const affiliateMembershipEntityIds = memberships.map(
+    (membership) => `${affiliateId}:${membership.programId}`,
+  );
+  const affiliateAuditEntries = canonicalEntityAudit(auditResult.data, {
+    kind: "affiliate",
+    id: affiliateId,
+    relatedEntityIds: affiliateMembershipEntityIds,
+  });
   const summaries = detail.summaryByCurrency ?? [];
   const conversions = detail.conversions ?? [];
   const supportActive = Boolean(state.adminSession?.support);
@@ -1638,7 +1794,7 @@ async function renderAffiliates(affiliateId) {
                   .map(
                     (membership) => `<tr>
                     <td><strong>${escapeHtml(membership.programId)}</strong></td>
-                    <td>${escapeHtml(membership.destinationId)}</td>
+                    <td><a href="#destinations:${encodeURIComponent(membership.destinationId)}">${escapeHtml(membership.destinationId)}</a></td>
                     <td>${escapeHtml(membership.status)}</td>
                     <td>${membership.eligibleForAttribution ? "sim" : "não"}</td>
                     <td>${escapeHtml(membership.financialOnboardingStatus)}</td>
@@ -1744,6 +1900,63 @@ async function renderAffiliates(affiliateId) {
       </form>
     </section>
     <div style="margin-top:16px"><a href="#affiliates">← Voltar para afiliados</a></div>`;
+
+  const affiliateRenderedSections = [...content.children];
+  const overviewContent = affiliateRenderedSections[0]?.outerHTML ?? "";
+  const relationshipsContent =
+    affiliateRenderedSections[1]?.children?.[0]?.outerHTML ?? "";
+  const commercialContent =
+    affiliateRenderedSections[1]?.children?.[1]?.outerHTML ?? "";
+  const activityContent = affiliateRenderedSections[2]?.outerHTML ?? "";
+  const actionsContent = affiliateRenderedSections[3]?.outerHTML ?? "";
+  const backLinkContent = affiliateRenderedSections[4]?.outerHTML ?? "";
+  const profileContent = `<section class="card section-card">
+    <div class="section-title"><h2>Identity / Profile</h2>${statusBadge(
+      affiliate.status,
+    )}</div>
+    <div class="module-list">
+      <div class="module-row"><span>Affiliate ID</span><strong>${escapeHtml(
+        affiliate.affiliateId,
+      )}</strong></div>
+      <div class="module-row"><span>Identity reference</span><strong>${escapeHtml(
+        affiliate.identityReference,
+      )}</strong></div>
+      <div class="module-row"><span>Tipo</span><strong>${escapeHtml(
+        affiliate.accountType,
+      )}</strong></div>
+      <div class="module-row"><span>Categoria</span><strong>${escapeHtml(
+        affiliate.roleCategory,
+      )}</strong></div>
+    </div>
+  </section>`;
+  const auditContent = auditResult.available
+    ? recentActivityMarkup(affiliateAuditEntries, {
+        title: "Audit",
+        emptyMessage: "Nenhum evento autoritativo ligado a este afiliado.",
+      })
+    : '<section class="card empty" data-state="unavailable"><strong>Audit indisponível</strong><span>A fonte autoritativa não respondeu.</span></section>';
+
+  content.innerHTML =
+    supportEntityContext() +
+    entityTabs("affiliate360", [
+      { id: "overview", label: "Overview", content: overviewContent },
+      { id: "identity", label: "Identity / Profile", content: profileContent },
+      relationshipsContent
+        ? { id: "relationships", label: "Relationships", content: relationshipsContent }
+        : null,
+      commercialContent
+        ? { id: "commercial", label: "Commercial / Financial", content: commercialContent }
+        : null,
+      activityContent
+        ? { id: "activity", label: "Activity", content: activityContent }
+        : null,
+      { id: "audit", label: "Audit", content: auditContent },
+      actionOptions
+        ? { id: "actions", label: "Settings / Actions", content: actionsContent }
+        : null,
+    ]) +
+    backLinkContent;
+  bindEntityTabs();
 
   document
     .querySelector("#affiliate-membership-action-form")
