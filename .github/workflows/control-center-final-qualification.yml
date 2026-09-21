@@ -2,8 +2,10 @@ name: Control Center Final Qualification
 
 on:
   workflow_dispatch:
-  pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches:
+      - main
+      - "wave/platform-control-center-final-completion-*"
     paths:
       - ".github/workflows/control-center-final-qualification.yml"
       - ".github/workflows/control-center-*.yml"
@@ -13,11 +15,25 @@ on:
       - "apps/control-center/**"
       - "apps/morro-digital-platform/tooling/admin-*.mjs"
       - "apps/morro-digital-platform/tooling/control-center-*.mjs"
+      - "apps/morro-digital-platform/tooling/auth-api*.mjs"
+      - "apps/morro-digital-platform/tooling/business-api.mjs"
+      - "apps/morro-digital-platform/tooling/crm-api.mjs"
+      - "apps/morro-digital-platform/tooling/ticketing-api*.mjs"
       - "packages/auth/**"
+      - "packages/affiliates/**"
+      - "packages/content/**"
+      - "packages/destinations/**"
+      - "packages/financial/**"
+      - "packages/ordering/**"
+      - "packages/ticketing/**"
       - "services/auth/**"
-  push:
-    branches:
-      - "wave/platform-control-center-final-completion-*"
+      - "services/affiliates/**"
+      - "services/content/**"
+      - "services/destinations/**"
+      - "services/financial/**"
+      - "services/ordering/**"
+      - "services/ticketing/**"
+      - "docs/features/registry.json"
 
 permissions:
   contents: read
