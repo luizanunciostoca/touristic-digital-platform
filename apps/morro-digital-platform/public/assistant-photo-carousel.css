@@ -1,30 +1,40 @@
 .assistant-photo-carousel {
   width: 100%;
   overflow: hidden;
-  border-radius: 0.92rem;
-  border: 1px solid rgba(229, 231, 235, 0.75);
-  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid var(--md-color-border);
+  border-radius: var(--md-radius-lg);
+  background: var(--md-color-surface-glass);
+  color: var(--md-color-text-primary);
+  box-shadow: var(--md-elevation-1);
+  font-family: var(--md-font-family-sans);
 }
 
 .assistant-photo-carousel-track {
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: minmax(82%, 1fr);
-  gap: 0.5rem;
+  gap: var(--md-space-2);
+  padding: var(--md-space-2);
   overflow-x: auto;
   overscroll-behavior-inline: contain;
   scroll-snap-type: inline mandatory;
   scrollbar-width: thin;
-  padding: 0.45rem;
+  scroll-behavior: smooth;
+}
+
+.assistant-photo-carousel-track:focus-visible {
+  outline: var(--md-focus-ring-width) solid var(--md-focus-ring-color);
+  outline-offset: calc(var(--md-focus-ring-offset) * -1);
 }
 
 .assistant-photo-carousel-slide {
   min-width: 0;
+  margin: 0;
   aspect-ratio: 4 / 3;
   overflow: hidden;
-  border-radius: 0.72rem;
+  border-radius: var(--md-radius-md);
   scroll-snap-align: center;
-  background: #e5e7eb;
+  background: var(--md-color-skeleton-base);
 }
 
 .assistant-photo-carousel-slide img {
@@ -34,8 +44,32 @@
   object-fit: cover;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 48rem) {
   .assistant-photo-carousel-track {
     grid-auto-columns: minmax(58%, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .assistant-photo-carousel-track {
+    scroll-behavior: auto;
+  }
+}
+
+@media (forced-colors: active) {
+  .assistant-photo-carousel {
+    border-color: CanvasText;
+    background: Canvas;
+    color: CanvasText;
+    box-shadow: none;
+  }
+
+  .assistant-photo-carousel-slide {
+    border: 1px solid CanvasText;
+    background: Canvas;
+  }
+
+  .assistant-photo-carousel-track:focus-visible {
+    outline-color: Highlight;
   }
 }
