@@ -1833,7 +1833,9 @@ html[data-control-motion="reduced"] *::after {
   }
 
   .form-grid input,
-  .form-grid select {
+  .form-grid select,
+  .search-wrap,
+  .search-wrap input {
     min-height: 44px;
   }
 }
