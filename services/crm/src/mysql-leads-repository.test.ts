@@ -21,12 +21,12 @@ describe("CRM M71 MySQL persistence", () => {
     expect(crmM71SchemaSql).toContain(
       "assigned_to_subject VARCHAR(191) NOT NULL",
     );
-    expect(crmM71SchemaSql).toContain("destination_id VARCHAR(120) NULL");
-    expect(crmM71SchemaSql).toContain(
-      "INDEX crm_leads_destination_updated_idx (destination_id, updated_at)",
-    );
+    expect(crmM71SchemaSql).not.toContain("destination_id VARCHAR(120)");
     expect(crmM156DestinationScopeSchemaSql).toContain(
       "ADD COLUMN destination_id VARCHAR(120) NULL",
+    );
+    expect(crmM156DestinationScopeSchemaSql).toContain(
+      "ADD INDEX crm_leads_destination_updated_idx (destination_id, updated_at)",
     );
     expect(crmM71SchemaSql).toContain("UNIQUE KEY crm_checklist_lead_step_uq");
     expect(crmM71SchemaSql).toContain("ON DELETE CASCADE");
