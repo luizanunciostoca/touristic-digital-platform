@@ -2253,6 +2253,10 @@ export function createAdminApi({
           requestUrl.searchParams.get("q"),
           160,
         ).toLowerCase();
+        const destinationId = bounded(
+          requestUrl.searchParams.get("destinationId"),
+          120,
+        );
         const results = [];
         if (query.length >= 2) {
           const configuredUsers = await authApi.listAdminUsers();
@@ -2300,13 +2304,24 @@ export function createAdminApi({
               actor,
               request,
               effectiveUser: support?.effectiveUser ?? null,
+              destinationId:
+                destinationId && destinationId !== "global"
+                  ? destinationId
+                  : "",
             });
             for (const result of domainResults ?? []) {
               results.push({ ...result, domain });
             }
           }
         }
-        json(response, 200, { query, results: results.slice(0, 50) });
+        json(response, 200, {
+          query,
+          destinationId:
+            destinationId && destinationId !== "global"
+              ? destinationId
+              : null,
+          results: results.slice(0, 50),
+        });
         return;
       }
 
