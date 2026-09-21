@@ -49,7 +49,10 @@ export async function loadPublicDestination(
     if (!response.ok) return staticFallback();
 
     const envelope = (await response.json()) as PublicDestinationEnvelope;
-    if (!isValidDestination(envelope.destination) || !isValidSource(envelope.source)) {
+    if (
+      !isValidDestination(envelope.destination) ||
+      !isValidSource(envelope.source)
+    ) {
       return staticFallback();
     }
 
