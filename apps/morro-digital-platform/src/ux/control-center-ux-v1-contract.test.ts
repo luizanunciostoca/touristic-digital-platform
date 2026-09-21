@@ -88,7 +88,8 @@ describe("Morro Digital Control Center UX Design V1 contract", () => {
     expect(source).toContain("Precisa da sua atenção");
     expect(source).toContain("Resumo por destino");
     expect(source).toContain("Atividade recente");
-    expect(source).toContain("Ações rápidas");
+    expect(source).not.toContain("Ações rápidas");
+    expect(source).not.toContain("quick-actions");
   });
 
   it("preserves reusable 360-degree patterns and destination fail-closed behavior", async () => {
