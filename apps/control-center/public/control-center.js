@@ -1937,7 +1937,29 @@ async function renderAffiliates(affiliateId) {
     <div style="margin-top:16px"><a href="#affiliates">← Voltar para afiliados</a></div>`;
 
   const affiliateRenderedSections = [...content.children];
-  const overviewContent = affiliateRenderedSections[0]?.outerHTML ?? "";
+  const membershipOverview = memberships.length
+    ? `<section class="card section-card">
+        <div class="section-title"><h2>Programas ativos</h2><span class="badge">owner-backed</span></div>
+        <div class="module-list">
+          ${memberships
+            .map(
+              (membership) =>
+                `<div class="module-row"><span><strong>${escapeHtml(
+                  membership.programId,
+                )}</strong><br><small>${escapeHtml(
+                  membership.destinationId,
+                )}</small></span>${statusBadge(membership.status)}</div>`,
+            )
+            .join("")}
+        </div>
+      </section>`
+    : "";
+  const overviewContent = [
+    affiliateRenderedSections[0]?.outerHTML,
+    membershipOverview,
+  ]
+    .filter(Boolean)
+    .join("");
   const relationshipsContent =
     affiliateRenderedSections[1]?.children?.[0]?.outerHTML ?? "";
   const commercialContent =
