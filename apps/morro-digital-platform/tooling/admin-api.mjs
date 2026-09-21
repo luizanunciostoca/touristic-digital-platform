@@ -945,11 +945,7 @@ export function createAdminApi({
     return true;
   }
 
-  async function handleTicketingCriticalAction(
-    request,
-    response,
-    requestUrl,
-  ) {
+  async function handleTicketingCriticalAction(request, response, requestUrl) {
     const checkIn =
       requestUrl.pathname === `${adminPrefix}/ticketing/operator/check-in`;
     const provision =
@@ -1144,12 +1140,10 @@ export function createAdminApi({
   }
 
   async function handleProductCriticalAction(request, response, requestUrl) {
-    const create =
-      requestUrl.pathname === `${adminPrefix}/products/offers`;
-    const disableMatch =
-      /^\/api\/admin\/v1\/products\/([^/]+)\/disable$/u.exec(
-        requestUrl.pathname,
-      );
+    const create = requestUrl.pathname === `${adminPrefix}/products/offers`;
+    const disableMatch = /^\/api\/admin\/v1\/products\/([^/]+)\/disable$/u.exec(
+      requestUrl.pathname,
+    );
     if (!create && !disableMatch) return false;
     if (request.method !== "POST") {
       json(response, 405, { error: "METHOD_NOT_ALLOWED" });
@@ -1322,7 +1316,8 @@ export function createAdminApi({
       });
     }
 
-    const successful = result?.status === "created" || result?.status === "updated";
+    const successful =
+      result?.status === "created" || result?.status === "updated";
     if (result?.status === "denied") {
       json(response, 403, { error: result.error || "CAPABILITY_DENIED" });
     } else if (result?.status === "invalid") {
@@ -1361,10 +1356,9 @@ export function createAdminApi({
     response,
     requestUrl,
   ) {
-    const match =
-      /^\/api\/admin\/v1\/reservations\/([^/]+)\/cancel$/u.exec(
-        requestUrl.pathname,
-      );
+    const match = /^\/api\/admin\/v1\/reservations\/([^/]+)\/cancel$/u.exec(
+      requestUrl.pathname,
+    );
     if (!match) return false;
     if (request.method !== "POST") {
       json(response, 405, { error: "METHOD_NOT_ALLOWED" });
@@ -2279,9 +2273,7 @@ export function createAdminApi({
         return;
       }
 
-      if (
-        await handleTicketingCriticalAction(request, response, requestUrl)
-      ) {
+      if (await handleTicketingCriticalAction(request, response, requestUrl)) {
         return;
       }
 

@@ -130,7 +130,9 @@ function readControlCenterPreferences() {
   }
 }
 
-function applyControlCenterPreferences(preferences = readControlCenterPreferences()) {
+function applyControlCenterPreferences(
+  preferences = readControlCenterPreferences(),
+) {
   document.documentElement.dataset.controlDensity = preferences.density;
   document.documentElement.dataset.controlMotion = preferences.motion;
   return preferences;
@@ -851,9 +853,7 @@ async function renderBusinesses(businessId) {
       await Promise.all([
         api(`/businesses/${encodeURIComponent(businessId)}/profile`).catch(
           (error) =>
-            error.status === 404
-              ? { profile: null }
-              : Promise.reject(error),
+            error.status === 404 ? { profile: null } : Promise.reject(error),
         ),
         api(`/products?businessId=${encodeURIComponent(businessId)}&limit=100`)
           .then((value) => ({ ...value, available: true }))
@@ -884,7 +884,9 @@ async function renderBusinesses(businessId) {
     ].slice(0, 20);
     const orderIds = [
       ...new Set(
-        reservations.map(({ reservation }) => reservation?.orderId).filter(Boolean),
+        reservations
+          .map(({ reservation }) => reservation?.orderId)
+          .filter(Boolean),
       ),
     ].slice(0, 20);
     const [payments, orders] = await Promise.all([
@@ -1413,8 +1415,7 @@ async function renderCrm() {
 
 async function renderProducts(productId) {
   const supportActive = Boolean(state.adminSession?.support);
-  const canManage =
-    actorHasCapability("ticketing.manage") && !supportActive;
+  const canManage = actorHasCapability("ticketing.manage") && !supportActive;
 
   if (!productId) {
     const [data, businessesData] = await Promise.all([
@@ -1567,11 +1568,17 @@ async function renderProducts(productId) {
               requestKey,
               offer: {
                 productKind: String(values.get("productKind") || ""),
-                productReference: String(values.get("productReference") || "").trim(),
+                productReference: String(
+                  values.get("productReference") || "",
+                ).trim(),
                 label: String(values.get("label") || "").trim(),
                 unitAmountMinor: Number(values.get("unitAmountMinor")),
-                currency: String(values.get("currency") || "").trim().toUpperCase(),
-                pricingVersion: String(values.get("pricingVersion") || "").trim(),
+                currency: String(values.get("currency") || "")
+                  .trim()
+                  .toUpperCase(),
+                pricingVersion: String(
+                  values.get("pricingVersion") || "",
+                ).trim(),
                 capacity: Number(values.get("capacity")),
                 maxPerReservation: Number(values.get("maxPerReservation")),
                 salesStartAt: asIso("salesStartAt"),
@@ -1851,8 +1858,7 @@ async function renderReservations(reservationId) {
 
 async function renderTicketing() {
   const supportActive = Boolean(state.adminSession?.support);
-  const canManage =
-    actorHasCapability("ticketing.manage") && !supportActive;
+  const canManage = actorHasCapability("ticketing.manage") && !supportActive;
   const data = await api("/ticketing/inventory").catch((error) => ({
     data: [],
     error,
@@ -2006,8 +2012,7 @@ async function renderTicketing() {
       const result = form.querySelector("#ticketing-checkin-result");
       const preview = new FormData(form);
       if (
-        String(preview.get("confirmation") || "").trim() !==
-        "VALIDAR CHECK-IN"
+        String(preview.get("confirmation") || "").trim() !== "VALIDAR CHECK-IN"
       ) {
         result.textContent = "Digite VALIDAR CHECK-IN para confirmar.";
         return;
@@ -2111,9 +2116,7 @@ async function renderTicketing() {
           : "Dispositivo já estava revogado.";
       } catch (error) {
         result.textContent =
-          error.body?.error ||
-          error.message ||
-          "Falha ao revogar dispositivo.";
+          error.body?.error || error.message || "Falha ao revogar dispositivo.";
       }
     });
 }

@@ -465,8 +465,7 @@ describe("Control Center Admin API", () => {
     );
     expect(checkIn.statusCode).toBe(200);
 
-    const provisionPath =
-      "/api/admin/v1/ticketing/operator/offline-devices";
+    const provisionPath = "/api/admin/v1/ticketing/operator/offline-devices";
     const provision = responseRecorder();
     await api.handle(
       request(provisionPath, {
