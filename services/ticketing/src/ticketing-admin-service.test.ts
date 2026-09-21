@@ -15,7 +15,15 @@ import {
 
 const databaseUrl = process.env.TICKETING_DATABASE_URL;
 const adminUrl = process.env.MYSQL_ADMIN_DATABASE_URL;
-const describeMySql = databaseUrl && adminUrl ? describe : describe.skip;
+const adminContractDatabaseUrl = databaseUrl
+  ? (() => {
+      const url = new URL(databaseUrl);
+      url.pathname = "/ticketing_admin_test";
+      return url.toString();
+    })()
+  : undefined;
+const describeMySql =
+  adminContractDatabaseUrl && adminUrl ? describe : describe.skip;
 
 function offer() {
   const value = createTicketInventoryOffer({
@@ -42,19 +50,19 @@ describeMySql.sequential("Ticketing admin owner contract", () => {
   let pool: Pool;
 
   beforeAll(async () => {
-    if (!adminUrl || !databaseUrl) {
+    if (!adminUrl || !adminContractDatabaseUrl) {
       throw new Error("MYSQL_INTEGRATION_URLS_REQUIRED");
     }
     const admin = await mysql.createConnection(adminUrl);
     try {
       await admin.query(
-        "CREATE DATABASE IF NOT EXISTS ticketing_m147_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci",
+        "CREATE DATABASE IF NOT EXISTS ticketing_admin_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci",
       );
     } finally {
       await admin.end();
     }
     pool = createTicketingMySqlPoolFromEnvironment({
-      TICKETING_DATABASE_URL: databaseUrl,
+      TICKETING_DATABASE_URL: adminContractDatabaseUrl,
     });
     await applyTicketingPublicApiSchema(pool);
   });
