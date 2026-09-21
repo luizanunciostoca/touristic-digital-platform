@@ -2847,7 +2847,10 @@ async function renderSystem() {
       </article>
     </div>
     <section class="card section-card" style="margin-top:16px">
-      <div class="section-title"><h2>Readiness checks</h2></div>
+      <div class="section-title">
+        <h2>Readiness checks</h2>
+        <button id="system-refresh" class="secondary-button" type="button">Atualizar status</button>
+      </div>
       <div class="health-list">
         ${checks
           .map(
@@ -2860,6 +2863,10 @@ async function renderSystem() {
           .join("")}
       </div>
     </section>`;
+
+  document
+    .querySelector("#system-refresh")
+    ?.addEventListener("click", () => void render("system"));
 }
 
 function renderSettings() {
