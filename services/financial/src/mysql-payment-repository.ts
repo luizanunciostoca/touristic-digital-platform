@@ -29,6 +29,18 @@ interface PaymentRow extends RowDataPacket {
   refunded_at: Date | string | null;
 }
 
+interface ConfirmedAggregateRow extends RowDataPacket {
+  currency: string;
+  amount_minor: number | string;
+  payment_count: number | string;
+}
+
+export interface ConfirmedPaymentAggregate {
+  readonly currency: string;
+  readonly minorUnits: string;
+  readonly paymentCount: number;
+}
+
 const PAYMENT_COLUMNS = `
   payment_id,
   idempotency_key,
@@ -118,8 +130,78 @@ function sameMutablePayment(left: Payment, right: Payment): boolean {
   );
 }
 
+function optionalAggregateBoundary(value: unknown): string | null {
+  if (value === undefined || value === null || value === "") return null;
+  if (typeof value !== "string") {
+    throw new Error("FINANCIAL_INVALID_AGGREGATE_RANGE");
+  }
+  const normalized = normalizeFinancialTimestamp(value);
+  if (!normalized) throw new Error("FINANCIAL_INVALID_AGGREGATE_RANGE");
+  return normalized;
+}
+
 export class MySqlPaymentRepository implements PaymentRepositoryPort {
   constructor(private readonly pool: Pool) {}
+
+  async aggregateConfirmedByIds(
+    paymentIdsInput: readonly unknown[],
+    range: Readonly<{ from?: unknown; to?: unknown }> = {},
+  ): Promise<readonly ConfirmedPaymentAggregate[]> {
+    if (!Array.isArray(paymentIdsInput) || paymentIdsInput.length > 500) {
+      throw new Error("FINANCIAL_ADMIN_PAYMENT_BATCH_INVALID");
+    }
+    const paymentIds = [
+      ...new Set(
+        paymentIdsInput.map((value) => {
+          const id = normalizePaymentId(value);
+          if (!id) throw new Error("FINANCIAL_INVALID_PAYMENT_ID");
+          return id;
+        }),
+      ),
+    ];
+    if (paymentIds.length === 0) return Object.freeze([]);
+
+    const from = optionalAggregateBoundary(range.from);
+    const to = optionalAggregateBoundary(range.to);
+    if (from && to && Date.parse(from) >= Date.parse(to)) {
+      throw new Error("FINANCIAL_INVALID_AGGREGATE_RANGE");
+    }
+
+    const placeholders = paymentIds.map(() => "?").join(", ");
+    const clauses = [
+      `payment_id IN (${placeholders})`,
+      "status = 'confirmed'",
+    ];
+    const parameters: Array<string | Date> = [...paymentIds];
+    if (from) {
+      clauses.push("confirmed_at >= ?");
+      parameters.push(new Date(from));
+    }
+    if (to) {
+      clauses.push("confirmed_at < ?");
+      parameters.push(new Date(to));
+    }
+
+    const [rows] = await this.pool.execute<ConfirmedAggregateRow[]>(
+      `SELECT currency,
+              CAST(SUM(amount_minor) AS CHAR) AS amount_minor,
+              COUNT(*) AS payment_count
+       FROM financial_payments
+       WHERE ${clauses.join(" AND ")}
+       GROUP BY currency
+       ORDER BY currency`,
+      parameters,
+    );
+    return Object.freeze(
+      rows.map((row) =>
+        Object.freeze({
+          currency: row.currency,
+          minorUnits: String(row.amount_minor),
+          paymentCount: Number(row.payment_count),
+        }),
+      ),
+    );
+  }
 
   async findById(paymentId: PaymentId): Promise<Payment | null> {
     const normalizedId = normalizePaymentId(paymentId);
