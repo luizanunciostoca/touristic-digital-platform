@@ -209,8 +209,8 @@ export function installAssistantShellUi(
 
   const onComposerFocusIn = (event: FocusEvent): void => {
     cancelPendingFocus();
-    const target = event.target;
-    if (target instanceof HTMLElement && target.id === "configButton") return;
+    const target = event.target as { id?: string } | null;
+    if (target?.id === "configButton") return;
     if (!isVisible()) show();
   };
   const onAssistantOpenRequest = (): void => {
