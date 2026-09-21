@@ -86,3 +86,31 @@ Still required before completion:
 ## Completion rule
 
 No row marked PARTIAL or GAP may be reported as complete. FEATURE-0012 stays `partial` until the full acceptance matrix is proven.
+
+
+## UX Design V1 implementation wave
+
+Branch: `wave/control-center-ux-design-v1-final-20260921`
+
+Manual-driven implementation added on top of the owner-backed Control Center completion branch.
+
+| UX area | Current state | Evidence |
+| --- | --- | --- |
+| Shell / tokens | PASS in code | `apps/control-center/public/index.html`; `control-center.css` |
+| Topbar / destination context | PASS in code | persistent Global/Destination controls in shell + UX layer |
+| Sidebar IA | PASS in code | grouped navigation in `control-center-ux-v1.js` |
+| Home visual hierarchy | PASS in code | KPIs → attention → destinations → activity/actions |
+| Affiliate ownership rule | PASS in code | copy + destination-scoped Affiliates admin list |
+| Universal Search keyboard | PASS in code | Ctrl/Cmd+K, Escape, arrows, Enter |
+| Universal Search destination context | PASS in code for adapter-capable domains | Admin API forwards `destinationId`; Affiliates filter owner-backed |
+| Products / Reservations / Content destination lists | PASS in code | selected `destinationId` propagated to owner adapters |
+| Business destination aggregate | GAP | Business owner model has no canonical `destinationId` relation; UX fails closed instead of inferring from labels |
+| 360 visual pattern | PASS in code | Business/Affiliate/User reusable header/tab pattern |
+| Support Mode | PASS retained | signed actor/effective-user separation + persistent banner |
+| Critical actions | PASS retained for implemented actions | step-up + reason + textual confirmation + audit |
+| Responsive system | PASS in code; browser requalification pending | manual breakpoints + drawer + responsive tables |
+| Accessibility | PASS in code baseline; browser requalification pending | focus, semantics, keyboard, reduced motion |
+| Visual regression | GAP until exact-head artifact | desktop/tablet/mobile baseline not yet accepted |
+| Exact-head CI | PENDING | must be evaluated on the final candidate SHA |
+
+The UX wave does not convert any PARTIAL/GAP domain authority into a PASS. Missing owner projections remain explicit and fail closed.
