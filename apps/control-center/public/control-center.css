@@ -162,9 +162,15 @@ textarea:focus-visible {
 
 .main {
   min-width: 0;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .topbar {
+  flex: 0 0 auto;
   min-height: 74px;
   display: flex;
   align-items: center;
@@ -268,6 +274,11 @@ kbd {
 }
 
 .page {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 30px 32px 56px;
   max-width: 1560px;
   margin: 0 auto;
@@ -453,6 +464,7 @@ tr:last-child td {
 }
 
 .support-banner {
+  flex: 0 0 auto;
   position: sticky;
   top: 0;
   z-index: 40;
