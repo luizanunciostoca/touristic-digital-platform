@@ -221,21 +221,27 @@ async function loadHomeData() {
       : "&destinationId=" + encodeURIComponent(state.destinationId);
   const reservationQuery = "/reservations?limit=100" + destinationQuery;
   const affiliateQuery = "/affiliates?limit=100" + destinationQuery;
+  const businessQuery = "/businesses?limit=100" + destinationQuery;
   const requests = [
     api("/audit?limit=8").catch(() => ({ entries: [] })),
     api(reservationQuery).catch(() => ({ data: null })),
     api(affiliateQuery).catch(() => ({ data: null })),
+    api(businessQuery).catch(() => ({
+      businesses: null,
+      destinationScope: "unavailable",
+    })),
     state.destinationId === "global"
       ? Promise.resolve(null)
       : api("/reservations?limit=100").catch(() => ({ data: null })),
   ];
-  const [audit, reservations, affiliates, globalReservations] =
+  const [audit, reservations, affiliates, businesses, globalReservations] =
     await Promise.all(requests);
   return {
     dashboard,
     audit,
     reservations,
     affiliates,
+    businesses,
     globalReservations: globalReservations || reservations,
   };
 }
@@ -435,14 +441,21 @@ async function renderHome() {
         : String(todayRows.length)
       : "—";
     const alertCount = Number(data.dashboard.summary?.alerts || 0);
+    const scopedBusinesses = Array.isArray(data.businesses?.businesses)
+      ? data.businesses.businesses
+      : null;
     const businessValue =
       state.destinationId === "global"
         ? String(data.dashboard.summary?.businesses ?? "—")
-        : "—";
+        : scopedBusinesses
+          ? String(scopedBusinesses.length)
+          : "—";
     const businessMeta =
       state.destinationId === "global"
         ? "cadastros conhecidos"
-        : "agregado por destino não exposto pelo owner";
+        : data.businesses?.destinationScope === "owner-backed"
+          ? "atribuídas ao destino selecionado"
+          : "relação de destino indisponível";
     const attention = attentionItems(data.dashboard);
 
     const attentionHtml = attention.length
