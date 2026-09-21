@@ -47,8 +47,8 @@ describe("public onboarding i18n", () => {
         ).toBe(false);
         expect(copy.startTitle.length).toBeGreaterThan(0);
         expect(copy.skip.length).toBeGreaterThan(0);
-          expect(copy.tour.done.length).toBeGreaterThan(0);
-        }
+        expect(copy.tour.done.length).toBeGreaterThan(0);
+      }
     },
   );
 });
