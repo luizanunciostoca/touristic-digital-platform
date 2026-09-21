@@ -61,10 +61,11 @@ Rules:
 
 1. `global` consolidates safe read projections.
 2. Destination scope is persisted only in browser session storage.
-3. Products, Reservations, Content and Affiliates propagate `destinationId` to owner-backed admin contracts where supported.
-4. Universal Search propagates the selected destination into domain search adapters.
-5. Affiliates are platform entities. Destination is an assignment; no company ownership relationship is created.
-6. Where a domain does not yet expose a canonical destination projection, the UI fails closed instead of inventing ownership from labels or unrelated data.
+3. Business, CRM, Products, Reservations, Content and Affiliates propagate or resolve `destinationId` only through owner/domain-backed contracts.
+4. Business profiles expose an explicit canonical `destinationId`; CRM leads persist their own explicit `destinationId`; neither relationship is inferred from labels, addresses or membership text.
+5. Universal Search propagates the selected destination into domain search adapters.
+6. Affiliates are platform entities. Destination is an assignment; no company ownership relationship is created.
+7. Legacy or future records without a canonical destination stay visibly unassigned and fail closed in destination-scoped views.
 
 ## Home
 
@@ -114,7 +115,6 @@ Qualification targets:
 - 1280 × 800
 - 1024 × 768
 - 768 × 1024
-- 430 × 932
 - 390 × 844
 
 Desktop keeps the expanded operational shell. Tablet collapses/reflows content. Mobile uses a drawer and responsive table-to-card treatment where safe.
@@ -138,4 +138,4 @@ Static contract:
 
 Browser qualification must continue to prove login, dashboard, search, destination context, Business/Affiliate/User detail, Support Mode, critical actions, accessibility and responsive no-overflow behavior.
 
-Visual regression baselines must be generated from the exact candidate head for desktop, tablet and mobile before final UX certification.
+Visual regression baselines are captured by the Control Center browser contract at 1440, 1280, 1024, 768 and 390 px. Final UX certification requires those artifacts, the accessibility report and all mandatory CI checks to come from the exact candidate head.
