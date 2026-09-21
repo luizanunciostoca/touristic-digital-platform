@@ -952,7 +952,7 @@ export function installExploreLocationsControl({
       }
       document.dispatchEvent(
         new CustomEvent("morro:assistant-option-selected", {
-          detail: { value },
+          detail: { value, optionsOverride: [] },
         }),
       );
       requestAssistantOpen(document);
