@@ -266,6 +266,7 @@ jobs:
                   },
                   data: {
                     companyName: 'Control Center Browser Lead',
+                    destinationId: 'morro-de-sao-paulo',
                     contactName: 'Lead E2E',
                     email: 'lead-e2e@example.com',
                     monthlyValue: '490.00',
