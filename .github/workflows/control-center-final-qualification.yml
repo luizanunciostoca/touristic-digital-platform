@@ -18,8 +18,6 @@ on:
   push:
     branches:
       - "wave/platform-control-center-final-completion-*"
-    paths:
-      - ".github/workflows/control-center-final-qualification.yml"
 
 permissions:
   contents: read
