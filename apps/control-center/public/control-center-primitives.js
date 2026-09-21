@@ -112,7 +112,7 @@ export function entityHeader({
         </div>
       </div>
     </div>
-    <nav class="entity-tabs" aria-label="Visão 360°">${tabMarkup}</nav>
+    <nav class="entity-tabs" aria-label="Visão 360°" tabindex="0">${tabMarkup}</nav>
   </section>`;
 }
 
