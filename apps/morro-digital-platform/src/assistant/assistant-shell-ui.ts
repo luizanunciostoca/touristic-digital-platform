@@ -185,7 +185,7 @@ export function installAssistantShellUi(
     return true;
   };
 
-  const hide = (): boolean => {
+  const hide = (shouldRestoreFocus = true): boolean => {
     if (destroyed || !assistant) return false;
     cancelPendingFocus();
     if (isTutorialActive(options.document)) {
@@ -203,7 +203,11 @@ export function installAssistantShellUi(
     input?.setAttribute("aria-expanded", "false");
     setState("idle");
     hideAssociatedAssistantContent(options.document);
-    restoreFocus();
+    if (shouldRestoreFocus) {
+      restoreFocus();
+    } else {
+      previousFocus = null;
+    }
     return true;
   };
 
@@ -226,7 +230,7 @@ export function installAssistantShellUi(
     show();
   };
   const onAssistantCloseRequest = (): void => {
-    hide();
+    hide(false);
   };
   const onMinimizeClick = (): void => {
     hide();
