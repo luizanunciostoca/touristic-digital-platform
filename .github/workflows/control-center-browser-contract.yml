@@ -97,6 +97,10 @@ jobs:
           AUDITOR_HASH=$(node --input-type=module -e "import('./services/auth/dist/credentials.js').then(m => console.log(m.hashPassword(process.argv[1], Buffer.alloc(16, 24))))" "$PASSWORD")
           USERS=$(node -e 'console.log(JSON.stringify([
             {id:"platform-owner-1",email:"platform-owner@example.com",passwordHash:process.argv[1],role:"PLATFORM_OWNER",businessIds:[]},
+            {id:"platform-owner-users",email:"platform-owner-users@example.com",passwordHash:process.argv[1],role:"PLATFORM_OWNER",businessIds:[]},
+            {id:"platform-owner-commerce",email:"platform-owner-commerce@example.com",passwordHash:process.argv[1],role:"PLATFORM_OWNER",businessIds:[]},
+            {id:"platform-owner-ticketing",email:"platform-owner-ticketing@example.com",passwordHash:process.argv[1],role:"PLATFORM_OWNER",businessIds:[]},
+            {id:"platform-owner-a11y",email:"platform-owner-a11y@example.com",passwordHash:process.argv[1],role:"PLATFORM_OWNER",businessIds:[]},
             {id:"business-owner-1",email:"business-owner@example.com",passwordHash:process.argv[2],role:"BUSINESS_OWNER",businessIds:["toca-do-morcego"]},
             {id:"support-1",email:"support@example.com",passwordHash:process.argv[3],role:"SUPPORT",businessIds:[]},
             {id:"auditor-1",email:"auditor@example.com",passwordHash:process.argv[4],role:"AUDITOR",businessIds:[]}
