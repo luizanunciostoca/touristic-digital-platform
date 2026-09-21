@@ -79,10 +79,46 @@ export function createAssistantSearchHandler(
           ? result.externalResults.map(externalPresentationItem)
           : [];
 
+    const exploreResults =
+      result.source === "local"
+        ? result.localResults.map(({ item }) => ({
+            name: item.name,
+            category: item.category,
+            latitude: item.latitude,
+            longitude: item.longitude,
+            ...(item.area ? { area: item.area } : {}),
+            source: "local" as const,
+          }))
+        : result.source === "mapbox"
+          ? result.externalResults.map((item) => ({
+              name: item.name,
+              category: item.category,
+              latitude: item.lat,
+              longitude: item.lon,
+              ...(item.placeFormatted || item.fullAddress
+                ? { area: item.placeFormatted || item.fullAddress }
+                : {}),
+              source: "mapbox" as const,
+            }))
+          : [];
+
+    const exploreCommand = Object.freeze({
+      type: "show_search_results" as const,
+      query,
+      results: Object.freeze(exploreResults),
+    });
+
     if (items.length === 0) {
       return {
         text: copy.empty,
-        metadata: { domain: "search", state: "empty", query, language },
+        metadata: {
+          domain: "search",
+          state: "empty",
+          query,
+          language,
+          deterministic: true,
+          exploreCommands: [exploreCommand],
+        },
       };
     }
 
@@ -106,6 +142,8 @@ export function createAssistantSearchHandler(
         language,
         count: items.length,
         results: items.map((item) => ({ ...item })),
+        deterministic: true,
+        exploreCommands: [exploreCommand],
       },
     };
   };
