@@ -39,8 +39,7 @@ export function createDestinationAdminRuntime(environment = process.env) {
       service = createDestinationAdminService(pool);
       try {
         await applyDestinationsSchema(pool);
-        const bootstrapped =
-          await bootstrapMorroDeSaoPauloDestination(service);
+        const bootstrapped = await bootstrapMorroDeSaoPauloDestination(service);
         if (!["created", "found"].includes(bootstrapped.status)) {
           throw new Error("DESTINATION_BOOTSTRAP_FAILED");
         }
