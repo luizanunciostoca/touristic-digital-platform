@@ -237,7 +237,6 @@
   --md-color-skeleton-highlight: Highlight;
 }
 
-
 /* Global keyboard focus: use non-zero specificity so legacy :focus resets cannot win. */
 :is(
   a[href],
