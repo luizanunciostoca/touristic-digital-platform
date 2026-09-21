@@ -157,6 +157,19 @@ function readRuntimeAction(response: AssistantDialogResponse): string | null {
   return typeof metadata.action === "string" ? metadata.action : null;
 }
 
+function readPlaceOwnedActionValues(document: Document): readonly string[] {
+  const sheet = document.getElementById("place-bottom-sheet");
+  if (!(sheet instanceof HTMLElement) || !sheet.dataset.placeName) return [];
+  return Object.freeze(
+    Array.from(
+      sheet.querySelectorAll<HTMLElement>(
+        ".place-bottom-sheet-action[data-value], .place-bottom-sheet-primary-action[data-value]",
+      ),
+      (node) => node.dataset.value?.trim() ?? "",
+    ).filter(Boolean),
+  );
+}
+
 function isUnknownArray(value: unknown): value is readonly unknown[] {
   return Array.isArray(value);
 }
@@ -1164,9 +1177,10 @@ export function installBrowserAssistantRuntime(
     if (destroyed || generation !== requestGeneration) return response;
 
     appendStandardMessage("assistant", response.text);
-    const suppressedValues = new Set(
-      suppressOptionValues.map((value) => value.trim()).filter(Boolean),
-    );
+    const suppressedValues = new Set([
+      ...suppressOptionValues.map((value) => value.trim()).filter(Boolean),
+      ...readPlaceOwnedActionValues(options.document),
+    ]);
     const rawResponseOptions =
       optionOverride ?? readAssistantResponseOptions(response);
     const responseOptions = rawResponseOptions.filter(
