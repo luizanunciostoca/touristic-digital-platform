@@ -41,6 +41,7 @@ import {
   localizedTourStopLabel,
   type RuntimeStatusDescriptor,
 } from "./runtime/runtime-accessibility-i18n.js";
+import { installMobileContextSheet } from "./ux/mobile-context-sheet.js";
 import { installPremiumUxModePresenter } from "./ux/premium-ux-mode.js";
 import {
   installTouristExperienceSnapshotCapture,
@@ -107,6 +108,7 @@ function setupV1ShellInteractions(): void {
 setupV1ShellInteractions();
 recordMorroStartupMetric(document, performance, "assistant");
 installPremiumUxModePresenter({ document });
+installMobileContextSheet({ document, window });
 const publicOnboarding = installPublicOnboarding({ document });
 
 function setV1MapboxCompatibilityAliases(
