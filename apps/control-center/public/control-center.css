@@ -409,6 +409,11 @@ a:focus-visible,
   box-shadow: 0 0 0 3px rgba(46, 144, 250, 0.12);
 }
 
+.search-wrap input:focus {
+  outline: 3px solid color-mix(in srgb, var(--md-focus) 38%, transparent);
+  outline-offset: 2px;
+}
+
 .search-wrap > span[aria-hidden="true"] {
   color: var(--md-text-muted);
 }
