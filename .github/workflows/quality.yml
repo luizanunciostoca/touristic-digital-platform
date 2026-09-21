@@ -57,14 +57,6 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Enforce workflow concurrency policy
         run: node tooling/quality/check-workflow-concurrency.mjs
-      - name: TEMP UX V2 format probe
-        run: |
-          pnpm exec prettier apps/morro-digital-platform/src/ux/assistant-modal-v2-contract.test.ts --write
-          echo "::group::FORMATTED_ASSISTANT_MODAL_CONTRACT"
-          cat apps/morro-digital-platform/src/ux/assistant-modal-v2-contract.test.ts
-          echo "::endgroup::"
-          git checkout -- apps/morro-digital-platform/src/ux/assistant-modal-v2-contract.test.ts
-
       - name: Check formatting
         run: pnpm format:check
       - name: Enforce Stylelint V2 CSS governance
