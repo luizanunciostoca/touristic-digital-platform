@@ -1,5 +1,7 @@
 name: Ticketing M148 Transaction Contract
 
+# UX V2 final-certification gate: keep this workflow in the exact-head certification matrix.
+
 on:
   pull_request:
     paths:

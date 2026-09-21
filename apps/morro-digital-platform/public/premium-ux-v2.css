@@ -135,16 +135,6 @@ body[data-md-mode] {
   font-family: var(--md-font-family-sans);
 }
 
-/* Keep the Assistant trigger inside the safe inline edge across responsive scaling. */
-.quick-actions {
-  left: max(var(--md-safe-left, 0rem), var(--md-space-3, 0.75rem)) !important;
-}
-
-.quick-actions .action-button.primary.mood-button,
-.quick-actions .mood-button {
-  transform-origin: left center;
-}
-
 /* Onboarding completion toast — shared V2 primitive over frozen V1 evidence. */
 #tour-finish-toast.md-toast {
   z-index: var(--md-layer-toast);
@@ -183,7 +173,6 @@ body[data-md-mode] {
     opacity, transform, background-color, border-color, box-shadow;
 }
 
-.quick-actions,
 #globe-map-control,
 #weather-widget,
 #submenu,
@@ -197,7 +186,6 @@ header {
     visibility 0s linear var(--md-motion-duration-fast, 120ms);
 }
 
-body[data-md-mode="navigation"] .quick-actions,
 body[data-md-mode="navigation"] #globe-map-control,
 body[data-md-mode="tour"] #globe-map-control {
   opacity: 0;
@@ -219,14 +207,6 @@ body[data-md-mode="tour"] #submenu {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-}
-
-body[data-md-mode="tour"] .quick-actions {
-  opacity: 0.92;
-  visibility: visible;
-  pointer-events: auto;
-  transform: scale(0.88);
-  transform-origin: bottom right;
 }
 
 body[data-md-mode="navigation"]:not(.assistant-modal-open)
@@ -599,7 +579,6 @@ body[data-md-mode="assistant"] .assistant-option-btn {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .quick-actions,
   #globe-map-control,
   #weather-widget,
   #submenu,

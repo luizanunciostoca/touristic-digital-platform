@@ -1,5 +1,7 @@
 name: Map Provider Regression
 
+# UX V2 final-certification gate: keep this workflow in the exact-head certification matrix.
+
 on:
   workflow_dispatch:
   push:

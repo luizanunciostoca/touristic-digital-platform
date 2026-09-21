@@ -82,7 +82,7 @@ jobs:
           }
 
           async function assertVisibility(page, step, visible) {
-            await page.locator('.tour-step-label').filter({ hasText: `Passo ${step} de 7` }).waitFor({ state: 'visible' });
+            await page.locator('.tour-step-label').filter({ hasText: `Passo ${step} de 6` }).waitFor({ state: 'visible' });
             const current = await state(page);
             if (!current.exists || current.display === null || current.visibility === null || current.opacity === null) {
               throw new Error(`Step ${step} canonical assistant DOM/style is unavailable: ${JSON.stringify(current)}`);
@@ -145,9 +145,9 @@ jobs:
 
             const evidence = [];
             evidence.push(await assertVisibility(page, 1, false));
-            for (let step = 2; step <= 7; step += 1) {
+            for (let step = 2; step <= 6; step += 1) {
               await page.locator('.tour-btn-next').click();
-              evidence.push(await assertVisibility(page, step, step >= 4 && step <= 6));
+              evidence.push(await assertVisibility(page, step, step >= 3 && step <= 5));
             }
 
             await page.locator('.tour-btn-finish').click();

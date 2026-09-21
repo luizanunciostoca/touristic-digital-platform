@@ -177,7 +177,6 @@ jobs:
                 weather: visibility('#weather-widget'),
                 submenu: visibility('#submenu'),
                 globe: visibility('#globe-map-control'),
-                quickAction: visibility('.quick-actions'),
                 assistant: visibility('#assistant-messages'),
               };
             });
@@ -191,9 +190,6 @@ jobs:
               !hidden(state.weather) ||
               !hidden(state.submenu) ||
               !hidden(state.globe) ||
-              !state.quickAction ||
-              state.quickAction.visibility === 'hidden' ||
-              state.quickAction.pointerEvents === 'none' ||
               !state.assistantOpen ||
               !state.assistant ||
               state.assistant.visibility === 'hidden'
@@ -294,8 +290,9 @@ jobs:
 
             const assistant = page.locator('#assistant-messages');
             if (!(await assistant.isVisible())) {
-              await page.locator('.mood-button').click();
+              await page.locator('#assistantInput').focus();
             }
+            await assistant.waitFor({ state: 'visible', timeout: 5000 });
             await page.locator('#assistant-category-tours').waitFor({ state: 'visible', timeout: 10000 });
             await page.locator('#assistant-category-tours').click();
             const shortcut = page.locator(

@@ -128,8 +128,8 @@ jobs:
                 });
               });
 
-              await page.locator('#assistantInput').waitFor({ state: 'attached', timeout: 10000 });
-              await page.locator('.quick-actions .action-button.primary').click();
+              await page.locator('#assistantInput').waitFor({ state: 'visible', timeout: 10000 });
+              await page.locator('#assistantInput').focus();
               await page.locator('#assistant-messages:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
 
               await page.locator('#assistantInput').fill('Toca do Morcego');

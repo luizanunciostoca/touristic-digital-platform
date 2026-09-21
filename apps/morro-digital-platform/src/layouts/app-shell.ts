@@ -35,12 +35,6 @@ function createAppShellMarkup(): string {
         <div id="submenuContainer" aria-live="polite"></div>
       </section>
 
-      <div class="quick-actions">
-        <button class="action-button primary mood-button md-icon-button" type="button" data-mood="happy" aria-label="Open assistant" aria-haspopup="dialog" aria-controls="assistant-messages" aria-expanded="false">
-          <img class="mood-icon" src="/apps/morro-digital-platform/public/assets/emojis/sun_emojis/sun_emoji_1.png" alt="Assistant mood" width="341" height="341" loading="eager" decoding="async" fetchpriority="auto" />
-        </button>
-      </div>
-
       <div
         id="assistant-messages"
         class="assistant-modal md-assistant-dialog auto-size grow-upward hidden"

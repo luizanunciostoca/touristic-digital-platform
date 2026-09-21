@@ -188,34 +188,6 @@ header h1 {
   -webkit-backdrop-filter: blur(10px);
 }
 
-.quick-actions {
-  position: fixed;
-  left: var(--spacing-xs);
-  bottom: 4.6875rem;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  padding: 0;
-  z-index: 2200;
-  width: auto;
-  margin: 0;
-  gap: 0;
-}
-
-.mood-button {
-  border: 0;
-  background: transparent;
-  cursor: pointer;
-}
-
-.mood-icon {
-  display: block;
-  width: clamp(4.55rem, 13vw, 5.6rem);
-  height: clamp(4.55rem, 13vw, 5.6rem);
-  object-fit: contain;
-}
-
 #assistant-input-area {
   position: fixed;
   left: 0;
@@ -365,8 +337,4 @@ header h1 {
     font-size: var(--font-size-sm);
   }
 
-  .quick-actions {
-    left: var(--spacing-sm);
-    bottom: 5.3125rem;
-  }
 }

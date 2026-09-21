@@ -347,11 +347,9 @@ try {
     .locator('body[data-public-onboarding-settled="true"]')
     .waitFor({ state: "attached", timeout: 5000 });
   const assistant = page.locator("#assistant-messages");
-  const quickAction = page.locator(
-    '.mood-button[data-assistant-shell-ready="true"]',
-  );
-  await quickAction.waitFor({ state: "visible", timeout: 5000 });
-  if (!(await assistant.isVisible())) await quickAction.click();
+  const input = page.locator("#assistantInput");
+  await input.waitFor({ state: "visible", timeout: 5000 });
+  if (!(await assistant.isVisible())) await input.focus();
   await assistant.waitFor({ state: "visible", timeout: 5000 });
 
   await waitCategory(page, "beaches", "Praias", "Praias, 8 locais");
