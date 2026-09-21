@@ -2497,7 +2497,7 @@ async function renderContent(contentId) {
   const canManage = actorHasCapability("content.manage");
 
   if (!contentId) {
-    const data = await api("/content?limit=100");
+    const data = await api(`/content?limit=100${selectedDestinationQuery()}`);
     const documents = data.data ?? [];
     content.innerHTML = `
       <div class="grid two-col">
