@@ -2,8 +2,6 @@ export default {
   ignoreFiles: [
     "**/public/legacy/**",
     "**/public/styles.css",
-    "**/public/explore-locations.css",
-    "**/public/navigation-map.css",
     "**/public/v1-*.css",
     "**/public/business-*.css",
     "**/public/privacy-preferences.css",
