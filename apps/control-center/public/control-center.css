@@ -1736,7 +1736,6 @@ html[data-control-motion="reduced"] *::after {
   transition-duration: 0.001ms !important;
 }
 
-
 /* Reusable administrative primitives: progressive enhancement over owner-rendered markup. */
 .section-title__actions {
   min-width: 0;
@@ -1761,6 +1760,10 @@ html[data-control-motion="reduced"] *::after {
 .state-panel--error {
   border-color: #f1c0c3;
   background: var(--md-danger-soft);
+}
+
+.state-panel--error p {
+  color: var(--md-text);
 }
 
 .state-panel--partial {

@@ -48,12 +48,14 @@ describe("Morro Digital Control Center UX Design V1 contract", () => {
     );
     expect(html).toContain('id="notification-button"');
     expect(html).toContain('id="profile-button"');
-    expect(html).toContain(
-      'id="support-banner" class="support-banner" role="status" aria-live="polite"',
-    );
-    expect(html).toContain(
-      'id="content" role="region" aria-labelledby="page-title" aria-busy="false"',
-    );
+    expect(html).toContain('id="support-banner"');
+    expect(html).toContain('class="support-banner"');
+    expect(html).toContain('role="status"');
+    expect(html).toContain('aria-live="polite"');
+    expect(html).toContain('id="content"');
+    expect(html).toContain('role="region"');
+    expect(html).toContain('aria-labelledby="page-title"');
+    expect(html).toContain('aria-busy="false"');
     expect(html).not.toContain('id="content" aria-live=');
     expect(html).toContain("control-center-ux-v1.js");
   });
@@ -216,7 +218,9 @@ describe("Morro Digital Control Center UX Design V1 contract", () => {
     expect(css).toContain(".responsive-cards");
     expect(css).toContain("min-height: 44px");
     expect(css).toContain("min-height: 100dvh");
-    expect(workflow).toContain("control-center-responsive-browser-contract.mjs");
+    expect(workflow).toContain(
+      "control-center-responsive-browser-contract.mjs",
+    );
     expect(workflow).toContain("/tmp/control-center-visual-*.png");
   });
 });

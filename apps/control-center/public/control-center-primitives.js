@@ -25,7 +25,9 @@ export function escapeHtml(value) {
 }
 
 export function statusBadge(value, { label = value } = {}) {
-  const normalized = String(value ?? "").trim().toLowerCase();
+  const normalized = String(value ?? "")
+    .trim()
+    .toLowerCase();
   const tone = POSITIVE_STATUSES.has(normalized)
     ? "pass"
     : PARTIAL_STATUSES.has(normalized)
@@ -34,7 +36,12 @@ export function statusBadge(value, { label = value } = {}) {
   return `<span class="badge ${tone}">${escapeHtml(label || "indisponível")}</span>`;
 }
 
-function statePanel(kind, title, description, { actions = "", compact = false } = {}) {
+function statePanel(
+  kind,
+  title,
+  description,
+  { actions = "", compact = false } = {},
+) {
   const role = kind === "error" ? ' role="alert"' : "";
   const busy = kind === "loading" ? ' aria-busy="true"' : "";
   return `<section class="card state-panel state-panel--${escapeHtml(kind)} ${compact ? "state-panel--compact" : ""}"${role}${busy}>
@@ -51,27 +58,15 @@ export function loadingState(
   return statePanel("loading", title, description);
 }
 
-export function emptyState(
-  title,
-  description = "",
-  options = {},
-) {
+export function emptyState(title, description = "", options = {}) {
   return statePanel("empty", title, description, options);
 }
 
-export function errorState(
-  title,
-  description = "",
-  options = {},
-) {
+export function errorState(title, description = "", options = {}) {
   return statePanel("error", title, description, options);
 }
 
-export function partialState(
-  title,
-  description = "",
-  options = {},
-) {
+export function partialState(title, description = "", options = {}) {
   return statePanel("partial", title, description, options);
 }
 
@@ -90,12 +85,7 @@ export function sectionHeader({
   </div>`;
 }
 
-export function entityHeader({
-  entityType,
-  entityId,
-  scope,
-  tabs = [],
-}) {
+export function entityHeader({ entityType, entityId, scope, tabs = [] }) {
   const tabMarkup = tabs
     .map(
       (tab, index) =>
@@ -122,7 +112,9 @@ function tableLabel(wrap, index) {
   const heading = section?.querySelector("h2, h3");
   if (heading?.textContent?.trim()) return heading.textContent.trim();
   const pageTitle = document.querySelector("#page-title")?.textContent?.trim();
-  return pageTitle ? `${pageTitle} — tabela ${index + 1}` : `Tabela administrativa ${index + 1}`;
+  return pageTitle
+    ? `${pageTitle} — tabela ${index + 1}`
+    : `Tabela administrativa ${index + 1}`;
 }
 
 export function enhanceDataTables(root = document) {
@@ -143,12 +135,12 @@ export function enhanceDataTables(root = document) {
       [...row.children].forEach((cell, index) => {
         if (cell.tagName !== "TD") return;
         if (labels[index]) cell.dataset.label = labels[index];
-        cell.querySelectorAll("code").forEach((node) =>
-          node.classList.add("long-token"),
-        );
-        cell.querySelectorAll("button, a").forEach((node) =>
-          node.classList.add("table-action"),
-        );
+        cell
+          .querySelectorAll("code")
+          .forEach((node) => node.classList.add("long-token"));
+        cell
+          .querySelectorAll("button, a")
+          .forEach((node) => node.classList.add("table-action"));
       });
     });
   });
@@ -167,7 +159,9 @@ export function enhanceCriticalActions(root = document) {
     form.classList.add("critical-action-form");
     form.dataset.criticalAction = "true";
     if (!form.getAttribute("aria-label")) {
-      const heading = form.querySelector("h2, h3") ?? form.closest("section")?.querySelector("h2, h3");
+      const heading =
+        form.querySelector("h2, h3") ??
+        form.closest("section")?.querySelector("h2, h3");
       form.setAttribute(
         "aria-label",
         heading?.textContent?.trim() || "Ação administrativa crítica",

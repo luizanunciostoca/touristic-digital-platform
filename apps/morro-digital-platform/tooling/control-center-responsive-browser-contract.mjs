@@ -17,7 +17,11 @@ const viewports = [
   { width: 390, height: 844, label: "390x844" },
 ];
 
-const landscapeViewport = { width: 844, height: 390, label: "844x390-landscape" };
+const landscapeViewport = {
+  width: 844,
+  height: 390,
+  label: "844x390-landscape",
+};
 
 function persist(evidence) {
   writeFileSync(evidencePath, JSON.stringify(evidence, null, 2));
@@ -33,7 +37,10 @@ async function assertNoDocumentOverflow(page, label) {
       .filter((node) => {
         if (!(node instanceof HTMLElement) || node.hidden) return false;
         const rect = node.getBoundingClientRect();
-        return rect.right > document.documentElement.clientWidth + 2 || rect.left < -2;
+        return (
+          rect.right > document.documentElement.clientWidth + 2 ||
+          rect.left < -2
+        );
       })
       .slice(0, 12)
       .map((node) => ({
@@ -44,7 +51,10 @@ async function assertNoDocumentOverflow(page, label) {
         rect: node.getBoundingClientRect().toJSON(),
       })),
   }));
-  if (layout.rootScroll > layout.rootClient + 2 || layout.bodyScroll > layout.bodyClient + 2) {
+  if (
+    layout.rootScroll > layout.rootClient + 2 ||
+    layout.bodyScroll > layout.bodyClient + 2
+  ) {
     throw new Error(`DOCUMENT_OVERFLOW:${label}:${JSON.stringify(layout)}`);
   }
   return layout;
@@ -71,20 +81,26 @@ async function assertTableContract(page, label) {
         ariaLabel: wrap.getAttribute("aria-label"),
         clientWidth: wrap.clientWidth,
         scrollWidth: wrap.scrollWidth,
-        headings: [...(table?.querySelectorAll("thead th") ?? [])].map((th) => ({
-          text: th.textContent?.trim() ?? "",
-          scope: th.getAttribute("scope"),
-        })),
+        headings: [...(table?.querySelectorAll("thead th") ?? [])].map(
+          (th) => ({
+            text: th.textContent?.trim() ?? "",
+            scope: th.getAttribute("scope"),
+          }),
+        ),
       };
     }),
   );
   if (!tables.length) throw new Error(`TABLE_MISSING:${label}`);
   for (const table of tables) {
     if (table.tabIndex < 0 || table.role !== "region" || !table.ariaLabel) {
-      throw new Error(`TABLE_REGION_NOT_ACCESSIBLE:${label}:${JSON.stringify(table)}`);
+      throw new Error(
+        `TABLE_REGION_NOT_ACCESSIBLE:${label}:${JSON.stringify(table)}`,
+      );
     }
     if (table.headings.some((heading) => heading.scope !== "col")) {
-      throw new Error(`TABLE_HEADER_SCOPE_MISSING:${label}:${JSON.stringify(table)}`);
+      throw new Error(
+        `TABLE_HEADER_SCOPE_MISSING:${label}:${JSON.stringify(table)}`,
+      );
     }
   }
   return tables;
@@ -118,7 +134,9 @@ async function assertTouchTargets(page, selectors, label) {
     }
   }
   if (failures.length) {
-    throw new Error(`TOUCH_TARGET_TOO_SMALL:${label}:${JSON.stringify(failures)}`);
+    throw new Error(
+      `TOUCH_TARGET_TOO_SMALL:${label}:${JSON.stringify(failures)}`,
+    );
   }
 }
 
@@ -131,7 +149,9 @@ async function login(context) {
     },
   );
   if (response.status() !== 200) {
-    throw new Error(`OWNER_LOGIN_FAILED:${response.status()}:${await response.text()}`);
+    throw new Error(
+      `OWNER_LOGIN_FAILED:${response.status()}:${await response.text()}`,
+    );
   }
 }
 
@@ -151,12 +171,21 @@ async function main() {
     const runtimeErrors = [];
     page.on("pageerror", (error) => runtimeErrors.push(error.message));
 
-    await page.goto(`${origin}/apps/control-center/public/index.html#overview`, {
-      waitUntil: "domcontentloaded",
-      timeout: 30_000,
-    });
+    await page.goto(
+      `${origin}/apps/control-center/public/index.html#overview`,
+      {
+        waitUntil: "domcontentloaded",
+        timeout: 30_000,
+      },
+    );
     await page.locator("#app:not([hidden])").waitFor({ timeout: 15_000 });
-    await page.getByRole("heading", { name: /^Bom dia,/ }).waitFor({ timeout: 15_000 });
+    await page
+      .locator('#content[data-rendered-view="overview"][aria-busy="false"]')
+      .waitFor({ state: "attached", timeout: 15_000 });
+    await page
+      .locator(".kpi-grid .metric-card")
+      .first()
+      .waitFor({ state: "visible", timeout: 15_000 });
 
     // Support Mode banner is validated with deliberately long text before the
     // regular responsive matrix, then closed so the remaining surfaces run in
@@ -169,53 +198,104 @@ async function main() {
         "Validação responsiva e acessível do banner de suporte com contexto administrativo deliberadamente longo para comprovar quebra segura de texto sem overflow horizontal.",
       );
     await page.getByRole("button", { name: "Entrar em modo suporte" }).click();
-    await page.locator("#support-banner:not([hidden])").waitFor({ state: "visible", timeout: 15_000 });
+    await page
+      .locator("#support-banner:not([hidden])")
+      .waitFor({ state: "visible", timeout: 15_000 });
 
     for (const viewport of viewports) {
       await page.setViewportSize(viewport);
-      const layout = await assertNoDocumentOverflow(page, `support-${viewport.label}`);
+      const layout = await assertNoDocumentOverflow(
+        page,
+        `support-${viewport.label}`,
+      );
       const banner = await page.locator("#support-banner").boundingBox();
-      if (!banner || banner.x < -1 || banner.x + banner.width > viewport.width + 1) {
-        throw new Error(`SUPPORT_BANNER_OUT_OF_BOUNDS:${viewport.label}:${JSON.stringify(banner)}`);
+      if (
+        !banner ||
+        banner.x < -1 ||
+        banner.x + banner.width > viewport.width + 1
+      ) {
+        throw new Error(
+          `SUPPORT_BANNER_OUT_OF_BOUNDS:${viewport.label}:${JSON.stringify(banner)}`,
+        );
       }
       evidence.supportBanner.push({ ...viewport, layout, banner });
     }
 
     await page.getByRole("button", { name: "Encerrar modo suporte" }).click();
-    await page.locator("#support-banner").waitFor({ state: "hidden", timeout: 15_000 });
+    await page
+      .locator("#support-banner")
+      .waitFor({ state: "hidden", timeout: 15_000 });
 
     for (const viewport of viewports) {
       await page.setViewportSize(viewport);
       await waitForView(page, "overview");
-      await page.locator(".kpi-grid .metric-card").first().waitFor({ timeout: 15_000 });
+      await page
+        .locator(".kpi-grid .metric-card")
+        .first()
+        .waitFor({ timeout: 15_000 });
 
       if ((await page.locator(".quick-actions").count()) !== 0) {
         throw new Error(`QUICK_ACTIONS_REINTRODUCED:${viewport.label}`);
       }
-      if ((await page.locator("[data-assistant-floating], .assistant-floating, .assistant-fab").count()) !== 0) {
+      if (
+        (await page
+          .locator(
+            "[data-assistant-floating], .assistant-floating, .assistant-fab",
+          )
+          .count()) !== 0
+      ) {
         throw new Error(`FLOATING_ASSISTANT_REINTRODUCED:${viewport.label}`);
       }
 
       const shell = await page.evaluate(() => ({
-        sidebarVisible: getComputedStyle(document.querySelector("#sidebar")).display !== "none",
-        topbar: document.querySelector(".topbar")?.getBoundingClientRect().toJSON() ?? null,
-        destination: document.querySelector("#destination-selector")?.getBoundingClientRect().toJSON() ?? null,
-        search: document.querySelector("#global-search")?.getBoundingClientRect().toJSON() ?? null,
+        sidebarVisible:
+          getComputedStyle(document.querySelector("#sidebar")).display !==
+          "none",
+        topbar:
+          document.querySelector(".topbar")?.getBoundingClientRect().toJSON() ??
+          null,
+        destination:
+          document
+            .querySelector("#destination-selector")
+            ?.getBoundingClientRect()
+            .toJSON() ?? null,
+        search:
+          document
+            .querySelector("#global-search")
+            ?.getBoundingClientRect()
+            .toJSON() ?? null,
       }));
       if (!shell.topbar || !shell.destination || !shell.search) {
-        throw new Error(`SHELL_SURFACE_MISSING:${viewport.label}:${JSON.stringify(shell)}`);
+        throw new Error(
+          `SHELL_SURFACE_MISSING:${viewport.label}:${JSON.stringify(shell)}`,
+        );
       }
 
-      await assertFocusVisible(page, "#global-search", `search-${viewport.label}`);
+      await assertFocusVisible(
+        page,
+        "#global-search",
+        `search-${viewport.label}`,
+      );
       await page.keyboard.press("Control+K");
-      if (!(await page.locator("#global-search").evaluate((node) => node === document.activeElement))) {
+      if (
+        !(await page
+          .locator("#global-search")
+          .evaluate((node) => node === document.activeElement))
+      ) {
         throw new Error(`CTRL_K_FAILED:${viewport.label}`);
       }
       await page.locator("#global-search").fill("business-owner@example.com");
-      await page.locator("#search-results:not([hidden])").waitFor({ state: "visible", timeout: 15_000 });
+      await page
+        .locator("#search-results:not([hidden])")
+        .waitFor({ state: "visible", timeout: 15_000 });
       await page.keyboard.press("ArrowDown");
-      const activeDescendant = await page.locator("#global-search").getAttribute("aria-activedescendant");
-      if (!activeDescendant) throw new Error(`SEARCH_KEYBOARD_ACTIVE_DESCENDANT_MISSING:${viewport.label}`);
+      const activeDescendant = await page
+        .locator("#global-search")
+        .getAttribute("aria-activedescendant");
+      if (!activeDescendant)
+        throw new Error(
+          `SEARCH_KEYBOARD_ACTIVE_DESCENDANT_MISSING:${viewport.label}`,
+        );
       await page.keyboard.press("Escape");
       if (!(await page.locator("#search-results").isHidden())) {
         throw new Error(`SEARCH_ESCAPE_FAILED:${viewport.label}`);
@@ -223,18 +303,34 @@ async function main() {
 
       if (viewport.width <= 900) {
         await page.locator("#menu-button").click();
-        if ((await page.locator("#menu-button").getAttribute("aria-expanded")) !== "true") {
+        if (
+          (await page.locator("#menu-button").getAttribute("aria-expanded")) !==
+          "true"
+        ) {
           throw new Error(`DRAWER_ARIA_STATE_FAILED:${viewport.label}`);
         }
         const sidebar = await page.locator("#sidebar").boundingBox();
-        if (!sidebar || sidebar.x < -2 || sidebar.x + sidebar.width > viewport.width + 2) {
-          throw new Error(`DRAWER_OUT_OF_BOUNDS:${viewport.label}:${JSON.stringify(sidebar)}`);
+        if (
+          !sidebar ||
+          sidebar.x < -2 ||
+          sidebar.x + sidebar.width > viewport.width + 2
+        ) {
+          throw new Error(
+            `DRAWER_OUT_OF_BOUNDS:${viewport.label}:${JSON.stringify(sidebar)}`,
+          );
         }
         await page.keyboard.press("Escape");
-        if ((await page.locator("#menu-button").getAttribute("aria-expanded")) !== "false") {
+        if (
+          (await page.locator("#menu-button").getAttribute("aria-expanded")) !==
+          "false"
+        ) {
           throw new Error(`DRAWER_ESCAPE_FAILED:${viewport.label}`);
         }
-        if (!(await page.locator("#menu-button").evaluate((node) => node === document.activeElement))) {
+        if (
+          !(await page
+            .locator("#menu-button")
+            .evaluate((node) => node === document.activeElement))
+        ) {
           throw new Error(`DRAWER_FOCUS_RETURN_FAILED:${viewport.label}`);
         }
         await assertTouchTargets(
@@ -251,24 +347,37 @@ async function main() {
       }
 
       await waitForView(page, "users");
-      const userTables = await assertTableContract(page, `users-${viewport.label}`);
+      const userTables = await assertTableContract(
+        page,
+        `users-${viewport.label}`,
+      );
       await assertNoDocumentOverflow(page, `users-${viewport.label}`);
 
       await waitForView(page, "users", "business-owner-1");
-      await page.locator(".entity-header[data-ux-v1]").waitFor({ timeout: 15_000 });
-      const criticalForms = await page.locator("form[data-critical-action=true]").count();
+      await page
+        .locator(".entity-header[data-ux-v1]")
+        .waitFor({ timeout: 15_000 });
+      const criticalForms = await page
+        .locator("form[data-critical-action=true]")
+        .count();
       if (criticalForms < 2) {
-        throw new Error(`CRITICAL_ACTION_AFFORDANCE_MISSING:${viewport.label}:${criticalForms}`);
+        throw new Error(
+          `CRITICAL_ACTION_AFFORDANCE_MISSING:${viewport.label}:${criticalForms}`,
+        );
       }
       await assertTableContract(page, `user-360-${viewport.label}`);
       await assertNoDocumentOverflow(page, `user-360-${viewport.label}`);
 
       await waitForView(page, "businesses", "toca-do-morcego");
-      await page.locator(".entity-header[data-ux-v1]").waitFor({ timeout: 15_000 });
+      await page
+        .locator(".entity-header[data-ux-v1]")
+        .waitFor({ timeout: 15_000 });
       await assertNoDocumentOverflow(page, `business-360-${viewport.label}`);
 
       await waitForView(page, "financial");
-      await page.getByRole("heading", { name: "Financeiro" }).waitFor({ timeout: 15_000 });
+      await page
+        .getByRole("heading", { name: "Financeiro" })
+        .waitFor({ timeout: 15_000 });
       await assertNoDocumentOverflow(page, `financial-${viewport.label}`);
       if ((await page.locator(".table-wrap").count()) > 0) {
         await assertTableContract(page, `financial-${viewport.label}`);
@@ -276,7 +385,10 @@ async function main() {
 
       const screenshotPath = `/tmp/control-center-visual-${viewport.label}.png`;
       await waitForView(page, "overview");
-      await page.locator(".kpi-grid .metric-card").first().waitFor({ timeout: 15_000 });
+      await page
+        .locator(".kpi-grid .metric-card")
+        .first()
+        .waitFor({ timeout: 15_000 });
       await assertNoDocumentOverflow(page, `overview-${viewport.label}`);
       await page.screenshot({ path: screenshotPath, fullPage: true });
 
@@ -292,8 +404,14 @@ async function main() {
 
     await page.setViewportSize(landscapeViewport);
     await waitForView(page, "overview");
-    await page.locator(".kpi-grid .metric-card").first().waitFor({ timeout: 15_000 });
-    const landscapeLayout = await assertNoDocumentOverflow(page, landscapeViewport.label);
+    await page
+      .locator(".kpi-grid .metric-card")
+      .first()
+      .waitFor({ timeout: 15_000 });
+    const landscapeLayout = await assertNoDocumentOverflow(
+      page,
+      landscapeViewport.label,
+    );
     await page.locator("#menu-button").click();
     const landscapeSidebar = await page.locator("#sidebar").boundingBox();
     await page.keyboard.press("Escape");
@@ -318,7 +436,9 @@ async function main() {
       !Number.isFinite(reducedTransitionSeconds) ||
       reducedTransitionSeconds > 0.001
     ) {
-      throw new Error(`REDUCED_MOTION_NOT_APPLIED:${JSON.stringify(reducedMotion)}`);
+      throw new Error(
+        `REDUCED_MOTION_NOT_APPLIED:${JSON.stringify(reducedMotion)}`,
+      );
     }
     evidence.reducedMotion = reducedMotion;
 
@@ -342,6 +462,13 @@ async function main() {
 }
 
 main().catch((error) => {
+  const failure = {
+    fatal: {
+      name: error instanceof Error ? error.name : "UnknownError",
+      message: error instanceof Error ? error.message : String(error),
+    },
+  };
+  persist(failure);
   console.error(
     "CONTROL_CENTER_RESPONSIVE_FAILED",
     error instanceof Error ? error.name : "UnknownError",

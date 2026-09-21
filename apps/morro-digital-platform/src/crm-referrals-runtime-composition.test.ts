@@ -14,7 +14,7 @@ describe("CRM M101 referrals runtime composition", () => {
     expect(source).toContain("MySqlCrmReferralRepository");
     expect(source).toContain("MySqlCrmReferralAuditPort");
     expect(source).toContain("CrmReferralHttpTransport");
-    expect(source).toContain("applyCrmM99Schema(pool)");
+    expect(source).toContain("applyCrmM156DestinationScopeSchema(pool)");
     expect(source).not.toContain("applyCrmM71Schema(pool)");
   });
 });
