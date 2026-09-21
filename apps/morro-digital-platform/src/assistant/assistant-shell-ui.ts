@@ -104,7 +104,6 @@ function syncAssistantLoadingSkeleton(
   area.appendChild(skeleton);
 }
 
-
 export function installAssistantShellUi(
   options: AssistantShellUiOptions,
 ): AssistantShellUi {
