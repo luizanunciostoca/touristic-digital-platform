@@ -131,7 +131,7 @@ jobs:
           : > /tmp/control-center-final-runs.tsv
           for workflow in "${workflows[@]}"; do
             before_id="$(
-              gh run list                 --workflow "$workflow"                 --event workflow_dispatch                 --branch "$CANDIDATE_REF"                 --limit 50                 --json databaseId               | jq '[.[].databaseId] | max // 0'
+              gh run list                 --workflow "$workflow"                 --event workflow_dispatch                 --limit 50                 --json databaseId               | jq '[.[].databaseId] | max // 0'
             )"
 
             echo "Dispatching $workflow on $QUALIFICATION_REF@$GITHUB_SHA after run $before_id"
@@ -152,7 +152,7 @@ jobs:
               echo "Unable to discover exact-head run for $workflow" >&2
               exit 1
             fi
-            printf '%s\\t%s\\n' "$workflow" "$run_id" >> /tmp/control-center-final-runs.tsv
+            echo "$workflow $run_id" >> /tmp/control-center-final-runs.tsv
             echo "$workflow -> run $run_id"
           done
 
@@ -161,7 +161,7 @@ jobs:
         run: |
           set -euo pipefail
           failed=0
-          while IFS=$'	' read -r workflow run_id; do
+          while read -r workflow run_id; do
             echo "Waiting for $workflow (run $run_id)"
             if ! gh run watch "$run_id" --exit-status; then
               echo "FAILED: $workflow (run $run_id)" >&2
