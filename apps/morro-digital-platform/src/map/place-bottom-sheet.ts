@@ -339,7 +339,8 @@ export function installPlaceBottomSheet(
     const order: readonly PlaceBottomSheetState[] = ["peek", "half", "full"];
     const current = order.indexOf(state);
     const offset = direction === "up" ? 1 : -1;
-    const next = order[Math.min(order.length - 1, Math.max(0, current + offset))];
+    const next =
+      order[Math.min(order.length - 1, Math.max(0, current + offset))];
     if (next) setState(next);
   };
   handle.addEventListener("pointerdown", (event) => {
@@ -400,7 +401,9 @@ export function installPlaceBottomSheet(
         : undefined;
     rating.textContent = canonicalRating
       ? `${placeUiCopy[next.locale].rating}: ${canonicalRating.value.toFixed(1)} / 5${
-          canonicalRating.count === undefined ? "" : ` · ${canonicalRating.count}`
+          canonicalRating.count === undefined
+            ? ""
+            : ` · ${canonicalRating.count}`
         }`
       : "";
     rating.classList.toggle("hidden", !canonicalRating);
@@ -511,7 +514,8 @@ export function installPlaceBottomSheet(
             status.classList.remove("hidden");
           }
         } catch (error) {
-          if (error instanceof DOMException && error.name === "AbortError") return;
+          if (error instanceof DOMException && error.name === "AbortError")
+            return;
           status.textContent = placeUiCopy[next.locale].unavailable;
           status.classList.remove("hidden");
         }

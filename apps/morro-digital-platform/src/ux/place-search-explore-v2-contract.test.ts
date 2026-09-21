@@ -80,7 +80,10 @@ describe("Place + Search/Explore V2 contract", () => {
       "apps/morro-digital-platform/src/map/explore-locations-control.ts",
     );
     const selectionStart = control.indexOf("const selectLocation = async");
-    const selectionEnd = control.indexOf("const renderPlaces =", selectionStart);
+    const selectionEnd = control.indexOf(
+      "const renderPlaces =",
+      selectionStart,
+    );
     const selection = control.slice(selectionStart, selectionEnd);
 
     expect(selectionStart).toBeGreaterThan(-1);
@@ -94,7 +97,9 @@ describe("Place + Search/Explore V2 contract", () => {
 
   it("uses V2 resilience and accessibility primitives without legacy visual edits", async () => {
     const [css, place, flow] = await Promise.all([
-      readRepository("apps/morro-digital-platform/public/explore-locations.css"),
+      readRepository(
+        "apps/morro-digital-platform/public/explore-locations.css",
+      ),
       readRepository(
         "apps/morro-digital-platform/src/map/place-bottom-sheet.ts",
       ),
@@ -119,9 +124,9 @@ describe("Place + Search/Explore V2 contract", () => {
     expect(css).toContain("overflow-wrap: anywhere");
     expect(css).not.toContain("transition: all");
 
-    expect(place).toContain('sheet.tabIndex = -1');
+    expect(place).toContain("sheet.tabIndex = -1");
     expect(place).toContain('status.setAttribute("aria-live", "polite")');
-    expect(flow).toContain('sheet.tabIndex = -1');
+    expect(flow).toContain("sheet.tabIndex = -1");
     expect(flow).toContain('status.setAttribute("aria-live", "polite")');
   });
 });

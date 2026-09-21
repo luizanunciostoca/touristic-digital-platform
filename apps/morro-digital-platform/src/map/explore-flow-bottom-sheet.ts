@@ -1,10 +1,7 @@
 export type ExploreFlowBottomSheetState = "peek" | "half" | "full";
 export type ExploreFlowBottomSheetKind = "explore" | "tour";
 export type ExploreFlowBottomSheetStatus =
-  | "loading"
-  | "ready"
-  | "empty"
-  | "error";
+  "loading" | "ready" | "empty" | "error";
 
 export interface ExploreFlowBottomSheetPresentation {
   readonly kind: ExploreFlowBottomSheetKind;
@@ -42,7 +39,8 @@ const copyByLanguage = Object.freeze<Record<string, SheetCopy>>({
     close: "Fechar painel",
     loading: "Atualizando o mapa e os resultados…",
     empty: "Nenhum resultado encontrado para este filtro.",
-    unavailable: "Não foi possível atualizar o mapa agora. Seus filtros foram preservados.",
+    unavailable:
+      "Não foi possível atualizar o mapa agora. Seus filtros foram preservados.",
     states: {
       peek: "Mostrar resumo",
       half: "Mostrar conteúdo principal",
@@ -53,7 +51,8 @@ const copyByLanguage = Object.freeze<Record<string, SheetCopy>>({
     close: "Close panel",
     loading: "Updating the map and results…",
     empty: "No results were found for this filter.",
-    unavailable: "The map could not be updated right now. Your filters were preserved.",
+    unavailable:
+      "The map could not be updated right now. Your filters were preserved.",
     states: {
       peek: "Show summary",
       half: "Show main content",
@@ -64,7 +63,8 @@ const copyByLanguage = Object.freeze<Record<string, SheetCopy>>({
     close: "Cerrar panel",
     loading: "Actualizando el mapa y los resultados…",
     empty: "No se encontraron resultados para este filtro.",
-    unavailable: "No fue posible actualizar el mapa ahora. Tus filtros se conservaron.",
+    unavailable:
+      "No fue posible actualizar el mapa ahora. Tus filtros se conservaron.",
     states: {
       peek: "Mostrar resumen",
       half: "Mostrar contenido principal",
@@ -241,7 +241,8 @@ export function installExploreFlowBottomSheet({
     ];
     const current = order.indexOf(state);
     const offset = direction === "up" ? 1 : -1;
-    const next = order[Math.min(order.length - 1, Math.max(0, current + offset))];
+    const next =
+      order[Math.min(order.length - 1, Math.max(0, current + offset))];
     if (next) setState(next);
   };
   handle.addEventListener("pointerdown", (event) => {
@@ -290,10 +291,7 @@ export function installExploreFlowBottomSheet({
     activeKind = presentation.kind;
     sheet.dataset.flowKind = presentation.kind;
     heading.textContent = presentation.accessibleLabel;
-    setStatus(
-      presentation.status ?? "ready",
-      presentation.statusText,
-    );
+    setStatus(presentation.status ?? "ready", presentation.statusText);
 
     richContent.replaceChildren();
     if (presentation.content) {

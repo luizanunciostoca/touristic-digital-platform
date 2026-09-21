@@ -79,10 +79,7 @@ export function createAssistantSearchHandler(
   let externalProviderFailed = false;
   const externalProvider = mapboxProvider
     ? {
-        async search(
-          query: string,
-          searchOptions?: MapboxSearchOptions,
-        ) {
+        async search(query: string, searchOptions?: MapboxSearchOptions) {
           try {
             return await mapboxProvider.search(query, searchOptions);
           } catch (error) {

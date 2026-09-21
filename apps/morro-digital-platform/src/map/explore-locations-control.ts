@@ -435,7 +435,9 @@ export function installExploreLocationsControl({
     return Object.freeze({
       category:
         activeCategory?.value ??
-        (activeStage === "detail" ? (activePlaceLocation?.category ?? null) : null),
+        (activeStage === "detail"
+          ? (activePlaceLocation?.category ?? null)
+          : null),
       place: activeStage === "detail" ? (activePlace ?? null) : null,
       stage: activeStage,
       markerCount: Number(
@@ -664,8 +666,7 @@ export function installExploreLocationsControl({
         accessibleLabel: text,
         source: container,
         messageSource: message,
-        status:
-          statusOverride ?? (options.length === 0 ? "empty" : "ready"),
+        status: statusOverride ?? (options.length === 0 ? "empty" : "ready"),
         ...(statusTextOverride ? { statusText: statusTextOverride } : {}),
         ...(content ? { content } : {}),
         onDismiss() {
@@ -885,8 +886,9 @@ export function installExploreLocationsControl({
     locations: readonly ExploreSearchResult[],
     message: string,
     query = activeSearchQuery,
-    status: "ready" | "empty" | "error" =
-      locations.length === 0 ? "empty" : "ready",
+    status: "ready" | "empty" | "error" = locations.length === 0
+      ? "empty"
+      : "ready",
     statusText?: string,
   ): void => {
     placeBottomSheet?.hide();
@@ -1266,8 +1268,7 @@ export function installExploreLocationsControl({
           results.length,
         ),
         command.query,
-        command.status ??
-          (results.length === 0 ? "empty" : "ready"),
+        command.status ?? (results.length === 0 ? "empty" : "ready"),
         command.statusText,
       );
       return true;
@@ -1570,10 +1571,7 @@ export function installExploreLocationsControl({
         if (activeStage === "detail" && activePlace) {
           const location =
             activePlaceLocation ??
-            resolveExploreLocationByName(
-              activePlace,
-              activeCategory?.value,
-            );
+            resolveExploreLocationByName(activePlace, activeCategory?.value);
           if (location) void selectLocation(location);
         }
         if (activeStage === "tour") immersiveTourController?.refreshLocale();
