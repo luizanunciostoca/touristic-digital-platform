@@ -20,11 +20,11 @@ describe("UX Design V2 skeleton adoption", () => {
         readRepository("apps/morro-digital-platform/public/assistant-v2.css"),
       ]);
 
-    expect(shell).toContain("syncAssistantLoadingSkeleton");
-    expect(shell).toContain('"md-skeleton assistant-loading-skeleton-line"');
-    expect(shell).toContain('state === "loading"');
-    expect(shell).toContain('skeleton.setAttribute("aria-hidden", "true")');
-    expect(css).toContain(".assistant-loading-skeleton");
+      expect(shell).toContain("syncAssistantLoadingSkeleton");
+      expect(shell).toContain('"md-skeleton assistant-loading-skeleton-line"');
+      expect(shell).toContain('state === "loading"');
+      expect(shell).toContain('skeleton.setAttribute("aria-hidden", "true")');
+      expect(css).toContain(".assistant-loading-skeleton");
       expect(css).toContain("var(--md-space-3)");
     },
   );
