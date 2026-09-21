@@ -197,6 +197,10 @@ describe("Chat 6 CSS modernization + Premium UX foundations", () => {
     expect(css).toContain("@layer features");
     expect(css).toContain("@layer utilities");
     expect(css).toContain("@layer overrides");
+    expect(css).toContain(
+      "Compatibility bridge — now part of the explicit overrides layer.",
+    );
+    expect(css).not.toContain("intentionally unlayered");
     expect(css).not.toContain("transition: all");
   });
 
