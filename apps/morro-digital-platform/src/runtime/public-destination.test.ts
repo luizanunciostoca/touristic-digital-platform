@@ -9,7 +9,7 @@ const dynamic = {
 };
 
 describe("public Destination browser runtime", () => {
-  it("loads a valid owner projection", async () => {
+  it("loads a valid owner projection with its source", async () => {
     const fetcher = (async () =>
       new Response(
         JSON.stringify({
@@ -19,16 +19,32 @@ describe("public Destination browser runtime", () => {
         { status: 200 },
       )) as typeof fetch;
     const result = await loadPublicDestination(fetcher);
-    expect(result.name).toBe("Morro governado");
-    expect(result.center.latitude).toBe(-13.4);
+    expect(result.source).toBe("destination-owner");
+    expect(result.destination.name).toBe("Morro governado");
+    expect(result.destination.center.latitude).toBe(-13.4);
+  });
+
+  it("preserves an explicit static fallback source from the server", async () => {
+    const fetcher = (async () =>
+      new Response(
+        JSON.stringify({
+          destination: morroDeSaoPauloDestination,
+          source: "static-fallback",
+        }),
+        { status: 200 },
+      )) as typeof fetch;
+    const result = await loadPublicDestination(fetcher);
+    expect(result.source).toBe("static-fallback");
+    expect(result.destination.id).toBe(morroDeSaoPauloDestination.id);
   });
 
   it("falls back on unavailable owner", async () => {
     const fetcher = (async () =>
       new Response("unavailable", { status: 503 })) as typeof fetch;
-    expect(await loadPublicDestination(fetcher)).toBe(
-      morroDeSaoPauloDestination,
-    );
+    expect(await loadPublicDestination(fetcher)).toEqual({
+      destination: morroDeSaoPauloDestination,
+      source: "static-fallback",
+    });
   });
 
   it("falls back on malformed payload", async () => {
@@ -36,20 +52,38 @@ describe("public Destination browser runtime", () => {
       new Response(
         JSON.stringify({
           destination: { id: "morro-de-sao-paulo", center: {} },
+          source: "destination-owner",
         }),
         { status: 200 },
       )) as typeof fetch;
-    expect(await loadPublicDestination(fetcher)).toBe(
-      morroDeSaoPauloDestination,
-    );
+    expect(await loadPublicDestination(fetcher)).toEqual({
+      destination: morroDeSaoPauloDestination,
+      source: "static-fallback",
+    });
+  });
+
+  it("falls back on unknown source", async () => {
+    const fetcher = (async () =>
+      new Response(
+        JSON.stringify({
+          destination: dynamic,
+          source: "unexpected-source",
+        }),
+        { status: 200 },
+      )) as typeof fetch;
+    expect(await loadPublicDestination(fetcher)).toEqual({
+      destination: morroDeSaoPauloDestination,
+      source: "static-fallback",
+    });
   });
 
   it("falls back on transport failure", async () => {
     const fetcher = (async () => {
       throw new Error("network");
     }) as typeof fetch;
-    expect(await loadPublicDestination(fetcher)).toBe(
-      morroDeSaoPauloDestination,
-    );
+    expect(await loadPublicDestination(fetcher)).toEqual({
+      destination: morroDeSaoPauloDestination,
+      source: "static-fallback",
+    });
   });
 });
