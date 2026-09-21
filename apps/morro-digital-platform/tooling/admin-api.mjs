@@ -2130,8 +2130,7 @@ export function createAdminApi({
               coverage: domainAdapters.products?.coverage ?? [],
             },
             reservations: {
-              state:
-                domainAdapters.reservations?.state ?? "contract-required",
+              state: domainAdapters.reservations?.state ?? "contract-required",
               coverage: domainAdapters.reservations?.coverage ?? [],
             },
             ticketing: {

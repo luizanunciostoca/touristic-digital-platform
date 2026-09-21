@@ -30,24 +30,24 @@ async function main() {
     await login(context, "platform-owner@example.com");
     const page = await context.newPage();
 
-    await page.goto(
-      `${origin}/apps/control-center/public/index.html#users`,
-      { waitUntil: "domcontentloaded", timeout: 30_000 },
-    );
+    await page.goto(`${origin}/apps/control-center/public/index.html#users`, {
+      waitUntil: "domcontentloaded",
+      timeout: 30_000,
+    });
     await page.locator("#app:not([hidden])").waitFor({ timeout: 15_000 });
     await page
       .getByRole("link", { name: "business-owner@example.com" })
       .click();
 
     const roleForm = page.locator("#user-role-form");
-    await roleForm.locator('select[name="role"]').selectOption("BUSINESS_MANAGER");
+    await roleForm
+      .locator('select[name="role"]')
+      .selectOption("BUSINESS_MANAGER");
     await roleForm.locator('input[name="password"]').fill(password);
     await roleForm
       .locator('textarea[name="reason"]')
       .fill("Ajustar perfil no contrato browser administrativo");
-    await roleForm
-      .locator('input[name="confirmation"]')
-      .fill("ALTERAR PERFIL");
+    await roleForm.locator('input[name="confirmation"]').fill("ALTERAR PERFIL");
     await roleForm.getByRole("button", { name: "Alterar perfil" }).click();
     await page
       .getByText("BUSINESS_MANAGER", { exact: true })
@@ -96,14 +96,14 @@ async function main() {
       .first()
       .waitFor({ timeout: 15_000 });
 
-    await roleForm.locator('select[name="role"]').selectOption("BUSINESS_OWNER");
+    await roleForm
+      .locator('select[name="role"]')
+      .selectOption("BUSINESS_OWNER");
     await roleForm.locator('input[name="password"]').fill(password);
     await roleForm
       .locator('textarea[name="reason"]')
       .fill("Restaurar perfil da fixture após validação browser");
-    await roleForm
-      .locator('input[name="confirmation"]')
-      .fill("ALTERAR PERFIL");
+    await roleForm.locator('input[name="confirmation"]').fill("ALTERAR PERFIL");
     await roleForm.getByRole("button", { name: "Alterar perfil" }).click();
     await page
       .getByText("BUSINESS_OWNER", { exact: true })

@@ -79,9 +79,7 @@ async function main() {
       );
     }
 
-    console.log(
-      `CONTROL_CENTER_ACCESSIBILITY_PASS:${evidence.length}_ROUTES`,
-    );
+    console.log(`CONTROL_CENTER_ACCESSIBILITY_PASS:${evidence.length}_ROUTES`);
     await context.close();
   } finally {
     await browser.close();

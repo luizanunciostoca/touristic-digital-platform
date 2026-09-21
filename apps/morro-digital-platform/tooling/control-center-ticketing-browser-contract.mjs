@@ -109,35 +109,63 @@ async function main() {
     await page.locator("#app:not([hidden])").waitFor({ timeout: 15_000 });
 
     const checkin = page.locator("#ticketing-checkin-form");
-    await checkin.locator('textarea[name="qrPayload"]').fill("ticketing:qr:browser");
+    await checkin
+      .locator('textarea[name="qrPayload"]')
+      .fill("ticketing:qr:browser");
     await checkin.locator('input[name="password"]').fill(password);
-    await checkin.locator('textarea[name="reason"]').fill("Validar ticket no contrato browser");
-    await checkin.locator('input[name="confirmation"]').fill("VALIDAR CHECK-IN");
+    await checkin
+      .locator('textarea[name="reason"]')
+      .fill("Validar ticket no contrato browser");
+    await checkin
+      .locator('input[name="confirmation"]')
+      .fill("VALIDAR CHECK-IN");
     await checkin.getByRole("button", { name: "Validar ticket" }).click();
     await page.getByText(/Check-in validado/).waitFor();
 
     const provision = page.locator("#ticketing-device-provision-form");
-    await provision.locator('input[name="deviceId"]').fill("tdv_browser_device_01");
-    await provision.locator('input[name="destinationId"]').fill("morro-de-sao-paulo");
+    await provision
+      .locator('input[name="deviceId"]')
+      .fill("tdv_browser_device_01");
+    await provision
+      .locator('input[name="destinationId"]')
+      .fill("morro-de-sao-paulo");
     await provision.locator('input[name="ttlSeconds"]').fill("3600");
     await provision.locator('input[name="password"]').fill(password);
-    await provision.locator('textarea[name="reason"]').fill("Provisionar dispositivo no contrato browser");
-    await provision.locator('input[name="confirmation"]').fill("PROVISIONAR DISPOSITIVO");
-    await provision.getByRole("button", { name: "Provisionar credencial" }).click();
+    await provision
+      .locator('textarea[name="reason"]')
+      .fill("Provisionar dispositivo no contrato browser");
+    await provision
+      .locator('input[name="confirmation"]')
+      .fill("PROVISIONAR DISPOSITIVO");
+    await provision
+      .getByRole("button", { name: "Provisionar credencial" })
+      .click();
     await page.locator("#ticketing-device-token").waitFor({ state: "visible" });
-    if ((await page.locator("#ticketing-device-token").inputValue()) !== "one-time-browser-device-token") {
+    if (
+      (await page.locator("#ticketing-device-token").inputValue()) !==
+      "one-time-browser-device-token"
+    ) {
       throw new Error("DEVICE_TOKEN_NOT_RENDERED");
     }
 
     const revoke = page.locator("#ticketing-device-revoke-form");
-    await revoke.locator('input[name="deviceId"]').fill("tdv_browser_device_01");
+    await revoke
+      .locator('input[name="deviceId"]')
+      .fill("tdv_browser_device_01");
     await revoke.locator('input[name="password"]').fill(password);
-    await revoke.locator('textarea[name="reason"]').fill("Revogar dispositivo no contrato browser");
-    await revoke.locator('input[name="confirmation"]').fill("REVOGAR DISPOSITIVO");
+    await revoke
+      .locator('textarea[name="reason"]')
+      .fill("Revogar dispositivo no contrato browser");
+    await revoke
+      .locator('input[name="confirmation"]')
+      .fill("REVOGAR DISPOSITIVO");
     await revoke.getByRole("button", { name: "Revogar dispositivo" }).click();
     await page.getByText(/Dispositivo revogado em/).waitFor();
 
-    if (calls.map((entry) => entry.operation).join(",") !== "check-in,provision,revoke") {
+    if (
+      calls.map((entry) => entry.operation).join(",") !==
+      "check-in,provision,revoke"
+    ) {
       throw new Error(`TICKETING_UI_CALLS_DIVERGED:${JSON.stringify(calls)}`);
     }
 

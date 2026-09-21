@@ -55,13 +55,15 @@ async function main() {
           contentType: "application/json",
           body: JSON.stringify({
             data: productCreated
-              ? [{
-                  offer: productOffer(),
-                  businessId: "toca-do-morcego",
-                  committedQuantity: 0,
-                  availableQuantity: 20,
-                  reservationCount: 0,
-                }]
+              ? [
+                  {
+                    offer: productOffer(),
+                    businessId: "toca-do-morcego",
+                    committedQuantity: 0,
+                    availableQuantity: 20,
+                    reservationCount: 0,
+                  },
+                ]
               : [],
           }),
         }),
@@ -122,7 +124,11 @@ async function main() {
           status: 200,
           contentType: "application/json",
           body: JSON.stringify({
-            data: { id: productId, businessId: "toca-do-morcego", enabled: false },
+            data: {
+              id: productId,
+              businessId: "toca-do-morcego",
+              enabled: false,
+            },
           }),
         });
       },
@@ -154,7 +160,13 @@ async function main() {
               },
               businessId: "toca-do-morcego",
               inventoryLabel: "Volta a Ilha Browser",
-              events: [{ eventType: status, occurredAt: "2026-09-21T12:00:00.000Z", actorReference: "browser" }],
+              events: [
+                {
+                  eventType: status,
+                  occurredAt: "2026-09-21T12:00:00.000Z",
+                  actorReference: "browser",
+                },
+              ],
             },
           }),
         });
@@ -165,7 +177,9 @@ async function main() {
       async (route) => {
         const body = route.request().postDataJSON();
         if (body.confirmation !== "CANCELAR RESERVA") {
-          throw new Error(`RESERVATION_CANCEL_DIVERGED:${JSON.stringify(body)}`);
+          throw new Error(
+            `RESERVATION_CANCEL_DIVERGED:${JSON.stringify(body)}`,
+          );
         }
         reservationCancelled = true;
         await route.fulfill({
@@ -188,9 +202,15 @@ async function main() {
     await page.locator("#app:not([hidden])").waitFor({ timeout: 15_000 });
 
     const create = page.locator("#product-create-form");
-    await create.locator('select[name="businessId"]').selectOption("toca-do-morcego");
-    await create.locator('input[name="productReference"]').fill("volta-a-ilha-browser-admin");
-    await create.locator('input[name="label"]').fill("Volta a Ilha Browser Admin");
+    await create
+      .locator('select[name="businessId"]')
+      .selectOption("toca-do-morcego");
+    await create
+      .locator('input[name="productReference"]')
+      .fill("volta-a-ilha-browser-admin");
+    await create
+      .locator('input[name="label"]')
+      .fill("Volta a Ilha Browser Admin");
     await create.locator('input[name="unitAmountMinor"]').fill("15900");
     await create.locator('input[name="pricingVersion"]').fill("browser-v1");
     await create.locator('input[name="capacity"]').fill("20");
@@ -199,16 +219,27 @@ async function main() {
     await create.locator('input[name="salesEndAt"]').fill("2026-09-22T18:00");
     await create.locator('input[name="startsAt"]').fill("2026-09-23T10:00");
     await create.locator('input[name="endsAt"]').fill("2026-09-23T18:00");
-    await create.locator('textarea[name="reason"]').fill("Criar oferta no browser governado");
+    await create
+      .locator('textarea[name="reason"]')
+      .fill("Criar oferta no browser governado");
     await create.locator('input[name="password"]').fill(password);
     await create.locator('input[name="confirmation"]').fill("CRIAR OFERTA");
-    await create.getByRole("button", { name: "Criar oferta governada" }).click();
-    await page.getByText("Volta a Ilha Browser Admin", { exact: true }).first().waitFor();
+    await create
+      .getByRole("button", { name: "Criar oferta governada" })
+      .click();
+    await page
+      .getByText("Volta a Ilha Browser Admin", { exact: true })
+      .first()
+      .waitFor();
 
     const disable = page.locator("#product-disable-form");
     await disable.locator('input[name="password"]').fill(password);
-    await disable.locator('textarea[name="reason"]').fill("Desativar oferta no browser governado");
-    await disable.locator('input[name="confirmation"]').fill("DESATIVAR OFERTA");
+    await disable
+      .locator('textarea[name="reason"]')
+      .fill("Desativar oferta no browser governado");
+    await disable
+      .locator('input[name="confirmation"]')
+      .fill("DESATIVAR OFERTA");
     await disable.getByRole("button", { name: "Desativar oferta" }).click();
     await page.getByText("desativado", { exact: true }).first().waitFor();
 
@@ -217,9 +248,13 @@ async function main() {
     }, reservationId);
     const cancel = page.locator("#reservation-cancel-form");
     await cancel.locator('input[name="password"]').fill(password);
-    await cancel.locator('textarea[name="reason"]').fill("Cancelar hold no browser governado");
+    await cancel
+      .locator('textarea[name="reason"]')
+      .fill("Cancelar hold no browser governado");
     await cancel.locator('input[name="confirmation"]').fill("CANCELAR RESERVA");
-    await cancel.getByRole("button", { name: "Cancelar hold governado" }).click();
+    await cancel
+      .getByRole("button", { name: "Cancelar hold governado" })
+      .click();
     await page.getByText("cancelled", { exact: true }).first().waitFor();
 
     await page.locator('[data-view="settings"]').click();
@@ -232,7 +267,11 @@ async function main() {
       density: document.documentElement.dataset.controlDensity,
       motion: document.documentElement.dataset.controlMotion,
     }));
-    if (!applied.stored || applied.density !== "compact" || applied.motion !== "reduced") {
+    if (
+      !applied.stored ||
+      applied.density !== "compact" ||
+      applied.motion !== "reduced"
+    ) {
       throw new Error(`SETTINGS_NOT_APPLIED:${JSON.stringify(applied)}`);
     }
 
