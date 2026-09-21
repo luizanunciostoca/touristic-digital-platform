@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { MySqlCheckoutAccessRepository } from "./mysql-checkout-access-repository.js";
 
-function row(orderId, paymentId, destinationId) {
+function row(orderId: string, paymentId: string, destinationId: string) {
   return {
     order_id: orderId,
     payment_id: paymentId,
