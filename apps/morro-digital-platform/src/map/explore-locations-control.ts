@@ -88,6 +88,7 @@ export type ExploreLocationsCommand =
   | Readonly<{
       type: "show_search_results";
       query: string;
+      status?: "ready" | "empty" | "error";
       results: readonly ExploreSearchResult[];
     }>
   | Readonly<{ type: "back_to_filters" }>
@@ -584,7 +585,7 @@ export function installExploreLocationsControl({
       label: string;
       value: string;
       action?: string;
-      location?: MorroV1SearchCatalogItem;
+      location?: ExploreMapLocation;
       tourId?: string;
     }>,
   >(
@@ -592,6 +593,7 @@ export function installExploreLocationsControl({
     options: readonly T[],
     onSelect: (option: T) => void,
     content?: HTMLElement,
+    statusOverride?: "loading" | "ready" | "empty" | "error",
   ): HTMLButtonElement | null => {
     const area = assistantMessagesArea(document);
     if (!area) return null;
@@ -660,7 +662,8 @@ export function installExploreLocationsControl({
         accessibleLabel: text,
         source: container,
         messageSource: message,
-        status: options.length === 0 ? "empty" : "ready",
+        status:
+          statusOverride ?? (options.length === 0 ? "empty" : "ready"),
         ...(content ? { content } : {}),
         onDismiss() {
           if (activeStage === "tour") {
@@ -879,6 +882,8 @@ export function installExploreLocationsControl({
     locations: readonly ExploreSearchResult[],
     message: string,
     query = activeSearchQuery,
+    status: "ready" | "empty" | "error" =
+      locations.length === 0 ? "empty" : "ready",
   ): void => {
     placeBottomSheet?.hide();
     resetCategoryTriggerState();
@@ -903,11 +908,27 @@ export function installExploreLocationsControl({
         location,
       }),
     );
-    const first = renderFlow(message, options, (option) => {
-      void selectLocation(option.location);
-    });
+    const first = renderFlow(
+      message,
+      options,
+      (option) => {
+        void selectLocation(option.location);
+      },
+      undefined,
+      status,
+    );
     first?.focus();
     emitStateChange();
+    if (status === "error") {
+      updateMapState(
+        Number(document.getElementById("map")?.dataset.mapMarkerCount ?? "0"),
+        "search",
+        "error",
+      );
+      exploreFlowBottomSheet?.setStatus("error");
+      emitStateChange();
+      return;
+    }
     void renderLocationsOnMap(locations, "search");
   };
 
@@ -1240,6 +1261,8 @@ export function installExploreLocationsControl({
           results.length,
         ),
         command.query,
+        command.status ??
+          (results.length === 0 ? "empty" : "ready"),
       );
       return true;
     }
