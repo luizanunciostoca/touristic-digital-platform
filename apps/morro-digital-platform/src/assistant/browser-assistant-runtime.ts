@@ -893,6 +893,7 @@ export function installBrowserAssistantRuntime(
     optionOverride?: readonly AssistantDomOption[],
     preservePreviousOptions = false,
     source: AssistantInputSource = "programmatic",
+    suppressOptionValues: readonly string[] = [],
   ): Promise<AssistantDialogResponse> => {
     const submittedValue = rawInput.trim();
     if (!submittedValue) return { text: "Como posso ajudar?" };
@@ -1148,8 +1149,14 @@ export function installBrowserAssistantRuntime(
     if (destroyed || generation !== requestGeneration) return response;
 
     appendStandardMessage("assistant", response.text);
-    const responseOptions =
+    const suppressedValues = new Set(
+      suppressOptionValues.map((value) => value.trim()).filter(Boolean),
+    );
+    const rawResponseOptions =
       optionOverride ?? readAssistantResponseOptions(response);
+    const responseOptions = rawResponseOptions.filter(
+      (option) => !suppressedValues.has(option.value),
+    );
     const photoPresentation = readPhotoPresentation(response);
     const photoResponse = isPhotoResponse(response);
 
@@ -1158,12 +1165,17 @@ export function installBrowserAssistantRuntime(
     }
 
     if (photoResponse) {
-      if (previousPresentation && previousPresentation.options.length > 0) {
-        renderPhotoActionOptions(
-          options.document,
-          previousPresentation.options,
-        );
-        currentPresentation = previousPresentation;
+      const previousOptions =
+        preservePreviousOptions && previousPresentation
+          ? previousPresentation.options.filter(
+              (option) => !suppressedValues.has(option.value),
+            )
+          : [];
+      const photoOptions =
+        responseOptions.length > 0 ? responseOptions : previousOptions;
+      if (photoOptions.length > 0) {
+        renderPhotoActionOptions(options.document, photoOptions);
+        currentPresentation = snapshotPresentation(response.text, photoOptions);
       } else {
         currentPresentation = snapshotPresentation(response.text, []);
       }
@@ -1232,6 +1244,7 @@ export function installBrowserAssistantRuntime(
     optionOverride?: readonly AssistantDomOption[],
     preservePreviousOptions = false,
     source: AssistantInputSource = "programmatic",
+    suppressOptionValues: readonly string[] = [],
   ): Promise<AssistantDialogResponse> => {
     if (!rawInput.trim()) {
       return processInputTurn(
@@ -1239,6 +1252,7 @@ export function installBrowserAssistantRuntime(
         optionOverride,
         preservePreviousOptions,
         source,
+        suppressOptionValues,
       );
     }
 
@@ -1249,6 +1263,7 @@ export function installBrowserAssistantRuntime(
         optionOverride,
         preservePreviousOptions,
         source,
+        suppressOptionValues,
       );
       dispatchAssistantUiState(
         options.document,
@@ -1317,15 +1332,22 @@ export function installBrowserAssistantRuntime(
     const detail = event.detail as {
       value?: unknown;
       optionsOverride?: unknown;
+      suppressOptionValues?: unknown;
     } | null;
     const value = typeof detail?.value === "string" ? detail.value : "";
     if (!value) return;
     const optionOverride = readOptionOverride(detail?.optionsOverride);
+    const suppressOptionValues = Array.isArray(detail?.suppressOptionValues)
+      ? detail.suppressOptionValues.filter(
+          (candidate): candidate is string => typeof candidate === "string",
+        )
+      : [];
     void processInput(
       value,
       optionOverride ?? undefined,
       value.trim().toLowerCase() === "ver fotos" && optionOverride === null,
       "option",
+      suppressOptionValues,
     );
   };
   const onVoiceClick = (): void => {
