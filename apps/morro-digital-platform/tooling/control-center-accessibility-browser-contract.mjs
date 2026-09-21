@@ -70,21 +70,48 @@ async function main() {
       );
 
       stage = "axe";
-      const violations = await page.evaluate(async () => {
+      const accessibility = await page.evaluate(async () => {
         const result = await globalThis.axe.run(document, {
           runOnly: {
             type: "tag",
             values: ["wcag2a", "wcag2aa", "wcag21aa"],
           },
         });
-        return result.violations.map((violation) => ({
-          id: violation.id,
-          impact: violation.impact,
-          help: violation.help,
-          nodes: violation.nodes.slice(0, 8).map((node) => node.target),
-        }));
+        const describe = (element) => {
+          if (!(element instanceof HTMLElement)) return null;
+          const style = getComputedStyle(element);
+          return {
+            clientWidth: element.clientWidth,
+            clientHeight: element.clientHeight,
+            scrollWidth: element.scrollWidth,
+            scrollHeight: element.scrollHeight,
+            overflowX: style.overflowX,
+            overflowY: style.overflowY,
+            tabIndex: element.tabIndex,
+          };
+        };
+        return {
+          layout: {
+            root: describe(document.documentElement),
+            body: describe(document.body),
+            app: describe(document.querySelector("#app")),
+            main: describe(document.querySelector(".main")),
+            page: describe(document.querySelector(".page")),
+            content: describe(document.querySelector("#content")),
+          },
+          violations: result.violations.map((violation) => ({
+            id: violation.id,
+            impact: violation.impact,
+            help: violation.help,
+            nodes: violation.nodes.slice(0, 8).map((node) => ({
+              target: node.target,
+              html: node.html,
+              failureSummary: node.failureSummary,
+            })),
+          })),
+        };
       });
-      evidence.push({ view, violations });
+      evidence.push({ view, ...accessibility });
       persistEvidence(evidence);
     }
 
