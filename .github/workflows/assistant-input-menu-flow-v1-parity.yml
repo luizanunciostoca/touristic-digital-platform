@@ -14,6 +14,7 @@ on:
       - apps/morro-digital-platform/src/assistant/**
       - apps/morro-digital-platform/src/navigation/**
       - apps/morro-digital-platform/src/map/explore-locations-control.ts
+      - apps/morro-digital-platform/src/map/place-bottom-sheet.ts
       - apps/morro-digital-platform/src/map/explore-locations-v1-flow.ts
       - packages/assistant/src/**
       - packages/search/src/**
@@ -119,13 +120,11 @@ jobs:
               });
 
               const assistant = page.locator('#assistant-messages');
-              const quickAction = page.locator('.mood-button[data-assistant-shell-ready="true"]');
-              await quickAction.waitFor({ state: 'visible', timeout: 5000 });
-              if (!(await assistant.isVisible())) await quickAction.click();
-
               const input = page.locator('#assistantInput');
               const send = page.locator('#sendButton');
               await input.waitFor({ state: 'visible', timeout: 5000 });
+              if (!(await assistant.isVisible())) await input.focus();
+              await assistant.waitFor({ state: 'visible', timeout: 5000 });
 
               async function submit(text, keyboard = false) {
                 await input.fill(text);
@@ -267,7 +266,7 @@ jobs:
 
               await submit('Primeira Praia');
               await waitStage('beaches', 'detail', 1);
-              await page.locator('.assistant-option-btn[data-value="ver fotos"]').waitFor({ state: 'visible', timeout: 8000 });
+              await page.locator('#place-bottom-sheet .place-bottom-sheet-action[data-value="ver fotos"]').waitFor({ state: 'visible', timeout: 8000 });
 
               await submit('fotos', true);
               await page.locator('.assistant-photo-carousel').waitFor({ state: 'visible', timeout: 8000 });

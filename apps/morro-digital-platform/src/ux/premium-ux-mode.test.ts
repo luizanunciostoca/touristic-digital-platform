@@ -235,7 +235,7 @@ describe("Chat 6 CSS modernization + Premium UX foundations", () => {
 
     expect(css).not.toContain("#controls");
     expect(css).toContain("#globe-map-control");
-    expect(css).toContain(".quick-actions");
+    expect(css).not.toContain(".quick-actions");
     expect(css).toContain(":has([data-explore-category])");
   });
 
@@ -258,7 +258,6 @@ describe("Chat 6 CSS modernization + Premium UX foundations", () => {
     expect(css).toMatch(
       /body\[data-md-mode="tour"\]:not\(\.assistant-modal-open\)\s+#assistant-input-area/u,
     );
-    expect(css).toContain('body[data-md-mode="tour"] .quick-actions');
     expect(css).toContain("visibility: hidden");
     expect(css).toContain("pointer-events: none");
     expect(css).not.toContain("transition: all");

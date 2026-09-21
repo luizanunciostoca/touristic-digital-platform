@@ -1,10 +1,3 @@
-import {
-  applyDestinationsSchema,
-  bootstrapMorroDeSaoPauloDestination,
-  createDestinationAdminService,
-  createDestinationsMySqlPool,
-} from "@touristic/destinations-server";
-
 export function createDestinationAdminRuntime(environment = process.env) {
   const databaseUrl = String(
     environment.DESTINATIONS_DATABASE_URL ?? "",
@@ -13,6 +6,7 @@ export function createDestinationAdminRuntime(environment = process.env) {
     return Object.freeze({
       state: "unavailable",
       reason: "DESTINATIONS_DATABASE_URL_REQUIRED",
+      service: null,
       async start() {},
       async stop() {},
       async readiness() {
@@ -24,33 +18,53 @@ export function createDestinationAdminRuntime(environment = process.env) {
     });
   }
 
-  const pool = createDestinationsMySqlPool(databaseUrl);
-  const service = createDestinationAdminService(pool);
+  let pool = null;
+  let service = null;
   let started = false;
 
   return Object.freeze({
     state: "configured",
-    service,
+    get service() {
+      return service;
+    },
     async start() {
       if (started) return;
-      await applyDestinationsSchema(pool);
-      const bootstrapped = await bootstrapMorroDeSaoPauloDestination(service);
-      if (!["created", "found"].includes(bootstrapped.status)) {
-        throw new Error("DESTINATION_BOOTSTRAP_FAILED");
+      const {
+        applyDestinationsSchema,
+        bootstrapMorroDeSaoPauloDestination,
+        createDestinationAdminService,
+        createDestinationsMySqlPool,
+      } = await import("@touristic/destinations-server");
+      pool = createDestinationsMySqlPool(databaseUrl);
+      service = createDestinationAdminService(pool);
+      try {
+        await applyDestinationsSchema(pool);
+        const bootstrapped = await bootstrapMorroDeSaoPauloDestination(service);
+        if (!["created", "found"].includes(bootstrapped.status)) {
+          throw new Error("DESTINATION_BOOTSTRAP_FAILED");
+        }
+        started = true;
+      } catch (error) {
+        await pool.end().catch(() => undefined);
+        pool = null;
+        service = null;
+        throw error;
       }
-      started = true;
     },
     async stop() {
-      if (!started) return;
-      await pool.end();
+      const activePool = pool;
+      pool = null;
+      service = null;
       started = false;
+      if (activePool) await activePool.end();
     },
     async readiness() {
-      if (!started)
+      if (!started || !service) {
         return Object.freeze({
           ready: false,
           reason: "DESTINATIONS_NOT_STARTED",
         });
+      }
       try {
         await service.list();
         return Object.freeze({ ready: true });

@@ -31,9 +31,45 @@ describe("Assistant Modal V2 contract", () => {
       'class="assistant-options md-assistant-options"',
       'role="group"',
       'class="assistant-input-area md-assistant-composer"',
-      'aria-haspopup="dialog"',
     ]) {
       expect(shell, `missing ${contract}`).toContain(contract);
+    }
+
+    const shellUi = await readRepository(
+      "apps/morro-digital-platform/src/assistant/assistant-shell-ui.ts",
+    );
+    expect(shellUi).toContain(
+      'input?.setAttribute("aria-controls", "assistant-messages")',
+    );
+    expect(shellUi).toContain(
+      'input?.setAttribute("aria-expanded", String(initiallyVisible))',
+    );
+    expect(shell).not.toContain("quick-actions");
+    expect(shell).not.toContain("mood-button");
+  });
+
+  it("prevents the retired floating Assistant trigger from returning to live UX V2 runtime", async () => {
+    const liveRuntimeFiles = [
+      "apps/morro-digital-platform/src/layouts/app-shell.ts",
+      "apps/morro-digital-platform/src/assistant/assistant-shell-ui.ts",
+      "apps/morro-digital-platform/src/assistant/assistant-navigation-feedback.ts",
+      "apps/morro-digital-platform/src/map/explore-locations-control.ts",
+      "apps/morro-digital-platform/src/onboarding/public-interactive-tour.ts",
+    ];
+    const livePublicFiles = [
+      "styles.css",
+      "design-system-v2.css",
+      "premium-ux-v2.css",
+    ];
+
+    const contents = await Promise.all([
+      ...liveRuntimeFiles.map((path) => readRepository(path)),
+      ...livePublicFiles.map((path) => readPublic(path)),
+    ]);
+
+    for (const content of contents) {
+      expect(content).not.toMatch(/\.quick-actions\b/u);
+      expect(content).not.toMatch(/\.mood-button\b/u);
     }
   });
 

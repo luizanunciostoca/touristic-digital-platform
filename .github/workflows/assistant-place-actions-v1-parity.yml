@@ -111,13 +111,11 @@ jobs:
               });
 
               const assistant = page.locator('#assistant-messages');
-              const quickAction = page.locator('.mood-button[data-assistant-shell-ready="true"]');
-              await quickAction.waitFor({ state: 'visible', timeout: 5000 });
-              if (!(await assistant.isVisible())) await quickAction.click();
-
               const input = page.locator('#assistantInput');
               const send = page.locator('#sendButton');
               await input.waitFor({ state: 'visible', timeout: 5000 });
+              if (!(await assistant.isVisible())) await input.focus();
+              await assistant.waitFor({ state: 'visible', timeout: 5000 });
 
               const detailActionValues = {
                 beaches: 'condições da praia',
@@ -167,8 +165,8 @@ jobs:
                 const detailAction = detailActionValues[category];
                 if (!detailAction) throw new Error(`Missing detail action for ${category}`);
                 await page.locator(
-                  `.assistant-option-btn[data-value="${detailAction}"]`,
-                ).last().waitFor({ state: 'visible', timeout: 8000 });
+                  `#place-bottom-sheet .place-bottom-sheet-action[data-value="${detailAction}"]`,
+                ).waitFor({ state: 'visible', timeout: 8000 });
               }
 
               async function expectAction(inputText, action, expectedText) {

@@ -304,6 +304,32 @@ async function readDynamic(page) {
   };
 }
 
+async function waitDynamic(page, expectedLabels, expectedValues, label) {
+  const deadline = Date.now() + 5000;
+  let observed = { labels: [], values: [] };
+  while (Date.now() < deadline) {
+    observed = await readDynamic(page);
+    const labelsReady =
+      JSON.stringify(observed.labels) === JSON.stringify(expectedLabels);
+    const valuesReady =
+      expectedValues === undefined ||
+      JSON.stringify(observed.values) === JSON.stringify(expectedValues);
+    if (labelsReady && valuesReady) return observed;
+    await page.waitForTimeout(50);
+  }
+  const expected = {
+    labels: expectedLabels,
+    ...(expectedValues === undefined ? {} : { values: expectedValues }),
+  };
+  throw new Error(
+    label +
+      ": expected " +
+      JSON.stringify(expected) +
+      ", got " +
+      JSON.stringify(observed),
+  );
+}
+
 const browser = await chromium.launch({ headless: true });
 const context = await browser.newContext({
   viewport: { width: 390, height: 844 },
@@ -347,11 +373,9 @@ try {
     .locator('body[data-public-onboarding-settled="true"]')
     .waitFor({ state: "attached", timeout: 5000 });
   const assistant = page.locator("#assistant-messages");
-  const quickAction = page.locator(
-    '.mood-button[data-assistant-shell-ready="true"]',
-  );
-  await quickAction.waitFor({ state: "visible", timeout: 5000 });
-  if (!(await assistant.isVisible())) await quickAction.click();
+  const input = page.locator("#assistantInput");
+  await input.waitFor({ state: "visible", timeout: 5000 });
+  if (!(await assistant.isVisible())) await input.focus();
   await assistant.waitFor({ state: "visible", timeout: 5000 });
 
   await waitCategory(page, "beaches", "Praias", "Praias, 8 locais");
@@ -393,9 +417,16 @@ try {
     )
     .click();
   await page
-    .locator('.assistant-option-btn[data-value="condições da praia"]')
+    .locator(
+      '#place-bottom-sheet .place-bottom-sheet-action[data-value="condições da praia"]',
+    )
     .waitFor({ state: "visible" });
-  let dynamic = await readDynamic(page);
+  let dynamic = await waitDynamic(
+    page,
+    beachDetailHebrew,
+    beachDetailValues,
+    "he beach detail",
+  );
   equal(dynamic.labels, beachDetailHebrew, "he beach detail labels");
   equal(dynamic.values, beachDetailValues, "he beach canonical values");
   await waitExploreSelectedStatus(page, "Primeira Praia נבחר.");
@@ -404,7 +435,9 @@ try {
   await setLanguage(page, "he");
   await waitExploreSelectedStatus(page, "Primeira Praia נבחר.");
   await page
-    .locator('.assistant-option-btn[data-value="[sub]beaches"]')
+    .locator(
+      '#place-bottom-sheet .place-bottom-sheet-action[data-value="[sub]beaches"]',
+    )
     .click();
   await page
     .locator('#assistant-category-results[data-stage="places"]')
@@ -435,23 +468,36 @@ try {
     .locator('#assistant-category-results [data-location-name="Morena Bela"]')
     .click();
   await page
-    .locator('.assistant-option-btn[data-value="cardápio"]')
+    .locator(
+      '#place-bottom-sheet .place-bottom-sheet-action[data-value="cardápio"]',
+    )
     .waitFor({ state: "visible" });
-  dynamic = await readDynamic(page);
+  dynamic = await waitDynamic(
+    page,
+    restaurantPrimaryEnglish,
+    undefined,
+    "en restaurant primary",
+  );
   equal(
     dynamic.labels,
     restaurantPrimaryEnglish,
     "en restaurant primary labels",
   );
   await page
-    .locator('.assistant-option-btn[data-value="mais opções"]')
-    .last()
+    .locator(
+      '#place-bottom-sheet .place-bottom-sheet-action[data-value="mais opções"]',
+    )
     .click();
   await page
     .locator('.assistant-option-btn[data-value="avaliações"]')
     .last()
     .waitFor({ state: "visible" });
-  dynamic = await readDynamic(page);
+  dynamic = await waitDynamic(
+    page,
+    restaurantSecondaryEnglish,
+    restaurantSecondaryValues,
+    "en restaurant secondary",
+  );
   equal(
     dynamic.labels,
     restaurantSecondaryEnglish,

@@ -1,3 +1,5 @@
+import { requestAssistantOpen } from "../assistant/assistant-shell-ui.js";
+
 import {
   getPublicOnboardingCopy,
   type PublicOnboardingTourStepCopy,
@@ -36,9 +38,6 @@ const TOUR_FOCUSABLE_SELECTOR = [
 const STEPS: readonly TutorialStepTarget[] = Object.freeze([
   Object.freeze({ selectors: ["#map-container", "#map"] }),
   Object.freeze({ selectors: ["#weather-widget"] }),
-  Object.freeze({
-    selectors: [".quick-actions .action-button.primary.mood-button"],
-  }),
   Object.freeze({ selectors: ["#assistant-messages"] }),
   Object.freeze({
     selectors: ["#assistant-messages .assistant-options", ".assistant-options"],
@@ -61,17 +60,16 @@ function firstVisibleTarget(
 }
 
 function revealAssistantWelcome(document: Document): void {
+  requestAssistantOpen(document);
   const assistant = document.getElementById("assistant-messages");
-  const quickAction = document.querySelector<HTMLElement>(
-    ".quick-actions .action-button.primary",
-  );
-  if (assistant instanceof HTMLElement) {
+  if (
+    assistant instanceof HTMLElement &&
+    assistant.classList.contains("hidden")
+  ) {
     assistant.classList.remove("hidden");
     assistant.setAttribute("aria-hidden", "false");
+    document.body.classList.add("assistant-modal-open");
   }
-  document.body.classList.add("assistant-modal-open");
-  quickAction?.classList.add("active");
-  quickAction?.setAttribute("aria-expanded", "true");
 }
 
 export function ensureV1AssistantWelcomeVisible(document: Document): void {
@@ -352,7 +350,7 @@ export function installPublicInteractiveTour(
     target.classList.add("tour-target-active", "tour-pulse");
     if (computedPosition !== "static") target.style.position = computedPosition;
 
-    const assistantStep = nextIndex >= 3 && nextIndex <= 5;
+    const assistantStep = nextIndex >= 2 && nextIndex <= 4;
     options.document.body.classList.toggle(
       "tour-show-assistant-modal-step",
       assistantStep,

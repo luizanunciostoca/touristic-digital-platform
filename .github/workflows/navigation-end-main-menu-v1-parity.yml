@@ -147,7 +147,7 @@ jobs:
               waitUntil: 'domcontentloaded',
               timeout: 30000,
             });
-            await page.locator('.mood-button[data-assistant-shell-ready="true"]').waitFor({
+            await page.locator('#assistant-input-area[data-assistant-shell-ready="true"]').waitFor({
               state: 'visible',
               timeout: 15000,
             });
