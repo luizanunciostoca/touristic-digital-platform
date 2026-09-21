@@ -57,6 +57,36 @@ jobs:
           echo "CANDIDATE_REF=$candidate_ref" >> "$GITHUB_ENV"
           echo "Frozen candidate: $candidate_ref@$GITHUB_SHA"
 
+      - name: Cancel stale mandatory runs from older candidate SHAs
+        shell: bash
+        run: |
+          set -euo pipefail
+          workflows=(
+            quality.yml
+            security-scanning.yml
+            dependency-security-audit.yml
+            auth-integration-contract.yml
+            business-auth-integration-contract.yml
+            crm-platform-auth-integration-contract.yml
+            ticketing-m147-contract.yml
+            ticketing-m148-transaction-contract.yml
+            control-center-browser-contract.yml
+            control-center-affiliates-contract.yml
+            control-center-affiliates-browser-contract.yml
+            control-center-financial-contract.yml
+            control-center-financial-browser-contract.yml
+            control-center-content-contract.yml
+            control-center-destination-contract.yml
+          )
+
+          for workflow in "${workflows[@]}"; do
+            gh run list               --workflow "$workflow"               --branch "$CANDIDATE_REF"               --limit 50               --json databaseId,headSha,status             | jq -r --arg sha "$GITHUB_SHA"                 '.[] | select(.headSha != $sha and .status != "completed") | .databaseId'             | while read -r run_id; do
+                [ -n "$run_id" ] || continue
+                echo "Cancelling stale $workflow run $run_id"
+                gh run cancel "$run_id" || true
+              done
+          done
+
       - name: Dispatch exact-head mandatory workflows
         id: dispatch
         shell: bash
