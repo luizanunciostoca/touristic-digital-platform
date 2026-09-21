@@ -155,6 +155,18 @@
     opacity, transform, background-color, border-color, box-shadow;
 }
 
+.quick-actions {
+  left: max(var(--md-safe-left, 0rem), var(--md-space-3, 0.75rem)) !important;
+}
+
+.quick-actions .action-button.primary.mood-button {
+  transform-origin: left center;
+}
+
+.quick-actions .mood-button {
+  transform-origin: left center;
+}
+
 .quick-actions,
 #globe-map-control,
 #weather-widget,
