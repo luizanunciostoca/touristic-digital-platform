@@ -3075,7 +3075,9 @@ async function renderSystem() {
     <section class="card section-card" style="margin-top:16px">
       <div class="section-title">
         <h2>Readiness checks</h2>
-        <button id="system-refresh" class="secondary-button" type="button">Atualizar status</button>
+        <button id="system-refresh" class="secondary-button" type="button">
+          Atualizar status
+        </button>
       </div>
       <div class="health-list">
         ${checks
@@ -3092,7 +3094,6 @@ async function renderSystem() {
   document
     .querySelector("#system-refresh")
     ?.addEventListener("click", () => void render("system"));
-
 }
 
 function renderSettings() {
@@ -3288,11 +3289,17 @@ async function openHash(hash = globalThis.location.hash) {
 }
 
 let searchTimer;
+function setSearchExpanded(expanded) {
+  searchInput.setAttribute("aria-expanded", String(expanded));
+  if (!expanded) searchInput.removeAttribute("aria-activedescendant");
+}
+
 searchInput.addEventListener("input", () => {
   clearTimeout(searchTimer);
   const query = searchInput.value.trim();
   if (query.length < 2) {
     searchResults.hidden = true;
+    setSearchExpanded(false);
     return;
   }
 
@@ -3310,8 +3317,14 @@ searchInput.addEventListener("input", () => {
       searchResults.innerHTML =
         data.results
           .map(
-            (result) =>
-              `<div class="search-result" data-href="${escapeHtml(result.href ?? "")}">
+            (result, index) =>
+              `<div
+                id="search-result-${index}"
+                class="search-result"
+                role="option"
+                aria-selected="false"
+                data-href="${escapeHtml(result.href ?? "")}"
+              >
                 <span>
                   <strong>${escapeHtml(result.title)}</strong><br>
                   <small>${escapeHtml(result.type)} · ${escapeHtml(result.context ?? result.domain ?? "")}</small>
@@ -3321,8 +3334,10 @@ searchInput.addEventListener("input", () => {
           )
           .join("") || '<div class="empty">Nenhum resultado encontrado.</div>';
       searchResults.hidden = false;
+      setSearchExpanded(true);
     } catch {
       searchResults.hidden = true;
+      setSearchExpanded(false);
     }
   }, 180);
 });
@@ -3332,6 +3347,7 @@ searchResults.addEventListener("click", (event) => {
   if (!item) return;
   globalThis.location.hash = item.dataset.href || "#overview";
   searchResults.hidden = true;
+  setSearchExpanded(false);
   searchInput.value = "";
 });
 
@@ -3340,7 +3356,10 @@ document.addEventListener("keydown", (event) => {
     event.preventDefault();
     searchInput.focus();
   }
-  if (event.key === "Escape") searchResults.hidden = true;
+  if (event.key === "Escape") {
+    searchResults.hidden = true;
+    setSearchExpanded(false);
+  }
 });
 
 nav.addEventListener("click", (event) => {
