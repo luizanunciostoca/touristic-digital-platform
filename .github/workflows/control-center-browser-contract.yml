@@ -153,6 +153,7 @@ jobs:
             const evidence = {
               errors: [],
               viewports: [],
+              visualBaseline: [],
               negativeSecurity: [],
             };
 
@@ -379,11 +380,24 @@ jobs:
               evidence.keyboard = true;
 
               for (const viewport of [
-                { width: 1280, height: 900, label: 'desktop' },
-                { width: 768, height: 1024, label: 'tablet' },
-                { width: 390, height: 844, label: 'mobile' },
+                { width: 1440, height: 900, label: 'desktop-1440' },
+                { width: 1280, height: 900, label: 'desktop-1280' },
+                { width: 1024, height: 900, label: 'desktop-1024' },
+                { width: 768, height: 1024, label: 'tablet-768' },
+                { width: 390, height: 844, label: 'mobile-390' },
               ]) {
                 await page.setViewportSize({ width: viewport.width, height: viewport.height });
+                await page.evaluate(() => {
+                  location.hash = '#overview';
+                });
+                await page.getByRole('heading', { name: /^Bom dia,/ }).waitFor({ timeout: 15000 });
+                await page.locator('.kpi-grid .metric-card').first().waitFor({ timeout: 15000 });
+                if ((await page.locator('.quick-actions').count()) !== 0) {
+                  throw new Error('Quick Actions block must not exist in approved Control Center UX');
+                }
+                if ((await page.getByText('Ações rápidas', { exact: true }).count()) !== 0) {
+                  throw new Error('Quick Actions heading must not exist in approved Control Center UX');
+                }
                 const overflow = await page.evaluate(() =>
                   document.documentElement.scrollWidth > document.documentElement.clientWidth + 2
                 );
@@ -394,7 +408,15 @@ jobs:
                   if (!open) throw new Error(`Responsive menu failed at ${viewport.label}`);
                   await page.locator('[data-view="overview"]').click();
                 }
+                const screenshotPath = `/tmp/control-center-visual-${viewport.label}.png`;
+                await page.screenshot({ path: screenshotPath, fullPage: true });
                 evidence.viewports.push(viewport.label);
+                evidence.visualBaseline.push({
+                  label: viewport.label,
+                  width: viewport.width,
+                  height: viewport.height,
+                  file: screenshotPath,
+                });
               }
 
               const businessContext = await browser.newContext();
@@ -488,6 +510,7 @@ jobs:
           path: |
             /tmp/control-center-browser-evidence.json
             /tmp/control-center-accessibility-evidence.json
+            /tmp/control-center-visual-*.png
           retention-days: 3
           if-no-files-found: ignore
       - name: Stop Control Center runtime
