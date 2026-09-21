@@ -53,9 +53,6 @@ async function api(path) {
   return body;
 }
 
-function actorHas(capability) {
-  return Boolean(state.actor?.capabilities?.includes(capability));
-}
 
 function actorName() {
   const email = String(state.actor?.email || "");
