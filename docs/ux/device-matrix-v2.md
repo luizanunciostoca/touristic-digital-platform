@@ -21,3 +21,8 @@ At every matrix point the test verifies:
 A compact 390 × 520 viewport with the Assistant input focused is also used as a deterministic keyboard-like viewport contraction check. This does not claim to emulate a physical Android keyboard; physical Android remains a separate acceptance gate.
 
 The evidence is appended to the existing `v1-home-responsive-evidence` artifact so responsive certification stays traceable in one browser gate.
+
+
+## Safe-area containment
+
+The Assistant trigger is pinned with a semantic safe-area offset and a left transform origin so active-state scaling cannot push the control outside compact or desktop viewports. The responsive browser matrix treats any visible control escaping the viewport as a regression.
