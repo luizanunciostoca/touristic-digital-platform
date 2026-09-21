@@ -260,7 +260,10 @@ jobs:
               }
 
               await page.locator('[data-view="businesses"]').click();
-              await page.locator('a[href="#businesses:toca-do-morcego"]').click();
+              await page.getByRole('heading', { name: 'Empresas' }).waitFor();
+              await page
+                .locator('tbody a[href="#businesses:toca-do-morcego"]')
+                .click();
               await page.getByRole('heading', { name: 'Toca do Morcego' }).waitFor();
               const business360 = page.locator('[data-entity-tabs="business360"]');
               await business360.waitFor();
