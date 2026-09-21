@@ -77,6 +77,8 @@ jobs:
         run: |
           pnpm --filter @touristic/destinations test
           pnpm --filter @touristic/destinations-server test
+      - name: Build authenticated Destination browser runtime graph
+        run: pnpm -w build
       - name: Install deterministic Chromium
         run: |
           npm install --prefix /tmp/pw --no-save playwright@1.54.2
