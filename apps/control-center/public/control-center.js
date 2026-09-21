@@ -1,4 +1,5 @@
 import { createDashboardAuthClient } from "@touristic/auth-browser";
+import { createUniversalSearchController } from "./control-center-search.js";
 
 const navItems = [
   ["overview", "Visão Geral", "◫"],
@@ -89,6 +90,9 @@ const healthChip = document.querySelector("#health-chip");
 const releaseChip = document.querySelector("#release-chip");
 const searchInput = document.querySelector("#global-search");
 const searchResults = document.querySelector("#search-results");
+const searchDestination =
+  document.querySelector("#destination-selector") ??
+  document.querySelector("#search-destination");
 const supportBanner = document.querySelector("#support-banner");
 const supportContext = document.querySelector("#support-context");
 const menuButton = document.querySelector("#menu-button");
@@ -3061,52 +3065,11 @@ function openHash(hash = globalThis.location.hash) {
   void render(pageCopy[view] ? view : "overview", detail);
 }
 
-let searchTimer;
-searchInput.addEventListener("input", () => {
-  clearTimeout(searchTimer);
-  const query = searchInput.value.trim();
-  if (query.length < 2) {
-    searchResults.hidden = true;
-    return;
-  }
-
-  searchTimer = setTimeout(async () => {
-    try {
-      const data = await api(`/search?q=${encodeURIComponent(query)}`);
-      searchResults.innerHTML =
-        data.results
-          .map(
-            (result) =>
-              `<div class="search-result" data-href="${escapeHtml(result.href ?? "")}">
-                <span>
-                  <strong>${escapeHtml(result.title)}</strong><br>
-                  <small>${escapeHtml(result.type)} · ${escapeHtml(result.context ?? result.domain ?? "")}</small>
-                </span>
-                <span aria-hidden="true">↗</span>
-              </div>`,
-          )
-          .join("") || '<div class="empty">Nenhum resultado encontrado.</div>';
-      searchResults.hidden = false;
-    } catch {
-      searchResults.hidden = true;
-    }
-  }, 180);
-});
-
-searchResults.addEventListener("click", (event) => {
-  const item = event.target.closest("[data-href]");
-  if (!item) return;
-  globalThis.location.hash = item.dataset.href || "#overview";
-  searchResults.hidden = true;
-  searchInput.value = "";
-});
-
-document.addEventListener("keydown", (event) => {
-  if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
-    event.preventDefault();
-    searchInput.focus();
-  }
-  if (event.key === "Escape") searchResults.hidden = true;
+const universalSearch = createUniversalSearchController({
+  input: searchInput,
+  results: searchResults,
+  destinationSelect: searchDestination,
+  api,
 });
 
 nav.addEventListener("click", (event) => {
@@ -3152,6 +3115,7 @@ async function bootApp() {
     healthChip.className = `chip ${ready ? "chip-success" : "chip-warning"}`;
 
     applySupportBanner();
+    await universalSearch.loadDestinations();
     app.hidden = false;
     boot.hidden = true;
     openHash();
