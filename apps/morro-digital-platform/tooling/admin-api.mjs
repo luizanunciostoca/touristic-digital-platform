@@ -2147,11 +2147,19 @@ export function createAdminApi({
       .map((destination) => destination?.id)
       .filter((value) => typeof value === "string" && value);
     const financialOwner = domainAdapters.financial;
-    const financialResult =
+    let financialResult = { status: "unavailable", data: null };
+    if (
       destinationIds.length > 0 &&
       typeof financialOwner?.aggregateDestinations === "function"
-        ? await financialOwner.aggregateDestinations({ destinationIds })
-        : { status: "unavailable", data: null };
+    ) {
+      try {
+        financialResult = await financialOwner.aggregateDestinations({
+          destinationIds,
+        });
+      } catch {
+        financialResult = { status: "unavailable", data: null };
+      }
+    }
     const financialByDestination = new Map(
       financialResult?.status === "found" &&
         Array.isArray(financialResult.data?.destinations)
@@ -2253,7 +2261,12 @@ export function createAdminApi({
     const destinationStatus =
       summaryItems.length === 0
         ? "READY"
-        : combineAvailability(summaryItems.map((item) => item.alerts.status));
+        : combineAvailability(
+            summaryItems.flatMap((item) => [
+              item.alerts.status,
+              item.revenue.status,
+            ]),
+          );
     const allSources = summaryItems.flatMap((item) =>
       Object.values(item.alerts.sources).map((source) => ({
         destinationId: item.destinationId,
