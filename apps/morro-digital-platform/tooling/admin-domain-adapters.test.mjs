@@ -737,7 +737,24 @@ describe("Control Center Products and Reservations owner adapters", () => {
             offer: { id: "tin_admin_0001", label: "Volta a Ilha" },
             businessId: "business-0001",
           },
-          availability: { availableQuantity: 8 },
+          availability: { remainingQuantity: 8 },
+        },
+      })),
+      adminCreateBusinessOffer: vi.fn(async ({ businessId, offer }) => ({
+        status: "created",
+        data: {
+          id: "mpi_admin_created_0000000000000000",
+          businessId,
+          ...offer,
+          enabled: true,
+        },
+      })),
+      adminDisableBusinessOffer: vi.fn(async ({ businessId, inventoryId }) => ({
+        status: "updated",
+        data: {
+          id: inventoryId,
+          businessId,
+          enabled: false,
         },
       })),
     };
@@ -772,6 +789,39 @@ describe("Control Center Products and Reservations owner adapters", () => {
         href: "#products:tin_admin_0001",
       }),
     ]);
+
+    await expect(
+      adapter.createBusinessOffer({
+        request: request(),
+        businessId: "business-0001",
+        requestKey: "offer_admin_0001",
+        offer: {
+          productKind: "tour",
+          productReference: "volta-a-ilha",
+        },
+      }),
+    ).resolves.toMatchObject({
+      status: "created",
+      data: {
+        businessId: "business-0001",
+        enabled: true,
+      },
+    });
+
+    await expect(
+      adapter.disableBusinessOffer({
+        request: request(),
+        businessId: "business-0001",
+        inventoryId: "tin_admin_0001",
+      }),
+    ).resolves.toMatchObject({
+      status: "updated",
+      data: {
+        id: "tin_admin_0001",
+        businessId: "business-0001",
+        enabled: false,
+      },
+    });
   });
 
   it("projects global reservations and owner history without direct table access", async () => {

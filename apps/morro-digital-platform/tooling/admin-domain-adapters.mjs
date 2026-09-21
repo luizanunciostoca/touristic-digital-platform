@@ -330,13 +330,18 @@ function adminListQuery(requestUrl) {
 }
 
 export function createProductsAdminAdapter(ticketingApi) {
-  if (!ticketingApi?.adminListInventory || !ticketingApi?.adminReadInventory) {
+  if (
+    !ticketingApi?.adminListInventory ||
+    !ticketingApi?.adminReadInventory ||
+    !ticketingApi?.adminCreateBusinessOffer ||
+    !ticketingApi?.adminDisableBusinessOffer
+  ) {
     throw new Error("PRODUCTS_ADMIN_OWNER_BOUNDARY_REQUIRED");
   }
   const detailPattern =
     /^\/api\/admin\/v1\/products\/([A-Za-z0-9._:-]{2,120})$/u;
   return Object.freeze({
-    state: "partial",
+    state: "available",
     coverage: Object.freeze([
       "list",
       "search",
@@ -345,7 +350,27 @@ export function createProductsAdminAdapter(ticketingApi) {
       "destination-relation",
       "availability",
       "inventory-state",
+      "create-offer",
+      "disable-offer",
     ]),
+    async readOffer(inventoryId) {
+      return ticketingApi.adminReadInventory(inventoryId);
+    },
+    async createBusinessOffer({ request, businessId, offer, requestKey }) {
+      return ticketingApi.adminCreateBusinessOffer({
+        request,
+        businessId,
+        offer,
+        requestKey,
+      });
+    },
+    async disableBusinessOffer({ request, businessId, inventoryId }) {
+      return ticketingApi.adminDisableBusinessOffer({
+        request,
+        businessId,
+        inventoryId,
+      });
+    },
     async search({ query }) {
       const result = await ticketingApi.adminListInventory({
         query,

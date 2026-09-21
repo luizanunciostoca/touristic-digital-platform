@@ -679,6 +679,66 @@ export function createTicketingApi({
     await Promise.allSettled(pools.map((pool) => pool.end()));
   }
 
+  async function adminTransportMutation(
+    request,
+    pathname,
+    body,
+    extraHeaders = {},
+    successStatus = "updated",
+  ) {
+    if (!runtime?.publicTransport) {
+      return Object.freeze({
+        status: "unavailable",
+        data: null,
+        error: "TICKETING_ADMIN_UNAVAILABLE",
+      });
+    }
+    try {
+      const result = await runtime.publicTransport.handle({
+        method: "POST",
+        pathname,
+        headers: Object.freeze({
+          ...(request?.headers ?? {}),
+          ...extraHeaders,
+        }),
+        body,
+        correlationId:
+          request?.morroCorrelationId ??
+          header(request ?? { headers: {} }, "x-correlation-id") ??
+          `corr_${randomUUID()}`,
+      });
+      if (result.status >= 200 && result.status < 300) {
+        return Object.freeze({
+          status: successStatus,
+          data: result.body?.data ?? null,
+        });
+      }
+      const error =
+        typeof result.body?.error === "string"
+          ? result.body.error
+          : "TICKETING_ADMIN_UNAVAILABLE";
+      if (result.status === 400) {
+        return Object.freeze({ status: "invalid", data: null, error });
+      }
+      if (result.status === 401 || result.status === 403) {
+        return Object.freeze({ status: "denied", data: null, error });
+      }
+      if (result.status === 404) {
+        return Object.freeze({ status: "not_found", data: null, error });
+      }
+      if (result.status === 409) {
+        return Object.freeze({ status: "conflict", data: null, error });
+      }
+      return Object.freeze({ status: "unavailable", data: null, error });
+    } catch (error) {
+      return Object.freeze({
+        status: "unavailable",
+        data: null,
+        error: syncErrorCode(error),
+      });
+    }
+  }
+
   async function adminResult(operation, successStatus = "found") {
     if (!runtime?.adminService) {
       return Object.freeze({
@@ -734,6 +794,26 @@ export function createTicketingApi({
       return adminResult(
         (service) => service.cancelHeldReservation(input),
         "updated",
+      );
+    },
+    adminCreateBusinessOffer({ request, businessId, offer, requestKey }) {
+      return adminTransportMutation(
+        request,
+        `${ticketingHttpPrefix}/operator/businesses/${encodeURIComponent(
+          businessId,
+        )}/inventory`,
+        offer,
+        { "idempotency-key": requestKey },
+        "created",
+      );
+    },
+    adminDisableBusinessOffer({ request, businessId, inventoryId }) {
+      return adminTransportMutation(
+        request,
+        `${ticketingHttpPrefix}/operator/businesses/${encodeURIComponent(
+          businessId,
+        )}/inventory/${encodeURIComponent(inventoryId)}/disable`,
+        {},
       );
     },
     async handle(request, response, requestUrl) {

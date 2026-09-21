@@ -928,6 +928,219 @@ export function createAdminApi({
     return true;
   }
 
+  async function handleProductCriticalAction(request, response, requestUrl) {
+    const create =
+      requestUrl.pathname === `${adminPrefix}/products/offers`;
+    const disableMatch =
+      /^\/api\/admin\/v1\/products\/([^/]+)\/disable$/u.exec(
+        requestUrl.pathname,
+      );
+    if (!create && !disableMatch) return false;
+    if (request.method !== "POST") {
+      json(response, 405, { error: "METHOD_NOT_ALLOWED" });
+      return true;
+    }
+
+    const operation = create ? "create" : "disable";
+    let inventoryId = null;
+    if (disableMatch?.[1]) {
+      try {
+        inventoryId = decodeURIComponent(disableMatch[1]);
+      } catch {
+        json(response, 400, { error: "INVALID_INVENTORY_ID" });
+        return true;
+      }
+    }
+
+    const actor = await requireCapability(
+      request,
+      response,
+      "ticketing.manage",
+      { mutation: true },
+    );
+    if (!actor) return true;
+
+    const requestSecurity = authApi.authorizeMutation(
+      request,
+      actor,
+      `control-center.products.${operation}`,
+    );
+    if (!requestSecurity.allowed) {
+      await audit(request, actor, {
+        action: `products.offer.${operation}`,
+        result: "denied",
+        reason: requestSecurity.reason,
+        entityType: "ticket_inventory",
+        entityId: inventoryId,
+      });
+      json(response, 403, {
+        error:
+          requestSecurity.reason === "invalid_csrf"
+            ? "INVALID_CSRF"
+            : "ORIGIN_DENIED",
+      });
+      return true;
+    }
+
+    const support = supportContext(request, actor);
+    if (support) {
+      await audit(request, actor, {
+        action: `products.offer.${operation}`,
+        result: "denied",
+        reason: "support_mode_critical_action_denied",
+        effectiveUserId: support.effectiveUser?.id ?? null,
+        entityType: "ticket_inventory",
+        entityId: inventoryId,
+      });
+      json(response, 403, { error: "SUPPORT_MODE_CRITICAL_ACTION_DENIED" });
+      return true;
+    }
+
+    if (!stepUpContext(request, actor)) {
+      await audit(request, actor, {
+        action: `products.offer.${operation}`,
+        result: "denied",
+        reason: "step_up_required",
+        entityType: "ticket_inventory",
+        entityId: inventoryId,
+      });
+      json(response, 403, { error: "STEP_UP_REQUIRED" });
+      return true;
+    }
+
+    let body;
+    try {
+      body = await readJsonBody(request);
+    } catch {
+      json(response, 400, { error: "INVALID_REQUEST" });
+      return true;
+    }
+    const reason = safeReason(body?.reason);
+    if (!reason) {
+      json(response, 400, { error: "REASON_REQUIRED" });
+      return true;
+    }
+
+    const confirmation = create ? "CRIAR OFERTA" : "DESATIVAR OFERTA";
+    if (body?.confirmation !== confirmation) {
+      json(response, 400, {
+        error: "TEXT_CONFIRMATION_REQUIRED",
+        expected: confirmation,
+      });
+      return true;
+    }
+
+    const businessId =
+      typeof body?.businessId === "string" ? body.businessId.trim() : "";
+    if (!/^[a-z0-9][a-z0-9_-]{0,119}$/u.test(businessId)) {
+      json(response, 400, { error: "INVALID_BUSINESS_ID" });
+      return true;
+    }
+
+    const adapter = domainAdapters.products;
+    if (
+      !adapter?.readOffer ||
+      !adapter?.createBusinessOffer ||
+      !adapter?.disableBusinessOffer
+    ) {
+      json(response, 501, {
+        error: "DOMAIN_ADMIN_CONTRACT_NOT_REGISTERED",
+        domain: "products",
+        invariant: "NO_DIRECT_TABLE_BYPASS",
+      });
+      return true;
+    }
+
+    let previousState = null;
+    if (!create) {
+      const current = await adapter.readOffer(inventoryId);
+      if (current?.status === "not_found") {
+        json(response, 404, { error: "PRODUCT_OFFER_NOT_FOUND" });
+        return true;
+      }
+      if (current?.status !== "found" || !current.data?.projection) {
+        json(response, 503, {
+          error: current?.error || "TICKETING_ADMIN_UNAVAILABLE",
+        });
+        return true;
+      }
+      previousState = current.data.projection;
+      if (previousState.businessId !== businessId) {
+        json(response, 409, { error: "BUSINESS_OFFER_SCOPE_MISMATCH" });
+        return true;
+      }
+    }
+
+    const attemptAudited = await audit(request, actor, {
+      action: `products.offer.${operation}.attempt`,
+      result: "attempt",
+      tenantId: businessId,
+      entityType: "ticket_inventory",
+      entityId: inventoryId,
+      reason,
+      previousState,
+    });
+    if (!attemptAudited) {
+      json(response, 503, { error: "ADMIN_AUDIT_UNAVAILABLE" });
+      return true;
+    }
+
+    let result;
+    if (create) {
+      const requestKey =
+        typeof body?.requestKey === "string" ? body.requestKey.trim() : "";
+      if (!/^[A-Za-z0-9_-]{8,120}$/u.test(requestKey)) {
+        json(response, 400, { error: "INVALID_IDEMPOTENCY_KEY" });
+        return true;
+      }
+      result = await adapter.createBusinessOffer({
+        request,
+        businessId,
+        offer: body?.offer,
+        requestKey,
+      });
+    } else {
+      result = await adapter.disableBusinessOffer({
+        request,
+        businessId,
+        inventoryId,
+      });
+    }
+
+    const successful = result?.status === "created" || result?.status === "updated";
+    if (result?.status === "denied") {
+      json(response, 403, { error: result.error || "CAPABILITY_DENIED" });
+    } else if (result?.status === "invalid") {
+      json(response, 400, {
+        error: result.error || "INVALID_PRODUCT_OFFER_MUTATION",
+      });
+    } else if (result?.status === "not_found") {
+      json(response, 404, { error: "PRODUCT_OFFER_NOT_FOUND" });
+    } else if (result?.status === "conflict") {
+      json(response, 409, {
+        error: result.error || "PRODUCT_OFFER_CONFLICT",
+      });
+    } else if (!successful) {
+      json(response, 503, {
+        error: result?.error || "TICKETING_ADMIN_UNAVAILABLE",
+      });
+    } else {
+      json(response, create ? 201 : 200, { data: result.data });
+    }
+
+    await audit(request, actor, {
+      action: `products.offer.${operation}.complete`,
+      result: successful ? "success" : "failure",
+      tenantId: businessId,
+      entityType: "ticket_inventory",
+      entityId: inventoryId ?? result?.data?.id ?? null,
+      reason,
+      previousState,
+      newState: successful ? result.data : null,
+    });
+    return true;
+  }
+
   async function handleReservationCriticalAction(
     request,
     response,
@@ -1848,6 +2061,10 @@ export function createAdminApi({
           health: platformOperations.healthSnapshot(request.morroCorrelationId),
           secrets: "redacted",
         });
+        return;
+      }
+
+      if (await handleProductCriticalAction(request, response, requestUrl)) {
         return;
       }
 

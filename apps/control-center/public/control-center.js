@@ -1412,14 +1412,99 @@ async function renderCrm() {
 }
 
 async function renderProducts(productId) {
+  const supportActive = Boolean(state.adminSession?.support);
+  const canManage =
+    actorHasCapability("ticketing.manage") && !supportActive;
+
   if (!productId) {
-    const data = await api("/products?limit=100");
+    const [data, businessesData] = await Promise.all([
+      api("/products?limit=100"),
+      api("/businesses"),
+    ]);
     const products = Array.isArray(data.data) ? data.data : [];
+    const businesses = businessesData.businesses ?? [];
+    const businessOptions = businesses
+      .map(
+        (business) =>
+          `<option value="${escapeHtml(business.id)}">${escapeHtml(business.id)}</option>`,
+      )
+      .join("");
+
     content.innerHTML = `
       <div class="callout">
-        Produtos, ofertas e inventário são projetados pelo owner Ticketing.
-        O Control Center não consulta nem altera tabelas comerciais diretamente.
+        Produtos, ofertas e inventário são governados pelo owner Ticketing.
+        Criação é idempotente e desativação é uma transição explícita; não existe
+        edição arbitrária de preço/capacidade nesta superfície.
       </div>
+      ${
+        canManage
+          ? `<section class="card section-card" style="margin-bottom:16px">
+              <div class="section-title">
+                <h2>Nova oferta</h2>
+                <span class="badge gap">step-up obrigatório</span>
+              </div>
+              <form id="product-create-form" class="form-grid">
+                <label>Empresa
+                  <select name="businessId" required>
+                    <option value="">Selecione</option>
+                    ${businessOptions}
+                  </select>
+                </label>
+                <label>Tipo de produto
+                  <select name="productKind" required>
+                    <option value="tour">tour</option>
+                    <option value="business_experience">business_experience</option>
+                    <option value="transport">transport</option>
+                  </select>
+                </label>
+                <label>Referência do produto
+                  <input name="productReference" required maxlength="120" autocomplete="off" />
+                </label>
+                <label>Nome da oferta
+                  <input name="label" required minlength="2" maxlength="160" />
+                </label>
+                <label>Preço em centavos
+                  <input name="unitAmountMinor" type="number" min="1" step="1" required />
+                </label>
+                <label>Moeda
+                  <input name="currency" value="BRL" minlength="3" maxlength="3" required />
+                </label>
+                <label>Versão de preço
+                  <input name="pricingVersion" value="morro-pro-v1" maxlength="80" required />
+                </label>
+                <label>Capacidade
+                  <input name="capacity" type="number" min="1" max="100000" step="1" required />
+                </label>
+                <label>Máximo por reserva
+                  <input name="maxPerReservation" type="number" min="1" max="20" step="1" required />
+                </label>
+                <label>Início das vendas
+                  <input name="salesStartAt" type="datetime-local" required />
+                </label>
+                <label>Fim das vendas
+                  <input name="salesEndAt" type="datetime-local" required />
+                </label>
+                <label>Início da experiência
+                  <input name="startsAt" type="datetime-local" required />
+                </label>
+                <label>Fim da experiência
+                  <input name="endsAt" type="datetime-local" required />
+                </label>
+                <label>Motivo obrigatório
+                  <textarea name="reason" minlength="8" maxlength="240" required></textarea>
+                </label>
+                <label>Sua senha
+                  <input name="password" type="password" autocomplete="current-password" required />
+                </label>
+                <label>Confirmação textual
+                  <input name="confirmation" autocomplete="off" placeholder="CRIAR OFERTA" required />
+                </label>
+                <button class="primary-button" type="submit">Criar oferta governada</button>
+                <p id="product-create-result" role="status" aria-live="polite"></p>
+              </form>
+            </section>`
+          : `<div class="callout">Criação de ofertas exige <strong>ticketing.manage</strong> e não é permitida durante Support Mode.</div>`
+      }
       <div class="table-wrap">
         <table>
           <thead><tr><th>Oferta</th><th>Empresa</th><th>Destino</th><th>Disponível</th><th>Preço</th><th>Status</th></tr></thead>
@@ -1443,6 +1528,68 @@ async function renderProducts(productId) {
           </tbody>
         </table>
       </div>`;
+
+    document
+      .querySelector("#product-create-form")
+      ?.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const form = event.currentTarget;
+        const values = new FormData(form);
+        const result = form.querySelector("#product-create-result");
+        const confirmation = String(values.get("confirmation") || "").trim();
+        if (confirmation !== "CRIAR OFERTA") {
+          result.textContent = "Digite CRIAR OFERTA para confirmar.";
+          return;
+        }
+        const asIso = (name) => {
+          const date = new Date(String(values.get(name) || ""));
+          if (!Number.isFinite(date.getTime())) {
+            throw new Error(`Data inválida: ${name}`);
+          }
+          return date.toISOString();
+        };
+        try {
+          result.textContent = "Reautenticando…";
+          await api("/step-up", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              password: String(values.get("password") || ""),
+            }),
+          });
+          const requestKey = `cc_offer_${crypto.randomUUID().replaceAll("-", "_")}`;
+          result.textContent = "Criando oferta pelo owner Ticketing…";
+          const created = await api("/products/offers", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              businessId: String(values.get("businessId") || ""),
+              requestKey,
+              offer: {
+                productKind: String(values.get("productKind") || ""),
+                productReference: String(values.get("productReference") || "").trim(),
+                label: String(values.get("label") || "").trim(),
+                unitAmountMinor: Number(values.get("unitAmountMinor")),
+                currency: String(values.get("currency") || "").trim().toUpperCase(),
+                pricingVersion: String(values.get("pricingVersion") || "").trim(),
+                capacity: Number(values.get("capacity")),
+                maxPerReservation: Number(values.get("maxPerReservation")),
+                salesStartAt: asIso("salesStartAt"),
+                salesEndAt: asIso("salesEndAt"),
+                startsAt: asIso("startsAt"),
+                endsAt: asIso("endsAt"),
+              },
+              reason: String(values.get("reason") || "").trim(),
+              confirmation: "CRIAR OFERTA",
+            }),
+          });
+          result.textContent = "Oferta criada com sucesso.";
+          await renderProducts(created.data?.id);
+        } catch (error) {
+          result.textContent =
+            error.body?.error || error.message || "Falha ao criar oferta.";
+        }
+      });
     return;
   }
 
@@ -1451,6 +1598,8 @@ async function renderProducts(productId) {
   const projection = detail.projection;
   const offer = projection.offer;
   const availability = detail.availability;
+  const canDisable =
+    canManage && Boolean(projection.businessId) && Boolean(offer.enabled);
   content.innerHTML = `
     <div class="grid stats">
       <article class="card stat"><span class="stat-label">Oferta</span><strong class="stat-value" style="font-size:18px">${escapeHtml(offer.label)}</strong><small>${escapeHtml(offer.id)}</small></article>
@@ -1479,9 +1628,70 @@ async function renderProducts(productId) {
       </section>
     </div>
     <div class="callout" style="margin-top:16px">
-      Mutation de oferta permanece governada pelo owner; nenhuma edição arbitrária de preço/capacidade é exposta por esta projeção.
+      A oferta é imutável nesta superfície. Quando precisa sair de venda, o comando
+      owner desativa o inventário preservando histórico e relações existentes.
     </div>
+    ${
+      offer.enabled
+        ? `<section class="card section-card" style="margin-top:16px">
+            <div class="section-title"><h2>Desativar oferta</h2><span class="badge gap">step-up obrigatório</span></div>
+            <form id="product-disable-form" class="form-grid">
+              <label>Sua senha
+                <input name="password" type="password" autocomplete="current-password" ${canDisable ? "" : "disabled"} required />
+              </label>
+              <label>Motivo obrigatório
+                <textarea name="reason" minlength="8" maxlength="240" ${canDisable ? "" : "disabled"} required></textarea>
+              </label>
+              <label>Confirmação textual
+                <input name="confirmation" autocomplete="off" placeholder="DESATIVAR OFERTA" ${canDisable ? "" : "disabled"} required />
+              </label>
+              <button class="primary-button" type="submit" ${canDisable ? "" : "disabled"}>Desativar oferta</button>
+              <p id="product-disable-result" role="status" aria-live="polite"></p>
+            </form>
+          </section>`
+        : ""
+    }
     <div style="margin-top:16px"><a href="#products">← Voltar para Produtos e Ofertas</a></div>`;
+
+  document
+    .querySelector("#product-disable-form")
+    ?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const form = event.currentTarget;
+      const values = new FormData(form);
+      const result = form.querySelector("#product-disable-result");
+      if (
+        String(values.get("confirmation") || "").trim() !== "DESATIVAR OFERTA"
+      ) {
+        result.textContent = "Digite DESATIVAR OFERTA para confirmar.";
+        return;
+      }
+      try {
+        result.textContent = "Reautenticando…";
+        await api("/step-up", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            password: String(values.get("password") || ""),
+          }),
+        });
+        result.textContent = "Desativando oferta pelo owner Ticketing…";
+        await api(`/products/${encodeURIComponent(productId)}/disable`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            businessId: projection.businessId,
+            reason: String(values.get("reason") || "").trim(),
+            confirmation: "DESATIVAR OFERTA",
+          }),
+        });
+        result.textContent = "Oferta desativada.";
+        await renderProducts(productId);
+      } catch (error) {
+        result.textContent =
+          error.body?.error || error.message || "Falha ao desativar oferta.";
+      }
+    });
 }
 
 async function renderReservations(reservationId) {

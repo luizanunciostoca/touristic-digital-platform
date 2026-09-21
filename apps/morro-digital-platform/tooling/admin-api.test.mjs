@@ -365,6 +365,192 @@ describe("Control Center Admin API", () => {
     });
   });
 
+  it("creates and disables Ticketing offers only through governed owner commands", async () => {
+    const calls = [];
+    const products = {
+      async readOffer(inventoryId) {
+        return {
+          status: "found",
+          data: {
+            projection: {
+              businessId: "business-owner",
+              offer: { id: inventoryId, enabled: true },
+            },
+          },
+        };
+      },
+      async createBusinessOffer(input) {
+        calls.push({ operation: "create", input });
+        return {
+          status: "created",
+          data: {
+            id: "mpi_admin_created_0000000000000000",
+            businessId: input.businessId,
+            enabled: true,
+          },
+        };
+      },
+      async disableBusinessOffer(input) {
+        calls.push({ operation: "disable", input });
+        return {
+          status: "updated",
+          data: {
+            id: input.inventoryId,
+            businessId: input.businessId,
+            enabled: false,
+          },
+        };
+      },
+    };
+    const { api } = fixture(platformOwner, {
+      domainAdapters: { products },
+    });
+
+    const createPath = "/api/admin/v1/products/offers";
+    const noStepUp = responseRecorder();
+    await api.handle(
+      request(createPath, {
+        method: "POST",
+        body: {
+          businessId: "business-owner",
+          requestKey: "offer_admin_0001",
+          offer: { productKind: "tour" },
+          reason: "Criar oferta aprovada pela operação comercial",
+          confirmation: "CRIAR OFERTA",
+        },
+      }),
+      noStepUp,
+      new URL("http://localhost" + createPath),
+    );
+    expect(noStepUp.statusCode).toBe(403);
+    expect(JSON.parse(noStepUp.body).error).toBe("STEP_UP_REQUIRED");
+    expect(calls).toHaveLength(0);
+
+    const stepUp = responseRecorder();
+    await api.handle(
+      request("/api/admin/v1/step-up", {
+        method: "POST",
+        body: { password: "fixture-secret" },
+      }),
+      stepUp,
+      new URL("http://localhost/api/admin/v1/step-up"),
+    );
+    const cookie = String(stepUp.headers.get("set-cookie")).split(";", 1)[0];
+
+    const created = responseRecorder();
+    await api.handle(
+      request(createPath, {
+        method: "POST",
+        headers: { cookie },
+        body: {
+          businessId: "business-owner",
+          requestKey: "offer_admin_0001",
+          offer: {
+            productKind: "tour",
+            productReference: "volta-a-ilha-admin",
+            label: "Volta a Ilha Admin",
+          },
+          reason: "Criar oferta aprovada pela operação comercial",
+          confirmation: "CRIAR OFERTA",
+        },
+      }),
+      created,
+      new URL("http://localhost" + createPath),
+    );
+    expect(created.statusCode).toBe(201);
+    expect(JSON.parse(created.body)).toMatchObject({
+      data: {
+        businessId: "business-owner",
+        enabled: true,
+      },
+    });
+
+    const disablePath =
+      "/api/admin/v1/products/mpi_admin_created_0000000000000000/disable";
+    const disabled = responseRecorder();
+    await api.handle(
+      request(disablePath, {
+        method: "POST",
+        headers: { cookie },
+        body: {
+          businessId: "business-owner",
+          reason: "Encerrar oferta sem reescrever histórico comercial",
+          confirmation: "DESATIVAR OFERTA",
+        },
+      }),
+      disabled,
+      new URL("http://localhost" + disablePath),
+    );
+    expect(disabled.statusCode).toBe(200);
+    expect(JSON.parse(disabled.body).data.enabled).toBe(false);
+    expect(calls.map((entry) => entry.operation)).toEqual([
+      "create",
+      "disable",
+    ]);
+  });
+
+  it("fails closed when a product offer is attributed to another business", async () => {
+    const calls = [];
+    const { api } = fixture(platformOwner, {
+      domainAdapters: {
+        products: {
+          async readOffer(inventoryId) {
+            return {
+              status: "found",
+              data: {
+                projection: {
+                  businessId: "business-other",
+                  offer: { id: inventoryId, enabled: true },
+                },
+              },
+            };
+          },
+          async createBusinessOffer(input) {
+            calls.push(input);
+            return { status: "created", data: {} };
+          },
+          async disableBusinessOffer(input) {
+            calls.push(input);
+            return { status: "updated", data: {} };
+          },
+        },
+      },
+    });
+
+    const stepUp = responseRecorder();
+    await api.handle(
+      request("/api/admin/v1/step-up", {
+        method: "POST",
+        body: { password: "fixture-secret" },
+      }),
+      stepUp,
+      new URL("http://localhost/api/admin/v1/step-up"),
+    );
+    const cookie = String(stepUp.headers.get("set-cookie")).split(";", 1)[0];
+
+    const path =
+      "/api/admin/v1/products/mpi_admin_foreign_0000000000000000/disable";
+    const response = responseRecorder();
+    await api.handle(
+      request(path, {
+        method: "POST",
+        headers: { cookie },
+        body: {
+          businessId: "business-owner",
+          reason: "Tentativa deve respeitar vínculo owner da oferta",
+          confirmation: "DESATIVAR OFERTA",
+        },
+      }),
+      response,
+      new URL("http://localhost" + path),
+    );
+    expect(response.statusCode).toBe(409);
+    expect(JSON.parse(response.body).error).toBe(
+      "BUSINESS_OFFER_SCOPE_MISMATCH",
+    );
+    expect(calls).toHaveLength(0);
+  });
+
   it("cancels only held reservations behind step-up and owner authority", async () => {
     const calls = [];
     const reservations = {
