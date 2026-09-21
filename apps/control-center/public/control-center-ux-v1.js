@@ -265,6 +265,9 @@ async function revenueForReservations(rows) {
         .catch(() => null),
     ),
   );
+  if (payments.some((payment) => payment === null)) {
+    return { value: "—", meta: "leitura financeira parcial" };
+  }
   const approved = payments.filter((payment) => payment?.status === "APPROVED");
   const currencies = [
     ...new Set(
@@ -369,21 +372,60 @@ function activityHtml(entries) {
     .join("");
 }
 
-function destinationRows(reservations) {
-  return state.destinations
-    .map((destination) => {
-      const allReservations = Array.isArray(reservations?.data)
-        ? reservations.data
-        : [];
-      const today = allReservations.filter(
-        (item) =>
-          item?.reservation?.destinationId === destination.id &&
-          sameLocalDay(item?.reservation?.createdAt),
-      ).length;
-      const reservationValue = Array.isArray(reservations?.data)
-        ? String(today)
-        : "—";
-      return (
+async function destinationSummary(data) {
+  const reservations = Array.isArray(data.globalReservations?.data)
+    ? data.globalReservations.data
+    : null;
+  const businesses = Array.isArray(data.businesses?.businesses)
+    ? data.businesses.businesses
+    : null;
+
+  return Promise.all(
+    state.destinations.map(async (destination) => {
+      const destinationReservations = reservations
+        ? reservations.filter(
+            (item) =>
+              item?.reservation?.destinationId === destination.id &&
+              sameLocalDay(item?.reservation?.createdAt),
+          )
+        : null;
+      const [affiliateResult, revenue] = await Promise.all([
+        api(
+          "/affiliates?limit=100&destinationId=" +
+            encodeURIComponent(destination.id),
+        ).catch(() => ({ data: null })),
+        revenueForReservations(destinationReservations),
+      ]);
+      const destinationBusinesses = businesses
+        ? businesses.filter(
+            (business) => business.destinationId === destination.id,
+          ).length
+        : null;
+      const affiliateCount = Array.isArray(affiliateResult.data)
+        ? affiliateResult.data.length
+        : null;
+
+      return {
+        destination,
+        businessCount: destinationBusinesses,
+        affiliateCount,
+        reservationCount: destinationReservations?.length ?? null,
+        revenue,
+      };
+    }),
+  );
+}
+
+function destinationRows(summary) {
+  return summary
+    .map(
+      ({
+        destination,
+        businessCount,
+        affiliateCount,
+        reservationCount,
+        revenue,
+      }) =>
         '<tr class="destination-row" data-destination-row="' +
         escapeHtml(destination.id) +
         '" tabindex="0"><td><div class="destination-cell"><span class="destination-thumb" aria-hidden="true">⌖</span><div><strong>' +
@@ -392,15 +434,18 @@ function destinationRows(reservations) {
         ) +
         "</strong><br><small>" +
         escapeHtml(destination.status || "—") +
-        "</small></div></div></td><td>—</td><td>—</td><td>" +
-        escapeHtml(reservationValue) +
-        " <small>hoje</small></td><td>—</td><td>" +
-        (destination.status === "active"
-          ? '<span class="badge pass">operacional</span>'
-          : statusBadge(destination.status || "partial")) +
-        "</td></tr>"
-      );
-    })
+        "</small></div></div></td><td>" +
+        escapeHtml(businessCount ?? "—") +
+        "</td><td>" +
+        escapeHtml(affiliateCount ?? "—") +
+        "</td><td>" +
+        escapeHtml(reservationCount ?? "—") +
+        " <small>hoje</small></td><td>" +
+        escapeHtml(revenue?.value ?? "—") +
+        "</td><td>" +
+        '<span class="badge partial">sem agregado por destino</span>' +
+        "</td></tr>",
+    )
     .join("");
 }
 
@@ -429,6 +474,8 @@ async function renderHome() {
         )
       : null;
     const revenue = await revenueForReservations(todayRows);
+    const destinationSummaryRows =
+      state.destinationId === "global" ? await destinationSummary(data) : [];
     if (generation !== state.generation || !isOverviewRoute()) return;
     const affiliateCount = Array.isArray(data.affiliates.data)
       ? data.affiliates.data.length === 100
@@ -509,7 +556,7 @@ async function renderHome() {
       attentionHtml +
       "</section>" +
       '<div class="grid home-lower-grid"><div class="home-stack"><section class="card section-card destination-summary"><div class="section-title"><div><h2>Resumo por destino</h2><p>Selecione uma linha para entrar no contexto daquele destino.</p></div><a class="section-link" href="#destinations">Gerenciar destinos</a></div><div class="table-wrap"><table><thead><tr><th>Destino</th><th>Empresas</th><th>Afiliados</th><th>Reservas</th><th>Receita</th><th>Alertas</th></tr></thead><tbody>' +
-      (destinationRows(data.globalReservations) ||
+      (destinationRows(destinationSummaryRows) ||
         '<tr><td colspan="6" class="empty">Nenhum destino disponível para este actor.</td></tr>') +
       "</tbody></table></div></section>" +
       '<section class="card section-card"><div class="section-title"><div><h2>Atividade recente</h2><p>Eventos operacionais e administrativos compreensíveis.</p></div><a class="section-link" href="#audit">Ver todos os eventos</a></div><div class="timeline">' +
