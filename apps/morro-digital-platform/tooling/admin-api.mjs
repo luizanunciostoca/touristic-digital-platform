@@ -2552,11 +2552,20 @@ export function createAdminApi({
 
         for (const source of searchAdapterSources) {
           const adapter = domainAdapters[source.adapterKey];
-          const capability =
-            typeof adapter?.searchCapability === "string"
-              ? adapter.searchCapability
-              : source.capability;
-          if (!capabilityAllowed(capability)) continue;
+          if (
+            typeof adapter?.searchCapability === "string" &&
+            adapter.searchCapability !== source.capability
+          ) {
+            partial.push(
+              Object.freeze({
+                domain: source.domain,
+                types: source.types,
+                reason: "capability_contract_mismatch",
+              }),
+            );
+            continue;
+          }
+          if (!capabilityAllowed(source.capability)) continue;
 
           const destinationAware =
             typeof adapter?.searchDestinationAware === "boolean"
