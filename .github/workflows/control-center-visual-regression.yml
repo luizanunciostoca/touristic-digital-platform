@@ -1,0 +1,167 @@
+name: Control Center Visual Regression
+
+on:
+  push:
+    branches:
+      - wave/control-center-visual-regression-docs-final-20260921
+    paths:
+      - ".github/workflows/control-center-visual-regression.yml"
+      - "apps/control-center/**"
+      - "apps/morro-digital-platform/tooling/control-center-visual-*.mjs"
+      - "tests/visual-regression/control-center/baselines/**"
+      - "docs/control-center/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
+    paths:
+      - ".github/workflows/control-center-visual-regression.yml"
+      - "apps/control-center/**"
+      - "apps/morro-digital-platform/tooling/control-center-visual-*.mjs"
+      - "tests/visual-regression/control-center/baselines/**"
+      - "docs/control-center/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+
+permissions:
+  contents: write
+
+jobs:
+  control-center-visual-regression:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1
+        with:
+          version: 10.15.0
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Install deterministic visual toolchain
+        run: |
+          npm install --prefix /tmp/cc-visual --no-save \
+            playwright@1.54.2 \
+            pixelmatch@5.3.0 \
+            pngjs@7.0.0 \
+            @fontsource/inter@5.2.5
+          /tmp/cc-visual/node_modules/.bin/playwright install --with-deps chromium
+
+      - name: Build Control Center runtime graph
+        run: pnpm -w build
+
+      - name: Start authenticated Control Center runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          PORT=4194
+          AUTH_SECRET="0123456789abcdef0123456789abcdef"
+          PASSWORD="control center visual regression fixture"
+          OWNER_HASH=$(node --input-type=module -e "import('./services/auth/dist/credentials.js').then(m => console.log(m.hashPassword(process.argv[1], Buffer.alloc(16, 31))))" "$PASSWORD")
+          USERS=$(node -e 'console.log(JSON.stringify([{id:"platform-owner-visual",email:"platform-owner@example.com",passwordHash:process.argv[1],role:"PLATFORM_OWNER",businessIds:[]}]))' "$OWNER_HASH")
+          DASHBOARD_AUTH_SECRET="$AUTH_SECRET" \
+          DASHBOARD_USERS_JSON="$USERS" \
+          PORT="$PORT" \
+          HOST="127.0.0.1" \
+          node apps/morro-digital-platform/tooling/dev-server.mjs \
+            >/tmp/control-center-visual-server.log 2>&1 &
+          echo $! >/tmp/control-center-visual-server.pid
+          for _ in $(seq 1 120); do
+            if curl --fail --silent "http://127.0.0.1:$PORT/apps/control-center/public/index.html" >/dev/null; then
+              exit 0
+            fi
+            sleep 0.25
+          done
+          cat /tmp/control-center-visual-server.log
+          exit 1
+
+      - name: Determine baseline mode
+        id: baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          PENDING=$(node -e "const m=require('./tests/visual-regression/control-center/baselines/manifest.json'); process.stdout.write(String(Boolean(m.bootstrapPending)))")
+          echo "pending=$PENDING" >> "$GITHUB_OUTPUT"
+          if [[ "$PENDING" == "true" && "$GITHUB_EVENT_NAME" != "push" ]]; then
+            echo "Baseline bootstrap is allowed only on the dedicated branch push." >&2
+            exit 1
+          fi
+
+      - name: Bootstrap committed visual baselines
+        if: steps.baseline.outputs.pending == 'true'
+        env:
+          CONTROL_CENTER_VISUAL_PASSWORD: control center visual regression fixture
+        run: node apps/morro-digital-platform/tooling/control-center-visual-regression.mjs --update
+
+      - name: Commit deterministic baseline bootstrap
+        if: steps.baseline.outputs.pending == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tests/visual-regression/control-center/baselines
+          git diff --cached --quiet && {
+            echo "Expected baseline bootstrap changes, but none were generated." >&2
+            exit 1
+          }
+          git commit -m "test(control-center): bootstrap visual regression baselines"
+          git push origin "HEAD:$GITHUB_REF_NAME"
+
+      - name: Compare Control Center against committed baselines
+        if: steps.baseline.outputs.pending != 'true'
+        env:
+          CONTROL_CENTER_VISUAL_PASSWORD: control center visual regression fixture
+        run: node apps/morro-digital-platform/tooling/control-center-visual-regression.mjs
+
+      - name: Show runtime diagnostics
+        if: failure()
+        run: cat /tmp/control-center-visual-server.log || true
+
+      - name: Upload expected baselines
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: control-center-visual-expected
+          path: /tmp/control-center-visual-regression/expected
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Upload actual screenshots
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: control-center-visual-actual
+          path: /tmp/control-center-visual-regression/actual
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Upload visual diffs
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: control-center-visual-diff
+          path: /tmp/control-center-visual-regression/diff
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Upload visual report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: control-center-visual-report
+          path: /tmp/control-center-visual-regression/report.json
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Stop Control Center runtime
+        if: always()
+        run: kill "$(cat /tmp/control-center-visual-server.pid)" 2>/dev/null || true
