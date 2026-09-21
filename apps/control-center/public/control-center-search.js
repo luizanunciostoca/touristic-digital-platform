@@ -319,22 +319,40 @@ export function createUniversalSearchController({
     }
   }
 
+  function cancelPendingSearch() {
+    if (timer) {
+      globalThis.clearTimeout(timer);
+      timer = null;
+    }
+    activeRequest?.abort();
+    activeRequest = null;
+    requestSequence += 1;
+  }
+
   function scheduleSearch() {
-    if (timer) globalThis.clearTimeout(timer);
+    cancelPendingSearch();
+    lastPayload = null;
+    currentOffset = 0;
+    clearActive();
+
     const query = input.value.trim();
     if (Array.from(query).length < 2) {
-      void runSearch({ offset: 0 });
+      results.replaceChildren();
+      close();
       return;
     }
-    timer = globalThis.setTimeout(
-      () => void runSearch({ offset: 0 }),
-      debounceMs,
-    );
+
+    renderMessage("Buscando…");
+    timer = globalThis.setTimeout(() => {
+      timer = null;
+      void runSearch({ offset: 0 });
+    }, debounceMs);
   }
 
   function activate(item) {
     const href = safeSearchHref(item?.dataset?.href);
     if (!href) return;
+    cancelPendingSearch();
     input.value = "";
     close();
     navigate(href);
@@ -344,7 +362,7 @@ export function createUniversalSearchController({
   input.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
       event.preventDefault();
-      activeRequest?.abort();
+      cancelPendingSearch();
       close();
       return;
     }
@@ -377,9 +395,13 @@ export function createUniversalSearchController({
   });
 
   destinationSelect?.addEventListener("change", () => {
+    cancelPendingSearch();
+    lastPayload = null;
     if (Array.from(input.value.trim()).length >= 2) {
       void runSearch({ offset: 0 });
+      return;
     }
+    close();
   });
 
   document.addEventListener("keydown", (event) => {
@@ -398,6 +420,7 @@ export function createUniversalSearchController({
       !results.contains(event.target) &&
       !input.closest(".search-wrap")?.contains(event.target)
     ) {
+      cancelPendingSearch();
       close();
     }
   });
@@ -420,7 +443,9 @@ export function createUniversalSearchController({
         const option = document.createElement("option");
         option.value = destination.id;
         option.textContent =
-          destination.branding?.name || destination.branding?.shortName || destination.id;
+          destination.branding?.name ||
+          destination.branding?.shortName ||
+          destination.id;
         destinationSelect.append(option);
       }
       if (
