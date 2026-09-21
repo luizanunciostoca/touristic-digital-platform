@@ -564,6 +564,30 @@ tr:last-child td {
   display: none;
 }
 
+html[data-control-density="compact"] th,
+html[data-control-density="compact"] td {
+  padding: 8px 10px;
+}
+
+html[data-control-density="compact"] .module-row,
+html[data-control-density="compact"] .health-row {
+  padding: 8px 10px;
+}
+
+html[data-control-density="compact"] .section-card,
+html[data-control-density="compact"] .stat {
+  padding: 15px;
+}
+
+html[data-control-motion="reduced"] *,
+html[data-control-motion="reduced"] *::before,
+html[data-control-motion="reduced"] *::after {
+  scroll-behavior: auto !important;
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+}
+
 @keyframes spin {
   to {
     transform: rotate(360deg);

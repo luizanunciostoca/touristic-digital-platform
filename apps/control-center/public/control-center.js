@@ -106,6 +106,52 @@ const state = {
   view: "overview",
 };
 
+const controlCenterPreferencesKey = "md_control_center_preferences_v1";
+const allowedDefaultViews = new Set(pageCopy ? Object.keys(pageCopy) : []);
+
+function readControlCenterPreferences() {
+  try {
+    const parsed = JSON.parse(
+      globalThis.localStorage.getItem(controlCenterPreferencesKey) || "{}",
+    );
+    return Object.freeze({
+      defaultView: allowedDefaultViews.has(parsed.defaultView)
+        ? parsed.defaultView
+        : "overview",
+      density: parsed.density === "compact" ? "compact" : "comfortable",
+      motion: parsed.motion === "reduced" ? "reduced" : "system",
+    });
+  } catch {
+    return Object.freeze({
+      defaultView: "overview",
+      density: "comfortable",
+      motion: "system",
+    });
+  }
+}
+
+function applyControlCenterPreferences(preferences = readControlCenterPreferences()) {
+  document.documentElement.dataset.controlDensity = preferences.density;
+  document.documentElement.dataset.controlMotion = preferences.motion;
+  return preferences;
+}
+
+function saveControlCenterPreferences(preferences) {
+  const normalized = Object.freeze({
+    defaultView: allowedDefaultViews.has(preferences.defaultView)
+      ? preferences.defaultView
+      : "overview",
+    density: preferences.density === "compact" ? "compact" : "comfortable",
+    motion: preferences.motion === "reduced" ? "reduced" : "system",
+  });
+  globalThis.localStorage.setItem(
+    controlCenterPreferencesKey,
+    JSON.stringify(normalized),
+  );
+  applyControlCenterPreferences(normalized);
+  return normalized;
+}
+
 function escapeHtml(value) {
   return String(value ?? "")
     .replaceAll("&", "&amp;")
@@ -165,6 +211,7 @@ function statusBadge(value) {
     value === "available" ||
     value === "pass" ||
     value === "success" ||
+    value === "ready" ||
     value === "active"
       ? "pass"
       : value === "partial" || value === "runtime-projection"
@@ -798,41 +845,128 @@ async function renderBusinesses(businessId) {
   const data = await api("/businesses");
   if (businessId) {
     const business = data.businesses.find((entry) => entry.id === businessId);
-    let profile = null;
-    try {
-      profile = (
-        await api(`/businesses/${encodeURIComponent(businessId)}/profile`)
-      ).profile;
-    } catch (error) {
-      if (error.status !== 404) throw error;
-    }
+    if (!business) throw new Error("BUSINESS_NOT_FOUND");
+
+    const [profileResult, productsResult, reservationsResult, auditResult] =
+      await Promise.all([
+        api(`/businesses/${encodeURIComponent(businessId)}/profile`).catch(
+          (error) =>
+            error.status === 404
+              ? { profile: null }
+              : Promise.reject(error),
+        ),
+        api(`/products?businessId=${encodeURIComponent(businessId)}&limit=100`),
+        api(
+          `/reservations?businessId=${encodeURIComponent(businessId)}&limit=100`,
+        ),
+        api("/audit?limit=250"),
+      ]);
+
+    const profile = profileResult.profile ?? null;
+    const products = Array.isArray(productsResult.data)
+      ? productsResult.data
+      : [];
+    const reservations = Array.isArray(reservationsResult.data)
+      ? reservationsResult.data
+      : [];
+    const paymentIds = [
+      ...new Set(
+        reservations
+          .map(({ reservation }) => reservation?.paymentId)
+          .filter(Boolean),
+      ),
+    ].slice(0, 20);
+    const orderIds = [
+      ...new Set(
+        reservations.map(({ reservation }) => reservation?.orderId).filter(Boolean),
+      ),
+    ].slice(0, 20);
+    const [payments, orders] = await Promise.all([
+      Promise.all(
+        paymentIds.map((id) =>
+          api(`/payments/${encodeURIComponent(id)}`)
+            .then((result) => result.data)
+            .catch(() => null),
+        ),
+      ),
+      Promise.all(
+        orderIds.map((id) =>
+          api(`/orders/${encodeURIComponent(id)}`)
+            .then((result) => result.data)
+            .catch(() => null),
+        ),
+      ),
+    ]);
+    const auditEntries = (auditResult.entries ?? []).filter(
+      (entry) =>
+        entry.tenantId === businessId ||
+        entry.entityId === businessId ||
+        String(entry.entityId ?? "").includes(businessId),
+    );
+    const activeOffers = products.filter(({ offer }) => offer?.enabled).length;
+    const activeReservations = reservations.filter(({ reservation }) =>
+      ["held", "confirmed"].includes(reservation?.status),
+    ).length;
+    const approvedPayments = payments.filter(
+      (payment) => payment?.status === "APPROVED",
+    ).length;
+
     content.innerHTML = `
       <div class="callout">
         <strong>Visão 360º administrativa:</strong>
-        os dados abaixo são compostos por contratos owner; se um domínio ainda
-        não possui adapter administrativo, ele permanece identificado como parcial.
+        composição somente por contratos owner. Nenhum dado abaixo usa leitura
+        cross-domain direta ou inferência de tenant.
       </div>
+      <div class="grid stats">
+        <article class="card stat">
+          <span class="stat-label">Ofertas</span>
+          <strong class="stat-value">${escapeHtml(products.length)}</strong>
+          <small>${escapeHtml(activeOffers)} ativa(s)</small>
+        </article>
+        <article class="card stat">
+          <span class="stat-label">Reservas</span>
+          <strong class="stat-value">${escapeHtml(reservations.length)}</strong>
+          <small>${escapeHtml(activeReservations)} held/confirmada(s)</small>
+        </article>
+        <article class="card stat">
+          <span class="stat-label">Pagamentos ligados</span>
+          <strong class="stat-value">${escapeHtml(payments.filter(Boolean).length)}</strong>
+          <small>${escapeHtml(approvedPayments)} aprovado(s)</small>
+        </article>
+        <article class="card stat">
+          <span class="stat-label">Auditoria</span>
+          <strong class="stat-value">${escapeHtml(auditEntries.length)}</strong>
+          <small>evento(s) no recorte atual</small>
+        </article>
+      </div>
+
       <div class="grid two-col">
         <section class="card section-card">
           <div class="section-title">
-            <h2>${escapeHtml(profile?.name ?? businessId)}</h2>
-            <span class="badge partial">Business 360º parcial</span>
+            <div>
+              <h2>${escapeHtml(profile?.name ?? businessId)}</h2>
+              <small>${escapeHtml(businessId)}</small>
+            </div>
+            <span class="badge pass">Business 360º owner-backed</span>
           </div>
           <div class="module-list">
-            <div class="module-row"><span>Business ID</span><strong>${escapeHtml(businessId)}</strong></div>
             <div class="module-row"><span>Perfil</span>${statusBadge(profile ? "available" : "partial")}</div>
-            <div class="module-row"><span>Produtos e ofertas</span>${statusBadge("contract-required")}</div>
-            <div class="module-row"><span>Reservas</span>${statusBadge("contract-required")}</div>
-            <div class="module-row"><span>Financeiro</span>${statusBadge("contract-required")}</div>
-            <div class="module-row"><span>CRM relacionado</span>${statusBadge("contract-required")}</div>
-            <div class="module-row"><span>Auditoria</span>${statusBadge("partial")}</div>
+            <div class="module-row"><span>Produtos e ofertas</span><strong>${escapeHtml(products.length)}</strong></div>
+            <div class="module-row"><span>Reservas</span><strong>${escapeHtml(reservations.length)}</strong></div>
+            <div class="module-row"><span>Pedidos relacionados</span><strong>${escapeHtml(orders.filter(Boolean).length)}</strong></div>
+            <div class="module-row"><span>Pagamentos relacionados</span><strong>${escapeHtml(payments.filter(Boolean).length)}</strong></div>
+            <div class="module-row"><span>Auditoria relacionada</span><strong>${escapeHtml(auditEntries.length)}</strong></div>
+            <div class="module-row"><span>CRM</span><strong>sem vínculo tenant canônico no modelo atual</strong></div>
           </div>
         </section>
         <section class="card section-card">
-          <div class="section-title"><h2>Usuários associados</h2></div>
+          <div class="section-title">
+            <h2>Usuários associados</h2>
+            <span class="badge">${escapeHtml((business.members ?? []).length)}</span>
+          </div>
           <div class="module-list">
             ${
-              (business?.members ?? [])
+              (business.members ?? [])
                 .map(
                   (member) =>
                     `<div class="module-row"><span>${escapeHtml(member.email)}</span><span class="badge">${escapeHtml(member.canonicalRole)}</span></div>`,
@@ -842,15 +976,64 @@ async function renderBusinesses(businessId) {
             }
           </div>
         </section>
-      </div>`;
+      </div>
+
+      <div class="grid two-col">
+        <section class="card section-card">
+          <div class="section-title"><h2>Ofertas recentes</h2><a href="#products">Abrir catálogo</a></div>
+          <div class="module-list">
+            ${
+              products
+                .slice(0, 8)
+                .map(
+                  ({ offer, availableQuantity }) =>
+                    `<div class="module-row"><span><a href="#products:${encodeURIComponent(offer.id)}">${escapeHtml(offer.label)}</a></span><strong>${escapeHtml(availableQuantity)} disponível(is)</strong></div>`,
+                )
+                .join("") ||
+              '<div class="empty">Nenhuma oferta vinculada.</div>'
+            }
+          </div>
+        </section>
+        <section class="card section-card">
+          <div class="section-title"><h2>Reservas recentes</h2><a href="#reservations">Abrir reservas</a></div>
+          <div class="module-list">
+            ${
+              reservations
+                .slice(0, 8)
+                .map(
+                  ({ reservation, inventoryLabel }) =>
+                    `<div class="module-row"><span><a href="#reservations:${encodeURIComponent(reservation.id)}">${escapeHtml(inventoryLabel || reservation.id)}</a></span>${statusBadge(reservation.status)}</div>`,
+                )
+                .join("") ||
+              '<div class="empty">Nenhuma reserva vinculada.</div>'
+            }
+          </div>
+        </section>
+      </div>
+
+      <section class="card section-card" style="margin-top:16px">
+        <div class="section-title"><h2>Auditoria relacionada</h2><a href="#audit">Abrir auditoria completa</a></div>
+        <div class="module-list">
+          ${
+            auditEntries
+              .slice(0, 10)
+              .map(
+                (entry) =>
+                  `<div class="module-row"><span>${escapeHtml(entry.action)}</span><strong>${escapeHtml(entry.result)} · ${escapeHtml(entry.timestamp)}</strong></div>`,
+              )
+              .join("") ||
+            '<div class="empty">Nenhum evento de tenant neste recorte.</div>'
+          }
+        </div>
+      </section>`;
     return;
   }
 
   content.innerHTML = `
     <div class="callout">
       <strong>Fronteira preservada:</strong>
-      a lista vem de memberships do domínio Identity; o perfil é carregado
-      pelo Business owner contract e os demais módulos serão compostos por adapters próprios.
+      o diretório vem do Identity; cada visão 360º compõe apenas contratos owner
+      registrados para aquele tenant.
     </div>
     <div class="table-wrap">
       <table>
@@ -2222,6 +2405,79 @@ async function renderSystem() {
     </section>`;
 }
 
+function renderSettings() {
+  const preferences = readControlCenterPreferences();
+  const viewOptions = Object.entries(pageCopy)
+    .filter(([id]) => id !== "settings")
+    .map(
+      ([id, [label]]) =>
+        `<option value="${escapeHtml(id)}" ${preferences.defaultView === id ? "selected" : ""}>${escapeHtml(label)}</option>`,
+    )
+    .join("");
+
+  content.innerHTML = `
+    <div class="callout">
+      <strong>Escopo seguro:</strong>
+      estas preferências são locais a este navegador. Secrets, chaves, variáveis
+      de ambiente, permissões e configuração de produção nunca são editados aqui.
+    </div>
+    <div class="grid two-col">
+      <section class="card section-card">
+        <div class="section-title">
+          <h2>Experiência do Control Center</h2>
+          <span class="badge pass">preferência local</span>
+        </div>
+        <form id="control-center-settings-form" class="form-grid">
+          <label>Página inicial
+            <select name="defaultView">${viewOptions}</select>
+          </label>
+          <label>Densidade
+            <select name="density">
+              <option value="comfortable" ${preferences.density === "comfortable" ? "selected" : ""}>Confortável</option>
+              <option value="compact" ${preferences.density === "compact" ? "selected" : ""}>Compacta</option>
+            </select>
+          </label>
+          <label>Movimento
+            <select name="motion">
+              <option value="system" ${preferences.motion === "system" ? "selected" : ""}>Seguir sistema</option>
+              <option value="reduced" ${preferences.motion === "reduced" ? "selected" : ""}>Reduzido</option>
+            </select>
+          </label>
+          <button class="primary-button" type="submit">Salvar preferências</button>
+          <p id="settings-result" role="status" aria-live="polite"></p>
+        </form>
+      </section>
+      <section class="card section-card">
+        <div class="section-title"><h2>Fronteiras administrativas</h2></div>
+        <div class="module-list">
+          <div class="module-row"><span>Secrets</span><strong>somente server-side</strong></div>
+          <div class="module-row"><span>Roles e bloqueios</span><a href="#users">Auth owner</a></div>
+          <div class="module-row"><span>Destinos</span><a href="#destinations">Destination owner</a></div>
+          <div class="module-row"><span>Conteúdo</span><a href="#content">Content owner</a></div>
+          <div class="module-row"><span>Saúde do sistema</span><a href="#system">somente leitura</a></div>
+        </div>
+      </section>
+    </div>`;
+
+  document
+    .querySelector("#control-center-settings-form")
+    ?.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const form = event.currentTarget;
+      const values = new FormData(form);
+      saveControlCenterPreferences({
+        defaultView: String(values.get("defaultView") || "overview"),
+        density: String(values.get("density") || "comfortable"),
+        motion: String(values.get("motion") || "system"),
+      });
+      const result = form.querySelector("#settings-result");
+      if (result) {
+        result.textContent =
+          "Preferências salvas neste navegador. Nenhuma configuração sensível foi alterada.";
+      }
+    });
+}
+
 async function renderSupport() {
   const data = await api("/users");
   const platformRoles = new Set([
@@ -2306,6 +2562,7 @@ async function render(view, detail) {
     else if (view === "content") await renderContent(detail);
     else if (view === "audit") await renderAudit();
     else if (view === "system") await renderSystem();
+    else if (view === "settings") renderSettings();
     else if (view === "support") await renderSupport();
     else renderContractGap(view);
   } catch (error) {
@@ -2329,7 +2586,8 @@ function applySupportBanner() {
 }
 
 function openHash(hash = globalThis.location.hash) {
-  const raw = hash.replace(/^#/, "") || "overview";
+  const defaultView = readControlCenterPreferences().defaultView;
+  const raw = hash.replace(/^#/, "") || defaultView;
   const [view, detail] = raw.split(":", 2);
   void render(pageCopy[view] ? view : "overview", detail);
 }
@@ -2405,6 +2663,7 @@ globalThis.addEventListener("hashchange", () => openHash());
 
 async function bootApp() {
   try {
+    applyControlCenterPreferences();
     state.session = await auth.getSession();
     state.adminSession = await api("/session");
     state.dashboard = await api("/dashboard");
