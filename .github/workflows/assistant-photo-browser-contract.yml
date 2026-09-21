@@ -259,6 +259,12 @@ jobs:
                   photoActionGroups: area?.querySelectorAll(
                     '.assistant-options[data-presentation="photo-actions"]',
                   ).length ?? 0,
+                  photoActionValues: Array.from(
+                    area?.querySelectorAll(
+                      '.assistant-options[data-presentation="photo-actions"] .assistant-option-btn',
+                    ) ?? [],
+                    (button) => button.getAttribute('data-value'),
+                  ),
                   legacyBackCount: area?.querySelectorAll('.assistant-photo-back-options').length ?? 0,
                 };
               });
@@ -267,10 +273,29 @@ jobs:
                 photoState.messageIndex < 0 ||
                 photoState.carouselIndex <= photoState.messageIndex ||
                 photoState.duplicatedPlaceActions.length !== 0 ||
-                photoState.photoActionGroups !== 0 ||
+                photoState.photoActionGroups !== 1 ||
+                JSON.stringify(photoState.photoActionValues) !== JSON.stringify(['[sub]beaches']) ||
                 photoState.legacyBackCount !== 0
               ) {
                 throw new Error(`Photo V2 de-duplication diverged: ${JSON.stringify(photoState)}`);
+              }
+
+              await page
+                .locator(
+                  '.assistant-options[data-presentation="photo-actions"] .assistant-option-btn[data-value="[sub]beaches"]',
+                )
+                .click();
+              await page.locator(
+                '#assistant-category-results[data-category="beaches"][data-stage="places"]',
+              ).waitFor({ state: 'visible', timeout: 5000 });
+              await page
+                .locator('.assistant-photo-carousel')
+                .waitFor({ state: 'detached', timeout: 5000 });
+              const returnedPlaces = await page.locator(
+                '#assistant-category-results [data-location-name]',
+              ).count();
+              if (returnedPlaces !== 8) {
+                throw new Error(`Photo Back did not restore the beach list: ${returnedPlaces}`);
               }
 
               if (pageErrors.length) {
