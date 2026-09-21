@@ -7,14 +7,17 @@ This document defines the reproducible visual-regression system for the Morro Di
 ## Visual authority
 
 Primary authority:
+
 - Morro Digital Control Center — Manual UX Design V1.
 - SHA-256: ae9aa18a07462ccab44b79250a9d28580a21ecae5ef2d3d2343d998b946c77ab.
 
 Engineering and regression discipline:
+
 - Morro Digital — Manual do Desenvolvedor UX Design V2.
 - SHA-256: 9e4c5a637c703a6f43764f9c3ec971f4b48294ac649076fddb134ccd712de0ed.
 
 Approved product overrides:
+
 1. Quick Actions do not exist.
 2. A floating Assistant launcher does not exist.
 
@@ -26,6 +29,7 @@ The matrix contains 19 administrative surfaces:
 Overview, Businesses, Business 360, Affiliates, Affiliate 360, Users, User 360, CRM, Products, Reservations, Ticketing, Orders, Financial, Content, Destinations, Support, Audit, System and Settings.
 
 Every surface is captured at all six canonical viewports:
+
 - 1440 × 900
 - 1280 × 800
 - 1024 × 768
@@ -38,6 +42,7 @@ Total baseline count: 114 PNG images.
 ## Determinism
 
 The visual runner freezes or pins every source of presentation drift that is practical to control:
+
 - Playwright Chromium 1.54.2;
 - deviceScaleFactor 1;
 - locale pt-BR;
@@ -58,16 +63,19 @@ The deterministic fixtures exercise the real Control Center renderer and interac
 ## Diff policy
 
 Comparison engine:
+
 - pixelmatch 5.3.0;
 - PNG decoding/encoding through pngjs 7.0.0.
 
 Thresholds:
+
 - per-pixel threshold: 0.08;
 - maximum changed-pixel ratio: 0.0002, equivalent to 0.02%.
 
 The per-pixel threshold suppresses subpixel anti-aliasing noise. The total changed-pixel ratio remains deliberately small so geometry, spacing, typography, hierarchy, color and component drift cannot be hidden by tolerance.
 
 A viewport fails when:
+
 - the expected baseline is absent;
 - image dimensions differ;
 - changed pixels exceed 0.02%;
@@ -77,6 +85,7 @@ A viewport fails when:
 ## Artifacts
 
 Every comparison run emits four independent artifacts:
+
 - control-center-visual-expected
 - control-center-visual-actual
 - control-center-visual-diff
@@ -94,6 +103,7 @@ The manifest records SHA-256 for each committed PNG.
 A new baseline is not accepted merely because the UI changed.
 
 Normal rule:
+
 1. change the UI for an approved requirement;
 2. execute the visual comparison;
 3. inspect actual and diff artifacts;
@@ -107,6 +117,7 @@ The workflow contains a one-time branch-scoped bootstrap guard for the initial 1
 ## Manual compliance classification
 
 P0 — blocks visual equivalence:
+
 - wrong structural model;
 - reintroduced Quick Actions;
 - reintroduced floating Assistant launcher;
@@ -114,6 +125,7 @@ P0 — blocks visual equivalence:
 - major missing/incorrect navigation or entity surface.
 
 P1 — relevant divergence:
+
 - incorrect canonical tokens;
 - horizontal overflow;
 - material spacing/geometry/typography/density drift;
@@ -121,6 +133,7 @@ P1 — relevant divergence:
 - table/card/entity treatment materially inconsistent with the manual.
 
 P2 — polish:
+
 - small non-structural refinements that do not change hierarchy, clarity, readability or interaction semantics.
 
 P0 and P1 are release-blocking for this visual contract.
@@ -149,10 +162,12 @@ This visual gate is additive. Quality Gate, Security Scanning, Control Center Br
 ## Intentionally unsupported behavior
 
 The following are not gaps:
+
 - Quick Actions;
 - floating Assistant launcher.
 
 The following are also intentionally outside visual authority:
+
 - arbitrary editing of balances, postings or financial state;
 - client-side authorization as a substitute for server authority;
 - inference of destination ownership from labels, names, addresses or location text;

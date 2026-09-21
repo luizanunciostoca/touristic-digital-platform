@@ -23,7 +23,10 @@ const pixelmatch = require("/tmp/cc-visual/node_modules/pixelmatch");
 const { PNG } = require("/tmp/cc-visual/node_modules/pngjs");
 
 const ROOT = process.cwd();
-const BASELINE_ROOT = resolve(ROOT, "tests/visual-regression/control-center/baselines");
+const BASELINE_ROOT = resolve(
+  ROOT,
+  "tests/visual-regression/control-center/baselines",
+);
 const MANIFEST_PATH = join(BASELINE_ROOT, "manifest.json");
 const OUTPUT_ROOT =
   process.env.CONTROL_CENTER_VISUAL_OUTPUT ||
@@ -87,18 +90,20 @@ function fontCss() {
     [600, "inter-latin-600-normal.woff2"],
     [700, "inter-latin-700-normal.woff2"],
   ];
-  const faces = files.map(([weight, file]) => {
-    const path =
-      "/tmp/cc-visual/node_modules/@fontsource/inter/files/" + file;
-    const b64 = readFileSync(path).toString("base64");
-    return (
-      '@font-face{font-family:"CCVisualInter";src:url(data:font/woff2;base64,' +
-      b64 +
-      ') format("woff2");font-style:normal;font-weight:' +
-      weight +
-      ";font-display:block;}"
-    );
-  }).join("\n");
+  const faces = files
+    .map(([weight, file]) => {
+      const path =
+        "/tmp/cc-visual/node_modules/@fontsource/inter/files/" + file;
+      const b64 = readFileSync(path).toString("base64");
+      return (
+        '@font-face{font-family:"CCVisualInter";src:url(data:font/woff2;base64,' +
+        b64 +
+        ') format("woff2");font-style:normal;font-weight:' +
+        weight +
+        ";font-display:block;}"
+      );
+    })
+    .join("\n");
 
   return (
     faces +
@@ -138,9 +143,7 @@ async function navigate(page, surface) {
   });
   await page
     .locator(
-      '#content[data-rendered-view="' +
-        surface.view +
-        '"][aria-busy="false"]',
+      '#content[data-rendered-view="' + surface.view + '"][aria-busy="false"]',
     )
     .waitFor({ state: "attached", timeout: 30000 });
 
@@ -188,8 +191,7 @@ async function manualContract(page, surface, viewport) {
   const result = await page.evaluate(
     ({ surfaceId, viewportLabel }) => {
       const root = getComputedStyle(document.documentElement);
-      const token = (name) =>
-        root.getPropertyValue(name).trim().toLowerCase();
+      const token = (name) => root.getPropertyValue(name).trim().toLowerCase();
       const noQuickActions =
         document.querySelectorAll(
           ".quick-actions,[data-quick-actions],#quick-actions",
@@ -260,10 +262,7 @@ async function manualContract(page, surface, viewport) {
 function diffPng(expectedPath, actualPath, diffPath) {
   const expected = PNG.sync.read(readFileSync(expectedPath));
   const actual = PNG.sync.read(readFileSync(actualPath));
-  if (
-    expected.width !== actual.width ||
-    expected.height !== actual.height
-  ) {
+  if (expected.width !== actual.width || expected.height !== actual.height) {
     return {
       passed: false,
       reason: "dimension-mismatch",
@@ -302,9 +301,7 @@ function diffPng(expectedPath, actualPath, diffPath) {
   return {
     passed: diffRatio <= MAX_DIFF_RATIO,
     reason:
-      diffRatio <= MAX_DIFF_RATIO
-        ? "within-tolerance"
-        : "visual-difference",
+      diffRatio <= MAX_DIFF_RATIO ? "within-tolerance" : "visual-difference",
     width: actual.width,
     height: actual.height,
     pixelCount,
@@ -389,8 +386,7 @@ async function main() {
           (finding) => finding.severity === "P1",
         ).length;
 
-        const relative =
-          surface.id + "/" + viewport.label + ".png";
+        const relative = surface.id + "/" + viewport.label + ".png";
         const actualPath = join(ACTUAL_ROOT, relative);
         const expectedPath = join(BASELINE_ROOT, relative);
         const expectedArtifactPath = join(EXPECTED_ROOT, relative);

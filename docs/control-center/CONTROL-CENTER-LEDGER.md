@@ -7,12 +7,14 @@ This ledger records what the current Control Center architecture is intended to 
 ## Authority order
 
 For visual and structural decisions:
+
 1. Morro Digital Control Center — Manual UX Design V1.
 2. Approved product overrides: no Quick Actions and no floating Assistant launcher.
 3. Current implementation and exact-head browser evidence.
 4. Morro Digital Developer UX Design V2 for regression discipline and engineering gates.
 
 For business behavior, authorization and data:
+
 1. domain owner contracts;
 2. server-side authorization;
 3. persisted canonical ownership;
@@ -24,6 +26,7 @@ The UI never becomes the authority merely because it displays a capability.
 ## Architecture
 
 Presentation:
+
 - apps/control-center/public/index.html — administrative shell.
 - apps/control-center/public/control-center.css — UX V1 tokens, geometry and responsive layout.
 - apps/control-center/public/control-center.js — functional administrative renderer.
@@ -31,11 +34,13 @@ Presentation:
 - apps/control-center/public/control-center-primitives.js — reusable administrative primitives.
 
 Server/admin boundary:
+
 - apps/morro-digital-platform/tooling/admin-api.mjs — administrative API boundary.
 - apps/morro-digital-platform/tooling/admin-domain-adapters.mjs — owner-backed domain composition.
 - domain services remain the source of truth for their state and mutations.
 
 Visual verification:
+
 - apps/morro-digital-platform/tooling/control-center-visual-fixtures.mjs
 - apps/morro-digital-platform/tooling/control-center-visual-regression.mjs
 - tests/visual-regression/control-center/baselines
@@ -45,6 +50,7 @@ Visual verification:
 ## UX authority
 
 The Control Center uses the approved administrative UX V1:
+
 - destination-first context;
 - desktop sidebar and topbar shell;
 - operational Overview hierarchy;
@@ -61,6 +67,7 @@ Quick Actions and a floating Assistant launcher are intentionally absent by late
 Destination context is canonical only when supplied by an explicit owner-backed destinationId or an equivalent domain-owned relation.
 
 Never infer ownership or destination scope from:
+
 - display name;
 - locationLabel;
 - address;
@@ -83,6 +90,7 @@ Financial remains the authority for wallet, settlement, payout and payable state
 ## Support Mode
 
 Support Mode preserves two identities:
+
 - actor: the real authenticated administrator;
 - effective user: the account being inspected.
 
@@ -95,6 +103,7 @@ Critical mutations that policy denies during Support Mode remain denied even if 
 ## Security and authorization
 
 Control Center security assumptions:
+
 - authentication is server-backed;
 - capabilities are enforced server-side;
 - tenant/destination ownership is explicit;
@@ -103,6 +112,7 @@ Control Center security assumptions:
 - no critical action is authorized only by hiding/showing a button.
 
 Critical actions use the applicable combination of:
+
 - capability check;
 - Support Mode restriction;
 - step-up authentication;
@@ -121,6 +131,7 @@ Visual baselines are deterministic test assets, not design authority by themselv
 The baseline matrix is 19 surfaces × 6 exact viewports = 114 PNG images.
 
 Canonical viewports:
+
 - 1440 × 900
 - 1280 × 800
 - 1024 × 768
@@ -139,6 +150,7 @@ A green visual run means the current exact head matches the reviewed baseline wi
 The Control Center release proof is intentionally multi-source.
 
 Relevant gates include, as applicable:
+
 - Quality Gate;
 - Security Scanning;
 - Dependency Security Audit;
@@ -172,10 +184,12 @@ See docs/control-center/VISUAL-REGRESSION.md for baseline-governance rules.
 ## Known intentionally unsupported behavior
 
 Not supported by product decision:
+
 - Quick Actions;
 - floating Assistant launcher.
 
 Not supported by authority/security design:
+
 - client-only authorization;
 - inferred destination ownership;
 - cross-domain direct reads that bypass an available owner boundary;
