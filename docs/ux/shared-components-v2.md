@@ -11,6 +11,8 @@ The V2 primitive library is now consumed by real tourist surfaces rather than ex
 - Commerce: shared buttons, cards and skeletons.
 - Ticketing: shared buttons, cards and skeletons.
 - Commerce preview: shared bottom-sheet primitive.
+- Navigation guidance: `md-banner` composed with the specialized navigation banner contract.
+- Onboarding completion feedback: accessible `md-toast` with semantic V2 motion/layer tokens.
 
 Feature classes remain alongside primitives when they own domain-specific layout or parity behavior. The shared primitive owns common touch target, state, focus, typography and semantic styling contracts; the feature class owns context-specific placement/presentation.
 
