@@ -99,11 +99,13 @@ export function createAffiliateAdminAdapter(affiliateAdminRuntime) {
       "membership-reactivate",
       "commission-readback",
       "conversion-readback",
+      "destination-filter",
     ]),
 
-    async search({ query, actor }) {
+    async search({ query, actor, destinationId }) {
       const result = await affiliateAdminRuntime.adminList(actor, {
         query,
+        destinationId,
         limit: 10,
       });
       if (result.status !== "found") return [];
@@ -140,6 +142,7 @@ export function createAffiliateAdminAdapter(affiliateAdminRuntime) {
           response,
           await affiliateAdminRuntime.adminList(actor, {
             query: requestUrl.searchParams.get("query") ?? "",
+            destinationId: requestUrl.searchParams.get("destinationId") ?? "",
             limit: requestUrl.searchParams.get("limit") ?? 100,
           }),
           "AFFILIATE_NOT_FOUND",
