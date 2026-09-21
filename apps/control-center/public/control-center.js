@@ -1064,8 +1064,16 @@ async function renderBusinesses(businessId) {
 }
 
 async function renderAffiliates(affiliateId) {
+  const selectedDestinationId =
+    document.querySelector("#destination-selector")?.value ?? "global";
+  const affiliateDestinationQuery =
+    selectedDestinationId && selectedDestinationId !== "global"
+      ? `&destinationId=${encodeURIComponent(selectedDestinationId)}`
+      : "";
   if (!affiliateId) {
-    const response = await api("/affiliates?limit=100");
+    const response = await api(
+      `/affiliates?limit=100${affiliateDestinationQuery}`,
+    );
     const affiliates = response.data ?? [];
     content.innerHTML = `
       <section class="card section-card">
@@ -1127,7 +1135,9 @@ async function renderAffiliates(affiliateId) {
           '<tr><td colspan="5" class="empty">Buscando…</td></tr>';
         try {
           const result = await api(
-            `/affiliates?limit=100&query=${encodeURIComponent(query || "")}`,
+            `/affiliates?limit=100&query=${encodeURIComponent(
+              query || "",
+            )}${affiliateDestinationQuery}`,
           );
           const rows = result.data ?? [];
           body.innerHTML =
@@ -1160,7 +1170,14 @@ async function renderAffiliates(affiliateId) {
   const response = await api(`/affiliates/${encodeURIComponent(affiliateId)}`);
   const detail = response.data;
   const affiliate = detail.affiliate;
-  const memberships = detail.memberships ?? [];
+  const allMemberships = detail.memberships ?? [];
+  const memberships =
+    selectedDestinationId && selectedDestinationId !== "global"
+      ? allMemberships.filter(
+          (membership) =>
+            membership.destinationId === selectedDestinationId,
+        )
+      : allMemberships;
   const summaries = detail.summaryByCurrency ?? [];
   const conversions = detail.conversions ?? [];
   const supportActive = Boolean(state.adminSession?.support);
