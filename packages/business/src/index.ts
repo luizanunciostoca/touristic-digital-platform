@@ -18,6 +18,7 @@ export interface BusinessProfile {
   readonly specialty: string;
   readonly description: string;
   readonly cta: string;
+  readonly destinationId: string | null;
   readonly locationLabel: string;
   readonly locationIsExample: boolean;
   readonly promotion: BusinessPromotion | null;
@@ -70,6 +71,17 @@ export function normalizeBusinessId(value: unknown): string {
     .replace(/^-+|-+$/gu, "");
 }
 
+export function normalizeBusinessDestinationId(
+  value: unknown,
+): string | null {
+  if (typeof value !== "string") return null;
+  const normalized = value.trim().toLowerCase();
+  return /^[a-z0-9]+(?:-[a-z0-9]+)*$/u.test(normalized) &&
+    normalized.length <= 120
+    ? normalized
+    : null;
+}
+
 export function normalizeBusinessProfile(
   profile: unknown,
   fallbackId = "business-local",
@@ -103,6 +115,7 @@ export function normalizeBusinessProfile(
       "Um perfil completo poderá apresentar diferenciais, produtos, serviços e informações úteis para o turista.",
     ),
     cta: safeText(record.cta, "Ver empresa"),
+    destinationId: normalizeBusinessDestinationId(record.destinationId),
     locationLabel: safeText(record.locationLabel, "Morro de São Paulo"),
     locationIsExample: Boolean(record.locationIsExample),
     promotion,
