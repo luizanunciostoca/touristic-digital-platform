@@ -1566,15 +1566,18 @@ async function renderAffiliates(affiliateId) {
 }
 
 async function renderCrm() {
+  const supportActive = Boolean(state.adminSession?.support);
+  const canManage = actorHasCapability("crm.manage") && !supportActive;
   const data = await api(`/crm/leads?limit=100${selectedDestinationQuery()}`);
   const leads = Array.isArray(data.data) ? data.data : [];
   content.innerHTML = `
     <div class="callout">
       CRM é reutilizado por adapter sobre o domínio existente; nenhuma tabela foi movida para o Control Center.
+      O destino do lead é um vínculo explícito do próprio domínio CRM e não é inferido de empresa, endereço ou texto.
     </div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Empresa</th><th>Contato</th><th>Etapa</th><th>Status</th><th>Valor mensal</th></tr></thead>
+        <thead><tr><th>Empresa</th><th>Destino</th><th>Contato</th><th>Etapa</th><th>Status</th><th>Valor mensal</th></tr></thead>
         <tbody>
           ${
             leads
@@ -1582,6 +1585,21 @@ async function renderCrm() {
                 (lead) =>
                   `<tr>
                   <td><strong>${escapeHtml(lead.companyName ?? "—")}</strong><br><small>#${escapeHtml(lead.id)}</small></td>
+                  <td>
+                    ${
+                      canManage
+                        ? `<form class="crm-destination-form" data-lead-id="${escapeHtml(lead.id)}">
+                            <select name="destinationId" aria-label="Destino do lead ${escapeHtml(lead.companyName ?? lead.id)}">
+                              ${destinationOptions(lead.destinationId ?? "")}
+                            </select>
+                            <button class="secondary-button" type="submit">Salvar</button>
+                            <span class="form-status" role="status"></span>
+                          </form>`
+                        : lead.destinationId
+                          ? `<span class="badge">${escapeHtml(lead.destinationId)}</span>`
+                          : `<span class="badge partial">não atribuído</span>`
+                    }
+                  </td>
                   <td>${escapeHtml(lead.contactName ?? lead.email ?? "—")}</td>
                   <td><span class="badge">${escapeHtml(lead.stage ?? "—")}</span></td>
                   <td>${escapeHtml(lead.status ?? "—")}</td>
@@ -1589,13 +1607,36 @@ async function renderCrm() {
                 </tr>`,
               )
               .join("") ||
-            '<tr><td colspan="5" class="empty">Nenhum lead encontrado ou CRM sem dados.</td></tr>'
+            '<tr><td colspan="6" class="empty">Nenhum lead encontrado ou CRM sem dados.</td></tr>'
           }
         </tbody>
       </table>
     </div>`;
-}
 
+  document.querySelectorAll(".crm-destination-form").forEach((form) => {
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const target = event.currentTarget;
+      const leadId = target.dataset.leadId;
+      const status = target.querySelector(".form-status");
+      const values = new FormData(target);
+      const destinationId = String(values.get("destinationId") || "").trim();
+      if (!leadId) return;
+      if (status) status.textContent = "Salvando…";
+      try {
+        await api(`/crm/leads/${encodeURIComponent(leadId)}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ destinationId }),
+        });
+        if (status) status.textContent = "Destino atualizado.";
+        await renderCrm();
+      } catch (error) {
+        if (status) status.textContent = error.body?.error || error.message;
+      }
+    });
+  });
+}
 async function renderProducts(productId) {
   const supportActive = Boolean(state.adminSession?.support);
   const canManage = actorHasCapability("ticketing.manage") && !supportActive;
