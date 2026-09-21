@@ -19,6 +19,7 @@ async function main() {
   const evidence = [];
   let currentView = "__bootstrap__";
   let stage = "bootstrap";
+  let page = null;
   try {
     stage = "browser-context";
     const context = await browser.newContext({
@@ -37,7 +38,7 @@ async function main() {
     if (login.status() !== 200) throw new Error("OWNER_LOGIN_FAILED");
 
     stage = "page-create";
-    const page = await context.newPage();
+    page = await context.newPage();
     stage = "page-goto";
     await page.goto(
       `${origin}/apps/control-center/public/index.html#overview`,
@@ -128,10 +129,32 @@ async function main() {
     console.log(`CONTROL_CENTER_ACCESSIBILITY_PASS:${evidence.length}_ROUTES`);
     await context.close();
   } catch (error) {
+    let runtimeState = null;
+    if (page) {
+      runtimeState = await page
+        .evaluate(() => ({
+          hash: location.hash,
+          renderedView:
+            document.querySelector("#content")?.dataset.renderedView ?? null,
+          ariaBusy:
+            document.querySelector("#content")?.getAttribute("aria-busy") ??
+            null,
+          contentText:
+            document.querySelector("#content")?.textContent?.trim().slice(0, 500) ??
+            null,
+          navViews: Array.from(
+            document.querySelectorAll("#main-nav [data-view]"),
+            (node) => node.getAttribute("data-view"),
+          ),
+        }))
+        .catch(() => null);
+    }
     evidence.push({
       view: currentView,
       stage,
       runtimeFailure: error instanceof Error ? error.name : "UnknownError",
+      runtimeMessage: error instanceof Error ? error.message : String(error),
+      runtimeState,
     });
     persistEvidence(evidence);
     throw error;
