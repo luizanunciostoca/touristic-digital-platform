@@ -1053,7 +1053,8 @@ async function renderProducts(productId) {
           <tbody>
             ${
               products
-                .map(({ offer, businessId, availableQuantity }) => `
+                .map(
+                  ({ offer, businessId, availableQuantity }) => `
                   <tr>
                     <td><strong><a href="#products:${encodeURIComponent(offer.id)}">${escapeHtml(offer.label)}</a></strong><br><small>${escapeHtml(offer.product?.kind)} · ${escapeHtml(offer.product?.reference)}</small></td>
                     <td>${escapeHtml(businessId ?? "—")}</td>
@@ -1061,7 +1062,8 @@ async function renderProducts(productId) {
                     <td>${escapeHtml(availableQuantity)} / ${escapeHtml(offer.capacity)}</td>
                     <td>${escapeHtml(formatMinorUnits(offer.unitAmount))}</td>
                     <td>${statusBadge(offer.enabled ? "available" : "disabled")}</td>
-                  </tr>`)
+                  </tr>`,
+                )
                 .join("") ||
               '<tr><td colspan="6" class="empty">Nenhuma oferta encontrada.</td></tr>'
             }
@@ -1124,7 +1126,8 @@ async function renderReservations(reservationId) {
           <tbody>
             ${
               reservations
-                .map(({ reservation, businessId, inventoryLabel }) => `
+                .map(
+                  ({ reservation, businessId, inventoryLabel }) => `
                   <tr>
                     <td><strong><a href="#reservations:${encodeURIComponent(reservation.id)}">${escapeHtml(reservation.id)}</a></strong><br><small>${escapeHtml(reservation.createdAt)}</small></td>
                     <td>${escapeHtml(inventoryLabel)}<br><small>${escapeHtml(reservation.product?.reference)}</small></td>
@@ -1132,7 +1135,8 @@ async function renderReservations(reservationId) {
                     <td>${escapeHtml(businessId ?? "—")}</td>
                     <td>${statusBadge(reservation.status)}</td>
                     <td>${reservation.orderId ? `<a href="#orders:${encodeURIComponent(reservation.orderId)}">${escapeHtml(reservation.orderId)}</a>` : "—"}<br>${reservation.paymentId ? `<a href="#financial:${encodeURIComponent(reservation.paymentId)}">${escapeHtml(reservation.paymentId)}</a>` : "—"}</td>
-                  </tr>`)
+                  </tr>`,
+                )
                 .join("") ||
               '<tr><td colspan="6" class="empty">Nenhuma reserva encontrada.</td></tr>'
             }
@@ -1168,7 +1172,10 @@ async function renderReservations(reservationId) {
         <div class="module-list">
           ${
             events
-              .map((event) => `<div class="module-row"><span>${escapeHtml(event.eventType)}</span><strong>${escapeHtml(event.occurredAt)} · ${escapeHtml(event.actorReference)}</strong></div>`)
+              .map(
+                (event) =>
+                  `<div class="module-row"><span>${escapeHtml(event.eventType)}</span><strong>${escapeHtml(event.occurredAt)} · ${escapeHtml(event.actorReference)}</strong></div>`,
+              )
               .join("") || '<div class="empty">Sem eventos registrados.</div>'
           }
         </div>

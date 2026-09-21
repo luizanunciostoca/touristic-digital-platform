@@ -77,8 +77,7 @@ export interface TicketingAdminReservationProjection {
   readonly inventoryLabel: string;
 }
 
-export interface TicketingAdminReservationDetail
-  extends TicketingAdminReservationProjection {
+export interface TicketingAdminReservationDetail extends TicketingAdminReservationProjection {
   readonly events: readonly TicketReservationAuditEvent[];
 }
 
@@ -89,8 +88,7 @@ export interface TicketingAdminListInput {
   readonly limit?: number;
 }
 
-export interface TicketingAdminReservationListInput
-  extends TicketingAdminListInput {
+export interface TicketingAdminReservationListInput extends TicketingAdminListInput {
   readonly status?: "held" | "confirmed" | "expired" | "cancelled";
 }
 
@@ -276,15 +274,12 @@ export class TicketingAdminService {
   public async readInventory(
     inventoryIdInput: unknown,
     observedAt: string = new Date().toISOString(),
-  ): Promise<
-    | Readonly<{
-        projection: TicketingAdminInventoryProjection;
-        availability: Awaited<
-          ReturnType<MySqlTicketReservationRepository["availability"]>
-        >;
-      }>
-    | null
-  > {
+  ): Promise<Readonly<{
+    projection: TicketingAdminInventoryProjection;
+    availability: Awaited<
+      ReturnType<MySqlTicketReservationRepository["availability"]>
+    >;
+  }> | null> {
     const inventoryId = normalizeTicketInventoryId(inventoryIdInput);
     if (!inventoryId) throw new Error("TICKETING_INVENTORY_ID_INVALID");
     const [rows] = await this.pool.execute<InventoryAdminRow[]>(

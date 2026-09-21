@@ -46,9 +46,14 @@ describe("ticketing startup configuration", () => {
   it("delegates Control Center admin projections to the injected Ticketing owner service", async () => {
     const adminService = {
       listInventory: async () => [{ offer: { id: "tin_admin_0001" } }],
-      readInventory: async () => ({ projection: { offer: { id: "tin_admin_0001" } } }),
+      readInventory: async () => ({
+        projection: { offer: { id: "tin_admin_0001" } },
+      }),
       listReservations: async () => [{ reservation: { id: "trv_admin_0001" } }],
-      readReservation: async () => ({ reservation: { id: "trv_admin_0001" }, events: [] }),
+      readReservation: async () => ({
+        reservation: { id: "trv_admin_0001" },
+        events: [],
+      }),
       cancelHeldReservation: async () => ({
         previousState: { status: "held" },
         newState: { status: "cancelled" },
@@ -57,16 +62,22 @@ describe("ticketing startup configuration", () => {
     };
     const api = createTicketingApi({
       authApi: authApi(),
-      publicTransport: { handle: async () => ({ status: 404, headers: {}, body: {} }) },
+      publicTransport: {
+        handle: async () => ({ status: 404, headers: {}, body: {} }),
+      },
       adminService,
       audit: () => {},
     });
 
-    await expect(api.adminListInventory({ query: "admin" })).resolves.toMatchObject({
+    await expect(
+      api.adminListInventory({ query: "admin" }),
+    ).resolves.toMatchObject({
       status: "found",
       data: [{ offer: { id: "tin_admin_0001" } }],
     });
-    await expect(api.adminReadReservation("trv_admin_0001")).resolves.toMatchObject({
+    await expect(
+      api.adminReadReservation("trv_admin_0001"),
+    ).resolves.toMatchObject({
       status: "found",
       data: { reservation: { id: "trv_admin_0001" } },
     });

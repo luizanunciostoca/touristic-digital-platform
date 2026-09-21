@@ -307,7 +307,9 @@ function ticketingAdminOwnerResult(
     return;
   }
   if (result?.status === "unavailable") {
-    sendJson(response, 503, { error: result.error || "TICKETING_ADMIN_UNAVAILABLE" });
+    sendJson(response, 503, {
+      error: result.error || "TICKETING_ADMIN_UNAVAILABLE",
+    });
     return;
   }
   if (result?.status === "not_found") {

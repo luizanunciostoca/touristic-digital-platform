@@ -712,7 +712,6 @@ describe("Control Center Destination owner adapter", () => {
   });
 });
 
-
 describe("Control Center Products and Reservations owner adapters", () => {
   it("projects Ticketing inventory through the Products admin contract", async () => {
     const ticketingApi = {
