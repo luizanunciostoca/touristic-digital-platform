@@ -318,6 +318,10 @@ jobs:
                 .getByRole("button", { name: "Executar ação governada" })
                 .click();
               await page
+                .locator('[data-entity-tabs="affiliate360"]')
+                .getByRole("tab", { name: "Relationships" })
+                .click();
+              await page
                 .getByText("suspended", { exact: true })
                 .waitFor({ timeout: 15000 });
               evidence.criticalActions.push("membership-suspend-step-up");
@@ -340,6 +344,10 @@ jobs:
                 .fill("REATIVAR");
               await page
                 .getByRole("button", { name: "Executar ação governada" })
+                .click();
+              await page
+                .locator('[data-entity-tabs="affiliate360"]')
+                .getByRole("tab", { name: "Relationships" })
                 .click();
               await page
                 .getByText("approved", { exact: true })
