@@ -1037,7 +1037,13 @@ export function installBrowserAssistantRuntime(
 
       const response = placeAction.response;
       appendStandardMessage("assistant", response.text);
-      const responseOptions = readAssistantResponseOptions(response);
+      const suppressedValues = new Set([
+        ...suppressOptionValues.map((item) => item.trim()).filter(Boolean),
+        ...readPlaceOwnedActionValues(options.document),
+      ]);
+      const responseOptions = readAssistantResponseOptions(response).filter(
+        (option) => !suppressedValues.has(option.value),
+      );
       if (responseOptions.length > 0) {
         renderAssistantDomOptions(options.document, responseOptions);
       }
