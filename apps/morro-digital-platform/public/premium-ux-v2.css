@@ -159,6 +159,10 @@ body[data-md-mode] {
     opacity, transform, background-color, border-color, box-shadow;
 }
 
+.quick-actions {
+  left: max(var(--md-safe-left), var(--md-space-2));
+}
+
 .quick-actions,
 #globe-map-control,
 #weather-widget,
