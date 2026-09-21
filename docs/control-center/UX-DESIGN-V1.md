@@ -11,6 +11,7 @@ This document records the code mapping and qualification rules. It does not repl
 - Shell: `apps/control-center/public/index.html`
 - Existing functional runtime: `apps/control-center/public/control-center.js`
 - UX V1 interaction layer: `apps/control-center/public/control-center-ux-v1.js`
+- Reusable administrative primitives: `apps/control-center/public/control-center-primitives.js`
 - UX V1 tokens/layout: `apps/control-center/public/control-center.css`
 - Admin API: `apps/morro-digital-platform/tooling/admin-api.mjs`
 - Domain adapters: `apps/morro-digital-platform/tooling/admin-domain-adapters.mjs`
@@ -35,6 +36,12 @@ The administrative palette follows the manual literally:
 | `--md-purple`       | `#6D5CE8` |
 | `--md-border`       | `#DCE6F1` |
 | `--md-focus`        | `#2E90FA` |
+
+The literal manual tokens remain canonical. When a semantic status color is used as
+foreground text on a soft surface, the runtime uses dedicated AA text derivatives:
+`--md-success-text: #087A45`, `--md-warning-text: #9A4D00` and
+`--md-danger-text: #B42318`. This preserves the manual palette for decorative
+fills/status dots while avoiding low-contrast text.
 
 Base shell measurements are 224 px sidebar, 64 px topbar, 24 px desktop content padding, 12 px card radius and a 4 px spacing base.
 
@@ -115,6 +122,7 @@ Qualification targets:
 - 1280 × 800
 - 1024 × 768
 - 768 × 1024
+- 430 × 932
 - 390 × 844
 
 Desktop keeps the expanded operational shell. Tablet collapses/reflows content. Mobile uses a drawer and responsive table-to-card treatment where safe.
@@ -123,7 +131,16 @@ Desktop keeps the expanded operational shell. Tablet collapses/reflows content. 
 
 Baseline: WCAG 2.2 AA for primary flows.
 
-Implemented contracts include semantic controls, visible focus, keyboard search navigation, Escape handling, reduced motion, live status regions from the existing runtime, and responsive touch surfaces.
+Automated qualification uses axe-core without disabled rules across the canonical
+desktop route set and the six required responsive viewports for critical surfaces.
+The main content container is a labelled region rather than a global live region;
+`aria-live` is reserved for dynamic action/support feedback. Scrollable tables
+and Entity 360 tab strips remain keyboard focusable, focus is visibly rendered,
+and mobile/coarse-pointer controls use 44 px minimum touch targets.
+
+Implemented contracts include semantic controls, keyboard search navigation,
+Escape handling, responsive drawer focus return, reduced motion and responsive
+touch surfaces.
 
 ## Safety invariant
 
@@ -138,4 +155,4 @@ Static contract:
 
 Browser qualification must continue to prove login, dashboard, search, destination context, Business/Affiliate/User detail, Support Mode, critical actions, accessibility and responsive no-overflow behavior.
 
-Visual regression baselines are captured by the Control Center browser contract at 1440, 1280, 1024, 768 and 390 px. Final UX certification requires those artifacts, the accessibility report and all mandatory CI checks to come from the exact candidate head.
+Responsive evidence screenshots are captured by the Control Center browser contract at 1440×900, 1280×800, 1024×768, 768×1024, 430×932 and 390×844. This wave does not introduce the definitive pixel-diff system. Final UX certification requires these artifacts, the accessibility report and all mandatory CI checks to come from the exact candidate head.
