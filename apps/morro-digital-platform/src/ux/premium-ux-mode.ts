@@ -1,10 +1,17 @@
 export type MorroUxMode =
-  "discover" | "place" | "navigation" | "tour" | "commerce" | "assistant";
+  | "discover"
+  | "search"
+  | "place"
+  | "navigation"
+  | "tour"
+  | "commerce"
+  | "assistant";
 
 export interface MorroUxModeSignals {
   readonly navigationActive: boolean;
   readonly immersiveTourActive: boolean;
   readonly placeActive: boolean;
+  readonly searchActive: boolean;
   readonly commerceActive: boolean;
   readonly assistantActive: boolean;
 }
@@ -18,6 +25,7 @@ export function resolveMorroUxMode(signals: MorroUxModeSignals): MorroUxMode {
   if (signals.navigationActive) return "navigation";
   if (signals.immersiveTourActive) return "tour";
   if (signals.placeActive) return "place";
+  if (signals.searchActive) return "search";
   if (signals.commerceActive) return "commerce";
   if (signals.assistantActive) return "assistant";
   return "discover";
@@ -42,6 +50,9 @@ function readSignals(document: Document): MorroUxModeSignals {
     navigationActive: body.classList.contains("navigation-active"),
     immersiveTourActive: hasActiveImmersiveTour(map),
     placeActive: map?.dataset.exploreStage === "detail",
+    searchActive:
+      map?.dataset.exploreStage === "filters" ||
+      map?.dataset.exploreStage === "places",
     commerceActive:
       body.classList.contains("commerce-detail-shell") ||
       Boolean(document.querySelector(".ticketing-shell")),
