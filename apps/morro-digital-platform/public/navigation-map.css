@@ -9,7 +9,7 @@
   position: absolute !important;
   top: 0 !important;
   left: 0 !important;
-  z-index: 9999 !important;
+  z-index: var(--md-layer-navigation-user) !important;
   width: 3.5rem !important;
   height: 3.5rem !important;
   display: block !important;
@@ -18,9 +18,13 @@
   cursor: default;
   pointer-events: auto !important;
   transform-origin: center center;
-  transition: transform 0.3s ease-out;
+  transition:
+    transform var(--md-motion-duration-map-marker)
+    var(--md-motion-ease-decelerate);
   will-change: transform;
-  filter: drop-shadow(0 0.1875rem 0.5rem rgba(0, 0, 0, 0.5));
+  filter: drop-shadow(
+    0 0.1875rem 0.5rem rgba(0, 0, 0, 0.5)
+  );
 }
 
 #map .navigation-user-location-marker .user-marker-dot {
@@ -37,7 +41,9 @@
   width: 3.5rem !important;
   height: 3.5rem !important;
   overflow: visible;
-  filter: drop-shadow(0 0.125rem 0.25rem rgba(0, 0, 0, 0.5));
+  filter: drop-shadow(
+    0 0.125rem 0.25rem rgba(0, 0, 0, 0.5)
+  );
 }
 
 /* V1 pulse around the user marker. */
@@ -51,7 +57,9 @@
   border-radius: 50%;
   background: rgba(229, 62, 62, 0.35);
   transform: translate(-50%, -50%);
-  animation: navigation-user-pulse 2s ease-out infinite;
+  animation:
+    navigation-user-pulse var(--md-motion-duration-pulse)
+    var(--md-motion-ease-decelerate) infinite;
   pointer-events: none;
 }
 
