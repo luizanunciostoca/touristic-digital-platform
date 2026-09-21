@@ -105,7 +105,8 @@
     backdrop-filter: none;
   }
 
-  #assistant-input-area.md-assistant-composer #voiceButton[aria-pressed="true"] {
+  #assistant-input-area.md-assistant-composer
+    #voiceButton[aria-pressed="true"] {
     outline-color: Highlight;
   }
 }
