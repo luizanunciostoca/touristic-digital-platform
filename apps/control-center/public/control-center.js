@@ -185,6 +185,14 @@ function actorHasCapability(capability) {
   return (state.adminSession?.actor?.capabilities ?? []).includes(capability);
 }
 
+function selectedDestinationQuery() {
+  const destinationId =
+    document.querySelector("#destination-selector")?.value ?? "global";
+  return destinationId && destinationId !== "global"
+    ? `&destinationId=${encodeURIComponent(destinationId)}`
+    : "";
+}
+
 function contentField(document, key) {
   const value = document?.fields?.[key];
   return typeof value === "string" ? value : "";
@@ -1436,7 +1444,7 @@ async function renderProducts(productId) {
 
   if (!productId) {
     const [data, businessesData] = await Promise.all([
-      api("/products?limit=100"),
+      api(`/products?limit=100${selectedDestinationQuery()}`),
       api("/businesses"),
     ]);
     const products = Array.isArray(data.data) ? data.data : [];
@@ -1720,7 +1728,7 @@ async function renderProducts(productId) {
 
 async function renderReservations(reservationId) {
   if (!reservationId) {
-    const data = await api("/reservations?limit=100");
+    const data = await api(`/reservations?limit=100${selectedDestinationQuery()}`);
     const reservations = Array.isArray(data.data) ? data.data : [];
     content.innerHTML = `
       <div class="callout">
