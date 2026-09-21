@@ -2609,7 +2609,7 @@ export function createAdminApi({
               request,
               effectiveUser: support?.effectiveUser ?? null,
               destinationId,
-              limit: Math.min(limit + offset, 50),
+              limit: 50,
             });
             for (const result of domainResults ?? []) {
               const normalized = normalizedSearchResult(result, source);
