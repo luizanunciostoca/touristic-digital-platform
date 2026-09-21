@@ -129,8 +129,7 @@ a:focus-visible,
 }
 
 .app-shell {
-  display: grid;
-  grid-template-columns: var(--md-sidebar-width) minmax(0, 1fr);
+  display: block;
 }
 
 .sidebar,
@@ -1509,10 +1508,6 @@ html[data-control-density="compact"] .metric-card {
 @media (max-width: 900px) {
   :root {
     --md-sidebar-width: 224px;
-  }
-
-  .app-shell {
-    grid-template-columns: 1fr;
   }
 
   .main,
