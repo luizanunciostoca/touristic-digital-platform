@@ -88,6 +88,29 @@ describe("Home / Discover V2 visual shell", () => {
     expect(css).not.toContain("z-index: 2000");
   });
 
+  it("keeps onboarding on V2 surfaces without auto-opening the contextual Assistant", async () => {
+    const [onboarding, interactiveTour] = await Promise.all([
+      readRepository(
+        "apps/morro-digital-platform/src/onboarding/public-onboarding.ts",
+      ),
+      readRepository(
+        "apps/morro-digital-platform/src/onboarding/public-interactive-tour.ts",
+      ),
+    ]);
+
+    expect(onboarding).not.toContain("ensureV1AssistantWelcomeVisible");
+    expect(interactiveTour).not.toContain("requestAssistantOpen");
+    expect(interactiveTour).not.toContain(
+      'Object.freeze({ selectors: ["#assistant-messages"] })',
+    );
+    expect(interactiveTour).toContain(
+      'Object.freeze({ selectors: ["#assistant-input-area"] })',
+    );
+    expect(interactiveTour).toContain(
+      'Object.freeze({ selectors: ["#globe-map-control", "#toggle-globe-view"] })',
+    );
+  });
+
   it("renders Weather with the V2 compact control composition", async () => {
     const runtime = await readRepository(
       "apps/morro-digital-platform/src/weather/weather-widget.ts",
