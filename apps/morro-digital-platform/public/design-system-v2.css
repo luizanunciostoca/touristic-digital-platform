@@ -8,10 +8,10 @@
 
 :root {
   /* Brand + semantic colors */
-  --md-color-brand-primary: var(--primary, #3b82f6);
-  --md-color-brand-primary-strong: var(--primary-dark, #2563eb);
-  --md-color-accent: var(--accent, #10b981);
-  --md-color-accent-strong: var(--accent-dark, #059669);
+  --md-color-brand-primary: #3b82f6;
+  --md-color-brand-primary-strong: #2563eb;
+  --md-color-accent: #10b981;
+  --md-color-accent-strong: #059669;
   --md-color-surface: #ffffff;
   --md-color-surface-subtle: #f8fafc;
   --md-color-text: #0f172a;
@@ -43,17 +43,11 @@
   --md-color-overlay: rgb(15 23 42 / 0.62);
   --md-color-skeleton-base: #e2e8f0;
   --md-color-skeleton-highlight: #f8fafc;
+  --md-destination-accent-morro: #10b981;
 
   /* Typography */
-  --md-font-family-sans: var(
-    --font-sans,
-    "Poppins",
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    Roboto,
-    sans-serif
-  );
+  --md-font-family-sans:
+    "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --md-font-size-xs: 0.75rem;
   --md-font-size-sm: 0.875rem;
   --md-font-size-md: 1rem;
@@ -77,15 +71,25 @@
   --md-space-10: 2.5rem;
   --md-space-12: 3rem;
 
+  /* Outdoor readability + bottom-sheet component tokens */
+  --md-outdoor-surface: rgb(255 255 255 / 0.96);
+  --md-outdoor-surface-strong: #ffffff;
+  --md-outdoor-text: #0f172a;
+  --md-outdoor-border: rgb(255 255 255 / 0.78);
+  --md-outdoor-shadow: 0 0.75rem 2rem rgb(15 23 42 / 0.18);
+  --md-sheet-peek-height: min(30dvh, 16rem);
+  --md-sheet-half-height: min(55dvh, 32rem);
+  --md-sheet-full-height: 90dvh;
+
   /* Radius + elevation */
   --md-radius-sm: 0.5rem;
   --md-radius-md: 0.75rem;
   --md-radius-lg: 1rem;
   --md-radius-xl: 1.5rem;
-  --md-radius-pill: 999px;
-  --md-elevation-1: 0 1px 3px rgba(15, 23, 42, 0.12);
-  --md-elevation-2: 0 8px 24px rgba(15, 23, 42, 0.14);
-  --md-elevation-3: 0 18px 48px rgba(15, 23, 42, 0.18);
+  --md-radius-pill: 999rem;
+  --md-elevation-1: 0 0.0625rem 0.1875rem rgba(15, 23, 42, 0.12);
+  --md-elevation-2: 0 0.5rem 1.5rem rgba(15, 23, 42, 0.14);
+  --md-elevation-3: 0 1.125rem 3rem rgba(15, 23, 42, 0.18);
 
   /* Motion */
   --md-motion-duration-fast: 120ms;
@@ -93,6 +97,16 @@
   --md-motion-duration-slow: 320ms;
   --md-motion-ease-standard: cubic-bezier(0.2, 0, 0, 1);
   --md-motion-ease-emphasized: cubic-bezier(0.2, 0, 0, 1.2);
+  --md-motion-ease-decelerate: ease-out;
+  --md-motion-duration-map-marker: 300ms;
+  --md-motion-duration-pulse: 2s;
+  --md-motion-scale-pressed: 0.98;
+  --md-motion-scale-pressed-strong: 0.96;
+
+  /* Shared interactive state contract */
+  --md-state-disabled-opacity: 0.52;
+  --md-state-selected-outline-width: 0.125rem;
+  --md-state-selected-outline-offset: 0.125rem;
 
   /*
    * Breakpoint values are canonical documentation tokens. Native CSS custom
@@ -128,6 +142,15 @@
   --md-layer-toast: 800;
   --md-layer-system: 900;
 
+  /*
+   * Runtime compatibility layers for Mapbox/legacy stacking contexts.
+   * These remain semantic tokens so migrated CSS never owns arbitrary values.
+   */
+  --md-layer-explore-marker: 1100;
+  --md-layer-explore-controls: 2050;
+  --md-layer-explore-submenu: 2150;
+  --md-layer-navigation-user: 9999;
+
   /* Compatibility aliases for existing V2 consumers. */
   --md-z-base: var(--md-layer-map);
   --md-z-map-content: var(--md-layer-marker);
@@ -141,10 +164,27 @@
   --md-focus-ring-width: 0.1875rem;
   --md-focus-ring-offset: 0.1875rem;
   --md-focus-ring-color: #0c7bdc;
-  --md-safe-top: env(safe-area-inset-top, 0px);
-  --md-safe-right: env(safe-area-inset-right, 0px);
-  --md-safe-bottom: env(safe-area-inset-bottom, 0px);
-  --md-safe-left: env(safe-area-inset-left, 0px);
+  --md-safe-top: env(safe-area-inset-top, 0);
+  --md-safe-right: env(safe-area-inset-right, 0);
+  --md-safe-bottom: env(safe-area-inset-bottom, 0);
+  --md-safe-left: env(safe-area-inset-left, 0);
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+  --md-color-surface: #ffffff;
+  --md-color-surface-subtle: #f8fafc;
+  --md-color-text: #0f172a;
+  --md-color-text-muted: #475569;
+  --md-color-border: #cbd5e1;
+  --md-color-success: #15803d;
+  --md-color-warning: #a16207;
+  --md-color-danger: #b91c1c;
+  --md-color-info: #0369a1;
+  --md-focus-ring-color: #0c7bdc;
+  --md-color-overlay: rgb(15 23 42 / 0.62);
+  --md-color-skeleton-base: #e2e8f0;
+  --md-color-skeleton-highlight: #f8fafc;
 }
 
 [data-theme="dark"] {
@@ -167,8 +207,30 @@
 [data-destination-theme="morro"] {
   --md-color-brand: var(--md-color-brand-primary);
   --md-color-brand-strong: var(--md-color-brand-primary-strong);
-  --md-color-accent: var(--accent, #10b981);
+  --md-color-accent: var(--md-destination-accent-morro);
 }
+
+[data-theme="high-contrast"] {
+  color-scheme: light;
+  --md-color-surface: Canvas;
+  --md-color-surface-subtle: Canvas;
+  --md-color-text: CanvasText;
+  --md-color-text-muted: CanvasText;
+  --md-color-border: CanvasText;
+  --md-color-brand-primary: LinkText;
+  --md-color-brand-primary-strong: LinkText;
+  --md-color-accent: Highlight;
+  --md-color-accent-strong: Highlight;
+  --md-color-success: CanvasText;
+  --md-color-warning: CanvasText;
+  --md-color-danger: CanvasText;
+  --md-color-info: LinkText;
+  --md-focus-ring-color: Highlight;
+  --md-color-overlay: Canvas;
+  --md-color-skeleton-base: Canvas;
+  --md-color-skeleton-highlight: Highlight;
+}
+
 
 /* Global keyboard focus: use non-zero specificity so legacy :focus resets cannot win. */
 :is(
@@ -266,15 +328,15 @@ body {
 }
 
 .satellite-control-panel {
-  max-height: calc(100vh - 100px);
-  max-height: calc(100svh - 100px);
-  max-height: calc(100dvh - 100px);
+  max-height: calc(100vh - 6.25rem);
+  max-height: calc(100svh - 6.25rem);
+  max-height: calc(100dvh - 6.25rem);
 }
 
 #assistant-voice-selector {
-  max-height: calc(100vh - 120px);
-  max-height: calc(100svh - 120px);
-  max-height: calc(100dvh - 120px);
+  max-height: calc(100vh - 7.5rem);
+  max-height: calc(100svh - 7.5rem);
+  max-height: calc(100dvh - 7.5rem);
 }
 
 :where(
@@ -351,11 +413,24 @@ body {
 .md-button:disabled,
 .md-icon-button:disabled {
   cursor: not-allowed;
-  opacity: 0.52;
+  opacity: var(--md-state-disabled-opacity);
 }
 
-.md-button[aria-busy="true"] {
+.md-button[aria-busy="true"],
+.md-icon-button[aria-busy="true"] {
   cursor: progress;
+}
+
+.md-button:not(:disabled):active,
+.md-icon-button:not(:disabled):active {
+  transform: scale(var(--md-motion-scale-pressed));
+}
+
+:is(.md-button, .md-icon-button, .md-chip)[aria-pressed="true"],
+:is(.md-button, .md-icon-button, .md-chip)[aria-selected="true"] {
+  outline: var(--md-state-selected-outline-width) solid
+    var(--md-focus-ring-color);
+  outline-offset: var(--md-state-selected-outline-offset);
 }
 
 .md-icon-button {
@@ -383,6 +458,10 @@ body {
 .md-textarea {
   min-height: 7rem;
   resize: vertical;
+}
+
+:is(.md-input, .md-textarea, .md-select)[aria-invalid="true"] {
+  border-color: var(--md-color-danger);
 }
 
 .md-badge,
