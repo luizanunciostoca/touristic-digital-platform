@@ -192,8 +192,8 @@ function renderReading(
 ): void {
   const copy = getWeatherPresentationCopy(locale);
   widget.innerHTML = `
-    <div class="weather-compact-main">
-      <div class="weather-emoji">${weatherEmoji(reading.weatherCode, reading.isDay)}</div>
+    <div class="weather-compact-main md-weather-control-content">
+      <div class="weather-emoji" aria-hidden="true">${weatherEmoji(reading.weatherCode, reading.isDay)}</div>
       <span class="weather-temp">${reading.temperatureCelsius}°C</span>
       <div class="weather-compact-footer">
         <span class="click-here-text">${copy.clickHere}</span>

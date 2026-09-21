@@ -13,6 +13,7 @@ on:
       - apps/morro-digital-platform/src/weather/weather-forecast-modal.ts
       - apps/morro-digital-platform/public/index.html
       - apps/morro-digital-platform/public/styles.css
+      - apps/morro-digital-platform/public/tourist-shell-v2.css
       - apps/morro-digital-platform/public/v1-weather-runtime-parity.css
       - apps/morro-digital-platform/public/legacy/**
       - apps/morro-digital-platform/tooling/dev-server.mjs
@@ -172,18 +173,16 @@ jobs:
                   const style = getComputedStyle(node);
                   const rect = node.getBoundingClientRect();
                   return {
+                    className: node.className,
+                    compatibilityState: node.getAttribute('data-compatibility-state'),
                     position: style.position,
-                    top: style.top,
-                    right: style.right,
                     zIndex: style.zIndex,
                     width: style.width,
                     height: style.height,
                     borderRadius: style.borderRadius,
-                    backgroundColor: style.backgroundColor,
                     display: style.display,
-                    flexDirection: style.flexDirection,
+                    alignItems: style.alignItems,
                     overflow: style.overflow,
-                    transform: style.transform,
                     rect: {
                       left: rect.left,
                       top: rect.top,
@@ -196,23 +195,18 @@ jobs:
                 });
                 if (
                   !weatherVisual ||
+                  !weatherVisual.className.includes('md-weather-control') ||
+                  weatherVisual.className.includes('compact') ||
+                  weatherVisual.compatibilityState !== null ||
                   weatherVisual.position !== 'fixed' ||
-                  weatherVisual.top !== '8px' ||
-                  weatherVisual.right !== '8px' ||
-                  weatherVisual.zIndex !== '1000' ||
-                  weatherVisual.width !== '80px' ||
-                  weatherVisual.height !== '110px' ||
-                  weatherVisual.borderRadius !== '12px' ||
-                  weatherVisual.backgroundColor !== 'rgb(255, 255, 255)' ||
                   weatherVisual.display !== 'flex' ||
-                  weatherVisual.flexDirection !== 'column' ||
+                  weatherVisual.alignItems !== 'center' ||
                   weatherVisual.overflow !== 'hidden' ||
-                  ![
-                    'matrix(1, 0, 0, 1, 0, 0)',
-                    'matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)',
-                  ].includes(weatherVisual.transform)
+                  weatherVisual.rect.height < 44 ||
+                  weatherVisual.rect.height > 64 ||
+                  weatherVisual.rect.width < 88
                 ) {
-                  throw new Error(`V1 weather widget visual contract diverged on ${viewport.name}: ${JSON.stringify(weatherVisual)}`);
+                  throw new Error(`V2 weather control contract diverged on ${viewport.name}: ${JSON.stringify(weatherVisual)}`);
                 }
 
                 const shell = await page.evaluate(() => {
@@ -222,18 +216,66 @@ jobs:
                     const r = node.getBoundingClientRect();
                     return { left: r.left, top: r.top, right: r.right, bottom: r.bottom, width: r.width, height: r.height };
                   };
+                  const shellNode = document.querySelector('.md-tourist-shell-v2');
                   return {
+                    header: rect('.md-home-header-inner'),
                     weather: rect('#weather-widget'),
                     globe: rect('#toggle-globe-view'),
+                    composer: rect('#assistant-input-area'),
+                    map: rect('#map'),
                     bodyWidth: document.body.scrollWidth,
                     rootWidth: document.documentElement.scrollWidth,
                     innerWidth: window.innerWidth,
+                    mode: document.body.dataset.mdMode ?? null,
+                    visualState: shellNode?.getAttribute('data-home-visual-state') ?? null,
+                    retiredLauncherCount: document.querySelectorAll('.quick-actions, .mood-button, [data-assistant-floating-trigger]').length,
                   };
                 });
-                assertRectInside(shell.weather, viewport, 'weather widget');
-                assertRectInside(shell.globe, viewport, 'global-view control');
+                assertRectInside(shell.header, viewport, 'V2 home header');
+                assertRectInside(shell.weather, viewport, 'V2 weather control');
+                assertRectInside(shell.globe, viewport, 'V2 global-view control');
+                assertRectInside(shell.composer, viewport, 'V2 Assistant composer');
+                assertRectInside(shell.map, viewport, 'map canvas', 2);
+                const overlaps = (a, b) => Boolean(
+                  a && b &&
+                  a.left < b.right &&
+                  a.right > b.left &&
+                  a.top < b.bottom &&
+                  a.bottom > b.top
+                );
+                if (
+                  shell.mode !== 'discover' ||
+                  shell.visualState !== 'ready' ||
+                  shell.retiredLauncherCount !== 0 ||
+                  !shell.map ||
+                  Math.abs(shell.map.left) > 2 ||
+                  Math.abs(shell.map.top) > 2 ||
+                  Math.abs(shell.map.right - viewport.width) > 2 ||
+                  Math.abs(shell.map.bottom - viewport.height) > 2 ||
+                  overlaps(shell.header, shell.weather) ||
+                  overlaps(shell.weather, shell.composer) ||
+                  overlaps(shell.globe, shell.composer)
+                ) {
+                  throw new Error(`Home V2 composition drift on ${viewport.name}: ${JSON.stringify(shell)}`);
+                }
                 if (shell.bodyWidth > viewport.width + 1 || shell.rootWidth > viewport.width + 1) {
                   throw new Error(`Home horizontal overflow on ${viewport.name}: ${JSON.stringify(shell)}`);
+                }
+
+                await page.locator('#map').evaluate(element => element.setAttribute('data-map-state', 'error'));
+                await page.locator('.app-shell[data-home-visual-state="provider-unavailable"]').waitFor({ state: 'attached', timeout: 2000 });
+                if (!(await page.locator('.md-map-state-unavailable').isVisible())) {
+                  throw new Error(`Provider-unavailable V2 state was not visible on ${viewport.name}`);
+                }
+                await page.locator('#map').evaluate(element => element.setAttribute('data-map-state', 'initializing'));
+                await page.locator('.app-shell[data-home-visual-state="loading"]').waitFor({ state: 'attached', timeout: 2000 });
+                if (!(await page.locator('.md-map-state-loading').isVisible())) {
+                  throw new Error(`Loading V2 state was not visible on ${viewport.name}`);
+                }
+                await page.locator('#map').evaluate(element => element.setAttribute('data-map-state', 'ready'));
+                await page.locator('.app-shell[data-home-visual-state="ready"]').waitFor({ state: 'attached', timeout: 2000 });
+                if (await page.locator('.md-map-state-card').first().isVisible()) {
+                  throw new Error(`Ready V2 state did not clear status cards on ${viewport.name}`);
                 }
 
                 await page.locator('#weather-widget').click();
