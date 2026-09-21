@@ -6,10 +6,14 @@ import { MySqlFinancialReconciliationRepository } from "./mysql-reconciliation-r
 
 describe("Financial owner admin aggregate reads", () => {
   it("aggregates confirmed revenue for a large payment batch in one query", async () => {
-    const execute = vi.fn(async (_sql: string, _parameters?: unknown[]) => [
-      [{ currency: "BRL", amount_minor: "123456", payment_count: "80" }],
-      [],
-    ]);
+    const execute = vi.fn(async (sql: string, parameters?: unknown[]) => {
+      void sql;
+      void parameters;
+      return [
+        [{ currency: "BRL", amount_minor: "123456", payment_count: "80" }],
+        [],
+      ];
+    });
     const repository = new MySqlPaymentRepository({
       execute,
     } as unknown as Pool);
@@ -34,7 +38,11 @@ describe("Financial owner admin aggregate reads", () => {
   });
 
   it("returns authoritative zero without querying when the payment set is empty", async () => {
-    const execute = vi.fn(async (_sql: string, _parameters?: unknown[]) => [[], []]);
+    const execute = vi.fn(async (sql: string, parameters?: unknown[]) => {
+      void sql;
+      void parameters;
+      return [[], []];
+    });
     const repository = new MySqlPaymentRepository({
       execute,
     } as unknown as Pool);
@@ -44,7 +52,11 @@ describe("Financial owner admin aggregate reads", () => {
   });
 
   it("rejects oversized payment batches", async () => {
-    const execute = vi.fn(async (_sql: string, _parameters?: unknown[]) => [[], []]);
+    const execute = vi.fn(async (sql: string, parameters?: unknown[]) => {
+      void sql;
+      void parameters;
+      return [[], []];
+    });
     const repository = new MySqlPaymentRepository({
       execute,
     } as unknown as Pool);
@@ -60,9 +72,12 @@ describe("Financial owner admin aggregate reads", () => {
   });
 
   it("lists only open reconciliation findings and returns the authoritative count", async () => {
-    const execute = vi.fn(async (_sql: string, _parameters?: unknown[]) => [
-      [
-        {
+    const execute = vi.fn(async (sql: string, parameters?: unknown[]) => {
+      void sql;
+      void parameters;
+      return [
+        [
+          {
           reconciliation_finding_id: "rcf_admin_00000001",
           payment_id: "pay_admin_0001",
           kind: "amount_mismatch",
@@ -77,10 +92,11 @@ describe("Financial owner admin aggregate reads", () => {
           acknowledged_by: null,
           resolved_at: null,
           total_count: "3",
-        },
-      ],
-      [],
-    ]);
+          },
+        ],
+        [],
+      ];
+    });
     const repository = new MySqlFinancialReconciliationRepository({
       execute,
     } as unknown as Pool);
