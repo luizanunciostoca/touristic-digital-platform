@@ -1763,6 +1763,10 @@ html[data-control-motion="reduced"] *::after {
   background: var(--md-danger-soft);
 }
 
+.state-panel--error p {
+  color: var(--md-text);
+}
+
 .state-panel--partial {
   border-color: #ead79e;
   background: var(--md-warning-soft);
