@@ -162,7 +162,7 @@ export type CrmMoney = string;
 
 export interface CrmLead {
   readonly id: CrmId;
-  readonly destinationId: string | null;
+  readonly destinationId?: string | null;
   readonly companyName: string;
   readonly segment: string | null;
   readonly contactName: string | null;
