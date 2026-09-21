@@ -109,7 +109,11 @@ async function buildLegacyBundle() {
     " * tooling/build-legacy-css.mjs. Source files remain immutable evidence.",
     " */",
     "",
+    "@layer reset, vendor, legacy, tokens, base, components, features, utilities, overrides;",
+    "",
+    "@layer legacy {",
     sections.join("\n").trimEnd(),
+    "}",
     "",
   ].join("\n");
 }
