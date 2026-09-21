@@ -258,12 +258,15 @@ export function createCrmAdminAdapter(crmApi, authApi) {
       "trials",
       "search",
     ]),
-    async search({ query, request, effectiveUser }) {
+    async search({ query, request, effectiveUser, destinationId }) {
       if (!request || !query) return [];
       const response = jsonCaptureResponse();
       const requestUrl = new URL("http://localhost/api/crm/leads");
       requestUrl.searchParams.set("search", query);
       requestUrl.searchParams.set("limit", "20");
+      if (destinationId) {
+        requestUrl.searchParams.set("destinationId", destinationId);
+      }
 
       await withEffectiveUser(delegation, request, effectiveUser, () =>
         crmApi.handle(request, response, requestUrl),
@@ -284,7 +287,13 @@ export function createCrmAdminAdapter(crmApi, authApi) {
             id: String(lead.id),
             title: lead.companyName || String(lead.id),
             context:
-              [lead.contactName, lead.email, lead.stage, lead.status]
+              [
+                lead.destinationId,
+                lead.contactName,
+                lead.email,
+                lead.stage,
+                lead.status,
+              ]
                 .filter(Boolean)
                 .join(" · ") || "CRM",
             href: "#crm",
