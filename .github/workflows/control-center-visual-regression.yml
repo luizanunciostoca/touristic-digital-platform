@@ -47,6 +47,7 @@ jobs:
             git fetch origin "$GITHUB_HEAD_REF"
             git checkout -B "$GITHUB_HEAD_REF" "origin/$GITHUB_HEAD_REF"
           fi
+          echo "CONTROL_CENTER_VISUAL_SOURCE_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
 
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1
         with:
