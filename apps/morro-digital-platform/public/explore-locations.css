@@ -309,6 +309,7 @@
 }
 
 .place-bottom-sheet-meta {
+  overflow-wrap: anywhere;
   color: var(--md-color-text-secondary);
   font-size: var(--md-font-size-sm);
   font-weight: var(--md-font-weight-medium);
@@ -316,9 +317,52 @@
 
 .place-bottom-sheet-title {
   margin: 0;
+  overflow-wrap: anywhere;
   color: var(--md-color-text-primary);
   font-size: clamp(var(--md-font-size-xl), 4.5vw, 1.75rem);
   line-height: var(--md-line-height-tight);
+}
+
+.place-bottom-sheet-description,
+.place-bottom-sheet-rating {
+  max-width: 65ch;
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--md-color-text-secondary);
+  font-size: var(--md-font-size-sm);
+  line-height: var(--md-line-height-body);
+}
+
+.place-bottom-sheet-rating {
+  font-weight: var(--md-font-weight-medium);
+}
+
+.place-bottom-sheet-status,
+.explore-flow-sheet-status {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--md-color-text-secondary);
+  font-size: var(--md-font-size-sm);
+  line-height: var(--md-line-height-body);
+}
+
+.place-bottom-sheet-status-skeleton,
+.explore-flow-sheet-status-skeleton {
+  display: block;
+  width: min(100%, 18rem);
+  height: 1rem;
+  border-radius: var(--md-radius-sm);
+}
+
+.place-bottom-sheet-drag-handle,
+.explore-flow-sheet-drag-handle {
+  touch-action: none;
+  cursor: grab;
+}
+
+.place-bottom-sheet-drag-handle:active,
+.explore-flow-sheet-drag-handle:active {
+  cursor: grabbing;
 }
 
 .place-bottom-sheet-tags {
@@ -342,6 +386,7 @@
   min-width: 0;
   min-height: var(--md-touch-target-min);
   padding-inline: var(--md-space-3);
+  overflow-wrap: anywhere;
   text-align: center;
 }
 
@@ -479,6 +524,7 @@
 
 .explore-flow-sheet-title {
   margin: 0;
+  overflow-wrap: anywhere;
   color: var(--md-color-text-primary);
   font-size: var(--md-font-size-lg);
   line-height: var(--md-line-height-tight);
@@ -512,6 +558,7 @@
   min-width: 0;
   min-height: var(--md-touch-target-min);
   padding-inline: var(--md-space-3);
+  overflow-wrap: anywhere;
 }
 
 .explore-flow-sheet-option--primary {
@@ -595,6 +642,41 @@
 
   .explore-flow-sheet-option--primary {
     grid-column: auto;
+  }
+}
+
+html[dir="rtl"] #place-bottom-sheet,
+html[dir="rtl"] #explore-flow-bottom-sheet {
+  direction: rtl;
+}
+
+html[dir="rtl"] .place-bottom-sheet-actions,
+html[dir="rtl"] .explore-flow-sheet-actions,
+html[dir="rtl"] #explore-flow-bottom-sheet .explore-flow-sheet-source {
+  direction: rtl;
+}
+
+@media (max-width: 30rem) {
+  #place-bottom-sheet,
+  #explore-flow-bottom-sheet {
+    max-height: min(
+      var(--md-sheet-full-height),
+      calc(100dvh - var(--assistant-bar-height) - var(--md-space-4))
+    );
+  }
+}
+
+@media (min-resolution: 2dppx) {
+  .place-bottom-sheet-content,
+  .explore-flow-sheet-content {
+    scrollbar-gutter: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .place-bottom-sheet-drag-handle,
+  .explore-flow-sheet-drag-handle {
+    scroll-behavior: auto;
   }
 }
 
