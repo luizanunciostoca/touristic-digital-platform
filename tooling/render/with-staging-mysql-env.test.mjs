@@ -40,14 +40,19 @@ function assertPasswordHash(password, encoded) {
   assert.deepEqual(actual, expected);
 }
 
-test("derives four isolated MySQL URLs and URL-encodes credentials", () => {
+test("derives isolated MySQL owners plus durable Control Center audit storage", () => {
   const derived = buildStagingDatabaseEnvironment(fixture());
   assert.deepEqual(Object.keys(derived).sort(), [
     "AFFILIATES_DATABASE_URL",
     "AUTH_DATABASE_URL",
+    "CONTROL_CENTER_AUDIT_DATABASE_URL",
     "FINANCIAL_DATABASE_URL",
     "ORDERING_DATABASE_URL",
   ]);
+  assert.equal(
+    derived.CONTROL_CENTER_AUDIT_DATABASE_URL,
+    derived.AUTH_DATABASE_URL,
+  );
 
   const auth = new URL(derived.AUTH_DATABASE_URL);
   assert.equal(auth.protocol, "mysql:");
