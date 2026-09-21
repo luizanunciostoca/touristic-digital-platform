@@ -6,6 +6,7 @@ import {
   escapeHtml,
   loadingState,
   partialState,
+  sectionHeader,
   statusBadge,
 } from "./control-center-primitives.js";
 
@@ -345,10 +346,10 @@ function renderOverview() {
     </div>
     <div class="grid two-col">
       <section class="card section-card">
-        <div class="section-title">
-          <h2>Saúde operacional</h2>
-          <span class="chip">${escapeHtml(health.readiness ?? "unknown")}</span>
-        </div>
+        ${sectionHeader({
+          title: "Saúde operacional",
+          meta: `<span class="chip">${escapeHtml(health.readiness ?? "unknown")}</span>`,
+        })}
         <div class="health-list">
           ${
             (health.checks ?? [])
@@ -364,7 +365,7 @@ function renderOverview() {
         </div>
       </section>
       <section class="card section-card">
-        <div class="section-title"><h2>Contratos administrativos</h2></div>
+        ${sectionHeader({ title: "Contratos administrativos" })}
         <div class="module-list">
           ${Object.entries(dashboard.modules ?? {})
             .map(
