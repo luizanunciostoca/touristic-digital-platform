@@ -12,6 +12,8 @@ on:
       - apps/morro-digital-platform/src/assistant/assistant-v1-photo-catalog.ts
       - apps/morro-digital-platform/src/assistant/assistant-domain-adapter.ts
       - apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts
+      - apps/morro-digital-platform/src/map/explore-locations-control.ts
+      - apps/morro-digital-platform/src/map/place-bottom-sheet.ts
       - apps/morro-digital-platform/public/assistant-photo-carousel.css
       - apps/morro-digital-platform/public/design-system-v2.css
       - apps/morro-digital-platform/tooling/dev-server.mjs
@@ -217,11 +219,11 @@ jobs:
                 timeout: 5000,
               });
               await page.locator('#assistant-category-results [data-location-name="Primeira Praia"]').click();
-              await page.locator('.assistant-option-btn[data-value="ver fotos"]').waitFor({
+              await page.locator('#place-bottom-sheet .place-bottom-sheet-action[data-value="ver fotos"]').waitFor({
                 state: 'visible',
                 timeout: 10000,
               });
-              await page.locator('.assistant-option-btn[data-value="ver fotos"]').click();
+              await page.locator('#place-bottom-sheet .place-bottom-sheet-action[data-value="ver fotos"]').click();
 
               const primeiraPraiaCarousel = page.locator('.assistant-photo-carousel');
               await primeiraPraiaCarousel.waitFor({ state: 'visible', timeout: 10000 });

@@ -14,6 +14,7 @@ on:
       - apps/morro-digital-platform/src/assistant/**
       - apps/morro-digital-platform/src/navigation/**
       - apps/morro-digital-platform/src/map/explore-locations-control.ts
+      - apps/morro-digital-platform/src/map/place-bottom-sheet.ts
       - apps/morro-digital-platform/src/map/explore-locations-v1-flow.ts
       - packages/assistant/src/**
       - packages/search/src/**
@@ -265,7 +266,7 @@ jobs:
 
               await submit('Primeira Praia');
               await waitStage('beaches', 'detail', 1);
-              await page.locator('.assistant-option-btn[data-value="ver fotos"]').waitFor({ state: 'visible', timeout: 8000 });
+              await page.locator('#place-bottom-sheet .place-bottom-sheet-action[data-value="ver fotos"]').waitFor({ state: 'visible', timeout: 8000 });
 
               await submit('fotos', true);
               await page.locator('.assistant-photo-carousel').waitFor({ state: 'visible', timeout: 8000 });

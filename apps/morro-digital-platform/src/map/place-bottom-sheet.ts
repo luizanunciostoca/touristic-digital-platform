@@ -106,6 +106,7 @@ export function installPlaceBottomSheet(
   const { document } = options;
   let destroyed = false;
   let state: PlaceBottomSheetState = "half";
+  let compatibilityValues = new Set<string>();
 
   const sheet = document.createElement("aside");
   sheet.id = "place-bottom-sheet";
@@ -169,6 +170,57 @@ export function installPlaceBottomSheet(
   sheet.append(toolbar, content);
   document.body.appendChild(sheet);
 
+  const syncCompatibilitySource = (): void => {
+    const active = sheet.getAttribute("aria-hidden") === "false";
+    const containers = Array.from(
+      document.querySelectorAll<HTMLElement>(
+        '#assistant-messages .assistant-options:not(#assistant-category-results):not(:has([data-explore-category])):not([data-presentation="photo-actions"])',
+      ),
+    );
+    for (const container of containers) {
+      const values = Array.from(
+        container.querySelectorAll<HTMLButtonElement>(
+          ".assistant-option-btn[data-value]",
+        ),
+        (button) => button.dataset.value ?? "",
+      ).filter(Boolean);
+      const matchesInitialPlaceActions =
+        active &&
+        compatibilityValues.size > 0 &&
+        values.length > 0 &&
+        values.every((value) => compatibilityValues.has(value)) &&
+        values.some((value) => compatibilityValues.has(value));
+
+      if (matchesInitialPlaceActions) {
+        container.classList.add("place-bottom-sheet-compat-source");
+        container.setAttribute("aria-hidden", "true");
+        container.setAttribute("inert", "");
+      } else if (
+        container.classList.contains("place-bottom-sheet-compat-source")
+      ) {
+        container.classList.remove("place-bottom-sheet-compat-source");
+        container.removeAttribute("aria-hidden");
+        container.removeAttribute("inert");
+      }
+    }
+  };
+
+  const assistantArea = document.querySelector<HTMLElement>(
+    "#assistant-messages .messages-area",
+  );
+  const MutationObserverCtor = document.defaultView?.MutationObserver;
+  const assistantObserver = MutationObserverCtor
+    ? new MutationObserverCtor(() => {
+        queueMicrotask(syncCompatibilitySource);
+      })
+    : null;
+  if (assistantArea && assistantObserver) {
+    assistantObserver.observe(assistantArea, {
+      childList: true,
+      subtree: true,
+    });
+  }
+
   const setState = (nextState: PlaceBottomSheetState): void => {
     if (destroyed) return;
     state = nextState;
@@ -226,12 +278,12 @@ export function installPlaceBottomSheet(
 
     actions.replaceChildren();
     for (const action of next.actions) {
-      if (action.action !== "command") continue;
       const button = document.createElement("button");
       button.type = "button";
       button.className =
         "md-button md-button--secondary place-bottom-sheet-action";
       button.dataset.value = action.value;
+      button.dataset.placeAction = action.action;
       button.textContent = action.label;
       button.addEventListener("click", () => options.onAction(action.value));
       actions.appendChild(button);
@@ -253,8 +305,13 @@ export function installPlaceBottomSheet(
       primary.appendChild(button);
     }
 
+    compatibilityValues = new Set([
+      ...next.actions.map(({ value }) => value),
+      ...(next.primaryAction ? [next.primaryAction.value] : []),
+    ]);
     sheet.classList.remove("hidden");
     sheet.setAttribute("aria-hidden", "false");
+    queueMicrotask(syncCompatibilitySource);
   };
 
   close.addEventListener("click", () => options.onDismiss());
@@ -271,6 +328,8 @@ export function installPlaceBottomSheet(
       if (destroyed) return;
       sheet.classList.add("hidden");
       sheet.setAttribute("aria-hidden", "true");
+      compatibilityValues.clear();
+      syncCompatibilitySource();
       delete sheet.dataset.placeName;
       delete sheet.dataset.placeCategory;
     },
@@ -280,6 +339,10 @@ export function installPlaceBottomSheet(
     },
     destroy(): void {
       if (destroyed) return;
+      assistantObserver?.disconnect();
+      compatibilityValues.clear();
+      sheet.setAttribute("aria-hidden", "true");
+      syncCompatibilitySource();
       destroyed = true;
       sheet.remove();
     },
