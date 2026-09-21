@@ -109,9 +109,7 @@ async function main() {
 main().catch((error) => {
   console.error(
     "CONTROL_CENTER_ACCESSIBILITY_FAILED",
-    error instanceof Error
-      ? `${error.name}: ${error.message}`
-      : String(error),
+    error instanceof Error ? `${error.name}: ${error.message}` : String(error),
   );
   process.exit(1);
 });
