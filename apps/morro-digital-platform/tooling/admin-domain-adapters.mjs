@@ -47,6 +47,13 @@ function notFound(response, error = "ADMIN_ROUTE_NOT_FOUND") {
   response.end(JSON.stringify({ error }));
 }
 
+function ownerSearchData(result, errorCode) {
+  if (result?.status !== "found" || !Array.isArray(result.data)) {
+    throw new Error(result?.error || errorCode);
+  }
+  return result.data;
+}
+
 function jsonCaptureResponse() {
   const headers = new Map();
   return {
@@ -116,9 +123,12 @@ export function createAffiliateAdminAdapter(affiliateAdminRuntime) {
         destinationId,
         limit: Math.min(Number(limit) || 10, 50),
       });
-      if (result.status !== "found") return [];
+      const data = ownerSearchData(
+        result,
+        "AFFILIATE_ADMIN_SEARCH_UNAVAILABLE",
+      );
       return Object.freeze(
-        result.data.map((affiliate) =>
+        data.map((affiliate) =>
           Object.freeze({
             type: "affiliate",
             id: affiliate.affiliateId,
@@ -279,13 +289,19 @@ export function createCrmAdminAdapter(crmApi, authApi) {
         await withEffectiveUser(delegation, request, effectiveUser, () =>
           crmApi.handle(request, response, requestUrl),
         );
-        if (response.statusCode !== 200) return [];
-        try {
-          const payload = JSON.parse(response.body || "{}");
-          return Array.isArray(payload.data) ? payload.data : [];
-        } catch {
-          return [];
+        if (response.statusCode !== 200) {
+          throw new Error("CRM_ADMIN_SEARCH_OWNER_UNAVAILABLE");
         }
+        let payload;
+        try {
+          payload = JSON.parse(response.body || "{}");
+        } catch {
+          throw new Error("CRM_ADMIN_SEARCH_OWNER_INVALID_RESPONSE");
+        }
+        if (!Array.isArray(payload.data)) {
+          throw new Error("CRM_ADMIN_SEARCH_OWNER_INVALID_RESPONSE");
+        }
+        return payload.data;
       }
 
       const leadUrl = new URL("http://localhost/api/crm/leads");
@@ -487,9 +503,12 @@ export function createProductsAdminAdapter(ticketingApi) {
         destinationId,
         limit: Math.min(Number(limit) || 20, 50),
       });
-      if (result.status !== "found") return [];
+      const data = ownerSearchData(
+        result,
+        "PRODUCTS_ADMIN_SEARCH_UNAVAILABLE",
+      );
       return Object.freeze(
-        result.data.flatMap(({ offer, businessId, availableQuantity }) => [
+        data.flatMap(({ offer, businessId, availableQuantity }) => [
           Object.freeze({
             type: "product",
             id: offer.product?.reference || offer.id,
@@ -585,9 +604,12 @@ export function createReservationsAdminAdapter(ticketingApi) {
         destinationId,
         limit: Math.min(Number(limit) || 20, 50),
       });
-      if (result.status !== "found") return [];
+      const data = ownerSearchData(
+        result,
+        "RESERVATIONS_ADMIN_SEARCH_UNAVAILABLE",
+      );
       return Object.freeze(
-        result.data.map(({ reservation, businessId, inventoryLabel }) =>
+        data.map(({ reservation, businessId, inventoryLabel }) =>
           Object.freeze({
             type: "reservation",
             id: reservation.id,
@@ -723,9 +745,12 @@ export function createContentAdminAdapter(contentRuntime) {
         destinationId,
         limit: Math.min(Number(limit) || 20, 50),
       });
-      if (result.status !== "found") return [];
+      const data = ownerSearchData(
+        result,
+        "CONTENT_ADMIN_SEARCH_UNAVAILABLE",
+      );
       return Object.freeze(
-        result.data.map((document) =>
+        data.map((document) =>
           Object.freeze({
             type: "content",
             id: document.id,
