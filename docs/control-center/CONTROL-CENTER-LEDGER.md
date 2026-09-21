@@ -145,6 +145,19 @@ Expected, actual and diff are separate artifacts.
 
 A green visual run means the current exact head matches the reviewed baseline within the narrow documented tolerance. It does not prove domain correctness, authorization or persistence.
 
+## Current manual-compliance ledger
+
+The automated visual report's `manualP0` / `manualP1` counters cover machine-checkable invariants only. They are not a substitute for the full human/manual audit against UX Design V1.
+
+Current full manual audit on the stacked PR #227 visual candidate:
+
+- **P0: 0**.
+- **P1 — Destination Summary alerts:** the current base still exposes `sem agregado por destino` instead of a real destination-backed alert aggregate. PR #230 owns the owner-backed aggregate work. This visual/docs PR must not duplicate that domain change.
+- **P1 — Entity 360 tabs:** the current base renders the Business/Affiliate/User 360 tab strip as presentation rather than complete functional tab panels. PR #229 owns the functional/keyboard Entity 360 composition.
+- **P1 — Recent Activity language:** the current surface exposes raw audit action identifiers such as `business.destination.updated`. UX Design V1 requires events comprehensible to humans. Current PR #229 code still renders `entry.action` verbatim, so this remains unresolved after that branch unless reconciled separately.
+
+These P1s are not hidden by visual tolerance and do not become approved merely because the pixel baseline is stable. Baselines on this stack are therefore reproducibility evidence for the current candidate, not a declaration that full manual equivalence is complete.
+
 ## Functional and CI evidence
 
 The Control Center release proof is intentionally multi-source.
