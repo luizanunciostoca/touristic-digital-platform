@@ -126,13 +126,17 @@ jobs:
 
           : > /tmp/control-center-final-runs.tsv
           for workflow in "${workflows[@]}"; do
-            echo "Dispatching $workflow on $CANDIDATE_REF@$GITHUB_SHA"
+            before_id="$(
+              gh run list                 --workflow "$workflow"                 --event workflow_dispatch                 --branch "$CANDIDATE_REF"                 --limit 50                 --json databaseId               | jq '[.[].databaseId] | max // 0'
+            )"
+
+            echo "Dispatching $workflow on $CANDIDATE_REF@$GITHUB_SHA after run $before_id"
             gh workflow run "$workflow" --ref "$CANDIDATE_REF"
 
             run_id=""
             for _ in $(seq 1 60); do
               run_id="$(
-                gh run list                   --workflow "$workflow"                   --event workflow_dispatch                   --branch "$CANDIDATE_REF"                   --limit 20                   --json databaseId,headSha                 | jq -r --arg sha "$GITHUB_SHA" '[.[] | select(.headSha == $sha)][0].databaseId // empty'
+                gh run list                   --workflow "$workflow"                   --event workflow_dispatch                   --branch "$CANDIDATE_REF"                   --limit 50                   --json databaseId,headSha                 | jq -r                     --arg sha "$GITHUB_SHA"                     --argjson before "$before_id"                     '[.[] | select(.headSha == $sha and .databaseId > $before)] | max_by(.databaseId) | .databaseId // empty'
               )"
               if [ -n "$run_id" ]; then
                 break
