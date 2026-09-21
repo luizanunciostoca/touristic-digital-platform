@@ -21,13 +21,17 @@ function row(orderId: string, paymentId: string, destinationId: string) {
 
 describe("MySqlCheckoutAccessRepository admin destination read", () => {
   it("pages by exact canonical destination ownership", async () => {
-    const execute = vi.fn(async (_sql: string, _parameters?: unknown[]) => [
-      [
-        row("ord_admin_0001", "pay_admin_0001", "morro-de-sao-paulo"),
-        row("ord_admin_0002", "pay_admin_0002", "morro-de-sao-paulo"),
-      ],
-      [],
-    ]);
+    const execute = vi.fn(async (sql: string, parameters?: unknown[]) => {
+      void sql;
+      void parameters;
+      return [
+        [
+          row("ord_admin_0001", "pay_admin_0001", "morro-de-sao-paulo"),
+          row("ord_admin_0002", "pay_admin_0002", "morro-de-sao-paulo"),
+        ],
+        [],
+      ];
+    });
     const repository = new MySqlCheckoutAccessRepository({
       execute,
     } as unknown as Pool);
@@ -50,10 +54,11 @@ describe("MySqlCheckoutAccessRepository admin destination read", () => {
   });
 
   it("uses a bounded cursor and rejects labels instead of inferring a destination", async () => {
-    const execute = vi.fn(async (_sql: string, _parameters?: unknown[]) => [
-      [],
-      [],
-    ]);
+    const execute = vi.fn(async (sql: string, parameters?: unknown[]) => {
+      void sql;
+      void parameters;
+      return [[], []];
+    });
     const repository = new MySqlCheckoutAccessRepository({
       execute,
     } as unknown as Pool);
