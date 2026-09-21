@@ -191,7 +191,7 @@
   border-color: var(--md-color-interactive-primary-hover);
   background: var(--md-color-interactive-primary-hover);
   color: var(--md-color-text-inverse);
-  transform: translateY(-1px);
+  transform: translateY(-0.0625rem);
   box-shadow: var(--md-elevation-2);
 }
 
