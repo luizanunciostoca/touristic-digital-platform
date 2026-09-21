@@ -1,12 +1,4 @@
 import { hasAuthCapability, isPlatformWideAuthRole } from "@touristic/auth";
-import {
-  AffiliateAdminQueryService,
-  AffiliateIdentityApplicationService,
-  applyAffiliatesIdentityEligibilityM155,
-  applyAffiliatesM154Schema,
-  createAffiliatePool,
-} from "@touristic/affiliates-server";
-
 function actorAllowed(actor, capability) {
   return Boolean(
     actor &&
@@ -63,6 +55,13 @@ export function createAffiliateAdminRuntime({
       return true;
     }
     try {
+      const {
+        AffiliateAdminQueryService,
+        AffiliateIdentityApplicationService,
+        applyAffiliatesIdentityEligibilityM155,
+        applyAffiliatesM154Schema,
+        createAffiliatePool,
+      } = await import("@touristic/affiliates-server");
       pool = createAffiliatePool(databaseUrl);
       await applyAffiliatesM154Schema(pool);
       await applyAffiliatesIdentityEligibilityM155(pool);
