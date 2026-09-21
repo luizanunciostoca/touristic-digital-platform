@@ -383,7 +383,6 @@ a:focus-visible,
   min-width: 0;
   max-width: 170px;
   border: 0;
-  outline: 0;
   background: transparent;
   color: inherit;
   font-size: inherit;
@@ -418,7 +417,6 @@ a:focus-visible,
   min-width: 0;
   width: 100%;
   border: 0;
-  outline: 0;
   padding: 10px 0;
   background: transparent;
   color: var(--md-text);
