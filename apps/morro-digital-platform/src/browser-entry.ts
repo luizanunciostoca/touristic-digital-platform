@@ -42,6 +42,7 @@ import {
   type RuntimeStatusDescriptor,
 } from "./runtime/runtime-accessibility-i18n.js";
 import { installPremiumUxModePresenter } from "./ux/premium-ux-mode.js";
+import { installTouristContextBottomSheet } from "./ux/tourist-context-bottom-sheet.js";
 import {
   installTouristExperienceSnapshotCapture,
   restoreTouristExperienceSnapshot,
@@ -107,6 +108,7 @@ function setupV1ShellInteractions(): void {
 setupV1ShellInteractions();
 recordMorroStartupMetric(document, performance, "assistant");
 installPremiumUxModePresenter({ document });
+installTouristContextBottomSheet({ document, window });
 const publicOnboarding = installPublicOnboarding({ document });
 
 function setV1MapboxCompatibilityAliases(
