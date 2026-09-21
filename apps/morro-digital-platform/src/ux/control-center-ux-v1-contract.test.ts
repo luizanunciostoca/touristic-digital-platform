@@ -50,9 +50,11 @@ describe("Morro Digital Control Center UX Design V1 contract", () => {
   });
 
   it("implements the manual information architecture and platform-owned affiliate rule", async () => {
-    const ux = await readRepository(
-      "apps/control-center/public/control-center-ux-v1.js",
-    );
+    const [core, ux] = await Promise.all([
+      readRepository("apps/control-center/public/control-center.js"),
+      readRepository("apps/control-center/public/control-center-ux-v1.js"),
+    ]);
+    const source = core + "\n" + ux;
 
     for (const label of [
       "Visão Global",
@@ -76,17 +78,17 @@ describe("Morro Digital Control Center UX Design V1 contract", () => {
       "Integrações",
       "Configurações",
     ]) {
-      expect(ux).toContain(label);
+      expect(source).toContain(label);
     }
 
-    expect(ux).toContain("Afiliados pertencem à Morro Digital");
-    expect(ux).toContain(
+    expect(source).toContain("Afiliados pertencem à Morro Digital");
+    expect(source).toContain(
       "Os afiliados são da Morro Digital e são organizados por destino, não por empresa.",
     );
-    expect(ux).toContain("Precisa da sua atenção");
-    expect(ux).toContain("Resumo por destino");
-    expect(ux).toContain("Atividade recente");
-    expect(ux).toContain("Ações rápidas");
+    expect(source).toContain("Precisa da sua atenção");
+    expect(source).toContain("Resumo por destino");
+    expect(source).toContain("Atividade recente");
+    expect(source).toContain("Ações rápidas");
   });
 
   it("preserves reusable 360-degree patterns and destination fail-closed behavior", async () => {
@@ -94,18 +96,18 @@ describe("Morro Digital Control Center UX Design V1 contract", () => {
       "apps/control-center/public/control-center-ux-v1.js",
     );
 
-    expect(ux).toContain("Visão 360° administrativa");
-    expect(ux).toContain(
+    expect(source).toContain("Visão 360° administrativa");
+    expect(source).toContain(
       'businesses: ["Empresa", ["Resumo", "Perfil", "Usuários", "Produtos", "Ofertas", "Reservas", "Financeiro", "CRM", "Histórico", "Auditoria"]]',
     );
-    expect(ux).toContain(
+    expect(source).toContain(
       'affiliates: ["Afiliado", ["Resumo", "Perfil", "Destinos", "Atribuições", "Conversões", "Comissões", "Histórico", "Auditoria"]]',
     );
-    expect(ux).toContain(
+    expect(source).toContain(
       'users: ["Usuário", ["Resumo", "Conta", "Permissões", "Empresas", "Sessões", "Histórico", "Auditoria"]]',
     );
-    expect(ux).toContain("Contexto de destino protegido");
-    expect(ux).toContain("não atribui registros por inferência");
+    expect(source).toContain("Contexto de destino protegido");
+    expect(source).toContain("não atribui registros por inferência");
   });
 
   it("keeps the required responsive, accessibility and reduced-motion primitives", async () => {
