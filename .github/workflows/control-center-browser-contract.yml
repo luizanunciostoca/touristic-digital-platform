@@ -187,7 +187,7 @@ jobs:
               if (!actor?.includes('PLATFORM_OWNER')) {
                 throw new Error(`PLATFORM_OWNER actor projection missing: ${actor}`);
               }
-              await page.getByRole('heading', { name: 'Visão Geral' }).waitFor();
+              await page.getByRole('heading', { name: /^Bom dia,/ }).waitFor();
               evidence.login = 'PLATFORM_OWNER';
 
               const csrfToken = await page.evaluate(() => sessionStorage.getItem('md_dashboard_csrf'));
