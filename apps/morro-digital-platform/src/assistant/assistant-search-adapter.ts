@@ -8,6 +8,7 @@ import {
   createSearchPresentationRows,
   formatSearchResultText,
   getSearchPresentationCopy,
+  isLikelyV1PlaceQuery,
   morroV1SearchCatalog,
   type MapboxSearchResult,
   type MorroV1SearchCatalogItem,
@@ -58,8 +59,24 @@ export function createAssistantSearchHandler(
 ): AssistantDialogIntentHandler {
   const fetchImplementation = options.fetch ?? globalThis.fetch;
   const token = options.mapboxAccessToken?.trim();
-  const externalProvider = token
+  const mapboxProvider = token
     ? createMapboxSearchProvider({ token, fetch: fetchImplementation })
+    : undefined;
+  let externalProviderFailed = false;
+  const externalProvider = mapboxProvider
+    ? {
+        async search(
+          query: string,
+          searchOptions?: Parameters<typeof mapboxProvider.search>[1],
+        ) {
+          try {
+            return await mapboxProvider.search(query, searchOptions);
+          } catch (error) {
+            externalProviderFailed = true;
+            throw error;
+          }
+        },
+      }
     : undefined;
   const application = createSearchApplication({
     catalog: morroV1SearchCatalog,
@@ -70,7 +87,12 @@ export function createAssistantSearchHandler(
     const query = request.intent.entities.searchQuery ?? request.input;
     const language = request.intent.entities.language ?? "pt";
     const copy = getSearchPresentationCopy(language);
+    externalProviderFailed = false;
     const result = await application.search(query, { language });
+    const providerUnavailable =
+      result.source === "none" &&
+      isLikelyV1PlaceQuery(query) &&
+      (!externalProvider || externalProviderFailed);
 
     const items: readonly SearchPresentationItem[] =
       result.source === "local"
@@ -105,6 +127,11 @@ export function createAssistantSearchHandler(
     const exploreCommand = Object.freeze({
       type: "show_search_results" as const,
       query,
+      status: providerUnavailable
+        ? ("error" as const)
+        : exploreResults.length === 0
+          ? ("empty" as const)
+          : ("ready" as const),
       results: Object.freeze(exploreResults),
     });
 
@@ -113,7 +140,7 @@ export function createAssistantSearchHandler(
         text: copy.empty,
         metadata: {
           domain: "search",
-          state: "empty",
+          state: providerUnavailable ? "provider_unavailable" : "empty",
           query,
           language,
           deterministic: true,
