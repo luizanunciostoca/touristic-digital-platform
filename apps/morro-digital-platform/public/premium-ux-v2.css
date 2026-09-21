@@ -135,6 +135,16 @@ body[data-md-mode] {
   font-family: var(--md-font-family-sans);
 }
 
+/* Keep the Assistant trigger inside the safe inline edge across responsive scaling. */
+.quick-actions {
+  left: max(var(--md-safe-left, 0rem), var(--md-space-3, 0.75rem)) !important;
+}
+
+.quick-actions .action-button.primary.mood-button,
+.quick-actions .mood-button {
+  transform-origin: left center;
+}
+
 /* Onboarding completion toast — shared V2 primitive over frozen V1 evidence. */
 #tour-finish-toast.md-toast {
   z-index: var(--md-layer-toast);

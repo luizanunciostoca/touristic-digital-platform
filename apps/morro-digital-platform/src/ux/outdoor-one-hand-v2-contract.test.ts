@@ -38,6 +38,10 @@ describe("Outdoor and one-hand UX V2 contract", () => {
     );
     expect(css).toContain("z-index: var(--md-layer-navigation)");
     expect(css).toContain("min-height: 3rem");
+    expect(css).toContain(
+      "left: max(var(--md-safe-left, 0rem), var(--md-space-3, 0.75rem)) !important;",
+    );
+    expect(css).toContain("transform-origin: left center");
   });
 
   it("raises Tour and contextual action readability without editing legacy", async () => {
