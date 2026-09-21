@@ -365,6 +365,164 @@ describe("Control Center Admin API", () => {
     });
   });
 
+  it("cancels only held reservations behind step-up and owner authority", async () => {
+    const calls = [];
+    const reservations = {
+      async readReservation(reservationId) {
+        return {
+          status: "found",
+          data: {
+            reservation: {
+              id: reservationId,
+              status: "held",
+            },
+          },
+        };
+      },
+      async cancelHeldReservation(input) {
+        calls.push(input);
+        return {
+          status: "updated",
+          data: {
+            previousState: { id: input.reservationId, status: "held" },
+            newState: { id: input.reservationId, status: "cancelled" },
+            replayed: false,
+          },
+        };
+      },
+    };
+    const { api } = fixture(platformOwner, {
+      domainAdapters: { reservations },
+    });
+    const path = "/api/admin/v1/reservations/trv_admin_held_0001/cancel";
+
+    const withoutStepUp = responseRecorder();
+    await api.handle(
+      request(path, {
+        method: "POST",
+        body: {
+          reason: "Cancelar hold solicitado antes da confirmação financeira",
+          confirmation: "CANCELAR RESERVA",
+        },
+      }),
+      withoutStepUp,
+      new URL("http://localhost" + path),
+    );
+    expect(withoutStepUp.statusCode).toBe(403);
+    expect(JSON.parse(withoutStepUp.body).error).toBe("STEP_UP_REQUIRED");
+    expect(calls).toHaveLength(0);
+
+    const stepUp = responseRecorder();
+    await api.handle(
+      request("/api/admin/v1/step-up", {
+        method: "POST",
+        body: { password: "fixture-secret" },
+      }),
+      stepUp,
+      new URL("http://localhost/api/admin/v1/step-up"),
+    );
+    const cookie = String(stepUp.headers.get("set-cookie")).split(";", 1)[0];
+
+    const wrongConfirmation = responseRecorder();
+    await api.handle(
+      request(path, {
+        method: "POST",
+        headers: { cookie },
+        body: {
+          reason: "Cancelar hold solicitado antes da confirmação financeira",
+          confirmation: "CANCELAR",
+        },
+      }),
+      wrongConfirmation,
+      new URL("http://localhost" + path),
+    );
+    expect(wrongConfirmation.statusCode).toBe(400);
+    expect(JSON.parse(wrongConfirmation.body).error).toBe(
+      "TEXT_CONFIRMATION_REQUIRED",
+    );
+    expect(calls).toHaveLength(0);
+
+    const cancelled = responseRecorder();
+    await api.handle(
+      request(path, {
+        method: "POST",
+        headers: { cookie },
+        body: {
+          reason: "Cancelar hold solicitado antes da confirmação financeira",
+          confirmation: "CANCELAR RESERVA",
+        },
+      }),
+      cancelled,
+      new URL("http://localhost" + path),
+    );
+    expect(cancelled.statusCode).toBe(200);
+    expect(JSON.parse(cancelled.body)).toMatchObject({
+      data: {
+        previousState: { status: "held" },
+        newState: { status: "cancelled" },
+      },
+    });
+    expect(calls).toEqual([
+      {
+        reservationId: "trv_admin_held_0001",
+        actorReference: "platform-owner",
+      },
+    ]);
+  });
+
+  it("rejects administrative cancellation after a reservation leaves held state", async () => {
+    const calls = [];
+    const { api } = fixture(platformOwner, {
+      domainAdapters: {
+        reservations: {
+          async readReservation(reservationId) {
+            return {
+              status: "found",
+              data: {
+                reservation: { id: reservationId, status: "confirmed" },
+              },
+            };
+          },
+          async cancelHeldReservation(input) {
+            calls.push(input);
+            return { status: "updated", data: {} };
+          },
+        },
+      },
+    });
+
+    const stepUp = responseRecorder();
+    await api.handle(
+      request("/api/admin/v1/step-up", {
+        method: "POST",
+        body: { password: "fixture-secret" },
+      }),
+      stepUp,
+      new URL("http://localhost/api/admin/v1/step-up"),
+    );
+    const cookie = String(stepUp.headers.get("set-cookie")).split(";", 1)[0];
+    const path = "/api/admin/v1/reservations/trv_admin_confirmed_0001/cancel";
+    const response = responseRecorder();
+    await api.handle(
+      request(path, {
+        method: "POST",
+        headers: { cookie },
+        body: {
+          reason: "Tentativa deve respeitar o estado owner confirmado",
+          confirmation: "CANCELAR RESERVA",
+        },
+      }),
+      response,
+      new URL("http://localhost" + path),
+    );
+
+    expect(response.statusCode).toBe(409);
+    expect(JSON.parse(response.body).error).toBe(
+      "TICKETING_RESERVATION_NOT_HELD",
+    );
+    expect(calls).toHaveLength(0);
+  });
+
   it("fails closed when a domain admin contract is not registered", async () => {
     const { api } = fixture();
     const response = responseRecorder();

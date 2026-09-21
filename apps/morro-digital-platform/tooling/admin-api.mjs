@@ -928,6 +928,188 @@ export function createAdminApi({
     return true;
   }
 
+  async function handleReservationCriticalAction(
+    request,
+    response,
+    requestUrl,
+  ) {
+    const match =
+      /^\/api\/admin\/v1\/reservations\/([^/]+)\/cancel$/u.exec(
+        requestUrl.pathname,
+      );
+    if (!match) return false;
+    if (request.method !== "POST") {
+      json(response, 405, { error: "METHOD_NOT_ALLOWED" });
+      return true;
+    }
+
+    let reservationId;
+    try {
+      reservationId = decodeURIComponent(match[1]);
+    } catch {
+      json(response, 400, { error: "INVALID_RESERVATION_ID" });
+      return true;
+    }
+
+    const actor = await requireCapability(
+      request,
+      response,
+      "ticketing.manage",
+      { mutation: true },
+    );
+    if (!actor) return true;
+
+    const requestSecurity = authApi.authorizeMutation(
+      request,
+      actor,
+      "control-center.reservations.cancel",
+    );
+    if (!requestSecurity.allowed) {
+      await audit(request, actor, {
+        action: "reservations.cancel",
+        result: "denied",
+        reason: requestSecurity.reason,
+        entityType: "reservation",
+        entityId: reservationId,
+      });
+      json(response, 403, {
+        error:
+          requestSecurity.reason === "invalid_csrf"
+            ? "INVALID_CSRF"
+            : "ORIGIN_DENIED",
+      });
+      return true;
+    }
+
+    const support = supportContext(request, actor);
+    if (support) {
+      await audit(request, actor, {
+        action: "reservations.cancel",
+        result: "denied",
+        reason: "support_mode_critical_action_denied",
+        effectiveUserId: support.effectiveUser?.id ?? null,
+        entityType: "reservation",
+        entityId: reservationId,
+      });
+      json(response, 403, { error: "SUPPORT_MODE_CRITICAL_ACTION_DENIED" });
+      return true;
+    }
+
+    if (!stepUpContext(request, actor)) {
+      await audit(request, actor, {
+        action: "reservations.cancel",
+        result: "denied",
+        reason: "step_up_required",
+        entityType: "reservation",
+        entityId: reservationId,
+      });
+      json(response, 403, { error: "STEP_UP_REQUIRED" });
+      return true;
+    }
+
+    let body;
+    try {
+      body = await readJsonBody(request);
+    } catch {
+      json(response, 400, { error: "INVALID_REQUEST" });
+      return true;
+    }
+    const reason = safeReason(body?.reason);
+    if (!reason) {
+      json(response, 400, { error: "REASON_REQUIRED" });
+      return true;
+    }
+    if (body?.confirmation !== "CANCELAR RESERVA") {
+      await audit(request, actor, {
+        action: "reservations.cancel",
+        result: "denied",
+        reason: "text_confirmation_required",
+        entityType: "reservation",
+        entityId: reservationId,
+      });
+      json(response, 400, {
+        error: "TEXT_CONFIRMATION_REQUIRED",
+        expected: "CANCELAR RESERVA",
+      });
+      return true;
+    }
+
+    const adapter = domainAdapters.reservations;
+    if (!adapter?.readReservation || !adapter?.cancelHeldReservation) {
+      json(response, 501, {
+        error: "DOMAIN_ADMIN_CONTRACT_NOT_REGISTERED",
+        domain: "reservations",
+        invariant: "NO_DIRECT_TABLE_BYPASS",
+      });
+      return true;
+    }
+
+    const current = await adapter.readReservation(reservationId);
+    if (current?.status === "not_found") {
+      json(response, 404, { error: "RESERVATION_NOT_FOUND" });
+      return true;
+    }
+    if (current?.status !== "found" || !current.data?.reservation) {
+      json(response, 503, {
+        error: current?.error || "TICKETING_ADMIN_UNAVAILABLE",
+      });
+      return true;
+    }
+    if (current.data.reservation.status !== "held") {
+      json(response, 409, { error: "TICKETING_RESERVATION_NOT_HELD" });
+      return true;
+    }
+
+    const attemptAudited = await audit(request, actor, {
+      action: "reservations.cancel.attempt",
+      result: "attempt",
+      entityType: "reservation",
+      entityId: reservationId,
+      reason,
+      previousState: current.data.reservation,
+    });
+    if (!attemptAudited) {
+      json(response, 503, { error: "ADMIN_AUDIT_UNAVAILABLE" });
+      return true;
+    }
+
+    const result = await adapter.cancelHeldReservation({
+      reservationId,
+      actorReference: actor.subject,
+    });
+    if (result?.status === "not_found") {
+      json(response, 404, { error: "RESERVATION_NOT_FOUND" });
+    } else if (result?.status === "conflict") {
+      json(response, 409, {
+        error: result.error || "TICKETING_RESERVATION_NOT_HELD",
+      });
+    } else if (result?.status === "invalid") {
+      json(response, 400, {
+        error: result.error || "INVALID_RESERVATION_MUTATION",
+      });
+    } else if (result?.status !== "updated") {
+      json(response, 503, {
+        error: result?.error || "TICKETING_ADMIN_UNAVAILABLE",
+      });
+    } else {
+      json(response, 200, { data: result.data });
+    }
+
+    await audit(request, actor, {
+      action: "reservations.cancel.complete",
+      result:
+        response.statusCode >= 200 && response.statusCode < 400
+          ? "success"
+          : "failure",
+      entityType: "reservation",
+      entityId: reservationId,
+      reason,
+      previousState: result?.data?.previousState ?? current.data.reservation,
+      newState: result?.data?.newState ?? null,
+    });
+    return true;
+  }
+
   async function handleAffiliateCriticalAction(request, response, requestUrl) {
     const match =
       /^\/api\/admin\/v1\/affiliates\/(aff_[A-Za-z0-9._:-]{8,116})\/memberships\/([A-Za-z0-9._:-]{2,120})\/(suspend|reactivate)$/u.exec(
@@ -1666,6 +1848,12 @@ export function createAdminApi({
           health: platformOperations.healthSnapshot(request.morroCorrelationId),
           secrets: "redacted",
         });
+        return;
+      }
+
+      if (
+        await handleReservationCriticalAction(request, response, requestUrl)
+      ) {
         return;
       }
 

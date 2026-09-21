@@ -803,6 +803,14 @@ describe("Control Center Products and Reservations owner adapters", () => {
           events: [{ eventType: "confirmed" }],
         },
       })),
+      adminCancelHeldReservation: vi.fn(async (input) => ({
+        status: "updated",
+        data: {
+          previousState: { id: input.reservationId, status: "held" },
+          newState: { id: input.reservationId, status: "cancelled" },
+          replayed: false,
+        },
+      })),
     };
     const adapter = createReservationsAdminAdapter(ticketingApi);
     const response = responseCapture();
@@ -835,5 +843,24 @@ describe("Control Center Products and Reservations owner adapters", () => {
         href: "#reservations:trv_admin_0001",
       }),
     ]);
+
+    await expect(
+      adapter.cancelHeldReservation({
+        reservationId: "trv_admin_0002",
+        actorReference: "platform-owner",
+      }),
+    ).resolves.toMatchObject({
+      status: "updated",
+      data: {
+        previousState: { status: "held" },
+        newState: { status: "cancelled" },
+      },
+    });
+    expect(ticketingApi.adminCancelHeldReservation).toHaveBeenCalledWith(
+      expect.objectContaining({
+        reservationId: "trv_admin_0002",
+        actorReference: "platform-owner",
+      }),
+    );
   });
 });

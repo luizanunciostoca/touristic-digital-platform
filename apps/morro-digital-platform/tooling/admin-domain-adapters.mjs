@@ -392,14 +392,15 @@ export function createProductsAdminAdapter(ticketingApi) {
 export function createReservationsAdminAdapter(ticketingApi) {
   if (
     !ticketingApi?.adminListReservations ||
-    !ticketingApi?.adminReadReservation
+    !ticketingApi?.adminReadReservation ||
+    !ticketingApi?.adminCancelHeldReservation
   ) {
     throw new Error("RESERVATIONS_ADMIN_OWNER_BOUNDARY_REQUIRED");
   }
   const detailPattern =
     /^\/api\/admin\/v1\/reservations\/([A-Za-z0-9._:-]{2,120})$/u;
   return Object.freeze({
-    state: "partial",
+    state: "available",
     coverage: Object.freeze([
       "list",
       "search",
@@ -410,7 +411,18 @@ export function createReservationsAdminAdapter(ticketingApi) {
       "order-relation",
       "payment-relation",
       "history",
+      "cancel-held",
     ]),
+    async readReservation(reservationId) {
+      return ticketingApi.adminReadReservation(reservationId);
+    },
+    async cancelHeldReservation({ reservationId, actorReference }) {
+      return ticketingApi.adminCancelHeldReservation({
+        reservationId,
+        cancelledAt: new Date().toISOString(),
+        actorReference,
+      });
+    },
     async search({ query }) {
       const result = await ticketingApi.adminListReservations({
         query,
