@@ -234,6 +234,7 @@ jobs:
                     specialty: 'Sunset',
                     description: 'Perfil Control Center E2E',
                     cta: 'Ver empresa',
+                    destinationId: 'morro-de-sao-paulo',
                     locationLabel: 'Morro de São Paulo',
                   },
                 },
