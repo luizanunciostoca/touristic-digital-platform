@@ -45,6 +45,15 @@ interface ReconciliationFindingRow extends RowDataPacket {
   resolved_at: Date | string | null;
 }
 
+interface PendingReviewFindingRow extends ReconciliationFindingRow {
+  total_count: number | string;
+}
+
+export interface PendingReviewFindingPage {
+  readonly findings: readonly ReconciliationFinding[];
+  readonly total: number;
+}
+
 const runColumns = `
   reconciliation_run_id, payment_id, snapshot_hash,
   observed_at, recorded_at, finding_count
@@ -193,6 +202,53 @@ export class MySqlFinancialReconciliationRepository implements FinancialReconcil
   }
 
   constructor(private readonly pool: Pool) {}
+
+  async listPendingReviewByPaymentIds(
+    paymentIdsInput: readonly unknown[],
+    limitInput = 100,
+  ): Promise<PendingReviewFindingPage> {
+    if (!Array.isArray(paymentIdsInput) || paymentIdsInput.length > 500) {
+      throw new Error("FINANCIAL_ADMIN_PAYMENT_BATCH_INVALID");
+    }
+    if (
+      !Number.isInteger(limitInput) ||
+      limitInput < 1 ||
+      limitInput > 100
+    ) {
+      throw new Error("FINANCIAL_ADMIN_FINDING_LIMIT_INVALID");
+    }
+    const paymentIds = [
+      ...new Set(
+        paymentIdsInput.map((value) => {
+          const id = normalizePaymentId(value);
+          if (!id) throw new Error("FINANCIAL_INVALID_PAYMENT_ID");
+          return id;
+        }),
+      ),
+    ];
+    if (paymentIds.length === 0) {
+      return Object.freeze({ findings: Object.freeze([]), total: 0 });
+    }
+
+    const placeholders = paymentIds.map(() => "?").join(", ");
+    const [rows] = await this.pool.execute<PendingReviewFindingRow[]>(
+      `SELECT ${findingSelectColumns},
+              COUNT(*) OVER() AS total_count
+       FROM financial_reconciliation_findings f
+       WHERE f.payment_id IN (${placeholders})
+         AND f.state = 'open'
+       ORDER BY (f.severity = 'critical') DESC,
+                f.last_seen_at DESC,
+                f.reconciliation_finding_id
+       LIMIT ?`,
+      [...paymentIds, limitInput],
+    );
+    const findings = Object.freeze(rows.map(findingFromRow));
+    return Object.freeze({
+      findings,
+      total: rows[0] ? Number(rows[0].total_count) : 0,
+    });
+  }
 
   async record(input: {
     readonly run: ReconciliationRun;
