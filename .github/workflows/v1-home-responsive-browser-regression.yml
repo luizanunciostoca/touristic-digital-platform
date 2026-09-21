@@ -479,7 +479,11 @@ jobs:
 
                 if (
                   state.rootWidth > viewport.width + 1 ||
-                  state.bodyWidth > viewport.width + 1 ||
+                  state.bodyWidth > viewport.width + 1
+                ) {
+                  throw new Error(`Device matrix horizontal overflow on ${viewport.name}: ${JSON.stringify(state)}`);
+                }
+                if (
                   !contains(state.header, state.headerTitle) ||
                   !contains(state.header, state.headline) ||
                   overlaps(state.header, state.weather) ||
