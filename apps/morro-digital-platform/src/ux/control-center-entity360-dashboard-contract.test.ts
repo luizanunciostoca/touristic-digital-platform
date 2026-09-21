@@ -30,7 +30,7 @@ describe("Control Center high-information administrative surfaces", () => {
 
   it("uses only canonical relation identifiers and never infers Business ownership from an entity substring", () => {
     expect(source).not.toContain("includes(businessId)");
-    expect(source).toContain("relatedBusinessEntityIds.has(entry.entityId)");
+    expect(source).toContain("relatedEntityIds.has(entry.entityId)");
     expect(source).toContain("entry.tenantId === relation.id");
     expect(source).toContain('href="#users:${encodeURIComponent(member.id)}"');
     expect(source).toContain(
