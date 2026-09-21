@@ -521,7 +521,7 @@ jobs:
               const partialContext = await browser.newContext({
                 viewport: { width: 1280, height: 900 },
               });
-              await apiLogin(partialContext, 'platform-owner-users@example.com');
+              await apiLogin(partialContext, 'platform-owner@example.com');
               const partialPage = await partialContext.newPage();
               await partialPage.route(
                 url => url.pathname === '/api/admin/v1/destinations',
