@@ -76,21 +76,21 @@ describe("Tourist Surface Bottom Sheet V2", () => {
   it(
     "keeps mobile sheets safe-area aware scroll-contained and reduced-motion compatible",
     async () => {
-    const [assistantCss, premiumCss] = await Promise.all([
-      readPublic("assistant-v2.css"),
-      readPublic("premium-ux-v2.css"),
-    ]);
+      const [assistantCss, premiumCss] = await Promise.all([
+        readPublic("assistant-v2.css"),
+        readPublic("premium-ux-v2.css"),
+      ]);
 
-    expect(assistantCss).toContain(".md-tourist-surface-sheet");
-    expect(assistantCss).toContain('data-sheet-state="peek"');
-    expect(assistantCss).toContain('data-sheet-state="half"');
-    expect(assistantCss).toContain('data-sheet-state="full"');
-    expect(assistantCss).toContain("var(--md-safe-left)");
-    expect(assistantCss).toContain("var(--md-safe-right)");
-    expect(assistantCss).toContain("var(--md-safe-bottom)");
-    expect(assistantCss).toContain("overscroll-behavior: contain");
-    expect(assistantCss).toContain("touch-action: none");
-    expect(premiumCss).toContain("@media (prefers-reduced-motion: reduce)");
+      expect(assistantCss).toContain(".md-tourist-surface-sheet");
+      expect(assistantCss).toContain('data-sheet-state="peek"');
+      expect(assistantCss).toContain('data-sheet-state="half"');
+      expect(assistantCss).toContain('data-sheet-state="full"');
+      expect(assistantCss).toContain("var(--md-safe-left)");
+      expect(assistantCss).toContain("var(--md-safe-right)");
+      expect(assistantCss).toContain("var(--md-safe-bottom)");
+      expect(assistantCss).toContain("overscroll-behavior: contain");
+      expect(assistantCss).toContain("touch-action: none");
+      expect(premiumCss).toContain("@media (prefers-reduced-motion: reduce)");
       expect(premiumCss).toContain(".md-bottom-sheet");
     },
   );
