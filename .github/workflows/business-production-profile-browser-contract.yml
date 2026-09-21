@@ -86,7 +86,7 @@ jobs:
               if (login.status() !== 200 || !loginBody.csrfToken) throw new Error('Authenticated setup failed');
               const seed = await context.request.put(`${origin}/api/business/toca-do-morcego/profile`, {
                 headers: { Origin: origin, 'Content-Type': 'application/json', 'X-CSRF-Token': loginBody.csrfToken },
-                data: { id:'toca-do-morcego', name:'Toca do Morcego', categoryLabel:'Experiência', specialty:'Sunset', description:'Experiência ao pôr do sol', cta:'Ver empresa', locationLabel:'Morro de São Paulo', locationIsExample:false, tutorial:false, excludeFromBusinessMetrics:false, promotion:{id:'sunset',title:'Sunset especial',description:'Experiência promocional',cta:'Ver oferta',validUntil:'2026-12-31'} }
+                data: { id:'toca-do-morcego', name:'Toca do Morcego', categoryLabel:'Experiência', specialty:'Sunset', description:'Experiência ao pôr do sol', cta:'Ver empresa', destinationId:'morro-de-sao-paulo', locationLabel:'Morro de São Paulo', locationIsExample:false, tutorial:false, excludeFromBusinessMetrics:false, promotion:{id:'sunset',title:'Sunset especial',description:'Experiência promocional',cta:'Ver oferta',validUntil:'2026-12-31'} }
               });
               if (seed.status() !== 200) throw new Error(`Profile seed failed: ${seed.status()}`);
               await page.exposeFunction('recordProfileAction', detail => evidence.actions.push(detail.action));
