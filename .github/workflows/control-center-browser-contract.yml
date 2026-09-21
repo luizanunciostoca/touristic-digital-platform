@@ -217,6 +217,10 @@ jobs:
                 .fill('Revogação E2E de sessão administrativa comprometida');
               await page.locator('#session-revoke-confirmation').fill('REVOGAR');
               await page.getByRole('button', { name: 'Revogar sessão' }).click();
+              await page
+                .locator('[data-entity-tabs="user360"]')
+                .getByRole('tab', { name: 'Activity' })
+                .click();
               await page.getByText('revogada', { exact: true }).waitFor({ timeout: 15000 });
 
               const revokedBusinessSession = await revocableBusinessContext.request.get(
