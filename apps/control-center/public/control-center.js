@@ -937,7 +937,7 @@ async function renderDestinations(destinationId) {
 }
 
 async function renderBusinesses(businessId) {
-  const data = await api("/businesses");
+  const data = await api(`/businesses?limit=100${selectedDestinationQuery()}`);
   if (businessId) {
     const business = data.businesses.find((entry) => entry.id === businessId);
     if (!business) throw new Error("BUSINESS_NOT_FOUND");
@@ -1052,6 +1052,7 @@ async function renderBusinesses(businessId) {
           </div>
           <div class="module-list">
             <div class="module-row"><span>Perfil</span>${statusBadge(profile ? "available" : "partial")}</div>
+            <div class="module-row"><span>Destino</span><strong>${escapeHtml(profile?.destinationId ?? "não atribuído")}</strong></div>
             <div class="module-row"><span>Produtos e ofertas</span>${productsResult.available ? `<strong>${escapeHtml(products.length)}</strong>` : statusBadge("unavailable")}</div>
             <div class="module-row"><span>Reservas</span>${reservationsResult.available ? `<strong>${escapeHtml(reservations.length)}</strong>` : statusBadge("unavailable")}</div>
             <div class="module-row"><span>Pedidos relacionados</span><strong>${escapeHtml(orders.filter(Boolean).length)}</strong></div>
@@ -1133,24 +1134,26 @@ async function renderBusinesses(businessId) {
   content.innerHTML = `
     <div class="callout">
       <strong>Fronteira preservada:</strong>
-      o diretório vem do Identity; cada visão 360º compõe apenas contratos owner
-      registrados para aquele tenant.
+      o diretório vem do Identity; o destino vem exclusivamente do perfil owner
+      da empresa e nunca é inferido a partir de texto de localização.
+      ${data.destinationScope === "unavailable" ? "<br><strong>Contexto de destino indisponível:</strong> a lista permanece fechada até o owner expor a relação canônica." : ""}
     </div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Business ID</th><th>Membros</th><th>Fonte</th><th>Visão 360º</th></tr></thead>
+        <thead><tr><th>Empresa</th><th>Destino</th><th>Membros</th><th>Fonte</th><th>Visão 360º</th></tr></thead>
         <tbody>
           ${data.businesses
             .map(
               (business) =>
                 `<tr>
-                  <td><strong>${escapeHtml(business.id)}</strong></td>
+                  <td><strong>${escapeHtml(business.name ?? business.id)}</strong><br><small>${escapeHtml(business.id)}</small></td>
+                  <td>${business.destinationId ? `<span class="badge">${escapeHtml(business.destinationId)}</span>` : statusBadge("partial")}</td>
                   <td>${business.members.map((member) => escapeHtml(member.email)).join("<br>")}</td>
                   <td>${escapeHtml(business.source)}</td>
                   <td><a href="#businesses:${encodeURIComponent(business.id)}">Abrir empresa</a></td>
                 </tr>`,
             )
-            .join("")}
+            .join("") || '<tr><td colspan="5" class="empty">Nenhuma empresa no contexto de destino selecionado.</td></tr>'}
         </tbody>
       </table>
     </div>`;
@@ -1492,7 +1495,7 @@ async function renderAffiliates(affiliateId) {
 }
 
 async function renderCrm() {
-  const data = await api("/crm/leads?limit=100");
+  const data = await api(`/crm/leads?limit=100${selectedDestinationQuery()}`);
   const leads = Array.isArray(data.data) ? data.data : [];
   content.innerHTML = `
     <div class="callout">
