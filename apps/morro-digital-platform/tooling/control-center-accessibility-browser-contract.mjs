@@ -19,13 +19,15 @@ async function main() {
   const evidence = [];
   let currentView = "__bootstrap__";
   let stage = "bootstrap";
+  let page = null;
   try {
+    stage = "browser-context";
     const context = await browser.newContext({
       viewport: { width: 1280, height: 900 },
-      // Axe is injected only by this headless audit harness. Keep the product CSP
-      // unchanged and bypass it solely inside Playwright so the audit can run.
-      bypassCSP: true,
     });
+    stage = "axe-register";
+    await context.addInitScript({ path: axePath });
+    stage = "login";
     const login = await context.request.post(
       `${origin}/api/dashboard/auth/login`,
       {
@@ -35,14 +37,21 @@ async function main() {
     );
     if (login.status() !== 200) throw new Error("OWNER_LOGIN_FAILED");
 
-    const page = await context.newPage();
+    stage = "page-create";
+    page = await context.newPage();
+    stage = "page-goto";
     await page.goto(
       `${origin}/apps/control-center/public/index.html#overview`,
       { waitUntil: "domcontentloaded", timeout: 30_000 },
     );
+    stage = "app-ready";
     await page.locator("#app:not([hidden])").waitFor({ timeout: 15_000 });
-    await page.addScriptTag({ path: axePath });
+    stage = "axe-ready";
+    await page.waitForFunction(() => Boolean(globalThis.axe), null, {
+      timeout: 10_000,
+    });
 
+    stage = "nav-discovery";
     const views = await page
       .locator("#main-nav [data-view]")
       .evaluateAll((nodes) => nodes.map((node) => node.dataset.view));
@@ -50,35 +59,57 @@ async function main() {
     for (const view of views) {
       currentView = view ?? "__unknown__";
       stage = "navigate";
-      await page.evaluate((target) => {
-        location.hash = `#${target}`;
-      }, view);
-      await page.waitForFunction(
-        (target) =>
-          location.hash === `#${target}` &&
-          !document
-            .querySelector("#content")
-            ?.textContent?.includes("Carregando"),
-        view,
-        { timeout: 15_000 },
-      );
+      await page.locator(`#main-nav [data-view="${view}"]`).click();
+      await page.waitForURL((url) => url.hash === `#${view}`, {
+        timeout: 30_000,
+      });
+      await page
+        .locator(`#content[data-rendered-view="${view}"][aria-busy="false"]`)
+        .waitFor({ state: "attached", timeout: 30_000 });
 
       stage = "axe";
-      const violations = await page.evaluate(async () => {
+      const accessibility = await page.evaluate(async () => {
         const result = await globalThis.axe.run(document, {
           runOnly: {
             type: "tag",
             values: ["wcag2a", "wcag2aa", "wcag21aa"],
           },
         });
-        return result.violations.map((violation) => ({
-          id: violation.id,
-          impact: violation.impact,
-          help: violation.help,
-          nodes: violation.nodes.slice(0, 8).map((node) => node.target),
-        }));
+        const describe = (element) => {
+          if (!(element instanceof HTMLElement)) return null;
+          const style = getComputedStyle(element);
+          return {
+            clientWidth: element.clientWidth,
+            clientHeight: element.clientHeight,
+            scrollWidth: element.scrollWidth,
+            scrollHeight: element.scrollHeight,
+            overflowX: style.overflowX,
+            overflowY: style.overflowY,
+            tabIndex: element.tabIndex,
+          };
+        };
+        return {
+          layout: {
+            root: describe(document.documentElement),
+            body: describe(document.body),
+            app: describe(document.querySelector("#app")),
+            main: describe(document.querySelector(".main")),
+            page: describe(document.querySelector(".page")),
+            content: describe(document.querySelector("#content")),
+          },
+          violations: result.violations.map((violation) => ({
+            id: violation.id,
+            impact: violation.impact,
+            help: violation.help,
+            nodes: violation.nodes.slice(0, 8).map((node) => ({
+              target: node.target,
+              html: node.html,
+              failureSummary: node.failureSummary,
+            })),
+          })),
+        };
       });
-      evidence.push({ view, violations });
+      evidence.push({ view, ...accessibility });
       persistEvidence(evidence);
     }
 
@@ -86,20 +117,40 @@ async function main() {
 
     const failures = evidence.filter((entry) => entry.violations.length > 0);
     if (failures.length) {
-      console.error(
-        "CONTROL_CENTER_ACCESSIBILITY_VIOLATIONS",
-        JSON.stringify(failures, null, 2),
-      );
       throw new Error("ACCESSIBILITY_VIOLATIONS");
     }
 
     console.log(`CONTROL_CENTER_ACCESSIBILITY_PASS:${evidence.length}_ROUTES`);
     await context.close();
   } catch (error) {
+    let runtimeState = null;
+    if (page) {
+      runtimeState = await page
+        .evaluate(() => ({
+          hash: location.hash,
+          renderedView:
+            document.querySelector("#content")?.dataset.renderedView ?? null,
+          ariaBusy:
+            document.querySelector("#content")?.getAttribute("aria-busy") ??
+            null,
+          contentText:
+            document
+              .querySelector("#content")
+              ?.textContent?.trim()
+              .slice(0, 500) ?? null,
+          navViews: Array.from(
+            document.querySelectorAll("#main-nav [data-view]"),
+            (node) => node.getAttribute("data-view"),
+          ),
+        }))
+        .catch(() => null);
+    }
     evidence.push({
       view: currentView,
       stage,
       runtimeFailure: error instanceof Error ? error.name : "UnknownError",
+      runtimeMessage: error instanceof Error ? error.message : String(error),
+      runtimeState,
     });
     persistEvidence(evidence);
     throw error;
