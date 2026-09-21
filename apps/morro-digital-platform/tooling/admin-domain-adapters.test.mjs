@@ -196,6 +196,51 @@ describe("Control Center domain support delegation", () => {
     expect(ticketingHandle).toHaveBeenCalledTimes(1);
   });
 
+  it("searches CRM leads through the owner HTTP boundary and preserves support delegation", async () => {
+    const req = request("GET");
+    const { authApi, calls } = supportDelegationBoundary();
+    const crmHandle = vi.fn(async (_request, response, requestUrl) => {
+      expect(requestUrl.pathname).toBe("/api/crm/leads");
+      expect(requestUrl.searchParams.get("search")).toBe("toca");
+      expect(requestUrl.searchParams.get("limit")).toBe("20");
+      response.statusCode = 200;
+      response.setHeader("Content-Type", "application/json");
+      response.end(
+        JSON.stringify({
+          data: [
+            {
+              id: 42,
+              companyName: "Toca do Morcego",
+              contactName: "Operação",
+              email: "crm@example.com",
+              stage: "proposal_sent",
+              status: "active",
+            },
+          ],
+        }),
+      );
+    });
+    const adapter = createCrmAdminAdapter({ handle: crmHandle }, authApi);
+
+    await expect(
+      adapter.search({
+        query: "toca",
+        request: req,
+        effectiveUser: { id: "business-owner" },
+      }),
+    ).resolves.toEqual([
+      expect.objectContaining({
+        type: "crm-lead",
+        id: "42",
+        title: "Toca do Morcego",
+        href: "#crm",
+      }),
+    ]);
+    expect(calls).toEqual([
+      { request: req, effectiveUserId: "business-owner" },
+    ]);
+  });
+
   it("allows the full governed Ticketing operator route set including offline revoke", async () => {
     const req = request("POST");
     const response = supportResponseRecorder();

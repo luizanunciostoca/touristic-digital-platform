@@ -40,6 +40,23 @@ function notFound(response, error = "ADMIN_ROUTE_NOT_FOUND") {
   response.end(JSON.stringify({ error }));
 }
 
+function jsonCaptureResponse() {
+  const headers = new Map();
+  return {
+    statusCode: 0,
+    body: "",
+    setHeader(name, value) {
+      headers.set(String(name).toLowerCase(), value);
+    },
+    end(value = "") {
+      this.body = String(value);
+    },
+    header(name) {
+      return headers.get(String(name).toLowerCase());
+    },
+  };
+}
+
 export function createAffiliateAdminAdapter(affiliateAdminRuntime) {
   if (
     !affiliateAdminRuntime?.adminList ||
@@ -226,7 +243,7 @@ export function createCrmAdminAdapter(crmApi, authApi) {
   ]);
 
   return Object.freeze({
-    state: "partial",
+    state: "available",
     coverage: Object.freeze([
       "contracts",
       "follow-ups",
@@ -236,7 +253,42 @@ export function createCrmAdminAdapter(crmApi, authApi) {
       "proposals",
       "referrals",
       "trials",
+      "search",
     ]),
+    async search({ query, request, effectiveUser }) {
+      if (!request || !query) return [];
+      const response = jsonCaptureResponse();
+      const requestUrl = new URL("http://localhost/api/crm/leads");
+      requestUrl.searchParams.set("search", query);
+      requestUrl.searchParams.set("limit", "20");
+
+      await withEffectiveUser(delegation, request, effectiveUser, () =>
+        crmApi.handle(request, response, requestUrl),
+      );
+      if (response.statusCode !== 200) return [];
+
+      let payload;
+      try {
+        payload = JSON.parse(response.body || "{}");
+      } catch {
+        return [];
+      }
+      const leads = Array.isArray(payload.data) ? payload.data : [];
+      return Object.freeze(
+        leads.map((lead) =>
+          Object.freeze({
+            type: "crm-lead",
+            id: String(lead.id),
+            title: lead.companyName || String(lead.id),
+            context:
+              [lead.contactName, lead.email, lead.stage, lead.status]
+                .filter(Boolean)
+                .join(" · ") || "CRM",
+            href: "#crm",
+          }),
+        ),
+      );
+    },
     async handle({ request, response, requestUrl, effectiveUser }) {
       const relative = requestUrl.pathname.slice(`${adminPrefix}/crm`.length);
       if (!relative || relative === "/") {

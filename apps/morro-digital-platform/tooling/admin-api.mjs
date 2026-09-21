@@ -2238,9 +2238,15 @@ export function createAdminApi({
               });
             }
           }
+          const support = supportContext(request, actor);
           for (const [domain, adapter] of Object.entries(domainAdapters)) {
             if (typeof adapter?.search !== "function") continue;
-            const domainResults = await adapter.search({ query, actor });
+            const domainResults = await adapter.search({
+              query,
+              actor,
+              request,
+              effectiveUser: support?.effectiveUser ?? null,
+            });
             for (const result of domainResults ?? []) {
               results.push({ ...result, domain });
             }
