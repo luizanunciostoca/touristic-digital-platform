@@ -153,7 +153,10 @@ function setHeading(view) {
 
 function statusBadge(value) {
   const normalized =
-    value === "available" || value === "pass" || value === "success" || value === "active"
+    value === "available" ||
+    value === "pass" ||
+    value === "success" ||
+    value === "active"
       ? "pass"
       : value === "partial" || value === "runtime-projection"
         ? "partial"
@@ -417,7 +420,8 @@ async function renderUsers(userId) {
   );
 }
 async function destinationStepUp(password) {
-  if (!password) throw new Error("Informe sua senha para confirmar a alteração.");
+  if (!password)
+    throw new Error("Informe sua senha para confirmar a alteração.");
   await api("/step-up", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -449,7 +453,9 @@ function destinationPayload(form, id) {
     status: String(values.get("status") || "active"),
     locale: String(values.get("locale") || "").trim(),
     timezone: String(values.get("timezone") || "").trim(),
-    currency: String(values.get("currency") || "").trim().toUpperCase(),
+    currency: String(values.get("currency") || "")
+      .trim()
+      .toUpperCase(),
     branding: {
       name: String(values.get("name") || "").trim(),
       shortName: String(values.get("shortName") || "").trim(),
@@ -518,7 +524,9 @@ async function renderDestinations(destinationId) {
       <strong>Destination Owner:</strong> configuração governada pelo domínio da plataforma.
       O fallback estático público permanece ativo até a qualificação final da projeção dinâmica.
     </div>
-    ${selected ? `
+    ${
+      selected
+        ? `
       <section class="card section-card">
         <div class="section-title">
           <div><h2>${escapeHtml(selected.branding?.name ?? selected.id)}</h2><small>${escapeHtml(selected.id)} · versão ${escapeHtml(selected.version)}</small></div>
@@ -526,7 +534,8 @@ async function renderDestinations(destinationId) {
         </div>
         ${destinationEditor(selected)}
       </section>
-    ` : `
+    `
+        : `
       <section class="card section-card">
         <div class="section-title"><h2>Novo destino</h2></div>
         ${destinationEditor()}
@@ -534,40 +543,62 @@ async function renderDestinations(destinationId) {
       <div class="table-wrap">
         <table>
           <thead><tr><th>Destino</th><th>Status</th><th>Locale</th><th>Timezone</th><th>Versão</th></tr></thead>
-          <tbody>${destinations.map((item) => `<tr>
+          <tbody>${
+            destinations
+              .map(
+                (item) => `<tr>
             <td><a href="#destinations:${encodeURIComponent(item.id)}"><strong>${escapeHtml(item.branding?.name ?? item.id)}</strong></a><br><small>${escapeHtml(item.id)}</small></td>
             <td>${statusBadge(item.status)}</td><td>${escapeHtml(item.locale)}</td>
             <td>${escapeHtml(item.timezone)}</td><td>${escapeHtml(item.version)}</td>
-          </tr>`).join("") || '<tr><td colspan="5" class="empty">Nenhum destino governado disponível.</td></tr>'}</tbody>
+          </tr>`,
+              )
+              .join("") ||
+            '<tr><td colspan="5" class="empty">Nenhum destino governado disponível.</td></tr>'
+          }</tbody>
         </table>
       </div>
-    `}`;
+    `
+    }`;
 
-  document.querySelector("#destination-editor")?.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const form = event.currentTarget;
-    const result = form.querySelector("#destination-editor-result");
-    const submit = form.querySelector('button[type="submit"]');
-    try {
-      const reason = String(new FormData(form).get("reason") ?? "").trim();
-      if (reason.length < 8) throw new Error("Informe um motivo com pelo menos 8 caracteres.");
-      const id = selected?.id ?? String(new FormData(form).get("id") ?? "").trim();
-      const destination = destinationPayload(form, id);
-      submit.disabled = true;
-      result.textContent = "Reautenticando e aplicando alteração…";
-      await destinationStepUp(String(new FormData(form).get("password") ?? ""));
-      await api(selected ? `/destinations/${encodeURIComponent(id)}` : "/destinations", {
-        method: selected ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ destination, reason }),
-      });
-      result.textContent = selected ? "Configuração atualizada com sucesso." : "Destino criado com sucesso.";
-      await renderDestinations(id);
-    } catch (error) {
-      submit.disabled = false;
-      result.textContent = error.body?.error || error.message || "Falha ao atualizar destino.";
-    }
-  });
+  document
+    .querySelector("#destination-editor")
+    ?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const form = event.currentTarget;
+      const result = form.querySelector("#destination-editor-result");
+      const submit = form.querySelector('button[type="submit"]');
+      try {
+        const reason = String(new FormData(form).get("reason") ?? "").trim();
+        if (reason.length < 8)
+          throw new Error("Informe um motivo com pelo menos 8 caracteres.");
+        const id =
+          selected?.id ?? String(new FormData(form).get("id") ?? "").trim();
+        const destination = destinationPayload(form, id);
+        submit.disabled = true;
+        result.textContent = "Reautenticando e aplicando alteração…";
+        await destinationStepUp(
+          String(new FormData(form).get("password") ?? ""),
+        );
+        await api(
+          selected
+            ? `/destinations/${encodeURIComponent(id)}`
+            : "/destinations",
+          {
+            method: selected ? "PUT" : "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ destination, reason }),
+          },
+        );
+        result.textContent = selected
+          ? "Configuração atualizada com sucesso."
+          : "Destino criado com sucesso.";
+        await renderDestinations(id);
+      } catch (error) {
+        submit.disabled = false;
+        result.textContent =
+          error.body?.error || error.message || "Falha ao atualizar destino.";
+      }
+    });
 }
 
 async function renderBusinesses(businessId) {

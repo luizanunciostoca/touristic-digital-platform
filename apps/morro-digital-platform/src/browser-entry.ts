@@ -33,7 +33,10 @@ import {
   type GlobalViewControl,
 } from "./map/global-view-control.js";
 import { initializeMorroBrowserLocale } from "./runtime/browser-locale.js";
-import { loadPublicDestination, type MorroPublicDestination } from "./runtime/public-destination.js";
+import {
+  loadPublicDestination,
+  type MorroPublicDestination,
+} from "./runtime/public-destination.js";
 import { loadMapboxGlSdk } from "./runtime/mapbox-sdk-loader.js";
 import { createMapStyleReadinessTracker } from "./runtime/map-style-readiness.js";
 import {
@@ -558,7 +561,10 @@ async function startBrowserWithProvider(provider: ResolvedMapProvider) {
 
 async function start(): Promise<void> {
   activeDestination = await loadPublicDestination();
-  document.documentElement.dataset.destinationSource = activeDestination === morroDeSaoPauloDestination ? "static-fallback" : "destination-owner";
+  document.documentElement.dataset.destinationSource =
+    activeDestination === morroDeSaoPauloDestination
+      ? "static-fallback"
+      : "destination-owner";
   document.documentElement.dataset.destinationId = activeDestination.id;
   const provider = await resolveMapProvider();
   const result = await startBrowserWithProvider(provider);
