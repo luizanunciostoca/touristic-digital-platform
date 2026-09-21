@@ -136,8 +136,10 @@ async function main() {
             document.querySelector("#content")?.getAttribute("aria-busy") ??
             null,
           contentText:
-            document.querySelector("#content")?.textContent?.trim().slice(0, 500) ??
-            null,
+            document
+              .querySelector("#content")
+              ?.textContent?.trim()
+              .slice(0, 500) ?? null,
           navViews: Array.from(
             document.querySelectorAll("#main-nav [data-view]"),
             (node) => node.getAttribute("data-view"),
