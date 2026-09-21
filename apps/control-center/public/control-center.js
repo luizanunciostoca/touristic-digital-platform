@@ -952,6 +952,8 @@ async function renderDestinations(destinationId) {
 }
 
 async function renderBusinesses(businessId) {
+  const supportActive = Boolean(state.adminSession?.support);
+  const canManage = actorHasCapability("business.update") && !supportActive;
   const data = await api(`/businesses?limit=100${selectedDestinationQuery()}`);
   if (businessId) {
     const business = data.businesses.find((entry) => entry.id === businessId);
@@ -1095,6 +1097,31 @@ async function renderBusinesses(businessId) {
         </section>
       </div>
 
+      ${
+        canManage
+          ? `<section class="card section-card" style="margin-top:16px">
+              <div class="section-title">
+                <div>
+                  <h2>Contexto de destino</h2>
+                  <p>A relação é gravada no perfil owner da empresa; nunca é inferida por nome ou localização.</p>
+                </div>
+                <span class="badge">Business owner-backed</span>
+              </div>
+              <form id="business-destination-form" class="form-grid">
+                <label>Destino canônico
+                  <select name="destinationId">
+                    ${destinationOptions(profile?.destinationId ?? "")}
+                  </select>
+                </label>
+                <div class="actions">
+                  <button class="primary-button" type="submit">Salvar destino</button>
+                  <span id="business-destination-status" class="form-status" role="status"></span>
+                </div>
+              </form>
+            </section>`
+          : ""
+      }
+
       <div class="grid two-col">
         <section class="card section-card">
           <div class="section-title"><h2>Ofertas recentes</h2><a href="#products">Abrir catálogo</a></div>
@@ -1143,6 +1170,32 @@ async function renderBusinesses(businessId) {
           }
         </div>
       </section>`;
+
+    document
+      .querySelector("#business-destination-form")
+      ?.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const form = event.currentTarget;
+        const status = document.querySelector("#business-destination-status");
+        const values = new FormData(form);
+        const destinationId = String(values.get("destinationId") || "").trim();
+        if (status) status.textContent = "Salvando…";
+        try {
+          await api(`/businesses/${encodeURIComponent(businessId)}/profile`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              ...(profile ?? {}),
+              id: businessId,
+              destinationId: destinationId || null,
+            }),
+          });
+          if (status) status.textContent = "Destino atualizado.";
+          await renderBusinesses(businessId);
+        } catch (error) {
+          if (status) status.textContent = error.body?.error || error.message;
+        }
+      });
     return;
   }
 
