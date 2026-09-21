@@ -734,11 +734,18 @@ export function installExploreLocationsControl({
     const generation = ++interactionGeneration;
     const category = location.category;
     const locale = currentLocale();
+    const canonicalLocation =
+      "source" in location && location.source === "local"
+        ? resolveExploreLocationByName(location.name, location.category)
+        : !("source" in location)
+          ? location
+          : undefined;
+    const presentationLocation = canonicalLocation ?? location;
     const categoryLabel =
       currentCategories().find((candidate) => candidate.value === category)
         ?.label ?? category;
-    activePlace = location.name;
-    activePlaceLocation = location;
+    activePlace = presentationLocation.name;
+    activePlaceLocation = presentationLocation;
     activeStage = "detail";
     removeAssistantFlowResults(document);
     exploreFlowBottomSheet?.hide();
@@ -750,8 +757,9 @@ export function installExploreLocationsControl({
             (action) => action.action !== "back-places",
           );
     const description =
-      "description" in location && typeof location.description === "string"
-        ? location.description.trim()
+      "description" in presentationLocation &&
+      typeof presentationLocation.description === "string"
+        ? presentationLocation.description.trim()
         : "";
     activePlaceActionValues = Object.freeze(
       Array.from(
@@ -765,7 +773,7 @@ export function installExploreLocationsControl({
     );
 
     placeBottomSheet?.show({
-      location,
+      location: presentationLocation,
       categoryLabel,
       locale,
       actions: placeActions,
@@ -778,20 +786,19 @@ export function installExploreLocationsControl({
     const browserFetch = document.defaultView?.fetch?.bind(
       document.defaultView,
     );
-    const primaryActionPromise =
-      "source" in location && location.source === "mapbox"
-        ? Promise.resolve(null)
-        : resolvePlacePrimaryAction({
-            location,
-            locale,
-            ...(browserFetch ? { fetch: browserFetch } : {}),
-          });
+    const primaryActionPromise = canonicalLocation
+      ? resolvePlacePrimaryAction({
+          location: canonicalLocation,
+          locale,
+          ...(browserFetch ? { fetch: browserFetch } : {}),
+        })
+      : Promise.resolve(null);
 
     await renderLocationsOnMap([location], category, true);
     const primaryAction = await primaryActionPromise;
     if (
       generation !== interactionGeneration ||
-      activePlace !== location.name
+      activePlace !== presentationLocation.name
     ) {
       return;
     }
@@ -799,7 +806,7 @@ export function installExploreLocationsControl({
     const mapFailed =
       document.getElementById("map")?.dataset.exploreState === "error";
     placeBottomSheet?.show({
-      location,
+      location: presentationLocation,
       categoryLabel,
       locale,
       actions: placeActions,
@@ -815,7 +822,10 @@ export function installExploreLocationsControl({
         : {}),
     });
 
-    setExploreRuntimeStatus({ kind: "selected", place: location.name });
+    setExploreRuntimeStatus({
+      kind: "selected",
+      place: presentationLocation.name,
+    });
     emitStateChange();
   };
 
