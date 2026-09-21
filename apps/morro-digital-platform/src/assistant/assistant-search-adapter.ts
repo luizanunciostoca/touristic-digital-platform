@@ -73,10 +73,20 @@ export function createAssistantSearchHandler(
 ): AssistantDialogIntentHandler {
   const fetchImplementation = options.fetch ?? globalThis.fetch;
   const token = options.mapboxAccessToken?.trim();
-  const mapboxProvider = token
-    ? createMapboxSearchProvider({ token, fetch: fetchImplementation })
-    : undefined;
   let externalProviderFailed = false;
+  const observedFetch: typeof fetch = async (input, init) => {
+    try {
+      const response = await fetchImplementation(input, init);
+      if (!response.ok) externalProviderFailed = true;
+      return response;
+    } catch (error) {
+      externalProviderFailed = true;
+      throw error;
+    }
+  };
+  const mapboxProvider = token
+    ? createMapboxSearchProvider({ token, fetch: observedFetch })
+    : undefined;
   const externalProvider = mapboxProvider
     ? {
         async search(query: string, searchOptions?: MapboxSearchOptions) {
