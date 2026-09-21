@@ -277,7 +277,7 @@ async function main() {
 main().catch((error) => {
   console.error(
     "CONTROL_CENTER_ACCESSIBILITY_FAILED",
-    error instanceof Error ? error.stack : String(error),
+    error instanceof Error ? error.name : "UnknownError",
   );
   process.exit(1);
 });
