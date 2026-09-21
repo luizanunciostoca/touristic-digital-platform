@@ -317,6 +317,40 @@ describe("Control Center real-data dashboard contract", () => {
     );
   });
 
+  it("does not turn unsupported attention sources into zero for an empty destination dataset", async () => {
+    const domains = {
+      destinations: {
+        async listOwnerDestinations() {
+          return { status: "found", data: [] };
+        },
+      },
+      financial: {
+        aggregateDestinations: vi.fn(() => {
+          throw new Error("EMPTY_DESTINATION_SET_MUST_NOT_QUERY_FINANCIAL");
+        }),
+      },
+    };
+
+    const { response, payload } = await getDashboard({ domains });
+
+    expect(response.statusCode).toBe(200);
+    expect(payload.summary).toMatchObject({
+      alerts: null,
+      alertsKnownCount: 0,
+      alertsStatus: "NOT_SUPPORTED",
+    });
+    expect(payload.attention).toMatchObject({
+      status: "NOT_SUPPORTED",
+      count: null,
+      knownCount: 0,
+      items: [],
+    });
+    expect(payload.destinationSummary).toEqual({
+      status: "READY",
+      items: [],
+    });
+  });
+
   it("preserves UNAVAILABLE instead of manufacturing a zero when destination authority is down", async () => {
     const { response, payload } = await getDashboard();
 
