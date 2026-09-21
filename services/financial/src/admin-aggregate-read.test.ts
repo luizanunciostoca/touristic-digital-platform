@@ -65,7 +65,7 @@ describe("Financial owner admin aggregate reads", () => {
         {
           reconciliation_finding_id: "rcf_admin_00000001",
           payment_id: "pay_admin_0001",
-          kind: "provider_amount_mismatch",
+          kind: "amount_mismatch",
           severity: "critical",
           evidence_hash: Buffer.alloc(32, 3),
           expected_value: "1000",
