@@ -22,6 +22,8 @@ describe("UX Design V2 shared component adoption", () => {
       ".md-card",
       ".md-dialog",
       ".md-bottom-sheet",
+      ".md-banner",
+      ".md-toast",
       ".md-skeleton",
     ]) {
       expect(css).toContain(primitive);
@@ -50,6 +52,28 @@ describe("UX Design V2 shared component adoption", () => {
     expect(map).toContain(
       'button.className = "map-control-button md-icon-button"',
     );
+  });
+
+  it("adopts shared banner and toast primitives in real tourist feedback surfaces", async () => {
+    const [shell, onboarding, premium] = await Promise.all([
+      readRepository("apps/morro-digital-platform/src/layouts/app-shell.ts"),
+      readRepository(
+        "apps/morro-digital-platform/src/onboarding/public-interactive-tour.ts",
+      ),
+      readRepository("apps/morro-digital-platform/public/premium-ux-v2.css"),
+    ]);
+
+    expect(shell).toContain(
+      'class="instruction-banner md-banner md-navigation-banner hidden"',
+    );
+    expect(premium).toContain("padding: 0;");
+    expect(onboarding).toContain('toast.className = "md-toast"');
+    expect(onboarding).toContain('toast.setAttribute("role", "status")');
+    expect(onboarding).toContain('toast.setAttribute("aria-live", "polite")');
+    expect(premium).toContain("#tour-finish-toast.md-toast");
+    expect(premium).toContain("var(--md-layer-toast)");
+    expect(premium).toContain("var(--md-motion-duration-slow)");
+    expect(premium).not.toContain("transition: all");
   });
 
   it("retains shared components across Commerce and Ticketing", async () => {

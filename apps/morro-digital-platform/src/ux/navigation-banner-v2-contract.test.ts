@@ -65,7 +65,7 @@ describe("Navigation Banner V2 contract", () => {
     );
 
     expect(shell).toContain(
-      'id="instruction-banner" class="instruction-banner md-navigation-banner hidden"',
+      'id="instruction-banner" class="instruction-banner md-banner md-navigation-banner hidden"',
     );
     expect(shell).toContain('aria-labelledby="instruction-main"');
     expect(shell).toContain(

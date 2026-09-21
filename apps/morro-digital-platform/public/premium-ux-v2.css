@@ -10,19 +10,6 @@
 
 @layer reset, vendor, legacy, tokens, base, components, features, utilities, overrides;
 
-@layer tokens {
-  :root {
-    --md-outdoor-surface: rgba(255, 255, 255, 0.96);
-    --md-outdoor-surface-strong: #ffffff;
-    --md-outdoor-text: #0f172a;
-    --md-outdoor-border: rgba(255, 255, 255, 0.78);
-    --md-outdoor-shadow: 0 0.75rem 2rem rgba(15, 23, 42, 0.18);
-    --md-sheet-peek-height: min(30dvh, 16rem);
-    --md-sheet-half-height: min(55dvh, 32rem);
-    --md-sheet-full-height: 90dvh;
-  }
-}
-
 @layer base {
   [data-md-mode] {
     --md-active-mode: discover;
@@ -148,6 +135,43 @@ body[data-md-mode] {
   font-family: var(--md-font-family-sans);
 }
 
+/* Keep the Assistant trigger inside the safe inline edge across responsive scaling. */
+.quick-actions {
+  left: max(var(--md-safe-left, 0rem), var(--md-space-3, 0.75rem)) !important;
+}
+
+.quick-actions .action-button.primary.mood-button,
+.quick-actions .mood-button {
+  transform-origin: left center;
+}
+
+/* Onboarding completion toast — shared V2 primitive over frozen V1 evidence. */
+#tour-finish-toast.md-toast {
+  z-index: var(--md-layer-toast);
+  transform: translateX(-50%) translateY(var(--md-space-5));
+  padding: var(--md-space-3) var(--md-space-5);
+  border-radius: var(--md-radius-xl);
+  background: linear-gradient(
+    135deg,
+    var(--md-color-success),
+    color-mix(in srgb, var(--md-color-success) 82%, black)
+  );
+  color: var(--md-color-text-inverse);
+  box-shadow: var(--md-elevation-2);
+  font-family: var(--md-font-family-sans);
+  font-size: var(--md-font-size-sm);
+  font-weight: var(--md-font-weight-bold);
+  gap: var(--md-space-2);
+  max-width: calc(100vw - var(--md-space-6));
+  transition:
+    opacity var(--md-motion-duration-slow) var(--md-motion-ease-emphasized),
+    transform var(--md-motion-duration-slow) var(--md-motion-ease-emphasized);
+}
+
+#tour-finish-toast.md-toast.visible {
+  transform: translateX(-50%) translateY(0);
+}
+
 .control-button,
 .submenu-item {
   transition-property:
@@ -157,18 +181,6 @@ body[data-md-mode] {
 .assistant-voice-selector {
   transition-property:
     opacity, transform, background-color, border-color, box-shadow;
-}
-
-.quick-actions {
-  left: max(var(--md-safe-left, 0rem), var(--md-space-3, 0.75rem)) !important;
-}
-
-.quick-actions .action-button.primary.mood-button {
-  transform-origin: left center;
-}
-
-.quick-actions .mood-button {
-  transform-origin: left center;
 }
 
 .quick-actions,
@@ -260,6 +272,7 @@ body[data-md-mode="navigation"] #instruction-banner {
   max-height: none !important;
   transform: translateX(-50%) !important;
   overflow: hidden !important;
+  padding: 0;
   border: 1px solid var(--md-color-border);
   border-top: 0;
   border-radius: 0 0 var(--md-radius-lg) var(--md-radius-lg) !important;

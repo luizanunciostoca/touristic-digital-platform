@@ -152,6 +152,10 @@ export function installPublicInteractiveTour(
     if (result === "complete") {
       const toast = options.document.createElement("div");
       toast.id = "tour-finish-toast";
+      toast.className = "md-toast";
+      toast.setAttribute("role", "status");
+      toast.setAttribute("aria-live", "polite");
+      toast.setAttribute("aria-atomic", "true");
       const copy = getPublicOnboardingCopy(
         options.document.documentElement.lang,
       );
