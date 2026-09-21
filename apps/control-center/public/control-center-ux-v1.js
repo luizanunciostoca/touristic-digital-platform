@@ -7,7 +7,6 @@ const auth = createDashboardAuthClient({
 });
 
 const app = document.querySelector("#app");
-const nav = document.querySelector("#main-nav");
 const contentRoot = document.querySelector("#content");
 const pageTitle = document.querySelector("#page-title");
 const pageDescription = document.querySelector("#page-description");
@@ -30,61 +29,6 @@ const state = {
   destinationId: "global",
   generation: 0,
 };
-
-const navGroups = [
-  ["Principal", [["Visão Global", "#overview", "◎", "global"]]],
-  ["Operação", [["Visão Geral", "#overview", "◫", "overview"]]],
-  [
-    "Relacionamentos",
-    [
-      ["Empresas", "#businesses", "▦", "businesses"],
-      ["Usuários", "#users", "●", "users"],
-      ["Afiliados", "#affiliates", "◇", "affiliates"],
-    ],
-  ],
-  [
-    "Comercial",
-    [
-      ["CRM", "#crm", "◈", "crm"],
-      ["Produtos", "#products", "▤", "products"],
-      ["Ofertas", "#products", "◇", "offers"],
-      ["Conteúdo", "#content", "✦", "content"],
-    ],
-  ],
-  [
-    "Reservas",
-    [
-      ["Reservas", "#reservations", "▣", "reservations"],
-      ["Ticketing", "#ticketing", "◉", "ticketing"],
-      ["Check-in", "#ticketing", "✓", "checkin"],
-    ],
-  ],
-  [
-    "Financeiro",
-    [
-      ["Pedidos", "#orders", "≡", "orders"],
-      ["Pagamentos", "#financial", "◐", "financial"],
-      ["Reembolsos", "#financial", "↺", "refunds"],
-      ["Comissões", "#affiliates", "%", "commissions"],
-    ],
-  ],
-  [
-    "Controle",
-    [
-      ["Suporte", "#support", "◎", "support"],
-      ["Auditoria", "#audit", "⌁", "audit"],
-    ],
-  ],
-  [
-    "Plataforma",
-    [
-      ["Sistema", "#system", "⚙", "system"],
-      ["Destinos", "#destinations", "⌖", "destinations"],
-      ["Integrações", "#system", "⌘", "integrations"],
-      ["Configurações", "#settings", "⋯", "settings"],
-    ],
-  ],
-];
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -223,84 +167,6 @@ function populateDestinationSelector() {
   const stored =
     globalThis.sessionStorage.getItem(destinationStorageKey) || "global";
   setDestination(stored, false);
-}
-
-function rebuildNavigation() {
-  if (!nav) return;
-  if (nav.querySelector(".nav-group") && nav.dataset.uxV1 === "1") return;
-  const currentHash = globalThis.location.hash || "#overview";
-  nav.innerHTML = navGroups
-    .map(([group, items]) => {
-      const buttons = items
-        .map(([label, href, icon, key]) => {
-          const active =
-            key === "global"
-              ? state.destinationId === "global" && currentHash === "#overview"
-              : currentHash === href &&
-                !(
-                  key === "offers" ||
-                  key === "checkin" ||
-                  key === "payments" ||
-                  key === "refunds" ||
-                  key === "commissions" ||
-                  key === "integrations"
-                );
-          const canonicalViews = new Set([
-            "overview",
-            "businesses",
-            "users",
-            "affiliates",
-            "crm",
-            "products",
-            "reservations",
-            "ticketing",
-            "orders",
-            "financial",
-            "content",
-            "destinations",
-            "support",
-            "audit",
-            "system",
-            "settings",
-          ]);
-          const attrs =
-            key === "global"
-              ? 'data-ux-global="true"'
-              : canonicalViews.has(key)
-                ? 'data-view="' +
-                  escapeHtml(key) +
-                  '" data-ux-href="' +
-                  escapeHtml(href) +
-                  '"'
-                : 'data-ux-href="' + escapeHtml(href) + '"';
-          return (
-            '<button type="button" class="nav-item ' +
-            (active ? "active" : "") +
-            '" ' +
-            attrs +
-            ' data-ux-key="' +
-            escapeHtml(key) +
-            '">' +
-            '<span class="nav-icon" aria-hidden="true">' +
-            icon +
-            "</span><span>" +
-            escapeHtml(label) +
-            "</span></button>"
-          );
-        })
-        .join("");
-      return (
-        '<section class="nav-group" aria-label="' +
-        escapeHtml(group) +
-        '"><p class="nav-group-label">' +
-        escapeHtml(group) +
-        '</p><div class="nav-group-items">' +
-        buttons +
-        "</div></section>"
-      );
-    })
-    .join("");
-  nav.dataset.uxV1 = "1";
 }
 
 function pageContext(view) {
