@@ -345,6 +345,7 @@ jobs:
                 { name: 'w768', width: 768, height: 1024 },
                 { name: 'w820', width: 820, height: 1180 },
                 { name: 'w1024', width: 1024, height: 768 },
+                { name: 'w1024-landscape', width: 1024, height: 600 },
                 { name: 'w1280', width: 1280, height: 800 },
                 { name: 'w1366', width: 1366, height: 768 },
                 { name: 'w1440', width: 1440, height: 900 },
@@ -460,6 +461,11 @@ jobs:
                 if (!state.dvhSupported || !state.svhSupported) {
                   throw new Error(`Dynamic viewport units unavailable on ${viewport.name}`);
                 }
+                await matrixPage.screenshot({
+                  path: `/tmp/v1-home-responsive/home-${viewport.name}.png`,
+                  fullPage: false,
+                  animations: 'disabled',
+                });
                 matrixEvidence.push({ viewport, state });
               }
 
