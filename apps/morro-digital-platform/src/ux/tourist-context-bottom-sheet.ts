@@ -68,12 +68,14 @@ export function installTouristContextBottomSheet(input: {
   );
 
   const MutationObserverConstructor = input.window.MutationObserver;
-  const observer = new MutationObserverConstructor(sync);
-  observer.observe(input.document.body, {
+  const observer = MutationObserverConstructor
+    ? new MutationObserverConstructor(sync)
+    : null;
+  observer?.observe(input.document.body, {
     attributes: true,
     attributeFilter: ["data-md-mode", "class"],
   });
-  observer.observe(sheet, {
+  observer?.observe(sheet, {
     attributes: true,
     attributeFilter: ["class", "aria-hidden"],
   });
@@ -88,7 +90,7 @@ export function installTouristContextBottomSheet(input: {
       return controller.active;
     },
     destroy() {
-      observer.disconnect();
+      observer?.disconnect();
       input.document.removeEventListener(
         "morro:explore-state-changed",
         onExploreStateChanged,
