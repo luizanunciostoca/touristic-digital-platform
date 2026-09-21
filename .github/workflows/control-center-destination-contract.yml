@@ -11,6 +11,9 @@ on:
       - "apps/morro-digital-platform/tooling/destination-admin-runtime.mjs"
       - "apps/morro-digital-platform/tooling/destination-public-projection*.mjs"
       - "apps/morro-digital-platform/tooling/dev-server.mjs"
+      - "apps/morro-digital-platform/src/runtime/public-destination*.ts"
+      - "apps/morro-digital-platform/src/browser-entry.ts"
+      - "apps/morro-digital-platform/src/config/destination.ts"
       - "packages/destinations/**"
       - "services/destinations/**"
       - "package.json"
@@ -24,6 +27,9 @@ on:
       - "apps/morro-digital-platform/tooling/destination-admin-runtime.mjs"
       - "apps/morro-digital-platform/tooling/destination-public-projection*.mjs"
       - "apps/morro-digital-platform/tooling/dev-server.mjs"
+      - "apps/morro-digital-platform/src/runtime/public-destination*.ts"
+      - "apps/morro-digital-platform/src/browser-entry.ts"
+      - "apps/morro-digital-platform/src/config/destination.ts"
       - "packages/destinations/**"
       - "services/destinations/**"
       - "package.json"
@@ -81,6 +87,8 @@ jobs:
           pnpm --filter @touristic/destinations-server test
       - name: Qualify public Destination projection and fallback
         run: pnpm --filter @touristic/morro-digital-platform exec vitest run tooling/destination-public-projection.test.mjs
+      - name: Qualify tourist Destination runtime fallback
+        run: pnpm --filter @touristic/morro-digital-platform exec vitest run src/runtime/public-destination.test.ts
       - name: Build authenticated Destination browser runtime graph
         run: pnpm -w build
       - name: Install deterministic Chromium
@@ -136,6 +144,11 @@ jobs:
               const publicBody = await publicProjection.json();
               if (publicBody.source !== 'destination-owner' || publicBody.destination?.id !== 'morro-de-sao-paulo') throw new Error('PUBLIC_DESTINATION_OWNER_NOT_PROJECTED');
               if ('version' in publicBody.destination || 'createdAt' in publicBody.destination || 'featureFlags' in publicBody.destination) throw new Error('PUBLIC_DESTINATION_METADATA_LEAK');
+              const tourist = await owner.newPage();
+              await tourist.goto(origin + '/');
+              await tourist.locator('html[data-destination-source="destination-owner"]').waitFor({ timeout: 15000 });
+              if (await tourist.locator('html').getAttribute('data-destination-id') !== 'morro-de-sao-paulo') throw new Error('TOURIST_DESTINATION_OWNER_NOT_APPLIED');
+              await tourist.close();
 
               const denied = await owner.request.patch(origin + '/api/admin/v1/destinations/morro-de-sao-paulo', {
                 headers, data: { status: 'suspended', reason: 'Destination E2E denied before step-up' },
