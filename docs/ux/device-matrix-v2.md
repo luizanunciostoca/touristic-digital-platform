@@ -13,7 +13,7 @@ Relevant landscape cases are also exercised for compact mobile, large mobile and
 At every matrix point the test verifies:
 
 - no horizontal document overflow;
-- visible Weather, Global View, Assistant trigger and composer stay inside the viewport;
+- visible Weather, Global View, Assistant composer and its controls stay inside the viewport;
 - Assistant composer controls retain at least 44 × 44 px targets;
 - browser support for `svh` and `dvh` used by the V2 foundations;
 - no page errors during resize transitions.
@@ -24,4 +24,4 @@ The evidence is appended to the existing `v1-home-responsive-evidence` artifact 
 
 ## Safe-area containment
 
-The Assistant trigger is pinned with a semantic safe-area offset and a left transform origin so active-state scaling cannot push the control outside compact or desktop viewports. The responsive browser matrix treats any visible control escaping the viewport as a regression.
+The persistent Assistant composer is the canonical Assistant entry surface. Its fixed positioning and safe-area paddings keep the composer and text/voice/settings controls inside compact and desktop viewports; the retired floating trigger is not part of the UX V2 matrix. The responsive browser matrix treats any visible control escaping the viewport as a regression.

@@ -6,7 +6,7 @@ The V2 primitive library is now consumed by real tourist surfaces rather than ex
 
 - Home map controls: `md-icon-button`.
 - Runtime-created 3D control: `md-icon-button`.
-- Assistant trigger, minimize, send, voice and settings controls: `md-icon-button`.
+- Assistant minimize, send, voice and settings controls: `md-icon-button`; the persistent composer remains the canonical Assistant entry surface.
 - Navigation stop action: `md-button md-button--destructive`.
 - Commerce: shared buttons, cards and skeletons.
 - Ticketing: shared buttons, cards and skeletons.
