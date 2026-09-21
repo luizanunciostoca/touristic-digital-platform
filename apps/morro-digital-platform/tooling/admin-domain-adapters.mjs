@@ -91,7 +91,7 @@ export function createAffiliateAdminAdapter(affiliateAdminRuntime) {
   }
 
   return Object.freeze({
-    state: "partial",
+    state: "available",
     coverage: Object.freeze([
       "list",
       "detail",
@@ -326,7 +326,7 @@ export function createBusinessAdminAdapter(businessApi, authApi) {
     /^\/api\/admin\/v1\/businesses\/([a-z0-9][a-z0-9_-]{1,79})\/profile$/u;
 
   return Object.freeze({
-    state: "partial",
+    state: "available",
     coverage: Object.freeze(["profile"]),
     async handle({ request, response, requestUrl, effectiveUser }) {
       const match = pattern.exec(requestUrl.pathname);
@@ -615,7 +615,7 @@ export function createContentAdminAdapter(contentRuntime) {
   }
 
   return Object.freeze({
-    state: "partial",
+    state: "available",
     coverage: Object.freeze([
       "list",
       "search",
@@ -817,7 +817,7 @@ export function createFinancialAdminAdapter(paymentsApi) {
   }
 
   return Object.freeze({
-    state: "partial",
+    state: "available",
     coverage: Object.freeze([
       "orders-by-id",
       "payments-by-id",

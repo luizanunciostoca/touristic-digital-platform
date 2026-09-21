@@ -230,6 +230,123 @@ describe("Control Center Admin API", () => {
     });
   });
 
+  it("projects the full Control Center completion matrix on the dashboard", async () => {
+    const available = (coverage) => ({ state: "available", coverage });
+    const domainAdapters = {
+      businesses: available(["profile"]),
+      affiliates: available(["list", "detail"]),
+      crm: available(["leads", "search"]),
+      products: available(["list", "create-offer", "disable-offer"]),
+      reservations: available(["list", "cancel-held"]),
+      ticketing: available([
+        "operator/check-in",
+        "operator/offline-devices/provision",
+        "operator/offline-devices/revoke",
+      ]),
+      orders: available(["orders-by-id"]),
+      financial: available(["payments-by-id", "refund"]),
+      content: available(["list", "lifecycle-transition"]),
+      destinations: { state: "ready", coverage: ["list", "replace", "status"] },
+    };
+    const { api } = fixture(platformOwner, { domainAdapters });
+    const response = responseRecorder();
+
+    await api.handle(
+      request("/api/admin/v1/dashboard"),
+      response,
+      new URL("http://localhost/api/admin/v1/dashboard"),
+    );
+
+    expect(response.statusCode).toBe(200);
+    const modules = JSON.parse(response.body).modules;
+    expect(Object.keys(modules).sort()).toEqual(
+      [
+        "affiliates",
+        "audit",
+        "businesses",
+        "content",
+        "crm",
+        "destinations",
+        "financial",
+        "orders",
+        "permissions",
+        "products",
+        "reservations",
+        "settings",
+        "support",
+        "system",
+        "ticketing",
+        "users",
+      ].sort(),
+    );
+    for (const name of [
+      "businesses",
+      "users",
+      "affiliates",
+      "crm",
+      "products",
+      "reservations",
+      "ticketing",
+      "orders",
+      "financial",
+      "content",
+      "support",
+      "permissions",
+      "system",
+      "settings",
+    ]) {
+      expect(modules[name].state).toBe("available");
+    }
+    expect(modules.destinations.state).toBe("ready");
+    expect(modules.audit.state).toBe("runtime-projection");
+  });
+
+  it("passes the authenticated request into domain universal-search adapters", async () => {
+    let received;
+    const crm = {
+      async search(input) {
+        received = input;
+        return [
+          {
+            type: "crm-lead",
+            id: "42",
+            title: "Toca do Morcego",
+            context: "proposal_sent",
+            href: "#crm",
+          },
+        ];
+      },
+    };
+    const { api } = fixture(platformOwner, {
+      domainAdapters: { crm },
+    });
+    const req = request("/api/admin/v1/search?q=toca");
+    const response = responseRecorder();
+
+    await api.handle(
+      req,
+      response,
+      new URL("http://localhost/api/admin/v1/search?q=toca"),
+    );
+
+    expect(response.statusCode).toBe(200);
+    expect(received).toMatchObject({
+      query: "toca",
+      actor: { subject: "platform-owner" },
+      request: req,
+      effectiveUser: null,
+    });
+    expect(JSON.parse(response.body).results).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: "crm-lead",
+          title: "Toca do Morcego",
+          domain: "crm",
+        }),
+      ]),
+    );
+  });
+
   it("blocks business identities from every admin namespace before domain adapters", async () => {
     const { api } = fixture({
       ...platformOwner,

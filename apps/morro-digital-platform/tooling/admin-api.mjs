@@ -2097,22 +2097,50 @@ export function createAdminApi({
           health,
           modules: {
             businesses: {
-              state: "partial",
-              source: "identity-membership",
+              state: domainAdapters.businesses?.state ?? "contract-required",
+              coverage: Object.freeze([
+                "identity-membership-directory",
+                ...(domainAdapters.businesses?.coverage ?? []),
+                "owner-backed-360-composition",
+              ]),
             },
-            users: { state: "available", source: "identity" },
+            users: {
+              state: "available",
+              source: "auth-owner",
+              coverage: Object.freeze([
+                "list",
+                "detail",
+                "sessions",
+                "session-revoke",
+                "block",
+                "reactivate",
+                "role-change",
+              ]),
+            },
             affiliates: {
-              state: domainAdapters.affiliates
-                ? "available"
-                : "contract-required",
+              state: domainAdapters.affiliates?.state ?? "contract-required",
+              coverage: domainAdapters.affiliates?.coverage ?? [],
             },
             crm: {
               state: domainAdapters.crm?.state ?? "contract-required",
               coverage: domainAdapters.crm?.coverage ?? [],
             },
+            products: {
+              state: domainAdapters.products?.state ?? "contract-required",
+              coverage: domainAdapters.products?.coverage ?? [],
+            },
+            reservations: {
+              state:
+                domainAdapters.reservations?.state ?? "contract-required",
+              coverage: domainAdapters.reservations?.coverage ?? [],
+            },
             ticketing: {
               state: domainAdapters.ticketing?.state ?? "contract-required",
               coverage: domainAdapters.ticketing?.coverage ?? [],
+            },
+            orders: {
+              state: domainAdapters.orders?.state ?? "contract-required",
+              coverage: domainAdapters.orders?.coverage ?? [],
             },
             financial: {
               state: domainAdapters.financial?.state ?? "contract-required",
@@ -2126,12 +2154,39 @@ export function createAdminApi({
               state: domainAdapters.destinations?.state ?? "contract-required",
               coverage: domainAdapters.destinations?.coverage ?? [],
             },
+            support: {
+              state: "available",
+              coverage: Object.freeze([
+                "signed-session",
+                "actor-preserved",
+                "effective-user",
+                "critical-actions-denied",
+              ]),
+            },
+            permissions: {
+              state: "available",
+              source: "auth-owner",
+              coverage: Object.freeze([
+                "canonical-role",
+                "capabilities",
+                "durable-policy",
+                "session-invalidation",
+              ]),
+            },
             audit: {
               state:
                 auditStore.durability?.() === "mysql-append-only"
                   ? "available"
                   : "runtime-projection",
               durable: auditStore.durability?.() === "mysql-append-only",
+            },
+            system: {
+              state: "available",
+              coverage: Object.freeze(["health", "readiness", "release"]),
+            },
+            settings: {
+              state: "available",
+              coverage: Object.freeze(["local-safe-preferences"]),
             },
           },
         });
