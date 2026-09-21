@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "bootstrapPending": true,
+  "sourceManualSha256": {
+    "controlCenterUxV1": "ae9aa18a07462ccab44b79250a9d28580a21ecae5ef2d3d2343d998b946c77ab",
+    "developerUxV2": "9e4c5a637c703a6f43764f9c3ec971f4b48294ac649076fddb134ccd712de0ed"
+  },
+  "viewports": [
+    {
+      "width": 1440,
+      "height": 900,
+      "label": "1440x900"
+    },
+    {
+      "width": 1280,
+      "height": 800,
+      "label": "1280x800"
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "label": "1024x768"
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "label": "768x1024"
+    },
+    {
+      "width": 430,
+      "height": 932,
+      "label": "430x932"
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "label": "390x844"
+    }
+  ],
+  "surfaces": [
+    "overview",
+    "businesses",
+    "business-360",
+    "affiliates",
+    "affiliate-360",
+    "users",
+    "user-360",
+    "crm",
+    "products",
+    "reservations",
+    "ticketing",
+    "orders",
+    "financial",
+    "content",
+    "destinations",
+    "support",
+    "audit",
+    "system",
+    "settings"
+  ],
+  "note": "Bootstrap marker. The dedicated visual workflow replaces this manifest with committed deterministic PNG baselines before comparison mode is allowed."
+}
