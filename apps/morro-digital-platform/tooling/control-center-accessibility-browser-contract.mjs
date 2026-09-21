@@ -20,9 +20,11 @@ async function main() {
   let currentView = "__bootstrap__";
   let stage = "bootstrap";
   try {
+    stage = "browser-context";
     const context = await browser.newContext({
       viewport: { width: 1280, height: 900 },
     });
+    stage = "login";
     const login = await context.request.post(
       `${origin}/api/dashboard/auth/login`,
       {
@@ -32,14 +34,19 @@ async function main() {
     );
     if (login.status() !== 200) throw new Error("OWNER_LOGIN_FAILED");
 
+    stage = "page-create";
     const page = await context.newPage();
+    stage = "page-goto";
     await page.goto(
       `${origin}/apps/control-center/public/index.html#overview`,
       { waitUntil: "domcontentloaded", timeout: 30_000 },
     );
+    stage = "app-ready";
     await page.locator("#app:not([hidden])").waitFor({ timeout: 15_000 });
+    stage = "axe-inject";
     await page.addScriptTag({ path: axePath });
 
+    stage = "nav-discovery";
     const views = await page
       .locator("#main-nav [data-view]")
       .evaluateAll((nodes) => nodes.map((node) => node.dataset.view));
