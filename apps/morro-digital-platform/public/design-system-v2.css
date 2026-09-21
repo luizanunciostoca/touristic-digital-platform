@@ -147,6 +147,23 @@
   --md-safe-left: env(safe-area-inset-left, 0);
 }
 
+[data-theme="light"] {
+  color-scheme: light;
+  --md-color-surface: #ffffff;
+  --md-color-surface-subtle: #f8fafc;
+  --md-color-text: #0f172a;
+  --md-color-text-muted: #475569;
+  --md-color-border: #cbd5e1;
+  --md-color-success: #15803d;
+  --md-color-warning: #a16207;
+  --md-color-danger: #b91c1c;
+  --md-color-info: #0369a1;
+  --md-focus-ring-color: #0c7bdc;
+  --md-color-overlay: rgb(15 23 42 / 0.62);
+  --md-color-skeleton-base: #e2e8f0;
+  --md-color-skeleton-highlight: #f8fafc;
+}
+
 [data-theme="dark"] {
   color-scheme: dark;
   --md-color-surface: #111827;
@@ -169,6 +186,28 @@
   --md-color-brand-strong: var(--md-color-brand-primary-strong);
   --md-color-accent: var(--accent, #10b981);
 }
+
+[data-theme="high-contrast"] {
+  color-scheme: light;
+  --md-color-surface: Canvas;
+  --md-color-surface-subtle: Canvas;
+  --md-color-text: CanvasText;
+  --md-color-text-muted: CanvasText;
+  --md-color-border: CanvasText;
+  --md-color-brand-primary: LinkText;
+  --md-color-brand-primary-strong: LinkText;
+  --md-color-accent: Highlight;
+  --md-color-accent-strong: Highlight;
+  --md-color-success: CanvasText;
+  --md-color-warning: CanvasText;
+  --md-color-danger: CanvasText;
+  --md-color-info: LinkText;
+  --md-focus-ring-color: Highlight;
+  --md-color-overlay: Canvas;
+  --md-color-skeleton-base: Canvas;
+  --md-color-skeleton-highlight: Highlight;
+}
+
 
 /* Global keyboard focus: use non-zero specificity so legacy :focus resets cannot win. */
 :is(
