@@ -264,10 +264,15 @@ function readDeterministicExploreCommands(
           : results.length === 0
             ? "empty"
             : "ready";
+      const statusText =
+        "statusText" in raw && typeof raw.statusText === "string"
+          ? raw.statusText
+          : undefined;
       commands.push({
         type,
         query: raw.query,
         status,
+        ...(statusText ? { statusText } : {}),
         results: Object.freeze(results),
       });
       continue;
