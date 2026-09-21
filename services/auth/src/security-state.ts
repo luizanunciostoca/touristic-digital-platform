@@ -2,6 +2,8 @@ import { createHash } from "node:crypto";
 
 import type { RevocableAuthSession } from "./revocation.js";
 
+const sessionRegistryRetentionSeconds = 30 * 24 * 60 * 60;
+
 export interface AuthLoginRateLimitPolicy {
   readonly windowMs: number;
   readonly limit: number;
@@ -31,6 +33,43 @@ export interface AuthSqlPool {
   readonly end: () => Promise<void>;
 }
 
+export interface RegisterableAuthSession extends RevocableAuthSession {
+  readonly subject: string;
+  readonly issuedAt: number;
+}
+
+export interface AuthSessionRecord {
+  readonly handle: string;
+  readonly subject: string;
+  readonly issuedAt: number;
+  readonly expiresAt: number;
+  readonly revokedAt: number | null;
+  readonly active: boolean;
+}
+
+export interface AuthSessionRevocationResult {
+  readonly found: boolean;
+  readonly alreadyRevoked: boolean;
+}
+
+export type AuthPrincipalStatus = "active" | "blocked";
+
+export interface AuthPrincipalAdminState {
+  readonly subject: string;
+  readonly status: AuthPrincipalStatus;
+  readonly roleOverride: string | null;
+  readonly updatedAt: number;
+  readonly updatedBy: string;
+}
+
+export interface SetAuthPrincipalAdminStateInput {
+  readonly subject: string;
+  readonly status: AuthPrincipalStatus;
+  readonly roleOverride: string | null;
+  readonly updatedAt?: number;
+  readonly updatedBy: string;
+}
+
 export interface AuthSecurityState {
   readonly initialize: () => Promise<void>;
   readonly consumeLoginAttempt: (
@@ -42,6 +81,22 @@ export interface AuthSecurityState {
     sessionId: string,
     nowEpochSeconds?: number,
   ) => Promise<boolean>;
+  readonly registerSession: (session: RegisterableAuthSession) => Promise<void>;
+  readonly listSessions: (
+    subject: string,
+    nowEpochSeconds?: number,
+  ) => Promise<readonly AuthSessionRecord[]>;
+  readonly revokeSessionHandle: (
+    subject: string,
+    handle: string,
+    nowEpochSeconds?: number,
+  ) => Promise<AuthSessionRevocationResult>;
+  readonly getPrincipalAdminState: (
+    subject: string,
+  ) => Promise<AuthPrincipalAdminState | null>;
+  readonly setPrincipalAdminState: (
+    input: SetAuthPrincipalAdminStateInput,
+  ) => Promise<AuthPrincipalAdminState>;
   readonly revoke: (session: RevocableAuthSession) => Promise<void>;
   readonly close: () => Promise<void>;
 }
@@ -53,6 +108,22 @@ interface LoginRateLimitRow {
 
 interface RevocationRow {
   readonly expires_at: string | number;
+}
+
+interface SessionRegistryRow {
+  readonly session_key: string;
+  readonly actor_subject: string;
+  readonly issued_at: string | number;
+  readonly expires_at: string | number;
+  readonly revoked_at: string | number | null;
+}
+
+interface PrincipalAdminStateRow {
+  readonly actor_subject: string;
+  readonly status: string;
+  readonly role_override: string | null;
+  readonly updated_at: string | number;
+  readonly updated_by: string;
 }
 
 export const authSecuritySchemaStatements = Object.freeze([
@@ -69,10 +140,114 @@ export const authSecuritySchemaStatements = Object.freeze([
     updated_at BIGINT UNSIGNED NOT NULL,
     INDEX idx_auth_login_rate_limits_updated_at (updated_at)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+  `CREATE TABLE IF NOT EXISTS auth_session_registry (
+    session_key CHAR(64) NOT NULL PRIMARY KEY,
+    actor_subject VARCHAR(191) NOT NULL,
+    issued_at BIGINT UNSIGNED NOT NULL,
+    expires_at BIGINT UNSIGNED NOT NULL,
+    revoked_at BIGINT UNSIGNED NULL,
+    INDEX idx_auth_session_registry_subject_issued (actor_subject, issued_at),
+    INDEX idx_auth_session_registry_expires_at (expires_at)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+  `CREATE TABLE IF NOT EXISTS auth_principal_admin_state (
+    actor_subject VARCHAR(191) NOT NULL PRIMARY KEY,
+    status ENUM('active','blocked') NOT NULL,
+    role_override VARCHAR(64) NULL,
+    updated_at BIGINT UNSIGNED NOT NULL,
+    updated_by VARCHAR(191) NOT NULL,
+    INDEX idx_auth_principal_admin_state_status (status, updated_at)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
 ]);
+
+export const authSessionRegistryRollbackSql =
+  "DROP TABLE IF EXISTS auth_session_registry";
 
 function hashedKey(namespace: string, value: string): string {
   return createHash("sha256").update(`${namespace}:${value}`).digest("hex");
+}
+
+function containsControlCharacter(value: string): boolean {
+  return Array.from(value).some((character) => {
+    const codePoint = character.codePointAt(0);
+    return codePoint !== undefined && (codePoint <= 0x1f || codePoint === 0x7f);
+  });
+}
+
+function normalizedSubject(value: string): string {
+  const subject = value.trim();
+  if (!subject || subject.length > 191 || containsControlCharacter(subject)) {
+    throw new Error("Auth session subject is invalid.");
+  }
+  return subject;
+}
+
+function normalizedSessionHandle(value: string): string {
+  const handle = value.trim().toLowerCase();
+  if (!/^[a-f0-9]{64}$/u.test(handle)) {
+    throw new Error("Auth session handle is invalid.");
+  }
+  return handle;
+}
+
+function sessionRecord(
+  row: SessionRegistryRow,
+  nowEpochSeconds: number,
+): AuthSessionRecord {
+  const expiresAt = Number(row.expires_at);
+  const revokedAt = row.revoked_at === null ? null : Number(row.revoked_at);
+  return Object.freeze({
+    handle: row.session_key,
+    subject: row.actor_subject,
+    issuedAt: Number(row.issued_at),
+    expiresAt,
+    revokedAt,
+    active: revokedAt === null && expiresAt > nowEpochSeconds,
+  });
+}
+
+function principalAdminState(
+  row: PrincipalAdminStateRow,
+): AuthPrincipalAdminState {
+  const status =
+    row.status === "active" || row.status === "blocked" ? row.status : null;
+  const roleOverride =
+    row.role_override === null
+      ? null
+      : /^[A-Z][A-Z0-9_]{1,63}$/u.test(row.role_override)
+        ? row.role_override
+        : null;
+  const updatedAt = Number(row.updated_at);
+  if (
+    !status ||
+    (row.role_override !== null && !roleOverride) ||
+    !Number.isSafeInteger(updatedAt) ||
+    updatedAt < 0
+  ) {
+    throw new Error("AUTH_PRINCIPAL_ADMIN_STATE_INVALID");
+  }
+  return Object.freeze({
+    subject: normalizedSubject(row.actor_subject),
+    status,
+    roleOverride,
+    updatedAt,
+    updatedBy: normalizedSubject(row.updated_by),
+  });
+}
+
+function normalizedPrincipalStatus(value: string): AuthPrincipalStatus {
+  if (value !== "active" && value !== "blocked") {
+    throw new Error("AUTH_PRINCIPAL_STATUS_INVALID");
+  }
+  return value;
+}
+
+function normalizedRoleOverride(value: string | null): string | null {
+  if (value === null) return null;
+  const role = value.trim();
+  if (!/^[A-Z][A-Z0-9_]{1,63}$/u.test(role)) {
+    throw new Error("AUTH_PRINCIPAL_ROLE_OVERRIDE_INVALID");
+  }
+  return role;
 }
 
 function positiveInteger(value: number, field: string): number {
@@ -116,6 +291,16 @@ export function createInMemoryAuthSecurityState(): AuthSecurityState {
     { windowStartedAt: number; attempts: number }
   >();
   const revoked = new Map<string, number>();
+  const principalStates = new Map<string, AuthPrincipalAdminState>();
+  const sessions = new Map<
+    string,
+    {
+      subject: string;
+      issuedAt: number;
+      expiresAt: number;
+      revokedAt: number | null;
+    }
+  >();
 
   function initialize(): Promise<void> {
     return Promise.resolve();
@@ -157,14 +342,112 @@ export function createInMemoryAuthSecurityState(): AuthSecurityState {
     return Promise.resolve(true);
   }
 
+  function registerSession(session: RegisterableAuthSession): Promise<void> {
+    const subject = normalizedSubject(session.subject);
+    const issuedAt = normalizedEpochSeconds(session.issuedAt);
+    const expiresAt = normalizedEpochSeconds(session.expiresAt);
+    if (expiresAt <= issuedAt) {
+      throw new Error("Auth session expiry must be after issuance.");
+    }
+    sessions.set(hashedKey("session", session.sessionId), {
+      subject,
+      issuedAt,
+      expiresAt,
+      revokedAt: null,
+    });
+    return Promise.resolve();
+  }
+
+  function listSessions(
+    subjectInput: string,
+    nowInput?: number,
+  ): Promise<readonly AuthSessionRecord[]> {
+    const subject = normalizedSubject(subjectInput);
+    const now = normalizedEpochSeconds(nowInput);
+    const records = [...sessions.entries()]
+      .filter(([, session]) => session.subject === subject)
+      .map(([handle, session]) =>
+        sessionRecord(
+          {
+            session_key: handle,
+            actor_subject: session.subject,
+            issued_at: session.issuedAt,
+            expires_at: session.expiresAt,
+            revoked_at: session.revokedAt,
+          },
+          now,
+        ),
+      )
+      .sort((left, right) => right.issuedAt - left.issuedAt)
+      .slice(0, 100);
+    return Promise.resolve(Object.freeze(records));
+  }
+
+  function revokeSessionHandle(
+    subjectInput: string,
+    handleInput: string,
+    nowInput?: number,
+  ): Promise<AuthSessionRevocationResult> {
+    const subject = normalizedSubject(subjectInput);
+    const handle = normalizedSessionHandle(handleInput);
+    const now = normalizedEpochSeconds(nowInput);
+    const session = sessions.get(handle);
+    if (!session || session.subject !== subject) {
+      return Promise.resolve(
+        Object.freeze({ found: false, alreadyRevoked: false }),
+      );
+    }
+    const alreadyRevoked =
+      session.revokedAt !== null || session.expiresAt <= now;
+    revoked.set(handle, session.expiresAt);
+    sessions.set(handle, {
+      ...session,
+      revokedAt: session.revokedAt ?? now,
+    });
+    return Promise.resolve(Object.freeze({ found: true, alreadyRevoked }));
+  }
+
+  function getPrincipalAdminState(
+    subjectInput: string,
+  ): Promise<AuthPrincipalAdminState | null> {
+    const subject = normalizedSubject(subjectInput);
+    return Promise.resolve(principalStates.get(subject) ?? null);
+  }
+
+  function setPrincipalAdminState(
+    input: SetAuthPrincipalAdminStateInput,
+  ): Promise<AuthPrincipalAdminState> {
+    const subject = normalizedSubject(input.subject);
+    const state = Object.freeze({
+      subject,
+      status: normalizedPrincipalStatus(input.status),
+      roleOverride: normalizedRoleOverride(input.roleOverride),
+      updatedAt: normalizedEpochSeconds(input.updatedAt),
+      updatedBy: normalizedSubject(input.updatedBy),
+    });
+    principalStates.set(subject, state);
+    return Promise.resolve(state);
+  }
+
   function revoke(session: RevocableAuthSession): Promise<void> {
-    revoked.set(hashedKey("session", session.sessionId), session.expiresAt);
+    const now = normalizedEpochSeconds(undefined);
+    const handle = hashedKey("session", session.sessionId);
+    revoked.set(handle, session.expiresAt);
+    const registered = sessions.get(handle);
+    if (registered) {
+      sessions.set(handle, {
+        ...registered,
+        revokedAt: registered.revokedAt ?? now,
+      });
+    }
     return Promise.resolve();
   }
 
   function close(): Promise<void> {
     attempts.clear();
     revoked.clear();
+    principalStates.clear();
+    sessions.clear();
     return Promise.resolve();
   }
 
@@ -172,6 +455,11 @@ export function createInMemoryAuthSecurityState(): AuthSecurityState {
     initialize,
     consumeLoginAttempt,
     isRevoked,
+    registerSession,
+    listSessions,
+    revokeSessionHandle,
+    getPrincipalAdminState,
+    setPrincipalAdminState,
     revoke,
     close,
   });
@@ -193,11 +481,19 @@ export function createSqlAuthSecurityState(
     if (nowMs - lastCleanupMs < cleanupIntervalMs) return;
     lastCleanupMs = nowMs;
     const nowEpochSeconds = Math.floor(nowMs / 1000);
+    const sessionRegistryCutoff = Math.max(
+      0,
+      nowEpochSeconds - sessionRegistryRetentionSeconds,
+    );
     const rateLimitCutoff = Math.max(0, nowMs - windowMs * 2);
     await Promise.all([
       pool.execute(
         "DELETE FROM auth_session_revocations WHERE expires_at <= ? LIMIT 1000",
         [nowEpochSeconds],
+      ),
+      pool.execute(
+        "DELETE FROM auth_session_registry WHERE expires_at <= ? LIMIT 1000",
+        [sessionRegistryCutoff],
       ),
       pool.execute(
         "DELETE FROM auth_login_rate_limits WHERE updated_at < ? LIMIT 1000",
@@ -294,9 +590,152 @@ export function createSqlAuthSecurityState(
     return false;
   }
 
+  async function registerSession(
+    session: RegisterableAuthSession,
+  ): Promise<void> {
+    await initialize();
+    const subject = normalizedSubject(session.subject);
+    const issuedAt = normalizedEpochSeconds(session.issuedAt);
+    const expiresAt = normalizedEpochSeconds(session.expiresAt);
+    if (expiresAt <= issuedAt) {
+      throw new Error("Auth session expiry must be after issuance.");
+    }
+    await pool.execute(
+      `INSERT INTO auth_session_registry
+        (session_key, actor_subject, issued_at, expires_at, revoked_at)
+       VALUES (?, ?, ?, ?, NULL)
+       ON DUPLICATE KEY UPDATE
+         expires_at = GREATEST(expires_at, VALUES(expires_at))`,
+      [hashedKey("session", session.sessionId), subject, issuedAt, expiresAt],
+    );
+  }
+
+  async function listSessions(
+    subjectInput: string,
+    nowInput?: number,
+  ): Promise<readonly AuthSessionRecord[]> {
+    await initialize();
+    const subject = normalizedSubject(subjectInput);
+    const now = normalizedEpochSeconds(nowInput);
+    const [result] = await pool.execute(
+      `SELECT session_key, actor_subject, issued_at, expires_at, revoked_at
+         FROM auth_session_registry
+        WHERE actor_subject = ?
+        ORDER BY issued_at DESC
+        LIMIT 100`,
+      [subject],
+    );
+    return Object.freeze(
+      rowsFromResult<SessionRegistryRow>(result).map((row) =>
+        sessionRecord(row, now),
+      ),
+    );
+  }
+
+  async function revokeSessionHandle(
+    subjectInput: string,
+    handleInput: string,
+    nowInput?: number,
+  ): Promise<AuthSessionRevocationResult> {
+    await initialize();
+    const subject = normalizedSubject(subjectInput);
+    const handle = normalizedSessionHandle(handleInput);
+    const now = normalizedEpochSeconds(nowInput);
+    const connection = await pool.getConnection();
+
+    try {
+      await connection.beginTransaction();
+      const [result] = await connection.execute(
+        `SELECT session_key, actor_subject, issued_at, expires_at, revoked_at
+           FROM auth_session_registry
+          WHERE session_key = ? AND actor_subject = ?
+          FOR UPDATE`,
+        [handle, subject],
+      );
+      const row = rowsFromResult<SessionRegistryRow>(result)[0];
+      if (!row) {
+        await connection.commit();
+        return Object.freeze({ found: false, alreadyRevoked: false });
+      }
+
+      const expiresAt = Number(row.expires_at);
+      const alreadyRevoked = row.revoked_at !== null || expiresAt <= now;
+      await connection.execute(
+        `INSERT INTO auth_session_revocations
+          (session_key, expires_at, revoked_at)
+         VALUES (?, ?, ?)
+         ON DUPLICATE KEY UPDATE
+           expires_at = GREATEST(expires_at, VALUES(expires_at)),
+           revoked_at = VALUES(revoked_at)`,
+        [handle, expiresAt, now],
+      );
+      await connection.execute(
+        `UPDATE auth_session_registry
+            SET revoked_at = COALESCE(revoked_at, ?)
+          WHERE session_key = ? AND actor_subject = ?`,
+        [now, handle, subject],
+      );
+      await connection.commit();
+      return Object.freeze({ found: true, alreadyRevoked });
+    } catch (error) {
+      await rollbackQuietly(connection);
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
+
+  async function getPrincipalAdminState(
+    subjectInput: string,
+  ): Promise<AuthPrincipalAdminState | null> {
+    await initialize();
+    const subject = normalizedSubject(subjectInput);
+    const [result] = await pool.execute(
+      `SELECT actor_subject, status, role_override, updated_at, updated_by
+         FROM auth_principal_admin_state
+        WHERE actor_subject = ?
+        LIMIT 1`,
+      [subject],
+    );
+    const row = rowsFromResult<PrincipalAdminStateRow>(result)[0];
+    return row ? principalAdminState(row) : null;
+  }
+
+  async function setPrincipalAdminState(
+    input: SetAuthPrincipalAdminStateInput,
+  ): Promise<AuthPrincipalAdminState> {
+    await initialize();
+    const state = Object.freeze({
+      subject: normalizedSubject(input.subject),
+      status: normalizedPrincipalStatus(input.status),
+      roleOverride: normalizedRoleOverride(input.roleOverride),
+      updatedAt: normalizedEpochSeconds(input.updatedAt),
+      updatedBy: normalizedSubject(input.updatedBy),
+    });
+    await pool.execute(
+      `INSERT INTO auth_principal_admin_state
+        (actor_subject, status, role_override, updated_at, updated_by)
+       VALUES (?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE
+         status = VALUES(status),
+         role_override = VALUES(role_override),
+         updated_at = VALUES(updated_at),
+         updated_by = VALUES(updated_by)`,
+      [
+        state.subject,
+        state.status,
+        state.roleOverride,
+        state.updatedAt,
+        state.updatedBy,
+      ],
+    );
+    return state;
+  }
+
   async function revoke(session: RevocableAuthSession): Promise<void> {
     await initialize();
     const now = normalizedEpochSeconds(undefined);
+    const handle = hashedKey("session", session.sessionId);
     await pool.execute(
       `INSERT INTO auth_session_revocations
         (session_key, expires_at, revoked_at)
@@ -304,7 +743,13 @@ export function createSqlAuthSecurityState(
        ON DUPLICATE KEY UPDATE
          expires_at = GREATEST(expires_at, VALUES(expires_at)),
          revoked_at = VALUES(revoked_at)`,
-      [hashedKey("session", session.sessionId), session.expiresAt, now],
+      [handle, session.expiresAt, now],
+    );
+    await pool.execute(
+      `UPDATE auth_session_registry
+          SET revoked_at = COALESCE(revoked_at, ?)
+        WHERE session_key = ?`,
+      [now, handle],
     );
   }
 
@@ -316,6 +761,11 @@ export function createSqlAuthSecurityState(
     initialize,
     consumeLoginAttempt,
     isRevoked,
+    registerSession,
+    listSessions,
+    revokeSessionHandle,
+    getPrincipalAdminState,
+    setPrincipalAdminState,
     revoke,
     close,
   });

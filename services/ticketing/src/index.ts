@@ -98,6 +98,14 @@ import {
 } from "./verified-payment-fulfillment-handler.js";
 
 export { MySqlTicketingCommerceCrmOutbox } from "./commerce-crm-outbox.js";
+export { TicketingAdminService } from "./ticketing-admin-service.js";
+export type {
+  TicketingAdminInventoryProjection,
+  TicketingAdminListInput,
+  TicketingAdminReservationDetail,
+  TicketingAdminReservationListInput,
+  TicketingAdminReservationProjection,
+} from "./ticketing-admin-service.js";
 export type {
   TicketingCommerceCrmEvent,
   TicketingCommerceCrmOutboxPort,

@@ -304,6 +304,32 @@ async function readDynamic(page) {
   };
 }
 
+async function waitDynamic(page, expectedLabels, expectedValues, label) {
+  const deadline = Date.now() + 5000;
+  let observed = { labels: [], values: [] };
+  while (Date.now() < deadline) {
+    observed = await readDynamic(page);
+    const labelsReady =
+      JSON.stringify(observed.labels) === JSON.stringify(expectedLabels);
+    const valuesReady =
+      expectedValues === undefined ||
+      JSON.stringify(observed.values) === JSON.stringify(expectedValues);
+    if (labelsReady && valuesReady) return observed;
+    await page.waitForTimeout(50);
+  }
+  const expected = {
+    labels: expectedLabels,
+    ...(expectedValues === undefined ? {} : { values: expectedValues }),
+  };
+  throw new Error(
+    label +
+      ": expected " +
+      JSON.stringify(expected) +
+      ", got " +
+      JSON.stringify(observed),
+  );
+}
+
 const browser = await chromium.launch({ headless: true });
 const context = await browser.newContext({
   viewport: { width: 390, height: 844 },
@@ -395,7 +421,12 @@ try {
       '#place-bottom-sheet .place-bottom-sheet-action[data-value="condições da praia"]',
     )
     .waitFor({ state: "visible" });
-  let dynamic = await readDynamic(page);
+  let dynamic = await waitDynamic(
+    page,
+    beachDetailHebrew,
+    beachDetailValues,
+    "he beach detail",
+  );
   equal(dynamic.labels, beachDetailHebrew, "he beach detail labels");
   equal(dynamic.values, beachDetailValues, "he beach canonical values");
   await waitExploreSelectedStatus(page, "Primeira Praia נבחר.");
@@ -441,7 +472,12 @@ try {
       '#place-bottom-sheet .place-bottom-sheet-action[data-value="cardápio"]',
     )
     .waitFor({ state: "visible" });
-  dynamic = await readDynamic(page);
+  dynamic = await waitDynamic(
+    page,
+    restaurantPrimaryEnglish,
+    undefined,
+    "en restaurant primary",
+  );
   equal(
     dynamic.labels,
     restaurantPrimaryEnglish,
@@ -456,7 +492,12 @@ try {
     .locator('.assistant-option-btn[data-value="avaliações"]')
     .last()
     .waitFor({ state: "visible" });
-  dynamic = await readDynamic(page);
+  dynamic = await waitDynamic(
+    page,
+    restaurantSecondaryEnglish,
+    restaurantSecondaryValues,
+    "en restaurant secondary",
+  );
   equal(
     dynamic.labels,
     restaurantSecondaryEnglish,

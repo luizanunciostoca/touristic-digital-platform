@@ -1,0 +1,23 @@
+{
+  "name": "@touristic/content-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@touristic/content": "workspace:*",
+    "mysql2": "^3.14.5"
+  },
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "pnpm --filter @touristic/content build && tsc -p tsconfig.json",
+    "lint": "eslint src",
+    "test": "pnpm --filter @touristic/content build && vitest run --passWithNoTests",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test:integration": "pnpm --filter @touristic/content build && pnpm build && vitest run --maxWorkers=1 src/mysql-integration.test.ts"
+  }
+}

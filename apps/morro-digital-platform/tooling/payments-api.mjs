@@ -1,12 +1,20 @@
 import { randomUUID } from "node:crypto";
 
-import { authorizeBusinessAccess } from "@touristic/auth";
+import {
+  authorizeBusinessAccess,
+  hasAuthCapability,
+  isReadOnlyAuthRole,
+} from "@touristic/auth";
 import {
   createProviderNeutralCheckoutApplicationService,
   normalizeBusinessCheckoutHandoff,
   normalizeOrderId,
 } from "@touristic/ordering";
 import { createTicketingCheckoutApplicationService } from "@touristic/ordering/ticketing-checkout";
+import {
+  normalizePaymentId,
+  normalizeReconciliationFindingId,
+} from "@touristic/financial";
 import {
   FinancialWebhookHttpTransport,
   MySqlFinancialReconciliationRepository,
@@ -522,7 +530,7 @@ export function createPaymentsCheckoutAuthorizationPort({
             : "authentication_required",
         });
       }
-      if (active.role === "viewer") {
+      if (isReadOnlyAuthRole(active.role)) {
         return Object.freeze({ allowed: false, reason: "read_only_role" });
       }
       const mutation = authApi.authorizeMutation(
@@ -655,7 +663,7 @@ export function createPaymentsReconciliationAuthorizationPort({ authApi }) {
           reason: "authentication_required",
         });
       }
-      if (active.role !== "admin") {
+      if (!hasAuthCapability(active.role, "financial.reconcile")) {
         return Object.freeze({ allowed: false, reason: "admin_required" });
       }
       if (action !== "reconciliation.read") {
@@ -819,13 +827,15 @@ export function createPaymentsApi({
   webhookTransport: injectedWebhookTransport,
   refundTransport: injectedRefundTransport,
   reconciliationTransport: injectedReconciliationTransport,
+  adminRead: injectedAdminRead,
 } = {}) {
   const hasInjectedTransport = Boolean(
     injectedTransport ||
     injectedAuthorityBootstrapTransport ||
     injectedWebhookTransport ||
     injectedRefundTransport ||
-    injectedReconciliationTransport,
+    injectedReconciliationTransport ||
+    injectedAdminRead,
   );
   let runtime = hasInjectedTransport
     ? Object.freeze({
@@ -835,6 +845,7 @@ export function createPaymentsApi({
         webhookTransport: injectedWebhookTransport ?? null,
         refundTransport: injectedRefundTransport ?? null,
         reconciliationTransport: injectedReconciliationTransport ?? null,
+        adminRead: injectedAdminRead ?? null,
         pools: [],
       })
     : null;
@@ -962,15 +973,15 @@ export function createPaymentsApi({
         clock: systemCheckoutClock,
         ...(statusTtlSeconds === undefined ? {} : { statusTtlSeconds }),
       });
+      const reconciliationRepository =
+        new MySqlFinancialReconciliationRepository(financialPool);
       const reconciliationApplication = createReconciliationApplicationService({
         payments,
         results: paymentResults,
         ledger,
         provider:
           createSandboxReconciliationProviderFromEnvironment(environment),
-        reconciliation: new MySqlFinancialReconciliationRepository(
-          financialPool,
-        ),
+        reconciliation: reconciliationRepository,
         clock: systemCheckoutClock,
       });
       const reconciliationTransport = new ReconciliationHttpTransport({
@@ -1039,6 +1050,13 @@ export function createPaymentsApi({
         webhookTransport,
         refundTransport,
         reconciliationTransport,
+        adminRead: Object.freeze({
+          orders,
+          payments,
+          ledger,
+          checkoutAccess,
+          reconciliation: reconciliationRepository,
+        }),
         pools,
       });
       started = true;
@@ -1068,6 +1086,149 @@ export function createPaymentsApi({
     await Promise.allSettled(pools.map((pool) => pool.end()));
   }
 
+  async function adminFindOrder(orderIdInput) {
+    const orderId = normalizeOrderId(orderIdInput);
+    if (!orderId) {
+      return Object.freeze({ status: "invalid", data: null });
+    }
+    const repository = runtime?.adminRead?.orders;
+    if (!repository) {
+      return Object.freeze({ status: "unavailable", data: null });
+    }
+    try {
+      const order = await repository.findById(orderId);
+      return Object.freeze({
+        status: order ? "found" : "not_found",
+        data: order,
+      });
+    } catch {
+      return Object.freeze({ status: "unavailable", data: null });
+    }
+  }
+
+  async function adminFindPayment(paymentIdInput) {
+    const paymentId = normalizePaymentId(paymentIdInput);
+    if (!paymentId) {
+      return Object.freeze({ status: "invalid", data: null });
+    }
+    const repository = runtime?.adminRead?.payments;
+    if (!repository) {
+      return Object.freeze({ status: "unavailable", data: null });
+    }
+    try {
+      const payment = await repository.findById(paymentId);
+      return Object.freeze({
+        status: payment ? "found" : "not_found",
+        data: payment,
+      });
+    } catch {
+      return Object.freeze({ status: "unavailable", data: null });
+    }
+  }
+
+  async function adminResolvePaymentTenant(paymentIdInput) {
+    const paymentId = normalizePaymentId(paymentIdInput);
+    if (!paymentId) {
+      return Object.freeze({ status: "invalid", tenantId: null });
+    }
+    const paymentRepository = runtime?.adminRead?.payments;
+    const accessRepository = runtime?.adminRead?.checkoutAccess;
+    if (!paymentRepository || !accessRepository) {
+      return Object.freeze({ status: "unavailable", tenantId: null });
+    }
+    try {
+      const payment = await paymentRepository.findById(paymentId);
+      if (!payment || payment.subject?.kind !== "order") {
+        return Object.freeze({ status: "not_found", tenantId: null });
+      }
+      const access = await accessRepository.findByOrderId(
+        payment.subject.reference,
+      );
+      if (
+        !access ||
+        access.paymentId !== payment.id ||
+        typeof access.tenantId !== "string" ||
+        !access.tenantId.trim()
+      ) {
+        return Object.freeze({ status: "not_found", tenantId: null });
+      }
+      return Object.freeze({
+        status: "found",
+        tenantId: access.tenantId.trim(),
+      });
+    } catch {
+      return Object.freeze({ status: "unavailable", tenantId: null });
+    }
+  }
+
+  async function adminResolveFindingTenant(findingIdInput) {
+    const findingId = normalizeReconciliationFindingId(findingIdInput);
+    if (!findingId) {
+      return Object.freeze({
+        status: "invalid",
+        tenantId: null,
+        paymentId: null,
+      });
+    }
+    const repository = runtime?.adminRead?.reconciliation;
+    if (!repository || typeof repository.findById !== "function") {
+      return Object.freeze({
+        status: "unavailable",
+        tenantId: null,
+        paymentId: null,
+      });
+    }
+    try {
+      const finding = await repository.findById(findingId);
+      if (!finding) {
+        return Object.freeze({
+          status: "not_found",
+          tenantId: null,
+          paymentId: null,
+        });
+      }
+      const tenant = await adminResolvePaymentTenant(finding.paymentId);
+      return Object.freeze({
+        status: tenant.status,
+        tenantId: tenant.tenantId,
+        paymentId: finding.paymentId,
+      });
+    } catch {
+      return Object.freeze({
+        status: "unavailable",
+        tenantId: null,
+        paymentId: null,
+      });
+    }
+  }
+
+  async function adminFindLedger(externalKeyInput) {
+    const externalKey =
+      typeof externalKeyInput === "string" ? externalKeyInput.trim() : "";
+    if (!externalKey || externalKey.length > 160) {
+      return Object.freeze({ status: "invalid", data: null });
+    }
+    const repository = runtime?.adminRead?.ledger;
+    if (!repository) {
+      return Object.freeze({ status: "unavailable", data: null });
+    }
+    try {
+      const transaction = await repository.findByExternalKey(externalKey);
+      return Object.freeze({
+        status: transaction ? "found" : "not_found",
+        data: transaction,
+      });
+    } catch (error) {
+      const invalid =
+        error instanceof Error &&
+        error.message === "FINANCIAL_INVALID_LEDGER_EXTERNAL_KEY";
+      return Object.freeze({
+        status: invalid ? "invalid" : "unavailable",
+        data: null,
+      });
+    }
+  }
+
   return Object.freeze({
     matches(pathname) {
       return (
@@ -1081,6 +1242,11 @@ export function createPaymentsApi({
     },
     start,
     stop,
+    adminFindOrder,
+    adminFindPayment,
+    adminResolvePaymentTenant,
+    adminResolveFindingTenant,
+    adminFindLedger,
     async handle(request, response, requestUrl) {
       const correlationId =
         normalizeCheckoutCorrelationId(header(request, "x-correlation-id")) ||

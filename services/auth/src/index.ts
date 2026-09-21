@@ -244,7 +244,30 @@ export function isSameOriginAllowed(input: SameOriginInput): boolean {
 export function safeDashboardReturnPath(value: unknown): string {
   const fallback = "/dashboard/index-v3-improved.html";
   const raw = safeString(value, 300);
-  if (!raw.startsWith("/dashboard/")) return fallback;
-  if (raw.startsWith("//") || raw.includes("\\")) return fallback;
-  return raw;
+  if (
+    !raw.startsWith("/") ||
+    raw.startsWith("//") ||
+    raw.includes("\\") ||
+    /%(?:2e|2f|5c)/iu.test(raw)
+  ) {
+    return fallback;
+  }
+
+  let parsed: URL;
+  try {
+    parsed = new URL(raw, "https://morro.invalid");
+  } catch {
+    return fallback;
+  }
+  if (parsed.origin !== "https://morro.invalid") return fallback;
+
+  const pathname = parsed.pathname;
+  const allowed =
+    pathname.startsWith("/dashboard/") ||
+    pathname.startsWith("/apps/control-center/") ||
+    pathname.startsWith("/apps/admin-crm/") ||
+    pathname === "/apps/morro-digital-platform/public/business-dashboard.html";
+  if (!allowed) return fallback;
+
+  return `${pathname}${parsed.search}${parsed.hash}`;
 }

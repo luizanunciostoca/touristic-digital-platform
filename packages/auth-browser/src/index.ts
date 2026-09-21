@@ -2,6 +2,7 @@ import type { AuthRole } from "@touristic/auth";
 
 const protectedPrefixes = Object.freeze([
   "/api/dashboard",
+  "/api/admin/v1",
   "/api/offers",
   "/api/business",
   "/api/crm",
@@ -18,6 +19,8 @@ export interface DashboardSessionResponse {
     readonly id: string;
     readonly email: string;
     readonly role: AuthRole;
+    readonly canonicalRole?: string;
+    readonly capabilities?: readonly string[];
     readonly businessIds: readonly string[];
   };
 }
@@ -89,6 +92,7 @@ function safeLoginUrl(location: BrowserLocationPort): string {
   const returnPath =
     current.startsWith("/dashboard/") ||
     current.startsWith("/apps/admin-crm/") ||
+    current.startsWith("/apps/control-center/") ||
     current === "/tickets.html"
       ? current
       : "/dashboard/index-v3-improved.html";

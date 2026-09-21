@@ -191,6 +191,31 @@
         "provider": "NOT_APPLICABLE",
         "note": "Ticketing server passed 31/31 tests with local MySQL, including reservation binding and transaction persistence; the local browser contract smoke also covers authenticated reservation, checkout handoff, confirmation and ticket retrieval paths."
       }
+    },
+    {
+      "id": "FEATURE-0012",
+      "name": "Morro Digital Control Center",
+      "domain": "platform-admin",
+      "wave": 12,
+      "status": "partial",
+      "legacySources": [],
+      "targetPackages": [
+        "apps/control-center",
+        "@touristic/auth",
+        "@touristic/auth-server",
+        "@touristic/auth-browser"
+      ],
+      "equivalence": {
+        "behavior": false,
+        "visual": false,
+        "api": false
+      },
+      "verification": {
+        "local": "INTEGRATION_VERIFIED_PARTIAL",
+        "mysql": "CONTAINER_VERIFIED",
+        "provider": "NOT_APPLICABLE",
+        "note": "Control Center branch has verified canonical platform roles/capabilities, Admin API v1, dedicated UI, durable MySQL append-only administrative audit, Auth-owned hash-only session registry with step-up protected revocation, signed Support Mode with request-scoped effective-user authorization proven for Business/CRM/Ticketing, and owner-backed Orders/Financial administration. Financial evidence on SHA 2220a7ebf685a48de4916e01cb01bc92a029c17b includes PASS for Control Center Financial Contract, dedicated Financial Chromium E2E, Payments Persistence Integration, Operational Ledger, Refund Command, Reconciliation, Quality Gate, Security Scanning, general Control Center Browser Contract, and Dependency Security Audit. The Financial browser contract proves Order, Payment and Ledger owner projections plus step-up governed refund denial before provider effect. Financial tenant scope is resolved through owner contracts and Support Mode fails closed on resource-tenant mismatch; production and real-money effects remain code-blocked. FEATURE-0012 remains partial because Affiliates, Content, Destinations, wider Business/Ticketing coverage, account block/reactivate, complete accessibility certification, and dedicated staging verification remain incomplete."
+      }
     }
   ]
 }

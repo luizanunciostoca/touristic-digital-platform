@@ -10,8 +10,14 @@ export function safeBusinessDashboardReturnPath(search: string): string {
   const allowedInternalPath =
     value.startsWith("/dashboard/") ||
     value.startsWith("/apps/admin-crm/") ||
+    value.startsWith("/apps/control-center/") ||
     value.startsWith(defaultDashboardPath);
-  if (!allowedInternalPath || value.startsWith("//") || value.includes("\\")) {
+  if (
+    !allowedInternalPath ||
+    value.startsWith("//") ||
+    value.includes("\\") ||
+    /%(?:2e|2f|5c)/iu.test(value)
+  ) {
     return defaultDashboardPath;
   }
   if (value.startsWith(legacyDashboardPath)) {

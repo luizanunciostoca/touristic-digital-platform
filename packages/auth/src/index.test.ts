@@ -2,7 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import {
   authRoles,
+  canonicalAuthRoles,
   authorizeBusinessAccess,
+  authorizeCapability,
+  canonicalAuthRole,
+  capabilitiesForRole,
   hasBusinessScope,
   isAuthRole,
   isAuthSessionActive,
@@ -31,6 +35,15 @@ describe("M47 auth core", () => {
     expect(authRoles).toEqual(["owner", "manager", "viewer", "admin"]);
     expect(isAuthRole("viewer")).toBe(true);
     expect(isAuthRole("superuser")).toBe(false);
+  });
+
+  it("adds canonical platform roles without changing the legacy authRoles contract", () => {
+    expect(canonicalAuthRoles).toContain("PLATFORM_OWNER");
+    expect(canonicalAuthRoles).toContain("AUDITOR");
+    expect(canonicalAuthRole("admin")).toBe("PLATFORM_ADMIN");
+    expect(canonicalAuthRole("owner")).toBe("BUSINESS_OWNER");
+    expect(capabilitiesForRole("PLATFORM_OWNER")).toContain("system.manage");
+    expect(capabilitiesForRole("PLATFORM_OWNER")).toContain("financial.refund");
   });
 
   it("normalizes email without accepting malformed addresses", () => {
@@ -105,6 +118,24 @@ describe("M47 auth core", () => {
     ).not.toBeNull();
   });
 
+  it("accepts platform identities without tenant membership", () => {
+    expect(
+      normalizeAuthSessionIdentity({
+        subject: "platform-owner",
+        email: "platform-owner@example.com",
+        role: "PLATFORM_OWNER",
+        businessIds: [],
+        issuedAt: 10,
+        expiresAt: 20,
+        sessionId: "session-platform-owner",
+      }),
+    ).toMatchObject({
+      subject: "platform-owner",
+      role: "PLATFORM_OWNER",
+      businessIds: [],
+    });
+  });
+
   it("rejects malformed or non-positive session windows", () => {
     expect(
       normalizeAuthSessionIdentity({
@@ -144,6 +175,47 @@ describe("M47 auth core", () => {
 
     expect(hasBusinessScope(admin, "another-business")).toBe(true);
     expect(hasBusinessScope(admin, "invalid business")).toBe(false);
+  });
+
+  it("authorizes capabilities independently from tenant bypass", () => {
+    const platformOwner = Object.freeze({
+      ...activeSession,
+      role: "PLATFORM_OWNER" as const,
+      businessIds: Object.freeze([]),
+    });
+    const auditor = Object.freeze({
+      ...activeSession,
+      role: "AUDITOR" as const,
+      businessIds: Object.freeze([]),
+    });
+
+    expect(
+      authorizeCapability(platformOwner, "financial.refund", {
+        nowEpochSeconds: activeNow,
+      }),
+    ).toMatchObject({
+      allowed: true,
+      capability: "financial.refund",
+    });
+    expect(
+      authorizeCapability(auditor, "financial.refund", {
+        nowEpochSeconds: activeNow,
+      }),
+    ).toMatchObject({
+      allowed: false,
+      reason: "capability_denied",
+    });
+    expect(
+      authorizeCapability(activeSession, "business.update", {
+        businessId: "hotel-1",
+        mutation: true,
+        nowEpochSeconds: activeNow,
+      }),
+    ).toMatchObject({
+      allowed: false,
+      reason: "business_access_denied",
+      businessId: "hotel-1",
+    });
   });
 
   it("requires authentication before evaluating tenant input", () => {
