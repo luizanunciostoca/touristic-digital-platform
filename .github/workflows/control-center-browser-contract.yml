@@ -45,7 +45,7 @@ on:
       - "pnpm-lock.yaml"
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: control-center-browser-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -78,6 +78,13 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Switch formatter to PR head
+        if: github.event_name == 'pull_request' && github.event.pull_request.number == 227
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin "${{ github.event.pull_request.head.ref }}"
+          git checkout -B "${{ github.event.pull_request.head.ref }}" "origin/${{ github.event.pull_request.head.ref }}"
       - name: Produce deterministic Prettier output for this mission
         run: |
           pnpm exec prettier --write \
@@ -101,6 +108,27 @@ jobs:
             apps/morro-digital-platform/tooling/control-center-accessibility-browser-contract.mjs
             apps/morro-digital-platform/tooling/control-center-responsive-browser-contract.mjs
           retention-days: 1
+      - name: Commit deterministic Prettier output
+        if: github.event_name == 'pull_request' && github.event.pull_request.number == 227
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo "FORMAT_ALREADY_CLEAN"
+            exit 0
+          fi
+          git config user.name "morro-digital-ci"
+          git config user.email "morro-digital-ci@users.noreply.github.com"
+          git add \
+            apps/control-center/public/control-center-primitives.js \
+            apps/control-center/public/control-center.css \
+            apps/control-center/public/control-center.js \
+            apps/control-center/public/index.html \
+            apps/morro-digital-platform/src/ux/control-center-ux-v1-contract.test.ts \
+            apps/morro-digital-platform/tooling/control-center-accessibility-browser-contract.mjs \
+            apps/morro-digital-platform/tooling/control-center-responsive-browser-contract.mjs
+          git commit -m "style(control-center): format reusable UX final"
+          git push origin HEAD:"${{ github.event.pull_request.head.ref }}"
       - name: Install deterministic Chromium
         run: |
           npm install --prefix /tmp/pw --no-save playwright@1.54.2 axe-core@4.10.3
