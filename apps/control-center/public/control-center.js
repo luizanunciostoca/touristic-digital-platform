@@ -233,6 +233,16 @@ function contentField(document, key) {
 }
 
 function renderNav() {
+  const selectedDestinationId =
+    document.querySelector("#destination-selector")?.value ?? "global";
+  const aliasLabels = new Set([
+    "Ofertas",
+    "Check-in",
+    "Reembolsos",
+    "Comissões",
+    "Integrações",
+  ]);
+
   nav.innerHTML = navGroups
     .map(
       ([group, items]) => `
@@ -240,13 +250,26 @@ function renderNav() {
           <p class="nav-group-label">${escapeHtml(group)}</p>
           <div class="nav-group-items">
             ${items
-              .map(
-                ([id, label, icon]) =>
-                  `<button type="button" class="nav-item ${state.view === id ? "active" : ""}" data-view="${id}">
+              .map(([id, label, icon]) => {
+                const globalScopeItem = label === "Visão Global";
+                const aliasItem = aliasLabels.has(label);
+                const active = globalScopeItem
+                  ? state.view === "overview" &&
+                    selectedDestinationId === "global"
+                  : label === "Visão Geral"
+                    ? state.view === "overview" &&
+                      selectedDestinationId !== "global"
+                    : state.view === id && !aliasItem;
+                const routeAttribute = globalScopeItem
+                  ? 'data-global-scope-nav="true"'
+                  : aliasItem
+                    ? `data-route-view="${id}"`
+                    : `data-view="${id}"`;
+                return `<button type="button" class="nav-item ${active ? "active" : ""}" ${routeAttribute}>
                     <span class="nav-icon" aria-hidden="true">${icon}</span>
                     <span>${escapeHtml(label)}</span>
-                  </button>`,
-              )
+                  </button>`;
+              })
               .join("")}
           </div>
         </section>`,
@@ -3194,9 +3217,23 @@ document.addEventListener("keydown", (event) => {
 });
 
 nav.addEventListener("click", (event) => {
-  const button = event.target.closest("[data-view]");
+  const button = event.target.closest(
+    "[data-view], [data-route-view], [data-global-scope-nav]",
+  );
   if (!button) return;
-  globalThis.location.hash = `#${button.dataset.view}`;
+
+  if (button.dataset.globalScopeNav === "true") {
+    const selector = document.querySelector("#destination-selector");
+    if (selector) {
+      selector.value = "global";
+      selector.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+    globalThis.location.hash = "#overview";
+  } else {
+    const targetView = button.dataset.view ?? button.dataset.routeView;
+    if (targetView) globalThis.location.hash = `#${targetView}`;
+  }
+
   app.classList.remove("menu-open");
 });
 
