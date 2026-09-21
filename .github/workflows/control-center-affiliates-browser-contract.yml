@@ -284,7 +284,7 @@ jobs:
               }
               evidence.reads.push("affiliate-detail-owner");
 
-              const affiliate360 = page.locator(\'[data-entity-tabs="affiliate360"]\');
+              const affiliate360 = page.locator('[data-entity-tabs="affiliate360"]');
               await affiliate360.waitFor();
               for (const label of ["Overview", "Identity / Profile", "Relationships", "Commercial / Financial", "Activity", "Audit", "Settings / Actions"]) {
                 if ((await affiliate360.getByRole("tab", { name: label }).count()) !== 1) {
@@ -292,13 +292,13 @@ jobs:
                 }
               }
               await affiliate360.getByRole("tab", { name: "Relationships" }).click();
-              await page.locator(\'a[href="#destinations:morro-de-sao-paulo"]\').waitFor();
+              await page.locator('a[href="#destinations:morro-de-sao-paulo"]').waitFor();
               await affiliate360.getByRole("tab", { name: "Commercial / Financial" }).click();
               await page.getByText("Financial", { exact: true }).waitFor();
               await affiliate360.getByRole("tab", { name: "Activity" }).click();
               await page.getByText("Conversões recentes", { exact: true }).waitFor();
               await affiliate360.getByRole("tab", { name: "Audit" }).click();
-              await page.locator(\'[data-recent-activity]\').waitFor();
+              await page.locator('[data-recent-activity]').waitFor();
               evidence.reads.push("affiliate-360-tabs-owner-relations");
               await affiliate360.getByRole("tab", { name: "Settings / Actions" }).click();
 
@@ -323,7 +323,7 @@ jobs:
               evidence.criticalActions.push("membership-suspend-step-up");
 
               await page
-                .locator(\'[data-entity-tabs="affiliate360"]\')
+                .locator('[data-entity-tabs="affiliate360"]')
                 .getByRole("tab", { name: "Settings / Actions" })
                 .click();
               await page
@@ -346,9 +346,9 @@ jobs:
                 .waitFor({ timeout: 15000 });
               evidence.criticalActions.push("membership-reactivate-step-up");
 
-              const refreshedAffiliate360 = page.locator(\'[data-entity-tabs="affiliate360"]\');
+              const refreshedAffiliate360 = page.locator('[data-entity-tabs="affiliate360"]');
               await refreshedAffiliate360.getByRole("tab", { name: "Audit" }).click();
-              const affiliateAudit = await page.locator(\'[data-recent-activity]\').textContent();
+              const affiliateAudit = await page.locator('[data-recent-activity]').textContent();
               if (!affiliateAudit?.includes("affiliate.membership.suspend.complete") || !affiliateAudit.includes("affiliate.membership.reactivate.complete")) {
                 throw new Error(`Affiliate authoritative audit activity missing: ${affiliateAudit}`);
               }
