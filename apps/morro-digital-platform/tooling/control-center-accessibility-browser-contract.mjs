@@ -60,18 +60,14 @@ async function main() {
       currentView = view ?? "__unknown__";
       stage = "navigate";
       await page.locator(`#main-nav [data-view="${view}"]`).click();
-      await page.waitForFunction(
-        (target) => {
-          const content = document.querySelector("#content");
-          return (
-            location.hash === `#${target}` &&
-            content?.dataset.renderedView === target &&
-            content.getAttribute("aria-busy") === "false"
-          );
-        },
-        view,
-        { timeout: 30_000 },
-      );
+      await page.waitForURL((url) => url.hash === `#${view}`, {
+        timeout: 30_000,
+      });
+      await page
+        .locator(
+          `#content[data-rendered-view="${view}"][aria-busy="false"]`,
+        )
+        .waitFor({ state: "attached", timeout: 30_000 });
 
       stage = "axe";
       const accessibility = await page.evaluate(async () => {
