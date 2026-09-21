@@ -1162,6 +1162,7 @@ async function renderUsers(userId) {
         );
         status.textContent = "Sessão revogada com sucesso.";
         await renderUsers(userId);
+        content.querySelector('[data-entity-tab="activity"]')?.click();
       } catch (error) {
         button.disabled = false;
         status.textContent =
@@ -2076,6 +2077,7 @@ async function renderAffiliates(affiliateId) {
         );
         status.textContent = "Membership atualizada.";
         await renderAffiliates(affiliateId);
+        content.querySelector('[data-entity-tab="relationships"]')?.click();
       } catch (error) {
         status.textContent = error.body?.error || error.message;
       }
