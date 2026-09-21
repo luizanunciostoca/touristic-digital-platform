@@ -18,7 +18,7 @@ export interface BusinessProfile {
   readonly specialty: string;
   readonly description: string;
   readonly cta: string;
-  readonly destinationId: string | null;
+  readonly destinationId?: string | null;
   readonly locationLabel: string;
   readonly locationIsExample: boolean;
   readonly promotion: BusinessPromotion | null;
