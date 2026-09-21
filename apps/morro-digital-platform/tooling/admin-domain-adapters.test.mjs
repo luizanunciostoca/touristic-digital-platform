@@ -297,6 +297,24 @@ describe("Control Center domain support delegation", () => {
     ]);
   });
 
+  it("surfaces CRM owner search failures instead of masking them as empty results", async () => {
+    const req = request("GET");
+    const { authApi } = supportDelegationBoundary();
+    const crmHandle = vi.fn(async (_request, response) => {
+      response.statusCode = 503;
+      response.end(JSON.stringify({ error: "CRM_DOWN" }));
+    });
+    const adapter = createCrmAdminAdapter({ handle: crmHandle }, authApi);
+
+    await expect(
+      adapter.search({
+        query: "toca",
+        request: req,
+        effectiveUser: null,
+      }),
+    ).rejects.toThrow("CRM_ADMIN_SEARCH_OWNER_UNAVAILABLE");
+  });
+
   it("allows the full governed Ticketing operator route set including offline revoke", async () => {
     const req = request("POST");
     const response = supportResponseRecorder();
@@ -588,6 +606,23 @@ describe("Control Center Affiliates owner adapter", () => {
     });
   });
 
+  it("surfaces Affiliate owner unavailability to the search orchestrator", async () => {
+    const { adapter, runtime, actor } = affiliateFixture();
+    runtime.adminList.mockResolvedValueOnce({
+      status: "unavailable",
+      data: null,
+      error: "AFFILIATE_DB_DOWN",
+    });
+
+    await expect(
+      adapter.search({
+        query: "affiliate",
+        actor,
+        destinationId: "morro-de-sao-paulo",
+      }),
+    ).rejects.toThrow("AFFILIATE_DB_DOWN");
+  });
+
   it("derives membership destination from owner detail before changing status", async () => {
     const { adapter, runtime, actor } = affiliateFixture();
     const result = await adapter.changeMembershipStatus({
@@ -686,6 +721,23 @@ describe("Control Center Content owner adapter", () => {
         href: "#content:content-admin-0001",
       }),
     ]);
+  });
+
+  it("surfaces Content owner failures instead of reporting an empty search", async () => {
+    const { runtime } = contentRuntimeFixture();
+    runtime.adminList.mockResolvedValueOnce({
+      status: "unavailable",
+      data: null,
+      error: "CONTENT_DB_DOWN",
+    });
+    const adapter = createContentAdminAdapter(runtime);
+
+    await expect(
+      adapter.search({
+        query: "Segunda",
+        destinationId: "morro-de-sao-paulo",
+      }),
+    ).rejects.toThrow("CONTENT_DB_DOWN");
   });
 
   it("requires an administrative reason before owner mutation", async () => {
@@ -957,6 +1009,18 @@ describe("Control Center Products and Reservations owner adapters", () => {
       limit: 20,
     });
 
+    ticketingApi.adminListInventory.mockResolvedValueOnce({
+      status: "unavailable",
+      data: null,
+      error: "TICKETING_SEARCH_DOWN",
+    });
+    await expect(
+      adapter.search({
+        query: "volta",
+        destinationId: "morro-de-sao-paulo",
+      }),
+    ).rejects.toThrow("TICKETING_SEARCH_DOWN");
+
     await expect(
       adapter.createBusinessOffer({
         request: request(),
@@ -1070,6 +1134,18 @@ describe("Control Center Products and Reservations owner adapters", () => {
       destinationId: "morro-de-sao-paulo",
       limit: 20,
     });
+
+    ticketingApi.adminListReservations.mockResolvedValueOnce({
+      status: "unavailable",
+      data: null,
+      error: "RESERVATION_SEARCH_DOWN",
+    });
+    await expect(
+      adapter.search({
+        query: "holder-0001",
+        destinationId: "morro-de-sao-paulo",
+      }),
+    ).rejects.toThrow("RESERVATION_SEARCH_DOWN");
 
     await expect(
       adapter.cancelHeldReservation({
