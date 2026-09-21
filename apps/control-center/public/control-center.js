@@ -90,9 +90,13 @@ const healthChip = document.querySelector("#health-chip");
 const releaseChip = document.querySelector("#release-chip");
 const searchInput = document.querySelector("#global-search");
 const searchResults = document.querySelector("#search-results");
+const fallbackSearchDestination = document.querySelector("#search-destination");
+const globalDestinationSelector = document.querySelector("#destination-selector");
+if (globalDestinationSelector && fallbackSearchDestination) {
+  fallbackSearchDestination.hidden = true;
+}
 const searchDestination =
-  document.querySelector("#destination-selector") ??
-  document.querySelector("#search-destination");
+  globalDestinationSelector ?? fallbackSearchDestination;
 const supportBanner = document.querySelector("#support-banner");
 const supportContext = document.querySelector("#support-context");
 const menuButton = document.querySelector("#menu-button");
