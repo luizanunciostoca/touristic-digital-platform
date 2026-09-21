@@ -1086,6 +1086,234 @@ export function createPaymentsApi({
     await Promise.allSettled(pools.map((pool) => pool.end()));
   }
 
+  async function adminAggregateDestinations(input = {}) {
+    const rawDestinationIds = Array.isArray(input.destinationIds)
+      ? input.destinationIds
+      : input.destinationId
+        ? [input.destinationId]
+        : [];
+    if (rawDestinationIds.length === 0 || rawDestinationIds.length > 50) {
+      return Object.freeze({ status: "invalid", data: null });
+    }
+
+    const destinationIds = [];
+    for (const value of rawDestinationIds) {
+      const normalized = normalizeCheckoutRequestContext({
+        requesterKind: "authenticated",
+        actorSubject: "runtime:admin-aggregate",
+        destinationId: value,
+        tenantId: null,
+      })?.destinationId;
+      if (!normalized) {
+        return Object.freeze({ status: "invalid", data: null });
+      }
+      if (!destinationIds.includes(normalized)) destinationIds.push(normalized);
+    }
+
+    const normalizeBoundary = (value) => {
+      if (value === undefined || value === null || value === "") return null;
+      if (typeof value !== "string") return "";
+      const date = new Date(value);
+      return Number.isFinite(date.getTime()) ? date.toISOString() : "";
+    };
+    const from = normalizeBoundary(input.from);
+    const to = normalizeBoundary(input.to);
+    if (
+      from === "" ||
+      to === "" ||
+      (from && to && Date.parse(from) >= Date.parse(to))
+    ) {
+      return Object.freeze({ status: "invalid", data: null });
+    }
+
+    const accessRepository = runtime?.adminRead?.checkoutAccess;
+    const paymentRepository = runtime?.adminRead?.payments;
+    const reconciliationRepository = runtime?.adminRead?.reconciliation;
+    if (
+      !accessRepository ||
+      typeof accessRepository.listByDestinationId !== "function" ||
+      !paymentRepository ||
+      typeof paymentRepository.aggregateConfirmedByIds !== "function" ||
+      !reconciliationRepository ||
+      typeof reconciliationRepository.listPendingReviewByPaymentIds !==
+        "function"
+    ) {
+      return Object.freeze({ status: "unavailable", data: null });
+    }
+
+    const pageSize = 250;
+    const maxPaymentsPerDestination = 5_000;
+    const maxAttentionItemsPerDestination = 100;
+    const destinations = [];
+
+    for (const destinationId of destinationIds) {
+      try {
+        const currencies = new Map();
+        const findings = [];
+        let knownFindingCount = 0;
+        let scannedPayments = 0;
+        let cursor = null;
+        let truncated = false;
+
+        while (true) {
+          const remaining = maxPaymentsPerDestination - scannedPayments;
+          if (remaining <= 0) {
+            truncated = true;
+            break;
+          }
+          const page = await accessRepository.listByDestinationId(
+            destinationId,
+            {
+              ...(cursor ? { afterOrderId: cursor } : {}),
+              limit: Math.min(pageSize, remaining),
+            },
+          );
+          const records = Array.isArray(page?.records) ? page.records : [];
+          if (
+            records.some(
+              (record) =>
+                record?.destinationId !== destinationId ||
+                typeof record?.paymentId !== "string" ||
+                !record.paymentId,
+            )
+          ) {
+            throw new Error("PAYMENTS_ADMIN_DESTINATION_SCOPE_VIOLATION");
+          }
+
+          const paymentIds = records.map((record) => record.paymentId);
+          if (paymentIds.length > 0) {
+            const [revenue, pendingReview] = await Promise.all([
+              paymentRepository.aggregateConfirmedByIds(paymentIds, {
+                ...(from ? { from } : {}),
+                ...(to ? { to } : {}),
+              }),
+              reconciliationRepository.listPendingReviewByPaymentIds(
+                paymentIds,
+                maxAttentionItemsPerDestination,
+              ),
+            ]);
+
+            for (const row of revenue ?? []) {
+              const currency = String(row?.currency ?? "");
+              const amount = BigInt(String(row?.minorUnits ?? "0"));
+              const count = Number(row?.paymentCount ?? 0);
+              if (!/^[A-Z]{3}$/u.test(currency) || !Number.isSafeInteger(count)) {
+                throw new Error("PAYMENTS_ADMIN_REVENUE_AGGREGATE_INVALID");
+              }
+              const current = currencies.get(currency) ?? {
+                minorUnits: 0n,
+                paymentCount: 0,
+              };
+              currencies.set(currency, {
+                minorUnits: current.minorUnits + amount,
+                paymentCount: current.paymentCount + count,
+              });
+            }
+
+            knownFindingCount += Number(pendingReview?.total ?? 0);
+            if (!Number.isSafeInteger(knownFindingCount)) {
+              throw new Error("PAYMENTS_ADMIN_FINDING_COUNT_INVALID");
+            }
+            for (const finding of pendingReview?.findings ?? []) {
+              if (findings.length >= maxAttentionItemsPerDestination) break;
+              if (!paymentIds.includes(finding?.paymentId)) {
+                throw new Error("PAYMENTS_ADMIN_FINDING_SCOPE_VIOLATION");
+              }
+              findings.push(
+                Object.freeze({
+                  id: finding.id,
+                  destinationId,
+                  paymentId: finding.paymentId,
+                  kind: finding.kind,
+                  severity: finding.severity,
+                  state: finding.state,
+                  lastSeenAt: finding.lastSeenAt,
+                }),
+              );
+            }
+          }
+
+          scannedPayments += records.length;
+          if (!page?.nextCursor) break;
+          cursor = page.nextCursor;
+          if (scannedPayments >= maxPaymentsPerDestination) {
+            truncated = true;
+            break;
+          }
+        }
+
+        const aggregateStatus = truncated ? "PARTIAL" : "READY";
+        const revenue = Object.freeze({
+          status: aggregateStatus,
+          currencies: Object.freeze(
+            [...currencies.entries()]
+              .sort(([left], [right]) => left.localeCompare(right))
+              .map(([currency, value]) =>
+                Object.freeze({
+                  currency,
+                  minorUnits: value.minorUnits.toString(),
+                  paymentCount: value.paymentCount,
+                }),
+              ),
+          ),
+          scannedPayments,
+          complete: !truncated,
+        });
+        const financialAttention = Object.freeze({
+          status: aggregateStatus,
+          count: truncated ? null : knownFindingCount,
+          knownCount: knownFindingCount,
+          items: Object.freeze(findings),
+          itemsTruncated:
+            knownFindingCount > findings.length || truncated,
+          complete: !truncated,
+        });
+        destinations.push(
+          Object.freeze({
+            destinationId,
+            status: aggregateStatus,
+            revenue,
+            financialAttention,
+          }),
+        );
+      } catch {
+        destinations.push(
+          Object.freeze({
+            destinationId,
+            status: "UNAVAILABLE",
+            revenue: Object.freeze({
+              status: "UNAVAILABLE",
+              currencies: null,
+              scannedPayments: null,
+              complete: false,
+            }),
+            financialAttention: Object.freeze({
+              status: "UNAVAILABLE",
+              count: null,
+              knownCount: null,
+              items: Object.freeze([]),
+              itemsTruncated: false,
+              complete: false,
+            }),
+          }),
+        );
+      }
+    }
+
+    return Object.freeze({
+      status: "found",
+      data: Object.freeze({
+        destinations: Object.freeze(destinations),
+        range: Object.freeze({ from, to }),
+        queryModel: Object.freeze({
+          mode: "paged-owner-batch",
+          pageSize,
+          maxPaymentsPerDestination,
+        }),
+      }),
+    });
+  }
+
   async function adminFindOrder(orderIdInput) {
     const orderId = normalizeOrderId(orderIdInput);
     if (!orderId) {
@@ -1244,6 +1472,7 @@ export function createPaymentsApi({
     stop,
     adminFindOrder,
     adminFindPayment,
+    adminAggregateDestinations,
     adminResolvePaymentTenant,
     adminResolveFindingTenant,
     adminFindLedger,
