@@ -3240,6 +3240,16 @@ nav.addEventListener("click", (event) => {
   app.classList.remove("menu-open");
 });
 
+document
+  .querySelector("#destination-selector")
+  ?.addEventListener("change", () => {
+    const raw = (globalThis.location.hash || "#overview").replace(/^#/, "");
+    const [view] = raw.split(":", 1);
+    if ((view || "overview") !== "overview") {
+      void openHash();
+    }
+  });
+
 menuButton?.addEventListener("click", () => app.classList.toggle("menu-open"));
 
 document
