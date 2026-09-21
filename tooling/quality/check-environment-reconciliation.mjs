@@ -31,6 +31,8 @@ const required = [
   "TICKETING_OFFLINE_PROVISIONING_SECRET",
   "TICKETING_FINANCIAL_POLL_INTERVAL_MS",
   "CRM_DATABASE_URL",
+  "CONTENT_DATABASE_URL",
+  "CONTENT_DATABASE_POOL_SIZE",
   "ORDERING_PRICING_CATALOG_JSON",
   "PAYMENTS_DESTINATION_ID",
   "PAYMENTS_RETURN_URL_ORIGINS",
@@ -115,6 +117,17 @@ if (
 const subscriptionsEnabled = values.get("PAYMENTS_SUBSCRIPTIONS_ENABLED");
 if (subscriptionsEnabled !== "true" && subscriptionsEnabled !== "false") {
   throw new Error("PAYMENTS_SUBSCRIPTIONS_ENABLED must be true or false");
+}
+
+const contentPoolSize = Number(values.get("CONTENT_DATABASE_POOL_SIZE"));
+if (
+  !Number.isSafeInteger(contentPoolSize) ||
+  contentPoolSize < 1 ||
+  contentPoolSize > 64
+) {
+  throw new Error(
+    "CONTENT_DATABASE_POOL_SIZE must be an integer between 1 and 64",
+  );
 }
 
 const ticketingEnabled = values.get("TICKETING_FEATURE_ENABLED");

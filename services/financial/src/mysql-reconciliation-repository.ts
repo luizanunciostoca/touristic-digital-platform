@@ -175,6 +175,23 @@ async function findingsForRun(
 }
 
 export class MySqlFinancialReconciliationRepository implements FinancialReconciliationRepositoryPort {
+  async findById(
+    findingIdInput: ReconciliationFindingId,
+  ): Promise<ReconciliationFinding | null> {
+    const findingId = normalizeReconciliationFindingId(findingIdInput);
+    if (!findingId) {
+      throw new Error("FINANCIAL_INVALID_RECONCILIATION_FINDING_ID");
+    }
+    const [rows] = await this.pool.execute<ReconciliationFindingRow[]>(
+      `SELECT ${findingColumns}
+       FROM financial_reconciliation_findings
+       WHERE reconciliation_finding_id = ?
+       LIMIT 1`,
+      [findingId],
+    );
+    return rows[0] ? findingFromRow(rows[0]) : null;
+  }
+
   constructor(private readonly pool: Pool) {}
 
   async record(input: {

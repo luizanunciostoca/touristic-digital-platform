@@ -1,0 +1,493 @@
+name: Control Center Browser Contract
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
+    paths:
+      - ".github/workflows/control-center-browser-contract.yml"
+      - "apps/control-center/**"
+      - "apps/morro-digital-platform/src/business-login-entry.ts"
+      - "apps/morro-digital-platform/tooling/admin-*.mjs"
+      - "apps/morro-digital-platform/tooling/auth-api.mjs"
+      - "apps/morro-digital-platform/tooling/business-api.mjs"
+      - "apps/morro-digital-platform/tooling/crm-api.mjs"
+      - "apps/morro-digital-platform/tooling/dev-server.mjs"
+      - "packages/auth/**"
+      - "packages/auth-browser/**"
+      - "packages/crm/**"
+      - "services/analytics/**"
+      - "services/auth/**"
+      - "services/crm/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/control-center-browser-contract.yml"
+      - "apps/control-center/**"
+      - "apps/morro-digital-platform/src/business-login-entry.ts"
+      - "apps/morro-digital-platform/tooling/admin-*.mjs"
+      - "apps/morro-digital-platform/tooling/auth-api.mjs"
+      - "apps/morro-digital-platform/tooling/business-api.mjs"
+      - "apps/morro-digital-platform/tooling/crm-api.mjs"
+      - "apps/morro-digital-platform/tooling/dev-server.mjs"
+      - "packages/auth/**"
+      - "packages/auth-browser/**"
+      - "packages/crm/**"
+      - "services/analytics/**"
+      - "services/auth/**"
+      - "services/crm/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: control-center-browser-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  control-center-browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: control-center-ci
+          MYSQL_DATABASE: control_center_ci
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -pcontrol-center-ci"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install deterministic Chromium
+        run: |
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2 axe-core@4.10.3
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+      - name: Build Control Center runtime graph
+        run: pnpm -w build
+      - name: Start authenticated Control Center runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          PORT=4194
+          AUTH_SECRET="0123456789abcdef0123456789abcdef"
+          SUPPORT_SECRET="support-control-center-ci-0123456789abcdef"
+          STEP_UP_SECRET="step-up-control-center-ci-0123456789abcdef"
+          PASSWORD="control center browser fixture"
+          OWNER_HASH=$(node --input-type=module -e "import('./services/auth/dist/credentials.js').then(m => console.log(m.hashPassword(process.argv[1], Buffer.alloc(16, 21))))" "$PASSWORD")
+          BUSINESS_HASH=$(node --input-type=module -e "import('./services/auth/dist/credentials.js').then(m => console.log(m.hashPassword(process.argv[1], Buffer.alloc(16, 22))))" "$PASSWORD")
+          SUPPORT_HASH=$(node --input-type=module -e "import('./services/auth/dist/credentials.js').then(m => console.log(m.hashPassword(process.argv[1], Buffer.alloc(16, 23))))" "$PASSWORD")
+          AUDITOR_HASH=$(node --input-type=module -e "import('./services/auth/dist/credentials.js').then(m => console.log(m.hashPassword(process.argv[1], Buffer.alloc(16, 24))))" "$PASSWORD")
+          USERS=$(node -e 'console.log(JSON.stringify([
+            {id:"platform-owner-1",email:"platform-owner@example.com",passwordHash:process.argv[1],role:"PLATFORM_OWNER",businessIds:[]},
+            {id:"platform-owner-users",email:"platform-owner-users@example.com",passwordHash:process.argv[1],role:"PLATFORM_OWNER",businessIds:[]},
+            {id:"platform-owner-commerce",email:"platform-owner-commerce@example.com",passwordHash:process.argv[1],role:"PLATFORM_OWNER",businessIds:[]},
+            {id:"platform-owner-ticketing",email:"platform-owner-ticketing@example.com",passwordHash:process.argv[1],role:"PLATFORM_OWNER",businessIds:[]},
+            {id:"platform-owner-a11y",email:"platform-owner-a11y@example.com",passwordHash:process.argv[1],role:"PLATFORM_OWNER",businessIds:[]},
+            {id:"business-owner-1",email:"business-owner@example.com",passwordHash:process.argv[2],role:"BUSINESS_OWNER",businessIds:["toca-do-morcego"]},
+            {id:"support-1",email:"support@example.com",passwordHash:process.argv[3],role:"SUPPORT",businessIds:[]},
+            {id:"auditor-1",email:"auditor@example.com",passwordHash:process.argv[4],role:"AUDITOR",businessIds:[]}
+          ]))' "$OWNER_HASH" "$BUSINESS_HASH" "$SUPPORT_HASH" "$AUDITOR_HASH")
+          DB_URL="mysql://root:control-center-ci@127.0.0.1:3306/control_center_ci"
+          DASHBOARD_AUTH_SECRET="$AUTH_SECRET"           DASHBOARD_USERS_JSON="$USERS"           AUTH_DATABASE_URL="$DB_URL"           CONTROL_CENTER_SUPPORT_SECRET="$SUPPORT_SECRET"           CONTROL_CENTER_STEP_UP_SECRET="$STEP_UP_SECRET"           CONTROL_CENTER_AUDIT_DATABASE_URL="$DB_URL"           CRM_DATABASE_URL="$DB_URL"           PORT="$PORT" HOST="127.0.0.1"             node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/control-center-server.log 2>&1 &
+          echo $! >/tmp/control-center-server.pid
+          for _ in $(seq 1 100); do
+            if curl --fail --silent "http://127.0.0.1:${PORT}/apps/control-center/public/index.html" >/dev/null; then
+              exit 0
+            fi
+            sleep 0.25
+          done
+          cat /tmp/control-center-server.log
+          exit 1
+      - name: Validate Control Center browser, security and responsive contracts
+        run: |
+          node <<'NODE'
+          const { writeFileSync } = require('node:fs');
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+
+          const origin = 'http://127.0.0.1:4194';
+          const password = 'control center browser fixture';
+
+          async function apiLogin(context, email) {
+            const response = await context.request.post(`${origin}/api/dashboard/auth/login`, {
+              headers: { Origin: origin, 'Content-Type': 'application/json' },
+              data: { email, password },
+            });
+            if (response.status() !== 200) {
+              throw new Error(`Login failed for ${email}: ${response.status()} ${await response.text()}`);
+            }
+            return response.json();
+          }
+
+          async function assertAdminDenied(context, path, init = {}) {
+            const response = await context.request.fetch(`${origin}${path}`, init);
+            if (response.status() !== 403) {
+              throw new Error(`Expected admin denial for ${path}, got ${response.status()}: ${await response.text()}`);
+            }
+            const body = await response.json();
+            if (body.error !== 'ADMIN_SURFACE_DENIED' && body.error !== 'CAPABILITY_DENIED') {
+              throw new Error(`Unexpected admin denial payload: ${JSON.stringify(body)}`);
+            }
+            return body;
+          }
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            const evidence = {
+              errors: [],
+              viewports: [],
+              negativeSecurity: [],
+            };
+
+            try {
+              const ownerContext = await browser.newContext({
+                viewport: { width: 1280, height: 900 },
+              });
+              const page = await ownerContext.newPage();
+              page.on('pageerror', error => evidence.errors.push(error.message));
+
+              await page.goto(`${origin}/apps/control-center/public/index.html`, {
+                waitUntil: 'domcontentloaded',
+                timeout: 30000,
+              });
+              await page.waitForURL(url => url.pathname === '/dashboard/login.html', {
+                timeout: 10000,
+              });
+              const returnTarget = new URL(page.url()).searchParams.get('return');
+              if (returnTarget !== '/apps/control-center/public/index.html') {
+                throw new Error(`Control Center safe return missing: ${returnTarget}`);
+              }
+
+              await page.locator('#email').fill('platform-owner@example.com');
+              await page.locator('#password').fill(password);
+              await page.locator('#submit').click();
+              await page.waitForURL(url => url.pathname === '/apps/control-center/public/index.html', {
+                timeout: 15000,
+              });
+              await page.locator('#app:not([hidden])').waitFor({ state: 'visible', timeout: 15000 });
+
+              const actor = await page.locator('#actor-card').textContent();
+              if (!actor?.includes('PLATFORM_OWNER')) {
+                throw new Error(`PLATFORM_OWNER actor projection missing: ${actor}`);
+              }
+              await page.getByRole('heading', { name: 'Visão Geral' }).waitFor();
+              evidence.login = 'PLATFORM_OWNER';
+
+              const csrfToken = await page.evaluate(() => sessionStorage.getItem('md_dashboard_csrf'));
+              if (!csrfToken) throw new Error('Control Center login did not retain CSRF projection');
+
+              const revocableBusinessContext = await browser.newContext();
+              await apiLogin(revocableBusinessContext, 'business-owner@example.com');
+
+              await page.locator('[data-view="users"]').click();
+              await page.getByRole('heading', { name: 'Usuários' }).waitFor();
+              await page.getByRole('link', { name: 'business-owner@example.com' }).click();
+              await page.getByRole('button', { name: 'Revogar sessão' }).waitFor();
+              await page.locator('#session-step-up-password').fill(password);
+              await page
+                .locator('#session-revoke-reason')
+                .fill('Revogação E2E de sessão administrativa comprometida');
+              await page.locator('#session-revoke-confirmation').fill('REVOGAR');
+              await page.getByRole('button', { name: 'Revogar sessão' }).click();
+              await page.getByText('revogada', { exact: true }).waitFor({ timeout: 15000 });
+
+              const revokedBusinessSession = await revocableBusinessContext.request.get(
+                `${origin}/api/dashboard/auth/session`,
+              );
+              if (revokedBusinessSession.status() !== 401) {
+                throw new Error(
+                  `Revoked business session remained valid: ${revokedBusinessSession.status()} ${await revokedBusinessSession.text()}`,
+                );
+              }
+              evidence.userSessionRevocation = true;
+              await revocableBusinessContext.close();
+
+              const seedProfile = await ownerContext.request.put(
+                `${origin}/api/admin/v1/businesses/toca-do-morcego/profile`,
+                {
+                  headers: {
+                    Origin: origin,
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrfToken,
+                  },
+                  data: {
+                    id: 'toca-do-morcego',
+                    name: 'Toca do Morcego',
+                    categoryLabel: 'Experiência',
+                    specialty: 'Sunset',
+                    description: 'Perfil Control Center E2E',
+                    cta: 'Ver empresa',
+                    locationLabel: 'Morro de São Paulo',
+                  },
+                },
+              );
+              if (seedProfile.status() !== 200) {
+                throw new Error(`Business owner-contract seed failed: ${seedProfile.status()} ${await seedProfile.text()}`);
+              }
+
+              await page.locator('[data-view="businesses"]').click();
+              await page.locator('a[href="#businesses:toca-do-morcego"]').click();
+              await page.getByRole('heading', { name: 'Toca do Morcego' }).waitFor();
+              evidence.business360 = true;
+
+              await page.locator('#global-search').fill('business-owner@example.com');
+              await page.locator('#search-results:not([hidden])').waitFor({ state: 'visible' });
+              if (!(await page.locator('#search-results').textContent()).includes('business-owner@example.com')) {
+                throw new Error('Universal search did not find business owner');
+              }
+              evidence.universalSearch = true;
+              await page.keyboard.press('Escape');
+
+              const createLead = await ownerContext.request.post(
+                `${origin}/api/admin/v1/crm/leads`,
+                {
+                  headers: {
+                    Origin: origin,
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrfToken,
+                  },
+                  data: {
+                    companyName: 'Control Center Browser Lead',
+                    contactName: 'Lead E2E',
+                    email: 'lead-e2e@example.com',
+                    monthlyValue: '490.00',
+                  },
+                },
+              );
+              if (![200, 201].includes(createLead.status())) {
+                throw new Error(`CRM owner-contract mutation failed: ${createLead.status()} ${await createLead.text()}`);
+              }
+              await page.locator('[data-view="crm"]').click();
+              await page.getByRole('heading', { name: 'CRM' }).waitFor();
+              if (!(await page.locator('#content').textContent()).includes('Control Center Browser Lead')) {
+                throw new Error('CRM lead did not render through Control Center adapter');
+              }
+              evidence.crm = true;
+
+              await page.locator('[data-view="support"]').click();
+              await page.locator('#support-user').selectOption('business-owner-1');
+              await page.locator('#support-reason').fill('Reproduzir problema relatado no painel empresarial');
+              await page.getByRole('button', { name: 'Entrar em modo suporte' }).click();
+              await page.locator('#support-banner:not([hidden])').waitFor({ state: 'visible' });
+              const supportBanner = await page.locator('#support-banner').textContent();
+              if (!supportBanner?.includes('business-owner@example.com')) {
+                throw new Error(`Support effective user missing from banner: ${supportBanner}`);
+              }
+
+              const forgedSession = await ownerContext.request.get(
+                `${origin}/api/admin/v1/session`,
+                { headers: { 'X-Effective-User': 'auditor-1' } },
+              );
+              const forgedBody = await forgedSession.json();
+              if (forgedBody.support?.effectiveUser?.id !== 'business-owner-1') {
+                throw new Error(`Forged effective-user header escaped signed support session: ${JSON.stringify(forgedBody)}`);
+              }
+              evidence.negativeSecurity.push('forged-effective-user-header-rejected');
+
+              const scopedBusiness = await ownerContext.request.get(
+                `${origin}/api/admin/v1/businesses/toca-do-morcego/profile`,
+              );
+              if (scopedBusiness.status() !== 200) {
+                throw new Error(
+                  `Support delegated own-business read failed: ${scopedBusiness.status()} ${await scopedBusiness.text()}`,
+                );
+              }
+
+              const foreignBusiness = await ownerContext.request.get(
+                `${origin}/api/admin/v1/businesses/other-business/profile`,
+              );
+              const foreignBusinessBody = await foreignBusiness.json();
+              if (
+                foreignBusiness.status() !== 403 ||
+                foreignBusinessBody.error !== 'BUSINESS_ACCESS_DENIED'
+              ) {
+                throw new Error(
+                  `Support delegation escaped effective-user tenant scope: ${foreignBusiness.status()} ${JSON.stringify(foreignBusinessBody)}`,
+                );
+              }
+              evidence.negativeSecurity.push('support-effective-user-tenant-scope-enforced');
+
+              await page.locator('#support-end').click();
+              await page.locator('#support-banner').waitFor({ state: 'hidden' });
+              evidence.supportMode = true;
+
+              const stepUp = await ownerContext.request.post(
+                `${origin}/api/admin/v1/step-up`,
+                {
+                  headers: {
+                    Origin: origin,
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrfToken,
+                  },
+                  data: { password },
+                },
+              );
+              if (stepUp.status() !== 201) {
+                throw new Error(`Step-up failed: ${stepUp.status()} ${await stepUp.text()}`);
+              }
+              evidence.stepUp = true;
+
+              const system = await ownerContext.request.get(`${origin}/api/admin/v1/system`);
+              const systemBody = await system.json();
+              if (system.status() !== 200 || systemBody.secrets !== 'redacted') {
+                throw new Error(`System health leaked or failed: ${JSON.stringify(systemBody)}`);
+              }
+              evidence.systemHealth = true;
+
+              const audit = await ownerContext.request.get(`${origin}/api/admin/v1/audit?limit=100`);
+              const auditBody = await audit.json();
+              if (audit.status() !== 200 || auditBody.durability !== 'mysql-append-only') {
+                throw new Error(`Durable audit contract missing: ${JSON.stringify(auditBody)}`);
+              }
+              if (!Array.isArray(auditBody.entries) || auditBody.entries.length < 4) {
+                throw new Error('Administrative audit entries were not persisted');
+              }
+              evidence.audit = {
+                durability: auditBody.durability,
+                entries: auditBody.entries.length,
+              };
+
+              await page.locator('[data-view="system"]').click();
+              await page.getByRole('heading', { name: 'Sistema' }).waitFor();
+              if (!(await page.locator('#content').textContent()).includes('REDACTED')) {
+                throw new Error('System UI did not preserve secret redaction');
+              }
+
+              await page.keyboard.press('Control+K');
+              if (!(await page.locator('#global-search').evaluate(node => node === document.activeElement))) {
+                throw new Error('Ctrl+K did not focus universal search');
+              }
+              evidence.keyboard = true;
+
+              for (const viewport of [
+                { width: 1280, height: 900, label: 'desktop' },
+                { width: 768, height: 1024, label: 'tablet' },
+                { width: 390, height: 844, label: 'mobile' },
+              ]) {
+                await page.setViewportSize({ width: viewport.width, height: viewport.height });
+                const overflow = await page.evaluate(() =>
+                  document.documentElement.scrollWidth > document.documentElement.clientWidth + 2
+                );
+                if (overflow) throw new Error(`Horizontal page overflow at ${viewport.label}`);
+                if (viewport.width <= 820) {
+                  await page.locator('#menu-button').click();
+                  const open = await page.locator('#app').evaluate(node => node.classList.contains('menu-open'));
+                  if (!open) throw new Error(`Responsive menu failed at ${viewport.label}`);
+                  await page.locator('[data-view="overview"]').click();
+                }
+                evidence.viewports.push(viewport.label);
+              }
+
+              const businessContext = await browser.newContext();
+              await apiLogin(businessContext, 'business-owner@example.com');
+              const businessDenied = await assertAdminDenied(
+                businessContext,
+                '/api/admin/v1/dashboard',
+              );
+              if (businessDenied.reason !== 'platform_admin_surface_required') {
+                throw new Error(`Business owner denial reason diverged: ${JSON.stringify(businessDenied)}`);
+              }
+              evidence.negativeSecurity.push('business-owner-admin-api-denied');
+              await businessContext.close();
+
+              const supportContext = await browser.newContext();
+              const supportLogin = await apiLogin(supportContext, 'support@example.com');
+              const supportDenied = await supportContext.request.post(
+                `${origin}/api/admin/v1/crm/leads`,
+                {
+                  headers: {
+                    Origin: origin,
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': supportLogin.csrfToken,
+                  },
+                  data: { companyName: 'Must Not Be Created' },
+                },
+              );
+              if (supportDenied.status() !== 403) {
+                throw new Error(`SUPPORT mutation was not denied: ${supportDenied.status()}`);
+              }
+              evidence.negativeSecurity.push('support-mutation-denied');
+              await supportContext.close();
+
+              const auditorContext = await browser.newContext();
+              const auditorLogin = await apiLogin(auditorContext, 'auditor@example.com');
+              const auditorDenied = await auditorContext.request.put(
+                `${origin}/api/admin/v1/businesses/toca-do-morcego/profile`,
+                {
+                  headers: {
+                    Origin: origin,
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': auditorLogin.csrfToken,
+                  },
+                  data: { name: 'Forbidden Auditor Mutation' },
+                },
+              );
+              if (auditorDenied.status() !== 403) {
+                throw new Error(`AUDITOR mutation was not denied: ${auditorDenied.status()}`);
+              }
+              evidence.negativeSecurity.push('auditor-mutation-denied');
+              await auditorContext.close();
+
+              const ordinaryContext = await browser.newContext();
+              const ordinary = await ordinaryContext.request.get(`${origin}/api/admin/v1/system`);
+              if (ordinary.status() !== 401) {
+                throw new Error(`Unauthenticated Admin API expected 401, got ${ordinary.status()}`);
+              }
+              evidence.negativeSecurity.push('unauthenticated-admin-api-denied');
+              await ordinaryContext.close();
+
+              if (evidence.errors.length) {
+                throw new Error(`Browser page errors: ${JSON.stringify(evidence.errors)}`);
+              }
+
+              writeFileSync(
+                '/tmp/control-center-browser-evidence.json',
+                JSON.stringify(evidence, null, 2),
+              );
+              await ownerContext.close();
+            } finally {
+              await browser.close();
+            }
+          })().catch(error => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+      - name: Validate final Control Center completion journeys
+        run: |
+          node apps/morro-digital-platform/tooling/control-center-users-browser-contract.mjs
+          node apps/morro-digital-platform/tooling/control-center-commerce-browser-contract.mjs
+          node apps/morro-digital-platform/tooling/control-center-ticketing-browser-contract.mjs
+          node apps/morro-digital-platform/tooling/control-center-accessibility-browser-contract.mjs
+      - name: Show Control Center diagnostics
+        if: failure()
+        run: cat /tmp/control-center-server.log || true
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: control-center-browser-evidence
+          path: |
+            /tmp/control-center-browser-evidence.json
+            /tmp/control-center-accessibility-evidence.json
+          retention-days: 3
+          if-no-files-found: ignore
+      - name: Stop Control Center runtime
+        if: always()
+        run: kill "$(cat /tmp/control-center-server.pid)" 2>/dev/null || true

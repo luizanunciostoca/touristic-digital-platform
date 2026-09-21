@@ -460,6 +460,13 @@ describeMySql.sequential("M137/M143 Financial MySQL integration", () => {
     const mismatchFinding = mismatch.findings[0];
     if (!mismatchFinding) throw new Error("FINDING_FIXTURE_INVALID");
     await expect(
+      reconciliationRepository.findById(mismatchFinding.id),
+    ).resolves.toMatchObject({
+      id: mismatchFinding.id,
+      paymentId: refundedPayment.id,
+      state: "open",
+    });
+    await expect(
       reconciliation.acknowledgeFinding(
         mismatchFinding.id,
         "operator:mysql-reconciliation",

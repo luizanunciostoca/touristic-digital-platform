@@ -14,11 +14,24 @@ describe("Business login return path", () => {
     ).toBe(`${canonicalDashboard}?businessId=toca-do-morcego`);
   });
 
-  it("uses the canonical dashboard for absent or unsafe returns", () => {
+  it("allows known admin surfaces while rejecting unsafe returns", () => {
     expect(safeBusinessDashboardReturnPath("")).toBe(canonicalDashboard);
+
+    const controlCenter = "/apps/control-center/public/index.html#system";
+    expect(
+      safeBusinessDashboardReturnPath(
+        `?return=${encodeURIComponent(controlCenter)}`,
+      ),
+    ).toBe(controlCenter);
+
     expect(
       safeBusinessDashboardReturnPath(
         `?return=${encodeURIComponent("https://evil.example/")}`,
+      ),
+    ).toBe(canonicalDashboard);
+    expect(
+      safeBusinessDashboardReturnPath(
+        `?return=${encodeURIComponent("//evil.example/control-center")}`,
       ),
     ).toBe(canonicalDashboard);
   });

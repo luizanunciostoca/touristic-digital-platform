@@ -5,7 +5,11 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./ingestion": "./src/ingestion.ts"
+    "./ingestion": {
+      "types": "./src/ingestion.ts",
+      "node": "./dist/ingestion.js",
+      "default": "./src/ingestion.ts"
+    }
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
