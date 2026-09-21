@@ -15,7 +15,9 @@ async function readRepository(path: string): Promise<string> {
 }
 
 describe("Assistant Modal V2 contract", () => {
-  it("composes dialog, conversation, options and composer semantics in the real shell", async () => {
+  it(
+    "composes dialog, conversation, options and composer semantics in the real shell",
+    async () => {
     const shell = await readRepository(
       "apps/morro-digital-platform/src/layouts/app-shell.ts",
     );
@@ -34,10 +36,12 @@ describe("Assistant Modal V2 contract", () => {
       'aria-haspopup="dialog"',
     ]) {
       expect(shell, `missing ${contract}`).toContain(contract);
-    }
-  });
+    },
+  );
 
-  it("uses semantic Design System V2 layers, motion and accessibility media contracts", async () => {
+  it(
+    "uses semantic Design System V2 layers, motion and accessibility media contracts",
+    async () => {
     const css = await readPublic("assistant-v2.css");
 
     expect(css).toContain("var(--md-layer-dialog)");
@@ -49,9 +53,12 @@ describe("Assistant Modal V2 contract", () => {
     expect(css).toContain("@media (forced-colors: active)");
     expect(css).not.toContain("transition: all");
     expect(css).not.toMatch(/z-index:\s*\d{3,}/u);
-  });
+    },
+  );
 
-  it("publishes loading, success and error state from the browser runtime", async () => {
+  it(
+    "publishes loading, success and error state from the browser runtime",
+    async () => {
     const [runtime, shellUi, state] = await Promise.all([
       readRepository(
         "apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts",
@@ -74,17 +81,16 @@ describe("Assistant Modal V2 contract", () => {
     expect(shellUi).toContain('assistant.setAttribute("aria-busy"');
     expect(shellUi).toContain("assistantUiStateStatus");
     expect(state).toContain("ASSISTANT_UI_STATE_EVENT");
-  });
+    },
+  );
 
   it("loads and caches the V2 stylesheet after frozen legacy CSS", async () => {
     const [html, worker] = await Promise.all([
       readPublic("index.html"),
       readPublic("service-worker.js"),
     ]);
-    const assistant =
-      "/apps/morro-digital-platform/public/assistant-v2.css";
-    const legacy =
-      "/apps/morro-digital-platform/public/legacy/checkpoint.css";
+    const assistant = "/apps/morro-digital-platform/public/assistant-v2.css";
+    const legacy = "/apps/morro-digital-platform/public/legacy/checkpoint.css";
 
     expect(html).toContain(assistant);
     expect(html.indexOf(assistant)).toBeGreaterThan(html.indexOf(legacy));
