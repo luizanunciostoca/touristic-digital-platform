@@ -128,7 +128,8 @@ export function createAffiliateAdminRuntime({
       if (
         error instanceof Error &&
         (error.message === "AFFILIATE_ADMIN_QUERY_TOO_LONG" ||
-          error.message === "AFFILIATE_ADMIN_INVALID_LIMIT")
+          error.message === "AFFILIATE_ADMIN_INVALID_LIMIT" ||
+          error.message === "AFFILIATE_ADMIN_INVALID_DESTINATION_ID")
       ) {
         return Object.freeze({ status: "invalid", data: null });
       }
