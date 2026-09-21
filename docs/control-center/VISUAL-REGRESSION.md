@@ -138,6 +138,21 @@ P2 — polish:
 
 P0 and P1 are release-blocking for this visual contract.
 
+## Automated vs full manual compliance
+
+The runner's `manualP0` and `manualP1` counters only represent invariants that can be evaluated deterministically from the rendered page (for example canonical tokens, forbidden Quick Actions/floating Assistant, and document overflow).
+
+The full manual review against UX Design V1 remains a separate release gate. A pixel-stable baseline can still be manually non-compliant.
+
+Current full manual audit findings on the stacked PR #227 candidate:
+
+- P0: 0.
+- P1: Destination Summary alert aggregate is not yet owner-backed in the base candidate; tracked by PR #230.
+- P1: Entity 360 tabs are not yet fully functional in the base candidate; tracked by PR #229.
+- P1: Recent Activity still exposes raw technical action identifiers instead of human-readable event language. This remains unresolved in the currently inspected #229 code.
+
+These findings must be reconciled before claiming `MANUAL_P1=0`.
+
 ## Commands
 
 Run comparison after the deterministic runtime is available on port 4194:
