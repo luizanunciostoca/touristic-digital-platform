@@ -83,6 +83,10 @@ async function main() {
 
     const failures = evidence.filter((entry) => entry.violations.length > 0);
     if (failures.length) {
+      console.error(
+        "CONTROL_CENTER_ACCESSIBILITY_VIOLATIONS",
+        JSON.stringify(failures, null, 2),
+      );
       throw new Error("ACCESSIBILITY_VIOLATIONS");
     }
 
@@ -93,6 +97,7 @@ async function main() {
       view: currentView,
       stage,
       runtimeFailure: error instanceof Error ? error.name : "UnknownError",
+      runtimeMessage: error instanceof Error ? error.message : String(error),
     });
     persistEvidence(evidence);
     throw error;
@@ -104,7 +109,9 @@ async function main() {
 main().catch((error) => {
   console.error(
     "CONTROL_CENTER_ACCESSIBILITY_FAILED",
-    error instanceof Error ? error.name : "UnknownError",
+    error instanceof Error
+      ? `${error.name}: ${error.message}`
+      : String(error),
   );
   process.exit(1);
 });
