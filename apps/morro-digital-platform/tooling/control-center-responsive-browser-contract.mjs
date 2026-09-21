@@ -107,16 +107,23 @@ async function assertTableContract(page, label) {
 }
 
 async function assertFocusVisible(page, selector, label) {
-  await page.locator(selector).focus();
+  await page.keyboard.press("Control+K");
   const focus = await page.locator(selector).evaluate((node) => {
     const style = getComputedStyle(node);
     return {
+      active: node === document.activeElement,
+      focusVisible: node.matches(":focus-visible"),
       outlineStyle: style.outlineStyle,
       outlineWidth: style.outlineWidth,
       outlineColor: style.outlineColor,
     };
   });
-  if (focus.outlineStyle === "none" || focus.outlineWidth === "0px") {
+  if (
+    !focus.active ||
+    !focus.focusVisible ||
+    focus.outlineStyle === "none" ||
+    focus.outlineWidth === "0px"
+  ) {
     throw new Error(`FOCUS_NOT_VISIBLE:${label}:${JSON.stringify(focus)}`);
   }
   return focus;
@@ -268,14 +275,6 @@ async function main() {
         "#global-search",
         `search-${viewport.label}`,
       );
-      await page.keyboard.press("Control+K");
-      if (
-        !(await page
-          .locator("#global-search")
-          .evaluate((node) => node === document.activeElement))
-      ) {
-        throw new Error(`CTRL_K_FAILED:${viewport.label}`);
-      }
       await page.locator("#global-search").fill("business-owner@example.com");
       await page
         .locator("#search-results:not([hidden])")
