@@ -466,6 +466,12 @@ jobs:
             process.exit(1);
           });
           NODE
+      - name: Validate final Control Center completion journeys
+        run: |
+          node apps/morro-digital-platform/tooling/control-center-users-browser-contract.mjs
+          node apps/morro-digital-platform/tooling/control-center-commerce-browser-contract.mjs
+          node apps/morro-digital-platform/tooling/control-center-ticketing-browser-contract.mjs
+          node apps/morro-digital-platform/tooling/control-center-accessibility-browser-contract.mjs
       - name: Show Control Center diagnostics
         if: failure()
         run: cat /tmp/control-center-server.log || true
@@ -473,7 +479,9 @@ jobs:
         if: always()
         with:
           name: control-center-browser-evidence
-          path: /tmp/control-center-browser-evidence.json
+          path: |
+            /tmp/control-center-browser-evidence.json
+            /tmp/control-center-accessibility-evidence.json
           retention-days: 3
           if-no-files-found: ignore
       - name: Stop Control Center runtime
