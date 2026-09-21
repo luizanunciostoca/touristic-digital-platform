@@ -346,6 +346,14 @@ jobs:
                 .waitFor({ timeout: 15000 });
               evidence.criticalActions.push("membership-reactivate-step-up");
 
+              const refreshedAffiliate360 = page.locator(\'[data-entity-tabs="affiliate360"]\');
+              await refreshedAffiliate360.getByRole("tab", { name: "Audit" }).click();
+              const affiliateAudit = await page.locator(\'[data-recent-activity]\').textContent();
+              if (!affiliateAudit?.includes("affiliate.membership.suspend.complete") || !affiliateAudit.includes("affiliate.membership.reactivate.complete")) {
+                throw new Error(`Affiliate authoritative audit activity missing: ${affiliateAudit}`);
+              }
+              evidence.reads.push("affiliate-audit-activity");
+
               if (evidence.errors.length) {
                 throw new Error(
                   `Browser page errors: ${JSON.stringify(evidence.errors)}`,
