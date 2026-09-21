@@ -17,7 +17,9 @@ describe("UX Design V2 skeleton adoption", () => {
         readRepository(
           "apps/morro-digital-platform/src/assistant/assistant-shell-ui.ts",
         ),
-        readRepository("apps/morro-digital-platform/public/assistant-v2.css"),
+        readRepository(
+          "apps/morro-digital-platform/public/assistant-v2.css",
+        ),
       ]);
 
       expect(shell).toContain("syncAssistantLoadingSkeleton");
@@ -31,8 +33,12 @@ describe("UX Design V2 skeleton adoption", () => {
 
   it("retains existing Ticketing and Commerce skeleton adoption", async () => {
     const [ticketing, commerce] = await Promise.all([
-      readRepository("apps/morro-digital-platform/public/ticketing.js"),
-      readRepository("apps/morro-digital-platform/public/experience.html"),
+      readRepository(
+        "apps/morro-digital-platform/public/ticketing.js",
+      ),
+      readRepository(
+        "apps/morro-digital-platform/public/experience.html",
+      ),
     ]);
 
     expect(ticketing).toContain("md-skeleton ticketing-skeleton-line");
