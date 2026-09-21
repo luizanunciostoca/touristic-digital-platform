@@ -10,35 +10,26 @@ async function readRepository(path: string): Promise<string> {
 }
 
 describe("UX Design V2 skeleton adoption", () => {
-  it(
-    "uses the shared Design System skeleton in the Assistant loading lifecycle",
-    async () => {
-      const [shell, css] = await Promise.all([
-        readRepository(
-          "apps/morro-digital-platform/src/assistant/assistant-shell-ui.ts",
-        ),
-        readRepository(
-          "apps/morro-digital-platform/public/assistant-v2.css",
-        ),
-      ]);
+  it("uses the shared Design System skeleton in the Assistant loading lifecycle", async () => {
+    const [shell, css] = await Promise.all([
+      readRepository(
+        "apps/morro-digital-platform/src/assistant/assistant-shell-ui.ts",
+      ),
+      readRepository("apps/morro-digital-platform/public/assistant-v2.css"),
+    ]);
 
-      expect(shell).toContain("syncAssistantLoadingSkeleton");
-      expect(shell).toContain('"md-skeleton assistant-loading-skeleton-line"');
-      expect(shell).toContain('state === "loading"');
-      expect(shell).toContain('skeleton.setAttribute("aria-hidden", "true")');
-      expect(css).toContain(".assistant-loading-skeleton");
-      expect(css).toContain("var(--md-space-3)");
-    },
-  );
+    expect(shell).toContain("syncAssistantLoadingSkeleton");
+    expect(shell).toContain('"md-skeleton assistant-loading-skeleton-line"');
+    expect(shell).toContain('state === "loading"');
+    expect(shell).toContain('skeleton.setAttribute("aria-hidden", "true")');
+    expect(css).toContain(".assistant-loading-skeleton");
+    expect(css).toContain("var(--md-space-3)");
+  });
 
   it("retains existing Ticketing and Commerce skeleton adoption", async () => {
     const [ticketing, commerce] = await Promise.all([
-      readRepository(
-        "apps/morro-digital-platform/public/ticketing.js",
-      ),
-      readRepository(
-        "apps/morro-digital-platform/public/experience.html",
-      ),
+      readRepository("apps/morro-digital-platform/public/ticketing.js"),
+      readRepository("apps/morro-digital-platform/public/experience.html"),
     ]);
 
     expect(ticketing).toContain("md-skeleton ticketing-skeleton-line");
