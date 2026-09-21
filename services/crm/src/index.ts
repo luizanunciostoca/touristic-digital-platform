@@ -42,7 +42,10 @@ import { CrmProposalHttpTransport } from "./proposals-http-transport.js";
 import { CrmProposalPublicHttpTransport } from "./proposals-public-http-transport.js";
 import { CrmReferralHttpTransport } from "./referrals-http-transport.js";
 import { crmM99ReferralsSchemaSql } from "./referrals-schema.js";
-import { crmM71SchemaSql } from "./schema.js";
+import {
+  crmM156DestinationScopeSchemaSql,
+  crmM71SchemaSql,
+} from "./schema.js";
 import { crmM155SchemaSql } from "./crm-settings-schema.js";
 import { MySqlCrmSettingsRepository } from "./crm-settings-service.js";
 import {
@@ -106,6 +109,7 @@ export {
   createCrmTrialSchedulerHost,
   crmM71SchemaSql,
   crmM90TrialsSchemaSql,
+  crmM156DestinationScopeSchemaSql,
   crmM94TrialsNotificationClaimSchemaSql,
   crmM95TrialsNotificationLeaseSchemaSql,
   crmM99ReferralsSchemaSql,
@@ -199,6 +203,17 @@ export async function applyCrmM95Schema(pool: Pool): Promise<void> {
 export async function applyCrmM99Schema(pool: Pool): Promise<void> {
   await applyCrmM95Schema(pool);
   await applySqlStatements(pool, crmM99ReferralsSchemaSql);
+}
+
+export async function applyCrmM156DestinationScopeSchema(
+  pool: Pool,
+): Promise<void> {
+  await applyCrmM99Schema(pool);
+  const [columns] = await pool.query<RowDataPacket[]>(
+    "SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'crm_leads' AND COLUMN_NAME = 'destination_id' LIMIT 1",
+  );
+  if (columns.length > 0) return;
+  await applySqlStatements(pool, crmM156DestinationScopeSchemaSql);
 }
 
 export async function applyCrmM155Schema(pool: Pool): Promise<void> {
