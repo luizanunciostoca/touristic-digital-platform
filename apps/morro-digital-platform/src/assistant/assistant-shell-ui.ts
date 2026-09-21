@@ -140,16 +140,22 @@ export function installAssistantShellUi(
 
   const show = (): boolean => {
     if (destroyed || !assistant) return false;
+    const activeElement = options.document.activeElement;
+    const openedFromComposer = Boolean(
+      composer && activeElement && composer.contains(activeElement),
+    );
     if (!isVisible()) {
-      previousFocus = options.document.activeElement;
+      previousFocus = activeElement;
     }
     assistant.classList.remove("hidden");
     assistant.setAttribute("aria-hidden", "false");
     options.document.body.classList.add("assistant-modal-open");
     input?.setAttribute("aria-expanded", "true");
-    options.document.defaultView?.setTimeout(() => {
-      if (!destroyed && isVisible()) focusElement(input);
-    }, focusDelayMs);
+    if (!openedFromComposer) {
+      options.document.defaultView?.setTimeout(() => {
+        if (!destroyed && isVisible()) focusElement(input);
+      }, focusDelayMs);
+    }
     return true;
   };
 
@@ -184,7 +190,7 @@ export function installAssistantShellUi(
   };
 
   const onComposerFocusIn = (): void => {
-    show();
+    if (!isVisible()) show();
   };
   const onAssistantOpenRequest = (): void => {
     show();

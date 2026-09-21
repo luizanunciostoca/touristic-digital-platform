@@ -328,7 +328,15 @@ export function openWeatherForecastModal({
   renderLocale();
   document.body.appendChild(modal);
   document.addEventListener("keydown", onKeyDown, true);
-  closeButton?.focus();
+
+  const focusInitialControl = (): void => {
+    if (closed || !closeButton || !modal.isConnected) return;
+    if (!modal.contains(document.activeElement)) {
+      closeButton.focus({ preventScroll: true });
+    }
+  };
+  closeButton?.focus({ preventScroll: true });
+  queueMicrotask(focusInitialControl);
 
   return Object.freeze({ element: modal, close, updateLocale });
 }

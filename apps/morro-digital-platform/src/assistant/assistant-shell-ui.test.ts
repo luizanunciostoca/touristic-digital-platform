@@ -26,6 +26,8 @@ function createClassList(initial: string[] = []) {
 function createElement(initialClasses: string[] = []) {
   const listeners = new Map<string, EventListener>();
   const attributes = new Map<string, string>();
+  const contained = new Set<unknown>();
+  let focusCount = 0;
   return {
     classList: createClassList(initialClasses),
     attributes,
@@ -48,10 +50,18 @@ function createElement(initialClasses: string[] = []) {
       void selector;
       return null as unknown;
     },
-    contains() {
-      return false;
+    contains(element: unknown) {
+      return contained.has(element);
     },
-    focus() {},
+    contain(element: unknown) {
+      contained.add(element);
+    },
+    focus() {
+      focusCount += 1;
+    },
+    get focusCount() {
+      return focusCount;
+    },
     textContent: "",
   };
 }
@@ -67,13 +77,21 @@ function fixture() {
   const followUp = createElement();
   const status = createElement();
   const body = createElement();
+  const external = createElement();
   const documentListeners = new Map<string, EventListener>();
+  const scheduled: Array<() => void> = [];
+  composer.contain(input);
 
   const document = {
     body,
     documentElement: { lang: "pt-BR" },
     activeElement: input,
-    defaultView: null,
+    defaultView: {
+      setTimeout(callback: () => void) {
+        scheduled.push(callback);
+        return scheduled.length;
+      },
+    } as unknown as Window,
     getElementById(id: string) {
       if (id === "assistant-messages") return assistant;
       if (id === "assistantInput") return input;
@@ -104,6 +122,8 @@ function fixture() {
     followUp,
     body,
     status,
+    external,
+    scheduled,
     dispatchKeydown(key: string) {
       documentListeners.get("keydown")?.({
         key,
@@ -148,7 +168,7 @@ describe("assistant shell UI", () => {
     expect(view.followUp.classList.contains("hidden")).toBe(true);
   });
 
-  it("opens the Assistant from the canonical composer instead of a floating quick action", () => {
+  it("opens the Assistant from the canonical composer without scheduling a late refocus", () => {
     const view = fixture();
     const shell = installAssistantShellUi({ document: view.document });
 
@@ -157,6 +177,28 @@ describe("assistant shell UI", () => {
     expect(shell.isVisible()).toBe(true);
     expect(view.body.classList.contains("assistant-modal-open")).toBe(true);
     expect(view.input.attributes.get("aria-expanded")).toBe("true");
+    expect(view.scheduled).toHaveLength(0);
+    expect(view.input.focusCount).toBe(0);
+
+    view.composer.dispatch("focusin");
+    expect(view.scheduled).toHaveLength(0);
+  });
+
+  it("keeps delayed input focus for programmatic Assistant openings", () => {
+    const view = fixture();
+    (view.document as unknown as { activeElement: unknown }).activeElement =
+      view.external;
+    const shell = installAssistantShellUi({
+      document: view.document,
+      focusDelayMs: 25,
+    });
+
+    expect(shell.show()).toBe(true);
+    expect(view.scheduled).toHaveLength(1);
+    expect(view.input.focusCount).toBe(0);
+
+    view.scheduled[0]?.();
+    expect(view.input.focusCount).toBe(1);
   });
 
   it("publishes loading and error state through the accessible shell contract", () => {
@@ -188,14 +230,20 @@ describe("assistant shell UI", () => {
     expect(view.input.attributes.get("aria-expanded")).toBe("true");
   });
 
-  it("closes a visible assistant with Escape outside the tutorial", () => {
+  it("closes with Escape, restores prior focus and cancels any effective late refocus", () => {
     const view = fixture();
+    (view.document as unknown as { activeElement: unknown }).activeElement =
+      view.external;
     const shell = installAssistantShellUi({ document: view.document });
     shell.show();
 
+    expect(view.scheduled).toHaveLength(1);
     view.dispatchKeydown("Escape");
 
     expect(shell.isVisible()).toBe(false);
+    expect(view.external.focusCount).toBe(1);
+    view.scheduled[0]?.();
+    expect(view.input.focusCount).toBe(0);
   });
 
   it("removes the readiness marker when destroyed", () => {

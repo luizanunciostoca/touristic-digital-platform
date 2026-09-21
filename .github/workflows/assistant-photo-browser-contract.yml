@@ -166,17 +166,17 @@ jobs:
               const carouselTrack = carousel.locator('.assistant-photo-carousel-track');
               await carouselTrack.focus();
               await page.keyboard.press('ArrowRight');
-              await page.waitForFunction(() =>
-                document.querySelector('.assistant-photo-carousel-track')?.getAttribute('data-active-index') === '1',
-              );
+              await page
+                .locator('.assistant-photo-carousel-track[data-active-index="1"]')
+                .waitFor({ state: 'attached', timeout: 5000 });
               await page.keyboard.press('End');
-              await page.waitForFunction(() =>
-                document.querySelector('.assistant-photo-carousel-track')?.getAttribute('data-active-index') === '2',
-              );
+              await page
+                .locator('.assistant-photo-carousel-track[data-active-index="2"]')
+                .waitFor({ state: 'attached', timeout: 5000 });
               await page.keyboard.press('Home');
-              await page.waitForFunction(() =>
-                document.querySelector('.assistant-photo-carousel-track')?.getAttribute('data-active-index') === '0',
-              );
+              await page
+                .locator('.assistant-photo-carousel-track[data-active-index="0"]')
+                .waitFor({ state: 'attached', timeout: 5000 });
 
               const sources = await carousel.locator('img').evaluateAll((images) =>
                 images.map((image) => new URL(image.src).pathname),
@@ -190,10 +190,17 @@ jobs:
                 throw new Error(`Unexpected carousel sources: ${JSON.stringify(sources)}`);
               }
 
-              await page.waitForFunction(() => {
-                const image = document.querySelector('.assistant-photo-carousel img');
-                return image instanceof HTMLImageElement && image.complete && image.naturalWidth > 0;
-              }, { timeout: 10000 });
+              const firstPhoto = page.locator('.assistant-photo-carousel img').first();
+              await firstPhoto.waitFor({ state: 'visible', timeout: 10000 });
+              const photoLoaded = await firstPhoto.evaluate(
+                (image) =>
+                  image instanceof HTMLImageElement &&
+                  image.complete &&
+                  image.naturalWidth > 0,
+              );
+              if (!photoLoaded) {
+                throw new Error('Assistant carousel first photo did not load physical bytes.');
+              }
 
               await page.reload({ waitUntil: 'domcontentloaded', timeout: 30000 });
               await waitForMap(page);
@@ -259,10 +266,12 @@ jobs:
                 state: 'visible',
                 timeout: 5000,
               });
-              await page.waitForFunction(() =>
-                !document.querySelector('.assistant-photo-carousel') &&
-                !document.querySelector('.assistant-options[data-presentation="photo-actions"]'),
-              { timeout: 5000 });
+              await page
+                .locator('.assistant-photo-carousel')
+                .waitFor({ state: 'detached', timeout: 5000 });
+              await page
+                .locator('.assistant-options[data-presentation="photo-actions"]')
+                .waitFor({ state: 'detached', timeout: 5000 });
 
               const returnedPlaces = await page.locator('#assistant-category-results [data-location-name]').count();
               if (returnedPlaces !== 8) {
