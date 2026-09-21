@@ -15,6 +15,8 @@ on:
       - apps/morro-digital-platform/src/map/explore-locations-v1-flow.ts
       - apps/morro-digital-platform/src/map/explore-locations-v1-flow.test.ts
       - apps/morro-digital-platform/src/layouts/app-shell.ts
+      - apps/morro-digital-platform/src/ux/tourist-surface-bottom-sheet.ts
+      - apps/morro-digital-platform/src/ux/tourist-bottom-sheet-v2-contract.test.ts
       - apps/morro-digital-platform/public/**
       - packages/geospatial/src/**
       - packages/search/src/**
@@ -155,6 +157,53 @@ jobs:
             }
           }
 
+          async function assertTouristSheet(page, surface, expectedState = 'half') {
+            const selector =
+              `#assistant-messages.md-tourist-surface-sheet[data-sheet-surface="${surface}"][data-sheet-state="${expectedState}"]`;
+            const sheet = page.locator(selector);
+            await sheet.waitFor({ state: 'visible', timeout: 5000 });
+            const handle = sheet.locator('[data-tourist-sheet-handle="true"]');
+            await handle.waitFor({ state: 'visible', timeout: 5000 });
+            const state = await page.evaluate(() => {
+              const assistant = document.getElementById('assistant-messages');
+              const handle = assistant?.querySelector('[data-tourist-sheet-handle="true"]');
+              const messages = assistant?.querySelector('.messages-area');
+              const box = assistant instanceof HTMLElement ? assistant.getBoundingClientRect() : null;
+              const style = messages instanceof HTMLElement ? getComputedStyle(messages) : null;
+              return {
+                surface: assistant?.getAttribute('data-sheet-surface'),
+                sheetState: assistant?.getAttribute('data-sheet-state'),
+                bodySurface: document.body.getAttribute('data-md-tourist-sheet-surface'),
+                bodyState: document.body.getAttribute('data-md-tourist-sheet-state'),
+                expanded: handle?.getAttribute('aria-expanded'),
+                controls: handle?.getAttribute('aria-controls'),
+                handleHeight: handle instanceof HTMLElement ? handle.getBoundingClientRect().height : 0,
+                overscroll: style?.overscrollBehavior,
+                rect: box
+                  ? { left: box.left, top: box.top, right: box.right, bottom: box.bottom }
+                  : null,
+                viewport: { width: innerWidth, height: innerHeight },
+              };
+            });
+            if (
+              state.surface !== surface ||
+              state.sheetState !== expectedState ||
+              state.bodySurface !== surface ||
+              state.bodyState !== expectedState ||
+              state.controls !== 'assistant-messages' ||
+              state.handleHeight < 44 ||
+              !state.rect ||
+              state.rect.left < -1 ||
+              state.rect.right > state.viewport.width + 1 ||
+              state.rect.top < -1 ||
+              state.rect.bottom > state.viewport.height + 1 ||
+              state.overscroll !== 'contain'
+            ) {
+              throw new Error(`Tourist Bottom Sheet V2 drifted: ${JSON.stringify(state)}`);
+            }
+            return { sheet, handle, state };
+          }
+
           async function waitForSelectedMapCamera(page, longitude, latitude) {
             const deadline = Date.now() + 6000;
             let last = null;
@@ -272,6 +321,10 @@ jobs:
               const center = await waitForSelectedMapCamera(page, -38.9142193, -13.3776181);
               await page.locator('.assistant-option-btn[data-value="condições da praia"]').waitFor({ state: 'visible', timeout: 8000 });
               const detailValues = await readDynamicOptionValues(page);
+              if (viewport.id === 'mobile') {
+                await assertTouristSheet(page, 'place', 'half');
+              }
+
               const selected = await page.evaluate(() => ({
                 flowRemoved: !document.getElementById('assistant-category-results'),
                 mainHidden: Boolean(document.querySelector('.assistant-options:has([data-explore-category])')?.classList.contains('hidden')),
@@ -310,6 +363,27 @@ jobs:
               if (viewport.id === 'mobile') {
                 await page.locator('#assistant-category-beaches').click();
                 await assertFiltersStage(page, 'beaches', 8);
+                const filterSheet = await assertTouristSheet(page, 'search', 'half');
+                await filterSheet.handle.focus();
+                await page.keyboard.press('ArrowUp');
+                await assertTouristSheet(page, 'search', 'full');
+                await page.keyboard.press('Home');
+                await assertTouristSheet(page, 'search', 'peek');
+                await page.keyboard.press('End');
+                await assertTouristSheet(page, 'search', 'full');
+                await page.keyboard.press('ArrowDown');
+                await assertTouristSheet(page, 'search', 'half');
+
+                const dragBox = await filterSheet.handle.boundingBox();
+                if (!dragBox) throw new Error('Tourist sheet handle has no pointer geometry');
+                await page.mouse.move(dragBox.x + dragBox.width / 2, dragBox.y + dragBox.height / 2);
+                await page.mouse.down();
+                await page.mouse.move(dragBox.x + dragBox.width / 2, dragBox.y - 80, { steps: 4 });
+                await page.mouse.up();
+                await assertTouristSheet(page, 'search', 'full');
+                await page.keyboard.press('ArrowDown');
+                await assertTouristSheet(page, 'search', 'half');
+
                 await page.locator('#assistant-category-results [data-value="proximo"]').click();
                 await page.locator('#assistant-category-results[data-stage="places"]').waitFor({ state: 'visible' });
                 const nearby = await page.evaluate(() => ({
@@ -319,6 +393,7 @@ jobs:
                 if (nearby.places < 1 || nearby.places > 12 || nearby.places !== nearby.markers) {
                   throw new Error(`Nearby flow diverged: ${JSON.stringify(nearby)}`);
                 }
+                await assertTouristSheet(page, 'search', 'half');
                 await page.keyboard.press('Escape');
                 await assertMainMenu(page);
 
@@ -326,6 +401,7 @@ jobs:
                 await assertFiltersStage(page, 'tours', 6);
                 await page.locator('#assistant-category-results [data-value="tour_volta_ilha"]').click();
                 await page.locator('#map[data-tour-state="ready"][data-active-tour="volta-a-ilha"][data-map-marker-count="8"]').waitFor({ state: 'attached', timeout: 10000 });
+                await assertTouristSheet(page, 'tour', 'half');
               }
 
               if (pageErrors.length || mapboxHttpErrors.length) {
