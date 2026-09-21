@@ -495,7 +495,8 @@ function readVisiblePresentation(
 function readOptionOverride(
   value: unknown,
 ): readonly AssistantDomOption[] | null {
-  if (!Array.isArray(value) || value.length === 0) return null;
+  if (!Array.isArray(value)) return null;
+  if (value.length === 0) return Object.freeze([]);
   const options: readonly unknown[] = value;
   const result: AssistantDomOption[] = [];
   for (const option of options) {
@@ -1323,7 +1324,7 @@ export function installBrowserAssistantRuntime(
     void processInput(
       value,
       optionOverride ?? undefined,
-      value.trim().toLowerCase() === "ver fotos",
+      value.trim().toLowerCase() === "ver fotos" && optionOverride === null,
       "option",
     );
   };
