@@ -140,7 +140,7 @@ function financialDestination(
                 id: `finding-${destinationId}`,
                 destinationId,
                 paymentId: `payment-${destinationId}`,
-                kind: "provider_amount_mismatch",
+                kind: "amount_mismatch",
                 severity: "critical",
                 state: "open",
               },
