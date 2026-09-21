@@ -362,6 +362,7 @@ export function installExploreLocationsControl({
   let activeCategory: ExploreLocationsCategory | undefined;
   let activePlace: string | undefined;
   let activePlaceLocation: ExploreMapLocation | undefined;
+  let activePlaceActionValues: readonly string[] = Object.freeze([]);
   let activeStage: ExploreStage = "menu";
   let visibleLocations: readonly ExploreMapLocation[] = Object.freeze([]);
   let activeSearchQuery = "";
@@ -708,6 +709,7 @@ export function installExploreLocationsControl({
     activeCategoryButton = undefined;
     activePlace = undefined;
     activePlaceLocation = undefined;
+    activePlaceActionValues = Object.freeze([]);
     activeSearchQuery = "";
     activeStage = "menu";
     visibleLocations = Object.freeze([]);
@@ -751,6 +753,16 @@ export function installExploreLocationsControl({
       "description" in location && typeof location.description === "string"
         ? location.description.trim()
         : "";
+    activePlaceActionValues = Object.freeze(
+      Array.from(
+        new Set([
+          ...placeActions.map(({ value }) => value),
+          "como chegar",
+          "adicionar aos favoritos",
+          "compartilhar",
+        ]),
+      ),
+    );
 
     placeBottomSheet?.show({
       location,
@@ -818,6 +830,7 @@ export function installExploreLocationsControl({
     placeReturnIsSearch = false;
     activePlace = undefined;
     activePlaceLocation = undefined;
+    activePlaceActionValues = Object.freeze([]);
     activeStage = "places";
     clearExploreRuntimeStatus();
     const options: readonly Readonly<{
@@ -950,10 +963,25 @@ export function installExploreLocationsControl({
         );
         return;
       }
+      const locationCategory = activePlaceLocation?.category;
+      const locale = currentLocale();
+      const detail =
+        normalized === "ver fotos" && locationCategory
+          ? {
+              value,
+              optionsOverride: [
+                {
+                  label: `⬅️ ${getV1ExploreLabel("back", locale)}`,
+                  value: `[sub]${locationCategory}`,
+                },
+              ],
+            }
+          : {
+              value,
+              suppressOptionValues: activePlaceActionValues,
+            };
       document.dispatchEvent(
-        new CustomEvent("morro:assistant-option-selected", {
-          detail: { value, optionsOverride: [] },
-        }),
+        new CustomEvent("morro:assistant-option-selected", { detail }),
       );
       requestAssistantOpen(document);
     },
@@ -964,6 +992,8 @@ export function installExploreLocationsControl({
     exploreFlowBottomSheet?.hide();
     placeBottomSheet?.hide();
     activePlace = undefined;
+    activePlaceLocation = undefined;
+    activePlaceActionValues = Object.freeze([]);
     activeStage = "tour";
     clearExploreRuntimeStatus();
     removeAssistantFlowResults(document);
@@ -1639,6 +1669,7 @@ export function installExploreLocationsControl({
       activeCategoryButton = undefined;
       activePlace = undefined;
       activePlaceLocation = undefined;
+      activePlaceActionValues = Object.freeze([]);
       activeSearchQuery = "";
       activeStage = "menu";
       visibleLocations = Object.freeze([]);
