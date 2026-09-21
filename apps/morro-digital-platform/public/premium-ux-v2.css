@@ -159,6 +159,10 @@
   left: max(var(--md-safe-left), var(--md-space-2));
 }
 
+.quick-actions .mood-button {
+  transform-origin: left center;
+}
+
 .quick-actions,
 #globe-map-control,
 #weather-widget,
