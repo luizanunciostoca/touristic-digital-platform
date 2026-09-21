@@ -32,6 +32,20 @@ describe("Design Tokens V2 canonical authority", () => {
     }
   });
 
+  it("does not derive canonical brand or typography tokens from legacy aliases", async () => {
+    const css = await readRepository(
+      "apps/morro-digital-platform/public/design-system-v2.css",
+    );
+
+    expect(css).not.toContain("var(--primary,");
+    expect(css).not.toContain("var(--primary-dark,");
+    expect(css).not.toContain("var(--accent,");
+    expect(css).not.toContain("var(--accent-dark,");
+    expect(css).not.toContain("--font-sans,");
+    expect(css).toContain("--md-color-brand-primary: #3b82f6;");
+    expect(css).toContain("--md-destination-accent-morro: #10b981;");
+  });
+
   it("does not duplicate global outdoor or sheet tokens in Premium UX", async () => {
     const css = await readRepository(
       "apps/morro-digital-platform/public/premium-ux-v2.css",
