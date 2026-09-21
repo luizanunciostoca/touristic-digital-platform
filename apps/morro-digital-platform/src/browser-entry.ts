@@ -560,11 +560,10 @@ async function startBrowserWithProvider(provider: ResolvedMapProvider) {
 }
 
 async function start(): Promise<void> {
-  activeDestination = await loadPublicDestination();
+  const resolvedDestination = await loadPublicDestination();
+  activeDestination = resolvedDestination.destination;
   document.documentElement.dataset.destinationSource =
-    activeDestination === morroDeSaoPauloDestination
-      ? "static-fallback"
-      : "destination-owner";
+    resolvedDestination.source;
   document.documentElement.dataset.destinationId = activeDestination.id;
   const provider = await resolveMapProvider();
   const result = await startBrowserWithProvider(provider);
