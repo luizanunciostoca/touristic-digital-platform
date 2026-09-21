@@ -163,6 +163,26 @@ describe.skipIf(!databaseUrl)(
           conversionCount: 0,
         }),
       ]);
+      await expect(
+        admin.list({
+          destinationId: "morro",
+          query: "affiliate-user",
+          limit: 10,
+        }),
+      ).resolves.toHaveLength(1);
+      await expect(
+        admin.list({
+          destinationId: "itacare",
+          query: "affiliate-user",
+          limit: 10,
+        }),
+      ).resolves.toEqual([]);
+      await expect(
+        admin.list({
+          destinationId: "INVALID DESTINATION",
+          query: "affiliate-user",
+        }),
+      ).rejects.toThrow("AFFILIATE_ADMIN_INVALID_DESTINATION_ID");
 
       const detail = await admin.read("aff_m155_mysql_0001");
       expect(detail).toMatchObject({
