@@ -77,18 +77,29 @@ const COPY: Readonly<Record<PublicOnboardingLocale, PublicOnboardingCopy>> =
               "O clima acompanha a sua exploração para ajudar a planejar praias, passeios e deslocamentos.",
             hint: "Toque no clima para consultar os detalhes.",
           }),
-
           Object.freeze({
             title: "Pergunte do seu jeito",
             description:
-              "Digite uma pergunta, envie por voz ou abra as configurações do assistente diretamente nesta área.",
-            hint: "Experimente perguntar o que fazer hoje em Morro de São Paulo.",
+              "Use o composer persistente para perguntar sobre lugares, rotas, passeios e o que fazer agora.",
+            hint: "Digite naturalmente; o mapa continua visível enquanto você conversa.",
           }),
           Object.freeze({
-            title: "Pronto para explorar",
+            title: "Use sua voz quando quiser",
             description:
-              "Agora você conhece os principais controles. Continue pelo mapa e use o assistente sempre que precisar.",
-            hint: "Você pode rever os recursos enquanto navega pelo aplicativo.",
+              "Fale com o Assistant sem perder o contexto do mapa quando for mais prático do que digitar.",
+            hint: "A voz é opcional e pode ser usada diretamente no composer.",
+          }),
+          Object.freeze({
+            title: "Ajuste o Assistant",
+            description:
+              "As configurações de voz e preferências ficam acessíveis junto ao composer, sem ocupar a Home o tempo todo.",
+            hint: "Ajuste somente o que precisar e volte à exploração.",
+          }),
+          Object.freeze({
+            title: "Mude a perspectiva do mapa",
+            description:
+              "Use a visão global para ampliar o contexto geográfico e retorne à exploração local quando quiser.",
+            hint: "O mapa continua sendo o ambiente principal da experiência.",
           }),
         ]),
       }),
@@ -123,18 +134,29 @@ const COPY: Readonly<Record<PublicOnboardingLocale, PublicOnboardingCopy>> =
               "Weather follows your exploration to help you plan beaches, tours and getting around.",
             hint: "Tap the weather to see the details.",
           }),
-
           Object.freeze({
             title: "Ask in your own way",
             description:
-              "Type a question, use your voice or open the assistant settings directly in this area.",
-            hint: "Try asking what to do today in Morro de São Paulo.",
+              "Use the persistent composer to ask about places, routes, tours and what to do next.",
+            hint: "Type naturally; the map stays visible while you talk.",
           }),
           Object.freeze({
-            title: "Ready to explore",
+            title: "Use your voice when it helps",
             description:
-              "Now you know the main controls. Keep exploring the map and use the assistant whenever you need it.",
-            hint: "You can revisit these features while navigating the app.",
+              "Talk to the Assistant without losing map context when speaking is easier than typing.",
+            hint: "Voice is optional and available directly from the composer.",
+          }),
+          Object.freeze({
+            title: "Tune the Assistant",
+            description:
+              "Voice and preference settings stay beside the composer instead of occupying the Home surface.",
+            hint: "Adjust only what you need and return to exploring.",
+          }),
+          Object.freeze({
+            title: "Change the map perspective",
+            description:
+              "Use global view to widen the geographic context and return to local exploration whenever you want.",
+            hint: "The map remains the main environment of the experience.",
           }),
         ]),
       }),
@@ -169,18 +191,29 @@ const COPY: Readonly<Record<PublicOnboardingLocale, PublicOnboardingCopy>> =
               "El clima acompaña tu exploración para ayudarte a planear playas, paseos y desplazamientos.",
             hint: "Toca el clima para consultar los detalles.",
           }),
-
           Object.freeze({
             title: "Pregunta a tu manera",
             description:
-              "Escribe una pregunta, usa tu voz o abre la configuración del asistente directamente en esta área.",
-            hint: "Prueba preguntar qué hacer hoy en Morro de São Paulo.",
+              "Usa el composer persistente para preguntar por lugares, rutas, paseos y qué hacer ahora.",
+            hint: "Escribe con naturalidad; el mapa sigue visible mientras conversas.",
           }),
           Object.freeze({
-            title: "Listo para explorar",
+            title: "Usa tu voz cuando te resulte útil",
             description:
-              "Ya conoces los controles principales. Continúa por el mapa y usa el asistente siempre que lo necesites.",
-            hint: "Puedes volver a consultar estos recursos mientras navegas por la aplicación.",
+              "Habla con el Assistant sin perder el contexto del mapa cuando sea más práctico que escribir.",
+            hint: "La voz es opcional y está disponible directamente en el composer.",
+          }),
+          Object.freeze({
+            title: "Ajusta el Assistant",
+            description:
+              "Las preferencias y la configuración de voz están junto al composer sin ocupar la Home todo el tiempo.",
+            hint: "Ajusta solo lo necesario y vuelve a explorar.",
+          }),
+          Object.freeze({
+            title: "Cambia la perspectiva del mapa",
+            description:
+              "Usa la vista global para ampliar el contexto geográfico y vuelve a la exploración local cuando quieras.",
+            hint: "El mapa sigue siendo el entorno principal de la experiencia.",
           }),
         ]),
       }),
@@ -205,29 +238,40 @@ const COPY: Readonly<Record<PublicOnboardingLocale, PublicOnboardingCopy>> =
         done: "מוכנים! עכשיו אפשר להתחיל לחקור עם Morro Digital.",
         steps: Object.freeze([
           Object.freeze({
-            title: "גלו את מורו על המפה",
+            title: "גלו את מורו דרך המפה",
             description:
               "המפה האינטראקטיבית היא מרכז החוויה. טיילו במורו דה סאו פאולו וגלו מקומות קרובים.",
-            hint: "גררו והגדילו את המפה בכל עת.",
+            hint: "אפשר לגרור ולהתקרב במפה בכל רגע.",
           }),
           Object.freeze({
-            title: "בדקו את מזג האוויר לפני שיוצאים",
+            title: "בדקו את מזג האוויר לפני היציאה",
             description:
-              "מזג האוויר מלווה את החיפוש ועוזר לתכנן חופים, סיורים ודרכי הגעה.",
+              "מזג האוויר מלווה את החקירה ועוזר לתכנן חופים, סיורים והתניידות.",
             hint: "הקישו על מזג האוויר כדי לראות פרטים.",
           }),
-
           Object.freeze({
             title: "שאלו בדרך שלכם",
             description:
-              "הקלידו שאלה, השתמשו בקול או פתחו את הגדרות העוזר ישירות באזור הזה.",
-            hint: "נסו לשאול מה אפשר לעשות היום במורו דה סאו פאולו.",
+              "השתמשו בשדה הכתיבה הקבוע כדי לשאול על מקומות, מסלולים, סיורים ומה כדאי לעשות עכשיו.",
+            hint: "כתבו באופן טבעי; המפה נשארת גלויה בזמן השיחה.",
           }),
           Object.freeze({
-            title: "מוכנים לחקור",
+            title: "השתמשו בקול כשנוח",
             description:
-              "עכשיו אתם מכירים את הפקדים המרכזיים. המשיכו במפה והיעזרו בעוזר בכל עת.",
-            hint: "אפשר לחזור למשאבים האלה בזמן הניווט באפליקציה.",
+              "דברו עם ה-Assistant בלי לאבד את הקשר המפה כאשר דיבור נוח יותר מהקלדה.",
+            hint: "השימוש בקול הוא אופציונלי וזמין ישירות מאזור הכתיבה.",
+          }),
+          Object.freeze({
+            title: "התאימו את ה-Assistant",
+            description:
+              "הגדרות הקול וההעדפות זמינות ליד אזור הכתיבה בלי להשתלט על מסך הבית.",
+            hint: "שנו רק את מה שצריך וחזרו לחקירה.",
+          }),
+          Object.freeze({
+            title: "שנו את נקודת המבט של המפה",
+            description:
+              "השתמשו בתצוגה הגלובלית כדי להרחיב את ההקשר הגיאוגרפי וחזרו לחקירה המקומית בכל עת.",
+            hint: "המפה נשארת סביבת העבודה המרכזית של החוויה.",
           }),
         ]),
       }),
