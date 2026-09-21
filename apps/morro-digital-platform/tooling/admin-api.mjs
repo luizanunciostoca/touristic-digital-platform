@@ -2048,6 +2048,299 @@ export function createAdminApi({
     });
   }
 
+  function unavailableSource(reason) {
+    return Object.freeze({
+      status: "UNAVAILABLE",
+      count: null,
+      knownCount: null,
+      items: Object.freeze([]),
+      reason,
+    });
+  }
+
+  function notSupportedSource(reason) {
+    return Object.freeze({
+      status: "NOT_SUPPORTED",
+      count: null,
+      knownCount: null,
+      items: Object.freeze([]),
+      reason,
+    });
+  }
+
+  function combineAvailability(statuses) {
+    const values = statuses.filter(Boolean);
+    if (values.length === 0) return "NOT_SUPPORTED";
+    if (values.every((status) => status === "READY")) return "READY";
+    if (values.every((status) => status === "NOT_SUPPORTED")) {
+      return "NOT_SUPPORTED";
+    }
+    const hasUsable = values.some(
+      (status) => status === "READY" || status === "PARTIAL",
+    );
+    if (!hasUsable && values.some((status) => status === "UNAVAILABLE")) {
+      return "UNAVAILABLE";
+    }
+    return "PARTIAL";
+  }
+
+  async function dashboardRealData(requestUrl, health) {
+    const requestedValues = requestUrl.searchParams.getAll("destinationId");
+    if (requestedValues.length > 1) {
+      return Object.freeze({
+        error: "INVALID_DESTINATION_SCOPE",
+        statusCode: 400,
+      });
+    }
+    const requestedDestinationId = bounded(requestedValues[0] ?? "", 120);
+    const destinationOwner = domainAdapters.destinations;
+    if (typeof destinationOwner?.listOwnerDestinations !== "function") {
+      return Object.freeze({
+        attention: Object.freeze({
+          status: "UNAVAILABLE",
+          count: null,
+          knownCount: null,
+          items: Object.freeze([]),
+          sources: Object.freeze({}),
+          reason: "DESTINATION_OWNER_UNAVAILABLE",
+        }),
+        destinationSummary: Object.freeze({
+          status: "UNAVAILABLE",
+          items: null,
+          reason: "DESTINATION_OWNER_UNAVAILABLE",
+        }),
+      });
+    }
+
+    const ownerDestinations = await destinationOwner.listOwnerDestinations();
+    if (ownerDestinations?.status !== "found" || !Array.isArray(ownerDestinations.data)) {
+      return Object.freeze({
+        attention: Object.freeze({
+          status: "UNAVAILABLE",
+          count: null,
+          knownCount: null,
+          items: Object.freeze([]),
+          sources: Object.freeze({}),
+          reason: "DESTINATION_OWNER_UNAVAILABLE",
+        }),
+        destinationSummary: Object.freeze({
+          status: "UNAVAILABLE",
+          items: null,
+          reason: "DESTINATION_OWNER_UNAVAILABLE",
+        }),
+      });
+    }
+
+    let destinations = ownerDestinations.data;
+    if (requestedDestinationId && requestedDestinationId !== "global") {
+      destinations = destinations.filter(
+        (destination) => destination?.id === requestedDestinationId,
+      );
+      if (destinations.length === 0) {
+        return Object.freeze({
+          error: "DESTINATION_NOT_FOUND",
+          statusCode: 404,
+        });
+      }
+    }
+    const destinationIds = destinations
+      .map((destination) => destination?.id)
+      .filter((value) => typeof value === "string" && value);
+    const financialOwner = domainAdapters.financial;
+    const financialResult =
+      destinationIds.length > 0 &&
+      typeof financialOwner?.aggregateDestinations === "function"
+        ? await financialOwner.aggregateDestinations({ destinationIds })
+        : { status: "unavailable", data: null };
+    const financialByDestination = new Map(
+      financialResult?.status === "found" &&
+        Array.isArray(financialResult.data?.destinations)
+        ? financialResult.data.destinations.map((item) => [
+            item.destinationId,
+            item,
+          ])
+        : [],
+    );
+
+    const healthItems = (health.checks ?? [])
+      .filter((check) => check.status !== "pass")
+      .map((check) =>
+        Object.freeze({
+          id: `health:${bounded(check.name, 120)}`,
+          kind: "incident",
+          destinationId: platformOperations.destinationId,
+          severity:
+            check.status === "fail" || check.critical ? "critical" : "warning",
+          title: bounded(check.name, 160),
+          detail: bounded(check.detail || check.status, 240),
+        }),
+      );
+
+    const summaryItems = destinations.map((destination) => {
+      const destinationId = destination.id;
+      const financial = financialByDestination.get(destinationId);
+      const financialAttention = financial
+        ? Object.freeze({
+            status: financial.financialAttention.status,
+            count: financial.financialAttention.count,
+            knownCount: financial.financialAttention.knownCount,
+            items: financial.financialAttention.items,
+            itemsTruncated: financial.financialAttention.itemsTruncated,
+            reason:
+              financial.financialAttention.status === "PARTIAL"
+                ? "PAYMENTS_AGGREGATE_LIMIT_REACHED"
+                : null,
+          })
+        : unavailableSource("FINANCIAL_OWNER_UNAVAILABLE");
+      const incidents =
+        destinationId === platformOperations.destinationId
+          ? Object.freeze({
+              status: "READY",
+              count: healthItems.length,
+              knownCount: healthItems.length,
+              items: Object.freeze(healthItems),
+              reason: null,
+            })
+          : notSupportedSource("MULTI_DESTINATION_INCIDENT_OWNER_NOT_AVAILABLE");
+      const sources = Object.freeze({
+        businessApprovals: notSupportedSource(
+          "BUSINESS_APPROVAL_OWNER_NOT_AVAILABLE",
+        ),
+        financialReconciliation: financialAttention,
+        refundReview: notSupportedSource(
+          "REFUND_REVIEW_OWNER_NOT_AVAILABLE",
+        ),
+        supportRequests: notSupportedSource(
+          "SUPPORT_REQUEST_OWNER_NOT_AVAILABLE",
+        ),
+        incidents,
+      });
+      const alertStatus = combineAvailability(
+        Object.values(sources).map((source) => source.status),
+      );
+      const knownCount = Object.values(sources).reduce(
+        (total, source) =>
+          total +
+          (Number.isSafeInteger(source.knownCount) ? source.knownCount : 0),
+        0,
+      );
+      const alerts = Object.freeze({
+        status: alertStatus,
+        count: alertStatus === "READY" ? knownCount : null,
+        knownCount,
+        items: Object.freeze(
+          Object.values(sources)
+            .flatMap((source) => source.items ?? [])
+            .slice(0, 100),
+        ),
+        sources,
+      });
+      const revenue = financial?.revenue
+        ? financial.revenue
+        : Object.freeze({
+            status: "UNAVAILABLE",
+            currencies: null,
+            scannedPayments: null,
+            complete: false,
+          });
+      return Object.freeze({
+        destinationId,
+        alerts,
+        revenue,
+      });
+    });
+
+    const destinationStatus =
+      summaryItems.length === 0
+        ? "READY"
+        : combineAvailability(summaryItems.map((item) => item.alerts.status));
+    const allSources = summaryItems.flatMap((item) =>
+      Object.values(item.alerts.sources).map((source) => ({
+        destinationId: item.destinationId,
+        source,
+      })),
+    );
+    const attentionStatus =
+      summaryItems.length === 0
+        ? "READY"
+        : combineAvailability(allSources.map(({ source }) => source.status));
+    const attentionKnownCount = summaryItems.reduce(
+      (total, item) => total + item.alerts.knownCount,
+      0,
+    );
+    const attentionItems = Object.freeze(
+      summaryItems.flatMap((item) => item.alerts.items).slice(0, 100),
+    );
+    const sources = Object.freeze({
+      businessApprovals: notSupportedSource(
+        "BUSINESS_APPROVAL_OWNER_NOT_AVAILABLE",
+      ),
+      financialReconciliation: Object.freeze({
+        status: combineAvailability(
+          summaryItems.map(
+            (item) => item.alerts.sources.financialReconciliation.status,
+          ),
+        ),
+        count:
+          summaryItems.every(
+            (item) =>
+              item.alerts.sources.financialReconciliation.status === "READY",
+          )
+            ? summaryItems.reduce(
+                (total, item) =>
+                  total +
+                  (item.alerts.sources.financialReconciliation.count ?? 0),
+                0,
+              )
+            : null,
+        knownCount: summaryItems.reduce(
+          (total, item) =>
+            total +
+            (item.alerts.sources.financialReconciliation.knownCount ?? 0),
+          0,
+        ),
+      }),
+      refundReview: notSupportedSource("REFUND_REVIEW_OWNER_NOT_AVAILABLE"),
+      supportRequests: notSupportedSource(
+        "SUPPORT_REQUEST_OWNER_NOT_AVAILABLE",
+      ),
+      incidents: Object.freeze({
+        status: combineAvailability(
+          summaryItems.map((item) => item.alerts.sources.incidents.status),
+        ),
+        count:
+          summaryItems.every(
+            (item) => item.alerts.sources.incidents.status === "READY",
+          )
+            ? summaryItems.reduce(
+                (total, item) =>
+                  total + (item.alerts.sources.incidents.count ?? 0),
+                0,
+              )
+            : null,
+        knownCount: summaryItems.reduce(
+          (total, item) =>
+            total + (item.alerts.sources.incidents.knownCount ?? 0),
+          0,
+        ),
+      }),
+    });
+
+    return Object.freeze({
+      attention: Object.freeze({
+        status: attentionStatus,
+        count: attentionStatus === "READY" ? attentionKnownCount : null,
+        knownCount: attentionKnownCount,
+        items: attentionItems,
+        sources,
+      }),
+      destinationSummary: Object.freeze({
+        status: destinationStatus,
+        items: Object.freeze(summaryItems),
+      }),
+    });
+  }
+
   return Object.freeze({
     matches(pathname) {
       return pathname === adminPrefix || pathname.startsWith(`${adminPrefix}/`);
@@ -2085,15 +2378,25 @@ export function createAdminApi({
         const health = platformOperations.healthSnapshot(
           request.morroCorrelationId,
         );
+        const realData = await dashboardRealData(requestUrl, health);
+        if (realData.error) {
+          json(response, realData.statusCode, { error: realData.error });
+          return;
+        }
         json(response, 200, {
           generatedAt: new Date().toISOString(),
           summary: {
             businesses: businesses.length,
             users: users.length,
             alerts:
-              health.checks?.filter((check) => check.status !== "pass")
-                .length ?? 0,
+              realData.attention.status === "READY"
+                ? realData.attention.knownCount
+                : null,
+            alertsKnownCount: realData.attention.knownCount,
+            alertsStatus: realData.attention.status,
           },
+          attention: realData.attention,
+          destinationSummary: realData.destinationSummary,
           health,
           modules: {
             businesses: {
