@@ -2,9 +2,9 @@ import { readFile } from "node:fs/promises";
 
 import { describe, expect, it } from "vitest";
 
-import { universalSearchTesting } from "../public/control-center-search.js";
+import { universalSearchTesting } from "../../control-center/public/control-center-search.js";
 
-const publicRoot = new URL("../public/", import.meta.url);
+const publicRoot = new URL("../../control-center/public/", import.meta.url);
 
 async function publicSource(name) {
   return readFile(new URL(name, publicRoot), "utf8");
