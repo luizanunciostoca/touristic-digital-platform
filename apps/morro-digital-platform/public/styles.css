@@ -248,18 +248,18 @@ header h1 {
 }
 
 #assistant-messages {
-  position: fixed !important;
-  left: 0.5rem !important;
-  bottom: calc(var(--assistant-icon-bottom) + var(--assistant-side-button-size) + var(--assistant-cluster-gap)) !important;
-  top: auto !important;
-  transform: none !important;
-  transform-origin: bottom left !important;
+  position: fixed;
+  left: 0.5rem;
+  bottom: calc(var(--assistant-icon-bottom) + var(--assistant-side-button-size) + var(--assistant-cluster-gap));
+  top: auto;
+  transform: none;
+  transform-origin: bottom left;
   z-index: var(--md-layer-dialog, 600);
   width: min(calc(100vw - 1rem), 48rem);
   max-width: min(calc(100vw - 1rem), 48rem);
   min-width: min(18rem, calc(100vw - 1rem));
-  height: auto !important;
-  max-height: calc(100dvh - (var(--assistant-input-bottom) + var(--assistant-bar-height) + 0.75rem)) !important;
+  height: auto;
+  max-height: calc(100dvh - (var(--assistant-input-bottom) + var(--assistant-bar-height) + 0.75rem));
   min-height: 4.5rem;
   border-radius: 1.25rem;
   box-shadow: var(--md-elevation-3, 0 0.625rem 1.5625rem rgb(0 75 199 / 0.15));
