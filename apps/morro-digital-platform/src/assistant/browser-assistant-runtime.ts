@@ -215,6 +215,7 @@ function readDeterministicExploreCommands(
     if (
       type === "show_all" ||
       type === "show_nearby" ||
+      type === "back_from_place" ||
       type === "back_to_filters" ||
       type === "back_to_menu"
     ) {
