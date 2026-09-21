@@ -256,9 +256,26 @@ function renderNav() {
 
 function setHeading(view) {
   const [label, copy] = pageCopy[view] ?? pageCopy.overview;
+  const destinationControl = document.querySelector("#destination-selector");
+  const destinationLabel =
+    destinationControl?.selectedOptions?.[0]?.textContent?.trim() ||
+    "Visão Global";
+  const actorEmail = String(state.adminSession?.actor?.email ?? "");
+  const actorLocal = actorEmail.split("@", 1)[0] || "Admin";
+  const actorName = actorLocal
+    .split(/[._-]/u, 1)[0]
+    .replace(/^./u, (letter) => letter.toLocaleUpperCase("pt-BR"));
+
+  if (view === "overview") {
+    title.textContent = `Bom dia, ${actorName}`;
+    description.textContent = "Resumo da operação da plataforma.";
+    breadcrumb.textContent = `Morro Digital → ${destinationLabel}`;
+    return;
+  }
+
   title.textContent = label;
   description.textContent = copy;
-  breadcrumb.textContent = `Control Center / ${label}`;
+  breadcrumb.textContent = `Morro Digital → ${destinationLabel} → ${label}`;
 }
 
 function statusBadge(value) {
