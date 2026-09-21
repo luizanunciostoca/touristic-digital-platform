@@ -127,10 +127,11 @@
 }
 
 /*
- * Compatibility bridge — intentionally unlayered until the matching legacy
- * selectors are migrated into the layered runtime bundle.
+ * Compatibility bridge — now part of the explicit overrides layer.
+ * The deterministic legacy runtime is wrapped in @layer legacy, so migrated
+ * selectors can remain ordered without relying on unlayered cascade priority.
  */
-
+@layer overrides {
 body[data-md-mode] {
   font-family: var(--md-font-family-sans);
 }
@@ -578,4 +579,5 @@ body[data-md-mode="assistant"] .assistant-option-btn {
     transition-duration: 0.01ms;
     transition-delay: 0ms;
   }
+}
 }
