@@ -241,7 +241,7 @@ jobs:
                   timeout: 5000,
                 });
 
-                await submit(page, 'Primeira Praia');
+                await submit(page, 'Primeira');
                 const explore = page.locator(
                   '#explore-flow-bottom-sheet[data-flow-kind="explore"][data-flow-state="ready"]',
                 );
