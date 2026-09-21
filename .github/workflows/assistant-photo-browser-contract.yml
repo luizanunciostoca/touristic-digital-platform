@@ -238,7 +238,7 @@ jobs:
                 timeout: 5000,
               });
 
-              const photoState = await page.evaluate(() => {
+              const photoState = await page.evaluate((placeActionValues) => {
                 const area = document.querySelector('#assistant-messages .messages-area');
                 const children = area ? Array.from(area.children) : [];
                 const visibleMessage = children.find((element) => {
@@ -250,7 +250,7 @@ jobs:
                 const duplicatedPlaceActions = Array.from(
                   area?.querySelectorAll('.assistant-option-btn') ?? [],
                   (button) => button.getAttribute('data-value'),
-                ).filter((value) => expectedBeachDetailValues.includes(value));
+                ).filter((value) => placeActionValues.includes(value));
                 return {
                   messageText: visibleMessage?.textContent?.trim() ?? '',
                   messageIndex: visibleMessage ? children.indexOf(visibleMessage) : -1,
@@ -267,7 +267,7 @@ jobs:
                   ),
                   legacyBackCount: area?.querySelectorAll('.assistant-photo-back-options').length ?? 0,
                 };
-              });
+              }, expectedBeachDetailValues);
               if (
                 !photoState.messageText.includes('Primeira Praia') ||
                 photoState.messageIndex < 0 ||
