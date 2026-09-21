@@ -382,7 +382,7 @@ jobs:
                 await page.locator('#assistant-category-nightlife').click();
                 await page.locator('#assistant-category-results[data-stage="filters"] [data-value="ver todos"]').click();
                 await page.locator('#assistant-category-results[data-stage="places"] [data-location-name="Toca do Morcego"]').click();
-                const fallbackPrimary = page.locator('.assistant-options .assistant-option-btn--primary');
+                const fallbackPrimary = page.locator('#place-bottom-sheet .place-bottom-sheet-primary-action');
                 await fallbackPrimary.waitFor({ state: 'visible', timeout: 10000 });
                 const fallbackAction = await fallbackPrimary.evaluate(node => ({
                   text: node.textContent?.trim(),

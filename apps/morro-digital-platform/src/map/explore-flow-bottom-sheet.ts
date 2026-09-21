@@ -98,33 +98,6 @@ function createStateButton(
   return button;
 }
 
-function bridgeNarrationControl(
-  original: HTMLElement,
-  clone: HTMLElement,
-): void {
-  const originalNarration = original.querySelector<HTMLButtonElement>(
-    ".tour-narration-btn",
-  );
-  const clonedNarration = clone.querySelector<HTMLButtonElement>(
-    ".tour-narration-btn",
-  );
-  if (!originalNarration || !clonedNarration) return;
-
-  const sync = (): void => {
-    clonedNarration.textContent = originalNarration.textContent;
-    clonedNarration.title = originalNarration.title;
-    clonedNarration.setAttribute(
-      "aria-pressed",
-      originalNarration.getAttribute("aria-pressed") ?? "false",
-    );
-  };
-  sync();
-  clonedNarration.addEventListener("click", () => {
-    originalNarration.click();
-    queueMicrotask(sync);
-  });
-}
-
 export function installExploreFlowBottomSheet({
   document,
 }: ExploreFlowBottomSheetOptions): ExploreFlowBottomSheetController {
@@ -229,12 +202,8 @@ export function installExploreFlowBottomSheet({
 
     richContent.replaceChildren();
     if (presentation.content) {
-      const clone = presentation.content.cloneNode(true);
-      if (clone instanceof HTMLElement) {
-        clone.classList.add("md-card");
-        richContent.appendChild(clone);
-        bridgeNarrationControl(presentation.content, clone);
-      }
+      presentation.content.classList.add("md-card");
+      richContent.appendChild(presentation.content);
     }
     richContent.classList.toggle("hidden", richContent.childElementCount === 0);
     actions.replaceChildren(presentation.source);

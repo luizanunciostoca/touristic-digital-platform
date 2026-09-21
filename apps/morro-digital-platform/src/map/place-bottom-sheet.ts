@@ -244,6 +244,11 @@ export function installPlaceBottomSheet(
     }
     setState(state);
   };
+  const suspendForAssistantAction = (): void => {
+    sheet.classList.add("hidden");
+    sheet.setAttribute("aria-hidden", "true");
+  };
+
   const render = (next: PlaceBottomSheetPresentation): void => {
     const localeCopy = copy[next.locale];
     close.setAttribute("aria-label", localeCopy.close);
@@ -285,7 +290,10 @@ export function installPlaceBottomSheet(
       button.dataset.value = action.value;
       button.dataset.placeAction = action.action;
       button.textContent = action.label;
-      button.addEventListener("click", () => options.onAction(action.value));
+      button.addEventListener("click", () => {
+        suspendForAssistantAction();
+        options.onAction(action.value);
+      });
       actions.appendChild(button);
     }
 
@@ -299,9 +307,10 @@ export function installPlaceBottomSheet(
       button.dataset.value = primaryAction.value;
       button.textContent = primaryAction.label;
       button.disabled = primaryAction.disabled === true;
-      button.addEventListener("click", () =>
-        options.onAction(primaryAction.value),
-      );
+      button.addEventListener("click", () => {
+        suspendForAssistantAction();
+        options.onAction(primaryAction.value);
+      });
       primary.appendChild(button);
     }
 
