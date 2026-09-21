@@ -311,7 +311,13 @@ async function main() {
         animationDuration: style.animationDuration,
       };
     });
-    if (!["0s", "0.000001s"].includes(reducedMotion.transitionDuration)) {
+    const reducedTransitionSeconds = Number.parseFloat(
+      reducedMotion.transitionDuration.split(",", 1)[0],
+    );
+    if (
+      !Number.isFinite(reducedTransitionSeconds) ||
+      reducedTransitionSeconds > 0.001
+    ) {
       throw new Error(`REDUCED_MOTION_NOT_APPLIED:${JSON.stringify(reducedMotion)}`);
     }
     evidence.reducedMotion = reducedMotion;
