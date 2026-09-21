@@ -1,4 +1,5 @@
 name: Control Center Final Format Repair
+# rearmed after workflow admission
 
 on:
   push:
