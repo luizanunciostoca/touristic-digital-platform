@@ -34,6 +34,27 @@
   gap: var(--md-space-2);
 }
 
+#assistant-messages.md-assistant-dialog .assistant-loading-skeleton {
+  display: grid;
+  gap: var(--md-space-2);
+  padding: var(--md-space-3);
+}
+
+#assistant-messages.md-assistant-dialog .assistant-loading-skeleton-line {
+  width: 100%;
+  min-height: var(--md-space-4);
+}
+
+#assistant-messages.md-assistant-dialog
+  .assistant-loading-skeleton-line[data-size="short"] {
+  width: 42%;
+}
+
+#assistant-messages.md-assistant-dialog
+  .assistant-loading-skeleton-line[data-size="medium"] {
+  width: 72%;
+}
+
 #assistant-messages.md-assistant-dialog .assistant-option-btn {
   min-height: var(--md-touch-target-min);
   border-radius: var(--md-radius-md);
