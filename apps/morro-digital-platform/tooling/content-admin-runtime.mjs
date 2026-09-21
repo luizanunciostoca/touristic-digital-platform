@@ -1,10 +1,3 @@
-import {
-  ContentAdminApplicationService,
-  MySqlContentRepository,
-  applyContentM156Schema,
-  createContentPool,
-} from "@touristic/content-server";
-
 function unavailable() {
   return Object.freeze({ status: "unavailable", data: null });
 }
@@ -60,6 +53,12 @@ export function createContentAdminRuntime({
       return false;
     }
     try {
+      const {
+        ContentAdminApplicationService,
+        MySqlContentRepository,
+        applyContentM156Schema,
+        createContentPool,
+      } = await import("@touristic/content-server");
       pool = createContentPool(databaseUrl);
       await applyContentM156Schema(pool);
       service = new ContentAdminApplicationService(
