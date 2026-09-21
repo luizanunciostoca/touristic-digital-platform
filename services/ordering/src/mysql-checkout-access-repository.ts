@@ -2,6 +2,8 @@ import type { Pool, ResultSetHeader, RowDataPacket } from "mysql2/promise";
 
 import { normalizeOrderId, type OrderId } from "@touristic/ordering";
 
+import { normalizeCheckoutRequestContext } from "./checkout-security.js";
+
 import {
   createCheckoutAccessRecord,
   sameCheckoutAccessAuthority,
@@ -67,8 +69,73 @@ function fromRow(row: CheckoutAccessRow): CheckoutAccessRecord {
   return record;
 }
 
+function adminDestinationId(value: unknown): string {
+  const context = normalizeCheckoutRequestContext({
+    requesterKind: "authenticated",
+    actorSubject: "runtime:admin-aggregate",
+    destinationId: value as string,
+    tenantId: null,
+  });
+  return context?.destinationId ?? "";
+}
+
+export interface CheckoutAccessAdminPage {
+  readonly records: readonly CheckoutAccessRecord[];
+  readonly nextCursor: OrderId | null;
+}
+
 export class MySqlCheckoutAccessRepository implements CheckoutAccessRepositoryPort {
   constructor(private readonly pool: Pool) {}
+
+  async listByDestinationId(
+    destinationIdInput: unknown,
+    options: Readonly<{ afterOrderId?: unknown; limit?: number }> = {},
+  ): Promise<CheckoutAccessAdminPage> {
+    const destinationId = adminDestinationId(destinationIdInput);
+    if (!destinationId) {
+      throw new Error("ORDERING_INVALID_DESTINATION_ID");
+    }
+
+    const rawLimit = options.limit ?? 250;
+    if (!Number.isInteger(rawLimit) || rawLimit < 1 || rawLimit > 500) {
+      throw new Error("ORDERING_ADMIN_PAGE_LIMIT_INVALID");
+    }
+    const limit = rawLimit;
+    const afterOrderId =
+      options.afterOrderId === undefined ||
+      options.afterOrderId === null ||
+      options.afterOrderId === ""
+        ? null
+        : normalizeOrderId(options.afterOrderId);
+    if (
+      options.afterOrderId !== undefined &&
+      options.afterOrderId !== null &&
+      options.afterOrderId !== "" &&
+      !afterOrderId
+    ) {
+      throw new Error("ORDERING_INVALID_ORDER_ID");
+    }
+
+    const cursorClause = afterOrderId ? " AND order_id > ?" : "";
+    const parameters: Array<string | number> = [destinationId];
+    if (afterOrderId) parameters.push(afterOrderId);
+    parameters.push(limit + 1);
+
+    const [rows] = await this.pool.execute<CheckoutAccessRow[]>(
+      `SELECT ${ACCESS_COLUMNS}
+       FROM ordering_checkout_access
+       WHERE destination_id = ?${cursorClause}
+       ORDER BY order_id
+       LIMIT ?`,
+      parameters,
+    );
+    const records = Object.freeze(rows.slice(0, limit).map(fromRow));
+    const nextCursor =
+      rows.length > limit && records.length > 0
+        ? (records[records.length - 1]?.orderId ?? null)
+        : null;
+    return Object.freeze({ records, nextCursor });
+  }
 
   async findByOrderId(
     orderIdInput: OrderId,
