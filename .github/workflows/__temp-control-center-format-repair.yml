@@ -36,22 +36,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          node <<'NODE'
-          const fs = require("node:fs");
-          const path = "services/ticketing/src/ticketing-admin-service.test.ts";
-          let source = fs.readFileSync(path, "utf8");
-          const before = "availableQuantity: 8,";
-          const after = "remainingQuantity: 8,";
-          const matches = source.split(before).length - 1;
-          if (matches !== 1) {
-            throw new Error(
-              `TICKETING_ADMIN_AVAILABILITY_ASSERTION_COUNT_${matches}`,
-            );
-          }
-          source = source.replace(before, after);
-          fs.writeFileSync(path, source);
-          NODE
-
           pnpm exec prettier --write \
             apps/control-center/public/control-center.js \
             apps/morro-digital-platform/tooling/admin-domain-adapters.mjs \

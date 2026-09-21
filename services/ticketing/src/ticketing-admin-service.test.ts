@@ -129,7 +129,7 @@ describeMySql.sequential("Ticketing admin owner contract", () => {
         committedQuantity: 2,
       },
       availability: {
-        availableQuantity: 8,
+        remainingQuantity: 8,
       },
     });
   });

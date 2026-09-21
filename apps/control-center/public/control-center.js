@@ -1079,7 +1079,7 @@ async function renderProducts(productId) {
   content.innerHTML = `
     <div class="grid stats">
       <article class="card stat"><span class="stat-label">Oferta</span><strong class="stat-value" style="font-size:18px">${escapeHtml(offer.label)}</strong><small>${escapeHtml(offer.id)}</small></article>
-      <article class="card stat"><span class="stat-label">Disponibilidade</span><strong class="stat-value">${escapeHtml(availability.availableQuantity ?? projection.availableQuantity)}</strong><small>capacidade ${escapeHtml(offer.capacity)}</small></article>
+      <article class="card stat"><span class="stat-label">Disponibilidade</span><strong class="stat-value">${escapeHtml(availability.remainingQuantity ?? projection.availableQuantity)}</strong><small>capacidade ${escapeHtml(offer.capacity)}</small></article>
       <article class="card stat"><span class="stat-label">Preço</span><strong class="stat-value" style="font-size:18px">${escapeHtml(formatMinorUnits(offer.unitAmount))}</strong><small>${escapeHtml(offer.pricingVersion)}</small></article>
       <article class="card stat"><span class="stat-label">Estado</span><strong class="stat-value" style="font-size:18px">${escapeHtml(offer.enabled ? "ativo" : "desativado")}</strong><small>${escapeHtml(offer.product?.kind)}</small></article>
     </div>
