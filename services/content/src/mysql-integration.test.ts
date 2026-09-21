@@ -10,6 +10,8 @@ import {
 const databaseUrl = process.env.CONTENT_DATABASE_URL ?? "";
 
 describe.skipIf(!databaseUrl)("Content owner MySQL acceptance", () => {
+  if (!databaseUrl) return;
+
   const pool = createContentPool(databaseUrl);
   const repository = new MySqlContentRepository(pool);
   let clock = "2026-09-20T20:00:00.000Z";
