@@ -466,7 +466,7 @@ async function main() {
         consoleErrors.length === 0
           ? "PASS"
           : "FAIL",
-      sourceSha: process.env.GITHUB_SHA || "local",
+      sourceSha: process.env.CONTROL_CENTER_VISUAL_SOURCE_SHA || process.env.GITHUB_SHA || "local",
       fixedTime: FIXED_ISO,
       timezone: "America/Bahia",
       locale: "pt-BR",
@@ -497,7 +497,7 @@ async function main() {
       const nextManifest = {
         schemaVersion: 1,
         bootstrapPending: false,
-        baselineGeneratedFromSha: process.env.GITHUB_SHA || "local",
+        baselineGeneratedFromSha: process.env.CONTROL_CENTER_VISUAL_SOURCE_SHA || process.env.GITHUB_SHA || "local",
         sourceManualSha256: MANUAL_HASHES,
         browser: report.browser,
         font: report.font,
