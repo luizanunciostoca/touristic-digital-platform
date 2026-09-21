@@ -12,6 +12,7 @@ import { createAuthApi } from "./auth-api.mjs";
 import { createBusinessApi } from "./business-api.mjs";
 import { createCrmApi } from "./crm-api.mjs";
 import { createDestinationAdminRuntime } from "./destination-admin-runtime.mjs";
+import { resolvePublicDestination } from "./destination-public-projection.mjs";
 import { createPaymentsApi } from "./payments-runtime-api.mjs";
 import { createPlatformOperations } from "./platform-operations.mjs";
 import {
@@ -38,6 +39,11 @@ const defaultDocument = resolve(morroPublicRoot, "index.html");
 const envFile = resolve(repositoryRoot, ".env");
 const host = process.env.HOST?.trim() || "127.0.0.1";
 const port = Number(process.env.PORT || "4173");
+const publicDestinationFallback = Object.freeze({
+  id: "morro-de-sao-paulo", name: "Morro de São Paulo", countryCode: "BR", timezone: "America/Bahia", currency: "BRL",
+  center: Object.freeze({ latitude: -13.3833, longitude: -38.9167 }), radiusMeters: 15000,
+  modules: Object.freeze({ marketplace:true,map:true,navigation:true,assistant:true,businessPortal:true,adminCrm:true,booking:false,payments:false,affiliates:false }),
+});
 const morroLatitude = -13.3769;
 const morroLongitude = -38.9146;
 const weatherTimeoutMs = 8_000;
@@ -371,6 +377,14 @@ function serveRuntimeConfig(response) {
   );
 }
 
+async function servePublicDestination(response) {
+  const destination = await resolvePublicDestination(destinationRuntime, publicDestinationFallback);
+  response.statusCode = 200;
+  response.setHeader("Content-Type", "application/json; charset=utf-8");
+  response.setHeader("Cache-Control", "no-store");
+  response.end(JSON.stringify({ destination, source: destination === publicDestinationFallback ? "static-fallback" : "destination-owner" }));
+}
+
 function serveLiveness(response) {
   response.statusCode = 200;
   response.setHeader("Content-Type", "application/json; charset=utf-8");
@@ -564,6 +578,10 @@ const server = createServer(async (request, response) => {
     }
     if (requestUrl.pathname === "/runtime-config.js") {
       serveRuntimeConfig(response);
+      return;
+    }
+    if (requestUrl.pathname === "/api/runtime/destination") {
+      await servePublicDestination(response);
       return;
     }
     if (requestUrl.pathname === "/api/weather") {
