@@ -85,6 +85,8 @@ jobs:
         run: pnpm typecheck
       - name: Test
         if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
+        env:
+          CONTENT_DATABASE_URL: mysql://root:canonical-mysql@127.0.0.1:3306/affiliates_m154_test
         run: pnpm test
       - name: Build
         if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
