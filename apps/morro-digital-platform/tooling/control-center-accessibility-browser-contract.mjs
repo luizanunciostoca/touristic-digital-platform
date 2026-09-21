@@ -22,6 +22,9 @@ async function main() {
   try {
     const context = await browser.newContext({
       viewport: { width: 1280, height: 900 },
+      // Axe is injected only by this headless audit harness. Keep the product CSP
+      // unchanged and bypass it solely inside Playwright so the audit can run.
+      bypassCSP: true,
     });
     const login = await context.request.post(
       `${origin}/api/dashboard/auth/login`,
