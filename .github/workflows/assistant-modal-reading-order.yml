@@ -140,14 +140,12 @@ jobs:
               }
 
               const assistant = page.locator('#assistant-messages');
-              if (!(await assistant.isVisible())) await trigger.click();
-              await assistant.waitFor({ state: 'visible', timeout: 5000 });
-
               await page.evaluate(() => {
                 dispatchEvent(new CustomEvent('navigationEnded', {
                   detail: { reason: 'cancelled' },
                 }));
               });
+              await assistant.waitFor({ state: 'visible', timeout: 5000 });
               await page.waitForTimeout(750);
 
               const state = await page.evaluate(() => {
