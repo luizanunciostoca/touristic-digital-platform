@@ -47,17 +47,35 @@
           >
             ☰
           </button>
-          <div class="search-wrap">
+          <div class="search-wrap" role="search">
             <span aria-hidden="true">⌕</span>
+            <select
+              id="search-destination"
+              class="search-destination"
+              aria-label="Escopo de destino da busca"
+            >
+              <option value="">Todos os destinos</option>
+            </select>
             <input
               id="global-search"
               type="search"
               autocomplete="off"
-              placeholder="Pesquisar qualquer coisa no Morro Digital..."
+              placeholder="Pesquisar empresa, afiliado, reserva, pedido..."
+              role="combobox"
               aria-label="Busca universal"
+              aria-controls="search-results"
+              aria-haspopup="listbox"
+              aria-expanded="false"
+              aria-autocomplete="list"
             />
             <kbd>⌘ K</kbd>
-            <div id="search-results" class="search-results" hidden></div>
+            <div
+              id="search-results"
+              class="search-results"
+              role="listbox"
+              aria-label="Resultados da busca"
+              hidden
+            ></div>
           </div>
           <div class="top-actions">
             <span id="release-chip" class="chip">SHA —</span>
