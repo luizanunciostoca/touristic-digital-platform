@@ -137,7 +137,6 @@ const restaurantSecondaryEnglish = [
   "🕒 Hours",
   "💰 Price range",
   "⭐ Reviews",
-  "❤️ Favorite",
   "⬅️ Back",
 ];
 const restaurantSecondaryValues = [
@@ -145,7 +144,6 @@ const restaurantSecondaryValues = [
   "horário de funcionamento",
   "quanto custa",
   "avaliações",
-  "adicionar aos favoritos",
   "Morena Bela",
 ];
 
