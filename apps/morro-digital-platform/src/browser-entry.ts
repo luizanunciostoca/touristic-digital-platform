@@ -33,6 +33,7 @@ import {
   type GlobalViewControl,
 } from "./map/global-view-control.js";
 import { initializeMorroBrowserLocale } from "./runtime/browser-locale.js";
+import { loadPublicDestination, type MorroPublicDestination } from "./runtime/public-destination.js";
 import { loadMapboxGlSdk } from "./runtime/mapbox-sdk-loader.js";
 import { createMapStyleReadinessTracker } from "./runtime/map-style-readiness.js";
 import {
@@ -155,6 +156,7 @@ const developmentEnvironment = Object.freeze({
 const status = document.getElementById("runtime-status");
 const mapContainer = document.getElementById("map");
 const tourSelect = document.getElementById("tour-select");
+let activeDestination: MorroPublicDestination = morroDeSaoPauloDestination;
 let activeRealMap: MapboxGlMapLike | undefined;
 const mapStyleReadiness = createMapStyleReadinessTracker();
 let activeNavigationRuntimeInstall: BrowserNavigationRuntimeInstall | undefined;
@@ -412,8 +414,8 @@ function createFallbackMapProvider(): ResolvedMapProvider {
     return Object.freeze({
       sdk: createLeafletCompatibilitySdk(window, {
         initialCenter: [
-          morroDeSaoPauloDestination.center.longitude,
-          morroDeSaoPauloDestination.center.latitude,
+          activeDestination.center.longitude,
+          activeDestination.center.latitude,
         ],
         initialZoom: 13.5,
       }),
@@ -514,8 +516,8 @@ async function startBrowserWithProvider(provider: ResolvedMapProvider) {
                 document,
                 map,
                 homeCenter: [
-                  morroDeSaoPauloDestination.center.longitude,
-                  morroDeSaoPauloDestination.center.latitude,
+                  activeDestination.center.longitude,
+                  activeDestination.center.latitude,
                 ],
                 homeZoom: Number(
                   provider.environment.VITE_MAPBOX_INITIAL_ZOOM || "13.5",
@@ -555,6 +557,9 @@ async function startBrowserWithProvider(provider: ResolvedMapProvider) {
 }
 
 async function start(): Promise<void> {
+  activeDestination = await loadPublicDestination();
+  document.documentElement.dataset.destinationSource = activeDestination === morroDeSaoPauloDestination ? "static-fallback" : "destination-owner";
+  document.documentElement.dataset.destinationId = activeDestination.id;
   const provider = await resolveMapProvider();
   const result = await startBrowserWithProvider(provider);
   application.exploreLocations.setGeospatialEngine(result.geospatialEngine);
