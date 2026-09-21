@@ -26,6 +26,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: control-center-visual-regression-final
+  cancel-in-progress: true
+
 jobs:
   control-center-visual-regression:
     runs-on: ubuntu-24.04
