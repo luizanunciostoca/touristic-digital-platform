@@ -1,12 +1,12 @@
-import { writeFileSync } from "node:fs";
+import { existsSync, unlinkSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
 const { chromium } = require("/tmp/pw/node_modules/playwright");
 
 const origin = "http://127.0.0.1:4194";
-const password = "control center browser fixture";
 const evidencePath = "/tmp/control-center-responsive-evidence.json";
+const authStatePath = "/tmp/control-center-a11y-auth-state.json";
 
 const viewports = [
   { width: 1440, height: 900, label: "1440x900" },
@@ -140,33 +140,25 @@ async function assertTouchTargets(page, selectors, label) {
   }
 }
 
-async function login(context) {
-  const response = await context.request.post(
-    `${origin}/api/dashboard/auth/login`,
-    {
-      headers: { Origin: origin, "Content-Type": "application/json" },
-      data: { email: "platform-owner@example.com", password },
-    },
-  );
-  if (response.status() !== 200) {
-    throw new Error(
-      `OWNER_LOGIN_FAILED:${response.status()}:${await response.text()}`,
-    );
-  }
-}
-
 async function main() {
   const browser = await chromium.launch({ headless: true });
-  const context = await browser.newContext({ viewport: viewports[0] });
   const evidence = {
     viewports: [],
     supportBanner: [],
     landscape: null,
     dialogs: "not-applicable-no-dialog-surface",
   };
+  let context = null;
 
   try {
-    await login(context);
+    if (!existsSync(authStatePath)) {
+      throw new Error("AUTH_STORAGE_STATE_MISSING");
+    }
+    context = await browser.newContext({
+      viewport: viewports[0],
+      storageState: authStatePath,
+    });
+    unlinkSync(authStatePath);
     const page = await context.newPage();
     const runtimeErrors = [];
     page.on("pageerror", (error) => runtimeErrors.push(error.message));
@@ -456,7 +448,10 @@ async function main() {
       `CONTROL_CENTER_RESPONSIVE_PASS:VIEWPORTS=${evidence.viewports.length}/${viewports.length}:LANDSCAPE=PASS`,
     );
     await context.close();
+    context = null;
   } finally {
+    if (existsSync(authStatePath)) unlinkSync(authStatePath);
+    if (context) await context.close().catch(() => {});
     await browser.close();
   }
 }
