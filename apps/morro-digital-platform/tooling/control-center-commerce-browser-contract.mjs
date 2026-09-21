@@ -11,7 +11,7 @@ async function login(context) {
     `${origin}/api/dashboard/auth/login`,
     {
       headers: { Origin: origin, "Content-Type": "application/json" },
-      data: { email: "platform-owner@example.com", password },
+      data: { email: "platform-owner-commerce@example.com", password },
     },
   );
   if (response.status() !== 200) {
