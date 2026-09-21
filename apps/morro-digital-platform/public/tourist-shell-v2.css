@@ -91,7 +91,9 @@ body[data-md-mode="discover"] .md-home-header {
 
 .md-home-header-inner {
   display: flex;
+  width: 100%;
   min-height: var(--md-touch-target-min);
+  flex-direction: row;
   align-items: center;
   gap: var(--md-space-3);
   padding: var(--md-space-2) var(--md-space-3);
@@ -120,7 +122,9 @@ body[data-md-mode="discover"] .md-home-header {
 }
 
 .md-home-title-block {
+  flex: 1 1 auto;
   min-width: 0;
+  overflow: hidden;
 }
 
 .md-home-header h1 {
@@ -145,6 +149,19 @@ body[data-md-mode="discover"] .md-home-header {
   text-overflow: ellipsis;
   text-shadow: none;
   white-space: nowrap;
+}
+
+/* Keep the privacy preference trigger reachable without competing with the
+ * Home brand/weather cluster. The legacy consent surface remains functionally
+ * authoritative; V2 only relocates its collapsed trigger. */
+body[data-md-mode="discover"] .analytics-consent-preferences.is-collapsed {
+  top: auto;
+  right: auto;
+  bottom: calc(
+    var(--md-shell-bottom) + var(--md-shell-composer-height) + var(--md-space-3)
+  );
+  left: var(--md-shell-gutter);
+  z-index: var(--md-layer-map-control);
 }
 
 /* -------------------------------------------------------------------------- */
