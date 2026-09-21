@@ -64,9 +64,7 @@ async function main() {
         timeout: 30_000,
       });
       await page
-        .locator(
-          `#content[data-rendered-view="${view}"][aria-busy="false"]`,
-        )
+        .locator(`#content[data-rendered-view="${view}"][aria-busy="false"]`)
         .waitFor({ state: "attached", timeout: 30_000 });
 
       stage = "axe";
