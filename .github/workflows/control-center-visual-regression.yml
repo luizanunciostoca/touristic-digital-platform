@@ -60,9 +60,9 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Format mission-owned files deterministically
+      - name: Verify mission-owned formatting
         run: |
-          pnpm exec prettier --write \
+          pnpm exec prettier --check \
             .github/workflows/control-center-visual-regression.yml \
             apps/morro-digital-platform/tooling/control-center-visual-fixtures.mjs \
             apps/morro-digital-platform/tooling/control-center-visual-regression.mjs \
