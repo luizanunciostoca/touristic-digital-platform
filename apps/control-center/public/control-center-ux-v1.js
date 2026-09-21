@@ -715,7 +715,11 @@ function searchKeyboardSupport() {
     items.forEach((item, itemIndex) => {
       item.setAttribute("aria-selected", String(itemIndex === active));
     });
-    items[active].scrollIntoView({ block: "nearest" });
+    const current = items[active];
+    if (current?.id) {
+      searchInput.setAttribute("aria-activedescendant", current.id);
+    }
+    current?.scrollIntoView({ block: "nearest" });
   };
   searchInput.addEventListener("keydown", (event) => {
     if (event.key === "ArrowDown") {
@@ -729,10 +733,14 @@ function searchKeyboardSupport() {
       const target = options()[active];
       if (target?.dataset.href) globalThis.location.hash = target.dataset.href;
       searchResults.hidden = true;
+      searchInput.setAttribute("aria-expanded", "false");
+      searchInput.removeAttribute("aria-activedescendant");
       searchInput.value = "";
       active = -1;
     } else if (event.key === "Escape") {
       searchResults.hidden = true;
+      searchInput.setAttribute("aria-expanded", "false");
+      searchInput.removeAttribute("aria-activedescendant");
       active = -1;
     }
   });
