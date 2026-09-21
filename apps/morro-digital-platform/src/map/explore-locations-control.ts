@@ -92,6 +92,7 @@ export type ExploreLocationsCommand =
       statusText?: string;
       results: readonly ExploreSearchResult[];
     }>
+  | Readonly<{ type: "back_from_place" }>
   | Readonly<{ type: "back_to_filters" }>
   | Readonly<{ type: "back_to_menu" }>;
 
@@ -1273,6 +1274,12 @@ export function installExploreLocationsControl({
         command.status ?? (results.length === 0 ? "empty" : "ready"),
         command.statusText,
       );
+      return true;
+    }
+
+    if (command.type === "back_from_place") {
+      if (activeStage !== "detail" || !activePlace) return false;
+      returnFromPlaceDetail();
       return true;
     }
 
