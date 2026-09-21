@@ -125,6 +125,7 @@ export function createAffiliateAdminAdapter(affiliateAdminRuntime) {
             title: affiliate.identityReference || affiliate.affiliateId,
             context: `${affiliate.status} · ${affiliate.approvedMembershipCount} programa(s) aprovado(s)`,
             href: `#affiliates:${encodeURIComponent(affiliate.affiliateId)}`,
+            ...(destinationId ? { destinationId } : {}),
           }),
         ),
       );
