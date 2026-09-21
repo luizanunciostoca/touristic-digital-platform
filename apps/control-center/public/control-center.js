@@ -3153,11 +3153,11 @@ function applySupportBanner() {
     `Motivo: ${support.reason}`;
 }
 
-function openHash(hash = globalThis.location.hash) {
+async function openHash(hash = globalThis.location.hash) {
   const defaultView = readControlCenterPreferences().defaultView;
   const raw = hash.replace(/^#/, "") || defaultView;
   const [view, detail] = raw.split(":", 2);
-  void render(pageCopy[view] ? view : "overview", detail);
+  await render(pageCopy[view] ? view : "overview", detail);
 }
 
 let searchTimer;
@@ -3249,7 +3249,9 @@ document.querySelector("#support-end").addEventListener("click", async () => {
   applySupportBanner();
 });
 
-globalThis.addEventListener("hashchange", () => openHash());
+globalThis.addEventListener("hashchange", () => {
+  void openHash();
+});
 
 async function bootApp() {
   try {
@@ -3273,9 +3275,9 @@ async function bootApp() {
     healthChip.className = `chip ${ready ? "chip-success" : "chip-warning"}`;
 
     applySupportBanner();
+    await openHash();
     app.hidden = false;
     boot.hidden = true;
-    openHash();
   } catch (error) {
     if (error?.status === 401 || error?.message === "AUTH_REQUIRED") {
       globalThis.location.replace(
