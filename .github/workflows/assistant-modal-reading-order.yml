@@ -139,8 +139,9 @@ jobs:
                 throw new Error('Assistant Escape did not restore focus to the trigger');
               }
 
-              await trigger.click();
-              await page.locator('#assistant-messages:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
+              const assistant = page.locator('#assistant-messages');
+              if (!(await assistant.isVisible())) await trigger.click();
+              await assistant.waitFor({ state: 'visible', timeout: 5000 });
 
               await page.evaluate(() => {
                 dispatchEvent(new CustomEvent('navigationEnded', {
