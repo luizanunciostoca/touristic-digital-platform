@@ -855,11 +855,17 @@ async function renderBusinesses(businessId) {
               ? { profile: null }
               : Promise.reject(error),
         ),
-        api(`/products?businessId=${encodeURIComponent(businessId)}&limit=100`),
+        api(`/products?businessId=${encodeURIComponent(businessId)}&limit=100`)
+          .then((value) => ({ ...value, available: true }))
+          .catch((error) => ({ data: [], available: false, error })),
         api(
           `/reservations?businessId=${encodeURIComponent(businessId)}&limit=100`,
-        ),
-        api("/audit?limit=250"),
+        )
+          .then((value) => ({ ...value, available: true }))
+          .catch((error) => ({ data: [], available: false, error })),
+        api("/audit?limit=250")
+          .then((value) => ({ ...value, available: true }))
+          .catch((error) => ({ entries: [], available: false, error })),
       ]);
 
     const profile = profileResult.profile ?? null;
@@ -951,11 +957,11 @@ async function renderBusinesses(businessId) {
           </div>
           <div class="module-list">
             <div class="module-row"><span>Perfil</span>${statusBadge(profile ? "available" : "partial")}</div>
-            <div class="module-row"><span>Produtos e ofertas</span><strong>${escapeHtml(products.length)}</strong></div>
-            <div class="module-row"><span>Reservas</span><strong>${escapeHtml(reservations.length)}</strong></div>
+            <div class="module-row"><span>Produtos e ofertas</span>${productsResult.available ? `<strong>${escapeHtml(products.length)}</strong>` : statusBadge("unavailable")}</div>
+            <div class="module-row"><span>Reservas</span>${reservationsResult.available ? `<strong>${escapeHtml(reservations.length)}</strong>` : statusBadge("unavailable")}</div>
             <div class="module-row"><span>Pedidos relacionados</span><strong>${escapeHtml(orders.filter(Boolean).length)}</strong></div>
             <div class="module-row"><span>Pagamentos relacionados</span><strong>${escapeHtml(payments.filter(Boolean).length)}</strong></div>
-            <div class="module-row"><span>Auditoria relacionada</span><strong>${escapeHtml(auditEntries.length)}</strong></div>
+            <div class="module-row"><span>Auditoria relacionada</span>${auditResult.available ? `<strong>${escapeHtml(auditEntries.length)}</strong>` : statusBadge("unavailable")}</div>
             <div class="module-row"><span>CRM</span><strong>sem vínculo tenant canônico no modelo atual</strong></div>
           </div>
         </section>
