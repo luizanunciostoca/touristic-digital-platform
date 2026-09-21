@@ -292,18 +292,29 @@ function metricCard(label, value, meta, tone, icon) {
 async function loadHomeData() {
   const dashboard = await api("/dashboard");
   state.dashboard = dashboard;
-  const reservationQuery =
-    "/reservations?limit=100" +
-    (state.destinationId === "global"
+  const destinationQuery =
+    state.destinationId === "global"
       ? ""
-      : "&destinationId=" + encodeURIComponent(state.destinationId));
+      : "&destinationId=" + encodeURIComponent(state.destinationId);
+  const reservationQuery = "/reservations?limit=100" + destinationQuery;
+  const affiliateQuery = "/affiliates?limit=100" + destinationQuery;
   const requests = [
     api("/audit?limit=8").catch(() => ({ entries: [] })),
     api(reservationQuery).catch(() => ({ data: null })),
-    api("/affiliates?limit=100").catch(() => ({ data: null })),
+    api(affiliateQuery).catch(() => ({ data: null })),
+    state.destinationId === "global"
+      ? Promise.resolve(null)
+      : api("/reservations?limit=100").catch(() => ({ data: null })),
   ];
-  const [audit, reservations, affiliates] = await Promise.all(requests);
-  return { dashboard, audit, reservations, affiliates };
+  const [audit, reservations, affiliates, globalReservations] =
+    await Promise.all(requests);
+  return {
+    dashboard,
+    audit,
+    reservations,
+    affiliates,
+    globalReservations: globalReservations || reservations,
+  };
 }
 
 async function revenueForReservations(rows) {
@@ -507,7 +518,7 @@ async function renderHome() {
     contentRoot.innerHTML =
       '<div class="grid kpi-grid">' +
       metricCard("Empresas", businessValue, businessMeta, "info", "▦") +
-      metricCard("Afiliados", affiliateCount, state.destinationId === "global" ? "cadastros retornados pelo domínio" : "escopo por destino protegido", "success", "◇") +
+      metricCard("Afiliados", affiliateCount, state.destinationId === "global" ? "cadastros retornados pelo domínio" : "atribuídos ao destino selecionado", "success", "◇") +
       metricCard("Reservas Hoje", reservationCount, todayRows ? "criadas hoje" : "fonte indisponível", "purple", "▣") +
       metricCard("Receita Hoje", revenue.value, revenue.meta, "success", "●") +
       metricCard("Alertas", String(alertCount), "itens que exigem atenção", alertCount > 0 ? "warning" : "success", "!") +
@@ -516,7 +527,7 @@ async function renderHome() {
       attentionHtml +
       "</section>" +
       '<div class="grid home-lower-grid"><div class="home-stack"><section class="card section-card destination-summary"><div class="section-title"><div><h2>Resumo por destino</h2><p>Selecione uma linha para entrar no contexto daquele destino.</p></div><a class="section-link" href="#destinations">Gerenciar destinos</a></div><div class="table-wrap"><table><thead><tr><th>Destino</th><th>Empresas</th><th>Afiliados</th><th>Reservas</th><th>Receita</th><th>Alertas</th></tr></thead><tbody>' +
-      (destinationRows(data.reservations) || '<tr><td colspan="6" class="empty">Nenhum destino disponível para este actor.</td></tr>') +
+      (destinationRows(data.globalReservations) || '<tr><td colspan="6" class="empty">Nenhum destino disponível para este actor.</td></tr>') +
       "</tbody></table></div></section>" +
       '<section class="card section-card"><div class="section-title"><div><h2>Atividade recente</h2><p>Eventos operacionais e administrativos compreensíveis.</p></div><a class="section-link" href="#audit">Ver todos os eventos</a></div><div class="timeline">' +
       activityHtml(data.audit.entries || []) +
