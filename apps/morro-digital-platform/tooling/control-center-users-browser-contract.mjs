@@ -118,6 +118,9 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error(error);
+  console.error(
+    "CONTROL_CENTER_USERS_BROWSER_FAILED",
+    error instanceof Error ? error.name : "UnknownError",
+  );
   process.exit(1);
 });
