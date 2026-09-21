@@ -1736,7 +1736,6 @@ html[data-control-motion="reduced"] *::after {
   transition-duration: 0.001ms !important;
 }
 
-
 /* Reusable administrative primitives: progressive enhancement over owner-rendered markup. */
 .section-title__actions {
   min-width: 0;

@@ -23,9 +23,7 @@ function persistEvidence(evidence) {
 }
 
 async function navigate(page, view, detail = "") {
-  const hash = detail
-    ? `#${view}:${encodeURIComponent(detail)}`
-    : `#${view}`;
+  const hash = detail ? `#${view}:${encodeURIComponent(detail)}` : `#${view}`;
   await page.evaluate((nextHash) => {
     location.hash = nextHash;
   }, hash);
@@ -51,89 +49,97 @@ async function audit(page, target, viewport) {
   await page.setViewportSize(viewport);
   await navigate(page, target.view, target.detail);
 
-  return page.evaluate(async ({ targetLabel, viewportLabel }) => {
-    const result = await globalThis.axe.run(document, {
-      runOnly: {
-        type: "tag",
-        values: ["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"],
-      },
-    });
+  return page.evaluate(
+    async ({ targetLabel, viewportLabel }) => {
+      const result = await globalThis.axe.run(document, {
+        runOnly: {
+          type: "tag",
+          values: ["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"],
+        },
+      });
 
-    const visible = (element) => {
-      if (!(element instanceof HTMLElement) || element.hidden) return false;
-      const style = getComputedStyle(element);
-      const rect = element.getBoundingClientRect();
-      return (
-        style.display !== "none" &&
-        style.visibility !== "hidden" &&
-        rect.width > 0 &&
-        rect.height > 0
-      );
-    };
-
-    const scrollableRegions = [...document.querySelectorAll("body *")]
-      .filter((element) => {
-        if (!(element instanceof HTMLElement) || !visible(element)) return false;
+      const visible = (element) => {
+        if (!(element instanceof HTMLElement) || element.hidden) return false;
         const style = getComputedStyle(element);
-        const canScroll =
-          /(auto|scroll)/u.test(style.overflowX) ||
-          /(auto|scroll)/u.test(style.overflowY);
+        const rect = element.getBoundingClientRect();
         return (
-          canScroll &&
-          (element.scrollWidth > element.clientWidth + 1 ||
-            element.scrollHeight > element.clientHeight + 1)
+          style.display !== "none" &&
+          style.visibility !== "hidden" &&
+          rect.width > 0 &&
+          rect.height > 0
         );
-      })
-      .map((element) => ({
-        tag: element.tagName,
-        id: element.id,
-        className: element.className,
-        tabIndex: element.tabIndex,
-        hasFocusableDescendant: Boolean(
-          element.querySelector(
-            'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      };
+
+      const scrollableRegions = [...document.querySelectorAll("body *")]
+        .filter((element) => {
+          if (!(element instanceof HTMLElement) || !visible(element))
+            return false;
+          const style = getComputedStyle(element);
+          const canScroll =
+            /(auto|scroll)/u.test(style.overflowX) ||
+            /(auto|scroll)/u.test(style.overflowY);
+          return (
+            canScroll &&
+            (element.scrollWidth > element.clientWidth + 1 ||
+              element.scrollHeight > element.clientHeight + 1)
+          );
+        })
+        .map((element) => ({
+          tag: element.tagName,
+          id: element.id,
+          className: element.className,
+          tabIndex: element.tabIndex,
+          hasFocusableDescendant: Boolean(
+            element.querySelector(
+              'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+            ),
           ),
-        ),
-        clientWidth: element.clientWidth,
-        scrollWidth: element.scrollWidth,
-        clientHeight: element.clientHeight,
-        scrollHeight: element.scrollHeight,
-      }));
+          clientWidth: element.clientWidth,
+          scrollWidth: element.scrollWidth,
+          clientHeight: element.clientHeight,
+          scrollHeight: element.scrollHeight,
+        }));
 
-    const inaccessibleScrollable = scrollableRegions.filter(
-      (region) => region.tabIndex < 0 && !region.hasFocusableDescendant,
-    );
+      const inaccessibleScrollable = scrollableRegions.filter(
+        (region) => region.tabIndex < 0 && !region.hasFocusableDescendant,
+      );
 
-    const liveContent = document.querySelector("#content")?.hasAttribute("aria-live");
-    const h1Count = [...document.querySelectorAll("h1")].filter(visible).length;
+      const liveContent = document
+        .querySelector("#content")
+        ?.hasAttribute("aria-live");
+      const h1Count = [...document.querySelectorAll("h1")].filter(
+        visible,
+      ).length;
 
-    return {
-      target: targetLabel,
-      viewport: viewportLabel,
-      violations: result.violations.map((violation) => ({
-        id: violation.id,
-        impact: violation.impact,
-        help: violation.help,
-        nodes: violation.nodes.slice(0, 8).map((node) => ({
-          target: node.target,
-          html: node.html,
-          failureSummary: node.failureSummary,
+      return {
+        target: targetLabel,
+        viewport: viewportLabel,
+        violations: result.violations.map((violation) => ({
+          id: violation.id,
+          impact: violation.impact,
+          help: violation.help,
+          nodes: violation.nodes.slice(0, 8).map((node) => ({
+            target: node.target,
+            html: node.html,
+            failureSummary: node.failureSummary,
+          })),
         })),
-      })),
-      scrollableRegions,
-      inaccessibleScrollable,
-      liveContent,
-      h1Count,
-      documentOverflow:
-        document.documentElement.scrollWidth >
-        document.documentElement.clientWidth + 2,
-    };
-  }, {
-    targetLabel: target.detail
-      ? `${target.view}:${target.detail}`
-      : target.view,
-    viewportLabel: viewport.label,
-  });
+        scrollableRegions,
+        inaccessibleScrollable,
+        liveContent,
+        h1Count,
+        documentOverflow:
+          document.documentElement.scrollWidth >
+          document.documentElement.clientWidth + 2,
+      };
+    },
+    {
+      targetLabel: target.detail
+        ? `${target.view}:${target.detail}`
+        : target.view,
+      viewportLabel: viewport.label,
+    },
+  );
 }
 
 async function main() {

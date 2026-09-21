@@ -361,7 +361,12 @@ function renderOverview() {
                   <small>${escapeHtml(check.detail ?? check.status)}</small>
                 </div>`,
               )
-              .join("") || emptyState("Nenhum check disponível.", "Os checks aparecerão quando a fonte operacional responder.", { compact: true })
+              .join("") ||
+            emptyState(
+              "Nenhum check disponível.",
+              "Os checks aparecerão quando a fonte operacional responder.",
+              { compact: true },
+            )
           }
         </div>
       </section>

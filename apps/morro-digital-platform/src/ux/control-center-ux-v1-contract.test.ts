@@ -216,7 +216,9 @@ describe("Morro Digital Control Center UX Design V1 contract", () => {
     expect(css).toContain(".responsive-cards");
     expect(css).toContain("min-height: 44px");
     expect(css).toContain("min-height: 100dvh");
-    expect(workflow).toContain("control-center-responsive-browser-contract.mjs");
+    expect(workflow).toContain(
+      "control-center-responsive-browser-contract.mjs",
+    );
     expect(workflow).toContain("/tmp/control-center-visual-*.png");
   });
 });
