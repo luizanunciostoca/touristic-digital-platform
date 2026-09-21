@@ -64,6 +64,24 @@ describeMySql.sequential(
       await financialPool.query("DELETE FROM financial_ledger_transactions");
       await financialPool.query("DELETE FROM financial_payments");
       await financialPool.query("DELETE FROM financial_payment_idempotency");
+      for (const table of [
+        "ordering_subscription_renewal_intents",
+        "ordering_subscriptions",
+        "ordering_ticketing_reservation_bindings",
+      ]) {
+        try {
+          await orderingPool.query(`DELETE FROM ${table}`);
+        } catch (error) {
+          if (
+            !error ||
+            typeof error !== "object" ||
+            !("code" in error) ||
+            error.code !== "ER_NO_SUCH_TABLE"
+          ) {
+            throw error;
+          }
+        }
+      }
       await orderingPool.query("DELETE FROM ordering_checkout_access");
       await orderingPool.query("DELETE FROM ordering_orders");
     });
@@ -148,7 +166,7 @@ describeMySql.sequential(
            acknowledged_by, resolved_at
          ) VALUES (
            'rcf_aggregate_00000001', 'pay_aggregate_0001',
-           'provider_amount_mismatch', 'critical', ?,
+           'amount_mismatch', 'critical', ?,
            '100', '90', 'open', ?, ?, NULL, NULL, NULL
          )`,
         [
