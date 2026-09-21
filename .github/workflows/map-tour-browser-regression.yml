@@ -170,7 +170,10 @@ jobs:
                   opacity: Number.parseFloat(style.opacity || '1'),
                 };
               };
+              const assistant = document.getElementById('assistant-messages');
+              const handle = assistant?.querySelector('[data-context-sheet-handle="true"]');
               return {
+                viewportWidth: innerWidth,
                 mode: document.body.dataset.mdMode ?? null,
                 assistantOpen: document.body.classList.contains('assistant-modal-open'),
                 header: visibility('header'),
@@ -179,6 +182,11 @@ jobs:
                 globe: visibility('#globe-map-control'),
                 quickAction: visibility('.quick-actions'),
                 assistant: visibility('#assistant-messages'),
+                contextSheet: assistant?.classList.contains('md-context-sheet') ?? false,
+                sheetMode: assistant?.getAttribute('data-sheet-mode'),
+                sheetState: assistant?.getAttribute('data-sheet-state'),
+                sheetHandleVisible:
+                  handle instanceof HTMLElement ? !handle.hidden : false,
               };
             });
             const hidden = (value) =>
@@ -196,11 +204,30 @@ jobs:
               state.quickAction.pointerEvents === 'none' ||
               !state.assistantOpen ||
               !state.assistant ||
-              state.assistant.visibility === 'hidden'
+              state.assistant.visibility === 'hidden' ||
+              (state.viewportWidth <= 720 &&
+                (!state.contextSheet ||
+                  state.sheetMode !== 'tour' ||
+                  !['peek', 'half', 'full'].includes(state.sheetState || '') ||
+                  !state.sheetHandleVisible))
             ) {
               throw new Error(
                 `Tour mode composition drift at ${label}: ${JSON.stringify(state)}`,
               );
+            }
+            if (state.viewportWidth <= 720) {
+              const handle = page.locator('#assistant-messages [data-context-sheet-handle="true"]');
+              await handle.focus();
+              await page.keyboard.press('End');
+              await page.locator('#assistant-messages[data-sheet-state="full"]').waitFor({
+                state: 'attached',
+                timeout: 3000,
+              });
+              await page.keyboard.press('Home');
+              await page.locator('#assistant-messages[data-sheet-state="peek"]').waitFor({
+                state: 'attached',
+                timeout: 3000,
+              });
             }
             return state;
           }
