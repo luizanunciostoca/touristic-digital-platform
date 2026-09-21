@@ -96,18 +96,18 @@ describe("Morro Digital Control Center UX Design V1 contract", () => {
       "apps/control-center/public/control-center-ux-v1.js",
     );
 
-    expect(source).toContain("Visão 360° administrativa");
-    expect(source).toContain(
+    expect(ux).toContain("Visão 360° administrativa");
+    expect(ux).toContain(
       'businesses: ["Empresa", ["Resumo", "Perfil", "Usuários", "Produtos", "Ofertas", "Reservas", "Financeiro", "CRM", "Histórico", "Auditoria"]]',
     );
-    expect(source).toContain(
+    expect(ux).toContain(
       'affiliates: ["Afiliado", ["Resumo", "Perfil", "Destinos", "Atribuições", "Conversões", "Comissões", "Histórico", "Auditoria"]]',
     );
-    expect(source).toContain(
+    expect(ux).toContain(
       'users: ["Usuário", ["Resumo", "Conta", "Permissões", "Empresas", "Sessões", "Histórico", "Auditoria"]]',
     );
-    expect(source).toContain("Contexto de destino protegido");
-    expect(source).toContain("não atribui registros por inferência");
+    expect(ux).toContain("Contexto de destino protegido");
+    expect(ux).toContain("não atribui registros por inferência");
   });
 
   it("keeps the required responsive, accessibility and reduced-motion primitives", async () => {
