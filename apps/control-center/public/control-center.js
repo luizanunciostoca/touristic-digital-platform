@@ -290,7 +290,7 @@ async function renderUsers(userId) {
   const users = userId ? [data.user] : data.users;
 
   const userTable = `
-    <div class="table-wrap">
+    <div class="table-wrap" tabindex="0">
       <table>
         <thead>
           <tr>
@@ -494,7 +494,7 @@ async function renderUsers(userId) {
         </label>
         <p id="session-revoke-status" role="status" style="color:var(--muted);margin:0"></p>
       </form>
-      <div class="table-wrap" style="margin-top:16px">
+      <div class="table-wrap" tabindex="0" style="margin-top:16px">
         <table>
           <thead>
             <tr>
@@ -782,7 +782,7 @@ async function renderDestinations(destinationId) {
         <div class="section-title"><h2>Novo destino</h2></div>
         ${destinationEditor()}
       </section>
-      <div class="table-wrap">
+      <div class="table-wrap" tabindex="0">
         <table>
           <thead><tr><th>Destino</th><th>Status</th><th>Locale</th><th>Timezone</th><th>Versão</th></tr></thead>
           <tbody>${
@@ -1043,7 +1043,7 @@ async function renderBusinesses(businessId) {
       o diretório vem do Identity; cada visão 360º compõe apenas contratos owner
       registrados para aquele tenant.
     </div>
-    <div class="table-wrap">
+    <div class="table-wrap" tabindex="0">
       <table>
         <thead><tr><th>Business ID</th><th>Membros</th><th>Fonte</th><th>Visão 360º</th></tr></thead>
         <tbody>
@@ -1084,7 +1084,7 @@ async function renderAffiliates(affiliateId) {
           </label>
           <div><button class="secondary-button" type="submit">Buscar</button></div>
         </form>
-        <div class="table-wrap" style="margin-top:16px">
+        <div class="table-wrap" tabindex="0" style="margin-top:16px">
           <table>
             <thead>
               <tr><th>Afiliado</th><th>Status</th><th>Perfil</th><th>Memberships</th><th>Conversões</th></tr>
@@ -1211,7 +1211,7 @@ async function renderAffiliates(affiliateId) {
           <h2>Memberships</h2>
           <span class="badge">${memberships.length}</span>
         </div>
-        <div class="table-wrap">
+        <div class="table-wrap" tabindex="0">
           <table>
             <thead><tr><th>Programa</th><th>Destino</th><th>Status</th><th>Elegível</th><th>Financial onboarding</th></tr></thead>
             <tbody>
@@ -1264,7 +1264,7 @@ async function renderAffiliates(affiliateId) {
         <h2>Conversões recentes</h2>
         <span class="badge">${conversions.length}</span>
       </div>
-      <div class="table-wrap">
+      <div class="table-wrap" tabindex="0">
         <table>
           <thead><tr><th>Conversão</th><th>Pedido</th><th>Receita elegível</th><th>Comissão</th><th>Estado</th></tr></thead>
           <tbody>
@@ -1389,7 +1389,7 @@ async function renderCrm() {
     <div class="callout">
       CRM é reutilizado por adapter sobre o domínio existente; nenhuma tabela foi movida para o Control Center.
     </div>
-    <div class="table-wrap">
+    <div class="table-wrap" tabindex="0">
       <table>
         <thead><tr><th>Empresa</th><th>Contato</th><th>Etapa</th><th>Status</th><th>Valor mensal</th></tr></thead>
         <tbody>
@@ -1506,7 +1506,7 @@ async function renderProducts(productId) {
             </section>`
           : `<div class="callout">Criação de ofertas exige <strong>ticketing.manage</strong> e não é permitida durante Support Mode.</div>`
       }
-      <div class="table-wrap">
+      <div class="table-wrap" tabindex="0">
         <table>
           <thead><tr><th>Oferta</th><th>Empresa</th><th>Destino</th><th>Disponível</th><th>Preço</th><th>Status</th></tr></thead>
           <tbody>
@@ -1710,7 +1710,7 @@ async function renderReservations(reservationId) {
         Reservas são lidas do owner Ticketing com relações de inventário, empresa,
         pedido e pagamento. Estados confirmados só podem ser revertidos pelo fluxo financeiro autorizado.
       </div>
-      <div class="table-wrap">
+      <div class="table-wrap" tabindex="0">
         <table>
           <thead><tr><th>Reserva</th><th>Oferta</th><th>Cliente</th><th>Empresa</th><th>Status</th><th>Pedido / Pagamento</th></tr></thead>
           <tbody>
@@ -1969,7 +1969,7 @@ async function renderTicketing() {
           ? '<div class="callout">Runtime Ticketing indisponível nesta execução; os comandos continuam fail-closed.</div>'
           : ""
       }
-      <div class="table-wrap">
+      <div class="table-wrap" tabindex="0">
         <table>
           <thead><tr><th>Oferta</th><th>Referência</th><th>Disponibilidade</th><th>Preço</th></tr></thead>
           <tbody>
@@ -2316,7 +2316,7 @@ async function renderFinancial(paymentId) {
           <h2>Reconciliation findings</h2>
           <span class="badge">${findings.length} aberta(s)</span>
         </div>
-        <div class="table-wrap">
+        <div class="table-wrap" tabindex="0">
           <table>
             <thead><tr><th>Finding</th><th>Tipo</th><th>Severidade</th><th>Estado</th><th>Ação</th></tr></thead>
             <tbody>
@@ -2484,7 +2484,7 @@ async function renderContent(contentId) {
             </div>
             <span class="badge">${documents.length} item(ns)</span>
           </div>
-          <div class="table-wrap">
+          <div class="table-wrap" tabindex="0">
             <table>
               <thead>
                 <tr><th>Conteúdo</th><th>Tipo</th><th>Status</th><th>Destino</th><th>Locale</th></tr>
@@ -2796,7 +2796,7 @@ async function renderAudit() {
       persistência atual: ${escapeHtml(data.durability)}. O actor real permanece registrado,
       inclusive quando existe effectiveUser em modo suporte.
     </div>
-    <div class="table-wrap">
+    <div class="table-wrap" tabindex="0">
       <table>
         <thead><tr><th>Quando</th><th>Actor</th><th>Ação</th><th>Entidade</th><th>Resultado</th></tr></thead>
         <tbody>
