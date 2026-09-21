@@ -169,6 +169,12 @@ function populateDestinationSelector() {
   setDestination(stored, false);
 }
 
+function isOverviewRoute() {
+  const raw = (globalThis.location.hash || "#overview").replace(/^#/, "");
+  const [view] = raw.split(":", 1);
+  return (view || "overview") === "overview";
+}
+
 function pageContext(view) {
   const destination =
     state.destinationId === "global"
@@ -407,7 +413,7 @@ async function renderHome() {
 
   try {
     const data = await loadHomeData();
-    if (generation !== state.generation) return;
+    if (generation !== state.generation || !isOverviewRoute()) return;
     const reservationRows = Array.isArray(data.reservations.data)
       ? data.reservations.data
       : null;
@@ -417,7 +423,7 @@ async function renderHome() {
         )
       : null;
     const revenue = await revenueForReservations(todayRows);
-    if (generation !== state.generation) return;
+    if (generation !== state.generation || !isOverviewRoute()) return;
     const affiliateCount = Array.isArray(data.affiliates.data)
       ? data.affiliates.data.length === 100
         ? "100+"
@@ -455,6 +461,8 @@ async function renderHome() {
           .join("") +
         "</div>"
       : '<div class="attention-empty"><strong>Nenhuma pendência crítica.</strong> Tudo funcionando normalmente.</div>';
+
+    if (generation !== state.generation || !isOverviewRoute()) return;
 
     contentRoot.innerHTML =
       '<div class="grid kpi-grid">' +
@@ -792,6 +800,10 @@ async function initialize() {
     contentObserver.observe(contentRoot, { childList: true, subtree: false });
 
     globalThis.addEventListener("hashchange", () => {
+      // Invalidate pending overview work synchronously before any asynchronous
+      // route decorator can run, so stale dashboard data can never replace the
+      // module selected by the operator.
+      state.generation += 1;
       setTimeout(() => void upgradeCurrentView(), 0);
     });
   } catch {
