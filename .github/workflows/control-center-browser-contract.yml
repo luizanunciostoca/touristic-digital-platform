@@ -277,6 +277,54 @@ jobs:
               if (![200, 201].includes(createLead.status())) {
                 throw new Error(`CRM owner-contract mutation failed: ${createLead.status()} ${await createLead.text()}`);
               }
+
+              const foreignBusinessList = await ownerContext.request.get(
+                `${origin}/api/admin/v1/businesses?destinationId=itacare`,
+              );
+              const foreignBusinessListBody = await foreignBusinessList.json();
+              if (
+                foreignBusinessList.status() !== 200 ||
+                !Array.isArray(foreignBusinessListBody.businesses) ||
+                foreignBusinessListBody.businesses.length !== 0
+              ) {
+                throw new Error(
+                  `Business destination scope leaked: ${JSON.stringify(foreignBusinessListBody)}`,
+                );
+              }
+
+              const foreignCrmList = await ownerContext.request.get(
+                `${origin}/api/admin/v1/crm/leads?limit=100&destinationId=itacare`,
+              );
+              const foreignCrmListBody = await foreignCrmList.json();
+              if (
+                foreignCrmList.status() !== 200 ||
+                !Array.isArray(foreignCrmListBody.data) ||
+                foreignCrmListBody.data.some(
+                  lead => lead.companyName === 'Control Center Browser Lead',
+                )
+              ) {
+                throw new Error(
+                  `CRM destination scope leaked: ${JSON.stringify(foreignCrmListBody)}`,
+                );
+              }
+
+              const scopedSearch = await ownerContext.request.get(
+                `${origin}/api/admin/v1/search?q=control&destinationId=itacare`,
+              );
+              const scopedSearchBody = await scopedSearch.json();
+              if (
+                scopedSearch.status() !== 200 ||
+                !Array.isArray(scopedSearchBody.results) ||
+                scopedSearchBody.results.some(result =>
+                  ['business', 'crm-lead'].includes(result.type),
+                )
+              ) {
+                throw new Error(
+                  `Universal Search destination scope leaked: ${JSON.stringify(scopedSearchBody)}`,
+                );
+              }
+              evidence.destinationIsolation = true;
+
               await page.locator('[data-view="crm"]').click();
               await page.getByRole('heading', { name: 'CRM' }).waitFor();
               if (!(await page.locator('#content').textContent()).includes('Control Center Browser Lead')) {
