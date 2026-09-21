@@ -924,7 +924,6 @@ h1 {
   font-weight: 800;
 }
 
-
 .affiliate-model-card {
   border-color: #cfe4fb;
   background: #f3f9ff;
@@ -1566,7 +1565,6 @@ html[data-control-density="compact"] .metric-card {
     grid-template-columns: 1fr;
   }
 
-
   .table-wrap.responsive-cards {
     overflow: visible;
     border: 0;
@@ -1635,7 +1633,6 @@ html[data-control-density="compact"] .metric-card {
   .stat {
     min-height: 104px;
   }
-
 
   .support-banner {
     align-items: flex-start;

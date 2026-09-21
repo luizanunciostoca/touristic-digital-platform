@@ -53,7 +53,6 @@ async function api(path) {
   return body;
 }
 
-
 function actorName() {
   const email = String(state.actor?.email || "");
   const local = email.split("@")[0] || "Admin";
