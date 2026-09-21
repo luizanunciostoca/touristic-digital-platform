@@ -158,7 +158,8 @@ jobs:
               const page = await owner.newPage();
               await page.goto(origin + '/apps/control-center/public/index.html#destinations');
               await page.locator('#app:not([hidden])').waitFor({ state: 'visible', timeout: 15000 });
-              await page.locator('[data-view="destinations"]').click();
+              await page.goto(origin + '/apps/control-center/public/index.html#destinations');
+              await page.locator('#app:not([hidden])').waitFor({ state: 'visible', timeout: 15000 });
               await page.locator('#destination-editor').waitFor();
               if (!(await page.locator('#content').textContent()).includes('Morro de São Paulo')) throw new Error('DESTINATION_LIST_NOT_RENDERED');
               await page.locator('input[name="id"]').fill('e2e-destination');
