@@ -29,21 +29,21 @@ describe("Control Center high-information administrative surfaces", () => {
   });
 
   it("uses only canonical relation identifiers and never infers Business ownership from an entity substring", () => {
-    expect(source).not.toContain('includes(businessId)');
+    expect(source).not.toContain("includes(businessId)");
     expect(source).toContain("relatedBusinessEntityIds.has(entry.entityId)");
-    expect(source).toContain('entry.tenantId === relation.id');
+    expect(source).toContain("entry.tenantId === relation.id");
     expect(source).toContain('href="#users:${encodeURIComponent(member.id)}"');
-    expect(source).toContain('href="#businesses:${encodeURIComponent(businessId)}"');
+    expect(source).toContain(
+      'href="#businesses:${encodeURIComponent(businessId)}"',
+    );
     expect(source).toContain('data-destination-relation="unavailable"');
     expect(source).toContain("não atribuído pelo owner; não inferido");
   });
 
   it("keeps Affiliate destination and audit relations owner-backed and exact", () => {
+    expect(source).toContain("affiliateMembershipEntityIds = memberships.map");
     expect(source).toContain(
-      'affiliateMembershipEntityIds = memberships.map',
-    );
-    expect(source).toContain(
-      '(membership) => `${affiliateId}:${membership.programId}`',
+      "(membership) => `${affiliateId}:${membership.programId}`",
     );
     expect(source).toContain(
       'href="#destinations:${encodeURIComponent(membership.destinationId)}"',
@@ -52,9 +52,15 @@ describe("Control Center high-information administrative surfaces", () => {
   });
 
   it("renders Dashboard owner states without synthesizing unavailable values", () => {
-    expect(source).toContain('readOwnerProjection("/affiliates?limit=100", "data")');
-    expect(source).toContain('readOwnerProjection("/destinations", "destinations")');
-    expect(source).toContain('readOwnerProjection("/audit?limit=20", "entries")');
+    expect(source).toContain(
+      'readOwnerProjection("/affiliates?limit=100", "data")',
+    );
+    expect(source).toContain(
+      'readOwnerProjection("/destinations", "destinations")',
+    );
+    expect(source).toContain(
+      'readOwnerProjection("/audit?limit=20", "entries")',
+    );
     expect(source).toContain("Precisa de atenção");
     expect(source).toContain("Destination Summary");
     expect(source).toContain("Affiliate Summary");

@@ -283,7 +283,8 @@ function bindEntityTabs(root = content) {
       if (!current || !buttons.length) return;
       const currentIndex = buttons.indexOf(current);
       let nextIndex = currentIndex;
-      if (event.key === "ArrowRight") nextIndex = (currentIndex + 1) % buttons.length;
+      if (event.key === "ArrowRight")
+        nextIndex = (currentIndex + 1) % buttons.length;
       else if (event.key === "ArrowLeft")
         nextIndex = (currentIndex - 1 + buttons.length) % buttons.length;
       else if (event.key === "Home") nextIndex = 0;
@@ -323,7 +324,8 @@ function canonicalEntityAudit(entries, relation) {
     if (relation.kind === "user") {
       return (
         entry.effectiveUserId === relation.id ||
-        (entry.entityType === "auth_principal" && entry.entityId === relation.id)
+        (entry.entityType === "auth_principal" &&
+          entry.entityId === relation.id)
       );
     }
     if (relation.kind === "affiliate") {
@@ -516,7 +518,11 @@ async function renderOverview() {
   }
 
   const metrics = [
-    ["Empresas", dashboard.summary?.businesses ?? "—", "Identity membership owner"],
+    [
+      "Empresas",
+      dashboard.summary?.businesses ?? "—",
+      "Identity membership owner",
+    ],
     ["Usuários", dashboard.summary?.users ?? "—", "Auth owner"],
     ["Alertas", dashboard.summary?.alerts ?? "—", "Health checks fora de PASS"],
     ["Readiness", health.readiness ?? "—", "Saúde agregada da plataforma"],
@@ -766,7 +772,10 @@ async function renderUsers(userId) {
   const now = Math.floor(Date.now() / 1000);
   const sessions = sessionData.sessions ?? [];
 
-  const userAuditResult = await readOwnerProjection("/audit?limit=250", "entries");
+  const userAuditResult = await readOwnerProjection(
+    "/audit?limit=250",
+    "entries",
+  );
   const userAuditEntries = canonicalEntityAudit(userAuditResult.data, {
     kind: "user",
     id: userId,
@@ -1013,14 +1022,22 @@ async function renderUsers(userId) {
       { id: "overview", label: "Overview", content: overviewContent },
       { id: "identity", label: "Identity / Profile", content: profileContent },
       relationshipsContent
-        ? { id: "relationships", label: "Relationships", content: relationshipsContent }
+        ? {
+            id: "relationships",
+            label: "Relationships",
+            content: relationshipsContent,
+          }
         : null,
       sessionsContent
         ? { id: "activity", label: "Activity", content: sessionsContent }
         : null,
       { id: "audit", label: "Audit", content: auditContent },
       canManageUsers
-        ? { id: "actions", label: "Settings / Actions", content: actionsContent }
+        ? {
+            id: "actions",
+            label: "Settings / Actions",
+            content: actionsContent,
+          }
         : null,
     ]);
   bindEntityTabs();
@@ -1585,7 +1602,8 @@ async function renderBusinesses(businessId) {
     const auditContent = auditResult.available
       ? recentActivityMarkup(auditEntries, {
           title: "Audit",
-          emptyMessage: "Nenhum evento autoritativo relacionado a esta empresa.",
+          emptyMessage:
+            "Nenhum evento autoritativo relacionado a esta empresa.",
         })
       : '<section class="card empty" data-state="unavailable"><strong>Audit indisponível</strong><span>A fonte autoritativa não respondeu.</span></section>';
 
@@ -1593,11 +1611,23 @@ async function renderBusinesses(businessId) {
       supportEntityContext() +
       entityTabs("business360", [
         { id: "overview", label: "Overview", content: overviewContent },
-        { id: "identity", label: "Identity / Profile", content: profileContent },
+        {
+          id: "identity",
+          label: "Identity / Profile",
+          content: profileContent,
+        },
         relationshipsContent
-          ? { id: "relationships", label: "Relationships", content: relationshipsContent }
+          ? {
+              id: "relationships",
+              label: "Relationships",
+              content: relationshipsContent,
+            }
           : null,
-        { id: "commercial", label: "Commercial / Financial", content: commercialContent },
+        {
+          id: "commercial",
+          label: "Commercial / Financial",
+          content: commercialContent,
+        },
         activityContent
           ? { id: "activity", label: "Activity", content: activityContent }
           : null,
@@ -1947,17 +1977,29 @@ async function renderAffiliates(affiliateId) {
       { id: "overview", label: "Overview", content: overviewContent },
       { id: "identity", label: "Identity / Profile", content: profileContent },
       relationshipsContent
-        ? { id: "relationships", label: "Relationships", content: relationshipsContent }
+        ? {
+            id: "relationships",
+            label: "Relationships",
+            content: relationshipsContent,
+          }
         : null,
       commercialContent
-        ? { id: "commercial", label: "Commercial / Financial", content: commercialContent }
+        ? {
+            id: "commercial",
+            label: "Commercial / Financial",
+            content: commercialContent,
+          }
         : null,
       activityContent
         ? { id: "activity", label: "Activity", content: activityContent }
         : null,
       { id: "audit", label: "Audit", content: auditContent },
       actionOptions
-        ? { id: "actions", label: "Settings / Actions", content: actionsContent }
+        ? {
+            id: "actions",
+            label: "Settings / Actions",
+            content: actionsContent,
+          }
         : null,
     ]) +
     backLinkContent;
