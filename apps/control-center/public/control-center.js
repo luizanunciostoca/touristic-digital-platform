@@ -1,4 +1,13 @@
 import { createDashboardAuthClient } from "@touristic/auth-browser";
+import {
+  emptyState,
+  enhanceControlCenterSurface,
+  errorState,
+  escapeHtml,
+  loadingState,
+  partialState,
+  statusBadge,
+} from "./control-center-primitives.js";
 
 const navGroups = [
   ["Principal", [["overview", "Visão Global", "◎"]]],
@@ -188,15 +197,6 @@ function saveControlCenterPreferences(preferences) {
   return normalized;
 }
 
-function escapeHtml(value) {
-  return String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
 async function api(path, init = {}) {
   const response = await auth.secureFetch(`/api/admin/v1${path}`, {
     ...init,
@@ -316,20 +316,6 @@ function setHeading(view) {
   breadcrumb.textContent = `Morro Digital → ${destinationLabel} → ${label}`;
 }
 
-function statusBadge(value) {
-  const normalized =
-    value === "available" ||
-    value === "pass" ||
-    value === "success" ||
-    value === "ready" ||
-    value === "active"
-      ? "pass"
-      : value === "partial" || value === "runtime-projection"
-        ? "partial"
-        : "gap";
-  return `<span class="badge ${normalized}">${escapeHtml(value)}</span>`;
-}
-
 function renderOverview() {
   const dashboard = state.dashboard;
   const health = dashboard.health ?? { checks: [] };
@@ -373,7 +359,7 @@ function renderOverview() {
                   <small>${escapeHtml(check.detail ?? check.status)}</small>
                 </div>`,
               )
-              .join("") || '<div class="empty">Nenhum check disponível.</div>'
+              .join("") || emptyState("Nenhum check disponível.", "Os checks aparecerão quando a fonte operacional responder.", { compact: true })
           }
         </div>
       </section>
@@ -3004,14 +2990,10 @@ async function renderContent(contentId) {
 }
 
 function renderContractGap(view) {
-  content.innerHTML = `
-    <section class="card empty">
-      <strong>Contrato administrativo ainda não registrado</strong>
-      <span>
-        O Control Center não consulta tabelas deste domínio diretamente.
-        A integração de <b>${escapeHtml(view)}</b> será feita pelo adapter oficial do domínio.
-      </span>
-    </section>`;
+  content.innerHTML = partialState(
+    "Contrato administrativo ainda não registrado",
+    `O Control Center não consulta tabelas deste domínio diretamente. A integração de ${view} será feita pelo adapter oficial do domínio.`,
+  );
 }
 
 async function renderAudit() {
@@ -3238,7 +3220,7 @@ async function render(view, detail) {
   setHeading(view);
   delete content.dataset.renderedView;
   content.setAttribute("aria-busy", "true");
-  content.innerHTML = '<section class="card empty">Carregando…</section>';
+  content.innerHTML = loadingState();
 
   try {
     if (view === "overview") renderOverview();
@@ -3259,12 +3241,12 @@ async function render(view, detail) {
     else if (view === "support") await renderSupport();
     else renderContractGap(view);
   } catch (error) {
-    content.innerHTML = `
-      <section class="card empty">
-        <strong>Não foi possível carregar este módulo</strong>
-        <span>${escapeHtml(error.body?.error || error.message)}</span>
-      </section>`;
+    content.innerHTML = errorState(
+      "Não foi possível carregar este módulo",
+      error.body?.error || error.message || "Falha administrativa inesperada.",
+    );
   } finally {
+    enhanceControlCenterSurface(content);
     content.dataset.renderedView = view;
     content.setAttribute("aria-busy", "false");
   }
