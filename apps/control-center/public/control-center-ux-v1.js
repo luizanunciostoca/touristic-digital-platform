@@ -841,7 +841,6 @@ function searchKeyboardSupport() {
 
 async function upgradeCurrentView() {
   if (!app || app.hidden) return;
-  rebuildNavigation();
   const raw = (globalThis.location.hash || "#overview").replace(/^#/, "");
   const [view, detail] = raw.split(":", 2);
   pageContext(view || "overview");
@@ -855,27 +854,13 @@ async function upgradeCurrentView() {
 }
 
 function wireNavigation() {
-  nav?.addEventListener("click", (event) => {
-    const globalButton = event.target.closest("[data-ux-global]");
-    if (globalButton) {
-      event.preventDefault();
-      setDestination("global", false);
-      globalThis.location.hash = "#overview";
-      void upgradeCurrentView();
-      return;
-    }
-    const button = event.target.closest("[data-ux-href]");
-    if (!button) return;
-    event.preventDefault();
-    globalThis.location.hash = button.dataset.uxHref;
-  });
-
   destinationSelector?.addEventListener("change", () => {
     setDestination(destinationSelector.value);
   });
 
   globalScope?.addEventListener("click", () => {
     setDestination("global");
+    globalThis.location.hash = "#overview";
   });
 }
 
@@ -920,11 +905,7 @@ async function initialize() {
     wireNavigation();
     searchKeyboardSupport();
     applyTopbar();
-    rebuildNavigation();
     await upgradeCurrentView();
-
-    const navObserver = new MutationObserver(() => rebuildNavigation());
-    navObserver.observe(nav, { childList: true });
 
     const contentObserver = new MutationObserver(() => {
       const raw = (globalThis.location.hash || "#overview").replace(/^#/, "");
