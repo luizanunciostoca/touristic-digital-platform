@@ -1,6 +1,4 @@
 import type { AssistantLocale } from "@touristic/assistant";
-import type { MorroV1SearchCatalogItem } from "@touristic/search";
-
 import { resolveAssistantV1Photos } from "../assistant/assistant-v1-photo-catalog.js";
 import type { V1ExplorePlaceActionOption } from "./explore-location-actions-v1.js";
 import { getV1ExploreLabel } from "./explore-v1-i18n.js";
@@ -10,8 +8,15 @@ export type PlaceBottomSheetState = "peek" | "half" | "full";
 
 export type PlaceBottomSheetStatus = "loading" | "ready" | "error";
 
+export interface PlaceBottomSheetLocation {
+  readonly name: string;
+  readonly category: string;
+  readonly area?: string | null;
+  readonly tags?: readonly string[];
+}
+
 export interface PlaceBottomSheetPresentation {
-  readonly location: MorroV1SearchCatalogItem;
+  readonly location: PlaceBottomSheetLocation;
   readonly categoryLabel: string;
   readonly locale: AssistantLocale;
   readonly actions: readonly V1ExplorePlaceActionOption[];
@@ -147,7 +152,7 @@ function createStateButton(
   return button;
 }
 
-function normalizedTags(location: MorroV1SearchCatalogItem): readonly string[] {
+function normalizedTags(location: PlaceBottomSheetLocation): readonly string[] {
   return Object.freeze(
     Array.from(new Set(location.tags ?? []))
       .map((tag) => tag.trim())
