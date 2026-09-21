@@ -8,6 +8,7 @@ const axePath = require.resolve("/tmp/pw/node_modules/axe-core/axe.min.js");
 const origin = "http://127.0.0.1:4194";
 const password = "control center browser fixture";
 const evidencePath = "/tmp/control-center-accessibility-evidence.json";
+const authStatePath = "/tmp/control-center-a11y-auth-state.json";
 
 const viewports = [
   { width: 1440, height: 900, label: "1440x900" },
@@ -165,6 +166,7 @@ async function main() {
       },
     );
     if (login.status() !== 200) throw new Error("OWNER_LOGIN_FAILED");
+    await context.storageState({ path: authStatePath });
 
     stage = "page-create";
     page = await context.newPage();
