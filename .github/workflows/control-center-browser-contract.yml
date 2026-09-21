@@ -207,7 +207,9 @@ jobs:
                 }
               }
               await user360.getByRole('tab', { name: 'Relationships' }).click();
-              await page.locator('a[href="#businesses:toca-do-morcego"]').waitFor();
+              await page
+                .locator('[data-entity-panel="relationships"] a[href="#businesses:toca-do-morcego"]')
+                .waitFor();
               await user360.getByRole('tab', { name: 'Activity' }).click();
               await page.getByRole('button', { name: 'Revogar sessão' }).waitFor();
               evidence.user360Tabs = true;
