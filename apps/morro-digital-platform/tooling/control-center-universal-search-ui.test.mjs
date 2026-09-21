@@ -62,6 +62,7 @@ describe("Control Center universal search UI contract", () => {
     expect(source).toContain('event.key === "Escape"');
     expect(source).toContain("event.metaKey || event.ctrlKey");
     expect(source).toContain("new AbortController()");
+    expect(source).toContain("cancelPendingSearch");
     expect(source).toContain("debounceMs = 240");
     expect(source).toContain('setAttribute("aria-activedescendant"');
     expect(source).toContain('setAttribute("aria-selected"');
