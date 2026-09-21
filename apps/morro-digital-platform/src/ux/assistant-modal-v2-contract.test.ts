@@ -93,7 +93,7 @@ describe("Assistant Modal V2 contract", () => {
     const assistant =
       "/apps/morro-digital-platform/public/assistant-v2.css";
     const legacy =
-      "/apps/morro-digital-platform/public/legacy/checkpoint.css";
+      "/apps/morro-digital-platform/public/legacy/legacy.bundle.css";
 
     expect(html).toContain(assistant);
     expect(html.indexOf(assistant)).toBeGreaterThan(html.indexOf(legacy));
