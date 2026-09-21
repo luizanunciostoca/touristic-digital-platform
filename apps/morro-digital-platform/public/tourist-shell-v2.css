@@ -372,6 +372,7 @@ body[data-md-mode="assistant"] #weather-widget.md-weather-control {
 }
 
 #assistant-input-area.md-assistant-composer #assistantInput {
+  flex: 1 1 auto;
   min-width: 0;
   min-height: var(--md-touch-target-min);
   height: var(--md-touch-target-min);
