@@ -110,6 +110,7 @@ jobs:
                   routeLayer: Boolean(map?.getLayer?.('tour-route-layer')),
                   outline: Boolean(map?.getLayer?.('tour-route-outline')),
                   assistantVisible: Boolean(document.querySelector('#assistant-messages:not(.hidden)')),
+                  composerVisible: Boolean(document.getElementById('assistant-input-area')?.getBoundingClientRect().width),
                 };
               });
               if (
@@ -118,13 +119,14 @@ jobs:
                 !state.routeSource &&
                 !state.routeLayer &&
                 !state.outline &&
-                state.assistantVisible
+                !state.assistantVisible &&
+                state.composerVisible
               ) {
                 return state;
               }
               await page.waitForTimeout(100);
             }
-            throw new Error('Mapbox Home did not reach V1 idle + visible assistant state before timeout.');
+            throw new Error('Mapbox Home did not reach V2 idle + persistent composer state before timeout.');
           }
 
           async function dispatchTour(page, tourId) {
@@ -197,6 +199,7 @@ jobs:
                 },
                 forcedColors: matchMedia('(forced-colors: active)').matches,
                 assistantVisible: Boolean(document.querySelector('#assistant-messages:not(.hidden)')),
+                composerVisible: Boolean(document.getElementById('assistant-input-area')?.getBoundingClientRect().width),
                 assistantOptions: document.querySelectorAll('.assistant-option-btn').length,
               };
             });
@@ -219,7 +222,7 @@ jobs:
             if (JSON.stringify(state.outline) !== JSON.stringify(expected.outline) || JSON.stringify(state.route) !== JSON.stringify(expected.route)) {
               throw new Error(`V1 route visual contract diverged for ${viewportName}: ${JSON.stringify(state)}`);
             }
-            if (state.forcedColors !== forcedColors || !state.assistantVisible || state.assistantOptions !== 10) {
+            if (state.forcedColors !== forcedColors || state.assistantVisible || !state.composerVisible || state.assistantOptions !== 10) {
               throw new Error(`Accessibility state diverged for ${viewportName}: ${JSON.stringify(state)}`);
             }
           }
@@ -253,24 +256,10 @@ jobs:
             await dispatchTour(page, 'volta-a-ilha');
             await waitTourReady(page);
 
-            await page.locator('#assistant-messages:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
+            await page.locator('#assistant-input-area').waitFor({ state: 'visible', timeout: 5000 });
             const state = await readContract(page);
 
-            let focusOrder = null;
-            if (!forcedColors) {
-              await page.locator('#assistant-messages .minimize-button').focus();
-              focusOrder = ['minimize-button'];
-              for (let i = 0; i < 4; i += 1) {
-                await page.keyboard.press('Tab');
-                focusOrder.push(await page.evaluate(() => {
-                  const element = document.activeElement;
-                  if (!element) return 'none';
-                  if (element.classList?.contains('minimize-button')) return 'minimize-button';
-                  if (element.classList?.contains('assistant-option-btn')) return 'assistant-option';
-                  return `${element.tagName?.toLowerCase?.() || 'unknown'}#${element.id || ''}.${element.className || ''}`;
-                }));
-              }
-            }
+            const focusOrder = null;
 
             const suffix = forcedColors ? 'forced-colors' : 'normal';
             await page.screenshot({ path: `${outputDir}/${name}-${suffix}.png`, fullPage: false, animations: 'disabled' });
@@ -278,13 +267,6 @@ jobs:
             writeFileSync(`${outputDir}/${name}-${suffix}.json`, JSON.stringify(result, null, 2));
 
             assertContract(state, name, forcedColors);
-
-            if (!forcedColors) {
-              const expectedFocus = ['minimize-button', 'assistant-option', 'assistant-option', 'assistant-option', 'assistant-option'];
-              if (JSON.stringify(focusOrder) !== JSON.stringify(expectedFocus)) {
-                throw new Error(`Opened assistant keyboard trace diverged for ${name}: ${JSON.stringify(focusOrder)}`);
-              }
-            }
 
             if (pageErrors.length || mapboxHttpErrors.length) {
               throw new Error(`Browser errors for ${name}: ${JSON.stringify({ pageErrors, mapboxHttpErrors })}`);
@@ -312,7 +294,7 @@ jobs:
               mapboxGlJs: '3.12.0',
               style: 'mapbox://styles/mapbox/streets-v12',
               homeLifecycle: 'Home starts centered and idle with zero tour markers; a route appears only after explicit selection.',
-              assistantLifecycle: 'The audited V1 starts with the Assistant welcome visible; the contract preserves that state while validating its modal focus order.',
+              assistantLifecycle: 'The V2 Home starts with the contextual Assistant layer hidden while the persistent composer remains visible.',
               evidence,
             }, null, 2));
           })().catch((error) => {
