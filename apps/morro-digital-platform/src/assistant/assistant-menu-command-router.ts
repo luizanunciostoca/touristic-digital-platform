@@ -658,6 +658,16 @@ export function resolveAssistantMenuCommand(
   document: Document,
   message: string,
 ): ExploreLocationsCommand | null {
+  const normalizedMessage = normalizeAssistantMenuCommand(message);
+  if (
+    (normalizedMessage === "voltar" ||
+      normalizedMessage === "back" ||
+      normalizedMessage === "volver") &&
+    document.querySelector('#place-bottom-sheet[aria-hidden="false"]')
+  ) {
+    return Object.freeze({ type: "back_from_place" });
+  }
+
   const visible = commandForVisibleOption(document, message);
   if (visible) return visible;
 
