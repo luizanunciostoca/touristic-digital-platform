@@ -10,19 +10,6 @@
 
 @layer reset, vendor, legacy, tokens, base, components, features, utilities, overrides;
 
-@layer tokens {
-  :root {
-    --md-outdoor-surface: rgba(255, 255, 255, 0.96);
-    --md-outdoor-surface-strong: #ffffff;
-    --md-outdoor-text: #0f172a;
-    --md-outdoor-border: rgba(255, 255, 255, 0.78);
-    --md-outdoor-shadow: 0 12px 32px rgba(15, 23, 42, 0.18);
-    --md-sheet-peek-height: min(30dvh, 16rem);
-    --md-sheet-half-height: min(55dvh, 32rem);
-    --md-sheet-full-height: 90dvh;
-  }
-}
-
 @layer base {
   [data-md-mode] {
     --md-active-mode: discover;
@@ -88,7 +75,7 @@
     width: 2.75rem;
     height: 0.25rem;
     margin: var(--md-space-2, 0.5rem) auto;
-    border-radius: var(--md-radius-pill, 999px);
+    border-radius: var(--md-radius-pill, 999rem);
     background: color-mix(in srgb, currentColor 25%, transparent);
   }
 }
@@ -144,6 +131,10 @@
  * selectors are migrated into the layered runtime bundle.
  */
 
+body[data-md-mode] {
+  font-family: var(--md-font-family-sans);
+}
+
 .control-button,
 .submenu-item {
   transition-property:
@@ -160,10 +151,6 @@
 }
 
 .quick-actions .action-button.primary.mood-button {
-  transform-origin: left center;
-}
-
-.quick-actions .mood-button {
   transform-origin: left center;
 }
 
@@ -323,7 +310,7 @@ body[data-md-mode="navigation"] #minimize-navigation-btn:hover {
 }
 
 body[data-md-mode="navigation"] #minimize-navigation-btn:active {
-  transform: scale(0.96);
+  transform: scale(var(--md-motion-scale-pressed-strong));
 }
 
 body[data-md-mode="navigation"] #instruction-banner .instruction-secondary {
@@ -439,7 +426,7 @@ body[data-md-mode="navigation"] .end-navigation-btn:hover {
 }
 
 body[data-md-mode="navigation"] .end-navigation-btn:active {
-  transform: scale(0.98) !important;
+  transform: scale(var(--md-motion-scale-pressed)) !important;
 }
 
 /* Outdoor readability + one-hand ergonomics for walking-first flows. */
