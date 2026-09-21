@@ -30,7 +30,10 @@ describe("Control Center real-data financial aggregate", () => {
         checkoutAccess: {
           async listByDestinationId(destinationId) {
             calls.access += 1;
-            return { records: records.get(destinationId) ?? [], nextCursor: null };
+            return {
+              records: records.get(destinationId) ?? [],
+              nextCursor: null,
+            };
           },
         },
         payments: {
@@ -93,9 +96,7 @@ describe("Control Center real-data financial aggregate", () => {
       status: "READY",
       revenue: {
         status: "READY",
-        currencies: [
-          { currency: "BRL", minorUnits: "4000", paymentCount: 40 },
-        ],
+        currencies: [{ currency: "BRL", minorUnits: "4000", paymentCount: 40 }],
         scannedPayments: 40,
       },
       financialAttention: {
@@ -108,9 +109,7 @@ describe("Control Center real-data financial aggregate", () => {
       status: "READY",
       revenue: {
         status: "READY",
-        currencies: [
-          { currency: "BRL", minorUnits: "9000", paymentCount: 45 },
-        ],
+        currencies: [{ currency: "BRL", minorUnits: "9000", paymentCount: 45 }],
         scannedPayments: 45,
       },
       financialAttention: {

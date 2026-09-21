@@ -168,10 +168,7 @@ export class MySqlPaymentRepository implements PaymentRepositoryPort {
     }
 
     const placeholders = paymentIds.map(() => "?").join(", ");
-    const clauses = [
-      `payment_id IN (${placeholders})`,
-      "status = 'confirmed'",
-    ];
+    const clauses = [`payment_id IN (${placeholders})`, "status = 'confirmed'"];
     const parameters: Array<string | Date> = [...paymentIds];
     if (from) {
       clauses.push("confirmed_at >= ?");

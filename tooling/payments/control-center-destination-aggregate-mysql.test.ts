@@ -55,7 +55,9 @@ describeMySql.sequential(
       await financialPool.query(
         "DELETE FROM financial_reconciliation_run_findings",
       );
-      await financialPool.query("DELETE FROM financial_reconciliation_findings");
+      await financialPool.query(
+        "DELETE FROM financial_reconciliation_findings",
+      );
       await financialPool.query("DELETE FROM financial_reconciliation_runs");
       await financialPool.query("DELETE FROM financial_refund_requests");
       await financialPool.query("DELETE FROM financial_payment_results");
@@ -182,10 +184,9 @@ describeMySql.sequential(
         financialPool,
       );
 
-      const morroPage = await access.listByDestinationId(
-        "morro-de-sao-paulo",
-        { limit: 250 },
-      );
+      const morroPage = await access.listByDestinationId("morro-de-sao-paulo", {
+        limit: 250,
+      });
       const itacarePage = await access.listByDestinationId("itacare", {
         limit: 250,
       });
@@ -197,24 +198,30 @@ describeMySql.sequential(
         ),
       ).toBe(true);
       expect(
-        itacarePage.records.every((record) => record.destinationId === "itacare"),
+        itacarePage.records.every(
+          (record) => record.destinationId === "itacare",
+        ),
       ).toBe(true);
 
       const morroIds = morroPage.records.map((record) => record.paymentId);
       const itacareIds = itacarePage.records.map((record) => record.paymentId);
-      await expect(payments.aggregateConfirmedByIds(morroIds)).resolves.toEqual([
-        { currency: "BRL", minorUnits: "4000", paymentCount: 40 },
-      ]);
+      await expect(payments.aggregateConfirmedByIds(morroIds)).resolves.toEqual(
+        [{ currency: "BRL", minorUnits: "4000", paymentCount: 40 }],
+      );
       await expect(
         payments.aggregateConfirmedByIds(itacareIds),
       ).resolves.toEqual([
         { currency: "BRL", minorUnits: "3500", paymentCount: 35 },
       ]);
 
-      const morroReview =
-        await reconciliation.listPendingReviewByPaymentIds(morroIds, 100);
-      const itacareReview =
-        await reconciliation.listPendingReviewByPaymentIds(itacareIds, 100);
+      const morroReview = await reconciliation.listPendingReviewByPaymentIds(
+        morroIds,
+        100,
+      );
+      const itacareReview = await reconciliation.listPendingReviewByPaymentIds(
+        itacareIds,
+        100,
+      );
       expect(morroReview.total).toBe(1);
       expect(morroReview.findings[0]?.paymentId).toBe("pay_aggregate_0001");
       expect(itacareReview).toEqual({ findings: [], total: 0 });

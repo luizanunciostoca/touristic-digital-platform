@@ -1197,7 +1197,10 @@ export function createPaymentsApi({
               const currency = String(row?.currency ?? "");
               const amount = BigInt(String(row?.minorUnits ?? "0"));
               const count = Number(row?.paymentCount ?? 0);
-              if (!/^[A-Z]{3}$/u.test(currency) || !Number.isSafeInteger(count)) {
+              if (
+                !/^[A-Z]{3}$/u.test(currency) ||
+                !Number.isSafeInteger(count)
+              ) {
                 throw new Error("PAYMENTS_ADMIN_REVENUE_AGGREGATE_INVALID");
               }
               const current = currencies.get(currency) ?? {
@@ -1264,8 +1267,7 @@ export function createPaymentsApi({
           count: truncated ? null : knownFindingCount,
           knownCount: knownFindingCount,
           items: Object.freeze(findings),
-          itemsTruncated:
-            knownFindingCount > findings.length || truncated,
+          itemsTruncated: knownFindingCount > findings.length || truncated,
           complete: !truncated,
         });
         destinations.push(

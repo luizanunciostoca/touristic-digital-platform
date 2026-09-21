@@ -32,10 +32,9 @@ describe("MySqlCheckoutAccessRepository admin destination read", () => {
       execute,
     } as unknown as Pool);
 
-    const page = await repository.listByDestinationId(
-      "morro-de-sao-paulo",
-      { limit: 1 },
-    );
+    const page = await repository.listByDestinationId("morro-de-sao-paulo", {
+      limit: 1,
+    });
 
     expect(page.records).toHaveLength(1);
     expect(page.records[0]).toMatchObject({
@@ -47,14 +46,14 @@ describe("MySqlCheckoutAccessRepository admin destination read", () => {
     expect(execute).toHaveBeenCalledTimes(1);
     expect(execute.mock.calls[0]?.[0]).toContain("WHERE destination_id = ?");
     expect(execute.mock.calls[0]?.[0]).toContain("ORDER BY order_id");
-    expect(execute.mock.calls[0]?.[1]).toEqual([
-      "morro-de-sao-paulo",
-      2,
-    ]);
+    expect(execute.mock.calls[0]?.[1]).toEqual(["morro-de-sao-paulo", 2]);
   });
 
   it("uses a bounded cursor and rejects labels instead of inferring a destination", async () => {
-    const execute = vi.fn(async (_sql: string, _parameters?: unknown[]) => [[], []]);
+    const execute = vi.fn(async (_sql: string, _parameters?: unknown[]) => [
+      [],
+      [],
+    ]);
     const repository = new MySqlCheckoutAccessRepository({
       execute,
     } as unknown as Pool);

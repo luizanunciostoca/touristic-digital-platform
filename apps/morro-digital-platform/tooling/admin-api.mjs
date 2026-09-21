@@ -2113,7 +2113,10 @@ export function createAdminApi({
     }
 
     const ownerDestinations = await destinationOwner.listOwnerDestinations();
-    if (ownerDestinations?.status !== "found" || !Array.isArray(ownerDestinations.data)) {
+    if (
+      ownerDestinations?.status !== "found" ||
+      !Array.isArray(ownerDestinations.data)
+    ) {
       return Object.freeze({
         attention: Object.freeze({
           status: "UNAVAILABLE",
@@ -2209,15 +2212,15 @@ export function createAdminApi({
               items: Object.freeze(healthItems),
               reason: null,
             })
-          : notSupportedSource("MULTI_DESTINATION_INCIDENT_OWNER_NOT_AVAILABLE");
+          : notSupportedSource(
+              "MULTI_DESTINATION_INCIDENT_OWNER_NOT_AVAILABLE",
+            );
       const sources = Object.freeze({
         businessApprovals: notSupportedSource(
           "BUSINESS_APPROVAL_OWNER_NOT_AVAILABLE",
         ),
         financialReconciliation: financialAttention,
-        refundReview: notSupportedSource(
-          "REFUND_REVIEW_OWNER_NOT_AVAILABLE",
-        ),
+        refundReview: notSupportedSource("REFUND_REVIEW_OWNER_NOT_AVAILABLE"),
         supportRequests: notSupportedSource(
           "SUPPORT_REQUEST_OWNER_NOT_AVAILABLE",
         ),
@@ -2294,18 +2297,17 @@ export function createAdminApi({
             (item) => item.alerts.sources.financialReconciliation.status,
           ),
         ),
-        count:
-          summaryItems.every(
-            (item) =>
-              item.alerts.sources.financialReconciliation.status === "READY",
-          )
-            ? summaryItems.reduce(
-                (total, item) =>
-                  total +
-                  (item.alerts.sources.financialReconciliation.count ?? 0),
-                0,
-              )
-            : null,
+        count: summaryItems.every(
+          (item) =>
+            item.alerts.sources.financialReconciliation.status === "READY",
+        )
+          ? summaryItems.reduce(
+              (total, item) =>
+                total +
+                (item.alerts.sources.financialReconciliation.count ?? 0),
+              0,
+            )
+          : null,
         knownCount: summaryItems.reduce(
           (total, item) =>
             total +
@@ -2321,16 +2323,15 @@ export function createAdminApi({
         status: combineAvailability(
           summaryItems.map((item) => item.alerts.sources.incidents.status),
         ),
-        count:
-          summaryItems.every(
-            (item) => item.alerts.sources.incidents.status === "READY",
-          )
-            ? summaryItems.reduce(
-                (total, item) =>
-                  total + (item.alerts.sources.incidents.count ?? 0),
-                0,
-              )
-            : null,
+        count: summaryItems.every(
+          (item) => item.alerts.sources.incidents.status === "READY",
+        )
+          ? summaryItems.reduce(
+              (total, item) =>
+                total + (item.alerts.sources.incidents.count ?? 0),
+              0,
+            )
+          : null,
         knownCount: summaryItems.reduce(
           (total, item) =>
             total + (item.alerts.sources.incidents.knownCount ?? 0),

@@ -153,7 +153,12 @@ function financialDestination(
   });
 }
 
-async function getDashboard({ url = "/api/admin/v1/dashboard", domains = {}, checks = [], session } = {}) {
+async function getDashboard({
+  url = "/api/admin/v1/dashboard",
+  domains = {},
+  checks = [],
+  session,
+} = {}) {
   const api = createAdminApi({
     authApi: authApi(session),
     platformOperations: platformOperations(checks),
@@ -243,9 +248,7 @@ describe("Control Center real-data dashboard contract", () => {
     );
     expect(byId.get("morro-de-sao-paulo").revenue).toMatchObject({
       status: "READY",
-      currencies: [
-        { currency: "BRL", minorUnits: "12500", paymentCount: 5 },
-      ],
+      currencies: [{ currency: "BRL", minorUnits: "12500", paymentCount: 5 }],
     });
     expect(byId.get("morro-de-sao-paulo").alerts).toMatchObject({
       status: "PARTIAL",
@@ -306,9 +309,12 @@ describe("Control Center real-data dashboard contract", () => {
       "itacare",
     );
     expect(
-      scoped.payload.destinationSummary.items[0].alerts.sources.incidents.status,
+      scoped.payload.destinationSummary.items[0].alerts.sources.incidents
+        .status,
     ).toBe("NOT_SUPPORTED");
-    expect(scoped.payload.destinationSummary.items[0].alerts.knownCount).toBe(0);
+    expect(scoped.payload.destinationSummary.items[0].alerts.knownCount).toBe(
+      0,
+    );
   });
 
   it("preserves UNAVAILABLE instead of manufacturing a zero when destination authority is down", async () => {

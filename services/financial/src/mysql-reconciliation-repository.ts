@@ -210,11 +210,7 @@ export class MySqlFinancialReconciliationRepository implements FinancialReconcil
     if (!Array.isArray(paymentIdsInput) || paymentIdsInput.length > 500) {
       throw new Error("FINANCIAL_ADMIN_PAYMENT_BATCH_INVALID");
     }
-    if (
-      !Number.isInteger(limitInput) ||
-      limitInput < 1 ||
-      limitInput > 100
-    ) {
+    if (!Number.isInteger(limitInput) || limitInput < 1 || limitInput > 100) {
       throw new Error("FINANCIAL_ADMIN_FINDING_LIMIT_INVALID");
     }
     const paymentIds = [
