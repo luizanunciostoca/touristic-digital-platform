@@ -31,10 +31,21 @@ describe("Assistant Modal V2 contract", () => {
       'class="assistant-options md-assistant-options"',
       'role="group"',
       'class="assistant-input-area md-assistant-composer"',
-      'aria-haspopup="dialog"',
     ]) {
       expect(shell, `missing ${contract}`).toContain(contract);
     }
+
+    const shellUi = await readRepository(
+      "apps/morro-digital-platform/src/assistant/assistant-shell-ui.ts",
+    );
+    expect(shellUi).toContain(
+      'input?.setAttribute("aria-controls", "assistant-messages")',
+    );
+    expect(shellUi).toContain(
+      'input?.setAttribute("aria-expanded", String(initiallyVisible))',
+    );
+    expect(shell).not.toContain("quick-actions");
+    expect(shell).not.toContain("mood-button");
   });
 
   it("uses semantic Design System V2 layers, motion and accessibility media contracts", async () => {

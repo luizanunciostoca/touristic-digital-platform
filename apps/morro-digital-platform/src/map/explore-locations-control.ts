@@ -3,6 +3,7 @@ import {
   normalizeAssistantVoiceLanguage,
   type AssistantLocale,
 } from "@touristic/assistant";
+import { requestAssistantOpen } from "../assistant/assistant-shell-ui.js";
 import type {
   GeospatialEngine,
   MapboxGlMapLike,
@@ -214,7 +215,7 @@ function removeAssistantFlowResults(document: Document): void {
 function ensureAssistantVisible(document: Document): void {
   const assistant = document.getElementById("assistant-messages");
   if (!assistant?.classList.contains("hidden")) return;
-  document.querySelector<HTMLButtonElement>(".mood-button")?.click();
+  requestAssistantOpen(document);
 }
 
 function categoryBounds(

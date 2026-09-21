@@ -41,6 +41,9 @@ function createElement(initialClasses: string[] = []) {
     removeEventListener(type: string) {
       listeners.delete(type);
     },
+    dispatch(type: string) {
+      listeners.get(type)?.({ type } as Event);
+    },
     querySelector(selector: string) {
       void selector;
       return null as unknown;
@@ -58,7 +61,7 @@ function fixture() {
   const assistant = createElement(["assistant-modal", "hidden"]);
   assistant.querySelector = (selector: string) =>
     selector === ".minimize-button" ? minimize : null;
-  const quickAction = createElement();
+  const composer = createElement();
   const input = createElement();
   const carousel = createElement();
   const followUp = createElement();
@@ -69,18 +72,16 @@ function fixture() {
   const document = {
     body,
     documentElement: { lang: "pt-BR" },
-    activeElement: quickAction,
+    activeElement: input,
     defaultView: null,
     getElementById(id: string) {
       if (id === "assistant-messages") return assistant;
       if (id === "assistantInput") return input;
+      if (id === "assistant-input-area") return composer;
       if (id === "assistant-dialog-status") return status;
       return null;
     },
     querySelector(selector: string) {
-      if (selector === ".quick-actions .action-button.primary") {
-        return quickAction;
-      }
       if (selector === ".carousel-container") return carousel;
       if (selector === ".carousel-follow-up") return followUp;
       return null;
@@ -96,7 +97,8 @@ function fixture() {
   return {
     document,
     assistant,
-    quickAction,
+    composer,
+    input,
     minimize,
     carousel,
     followUp,
@@ -119,11 +121,11 @@ describe("assistant shell UI", () => {
 
     expect(shell.isVisible()).toBe(false);
     expect(view.assistant.attributes.get("aria-hidden")).toBe("true");
-    expect(view.quickAction.attributes.get("aria-controls")).toBe(
+    expect(view.input.attributes.get("aria-controls")).toBe(
       "assistant-messages",
     );
-    expect(view.quickAction.attributes.get("aria-expanded")).toBe("false");
-    expect(view.quickAction.attributes.get("data-assistant-shell-ready")).toBe(
+    expect(view.input.attributes.get("aria-expanded")).toBe("false");
+    expect(view.composer.attributes.get("data-assistant-shell-ready")).toBe(
       "true",
     );
   });
@@ -135,17 +137,26 @@ describe("assistant shell UI", () => {
     expect(shell.show()).toBe(true);
     expect(shell.isVisible()).toBe(true);
     expect(view.body.classList.contains("assistant-modal-open")).toBe(true);
-    expect(view.quickAction.classList.contains("active")).toBe(true);
-    expect(view.quickAction.attributes.get("aria-expanded")).toBe("true");
+    expect(view.input.attributes.get("aria-expanded")).toBe("true");
     expect(view.assistant.attributes.get("aria-hidden")).toBe("false");
 
     expect(shell.hide()).toBe(true);
     expect(shell.isVisible()).toBe(false);
     expect(view.body.classList.contains("assistant-modal-open")).toBe(false);
-    expect(view.quickAction.classList.contains("active")).toBe(false);
-    expect(view.quickAction.attributes.get("aria-expanded")).toBe("false");
+    expect(view.input.attributes.get("aria-expanded")).toBe("false");
     expect(view.carousel.classList.contains("hidden")).toBe(true);
     expect(view.followUp.classList.contains("hidden")).toBe(true);
+  });
+
+  it("opens the Assistant from the canonical composer instead of a floating quick action", () => {
+    const view = fixture();
+    const shell = installAssistantShellUi({ document: view.document });
+
+    view.composer.dispatch("focusin");
+
+    expect(shell.isVisible()).toBe(true);
+    expect(view.body.classList.contains("assistant-modal-open")).toBe(true);
+    expect(view.input.attributes.get("aria-expanded")).toBe("true");
   });
 
   it("publishes loading and error state through the accessible shell contract", () => {
@@ -174,7 +185,7 @@ describe("assistant shell UI", () => {
 
     expect(shell.hide()).toBe(false);
     expect(shell.isVisible()).toBe(true);
-    expect(view.quickAction.attributes.get("aria-expanded")).toBe("true");
+    expect(view.input.attributes.get("aria-expanded")).toBe("true");
   });
 
   it("closes a visible assistant with Escape outside the tutorial", () => {
@@ -193,7 +204,7 @@ describe("assistant shell UI", () => {
 
     shell.destroy();
 
-    expect(view.quickAction.attributes.has("data-assistant-shell-ready")).toBe(
+    expect(view.composer.attributes.has("data-assistant-shell-ready")).toBe(
       false,
     );
   });

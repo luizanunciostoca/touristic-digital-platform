@@ -373,7 +373,6 @@ jobs:
                     bodyWidth: document.body.scrollWidth,
                     weather: rect('#weather-widget'),
                     globe: rect('#toggle-globe-view'),
-                    quickAction: rect('.quick-actions .mood-button'),
                     composer: rect('#assistant-input-area'),
                     sendTarget: target('#sendButton'),
                     voiceTarget: target('#voiceButton'),
@@ -399,7 +398,6 @@ jobs:
                 };
                 visibleRectInside(state.weather, 'weather');
                 visibleRectInside(state.globe, 'globe');
-                visibleRectInside(state.quickAction, 'assistant trigger');
                 visibleRectInside(state.composer, 'assistant composer');
 
                 if (

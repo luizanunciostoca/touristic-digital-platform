@@ -100,9 +100,9 @@ jobs:
           }
 
           async function openAssistant(page) {
-            const trigger = page.locator('.quick-actions .action-button.primary');
-            await trigger.waitFor({ state: 'visible', timeout: 10000 });
-            await trigger.click();
+            const input = page.locator('#assistantInput');
+            await input.waitFor({ state: 'visible', timeout: 10000 });
+            await input.focus();
             await page.locator('#assistant-messages:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
           }
 

@@ -172,7 +172,7 @@ jobs:
               await page.locator('#map[data-map-state="ready"][data-map-mode="real"]').waitFor({ state: 'attached', timeout: 30000 });
               await page.locator('body[data-public-onboarding-settled="true"]').waitFor({ state: 'attached', timeout: 5000 });
               const assistant = page.locator('#assistant-messages');
-              if (!(await assistant.isVisible())) await page.locator('.mood-button').click();
+              if (!(await assistant.isVisible())) await page.locator('#assistantInput').focus();
               await assistant.waitFor({ state: 'visible', timeout: 5000 });
 
               await page.locator('#assistant-category-beaches').click();

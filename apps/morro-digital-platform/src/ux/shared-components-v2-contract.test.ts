@@ -36,7 +36,8 @@ describe("UX Design V2 shared component adoption", () => {
     );
 
     expect(shell).toContain("map-control-button md-icon-button");
-    expect(shell).toContain("mood-button md-icon-button");
+    expect(shell).not.toContain("quick-actions");
+    expect(shell).not.toContain("mood-button");
     expect(shell).toContain("minimize-button md-icon-button");
     expect(shell).toContain(
       "end-navigation-btn md-button md-button--destructive",

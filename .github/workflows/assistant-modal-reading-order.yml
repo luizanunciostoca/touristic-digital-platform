@@ -74,14 +74,13 @@ jobs:
 
               await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded', timeout: 30000 });
               await page.locator('#map[data-map-state="ready"]').waitFor({ state: 'attached', timeout: 20000 });
-              const trigger = page.locator('.mood-button[data-assistant-shell-ready="true"]');
+              const trigger = page.locator('#assistantInput');
               await trigger.waitFor({ state: 'visible', timeout: 15000 });
               if (await page.locator('#assistant-messages:not(.hidden)').isVisible()) {
                 await page.keyboard.press('Escape');
                 await page.locator('#assistant-messages.hidden').waitFor({ state: 'attached', timeout: 5000 });
               }
               await trigger.focus();
-              await trigger.click();
               await page.locator('#assistant-messages:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
               await page.waitForTimeout(150);
 
@@ -144,10 +143,10 @@ jobs:
                 timeout: 5000,
               });
               const focusRestored = await page.evaluate(() =>
-                document.activeElement?.classList.contains('mood-button') ?? false,
+                document.activeElement?.id === 'assistantInput',
               );
               if (!focusRestored) {
-                throw new Error('Assistant Escape did not restore focus to the trigger');
+                throw new Error('Assistant Escape did not restore focus to the composer input');
               }
 
               const assistant = page.locator('#assistant-messages');

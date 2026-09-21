@@ -119,13 +119,11 @@ jobs:
               });
 
               const assistant = page.locator('#assistant-messages');
-              const quickAction = page.locator('.mood-button[data-assistant-shell-ready="true"]');
-              await quickAction.waitFor({ state: 'visible', timeout: 5000 });
-              if (!(await assistant.isVisible())) await quickAction.click();
-
               const input = page.locator('#assistantInput');
               const send = page.locator('#sendButton');
               await input.waitFor({ state: 'visible', timeout: 5000 });
+              if (!(await assistant.isVisible())) await input.focus();
+              await assistant.waitFor({ state: 'visible', timeout: 5000 });
 
               async function submit(text, keyboard = false) {
                 await input.fill(text);
