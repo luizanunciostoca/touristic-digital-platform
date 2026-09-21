@@ -1,7 +1,6 @@
 export default {
   ignoreFiles: [
     "**/public/legacy/**",
-    "**/public/styles.css",
     "**/public/v1-*.css",
     "**/public/business-*.css",
     "**/public/privacy-preferences.css",
