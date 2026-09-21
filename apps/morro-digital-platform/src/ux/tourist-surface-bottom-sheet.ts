@@ -147,10 +147,12 @@ export function installTouristSurfaceBottomSheet(input: {
     TouristSurfaceBottomSheetSurface,
     TouristSurfaceBottomSheetState
   >(
-    (Object.entries(INITIAL_STATE) as [
-      TouristSurfaceBottomSheetSurface,
-      TouristSurfaceBottomSheetState,
-    ][]).map(([surface, state]) => [surface, state]),
+    (
+      Object.entries(INITIAL_STATE) as [
+        TouristSurfaceBottomSheetSurface,
+        TouristSurfaceBottomSheetState,
+      ][]
+    ).map(([surface, state]) => [surface, state]),
   );
 
   const handle = input.document.createElement("button");

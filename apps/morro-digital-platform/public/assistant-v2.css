@@ -55,7 +55,6 @@
   width: 72%;
 }
 
-
 #assistant-messages.md-assistant-dialog .assistant-option-btn {
   min-height: var(--md-touch-target-min);
   border-radius: var(--md-radius-md);
@@ -201,7 +200,8 @@
     backdrop-filter: none;
   }
 
-  #assistant-input-area.md-assistant-composer #voiceButton[aria-pressed="true"] {
+  #assistant-input-area.md-assistant-composer
+    #voiceButton[aria-pressed="true"] {
     outline-color: Highlight;
   }
 }
