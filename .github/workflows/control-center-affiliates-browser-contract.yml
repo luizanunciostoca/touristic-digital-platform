@@ -1,0 +1,358 @@
+name: Control Center Affiliates Browser Contract
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
+    paths:
+      - ".github/workflows/control-center-affiliates-browser-contract.yml"
+      - "apps/control-center/**"
+      - "apps/morro-digital-platform/package.json"
+      - "apps/morro-digital-platform/tooling/admin-api.mjs"
+      - "apps/morro-digital-platform/tooling/admin-domain-adapters.mjs"
+      - "apps/morro-digital-platform/tooling/affiliate-admin-runtime.mjs"
+      - "apps/morro-digital-platform/tooling/auth-api.mjs"
+      - "apps/morro-digital-platform/tooling/dev-server.mjs"
+      - "packages/affiliates/**"
+      - "packages/auth/**"
+      - "services/affiliates/**"
+      - "services/auth/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/control-center-affiliates-browser-contract.yml"
+      - "apps/control-center/**"
+      - "apps/morro-digital-platform/package.json"
+      - "apps/morro-digital-platform/tooling/admin-api.mjs"
+      - "apps/morro-digital-platform/tooling/admin-domain-adapters.mjs"
+      - "apps/morro-digital-platform/tooling/affiliate-admin-runtime.mjs"
+      - "apps/morro-digital-platform/tooling/auth-api.mjs"
+      - "apps/morro-digital-platform/tooling/dev-server.mjs"
+      - "packages/affiliates/**"
+      - "packages/auth/**"
+      - "services/affiliates/**"
+      - "services/auth/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: control-center-affiliates-browser-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  affiliates-browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+          MYSQL_DATABASE: control_center_affiliates_browser
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install deterministic Chromium
+        run: |
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+      - name: Build Control Center Affiliates runtime graph
+        run: pnpm -w build
+      - name: Start authenticated Control Center with Affiliates owner runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          PORT=4197
+          DB_URL="mysql://root@127.0.0.1:3306/control_center_affiliates_browser"
+          PASSWORD="control center affiliates browser fixture"
+          AUTH_SECRET=$(printf 'a%.0s' {1..64})
+          SUPPORT_SECRET=$(printf 'b%.0s' {1..64})
+          STEP_UP_SECRET=$(printf 'c%.0s' {1..64})
+          OWNER_HASH=$(node --input-type=module -e "import('./services/auth/dist/credentials.js').then(m => console.log(m.hashPassword(process.argv[1], Buffer.alloc(16, 41))))" "$PASSWORD")
+          BUSINESS_HASH=$(node --input-type=module -e "import('./services/auth/dist/credentials.js').then(m => console.log(m.hashPassword(process.argv[1], Buffer.alloc(16, 42))))" "$PASSWORD")
+          USERS=$(node -e 'console.log(JSON.stringify([
+            {id:"platform-owner-affiliates",email:"platform-owner-affiliates@example.com",passwordHash:process.argv[1],role:"PLATFORM_OWNER",businessIds:[]},
+            {id:"business-owner-affiliates",email:"business-owner-affiliates@example.com",passwordHash:process.argv[2],role:"BUSINESS_OWNER",businessIds:["toca-do-morcego"]}
+          ]))' "$OWNER_HASH" "$BUSINESS_HASH")
+          env \
+            NODE_ENV=development \
+            DASHBOARD_AUTH_SECRET="$AUTH_SECRET" \
+            DASHBOARD_USERS_JSON="$USERS" \
+            CONTROL_CENTER_SUPPORT_SECRET="$SUPPORT_SECRET" \
+            CONTROL_CENTER_STEP_UP_SECRET="$STEP_UP_SECRET" \
+            CONTROL_CENTER_AUDIT_DATABASE_URL="$DB_URL" \
+            CRM_DATABASE_URL="$DB_URL" \
+            AFFILIATES_DATABASE_URL="$DB_URL" \
+            PORT="$PORT" \
+            HOST="127.0.0.1" \
+            node apps/morro-digital-platform/tooling/dev-server.mjs \
+              >/tmp/control-center-affiliates-server.log 2>&1 &
+          echo $! >/tmp/control-center-affiliates-server.pid
+          for _ in $(seq 1 120); do
+            if curl --fail --silent "http://127.0.0.1:${PORT}/apps/control-center/public/index.html" >/dev/null; then
+              exit 0
+            fi
+            sleep .25
+          done
+          cat /tmp/control-center-affiliates-server.log
+          exit 1
+      - name: Seed Affiliate owner fixtures through domain services
+        shell: bash
+        env:
+          AFFILIATES_DATABASE_URL: mysql://root@127.0.0.1:3306/control_center_affiliates_browser
+        run: |
+          node --input-type=module <<'NODE'
+          import {
+            AffiliateIdentityApplicationService,
+            applyAffiliatesIdentityEligibilityM155,
+            applyAffiliatesM154Schema,
+            createAffiliatePool,
+          } from "./services/affiliates/dist/index.js";
+
+          const pool = createAffiliatePool(process.env.AFFILIATES_DATABASE_URL);
+          const occurredAt = "2026-09-20T21:00:00.000Z";
+          const authorization = {
+            async authorize(action, context) {
+              return {
+                allowed:
+                  context.actorKind === "platform_admin" &&
+                  [
+                    "affiliate.manage_identity",
+                    "affiliate.manage_membership",
+                    "affiliate.administer",
+                  ].includes(action),
+                decisionReference: `browser-seed:${context.correlationId}`,
+              };
+            },
+          };
+          const actor = {
+            actorKind: "platform_admin",
+            actorReference: "platform-owner-affiliates",
+            correlationId: "corr_affiliate_browser_seed",
+          };
+
+          try {
+            await applyAffiliatesM154Schema(pool);
+            await applyAffiliatesIdentityEligibilityM155(pool);
+            await pool.execute(
+              `INSERT INTO affiliate_programs
+               (program_id, destination_id, status, terms_version, created_at, updated_at)
+               VALUES (?, ?, 'active', ?, ?, ?)
+               ON DUPLICATE KEY UPDATE status = VALUES(status), terms_version = VALUES(terms_version), updated_at = VALUES(updated_at)`,
+              [
+                "prog_affiliate_browser_0001",
+                "morro-de-sao-paulo",
+                "terms-v1",
+                new Date(occurredAt),
+                new Date(occurredAt),
+              ],
+            );
+
+            const identity = new AffiliateIdentityApplicationService(
+              pool,
+              authorization,
+            );
+            await identity.createAffiliate({
+              actor,
+              affiliateId: "aff_browser_0001",
+              identityReference: "affiliate-browser@example.com",
+              pseudonymousReference: "pseudo:affiliate-browser-0001",
+              accountType: "person",
+              roleCategory: "creator",
+              occurredAt,
+            });
+            await identity.createMembership({
+              actor,
+              membershipId: "mem_affiliate_browser_0001",
+              affiliateId: "aff_browser_0001",
+              programId: "prog_affiliate_browser_0001",
+              destinationId: "morro-de-sao-paulo",
+              acceptedTermsVersion: "terms-v1",
+              occurredAt,
+            });
+            await identity.changeMembershipStatus({
+              actor,
+              affiliateId: "aff_browser_0001",
+              programId: "prog_affiliate_browser_0001",
+              destinationId: "morro-de-sao-paulo",
+              status: "approved",
+              occurredAt: "2026-09-20T21:01:00.000Z",
+            });
+            await pool.execute(
+              `UPDATE affiliate_accounts
+               SET identity_verified = 1, contact_verified = 1, updated_at = ?
+               WHERE affiliate_id = ?`,
+              [new Date("2026-09-20T21:02:00.000Z"), "aff_browser_0001"],
+            );
+            await pool.execute(
+              `UPDATE affiliate_memberships
+               SET financial_onboarding_status = 'eligible', updated_at = ?
+               WHERE affiliate_id = ? AND program_id = ?`,
+              [
+                new Date("2026-09-20T21:02:00.000Z"),
+                "aff_browser_0001",
+                "prog_affiliate_browser_0001",
+              ],
+            );
+          } finally {
+            await pool.end();
+          }
+          NODE
+      - name: Validate Affiliates Control Center journeys in Chromium
+        shell: bash
+        run: |
+          node <<'NODE'
+          const { writeFileSync } = require("node:fs");
+          const { chromium } = require("/tmp/pw/node_modules/playwright");
+
+          const origin = "http://127.0.0.1:4197";
+          const password = "control center affiliates browser fixture";
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            const evidence = { errors: [], reads: [], criticalActions: [] };
+            try {
+              const context = await browser.newContext({
+                viewport: { width: 1280, height: 900 },
+              });
+              const page = await context.newPage();
+              page.on("pageerror", (error) => evidence.errors.push(error.message));
+
+              await page.goto(`${origin}/apps/control-center/public/index.html`, {
+                waitUntil: "domcontentloaded",
+                timeout: 30000,
+              });
+              await page.waitForURL(
+                (url) => url.pathname === "/dashboard/login.html",
+                { timeout: 10000 },
+              );
+              await page
+                .locator("#email")
+                .fill("platform-owner-affiliates@example.com");
+              await page.locator("#password").fill(password);
+              await page.locator("#submit").click();
+              await page.waitForURL(
+                (url) =>
+                  url.pathname === "/apps/control-center/public/index.html",
+                { timeout: 15000 },
+              );
+              await page
+                .locator("#app:not([hidden])")
+                .waitFor({ state: "visible", timeout: 15000 });
+
+              await page.locator('[data-view="affiliates"]').click();
+              await page
+                .getByText("affiliate-browser@example.com", { exact: true })
+                .waitFor({ timeout: 15000 });
+              evidence.reads.push("affiliate-list-owner");
+
+              await page
+                .getByRole("link", {
+                  name: "affiliate-browser@example.com",
+                })
+                .click();
+              await page
+                .getByText("prog_affiliate_browser_0001", { exact: true })
+                .first()
+                .waitFor();
+              const detail = await page.locator("#content").textContent();
+              if (
+                !detail?.includes("Financial") ||
+                !detail.includes("eligible") ||
+                !detail.includes("approved")
+              ) {
+                throw new Error(`Affiliate owner detail diverged: ${detail}`);
+              }
+              evidence.reads.push("affiliate-detail-owner");
+
+              await page
+                .locator("#affiliate-membership-action")
+                .selectOption("prog_affiliate_browser_0001:suspend");
+              await page
+                .locator("#affiliate-action-password")
+                .fill(password);
+              await page
+                .locator("#affiliate-action-reason")
+                .fill("Suspender membership em contrato browser governado");
+              await page
+                .locator("#affiliate-action-confirmation")
+                .fill("SUSPENDER");
+              await page
+                .getByRole("button", { name: "Executar ação governada" })
+                .click();
+              await page
+                .getByText("suspended", { exact: true })
+                .waitFor({ timeout: 15000 });
+              evidence.criticalActions.push("membership-suspend-step-up");
+
+              await page
+                .locator("#affiliate-membership-action")
+                .selectOption("prog_affiliate_browser_0001:reactivate");
+              await page
+                .locator("#affiliate-action-password")
+                .fill(password);
+              await page
+                .locator("#affiliate-action-reason")
+                .fill("Reativar membership após validação administrativa");
+              await page
+                .locator("#affiliate-action-confirmation")
+                .fill("REATIVAR");
+              await page
+                .getByRole("button", { name: "Executar ação governada" })
+                .click();
+              await page
+                .getByText("approved", { exact: true })
+                .waitFor({ timeout: 15000 });
+              evidence.criticalActions.push("membership-reactivate-step-up");
+
+              if (evidence.errors.length) {
+                throw new Error(
+                  `Browser page errors: ${JSON.stringify(evidence.errors)}`,
+                );
+              }
+              evidence.status = "PASS";
+              writeFileSync(
+                "/tmp/control-center-affiliates-browser-evidence.json",
+                JSON.stringify(evidence, null, 2),
+              );
+              await context.close();
+            } finally {
+              await browser.close();
+            }
+          })().catch((error) => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+      - name: Show Affiliates Control Center diagnostics
+        if: failure()
+        run: cat /tmp/control-center-affiliates-server.log || true
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: control-center-affiliates-browser-evidence
+          path: /tmp/control-center-affiliates-browser-evidence.json
+          retention-days: 1
+          if-no-files-found: ignore
+      - name: Stop Affiliates Control Center runtime
+        if: always()
+        run: kill "$(cat /tmp/control-center-affiliates-server.pid)" 2>/dev/null || true

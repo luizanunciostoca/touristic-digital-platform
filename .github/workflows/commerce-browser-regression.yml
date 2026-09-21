@@ -596,7 +596,7 @@ jobs:
               let offers = [];
               await authPage.route('**/api/dashboard/auth/session', route => fulfill(route, {
                 authenticated: true, csrfToken: 'dashboard_csrf_0001',
-                user: { id: 'owner-a', email: 'owner@example.test', role: 'editor', businessIds: ['business-a'] },
+                user: { id: 'owner-a', email: 'owner@example.test', role: 'owner', businessIds: ['business-a'] },
               }));
               await authPage.route('**/api/business/business-a/profile', route => fulfill(route, { profile: {
                 id: 'business-a', name: 'Business A', categoryLabel: 'Experiências', specialty: 'Sunset',

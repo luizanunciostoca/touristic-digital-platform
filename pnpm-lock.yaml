@@ -38,6 +38,12 @@ importers:
 
   apps/morro-digital-platform:
     dependencies:
+      "@touristic/affiliates":
+        specifier: workspace:*
+        version: link:../../packages/affiliates
+      "@touristic/affiliates-server":
+        specifier: workspace:*
+        version: link:../../services/affiliates
       "@touristic/analytics":
         specifier: workspace:*
         version: link:../../packages/analytics
@@ -62,6 +68,12 @@ importers:
       "@touristic/content":
         specifier: workspace:*
         version: link:../../packages/content
+      "@touristic/content-server":
+        specifier: workspace:*
+        version: link:../../services/content
+      "@touristic/destinations-server":
+        specifier: workspace:*
+        version: link:../../services/destinations
       "@touristic/core":
         specifier: workspace:*
         version: link:../../packages/core
@@ -71,6 +83,9 @@ importers:
       "@touristic/crm-server":
         specifier: workspace:*
         version: link:../../services/crm
+      "@touristic/financial":
+        specifier: workspace:*
+        version: link:../../packages/financial
       "@touristic/financial-server":
         specifier: workspace:*
         version: link:../../services/financial
@@ -119,6 +134,24 @@ importers:
   packages/core: {}
 
   packages/content: {}
+
+  packages/destination:
+    dependencies:
+      "@touristic/core":
+        specifier: workspace:*
+        version: link:../core
+
+  packages/destinations:
+    devDependencies:
+      "@types/node":
+        specifier: ^24.3.0
+        version: 24.13.3
+      typescript:
+        specifier: ^5.9.2
+        version: 5.9.3
+      vitest:
+        specifier: 4.1.11
+        version: 4.1.11(@types/node@24.13.3)(vite@7.3.6(@types/node@24.13.3))
 
   packages/crm:
     dependencies:
@@ -171,6 +204,25 @@ importers:
         specifier: ^3.14.5
         version: 3.23.3(@types/node@24.13.3)
 
+  services/destinations:
+    dependencies:
+      "@touristic/destinations":
+        specifier: workspace:*
+        version: link:../../packages/destinations
+      mysql2:
+        specifier: ^3.14.5
+        version: 3.23.3(@types/node@24.13.3)
+    devDependencies:
+      "@types/node":
+        specifier: ^24.3.0
+        version: 24.13.3
+      typescript:
+        specifier: ^5.9.2
+        version: 5.9.3
+      vitest:
+        specifier: 4.1.11
+        version: 4.1.11(@types/node@24.13.3)(vite@7.3.6(@types/node@24.13.3))
+
   services/analytics:
     dependencies:
       "@touristic/analytics":
@@ -185,6 +237,15 @@ importers:
       "@touristic/auth":
         specifier: workspace:*
         version: link:../../packages/auth
+
+  services/content:
+    dependencies:
+      "@touristic/content":
+        specifier: workspace:*
+        version: link:../../packages/content
+      mysql2:
+        specifier: ^3.14.5
+        version: 3.23.3(@types/node@24.13.3)
 
   services/crm:
     dependencies:

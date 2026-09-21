@@ -1,4 +1,9 @@
 import { randomUUID } from "node:crypto";
+import {
+  hasAuthCapability,
+  isPlatformWideAuthRole,
+  isReadOnlyAuthRole,
+} from "@touristic/auth";
 
 import {
   MySqlCrmCommerceCustomerRepository,
@@ -210,11 +215,11 @@ export function createTicketingAuthorizationPort({ authApi }) {
           reason: "authentication_required",
         });
       }
-      if (admin && active.role !== "admin") {
+      if (admin && !hasAuthCapability(active.role, "ticketing.manage")) {
         return Object.freeze({ allowed: false, reason: "admin_required" });
       }
       if (mutation) {
-        if (active.role === "viewer") {
+        if (isReadOnlyAuthRole(active.role)) {
           return Object.freeze({ allowed: false, reason: "read_only_role" });
         }
         const decision = authApi.authorizeMutation(
@@ -232,11 +237,18 @@ export function createTicketingAuthorizationPort({ authApi }) {
           });
         }
       }
+      const transportRole =
+        isPlatformWideAuthRole(active.role) &&
+        hasAuthCapability(active.role, "ticketing.manage")
+          ? "admin"
+          : isReadOnlyAuthRole(active.role)
+            ? "viewer"
+            : "editor";
       return Object.freeze({
         allowed: true,
         actor: Object.freeze({
           subject: active.subject,
-          role: active.role,
+          role: transportRole,
           businessIds: Object.freeze([...(active.businessIds ?? [])]),
         }),
       });
@@ -249,11 +261,13 @@ export function createTicketingApi({
   getEnvironmentValue = (key) => process.env[key] ?? "",
   audit = (event) => console.warn(`[ticketing-audit] ${JSON.stringify(event)}`),
   publicTransport: injectedPublicTransport,
+  adminService: injectedAdminService,
 } = {}) {
   const injected = Boolean(injectedPublicTransport);
   let runtime = injected
     ? Object.freeze({
         publicTransport: injectedPublicTransport,
+        adminService: injectedAdminService ?? null,
         pools: [],
         processorTimer: null,
         processing: null,
@@ -283,6 +297,7 @@ export function createTicketingApi({
               });
             },
           }),
+          adminService: null,
           pools,
           processorTimer: null,
           processing: null,
@@ -309,6 +324,7 @@ export function createTicketingApi({
         MySqlTicketingCommerceCrmOutbox,
         MySqlTicketingPublicReadRepository,
         MySqlTicketingTransactionalCommand,
+        TicketingAdminService,
         TicketingCommerceHttpTransport,
         applyTicketingPublicApiSchema,
         createOrderingFinancialReservationConfirmationAuthority,
@@ -394,6 +410,7 @@ export function createTicketingApi({
       await ensureCrmCommerce({ force: true });
 
       const reservations = new MySqlTicketReservationRepository(ticketingPool);
+      const adminService = new TicketingAdminService(ticketingPool);
       const holders = new MySqlTicketHolderProfileRepository(ticketingPool);
       const tickets = new MySqlTicketRepository(ticketingPool);
       const checkIns = new MySqlTicketCheckInRepository(ticketingPool);
@@ -627,6 +644,7 @@ export function createTicketingApi({
 
       runtime = {
         publicTransport,
+        adminService,
         pools,
         processorTimer,
         get processing() {
@@ -661,6 +679,96 @@ export function createTicketingApi({
     await Promise.allSettled(pools.map((pool) => pool.end()));
   }
 
+  async function adminTransportMutation(
+    request,
+    pathname,
+    body,
+    extraHeaders = {},
+    successStatus = "updated",
+  ) {
+    if (!runtime?.publicTransport) {
+      return Object.freeze({
+        status: "unavailable",
+        data: null,
+        error: "TICKETING_ADMIN_UNAVAILABLE",
+      });
+    }
+    try {
+      const result = await runtime.publicTransport.handle({
+        method: "POST",
+        pathname,
+        headers: Object.freeze({
+          ...(request?.headers ?? {}),
+          ...extraHeaders,
+        }),
+        body,
+        correlationId:
+          request?.morroCorrelationId ??
+          header(request ?? { headers: {} }, "x-correlation-id") ??
+          `corr_${randomUUID()}`,
+      });
+      if (result.status >= 200 && result.status < 300) {
+        return Object.freeze({
+          status: successStatus,
+          data: result.body?.data ?? null,
+        });
+      }
+      const error =
+        typeof result.body?.error === "string"
+          ? result.body.error
+          : "TICKETING_ADMIN_UNAVAILABLE";
+      if (result.status === 400) {
+        return Object.freeze({ status: "invalid", data: null, error });
+      }
+      if (result.status === 401 || result.status === 403) {
+        return Object.freeze({ status: "denied", data: null, error });
+      }
+      if (result.status === 404) {
+        return Object.freeze({ status: "not_found", data: null, error });
+      }
+      if (result.status === 409) {
+        return Object.freeze({ status: "conflict", data: null, error });
+      }
+      return Object.freeze({ status: "unavailable", data: null, error });
+    } catch (error) {
+      return Object.freeze({
+        status: "unavailable",
+        data: null,
+        error: syncErrorCode(error),
+      });
+    }
+  }
+
+  async function adminResult(operation, successStatus = "found") {
+    if (!runtime?.adminService) {
+      return Object.freeze({
+        status: "unavailable",
+        data: null,
+        error: "TICKETING_ADMIN_UNAVAILABLE",
+      });
+    }
+    try {
+      const data = await operation(runtime.adminService);
+      if (data === null) {
+        return Object.freeze({ status: "not_found", data: null });
+      }
+      return Object.freeze({ status: successStatus, data });
+    } catch (error) {
+      const raw = error instanceof Error ? error.message : "";
+      const code = raw.split(":", 1)[0] || "TICKETING_ADMIN_UNAVAILABLE";
+      if (code.includes("_INVALID")) {
+        return Object.freeze({ status: "invalid", data: null, error: code });
+      }
+      if (code.includes("_NOT_FOUND")) {
+        return Object.freeze({ status: "not_found", data: null, error: code });
+      }
+      if (code.includes("_NOT_HELD") || code.includes("_CONFLICT")) {
+        return Object.freeze({ status: "conflict", data: null, error: code });
+      }
+      return Object.freeze({ status: "unavailable", data: null, error: code });
+    }
+  }
+
   return Object.freeze({
     matches(pathname) {
       return (
@@ -670,6 +778,44 @@ export function createTicketingApi({
     },
     start,
     stop,
+    adminListInventory(input) {
+      return adminResult((service) => service.listInventory(input));
+    },
+    adminReadInventory(inventoryId) {
+      return adminResult((service) => service.readInventory(inventoryId));
+    },
+    adminListReservations(input) {
+      return adminResult((service) => service.listReservations(input));
+    },
+    adminReadReservation(reservationId) {
+      return adminResult((service) => service.readReservation(reservationId));
+    },
+    adminCancelHeldReservation(input) {
+      return adminResult(
+        (service) => service.cancelHeldReservation(input),
+        "updated",
+      );
+    },
+    adminCreateBusinessOffer({ request, businessId, offer, requestKey }) {
+      return adminTransportMutation(
+        request,
+        `${ticketingHttpPrefix}/operator/businesses/${encodeURIComponent(
+          businessId,
+        )}/inventory`,
+        offer,
+        { "idempotency-key": requestKey },
+        "created",
+      );
+    },
+    adminDisableBusinessOffer({ request, businessId, inventoryId }) {
+      return adminTransportMutation(
+        request,
+        `${ticketingHttpPrefix}/operator/businesses/${encodeURIComponent(
+          businessId,
+        )}/inventory/${encodeURIComponent(inventoryId)}/disable`,
+        {},
+      );
+    },
     async handle(request, response, requestUrl) {
       const correlationId =
         header(request, "x-correlation-id") || `corr_${randomUUID()}`;

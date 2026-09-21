@@ -1,0 +1,266 @@
+name: Control Center Destination Contract
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
+    paths:
+      - ".github/workflows/control-center-destination-contract.yml"
+      - "apps/control-center/**"
+      - "apps/morro-digital-platform/tooling/admin-*.mjs"
+      - "apps/morro-digital-platform/tooling/destination-admin-runtime.mjs"
+      - "apps/morro-digital-platform/tooling/destination-public-projection*.mjs"
+      - "apps/morro-digital-platform/tooling/dev-server.mjs"
+      - "apps/morro-digital-platform/src/runtime/public-destination*.ts"
+      - "apps/morro-digital-platform/src/browser-entry.ts"
+      - "apps/morro-digital-platform/src/config/destination.ts"
+      - "packages/destinations/**"
+      - "services/destinations/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/control-center-destination-contract.yml"
+      - "apps/control-center/**"
+      - "apps/morro-digital-platform/tooling/admin-*.mjs"
+      - "apps/morro-digital-platform/tooling/destination-admin-runtime.mjs"
+      - "apps/morro-digital-platform/tooling/destination-public-projection*.mjs"
+      - "apps/morro-digital-platform/tooling/dev-server.mjs"
+      - "apps/morro-digital-platform/src/runtime/public-destination*.ts"
+      - "apps/morro-digital-platform/src/browser-entry.ts"
+      - "apps/morro-digital-platform/src/config/destination.ts"
+      - "packages/destinations/**"
+      - "services/destinations/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: control-center-destination-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  destination-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: destination-ci
+          MYSQL_DATABASE: destinations_owner_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -pdestination-ci"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    env:
+      DESTINATIONS_DATABASE_URL: mysql://root:destination-ci@127.0.0.1:3306/destinations_owner_test
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build Destination owner graph
+        run: |
+          pnpm --filter @touristic/destinations build
+          pnpm --filter @touristic/destinations-server build
+      - name: Lint and typecheck Destination owner
+        run: |
+          pnpm --filter @touristic/destinations lint
+          pnpm --filter @touristic/destinations typecheck
+          pnpm --filter @touristic/destinations-server lint
+          pnpm --filter @touristic/destinations-server typecheck
+      - name: Run Destination owner tests
+        run: |
+          pnpm --filter @touristic/destinations test
+          pnpm --filter @touristic/destinations-server test
+      - name: Qualify public Destination projection and fallback
+        run: pnpm --filter @touristic/morro-digital-platform exec vitest run tooling/destination-public-projection.test.mjs
+      - name: Qualify tourist Destination runtime fallback
+        run: pnpm --filter @touristic/morro-digital-platform exec vitest run src/runtime/public-destination.test.ts
+      - name: Build authenticated Destination browser runtime graph
+        run: pnpm -w build
+      - name: Install deterministic Chromium
+        run: |
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+      - name: Validate Destination Control Center browser contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          PORT=4196
+          PASSWORD="destination browser fixture"
+          OWNER_HASH=$(node --input-type=module -e "import('./services/auth/dist/credentials.js').then(m => console.log(m.hashPassword(process.argv[1], Buffer.alloc(16, 31))))" "$PASSWORD")
+          BUSINESS_HASH=$(node --input-type=module -e "import('./services/auth/dist/credentials.js').then(m => console.log(m.hashPassword(process.argv[1], Buffer.alloc(16, 32))))" "$PASSWORD")
+          USERS=$(node -e 'console.log(JSON.stringify([
+            {id:"destination-owner",email:"destination-owner@example.com",passwordHash:process.argv[1],role:"PLATFORM_OWNER",businessIds:[]},
+            {id:"destination-business",email:"destination-business@example.com",passwordHash:process.argv[2],role:"BUSINESS_OWNER",businessIds:["fixture-business"]}
+          ]))' "$OWNER_HASH" "$BUSINESS_HASH")
+          DASHBOARD_AUTH_SECRET="destination-auth-secret-0123456789abcdef" \
+          CONTROL_CENTER_STEP_UP_SECRET="destination-step-up-secret-0123456789abcdef" \
+          CONTROL_CENTER_SUPPORT_SECRET="destination-support-secret-0123456789abcdef" \
+          DASHBOARD_USERS_JSON="$USERS" \
+          CONTROL_CENTER_AUDIT_DATABASE_URL="$DESTINATIONS_DATABASE_URL" \
+          DESTINATIONS_DATABASE_URL="$DESTINATIONS_DATABASE_URL" \
+          PORT="$PORT" HOST="127.0.0.1" \
+            node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/destination-browser.log 2>&1 &
+          echo $! >/tmp/destination-browser.pid
+          trap 'kill "$(cat /tmp/destination-browser.pid)" 2>/dev/null || true' EXIT
+          for _ in $(seq 1 100); do
+            curl --fail --silent "http://127.0.0.1:$PORT/apps/control-center/public/index.html" >/dev/null && break
+            sleep 0.25
+          done
+          node <<'NODE'
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+          const origin = 'http://127.0.0.1:4196';
+          const password = 'destination browser fixture';
+          async function login(context, email) {
+            const response = await context.request.post(origin + '/api/dashboard/auth/login', {
+              headers: { Origin: origin, 'Content-Type': 'application/json' },
+              data: { email, password },
+            });
+            if (response.status() !== 200) throw new Error('LOGIN_FAILED:' + await response.text());
+            return response.json();
+          }
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            try {
+              const owner = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+              const auth = await login(owner, 'destination-owner@example.com');
+              const headers = { Origin: origin, 'Content-Type': 'application/json', 'X-CSRF-Token': auth.csrfToken };
+              const publicProjection = await owner.request.get(origin + '/api/runtime/destination');
+              if (publicProjection.status() !== 200) throw new Error('PUBLIC_DESTINATION_PROJECTION_UNAVAILABLE');
+              const publicBody = await publicProjection.json();
+              if (publicBody.source !== 'destination-owner' || publicBody.destination?.id !== 'morro-de-sao-paulo') throw new Error('PUBLIC_DESTINATION_OWNER_NOT_PROJECTED');
+              if ('version' in publicBody.destination || 'createdAt' in publicBody.destination || 'featureFlags' in publicBody.destination) throw new Error('PUBLIC_DESTINATION_METADATA_LEAK');
+              const tourist = await owner.newPage();
+              await tourist.goto(origin + '/');
+              await tourist.locator('html[data-destination-source="destination-owner"]').waitFor({ timeout: 15000 });
+              if (await tourist.locator('html').getAttribute('data-destination-id') !== 'morro-de-sao-paulo') throw new Error('TOURIST_DESTINATION_OWNER_NOT_APPLIED');
+              await tourist.close();
+
+              const denied = await owner.request.patch(origin + '/api/admin/v1/destinations/morro-de-sao-paulo', {
+                headers, data: { status: 'suspended', reason: 'Destination E2E denied before step-up' },
+              });
+              if (denied.status() !== 403 || (await denied.json()).error !== 'STEP_UP_REQUIRED') throw new Error('STEP_UP_NOT_ENFORCED');
+
+              const page = await owner.newPage();
+              await page.goto(origin + '/apps/control-center/public/index.html#destinations');
+              await page.locator('#app:not([hidden])').waitFor({ state: 'visible', timeout: 15000 });
+              await page.locator('[data-view="destinations"]').click();
+              await page.locator('#destination-editor').waitFor();
+              if (!(await page.locator('#content').textContent()).includes('Morro de São Paulo')) throw new Error('DESTINATION_LIST_NOT_RENDERED');
+              await page.locator('input[name="id"]').fill('e2e-destination');
+              await page.locator('input[name="name"]').fill('Destino E2E');
+              await page.locator('input[name="shortName"]').fill('E2E');
+              await page.locator('input[name="tagline"]').fill('Destino governado de teste');
+              await page.locator('input[name="lat"]').fill('-13.38');
+              await page.locator('input[name="lng"]').fill('-38.91');
+              await page.locator('textarea[name="modules"]').fill('map, assistant');
+              await page.locator('textarea[name="featureFlags"]').fill('{"map":true,"assistant":true}');
+              await page.locator('textarea[name="reason"]').fill('Criacao E2E governada do destino');
+              await page.locator('input[name="password"]').fill(password);
+              await page.getByRole('button', { name: 'Criar destino governado' }).click();
+              await page.getByText('Destino E2E', { exact: true }).waitFor({ timeout: 15000 });
+
+              await page.locator('input[name="tagline"]').fill('Destino E2E atualizado');
+              await page.locator('textarea[name="reason"]').fill('Edicao E2E governada do destino');
+              await page.locator('input[name="password"]').fill(password);
+              await page.getByRole('button', { name: 'Salvar configuração governada' }).click();
+              await page.waitForResponse(async response => response.url().includes('/api/admin/v1/destinations/e2e-destination') && response.request().method() === 'PUT' && response.status() === 200, { timeout: 15000 });
+              await page.waitForFunction(() => document.querySelector('input[name="tagline"]')?.value === 'Destino E2E atualizado', null, { timeout: 15000 });
+              const persisted = await owner.request.get(origin + '/api/admin/v1/destinations/e2e-destination');
+              if (persisted.status() !== 200 || (await persisted.json()).data?.branding?.tagline !== 'Destino E2E atualizado') throw new Error('DESTINATION_EDIT_NOT_DURABLE');
+              await page.reload();
+              await page.locator('#app:not([hidden])').waitFor({ state: 'visible', timeout: 15000 });
+              await page.goto(origin + '/apps/control-center/public/index.html#destinations:e2e-destination');
+              await page.locator('#app:not([hidden])').waitFor({ state: 'visible', timeout: 15000 });
+              await page.locator('input[name="tagline"]').waitFor({ timeout: 15000 });
+              if (await page.locator('input[name="tagline"]').inputValue() !== 'Destino E2E atualizado') throw new Error('DESTINATION_EDIT_NOT_RENDERED_AFTER_RELOAD');
+
+              for (const viewport of [{width:768,height:1024},{width:390,height:844}]) {
+                await page.setViewportSize(viewport);
+                const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 2);
+                if (overflow) throw new Error('DESTINATION_UI_HORIZONTAL_OVERFLOW:' + viewport.width);
+              }
+
+              const business = await browser.newContext();
+              await login(business, 'destination-business@example.com');
+              const forbidden = await business.request.get(origin + '/api/admin/v1/destinations');
+              if (forbidden.status() !== 403) throw new Error('BUSINESS_OWNER_DESTINATION_ACCESS_NOT_DENIED');
+              await business.close();
+              await owner.close();
+            } finally { await browser.close(); }
+          })().catch(error => { console.error(error); process.exit(1); });
+          NODE
+      - name: Show Destination browser diagnostics
+        if: failure()
+        run: cat /tmp/destination-browser.log || true
+      - name: Validate real MySQL bootstrap and optimistic concurrency
+        run: |
+          node --input-type=module <<'NODE'
+          import {
+            createDestinationAdminService,
+            createDestinationsMySqlPool,
+            applyDestinationsSchema,
+            bootstrapMorroDeSaoPauloDestination,
+          } from './services/destinations/dist/index.js';
+
+          const pool = createDestinationsMySqlPool(process.env.DESTINATIONS_DATABASE_URL);
+          try {
+            await applyDestinationsSchema(pool);
+            const service = createDestinationAdminService(pool);
+            const boot = await bootstrapMorroDeSaoPauloDestination(service);
+            if (!['created', 'found'].includes(boot.status)) {
+              throw new Error('DESTINATION_BOOTSTRAP_FAILED:' + JSON.stringify(boot));
+            }
+            const found = await service.read('morro-de-sao-paulo');
+            if (found.status !== 'found') throw new Error('DESTINATION_NOT_FOUND_AFTER_BOOTSTRAP');
+            const before = found.data;
+            const updated = await service.setStatus(
+              before.id,
+              'suspended',
+              before.version,
+            );
+            if (updated.status !== 'updated' || updated.data.version !== before.version + 1) {
+              throw new Error('DESTINATION_CAS_UPDATE_FAILED:' + JSON.stringify(updated));
+            }
+            const stale = await service.replace(before.id, {
+              ...before,
+              status: 'active',
+            });
+            if (stale.status !== 'updated') {
+              throw new Error('DESTINATION_SECOND_UPDATE_FAILED:' + JSON.stringify(stale));
+            }
+            const directStale = await pool.execute(
+              'UPDATE destinations SET status = ?, version = version + 1 WHERE destination_id = ? AND version = ?',
+              ['active', before.id, before.version],
+            );
+            if (directStale[0].affectedRows !== 0) {
+              throw new Error('DESTINATION_STALE_WRITE_NOT_REJECTED');
+            }
+            const reread = await service.read(before.id);
+            if (reread.status !== 'found' || reread.data.status !== 'active') {
+              throw new Error('DESTINATION_DURABILITY_FAILED:' + JSON.stringify(reread));
+            }
+            console.log(JSON.stringify({
+              bootstrap: boot.status,
+              durable: true,
+              optimisticConcurrency: true,
+              version: reread.data.version,
+            }));
+          } finally {
+            await pool.end();
+          }
+          NODE

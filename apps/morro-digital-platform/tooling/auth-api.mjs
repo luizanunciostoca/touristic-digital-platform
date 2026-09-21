@@ -1,4 +1,12 @@
-import { authorizeBusinessAccess } from "@touristic/auth";
+import {
+  authorizeBusinessAccess,
+  canonicalAuthRole,
+  canonicalAuthRoles,
+  capabilitiesForRole,
+  hasAuthCapability,
+  isPlatformWideAuthRole,
+  isReadOnlyAuthRole,
+} from "@touristic/auth";
 import {
   authenticateConfiguredUser,
   createInMemoryAuthSecurityState,
@@ -118,6 +126,7 @@ export function createAuthApi({ getEnvironmentValue, audit = () => {} }) {
   let securityStateHealthy = false;
   let securityStateError = null;
   let stopped = false;
+  const delegatedSessions = new WeakMap();
 
   try {
     users = parseConfiguredUsers(usersJson);
@@ -125,7 +134,9 @@ export function createAuthApi({ getEnvironmentValue, audit = () => {} }) {
     configurationError = error;
   }
 
-  const hasGlobalAdmin = users.some((user) => user.role === "admin");
+  const hasGlobalAdmin = users.some((user) =>
+    isPlatformWideAuthRole(user.role),
+  );
   const productionSecurityConfigured =
     !production ||
     (durableSecurityStateCreated &&
@@ -197,8 +208,152 @@ export function createAuthApi({ getEnvironmentValue, audit = () => {} }) {
     });
   }
 
+  function configuredUserById(userId) {
+    return (
+      users.find((candidate) => candidate.id === String(userId || "").trim()) ??
+      null
+    );
+  }
+
+  function effectiveRole(user, state) {
+    if (!state?.roleOverride) return user.role;
+    if (!canonicalAuthRoles.includes(state.roleOverride)) {
+      throw new Error("AUTH_PRINCIPAL_ROLE_OVERRIDE_INVALID");
+    }
+    return state.roleOverride;
+  }
+
+  async function effectiveConfiguredUser(user) {
+    const state = await securityState.getPrincipalAdminState(user.id);
+    markSecurityHealthy();
+    const role = effectiveRole(user, state);
+    return Object.freeze({
+      id: user.id,
+      email: user.email,
+      role,
+      canonicalRole: canonicalAuthRole(role),
+      capabilities: capabilitiesForRole(role),
+      businessIds: user.businessIds,
+      configuredRole: user.role,
+      configuredCanonicalRole: canonicalAuthRole(user.role),
+      status: state?.status ?? "active",
+      policyUpdatedAt: state?.updatedAt ?? null,
+      policyUpdatedBy: state?.updatedBy ?? null,
+    });
+  }
+
+  async function listAdminUsers() {
+    try {
+      return Object.freeze(
+        await Promise.all(users.map((user) => effectiveConfiguredUser(user))),
+      );
+    } catch (error) {
+      markSecurityFailure(error);
+      throw error;
+    }
+  }
+
+  async function findAdminUser(userId) {
+    const user = configuredUserById(userId);
+    if (!user) return null;
+    try {
+      return await effectiveConfiguredUser(user);
+    } catch (error) {
+      markSecurityFailure(error);
+      throw error;
+    }
+  }
+
+  async function revokeAllUserSessions(userId) {
+    const sessions = await securityState.listSessions(userId);
+    let revokedSessions = 0;
+    for (const session of sessions) {
+      if (!session.active) continue;
+      const result = await securityState.revokeSessionHandle(
+        userId,
+        session.handle,
+      );
+      if (result.found) revokedSessions += 1;
+    }
+    markSecurityHealthy();
+    return revokedSessions;
+  }
+
+  function assertMutableAdminTarget(
+    actorSubject,
+    target,
+    nextRole,
+    nextStatus,
+  ) {
+    if (target.id === actorSubject) {
+      if (nextStatus === "blocked") {
+        throw new Error("AUTH_SELF_BLOCK_DENIED");
+      }
+      if (nextRole && canonicalAuthRole(nextRole) !== target.canonicalRole) {
+        throw new Error("AUTH_SELF_ROLE_CHANGE_DENIED");
+      }
+    }
+    if (
+      target.configuredCanonicalRole === "PLATFORM_OWNER" &&
+      (nextStatus === "blocked" ||
+        (nextRole && canonicalAuthRole(nextRole) !== "PLATFORM_OWNER"))
+    ) {
+      throw new Error("AUTH_BOOTSTRAP_OWNER_PROTECTED");
+    }
+  }
+
+  async function updateUserStatus(userId, status, actorSubject) {
+    if (status !== "active" && status !== "blocked") {
+      throw new Error("AUTH_PRINCIPAL_STATUS_INVALID");
+    }
+    const target = await findAdminUser(userId);
+    if (!target) return null;
+    assertMutableAdminTarget(actorSubject, target, null, status);
+    const previousState = target;
+    await securityState.setPrincipalAdminState({
+      subject: target.id,
+      status,
+      roleOverride: target.role === target.configuredRole ? null : target.role,
+      updatedBy: actorSubject,
+    });
+    const revokedSessions = await revokeAllUserSessions(target.id);
+    const newState = await findAdminUser(target.id);
+    return Object.freeze({
+      previousState,
+      newState,
+      revokedSessions,
+    });
+  }
+
+  async function updateUserRole(userId, roleInput, actorSubject) {
+    const role =
+      typeof roleInput === "string" && canonicalAuthRoles.includes(roleInput)
+        ? roleInput
+        : null;
+    if (!role) throw new Error("AUTH_PRINCIPAL_ROLE_INVALID");
+    const target = await findAdminUser(userId);
+    if (!target) return null;
+    assertMutableAdminTarget(actorSubject, target, role, target.status);
+    const previousState = target;
+    await securityState.setPrincipalAdminState({
+      subject: target.id,
+      status: target.status,
+      roleOverride: role === target.configuredRole ? null : role,
+      updatedBy: actorSubject,
+    });
+    const revokedSessions = await revokeAllUserSessions(target.id);
+    const newState = await findAdminUser(target.id);
+    return Object.freeze({
+      previousState,
+      newState,
+      revokedSessions,
+    });
+  }
+
   async function currentSession(request) {
     if (!configured()) return null;
+    const delegated = delegatedSessions.get(request);
+    if (delegated) return delegated;
     const cookies = parseCookies(firstHeader(request.headers.cookie));
     const verified = verifySessionToken(cookies[sessionCookieName], secret);
     if (!verified) return null;
@@ -215,14 +370,26 @@ export function createAuthApi({ getEnvironmentValue, audit = () => {} }) {
       });
       return null;
     }
-    const currentUser = users.find((user) => user.id === verified.subject);
+    const currentUser = configuredUserById(verified.subject);
     if (!currentUser) return null;
-    return Object.freeze({
-      ...verified,
-      email: currentUser.email,
-      role: currentUser.role,
-      businessIds: currentUser.businessIds,
-    });
+    try {
+      const effective = await effectiveConfiguredUser(currentUser);
+      if (effective.status === "blocked") return null;
+      return Object.freeze({
+        ...verified,
+        email: effective.email,
+        role: effective.role,
+        businessIds: effective.businessIds,
+      });
+    } catch (error) {
+      markSecurityFailure(error);
+      audit(request, {
+        action: "dashboard.principal_state",
+        result: "unavailable",
+        reason: securityStateError,
+      });
+      return null;
+    }
   }
 
   function sessionPayload(session) {
@@ -235,6 +402,8 @@ export function createAuthApi({ getEnvironmentValue, audit = () => {} }) {
         id: session.subject,
         email: session.email,
         role: session.role,
+        canonicalRole: canonicalAuthRole(session.role),
+        capabilities: capabilitiesForRole(session.role),
         businessIds: session.businessIds,
       },
     };
@@ -368,7 +537,7 @@ export function createAuthApi({ getEnvironmentValue, audit = () => {} }) {
       return null;
     }
     if (
-      active.role === "admin" &&
+      isPlatformWideAuthRole(active.role) &&
       !active.businessIds.includes(decision.businessId)
     ) {
       audit(request, {
@@ -455,18 +624,63 @@ export function createAuthApi({ getEnvironmentValue, audit = () => {} }) {
       return;
     }
 
+    let effectiveUser;
+    try {
+      effectiveUser = await effectiveConfiguredUser(user);
+    } catch (error) {
+      markSecurityFailure(error);
+      audit(request, {
+        action: "dashboard.principal_state",
+        result: "unavailable",
+        reason: securityStateError,
+      });
+      unavailable(response);
+      return;
+    }
+    if (effectiveUser.status === "blocked") {
+      audit(request, {
+        action: "dashboard.login",
+        result: "denied",
+        reason: "account_blocked",
+      });
+      json(response, 403, {
+        error: "ACCOUNT_BLOCKED",
+        message: "Esta conta está bloqueada.",
+      });
+      return;
+    }
+
     const token = createSessionToken(
       {
-        subject: user.id,
-        email: user.email,
-        role: user.role,
-        businessIds: user.businessIds,
+        subject: effectiveUser.id,
+        email: effectiveUser.email,
+        role: effectiveUser.role,
+        businessIds: effectiveUser.businessIds,
       },
       secret,
       { ttlSeconds },
     );
     const session = verifySessionToken(token, secret);
     if (!token || !session) {
+      unavailable(response);
+      return;
+    }
+
+    try {
+      await securityState.registerSession({
+        sessionId: session.sessionId,
+        subject: session.subject,
+        issuedAt: session.issuedAt,
+        expiresAt: session.expiresAt,
+      });
+      markSecurityHealthy();
+    } catch (error) {
+      markSecurityFailure(error);
+      audit(request, {
+        action: "dashboard.session_registry",
+        result: "unavailable",
+        reason: securityStateError,
+      });
       unavailable(response);
       return;
     }
@@ -516,7 +730,7 @@ export function createAuthApi({ getEnvironmentValue, audit = () => {} }) {
       });
       return;
     }
-    if (active.role === "viewer") {
+    if (isReadOnlyAuthRole(active.role)) {
       audit(request, {
         action: "dashboard.mutation",
         result: "denied",
@@ -571,6 +785,111 @@ export function createAuthApi({ getEnvironmentValue, audit = () => {} }) {
   return Object.freeze({
     authorizeBusinessRequest,
     authorizeMutation,
+    listAdminUsers,
+    findAdminUser,
+    updateUserStatus,
+    updateUserRole,
+    listConfiguredUsers() {
+      return Object.freeze(
+        users.map((user) =>
+          Object.freeze({
+            id: user.id,
+            email: user.email,
+            role: user.role,
+            canonicalRole: canonicalAuthRole(user.role),
+            capabilities: capabilitiesForRole(user.role),
+            businessIds: user.businessIds,
+          }),
+        ),
+      );
+    },
+    findConfiguredUser(userId) {
+      const user = configuredUserById(userId);
+      if (!user) return null;
+      return Object.freeze({
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        canonicalRole: canonicalAuthRole(user.role),
+        capabilities: capabilitiesForRole(user.role),
+        businessIds: user.businessIds,
+      });
+    },
+    reauthenticate(userId, password) {
+      const user = configuredUserById(userId);
+      if (!user) {
+        authenticateConfiguredUser(users, "missing@example.invalid", password);
+        return false;
+      }
+      return Boolean(authenticateConfiguredUser(users, user.email, password));
+    },
+    async listUserSessions(userId) {
+      const user = configuredUserById(userId);
+      if (!user) return null;
+      try {
+        const sessions = await securityState.listSessions(user.id);
+        markSecurityHealthy();
+        return sessions;
+      } catch (error) {
+        markSecurityFailure(error);
+        throw error;
+      }
+    },
+    async revokeUserSession(userId, handle) {
+      const user = configuredUserById(userId);
+      if (!user) return null;
+      try {
+        const result = await securityState.revokeSessionHandle(user.id, handle);
+        markSecurityHealthy();
+        return result;
+      } catch (error) {
+        markSecurityFailure(error);
+        throw error;
+      }
+    },
+    async withDelegatedSession(request, effectiveUserId, operation) {
+      if (
+        !request ||
+        typeof request !== "object" ||
+        typeof operation !== "function" ||
+        delegatedSessions.has(request)
+      ) {
+        throw new Error("AUTH_DELEGATION_CONTEXT_INVALID");
+      }
+
+      const actor = await currentSession(request);
+      if (
+        !actor ||
+        !isPlatformWideAuthRole(actor.role) ||
+        !hasAuthCapability(actor.role, "support.impersonate")
+      ) {
+        throw new Error("AUTH_DELEGATION_NOT_AUTHORIZED");
+      }
+
+      const configuredTarget = configuredUserById(effectiveUserId);
+      if (!configuredTarget) {
+        throw new Error("AUTH_DELEGATION_TARGET_INVALID");
+      }
+      const target = await effectiveConfiguredUser(configuredTarget);
+      if (target.status === "blocked" || isPlatformWideAuthRole(target.role)) {
+        throw new Error("AUTH_DELEGATION_TARGET_INVALID");
+      }
+
+      const delegated = Object.freeze({
+        ...actor,
+        subject: target.id,
+        email: target.email,
+        role: target.role,
+        businessIds: target.businessIds,
+      });
+
+      delegatedSessions.set(request, delegated);
+      try {
+        return await operation(delegated);
+      } finally {
+        delegatedSessions.delete(request);
+      }
+    },
     resolveSession: currentSession,
     readinessCheck,
 

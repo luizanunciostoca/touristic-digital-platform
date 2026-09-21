@@ -11,6 +11,9 @@ on:
       - "apps/morro-digital-platform/src/crm-m141-equivalence-contract.test.ts"
       - "apps/morro-digital-platform/tooling/crm-m141-equivalence-browser-e2e.cjs"
       - "apps/morro-digital-platform/tooling/dev-server.mjs"
+      - "apps/morro-digital-platform/tooling/destination-admin-runtime.mjs"
+      - "packages/destinations/**"
+      - "services/destinations/**"
       - "packages/auth/**"
       - "packages/auth-browser/**"
       - "packages/business/**"
@@ -34,6 +37,9 @@ on:
       - "apps/morro-digital-platform/src/crm-m141-equivalence-contract.test.ts"
       - "apps/morro-digital-platform/tooling/crm-m141-equivalence-browser-e2e.cjs"
       - "apps/morro-digital-platform/tooling/dev-server.mjs"
+      - "apps/morro-digital-platform/tooling/destination-admin-runtime.mjs"
+      - "packages/destinations/**"
+      - "services/destinations/**"
       - "packages/auth/**"
       - "packages/auth-browser/**"
       - "packages/business/**"
@@ -102,7 +108,7 @@ jobs:
 
       - name: Build authenticated CRM runtime graph
         run: |
-          pnpm turbo run build --filter=@touristic/auth-browser --filter=@touristic/auth-server --filter=@touristic/crm --filter=@touristic/crm-server --filter=@touristic/business --filter=@touristic/financial-server --filter=@touristic/ordering-server
+          pnpm turbo run build --filter=@touristic/auth-browser --filter=@touristic/auth-server --filter=@touristic/crm --filter=@touristic/crm-server --filter=@touristic/business --filter=@touristic/financial-server --filter=@touristic/ordering-server --filter=@touristic/destinations-server
           pnpm --filter @touristic/morro-digital-platform build
 
       - name: Start authenticated CRM runtime
