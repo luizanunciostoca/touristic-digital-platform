@@ -157,10 +157,13 @@ jobs:
               await page.getByRole('button', { name: 'Salvar configuração governada' }).click();
               await page.waitForResponse(async response => response.url().includes('/api/admin/v1/destinations/e2e-destination') && response.request().method() === 'PUT' && response.status() === 200, { timeout: 15000 });
               await page.waitForFunction(() => document.querySelector('input[name="tagline"]')?.value === 'Destino E2E atualizado', null, { timeout: 15000 });
+              const persisted = await owner.request.get(origin + '/api/admin/v1/destinations/e2e-destination');
+              if (persisted.status() !== 200 || (await persisted.json()).data?.branding?.tagline !== 'Destino E2E atualizado') throw new Error('DESTINATION_EDIT_NOT_DURABLE');
               await page.reload();
               await page.locator('#app:not([hidden])').waitFor({ state: 'visible', timeout: 15000 });
+              await page.locator('[data-view="destinations"]').click();
               await page.locator('input[name="tagline"]').waitFor();
-              if (await page.locator('input[name="tagline"]').inputValue() !== 'Destino E2E atualizado') throw new Error('DESTINATION_EDIT_NOT_DURABLE');
+              if (await page.locator('input[name="tagline"]').inputValue() !== 'Destino E2E atualizado') throw new Error('DESTINATION_EDIT_NOT_RENDERED_AFTER_RELOAD');
 
               for (const viewport of [{width:768,height:1024},{width:390,height:844}]) {
                 await page.setViewportSize(viewport);
