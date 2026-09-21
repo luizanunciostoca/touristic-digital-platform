@@ -16,7 +16,7 @@ async function main() {
       `${origin}/api/dashboard/auth/login`,
       {
         headers: { Origin: origin, "Content-Type": "application/json" },
-        data: { email: "platform-owner@example.com", password },
+        data: { email: "platform-owner-ticketing@example.com", password },
       },
     );
     if (login.status() !== 200) throw new Error("OWNER_LOGIN_FAILED");
