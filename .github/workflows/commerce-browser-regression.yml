@@ -379,6 +379,13 @@ jobs:
 
                 state.inventory = [offer];
                 await page.goto(`${origin}/`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+                await page
+                  .locator('body[data-public-onboarding-settled="true"]')
+                  .waitFor({ state: 'attached', timeout: 5000 });
+                await page.locator('#assistantInput').focus();
+                await page
+                  .locator('#assistant-messages:not(.hidden)')
+                  .waitFor({ state: 'visible', timeout: 5000 });
                 await page.locator('#assistant-category-nightlife').click();
                 await page.locator('#assistant-category-results[data-stage="filters"] [data-value="ver todos"]').click();
                 await page.locator('#assistant-category-results[data-stage="places"] [data-location-name="Toca do Morcego"]').click();
