@@ -144,6 +144,10 @@
  * selectors are migrated into the layered runtime bundle.
  */
 
+body[data-md-mode] {
+  font-family: var(--md-font-family-sans);
+}
+
 .control-button,
 .submenu-item {
   transition-property:
@@ -311,7 +315,7 @@ body[data-md-mode="navigation"] #minimize-navigation-btn:hover {
 }
 
 body[data-md-mode="navigation"] #minimize-navigation-btn:active {
-  transform: scale(0.96);
+  transform: scale(var(--md-motion-scale-pressed-strong));
 }
 
 body[data-md-mode="navigation"] #instruction-banner .instruction-secondary {
@@ -427,7 +431,7 @@ body[data-md-mode="navigation"] .end-navigation-btn:hover {
 }
 
 body[data-md-mode="navigation"] .end-navigation-btn:active {
-  transform: scale(0.98) !important;
+  transform: scale(var(--md-motion-scale-pressed)) !important;
 }
 
 /* Outdoor readability + one-hand ergonomics for walking-first flows. */
