@@ -22,6 +22,8 @@ describe("UX Design V2 shared component adoption", () => {
       ".md-card",
       ".md-dialog",
       ".md-bottom-sheet",
+      ".md-banner",
+      ".md-toast",
       ".md-skeleton",
     ]) {
       expect(css).toContain(primitive);
@@ -40,6 +42,22 @@ describe("UX Design V2 shared component adoption", () => {
       "end-navigation-btn md-button md-button--destructive",
     );
     expect(shell).toContain('id="sendButton" class="md-icon-button"');
+  });
+
+  it("uses shared banner and toast primitives in real tourist consumers", async () => {
+    const [shell, onboarding] = await Promise.all([
+      readRepository("apps/morro-digital-platform/src/layouts/app-shell.ts"),
+      readRepository(
+        "apps/morro-digital-platform/src/onboarding/public-interactive-tour.ts",
+      ),
+    ]);
+
+    expect(shell).toContain(
+      "instruction-banner md-banner md-navigation-banner hidden",
+    );
+    expect(onboarding).toContain('toast.className = "md-toast"');
+    expect(onboarding).toContain('toast.setAttribute("role", "status")');
+    expect(onboarding).toContain('toast.setAttribute("aria-live", "polite")');
   });
 
   it("uses the same shared icon-button primitive for runtime-created 3D controls", async () => {

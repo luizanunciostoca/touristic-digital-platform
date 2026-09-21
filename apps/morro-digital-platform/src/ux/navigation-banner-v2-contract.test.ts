@@ -55,6 +55,7 @@ describe("Navigation Banner V2 contract", () => {
       'body[data-md-mode="navigation"] #instruction-banner',
     );
     expect(premium).toContain("var(--md-layer-navigation)");
+    expect(premium).toContain("overflow: hidden !important;\n  padding: 0;");
     expect(premium).not.toContain("z-index: 2300");
     expect(premium).not.toContain("z-index: 2301");
   });
@@ -65,7 +66,7 @@ describe("Navigation Banner V2 contract", () => {
     );
 
     expect(shell).toContain(
-      'id="instruction-banner" class="instruction-banner md-navigation-banner hidden"',
+      'id="instruction-banner" class="instruction-banner md-banner md-navigation-banner hidden"',
     );
     expect(shell).toContain('aria-labelledby="instruction-main"');
     expect(shell).toContain(
