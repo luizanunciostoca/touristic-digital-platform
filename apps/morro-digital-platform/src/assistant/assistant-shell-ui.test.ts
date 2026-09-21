@@ -80,6 +80,7 @@ function fixture() {
   const external = createElement();
   const documentListeners = new Map<string, EventListener>();
   const scheduled: Array<() => void> = [];
+  const cancelledTimers = new Set<number>();
   composer.contain(input);
 
   const document = {
@@ -88,8 +89,14 @@ function fixture() {
     activeElement: input,
     defaultView: {
       setTimeout(callback: () => void) {
-        scheduled.push(callback);
-        return scheduled.length;
+        const id = scheduled.length + 1;
+        scheduled.push(() => {
+          if (!cancelledTimers.has(id)) callback();
+        });
+        return id;
+      },
+      clearTimeout(id: number) {
+        cancelledTimers.add(id);
       },
     } as unknown as Window,
     getElementById(id: string) {
@@ -124,6 +131,7 @@ function fixture() {
     status,
     external,
     scheduled,
+    cancelledTimers,
     dispatchKeydown(key: string) {
       documentListeners.get("keydown")?.({
         key,
@@ -184,6 +192,37 @@ describe("assistant shell UI", () => {
     expect(view.scheduled).toHaveLength(0);
   });
 
+  it("does not reschedule focus when an already-visible Assistant receives another open request", () => {
+    const view = fixture();
+    (view.document as unknown as { activeElement: unknown }).activeElement =
+      view.external;
+    const shell = installAssistantShellUi({ document: view.document });
+
+    shell.show();
+    expect(view.scheduled).toHaveLength(1);
+
+    shell.show();
+    expect(view.scheduled).toHaveLength(1);
+  });
+
+  it("cancels a pending programmatic refocus when the user reaches the composer", () => {
+    const view = fixture();
+    (view.document as unknown as { activeElement: unknown }).activeElement =
+      view.external;
+    const shell = installAssistantShellUi({ document: view.document });
+
+    shell.show();
+    expect(view.scheduled).toHaveLength(1);
+
+    (view.document as unknown as { activeElement: unknown }).activeElement =
+      view.input;
+    view.composer.dispatch("focusin");
+    view.scheduled[0]?.();
+
+    expect(view.input.focusCount).toBe(0);
+    expect(view.cancelledTimers.has(1)).toBe(true);
+  });
+
   it("keeps delayed input focus for programmatic Assistant openings", () => {
     const view = fixture();
     (view.document as unknown as { activeElement: unknown }).activeElement =
@@ -199,6 +238,20 @@ describe("assistant shell UI", () => {
 
     view.scheduled[0]?.();
     expect(view.input.focusCount).toBe(1);
+  });
+
+  it("does not steal focus if another surface becomes active before delayed focus", () => {
+    const view = fixture();
+    (view.document as unknown as { activeElement: unknown }).activeElement =
+      view.external;
+    const shell = installAssistantShellUi({ document: view.document });
+
+    shell.show();
+    (view.document as unknown as { activeElement: unknown }).activeElement =
+      view.body;
+    view.scheduled[0]?.();
+
+    expect(view.input.focusCount).toBe(0);
   });
 
   it("publishes loading and error state through the accessible shell contract", () => {

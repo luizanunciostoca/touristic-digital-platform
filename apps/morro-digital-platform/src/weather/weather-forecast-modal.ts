@@ -337,6 +337,7 @@ export function openWeatherForecastModal({
   };
   closeButton?.focus({ preventScroll: true });
   queueMicrotask(focusInitialControl);
+  document.defaultView?.requestAnimationFrame?.(focusInitialControl);
 
   return Object.freeze({ element: modal, close, updateLocale });
 }

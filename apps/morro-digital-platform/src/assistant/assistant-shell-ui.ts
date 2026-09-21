@@ -112,6 +112,13 @@ export function installAssistantShellUi(
   const focusDelayMs = options.focusDelayMs ?? 100;
   let destroyed = false;
   let previousFocus: Element | null = null;
+  let pendingFocusTimer: number | undefined;
+
+  const cancelPendingFocus = (): void => {
+    if (pendingFocusTimer === undefined) return;
+    options.document.defaultView?.clearTimeout(pendingFocusTimer);
+    pendingFocusTimer = undefined;
+  };
 
   const isVisible = (): boolean =>
     Boolean(assistant && !assistant.classList.contains("hidden"));
@@ -144,16 +151,26 @@ export function installAssistantShellUi(
     const openedFromComposer = Boolean(
       composer && activeElement && composer.contains(activeElement),
     );
-    if (!isVisible()) {
+    const wasVisible = isVisible();
+    if (!wasVisible) {
       previousFocus = activeElement;
     }
     assistant.classList.remove("hidden");
     assistant.setAttribute("aria-hidden", "false");
     options.document.body.classList.add("assistant-modal-open");
     input?.setAttribute("aria-expanded", "true");
-    if (!openedFromComposer) {
-      options.document.defaultView?.setTimeout(() => {
-        if (!destroyed && isVisible()) focusElement(input);
+    if (!wasVisible && !openedFromComposer) {
+      cancelPendingFocus();
+      const focusOrigin = activeElement;
+      pendingFocusTimer = options.document.defaultView?.setTimeout(() => {
+        pendingFocusTimer = undefined;
+        if (
+          !destroyed &&
+          isVisible() &&
+          options.document.activeElement === focusOrigin
+        ) {
+          focusElement(input);
+        }
       }, focusDelayMs);
     }
     return true;
@@ -161,6 +178,7 @@ export function installAssistantShellUi(
 
   const hide = (): boolean => {
     if (destroyed || !assistant) return false;
+    cancelPendingFocus();
     if (isTutorialActive(options.document)) {
       show();
       return false;
@@ -190,6 +208,7 @@ export function installAssistantShellUi(
   };
 
   const onComposerFocusIn = (): void => {
+    cancelPendingFocus();
     if (!isVisible()) show();
   };
   const onAssistantOpenRequest = (): void => {
@@ -253,6 +272,7 @@ export function installAssistantShellUi(
     destroy(): void {
       if (destroyed) return;
       destroyed = true;
+      cancelPendingFocus();
       composer?.removeEventListener("focusin", onComposerFocusIn);
       composer?.removeAttribute("data-assistant-shell-ready");
       minimizeButton?.removeEventListener("click", onMinimizeClick);
