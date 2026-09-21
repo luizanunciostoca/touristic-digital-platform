@@ -226,6 +226,21 @@ function selectedDestinationQuery() {
     ? `&destinationId=${encodeURIComponent(destinationId)}`
     : "";
 }
+function destinationOptions(selectedId = "", includeEmpty = true) {
+  const selector = document.querySelector("#destination-selector");
+  const options = Array.from(selector?.options ?? []).filter(
+    (option) => option.value && option.value !== "global",
+  );
+  return [
+    ...(includeEmpty ? ['<option value="">Não atribuído</option>'] : []),
+    ...options.map(
+      (option) =>
+        `<option value="${escapeHtml(option.value)}" ${
+          option.value === selectedId ? "selected" : ""
+        }>${escapeHtml(option.textContent || option.value)}</option>`,
+    ),
+  ].join("");
+}
 
 function contentField(document, key) {
   const value = document?.fields?.[key];
@@ -1535,7 +1550,7 @@ async function renderProducts(productId) {
   if (!productId) {
     const [data, businessesData] = await Promise.all([
       api(`/products?limit=100${selectedDestinationQuery()}`),
-      api("/businesses"),
+      api(`/businesses?limit=100${selectedDestinationQuery()}`),
     ]);
     const products = Array.isArray(data.data) ? data.data : [];
     const businesses = businessesData.businesses ?? [];
