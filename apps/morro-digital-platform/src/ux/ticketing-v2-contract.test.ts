@@ -3,102 +3,81 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
-const publicRoot = fileURLToPath(new URL("../../public/", import.meta.url));
+const repositoryRoot = fileURLToPath(new URL("../../../../", import.meta.url));
 
-async function readPublic(path: string): Promise<string> {
-  return readFile(publicRoot + path, "utf8");
+async function readRepository(path: string): Promise<string> {
+  return readFile(repositoryRoot + path, "utf8");
 }
 
-describe("Ticketing UX Design V2 contract", () => {
-  it("uses the canonical Tourist UI typography and semantic tokens", async () => {
-    const [css, designSystem] = await Promise.all([
-      readPublic("ticketing.css"),
-      readPublic("design-system-v2.css"),
-    ]);
+describe("Ticketing V2 visual authority", () => {
+  it("loads V2 foundations before Ticketing feature styles", async () => {
+    const html = await readRepository(
+      "apps/morro-digital-platform/public/tickets.html",
+    );
+
+    const foundations = html.indexOf("design-system-v2.css");
+    const premium = html.indexOf("premium-ux-v2.css");
+    const feature = html.indexOf('href="/ticketing.css"');
+
+    expect(foundations).toBeGreaterThan(-1);
+    expect(premium).toBeGreaterThan(foundations);
+    expect(feature).toBeGreaterThan(premium);
+    expect(html).toContain('content="light dark"');
+    expect(html).toContain('class="ticket-dialog md-dialog"');
+    expect(html).toContain('class="md-input"');
+    expect(html).toContain('id="quantity"');
+  });
+
+  it("keeps Ticketing on semantic V2 tokens without a local product palette", async () => {
+    const css = await readRepository(
+      "apps/morro-digital-platform/public/ticketing.css",
+    );
 
     expect(css).toContain("font-family: var(--md-font-family-sans)");
-    expect(css).not.toMatch(/\bInter\b/u);
-    expect(css).not.toMatch(/#[0-9a-f]{3,8}\b/iu);
-    expect(css).not.toContain("transition: all");
-    expect(css).not.toContain("!important");
-
-    for (const token of [
-      "--md-color-brand",
-      "--md-color-brand-strong",
-      "--md-color-surface-canvas",
-      "--md-color-surface-card",
-      "--md-color-surface-glass",
-      "--md-color-surface-elevated",
-      "--md-color-text-primary",
-      "--md-color-text-secondary",
-      "--md-color-text-inverse",
-      "--md-color-interactive-primary",
-      "--md-color-interactive-secondary",
-      "--md-color-success",
-      "--md-color-warning",
-      "--md-color-danger",
-      "--md-color-info",
-    ]) {
-      expect(designSystem).toContain(token);
-    }
-  });
-
-  it("adopts shared primitives in static and dynamic Ticketing consumers", async () => {
-    const [html, runtime] = await Promise.all([
-      readPublic("tickets.html"),
-      readPublic("ticketing.js"),
-    ]);
-
-    expect(html).toContain("panel md-card");
-    expect(html).toContain("md-button md-button--primary");
-    expect(html).toContain("md-button md-button--secondary");
-    expect(html).toContain('class="md-input"');
-    expect(html).toContain("ticket-dialog md-dialog");
-    expect(html).toContain("dialog-close md-icon-button");
-
-    expect(runtime).toContain("offer-card md-card");
-    expect(runtime).toContain("reservation-card md-card");
-    expect(runtime).toContain("availability md-badge md-badge--success");
-    expect(runtime).toContain("status md-badge");
-  });
-
-  it("renders progressive loading structure without weakening accessibility", async () => {
-    const [css, runtime, designSystem] = await Promise.all([
-      readPublic("ticketing.css"),
-      readPublic("ticketing.js"),
-      readPublic("design-system-v2.css"),
-    ]);
-
-    expect(runtime).toContain("renderOfferSkeletons()");
-    expect(runtime).toContain("renderReservationSkeletons()");
-    expect(runtime).toContain('setAttribute("aria-busy", "true")');
-    expect(runtime).toContain('setAttribute("aria-hidden", "true")');
-    expect(runtime).toContain('removeAttribute("aria-busy")');
-    expect(css).toContain(".ticketing-skeleton-card");
-    expect(designSystem).toContain(".md-skeleton");
-    expect(css).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(css).toContain("var(--md-color-surface-canvas)");
+    expect(css).toContain("var(--md-color-text-primary)");
+    expect(css).toContain("var(--md-color-interactive-primary)");
+    expect(css).toContain("var(--md-color-success)");
+    expect(css).toContain("var(--md-color-warning)");
+    expect(css).toContain("var(--md-color-danger)");
+    expect(css).toContain("var(--md-touch-target-min)");
     expect(css).toContain("@media (forced-colors: active)");
+    expect(css).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(css).toContain("overscroll-behavior: contain");
+    expect(css).not.toMatch(/font-family\s*:[^;]*Inter/iu);
+    expect(css).not.toMatch(/#[0-9a-f]{3,8}\b/iu);
+    expect(css).not.toMatch(/transition\s*:\s*all\b/iu);
+    expect(css).not.toMatch(/z-index\s*:\s*-?\d+/iu);
+    expect(css).not.toContain("!important");
   });
 
-  it("uses the formal V2 stacking scale and theme contract", async () => {
-    const designSystem = await readPublic("design-system-v2.css");
+  it("uses real shared primitives for cards, controls, status, QR dialog and loading", async () => {
+    const [html, runtime] = await Promise.all([
+      readRepository("apps/morro-digital-platform/public/tickets.html"),
+      readRepository("apps/morro-digital-platform/public/ticketing.js"),
+    ]);
 
-    for (const token of [
-      "--md-layer-map",
-      "--md-layer-marker",
-      "--md-layer-map-control",
-      "--md-layer-dock",
-      "--md-layer-sheet",
-      "--md-layer-navigation",
-      "--md-layer-dialog",
-      "--md-layer-tour",
-      "--md-layer-toast",
-      "--md-layer-system",
+    for (const primitive of [
+      "md-card",
+      "md-button",
+      "md-input",
+      "md-badge",
+      "md-dialog",
+      "md-icon-button",
     ]) {
-      expect(designSystem).toContain(token);
+      expect(html).toContain(primitive);
     }
 
-    expect(designSystem).toContain('[data-theme="dark"]');
-    expect(designSystem).toContain('[data-destination-theme="morro"]');
+    expect(runtime).toContain("renderOfferSkeletons");
+    expect(runtime).toContain("renderReservationSkeletons");
+    expect(runtime).toContain("md-skeleton");
+    expect(runtime).toContain("elements.dialog.showModal()");
+    expect(runtime).toContain("elements.dialog.close()");
+    expect(runtime).toContain("when.textContent = dateTime(offer.startsAt)");
+    expect(runtime).toContain("availability md-badge md-badge--success");
+
+    // Inventory is the canonical authority for the event date. Do not invent a
+    // client-side date selector that the reservation contract cannot honor.
+    expect(html).not.toMatch(/type="(?:date|datetime-local)"/u);
   });
 });

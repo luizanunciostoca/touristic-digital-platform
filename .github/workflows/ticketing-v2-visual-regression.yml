@@ -1,0 +1,329 @@
+name: Ticketing V2 Visual Regression
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
+    paths:
+      - ".github/workflows/ticketing-v2-visual-regression.yml"
+      - "apps/morro-digital-platform/public/ticketing.css"
+      - "apps/morro-digital-platform/public/ticketing.js"
+      - "apps/morro-digital-platform/public/tickets.html"
+      - "apps/morro-digital-platform/public/design-system-v2.css"
+      - "apps/morro-digital-platform/public/premium-ux-v2.css"
+      - "apps/morro-digital-platform/src/ux/ticketing-v2-contract.test.ts"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ticketing-v2-visual:
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Static Ticketing V2 contract
+        run: pnpm --filter @touristic/morro-digital-platform exec vitest run src/ux/ticketing-v2-contract.test.ts
+      - name: Build workspace
+        run: pnpm -w build
+      - name: Install deterministic Chromium
+        run: |
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+          mkdir -p /tmp/ticketing-v2
+      - name: Start browser runtime
+        run: |
+          node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/ticketing-v2/server.log 2>&1 &
+          for i in $(seq 1 90); do
+            curl -fsS http://127.0.0.1:4173/tickets.html >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/ticketing-v2/server.log
+          exit 1
+      - name: Visual and accessibility acceptance
+        run: |
+          node <<'NODE'
+          const { writeFileSync } = require('node:fs');
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+
+          const origin = 'http://127.0.0.1:4173';
+          const now = Date.now();
+          const iso = ms => new Date(now + ms).toISOString();
+          const offer = {
+            id: 'mpi_v2_visual_000000000000000000000001',
+            destinationId: 'morro-de-sao-paulo',
+            product: { kind: 'business_experience', reference: 'morro-pro:toca-do-morcego:sunset' },
+            label: 'Sunset em Morro de São Paulo',
+            unitAmount: { minorUnits: 15900, currency: 'BRL' },
+            pricingVersion: 'v2-visual',
+            capacity: 80,
+            maxPerReservation: 6,
+            availableQuantity: 24,
+            startsAt: iso(3 * 86400000),
+            endsAt: iso(3 * 86400000 + 4 * 3600000),
+          };
+          const reservation = {
+            id: 'trv_v2_visual_0001',
+            inventoryId: offer.id,
+            destinationId: offer.destinationId,
+            product: offer.product,
+            unitAmount: offer.unitAmount,
+            pricingVersion: offer.pricingVersion,
+            holderReference: 'guest:v2-visual',
+            quantity: 2,
+            status: 'confirmed',
+            validUntil: offer.endsAt,
+            createdAt: iso(-3600000),
+          };
+
+          const evidence = [];
+          const fulfill = (route, body, status = 200) =>
+            route.fulfill({
+              status,
+              contentType: 'application/json',
+              body: JSON.stringify(body),
+            });
+
+          async function installRoutes(page, state) {
+            await page.route('**/api/ticketing/v1/consumer-session', route =>
+              fulfill(route, {
+                data: {
+                  subject: 'guest:v2-visual',
+                  csrfToken: 'csrf_v2_visual',
+                  expiresAt: iso(30 * 86400000),
+                },
+              }, 201),
+            );
+            await page.route('**/api/ticketing/v1/inventory', async route => {
+              if (state.delay) await new Promise(resolve => setTimeout(resolve, state.delay));
+              if (state.error) return fulfill(route, { error: 'TICKETING_UNAVAILABLE' }, 503);
+              return fulfill(route, { data: state.empty ? [] : [offer] });
+            });
+            await page.route('**/api/ticketing/v1/reservations', async route => {
+              if (state.delay) await new Promise(resolve => setTimeout(resolve, state.delay));
+              return fulfill(route, { data: state.empty ? [] : [reservation] });
+            });
+            await page.route('**/api/ticketing/v1/reservations/trv_v2_visual_0001/ticket', route =>
+              fulfill(route, {
+                data: {
+                  code: 'MORRO-V2-VISUAL',
+                  quantity: 2,
+                  amount: { minorUnits: 31800, currency: 'BRL' },
+                  issuedAt: iso(-3000000),
+                  validUntil: offer.endsAt,
+                  qrSvg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><rect width="10" height="10"/></svg>',
+                },
+              }),
+            );
+          }
+
+          async function audit(page, label) {
+            const result = await page.evaluate(() => {
+              const root = document.documentElement;
+              const interactive = Array.from(
+                document.querySelectorAll('button, a[href], input:not([type="hidden"])'),
+              )
+                .filter(node => {
+                  const rect = node.getBoundingClientRect();
+                  const style = getComputedStyle(node);
+                  return rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden';
+                })
+                .map(node => {
+                  const rect = node.getBoundingClientRect();
+                  return {
+                    id: node.id || null,
+                    className: node.className || null,
+                    width: rect.width,
+                    height: rect.height,
+                  };
+                });
+              return {
+                scrollWidth: root.scrollWidth,
+                clientWidth: root.clientWidth,
+                bodyFont: getComputedStyle(document.body).fontFamily,
+                interactive,
+              };
+            });
+            if (result.scrollWidth > result.clientWidth + 1) {
+              throw new Error(label + ' horizontal overflow: ' + JSON.stringify(result));
+            }
+            if (/Inter/i.test(result.bodyFont)) {
+              throw new Error(label + ' leaked Inter font: ' + result.bodyFont);
+            }
+            const undersized = result.interactive.filter(
+              item => item.width < 44 || item.height < 44,
+            );
+            if (undersized.length) {
+              throw new Error(label + ' has undersized targets: ' + JSON.stringify(undersized));
+            }
+            return result;
+          }
+
+          async function readyCase(browser, viewport, suffix, mutate) {
+            const context = await browser.newContext({ viewport });
+            const page = await context.newPage();
+            const errors = [];
+            page.on('pageerror', error => errors.push(error.message));
+            await installRoutes(page, {});
+            await page.goto(origin + '/tickets.html', { waitUntil: 'domcontentloaded' });
+            await page.locator('.offer-card').waitFor({ state: 'visible', timeout: 10000 });
+            await page.locator('.reservation-card').waitFor({ state: 'visible', timeout: 10000 });
+            if (mutate) await mutate(page);
+            const contract = await audit(page, suffix);
+            await page.screenshot({
+              path: '/tmp/ticketing-v2/' + suffix + '.png',
+              fullPage: true,
+              animations: 'disabled',
+            });
+            if (errors.length) throw new Error(suffix + ' page errors: ' + JSON.stringify(errors));
+            evidence.push({ case: suffix, viewport, contract });
+            await context.close();
+          }
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            try {
+              const matrix = [
+                ['360x800', { width: 360, height: 800 }],
+                ['390x844', { width: 390, height: 844 }],
+                ['768x1024', { width: 768, height: 1024 }],
+                ['1440x900', { width: 1440, height: 900 }],
+              ];
+              for (const [name, viewport] of matrix) {
+                await readyCase(browser, viewport, 'ready-' + name);
+              }
+
+              await readyCase(browser, { width: 390, height: 844 }, 'dark-390x844', async page => {
+                await page.evaluate(() => {
+                  document.documentElement.dataset.theme = 'dark';
+                });
+              });
+
+              await readyCase(browser, { width: 390, height: 844 }, 'text-200-390x844', async page => {
+                await page.addStyleTag({ content: 'html { font-size: 200% !important; }' });
+              });
+
+              const forcedContext = await browser.newContext({
+                viewport: { width: 390, height: 844 },
+                forcedColors: 'active',
+              });
+              const forcedPage = await forcedContext.newPage();
+              await installRoutes(forcedPage, {});
+              await forcedPage.goto(origin + '/tickets.html', { waitUntil: 'domcontentloaded' });
+              await forcedPage.locator('.offer-card').waitFor({ state: 'visible', timeout: 10000 });
+              const forcedContract = await audit(forcedPage, 'forced-colors-390x844');
+              await forcedPage.screenshot({
+                path: '/tmp/ticketing-v2/forced-colors-390x844.png',
+                fullPage: true,
+                animations: 'disabled',
+              });
+              evidence.push({ case: 'forced-colors-390x844', contract: forcedContract });
+              await forcedContext.close();
+
+              const loadingContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
+              const loadingPage = await loadingContext.newPage();
+              await installRoutes(loadingPage, { delay: 1500 });
+              await loadingPage.goto(origin + '/tickets.html', { waitUntil: 'domcontentloaded' });
+              await loadingPage.locator('#offers[aria-busy="true"]').waitFor({ state: 'attached', timeout: 3000 });
+              if ((await loadingPage.locator('.ticketing-skeleton-card').count()) < 3) {
+                throw new Error('Ticketing loading skeletons missing');
+              }
+              await loadingPage.screenshot({
+                path: '/tmp/ticketing-v2/loading-390x844.png',
+                fullPage: true,
+                animations: 'disabled',
+              });
+              await loadingContext.close();
+
+              const emptyContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
+              const emptyPage = await emptyContext.newPage();
+              await installRoutes(emptyPage, { empty: true });
+              await emptyPage.goto(origin + '/tickets.html', { waitUntil: 'domcontentloaded' });
+              await emptyPage.locator('#offers .empty').waitFor({ state: 'visible', timeout: 10000 });
+              await audit(emptyPage, 'empty-390x844');
+              await emptyPage.screenshot({
+                path: '/tmp/ticketing-v2/empty-390x844.png',
+                fullPage: true,
+                animations: 'disabled',
+              });
+              await emptyContext.close();
+
+              const errorContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
+              const errorPage = await errorContext.newPage();
+              await installRoutes(errorPage, { error: true });
+              await errorPage.goto(origin + '/tickets.html', { waitUntil: 'domcontentloaded' });
+              await errorPage.locator('#reservation-message').filter({ hasText: 'TICKETING_UNAVAILABLE' }).waitFor({
+                state: 'visible',
+                timeout: 10000,
+              });
+              await errorPage.screenshot({
+                path: '/tmp/ticketing-v2/error-390x844.png',
+                fullPage: true,
+                animations: 'disabled',
+              });
+              await errorContext.close();
+
+              const dialogContext = await browser.newContext({ viewport: { width: 390, height: 500 } });
+              const dialogPage = await dialogContext.newPage();
+              await installRoutes(dialogPage, {});
+              await dialogPage.goto(origin + '/tickets.html', { waitUntil: 'domcontentloaded' });
+              await dialogPage.locator('.reservation-card').waitFor({ state: 'visible', timeout: 10000 });
+              await dialogPage.locator('.reservation-card .md-button--primary').click();
+              await dialogPage.locator('#ticket-dialog[open]').waitFor({ state: 'visible', timeout: 10000 });
+              const dialogState = await dialogPage.locator('#ticket-dialog').evaluate(node => {
+                const rect = node.getBoundingClientRect();
+                return {
+                  height: rect.height,
+                  viewportHeight: innerHeight,
+                  scrollHeight: node.scrollHeight,
+                  clientHeight: node.clientHeight,
+                };
+              });
+              if (dialogState.height > dialogState.viewportHeight + 1) {
+                throw new Error('Ticket dialog exceeds safe viewport: ' + JSON.stringify(dialogState));
+              }
+              await dialogPage.screenshot({
+                path: '/tmp/ticketing-v2/dialog-compact-390x500.png',
+                fullPage: false,
+                animations: 'disabled',
+              });
+              evidence.push({ case: 'dialog-compact-390x500', dialogState });
+              await dialogContext.close();
+
+              writeFileSync('/tmp/ticketing-v2/evidence.json', JSON.stringify(evidence, null, 2));
+            } finally {
+              await browser.close();
+            }
+          })().catch(error => {
+            writeFileSync('/tmp/ticketing-v2/failure.txt', String(error?.stack || error));
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+      - name: Show diagnostics
+        if: failure()
+        run: |
+          cat /tmp/ticketing-v2/failure.txt || true
+          cat /tmp/ticketing-v2/server.log || true
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: ticketing-v2-visual-evidence
+          path: /tmp/ticketing-v2
+          retention-days: 7
+          if-no-files-found: error
