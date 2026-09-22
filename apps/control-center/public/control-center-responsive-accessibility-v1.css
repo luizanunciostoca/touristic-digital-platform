@@ -42,6 +42,14 @@ html {
   scroll-margin: 12px;
 }
 
+.profile-name {
+  min-width: 0;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .notification-badge {
   min-width: 20px;
   max-width: 34px;
