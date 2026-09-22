@@ -1,5 +1,10 @@
 const defaultPageSize = 20;
 
+function normalizeDestinationId(value) {
+  const normalized = String(value ?? "").trim();
+  return normalized && normalized !== "global" ? normalized : "";
+}
+
 function foldSearchText(value) {
   return String(value ?? "")
     .normalize("NFKD")
@@ -81,6 +86,7 @@ export function createUniversalSearchController({
   let requestSequence = 0;
   let currentOffset = 0;
   let lastPayload = null;
+  let activeDestinationId = normalizeDestinationId(destinationSelect?.value);
 
   function options() {
     return Array.from(results.querySelectorAll('[role="option"][data-href]'));
@@ -278,8 +284,7 @@ export function createUniversalSearchController({
   }
 
   function selectedDestinationId() {
-    const value = String(currentDestinationSelect()?.value ?? "").trim();
-    return value && value !== "global" ? value : "";
+    return activeDestinationId;
   }
 
   async function runSearch({ offset = 0 } = {}) {
@@ -405,6 +410,7 @@ export function createUniversalSearchController({
 
   document.addEventListener("change", (event) => {
     if (!event.target?.matches?.("#destination-selector")) return;
+    activeDestinationId = normalizeDestinationId(event.target.value);
     cancelPendingSearch();
     lastPayload = null;
     if (Array.from(input.value.trim()).length >= 2) {
@@ -465,6 +471,7 @@ export function createUniversalSearchController({
       ) {
         select.value = selected;
       }
+      activeDestinationId = normalizeDestinationId(select.value);
     } catch {
       select.dataset.state = "partial";
       select.title =
@@ -490,4 +497,5 @@ export const universalSearchTesting = Object.freeze({
   foldSearchText,
   safeSearchHref,
   highlightedRange,
+  normalizeDestinationId,
 });
