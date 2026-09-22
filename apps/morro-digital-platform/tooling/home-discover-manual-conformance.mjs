@@ -77,6 +77,9 @@ async function waitForReady(page) {
   await page
     .locator("#loading-overlay.fade-out")
     .waitFor({ state: "attached", timeout: 5000 });
+  await page
+    .locator(".md-current-location-marker")
+    .waitFor({ state: "visible", timeout: 5000 });
 }
 
 async function inspectDiscover(page) {
@@ -149,6 +152,10 @@ async function inspectDiscover(page) {
           .getElementById("assistant-input-area")
           ?.querySelector("#configButton"),
       ),
+      currentLocationMarker: rect(".md-current-location-marker"),
+      currentLocationState:
+        document.getElementById("map")?.getAttribute("data-current-location") ??
+        null,
       retiredLauncherCount: document.querySelectorAll(
         ".quick-actions, .mood-button, [data-assistant-floating-trigger]",
       ).length,
@@ -181,6 +188,12 @@ async function assertPureDiscover(page, viewport) {
       !state.voiceVisible &&
       !state.configInsideComposer,
     "Assistant entry is not compact on pure Discover",
+    state,
+  );
+  assert(
+    state.currentLocationState === "visible" &&
+      inside(state.currentLocationMarker, viewport, 2),
+    "Granted current-location marker is missing",
     state,
   );
   assert(
