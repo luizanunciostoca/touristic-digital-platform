@@ -130,8 +130,11 @@ export function installHomeDiscoverNavigation({
       .forEach((item) => {
         const active = item.dataset.homeNavAction === action;
         item.classList.toggle("is-active", active);
-        if (active && item.tagName !== "A") item.setAttribute("aria-current", "page");
-        else item.removeAttribute("aria-current");
+        if (active && item.tagName !== "A") {
+          item.setAttribute("aria-current", "page");
+        } else {
+          item.removeAttribute("aria-current");
+        }
       });
   };
 
