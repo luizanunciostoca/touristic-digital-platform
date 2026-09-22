@@ -113,9 +113,9 @@ Exemplo local baseado em `.env.example`:
 
 ```text
 VITE_MAPBOX_ACCESS_TOKEN=
-VITE_MAPBOX_STYLE=mapbox://styles/mapbox/streets-v12
+VITE_MAPBOX_STYLE=mapbox://styles/mapbox/satellite-streets-v12
 VITE_MAPBOX_CONTAINER_ID=map
-VITE_MAPBOX_INITIAL_ZOOM=13.5
+VITE_MAPBOX_INITIAL_ZOOM=14.8
 ```
 
 Regras obrigatórias:
