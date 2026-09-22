@@ -349,7 +349,10 @@ export function createCrmAdminAdapter(crmApi, authApi) {
             type: "contract",
             id: String(contract.id),
             title: contract.title || String(contract.id),
-            context: [contract.status, contract.leadId && "Lead " + contract.leadId]
+            context: [
+              contract.status,
+              contract.leadId && "Lead " + contract.leadId,
+            ]
               .filter(Boolean)
               .join(" · "),
             href:
@@ -503,10 +506,7 @@ export function createProductsAdminAdapter(ticketingApi) {
         destinationId,
         limit: Math.min(Number(limit) || 20, 50),
       });
-      const data = ownerSearchData(
-        result,
-        "PRODUCTS_ADMIN_SEARCH_UNAVAILABLE",
-      );
+      const data = ownerSearchData(result, "PRODUCTS_ADMIN_SEARCH_UNAVAILABLE");
       return Object.freeze(
         data.flatMap(({ offer, businessId, availableQuantity }) => [
           Object.freeze({
@@ -745,10 +745,7 @@ export function createContentAdminAdapter(contentRuntime) {
         destinationId,
         limit: Math.min(Number(limit) || 20, 50),
       });
-      const data = ownerSearchData(
-        result,
-        "CONTENT_ADMIN_SEARCH_UNAVAILABLE",
-      );
+      const data = ownerSearchData(result, "CONTENT_ADMIN_SEARCH_UNAVAILABLE");
       return Object.freeze(
         data.map((document) =>
           Object.freeze({
