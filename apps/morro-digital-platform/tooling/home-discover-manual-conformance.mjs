@@ -131,6 +131,7 @@ async function inspectDiscover(page) {
       map: rect("#map"),
       dock: rect("#unified-assistant-dock"),
       messageRegion: rect("#assistant-messages:not(.hidden)"),
+      categoryRail: rect("#assistant-category-rail"),
       nav: rect("#home-bottom-navigation"),
       composer: rect("#assistant-input-area"),
       globe: rect("#toggle-globe-view"),
@@ -161,10 +162,37 @@ async function inspectDiscover(page) {
       unifiedComposition:
         document.getElementById("assistant-input-area")?.parentElement?.id ===
           "unified-assistant-dock" &&
+        document.getElementById("assistant-category-rail")?.parentElement?.id ===
+          "unified-assistant-dock" &&
         document.getElementById("home-bottom-navigation")?.parentElement?.id ===
           "unified-assistant-dock" &&
         document.getElementById("assistant-messages")?.parentElement?.id ===
           "unified-assistant-dock",
+      categoryRailContract: (() => {
+        const rail = document.querySelector(
+          "#assistant-category-rail .md-assistant-category-scroll",
+        );
+        const chips = Array.from(
+          document.querySelectorAll("#assistant-category-rail [data-assistant-category]"),
+        );
+        if (!(rail instanceof HTMLElement)) return null;
+        const style = getComputedStyle(rail);
+        return {
+          count: chips.length,
+          overflowX: style.overflowX,
+          scrollSnapType: style.scrollSnapType,
+          scrollWidth: rail.scrollWidth,
+          clientWidth: rail.clientWidth,
+          targets: chips.map((chip) => {
+            const box = chip.getBoundingClientRect();
+            return {
+              value: chip.getAttribute("data-assistant-category"),
+              width: box.width,
+              height: box.height,
+            };
+          }),
+        };
+      })(),
       messageMaxHeight: (() => {
         const node = document.getElementById("assistant-messages");
         if (!(node instanceof HTMLElement)) return null;
@@ -210,6 +238,19 @@ async function assertPureDiscover(page, viewport) {
     state,
   );
   assert(
+    state.categoryRailContract &&
+      state.categoryRailContract.count === 10 &&
+      ["auto", "scroll"].includes(state.categoryRailContract.overflowX) &&
+      state.categoryRailContract.scrollSnapType !== "none" &&
+      state.categoryRailContract.scrollWidth > state.categoryRailContract.clientWidth &&
+      state.categoryRailContract.targets.every(
+        (target) => target.width >= 44 && target.height >= 44,
+      ),
+    "Unified Assistant category rail lost horizontal-scroll/touch-target contract",
+    state.categoryRailContract,
+  );
+
+  assert(
     state.currentLocationState === "visible" &&
       state.currentLocationMarker &&
       (viewport.width > viewport.height ||
@@ -227,6 +268,7 @@ async function assertPureDiscover(page, viewport) {
     weather: state.weather,
     map: state.map,
     dock: state.dock,
+    categoryRail: state.categoryRail,
     nav: state.nav,
     composer: state.composer,
     globe: state.globe,
@@ -327,11 +369,13 @@ async function verifyBoundedAssistantMessage(page) {
   const result = await page.evaluate(() => {
     const dialog = document.getElementById("assistant-messages");
     const area = dialog?.querySelector(".messages-area");
+    const categories = document.getElementById("assistant-category-rail");
     const composer = document.getElementById("assistant-input-area");
     const nav = document.getElementById("home-bottom-navigation");
     if (
       !(dialog instanceof HTMLElement) ||
       !(area instanceof HTMLElement) ||
+      !(categories instanceof HTMLElement) ||
       !(composer instanceof HTMLElement) ||
       !(nav instanceof HTMLElement)
     ) {
@@ -341,6 +385,7 @@ async function verifyBoundedAssistantMessage(page) {
     return {
       messageHeight: messageRect.height,
       messageScrolls: area.scrollHeight > area.clientHeight,
+      categoriesVisible: categories.getBoundingClientRect().height > 0,
       composerVisible: composer.getBoundingClientRect().height > 0,
       navVisible: nav.getBoundingClientRect().height > 0,
     };
@@ -349,6 +394,7 @@ async function verifyBoundedAssistantMessage(page) {
   assert(
     result.messageHeight <= 114 &&
       result.messageScrolls &&
+      result.categoriesVisible &&
       result.composerVisible &&
       result.navVisible,
     "Long Assistant response escaped bounded message region",
