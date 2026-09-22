@@ -23,7 +23,7 @@ RUN set -eux; \
     gosu --version; \
     gosu nobody true; \
     microdnf remove -y mysql-shell; \
-    microdnf update -y openssl openssl-libs libevent; \
+    microdnf update -y openssl openssl-libs libevent curl libcurl; \
     microdnf clean all
 
 COPY tooling/render/mysql-staging/01-init-databases.sh /docker-entrypoint-initdb.d/01-init-databases.sh
