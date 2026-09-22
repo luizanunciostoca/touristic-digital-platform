@@ -938,7 +938,9 @@ body[data-md-mode="navigation"] .navigation-summary-metrics .metric {
   gap: var(--md-space-1);
 }
 
-body[data-md-mode="navigation"] .navigation-summary-metrics .metric:nth-child(2) {
+body[data-md-mode="navigation"]
+  .navigation-summary-metrics
+  .metric:nth-child(2) {
   order: -1;
 }
 
