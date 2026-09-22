@@ -117,16 +117,16 @@ export class MySqlCheckoutAccessRepository implements CheckoutAccessRepositoryPo
     }
 
     const cursorClause = afterOrderId ? " AND order_id > ?" : "";
-    const parameters: Array<string | number> = [destinationId];
+    const parameters: string[] = [destinationId];
     if (afterOrderId) parameters.push(afterOrderId);
-    parameters.push(limit + 1);
+    const sqlLimit = limit + 1;
 
     const [rows] = await this.pool.execute<CheckoutAccessRow[]>(
       `SELECT ${ACCESS_COLUMNS}
        FROM ordering_checkout_access
        WHERE destination_id = ?${cursorClause}
        ORDER BY order_id
-       LIMIT ?`,
+       LIMIT ${sqlLimit}`,
       parameters,
     );
     const records = Object.freeze(rows.slice(0, limit).map(fromRow));
