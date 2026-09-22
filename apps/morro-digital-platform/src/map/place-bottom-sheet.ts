@@ -92,6 +92,7 @@ const placeUiCopy = Object.freeze({
     loading: "Carregando detalhes do local…",
     unavailable: "Alguns detalhes do local estão indisponíveis no momento.",
     rating: "Avaliação",
+    more: "Mais opções",
   },
   en: {
     save: "Save",
@@ -100,6 +101,7 @@ const placeUiCopy = Object.freeze({
     loading: "Loading place details…",
     unavailable: "Some place details are currently unavailable.",
     rating: "Rating",
+    more: "More options",
   },
   es: {
     save: "Guardar",
@@ -108,6 +110,7 @@ const placeUiCopy = Object.freeze({
     loading: "Cargando detalles del lugar…",
     unavailable: "Algunos detalles del lugar no están disponibles ahora.",
     rating: "Valoración",
+    more: "Más opciones",
   },
   he: {
     save: "שמירה",
@@ -116,6 +119,7 @@ const placeUiCopy = Object.freeze({
     loading: "טוען פרטי מקום…",
     unavailable: "חלק מפרטי המקום אינם זמינים כרגע.",
     rating: "דירוג",
+    more: "אפשרויות נוספות",
   },
 } satisfies Readonly<
   Record<
@@ -127,28 +131,27 @@ const placeUiCopy = Object.freeze({
       loading: string;
       unavailable: string;
       rating: string;
+      more: string;
     }>
   >
 >);
 
-const stateGlyph: Readonly<Record<PlaceBottomSheetState, string>> =
-  Object.freeze({
-    peek: "⌄",
-    half: "—",
-    full: "⌃",
-  });
-function createStateButton(
+function createStepButton(
   document: Document,
-  state: PlaceBottomSheetState,
+  direction: "up" | "down",
   locale: AssistantLocale,
 ): HTMLButtonElement {
   const button = document.createElement("button");
   button.type = "button";
   button.className = "md-icon-button place-bottom-sheet-state-button";
-  button.dataset.sheetStateTarget = state;
-  button.setAttribute("aria-label", copy[locale].states[state]);
-  button.title = copy[locale].states[state];
-  button.textContent = stateGlyph[state];
+  button.dataset.sheetStep = direction;
+  button.setAttribute(
+    "aria-label",
+    direction === "up" ? copy[locale].states.full : copy[locale].states.peek,
+  );
+  button.title =
+    direction === "up" ? copy[locale].states.full : copy[locale].states.peek;
+  button.textContent = direction === "up" ? "⌃" : "⌄";
   return button;
 }
 
@@ -237,7 +240,26 @@ export function installPlaceBottomSheet(
   const primary = document.createElement("div");
   primary.className = "place-bottom-sheet-primary";
 
-  body.append(meta, title, description, rating, status, tags, actions, primary);
+  const overflow = document.createElement("details");
+  overflow.className = "place-bottom-sheet-overflow hidden";
+  const overflowSummary = document.createElement("summary");
+  overflowSummary.className =
+    "md-button md-button--secondary place-bottom-sheet-overflow-summary";
+  const overflowActions = document.createElement("div");
+  overflowActions.className = "place-bottom-sheet-overflow-actions";
+  overflow.append(overflowSummary, overflowActions);
+
+  body.append(
+    meta,
+    title,
+    description,
+    rating,
+    status,
+    tags,
+    actions,
+    primary,
+    overflow,
+  );
   content.appendChild(body);
   sheet.append(toolbar, content);
   document.body.appendChild(sheet);
@@ -323,13 +345,13 @@ export function installPlaceBottomSheet(
     if (destroyed) return;
     state = nextState;
     sheet.dataset.sheetState = nextState;
+    const order: readonly PlaceBottomSheetState[] = ["peek", "half", "full"];
+    const current = order.indexOf(nextState);
     for (const child of Array.from(stateControls.children)) {
       if (!(child instanceof HTMLButtonElement)) continue;
-      if (!child.dataset.sheetStateTarget) continue;
-      child.setAttribute(
-        "aria-pressed",
-        String(child.dataset.sheetStateTarget === nextState),
-      );
+      const direction = child.dataset.sheetStep;
+      if (direction === "down") child.disabled = current <= 0;
+      if (direction === "up") child.disabled = current >= order.length - 1;
     }
   };
 
@@ -363,9 +385,9 @@ export function installPlaceBottomSheet(
 
   const rebuildStateControls = (locale: AssistantLocale): void => {
     stateControls.replaceChildren();
-    for (const target of ["peek", "half", "full"] as const) {
-      const button = createStateButton(document, target, locale);
-      button.addEventListener("click", () => setState(target));
+    for (const direction of ["down", "up"] as const) {
+      const button = createStepButton(document, direction, locale);
+      button.addEventListener("click", () => dragStep(direction));
       stateControls.appendChild(button);
     }
     setState(state);
@@ -437,6 +459,9 @@ export function installPlaceBottomSheet(
     tags.classList.toggle("hidden", tags.childElementCount === 0);
 
     actions.replaceChildren();
+    overflow.open = false;
+    overflowActions.replaceChildren();
+    overflowSummary.textContent = placeUiCopy[next.locale].more;
     const visibleActions: V1ExplorePlaceActionOption[] = [...next.actions];
     const hasValue = (value: string): boolean =>
       visibleActions.some(
@@ -461,6 +486,10 @@ export function installPlaceBottomSheet(
       );
     }
 
+    const essentialValues = new Set([
+      "como chegar",
+      "adicionar aos favoritos",
+    ]);
     for (const action of visibleActions) {
       const button = document.createElement("button");
       button.type = "button";
@@ -473,8 +502,12 @@ export function installPlaceBottomSheet(
         suspendForAssistantAction();
         options.onAction(action.value);
       });
-      actions.appendChild(button);
+      const destination = essentialValues.has(action.value.trim().toLowerCase())
+        ? actions
+        : overflowActions;
+      destination.appendChild(button);
     }
+    overflow.classList.toggle("hidden", overflowActions.childElementCount === 0);
 
     const shareButton = document.createElement("button");
     shareButton.type = "button";
