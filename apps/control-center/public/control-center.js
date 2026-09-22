@@ -1,4 +1,14 @@
 import { createDashboardAuthClient } from "@touristic/auth-browser";
+import {
+  emptyState,
+  enhanceControlCenterSurface,
+  errorState,
+  escapeHtml,
+  loadingState,
+  partialState,
+  sectionHeader,
+  statusBadge,
+} from "./control-center-primitives.js";
 
 const navGroups = [
   ["Principal", [["overview", "Visão Global", "◎"]]],
@@ -126,6 +136,7 @@ const searchResults = document.querySelector("#search-results");
 const supportBanner = document.querySelector("#support-banner");
 const supportContext = document.querySelector("#support-context");
 const menuButton = document.querySelector("#menu-button");
+const sidebarBackdrop = document.querySelector("#sidebar-backdrop");
 
 const auth = createDashboardAuthClient({
   fetchFn: globalThis.fetch.bind(globalThis),
@@ -186,15 +197,6 @@ function saveControlCenterPreferences(preferences) {
   );
   applyControlCenterPreferences(normalized);
   return normalized;
-}
-
-function escapeHtml(value) {
-  return String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
 }
 
 async function api(path, init = {}) {
@@ -316,20 +318,6 @@ function setHeading(view) {
   breadcrumb.textContent = `Morro Digital → ${destinationLabel} → ${label}`;
 }
 
-function statusBadge(value) {
-  const normalized =
-    value === "available" ||
-    value === "pass" ||
-    value === "success" ||
-    value === "ready" ||
-    value === "active"
-      ? "pass"
-      : value === "partial" || value === "runtime-projection"
-        ? "partial"
-        : "gap";
-  return `<span class="badge ${normalized}">${escapeHtml(value)}</span>`;
-}
-
 function renderOverview() {
   const dashboard = state.dashboard;
   const health = dashboard.health ?? { checks: [] };
@@ -359,10 +347,10 @@ function renderOverview() {
     </div>
     <div class="grid two-col">
       <section class="card section-card">
-        <div class="section-title">
-          <h2>Saúde operacional</h2>
-          <span class="chip">${escapeHtml(health.readiness ?? "unknown")}</span>
-        </div>
+        ${sectionHeader({
+          title: "Saúde operacional",
+          meta: `<span class="chip">${escapeHtml(health.readiness ?? "unknown")}</span>`,
+        })}
         <div class="health-list">
           ${
             (health.checks ?? [])
@@ -373,12 +361,17 @@ function renderOverview() {
                   <small>${escapeHtml(check.detail ?? check.status)}</small>
                 </div>`,
               )
-              .join("") || '<div class="empty">Nenhum check disponível.</div>'
+              .join("") ||
+            emptyState(
+              "Nenhum check disponível.",
+              "Os checks aparecerão quando a fonte operacional responder.",
+              { compact: true },
+            )
           }
         </div>
       </section>
       <section class="card section-card">
-        <div class="section-title"><h2>Contratos administrativos</h2></div>
+        ${sectionHeader({ title: "Contratos administrativos" })}
         <div class="module-list">
           ${Object.entries(dashboard.modules ?? {})
             .map(
@@ -3004,14 +2997,10 @@ async function renderContent(contentId) {
 }
 
 function renderContractGap(view) {
-  content.innerHTML = `
-    <section class="card empty">
-      <strong>Contrato administrativo ainda não registrado</strong>
-      <span>
-        O Control Center não consulta tabelas deste domínio diretamente.
-        A integração de <b>${escapeHtml(view)}</b> será feita pelo adapter oficial do domínio.
-      </span>
-    </section>`;
+  content.innerHTML = partialState(
+    "Contrato administrativo ainda não registrado",
+    `O Control Center não consulta tabelas deste domínio diretamente. A integração de ${view} será feita pelo adapter oficial do domínio.`,
+  );
 }
 
 async function renderAudit() {
@@ -3238,7 +3227,7 @@ async function render(view, detail) {
   setHeading(view);
   delete content.dataset.renderedView;
   content.setAttribute("aria-busy", "true");
-  content.innerHTML = '<section class="card empty">Carregando…</section>';
+  content.innerHTML = loadingState();
 
   try {
     if (view === "overview") renderOverview();
@@ -3259,12 +3248,12 @@ async function render(view, detail) {
     else if (view === "support") await renderSupport();
     else renderContractGap(view);
   } catch (error) {
-    content.innerHTML = `
-      <section class="card empty">
-        <strong>Não foi possível carregar este módulo</strong>
-        <span>${escapeHtml(error.body?.error || error.message)}</span>
-      </section>`;
+    content.innerHTML = errorState(
+      "Não foi possível carregar este módulo",
+      error.body?.error || error.message || "Falha administrativa inesperada.",
+    );
   } finally {
+    enhanceControlCenterSurface(content);
     content.dataset.renderedView = view;
     content.setAttribute("aria-busy", "false");
   }
@@ -3351,6 +3340,14 @@ searchResults.addEventListener("click", (event) => {
   searchInput.value = "";
 });
 
+function setMenuOpen(open, { restoreFocus = false } = {}) {
+  const next = Boolean(open);
+  app.classList.toggle("menu-open", next);
+  menuButton?.setAttribute("aria-expanded", String(next));
+  if (sidebarBackdrop) sidebarBackdrop.hidden = !next;
+  if (!next && restoreFocus) menuButton?.focus();
+}
+
 document.addEventListener("keydown", (event) => {
   if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
     event.preventDefault();
@@ -3359,6 +3356,9 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
     searchResults.hidden = true;
     setSearchExpanded(false);
+    if (app.classList.contains("menu-open")) {
+      setMenuOpen(false, { restoreFocus: true });
+    }
   }
 });
 
@@ -3380,7 +3380,7 @@ nav.addEventListener("click", (event) => {
     if (targetView) globalThis.location.hash = `#${targetView}`;
   }
 
-  app.classList.remove("menu-open");
+  setMenuOpen(false);
 });
 
 document
@@ -3393,7 +3393,12 @@ document
     }
   });
 
-menuButton?.addEventListener("click", () => app.classList.toggle("menu-open"));
+menuButton?.addEventListener("click", () =>
+  setMenuOpen(!app.classList.contains("menu-open")),
+);
+sidebarBackdrop?.addEventListener("click", () =>
+  setMenuOpen(false, { restoreFocus: true }),
+);
 
 document
   .querySelector("#logout-button")

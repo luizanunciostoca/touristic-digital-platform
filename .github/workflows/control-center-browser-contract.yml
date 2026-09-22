@@ -12,6 +12,7 @@ on:
       - "apps/morro-digital-platform/tooling/auth-api.mjs"
       - "apps/morro-digital-platform/tooling/business-api.mjs"
       - "apps/morro-digital-platform/tooling/crm-api.mjs"
+      - "apps/morro-digital-platform/tooling/control-center-responsive-browser-contract.mjs"
       - "apps/morro-digital-platform/tooling/dev-server.mjs"
       - "packages/auth/**"
       - "packages/auth-browser/**"
@@ -32,6 +33,7 @@ on:
       - "apps/morro-digital-platform/tooling/auth-api.mjs"
       - "apps/morro-digital-platform/tooling/business-api.mjs"
       - "apps/morro-digital-platform/tooling/crm-api.mjs"
+      - "apps/morro-digital-platform/tooling/control-center-responsive-browser-contract.mjs"
       - "apps/morro-digital-platform/tooling/dev-server.mjs"
       - "packages/auth/**"
       - "packages/auth-browser/**"
@@ -429,9 +431,10 @@ jobs:
 
               for (const viewport of [
                 { width: 1440, height: 900, label: 'desktop-1440' },
-                { width: 1280, height: 900, label: 'desktop-1280' },
-                { width: 1024, height: 900, label: 'desktop-1024' },
+                { width: 1280, height: 800, label: 'desktop-1280' },
+                { width: 1024, height: 768, label: 'desktop-1024' },
                 { width: 768, height: 1024, label: 'tablet-768' },
+                { width: 430, height: 932, label: 'mobile-430' },
                 { width: 390, height: 844, label: 'mobile-390' },
               ]) {
                 await page.setViewportSize({ width: viewport.width, height: viewport.height });
@@ -548,6 +551,7 @@ jobs:
           node apps/morro-digital-platform/tooling/control-center-commerce-browser-contract.mjs
           node apps/morro-digital-platform/tooling/control-center-ticketing-browser-contract.mjs
           node apps/morro-digital-platform/tooling/control-center-accessibility-browser-contract.mjs
+          node apps/morro-digital-platform/tooling/control-center-responsive-browser-contract.mjs
       - name: Show Control Center diagnostics
         if: failure()
         run: cat /tmp/control-center-server.log || true
@@ -558,6 +562,7 @@ jobs:
           path: |
             /tmp/control-center-browser-evidence.json
             /tmp/control-center-accessibility-evidence.json
+            /tmp/control-center-responsive-evidence.json
             /tmp/control-center-visual-*.png
           retention-days: 3
           if-no-files-found: ignore

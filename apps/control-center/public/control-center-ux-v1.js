@@ -1,4 +1,12 @@
 import { createDashboardAuthClient } from "@touristic/auth-browser";
+import {
+  enhanceControlCenterSurface,
+  enhanceDataTables,
+  entityHeader,
+  errorState,
+  escapeHtml,
+  statusBadge,
+} from "./control-center-primitives.js";
 
 const auth = createDashboardAuthClient({
   fetchFn: globalThis.fetch.bind(globalThis),
@@ -29,15 +37,6 @@ const state = {
   destinationId: "global",
   generation: 0,
 };
-
-function escapeHtml(value) {
-  return String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
 
 async function api(path) {
   const response = await auth.secureFetch("/api/admin/v1" + path, {
@@ -98,24 +97,6 @@ function formattedDate() {
     month: "long",
     year: "numeric",
   }).format(new Date());
-}
-
-function statusBadge(value) {
-  const normalized = String(value || "").toLowerCase();
-  const cls = ["active", "available", "ready", "pass", "success"].includes(
-    normalized,
-  )
-    ? "pass"
-    : ["warning", "partial", "runtime-projection"].includes(normalized)
-      ? "partial"
-      : "gap";
-  return (
-    '<span class="badge ' +
-    cls +
-    '">' +
-    escapeHtml(value || "indisponível") +
-    "</span>"
-  );
 }
 
 function formatMoney(money) {
@@ -554,12 +535,19 @@ async function renderHome() {
     }
   } catch (error) {
     if (generation !== state.generation) return;
-    contentRoot.innerHTML =
-      '<section class="card state-panel"><strong>Não foi possível carregar a visão operacional</strong><p>Os dados administrativos não estão disponíveis agora. Tente novamente ou consulte Sistema.</p><div class="state-actions"><button id="ux-home-retry" class="secondary-button" type="button">Tentar novamente</button><a class="primary-button" href="#system">Ver sistema</a></div></section>';
+    contentRoot.innerHTML = errorState(
+      "Não foi possível carregar a visão operacional",
+      "Os dados administrativos não estão disponíveis agora. Tente novamente ou consulte Sistema.",
+      {
+        actions:
+          '<button id="ux-home-retry" class="secondary-button" type="button">Tentar novamente</button><a class="primary-button" href="#system">Ver sistema</a>',
+      },
+    );
     document
       .querySelector("#ux-home-retry")
       ?.addEventListener("click", () => void renderHome());
   } finally {
+    enhanceControlCenterSurface(contentRoot);
     contentRoot.setAttribute("aria-busy", "false");
   }
 }
@@ -615,47 +603,22 @@ function entity360Header(view, detail) {
   };
   const config = configs[view];
   if (!config) return;
-  const section = document.createElement("section");
-  section.className = "card entity-header";
-  section.dataset.uxV1 = "true";
-  section.innerHTML =
-    '<div class="entity-header__top"><div><h2>' +
-    escapeHtml(config[0] + " · " + decodeURIComponent(detail)) +
-    '</h2><div class="entity-header__meta"><span>' +
-    escapeHtml(
-      state.destinationId === "global"
-        ? "Visão Global"
-        : currentDestinationName(),
-    ) +
-    '</span><span>Visão 360° administrativa</span></div></div></div><nav class="entity-tabs" aria-label="Visão 360°">' +
-    config[1]
-      .map(
-        (tab, index) =>
-          '<span class="entity-tab ' +
-          (index === 0 ? "active" : "") +
-          '">' +
-          escapeHtml(tab) +
-          "</span>",
-      )
-      .join("") +
-    "</nav>";
-  contentRoot.prepend(section);
+  contentRoot.insertAdjacentHTML(
+    "afterbegin",
+    entityHeader({
+      entityType: config[0],
+      entityId: decodeURIComponent(detail),
+      scope:
+        state.destinationId === "global"
+          ? "Visão Global"
+          : currentDestinationName(),
+      tabs: config[1],
+    }),
+  );
 }
-
 function responsiveTables() {
   if (!contentRoot) return;
-  contentRoot.querySelectorAll(".table-wrap").forEach((wrap) => {
-    wrap.classList.add("responsive-cards");
-    const headers = [...wrap.querySelectorAll("thead th")].map((th) =>
-      th.textContent.trim(),
-    );
-    wrap.querySelectorAll("tbody tr").forEach((row) => {
-      [...row.children].forEach((cell, index) => {
-        if (cell.tagName === "TD" && headers[index])
-          cell.dataset.label = headers[index];
-      });
-    });
-  });
+  enhanceDataTables(contentRoot);
 }
 
 function failClosedDestinationScope(view) {
