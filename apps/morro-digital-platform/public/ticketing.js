@@ -15,7 +15,7 @@ const presentationLocale = commerceIntlLocale(localeResolution.locale);
 const copy = getTicketingPresentationCopy(presentationLocale);
 applyCommerceDocumentCopy(document, "ticketing", presentationLocale);
 const browserAnalytics = installMorroBrowserAnalytics({ document, window });
-installBrowserAnalyticsConsentPreferences({
+const privacyPreferences = installBrowserAnalyticsConsentPreferences({
   document,
   controller: browserAnalytics,
 });
@@ -25,15 +25,22 @@ const state = {
   csrfToken: "",
   offers: [],
   selectedOffer: null,
+  selectedDate: "",
+  quote: null,
+  quoteRequest: 0,
+  submitting: false,
 };
 
 const checkoutStorageKey = "morro_ticketing_checkout_v1";
+const pendingCheckoutStorageKey = "morro_ticketing_pending_checkout_v1";
+const reservationAttemptStorageKey = "morro_ticketing_reservation_attempt_v1";
 const analyticsMilestonesStorageKey = "morro_ticketing_analytics_v1";
 const analyticsContextStorageKey = "morro_ticketing_analytics_context_v1";
 const canonicalCheckoutPath = "/api/payments/v1/checkouts";
 const commerceSessionPath = "/api/ticketing/v1/consumer-session";
 const elements = {
   offers: document.querySelector("#offers"),
+  dateSelector: document.querySelector("#date-selector"),
   reservations: document.querySelector("#reservations"),
   form: document.querySelector("#reservation-form"),
   inventoryId: document.querySelector("#inventory-id"),
@@ -57,6 +64,7 @@ const elements = {
   heroTitle: document.querySelector("#ticketing-title"),
   productLead: document.querySelector("#product-lead"),
   productLocation: document.querySelector("#product-location"),
+  productRating: document.querySelector("#product-rating"),
   productDuration: document.querySelector("#product-duration"),
   productAvailability: document.querySelector("#product-availability"),
   selectionSummary: document.querySelector("#selection-summary"),
@@ -70,6 +78,7 @@ const elements = {
   quantityIncrease: document.querySelector("#quantity-increase"),
   returnLink: document.querySelector("[data-ticketing-return]"),
   identityPanel: document.querySelector("#identity-panel"),
+  privacySettings: document.querySelector("#privacy-settings-button"),
 };
 
 function readSessionJson(key, fallback) {
@@ -200,41 +209,153 @@ function heroImageFor(offer) {
   return "/images/fotos/farol_do_morro1.jpg";
 }
 
-function estimatedSubtotal(offer, quantity) {
-  if (!offer?.unitAmount || !Number.isSafeInteger(quantity) || quantity < 1)
-    return null;
-  const minorUnits = Number(offer.unitAmount.minorUnits);
-  if (!Number.isSafeInteger(minorUnits)) return null;
-  return {
-    minorUnits: minorUnits * quantity,
-    currency: offer.unitAmount.currency,
-  };
+function friendlyError(error, fallback = copy.createReservationFailed) {
+  const code = text(error?.message);
+  if (code.includes("EXHAUSTED")) return copy.soldOut;
+  if (code.includes("QUANTITY_LIMIT")) return copy.fillFields;
+  if (code.includes("INVENTORY_UNAVAILABLE")) return copy.static.unavailable;
+  if (code.includes("CURRENCY_MISMATCH")) return copy.static.currencyMismatch;
+  if (code.includes("EXPIRED")) return copy.static.quoteExpired;
+  if (code.includes("ATTEMPT_PENDING"))
+    return copy.static.pendingReservationAttempt;
+  if (
+    code.includes("FEATURE_DISABLED") ||
+    code.includes("UNAVAILABLE") ||
+    error?.status === 503
+  )
+    return copy.ticketingUnavailable;
+  if (error?.status === 409) return copy.static.priceChanged;
+  if (error?.status === 400) return copy.fillFields;
+  return fallback;
+}
+
+function quoteIdentity(quote) {
+  if (!quote) return "";
+  return [
+    quote.inventoryId,
+    quote.quantity,
+    quote.pricingVersion,
+    quote.totalAmount?.minorUnits,
+    quote.totalAmount?.currency,
+  ].join(":");
 }
 
 function updatePurchaseSummary() {
-  const offer = state.selectedOffer;
-  if (!offer) return;
-  const quantity = Math.max(1, Number(elements.quantity.value) || 1);
-  elements.summaryUnitPrice.textContent = money(offer.unitAmount);
-  elements.summaryQuantity.textContent = String(quantity);
-  elements.summarySubtotal.textContent = money(
-    estimatedSubtotal(offer, quantity),
+  const quote = state.quote;
+  const minimum = Math.max(1, Number(elements.quantity.min) || 1);
+  const maximum = Math.max(minimum, Number(elements.quantity.max) || minimum);
+  const quantity = Math.max(
+    minimum,
+    Number(elements.quantity.value) || minimum,
   );
-  elements.quoteBadge.textContent = offer.pricingVersion
-    ? `${copy.static.inventoryPrice} · ${offer.pricingVersion}`
-    : copy.static.inventoryPrice;
+  elements.summaryQuantity.textContent = String(quantity);
+  elements.summaryUnitPrice.textContent = quote ? money(quote.unitAmount) : "—";
+  elements.summarySubtotal.textContent = quote ? money(quote.totalAmount) : "—";
+  elements.quoteBadge.textContent = quote
+    ? copy.static.quoteConfirmed
+    : copy.static.confirmingValue;
+  elements.quantityDecrease.disabled = quantity <= minimum;
+  elements.quantityIncrease.disabled = quantity >= maximum;
+}
+
+async function refreshQuote({ announce = false } = {}) {
+  const offer = state.selectedOffer;
+  if (!offer) return null;
+  const quantity = Number(elements.quantity.value);
+  if (!Number.isSafeInteger(quantity) || quantity < 1) {
+    state.quote = null;
+    updatePurchaseSummary();
+    elements.reserve.disabled = true;
+    return null;
+  }
+  const requestId = ++state.quoteRequest;
+  state.quote = null;
+  elements.reserve.disabled = true;
+  elements.reserve.textContent = copy.static.confirmingAvailability;
+  updatePurchaseSummary();
+  try {
+    const payload = await api("/api/ticketing/v1/quote", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ inventoryId: offer.id, quantity }),
+    });
+    if (
+      requestId !== state.quoteRequest ||
+      state.selectedOffer?.id !== offer.id
+    )
+      return null;
+    const quote = payload.data;
+    if (
+      !quote ||
+      quote.inventoryId !== offer.id ||
+      quote.quantity !== quantity ||
+      !quote.unitAmount ||
+      !quote.totalAmount
+    ) {
+      throw new Error("QUOTE_RESPONSE_INVALID");
+    }
+    if (
+      quote.unitAmount.currency !== quote.totalAmount.currency ||
+      (offer.unitAmount?.currency &&
+        quote.unitAmount.currency !== offer.unitAmount.currency)
+    ) {
+      throw new Error("QUOTE_CURRENCY_MISMATCH");
+    }
+    state.quote = quote;
+    const maximum = Math.max(
+      1,
+      Math.min(
+        Number(quote.maxPerReservation) || 1,
+        Number(quote.availableQuantity) || 1,
+      ),
+    );
+    elements.quantity.max = String(maximum);
+    updatePurchaseSummary();
+    const pendingCheckout = pendingCheckoutState();
+    elements.reserve.disabled = state.submitting;
+    elements.reserve.textContent = state.submitting
+      ? copy.static.finalizing
+      : pendingCheckout
+        ? copy.static.resumePayment
+        : copy.static.reserveAndPay;
+    if (announce) setMessage(copy.static.priceUpdated);
+    return quote;
+  } catch (error) {
+    if (requestId !== state.quoteRequest) return null;
+    state.quote = null;
+    updatePurchaseSummary();
+    elements.reserve.disabled = true;
+    elements.reserve.textContent = copy.static.reserveAndPay;
+    setMessage(friendlyError(error), true);
+    elements.refresh.hidden = false;
+    return null;
+  }
 }
 
 function updateProductPresentation(offer) {
   elements.heroTitle.textContent = offer.label || productKindLabel(offer);
-  elements.productLead.textContent = `${productKindLabel(offer)} · ${dateTime(offer.startsAt)}`;
+  elements.productLead.textContent = `${productKindLabel(offer)} · ${dateTime(
+    offer.startsAt,
+  )}`;
   elements.productLocation.textContent = destinationLabel(offer);
+  const rating = Number(offer.rating ?? offer.product?.rating);
+  elements.productRating.hidden = !Number.isFinite(rating) || rating <= 0;
+  elements.productRating.textContent = elements.productRating.hidden
+    ? ""
+    : `★ ${rating.toFixed(1)}`;
   const duration = durationLabel(offer);
   elements.productDuration.hidden = !duration;
   elements.productDuration.textContent = duration;
   elements.productAvailability.hidden = false;
-  elements.productAvailability.textContent = copy.availableCount(
-    offer.availableQuantity,
+  elements.productAvailability.textContent =
+    offer.sellable === false
+      ? copy.static.unavailable
+      : offer.availableQuantity > 0
+        ? copy.availableCount(offer.availableQuantity)
+        : copy.soldOut;
+  elements.productAvailability.classList.toggle(
+    "md-badge--success",
+    offer.sellable !== false && offer.availableQuantity > 0,
   );
   elements.hero.style.setProperty(
     "--ticketing-hero-image",
@@ -378,6 +499,7 @@ function setMessage(message, error = false) {
 
 function selectOffer(offer, { scroll = false } = {}) {
   state.selectedOffer = offer;
+  state.quote = null;
   emitAnalyticsOnce(
     `offer:${offer.id}`,
     ANALYTICS_TRANSACTION_EVENTS.offerSelected,
@@ -393,9 +515,11 @@ function selectOffer(offer, { scroll = false } = {}) {
   );
   if (Number(elements.quantity.value) > Number(elements.quantity.max))
     elements.quantity.value = "1";
-  elements.reserve.disabled = offer.availableQuantity < 1;
+  elements.reserve.disabled =
+    offer.sellable === false || offer.availableQuantity < 1;
   elements.identityPanel.hidden = false;
   updateProductPresentation(offer);
+  void refreshQuote();
   for (const card of elements.offers.querySelectorAll(".offer-card")) {
     card.classList.toggle("is-selected", card.dataset.inventoryId === offer.id);
   }
@@ -447,17 +571,103 @@ function renderReservationSkeletons() {
   }
 }
 
+function dateKey(offer) {
+  const value = new Date(offer?.startsAt || "");
+  if (!Number.isFinite(value.getTime())) return "";
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Bahia",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(value);
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+  return year && month && day ? `${year}-${month}-${day}` : "";
+}
+
+function dateLabel(key) {
+  const value = new Date(`${key}T12:00:00-03:00`);
+  return new Intl.DateTimeFormat(presentationLocale, {
+    weekday: "short",
+    day: "2-digit",
+    month: "short",
+  }).format(value);
+}
+
+function renderDateSelector() {
+  const groups = new Map();
+  for (const offer of state.offers) {
+    const key = dateKey(offer);
+    if (!key) continue;
+    const group = groups.get(key) || [];
+    group.push(offer);
+    groups.set(key, group);
+  }
+  const keys = [...groups.keys()].sort();
+  elements.dateSelector.replaceChildren();
+  if (!keys.length) {
+    state.selectedDate = "";
+    elements.dateSelector.hidden = true;
+    return;
+  }
+  elements.dateSelector.hidden = false;
+  if (!state.selectedDate || !groups.has(state.selectedDate)) {
+    state.selectedDate =
+      keys.find((key) =>
+        groups
+          .get(key)
+          .some(
+            (offer) => offer.sellable !== false && offer.availableQuantity > 0,
+          ),
+      ) || keys[0];
+  }
+  for (const key of keys) {
+    const offers = groups.get(key);
+    const unavailable = offers.every((offer) => offer.sellable === false);
+    const soldOut =
+      !unavailable && offers.every((offer) => offer.availableQuantity < 1);
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "date-chip";
+    button.dataset.date = key;
+    button.setAttribute("role", "option");
+    button.setAttribute("aria-selected", String(key === state.selectedDate));
+    button.disabled = unavailable || soldOut;
+    const dateStatus = unavailable
+      ? copy.static.unavailable
+      : soldOut
+        ? copy.soldOut
+        : copy.static.available;
+    button.innerHTML = `<span>${dateLabel(key)}</span><small>${dateStatus}</small>`;
+    button.addEventListener("click", () => {
+      state.selectedDate = key;
+      const nextOffer =
+        offers.find(
+          (offer) => offer.sellable !== false && offer.availableQuantity > 0,
+        ) || offers[0];
+      if (nextOffer) selectOffer(nextOffer);
+      renderDateSelector();
+      renderOffers();
+    });
+    elements.dateSelector.append(button);
+  }
+}
+
 function renderOffers() {
   elements.offers.replaceChildren();
   elements.offers.removeAttribute("aria-busy");
-  if (state.offers.length === 0) {
+  const visibleOffers = state.selectedDate
+    ? state.offers.filter((offer) => dateKey(offer) === state.selectedDate)
+    : state.offers;
+  if (visibleOffers.length === 0) {
     const empty = document.createElement("p");
     empty.className = "empty";
     empty.textContent = copy.noOffers;
     elements.offers.append(empty);
     return;
   }
-  for (const offer of state.offers) {
+  for (const offer of visibleOffers) {
     const card = document.createElement("article");
     card.className = "offer-card md-card";
     card.dataset.inventoryId = offer.id;
@@ -477,8 +687,17 @@ function renderOffers() {
       productUnitLabel(offer.product),
     );
     const availability = document.createElement("p");
-    availability.className = "availability md-badge md-badge--success";
-    availability.textContent = copy.availableCount(offer.availableQuantity);
+    availability.className = "availability md-badge";
+    availability.classList.toggle(
+      "md-badge--success",
+      offer.sellable !== false && offer.availableQuantity > 0,
+    );
+    availability.textContent =
+      offer.sellable === false
+        ? copy.static.unavailable
+        : offer.availableQuantity > 0
+          ? copy.availableCount(offer.availableQuantity)
+          : copy.soldOut;
     content.append(kind, title, when, price, availability);
 
     const actions = document.createElement("div");
@@ -490,9 +709,13 @@ function renderOffers() {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "button button-primary md-button md-button--primary";
-    button.disabled = offer.availableQuantity < 1;
+    button.disabled = offer.sellable === false || offer.availableQuantity < 1;
     button.textContent =
-      offer.availableQuantity > 0 ? copy.reserve : copy.soldOut;
+      offer.sellable === false
+        ? copy.static.unavailable
+        : offer.availableQuantity > 0
+          ? copy.reserve
+          : copy.soldOut;
     button.addEventListener("click", () =>
       selectOffer(offer, { scroll: true }),
     );
@@ -517,14 +740,47 @@ async function loadOffers() {
               offerMatchesPlace(entry, requestedPlace),
             )
           : [];
+  renderDateSelector();
   renderOffers();
+
+  if (state.offers.length === 0) {
+    state.selectedOffer = null;
+    state.quote = null;
+    elements.selectionSummary.hidden = true;
+    elements.identityPanel.hidden = true;
+    elements.productRating.hidden = true;
+    elements.productDuration.hidden = true;
+    elements.productAvailability.hidden = true;
+    elements.heroTitle.textContent = copy.static.emptyTitle;
+    elements.productLead.textContent = copy.static.emptyHelp;
+    elements.reserve.disabled = true;
+    elements.refresh.hidden = false;
+    updatePurchaseSummary();
+    return;
+  }
+
+  elements.refresh.hidden = true;
 
   const requestedOffer = new URLSearchParams(location.search).get("offer");
   if (requestedOffer && offerIdPattern.test(requestedOffer)) {
     const offer = state.offers.find((entry) => entry.id === requestedOffer);
-    if (offer) selectOffer(offer);
+    if (offer) {
+      state.selectedDate = dateKey(offer);
+      renderDateSelector();
+      renderOffers();
+      selectOffer(offer);
+    }
   } else if (requestedPlace && state.offers.length === 1) {
     selectOffer(state.offers[0]);
+  } else if (state.offers.length > 0) {
+    const selectedDateOffers = state.selectedDate
+      ? state.offers.filter((entry) => dateKey(entry) === state.selectedDate)
+      : state.offers;
+    const firstOffer =
+      selectedDateOffers.find(
+        (entry) => entry.sellable !== false && entry.availableQuantity > 0,
+      ) || selectedDateOffers[0];
+    if (firstOffer) selectOffer(firstOffer);
   }
 }
 
@@ -698,6 +954,64 @@ function clearCheckout() {
   sessionStorage.removeItem(checkoutStorageKey);
 }
 
+function pendingCheckoutState() {
+  try {
+    const value = JSON.parse(
+      sessionStorage.getItem(pendingCheckoutStorageKey) || "null",
+    );
+    if (
+      !value?.reservation?.id ||
+      !value?.checkout?.reservationReference ||
+      value.checkout.reservationReference !== value.reservation.id
+    ) {
+      return null;
+    }
+    return value;
+  } catch {
+    return null;
+  }
+}
+
+function savePendingCheckout(value) {
+  sessionStorage.setItem(pendingCheckoutStorageKey, JSON.stringify(value));
+}
+
+function clearPendingCheckout() {
+  sessionStorage.removeItem(pendingCheckoutStorageKey);
+}
+
+function reservationAttemptReference(inventoryId, quantity) {
+  const fingerprint = `${inventoryId}:${quantity}`;
+  let current = null;
+  try {
+    current = JSON.parse(
+      sessionStorage.getItem(reservationAttemptStorageKey) || "null",
+    );
+  } catch {
+    // A corrupt retry hint must never become transaction authority.
+    sessionStorage.removeItem(reservationAttemptStorageKey);
+  }
+  if (
+    typeof current?.reference === "string" &&
+    current.reference.startsWith("web_")
+  ) {
+    if (current.fingerprint !== fingerprint) {
+      throw new Error("RESERVATION_ATTEMPT_PENDING");
+    }
+    return current.reference;
+  }
+  const reference = `web_${crypto.randomUUID().replaceAll("-", "")}`;
+  sessionStorage.setItem(
+    reservationAttemptStorageKey,
+    JSON.stringify({ fingerprint, reference }),
+  );
+  return reference;
+}
+
+function clearReservationAttempt() {
+  sessionStorage.removeItem(reservationAttemptStorageKey);
+}
+
 async function wait(milliseconds) {
   await new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
@@ -812,6 +1126,7 @@ async function createCheckout(reservationPayload) {
   const currency = text(checkout.plan?.amount?.currency);
   const reservation = reservationPayload.reservation;
   const ticketType = text(reservation?.product?.kind);
+  clearPendingCheckout();
   saveCheckout({
     checkoutId: checkout.checkoutId,
     statusToken: checkout.statusToken,
@@ -842,6 +1157,29 @@ async function createCheckout(reservationPayload) {
 
 async function submitReservation(event) {
   event.preventDefault();
+  if (state.submitting) return;
+
+  const resumableCheckout = pendingCheckoutState();
+  if (resumableCheckout) {
+    state.submitting = true;
+    elements.reserve.disabled = true;
+    elements.reserve.textContent = copy.static.resumingPayment;
+    setMessage(copy.static.resumingPayment);
+    try {
+      await createCheckout(resumableCheckout);
+    } catch (error) {
+      setMessage(friendlyError(error, copy.static.retryPaymentPreserved), true);
+    } finally {
+      state.submitting = false;
+      const stillPending = pendingCheckoutState();
+      elements.reserve.textContent = stillPending
+        ? copy.static.resumePayment
+        : copy.static.reserveAndPay;
+      elements.reserve.disabled = stillPending ? false : !state.quote;
+    }
+    return;
+  }
+
   if (!state.selectedOffer) {
     setMessage(copy.selectExperienceFirst, true);
     return;
@@ -863,10 +1201,31 @@ async function submitReservation(event) {
     return;
   }
 
+  state.submitting = true;
   elements.reserve.disabled = true;
+  elements.reserve.textContent = copy.static.finalizing;
   setMessage(copy.creatingReservation);
   try {
-    const reference = `web_${crypto.randomUUID().replaceAll("-", "")}`;
+    const previousQuote = quoteIdentity(state.quote);
+    const freshQuote = await refreshQuote();
+    if (!freshQuote) return;
+    if (previousQuote && previousQuote !== quoteIdentity(freshQuote)) {
+      setMessage(copy.static.priceChanged, true);
+      return;
+    }
+    if (
+      freshQuote.expiresAt &&
+      Date.parse(freshQuote.expiresAt) <= Date.now()
+    ) {
+      setMessage(copy.static.quoteExpired, true);
+      return;
+    }
+    elements.reserve.disabled = true;
+    elements.reserve.textContent = copy.static.finalizing;
+    const reference = reservationAttemptReference(
+      state.selectedOffer.id,
+      quantity,
+    );
     const payload = await api("/api/ticketing/v1/reservations", {
       method: "POST",
       headers: {
@@ -882,6 +1241,8 @@ async function submitReservation(event) {
     });
     if (!payload.data?.reservation || !payload.data?.checkout)
       throw new Error("RESERVATION_RESPONSE_INVALID");
+    clearReservationAttempt();
+    savePendingCheckout(payload.data);
     emitAnalyticsOnce(
       `reservation:${payload.data.reservation.id}`,
       ANALYTICS_TRANSACTION_EVENTS.reservationStarted,
@@ -894,9 +1255,18 @@ async function submitReservation(event) {
     setMessage(copy.reservationCreated);
     await createCheckout(payload.data);
   } catch (error) {
-    setMessage(error.message || copy.createReservationFailed, true);
-    elements.reserve.disabled = false;
+    if (error?.status >= 400 && error?.status < 500) {
+      clearReservationAttempt();
+    }
+    setMessage(friendlyError(error, copy.createReservationFailed), true);
     await Promise.allSettled([loadOffers(), loadReservations()]);
+  } finally {
+    state.submitting = false;
+    const pendingCheckout = pendingCheckoutState();
+    elements.reserve.textContent = pendingCheckout
+      ? copy.static.resumePayment
+      : copy.static.reserveAndPay;
+    elements.reserve.disabled = !state.quote && !pendingCheckout;
   }
 }
 
@@ -904,10 +1274,22 @@ elements.form.addEventListener(
   "submit",
   (event) => void submitReservation(event),
 );
+elements.privacySettings?.addEventListener("click", () => {
+  privacyPreferences.open();
+});
+
 elements.refresh.addEventListener("click", () => {
-  void Promise.all([loadOffers(), loadReservations()]).catch((error) => {
-    setMessage(error.message || copy.updateFailed, true);
-  });
+  elements.refresh.hidden = true;
+  setMessage(copy.static.updatingAvailability);
+  void Promise.all([loadOffers(), loadReservations()])
+    .then(() => {
+      setMessage("");
+      if (state.selectedOffer) void refreshQuote({ announce: true });
+    })
+    .catch((error) => {
+      elements.refresh.hidden = false;
+      setMessage(friendlyError(error, copy.updateFailed), true);
+    });
 });
 elements.dialogClose.addEventListener("click", () => elements.dialog.close());
 
@@ -922,12 +1304,18 @@ function changeQuantity(delta) {
   elements.quantity.value = String(
     Math.min(max, Math.max(min, current + delta)),
   );
+  state.quote = null;
   updatePurchaseSummary();
+  void refreshQuote();
 }
 
 elements.quantityDecrease.addEventListener("click", () => changeQuantity(-1));
 elements.quantityIncrease.addEventListener("click", () => changeQuantity(1));
-elements.quantity.addEventListener("input", updatePurchaseSummary);
+elements.quantity.addEventListener("input", () => {
+  state.quote = null;
+  updatePurchaseSummary();
+  void refreshQuote();
+});
 
 elements.returnLink.addEventListener("click", (event) => {
   if (history.length <= 1 || !document.referrer) return;
@@ -949,6 +1337,7 @@ elements.returnLink.addEventListener("click", (event) => {
     await Promise.all([loadOffers(), loadReservations()]);
     await resumeCheckout();
   } catch (error) {
-    setMessage(error.message || copy.ticketingUnavailable, true);
+    elements.refresh.hidden = false;
+    setMessage(friendlyError(error, copy.ticketingUnavailable), true);
   }
 })();

@@ -85,23 +85,22 @@ const TICKETING_COPY: Readonly<
   "pt-BR": Object.freeze({
     static: Object.freeze({
       documentTitle: "Ingressos · Morro Digital",
-      mainTitle: "Ingressos e reservas",
+      mainTitle: "Reservar passeio",
       lead: "Reserve com preço congelado, finalize pelo checkout seguro e apresente o QR emitido após a confirmação do pagamento.",
-      returnToMap: "← Voltar ao mapa",
-      heroEyebrow: "Experiência em Morro de São Paulo",
-      productTitle: "Escolha sua experiência",
-      productLead:
-        "Selecione uma experiência, confira data e preço e reserve com checkout seguro.",
+      returnToMap: "←",
+      heroEyebrow: "Reserva em Morro de São Paulo",
+      productTitle: "Carregando experiência…",
+      productLead: "Data, disponibilidade e preço confirmados em tempo real.",
       selectionStep: "1 · Selecione",
-      selectionTitle: "Data e experiência",
+      selectionTitle: "Selecione a data",
       quantityStep: "2 · Quantidade",
       selectionSummaryTitle: "Sua seleção",
       ticketsLabel: "Ingressos",
       summaryEyebrow: "Resumo",
-      summaryTitle: "Estimativa da compra",
-      inventoryPrice: "Preço do inventário",
+      summaryTitle: "Total",
+      inventoryPrice: "Valor confirmado pelo servidor",
       unitPrice: "Preço unitário",
-      subtotalEstimate: "Subtotal estimado",
+      subtotalEstimate: "Total",
       authorityNote:
         "O valor final, moeda, disponibilidade e status de pagamento são confirmados pelo servidor no momento da reserva e do checkout.",
       identityStep: "3 · Identificação",
@@ -113,7 +112,7 @@ const TICKETING_COPY: Readonly<
         "Aumente o brilho da tela para facilitar a leitura no acesso.",
       availabilityEyebrow: "Disponibilidade em tempo real",
       offersTitle: "Experiências disponíveis",
-      refresh: "Atualizar",
+      refresh: "Tentar novamente",
       reservationEyebrow: "Reserva",
       reservationTitle: "Seus dados",
       securePayment: "Pagamento processado pelo Payments canônico.",
@@ -125,7 +124,34 @@ const TICKETING_COPY: Readonly<
       optional: "opcional",
       document: "Documento",
       quantity: "Quantidade",
-      reserveAndPay: "Reservar e ir para pagamento",
+      reserveAndPay: "Finalizar Reserva",
+      available: "Disponível",
+      unavailable: "Indisponível",
+      quoteConfirmed: "Valor confirmado agora",
+      confirmingValue: "Confirmando valor…",
+      confirmingAvailability: "Confirmando disponibilidade…",
+      finalizing: "Finalizando…",
+      resumePayment: "Retomar pagamento",
+      resumingPayment: "Retomando pagamento…",
+      emptyTitle: "Nenhuma experiência disponível agora",
+      emptyHelp:
+        "Tente novamente em instantes ou volte ao mapa para escolher outra experiência.",
+      priceChanged:
+        "Preço ou disponibilidade mudou. Revise o resumo atualizado antes de finalizar.",
+      quoteExpired:
+        "A cotação expirou. Atualizamos o valor; revise antes de finalizar.",
+      currencyMismatch:
+        "Não foi possível confirmar a moeda desta reserva. Atualize e tente novamente.",
+      priceUpdated: "Preço e disponibilidade atualizados.",
+      pendingReservationAttempt:
+        "Uma tentativa de reserva anterior ainda precisa ser confirmada. Retorne à seleção anterior e tente novamente.",
+      updatingAvailability: "Atualizando disponibilidade…",
+      retryPaymentPreserved:
+        "O pagamento não abriu agora. Sua reserva foi preservada; tente retomar o pagamento.",
+      privacy: "Privacidade",
+      privacyAria: "Preferências de privacidade",
+      trust:
+        "Reserva segura · preço e disponibilidade confirmados pelo servidor",
       walletEyebrow: "Sua carteira",
       walletTitle: "Reservas e ingressos",
       qrAfterPayment:
@@ -176,7 +202,8 @@ const TICKETING_COPY: Readonly<
     reservationCreated: "Reserva criada. Abrindo o checkout seguro…",
     createReservationFailed: "Não foi possível criar a reserva.",
     updateFailed: "Não foi possível atualizar.",
-    ticketingUnavailable: "Ticketing indisponível.",
+    ticketingUnavailable:
+      "Reservas temporariamente indisponíveis. Tente novamente em instantes.",
     pricePer: (amount: string, unit: string) => `${amount} por ${unit}`,
     availableCount: (count: number) => `${count} disponíveis`,
     issuedAt: (date: string) => `emitido em ${date}`,
@@ -188,23 +215,22 @@ const TICKETING_COPY: Readonly<
   "en-US": Object.freeze({
     static: Object.freeze({
       documentTitle: "Tickets · Morro Digital",
-      mainTitle: "Tickets and reservations",
+      mainTitle: "Reserve experience",
       lead: "Hold the current price, complete the secure checkout, and present the QR issued after verified payment confirmation.",
-      returnToMap: "← Back to the map",
-      heroEyebrow: "Experience in Morro de São Paulo",
-      productTitle: "Choose your experience",
-      productLead:
-        "Select an experience, review the date and price, then reserve with secure checkout.",
+      returnToMap: "←",
+      heroEyebrow: "Reservation in Morro de São Paulo",
+      productTitle: "Loading experience…",
+      productLead: "Date, availability, and price confirmed in real time.",
       selectionStep: "1 · Select",
-      selectionTitle: "Date and experience",
+      selectionTitle: "Select a date",
       quantityStep: "2 · Quantity",
       selectionSummaryTitle: "Your selection",
       ticketsLabel: "Tickets",
       summaryEyebrow: "Summary",
-      summaryTitle: "Purchase estimate",
-      inventoryPrice: "Inventory price",
+      summaryTitle: "Total",
+      inventoryPrice: "Server-confirmed value",
       unitPrice: "Unit price",
-      subtotalEstimate: "Estimated subtotal",
+      subtotalEstimate: "Total",
       authorityNote:
         "Final price, currency, availability, and payment status are confirmed by the server when the reservation and checkout are created.",
       identityStep: "3 · Identification",
@@ -216,7 +242,7 @@ const TICKETING_COPY: Readonly<
         "Increase screen brightness to make the access code easier to scan.",
       availabilityEyebrow: "Real-time availability",
       offersTitle: "Available experiences",
-      refresh: "Refresh",
+      refresh: "Try again",
       reservationEyebrow: "Reservation",
       reservationTitle: "Your details",
       securePayment: "Payment is processed by the canonical Payments service.",
@@ -228,7 +254,34 @@ const TICKETING_COPY: Readonly<
       optional: "optional",
       document: "Document",
       quantity: "Quantity",
-      reserveAndPay: "Reserve and continue to payment",
+      reserveAndPay: "Complete reservation",
+      available: "Available",
+      unavailable: "Unavailable",
+      quoteConfirmed: "Value confirmed now",
+      confirmingValue: "Confirming value…",
+      confirmingAvailability: "Confirming availability…",
+      finalizing: "Finalizing…",
+      resumePayment: "Resume payment",
+      resumingPayment: "Resuming payment…",
+      emptyTitle: "No experiences are available right now",
+      emptyHelp:
+        "Try again shortly or return to the map to choose another experience.",
+      priceChanged:
+        "Price or availability changed. Review the updated summary before completing.",
+      quoteExpired:
+        "The quote expired. We refreshed the value; review it before completing.",
+      currencyMismatch:
+        "We could not confirm the currency for this reservation. Refresh and try again.",
+      priceUpdated: "Price and availability updated.",
+      pendingReservationAttempt:
+        "A previous reservation attempt still needs confirmation. Return to the previous selection and try again.",
+      updatingAvailability: "Updating availability…",
+      retryPaymentPreserved:
+        "Payment did not open. Your reservation was preserved; resume payment to try again.",
+      privacy: "Privacy",
+      privacyAria: "Privacy preferences",
+      trust:
+        "Secure reservation · price and availability confirmed by the server",
       walletEyebrow: "Your wallet",
       walletTitle: "Reservations and tickets",
       qrAfterPayment:
@@ -279,7 +332,8 @@ const TICKETING_COPY: Readonly<
     reservationCreated: "Reservation created. Opening secure checkout…",
     createReservationFailed: "Could not create the reservation.",
     updateFailed: "Could not refresh the data.",
-    ticketingUnavailable: "Ticketing is unavailable.",
+    ticketingUnavailable:
+      "Reservations are temporarily unavailable. Please try again shortly.",
     pricePer: (amount: string, unit: string) => `${amount} per ${unit}`,
     availableCount: (count: number) => `${count} available`,
     issuedAt: (date: string) => `issued on ${date}`,
@@ -291,23 +345,22 @@ const TICKETING_COPY: Readonly<
   "es-ES": Object.freeze({
     static: Object.freeze({
       documentTitle: "Entradas · Morro Digital",
-      mainTitle: "Entradas y reservas",
+      mainTitle: "Reservar experiencia",
       lead: "Reserva con el precio actual, completa el checkout seguro y presenta el QR emitido después de la confirmación verificada del pago.",
-      returnToMap: "← Volver al mapa",
-      heroEyebrow: "Experiencia en Morro de São Paulo",
-      productTitle: "Elige tu experiencia",
-      productLead:
-        "Selecciona una experiencia, revisa la fecha y el precio y reserva con checkout seguro.",
+      returnToMap: "←",
+      heroEyebrow: "Reserva en Morro de São Paulo",
+      productTitle: "Cargando experiencia…",
+      productLead: "Fecha, disponibilidad y precio confirmados en tiempo real.",
       selectionStep: "1 · Selecciona",
-      selectionTitle: "Fecha y experiencia",
+      selectionTitle: "Selecciona la fecha",
       quantityStep: "2 · Cantidad",
       selectionSummaryTitle: "Tu selección",
       ticketsLabel: "Entradas",
       summaryEyebrow: "Resumen",
-      summaryTitle: "Estimación de compra",
-      inventoryPrice: "Precio del inventario",
+      summaryTitle: "Total",
+      inventoryPrice: "Valor confirmado por el servidor",
       unitPrice: "Precio unitario",
-      subtotalEstimate: "Subtotal estimado",
+      subtotalEstimate: "Total",
       authorityNote:
         "El precio final, la moneda, la disponibilidad y el estado del pago son confirmados por el servidor al crear la reserva y el checkout.",
       identityStep: "3 · Identificación",
@@ -319,7 +372,7 @@ const TICKETING_COPY: Readonly<
         "Aumenta el brillo de la pantalla para facilitar la lectura del código de acceso.",
       availabilityEyebrow: "Disponibilidad en tiempo real",
       offersTitle: "Experiencias disponibles",
-      refresh: "Actualizar",
+      refresh: "Intentar de nuevo",
       reservationEyebrow: "Reserva",
       reservationTitle: "Tus datos",
       securePayment:
@@ -332,7 +385,34 @@ const TICKETING_COPY: Readonly<
       optional: "opcional",
       document: "Documento",
       quantity: "Cantidad",
-      reserveAndPay: "Reservar y continuar al pago",
+      reserveAndPay: "Finalizar reserva",
+      available: "Disponible",
+      unavailable: "No disponible",
+      quoteConfirmed: "Valor confirmado ahora",
+      confirmingValue: "Confirmando valor…",
+      confirmingAvailability: "Confirmando disponibilidad…",
+      finalizing: "Finalizando…",
+      resumePayment: "Retomar pago",
+      resumingPayment: "Retomando pago…",
+      emptyTitle: "No hay experiencias disponibles ahora",
+      emptyHelp:
+        "Inténtalo de nuevo en unos instantes o vuelve al mapa para elegir otra experiencia.",
+      priceChanged:
+        "El precio o la disponibilidad cambiaron. Revisa el resumen actualizado antes de finalizar.",
+      quoteExpired:
+        "La cotización venció. Actualizamos el valor; revísalo antes de finalizar.",
+      currencyMismatch:
+        "No se pudo confirmar la moneda de esta reserva. Actualiza e inténtalo de nuevo.",
+      priceUpdated: "Precio y disponibilidad actualizados.",
+      pendingReservationAttempt:
+        "Un intento de reserva anterior aún necesita confirmación. Vuelve a la selección anterior e inténtalo de nuevo.",
+      updatingAvailability: "Actualizando disponibilidad…",
+      retryPaymentPreserved:
+        "El pago no se abrió. Tu reserva se conservó; retoma el pago para intentarlo de nuevo.",
+      privacy: "Privacidad",
+      privacyAria: "Preferencias de privacidad",
+      trust:
+        "Reserva segura · precio y disponibilidad confirmados por el servidor",
       walletEyebrow: "Tu cartera",
       walletTitle: "Reservas y entradas",
       qrAfterPayment:
@@ -383,7 +463,8 @@ const TICKETING_COPY: Readonly<
     reservationCreated: "Reserva creada. Abriendo el checkout seguro…",
     createReservationFailed: "No se pudo crear la reserva.",
     updateFailed: "No se pudo actualizar.",
-    ticketingUnavailable: "Ticketing no está disponible.",
+    ticketingUnavailable:
+      "Las reservas no están disponibles temporalmente. Inténtalo de nuevo en unos instantes.",
     pricePer: (amount: string, unit: string) => `${amount} por ${unit}`,
     availableCount: (count: number) => `${count} disponibles`,
     issuedAt: (date: string) => `emitido el ${date}`,
@@ -395,22 +476,22 @@ const TICKETING_COPY: Readonly<
   "he-IL": Object.freeze({
     static: Object.freeze({
       documentTitle: "כרטיסים · Morro Digital",
-      mainTitle: "כרטיסים והזמנות",
+      mainTitle: "הזמנת חוויה",
       lead: "שמרו את המחיר הנוכחי, השלימו תשלום מאובטח והציגו את קוד ה-QR שמונפק לאחר אימות התשלום.",
-      returnToMap: "← חזרה למפה",
-      heroEyebrow: "חוויה במורו דה סאו פאולו",
-      productTitle: "בחרו את החוויה שלכם",
-      productLead: "בחרו חוויה, בדקו תאריך ומחיר והמשיכו להזמנה מאובטחת.",
+      returnToMap: "←",
+      heroEyebrow: "הזמנה במורו דה סאו פאולו",
+      productTitle: "טוען חוויה…",
+      productLead: "התאריך, הזמינות והמחיר מאומתים בזמן אמת.",
       selectionStep: "1 · בחירה",
-      selectionTitle: "תאריך וחוויה",
+      selectionTitle: "בחירת תאריך",
       quantityStep: "2 · כמות",
       selectionSummaryTitle: "הבחירה שלכם",
       ticketsLabel: "כרטיסים",
       summaryEyebrow: "סיכום",
-      summaryTitle: "הערכת רכישה",
-      inventoryPrice: "מחיר מלאי",
+      summaryTitle: "סה״כ",
+      inventoryPrice: "מחיר מאומת בשרת",
       unitPrice: "מחיר ליחידה",
-      subtotalEstimate: "סכום ביניים משוער",
+      subtotalEstimate: "סה״כ",
       authorityNote:
         "המחיר הסופי, המטבע, הזמינות ומצב התשלום מאומתים על ידי השרת בעת יצירת ההזמנה והתשלום.",
       identityStep: "3 · זיהוי",
@@ -421,7 +502,7 @@ const TICKETING_COPY: Readonly<
       brightnessHint: "הגבירו את בהירות המסך כדי להקל על סריקת קוד הכניסה.",
       availabilityEyebrow: "זמינות בזמן אמת",
       offersTitle: "חוויות זמינות",
-      refresh: "רענון",
+      refresh: "נסו שוב",
       reservationEyebrow: "הזמנה",
       reservationTitle: "הפרטים שלך",
       securePayment: "התשלום מעובד באמצעות שירות Payments הקנוני.",
@@ -433,7 +514,30 @@ const TICKETING_COPY: Readonly<
       optional: "אופציונלי",
       document: "מסמך",
       quantity: "כמות",
-      reserveAndPay: "הזמנה והמשך לתשלום",
+      reserveAndPay: "סיום הזמנה",
+      available: "זמין",
+      unavailable: "לא זמין",
+      quoteConfirmed: "המחיר אומת כעת",
+      confirmingValue: "מאמת מחיר…",
+      confirmingAvailability: "מאמת זמינות…",
+      finalizing: "מסיים…",
+      resumePayment: "המשך לתשלום",
+      resumingPayment: "ממשיך לתשלום…",
+      emptyTitle: "אין חוויות זמינות כרגע",
+      emptyHelp: "נסו שוב בעוד רגע או חזרו למפה כדי לבחור חוויה אחרת.",
+      priceChanged:
+        "המחיר או הזמינות השתנו. בדקו את הסיכום המעודכן לפני הסיום.",
+      quoteExpired: "תוקף הצעת המחיר פג. המחיר עודכן; בדקו אותו לפני הסיום.",
+      currencyMismatch: "לא ניתן לאמת את מטבע ההזמנה. רעננו ונסו שוב.",
+      priceUpdated: "המחיר והזמינות עודכנו.",
+      pendingReservationAttempt:
+        "ניסיון הזמנה קודם עדיין דורש אישור. חזרו לבחירה הקודמת ונסו שוב.",
+      updatingAvailability: "מעדכן זמינות…",
+      retryPaymentPreserved:
+        "התשלום לא נפתח. ההזמנה נשמרה; המשיכו לתשלום כדי לנסות שוב.",
+      privacy: "פרטיות",
+      privacyAria: "העדפות פרטיות",
+      trust: "הזמנה מאובטחת · המחיר והזמינות מאומתים על ידי השרת",
       walletEyebrow: "הארנק שלך",
       walletTitle: "הזמנות וכרטיסים",
       qrAfterPayment: "קוד ה-QR מונפק רק לאחר אישור Financial מאומת.",
@@ -482,7 +586,7 @@ const TICKETING_COPY: Readonly<
     reservationCreated: "ההזמנה נוצרה. פותח תשלום מאובטח…",
     createReservationFailed: "לא ניתן ליצור את ההזמנה.",
     updateFailed: "לא ניתן לרענן את הנתונים.",
-    ticketingUnavailable: "Ticketing אינו זמין.",
+    ticketingUnavailable: "ההזמנות אינן זמינות זמנית. נסו שוב בעוד רגע.",
     pricePer: (amount: string, unit: string) => `${amount} לכל ${unit}`,
     availableCount: (count: number) => `${count} זמינים`,
     issuedAt: (date: string) => `הונפק ב-${date}`,
@@ -746,6 +850,9 @@ function applyTicketingStaticCopy(
     selectedOffer.placeholder = copy.experiencePlaceholder;
 
   setText(document, "#reserve-button", copy.reserveAndPay);
+  setText(document, ".ticketing-trust", copy.trust);
+  setText(document, "#privacy-settings-button", copy.privacy);
+  setAriaLabel(document, "#privacy-settings-button", copy.privacyAria);
   setAriaLabel(document, "#ticket-close", copy.close);
   setText(document, ".ticket-dialog > .eyebrow", copy.confirmedTicket);
   setText(document, "#ticket-title", copy.yourTicket);

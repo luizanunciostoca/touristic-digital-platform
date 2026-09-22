@@ -44,6 +44,8 @@ jobs:
         run: pnpm --filter @touristic/morro-digital-platform exec vitest run src/ux/ticketing-v2-contract.test.ts
       - name: Build workspace
         run: pnpm -w build
+      - name: Ticketing quote authority contract
+        run: pnpm --filter @touristic/ticketing-server exec vitest run src/public-http-transport-validity.test.ts
       - name: Install deterministic Chromium
         run: |
           npm install --prefix /tmp/pw --no-save playwright@1.54.2
@@ -115,13 +117,85 @@ jobs:
             await page.route('**/api/ticketing/v1/inventory', async route => {
               if (state.delay) await new Promise(resolve => setTimeout(resolve, state.delay));
               if (state.error) return fulfill(route, { error: 'TICKETING_UNAVAILABLE' }, 503);
-              return fulfill(route, { data: state.empty ? [] : [offer] });
+              return fulfill(route, { data: state.empty ? [] : (state.inventory || [offer]) });
+            });
+            await page.route('**/api/ticketing/v1/quote', async route => {
+              if (state.quoteDelay) await new Promise(resolve => setTimeout(resolve, state.quoteDelay));
+              if (state.quoteAbort) return route.abort('timedout');
+              if (state.quoteError) {
+                return fulfill(route, { error: state.quoteError }, state.quoteStatus || 409);
+              }
+              const body = route.request().postDataJSON();
+              const unitCurrency = state.quoteUnitCurrency || offer.unitAmount.currency;
+              const totalCurrency = state.quoteTotalCurrency || unitCurrency;
+              const unitMinor = state.quoteMinor ?? offer.unitAmount.minorUnits;
+              const quantity = Number(body.quantity);
+              return fulfill(route, {
+                data: {
+                  inventoryId: body.inventoryId,
+                  quantity,
+                  unitAmount: { minorUnits: unitMinor, currency: unitCurrency },
+                  totalAmount: { minorUnits: unitMinor * quantity, currency: totalCurrency },
+                  pricingVersion: state.quotePricingVersion || offer.pricingVersion,
+                  availableQuantity: state.quoteAvailableQuantity ?? offer.availableQuantity,
+                  maxPerReservation: state.quoteMaxPerReservation ?? offer.maxPerReservation,
+                  observedAt: iso(0),
+                  expiresAt: state.quoteExpiresAt || iso(60000),
+                },
+              });
             });
             await page.route('**/api/ticketing/v1/reservations', async route => {
+              if (route.request().method() === 'POST') {
+                state.reservationPosts = (state.reservationPosts || 0) + 1;
+                state.reservationIdempotencyKeys = [
+                  ...(state.reservationIdempotencyKeys || []),
+                  route.request().headers()['idempotency-key'] || '',
+                ];
+                if (state.reservationDelay) {
+                  await new Promise(resolve => setTimeout(resolve, state.reservationDelay));
+                }
+                if (state.reservationError) {
+                  return fulfill(route, { error: state.reservationError }, state.reservationStatus || 409);
+                }
+                return fulfill(route, {
+                  data: {
+                    reservation: { ...reservation, status: 'held', quantity: route.request().postDataJSON().quantity },
+                    checkout: {
+                      path: '/api/payments/v1/checkouts',
+                      idempotencyKey: 'ticketing-visual-checkout-key',
+                      reservationReference: reservation.id,
+                      handoffToken: 'ticketing-visual-handoff',
+                      handoff: {
+                        reservationReference: reservation.id,
+                        customer: { name: 'Visitante', email: 'visitante@example.com' },
+                        returnUrl: origin + '/tickets.html',
+                        requiresPaymentsCapability: true,
+                      },
+                    },
+                  },
+                }, 201);
+              }
               if (state.delay) await new Promise(resolve => setTimeout(resolve, state.delay));
               return fulfill(route, {
                 data: state.empty ? [] : state.reservations || [reservation],
               });
+            });
+            await page.route('**/api/payments/v1/checkouts', route => {
+              state.checkoutPosts = (state.checkoutPosts || 0) + 1;
+              state.checkoutIdempotencyKeys = [
+                ...(state.checkoutIdempotencyKeys || []),
+                route.request().headers()['idempotency-key'] || '',
+              ];
+              if (state.providerFail) return fulfill(route, { error: 'PAYMENTS_UNAVAILABLE' }, 503);
+              return fulfill(route, {
+                data: {
+                  checkoutId: 'chk_v2_visual_0001',
+                  statusToken: 'status-v2-visual',
+                  statusExpiresAt: iso(600000),
+                  plan: { amount: { minorUnits: 31800, currency: 'BRL' } },
+                  checkoutUrl: 'https://payments.example.test/checkout',
+                },
+              }, 201);
             });
             await page.route('**/api/ticketing/v1/reservations/trv_v2_visual_0001/ticket', route =>
               fulfill(route, {
@@ -221,7 +295,7 @@ jobs:
           }
 
           async function readyCase(browser, viewport, suffix, mutate) {
-            const context = await browser.newContext({ viewport });
+            const context = await browser.newContext({ viewport, locale: 'pt-BR' });
             const page = await context.newPage();
             const errors = [];
             page.on('pageerror', error => errors.push(error.message));
@@ -281,6 +355,10 @@ jobs:
                 await page.locator('.offer-card .md-button--primary').click();
                 await page.locator('#selection-summary:not([hidden])').waitFor({ state: 'visible' });
                 await page.locator('#quantity-increase').click();
+                await page
+                  .locator('#summary-subtotal')
+                  .filter({ hasNotText: '—' })
+                  .waitFor({ state: 'visible' });
                 const state = await page.evaluate(() => {
                   const summary = document.querySelector('#selection-summary');
                   const cta = document.querySelector('#reserve-button');
@@ -307,8 +385,8 @@ jobs:
                 if (!state.unit || state.unit === '—' || !state.subtotal || state.subtotal === '—') {
                   throw new Error('Price breakdown unreadable: ' + JSON.stringify(state));
                 }
-                if (state.heroHeight < 220) {
-                  throw new Error('MANUAL_CONFORMANCE_TICKETING_IMAGE_LED_HIERARCHY: ' + JSON.stringify(state));
+                if (state.heroHeight < 160 || state.heroHeight > 260) {
+                  throw new Error('MANUAL_CONFORMANCE_TICKETING_COMPACT_HERO: ' + JSON.stringify(state));
                 }
                 if (state.ctaWidth < 44 || state.ctaHeight < 44) {
                   throw new Error('Dominant checkout CTA geometry invalid: ' + JSON.stringify(state));
@@ -329,6 +407,7 @@ jobs:
 
               const reducedContext = await browser.newContext({
                 viewport: { width: 390, height: 844 },
+                locale: 'pt-BR',
                 reducedMotion: 'reduce',
               });
               const reducedPage = await reducedContext.newPage();
@@ -350,6 +429,7 @@ jobs:
 
               const forcedContext = await browser.newContext({
                 viewport: { width: 390, height: 844 },
+                locale: 'pt-BR',
                 forcedColors: 'active',
               });
               const forcedPage = await forcedContext.newPage();
@@ -365,7 +445,7 @@ jobs:
               evidence.push({ case: 'forced-colors-390x844', contract: forcedContract });
               await forcedContext.close();
 
-              const loadingContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
+              const loadingContext = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'pt-BR' });
               const loadingPage = await loadingContext.newPage();
               await installRoutes(loadingPage, { delay: 1500 });
               await loadingPage.goto(origin + '/tickets.html', { waitUntil: 'domcontentloaded' });
@@ -380,11 +460,12 @@ jobs:
               });
               await loadingContext.close();
 
-              const emptyContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
+              const emptyContext = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'pt-BR' });
               const emptyPage = await emptyContext.newPage();
               await installRoutes(emptyPage, { empty: true });
               await emptyPage.goto(origin + '/tickets.html', { waitUntil: 'domcontentloaded' });
               await emptyPage.locator('#offers .empty').waitFor({ state: 'visible', timeout: 10000 });
+              await emptyPage.locator('#ticketing-title').filter({ hasText: 'Nenhuma experiência disponível agora' }).waitFor({ state: 'visible' });
               await audit(emptyPage, 'empty-390x844');
               await emptyPage.screenshot({
                 path: '/tmp/ticketing-v2/empty-390x844.png',
@@ -393,14 +474,19 @@ jobs:
               });
               await emptyContext.close();
 
-              const errorContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
+              const errorContext = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'pt-BR' });
               const errorPage = await errorContext.newPage();
               await installRoutes(errorPage, { error: true });
               await errorPage.goto(origin + '/tickets.html', { waitUntil: 'domcontentloaded' });
-              await errorPage.locator('#reservation-message').filter({ hasText: 'TICKETING_UNAVAILABLE' }).waitFor({
+              await errorPage.locator('#reservation-message').filter({ hasText: 'temporariamente indisponíveis' }).waitFor({
                 state: 'visible',
                 timeout: 10000,
               });
+              await errorPage.locator('#refresh-button').waitFor({ state: 'visible', timeout: 10000 });
+              const leakedTechnicalState = await errorPage.locator('#reservation-message').textContent();
+              if (/TICKETING_|PAYMENTS_|HTTP_/u.test(leakedTechnicalState || '')) {
+                throw new Error('Technical error leaked into consumer UI: ' + leakedTechnicalState);
+              }
               await errorPage.screenshot({
                 path: '/tmp/ticketing-v2/error-390x844.png',
                 fullPage: true,
@@ -408,8 +494,185 @@ jobs:
               });
               await errorContext.close();
 
+              const transactionalContext = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'pt-BR' });
+              const transactionalPage = await transactionalContext.newPage();
+              const transactionalState = {};
+              await installRoutes(transactionalPage, transactionalState);
+              await transactionalPage.goto(origin + '/tickets.html', { waitUntil: 'domcontentloaded' });
+              if (await transactionalPage.locator('#refresh-button').isVisible()) {
+                throw new Error('Recovery action visible during happy path');
+              }
+              await transactionalPage.locator('.offer-card .md-button--primary').click();
+              await transactionalPage.locator('#holder-name').fill('Visitante');
+              await transactionalPage.locator('#holder-email').fill('visitante@example.com');
+              await transactionalPage.locator('#reserve-button:not([disabled])').waitFor({ state: 'visible' });
+
+              transactionalState.quoteMinor = 16900;
+              await transactionalPage.locator('#reserve-button').click();
+              await transactionalPage.locator('#reservation-message').filter({ hasText: 'Preço ou disponibilidade mudou' }).waitFor({ state: 'visible' });
+              if ((transactionalState.reservationPosts || 0) !== 0) {
+                throw new Error('Price drift reached reservation authority');
+              }
+
+              transactionalState.quoteMinor = 15900;
+              transactionalState.quoteExpiresAt = iso(60000);
+              await transactionalPage.locator('#quantity-increase').click();
+              await transactionalPage.locator('#summary-subtotal').filter({ hasNotText: '—' }).waitFor({ state: 'visible' });
+              transactionalState.quoteExpiresAt = iso(-1000);
+              await transactionalPage.locator('#reserve-button:not([disabled])').waitFor({ state: 'visible' });
+              await transactionalPage.locator('#reserve-button').click();
+              await transactionalPage.locator('#reservation-message').filter({ hasText: 'cotação expirou' }).waitFor({ state: 'visible' });
+              if ((transactionalState.reservationPosts || 0) !== 0) {
+                throw new Error('Expired quote reached reservation authority');
+              }
+
+              transactionalState.quoteExpiresAt = iso(60000);
+              transactionalState.quoteUnitCurrency = 'BRL';
+              transactionalState.quoteTotalCurrency = 'USD';
+              await transactionalPage.locator('#quantity-increase').click();
+              await transactionalPage.locator('#reservation-message').filter({ hasText: 'moeda' }).waitFor({ state: 'visible' });
+              if (!(await transactionalPage.locator('#reserve-button').isDisabled())) {
+                throw new Error('Currency mismatch did not fail closed');
+              }
+
+              transactionalState.quoteTotalCurrency = 'BRL';
+              transactionalState.quoteAbort = true;
+              await transactionalPage.locator('#quantity-decrease').click();
+              await transactionalPage.locator('#reservation-message').waitFor({ state: 'visible' });
+              if (!(await transactionalPage.locator('#reserve-button').isDisabled())) {
+                throw new Error('Quote timeout did not fail closed');
+              }
+
+              transactionalState.quoteAbort = false;
+              await transactionalPage.locator('#quantity-increase').click();
+              await transactionalPage.locator('#reserve-button:not([disabled])').waitFor({ state: 'visible' });
+              transactionalState.reservationDelay = 300;
+              transactionalState.reservationError = 'TICKETING_UNAVAILABLE';
+              transactionalState.reservationStatus = 503;
+              await transactionalPage.locator('#reservation-form').evaluate(form => {
+                const first = new Event('submit', { bubbles: true, cancelable: true });
+                const second = new Event('submit', { bubbles: true, cancelable: true });
+                form.dispatchEvent(first);
+                form.dispatchEvent(second);
+              });
+              await transactionalPage.waitForTimeout(500);
+              if ((transactionalState.reservationPosts || 0) !== 1) {
+                throw new Error('Double submit created duplicate reservation requests: ' + transactionalState.reservationPosts);
+              }
+              evidence.push({
+                case: 'transactional-negative-390x844',
+                reservationPosts: transactionalState.reservationPosts,
+              });
+              await transactionalContext.close();
+
+              const reservationRetryContext = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'pt-BR' });
+              const reservationRetryPage = await reservationRetryContext.newPage();
+              const reservationRetryState = {
+                reservationError: 'TICKETING_UNAVAILABLE',
+                reservationStatus: 503,
+              };
+              await installRoutes(reservationRetryPage, reservationRetryState);
+              await reservationRetryPage.goto(origin + '/tickets.html', { waitUntil: 'domcontentloaded' });
+              await reservationRetryPage.locator('#holder-name').fill('Visitante');
+              await reservationRetryPage.locator('#holder-email').fill('visitante@example.com');
+              await reservationRetryPage.locator('#reserve-button:not([disabled])').waitFor({ state: 'visible' });
+              await reservationRetryPage.locator('#reserve-button').click();
+              await reservationRetryPage.locator('#reservation-message').filter({ hasText: 'temporariamente indisponíveis' }).waitFor({ state: 'visible' });
+              reservationRetryState.reservationError = null;
+              await reservationRetryPage.locator('#quantity-increase').click();
+              await reservationRetryPage.locator('#reserve-button:not([disabled])').waitFor({ state: 'visible' });
+              await reservationRetryPage.locator('#reserve-button').click();
+              await reservationRetryPage.locator('#reservation-message').filter({ hasText: 'tentativa de reserva anterior' }).waitFor({ state: 'visible' });
+              if ((reservationRetryState.reservationPosts || 0) !== 1) {
+                throw new Error('Divergent retry created a second reservation request');
+              }
+              await reservationRetryPage.locator('#quantity-decrease').click();
+              await reservationRetryPage.locator('#reserve-button:not([disabled])').waitFor({ state: 'visible' });
+              await reservationRetryPage.locator('#reserve-button').click();
+              await reservationRetryPage.waitForTimeout(300);
+              if ((reservationRetryState.reservationPosts || 0) !== 2) {
+                throw new Error('Same-intent reservation retry was not exercised twice');
+              }
+              const reservationKeys = reservationRetryState.reservationIdempotencyKeys || [];
+              if (!reservationKeys[0] || reservationKeys[0] !== reservationKeys[1]) {
+                throw new Error('Ambiguous reservation retry changed idempotency key: ' + JSON.stringify(reservationKeys));
+              }
+              evidence.push({
+                case: 'reservation-retry-idempotency-390x844',
+                reservationPosts: reservationRetryState.reservationPosts,
+                stableKey: true,
+              });
+              await reservationRetryContext.close();
+
+              const providerContext = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'pt-BR' });
+              const providerPage = await providerContext.newPage();
+              const providerState = { providerFail: true };
+              await installRoutes(providerPage, providerState);
+              await providerPage.goto(origin + '/tickets.html', { waitUntil: 'domcontentloaded' });
+              await providerPage.locator('#holder-name').fill('Visitante');
+              await providerPage.locator('#holder-email').fill('visitante@example.com');
+              await providerPage.locator('#reserve-button:not([disabled])').waitFor({ state: 'visible' });
+              await providerPage.locator('#reserve-button').click();
+              await providerPage.locator('#reserve-button').filter({ hasText: 'Retomar pagamento' }).waitFor({ state: 'visible' });
+              const providerMessage = await providerPage.locator('#reservation-message').textContent();
+              if (/TICKETING_|PAYMENTS_|HTTP_/u.test(providerMessage || '')) {
+                throw new Error('Provider failure leaked technical state: ' + providerMessage);
+              }
+              if ((providerState.reservationPosts || 0) !== 1 || (providerState.checkoutPosts || 0) !== 1) {
+                throw new Error('Provider failure did not preserve exactly one reservation: ' + JSON.stringify(providerState));
+              }
+              providerState.providerFail = false;
+              await providerPage.locator('#reserve-button').click();
+              await providerPage.waitForTimeout(300);
+              if ((providerState.reservationPosts || 0) !== 1 || (providerState.checkoutPosts || 0) !== 2) {
+                throw new Error('Provider retry created a duplicate reservation: ' + JSON.stringify(providerState));
+              }
+              const checkoutKeys = providerState.checkoutIdempotencyKeys || [];
+              if (!checkoutKeys[0] || checkoutKeys[0] !== checkoutKeys[1]) {
+                throw new Error('Checkout retry changed server-issued idempotency key: ' + JSON.stringify(checkoutKeys));
+              }
+              evidence.push({
+                case: 'provider-retry-without-duplicate-reservation-390x844',
+                reservationPosts: providerState.reservationPosts,
+                checkoutPosts: providerState.checkoutPosts,
+                stableCheckoutKey: true,
+              });
+              await providerContext.close();
+
+              const privacyContext = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'pt-BR' });
+              const privacyPage = await privacyContext.newPage();
+              await installRoutes(privacyPage, {});
+              await privacyPage.goto(origin + '/tickets.html', { waitUntil: 'domcontentloaded' });
+              const collapsedVisible = await privacyPage.locator('.analytics-consent-trigger').isVisible().catch(() => false);
+              if (collapsedVisible) throw new Error('Floating privacy trigger still competes with transactional UI');
+              await privacyPage.locator('#privacy-settings-button').click();
+              await privacyPage.locator('.analytics-consent-preferences[role="dialog"]').waitFor({ state: 'visible' });
+              evidence.push({ case: 'privacy-inline-access-390x844', floatingTriggerVisible: false });
+              await privacyContext.close();
+
+              const stockContext = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'pt-BR' });
+              const stockPage = await stockContext.newPage();
+              const soldOut = { ...offer, id: 'mpi_v2_visual_sold_out', startsAt: iso(4 * 86400000), endsAt: iso(4 * 86400000 + 3600000), availableQuantity: 0 };
+              const unavailable = { ...offer, id: 'mpi_v2_visual_unavailable', startsAt: iso(5 * 86400000), endsAt: iso(5 * 86400000 + 3600000), sellable: false };
+              await installRoutes(stockPage, { inventory: [offer, soldOut, unavailable] });
+              await stockPage.goto(origin + '/tickets.html', { waitUntil: 'domcontentloaded' });
+              await stockPage.locator('.date-chip').first().waitFor({ state: 'visible' });
+              const dateStates = await stockPage.locator('.date-chip').allTextContents();
+              if (!dateStates.some(value => value.includes('Esgotado')) || !dateStates.some(value => value.includes('Indisponível'))) {
+                throw new Error('Sold-out/unavailable date states missing: ' + JSON.stringify(dateStates));
+              }
+              await audit(stockPage, 'date-states-390x844');
+              await stockPage.screenshot({
+                path: '/tmp/ticketing-v2/date-states-390x844.png',
+                fullPage: true,
+                animations: 'disabled',
+              });
+              evidence.push({ case: 'date-states-390x844', dateStates });
+              await stockContext.close();
+
               const terminalWalletContext = await browser.newContext({
                 viewport: { width: 390, height: 844 },
+                locale: 'pt-BR',
               });
               const terminalWalletPage = await terminalWalletContext.newPage();
               const expiredReservation = {
@@ -459,7 +722,7 @@ jobs:
               });
               await terminalWalletContext.close();
 
-              const dialogContext = await browser.newContext({ viewport: { width: 390, height: 500 } });
+              const dialogContext = await browser.newContext({ viewport: { width: 390, height: 500 }, locale: 'pt-BR' });
               const dialogPage = await dialogContext.newPage();
               await installRoutes(dialogPage, {});
               await dialogPage.goto(origin + '/tickets.html', { waitUntil: 'domcontentloaded' });

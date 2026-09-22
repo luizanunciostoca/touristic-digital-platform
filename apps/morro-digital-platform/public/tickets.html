@@ -29,7 +29,16 @@
   <body data-md-mode="commerce">
     <main class="ticketing-shell" data-md-surface="ticketing">
       <header class="ticketing-topbar">
-        <a class="back-link" href="/" data-ticketing-return>← Voltar ao mapa</a>
+        <a
+          class="back-link"
+          href="/"
+          data-ticketing-return
+          aria-label="Voltar ao mapa"
+          >←</a
+        >
+        <strong class="ticketing-context-title" data-commerce-i18n="mainTitle"
+          >Reservar passeio</strong
+        >
         <p
           id="session-label"
           class="session-label md-badge"
@@ -48,16 +57,19 @@
           aria-label="Morro de São Paulo"
         >
           <div class="ticketing-hero-overlay">
-            <p class="eyebrow">Experiência em Morro de São Paulo</p>
-            <h1 id="ticketing-title">Escolha sua experiência</h1>
+            <p class="eyebrow">Reserva em Morro de São Paulo</p>
+            <h1 id="ticketing-title">Carregando experiência…</h1>
             <p id="product-lead" class="lead">
-              Selecione uma experiência, confira data e preço e reserve com
-              checkout seguro.
+              Data, disponibilidade e preço confirmados em tempo real.
+            </p>
+            <p class="ticketing-trust">
+              Reserva segura · preço e disponibilidade confirmados pelo servidor
             </p>
             <div class="product-facts" aria-live="polite">
               <span id="product-location" class="md-badge"
                 >Morro de São Paulo</span
               >
+              <span id="product-rating" class="md-badge" hidden></span>
               <span id="product-duration" class="md-badge" hidden></span>
               <span
                 id="product-availability"
@@ -89,10 +101,17 @@
               id="refresh-button"
               class="button button-secondary md-button md-button--secondary"
               type="button"
+              hidden
             >
-              Atualizar
+              Tentar novamente
             </button>
           </div>
+          <div
+            id="date-selector"
+            class="date-selector"
+            role="listbox"
+            aria-label="Escolha a data"
+          ></div>
           <div id="offers" class="offer-grid" aria-live="polite"></div>
 
           <div
@@ -125,7 +144,7 @@
                   type="number"
                   inputmode="numeric"
                   min="1"
-                  max="20"
+                  max="1"
                   value="1"
                   required
                   aria-label="Quantidade de ingressos"
@@ -169,6 +188,15 @@
                 O valor final, moeda, disponibilidade e status de pagamento são
                 confirmados pelo servidor no momento da reserva e do checkout.
               </p>
+              <button
+                id="reserve-button"
+                class="button button-primary md-button md-button--primary checkout-cta"
+                type="submit"
+                form="reservation-form"
+                disabled
+              >
+                Finalizar Reserva
+              </button>
             </div>
           </div>
         </section>
@@ -243,16 +271,6 @@
                 maxlength="40"
               />
             </label>
-            <div class="form-actions">
-              <button
-                id="reserve-button"
-                class="button button-primary md-button md-button--primary checkout-cta"
-                type="submit"
-                disabled
-              >
-                Reservar e ir para pagamento
-              </button>
-            </div>
           </form>
         </section>
       </div>
@@ -273,6 +291,17 @@
           aria-live="polite"
         ></div>
       </section>
+
+      <footer class="ticketing-footer">
+        <button
+          id="privacy-settings-button"
+          class="ticketing-privacy-action"
+          type="button"
+          aria-label="Preferências de privacidade"
+        >
+          Privacidade
+        </button>
+      </footer>
     </main>
 
     <dialog
