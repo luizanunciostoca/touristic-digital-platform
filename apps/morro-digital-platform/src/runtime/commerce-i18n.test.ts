@@ -33,6 +33,9 @@ describe("commerce canonical i18n", () => {
       expect(copy.static.identityTitle).toBeTruthy();
       expect(copy.static.myTickets).toBeTruthy();
       expect(copy.static.brightnessHint).toBeTruthy();
+      expect(copy.static.resumePayment).toBeTruthy();
+      expect(copy.static.quoteExpired).toBeTruthy();
+      expect(copy.static.privacy).toBeTruthy();
     }
   });
 
@@ -53,7 +56,7 @@ describe("commerce canonical i18n", () => {
     const ticketing = getTicketingPresentationCopy("he-IL");
     const experience = getExperiencePresentationCopy("he-IL");
 
-    expect(ticketing.static.mainTitle).toBe("כרטיסים והזמנות");
+    expect(ticketing.static.mainTitle).toBe("הזמנת חוויה");
     expect(ticketing.yourTicket).toBe("הכרטיס שלך");
     expect(experience.static.loading).toBe("טוען חוויה…");
   });
