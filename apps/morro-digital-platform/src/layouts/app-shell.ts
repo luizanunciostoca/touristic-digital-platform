@@ -217,19 +217,30 @@ function createAppShellMarkup(): string {
       <div id="instruction-banner" class="instruction-banner md-banner md-navigation-banner hidden" aria-labelledby="instruction-main">
         <div class="instruction-primary">
           <span id="instruction-arrow" class="instruction-icon">↑</span>
-          <h2 id="instruction-main" class="instruction-main-text" role="status" aria-live="polite" aria-atomic="true" data-i18n="navigation_continue_straight">Siga em frente</h2>
+          <div class="instruction-copy">
+            <h2 id="instruction-main" class="instruction-main-text" role="status" aria-live="polite" aria-atomic="true" data-i18n="navigation_continue_straight">Siga em frente</h2>
+            <span id="instruction-step-distance" class="instruction-step-distance">0 m</span>
+          </div>
           <button id="minimize-navigation-btn" class="minimize-button md-icon-button" type="button" aria-label="Minimizar instruções de navegação" aria-expanded="true" aria-controls="instruction-secondary" data-i18n-aria="navigation_minimize"></button>
         </div>
         <div id="instruction-secondary" class="instruction-secondary">
           <p id="instruction-details" class="instruction-details">Siga em frente por 100m</p>
           <div class="progress-container"><div id="route-progress" class="progress-indicator-fill" style="width: 0%"></div></div>
           <div id="progress-text">0%</div>
-          <div class="metrics-group">
-            <div class="metric"><span class="metric-label" data-i18n="navigation_distance_label">Distância</span><span id="instruction-distance" class="metric-value">0 m</span></div>
-            <div class="metric"><span class="metric-label" data-i18n="navigation_time_label">Tempo</span><span id="instruction-time" class="metric-value">0 min</span></div>
-          </div>
         </div>
       </div>
+
+      <aside
+        id="navigation-summary"
+        class="navigation-summary md-card"
+        aria-label="Resumo da navegação"
+      >
+        <div class="metrics-group navigation-summary-metrics">
+          <div class="metric"><span class="metric-label" data-i18n="navigation_distance_label">Distância</span><span id="instruction-distance" class="metric-value">0 m</span></div>
+          <div class="metric"><span class="metric-label" data-i18n="navigation_time_label">Tempo</span><span id="instruction-time" class="metric-value">0 min</span></div>
+        </div>
+        <button id="end-navigation-btn" class="end-navigation-btn md-button md-button--destructive" type="button" aria-label="Encerrar Navegação" data-i18n="navigation_stop" data-i18n-aria="navigation_stop" style="display:none;">Encerrar Navegação</button>
+      </aside>
 
       <div id="loading-overlay" class="md-home-loading-overlay">
         <div class="loading-content md-card">
@@ -246,7 +257,6 @@ function createAppShellMarkup(): string {
       </select>
     </div>
 
-    <button id="end-navigation-btn" class="end-navigation-btn md-button md-button--destructive" type="button" aria-label="Encerrar Navegação" data-i18n="navigation_stop" data-i18n-aria="navigation_stop" style="display:none;">Encerrar Navegação</button>
   `;
 }
 

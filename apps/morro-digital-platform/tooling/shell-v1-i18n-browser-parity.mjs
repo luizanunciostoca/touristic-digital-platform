@@ -182,7 +182,7 @@ async function readShell(page) {
           ? ""
           : text("#instruction-distance"),
       metricLabels: Array.from(
-        document.querySelectorAll("#instruction-banner .metric-label"),
+        document.querySelectorAll("#navigation-summary .metric-label"),
       ).map((element) => element.textContent?.trim() ?? ""),
       loading: text("#loading-overlay p"),
       stopText: text("#end-navigation-btn"),

@@ -11,6 +11,7 @@ on:
       - apps/morro-digital-platform/src/layouts/app-shell.ts
       - apps/morro-digital-platform/public/styles.css
       - apps/morro-digital-platform/public/navigation-map.css
+      - apps/morro-digital-platform/public/premium-ux-v2.css
       - apps/morro-digital-platform/tooling/dev-server.mjs
       - packages/geospatial/src/adapters/navigation-mapbox.ts
       - packages/navigation/src/**
@@ -69,7 +70,9 @@ jobs:
           const outputDir = '/tmp/navigation-visual-baseline';
           mkdirSync(outputDir, { recursive: true });
           const viewports = [
-            ['mobile', 390, 844],
+            ['mobile-360', 360, 800],
+            ['mobile-390', 390, 844],
+            ['mobile-430', 430, 932],
             ['tablet', 768, 1024],
             ['desktop', 1440, 900],
           ];
@@ -226,10 +229,23 @@ jobs:
               const end = document.getElementById('end-navigation-btn');
               const events = globalThis.__navigationEvidence.events;
               const navigationMarker = document.querySelector('#map .mapboxgl-marker.navigation-user-location-marker');
+              const summary = document.getElementById('navigation-summary');
+              const composer = document.getElementById('assistant-input-area');
+              const assistant = document.getElementById('assistant-messages');
+              const privacy = document.querySelector('.analytics-consent-preferences.is-collapsed');
               const canvas = document.querySelector('#map .mapboxgl-canvas');
               const markerStyle = navigationMarker ? getComputedStyle(navigationMarker) : null;
               const canvasStyle = canvas ? getComputedStyle(canvas) : null;
               const markerRect = navigationMarker?.getBoundingClientRect();
+              const bannerRect = banner?.getBoundingClientRect();
+              const summaryRect = summary?.getBoundingClientRect();
+              const endRect = end?.getBoundingClientRect();
+              const visible = (element) => {
+                if (!(element instanceof HTMLElement)) return false;
+                const style = getComputedStyle(element);
+                const rect = element.getBoundingClientRect();
+                return style.visibility !== 'hidden' && style.display !== 'none' && Number.parseFloat(style.opacity || '1') > 0 && rect.width > 0 && rect.height > 0;
+              };
               const styleLayers = map.getStyle?.().layers ?? [];
               const outlineIndex = styleLayers.findIndex((layer) => layer.id === 'navigation-route-outline');
               const routeIndex = styleLayers.findIndex((layer) => layer.id === 'navigation-route-layer');
@@ -243,6 +259,15 @@ jobs:
                 progressWidth: document.getElementById('route-progress')?.style.width ?? '',
                 endVisible: Boolean(end && getComputedStyle(end).display !== 'none'),
                 bodyNavigationActive: document.body.classList.contains('navigation-active'),
+                viewport: { width: innerWidth, height: innerHeight, scrollWidth: document.documentElement.scrollWidth },
+                bannerRect: bannerRect ? { top: bannerRect.top, bottom: bannerRect.bottom, height: bannerRect.height } : null,
+                summaryRect: summaryRect ? { top: summaryRect.top, bottom: summaryRect.bottom, height: summaryRect.height } : null,
+                endRect: endRect ? { top: endRect.top, bottom: endRect.bottom, height: endRect.height } : null,
+                unrelatedControls: {
+                  composerVisible: visible(composer),
+                  assistantVisible: visible(assistant),
+                  privacyVisible: visible(privacy),
+                },
                 markerCount: document.querySelectorAll('#map .mapboxgl-marker').length,
                 navigationMarker: navigationMarker ? {
                   display: markerStyle?.display ?? null,
@@ -291,6 +316,12 @@ jobs:
 
             if (!activeState.bannerVisible || !activeState.endVisible || !activeState.bodyNavigationActive) throw new Error(`Navigation UI not active for ${name}: ${JSON.stringify(activeState)}`);
             if (!activeState.instruction || activeState.distance === '0 m' || activeState.time === '0 min') throw new Error(`Navigation guidance did not receive runtime data for ${name}: ${JSON.stringify(activeState)}`);
+            if (!activeState.bannerRect || activeState.bannerRect.height > Math.min(activeState.viewport.height * 0.28, 220)) throw new Error(`Navigation banner occupies excessive map area for ${name}: ${JSON.stringify(activeState.bannerRect)}`);
+            if (!activeState.summaryRect || activeState.summaryRect.bottom > activeState.viewport.height + 1 || activeState.summaryRect.top < 0) throw new Error(`Navigation summary left viewport for ${name}: ${JSON.stringify(activeState.summaryRect)}`);
+            if (!activeState.endRect || activeState.endRect.bottom > activeState.viewport.height + 1 || activeState.endRect.height < 44) throw new Error(`Navigation exit action is not safely reachable for ${name}: ${JSON.stringify(activeState.endRect)}`);
+            if (activeState.viewport.width <= 430 && (activeState.endRect.top + activeState.endRect.height / 2) < activeState.viewport.height * 0.62) throw new Error(`Navigation exit action escaped one-hand region for ${name}: ${JSON.stringify(activeState.endRect)}`);
+            if (activeState.viewport.scrollWidth > activeState.viewport.width + 1) throw new Error(`Navigation introduced horizontal overflow for ${name}: ${JSON.stringify(activeState.viewport)}`);
+            if (activeState.unrelatedControls.composerVisible || activeState.unrelatedControls.assistantVisible || activeState.unrelatedControls.privacyVisible) throw new Error(`Unrelated controls compete with Navigation for ${name}: ${JSON.stringify(activeState.unrelatedControls)}`);
             if (!activeState.started || !activeState.runtime || !activeState.location) throw new Error(`Canonical navigation events missing for ${name}: ${JSON.stringify(activeState.events)}`);
             if (activeState.started.sessionId !== activeState.runtime.sessionId || activeState.started.sessionId !== activeState.location.sessionId) throw new Error(`Navigation session IDs diverged for ${name}: ${JSON.stringify(activeState.events)}`);
             const latestCamera = activeState.camera.at(-1);
