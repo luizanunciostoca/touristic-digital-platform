@@ -334,10 +334,7 @@ async function checkAxe(page) {
       scrollWidth: node.scrollWidth,
       focused: node === document.activeElement,
     }));
-    if (
-      !tableState.focused ||
-      tableState.scrollWidth <= tableState.clientWidth
-    )
+    if (!tableState.focused || tableState.scrollWidth <= tableState.clientWidth)
       throw new Error("Table scroll contract not exercised");
     evidence.table = tableState;
 
@@ -380,6 +377,8 @@ async function checkAxe(page) {
     await browser.close();
   }
 })().catch((error) => {
-  console.error(error?.message || "Control Center responsive accessibility failed");
+  console.error(
+    error?.message || "Control Center responsive accessibility failed",
+  );
   process.exit(1);
 });
