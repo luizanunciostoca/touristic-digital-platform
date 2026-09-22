@@ -430,7 +430,11 @@ body {
 }
 
 .control-center-main .page {
+  flex: 1 1 auto;
+  min-height: 0;
   max-width: 1600px;
+  overflow: auto;
+  overscroll-behavior: contain;
   padding: 24px 24px max(40px, env(safe-area-inset-bottom));
 }
 
