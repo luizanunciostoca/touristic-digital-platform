@@ -482,6 +482,11 @@ jobs:
             await page.locator('#assistant-category-results [data-value="__tour_next__"]').click();
             const next = await waitForGuidedStage(page, 'stop', 'volta-a-ilha', '3');
 
+            await page.locator('#assistant-category-results [data-value="__tour_prev__"]').click();
+            const previous = await waitForGuidedStage(page, 'stop', 'volta-a-ilha', '2');
+            await page.locator('#assistant-category-results [data-value="__tour_next__"]').click();
+            const nextAfterPrevious = await waitForGuidedStage(page, 'stop', 'volta-a-ilha', '3');
+
             await page.locator('#assistant-category-results [data-value="__tour_list__"]').click();
             const list = await waitForGuidedStage(page, 'list', 'volta-a-ilha');
             await page.locator('.tour-stop-list-card').waitFor({ state: 'visible', timeout: 10000 });
@@ -512,6 +517,8 @@ jobs:
               markerJump,
               changedStopNarration,
               next,
+              previous,
+              nextAfterPrevious,
               list,
               directLast,
               finale,
@@ -526,7 +533,16 @@ jobs:
             await page.locator('#assistant-category-results [data-value="__tour_start__"]').click();
             const first = await waitForGuidedStage(page, 'stop', 'trilha-gamboa', '0');
             await page.locator('.tour-stop-card').waitFor({ state: 'visible', timeout: 10000 });
-            return { refreshedHome, intro, first };
+            await page.locator('#explore-flow-bottom-sheet[data-flow-kind="tour"] .explore-flow-sheet-close').click();
+            await page.locator('#map[data-tour-state="idle"]:not([data-active-tour])').waitFor({
+              state: 'attached',
+              timeout: 10000,
+            });
+            const cancelled = await guidedSnapshot(page);
+            if (cancelled.flowStage !== null || cancelled.flowTourId !== null) {
+              throw new Error(`Tour cancel did not restore idle map state: ${JSON.stringify(cancelled)}`);
+            }
+            return { refreshedHome, intro, first, cancelled };
           }
 
           async function failureEvidence(page, name, phase, pageErrors) {
