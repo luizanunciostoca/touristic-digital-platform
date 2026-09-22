@@ -507,7 +507,10 @@ export function installPlaceBottomSheet(
         : overflowActions;
       destination.appendChild(button);
     }
-    overflow.classList.toggle("hidden", overflowActions.childElementCount === 0);
+    overflow.classList.toggle(
+      "hidden",
+      overflowActions.childElementCount === 0,
+    );
 
     const shareButton = document.createElement("button");
     shareButton.type = "button";
