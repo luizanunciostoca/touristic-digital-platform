@@ -240,8 +240,14 @@ async function geometry(page, viewport) {
         profileVisible: visible("#profile-button"),
         headingVisible:
           visible("#page-title") &&
-          document.querySelector("#page-title")?.textContent.trim() ===
-            "Visão Geral",
+          /^(Bom dia|Boa tarde|Boa noite),\\s+\\S+/u.test(
+            document.querySelector("#page-title")?.textContent.trim() || "",
+          ) &&
+          document.querySelector("#breadcrumb")?.textContent.trim() ===
+            "Control Center / Visão Geral" &&
+          document.querySelector("#page-description")?.textContent.trim() ===
+            "Resumo da operação da plataforma." &&
+          visible(".home-heading-meta"),
         labels,
         kpiCount: labels.length,
         kpiOrderCorrect:
