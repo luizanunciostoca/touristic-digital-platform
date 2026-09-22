@@ -434,6 +434,17 @@ jobs:
                   '#map[data-explore-stage="detail"][data-explore-place="Primeira Praia"][data-map-marker-count="1"]',
                 ).waitFor({ state: 'attached', timeout: 10000 });
 
+                await page.waitForFunction(() => {
+                  const image = document.querySelector(
+                    '#place-bottom-sheet .place-bottom-sheet-image',
+                  );
+                  return (
+                    !(image instanceof HTMLImageElement) ||
+                    !image.src ||
+                    (image.complete && image.naturalWidth > 0)
+                  );
+                }, { timeout: 10000 });
+
                 const placeState = await place.evaluate(sheet => {
                   const image = sheet.querySelector('.place-bottom-sheet-image');
                   const buttons = Array.from(
