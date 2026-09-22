@@ -243,13 +243,10 @@ try {
   {
     const context = await browser.newContext({
       viewport: { width: 390, height: 844 },
-      locale: "ar",
+      locale: "he-IL",
     });
     const page = await context.newPage();
     await page.goto(baseUrl, { waitUntil: "domcontentloaded", timeout: 45_000 });
-    await page.evaluate(() => {
-      document.documentElement.dir = "rtl";
-    });
     await page.waitForTimeout(250);
     const rtl = await page.evaluate(() => ({
       overflow:
