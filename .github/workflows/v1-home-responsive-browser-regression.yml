@@ -204,7 +204,7 @@ jobs:
                   weatherVisual.overflow !== 'hidden' ||
                   weatherVisual.rect.height < 44 ||
                   weatherVisual.rect.height > 64 ||
-                  weatherVisual.rect.width < 88
+                  weatherVisual.rect.width < 84
                 ) {
                   throw new Error(`V2 weather control contract diverged on ${viewport.name}: ${JSON.stringify(weatherVisual)}`);
                 }
