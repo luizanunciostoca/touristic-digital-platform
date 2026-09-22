@@ -232,6 +232,8 @@ function publicInventory(
     startsAt: inventory.startsAt,
     endsAt: inventory.endsAt,
     availableQuantity: availability.remainingQuantity,
+    sellable: availability.sellable,
+    observedAt: availability.observedAt,
   });
 }
 
@@ -446,6 +448,93 @@ export class TicketingPublicHttpTransport {
           ),
         );
         return response(200, { data: Object.freeze(data) }, correlation);
+      }
+
+      if (relative === "/quote" && method === "POST") {
+        const body = record(request.body);
+        const inventoryId =
+          typeof body?.inventoryId === "string" ? body.inventoryId : "";
+        const quantity = body?.quantity;
+        const now = canonicalNow(this.dependencies.clock);
+        if (
+          !Number.isSafeInteger(quantity) ||
+          Number(quantity) < 1
+        ) {
+          return response(
+            400,
+            { error: "TICKETING_QUANTITY_INVALID" },
+            correlation,
+          );
+        }
+        const inventory =
+          await this.dependencies.reservations.findInventoryById(inventoryId);
+        if (!inventory) {
+          return response(404, { error: "INVENTORY_NOT_FOUND" }, correlation);
+        }
+        const availability =
+          await this.dependencies.reservations.availability(inventory.id, now);
+        if (!availability.sellable) {
+          return response(
+            409,
+            { error: "TICKETING_INVENTORY_UNAVAILABLE" },
+            correlation,
+          );
+        }
+        if (availability.remainingQuantity < 1) {
+          return response(
+            409,
+            { error: "TICKETING_INVENTORY_EXHAUSTED" },
+            correlation,
+          );
+        }
+        const maximum = Math.min(
+          inventory.maxPerReservation,
+          availability.remainingQuantity,
+        );
+        if (Number(quantity) > maximum) {
+          return response(
+            409,
+            {
+              error: "TICKETING_QUANTITY_LIMIT",
+              data: { maximum },
+            },
+            correlation,
+          );
+        }
+        const totalMinorUnits = inventory.unitAmount.minorUnits * Number(quantity);
+        const totalAmount = createMoney(
+          totalMinorUnits,
+          inventory.unitAmount.currency,
+        );
+        if (!totalAmount || !Number.isSafeInteger(totalMinorUnits)) {
+          throw new Error("TICKETING_QUOTE_AMOUNT_INVALID");
+        }
+        const expiresMs = Math.min(
+          Date.parse(now) + 60_000,
+          Date.parse(inventory.salesEndAt),
+          Date.parse(inventory.startsAt) - 1,
+        );
+        const expiresAt =
+          Number.isFinite(expiresMs) && expiresMs > Date.parse(now)
+            ? new Date(expiresMs).toISOString()
+            : now;
+        return response(
+          200,
+          {
+            data: Object.freeze({
+              inventoryId: inventory.id,
+              quantity: Number(quantity),
+              unitAmount: inventory.unitAmount,
+              totalAmount,
+              pricingVersion: inventory.pricingVersion,
+              availableQuantity: availability.remainingQuantity,
+              maxPerReservation: inventory.maxPerReservation,
+              observedAt: availability.observedAt,
+              expiresAt,
+            }),
+          },
+          correlation,
+        );
       }
 
       if (relative === "/reservations" && method === "GET") {
