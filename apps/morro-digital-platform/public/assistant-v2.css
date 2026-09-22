@@ -131,3 +131,62 @@
     outline-color: Highlight;
   }
 }
+
+
+/* Wave B — contextual Assistant convergence */
+#assistant-messages.md-assistant-dialog .md-assistant-command-source[hidden] {
+  display: none !important;
+}
+
+#assistant-messages.md-assistant-dialog .md-assistant-messages {
+  max-height: min(52dvh, 32rem);
+  overflow-y: auto;
+  overflow-x: hidden;
+  overflow-wrap: anywhere;
+}
+
+#assistant-input-area.md-assistant-composer {
+  bottom: max(
+    calc(var(--md-home-bottom-nav-height) + var(--md-space-3)),
+    calc(env(safe-area-inset-bottom, 0px) + var(--md-home-bottom-nav-height))
+  );
+  max-width: min(46rem, calc(100vw - var(--md-space-4)));
+  margin-inline: auto;
+}
+
+#assistant-input-area.md-assistant-composer:focus-within {
+  border-color: var(--md-focus-ring-color);
+  box-shadow: var(--md-elevation-3);
+}
+
+#assistant-messages.md-assistant-dialog[data-assistant-state="loading"] {
+  max-height: min(48dvh, 30rem);
+}
+
+#assistant-messages.md-assistant-dialog[data-assistant-state="error"] {
+  border-color: var(--md-color-border);
+}
+
+@media (max-width: 24.375rem) {
+  #assistant-input-area.md-assistant-composer {
+    max-width: calc(100vw - var(--md-space-3));
+  }
+
+  #assistant-messages.md-assistant-dialog {
+    max-width: calc(100vw - var(--md-space-3));
+    max-height: min(56dvh, 30rem);
+  }
+}
+
+@media (max-height: 34rem) {
+  #assistant-messages.md-assistant-dialog {
+    max-height: min(42dvh, 18rem);
+  }
+
+  #assistant-input-area.md-assistant-composer {
+    bottom: max(
+      var(--md-space-2),
+      env(safe-area-inset-bottom, 0px)
+    );
+  }
+}
