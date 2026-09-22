@@ -6,6 +6,7 @@ on:
     types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
     paths:
       - ".github/workflows/commerce-browser-regression.yml"
+      - "tests/visual-regression/ux-v2-manual-reference-matrix.json"
       - ".github/workflows/final-release-acceptance.yml"
       - "apps/morro-digital-platform/public/commerce.css"
       - "apps/morro-digital-platform/public/experience.html"
