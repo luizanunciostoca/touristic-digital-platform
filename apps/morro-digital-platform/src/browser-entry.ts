@@ -38,6 +38,7 @@ import {
   type GlobalViewControl,
 } from "./map/global-view-control.js";
 import { getExploreLocationsCategories } from "./map/explore-locations-control.js";
+import { createV1ExploreMarkerElement } from "./map/explore-marker-element.js";
 import { initializeMorroBrowserLocale } from "./runtime/browser-locale.js";
 import {
   loadPublicDestination,
@@ -287,6 +288,8 @@ let activeGlobalViewControl: GlobalViewControl | undefined;
 let activeCurrentLocationMarker: MapboxGlMarkerLike | undefined;
 let activeCurrentLocation: readonly [number, number] | undefined;
 let activeDiscoverRecenterCleanup: (() => void) | undefined;
+let activeDiscoverPoiMarkers: MapboxGlMarkerLike[] = [];
+let activeDiscoverPoiCleanup: (() => void) | undefined;
 
 installTouristExperienceSnapshotCapture({
   document,
@@ -298,6 +301,10 @@ installTouristExperienceSnapshotCapture({
 function clearBrowserNavigationRuntime(): void {
   activeDiscoverRecenterCleanup?.();
   activeDiscoverRecenterCleanup = undefined;
+  activeDiscoverPoiCleanup?.();
+  activeDiscoverPoiCleanup = undefined;
+  for (const marker of activeDiscoverPoiMarkers) marker.remove();
+  activeDiscoverPoiMarkers = [];
   activeCurrentLocationMarker?.remove();
   activeCurrentLocationMarker = undefined;
   activeCurrentLocation = undefined;
@@ -326,6 +333,63 @@ function presentCurrentLocation(
     .addTo(map);
   mapContainer?.setAttribute("data-current-location", "visible");
   mapContainer?.setAttribute("data-geolocation-state", "granted");
+}
+
+function installDiscoverPoiMarkers(
+  map: MapboxGlMapLike,
+  sdk: MapboxGlModuleLike,
+): () => void {
+  const markerModels = discoverInitialMarkers();
+  const entries = markerModels.flatMap((markerModel) => {
+    const element = createV1ExploreMarkerElement({
+      id: markerModel.id,
+      ...(markerModel.label ? { label: markerModel.label } : {}),
+    });
+    if (!element) return [];
+    element.dataset.discoverInitialPoi = "true";
+    const marker = new sdk.Marker({ element, anchor: "center" })
+      .setLngLat([
+        markerModel.position.longitude,
+        markerModel.position.latitude,
+      ])
+      .addTo(map);
+    return [{ marker, element }];
+  });
+
+  activeDiscoverPoiMarkers = entries.map(({ marker }) => marker);
+  mapContainer?.setAttribute(
+    "data-discover-poi-count",
+    String(activeDiscoverPoiMarkers.length),
+  );
+
+  const syncVisibility = (): void => {
+    const markerCount = Number(mapContainer?.dataset.mapMarkerCount ?? "0");
+    const exploreCategory = mapContainer?.dataset.exploreCategory?.trim() ?? "";
+    const shouldShow = markerCount === 0 && exploreCategory.length === 0;
+    for (const { element } of entries) {
+      element.hidden = !shouldShow;
+      element.setAttribute("aria-hidden", String(!shouldShow));
+    }
+  };
+
+  const onExploreStateChanged = (): void => syncVisibility();
+  document.addEventListener(
+    "morro:explore-state-changed",
+    onExploreStateChanged,
+  );
+  syncVisibility();
+
+  return () => {
+    document.removeEventListener(
+      "morro:explore-state-changed",
+      onExploreStateChanged,
+    );
+    for (const { marker } of entries) marker.remove();
+    if (activeDiscoverPoiMarkers.length === entries.length) {
+      activeDiscoverPoiMarkers = [];
+    }
+    mapContainer?.removeAttribute("data-discover-poi-count");
+  };
 }
 
 async function installGrantedCurrentLocationMarker(
@@ -771,13 +835,16 @@ async function startBrowserWithProvider(provider: ResolvedMapProvider) {
       sdk: provider.sdk,
       environment: provider.environment,
       document,
-      initialMarkers: discoverInitialMarkers(),
       createMarkerElement: createTourMarkerElement,
       ...(provider.mode === "real"
         ? {
             onMapCreated: (map: MapboxGlMapLike) => {
               clearBrowserNavigationRuntime();
               activeRealMap = map;
+              activeDiscoverPoiCleanup = installDiscoverPoiMarkers(
+                map,
+                provider.sdk,
+              );
               map.setCenter([
                 activeDestination.center.longitude,
                 activeDestination.center.latitude,
@@ -831,8 +898,13 @@ async function startBrowserWithProvider(provider: ResolvedMapProvider) {
       sdk: fallbackProvider.sdk,
       environment: fallbackProvider.environment,
       document,
-      initialMarkers: discoverInitialMarkers(),
       createMarkerElement: createTourMarkerElement,
+      onMapCreated: (map: MapboxGlMapLike) => {
+        activeDiscoverPoiCleanup = installDiscoverPoiMarkers(
+          map,
+          fallbackProvider.sdk,
+        );
+      },
     });
   }
 }
@@ -851,13 +923,10 @@ async function start(): Promise<void> {
   mapContainer?.removeAttribute("data-active-tour");
   mapContainer?.setAttribute("data-tour-state", "idle");
   mapContainer?.setAttribute("data-home-state", "ready");
-  mapContainer?.setAttribute(
-    "data-map-marker-count",
-    String(result.loadedMarkerCount),
-  );
+  mapContainer?.setAttribute("data-map-marker-count", "0");
   mapContainer?.setAttribute(
     "data-discover-poi-count",
-    String(result.loadedMarkerCount),
+    String(activeDiscoverPoiMarkers.length),
   );
   const providerId = result.geospatialEngine?.providerId;
   updateStatus({
