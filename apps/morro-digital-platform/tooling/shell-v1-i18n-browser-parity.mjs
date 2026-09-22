@@ -24,7 +24,7 @@ const expected = {
     mapRegion: "Mapa interativo de Morro de São Paulo",
     submenu: "Explorar locais",
     submenuClose: "Fechar menu",
-    inputPlaceholder: "Digite sua pergunta...",
+    inputPlaceholder: "Pergunte ao Morro Digital...",
     inputAria: "Mensagem para o assistente",
     sendAria: "Enviar mensagem",
     voiceAria: "Enviar mensagem por voz",
