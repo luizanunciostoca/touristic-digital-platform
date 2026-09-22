@@ -27,15 +27,12 @@ type ManualAuthority = Readonly<{
     forbiddenWhileAnyStatusMatches: readonly string[];
     forbiddenGateStatuses: readonly string[];
     physicalGate: string;
-    gates: Readonly<
-      Record<
-        string,
-        Readonly<{
-          status: string;
-          requirement: string;
-        }>
-      >
-    >;
+    gates: Readonly<{
+      exactMain: Readonly<{ status: string; requirement: string }>;
+      stagingExactSha: Readonly<{ status: string; requirement: string }>;
+      canonicalIssue33: Readonly<{ status: string; requirement: string }>;
+      samsungPhysical: Readonly<{ status: string; requirement: string }>;
+    }>;
   }>;
 }>;
 
