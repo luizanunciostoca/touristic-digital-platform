@@ -12,8 +12,8 @@
 @layer tokens {
   :root {
     /* Brand + semantic colors */
-    --md-color-brand-primary: #2563eb;
-    --md-color-brand-primary-strong: #1d4ed8;
+    --md-color-brand-primary: #3b82f6;
+    --md-color-brand-primary-strong: #2563eb;
     --md-color-accent: #10b981;
     --md-color-accent-strong: #059669;
     --md-color-surface: #ffffff;
@@ -40,8 +40,8 @@
     --md-color-text-primary: var(--md-color-text);
     --md-color-text-secondary: var(--md-color-text-muted);
     --md-color-text-inverse: #ffffff;
-    --md-color-interactive-primary: var(--md-color-brand);
-    --md-color-interactive-primary-hover: var(--md-color-brand-strong);
+    --md-color-interactive-primary: var(--md-color-brand-strong);
+    --md-color-interactive-primary-hover: #1d4ed8;
     --md-color-interactive-secondary: var(--md-color-surface-card);
     --md-color-interactive-secondary-hover: var(--md-color-surface-subtle);
     --md-color-overlay: rgb(15 23 42 / 0.62);
