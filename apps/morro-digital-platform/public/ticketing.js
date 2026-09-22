@@ -209,22 +209,22 @@ function heroImageFor(offer) {
   return "/images/fotos/farol_do_morro1.jpg";
 }
 
-function friendlyError(error, fallback = "Não foi possível concluir agora. Tente novamente.") {
+function friendlyError(error, fallback = copy.createReservationFailed) {
   const code = text(error?.message);
   if (code.includes("FEATURE_DISABLED") || code.includes("UNAVAILABLE") || error?.status === 503)
-    return "Reservas temporariamente indisponíveis. Tente novamente em instantes.";
+    return copy.ticketingUnavailable;
   if (code.includes("EXHAUSTED"))
-    return "Esta opção acabou de esgotar. Escolha outra data ou experiência.";
+    return copy.soldOut;
   if (code.includes("QUANTITY_LIMIT"))
-    return "A quantidade escolhida não está mais disponível. Ajuste os ingressos e tente novamente.";
+    return copy.fillFields;
   if (code.includes("INVENTORY_UNAVAILABLE"))
-    return "Esta data não está disponível para reserva.";
+    return copy.static.unavailable;
   if (code.includes("CURRENCY_MISMATCH"))
-    return "Não foi possível confirmar a moeda desta reserva. Atualize e tente novamente.";
+    return copy.static.currencyMismatch;
   if (code.includes("EXPIRED"))
-    return "A condição da reserva expirou. Atualizamos a disponibilidade para você.";
+    return copy.static.quoteExpired;
   if (error?.status === 409)
-    return "A disponibilidade mudou enquanto você reservava. Revise os dados atualizados.";
+    return copy.static.priceChanged;
   if (error?.status === 400)
     return "Revise os dados da reserva e tente novamente.";
   return fallback;
@@ -249,7 +249,7 @@ function updatePurchaseSummary() {
   elements.summaryQuantity.textContent = String(quantity);
   elements.summaryUnitPrice.textContent = quote ? money(quote.unitAmount) : "—";
   elements.summarySubtotal.textContent = quote ? money(quote.totalAmount) : "—";
-  elements.quoteBadge.textContent = quote ? "Valor confirmado agora" : "Confirmando valor…";
+  elements.quoteBadge.textContent = quote ? copy.static.quoteConfirmed : copy.static.confirmingValue;
   elements.quantityDecrease.disabled = quantity <= minimum;
   elements.quantityIncrease.disabled = quantity >= maximum;
 }
@@ -267,7 +267,7 @@ async function refreshQuote({ announce = false } = {}) {
   const requestId = ++state.quoteRequest;
   state.quote = null;
   elements.reserve.disabled = true;
-  elements.reserve.textContent = "Confirmando disponibilidade…";
+  elements.reserve.textContent = copy.static.confirmingAvailability;
   updatePurchaseSummary();
   try {
     const payload = await api("/api/ticketing/v1/quote", {
@@ -304,18 +304,18 @@ async function refreshQuote({ announce = false } = {}) {
     const pendingCheckout = pendingCheckoutState();
     elements.reserve.disabled = state.submitting;
     elements.reserve.textContent = state.submitting
-      ? "Finalizando…"
+      ? copy.static.finalizing
       : pendingCheckout
-        ? "Retomar pagamento"
-        : "Finalizar Reserva";
-    if (announce) setMessage("Preço e disponibilidade atualizados.");
+        ? copy.static.resumePayment
+        : copy.static.reserveAndPay;
+    if (announce) setMessage(copy.static.priceUpdated);
     return quote;
   } catch (error) {
     if (requestId !== state.quoteRequest) return null;
     state.quote = null;
     updatePurchaseSummary();
     elements.reserve.disabled = true;
-    elements.reserve.textContent = "Finalizar Reserva";
+    elements.reserve.textContent = copy.static.reserveAndPay;
     setMessage(friendlyError(error), true);
     elements.refresh.hidden = false;
     return null;
@@ -336,7 +336,7 @@ function updateProductPresentation(offer) {
   elements.productDuration.textContent = duration;
   elements.productAvailability.hidden = false;
   elements.productAvailability.textContent = offer.sellable === false
-    ? "Indisponível"
+    ? copy.static.unavailable
     : offer.availableQuantity > 0
       ? copy.availableCount(offer.availableQuantity)
       : copy.soldOut;
@@ -609,7 +609,7 @@ function renderDateSelector() {
     button.setAttribute("aria-selected", String(key === state.selectedDate));
     button.disabled = unavailable || soldOut;
     button.innerHTML =
-      `<span>${dateLabel(key)}</span><small>${unavailable ? "Indisponível" : soldOut ? "Esgotado" : "Disponível"}</small>`;
+      `<span>${dateLabel(key)}</span><small>${unavailable ? copy.static.unavailable : soldOut ? copy.soldOut : copy.static.available}</small>`;
     button.addEventListener("click", () => {
       state.selectedDate = key;
       const nextOffer =
@@ -663,7 +663,7 @@ function renderOffers() {
       offer.sellable !== false && offer.availableQuantity > 0,
     );
     availability.textContent = offer.sellable === false
-      ? "Indisponível"
+      ? copy.static.unavailable
       : offer.availableQuantity > 0
         ? copy.availableCount(offer.availableQuantity)
         : copy.soldOut;
@@ -681,7 +681,7 @@ function renderOffers() {
     button.disabled = offer.sellable === false || offer.availableQuantity < 1;
     button.textContent =
       offer.sellable === false
-        ? "Indisponível"
+        ? copy.static.unavailable
         : offer.availableQuantity > 0
           ? copy.reserve
           : copy.soldOut;
@@ -720,9 +720,8 @@ async function loadOffers() {
     elements.productRating.hidden = true;
     elements.productDuration.hidden = true;
     elements.productAvailability.hidden = true;
-    elements.heroTitle.textContent = "Nenhuma experiência disponível agora";
-    elements.productLead.textContent =
-      "Tente novamente em instantes ou volte ao mapa para escolher outra experiência.";
+    elements.heroTitle.textContent = copy.static.emptyTitle;
+    elements.productLead.textContent = copy.static.emptyHelp;
     elements.reserve.disabled = true;
     updatePurchaseSummary();
     return;
@@ -1118,15 +1117,15 @@ async function submitReservation(event) {
   if (resumableCheckout) {
     state.submitting = true;
     elements.reserve.disabled = true;
-    elements.reserve.textContent = "Retomando pagamento…";
-    setMessage("Retomando o checkout seguro da sua reserva…");
+    elements.reserve.textContent = copy.static.resumingPayment;
+    setMessage(copy.static.resumingPayment);
     try {
       await createCheckout(resumableCheckout);
     } catch (error) {
       setMessage(
         friendlyError(
           error,
-          "O pagamento não abriu agora. Sua reserva foi preservada; tente retomar o pagamento.",
+          copy.static.retryPaymentPreserved,
         ),
         true,
       );
@@ -1134,8 +1133,8 @@ async function submitReservation(event) {
       state.submitting = false;
       const stillPending = pendingCheckoutState();
       elements.reserve.textContent = stillPending
-        ? "Retomar pagamento"
-        : "Finalizar Reserva";
+        ? copy.static.resumePayment
+        : copy.static.reserveAndPay;
       elements.reserve.disabled = stillPending ? false : !state.quote;
     }
     return;
@@ -1164,7 +1163,7 @@ async function submitReservation(event) {
 
   state.submitting = true;
   elements.reserve.disabled = true;
-  elements.reserve.textContent = "Finalizando…";
+  elements.reserve.textContent = copy.static.finalizing;
   setMessage(copy.creatingReservation);
   try {
     const previousQuote = quoteIdentity(state.quote);
@@ -1172,7 +1171,7 @@ async function submitReservation(event) {
     if (!freshQuote) return;
     if (previousQuote && previousQuote !== quoteIdentity(freshQuote)) {
       setMessage(
-        "Preço ou disponibilidade mudou. Revise o resumo atualizado antes de finalizar.",
+        copy.static.priceChanged,
         true,
       );
       return;
@@ -1182,13 +1181,13 @@ async function submitReservation(event) {
       Date.parse(freshQuote.expiresAt) <= Date.now()
     ) {
       setMessage(
-        "A cotação expirou. Atualizamos o valor; revise antes de finalizar.",
+        copy.static.quoteExpired,
         true,
       );
       return;
     }
     elements.reserve.disabled = true;
-    elements.reserve.textContent = "Finalizando…";
+    elements.reserve.textContent = copy.static.finalizing;
     const reference = reservationAttemptReference(
       state.selectedOffer.id,
       quantity,
@@ -1228,8 +1227,8 @@ async function submitReservation(event) {
     state.submitting = false;
     const pendingCheckout = pendingCheckoutState();
     elements.reserve.textContent = pendingCheckout
-      ? "Retomar pagamento"
-      : "Finalizar Reserva";
+      ? copy.static.resumePayment
+      : copy.static.reserveAndPay;
     elements.reserve.disabled = !state.quote && !pendingCheckout;
   }
 }
@@ -1244,7 +1243,7 @@ elements.privacySettings?.addEventListener("click", () => {
 
 elements.refresh.addEventListener("click", () => {
   elements.refresh.hidden = true;
-  setMessage("Atualizando disponibilidade…");
+  setMessage(copy.static.updatingAvailability);
   void Promise.all([loadOffers(), loadReservations()])
     .then(() => {
       setMessage("");
