@@ -1499,7 +1499,7 @@ body[data-md-mode="discover"] #globe-map-control.md-map-control-stack {
   z-index: var(--md-layer-dock);
   display: flex;
   width: min(
-    34rem,
+    var(--md-unified-dock-max-inline-size),
     calc(100vw - var(--md-shell-gutter) - var(--md-shell-gutter-end))
   );
   max-height: calc(100dvh - var(--md-shell-top) - var(--md-shell-bottom));
@@ -1512,6 +1512,19 @@ body[data-md-mode="discover"] #globe-map-control.md-map-control-stack {
   backdrop-filter: blur(1rem) saturate(1.12);
   -webkit-backdrop-filter: blur(1rem) saturate(1.12);
   transform: translateX(-50%);
+}
+
+#unified-assistant-dock > .md-unified-dock-grabber {
+  flex: 0 0 auto;
+  width: 2.5rem;
+  height: 0.25rem;
+  margin: var(--md-space-2) auto var(--md-space-1);
+  border-radius: var(--md-radius-pill);
+  background: color-mix(in srgb, var(--md-color-text-secondary) 30%, transparent);
+}
+
+body[data-md-unified-dock="true"] #discover-category-rail {
+  display: none;
 }
 
 #unified-assistant-dock > #assistant-messages.md-assistant-message-region {
@@ -1588,6 +1601,118 @@ body[data-md-mode="discover"] #globe-map-control.md-map-control-stack {
   max-height: var(--md-unified-dock-rich-max-height) !important;
 }
 
+#unified-assistant-dock > #assistant-category-rail.md-assistant-category-rail {
+  position: relative;
+  flex: 0 0 auto;
+  min-width: 0;
+  height: var(--md-unified-dock-category-height);
+  padding: var(--md-space-2) 0 var(--md-space-3);
+  overflow: hidden;
+  border-top: 1px solid var(--md-unified-dock-divider);
+  background: transparent;
+}
+
+#unified-assistant-dock
+  > #assistant-category-rail
+  .md-assistant-category-scroll {
+  display: flex;
+  min-width: 0;
+  height: 100%;
+  gap: var(--md-unified-dock-category-gap);
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-inline: var(--md-space-3) calc(var(--md-space-6) + var(--md-space-2));
+  overscroll-behavior-inline: contain;
+  scroll-padding-inline: var(--md-space-3);
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  touch-action: pan-x;
+  -webkit-overflow-scrolling: touch;
+}
+
+#unified-assistant-dock
+  > #assistant-category-rail
+  .md-assistant-category-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+#unified-assistant-dock .md-assistant-category-chip {
+  flex: 0 0 var(--md-unified-dock-category-min-width);
+  min-width: var(--md-unified-dock-category-min-width);
+  min-height: var(--md-touch-target-min);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--md-space-1);
+  padding: var(--md-space-2);
+  scroll-snap-align: start;
+  border: 1px solid color-mix(in srgb, var(--md-color-border) 64%, transparent);
+  border-radius: var(--md-radius-lg);
+  background: color-mix(in srgb, var(--md-color-brand) 8%, var(--md-color-surface-card));
+  color: var(--md-color-text-primary);
+  font: inherit;
+  cursor: pointer;
+  transition:
+    transform var(--md-motion-duration-fast) var(--md-motion-ease-standard),
+    background-color var(--md-motion-duration-fast) var(--md-motion-ease-standard),
+    border-color var(--md-motion-duration-fast) var(--md-motion-ease-standard);
+}
+
+#unified-assistant-dock .md-assistant-category-chip:nth-child(2n) {
+  background: color-mix(in srgb, var(--md-color-accent) 9%, var(--md-color-surface-card));
+}
+
+#unified-assistant-dock .md-assistant-category-chip:nth-child(3n) {
+  background: color-mix(in srgb, var(--md-color-warning) 8%, var(--md-color-surface-card));
+}
+
+#unified-assistant-dock .md-assistant-category-chip:nth-child(4n) {
+  background: color-mix(in srgb, #a855f7 8%, var(--md-color-surface-card));
+}
+
+#unified-assistant-dock .md-assistant-category-chip i {
+  display: grid;
+  width: 1.5rem;
+  height: 1.5rem;
+  place-items: center;
+  color: var(--md-color-brand-strong);
+  font-size: var(--md-font-size-lg);
+  line-height: 1;
+}
+
+#unified-assistant-dock .md-assistant-category-chip:nth-child(2n) i {
+  color: var(--md-color-accent-strong);
+}
+
+#unified-assistant-dock .md-assistant-category-label {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  font-size: var(--md-font-size-xs);
+  font-weight: var(--md-font-weight-medium);
+  line-height: var(--md-line-height-tight);
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#unified-assistant-dock .md-assistant-category-chip:is(:hover, :focus-visible) {
+  border-color: var(--md-color-brand);
+  background: color-mix(in srgb, var(--md-color-brand) 15%, var(--md-color-surface-card));
+}
+
+#unified-assistant-dock .md-assistant-category-chip:active {
+  transform: scale(var(--md-motion-scale-pressed));
+}
+
+html[dir="rtl"]
+  #unified-assistant-dock
+  > #assistant-category-rail
+  .md-assistant-category-scroll {
+  direction: rtl;
+}
+
 #unified-assistant-dock > #assistant-input-area.md-assistant-composer {
   position: static !important;
   inset: auto !important;
@@ -1657,6 +1782,22 @@ body[data-md-mode="discover"] #globe-map-control.md-map-control-stack {
   }
 
   #unified-assistant-dock
+    > #assistant-category-rail
+    .md-assistant-category-scroll {
+    padding-inline: var(--md-space-2) var(--md-space-5);
+  }
+
+  #unified-assistant-dock .md-assistant-category-chip {
+    flex-basis: 4.875rem;
+    min-width: 4.875rem;
+    padding-inline: var(--md-space-1);
+  }
+
+  #unified-assistant-dock .md-assistant-category-label {
+    font-size: 0.6875rem;
+  }
+
+  #unified-assistant-dock
     > #assistant-input-area.md-assistant-composer
     #assistantInput {
     padding-inline: var(--md-space-2);
@@ -1679,6 +1820,10 @@ body[data-md-mode="discover"] #globe-map-control.md-map-control-stack {
     width: min(24rem, 48vw);
     max-height: calc(100dvh - var(--md-shell-top) - var(--md-shell-bottom));
     transform: none;
+  }
+
+  #unified-assistant-dock > #assistant-category-rail.md-assistant-category-rail {
+    height: 5.5rem;
   }
 
   #unified-assistant-dock > #home-bottom-navigation.md-home-bottom-nav {
@@ -1705,6 +1850,12 @@ body[data-md-mode="discover"] #globe-map-control.md-map-control-stack {
     color: CanvasText;
     box-shadow: none;
     backdrop-filter: none;
+  }
+
+  #unified-assistant-dock .md-assistant-category-chip {
+    border: 1px solid ButtonText;
+    background: ButtonFace;
+    color: ButtonText;
   }
 
   #unified-assistant-dock
