@@ -268,16 +268,25 @@ export function buildStagingControlCenterOwnerAuthEnvironment(
   }
 
   const users = parseDashboardUsers(environment);
-  const collision = users.some(
-    (user) =>
-      user &&
-      typeof user === "object" &&
-      (String(user.id ?? "") === stagingControlCenterOwnerIdentity.id ||
-        String(user.email ?? "")
-          .trim()
-          .toLowerCase() === email),
-  );
-  if (collision) {
+  const matchingUsers = users.filter((user) => {
+    if (!user || typeof user !== "object") return false;
+    const idMatches =
+      String(user.id ?? "") === stagingControlCenterOwnerIdentity.id;
+    const emailMatches =
+      String(user.email ?? "")
+        .trim()
+        .toLowerCase() === email;
+    return idMatches || emailMatches;
+  });
+  const existingOwner =
+    matchingUsers.length === 1 &&
+    String(matchingUsers[0].id ?? "") === stagingControlCenterOwnerIdentity.id &&
+    String(matchingUsers[0].email ?? "")
+      .trim()
+      .toLowerCase() === email
+      ? matchingUsers[0]
+      : null;
+  if (matchingUsers.length > 0 && !existingOwner) {
     throw new Error("STAGING_CONTROL_CENTER_OWNER_USER_COLLISION");
   }
 
@@ -288,8 +297,12 @@ export function buildStagingControlCenterOwnerAuthEnvironment(
     businessIds: [],
   };
 
+  const retainedUsers = existingOwner
+    ? users.filter((user) => user !== existingOwner)
+    : users;
+
   return Object.freeze({
-    DASHBOARD_USERS_JSON: JSON.stringify([...users, owner]),
+    DASHBOARD_USERS_JSON: JSON.stringify([...retainedUsers, owner]),
     DASHBOARD_ADMIN_GLOBAL_BYPASS_CONFIRMED: "true",
   });
 }
