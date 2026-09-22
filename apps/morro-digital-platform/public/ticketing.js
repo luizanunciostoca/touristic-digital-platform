@@ -216,6 +216,8 @@ function friendlyError(error, fallback = copy.createReservationFailed) {
   if (code.includes("INVENTORY_UNAVAILABLE")) return copy.static.unavailable;
   if (code.includes("CURRENCY_MISMATCH")) return copy.static.currencyMismatch;
   if (code.includes("EXPIRED")) return copy.static.quoteExpired;
+  if (code.includes("ATTEMPT_PENDING"))
+    return copy.static.pendingReservationAttempt;
   if (
     code.includes("FEATURE_DISABLED") ||
     code.includes("UNAVAILABLE") ||
@@ -974,10 +976,12 @@ function reservationAttemptReference(inventoryId, quantity) {
       sessionStorage.getItem(reservationAttemptStorageKey) || "null",
     );
     if (
-      current?.fingerprint === fingerprint &&
-      typeof current.reference === "string" &&
+      typeof current?.reference === "string" &&
       current.reference.startsWith("web_")
     ) {
+      if (current.fingerprint !== fingerprint) {
+        throw new Error("RESERVATION_ATTEMPT_PENDING");
+      }
       return current.reference;
     }
   } catch {
@@ -1250,6 +1254,9 @@ async function submitReservation(event) {
     setMessage(copy.reservationCreated);
     await createCheckout(payload.data);
   } catch (error) {
+    if (error?.status >= 400 && error?.status < 500) {
+      clearReservationAttempt();
+    }
     setMessage(friendlyError(error, copy.createReservationFailed), true);
     await Promise.allSettled([loadOffers(), loadReservations()]);
   } finally {
